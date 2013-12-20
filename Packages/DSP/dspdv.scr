@@ -1,0 +1,16 @@
+delete config:dsp(*) 
+set config:dsp("sb_b0_d1f_f6.edp")={BINARY:"<<../../../../Packages/DSP/sb_b0_d1f_f6.edp"} persist,nocache,readonly 
+set config:dsp("sb_b0_d4_f0.edp")={BINARY:"<<../../../../Packages/DSP/sb_b0_d4_f0.edp"} persist,nocache,readonly 
+set config:dsp("sb_dply.edp")={BINARY:"<<../../../../Packages/DSP/sb_dply.edp"} persist,nocache,readonly 
+set config:dsp("sb_fgen.edp")={BINARY:"<<../../../../Packages/DSP/sb_fgen.edp"} persist,nocache,readonly 
+set config:dsp("sb_ietm.edp")={BINARY:"<<../../../../Packages/DSP/sb_ietm.edp"} persist,nocache,readonly 
+set config:dsp("sb_tamb.edp")={BINARY:"<<../../../../Packages/DSP/sb_tamb.edp"} persist,nocache,readonly 
+set config:dsp("sb_tchg.edp")={BINARY:"<<../../../../Packages/DSP/sb_tchg.edp"} persist,nocache,readonly 
+set config:dsp("sb_tcpu.edp")={BINARY:"<<../../../../Packages/DSP/sb_tcpu.edp"} persist,nocache,readonly 
+set config:dsp("sb_temp.edp")={BINARY:"<<../../../../Packages/DSP/sb_temp.edp"} persist,nocache,readonly 
+set config:dsp("sb_tfan.edp")={BINARY:"<<../../../../Packages/DSP/sb_tfan.edp"} persist,nocache,readonly 
+set config:dsp("sb_tmem.edp")={BINARY:"<<../../../../Packages/DSP/sb_tmem.edp"} persist,nocache,readonly 
+set config:dsp("sb_tpwr.edp")={BINARY:"<<../../../../Packages/DSP/sb_tpwr.edp"} persist,nocache,readonly 
+set config:dsp("sb_wgig.edp")={BINARY:"<<../../../../Packages/DSP/sb_wgig.edp"} persist,nocache,readonly 
+set config:dsp("sb_wifi.edp")={BINARY:"<<../../../../Packages/DSP/sb_wifi.edp"} persist,nocache,readonly 
+set config:dsp("sb_wwan.edp")={BINARY:"<<../../../../Packages/DSP/sb_wwan.edp"} persist,nocache,readonly 

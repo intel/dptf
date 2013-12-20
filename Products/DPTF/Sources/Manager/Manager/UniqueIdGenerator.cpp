@@ -1,0 +1,57 @@
+/******************************************************************************
+** Copyright (c) 2013 Intel Corporation All Rights Reserved
+**
+** Licensed under the Apache License, Version 2.0 (the "License"); you may not
+** use this file except in compliance with the License.
+**
+** You may obtain a copy of the License at
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+** WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+******************************************************************************/
+#include "UniqueIdGenerator.h"
+
+UniqueIdGenerator* UniqueIdGenerator::uniqueIdGenerator = NULL;
+
+UniqueIdGenerator::UniqueIdGenerator(void) : m_nextId(0)
+{
+}
+
+UniqueIdGenerator::~UniqueIdGenerator(void)
+{
+}
+
+UniqueIdGenerator* UniqueIdGenerator::instance(void)
+{
+    if (uniqueIdGenerator == NULL)
+    {
+        uniqueIdGenerator = new UniqueIdGenerator();
+    }
+    return uniqueIdGenerator;
+}
+
+void UniqueIdGenerator::destroy(void)
+{
+    if (uniqueIdGenerator != NULL)
+    {
+        delete uniqueIdGenerator;
+        uniqueIdGenerator = NULL;
+    }
+}
+
+UInt64 UniqueIdGenerator::getNextId(void)
+{
+    UInt64 id;
+
+    m_mutex.lock();
+    id = m_nextId++;
+    m_mutex.unlock();
+
+    return id;
+}

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+rm -fr build/*
+cp -fR * ../Sources/
+cd ../Sources/build
+cmake -DIN_SOURCE_BUILD=YES -DCMAKE_BUILD_TYPE=Debug -DBUILD_ARCH=64bit ..

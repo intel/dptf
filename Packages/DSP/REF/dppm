@@ -1,0 +1,20 @@
+getp 014 D0 255 -u 105 -l 0                            ;GET_TEMPERATURE
+getp 072 D0 255 -u 2 -l 2                              ;GET_TEMPERATURE_THRESHOLD_COUNT
+getp 015 D0 255 -u 20 -l 20                            ;GET_TEMPERATURE_THRESHOLD_HYSTERESIS
+getp 143 D0 000 -u 105 -l 0                            ;GET_TEMPERATURE_THRESHOLDS
+getp 143 D0 001 -u 105 -l 0                            ;GET_TEMPERATURE_THRESHOLDS
+getp 001 D0 000 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 001 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 002 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 003 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 004 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 005 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 006 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 007 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 008 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 009 -u 105 -l 0                            ;GET_TRIP_POINT_ACTIVE
+getp 013 D0 255 -u 105 -l 0                            ;GET_TRIP_POINT_CRITICAL
+getp 012 D0 255 -u 105 -l 0                            ;GET_TRIP_POINT_HOT
+getp 011 D0 255 -u 105 -l 0                            ;GET_TRIP_POINT_PASSIVE
+getp 165 D0 255 -u 105 -l 0                            ;GET_TRIP_POINT_WARM
+rem exit

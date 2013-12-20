@@ -1,0 +1,509 @@
+/******************************************************************************
+** Copyright (c) 2013 Intel Corporation All Rights Reserved
+**
+** Licensed under the Apache License, Version 2.0 (the "License"); you may not
+** use this file except in compliance with the License.
+**
+** You may obtain a copy of the License at
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+** WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+******************************************************************************/
+#include "PassivePolicy.h"
+#include "Constants.h"
+#include <algorithm>
+#include <set>
+#include <map>
+#include "PassiveControlStatus.h"
+#include "TargetLimitAction.h"
+#include "TargetUnlimitAction.h"
+#include "TargetNoAction.h"
+#include "TargetCheckLaterAction.h"
+
+using namespace std;
+
+static const Guid MyGuid(0xD6, 0x41, 0xA4, 0x42, 0x6A, 0xAE, 0x2B, 0x46, 0xA8, 0x4B, 0x4A, 0x8C, 0xE7, 0x90, 0x27, 0xD3);
+static const string MyName("Passive Policy");
+
+PassivePolicy::PassivePolicy(void)
+    : PolicyBase(),
+    m_trt(std::vector<ThermalRelationshipTableEntry>()),
+    m_utilizationBiasThreshold(Percentage(0))
+{
+}
+
+PassivePolicy::~PassivePolicy(void)
+{
+}
+
+void PassivePolicy::onCreate(void)
+{
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::ParticipantSpecificInfoChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPowerControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPerformanceControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPerformanceControlsChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainCoreControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPriorityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayStatusChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyInitiatedCallback);
+    m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
+    m_callbackScheduler.reset(new CallbackScheduler(getPolicyServices(), m_trt, getTime()));
+}
+
+void PassivePolicy::onDestroy(void)
+{
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::ParticipantSpecificInfoChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainPowerControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainPerformanceControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainPerformanceControlsChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainCoreControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainPriorityChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainDisplayControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainDisplayStatusChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyInitiatedCallback);
+}
+
+void PassivePolicy::onEnable(void)
+{
+    reloadTrtAndCheckAllTargets();
+}
+
+void PassivePolicy::onDisable(void)
+{
+    // no defined action for this event
+}
+
+void PassivePolicy::onConnectedStandbyEntry(void)
+{
+    // no defined action for this event
+}
+
+void PassivePolicy::onConnectedStandbyExit(void)
+{
+    reloadTrtAndCheckAllTargets();
+}
+
+bool PassivePolicy::autoNotifyPlatformOscOnCreateDestroy() const
+{
+    return true;
+}
+
+bool PassivePolicy::autoNotifyPlatformOscOnConnectedStandbyEntryExit() const
+{
+    return false;
+}
+
+bool PassivePolicy::autoNotifyPlatformOscOnEnableDisable() const
+{
+    return true;
+}
+
+Guid PassivePolicy::getGuid(void) const
+{
+    return MyGuid;
+}
+
+string PassivePolicy::getName(void) const
+{
+    return MyName;
+}
+
+string PassivePolicy::getStatusAsXml(void) const
+{
+    XmlNode* root = XmlNode::createRoot();
+    XmlNode* format = XmlNode::createComment("format_id=D641A426AAE2B46A84B4A8CE79027D3");
+    root->addChild(format);
+    XmlNode* status = XmlNode::createWrapperElement("passive_policy_status");
+    status->addChild(getParticipantTracker().getXmlForPassiveTripPoints());
+    status->addChild(m_trt.getXml());
+    PassiveControlStatus controlStatus(m_trt, getParticipantTracker());
+    status->addChild(controlStatus.getXml());
+    status->addChild(getParticipantTracker().getXmlForTripPointStatistics());
+    status->addChild(m_callbackScheduler->getXml());
+    root->addChild(status);
+    string statusString = root->toString();
+    delete root;
+    return statusString;
+}
+
+void PassivePolicy::onBindParticipant(UIntN participantIndex)
+{
+    postDebugMessage(PolicyMessage(FLF, "Binding participant.", participantIndex));
+    getParticipantTracker().remember(participantIndex);
+    associateParticipantInTrt(getParticipantTracker()[participantIndex]);
+    m_callbackScheduler->setTrt(m_trt);
+}
+
+void PassivePolicy::onUnbindParticipant(UIntN participantIndex)
+{
+    postDebugMessage(PolicyMessage(FLF, "Unbinding participant.", participantIndex));
+    m_trt.disassociateParticipant(participantIndex);
+    m_callbackScheduler->removeParticipantFromSchedule(participantIndex);
+    m_callbackScheduler->setTrt(m_trt);
+    m_targetMonitor.stopMonitoring(participantIndex);
+    getParticipantTracker().forget(participantIndex);
+}
+
+void PassivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
+{
+    if (getParticipantTracker().remembers(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
+        getParticipantTracker()[participantIndex].bindDomain(domainIndex);
+
+        if (participantIsSourceDevice(participantIndex))
+        {
+            getParticipantTracker()[participantIndex].initializeControlsForAllDomains();
+        }
+
+        if (participantIsTargetDevice(participantIndex))
+        {
+            auto currentTemperature = 
+                getParticipantTracker()[participantIndex][0].getTemperatureProperty().getCurrentTemperature().getTemperature();
+            setParticipantTemperatureThresholdNotification(getParticipantTracker()[participantIndex], currentTemperature);
+            notifyPlatformOfDeviceTemperature(getParticipantTracker()[participantIndex], currentTemperature);
+            takeThermalActionForTarget(participantIndex);
+        }
+    }
+}
+
+void PassivePolicy::onUnbindDomain(UIntN participantIndex, UIntN domainIndex)
+{
+    if (getParticipantTracker().remembers(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(FLF, "Unbinding domain for participant.", participantIndex, domainIndex));
+        getParticipantTracker()[participantIndex].unbindDomain(domainIndex);
+    }
+}
+
+void PassivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
+{
+    if (participantIsTargetDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Specific info changed for target participant.", participantIndex));
+        getParticipantTracker()[participantIndex].getPassiveTripPointProperty().refresh();
+        takeThermalActionForTarget(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
+{
+    if (participantIsTargetDevice(participantIndex))
+    {
+        auto currentTemperature =
+            getParticipantTracker()[participantIndex][0].getTemperatureProperty().getCurrentTemperature();
+        postDebugMessage(PolicyMessage(FLF,
+            "Temperature threshold crossed for target participant " + to_string(participantIndex) +
+            " with temperature " + currentTemperature.toString() + "."));
+        getParticipantTracker()[participantIndex].setThresholdCrossed(
+            currentTemperature, getTime()->getCurrentTimeInMilliseconds());
+        setParticipantTemperatureThresholdNotification(
+            getParticipantTracker()[participantIndex], currentTemperature.getTemperature());
+        notifyPlatformOfDeviceTemperature(
+            getParticipantTracker()[participantIndex], currentTemperature.getTemperature());
+        takeThermalActionForTarget(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainPowerControlCapabilityChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Power control capabilities changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getPowerControl().refreshCapabilities();
+        }
+
+        takeThermalActionForAllTargetsForSource(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainPerformanceControlCapabilityChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Performance control capabilities changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getPerformanceControl().refreshCapabilities();
+        }
+
+        takeThermalActionForAllTargetsForSource(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainPerformanceControlsChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Performance control set changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getPerformanceControl().refreshControls();
+        }
+
+        takeThermalActionForAllTargetsForSource(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainCoreControlCapabilityChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Core control capabilities changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getCoreControl().refreshCapabilities();
+        }
+
+        takeThermalActionForAllTargetsForSource(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainDisplayControlCapabilityChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Display control capabilities changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getDisplayControl().refreshCapabilities();
+        }
+
+        takeThermalActionForAllTargetsForSource(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainDisplayStatusChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Display status changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getDisplayControl().invalidateStatus();
+        }
+
+        takeThermalActionForAllTargetsForSource(participantIndex);
+    }
+}
+
+void PassivePolicy::onDomainPriorityChanged(UIntN participantIndex)
+{
+    if (participantIsSourceDevice(participantIndex))
+    {
+        postDebugMessage(PolicyMessage(
+            FLF, "Domain priority changed for source participant.", participantIndex));
+        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
+            domain.getDomainPriorityProperty().refresh();
+        }
+    }
+}
+
+void PassivePolicy::onThermalRelationshipTableChanged(void)
+{
+    postDebugMessage(PolicyMessage(FLF, "Thermal Relationship Table changed"));
+    m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
+    vector<UIntN> allIndicies = getParticipantTracker().getAllTrackedIndexes();
+    for (auto index = allIndicies.begin(); index != allIndicies.end(); ++index)
+    {
+        associateParticipantInTrt(getParticipantTracker()[*index]);
+    }
+    m_callbackScheduler->setTrt(m_trt);
+}
+
+void PassivePolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2)
+{
+    UIntN targetIndex = (UIntN) param1;
+    if (participantIsTargetDevice(targetIndex))
+    {
+        m_callbackScheduler->acknowledgeCallback(targetIndex);
+        postDebugMessage(PolicyMessage(FLF,
+            "Callback received for target participant " + to_string(targetIndex) + ".", targetIndex));
+        takeThermalActionForTarget((UIntN)param1);
+    }
+}
+
+void PassivePolicy::onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
+{
+    m_callbackScheduler->setTimeObject(timeObject);
+}
+
+void PassivePolicy::takeThermalActionForTarget(UIntN target)
+{
+    TargetActionBase* action = determineAction(target);
+    action->execute();
+    delete action;
+}
+
+TargetActionBase* PassivePolicy::determineAction(UIntN target)
+{
+    ParticipantProxy& participant = getParticipantTracker()[target];
+    auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature().getTemperature();
+    auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+    auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+    if (currentTemperature > psv)
+    {
+        return new TargetLimitAction(
+            getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+            m_targetMonitor, m_utilizationBiasThreshold, target);
+    }
+    else if ((currentTemperature < psv) && (m_targetMonitor.isMonitoring(target)))
+    {
+        return new TargetUnlimitAction(
+            getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+            m_targetMonitor, m_utilizationBiasThreshold, target);
+    }
+    else if (currentTemperature == psv)
+    {
+        return new TargetCheckLaterAction(
+            getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+            m_targetMonitor, m_utilizationBiasThreshold, target);
+    }
+    else
+    {
+        return new TargetNoAction(
+            getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+            m_targetMonitor, m_utilizationBiasThreshold, target);
+    }
+}
+
+void PassivePolicy::setParticipantTemperatureThresholdNotification(
+    ParticipantProxy& participant,
+    Temperature currentTemperature)
+{
+    auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+    auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+    auto lowerBoundTemperature = Constants::Invalid;
+    auto upperBoundTemperature = psv;
+    if (currentTemperature.getTemperature() >= psv)
+    {
+        if (passiveTripPoints.hasItem(ParticipantSpecificInfoKey::NTT))
+        {
+            // lower bound is psv + some multiple of ntt
+            // upper bound is lower bound + ntt
+            auto ntt = passiveTripPoints.getItem(ParticipantSpecificInfoKey::NTT);
+            lowerBoundTemperature = psv;
+            while ((lowerBoundTemperature + ntt) <= currentTemperature.getTemperature())
+            {
+                lowerBoundTemperature += ntt;
+            }
+            upperBoundTemperature = lowerBoundTemperature + ntt;
+        }
+        else
+        {
+            lowerBoundTemperature = psv;
+            upperBoundTemperature = Constants::Invalid;
+        }
+    }
+    participant.setTemperatureThresholds(lowerBoundTemperature, upperBoundTemperature);
+}
+
+void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxy& participant, UIntN currentTemperature)
+{
+    auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+    if (passiveTripPoints.hasItem(ParticipantSpecificInfoKey::NTT))
+    {
+        auto ntt = passiveTripPoints.getItem(ParticipantSpecificInfoKey::NTT);
+        auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+        if (currentTemperature >= (psv + ntt))
+        {
+            participant.notifyPlatformOfDeviceTemperature(currentTemperature);
+        }
+    }
+}
+
+void PassivePolicy::associateParticipantInTrt(ParticipantProxy& participant)
+{
+    m_trt.associateParticipant(
+        participant.getParticipantProperties().getAcpiInfo().getAcpiScope(),
+        participant.getIndex());
+}
+
+void PassivePolicy::takeThermalActionForAllTargetsForSource(UIntN source)
+{
+    vector<ThermalRelationshipTableEntry> entries = m_trt.getEntriesForSource(source);
+    for (auto entry = entries.begin(); entry != entries.end(); entry++)
+    {
+        takeThermalActionForTarget(entry->targetDeviceIndex());
+    }
+}
+
+void PassivePolicy::reloadTrtAndCheckAllTargets()
+{
+    m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
+    vector<UIntN> allParticipants = getParticipantTracker().getAllTrackedIndexes();
+    for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
+    {
+        associateParticipantInTrt(getParticipantTracker()[*index]);
+        if (m_trt.isParticipantTargetDevice(*index))
+        {
+            getParticipantTracker()[*index].getPassiveTripPointProperty().refresh();
+        }
+    }
+    m_callbackScheduler->setTrt(m_trt);
+
+    for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
+    {
+        if (m_trt.isParticipantTargetDevice(*index))
+        {
+            auto currentTemperature =
+                getParticipantTracker()[*index][0].getTemperatureProperty().getCurrentTemperature().getTemperature();
+            setParticipantTemperatureThresholdNotification(getParticipantTracker()[*index], currentTemperature);
+            notifyPlatformOfDeviceTemperature(getParticipantTracker()[*index], currentTemperature);
+            takeThermalActionForTarget(*index);
+        }
+    }
+}
+
+Bool PassivePolicy::participantIsSourceDevice(UIntN participantIndex)
+{
+    return getParticipantTracker().remembers(participantIndex) &&
+           m_trt.isParticipantSourceDevice(participantIndex);
+}
+
+Bool PassivePolicy::participantIsTargetDevice(UIntN participantIndex)
+{
+    return getParticipantTracker().remembers(participantIndex) &&
+           m_trt.isParticipantTargetDevice(participantIndex);
+}
+
+Bool PassivePolicy::participantIsSourceOrTargetDevice(UIntN participantIndex)
+{
+    return participantIsSourceDevice(participantIndex) ||
+           participantIsTargetDevice(participantIndex);
+}

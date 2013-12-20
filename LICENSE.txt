@@ -1,0 +1,2 @@
+Please check the beginning of each individual source code file for the license
+that the file is licensed under.

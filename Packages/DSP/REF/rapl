@@ -1,0 +1,37 @@
+rem format xml
+rem log rapl.xml
+rem echo <results>
+getp 128 D0 255                                        ;GET_RAPL_ENERGY
+getp 128 D1 255                                        ;GET_RAPL_ENERGY
+getp 128 D2 255                                        ;GET_RAPL_ENERGY
+getp 123 D0 255                                        ;GET_RAPL_ENERGY_UNIT
+getp 021 D0 255                                        ;GET_PROC_THERMAL_DESIGN_POWER
+getp 035 D0 255                                        ;GET_RAPL_POWER
+getp 035 D1 255                                        ;GET_RAPL_POWER
+getp 035 D2 255                                        ;GET_RAPL_POWER
+getp 075 D0 255 -b sb_b0_d4_f0_75_D0_255.bin           ;GET_RAPL_POWER_CONTROL_CAPABILITIES
+getp 038 D0 001                                        ;GET_RAPL_POWER_LIMIT
+getp 038 D0 002                                        ;GET_RAPL_POWER_LIMIT
+getp 038 D1 000                                        ;GET_RAPL_POWER_LIMIT
+getp 038 D2 000                                        ;GET_RAPL_POWER_LIMIT
+getp 126 D0 001 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_ENABLE
+getp 126 D0 002 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_ENABLE
+getp 126 D1 000 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_ENABLE
+getp 126 D2 000 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_ENABLE
+getp 172 D0 255 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_LOCK
+getp 172 D1 255 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_LOCK
+getp 172 D2 255 -u 1 -l 0                              ;GET_RAPL_POWER_LIMIT_LOCK
+getp 023 D0 000                                        ;GET_RAPL_POWER_MAX
+getp 024 D0 255                                        ;GET_RAPL_POWER_MAX_TIME_WINDOW
+getp 124 D0 255 -u 3 -l 3                              ;GET_RAPL_POWER_UNIT
+getp 122 D0 255 -u 10 -l 10                            ;GET_RAPL_TIME_UNIT
+getp 039 D0 001                                        ;GET_RAPL_TIME_WINDOW
+getp 039 D0 002                                        ;GET_RAPL_TIME_WINDOW
+getp 039 D1 000                                        ;GET_RAPL_TIME_WINDOW
+getp 039 D2 000                                        ;GET_RAPL_TIME_WINDOW
+getp 145 D1 255                                        ;GET_RAPL_TURBO_PRIORITY
+getp 145 D2 255                                        ;GET_RAPL_TURBO_PRIORITY
+getp 022 D0 000                                        ;GET_RAPL_POWER_MIN
+rem echo </results>
+rem nolog
+rem exit
