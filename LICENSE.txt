@@ -1,2 +1,6 @@
-Please check the beginning of each individual source code file for the license
-that the file is licensed under.
+The contents of this repository is licenced under the Apache 2.0 license for
+user mode components and a dual BSD/GPLv2 license for the kernel mode
+components.
+
+Please refer to each individual source code file for the appropriate licenses.
+
