@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CHROMIUM_SDK_ROOT=./
+CHROMIUM_SDK_ROOT=`pwd`
 BUILD_DIRECTORY=./chrome_build
 
 echo -e "Chromium SDK located in $CHROMIUM_SDK_ROOT\n"
