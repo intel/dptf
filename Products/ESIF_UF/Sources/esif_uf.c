@@ -314,7 +314,8 @@ eEsifError esif_uf_init (esif_string home_dir)
 #ifdef ESIF_ATTR_MEMTRACE
 	u32 *memory_leak = 0;
 	esif_memtrace_init();
-	memory_leak = (u32*)esif_ccb_malloc(sizeof(*memory_leak)); // intentional memory leak for debugging
+	UNREFERENCED_PARAMETER(memory_leak);
+	//memory_leak = (u32*)esif_ccb_malloc(sizeof(*memory_leak)); /* intentional memory leak for debugging */
 #endif
 
 	ESIF_TRACE_DEBUG("%s: Init Upper Framework (UF)", ESIF_FUNC);
@@ -482,6 +483,16 @@ exit:
 
 void esif_memtrace_init ()
 {
+	struct memalloc_s *mem = g_memtrace.allocated;
+
+	// Ignore any allocations made before this function was called
+	while (mem) {
+		struct memalloc_s *node = mem;
+		mem = mem->next;
+		free(node); /* native */
+
+	}
+	g_memtrace.allocated = NULL;
 	atomic_ctor(&g_memtrace.allocs);
 	atomic_ctor(&g_memtrace.frees);
 }
@@ -492,29 +503,27 @@ void esif_memtrace_exit ()
 {
 	struct memalloc_s *mem = g_memtrace.allocated;
 	char tracefile[MAX_PATH];
+	FILE *tracelog=NULL;
 
 	CMD_OUT("UserMem: Allocs=%lu Frees=%lu\n", (unsigned long)atomic_read(&g_memtrace.allocs), (unsigned long)atomic_read(&g_memtrace.frees));
 	if (!mem)
 		goto exit;
 
-	CMD_OUT("\n*** MEMORY LEAKS DETECTED ***\n");
-#ifdef ESIF_ATTR_DEBUG
 	esif_ccb_sprintf(MAX_PATH, tracefile, "%s%s", ESIFDV_DIR, "memtrace.txt");
-	esif_ccb_fopen(&g_debuglog, tracefile, "w");
+	CMD_OUT("\n*** MEMORY LEAKS DETECTED ***\nFor details see %s\n", tracefile);
+	esif_ccb_fopen(&tracelog, tracefile, "w");
 	while (mem) {
 		struct memalloc_s *node=mem;
 		size_t i; (i);
-		CMD_OUT("[%s @%s:%d]: (%lld bytes) %p\n", mem->func, mem->file, mem->line, (long long)mem->size, mem->mem_ptr);
+		if (tracelog)
+			fprintf(tracelog, "[%s @%s:%d]: (%lld bytes) %p\n", mem->func, mem->file, mem->line, (long long)mem->size, mem->mem_ptr);
 		mem = mem->next;
 		free(node->mem_ptr); /* native */
 		free(node); /* native */
 	}
-	g_memtrace.allocated = 0;
-	if (g_debuglog) {
-		esif_ccb_fclose(g_debuglog);
-		g_debuglog = 0;
-	}
-#endif
+	g_memtrace.allocated = NULL;
+	if (tracelog)
+		esif_ccb_fclose(tracelog);
 exit:
 	atomic_dtor(&g_memtrace.allocs);
 	atomic_dtor(&g_memtrace.frees);

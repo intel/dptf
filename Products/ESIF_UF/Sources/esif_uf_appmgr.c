@@ -283,8 +283,22 @@ eEsifError EsifAppMgrInit ()
 
 void EsifAppMgrExit ()
 {
+	u8 i = 0;
+	EsifAppPtr a_app_ptr = NULL;
+
 	EsifAppExit();
 	ESIF_TRACE_DEBUG("%s: Exit Action Manager (APPMGR)", ESIF_FUNC);
+
+	esif_ccb_read_lock(&g_appMgr.fLock);
+	for (i = 0; i < ESIF_MAX_APPS; i++) {
+		a_app_ptr = &g_appMgr.fEntries[i];
+		
+		if (NULL != a_app_ptr->fLibNamePtr) {
+			esif_ccb_free(a_app_ptr->fLibNamePtr);
+			esif_ccb_memset(a_app_ptr, 0, sizeof(*a_app_ptr));
+		}
+	}
+	esif_ccb_read_unlock(&g_appMgr.fLock);
 }
 
 

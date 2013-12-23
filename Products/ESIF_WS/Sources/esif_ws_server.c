@@ -67,6 +67,7 @@ static int esif_ws_server_process_websok_or_http_request (int);
 static int esif_ws_server_write_to_socket (int, const UInt8*, size_t);
 static void esif_ws_server_setup_buffer (size_t*, UInt8*);
 static void esif_ws_server_setup_frame (int clientSocket, size_t*, UInt8*);
+static void esif_ws_server_destroy_ptr(char **ptr);
 
 
 static eEsifError esif_ws_server_hanlde_keep_alive_start ();
@@ -237,6 +238,11 @@ int esif_ws_init (char *directory)
 					printf("Client %d disconnected\n", client_socket);
 					FD_CLR((u_int)client_socket, &readSet);
 				}
+				esif_ws_server_destroy_ptr(&g_client[client_socket].prot.hostField);
+				esif_ws_server_destroy_ptr(&g_client[client_socket].prot.keyField);
+				esif_ws_server_destroy_ptr(&g_client[client_socket].prot.originField);
+				esif_ws_server_destroy_ptr(&g_client[client_socket].prot.webpage);
+				esif_ws_server_destroy_ptr(&g_client[client_socket].prot.web_socket_field);
 			}
 		}
 
@@ -344,6 +350,9 @@ void esif_ws_server_set_rest_api (
 			// aw printf("REST COMMAND OUT(%u) |%s|\n", msg_id, g_rest_out);
 		}
 	}
+	esif_ccb_free(g_client[clientSocket].buf.msgReceive);
+	g_client[clientSocket].buf.msgReceive = NULL;
+	g_client[clientSocket].buf.rcvSize = 0;
 }
 
 
@@ -687,6 +696,9 @@ static int esif_ws_server_process_websok_or_http_request (int clientSocket)
 				recPtr = getOutgoingWebsockMessage(clientSocket);
 				// aw printf("send REST api: %s   esif_ccb_strlen: %d\n",recPtr->buf.msgSend, (int)esif_ccb_strlen(recPtr->buf.msgSend, BUFFER_LENGTH));
 				esif_ws_socket_build_payload((UInt8*)recPtr->buf.msgSend, recPtr->buf.sendSize, buffer, &frameSize, TEXT_FRAME);
+				esif_ccb_free(recPtr->buf.msgSend);
+				recPtr->buf.msgSend = NULL;
+				recPtr->buf.sendSize = 0;
 #else
 				// aw printf("send REST api: %s   esif_ccb_strlen: %d\n",recieved_string, (int)esif_ccb_strlen((const char *)recieved_string, BUFFER_LENGTH) );
 				esif_ws_socket_build_payload(recieved_string, dataSize, buffer, &frameSize, TEXT_FRAME);
@@ -741,6 +753,15 @@ static void esif_ws_server_setup_frame (
 	esif_ccb_mutex_unlock(&g_web_socket_lock);
 	*numRcv = 0;
 	esif_ccb_memset(buf, 0, BUFFER_LENGTH);
+}
+
+
+static void esif_ws_server_destroy_ptr (char **ptr)
+{
+	if (ptr && *ptr) {
+		esif_ccb_free(*ptr);
+		*ptr = 0;
+	}
 }
 
 

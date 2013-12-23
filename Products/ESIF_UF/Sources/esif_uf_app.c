@@ -498,7 +498,10 @@ eEsifError EsifAppCreateParticipant (
 	}
 
 exit:
-
+	if (participant_data_ptr) {
+		esif_ccb_free(participant_data_ptr);
+		participant_data_ptr = NULL;
+	}
 	return rc;
 }
 
@@ -656,7 +659,7 @@ eEsifError EsifAppStop (EsifAppPtr appPtr)
 	ESIF_ASSERT(appPtr != NULL);
 
 	rc = EsifUpManagerDestroyParticipantsInApp(appPtr);
-	ESIF_TRACE_DEBUG("%s EsifUpManagerDestroyParticipantsInApp completed.\n", ESIF_FUNC);   
+	ESIF_TRACE_DEBUG("%s EsifUpManagerDestroyParticipantsInApp completed.\n", ESIF_FUNC);
 
 	rc = appPtr->fInterface.fAppDestroyFuncPtr(appPtr->fHandle);
 	if (ESIF_OK == rc) {

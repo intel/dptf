@@ -902,6 +902,8 @@ retry:
 								temp_buf);
 
 						if (NULL != replaced) {
+							if (replaced_str[j])
+								esif_ccb_free(replaced_str[j]);							
 							param_str = replaced;
 							replaced_str[j] = replaced;
 							ESIF_TRACE_VERBOSE_EX("\tEXPANDED data %s\n", param_str);
