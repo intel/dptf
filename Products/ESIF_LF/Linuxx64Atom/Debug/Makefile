@@ -57,7 +57,7 @@ ESIF_LF_SRC   := ../../Sources
 ESIF_LF_LINSRC:= $(ESIF_LF_SRC)/lin
 
 obj-m := dptf_acpi.o dptf_cpu.o dptf_pch.o dptf_plat.o esif_lf.o
-ccflags-y := -I $(src)/$(ESIF_CM_SRC) -I $(src)/$(ESIF_LF_SRC)
+ccflags-y := -I$(src)/$(ESIF_CM_SRC) -I$(src)/$(ESIF_LF_SRC)
 ccflags-y += -g 
 ccflags-y += -Wno-multichar -Wall -Wno-error 
 ccflags-y += -DESIF_ATTR_KERNEL 
