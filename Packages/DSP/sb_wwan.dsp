@@ -42,11 +42,11 @@ T,1,6,,,1,8
 T,4,5,,,0,8
 T,29,6,,,1,8
 #
-E,"RFCS",0x96A88C88-A778-4484-9FF5-FD46DBDB09C1,33,4,24,0x127FB178-2FF0-4286-8A3F-9161B6E87D57
+E,"RFCS",0x96A88C88-A778-4484-9FF5-FD46DBDB09C1,33,4,3,0x127FB178-2FF0-4286-8A3F-9161B6E87D57
 E,"RFPC",0x740EE466-E3E4-4A9D-B210-C788A19553A4,32,4,24,0xC13C9EAF-9F51-4027-BFE2-E278152D238B
 #
 D,"DFL","Default Domain","D0","E03D4763-1EC3-4D3C-AFAE-4CFA1D0B42F5",0,15
-C,0x6100 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x2
+C,0x6100 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x2,0x0
 #
 # GET_DEVICE_DESCRIPTION
 P,60,255,1,24,"<schema></schema>",9,"<schema></schema>"
@@ -60,15 +60,74 @@ A,0,4,True,"_UID",,,,
 # GET_PARTICIPANT_TYPE
 P,139,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"PTYP",,,,
+# GET_RFPROFILE_BIT_ERROR
+P,265,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,16,,,,
+A,1,1,True,0,,,,
 # GET_RFPROFILE_CENTER_FREQUENCY
-P,245,255,1,24,"<schema></schema>",4,"<schema></schema>"
-A,0,1,True,1500000,,,,
-# GET_RFPROFILE_FREQUENCY_SPREAD
+P,245,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,41,False,0,,,,
+A,1,1,True,1500000,,,,
+# GET_RFPROFILE_CHANNEL_NUMBER
+P,260,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,1,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CLIP_PERCENT_LEFT
+P,255,255,2,24,"<schema></schema>",29,"<schema></schema>"
+A,0,41,False,2,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CLIP_PERCENT_RIGHT
+P,256,255,2,24,"<schema></schema>",29,"<schema></schema>"
+A,0,41,False,3,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CONNECT_STATUS
+P,264,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,4,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
+P,254,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,41,False,5,,,,
+A,1,1,True,1500000,,,,
+# GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
+P,257,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,41,False,6,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
 P,246,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,1,True,15000,,,,
-# GET_RFPROFILE_SHAPE
+A,0,41,False,7,,,,
+A,1,1,True,1,,,,
+# GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT
+P,251,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,8,,,,
+A,1,1,True,1,,,,
+# GET_RFPROFILE_NOISE_POWER
+P,261,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,9,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_NOTCH_LEFT
+P,258,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,10,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_NOTCH_RIGHT
+P,259,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,11,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_RSSI
+P,263,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,12,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_SHAPE_LEFT
 P,247,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,1,True,0,,,,
+A,0,41,False,13,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_SHAPE_RIGHT
+P,253,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,14,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO
+P,262,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,41,False,15,,,,
+A,1,1,True,0,,,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,

@@ -56,10 +56,10 @@ ESIF_CM_SRC   := ../../../ESIF_CM/Sources
 ESIF_LF_SRC   := ../../Sources
 ESIF_LF_LINSRC:= $(ESIF_LF_SRC)/lin
 
-obj-m := dptf_acpi.o dptf_cpu.o dptf_pch.o dptf_plat.o esif_lf.o
+obj-m := dptf_acpi.o dptf_cpu.o dptf_pch.o esif_lf.o
 ccflags-y := -I$(src)/$(ESIF_CM_SRC) -I$(src)/$(ESIF_LF_SRC)
 ccflags-y += -g 
-ccflags-y += -Wno-multichar -Wall -Wno-error 
+ccflags-y += -Wno-multichar -Wall -Wno-error
 ccflags-y += -DESIF_ATTR_KERNEL 
 ccflags-y += -DESIF_ATTR_OS_LINUX 
 ccflags-y += -DESIF_ATTR_DEBUG
@@ -74,8 +74,6 @@ dptf_cpu-objs   := $(ESIF_LF_LINSRC)/dptf_cpu_os_lin.o
 dptf_cpu-objs   += $(ESIF_CM_SRC)/esif_debug.o
 dptf_pch-objs   := $(ESIF_LF_LINSRC)/dptf_pch_os_lin.o
 dptf_pch-objs   += $(ESIF_CM_SRC)/esif_debug.o
-dptf_plat-objs  := $(ESIF_LF_LINSRC)/dptf_plat_os_lin.o
-dptf_plat-objs  += $(ESIF_CM_SRC)/esif_debug.o
 
 # OS Specific
 esif_lf-objs := $(ESIF_LF_LINSRC)/esif_lf_os_lin.o

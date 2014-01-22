@@ -29,7 +29,7 @@
 # =====                            ======
 #
 #
-# H=Name, VerMaj, VerMin, Description, Type, BusEnum, acpiDevice, acpiUID, acpi{96A88C88-A778-4484-9FF5-FD46DBDB09C1}Type, acpiScope, pciVendorID, pciDeviceID, pciBus, pciDevice, pciFunction, pciRevision, pciClass, pciSubClass, pciProgIF
+# H=Name, VerMaj, VerMin, Description, Type, BusEnum, acpiDevice, acpiUID, acpiType, acpiScope, pciVendorID, pciDeviceID, pciBus, pciDevice, pciFunction, pciRevision, pciClass, pciSubClass, pciProgIF
 # T=actionType, tempXform, tempC1, tempC2, powerXform, timeXform
 # E=alias, eventKey, eventType, eventGroup, eventDataType, eventGUID
 # D=name, description, qualifier, domainType, priority
@@ -41,7 +41,7 @@ H,"sb_tchg",1,0,"Charger Device","6FF74A52-B08D-4B94-81CC-71044B523C40",0,"INT34
 #
 #
 D,"DFL","Default Domain","D0","FC63FDCD-2F77-4681-AC3E-D21BA20E535C",0,11
-C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
+C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_DEVICE_DESCRIPTION
 P,60,255,1,24,"<schema></schema>",9,"<schema></schema>"
@@ -146,7 +146,7 @@ P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
-P,81,255,2,7,"<schema></schema>",24,"<schema></schema>"
+P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_SCP",,,,
 # SET_DEVICE_TEMPERATURE_INDICATION
 P,51,255,2,6,"<schema></schema>",24,"<schema></schema>"

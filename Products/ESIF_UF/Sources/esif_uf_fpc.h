@@ -154,7 +154,7 @@ struct esif_fpc_algorithm {
 
 /* Must Be Aligned With DSP's event.h: event{} */
 struct esif_fpc_event {
-	char  name[32];
+	char  name[MAX_NAME_STRING_LENGTH];
 	u8    event_key[ESIF_GUID_LEN];					/* Event ID */
 	enum esif_event_type esif_event;	/* ESIF Event */
 	u8    event_guid[ESIF_GUID_LEN];	/* Event GUID */

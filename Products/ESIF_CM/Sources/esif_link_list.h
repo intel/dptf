@@ -71,19 +71,19 @@ struct esif_link_list {
 };
 
 /* Linked List Node */
-struct esif_link_list_node *esif_link_list_create_node (void *data_ptr);
-void esif_link_list_destroy_node (struct esif_link_list_node *node_ptr);
+struct esif_link_list_node *esif_link_list_create_node(void *data_ptr);
+void esif_link_list_destroy_node(struct esif_link_list_node *node_ptr);
 
 /* Linked List */
-struct esif_link_list *esif_link_list_create (void);
-void esif_link_list_destroy (struct esif_link_list *list_ptr);
+struct esif_link_list *esif_link_list_create(void);
+void esif_link_list_destroy(struct esif_link_list *list_ptr);
 
-void esif_link_list_node_add (struct esif_link_list *list_ptr,
-			      struct esif_link_list_node *new_node_ptr);
+void esif_link_list_node_add(struct esif_link_list *list_ptr,
+			     struct esif_link_list_node *new_node_ptr);
 
 /* Init */
-enum esif_rc esif_link_list_init (void);
-void esif_link_list_exit (void);
+enum esif_rc esif_link_list_init(void);
+void esif_link_list_exit(void);
 
 #ifdef ESIF_ATTR_USER
 typedef struct esif_link_list EsifLinkList, *EsifLinkListPtr,

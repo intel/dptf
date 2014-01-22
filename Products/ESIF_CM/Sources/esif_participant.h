@@ -76,13 +76,14 @@
 #ifndef ESIF_ATTR_OS_LINUX_DRIVER
 struct esif_lp {
 	u8  instance;			/* Lower Participant Instance */
+	char pi_name[ESIF_NAME_LEN];	/* PI Name */
 	struct esif_participant_iface *pi_ptr;	/* Particpant INTERFACE */
 	u8  enable;			/* Boolean Enable Disable */
 	struct esif_lp_dsp *dsp_ptr;			/* DSP */
 	/* Number Of Qualifiers For A Participant */
-	u8  domain_count;		
+	u8  domain_count;
 	/* Domains For Participants */
-	struct esif_lp_domain  domains[ESIF_DOMAIN_MAX]; 
+	struct esif_lp_domain  domains[ESIF_DOMAIN_MAX];
 
 	/* XFORM Temperature */
 	enum esif_rc  (*xform_temp)(const enum esif_temperature_type,
@@ -120,9 +121,9 @@ typedef struct _t_EsifUpData {
 	char          fDesc[ESIF_DESC_LEN];		/* Description */
 	char          fDriverName[ESIF_NAME_LEN];	/* Driver Name */
 	char          fDeviceName[ESIF_NAME_LEN];	/* Device Name */
-	char          fDevicePath[ESIF_PATH_LEN]; /* Device Path 
+	char          fDevicePath[ESIF_PATH_LEN]; /* Device Path
 						  * /sys/bus/platform...*/
-	
+
 	enum esif_participant_enum fEnumerator; /* Device Enumerator If Any */
 	esif_flags_t  fFlags;				/* Flags If Any */
 

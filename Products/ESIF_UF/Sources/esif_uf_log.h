@@ -22,6 +22,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifndef ESIF_ATTR_OS_WINDOWS
+# include <syslog.h>
+#endif
+
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include "win\messages.h"
 void report_event_to_event_log (WORD eventCategory, WORD eventType, char *pFormat, ...);
@@ -34,8 +38,7 @@ extern char*esif_str_replace (char *orig, char *rep, char *with);
 /* Primitive Opcodes String */
 static ESIF_INLINE esif_string esif_log_type_str (eLogType logType)
 {
-	#define CREATE_LOG_TYPE(lt) case lt: \
-	str = (char*) #lt;break;
+	#define CREATE_LOG_TYPE(lt) case lt: str = (char*) #lt; break;
 	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
 	switch (logType) {
 		CREATE_LOG_TYPE(eLogTypeFatal)
@@ -83,7 +86,7 @@ static void PostLog (
 	esif_ccb_vsprintf(BUF_SIZE - str_len, &buf[str_len], theFormat, argList);
 	va_end(argList);
 
-	printf("%s\n", buf);
+	// printf("%s\n", buf);
 
 	/* JDH  Send To OS Kludge For Alpha Abstract This */
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -114,6 +117,32 @@ static void PostLog (
 	default:
 		report_event_to_event_log(CATEGORY_GENERAL, EVENTLOG_INFORMATION_TYPE, buf);
 		break;
+	}
+#else
+	/* Write non-Windows Log messages to syslog */
+	{
+		int priority=0;
+		switch (theType) {
+		case eLogTypeDebug:
+			priority = LOG_DEBUG;
+			break;
+		case eLogTypeError:
+			priority = LOG_ERR;
+			break;
+		case eLogTypeFatal:
+			priority = LOG_EMERG;
+			break;
+		case eLogTypeWarning:
+			priority = LOG_WARNING;
+			break;
+		case eLogTypeInfo:
+		default:
+			priority = LOG_INFO;
+			break;
+		}
+		openlog("DPTF", LOG_PID,  LOG_DAEMON);
+		syslog(priority, "%s", buf);
+		closelog();
 	}
 #endif
 }

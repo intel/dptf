@@ -1558,6 +1558,7 @@ static DEVICE_ATTR(_debug_module_level,
 /* Instrument Class Thermal */
 enum esif_rc esif_lf_instrument_capability(struct esif_lp_domain *lpd_ptr)
 {
+	int rc = 0;
 	/* Only Instrument Once */
 	if (NULL != lpd_ptr->tzd_ptr || NULL != lpd_ptr->cdev_ptr)
 		return ESIF_E_UNSPECIFIED;
@@ -1585,12 +1586,20 @@ enum esif_rc esif_lf_instrument_capability(struct esif_lp_domain *lpd_ptr)
 			ESIF_TRACE_ERROR("%s: tzd_error\n", ESIF_FUNC);
 
 		/* Enhance Thermal File Sysem For NOW */
-		sysfs_create_link(&lpd_ptr->tzd_ptr->device.kobj,
+		rc = sysfs_create_link(&lpd_ptr->tzd_ptr->device.kobj,
 				  &lpd_ptr->device.kobj,
 				  "device");
-		sysfs_create_link(&lpd_ptr->device.kobj,
+
+		if (rc)
+			return ESIF_E_UNSPECIFIED;
+
+
+		rc = sysfs_create_link(&lpd_ptr->device.kobj,
 				  &lpd_ptr->tzd_ptr->device.kobj,
 				  "tzd");
+
+		if (rc)
+			return ESIF_E_UNSPECIFIED;
 
 		if (lpd_ptr->capabilities & ESIF_CAPABILITY_TEMP_STATUS) {
 			device_create_file(&lpd_ptr->tzd_ptr->device,
@@ -1617,12 +1626,19 @@ enum esif_rc esif_lf_instrument_capability(struct esif_lp_domain *lpd_ptr)
 
 
 		/* Enhance Cooling Device For NOW */
-		sysfs_create_link(&lpd_ptr->cdev_ptr->device.kobj,
+		rc = sysfs_create_link(&lpd_ptr->cdev_ptr->device.kobj,
 				  &lpd_ptr->device.kobj,
 				  "device");
-		sysfs_create_link(&lpd_ptr->device.kobj,
+
+		if (rc)
+			return ESIF_E_UNSPECIFIED;
+
+		rc = sysfs_create_link(&lpd_ptr->device.kobj,
 				  &lpd_ptr->cdev_ptr->device.kobj,
 				  "cdev");
+
+		if (rc)
+			return ESIF_E_UNSPECIFIED;
 	}
 
 	/* Provide RAPL ? */
@@ -2020,7 +2036,7 @@ static int acpi_add(struct acpi_device *dev_ptr)
 
 
 /* Remove */
-static int acpi_remove(struct acpi_device *dev_ptr)
+static int acpi_remove(struct acpi_device *dev_ptr, int type)
 {
 	enum esif_rc rc = ESIF_OK;
 	ESIF_TRACE_DEBUG("%s: acpi_dev %p\n", ESIF_FUNC, dev_ptr);

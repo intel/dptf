@@ -221,7 +221,7 @@ static enum esif_rc insert_algorithm(
 }
 
 
-/* Get Algorithm From Linked List */
+/* Get Algorithm Of An Action From Linked List */
 struct esif_cpc_algorithm *get_algorithm(
 	const struct esif_lp_dsp *dsp_ptr,
 	const enum esif_action_type action_type
@@ -242,6 +242,27 @@ struct esif_cpc_algorithm *get_algorithm(
 	return NULL;
 }
 
+/* Has This Algorithm In DSP From Linked List Or Not */
+static u32 dsp_has_algorithm(
+	const struct esif_lp_dsp *dsp_ptr,
+	const enum esif_algorithm_type algo)
+{
+	struct esif_link_list *list_ptr = dsp_ptr->algo_ptr;
+	struct esif_link_list_node *curr_ptr = list_ptr->head_ptr;
+	struct esif_cpc_algorithm *curr_algo_ptr = NULL;
+
+	while (curr_ptr) {
+		curr_algo_ptr = (struct esif_cpc_algorithm *)curr_ptr->data_ptr;
+		if (curr_algo_ptr != NULL) {
+			if ((enum esif_algorithm_type) curr_algo_ptr->temp_xform == algo || 
+			    (enum esif_algorithm_type) curr_algo_ptr->power_xform == algo ||
+			    (enum esif_algorithm_type) curr_algo_ptr->time_xform == algo ) 
+				return ESIF_TRUE;
+		}
+		curr_ptr = curr_ptr->next_ptr;
+	}
+	return ESIF_FALSE; 
+}
 
 /* Insert Events Into Link List */
 static enum esif_rc insert_event(
@@ -568,11 +589,8 @@ static struct esif_lp_dsp *esif_dsp_alloc(void)
 {
 	struct esif_lp_dsp *dsp_ptr = NULL;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	dsp_ptr = (struct esif_lp_dsp *)esif_ccb_mempool_zalloc(
-			g_mempool[ESIF_MEMPOOL_TYPE_DSP]);
-	esif_ccb_read_unlock(&g_mempool_lock);
-
+	dsp_ptr = (struct esif_lp_dsp *)
+			esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_DSP);
 	if (NULL == dsp_ptr)
 		return NULL;
 
@@ -595,7 +613,10 @@ static struct esif_lp_dsp *esif_dsp_alloc(void)
 	dsp_ptr->insert_algorithm      = insert_algorithm;
 	dsp_ptr->insert_event = insert_event;
 	dsp_ptr->get_primitive         = get_primitive;
-	dsp_ptr->get_algorithm         = get_algorithm;
+
+	dsp_ptr->get_algorithm        = get_algorithm;
+	dsp_ptr->dsp_has_algorithm    = dsp_has_algorithm;
+
 	dsp_ptr->get_action = get_action;
 	dsp_ptr->get_event  = get_event;
 
@@ -612,9 +633,7 @@ static void esif_dsp_free(struct esif_lp_dsp *dsp_ptr)
 
 	esif_ccb_lock_uninit(&dsp->lock);
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_DSP], dsp_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_DSP, dsp_ptr);
 }
 
 
@@ -722,11 +741,17 @@ void esif_dsp_unload(struct esif_lp *lp_ptr)
 	if (NULL != lp_ptr->dsp_ptr->evt_ptr)
 		esif_link_list_destroy(lp_ptr->dsp_ptr->evt_ptr);
 
-	if (NULL != lp_ptr->dsp_ptr)
+	if (NULL != lp_ptr->dsp_ptr->ht_ptr)
 		esif_hash_table_destroy(lp_ptr->dsp_ptr->ht_ptr);
 
 	if (NULL != lp_ptr->dsp_ptr->cpc_ptr)
 		esif_cpc_free(lp_ptr->dsp_ptr);
+
+	if (NULL != lp_ptr->dsp_ptr->table) {
+		esif_ccb_free(lp_ptr->dsp_ptr->table);
+		lp_ptr->dsp_ptr->table = NULL;
+		lp_ptr->dsp_ptr->table_size = 0;
+	}
 
 	esif_dsp_free(lp_ptr->dsp_ptr);
 	lp_ptr->dsp_ptr = NULL;
@@ -740,15 +765,11 @@ enum esif_rc esif_dsp_init(void)
 
 	ESIF_TRACE_DYN_INIT("%s: Initialize DSP Engine\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_mempool_lock);
-	mempool_ptr = esif_ccb_mempool_create(ESIF_MEMPOOL_FW_DSP,
+	mempool_ptr = esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_DSP,
+					      ESIF_MEMPOOL_FW_DSP,
 					      sizeof(struct esif_lp_dsp));
-	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
+	if (NULL == mempool_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
-	g_mempool[ESIF_MEMPOOL_TYPE_DSP] = mempool_ptr;
-	esif_ccb_write_unlock(&g_mempool_lock);
 
 	esif_cpc_init();
 	return ESIF_OK;
@@ -760,10 +781,6 @@ void esif_dsp_exit(void)
 {
 	esif_cpc_exit();
 
-	esif_ccb_write_lock(&g_mempool_lock);
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_DSP]);
-	g_mempool[ESIF_MEMPOOL_TYPE_DSP] = NULL;
-	esif_ccb_write_unlock(&g_mempool_lock);
 	ESIF_TRACE_DYN_INIT("%s: Exit DSP Engine\n", ESIF_FUNC);
 }
 

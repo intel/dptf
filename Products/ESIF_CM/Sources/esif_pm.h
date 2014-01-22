@@ -79,9 +79,9 @@ enum esif_pm_participant_state {
 	/* Removed participant */
 	ESIF_PM_PARTICIPANT_REMOVED,
 	/* Created Lower Participant Instance */
-	ESIF_PM_PARTICIPANT_STATE_CREATED, 
+	ESIF_PM_PARTICIPANT_STATE_CREATED,
 	/* In The Process Of Registering */
-	ESIF_PM_PARTICIPANT_STATE_REGISTERING,	
+	ESIF_PM_PARTICIPANT_STATE_REGISTERING,
 	ESIF_PM_PARTICIPANT_STATE_NEEDDSP,	/* Need DSP To Continue */
 	ESIF_PM_PARTICIPANT_STATE_REQUESTDSP,	/* Requested DSP */
 	ESIF_PM_PARTICIPANT_STATE_REGISTERED,	/* Registered And Ready To Go */
@@ -100,7 +100,7 @@ static ESIF_INLINE esif_string esif_pm_participant_state_str(
 		CREATE_STATE(ESIF_PM_PARTICIPANT_REMOVED, "REMOVED", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_CREATED, "CREATED", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_REGISTERING, "REGISTERING", str)
-		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_NEEDDSP, "NEED_DSP", str) 
+		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_NEEDDSP, "NEED_DSP", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_REQUESTDSP, "REQUESTED_DSP", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_REGISTERED, "REGISTERED", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_OPERATIONAL, "OPERATIONAL", str)
@@ -129,15 +129,10 @@ enum esif_rc esif_lf_pm_lp_set_state(
 	const enum esif_pm_participant_state state);
 
 /* Get LP Instance By ID */
-struct esif_lp*esif_lf_pm_lp_get_by_instance_id(const u8 id);
+struct esif_lp *esif_lf_pm_lp_get_by_instance_id(const u8 id);
 
 /* Get Interface By ID */
 struct esif_participant_iface *esif_lf_pm_pi_get_by_instance_id(const u8 id);
-
-/* Get PI By LP Pointer */
-struct esif_participant_iface *esif_lf_pm_pi_get_by_lp(
-	/* Lower Participant Instance */
-	const struct esif_lp *lp_ptr);
 
 /* Get LP By PI Pointer */
 struct esif_lp *esif_lf_pm_lp_get_by_pi(
@@ -149,8 +144,8 @@ struct esif_lp *esif_lf_pm_lp_create(
 	/* Participant Interface */
 	struct esif_participant_iface *pi_ptr);
 
-/* Destroy Participant */
-void esif_lf_pm_lp_destroy (
+/* Remove Participant */
+void esif_lf_pm_lp_remove(
 	/* Lower Participant */
 	struct esif_lp *lp_ptr);
 

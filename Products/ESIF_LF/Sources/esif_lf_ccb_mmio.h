@@ -63,7 +63,7 @@ static ESIF_INLINE void esif_ccb_mmio_read(
 	u32 *val_ptr
 	)
 {
-	u8 *p = (u8*)val_ptr;
+	u8 *p = (u8 *)val_ptr;
 	int i = 0;
 
 	/*
@@ -72,10 +72,10 @@ static ESIF_INLINE void esif_ccb_mmio_read(
 	 */
 	for (i = 0; i < 4; i++, p++) {
 #ifdef ESIF_ATTR_OS_LINUX
-		*(u8*)p = (readb(base_addr + reg + i));
+		*(u8 *)p = (readb(base_addr + reg + i));
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
-		*(u8*)p = (READ_REGISTER_UCHAR((PUCHAR)base_addr + reg + i));
+		*(u8 *)p = (READ_REGISTER_UCHAR((PUCHAR)base_addr + reg + i));
 #endif
 	}
 }
@@ -88,12 +88,12 @@ static ESIF_INLINE void esif_ccb_mmio_write(
 	u32 val
 	)
 {
-	u8 *p = (u8*)&val;
+	u8 *p = (u8 *)&val;
 	int i = 0;
 
 	for (i = 0; i < 4; i++, p++) {
 #ifdef ESIF_ATTR_OS_LINUX
-		writeb(*p, (void __iomem*)base_addr + reg + i);
+		writeb(*p, (void __iomem *)base_addr + reg + i);
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
 		WRITE_REGISTER_UCHAR((PUCHAR)base_addr + reg + i, *p);

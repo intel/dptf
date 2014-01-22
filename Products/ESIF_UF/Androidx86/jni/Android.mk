@@ -46,7 +46,6 @@ LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_event.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_ipc.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_pm.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_primitive.c
-LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_rest.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_service.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_shell.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_test.c

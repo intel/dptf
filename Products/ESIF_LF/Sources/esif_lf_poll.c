@@ -84,7 +84,9 @@ int g_background = 1000;/* 1 Seconds */
 
 
 /* Poll For Power and Send Event If Threshold Crossed */
-static enum esif_rc esif_poll_power(struct esif_lp_domain *lpd_ptr)
+static enum esif_rc esif_poll_power(
+	struct esif_lp_domain *lpd_ptr
+	)
 {
 	enum esif_rc rc       = ESIF_OK;
 	u32 energy_units      = 0;
@@ -184,22 +186,6 @@ static enum esif_rc esif_poll_power(struct esif_lp_domain *lpd_ptr)
 			}
 		}
 
-#if 0  /* LIFU: TODO: verify and remove old 0.1 accuracy logic */
-		power = (lpd_ptr->rapl_energy_units_per_sec *
-			 energy_joules) / 100000; /* .1 of watt accuracy */
-		/* Normalized from DeciW */
-		esif_convert_power(ESIF_POWER_DECIW,
-				   NORMALIZE_POWER_UNIT_TYPE,
-				   &power);
-		ESIF_TRACE_DYN_RAPL("%s: POWER %d %s(%d)\n",
-				    ESIF_FUNC,
-				    power,
-				    esif_power_unit_desc(
-					    NORMALIZE_POWER_UNIT_TYPE),
-				    NORMALIZE_POWER_UNIT_TYPE);
-
-		lpd_ptr->rapl_power = power;
-#else
 		power = (lpd_ptr->rapl_energy_units_per_sec *
 			 energy_joules) / 1000; /* .001 of watt accuracy */
 
@@ -215,7 +201,6 @@ static enum esif_rc esif_poll_power(struct esif_lp_domain *lpd_ptr)
 				    NORMALIZE_POWER_UNIT_TYPE);
 
 		lpd_ptr->rapl_power = power;
-#endif
 
 		/*
 		 * Now Check For Threshold
@@ -259,7 +244,9 @@ exit:
 
 
 /* Poll For Temperature and Send Event If Threshold Crossed */
-static enum esif_rc esif_poll_temperature(struct esif_lp_domain *lpd_ptr)
+static enum esif_rc esif_poll_temperature(
+	struct esif_lp_domain *lpd_ptr
+	)
 {
 	enum esif_rc rc = ESIF_OK;
 	u32 temp        = 0;
@@ -319,7 +306,9 @@ exit:
 }
 
 
-void esif_poll(void *context_ptr)
+void esif_poll(
+	void *context_ptr
+	)
 {
 	struct esif_lp_domain *lpd_ptr = (struct esif_lp_domain *)context_ptr;
 
@@ -328,7 +317,7 @@ void esif_poll(void *context_ptr)
 
 	ESIF_TRACE_DYN_POLL("%s: Timer %s:%s\n",
 			    ESIF_FUNC,
-			    lpd_ptr->lp_ptr->pi_ptr->name,
+			    lpd_ptr->lp_ptr->pi_name,
 			    lpd_ptr->name_ptr);
 
 	/* No DSP No Work */
@@ -352,7 +341,9 @@ void esif_poll(void *context_ptr)
 
 
 /* Start Poll */
-void esif_poll_start(struct esif_lp_domain *lpd_ptr)
+void esif_poll_start(
+	struct esif_lp_domain *lpd_ptr
+	)
 {
 	if (ESIF_TRUE == lpd_ptr->poll || 0 == g_background)
 		return;
@@ -371,7 +362,9 @@ void esif_poll_start(struct esif_lp_domain *lpd_ptr)
 
 
 /* Stop All Poll Domain For Participants Instance */
-void esif_poll_start_all(struct esif_lp *lp_ptr)
+void esif_poll_start_all(
+	struct esif_lp *lp_ptr
+	)
 {
 	u8 domain_index = 0;
 
@@ -382,7 +375,9 @@ void esif_poll_start_all(struct esif_lp *lp_ptr)
 
 
 /* Stop Poll */
-void esif_poll_stop(struct esif_lp_domain *lpd_ptr)
+void esif_poll_stop(
+	struct esif_lp_domain *lpd_ptr
+	)
 {
 	if (ESIF_FALSE == lpd_ptr->poll)
 		return;
@@ -397,17 +392,6 @@ void esif_poll_stop(struct esif_lp_domain *lpd_ptr)
 	lpd_ptr->rapl_energy_units_current = 0;
 	lpd_ptr->rapl_power = 0;
 	lpd_ptr->poll = ESIF_FALSE;
-}
-
-
-/* Stop All Poll Domains For Participants Instance */
-void esif_poll_stop_all(struct esif_lp *lp_ptr)
-{
-	u8 domain_index = 0;
-
-	for (domain_index = 0; domain_index < lp_ptr->domain_count;
-	     domain_index++)
-		esif_poll_stop(&lp_ptr->domains[domain_index]);
 }
 
 

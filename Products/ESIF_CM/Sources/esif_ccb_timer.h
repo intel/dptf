@@ -97,10 +97,10 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(esif_ccb_timer_context_t,
 
 #ifdef ESIF_ATTR_OS_LINUX
 /* Timer Callback Wrapper  Find And Fire Function */
-static ESIF_INLINE void esif_ccb_timer_cb_wrapper (struct work_struct *work)
+static ESIF_INLINE void esif_ccb_timer_cb_wrapper(struct work_struct *work)
 {
 	esif_ccb_timer_t *timer_ptr = container_of(
-			(struct delayed_work*)work,
+			(struct delayed_work *)work,
 			esif_ccb_timer_t,
 			work);
 
@@ -121,7 +121,7 @@ static ESIF_INLINE void esif_ccb_timer_cb_wrapper (struct work_struct *work)
 
 EVT_WDF_TIMER esif_ccb_timer_cb_wrapper;
 
-ESIF_INLINE void esif_ccb_timer_cb_wrapper (WDFTIMER timer)
+ESIF_INLINE void esif_ccb_timer_cb_wrapper(WDFTIMER timer)
 {
 	esif_ccb_timer_context_t *timer_context_ptr =
 		esif_ccb_get_timer_context(timer);
@@ -141,7 +141,7 @@ ESIF_INLINE void esif_ccb_timer_cb_wrapper (WDFTIMER timer)
 
 /* Timer Initialize */
 static ESIF_INLINE
-enum esif_rc esif_ccb_timer_init (esif_ccb_timer_t *timer_ptr)
+enum esif_rc esif_ccb_timer_init(esif_ccb_timer_t *timer_ptr)
 {
 	enum esif_rc rc = ESIF_E_UNSPECIFIED;
 #ifdef ESIF_ATTR_OS_LINUX
@@ -171,9 +171,8 @@ enum esif_rc esif_ccb_timer_init (esif_ccb_timer_t *timer_ptr)
 					       esif_ccb_timer_context_t);
 	status = WdfTimerCreate(&timer_config, &timer_attributes, timer_ptr);
 	TIMER_DEBUG("%s: timer %p status %08x\n", ESIF_FUNC, timer_ptr, status);
-	if (STATUS_SUCCESS == status) {
+	if (STATUS_SUCCESS == status)
 		rc = ESIF_OK;
-	}
 
 	timer_context_ptr = esif_ccb_get_timer_context(*timer_ptr);
 	if (timer_context_ptr == NULL) {
@@ -190,7 +189,7 @@ exit:
 
 
 /* Timer Set */
-static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec (
+static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec(
 	esif_ccb_timer_t *timer_ptr,
 	esif_ccb_time_t timeout,
 	esif_ccb_timer_cb function_ptr,
@@ -220,9 +219,8 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec (
 	do_div(x, y);
 
 	result = schedule_delayed_work(&timer_ptr->work, x);
-	if (ESIF_TRUE == result) {
+	if (ESIF_TRUE == result)
 		rc = ESIF_OK;
-	}
 #endif
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -242,10 +240,8 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec (
 	/* Finally Start Timer */
 	status = WdfTimerStart(*timer_ptr, (LONG)timeout * -10000);
 	TIMER_DEBUG("%s: timer %p status %08x\n", ESIF_FUNC, timer_ptr, status);
-	if (TRUE == status) {
+	if (TRUE == status)
 		rc = ESIF_OK;
-	}
-
 #endif
 	return rc;
 }
@@ -253,7 +249,7 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec (
 
 /* Timer Stop And Destory */
 static ESIF_INLINE
-enum esif_rc esif_ccb_timer_kill (esif_ccb_timer_t *timer)
+enum esif_rc esif_ccb_timer_kill(esif_ccb_timer_t *timer)
 {
 	enum esif_rc rc = ESIF_E_UNSPECIFIED;
 #ifdef ESIF_ATTR_OS_LINUX
@@ -263,9 +259,8 @@ enum esif_rc esif_ccb_timer_kill (esif_ccb_timer_t *timer)
 	timer->exit_flag = TRUE;
 	esif_ccb_low_priority_thread_read_unlock(&timer->context_lock);
 
-	if (ESIF_TRUE == cancel_delayed_work(&timer->work)) {
+	if (ESIF_TRUE == cancel_delayed_work(&timer->work))
 		rc = ESIF_OK;
-	}
 #endif
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -337,10 +332,10 @@ typedef struct esif_ccb_timer {
  *  something goes wrong.  We simply wrap the parameters with a
  *  validity check and hope for the best.
  */
-static ESIF_INLINE void esif_ccb_timer_wrapper (const union sigval sv)
+static ESIF_INLINE void esif_ccb_timer_wrapper(const union sigval sv)
 {
 	esif_ccb_timer_ctx_t *timer_ctx_ptr =
-		(esif_ccb_timer_ctx_t*)sv.sival_ptr;
+		(esif_ccb_timer_ctx_t *)sv.sival_ptr;
 
 	ESIF_ASSERT(timer_ctx_ptr != NULL);
 	ESIF_ASSERT(timer_ctx_ptr->cb_func != NULL);
@@ -382,13 +377,13 @@ typedef struct esif_ccb_timer {
  *  validity check and hope for the best.
  */
 
-static ESIF_INLINE void esif_ccb_timer_wrapper (
+static ESIF_INLINE void esif_ccb_timer_wrapper(
 	const void *context_ptr,
 	const BOOLEAN notUsed
 	)
 {
 	esif_ccb_timer_ctx_t *timer_ctx_ptr =
-		(esif_ccb_timer_ctx_t*)context_ptr;
+		(esif_ccb_timer_ctx_t *)context_ptr;
 
 	ESIF_ASSERT(timer_ctx_ptr != NULL);
 	ESIF_ASSERT(timer_ctx_ptr->cb_func != NULL);
@@ -407,7 +402,7 @@ static ESIF_INLINE void esif_ccb_timer_wrapper (
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
 /* Windows Initialize Timer */
-static ESIF_INLINE eEsifError esif_ccb_timer_init (
+static ESIF_INLINE eEsifError esif_ccb_timer_init(
 	esif_ccb_timer_t *timer_ptr,		/* Our Timer */
 	const esif_ccb_timer_cb function_ptr,	/* Callback when timer fires */
 	void *context_ptr
@@ -420,11 +415,10 @@ static ESIF_INLINE eEsifError esif_ccb_timer_init (
 	/* Allocate and setup new data */
 	if (NULL != timer_ptr) {
 		timer_ptr->timer_ctx_ptr =
-			(esif_ccb_timer_ctx_t*)esif_ccb_malloc(sizeof(
+			(esif_ccb_timer_ctx_t *)esif_ccb_malloc(sizeof(
 								       esif_ccb_timer_ctx_t));
-		if (NULL == timer_ptr->timer_ctx_ptr) {
+		if (NULL == timer_ptr->timer_ctx_ptr)
 			return rc;
-		}
 
 		/* Store state for timer set */
 		timer_ptr->timer_ctx_ptr->cb_func        = function_ptr;
@@ -448,7 +442,7 @@ static ESIF_INLINE eEsifError esif_ccb_timer_init (
 
 		if (0 ==
 		    timer_create(CLOCK_REALTIME, &se,
-				 (timer_t*)&timer_ptr->timer)) {
+				 (timer_t *)&timer_ptr->timer)) {
 			rc = ESIF_OK;
 		}
 	}
@@ -458,7 +452,7 @@ static ESIF_INLINE eEsifError esif_ccb_timer_init (
 
 
 /* Windows Set Timer */
-static ESIF_INLINE eEsifError esif_ccb_timer_set_msec (
+static ESIF_INLINE eEsifError esif_ccb_timer_set_msec(
 	esif_ccb_timer_t *timer_ptr,		/* Our Timer */
 	const esif_ccb_time_t timeout
 	)	/* Timeout in msec */
@@ -492,9 +486,9 @@ static ESIF_INLINE eEsifError esif_ccb_timer_set_msec (
 		its.it_interval.tv_sec  = 0;
 		its.it_interval.tv_nsec = 0;
 
-		if (0 == timer_settime(timer_ptr->timer, 0, &its, NULL)) {
+		if (0 == timer_settime(timer_ptr->timer, 0, &its, NULL))
 			rc = ESIF_OK;
-		}
+
 #endif
 	}
 	return rc;
@@ -502,7 +496,7 @@ static ESIF_INLINE eEsifError esif_ccb_timer_set_msec (
 
 
 /* Windows Kill Timer */
-static ESIF_INLINE eEsifError esif_ccb_timer_kill (
+static ESIF_INLINE eEsifError esif_ccb_timer_kill(
 	const esif_ccb_timer_t *timer_ptr)	/* Our Timer */
 {
 	eEsifError rc = ESIF_E_UNSPECIFIED;
@@ -517,14 +511,12 @@ static ESIF_INLINE eEsifError esif_ccb_timer_kill (
 #endif
 
 #ifdef ESIF_ATTR_OS_LINUX
-		if (0 == timer_delete(timer_ptr->timer)) {
+		if (0 == timer_delete(timer_ptr->timer))
 			rc = ESIF_OK;
-		}
 
 #endif
-		if (timer_ptr->timer_ctx_ptr != NULL) {
+		if (timer_ptr->timer_ctx_ptr != NULL)
 			esif_ccb_free(timer_ptr->timer_ctx_ptr);
-		}
 	}
 	return rc;
 }

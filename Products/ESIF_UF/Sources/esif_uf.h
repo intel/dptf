@@ -54,8 +54,15 @@ enum esif_rc write_to_srvr_cnsl_intfc (char *pFormat, ...);
 
 #define OUT_BUF_LEN 64 * 1024
 
-#define ESIF_DIR_DSP "dsp"
-#define ESIF_DIR_CMD "cmd"
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+	defined(ESIF_ATTR_OS_CHROME)
+	#define ESIF_DIR_DSP "/usr/share/dptf/dsp"
+    #define ESIF_DIR_CMD "/usr/share/dptf/cmd"
+#else
+	#define ESIF_DIR_DSP "dsp"
+    #define ESIF_DIR_CMD "cmd"
+#endif
+
 #define ESIF_DIR_LOG "log"
 #define ESIF_DIR_BIN "bin"
 
@@ -63,9 +70,17 @@ enum esif_rc write_to_srvr_cnsl_intfc (char *pFormat, ...);
 // Set Architecture
 //
 #ifdef ESIF_ATTR_64BIT
-	#define ESIF_DIR_PRG "ufx64"
+	#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+		defined(ESIF_ATTR_OS_CHROME)
+			#define ESIF_DIR_PRG "/usr/lib"
+			#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
+	#else
+		#define ESIF_DIR_PRG "ufx64"
+	    #define ESIF_DIR_DPTF_POL "ufx64"
+	#endif
 #else
 	#define ESIF_DIR_PRG "ufx86"
+	#define ESIF_DIR_DPTF_POL "ufx86"
 #endif
 
 #define ESIF_DIR_UI  "esif_ui"

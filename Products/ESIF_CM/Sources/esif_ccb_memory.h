@@ -54,6 +54,7 @@
 #ifndef _ESIF_CCB_MEMORY_H_
 #define _ESIF_CCB_MEMORY_H_
 
+#include "esif_ccb_lock.h"
 
 #ifdef ESIF_ATTR_USER
 # include "esif.h"
@@ -62,25 +63,62 @@
 # ifdef ESIF_ATTR_MEMTRACE
 #	include "esif_ccb_atomic.h"
 	struct memalloc_s {
-		void				*mem_ptr;
-		size_t				size;
-		const char			*func;
-		const char			*file;
-		int					line;
+		void			*mem_ptr;
+		size_t			size;
+		const char		*func;
+		const char		*file;
+		int			line;
 		struct memalloc_s	*next;
 	};
 	struct memtrace_s {
-		atomic_t			allocs;
-		atomic_t			frees;
-		struct memalloc_s	*allocated; 
+		esif_ccb_lock_t		lock;
+		atomic_t		allocs;
+		atomic_t		frees;
+		struct memalloc_s	*allocated;
 	};
 
 	extern struct memtrace_s g_memtrace;
 # endif
 #endif
 
+/* memstat counters interface */
+#if defined(ESIF_ATTR_MEMSTAT_NOLOCK)
+# define memstat_inc(intptr)		((*(intptr))++)
+# define memstat_read(intptr)		(*(intptr))
+# define memstat_set(intptr, val)	(*(intptr) = (val))
+#elif defined(ESIF_ATTR_MEMSTAT_ATOMIC)
+/* TODO: Replace Inlines with these after converting g_memstat u32 to atomic_t */
+# define memstat_inc(intptr)		atomic_inc(intptr)
+# define memstat_read(intptr)		atomic_read(intptr)
+# define memstat_set(intptr, val)	atomic_set(intptr, val)
+#else
+extern esif_ccb_lock_t g_memstat_lock;
+
+static ESIF_INLINE void memstat_inc(u32 *intptr)
+{
+	esif_ccb_write_lock(&g_memstat_lock);
+	(*(intptr))++;
+	esif_ccb_write_unlock(&g_memstat_lock);
+}
+
+static ESIF_INLINE u32 memstat_read(u32 *intptr)
+{
+	u32 rc;
+	esif_ccb_read_lock(&g_memstat_lock);
+	rc = *(intptr);
+	esif_ccb_read_unlock(&g_memstat_lock);
+	return rc;
+}
+static ESIF_INLINE void memstat_set(u32 *intptr, u32 val)
+{
+	esif_ccb_write_lock(&g_memstat_lock);
+	*(intptr) = val;
+	esif_ccb_write_unlock(&g_memstat_lock);
+}
+#endif
+
 /* Memory Copy */
-static ESIF_INLINE void esif_ccb_memcpy (
+static ESIF_INLINE void esif_ccb_memcpy(
 	void *dest_ptr,
 	const void *src_ptr,
 	size_t size
@@ -110,7 +148,7 @@ static ESIF_INLINE void esif_ccb_memcpy (
 
 
 /* Memory Move */
-static ESIF_INLINE void esif_ccb_memmove (
+static ESIF_INLINE void esif_ccb_memmove(
 	void *dest_ptr,
 	const void *src_ptr,
 	size_t size
@@ -140,8 +178,7 @@ static ESIF_INLINE void esif_ccb_memmove (
 
 
 /* Memory Set */
-static ESIF_INLINE void
-*esif_ccb_memset (
+static ESIF_INLINE void *esif_ccb_memset(
 	void *s_ptr,
 	int c,
 	size_t count
@@ -170,7 +207,7 @@ extern void  esif_memtrace_exit();
 
 /* Memory Allocate */
 static ESIF_INLINE void
-*esif_ccb_malloc (size_t size)
+*esif_ccb_malloc(size_t size)
 {
 	void *mem_ptr = NULL;
 #ifdef ESIF_ATTR_KERNEL
@@ -183,20 +220,18 @@ static ESIF_INLINE void
 	mem_ptr = ExAllocatePoolWithTag(NonPagedPool,
 					size,
 					ESIF_MEMPOOL_FW_MALLOC);
-	if (NULL != mem_ptr) {
+	if (NULL != mem_ptr)
 		esif_ccb_memset(mem_ptr, 0, size);
-	}
     #endif
 
     #ifndef ESIF_ATTR_OS_LINUX_DRIVER
-	g_memstat.allocs++;
-    #endif
+	memstat_inc(&g_memstat.allocs);
+	#endif
 #endif /* ESIF_ATTR_KERNEL */
 #ifdef ESIF_ATTR_USER
 	mem_ptr = malloc(size);
-	if (NULL != mem_ptr) {
+	if (NULL != mem_ptr)
 		esif_ccb_memset(mem_ptr, 0, size);
-	}
 #endif /* ESIF_ATTR_USER */
 
 	MEMORY_DEBUG("%s: buf %p size = %u\n", ESIF_FUNC, mem_ptr, size);
@@ -206,7 +241,7 @@ static ESIF_INLINE void
 
 /* Memory Free */
 static ESIF_INLINE
-void esif_ccb_free (void *mem_ptr)
+void esif_ccb_free(void *mem_ptr)
 {
 	MEMORY_DEBUG("%s: buf %p\n", ESIF_FUNC, mem_ptr);
 #ifdef ESIF_ATTR_KERNEL
@@ -222,7 +257,7 @@ void esif_ccb_free (void *mem_ptr)
     #endif
 
     #ifndef ESIF_ATTR_OS_LINUX_DRIVER
-	g_memstat.frees++;
+	memstat_inc(&g_memstat.frees);
     #endif
 #endif /* ESIF_ATTR_KERNEL */
 #ifdef ESIF_ATTR_USER
@@ -232,8 +267,7 @@ void esif_ccb_free (void *mem_ptr)
 
 
 /* Memory Reallocate */
-static ESIF_INLINE
-void *esif_ccb_realloc (
+static ESIF_INLINE void *esif_ccb_realloc(
 	void *mem_ptr,
 	size_t new_size
 	)
@@ -251,9 +285,9 @@ void *esif_ccb_realloc (
 #endif /* ESIF_ATTR_KERNEL */
 #ifdef ESIF_ATTR_USER
 	mem_ptr = realloc(mem_ptr, new_size);
-	if (NULL == old_ptr && NULL != mem_ptr) {
+	if (NULL == old_ptr && NULL != mem_ptr)
 		esif_ccb_memset(mem_ptr, 0, new_size);
-	}
+
 	return mem_ptr;
 
 #endif
@@ -262,8 +296,7 @@ void *esif_ccb_realloc (
 #endif /* ESIF_ATTR_MEMTRACE */
 
 /* Memory Dump */
-static ESIF_INLINE
-void esif_ccb_mem_dump (
+static ESIF_INLINE void esif_ccb_mem_dump(
 	const u8 *ch,
 	const u8 *what,
 	const int size
@@ -273,7 +306,7 @@ void esif_ccb_mem_dump (
 	UNREFERENCED_PARAMETER(what);
 	MEMORY_DEBUG("%s: Dumping Memory for %s\n", ESIF_FUNC, what);
 	for (i = 0; i < size; i++, ch++)
-		MEMORY_DEBUG("<%p> 0x%02X\n", (u8*)ch, (u8) * ch);
+		MEMORY_DEBUG("<%p> 0x%02X\n", (u8 *)ch, (u8)*ch);
 	MEMORY_DEBUG("End of Memory Dump\n");
 }
 

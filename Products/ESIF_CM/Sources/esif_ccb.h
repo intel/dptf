@@ -84,7 +84,7 @@
 #include <winsock2.h>	/* Timeval Struct Def */
 #define esif_ccb_sleep(x) Sleep(x * 1000)
 #define esif_ccb_sleep_msec Sleep
-#define esif_ccb_stat(a, b) _stat(a, (struct _stat*)b)
+#define esif_ccb_stat(a, b) _stat(a, (struct _stat *)b)
 
 #endif
 

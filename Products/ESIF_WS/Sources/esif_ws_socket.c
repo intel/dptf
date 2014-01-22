@@ -60,6 +60,11 @@ static size_t esif_ws_socket_get_payload_size (const UInt8*, size_t, UInt8*, enu
  */
 void esif_ws_socket_initialize_frame (protocol *prot)
 {
+	esif_ccb_free(prot->hostField);
+	esif_ccb_free(prot->originField);
+	esif_ccb_free(prot->webpage);
+	esif_ccb_free(prot->keyField);
+	esif_ccb_free(prot->web_socket_field);
 	prot->hostField   = NULL;
 	prot->originField = NULL;
 	prot->webpage     = NULL;
@@ -71,8 +76,10 @@ void esif_ws_socket_initialize_frame (protocol *prot)
 
 void esif_ws_socket_initialize_message_buffer (msgBuffer *buf)
 {
+	esif_ccb_free(buf->msgReceive);
 	buf->msgReceive = NULL;
 	buf->rcvSize    = 0;
+	esif_ccb_free(buf->msgSend);
 	buf->msgSend    = NULL;
 	buf->rcvSize    = 0;
 }
@@ -220,7 +227,7 @@ void esif_ws_socket_build_response_header (
 	char shaHash[20];
 	char *response_key = NULL;
 	UInt32 length = (UInt32)esif_ccb_strlen(prot->keyField, MAX_SIZE) + (UInt32)esif_ccb_strlen(KEY, MAX_SIZE);
-	response_key = (char*)esif_ccb_malloc(length);
+	response_key = (char*)esif_ccb_malloc(length + 1);
 
 	if (response_key == NULL) {
 		exit(1);

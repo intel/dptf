@@ -28,11 +28,12 @@ extern EsifAppMgr g_appMgr;
 	#include <readline/history.h>
 #endif
 
-// Not ALL OS Entries Suport All Of These
-// Not Declared In Header File Intentionallly
+/* 
+** Not ALL OS Entries Suport All Of These
+** Not Declared In Header File Intentionallly
+*/
 extern FILE *g_debuglog;
 extern int g_dst;
-extern int g_autocpc;
 extern int g_autocpc;
 extern int g_binary_buf_size;
 extern int g_errorlevel;
@@ -41,12 +42,12 @@ extern int g_quit2;
 extern int g_repeat;
 extern int g_repeat_delay;
 extern int g_soe;
-esif_thread_t g_thread;
 
-// Worker Thread in esif_uf
+/* Worker Thread in esif_uf */
+esif_thread_t g_thread;
 void*esif_event_worker_thread (void *ptr);
 
-// Emulate Windows Function
+/* Emulate Windows kbhit Function */
 static int kbhit (void)
 {
 	struct termios save_t = {0};
@@ -54,22 +55,22 @@ static int kbhit (void)
 	int key     = 0;
 	int save_fc = 0;
 
-	// Get Terminal Attribute
+	/* Get Terminal Attribute */
 	tcgetattr(STDIN_FILENO, &save_t);
 	new_t = save_t;
 	new_t.c_lflag &= ~(ICANON | ECHO);
 
-	// Set Terminal Attribute
+	/* Set Terminal Attribute */
 	tcsetattr(STDIN_FILENO, TCSANOW, &new_t);
 	save_fc = fcntl(STDIN_FILENO, F_GETFL, 0);
 
-	// Add NONBLOCK To Existing File Control
+	/* Add NONBLOCK To Existing File Control */
 	fcntl(STDIN_FILENO, F_SETFL, save_fc | O_NONBLOCK);
 
-	// If No Character No Problem
+	/* If No Character No Problem */
 	key = getchar();
 
-	// Remove NONBLOCK Attribute
+	/* Remove NONBLOCK Attribute */
 	tcsetattr(STDIN_FILENO, TCSANOW, &save_t);
 	fcntl(STDIN_FILENO, F_SETFL, save_fc);
 
@@ -79,114 +80,226 @@ static int kbhit (void)
 	return 0;
 }
 
+/*
+**  Buiild Supports Deaemon?
+*/
+#if defined (ESIF_ATTR_DAEMON)
 
-#ifdef ESIF_ATTR_DAEMON
-int main (
-	int arg,
-	char * *argv
-	)
+/*
+** To Daemonize
+**
+** 1.) Call Fork.
+** 2.) Call Exit From The Parent. 
+** 3.) Call setsid().  Assign new process group and session.
+** 4.) Change working directory with chdir()
+** 5.) Close all file descriptors
+** 6.) Open file descriptors 0, 1, and 2 and redirect as necessary 
+*/
+
+static const char *cmd_in  = "/tmp/esifd.cmd";
+static const char *cmd_out = "/tmp/esifd.log"; 
+
+static int run_as_daemon(int start_with_pipe, int start_with_log)
 {
-	FILE *fp = stdin;
-	char *ptr;
-	char line[MAX_LINE + 1];
+	FILE *fp = NULL;
+	char *ptr = NULL;
+	char line[MAX_LINE + 1] = {0};
 
+	/* 1. Call Fork */ 
+	pid_t process_id = fork();
+
+	if (-1 == process_id) {
+		return -1;
+	} else if (process_id != 0) {
+		/* 2. Exit From Parent */
+		printf("\nESIF Daemon/Loader (c) 2013-2014 Intel Corp. Ver x1.0.0.1\n");
+		printf("Spawn Daemon ESIF Child Process: %d\n", process_id);
+		if (ESIF_TRUE == start_with_pipe) {
+			printf("Command Input:  %s\n", cmd_in);
+		}
+
+		if (ESIF_TRUE == start_with_log) {
+			printf("Command Output: %s\n", cmd_out);
+		}
+		exit(EXIT_SUCCESS);
+	}
+
+	/* 3. Call setsid */
+	if (-1 == setsid()) {
+		return -1;
+	}
+
+	/* Child will receive input from FIFO PIPE? */
+	if (ESIF_TRUE == start_with_pipe) {
+		if (-1 == mkfifo(cmd_in, S_IROTH)) {
+		}
+	}
+
+	/* 4. Change to known directory.  Performed in main */
+	/* 5. Close all file descriptors incuding stdin, stdout, stderr */
+	close(STDIN_FILENO); /* stdin */
+	close(STDOUT_FILENO); /* stdout */
+	close(STDERR_FILENO); /* stderr */
+
+	/* 6. Open file descriptors 0, 1, and 2 and redirect */
+	/* stdin */
+	if (ESIF_TRUE == start_with_log) {
+		open (cmd_out, O_RDWR | O_CREAT | O_TRUNC);
+	} else {
+       		open ("/dev/null", O_RDWR);
+	}
+
+	/* stdout */
+	dup(0);
+	setvbuf(stdout, NULL, _IONBF, 0);
+	/* stderr */
+	dup(0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+
+	/*
+	** Start The Daemon
+	*/
+	esif_uf_init("./");
+	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
+	cmd_app_subsystem(SUBSYSTEM_ESIF);
+
+	/* Process Input ? */
+	if (ESIF_TRUE == start_with_pipe) {
+		while (!g_quit) {
+			fp = fopen(cmd_in, "r");
+			if (NULL == fp) {
+				break;
+			}
+
+			/* Grab line from FIFO PIPE */
+			if (fgets(line, MAX_LINE, fp) == NULL) {
+				/* do nothing */
+			}
+			ptr = line;
+			while (*ptr != '\0') {
+				if (*ptr == '\r' || *ptr == '\n' || *ptr == '#') {
+					*ptr = '\0';
+				}
+				ptr++;
+			}
+
+			/* Parse and execute the command */
+			parse_cmd(line, ESIF_FALSE);
+		}
+
+		if (NULL != fp) {
+			fclose(fp);
+		}
+	}
+}
+#endif
+
+static int run_as_server(FILE* input, char* command, int quit_after_command)
+{
+	char *ptr = NULL;
+	char line[MAX_LINE + 1]  = {0};
+	char line2[MAX_LINE + 1] = {0};
+	g_debuglog = stdin;
+	
+	/* Prompt */
+	#define PROMPT_LEN 64
 	char *prompt = NULL;
-	char prompt_buf[PROMPT_LEN];
+	char full_prompt[MAX_LINE + 1] = {0};
+	char prompt_buf[PROMPT_LEN] = {0};
 	ESIF_DATA(data_prompt, ESIF_DATA_STRING, prompt_buf, PROMPT_LEN);
 
-	// Init ESIF
 	esif_uf_init("./");
+	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
+	sleep(1); 
+	cmd_app_subsystem(SUBSYSTEM_ESIF);
+ 	while (!g_quit) {
+                int count = 0;
+                // Startup Command?
+                if (command) {
+                        parse_cmd(command, ESIF_FALSE);
+                        if (ESIF_TRUE == quit_after_command) {
+                                g_quit = 1;
+                                continue;
+                        }
+                }
 
-	// PARENT PROCESS. Need to kill it.
-	pid_t process_id = fork();
-	if (process_id > 0) {
-		printf("\nESIF Daemon/Loader (c) Intel Corp. Ver x1.0.0.1\n");
-		printf("Spawn Daemon ESIF Child Process %d \n", process_id);
-		printf("Manage With /tmp/esifd.cmd e.g. cat > /tmp/esifd.cmd\n");
-		exit(0);
-	}
+                // Get User Input
+                g_appMgr.GetPrompt(&g_appMgr, &data_prompt);
+                prompt = (esif_string)data_prompt.buf_ptr;
 
-	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, NULL);
-	esif_ccb_sleep(1);
+#ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
+                // Use Readline With History
+                sprintf(full_prompt, "%s ", prompt);
+                ptr = readline(full_prompt);
+                // Add To History NO NUL's
+                if (ptr[0] != 0) {
+                        add_history(ptr);
+                }
+                strcpy(line, ptr);
+                free(ptr);
+#else
+                // No History So Sorry
+                printf("%s ", prompt);
+                if (fgets(line, MAX_LINE, input) == NULL) {
+                        break;
+                }
+                ptr = line;
+                while (*ptr != '\0') {
+                        if (*ptr == '\r' || *ptr == '\n' || *ptr == '#') {
+                                *ptr = '\0';
+                        }
+                        ptr++;
+                }
+#endif
 
-	// Child
-	int r = mkfifo("/tmp/esifd.cmd", S_IROTH);
-	printf("\nWaiting For ESIF Command On INODE /tmp/esif.cmd\n");
-	esif_ccb_sleep(1);
-	cmd_app_subsystem(SYSTEM_ESIF);	/* ESIF */
-
-	while (!g_quit) {
-		fp = fopen("/tmp/esifd.cmd", "r");
-		if (NULL == fp) {
-			break;
-		}
-
-		if (fgets(line, MAX_LINE, fp) == NULL) {
-			// Do nothing
-		}
-		ptr = line;
-		while (*ptr != '\0') {
-			if (*ptr == '\r' || *ptr == '\n' || *ptr == '#') {
-				*ptr = '\0';
-			}
-			ptr++;
-		}
-		EsifAppMgrGetPrompt(&data_prompt);
-		prompt = (esif_string)data_prompt.buf_ptr;
-
-		printf("%s ", prompt);
-		parse_cmd(line, ESIF_FALSE);
-	}
-
-	if (fp) {
-		fclose(fp);
-	}
-	while (!g_quit2)
-		sleep(1);
-	printf("ESIF Daemon Exiting...\n");
-
-	// Exit ESIF
-	esif_uf_exit();
-	exit(errorlevel);
+    		if (1 == g_repeat || !strncmp(line, "repeat", 6)) {
+                        parse_cmd(line, ESIF_FALSE);
+                } else {
+                        for (count = 0; count < g_repeat; count++) {
+                                strcpy(line2, line);
+                                parse_cmd(line2, ESIF_FALSE);   /* parse destroys command line */
+                                if (kbhit()) {
+                                        break;
+                                }
+                                if (g_soe && g_errorlevel != 0) {
+                                        break;
+                                }
+                                if (g_repeat_delay && count + 1 < g_repeat) {
+                                        esif_ccb_sleep(g_repeat_delay / 1000);
+                                }
+                        }
+                        g_repeat = 1;
+                }
+        }
 }
 
-
-#else
-int main (
-	int argc,
-	char * *argv
-	)
+int main (int argc, char **argv)
 {
-	FILE *fp = stdin;
-	char *ptr;
-	char line[MAX_LINE + 1];
-	char line2[MAX_LINE + 1];
-	char full_prompt[MAX_LINE + 1];
-	char command[MAX_LINE + 1] = {0};
-	int quit_after_command     = 0;
 	int c = 0;
-	g_debuglog = stdin;
-		#define PROMPT_LEN 64
-
-	char *prompt = NULL;
-	char prompt_buf[PROMPT_LEN];
-	int rc;
-	ESIF_DATA(data_prompt, ESIF_DATA_STRING, prompt_buf, PROMPT_LEN);
+	FILE *fp = stdin;
+	char command[MAX_LINE + 1] = {0};
+	int quit_after_command = ESIF_FALSE;
+#if defined(ESIF_ATTR_DAEMON)
+        int start_as_server = ESIF_FALSE;
+        int start_with_pipe = ESIF_FALSE;
+        int start_with_log = ESIF_FALSE;
+#else
+        int start_as_server = ESIF_TRUE;
+#endif
 
 	// Init ESIF
-	rc = chdir("..");
-	esif_uf_init("./");
+	int rc = chdir("..");
 
 	optind = 1;	// Rest To 1 Restart Vector Scan
 
-	while ((c = getopt(argc, argv, "d:f:c:b:nxhq?")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:c:b:nxhq?spl")) != -1) {
 		switch (c) {
 		case 'd':
 			g_dst = (u8)esif_atoi(optarg);
 			break;
 
 		case 'n':
-			g_autocpc = 0;
+			g_autocpc = ESIF_FALSE;
 			break;
 
 		case 'x':
@@ -206,22 +319,42 @@ int main (
 			break;
 
 		case 'q':
-			quit_after_command = 1;
+			quit_after_command = ESIF_TRUE;
 			break;
+
+#if defined (ESIF_ATTR_DAEMON)
+
+		case 's':
+			start_as_server = ESIF_TRUE;
+			break;
+
+		case 'p':
+			start_with_pipe = ESIF_TRUE;
+			break;
+
+		case 'l':
+			start_with_log = ESIF_TRUE;
+			break;
+#endif
 
 		case 'h':
 		case '?':
 			printf(
-				"EsiF Eco-System Independent Framework Shell\n"
-				"(c) 2013 Intel Corp\n\n"
-				"-d [*id]            Set Destination\n"
-				"-f [*filename]      Load Filename\n"
-				"-n                  No Auto CPC Assignment\n"
-				"-x                  XML Output Data Format\n"
-				"-c [*command]       Issue Shell Command\n"
-				"-q                  Quit After Command\n"
-				"-b [*size]          Set Binary Buffer Size\n"
-				"-h or -?            This Help\n\n");
+			"EsiF Eco-System Independent Framework Shell\n"
+			"(c) 2013 Intel Corp\n\n"
+			"-d [*id]            Set Destination\n"
+			"-f [*filename]      Load Filename\n"
+			"-n                  No Auto CPC Assignment\n"
+			"-x                  XML Output Data Format\n"
+			"-c [*command]       Issue Shell Command\n"
+			"-q                  Quit After Command\n"
+			"-b [*size]          Set Binary Buffer Size\n"
+#if defined (ESIF_ATTR_DAEMON)
+			"-s                  Run As Server\n"
+			"-p                  Use Pipe For Input\n"
+			"-l                  Use Log For Output\n"
+#endif
+			"-h or -?            This Help\n\n");
 			exit(0);
 			break;
 
@@ -229,91 +362,32 @@ int main (
 			break;
 		}
 	}
-	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, NULL);
-	esif_ccb_sleep(1);
 
-	if (NULL == fp) {
-		fp = stdin;
+#if defined (ESIF_ATTR_DAEMON)
+        if (start_as_server) {
+		run_as_server(fp, command, quit_after_command);
+	} else {
+		run_as_daemon(start_with_pipe, start_with_log);
 	}
-	cmd_app_subsystem(SUBSYSTEM_ESIF);	// ESIF
-
-	while (!g_quit) {
-		int count = 0;
-		// Startup Command?
-		if (command) {
-			parse_cmd(command, ESIF_FALSE);
-			if (quit_after_command) {
-				g_quit = 1;
-				continue;
-			}
-		}
-
-		// Get User Input
-		g_appMgr.GetPrompt(&g_appMgr, &data_prompt);
-		prompt = (esif_string)data_prompt.buf_ptr;
-
-#ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
-		// Use Readline With History
-		sprintf(full_prompt, "%s ", prompt);
-		ptr = readline(full_prompt);
-		// Add To History NO NUL's
-		if (ptr[0] != 0) {
-			add_history(ptr);
-		}
-		strcpy(line, ptr);
-		free(ptr);
 #else
-		// No History So Sorry
-		printf("%s ", prompt);
-		if (fgets(line, MAX_LINE, fp) == NULL) {
-			break;
-		}
-		ptr = line;
-		while (*ptr != '\0') {
-			if (*ptr == '\r' || *ptr == '\n' || *ptr == '#') {
-				*ptr = '\0';
-			}
-			ptr++;
-		}
+	run_as_server(fp, command, quit_after_command);
 #endif
 
-		if (1 == g_repeat || !strncmp(line, "repeat", 6)) {
-			parse_cmd(line, ESIF_FALSE);
-		} else {
-			for (count = 0; count < g_repeat; count++) {
-				strcpy(line2, line);
-				parse_cmd(line2, ESIF_FALSE);	/* parse destroys command line */
-				if (kbhit()) {
-					break;
-				}
-				if (g_soe && g_errorlevel != 0) {
-					break;
-				}
-				if (g_repeat_delay && count + 1 < g_repeat) {
-					esif_ccb_sleep(g_repeat_delay / 1000);
-				}
-			}
-			g_repeat = 1;
-		}
-	}
-	if (fp && fp != stdin) {
-		fclose(fp);
-	}
+ 	if (fp && fp != stdin) {
+                fclose(fp);
+        }
 
 	/* NICE Wait For Worker Thread To Exit */
 	printf("Waiting For EVENT Thread To Exit...\n");
-	while (!g_quit2)
+	while (!g_quit2) {
 		esif_ccb_sleep(1);
-
+	}
 	printf("Errorlevel Returned: %d\n", g_errorlevel);
 
-	// Exit ESIF
+	/* Exit ESIF */
 	esif_uf_exit();
 	exit(g_errorlevel);
 }
-
-
-#endif
 
 eEsifError esif_uf_os_init ()
 {
@@ -324,7 +398,6 @@ eEsifError esif_uf_os_init ()
 void esif_uf_os_exit ()
 {
 }
-
 
 /*****************************************************************************/
 /*****************************************************************************/

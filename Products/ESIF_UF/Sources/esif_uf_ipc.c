@@ -95,12 +95,11 @@ void ipc_connect ()
 {
 	g_ipc_handle = esif_ipc_connect((char*)SESSION_ID);
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
-		// char kern_buf[64];
 		char *kern_str = esif_cmd_info(g_out_buf);
 		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Opened\n");
 		if (NULL != kern_str) {
 			ESIF_TRACE_DEBUG("%s", kern_str);
-			esif_ccb_sprintf(64, g_esif_kernel_version, "%s", kern_str);
+			esif_ccb_sprintf(sizeof(g_esif_kernel_version), g_esif_kernel_version, "%s", kern_str);
 		}
 	}
 }

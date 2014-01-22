@@ -515,8 +515,12 @@ static void esif_ws_http_process_get_or_post (
 	if (resource[1] == '\0') {
 		printf("empty resource: %s\n", resource);
 		result = esif_ws_http_server_static_pages(buffer, "index.html", fd, ret, "text/html");
-		// if (result)
-		// esif_ws_http_send_error_code(fd, result);
+		if (result > 0)
+		{
+			esif_ws_http_send_error_code(fd, result);
+			
+		}
+		
 		return;
 	}
 
@@ -535,9 +539,18 @@ static void esif_ws_http_process_get_or_post (
 	fileType = esif_ws_http_get_file_type(fileName);
 	if (NULL != fileType) {
 		result = esif_ws_http_server_static_pages(buffer, fileName, fd, ret, fileType);
+		
+		if (result > 0)
+		{
+			esif_ws_http_send_error_code(fd, result);
+			
+		}
+	
 	} else {
 		printf("File type is not valid\n");
 	}
+	
+	esif_ws_http_send_error_code(fd, result);
 	result = result;
 }
 
@@ -549,6 +562,10 @@ static char*esif_ws_http_get_file_type (char *resource)
 	int i;
 
 	ext = strrchr(resource, '.');
+	if (!ext)
+	{
+		return NULL;
+	}
 	ext++;
 
 	for (i = 0; g_exts[i].fileExtension != 0; i++)

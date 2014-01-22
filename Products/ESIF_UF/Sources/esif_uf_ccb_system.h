@@ -47,11 +47,64 @@ static ESIF_INLINE void esif_ccb_reboot ()
 #endif
 }
 
+#if defined (ESIF_ATTR_OS_WINDOWS)
+//
+// _THERMAL_EVENT and PowerReportThermalEvent have been defined in WinBlue WDK
+// 
+#ifndef THERMAL_EVENT_VERSION
+
+#define THERMAL_EVENT_VERSION 1
+typedef struct _THERMAL_EVENT 
+{
+	ULONG Version;
+	ULONG Size;
+	ULONG Type;
+	ULONG Temperature;
+	ULONG TripPointTemperature;
+	LPWSTR Initiator; 
+} THERMAL_EVENT, *PTHERMAL_EVENT; 
+
+#endif
+
+typedef DWORD (WINAPI *PFNPOWERREPORTTHERMALEVENT)(
+    PTHERMAL_EVENT Event);
+
+#define THERMAL_EVENT_SHUTDOWN 0
+#define THERMAL_EVENT_HIBERNATE 1
+#define THERMAL_EVENT_UNSPECIFIED 0xffffffff
+
+#endif
 
 // Enter S0 Shutdown
-static ESIF_INLINE void esif_ccb_shutdown ()
+static ESIF_INLINE void esif_ccb_shutdown (UInt32 temperature, UInt32 tripPointTemperature)
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
+	/* 
+	** Report Thermal Event Before Shutdown With This UNDOCUMENTED API 
+	** Only Available in Windows 8.1/Blue.  
+    */
+
+	HMODULE hModule = LoadLibrary(L"powrprof.dll");
+	if (NULL != hModule)
+	{
+		PFNPOWERREPORTTHERMALEVENT pfnPowerReportThermalEvent = (PFNPOWERREPORTTHERMALEVENT) GetProcAddress(
+			hModule,
+			"PowerReportThermalEvent");
+
+		if (NULL != pfnPowerReportThermalEvent) {
+			THERMAL_EVENT t_event = {0};
+			t_event.Version = THERMAL_EVENT_VERSION;
+			t_event.Size = sizeof(THERMAL_EVENT);
+			t_event.Type = THERMAL_EVENT_SHUTDOWN;
+			t_event.Temperature = temperature;
+            t_event.TripPointTemperature = tripPointTemperature;
+			t_event.Initiator = L"Intel(R) Dynamic Platform Thermal Framework";
+			
+			/* Best effort we are shutting down anyway */
+			pfnPowerReportThermalEvent(&t_event);
+		}
+		FreeLibrary(hModule);
+	}
 	system("shutdown /s /f /t 0");
 #elif defined(ESIF_ATTR_OS_CHROME)
 	system("shutdown -P now");

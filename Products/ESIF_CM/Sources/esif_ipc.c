@@ -86,9 +86,9 @@
 #define RESERVED40    7	/* Reserved */
 
 #define ESIF_TRACE_DYN_INIT(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, INIT_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, INIT_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_IPC(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_DEBUG, format, ##__VA_ARGS__)
 
 /*
  * Kernel Implementation
@@ -119,31 +119,28 @@ struct esif_ipc *esif_ipc_process(
 	/* Command e.g. Get Participants, Etc. */
 	case ESIF_IPC_TYPE_COMMAND:
 		ESIF_TRACE_DYN_IPC("%s: COMMAND Received\n", ESIF_FUNC);
-		if (ipc_ptr->data_len < sizeof(struct esif_ipc_command)) {
+		if (ipc_ptr->data_len < sizeof(struct esif_ipc_command))
 			ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
-		} else {
+		else
 			ipc_ret_ptr = esif_execute_ipc_command(ipc_ptr);
-		}
 		break;
 
 	/* Retireve A Signaled Event Or Check Event Queue */
 	case ESIF_IPC_TYPE_EVENT:
 		ESIF_TRACE_DYN_IPC("%s: EVENT Received\n", ESIF_FUNC);
-		if (ipc_ptr->data_len < sizeof(struct esif_ipc_event_header)) {
+		if (ipc_ptr->data_len < sizeof(struct esif_ipc_event_header))
 			ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
-		} else {
+		else
 			ipc_ret_ptr = esif_event_queue_pull();
-		}
 		break;
 
 	/* Execute Primitive e.g. GET_TEMPERATURE */
 	case ESIF_IPC_TYPE_PRIMITIVE:
 		ESIF_TRACE_DYN_IPC("%s: PRIMITIVE Received\n", ESIF_FUNC);
-		if (ipc_ptr->data_len < sizeof(struct esif_ipc_primitive)) {
+		if (ipc_ptr->data_len < sizeof(struct esif_ipc_primitive))
 			ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
-		} else {
+		else
 			ipc_ret_ptr = esif_execute_ipc_primitive(ipc_ptr);
-		}
 		break;
 
 	/* NOOP For Testing */
@@ -250,10 +247,9 @@ struct esif_ipc *esif_ipc_alloc(
 	)
 {
 	u32 ipc_size = data_len + sizeof(struct esif_ipc);
-	struct esif_ipc *ipc_ptr = (struct esif_ipc*)esif_ccb_malloc(ipc_size);
-	if (NULL == ipc_ptr) {
+	struct esif_ipc *ipc_ptr = (struct esif_ipc *)esif_ccb_malloc(ipc_size);
+	if (NULL == ipc_ptr)
 		return NULL;
-	}
 
 	ipc_ptr->version     = ESIF_IPC_VERSION;
 	ipc_ptr->type        = type;
@@ -277,7 +273,7 @@ struct esif_ipc *esif_ipc_alloc_command(
 	)
 {
 	struct esif_ipc *ipc_ptr = NULL;
-	
+
 	ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_COMMAND,
 				 data_len + sizeof(struct esif_ipc_command));
 
@@ -285,7 +281,7 @@ struct esif_ipc *esif_ipc_alloc_command(
 		*command_ptr_ptr = NULL;
 	} else {
 		struct esif_ipc_command *command_ptr = NULL;
-		command_ptr = (struct esif_ipc_command*)(ipc_ptr + 1);
+		command_ptr = (struct esif_ipc_command *)(ipc_ptr + 1);
 
 		command_ptr->version     = ESIF_COMMAND_VERSION;
 		command_ptr->priority    = ESIF_COMMAND_PRIORITY_NORMAL;
@@ -310,7 +306,7 @@ struct esif_ipc *esif_ipc_alloc_primitive(
 		*primitive_ptr_ptr = NULL;
 	} else {
 		struct esif_ipc_primitive *primitive_ptr = NULL;
-		primitive_ptr =	(struct esif_ipc_primitive*)(ipc_ptr + 1);
+		primitive_ptr =	(struct esif_ipc_primitive *)(ipc_ptr + 1);
 
 		primitive_ptr->version     = ESIF_PRIMITIVE_VERSION;
 		primitive_ptr->payload_len = data_len;

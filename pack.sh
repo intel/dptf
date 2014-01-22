@@ -27,7 +27,7 @@ cp $CHROMIUM_SDK_ROOT/Products/ESIF_LF/Linuxx64Atom/Debug/esif_lf.ko ./drivers/
 cp $CHROMIUM_SDK_ROOT/Products/ESIF_LF/Linuxx64Atom/Debug/dptf_acpi.ko ./drivers/
 cp $CHROMIUM_SDK_ROOT/Products/ESIF_LF/Linuxx64Atom/Debug/dptf_cpu.ko ./drivers/
 cp $CHROMIUM_SDK_ROOT/Products/ESIF_LF/Linuxx64Atom/Debug/dptf_pch.ko ./drivers/
-cp $CHROMIUM_SDK_ROOT/Products/ESIF_UF/Chrome64/Debug/esif_uf ./ufx64/
+cp $CHROMIUM_SDK_ROOT/Products/ESIF_UF/Chrome64/Debug/esif_ufd ./ufx64/
 cp $CHROMIUM_SDK_ROOT/Packages/DSP/*.edp ./dsp/
 echo -e "Done.\n"
 
@@ -36,6 +36,10 @@ cp $CHROMIUM_SDK_ROOT/Products/DPTF/Linux/build/x64/debug/Dptf.so ./ufx64
 cp $CHROMIUM_SDK_ROOT/Products/DPTF/Linux/build/x64/debug/DptfPolicyPassive.so ./ufx64
 cp $CHROMIUM_SDK_ROOT/Products/DPTF/Linux/build/x64/debug/DptfPolicyCritical.so ./ufx64
 cp $CHROMIUM_SDK_ROOT/Products/DPTF/Sources/Resources/combined.xsl ./ufx64
+echo -e "Done.\n"
+
+echo "Copying start script..."
+cp $CHROMIUM_SDK_ROOT/Packages/Installers/chrome/start ./cmd
 echo -e "Done.\n"
 
 echo "Target kernel is `modinfo -F vermagic ./drivers/esif_lf.ko`."

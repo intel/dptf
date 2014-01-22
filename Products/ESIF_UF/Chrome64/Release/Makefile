@@ -31,6 +31,7 @@ CC_OPTIONS := -o9 -Wno-multichar
 CC_OPTIONS += -DESIF_ATTR_USER 
 CC_OPTIONS += -DESIF_ATTR_OS_CHROME 
 CC_OPTIONS += -DESIF_ATTR_64BIT 
+CC_OPTIONS += -DESIF_ATTR_DAEMON 
 CC_OPTIONS += $(INC) 
 
 ###############################################################################
@@ -63,7 +64,6 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_event.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_ipc.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_pm.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_primitive.o
-OBJ += $(ESIF_UF_SOURCES)/esif_uf_rest.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_service.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_shell.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_test.o
@@ -94,10 +94,10 @@ OBJ += $(ESIF_WS_SOURCES)/esif_ws_socket.o
 %.o: %.c $(DEPS)
 	$(CC) -c -fPIC $(CC_OPTIONS) -o $@ $<
 
-all: esif_uf
+all: esif_ufd
 
-esif_uf: $(OBJ)
+esif_ufd: $(OBJ)
 	$(CC) $(CC_OPTIONS) -o $@ $^ $(LIB) 
 
 clean:
-	rm -f $(OBJ) esif_uf 
+	rm -f $(OBJ) esif_ufd

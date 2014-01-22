@@ -54,13 +54,14 @@
 #ifndef _ESIF_CCB_MEMPOOL_H_
 #define _ESIF_CCB_MEMPOOL_H_
 
+extern esif_ccb_lock_t g_mempool_lock;
+
 #ifdef ESIF_ATTR_KERNEL
 
 struct esif_ccb_mempool {
 #ifdef ESIF_ATTR_OS_LINUX
 	struct kmem_cache  *cache;
 #endif /* Linux */
-
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 	/* TODO: Look aside List? */
@@ -72,17 +73,24 @@ struct esif_ccb_mempool {
 	u32          free_count;	/* Object Free Count            */
 };
 
+
 /* Memory Pool Create */
 static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
+	enum esif_mempool_type pool_type,
 	u32 pool_tag,
 	u32 object_size
 	)
 {
-	struct esif_ccb_mempool *pool_ptr =
-		esif_ccb_malloc(sizeof(*pool_ptr));
-	if (NULL == pool_ptr) {
+	struct esif_ccb_mempool *pool_ptr = NULL;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	pool_ptr = (struct esif_ccb_mempool *)
+			esif_ccb_malloc(sizeof(*pool_ptr));
+
+	if (NULL == pool_ptr)
 		return NULL;
-	}
 
 	pool_ptr->name_ptr    = esif_mempool_str(pool_tag);
 	pool_ptr->pool_tag    = pool_tag;
@@ -100,20 +108,39 @@ static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
 #ifdef ESIF_ATTR_OS_WINDOWS
 /* TODO  Look aside List? */
 #endif
-	g_memstat.memPoolAllocs++;
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	g_mempool[pool_type] = pool_ptr;
+	memstat_inc(&g_memstat.memPoolAllocs);
+
 	MEMPOOL_DEBUG("%s: Memory Pool %s Create Object Size=%d\n", ESIF_FUNC,
 		      pool_ptr->name_ptr, pool_ptr->object_size);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+
+exit:
 	return pool_ptr;
 }
 
+
 /* Memory Pool Destroy */
 static ESIF_INLINE void esif_ccb_mempool_destroy(
-	struct esif_ccb_mempool *pool_ptr
+	enum esif_mempool_type pool_type
 	)
 {
+	struct esif_ccb_mempool *pool_ptr = NULL;
 	int remain = 0;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
 	if (NULL == pool_ptr) {
-		return;
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
 	}
 
 	remain = pool_ptr->alloc_count - pool_ptr->free_count;
@@ -125,30 +152,40 @@ static ESIF_INLINE void esif_ccb_mempool_destroy(
 		      remain);
 
 #ifdef ESIF_ATTR_OS_LINUX
-	if (NULL != pool_ptr->cache) {
+	if (NULL != pool_ptr->cache)
 		kmem_cache_destroy(pool_ptr->cache);
-	}
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
 	/* Nothing To Do */
 #endif
-	g_memstat.memPoolFrees++;
+	g_mempool[pool_type] = NULL;
+	memstat_inc(&g_memstat.memPoolFrees);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
 
 	esif_ccb_free(pool_ptr);
-	if (remain != 0) {
-	}	/* ASSERT(); */
+exit:
+	;
 }
 
 
 /* Memory Pool Alloc */
 static ESIF_INLINE void *esif_ccb_mempool_alloc(
-	struct esif_ccb_mempool *pool_ptr
+	enum esif_mempool_type pool_type
 	)
 {
+	struct esif_ccb_mempool *pool_ptr = NULL;
 	void *mem_ptr = NULL;
 
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
 	if (NULL == pool_ptr) {
-		return NULL;
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
 	}
 
 #ifdef ESIF_ATTR_OS_LINUX
@@ -159,61 +196,46 @@ static ESIF_INLINE void *esif_ccb_mempool_alloc(
 					pool_ptr->object_size,
 					pool_ptr->pool_tag);
 #endif
+
+	if (NULL == mem_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
+
 	pool_ptr->alloc_count++;
-	g_memstat.memPoolObjAllocs++;
+	memstat_inc(&g_memstat.memPoolObjAllocs);
+
 	MEMPOOL_DEBUG("%s: MP Entry Allocated(%d)=%p From Mempool %s\n",
 		      ESIF_FUNC,
 		      pool_ptr->alloc_count,
 		      mem_ptr,
 		      pool_ptr->name_ptr);
-	return mem_ptr;
-}
 
-/* Memory Pool ZERO Alloc */
-static ESIF_INLINE void *esif_ccb_mempool_zalloc(
-	struct esif_ccb_mempool *pool_ptr
-	)
-{
-	void *mem_ptr = NULL;
-
-	if (NULL == pool_ptr) {
-		return NULL;
-	}
-#ifdef ESIF_ATTR_OS_LINUX
-	mem_ptr = kmem_cache_zalloc(pool_ptr->cache, GFP_ATOMIC);
-#endif
-#ifdef ESIF_ATTR_OS_WINDOWS
-	mem_ptr = ExAllocatePoolWithTag(NonPagedPool,
-					pool_ptr->object_size,
-					pool_ptr->pool_tag);
-	if (NULL != mem_ptr) {
-		esif_ccb_memset(mem_ptr, 0, pool_ptr->object_size);
-	}
-#endif
-	pool_ptr->alloc_count++;
-	g_memstat.memPoolObjAllocs++;
-
-	MEMPOOL_DEBUG("%s: MPZ Entry Allocated(%d)=%p From Mempool %s\n",
-		      ESIF_FUNC,
-		      pool_ptr->alloc_count,
-		      mem_ptr,
-		      pool_ptr->name);
+	esif_ccb_write_unlock(&g_mempool_lock);
+exit:
 	return mem_ptr;
 }
 
 
 /* Memory Pool Free */
 static ESIF_INLINE void esif_ccb_mempool_free(
-	struct esif_ccb_mempool *pool_ptr,
+	enum esif_mempool_type pool_type,
 	void *mem_ptr
 	)
 {
-	if (NULL == pool_ptr || NULL == mem_ptr) {
-		return;
-	}
+	struct esif_ccb_mempool *pool_ptr = NULL;
 
-	MEMPOOL_DEBUG("%s: MP Entree Freed(%d)=%p From Mempool %s\n", ESIF_FUNC,
-		      pool_ptr->free_count, mem_ptr, pool_ptr->name);
+	if ((NULL == mem_ptr) || (pool_type >= ESIF_MEMPOOL_TYPE_MAX))
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
+	if (NULL == pool_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
 
 #ifdef ESIF_ATTR_OS_LINUX
 	kmem_cache_free(pool_ptr->cache, mem_ptr);
@@ -221,8 +243,16 @@ static ESIF_INLINE void esif_ccb_mempool_free(
 #ifdef ESIF_ATTR_OS_WINDOWS
 	ExFreePoolWithTag(mem_ptr, pool_ptr->pool_tag);
 #endif
+
 	pool_ptr->free_count++;
-	g_memstat.memPoolObjFrees++;
+	memstat_inc(&g_memstat.memPoolObjFrees);
+
+	MEMPOOL_DEBUG("%s: MP Entry Freed(%d)=%p From Mempool %s\n", ESIF_FUNC,
+		      pool_ptr->free_count, mem_ptr, pool_ptr->name);
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+exit:
+	;
 }
 
 
@@ -242,16 +272,21 @@ struct esif_ccb_mempool {
 
 /* Memory Pool Create */
 static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
+	enum esif_mempool_type pool_type,
 	UInt32 pool_tag,
 	UInt32 object_size
 	)
 {
-	struct esif_ccb_mempool *pool_ptr =
-		(struct esif_ccb_mempool*)esif_ccb_malloc(
-			sizeof(*pool_ptr));
-	if (NULL == pool_ptr) {
+	struct esif_ccb_mempool *pool_ptr = NULL;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	pool_ptr = (struct esif_ccb_mempool *)
+			esif_ccb_malloc(sizeof(*pool_ptr));
+
+	if (NULL == pool_ptr)
 		return NULL;
-	}
 
 	pool_ptr->name_ptr    = esif_mempool_str(pool_tag);
 	pool_ptr->pool_tag    = pool_tag;
@@ -259,20 +294,36 @@ static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
 	pool_ptr->free_count  = 0;
 	pool_ptr->object_size = object_size;
 
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	g_mempool[pool_type] = pool_ptr;
+
 	MEMPOOL_DEBUG("%s: Memory Pool %s Create Object Size=%d\n", ESIF_FUNC,
 		      pool_ptr->name_ptr, pool_ptr->object_size);
 
+	esif_ccb_write_unlock(&g_mempool_lock);
+exit:
 	return pool_ptr;
 }
 
 /* Memory Pool Destroy */
 static ESIF_INLINE void esif_ccb_mempool_destroy(
-	struct esif_ccb_mempool *pool_ptr
+	enum esif_mempool_type pool_type
 	)
 {
+	struct esif_ccb_mempool *pool_ptr = NULL;
 	int remain = 0;
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
 	if (NULL == pool_ptr) {
-		return;
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
 	}
 
 	remain = pool_ptr->alloc_count - pool_ptr->free_count;
@@ -283,24 +334,41 @@ static ESIF_INLINE void esif_ccb_mempool_destroy(
 		      pool_ptr->free_count,
 		      remain);
 
+	g_mempool[pool_type] = NULL;
+
+	esif_ccb_write_unlock(&g_mempool_lock);
+
 	esif_ccb_free(pool_ptr);
-	if (remain != 0) {
-	}	/* ASSERT(); */
+exit:
+	;
 }
 
 
 /* Memory Pool Alloc */
 static ESIF_INLINE void *esif_ccb_mempool_alloc(
-	struct esif_ccb_mempool *pool_ptr
+	enum esif_mempool_type pool_type
 	)
 {
+	struct esif_ccb_mempool *pool_ptr = NULL;
 	void *mem_ptr = NULL;
 
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
 	if (NULL == pool_ptr) {
-		return NULL;
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
 	}
 
 	mem_ptr = esif_ccb_malloc(pool_ptr->object_size);
+	if (NULL == mem_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
+	}
+
 	pool_ptr->alloc_count++;
 
 	MEMPOOL_DEBUG("%s: MP Entry Allocated(%d)=%p From Mempool %s\n",
@@ -308,55 +376,109 @@ static ESIF_INLINE void *esif_ccb_mempool_alloc(
 		      pool_ptr->alloc_count,
 		      mem_ptr,
 		      pool_ptr->name_ptr);
-	return mem_ptr;
-}
 
+	esif_ccb_write_unlock(&g_mempool_lock);
 
-/* Memory Pool ZERO Alloc */
-static ESIF_INLINE void *esif_ccb_mempool_zalloc(
-	struct esif_ccb_mempool *pool_ptr
-	)
-{
-	void *mem_ptr = NULL;
-
-	if (NULL == pool_ptr) {
-		return NULL;
-	}
-
-	mem_ptr = esif_ccb_malloc(pool_ptr->object_size);
-	if (NULL != mem_ptr) {
-		esif_ccb_memset(mem_ptr, 0, pool_ptr->object_size);
-	}
-	pool_ptr->alloc_count++;
-
-	MEMPOOL_DEBUG("%s: MPZ Entry Allocated(%d)=%p From Mempool %s\n",
-		      ESIF_FUNC,
-		      pool_ptr->alloc_count,
-		      mem_ptr,
-		      pool_ptr->name_ptr);
+exit:
 	return mem_ptr;
 }
 
 
 /* Memory Pool Free */
 static ESIF_INLINE void esif_ccb_mempool_free(
-	struct esif_ccb_mempool *pool_ptr,
+	enum esif_mempool_type pool_type,
 	void *mem_ptr
 	)
 {
-	if (NULL == pool_ptr || NULL == mem_ptr) {
-		return;
+	struct esif_ccb_mempool *pool_ptr = NULL;
+
+	if (mem_ptr != NULL)
+		esif_ccb_free(mem_ptr);
+
+	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
+	if (NULL == pool_ptr) {
+		esif_ccb_write_unlock(&g_mempool_lock);
+		goto exit;
 	}
 
-	MEMPOOL_DEBUG("%s: MP Entree Freed(%d)=%p From Mempool %s\n", ESIF_FUNC,
+	pool_ptr->free_count++;
+
+	MEMPOOL_DEBUG("%s: MP Entry Freed(%d)=%p From Mempool %s\n", ESIF_FUNC,
 		      pool_ptr->free_count, mem_ptr, pool_ptr->name_ptr);
 
-	esif_ccb_free(mem_ptr);
-	pool_ptr->free_count++;
+	esif_ccb_write_unlock(&g_mempool_lock);
+
+exit:
+		;
 }
 
 
 #endif /* ESIF_ATTR_USER */
+
+
+/* NOTE:  This function is common to user and kernel mode */
+static ESIF_INLINE void esif_ccb_mempool_init_tracking(void)
+{
+	esif_ccb_lock_init(&g_mempool_lock);
+}
+
+
+/* NOTE:  This function is common to user and kernel mode */
+static ESIF_INLINE void esif_ccb_mempool_uninit_tracking(void)
+{
+	u32 type_tag;
+
+	/*
+	 * Create the tracking array for all supported types.
+	 */
+	for (type_tag = 0; type_tag < ESIF_MEMPOOL_TYPE_MAX; type_tag++)
+		esif_ccb_mempool_destroy((enum esif_mempool_type)type_tag);
+
+	esif_ccb_lock_uninit(&g_mempool_lock);
+}
+
+/* Memory Pool ZERO Alloc */
+/* NOTE:  This function is common to user and kernel mode */
+static ESIF_INLINE void *esif_ccb_mempool_zalloc(
+	enum esif_mempool_type pool_type
+	)
+{
+	struct esif_ccb_mempool *pool_ptr = NULL;
+	void *mem_ptr = NULL;
+
+	mem_ptr = esif_ccb_mempool_alloc(pool_type);
+
+	if (NULL == mem_ptr)
+		goto exit;
+
+	/*
+	 * If the allocation above is successful, we know the pool_type is in
+	 * bounds, so no check required in this function.
+	 */
+	esif_ccb_read_lock(&g_mempool_lock);
+
+	pool_ptr = g_mempool[pool_type];
+
+	if (NULL == pool_ptr) {
+		esif_ccb_read_unlock(&g_mempool_lock);
+		esif_ccb_mempool_free(pool_type, mem_ptr);
+		mem_ptr = NULL;
+		goto exit;
+	}
+
+	esif_ccb_memset(mem_ptr, 0, pool_ptr->object_size);
+	esif_ccb_read_unlock(&g_mempool_lock);
+exit:
+	return mem_ptr;
+}
+
+
 #endif /* _ESIF_CCB_MEMPOOL_H_ */
 
 /*****************************************************************************/

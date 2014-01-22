@@ -65,8 +65,8 @@ enum esif_event_priority {
 };
 
 /* Event Priority String */
-static ESIF_INLINE char
-*esif_event_priority_str (enum esif_event_priority priority)
+static ESIF_INLINE char *
+esif_event_priority_str(enum esif_event_priority priority)
 {
 
 	#define CREATE_EVENT_PRIORITY(ep, str) case ep: str = (esif_string) #ep; break;
@@ -87,7 +87,7 @@ enum esif_event_type {
 	ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY      = 0, /* Enter conn standby */
 	ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT       = 1, /* Exit conn standby */
 	ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED  = 2,
-	ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED = 3, 
+	ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED = 3,
 	ESIF_EVENT_APP_FOREGROUND_CHANGED    = 4, /* Foreground app changed */
 	ESIF_EVENT_PARTICIPANT_SUSPEND       = 5, /* Suspend Upper Framework */
 	ESIF_EVENT_PARTICIPANT_RESUME        = 6, /* Resume Upper Framework */
@@ -96,34 +96,34 @@ enum esif_event_type {
 
 	/* Domain Events */
 	/* Config TDP Capability changed (Configurable TDP) */
-	ESIF_EVENT_DOMAIN_CTDP_CAPABILITY_CHANGED    = 7,	
+	ESIF_EVENT_DOMAIN_CTDP_CAPABILITY_CHANGED    = 7,
 	ESIF_EVENT_DOMAIN_CORE_CAPABILITY_CHANGED    = 8, /* For future use */
 	/* Display control upper/lower limits changed. */
 	ESIF_EVENT_DOMAIN_DISPLAY_CAPABILITY_CHANGED = 9,
 	/* Current Display brightness status changed due to usr or other override */
-	ESIF_EVENT_DOMAIN_DISPLAY_STATUS_CHANGED     = 10,	
+	ESIF_EVENT_DOMAIN_DISPLAY_STATUS_CHANGED     = 10,
 	/* Performance Control Upper/Lower Limits Changed */
 	ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED    = 11,
 	/* For future use */
-	ESIF_EVENT_DOMAIN_PERF_CONTROL_CHANGED       = 12,	
+	ESIF_EVENT_DOMAIN_PERF_CONTROL_CHANGED       = 12,
 	/* Power Control Capability Changed (Participant)*/
-	ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED   = 13,	
+	ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED   = 13,
 	/* Programmable Threshold Power Event */
-	ESIF_EVENT_DOMAIN_POWER_THRESHOLD_CROSSED    = 14,	
+	ESIF_EVENT_DOMAIN_POWER_THRESHOLD_CROSSED    = 14,
 	ESIF_EVENT_DOMAIN_PRIORITY_CHANGED = 15, /* Domain priority changed. */
 	/* Temperature Threshold Changed (Participant)*/
-	ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED     = 16,	
+	ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED     = 16,
 
 	/* Participant Events */
 	/* Participant Specific Information Changed. */
-	ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED = 17,	
+	ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED = 17,
 
 	/*
 	** ESIF EVENTS
 	*/
 	/* Create Upper Framework (Participant) */
 	ESIF_EVENT_PARTICIPANT_CREATE   = 18,
-	/* Destroy Upper Framework (Participant) */	
+	/* Destroy Upper Framework (Participant) */
 	ESIF_EVENT_PARTICIPANT_UNREGISTER  = 19, /* Unregister UF Participant */
 	/* Shutdown Upper Framework (Participant) */
 	ESIF_EVENT_PARTICIPANT_SHUTDOWN = 20,
@@ -145,8 +145,9 @@ enum esif_event_type {
 	ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED       = 29,
 	ESIF_EVENT_LPM_MODE_CHANGED = 30,
 	ESIF_EVENT_OS_CTDP_CAPABILITY_CHANGED = 31,
-    ESIF_EVENT_RF_PROFILE_CHANGED = 32,
-    ESIF_EVENT_RF_CONNECTION_STATUS_CHANGED = 33
+	ESIF_EVENT_RF_PROFILE_CHANGED = 32,
+	ESIF_EVENT_RF_CONNECTION_STATUS_CHANGED = 33,
+	ESIF_EVENT_LOG_VERBOSITY_CHANGED = 34
 };
 
 #ifdef ESIF_ATTR_USER
@@ -154,8 +155,7 @@ typedef enum esif_event_type eEsifEventType;
 #endif
 
 /* Event Type String */
-static ESIF_INLINE char
-*esif_event_type_str (enum esif_event_type type)
+static ESIF_INLINE char *esif_event_type_str(enum esif_event_type type)
 {
 	#define CREATE_EVENT_TYPE(et, str) case et: str = (esif_string) #et; break;
 
@@ -197,8 +197,10 @@ static ESIF_INLINE char
 		CREATE_EVENT_TYPE(ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED, str)
 		CREATE_EVENT_TYPE(ESIF_EVENT_LPM_MODE_CHANGED, str)
 		CREATE_EVENT_TYPE(ESIF_EVENT_OS_CTDP_CAPABILITY_CHANGED, str)
-        CREATE_EVENT_TYPE(ESIF_EVENT_RF_PROFILE_CHANGED, str)
-        CREATE_EVENT_TYPE(ESIF_EVENT_RF_CONNECTION_STATUS_CHANGED, str)
+		CREATE_EVENT_TYPE(ESIF_EVENT_RF_PROFILE_CHANGED, str)
+		CREATE_EVENT_TYPE(ESIF_EVENT_RF_CONNECTION_STATUS_CHANGED, str)
+		CREATE_EVENT_TYPE(ESIF_EVENT_LOG_VERBOSITY_CHANGED, str)
+
 	}
 	return str;
 }
@@ -229,9 +231,9 @@ struct esif_event {
  * data     - Data To Copy To Event If Any.
  *
  * returns:
- * eesif_event or NULL;
+ * esif_event or NULL;
  */
-struct esif_event *esif_event_allocate (const enum esif_event_type type,
+struct esif_event *esif_event_allocate(const enum esif_event_type type,
 				       const u16 size,
 				       const enum esif_event_priority priority,
 				       const u8 src,
@@ -239,27 +241,21 @@ struct esif_event *esif_event_allocate (const enum esif_event_type type,
 				       const u16 dst_domain_id,
 				       const void *data_ptr);
 
-/*
- * Free Event
- * parameters:
- * event - Event To Be Freed
- * returns:
- * void
- */
-void esif_event_free (const struct esif_event *event_ptr);
+
+void esif_event_free(const struct esif_event *event_ptr);
 
 struct esif_ipc;
-struct esif_ipc *esif_event_queue_pull (void);
-enum esif_rc esif_event_queue_push (struct esif_ipc *ipc_ptr);
-enum esif_rc esif_event_queue_requeue (struct esif_ipc *ipc_ptr);
+struct esif_ipc *esif_event_queue_pull(void);
+enum esif_rc esif_event_queue_push(struct esif_ipc *ipc_ptr);
+enum esif_rc esif_event_queue_requeue(struct esif_ipc *ipc_ptr);
 
-u32 esif_event_queue_size (void);
+u32 esif_event_queue_size(void);
 
-enum esif_rc esif_event_init (void);
-void esif_event_exit (void);
+enum esif_rc esif_event_init(void);
+void esif_event_exit(void);
 
 struct esif_ipc_event_header;
-void EsifEventProcess (struct esif_ipc_event_header *eventPtr);
+void EsifEventProcess(struct esif_ipc_event_header *eventPtr);
 
 #endif /* _ESIF_EVENT_H_ */
 

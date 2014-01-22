@@ -80,12 +80,12 @@ enum esif_power_unit_type {
 	ESIF_POWER_DECIW,	    /* Deci Watts   .1 Watts     */
 	ESIF_POWER_CENTIW,	    /* Centi Watts  .01 Watts    */
 	ESIF_POWER_MILLIW,	    /* Milli Watts .001 Watts    */
-    ESIF_POWER_UNIT_ATOM,   /* 1 * (2 ^ RAPL_POWER_UNIT) */
+	ESIF_POWER_UNIT_ATOM,   /* 1 * (2 ^ RAPL_POWER_UNIT) */
 	ESIF_POWER_UNIT_CORE	/* 1 / (2 ^ RAPL_POWER_UNIT)   */
 };
 
 /* Power Unit Type String */
-static ESIF_INLINE esif_string esif_power_unit_type_str (
+static ESIF_INLINE esif_string esif_power_unit_type_str(
 	enum esif_power_unit_type type)
 {
 	#define ESIF_CREATE_POWER_UNIT_TYPE(t, str) case t: str = #t; break;
@@ -97,14 +97,14 @@ static ESIF_INLINE esif_string esif_power_unit_type_str (
 		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_CENTIW, str)
 		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_MILLIW, str)
 		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_UNIT_ATOM, str)
-        ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_UNIT_CORE, str)
+		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_UNIT_CORE, str)
 	}
 	return str;
 }
 
 
 /* Power Unit Description */
-static ESIF_INLINE esif_string esif_power_unit_desc (
+static ESIF_INLINE esif_string esif_power_unit_desc(
 	enum esif_power_unit_type type)
 {
 	#define ESIF_CREATE_POWER_UNIT_DESC(t, td, str) case t: str = td; break;
@@ -115,7 +115,7 @@ static ESIF_INLINE esif_string esif_power_unit_desc (
 		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_DECIW, "DeciW", str)
 		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_CENTIW, "CentiW", str)
 		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_MILLIW, "MilliW", str)
-        ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_UNIT_ATOM, "UnitAtom", str)
+	        ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_UNIT_ATOM, "UnitAtom", str)
 		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_UNIT_CORE, "UnitCore", str)
 	}
 	return str;
@@ -130,7 +130,7 @@ static ESIF_INLINE esif_string esif_power_unit_desc (
 #define NORMALIZE_POWER_UNIT_TYPE ESIF_POWER_MILLIW
 
 /* Normalize Power To Watts. */
-static ESIF_INLINE int esif_convert_power (
+static ESIF_INLINE int esif_convert_power(
 	enum esif_power_unit_type in,
 	enum esif_power_unit_type out,
 	esif_power_t *power_ptr
@@ -138,15 +138,12 @@ static ESIF_INLINE int esif_convert_power (
 {
 	esif_power_t val = 0;
 
-	if (NULL == power_ptr) {
+	if (NULL == power_ptr)
 		return ESIF_E_PARAMETER_IS_NULL;
-	}
 
 	val = *power_ptr;
-
-	if (val == 0 || in == out) {
+	if (val == 0 || in == out)
 		return ESIF_OK;
-	}
 
 	/* For the sake of interger operation, do mutiple before divid
 	 *   (37/8)*1000 = 4000, (34/8)*1000 = 4000 (less precise)
@@ -167,10 +164,10 @@ static ESIF_INLINE int esif_convert_power (
 		val *= 10;
 		break;
 
-    case ESIF_POWER_UNIT_ATOM:
-        val *= 32; /* RAPL_POWER_UNIT = 5  1 * (2 ^ POWER_UNIT) = 32 */
-        /* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
-        break;
+	case ESIF_POWER_UNIT_ATOM:
+		val *= 32; /* RAPL_POWER_UNIT = 5  1 * (2 ^ POWER_UNIT) = 32 */
+		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
+		break;
 
 	case ESIF_POWER_UNIT_CORE:
 		val *= 8;   /* RAPL_POWER_UNIT = 3  1 * (2 ^ POWER_UNIT) = 8 */
@@ -198,15 +195,15 @@ static ESIF_INLINE int esif_convert_power (
 		val /= 10;
 		break;
 
-    case ESIF_POWER_UNIT_ATOM:
-        val /= 32;  /* RAPL_POWER_UNIT - 5 1 / (2 ^ (POWER_UNIT) = 32 */
-        /* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
-        break;
+	case ESIF_POWER_UNIT_ATOM:
+		val /= 32;  /* RAPL_POWER_UNIT - 5 1 / (2 ^ (POWER_UNIT) = 32 */
+		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
+		break;
 
 	case ESIF_POWER_UNIT_CORE:
 		val /= 8;   /* RAPL_POWER_UNIT = 3 1 / (2 ^ (POWER_UNIT) = 8 */
 		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
-        break;
+		break;
 
 	case ESIF_POWER_W:
 		break;

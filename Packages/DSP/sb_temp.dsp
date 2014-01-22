@@ -37,7 +37,7 @@
 # P=Primitive, Qualifier, Instance, Operation, RequestType, ReturnType
 # A=ActionPriority, ActionType, IsKernel, p1, p2, p3, p4, p5
 #
-H,"sb_temp",1,0,"Temperature Sensor Device","7601E04B-4469-4E5C-813F-C839E34F11A2",0,"INT3403","","","","","","","","","","","",""
+H,"sb_temp",1,0,"Temperature Sensor Device","7601E04B-4469-4E5C-813F-C839E34F11A2",0,"INT3403","","3","","","","","","","","","",""
 T,1,6,,,1,8
 T,4,5,,,0,8
 T,29,6,,,1,8
@@ -46,7 +46,7 @@ E,"SIC",0x91,17,3,24,0x75494A00-417C-4E51-9FAB-FBDD965577D4
 E,"TTC",0x90,16,3,24,0x43CDD7D8-C96D-4EE7-9A4A-7EC5C2EE1B6E
 #
 D,"DFL","Default Domain","D0","A9CCF1E8-C8F7-438A-9ACD-BBE7430B17A3",0,3
-C,0x2100 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0
+C,0x2100 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
 #
 # GET_DEVICE_DESCRIPTION
 P,60,255,1,24,"<schema></schema>",9,"<schema></schema>"
@@ -142,7 +142,7 @@ P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
-P,81,255,2,7,"<schema></schema>",24,"<schema></schema>"
+P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_SCP",,,,
 # SET_DEVICE_TEMPERATURE_INDICATION
 P,51,255,2,6,"<schema></schema>",24,"<schema></schema>"

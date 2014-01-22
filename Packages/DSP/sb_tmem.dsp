@@ -49,7 +49,7 @@ E,"SIC",0x91,17,3,24,0x75494A00-417C-4E51-9FAB-FBDD965577D4
 E,"TTC",0x90,16,3,24,0x43CDD7D8-C96D-4EE7-9A4A-7EC5C2EE1B6E
 #
 D,"DFL","Default Domain","D0","E7F783EE-19E5-4219-96CF-E9E3A26D449F",0,2
-C,0x21C0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x0,0x0,0x0,0x0,0x1,0x0
+C,0x21C0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
 #
 # GET_DEVICE_HARDWARE_ID
 P,53,255,1,24,"<schema></schema>",3,"<schema></schema>"
@@ -188,7 +188,7 @@ P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
-P,81,255,2,7,"<schema></schema>",24,"<schema></schema>"
+P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_SCP",,,,
 # SET_DEVICE_TEMPERATURE_INDICATION
 P,51,255,2,6,"<schema></schema>",24,"<schema></schema>"

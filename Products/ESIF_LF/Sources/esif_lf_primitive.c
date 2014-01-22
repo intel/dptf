@@ -125,7 +125,7 @@ static void esif_action_dump(struct esif_lp_action *action_ptr)
 	/* First action that succeeds wins */
 	ESIF_TRACE_DYN_DECODE(
 		"ACTION TYPE                   P1         P2         "
-		"P3         P4         P5                          \n"
+		"P3         P4         P5\n"
 		"----------------------------- ---------- ---------- "
 		"---------- ---------- ----------\n"
 		"%-25s(%02d) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x\n",
@@ -295,7 +295,7 @@ struct esif_ipc *esif_execute_ipc_primitive(struct esif_ipc *ipc_ptr)
 	primitive_ptr->rsp_data_type = rsp_data.type;
 	primitive_ptr->rsp_data_len  = rsp_data.data_len;
 
-	ESIF_TRACE_DYN_PRIM("%s: \n"
+	ESIF_TRACE_DYN_PRIM("%s:\n"
 			    "    PRIMITIVE Return: %s(%d)\n"
 			    "    Response Data Type: %s(%d)\n"
 			    "    Buffer Length: %d\n"

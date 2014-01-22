@@ -78,18 +78,14 @@
 */
 
 /* Allocate Data */
-struct esif_data
-*esif_data_alloc(
+struct esif_data *esif_data_alloc(
 	enum esif_data_type type,
 	u32 data_len
 	)
 {
 	struct esif_data *data_ptr = NULL;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	data_ptr = esif_ccb_mempool_zalloc(g_mempool[ESIF_MEMPOOL_TYPE_DATA]);
-	esif_ccb_read_unlock(&g_mempool_lock);
-
+	data_ptr = esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_DATA);
 	if (NULL == data_ptr)
 		return NULL;
 
@@ -99,10 +95,7 @@ struct esif_data
 	if (data_len > 0) {
 		data_ptr->buf_ptr = esif_ccb_malloc(data_len);
 		if (NULL == data_ptr->buf_ptr) {
-			esif_ccb_read_lock(&g_mempool_lock);
-			esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_DATA],
-					      data_ptr);
-			esif_ccb_read_unlock(&g_mempool_lock);
+			esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_DATA, data_ptr);
 			return NULL;
 		}
 	} else {
@@ -121,7 +114,9 @@ struct esif_data
 
 
 /* Free Data */
-void esif_data_free(struct esif_data *data_ptr)
+void esif_data_free(
+	struct esif_data *data_ptr
+	)
 {
 	if (NULL == data_ptr)
 		return;
@@ -130,9 +125,7 @@ void esif_data_free(struct esif_data *data_ptr)
 	if (NULL != data_ptr->buf_ptr)
 		esif_ccb_free(data_ptr->buf_ptr);
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_DATA], data_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_DATA, data_ptr);
 }
 
 
@@ -142,15 +135,12 @@ enum esif_rc esif_data_init(void)
 	struct esif_ccb_mempool *mempool_ptr = NULL;
 	ESIF_TRACE_DYN_DATA("%s: Initialize Data\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_mempool_lock);
-	mempool_ptr = esif_ccb_mempool_create(ESIF_MEMPOOL_FW_DATA,
-					sizeof(struct esif_data));
-	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
+	mempool_ptr = esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_DATA,
+					      ESIF_MEMPOOL_FW_DATA,
+					      sizeof(struct esif_data));
+	if (NULL == mempool_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
-	g_mempool[ESIF_MEMPOOL_TYPE_DATA] = mempool_ptr;
-	esif_ccb_write_unlock(&g_mempool_lock);
+
 	return ESIF_OK;
 }
 
@@ -158,10 +148,6 @@ enum esif_rc esif_data_init(void)
 /* Exit */
 void esif_data_exit(void)
 {
-	esif_ccb_write_lock(&g_mempool_lock);
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_DATA]);
-	g_mempool[ESIF_MEMPOOL_TYPE_DATA] = NULL;
-	esif_ccb_write_unlock(&g_mempool_lock);
 	ESIF_TRACE_DYN_DATA("%s: Exit Data\n", ESIF_FUNC);
 }
 

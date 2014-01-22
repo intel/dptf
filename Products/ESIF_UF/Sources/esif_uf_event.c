@@ -66,7 +66,7 @@ static char*esif_primitive_domain_str (
 void esif_dispatch_event ()
 {
 	int r_bytes     = 0;
-	int data_len    = 512;
+	int data_len    = 1024; /* TODO: Change from "magic number" */
 	enum esif_rc rc = ESIF_OK;
 
 

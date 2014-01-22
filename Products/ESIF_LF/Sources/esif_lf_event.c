@@ -139,10 +139,7 @@ struct esif_event *esif_event_allocate(
 {
 	u16 new_size = size + sizeof(struct esif_event);
 	struct esif_event *event_ptr = NULL;
-	esif_ccb_read_lock(&g_memtype_lock);
-	event_ptr = esif_ccb_memtype_zalloc(g_memtype[ESIF_MEMTYPE_TYPE_EVENT],
-					    new_size);
-	esif_ccb_read_unlock(&g_memtype_lock);
+	event_ptr = esif_ccb_memtype_zalloc(ESIF_MEMTYPE_TYPE_EVENT, new_size);
 
 	if (event_ptr) {
 		event_ptr->version       = ESIF_EVENT_VERSION;
@@ -218,26 +215,15 @@ void esif_event_free(const struct esif_event *event)
 			     event,
 			     event->size);
 
-	esif_ccb_read_lock(&g_memtype_lock);
-	esif_ccb_memtype_free(g_memtype[ESIF_MEMTYPE_TYPE_EVENT], (void *)event);
-	esif_ccb_read_unlock(&g_memtype_lock);
+	esif_ccb_memtype_free(ESIF_MEMTYPE_TYPE_EVENT, (void *)event);
 }
 
 
 /* Init */
 enum esif_rc esif_event_init(void)
 {
-	struct esif_ccb_memtype *memtype_ptr = NULL;
 	ESIF_TRACE_DYN_INIT("%s: Initialize Event\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_memtype_lock);
-	memtype_ptr = esif_ccb_memtype_create(ESIF_MEMTYPE_TYPE_EVENT);
-	if (NULL == memtype_ptr) {
-		esif_ccb_write_unlock(&g_memtype_lock);
-		return ESIF_E_NO_MEMORY;
-	}
-	g_memtype[ESIF_MEMTYPE_TYPE_EVENT] = memtype_ptr;
-	esif_ccb_write_unlock(&g_memtype_lock);
 
 	g_event_queue = esif_queue_create(1024, g_event_queue_name);
 	if (NULL == g_event_queue)
@@ -252,10 +238,6 @@ enum esif_rc esif_event_init(void)
 void esif_event_exit(void)
 {
 	esif_queue_destroy(g_event_queue);
-	esif_ccb_write_lock(&g_memtype_lock);
-	esif_ccb_memtype_destroy(g_memtype[ESIF_MEMTYPE_TYPE_EVENT]);
-	g_memtype[ESIF_MEMTYPE_TYPE_EVENT] = NULL;
-	esif_ccb_write_unlock(&g_memtype_lock);
 
 	esif_ccb_lock_uninit(&g_event_lock);
 

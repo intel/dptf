@@ -552,44 +552,44 @@ eEsifError EsifData_FromString (
 		switch (type) {
 		case ESIF_DATA_BIT:
 		case ESIF_DATA_INT8:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data, sizeof(u32data));
+			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
 			u32data = (self->type == ESIF_DATA_BIT ? u32data & 0x1 : u32data);
 			*STATIC_CAST(Int8*, buffer) = (Int8)u32data;
 			break;
 
 		case ESIF_DATA_INT16:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data, sizeof(u32data));
+			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
 			*STATIC_CAST(Int16*, buffer) = (Int16)u32data;
 			break;
 
 		case ESIF_DATA_INT32:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data, sizeof(u32data));
+			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
 			*STATIC_CAST(Int32*, buffer) = (Int32)u32data;
 			break;
 
 		case ESIF_DATA_UINT8:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data, sizeof(u32data));
+			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
 			*STATIC_CAST(UInt8*, buffer) = (UInt8)u32data;
 			break;
 
 		case ESIF_DATA_UINT16:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data, sizeof(u32data));
+			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
 			*STATIC_CAST(UInt16*, buffer) = (UInt16)u32data;
 			break;
 
 		case ESIF_DATA_UINT32:
 		case ESIF_DATA_TEMPERATURE:
-			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data, sizeof(u32data));
+			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
 			*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
 			break;
 
 		case ESIF_DATA_INT64:
-			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%lld"), &u64data, sizeof(u64data));
+			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%lld"), &u64data);
 			*STATIC_CAST(Int64*, buffer) = (UInt64)u64data;
 			break;
 
 		case ESIF_DATA_UINT64:
-			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%llu"), &u64data, sizeof(u64data));
+			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%llu"), &u64data);
 			*STATIC_CAST(UInt64*, buffer) = (UInt64)u64data;
 			break;
 

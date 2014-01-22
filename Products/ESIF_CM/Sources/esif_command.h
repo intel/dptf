@@ -61,7 +61,7 @@ enum esif_command_priority {
 };
 
 /* Command Priority String */
-static ESIF_INLINE esif_string esif_command_priority_str (
+static ESIF_INLINE esif_string esif_command_priority_str(
 	enum esif_command_priority priority)
 {
 	#define CREATE_COMMAND_PRIORITY(cp, str) case cp: str = (esif_string) #cp; break;
@@ -87,7 +87,7 @@ enum esif_command_type {
 	ESIF_COMMAND_TYPE_GET_MEMORY_STATS,
 };
 
-static ESIF_INLINE esif_string esif_command_type_str (
+static ESIF_INLINE esif_string esif_command_type_str(
 	enum esif_command_type type)
 {
 	#define CREATE_COMMAND_TYPE(ct, str) case ct: str = (esif_string) #ct; break;

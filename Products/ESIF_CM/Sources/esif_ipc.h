@@ -150,9 +150,9 @@ typedef struct esif_ipc_primitive EsifIpcPrimitive, *EsifIpcPrimitivePtr,
 /* Primitive Source Is Always Upper Framework Or UNICAST */
 static ESIF_INLINE esif_string esif_primitive_src_str (u8 src_id)
 {
-	if (ESIF_INSTANCE_UF == src_id) {
+	if (ESIF_INSTANCE_UF == src_id)
 		return (esif_string)"ESIF_UF";
-	}
+
 	return (esif_string)"UNICAST";
 }
 
@@ -163,11 +163,10 @@ static ESIF_INLINE esif_string esif_primitive_dst_str (u8 dst_id)
 	if (ESIF_INSTANCE_BROADCAST == dst_id) {
 		return (esif_string)"BROADCAST";
 	} else {
-		if (dst_id < 100) {
+		if (dst_id < 100)
 			return (esif_string)"UNICAST";
-		} else {
+		else
 			return (esif_string)"MULTICAST";
-		}
 	}
 }
 
@@ -256,20 +255,21 @@ struct esif_ipc_command {
 extern "C" {
 #endif
 
-struct esif_ipc *esif_ipc_alloc (enum esif_ipc_type type, u32 dataLen);
+struct esif_ipc *esif_ipc_alloc(enum esif_ipc_type type, u32 dataLen);
 
-struct esif_ipc *esif_ipc_alloc_command (
-	struct esif_ipc_command * *command_ptr_ptr,
+struct esif_ipc *esif_ipc_alloc_command(
+	struct esif_ipc_command **command_ptr_ptr,
 	u32 data_len);
 
-struct esif_ipc *esif_ipc_alloc_primitive (
-	struct esif_ipc_primitive * *primitive_ptr_ptr,
+struct esif_ipc *esif_ipc_alloc_primitive(
+	struct esif_ipc_primitive **primitive_ptr_ptr,
 	u32 data_len);
-void esif_ipc_free (struct esif_ipc *ipc_ptr);
 
-esif_handle_t esif_ipc_connect (char *session_id);
-void esif_ipc_disconnect (esif_handle_t handle);
-enum esif_rc esif_ipc_execute (esif_handle_t handle, struct esif_ipc *ipc_ptr);
+void esif_ipc_free(struct esif_ipc *ipc_ptr);
+
+esif_handle_t esif_ipc_connect(char *session_id);
+void esif_ipc_disconnect(esif_handle_t handle);
+enum esif_rc esif_ipc_execute(esif_handle_t handle, struct esif_ipc *ipc_ptr);
 
 #ifdef __cplusplus
 }
@@ -277,14 +277,14 @@ enum esif_rc esif_ipc_execute (esif_handle_t handle, struct esif_ipc *ipc_ptr);
 
 
 /* IPC Connect */
-esif_handle_t esif_os_ipc_connect (char *session_id);
+esif_handle_t esif_os_ipc_connect(char *session_id);
 
 /* IPC Disconnect */
-void esif_os_ipc_disconnect (esif_handle_t handle);
+void esif_os_ipc_disconnect(esif_handle_t handle);
 
 /* IPC Execute */
-enum esif_rc esif_os_ipc_execute (esif_handle_t handle,
-				  struct esif_ipc *ipc_ptr);
+enum esif_rc esif_os_ipc_execute(esif_handle_t handle,
+				 struct esif_ipc *ipc_ptr);
 
 #ifdef ESIF_ATTR_KERNEL
 
@@ -293,14 +293,14 @@ enum esif_rc esif_os_ipc_execute (esif_handle_t handle,
  */
 
 /* Receive IPC */
-struct esif_ipc *esif_ipc_process (struct esif_ipc *ipc_ptr);
+struct esif_ipc *esif_ipc_process(struct esif_ipc *ipc_ptr);
 
 /* Init / Exit */
-enum esif_rc esif_ipc_init (esif_device_t device);
-enum esif_rc esif_os_ipc_init (esif_device_t device);
+enum esif_rc esif_ipc_init(esif_device_t device);
+enum esif_rc esif_os_ipc_init(esif_device_t device);
 
-void esif_ipc_exit (esif_device_t device);
-void esif_os_ipc_exit (esif_device_t device);
+void esif_ipc_exit(esif_device_t device);
+void esif_os_ipc_exit(esif_device_t device);
 
 #endif	/* ESIF_ATTR_KERNEL */
 #endif	/* _ESIF_IPC_H_ */

@@ -57,7 +57,7 @@
 #include "esif.h"
 
 #define NO_ESIF_DEBUG(fmt, ...) ESIF_TRACENULL
-#define ESIF_DEBUG(fmt, ...)    ESIF_TRACE_DEBUG(fmt,##__VA_ARGS__)
+#define ESIF_DEBUG(fmt, ...)    ESIF_TRACE_DEBUG(fmt, ##__VA_ARGS__)
 
 /*
  * The following enumeration specifies the index of a given module into
@@ -94,8 +94,7 @@ enum esif_debug_mod {
 	ESIF_DEBUG_MOD_MAX
 };
 
-static ESIF_INLINE char
-*esif_debug_mod_str (enum esif_debug_mod mod)
+static ESIF_INLINE char *esif_debug_mod_str(enum esif_debug_mod mod)
 {
 	#define ESIF_CREATE_MOD(mod, ab, str) case mod: str = (esif_string) #ab; break;
 
@@ -182,7 +181,7 @@ struct esif_memory_stats {
 #define ESIF_TRACE_CATEGORY_DEBUG           28
 #define ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT  27
 
-#define ESIF_TRACE_CATEGORY_DEFAULT         ((u32)1 << ESIF_TRACE_CATEGORY_ERROR)
+#define ESIF_TRACE_CATEGORY_DEFAULT   ((u32)1 << ESIF_TRACE_CATEGORY_ERROR)
 
 /* Linux */
 #ifdef ESIF_ATTR_OS_LINUX
@@ -200,7 +199,7 @@ struct esif_memory_stats {
 /* Windows */
 #ifdef ESIF_ATTR_OS_WINDOWS
 /* avoids "conditional expression is constant" warnings for do...while(0) macros in Windows */
-static char g_whilefalse; 
+static char g_whilefalse;
 #define ESIF_WHILEFALSE (!&g_whilefalse)
 
 #define ESIF_TRACENULL  (0)
@@ -225,13 +224,13 @@ static char g_whilefalse;
 	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "~DBG~ %s:%d: %s: " fmt, \
 		ESIF_FILENAME, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 #define ESIF_TRACE_FMT_ENTRY() \
-	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "--> %s:%d: %s:..." \
+	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "--> %s:%d: %s:...", \
 		ESIF_FILENAME, __LINE__, __FUNCTION__)
 #define ESIF_TRACE_FMT_EXIT() \
-	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s:..." \
+	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s:...", \
 		ESIF_FILENAME, __LINE__, __FUNCTION__)
 #define ESIF_TRACE_FMT_EXIT_W_STATUS(status) \
-	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s: Exit status = 0x%08X" \
+	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s: Exit status = 0x%08X", \
 		ESIF_FILENAME, __LINE__, __FUNCTION__, status)
 
 #define ESIF_TRACE_CATEGORY_ON(module, module_level) \
@@ -241,7 +240,7 @@ static char g_whilefalse;
 #define ESIF_TRACE_ERROR(format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ERROR)) \
-			ESIF_TRACE_FMT_ERROR(format,##__VA_ARGS__); \
+			ESIF_TRACE_FMT_ERROR(format, ##__VA_ARGS__); \
 	} while (ESIF_WHILEFALSE)
 
 #ifdef ESIF_ATTR_DEBUG
@@ -249,19 +248,19 @@ static char g_whilefalse;
 #define ESIF_TRACE_WARN(format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_WARN)) \
-			ESIF_TRACE_FMT_WARN(format,##__VA_ARGS__); \
+			ESIF_TRACE_FMT_WARN(format, ##__VA_ARGS__); \
 	} while (ESIF_WHILEFALSE)
 
 #define ESIF_TRACE_INFO(format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_INFO)) \
-			ESIF_TRACE_FMT_INFO(format,##__VA_ARGS__); \
+			ESIF_TRACE_FMT_INFO(format, ##__VA_ARGS__); \
 	} while (ESIF_WHILEFALSE)
 
 #define ESIF_TRACE_DEBUG(format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_DEBUG)) \
-			ESIF_TRACE_FMT_DEBUG(format,##__VA_ARGS__); \
+			ESIF_TRACE_FMT_DEBUG(format, ##__VA_ARGS__); \
 	} while (ESIF_WHILEFALSE)
 
 #define ESIF_TRACE_ENTRY() \
@@ -285,7 +284,7 @@ static char g_whilefalse;
 #define ESIF_TRACE_DYN(module, module_level, format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(module, module_level)) \
-			ESIF_TRACE_FMT_DEBUG(format,##__VA_ARGS__); \
+			ESIF_TRACE_FMT_DEBUG(format, ##__VA_ARGS__); \
 	} while (ESIF_WHILEFALSE)
 
 #else /* DBG */
@@ -299,19 +298,19 @@ static char g_whilefalse;
 #endif /* NOT ESIF_ATTR_DEBUG */
 
 /* Initialize the enabled module debug categories */
-void esif_debug_init_module_categories (void);
+void esif_debug_init_module_categories(void);
 
 /* Sets the mask of modules with debugging on */
-void esif_debug_set_modules (u32 module_mask);
+void esif_debug_set_modules(u32 module_mask);
 
 /* Gets the mask of modules with debugging on */
-void esif_debug_get_modules (u32 *module_mask_ptr);
+void esif_debug_get_modules(u32 *module_mask_ptr);
 
 /* Sets the debugging category mask of a particular module */
-void esif_debug_set_module_category (u32 module, u32 module_level_mask);
+void esif_debug_set_module_category(u32 module, u32 module_level_mask);
 
 /* Gets the debugging category mask of a particular module */
-void esif_debug_get_module_category (u32 module, u32 *module_level_mask_ptr);
+void esif_debug_get_module_category(u32 module, u32 *module_level_mask_ptr);
 
 /* Kernel-mode Debug Module and Category Masks */
 extern u32 g_esif_module_mask;
@@ -365,7 +364,7 @@ extern int g_traceLevel;
 #define ESIF_TRACE_MESSAGE(module, module_level, fmt, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(module, module_level)) \
-			ESIF_TRACEFUNC(fmt,##__VA_ARGS__); \
+			ESIF_TRACEFUNC(fmt, ##__VA_ARGS__); \
 	} while (ESIF_WHILEFALSE)
 
 /* DEBUG Traces are disabled in DEBUG Builds.
@@ -378,7 +377,7 @@ extern int g_traceLevel;
 #endif
 
 #ifdef ESIF_TRACE_DEBUG_DISABLED
-# define ESIF_TRACE_DEBUG(fmt, ...)			ESIF_TRACENULL
+# define ESIF_TRACE_DEBUG(fmt, ...)		ESIF_TRACENULL
 # define ESIF_TRACE_VERBOSE(fmt, ...)		ESIF_TRACENULL
 # define ESIF_TRACE_VERBOSE_EX(fmt, ...)	ESIF_TRACENULL
 #else

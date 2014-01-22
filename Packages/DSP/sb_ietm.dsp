@@ -46,6 +46,7 @@ E,"CSE",0x917B3B17-5447-4447-B092-3CE756C36AC9,0,4,24,0xFD34F756-F7B6-47DD-B3D5-
 E,"CSX",0xAB9463CA-7D63-4FBB-9996-72951E172616,1,4,24,0x9604508D-F4AA-4716-83D9-6EE951EBBEA9
 E,"FG",0x334589E9-2E41-4BC0-B9F9-D37ED44026B6,4,4,8,0x88E419E3-609B-4BDA-9A17-83DE899831FD
 E,"LPM",0x85,30,3,24,0xDDADD3BF-2385-4E3B-B242-2793B81293AA
+E,"LVC",0xD4C0CD24-486E-46AC-A6A5-1E6B41961238,34,4,3,0xF77BD545-C448-4B5F-99C8-D0BA02968665
 E,"OCTD",0x07029cd8-4664-4698-95d8-43b2e9666596,31,1,3,0x07029cd8-4664-4698-95d8-43b2e9666596
 E,"OLPM",0xb29c73e0-1a8b-46fd-b4ae-1ce5a3d6d871,23,1,3,0x5569447B-6E8F-4FE2-94DE-C31DA011ECF7
 E,"PSVT",0x86,24,3,24,0x661C68E1-B73E-4D02-859B-F1C1505F90D1
@@ -56,7 +57,7 @@ E,"SSOC",0xCA267DF9-852E-4A29-BCCF-23652611004B,27,2,3,0x164B8FD7-C165-4C86-8E9B
 E,"TRT",0x83,3,3,24,0x7E99E90E-0A22-4EEC-AD6C-908DEB21E9A9
 #
 D,"DFL","Default Domain","D0","CCB4AB18-81DC-4CD1-966F-7C90CA56468A",0,14
-C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
+C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_ACTIVE_RELATIONSHIP_TABLE
 P,89,255,1,24,"<schema></schema>",7,"<schema></schema>"
@@ -93,16 +94,16 @@ A,0,20,False,"@ESIF","/participants/%nm%/clpm",,,
 P,238,255,2,7,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/lpmt",,,
 # SET_OPERATING_SYSTEM_CAPABILITIES
-P,93,255,2,7,"<schema></schema>",24,"<schema></schema>"
+P,93,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_OSC",,,,
 # SET_SYSTEM_HIBERNATE
-P,175,255,2,3,"<schema></schema>",24,"<schema></schema>"
+P,175,255,2,24,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_HIBERNATE","","","",""
 # SET_SYSTEM_SHUTDOWN
-P,173,255,2,3,"<schema></schema>",24,"<schema></schema>"
+P,173,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_SHUTDOWN","","","",""
 # SET_SYSTEM_SLEEP
-P,174,255,2,3,"<schema></schema>",24,"<schema></schema>"
+P,174,255,2,24,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_SLEEP","","","",""
 # SET_THERMAL_RELATIONSHIP_TABLE
 P,231,255,2,7,"<schema></schema>",24,"<schema></schema>"

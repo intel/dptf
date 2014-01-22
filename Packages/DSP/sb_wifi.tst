@@ -36,9 +36,23 @@ getp 060 D0 255 -s sb_wifi_60_D0_255.str                     ;GET_DEVICE_DESCRIP
 getp 053 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_HARDWARE_ID
 getp 067 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_UNIQUE_ID
 getp 139 D0 255 -u 18 -l 0                                   ;GET_PARTICIPANT_TYPE
+getp 265 D0 255                                              ;GET_RFPROFILE_BIT_ERROR
 getp 245 D0 255                                              ;GET_RFPROFILE_CENTER_FREQUENCY
-getp 246 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD
-getp 247 D0 255                                              ;GET_RFPROFILE_SHAPE
+getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
+rem setp 255 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_LEFT
+rem setp 256 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
+getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
+getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
+getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
+getp 246 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
+getp 251 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT
+getp 261 D0 255                                              ;GET_RFPROFILE_NOISE_POWER
+getp 258 D0 255                                              ;GET_RFPROFILE_NOTCH_LEFT
+getp 259 D0 255                                              ;GET_RFPROFILE_NOTCH_RIGHT
+getp 263 D0 255                                              ;GET_RFPROFILE_RSSI
+getp 247 D0 255                                              ;GET_RFPROFILE_SHAPE_LEFT
+getp 253 D0 255                                              ;GET_RFPROFILE_SHAPE_RIGHT
+getp 262 D0 255                                              ;GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO
 getp 014 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE
 getp 072 D0 255 -u 2 -l 2                                    ;GET_TEMPERATURE_THRESHOLD_COUNT
 getp 015 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE_THRESHOLD_HYSTERESIS
@@ -75,7 +89,7 @@ rem setp 203 D0 255                                          ;SET_TRIP_POINT_CRI
 rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
-echo Test Count: 43
+echo Test Count: 57
 timerstop
 geterrorlevel
 nolog

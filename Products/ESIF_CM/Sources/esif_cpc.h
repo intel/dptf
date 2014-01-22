@@ -124,21 +124,21 @@ struct esif_cpc_algorithm {
 	u32  size;
 };
 
+#define MAX_NAME_STRING_LENGTH 32
+#define MAX_DOMAIN_TYPE_STRING_LENGTH ESIF_GUID_LEN
+#define MAX_DESCRIPTION_STRING_LENGTH 128
+
 /* CPC Event */
 /* Must Be Aligned With DSP's event.h: event{} */
 /* Maps a Event_ID to ESIF Event ENUM OR UUID Based */
 struct esif_cpc_event {
-	char  name[32];
+	char  name[MAX_NAME_STRING_LENGTH];
 	u8    event_key[ESIF_GUID_LEN];			/* Event ID */
 	enum esif_event_type esif_event;	/* ESIF Event */
 	u8    event_guid[ESIF_GUID_LEN];	/* Event GUID */
 	enum esif_event_group  esif_group;	/* ESIF Event Group */
 	enum esif_data_type    esif_group_data_type;
 };
-
-#define MAX_NAME_STRING_LENGTH 32
-#define MAX_DOMAIN_TYPE_STRING_LENGTH ESIF_GUID_LEN
-#define MAX_DESCRIPTION_STRING_LENGTH 128
 
 struct domain_descriptor {
 	char  name[MAX_NAME_STRING_LENGTH];
@@ -166,15 +166,15 @@ struct domain {
 
 /* Unpack CPC Data Into DSP */
 struct esif_lp_dsp;
-enum esif_rc esif_cpc_unpack (struct esif_lp_dsp *dsp_ptr,
-			      const struct esif_data *cpc_ptr);
+enum esif_rc esif_cpc_unpack(struct esif_lp_dsp *dsp_ptr,
+			     const struct esif_data *cpc_ptr);
 
 /* Free CPC Data From DSP */
-void esif_cpc_free (struct esif_lp_dsp *dsp_ptr);
+void esif_cpc_free(struct esif_lp_dsp *dsp_ptr);
 
 /* Init / Exit */
-enum esif_rc esif_cpc_init (void);
-void esif_cpc_exit (void);
+enum esif_rc esif_cpc_init(void);
+void esif_cpc_exit(void);
 
 #include "esif_dsp.h"
 

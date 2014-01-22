@@ -51,10 +51,6 @@ static eEsifError ActionSystemSet (
 	UNREFERENCED_PARAMETER(p4Ptr);
 	UNREFERENCED_PARAMETER(p5Ptr);
 
-	ESIF_ASSERT(NULL != requestPtr);
-	ESIF_ASSERT(NULL != requestPtr->buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_UINT32 == requestPtr->type);
-
 	ESIF_ASSERT(NULL != p1Ptr);
 	ESIF_ASSERT(NULL != p1Ptr->buf_ptr);
 	ESIF_ASSERT(ESIF_DATA_STRING == p1Ptr->type);
@@ -65,13 +61,23 @@ static eEsifError ActionSystemSet (
 	if (!strcmp("SYSTEM_SLEEP", command)) {
 		esif_ccb_suspend();
 	} else if (!strcmp("SYSTEM_SHUTDOWN", command)) {
-		esif_ccb_shutdown();
+		UInt32 temperature = 0;
+		UInt32 tripPointTemperature = 0;
+		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type) {
+			/* 
+			** Thermal shutdown data was provided with request 
+			*/
+			struct esif_data_complex_shutdown* shutdown_data = 
+				(struct esif_data_complex_shutdown*) requestPtr->buf_ptr;
+			temperature = shutdown_data->temperature;
+			tripPointTemperature = shutdown_data->tripPointTemperature;
+		}
+		esif_ccb_shutdown(temperature, tripPointTemperature);
 	} else if (!strcmp("SYSTEM_HIBERNATE", command)) {
 		esif_ccb_hibernate();
 	} else if (!strcmp("SYSTEM_REBOOT", command)) {
 		esif_ccb_reboot();
 	} else {
-		/* No Magic Required */
 		system(command);
 	}
 	return ESIF_OK;

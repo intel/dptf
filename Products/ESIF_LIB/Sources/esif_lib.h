@@ -67,4 +67,6 @@ typedef u8 Byte;
 // Limits
 #define MAXAUTOLEN      65536		// Max length of strings when creating with ESIFAUTOLEN
 
+#define IGNORE_RESULT(expr)		do { if (expr) ; } while (ESIF_WHILEFALSE)
+
 #endif

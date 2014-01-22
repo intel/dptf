@@ -95,7 +95,8 @@
 
 /* Set Debug Modules */
 static void esif_execute_ipc_command_set_debug_modules(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_UINT32 == command_ptr->req_data_type &&
@@ -119,7 +120,8 @@ static void esif_execute_ipc_command_set_debug_modules(
 
 /* Set Debug Module Level */
 static void esif_execute_ipc_command_set_debug_module_level(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_STRUCTURE == command_ptr->req_data_type &&
@@ -146,7 +148,8 @@ static void esif_execute_ipc_command_set_debug_module_level(
 
 /* Get Debug Module Level */
 static void esif_execute_ipc_command_get_debug_module_level(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_STRUCTURE == command_ptr->rsp_data_type &&
@@ -175,7 +178,8 @@ static void esif_execute_ipc_command_get_debug_module_level(
 
 /* Get Kernel Information */
 static void esif_execute_ipc_command_get_kernel_info(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_STRUCTURE == command_ptr->rsp_data_type &&
@@ -199,7 +203,8 @@ static void esif_execute_ipc_command_get_kernel_info(
 
 /* Get Kernel Information */
 static void esif_execute_ipc_command_get_memory_stats(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_STRUCTURE == command_ptr->rsp_data_type &&
@@ -277,7 +282,8 @@ static void esif_execute_ipc_command_get_memory_stats(
 
 /* Get Participants */
 static void esif_execute_ipc_command_get_participants(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_STRUCTURE == command_ptr->rsp_data_type &&
@@ -293,7 +299,7 @@ static void esif_execute_ipc_command_get_participants(
 			"%s: ESIF_COMMAND_TYPE_GET_PARTICIPANTS\n",
 			ESIF_FUNC);
 
-		for (i = 0; i < 20; i++) {
+		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
 			struct esif_lp *lp_ptr =
 				esif_lf_pm_lp_get_by_instance_id(i);
 			if (NULL != lp_ptr) {
@@ -336,7 +342,7 @@ static void esif_execute_ipc_command_get_participants(
 					esif_ccb_strcpy(
 						data_ptr->participant_info[i].desc,
 						"RESERVED",
-						ESIF_NAME_LEN);
+						ESIF_DESC_LEN);
 				} else {
 				}
 			}
@@ -349,7 +355,8 @@ static void esif_execute_ipc_command_get_participants(
 
 /* Get Participant */
 static void esif_execute_ipc_command_get_participant_detail(
-	struct esif_ipc_command *command_ptr)
+	struct esif_ipc_command *command_ptr
+	)
 {
 	/* Sanity Check */
 	if (ESIF_DATA_STRUCTURE == command_ptr->rsp_data_type &&
@@ -468,8 +475,9 @@ static void esif_execute_ipc_command_get_participant_detail(
 
 
 /* Dispatch */
-struct esif_ipc
-*esif_execute_ipc_command(struct esif_ipc *ipc_ptr)
+struct esif_ipc *esif_execute_ipc_command(
+	struct esif_ipc *ipc_ptr
+	)
 {
 	struct esif_ipc_command *command_ptr =
 		(struct esif_ipc_command *)(ipc_ptr + 1);

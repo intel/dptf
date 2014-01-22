@@ -55,301 +55,142 @@
 #define _ATOMIC_LIB_H
 
 /*
-** C/C++ OS Agnostic Implementation of user space atomic integer operations for
-**Linux & Windows.
-** Implementation interface is similar to Linux atomic_t in kernel source
-**(atomic.h)
-** Build Options: (enable ATOMIC_LIB_64BIT to use 64-bit data types)
+** C/C++ OS Agnostic Implementation of atomic integer operations.
 **
-** Platform		Data Type	Implementation
-** ------------	-----------	--------------------------------------------
-** Linux x86	32-bit		__sync* builtins
-** Linux x86	64-bit		__sync* builtins
-** Linux x64	32-bit		__sync* builtins
-** Linux x64	64-bit		__sync* builtins
-** Windows x86	32-bit		_Interlocked* intrinsic functions
-** Windows x86	64-bit		CRITICAL_SECTION [requires atomic_ctor() &
-**atomic_dtor()]
-** Windows x64	32-bit		_Interlocked* intrinsic functions
-** Windows x64	64-bit		_Interlocked*64 intrinsic fuctions
+** Interface is based on native Linux atomic_t kernel type (atomic.h)
+** Note that atomic_t size varies depending on mode, platform, and OS:
 **
-** Note that if ATOMIC_LIB_64BIT is enabled, x86 Windows will use Critical
-**Sections,
-** so only use 32-bit data types if you want to guarantee intrinsic atomic
-**operations
-** and maximum performance.
+** Platform		Mode	size	Implementation
+** ------------	-------	-------	----------------------------------------------
+** Linux x86	Kernel	32-bit	atomic_t native type
+** Linux x86	User	32-bit	__sync* builtins
+** Linux x64	Kernel	64-bit	atomic_t native type
+** Linux x64	User	64-bit	__sync* builtins
+** Windows x86	Kernel	32-bit	_Interlocked* intrinsic functions
+** Windows x86	User	32-bit	_Interlocked* intrinsic functions
+** Windows x64	Kernel	64-bit	_Interlocked*64 intrinsic functions
+** Windows x64	User	64-bit	_Interlocked*64 intrinsic functions
 */
 
 #ifdef ESIF_ATTR_KERNEL
-/* Not Implemented */
+
+/* Kernel mode always uses native x86/x64 type */
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+/* Windows */
+# include <wdm.h>
+
+# ifdef ESIF_ATTR_64BIT
+   typedef LONGLONG atomic_t;
+   typedef LONGLONG _atomic_int;
+#  define  ATOMIC_INIT(i)  (i)
+#  define  ATOMIC_FMT "%lld"
+#  pragma intrinsic(_InterlockedExchange64)
+#  pragma intrinsic(_InterlockedIncrement64)
+#  pragma intrinsic(_InterlockedDecrement64)
+#  pragma intrinsic(_InterlockedExchangeAdd64)
+#  define atomic_read(v)	_InterlockedExchangeAdd64(v, 0)
+#  define atomic_set(v, i)	_InterlockedExchange64(v, i)
+#  define atomic_inc(v)		_InterlockedIncrement64(v)
+#  define atomic_dec(v)		_InterlockedDecrement64(v)
+#  define atomic_add(i, v)	_InterlockedExchangeAdd64(v, i)
+#  define atomic_sub(i, v)	_InterlockedExchangeAdd64(v, -(i))
+# else
+   typedef LONG atomic_t;
+   typedef LONG _atomic_int;
+#  define  ATOMIC_INIT(i)  (i)
+#  define  ATOMIC_FMT "%ld"
+#  pragma intrinsic(_InterlockedExchange)
+#  pragma intrinsic(_InterlockedIncrement)
+#  pragma intrinsic(_InterlockedDecrement)
+#  pragma intrinsic(_InterlockedExchangeAdd)
+#  define atomic_read(v)	_InterlockedExchangeAdd(v, 0)
+#  define atomic_set(v, i)	_InterlockedExchange(v, i)
+#  define atomic_inc(v)		_InterlockedIncrement(v)
+#  define atomic_dec(v)		_InterlockedDecrement(v)
+#  define atomic_add(i, v)	_InterlockedExchangeAdd(v, i)
+#  define atomic_sub(i, v)	_InterlockedExchangeAdd(v, -(i))
+# endif
+
+#else
+/* Linux */
+# include <asm/atomic.h> /* native atomic_t typedef here */
+  typedef long _atomic_int;
+# define  ATOMIC_FMT "%ld"
+#endif
+
 #endif
 
 #ifdef ESIF_ATTR_USER
 
-/* Use 32 or 64 bit atomic ints? */
-#ifdef ATOMIC_LIB_64BIT
- #if _WIN32
-typedef LONGLONG _atomic_int;
- #else
-typedef long long _atomic_int;
- #endif
+#ifdef ESIF_ATTR_OS_WINDOWS
+# ifdef ESIF_ATTR_64BIT
+  typedef LONGLONG _atomic_int;
+# define  ATOMIC_FMT "%lld"
+# else
+  typedef LONG _atomic_int;
+# define  ATOMIC_FMT "%ld"
+# endif
 #else
- #if _WIN32
-typedef LONG _atomic_int;
- #else
-typedef int _atomic_int;
- #endif
+  typedef long _atomic_int;
+# define  ATOMIC_FMT "%ld"
 #endif
 
-/* Disable Atomic operations and use native integer operations. Use at your own
- * risk. */
+/* Disable User-Mode Atomic operations. Use at your own risk */
 #if defined(ATOMIC_LIB_DISABLE)
 
 typedef volatile _atomic_int atomic_t;
-# define ATOMIC_INIT(i)                         (i)
-# define atomic_ctor(v)				/* No-Op */
-# define atomic_dtor(v)				/* No-Op */
-# define atomic_read(v)                         (*(v))
-# define atomic_set(v, i)                        (*(v) = (i))
-# define atomic_inc(v)                          ((*(v))++)
-# define atomic_dec(v)                          ((*(v))--)
-# define atomic_add(i, v)                        (*(v) += (i))
-# define atomic_sub(i, v)                        (*(v) -= (i))
+# define ATOMIC_INIT(i)		(i)
+# define atomic_read(v)		(*(v))
+# define atomic_set(v, i)	(*(v) = (i))
+# define atomic_inc(v)		((*(v))++)
+# define atomic_dec(v)		((*(v))--)
+# define atomic_add(i, v)	(*(v) += (i))
+# define atomic_sub(i, v)	(*(v) -= (i))
 
-#elif defined(_WIN32)
-/* Windows: Use Interlocked intrinsic functions (Requires WinXP/2003 (x86) or
- * Vista/2003 (x64)), except 64-bit data on x86 Windows */
+#elif defined(ESIF_ATTR_OS_WINDOWS)
+/* Windows: Use Interlocked intrinsic functions */
+
+typedef volatile _atomic_int atomic_t;
+#define ATOMIC_INIT(i)  (i)
+
   #include <intrin.h>
-  #pragma intrinsic(_InterlockedExchange)
-  #pragma intrinsic(_InterlockedIncrement)
-  #pragma intrinsic(_InterlockedDecrement)
-  #pragma intrinsic(_InterlockedExchangeAdd)
+  #ifdef ESIF_ATTR_64BIT
+  #  pragma intrinsic(_InterlockedExchange64)
+  #  pragma intrinsic(_InterlockedIncrement64)
+  #  pragma intrinsic(_InterlockedDecrement64)
+  #  pragma intrinsic(_InterlockedExchangeAdd64)
+  # define atomic_read(v)	_InterlockedExchangeAdd64(v, 0)
+  # define atomic_set(v, i)	_InterlockedExchange64(v, i)
+  # define atomic_inc(v)	_InterlockedIncrement64(v)
+  # define atomic_dec(v)	_InterlockedDecrement64(v)
+  # define atomic_add(i, v)	_InterlockedExchangeAdd64(v, i)
+  # define atomic_sub(i, v)	_InterlockedExchangeAdd64(v, -(i))
+  #else
+  # pragma intrinsic(_InterlockedExchange)
+  # pragma intrinsic(_InterlockedIncrement)
+  # pragma intrinsic(_InterlockedDecrement)
+  # pragma intrinsic(_InterlockedExchangeAdd)
+  # define atomic_read(v)	_InterlockedExchangeAdd(v, 0)
+  # define atomic_set(v, i)	_InterlockedExchange(v, i)
+  # define atomic_inc(v)	_InterlockedIncrement(v)
+  # define atomic_dec(v)	_InterlockedDecrement(v)
+  # define atomic_add(i, v)	_InterlockedExchangeAdd(v, i)
+  # define atomic_sub(i, v)	_InterlockedExchangeAdd(v, -(i))
+  #endif
 
-#ifdef _WIN64
-/* 32-bit or 64-bit data on x64 Windows */
+#else
+/* Linux: Use __sync builtin functions (Requires gcc 4.4 or higher) */
+
 typedef volatile _atomic_int atomic_t;
 #define ATOMIC_INIT(i)  (i)
 
-#pragma intrinsic(_InterlockedExchange64)
-#pragma intrinsic(_InterlockedIncrement64)
-#pragma intrinsic(_InterlockedDecrement64)
-#pragma intrinsic(_InterlockedExchangeAdd64)
-#define atomic_ctor(v)	/* No-Op for x64 when atomic type is 32-bit or
-				* 64-bit */
-#define atomic_dtor(v)	/* No-Op for x64 when atomic type is 32-bit or
-				* 64-bit */
-
-#else	/* WIN32 */
-#ifdef ATOMIC_LIB_64BIT
-#  include <windows.h>
-/* 64-bit data on x86 Windows requires a Critical Section since there are no
- * intrinsic atomic operators */
-typedef struct {
-	volatile _atomic_int  counter;
-	CRITICAL_SECTION      crit;
-} atomic_t;
-#define ATOMIC_INIT(i)  {(i)}
-
-/* Required for 64-bit data on x86 Windows since 64-bit Interlocked Intrinsic
- * functions are not available */
-static __forceinline void atomic_ctor (atomic_t *v)
-{
-	InitializeCriticalSectionAndSpinCount(&v->crit, 0x00000400);
-}
-
-
-static __forceinline void atomic_dtor (atomic_t *v)
-{
-	DeleteCriticalSection(&v->crit);
-}
-
-
-#else
-/* 32-bit data on x86 or x64 Windows */
-typedef volatile _atomic_int atomic_t;
-#define ATOMIC_INIT(i)  (i)
-
-#define atomic_ctor(v)	/* No-Op for x86 when atomic type is 32-bit */
-#define atomic_dtor(v)	/* No-Op for x86 when atomic type is 32-bit */
-#endif	/* ATOMIC_LIB_64BIT */
-#endif	/* WIN32 */
-
-static __forceinline _atomic_int atomic_read (atomic_t *v)
-{
-#ifdef ATOMIC_LIB_64BIT
-# ifdef _WIN64
-	return _InterlockedExchangeAdd64(v, 0);
-
-# else
-	_atomic_int result;
-	EnterCriticalSection(&v->crit);
-	result = v->counter;
-	LeaveCriticalSection(&v->crit);
-	return result;
-
-# endif
-#else
-	return _InterlockedExchangeAdd(v, 0);
-
-#endif
-}
-
-
-static __forceinline void atomic_set (
-	atomic_t *v,
-	_atomic_int i
-	)
-{
-#ifdef ATOMIC_LIB_64BIT
-# ifdef _WIN64
-	(void)_InterlockedExchange64(v, i);
-# else
-	EnterCriticalSection(&v->crit);
-	v->counter = i;
-	LeaveCriticalSection(&v->crit);
-# endif
-#else
-	(void)_InterlockedExchange(v, i);
-#endif
-}
-
-
-static __forceinline void atomic_inc (atomic_t *v)
-{
-#ifdef ATOMIC_LIB_64BIT
-# ifdef _WIN64
-	(void)_InterlockedIncrement64(v);
-# else
-	EnterCriticalSection(&v->crit);
-	v->counter++;
-	LeaveCriticalSection(&v->crit);
-# endif
-#else
-	(void)_InterlockedIncrement(v);
-#endif
-}
-
-
-static __forceinline void atomic_dec (atomic_t *v)
-{
-#ifdef ATOMIC_LIB_64BIT
-# ifdef _WIN64
-	(void)_InterlockedDecrement64(v);
-# else
-	EnterCriticalSection(&v->crit);
-	v->counter--;
-	LeaveCriticalSection(&v->crit);
-# endif
-#else
-	(void)_InterlockedDecrement(v);
-#endif
-}
-
-
-static __forceinline void atomic_add (
-	_atomic_int i,
-	atomic_t *v
-	)
-{
-#ifdef ATOMIC_LIB_64BIT
-# ifdef _WIN64
-	(void)_InterlockedExchangeAdd64(v, i);
-# else
-	EnterCriticalSection(&v->crit);
-	v->counter += i;
-	LeaveCriticalSection(&v->crit);
-# endif
-#else
-	(void)_InterlockedExchangeAdd(v, i);
-#endif
-}
-
-
-static __forceinline void atomic_sub (
-	_atomic_int i,
-	atomic_t *v
-	)
-{
-#ifdef ATOMIC_LIB_64BIT
-# ifdef _WIN64
-	(void)_InterlockedExchangeAdd64(v, -i);
-# else
-	EnterCriticalSection(&v->crit);
-	v->counter -= i;
-	LeaveCriticalSection(&v->crit);
-# endif
-#else
-	(void)_InterlockedExchangeAdd(v, -i);
-#endif
-}
-
-
-#else
-/* Linux: Use __sync functions for 32-bit or 64-bit data on x86 or x64 Linux
- * (Requires gcc 4.4 or higher) */
-
-typedef struct {
-	volatile _atomic_int  counter;
-} atomic_t;
-#define ATOMIC_INIT(i)  {(i)}
-
-# define atomic_ctor(v)	/* No-Op for Linux */
-# define atomic_dtor(v)	/* No-Op for Linux */
-
-/* Use macros for native x86/x64 since get/set operations are already atomic
- * (__sync builtins originally designed by Intel) */
-#if defined(__x86_64__) || (defined(__i386__) && !defined(ATOMIC_LIB_64BIT))
-# define atomic_read(v)         ((v)->counter)
-# define atomic_set(v, i)        (((v)->counter) = (i))
-#else
-/* Use inline functions for other architectures */
-static inline _atomic_int atomic_read (atomic_t *v)
-{
-	return __sync_add_and_fetch(&v->counter, 0);
-}
-
-
-static inline void atomic_set (
-	atomic_t *v,
-	_atomic_int i
-	)
-{
-	(void)__sync_lock_test_and_set(&v->counter, i);
-}
-
-
-#endif
-
-/* Use Inline functions for remaining atomic operations */
-static inline void atomic_inc (atomic_t *v)
-{
-	(void)__sync_add_and_fetch(&v->counter, 1);
-}
-
-
-static inline void atomic_dec (atomic_t *v)
-{
-	(void)__sync_sub_and_fetch(&v->counter, 1);
-}
-
-
-static inline void atomic_add (
-	_atomic_int i,
-	atomic_t *v
-	)
-{
-	(void)__sync_add_and_fetch(&v->counter, i);
-}
-
-
-static inline void atomic_sub (
-	_atomic_int i,
-	atomic_t *v
-	)
-{
-	(void)__sync_sub_and_fetch(&v->counter, i);
-}
-
+#define atomic_read(v)		__sync_add_and_fetch(v, 0)
+#define atomic_set(v, i)	__sync_lock_test_and_set(v, i)
+#define atomic_inc(v)		__sync_add_and_fetch(v, 1)
+#define atomic_dec(v)		__sync_sub_and_fetch(v, 1)
+#define atomic_add(i, v)	__sync_add_and_fetch(v, i)
+#define atomic_sub(i, v)	__sync_sub_and_fetch(v, i)
 
 #endif	/* Linux */
 

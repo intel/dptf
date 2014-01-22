@@ -87,6 +87,12 @@ struct esif_data_complex_scp {
 	u32  power_limit;
 };
 
+/* Thermal Shutdown Event */
+struct esif_data_complex_shutdown {
+	u32 temperature;
+	u32 tripPointTemperature;
+};
+
 /* Operating System Capabilities */
 struct esif_data_complex_osc {
 	esif_guid_t  guid;
@@ -152,12 +158,12 @@ struct esif_data_guid_event {
 #pragma pack(pop)
 
 /* Allocate */
-struct esif_data *esif_data_alloc (enum esif_data_type type, u32 data_len);
-void esif_data_free (struct esif_data *data_ptr);
+struct esif_data *esif_data_alloc(enum esif_data_type type, u32 data_len);
+void esif_data_free(struct esif_data *data_ptr);
 
 /* Init */
-enum esif_rc esif_data_init (void);
-void esif_data_exit (void);
+enum esif_rc esif_data_init(void);
+void esif_data_exit(void);
 
 #ifdef ESIF_ATTR_USER
 

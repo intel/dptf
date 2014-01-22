@@ -54,6 +54,7 @@ struct esif_uf_dm g_dm = {0};
 
 /* ESIF Memory Pool */
 struct esif_ccb_mempool *g_mempool[ESIF_MEMPOOL_TYPE_MAX] = {0};
+esif_ccb_lock_t g_mempool_lock;
 
 
 /* Allocate DSP Upper Insance */

@@ -89,6 +89,55 @@
 /* TODO Temporary */
 u32 g_affinity;
 
+/* Static LPAT 
+ * 
+ * VS 2012 C++ doesn't support C99 designated initializer style, aka
+ * 
+ *    union foo {int a, struct {int x, long long y} s; };
+ * 
+ *    union foo data[] = {{.s.x=1, .s.y=2}, ...}  GCC... OK
+ *    union foo data[] = {{.s.x=1, .s.y=2}, ...}  VS ... ERROR 
+ * 
+ * Without designated initializer, static table will always start assignment 
+ * from echo first member in union, no way to each struct member, so we'll 
+ * just have to create a struct to do that. 
+ */
+#pragma pack(push, 1)
+struct esif_data_variant_integer {  /* Same as esif_data_variant.integer */
+        enum esif_data_type  type;  /* 4 Bytes For Most Compilers */
+        long long value;            /* 8 Byte Integer */
+};
+#pragma pack(pop)
+
+/* Static LPAT */
+static struct esif_data_variant_integer esif_lpat_table[] = {
+	{ESIF_DATA_INT64,-20}, {ESIF_DATA_UINT64, 977},
+	{ESIF_DATA_INT64,-15}, {ESIF_DATA_UINT64, 961},
+	{ESIF_DATA_INT64,-10}, {ESIF_DATA_UINT64, 941},
+	{ESIF_DATA_INT64, -5}, {ESIF_DATA_UINT64, 917},
+	{ESIF_DATA_INT64,  0}, {ESIF_DATA_UINT64, 887},
+	{ESIF_DATA_INT64,  5}, {ESIF_DATA_UINT64, 853}, 
+	{ESIF_DATA_INT64, 10}, {ESIF_DATA_UINT64, 813}, 
+	{ESIF_DATA_INT64, 15}, {ESIF_DATA_UINT64, 769},
+	{ESIF_DATA_INT64, 20}, {ESIF_DATA_UINT64, 720},
+	{ESIF_DATA_INT64, 25}, {ESIF_DATA_UINT64, 669},
+	{ESIF_DATA_INT64, 30}, {ESIF_DATA_UINT64, 615},
+	{ESIF_DATA_INT64, 35}, {ESIF_DATA_UINT64, 561},
+	{ESIF_DATA_INT64, 40}, {ESIF_DATA_UINT64, 508},
+	{ESIF_DATA_INT64, 45}, {ESIF_DATA_UINT64, 456},
+	{ESIF_DATA_INT64, 50}, {ESIF_DATA_UINT64, 407},
+	{ESIF_DATA_INT64, 55}, {ESIF_DATA_UINT64, 357},
+	{ESIF_DATA_INT64, 60}, {ESIF_DATA_UINT64, 315},
+	{ESIF_DATA_INT64, 65}, {ESIF_DATA_UINT64, 277},
+	{ESIF_DATA_INT64, 70}, {ESIF_DATA_UINT64, 243},
+	{ESIF_DATA_INT64, 75}, {ESIF_DATA_UINT64, 212},
+	{ESIF_DATA_INT64, 80}, {ESIF_DATA_UINT64, 186},
+	{ESIF_DATA_INT64, 85}, {ESIF_DATA_UINT64, 162},
+	{ESIF_DATA_INT64, 90}, {ESIF_DATA_UINT64, 140},
+	{ESIF_DATA_INT64, 100}, {ESIF_DATA_UINT64, 107}
+};
+
+
 /* Temperature will be C and Power will be in mw */
 enum esif_rc esif_set_action_code(
 	struct esif_lp *lp_ptr,
@@ -265,7 +314,6 @@ enum esif_rc esif_set_action_code(
 	return rc;
 }
 
-
 enum esif_rc esif_get_action_code(
 	struct esif_lp *lp_ptr,
 	const struct esif_primitive_tuple *tuple_ptr,
@@ -326,18 +374,20 @@ enum esif_rc esif_get_action_code(
 			goto exit;
 		}
 
+
 		/* Not In Polling Mode, Go Get The Value */
 		if (0 == lpd_ptr->poll) {
 			u32 pwr1, pwr2;
-			struct esif_primitive_tuple tuple1 = {
-				GET_RAPL_POWER, dsp_p2, 255};
-			struct esif_primitive_tuple tuple2 = {
-				GET_RAPL_POWER, dsp_p3, 255};
+			struct esif_primitive_tuple tuple1 =
+			{GET_RAPL_POWER, dsp_p2, 255};
+			struct esif_primitive_tuple tuple2 =
+			{GET_RAPL_POWER, dsp_p3, 255};
+
 			struct esif_data data_in = {ESIF_DATA_VOID, NULL, 0, 0};
-			struct esif_data data_out1 = {ESIF_DATA_UINT32, &pwr1,
-				sizeof(pwr1), sizeof(pwr1)};
-			struct esif_data data_out2 = {ESIF_DATA_UINT32, &pwr2,
-				sizeof(pwr2), sizeof(pwr2)};
+			struct esif_data data_out1 =
+			{ESIF_DATA_UINT32, &pwr1, sizeof(pwr1), sizeof(pwr1)};
+			struct esif_data data_out2 =
+			{ESIF_DATA_UINT32, &pwr2, sizeof(pwr2), sizeof(pwr2)};
 
 			rc = esif_execute_primitive(lp_ptr,
 						    &tuple1,
@@ -613,6 +663,39 @@ enum esif_rc esif_get_action_code(
 		break;
 	}
 
+	case 'TAPL':    /* LPAT */
+	{
+		struct esif_lp_dsp *dsp_ptr = lp_ptr->dsp_ptr;
+
+		if (ESIF_FALSE == dsp_ptr->dsp_has_algorithm(dsp_ptr, 
+					ESIF_ALGORITHM_TYPE_TEMP_LPAT)) {
+			rc = ESIF_E_UNSUPPORTED_ALGORITHM;
+			goto exit;
+		}
+
+		if (dsp_ptr->table) {
+			/* Already Have A Table (ACPI or Static) */
+			if (rsp_data_ptr->buf_len < dsp_ptr->table_size) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+				goto exit;
+			}
+			esif_ccb_memcpy(rsp_data_ptr->buf_ptr, dsp_ptr->table, 
+					dsp_ptr->table_size);
+			rsp_data_ptr->data_len = dsp_ptr->table_size;	
+		} else {
+			/* No Table Yet, So Create A Static One */
+			if (rsp_data_ptr->buf_len < sizeof(esif_lpat_table)) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+				goto exit;
+			}
+			rsp_data_ptr->data_len = sizeof(esif_lpat_table);
+			esif_ccb_memcpy(rsp_data_ptr->buf_ptr, &esif_lpat_table,
+					rsp_data_ptr->data_len);
+		}
+		/* Done! Don't Deal With Any Type */
+		goto exit;
+	}
+
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
@@ -663,6 +746,7 @@ enum esif_rc esif_get_action_code(
 		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
 	}
+	
 exit:
 	return rc;
 }

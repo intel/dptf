@@ -251,7 +251,7 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 		IOStream_Destroy(vaultBak);
 		IOStream_Destroy(vault);
 		esif_ccb_unlink(dv_file.filename);
-		esif_ccb_rename(dv_filebak.filename, dv_file.filename);
+		IGNORE_RESULT(esif_ccb_rename(dv_filebak.filename, dv_file.filename));
 		return rc;
 	}
 	// Remove BAK file and Commit
@@ -675,6 +675,9 @@ eEsifError DataVault_GetValue (
 	eEsifError rc = ESIF_E_NOT_FOUND;
 	DataCacheEntryPtr keypair = NULL;
 
+	if (!self)
+		return ESIF_E_PARAMETER_IS_NULL;
+
 	// TODO: Locking
 
 	// Debug: Dump Entire Contents of DataVault if path="*"
@@ -744,10 +747,8 @@ eEsifError DataVault_GetValue (
 		DataVault_WriteLog(self, "AUTO", (esif_string)(self->name), path, 0, value);
 	}
 
-	if (NULL != self) {
-		keypair = DataCache_GetValue(self->cache, (esif_string)path->buf_ptr);
-	}
-
+	keypair = DataCache_GetValue(self->cache, (esif_string)path->buf_ptr);
+	
 	if (NULL != keypair) {
 		UInt32 data_len = keypair->value.data_len;
 		void *buf_ptr   = keypair->value.buf_ptr;

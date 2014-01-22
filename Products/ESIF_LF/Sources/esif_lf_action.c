@@ -100,7 +100,7 @@ enum esif_rc esif_execute_action(
 	ESIF_TRACE_DYN_ACTION(
 		"lp name %s req_type %s rsp_type %s, opcode %s action %s "
 		"tuple %d.%d.%d\n",
-		lp_ptr->pi_ptr->name,
+		lp_ptr->pi_name,
 		esif_data_type_str(req_data_ptr->type),
 		esif_data_type_str(rsp_data_ptr->type),
 		esif_primitive_opcode_str(primitive_ptr->opcode),
@@ -110,8 +110,9 @@ enum esif_rc esif_execute_action(
 		primitive_ptr->tuple.instance);
 
 	/*
-	 * Normalize requested tmperature (_t) and power (_pw) before we can go
-	 * on SET, as long as we have a valid xform function.
+	 * If it is a s SET request and we have a valide temp or power xform,
+	 * normalize the requested tmperature (_t) and power (_pw) in the
+	 * request.
 	 */
 	if (primitive_ptr->opcode == ESIF_PRIMITIVE_OP_SET) {
 		/* Unnormalize Temperature Example C -> Deci Kelvin */
@@ -187,9 +188,6 @@ enum esif_rc esif_execute_action(
 
 	/* Handle Actions */
 	switch (action_ptr->type) {
-	/*
-	 * Handle ACPI Actions
-	 */
 	case ESIF_ACTION_ACPI:
 	{
 		switch (primitive_ptr->opcode) {
@@ -219,6 +217,35 @@ enum esif_rc esif_execute_action(
 			rc);
 	}
 	break;	/* End of ACPI */
+
+	/*
+	 * Handle ACPI LPAT Actions
+	 */
+	case ESIF_ACTION_ACPILPAT:
+	{
+		rsp_data_ptr->data_len = sizeof(u32);
+		/* Fake Data Example 596 -> ~32C */
+		/* ((u32 *)rsp_data_ptr->buf_ptr) = 596; */
+		switch (primitive_ptr->opcode) {
+		case ESIF_PRIMITIVE_OP_GET:
+			rc = esif_get_action_acpi(lp_ptr->pi_ptr->acpi_handle,
+					action_ptr->get_p1_u32(action_ptr),
+					req_data_ptr,
+					rsp_data_ptr);
+			break;
+		default:
+			rc = ESIF_E_OPCODE_NOT_IMPLEMENTED;
+			break;
+		}
+		ESIF_TRACE_DYN_ACTION(
+			"%s: ESIF_ACTION_ACPILPAT, (acpi_string) p1 %x, "
+			"result type %s(%d)\n",
+			ESIF_FUNC,
+			action_ptr->get_p1_u32(action_ptr),
+			esif_rc_str(rc),
+			rc);
+	}
+	break;	/* End of ACPILPAT */
 
 	/*
 	 * Handle Constant Actions

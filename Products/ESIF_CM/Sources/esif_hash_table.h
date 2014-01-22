@@ -59,20 +59,20 @@
 
 struct esif_hash_table {
 	u32  size;
-	struct esif_link_list * *table;
+	struct esif_link_list **table;
 };
 
 struct esif_hash_table *esif_hash_table_create (u32 size);
-void esif_hash_table_destroy (struct esif_hash_table *hash_table_ptr);
+void esif_hash_table_destroy(struct esif_hash_table *hash_table_ptr);
 
-struct esif_link_list *esif_hash_table_get_item (u8 *key_ptr,
+struct esif_link_list *esif_hash_table_get_item(u8 *key_ptr,
 						u32 key_length,
 						struct esif_hash_table *hash_table_ptr);
 
-enum esif_rc esif_hash_table_put_item (u8 *key_ptr,
-				       u32 key_length,
-				       void *item_ptr,
-				       struct esif_hash_table *hash_table_ptr);
+enum esif_rc esif_hash_table_put_item(u8 *key_ptr,
+				      u32 key_length,
+				      void *item_ptr,
+				      struct esif_hash_table *hash_table_ptr);
 
 /* Init */
 enum esif_rc esif_hash_table_init (void);

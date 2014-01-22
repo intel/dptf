@@ -86,6 +86,37 @@ static ESIF_INLINE eEsifError esif_ccb_thread_create (
 }
 
 
+static ESIF_INLINE eEsifError esif_ccb_thread_join (
+	esif_thread_t *thread_ptr
+	)
+{
+eEsifError rc = ESIF_OK;
+
+#ifdef ESIF_ATTR_OS_LINUX
+	pthread_join(*thread_ptr,NULL);
+#endif /* Linux */
+#ifdef ESIF_ATTR_OS_WINDOWS
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, (*(DWORD*)thread_ptr));
+       if (hThread != INVALID_HANDLE_VALUE) {
+              WaitForSingleObject(hThread, INFINITE);
+              CloseHandle(hThread);
+       }
+       else
+       {
+	       rc = ESIF_E_UNSPECIFIED;
+       }
+
+#endif
+
+
+	THREAD_DEBUG("joined thread = %p rc=%s(%d)\n",
+				 thread_ptr, esif_rc_str(rc), rc);
+
+	return rc;
+}
+
+
+
 #ifdef __cplusplus
 }
 #endif /* Windows */

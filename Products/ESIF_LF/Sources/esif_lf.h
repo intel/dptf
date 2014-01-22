@@ -84,6 +84,10 @@ enum esif_rc esif_lf_event(struct esif_participant_iface *pi_ptr,
 enum esif_rc esif_lf_init(esif_flags_t debug_mask);
 void esif_lf_exit(void);
 
+/* Optional OS Init/Exit. Call before esif_ccb_malloc & after esif_ccb_free */
+void esif_lf_os_init(void);
+void esif_lf_os_exit(void);
+
 #endif /* _ESIF_LF_H_ */
 
 /*****************************************************************************/

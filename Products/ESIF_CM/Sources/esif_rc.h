@@ -96,7 +96,7 @@ enum esif_rc {
 
 	/* Action */
 	/* ESIF Data Buffer Overflow Would've Occured */
-	ESIF_E_OVERFLOWED_RESULT_TYPE, 
+	ESIF_E_OVERFLOWED_RESULT_TYPE,
 	ESIF_E_UNSUPPORTED_ACTION_TYPE,	   /* Undefined Primitive Action Type */
 	ESIF_E_UNSUPPORTED_REQUEST_DATA_TYPE, /* Unsupported Req Data Type */
 	ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE,  /* Unsupported Result Data Type */
@@ -129,18 +129,19 @@ enum esif_rc {
 	ESIF_E_NO_MMIO_SUPPORT,	 /* No MMIO support in this device */
 
 	/* MBI */
-	ESIF_E_NO_MBI_SUPPORT, /* No MBI support in this device */
+	ESIF_E_NO_MBI_SUPPORT,   /* No MBI support in this device */
 
 	/* MSR */
-	ESIF_E_MSR_IO_FAILURE, /* MSR Read or Write Error*/
-	ESIF_E_MSR_MULTI_VALUES,/* Values Are Different On Different CPUs Such
-				That They Cannot Be Presented By UINT */	
+	ESIF_E_MSR_IO_FAILURE,   /* MSR Read or Write Error*/
+	ESIF_E_MSR_MULTI_VALUES, /* Values Are Different On Different CPUs Such
+				  * That They Cannot Be Presented By UINT
+				  */
 
 	/* Participant */
 	ESIF_E_PARTICIPANT_NOT_FOUND, /* Participant Not Found */
 
 	/* Parameter */
-	ESIF_E_PARAMETER_IS_NULL,           /* Parameter Is NULL */
+	ESIF_E_PARAMETER_IS_NULL,          /* Parameter Is NULL */
 	ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS, /* Parameter Is Out Of Bounds */
 
 	/* PRIMITIVE */
@@ -182,11 +183,11 @@ enum esif_rc {
 
 /* Convert Return Code To A String */
 static ESIF_INLINE char
-*esif_rc_str (enum esif_rc type)
+*esif_rc_str(enum esif_rc type)
 {
 	/* TODO:  Lifu to fix */
     #define ESIF_CREATE_RC(rc) case rc: \
-	str = (esif_string) #rc;break;
+	str = (esif_string) #rc; break;
 	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
 	switch (type) {
 		ESIF_CREATE_RC(ESIF_OK)

@@ -32,6 +32,8 @@ info
 seterrorlevel 0
 timerstart
 setb 8192
+getp 185 D0 255                                              ;GET_CLOCK_COUNT
+getp 187 D0 001                                              ;GET_CLOCK_ORIGINAL_FREQUENCY
 getp 049 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_ADDRESS_ON_PARENT_BUS
 getp 088 D0 255 -u 0xf -l 0                                  ;GET_DEVICE_STATUS
 getp 178 D1 255 -u 3 -l 0                                    ;GET_DOMAIN_PRIORITY
@@ -88,6 +90,23 @@ getp 039 D0 000                                              ;GET_RAPL_TIME_WIND
 getp 039 D0 001                                              ;GET_RAPL_TIME_WINDOW
 getp 039 D1 000                                              ;GET_RAPL_TIME_WINDOW
 getp 039 D2 000                                              ;GET_RAPL_TIME_WINDOW
+getp 265 D0 255                                              ;GET_RFPROFILE_BIT_ERROR
+getp 245 D0 255                                              ;GET_RFPROFILE_CENTER_FREQUENCY
+getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
+rem setp 255 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_LEFT
+rem setp 256 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
+getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
+getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
+getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
+getp 246 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
+getp 251 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT
+getp 261 D0 255                                              ;GET_RFPROFILE_NOISE_POWER
+getp 258 D0 255                                              ;GET_RFPROFILE_NOTCH_LEFT
+getp 259 D0 255                                              ;GET_RFPROFILE_NOTCH_RIGHT
+getp 263 D0 255                                              ;GET_RFPROFILE_RSSI
+getp 247 D0 255                                              ;GET_RFPROFILE_SHAPE_LEFT
+getp 253 D0 255                                              ;GET_RFPROFILE_SHAPE_RIGHT
+getp 262 D0 255                                              ;GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO
 getp 014 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE
 getp 014 D1 255 -u 105 -l 0                                  ;GET_TEMPERATURE
 getp 014 D2 255 -u 105 -l 0                                  ;GET_TEMPERATURE
@@ -134,6 +153,7 @@ rem setp 127 D0 000                                          ;SET_RAPL_TIME_WIND
 rem setp 127 D0 001                                          ;SET_RAPL_TIME_WINDOW
 rem setp 127 D1 000                                          ;SET_RAPL_TIME_WINDOW
 rem setp 127 D2 000                                          ;SET_RAPL_TIME_WINDOW
+rem setp 211 D0 255                                          ;SET_RFPROFILE_CENTER_FREQUENCY
 rem setp 241 D0 255                                          ;SET_TEMPERATURE
 rem setp 241 D1 255                                          ;SET_TEMPERATURE
 rem setp 241 D2 255                                          ;SET_TEMPERATURE
@@ -154,7 +174,7 @@ rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
 rem setp 147 D1 255                                          ;SET_TSTATE_CURRENT
-echo Test Count: 122
+echo Test Count: 142
 timerstop
 geterrorlevel
 nolog

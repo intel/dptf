@@ -65,7 +65,6 @@ void esif_poll_start(struct esif_lp_domain *lpd_ptr);
 void esif_poll_start_all(struct esif_lp *lp_ptr);
 void esif_poll(void *context_ptr);
 void esif_poll_stop(struct esif_lp_domain *lpd_ptr);
-void esif_poll_stop_all(struct esif_lp *lp_ptr);
 
 /* Init / Exit */
 enum esif_rc esif_poll_init(void);

@@ -184,11 +184,14 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 		{         0,                            0}
 	};
 	eEsifError rc     = ESIF_E_UNSPECIFIED;
-	char message[OUT_BUF_LEN] = {0};
+	char *message = (char*)esif_ccb_malloc(OUT_BUF_LEN);
 	EsifDataType type = ESIF_DATA_STRING;
 	UInt32 options    = 0;
 	StringPtr DefaultNamespace = "esif";
 	int i;
+
+	if (!message)
+		return ESIF_E_NO_MEMORY;
 
 	for (i = 0; i < eqlcmd->options->items; i++) {
 		char *opt = eqlcmd->options->list[i];
@@ -202,6 +205,7 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 		if (!optionList[j].name) {
 			esif_ccb_sprintf(OUT_BUF_LEN, message, "Error: Invalid Option: %s\n", opt);
 			StringList_Add(eqlcmd->messages, message);
+			esif_ccb_free(message);
 			return rc;
 		}
 	}
@@ -229,6 +233,7 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 				EsifData_Destroy(data_nspace);
 				EsifData_Destroy(data_path);
 				EsifData_Destroy(data_value);
+				esif_ccb_free(message);
 				return rc;
 			}
 		}
@@ -281,7 +286,7 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 {
 	eEsifError rc = ESIF_E_UNSPECIFIED;
-	char message[OUT_BUF_LEN]  = {0};
+	char *message  = (char *)esif_ccb_malloc(OUT_BUF_LEN);
 	u32 id = 0;
 	char primitive_name[256]   = {0};
 	char qualifier_str[32 + 1] = "D0";
@@ -289,6 +294,9 @@ static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 	EsifDataPtr request  = EsifData_CreateAs(ESIF_DATA_VOID, NULL, 0, 0);
 	EsifDataPtr response = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 	int destination = g_dst;
+
+	if (!message)
+		return ESIF_E_NO_MEMORY;
 
 	// Participant Destination Name
 	if (eqlcmd->subtype) {
@@ -316,6 +324,7 @@ static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 		}
 	}
 	if (!id) {
+		esif_ccb_free(message);
 		EsifData_Destroy(request);
 		EsifData_Destroy(response);
 		return rc;
@@ -353,10 +362,11 @@ static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 			EsifDataList_Add(eqlcmd->results, response);
 		}
 	}
-	if (*message) {
+	if (message && *message) {
 		StringList_Add(eqlcmd->messages, message);
 	}
 
+	esif_ccb_free(message);
 	EsifData_Destroy(request);
 	EsifData_Destroy(response);
 	return rc;

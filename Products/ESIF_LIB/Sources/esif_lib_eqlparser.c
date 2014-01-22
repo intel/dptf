@@ -530,7 +530,7 @@ static int EqlParser_Accept (
 
 	if (self->token == s) {
 		self->lasttoken = s;
-		esif_ccb_strcpy(self->lastvalue, self->value, esif_ccb_strlen(self->value, MAXAUTOLEN));
+		esif_ccb_strcpy(self->lastvalue, self->value, esif_ccb_strlen(self->value, MAXAUTOLEN)+1);
 		if (c != EqlContextNone) {
 			EqlCmdPtr eqlcmd = self->eqlcmd;
 			switch (c) {

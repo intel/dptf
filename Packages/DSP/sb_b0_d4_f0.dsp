@@ -54,8 +54,14 @@ E,"SIC",0x91,17,3,24,0x75494A00-417C-4E51-9FAB-FBDD965577D4
 E,"TTC",0xAB7563E4-C6C0-4D06-9838-4314AB83F9B0,16,4,24,0x43CDD7D8-C96D-4EE7-9A4A-7EC5C2EE1B6E
 #
 D,"PKG","Package Domain","D0","34C1E485-4F17-4726-ACB9-FECEF81F2AE6",0,9
-C,0x61C2 ,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x0,0x0,0x0,0x0,0x1,0x1
+C,0xE1C2 ,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x1,0x1,0x0,0x0,0x0,0x0,0x1,0x1,0x1
 #
+# GET_CLOCK_COUNT
+P,185,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"1",,,,
+# GET_CLOCK_ORIGINAL_FREQUENCY
+P,187,1,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,29,True,"139500000",,,,
 # GET_DEVICE_ADDRESS_ON_PARENT_BUS
 P,49,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"_ADR",,,,
@@ -184,6 +190,57 @@ A,1,22,True,0x610,23,17,,
 P,39,1,1,24,"<schema></schema>",31,"<schema></schema>"
 A,0,2,True,0x59a0,55,49,,
 A,1,22,True,0x610,55,49,,
+# GET_RFPROFILE_BIT_ERROR
+P,265,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_CENTER_FREQUENCY
+P,245,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_CHANNEL_NUMBER
+P,260,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_CLIP_PERCENT_LEFT
+P,255,255,2,24,"<schema></schema>",29,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_CLIP_PERCENT_RIGHT
+P,256,255,2,24,"<schema></schema>",29,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_CONNECT_STATUS
+P,264,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"1",,,,
+# GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
+P,254,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,29,True,"162500000",,,,
+# GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
+P,257,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
+P,246,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT
+P,251,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_NOISE_POWER
+P,261,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_NOTCH_LEFT
+P,258,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_NOTCH_RIGHT
+P,259,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_RSSI
+P,263,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_SHAPE_LEFT
+P,247,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_SHAPE_RIGHT
+P,253,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
+# GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO
+P,262,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"0",,,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
@@ -258,7 +315,7 @@ P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
-P,81,255,2,7,"<schema></schema>",24,"<schema></schema>"
+P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_SCP",,,,
 # SET_CTDP_POINT
 P,83,255,2,3,"<schema></schema>",24,"<schema></schema>"
@@ -269,9 +326,6 @@ A,0,4,True,"_DTI",,,,
 # SET_PROC_CTDP_CONTROL
 P,221,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x5f50,1,0,,
-# SET_PROC_FIVR_RFI_TUNING
-P,211,255,2,3,"<schema></schema>",24,"<schema></schema>"
-A,1,22,True,0xe3,15,0,,
 # SET_PROC_TURBO_ACTIVATION_RATIO
 P,220,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x5f54,7,0,,
@@ -302,6 +356,10 @@ A,1,22,True,0x610,23,17,,
 P,127,1,2,31,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x59a4,23,17,,
 A,1,22,True,0x610,55,49,,
+# SET_RFPROFILE_CENTER_FREQUENCY
+P,211,255,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,29,True,"NIMP",,,,
+A,1,22,True,0xe3,15,0,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
@@ -357,7 +415,7 @@ P,205,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
 #
 D,"CPU","IA Domain","D1","53071E9E-3E87-46ED-A397-49CA8651D989",1,0
-C,0x1B4 ,0x0,0x0,0x1,0x0,0x1,0x2,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0
+C,0x1B4 ,0x0,0x0,0x1,0x0,0x1,0x2,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_DOMAIN_PRIORITY
 P,178,255,1,24,"<schema></schema>",3,"<schema></schema>"
@@ -453,7 +511,7 @@ P,147,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x19a,4,0,0x1,
 #
 D,"GFX","Graphics Domain","D2","73558331-4753-49B0-9B2D-EF26B10C4DB6",2,1
-C,0x1B0 ,0x0,0x0,0x0,0x0,0x1,0x3,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0
+C,0x1B0 ,0x0,0x0,0x0,0x0,0x1,0x3,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_DOMAIN_PRIORITY
 P,178,255,1,24,"<schema></schema>",3,"<schema></schema>"

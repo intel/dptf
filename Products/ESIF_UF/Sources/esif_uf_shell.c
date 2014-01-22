@@ -20,7 +20,6 @@
 const char *g_esif_shell_version = ESIF_UF_VERSION;
 
 extern char *g_esif_etf_version;
-extern char *g_esif_erapi_version;
 
 char g_esif_kernel_version[64] = "NA";
 
@@ -38,7 +37,6 @@ char g_esif_kernel_version[64] = "NA";
 #include "esif_uf_cfgmgr.h"	/* Config Manager */
 
 #include "esif_uf_primitive.h"
-#include "esif_uf_rest.h"
 
 #include "esif_command.h"	/* Commands */
 #include "esif_ipc.h"		/* IPC Abstraction */
@@ -124,7 +122,7 @@ int g_soe = 1;
 
 struct EsifShellCmd_s {
 	int   argc;
-	char  * *argv;
+	char  **argv;
 	char  *outbuf;
 };
 
@@ -181,9 +179,9 @@ unsigned int esif_atoi (const esif_string str)
 	}
 
 	if (!strncmp(str, "0x", 2)) {
-		esif_ccb_sscanf(str + 2, "%x", &val, sizeof(val));
+		esif_ccb_sscanf(str + 2, "%x", &val);
 	} else {
-		esif_ccb_sscanf(str, "%d", &val, sizeof(val));
+		esif_ccb_sscanf(str, "%d", &val);
 	}
 
 	return val;
@@ -198,16 +196,16 @@ UInt64 esif_atoi64 (const esif_string str)
 	}
 
 	if (!strncmp(str, "0x", 2)) {
-		esif_ccb_sscanf(str + 2, "%llx", &val, sizeof(val));
+		esif_ccb_sscanf(str + 2, "%llx", &val);
 	} else {
-		esif_ccb_sscanf(str, "%lld", &val, sizeof(val));
+		esif_ccb_sscanf(str, "%lld", &val);
 	}
 
 	return val;
 }
 
 
-static char*esif_primitive_domain_str (
+static char *esif_primitive_domain_str (
 	u16 domain,
 	char *str,
 	u8 str_len
@@ -220,7 +218,7 @@ static char*esif_primitive_domain_str (
 
 
 /* Need Header */
-char*esif_str_replace (
+char *esif_str_replace (
 	char *orig,
 	char *rep,
 	char *with
@@ -343,8 +341,7 @@ void esif_init ()
 		esif_ccb_sprintf(64, command, "load start");
 		parse_cmd(command, ESIF_FALSE);
 
-#ifdef ESIF_ATTR_OS_WINDOWS_UMDF
-		EsifRestStart();
+#ifdef ESIF_ATTR_OS_WINDOWS_UMDF		
 
 		/* Start DPTF */
 		esif_ccb_sprintf(64, command, "appstart dptf");
@@ -366,7 +363,7 @@ void esif_uf_subsystem_exit ()
 // PARSED COMMANDS
 ///////////////////////////////////////////////////////////////////////////////
 
-static char*esif_shell_cmd_dspqacpi (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_dspqacpi (EsifShellCmdPtr shell)
 {
 	int argc          = shell->argc;
 	char * *argv      = shell->argv;
@@ -423,7 +420,7 @@ static char*esif_shell_cmd_dspqacpi (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_dsps (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_dsps (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -614,7 +611,7 @@ static char*esif_shell_cmd_dsps (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_conjures (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_conjures (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -656,7 +653,7 @@ static char*esif_shell_cmd_conjures (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_actions (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_actions (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -744,7 +741,7 @@ static char*esif_shell_cmd_actions (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_apps (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_apps (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -813,7 +810,7 @@ static char*esif_shell_cmd_apps (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_actionstart (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_actionstart (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -871,7 +868,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_appstart (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_appstart (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -893,10 +890,11 @@ static char*esif_shell_cmd_appstart (EsifShellCmdPtr shell)
 		goto exit;
 	}
 
-	for (i = 0; i < ESIF_MAX_APPS; i++)
+	for (i = 0; i < ESIF_MAX_APPS; i++) {
 		if (NULL == g_appMgr.fEntries[i].fLibNamePtr) {
 			break;
 		}
+	}
 
 
 	if (ESIF_MAX_APPS == i) {
@@ -927,7 +925,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_actionstop (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_actionstop (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -966,7 +964,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_appstop (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_appstop (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -1003,7 +1001,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_appselect (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_appselect (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -1053,7 +1051,7 @@ exit:
 
 
 // Auto CPC
-static char*esif_shell_cmd_autocpc (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_autocpc (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -1076,7 +1074,7 @@ static char*esif_shell_cmd_autocpc (EsifShellCmdPtr shell)
 
 
 // Stop On Error
-static char*esif_shell_cmd_soe (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_soe (EsifShellCmdPtr shell)
 {
 	int argc      = shell->argc;
 	char * *argv  = shell->argv;
@@ -1099,7 +1097,7 @@ static char*esif_shell_cmd_soe (EsifShellCmdPtr shell)
 
 
 // Debug Level
-static char*esif_shell_cmd_debuglvl (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_debuglvl (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -1157,7 +1155,7 @@ exit:
 
 
 // Debug Set
-static char*esif_shell_cmd_debugset (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_debugset (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -1213,7 +1211,7 @@ exit:
 
 // TODO Use g_uf_xform to switch who (LF or UF) should run the xform. There is no need
 // to do so, as soon as the xform fully runs on UF (Kernel xform will retire)
-static char*esif_shell_cmd_varset (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_varset (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -1247,14 +1245,45 @@ static char*esif_shell_cmd_varset (EsifShellCmdPtr shell)
 
 
 // Trace
-char*esif_shell_cmd_trace (EsifShellCmdPtr shell)
+char *esif_shell_cmd_trace (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
 	char *output = shell->outbuf;
 
 	if (argc > 1) {
+		UInt32 verbosity = 0;
+		EsifData verbosity_data = { ESIF_DATA_UINT32, &verbosity, 0, sizeof(verbosity) };
+		eLogType logtype;
+		
 		g_traceLevel = (u8)esif_atoi(argv[1]);
+
+		// Map ESIF Trace Level to DPTF Verbosity Level
+		switch (g_traceLevel) {
+		case ESIF_TRACELEVEL_FATAL:
+			logtype = eLogTypeFatal;
+			break;
+		case ESIF_TRACELEVEL_ALERT:
+		case ESIF_TRACELEVEL_CRITICAL:
+		case ESIF_TRACELEVEL_ERROR:
+			logtype = eLogTypeError;
+			break;
+		case ESIF_TRACELEVEL_WARN:
+			logtype = eLogTypeWarning;
+			break;
+		case ESIF_TRACELEVEL_NOTICE:
+		case ESIF_TRACELEVEL_INFO:
+			logtype = eLogTypeInfo;
+			break;
+		case ESIF_TRACELEVEL_DEBUG:
+		case ESIF_TRACELEVEL_VERBOSE:
+		case ESIF_TRACELEVEL_VERBOSE_EX:
+		default:
+			logtype = eLogTypeDebug;
+			break;
+		}
+		verbosity = (UInt32)logtype;
+		EsifAppsEvent(0, 'NA', ESIF_EVENT_LOG_VERBOSITY_CHANGED, &verbosity_data);
 	}
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "Trace Level = %d\n", g_traceLevel);
 
@@ -1273,7 +1302,7 @@ char*esif_shell_cmd_trace (EsifShellCmdPtr shell)
 
 
 // Select Destination By ID
-char*esif_shell_cmd_dst (EsifShellCmdPtr shell)
+char *esif_shell_cmd_dst (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -1289,7 +1318,7 @@ char*esif_shell_cmd_dst (EsifShellCmdPtr shell)
 
 
 // Select Destination By Name
-char*esif_shell_cmd_dstn (EsifShellCmdPtr shell)
+char *esif_shell_cmd_dstn (EsifShellCmdPtr shell)
 {
 	int argc       = shell->argc;
 	char * *argv   = shell->argv;
@@ -1316,7 +1345,7 @@ char*esif_shell_cmd_dstn (EsifShellCmdPtr shell)
 
 
 // Echo
-static char*esif_shell_cmd_echo (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_echo (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -1330,7 +1359,7 @@ static char*esif_shell_cmd_echo (EsifShellCmdPtr shell)
 
 
 // Format
-static char*esif_shell_cmd_format (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_format (EsifShellCmdPtr shell)
 {
 	int argc         = shell->argc;
 	char * *argv     = shell->argv;
@@ -1359,7 +1388,7 @@ static void dump_table_hdr (struct esif_table_hdr *tab);
 static void dump_binary_data (u8 *byte_ptr, u32 byte_len);
 
 // Get From File
-static char*esif_shell_cmd_getf (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_getf (EsifShellCmdPtr shell)
 {
 	int argc         = shell->argc;
 	char * *argv     = shell->argv;
@@ -1431,7 +1460,7 @@ exit:
 
 
 // Get Primitive
-static char*esif_shell_cmd_getp (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_getp (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -1619,35 +1648,36 @@ static char*esif_shell_cmd_getp (EsifShellCmdPtr shell)
 	type = response.type;
 	switch (type) {
 	case ESIF_DATA_UINT32:
-		esif_ccb_strcpy(&desc[0], "", 32);
+	case ESIF_DATA_UINT64:
+		esif_ccb_strcpy(&desc[0], "", sizeof(desc));
 		break;
 
 	case ESIF_DATA_TEMPERATURE:
-		esif_ccb_strcpy(&desc[0], "Degrees C", 32);
+		esif_ccb_strcpy(&desc[0], "Degrees C", sizeof(desc));
 		break;
 
 	case ESIF_DATA_POWER:
-		esif_ccb_strcpy(&desc[0], "MilliWatts", 32);
+		esif_ccb_strcpy(&desc[0], "MilliWatts", sizeof(desc));
 		break;
 
 	case ESIF_DATA_STRING:
-		esif_ccb_strcpy(&desc[0], "ASCII", 32);
+		esif_ccb_strcpy(&desc[0], "ASCII", sizeof(desc));
 		break;
 
 	case ESIF_DATA_BINARY:
-		esif_ccb_strcpy(&desc[0], "BINARY", 32);
+		esif_ccb_strcpy(&desc[0], "BINARY", sizeof(desc));
 		break;
 
 	case ESIF_DATA_TABLE:
-		esif_ccb_strcpy(&desc[0], "TABLE", 32);
+		esif_ccb_strcpy(&desc[0], "TABLE", sizeof(desc));
 		break;
 
 	case ESIF_DATA_PERCENT:
-		esif_ccb_strcpy(&desc[0], "Percent", 32);
+		esif_ccb_strcpy(&desc[0], "Percent", sizeof(desc));
 		break;
 
 	default:
-		esif_ccb_strcpy(&desc[0], "", 32);
+		esif_ccb_strcpy(&desc[0], "", sizeof(desc));
 		break;
 	}
 
@@ -1688,6 +1718,18 @@ static char*esif_shell_cmd_getp (EsifShellCmdPtr shell)
 						 response.data_len,
 						 response.buf_len,
 						 str_ptr);
+	} else if (ESIF_DATA_UINT64 == type) {
+		u64 val = *(u64*)(response.buf_ptr);
+		if (FORMAT_TEXT == g_format) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s value = 0x%016llx %llu %s\n",
+							 output, val, val, desc);
+		} else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output,
+							 "%s<result>\n"
+							 "    <value>%llu</value>\n"
+							 "    <valueDesc>%s</valueDesc>\n",
+							 output, val, desc);
+		}
 	} else {// Binary Dump
 		u8 *byte_ptr = (u8*)(response.buf_ptr);
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s Binary Data(%u of %u):",
@@ -1749,9 +1791,484 @@ exit:
 	return output;
 }
 
+// FPC Info
+static char *esif_shell_cmd_infofpc (EsifShellCmdPtr shell) 
+{
+	int argc     = shell->argc;
+	char **argv = shell->argv;
+	char *output = shell->outbuf;
+	char cpc_domain_str[8] = "";
+	char *cpc_pattern = "";
+	char *edp_filename     = 0;
+	char edp_name[PATH_STR_LEN];
+	char edp_full_path[PATH_STR_LEN];
+	struct esif_fpc *fpc_ptr = NULL;
+	struct esif_fpc_domain *domain_ptr;
+	struct esif_fpc_primitive *primitive_ptr;
+	struct esif_fpc_action *action_ptr;
+	struct esif_fpc_algorithm *algorithm_ptr;
+	struct esif_fpc_event *event_ptr;
+	u32 fpc_size    = 0;
+	u8 *base_ptr    = (u8*)fpc_ptr;
+	u32 num_prim    = 0, i, j, k;
+	IOStreamPtr io_ptr    = IOStream_Create();
+	EsifDataPtr nameSpace = 0;
+	EsifDataPtr key = 0;
+	EsifDataPtr value     = 0;
+	struct edp_dir edp_dir;
+	size_t r_bytes;
+	size_t fpc_read;
+	u32 offset;
+	u32 edp_size;
+
+
+	if (argc < 2 || io_ptr == NULL) {
+		IOStream_Destroy(io_ptr);
+		return NULL;
+	}
+
+	// parse filename no extension
+	edp_filename = argv[1];
+
+	// parse option regular expression
+	if (argc > 2) {
+		cpc_pattern = argv[2];
+	}
+
+	// Look for EDP file either on disk or in a DataVault (static or file), depending on priority setting
+	esif_ccb_sprintf(PATH_STR_LEN, edp_name, "%s.edp", edp_filename);
+	nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, ESIF_DSP_NAMESPACE, 0, ESIFAUTOLEN);
+	key		  = EsifData_CreateAs(ESIF_DATA_STRING, edp_name, 0, ESIFAUTOLEN);
+	value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+	esif_build_path(edp_full_path, PATH_STR_LEN, ESIF_DIR_DSP, edp_name);
+	if ((ESIF_EDP_DV_PRIORITY == 1 || !esif_ccb_file_exists(edp_full_path)) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
+ 		esif_ccb_strcpy(edp_full_path, edp_name, PATH_STR_LEN);
+		IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
+	} else {
+		IOStream_SetFile(io_ptr, edp_full_path, (char*)FILE_READ);
+	}
+
+	if (IOStream_Open(io_ptr) == 0) {
+		edp_size= (UInt32) IOStream_GetSize(io_ptr);
+		r_bytes  = IOStream_Read(io_ptr, &edp_dir, sizeof(struct edp_dir));
+		fpc_size = edp_size - edp_dir.fpc_offset;
+		if (fpc_size > MAX_CPC_SIZE) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s: fpc_size too large (%u), edp_size %d\n", 
+				ESIF_FUNC, fpc_size, edp_size);
+			goto exit;
+		}
+		IOStream_Seek(io_ptr, edp_dir.fpc_offset, SEEK_SET);
+	} else {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s: file not found (%s)\n", ESIF_FUNC, edp_full_path);
+		goto exit;
+	}
+
+	// Find FPC and read out	
+	IOStream_Seek(io_ptr, edp_dir.fpc_offset, SEEK_SET);
+
+	// allocate space for our FPC file contents
+	fpc_ptr = (struct esif_fpc *)esif_ccb_malloc(fpc_size);
+	if (NULL == fpc_ptr) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s: FPC malloc failed to allocate %u bytes for fpc\n",
+			ESIF_FUNC, fpc_size);
+		goto exit;
+	}
+
+	// read FPC file contents
+	fpc_read = IOStream_Read(io_ptr, fpc_ptr, fpc_size);
+	if (fpc_read < fpc_size) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s: FPC read short received %u of %u bytes\n",
+			ESIF_FUNC, (int)fpc_read, fpc_size);
+		goto exit;
+	}
+
+    if (FORMAT_TEXT == g_format) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"FPC File Info For %s Size %u\n\n",
+				edp_filename, fpc_size);
+		esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"%s"
+				"FPC Source:     %s\n"
+				"FPC Size:       %d\n"
+				"FPC Name:       %s\n"
+				"FPC Version:    %x.%x\n"
+				"FOC Desc:       %s\n"
+				"FPC Primitives: %d\n"
+				"FPC Algorithms: %d\n"
+				"FPC Domains:    %d\n",
+				output,
+				(IOStream_GetType(io_ptr) == StreamMemory ? "DataVault" : "File"),
+				fpc_ptr->size,
+				fpc_ptr->header.name,
+				fpc_ptr->header.ver_major, fpc_ptr->header.ver_minor,
+				fpc_ptr->header.description,
+				fpc_ptr->number_of_domains,
+				fpc_ptr->number_of_algorithms, 
+				fpc_ptr->number_of_events); 
+	} else { // FORMAT_XML
+		esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"<fpcinfo>\n"
+				"  <size>%d<size>\n"
+				"  <fpcSource>%s\n"
+				"  <fpcSize>%d</fpcSize>\n"
+				"  <fpcName>%s</fpcName>\n"
+				"  <fpcVersion>%x.%x<fpcVersion>\n"
+				"  <fpcDesc>%s<fpcDesc>\n"
+				"  <fpcPrimitives>%d<fpcPrimitives>\n"
+				"  <fpcAlgorithms>%d<fpcAlgorithms>\n"
+				"  <fpcDomains>%d</fpcDomains>\n",
+				fpc_size,
+				(IOStream_GetType(io_ptr) == StreamMemory ? "DataVault" : "File"),
+				fpc_ptr->size,
+				fpc_ptr->header.name,
+				fpc_ptr->header.ver_major, fpc_ptr->header.ver_minor,
+				fpc_ptr->header.description,
+				fpc_ptr->number_of_domains,
+				fpc_ptr->number_of_algorithms, 
+				fpc_ptr->number_of_events); 
+	}
+
+
+	/* First Domain, Ok To Have Zero Primitive Of A Domain */
+	domain_ptr = (struct esif_fpc_domain*)((u8*)fpc_ptr + sizeof(struct esif_fpc));
+	for (i = 0; i < fpc_ptr->number_of_domains; i++) {
+		int show = 0;
+		char temp_buf[1024]="";
+		char qualifier_str[64]="";
+
+		offset = (unsigned long)((u8*)domain_ptr - base_ptr);
+
+		if (!strcmp(cpc_pattern, "")) {
+			show = 1;
+		}
+
+		if (FORMAT_TEXT == g_format) {
+			esif_ccb_sprintf(1024, temp_buf, 
+				"\nDOMAINS:\n\n"
+				"Name     Description          Domain   Priority Capability Type               \n"
+				"-------- -------------------- -------- -------- ---------- -----------------------------\n");
+
+			esif_ccb_sprintf(1024, temp_buf,
+				"%s%-8s %-20s %-8s %08x %08x   %s(%d)\n",
+				temp_buf, 
+				domain_ptr->descriptor.name, 
+				domain_ptr->descriptor.description,
+				esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 64),
+				domain_ptr->descriptor.priority,
+				domain_ptr->capability_for_domain.capability_flags,
+				esif_domain_type_str(domain_ptr->descriptor.domainType), 
+				domain_ptr->descriptor.domainType);
+
+
+			if (1 == show) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+			}
+		} else {  // FORMAT_XML 
+			esif_ccb_sprintf(1024, temp_buf,
+				"<domain>%s</domain>\n"
+				"<domainSize>%u</domainSize>\n"
+				"<numPrimitive>%u</numPrimitive>\n"
+				"<numCapability>%d</numCapability>\n"
+				"<capability>%x</capability>\n",
+				domain_ptr->descriptor.name,
+				domain_ptr->size,
+				domain_ptr->number_of_primitives,
+				domain_ptr->capability_for_domain.number_of_capability_flags,
+			    domain_ptr->capability_for_domain.capability_flags);
+			if (1 == show) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+			}
+		}
+
+
+		if (FORMAT_TEXT == g_format) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\nCAPABILITY:\n\n", output);
+		}
+
+
+		/* Capability */
+		for (j = 0; j < domain_ptr->capability_for_domain.number_of_capability_flags; j++) {
+			offset = (unsigned long)(((u8*)&domain_ptr->capability_for_domain) - base_ptr);
+
+			if (FORMAT_TEXT == g_format) {
+				esif_ccb_sprintf(1024, temp_buf, 
+						"Capability[%d] 0x%x\n", 
+						j, domain_ptr->capability_for_domain.capability_mask[j]);
+				if (1 == show) {
+					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				}
+			}  else {  // FORMAT_XML
+				esif_ccb_sprintf(1024, temp_buf, 
+						"<Capability>%x</Capability>\n", 
+						domain_ptr->capability_for_domain.capability_mask[j]);
+				if (1 == show) {
+					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				}
+			}
+		}
+
+		if (FORMAT_TEXT == g_format) {
+			esif_ccb_sprintf(1024, temp_buf, "\nPRIMITIVES AND ACTIONS:\n\n");
+		}
+		if (1 == show) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+		}
+
+		/* First Primtive */
+		primitive_ptr = (struct esif_fpc_primitive*)((u8*)domain_ptr + 
+							sizeof(struct esif_fpc_domain));
+		for (j = 0; j < domain_ptr->number_of_primitives; j++, num_prim++) {
+			offset = (unsigned long)(((u8*)primitive_ptr) - base_ptr);
+
+			if (FORMAT_TEXT == g_format) {
+				esif_ccb_sprintf(1024, temp_buf, 
+					"%03d.%s.%03d %s actions %d %s req %s rsp %s\n",
+					primitive_ptr->tuple.id,
+					esif_primitive_domain_str(primitive_ptr->tuple.domain, cpc_domain_str, 8),
+					primitive_ptr->tuple.instance, 
+					esif_primitive_opcode_str((enum esif_primitive_opcode)primitive_ptr->operation),
+					primitive_ptr->num_actions,
+					esif_primitive_str((enum esif_primitive_type)primitive_ptr->tuple.id),
+					esif_data_type_str(primitive_ptr->request_type),
+					esif_data_type_str(primitive_ptr->result_type));
+
+				// TODO REGEXP Here For Now Simple Pattern Match
+				if (0 == show && strstr(temp_buf, cpc_pattern)) {
+					show = 1;
+				}
+				// Show Row?
+				if (1 == show) {
+					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				}
+			}  else {  // FORMAT_XML
+				esif_ccb_sprintf(1024, temp_buf,
+					"    <primitive>\n"
+					"      <id>%d</id>\n"
+					"      <primitiveStr>%s</primitiveStr>\n"
+					"      <domain>%s</domain>\n"
+					"      <instance>%d</instance>\n"
+					"      <opcode>%d</opcode>\n"
+					"      <opcodeStr>%s</opcodeStr>\n"
+					"      <actionCount>%d</actionCount>\n"
+					"    </primitive>\n",
+					primitive_ptr->tuple.id,
+					esif_primitive_str((enum esif_primitive_type)primitive_ptr->tuple.id),
+					esif_primitive_domain_str(primitive_ptr->tuple.domain, cpc_domain_str, 8),
+					primitive_ptr->tuple.instance,
+					primitive_ptr->operation,
+					esif_primitive_opcode_str((enum esif_primitive_opcode)primitive_ptr->operation),
+					primitive_ptr->num_actions);
+
+				// TODO REGEXP Here For Now Simple Pattern Match
+				if (0 == show && strstr(temp_buf, cpc_pattern)) {
+					show = 1;
+				}
+				// Show Row?
+				if (1 == show) {
+					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				}
+			}
+
+			/* First Action */
+			action_ptr = (struct esif_fpc_action *)((u8*)primitive_ptr + 
+							sizeof(struct esif_fpc_primitive));
+			for (k=0; k<primitive_ptr->num_actions; k++, action_ptr++) {
+				offset = (unsigned long) (((u8*) action_ptr) - base_ptr);
+
+				if (FORMAT_TEXT == g_format) {
+					esif_ccb_sprintf(1024, temp_buf, 
+						"  %s param_valid %1d:%1d:%1d:%1d:%1d param %x:%x:%x:%x:%x\n",
+						esif_action_type_str(action_ptr->type),
+						action_ptr->param_valid[0],
+						action_ptr->param_valid[1],
+						action_ptr->param_valid[2],
+						action_ptr->param_valid[3],
+						action_ptr->param_valid[4],
+						action_ptr->param_offset[0],
+						action_ptr->param_offset[1],
+						action_ptr->param_offset[2],
+						action_ptr->param_offset[3],
+						action_ptr->param_offset[4]);
+	
+					// TODO REGEXP Here For Now Simple Pattern Match
+					if (0 == show && strstr(temp_buf, cpc_pattern)) { 
+						show = 1;
+					}
+					if (1 == show) {
+						esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					}
+				} else { // FORMAT_XML
+	                esif_ccb_sprintf(1024, temp_buf,
+                                 "   <action>\n"
+                                 "      <type>%d</type>\n"
+                                 "      <typeStr>%s</typeStr>\n"
+                                 "      <paramValid>%1d:%1d:%1d:%1d:%1d</paramValid>\n"
+                                 "      <param[0]>%x</param[0]>\n"
+                                 "      <param[1]>%x</param[1]>\n"
+                                 "      <param[2]>%x</param[2]>\n"
+                                 "      <param[3]>%x</param[3]>\n"
+                                 "      <param[4]>%x</param[4]>\n"
+                                 "   </action>\n",
+                                 action_ptr->type,
+                                 esif_action_type_str(action_ptr->type),
+                                 action_ptr->param_valid[0],
+                                 action_ptr->param_valid[1],
+                                 action_ptr->param_valid[2],
+                                 action_ptr->param_valid[3],
+                                 action_ptr->param_valid[4],
+                                 action_ptr->param_offset[0],
+                                 action_ptr->param_offset[1],
+                                 action_ptr->param_offset[2],
+                                 action_ptr->param_offset[3],
+                                 action_ptr->param_offset[4]);
+					// TODO REGEXP Here For Now Simple Pattern Match
+					if (0 == show && strstr(temp_buf, cpc_pattern)) { 
+						show = 1;
+					}
+					if (1 == show) {
+						esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					}
+				} 
+			}
+
+			/* Next Primitive */
+			primitive_ptr = (struct esif_fpc_primitive*)((u8*)primitive_ptr +
+					 			primitive_ptr->size);
+		} // Primitive 
+
+		/* Next Domain */
+		domain_ptr = (struct esif_fpc_domain*)((u8*)domain_ptr + domain_ptr->size);
+	} // Domain
+
+
+	if (FORMAT_TEXT == g_format) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf(OUT_BUF_LEN, output,
+			"%s"
+			"ALGORITHMS:\n\n"
+			"Action Type                tempxform         tc1      tc2      powerxform         timexform\n"           
+
+			"------ ------------------- ----------------- -------- -------- ----------------- ----------------\n"
+			, output);
+	}
+
+	/* First Algorithm (Laid After The Last Domain) */
+	algorithm_ptr = (struct esif_fpc_algorithm*)domain_ptr;
+	for (i = 0; i < fpc_ptr->number_of_algorithms; i++) {
+		offset = (unsigned long)((u8*)algorithm_ptr - base_ptr);
+
+		if (FORMAT_TEXT == g_format) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"%s%-2d     %-19s %-17s %08x %08x %-17s %-17s\n",
+				output,
+				algorithm_ptr->action_type,
+				esif_action_type_str(algorithm_ptr->action_type),
+				esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->temp_xform)) + 20,
+				algorithm_ptr->tempC1,
+				algorithm_ptr->tempC2,
+				esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->power_xform)) + 20,
+				esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->time_xform)) + 20);
+
+		} else { // FORMAT_XML
+			esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"%s"
+				"<algorithmType>%s</algorithmType>\n"
+				"   <tempXform>%s</tempXform>\n"
+				"   <tempC1>%d</tempC1>\n"
+				"   <tempC2>%d</tempC2>\n"
+				"   <powerXform>%s</powerXform>\n"
+				"   <timeXform>%s</timeXform>\n",
+				output,
+				esif_action_type_str(algorithm_ptr->action_type),
+				esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->temp_xform)),
+				algorithm_ptr->tempC1,
+				algorithm_ptr->tempC2,
+				esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->power_xform)),
+				esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->time_xform)));
+		}
+
+		/* Next Algorithm */
+		algorithm_ptr = (struct esif_fpc_algorithm*)((u8*)algorithm_ptr + 
+					sizeof(struct esif_fpc_algorithm));
+	}
+
+	if (FORMAT_TEXT == g_format) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf(OUT_BUF_LEN, output, 
+			"%s"
+			"Mapped Events:\n\n"    
+			"Alias Event Identification             Group    Event Data           Event Description\n"
+			"----- -------------------------------- -------- -------------------- --------------------------------------\n"
+			, output);
+	} // FORMAT_TEXT
+
+	/* First Event (Laid After The Last Algorithm) */
+	event_ptr = (struct esif_fpc_event*)algorithm_ptr;
+	for (i = 0; i < fpc_ptr->number_of_events; i++) {
+		offset = (unsigned long)((u8*)event_ptr - base_ptr);
+
+		if (FORMAT_TEXT == g_format) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, 
+				"%s"
+				"%5s ",                     
+				output,                     
+				event_ptr->name);           
+                                                         
+			for (j = 0; j < 16; j++)
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02x", output, event_ptr->event_key[j]);
+                                
+			esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"%s "
+				"%-8s %-20s %s(%d)\n", 
+				output,
+				esif_event_group_enum_str(event_ptr->esif_group) + 17,
+				esif_data_type_str(event_ptr->esif_group_data_type),
+				esif_event_type_str(event_ptr->esif_event) + 11,
+				event_ptr->esif_event);
+		} else { // FORMAT_XML
+			char key[64]="";
+
+			for (j = 0; j < 16; j++)
+				esif_ccb_sprintf(64, key, "%s%02x", key, event_ptr->event_key[j]);
+
+			esif_ccb_sprintf(OUT_BUF_LEN, output,
+				"%s"
+				"<eventName>%s</eventName>\n"
+				"   <key>%s</key>\n"
+				"   <group>%d</group>\n"
+				"   <groupString>%s</groupString>\n"
+				"   <groupData>%d</groupData>\n"
+				"   <groupDataString>%s</groupDataString>\n"
+				"   <eventNum>%d</evenNum>\n"
+				"   <event>%s</event>\n",
+				output,
+				event_ptr->name,
+				key,
+				event_ptr->esif_group,
+				esif_event_group_enum_str(event_ptr->esif_group),
+				event_ptr->esif_group_data_type,
+				esif_data_type_str(event_ptr->esif_group_data_type),
+				event_ptr->esif_event, 
+				esif_event_type_str(event_ptr->esif_event));
+		}
+		
+		/* Next Event */
+		event_ptr = (struct esif_fpc_event*)((u8*)event_ptr + sizeof(struct esif_fpc_event));
+	} 
+
+exit:
+	// Cleanup
+	esif_ccb_free(fpc_ptr);
+	IOStream_Destroy(io_ptr);
+	EsifData_Destroy(nameSpace);
+	EsifData_Destroy(key);
+	EsifData_Destroy(value);
+	return output;
+}
+
 
 // CPC Info
-static char*esif_shell_cmd_infocpc (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_infocpc (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -2155,7 +2672,7 @@ exit:
 
 
 // Load
-static char*esif_shell_cmd_load (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_load (EsifShellCmdPtr shell)
 {
 	int argc       = shell->argc;
 	char * *argv   = shell->argv;
@@ -2288,7 +2805,7 @@ static char*esif_shell_cmd_load (EsifShellCmdPtr shell)
 
 
 // Load CPC
-static char*esif_shell_cmd_loadcpc (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_loadcpc (EsifShellCmdPtr shell)
 {
 	int argc       = shell->argc;
 	char * *argv   = shell->argv;
@@ -2313,7 +2830,7 @@ static char*esif_shell_cmd_loadcpc (EsifShellCmdPtr shell)
 
 
 // Log
-static char*esif_shell_cmd_log (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_log (EsifShellCmdPtr shell)
 {
 	int argc       = shell->argc;
 	char * *argv   = shell->argv;
@@ -2338,7 +2855,7 @@ static char*esif_shell_cmd_log (EsifShellCmdPtr shell)
 
 
 // Memstats
-static char*esif_shell_cmd_memstats (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_memstats (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -2570,8 +3087,8 @@ static char*esif_shell_cmd_memstats (EsifShellCmdPtr shell)
 #ifdef ESIF_ATTR_MEMTRACE
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "%sUser Memory Stats:\n\n"
-						 "Allocs: %u\n"
-						 "Frees : %u\n",
+						 "Allocs: " ATOMIC_FMT "\n"
+						 "Frees : " ATOMIC_FMT "\n",
 						 output,
 						 atomic_read(&g_memtrace.allocs),
 						 atomic_read(&g_memtrace.frees));
@@ -2591,7 +3108,7 @@ exit:
 
 
 // No Log
-static char*esif_shell_cmd_nolog (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_nolog (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -2609,7 +3126,7 @@ static char*esif_shell_cmd_nolog (EsifShellCmdPtr shell)
 
 
 // Participant
-static char*esif_shell_cmd_participantk (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_participantk (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -2791,6 +3308,10 @@ static char*esif_shell_cmd_participantk (EsifShellCmdPtr shell)
 
             if (data_ptr->capability & ESIF_CAPABILITY_RFPROFILE_STATUS) {
 				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sRFPROFILE_STATUS\t\t\tHas RF Profile Status\n", output);
+			}
+
+            if (data_ptr->capability & ESIF_CAPABILITY_RFPROFILE_CONTROL) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sRFPROFILE_CONTROL\t\t\tHas RF Profile Control\n", output);
 			}
 
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
@@ -3051,7 +3572,7 @@ exit:
 
 
 // RemARK
-static char*esif_shell_cmd_rem (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_rem (EsifShellCmdPtr shell)
 {
 	UNREFERENCED_PARAMETER(shell);
 	// Do Nothing
@@ -3060,7 +3581,7 @@ static char*esif_shell_cmd_rem (EsifShellCmdPtr shell)
 
 
 // Repeat
-/*static*/ char*esif_shell_cmd_repeat (EsifShellCmdPtr shell)
+/*static*/ char *esif_shell_cmd_repeat (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3076,7 +3597,7 @@ static char*esif_shell_cmd_rem (EsifShellCmdPtr shell)
 
 
 // Repeat Delay
-/*static*/ char*esif_shell_cmd_repeatdelay (EsifShellCmdPtr shell)
+/*static*/ char *esif_shell_cmd_repeatdelay (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3092,7 +3613,7 @@ static char*esif_shell_cmd_rem (EsifShellCmdPtr shell)
 
 
 // Set Buffer
-static char*esif_shell_cmd_setb (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_setb (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3108,7 +3629,7 @@ static char*esif_shell_cmd_setb (EsifShellCmdPtr shell)
 
 
 // Set Error level
-static char*esif_shell_cmd_seterrorlevel (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_seterrorlevel (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3124,7 +3645,7 @@ static char*esif_shell_cmd_seterrorlevel (EsifShellCmdPtr shell)
 
 
 // Set Primitive
-static char*esif_shell_cmd_setp (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_setp (EsifShellCmdPtr shell)
 {
 	int argc            = shell->argc;
 	char * *argv        = shell->argv;
@@ -3275,7 +3796,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_set_osc (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_set_osc (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -3373,7 +3894,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_set_scp (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_set_scp (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -3442,7 +3963,7 @@ exit:
 
 
 // Test
-static char*esif_shell_cmd_test (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_test (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3535,7 +4056,7 @@ exit:
 
 
 // Timestamp Mode
-static char*esif_shell_cmd_timestamp (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_timestamp (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3562,7 +4083,7 @@ static char*esif_shell_cmd_timestamp (EsifShellCmdPtr shell)
 ///////////////////////////////////////////////////////////////////////////////
 
 // Debug show
-static char*esif_shell_cmd_debugshow (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_debugshow (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3632,7 +4153,7 @@ exit:
 
 
 // Apps
-static char*esif_shell_cmd_about (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_about (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3656,7 +4177,6 @@ static char*esif_shell_cmd_about (EsifShellCmdPtr shell)
 						 "-- ----------- ------------------------- ----------\n"
 						 "1  esif_shell  ESIF Command Interface    %s\n"
 						 "2  etf         ESIF Test Framework       %s\n"
-						 "3  erapi       ESIF Rest API             %s\n"
 						 "\n"
 						 "esif_lf - ESIF Lower Framework (LF) R0\n"
 						 "ESIF Kernel Driver Information:\n"
@@ -3666,7 +4186,6 @@ static char*esif_shell_cmd_about (EsifShellCmdPtr shell)
 						 g_os,
 						 g_esif_shell_version,
 						 g_esif_etf_version,
-						 g_esif_erapi_version,
 						 g_esif_kernel_version
 
 						 );
@@ -3678,14 +4197,12 @@ static char*esif_shell_cmd_about (EsifShellCmdPtr shell)
 						 "  <osType>%s</osType>\n"
 						 "  <shellVersion>%s</shellVersion>\n"
 						 "  <etfVersion>%s</etfVersion>\n"
-						 "  <restVersion>%s</restVersion>\n"
 						 "</about>\n",
 						 ESIF_UF_VERSION,
 						 g_esif_kernel_version,
 						 g_os,
 						 g_esif_shell_version,
-						 g_esif_etf_version,
-						 "g_esif_erapi_version");
+						 g_esif_etf_version);
 	}
 
 	return output;
@@ -3693,7 +4210,7 @@ static char*esif_shell_cmd_about (EsifShellCmdPtr shell)
 
 
 // Exit
-static char*esif_shell_cmd_exit (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_exit (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3708,7 +4225,7 @@ static char*esif_shell_cmd_exit (EsifShellCmdPtr shell)
 
 
 // Get Buffer Size
-static char*esif_shell_cmd_getb (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_getb (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3722,7 +4239,7 @@ static char*esif_shell_cmd_getb (EsifShellCmdPtr shell)
 
 
 // Get Error Level
-static char*esif_shell_cmd_geterrorlevel (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_geterrorlevel (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3740,7 +4257,7 @@ static char*esif_shell_cmd_geterrorlevel (EsifShellCmdPtr shell)
 
 
 // Command Info
-static char*esif_shell_cmd_info (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_info (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3804,7 +4321,7 @@ exit:
 
 
 // Backwards compatibility for calling from ipc_connect()
-char*esif_cmd_info (char *output)
+char *esif_cmd_info (char *output)
 {
 	char *argv[] = {"info", 0};
 	EsifShellCmd shell;
@@ -3816,7 +4333,7 @@ char*esif_cmd_info (char *output)
 
 
 // IPC Mode
-static char*esif_shell_cmd_ipcmode (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_ipcmode (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -3831,7 +4348,7 @@ static char*esif_shell_cmd_ipcmode (EsifShellCmdPtr shell)
 
 
 // Participants
-static char*esif_shell_cmd_participantsk (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_participantsk (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -4230,7 +4747,7 @@ static char*esif_shell_cmd_timerstart (EsifShellCmdPtr shell)
 
 
 // Timer Stop
-static char*esif_shell_cmd_timerstop (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_timerstop (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -4271,7 +4788,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_unloadcpc (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_unloadcpc (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -4338,7 +4855,7 @@ void cmd_app_subsystem (enum app_subsystem subsystem)
 
 
 // Conjure Participant
-static char*esif_shell_cmd_conjure (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_conjure (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -4395,7 +4912,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_unconjure (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_unconjure (EsifShellCmdPtr shell)
 {
 	int argc        = shell->argc;
 	char * *argv    = shell->argv;
@@ -4435,58 +4952,7 @@ exit:
 }
 
 
-// Rest Start
-static char*esif_shell_cmd_reststart (EsifShellCmdPtr shell)
-{
-	int argc        = shell->argc;
-	char * *argv    = shell->argv;
-	char *output    = shell->outbuf;
-	enum esif_rc rc = ESIF_OK;
 
-	UNREFERENCED_PARAMETER(argc);
-	UNREFERENCED_PARAMETER(argv);
-
-	rc = EsifRestStart();
-	if (ESIF_OK == rc) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "reststart completed\n");
-	} else {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "reststart failed %s(%d)\n", esif_rc_str(rc), rc);
-	}
-	return output;
-}
-
-
-// Rest Stop
-static char*esif_shell_cmd_reststop (EsifShellCmdPtr shell)
-{
-	int argc     = shell->argc;
-	char * *argv = shell->argv;
-	char *output = shell->outbuf;
-
-	UNREFERENCED_PARAMETER(argc);
-	UNREFERENCED_PARAMETER(argv);
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "reststop\n");
-	EsifRestStop();
-	return output;
-}
-
-
-// Rest Event
-static char*esif_shell_cmd_restevent (EsifShellCmdPtr shell)
-{
-	int argc       = shell->argc;
-	char * *argv   = shell->argv;
-	char *output   = shell->outbuf;
-	UInt8 event_id = 0;
-
-	if (argc < 2) {
-		return NULL;
-	}
-
-	event_id = (u8)esif_atoi(argv[1]);
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "send rest event = %d\n", event_id);
-	return output;
-}
 
 
 ////////////////////////////////////////////////////////
@@ -4555,7 +5021,7 @@ struct esif_data_binary_bst_package {
 	union esif_data_variant battery_present_voltage;
 };
 
-static char*esif_shell_cmd_status (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_status (EsifShellCmdPtr shell)
 {
 	int argc      = shell->argc;
 	char * *argv  = shell->argv;
@@ -4741,7 +5207,7 @@ static char*esif_shell_cmd_status (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_domains (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_domains (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -4777,13 +5243,13 @@ static char*esif_shell_cmd_domains (EsifShellCmdPtr shell)
 						 domain_index,
 						 domain_ptr->descriptor.name,
 						 domain_ptr->descriptor.description,
-						 esif_primitive_domain_str(domain_ptr->descriptor.domain, qual_str, 32),
+						 esif_primitive_domain_str(domain_ptr->descriptor.domain, qual_str, sizeof(qual_str)),
 						 domain_ptr->descriptor.priority,
 						 domain_ptr->capability_for_domain.capability_flags,
 						 esif_domain_type_str((enum esif_domain_type)domain_ptr->descriptor.domainType), domain_ptr->descriptor.domainType);
 
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
-		for (i = 0; i < 14; i++)/* Todo fix magic 14 */
+		for (i = 0; i < 16; i++)/* Todo fix magic 16 */
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s(%d): %02X\n", output,
 							 esif_capability_type_str((enum esif_capability_type)i), i, domain_ptr->capability_for_domain.capability_mask[i]);
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
@@ -4794,7 +5260,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_pst (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_pst (EsifShellCmdPtr shell)
 {
 	int argc      = shell->argc;
 	char * *argv  = shell->argv;
@@ -4862,7 +5328,7 @@ static char*esif_shell_cmd_pst (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_event (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_event (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -4898,7 +5364,7 @@ static char*esif_shell_cmd_event (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_help (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_help (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -4918,6 +5384,7 @@ static char*esif_shell_cmd_help (EsifShellCmdPtr shell)
 										  "unconjure [*participant]                 Unload Upper Framework Conjure Library\n"
 										  "conjures                                 List ESIF Conjure Libraries\n"
 										  "infocpc  [*filename][pattern]            Get Dst CPC Information\n"
+										  "infofpc  [*filename][pattern]            Get Dst FPC Information\n"
 										  "cat      [*filename]                     Display Command File\n"
 										  "load     [*filename]                     Load and Execute Command File\n"
 										  "proof    [*filename]                     Prove Command File Replace Tokens\n"
@@ -5025,11 +5492,6 @@ static char*esif_shell_cmd_help (EsifShellCmdPtr shell)
 										  "actionabout   [+action] Action About\n"
 										  "actions                 List all DSP Actions\n"
 										  "\n"
-										  "REST API:\n"
-										  "reststart [*path]       Start Rest API\n"
-										  "reststop                Stop Rest API\n"
-										  "restevent [*id][data]   Send Rest Event\n"
-										  "\n"
 										  "CONFIG API:\n"
 										  "cfgget   [@namespace] [*path] Get Configuration Data\n"
 										  "cfgset   [@namespace] [*path] [ESIF_DATA_TYPE] [*value] [delete | persist [encrypt]] Set Configuraiton\n"
@@ -5046,7 +5508,7 @@ static char*esif_shell_cmd_help (EsifShellCmdPtr shell)
 }
 
 
-static char*esif_shell_cmd_ui_getxslt (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_ui_getxslt (EsifShellCmdPtr shell)
 {
 	int argc      = shell->argc;
 	char * *argv  = shell->argv;
@@ -5077,7 +5539,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_ui_getgroups (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_ui_getgroups (EsifShellCmdPtr shell)
 {
 	int argc      = shell->argc;
 	char * *argv  = shell->argv;
@@ -5108,7 +5570,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_ui_getmodulesingroup (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_ui_getmodulesingroup (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -5144,7 +5606,7 @@ exit:
 }
 
 
-static char*esif_shell_cmd_ui_getmoduledata (EsifShellCmdPtr shell)
+static char *esif_shell_cmd_ui_getmoduledata (EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char * *argv = shell->argv;
@@ -5235,6 +5697,10 @@ static void dump_binary_object (
 		case ESIF_DATA_UINT16:
 		case ESIF_DATA_UINT32:
 		case ESIF_DATA_UINT64:
+		case ESIF_DATA_INT8:
+		case ESIF_DATA_INT16:
+		case ESIF_DATA_INT32:
+		case ESIF_DATA_INT64:
 		case ESIF_DATA_TEMPERATURE:
 		{
 			CMD_DEBUG("    integer = { type = %s(%d) value = %lld (0x%llx) }\n",
@@ -5427,8 +5893,8 @@ exit:
 
 // EQL Wrapper
 typedef void (*VoidFunc)();
-typedef char*(*ArgvFunc)(EsifShellCmd*);
-typedef char*(*EqlFunc)(char*, char*);
+typedef char *(*ArgvFunc)(EsifShellCmd*);
+typedef char *(*EqlFunc)(char*, char*);
 
 typedef enum FuncType_t {
 	fnArgv,		// Use Command Line argc/argv Parser
@@ -5707,7 +6173,7 @@ static esif_string esif_shell_cmd_cfgset (EsifShellCmdPtr shell)
 
 
 // Shell Command Wrapper
-char*esif_shell_cmd_ipc_autoconnect (EsifShellCmdPtr shell)
+char *esif_shell_cmd_ipc_autoconnect (EsifShellCmdPtr shell)
 {
 	UNREFERENCED_PARAMETER(shell);
 	ipc_autoconnect();
@@ -5716,7 +6182,7 @@ char*esif_shell_cmd_ipc_autoconnect (EsifShellCmdPtr shell)
 
 
 // Shell Command Wrapper
-char*esif_shell_cmd_ipc_connect (EsifShellCmdPtr shell)
+char *esif_shell_cmd_ipc_connect (EsifShellCmdPtr shell)
 {
 	UNREFERENCED_PARAMETER(shell);
 	ipc_connect();
@@ -5725,7 +6191,7 @@ char*esif_shell_cmd_ipc_connect (EsifShellCmdPtr shell)
 
 
 // Shell Command Wrapper
-char*esif_shell_cmd_ipc_disconnect (EsifShellCmdPtr shell)
+char *esif_shell_cmd_ipc_disconnect (EsifShellCmdPtr shell)
 {
 	UNREFERENCED_PARAMETER(shell);
 	ipc_disconnect();
@@ -5750,7 +6216,7 @@ static esif_string esif_shell_exec_eql (
 
 
 // EQL Alias Command Dispatcher
-char*esif_shell_exec_alias (
+char *esif_shell_exec_alias (
 	ArgvFunc fnPtr,
 	EsifShellCmdPtr shell
 	)
@@ -5890,6 +6356,7 @@ static EsifShellMap ShellCommands[] = {
 	{"help",                 fnArgv, (VoidFunc)esif_shell_cmd_help                },
 	{"info",                 fnArgv, (VoidFunc)esif_shell_cmd_info                },
 	{"infocpc",              fnArgv, (VoidFunc)esif_shell_cmd_infocpc             },
+	{"infofpc",              fnArgv, (VoidFunc)esif_shell_cmd_infofpc             },
 	{"ipcauto",              fnArgv, (VoidFunc)esif_shell_cmd_ipc_autoconnect     },
 	{"ipccon",               fnArgv, (VoidFunc)esif_shell_cmd_ipc_connect         },
 	{"ipcdis",               fnArgv, (VoidFunc)esif_shell_cmd_ipc_disconnect      },
@@ -5911,9 +6378,6 @@ static EsifShellMap ShellCommands[] = {
 	{"rem",                  fnArgv, (VoidFunc)esif_shell_cmd_rem                 },
 	{"repeat",               fnArgv, (VoidFunc)esif_shell_cmd_repeat              },
 	{"repeat_delay",         fnArgv, (VoidFunc)esif_shell_cmd_repeatdelay         },
-	{"restevent",            fnArgv, (VoidFunc)esif_shell_cmd_restevent           },
-	{"reststart",            fnArgv, (VoidFunc)esif_shell_cmd_reststart           },
-	{"reststop",             fnArgv, (VoidFunc)esif_shell_cmd_reststop            },
 	{"set",                  fnEQL,  (VoidFunc)esif_shell_exec_eql                },
 	{"set_osc",              fnArgv, (VoidFunc)esif_shell_cmd_set_osc             },
 	{"set_scp",              fnArgv, (VoidFunc)esif_shell_cmd_set_scp             },
@@ -5939,7 +6403,7 @@ static EsifShellMap ShellCommands[] = {
 };
 
 // ESIF Command Dispatcher
-char*esif_shell_exec_dispatch (
+char *esif_shell_exec_dispatch (
 	esif_string line,
 	esif_string output
 	)

@@ -775,7 +775,6 @@ eEsifError EsifExecutePrimitive (
 	/* Work around for now */
 	if (ESIF_DATA_BIT == responsePtr->type ||
 		ESIF_DATA_TIME == responsePtr->type ||
-		ESIF_DATA_PERCENT == responsePtr->type ||
 		ESIF_DATA_UINT8 == responsePtr->type ||
 		ESIF_DATA_UINT16 == responsePtr->type) {
 		responsePtr->type = ESIF_DATA_UINT32;
@@ -787,7 +786,8 @@ eEsifError EsifExecutePrimitive (
 	if (responsePtr->buf_ptr == NULL && ESIF_DATA_ALLOCATE == responsePtr->buf_len) {
 		int size = 4;
 
-        if (ESIF_DATA_UINT64 == responsePtr->type) {
+        if (ESIF_DATA_UINT64 == responsePtr->type || 
+		ESIF_DATA_FREQUENCY == responsePtr->type) {
 			size = 8;
 		}
 		if (ESIF_DATA_STRING == responsePtr->type) {
@@ -888,13 +888,13 @@ retry:
 				switch (data_item_ptr->data_type) {
 				case 1:	// String
 				{
-					char temp_buf[32 + 1];
+					char temp_buf[ESIF_NAME_LEN + 1];
 					EsifString param_str = (EsifString) & data_item_ptr->data;
 					EsifUpPtr up_ptr     = EsifUpManagerGetAvailableParticipantByInstance(participantId);
 					EsifString replaced  = NULL;
 
 					if (NULL != up_ptr) {
-						esif_ccb_sprintf(32, temp_buf, "%s.%s", up_ptr->fMetadata.fName, domain_str);
+						esif_ccb_sprintf(ESIF_NAME_LEN, temp_buf, "%s.%s", up_ptr->fMetadata.fName, domain_str);
 
 						replaced = esif_str_replace(
 								param_str,
@@ -941,6 +941,7 @@ retry:
 					if (SET_TRIP_POINT_ACTIVE == primitive_ptr->tuple.id ||
 						SET_TRIP_POINT_CRITICAL == primitive_ptr->tuple.id ||
 						SET_TRIP_POINT_HOT == primitive_ptr->tuple.id ||
+						SET_TRIP_POINT_PASSIVE == primitive_ptr->tuple.id ||
 						SET_TRIP_POINT_WARM == primitive_ptr->tuple.id) {
 						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
 						ESIF_TRACE_VERBOSE("Send Event ==> ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED\n");

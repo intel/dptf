@@ -126,6 +126,32 @@ static ESIF_INLINE void ms_guid_to_esif_guid (esif_guid_t *guid)
 #endif
 }
 
+eEsifError EsifAppsEventByDomainType (
+	enum esif_domain_type domainType, 
+	eEsifEventType eventType, 
+	EsifDataPtr eventData)
+{
+	u8 i = 0;
+	u8 found = ESIF_FALSE;
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		EsifUpPtr up_ptr = EsifUpManagerGetAvailableParticipantByInstance(i);
+		if (NULL == up_ptr) {
+			continue;
+		}
+
+		if (up_ptr->fMetadata.fAcpiType == domainType) {
+			found = ESIF_TRUE;
+			break;
+		}
+	}
+
+	if (ESIF_FALSE == found) {
+		return ESIF_E_NOT_FOUND;
+	} else {
+		return EsifAppsEvent(i, 'NA', eventType, eventData);
+	}
+}
 
 eEsifError EsifAppsEvent (
 	UInt8 participantId,
@@ -184,7 +210,7 @@ eEsifError EsifAppsEvent (
 				"Data:          %08x\n",
 				esif_guid_print(&ev_ptr->event_GUID, guid_str),
 				ev_ptr->event_context_length,
-				*(UINT32*)ev_ptr->event_context);
+				*(UInt32*)ev_ptr->event_context);
 		}
 
 		if (ESIF_DATA_STRING == eventData->type && NULL != eventData->buf_ptr) {

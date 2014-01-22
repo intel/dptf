@@ -14,3 +14,4 @@ set config:dsp("sb_tpwr.edp")={BINARY:"<<../../../../Packages/DSP/sb_tpwr.edp"} 
 set config:dsp("sb_wgig.edp")={BINARY:"<<../../../../Packages/DSP/sb_wgig.edp"} persist,nocache,readonly 
 set config:dsp("sb_wifi.edp")={BINARY:"<<../../../../Packages/DSP/sb_wifi.edp"} persist,nocache,readonly 
 set config:dsp("sb_wwan.edp")={BINARY:"<<../../../../Packages/DSP/sb_wwan.edp"} persist,nocache,readonly 
+set config:dsp("sb_ther.edp")={BINARY:"<<../../../../Packages/DSP/sb_ther.edp"} persist,nocache,readonly

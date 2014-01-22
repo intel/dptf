@@ -37,7 +37,7 @@
 # P=Primitive, Qualifier, Instance, Operation, RequestType, ReturnType
 # A=ActionPriority, ActionType, IsKernel, p1, p2, p3, p4, p5
 #
-H,"sb_fgen",1,0,"Full Generic Participant Device","2F9A381D-1965-4AEC-828B-241DD297100C",0,"INT3403","","","\_SB.PCI0.LPCB.H_EC.FGEN","","","","","","","","",""
+H,"sb_fgen",1,0,"Full Generic Participant Device","2F9A381D-1965-4AEC-828B-241DD297100C",0,"INT3403","","","","","","","","","","","",""
 T,1,6,,,1,8
 T,4,5,,,0,8
 T,11,9,,,1,8
@@ -48,7 +48,7 @@ E,"SIC",0x91,17,3,24,0x75494A00-417C-4E51-9FAB-FBDD965577D4
 E,"TTC",0x90,16,3,24,0x43CDD7D8-C96D-4EE7-9A4A-7EC5C2EE1B6E
 #
 D,"DFL","Default Domain","D0","0CEB45E0-B269-4CB9-9D12-1A02DD5965C0",0,14
-C,0x2120 ,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0
+C,0x2120 ,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
 #
 # GET_DEVICE_DESCRIPTION
 P,60,255,1,24,"<schema></schema>",9,"<schema></schema>"
@@ -153,7 +153,7 @@ P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
-P,81,255,2,7,"<schema></schema>",24,"<schema></schema>"
+P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_SCP",,,,
 # SET_DEVICE_TEMPERATURE_INDICATION
 P,51,255,2,6,"<schema></schema>",24,"<schema></schema>"

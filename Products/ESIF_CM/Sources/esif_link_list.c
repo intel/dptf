@@ -67,31 +67,24 @@
 
 #define LINK_LIST_DEBUG NO_ESIF_DEBUG
 
-#ifdef ESIF_ATTR_USER
-esif_ccb_lock_t g_mempool_lock;
-#endif
 
 /* Destroy Node */
-void esif_link_list_destroy_node (struct esif_link_list_node *node_ptr)
+void esif_link_list_destroy_node(struct esif_link_list_node *node_ptr)
 {
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_LIST_NODE], node_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_LIST_NODE, node_ptr);
 }
 
 
 /* Create Node */
-struct esif_link_list_node *esif_link_list_create_node (void *data_ptr)
+struct esif_link_list_node *esif_link_list_create_node(void *data_ptr)
 {
 	struct esif_link_list_node *new_node_ptr = NULL;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	new_node_ptr = (struct esif_link_list_node*)esif_ccb_mempool_zalloc(
-			g_mempool[ESIF_MEMPOOL_TYPE_LIST_NODE]);
-	esif_ccb_read_unlock(&g_mempool_lock);
-	if (NULL == new_node_ptr) {
+	new_node_ptr = (struct esif_link_list_node *)
+			esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_LIST_NODE);
+	if (NULL == new_node_ptr)
 		return NULL;
-	}
+
 	new_node_ptr->data_ptr = data_ptr;
 	new_node_ptr->next_ptr = NULL;
 	new_node_ptr->prev_ptr = NULL;
@@ -100,18 +93,14 @@ struct esif_link_list_node *esif_link_list_create_node (void *data_ptr)
 
 
 /* Create Linked List */
-struct esif_link_list *esif_link_list_create (void)
+struct esif_link_list *esif_link_list_create(void)
 {
 	struct esif_link_list *new_link_list_ptr = NULL;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	new_link_list_ptr = (struct esif_link_list*)esif_ccb_mempool_zalloc(
-			g_mempool[ESIF_MEMPOOL_TYPE_LIST]);
-	esif_ccb_read_unlock(&g_mempool_lock);
-
-	if (NULL == new_link_list_ptr) {
+	new_link_list_ptr = (struct esif_link_list *)
+				esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_LIST);
+	if (NULL == new_link_list_ptr)
 		return NULL;
-	}
 
 	new_link_list_ptr->head_ptr = NULL;
 	new_link_list_ptr->tail_ptr = NULL;
@@ -121,7 +110,7 @@ struct esif_link_list *esif_link_list_create (void)
 
 
 /* Destroy Linked List */
-void esif_link_list_destroy (struct esif_link_list *list_ptr)
+void esif_link_list_destroy(struct esif_link_list *list_ptr)
 {
 	struct esif_link_list_node *curr_ptr = list_ptr->head_ptr;
 	while (curr_ptr) {
@@ -130,14 +119,12 @@ void esif_link_list_destroy (struct esif_link_list *list_ptr)
 		curr_ptr = next_node_ptr;
 	}
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_LIST], list_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_LIST, list_ptr);
 }
 
 
 /* Add Linked List Node */
-void esif_link_list_node_add (
+void esif_link_list_node_add(
 	struct esif_link_list *list_ptr,
 	struct esif_link_list_node *new_node_ptr
 	)
@@ -158,46 +145,32 @@ void esif_link_list_node_add (
 
 
 /* Init */
-enum esif_rc esif_link_list_init (void)
+enum esif_rc esif_link_list_init(void)
 {
 	struct esif_ccb_mempool *mempool_ptr = NULL;
 	LINK_LIST_DEBUG("%s: Initialize Primitive Link List\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_mempool_lock);
 	mempool_ptr =
-		esif_ccb_mempool_create(ESIF_MEMPOOL_FW_LIST,
+		esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_LIST,
+					ESIF_MEMPOOL_FW_LIST,
 					sizeof(struct esif_link_list));
-	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
+	if (NULL == mempool_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
-	g_mempool[ESIF_MEMPOOL_TYPE_LIST] = mempool_ptr;
 
 	mempool_ptr =
-		esif_ccb_mempool_create(ESIF_MEMPOOL_FW_LIST_NODE,
-					sizeof(struct     esif_link_list_node));
-	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
+		esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_LIST_NODE,
+					ESIF_MEMPOOL_FW_LIST_NODE,
+					sizeof(struct esif_link_list_node));
+	if (NULL == mempool_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
-	g_mempool[ESIF_MEMPOOL_TYPE_LIST_NODE] = mempool_ptr;
-	esif_ccb_write_unlock(&g_mempool_lock);
 
 	return ESIF_OK;
 }
 
 
 /* Exit */
-void esif_link_list_exit (void)
+void esif_link_list_exit(void)
 {
-	esif_ccb_write_lock(&g_mempool_lock);
-
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_LIST_NODE]);
-	g_mempool[ESIF_MEMPOOL_TYPE_LIST_NODE] = NULL;
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_LIST]);
-	g_mempool[ESIF_MEMPOOL_TYPE_LIST]      = NULL;
-
-	esif_ccb_write_unlock(&g_mempool_lock);
 	LINK_LIST_DEBUG("%s: Exit Primitive Link List\n", ESIF_FUNC);
 }
 

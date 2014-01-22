@@ -22,7 +22,8 @@
 #include "esif.h"
 #include "esif_ws_socket.h"
 
-#define NUM_CLIENTS 10000
+#define NUM_CLIENTS		10000
+#define OUT_OF_MEMORY	99
 
 typedef struct _clientRecord {
 	enum socketState  state;
@@ -59,6 +60,6 @@ enum websocket_state_t {
  */
 
 int esif_ws_init (esif_string webroot);
-
+void esif_ws_exit ();
 
 #endif /* ESIF_WS_SERVER_H */

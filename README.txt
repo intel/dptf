@@ -40,7 +40,7 @@ to install:
 	sudo emerge cmake
 
 Step 4 - Go to the Linux subdirectory of DPTF
-	 (<DPTF archive root>/DPTF/Linux/build) and run the command:
+	 (<DPTF archive root>/Products/DPTF/Linux/build) and run the command:
 
 	cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit -DCMAKE_BUILD_TYPE=Debug ..
 
@@ -88,7 +88,7 @@ Step 2 - Setup a symbolic link at /usr/src/linux that points to the desired
 kernel headers.  Example:
 
 	mkdir /usr/src (if the directory does not exist)
-	ln -s /home/brad/trunk/src/partner_private/kernel-baytrail /usr/src/linux
+	ln -s /home/<user>/trunk/src/third_party/kernel/3.10 /usr/src/linux
 
 Step 3 - Obtain the kernel config file. The kernel config file can be generated
 by going to the kernel source root directory, then running the command:
@@ -172,20 +172,49 @@ and then followed by the rest of the modules (there are no dependencies among
 dptf_acpi, dptf_cpu and dptf_pch, therefore any order of installing these
 three modules is fine).
 
-Step 2 - Start ESIF Upper Framework Shell
+Step 2 - Move the necessary configuration files to /usr/share/dptf.  The
+esif_uf application will be looking for various files at this location.
+The commands to do the move are as follows (executed from the chrome_build
+dir):
+	a. mkdir /usr/share/dptf (if it doesn't already exist)
+	b. cp -R ./dsp /usr/share/dptf
+	c. cp ./ufx64/DptfPolicy*.so /usr/share/dptf
+	d. cp ./ufx64/Dptf.so /usr/lib
+	e. cp ./ufx64/combined.xsl /usr/share/dptf 
+	f. cp ./ufx64/esif_ufd /usr/bin
+	g. cp -R ./cmd /usr/share/dptf	
+
+Step 3 - Start ESIF Upper Framework Daemon
 To start ESIF upper framework shell, go to the ufx64 subdirectory and run
 esif_uf:
-	./esif_uf
+	./esif_ufd
 
-ESIF should start and present the user the ESIF shell at this point.
+If you run the esif_ufd without any arguments, it will run as a daemon that
+you cannot interact with.  If you wish to run interactively, pass it the -s
+switch.  The help text for the esif_ufd can be viewed by passing it the -h
+switch.
 
-Step 3 - Load Policy Libraries
-To start the various policy libraries (passive library, critical libraries,
-etc.), run this command under ESIF shell:
+Provided that the contents of the /usr/share/dptf/cmd/start file are exactly
+"appstart Dptf", DPTF will be automatically started when esif_ufd is executed.
+If you wish to manually start DPTF, remove the /usr/share/dptf/cmd/start file.
 
-	appstart Dptf
+Once the appstart has been issued, DPTF will be active.
 
-DPTF policies will then be loaded and will become active.
+(Optional) Step 4 - Start ESIF Upper Framework Daemon w/command pipe and log
+Since the esif_ufd runs as a daemon by default, switches can be passed to
+create a pipe that can be used to issue shell commands and to log shell output.
+To run the daemon with pipe and output log support, issue the following
+command:
+	esif_ufd -p -l
+
+This will create a command pipe at /tmp/esifd.cmd and an output log at
+/tmp/esifd.log.  You can interact with these files with the following commands:
+	cat > /tmp/esifd.cmd
+		This allows you to pass commands to the pipe as if it were the
+		shell prompt.
+	tail -f /tmp/esifd.log
+		This will show the live output from the daemon as commands are
+		executed.
 
 -------------------------------------------------------------------------------
 VERIFY INSTALL/CONFIGURATION
@@ -220,18 +249,24 @@ KNOWN ISSUES / LIMITATIONS
 BayTrail-M kernel for Chromium 64 bit.  Instructions on how to build for the 
 generic Linux kernels (32 and 64 bit) will be coming shortly.
 
-* Intel DPTF must be started through the shell with this release. It is NOT 
-running as a daemon.
-
 * Limited testing has only been performed on Intel BayTrail-M based development
 platforms and the 4th generation Intel® Core ™ processor based development 
 platforms using the UEFI BIOS.
 
 * When running ESIF UF application, the user may encounter minor memory leaks. 
-This issue is being addressed and will be fixed in the next revision.
+This issue is being addressed and will be fixed in the next revisions.
 
 * Compilation warnings will be noticed during the build process. These are 
 being addressed and will be fixed in a future release.
     
 * Display brightness control is not currently functional.
 
+* The daemon is intermittently dying after a period of time.  The root cause is
+unknown at this time.  The issue is under investigation.
+
+* Running the esif_ufd without specifying the absolute path "/usr/bin/esif_ufd"
+will occasionally fail.  This is due to directory path issues and will be
+addressed in the next release.
+
+* The Dptf.so currently resides in /usr/lib instead of /usr/lib64.  This will
+be addressed in the next release.

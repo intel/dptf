@@ -100,6 +100,9 @@ struct esif_lp_dsp {
 	struct esif_link_list   *evt_ptr;	/* Event */
 	esif_ccb_lock_t         lock;		/* DSP Lock */
 
+	void *table;    /* Add'l Static Or Dynamic Table(s) */ 
+	u32 table_size; /* Table(s) Size Of Each */
+
 /* public: */
 
 	u32   (*get_id)(THIS);
@@ -137,7 +140,10 @@ struct esif_lp_dsp {
 	struct esif_cpc_algorithm  * (*get_algorithm)(THIS,
 						      const enum
 						      esif_action_type
-	action_type);
+						      action_type);
+
+	u32 (*dsp_has_algorithm)( THIS, const enum esif_algorithm_type);
+
 	struct esif_cpc_event  * (*get_event)(THIS, u32 event);
 };
 

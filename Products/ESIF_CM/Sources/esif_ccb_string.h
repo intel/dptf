@@ -63,7 +63,7 @@
 */
 #ifdef ESIF_ATTR_KERNEL
 
-static ESIF_INLINE int esif_acpi_get_strlen (
+static ESIF_INLINE int esif_acpi_get_strlen(
 	const u16 type,
 	const u32 is_unicode,
 	u16 str_len
@@ -90,7 +90,7 @@ static ESIF_INLINE int esif_acpi_get_strlen (
 }
 
 
-static ESIF_INLINE int esif_ccb_is_unicode (const u32 acpi_method)
+static ESIF_INLINE int esif_ccb_is_unicode(const u32 acpi_method)
 {
 	/*
 	 * 0) Rules applying to both Windows and Linux.
@@ -110,7 +110,7 @@ static ESIF_INLINE int esif_ccb_is_unicode (const u32 acpi_method)
 }
 
 
-static ESIF_INLINE void esif_ccb_uni2ascii (
+static ESIF_INLINE void esif_ccb_uni2ascii(
 	char *string_ptr,
 	int buflen,
 	u8 *unicode_ptr,
@@ -119,17 +119,17 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 {
 #ifdef ESIF_ATTR_OS_LINUX
 	int i;
-	__le16 *le16unicode_ptr = (__le16*)unicode_ptr;
+	__le16 *le16unicode_ptr = (__le16 *)unicode_ptr;
 
-	if (buflen <= 0) {	/* never happens, but... */
+	if (buflen <= 0)        /* never happens, but... */
 		return;
-	}
+
 	--buflen;		/* space for nul */
 
 	for (i = 0; i < unicode_size; i++) {
-		if (i >= buflen) {
+		if (i >= buflen)
 			break;
-		}
+
 		string_ptr[i] = (char)(le16_to_cpu(le16unicode_ptr[i]));
 	}
 	string_ptr[i] = 0x00;
@@ -140,16 +140,14 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 
 	UNREFERENCED_PARAMETER(unicode_size);
 
-	if (buflen <= 0) {
+	if (buflen <= 0)
 		return;
-	}
 
 	RtlInitUnicodeString(&us_val, (PCWSTR)unicode_ptr);
 	RtlUnicodeStringToAnsiString(&ansi_val, &us_val,
 				     TRUE /* Allocate ANSI String */);
-	if (NULL == ansi_val.Buffer) {
+	if (NULL == ansi_val.Buffer)
 		return;
-	}
 
 	buflen = min(ansi_val.Length, buflen);
 	esif_ccb_memcpy(string_ptr, ansi_val.Buffer, buflen);
@@ -167,7 +165,7 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 
 #define esif_acpi_memcpy(out, in, len) esif_ccb_memcpy(out, &in, len)
 #define esif_acpi_uni2ascii(out, out_len, in, in_len) \
-		esif_ccb_uni2ascii((char*)out, out_len, (u8*)&in, in_len)
+		esif_ccb_uni2ascii((char *)out, out_len, (u8 *)&in, in_len)
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
@@ -175,7 +173,7 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 #define esif_ccb_sprintf(siz, str, fmt, ...) sprintf(str, fmt, ##__VA_ARGS__)
 #define esif_acpi_memcpy(out, in, len) esif_ccb_memcpy(out, in, len)
 #define esif_acpi_uni2ascii(out, out_len, in, in_len) \
-		esif_ccb_uni2ascii(out, out_len, in, in_len)                                 
+		esif_ccb_uni2ascii(out, out_len, in, in_len)
 #endif
 
 /*****************************************************************************
@@ -188,7 +186,7 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 	sprintf_s(str, (size_t)size, fmt, ##__VA_ARGS__)
 #define esif_ccb_vsprintf(size, str, fmt, ...) \
 	vsnprintf_s(str, (size_t)size, _TRUNCATE, fmt, ##__VA_ARGS__)
-#define esif_ccb_sscanf(str, fmt, var, siz) sscanf_s(str, fmt, var, siz)
+#define esif_ccb_sscanf(str, fmt, ...) sscanf_s(str, fmt, ##__VA_ARGS__)
 #define esif_ccb_strtok(str, sep, ctxt) strtok_s(str, sep, ctxt)
 #define esif_ccb_strcmp(s1, s2) strcmp(s1, s2)
 #define esif_ccb_stricmp(s1, s2) _stricmp(s1, s2)
@@ -208,7 +206,7 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 
 #define esif_ccb_sprintf(siz, str, fmt, ...) sprintf(str, fmt, ##__VA_ARGS__)
 #define esif_ccb_vsprintf(siz, str, fmt, ...) vsprintf(str, fmt, ##__VA_ARGS__)
-#define esif_ccb_sscanf(str, fmt, var, siz) sscanf(str, fmt, var)
+#define esif_ccb_sscanf(str, fmt, var, ...) sscanf(str, fmt, var)
 #define esif_ccb_strtok(str, sep, ctxt) strtok(str, sep)
 #define esif_ccb_strcmp(s1, s2) strcmp(s1, s2)
 #define esif_ccb_stricmp(s1, s2) strcasecmp(s1, s2)
@@ -219,29 +217,29 @@ static ESIF_INLINE void esif_ccb_uni2ascii (
 #define esif_ccb_strdup_notrace(str) strdup(str)
 
 /* Linux _strupr_s() equlivalent */
-static ESIF_INLINE void esif_ccb_strupr (
+static ESIF_INLINE void esif_ccb_strupr(
 	char *s,
 	size_t count
 	)
 {
-	for ( ; *s && count; s++, count--)
+	for (; *s && count; s++, count--)
 		*s = toupper(*s);
 }
 
 
 /* Linux _strlwr_s() equlivalent */
-static ESIF_INLINE void esif_ccb_strlwr (
+static ESIF_INLINE void esif_ccb_strlwr(
 	char *s,
 	size_t count
 	)
 {
-	for ( ; s && *s && count; s++, count--)
+	for (; s && *s && count; s++, count--)
 		*s = tolower(*s);
 }
 
 
 /* Linux _vscprintf() equivalient */
-static ESIF_INLINE int esif_ccb_vscprintf (
+static ESIF_INLINE int esif_ccb_vscprintf(
 	const char *format,
 	va_list args
 	)
@@ -258,7 +256,7 @@ static ESIF_INLINE int esif_ccb_vscprintf (
 #endif
 
 #ifdef ESIF_ATTR_MEMTRACE
-  extern char *esif_memtrace_strdup(char *str, const char *func, const char *file, int line);
+extern char *esif_memtrace_strdup(char *str, const char *func, const char *file, int line);
 # define esif_ccb_strdup(str)   esif_memtrace_strdup(str, __FUNCTION__, __FILE__, __LINE__)
 #else
 # define esif_ccb_strdup(str)   esif_ccb_strdup_notrace(str)
@@ -277,16 +275,15 @@ static ESIF_INLINE int esif_ccb_vscprintf (
  * ((char*)dst)[(siz)-1]=0; }
  * Linux strncpy_s equivalent
  */
-static ESIF_INLINE void esif_ccb_strcpy (
+static ESIF_INLINE void esif_ccb_strcpy(
 	char *dst,
 	const char *src,
 	size_t siz
 	)
 {
 	strncpy(dst, src, siz);
-	if (siz) {
+	if (siz)
 		dst[siz - 1] = 0;
-	}
 }
 
 
@@ -301,12 +298,12 @@ static ESIF_INLINE void esif_ccb_strcpy (
 */
 #ifdef ESIF_ATTR_USER
 #define ESIF_GUID_PRINT_SIZE 64
-static ESIF_INLINE esif_string esif_guid_print (
+static ESIF_INLINE esif_string esif_guid_print(
 	esif_guid_t *guid,
 	esif_string buf
 	)
 {
-	u8 *ptr = (u8*)guid;
+	u8 *ptr = (u8 *)guid;
 	esif_ccb_sprintf(64,
 			 buf,
 			 "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",

@@ -38,19 +38,6 @@ getp 187 D0 001                                              ;GET_CLOCK_ORIGINAL
 getp 187 D0 002                                              ;GET_CLOCK_ORIGINAL_FREQUENCY
 getp 187 D0 003                                              ;GET_CLOCK_ORIGINAL_FREQUENCY
 getp 187 D0 004                                              ;GET_CLOCK_ORIGINAL_FREQUENCY
-getp 191 D0 255                                              ;GET_CLOCK_SPREAD_DIRECTION
-getp 190 D0 255 -u 1000 -l 0                                 ;GET_CLOCK_SPREAD_PERCENTAGE
-getp 192 D0 000 -u 3 -l 1                                    ;GET_CLOCK_SPREAD_SUBHARMONICS
-getp 189 D0 000                                              ;GET_CLOCK_SSC_DISABLED_FREQUENCY
-getp 189 D0 001                                              ;GET_CLOCK_SSC_DISABLED_FREQUENCY
-getp 189 D0 002                                              ;GET_CLOCK_SSC_DISABLED_FREQUENCY
-getp 189 D0 003                                              ;GET_CLOCK_SSC_DISABLED_FREQUENCY
-getp 189 D0 004                                              ;GET_CLOCK_SSC_DISABLED_FREQUENCY
-getp 188 D0 000                                              ;GET_CLOCK_SSC_ENABLED_FREQUENCY
-getp 188 D0 001                                              ;GET_CLOCK_SSC_ENABLED_FREQUENCY
-getp 188 D0 002                                              ;GET_CLOCK_SSC_ENABLED_FREQUENCY
-getp 188 D0 003                                              ;GET_CLOCK_SSC_ENABLED_FREQUENCY
-getp 188 D0 004                                              ;GET_CLOCK_SSC_ENABLED_FREQUENCY
 getp 053 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_HARDWARE_ID
 getp 088 D0 255 -u 0xf -l 0                                  ;GET_DEVICE_STATUS
 getp 067 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_UNIQUE_ID
@@ -58,23 +45,37 @@ getp 158 D0 255 -b sb_dply_158_D0_255.bin                    ;GET_DISPLAY_BRIGHT
 getp 157 D0 255 -u 100 -l 0                                  ;GET_DISPLAY_BRIGHTNESS_SOFT
 getp 159 D0 255 -b sb_dply_159_D0_255.bin                    ;GET_DISPLAY_CAPABILITY
 getp 181 D0 255 -u 1000 -l 0                                 ;GET_DISPLAY_CLOCK_DEVIATION
+getp 250 D0 255 -u 1 -l 0                                    ;GET_DISPLAY_CLOCK_DOWNWARD_DEVIATION
+getp 191 D0 255                                              ;GET_DISPLAY_CLOCK_SPREAD_DIRECTION
+getp 190 D0 255 -u 1000 -l 0                                 ;GET_DISPLAY_CLOCK_SPREAD_PERCENTAGE
+getp 189 D0 000                                              ;GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+getp 189 D0 001                                              ;GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+getp 189 D0 002                                              ;GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+getp 189 D0 003                                              ;GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+getp 189 D0 004                                              ;GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+getp 188 D0 000                                              ;GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+getp 188 D0 001                                              ;GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+getp 188 D0 002                                              ;GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+getp 188 D0 003                                              ;GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+getp 188 D0 004                                              ;GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+getp 249 D0 255 -u 1 -l 0                                    ;GET_DISPLAY_CLOCK_UPWARD_DEVIATION
 getp 160 D0 255                                              ;GET_DISPLAY_DEPTH_LIMIT
 getp 179 D0 255 -u 2 -l 0                                    ;GET_DISPLAY_PANEL_TYPE
 getp 182 D0 255 -u 1 -l 0                                    ;GET_GRAPHICS_CHIPSET_CHANNEL_TYPE
 getp 184 D0 255 -u 1 -l 0                                    ;GET_GRAPHICS_CHIPSET_SSC_ENABLED
-rem setp 194 D0 000                                          ;SET_CLOCK_SSC_DISABLED
-rem setp 194 D0 001                                          ;SET_CLOCK_SSC_DISABLED
-rem setp 194 D0 002                                          ;SET_CLOCK_SSC_DISABLED
-rem setp 194 D0 003                                          ;SET_CLOCK_SSC_DISABLED
-rem setp 194 D0 004                                          ;SET_CLOCK_SSC_DISABLED
-rem setp 193 D0 000                                          ;SET_CLOCK_SSC_ENABLED
-rem setp 193 D0 001                                          ;SET_CLOCK_SSC_ENABLED
-rem setp 193 D0 002                                          ;SET_CLOCK_SSC_ENABLED
-rem setp 193 D0 003                                          ;SET_CLOCK_SSC_ENABLED
-rem setp 193 D0 004                                          ;SET_CLOCK_SSC_ENABLED
 rem setp 226 D0 255                                          ;SET_DISPLAY_BRIGHTNESS_HARD
 rem setp 163 D0 255                                          ;SET_DISPLAY_BRIGHTNESS_SOFT
-echo Test Count: 42
+rem setp 194 D0 000                                          ;SET_DISPLAY_CLOCK_SSC_DISABLED
+rem setp 194 D0 001                                          ;SET_DISPLAY_CLOCK_SSC_DISABLED
+rem setp 194 D0 002                                          ;SET_DISPLAY_CLOCK_SSC_DISABLED
+rem setp 194 D0 003                                          ;SET_DISPLAY_CLOCK_SSC_DISABLED
+rem setp 194 D0 004                                          ;SET_DISPLAY_CLOCK_SSC_DISABLED
+rem setp 193 D0 000                                          ;SET_DISPLAY_CLOCK_SSC_ENABLED
+rem setp 193 D0 001                                          ;SET_DISPLAY_CLOCK_SSC_ENABLED
+rem setp 193 D0 002                                          ;SET_DISPLAY_CLOCK_SSC_ENABLED
+rem setp 193 D0 003                                          ;SET_DISPLAY_CLOCK_SSC_ENABLED
+rem setp 193 D0 004                                          ;SET_DISPLAY_CLOCK_SSC_ENABLED
+echo Test Count: 43
 timerstop
 geterrorlevel
 nolog

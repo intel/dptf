@@ -36,12 +36,16 @@
 #include "esif_event.h"		/* Events */
 #include "esif_ipc.h"		/* IPC */
 #include "esif_uf_ipc.h"	/* IPC */
-#include "esif_uf_rest.h"	/* REST API */
 #include "esif_ws_server.h"	/* Web Server */
 
 /* Xform */
 // #include "esif_temp.h"
 // #include "esif_power.h"
+
+/* Native memory allocation functions for use by memtrace functions only */
+#define	native_malloc(siz)			malloc(siz)
+#define native_realloc(ptr, siz)	realloc(ptr, siz)
+#define native_free(ptr)			free(ptr)
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -304,21 +308,25 @@ static eEsifError EsifWebStart ()
 
 static void EsifWebStop ()
 {
-	// TODO shutdown webserver cleanly.
+	esif_ws_exit();
 }
 
 
 eEsifError esif_uf_init (esif_string home_dir)
 {
 	eEsifError rc = ESIF_OK;
+
 #ifdef ESIF_ATTR_MEMTRACE
 	u32 *memory_leak = 0;
-	esif_memtrace_init();
+	esif_memtrace_init(); /* must be called first */
 	UNREFERENCED_PARAMETER(memory_leak);
 	//memory_leak = (u32*)esif_ccb_malloc(sizeof(*memory_leak)); /* intentional memory leak for debugging */
 #endif
 
 	ESIF_TRACE_DEBUG("%s: Init Upper Framework (UF)", ESIF_FUNC);
+
+	esif_ccb_mempool_init_tracking();
+
 	if (NULL != home_dir) {
 		printf("%s: Home: %s\n", ESIF_FUNC, home_dir);
 		g_home = esif_ccb_strdup(home_dir);
@@ -358,15 +366,14 @@ void esif_uf_exit ()
 	EsifWebStop();
 #endif
 
-	/* Stop Rest API */
-	EsifRestStop();
+	
 
 	/* OS Specific */
 	esif_uf_os_exit();
 
-	/* OS Agnostic */
-	EsifAppMgrExit();
+	/* OS Agnostic - Call in reverse order of Init */
 	EsifActMgrExit();
+	EsifAppMgrExit();
 	EsifDspMgrExit();
 	EsifUppMgrExit();
 	EsifCnjMgrExit();
@@ -378,18 +385,17 @@ void esif_uf_exit ()
 	}
 	esif_ccb_free(g_home);
 
-#ifdef ESIF_ATTR_MEMTRACE
-	ESIF_TRACE_DEBUG("UserMem: Allocs=%lu Frees=%lu\n", (unsigned long)atomic_read(&g_memtrace.allocs),
-					 (unsigned long)atomic_read(&g_memtrace.frees));
-	esif_memtrace_exit();
-#endif
+	esif_ccb_mempool_uninit_tracking();
+
 	ESIF_TRACE_DEBUG("%s: Exit Upper Framework (UF)", ESIF_FUNC);
+
+#ifdef ESIF_ATTR_MEMTRACE
+	esif_memtrace_exit(); /* must be called last */
+#endif
 }
 
 /* Memory Allocation Trace Support */
 #ifdef ESIF_ATTR_MEMTRACE
-
-// TODO: Locking
 
 void *esif_memtrace_alloc (
 	void *old_ptr, 
@@ -398,8 +404,11 @@ void *esif_memtrace_alloc (
 	const char *file, 
 	int line)
 {
-	struct memalloc_s *mem = g_memtrace.allocated;
-	void *mem_ptr = 0;
+	struct memalloc_s *mem = NULL;
+	void *mem_ptr = NULL;
+
+	esif_ccb_write_lock(&g_memtrace.lock);
+	mem = g_memtrace.allocated;
 
 	if (file) {
 		const char *slash = strrchr(file, *ESIF_PATH_SEP);
@@ -408,7 +417,7 @@ void *esif_memtrace_alloc (
 	}
 
 	if (old_ptr) {
-		mem_ptr = realloc(old_ptr, size); /* native */
+		mem_ptr = native_realloc(old_ptr, size);
 		if (!mem_ptr)
 			goto exit;
 		while (mem) {
@@ -424,14 +433,14 @@ void *esif_memtrace_alloc (
 		}
 	}
 	else {
-		mem_ptr = malloc(size); /* native */
+		mem_ptr = native_malloc(size);
 		if (mem_ptr) {
 			esif_ccb_memset(mem_ptr, 0, size);
 			atomic_inc(&g_memtrace.allocs);
 		}
 	}
 
-	mem = (struct memalloc_s*)malloc(sizeof(*mem)); /* native */
+	mem = (struct memalloc_s*)native_malloc(sizeof(*mem));
 	if (!mem)
 		goto exit;
 	esif_ccb_memset(mem, 0, sizeof(*mem));
@@ -443,6 +452,7 @@ void *esif_memtrace_alloc (
 	mem->next = g_memtrace.allocated;
 	g_memtrace.allocated = mem;
 exit:
+	esif_ccb_write_unlock(&g_memtrace.lock);
 	return mem_ptr;
 }
 
@@ -462,20 +472,26 @@ char* esif_memtrace_strdup (
 
 void esif_memtrace_free (void *mem_ptr)
 {
-	struct memalloc_s *mem = g_memtrace.allocated;
-	struct memalloc_s **last = &g_memtrace.allocated;
+	struct memalloc_s *mem = NULL;
+	struct memalloc_s **last = NULL;
+
+	esif_ccb_write_lock(&g_memtrace.lock);
+	mem = g_memtrace.allocated;
+	last = &g_memtrace.allocated;
+
 	while (mem) {
 		if (mem_ptr == mem->mem_ptr) {
 			*last = mem->next;
-			free(mem); /* native */
+			native_free(mem);
 			goto exit;
 		}
 		last = &mem->next;
 		mem = mem->next;
 	}
 exit:
+	esif_ccb_write_unlock(&g_memtrace.lock);
 	if (mem_ptr) {
-		free(mem_ptr); /* native */
+		native_free(mem_ptr);
 		atomic_inc(&g_memtrace.frees);
 	}
 	return;
@@ -483,29 +499,36 @@ exit:
 
 void esif_memtrace_init ()
 {
-	struct memalloc_s *mem = g_memtrace.allocated;
+	struct memalloc_s *mem = NULL;
+
+	esif_ccb_lock_init(&g_memtrace.lock);
+	esif_ccb_write_lock(&g_memtrace.lock);
+	mem = g_memtrace.allocated;
 
 	// Ignore any allocations made before this function was called
 	while (mem) {
 		struct memalloc_s *node = mem;
 		mem = mem->next;
-		free(node); /* native */
-
+		native_free(node);
 	}
 	g_memtrace.allocated = NULL;
-	atomic_ctor(&g_memtrace.allocs);
-	atomic_ctor(&g_memtrace.frees);
+	esif_ccb_write_unlock(&g_memtrace.lock);
 }
 
 #include "esif_lib_databank.h" // ESIFDV_DIR reference
 
 void esif_memtrace_exit ()
 {
-	struct memalloc_s *mem = g_memtrace.allocated;
+	struct memalloc_s *mem = NULL;
 	char tracefile[MAX_PATH];
 	FILE *tracelog=NULL;
 
-	CMD_OUT("UserMem: Allocs=%lu Frees=%lu\n", (unsigned long)atomic_read(&g_memtrace.allocs), (unsigned long)atomic_read(&g_memtrace.frees));
+	esif_ccb_write_lock(&g_memtrace.lock);
+	mem = g_memtrace.allocated;
+	g_memtrace.allocated = NULL;
+	esif_ccb_write_unlock(&g_memtrace.lock);
+
+	CMD_OUT("MemTrace: Allocs=" ATOMIC_FMT " Frees=" ATOMIC_FMT "\n", atomic_read(&g_memtrace.allocs), atomic_read(&g_memtrace.frees));
 	if (!mem)
 		goto exit;
 
@@ -518,15 +541,13 @@ void esif_memtrace_exit ()
 		if (tracelog)
 			fprintf(tracelog, "[%s @%s:%d]: (%lld bytes) %p\n", mem->func, mem->file, mem->line, (long long)mem->size, mem->mem_ptr);
 		mem = mem->next;
-		free(node->mem_ptr); /* native */
-		free(node); /* native */
+		native_free(node->mem_ptr);
+		native_free(node);
 	}
-	g_memtrace.allocated = NULL;
 	if (tracelog)
 		esif_ccb_fclose(tracelog);
 exit:
-	atomic_dtor(&g_memtrace.allocs);
-	atomic_dtor(&g_memtrace.frees);
+	esif_ccb_lock_uninit(&g_memtrace.lock);
 }
 
 /************/

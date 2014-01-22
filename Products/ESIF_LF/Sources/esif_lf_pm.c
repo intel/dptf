@@ -105,24 +105,22 @@ static struct esif_lp *esif_pm_lp_alloc(void)
 {
 	struct esif_lp *lp_ptr = NULL;
 
-	esif_ccb_read_lock(&g_mempool_lock);
 	lp_ptr = (struct esif_lp *)
-		esif_ccb_mempool_zalloc(g_mempool[ESIF_MEMPOOL_TYPE_PM]);
-	esif_ccb_read_unlock(&g_mempool_lock);
+		esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_PM);
 
 	return lp_ptr;
 }
 
 
 /* Free Lower Participant Instance */
-static void esif_pm_lp_free(struct esif_lp *lp_ptr)
+static void esif_pm_lp_free(
+	struct esif_lp *lp_ptr
+	)
 {
 	if (NULL == lp_ptr)
 		return;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_PM], lp_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_PM, lp_ptr);
 }
 
 
@@ -158,6 +156,35 @@ enum esif_pm_participant_state esif_lf_pm_lp_get_state(
 	return state;
 }
 
+static void esif_lf_pm_build_lpat(struct esif_lp *lp_ptr)
+{
+	struct esif_lp_dsp *dsp_ptr = lp_ptr->dsp_ptr;
+	struct esif_primitive_tuple tuple_lpat = {
+			GET_TEMPERATURE_APPROX_TABLE, '0D', 255};
+	struct esif_data esif_lpat = {ESIF_DATA_BINARY, NULL, 0, 0};
+	struct esif_data esif_void = {ESIF_DATA_VOID, NULL, 0, 0};
+	enum esif_rc rc = ESIF_OK;
+	u32 size = sizeof(union esif_data_variant) * 1024;  /* ie. 512 LPAT */
+
+	/* Allow Upto 512 LPAT Entries (Each Takes Two Integer In 
+	 * esif_data_variant{}, For Example, {{INT64, -20}, {UINT64, 997}} 
+	 * Represents An Entry {Temp=-20, RawValue=996} In LPAT ACPI Obj.)
+	 */
+	esif_lpat.buf_ptr = (void *)esif_ccb_malloc(size);
+	esif_lpat.buf_len = size;
+	if (NULL == esif_lpat.buf_ptr) 
+		goto exit; 
+
+	rc = esif_execute_primitive(lp_ptr, &tuple_lpat, &esif_void, 
+				&esif_lpat, NULL);
+	if (ESIF_OK != rc)
+		goto exit;
+
+	dsp_ptr->table = esif_lpat.buf_ptr;
+	dsp_ptr->table_size = esif_lpat.data_len; 
+exit:
+	return;
+}
 
 /* Set Participant State */
 enum esif_rc esif_lf_pm_lp_set_state(
@@ -165,6 +192,7 @@ enum esif_rc esif_lf_pm_lp_set_state(
 	const enum esif_pm_participant_state state
 	)
 {
+	struct esif_lp_dsp *dsp_ptr = NULL;
 	enum esif_rc rc = ESIF_OK;
 	u8 i = 0;
 
@@ -176,6 +204,7 @@ enum esif_rc esif_lf_pm_lp_set_state(
 			  ESIF_FUNC,
 			  lp_ptr->instance,
 			  state);
+
 
 	if (lp_ptr->instance >= MAX_PARTICIPANT_ENTRY) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
@@ -191,6 +220,14 @@ enum esif_rc esif_lf_pm_lp_set_state(
 		rc = esif_lf_instrument_participant(lp_ptr);
 		if (ESIF_OK != rc)
 			goto exit;
+	
+		/* Build LPAT Before Others Can Use Its Xform */ 
+		dsp_ptr = lp_ptr->dsp_ptr;
+		if (NULL != dsp_ptr) {
+			if (dsp_ptr->dsp_has_algorithm(dsp_ptr,
+				ESIF_ALGORITHM_TYPE_TEMP_LPAT) == ESIF_TRUE) 
+				esif_lf_pm_build_lpat(lp_ptr);
+		}
 
 		/* Have DSP Instrument Domain */
 		for (i = 0; i < lp_ptr->domain_count; i++) {
@@ -223,7 +260,23 @@ enum esif_rc esif_lf_pm_lp_set_state(
 					lpd_ptr->id,
 					255
 				};
-
+				/*
+				 * Grab and intitialize lpd_ptr->temp_tjmax = 
+				 * GET_PROC_TJ_MAX. Don't use DSP constant tc1 
+				 * for this any longer use this value it will 
+				 * change from 100 to 90 to 105 depending on SKU
+				 * get it from the hardware here.
+				 *
+				 * We need to get it as soon as possible there 
+				 * is a silicon bug that causes this value to be
+				 * reported as 0x40 hex after a connected standy
+				 * cycle for now we need to work around this by 
+				 * reading it early and hanging onto the value.
+				 *
+				 * TJMAX from the DSP is no longer needed. We 
+				 * will leave the two TC values for 
+				 * future use.
+				 */
 				esif_execute_primitive(lpd_ptr->lp_ptr,
 						       &tuple_hyst,
 						       &esif_void,
@@ -247,23 +300,6 @@ enum esif_rc esif_lf_pm_lp_set_state(
 				lpd_ptr->temp_notify_sent = ESIF_FALSE;
 				lpd_ptr->temp_aux0 = ESIF_DOMAIN_TEMP_INVALID;
 				lpd_ptr->temp_aux1 = ESIF_DOMAIN_TEMP_INVALID;
-
-
-/*
-* TODO: LIFU we need to grab and intitialize these here
-* lpd_ptr->temp_tjmax = GET_PROC_TJ_MAX
-*
-* Dont use DSP constant tc1 for this any longer use this value it will change
-* from 100 to 90 to 105 depending on SKU get it from the hardware here.
-*
-* We need to get it as soon as possible there is a silicon bug that
-* causes this value to be reported as 0x40 hex after a connected standy
-* cycle for now we need to work around this by reading it early and hanging
-* onto the value.
-*
-* Once you have completed this we can remove TJMAX from the DSP.  We will leave
-* the two TC values for future use, but the first will no longer be TJMAX.
-*/
 			}
 
 			esif_lf_instrument_capability(lpd_ptr);
@@ -299,7 +335,11 @@ enum esif_rc esif_lf_pm_lp_set_state(
 					GET_RAPL_TIME_UNIT, lpd_ptr->id, 255
 				};
 
-				/* Get Unit Data Needed By Power Conversion */
+				/* Get Unit Data Needed By Power Conversion 
+				 * lpd_ptr->unit_power = GET_RAPL_POWER_UNIT
+				 * lpd_ptr->unit_energy = GET_RAPL_ENERGY_UNIT
+				 * lpd_ptr->unit_time = GET_RAPL_TIME_UNIT
+				 */
 				esif_execute_primitive(lpd_ptr->lp_ptr,
 						       &tuple_energy,
 						       &esif_void,
@@ -330,27 +370,19 @@ enum esif_rc esif_lf_pm_lp_set_state(
 								 *other than
 								 *zero */
 
-			/*
-			** TODO: LIFU We need to grab and initialize these here
-			** lpd_ptr->unit_power = GET_RAPL_POWER_UNIT
-			** lpd_ptr->unit_energy = GET_RAPL_ENERGY_UNIT
-			** lpd_ptr->unit_time = GET_RAPL_TIME_UNIT
-			*/
 				lpd_ptr->poll_mask |= ESIF_POLL_POWER;
 				esif_poll_start(lpd_ptr);
 			}
 		}
+
+
 	} else if (ESIF_PM_PARTICIPANT_STATE_NEEDDSP == state) {
 		/*
 		 * Uninstrument domains that currently have a DSP
 		 */
 		for (i = 0; i < lp_ptr->domain_count; i++) {
 			struct esif_lp_domain *lpd_ptr = &lp_ptr->domains[i];
-			if (lpd_ptr->capabilities &
-			    ESIF_CAPABILITY_POWER_STATUS) {
-				lpd_ptr->poll_mask |= ESIF_POLL_POWER;
-				esif_poll_stop(lpd_ptr);
-			}
+			esif_poll_stop(lpd_ptr);
 			esif_lf_uninstrument_capability(lpd_ptr);
 		}
 		esif_lf_uninstrument_participant(lp_ptr);
@@ -366,7 +398,8 @@ exit:
 
 /* Get Lower Participant INTERFACE By Instance ID */
 struct esif_participant_iface *esif_lf_pm_pi_get_by_instance_id(
-	const u8 instance)
+	const u8 instance
+	)
 {
 	struct esif_participant_iface *pi_ptr = NULL;
 	ESIF_TRACE_DYN_PM("%s: instance %d\n", ESIF_FUNC, instance);
@@ -375,7 +408,7 @@ struct esif_participant_iface *esif_lf_pm_pi_get_by_instance_id(
 		goto exit;
 
 	esif_ccb_read_lock(&g_pm.lock);
-	if (g_pm.pme[instance].state > ESIF_PM_PARTICIPANT_STATE_AVAILABLE)
+	if (g_pm.pme[instance].state > ESIF_PM_PARTICIPANT_REMOVED)
 		pi_ptr = g_pm.pme[instance].pi_ptr;
 
 	esif_ccb_read_unlock(&g_pm.lock);
@@ -390,7 +423,9 @@ exit:
 
 
 /* Get Lower Participant By Instance ID */
-struct esif_lp *esif_lf_pm_lp_get_by_instance_id(const u8 instance)
+struct esif_lp *esif_lf_pm_lp_get_by_instance_id(
+	const u8 instance
+	)
 {
 	struct esif_lp *lp_ptr = NULL;
 	ESIF_TRACE_DYN_PM("%s: instance %d\n", ESIF_FUNC, instance);
@@ -399,7 +434,7 @@ struct esif_lp *esif_lf_pm_lp_get_by_instance_id(const u8 instance)
 		goto exit;
 
 	esif_ccb_read_lock(&g_pm.lock);
-	if (g_pm.pme[instance].state > ESIF_PM_PARTICIPANT_STATE_AVAILABLE)
+	if (g_pm.pme[instance].state > ESIF_PM_PARTICIPANT_REMOVED)
 		lp_ptr = g_pm.pme[instance].lp_ptr;
 
 	esif_ccb_read_unlock(&g_pm.lock);
@@ -415,7 +450,8 @@ exit:
 
 /* Get Lower Participant By Particiapnt Interface */
 struct esif_lp *esif_lf_pm_lp_get_by_pi(
-	const struct esif_participant_iface *pi_ptr)
+	const struct esif_participant_iface *pi_ptr
+	)
 {
 	u8 i = 0;
 	struct esif_lp *lp_ptr = NULL;
@@ -427,7 +463,8 @@ struct esif_lp *esif_lf_pm_lp_get_by_pi(
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
 		if (g_pm.pme[i].pi_ptr == pi_ptr) {
 			/* Found */
-			lp_ptr = g_pm.pme[i].lp_ptr;
+			if(g_pm.pme[i].state > ESIF_PM_PARTICIPANT_REMOVED)
+				lp_ptr = g_pm.pme[i].lp_ptr;
 			break;
 		}
 	}
@@ -438,47 +475,45 @@ exit:
 }
 
 
-/* Get Particiapnt Interface By Lower Participant */
-struct esif_participant_iface *esif_pm_get_pi_by_lp(struct esif_lp *lp_ptr)
-{
-	u8 i = 0;
-	struct esif_participant_iface *pi_ptr = NULL;
-
-	if (NULL == lp_ptr)
-		goto exit;
-
-	esif_ccb_read_lock(&g_pm.lock);
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		if (g_pm.pme[i].lp_ptr == lp_ptr) {
-			/* Found */
-			pi_ptr = g_pm.pme[i].pi_ptr;
-			break;
-		}
-	}
-
-	esif_ccb_read_unlock(&g_pm.lock);
-exit:
-	return pi_ptr;	/* Not Found Will Be NULL */
-}
-
-
 /* Create Participant Instance */
-struct esif_lp *esif_lf_pm_lp_create(struct esif_participant_iface *pi_ptr)
+struct esif_lp *esif_lf_pm_lp_create(
+	struct esif_participant_iface *pi_ptr
+	)
 {
 	u8 i = 0;
 	struct esif_lp *lp_ptr = NULL;
 
+	/* Lock Package Manager */
+	esif_ccb_write_lock(&g_pm.lock);
+
 	if (NULL == pi_ptr)
 		goto exit;
 
-	lp_ptr = esif_pm_lp_alloc();
-	if (NULL == lp_ptr)
-		goto exit;
+	ESIF_TRACE_DYN_PM("%s: pi %p\n", ESIF_FUNC, pi_ptr);
 
-	ESIF_TRACE_DYN_PM("%s: pi %p, lp %p\n", ESIF_FUNC, pi_ptr, lp_ptr);
+	/*
+	 * First check for a participant that was previously removed.
+	 * If found, reset to initial state, update participant count, and then
+	 * update the pi_ptr as that may have changed when the participant
+	 * was reloaded.
+	 */
+	for (i = ESIF_INSTANCE_FIRST; i < MAX_PARTICIPANT_ENTRY; i++) {
+		if ((g_pm.pme[i].state != ESIF_PM_PARTICIPANT_STATE_AVAILABLE)
+			&& (!memcmp(g_pm.pme[i].lp_ptr->pi_name,
+					     pi_ptr->name,
+					     sizeof(pi_ptr->name)))) {
 
-	/* Lock Package Manager */
-	esif_ccb_write_lock(&g_pm.lock);
+			g_pm.pme[i].pi_ptr = pi_ptr;
+			g_pm.pme[i].state = ESIF_PM_PARTICIPANT_STATE_CREATED;
+			g_pm.pme_count++;
+
+			lp_ptr = g_pm.pme[i].lp_ptr;
+			lp_ptr->pi_ptr = pi_ptr;
+			ESIF_TRACE_DYN_PM("%s: lp %p\n", ESIF_FUNC, lp_ptr);
+
+			goto exit;
+		}
+	}
 
 	/* Find Available Slot In Package Manager Table */
 	if (pi_ptr->flags & ESIF_FLAG_DPTFZ) {
@@ -497,19 +532,21 @@ struct esif_lp *esif_lf_pm_lp_create(struct esif_participant_iface *pi_ptr)
 	}
 
 	/* If No Available Slots Return */
-	if (i >= MAX_PARTICIPANT_ENTRY) {
-		esif_ccb_free(lp_ptr);
-		lp_ptr = NULL;
-		esif_ccb_write_unlock(&g_pm.lock);
+	if (i >= MAX_PARTICIPANT_ENTRY)
 		goto exit;
-	}
+
+	lp_ptr = esif_pm_lp_alloc();
+	if (NULL == lp_ptr)
+		goto exit;
+
+	ESIF_TRACE_DYN_PM("%s: lp %p\n", ESIF_FUNC, lp_ptr);
 
 	/*
 	 * Take Slot
 	 */
 	g_pm.pme[i].state = ESIF_PM_PARTICIPANT_STATE_CREATED;
 	g_pm.pme_count++;
-	esif_ccb_write_unlock(&g_pm.lock);
+
 
 	/*
 	 * Initialize Our New Lower Participant
@@ -518,40 +555,45 @@ struct esif_lp *esif_lf_pm_lp_create(struct esif_participant_iface *pi_ptr)
 	lp_ptr->enable   = ESIF_TRUE;	/* Enable By Default   */
 	lp_ptr->pi_ptr   = pi_ptr;	/* Keep The Original Interface Data */
 
+	/*
+	 * We copy the name so it may be used later when a participant is
+	 * removed to tell when it returns.
+	 */
+	esif_ccb_strcpy(lp_ptr->pi_name, pi_ptr->name, ESIF_NAME_LEN);
+
 	/* Assume One Domain */
 	lp_ptr->domain_count = 1;
 
 	ESIF_TRACE_DYN_PM("%s: Assigned Instance: %d of %d\n",
 			  ESIF_FUNC, lp_ptr->instance, MAX_PARTICIPANT_ENTRY);
 
-	esif_ccb_write_lock(&g_pm.lock);
 	g_pm.pme[i].pi_ptr = pi_ptr;
 	g_pm.pme[i].lp_ptr = lp_ptr;
-	esif_ccb_write_unlock(&g_pm.lock);
 
 exit:
+	esif_ccb_write_unlock(&g_pm.lock);
 	return lp_ptr;
 }
 
 
-/* Destroy Paticipant Instance */
-void esif_lf_pm_lp_destroy(struct esif_lp *lp_ptr)
+/* Disable Paticipant Instance */
+void esif_lf_pm_lp_remove(
+	struct esif_lp *lp_ptr
+	)
 {
 	if (NULL == lp_ptr)
 		return;
-
-	/* Stop All Polling */
-	esif_poll_stop_all(lp_ptr);
 
 	ESIF_TRACE_DYN_PM("%s: lp %p\n", ESIF_FUNC, lp_ptr);
 
 	esif_ccb_write_lock(&g_pm.lock);
 
-	g_pm.pme[lp_ptr->instance].state  = ESIF_PM_PARTICIPANT_STATE_AVAILABLE;
-	g_pm.pme[lp_ptr->instance].lp_ptr = NULL;
-	g_pm.pme[lp_ptr->instance].pi_ptr = NULL;
+	g_pm.pme[lp_ptr->instance].state  = ESIF_PM_PARTICIPANT_REMOVED;
 	g_pm.pme_count--;
-	esif_pm_lp_free(lp_ptr);
+
+	lp_ptr->enable   = ESIF_FALSE;	/* Not used anywhere that I can see */
+	lp_ptr->pi_ptr   = NULL;	/* Keep The Original Interface Data */
+	g_pm.pme[lp_ptr->instance].pi_ptr = NULL;
 	/* Note we don't free PI since that is someone elses */
 	esif_ccb_write_unlock(&g_pm.lock);
 }
@@ -565,17 +607,14 @@ enum esif_rc esif_lf_pm_init(void)
 
 	ESIF_TRACE_DYN_INIT("%s: Initialize Participant Manager\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_mempool_lock);
 	mempool_ptr =
-		esif_ccb_mempool_create(ESIF_MEMPOOL_FW_PM,
+		esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_PM,
+					ESIF_MEMPOOL_FW_PM,
 					sizeof(struct esif_lp));
 	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
-	g_mempool[ESIF_MEMPOOL_TYPE_PM] = mempool_ptr;
-	esif_ccb_write_unlock(&g_mempool_lock);
 	esif_ccb_lock_init(&g_pm.lock);
 exit:
 	return rc;
@@ -585,10 +624,17 @@ exit:
 /* Exit Participant Manager */
 void esif_lf_pm_exit(void)
 {
-	esif_ccb_write_lock(&g_mempool_lock);
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_PM]);
-	g_mempool[ESIF_MEMPOOL_TYPE_PM] = NULL;
-	esif_ccb_write_unlock(&g_mempool_lock);
+	u8 i = 0;
+
+	esif_ccb_write_lock(&g_pm.lock);
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		esif_pm_lp_free(g_pm.pme[i].lp_ptr); 
+		g_pm.pme[i].lp_ptr = NULL;
+		g_pm.pme[i].pi_ptr = NULL;
+		g_pm.pme_count--;
+		g_pm.pme[i].state = ESIF_PM_PARTICIPANT_STATE_AVAILABLE;
+	}
+	esif_ccb_write_unlock(&g_pm.lock);
 
 	esif_ccb_lock_uninit(&g_pm_lock);
 	ESIF_TRACE_DYN_INIT("%s: Exit Participant Manager\n", ESIF_FUNC);

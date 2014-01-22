@@ -54,8 +54,11 @@
 #ifndef _ESIF_H_
 #define _ESIF_H_
 
+
+
 /* Agnostic Kernel/User Space */
 typedef char *esif_string;		/* Opaque ESIF String ASCIIZ Today */
+
 
 /* Linux Derrived OS Kernel/User Space */
 #if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
@@ -81,10 +84,11 @@ typedef char *esif_string;		/* Opaque ESIF String ASCIIZ Today */
 /* Chrome Override For Linux */
 #ifdef ESIF_ATTR_OS_CHROME
 #undef ESIF_ATTR_OS
-#define ESIF_ATTR_WEBSOCKET
 #define ESIF_ATTR_OS "chrome"
 #define ESIF_ATTR_OS_LINUX
 #endif
+
+#define ESIF_ATTR_WEBSOCKET
 
 /* Windows Kernel/User Space */
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -111,7 +115,7 @@ typedef unsigned long long u64;	/* A QWORD */
 #ifdef _DEBUG
 #define ESIF_ATTR_DEBUG
 #endif
-#endif
+#endif /* ESIF_ATTR_OS_WINDOWS */
 
 /* Kernel */
 #ifdef ESIF_ATTR_KERNEL
@@ -158,10 +162,10 @@ typedef struct device *esif_device_t;
 ** Suppress Windows Warnings for warn level 4.  Need to find out if we can
 ** challenge the Windows Blue /W4 /WX with no pragramas assumption?
 */
-    #pragma warning(disable:4127) /* Conditional expression is constant */
-    #pragma warning(disable:4204) /* Non-constant aggregate initializer */
+    #pragma warning(disable : 4127) /* Conditional expression is constant */
+    #pragma warning(disable : 4204) /* Non-constant aggregate initializer */
     #pragma \
-	warning(disable:4221) /* Can't be initialized using address of
+	warning(disable : 4221) /* Can't be initialized using address of
 				 automatic variable */
 
 /*
@@ -210,8 +214,8 @@ typedef unsigned long long u64;
 #include <windows.h>			/* Windows Includes Almost Everything */
 #include <winioctl.h>			/* Except IOCTL Interface */
 #define ESIF_ASSERT			/* NOOP For Now */
-#pragma warning(disable:4204)		/* Non-constant aggregate initializer */
-#pragma warning(disable:4221)		/* Can't be init'd with addr of autos */
+#pragma warning(disable : 4204)		/* Non-constant aggregate initializer */
+#pragma warning(disable : 4221)		/* Can't be init'd with addr of autos */
 #endif /* USER::ESIF_ATTR_OS_WINDOWS */
 
 typedef u8 UInt8;	/* A CCB BYTE  */
@@ -236,8 +240,8 @@ typedef esif_string EsifString;
 #define ESIF_NOT_AVAILABLE "NA"
 
 /* Data Lengths */
-#define ESIF_NAME_LEN    32	/* Maximum Name Length        */
-#define ESIF_DESC_LEN    32	/* Maximum Description Length */
+#define ESIF_NAME_LEN    64	/* Maximum Name Length        */
+#define ESIF_DESC_LEN    64	/* Maximum Description Length */
 #define ESIF_SCOPE_LEN   64	/* Maximum ACPI Scope Length  */
 #define ESIF_OBJ_LEN     64	/* Maximum Object Name Length */
 #define ESIF_GUID_LEN    16	/* Length of a GUID In Bytes  */
@@ -276,8 +280,6 @@ typedef u32 esif_power_t;			/* Power        */
  */
 #ifdef ESIF_ATTR_KERNEL
 extern esif_ccb_lock_t g_mempool_lock;
-extern esif_ccb_lock_t g_memtype_lock;
-extern esif_ccb_lock_t g_memstat_lock;
 #endif
 
 #ifdef ESIF_ATTR_USER

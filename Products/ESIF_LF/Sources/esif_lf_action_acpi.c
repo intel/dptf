@@ -1079,7 +1079,7 @@ static void esif_unpack_acpi_object(
 						   (int)sizeof(obj_ptr->reference),
 						   str_len);
 
-				g_memstat.allocs++;
+				memstat_inc(&g_memstat.allocs);
 				esif_ccb_free(acpi_ref.pointer);
 			}
 			break;

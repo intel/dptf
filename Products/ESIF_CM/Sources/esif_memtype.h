@@ -58,11 +58,21 @@
     #include "esif.h"
 #endif
 
+
 /* Variable Length Common Memory Types */
 enum esif_memtype_type {
 	ESIF_MEMTYPE_TYPE_EVENT = 0,	/* Event */
 	ESIF_MEMTYPE_TYPE_MAX
 };
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Implemented in esif_lf.c */
+extern struct esif_ccb_memtype *g_memtype[ESIF_MEMTYPE_TYPE_MAX];
+extern esif_ccb_lock_t g_memtype_lock;
 
 static ESIF_INLINE char *esif_memtype_str(u32 type)
 {
@@ -75,6 +85,10 @@ static ESIF_INLINE char *esif_memtype_str(u32 type)
 	return str;
 }
 
+static ESIF_INLINE struct esif_ccb_memtype *esif_ccb_memtype_create(
+	enum esif_memtype_type type_tag);
+static ESIF_INLINE void esif_ccb_memtype_destroy(
+	enum esif_memtype_type type_tag);
 
 /* Memory Type Not Fixed Size Use Mempool For That */
 struct esif_ccb_memtype {
@@ -84,121 +98,225 @@ struct esif_ccb_memtype {
 	u32          free_count;	/* Free Count       */
 };
 
-/* Memory Type Create */
-static ESIF_INLINE struct esif_ccb_memtype *esif_ccb_memtype_create(u32 type_tag)
+
+static ESIF_INLINE void esif_ccb_memtype_init_tracking(void)
 {
-	struct esif_ccb_memtype *type_ptr =
-		(struct esif_ccb_memtype*)esif_ccb_malloc(
-			sizeof(*type_ptr));
-	if (NULL == type_ptr) {
-		return NULL;
-	}
+	u32 type_tag;
 
-	type_ptr->type_tag    = type_tag;
-	type_ptr->name_ptr    = esif_memtype_str(type_tag);
-	type_ptr->alloc_count = 0;
-	type_ptr->free_count  = 0;
-
-#ifdef ESIF_ATTR_KERNEL
-	g_memstat.memTypeAllocs++;
-#endif
-	MEMTYPE_DEBUG("%s: Memory Type %s Create\n",
-		      ESIF_FUNC,
-		      type_ptr->name_ptr);
-	return type_ptr;
+	esif_ccb_lock_init(&g_memtype_lock);
+	/*
+	 * Create the tracking array for all supported types.
+	 */
+	for (type_tag = 0; type_tag < ESIF_MEMTYPE_TYPE_MAX; type_tag++)
+		esif_ccb_memtype_create((enum esif_memtype_type)type_tag);
 }
 
+
+static ESIF_INLINE void esif_ccb_memtype_uninit_tracking(void)
+{
+	u32 type_tag;
+
+	/*
+	 * Create the tracking array for all supported types.
+	 */
+	for (type_tag = 0; type_tag < ESIF_MEMTYPE_TYPE_MAX; type_tag++)
+		esif_ccb_memtype_destroy((enum esif_memtype_type)type_tag);
+
+	esif_ccb_lock_uninit(&g_memtype_lock);
+}
+
+
+/* Memory Type Create */
+static ESIF_INLINE struct esif_ccb_memtype *esif_ccb_memtype_create(
+	enum esif_memtype_type type_tag
+	)
+{
+	struct esif_ccb_memtype *memtype_ptr = NULL;
+
+	if (type_tag >= ESIF_MEMTYPE_TYPE_MAX)
+		goto exit;
+
+	memtype_ptr = (struct esif_ccb_memtype *)
+			esif_ccb_malloc(sizeof(*memtype_ptr));
+
+	if (NULL == memtype_ptr)
+		goto exit;
+
+	memtype_ptr->type_tag = type_tag;
+	memtype_ptr->name_ptr = esif_memtype_str(type_tag);
+	memtype_ptr->alloc_count = 0;
+	memtype_ptr->free_count  = 0;
+
+	esif_ccb_write_lock(&g_memtype_lock);
+
+	g_memtype[type_tag] = memtype_ptr;
+#ifdef ESIF_ATTR_KERNEL
+	memstat_inc(&g_memstat.memTypeAllocs);
+#endif
+	esif_ccb_write_unlock(&g_memtype_lock);
+
+	MEMTYPE_DEBUG("%s: Memory Type %s Create\n",
+		      ESIF_FUNC,
+		      memtype_ptr->name_ptr);
+exit:
+	return memtype_ptr;
+}
+
+
 /* Memory Type Destroy */
-static ESIF_INLINE void esif_ccb_memtype_destroy(struct esif_ccb_memtype *type_ptr)
+static ESIF_INLINE void esif_ccb_memtype_destroy(
+	enum esif_memtype_type type_tag
+	)
 {
 	u32 remain = 0;
-	if (NULL == type_ptr) {
-		return;
+	struct esif_ccb_memtype *memtype_ptr = NULL;
+
+	if (type_tag >= ESIF_MEMTYPE_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_memtype_lock);
+
+	memtype_ptr = g_memtype[type_tag];
+
+	if (NULL == memtype_ptr) {
+		esif_ccb_write_unlock(&g_memtype_lock);
+		goto exit;
 	}
 
-	remain = type_ptr->alloc_count - type_ptr->free_count;
+	remain = memtype_ptr->alloc_count - memtype_ptr->free_count;
 	MEMPOOL_DEBUG("%s: Memory Type %s Destroy alloc=%d free=%d remain=%d\n",
 		      ESIF_FUNC,
-		      type_ptr->name_ptr,
-		      type_ptr->alloc_count,
-		      type_ptr->free_count,
+		      memtype_ptr->name_ptr,
+		      memtype_ptr->alloc_count,
+		      memtype_ptr->free_count,
 		      remain);
 
 #ifdef ESIF_ATTR_KERNEL
-	g_memstat.memTypeFrees++;
+	memstat_inc(&g_memstat.memTypeFrees);
 #endif
-	esif_ccb_free(type_ptr);
-	if (remain != 0) {
-	}	/* ASSERT(); */
+
+	esif_ccb_free(memtype_ptr);
+	g_memtype[type_tag] = NULL;
+
+	esif_ccb_write_unlock(&g_memtype_lock);
+exit:
+	;
 }
 
 
 /* Memory Type Allocate */
 static ESIF_INLINE void *esif_ccb_memtype_alloc(
-	struct esif_ccb_memtype *type_ptr,
+	enum esif_memtype_type type_tag,
 	u32 size
 	)
 {
-	void *mem_ptr = esif_ccb_malloc(size);
-	if (NULL == type_ptr || NULL == mem_ptr) {
-		return NULL;
+	void *mem_ptr = NULL;
+	struct esif_ccb_memtype *memtype_ptr = NULL;
+
+	/*
+	 * Attempt allocation first, so if unsuccessful updating stats we still
+	 * return usable memory.
+	 */
+	mem_ptr = esif_ccb_malloc(size);
+	if (NULL == mem_ptr)
+		goto exit;
+
+	if (type_tag >= ESIF_MEMTYPE_TYPE_MAX)
+		goto exit;
+
+	esif_ccb_write_lock(&g_memtype_lock);
+
+	memtype_ptr = g_memtype[type_tag];
+
+	if (NULL == memtype_ptr) {
+		esif_ccb_write_unlock(&g_memtype_lock);
+		goto exit;
 	}
 
-	type_ptr->alloc_count++;
+	memtype_ptr->alloc_count++;
 #ifdef ESIF_ATTR_KERNEL
-	g_memstat.memTypeObjAllocs++;
+	memstat_inc(&g_memstat.memTypeObjAllocs);
 #endif
+
 	MEMPOOL_DEBUG("%s: MT Entry Allocated(%d)=%p From Memtype %s\n",
 		      ESIF_FUNC,
-		      type_ptr->alloc_count,
+		      memtype_ptr->alloc_count,
 		      mem_ptr,
-		      type_ptr->name_ptr);
+		      memtype_ptr->name_ptr);
+
+	esif_ccb_write_unlock(&g_memtype_lock);
+
+exit:
 	return mem_ptr;
 }
 
 
 /* Memory Type ZERO Allocate */
 static ESIF_INLINE void *esif_ccb_memtype_zalloc(
-	struct esif_ccb_memtype *type_ptr,
+	enum esif_memtype_type type_tag,
 	u32 size
 	)
 {
-	void *mem_ptr = esif_ccb_memtype_alloc(type_ptr, size);
-	if (NULL == mem_ptr) {
-		return NULL;
-	}
+	void *mem_ptr = NULL;
+
+	mem_ptr = esif_ccb_memtype_alloc(type_tag, size);
+	if (NULL == mem_ptr)
+		goto exit;
 
 	esif_ccb_memset(mem_ptr, 0, size);
-	MEMPOOL_DEBUG("%s: MT ZERO(%d)=%p For Memtype %s\n", ESIF_FUNC,
-		      type_ptr->alloc_count, mem_ptr, type_ptr->name_ptr);
 
+exit:
 	return mem_ptr;
 }
 
 
 /* Memory Type Free */
 static ESIF_INLINE void esif_ccb_memtype_free (
-	struct esif_ccb_memtype *type_ptr,
+	enum esif_memtype_type type_tag,
 	void *mem_ptr
 	)
 {
-	if (NULL == type_ptr || NULL == mem_ptr) {
-		return;
+	struct esif_ccb_memtype *memtype_ptr = NULL;
+
+	/*
+	 * Deallocate first, so even if we fail to update stats, the memory
+	 * is still freed.
+	 */
+	if (mem_ptr != NULL)
+		esif_ccb_free(mem_ptr);
+
+
+	if (type_tag >= ESIF_MEMTYPE_TYPE_MAX)
+		goto exit;
+
+
+	esif_ccb_write_lock(&g_memtype_lock);
+
+	memtype_ptr = g_memtype[type_tag];
+
+	if (NULL == memtype_ptr) {
+		esif_ccb_write_unlock(&g_memtype_lock);
+		goto exit;
 	}
 
-	type_ptr->free_count++;
-	MEMPOOL_DEBUG("%s: MT Entree Freed(%d)=%p From Memtype %s\n", ESIF_FUNC,
-		      type_ptr->free_count, mem_ptr, type_ptr->name_ptr);
+	memtype_ptr->free_count++;
 
-	esif_ccb_free(mem_ptr);
 #ifdef ESIF_ATTR_KERNEL
-	g_memstat.memTypeObjFrees++;
+	memstat_inc(&g_memstat.memTypeObjFrees);
 #endif
+	MEMPOOL_DEBUG("%s: MT Entry Freed(%d)=%p From Memtype %s\n", ESIF_FUNC,
+		      memtype_ptr->free_count, mem_ptr, memtype_ptr->name_ptr);
+
+	esif_ccb_write_unlock(&g_memtype_lock);
+
+exit:
+	;
 }
 
 
-/* Implemented in esif_lf.c */
-extern struct esif_ccb_memtype *g_memtype[ESIF_MEMTYPE_TYPE_MAX];
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ESIF_MEMTYPE_H_ */
 

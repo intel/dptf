@@ -82,123 +82,123 @@ struct esif_lp_action {
 struct esif_lp_primitive;
 struct esif_lp;
 
-enum esif_rc esif_execute_action (struct esif_lp_primitive *primitive_ptr,
-				  const struct esif_lp_action *action_ptr,
-				  struct esif_lp *lp_ptr,
-				  struct esif_data *req_data_ptr,
-				  struct esif_data *rsp_data_ptr);
+enum esif_rc esif_execute_action(struct esif_lp_primitive *primitive_ptr,
+				 const struct esif_lp_action *action_ptr,
+				 struct esif_lp *lp_ptr,
+				 struct esif_data *req_data_ptr,
+				 struct esif_data *rsp_data_ptr);
 
 /* ACPI */
-enum esif_rc esif_action_acpi_init (void);
-void esif_action_acpi_exit (void);
+enum esif_rc esif_action_acpi_init(void);
+void esif_action_acpi_exit(void);
 
-enum esif_rc esif_get_action_acpi (acpi_handle acpi_handle,
-				   const u32 acpi_method,
-				   const struct esif_data *req_data_ptr,
-				   struct esif_data *rsp_data_ptr);
+enum esif_rc esif_get_action_acpi(acpi_handle acpi_handle,
+				  const u32 acpi_method,
+				  const struct esif_data *req_data_ptr,
+				  struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_acpi (acpi_handle acpi_handle,
-				   const u32 acpi_method,
-				   struct esif_data *req_data_ptr);
+enum esif_rc esif_set_action_acpi(acpi_handle acpi_handle,
+				  const u32 acpi_method,
+				  struct esif_data *req_data_ptr);
 
 /* CONSTANT */
-enum esif_rc esif_action_const_init (void);
-void esif_action_const_exit (void);
+enum esif_rc esif_action_const_init(void);
+void esif_action_const_exit(void);
 
-enum esif_rc esif_get_action_const (const u32 value,
-				    const struct esif_data *req_data_ptr,
-				    struct esif_data *rsp_data_ptr)
+enum esif_rc esif_get_action_const(const u32 value,
+				   const struct esif_data *req_data_ptr,
+				   struct esif_data *rsp_data_ptr)
 ;
 
 /* CODE */
 struct esif_primitive_tuple;
 
-enum esif_rc esif_action_code_init (void);
-void esif_action_code_exit (void);
+enum esif_rc esif_action_code_init(void);
+void esif_action_code_exit(void);
 
-enum esif_rc esif_get_action_code (struct esif_lp *lp_ptr,
-				   const struct esif_primitive_tuple *tuple_ptr,
-				   const struct esif_lp_action *action_ptr,
-				   const struct esif_data *req_data_ptr,
-				   struct esif_data *rsp_data_ptr);
+enum esif_rc esif_get_action_code(struct esif_lp *lp_ptr,
+				  const struct esif_primitive_tuple *tuple_ptr,
+				  const struct esif_lp_action *action_ptr,
+				  const struct esif_data *req_data_ptr,
+				  struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_code (struct esif_lp *lp_ptr,
-				   const struct esif_primitive_tuple *tuple_ptr,
-				   const struct esif_lp_action *action_ptr,
-				   const struct esif_data *req_data_ptr);
+enum esif_rc esif_set_action_code(struct esif_lp *lp_ptr,
+				  const struct esif_primitive_tuple *tuple_ptr,
+				  const struct esif_lp_action *action_ptr,
+				  const struct esif_data *req_data_ptr);
 
 /* MBI */
-enum esif_rc esif_action_mbi_init (void);
-void esif_action_mbi_exit (void);
+enum esif_rc esif_action_mbi_init(void);
+void esif_action_mbi_exit(void);
 
-enum esif_rc esif_get_action_mbi (const u8 port,
-				  const u8 reg,
-				  const u8 bit_start,
-				  const u8 bit_stop,
-				  const struct esif_data *req_data_ptr,
-				  struct esif_data *rsp_data_ptr);
+enum esif_rc esif_get_action_mbi(const u8 port,
+				 const u8 reg,
+				 const u8 bit_start,
+				 const u8 bit_stop,
+				 const struct esif_data *req_data_ptr,
+				 struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_mbi (const u8 port,
-				  const u8 reg,
-				  const u8 bit_start,
-				  const u8 bit_stop,
-				  const struct esif_data *req_data_ptr);
+enum esif_rc esif_set_action_mbi(const u8 port,
+				 const u8 reg,
+				 const u8 bit_start,
+				 const u8 bit_stop,
+				 const struct esif_data *req_data_ptr);
 
 /* MMIO */
-enum esif_rc esif_action_mmio_init (void);
-void esif_action_mmio_exit (void);
+enum esif_rc esif_action_mmio_init(void);
+void esif_action_mmio_exit(void);
 
-enum esif_rc esif_get_action_mmio (const void __iomem *base_addr,
-				   const u32 offset,
-				   const u8 bit_start,
-				   const u8 bit_stop,
-				   const struct esif_data *req_data_ptr,
-				   struct esif_data *rsp_data_ptr);
+enum esif_rc esif_get_action_mmio(const void __iomem *base_addr,
+				  const u32 offset,
+				  const u8 bit_start,
+				  const u8 bit_stop,
+				  const struct esif_data *req_data_ptr,
+				  struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_mmio (const void __iomem *base_addr,
-				   const u32 offset,
-				   const u8 bit_start,
-				   const u8 bit_stop,
-				   const struct esif_data *req_data_ptr);
+enum esif_rc esif_set_action_mmio(const void __iomem *base_addr,
+				  const u32 offset,
+				  const u8 bit_start,
+				  const u8 bit_stop,
+				  const struct esif_data *req_data_ptr);
 
 /* MSR */
-enum esif_rc esif_action_msr_init (void);
-void esif_action_msr_exit (void);
+enum esif_rc esif_action_msr_init(void);
+void esif_action_msr_exit(void);
 
-enum esif_rc esif_get_action_msr (const u32 msr,
-				  const u8 bit_start,
-				  const u8 bit_stop,
-				  const u32 cpus,
-				  const u32 hint,
-				  const struct esif_data *req_data_ptr,
-				  struct esif_data *rsp_data_ptr);
+enum esif_rc esif_get_action_msr(const u32 msr,
+				 const u8 bit_start,
+				 const u8 bit_stop,
+				 const u32 cpus,
+				 const u32 hint,
+				 const struct esif_data *req_data_ptr,
+				 struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_msr (const u32 msr,
-				  const u8 bit_start,
-				  const u8 bit_stop,
-				  const u32 cpus,
-				  const u32 hint,
-				  const struct esif_data *req_data_ptr);
+enum esif_rc esif_set_action_msr(const u32 msr,
+				 const u8 bit_start,
+				 const u8 bit_stop,
+				 const u32 cpus,
+				 const u32 hint,
+				 const struct esif_data *req_data_ptr);
 
 /* VAR */
-enum esif_rc esif_action_var_init (void);
-void esif_action_var_exit (void);
+enum esif_rc esif_action_var_init(void);
+void esif_action_var_exit(void);
 
-enum esif_rc esif_get_action_var (const struct esif_data *var,
-				  const struct esif_data *req_data_ptr,
-				  struct esif_data *rsp_data_ptr);
+enum esif_rc esif_get_action_var(const struct esif_data *var,
+				 const struct esif_data *req_data_ptr,
+				 struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_var (struct esif_data *var,
-				  const struct esif_data *req_data_ptr);
+enum esif_rc esif_set_action_var(struct esif_data *var,
+				 const struct esif_data *req_data_ptr);
 
 /* SYSTEM IO */
-enum esif_rc esif_action_systemio_init (void);
-void esif_action_systemio_exit (void);
-enum esif_rc esif_get_action_systemio (const struct esif_data *req_data_ptr,
-				       struct esif_data *rsp_data_ptr);
+enum esif_rc esif_action_systemio_init(void);
+void esif_action_systemio_exit(void);
+enum esif_rc esif_get_action_systemio(const struct esif_data *req_data_ptr,
+				      struct esif_data *rsp_data_ptr);
 
-enum esif_rc esif_set_action_systemio (const struct esif_data *req_data_ptr,
-				       struct esif_data *rsp_data_ptr);
+enum esif_rc esif_set_action_systemio(const struct esif_data *req_data_ptr,
+				      struct esif_data *rsp_data_ptr);
 
 #endif /* ESIF_ACTION_KERNEL */
 #endif /* _ESIF_ACTION_H_ */

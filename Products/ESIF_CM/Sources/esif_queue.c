@@ -73,13 +73,13 @@
 #define SEM_DEBUG     3
 
 #define ESIF_TRACE_DYN_INIT(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, INIT_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, INIT_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_Q(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, Q_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, Q_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_PULL(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, PULL_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, PULL_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_SEM(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, SEM_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_QUEUE, SEM_DEBUG, format, ##__VA_ARGS__)
 
 #else /* ESIF_ATTR_KERNEL */
 
@@ -102,16 +102,15 @@ struct esif_queue_node {
 };
 
 /* Queue Create */
-struct esif_queue_instance *esif_queue_create (
+struct esif_queue_instance *esif_queue_create(
 	u32 depth,
 	char *name_ptr
 	)
 {
-	struct esif_queue_instance *queue_ptr =
-		(struct esif_queue_instance*)esif_ccb_malloc(sizeof(*queue_ptr));
-	if (NULL == queue_ptr) {
+	struct esif_queue_instance *queue_ptr = (struct esif_queue_instance *)
+					esif_ccb_malloc(sizeof(*queue_ptr));
+	if (NULL == queue_ptr)
 		return NULL;
-	}
 
 	esif_ccb_lock_init(&queue_ptr->lock);
 	esif_ccb_sem_init(&queue_ptr->semaphore);
@@ -129,7 +128,7 @@ struct esif_queue_instance *esif_queue_create (
 
 
 /* Queue Destroy */
-void esif_queue_destroy (struct esif_queue_instance *queue_ptr)
+void esif_queue_destroy(struct esif_queue_instance *queue_ptr)
 {
 	struct esif_queue_node *current_ptr = queue_ptr->head_ptr;
 
@@ -143,10 +142,7 @@ void esif_queue_destroy (struct esif_queue_instance *queue_ptr)
 				 ESIF_FUNC, queue_ptr->name_ptr, current_ptr);
 
 		esif_ipc_free(current_ptr->ipc_ptr);
-		esif_ccb_read_lock(&g_mempool_lock);
-		esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE],
-				      current_ptr);
-		esif_ccb_read_unlock(&g_mempool_lock);
+		esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_QUEUE, current_ptr);
 	}
 
 	if (current_ptr != NULL) {
@@ -155,15 +151,12 @@ void esif_queue_destroy (struct esif_queue_instance *queue_ptr)
 
 		esif_ipc_free(current_ptr->ipc_ptr);
 
-		esif_ccb_read_lock(&g_mempool_lock);
-		esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE],
-				      current_ptr);
-		esif_ccb_read_unlock(&g_mempool_lock);
+		esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_QUEUE, current_ptr);
 	}
 	esif_ccb_write_unlock(&queue_ptr->lock);
 	esif_ccb_lock_uninit(&queue->lock);
 	esif_ccb_sem_uninit(&queue->semaphore);
-	ESIF_TRACE_DYN_Q("%s: %s Destroy Queue %p \n",
+	ESIF_TRACE_DYN_Q("%s: %s Destroy Queue %p\n",
 			 ESIF_FUNC,
 			 queue_ptr->name_ptr,
 			 queue_ptr);
@@ -172,7 +165,7 @@ void esif_queue_destroy (struct esif_queue_instance *queue_ptr)
 
 
 /* Queue Config */
-enum esif_rc esif_queue_config (
+enum esif_rc esif_queue_config(
 	struct esif_queue_instance *queue_ptr,
 	u32 us_timeout,
 	u32 max_size
@@ -187,7 +180,7 @@ enum esif_rc esif_queue_config (
 
 
 /* Queue Push (Puts in back of linked list)*/
-enum esif_rc esif_queue_push (
+enum esif_rc esif_queue_push(
 	struct esif_queue_instance *queue_ptr,
 	struct esif_ipc *ipc_ptr
 	)
@@ -201,13 +194,9 @@ enum esif_rc esif_queue_push (
 		return ESIF_E_NO_MEMORY;
 	}
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	node_ptr = esif_ccb_mempool_zalloc(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE]);
-	esif_ccb_read_unlock(&g_mempool_lock);
-
-	if (NULL == node_ptr) {
+	node_ptr = esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_QUEUE);
+	if (NULL == node_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
 
 	node_ptr->ipc_ptr = ipc_ptr;
 
@@ -233,7 +222,7 @@ enum esif_rc esif_queue_push (
 
 
 /* Queue Push (Put at front of linked list, used for returning item to queue) */
-enum esif_rc esif_queue_requeue (
+enum esif_rc esif_queue_requeue(
 	struct esif_queue_instance *queue_ptr,
 	struct esif_ipc *ipc_ptr
 	)
@@ -247,13 +236,9 @@ enum esif_rc esif_queue_requeue (
 		return ESIF_E_NO_MEMORY;
 	}
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	node_ptr = esif_ccb_mempool_zalloc(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE]);
-	esif_ccb_read_unlock(&g_mempool_lock);
-
-	if (NULL == node_ptr) {
+	node_ptr = esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_QUEUE);
+	if (NULL == node_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
 
 	node_ptr->ipc_ptr = ipc_ptr;
 
@@ -279,7 +264,7 @@ enum esif_rc esif_queue_requeue (
 
 
 /* Queue Pull */
-struct esif_ipc *esif_queue_pull (struct esif_queue_instance *queue_ptr)
+struct esif_ipc *esif_queue_pull(struct esif_queue_instance *queue_ptr)
 {
 	struct esif_queue_node *node_ptr = NULL;
 	struct esif_ipc *ipc_ptr         = NULL;
@@ -291,33 +276,30 @@ struct esif_ipc *esif_queue_pull (struct esif_queue_instance *queue_ptr)
 	/*  Wait Forever */
 	if (0 == queue_ptr->us_timeout) {
 		esif_ccb_sem_down(&queue_ptr->semaphore);
-	}
+
 	/* Wait For N Usecs and If No Queue Entry Availabe Return False */
-	else if (esif_ccb_sem_try_down(&queue_ptr->semaphore,
-				       queue_ptr->us_timeout) != 0) {
+	} else if (esif_ccb_sem_try_down(&queue_ptr->semaphore,
+					 queue_ptr->us_timeout) != 0) {
 		return NULL;
 	}
 
 	esif_ccb_write_lock(&queue_ptr->lock);
 	if (NULL == queue_ptr->head_ptr) {
 		esif_ccb_write_unlock(&queue_ptr->lock);
-		return NULL;	/* Could happen if a flush occurs after semaphore. */
+		return NULL; /* Could happen if a flush occurs after semaphore*/
 	}
 	node_ptr = queue_ptr->head_ptr;
 	ipc_ptr  = node_ptr->ipc_ptr;
 
 	queue_ptr->head_ptr = node_ptr->next_ptr;
 
-	if (NULL == queue_ptr->head_ptr) {
+	if (NULL == queue_ptr->head_ptr)
 		queue_ptr->tail_ptr = NULL;
-	}
 
 	esif_ccb_write_unlock(&queue_ptr->lock);
 	queue_ptr->current_size--;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE], node_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_QUEUE, node_ptr);
 
 	ESIF_TRACE_DYN_Q("%s: %s Queue Pull q %p ipc %p\n",
 			 ESIF_FUNC, queue_ptr->name_ptr, queue_ptr, ipc_ptr);
@@ -327,7 +309,7 @@ struct esif_ipc *esif_queue_pull (struct esif_queue_instance *queue_ptr)
 
 
 /* Queue Size */
-u32 esif_queue_size (struct esif_queue_instance *queue_ptr)
+u32 esif_queue_size(struct esif_queue_instance *queue_ptr)
 {
 	ESIF_TRACE_DYN_PULL("%s: %s Queue Size %d\n",
 			    ESIF_FUNC,
@@ -338,7 +320,7 @@ u32 esif_queue_size (struct esif_queue_instance *queue_ptr)
 
 
 /* Queue Flush */
-void esif_queue_flush (struct esif_queue_instance *queue_ptr)
+void esif_queue_flush(struct esif_queue_instance *queue_ptr)
 {
 	struct esif_queue_node *node_ptr = NULL;
 
@@ -348,10 +330,7 @@ void esif_queue_flush (struct esif_queue_instance *queue_ptr)
 		queue_ptr->head_ptr = node_ptr->next_ptr;
 		esif_ipc_free(node_ptr->ipc_ptr);
 
-		esif_ccb_read_lock(&g_mempool_lock);
-		esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE],
-				      node_ptr);
-		esif_ccb_read_unlock(&g_mempool_lock);
+		esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_QUEUE, node_ptr);
 
 		node_ptr = queue_ptr->head_ptr;
 	}
@@ -363,34 +342,25 @@ void esif_queue_flush (struct esif_queue_instance *queue_ptr)
 
 
 /* Init */
-enum esif_rc esif_queue_init (void)
+enum esif_rc esif_queue_init(void)
 {
 	struct esif_ccb_mempool *mempool_ptr = NULL;
 	ESIF_TRACE_DYN_INIT("%s: Initialize Queue Manager\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_mempool_lock);
 	mempool_ptr =
-		esif_ccb_mempool_create(ESIF_MEMPOOL_FW_QUEUE,
+		esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_QUEUE,
+					ESIF_MEMPOOL_FW_QUEUE,
 					sizeof(struct esif_queue_node));
-	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
+	if (NULL == mempool_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
-	g_mempool[ESIF_MEMPOOL_TYPE_QUEUE] = mempool_ptr;
-	esif_ccb_write_unlock(&g_mempool_lock);
 
 	return ESIF_OK;
 }
 
 
 /* Exit */
-void esif_queue_exit (void)
+void esif_queue_exit(void)
 {
-	esif_ccb_write_lock(&g_mempool_lock);
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_QUEUE]);
-	g_mempool[ESIF_MEMPOOL_TYPE_QUEUE] = NULL;
-	esif_ccb_write_unlock(&g_mempool_lock);
-
 	ESIF_TRACE_DYN_INIT("%s: Exit Queue Manager\n", ESIF_FUNC);
 }
 

@@ -64,11 +64,9 @@ typedef u64 esif_ccb_time_t;
 /* Kernel */
 #ifdef ESIF_ATTR_KERNEL
 #ifdef ESIF_ATTR_OS_LINUX
-static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
+static void ESIF_INLINE esif_ccb_system_time(esif_ccb_time_t *time)
 {
-	struct timeval now = {
-		0
-	};
+	struct timeval now = {0};
 
 	do_gettimeofday(&now);
 	*time  = (now.tv_sec * 1000);	/* Convert sec to msec */
@@ -78,7 +76,7 @@ static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
 
 #endif /* ESIF_ATTR_OS_LINUX */
 #ifdef ESIF_ATTR_OS_WINDOWS
-static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
+static void ESIF_INLINE esif_ccb_system_time(esif_ccb_time_t *time)
 {
 	LARGE_INTEGER tickPerSecond = {0};
 	LARGE_INTEGER tick = {0};
@@ -108,7 +106,7 @@ extern "C" {
 #ifdef ESIF_ATTR_OS_LINUX
 #include <sys/time.h>
 
-static void ESIF_INLINE esif_ccb_ctime (
+static void ESIF_INLINE esif_ccb_ctime(
 	EsifString time_str,
 	size_t len,
 	const time_t *time
@@ -118,11 +116,9 @@ static void ESIF_INLINE esif_ccb_ctime (
 }
 
 
-static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
+static void ESIF_INLINE esif_ccb_system_time(esif_ccb_time_t *time)
 {
-	struct timeval now = {
-		0
-	};
+	struct timeval now = {0};
 
 	gettimeofday(&now, NULL);
 	*time  = (now.tv_sec * 1000);	/* Convert sec to msec */
@@ -130,7 +126,7 @@ static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
 }
 
 
-static void ESIF_INLINE esif_ccb_get_time (struct timeval *tv)
+static void ESIF_INLINE esif_ccb_get_time(struct timeval *tv)
 {
 	gettimeofday(tv, NULL);
 }
@@ -139,7 +135,7 @@ static void ESIF_INLINE esif_ccb_get_time (struct timeval *tv)
 #endif /* ESIF_ATTR_OS_LINUX */
 #ifdef ESIF_ATTR_OS_WINDOWS
 
-static void ESIF_INLINE esif_ccb_ctime (
+static void ESIF_INLINE esif_ccb_ctime(
 	esif_string time_str,
 	size_t len,
 	const time_t *time
@@ -149,7 +145,7 @@ static void ESIF_INLINE esif_ccb_ctime (
 }
 
 
-static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
+static void ESIF_INLINE esif_ccb_system_time(esif_ccb_time_t *time)
 {
 	LARGE_INTEGER tickPerSecond = {0};
 	LARGE_INTEGER tick = {0};
@@ -163,7 +159,7 @@ static void ESIF_INLINE esif_ccb_system_time (esif_ccb_time_t *time)
 }
 
 
-static void ESIF_INLINE esif_ccb_get_time (struct timeval *tv)
+static void ESIF_INLINE esif_ccb_get_time(struct timeval *tv)
 {
 	LARGE_INTEGER tickPerSecond = {0};
 	LARGE_INTEGER tick = {0};

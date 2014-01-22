@@ -113,7 +113,7 @@ static ESIF_INLINE u8 msr_has_same_val(
 
 	/* Compare If All Active CPUs Have A Same value */
 	for (cpu = 0; cpu < sizeof(cpu) * 8; cpu++)
-		if ((cpu_mask & (u64)(0x1UL << cpu))) {
+		if ((cpu_mask & (((u64)0x1UL) << cpu))) {
 			rc = esif_ccb_read_msr((u8)cpu, msr, &curr_val);
 			if (ESIF_OK != rc)
 				return FALSE;
@@ -271,7 +271,7 @@ enum esif_rc esif_get_action_msr(
 
 		/* Multi-Thread Affinity Read */
 		for (cpu = 0; cpu < sizeof(cpus) * 8; cpu++)
-			if ((cpu_mask & (u64)(0x1UL << cpu))) {
+			if ((cpu_mask & (((u64)0x1UL) << cpu))) {
 				/* On CPU i, Read The Current MSR Value */
 				rc = esif_ccb_read_msr((u8)cpu, msr, &val);
 
@@ -462,7 +462,7 @@ enum esif_rc esif_set_action_msr(
 
 		/* Multi-Thread Affinity Write */
 		for (i = 0, saved_val = val; i < sizeof(cpus) * 8; i++)
-			if ((cpu_mask & (u64)(0x1UL << i))) {
+			if ((cpu_mask & (((u64)0x1UL) << i))) {
 				/* On CPU i, Read Current 64-Bit MSR Value */
 				rc = esif_ccb_read_msr((u8)i, msr, &orig_val);
 				if (ESIF_OK == rc) {

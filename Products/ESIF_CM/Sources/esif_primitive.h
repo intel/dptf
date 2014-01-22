@@ -100,15 +100,15 @@ struct esif_lp_primitive {
 
 #pragma pack(pop)
 
-struct esif_ipc *esif_execute_ipc_primitive (struct esif_ipc *ipc_ptr);
+struct esif_ipc *esif_execute_ipc_primitive(struct esif_ipc *ipc_ptr);
 
 struct esif_lp;
 struct esif_ipc_primitive;
-enum esif_rc esif_execute_primitive (struct esif_lp *lp_ptr,
-				     const struct esif_primitive_tuple *tuple_ptr,
-				     const struct esif_data *req_data_ptr,
-				     struct esif_data *rsp_data_ptr,
-				     const u16 *action_index_ptr);
+enum esif_rc esif_execute_primitive(struct esif_lp *lp_ptr,
+				    const struct esif_primitive_tuple *tuple_ptr,
+				    const struct esif_data *req_data_ptr,
+				    struct esif_data *rsp_data_ptr,
+				    const u16 *action_index_ptr);
 
 #endif /* _ESIF_LF_PRIMITIVE_H_ */
 

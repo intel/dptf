@@ -65,7 +65,6 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_event.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_ipc.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_pm.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_primitive.o
-OBJ += $(ESIF_UF_SOURCES)/esif_uf_rest.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_service.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_shell.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_test.o

@@ -46,71 +46,27 @@ E,"DCAP",0x80,9,3,24,0xF1CDA338-0F3C-4F8D-A1D9-8033E672F672
 E,"DSTS",0x81,10,3,24,0xBDB4F356-CF69-4152-99A9-1DCE4972AB9D
 #
 D,"DFL","Default Domain","D0","E3B59D8D-54B2-4E05-81D4-2CBBF87295EC",0,10
-C,0xC08 ,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x0,0x0,0x0
+C,0xC08 ,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x1,0x0,0x0,0x0,0x0
 #
 # GET_CLOCK_COUNT
 P,185,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,64,32
-A,1,1,True,1,,,,
 # GET_CLOCK_ORIGINAL_FREQUENCY
-P,187,0,1,24,"<schema></schema>",4,"<schema></schema>"
+P,187,0,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,128,32
 A,1,1,True,1000000,,,,
 # GET_CLOCK_ORIGINAL_FREQUENCY
-P,187,1,1,24,"<schema></schema>",4,"<schema></schema>"
+P,187,1,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,224,32
 # GET_CLOCK_ORIGINAL_FREQUENCY
-P,187,2,1,24,"<schema></schema>",4,"<schema></schema>"
+P,187,2,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,320,32
 # GET_CLOCK_ORIGINAL_FREQUENCY
-P,187,3,1,24,"<schema></schema>",4,"<schema></schema>"
+P,187,3,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,416,32
 # GET_CLOCK_ORIGINAL_FREQUENCY
-P,187,4,1,24,"<schema></schema>",4,"<schema></schema>"
+P,187,4,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,512,32
-# GET_CLOCK_SPREAD_DIRECTION
-P,191,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,36,2
-A,1,1,True,3,,,,
-# GET_CLOCK_SPREAD_PERCENTAGE
-P,190,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,40,4
-A,1,1,True,20,,,,
-# GET_CLOCK_SPREAD_SUBHARMONICS
-P,192,0,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,1,True,1,,,,
-# GET_CLOCK_SSC_DISABLED_FREQUENCY
-P,189,0,1,24,"<schema></schema>",4,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,192,32
-A,1,1,True,1200000,,,,
-# GET_CLOCK_SSC_DISABLED_FREQUENCY
-P,189,1,1,24,"<schema></schema>",4,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,288,32
-# GET_CLOCK_SSC_DISABLED_FREQUENCY
-P,189,2,1,24,"<schema></schema>",4,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,384,32
-# GET_CLOCK_SSC_DISABLED_FREQUENCY
-P,189,3,1,24,"<schema></schema>",4,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,480,32
-# GET_CLOCK_SSC_DISABLED_FREQUENCY
-P,189,4,1,24,"<schema></schema>",4,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,576,32
-# GET_CLOCK_SSC_ENABLED_FREQUENCY
-P,188,0,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,160,32
-A,1,1,True,1100000,,,,
-# GET_CLOCK_SSC_ENABLED_FREQUENCY
-P,188,1,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,256,32
-# GET_CLOCK_SSC_ENABLED_FREQUENCY
-P,188,2,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,352,32
-# GET_CLOCK_SSC_ENABLED_FREQUENCY
-P,188,3,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,448,32
-# GET_CLOCK_SSC_ENABLED_FREQUENCY
-P,188,4,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,30,False,0x5f840822,0x6D6E7000,76,544,32
 # GET_DEVICE_HARDWARE_ID
 P,53,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"_HID",,,,
@@ -132,9 +88,57 @@ A,1,4,True,"_BQC",,,,
 P,159,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"DDPC",,,,
 # GET_DISPLAY_CLOCK_DEVIATION
-P,181,255,1,24,"<schema></schema>",3,"<schema></schema>"
+P,181,255,1,24,"<schema></schema>",29,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,0,32
 A,1,1,True,20,,,,
+# GET_DISPLAY_CLOCK_DOWNWARD_DEVIATION
+P,250,255,1,24,"<schema></schema>",27,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,32,1
+A,1,1,True,0,,,,
+# GET_DISPLAY_CLOCK_SPREAD_DIRECTION
+P,191,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,36,2
+A,1,1,True,3,,,,
+# GET_DISPLAY_CLOCK_SPREAD_PERCENTAGE
+P,190,255,1,24,"<schema></schema>",29,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,40,4
+A,1,1,True,20,,,,
+# GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+P,189,0,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,192,32
+A,1,1,True,1200000,,,,
+# GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+P,189,1,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,288,32
+# GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+P,189,2,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,384,32
+# GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+P,189,3,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,480,32
+# GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
+P,189,4,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,576,32
+# GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+P,188,0,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,160,32
+A,1,1,True,1100000,,,,
+# GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+P,188,1,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,256,32
+# GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+P,188,2,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,352,32
+# GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+P,188,3,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,448,32
+# GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
+P,188,4,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,544,32
+# GET_DISPLAY_CLOCK_UPWARD_DEVIATION
+P,249,255,1,24,"<schema></schema>",27,"<schema></schema>"
+A,0,30,False,0x5f840822,0x6D6E7000,76,33,1
+A,1,1,True,0,,,,
 # GET_DISPLAY_DEPTH_LIMIT
 P,160,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,32,False,0x48545044,,,,
@@ -151,39 +155,39 @@ A,1,1,True,0,,,,
 P,184,255,1,24,"<schema></schema>",27,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,34,1
 A,1,1,True,1,,,,
-# SET_CLOCK_SSC_DISABLED
-P,194,0,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,128,32
-# SET_CLOCK_SSC_DISABLED
-P,194,1,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,224,32
-# SET_CLOCK_SSC_DISABLED
-P,194,2,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,320,32
-# SET_CLOCK_SSC_DISABLED
-P,194,3,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,416,32
-# SET_CLOCK_SSC_DISABLED
-P,194,4,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,512,32
-# SET_CLOCK_SSC_ENABLED
-P,193,0,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,96,32
-# SET_CLOCK_SSC_ENABLED
-P,193,1,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,192,32
-# SET_CLOCK_SSC_ENABLED
-P,193,2,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,288,32
-# SET_CLOCK_SSC_ENABLED
-P,193,3,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,376,32
-# SET_CLOCK_SSC_ENABLED
-P,193,4,2,27,"<schema></schema>",24,"<schema></schema>"
-A,0,30,False,0x5f850822,0x6D6E7000,68,480,32
 # SET_DISPLAY_BRIGHTNESS_HARD
 P,226,255,2,29,"<schema></schema>",24,"<schema></schema>"
 A,0,35,True,0x54495242,,,,
 # SET_DISPLAY_BRIGHTNESS_SOFT
 P,163,255,2,29,"<schema></schema>",24,"<schema></schema>"
 A,0,32,False,0x54495242,,,,
+# SET_DISPLAY_CLOCK_SSC_DISABLED
+P,194,0,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,128,32
+# SET_DISPLAY_CLOCK_SSC_DISABLED
+P,194,1,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,224,32
+# SET_DISPLAY_CLOCK_SSC_DISABLED
+P,194,2,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,320,32
+# SET_DISPLAY_CLOCK_SSC_DISABLED
+P,194,3,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,416,32
+# SET_DISPLAY_CLOCK_SSC_DISABLED
+P,194,4,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,512,32
+# SET_DISPLAY_CLOCK_SSC_ENABLED
+P,193,0,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,96,32
+# SET_DISPLAY_CLOCK_SSC_ENABLED
+P,193,1,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,192,32
+# SET_DISPLAY_CLOCK_SSC_ENABLED
+P,193,2,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,288,32
+# SET_DISPLAY_CLOCK_SSC_ENABLED
+P,193,3,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,376,32
+# SET_DISPLAY_CLOCK_SSC_ENABLED
+P,193,4,2,40,"<schema></schema>",24,"<schema></schema>"
+A,0,30,False,0x5f850822,0x6D6E7000,68,480,32

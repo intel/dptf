@@ -85,6 +85,35 @@
 	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_ELF, EVENT_DEBUG, format, ##__VA_ARGS__)
 
 
+/* List of Init/Exit Functions to be called during esif_lf_init/exit */
+typedef enum esif_rc (*esif_init_callback)(void);
+typedef void (*esif_exit_callback)(void);
+struct esif_init_module {
+	esif_init_callback	init_func;
+	esif_exit_callback	exit_func;
+	u32			started;
+};
+static struct esif_init_module esif_initializers[] = {
+	{esif_lf_pm_init,		esif_lf_pm_exit}, /* Always First */
+	{esif_action_acpi_init,		esif_action_acpi_exit},
+	{esif_action_code_init,		esif_action_code_exit},
+	{esif_action_const_init,	esif_action_const_exit},
+	{esif_action_mmio_init,		esif_action_mmio_exit},
+	{esif_action_msr_init,		esif_action_msr_exit},
+	{esif_action_systemio_init,	esif_action_systemio_exit},
+	{esif_action_var_init,		esif_action_var_exit},
+	{esif_action_mbi_init,		esif_action_mbi_exit},
+	{esif_data_init,		esif_data_exit},
+	{esif_queue_init,		esif_queue_exit},
+	{esif_event_init,		esif_event_exit},
+	{esif_link_list_init,		esif_link_list_exit},
+	{esif_hash_table_init,		esif_hash_table_exit},
+	{esif_dsp_init,			esif_dsp_exit},
+	{esif_command_init,		esif_command_exit} /* Always Last */
+};
+static enum esif_rc esif_start_initializers(void);
+static void esif_stop_initializers(void);
+
 /*
  *******************************************************************************
  ** PRIVATE
@@ -109,6 +138,103 @@
 */
 #define DTS_TO_CELCIUS(temp) ((GFX_DEGREE_TEMPERATURE_MIN) + \
 			      ((GFX_DTS_TEMPERATURE_MAX)-(temp)))
+
+
+/* LPAT Xform Algorithme */
+static u32 esif_xform_lpat(int ec, struct esif_lp_dsp *dsp_ptr)
+{
+	u8 *var_ptr = (u8 *) dsp_ptr->table;
+	long long temp[2]={0, 0}; 
+	long long raw[2]={0, 0}; 
+	long long fp = 0; 
+	long long temp_temp = 0; 
+	long long actual_temp = 0;
+	int i = 0; 
+	int num_lpat = 0;
+
+/* 
+ * VS 2012 doesn't support "typeof(((type *)0)->memb *)" generic type,
+ * so we can only use (long long *) instead.
+ */
+#define ESIF_VAR union esif_data_variant
+#define var_offset(type, memb) ((size_t)&((type *)0)->memb)
+#define var_sizeof(type, memb) (sizeof((type *)0)->memb)
+#define val_var_offset(ptr, type, memb) *(long long *) \
+		(ptr + var_offset(type, memb))
+#define next_val_var_offset(ptr, type, all_memb, memb) *(long long *) \
+		(ptr + var_offset(type, memb) + var_sizeof(type, all_memb)) 
+	/* 
+	 * data_variant.integer layout = {type, value} = {
+	 *                                   ...
+	 *                               {INT64,   25},
+	 *                               {UINT64, 669},
+	 *                                   ... }  
+	 *
+	 * Thermistor algorithm (EC raw reading example ec = 596)
+	 *    Lookup LPAT ACPI object = {temp, rawVal} = {
+	 * 			   ...
+	 *                  {25, 669},
+	 *                  {30, 615}, <-- temp[0], raw[0]
+	 *                  {35, 561}, <-- temp[1], raw[1] 
+	 *                  {40, 508},
+	 *                         ... }
+	 * Algorithm 
+	 *    FP = (temp[1] - temp[0]) / (raw[0] - raw[1]) 
+	 *       = ( 35       -  30      ) / ( 615     - 561       )
+	 *       = 0.09259
+	 * 
+	 *    actual_temp = temp[0] + (raw[0] - ec) * FP;
+	 *                =   30        + ( 615     - 596   ) * 0.09259 
+	 *                =   30        + 1.759
+	 *                =   31.759
+	 *
+	 * Due to kernel lacks of floating point, we will make it into 
+	 * Milli-Celsisus in return as
+	 *
+	 *   FP = (temp[1] - temp[0]) * 1K * 1K / (raw[0] - raw[1])
+	 *      = ( 35     -  30    ) * 1K * 1K / ( 615   - 561   )
+	 *      = 92,590
+	 *
+	 *   actual_Temp = temp[0] * 1K + ((raw[0] - ec) * FP)     / 1K
+	 *               =   30,000     + (( 19        ) * 92,590) / 1K
+	 *               =   30,000     +    1,759
+	 *               =   31,759
+	 */ 
+	if (0 == dsp_ptr->table_size)
+		goto exit;
+
+	num_lpat = dsp_ptr->table_size / sizeof(union esif_data_variant);
+
+	for (i=0; i < ((num_lpat/2) - 1); i++) {
+		temp[0] = val_var_offset(var_ptr, ESIF_VAR, integer.value);
+		raw[0] =  next_val_var_offset(var_ptr, ESIF_VAR, integer, integer.value); 
+
+		var_ptr += 2 * var_sizeof(ESIF_VAR, integer);
+		temp[1] = val_var_offset(var_ptr, ESIF_VAR, integer.value);
+		raw[1] = next_val_var_offset(var_ptr, ESIF_VAR, integer, integer.value);
+  
+		if (i == 0 && ec > raw[0])
+			goto exit;
+		if (ec <= raw[0] && ec >= raw[1]) 
+			break;
+	}
+	if (ec <= raw[1])
+		goto exit;
+
+	fp = (temp[1] - temp[0]) * 1000000; 
+	do_div(fp, (raw[0] - raw[1])); 
+
+	temp_temp = (raw[0] - ec) * fp;
+	do_div(temp_temp, 1000);	
+	actual_temp = (temp[0] * 1000) + temp_temp;
+
+exit:
+	ESIF_TRACE_DYN_TEMP("%s: ec %d dsp.table_size %u num_plat %d LPAT[%d].raw %d actual_temp %llu\n",
+		ESIF_FUNC, ec, dsp_ptr->table_size, num_lpat, 
+		i, (int) raw[0], actual_temp);
+	return (u32) actual_temp;
+}
+
 
 /*   DTS Counter   |	 Temperature
  *  Value   |   Degree Celcius
@@ -150,6 +276,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 	temp_out = *temp_ptr;
 
 	switch (algo_ptr->temp_xform) {
+	
 	case ESIF_ALGORITHM_TYPE_TEMP_DECIK:
 
 		/* Convert Temp before/after ACPI action
@@ -334,6 +461,13 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 		}
 		break;
 
+	case ESIF_ALGORITHM_TYPE_TEMP_LPAT: 
+	        temp_out = esif_xform_lpat(temp_in, lp_ptr->dsp_ptr);
+		temp_in_type = ESIF_TEMP_MILLIC;
+		temp_out_type = type;
+		esif_convert_temp(temp_in_type, temp_out_type, &temp_out);
+		break;
+	
 	default:
 		ESIF_TRACE_DYN_POWER(
 			"%s: Unknown algorithm (%s) to xform temp\n",
@@ -535,7 +669,7 @@ enum esif_rc esif_lf_event(
 
 	/* Create An Event */
 	switch (type) {
-	/* Special Event Creaete Send Entire PI Information */
+	/* Special Event Create Send Entire PI Information */
 	case ESIF_EVENT_PARTICIPANT_CREATE:
 	{
 		event_ptr = esif_event_allocate(ESIF_EVENT_PARTICIPANT_CREATE,
@@ -891,19 +1025,78 @@ enum esif_rc esif_lf_unregister_participant(
 	if (ESIF_OK != rc)
 		goto exit;
 
-	esif_lf_pm_lp_destroy(lp_ptr);
+	esif_lf_pm_lp_remove(lp_ptr);
 exit:
 	return rc;
 }
 
+/* Optional Low-Level ESIF LF OS Init. 
+ * Call before any esif_ccb_malloc, esif_lf_init, or threads created
+ */
+static unsigned int os_init_count = 0;
+void esif_lf_os_init()
+{
+	if (!os_init_count) {
+		esif_ccb_lock_init(&g_memstat_lock);
+		os_init_count = 1;
+	} else {
+		os_init_count++;
+	}
+}
+
+/* Optional Low-Level ESIF LF OS Exit. 
+ * Call after all esif_ccb_free, esif_lf_init, and threads exit
+ */
+void esif_lf_os_exit()
+{
+	if (os_init_count) {
+		os_init_count--;
+	} else {
+		esif_ccb_lock_uninit(&g_memstat_lock);
+		os_init_count = 0;
+	}
+}
+
+/* Start all Initializers, Stopping and aborting all on first Error */
+static enum esif_rc esif_start_initializers()
+{
+	enum esif_rc rc = ESIF_OK;
+	int initializer_count = sizeof(esif_initializers) / sizeof(struct esif_init_module);
+	int j;
+
+	for (j = 0; j < initializer_count; j++) {
+		rc = (*esif_initializers[j].init_func)();
+		if (rc != ESIF_OK) {
+			esif_stop_initializers();
+			break;
+		}
+		esif_initializers[j].started = 1;
+	}
+	return rc;
+}
+
+/* Stop all Initializers that have been Started */
+static void esif_stop_initializers()
+{
+	int initializer_count = sizeof(esif_initializers) / sizeof(struct esif_init_module);
+	int j;
+
+	/* Stop in reverse order */
+	for (j = initializer_count-1; j >= 0; j--) {
+		if (esif_initializers[j].started) {
+			(*esif_initializers[j].exit_func)();
+			esif_initializers[j].started = 0;
+		}
+	}
+}
 
 /* ESIF LF Init */
 enum esif_rc esif_lf_init(u32 debug_mask)
 {
 	enum esif_rc rc = ESIF_OK;
-	esif_ccb_lock_init(&g_mempool_lock);
-	esif_ccb_lock_init(&g_memtype_lock);
-	esif_ccb_lock_init(&g_memstat_lock);
+	esif_lf_os_init();
+	esif_ccb_mempool_init_tracking();
+	esif_ccb_memtype_init_tracking();
 
 	/* Static  Debug Table */
 	esif_debug_init_module_categories();
@@ -923,209 +1116,8 @@ enum esif_rc esif_lf_init(u32 debug_mask)
 	ESIF_TRACE_DYN_INIT("%s: Initialize Eco-System Independent Framework\n",
 			    ESIF_FUNC);
 
-	/* Participant Manager First */
-	rc = esif_lf_pm_init();
-	if (ESIF_OK != rc)
-		goto exit;
-
-	/* Then Actions */
-	rc = esif_action_acpi_init();
-	if (ESIF_OK != rc) {
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_code_init();
-	if (ESIF_OK != rc) {
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_const_init();
-	if (ESIF_OK != rc) {
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_mmio_init();
-	if (ESIF_OK != rc) {
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_msr_init();
-	if (ESIF_OK != rc) {
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_systemio_init();
-	if (ESIF_OK != rc) {
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_var_init();
-	if (ESIF_OK != rc) {
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_action_mbi_init();
-	if (ESIF_OK != rc) {
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	/* Then Everyting Else */
-	rc = esif_data_init();
-	if (ESIF_OK != rc) {
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_queue_init();
-	if (ESIF_OK != rc) {
-		esif_data_exit();
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_event_init();
-	if (ESIF_OK != rc) {
-		esif_queue_exit();
-		esif_data_exit();
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_link_list_init();
-	if (ESIF_OK != rc) {
-		esif_event_exit();
-		esif_queue_exit();
-		esif_data_exit();
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_hash_table_init();
-	if (ESIF_OK != rc) {
-		esif_link_list_exit();
-		esif_event_exit();
-		esif_queue_exit();
-		esif_data_exit();
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	rc = esif_dsp_init();
-	if (ESIF_OK != rc) {
-		esif_hash_table_exit();
-		esif_link_list_exit();
-		esif_event_exit();
-		esif_queue_exit();
-		esif_data_exit();
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-
-	/* Open The Flood Gates */
-	rc = esif_command_init();
-	if (ESIF_OK != rc) {
-		esif_dsp_exit();
-		esif_hash_table_exit();
-		esif_link_list_exit();
-		esif_event_exit();
-		esif_queue_exit();
-		esif_data_exit();
-		esif_action_mbi_exit();
-		esif_action_var_exit();
-		esif_action_systemio_exit();
-		esif_action_msr_exit();
-		esif_action_mmio_exit();
-		esif_action_const_exit();
-		esif_action_code_exit();
-		esif_action_acpi_exit();
-		esif_lf_pm_exit();
-		goto exit;
-	}
-exit:
+	/* Call all Init functions listed in esif_initializers. Abort on 1st Error */
+	rc = esif_start_initializers();
 	return rc;
 }
 
@@ -1135,32 +1127,12 @@ void esif_lf_exit(void)
 {
 	esif_lf_unregister_all_participants();
 
-	/* Close The Flooed Gates */
-	esif_command_exit();
+	/* Call all Exit functions listed in esif_initializers */
+	esif_stop_initializers();
 
-	/* Reverse Order */
-	esif_dsp_exit();
-	esif_link_list_exit();
-	esif_hash_table_exit();
-	esif_event_exit();
-	esif_queue_exit();
-	esif_data_exit();
-
-	/* Actions */
-	esif_action_mbi_exit();
-	esif_action_var_exit();
-	esif_action_systemio_exit();
-	esif_action_msr_exit();
-	esif_action_mmio_exit();
-	esif_action_const_exit();
-	esif_action_code_exit();
-	esif_action_acpi_exit();
-
-	/* Participant Manager Last */
-	esif_lf_pm_exit();
-	esif_ccb_lock_uninit(&g_mempool_lock);
-	esif_ccb_lock_uninit(&g_memtype_lock);
-	esif_ccb_lock_uninit(&g_memstats_lock);
+	esif_ccb_mempool_uninit_tracking();
+	esif_ccb_memtype_uninit_tracking();
+	esif_lf_os_exit();
 
 	ESIF_TRACE_DYN_INIT("%s: Exit Eco-System Independent Framework\n",
 			    ESIF_FUNC);
@@ -1195,7 +1167,6 @@ void esif_lf_exit(void)
 			"!!!!!!!! POTENTIAL MEMORY LEAK DETECTED !!!!!!!!\n\n");
 	}
 }
-
 
 /******************************************************************************/
 /******************************************************************************/

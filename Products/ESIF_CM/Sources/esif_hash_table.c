@@ -76,17 +76,17 @@
 #define HASH_DEBUG         5
 
 #define ESIF_TRACE_DYN_INIT(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, INIT_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, INIT_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_CREATE(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, CREATE_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, CREATE_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_DESTROY(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, DESTROY_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, DESTROY_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_PUT(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, PUT_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, PUT_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_GET(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, GET_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, GET_DEBUG, format, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_HASH(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, HASH_DEBUG, format,##__VA_ARGS__)
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, HASH_DEBUG, format, ##__VA_ARGS__)
 
 #endif /* ESIF_ATTR_KERNEL */
 
@@ -99,7 +99,6 @@
 #define ESIF_TRACE_DYN_DESTROY NO_ESIF_DEBUG
 #define ESIF_TRACE_DYN_INIT NO_ESIF_DEBUG
 
-esif_ccb_lock_t g_mempool_lock;
 
 #endif /* ESIF_ATTR_USER */
 
@@ -110,7 +109,7 @@ esif_ccb_lock_t g_mempool_lock;
 static const u32 FNV_PRIME = 16777619;
 
 /* Hash */
-static u32 esif_hash_table_hash (
+static u32 esif_hash_table_hash(
 	u8 *data_ptr,
 	u32 data_length
 	)
@@ -128,7 +127,7 @@ static u32 esif_hash_table_hash (
 
 
 /* Get Item From Hash Table */
-struct esif_link_list *esif_hash_table_get_item (
+struct esif_link_list *esif_hash_table_get_item(
 	u8 *key_ptr,
 	u32 key_length,
 	struct esif_hash_table *hash_table_ptr
@@ -153,7 +152,7 @@ struct esif_link_list *esif_hash_table_get_item (
 
 
 /* Put Item In Hash Table */
-enum esif_rc esif_hash_table_put_item (
+enum esif_rc esif_hash_table_put_item(
 	u8 *key_ptr,
 	u32 key_length,
 	void *item_ptr,
@@ -180,31 +179,24 @@ enum esif_rc esif_hash_table_put_item (
 
 
 /* Create Hash Table */
-struct esif_hash_table *esif_hash_table_create (u32 size)
+struct esif_hash_table *esif_hash_table_create(u32 size)
 {
 	u32 table_index = 0;
 
 	struct esif_hash_table *new_hash_table_ptr = NULL;
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	new_hash_table_ptr = (struct esif_hash_table*)esif_ccb_mempool_zalloc(
-			g_mempool[ESIF_MEMPOOL_TYPE_HASH]);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	new_hash_table_ptr = (struct esif_hash_table *)
+				esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_HASH);
 
-	if (NULL == new_hash_table_ptr) {
+	if (NULL == new_hash_table_ptr)
 		return NULL;
-	}
 
 	new_hash_table_ptr->size  = size;
-	new_hash_table_ptr->table =
-		(struct esif_link_list**)esif_ccb_malloc(sizeof(struct
-								esif_link_list*) *
-							 size);
+	new_hash_table_ptr->table = (struct esif_link_list **)
+			esif_ccb_malloc(sizeof(struct esif_link_list *) * size);
 	if (new_hash_table_ptr->table == NULL) {
-		esif_ccb_read_lock(&g_mempool_lock);
-		esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_HASH],
+		esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_HASH,
 				      new_hash_table_ptr);
-		esif_ccb_read_unlock(&g_mempool_lock);
 		return NULL;
 	}
 
@@ -223,7 +215,7 @@ struct esif_hash_table *esif_hash_table_create (u32 size)
 
 
 /* Destroy Hash Table */
-void esif_hash_table_destroy (struct esif_hash_table *hash_table_ptr)
+void esif_hash_table_destroy(struct esif_hash_table *hash_table_ptr)
 {
 	u32 table_index;
 	ESIF_TRACE_DYN_DESTROY("%s: destorying hash table %p\n",
@@ -238,42 +230,30 @@ void esif_hash_table_destroy (struct esif_hash_table *hash_table_ptr)
 	}
 	esif_ccb_free(hash_table_ptr->table);
 
-	esif_ccb_read_lock(&g_mempool_lock);
-	esif_ccb_mempool_free(g_mempool[ESIF_MEMPOOL_TYPE_HASH],
-			      hash_table_ptr);
-	esif_ccb_read_unlock(&g_mempool_lock);
+	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_HASH, hash_table_ptr);
 }
 
 
 /* Init */
-enum esif_rc esif_hash_table_init (void)
+enum esif_rc esif_hash_table_init(void)
 {
 	struct esif_ccb_mempool *mempool_ptr = NULL;
 	ESIF_TRACE_DYN_INIT("%s: Initialize Primitive Hash Table\n", ESIF_FUNC);
 
-	esif_ccb_write_lock(&g_mempool_lock);
 	mempool_ptr =
-		esif_ccb_mempool_create(ESIF_MEMPOOL_FW_HASH,
+		esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_HASH,
+					ESIF_MEMPOOL_FW_HASH,
 					sizeof(struct esif_hash_table));
-	if (NULL == mempool_ptr) {
-		esif_ccb_write_unlock(&g_mempool_lock);
+	if (NULL == mempool_ptr)
 		return ESIF_E_NO_MEMORY;
-	}
-	g_mempool[ESIF_MEMPOOL_TYPE_HASH] = mempool_ptr;
-	esif_ccb_write_unlock(&g_mempool_lock);
 
 	return ESIF_OK;
 }
 
 
 /* Exit */
-void esif_hash_table_exit (void)
+void esif_hash_table_exit(void)
 {
-	esif_ccb_write_lock(&g_mempool_lock);
-	esif_ccb_mempool_destroy(g_mempool[ESIF_MEMPOOL_TYPE_HASH]);
-	g_mempool[ESIF_MEMPOOL_TYPE_HASH] = NULL;
-	esif_ccb_write_unlock(&g_mempool_lock);
-
 	ESIF_TRACE_DYN_INIT("%s: Exit Primitive Hash Table\n", ESIF_FUNC);
 }
 
