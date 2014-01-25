@@ -159,7 +159,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	/*
 	** Start The Daemon
 	*/
-	esif_uf_init("./");
+	esif_uf_init("");
 	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
 
@@ -208,7 +208,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	char prompt_buf[PROMPT_LEN] = {0};
 	ESIF_DATA(data_prompt, ESIF_DATA_STRING, prompt_buf, PROMPT_LEN);
 
-	esif_uf_init("./");
+	esif_uf_init("");
 	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
 	sleep(1); 
 	cmd_app_subsystem(SUBSYSTEM_ESIF);

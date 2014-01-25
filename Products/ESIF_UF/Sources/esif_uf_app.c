@@ -625,7 +625,7 @@ eEsifError EsifAppStart (EsifAppPtr appPtr)
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, appPtr->fLibNamePtr);
 	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s", esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, appPtr->fLibNamePtr), ESIF_LIB_EXT);
 
-    ESIF_TRACE_DEBUG("%s libPath=%s\n", ESIF_FUNC, libPath);
+	ESIF_TRACE_DEBUG("%s libPath=%s\n", ESIF_FUNC, libPath);
 	lib_handle = esif_ccb_library_load(libPath);
 
 	if (0 == lib_handle) {

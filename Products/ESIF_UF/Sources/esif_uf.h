@@ -72,7 +72,7 @@ enum esif_rc write_to_srvr_cnsl_intfc (char *pFormat, ...);
 #ifdef ESIF_ATTR_64BIT
 	#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
 		defined(ESIF_ATTR_OS_CHROME)
-			#define ESIF_DIR_PRG "/usr/lib"
+			#define ESIF_DIR_PRG NULL
 			#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
 	#else
 		#define ESIF_DIR_PRG "ufx64"
