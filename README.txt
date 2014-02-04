@@ -42,7 +42,7 @@ to install:
 Step 4 - Go to the Linux subdirectory of DPTF
 	 (<DPTF archive root>/Products/DPTF/Linux/build) and run the command:
 
-	cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit -DCMAKE_BUILD_TYPE=Debug ..
+	CXXFLAGS='-g -O0' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..
 
 This command will invoke cmake and generate all the GNU make files for each 
 sub-modules of DPTF user space libraries.
@@ -52,7 +52,7 @@ Step 5 - Run make to build all DPTF shared libraries.
 	make
 
 The generated shared libraries will be located under 
-<DPTF root>/Products/DPTF/Linux/build/x64/debug directory. Users can disregard
+<DPTF root>/Products/DPTF/Linux/build/x64 directory. Users can disregard
 the static .a libraries as these static libraries are only used to build the
 shared library. Here is the break down of the generated shared libraries that
 are needed to run DPTF for this Alpha release on Chromium.
@@ -65,11 +65,11 @@ are needed to run DPTF for this Alpha release on Chromium.
 BUILDING ESIF UPPER FRAMEWORK (SHELL APPLICATION)
 -------------------------------------------------------------------------------
 Still in chroot, we can now build the ESIF shell application. Simply go to the 
-<DPTF archive root>/Products/ESIF_UF/Chrome64/<Debug | Release> directory, and 
+<DPTF archive root>/Products/ESIF_UF/Chrome64 directory, and 
 run the following commands: 
 
 	make clean
-	make
+	CFLAGS='-g -O0 -DESIF_ATTR_DEBUG' make
 
 After the build is complete, the esif_uf binary executable will be generated in
 the current directory.
