@@ -33,8 +33,8 @@
 #endif
 #endif
 
-static ESIF_INLINE int esif_ccb_fopen (
-	FILE * *fp,
+static ESIF_INLINE int esif_ccb_fopen(
+	FILE **fp,
 	esif_string name,
 	esif_string mode
 	)
@@ -55,7 +55,8 @@ static ESIF_INLINE int esif_ccb_fopen (
 	#define esif_ccb_fgets(buf, siz, fp)                fgets(buf, siz, fp)
 	#define esif_ccb_fread(buf, bsiz, siz, count, fp) fread(buf, siz, count, fp)
 	#define esif_ccb_fwrite(buf, siz, count, fp)        fwrite(buf, siz, count, fp)
-	#define esif_ccb_fprintf(fp, fmt, ...)              fprintf(fp, fmt,##__VA_ARGS__)
+	#define esif_ccb_fprintf(fp, fmt, ...)              fprintf(fp, fmt, ##__VA_ARGS__)
+	#define esif_ccb_vfprintf(fp, fmt, vargs)           vfprintf(fp, fmt, vargs)
 	#define esif_ccb_fseek(fp, off, org)                fseek(fp, off, org)
 	#define esif_ccb_ftell(fp)                          ftell(fp)
 	#define esif_ccb_fclose(fp)                         fclose(fp)
@@ -66,7 +67,8 @@ static ESIF_INLINE int esif_ccb_fopen (
 	#define esif_ccb_fgets(buf, siz, fp)                fgets(buf, siz, fp)
 	#define esif_ccb_fread(buf, bsiz, siz, count, fp)   fread_s(buf, bsiz, siz, count, fp)
 	#define esif_ccb_fwrite(buf, siz, count, fp)        fwrite(buf, siz, count, fp)
-	#define esif_ccb_fprintf(fp, fmt, ...)              fprintf_s(fp, fmt,##__VA_ARGS__)
+	#define esif_ccb_fprintf(fp, fmt, ...)              fprintf_s(fp, fmt, ##__VA_ARGS__)
+	#define esif_ccb_vfprintf(fp, fmt, vargs)           vfprintf_s(fp, fmt, vargs)
 	#define esif_ccb_fseek(fp, off, org)                fseek(fp, off, org)
 	#define esif_ccb_ftell(fp)                          ftell(fp)
 	#define esif_ccb_fclose(fp)                         fclose(fp)
@@ -87,20 +89,20 @@ static ESIF_INLINE int esif_ccb_fopen (
 	#define INVALID_HANDLE_VALUE NULL
 
 struct esif_ccb_file_find {
-	DIR  *handle;
-	int  matches;
-	char * *files;
+	DIR   *handle;
+	int   matches;
+	char  **files;
 };
 
-typedef struct esif_ccb_file_find*esif_ccb_file_find_handle;
+typedef struct esif_ccb_file_find *esif_ccb_file_find_handle;
 
 // qsort() callback to do case-insenstive sort for an array of null-terminated strings
-static ESIF_INLINE int esif_ccb_file_find_qsort (
+static ESIF_INLINE int esif_ccb_file_find_qsort(
 	const void *arg1,
 	const void *arg2
 	)
 {
-	return esif_ccb_stricmp(*(char**)arg1, *(char**)arg2);
+	return esif_ccb_stricmp(*(char **)arg1, *(char **)arg2);
 }
 
 
@@ -113,7 +115,7 @@ struct esif_ccb_file {
 	char  filename[MAX_PATH];
 };
 
-static ESIF_INLINE esif_ccb_file_find_handle esif_ccb_file_enum_first (
+static ESIF_INLINE esif_ccb_file_find_handle esif_ccb_file_enum_first(
 	esif_string path,
 	esif_string pattern,
 	struct esif_ccb_file *file
@@ -141,14 +143,14 @@ static ESIF_INLINE esif_ccb_file_find_handle esif_ccb_file_enum_first (
 		ffd = readdir(find_handle->handle);
 		if (NULL != ffd && fnmatch(pattern, ffd->d_name, FNM_PATHNAME | FNM_NOESCAPE) == 0) {	// found a match
 			find_handle->matches++;
-			find_handle->files = (char**)esif_ccb_realloc(find_handle->files, sizeof(char*) * find_handle->matches);
+			find_handle->files = (char **)esif_ccb_realloc(find_handle->files, sizeof(char *) * find_handle->matches);
 			find_handle->files[find_handle->matches - 1] = esif_ccb_strdup(ffd->d_name);
 		}
 	} while (NULL != ffd);
 
 	// If any matches, sort the results and return the first match, freeing it from the result array
 	if (find_handle->matches) {
-		qsort(find_handle->files, find_handle->matches, sizeof(char*), esif_ccb_file_find_qsort);
+		qsort(find_handle->files, find_handle->matches, sizeof(char *), esif_ccb_file_find_qsort);
 		esif_ccb_strcpy(file->filename, find_handle->files[0], MAX_PATH);
 		esif_ccb_free(find_handle->files[0]);
 		find_handle->files[0] = NULL;
@@ -175,7 +177,7 @@ exit:
 }
 
 
-static ESIF_INLINE struct esif_ccb_file*esif_ccb_file_enum_next (
+static ESIF_INLINE struct esif_ccb_file *esif_ccb_file_enum_next(
 	esif_ccb_file_find_handle find_handle,
 	esif_string pattern,
 	struct esif_ccb_file *file
@@ -207,13 +209,14 @@ static ESIF_INLINE struct esif_ccb_file*esif_ccb_file_enum_next (
 	return file;
 }
 
-static ESIF_INLINE void esif_ccb_file_enum_close (esif_ccb_file_find_handle find_handle)
+static ESIF_INLINE void esif_ccb_file_enum_close(esif_ccb_file_find_handle find_handle)
 {
 #ifdef ESIF_ATTR_OS_LINUX
 	u32 idx;
 	closedir(find_handle->handle);
-	for (idx = 0; idx < find_handle->matches; idx++)
+	for (idx = 0; idx < find_handle->matches; idx++) {
 		esif_ccb_free(find_handle->files[idx]);
+	}
 	esif_ccb_free(find_handle->files);
 	esif_ccb_memset(find_handle, 0, sizeof(struct esif_ccb_file_find));
 	esif_ccb_free(find_handle);
@@ -223,7 +226,7 @@ static ESIF_INLINE void esif_ccb_file_enum_close (esif_ccb_file_find_handle find
 }
 
 
-static ESIF_INLINE int esif_ccb_file_exists (esif_string filename)
+static ESIF_INLINE int esif_ccb_file_exists(esif_string filename)
 {
 	struct stat st;
 	return 0 == esif_ccb_stat(filename, &st);

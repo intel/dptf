@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,35 +15,35 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
-#include "BasicTypes.h"
-#include "DptfExport.h"
-
-class XmlNode;
 
 class Temperature final
 {
 public:
 
-    Temperature(void);
+    Temperature(void); // Initialized to invalid by default
     Temperature(UInt32 temperature);
-    UInt32 getTemperature() const;
-    Bool isTemperatureValid() const;
+    static Temperature createInvalid();
+
+    Bool operator==(const Temperature& rhs) const;
+    Bool operator!=(const Temperature& rhs) const;
     Bool operator>(const Temperature& rhs) const;
     Bool operator>=(const Temperature& rhs) const;
     Bool operator<(const Temperature& rhs) const;
     Bool operator<=(const Temperature& rhs) const;
-    Bool operator==(const Temperature& rhs) const;
-    Bool operator!=(const Temperature& rhs) const;
-    static const UInt32 invalidTemperature = 0xFFFFFFFF;
-    XmlNode* getXml(std::string tag);
+    friend std::ostream& operator<<(std::ostream& os, const Temperature& temperature);
+    operator UInt32(void) const;
 
+    Bool isValid() const;
     std::string toString() const;
 
 private:
 
-    UInt32 m_temperature;
-    void throwIfTemperatureNotValid(void) const;
     static const UInt32 maxValidTemperature = 2500;
+    Bool m_valid;
+    UInt32 m_temperature;
+
+    void throwIfInvalid(const Temperature& temperature) const;
 };

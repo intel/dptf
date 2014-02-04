@@ -21,6 +21,15 @@
 
 #include "esif.h"
 
+/* Log Type */
+typedef enum _t_eLogType {
+	eLogTypeFatal   = 0,
+	eLogTypeError   = 1,
+	eLogTypeWarning = 2,
+	eLogTypeInfo    = 3,
+	eLogTypeDebug   = 4
+} eLogType;
+
 typedef enum _t_eIfaceType {
 	eIfaceTypeApplication = 0,
 	eIfaceTypeEsifService,

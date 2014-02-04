@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PolicyServicesInterfaceContainer.h"
 
 PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void) :
@@ -23,9 +24,13 @@ PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void) :
     domainCoreControl(nullptr),
     domainDisplayControl(nullptr),
     domainPerformanceControl(nullptr),
+    domainPixelClockControl(nullptr),
+    domainPixelClockStatus(nullptr),
     domainPowerControl(nullptr),
     domainPowerStatus(nullptr),
     domainPriority(nullptr),
+    domainRfProfileControl(nullptr),
+    domainRfProfileStatus(nullptr),
     domainTemperature(nullptr),
     domainUtilization(nullptr),
     participantGetSpecificInfo(nullptr),

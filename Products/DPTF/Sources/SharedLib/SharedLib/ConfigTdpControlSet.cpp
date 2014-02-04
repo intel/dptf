@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,10 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ConfigTdpControlSet.h"
 #include "XmlNode.h"
 
-ConfigTdpControlSet::ConfigTdpControlSet(std::vector<ConfigTdpControl> configTdpControl, UIntN nominalControlIndex) :
+ConfigTdpControlSet::ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl, UIntN nominalControlIndex) :
     m_configTdpControl(configTdpControl), m_nominalControlIndex(nominalControlIndex)
 {
     if (nominalControlIndex >= configTdpControl.size())
@@ -47,6 +48,11 @@ Bool ConfigTdpControlSet::operator==(const ConfigTdpControlSet& rhs) const
     return
         ((this->getNominalControlIndex() == rhs.getNominalControlIndex()) &&
          (this->m_configTdpControl == rhs.m_configTdpControl));
+}
+
+Bool ConfigTdpControlSet::operator!=(const ConfigTdpControlSet& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* ConfigTdpControlSet::getXml(void)

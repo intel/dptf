@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "ParticipantSetSpecificInfoInterface.h"
@@ -39,6 +40,10 @@ public:
     virtual XmlNode* getXml(UIntN domainIndex) override final;
 
 private:
+
+    // hide the copy constructor and = operator
+    ParticipantSetSpecificInfo_001(const ParticipantSetSpecificInfo_001& rhs);
+    ParticipantSetSpecificInfo_001& operator=(const ParticipantSetSpecificInfo_001& rhs);
 
     ParticipantServicesInterface* m_participantServicesInterface;
 };

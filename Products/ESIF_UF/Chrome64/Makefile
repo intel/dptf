@@ -16,23 +16,26 @@
 ##
 ################################################################################
 
-CC := x86_64-cros-linux-gnu-gcc
-ESIF_SOURCES := ../../..
+ifneq ($(filter default undefined,$(origin CC)),)
+CC := gcc
+endif
+
+ESIF_SOURCES := ../..
 ESIF_UF_SOURCES := $(ESIF_SOURCES)/ESIF_UF/Sources
 ESIF_CM_SOURCES := $(ESIF_SOURCES)/ESIF_CM/Sources
 ESIF_LF_SOURCES := $(ESIF_SOURCES)/ESIF_LF/Sources
 ESIF_WS_SOURCES := $(ESIF_SOURCES)/ESIF_WS/Sources
 ESIF_LIB_SOURCES := $(ESIF_SOURCES)/ESIF_LIB/Sources
 
-LIB := -lpthread -ldl -lrt 
-INC := -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LF_SOURCES) -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES)
+LDLIBS := -lpthread -ldl -lrt 
 
-CC_OPTIONS := -o9 -Wno-multichar
-CC_OPTIONS += -DESIF_ATTR_USER 
-CC_OPTIONS += -DESIF_ATTR_OS_CHROME 
-CC_OPTIONS += -DESIF_ATTR_64BIT 
-CC_OPTIONS += -DESIF_ATTR_DAEMON 
-CC_OPTIONS += $(INC) 
+CFLAGS += -Wno-multichar
+CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LF_SOURCES) 
+CPPFLAGS += -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES)
+CPPFLAGS += -DESIF_ATTR_USER 
+CPPFLAGS += -DESIF_ATTR_OS_CHROME 
+CPPFLAGS += -DESIF_ATTR_64BIT 
+CPPFLAGS += -DESIF_ATTR_DAEMON 
 
 ###############################################################################
 # EISF_UF 
@@ -92,12 +95,12 @@ OBJ += $(ESIF_WS_SOURCES)/esif_ws_socket.o
 ###############################################################################
 
 %.o: %.c $(DEPS)
-	$(CC) -c -fPIC $(CC_OPTIONS) -o $@ $<
+	$(CC) -c $(CFLAGS) $(EXTRA_CFLAGS) $(CPPFLAGS) -o $@ $<
 
 all: esif_ufd
 
 esif_ufd: $(OBJ)
-	$(CC) $(CC_OPTIONS) -o $@ $^ $(LIB) 
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS) 
 
 clean:
 	rm -f $(OBJ) esif_ufd

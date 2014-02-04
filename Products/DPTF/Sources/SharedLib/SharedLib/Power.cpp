@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,69 +15,130 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#include "Power.h"
-#include "DptfExceptions.h"
-#include "StatusFormat.h"
-#include "XmlNode.h"
 
-Power::Power(void) : m_power(invalidPower)
+#include "Power.h"
+
+static const UInt32 MaxValidPower = 10000000; // 10,000 watts
+
+Power::Power(void)
+    : m_power(0), m_valid(false)
 {
 }
 
-Power::Power(UIntN power) : m_power(power)
+Power::Power(UInt32 power)
+    : m_power(power), m_valid(true)
 {
-    if (power > maxValidPower && power != invalidPower)
+    if (power > MaxValidPower)
     {
+        m_valid = false;
         throw dptf_exception("Power value " + std::to_string(power) + " out of valid range.");
     }
 }
 
-UIntN Power::getPower() const
+Power Power::createInvalid()
 {
-    return m_power;
-}
-
-Bool Power::isPowerValid() const
-{
-    return ((m_power <= maxValidPower) && (m_power != invalidPower));
-}
-
-Bool Power::operator>(const Power& rhs) const
-{
-    return (getPower() > rhs.getPower());
-}
-
-Bool Power::operator<(const Power& rhs) const
-{
-    return (getPower() < rhs.getPower());
+    return Power();
 }
 
 Bool Power::operator==(const Power& rhs) const
 {
-    return (getPower() == rhs.getPower());
+    // Do not throw an exception if power is not valid.
+
+    if (this->isValid() == true && rhs.isValid() == true)
+    {
+        return (this->m_power == rhs.m_power);
+    }
+    else if (this->isValid() == false && rhs.isValid() == false)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
-Power Power::operator-(const Power& rhs) const
+Bool Power::operator!=(const Power& rhs) const
 {
-    return Power(getPower() - rhs.getPower());
+    // Do not throw an exception if power is not valid.
+    return !(*this == rhs);
+}
+
+Bool Power::operator>(const Power& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_power > rhs.m_power);
+}
+
+Bool Power::operator>=(const Power& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_power >= rhs.m_power);
+}
+
+Bool Power::operator<(const Power& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_power < rhs.m_power);
+}
+
+Bool Power::operator<=(const Power& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_power <= rhs.m_power);
 }
 
 Power Power::operator+(const Power& rhs) const
 {
-    return Power(getPower() + rhs.getPower());
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return Power(this->m_power + rhs.m_power);
 }
 
-XmlNode* Power::getXml(void)
+Power Power::operator-(const Power& rhs) const
 {
-    return getXml("");
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+
+    if (rhs.m_power > this->m_power)
+    {
+        throw dptf_exception("Invalid power subtraction requested.  Right side is greater than left side.");
+    }
+    else
+    {
+        return Power(this->m_power - rhs.m_power);
+    }
 }
 
-XmlNode* Power::getXml(std::string tag)
+std::ostream& operator<<(std::ostream& os, const Power& power)
 {
-    return XmlNode::createDataElement(tag, StatusFormat::friendlyValue(m_power));
+    os << power.toString();
+    return os;
+}
+
+Power::operator UInt32(void) const
+{
+    return m_power;
+}
+
+Bool Power::isValid() const
+{
+    return m_valid;
 }
 
 std::string Power::toString() const
 {
-    return std::to_string(m_power) + "mW";
+    return std::to_string(m_power);
+}
+
+void Power::throwIfInvalid(const Power& power) const
+{
+    if (power.isValid() == false)
+    {
+        throw dptf_exception("Power is invalid.");
+    }
 }

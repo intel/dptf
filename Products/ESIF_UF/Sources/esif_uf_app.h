@@ -60,24 +60,25 @@ typedef struct _t_EsifApp {
 	AppInterface  fInterface;			/* The Application Interface */
 	EsifString    fLibNamePtr;			/* The Name Of The Library To Load */
 	UInt64  fRegisteredEvents;	/* Registered Events For Application */
+	esif_lib_t    fLibHandle;	/* Loadable Library Handle */
 
 	/* Each Application May Have Many Participants */
 	AppParticipantDataMap  fParticipantData[MAX_PARTICIPANT_ENTRY];
 } EsifApp, *EsifAppPtr, **EsifAppPtrLocation;
 
-eEsifError EsifAppCreateParticipant (const EsifAppPtr appPtr, const EsifUpPtr upPtr);
+eEsifError EsifAppCreateParticipant(const EsifAppPtr appPtr, const EsifUpPtr upPtr);
 
-eEsifError EsifAppDestroyParticipant (const EsifAppPtr appPtr, const EsifUpPtr upPtr);
+eEsifError EsifAppDestroyParticipant(const EsifAppPtr appPtr, const EsifUpPtr upPtr);
 
 /* Control */
-eEsifError EsifAppStart (EsifAppPtr appPtr);
-eEsifError EsifAppStop (EsifAppPtr appPtr);
+eEsifError EsifAppStart(EsifAppPtr appPtr);
+eEsifError EsifAppStop(EsifAppPtr appPtr);
 
-eEsifError EsifAppEvent (EsifAppPtr appPtr, UInt8 participantId, UInt16 domainId, EsifDataPtr eventData, eEsifEventType eventType);
+eEsifError EsifAppEvent(EsifAppPtr appPtr, UInt8 participantId, UInt16 domainId, EsifDataPtr eventData, eEsifEventType eventType);
 
 /* Init / Exit */
-eEsifError EsifAppInit (void);
-void EsifAppExit (void);
+eEsifError EsifAppInit(void);
+void EsifAppExit(void);
 
 #endif	// _ESIF_UF_APP_
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PolicyEvent.h"
 #include "Dptf.h"
 
@@ -36,6 +37,7 @@ namespace PolicyEvent
         {
             CASE(DptfConnectedStandbyEntry)
             CASE(DptfConnectedStandbyExit)
+            CASE(ParticipantSpecificInfoChanged)
             CASE(DomainConfigTdpCapabilityChanged)
             CASE(DomainCoreControlCapabilityChanged)
             CASE(DomainDisplayControlCapabilityChanged)
@@ -44,22 +46,23 @@ namespace PolicyEvent
             CASE(DomainPerformanceControlsChanged)
             CASE(DomainPowerControlCapabilityChanged)
             CASE(DomainPriorityChanged)
+            CASE(DomainRadioConnectionStatusChanged)
+            CASE(DomainRfProfileChanged)
             CASE(DomainTemperatureThresholdCrossed)
-            CASE(ParticipantSpecificInfoChanged)
             CASE(PolicyActiveRelationshipTableChanged)
-            CASE(PolicyThermalRelationshipTableChanged)
-            CASE(PolicyInitiatedCallback)
-            CASE(PolicyForegroundApplicationChanged)
-            CASE(PolicyOperatingSystemLpmModeChanged)
-            CASE(PolicyPlatformLpmModeChanged)
-            CASE(PolicyOperatingSystemConfigTdpLevelChanged)
-            CASE(PolicyCoolingModePowerLimitChanged)
             CASE(PolicyCoolingModeAcousticLimitChanged)
             CASE(PolicyCoolingModePolicyChanged)
+            CASE(PolicyCoolingModePowerLimitChanged)
+            CASE(PolicyForegroundApplicationChanged)
+            CASE(PolicyInitiatedCallback)
+            CASE(PolicyOperatingSystemConfigTdpLevelChanged)
+            CASE(PolicyOperatingSystemLpmModeChanged)
             CASE(PolicyPassiveTableChanged)
+            CASE(PolicyPlatformLpmModeChanged)
             CASE(PolicySensorOrientationChanged)
-            CASE(PolicySensorSpatialOrientationChanged)
             CASE(PolicySensorProximityChanged)
+            CASE(PolicySensorSpatialOrientationChanged)
+            CASE(PolicyThermalRelationshipTableChanged)
             default:
                 throw dptf_exception("PolicyEvent::Type is invalid.");
         }
@@ -68,17 +71,17 @@ namespace PolicyEvent
     Bool RequiresEsifEventRegistration(PolicyEvent::Type policyEventType)
     {
         return ((policyEventType == PolicyEvent::PolicyActiveRelationshipTableChanged) ||
-                (policyEventType == PolicyEvent::PolicyThermalRelationshipTableChanged) ||
-                (policyEventType == PolicyEvent::PolicyForegroundApplicationChanged) ||
-                (policyEventType == PolicyEvent::PolicyOperatingSystemLpmModeChanged) ||
-                (policyEventType == PolicyEvent::PolicyPlatformLpmModeChanged) ||
-                (policyEventType == PolicyEvent::PolicyOperatingSystemConfigTdpLevelChanged) ||
-                (policyEventType == PolicyEvent::PolicyCoolingModePowerLimitChanged) ||
                 (policyEventType == PolicyEvent::PolicyCoolingModeAcousticLimitChanged) ||
                 (policyEventType == PolicyEvent::PolicyCoolingModePolicyChanged) ||
+                (policyEventType == PolicyEvent::PolicyCoolingModePowerLimitChanged) ||
+                (policyEventType == PolicyEvent::PolicyForegroundApplicationChanged) ||
+                (policyEventType == PolicyEvent::PolicyOperatingSystemConfigTdpLevelChanged) ||
+                (policyEventType == PolicyEvent::PolicyOperatingSystemLpmModeChanged) ||
                 (policyEventType == PolicyEvent::PolicyPassiveTableChanged) ||
+                (policyEventType == PolicyEvent::PolicyPlatformLpmModeChanged) ||
                 (policyEventType == PolicyEvent::PolicySensorOrientationChanged) ||
+                (policyEventType == PolicyEvent::PolicySensorProximityChanged) ||
                 (policyEventType == PolicyEvent::PolicySensorSpatialOrientationChanged) ||
-                (policyEventType == PolicyEvent::PolicySensorProximityChanged));
+                (policyEventType == PolicyEvent::PolicyThermalRelationshipTableChanged));
     }
 }

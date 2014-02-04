@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainTemperature_001.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -53,7 +54,7 @@ void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIn
     const TemperatureThresholds& temperatureThresholds)
 {
     Temperature aux0(temperatureThresholds.getAux0());
-    if (aux0 == Constants::Invalid)
+    if (aux0.isValid() == false)
     {
         aux0 = 5;
     }
@@ -61,7 +62,7 @@ void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIn
         esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux0, domainIndex, 0);
 
     Temperature aux1(temperatureThresholds.getAux1());
-    if (aux1 == Constants::Invalid)
+    if (aux1.isValid() == false)
     {
         aux1 = 199;
     }

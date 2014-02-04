@@ -90,47 +90,34 @@ enum esif_rc esif_get_action_const(
 	UNREFERENCED_PARAMETER(req_data_ptr);
 	ESIF_TRACE_DYN_GET("%s: type = %d, value = %d\n", ESIF_FUNC,
 			   rsp_data_ptr->type, val);
-
-	switch (rsp_data_ptr->type) {
-	case ESIF_DATA_UINT8:
-		rsp_data_ptr->data_len = sizeof(u8);
-		if (rsp_data_ptr->buf_len >= sizeof(u8))
-			*((u8 *)rsp_data_ptr->buf_ptr) = (u8)val;
-		else
-			rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
-		break;
-
-	case ESIF_DATA_UINT16:
-		rsp_data_ptr->data_len = sizeof(u16);
-		if (rsp_data_ptr->buf_len >= sizeof(u16))
-			*((u16 *)rsp_data_ptr->buf_ptr) = (u16)val;
-		else
-			rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
-		break;
-
-	case ESIF_DATA_UINT32:
-		rsp_data_ptr->data_len = sizeof(u32);
-		if (rsp_data_ptr->buf_len >= sizeof(u32))
-			*((u32 *)rsp_data_ptr->buf_ptr) = (u32)val;
-		else
-			rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
-		break;
-
-	case ESIF_DATA_UINT64:
+	/*
+	 * Const items are kept as 32-bit values; however, the call may be for
+	 * a different size depending on type.  Return data as the largest
+	 * type the buffer passed in can accept.
+	 */
+	if (rsp_data_ptr->buf_len >= sizeof(u64)) {
 		rsp_data_ptr->data_len = sizeof(u64);
-		if (rsp_data_ptr->buf_len >= sizeof(u64))
-			*((u64 *)rsp_data_ptr->buf_ptr) = (u64)val;
-		else
-			rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
-		break;
+		*((u64 *)rsp_data_ptr->buf_ptr) = (u64)val;
 
-	default:
-		ESIF_TRACE_DYN_GET("%s: Data Type Not Implemented = %d\n",
-				   ESIF_FUNC,
-				   rsp_data_ptr->type);
-		rc = ESIF_E_NOT_IMPLEMENTED;
-		break;
+	} else if (rsp_data_ptr->buf_len >= sizeof(u32)) {
+		rsp_data_ptr->data_len = sizeof(u32);
+		*((u32 *)rsp_data_ptr->buf_ptr) = (u32)val;
+
+	} else if (rsp_data_ptr->buf_len >= sizeof(u16)) {
+		rsp_data_ptr->data_len = sizeof(u16);
+		*((u16 *)rsp_data_ptr->buf_ptr) = (u16)val;
+
+	} else if (rsp_data_ptr->buf_len >= sizeof(u8)) {
+		rsp_data_ptr->data_len = sizeof(u8);
+		*((u8 *)rsp_data_ptr->buf_ptr) = (u8)val;
+
+	} else {
+		/* Should only happen if buffer len is 0 */
+		ESIF_TRACE_DYN_GET("Buffer insufficient for result = %d\n",
+				   rsp_data_ptr->buf_len);
+		rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
 	}
+
 	return rc;
 }
 

@@ -200,8 +200,8 @@ extern WDFQUEUE g_wdf_ipc_queue_handle;
 #include <sys/ioctl.h>			/* IOCTL Interface */
 #include <unistd.h>			/* Unix Standard Library */
 #include <sys/time.h>			/* Time */
-#define ESIF_ASSERT(x)			/* NOOP For Now */
-#define UNREFERENCED_PARAMETER(x)	/* NOOP For Now */
+#define ESIF_ASSERT(x)	(0)		/* NOOP For Now */
+#define UNREFERENCED_PARAMETER(x) (0)	/* NOOP For Now */
 typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
@@ -213,7 +213,7 @@ typedef unsigned long long u64;
 #define _WINSOCKAPI_			/* Override for Winsock */
 #include <windows.h>			/* Windows Includes Almost Everything */
 #include <winioctl.h>			/* Except IOCTL Interface */
-#define ESIF_ASSERT			/* NOOP For Now */
+#define ESIF_ASSERT(x)	(0)		/* NOOP For Now */
 #pragma warning(disable : 4204)		/* Non-constant aggregate initializer */
 #pragma warning(disable : 4221)		/* Can't be init'd with addr of autos */
 #endif /* USER::ESIF_ATTR_OS_WINDOWS */
@@ -250,6 +250,8 @@ typedef esif_string EsifString;
 
 #define ESIF_TRUE 1		/* C True */
 #define ESIF_FALSE 0		/* C False */
+
+#define ESIF_PERCENT_CONV_FACTOR 100 /* Percentages are in 100ths */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 typedef HANDLE esif_handle_t;

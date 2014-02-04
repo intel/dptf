@@ -179,6 +179,9 @@ enum esif_rc {
 	/* Repository */
 	ESIF_E_NOT_FOUND = 2000,		/* Item Not Found */
 	ESIF_E_READONLY,			/* Item is Read-Only */
+	ESIF_E_WS_DISC,			    /* WS client disconnected */
+
+
 };
 
 /* Convert Return Code To A String */
@@ -245,6 +248,7 @@ static ESIF_INLINE char
 		ESIF_CREATE_RC(ESIF_E_INVALID_HANDLE)
 		ESIF_CREATE_RC(ESIF_E_NOT_FOUND)
 		ESIF_CREATE_RC(ESIF_E_READONLY)
+		ESIF_CREATE_RC(ESIF_E_WS_DISC)	
 	}
 	return str;
 }

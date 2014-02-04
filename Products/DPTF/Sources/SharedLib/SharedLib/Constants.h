@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "BasicTypes.h"
@@ -22,6 +23,13 @@
 namespace Constants
 {
     const UInt32 Invalid = 0xFFFFFFFFU;
+    const std::string InvalidString("X");
+
+    const UInt8 MaxUInt8 = 0xFFU;
+    const UInt16 MaxUInt16 = 0xFFFFU;
+    const UInt32 MaxUInt32 = 0xFFFFFFFFU;
+    const UInt64 MaxUInt64 = 0xFFFFFFFFFFFFFFFFU;
+
     const UIntN DefaultBufferSize = 4096;
     const UIntN GuidSize = 16;
 

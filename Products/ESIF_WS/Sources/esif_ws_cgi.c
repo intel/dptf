@@ -15,6 +15,8 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID ESIF_TRACEMODULE_WEBSERVER
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -42,6 +44,7 @@
 #include "win\banned.h"
 #endif
 
+#define MAX_SIZE 100
 
 /*
  *******************************************************************************
@@ -56,11 +59,11 @@ extern void esif_ws_server_initialize_clients (void);
  ** PRIVATE
  *******************************************************************************
  */
-static void esif_ws_cgi_parse_query (char*, const char*, int, char*);
+static eEsifError esif_ws_cgi_parse_query (char*, const char*, int, char*);
 
-static void esif_ws_cgi_parse_script (const char*, int, char*);
+static int esif_ws_cgi_parse_script (const char*, int, char*);
 
-static void esif_ws_cgi_redirect_output (char*, int);
+static eEsifError esif_ws_cgi_redirect_output (char*, int);
 
 
 /*
@@ -68,28 +71,29 @@ static void esif_ws_cgi_redirect_output (char*, int);
  ** PUBLIC
  *******************************************************************************
  */
-int esif_ws_cgi_execute_cgi_script (
+eEsifError esif_ws_cgi_execute_cgi_script (
 	const char *resourceLoc,
 	int fd,
 	char *path
 	)
 {
 	char *stringQuery = NULL;
+	int rc = EOF;
 
 	stringQuery = (char*)strchr(resourceLoc, '?');
 
 	if (stringQuery) {
-		esif_ws_cgi_parse_query(stringQuery, resourceLoc, fd, path);
+		rc = esif_ws_cgi_parse_query(stringQuery, resourceLoc, fd, path);	    
 	} else {
 		esif_ws_cgi_parse_script(resourceLoc, fd, path);
 	}
 
 
-	return EOF;
+	return rc;
 }
 
 
-static void esif_ws_cgi_parse_query (
+static eEsifError esif_ws_cgi_parse_query (
 	char *query,
 	const char *beg_parms_loc_in_query,
 	int fd,
@@ -101,23 +105,22 @@ static void esif_ws_cgi_parse_query (
 	// char *cgi_dir;
 	char cgiParms[100];
 	size_t cgi_script_size;
-		#define MAX_SIZE 100
+	eEsifError rc = ESIF_OK;
+	
 
 	cgi_script_size = query - beg_parms_loc_in_query;
 	cgi_script = (char*)esif_ccb_malloc(cgi_script_size + 1);
 	if (cgi_script == NULL) {
-		exit(1);
+	    return ESIF_E_NOT_FOUND;
 	}
-	// cgi_dir = (char*)esif_ccb_malloc(esif_ccb_strlen(cgi_dir, MAX_SIZE) + cgi_script_size);
-	// if (cgi_dir == NULL)
-	// exit(1);
+
 
 	esif_ccb_memcpy(cgi_script, beg_parms_loc_in_query, cgi_script_size);
-	// esif_ccb_memcpy(cgi_dir, DIRECTORY, esif_ccb_strlen(DIRECTORY, MAX_SIZE));
+
 
 	cgi_script[cgi_script_size] = '\0';
-	// cgi_dir[esif_ccb_strlen(DIRECTORY, MAX_SIZE)]='\0';
-	printf("cgi_script 1: %s\n", cgi_script);
+
+	ESIF_TRACE_DEBUG("cgi_script 1: %s\n", cgi_script);
 	query++;
 
 	cgi_script_buf = cgi_script;
@@ -132,23 +135,24 @@ static void esif_ws_cgi_parse_query (
 
 	esif_ccb_strcpy(cgiParms, query, esif_ccb_strlen(query, MAX_SIZE));
 
-	printf("cgi_dir: %s\n", cgi_dir);
+	ESIF_TRACE_DEBUG("cgi_dir: %s\n", cgi_dir);
 
-	printf("cgiParms 1: %s\n", cgiParms);
+	ESIF_TRACE_DEBUG("cgiParms 1: %s\n", cgiParms);
 
-	esif_ccb_strcat(cgi_dir, cgi_script_buf, sizeof(cgi_dir));
+	esif_ccb_strcat(cgi_dir, cgi_script_buf, esif_ccb_strlen(cgi_dir, MAX_SIZE));
 
 
-	esif_ws_cgi_redirect_output(cgi_dir, fd);
+	rc = esif_ws_cgi_redirect_output(cgi_dir, fd);
 	if (cgi_script) {
 		esif_ccb_free(cgi_script);
+		cgi_script = NULL;
 	}
-	// if (cgi_dir)
-	// esif_ccb_free(cgi_dir);
+
+	return rc;
 }
 
 
-static void esif_ws_cgi_parse_script (
+static int esif_ws_cgi_parse_script (
 	const char *resourceLoc,
 	int fd,
 	char *full_script_name
@@ -156,11 +160,12 @@ static void esif_ws_cgi_parse_script (
 {
 	char abbr_script_name[100];
 	u32 i = 0;
+	int rc = 0;
 
 
 	esif_ccb_memcpy(abbr_script_name, resourceLoc, esif_ccb_strlen(resourceLoc, MAX_SIZE));
 	abbr_script_name[esif_ccb_strlen(resourceLoc, MAX_SIZE)] = 0;
-	printf("cgi script name: %s\n", abbr_script_name);
+	ESIF_TRACE_DEBUG("cgi script name: %s\n", abbr_script_name);
 	i = i;	// to satisfy compiler
 #ifdef ESIF_ATTR_OS_WINDOWS
 	for (i = 0; i < esif_ccb_strlen(abbr_script_name, MAX_SIZE); i++)
@@ -171,70 +176,71 @@ static void esif_ws_cgi_parse_script (
 #endif
 
 
-	esif_ccb_strcat(full_script_name, abbr_script_name, sizeof(full_script_name));
+	esif_ccb_strcat(full_script_name, abbr_script_name, esif_ccb_strlen(full_script_name, MAX_SIZE));
 
-	printf("full_cgi_script_name: %s\n", full_script_name);
+	ESIF_TRACE_DEBUG("full_cgi_script_name: %s\n", full_script_name);
 
 	esif_ws_cgi_redirect_output(full_script_name, fd);
+	return rc;
 }
 
-
-static void esif_ws_cgi_redirect_output (
+#define MAX_BUFFER_SIZE 4096
+static eEsifError esif_ws_cgi_redirect_output (
 	char *script,
 	int fd
 	)
 {
 	int current_out;
-	char buffer[BUFFER_LENGTH];
+	char buffer[MAX_BUFFER_SIZE];
 	int ret;
 	FILE *dataFile = NULL;
-	#define MAX_SIZE 100
-	printf("esif_ws_cgi_redirect_output-> full_script_name: %s\n", script);
+	eEsifError rc = ESIF_OK;
 
-
+	ESIF_TRACE_DEBUG("script: %s\n", script);
+	
 	current_out = esif_ccb_dup(1);
 
 	if (current_out == -1) {
-		perror("_dup( 1 ) failure");
-		exit(1);
+		ESIF_TRACE_DEBUG("_dup( 1 ) failure");
+		return ESIF_E_NOT_FOUND;
 	}
 
 	esif_ccb_fopen(&dataFile, "data", "w");
 
 	if (NULL == dataFile) {
-		printf("failed to open file in writing mode \n");
-		return;
+		ESIF_TRACE_DEBUG("failed to open file in writing mode \n");
+		return ESIF_E_NOT_FOUND;
 	}
 
 	if (-1 == esif_ccb_dup2(dataFile, 1)) {
-		perror("Can't _dup2 stdout");
-		exit(1);
+		ESIF_TRACE_DEBUG("Can't _dup2 stdout");
+		return ESIF_E_NOT_FOUND;
 	}
 
-	printf("Execute the script\n");
+	ESIF_TRACE_DEBUG("Execute the script\n");
 	system(script);
 
 	fflush(stdout);
 	fclose(dataFile);
 
-	esif_ccb_dup3(current_out, 1);
+	(void)esif_ccb_dup3(current_out, 1);
 	esif_ccb_flushall();
 
 
 	esif_ccb_fopen(&dataFile, "data", "r");
 	if (NULL == dataFile) {
-		printf("failed to open file in readig mode: \n");
-		return;
+		ESIF_TRACE_DEBUG("failed to open file in readig mode: \n");
+		return ESIF_E_NOT_FOUND ;
 	}
 
 	(long)fseek(dataFile, (off_t)0, SEEK_END);
 	(void)fseek(dataFile, (off_t)0, SEEK_SET);
 
-	(void)esif_ccb_sprintf(BUFFER_LENGTH, buffer, (char*)"HTTP/1.1 200 OK\n");
+	(void)esif_ccb_sprintf(MAX_BUFFER_SIZE, buffer, (char*)"HTTP/1.1 200 OK\n");
 
 	(void)send(fd, buffer, (int)esif_ccb_strlen(buffer, MAX_SIZE), 0);
 
-	while ((ret = (int)fread(buffer, 1, BUFFER_LENGTH, dataFile)) > 0)
+	while ((ret = (int)fread(buffer, 1, MAX_BUFFER_SIZE, dataFile)) > 0)
 		(void)send(fd, buffer, ret, 0);
 
 	fclose(dataFile);
@@ -243,6 +249,8 @@ static void esif_ws_cgi_redirect_output (
 
 	esif_ws_http_set_login_requested(1);
 	esif_ws_http_set_authenticated(1);
+
+	return rc;
 }
 
 

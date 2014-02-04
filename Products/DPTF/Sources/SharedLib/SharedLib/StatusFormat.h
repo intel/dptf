@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,20 +15,19 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
-#include "ControlKnobType.h"
-#include "DomainType.h"
-#include "LpmMode.h"
+
+//
+// This is in place to format C++ built in types (only).  For any classes that we have
+// created they should have a toString() function to provide formatting.
+//
 
 namespace StatusFormat
 {
-    std::string friendlyValue(UIntN value);
     std::string friendlyValue(Bool value);
+    std::string friendlyValue(UInt32 value);
     std::string friendlyValue(UInt64 value);
-    std::string friendlyValue(float value);
-    std::string friendlyValue(ControlKnobType::Type value);
-    std::string friendlyValue(DomainType::Type value);
-    std::string friendlyValue(LpmMode::Type type);
-    std::string friendlyValue(LpmMode::Boss boss);
+    std::string friendlyValue(double value);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,10 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PowerControlStatusSet.h"
 #include "XmlNode.h"
 
-PowerControlStatusSet::PowerControlStatusSet(std::vector<PowerControlStatus> powerControlStatus) :
+PowerControlStatusSet::PowerControlStatusSet(const std::vector<PowerControlStatus>& powerControlStatus) :
     m_powerControlStatus(powerControlStatus)
 {
 }
@@ -40,7 +41,7 @@ Bool PowerControlStatusSet::operator==(const PowerControlStatusSet& rhs) const
 
 Bool PowerControlStatusSet::operator!=(const PowerControlStatusSet& rhs) const
 {
-    return m_powerControlStatus != rhs.m_powerControlStatus;
+    return !(*this == rhs);
 }
 
 XmlNode* PowerControlStatusSet::getXml(void)

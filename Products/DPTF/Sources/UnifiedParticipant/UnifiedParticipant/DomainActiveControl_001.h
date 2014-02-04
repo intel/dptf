@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainActiveControlInterface.h"
@@ -44,10 +45,13 @@ public:
 
 private:
 
+    // hide the copy constructor and = operator
+    DomainActiveControl_001(const DomainActiveControl_001& rhs);
+    DomainActiveControl_001& operator=(const DomainActiveControl_001& rhs);
+
     ParticipantServicesInterface* m_participantServicesInterface;
 
     // Functions
-    void initializeDataStructures(void);
     void createActiveControlSet(UIntN domainIndex);
     void createActiveControlStaticCaps(UIntN domainIndex);
     void createActiveControlStatus(UIntN domainIndex);

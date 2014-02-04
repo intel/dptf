@@ -19,12 +19,12 @@
 #ifndef _ESIF_UF_PRIMITIVE_
 #define _ESIF_UF_PRIMITIVE_
 
-eEsifError EsifExecutePrimitive (const UInt8 participantId,
-								 const UInt32 primitiveId,
-								 const EsifString qualifier,
-								 const UInt8 instance,
-								 const EsifDataPtr requestPtr,
-								 EsifDataPtr responsePtr);
+eEsifError EsifExecutePrimitive(const UInt8 participantId,
+								const UInt32 primitiveId,
+								const EsifString qualifier,
+								const UInt8 instance,
+								const EsifDataPtr requestPtr,
+								EsifDataPtr responsePtr);
 
 #endif	// _ESIF_UF_PRIMITIVE_
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,42 +15,45 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ClassFactories.h"
 
-ClassFactories::ClassFactories(void)
+ClassFactories::ClassFactories(void) :
+    domainActiveControlFactory(nullptr),
+    domainConfigTdpControlFactory(nullptr),
+    domainCoreControlFactory(nullptr),
+    domainDisplayControlFactory(nullptr),
+    domainPerformanceControlFactory(nullptr),
+    domainPixelClockControlFactory(nullptr),
+    domainPixelClockStatusFactory(nullptr),
+    domainPowerControlFactory(nullptr),
+    domainPowerStatusFactory(nullptr),
+    domainPriorityFactory(nullptr),
+    domainRfProfileControlFactory(nullptr),
+    domainRfProfileStatusFactory(nullptr),
+    domainTemperatureFactory(nullptr),
+    domainUtilizationFactory(nullptr),
+    participantGetSpecificInfoFactory(nullptr),
+    participantSetSpecificInfoFactory(nullptr)
 {
-    setAllPointersNull();
 }
 
 void ClassFactories::deleteAllFactories(void)
 {
-    delete domainActiveControlFactory;
-    delete domainConfigTdpControlFactory;
-    delete domainCoreControlFactory;
-    delete domainDisplayControlFactory;
-    delete domainPerformanceControlFactory;
-    delete domainPowerControlFactory;
-    delete domainPowerStatusFactory;
-    delete domainPriorityFactory;
-    delete domainTemperatureFactory;
-    delete domainUtilizationFactory;
-    delete participantGetSpecificInfoFactory;
-    delete participantSetSpecificInfoFactory;
-    setAllPointersNull();
-}
-
-void ClassFactories::setAllPointersNull(void)
-{
-    domainActiveControlFactory = nullptr;
-    domainConfigTdpControlFactory = nullptr;
-    domainCoreControlFactory = nullptr;
-    domainDisplayControlFactory = nullptr;
-    domainPerformanceControlFactory = nullptr;
-    domainPowerControlFactory = nullptr;
-    domainPowerStatusFactory = nullptr;
-    domainPriorityFactory = nullptr;
-    domainTemperatureFactory = nullptr;
-    domainUtilizationFactory = nullptr;
-    participantGetSpecificInfoFactory = nullptr;
-    participantSetSpecificInfoFactory = nullptr;
+    DELETE_MEMORY_TC(domainActiveControlFactory);
+    DELETE_MEMORY_TC(domainConfigTdpControlFactory);
+    DELETE_MEMORY_TC(domainCoreControlFactory);
+    DELETE_MEMORY_TC(domainDisplayControlFactory);
+    DELETE_MEMORY_TC(domainPerformanceControlFactory);
+    DELETE_MEMORY_TC(domainPixelClockControlFactory);
+    DELETE_MEMORY_TC(domainPixelClockStatusFactory);
+    DELETE_MEMORY_TC(domainPowerControlFactory);
+    DELETE_MEMORY_TC(domainPowerStatusFactory);
+    DELETE_MEMORY_TC(domainPriorityFactory);
+    DELETE_MEMORY_TC(domainRfProfileControlFactory);
+    DELETE_MEMORY_TC(domainRfProfileStatusFactory);
+    DELETE_MEMORY_TC(domainTemperatureFactory);
+    DELETE_MEMORY_TC(domainUtilizationFactory);
+    DELETE_MEMORY_TC(participantGetSpecificInfoFactory);
+    DELETE_MEMORY_TC(participantSetSpecificInfoFactory);
 }

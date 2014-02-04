@@ -52,21 +52,9 @@ typedef u8 Byte;
 #define FLAGS_TEST(flags, mask)     ((flags) & (mask))
 #define FLAGS_TESTALL(flags, mask)  (((flags) & (mask)) == (mask))
 
-// Enumerated Type Base Macros
-#define ENUMDECL(ENUM)              ENUM,
-#define ENUMLIST(ENUM)              {ENUM, #ENUM},
-
-#define ENUMSWITCH(ENUM)            case ENUM: \
-	return #ENUM;break;
-
-// Enumerated Type Macros with Explicit Values
-#define ENUMDECL_VAL(ENUM, VAL)      ENUM = VAL,
-#define ENUMLIST_VAL(ENUM, VAL)      ENUMLIST(ENUM)
-#define ENUMSWITCH_VAL(ENUM, VAL)    ENUMSWITCH(ENUM)
-
 // Limits
 #define MAXAUTOLEN      65536		// Max length of strings when creating with ESIFAUTOLEN
 
-#define IGNORE_RESULT(expr)		do { if (expr) ; } while (ESIF_WHILEFALSE)
+#define IGNORE_RESULT(expr)		do { if (expr) ; } while (ESIF_ALWAYSFALSE)
 
 #endif

@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID ESIF_TRACEMODULE_WEBSERVER
 
 #include "esif_ws_algo.h"
 
@@ -139,14 +140,14 @@ void esif_ws_algo_add_block_to_sha (
 	const void *block
 	)
 {
-	UInt32 chunk_of_initial_values[5];
-	UInt32 array_of_16_words[16];
-	UInt32 temp_value1;
-	UInt32 temp_value2;
-	UInt8 index;
-	UInt8 thiry_two_bit_word_index;
-	UInt8 kvalues_index;
-	UInt8 twenty_value_processed_flag;
+	UInt32 chunk_of_initial_values[5]={0};
+	UInt32 array_of_16_words[16]={0};
+	UInt32 temp_value1=0;
+	UInt32 temp_value2=0;
+	UInt8 index=0;
+	UInt8 thiry_two_bit_word_index=0;
+	UInt8 kvalues_index=0;
+	UInt8 twenty_value_processed_flag=0;
 
 	esif_ws_algo_func_ptr algo_func_ptr_array[] = {
 		esif_ws_algo_func0to19,
@@ -214,8 +215,8 @@ void esif_ws_algo_add_last_block_to_sha (
 	UInt16 length
 	)
 {
-	UInt8 i;
-	UInt8 lb[SHA1_BLOCK_BYTES];
+	UInt8 i=0;
+	UInt8 lb[SHA1_BLOCK_BYTES]={0};
 
 	while (length >= NUM_BITS_BLOCK) {
 		esif_ws_algo_add_block_to_sha(state, block);
@@ -256,7 +257,7 @@ void esif_ws_algo_hash_sha_context (
 	shaCtx *state
 	)
 {
-	UInt8 i;
+	UInt8 i=0;
 
 	for (i = 0; i < 5; ++i)
 		((UInt32*)dest)[i] = esif_ws_algo_byteswap_unsigned_long(state->hash_values_array[i]);
@@ -270,7 +271,7 @@ void esif_ws_algo_hash_sha_algo (
 	UInt32 length
 	)
 {
-	shaCtx sha_ctx;
+	shaCtx sha_ctx ={0};
 
 	esif_ws_algo_sha_context_init(&sha_ctx);
 
@@ -294,9 +295,9 @@ void esif_ws_algo_encode_base64_value (
 	UInt16 length
 	)
 {
-	UInt16 i, j;
+	UInt16 i=0, j=0;
 
-	UInt8 block_of_bytes[4];
+	UInt8 block_of_bytes[4]={0};
 
 	for (i = 0; i < length / 3; ++i) {
 		block_of_bytes[0] = (((UInt8*)source)[i * 3 + 0]) >> 2;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainPowerControlInterface.h"
@@ -25,16 +26,13 @@
 #include "DptfMemory.h"
 #include "ConfigTdpDataSyncInterface.h"
 
-//
-// Power Controls
-//
-
 class DomainPowerControl_001 final : public DomainPowerControlInterface,
-    public ComponentExtendedInterface, public ConfigTdpDataSyncInterface
+    public ComponentExtendedInterface
 {
 public:
 
     DomainPowerControl_001(ParticipantServicesInterface* participantServicesInterface);
+    ~DomainPowerControl_001(void);
 
     // DomainPowerControlInterface
     virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex) override final;
@@ -45,31 +43,24 @@ public:
     virtual void clearCachedData(void) override final;
     virtual XmlNode* getXml(UIntN domainIndex) override final;
 
-    // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
-        ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus) override final;
-
 private:
 
-    ParticipantServicesInterface* m_participantServicesInterface;
+    // Don't allow this class to be copied
+    DomainPowerControl_001(const DomainPowerControl_001& rhs);
+    DomainPowerControl_001& operator=(const DomainPowerControl_001& rhs);
 
-    // Functions
-    void initializeDataStructures(void);
     void createPowerControlDynamicCapsSet(UIntN domainIndex);
     void validatePowerControlDynamicCapsSet();
     void determinePowerControlProgrammability();
-    void programPowerControl(const PowerControlStatus& powerControlStatusSet, UIntN domainIndex);
-    void validatePowerControlStatus(const PowerControlStatus& powerControlStatus);
-    void checkAndCreateControlStructures(UIntN domainIndex);
+    void programPowerControl(const PowerControlStatusSet& powerControlStatusSet, UIntN domainIndex);
+    void validatePowerControlStatus(const PowerControlStatusSet& powerControlStatusSet, UIntN domainIndex);
+    void initializePowerControlDynamicCapsSetIfNull(UIntN domainIndex);
     PowerControlDynamicCapsSet getAdjustedDynamicCapsBasedOnConfigTdpMaxLimit(
-        const PowerControlDynamicCapsSet &capsSet);
+        const PowerControlDynamicCapsSet& capsSet);
 
-    // Vars (external)
+    ParticipantServicesInterface* m_participantServicesInterface;
     PowerControlDynamicCapsSet* m_powerControlDynamicCaps;
     PowerControlStatusSet* m_powerControlStatusSet;
-
-    // Vars (internal)
     std::map<PowerControlType::Type, Bool> m_canProgramPowerLimit;
     std::map<PowerControlType::Type, Bool> m_canProgramTimeWindow;
-    Power m_tdpMaxPower;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #ifndef _ESIF_CCB_LIBRARY_H_
 #define _ESIF_CCB_LIBRARY_H_
 
@@ -23,12 +24,12 @@
 #ifdef ESIF_ATTR_USER
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-    typedef HINSTANCE esif_lib_t;
-    #define ESIF_LIB_EXT "dll"
+typedef HINSTANCE esif_lib_t;
+#define ESIF_LIB_EXT "dll"
 #else
-    #include <dlfcn.h>
-    typedef void* esif_lib_t;
-    #define ESIF_LIB_EXT "so"
+#include <dlfcn.h>
+typedef void *esif_lib_t;
+#define ESIF_LIB_EXT "so"
 #endif
 
 /* Load Shared .so/DLL code opaque */
@@ -43,11 +44,16 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 
 /* Find address for symbol */
 #ifdef ESIF_ATTR_OS_WINDOWS
-static ESIF_INLINE FARPROC esif_ccb_library_get_func(esif_lib_t lib, esif_string func_name)
+static ESIF_INLINE FARPROC esif_ccb_library_get_func(
+    esif_lib_t lib,
+    esif_string func_name
+)
 #else
-static ESIF_INLINE void* esif_ccb_library_get_func(esif_lib_t lib, esif_string func_name)
+static ESIF_INLINE void *esif_ccb_library_get_func(esif_lib_t lib, esif_string func_name)
 #endif
 {
+    if (NULL == lib)
+        return NULL;
 #ifdef ESIF_ATTR_OS_WINDOWS
     return GetProcAddress(lib, func_name);
 #else
@@ -58,6 +64,8 @@ static ESIF_INLINE void* esif_ccb_library_get_func(esif_lib_t lib, esif_string f
 /* Close/Free previously opened library */
 static ESIF_INLINE void esif_ccb_library_unload(esif_lib_t lib)
 {
+    if (NULL == lib)
+        return;
 #ifdef ESIF_ATTR_OS_WINDOWS
     FreeLibrary(lib);
 #else
@@ -66,5 +74,4 @@ static ESIF_INLINE void esif_ccb_library_unload(esif_lib_t lib)
 }
 
 #endif /* ESIF_ATTR_USER */
-
 #endif /* _ESIF_CCB_LIBRARY_H_ */

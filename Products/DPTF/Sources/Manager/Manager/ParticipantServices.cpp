@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ParticipantServices.h"
 #include "DptfManager.h"
 #include "ParticipantManager.h"
@@ -34,6 +35,20 @@ ParticipantServices::ParticipantServices(DptfManager* dptfManager, UIntN partici
 {
 }
 
+UInt8 ParticipantServices::primitiveExecuteGetAsUInt8(esif_primitive_type primitive,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    return m_esifServices->primitiveExecuteGetAsUInt8(primitive, m_participantIndex, domainIndex, instance);
+}
+
+void ParticipantServices::primitiveExecuteSetAsUInt8(esif_primitive_type primitive,
+    UInt8 value, UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->primitiveExecuteSetAsUInt8(primitive, value, m_participantIndex, domainIndex, instance);
+}
+
 UInt32 ParticipantServices::primitiveExecuteGetAsUInt32(esif_primitive_type primitive,
     UIntN domainIndex, UInt8 instance)
 {
@@ -46,6 +61,20 @@ void ParticipantServices::primitiveExecuteSetAsUInt32(esif_primitive_type primit
 {
     throwIfNotWorkItemThread();
     m_esifServices->primitiveExecuteSetAsUInt32(primitive, value, m_participantIndex, domainIndex, instance);
+}
+
+UInt64 ParticipantServices::primitiveExecuteGetAsUInt64(esif_primitive_type primitive,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    return m_esifServices->primitiveExecuteGetAsUInt64(primitive, m_participantIndex, domainIndex, instance);
+}
+
+void ParticipantServices::primitiveExecuteSetAsUInt64(esif_primitive_type primitive,
+    UInt64 value, UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->primitiveExecuteSetAsUInt64(primitive, value, m_participantIndex, domainIndex, instance);
 }
 
 Temperature ParticipantServices::primitiveExecuteGetAsTemperatureC(esif_primitive_type primitive,
@@ -68,6 +97,27 @@ Percentage ParticipantServices::primitiveExecuteGetAsPercentage(esif_primitive_t
 {
     throwIfNotWorkItemThread();
     return m_esifServices->primitiveExecuteGetAsPercentage(primitive, m_participantIndex, domainIndex, instance);
+}
+
+void ParticipantServices::primitiveExecuteSetAsPercentage(esif_primitive_type primitive, Percentage percentage,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->primitiveExecuteSetAsPercentage(primitive, percentage, m_participantIndex, domainIndex, instance);
+}
+
+Frequency ParticipantServices::primitiveExecuteGetAsFrequency(esif_primitive_type primitive,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    return m_esifServices->primitiveExecuteGetAsFrequency(primitive, m_participantIndex, domainIndex, instance);
+}
+
+void ParticipantServices::primitiveExecuteSetAsFrequency(esif_primitive_type primitive, Frequency frequency,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->primitiveExecuteSetAsFrequency(primitive, frequency, m_participantIndex, domainIndex, instance);
 }
 
 Power ParticipantServices::primitiveExecuteGetAsPower(esif_primitive_type primitive,

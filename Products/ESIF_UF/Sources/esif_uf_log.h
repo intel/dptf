@@ -28,17 +28,18 @@
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include "win\messages.h"
-void report_event_to_event_log (WORD eventCategory, WORD eventType, char *pFormat, ...);
+void report_event_to_event_log(WORD eventCategory, WORD eventType, char *pFormat, ...);
 
 #endif
 
 // TODO: Move this to a common header
-extern char*esif_str_replace (char *orig, char *rep, char *with);
+extern char *esif_str_replace(char *orig, char *rep, char *with);
 
 /* Primitive Opcodes String */
-static ESIF_INLINE esif_string esif_log_type_str (eLogType logType)
+static ESIF_INLINE esif_string esif_log_type_str(eLogType logType)
 {
-	#define CREATE_LOG_TYPE(lt) case lt: str = (char*) #lt; break;
+	#define CREATE_LOG_TYPE(lt) case lt: \
+	str = (char *) #lt;break;
 	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
 	switch (logType) {
 		CREATE_LOG_TYPE(eLogTypeFatal)
@@ -50,9 +51,11 @@ static ESIF_INLINE esif_string esif_log_type_str (eLogType logType)
 	return str;
 }
 
-
 #include "esif_uf_version.h"
-static void PostLog (
+
+// Delete This
+#if 0
+static void PostLog(
 	const char *thePackage,
 	const char *theModule,
 	const eLogType theType,
@@ -121,26 +124,30 @@ static void PostLog (
 #else
 	/* Write non-Windows Log messages to syslog */
 	{
-		int priority=0;
+		int priority = 0;
 		switch (theType) {
 		case eLogTypeDebug:
 			priority = LOG_DEBUG;
 			break;
+
 		case eLogTypeError:
 			priority = LOG_ERR;
 			break;
+
 		case eLogTypeFatal:
 			priority = LOG_EMERG;
 			break;
+
 		case eLogTypeWarning:
 			priority = LOG_WARNING;
 			break;
+
 		case eLogTypeInfo:
 		default:
 			priority = LOG_INFO;
 			break;
 		}
-		openlog("DPTF", LOG_PID,  LOG_DAEMON);
+		openlog("DPTF", LOG_PID, LOG_DAEMON);
 		syslog(priority, "%s", buf);
 		closelog();
 	}
@@ -154,6 +161,7 @@ static void PostLog (
 #define POST_LOG_WARNING(format, ...) PostLog(POST_LOG_PACKAGE, POST_LOG_MODULE, eLogTypeWarning, __FUNCTION__, __LINE__, format, __VA_ARGS__);
 #define POST_LOG_INFO(format, ...)    PostLog(POST_LOG_PACKAGE, POST_LOG_MODULE, eLogTypeInfo, __FUNCTION__, __LINE__, format, __VA_ARGS__);
 #define POST_LOG_DEBUG(format, ...)   PostLog(POST_LOG_PACKAGE, POST_LOG_MODULE, eLogTypeDebug, __FUNCTION__, __LINE__, format, __VA_ARGS__);
+#endif // Delete this
 
 #endif	// _ESIF_UF_IFACE_
 

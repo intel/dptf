@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,11 +15,10 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "Domain.h"
 #include "EsifDataString.h"
 #include "EsifDataGuid.h"
-
-#define DELETE_MEMORY(cd) try{if (cd != nullptr) {delete cd; cd = nullptr; }} catch (...) {}
 
 Domain::Domain(DptfManager* dptfManager) :
     m_domainCreated(false), m_dptfManager(dptfManager), m_theRealParticipant(nullptr),
@@ -34,8 +33,12 @@ Domain::Domain(DptfManager* dptfManager) :
     m_displayControlDynamicCaps(nullptr), m_displayControlStatus(nullptr), m_displayControlSet(nullptr),
     m_performanceControlStaticCaps(nullptr), m_performanceControlDynamicCaps(nullptr),
     m_performanceControlStatus(nullptr), m_performanceControlSet(nullptr),
-    m_powerControlDynamicCapsSet(nullptr), m_powerControlStatusSet(nullptr), m_powerStatus(nullptr),
+    m_pixelClockCapabilities(nullptr), m_pixelClockDataSet(nullptr),
+    m_powerControlDynamicCapsSet(nullptr), m_powerControlStatusSet(nullptr),
+    m_powerStatus(nullptr),
     m_domainPriority(nullptr),
+    m_rfProfileCapabilities(nullptr),
+    m_rfProfileData(nullptr),
     m_temperatureStatus(nullptr), m_temperatureThresholds(nullptr),
     m_utilizationStatus(nullptr)
 {
@@ -92,7 +95,7 @@ void Domain::destroyDomain(void)
 
     clearDomainCachedData();
 
-    DELETE_MEMORY(m_arbitrator);
+    DELETE_MEMORY_TC(m_arbitrator);
 }
 
 void Domain::enableDomain(void)
@@ -122,9 +125,13 @@ void Domain::clearDomainCachedData(void)
     clearDomainCachedDataCoreControl();
     clearDomainCachedDataDisplayControl();
     clearDomainCachedDataPerformanceControl();
+    //clearDomainCachedDataPixelClockControl(); *** Nothing to cache ***
+    clearDomainCachedDataPixelClockStatus();
     clearDomainCachedDataPowerControl();
     clearDomainCachedDataPowerStatus();
     clearDomainCachedDataPriority();
+    clearDomainCachedDataRfProfileControl();
+    clearDomainCachedDataRfProfileStatus();
     clearDomainCachedDataTemperature();
     clearDomainCachedDataUtilizationStatus();
 }
@@ -321,6 +328,25 @@ void Domain::setPerformanceControl(UIntN policyIndex, UIntN performanceControlIn
     }
 }
 
+void Domain::setPixelClockControl(UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet)
+{
+    // No arbitration.  Last caller wins.
+
+    m_theRealParticipant->setPixelClockControl(m_participantIndex, m_domainIndex, pixelClockDataSet);
+    //clearDomainCachedDataPixelClockControl(); *** Nothing to cache ***
+    clearDomainCachedDataPixelClockStatus();
+}
+
+PixelClockCapabilities Domain::getPixelClockCapabilities(void)
+{
+    FILL_CACHE_AND_RETURN(m_pixelClockCapabilities, PixelClockCapabilities, getPixelClockCapabilities);
+}
+
+PixelClockDataSet Domain::getPixelClockDataSet(void)
+{
+    FILL_CACHE_AND_RETURN(m_pixelClockDataSet, PixelClockDataSet, getPixelClockDataSet);
+}
+
 PowerControlDynamicCapsSet Domain::getPowerControlDynamicCapsSet(void)
 {
     FILL_CACHE_AND_RETURN(m_powerControlDynamicCapsSet, PowerControlDynamicCapsSet, getPowerControlDynamicCapsSet)
@@ -333,7 +359,6 @@ PowerControlStatusSet Domain::getPowerControlStatusSet(void)
 
 void Domain::setPowerControl(UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet)
 {
-
     PowerControlArbitrator* powerControlArbitrator = m_arbitrator->getPowerControlArbitrator();
 
     Bool updated = powerControlArbitrator->arbitrate(policyIndex, powerControlStatusSet);
@@ -354,6 +379,25 @@ PowerStatus Domain::getPowerStatus(void)
 DomainPriority Domain::getDomainPriority(void)
 {
     FILL_CACHE_AND_RETURN(m_domainPriority, DomainPriority, getDomainPriority)
+}
+
+RfProfileCapabilities Domain::getRfProfileCapabilities(void)
+{
+    FILL_CACHE_AND_RETURN(m_rfProfileCapabilities, RfProfileCapabilities, getRfProfileCapabilities);
+}
+
+void Domain::setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& centerFrequency)
+{
+    // No arbitration.  Last caller wins.
+
+    m_theRealParticipant->setRfProfileCenterFrequency(m_participantIndex, m_domainIndex, centerFrequency);
+    clearDomainCachedDataRfProfileControl();
+    clearDomainCachedDataRfProfileStatus();
+}
+
+RfProfileData Domain::getRfProfileData(void)
+{
+    FILL_CACHE_AND_RETURN(m_rfProfileData, RfProfileData, getRfProfileData);
 }
 
 TemperatureStatus Domain::getTemperatureStatus(void)
@@ -377,7 +421,7 @@ void Domain::setTemperatureThresholds(UIntN policyIndex, const TemperatureThresh
 
     // DO NOT invalidate the temperature status (m_temperatureStatus)
     // Only invalidate the temperature thresholds.
-    DELETE_MEMORY(m_temperatureThresholds);
+    DELETE_MEMORY_TC(m_temperatureThresholds);
 }
 
 UtilizationStatus Domain::getUtilizationStatus(void)
@@ -387,64 +431,86 @@ UtilizationStatus Domain::getUtilizationStatus(void)
 
 void Domain::clearDomainCachedDataActiveControl()
 {
-    DELETE_MEMORY(m_activeControlStaticCaps);
-    DELETE_MEMORY(m_activeControlStatus);
-    DELETE_MEMORY(m_activeControlSet);
+    DELETE_MEMORY_TC(m_activeControlStaticCaps);
+    DELETE_MEMORY_TC(m_activeControlStatus);
+    DELETE_MEMORY_TC(m_activeControlSet);
 }
 
 void Domain::clearDomainCachedDataConfigTdpControl()
 {
-    DELETE_MEMORY(m_configTdpControlDynamicCaps);
-    DELETE_MEMORY(m_configTdpControlStatus);
-    DELETE_MEMORY(m_configTdpControlSet);
+    DELETE_MEMORY_TC(m_configTdpControlDynamicCaps);
+    DELETE_MEMORY_TC(m_configTdpControlStatus);
+    DELETE_MEMORY_TC(m_configTdpControlSet);
 }
 
 void Domain::clearDomainCachedDataCoreControl()
 {
-    DELETE_MEMORY(m_coreControlStaticCaps);
-    DELETE_MEMORY(m_coreControlDynamicCaps);
-    DELETE_MEMORY(m_coreControlLpoPreference);
-    DELETE_MEMORY(m_coreControlStatus);
+    DELETE_MEMORY_TC(m_coreControlStaticCaps);
+    DELETE_MEMORY_TC(m_coreControlDynamicCaps);
+    DELETE_MEMORY_TC(m_coreControlLpoPreference);
+    DELETE_MEMORY_TC(m_coreControlStatus);
 }
 
 void Domain::clearDomainCachedDataDisplayControl()
 {
-    DELETE_MEMORY(m_displayControlDynamicCaps);
-    DELETE_MEMORY(m_displayControlStatus);
-    DELETE_MEMORY(m_displayControlSet);
+    DELETE_MEMORY_TC(m_displayControlDynamicCaps);
+    DELETE_MEMORY_TC(m_displayControlStatus);
+    DELETE_MEMORY_TC(m_displayControlSet);
 }
 
 void Domain::clearDomainCachedDataPerformanceControl()
 {
-    DELETE_MEMORY(m_performanceControlStaticCaps);
-    DELETE_MEMORY(m_performanceControlDynamicCaps);
-    DELETE_MEMORY(m_performanceControlStatus);
-    DELETE_MEMORY(m_performanceControlSet);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlStatus);
+    DELETE_MEMORY_TC(m_performanceControlSet);
+}
+
+// *** Nothing to cache ***
+//void Domain::clearDomainCachedDataPixelClockControl()
+//{
+//    DELETE_MEMORY_TC();
+//}
+
+void Domain::clearDomainCachedDataPixelClockStatus()
+{
+    DELETE_MEMORY_TC(m_pixelClockCapabilities);
+    DELETE_MEMORY_TC(m_pixelClockDataSet);
 }
 
 void Domain::clearDomainCachedDataPowerControl()
 {
-    DELETE_MEMORY(m_powerControlDynamicCapsSet);
-    DELETE_MEMORY(m_powerControlStatusSet);
+    DELETE_MEMORY_TC(m_powerControlDynamicCapsSet);
+    DELETE_MEMORY_TC(m_powerControlStatusSet);
 }
 
 void Domain::clearDomainCachedDataPowerStatus()
 {
-    DELETE_MEMORY(m_powerStatus);
+    DELETE_MEMORY_TC(m_powerStatus);
 }
 
 void Domain::clearDomainCachedDataPriority()
 {
-    DELETE_MEMORY(m_domainPriority);
+    DELETE_MEMORY_TC(m_domainPriority);
+}
+
+void Domain::clearDomainCachedDataRfProfileControl()
+{
+    DELETE_MEMORY_TC(m_rfProfileCapabilities);
+}
+
+void Domain::clearDomainCachedDataRfProfileStatus()
+{
+    DELETE_MEMORY_TC(m_rfProfileData);
 }
 
 void Domain::clearDomainCachedDataTemperature()
 {
-    DELETE_MEMORY(m_temperatureStatus);
-    DELETE_MEMORY(m_temperatureThresholds);
+    DELETE_MEMORY_TC(m_temperatureStatus);
+    DELETE_MEMORY_TC(m_temperatureThresholds);
 }
 
 void Domain::clearDomainCachedDataUtilizationStatus()
 {
-    DELETE_MEMORY(m_utilizationStatus);
+    DELETE_MEMORY_TC(m_utilizationStatus);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainActiveControlInterface.h"
@@ -22,9 +23,13 @@
 #include "DomainCoreControlInterface.h"
 #include "DomainDisplayControlInterface.h"
 #include "DomainPerformanceControlInterface.h"
+#include "DomainPixelClockControlInterface.h"
+#include "DomainPixelClockStatusInterface.h"
 #include "DomainPowerControlInterface.h"
 #include "DomainPowerStatusInterface.h"
 #include "DomainPriorityInterface.h"
+#include "DomainRfProfileControlInterface.h"
+#include "DomainRfProfileStatusInterface.h"
 #include "DomainTemperatureInterface.h"
 #include "DomainUtilizationInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
@@ -38,10 +43,8 @@
 #include "MessageLoggingInterface.h"
 #include "PolicyMessage.h"
 
-class PolicyServicesInterfaceContainer
+struct PolicyServicesInterfaceContainer
 {
-public:
-
     PolicyServicesInterfaceContainer(void);
 
     DomainActiveControlInterface* domainActiveControl;
@@ -49,9 +52,13 @@ public:
     DomainCoreControlInterface* domainCoreControl;
     DomainDisplayControlInterface* domainDisplayControl;
     DomainPerformanceControlInterface* domainPerformanceControl;
+    DomainPixelClockControlInterface* domainPixelClockControl;
+    DomainPixelClockStatusInterface* domainPixelClockStatus;
     DomainPowerControlInterface* domainPowerControl;
     DomainPowerStatusInterface* domainPowerStatus;
     DomainPriorityInterface* domainPriority;
+    DomainRfProfileControlInterface* domainRfProfileControl;
+    DomainRfProfileStatusInterface* domainRfProfileStatus;
     DomainTemperatureInterface* domainTemperature;
     DomainUtilizationInterface* domainUtilization;
     ParticipantGetSpecificInfoInterface* participantGetSpecificInfo;

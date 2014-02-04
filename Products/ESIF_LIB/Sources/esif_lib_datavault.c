@@ -433,7 +433,7 @@ static void DataVault_WriteLog (
 	EsifDataPtr value
 	)
 {
-#ifdef ESIF_CONFIG_LOG
+#ifndef ESIF_CONFIG_LOG
 	UNREFERENCED_PARAMETER(self);
 	UNREFERENCED_PARAMETER(action);
 	UNREFERENCED_PARAMETER(nameSpace);
@@ -451,8 +451,8 @@ static void DataVault_WriteLog (
 	if (!flags) {
 		return;
 	}
-
-	esif_ccb_sprintf(MAX_PATH, log_file.filename, "%s%s", esif_build_path(log_file.filename, MAX_PATH, ESIF_DIR_LOG, (EsifString)nameSpace), ESIFDV_LOGFILEEXT);
+	
+	esif_ccb_sprintf(MAX_PATH, log_file.filename, "%s%s%s", ESIFDV_DIR, (EsifString)nameSpace, ESIFDV_LOGFILEEXT);
 	esif_ccb_fopen(&filePtr, log_file.filename, "ab");
 	if (NULL == filePtr) {
 		return;
@@ -631,6 +631,7 @@ static eEsifError DataVault_WriteRegistry (
 
 		case ESIF_DATA_INT64:
 		case ESIF_DATA_UINT64:
+		case ESIF_DATA_FREQUENCY:
 			dwType = REG_QWORD;
 			dwSize = value->data_len;
 			break;

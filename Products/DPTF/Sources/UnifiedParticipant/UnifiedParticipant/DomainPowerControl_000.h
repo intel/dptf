@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainPowerControlInterface.h"
@@ -28,7 +29,7 @@
 //
 
 class DomainPowerControl_000 final : public DomainPowerControlInterface,
-    public ComponentExtendedInterface, public ConfigTdpDataSyncInterface
+    public ComponentExtendedInterface
 {
 public:
 
@@ -42,8 +43,4 @@ public:
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override final;
     virtual XmlNode* getXml(UIntN domainIndex) override final;
-
-    // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
-        ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus) override final;
 };

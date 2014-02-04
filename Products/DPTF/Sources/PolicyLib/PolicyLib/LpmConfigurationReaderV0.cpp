@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "LpmConfigurationReaderV0.h"
 #include <regex>
 
@@ -41,7 +42,7 @@ CoreControlOffliningMode::Type LpmConfigurationReaderV0::readCpuOffliningMode()
             root() + keyPath() + key);
         if (valueInt > CoreControlOffliningMode::Core)
         {
-            postErrorMessage(PolicyMessage(FLF,
+            m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF,
             "Invalid CoreControlOffliningMode returned (" + to_string(valueInt) + ")" +
                 " - defaulting to core", Constants::Invalid));
             cpuOffliningMode = CoreControlOffliningMode::Core;
@@ -54,7 +55,7 @@ CoreControlOffliningMode::Type LpmConfigurationReaderV0::readCpuOffliningMode()
     catch(dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "No CoreControlOffliningMode returned - defaulting to core. msg - " + msg,
             Constants::Invalid));
         cpuOffliningMode = CoreControlOffliningMode::Core;
@@ -77,7 +78,7 @@ UInt32 LpmConfigurationReaderV0::readCpuPercentageActiveLogicalProcessors()
     {
         string msg = e.what();
 
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "No CpuPercentageActiveLogicalProcessors - defaulting to 1%. msg - " + msg,
             Constants::Invalid));
 
@@ -111,7 +112,7 @@ UInt32 LpmConfigurationReaderV0::readCpuTargetFrequency()
     {
         string msg = e.what();
 
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
         "No CpuTargetFrequency - defaulting to 800Mhz. msg - " + msg,
         Constants::Invalid));
 
@@ -143,7 +144,7 @@ Bool LpmConfigurationReaderV0::readCpuUseTStateThrottling()
     catch(dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "No CpuUseTStateThrottling - defaulting to false. msg - " + msg,
             Constants::Invalid));
         cpuUseTStateThrottling = false;
@@ -173,7 +174,7 @@ UInt32 LpmConfigurationReaderV0::readPackagePowerLimit()
     {
         string msg = e.what();
 
-        postErrorMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF,
             "Error in reading PackagePowerLimit, default 10000000. msg - " + msg,
             Constants::Invalid));
         packagePowerLimit = 10000000; // Max valid power
@@ -196,7 +197,7 @@ UInt32 LpmConfigurationReaderV0::readGfxTargetFrequency()
     {
         string msg = e.what();
 
-        postErrorMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF,
             "Error in reading GfxTargetFrequency, default 100Mhz. msg - " + msg,
             Constants::Invalid));
 
@@ -240,7 +241,7 @@ UInt32 LpmConfigurationReaderV0::extractPowerLimit(string plString)
                 std::regex regSkuPattern(skuPattern);
                 if (std::regex_match(m_skuData, regSkuPattern))
                 {
-                    postDebugMessage(PolicyMessage(FLF,
+                    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
                         "SKU matched: m_skuData(" + m_skuData + ")" + " plValue(" + plString2 + ")",
                         Constants::Invalid));
                     if (!(plString2.find_first_not_of("0123456789") == string::npos))
@@ -265,7 +266,7 @@ UInt32 LpmConfigurationReaderV0::extractPowerLimit(string plString)
         {
             try
             {
-                postDebugMessage(PolicyMessage(FLF,
+                m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
                     "Non-SKU PL string: " + *entry, Constants::Invalid));
 
                 nonSkuPlValue = std::stoul(*entry);
@@ -388,7 +389,7 @@ vector<AppSpecificEntry> LpmConfigurationReaderV0::readAppSpecificEntries(void)
     catch (dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "Error msg (" + msg + "). Last entryIndex = " + to_string(entryIndex),
             Constants::Invalid));
     }
@@ -413,7 +414,7 @@ vector<string> LpmConfigurationReaderV0::readAppNames(UInt32 entryIndex)
     catch (dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "Error msg (" + msg + "). Error in reading AppName", Constants::Invalid));
     }
 

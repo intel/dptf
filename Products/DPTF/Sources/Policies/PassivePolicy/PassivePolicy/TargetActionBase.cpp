@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TargetActionBase.h"
 #include <tuple>
 using namespace std;
@@ -32,16 +33,6 @@ TargetActionBase::TargetActionBase(
 
 TargetActionBase::~TargetActionBase()
 {
-}
-
-void TargetActionBase::postDebugMessage(const PolicyMessage& message)
-{
-    getPolicyServices().messageLogging->writeMessageDebug(message);
-}
-
-void TargetActionBase::postWarningMessage(const PolicyMessage& message)
-{
-    getPolicyServices().messageLogging->writeMessageWarning(message);
 }
 
 vector<UIntN> TargetActionBase::getPackageDomains(UIntN source, const vector<UIntN>& domainsWithControlKnobsToTurn)
@@ -114,8 +105,8 @@ Bool TargetActionBase::compareDomainsOnPriorityAndUtilization(
     }
     else if (get<1>(left) == get<1>(right))
     {
-        if (get<2>(left).getCurrentUtilization().getPercentage() >
-            get<2>(right).getCurrentUtilization().getPercentage())
+        if (get<2>(left).getCurrentUtilization() >
+            get<2>(right).getCurrentUtilization())
         {
             return true;
         }

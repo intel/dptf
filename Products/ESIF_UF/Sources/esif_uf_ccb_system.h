@@ -28,7 +28,7 @@
 #endif
 
 // Execute System Command. Encapsulate to avoid Linux warnings when using gcc -O9
-static ESIF_INLINE void esif_ccb_system (const char *cmd)
+static ESIF_INLINE void esif_ccb_system(const char *cmd)
 {
 	int rc = system(cmd);
 	UNREFERENCED_PARAMETER(rc);
@@ -38,7 +38,7 @@ static ESIF_INLINE void esif_ccb_system (const char *cmd)
 #define system(cmd) esif_ccb_system(cmd)
 
 // Reboot
-static ESIF_INLINE void esif_ccb_reboot ()
+static ESIF_INLINE void esif_ccb_reboot()
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
 	system("shutdown /r /t 0");
@@ -47,27 +47,27 @@ static ESIF_INLINE void esif_ccb_reboot ()
 #endif
 }
 
-#if defined (ESIF_ATTR_OS_WINDOWS)
+
+#if defined(ESIF_ATTR_OS_WINDOWS)
 //
 // _THERMAL_EVENT and PowerReportThermalEvent have been defined in WinBlue WDK
-// 
+//
 #ifndef THERMAL_EVENT_VERSION
 
 #define THERMAL_EVENT_VERSION 1
-typedef struct _THERMAL_EVENT 
-{
-	ULONG Version;
-	ULONG Size;
-	ULONG Type;
-	ULONG Temperature;
-	ULONG TripPointTemperature;
-	LPWSTR Initiator; 
-} THERMAL_EVENT, *PTHERMAL_EVENT; 
+typedef struct _THERMAL_EVENT {
+	ULONG   Version;
+	ULONG   Size;
+	ULONG   Type;
+	ULONG   Temperature;
+	ULONG   TripPointTemperature;
+	LPWSTR  Initiator;
+} THERMAL_EVENT, *PTHERMAL_EVENT;
 
 #endif
 
-typedef DWORD (WINAPI *PFNPOWERREPORTTHERMALEVENT)(
-    PTHERMAL_EVENT Event);
+typedef DWORD (WINAPI * PFNPOWERREPORTTHERMALEVENT)(
+	PTHERMAL_EVENT Event);
 
 #define THERMAL_EVENT_SHUTDOWN 0
 #define THERMAL_EVENT_HIBERNATE 1
@@ -76,30 +76,33 @@ typedef DWORD (WINAPI *PFNPOWERREPORTTHERMALEVENT)(
 #endif
 
 // Enter S0 Shutdown
-static ESIF_INLINE void esif_ccb_shutdown (UInt32 temperature, UInt32 tripPointTemperature)
+static ESIF_INLINE void esif_ccb_shutdown(
+	UInt32 temperature,
+	UInt32 tripPointTemperature
+	)
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
-	/* 
-	** Report Thermal Event Before Shutdown With This UNDOCUMENTED API 
-	** Only Available in Windows 8.1/Blue.  
-    */
+
+	/*
+	** Report Thermal Event Before Shutdown With This UNDOCUMENTED API
+	** Only Available in Windows 8.1/Blue.
+	*/
 
 	HMODULE hModule = LoadLibrary(L"powrprof.dll");
-	if (NULL != hModule)
-	{
-		PFNPOWERREPORTTHERMALEVENT pfnPowerReportThermalEvent = (PFNPOWERREPORTTHERMALEVENT) GetProcAddress(
-			hModule,
-			"PowerReportThermalEvent");
+	if (NULL != hModule) {
+		PFNPOWERREPORTTHERMALEVENT pfnPowerReportThermalEvent = (PFNPOWERREPORTTHERMALEVENT)GetProcAddress(
+				hModule,
+				"PowerReportThermalEvent");
 
 		if (NULL != pfnPowerReportThermalEvent) {
 			THERMAL_EVENT t_event = {0};
-			t_event.Version = THERMAL_EVENT_VERSION;
-			t_event.Size = sizeof(THERMAL_EVENT);
-			t_event.Type = THERMAL_EVENT_SHUTDOWN;
+			t_event.Version     = THERMAL_EVENT_VERSION;
+			t_event.Size        = sizeof(THERMAL_EVENT);
+			t_event.Type        = THERMAL_EVENT_SHUTDOWN;
 			t_event.Temperature = temperature;
-            t_event.TripPointTemperature = tripPointTemperature;
-			t_event.Initiator = L"Intel(R) Dynamic Platform Thermal Framework";
-			
+			t_event.TripPointTemperature = tripPointTemperature;
+			t_event.Initiator   = L"Intel(R) Dynamic Platform Thermal Framework";
+
 			/* Best effort we are shutting down anyway */
 			pfnPowerReportThermalEvent(&t_event);
 		}
@@ -115,7 +118,7 @@ static ESIF_INLINE void esif_ccb_shutdown (UInt32 temperature, UInt32 tripPointT
 
 
 // Enter S4 Hibernation
-static ESIF_INLINE void esif_ccb_hibernate ()
+static ESIF_INLINE void esif_ccb_hibernate()
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
 	SetSuspendState(1, 1, 0);
@@ -128,7 +131,7 @@ static ESIF_INLINE void esif_ccb_hibernate ()
 
 
 // Enter S3 or CS
-static ESIF_INLINE void esif_ccb_suspend ()
+static ESIF_INLINE void esif_ccb_suspend()
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
 	SetSuspendState(0, 1, 0);

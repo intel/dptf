@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -27,6 +28,7 @@
 #include "SensorOrientation.h"
 #include "SensorProximity.h"
 #include "SensorSpatialOrientation.h"
+#include "RadioConnectionStatus.h"
 
 class dptf_export PolicyInterface
 {
@@ -91,33 +93,40 @@ public:
     virtual std::string getName(void) const = 0;
     virtual std::string getStatusAsXml(void) const = 0;
 
-    // Event handlers
-    virtual void domainTemperatureThresholdCrossed(UIntN participantIndex) = 0;
-    virtual void domainPowerControlCapabilityChanged(UIntN participantIndex) = 0;
-    virtual void domainPerformanceControlCapabilityChanged(UIntN participantIndex) = 0;
-    virtual void domainPerformanceControlsChanged(UIntN participantIndex) = 0;
-    virtual void domainCoreControlCapabilityChanged(UIntN participantIndex) = 0;
-    virtual void domainConfigTdpCapabilityChanged(UIntN participantIndex) = 0;
-    virtual void domainPriorityChanged(UIntN participantIndex) = 0;
-    virtual void participantSpecificInfoChanged(UIntN participantIndex) = 0;
-    virtual void domainDisplayControlCapabilityChanged(UIntN participantIndex) = 0;
-    virtual void domainDisplayStatusChanged(UIntN participantIndex) = 0;
-    virtual void activeRelationshipTableChanged(void) = 0;
-    virtual void thermalRelationshipTableChanged(void) = 0;
+    // DPTF Event handlers
     virtual void connectedStandbyEntry(void) = 0;
     virtual void connectedStandbyExit(void) = 0;
-    virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
-    virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) = 0;
-    virtual void operatingSystemLpmModeChanged(UIntN lpmMode) = 0;
-    virtual void platformLpmModeChanged(void) = 0;
-    virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) = 0;
-    virtual void coolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit) = 0;
+
+    // Participant/Domain Event Handlers
+    virtual void domainConfigTdpCapabilityChanged(UIntN participantIndex) = 0;
+    virtual void domainCoreControlCapabilityChanged(UIntN participantIndex) = 0;
+    virtual void domainDisplayControlCapabilityChanged(UIntN participantIndex) = 0;
+    virtual void domainDisplayStatusChanged(UIntN participantIndex) = 0;
+    virtual void domainPerformanceControlCapabilityChanged(UIntN participantIndex) = 0;
+    virtual void domainPerformanceControlsChanged(UIntN participantIndex) = 0;
+    virtual void domainPowerControlCapabilityChanged(UIntN participantIndex) = 0;
+    virtual void domainPriorityChanged(UIntN participantIndex) = 0;
+    virtual void domainRadioConnectionStatusChanged(UIntN participantIndex,
+        RadioConnectionStatus::Type radioConnectionStatus) = 0;
+    virtual void domainRfProfileChanged(UIntN participantIndex) = 0;
+    virtual void domainTemperatureThresholdCrossed(UIntN participantIndex) = 0;
+    virtual void participantSpecificInfoChanged(UIntN participantIndex) = 0;
+
+    // Policy Event Handlers
+    virtual void activeRelationshipTableChanged(void) = 0;
     virtual void coolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit) = 0;
     virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
+    virtual void coolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit) = 0;
+    virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
+    virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) = 0;
+    virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) = 0;
+    virtual void operatingSystemLpmModeChanged(UIntN lpmMode) = 0;
     virtual void passiveTableChanged(void) = 0;
+    virtual void platformLpmModeChanged(void) = 0;
     virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
-    virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
     virtual void sensorProximityChanged(SensorProximity::Type sensorProximity) = 0;
+    virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
+    virtual void thermalRelationshipTableChanged(void) = 0;
 };
 
 //

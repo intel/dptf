@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #ifndef _ESIF_DATA_MISC_H_
 #define _ESIF_DATA_MISC_H_
 
@@ -30,6 +31,12 @@ struct esif_data_complex_scp {
     u32 cooling_mode;
     u32 acoustic_limit;
     u32 power_limit;
+};
+
+// Thermal Shutdown Event
+struct esif_data_complex_shutdown {
+    u32 temperature;
+    u32 tripPointTemperature;
 };
 
 // Operating System Capabilities

@@ -149,6 +149,34 @@ static enum esif_rc pch_send_event(
 /* esif_pci_pch_ids pulled from autogen.h */
 MODULE_DEVICE_TABLE(pci, esif_pci_pch_ids);
 
+/* ACPI Send Event */
+enum esif_rc acpi_send_event(
+	struct esif_participant_iface *pi_ptr,
+	enum esif_event_type type, 
+	u16 domain, 
+	struct esif_data *data_ptr
+        )
+{
+        if (NULL == pi_ptr)
+                return ESIF_E_PARAMETER_IS_NULL;
+
+        if (NULL == pi_ptr->send_event)
+                return ESIF_E_CALLBACK_IS_NULL;
+
+        return pi_ptr->send_event(pi_ptr, type, domain, data_ptr);
+}
+
+/* ACPI Event Handler */
+static void acpi_notify(acpi_handle handle, u32 event, void *data)
+{
+	struct esif_participant_iface *pi_ptr = data;
+	struct esif_data event_data = { 
+		ESIF_DATA_UINT32, &event, sizeof(event), sizeof(event)};
+
+	ESIF_TRACE_DEBUG("%s: ACPI event on PCH %d\n", ESIF_FUNC, event);
+	acpi_send_event(pi_ptr, ESIF_EVENT_ACPI, 'NA', &event_data);
+}
+
 /* Probe */
 static int pci_pch_probe(
 	struct pci_dev *dev_ptr,
@@ -257,6 +285,12 @@ static int pci_pch_probe(
 					 pi.acpi_scope);
 			kfree(acpi_scope.pointer);
 		}
+		status = acpi_install_notify_handler(pi.acpi_handle, 
+				ACPI_ALL_NOTIFY, acpi_notify, &pi);
+		if (ACPI_FAILURE(status))
+			ESIF_TRACE_DEBUG("%s: acpi_install_notify_handler error %d\n",
+					ESIF_FUNC, status);
+
 	}
 	rc = esif_lf_register_participant(&pi);
 	if (ESIF_OK != rc)
@@ -276,6 +310,10 @@ error_cleanup:
 static void pci_pch_remove(struct pci_dev *dev_ptr)
 {
 	enum esif_rc rc;
+
+	if (pi.acpi_handle)
+		acpi_remove_notify_handler(pi.acpi_handle, ACPI_ALL_NOTIFY, 
+				acpi_notify);
 
 	rc = esif_lf_unregister_participant(&pi);
 

@@ -32,7 +32,7 @@
 ** Handle ESIF Action Request
 */
 
-static eEsifError ActionConfigGet (
+static eEsifError ActionConfigGet(
 	const void *actionHandle,
 	const EsifString devicePathPtr,
 	const EsifDataPtr p1Ptr,
@@ -66,7 +66,7 @@ static eEsifError ActionConfigGet (
 }
 
 
-static eEsifError ActionConfigSet (
+static eEsifError ActionConfigSet(
 	const void *actionHandle,
 	const EsifString devicePathPtr,
 	const EsifDataPtr p1Ptr,
@@ -97,7 +97,7 @@ static eEsifError ActionConfigSet (
 
 	/* 255 To delete temperatuer based key */
 	if (ESIF_DATA_TEMPERATURE == requestPtr->type &&
-		255 == *(UInt32*)requestPtr->buf_ptr) {
+		255 == *(UInt32 *)requestPtr->buf_ptr) {
 		flags |= ESIF_SERVICE_CONFIG_DELETE;
 	}
 
@@ -132,7 +132,7 @@ static EsifActType g_config = {
 	ActionConfigSet
 };
 
-enum esif_rc EsifActConfigInit ()
+enum esif_rc EsifActConfigInit()
 {
 	if (NULL != g_actMgr.AddActType) {
 		g_actMgr.AddActType(&g_actMgr, &g_config);
@@ -141,7 +141,7 @@ enum esif_rc EsifActConfigInit ()
 }
 
 
-void EsifActConfigExit ()
+void EsifActConfigExit()
 {
 	if (NULL != g_actMgr.RemoveActType) {
 		g_actMgr.RemoveActType(&g_actMgr, 0);

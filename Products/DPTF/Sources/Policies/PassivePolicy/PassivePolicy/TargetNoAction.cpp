@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TargetNoAction.h"
 using namespace std;
 
@@ -34,5 +35,5 @@ TargetNoAction::~TargetNoAction()
 
 void TargetNoAction::execute()
 {
-    postDebugMessage(PolicyMessage(FLF, "Nothing to do for target.", getTarget()));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Nothing to do for target.", getTarget()));
 }

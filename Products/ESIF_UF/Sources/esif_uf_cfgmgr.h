@@ -21,27 +21,27 @@
 
 #include "esif_uf.h"
 
-eEsifError EsifCfgMgrInit (void);
-void EsifCfgMgrExit (void);
+eEsifError EsifCfgMgrInit(void);
+void EsifCfgMgrExit(void);
 
 //////////////////////////
 // Backwards Compatibility
 //////////////////////////
 
-eEsifError EsifConfigInit (esif_string name);
-void EsifConfigExit (esif_string name);
+eEsifError EsifConfigInit(esif_string name);
+void EsifConfigExit(esif_string name);
 
 /* Get */
-eEsifError EsifConfigGet (EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value);
+eEsifError EsifConfigGet(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value);
 
 /* Set */
-eEsifError EsifConfigSet (EsifDataPtr nameSpace, EsifDataPtr path, esif_flags_t flags, EsifDataPtr value);
+eEsifError EsifConfigSet(EsifDataPtr nameSpace, EsifDataPtr path, esif_flags_t flags, EsifDataPtr value);
 
 /* Iterate First */
-eEsifError EsifConfigFindFirst (EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, UInt32 *context);
+eEsifError EsifConfigFindFirst(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, UInt32 *context);
 
 /* Iterate Next */
-eEsifError EsifConfigFindNext (EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, UInt32 *context);
+eEsifError EsifConfigFindNext(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, UInt32 *context);
 
 #endif /* _ESIF_UF_CFGMGR */
 

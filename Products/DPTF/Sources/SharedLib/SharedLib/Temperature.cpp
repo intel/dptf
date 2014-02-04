@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,90 +15,113 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#include "Temperature.h"
-#include "DptfExceptions.h"
-#include "XmlNode.h"
-#include "StatusFormat.h"
 
-Temperature::Temperature(void) : m_temperature(invalidTemperature)
+#include "Temperature.h"
+
+Temperature::Temperature(void)
+    : m_temperature(0), m_valid(false)
 {
 }
 
-Temperature::Temperature(UInt32 temperature) : m_temperature(temperature)
+Temperature::Temperature(UInt32 temperature)
+    : m_temperature(temperature), m_valid(true)
 {
-    if (temperature > maxValidTemperature && temperature != invalidTemperature)
+    if (temperature > maxValidTemperature)
     {
         throw dptf_exception("Temperature out of valid range");
     }
 }
 
-UInt32 Temperature::getTemperature() const
+Temperature Temperature::createInvalid()
 {
-    return m_temperature;
-}
-
-Bool Temperature::isTemperatureValid() const
-{
-    return (m_temperature != invalidTemperature);
-}
-
-Bool Temperature::operator>(const Temperature& rhs) const
-{
-    throwIfTemperatureNotValid();
-    return (this->getTemperature() > rhs.getTemperature());
-}
-
-Bool Temperature::operator>=(const Temperature& rhs) const
-{
-    throwIfTemperatureNotValid();
-    return (this->getTemperature() >= rhs.getTemperature());
-}
-
-Bool Temperature::operator<(const Temperature& rhs) const
-{
-    throwIfTemperatureNotValid();
-    return (this->getTemperature() < rhs.getTemperature());
-}
-
-Bool Temperature::operator<=(const Temperature& rhs) const
-{
-    throwIfTemperatureNotValid();
-    return (this->getTemperature() <= rhs.getTemperature());
+    return Temperature();
 }
 
 Bool Temperature::operator==(const Temperature& rhs) const
 {
     // Do not throw an exception if temperature is not valid.
-    return (this->getTemperature() == rhs.getTemperature());
+
+    if (this->isValid() == true && rhs.isValid() == true)
+    {
+        return (this->m_temperature == rhs.m_temperature);
+    }
+    else if (this->isValid() == false && rhs.isValid() == false)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 Bool Temperature::operator!=(const Temperature& rhs) const
 {
     // Do not throw an exception if temperature is not valid.
-    return (this->getTemperature() != rhs.getTemperature());
+    return !(*this == rhs);
 }
 
-void Temperature::throwIfTemperatureNotValid(void) const
+Bool Temperature::operator>(const Temperature& rhs) const
 {
-    if (isTemperatureValid() == false)
-    {
-        throw dptf_exception("Temperature is not valid.");
-    }
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_temperature > rhs.m_temperature);
 }
 
-XmlNode* Temperature::getXml(std::string tag)
+Bool Temperature::operator>=(const Temperature& rhs) const
 {
-    return XmlNode::createDataElement(tag, StatusFormat::friendlyValue(m_temperature));
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_temperature >= rhs.m_temperature);
+}
+
+Bool Temperature::operator<(const Temperature& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_temperature < rhs.m_temperature);
+}
+
+Bool Temperature::operator<=(const Temperature& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return (this->m_temperature <= rhs.m_temperature);
+}
+
+std::ostream& operator<<(std::ostream& os, const Temperature& temperature)
+{
+    os << temperature.toString();
+    return os;
+}
+
+Temperature::operator UInt32(void) const
+{
+    throwIfInvalid(*this);
+    return m_temperature;
+}
+
+Bool Temperature::isValid() const
+{
+    return m_valid;
 }
 
 std::string Temperature::toString() const
 {
-    if (isTemperatureValid())
+    if (isValid())
     {
-        return std::to_string(m_temperature) + "C"; // TODO: adjust for when we get 10th degrees C
+        return std::to_string(m_temperature); // TODO: adjust for when we get 10th degrees C
     }
     else
     {
-        return "_C"; // TODO: adjust for when we get 10th degrees C
+        return std::string(Constants::InvalidString);
+    }
+}
+
+void Temperature::throwIfInvalid(const Temperature& temperature) const
+{
+    if (temperature.isValid() == false)
+    {
+        throw dptf_exception("Temperature is not valid.");
     }
 }

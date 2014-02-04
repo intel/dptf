@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -51,7 +52,6 @@ public:
 
     UIntN getDomainCount(void) const;
     UIntN getDomainIndex(Domain* domainPtr);
-    //UIntN getDomainListCount(void) const;
 
     // This will clear the cached data stored within the participant and associated domains within the framework.
     // It will not ask the actual participant to clear any of its data.
@@ -73,14 +73,16 @@ public:
     //
     void connectedStandbyEntry(void);
     void connectedStandbyExit(void);
-    void domainPowerControlCapabilityChanged(void);
-    void domainPerformanceControlCapabilityChanged(void);
-    void domainPerformanceControlsChanged(void);
-    void domainCoreControlCapabilityChanged(void);
     void domainConfigTdpCapabilityChanged(void);
-    void domainPriorityChanged(void);
+    void domainCoreControlCapabilityChanged(void);
     void domainDisplayControlCapabilityChanged(void);
     void domainDisplayStatusChanged(void);
+    void domainPerformanceControlCapabilityChanged(void);
+    void domainPerformanceControlsChanged(void);
+    void domainPowerControlCapabilityChanged(void);
+    void domainPriorityChanged(void);
+    void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus);
+    void domainRfProfileChanged(void);
     void domainTemperatureThresholdCrossed(void);
     void participantSpecificInfoChanged(void);
 
@@ -121,6 +123,13 @@ public:
     PerformanceControlSet getPerformanceControlSet(UIntN domainIndex);
     void setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex);
 
+    // Pixel Clock Control
+    void setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
+
+    // Pixel Clock Status
+    PixelClockCapabilities getPixelClockCapabilities(UIntN domainIndex);
+    PixelClockDataSet getPixelClockDataSet(UIntN domainIndex);
+
     // Power controls
     PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex);
     PowerControlStatusSet getPowerControlStatusSet(UIntN domainIndex);
@@ -131,6 +140,13 @@ public:
 
     // priority
     DomainPriority getDomainPriority(UIntN domainIndex);
+
+    // RF Profile Control
+    RfProfileCapabilities getRfProfileCapabilities(UIntN domainIndex);
+    void setRfProfileCenterFrequency(UIntN domainIndex, UIntN policyIndex, const Frequency& centerFrequency);
+
+    // RF Profile Status
+    RfProfileData getRfProfileData(UIntN domainIndex);
 
     // temperature
     TemperatureStatus getTemperatureStatus(UIntN domainIndex);

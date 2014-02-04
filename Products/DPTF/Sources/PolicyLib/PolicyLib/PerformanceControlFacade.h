@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
@@ -66,4 +67,6 @@ private:
     PerformanceControlStatusCachedProperty m_performanceControlStatusProperty;
     PerformanceControlCapabilitiesCachedProperty m_performanceControlCapabilitiesProperty;
     Bool m_controlsHaveBeenInitialized;
+    UIntN m_lastIssuedPerformanceControlIndex;
+    Bool m_isLimited;
 };

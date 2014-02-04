@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,10 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ActiveControlSet.h"
 #include "XmlNode.h"
 
-ActiveControlSet::ActiveControlSet(std::vector<ActiveControl> activeControl) :
+ActiveControlSet::ActiveControlSet(const std::vector<ActiveControl>& activeControl) :
     m_activeControl(activeControl)
 {
 }
@@ -36,6 +37,11 @@ const ActiveControl& ActiveControlSet::operator[](UIntN index) const
 Bool ActiveControlSet::operator==(const ActiveControlSet& rhs) const
 {
     return (m_activeControl == rhs.m_activeControl);
+}
+
+Bool ActiveControlSet::operator!=(const ActiveControlSet& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* ActiveControlSet::getXml(void)

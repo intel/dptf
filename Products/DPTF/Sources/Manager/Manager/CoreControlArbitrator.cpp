@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CoreControlArbitrator.h"
 #include "Utility.h"
 
@@ -28,11 +29,7 @@ CoreControlArbitrator::~CoreControlArbitrator(void)
 {
     for (UIntN i = 0; i < m_requestedCoreControlStatus.size(); i++)
     {
-        if (m_requestedCoreControlStatus[i] != nullptr)
-        {
-            delete m_requestedCoreControlStatus[i];
-            m_requestedCoreControlStatus[i] = nullptr;
-        }
+        DELETE_MEMORY_TC(m_requestedCoreControlStatus[i]);
     }
 }
 
@@ -89,10 +86,8 @@ CoreControlStatus CoreControlArbitrator::getArbitratedCoreControlStatus(void) co
 
 void CoreControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if ((policyIndex < m_requestedCoreControlStatus.size()) &&
-        (m_requestedCoreControlStatus[policyIndex] != nullptr))
+    if (policyIndex < m_requestedCoreControlStatus.size())
     {
-        delete m_requestedCoreControlStatus[policyIndex];
-        m_requestedCoreControlStatus[policyIndex] = nullptr;
+        DELETE_MEMORY_TC(m_requestedCoreControlStatus[policyIndex]);
     }
 }

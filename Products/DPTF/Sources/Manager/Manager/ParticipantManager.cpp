@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ParticipantManager.h"
 #include "WorkItemQueueManager.h"
 #include "WIParticipantDestroy.h"
@@ -99,14 +100,7 @@ void ParticipantManager::destroyParticipant(UIntN participantIndex)
         {
         }
 
-        try
-        {
-            delete m_participant[participantIndex];
-            m_participant[participantIndex] = nullptr;
-        }
-        catch (...)
-        {
-        }
+        DELETE_MEMORY_TC(m_participant[participantIndex]);
     }
 }
 

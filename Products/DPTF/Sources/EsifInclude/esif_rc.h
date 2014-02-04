@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #ifndef _ESIF_RC_H_
 #define _ESIF_RC_H_
 
@@ -131,6 +132,7 @@ enum esif_rc {
     /* Repository */
     ESIF_E_NOT_FOUND=2000,                  /* Item Not Found */
     ESIF_E_READONLY,                        /* Item is Read-Only */
+    ESIF_E_WS_DISC,                         /* WS client disconnected */
 };
 
 /* Convert Return Code To A String */
@@ -194,6 +196,7 @@ static ESIF_INLINE char
     ESIF_CREATE_RC(ESIF_E_INVALID_HANDLE)
     ESIF_CREATE_RC(ESIF_E_NOT_FOUND)
     ESIF_CREATE_RC(ESIF_E_READONLY)
+    ESIF_CREATE_RC(ESIF_E_WS_DISC)
     }
     return str;
 }

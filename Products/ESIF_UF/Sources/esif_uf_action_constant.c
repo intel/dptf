@@ -31,7 +31,7 @@
 ** Handle ESIF Action Request
 */
 
-static eEsifError ActionConstGet (
+static eEsifError ActionConstGet(
 	const void *actionHandle,
 	const EsifString devicePathPtr,
 	const EsifDataPtr p1Ptr,
@@ -64,39 +64,35 @@ static eEsifError ActionConstGet (
 	ESIF_ASSERT(NULL != p1Ptr->buf_ptr);
 	ESIF_ASSERT(ESIF_DATA_UINT32 == p1Ptr->type);
 
-	val = *(UInt32*)p1Ptr->buf_ptr;
+	val = *(UInt32 *)p1Ptr->buf_ptr;
 
-	#define ESIF_GET_UINT_DATA(type) {                              \
-		responsePtr->data_len = sizeof(type);                  \
-		if (responsePtr->buf_len >= sizeof(type)) {            \
-			*((type*)responsePtr->buf_ptr) = (type)val; \
-		} else {                                                         \
-			rc = ESIF_E_OVERFLOWED_RESULT_TYPE; \
-		} \
-}
 
-	switch (responsePtr->type) {
-	case ESIF_DATA_UINT8:
-		ESIF_GET_UINT_DATA(UInt8);
-		break;
+	/*
+	 * Const items are kept as 32-bit values; however, the call may be for
+	 * a different size depending on type.  Return data as the largest
+	 * type the buffer passed in can accept.
+	 */
+	if (responsePtr->buf_len >= sizeof(UInt64)) {
+		responsePtr->data_len = sizeof(UInt64);
+		*((UInt64 *)responsePtr->buf_ptr) = (UInt64)val;
 
-	case ESIF_DATA_UINT16:
-		ESIF_GET_UINT_DATA(UInt16);
-		break;
+	} else if (responsePtr->buf_len >= sizeof(UInt32)) {
+		responsePtr->data_len = sizeof(UInt32);
+		*((UInt32 *)responsePtr->buf_ptr) = (UInt32)val;
 
-	case ESIF_DATA_UINT32:
-	case ESIF_DATA_TEMPERATURE:
-		ESIF_GET_UINT_DATA(UInt32);
-		break;
+	} else if (responsePtr->buf_len >= sizeof(UInt16)) {
+		responsePtr->data_len = sizeof(UInt16);
+		*((UInt16 *)responsePtr->buf_ptr) = (UInt16)val;
 
-	case ESIF_DATA_UINT64:
-		ESIF_GET_UINT_DATA(UInt64);
-		break;
+	} else if (responsePtr->buf_len >= sizeof(UInt8)) {
+		responsePtr->data_len = sizeof(UInt8);
+		*((UInt8 *)responsePtr->buf_ptr) = (UInt8)val;
 
-	default:
-		rc = ESIF_E_NOT_IMPLEMENTED;
-		break;
+	} else {
+		/* Should only happen if buffer len is 0 */
+		rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
 	}
+
 	return rc;
 }
 
@@ -128,7 +124,7 @@ static EsifActType g_const = {
 	NULL
 };
 
-enum esif_rc EsifActConstInit ()
+enum esif_rc EsifActConstInit()
 {
 	if (NULL != g_actMgr.AddActType) {
 		g_actMgr.AddActType(&g_actMgr, &g_const);
@@ -137,7 +133,7 @@ enum esif_rc EsifActConstInit ()
 }
 
 
-void EsifActConstExit ()
+void EsifActConstExit()
 {
 	if (NULL != g_actMgr.RemoveActType) {
 		g_actMgr.RemoveActType(&g_actMgr, 0);

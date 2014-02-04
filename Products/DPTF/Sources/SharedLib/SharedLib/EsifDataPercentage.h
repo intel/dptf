@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -36,8 +37,12 @@ private:
     EsifDataPercentage(const EsifDataPercentage& rhs);
     EsifDataPercentage& operator=(const EsifDataPercentage& rhs);
 
-    UInt8 m_esifDataValue;
+    // 93% is stored as 9300
+    UInt32 m_esifDataValue;
     esif::EsifData m_esifData;
 
-    void initialize(UInt8 data);
+    static const UInt32 m_conversionValue = 10000;
+    static const double m_roundingValue;
+
+    void initialize(UInt32 data);
 };

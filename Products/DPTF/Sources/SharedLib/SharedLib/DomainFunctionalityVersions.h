@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -42,4 +43,8 @@ struct DomainFunctionalityVersions final
     UInt8 powerStatusVersion;
     UInt8 temperatureVersion;
     UInt8 utilizationVersion;
+    UInt8 pixelClockControlVersion;
+    UInt8 pixelClockStatusVersion;
+    UInt8 rfProfileControlVersion;
+    UInt8 rfProfileStatusVersion;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PowerControlFacade.h"
 using namespace std;
 
@@ -30,7 +31,9 @@ PowerControlFacade::PowerControlFacade(
     m_powerControlSetProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_powerStatusProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_powerControlCapabilitiesProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_controlsHaveBeenInitialized(false)
+    m_controlsHaveBeenInitialized(false),
+    m_lastIssuedPowerControlStatus(PowerControlType::pl1, Power(0), 0, Percentage(0.0)),
+    m_isLimited(false)
 {
 }
 
@@ -67,6 +70,10 @@ void PowerControlFacade::setControl(const PowerControlStatus& powerControlStatus
             }
         }
 
+        m_lastIssuedPowerControlStatus = powerControlStatus;
+        const PowerControlDynamicCapsSet& caps = getCapabilities();
+        UIntN pl1Index = getPl1ControlSetIndex();
+        m_isLimited = m_lastIssuedPowerControlStatus.getCurrentPowerLimit() < caps[pl1Index].getMaxPowerLimit();
         m_policyServices.domainPowerControl->setPowerControl(
             m_participantIndex, m_domainIndex, PowerControlStatusSet(powerControlList));
         m_powerStatusProperty.invalidate();
@@ -80,7 +87,6 @@ void PowerControlFacade::setControl(const PowerControlStatus& powerControlStatus
 
 const PowerControlStatusSet& PowerControlFacade::getControls()
 {
-    initializeControlsIfNeeded();
     return m_powerControlSetProperty.getControlSet();
 }
 
@@ -138,10 +144,10 @@ UIntN PowerControlFacade::getPlControlSetIndex(PowerControlType::Type plType)
 
 void PowerControlFacade::initializeControlsIfNeeded()
 {
+    const PowerControlDynamicCapsSet& caps = getCapabilities();
     if (m_controlsHaveBeenInitialized == false)
     {
         vector<PowerControlStatus> initialStatusList;
-        const PowerControlDynamicCapsSet& caps = getCapabilities();
         for (UIntN capIndex = 0; capIndex < caps.getCount(); ++capIndex)
         {
             initialStatusList.push_back(
@@ -151,8 +157,38 @@ void PowerControlFacade::initializeControlsIfNeeded()
                     caps[capIndex].getMaxTimeWindow(),
                     caps[capIndex].getMaxDutyCycle()));
         }
+        m_lastIssuedPowerControlStatus = initialStatusList[0];
         m_policyServices.domainPowerControl->setPowerControl(
             m_participantIndex, m_domainIndex, PowerControlStatusSet(initialStatusList));
         m_controlsHaveBeenInitialized = true;
+    }
+    else
+    {
+        UIntN pl1Index = getPl1ControlSetIndex();
+        Power lastIssuedPowerLimit = m_lastIssuedPowerControlStatus.getCurrentPowerLimit();
+        Power maxPowerLimit = caps[pl1Index].getMaxPowerLimit();
+        Power minPowerLimit = caps[pl1Index].getMinPowerLimit();
+        if (m_isLimited)
+        {
+            if (lastIssuedPowerLimit > maxPowerLimit)
+            {
+                setControl(PowerControlStatus(caps[pl1Index].getPowerControlType(), caps[pl1Index].getMaxPowerLimit(), 
+                    caps[pl1Index].getMaxTimeWindow(), caps[pl1Index].getMaxDutyCycle()), 0);
+            }
+
+            if (lastIssuedPowerLimit < minPowerLimit)
+            {
+                setControl(PowerControlStatus(caps[pl1Index].getPowerControlType(), caps[pl1Index].getMinPowerLimit(), 
+                    caps[pl1Index].getMaxTimeWindow(), caps[pl1Index].getMaxDutyCycle()), 0);
+            }
+        }
+        else
+        {
+            if (lastIssuedPowerLimit != maxPowerLimit)
+            {
+                setControl(PowerControlStatus(caps[pl1Index].getPowerControlType(), caps[pl1Index].getMaxPowerLimit(), 
+                    caps[pl1Index].getMaxTimeWindow(), caps[pl1Index].getMaxDutyCycle()), 0);
+            }
+        }
     }
 }

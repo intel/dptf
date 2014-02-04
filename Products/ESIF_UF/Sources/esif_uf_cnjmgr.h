@@ -33,15 +33,15 @@ typedef struct _t_EsifCnjMgr {
 #undef THIS
 
 /* Conjure Control */
-eEsifError EsifConjureStart (EsifCnjPtr cnjPtr);
-eEsifError EsifConjureStop (EsifCnjPtr cnjPtr);
+eEsifError EsifConjureStart(EsifCnjPtr cnjPtr);
+eEsifError EsifConjureStop(EsifCnjPtr cnjPtr);
 
 /* Conjure Support */
 EsifCnjPtr esif_uf_conjure_get_instance_from_name(EsifString);
 
 /* Init / Exit */
-eEsifError EsifCnjMgrInit (void);
-void EsifCnjMgrExit (void);
+eEsifError EsifCnjMgrInit(void);
+void EsifCnjMgrExit(void);
 
 #endif /* _ESIF_UF_CNJMGR */
 

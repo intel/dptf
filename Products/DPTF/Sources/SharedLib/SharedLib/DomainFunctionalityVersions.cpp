@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainFunctionalityVersions.h"
 #include "esif_capability_type.h"
 
@@ -28,7 +29,11 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void) :
     powerControlVersion(0),
     powerStatusVersion(0),
     temperatureVersion(0),
-    utilizationVersion(0)
+    utilizationVersion(0),
+    pixelClockControlVersion(0),
+    pixelClockStatusVersion(0),
+    rfProfileControlVersion(0),
+    rfProfileStatusVersion(0)
 {
 }
 
@@ -44,4 +49,8 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
     powerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_STATUS];
     temperatureVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TEMP_STATUS];
     utilizationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_UTIL_STATUS];
+    pixelClockControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL];
+    pixelClockStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS];
+    rfProfileControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL];
+    rfProfileStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS];
 }

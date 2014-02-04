@@ -100,12 +100,9 @@ A,0,22,True,0x606,3,0,,
 # GET_RAPL_TIME_UNIT
 P,122,255,1,24,"<schema></schema>",31,"<schema></schema>"
 A,0,22,True,0x606,19,16,,
-# GET_RAPL_TIME_WINDOW
-P,39,0,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,22,True,0x610,23,17,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,29,True,"MAXT",0x3144,0x3244,,
 # GET_TEMPERATURE_THRESHOLD_COUNT
 P,72,255,1,24,"<schema></schema>",3,"<schema></schema>"
@@ -121,19 +118,19 @@ P,143,1,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,29,True,"GTT1",,,,
 # GET_TRIP_POINT_CRITICAL
 P,13,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_crt",,,
+A,0,20,False,"DPTF","/participants/%nm%/_crt",,,
 A,1,4,True,"_CRT",,,,
 # GET_TRIP_POINT_HOT
 P,12,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_hot",,,
+A,0,20,False,"DPTF","/participants/%nm%/_hot",,,
 A,1,4,True,"_HOT",,,,
 # GET_TRIP_POINT_PASSIVE
 P,11,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_psv",,,
+A,0,20,False,"DPTF","/participants/%nm%/_psv",,,
 A,1,4,True,"_PSV",,,,
 # GET_TRIP_POINT_WARM
 P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_cr3",,,
+A,0,20,False,"DPTF","/participants/%nm%/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
 P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
@@ -150,12 +147,9 @@ A,0,22,True,0x610,14,0,,
 # SET_RAPL_POWER_LIMIT_ENABLE
 P,222,0,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x610,15,15,,
-# SET_RAPL_TIME_WINDOW
-P,127,0,2,31,"<schema></schema>",24,"<schema></schema>"
-A,0,22,True,0x610,23,17,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 # SET_TEMPERATURE_THRESHOLDS
 P,47,0,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,29,True,"STT0",,,,
@@ -164,16 +158,16 @@ P,47,1,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,29,True,"STT1",,,,
 # SET_TRIP_POINT_CRITICAL
 P,203,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_crt",,,
+A,0,20,False,"DPTF","/participants/%nm%/_crt",,,
 # SET_TRIP_POINT_HOT
 P,204,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_hot",,,
+A,0,20,False,"DPTF","/participants/%nm%/_hot",,,
 # SET_TRIP_POINT_PASSIVE
 P,206,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_psv",,,
+A,0,20,False,"DPTF","/participants/%nm%/_psv",,,
 # SET_TRIP_POINT_WARM
 P,205,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_cr3",,,
+A,0,20,False,"DPTF","/participants/%nm%/_cr3",,,
 #
 D,"CPU","IA Domain","D1","B8F4BD9B-D943-490B-877A-B334DDB9265C",1,0
 C,0x1B4 ,0x0,0x0,0x1,0x0,0x1,0x2,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x0
@@ -181,12 +175,12 @@ C,0x1B4 ,0x0,0x0,0x1,0x0,0x1,0x2,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 # GET_DOMAIN_PRIORITY
 P,178,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,1,True,9,,,,
-# GET_PROC_APPLICATION_EXCLUDE_LIST
-P,68,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,4,True,"AEXL",,,,
 # GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING
 P,69,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"CLPO",,,,
+# GET_PROC_LOGICAL_PROCESSOR_AFFINITY
+P,228,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,29,True,"GAFF",,,,
 # GET_PROC_PERF_PRESENT_CAPABILITY
 P,56,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"_PPC",,,,
@@ -210,8 +204,8 @@ P,35,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,29,True,"GRP1",,,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
-A,1,22,True,0x19c,31,0,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
+A,1,22,True,0x19c,31,0,0x2,
 # GET_TSTATE_CURRENT
 P,16,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,22,True,0x19a,4,0,0x1,
@@ -224,9 +218,13 @@ A,0,4,True,"SPUR",,,,
 # SET_PERF_PRESENT_CAPABILITY
 P,82,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"SPPC",,,,
+# SET_PROC_LOGICAL_PROCESSOR_AFFINITY
+P,229,255,2,3,"<schema></schema>",24,"<schema></schema>"
+A,0,4,True,"SPUR",,,,
+A,1,29,True,"SAFF",,,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 # SET_TSTATE_CURRENT
 P,147,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x19a,4,0,0x1,
@@ -245,33 +243,33 @@ P,35,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,29,True,"SUBP",0x3044,0x3144,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,29,True,"MAXT",0x3344,0x3444,,
 # SET_PERF_PRESENT_CAPABILITY
 P,82,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,36,True,,,,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 #
 D,"DTS0","Die Temp Sensor 0","D3","4B13ADC4-167B-4168-8B4C-0CFE7D4D5EE1",3,3
 C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,34,True,0x4,0xb1,7,0,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 #
 D,"DTS1","Die Temp Sensor 1","D4","9E761824-B517-4604-B20B-53A6427C2B9E",4,3
 C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,34,True,0x4,0xb1,15,8,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,

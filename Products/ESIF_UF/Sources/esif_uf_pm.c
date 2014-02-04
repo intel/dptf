@@ -43,8 +43,8 @@ EsifUppMgr g_uppMgr = {0};
 ** PRIVATE
 ** ===========================================================================
 */
-static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata (const eEsifParticipantOrigin origin, const void *metadataPtr);
-static eEsifError EsifUpManagerDestroyParticipants (void);
+static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata(const eEsifParticipantOrigin origin, const void *metadataPtr);
+static eEsifError EsifUpManagerDestroyParticipants(void);
 
 
 /*
@@ -53,7 +53,7 @@ static eEsifError EsifUpManagerDestroyParticipants (void);
 **  intialize the data from the upper participant from the lower participant
 **  registration data.
 */
-static void UpInitializeOriginLF (
+static void UpInitializeOriginLF(
 	const EsifUpPtr upPtr,
 	const UInt8 lpInstance,
 	const void *lpMetadataPtr
@@ -61,7 +61,7 @@ static void UpInitializeOriginLF (
 {
 	/* Lower Framework Participant Metadata Format */
 	struct esif_ipc_event_data_create_participant *metadata_ptr =
-		(struct esif_ipc_event_data_create_participant*)lpMetadataPtr;
+		(struct esif_ipc_event_data_create_participant *)lpMetadataPtr;
 
 	ESIF_ASSERT(upPtr != NULL);
 	ESIF_ASSERT(metadata_ptr != NULL);
@@ -108,7 +108,7 @@ static void UpInitializeOriginLF (
    Kernel corresponding participant or in some cases we may not even have a
    lower frame work present.
  */
-static void UpInitializeOriginUF (
+static void UpInitializeOriginUF(
 	const EsifUpPtr upPtr,
 	const void *upMetadataPtr
 	)
@@ -146,7 +146,7 @@ static void UpInitializeOriginUF (
 */
 
 /* Create participant */
-EsifUpPtr EsifUpManagerCreateParticipant (
+EsifUpPtr EsifUpManagerCreateParticipant(
 	const eEsifParticipantOrigin origin,
 	const void *handle,
 	const void *metadataPtr
@@ -165,14 +165,14 @@ EsifUpPtr EsifUpManagerCreateParticipant (
 		goto exit;
 	}
 
-	lpInstance = *(UInt8*)handle;
+	lpInstance = *(UInt8 *)handle;
 
 	/*
 	 * Check if a participant has already been created, but was then removed.
 	 * In that case, just re-enable the participant.
 	 */
 	entry_ptr = EsifUpManagerGetParticipantEntryFromMetadata(origin, metadataPtr);
-	if(NULL != entry_ptr) {
+	if (NULL != entry_ptr) {
 		up_ptr = entry_ptr->fUpPtr;
 		entry_ptr->fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
 		g_uppMgr.fEntryCount++;
@@ -235,7 +235,7 @@ exit:
 
 
 /* Unregister Upper Participant Instance */
-eEsifError EsifUpManagerUnregisterParticipant (
+eEsifError EsifUpManagerUnregisterParticipant(
 	const eEsifParticipantOrigin origin,
 	const void *participantHandle
 	)
@@ -254,9 +254,9 @@ eEsifError EsifUpManagerUnregisterParticipant (
 		goto exit;
 	}
 
-	instance = *(UInt8*)participantHandle;
+	instance = *(UInt8 *)participantHandle;
 
-	if(instance > MAX_PARTICIPANT_ENTRY) {
+	if (instance > MAX_PARTICIPANT_ENTRY) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
@@ -273,13 +273,14 @@ eEsifError EsifUpManagerUnregisterParticipant (
 	}
 	esif_ccb_write_unlock(&g_uppMgr.fLock);
 
-	if(NULL != up_ptr) {
+	if (NULL != up_ptr) {
 		rc = EsifAppMgrDestroyParticipantInAllApps(up_ptr);
 	}
 
 exit:
 	return rc;
 }
+
 
 eEsifError EsifUpManagerRegisterParticipantsWithApp(EsifAppPtr aAppPtr)
 {
@@ -309,7 +310,7 @@ eEsifError EsifUpManagerRegisterParticipantsWithApp(EsifAppPtr aAppPtr)
 }
 
 
-eEsifError EsifUpManagerDestroyParticipantsInApp (EsifAppPtr aAppPtr)
+eEsifError EsifUpManagerDestroyParticipantsInApp(EsifAppPtr aAppPtr)
 {
 	UInt8 i = 0;
 
@@ -325,7 +326,6 @@ eEsifError EsifUpManagerDestroyParticipantsInApp (EsifAppPtr aAppPtr)
 	esif_ccb_read_unlock(&g_uppMgr.fLock);
 	return ESIF_OK;
 }
-
 
 
 /* Get By Instance From ID */
@@ -355,7 +355,7 @@ exit:
 
 	if (NULL == up_ptr) {
 		ESIF_TRACE_DEBUG("%s: instance %d NOT found or OUT OF BOUNDS\n",
-				 ESIF_FUNC, id);
+						 ESIF_FUNC, id);
 	}
 	return up_ptr;
 }
@@ -363,14 +363,14 @@ exit:
 
 /* Check if a participant already exists by the name */
 Bool EsifUpManagerDoesAvailableParticipantExistByName (
-	char* participantName
+	char *participantName
 	)
 {
 	Bool bRet = ESIF_FALSE;
 	EsifUpPtr up_ptr = NULL;
 	UInt8 i;
 
-	if(NULL == participantName) {
+	if (NULL == participantName) {
 		goto exit;
 	}
 
@@ -395,13 +395,13 @@ exit:
 
 
 EsifUpPtr EsifUpManagerGetAvailableParticipantByName (
-	char* participantName
+	char *participantName
 	)
 {
 	EsifUpPtr up_ptr = NULL;
 	UInt8 i;
 
-	if(NULL == participantName) {
+	if (NULL == participantName) {
 		goto exit;
 	}
 
@@ -431,7 +431,7 @@ static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata(
 	)
 {
 	EsifUpManagerEntryPtr entry_ptr = NULL;
-	char* participantName = "";
+	char *participantName = "";
 	UInt8 i;
 
 	/* Validate parameters */
@@ -439,10 +439,11 @@ static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata(
 		goto exit;
 	}
 
-	switch(origin) {
+	switch (origin) {
 	case eParticipantOriginLF:
-		participantName = ((struct esif_ipc_event_data_create_participant*)metadataPtr)->name;
+		participantName = ((struct esif_ipc_event_data_create_participant *)metadataPtr)->name;
 		break;
+
 	case eParticipantOriginUF:
 		participantName = ((EsifParticipantIfacePtr)metadataPtr)->name;
 		break;
@@ -470,7 +471,7 @@ exit:
 
 
 /* Initialize manager */
-eEsifError EsifUppMgrInit (void)
+eEsifError EsifUppMgrInit(void)
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_TRACE_DEBUG("%s: Init Upper Participant Manager (PM)", ESIF_FUNC);
@@ -483,7 +484,7 @@ eEsifError EsifUppMgrInit (void)
 
 
 /* Exit manager */
-void EsifUppMgrExit (void)
+void EsifUppMgrExit(void)
 {
 	/* Clean up resources */
 	EsifUpManagerDestroyParticipants();
@@ -496,7 +497,7 @@ void EsifUppMgrExit (void)
 
 
 /* This should only be called when shutting down */
-static eEsifError EsifUpManagerDestroyParticipants (void)
+static eEsifError EsifUpManagerDestroyParticipants(void)
 {
 	eEsifError rc = ESIF_OK;
 	EsifUpManagerEntryPtr entry_ptr = NULL;
@@ -507,12 +508,12 @@ static eEsifError EsifUpManagerDestroyParticipants (void)
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
 		entry_ptr = &g_uppMgr.fEntries[i];
 
-		if(entry_ptr->fState > ESIF_PM_PARTICIPANT_REMOVED) {
+		if (entry_ptr->fState > ESIF_PM_PARTICIPANT_REMOVED) {
 			g_uppMgr.fEntryCount--;
 		}
 		entry_ptr->fState = ESIF_PM_PARTICIPANT_STATE_AVAILABLE;
 
-		if(NULL != entry_ptr->fUpPtr) {
+		if (NULL != entry_ptr->fUpPtr) {
 			esif_ccb_free(entry_ptr->fUpPtr);
 			entry_ptr->fUpPtr = NULL;
 		}

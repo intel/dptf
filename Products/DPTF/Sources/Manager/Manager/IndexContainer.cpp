@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "IndexContainer.h"
 #include "EsifMutexHelper.h"
 
@@ -35,7 +36,7 @@ IndexContainer::~IndexContainer(void)
 
     for (UIntN i = 0; i < m_vectorIndexStructPtr.size(); i++)
     {
-        delete m_vectorIndexStructPtr[i];
+        DELETE_MEMORY_TC(m_vectorIndexStructPtr[i]);
     }
 
     m_vectorIndexStructPtr.clear();

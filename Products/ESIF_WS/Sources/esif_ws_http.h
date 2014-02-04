@@ -31,7 +31,7 @@ typedef struct _extType {
 }extType;
 
 
-int esif_ws_http_process_reqs(int, void*, ssize_t);
+eEsifError esif_ws_http_process_reqs(int, void*, ssize_t);
 
 
 /*

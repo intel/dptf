@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,10 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PowerControlDynamicCapsSet.h"
 #include "XmlNode.h"
 
-PowerControlDynamicCapsSet::PowerControlDynamicCapsSet(std::vector<PowerControlDynamicCaps> powerControlDynamicCaps) :
+PowerControlDynamicCapsSet::PowerControlDynamicCapsSet(const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps) :
     m_powerControlDynamicCaps(powerControlDynamicCaps)
 {
 }
@@ -36,6 +37,11 @@ const PowerControlDynamicCaps& PowerControlDynamicCapsSet::operator[](UIntN inde
 Bool PowerControlDynamicCapsSet::operator==(const PowerControlDynamicCapsSet& rhs) const
 {
     return (m_powerControlDynamicCaps == rhs.m_powerControlDynamicCaps);
+}
+
+Bool PowerControlDynamicCapsSet::operator!=(const PowerControlDynamicCapsSet& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* PowerControlDynamicCapsSet::getXml(void)

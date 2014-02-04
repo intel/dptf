@@ -38,7 +38,7 @@ extern EsifActMgr g_actMgr;
 
 typedef eEsifError (*GetIfaceFuncPtr)(EsifActInterfacePtr);
 
-static eEsifError ActionCreate (
+static eEsifError ActionCreate(
 	EsifActPtr actionPtr,
 	GetIfaceFuncPtr ifaceFuncPtr
 	)
@@ -50,13 +50,13 @@ static eEsifError ActionCreate (
 	EsifData p3   = {ESIF_DATA_UINT32, "kernel_abi_type", sizeof("Kernel_abi_type")};
 	EsifData p4   = {ESIF_DATA_UINT8, "mode", sizeof("mode")};
 
-	char name[ESIF_NAME_LEN];
+	char name[ESIF_NAME_LEN] = {0};
 	ESIF_DATA(data_name, ESIF_DATA_STRING, name, ESIF_NAME_LEN);
 
-	char desc[ESIF_DESC_LEN];
+	char desc[ESIF_DESC_LEN] = {0};
 	ESIF_DATA(data_desc, ESIF_DATA_STRING, desc, ESIF_DESC_LEN);
 
-	char version[ESIF_DESC_LEN];
+	char version[ESIF_DESC_LEN] = {0};
 	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_DESC_LEN);
 
 	UInt32 action_type_id = 0;
@@ -175,7 +175,7 @@ static eEsifError ActionCreate (
 		goto exit;
 	}
 	action_type_ptr->fHandle = actionPtr->fHandle;
-	action_type_ptr->fType   = *(UInt8*)action_type.buf_ptr;
+	action_type_ptr->fType   = *(UInt8 *)action_type.buf_ptr;
 
 	esif_ccb_strcpy(action_type_ptr->fName,
 					(EsifString)data_name.buf_ptr, ESIF_NAME_LEN);
@@ -201,22 +201,21 @@ exit:
 }
 
 
-eEsifError EsifActStart (EsifActPtr actionPtr)
+eEsifError EsifActStart(EsifActPtr actionPtr)
 {
 	eEsifError rc = ESIF_OK;
 	GetIfaceFuncPtr iface_func_ptr = NULL;
 	EsifString iface_func_name     = "GetActionInterface";
 
 	char libPath[ESIF_LIBPATH_LEN];
-	esif_lib_t lib_handle = 0;
 
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, actionPtr->fLibNamePtr);
 	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s",
 					 esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, actionPtr->fLibNamePtr), ESIF_LIB_EXT);
 
-	lib_handle = esif_ccb_library_load(libPath);
+	actionPtr->fLibHandle = esif_ccb_library_load(libPath);
 
-	if (0 == lib_handle) {
+	if (NULL == actionPtr->fLibHandle) {
 		rc = ESIF_E_UNSPECIFIED;
 		ESIF_TRACE_DEBUG("%s esif_ccb_library_load() %s failed.\n", ESIF_FUNC, libPath);
 		goto exit;
@@ -224,7 +223,7 @@ eEsifError EsifActStart (EsifActPtr actionPtr)
 	ESIF_TRACE_DEBUG("%s esif_ccb_library_load() %s completed.\n", ESIF_FUNC, libPath);
 
 	iface_func_ptr = (GetIfaceFuncPtr)
-		esif_ccb_library_get_func(lib_handle, (EsifString)iface_func_name);
+		esif_ccb_library_get_func(actionPtr->fLibHandle, (EsifString)iface_func_name);
 
 	if (NULL == iface_func_ptr) {
 		rc = ESIF_E_UNSPECIFIED;
@@ -241,8 +240,23 @@ exit:
 	return rc;
 }
 
+eEsifError EsifActStop (EsifActPtr actPtr)
+{
+	eEsifError rc = ESIF_OK;
+	ESIF_ASSERT(actPtr != NULL);
 
-eEsifError EsifActInit ()
+	// TODO: Cleanup
+
+	if (ESIF_OK == rc) {
+		esif_ccb_free(actPtr->fLibNamePtr);
+		esif_ccb_library_unload(actPtr->fLibHandle);
+		memset(actPtr, 0, sizeof(*actPtr));
+	}
+	return rc;
+}
+
+
+eEsifError EsifActInit()
 {
 	EsifActConfigInit();
 	EsifActConstInit();
@@ -251,7 +265,7 @@ eEsifError EsifActInit ()
 }
 
 
-void EsifActExit ()
+void EsifActExit()
 {
 	EsifActConfigExit();
 	EsifActConstExit();

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PerformanceControl.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
@@ -74,6 +75,11 @@ Bool PerformanceControl::operator==(const PerformanceControl& rhs) const
          (this->getValueUnits() == rhs.getValueUnits()));
 }
 
+Bool PerformanceControl::operator!=(const PerformanceControl& rhs) const
+{
+    return !(*this == rhs);
+}
+
 std::string PerformanceControl::PerformanceControlTypeToString(PerformanceControlType::Type type)
 {
     switch (type)
@@ -96,7 +102,7 @@ XmlNode* PerformanceControl::getXml()
     root->addChild(XmlNode::createDataElement("control_id", StatusFormat::friendlyValue(m_controlId)));
     root->addChild(XmlNode::createDataElement("control_type", PerformanceControlTypeToString(m_performanceControlType)));
     root->addChild(XmlNode::createDataElement("tdp_power", StatusFormat::friendlyValue(m_tdpPower)));
-    root->addChild(XmlNode::createDataElement("performance_percentage", StatusFormat::friendlyValue(m_performancePercentage.getPercentage())));
+    root->addChild(XmlNode::createDataElement("performance_percentage", m_performancePercentage.toString()));
     root->addChild(XmlNode::createDataElement("transition_latency", StatusFormat::friendlyValue(m_transitionLatency)));
     root->addChild(XmlNode::createDataElement("control_absolute_value", StatusFormat::friendlyValue(m_controlAbsoluteValue)));
     root->addChild(XmlNode::createDataElement("value_units", m_valueUnits));

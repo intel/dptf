@@ -61,7 +61,6 @@
 
 #ifdef ESIF_ATTR_OS_LINUX
 #define esif_ccb_acpi_get_name acpi_get_name
-#define esif_ccb_acpi_set_len(len)
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
 #define ACPI_TYPE_INTEGER          ACPI_METHOD_ARGUMENT_INTEGER	/* 0 */
@@ -79,8 +78,6 @@
 #define do_div(x, y)   x = x / y
 #define esif_ccb_acpi_get_name(handle, pathname, ref) \
 		(ESIF_E_UNSUPPORTED_ACTION_TYPE)
-
-#define esif_ccb_acpi_set_len(len)  (len = sizeof(acpi_obj->integer.value))
 
 #define ACPI_FULL_PATHNAME
 
@@ -446,7 +443,8 @@ static ESIF_INLINE void esif_create_acpi_buffer(
 		/* On Windows, Use &acpi_obj->buffer.pointer Do NOT use
 		 *esif_acpi_memcpy!!! */
 		acpi_obj->buffer.pointer =
-			((u8 *)acpi_obj + sizeof(acpi_obj->buffer.pointer));
+			((u8 *)acpi_obj + (sizeof(acpi_obj->buffer) - 
+			                   sizeof(acpi_obj->buffer.pointer)));
 		esif_ccb_memcpy(&acpi_obj->buffer.pointer, &osc->guid, 16);
 		acpi_obj =
 			(union acpi_object *)((u8 *)acpi_obj +
@@ -464,7 +462,8 @@ static ESIF_INLINE void esif_create_acpi_buffer(
 					     sizeof(union acpi_object));
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
-		esif_ccb_acpi_set_len(acpi_obj->integer.length);
+
+		acpi_obj->integer.length = sizeof(acpi_obj->integer.value);
 		acpi_obj =
 			(union acpi_object *)((u8 *)acpi_obj +
 					     sizeof(acpi_obj->integer));
@@ -479,7 +478,7 @@ static ESIF_INLINE void esif_create_acpi_buffer(
 					     sizeof(union acpi_object));
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
-		esif_ccb_acpi_set_len(acpi_obj->integer.length);
+		acpi_obj->integer.length = sizeof(acpi_obj->integer.value);
 		acpi_obj =
 			(union acpi_object *)((u8 *)acpi_obj +
 					     sizeof(acpi_obj->integer));
@@ -497,7 +496,8 @@ static ESIF_INLINE void esif_create_acpi_buffer(
 		/* On Windows, Use &acpi_obj->buffer.pointer!!! Do NOT use
 		 *esif_acpi_memcpy!!! */
 		acpi_obj->buffer.pointer =
-			((u8 *)acpi_obj + sizeof(acpi_obj->buffer.pointer));
+			((u8 *)acpi_obj + (sizeof(acpi_obj->buffer) - 
+			                   sizeof(acpi_obj->buffer.pointer)));
 		esif_ccb_memcpy(&acpi_obj->buffer.pointer,
 				&osc->status,
 				acpi_obj->buffer.length);
@@ -517,7 +517,10 @@ static ESIF_INLINE void esif_create_acpi_buffer(
 		 */
 		for (i = 0; i < arg_list->count; i++) {
 			acpi_obj->integer.type = ACPI_TYPE_INTEGER;
-			esif_ccb_acpi_set_len(acpi_obj->integer.length);
+#ifdef ESIF_ATTR_OS_WINDOWS
+			acpi_obj->integer.length = sizeof(acpi_obj->integer.value);
+#endif
+
 			switch (req_data_ptr->type) {
 			case ESIF_DATA_UINT8:
 				acpi_obj->integer.value = *((u8 *)buf_ptr);
@@ -528,13 +531,14 @@ static ESIF_INLINE void esif_create_acpi_buffer(
 				buf_ptr += sizeof(u16);
 				break;
 
-			case ESIF_DATA_TEMPERATURE:
 			case ESIF_DATA_UINT32:
+			case ESIF_DATA_TEMPERATURE:
 				acpi_obj->integer.value = *((u32 *)buf_ptr);
 				buf_ptr += sizeof(u32);
 				break;
 
 			case ESIF_DATA_UINT64:
+			case ESIF_DATA_FREQUENCY:
 				/* For 32-bit Windows, it's type ULONG 4-byte */
 				acpi_obj->integer.value = *((u32 *)buf_ptr);
 				buf_ptr += sizeof(u64);

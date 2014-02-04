@@ -27,11 +27,12 @@ typedef struct _t_EsifCnj {
 	void  *fHandle;				/* The Conjure Handle Opaque To Us */
 	EsifConjureInterface  fInterface;			/* The Conjure Interface */
 	EsifString fLibNamePtr;			/* The Name Of The Library To Load */
+	esif_lib_t fLibHandle;			/* Loadable Library Handle */
 } EsifCnj, *EsifCnjPtr, **EsifCnjPtrLocation;
 
 /* Init / Exit */
-eEsifError EsifCnjInit (void);
-void EsifCnjExit (void);
+eEsifError EsifCnjInit(void);
+void EsifCnjExit(void);
 
 #endif	// _ESIF_UF_CNJ_
 

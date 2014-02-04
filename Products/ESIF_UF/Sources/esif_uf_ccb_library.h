@@ -28,12 +28,12 @@ typedef HINSTANCE esif_lib_t;
 	#define ESIF_LIB_EXT "dll"
 #else
 	#include <dlfcn.h>
-typedef void*esif_lib_t;
+typedef void *esif_lib_t;
 	#define ESIF_LIB_EXT "so"
 #endif
 
 /* Load Shared .so/DLL code opaque */
-static ESIF_INLINE esif_lib_t esif_ccb_library_load (esif_string lib_name)
+static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 {
 #ifdef ESIF_ATTR_OS_WINDOWS
 	return LoadLibraryA(lib_name);
@@ -47,14 +47,16 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load (esif_string lib_name)
 
 /* Find address for symbol */
 #ifdef ESIF_ATTR_OS_WINDOWS
-static ESIF_INLINE FARPROC esif_ccb_library_get_func (
+static ESIF_INLINE FARPROC esif_ccb_library_get_func(
 	esif_lib_t lib,
 	esif_string func_name
 	)
 #else
-static ESIF_INLINE void*esif_ccb_library_get_func(esif_lib_t lib, esif_string func_name)
+static ESIF_INLINE void *esif_ccb_library_get_func(esif_lib_t lib, esif_string func_name)
 #endif
 {
+	if (NULL == lib)
+		return NULL;
 #ifdef ESIF_ATTR_OS_WINDOWS
 	return GetProcAddress(lib, func_name);
 
@@ -65,8 +67,10 @@ static ESIF_INLINE void*esif_ccb_library_get_func(esif_lib_t lib, esif_string fu
 }
 
 /* Close/Free prevously opened library */
-static ESIF_INLINE void esif_ccb_library_unload (esif_lib_t lib)
+static ESIF_INLINE void esif_ccb_library_unload(esif_lib_t lib)
 {
+	if (NULL == lib)
+		return;
 #ifdef ESIF_ATTR_OS_WINDOWS
 	FreeLibrary(lib);
 #else

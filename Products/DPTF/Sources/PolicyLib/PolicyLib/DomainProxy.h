@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,22 +15,29 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
+
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
 #include "TemperatureProperty.h"
 #include "ActiveCoolingControl.h"
 #include "DomainPriorityCachedProperty.h"
+
 #include "PerformanceControlFacade.h"
-#include "PerformanceControlKnob.h"
 #include "PowerControlFacade.h"
-#include "PowerControlKnob.h"
 #include "DisplayControlFacade.h"
-#include "DisplayControlKnob.h"
 #include "CoreControlFacade.h"
-#include "CoreControlKnob.h"
 #include "ConfigTdpControlFacade.h"
+#include "RadioFrequencyControlFacade.h"
+#include "PixelClockControlFacade.h"
+
+#include "PowerControlKnob.h"
+#include "DisplayControlKnob.h"
+#include "CoreControlKnob.h"
+#include "PerformanceControlKnob.h"
+
 #include <memory>
 
 // represents a domain inside a participant.  holds cached records of all properties and potential controls for the
@@ -53,24 +60,28 @@ public:
     UIntN getDomainIndex() const;
     const DomainProperties& getDomainProperties() const;
     TemperatureProperty& getTemperatureProperty();
-    ActiveCoolingControl& getActiveCoolingControl();
     DomainPriorityCachedProperty& getDomainPriorityProperty();
     UtilizationStatus getUtilizationStatus();
 
     // domain actions
     void clearTemperatureThresholds();
 
-    // controls
+    // control facades
     void initializeControls();
-    void limit(void);
-    void unlimit(void);
-    Bool canLimit(void);
-    Bool canUnlimit(void);
+    ActiveCoolingControl& getActiveCoolingControl();
     PerformanceControlFacade& getPerformanceControl();
     PowerControlFacade& getPowerControl();
     DisplayControlFacade& getDisplayControl();
     CoreControlFacade& getCoreControl();
     ConfigTdpControlFacade& getConfigTdpControl();
+    RadioFrequencyControlFacade& getRadioFrequencyControl() const;
+    PixelClockControlFacade& getPixelClockControl() const;
+
+    // passive controls (TODO: move to passive policy)
+    void limit(void);
+    void unlimit(void);
+    Bool canLimit(void);
+    Bool canUnlimit(void);
 
     // status
     XmlNode* getXmlForPassiveControlKnobs();
@@ -87,22 +98,26 @@ private:
     DomainPriorityCachedProperty m_domainPriorityProperty;
     ActiveCoolingControl m_activeCoolingControl;
 
-    // controls
+    // control facades
     std::shared_ptr<PerformanceControlFacade> m_performanceControl;
-    std::shared_ptr<PerformanceControlKnob> m_pstateControlKnob;
-    std::shared_ptr<PerformanceControlKnob> m_tstateControlKnob;
     std::shared_ptr<PowerControlFacade> m_powerControl;
-    std::shared_ptr<PowerControlKnob> m_powerControlKnob;
     std::shared_ptr<DisplayControlFacade> m_displayControl;
-    std::shared_ptr<DisplayControlKnob> m_displayControlKnob;
     std::shared_ptr<CoreControlFacade> m_coreControl;
-    std::shared_ptr<CoreControlKnob> m_coreControlKnob;
     std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
+    std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
+    std::shared_ptr<PixelClockControlFacade> m_pixelClockControl;
 
     // services
     PolicyServicesInterfaceContainer m_policyServices;
 
-    // limiting/unlimiting helper functions
+    // control knobs (TODO: move to passive policy)
+    std::shared_ptr<PerformanceControlKnob> m_pstateControlKnob;
+    std::shared_ptr<PerformanceControlKnob> m_tstateControlKnob;
+    std::shared_ptr<PowerControlKnob> m_powerControlKnob;
+    std::shared_ptr<DisplayControlKnob> m_displayControlKnob;
+    std::shared_ptr<CoreControlKnob> m_coreControlKnob;
+
+    // limiting/unlimiting helper functions (TODO: move to passive policy)
     Bool limitPowerAndShouldContinue();
     Bool limitPstatesWithCoresAndShouldContinue();
     Bool limitCoresAndShouldContinue();

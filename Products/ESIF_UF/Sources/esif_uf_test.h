@@ -38,7 +38,7 @@ typedef enum _t_EsifTestErrorType {
 } eEsifTestErrorType;
 
 /* Error To String */
-static ESIF_INLINE EsifString EsifTestErrorStr (eEsifTestErrorType type)
+static ESIF_INLINE EsifString EsifTestErrorStr(eEsifTestErrorType type)
 {
 	#define CREATE_ESIF_TEST_ERROR(e, s) case e: \
 	str = (EsifString)s;break;
@@ -59,16 +59,16 @@ static ESIF_INLINE EsifString EsifTestErrorStr (eEsifTestErrorType type)
 }
 
 
-eEsifTestErrorType EsifTestPrimitive (const UInt32 primitive, const UInt16 qualifier, const UInt8 instance, const UInt32 value, const int argc,
-									  EsifString *argv);
+eEsifTestErrorType EsifTestPrimitive(const UInt32 primitive, const UInt16 qualifier, const UInt8 instance, const UInt32 value, const int argc,
+									 EsifString *argv);
 
-eEsifTestErrorType EsifTestPrimitiveBinary (const UInt32 primitive,
-											const UInt16 qualifier,
-											const UInt8 instance,
-											const UInt8 *dataPtr,
-											const UInt16 dataLen,
-											const int argc,
-											EsifString *argv);
+eEsifTestErrorType EsifTestPrimitiveBinary(const UInt32 primitive,
+										   const UInt16 qualifier,
+										   const UInt8 instance,
+										   const UInt8 *dataPtr,
+										   const UInt16 dataLen,
+										   const int argc,
+										   EsifString *argv);
 
 #endif	// _ESIF_UF_TEST_
 

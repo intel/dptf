@@ -27,24 +27,25 @@ typedef struct _t_EsifAct {
 	void  *fHandle;			/* The Action Handle Opaque To Us */
 	EsifActInterface  fInterface;		/* The Action Interface */
 	EsifString fLibNamePtr;		/* The Name Of The Library To Load */
+	esif_lib_t fLibHandle;		/* Loadable Library Handle */
 } EsifAct, *EsifActPtr, **EsifActPtrLocation;
 
 /* Control */
-eEsifError EsifActStart (EsifActPtr actPtr);
-eEsifError EsifActStop (EsifActPtr actPtr);
+eEsifError EsifActStart(EsifActPtr actPtr);
+eEsifError EsifActStop(EsifActPtr actPtr);
 
 /* Init/Exit */
-eEsifError EsifActInit (void);
-void EsifActExit (void);
+eEsifError EsifActInit(void);
+void EsifActExit(void);
 
-eEsifError EsifActConfigInit (void);
-void EsifActConfigExit (void);
+eEsifError EsifActConfigInit(void);
+void EsifActConfigExit(void);
 
-eEsifError EsifActConstInit (void);
-void EsifActConstExit (void);
+eEsifError EsifActConstInit(void);
+void EsifActConstExit(void);
 
-eEsifError EsifActSystemInit (void);
-void EsifActSystemExit (void);
+eEsifError EsifActSystemInit(void);
+void EsifActSystemExit(void);
 
 #endif	// _ESIF_UF_ACTION_
 

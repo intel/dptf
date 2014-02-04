@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TemperatureProperty.h"
 using namespace std;
 
@@ -24,7 +25,7 @@ TemperatureProperty::TemperatureProperty(
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
     : DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_lastThresholdsSet(Temperature(Constants::Invalid), Temperature(Constants::Invalid), Constants::Invalid),
+    m_lastThresholdsSet(Temperature::createInvalid(), Temperature::createInvalid(), Constants::Invalid),
     m_lastThresholdsSetValid(false)
 {
 }

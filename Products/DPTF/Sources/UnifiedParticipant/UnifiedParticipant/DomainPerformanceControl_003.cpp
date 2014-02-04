@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,34 +15,39 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainPerformanceControl_003.h"
 #include <sstream>
 #include "XmlNode.h"
 
 DomainPerformanceControl_003::DomainPerformanceControl_003(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+    m_participantServicesInterface(participantServicesInterface),
+    m_performanceControlDynamicCaps(nullptr),
+    m_performanceControlStaticCaps(nullptr),
+    m_performanceControlSet(nullptr),
+    m_currentPerformanceControlIndex(Constants::Invalid)
 {
-    initializeDataStructures();
+    
 }
 
 DomainPerformanceControl_003::~DomainPerformanceControl_003(void)
 {
-    clearCachedData();
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
+    DELETE_MEMORY_TC(m_performanceControlSet);
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_003::getPerformanceControlStaticCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
-    return *m_performanceControlStaticCaps;  //This is hard-coded to FALSE in 7.0
+    return *m_performanceControlStaticCaps; // This is hard-coded to FALSE in 7.0
 }
 
 PerformanceControlDynamicCaps DomainPerformanceControl_003::getPerformanceControlDynamicCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     return *m_performanceControlDynamicCaps;
 }
 
@@ -53,14 +58,12 @@ PerformanceControlStatus DomainPerformanceControl_003::getPerformanceControlStat
     {
         throw dptf_exception("No performance control has been set.  No status available.");
     }
-
-    return *m_performanceControlStatus;
+    return PerformanceControlStatus(m_currentPerformanceControlIndex);
 }
 
 PerformanceControlSet DomainPerformanceControl_003::getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     return *m_performanceControlSet;
 }
 
@@ -68,39 +71,19 @@ void DomainPerformanceControl_003::setPerformanceControl(UIntN participantIndex,
     UIntN performanceControlIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     verifyPerformanceControlIndex(performanceControlIndex);
-
     m_participantServicesInterface->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PERF_PRESENT_CAPABILITY, // SET_PERF_SUPPORT_STATE
         performanceControlIndex,
         domainIndex);
-
-    // Refresh the status
     m_currentPerformanceControlIndex = performanceControlIndex;
-
-    delete m_performanceControlStatus;
-    m_performanceControlStatus = new PerformanceControlStatus(m_currentPerformanceControlIndex);
-}
-
-void DomainPerformanceControl_003::initializeDataStructures( void )
-{
-    m_performanceControlDynamicCaps = nullptr;
-    m_performanceControlStaticCaps = nullptr;
-    m_performanceControlSet = nullptr;
-
-    m_currentPerformanceControlIndex = Constants::Invalid;
-    m_performanceControlStatus = new PerformanceControlStatus(m_currentPerformanceControlIndex);
 }
 
 void DomainPerformanceControl_003::clearCachedData(void)
 {
-    delete m_performanceControlDynamicCaps;
-    delete m_performanceControlStaticCaps;
-    delete m_performanceControlSet;
-    delete m_performanceControlStatus;
-
-    initializeDataStructures();
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
+    DELETE_MEMORY_TC(m_performanceControlSet);
 }
 
 void DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex)
@@ -193,7 +176,7 @@ XmlNode* DomainPerformanceControl_003::getXml(UIntN domainIndex)
     checkAndCreateControlStructures(domainIndex);
 
     XmlNode* root = XmlNode::createWrapperElement("performance_control");
-    root->addChild(m_performanceControlStatus->getXml());
+    root->addChild(PerformanceControlStatus(m_currentPerformanceControlIndex).getXml());
     root->addChild(m_performanceControlDynamicCaps->getXml());
     root->addChild(m_performanceControlStaticCaps->getXml());
     root->addChild(m_performanceControlSet->getXml());
@@ -202,7 +185,7 @@ XmlNode* DomainPerformanceControl_003::getXml(UIntN domainIndex)
     return root;
 }
 
-void DomainPerformanceControl_003::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
+void DomainPerformanceControl_003::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
     ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
     throw not_implemented();

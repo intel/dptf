@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CoolingPreference.h"
 
 CoolingPreference::CoolingPreference(
@@ -40,10 +41,15 @@ EsifDataBinaryScp CoolingPreference::getEsifCompliantBinary(void) const
 
 Bool CoolingPreference::operator==(const CoolingPreference& rhs) const
 {
-    return 
+    return
         (this->m_coolingMode == rhs.m_coolingMode) &&
         (this->m_coolingModeAcousticLimit == rhs.m_coolingModeAcousticLimit) &&
         (this->m_coolingModePowerLimit == rhs.m_coolingModePowerLimit);
+}
+
+Bool CoolingPreference::operator!=(const CoolingPreference& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* CoolingPreference::getXml() const

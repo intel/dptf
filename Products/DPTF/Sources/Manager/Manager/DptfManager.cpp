@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DptfManager.h"
 #include "EsifServices.h"
 #include "WorkItemQueueManager.h"
@@ -23,18 +24,19 @@
 #include "UniqueIdGenerator.h"
 #include "IndexContainer.h"
 #include "esif_uf_app_iface.h"
+#include "esif_uf_iface.h"
 #include "DptfStatus.h"
 #include "EsifDataString.h"
 
 DptfManager::DptfManager(void) : m_dptfManagerCreateStarted(false), m_dptfManagerCreateFinished(false),
-    m_dptfShuttingDown(false), m_dptfEnabled(false), m_esifServices(nullptr),
+    m_dptfShuttingDown(false), m_workItemQueueManagerCreated(false), m_dptfEnabled(false), m_esifServices(nullptr),
     m_workItemQueueManager(nullptr), m_policyManager(nullptr), m_participantManager(nullptr),
     m_dptfStatus(nullptr), m_indexContainer(nullptr)
 {
 }
 
 void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr,
-    const std::string& dptfHomeDirectoryPath, Bool dptfEnabled)
+    const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled)
 {
     if (m_dptfManagerCreateStarted == true)
     {
@@ -53,12 +55,14 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
         m_dptfEnabled = dptfEnabled;
 
         m_indexContainer = new IndexContainer(Constants::Participants::MaxParticipantEstimate);
-        m_esifServices = new EsifServices(this, esifHandle, esifInterfacePtr);
+        m_esifServices = new EsifServices(this, esifHandle, esifInterfacePtr, currentLogVerbosityLevel);
         m_participantManager = new ParticipantManager(this);
         m_policyManager = new PolicyManager(this);
 
         // Make sure to create these AFTER creating the ParticipantManager and PolicyManager
         m_workItemQueueManager = new WorkItemQueueManager(this);
+        m_workItemQueueManagerCreated = true;
+
         m_dptfStatus = new DptfStatus(this);
 
         m_policyManager->createAllPolicies(m_dptfHomeDirectoryPath);
@@ -91,9 +95,19 @@ DptfManager::~DptfManager(void)
     shutDown();
 }
 
-Bool DptfManager::isAvailable(void) const
+Bool DptfManager::isDptfManagerCreated(void) const
 {
-    return ((m_dptfManagerCreateFinished == true) && (m_dptfShuttingDown == false));
+    return m_dptfManagerCreateFinished;
+}
+
+Bool DptfManager::isDptfShuttingDown(void) const
+{
+    return m_dptfShuttingDown;
+}
+
+Bool DptfManager::isWorkItemQueueManagerCreated(void) const
+{
+    return m_workItemQueueManagerCreated;
 }
 
 EsifServices* DptfManager::getEsifServices(void) const
@@ -170,14 +184,7 @@ void DptfManager::disableAndEmptyAllQueues(void)
 
 void DptfManager::deleteDptfStatus()
 {
-    try
-    {
-        delete m_dptfStatus;
-        m_dptfStatus = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_dptfStatus);
 }
 
 void DptfManager::destroyAllPolicies(void)
@@ -214,62 +221,27 @@ void DptfManager::destroyAllParticipants(void)
 
 void DptfManager::deleteWorkItemQueueManager(void)
 {
-    try
-    {
-        delete m_workItemQueueManager;
-        m_workItemQueueManager = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_workItemQueueManager);
 }
 
 void DptfManager::deletePolicyManager(void)
 {
-    try
-    {
-        delete m_policyManager;
-        m_policyManager = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_policyManager);
 }
 
 void DptfManager::deleteParticipantManager(void)
 {
-    try
-    {
-        delete m_participantManager;
-        m_participantManager = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_participantManager);
 }
 
 void DptfManager::deleteEsifServices(void)
 {
-    try
-    {
-        delete m_esifServices;
-        m_esifServices = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_esifServices);
 }
 
 void DptfManager::deleteIndexContainer(void)
 {
-    try
-    {
-        delete m_indexContainer;
-        m_indexContainer = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_indexContainer);
 }
 
 void DptfManager::destroyUniqueIdGenerator(void)
@@ -299,6 +271,7 @@ void DptfManager::registerDptfFrameworkEvents(void)
     // do not catch exceptions here
     m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyEntry);
     m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyExit);
+    m_esifServices->registerEvent(FrameworkEvent::DptfLogVerbosityChanged);
 }
 
 void DptfManager::unregisterDptfFrameworkEvents(void)
@@ -307,6 +280,7 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
     {
         m_esifServices->unregisterEvent(FrameworkEvent::DptfConnectedStandbyEntry);
         m_esifServices->unregisterEvent(FrameworkEvent::DptfConnectedStandbyExit);
+        m_esifServices->unregisterEvent(FrameworkEvent::DptfLogVerbosityChanged);
     }
     catch (...)
     {

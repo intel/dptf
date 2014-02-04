@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "PolicyBase.h"
 #include "ParticipantTracker.h"
@@ -63,10 +64,10 @@ private:
         Temperature currentTemperature,
         std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints,
         ParticipantProxy& participant);
-    UIntN determineLowerTemperatureThreshold(
+    Temperature determineLowerTemperatureThreshold(
         Temperature currentTemperature,
         std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints);
-    UIntN determineUpperTemperatureThreshold(
+    Temperature determineUpperTemperatureThreshold(
         Temperature currentTemperature,
         std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints);
     void takePowerAction(ParticipantSpecificInfoKey::Type crossedTripPoint);

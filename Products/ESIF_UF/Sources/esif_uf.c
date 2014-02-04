@@ -38,16 +38,15 @@
 #include "esif_uf_ipc.h"	/* IPC */
 #include "esif_ws_server.h"	/* Web Server */
 
-/* Xform */
-// #include "esif_temp.h"
-// #include "esif_power.h"
+#include "esif_lib_databank.h"	// ESIFDV_DIR reference
 
 /* Native memory allocation functions for use by memtrace functions only */
-#define	native_malloc(siz)			malloc(siz)
-#define native_realloc(ptr, siz)	realloc(ptr, siz)
-#define native_free(ptr)			free(ptr)
+#define native_malloc(siz)          malloc(siz)
+#define native_realloc(ptr, siz)    realloc(ptr, siz)
+#define native_free(ptr)            free(ptr)
 
 #ifdef ESIF_ATTR_OS_WINDOWS
+#include <share.h>
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
 // against Windows SDK/DDK included headers which we have no control over.
@@ -56,20 +55,195 @@
 #include "win\banned.h"
 #endif
 
-FILE *g_debuglog = NULL;
-
-int g_debug      = ESIF_TRUE;	// Debug?
 int g_autocpc    = ESIF_TRUE;	// Automatically Assign DSP/CPC
 int g_errorlevel = 0;			// Exit Errorlevel
-int g_quit       = ESIF_FALSE;	// Quit
+int g_quit		 = ESIF_FALSE;	// Quit
+int g_disconnectClient = ESIF_FALSE;// Disconnect client
 int g_quit2      = ESIF_FALSE;	// Quit 2
+
+// Temporary Workaround: Implment global Shell lock to troubleshoot mixed output
+#ifdef  BIG_LOCK
+esif_ccb_mutex_t g_shellLock;
+#endif
 
 #ifdef ESIF_ATTR_MEMTRACE
 struct memtrace_s g_memtrace;
 #endif
 
+// ESIF Log File object
+typedef struct EsifLogFile_s {
+	esif_ccb_lock_t lock;		// Thread Lock
+//	esif_string		name;		// Log Name
+	FILE			*handle;	// Log file handle
+} EsifLogFile;
+
+static EsifLogFile g_EsifLogFile[MAX_ESIFLOG] = {0};
+
+eEsifError EsifLogMgrInit(void)
+{
+	int j;
+	esif_ccb_memset(g_EsifLogFile, 0, sizeof(g_EsifLogFile));
+	for (j=0; j < MAX_ESIFLOG; j++) {
+		esif_ccb_lock_init(&g_EsifLogFile[j].lock);
+	}
+	return ESIF_OK;
+}
+
+void EsifLogMgrExit(void)
+{
+	int j;
+	for (j=0; j < MAX_ESIFLOG; j++) {
+		if (g_EsifLogFile[j].handle != NULL) {
+			esif_ccb_fclose(g_EsifLogFile[j].handle);
+		}
+		esif_ccb_lock_uninit(&g_EsifLogFile[j].lock);
+	}
+	esif_ccb_memset(g_EsifLogFile, 0, sizeof(g_EsifLogFile));
+}
+
+int EsifLogFile_Open(EsifLogType type, const char *filename)
+{
+	int rc=0;
+	char fullpath[MAX_PATH]={0};
+
+	esif_ccb_write_lock(&g_EsifLogFile[type].lock);
+	if (g_EsifLogFile[type].handle != NULL)
+		esif_ccb_fclose(g_EsifLogFile[type].handle);
+
+	EsifLogFile_GetFullPath(fullpath, sizeof(fullpath), filename);
+#ifdef ESIF_ATTR_OS_WINDOWS
+	g_EsifLogFile[type].handle = _fsopen(fullpath, "wc", _SH_DENYWR);
+	if (g_EsifLogFile[type].handle == NULL)
+		rc = errno;
+#else
+	rc = esif_ccb_fopen(&g_EsifLogFile[type].handle, fullpath, "w");
+#endif
+	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
+	return rc;
+}
+
+int EsifLogFile_Close(EsifLogType type)
+{
+	int rc = EOF;
+
+	esif_ccb_write_lock(&g_EsifLogFile[type].lock);
+	if (g_EsifLogFile[type].handle != NULL)
+		rc = esif_ccb_fclose(g_EsifLogFile[type].handle);
+	g_EsifLogFile[type].handle = NULL;
+	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
+	return rc;
+}
+
+int EsifLogFile_IsOpen(EsifLogType type)
+{
+	int rc=0;
+	esif_ccb_read_lock(&g_EsifLogFile[type].lock);
+	rc = (g_EsifLogFile[type].handle != NULL);
+	esif_ccb_read_unlock(&g_EsifLogFile[type].lock);
+	return rc;
+}
+
+int EsifLogFile_Write(EsifLogType type, const char *fmt, ...)
+{
+	int rc = 0;
+	va_list args;
+
+	va_start(args, fmt);
+	esif_ccb_write_lock(&g_EsifLogFile[type].lock);
+	if (g_EsifLogFile[type].handle != NULL) {
+		rc = esif_ccb_vfprintf(g_EsifLogFile[type].handle, fmt, args);
+		fflush(g_EsifLogFile[type].handle);
+	}
+	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
+	va_end(args);
+	return rc;
+}
+
+int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args)
+{
+	int rc = 0;
+	
+	esif_ccb_write_lock(&g_EsifLogFile[type].lock);
+	if (g_EsifLogFile[type].handle != NULL) {
+		rc = esif_ccb_vfprintf(g_EsifLogFile[type].handle, fmt, args);
+		fflush(g_EsifLogFile[type].handle);
+	}
+	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
+	return rc;
+}
+
+esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const char *filename)
+{
+	char *sep = strrchr((char *)filename, *ESIF_PATH_SEP);
+	if (sep != NULL)
+		filename = sep+1; // Ignore folders and use file.ext only
+
+	esif_ccb_sprintf(buf_len, buffer, "%s%s", ESIFDV_DIR, filename);
+	return buffer;
+}
+
+EsifLogType EsifLogType_FromString(const char *name)
+{
+	EsifLogType result = (EsifLogType)0;
+	if (NULL == name)
+		return result;
+	else if (esif_ccb_strnicmp(name, "eventlog", 5)==0)
+		result = ESIF_LOG_EVENTLOG;
+	else if (esif_ccb_strnicmp(name, "debugger", 5)==0)
+		result = ESIF_LOG_DEBUGGER;
+	else if (esif_ccb_stricmp(name, "shell")==0)
+		result = ESIF_LOG_SHELL;
+	else if (esif_ccb_stricmp(name, "trace")==0)
+		result = ESIF_LOG_TRACE;
+	else if (esif_ccb_stricmp(name, "ui")==0)
+		result = ESIF_LOG_UI;
+	return result;
+}
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+extern enum esif_rc write_to_srvr_cnsl_intfc_varg(const char *pFormat, va_list args);
+# define EsifConsole_vprintf(fmt, args)		write_to_srvr_cnsl_intfc_varg(fmt, args)
+#else
+# define EsifConsole_vprintf(fmt, args)		vprintf(fmt, args)
+#endif
+
+int EsifConsole_WriteTo(u32 writeto, const char *format, ...)
+{
+	int rc=0;
+
+	if (writeto & CMD_WRITETO_CONSOLE) {
+		va_list args;
+		va_start(args, format);
+		rc = EsifConsole_vprintf(format, args);
+		va_end(args);
+	}
+	if ((writeto & CMD_WRITETO_LOGFILE) && (g_EsifLogFile[ESIF_LOG_SHELL].handle != NULL)) {
+		va_list args;
+		va_start(args, format);
+		esif_ccb_write_lock(&g_EsifLogFile[ESIF_LOG_SHELL].lock);
+		rc = esif_ccb_vfprintf(g_EsifLogFile[ESIF_LOG_SHELL].handle, format, args);
+		esif_ccb_write_unlock(&g_EsifLogFile[ESIF_LOG_SHELL].lock);
+		va_end(args);
+	}
+	return rc;
+}
+
+int EsifConsole_WriteConsole(const char *format, va_list args)
+{
+	return EsifConsole_vprintf(format, args);
+}
+
+int EsifConsole_WriteLogFile(const char *format, va_list args)
+{
+	int rc=0;
+	esif_ccb_write_lock(&g_EsifLogFile[ESIF_LOG_SHELL].lock);
+	rc = esif_ccb_vfprintf(g_EsifLogFile[ESIF_LOG_SHELL].handle, format, args);
+	esif_ccb_write_unlock(&g_EsifLogFile[ESIF_LOG_SHELL].lock);
+	return rc;
+}
+
 /* Work Around */
-static enum esif_rc get_participant_data (
+static enum esif_rc get_participant_data(
 	struct esif_ipc_event_data_create_participant *pi_ptr,
 	UInt8 participantId
 	)
@@ -96,7 +270,7 @@ static enum esif_rc get_participant_data (
 	command_ptr->rsp_data_len    = data_len;
 
 	// ID For Command
-	*(u32*)(command_ptr + 1) = participantId;
+	*(u32 *)(command_ptr + 1) = participantId;
 	rc = ipc_execute(ipc_ptr);
 
 	if (ESIF_OK != rc) {
@@ -114,7 +288,7 @@ static enum esif_rc get_participant_data (
 	}
 
 	// our data
-	data_ptr = (struct esif_command_get_participant_detail*)(command_ptr + 1);
+	data_ptr = (struct esif_command_get_participant_detail *)(command_ptr + 1);
 	if (0 == data_ptr->version) {
 		goto exit;
 	}
@@ -159,7 +333,7 @@ exit:
 
 
 /* Will sync any existing lower framework participatnts */
-static enum esif_rc sync_lf_participants ()
+static enum esif_rc sync_lf_participants()
 {
 	eEsifError rc = ESIF_OK;
 	struct esif_command_get_participants *data_ptr = NULL;
@@ -201,7 +375,7 @@ static enum esif_rc sync_lf_participants ()
 
 	/* Participant Data */
 
-	data_ptr = (struct esif_command_get_participants*)(command_ptr + 1);
+	data_ptr = (struct esif_command_get_participants *)(command_ptr + 1);
 	count    = data_ptr->count;
 
 	for (i = 0; i < count; i++) {
@@ -220,7 +394,7 @@ static enum esif_rc sync_lf_participants ()
 
 		size = sizeof(struct esif_ipc_event_header) +
 			sizeof(struct esif_ipc_event_data_create_participant);
-		event_hdr_ptr = (struct esif_ipc_event_header*)esif_ccb_malloc(size);
+		event_hdr_ptr = (struct esif_ipc_event_header *)esif_ccb_malloc(size);
 		if (event_hdr_ptr == NULL) {
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
@@ -237,7 +411,7 @@ static enum esif_rc sync_lf_participants ()
 		event_hdr_ptr->type      = ESIF_EVENT_PARTICIPANT_CREATE;
 		event_hdr_ptr->version   = ESIF_EVENT_VERSION;
 
-		event_cp_ptr = (struct esif_ipc_event_data_create_participant*)(event_hdr_ptr + 1);
+		event_cp_ptr = (struct esif_ipc_event_data_create_participant *)(event_hdr_ptr + 1);
 		get_participant_data(event_cp_ptr, i);
 
 		EsifEventProcess(event_hdr_ptr);
@@ -256,40 +430,44 @@ exit:
 }
 
 
-void done (const void *context)
+void done(const void *context)
 {
-	printf("Context = %p %s\n", context, (char*)context);
+	printf("Context = %p %s\n", context, (char *)context);
 }
 
 
 /* Build An Absoulte Path */
 esif_string g_home = NULL;
-esif_string esif_build_path (
+esif_string esif_build_path(
 	esif_string buffer,
 	u32 buf_len,
 	esif_string dir,
 	esif_string filename
 	)
 {
+	char *home = g_home;
 	if (NULL == buffer) {
 		goto exit;
 	}
 
+	if (NULL != dir && *dir == *ESIF_PATH_SEP)
+		home = "";
+
 	if (NULL != dir && NULL != filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s%s", g_home, dir, ESIF_PATH_SEP, filename);
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s%s", home, dir, ESIF_PATH_SEP, filename);
 	} else if (NULL == dir && NULL != filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s%s", g_home, filename);
+		esif_ccb_sprintf(buf_len, buffer, "%s%s", home, filename);
 	} else if (NULL != dir && NULL == filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s%s", g_home, dir);
+		esif_ccb_sprintf(buf_len, buffer, "%s%s", home, dir);
 	} else if (NULL == dir && NULL == filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s", g_home);
+		esif_ccb_sprintf(buf_len, buffer, "%s", home);
 	}
 exit:
 	return buffer;
 }
 
 
-static void*esif_web_worker_thread (void *ptr)
+static void *esif_web_worker_thread(void *ptr)
 {
 	UNREFERENCED_PARAMETER(ptr);
 	esif_ws_init(g_home);
@@ -297,30 +475,44 @@ static void*esif_web_worker_thread (void *ptr)
 	return 0;
 }
 
-
+static int g_ws_started = 0;
 static esif_thread_t g_webthread;
-static eEsifError EsifWebStart ()
+
+eEsifError EsifWebStart()
 {
-	esif_ccb_thread_create(&g_webthread, esif_web_worker_thread, NULL);
+	if (!g_ws_started) {
+		g_ws_started = 1;
+		esif_ccb_thread_create(&g_webthread, esif_web_worker_thread, NULL);
+	}
 	return ESIF_OK;
 }
 
-
-static void EsifWebStop ()
+void EsifWebStop()
 {
-	esif_ws_exit();
+	if (g_ws_started) {
+		esif_ws_exit();
+	}
+	g_ws_started = 0;
+}
+
+int EsifWebStarted()
+{
+	return g_ws_started;
 }
 
 
-eEsifError esif_uf_init (esif_string home_dir)
+eEsifError esif_uf_init(esif_string home_dir)
 {
 	eEsifError rc = ESIF_OK;
 
 #ifdef ESIF_ATTR_MEMTRACE
 	u32 *memory_leak = 0;
-	esif_memtrace_init(); /* must be called first */
+	esif_memtrace_init();	/* must be called first */
 	UNREFERENCED_PARAMETER(memory_leak);
-	//memory_leak = (u32*)esif_ccb_malloc(sizeof(*memory_leak)); /* intentional memory leak for debugging */
+	// memory_leak = (u32*)esif_ccb_malloc(sizeof(*memory_leak)); /* intentional memory leak for debugging */
+#endif
+#ifdef BIG_LOCK
+	esif_ccb_mutex_init(&g_shellLock);
 #endif
 
 	ESIF_TRACE_DEBUG("%s: Init Upper Framework (UF)", ESIF_FUNC);
@@ -335,6 +527,7 @@ eEsifError esif_uf_init (esif_string home_dir)
 	}
 
 	/* OS Agnostic */
+	EsifLogMgrInit();
 	EsifCfgMgrInit();
 	EsifCnjMgrInit();
 	EsifUppMgrInit();
@@ -360,13 +553,15 @@ exit:
 }
 
 
-void esif_uf_exit ()
+void esif_uf_exit()
 {
+	/* Stop event thread */
+	g_quit = ESIF_TRUE;
+
 #ifdef  ESIF_ATTR_WEBSOCKET
 	EsifWebStop();
 #endif
 
-	
 
 	/* OS Specific */
 	esif_uf_os_exit();
@@ -378,31 +573,33 @@ void esif_uf_exit ()
 	EsifUppMgrExit();
 	EsifCnjMgrExit();
 	EsifCfgMgrExit();
+	EsifLogMgrExit();
 
-	if (g_debuglog) {
-		esif_ccb_fclose(g_debuglog);
-		g_debuglog = 0;
-	}
 	esif_ccb_free(g_home);
 
 	esif_ccb_mempool_uninit_tracking();
 
 	ESIF_TRACE_DEBUG("%s: Exit Upper Framework (UF)", ESIF_FUNC);
 
+#ifdef BIG_LOCK
+	esif_ccb_mutex_uninit(&g_shellLock);
+#endif
 #ifdef ESIF_ATTR_MEMTRACE
-	esif_memtrace_exit(); /* must be called last */
+	esif_memtrace_exit();	/* must be called last */
 #endif
 }
+
 
 /* Memory Allocation Trace Support */
 #ifdef ESIF_ATTR_MEMTRACE
 
-void *esif_memtrace_alloc (
-	void *old_ptr, 
-	size_t size, 
-	const char *func, 
-	const char *file, 
-	int line)
+void *esif_memtrace_alloc(
+	void *old_ptr,
+	size_t size,
+	const char *func,
+	const char *file,
+	int line
+	)
 {
 	struct memalloc_s *mem = NULL;
 	void *mem_ptr = NULL;
@@ -412,27 +609,28 @@ void *esif_memtrace_alloc (
 
 	if (file) {
 		const char *slash = strrchr(file, *ESIF_PATH_SEP);
-		if (slash)
-			file = slash+1;
+		if (slash) {
+			file = slash + 1;
+		}
 	}
 
 	if (old_ptr) {
 		mem_ptr = native_realloc(old_ptr, size);
-		if (!mem_ptr)
+		if (!mem_ptr) {
 			goto exit;
+		}
 		while (mem) {
 			if (old_ptr == mem->mem_ptr) {
 				mem->mem_ptr = mem_ptr;
-				mem->size = size;
-				mem->func = func;
-				mem->file = file;
-				mem->line = line;
+				mem->size    = size;
+				mem->func    = func;
+				mem->file    = file;
+				mem->line    = line;
 				goto exit;
 			}
 			mem = mem->next;
 		}
-	}
-	else {
+	} else {
 		mem_ptr = native_malloc(size);
 		if (mem_ptr) {
 			esif_ccb_memset(mem_ptr, 0, size);
@@ -440,43 +638,47 @@ void *esif_memtrace_alloc (
 		}
 	}
 
-	mem = (struct memalloc_s*)native_malloc(sizeof(*mem));
-	if (!mem)
+	mem = (struct memalloc_s *)native_malloc(sizeof(*mem));
+	if (!mem) {
 		goto exit;
+	}
 	esif_ccb_memset(mem, 0, sizeof(*mem));
 	mem->mem_ptr = mem_ptr;
-	mem->size = size;
-	mem->func = func;
-	mem->file = file;
-	mem->line = line;
-	mem->next = g_memtrace.allocated;
+	mem->size    = size;
+	mem->func    = func;
+	mem->file    = file;
+	mem->line    = line;
+	mem->next    = g_memtrace.allocated;
 	g_memtrace.allocated = mem;
 exit:
 	esif_ccb_write_unlock(&g_memtrace.lock);
 	return mem_ptr;
 }
 
-char* esif_memtrace_strdup (
-	char *str, 
-	const char *func, 
-	const char *file, 
-	int line)
+
+char *esif_memtrace_strdup(
+	char *str,
+	const char *func,
+	const char *file,
+	int line
+	)
 {
-	size_t len = esif_ccb_strlen(str, 0x7fffffff)+1;
-	char *mem_ptr = (char*)esif_memtrace_alloc(0, len, func, file, line);
+	size_t len    = esif_ccb_strlen(str, 0x7fffffff) + 1;
+	char *mem_ptr = (char *)esif_memtrace_alloc(0, len, func, file, line);
 	if (NULL != mem_ptr) {
 		esif_ccb_strcpy(mem_ptr, str, len);
 	}
 	return mem_ptr;
 }
 
-void esif_memtrace_free (void *mem_ptr)
+
+void esif_memtrace_free(void *mem_ptr)
 {
-	struct memalloc_s *mem = NULL;
+	struct memalloc_s *mem   = NULL;
 	struct memalloc_s **last = NULL;
 
 	esif_ccb_write_lock(&g_memtrace.lock);
-	mem = g_memtrace.allocated;
+	mem  = g_memtrace.allocated;
 	last = &g_memtrace.allocated;
 
 	while (mem) {
@@ -486,7 +688,7 @@ void esif_memtrace_free (void *mem_ptr)
 			goto exit;
 		}
 		last = &mem->next;
-		mem = mem->next;
+		mem  = mem->next;
 	}
 exit:
 	esif_ccb_write_unlock(&g_memtrace.lock);
@@ -494,10 +696,10 @@ exit:
 		native_free(mem_ptr);
 		atomic_inc(&g_memtrace.frees);
 	}
-	return;
 }
 
-void esif_memtrace_init ()
+
+void esif_memtrace_init()
 {
 	struct memalloc_s *mem = NULL;
 
@@ -515,13 +717,11 @@ void esif_memtrace_init ()
 	esif_ccb_write_unlock(&g_memtrace.lock);
 }
 
-#include "esif_lib_databank.h" // ESIFDV_DIR reference
-
-void esif_memtrace_exit ()
+void esif_memtrace_exit()
 {
 	struct memalloc_s *mem = NULL;
 	char tracefile[MAX_PATH];
-	FILE *tracelog=NULL;
+	FILE *tracelog = NULL;
 
 	esif_ccb_write_lock(&g_memtrace.lock);
 	mem = g_memtrace.allocated;
@@ -529,26 +729,29 @@ void esif_memtrace_exit ()
 	esif_ccb_write_unlock(&g_memtrace.lock);
 
 	CMD_OUT("MemTrace: Allocs=" ATOMIC_FMT " Frees=" ATOMIC_FMT "\n", atomic_read(&g_memtrace.allocs), atomic_read(&g_memtrace.frees));
-	if (!mem)
+	if (!mem) {
 		goto exit;
+	}
 
 	esif_ccb_sprintf(MAX_PATH, tracefile, "%s%s", ESIFDV_DIR, "memtrace.txt");
 	CMD_OUT("\n*** MEMORY LEAKS DETECTED ***\nFor details see %s\n", tracefile);
 	esif_ccb_fopen(&tracelog, tracefile, "w");
 	while (mem) {
-		struct memalloc_s *node=mem;
-		size_t i; (i);
-		if (tracelog)
+		struct memalloc_s *node = mem;
+		if (tracelog) {
 			fprintf(tracelog, "[%s @%s:%d]: (%lld bytes) %p\n", mem->func, mem->file, mem->line, (long long)mem->size, mem->mem_ptr);
+		}
 		mem = mem->next;
 		native_free(node->mem_ptr);
 		native_free(node);
 	}
-	if (tracelog)
+	if (tracelog) {
 		esif_ccb_fclose(tracelog);
+	}
 exit:
 	esif_ccb_lock_uninit(&g_memtrace.lock);
 }
+
 
 /************/
 

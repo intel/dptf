@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainPriority.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -35,6 +36,11 @@ UIntN DomainPriority::getCurrentPriority(void) const
 Bool DomainPriority::operator==(const DomainPriority& rhs) const
 {
     return (this->getCurrentPriority() == rhs.getCurrentPriority());
+}
+
+Bool DomainPriority::operator!=(const DomainPriority& rhs) const
+{
+    return !(*this == rhs);
 }
 
 Bool DomainPriority::operator>(const DomainPriority& rhs) const

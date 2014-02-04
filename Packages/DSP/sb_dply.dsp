@@ -54,7 +54,6 @@ A,0,30,False,0x5f840822,0x6D6E7000,76,64,32
 # GET_CLOCK_ORIGINAL_FREQUENCY
 P,187,0,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,128,32
-A,1,1,True,1000000,,,,
 # GET_CLOCK_ORIGINAL_FREQUENCY
 P,187,1,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,224,32
@@ -90,23 +89,18 @@ A,0,4,True,"DDPC",,,,
 # GET_DISPLAY_CLOCK_DEVIATION
 P,181,255,1,24,"<schema></schema>",29,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,0,32
-A,1,1,True,20,,,,
 # GET_DISPLAY_CLOCK_DOWNWARD_DEVIATION
 P,250,255,1,24,"<schema></schema>",27,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,32,1
-A,1,1,True,0,,,,
 # GET_DISPLAY_CLOCK_SPREAD_DIRECTION
 P,191,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,36,2
-A,1,1,True,3,,,,
 # GET_DISPLAY_CLOCK_SPREAD_PERCENTAGE
 P,190,255,1,24,"<schema></schema>",29,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,40,4
-A,1,1,True,20,,,,
 # GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
 P,189,0,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,192,32
-A,1,1,True,1200000,,,,
 # GET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY
 P,189,1,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,288,32
@@ -122,7 +116,6 @@ A,0,30,False,0x5f840822,0x6D6E7000,76,576,32
 # GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
 P,188,0,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,160,32
-A,1,1,True,1100000,,,,
 # GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY
 P,188,1,1,24,"<schema></schema>",40,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,256,32
@@ -138,7 +131,6 @@ A,0,30,False,0x5f840822,0x6D6E7000,76,544,32
 # GET_DISPLAY_CLOCK_UPWARD_DEVIATION
 P,249,255,1,24,"<schema></schema>",27,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,33,1
-A,1,1,True,0,,,,
 # GET_DISPLAY_DEPTH_LIMIT
 P,160,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,32,False,0x48545044,,,,
@@ -146,15 +138,12 @@ A,1,4,True,"DDDL",,,,
 # GET_DISPLAY_PANEL_TYPE
 P,179,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,44,1
-A,1,1,True,1,,,,
 # GET_GRAPHICS_CHIPSET_CHANNEL_TYPE
 P,182,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,35,1
-A,1,1,True,0,,,,
 # GET_GRAPHICS_CHIPSET_SSC_ENABLED
 P,184,255,1,24,"<schema></schema>",27,"<schema></schema>"
 A,0,30,False,0x5f840822,0x6D6E7000,76,34,1
-A,1,1,True,1,,,,
 # SET_DISPLAY_BRIGHTNESS_HARD
 P,226,255,2,29,"<schema></schema>",24,"<schema></schema>"
 A,0,35,True,0x54495242,,,,

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,7 +15,10 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "EsifDataPercentage.h"
+
+const double EsifDataPercentage::m_roundingValue = .00005;
 
 EsifDataPercentage::EsifDataPercentage(void)
 {
@@ -24,7 +27,14 @@ EsifDataPercentage::EsifDataPercentage(void)
 
 EsifDataPercentage::EsifDataPercentage(const Percentage& data)
 {
-    initialize(static_cast<UInt8>(data.getPercentage()));
+    // In this case we have to convert the float to an unsigned int
+    // to satisfy ESIF.  For 93%, the float would store .9300, and
+    // we convert it to an unsigned int with 9300 for ESIF.
+
+    double doubleValue = ((data + m_roundingValue) * m_conversionValue);
+    UInt32 uint32Value = static_cast<UInt32>(doubleValue);
+
+    initialize(uint32Value);
 }
 
 EsifDataPercentage::operator esif::EsifDataPtr(void)
@@ -34,10 +44,15 @@ EsifDataPercentage::operator esif::EsifDataPtr(void)
 
 EsifDataPercentage::operator Percentage(void) const
 {
-    return Percentage(m_esifDataValue);
+    // In this case we will have 93% stored as 9300.  We convert it to
+    // .9300 which is used internally in our Percentage class.
+
+    double doubleValue = static_cast<double>(m_esifDataValue) / m_conversionValue;
+
+    return Percentage(doubleValue);
 }
 
-void EsifDataPercentage::initialize(UInt8 data)
+void EsifDataPercentage::initialize(UInt32 data)
 {
     m_esifDataValue = data;
 

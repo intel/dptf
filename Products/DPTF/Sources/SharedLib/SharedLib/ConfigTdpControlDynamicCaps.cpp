@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ConfigTdpControlDynamicCaps.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -39,6 +40,11 @@ Bool ConfigTdpControlDynamicCaps::operator==(const ConfigTdpControlDynamicCaps& 
     return
         (m_currentLowerLimitIndex == rhs.m_currentLowerLimitIndex &&
          m_currentUpperLimitIndex == rhs.m_currentUpperLimitIndex);
+}
+
+Bool ConfigTdpControlDynamicCaps::operator!=(const ConfigTdpControlDynamicCaps& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* ConfigTdpControlDynamicCaps::getXml(void)

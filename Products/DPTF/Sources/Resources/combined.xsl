@@ -1,6 +1,6 @@
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=BEEFCAFEBEEFCAFEBEEFCAFEBEEFCAFE -->
+<!-- format_id=3E-58-63-46-F8-F7-45-4A-A8-F7-DE-7E-C6-F7-61-A8 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/dppm_status">
 
@@ -145,7 +145,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=89C3953AB8E42946A526C52C88626BAE -->
+<!-- format_id=89-C3-95-3A-B8-E4-29-46-A5-26-C5-2C-88-62-6B-AE -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/active_policy_status">
 
@@ -265,7 +265,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=E78AC697FA159C49B8C95DA81D606E0A -->
+<!-- format_id=E7-8A-C6-97-FA-15-9C-49-B8-C9-5D-A8-1D-60-6E-0A -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/critical_policy_status">
 
@@ -324,7 +324,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=065B45B94979C640ABF2363A70C8706C -->
+<!-- format_id=06-5B-45-B9-49-79-C6-40-AB-F2-36-3A-70-C8-70-6C -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/lpm_policy_status">
 
@@ -525,7 +525,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=D641A426AAE2B46A84B4A8CE79027D3 -->
+<!-- format_id=D6-41-A4-42-6A-AE-2B-46-A8-4B-4A-8C-E7-90-27-D3 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/passive_policy_status">
 
@@ -687,7 +687,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=0A9745E1C1E4734D900EC9C5A69DD067 -->
+<!-- format_id=0A-97-45-E1-C1-E4-73-4D-90-0E-C9-C5-A6-9D-D0-67 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/config_tdp_policy_status">
 
@@ -784,7 +784,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=B7F1CA1638DDED40B1C11B8A1913D531 -->
+<!-- format_id=B7-F1-CA-16-38-DD-ED-40-B1-C1-1B-8A-19-13-D5-31 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/cooling_mode_policy_status">
 
@@ -818,7 +818,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=CAFEBEEFCAFEBEEFCAFEBEEFCAFEBEEF -->
+<!-- format_id=F0-CB-64-06-E4-2B-46-B5-9C-85-32-D1-A1-B7-CB-68 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/participant">
 
@@ -1259,7 +1259,7 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=C5614DE930804DB5981AD1D167DD4CD7 -->
+<!-- format_id=C5-61-4D-E9-30-80-4D-B5-98-1A-D1-D1-67-DD-4C-D7 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/work_item_queue_manager_status">
 

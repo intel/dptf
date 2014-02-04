@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "FrameworkEvent.h"
 #include "DptfExceptions.h"
 #include "autogen.h"
@@ -36,17 +37,6 @@
 
 FrameworkEventInfo* FrameworkEventInfo::frameworkEventInfo = NULL;
 
-FrameworkEventInfo::FrameworkEventInfo(void)
-{
-    initializeAllEventsToInvalid();
-    initializeEvents();
-    verifyAllEventsCorrectlyInitialized();
-}
-
-FrameworkEventInfo::~FrameworkEventInfo(void)
-{
-}
-
 FrameworkEventInfo* FrameworkEventInfo::instance(void)
 {
     if (frameworkEventInfo == NULL)
@@ -58,11 +48,7 @@ FrameworkEventInfo* FrameworkEventInfo::instance(void)
 
 void FrameworkEventInfo::destroy(void)
 {
-    if (frameworkEventInfo != NULL)
-    {
-        delete frameworkEventInfo;
-        frameworkEventInfo = NULL;
-    }
+    DELETE_MEMORY_TC(frameworkEventInfo);
 }
 
 const FrameworkEventData& FrameworkEventInfo::operator[](FrameworkEvent::Type frameworkEvent) const
@@ -103,6 +89,17 @@ FrameworkEvent::Type FrameworkEventInfo::getFrameworkEventType(const Guid& guid)
     throw dptf_exception("Received guid that doesn't match an event know to DPTF.");
 }
 
+FrameworkEventInfo::FrameworkEventInfo(void)
+{
+    initializeAllEventsToInvalid();
+    initializeEvents();
+    verifyAllEventsCorrectlyInitialized();
+}
+
+FrameworkEventInfo::~FrameworkEventInfo(void)
+{
+}
+
 void FrameworkEventInfo::initializeAllEventsToInvalid()
 {
     const UIntN invalidPriority = m_maxPriority + 1;
@@ -119,6 +116,7 @@ void FrameworkEventInfo::initializeEvents()
     INIT_EVENT_WITH_GUID(DptfConnectedStandbyEntry, 0, CONNECTED_STANDBY_ENTRY);
     INIT_EVENT_WITH_GUID(DptfConnectedStandbyExit, 0, CONNECTED_STANDBY_EXIT);
     INIT_EVENT(DptfGetStatus, 0);
+    INIT_EVENT_WITH_GUID(DptfLogVerbosityChanged, 0, LOG_VERBOSITY_CHANGED);
 
     // Participant and Domain events
     INIT_EVENT(ParticipantAllocate, 31);
@@ -136,25 +134,27 @@ void FrameworkEventInfo::initializeEvents()
     INIT_EVENT_WITH_GUID(DomainPerformanceControlsChanged, 0, PERF_CONTROL_CHANGED);
     INIT_EVENT_WITH_GUID(DomainPowerControlCapabilityChanged, 0, POWER_CAPABILITY_CHANGED);
     INIT_EVENT_WITH_GUID(DomainPriorityChanged, 0, PRIORITY_CHANGED);
+    INIT_EVENT_WITH_GUID(DomainRadioConnectionStatusChanged, 0, RF_CONNECTION_STATUS_CHANGED);
+    INIT_EVENT_WITH_GUID(DomainRfProfileChanged, 0, RF_PROFILE_CHANGED);
     INIT_EVENT_WITH_GUID(DomainTemperatureThresholdCrossed, 0, TEMP_THRESHOLD_CROSSED);
 
     // Policy events
     INIT_EVENT(PolicyCreate, 31);
     INIT_EVENT(PolicyDestroy, 31);
     INIT_EVENT_WITH_GUID(PolicyActiveRelationshipTableChanged, 0, ACTIVE_RELATIONSHIP_CHANGED);
-    INIT_EVENT_WITH_GUID(PolicyThermalRelationshipTableChanged, 0, THERMAL_RELATIONSHIP_CHANGED);
-    INIT_EVENT(PolicyInitiatedCallback, 0);
-    INIT_EVENT_WITH_GUID(PolicyForegroundApplicationChanged, 0, FOREGROUND_CHANGED);
-    INIT_EVENT_WITH_GUID(PolicyOperatingSystemLpmModeChanged, 0, OS_LPM_MODE_CHANGED);
-    INIT_EVENT_WITH_GUID(PolicyPlatformLpmModeChanged, 0, LPM_MODE_CHANGED);
-    INIT_EVENT_WITH_GUID(PolicyOperatingSystemConfigTdpLevelChanged, 0, OS_CTDP_CAPABILITY_CHANGED);
-    INIT_EVENT_WITH_GUID(PolicyCoolingModePowerLimitChanged, 0, COOLING_MODE_POWER_LIMIT_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyCoolingModeAcousticLimitChanged, 0, COOLING_MODE_ACOUSTIC_LIMIT_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyCoolingModePolicyChanged, 0, SYSTEM_COOLING_POLICY_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicyCoolingModePowerLimitChanged, 0, COOLING_MODE_POWER_LIMIT_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicyForegroundApplicationChanged, 0, FOREGROUND_CHANGED);
+    INIT_EVENT(PolicyInitiatedCallback, 0);
+    INIT_EVENT_WITH_GUID(PolicyOperatingSystemConfigTdpLevelChanged, 0, OS_CTDP_CAPABILITY_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicyOperatingSystemLpmModeChanged, 0, OS_LPM_MODE_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyPassiveTableChanged, 0, PASSIVE_TABLE_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicyPlatformLpmModeChanged, 0, LPM_MODE_CHANGED);
     INIT_EVENT_WITH_GUID(PolicySensorOrientationChanged, 0, SENSOR_ORIENTATION_CHANGED);
-    INIT_EVENT_WITH_GUID(PolicySensorSpatialOrientationChanged, 0, SENSOR_SPATIAL_ORIENTATION_CHANGED);
     INIT_EVENT_WITH_GUID(PolicySensorProximityChanged, 0, SENSOR_PROXIMITY_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicySensorSpatialOrientationChanged, 0, SENSOR_SPATIAL_ORIENTATION_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicyThermalRelationshipTableChanged, 0, THERMAL_RELATIONSHIP_CHANGED);
 }
 
 void FrameworkEventInfo::initializeEvent(FrameworkEvent::Type eventId, UIntN immediateQueuePriority,

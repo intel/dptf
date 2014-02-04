@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "LpmConfigurationHelper.h"
 
 
@@ -79,26 +80,6 @@ vector<UIntN> LpmConfigurationHelper::findLpmEntriesWithDomainType(
 void LpmConfigurationHelper::setPolicyServices(PolicyServicesInterfaceContainer policyServices)
 {
     m_policyServices = policyServices;
-}
-
-void LpmConfigurationHelper::postInfoMessage(const PolicyMessage& message)
-{
-    m_policyServices.messageLogging->writeMessageInfo(message);
-}
-
-void LpmConfigurationHelper::postWarningMessage(const PolicyMessage& message)
-{
-    m_policyServices.messageLogging->writeMessageWarning(message);
-}
-
-void LpmConfigurationHelper::postErrorMessage(const PolicyMessage& message)
-{
-    m_policyServices.messageLogging->writeMessageError(message);
-}
-
-void LpmConfigurationHelper::postDebugMessage(const PolicyMessage& message)
-{
-    m_policyServices.messageLogging->writeMessageDebug(message);
 }
 
 PolicyServicesInterfaceContainer& LpmConfigurationHelper::getPolicyServices(void)

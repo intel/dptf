@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "ConfigTdpControl.h"
@@ -27,11 +28,12 @@ class ConfigTdpControlSet final
 {
 public:
 
-    ConfigTdpControlSet(std::vector<ConfigTdpControl> configTdpControl, UIntN nominalControlIndex);
+    ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl, UIntN nominalControlIndex);
     UIntN getCount(void) const;
     const ConfigTdpControl& operator[](UIntN index) const;
     UIntN getNominalControlIndex(void) const;
     Bool operator==(const ConfigTdpControlSet& rhs) const;
+    Bool operator!=(const ConfigTdpControlSet& rhs) const;
     XmlNode* getXml(void);
 
 private:

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "EsifServices.h"
 #include "DptfManager.h"
 #include "ParticipantManager.h"
@@ -22,10 +23,13 @@
 #include "Constants.h"
 #include "EsifData.h"
 #include "EsifDataPercentage.h"
+#include "EsifDataFrequency.h"
 #include "EsifDataPower.h"
 #include "EsifDataString.h"
 #include "EsifDataTemperature.h"
+#include "EsifDataUInt8.h"
 #include "EsifDataUInt32.h"
+#include "EsifDataUInt64.h"
 #include "EsifDataVoid.h"
 #include "EsifDataGuid.h"
 #include "esif_ccb_memory.h"
@@ -33,10 +37,20 @@
 #include "ManagerMessage.h"
 
 EsifServices::EsifServices(const DptfManager* dptfManager, const void* esifHandle,
-    const EsifInterfacePtr esifInterfacePtr) : m_dptfManager(dptfManager),
-    m_esifHandle(esifHandle)
+    const EsifInterfacePtr esifInterfacePtr, eLogType currentLogVerbosityLevel) :
+    m_dptfManager(dptfManager), m_esifHandle(esifHandle), m_currentLogVerbosityLevel(currentLogVerbosityLevel)
 {
     esif_ccb_memcpy(&m_esifInterface, esifInterfacePtr, sizeof(EsifInterface));
+}
+
+eLogType EsifServices::getCurrentLogVerbosityLevel(void) const
+{
+    return m_currentLogVerbosityLevel;
+}
+
+void EsifServices::setCurrentLogVerbosityLevel(eLogType currentLogVerbosityLevel)
+{
+    m_currentLogVerbosityLevel = currentLogVerbosityLevel;
 }
 
 UInt32 EsifServices::readConfigurationUInt32(const std::string& elementPath)
@@ -96,6 +110,34 @@ std::string EsifServices::readConfigurationString(const std::string& elementPath
     return esifResult;
 }
 
+UInt8 EsifServices::primitiveExecuteGetAsUInt8(esif_primitive_type primitive, UIntN participantIndex,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    EsifDataUInt8 esifResult;
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataVoid(), esifResult, primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+
+    return esifResult;
+}
+
+void EsifServices::primitiveExecuteSetAsUInt8(esif_primitive_type primitive, UInt8 elementValue, UIntN participantIndex,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataUInt8(elementValue), EsifDataVoid(), primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+}
+
 UInt32 EsifServices::primitiveExecuteGetAsUInt32(esif_primitive_type primitive, UIntN participantIndex,
     UIntN domainIndex, UInt8 instance)
 {
@@ -121,6 +163,34 @@ void EsifServices::primitiveExecuteSetAsUInt32(esif_primitive_type primitive, UI
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataUInt32(elementValue), EsifDataVoid(), primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+}
+
+UInt64 EsifServices::primitiveExecuteGetAsUInt64(esif_primitive_type primitive, UIntN participantIndex,
+    UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    EsifDataUInt64 esifResult;
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataVoid(), esifResult, primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+
+    return esifResult;
+}
+
+void EsifServices::primitiveExecuteSetAsUInt64(esif_primitive_type primitive, UInt64 elementValue,
+    UIntN participantIndex, UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataUInt64(elementValue), EsifDataVoid(), primitive, instance);
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
@@ -212,6 +282,46 @@ Percentage EsifServices::primitiveExecuteGetAsPercentage(esif_primitive_type pri
     return esifResult;
 }
 
+void EsifServices::primitiveExecuteSetAsPercentage(esif_primitive_type primitive, Percentage percentage,
+    UIntN participantIndex, UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataPercentage(percentage), EsifDataVoid(), primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+}
+
+Frequency EsifServices::primitiveExecuteGetAsFrequency(esif_primitive_type primitive,
+    UIntN participantIndex, UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    EsifDataFrequency esifResult;
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataVoid(), esifResult, primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+
+    return esifResult;
+}
+
+void EsifServices::primitiveExecuteSetAsFrequency(esif_primitive_type primitive, Frequency frequency,
+    UIntN participantIndex, UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataFrequency(frequency), EsifDataVoid(), primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+}
+
 Power EsifServices::primitiveExecuteGetAsPower(esif_primitive_type primitive, UIntN participantIndex,
     UIntN domainIndex, UInt8 instance)
 {
@@ -288,27 +398,42 @@ void EsifServices::primitiveExecuteSet(esif_primitive_type primitive, esif_data_
 
 void EsifServices::writeMessageFatal(const std::string& message, MessageCategory::Type messageCategory)
 {
-    writeMessage(eLogType::eLogTypeFatal, messageCategory, message);
+    if (eLogType::eLogTypeFatal <= m_currentLogVerbosityLevel)
+    {
+        writeMessage(eLogType::eLogTypeFatal, messageCategory, message);
+    }
 }
 
 void EsifServices::writeMessageError(const std::string& message, MessageCategory::Type messageCategory)
 {
-    writeMessage(eLogType::eLogTypeError, messageCategory, message);
+    if (eLogType::eLogTypeError <= m_currentLogVerbosityLevel)
+    {
+        writeMessage(eLogType::eLogTypeError, messageCategory, message);
+    }
 }
 
 void EsifServices::writeMessageWarning(const std::string& message, MessageCategory::Type messageCategory)
 {
-    writeMessage(eLogType::eLogTypeWarning, messageCategory, message);
+    if (eLogType::eLogTypeWarning <= m_currentLogVerbosityLevel)
+    {
+        writeMessage(eLogType::eLogTypeWarning, messageCategory, message);
+    }
 }
 
 void EsifServices::writeMessageInfo(const std::string& message, MessageCategory::Type messageCategory)
 {
-    writeMessage(eLogType::eLogTypeInfo, messageCategory, message);
+    if (eLogType::eLogTypeInfo <= m_currentLogVerbosityLevel)
+    {
+        writeMessage(eLogType::eLogTypeInfo, messageCategory, message);
+    }
 }
 
 void EsifServices::writeMessageDebug(const std::string& message, MessageCategory::Type messageCategory)
 {
-    writeMessage(eLogType::eLogTypeDebug, messageCategory, message);
+    if (eLogType::eLogTypeDebug <= m_currentLogVerbosityLevel)
+    {
+        writeMessage(eLogType::eLogTypeDebug, messageCategory, message);
+    }
 }
 
 void EsifServices::registerEvent(FrameworkEvent::Type frameworkEvent, UIntN participantIndex, UIntN domainIndex)
@@ -361,7 +486,7 @@ void EsifServices::unregisterEvent(FrameworkEvent::Type frameworkEvent, UIntN pa
     }
 }
 
-void EsifServices::writeMessage(eLogType logType, MessageCategory::Type messageCategory, const std::string& message)
+void EsifServices::writeMessage(eLogType messageLevel, MessageCategory::Type messageCategory, const std::string& message)
 {
     // Do not throw an error here....
     // In general we will write to the log file when an error has been thrown and we don't want to create
@@ -375,8 +500,8 @@ void EsifServices::writeMessage(eLogType logType, MessageCategory::Type messageC
     {
 #endif
 
-    m_esifInterface.fWriteLogFuncPtr(m_esifHandle, m_dptfManager, nullptr,
-        nullptr, EsifDataString(message), logType);
+        m_esifInterface.fWriteLogFuncPtr(m_esifHandle, m_dptfManager, nullptr,
+            nullptr, EsifDataString(message), messageLevel);
 
 #ifdef ONLY_LOG_TEMPERATURE_THRESHOLDS
     }

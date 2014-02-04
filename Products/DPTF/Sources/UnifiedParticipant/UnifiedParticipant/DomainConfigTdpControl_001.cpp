@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,13 +15,19 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainConfigTdpControl_001.h"
 #include "XmlNode.h"
 
 DomainConfigTdpControl_001::DomainConfigTdpControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+    m_participantServicesInterface(participantServicesInterface),
+    m_configTdpControlSet(nullptr),
+    m_configTdpControlDynamicCaps(nullptr),
+    m_configTdpControlStatus(nullptr),
+    m_configTdpLevelsAvailable(0),
+    m_currentConfigTdpControlId(Constants::Invalid),
+    m_configTdpLock(false)
 {
-    initializeDataStructures();
 }
 
 DomainConfigTdpControl_001::~DomainConfigTdpControl_001(void)
@@ -33,7 +39,6 @@ ConfigTdpControlDynamicCaps DomainConfigTdpControl_001::getConfigTdpControlDynam
     UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     return *m_configTdpControlDynamicCaps;
 }
 
@@ -46,7 +51,6 @@ ConfigTdpControlStatus DomainConfigTdpControl_001::getConfigTdpControlStatus(UIn
 ConfigTdpControlSet DomainConfigTdpControl_001::getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     return *m_configTdpControlSet;
 }
 
@@ -83,27 +87,15 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
         domainIndex);
 
     // Refresh the status
-    if (m_configTdpControlStatus != nullptr)
-    {
-        delete m_configTdpControlStatus;
-    }
+    DELETE_MEMORY_TC(m_configTdpControlStatus);
     m_configTdpControlStatus = new ConfigTdpControlStatus(configTdpControlIndex);
-}
-
-void DomainConfigTdpControl_001::initializeDataStructures(void)
-{
-    m_configTdpControlSet = nullptr;
-    m_configTdpControlDynamicCaps = nullptr;
-    m_configTdpControlStatus = nullptr;
 }
 
 void DomainConfigTdpControl_001::clearCachedData(void)
 {
-    delete m_configTdpControlSet;
-    delete m_configTdpControlDynamicCaps;
-    delete m_configTdpControlStatus;
-
-    initializeDataStructures();
+    DELETE_MEMORY_TC(m_configTdpControlSet);
+    DELETE_MEMORY_TC(m_configTdpControlDynamicCaps);
+    DELETE_MEMORY_TC(m_configTdpControlStatus);
 }
 
 XmlNode* DomainConfigTdpControl_001::getXml(UIntN domainIndex)
@@ -196,12 +188,8 @@ void DomainConfigTdpControl_001::checkHWConfigTdpSupport(std::vector<ConfigTdpCo
     {
         if (currentTdpControl == controls.at(i).getControlId())
         {
-            if (m_configTdpControlStatus != nullptr)
-            {
-                delete m_configTdpControlStatus;
-            }
+            DELETE_MEMORY_TC(m_configTdpControlStatus);
             m_configTdpControlStatus = new ConfigTdpControlStatus(i);
-
             controlIdFound = true;
         }
     }

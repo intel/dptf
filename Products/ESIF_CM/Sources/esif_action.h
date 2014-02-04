@@ -107,8 +107,7 @@ void esif_action_const_exit(void);
 
 enum esif_rc esif_get_action_const(const u32 value,
 				   const struct esif_data *req_data_ptr,
-				   struct esif_data *rsp_data_ptr)
-;
+				   struct esif_data *rsp_data_ptr);
 
 /* CODE */
 struct esif_primitive_tuple;

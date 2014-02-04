@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -51,32 +52,35 @@ public:
     std::string getStatusAsXml(void) const;
 
     // Event handlers
-    void executeDomainTemperatureThresholdCrossed(UIntN participantIndex);
-    void executeDomainPowerControlCapabilityChanged(UIntN participantIndex);
-    void executeDomainPerformanceControlCapabilityChanged(UIntN participantIndex);
-    void executeDomainPerformanceControlsChanged(UIntN participantIndex);
-    void executeDomainCoreControlCapabilityChanged(UIntN participantIndex);
-    void executeDomainConfigTdpCapabilityChanged(UIntN participantIndex);
-    void executeDomainPriorityChanged(UIntN participantIndex);
-    void executeParticipantSpecificInfoChanged(UIntN participantIndex);
-    void executeDomainDisplayControlCapabilityChanged(UIntN participantIndex);
-    void executeDomainDisplayStatusChanged(UIntN participantIndex);
-    void executePolicyActiveRelationshipTableChanged(void);
-    void executePolicyThermalRelationshipTableChanged(void);
+
     void executeConnectedStandbyEntry(void);
     void executeConnectedStandbyExit(void);
-    void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName);
-    void executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2);
-    void executePolicyOperatingSystemLpmModeChanged(UIntN lpmMode);
-    void executePolicyPlatformLpmModeChanged(void);
-    void executePolicyOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel);
-    void executePolicyCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit);
+    void executeDomainConfigTdpCapabilityChanged(UIntN participantIndex);
+    void executeDomainCoreControlCapabilityChanged(UIntN participantIndex);
+    void executeDomainDisplayControlCapabilityChanged(UIntN participantIndex);
+    void executeDomainDisplayStatusChanged(UIntN participantIndex);
+    void executeDomainPerformanceControlCapabilityChanged(UIntN participantIndex);
+    void executeDomainPerformanceControlsChanged(UIntN participantIndex);
+    void executeDomainPowerControlCapabilityChanged(UIntN participantIndex);
+    void executeDomainPriorityChanged(UIntN participantIndex);
+    void executeDomainRadioConnectionStatusChanged(UIntN participantIndex, RadioConnectionStatus::Type radioConnectionStatus);
+    void executeDomainRfProfileChanged(UIntN participantIndex);
+    void executeDomainTemperatureThresholdCrossed(UIntN participantIndex);
+    void executeParticipantSpecificInfoChanged(UIntN participantIndex);
+    void executePolicyActiveRelationshipTableChanged(void);
     void executePolicyCoolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit);
     void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode);
+    void executePolicyCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit);
+    void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName);
+    void executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2);
+    void executePolicyOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel);
+    void executePolicyOperatingSystemLpmModeChanged(UIntN lpmMode);
     void executePolicyPassiveTableChanged(void);
+    void executePolicyPlatformLpmModeChanged(void);
     void executePolicySensorOrientationChanged(SensorOrientation::Type sensorOrientation);
-    void executePolicySensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
     void executePolicySensorProximityChanged(SensorProximity::Type sensorProximity);
+    void executePolicySensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
+    void executePolicyThermalRelationshipTableChanged(void);
 
 private:
 
@@ -108,6 +112,14 @@ private:
     // function pointers exposed in the .dll/.so
     CreatePolicyInstanceFuncPtr m_createPolicyInstanceFuncPtr;
     DestroyPolicyInstanceFuncPtr m_destroyPolicyInstanceFuncPtr;
+
+    // Policy services should be used as an interface instead of an interface container.
+    // Because of this design decision the code is split between the shared lib and
+    // the manager which is why the following functions are here.  This should be improved
+    // in the future.
+    PolicyServicesInterfaceContainer m_policyServices;
+    void createPolicyServices(void);
+    void destroyPolicyServices(void);
 
     // track the events that will be forwarded to the policy
     std::bitset<PolicyEvent::Max> m_registeredEvents;

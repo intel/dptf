@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CoreControlPreferencesCachedProperty.h"
 using namespace std;
 
@@ -24,7 +25,7 @@ CoreControlPreferencesCachedProperty::CoreControlPreferencesCachedProperty(
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
     : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_preferences(false, Constants::Invalid, Percentage(Constants::Invalid),
+    m_preferences(false, Constants::Invalid, Percentage::createInvalid(),
         CoreControlOffliningMode::None, CoreControlOffliningMode::None)
 {
 }

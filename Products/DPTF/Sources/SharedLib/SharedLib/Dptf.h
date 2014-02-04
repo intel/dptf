@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #ifdef __KLOCWORK__
@@ -25,6 +26,7 @@
 #include "DptfExport.h"
 #include "BasicTypes.h"
 #include "DptfExceptions.h"
+#include "Frequency.h"
 #include "Guid.h"
 #include "Percentage.h"
 #include "Power.h"
@@ -41,6 +43,8 @@
 #include <string>
 #include <sstream>
 
+#define DELETE_MEMORY_TC(cd) try{if (cd != nullptr) {delete cd; cd = nullptr;}} catch (...) {cd = nullptr;}
+#define DELETE_MEMORY(cd) if (cd != nullptr) {delete cd; cd = nullptr;}
 
 //
 // FIXME:  these pragma's are temporary while stubbing the header files and source files.

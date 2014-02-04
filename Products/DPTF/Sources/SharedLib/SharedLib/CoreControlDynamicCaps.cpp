@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CoreControlDynamicCaps.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -43,6 +44,11 @@ Bool CoreControlDynamicCaps::operator==(const CoreControlDynamicCaps& rhs) const
     return
         (m_minActiveCores == rhs.m_minActiveCores &&
          m_maxActiveCores == rhs.m_maxActiveCores);
+}
+
+Bool CoreControlDynamicCaps::operator!=(const CoreControlDynamicCaps& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* CoreControlDynamicCaps::getXml(void)

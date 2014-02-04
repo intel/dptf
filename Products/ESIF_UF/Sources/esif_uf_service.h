@@ -22,46 +22,46 @@
 #include "esif.h"
 
 /* ESIF Services  Interface Functions */
-eEsifError EsifSvcConfigGet (const void *esifHandle,
-							 const void *appHandle,
-							 const EsifDataPtr nameSpacePtr,
-							 const EsifDataPtr elementPathPtr,
-							 EsifDataPtr elementValuePtr);
-
-eEsifError EsifSvcConfigSet (const void *esifHandle,
-							 const void *appHandle,
-							 const EsifDataPtr nameSpacePtr,
-							 const EsifDataPtr elementPathPtr,
-							 const EsifDataPtr elementValuePtr,
-							 const EsifFlags elementFlags);
-
-eEsifError EsifSvcPrimitiveExec (const void *esifHandle,
-								 const void *appHandle,
-								 const void *participantHandle,
-								 const void *domainHandle,
-								 const EsifDataPtr requestPtr,
-								 EsifDataPtr responsePtr,
-								 const ePrimitiveType primitive,
-								 const UInt8 instance);
-
-eEsifError EsifSvcWriteLog (const void *esifHandle,
+eEsifError EsifSvcConfigGet(const void *esifHandle,
 							const void *appHandle,
-							const void *participantHandle,
-							const void *domainHandle,
-							const EsifDataPtr messagePtr,
-							const eLogType logType);
+							const EsifDataPtr nameSpacePtr,
+							const EsifDataPtr elementPathPtr,
+							EsifDataPtr elementValuePtr);
 
-eEsifError EsifSvcEventRegister (const void *esifHandle,
-								 const void *appHandle,
-								 const void *participantHandle,
-								 const void *domainHandle,
-								 const EsifDataPtr eventGuid);
+eEsifError EsifSvcConfigSet(const void *esifHandle,
+							const void *appHandle,
+							const EsifDataPtr nameSpacePtr,
+							const EsifDataPtr elementPathPtr,
+							const EsifDataPtr elementValuePtr,
+							const EsifFlags elementFlags);
 
-eEsifError EsifSvcEventUnregister (const void *esifHandle,
-								   const void *appHandle,
-								   const void *participantHandle,
-								   const void *domainHandle,
-								   const EsifDataPtr eventGuid);
+eEsifError EsifSvcPrimitiveExec(const void *esifHandle,
+								const void *appHandle,
+								const void *participantHandle,
+								const void *domainHandle,
+								const EsifDataPtr requestPtr,
+								EsifDataPtr responsePtr,
+								const ePrimitiveType primitive,
+								const UInt8 instance);
+
+eEsifError EsifSvcWriteLog(const void *esifHandle,
+						   const void *appHandle,
+						   const void *participantHandle,
+						   const void *domainHandle,
+						   const EsifDataPtr messagePtr,
+						   const eLogType logType);
+
+eEsifError EsifSvcEventRegister(const void *esifHandle,
+								const void *appHandle,
+								const void *participantHandle,
+								const void *domainHandle,
+								const EsifDataPtr eventGuid);
+
+eEsifError EsifSvcEventUnregister(const void *esifHandle,
+								  const void *appHandle,
+								  const void *participantHandle,
+								  const void *domainHandle,
+								  const EsifDataPtr eventGuid);
 
 #endif	// _ESIF_UF_SERVICE_
 

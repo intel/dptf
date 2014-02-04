@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -27,10 +28,12 @@ class ParticipantManager;
 class IndexContainer;
 class DptfStatus;
 enum _t_eAppStatusCommand : unsigned int;
+enum _t_eLogType : unsigned int;
 
 struct _t_EsifInterface;
 typedef struct _t_EsifInterface* EsifInterfacePtr;
 typedef enum _t_eAppStatusCommand eAppStatusCommand;
+typedef enum _t_eLogType eLogType;
 
 //
 // DPTF starts here!!!
@@ -47,10 +50,12 @@ public:
     ~DptfManager(void);
 
     // This will create all of the DPTF subsystems.
-    void createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr, const std::string& dptfHomeDirectoryPath,
-        Bool dptfEnabled);
+    void createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr,
+        const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled);
 
-    Bool isAvailable(void) const;
+    Bool isDptfManagerCreated(void) const;
+    Bool isDptfShuttingDown(void) const;
+    Bool isWorkItemQueueManagerCreated(void) const;
 
     EsifServices* getEsifServices(void) const;
     WorkItemQueueManager* getWorkItemQueueManager(void) const;
@@ -61,12 +66,6 @@ public:
 
     std::string getDptfHomeDirectoryPath(void) const;
 
-    // FIXME:  implement after alpha release
-    // Enable/disable the entire system
-    //void enableDptf(void);
-    //void disableDptf(void);
-    //Bool isDptfEnabled(void);
-
 private:
 
     // hide the copy constructor and assignment operator.
@@ -76,6 +75,7 @@ private:
     Bool m_dptfManagerCreateStarted;
     Bool m_dptfManagerCreateFinished;
     Bool m_dptfShuttingDown;
+    Bool m_workItemQueueManagerCreated;
 
     Bool m_dptfEnabled;
 

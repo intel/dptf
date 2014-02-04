@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainActiveControlFactoryInterface.h"
@@ -22,9 +23,13 @@
 #include "DomainCoreControlFactoryInterface.h"
 #include "DomainDisplayControlFactoryInterface.h"
 #include "DomainPerformanceControlFactoryInterface.h"
+#include "DomainPixelClockControlFactoryInterface.h"
+#include "DomainPixelClockStatusFactoryInterface.h"
 #include "DomainPowerControlFactoryInterface.h"
 #include "DomainPowerStatusFactoryInterface.h"
 #include "DomainPriorityFactoryInterface.h"
+#include "DomainRfProfileControlFactoryInterface.h"
+#include "DomainRfProfileStatusFactoryInterface.h"
 #include "DomainTemperatureFactoryInterface.h"
 #include "DomainUtilizationFactoryInterface.h"
 #include "ParticipantGetSpecificInfoFactoryInterface.h"
@@ -35,7 +40,6 @@ class ClassFactories
 public:
 
     ClassFactories(void);
-    void setAllPointersNull(void);
     void deleteAllFactories(void);
 
     DomainActiveControlFactoryInterface* domainActiveControlFactory;
@@ -43,9 +47,13 @@ public:
     DomainCoreControlFactoryInterface* domainCoreControlFactory;
     DomainDisplayControlFactoryInterface* domainDisplayControlFactory;
     DomainPerformanceControlFactoryInterface* domainPerformanceControlFactory;
+    DomainPixelClockControlFactoryInterface* domainPixelClockControlFactory;
+    DomainPixelClockStatusFactoryInterface* domainPixelClockStatusFactory;
     DomainPowerControlFactoryInterface* domainPowerControlFactory;
     DomainPowerStatusFactoryInterface* domainPowerStatusFactory;
     DomainPriorityFactoryInterface* domainPriorityFactory;
+    DomainRfProfileControlFactoryInterface* domainRfProfileControlFactory;
+    DomainRfProfileStatusFactoryInterface* domainRfProfileStatusFactory;
     DomainTemperatureFactoryInterface* domainTemperatureFactory;
     DomainUtilizationFactoryInterface* domainUtilizationFactory;
     ParticipantGetSpecificInfoFactoryInterface* participantGetSpecificInfoFactory;

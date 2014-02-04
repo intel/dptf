@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -23,18 +24,22 @@
 #include "ComponentExtendedInterface.h"
 #include "Guid.h"
 #include "DomainType.h"
+#include "ConfigTdpDataSyncInterface.h"
 #include "DomainFunctionalityVersions.h"
 #include "DomainActiveControlFactory.h"
 #include "DomainConfigTdpControlFactory.h"
 #include "DomainCoreControlFactory.h"
 #include "DomainDisplayControlFactory.h"
 #include "DomainPerformanceControlFactory.h"
+#include "DomainPixelClockControlFactory.h"
+#include "DomainPixelClockStatusFactory.h"
 #include "DomainPowerControlFactory.h"
 #include "DomainPowerStatusFactory.h"
 #include "DomainPriorityFactory.h"
+#include "DomainRfProfileControlFactory.h"
+#include "DomainRfProfileStatusFactory.h"
 #include "DomainTemperatureFactory.h"
 #include "DomainUtilizationFactory.h"
-#include "ConfigTdpDataSyncInterface.h"
 
 class UnifiedDomain
 {
@@ -74,23 +79,38 @@ public:
     DomainDisplayControlInterface* getDisplayControlInterfacePtr(void);
     ComponentExtendedInterface* getDisplayControlInterfaceExPtr(void);
 
-    // domain priority
-    DomainPriorityInterface* getDomainPriorityInterfacePtr(void);
-    ComponentExtendedInterface* getDomainPriorityInterfaceExPtr(void);
-
     // performance control
     DomainPerformanceControlInterface* getPerformanceControlInterfacePtr(void);
     ComponentExtendedInterface* getPerformanceControlInterfaceExPtr(void);
     ConfigTdpDataSyncInterface* getPerformanceControlConfigTdpSyncInterfacePtr(void);
 
+    // Pixel Clock Control
+    DomainPixelClockControlInterface* getPixelClockControlInterfacePtr(void);
+    ComponentExtendedInterface* getPixelClockControlInterfaceExPtr(void);
+
+    // Pixel Clock Status
+    DomainPixelClockStatusInterface* getPixelClockStatusInterfacePtr(void);
+    ComponentExtendedInterface* getPixelClockStatusInterfaceExPtr(void);
+
     // power control
     DomainPowerControlInterface* getPowerControlInterfacePtr(void);
     ComponentExtendedInterface* getPowerControlInterfaceExPtr(void);
-    ConfigTdpDataSyncInterface* getPowerControlConfigTdpSyncInterfacePtr(void);
 
     // power status
     DomainPowerStatusInterface* getPowerStatusInterfacePtr(void);
     ComponentExtendedInterface* getPowerStatusInterfaceExPtr(void);
+
+    // priority
+    DomainPriorityInterface* getDomainPriorityInterfacePtr(void);
+    ComponentExtendedInterface* getDomainPriorityInterfaceExPtr(void);
+
+    // RF Profile Control
+    DomainRfProfileControlInterface* getRfProfileControlInterfacePtr(void);
+    ComponentExtendedInterface* getRfProfileControlInterfaceExPtr(void);
+
+    // RF Profile Status
+    DomainRfProfileStatusInterface* getRfProfileStatusInterfacePtr(void);
+    ComponentExtendedInterface* getRfProfileStatusInterfaceExPtr(void);
 
     // temperature
     DomainTemperatureInterface* getTemperatureInterfacePtr(void);
@@ -121,10 +141,14 @@ private:
     DomainConfigTdpControlInterface* m_configTdpControl;
     DomainCoreControlInterface* m_coreControl;
     DomainDisplayControlInterface* m_displayControl;
-    DomainPriorityInterface* m_domainPriority;
     DomainPerformanceControlInterface* m_performanceControl;
+    DomainPixelClockControlInterface* m_pixelClockControl;
+    DomainPixelClockStatusInterface* m_pixelClockStatus;
     DomainPowerControlInterface* m_powerControl;
     DomainPowerStatusInterface* m_powerStatus;
+    DomainPriorityInterface* m_domainPriority;
+    DomainRfProfileControlInterface* m_rfProfileControl;
+    DomainRfProfileStatusInterface* m_rfProfileStatus;
     DomainTemperatureInterface* m_temperature;
     DomainUtilizationInterface* m_utilization;
 
@@ -137,13 +161,21 @@ private:
         ParticipantServicesInterface* participantServicesInterface);
     void createDisplayControlObject(const ClassFactories& classFactories,
         ParticipantServicesInterface* participantServicesInterface);
-    void createDomainPriorityObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
     void createPerformanceControlObject(const ClassFactories& classFactories,
+        ParticipantServicesInterface* participantServicesInterface);
+    void createPixelClockControlObject(const ClassFactories& classFactories,
+        ParticipantServicesInterface* participantServicesInterface);
+    void createPixelClockStatusObject(const ClassFactories& classFactories,
         ParticipantServicesInterface* participantServicesInterface);
     void createPowerControlObject(const ClassFactories& classFactories,
         ParticipantServicesInterface* participantServicesInterface);
     void createPowerStatusObject(const ClassFactories& classFactories,
+        ParticipantServicesInterface* participantServicesInterface);
+    void createDomainPriorityObject(const ClassFactories& classFactories,
+        ParticipantServicesInterface* participantServicesInterface);
+    void createRfProfileControlObject(const ClassFactories& classFactories,
+        ParticipantServicesInterface* participantServicesInterface);
+    void createRfProfileStatusObject(const ClassFactories& classFactories,
         ParticipantServicesInterface* participantServicesInterface);
     void createTemperatureObject(const ClassFactories& classFactories,
         ParticipantServicesInterface* participantServicesInterface);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DeferredWorkItem.h"
 #include "WorkItem.h"
 
@@ -26,7 +27,7 @@ DeferredWorkItem::DeferredWorkItem(WorkItemInterface* workItem, UInt64 numMilliS
 
 DeferredWorkItem::~DeferredWorkItem(void)
 {
-    delete m_workItem;
+    DELETE_MEMORY_TC(m_workItem);
 }
 
 UInt64 DeferredWorkItem::getUniqueId(void) const

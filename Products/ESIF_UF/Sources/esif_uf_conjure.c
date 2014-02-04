@@ -41,7 +41,7 @@ typedef eEsifError (*GetIfaceFuncPtr)(EsifConjureInterfacePtr);
 /* Friends */
 extern EsifCnjMgr g_cnjMgr;
 
-static eEsifError RegisterParticipant (const EsifParticipantIfacePtr piPtr)
+static eEsifError RegisterParticipant(const EsifParticipantIfacePtr piPtr)
 {
 	eEsifError rc    = ESIF_OK;
 	EsifUpPtr up_ptr = NULL;
@@ -79,8 +79,8 @@ static eEsifError RegisterParticipant (const EsifParticipantIfacePtr piPtr)
 		piPtr->device_path,
 		piPtr->object_id);
 
-	if(EsifUpManagerDoesAvailableParticipantExistByName(piPtr->name)) {
-		rc = ESIF_E_UNSPECIFIED;
+	if (EsifUpManagerDoesAvailableParticipantExistByName(piPtr->name)) {
+		rc     = ESIF_E_UNSPECIFIED;
 		up_ptr = NULL;
 		goto exit;
 	}
@@ -128,7 +128,7 @@ exit:
 }
 
 
-static eEsifError UnRegisterParticipant (const EsifParticipantIfacePtr pi)
+static eEsifError UnRegisterParticipant(const EsifParticipantIfacePtr pi)
 {
 	UNREFERENCED_PARAMETER(pi);
 	ESIF_TRACE_DEBUG("%s\n", ESIF_FUNC);
@@ -138,7 +138,7 @@ static eEsifError UnRegisterParticipant (const EsifParticipantIfacePtr pi)
 
 
 /* Create A Conjure Library */
-static eEsifError ConjureCreate (
+static eEsifError ConjureCreate(
 	EsifCnjPtr conjurePtr,
 	GetIfaceFuncPtr ifaceFuncPtr
 	)
@@ -229,29 +229,27 @@ exit:
 
 
 /* Start Conjure Library */
-eEsifError EsifConjureStart (EsifCnjPtr conjurePtr)
+eEsifError EsifConjureStart(EsifCnjPtr conjurePtr)
 {
 	eEsifError rc = ESIF_OK;
 	GetIfaceFuncPtr iface_func_ptr = NULL;
 	EsifString iface_func_name     = "GetConjureInterface";
 
 	char libPath[ESIF_LIBPATH_LEN];
-	esif_lib_t lib_handle = 0;
 
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, conjurePtr->fLibNamePtr);
-	// esif_ccb_sprintf(128, libPath, "./%s.%s", conjurePtr->fLibNamePtr, ESIF_LIB_EXT);
 	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s",
 					 esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, conjurePtr->fLibNamePtr), ESIF_LIB_EXT);
-	lib_handle = esif_ccb_library_load(libPath);
+	conjurePtr->fLibHandle = esif_ccb_library_load(libPath);
 
-	if (0 == lib_handle) {
+	if (NULL == conjurePtr->fLibHandle) {
 		rc = ESIF_E_UNSPECIFIED;
 		ESIF_TRACE_DEBUG("%s esif_ccb_library_load() %s failed.\n", ESIF_FUNC, libPath);
 		goto exit;
 	}
 	ESIF_TRACE_DEBUG("%s esif_ccb_library_load() %s completed.\n", ESIF_FUNC, libPath);
 
-	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(lib_handle, (EsifString)iface_func_name);
+	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(conjurePtr->fLibHandle, (EsifString)iface_func_name);
 	if (NULL == iface_func_ptr) {
 		rc = ESIF_E_UNSPECIFIED;
 		ESIF_TRACE_DEBUG("%s esif_ccb_library_get_func() %s failed.\n", ESIF_FUNC, iface_func_name);
@@ -266,13 +264,15 @@ exit:
 }
 
 
-eEsifError EsifConjureStop (EsifCnjPtr conjurePtr)
+eEsifError EsifConjureStop(EsifCnjPtr conjurePtr)
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_ASSERT(conjurePtr != NULL);
 
 	rc = conjurePtr->fInterface.fConjureDestroyFuncPtr(conjurePtr->fHandle);
 	if (ESIF_OK == rc) {
+		esif_ccb_free(conjurePtr->fLibNamePtr);
+		esif_ccb_library_unload(conjurePtr->fLibHandle);
 		memset(conjurePtr, 0, sizeof(*conjurePtr));
 	}
 	return rc;
@@ -280,7 +280,7 @@ eEsifError EsifConjureStop (EsifCnjPtr conjurePtr)
 
 
 /* Find Conjure Instance From Name */
-EsifCnjPtr esif_uf_conjure_get_instance_from_name (esif_string lib_name)
+EsifCnjPtr esif_uf_conjure_get_instance_from_name(esif_string lib_name)
 {
 	UInt8 i = 0;
 	EsifCnjPtr a_conjure_ptr = NULL;
@@ -300,13 +300,13 @@ EsifCnjPtr esif_uf_conjure_get_instance_from_name (esif_string lib_name)
 }
 
 
-eEsifError EsifCnjInit ()
+eEsifError EsifCnjInit()
 {
 	return ESIF_OK;
 }
 
 
-void EsifCnjExit ()
+void EsifCnjExit()
 {
 }
 

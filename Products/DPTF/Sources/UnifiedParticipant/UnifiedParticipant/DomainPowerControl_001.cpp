@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,19 +15,29 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainPowerControl_001.h"
 #include "XmlNode.h"
 
 DomainPowerControl_001::DomainPowerControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface), m_tdpMaxPower(Constants::Invalid)
+    m_participantServicesInterface(participantServicesInterface),
+    m_powerControlDynamicCaps(nullptr), m_powerControlStatusSet(nullptr)
 {
-    initializeDataStructures();
+    m_canProgramPowerLimit[PowerControlType::pl1] = true;
+    m_canProgramPowerLimit[PowerControlType::pl2] = true;
+    m_canProgramTimeWindow[PowerControlType::pl1] = true;
+    m_canProgramTimeWindow[PowerControlType::pl2] = true;
+}
+
+DomainPowerControl_001::~DomainPowerControl_001(void)
+{
+    DELETE_MEMORY_TC(m_powerControlStatusSet);
+    DELETE_MEMORY_TC(m_powerControlDynamicCaps);
 }
 
 PowerControlDynamicCapsSet DomainPowerControl_001::getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
+    initializePowerControlDynamicCapsSetIfNull(domainIndex);
     return *m_powerControlDynamicCaps;
 }
 
@@ -35,17 +45,21 @@ PowerControlStatusSet DomainPowerControl_001::getPowerControlStatusSet(UIntN par
 {
     if (m_powerControlStatusSet == nullptr)
     {
-        //m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Power status index is invalid.", domainIndex));
         throw dptf_exception("No power limit has been set yet. Status unavailable.");
     }
-
     return *m_powerControlStatusSet;
 }
 
 void DomainPowerControl_001::setPowerControl(UIntN participantIndex, UIntN domainIndex, const PowerControlStatusSet& powerControlStatusSet)
 {
-    checkAndCreateControlStructures(domainIndex);
+    validatePowerControlStatus(powerControlStatusSet, domainIndex);
+    programPowerControl(powerControlStatusSet, domainIndex);
+    DELETE_MEMORY_TC(m_powerControlStatusSet);
+    m_powerControlStatusSet = new PowerControlStatusSet(powerControlStatusSet);
+}
 
+void DomainPowerControl_001::validatePowerControlStatus(const PowerControlStatusSet& powerControlStatusSet, UIntN domainIndex)
+{
     if (powerControlStatusSet.getCount() > PowerControlType::max)
     {
         throw dptf_exception("Too many power controls in the set!");
@@ -53,39 +67,100 @@ void DomainPowerControl_001::setPowerControl(UIntN participantIndex, UIntN domai
 
     for (UIntN i = 0; i < powerControlStatusSet.getCount(); i++)
     {
-        validatePowerControlStatus(powerControlStatusSet[i]);
+        // Verify max was not passed in
+        if (powerControlStatusSet[i].getPowerControlType() == PowerControlType::max)
+        {
+            throw dptf_exception("Invalid power control type.");
+        }
 
-        programPowerControl(powerControlStatusSet[i], domainIndex);
+        // Verify the desired power control is within the dynamic caps
+        initializePowerControlDynamicCapsSetIfNull(domainIndex);
+        if (powerControlStatusSet[i].getCurrentPowerLimit() >
+            (*m_powerControlDynamicCaps)[powerControlStatusSet[i].getPowerControlType()].getMaxPowerLimit())
+        {
+            throw dptf_exception("Requested power limit too large.");
+        }
+
+        if (powerControlStatusSet[i].getCurrentPowerLimit() <
+            (*m_powerControlDynamicCaps)[powerControlStatusSet[i].getPowerControlType()].getMinPowerLimit())
+        {
+            throw dptf_exception("Requested power limit too small.");
+        }
+
+        if (powerControlStatusSet[i].getCurrentTimeWindow() >
+            (*m_powerControlDynamicCaps)[powerControlStatusSet[i].getPowerControlType()].getMaxTimeWindow())
+        {
+            throw dptf_exception("Requested time window is too large.");
+        }
+
+        if (powerControlStatusSet[i].getCurrentTimeWindow() <
+            (*m_powerControlDynamicCaps)[powerControlStatusSet[i].getPowerControlType()].getMinTimeWindow())
+        {
+            throw dptf_exception("Requested time window is too small.");
+        }
     }
-
-    // Update control set
-    delete m_powerControlStatusSet;
-    m_powerControlStatusSet = new PowerControlStatusSet(powerControlStatusSet);
 }
 
-void DomainPowerControl_001::initializeDataStructures(void)
+void DomainPowerControl_001::programPowerControl(const PowerControlStatusSet& powerControlStatusSet, UIntN domainIndex)
 {
-    m_powerControlDynamicCaps = nullptr;
-    m_powerControlStatusSet = nullptr;
+    for (UIntN i = 0; i < powerControlStatusSet.getCount(); i++)
+    {
+        if (m_canProgramPowerLimit[powerControlStatusSet[i].getPowerControlType()] == true)
+        {
+            m_participantServicesInterface->primitiveExecuteSetAsPower(
+                esif_primitive_type::SET_RAPL_POWER_LIMIT,
+                powerControlStatusSet[i].getCurrentPowerLimit(),
+                domainIndex,
+                static_cast<UInt8>(powerControlStatusSet[i].getPowerControlType()));
+            try
+            {
+                m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+                    esif_primitive_type::SET_RAPL_POWER_LIMIT_ENABLE,
+                    1, //Enable the bit
+                    domainIndex,
+                    static_cast<UInt8>(powerControlStatusSet[i].getPowerControlType()));
+            }
+            catch (dptf_exception& ex)
+            {
+                // It is expected to hit this for the CPU's PL1 enable.  It is read only.
+                ParticipantMessage message = ParticipantMessage(FLF, "Power limit enabled ignored.");
+                message.setEsifPrimitive(esif_primitive_type::SET_RAPL_POWER_LIMIT_ENABLE, powerControlStatusSet[i].getPowerControlType());
+                message.setExceptionCaught("primitiveExecuteSetAsUInt32", ex.what());
+                m_participantServicesInterface->writeMessageWarning(message);
+            }
+        }
+        else
+        {
+            std::stringstream msg;
+            msg << PowerControlType::ToString(powerControlStatusSet[i].getPowerControlType()) << " power control is not programmable.  Ignoring.";
+            m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, msg.str()));
+        }
 
-    m_canProgramPowerLimit[PowerControlType::pl1] = true;
-    m_canProgramPowerLimit[PowerControlType::pl2] = true;
-
-    m_canProgramTimeWindow[PowerControlType::pl1] = true;
-    m_canProgramTimeWindow[PowerControlType::pl2] = true;
+        if (m_canProgramTimeWindow[powerControlStatusSet[i].getPowerControlType()] == true)
+        {
+            m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+                esif_primitive_type::SET_RAPL_TIME_WINDOW,
+                powerControlStatusSet[i].getCurrentTimeWindow(),
+                domainIndex,
+                static_cast<UInt8>(powerControlStatusSet[i].getPowerControlType()));
+        }
+        else
+        {
+            std::stringstream msg;
+            msg << PowerControlType::ToString(powerControlStatusSet[i].getPowerControlType()) << " time window is not programmable.  Ignoring.";
+            m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, msg.str()));
+        }
+    }
 }
 
 void DomainPowerControl_001::clearCachedData(void)
 {
-    delete m_powerControlDynamicCaps;
-    delete m_powerControlStatusSet;
-
-    initializeDataStructures();
+    DELETE_MEMORY_TC(m_powerControlDynamicCaps);
 }
 
 XmlNode* DomainPowerControl_001::getXml(UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
+    initializePowerControlDynamicCapsSetIfNull(domainIndex);
 
     XmlNode* root = XmlNode::createWrapperElement("power_control");
 
@@ -100,129 +175,26 @@ XmlNode* DomainPowerControl_001::getXml(UIntN domainIndex)
     return root;
 }
 
-void DomainPowerControl_001::createPowerControlDynamicCapsSet(UIntN domainIndex)
+void DomainPowerControl_001::initializePowerControlDynamicCapsSetIfNull(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    // Get power control caps
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
-
-    PowerControlDynamicCapsSet dynamicCapsSetFromControl(BinaryParse::processorPpccObject(dataLength, binaryData));
-    m_powerControlDynamicCaps = new PowerControlDynamicCapsSet(
-        getAdjustedDynamicCapsBasedOnConfigTdpMaxLimit(dynamicCapsSetFromControl));
-
-    binaryData.deallocate();
-
-    validatePowerControlDynamicCapsSet();
-
-    determinePowerControlProgrammability();
-}
-
-void DomainPowerControl_001::validatePowerControlStatus(const PowerControlStatus& powerControlStatus)
-{
-    // Verify max was not passed in
-    if (powerControlStatus.getPowerControlType() == PowerControlType::max)
+    if (m_powerControlDynamicCaps == nullptr)
     {
-        throw dptf_exception("Invalid power control type.");
-    }
+        UInt32 dataLength = 0;
+        DptfMemory binaryData(Constants::DefaultBufferSize);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
 
-    // Verify the desired power control is within the dynamic caps
-    if (powerControlStatus.getCurrentPowerLimit() >
-        (*m_powerControlDynamicCaps)[powerControlStatus.getPowerControlType()].getMaxPowerLimit())
-    {
-        throw dptf_exception("Requested power limit too large.");
-    }
-
-    if (powerControlStatus.getCurrentPowerLimit() <
-        (*m_powerControlDynamicCaps)[powerControlStatus.getPowerControlType()].getMinPowerLimit())
-    {
-        throw dptf_exception("Requested power limit too small.");
-    }
-
-    if (powerControlStatus.getCurrentTimeWindow() >
-        (*m_powerControlDynamicCaps)[powerControlStatus.getPowerControlType()].getMaxTimeWindow())
-    {
-        throw dptf_exception("Requested time window is too large.");
-    }
-
-    if (powerControlStatus.getCurrentTimeWindow() <
-        (*m_powerControlDynamicCaps)[powerControlStatus.getPowerControlType()].getMinTimeWindow())
-    {
-        throw dptf_exception("Requested time window is too small.");
-    }
-}
-
-void DomainPowerControl_001::programPowerControl(const PowerControlStatus& powerControlStatusSet, UIntN domainIndex)
-{
-    if (m_canProgramPowerLimit[powerControlStatusSet.getPowerControlType()] == true)
-    {
-        m_participantServicesInterface->primitiveExecuteSetAsPower(
-            esif_primitive_type::SET_RAPL_POWER_LIMIT,
-            powerControlStatusSet.getCurrentPowerLimit(),
-            domainIndex,
-            static_cast<UInt8>(powerControlStatusSet.getPowerControlType()));
-        try
-        {
-            m_participantServicesInterface->primitiveExecuteSetAsUInt32(
-                esif_primitive_type::SET_RAPL_POWER_LIMIT_ENABLE,
-                1, //Enable the bit
-                domainIndex,
-                static_cast<UInt8>(powerControlStatusSet.getPowerControlType()));
-        }
-        catch (dptf_exception& ex)
-        {
-            // It is expected to hit this for the CPU's PL1 enable.  It is read only.
-            ParticipantMessage message = ParticipantMessage(FLF, "Power limit enabled ignored.");
-            message.setEsifPrimitive(esif_primitive_type::SET_RAPL_POWER_LIMIT_ENABLE, powerControlStatusSet.getPowerControlType());
-            message.setExceptionCaught("primitiveExecuteSetAsUInt32", ex.what());
-            m_participantServicesInterface->writeMessageWarning(message);
-        }
-    }
-    else
-    {
-        std::stringstream msg;
-        msg << PowerControlType::ToString(powerControlStatusSet.getPowerControlType()) << " power control is not programmable.  Ignoring.";
-        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, msg.str()));
-    }
-
-    if (m_canProgramTimeWindow[powerControlStatusSet.getPowerControlType()] == true)
-    {
-        m_participantServicesInterface->primitiveExecuteSetAsUInt32(
-            esif_primitive_type::SET_RAPL_TIME_WINDOW,
-            powerControlStatusSet.getCurrentTimeWindow(),
-            domainIndex,
-            static_cast<UInt8>(powerControlStatusSet.getPowerControlType()));
-    }
-    else
-    {
-        std::stringstream msg;
-        msg << PowerControlType::ToString(powerControlStatusSet.getPowerControlType()) << " time window is not programmable.  Ignoring.";
-        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, msg.str()));
-    }
-}
-
-void DomainPowerControl_001::determinePowerControlProgrammability()
-{
-    for (UIntN i = 0; i < m_powerControlDynamicCaps->getCount(); i++)
-    {
-        if ((*m_powerControlDynamicCaps)[i].getMaxPowerLimit() == (*m_powerControlDynamicCaps)[i].getMinPowerLimit())
-        {
-            m_canProgramPowerLimit[(*m_powerControlDynamicCaps)[i].getPowerControlType()]
-                = false;
-        }
-
-        if ((*m_powerControlDynamicCaps)[i].getMaxTimeWindow() == (*m_powerControlDynamicCaps)[i].getMinTimeWindow())
-        {
-            m_canProgramTimeWindow[(*m_powerControlDynamicCaps)[i].getPowerControlType()]
-                = false;
-        }
+        PowerControlDynamicCapsSet dynamicCapsSetFromControl(BinaryParse::processorPpccObject(dataLength, binaryData));
+        m_powerControlDynamicCaps = new PowerControlDynamicCapsSet(getAdjustedDynamicCapsBasedOnConfigTdpMaxLimit(
+            dynamicCapsSetFromControl));
+        binaryData.deallocate();
+        validatePowerControlDynamicCapsSet();
+        determinePowerControlProgrammability();
     }
 }
 
@@ -230,16 +202,13 @@ void DomainPowerControl_001::validatePowerControlDynamicCapsSet()
 {
     if (m_powerControlDynamicCaps->getCount() == 0)
     {
-        throw dptf_exception("Dynamic caps set is empty.  \
-                             Impossible if we support power controls.");
+        throw dptf_exception("Dynamic caps set is empty.  Impossible if we support power controls.");
     }
 
     for (UIntN i = 0; i < m_powerControlDynamicCaps->getCount(); i++)
     {
         std::stringstream msg;
-
         msg << "PL" << (*m_powerControlDynamicCaps)[i].getPowerControlType();
-
         if ((*m_powerControlDynamicCaps)[i].getMaxPowerLimit() < (*m_powerControlDynamicCaps)[i].getMinPowerLimit())
         {
             msg << " Bad power limit capabilities. Max is < min.";
@@ -260,44 +229,41 @@ void DomainPowerControl_001::validatePowerControlDynamicCapsSet()
     }
 }
 
-void DomainPowerControl_001::checkAndCreateControlStructures(UIntN domainIndex)
+void DomainPowerControl_001::determinePowerControlProgrammability()
 {
-    if (m_powerControlDynamicCaps == nullptr)
+    for (UIntN i = 0; i < m_powerControlDynamicCaps->getCount(); i++)
     {
-        createPowerControlDynamicCapsSet(domainIndex);
-    }
-}
+        if ((*m_powerControlDynamicCaps)[i].getMaxPowerLimit() == (*m_powerControlDynamicCaps)[i].getMinPowerLimit())
+        {
+            m_canProgramPowerLimit[(*m_powerControlDynamicCaps)[i].getPowerControlType()] = false;
+        }
 
-void DomainPowerControl_001::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
-    ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
-{
-    m_tdpMaxPower = Power(configTdpControlSet[configTdpControlStatus.getCurrentControlIndex()].getTdpPower());
-    if (m_powerControlDynamicCaps != nullptr)
-    {
-        delete m_powerControlDynamicCaps;
-        m_powerControlDynamicCaps = nullptr;
+        if ((*m_powerControlDynamicCaps)[i].getMaxTimeWindow() == (*m_powerControlDynamicCaps)[i].getMinTimeWindow())
+        {
+            m_canProgramTimeWindow[(*m_powerControlDynamicCaps)[i].getPowerControlType()] = false;
+        }
     }
 }
 
 PowerControlDynamicCapsSet DomainPowerControl_001::getAdjustedDynamicCapsBasedOnConfigTdpMaxLimit(
-    const PowerControlDynamicCapsSet &capsSet)
+    const PowerControlDynamicCapsSet& capsSet)
 {
     std::vector<PowerControlDynamicCaps> newCapsList;
     for (UIntN capsIndex = 0; capsIndex < capsSet.getCount(); capsIndex++)
     {
-        Power maxPowerLimit(Constants::Invalid);
+        Power maxPowerLimit(Power::createInvalid());
         if (capsSet[capsIndex].getPowerControlType() == PowerControlType::pl1)
         {
-            maxPowerLimit = std::min(m_tdpMaxPower, capsSet[capsIndex].getMaxPowerLimit());
+            maxPowerLimit = capsSet[capsIndex].getMaxPowerLimit();
         }
         else
         {
             maxPowerLimit = capsSet[capsIndex].getMaxPowerLimit();
         }
         newCapsList.push_back(PowerControlDynamicCaps(
-            capsSet[capsIndex].getPowerControlType(), capsSet[capsIndex].getMinPowerLimit(), maxPowerLimit, 
-            capsSet[capsIndex].getPowerStepSize(), capsSet[capsIndex].getMinTimeWindow(), 
-            capsSet[capsIndex].getMaxTimeWindow(), capsSet[capsIndex].getMinDutyCycle(), 
+            capsSet[capsIndex].getPowerControlType(), capsSet[capsIndex].getMinPowerLimit(), maxPowerLimit,
+            capsSet[capsIndex].getPowerStepSize(), capsSet[capsIndex].getMinTimeWindow(),
+            capsSet[capsIndex].getMaxTimeWindow(), capsSet[capsIndex].getMinDutyCycle(),
             capsSet[capsIndex].getMaxDutyCycle()));
     }
     return PowerControlDynamicCapsSet(newCapsList);

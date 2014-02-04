@@ -32,7 +32,6 @@ extern EsifAppMgr g_appMgr;
 ** Not ALL OS Entries Suport All Of These
 ** Not Declared In Header File Intentionallly
 */
-extern FILE *g_debuglog;
 extern int g_dst;
 extern int g_autocpc;
 extern int g_binary_buf_size;
@@ -144,7 +143,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	/* 6. Open file descriptors 0, 1, and 2 and redirect */
 	/* stdin */
 	if (ESIF_TRUE == start_with_log) {
-		open (cmd_out, O_RDWR | O_CREAT | O_TRUNC);
+		open (cmd_out, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	} else {
        		open ("/dev/null", O_RDWR);
 	}
@@ -199,7 +198,6 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	char *ptr = NULL;
 	char line[MAX_LINE + 1]  = {0};
 	char line2[MAX_LINE + 1] = {0};
-	g_debuglog = stdin;
 	
 	/* Prompt */
 	#define PROMPT_LEN 64
@@ -230,6 +228,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 #ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
                 // Use Readline With History
                 sprintf(full_prompt, "%s ", prompt);
+                CMD_LOGFILE("%s ", prompt);
                 ptr = readline(full_prompt);
                 // Add To History NO NUL's
                 if (ptr[0] != 0) {
@@ -239,7 +238,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
                 free(ptr);
 #else
                 // No History So Sorry
-                printf("%s ", prompt);
+                CMD_OUT("%s ", prompt);
                 if (fgets(line, MAX_LINE, input) == NULL) {
                         break;
                 }
@@ -251,6 +250,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
                         ptr++;
                 }
 #endif
+            CMD_LOGFILE("%s\n", line);
 
     		if (1 == g_repeat || !strncmp(line, "repeat", 6)) {
                         parse_cmd(line, ESIF_FALSE);

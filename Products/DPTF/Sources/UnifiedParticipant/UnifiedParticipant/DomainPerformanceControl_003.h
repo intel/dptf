@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainPerformanceControlInterface.h"
@@ -44,27 +45,25 @@ public:
     virtual XmlNode* getXml(UIntN domainIndex) override final;
 
     // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
+    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
         ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
 
 private:
 
+    // hide the copy constructor and = operator
+    DomainPerformanceControl_003(const DomainPerformanceControl_003& rhs);
+    DomainPerformanceControl_003& operator=(const DomainPerformanceControl_003& rhs);
+
     ParticipantServicesInterface* m_participantServicesInterface;
 
-    // Functions
-    void initializeDataStructures(void);
     void createPerformanceControlSet(UIntN domainIndex);
     void verifyPerformanceControlIndex(UIntN performanceControlIndex);
     void checkAndCreateControlStructures(UIntN domainIndex);
     void createPerformanceControlDynamicCaps(UIntN domainIndex);
     void createPerformanceControlStaticCaps(void);
 
-    // Vars (external)
     PerformanceControlSet* m_performanceControlSet;
     PerformanceControlDynamicCaps* m_performanceControlDynamicCaps;
     PerformanceControlStaticCaps* m_performanceControlStaticCaps;
-    PerformanceControlStatus* m_performanceControlStatus;
-
-    // Vars (internal)
     UIntN m_currentPerformanceControlIndex;
 };

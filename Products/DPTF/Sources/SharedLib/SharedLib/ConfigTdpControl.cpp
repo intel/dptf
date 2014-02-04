@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ConfigTdpControl.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -52,6 +53,11 @@ Bool ConfigTdpControl::operator==(const ConfigTdpControl& rhs) const
          (getTdpPower() == rhs.getTdpPower()) &&
          (getTdpFrequency() == rhs.getTdpFrequency()) &&
          (getTdpRatio() == rhs.getTdpRatio()));
+}
+
+Bool ConfigTdpControl::operator!=(const ConfigTdpControl& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* ConfigTdpControl::getXml(void)

@@ -137,6 +137,7 @@ static ESIF_INLINE void esif_ccb_uni2ascii(
 #ifdef ESIF_ATTR_OS_WINDOWS
 	UNICODE_STRING us_val;
 	ANSI_STRING ansi_val;
+	NTSTATUS status;
 
 	UNREFERENCED_PARAMETER(unicode_size);
 
@@ -144,9 +145,11 @@ static ESIF_INLINE void esif_ccb_uni2ascii(
 		return;
 
 	RtlInitUnicodeString(&us_val, (PCWSTR)unicode_ptr);
-	RtlUnicodeStringToAnsiString(&ansi_val, &us_val,
-				     TRUE /* Allocate ANSI String */);
-	if (NULL == ansi_val.Buffer)
+	status = RtlUnicodeStringToAnsiString(&ansi_val,
+					      &us_val,
+				              TRUE /* Allocate ANSI String */);
+
+	if (!NT_SUCCESS(status) || (NULL == ansi_val.Buffer))
 		return;
 
 	buflen = min(ansi_val.Length, buflen);

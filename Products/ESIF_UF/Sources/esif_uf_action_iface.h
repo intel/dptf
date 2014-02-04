@@ -38,7 +38,7 @@ typedef eEsifError (*ActGetVersionFunction)(EsifDataPtr actionVersion);
 
 typedef eEsifError (*ActCreateFunction)(EsifInterfacePtr esifServiceInterface,	/* The App MUST fill in all pointers */
 										const void *esifHandle,	/* ESIF will provide App MUST save for use with callbacks */
-										void * *actionHandleLocation,	/* The App MUST provide esif will save for use with callbacks */
+										void **actionHandleLocation,	/* The App MUST provide esif will save for use with callbacks */
 										const eEsifActState initialActionState, const EsifDataPtr P1PtrDescription, const EsifDataPtr P2PtrDescription,
 										const EsifDataPtr P3PtrDescription, const EsifDataPtr P4PtrDescription, const EsifDataPtr P5PtrDescription);
 

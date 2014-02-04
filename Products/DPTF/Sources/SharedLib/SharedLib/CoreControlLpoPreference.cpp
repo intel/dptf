@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CoreControlLpoPreference.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -63,15 +64,18 @@ Bool CoreControlLpoPreference::operator==(const CoreControlLpoPreference& rhs) c
          m_performanceControlOffliningMode == rhs.m_performanceControlOffliningMode);
 }
 
+Bool CoreControlLpoPreference::operator!=(const CoreControlLpoPreference& rhs) const
+{
+    return !(*this == rhs);
+}
+
 XmlNode* CoreControlLpoPreference::getXml(void)
 {
     XmlNode* root = XmlNode::createWrapperElement("core_control_lpo_preference");
-
     root->addChild(XmlNode::createDataElement("lpo_enabled", StatusFormat::friendlyValue(m_lpoEnabled)));
     root->addChild(XmlNode::createDataElement("start_p_state", StatusFormat::friendlyValue(m_startPState)));
-    root->addChild(m_stepSize.getXml("step_size"));
+    root->addChild(XmlNode::createDataElement("step_size", m_stepSize.toString()));
     root->addChild(XmlNode::createDataElement("power_control_offlining_mode", CoreControlOffliningMode::ToString(m_powerControlOffliningMode)));
     root->addChild(XmlNode::createDataElement("performance_control_offlining_mode", CoreControlOffliningMode::ToString(m_performanceControlOffliningMode)));
-
     return root;
 }

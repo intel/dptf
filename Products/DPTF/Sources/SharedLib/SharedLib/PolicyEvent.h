@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "esif_uf_app_event_type.h"
@@ -30,6 +31,7 @@ namespace PolicyEvent
         Invalid,
         DptfConnectedStandbyEntry,
         DptfConnectedStandbyExit,
+        ParticipantSpecificInfoChanged,
         DomainConfigTdpCapabilityChanged,
         DomainCoreControlCapabilityChanged,
         DomainDisplayControlCapabilityChanged,
@@ -38,22 +40,23 @@ namespace PolicyEvent
         DomainPerformanceControlsChanged,
         DomainPowerControlCapabilityChanged,
         DomainPriorityChanged,
+        DomainRadioConnectionStatusChanged,
+        DomainRfProfileChanged,
         DomainTemperatureThresholdCrossed,
-        ParticipantSpecificInfoChanged,
         PolicyActiveRelationshipTableChanged,                       // RequiresEsifEventRegistration()
-        PolicyThermalRelationshipTableChanged,                      // RequiresEsifEventRegistration()
-        PolicyInitiatedCallback,
-        PolicyForegroundApplicationChanged,                         // RequiresEsifEventRegistration()
-        PolicyOperatingSystemLpmModeChanged,                        // RequiresEsifEventRegistration()
-        PolicyPlatformLpmModeChanged,                               // RequiresEsifEventRegistration()
-        PolicyOperatingSystemConfigTdpLevelChanged,                 // RequiresEsifEventRegistration()
-        PolicyCoolingModePowerLimitChanged,                         // RequiresEsifEventRegistration()
         PolicyCoolingModeAcousticLimitChanged,                      // RequiresEsifEventRegistration()
         PolicyCoolingModePolicyChanged,                             // RequiresEsifEventRegistration()
+        PolicyCoolingModePowerLimitChanged,                         // RequiresEsifEventRegistration()
+        PolicyForegroundApplicationChanged,                         // RequiresEsifEventRegistration()
+        PolicyInitiatedCallback,
+        PolicyOperatingSystemConfigTdpLevelChanged,                 // RequiresEsifEventRegistration()
+        PolicyOperatingSystemLpmModeChanged,                        // RequiresEsifEventRegistration()
         PolicyPassiveTableChanged,                                  // RequiresEsifEventRegistration()
+        PolicyPlatformLpmModeChanged,                               // RequiresEsifEventRegistration()
         PolicySensorOrientationChanged,                             // RequiresEsifEventRegistration()
-        PolicySensorSpatialOrientationChanged,                      // RequiresEsifEventRegistration()
         PolicySensorProximityChanged,                               // RequiresEsifEventRegistration()
+        PolicySensorSpatialOrientationChanged,                      // RequiresEsifEventRegistration()
+        PolicyThermalRelationshipTableChanged,                      // RequiresEsifEventRegistration()
         Max
     };
 

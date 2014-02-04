@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CoreControlKnob.h"
 #include <math.h>
 using namespace std;
@@ -41,7 +42,7 @@ void CoreControlKnob::limit()
     {
         try
         {
-            postDebugMessage(PolicyMessage(FLF, "Attempting to limit cores.", 
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit cores.", 
                 getParticipantIndex(), getDomainIndex()));
 
             Percentage stepSize = m_coreControl->getPreferences().getStepSize();
@@ -54,11 +55,11 @@ void CoreControlKnob::limit()
 
             stringstream message;
             message << "Limited cores to " << nextActiveCores << ".";
-            postDebugMessage(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
@@ -70,7 +71,7 @@ void CoreControlKnob::unlimit()
     {
         try
         {
-            postDebugMessage(PolicyMessage(FLF, "Attempting to unlimit cores.", 
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to unlimit cores.", 
                 getParticipantIndex(), getDomainIndex()));
 
             Percentage stepSize = m_coreControl->getPreferences().getStepSize();
@@ -83,11 +84,11 @@ void CoreControlKnob::unlimit()
 
             stringstream message;
             message << "Unlimited cores to " << nextActiveCores << ".";
-            postDebugMessage(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
@@ -146,8 +147,7 @@ Bool CoreControlKnob::canUnlimit()
 
 UIntN CoreControlKnob::calculateStepAmount(Percentage stepSize, UIntN totalAvailableCores)
 {
-    float percent = (float)stepSize.getPercentage() / (float)100;
-    float result = percent * (float)totalAvailableCores;
+    double result = stepSize * (double)totalAvailableCores;
     return (UIntN)ceil(result);
 }
 

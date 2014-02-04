@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TemperatureStatus.h"
 #include "XmlNode.h"
 
@@ -29,5 +30,5 @@ Temperature TemperatureStatus::getCurrentTemperature(void) const
 
 XmlNode* TemperatureStatus::getXml(void)
 {
-    return getCurrentTemperature().getXml("temperature_status");
+    return XmlNode::createDataElement("temperature_status", getCurrentTemperature().toString());
 }

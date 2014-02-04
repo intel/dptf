@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainProxy.h"
 #include "StatusFormat.h"
-#include <sstream>
 using namespace std;
 
 DomainProxy::DomainProxy(
@@ -35,33 +35,36 @@ DomainProxy::DomainProxy(
     m_activeCoolingControl(participantIndex, domainIndex, domainProperties, participantProperties, policyServices),
     m_domainPriorityProperty(participantIndex, domainIndex, domainProperties, policyServices)
 {
+    // create control facades
     m_performanceControl = std::make_shared<PerformanceControlFacade>(
         participantIndex, domainIndex, domainProperties, policyServices);
+    m_powerControl = std::make_shared<PowerControlFacade>(
+        participantIndex, domainIndex, domainProperties, policyServices);
+    m_displayControl = std::make_shared<DisplayControlFacade>(
+        participantIndex, domainIndex, domainProperties, policyServices);
+    m_coreControl = std::make_shared<CoreControlFacade>(
+        participantIndex, domainIndex, domainProperties, policyServices);
+    m_configTdpControl = std::make_shared<ConfigTdpControlFacade>(
+        participantIndex, domainIndex, domainProperties, policyServices);
+    m_radioFrequencyControl = std::make_shared<RadioFrequencyControlFacade>(
+        participantIndex, domainIndex, domainProperties, policyServices);
+    m_pixelClockControl = std::make_shared<PixelClockControlFacade>(
+        participantIndex, domainIndex, domainProperties, policyServices);
+
+    // create control knobs (TODO: move to passive policy)
     m_pstateControlKnob = std::make_shared<PerformanceControlKnob>(
         policyServices, participantIndex, domainIndex,
         m_performanceControl, PerformanceControlType::PerformanceState);
     m_tstateControlKnob = std::make_shared<PerformanceControlKnob>(
         policyServices, participantIndex, domainIndex,
         m_performanceControl, PerformanceControlType::ThrottleState);
-
-    m_powerControl = std::make_shared<PowerControlFacade>(
-        participantIndex, domainIndex, domainProperties, policyServices);
     m_powerControlKnob = std::make_shared<PowerControlKnob>(
         policyServices, m_powerControl, participantIndex, domainIndex);
-
-    m_displayControl = std::make_shared<DisplayControlFacade>(
-        participantIndex, domainIndex, domainProperties, policyServices);
     m_displayControlKnob = std::make_shared<DisplayControlKnob>(
         policyServices, m_displayControl, participantIndex, domainIndex);
-
-    m_coreControl = std::make_shared<CoreControlFacade>(
-        participantIndex, domainIndex, domainProperties, policyServices);
     m_coreControlKnob = std::make_shared<CoreControlKnob>(
         policyServices, participantIndex, domainIndex,
         m_coreControl, m_performanceControl);
-
-    m_configTdpControl = std::make_shared<ConfigTdpControlFacade>(
-        participantIndex, domainIndex, domainProperties, policyServices);
 }
 
 DomainProxy::DomainProxy()
@@ -136,6 +139,16 @@ ConfigTdpControlFacade& DomainProxy::getConfigTdpControl()
     return *m_configTdpControl;
 }
 
+RadioFrequencyControlFacade& DomainProxy::getRadioFrequencyControl() const
+{
+    return *m_radioFrequencyControl;
+}
+
+PixelClockControlFacade& DomainProxy::getPixelClockControl() const
+{
+    return *m_pixelClockControl;
+}
+
 UtilizationStatus DomainProxy::getUtilizationStatus()
 {
     return m_policyServices.domainUtilization->getUtilizationStatus(m_participantIndex, m_domainIndex);
@@ -147,7 +160,8 @@ void DomainProxy::clearTemperatureThresholds()
     {
         if (m_temperatureProperty.supportsProperty())
         {
-            m_temperatureProperty.setTemperatureNotificationThresholds(Constants::Invalid, Constants::Invalid);
+            m_temperatureProperty.setTemperatureNotificationThresholds(
+                Temperature::createInvalid(), Temperature::createInvalid());
         }
     }
     catch (...)
@@ -276,7 +290,7 @@ Bool DomainProxy::limitTstatesAndContinue()
     {
         if (m_tstateControlKnob->canLimit())
         {
-            UtilizationStatus utilization(Constants::Invalid);
+            UtilizationStatus utilization = UtilizationStatus(Percentage::createInvalid());
             try
             {
                 utilization = getUtilizationStatus();
@@ -284,11 +298,11 @@ Bool DomainProxy::limitTstatesAndContinue()
             catch (...)
             {
                 // assume 100% utilization if it does not report utilization
-                utilization = UtilizationStatus(100);
+                utilization = UtilizationStatus(1.0);
             }
 
             // only limit t-states if domain is not idle
-            if (utilization.getCurrentUtilization() > 0)
+            if (utilization.getCurrentUtilization() > Percentage(0.0))
             {
                 m_tstateControlKnob->limit();
                 return false;

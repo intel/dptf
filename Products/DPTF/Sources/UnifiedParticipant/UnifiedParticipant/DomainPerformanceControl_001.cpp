@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainPerformanceControl_001.h"
 #include <sstream>
 #include "XmlNode.h"
@@ -22,170 +23,193 @@
 // Generic Participant Performance Controls
 
 DomainPerformanceControl_001::DomainPerformanceControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+    m_participantServicesInterface(participantServicesInterface),
+    m_performanceControlStaticCaps(nullptr),
+    m_performanceControlDynamicCaps(nullptr),
+    m_performanceControlSet(nullptr),
+    m_currentPerformanceControlIndex(Constants::Invalid)
 {
-    initializeDataStructures();
+    
 }
 
 DomainPerformanceControl_001::~DomainPerformanceControl_001(void)
 {
-    clearCachedData();
+    DELETE_MEMORY_TC(m_performanceControlSet);
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_001::getPerformanceControlStaticCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
-    return *m_performanceControlStaticCaps;  //This is hard-coded to FALSE in 7.0
+    return *m_performanceControlStaticCaps; // This is hard-coded to FALSE in 7.0
 }
 
 PerformanceControlDynamicCaps DomainPerformanceControl_001::getPerformanceControlDynamicCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     return *m_performanceControlDynamicCaps;
 }
 
 PerformanceControlStatus DomainPerformanceControl_001::getPerformanceControlStatus(UIntN participantIndex,
     UIntN domainIndex)
 {
-    if (m_performanceControlStatus == nullptr)
+    if (m_currentPerformanceControlIndex == Constants::Invalid)
     {
         throw dptf_exception("No performance control has been set.  No status available.");
     }
-
-    return *m_performanceControlStatus;
+    return PerformanceControlStatus(m_currentPerformanceControlIndex);
 }
 
 PerformanceControlSet DomainPerformanceControl_001::getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
-
     return *m_performanceControlSet;
 }
 
 void DomainPerformanceControl_001::setPerformanceControl(UIntN participantIndex, UIntN domainIndex,
     UIntN performanceControlIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
-    if (m_performanceControlStatus != nullptr && performanceControlIndex == m_performanceControlStatus->getCurrentControlSetIndex())
+    if (performanceControlIndex == m_currentPerformanceControlIndex)
     {
-        m_participantServicesInterface->writeMessageInfo(
+        m_participantServicesInterface->writeMessageDebug(
             ParticipantMessage(FLF, "Requested limit = current limit.  Ignoring."));
         return;
     }
 
+    checkAndCreateControlStructures(domainIndex);
     verifyPerformanceControlIndex(performanceControlIndex);
-
     m_participantServicesInterface->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
         performanceControlIndex,
         domainIndex);
-
-    // Refresh the status
-    delete m_performanceControlStatus;
-    m_performanceControlStatus = new PerformanceControlStatus(performanceControlIndex);
-}
-
-void DomainPerformanceControl_001::initializeDataStructures(void)
-{
-    m_performanceControlSet = nullptr;
-    m_performanceControlDynamicCaps = nullptr;
-    m_performanceControlStatus = nullptr;
-    m_performanceControlStaticCaps = nullptr;
+    m_currentPerformanceControlIndex = performanceControlIndex;
 }
 
 void DomainPerformanceControl_001::clearCachedData(void)
 {
-    delete m_performanceControlSet;
-    delete m_performanceControlDynamicCaps;
-    delete m_performanceControlStatus;
-    delete m_performanceControlStaticCaps;
-
-    initializeDataStructures();
+    DELETE_MEMORY_TC(m_performanceControlSet);
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
 }
 
-void DomainPerformanceControl_001::createPerformanceControlSet(UIntN domainIndex)
+XmlNode* DomainPerformanceControl_001::getXml(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
+    checkAndCreateControlStructures(domainIndex);
 
-    //Build PPSS table
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_PERF_SUPPORT_STATES,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+    XmlNode* root = XmlNode::createWrapperElement("performance_control");
+    root->addChild(PerformanceControlStatus(m_currentPerformanceControlIndex).getXml());
+    root->addChild(m_performanceControlDynamicCaps->getXml());
+    root->addChild(m_performanceControlStaticCaps->getXml());
+    root->addChild(m_performanceControlSet->getXml());
+    root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
-    m_performanceControlSet = new PerformanceControlSet(BinaryParse::genericPpssObject(dataLength, binaryData));
-
-    if (m_performanceControlSet->getCount() == 0)
-    {
-        binaryData.deallocate();
-
-        throw dptf_exception("P-state set is empty.  \
-                                 Impossible if we support performance controls.");
-    }
-
-    binaryData.deallocate();
+    return root;
 }
 
-void DomainPerformanceControl_001::createPerformanceControlDynamicCaps(UIntN domainIndex)
+void DomainPerformanceControl_001::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
+    ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
-    //Get dynamic caps
-    UInt32 lowerLimitIndex;
-    UInt32 upperLimitIndex;
+    throw not_implemented();
+}
 
-    try
+void DomainPerformanceControl_001::createPerformanceControlStaticCapsIfNeeded()
+{
+    if (m_performanceControlStaticCaps == nullptr)
     {
-        lowerLimitIndex =
-            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_PERF_PSTATE_DEPTH_LIMIT,
-                domainIndex);
+        m_performanceControlStaticCaps = new PerformanceControlStaticCaps(false);
     }
-    catch (...)
-    {
-        // If PPDL is not supported, default to Pn.
-        lowerLimitIndex = m_performanceControlSet->getCount() - 1;
-    }
+}
 
-    try
-    {
-        // If PPPC is not supported, default to P0
-        upperLimitIndex =
-            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_PARTICIPANT_PERF_PRESENT_CAPABILITY,
-                domainIndex);
-    }
-    catch (...)
-    {
-        upperLimitIndex = 0;
-    }
+void DomainPerformanceControl_001::checkAndCreateControlStructures(UIntN domainIndex)
+{
+    createPerformanceControlSetIfNeeded(domainIndex);
+    createPerformanceControlDynamicCapsIfNeeded(domainIndex);
+    createPerformanceControlStaticCapsIfNeeded();
+}
 
+void DomainPerformanceControl_001::createPerformanceControlDynamicCapsIfNeeded(UIntN domainIndex)
+{
+    if (m_performanceControlDynamicCaps == nullptr)
+    {
+        createPerformanceControlSetIfNeeded(domainIndex);
+
+        //Get dynamic caps
+        UInt32 lowerLimitIndex;
+        UInt32 upperLimitIndex;
+
+        try
+        {
+            lowerLimitIndex =
+                m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+                    esif_primitive_type::GET_PERF_PSTATE_DEPTH_LIMIT,
+                    domainIndex);
+        }
+        catch (...)
+        {
+            // If PPDL is not supported, default to Pn.
+            lowerLimitIndex = m_performanceControlSet->getCount() - 1;
+        }
+
+        try
+        {
+            // If PPPC is not supported, default to P0
+            upperLimitIndex =
+                m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+                    esif_primitive_type::GET_PARTICIPANT_PERF_PRESENT_CAPABILITY,
+                    domainIndex);
+        }
+        catch (...)
+        {
+            upperLimitIndex = 0;
+        }
+
+        if (upperLimitIndex >= (m_performanceControlSet->getCount()) ||
+            lowerLimitIndex >= (m_performanceControlSet->getCount()))
+        {
+            throw dptf_exception("Retrieved control index out of control set bounds.");
+        }
+
+        if (upperLimitIndex > lowerLimitIndex)
+        {
+            lowerLimitIndex = m_performanceControlSet->getCount() - 1;
+            m_participantServicesInterface->writeMessageWarning(
+                ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
+        }
+
+        m_performanceControlDynamicCaps = new PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex);
+    }
+}
+
+void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN domainIndex)
+{
     if (m_performanceControlSet == nullptr)
     {
-        createPerformanceControlSet(domainIndex);
-    }
+        UInt32 dataLength = 0;
+        DptfMemory binaryData(Constants::DefaultBufferSize);
 
-    if (upperLimitIndex >= (m_performanceControlSet->getCount()) ||
-        lowerLimitIndex >= (m_performanceControlSet->getCount()))
-    {
-        throw dptf_exception("Retrieved control index out of control set bounds.");
-    }
+        //Build PPSS table
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_PERF_SUPPORT_STATES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
 
-    if (upperLimitIndex > lowerLimitIndex)
-    {
-        lowerLimitIndex = m_performanceControlSet->getCount() - 1;
-        m_participantServicesInterface->writeMessageWarning(
-            ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
-    }
+        m_performanceControlSet = new PerformanceControlSet(BinaryParse::genericPpssObject(dataLength, binaryData));
 
-    m_performanceControlDynamicCaps = new PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex);
+        if (m_performanceControlSet->getCount() == 0)
+        {
+            binaryData.deallocate();
+
+            throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");
+        }
+
+        binaryData.deallocate();
+    }
 }
 
 void DomainPerformanceControl_001::verifyPerformanceControlIndex(UIntN performanceControlIndex)
@@ -213,47 +237,4 @@ void DomainPerformanceControl_001::verifyPerformanceControlIndex(UIntN performan
 
         throw dptf_exception(infoMessage.str());
     }
-}
-
-void DomainPerformanceControl_001::checkAndCreateControlStructures(UIntN domainIndex)
-{
-    if (m_performanceControlSet == nullptr)
-    {
-        createPerformanceControlSet(domainIndex);
-    }
-
-    if (m_performanceControlDynamicCaps == nullptr)
-    {
-        createPerformanceControlDynamicCaps(domainIndex);
-    }
-
-    if (m_performanceControlStaticCaps == nullptr)
-    {
-        createPerformanceControlStaticCaps();
-    }
-}
-
-XmlNode* DomainPerformanceControl_001::getXml(UIntN domainIndex)
-{
-    checkAndCreateControlStructures(domainIndex);
-
-    XmlNode* root = XmlNode::createWrapperElement("performance_control");
-    root->addChild(m_performanceControlStatus->getXml());
-    root->addChild(m_performanceControlDynamicCaps->getXml());
-    root->addChild(m_performanceControlStaticCaps->getXml());
-    root->addChild(m_performanceControlSet->getXml());
-    root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
-
-    return root;
-}
-
-void DomainPerformanceControl_001::createPerformanceControlStaticCaps()
-{
-    m_performanceControlStaticCaps = new PerformanceControlStaticCaps(false);
-}
-
-void DomainPerformanceControl_001::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
-    ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
-{
-    throw not_implemented();
 }

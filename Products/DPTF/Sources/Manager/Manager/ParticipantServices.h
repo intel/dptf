@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "ParticipantServicesInterface.h"
@@ -34,6 +35,17 @@ public:
 
     ParticipantServices(DptfManager* dptfManager, UIntN participantIndex);
 
+    virtual UInt8 primitiveExecuteGetAsUInt8(
+        esif_primitive_type primitive,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
+    virtual void primitiveExecuteSetAsUInt8(
+        esif_primitive_type primitive,
+        UInt8 value,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
     virtual UInt32 primitiveExecuteGetAsUInt32(
         esif_primitive_type primitive,
         UIntN domainIndex = Constants::Esif::NoDomain,
@@ -42,6 +54,17 @@ public:
     virtual void primitiveExecuteSetAsUInt32(
         esif_primitive_type primitive,
         UInt32 value,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
+    virtual UInt64 primitiveExecuteGetAsUInt64(
+        esif_primitive_type primitive,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
+    virtual void primitiveExecuteSetAsUInt64(
+        esif_primitive_type primitive,
+        UInt64 value,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 
@@ -58,6 +81,23 @@ public:
 
     virtual Percentage primitiveExecuteGetAsPercentage(
         esif_primitive_type primitive,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
+    virtual void primitiveExecuteSetAsPercentage(
+        esif_primitive_type primitive,
+        Percentage percentage,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
+    virtual Frequency primitiveExecuteGetAsFrequency(
+        esif_primitive_type primitive,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) override final;
+
+    virtual void primitiveExecuteSetAsFrequency(
+        esif_primitive_type primitive,
+        Frequency frequency,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 

@@ -42,9 +42,9 @@ typedef UInt32 esif_thread_t;	/* Windows Thread */
 #endif
 
 /* Work Function */
-typedef void* (*work_func_t)(void*);
+typedef void * (*work_func_t)(void *);
 
-static ESIF_INLINE eEsifError esif_ccb_thread_create (
+static ESIF_INLINE eEsifError esif_ccb_thread_create(
 	esif_thread_t *thread_ptr,
 	work_func_t function_ptr,
 	void *argument_ptr
@@ -59,7 +59,7 @@ static ESIF_INLINE eEsifError esif_ccb_thread_create (
 	if (pthread_create(
 			thread_ptr,						/* Thread                    */
 			&attr,							/* Attributes                */
-			(void* (*)(void*))function_ptr,	/* Function To Start         */
+			(void * (*)(void *))function_ptr,	/* Function To Start         */
 			argument_ptr					/* Function Arguments If Any */
 			) != 0) {
 		rc = ESIF_E_UNSPECIFIED;
@@ -90,21 +90,19 @@ static ESIF_INLINE eEsifError esif_ccb_thread_join (
 	esif_thread_t *thread_ptr
 	)
 {
-eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_OK;
 
 #ifdef ESIF_ATTR_OS_LINUX
-	pthread_join(*thread_ptr,NULL);
+	pthread_join(*thread_ptr, NULL);
 #endif /* Linux */
 #ifdef ESIF_ATTR_OS_WINDOWS
-	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, (*(DWORD*)thread_ptr));
-       if (hThread != INVALID_HANDLE_VALUE) {
-              WaitForSingleObject(hThread, INFINITE);
-              CloseHandle(hThread);
-       }
-       else
-       {
-	       rc = ESIF_E_UNSPECIFIED;
-       }
+	HANDLE hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, (*(DWORD *)thread_ptr));
+	if (hThread != NULL) {
+		WaitForSingleObject(hThread, INFINITE);
+		CloseHandle(hThread);
+	} else {
+		rc = ESIF_E_UNSPECIFIED;
+	}
 
 #endif
 
@@ -114,7 +112,6 @@ eEsifError rc = ESIF_OK;
 
 	return rc;
 }
-
 
 
 #ifdef __cplusplus

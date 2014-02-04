@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PowerControlKnob.h"
 #include <algorithm>
 
@@ -40,13 +41,13 @@ void PowerControlKnob::limit()
     {
         try
         {
-            postDebugMessage(PolicyMessage(FLF, "Attempting to limit power.", getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit power.", getParticipantIndex(), getDomainIndex()));
 
             // get current power
             m_powerControl->refreshStatus();
             const PowerStatus& currentPowerStatus = m_powerControl->getStatus();
             Power currentPower = currentPowerStatus.getCurrentPower();
-            postDebugMessage(PolicyMessage(
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
                 FLF, "Current power is " + currentPower.toString() + ".", getParticipantIndex(), getDomainIndex()));
 
             // get current power limit
@@ -73,11 +74,11 @@ void PowerControlKnob::limit()
 
             stringstream message;
             message << "Limited power to " << newStatus.getCurrentPowerLimit().toString() << ".";
-            postDebugMessage(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
@@ -89,13 +90,13 @@ void PowerControlKnob::unlimit()
     {
         try
         {
-            postDebugMessage(PolicyMessage(FLF, "Attempting to unlimit power.", getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to unlimit power.", getParticipantIndex(), getDomainIndex()));
 
             UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
             const PowerControlDynamicCaps& pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
             const PowerControlStatus& currentStatus = m_powerControl->getControls()[pl1Index];
             Power nextPowerAfterStep = currentStatus.getCurrentPowerLimit() + pl1Capabilities.getPowerStepSize();
-            Power nextPowerLimit(std::min(nextPowerAfterStep.getPower(), pl1Capabilities.getMaxPowerLimit().getPower()));
+            Power nextPowerLimit(std::min(nextPowerAfterStep, pl1Capabilities.getMaxPowerLimit()));
             PowerControlStatus newStatus(
                 currentStatus.getPowerControlType(),
                 std::min(nextPowerLimit, pl1Capabilities.getMaxPowerLimit()),
@@ -105,11 +106,11 @@ void PowerControlKnob::unlimit()
 
             stringstream message;
             message << "Unlimited power to " << newStatus.getCurrentPowerLimit().toString() << ".";
-            postDebugMessage(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
@@ -164,7 +165,7 @@ Bool PowerControlKnob::canUnlimit()
 Power PowerControlKnob::calculateNextLowerPowerLimit(
     Power currentPower, Power minimumPowerLimit, Power stepSize, Power currentPowerLimit)
 {
-    Power nextPowerLimit(Constants::Invalid);
+    Power nextPowerLimit(Power::createInvalid());
     if (currentPower > minimumPowerLimit)
     {
         if (stepSize > currentPower)

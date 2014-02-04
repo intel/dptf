@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "WorkItemQueueManager.h"
 #include "DptfManager.h"
 #include "EsifServices.h"
@@ -62,51 +63,11 @@ WorkItemQueueManager::~WorkItemQueueManager(void)
 void WorkItemQueueManager::deleteAllObjects(void)
 {
     // Do not acquire mutex for this function.
-
-    try
-    {
-        delete m_workItemQueueThread;
-        m_workItemQueueThread = nullptr;
-    }
-    catch (...)
-    {
-    }
-
-    try
-    {
-        delete m_deferredQueue;
-        m_deferredQueue = nullptr;
-    }
-    catch (...)
-    {
-    }
-
-    try
-    {
-        delete m_immediateQueue;
-        m_immediateQueue = nullptr;
-    }
-    catch (...)
-    {
-    }
-
-    try
-    {
-        delete m_workItemQueueSemaphore;
-        m_workItemQueueSemaphore = nullptr;
-    }
-    catch (...)
-    {
-    }
-
-    try
-    {
-        delete m_workItemStatistics;
-        m_workItemStatistics = nullptr;
-    }
-    catch (...)
-    {
-    }
+    DELETE_MEMORY_TC(m_workItemQueueThread);
+    DELETE_MEMORY_TC(m_deferredQueue);
+    DELETE_MEMORY_TC(m_immediateQueue);
+    DELETE_MEMORY_TC(m_workItemQueueSemaphore);
+    DELETE_MEMORY_TC(m_workItemStatistics);
 }
 
 void WorkItemQueueManager::disableAndEmptyAllQueues(void)

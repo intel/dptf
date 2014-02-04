@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "WIDomainAllocate.h"
 #include "WIDomainConfigTdpCapabilityChanged.h"
 #include "WIDomainCoreControlCapabilityChanged.h"
@@ -26,6 +27,8 @@
 #include "WIDomainPerformanceControlsChanged.h"
 #include "WIDomainPowerControlCapabilityChanged.h"
 #include "WIDomainPriorityChanged.h"
+#include "WIDomainRadioConnectionStatusChanged.h"
+#include "WIDomainRfProfileChanged.h"
 #include "WIDomainTemperatureThresholdCrossed.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
@@ -35,7 +38,6 @@
 #include "WIParticipantDestroy.h"
 #include "WIParticipantSpecificInfoChanged.h"
 #include "WIPolicyActiveRelationshipTableChanged.h"
-#include "WIPolicyOperatingSystemConfigTdpLevelChanged.h"
 #include "WIPolicyCoolingModeAcousticLimitChanged.h"
 #include "WIPolicyCoolingModePolicyChanged.h"
 #include "WIPolicyCoolingModePowerLimitChanged.h"
@@ -43,10 +45,11 @@
 #include "WIPolicyDestroy.h"
 #include "WIPolicyForegroundApplicationChanged.h"
 #include "WIPolicyInitiatedCallback.h"
+#include "WIPolicyOperatingSystemConfigTdpLevelChanged.h"
 #include "WIPolicyOperatingSystemLpmModeChanged.h"
-#include "WIPolicyPlatformLpmModeChanged.h"
-#include "WIPolicyThermalRelationshipTableChanged.h"
 #include "WIPolicyPassiveTableChanged.h"
+#include "WIPolicyPlatformLpmModeChanged.h"
 #include "WIPolicySensorOrientationChanged.h"
 #include "WIPolicySensorProximityChanged.h"
 #include "WIPolicySensorSpatialOrientationChanged.h"
+#include "WIPolicyThermalRelationshipTableChanged.h"

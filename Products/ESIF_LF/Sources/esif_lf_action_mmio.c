@@ -140,6 +140,9 @@ enum esif_rc esif_get_action_mmio(
 		break;
 
 	case ESIF_DATA_UINT32:
+	case ESIF_DATA_POWER:
+	case ESIF_DATA_TEMPERATURE:
+	case ESIF_DATA_TIME:
 		rsp_data_ptr->data_len = sizeof(u32);
 		if (rsp_data_ptr->buf_len >= sizeof(u32))
 			*((u32 *)rsp_data_ptr->buf_ptr) = (u32)val;
@@ -198,8 +201,10 @@ enum esif_rc esif_set_action_mmio(
 			rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
 		break;
 
-	case ESIF_DATA_TEMPERATURE:
 	case ESIF_DATA_UINT32:
+	case ESIF_DATA_POWER:
+	case ESIF_DATA_TEMPERATURE:
+	case ESIF_DATA_TIME:
 		if (req_data_ptr->buf_len >= sizeof(u32))
 			req_val = *((u32 *)req_data_ptr->buf_ptr);
 		else

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ActivePolicy.h"
 
 using namespace std;
@@ -96,7 +97,7 @@ string ActivePolicy::getName(void) const
 string ActivePolicy::getStatusAsXml(void) const
 {
     XmlNode* root = XmlNode::createRoot();
-    XmlNode* format = XmlNode::createComment("format_id=89C3953AB8E42946A526C52C88626BAE");
+    XmlNode* format = XmlNode::createComment("format_id=" + getGuid().toString());
     root->addChild(format);
     XmlNode* status = XmlNode::createWrapperElement("active_policy_status");
     status->addChild(getParticipantTracker().getXmlForActiveCoolingControls());
@@ -110,14 +111,14 @@ string ActivePolicy::getStatusAsXml(void) const
 
 void ActivePolicy::onBindParticipant(UIntN participantIndex)
 {
-    postDebugMessage(PolicyMessage(FLF, "Binding participant.", participantIndex));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding participant.", participantIndex));
     getParticipantTracker().remember(participantIndex);
     associateParticipantInArt(getParticipantTracker()[participantIndex]);
 }
 
 void ActivePolicy::onUnbindParticipant(UIntN participantIndex)
 {
-    postDebugMessage(PolicyMessage(FLF, "Unbinding participant.", participantIndex));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Unbinding participant.", participantIndex));
     m_art.disassociateParticipant(participantIndex);
     getParticipantTracker().forget(participantIndex);
 }
@@ -126,7 +127,7 @@ void ActivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
 {
     if (getParticipantTracker().remembers(participantIndex))
     {
-        postDebugMessage(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
         getParticipantTracker()[participantIndex].bindDomain(domainIndex);
         if (participantIsTargetDevice(participantIndex))
         {
@@ -199,7 +200,7 @@ void ActivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
 {
     if (participantIsTargetDevice(participantIndex))
     {
-        postDebugMessage(PolicyMessage(
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Specific info changed for target participant.", participantIndex));
         getParticipantTracker()[participantIndex].getActiveTripPointProperty().refresh();
         coolTargetParticipant(getParticipantTracker()[participantIndex]);
@@ -210,7 +211,7 @@ void ActivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 {
     if (participantIsTargetDevice(participantIndex))
     {
-        postDebugMessage(PolicyMessage(
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Temperature threshold crossed for target participant.", participantIndex));
         coolTargetParticipant(getParticipantTracker()[participantIndex]);
     }
@@ -218,7 +219,7 @@ void ActivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 
 void ActivePolicy::onActiveRelationshipTableChanged(void)
 {
-    postDebugMessage(PolicyMessage(FLF, "Active Relationship Table changed."));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Active Relationship Table changed."));
     m_art = getPolicyServices().platformConfigurationData->getActiveRelationshipTable();
     associateAllParticipantsInArt();
 
@@ -235,11 +236,14 @@ void ActivePolicy::coolTargetParticipant(ParticipantProxy& participant)
 {
     if (participant.getActiveTripPointProperty().supportsProperty())
     {
-        auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
-        postDebugMessage(PolicyMessage(
-            FLF, "Considering actions based on temperature of " + currentTemperature.toString() + "."));
-        setTripPointNotificationForTarget(participant, currentTemperature);
-        requestFanSpeedChangesForTarget(participant, currentTemperature);
+        if (participant.getDomainPropertiesSet().getDomainCount() > 0)
+        {
+            auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Considering actions based on temperature of " + 
+                currentTemperature.toString() + "."));
+            setTripPointNotificationForTarget(participant, currentTemperature);
+            requestFanSpeedChangesForTarget(participant, currentTemperature);
+        }
     }
 }
 
@@ -268,13 +272,13 @@ void ActivePolicy::requestFanSpeedChange(
         if (coolingControl.supportsFineGrainControl())
         {
             Percentage fanSpeed = selectFanSpeed(entry, tripPoints, currentTemperature);
-            postDebugMessage(PolicyMessage(FLF, "Requesting fan speed of " + fanSpeed.toString() + "."));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Requesting fan speed of " + fanSpeed.toString() + "."));
             coolingControl.requestFanSpeedPercentage(entry.targetDeviceIndex(), fanSpeed);
         }
         else
         {
             UIntN activeControlIndex = selectActiveControlIndex(entry, tripPoints, currentTemperature);
-            postDebugMessage(PolicyMessage(
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
                 FLF, "Requesting fan speed index of " + to_string(activeControlIndex) + "."));
             coolingControl.requestActiveControlIndex(entry.targetDeviceIndex(), activeControlIndex);
         }
@@ -283,7 +287,7 @@ void ActivePolicy::requestFanSpeedChange(
 
 void ActivePolicy::requestFanTurnedOff(const ActiveRelationshipTableEntry& entry)
 {
-    postDebugMessage(PolicyMessage(
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
         FLF, "Requesting fan turned off for participant " + to_string(entry.sourceDeviceIndex()) + "."));
     auto domainIndexes = getParticipantTracker()[entry.sourceDeviceIndex()].getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
@@ -294,7 +298,7 @@ void ActivePolicy::requestFanTurnedOff(const ActiveRelationshipTableEntry& entry
         {
             coolingControl.requestFanSpeedPercentage(
                 entry.targetDeviceIndex(),
-                Percentage(0));
+                Percentage(0.0));
         }
         else
         {
@@ -307,7 +311,7 @@ void ActivePolicy::requestFanTurnedOff(const ActiveRelationshipTableEntry& entry
 
 void ActivePolicy::turnOffAllFans()
 {
-    postDebugMessage(PolicyMessage(FLF, "Turning off all fans."));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Turning off all fans."));
     vector<UIntN> sources = m_art.getAllSources();
     for (auto source = sources.begin(); source != sources.end(); source++)
     {
@@ -344,19 +348,19 @@ void ActivePolicy::refreshArtAndTargetsAndTakeCoolingAction()
 void ActivePolicy::setTripPointNotificationForTarget(ParticipantProxy& target, const Temperature& currentTemperature)
 {
     auto tripPoints = target.getActiveTripPointProperty().getTripPoints();
-    UIntN lowerTemperatureThreshold = determineLowerTemperatureThreshold(currentTemperature, tripPoints);
-    UIntN upperTemperatureThreshold = determineUpperTemperatureThreshold(currentTemperature, tripPoints);
+    Temperature lowerTemperatureThreshold = determineLowerTemperatureThreshold(currentTemperature, tripPoints);
+    Temperature upperTemperatureThreshold = determineUpperTemperatureThreshold(currentTemperature, tripPoints);
     target.setTemperatureThresholds(lowerTemperatureThreshold, upperTemperatureThreshold);
     target.notifyPlatformOfDeviceTemperature(currentTemperature);
 }
 
-UIntN ActivePolicy::determineLowerTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const
+Temperature ActivePolicy::determineLowerTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const
 {
     auto trips = tripPoints.getSortedByKey();
-    UIntN lowerTemperatureThreshold = Constants::Invalid;
+    Temperature lowerTemperatureThreshold(Temperature::createInvalid());
     for (UIntN ac = 0; ac < trips.size(); ++ac)
     {
-        if (currentTemperature.getTemperature() >= trips[ac].second)
+        if (currentTemperature >= Temperature(trips[ac].second))
         {
             lowerTemperatureThreshold = trips[ac].second;
             break;
@@ -365,13 +369,13 @@ UIntN ActivePolicy::determineLowerTemperatureThreshold(const Temperature& curren
     return lowerTemperatureThreshold;
 }
 
-UIntN ActivePolicy::determineUpperTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const
+Temperature ActivePolicy::determineUpperTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const
 {
     auto trips = tripPoints.getSortedByKey();
-    UIntN upperTemperatureThreshold = Constants::Invalid;
+    Temperature upperTemperatureThreshold(Temperature::createInvalid());
     for (UIntN ac = 0; ac < trips.size(); ++ac)
     {
-        if ((currentTemperature.getTemperature() < trips[ac].second) &&
+        if ((currentTemperature < Temperature(trips[ac].second)) &&
             (trips[ac].second != Constants::Invalid))
         {
             upperTemperatureThreshold = trips[ac].second;
@@ -380,26 +384,26 @@ UIntN ActivePolicy::determineUpperTemperatureThreshold(const Temperature& curren
     return upperTemperatureThreshold;
 }
 
-UIntN ActivePolicy::selectFanSpeed(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature)
+Percentage ActivePolicy::selectFanSpeed(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature)
 {
-    UIntN fanSpeed;
+    Percentage fanSpeed = Percentage::createInvalid();
     UIntN crossedTripPointIndex = findTripPointCrossed(tripPoints, temperature);
     if (crossedTripPointIndex != Constants::Invalid)
     {
         // find fan speed at index or greater
-        fanSpeed = 0;
+        fanSpeed = 0.0;
         for (UIntN entryAcIndex = crossedTripPointIndex; entryAcIndex < entry.FanOffIndex; ++entryAcIndex)
         {
             if (entry.ac(entryAcIndex) != Constants::Invalid)
             {
-                fanSpeed = entry.ac(entryAcIndex);
+                fanSpeed = (double)entry.ac(entryAcIndex) / 100.0;
                 break;
             }
         }
     }
     else
     {
-        fanSpeed = 0;
+        fanSpeed = 0.0;
     }
     return fanSpeed;
 }
@@ -423,7 +427,7 @@ UIntN ActivePolicy::findTripPointCrossed(SpecificInfo& tripPoints, const Tempera
     auto trips = tripPoints.getSortedByKey();
     for (UIntN index = 0; index < trips.size(); index++)
     {
-        if (temperature.getTemperature() >= trips[index].second)
+        if (temperature >= Temperature(trips[index].second))
         {
             UIntN acIndex = trips[index].first - ParticipantSpecificInfoKey::AC0;
             return acIndex;

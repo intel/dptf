@@ -82,7 +82,7 @@ typedef struct _msgBuffer {
 enum frameType esif_ws_get_initial_frame_type(const UInt8*, size_t, protocol*);
 
 
-void esif_ws_socket_build_response_header (const protocol*, UInt8*, size_t*);
+eEsifError esif_ws_socket_build_response_header (const protocol*, UInt8*, size_t*);
 
 
 void esif_ws_socket_build_payload(const UInt8*, size_t, UInt8*, size_t*, enum frameType);

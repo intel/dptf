@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TemperatureThresholds.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -23,10 +24,10 @@ using namespace StatusFormat;
 TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1, UIntN hysteresis) :
     m_aux0(aux0), m_aux1(aux1), m_hysteresis(hysteresis)
 {
-    if ((m_aux0.isTemperatureValid() == true) &&
-        (m_aux0.getTemperature() != 0) &&
-        (m_aux1.isTemperatureValid() == true) &&
-        (m_aux1.getTemperature() != 0) &&
+    if ((m_aux0.isValid() == true) &&
+        (m_aux0 != Temperature(0)) &&
+        (m_aux1.isValid() == true) &&
+        (m_aux1 != Temperature(0)) &&
         (m_aux0 >= m_aux1))
     {
         throw dptf_exception("Aux0 must be less than Aux1.");
@@ -52,8 +53,8 @@ XmlNode* TemperatureThresholds::getXml(void)
 {
     XmlNode* root = XmlNode::createWrapperElement("temperature_thresholds");
 
-    root->addChild(getAux0().getXml("aux0"));
-    root->addChild(getAux1().getXml("aux1"));
+    root->addChild(XmlNode::createDataElement("aux0", getAux0().toString()));
+    root->addChild(XmlNode::createDataElement("aux1", getAux1().toString()));
     root->addChild(XmlNode::createDataElement("hysteresis", StatusFormat::friendlyValue(m_hysteresis)));
 
     return root;

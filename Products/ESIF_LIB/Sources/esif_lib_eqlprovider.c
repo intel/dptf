@@ -28,6 +28,7 @@
 #include "esif_uf_cfgmgr.h"
 
 #include "esif_lib_eqlcmd.h"
+#include "esif_lib_databank.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -187,9 +188,9 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 	char *message = (char*)esif_ccb_malloc(OUT_BUF_LEN);
 	EsifDataType type = ESIF_DATA_STRING;
 	UInt32 options    = 0;
-	StringPtr DefaultNamespace = "esif";
+	StringPtr DefaultNamespace = ESIFDV_DEFAULT_NAMESPACE;
 	int i;
-
+	
 	if (!message)
 		return ESIF_E_NO_MEMORY;
 
@@ -273,7 +274,7 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 	if (*message) {
 		StringList_Add(eqlcmd->messages, message);
 	}
-
+	esif_ccb_free(message);
 	return rc;
 }
 

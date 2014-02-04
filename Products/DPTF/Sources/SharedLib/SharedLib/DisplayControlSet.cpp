@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,10 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DisplayControlSet.h"
 #include "XmlNode.h"
 
-DisplayControlSet::DisplayControlSet(std::vector<DisplayControl> displayControl) :
+DisplayControlSet::DisplayControlSet(const std::vector<DisplayControl>& displayControl) :
     m_displayControl(displayControl)
 {
 }
@@ -36,6 +37,11 @@ const DisplayControl& DisplayControlSet::operator[](UIntN index) const
 Bool DisplayControlSet::operator==(const DisplayControlSet& rhs) const
 {
     return (m_displayControl == rhs.m_displayControl);
+}
+
+Bool DisplayControlSet::operator!=(const DisplayControlSet& rhs) const
+{
+    return !(*this == rhs);
 }
 
 UIntN DisplayControlSet::getControlIndex(Percentage brightness)

@@ -103,6 +103,8 @@ static void ESIF_INLINE esif_ccb_system_time(esif_ccb_time_t *time)
 extern "C" {
 #endif /* __cplusplus */
 
+#define MAX_CTIME_LEN	30	/* max length of ctime string */
+
 #ifdef ESIF_ATTR_OS_LINUX
 #include <sys/time.h>
 

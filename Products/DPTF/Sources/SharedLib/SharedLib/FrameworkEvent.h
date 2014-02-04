@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 //
@@ -38,6 +39,7 @@ namespace FrameworkEvent
         DptfConnectedStandbyEntry,
         DptfConnectedStandbyExit,
         DptfGetStatus,
+        DptfLogVerbosityChanged,
 
         // Participant and Domain events
         ParticipantAllocate,
@@ -55,25 +57,27 @@ namespace FrameworkEvent
         DomainPerformanceControlsChanged,                           // Not used today but planned for future participants
         DomainPowerControlCapabilityChanged,
         DomainPriorityChanged,
+        DomainRadioConnectionStatusChanged,
+        DomainRfProfileChanged,
         DomainTemperatureThresholdCrossed,
 
         // Policy events
         PolicyCreate,
         PolicyDestroy,
         PolicyActiveRelationshipTableChanged,
-        PolicyThermalRelationshipTableChanged,
-        PolicyInitiatedCallback,                                    // The policy created the event so it will get called back on a work item thread
-        PolicyForegroundApplicationChanged,
-        PolicyOperatingSystemLpmModeChanged,
-        PolicyPlatformLpmModeChanged,
-        PolicyOperatingSystemConfigTdpLevelChanged,
-        PolicyCoolingModePowerLimitChanged,
         PolicyCoolingModeAcousticLimitChanged,
         PolicyCoolingModePolicyChanged,                             // Active cooling mode vs. Passive cooling mode
+        PolicyCoolingModePowerLimitChanged,
+        PolicyForegroundApplicationChanged,
+        PolicyInitiatedCallback,                                    // The policy created the event so it will get called back on a work item thread
+        PolicyOperatingSystemConfigTdpLevelChanged,
+        PolicyOperatingSystemLpmModeChanged,
         PolicyPassiveTableChanged,
+        PolicyPlatformLpmModeChanged,
         PolicySensorOrientationChanged,
-        PolicySensorSpatialOrientationChanged,
         PolicySensorProximityChanged,
+        PolicySensorSpatialOrientationChanged,
+        PolicyThermalRelationshipTableChanged,
 
         Max
     };
@@ -105,8 +109,8 @@ public:
 private:
 
     FrameworkEventInfo(void);
-    ~FrameworkEventInfo(void);
     FrameworkEventInfo(const FrameworkEventInfo& rhs);
+    ~FrameworkEventInfo(void);
     FrameworkEventInfo& operator=(const FrameworkEventInfo& rhs);
     static FrameworkEventInfo* frameworkEventInfo;
 

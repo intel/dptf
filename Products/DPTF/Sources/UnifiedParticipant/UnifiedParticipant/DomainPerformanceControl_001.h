@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainPerformanceControlInterface.h"
@@ -46,24 +47,24 @@ public:
     virtual XmlNode* getXml(UIntN domainIndex) override final;
 
     // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
+    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
         ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
 
 private:
 
-    ParticipantServicesInterface* m_participantServicesInterface;
+    // hide the copy constructor and = operator
+    DomainPerformanceControl_001(const DomainPerformanceControl_001& rhs);
+    DomainPerformanceControl_001& operator=(const DomainPerformanceControl_001& rhs);
 
-    // Functions
-    void initializeDataStructures(void);
-    void createPerformanceControlSet(UIntN domainIndex);
-    void createPerformanceControlDynamicCaps(UIntN domainIndex);
+    void createPerformanceControlStaticCapsIfNeeded();
+    void createPerformanceControlDynamicCapsIfNeeded(UIntN domainIndex);
+    void createPerformanceControlSetIfNeeded(UIntN domainIndex);
     void verifyPerformanceControlIndex(UIntN performanceControlIndex);
     void checkAndCreateControlStructures(UIntN domainIndex);
-    void createPerformanceControlStaticCaps();
 
-    // Vars
+    ParticipantServicesInterface* m_participantServicesInterface;
+    UIntN m_currentPerformanceControlIndex;
     PerformanceControlStaticCaps* m_performanceControlStaticCaps;
     PerformanceControlDynamicCaps* m_performanceControlDynamicCaps;
     PerformanceControlSet* m_performanceControlSet;
-    PerformanceControlStatus* m_performanceControlStatus;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -37,7 +38,11 @@ class EsifServices
 {
 public:
 
-    EsifServices(const DptfManager* dptfManager, const void* esifHandle, const EsifInterfacePtr esifInterfacePtr);
+    EsifServices(const DptfManager* dptfManager, const void* esifHandle, const EsifInterfacePtr esifInterfacePtr,
+        eLogType currentLogVerbosityLevel);
+
+    eLogType getCurrentLogVerbosityLevel(void) const;
+    void setCurrentLogVerbosityLevel(eLogType currentLogVerbosityLevel);
 
     // Read/write configuration data.
 
@@ -46,6 +51,19 @@ public:
     std::string readConfigurationString(const std::string& elementPath);
 
     // Primitives
+
+    UInt8 primitiveExecuteGetAsUInt8(
+        esif_primitive_type primitive,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    void primitiveExecuteSetAsUInt8(
+        esif_primitive_type primitive,
+        UInt8 elementValue,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
 
     UInt32 primitiveExecuteGetAsUInt32(
         esif_primitive_type primitive,
@@ -56,6 +74,19 @@ public:
     void primitiveExecuteSetAsUInt32(
         esif_primitive_type primitive,
         UInt32 elementValue,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    UInt64 primitiveExecuteGetAsUInt64(
+        esif_primitive_type primitive,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    void primitiveExecuteSetAsUInt64(
+        esif_primitive_type primitive,
+        UInt64 elementValue,
         UIntN participantIndex = Constants::Esif::NoParticipant,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
@@ -75,6 +106,26 @@ public:
 
     Percentage primitiveExecuteGetAsPercentage(
         esif_primitive_type primitive,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    void primitiveExecuteSetAsPercentage(
+        esif_primitive_type primitive,
+        Percentage percentage,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    Frequency primitiveExecuteGetAsFrequency(
+        esif_primitive_type primitive,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    void primitiveExecuteSetAsFrequency(
+        esif_primitive_type primitive,
+        Frequency frequency,
         UIntN participantIndex = Constants::Esif::NoParticipant,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
@@ -147,8 +198,9 @@ private:
     const DptfManager* m_dptfManager;
     const void* m_esifHandle;
     EsifInterface m_esifInterface;
+    eLogType m_currentLogVerbosityLevel;
 
-    void writeMessage(eLogType logType, MessageCategory::Type messageCategory, const std::string& message);
+    void writeMessage(eLogType messageLevel, MessageCategory::Type messageCategory, const std::string& message);
 
     std::string getParticipantName(UIntN participantIndex);
     std::string getDomainName(UIntN participantIndex, UIntN domainIndex);

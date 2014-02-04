@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PerformanceControlKnob.h"
 using namespace std;
 
@@ -43,7 +44,7 @@ void PerformanceControlKnob::limit()
         {
             stringstream messageBefore;
             messageBefore << "Attempting to limit " << controlTypeToString(m_controlType) << "s.";
-            postDebugMessage(PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
             const PerformanceControlDynamicCaps& dynamicCapabilities = m_performanceControl->getDynamicCapabilities();
             UIntN lowerLimitIndex = dynamicCapabilities.getCurrentLowerLimitIndex();
@@ -56,11 +57,11 @@ void PerformanceControlKnob::limit()
                 << "Limited performance state to " 
                 << nextIndex 
                 << "(" << controlTypeToString(m_controlType) << ").";
-            postDebugMessage(PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
@@ -74,7 +75,7 @@ void PerformanceControlKnob::unlimit()
         {
             stringstream messageBefore;
             messageBefore << "Attempting to unlimit " << controlTypeToString(m_controlType) << "s.";
-            postDebugMessage(PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
             const PerformanceControlDynamicCaps& dynamicCapabilities = m_performanceControl->getDynamicCapabilities();
             UIntN upperLimitIndex = dynamicCapabilities.getCurrentUpperLimitIndex();
@@ -87,11 +88,11 @@ void PerformanceControlKnob::unlimit()
                 << "Unlimited performance state to " 
                 << nextIndex 
                 << "(" << controlTypeToString(m_controlType) << ").";
-            postDebugMessage(PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }

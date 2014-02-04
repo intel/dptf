@@ -18,11 +18,6 @@
 
 #include "esif_uf.h"		/* Upper Framework */
 
-// Temporary Workaround: Implment global Shell lock to troubleshoot mixed output
-#ifdef  BIG_LOCK
-esif_ccb_mutex_t g_shellLock;
-#endif
-
 #define _DATABANK_CLASS
 #define _DATACACHE_CLASS
 #define _DATAVAULT_CLASS
@@ -148,7 +143,7 @@ DataVaultPtr DataBank_GetNameSpace (
 {
 	UInt32 ns;
 	for (ns = 0; ns < self->size; ns++)
-		if (strcmp(nameSpace, self->elements[ns].name) == 0) {
+		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
 			return &self->elements[ns];
 		}
 	return NULL;
@@ -168,7 +163,7 @@ DataVaultPtr DataBank_OpenNameSpace (
 	// Exit if NameSpace already exists
 	// TODO: Change this to a linked list or array of pointers so each DataVaultPtr is static
 	for (ns = 0; ns < self->size; ns++)
-		if (strcmp(nameSpace, self->elements[ns].name) == 0) {
+		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
 			return &self->elements[ns];
 		}
 	if (ns >= ESIF_MAX_NAME_SPACES) {
@@ -179,6 +174,7 @@ DataVaultPtr DataBank_OpenNameSpace (
 	DB = &self->elements[self->size++];
 	DataVault_ctor(DB);
 	esif_ccb_strcpy(DB->name, nameSpace, ESIF_NAME_LEN);
+	esif_ccb_strlwr(DB->name, sizeof(DB->name));
 	return DB;
 }
 
@@ -194,7 +190,7 @@ void DataBank_CloseNameSpace (
 
 	// Find Existing NameSpace
 	for (ns = 0; ns < self->size; ns++)
-		if (strcmp(nameSpace, self->elements[ns].name) == 0) {
+		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
 			DataVault_dtor(&self->elements[ns]);
 
 			// Move Array Items down one and wipe the final item
@@ -303,10 +299,6 @@ eEsifError EsifCfgMgrInit ()
 		esif_ccb_strcpy(g_DataVaultDir, "/etc/dptf/", sizeof(g_DataVaultDir));
 #endif
 
-#ifdef BIG_LOCK
-	esif_ccb_mutex_init(&g_shellLock);
-#endif
-
 	if (!g_DataBankMgr) {
 		g_DataBankMgr = DataBank_Create();
 		if (g_DataBankMgr) {
@@ -323,9 +315,6 @@ void EsifCfgMgrExit ()
 		DataBank_Destroy(g_DataBankMgr);
 		g_DataBankMgr = 0;
 	}
-#ifdef BIG_LOCK
-	esif_ccb_mutex_destroy(&g_shellLock);
-#endif
 }
 
 

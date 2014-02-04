@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PolicyManager.h"
 #include "DptfManager.h"
 #include "WorkItemQueueManager.h"
@@ -127,8 +128,7 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
         {
         }
 
-        delete m_policy[policyIndex];
-        m_policy[policyIndex] = nullptr;
+        DELETE_MEMORY_TC(m_policy[policyIndex]);
     }
 }
 

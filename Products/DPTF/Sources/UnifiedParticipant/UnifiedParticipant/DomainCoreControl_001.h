@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainCoreControlInterface.h"
@@ -33,6 +34,7 @@ class DomainCoreControl_001 final : public DomainCoreControlInterface,
 public:
 
     DomainCoreControl_001(ParticipantServicesInterface* participantServicesInterface);
+    ~DomainCoreControl_001(void);
 
     // DomainCoreControlInterface
     virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override final;
@@ -47,22 +49,21 @@ public:
 
 private:
 
+    // hide the copy constructor and = operator
+    DomainCoreControl_001(const DomainCoreControl_001& rhs);
+    DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs);
+
     ParticipantServicesInterface* m_participantServicesInterface;
 
-    // Funcs
-    void initializeDataStructures(void);
-    void createCoreControlDynamicCaps(UIntN domainIndex);
-    void createCoreControlStaticCaps(UIntN domainIndex);
-    void verifyCoreControlStatus(const CoreControlStatus& coreControlStatus);
-    void createCoreControlLpoPreference(UIntN domainIndex);
-    void checkAndCreateControlStructures(UIntN domainIndex);
+    // Functions
+    void createCoreControlStaticCapsIfNeeded(UIntN domainIndex);
+    void createCoreControlDynamicCapsIfNeeded(UIntN domainIndex);
+    void createCoreControlLpoPreferenceIfNeeded(UIntN domainIndex);
+    void verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus);
 
     // Vars (external)
     CoreControlStaticCaps* m_coreControlStaticCaps;
     CoreControlDynamicCaps* m_coreControlDynamicCaps;
     CoreControlLpoPreference* m_coreControlLpoPreference;
     CoreControlStatus* m_coreControlStatus;
-
-    // Vars (internal)
-    UIntN m_numActiveLogicalProcessors;
 };

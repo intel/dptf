@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CriticalPolicy.h"
 
 // This file is nearly identical between each policy.  We could use a macro in its place.  However, for easier
@@ -40,12 +41,6 @@ extern "C"
 
     dptf_export void DestroyPolicyInstance(PolicyInterface* policyInterface)
     {
-        try
-        {
-            delete policyInterface;
-        }
-        catch (...)
-        {
-        }
+        DELETE_MEMORY_TC(policyInterface);
     }
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "WorkItemQueueThread.h"
 #include "EsifThread.h"
 #include "DptfManager.h"
@@ -36,8 +37,7 @@ WorkItemQueueThread::~WorkItemQueueThread(void)
 {
     m_destroyThread = true;
     m_workItemQueueSemaphore->signal();
-    delete m_workItemQueueThreadId;
-    m_workItemQueueThreadId = nullptr;
+    DELETE_MEMORY_TC(m_workItemQueueThreadId);
 }
 
 EsifThreadId WorkItemQueueThread::getWorkItemQueueThreadId(void) const

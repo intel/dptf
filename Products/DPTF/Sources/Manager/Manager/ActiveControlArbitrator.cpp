@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,12 +15,13 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ActiveControlArbitrator.h"
 #include "Utility.h"
 
 ActiveControlArbitrator::ActiveControlArbitrator(DptfManager* dptfManager) :
     m_dptfManager(dptfManager),
-    m_arbitratedFanSpeedPercentage(Percentage()),
+    m_arbitratedFanSpeedPercentage(Percentage::createInvalid()),
     m_arbitratedActiveControlIndex(Constants::Invalid)
 {
 }
@@ -32,7 +33,7 @@ ActiveControlArbitrator::~ActiveControlArbitrator(void)
 Bool ActiveControlArbitrator::arbitrate(UIntN policyIndex, const Percentage& fanSpeed)
 {
     Bool arbitratedValueChanged = false;
-    Percentage maxRequestedFanSpeedPercentage;                      // initialized to invalid by default
+    Percentage maxRequestedFanSpeedPercentage = Percentage::createInvalid();
 
     increaseVectorSizeIfNeeded(m_requestedfanSpeedPercentage, policyIndex, maxRequestedFanSpeedPercentage);
     m_requestedfanSpeedPercentage[policyIndex] = fanSpeed;
@@ -42,8 +43,8 @@ Bool ActiveControlArbitrator::arbitrate(UIntN policyIndex, const Percentage& fan
     //
     for (UIntN i = 0; i < m_requestedfanSpeedPercentage.size(); i++)
     {
-        if ((m_requestedfanSpeedPercentage[i].isPercentageValid()) &&
-            ((maxRequestedFanSpeedPercentage.isPercentageValid() == false) ||
+        if ((m_requestedfanSpeedPercentage[i].isValid()) &&
+            ((maxRequestedFanSpeedPercentage.isValid() == false) ||
              (m_requestedfanSpeedPercentage[i] > maxRequestedFanSpeedPercentage)))
         {
             maxRequestedFanSpeedPercentage = m_requestedfanSpeedPercentage[i];
@@ -61,7 +62,6 @@ Bool ActiveControlArbitrator::arbitrate(UIntN policyIndex, const Percentage& fan
 
     return arbitratedValueChanged;
 }
-
 
 Bool ActiveControlArbitrator::arbitrate(UIntN policyIndex, UIntN activeControlIndex)
 {
@@ -110,7 +110,7 @@ void ActiveControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
     if (policyIndex < m_requestedfanSpeedPercentage.size())
     {
-        m_requestedfanSpeedPercentage[policyIndex] = Percentage();
+        m_requestedfanSpeedPercentage[policyIndex] = Percentage::createInvalid();
     }
 
     if (policyIndex < m_requestedActiveControlIndex.size())

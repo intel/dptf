@@ -40,7 +40,6 @@ getp 178 D1 255 -u 3 -l 0                                    ;GET_DOMAIN_PRIORIT
 getp 178 D2 255 -u 3 -l 0                                    ;GET_DOMAIN_PRIORITY
 getp 054 D0 255 -u 105 -l 0                                  ;GET_NOTIFICATION_TEMP_THRESHOLD
 getp 137 D2 255 -b sb_b0_d4_f0_137_D2_255.bin                ;GET_PERF_SUPPORT_STATES
-getp 068 D0 255                                              ;GET_PROC_APPLICATION_EXCLUDE_LIST
 getp 079 D0 255                                              ;GET_PROC_CTDP_CAPABILITY
 getp 026 D0 255                                              ;GET_PROC_CTDP_CURRENT_SETTING
 getp 027 D0 255 -u 1 -l 0                                    ;GET_PROC_CTDP_LOCK_STATUS
@@ -58,6 +57,7 @@ getp 095 D1 255 -b sb_b0_d4_f0_95_D1_255.bin                 ;GET_PROC_PERF_SUPP
 getp 058 D0 255 -b sb_b0_d4_f0_58_D0_255.bin                 ;GET_PROC_PERF_THROTTLE_CONTROL
 getp 062 D1 255                                              ;GET_PROC_PERF_THROTTLE_PRESENT_CAPABILITY
 getp 061 D1 255                                              ;GET_PROC_PERF_TSTATE_DEPTH_LIMIT
+getp 268 D0 255                                              ;GET_PROC_RF_TUNING_AVAILABLE
 getp 021 D0 255 -u 200000 -l 0                               ;GET_PROC_THERMAL_DESIGN_POWER
 getp 020 D0 255 -u 105 -l 0                                  ;GET_PROC_TJMAX
 getp 219 D0 255                                              ;GET_PROC_TURBO_ACTIVATION_RATIO
@@ -82,19 +82,14 @@ getp 172 D0 255 -u 1 -l 0                                    ;GET_RAPL_POWER_LIM
 getp 172 D1 255 -u 1 -l 0                                    ;GET_RAPL_POWER_LIMIT_LOCK
 getp 172 D2 255 -u 1 -l 0                                    ;GET_RAPL_POWER_LIMIT_LOCK
 getp 023 D0 255                                              ;GET_RAPL_POWER_MAX
-getp 024 D0 255                                              ;GET_RAPL_POWER_MAX_TIME_WINDOW
 getp 022 D0 255                                              ;GET_RAPL_POWER_MIN
 getp 124 D0 255 -u 3 -l 3                                    ;GET_RAPL_POWER_UNIT
 getp 122 D0 255 -u 10 -l 10                                  ;GET_RAPL_TIME_UNIT
-getp 039 D0 000                                              ;GET_RAPL_TIME_WINDOW
-getp 039 D0 001                                              ;GET_RAPL_TIME_WINDOW
-getp 039 D1 000                                              ;GET_RAPL_TIME_WINDOW
-getp 039 D2 000                                              ;GET_RAPL_TIME_WINDOW
 getp 265 D0 255                                              ;GET_RFPROFILE_BIT_ERROR
 getp 245 D0 255                                              ;GET_RFPROFILE_CENTER_FREQUENCY
 getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
-rem setp 255 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_LEFT
-rem setp 256 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
+getp 255 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_LEFT
+getp 256 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
 getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
 getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
 getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
@@ -149,10 +144,6 @@ rem setp 222 D0 000                                          ;SET_RAPL_POWER_LIM
 rem setp 222 D0 001                                          ;SET_RAPL_POWER_LIMIT_ENABLE
 rem setp 222 D1 000                                          ;SET_RAPL_POWER_LIMIT_ENABLE
 rem setp 222 D2 000                                          ;SET_RAPL_POWER_LIMIT_ENABLE
-rem setp 127 D0 000                                          ;SET_RAPL_TIME_WINDOW
-rem setp 127 D0 001                                          ;SET_RAPL_TIME_WINDOW
-rem setp 127 D1 000                                          ;SET_RAPL_TIME_WINDOW
-rem setp 127 D2 000                                          ;SET_RAPL_TIME_WINDOW
 rem setp 211 D0 255                                          ;SET_RFPROFILE_CENTER_FREQUENCY
 rem setp 241 D0 255                                          ;SET_TEMPERATURE
 rem setp 241 D1 255                                          ;SET_TEMPERATURE
@@ -174,7 +165,7 @@ rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
 rem setp 147 D1 255                                          ;SET_TSTATE_CURRENT
-echo Test Count: 142
+echo Test Count: 133
 timerstop
 geterrorlevel
 nolog

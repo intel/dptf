@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "XmlNode.h"
 #include "XmlGeneratorFactory.h"
 
@@ -32,8 +33,7 @@ XmlNode::~XmlNode(void)
 {
     for (UIntN i = 0; i < m_children.size(); i++)
     {
-        delete m_children[i];
-        m_children[i] = nullptr;
+        DELETE_MEMORY_TC(m_children[i]);
     }
 }
 

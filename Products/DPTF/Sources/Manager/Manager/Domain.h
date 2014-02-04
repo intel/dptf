@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "ParticipantInterface.h"
@@ -86,6 +87,13 @@ public:
     PerformanceControlSet getPerformanceControlSet(void);
     void setPerformanceControl(UIntN policyIndex, UIntN performanceControlIndex);
 
+    // Pixel Clock Control
+    void setPixelClockControl(UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
+
+    // Pixel Clock Status
+    PixelClockCapabilities getPixelClockCapabilities(void);
+    PixelClockDataSet getPixelClockDataSet(void);
+
     // Power controls
     PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(void);
     PowerControlStatusSet getPowerControlStatusSet(void);
@@ -96,6 +104,13 @@ public:
 
     // priority
     DomainPriority getDomainPriority(void);
+
+    // RF Profile Control
+    RfProfileCapabilities getRfProfileCapabilities(void);
+    void setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& centerFrequency);
+
+    // RF Profile Status
+    RfProfileData getRfProfileData(void);
 
     // temperature
     TemperatureStatus getTemperatureStatus(void);
@@ -157,6 +172,13 @@ private:
     PerformanceControlStatus* m_performanceControlStatus;
     PerformanceControlSet* m_performanceControlSet;
 
+    // Pixel Clock Control
+    // *** nothing to cache
+
+    // Pixel Clock Status
+    PixelClockCapabilities* m_pixelClockCapabilities;
+    PixelClockDataSet* m_pixelClockDataSet;
+
     // Power controls
     PowerControlDynamicCapsSet* m_powerControlDynamicCapsSet;
     PowerControlStatusSet* m_powerControlStatusSet;
@@ -166,6 +188,12 @@ private:
 
     // priority
     DomainPriority* m_domainPriority;
+
+    // RF Profile Control
+    RfProfileCapabilities* m_rfProfileCapabilities;
+
+    // RF Profile Status
+    RfProfileData* m_rfProfileData;
 
     // temperature
     TemperatureStatus* m_temperatureStatus;
@@ -179,9 +207,13 @@ private:
     void clearDomainCachedDataCoreControl();
     void clearDomainCachedDataDisplayControl();
     void clearDomainCachedDataPerformanceControl();
+    //void clearDomainCachedDataPixelClockControl(); *** Nothing to cache ***
+    void clearDomainCachedDataPixelClockStatus();
     void clearDomainCachedDataPowerControl();
     void clearDomainCachedDataPowerStatus();
     void clearDomainCachedDataPriority();
+    void clearDomainCachedDataRfProfileControl();
+    void clearDomainCachedDataRfProfileStatus();
     void clearDomainCachedDataTemperature();
     void clearDomainCachedDataUtilizationStatus();
 };

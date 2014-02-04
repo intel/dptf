@@ -70,7 +70,7 @@ typedef eEsifError (*ConjureGetVersionFunction)(EsifDataPtr conjureVersion);
 
 typedef eEsifError (*ConjureCreateFunction)(EsifConjureServiceInterfacePtr esifServiceInterface, const void *esifHandle,/* ESIF will provide Conjure MUST save
 																														   for use with callbacks */
-											void * *conjureHandleLocation	/* The Conjure MUST provide esif will save for use with callbacks */
+											void **conjureHandleLocation/* The Conjure MUST provide esif will save for use with callbacks */
 											);
 
 /*

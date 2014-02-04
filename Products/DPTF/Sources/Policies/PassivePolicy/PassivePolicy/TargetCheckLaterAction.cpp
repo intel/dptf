@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TargetCheckLaterAction.h"
 using namespace std;
 
@@ -37,11 +38,11 @@ void TargetCheckLaterAction::execute()
     try
     {
         // schedule a callback as soon as possible
-        postDebugMessage(PolicyMessage(FLF, "Attempting to schedule callback for target participant.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to schedule callback for target participant.", getTarget()));
         getCallbackScheduler()->scheduleCallbackAfterShortestSamplePeriod(getTarget());
     }
     catch (...)
     {
-        postWarningMessage(PolicyMessage(FLF, "Failed to schedule callback for target participant.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(FLF, "Failed to schedule callback for target participant.", getTarget()));
     }
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "Participant.h"
 #include "DptfManager.h"
 #include "EsifServices.h"
@@ -80,8 +81,7 @@ void Participant::createParticipant(UIntN participantIndex, const AppParticipant
     }
     catch (...)
     {
-        delete m_participantServices;
-        m_participantServices = nullptr;
+        DELETE_MEMORY_TC(m_participantServices);
 
         m_participantIndex = Constants::Invalid;
         m_participantGuid = Guid();
@@ -122,8 +122,7 @@ void Participant::destroyParticipant(void)
         m_theRealParticipant = nullptr;
     }
 
-    delete m_participantServices;
-    m_participantServices = nullptr;
+    DELETE_MEMORY_TC(m_participantServices);
 
     m_participantIndex = Constants::Invalid;
     m_participantGuid = Guid();
@@ -202,8 +201,7 @@ void Participant::destroyDomain(UIntN domainIndex)
         {
         }
 
-        delete m_domain[domainIndex];
-        m_domain[domainIndex] = nullptr;
+        DELETE_MEMORY_TC(m_domain[domainIndex]);
     }
 }
 
@@ -346,11 +344,35 @@ void Participant::connectedStandbyExit(void)
     }
 }
 
-void Participant::domainPowerControlCapabilityChanged(void)
+void Participant::domainConfigTdpCapabilityChanged(void)
 {
-    if (isEventRegistered(ParticipantEvent::DomainPowerControlCapabilityChanged))
+    if (isEventRegistered(ParticipantEvent::DomainConfigTdpCapabilityChanged))
     {
-        m_theRealParticipant->domainPowerControlCapabilityChanged();
+        m_theRealParticipant->domainConfigTdpCapabilityChanged();
+    }
+}
+
+void Participant::domainCoreControlCapabilityChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainCoreControlCapabilityChanged))
+    {
+        m_theRealParticipant->domainCoreControlCapabilityChanged();
+    }
+}
+
+void Participant::domainDisplayControlCapabilityChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainDisplayControlCapabilityChanged))
+    {
+        m_theRealParticipant->domainDisplayControlCapabilityChanged();
+    }
+}
+
+void Participant::domainDisplayStatusChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainDisplayStatusChanged))
+    {
+        m_theRealParticipant->domainDisplayStatusChanged();
     }
 }
 
@@ -370,19 +392,11 @@ void Participant::domainPerformanceControlsChanged(void)
     }
 }
 
-void Participant::domainCoreControlCapabilityChanged(void)
+void Participant::domainPowerControlCapabilityChanged(void)
 {
-    if (isEventRegistered(ParticipantEvent::DomainCoreControlCapabilityChanged))
+    if (isEventRegistered(ParticipantEvent::DomainPowerControlCapabilityChanged))
     {
-        m_theRealParticipant->domainCoreControlCapabilityChanged();
-    }
-}
-
-void Participant::domainConfigTdpCapabilityChanged(void)
-{
-    if (isEventRegistered(ParticipantEvent::DomainConfigTdpCapabilityChanged))
-    {
-        m_theRealParticipant->domainConfigTdpCapabilityChanged();
+        m_theRealParticipant->domainPowerControlCapabilityChanged();
     }
 }
 
@@ -394,19 +408,19 @@ void Participant::domainPriorityChanged(void)
     }
 }
 
-void Participant::domainDisplayControlCapabilityChanged(void)
+void Participant::domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus)
 {
-    if (isEventRegistered(ParticipantEvent::DomainDisplayControlCapabilityChanged))
+    if (isEventRegistered(ParticipantEvent::DomainRadioConnectionStatusChanged))
     {
-        m_theRealParticipant->domainDisplayControlCapabilityChanged();
+        m_theRealParticipant->domainRadioConnectionStatusChanged(radioConnectionStatus);
     }
 }
 
-void Participant::domainDisplayStatusChanged(void)
+void Participant::domainRfProfileChanged(void)
 {
-    if (isEventRegistered(ParticipantEvent::DomainDisplayStatusChanged))
+    if (isEventRegistered(ParticipantEvent::DomainRfProfileChanged))
     {
-        m_theRealParticipant->domainDisplayStatusChanged();
+        m_theRealParticipant->domainRfProfileChanged();
     }
 }
 
@@ -568,6 +582,24 @@ void Participant::setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UI
     m_domain[domainIndex]->setPerformanceControl(policyIndex, performanceControlIndex);
 }
 
+void Participant::setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet)
+{
+    throwIfDomainIndexInvalid(domainIndex);
+    m_domain[domainIndex]->setPixelClockControl(policyIndex, pixelClockDataSet);
+}
+
+PixelClockCapabilities Participant::getPixelClockCapabilities(UIntN domainIndex)
+{
+    throwIfDomainIndexInvalid(domainIndex);
+    return m_domain[domainIndex]->getPixelClockCapabilities();
+}
+
+PixelClockDataSet Participant::getPixelClockDataSet(UIntN domainIndex)
+{
+    throwIfDomainIndexInvalid(domainIndex);
+    return m_domain[domainIndex]->getPixelClockDataSet();
+}
+
 PowerControlDynamicCapsSet Participant::getPowerControlDynamicCapsSet(UIntN domainIndex)
 {
     throwIfDomainIndexInvalid(domainIndex);
@@ -598,6 +630,24 @@ DomainPriority Participant::getDomainPriority(UIntN domainIndex)
     return m_domain[domainIndex]->getDomainPriority();
 }
 
+RfProfileCapabilities Participant::getRfProfileCapabilities(UIntN domainIndex)
+{
+    throwIfDomainIndexInvalid(domainIndex);
+    return m_domain[domainIndex]->getRfProfileCapabilities();
+}
+
+void Participant::setRfProfileCenterFrequency(UIntN domainIndex, UIntN policyIndex, const Frequency& centerFrequency)
+{
+    throwIfDomainIndexInvalid(domainIndex);
+    m_domain[domainIndex]->setRfProfileCenterFrequency(policyIndex, centerFrequency);
+}
+
+RfProfileData Participant::getRfProfileData(UIntN domainIndex)
+{
+    throwIfDomainIndexInvalid(domainIndex);
+    return m_domain[domainIndex]->getRfProfileData();
+}
+
 TemperatureStatus Participant::getTemperatureStatus(UIntN domainIndex)
 {
     throwIfDomainIndexInvalid(domainIndex);
@@ -620,20 +670,6 @@ UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)
 {
     throwIfDomainIndexInvalid(domainIndex);
     return m_domain[domainIndex]->getUtilizationStatus();
-}
-
-void Participant::throwIfDomainIndexInvalid(UIntN domainIndex)
-{
-    if ((domainIndex >= m_domain.size()) ||
-        (m_domain[domainIndex] == nullptr))
-    {
-        ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Domain index is invalid for this participant.");
-        message.addMessage("Domain Index", domainIndex);
-        message.setParticipantIndex(m_participantIndex);
-        m_dptfManager->getEsifServices()->writeMessageWarning(message);
-
-        throw dptf_exception(message);
-    }
 }
 
 std::map<ParticipantSpecificInfoKey::Type, UIntN> Participant::getParticipantSpecificInfo(
@@ -660,4 +696,18 @@ void Participant::setParticipantDeviceTemperatureIndication(const Temperature& t
 void Participant::setParticipantCoolingPolicy(const CoolingPreference& coolingPreference)
 {
     m_theRealParticipant->setParticipantCoolingPolicy(m_participantIndex, coolingPreference);
+}
+
+void Participant::throwIfDomainIndexInvalid(UIntN domainIndex)
+{
+    if ((domainIndex >= m_domain.size()) ||
+        (m_domain[domainIndex] == nullptr))
+    {
+        ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Domain index is invalid for this participant.");
+        message.addMessage("Domain Index", domainIndex);
+        message.setParticipantIndex(m_participantIndex);
+        m_dptfManager->getEsifServices()->writeMessageWarning(message);
+
+        throw dptf_exception(message);
+    }
 }

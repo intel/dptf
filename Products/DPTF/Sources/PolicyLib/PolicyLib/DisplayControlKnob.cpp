@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DisplayControlKnob.h"
 
 using namespace std;
@@ -40,7 +41,7 @@ void DisplayControlKnob::limit()
     {
         try
         {
-            postDebugMessage(PolicyMessage(FLF, "Attempting to limit display brightness.", 
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit display brightness.", 
                 getParticipantIndex(), getDomainIndex()));
 
             UIntN currentControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
@@ -51,11 +52,11 @@ void DisplayControlKnob::limit()
 
             stringstream message;
             message << "Limited display brightness to control index" << nextControlIndex << ".";
-            postDebugMessage(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
@@ -67,7 +68,7 @@ void DisplayControlKnob::unlimit()
     {
         try
         {
-            postDebugMessage(PolicyMessage(FLF, "Attempting to unlimit display brightness.", 
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to unlimit display brightness.", 
                 getParticipantIndex(), getDomainIndex()));
 
             UIntN currentControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
@@ -77,11 +78,11 @@ void DisplayControlKnob::unlimit()
 
             stringstream message;
             message << "Unlimited display brightness to control index " << nextControlIndex << ".";
-            postDebugMessage(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            postDebugMessage(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }

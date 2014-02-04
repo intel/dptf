@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -56,9 +57,12 @@ public:
     virtual void onDomainCoreControlCapabilityChanged(UIntN participantIndex);
     virtual void onDomainConfigTdpCapabilityChanged(UIntN participantIndex);
     virtual void onDomainPriorityChanged(UIntN participantIndex);
-    virtual void onParticipantSpecificInfoChanged(UIntN participantIndex);
     virtual void onDomainDisplayControlCapabilityChanged(UIntN participantIndex);
     virtual void onDomainDisplayStatusChanged(UIntN participantIndex);
+    virtual void onDomainRadioConnectionStatusChanged(UIntN participantIndex,
+        RadioConnectionStatus::Type radioConnectionStatus);
+    virtual void onDomainRfProfileChanged(UIntN participantIndex);
+    virtual void onParticipantSpecificInfoChanged(UIntN participantIndex);
     virtual void onActiveRelationshipTableChanged(void);
     virtual void onThermalRelationshipTableChanged(void);
     virtual void onConnectedStandbyEntry(void);
@@ -93,9 +97,12 @@ public:
     virtual void domainCoreControlCapabilityChanged(UIntN participantIndex) override final;
     virtual void domainConfigTdpCapabilityChanged(UIntN participantIndex) override final;
     virtual void domainPriorityChanged(UIntN participantIndex) override final;
-    virtual void participantSpecificInfoChanged(UIntN participantIndex) override final;
     virtual void domainDisplayControlCapabilityChanged(UIntN participantIndex) override final;
     virtual void domainDisplayStatusChanged(UIntN participantIndex) override final;
+    virtual void domainRadioConnectionStatusChanged(UIntN participantIndex,
+        RadioConnectionStatus::Type radioConnectionStatus) override final;
+    virtual void domainRfProfileChanged(UIntN participantIndex) override final;
+    virtual void participantSpecificInfoChanged(UIntN participantIndex) override final;
     virtual void activeRelationshipTableChanged(void) override final;
     virtual void thermalRelationshipTableChanged(void) override final;
     virtual void connectedStandbyEntry(void) override final;
@@ -124,12 +131,6 @@ protected:
     // service access for subclasses
     PolicyServicesInterfaceContainer& getPolicyServices() const;
     std::shared_ptr<TimeInterface>& getTime() const;
-
-    // message functions for subclasses
-    void postInfoMessage(const PolicyMessage& message) const;
-    void postWarningMessage(const PolicyMessage& message) const;
-    void postErrorMessage(const PolicyMessage& message) const;
-    void postDebugMessage(const PolicyMessage& message) const;
 
 private:
 

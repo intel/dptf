@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "BasicTypes.h"
 #include "Guid.h"
 #include "esif_ccb_memory.h"
@@ -24,17 +25,21 @@
 #include <algorithm>
 
 Guid::Guid(void)
+    : m_valid(false)
 {
     esif_ccb_memset(m_guid, 0, GuidSize);
 }
 
 Guid::Guid(const UInt8 guid[GuidSize])
+    : m_valid(true)
 {
     esif_ccb_memcpy(m_guid, guid, GuidSize);
 }
 
-Guid::Guid(UInt8 value00, UInt8 value01, UInt8 value02, UInt8 value03, UInt8 value04, UInt8 value05, UInt8 value06, UInt8 value07,
-    UInt8 value08, UInt8 value09, UInt8 value10, UInt8 value11, UInt8 value12, UInt8 value13, UInt8 value14, UInt8 value15)
+Guid::Guid(UInt8 value00, UInt8 value01, UInt8 value02, UInt8 value03, UInt8 value04, UInt8 value05, UInt8 value06, 
+           UInt8 value07, UInt8 value08, UInt8 value09, UInt8 value10, UInt8 value11, UInt8 value12, UInt8 value13, 
+           UInt8 value14, UInt8 value15)
+    : m_valid(true)
 {
     m_guid[0] = value00;
     m_guid[1] = value01;
@@ -54,25 +59,9 @@ Guid::Guid(UInt8 value00, UInt8 value01, UInt8 value02, UInt8 value03, UInt8 val
     m_guid[15] = value15;
 }
 
-Bool Guid::isValid(void) const
-{
-    // this can be switched to memcmp once implemented in esif/ccb
-
-    for (UIntN i = 0; i < GuidSize; i++)
-    {
-        if (this->m_guid[i] != 0)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 Bool Guid::operator==(const Guid& rhs) const
 {
-    // this can be switched to memcmp once implemented in esif/ccb
-
+    // FIXME: this can be switched to memcmp once implemented in esif/ccb
     for (UIntN i = 0; i < GuidSize; i++)
     {
         if (this->m_guid[i] != rhs.m_guid[i])
@@ -80,7 +69,6 @@ Bool Guid::operator==(const Guid& rhs) const
             return false;
         }
     }
-
     return true;
 }
 
@@ -91,19 +79,30 @@ Bool Guid::operator!=(const Guid& rhs) const
 
 Guid::operator const UInt8*(void) const
 {
+    throwIfInvalid(*this);
     return m_guid;
+}
+
+Bool Guid::isValid(void) const
+{
+    return m_valid;
 }
 
 std::string Guid::toString() const
 {
     std::stringstream guidTextStream;
-
     guidTextStream << std::hex << std::setfill('0');
-
     for (UIntN i = 0; i < GuidSize; i++)
     {
-        guidTextStream << std::setw(2) << (IntN)(UInt8)m_guid[i];
-
+        if (isValid())
+        {
+            guidTextStream << std::setw(2) << (IntN)(UInt8)m_guid[i];
+        }
+        else
+        {
+            guidTextStream << "X";
+        }
+        
         if (i < GuidSize - 1)
         {
             guidTextStream << "-";
@@ -113,4 +112,12 @@ std::string Guid::toString() const
     std::string guidText = guidTextStream.str();
     std::transform(guidText.begin(), guidText.end(), guidText.begin(), ::toupper);
     return guidText;
+}
+
+void Guid::throwIfInvalid(const Guid& guid) const
+{
+    if (guid.isValid() == false)
+    {
+        throw dptf_exception("Guid is invalid.");
+    }
 }

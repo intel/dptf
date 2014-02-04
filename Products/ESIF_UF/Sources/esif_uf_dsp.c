@@ -40,7 +40,7 @@
 #endif
 
 // Send DSP
-int esif_send_dsp (
+int esif_send_dsp(
 	char *filename,
 	u8 dst_id
 	)
@@ -86,7 +86,7 @@ int esif_send_dsp (
 		filename = edp_name;
 		IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
-		IOStream_SetFile(io_ptr, filename, (char*)"rb");
+		IOStream_SetFile(io_ptr, filename, (char *)"rb");
 	}
 
 	/* FIND CPC within EDP file */
@@ -159,7 +159,7 @@ exit:
 }
 
 
-eEsifError EsifDspInit ()
+eEsifError EsifDspInit()
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_TRACE_DEBUG("%s: Init Device Support Package (DSP)", ESIF_FUNC);
@@ -167,7 +167,7 @@ eEsifError EsifDspInit ()
 }
 
 
-void EsifDspExit ()
+void EsifDspExit()
 {
 	ESIF_TRACE_DEBUG("%s: Exit Device Support Package (DSP)", ESIF_FUNC);
 }

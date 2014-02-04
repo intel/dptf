@@ -19,7 +19,7 @@
 #ifndef _ESIF_UF_SHELL_
 #define _ESIF_UF_SHELL_
 
-EsifString esif_cmd_info (EsifString output);
+EsifString esif_cmd_info(EsifString output);
 
 #endif /* _ESIF_UF_SHELL_ */
 

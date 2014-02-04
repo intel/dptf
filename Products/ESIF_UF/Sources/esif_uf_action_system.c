@@ -31,7 +31,7 @@
 /*
 ** Handle ESIF Action Request
 */
-static eEsifError ActionSystemSet (
+static eEsifError ActionSystemSet(
 	const void *actionHandle,
 	const EsifString devicePathPtr,
 	const EsifDataPtr p1Ptr,
@@ -64,11 +64,11 @@ static eEsifError ActionSystemSet (
 		UInt32 temperature = 0;
 		UInt32 tripPointTemperature = 0;
 		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type) {
-			/* 
-			** Thermal shutdown data was provided with request 
+			/*
+			** Thermal shutdown data was provided with request
 			*/
-			struct esif_data_complex_shutdown* shutdown_data = 
-				(struct esif_data_complex_shutdown*) requestPtr->buf_ptr;
+			struct esif_data_complex_shutdown *shutdown_data =
+				(struct esif_data_complex_shutdown *)requestPtr->buf_ptr;
 			temperature = shutdown_data->temperature;
 			tripPointTemperature = shutdown_data->tripPointTemperature;
 		}
@@ -111,7 +111,7 @@ static EsifActType g_system = {
 	ActionSystemSet
 };
 
-enum esif_rc EsifActSystemInit ()
+enum esif_rc EsifActSystemInit()
 {
 	if (NULL != g_actMgr.AddActType) {
 		g_actMgr.AddActType(&g_actMgr, &g_system);
@@ -120,7 +120,7 @@ enum esif_rc EsifActSystemInit ()
 }
 
 
-void EsifActSystemExit ()
+void EsifActSystemExit()
 {
 	if (NULL != g_actMgr.RemoveActType) {
 		g_actMgr.RemoveActType(&g_actMgr, 0);

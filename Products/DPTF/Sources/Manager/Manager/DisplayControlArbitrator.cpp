@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DisplayControlArbitrator.h"
 #include "Utility.h"
 
@@ -43,7 +44,7 @@ Bool DisplayControlArbitrator::arbitrate(UIntN policyIndex, UIntN displayControl
     {
         if ((m_requestedDisplayControlIndex[i] != Constants::Invalid) &&
             ((maxRequestedDisplayControlIndex == Constants::Invalid) ||
-            (m_requestedDisplayControlIndex[i] > maxRequestedDisplayControlIndex)))
+             (m_requestedDisplayControlIndex[i] > maxRequestedDisplayControlIndex)))
         {
             maxRequestedDisplayControlIndex = m_requestedDisplayControlIndex[i];
         }

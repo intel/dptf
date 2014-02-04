@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DisplayControl.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -33,6 +34,11 @@ Bool DisplayControl::operator==(const DisplayControl& rhs) const
     return (this->getBrightness() == rhs.getBrightness());
 }
 
+Bool DisplayControl::operator!=(const DisplayControl& rhs) const
+{
+    return !(*this == rhs);
+}
+
 Bool DisplayControl::operator<(const DisplayControl& rhs) const
 {
     return (m_brightness < rhs.m_brightness);
@@ -41,8 +47,6 @@ Bool DisplayControl::operator<(const DisplayControl& rhs) const
 XmlNode* DisplayControl::getXml(void)
 {
     XmlNode* root = XmlNode::createWrapperElement("display_control");
-
-    root->addChild(m_brightness.getXml("brightness"));
-
+    root->addChild(XmlNode::createDataElement("brightness", m_brightness.toString()));
     return root;
 }

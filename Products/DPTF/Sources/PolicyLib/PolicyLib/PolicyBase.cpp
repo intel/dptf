@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PolicyBase.h"
 #include "DptfTime.h"
 using namespace std;
@@ -165,12 +166,6 @@ void PolicyBase::domainPriorityChanged(UIntN participantIndex)
     onDomainPriorityChanged(participantIndex);
 }
 
-void PolicyBase::participantSpecificInfoChanged(UIntN participantIndex)
-{
-    throwIfPolicyIsDisabled();
-    onParticipantSpecificInfoChanged(participantIndex);
-}
-
 void PolicyBase::domainDisplayControlCapabilityChanged(UIntN participantIndex)
 {
     throwIfPolicyIsDisabled();
@@ -181,6 +176,25 @@ void PolicyBase::domainDisplayStatusChanged(UIntN participantIndex)
 {
     throwIfPolicyIsDisabled();
     onDomainDisplayStatusChanged(participantIndex);
+}
+
+void PolicyBase::domainRadioConnectionStatusChanged(UIntN participantIndex,
+    RadioConnectionStatus::Type radioConnectionStatus)
+{
+    throwIfPolicyIsDisabled();
+    onDomainRadioConnectionStatusChanged(participantIndex, radioConnectionStatus);
+}
+
+void PolicyBase::domainRfProfileChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainRfProfileChanged(participantIndex);
+}
+
+void PolicyBase::participantSpecificInfoChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onParticipantSpecificInfoChanged(participantIndex);
 }
 
 void PolicyBase::activeRelationshipTableChanged(void)
@@ -360,17 +374,28 @@ void PolicyBase::onDomainPriorityChanged(UIntN participantIndex)
     throw not_implemented();
 }
 
-void PolicyBase::onParticipantSpecificInfoChanged(UIntN participantIndex)
-{
-    throw not_implemented();
-}
-
 void PolicyBase::onDomainDisplayControlCapabilityChanged(UIntN participantIndex)
 {
     throw not_implemented();
 }
 
 void PolicyBase::onDomainDisplayStatusChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainRadioConnectionStatusChanged(UIntN participantIndex,
+    RadioConnectionStatus::Type radioConnectionStatus)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainRfProfileChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onParticipantSpecificInfoChanged(UIntN participantIndex)
 {
     throw not_implemented();
 }
@@ -504,7 +529,7 @@ void PolicyBase::takeControlOfOsc(bool shouldTakeControl)
         }
         catch (...)
         {
-            postErrorMessage(PolicyMessage(FLF, "Failed to acquire OSC."));
+            m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF, "Failed to acquire OSC."));
         }
     }
 }
@@ -519,27 +544,7 @@ void PolicyBase::releaseControlofOsc(bool shouldReleaseControl)
         }
         catch (...)
         {
-            postErrorMessage(PolicyMessage(FLF, "Failed to release OSC."));
+            m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF, "Failed to release OSC."));
         }
     }
-}
-
-void PolicyBase::postInfoMessage(const PolicyMessage& message) const
-{
-    m_policyServices.messageLogging->writeMessageInfo(message);
-}
-
-void PolicyBase::postWarningMessage(const PolicyMessage& message) const
-{
-    m_policyServices.messageLogging->writeMessageWarning(message);
-}
-
-void PolicyBase::postErrorMessage(const PolicyMessage& message) const
-{
-    m_policyServices.messageLogging->writeMessageError(message);
-}
-
-void PolicyBase::postDebugMessage(const PolicyMessage& message) const
-{
-    m_policyServices.messageLogging->writeMessageDebug(message);
 }

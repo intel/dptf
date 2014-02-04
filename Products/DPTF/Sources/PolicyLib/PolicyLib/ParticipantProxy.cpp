@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ParticipantProxy.h"
 #include "StatusFormat.h"
 using namespace std;
@@ -27,10 +28,10 @@ ParticipantProxy::ParticipantProxy()
     m_criticalTripPointProperty(m_policyServices, Constants::Invalid),
     m_activeTripPointProperty(m_policyServices, Constants::Invalid),
     m_passiveTripPointProperty(m_policyServices, Constants::Invalid),
-    m_previousLowerBound(Constants::Invalid),
-    m_previousUpperBound(Constants::Invalid),
-    m_lastIndicationTemperatureLowerBound(Constants::Invalid),
-    m_lastThresholdCrossedTemperature(Constants::Invalid),
+    m_previousLowerBound(Temperature::createInvalid()),
+    m_previousUpperBound(Temperature::createInvalid()),
+    m_lastIndicationTemperatureLowerBound(Temperature::createInvalid()),
+    m_lastThresholdCrossedTemperature(Temperature::createInvalid()),
     m_timeOfLastThresholdCrossed(0)
 {
 }
@@ -47,9 +48,10 @@ ParticipantProxy::ParticipantProxy(
     m_criticalTripPointProperty(policyServices, participantIndex),
     m_activeTripPointProperty(policyServices, participantIndex),
     m_passiveTripPointProperty(policyServices, participantIndex),
-    m_previousLowerBound(Constants::Invalid),
-    m_previousUpperBound(Constants::Invalid),
-    m_lastThresholdCrossedTemperature(Constants::Invalid),
+    m_previousLowerBound(Temperature::createInvalid()),
+    m_previousUpperBound(Temperature::createInvalid()),
+    m_lastIndicationTemperatureLowerBound(Temperature::createInvalid()),
+    m_lastThresholdCrossedTemperature(Temperature::createInvalid()),
     m_timeOfLastThresholdCrossed(0)
 {
 }
@@ -63,7 +65,7 @@ void ParticipantProxy::initializeControlsForAllDomains()
     refreshDomainSetIfUninitialized();
     for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
     {
-        postDebugMessage(PolicyMessage(FLF, "Initializing controls for participant.", m_index));
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF, "Initializing controls for participant.", m_index));
         domain->second.initializeControls();
     }
 }
@@ -109,7 +111,7 @@ std::vector<UIntN> ParticipantProxy::getDomainIndexes()
     return domainIndexes;
 }
 
-void ParticipantProxy::bindDomain(UIntN domainIndex)
+DomainProxy& ParticipantProxy::bindDomain(UIntN domainIndex)
 {
     m_domainSetProperty.refresh();
     m_domains[domainIndex] =
@@ -119,6 +121,7 @@ void ParticipantProxy::bindDomain(UIntN domainIndex)
             m_domainSetProperty.getDomainProperties(domainIndex),
             getParticipantProperties(),
             m_policyServices);
+    return getDomain(domainIndex); 
 }
 
 void ParticipantProxy::unbindDomain(UIntN domainIndex)
@@ -135,8 +138,8 @@ DomainProxy& ParticipantProxy::operator[](UIntN domainIndex)
 
 void ParticipantProxy::refreshDomains()
 {
-    m_previousLowerBound = Constants::Invalid;
-    m_previousUpperBound = Constants::Invalid;
+    m_previousLowerBound = Temperature::createInvalid();
+    m_previousUpperBound = Temperature::createInvalid();
     m_domains.clear();
     m_domainSetProperty.refresh();
     UIntN numberOfDomains = m_domainSetProperty.getDomainPropertiesSet().getDomainCount();
@@ -160,7 +163,7 @@ void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, c
     {
         if (m_domains[0].getTemperatureProperty().implementsTemperatureInterface())
         {
-            postDebugMessage(PolicyMessage(FLF,
+            m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
                 "Setting thresholds to " + lowerBound.toString() + ":" + upperBound.toString() + "."));
             m_domains[0].getTemperatureProperty().setTemperatureNotificationThresholds(lowerBound, upperBound);
         }
@@ -234,11 +237,6 @@ Temperature ParticipantProxy::getTemperatureOfLastThresholdCrossed() const
     return m_lastThresholdCrossedTemperature;
 }
 
-void ParticipantProxy::postDebugMessage(const PolicyMessage& message)
-{
-    m_policyServices.messageLogging->writeMessageDebug(message);
-}
-
 DomainProxy& ParticipantProxy::getDomain(UIntN domainIndex)
 {
     refreshDomainSetIfUninitialized();
@@ -250,7 +248,8 @@ XmlNode* ParticipantProxy::getXmlForCriticalTripPoints()
     XmlNode* participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", friendlyValue(m_index)));
     participant->addChild(XmlNode::createDataElement("name", m_participantProperties.getParticipantProperties().getName()));
-    participant->addChild(getDomain(0).getTemperatureProperty().getCurrentTemperature().getXml("temperature"));
+    participant->addChild(XmlNode::createDataElement("temperature",
+        getDomain(0).getTemperatureProperty().getCurrentTemperature().toString()));
     participant->addChild(m_criticalTripPointProperty.getXml());
     return participant;
 }
@@ -260,7 +259,8 @@ XmlNode* ParticipantProxy::getXmlForActiveTripPoints()
     XmlNode* participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", friendlyValue(m_index)));
     participant->addChild(XmlNode::createDataElement("name", m_participantProperties.getParticipantProperties().getName()));
-    participant->addChild(getDomain(0).getTemperatureProperty().getCurrentTemperature().getXml("temperature"));
+    participant->addChild(XmlNode::createDataElement("temperature",
+        getDomain(0).getTemperatureProperty().getCurrentTemperature().toString()));
     participant->addChild(getTemperatureThresholds().getXml());
     participant->addChild(m_activeTripPointProperty.getXml());
     return participant;
@@ -271,7 +271,8 @@ XmlNode* ParticipantProxy::getXmlForPassiveTripPoints()
     XmlNode* participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", friendlyValue(m_index)));
     participant->addChild(XmlNode::createDataElement("name", m_participantProperties.getParticipantProperties().getName()));
-    participant->addChild(getDomain(0).getTemperatureProperty().getCurrentTemperature().getXml("temperature"));
+    participant->addChild(XmlNode::createDataElement("temperature",
+        getDomain(0).getTemperatureProperty().getCurrentTemperature().toString()));
     participant->addChild(getTemperatureThresholds().getXml());
     participant->addChild(m_passiveTripPointProperty.getXml());
     return participant;
@@ -298,21 +299,21 @@ XmlNode* ParticipantProxy::getXmlForTripPointStatistics()
     stats->addChild(
         XmlNode::createDataElement("supports_trip_points", friendlyValue(supportsTripPoints)));
 
-    float timeSinceLastTrip;
     if (m_timeOfLastThresholdCrossed == 0)
     {
-        timeSinceLastTrip = (float)Constants::Invalid;
+        stats->addChild(XmlNode::createDataElement("time_since_last_trip", "X"));
     }
     else
     {
-        timeSinceLastTrip = (float)m_time->getCurrentTimeInMilliseconds() - (float)m_timeOfLastThresholdCrossed;
-        timeSinceLastTrip = (float)timeSinceLastTrip / (float)1000;
+        double timeSinceLastTrip(0.0);
+        timeSinceLastTrip = (double)m_time->getCurrentTimeInMilliseconds() - (double)m_timeOfLastThresholdCrossed;
+        timeSinceLastTrip = (double)timeSinceLastTrip / (double)1000;
+        stats->addChild(XmlNode::createDataElement("time_since_last_trip", friendlyValue(timeSinceLastTrip)));
     }
-    stats->addChild(
-        XmlNode::createDataElement("time_since_last_trip", friendlyValue(timeSinceLastTrip)));
+
     stats->addChild(
         XmlNode::createDataElement(
-            "temperature_of_last_trip", friendlyValue(m_lastThresholdCrossedTemperature.getTemperature())));
+            "temperature_of_last_trip", m_lastThresholdCrossedTemperature.toString()));
 
     return stats;
 }

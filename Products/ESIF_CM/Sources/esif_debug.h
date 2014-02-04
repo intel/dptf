@@ -185,7 +185,7 @@ struct esif_memory_stats {
 
 /* Linux */
 #ifdef ESIF_ATTR_OS_LINUX
-#define ESIF_WHILEFALSE (0) /*used for do...while(0) macros */
+#define ESIF_ALWAYSFALSE (0) /*used for do...while(0) macros */
 #define ESIF_TRACENULL
 #define ESIF_TRACEFUNC  printk
 #define ESIF_KERN_ERR   KERN_ERR
@@ -199,8 +199,8 @@ struct esif_memory_stats {
 /* Windows */
 #ifdef ESIF_ATTR_OS_WINDOWS
 /* avoids "conditional expression is constant" warnings for do...while(0) macros in Windows */
-static char g_whilefalse;
-#define ESIF_WHILEFALSE (!&g_whilefalse)
+static char g_alwaysfalse;
+#define ESIF_ALWAYSFALSE (!&g_alwaysfalse)
 
 #define ESIF_TRACENULL  (0)
 #define ESIF_TRACEFUNC  DbgPrint
@@ -241,7 +241,7 @@ static char g_whilefalse;
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ERROR)) \
 			ESIF_TRACE_FMT_ERROR(format, ##__VA_ARGS__); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #ifdef ESIF_ATTR_DEBUG
 
@@ -249,43 +249,43 @@ static char g_whilefalse;
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_WARN)) \
 			ESIF_TRACE_FMT_WARN(format, ##__VA_ARGS__); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_INFO(format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_INFO)) \
 			ESIF_TRACE_FMT_INFO(format, ##__VA_ARGS__); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_DEBUG(format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_DEBUG)) \
 			ESIF_TRACE_FMT_DEBUG(format, ##__VA_ARGS__); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_ENTRY() \
 	do { \
 	    if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
 			ESIF_TRACE_FMT_ENTRY(); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_EXIT() \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
 			ESIF_TRACE_FMT_EXIT(); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_EXIT_W_STATUS(status) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
 			ESIF_TRACE_FMT_EXIT_W_STATUS(status); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_DYN(module, module_level, format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(module, module_level)) \
 			ESIF_TRACE_FMT_DEBUG(format, ##__VA_ARGS__); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 #else /* DBG */
 #define ESIF_TRACE_WARN(format, ...)		ESIF_TRACENULL
@@ -325,37 +325,144 @@ extern struct esif_memory_stats g_memstat;
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 /* Avoid "conditional expression is constant" warnings in macros */
-static char g_whilefalse;
-#define ESIF_WHILEFALSE (!&g_whilefalse)
+static char g_alwaysfalse;
+#define ESIF_ALWAYSFALSE (!&g_alwaysfalse)
 
 /* Avoid Klocworks "suspicious semicolon" warnings */
 #define ESIF_TRACENULL (0)
-#define ESIF_TRACEFUNC printf
+#define ESIF_TRACEFUNC CMD_OUT
 #define ESIF_FILENAME __FILE__
 
 #else
-#define ESIF_WHILEFALSE (0)
+#define ESIF_ALWAYSFALSE (0)
 #define ESIF_TRACENULL
 #define ESIF_TRACEFUNC printf
 #define ESIF_FILENAME __FILE__
 #endif
 
-/* These trace levels correspond to Linux printk KERN_* log levels,
- * although macros are provided only for ERROR, WARN, INFO, DEBUG
- */
-#define ESIF_TRACELEVEL_FATAL           0
-#define ESIF_TRACELEVEL_ALERT           1
-#define ESIF_TRACELEVEL_CRITICAL        2
-#define ESIF_TRACELEVEL_ERROR           3
-#define ESIF_TRACELEVEL_WARN            4
-#define ESIF_TRACELEVEL_NOTICE          5
-#define ESIF_TRACELEVEL_INFO            6
-#define ESIF_TRACELEVEL_DEBUG           7
-#define ESIF_TRACELEVEL_VERBOSE		8
-#define ESIF_TRACELEVEL_VERBOSE_EX	9
+// Enumerated Type Base Macros
+#define ENUMDECL(ENUM)              ENUM,
+#define ENUMLIST(ENUM)              {ENUM, #ENUM},
+#define ENUMSWITCH(ENUM)            case ENUM: return #ENUM;break;
 
-#define	ESIF_TRACEMODULE			1	/* Single for now */
+// Enumerated Type Macros with Explicit Values
+#define ENUMDECL_VAL(ENUM, VAL)      ENUM = VAL,
+#define ENUMLIST_VAL(ENUM, VAL)      ENUMLIST(ENUM)
+#define ENUMSWITCH_VAL(ENUM, VAL)    ENUMSWITCH(ENUM)
 
+// Trace Module and Route Masks
+typedef u32		esif_tracemask_t;
+typedef u8		esif_traceroute_t;
+#define esif_tracemask_fmt	"%u"	// %u or %llu
+#define esif_tracemask_fmtx	"%x"	// %x or %llx
+#define ESIF_TRACEMASK_MAX		32
+#define ESIF_TRACEMAPPING_MAX	256
+
+// ESIF_TRACE_ID amd ESIF_TRACE_DESC must be #defined in each source
+// file before any #includes to override DEFAULT trace options
+#ifndef ESIF_TRACE_ID
+# define ESIF_TRACE_ID		ESIF_TRACEMODULE_DEFAULT
+#endif
+#ifndef ESIF_TRACE_DESC
+# define ESIF_TRACE_DESC	NULL
+#endif
+#define ESIF_TRACEMASK(module)	((esif_tracemask_t)1 << (module))
+#define ESIF_TRACEMODULE		ESIF_TRACEMASK(ESIF_TRACE_ID)
+
+// Trace Level Data
+struct esif_tracelevel_s {
+	const char *		label;		// label, i.e. "ERROR"
+	int					level;		// level, i.e, 1
+	esif_tracemask_t	modules;	// active module bitmask
+	esif_traceroute_t	routes;		// active routes bitmask
+};
+
+// Enumerated TraceModule Values
+#define ENUM_TRACEMODULE(ENUM)	\
+	ENUM(ESIF_TRACEMODULE_DEFAULT)		/* Generic Module - Use Default Trace Settings*/ \
+	ENUM(ESIF_TRACEMODULE_DPTF)			/* DPTF Loadable App */ \
+	\
+	ENUM(ESIF_TRACEMODULE_CCB)			/* CCB Modules mixed with Kernel Tracing */ \
+	ENUM(ESIF_TRACEMODULE_SHELL)		/* ESIF Shell */ \
+	ENUM(ESIF_TRACEMODULE_UF)			/* UF Main */ \
+	\
+	ENUM(ESIF_TRACEMODULE_ACTION)		/* Actions */ \
+	ENUM(ESIF_TRACEMODULE_APP)			/* Apps */ \
+	ENUM(ESIF_TRACEMODULE_CONJURE)		/* Conjure */ \
+	ENUM(ESIF_TRACEMODULE_DSP)			/* DSPs */ \
+	ENUM(ESIF_TRACEMODULE_EVENT)		/* Events */ \
+	ENUM(ESIF_TRACEMODULE_IPC)			/* IPC */ \
+	ENUM(ESIF_TRACEMODULE_PARTICIPANT)	/* Upper Participants */ \
+	ENUM(ESIF_TRACEMODULE_PRIMITIVE)	/* Primitives */ \
+	ENUM(ESIF_TRACEMODULE_SERVICE)		/* Services */ \
+	ENUM(ESIF_TRACEMODULE_TEST)			/* Tests */ \
+	\
+	ENUM(ESIF_TRACEMODULE_DATAVAULT)	/* DataVaults/DataCache/DataBank */ \
+	ENUM(ESIF_TRACEMODULE_EQL)			/* EQL Parser/IString/EsifData */ \
+	ENUM(ESIF_TRACEMODULE_WEBSERVER)	/* Web Socket Server */ \
+	\
+	ENUM(ESIF_TRACEMODULE_WINDOWS)		/* Windows General */ \
+	ENUM(ESIF_TRACEMODULE_ACTWIRELESS)	/* Windows ACT Wireless */ \
+	ENUM(ESIF_TRACEMODULE_UMDF)			/* Windows UMDF */ \
+
+enum esif_tracemodule {
+	ENUM_TRACEMODULE(ENUMDECL)
+};
+
+#define	ESIF_TRACEMASK_ALL	((esif_tracemask_t)-1)	/* all bits */
+
+struct esif_tracemodule_s {
+	const char 				*module;
+	enum esif_tracemodule	module_id;
+};
+
+/* ESIF_UF Trace Levels. These correspond to eLogLevel enum type */
+#define ESIF_TRACELEVEL_FATAL       0
+#define ESIF_TRACELEVEL_ERROR       1
+#define ESIF_TRACELEVEL_WARN        2
+#define ESIF_TRACELEVEL_INFO        3
+#define ESIF_TRACELEVEL_DEBUG       4
+
+/* ESIF_UF Trace Routes */
+#define ESIF_TRACEROUTE_CONSOLE		1	/* Shell Console */
+#define ESIF_TRACEROUTE_EVENTLOG	2	/* Windows=EventLog Linux=syslog */
+#define ESIF_TRACEROUTE_DEBUGGER	4	/* Windows=DbgView Linux=syslog */
+#define ESIF_TRACEROUTE_LOGFILE		8	/* Trace Log File */
+
+#define ESIF_TRACE(module, level, msg, ...)	EsifTraceMessage(module, level,	__FUNCTION__, __FILE__, __LINE__, msg, ##__VA_ARGS__)
+
+// Allow some trace levels to be compiled out of binary in RELEASE mode
+#define ESIF_TRACE_NEVER(mod, lev, msg, ...)	((void)0)
+#ifdef ESIF_ATTR_DEBUG
+# define ESIF_TRACE_IFDEBUG(mod, lev, msg, ...)	ESIF_TRACE(mod, lev, msg, ##__VA_ARGS__)
+# define ESIF_TRACELEVEL_DEFAULT	ESIF_TRACELEVEL_ERROR
+#else
+# define ESIF_TRACE_IFDEBUG(mod, lev, msg, ...)	ESIF_TRACE_NEVER(mod, lev, msg)
+# define ESIF_TRACELEVEL_DEFAULT	ESIF_TRACELEVEL_ERROR
+#endif
+
+// Use ESIF_TRACE_IFDEBUG to compile messages out of binary for specific trace levels
+#define ESIF_TRACE_FATAL(msg, ...)		ESIF_TRACE(ESIF_TRACEMODULE, ESIF_TRACELEVEL_FATAL, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_ERROR(msg, ...)		ESIF_TRACE(ESIF_TRACEMODULE, ESIF_TRACELEVEL_ERROR, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_WARN(msg, ...)		ESIF_TRACE(ESIF_TRACEMODULE, ESIF_TRACELEVEL_WARN, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_INFO(msg, ...)		ESIF_TRACE(ESIF_TRACEMODULE, ESIF_TRACELEVEL_INFO, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_DEBUG(msg, ...)		ESIF_TRACE_IFDEBUG(ESIF_TRACEMODULE, ESIF_TRACELEVEL_DEBUG, msg, ##__VA_ARGS__)
+
+extern int  EsifTraceIsActive(esif_tracemask_t module, int level);
+extern int  EsifTraceMessage(esif_tracemask_t module, int level, const char *func, const char *file, int line, const char *msg, ...);
+extern void EsifTraceMaskSet(esif_tracemask_t module, int level, esif_tracemask_t onoff);
+
+extern int g_traceLevel;
+extern const char *g_tracelabel[];
+extern int g_traceLevel_max;
+extern struct esif_tracelevel_s g_traceinfo[];
+
+extern const enum esif_tracemodule EsifTraceModule_FromString(const char *name);
+extern const char *EsifTraceModule_ToString(enum esif_tracemodule val);
+
+/////////////////////////////
+// Disaled
+#if 0
 /* Only Basic Application-wide Trace Level for now */
 extern int g_traceLevel;
 #define ESIF_TRACE_CATEGORY_ON(module, module_level) \
@@ -365,7 +472,7 @@ extern int g_traceLevel;
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(module, module_level)) \
 			ESIF_TRACEFUNC(fmt, ##__VA_ARGS__); \
-	} while (ESIF_WHILEFALSE)
+	} while (ESIF_ALWAYSFALSE)
 
 /* DEBUG Traces are disabled in DEBUG Builds.
  * All other modes always available in both Release/Debug Builds*/
@@ -386,6 +493,11 @@ extern int g_traceLevel;
 			   ESIF_TRACELEVEL_DEBUG, \
 			   fmt, \
 			   ##__VA_ARGS__)
+
+/*
+#define ESIF_TRACE_VERBOSE(fmt, ...)    ESIF_TRACE_DEBUG(fmt, ##__VA_ARGS__)
+#define ESIF_TRACE_VERBOSE_EX(fmt, ...) ESIF_TRACE_DEBUG(fmt, ##__VA_ARGS__)
+
 #define ESIF_TRACE_VERBOSE(fmt, ...) \
 	ESIF_TRACE_MESSAGE(ESIF_TRACEMODULE, \
 			   ESIF_TRACELEVEL_VERBOSE, \
@@ -396,6 +508,7 @@ extern int g_traceLevel;
 			   ESIF_TRACELEVEL_VERBOSE_EX, \
 			   fmt, \
 			   ##__VA_ARGS__)
+*/
 #endif
 
 #define ESIF_TRACE_INFO(fmt, ...) \
@@ -413,8 +526,12 @@ extern int g_traceLevel;
 			   ESIF_TRACELEVEL_ERROR, \
 			   fmt, \
 			   ##__VA_ARGS__)
+
+/*
 # define ESIF_TRACE_DYN(module, module_level, fmt, ...) \
 	ESIF_TRACE_MESSAGE(module, module_level, fmt, ##__VA_ARGS__)
+*/
+#endif // Disabled
 
 #endif /* ESIF_ATTR_USER */
 

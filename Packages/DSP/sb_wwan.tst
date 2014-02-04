@@ -39,8 +39,8 @@ getp 139 D0 255 -u 18 -l 0                                   ;GET_PARTICIPANT_TY
 getp 265 D0 255                                              ;GET_RFPROFILE_BIT_ERROR
 getp 245 D0 255                                              ;GET_RFPROFILE_CENTER_FREQUENCY
 getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
-rem setp 255 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_LEFT
-rem setp 256 D0 255                                          ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
+getp 255 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_LEFT
+getp 256 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
 getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
 getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
 getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
@@ -73,7 +73,7 @@ getp 012 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_HOT
 getp 011 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_PASSIVE
 getp 177 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_WARM
 rem setp 241 D0 255                                          ;SET_TEMPERATURE
-rem setp 232  255                                            ;SET_TEMPERATURE_THRESHOLD_HYSTERESIS
+rem setp 232 D0 255                                          ;SET_TEMPERATURE_THRESHOLD_HYSTERESIS
 rem setp 047 D0 000                                          ;SET_TEMPERATURE_THRESHOLDS
 rem setp 047 D0 001                                          ;SET_TEMPERATURE_THRESHOLDS
 rem setp 202 D0 000                                          ;SET_TRIP_POINT_ACTIVE

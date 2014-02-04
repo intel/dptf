@@ -61,11 +61,11 @@ C,0x0 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 #
 # GET_ACTIVE_RELATIONSHIP_TABLE
 P,89,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_art",,,
+A,0,20,False,"DPTF","/participants/%nm%/_art",,,
 A,1,4,True,"_ART",,,,
 # GET_CURRENT_LOW_POWER_MODE
 P,94,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/clpm",,,
+A,0,20,False,"DPTF","/participants/%nm%/clpm",,,
 A,1,4,True,"CLPM",,,,
 # GET_DEVICE_HARDWARE_ID
 P,53,255,1,24,"<schema></schema>",3,"<schema></schema>"
@@ -75,24 +75,24 @@ P,88,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"_STA",,,,
 # GET_LPM_TABLE
 P,237,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/lpmt",,,
+A,0,20,False,"DPTF","/participants/%nm%/lpmt",,,
 A,1,4,True,"LPMT",,,,
 # GET_SUPPORTED_POLICIES
 P,92,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"IDSP",,,,
 # GET_THERMAL_RELATIONSHIP_TABLE
 P,91,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_trt",,,
+A,0,20,False,"DPTF","/participants/%nm%/_trt",,,
 A,1,4,True,"_TRT",,,,
 # SET_ACTIVE_RELATIONSHIP_TABLE
 P,230,255,2,7,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_art",,,
+A,0,20,False,"DPTF","/participants/%nm%/_art",,,
 # SET_CURRENT_LOW_POWER_MODE
 P,236,255,2,3,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/clpm",,,
+A,0,20,False,"DPTF","/participants/%nm%/clpm",,,
 # SET_LPM_TABLE
 P,238,255,2,7,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/lpmt",,,
+A,0,20,False,"DPTF","/participants/%nm%/lpmt",,,
 # SET_OPERATING_SYSTEM_CAPABILITIES
 P,93,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_OSC",,,,
@@ -107,4 +107,4 @@ P,174,255,2,24,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_SLEEP","","","",""
 # SET_THERMAL_RELATIONSHIP_TABLE
 P,231,255,2,7,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_trt",,,
+A,0,20,False,"DPTF","/participants/%nm%/_trt",,,

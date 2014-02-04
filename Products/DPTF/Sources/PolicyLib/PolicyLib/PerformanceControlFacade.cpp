@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,8 +15,8 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PerformanceControlFacade.h"
-#include <sstream>
 #include "StatusFormat.h"
 using namespace std;
 using namespace StatusFormat;
@@ -33,7 +33,8 @@ PerformanceControlFacade::PerformanceControlFacade(
     m_performanceControlSetProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_performanceControlStatusProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_performanceControlCapabilitiesProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_controlsHaveBeenInitialized(false)
+    m_controlsHaveBeenInitialized(false),
+    m_lastIssuedPerformanceControlIndex(0)
 {
 }
 
@@ -56,6 +57,9 @@ void PerformanceControlFacade::setControl(UIntN performanceControlIndex)
 {
     if (supportsPerformanceControls())
     {
+        m_lastIssuedPerformanceControlIndex = performanceControlIndex;
+        const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
+        m_isLimited = m_lastIssuedPerformanceControlIndex > caps.getCurrentUpperLimitIndex();
         m_policyServices.domainPerformanceControl->setPerformanceControl(
             m_participantIndex, m_domainIndex, performanceControlIndex);
         m_performanceControlStatusProperty.invalidate();
@@ -94,11 +98,34 @@ const PerformanceControlDynamicCaps& PerformanceControlFacade::getDynamicCapabil
 
 void PerformanceControlFacade::initializeControlsIfNeeded()
 {
+    const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
+    UIntN upperLimitIndex = caps.getCurrentUpperLimitIndex();
+    UIntN lowerLimitIndex = caps.getCurrentLowerLimitIndex();
     if (m_controlsHaveBeenInitialized == false)
     {
-        const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
-        UIntN upperLimitIndex = caps.getCurrentUpperLimitIndex();
         setControl(upperLimitIndex);
         m_controlsHaveBeenInitialized = true;
+    }
+    else
+    {
+        if (m_isLimited)
+        {
+            if (m_lastIssuedPerformanceControlIndex < upperLimitIndex)
+            {
+                setControl(upperLimitIndex);
+            }
+            
+            if (m_lastIssuedPerformanceControlIndex > lowerLimitIndex)
+            {
+                setControl(lowerLimitIndex);
+            }
+        }
+        else
+        {
+            if (m_lastIssuedPerformanceControlIndex != upperLimitIndex)
+            {
+                setControl(upperLimitIndex);
+            }
+        }
     }
 }

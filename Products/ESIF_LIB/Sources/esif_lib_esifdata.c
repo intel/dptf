@@ -99,7 +99,6 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 	case ESIF_DATA_BIT:
 	case ESIF_DATA_INT8:
 	case ESIF_DATA_UINT8:
-	case ESIF_DATA_PERCENT:
 		size = 1;
 		break;
 
@@ -115,12 +114,14 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 	case ESIF_DATA_TEMPERATURE:
 	case ESIF_DATA_POWER:
 	case ESIF_DATA_TIME:
+	case ESIF_DATA_PERCENT:
 	case ESIF_DATA_IPV4:
 		size = 4;
 		break;
 
 	case ESIF_DATA_INT64:
 	case ESIF_DATA_UINT64:
+	case ESIF_DATA_FREQUENCY:
 		size = 8;
 		break;
 
@@ -156,7 +157,7 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 	case ESIF_DATA_BLOB:
 	case ESIF_DATA_DSP:
 	case ESIF_DATA_STRUCTURE:
-	// case ESIF_DATA_XML:
+	case ESIF_DATA_XML:
 	default:
 		size = self->data_len;	// Or 0xFFFFFFFF?
 		break;
@@ -299,12 +300,16 @@ char*EsifData_ToString (EsifDataPtr self)
 	case ESIF_DATA_INT32:
 	case ESIF_DATA_UINT32:
 	case ESIF_DATA_TEMPERATURE:
+	case ESIF_DATA_POWER:
+	case ESIF_DATA_TIME:
+	case ESIF_DATA_PERCENT:
 		alloc   = MAXSTR_INT32;
 		u32data = (UInt32) * STATIC_CAST(UInt32*, self->buf_ptr);
 		break;
 
 	case ESIF_DATA_INT64:
 	case ESIF_DATA_UINT64:
+	case ESIF_DATA_FREQUENCY:
 		alloc   = MAXSTR_INT64;
 		u64data = (UInt64) * STATIC_CAST(UInt64*, self->buf_ptr);
 		break;
@@ -325,12 +330,10 @@ char*EsifData_ToString (EsifDataPtr self)
 	   case ESIF_DATA_IPV4:
 	   case ESIF_DATA_IPV6:
 	   case ESIF_DATA_POINTER:
-	   case ESIF_DATA_POWER:
-	   case ESIF_DATA_QAULIFIER:
+	   case ESIF_DATA_QUALIFIER:
 	   case ESIF_DATA_REGISTER:
 	   case ESIF_DATA_STRUCTURE:
 	   case ESIF_DATA_TABLE:
-	   case ESIF_DATA_TIME:
 	   case ESIF_DATA_UNICODE:
 	   case ESIF_DATA_VOID:
 	 */
@@ -373,6 +376,9 @@ char*EsifData_ToString (EsifDataPtr self)
 
 		case ESIF_DATA_UINT32:
 		case ESIF_DATA_TEMPERATURE:
+		case ESIF_DATA_POWER:
+		case ESIF_DATA_TIME:
+		case ESIF_DATA_PERCENT:
 			esif_ccb_sprintf(alloc, result, "%lu", (long unsigned)u32data);
 			break;
 
@@ -381,6 +387,7 @@ char*EsifData_ToString (EsifDataPtr self)
 			break;
 
 		case ESIF_DATA_UINT64:
+		case ESIF_DATA_FREQUENCY:
 			esif_ccb_sprintf(alloc, result, "%llu", (UInt64)u64data);
 			break;
 
@@ -403,12 +410,10 @@ char*EsifData_ToString (EsifDataPtr self)
 		   case ESIF_DATA_IPV4:
 		   case ESIF_DATA_IPV6:
 		   case ESIF_DATA_POINTER:
-		   case ESIF_DATA_POWER:
-		   case ESIF_DATA_QAULIFIER:
+		   case ESIF_DATA_QUALIFIER:
 		   case ESIF_DATA_REGISTER:
 		   case ESIF_DATA_STRUCTURE:
 		   case ESIF_DATA_TABLE:
-		   case ESIF_DATA_TIME:
 		   case ESIF_DATA_UNICODE:
 		   case ESIF_DATA_VOID:
 		 */
@@ -495,11 +500,15 @@ eEsifError EsifData_FromString (
 	case ESIF_DATA_INT32:
 	case ESIF_DATA_UINT32:
 	case ESIF_DATA_TEMPERATURE:
+	case ESIF_DATA_POWER:
+	case ESIF_DATA_TIME:
+	case ESIF_DATA_PERCENT:
 		alloc = sizeof(UInt32);
 		break;
 
 	case ESIF_DATA_INT64:
 	case ESIF_DATA_UINT64:
+	case ESIF_DATA_FREQUENCY:
 		alloc = sizeof(UInt64);
 		break;
 
@@ -519,12 +528,10 @@ eEsifError EsifData_FromString (
 	   case ESIF_DATA_IPV4:
 	   case ESIF_DATA_IPV6:
 	   case ESIF_DATA_POINTER:
-	   case ESIF_DATA_POWER:
-	   case ESIF_DATA_QAULIFIER:
+	   case ESIF_DATA_QUALIFIER:
 	   case ESIF_DATA_REGISTER:
 	   case ESIF_DATA_STRUCTURE:
 	   case ESIF_DATA_TABLE:
-	   case ESIF_DATA_TIME:
 	   case ESIF_DATA_UNICODE:
 	   case ESIF_DATA_VOID:
 	 */
@@ -579,6 +586,9 @@ eEsifError EsifData_FromString (
 
 		case ESIF_DATA_UINT32:
 		case ESIF_DATA_TEMPERATURE:
+		case ESIF_DATA_POWER:
+		case ESIF_DATA_TIME:
+		case ESIF_DATA_PERCENT:
 			esif_ccb_sscanf(str, IFHEX(str, "%x", "%u"), &u32data);
 			*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
 			break;
@@ -589,6 +599,7 @@ eEsifError EsifData_FromString (
 			break;
 
 		case ESIF_DATA_UINT64:
+		case ESIF_DATA_FREQUENCY:
 			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%llu"), &u64data);
 			*STATIC_CAST(UInt64*, buffer) = (UInt64)u64data;
 			break;
@@ -607,12 +618,10 @@ eEsifError EsifData_FromString (
 		   case ESIF_DATA_IPV4:
 		   case ESIF_DATA_IPV6:
 		   case ESIF_DATA_POINTER:
-		   case ESIF_DATA_POWER:
-		   case ESIF_DATA_QAULIFIER:
+		   case ESIF_DATA_QUALIFIER:
 		   case ESIF_DATA_REGISTER:
 		   case ESIF_DATA_STRUCTURE:
 		   case ESIF_DATA_TABLE:
-		   case ESIF_DATA_TIME:
 		   case ESIF_DATA_UNICODE:
 		   case ESIF_DATA_VOID:
 		 */

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainDisplayControl_001.h"
 #include "XmlNode.h"
 #include <algorithm>
@@ -45,14 +46,12 @@ DisplayControlStatus DomainDisplayControl_001::getDisplayControlStatus(UIntN par
 
         // FIXME : This primitive will return the brightness after ALS setting has been applied!
 
-        Percentage brightnessPercentage(
-            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_DISPLAY_BRIGHTNESS_SOFT,
-                domainIndex));
+        Percentage brightnessPercentage = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
+            esif_primitive_type::GET_DISPLAY_BRIGHTNESS_SOFT, domainIndex);
 
         m_currentDisplayControlIndex = m_displayControlSet->getControlIndex(brightnessPercentage);
 
-        delete m_displayControlStatus;
+        DELETE_MEMORY_TC(m_displayControlStatus);
         m_displayControlStatus = new DisplayControlStatus(m_currentDisplayControlIndex);
     }
 
@@ -73,7 +72,7 @@ void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN d
 
     if (displayControlIndex == m_currentDisplayControlIndex)
     {
-        m_participantServicesInterface->writeMessageInfo(
+        m_participantServicesInterface->writeMessageDebug(
             ParticipantMessage(FLF, "Requested limit = current limit.  Ignoring."));
         return;
     }
@@ -84,22 +83,22 @@ void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN d
 
     if (isOverridable == true)
     {
-        m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+        m_participantServicesInterface->primitiveExecuteSetAsPercentage(
             esif_primitive_type::SET_DISPLAY_BRIGHTNESS_SOFT,
-            newBrightness.getPercentage(),
+            newBrightness,
             domainIndex);
     }
     else
     {
-        m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+        m_participantServicesInterface->primitiveExecuteSetAsPercentage(
             esif_primitive_type::SET_DISPLAY_BRIGHTNESS_HARD,
-            newBrightness.getPercentage(),
+            newBrightness,
             domainIndex);
     }
 
     // Refresh the status
     m_currentDisplayControlIndex = displayControlIndex;
-    delete m_displayControlStatus;
+    DELETE_MEMORY_TC(m_displayControlStatus);
     m_displayControlStatus = new DisplayControlStatus(m_currentDisplayControlIndex);
 }
 
@@ -139,30 +138,30 @@ void DomainDisplayControl_001::createDisplayControlDynamicCaps(UIntN domainIndex
 {
     UIntN upperLimitIndex;
     UIntN lowerLimitIndex;
+    UInt32 uint32val;
 
     // Get dynamic caps
     //  The caps are stored in BIOS as brightness percentage.  They must be converted
     //  to indices before they can be used.
-    Percentage lowerLimitBrightness(
-        m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-            esif_primitive_type::GET_DISPLAY_DEPTH_LIMIT,
-            domainIndex));
 
+    // FIXME:  ESIF treats this as a UInt32 but we treat this as a percentage.  Need to get this in sync.
+    uint32val = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        esif_primitive_type::GET_DISPLAY_DEPTH_LIMIT, domainIndex);
+    Percentage lowerLimitBrightness = (static_cast<double>(uint32val) / 100.0) / 100.0;
     lowerLimitIndex = m_displayControlSet->getControlIndex(lowerLimitBrightness);
 
     try
     {
-        Percentage upperLimitBrightness(
-            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_DISPLAY_CAPABILITY,
-                domainIndex));
-
+        // FIXME:  ESIF treats this as a UInt32 but we treat this as a percentage.  Need to get this in sync.
+        uint32val = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+            esif_primitive_type::GET_DISPLAY_CAPABILITY, domainIndex);
+        Percentage upperLimitBrightness = (static_cast<double>(uint32val) / 100.0) / 100.0;
         upperLimitIndex = m_displayControlSet->getControlIndex(upperLimitBrightness);
     }
     catch (...)
     {
         // DDPC is optional
-        m_participantServicesInterface->writeMessageInfo(
+        m_participantServicesInterface->writeMessageDebug(
             ParticipantMessage(FLF, "DDPC was not present.  Setting upper limit to 100."));
         upperLimitIndex = 0; // Max brightness
     }
@@ -225,23 +224,29 @@ void DomainDisplayControl_001::verifyDisplayControlIndex(UIntN displayControlInd
         std::stringstream infoMessage;
 
         infoMessage << "Control index out of control set bounds." << std::endl
-                    << "Desired Index : " << displayControlIndex << std::endl
-                    << "PerformanceControlSet size :" << m_displayControlSet->getCount() << std::endl;
+            << "Desired Index : " << displayControlIndex << std::endl
+            << "PerformanceControlSet size :" << m_displayControlSet->getCount() << std::endl;
 
         throw dptf_exception(infoMessage.str());
     }
 
-    UIntN brightnessPercentage = (*m_displayControlSet)[displayControlIndex].getBrightness().getPercentage();
+    Percentage brightnessPercentage = (*m_displayControlSet)[displayControlIndex].getBrightness();
 
-    if (brightnessPercentage < m_displayControlDynamicCaps->getCurrentUpperLimit() ||
-        brightnessPercentage > m_displayControlDynamicCaps->getCurrentLowerLimit())
+    Percentage upperLimitPercentage =
+        (*m_displayControlSet)[m_displayControlDynamicCaps->getCurrentUpperLimit()].getBrightness();
+
+    Percentage lowerLimitPercentage =
+        (*m_displayControlSet)[m_displayControlDynamicCaps->getCurrentLowerLimit()].getBrightness();
+
+    if (brightnessPercentage > upperLimitPercentage ||
+        brightnessPercentage < lowerLimitPercentage)
     {
         std::stringstream infoMessage;
 
         infoMessage << "Got a display control that was outside the allowable range." << std::endl
-                    << "Desired : " << displayControlIndex << std::endl
-                    << "Upper Limit : " << m_displayControlDynamicCaps->getCurrentUpperLimit() << std::endl
-                    << "Lower Limit : " << m_displayControlDynamicCaps->getCurrentLowerLimit() << std::endl;
+            << "Desired : " << displayControlIndex << std::endl
+            << "Upper Limit : " << m_displayControlDynamicCaps->getCurrentUpperLimit() << std::endl
+            << "Lower Limit : " << m_displayControlDynamicCaps->getCurrentLowerLimit() << std::endl;
 
         throw dptf_exception(infoMessage.str());
     }

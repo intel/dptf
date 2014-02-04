@@ -53,7 +53,7 @@ extern u32 g_uf_xform;
 */
 
 /* Temperature Transform */
-static ESIF_INLINE enum esif_rc esif_xform_temp (
+static ESIF_INLINE enum esif_rc esif_xform_temp(
 	const enum esif_temperature_type type,
 	esif_temp_t *temp_ptr,
 	const enum esif_action_type action,
@@ -197,7 +197,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp (
 
 
 /* Power Transform */
-static ESIF_INLINE enum esif_rc esif_xform_power (
+static ESIF_INLINE enum esif_rc esif_xform_power(
 	const enum esif_power_unit_type type,
 	esif_power_t *power_ptr,
 	const enum esif_action_type action,
@@ -257,7 +257,7 @@ static ESIF_INLINE enum esif_rc esif_xform_power (
 		}
 		break;
 
-case ESIF_ALGORITHM_TYPE_POWER_UNIT_ATOM:
+	case ESIF_ALGORITHM_TYPE_POWER_UNIT_ATOM:
 		ESIF_TRACE_DYN_POWER("%s: using algorithm %s, for hardware power\n",
 							 ESIF_FUNC, esif_algorithm_type_str(algo_ptr->power_xform));
 		/* Hardware */
@@ -317,11 +317,11 @@ case ESIF_ALGORITHM_TYPE_POWER_UNIT_ATOM:
 /* Need to move to header POC.  Also don't forget to free returned
 ** memory JDH
 */
-char*esif_str_replace (char *orig, char *rep, char *with);
+char *esif_str_replace(char *orig, char *rep, char *with);
 
 
 /* Primitive User Get */
-static eEsifError PrimitiveActionUFGet (
+static eEsifError PrimitiveActionUFGet(
 	const UInt8 participantId,
 	eEsifActionType type,
 	const EsifDataPtr p1Ptr,
@@ -333,7 +333,7 @@ static eEsifError PrimitiveActionUFGet (
 	const EsifDataPtr responsePtr
 	)
 {
-	eEsifError rc    = ESIF_OK;
+	eEsifError rc = ESIF_OK;
 	EsifActTypePtr actiontype_ptr = g_actMgr.GetActType(&g_actMgr, type);
 
 	EsifUpPtr up_ptr = EsifUpManagerGetAvailableParticipantByInstance(participantId);
@@ -347,7 +347,7 @@ static eEsifError PrimitiveActionUFGet (
 
 	/* Find Action From Action Type LIST */
 	if (NULL == actiontype_ptr) {
-		rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
+		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 		ESIF_TRACE_DEBUG("%s: Action For Type %d NOT FOUND Skipping...\n", ESIF_FUNC, type);
 		goto exit;
 	}
@@ -359,7 +359,7 @@ static eEsifError PrimitiveActionUFGet (
 	}
 
 	/* Have Action So Execute */
-	ESIF_TRACE_VERBOSE_EX("%s: Have Action %s(%d)\n", ESIF_FUNC,
+	ESIF_TRACE_DEBUG("%s: Have Action %s(%d)\n", ESIF_FUNC,
 						  esif_action_type_str(type), type);
 
 	rc = actiontype_ptr->fGetFuncPtr(actiontype_ptr->fHandle,
@@ -371,7 +371,7 @@ static eEsifError PrimitiveActionUFGet (
 									 p5Ptr,
 									 requestPtr,
 									 responsePtr);
-	ESIF_TRACE_VERBOSE_EX("%s: USER rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_DEBUG("%s: USER rc %s, Buffer Len %d, Data Len %d\n",
 						  ESIF_FUNC, esif_rc_str(rc), responsePtr->buf_len, responsePtr->data_len);
 exit:
 	return rc;
@@ -379,7 +379,7 @@ exit:
 
 
 /* Primitive User Set */
-static eEsifError PrimitiveActionUFSet (
+static eEsifError PrimitiveActionUFSet(
 	const UInt8 participantId,
 	eEsifActionType type,
 	const EsifDataPtr p1Ptr,
@@ -415,9 +415,9 @@ static eEsifError PrimitiveActionUFSet (
 	}
 
 	/* Have Action So Execute */
-	ESIF_TRACE_VERBOSE_EX("%s: Have Action %s(%d)\n", ESIF_FUNC,
+	ESIF_TRACE_DEBUG("%s: Have Action %s(%d)\n", ESIF_FUNC,
 						  esif_action_type_str(type), type);
-	ESIF_TRACE_VERBOSE_EX("%s: USER rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_DEBUG("%s: USER rc %s, Buffer Len %d, Data Len %d\n",
 						  ESIF_FUNC, esif_rc_str(rc), requestPtr->buf_len, requestPtr->data_len);
 
 	rc = actiontype_ptr->fSetFuncPtr(actiontype_ptr->fHandle,
@@ -428,7 +428,7 @@ static eEsifError PrimitiveActionUFSet (
 									 p4Ptr,
 									 p5Ptr,
 									 requestPtr);
-	ESIF_TRACE_VERBOSE_EX("%s: USER rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_DEBUG("%s: USER rc %s, Buffer Len %d, Data Len %d\n",
 						  ESIF_FUNC, esif_rc_str(rc), requestPtr->buf_len, requestPtr->data_len);
 exit:
 	return rc;
@@ -436,7 +436,7 @@ exit:
 
 
 /* IPC Primitve Get */
-static eEsifError PrimitiveActionLFGet (
+static eEsifError PrimitiveActionLFGet(
 	const UInt8 participantId,
 	const UInt16 kernAction,
 	const EsifPrimitiveTuplePtr tuplePtr,
@@ -450,7 +450,7 @@ static eEsifError PrimitiveActionLFGet (
 	EsifIpcPrimitivePtr primitive_ptr = NULL;
 	u8 *addr = NULL;
 
-	ESIF_TRACE_VERBOSE_EX("%s: Send To LOWER_FRAMEWORK/KERNEL\n", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("%s: Send To LOWER_FRAMEWORK/KERNEL\n", ESIF_FUNC);
 
 	if ((NULL == requestPtr) || (NULL == responsePtr)) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -483,7 +483,7 @@ static eEsifError PrimitiveActionLFGet (
 		primitive_ptr->req_data_type   = requestPtr->type;
 		primitive_ptr->req_data_offset = responsePtr->buf_len;	// Data Format: {{rsp_data}, {req_data}}
 		primitive_ptr->req_data_len    = requestPtr->buf_len;
-		addr = (u8*)((u8*)(primitive_ptr + 1) + (responsePtr->buf_len));
+		addr = (u8 *)((u8 *)(primitive_ptr + 1) + (responsePtr->buf_len));
 		esif_ccb_memcpy(addr, requestPtr->buf_ptr, requestPtr->buf_len);
 	}
 
@@ -494,7 +494,7 @@ static eEsifError PrimitiveActionLFGet (
 	}
 
 	responsePtr->data_len = (u16)primitive_ptr->rsp_data_len;
-	ESIF_TRACE_VERBOSE_EX("%s: IPC rc %s, Primitive rc %s, Buffer Len %d, Data Len %d\n",
+	ESIF_TRACE_DEBUG("%s: IPC rc %s, Primitive rc %s, Buffer Len %d, Data Len %d\n",
 						  ESIF_FUNC, esif_rc_str(ipc_ptr->return_code), esif_rc_str(primitive_ptr->return_code),
 						  responsePtr->buf_len, responsePtr->data_len);
 
@@ -519,7 +519,7 @@ exit:
 
 
 /* IPC Primitve Set */
-static eEsifError PrimitiveActionLFSet (
+static eEsifError PrimitiveActionLFSet(
 	const UInt8 participantId,
 	const UInt16 kernAction,
 	const EsifPrimitiveTuplePtr tuplePtr,
@@ -532,7 +532,7 @@ static eEsifError PrimitiveActionLFSet (
 	EsifIpcPtr ipc_ptr = NULL;
 	EsifIpcPrimitivePtr primitive_ptr = NULL;
 
-	ESIF_TRACE_VERBOSE_EX("%s: Send To LOWER_FRAMEWORK/KERNEL\n", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("%s: Send To LOWER_FRAMEWORK/KERNEL\n", ESIF_FUNC);
 
 	ipc_ptr = esif_ipc_alloc_primitive(&primitive_ptr, requestPtr->buf_len);
 	if (NULL == ipc_ptr || NULL == primitive_ptr) {
@@ -585,7 +585,7 @@ typedef struct _t_data_item {
 } DataItem, *DataItemPtr, **DataItemPtrLocation;
 
 
-static DataItemPtr get_action_param (
+static DataItemPtr get_action_param(
 	const EsifFpcActionPtr actionPtr,
 	const UInt8 param_number
 	)
@@ -600,12 +600,12 @@ static DataItemPtr get_action_param (
 		return NULL;
 	}
 
-	address_of_data_item = (UInt8*)actionPtr + actionPtr->param_offset[param_number];
+	address_of_data_item = (UInt8 *)actionPtr + actionPtr->param_offset[param_number];
 	return (DataItemPtr)address_of_data_item;
 }
 
 
-void esif_uf_dump_primitive (
+void esif_uf_dump_primitive(
 	struct esif_up_dsp *dsp_ptr,
 	struct esif_fpc_primitive *primitive_ptr
 	)
@@ -617,11 +617,11 @@ void esif_uf_dump_primitive (
 	u32 param = 0;
 	int i, j;
 
-	if (!ESIF_TRACE_CATEGORY_ON(ESIF_TRACEMODULE, ESIF_TRACELEVEL_VERBOSE)) {
+	if (!EsifTraceIsActive(ESIF_TRACEMODULE_PRIMITIVE, ESIF_TRACELEVEL_DEBUG)) {
 		return;
 	}
 
-	ESIF_TRACE_VERBOSE("esif_uf_execute_primitive: Primitive METADATA From DSP:\n"
+	ESIF_TRACE_DEBUG("esif_uf_execute_primitive: Primitive METADATA From DSP:\n"
 					   "\tOperation:        : %s(%u)\n"
 					   "\tRequest Data Type : %s(%u)\n"
 					   "\tResponse Data Type: %s(%u)\n"
@@ -638,7 +638,7 @@ void esif_uf_dump_primitive (
 
 	for (i = 0; i < (int)primitive_ptr->num_actions; i++) {
 		action_ptr = dsp_ptr->get_action(dsp_ptr, primitive_ptr, (u8)i);
-		ESIF_TRACE_VERBOSE("Action[%u]: size %u type %d(%s) is_kern %u "
+		ESIF_TRACE_DEBUG("Action[%u]: size %u type %d(%s) is_kern %u "
 						   "param_valid %x:%x:%x:%x:%x\n",
 						   i, action_ptr->size,
 						   action_ptr->type, esif_action_type_str(action_ptr->type),
@@ -658,22 +658,21 @@ void esif_uf_dump_primitive (
 							 data_item_ptr->data_length_in_bytes);
 			switch (data_item_ptr->data_type) {
 			case 1:	// String
-				param_str = (char*)&data_item_ptr->data;
+				param_str = (char *)&data_item_ptr->data;
 				esif_ccb_sprintf(128, msg, "%s%s\n", msg, param_str);
 				break;
 
 			case 4:	// 32 Bit Integer
-				param = *(u32*)&data_item_ptr->data;
+				param = *(u32 *)&data_item_ptr->data;
 				esif_ccb_sprintf(128, msg, "%s0x%08x\n", msg, param);
 				break;
 
 			default:
 				break;
 			}
-			ESIF_TRACE_VERBOSE("%s", msg);
+			ESIF_TRACE_DEBUG("%s", msg);
 		}
 	}
-	return;
 }
 
 
@@ -683,7 +682,7 @@ void esif_uf_dump_primitive (
 ** ===========================================================================
 */
 
-eEsifError EsifExecutePrimitive (
+eEsifError EsifExecutePrimitive(
 	const UInt8 participantId,
 	const UInt32 primitiveId,
 	const EsifString domain_str,
@@ -713,7 +712,7 @@ eEsifError EsifExecutePrimitive (
 		name = new_type;set_flag = 1; \
 	}
 
-	ESIF_TRACE_VERBOSE("%s\n\n"
+	ESIF_TRACE_DEBUG("%s\n\n"
 					   "Participant ID       : %u\n"
 					   "Request              : %p\n"
 					   "  Data Type:         : %s(%u)\n"
@@ -786,8 +785,8 @@ eEsifError EsifExecutePrimitive (
 	if (responsePtr->buf_ptr == NULL && ESIF_DATA_ALLOCATE == responsePtr->buf_len) {
 		int size = 4;
 
-        if (ESIF_DATA_UINT64 == responsePtr->type || 
-		ESIF_DATA_FREQUENCY == responsePtr->type) {
+		if (ESIF_DATA_UINT64 == responsePtr->type ||
+			ESIF_DATA_FREQUENCY == responsePtr->type) {
 			size = 8;
 		}
 		if (ESIF_DATA_STRING == responsePtr->type) {
@@ -807,7 +806,7 @@ eEsifError EsifExecutePrimitive (
 			goto exit;
 		}
 
-		ESIF_TRACE_VERBOSE("Auto allocated response buffer %p size %u\n",
+		ESIF_TRACE_DEBUG("Auto allocated response buffer %p size %u\n",
 						   responsePtr->buf_ptr, responsePtr->buf_len);
 	}
 
@@ -819,7 +818,7 @@ retry:
 		ESIF_UNIT_RETYPE(responsePtr->type, ESIF_DATA_TEMPERATURE, ESIF_DATA_UINT32, rsp_temp);
 		ESIF_UNIT_RETYPE(responsePtr->type, ESIF_DATA_POWER, ESIF_DATA_UINT32, rsp_power);
 		if (req_temp || req_power) {
-			saved_val = *(u32*)requestPtr->buf_ptr;
+			saved_val = *(u32 *)requestPtr->buf_ptr;
 		}
 	}
 
@@ -840,17 +839,17 @@ retry:
 
 		algo_ptr = dsp_ptr->get_algorithm(dsp_ptr, action_ptr->type);
 		if (req_temp) {
-			*(esif_temp_t*)requestPtr->buf_ptr = (esif_temp_t)saved_val;
+			*(esif_temp_t *)requestPtr->buf_ptr = (esif_temp_t)saved_val;
 			esif_xform_temp(NORMALIZE_TEMP_TYPE,
-							(esif_temp_t*)requestPtr->buf_ptr,
+							(esif_temp_t *)requestPtr->buf_ptr,
 							action_ptr->type,
 							dsp_ptr,
 							primitive_ptr->operation);
 		}
 		if (req_power) {
-			*(esif_power_t*)requestPtr->buf_ptr = (esif_power_t)saved_val;
+			*(esif_power_t *)requestPtr->buf_ptr = (esif_power_t)saved_val;
 			esif_xform_power(NORMALIZE_POWER_UNIT_TYPE,
-							 (esif_power_t*)requestPtr->buf_ptr,
+							 (esif_power_t *)requestPtr->buf_ptr,
 							 action_ptr->type,
 							 dsp_ptr,
 							 primitive_ptr->operation);
@@ -866,7 +865,7 @@ retry:
 				rc = PrimitiveActionLFSet(participantId, kernAct,
 										  &tuple, action_ptr, requestPtr, responsePtr);
 			}
-			ESIF_TRACE_VERBOSE("Using ESIF LF for action %d, kern_action %d! rc %s\n",
+			ESIF_TRACE_DEBUG("Using ESIF LF for action %d, kern_action %d! rc %s\n",
 							   i, kernAct, esif_rc_str(rc));
 			kernAct++;
 		} else {
@@ -902,11 +901,12 @@ retry:
 								temp_buf);
 
 						if (NULL != replaced) {
-							if (replaced_str[j])
-								esif_ccb_free(replaced_str[j]);							
+							if (replaced_str[j]) {
+								esif_ccb_free(replaced_str[j]);
+							}
 							param_str = replaced;
 							replaced_str[j] = replaced;
-							ESIF_TRACE_VERBOSE_EX("\tEXPANDED data %s\n", param_str);
+							ESIF_TRACE_DEBUG("\tEXPANDED data %s\n", param_str);
 						}
 					}
 
@@ -918,7 +918,7 @@ retry:
 				}
 
 				case 4:	// 32 Bit Integer
-					params[j].buf_ptr  = (u32*)&data_item_ptr->data;
+					params[j].buf_ptr  = (u32 *)&data_item_ptr->data;
 					params[j].buf_len  = data_item_ptr->data_length_in_bytes;
 					params[j].data_len = data_item_ptr->data_length_in_bytes;
 					params[j].type     = ESIF_DATA_UINT32;
@@ -944,7 +944,7 @@ retry:
 						SET_TRIP_POINT_PASSIVE == primitive_ptr->tuple.id ||
 						SET_TRIP_POINT_WARM == primitive_ptr->tuple.id) {
 						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
-						ESIF_TRACE_VERBOSE("Send Event ==> ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED\n");
+						ESIF_TRACE_DEBUG("Send Event ==> ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED\n");
 					}
 				}
 			}
@@ -953,17 +953,17 @@ retry:
 
 		if (ESIF_OK == rc) {
 			if (rsp_temp) {
-				ESIF_TRACE_VERBOSE("esif_xform_temp\n");
+				ESIF_TRACE_DEBUG("esif_xform_temp\n");
 				esif_xform_temp(NORMALIZE_TEMP_TYPE,
-								(esif_temp_t*)responsePtr->buf_ptr,
+								(esif_temp_t *)responsePtr->buf_ptr,
 								action_ptr->type,
 								dsp_ptr,
 								primitive_ptr->operation);
 			}
 			if (rsp_power) {
-				ESIF_TRACE_VERBOSE("esif_xform_power\n");
+				ESIF_TRACE_DEBUG("esif_xform_power\n");
 				esif_xform_power(NORMALIZE_POWER_UNIT_TYPE,
-								 (esif_temp_t*)responsePtr->buf_ptr,
+								 (esif_temp_t *)responsePtr->buf_ptr,
 								 action_ptr->type,
 								 dsp_ptr,
 								 primitive_ptr->operation);
@@ -1012,16 +1012,17 @@ retry:
 	/* Man I hate code like this */
 	if (ESIF_ACTION_LAL == action_ptr->type && GET_TEMPERATURE_THRESHOLD_HYSTERESIS == primitive_ptr->tuple.id) {
 		if (responsePtr->buf_ptr != NULL) {
-			*(u32*)responsePtr->buf_ptr = ((*(u32*)responsePtr->buf_ptr) / 1000);
+			*(u32 *)responsePtr->buf_ptr = ((*(u32 *)responsePtr->buf_ptr) / 1000);
 		}
 	}
 
 exit:
 	// Free any replaced (allocated) strings
-	for (i = 0; i < sizeof(replaced_str) / sizeof(char*); i++)
+	for (i = 0; i < sizeof(replaced_str) / sizeof(char *); i++) {
 		if (replaced_str[i]) {
 			esif_ccb_free(replaced_str[i]);
 		}
+	}
 
 	return rc;
 }

@@ -67,8 +67,8 @@ typedef struct _t_EsifActMgr {
 #undef THIS
 
 /* Init / Exit */
-eEsifError EsifActMgrInit ();
-void EsifActMgrExit ();
+eEsifError EsifActMgrInit();
+void EsifActMgrExit();
 
 #endif /* ESIF_UF_ACTMGR */
 

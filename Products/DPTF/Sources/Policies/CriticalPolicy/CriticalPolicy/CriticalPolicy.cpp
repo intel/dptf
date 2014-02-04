@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CriticalPolicy.h"
 #include "Constants.h"
 #include "XmlNode.h"
@@ -88,7 +89,7 @@ string CriticalPolicy::getName(void) const
 
 string CriticalPolicy::getStatusAsXml(void) const
 {
-    XmlNode* format = XmlNode::createComment("format_id=E78AC697FA159C49B8C95DA81D606E0A");
+    XmlNode* format = XmlNode::createComment("format_id=" + getGuid().toString());
     XmlNode* status = XmlNode::createWrapperElement("critical_policy_status");
     status->addChild(m_stats.getXml());
     status->addChild(getParticipantTracker().getXmlForCriticalTripPoints());
@@ -102,13 +103,13 @@ string CriticalPolicy::getStatusAsXml(void) const
 
 void CriticalPolicy::onBindParticipant(UIntN participantIndex)
 {
-    postDebugMessage(PolicyMessage(FLF, "Binding participant.", participantIndex));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding participant.", participantIndex));
     getParticipantTracker().remember(participantIndex);
 }
 
 void CriticalPolicy::onUnbindParticipant(UIntN participantIndex)
 {
-    postDebugMessage(PolicyMessage(FLF, "Unbinding participant.", participantIndex));
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Unbinding participant.", participantIndex));
     getParticipantTracker().forget(participantIndex);
 }
 
@@ -119,7 +120,7 @@ void CriticalPolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
         getParticipantTracker()[participantIndex].bindDomain(domainIndex);
         if (participantHasDesiredProperties(getParticipantTracker()[participantIndex]))
         {
-            postDebugMessage(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
             takePowerActionBasedOnThermalState(getParticipantTracker()[participantIndex]);
         }
     }
@@ -129,7 +130,7 @@ void CriticalPolicy::onUnbindDomain(UIntN participantIndex, UIntN domainIndex)
 {
     if (getParticipantTracker().remembers(participantIndex))
     {
-        postDebugMessage(PolicyMessage(FLF, "Unbinding domain for participant.", participantIndex, domainIndex));
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Unbinding domain for participant.", participantIndex, domainIndex));
         getParticipantTracker()[participantIndex].unbindDomain(domainIndex);
     }
 }
@@ -138,7 +139,7 @@ void CriticalPolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
 {
     if (getParticipantTracker().remembers(participantIndex))
     {
-        postDebugMessage(PolicyMessage(FLF, "Specific info changed for participant.", participantIndex));
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Specific info changed for participant.", participantIndex));
         getParticipantTracker()[participantIndex].getCriticalTripPointProperty().refresh();
         if (participantHasDesiredProperties(getParticipantTracker()[participantIndex]))
         {
@@ -152,7 +153,7 @@ void CriticalPolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
     if (getParticipantTracker().remembers(participantIndex) &&
         participantHasDesiredProperties(getParticipantTracker()[participantIndex]))
     {
-        postDebugMessage(PolicyMessage(
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Temperature threshold crossed for participant.", participantIndex));
         takePowerActionBasedOnThermalState(getParticipantTracker()[participantIndex]);
     }
@@ -161,7 +162,7 @@ void CriticalPolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 void CriticalPolicy::takePowerActionBasedOnThermalState(ParticipantProxy& participant)
 {
     auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
-    postDebugMessage(PolicyMessage(
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
         FLF, "Considering actions based on temperature of " + currentTemperature.toString() + "."));
     auto tripPoints = participant.getCriticalTripPointProperty().getTripPoints();
     setParticipantTemperatureThresholdNotification(currentTemperature, tripPoints.getSortedByValue(), participant);
@@ -174,22 +175,22 @@ void CriticalPolicy::takePowerAction(ParticipantSpecificInfoKey::Type crossedTri
     switch (crossedTripPoint)
     {
         case ParticipantSpecificInfoKey::Warm:
-            postDebugMessage(PolicyMessage(FLF, "Instructing system to sleep."));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to sleep."));
             m_stats.sleepSignalled();
             getPolicyServices().platformPowerState->sleep();
             break;
         case ParticipantSpecificInfoKey::Hot:
-            postDebugMessage(PolicyMessage(FLF, "Instructing system to hibernate."));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to hibernate."));
             m_stats.hibernateSignalled();
             getPolicyServices().platformPowerState->hibernate();
             break;
         case ParticipantSpecificInfoKey::Critical:
-            postDebugMessage(PolicyMessage(FLF, "Instructing system to shut down."));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to shut down."));
             m_stats.shutdownSignalled();
             getPolicyServices().platformPowerState->shutDown();
             break;
         case ParticipantSpecificInfoKey::None:
-            postDebugMessage(PolicyMessage(FLF, "No power action needed."));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "No power action needed."));
             break;
         default:
             throw dptf_exception("An invalid trip point has been selected.");
@@ -201,19 +202,19 @@ void CriticalPolicy::setParticipantTemperatureThresholdNotification(
     std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints,
     ParticipantProxy& participant)
 {
-    UIntN lowerTemperatureThreshold = determineLowerTemperatureThreshold(currentTemperature, tripPoints);
-    UIntN upperTemperatureThreshold = determineUpperTemperatureThreshold(currentTemperature, tripPoints);
+    Temperature lowerTemperatureThreshold = determineLowerTemperatureThreshold(currentTemperature, tripPoints);
+    Temperature upperTemperatureThreshold = determineUpperTemperatureThreshold(currentTemperature, tripPoints);
     participant.setTemperatureThresholds(lowerTemperatureThreshold, upperTemperatureThreshold);
 }
 
-UIntN CriticalPolicy::determineLowerTemperatureThreshold(
+Temperature CriticalPolicy::determineLowerTemperatureThreshold(
     Temperature currentTemperature,
     std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints)
 {
-    UIntN lowerTemperatureThreshold = Constants::Invalid;
+    Temperature lowerTemperatureThreshold(Temperature::createInvalid());
     for (auto tp = tripPoints.begin(); tp != tripPoints.end(); ++tp)
     {
-        if (currentTemperature.getTemperature() >= tp->second)
+        if (currentTemperature >= Temperature(tp->second))
         {
             lowerTemperatureThreshold = tp->second;
         }
@@ -225,14 +226,14 @@ UIntN CriticalPolicy::determineLowerTemperatureThreshold(
     return lowerTemperatureThreshold;
 }
 
-UIntN CriticalPolicy::determineUpperTemperatureThreshold(
+Temperature CriticalPolicy::determineUpperTemperatureThreshold(
     Temperature currentTemperature,
     std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints)
 {
-    UIntN upperTemperatureThreshold = Constants::Invalid;
+    Temperature upperTemperatureThreshold(Temperature::createInvalid());
     for (auto tp = tripPoints.begin(); tp != tripPoints.end(); ++tp)
     {
-        if (currentTemperature.getTemperature() < tp->second)
+        if (currentTemperature < Temperature(tp->second))
         {
             upperTemperatureThreshold = tp->second;
             break;
@@ -248,7 +249,7 @@ ParticipantSpecificInfoKey::Type CriticalPolicy::findTripPointCrossed(
     auto crossedTripPoint = ParticipantSpecificInfoKey::None;
     for (auto tp = tripPoints.begin(); tp != tripPoints.end(); ++tp)
     {
-        if (currentTemperature.getTemperature() >= tp->second)
+        if (currentTemperature >= Temperature(tp->second))
         {
             crossedTripPoint = tp->first;
         }

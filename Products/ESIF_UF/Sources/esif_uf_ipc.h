@@ -25,11 +25,11 @@
 //
 // IPC
 //
-void ipc_connect ();
-void ipc_autoconnect ();
-void ipc_disconnect ();
+void ipc_connect();
+void ipc_autoconnect();
+void ipc_disconnect();
 
-enum esif_rc ipc_execute (struct esif_ipc *ipc);
+enum esif_rc ipc_execute(struct esif_ipc *ipc);
 
 #endif /* _ESIF_UF_IPC_ */
 

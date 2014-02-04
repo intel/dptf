@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -29,17 +30,20 @@ public:
 
     Guid(void);
     Guid(const UInt8 guid[GuidSize]);
-    Guid(UInt8 value00, UInt8 value01, UInt8 value02, UInt8 value03, UInt8 value04, UInt8 value05, UInt8 value06, UInt8 value07,
-        UInt8 value08, UInt8 value09, UInt8 value10, UInt8 value11, UInt8 value12, UInt8 value13, UInt8 value14, UInt8 value15);
+    Guid(UInt8 value00, UInt8 value01, UInt8 value02, UInt8 value03, UInt8 value04, UInt8 value05, UInt8 value06, 
+         UInt8 value07, UInt8 value08, UInt8 value09, UInt8 value10, UInt8 value11, UInt8 value12, UInt8 value13, 
+         UInt8 value14, UInt8 value15);
 
-    Bool isValid(void) const;
     Bool operator==(const Guid& rhs) const;
     Bool operator!=(const Guid& rhs) const;
     operator const UInt8*(void) const;
 
-    std::string toString(void) const;
+    Bool isValid() const;
+    std::string toString() const;
 
 private:
 
+    Bool m_valid;
     UInt8 m_guid[GuidSize];
+    void throwIfInvalid(const Guid& guid) const;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "LpmConfigurationReaderV1.h"
 #include "BinaryParse.h"
 
@@ -85,7 +86,7 @@ vector<AppSpecificEntry> LpmConfigurationReaderV1::readAppSpecificEntries(void)
     catch (dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "Error msg (" + msg + "). Last appIndex = " + to_string(appIndex),
             Constants::Invalid));
         return appSpecificEntries;
@@ -128,7 +129,7 @@ vector<LpmSet> LpmConfigurationReaderV1::readLpmSets(void)
     catch (dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "Error msg (" + msg + "). Last lpmSetIndex = " + to_string(lpmSetIndex),
             Constants::Invalid));
         return lpmSets;
@@ -171,7 +172,7 @@ vector<LpmEntry> LpmConfigurationReaderV1::readLpmEntries(void)
     catch (dptf_exception& e)
     {
         string msg = e.what();
-        postInfoMessage(PolicyMessage(FLF,
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "Error msg (" + msg + "). Last lpmEntryIndex = " + to_string(lpmEntryIndex),
             Constants::Invalid));
         return lpmEntries;

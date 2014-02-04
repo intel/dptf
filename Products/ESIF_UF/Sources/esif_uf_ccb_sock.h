@@ -26,7 +26,7 @@ typedef int ssize_t;
 typedef int esif_uf_ccb_sock_len;
 #define esif_uf_ccb_sock_close closesocket
 
-static void ESIF_INLINE esif_uf_ccb_sock_init ()
+static void ESIF_INLINE esif_uf_ccb_sock_init()
 {
 	WSADATA wsaData;
 
@@ -50,7 +50,7 @@ static void ESIF_INLINE esif_uf_ccb_sock_init ()
 typedef socklen_t esif_uf_ccb_sock_len;
 #define esif_uf_ccb_sock_close close
 
-static void ESIF_INLINE esif_uf_ccb_sock_init () {}
+static void ESIF_INLINE esif_uf_ccb_sock_init() {}
 
 #endif
 

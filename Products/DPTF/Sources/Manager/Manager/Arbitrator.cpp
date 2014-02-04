@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "Arbitrator.h"
 #include "DptfManager.h"
 
@@ -32,26 +33,13 @@ Arbitrator::Arbitrator(DptfManager* dptfManager) :
 
 Arbitrator::~Arbitrator(void)
 {
-    delete m_activeControlArbitrator;
-    m_activeControlArbitrator = nullptr;
-
-    delete m_configTdpControlArbitrator;
-    m_configTdpControlArbitrator = nullptr;
-
-    delete m_coreControlArbitrator;
-    m_coreControlArbitrator = nullptr;
-
-    delete m_displayControlArbitrator;
-    m_displayControlArbitrator = nullptr;
-
-    delete m_performanceControlArbitrator;
-    m_performanceControlArbitrator = nullptr;
-
-    delete m_powerControlArbitrator;
-    m_powerControlArbitrator= nullptr;
-
-    delete m_temperatureThresholdArbitrator;
-    m_temperatureThresholdArbitrator = nullptr;
+    DELETE_MEMORY_TC(m_activeControlArbitrator);
+    DELETE_MEMORY_TC(m_configTdpControlArbitrator);
+    DELETE_MEMORY_TC(m_coreControlArbitrator);
+    DELETE_MEMORY_TC(m_displayControlArbitrator);
+    DELETE_MEMORY_TC(m_performanceControlArbitrator);
+    DELETE_MEMORY_TC(m_powerControlArbitrator);
+    DELETE_MEMORY_TC(m_temperatureThresholdArbitrator);
 }
 
 void Arbitrator::clearPolicyCachedData(UIntN policyIndex)

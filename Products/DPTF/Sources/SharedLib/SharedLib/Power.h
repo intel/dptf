@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,38 +15,39 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
-#include "BasicTypes.h"
-#include "DptfExport.h"
-
-class XmlNode;
 
 //
 // represents power in mW
 //
-
 class Power final
 {
 public:
 
     Power(void);
     Power(UInt32 power);
-    UInt32 getPower() const;
-    Bool isPowerValid() const;
-    XmlNode* getXml(void);
-    XmlNode* getXml(std::string tag);
-    Bool operator>(const Power& rhs) const;
-    Bool operator<(const Power& rhs) const;
-    Bool operator==(const Power& rhs) const;
-    Power operator-(const Power& rhs) const;
-    Power operator+(const Power& rhs) const;
+    static Power createInvalid();
 
+    Bool operator==(const Power& rhs) const;
+    Bool operator!=(const Power& rhs) const;
+    Bool operator>(const Power& rhs) const;
+    Bool operator>=(const Power& rhs) const;
+    Bool operator<(const Power& rhs) const;
+    Bool operator<=(const Power& rhs) const;
+    Power operator+(const Power& rhs) const;
+    Power operator-(const Power& rhs) const;
+    friend std::ostream& operator<<(std::ostream& os, const Power& power);
+    operator UInt32(void) const;
+
+    Bool isValid() const;
     std::string toString() const;
 
 private:
 
-    static const UInt32 maxValidPower = 10000000;                   // 10,000 watts
-    static const UInt32 invalidPower = 0xFFFFFFFF;
+    Bool m_valid;
     UInt32 m_power;
+
+    void throwIfInvalid(const Power& power) const;
 };

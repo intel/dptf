@@ -37,20 +37,20 @@ typedef struct _t_EsifAppManager {
 } EsifAppMgr, *EsifAppMgrPtr, **EsifAppMgrPtrLocation;
 #undef THIS
 
-EsifAppPtr GetAppFromHandle (const void *handle);
+EsifAppPtr GetAppFromHandle(const void *handle);
 
 /* Send Event */
-eEsifError EsifAppsEvent (UInt8 participantId, UInt16 domainId, eEsifEventType eventType, EsifDataPtr eventData);
+eEsifError EsifAppsEvent(UInt8 participantId, UInt16 domainId, eEsifEventType eventType, EsifDataPtr eventData);
 
 /* Send event by domain type to all applications */
-eEsifError EsifAppsEventByDomainType (enum esif_domain_type domainType, eEsifEventType eventType, EsifDataPtr eventData);
+eEsifError EsifAppsEventByDomainType(enum esif_domain_type domainType, eEsifEventType eventType, EsifDataPtr eventData);
 
 eEsifError EsifAppMgrDestroyParticipantInAllApps(const EsifUpPtr upPtr);
 eEsifError EsifAppMgrCreateCreateParticipantInAllApps(const EsifUpPtr upPtr);
 
 /* Init / Exit */
-eEsifError EsifAppMgrInit (void);
-void EsifAppMgrExit (void);
+eEsifError EsifAppMgrInit(void);
+void EsifAppMgrExit(void);
 
 #endif /* _ESIF_UF_APPMGR */
 

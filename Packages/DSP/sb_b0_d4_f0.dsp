@@ -71,9 +71,6 @@ A,0,4,True,"_STA",,,,
 # GET_NOTIFICATION_TEMP_THRESHOLD
 P,54,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,4,True,"_NTT",,,,
-# GET_PROC_APPLICATION_EXCLUDE_LIST
-P,68,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,4,True,"AEXL",,,,
 # GET_PROC_CTDP_CAPABILITY
 P,79,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"TDPC",,,,
@@ -111,6 +108,9 @@ A,1,22,True,0xce,55,48,,
 # GET_PROC_PERF_THROTTLE_CONTROL
 P,58,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"_PTC",,,,
+# GET_PROC_RF_TUNING_AVAILABLE
+P,268,255,1,24,"<schema></schema>",27,"<schema></schema>"
+A,0,22,True,0xce,25,25,,
 # GET_PROC_THERMAL_DESIGN_POWER
 P,21,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,2,True,0x5930,14,0,,
@@ -166,10 +166,6 @@ A,1,22,True,0x610,63,63,,
 P,23,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,2,True,0x5934,14,0,,
 A,1,22,True,0x614,46,32,,
-# GET_RAPL_POWER_MAX_TIME_WINDOW
-P,24,255,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,2,True,0x5934,22,16,,
-A,1,22,True,0x614,54,48,,
 # GET_RAPL_POWER_MIN
 P,22,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,2,True,0x5930,30,16,,
@@ -182,70 +178,62 @@ A,1,22,True,0x606,3,0,,
 P,122,255,1,24,"<schema></schema>",31,"<schema></schema>"
 A,0,2,True,0x5938,19,16,,
 A,1,22,True,0x606,19,16,,
-# GET_RAPL_TIME_WINDOW
-P,39,0,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,2,True,0x59a0,23,17,,
-A,1,22,True,0x610,23,17,,
-# GET_RAPL_TIME_WINDOW
-P,39,1,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,2,True,0x59a0,55,49,,
-A,1,22,True,0x610,55,49,,
 # GET_RFPROFILE_BIT_ERROR
 P,265,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_CENTER_FREQUENCY
 P,245,255,1,24,"<schema></schema>",40,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_CHANNEL_NUMBER
 P,260,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_CLIP_PERCENT_LEFT
-P,255,255,2,24,"<schema></schema>",29,"<schema></schema>"
-A,0,29,True,"0",,,,
+P,255,255,1,24,"<schema></schema>",29,"<schema></schema>"
+A,0,1,True,600,,,,
 # GET_RFPROFILE_CLIP_PERCENT_RIGHT
-P,256,255,2,24,"<schema></schema>",29,"<schema></schema>"
-A,0,29,True,"0",,,,
+P,256,255,1,24,"<schema></schema>",29,"<schema></schema>"
+A,0,1,True,600,,,,
 # GET_RFPROFILE_CONNECT_STATUS
 P,264,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"1",,,,
+A,0,1,True,1,,,,
 # GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
 P,254,255,1,24,"<schema></schema>",40,"<schema></schema>"
-A,0,29,True,"162500000",,,,
+A,0,1,True,139500000,,,,
 # GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
 P,257,255,1,24,"<schema></schema>",40,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,1875,,,,
 # GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
-P,246,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+P,246,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,1,True,0,,,,
 # GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT
-P,251,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+P,251,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,1,True,0,,,,
 # GET_RFPROFILE_NOISE_POWER
 P,261,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_NOTCH_LEFT
 P,258,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_NOTCH_RIGHT
 P,259,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_RSSI
 P,263,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_SHAPE_LEFT
 P,247,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_SHAPE_RIGHT
 P,253,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO
 P,262,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,29,True,"0",,,,
+A,0,1,True,0,,,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,2,True,0x5978,7,0,,
-A,2,22,True,0x1b1,22,16,,
+A,2,22,True,0x1b1,22,16,0x2,
 # GET_TEMPERATURE_THRESHOLD_COUNT
 P,72,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,1,True,2,,,,
@@ -260,59 +248,59 @@ P,143,1,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,29,True,"GTT1",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,0,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac0",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac0",,,
 A,1,4,True,"_AC0",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,1,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac1",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac1",,,
 A,1,4,True,"_AC1",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,2,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac2",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac2",,,
 A,1,4,True,"_AC2",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,3,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac3",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac3",,,
 A,1,4,True,"_AC3",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,4,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac4",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac4",,,
 A,1,4,True,"_AC4",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,5,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac5",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac5",,,
 A,1,4,True,"_AC5",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,6,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac6",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac6",,,
 A,1,4,True,"_AC6",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,7,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac7",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac7",,,
 A,1,4,True,"_AC7",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,8,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac8",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac8",,,
 A,1,4,True,"_AC8",,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,9,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac9",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac9",,,
 A,1,4,True,"_AC9",,,,
 # GET_TRIP_POINT_CRITICAL
 P,13,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_crt",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_crt",,,
 A,1,4,True,"_CRT",,,,
 # GET_TRIP_POINT_HOT
 P,12,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_hot",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_hot",,,
 A,1,4,True,"_HOT",,,,
 # GET_TRIP_POINT_PASSIVE
 P,11,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_psv",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_psv",,,
 A,1,4,True,"_PSV",,,,
 # GET_TRIP_POINT_WARM
 P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
 # SET_COOLING_POLICY
 P,81,255,2,32,"<schema></schema>",24,"<schema></schema>"
@@ -348,21 +336,12 @@ A,1,22,True,0x610,15,15,,
 P,222,1,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x59a4,15,15,,
 A,1,22,True,0x610,47,47,,
-# SET_RAPL_TIME_WINDOW
-P,127,0,2,31,"<schema></schema>",24,"<schema></schema>"
-A,0,2,True,0x59a0,23,17,,
-A,1,22,True,0x610,23,17,,
-# SET_RAPL_TIME_WINDOW
-P,127,1,2,31,"<schema></schema>",24,"<schema></schema>"
-A,0,2,True,0x59a4,23,17,,
-A,1,22,True,0x610,55,49,,
 # SET_RFPROFILE_CENTER_FREQUENCY
 P,211,255,2,40,"<schema></schema>",24,"<schema></schema>"
-A,0,29,True,"NIMP",,,,
-A,1,22,True,0xe3,15,0,,
+A,0,29,True,"FNDG",0xe3,0xf,0x0,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 # SET_TEMPERATURE_THRESHOLDS
 P,47,0,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,29,True,"STT0",,,,
@@ -373,46 +352,46 @@ A,0,29,True,"STT1",,,,
 A,1,2,True,0x5820,22,16,,
 # SET_TRIP_POINT_ACTIVE
 P,202,0,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac0",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac0",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,1,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac1",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac1",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,2,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac2",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac2",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,3,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac3",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac3",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,4,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac4",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac4",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,5,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac5",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac5",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,6,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac6",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac6",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,7,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac7",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac7",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,8,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac8",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac8",,,
 # SET_TRIP_POINT_ACTIVE
 P,202,9,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_ac9",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac9",,,
 # SET_TRIP_POINT_CRITICAL
 P,203,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_crt",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_crt",,,
 # SET_TRIP_POINT_HOT
 P,204,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_hot",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_hot",,,
 # SET_TRIP_POINT_PASSIVE
 P,206,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_psv",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_psv",,,
 # SET_TRIP_POINT_WARM
 P,205,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_cr3",,,
 #
 D,"CPU","IA Domain","D1","53071E9E-3E87-46ED-A397-49CA8651D989",1,0
 C,0x1B4 ,0x0,0x0,0x1,0x0,0x1,0x2,0x0,0x1,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x0
@@ -464,17 +443,13 @@ A,1,22,True,0x638,15,15,,
 P,172,255,1,24,"<schema></schema>",27,"<schema></schema>"
 A,0,2,True,0x59a8,31,31,,
 A,1,22,True,0x638,31,31,,
-# GET_RAPL_TIME_WINDOW
-P,39,0,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,2,True,0x59a8,23,17,,
-A,1,22,True,0x638,23,17,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,2,True,0x597c,7,0,,
 # GET_TRIP_POINT_WARM
 P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/trippoint/_cr3",,,
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_cr3",,,
 # GET_TSTATE_CURRENT
 P,16,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,22,True,0x19a,4,0,0x1,
@@ -499,13 +474,9 @@ A,1,22,True,0x638,14,0,,
 P,222,0,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x59a8,15,15,,
 A,1,22,True,0x638,15,15,,
-# SET_RAPL_TIME_WINDOW
-P,127,0,2,31,"<schema></schema>",24,"<schema></schema>"
-A,0,2,True,0x59a8,23,17,,
-A,1,22,True,0x638,23,17,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 # SET_TSTATE_CURRENT
 P,147,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x19a,4,0,0x1,
@@ -539,13 +510,9 @@ A,1,22,True,0x640,15,15,,
 P,172,255,1,24,"<schema></schema>",27,"<schema></schema>"
 A,0,2,True,0x59ac,31,31,,
 A,1,22,True,0x640,31,31,,
-# GET_RAPL_TIME_WINDOW
-P,39,0,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,2,True,0x59ac,23,17,,
-A,1,22,True,0x640,23,17,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,2,True,0x5980,7,0,,
 # SET_PERF_PRESENT_CAPABILITY
 P,82,255,2,3,"<schema></schema>",24,"<schema></schema>"
@@ -558,10 +525,6 @@ A,1,22,True,0x640,14,0,,
 P,222,0,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x59ac,15,15,,
 A,1,22,True,0x640,15,15,,
-# SET_RAPL_TIME_WINDOW
-P,127,0,2,31,"<schema></schema>",24,"<schema></schema>"
-A,0,2,True,0x59ac,23,17,,
-A,1,22,True,0x640,23,17,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
-A,0,20,False,"@ESIF","/participants/%nm%/_tmp",,,
+A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,

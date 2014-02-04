@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TargetLimitAction.h"
 #include <algorithm>
 using namespace std;
@@ -41,12 +42,12 @@ void TargetLimitAction::execute()
         getTargetMonitor().startMonitoring(getTarget());
         
         // choose sources to limit for target
-        postDebugMessage(PolicyMessage(FLF, "Attempting to limit target participant.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit target participant.", getTarget()));
         vector<UIntN> sourcesToLimit = chooseSourcesToLimitForTarget(getTarget());
 
         if (sourcesToLimit.size() > 0)
         {
-            postDebugMessage(PolicyMessage(FLF, constructMessageForSources("limit", getTarget(), sourcesToLimit)));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, constructMessageForSources("limit", getTarget(), sourcesToLimit)));
             for (auto source = sourcesToLimit.begin(); source != sourcesToLimit.end(); source++)
             {
                 // if source is busy now, schedule a callback as soon as possible
@@ -59,7 +60,7 @@ void TargetLimitAction::execute()
                     // limit the appropriate domains for the source and schedule a callback after the next sampling
                     // period
                     vector<UIntN> domains = chooseDomainsToLimitForSource(getTarget(), *source);
-                    postDebugMessage(PolicyMessage(FLF, constructMessageForSourceDomains("limit", getTarget(), *source, domains)));
+                    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, constructMessageForSourceDomains("limit", getTarget(), *source, domains)));
                     for (auto domain = domains.begin(); domain != domains.end(); domain++)
                     {
                         limitDomain(*source, *domain);
@@ -71,13 +72,13 @@ void TargetLimitAction::execute()
         else
         {
             // schedule a callback as soon as possible if there are no sources that can be limited
-            postDebugMessage(PolicyMessage(FLF, "No sources to limit for target.", getTarget()));
+            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "No sources to limit for target.", getTarget()));
             getCallbackScheduler()->scheduleCallbackAfterShortestSamplePeriod(getTarget());
         }
     }
     catch (...)
     {
-        postWarningMessage(PolicyMessage(FLF, "Failed to limit source(s) for target.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(FLF, "Failed to limit source(s) for target.", getTarget()));
     }
 }
 
@@ -172,7 +173,7 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
                 getDomainsSortedByPriorityThenUtilization(source, domainsWithControlKnobsToTurn);
             for (auto domain = domainsSortedByPreference.begin(); domain != domainsSortedByPreference.end(); domain++)
             {
-                if (domain->second.getCurrentUtilization().isPercentageValid() == false)
+                if (domain->second.getCurrentUtilization().isValid() == false)
                 {
                     domainsToLimitSet.insert(domain->first);
                 }
@@ -224,7 +225,7 @@ std::vector<std::pair<UIntN, UtilizationStatus>> TargetLimitAction::getDomainsSo
     {
         DomainPriority domainPriority =
             getParticipantTracker()[source][*domain].getDomainPriorityProperty().getDomainPriority();
-        UtilizationStatus utilStatus(Constants::Invalid);
+        UtilizationStatus utilStatus = UtilizationStatus(Percentage::createInvalid());
         if (domainReportsUtilization(source, *domain))
         {
             utilStatus = getParticipantTracker()[source][*domain].getUtilizationStatus();

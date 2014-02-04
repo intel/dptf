@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ActiveCoolingControl.h"
 #include "StatusFormat.h"
 using namespace std;
@@ -32,7 +33,7 @@ ActiveCoolingControl::ActiveCoolingControl(
     m_domainProperties(domainProperties),
     m_participantProperties(participantProperties),
     m_staticCaps(participantIndex, domainIndex, domainProperties, policyServices),
-    m_lastFanSpeedRequest(Constants::Invalid),
+    m_lastFanSpeedRequest(Percentage::createInvalid()),
     m_lastFanSpeedRequestIndex(Constants::Invalid)
 {
 }
@@ -61,7 +62,7 @@ void ActiveCoolingControl::requestFanSpeedPercentage(UIntN requestorIndex, const
     {
         updateFanSpeedRequestTable(requestorIndex, fanSpeed);
         Percentage highestFanSpeed = chooseHighestFanSpeedRequest();
-        if (highestFanSpeed != m_lastFanSpeedRequest)
+        if ((m_lastFanSpeedRequest.isValid() == false) || (highestFanSpeed != m_lastFanSpeedRequest))
         {
             m_policyServices.domainActiveControl->setActiveControl(
                 m_participantIndex, m_domainIndex, highestFanSpeed);
@@ -101,7 +102,7 @@ void ActiveCoolingControl::updateFanSpeedRequestTable(UIntN requestorIndex, cons
 
 Percentage ActiveCoolingControl::chooseHighestFanSpeedRequest()
 {
-    Percentage highestFanSpeed(0);
+    Percentage highestFanSpeed(0.0);
     for (auto request = m_fanSpeedRequestTable.begin(); request != m_fanSpeedRequestTable.end(); request++)
     {
         if (request->second > highestFanSpeed)
@@ -144,8 +145,8 @@ void ActiveCoolingControl::forceFanOff(void)
         if (supportsFineGrainControl())
         {
             m_policyServices.domainActiveControl->setActiveControl(
-                m_participantIndex, m_domainIndex, Percentage(0));
-            m_lastFanSpeedRequest = Percentage(0);
+                m_participantIndex, m_domainIndex, Percentage(0.0));
+            m_lastFanSpeedRequest = Percentage(0.0);
         }
         else
         {

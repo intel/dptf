@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ParticipantGetSpecificInfo_001.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -139,7 +140,7 @@ void ParticipantGetSpecificInfo_001::RequestPrimitiveTemperatureAndAddToMap(esif
     {
         Temperature temp = m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(primitive,
             Constants::Esif::NoDomain, static_cast<UInt8>(instance));
-        resultMap.insert(std::pair<ParticipantSpecificInfoKey::Type, UIntN>(key, temp.getTemperature()));
+        resultMap.insert(std::pair<ParticipantSpecificInfoKey::Type, UIntN>(key, temp));
     }
     catch (...)
     {

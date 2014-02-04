@@ -22,15 +22,6 @@
 #include "esif_uf_iface.h"
 #define ESIF_INTERFACE_VERSION 1
 
-/* Log Type */
-typedef enum {
-	eLogTypeFatal   = 0,
-	eLogTypeError   = 1,
-	eLogTypeWarning = 2,
-	eLogTypeInfo    = 3,
-	eLogTypeDebug   = 4
-} eLogType;
-
 /*
 
     INTERFACE Flags

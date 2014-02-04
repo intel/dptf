@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,9 +15,9 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PassiveDomainControlStatus.h"
 #include "StatusFormat.h"
-#include <sstream>
 using namespace std;
 using namespace StatusFormat;
 
@@ -25,9 +25,9 @@ PassiveDomainControlStatus::PassiveDomainControlStatus(DomainProxy& domain)
     : m_participantIndex(Constants::Invalid),
     m_domainIndex(Constants::Invalid),
     m_domainName(""),
-    m_domainTemperature(Constants::Invalid),
+    m_domainTemperature(Temperature::createInvalid()),
     m_domainPriority(Constants::Invalid),
-    m_domainUtilization(Constants::Invalid)
+    m_domainUtilization(Percentage::createInvalid())
 {
     aquireDomainStatus(domain);
     addPowerStatus(domain);
@@ -43,10 +43,8 @@ XmlNode* PassiveDomainControlStatus::getXml()
     domainControlStatus->addChild(XmlNode::createDataElement("index", friendlyValue(m_domainIndex)));
     domainControlStatus->addChild(XmlNode::createDataElement("name", m_domainName));
     domainControlStatus->addChild(
-        XmlNode::createDataElement("temperature", friendlyValue(m_domainTemperature.getTemperature())));
-    domainControlStatus->addChild(
-        XmlNode::createDataElement("utilization",
-            friendlyValue(m_domainUtilization.getCurrentUtilization().getPercentage())));
+        XmlNode::createDataElement("temperature", m_domainTemperature.toString()));
+    domainControlStatus->addChild(m_domainUtilization.getXml("utilization"));
     domainControlStatus->addChild(
         XmlNode::createDataElement("priority",
             friendlyValue(m_domainPriority.getCurrentPriority())));
@@ -170,8 +168,8 @@ void PassiveDomainControlStatus::addPowerStatus(DomainProxy& domain)
     if (powerControl.supportsPowerControls())
     {
         // get the min and max power limits
-        Power min(Constants::Invalid);
-        Power max(Constants::Invalid);
+        Power min(Power::createInvalid());
+        Power max(Power::createInvalid());
         try
         {
             UIntN pl1Index = powerControl.getPl1ControlSetIndex();
@@ -184,7 +182,7 @@ void PassiveDomainControlStatus::addPowerStatus(DomainProxy& domain)
         }
 
         // get the current power limit
-        Power current(Constants::Invalid);
+        Power current(Power::createInvalid());
         try
         {
             const PowerControlStatusSet& statusSet = powerControl.getControls();
@@ -195,8 +193,7 @@ void PassiveDomainControlStatus::addPowerStatus(DomainProxy& domain)
         }
 
         // add the control status to the list
-        m_controlStatus.push_back(
-            ControlStatus("Power", min.getPower(), max.getPower(), current.getPower()));
+        m_controlStatus.push_back(ControlStatus("Power", min, max, current));
     }
     else
     {

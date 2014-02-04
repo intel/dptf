@@ -70,6 +70,9 @@
 #define INIT_DEBUG       0
 #define GET_DEBUG        1
 
+#define ESIF_MSR_PLATFORM_INFO 0xCE
+#define ESIF_MSR_BIT_FIVR_RFI_TUNING_AVAIL (1LL << 25)
+
 #define ESIF_TRACE_DYN_INIT(format, ...) \
 	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_ACTION_CODE, \
 		       INIT_DEBUG, \
@@ -136,6 +139,20 @@ static struct esif_data_variant_integer esif_lpat_table[] = {
 	{ESIF_DATA_INT64, 90}, {ESIF_DATA_UINT64, 140},
 	{ESIF_DATA_INT64, 100}, {ESIF_DATA_UINT64, 107}
 };
+
+extern enum esif_rc read_mod_write_msr_bit_range(
+	const u32 msr,
+	const u8 bit_from,
+	const u8 bit_to,
+	u64 val0
+);
+
+static enum esif_rc esif_set_action_code_fndg(
+	struct esif_lp *lp_ptr,
+	const struct esif_primitive_tuple *tuple_ptr,
+	const struct esif_lp_action *action_ptr,
+	const struct esif_data *req_data_ptr
+);
 
 
 /* Temperature will be C and Power will be in mw */
@@ -263,6 +280,10 @@ enum esif_rc esif_set_action_code(
 			tuple_ptr->instance,
 			domain_index,
 			g_affinity);
+		break;
+
+	case 'GDNF':	/* FNDG */
+		rc = esif_set_action_code_fndg(lp_ptr, tuple_ptr, action_ptr, req_data_ptr);
 		break;
 
 	default:
@@ -732,6 +753,7 @@ enum esif_rc esif_get_action_code(
 		break;
 
 	case ESIF_DATA_UINT64:
+	case ESIF_DATA_FREQUENCY:
 		rsp_data_ptr->data_len = sizeof(u64);
 		if (rsp_data_ptr->buf_len >= sizeof(u64))
 			*((u64 *)rsp_data_ptr->buf_ptr) = (u64)val;
@@ -765,6 +787,127 @@ void esif_action_code_exit(void)
 {
 	ESIF_TRACE_DYN_INIT("%s: Exit CODE Action\n", ESIF_FUNC);
 }
+
+
+static enum esif_rc esif_set_action_code_fndg(
+	struct esif_lp *lp_ptr,
+	const struct esif_primitive_tuple *tuple_ptr,
+	const struct esif_lp_action *action_ptr,
+	const struct esif_data *req_data_ptr
+	)
+{
+	enum esif_rc rc = ESIF_OK;
+	u64 msr_plat_info = 0LL;
+	long long center_freq = 0ULL;
+	long long target_freq = 0LL;
+	long long spread_percent = 600LL; /* TODO:  Get by future primitive */
+	long long spread_limit = 0LL;
+	long long delta = 0LL;
+	long long result = 0LL;
+	u32 msr = 0;
+	u8 bit_from = 0;
+	u8 bit_to = 0;
+
+	struct esif_primitive_tuple tuple_get_center_freq = {0};
+	struct esif_data esif_void = {ESIF_DATA_VOID, NULL, 0, 0};
+	struct esif_data esif_center_freq = {ESIF_DATA_FREQUENCY,
+					     &center_freq,
+					     sizeof(center_freq),
+					     sizeof(center_freq)};
+
+	if ((NULL == lp_ptr) || (NULL == tuple_ptr) ||
+	    (NULL == action_ptr) || (NULL == req_data_ptr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	/*
+	 * Verify support first
+	 */
+	rc = esif_ccb_read_msr(0, ESIF_MSR_PLATFORM_INFO, &msr_plat_info);
+	if(ESIF_OK != rc) {
+		goto exit;
+	}
+	if((msr_plat_info & ESIF_MSR_BIT_FIVR_RFI_TUNING_AVAIL) == 0LL) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	/*
+	 * Get the default frequency value for set point calculations.
+	 */
+	tuple_get_center_freq.id = GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY;
+	tuple_get_center_freq.domain = tuple_ptr->domain;
+	tuple_get_center_freq.instance = 255;
+
+	rc = esif_execute_primitive(lp_ptr,
+				    &tuple_get_center_freq,
+				    &esif_void, &esif_center_freq,
+				    NULL);
+	if(rc != ESIF_OK)
+		goto exit;
+
+	if(center_freq == 0LL) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
+
+	/*
+	 * Get the target frequency and determine the change in frequency from
+	 * the center frequency.
+	 */
+	if(req_data_ptr->buf_len < 4) {
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	target_freq = (*(u32*)req_data_ptr->buf_ptr);
+	delta = target_freq - center_freq;
+
+	/*
+	 * Perform bounds checking on the requested frequency.
+	 */
+	spread_limit = (spread_percent * center_freq) / 100 / ESIF_PERCENT_CONV_FACTOR;
+
+	if((delta < -spread_limit) || (spread_limit < delta)) {
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	/*
+	 * Calculate the required encoding.  From the BWG the encoding is found
+	 * as int(value * 2^16 + 0.5); where value is the percentage from the
+	 * center frequency . (Forumula shown is for a positive percentage, the
+	 * forumula for a negative value not shown.) If we use the following:
+	 * value = (target_freq - center_freq) / center_freq or
+	 * value = delta / center_freq
+	 * then
+	 * result = ((delta * 2^16) / center_freq)  + 0.5
+	 * if we say 0.5 = center_freq / (2 * center_freq)
+	 * we can then combine the parts as follows
+	 * result = (((delta * 2^16 ) * 2) + center_freq) / (2 * center_freq)
+	 * and this all simplifies to the formulas used below...
+	 */
+	if(delta >= 0)
+		result = ((delta << 17) + center_freq) / (2LL * center_freq);
+	else
+		result = ((delta << 17) - center_freq) / (2LL * center_freq);
+
+	/*
+	 * Get the MSR information for programming
+	 */
+	msr = action_ptr->get_p2_u32(action_ptr);
+	bit_from = (u8)action_ptr->get_p4_u32(action_ptr);
+	bit_to = (u8)action_ptr->get_p3_u32(action_ptr);
+
+	rc = read_mod_write_msr_bit_range(msr, bit_from, bit_to, result);
+
+exit:
+	return rc;
+}
+
+
+
 
 
 /*****************************************************************************/

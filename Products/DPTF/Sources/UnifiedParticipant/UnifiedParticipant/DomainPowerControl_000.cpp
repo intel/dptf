@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainPowerControl_000.h"
 
 
@@ -44,12 +45,6 @@ void DomainPowerControl_000::clearCachedData(void)
 }
 
 XmlNode* DomainPowerControl_000::getXml(UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
-void DomainPowerControl_000::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
-    ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
     throw not_implemented();
 }

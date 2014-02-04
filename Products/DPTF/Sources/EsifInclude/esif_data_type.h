@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #ifndef _ESIF_DATA_TYPE_H_
 #define _ESIF_DATA_TYPE_H_
 
@@ -54,6 +55,7 @@
     ENUM##_VAL(ESIF_DATA_VOID,24) \
     ENUM##_VAL(ESIF_DATA_XML,38) \
     ENUM##_VAL(ESIF_DATA_DECIBEL,39) \
+    ENUM##_VAL(ESIF_DATA_FREQUENCY, 40) \
 
 enum esif_data_type {
 #ifdef ESIF_ATTR_KERNEL
@@ -90,6 +92,7 @@ enum esif_data_type {
     ESIF_DATA_VOID=24,
     ESIF_DATA_XML=38,
     ESIF_DATA_DECIBEL=39,
+    ESIF_DATA_FREQUENCY=40,
 #else
     ENUM_ESIF_DATA_TYPE(ENUMDECL)
 #endif
@@ -139,6 +142,7 @@ static ESIF_INLINE esif_string esif_data_type_str(enum esif_data_type type)
     CREATE_DATA_TYPE (ESIF_DATA_VOID)
     CREATE_DATA_TYPE (ESIF_DATA_XML)
     CREATE_DATA_TYPE (ESIF_DATA_DECIBEL)
+    CREATE_DATA_TYPE (ESIF_DATA_FREQUENCY)
 #else
     ENUM_ESIF_DATA_TYPE(CREATE_DATA_TYPE)
 #endif

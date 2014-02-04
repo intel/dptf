@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,13 +15,16 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainActiveControl_001.h"
 #include "XmlNode.h"
 
 DomainActiveControl_001::DomainActiveControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+    m_participantServicesInterface(participantServicesInterface),
+    m_activeControlSet(nullptr),
+    m_activeControlStaticCaps(nullptr),
+    m_activeControlStatus(nullptr)
 {
-    initializeDataStructures();
 }
 
 DomainActiveControl_001::~DomainActiveControl_001(void)
@@ -72,8 +75,7 @@ void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN dom
         (*m_activeControlSet)[controlIndex].getControlId(),
         domainIndex);
 
-    delete m_activeControlStatus;
-    m_activeControlStatus = nullptr;
+    DELETE_MEMORY_TC(m_activeControlStatus);
 
     createActiveControlStatus(domainIndex);
 }
@@ -89,31 +91,25 @@ void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN dom
                              setActiveControl function that take a control index as an argument.");
     }
 
+    // FIXME: For now SET_FAN_LEVEL doesn't follow the normal rule for percentages.  For this we pass in a whole number
+    // which would be 90 for 90%.  This is an exception and should be corrected in the future.
+    UInt32 convertedFanSpeedPercentage = static_cast<UInt32>(fanSpeed * 100);
+
     m_participantServicesInterface->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_FAN_LEVEL,
-        fanSpeed.getPercentage(),
+        convertedFanSpeedPercentage,
         domainIndex);
 
-    delete m_activeControlStatus;
-    m_activeControlStatus = nullptr;
+    DELETE_MEMORY_TC(m_activeControlStatus);
 
     createActiveControlStatus(domainIndex);
 }
 
-void DomainActiveControl_001::initializeDataStructures(void)
-{
-    m_activeControlSet = nullptr;
-    m_activeControlStaticCaps = nullptr;
-    m_activeControlStatus = nullptr;
-}
-
 void DomainActiveControl_001::clearCachedData(void)
 {
-    delete m_activeControlSet;
-    delete m_activeControlStaticCaps;
-    delete m_activeControlStatus;
-
-    initializeDataStructures();
+    DELETE_MEMORY_TC(m_activeControlSet);
+    DELETE_MEMORY_TC(m_activeControlStaticCaps);
+    DELETE_MEMORY_TC(m_activeControlStatus);
 }
 
 XmlNode* DomainActiveControl_001::getXml(UIntN domainIndex)

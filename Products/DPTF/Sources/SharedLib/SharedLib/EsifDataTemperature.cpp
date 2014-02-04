@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "EsifDataTemperature.h"
 
 EsifDataTemperature::EsifDataTemperature(void)
@@ -24,7 +25,7 @@ EsifDataTemperature::EsifDataTemperature(void)
 
 EsifDataTemperature::EsifDataTemperature(const Temperature& temperature)
 {
-    initialize(temperature.getTemperature());
+    initialize(temperature);
 }
 
 EsifDataTemperature::operator esif::EsifDataPtr(void)
@@ -34,7 +35,14 @@ EsifDataTemperature::operator esif::EsifDataPtr(void)
 
 EsifDataTemperature::operator Temperature(void) const
 {
-    return Temperature(m_esifDataValue);
+    if (m_esifDataValue == Constants::Invalid)
+    {
+        return Temperature::createInvalid();
+    }
+    else
+    {
+        return Temperature(m_esifDataValue);
+    }
 }
 
 void EsifDataTemperature::initialize(UInt32 data)

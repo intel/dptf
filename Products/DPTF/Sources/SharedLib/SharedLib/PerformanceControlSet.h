@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "PerformanceControl.h"
@@ -27,11 +28,12 @@ class PerformanceControlSet final
 {
 public:
 
-    PerformanceControlSet(std::vector<PerformanceControl> performanceControl);
+    PerformanceControlSet(const std::vector<PerformanceControl>& performanceControl);
     UIntN getCount(void) const;
     XmlNode* getXml(void);
     const PerformanceControl& operator[](UIntN index) const;
     Bool operator==(const PerformanceControlSet& rhs) const;
+    Bool operator!=(const PerformanceControlSet& rhs) const;
 
 private:
 

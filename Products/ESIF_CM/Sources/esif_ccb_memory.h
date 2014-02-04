@@ -58,10 +58,10 @@
 
 #ifdef ESIF_ATTR_USER
 # include "esif.h"
+# include "esif_ccb_atomic.h"
 
 /* Enable Detailed Memory Tracing? */
 # ifdef ESIF_ATTR_MEMTRACE
-#	include "esif_ccb_atomic.h"
 	struct memalloc_s {
 		void			*mem_ptr;
 		size_t			size;
@@ -261,7 +261,9 @@ void esif_ccb_free(void *mem_ptr)
     #endif
 #endif /* ESIF_ATTR_KERNEL */
 #ifdef ESIF_ATTR_USER
-	free(mem_ptr);
+	if (NULL != mem_ptr) {
+		free(mem_ptr);
+	}
 #endif /* ESIF_ATTR_USER */
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ActiveControlStaticCaps.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
@@ -45,6 +46,11 @@ Bool ActiveControlStaticCaps::operator==(const ActiveControlStaticCaps& rhs) con
         ((this->supportsFineGrainedControl() == rhs.supportsFineGrainedControl()) &&
          (this->supportsLowSpeedNotification() == rhs.supportsLowSpeedNotification()) &&
          (this->getStepSize() == rhs.getStepSize()));
+}
+
+Bool ActiveControlStaticCaps::operator!=(const ActiveControlStaticCaps& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* ActiveControlStaticCaps::getXml(void)

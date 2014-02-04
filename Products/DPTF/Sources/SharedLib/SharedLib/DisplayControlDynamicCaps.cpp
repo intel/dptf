@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DisplayControlDynamicCaps.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -38,6 +39,11 @@ Bool DisplayControlDynamicCaps::operator==(const DisplayControlDynamicCaps& rhs)
 {
     return (m_currentUpperLimit == rhs.m_currentUpperLimit &&
             m_currentLowerLimit == rhs.m_currentLowerLimit);
+}
+
+Bool DisplayControlDynamicCaps::operator!=(const DisplayControlDynamicCaps& rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* DisplayControlDynamicCaps::getXml(void)

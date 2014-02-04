@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "PolicyBase.h"
 #include "ParticipantTracker.h"
@@ -65,11 +66,11 @@ private:
 
     // setting target trip point notification
     void setTripPointNotificationForTarget(ParticipantProxy& target, const Temperature& currentTemperature);
-    UIntN determineLowerTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
-    UIntN determineUpperTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
+    Temperature determineLowerTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
+    Temperature determineUpperTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
 
     // selecting a fan speed
-    UIntN selectFanSpeed(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature);
+    Percentage selectFanSpeed(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature);
     UIntN selectActiveControlIndex(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature);
     UIntN findTripPointCrossed(SpecificInfo& tripPoints, const Temperature& temperature);
 

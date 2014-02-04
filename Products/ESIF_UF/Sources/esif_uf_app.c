@@ -55,7 +55,7 @@ static esif_string g_qualifiers[] = {
 };
 
 /* Data For Interface Marshaling */
-static AppDataPtr CreateAppData (esif_string pathBuf)
+static AppDataPtr CreateAppData(esif_string pathBuf)
 {
 	AppDataPtr app_data_ptr = NULL;
 	esif_string full_path   = NULL;
@@ -64,7 +64,6 @@ static AppDataPtr CreateAppData (esif_string pathBuf)
 		goto exit;
 	}
 
-	
 
 	full_path = esif_build_path(pathBuf, ESIF_PATH_LEN, ESIF_DIR_DPTF_POL, NULL);
 
@@ -73,17 +72,18 @@ static AppDataPtr CreateAppData (esif_string pathBuf)
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("%s %s %s\n\n", ESIF_FUNC, (esif_string)pathBuf,	(esif_string)full_path);
+	ESIF_TRACE_DEBUG("%s %s %s\n\n", ESIF_FUNC, (esif_string)pathBuf, (esif_string)full_path);
 
 	app_data_ptr = (AppDataPtr)esif_ccb_malloc(sizeof(AppData));
 	if (NULL == app_data_ptr) {
 		goto exit;
 	}
 
-	app_data_ptr->fPathHome.buf_ptr  = (void*)full_path;
+	app_data_ptr->fPathHome.buf_ptr  = (void *)full_path;
 	app_data_ptr->fPathHome.buf_len  = ESIF_PATH_LEN;
 	app_data_ptr->fPathHome.data_len = (UInt32)esif_ccb_strlen(full_path, ESIF_PATH_LEN);
 	app_data_ptr->fPathHome.type     = ESIF_DATA_STRING;
+	app_data_ptr->fLogLevel          = (eLogType) g_traceLevel;
 
 exit:
 
@@ -96,7 +96,7 @@ exit:
  */
 typedef eEsifError (*GetIfaceFuncPtr)(AppInterfacePtr);
 
-static eEsifError AppCreate (
+static eEsifError AppCreate(
 	EsifAppPtr appPtr,
 	GetIfaceFuncPtr ifaceFuncPtr
 	)
@@ -218,12 +218,9 @@ static eEsifError AppCreate (
 											  appPtr->fHandle,
 											  app_data_ptr,
 											  eAppStateEnabled);
+	esif_ccb_free(app_data_ptr);
 	if (ESIF_OK != rc) {
 		goto exit;
-	}
-
-	if (NULL != app_data_ptr) {
-		esif_ccb_free(app_data_ptr);
 	}
 
 	rc = appPtr->fInterface.fAppGetBannerFuncPtr(appPtr->fHandle, &data_banner);
@@ -240,20 +237,20 @@ exit:
 
 
 #define ASSIGN_DATA_STRING(field, buffer, buffer_len) \
-	field.buf_ptr = buffer; \
-	field.buf_len = buffer_len; \
+	field.buf_ptr  = buffer; \
+	field.buf_len  = buffer_len; \
 	field.data_len = (UInt32)(esif_ccb_strlen(buffer, buffer_len) + 1); \
-	field.type    = ESIF_DATA_STRING;
+	field.type     = ESIF_DATA_STRING;
 
 #define ASSIGN_DATA_GUID(field, buffer) \
-	field.buf_ptr = buffer; \
-	field.buf_len = ESIF_GUID_LEN; \
+	field.buf_ptr  = buffer; \
+	field.buf_len  = ESIF_GUID_LEN; \
 	field.data_len = ESIF_GUID_LEN; \
-	field.type = ESIF_DATA_GUID;
+	field.type     = ESIF_DATA_GUID;
 
 
 /* Data For Interface Marshaling */
-static AppDomainDataPtr CreateDomainData (const struct esif_fpc_domain *domainPtr)
+static AppDomainDataPtr CreateDomainData(const struct esif_fpc_domain *domainPtr)
 {
 	AppDomainDataPtr dom_data_ptr = (AppDomainDataPtr)esif_ccb_malloc(sizeof(AppDomainData));
 
@@ -263,17 +260,17 @@ static AppDomainDataPtr CreateDomainData (const struct esif_fpc_domain *domainPt
 		goto exit;
 	}
 
-	dom_data_ptr->fName.buf_ptr  = (void*)domainPtr->descriptor.name;
+	dom_data_ptr->fName.buf_ptr  = (void *)domainPtr->descriptor.name;
 	dom_data_ptr->fName.buf_len  = ESIF_NAME_LEN;
 	dom_data_ptr->fName.data_len = (UInt32)esif_ccb_strlen(domainPtr->descriptor.name, ESIF_NAME_LEN);
 	dom_data_ptr->fName.type     = ESIF_DATA_STRING;
 
-	dom_data_ptr->fDescription.buf_ptr  = (void*)domainPtr->descriptor.description;
+	dom_data_ptr->fDescription.buf_ptr  = (void *)domainPtr->descriptor.description;
 	dom_data_ptr->fDescription.buf_len  = ESIF_DESC_LEN;
 	dom_data_ptr->fDescription.data_len = (UInt32)esif_ccb_strlen(domainPtr->descriptor.description, ESIF_DESC_LEN);
 	dom_data_ptr->fDescription.type     = ESIF_DATA_STRING;
 
-	dom_data_ptr->fGuid.buf_ptr  = (void*)domainPtr->descriptor.guid;
+	dom_data_ptr->fGuid.buf_ptr  = (void *)domainPtr->descriptor.guid;
 	dom_data_ptr->fGuid.buf_len  = ESIF_GUID_LEN;
 	dom_data_ptr->fGuid.data_len = ESIF_GUID_LEN;
 	dom_data_ptr->fGuid.type     = ESIF_DATA_GUID;
@@ -289,7 +286,7 @@ exit:
 }
 
 
-static eEsifError CreateDomain (
+static eEsifError CreateDomain(
 	UInt8 domainId,
 	EsifAppPtr appPtr,
 	AppParticipantDataMapPtr participantDataMapPtr,
@@ -327,7 +324,7 @@ static eEsifError CreateDomain (
 		participantDataMapPtr->fDomainData[domainId].fAppDomainHandle  = domain_handle;
 		participantDataMapPtr->fDomainData[domainId].fAppDomainDataPtr = domain_data_ptr;
 		participantDataMapPtr->fDomainData[domainId].fQualifier = g_qualifiers[domainId];
-		participantDataMapPtr->fDomainData[domainId].fQualifierId      = *(u16*)g_qualifiers[domainId];
+		participantDataMapPtr->fDomainData[domainId].fQualifierId      = *(u16 *)g_qualifiers[domainId];
 
 		ESIF_TRACE_DEBUG("%s: DomainMap(%u): Name %s Esif(%s) %p Mapped To Handle 0x%p\n", ESIF_FUNC,
 						 domainId,
@@ -354,7 +351,7 @@ exit:
 }
 
 
-static eEsifError CreateDomains (
+static eEsifError CreateDomains(
 	EsifAppPtr appPtr,
 	EsifUpPtr upPtr,
 	AppParticipantDataMapPtr participantDataMapPtr
@@ -387,7 +384,7 @@ exit:
 
 
 /* Data For Interface Marshaling */
-static AppParticipantDataPtr CreateParticipantData (
+static AppParticipantDataPtr CreateParticipantData(
 	const EsifUpPtr upPtr,
 	const EsifUpDataPtr upDataPtr
 	)
@@ -440,7 +437,7 @@ exit:
 }
 
 
-eEsifError EsifAppCreateParticipant (
+eEsifError EsifAppCreateParticipant(
 	const EsifAppPtr appPtr,
 	const EsifUpPtr upPtr
 	)
@@ -512,7 +509,7 @@ exit:
 }
 
 
-static eEsifError DestroyDomain (
+static eEsifError DestroyDomain(
 	EsifAppPtr appPtr,
 	AppParticipantDataMapPtr participantDataMapPtr,
 	AppDomainDataMapPtr domainDataMapPtr
@@ -541,7 +538,7 @@ static eEsifError DestroyDomain (
 }
 
 
-static eEsifError DestroyDomains (
+static eEsifError DestroyDomains(
 	EsifAppPtr appPtr,
 	AppParticipantDataMapPtr participantDataMapPtr
 	)
@@ -561,7 +558,7 @@ static eEsifError DestroyDomains (
 }
 
 
-eEsifError EsifAppDestroyParticipant (
+eEsifError EsifAppDestroyParticipant(
 	const EsifAppPtr appPtr,
 	const EsifUpPtr upPtr
 	)
@@ -596,7 +593,7 @@ eEsifError EsifAppDestroyParticipant (
 						 participant_data_map_ptr->fUpPtr->fInstance,
 						 participant_data_map_ptr->fUpPtr,
 						 participant_data_map_ptr->fAppParticipantHandle);
-						 memset(participant_data_map_ptr, 0, sizeof(*participant_data_map_ptr));
+		memset(participant_data_map_ptr, 0, sizeof(*participant_data_map_ptr));
 	} else {
 		ESIF_TRACE_DEBUG("%s: ParticipantMap(%u) UnMapping Error %s(%d)\n", ESIF_FUNC,
 						 participant_data_map_ptr->fUpPtr->fInstance,
@@ -613,22 +610,20 @@ exit:
 ** PUBLIC
 */
 
-eEsifError EsifAppStart (EsifAppPtr appPtr)
+eEsifError EsifAppStart(EsifAppPtr appPtr)
 {
 	eEsifError rc = ESIF_OK;
 	GetIfaceFuncPtr iface_func_ptr = NULL;
 	esif_string iface_func_name    = GET_APPLICATION_INTERFACE_FUNCTION;
 
 	char libPath[ESIF_LIBPATH_LEN];
-	esif_lib_t lib_handle = 0;
 
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, appPtr->fLibNamePtr);
 	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s", esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, appPtr->fLibNamePtr), ESIF_LIB_EXT);
 
-	ESIF_TRACE_DEBUG("%s libPath=%s\n", ESIF_FUNC, libPath);
-	lib_handle = esif_ccb_library_load(libPath);
+	appPtr->fLibHandle = esif_ccb_library_load(libPath);
 
-	if (0 == lib_handle) {
+	if (NULL == appPtr->fLibHandle) {
 		rc = ESIF_E_UNSPECIFIED;
 		ESIF_TRACE_DEBUG("%s esif_ccb_library_load() %s failed.\n", ESIF_FUNC, libPath);
 		goto exit;
@@ -636,7 +631,7 @@ eEsifError EsifAppStart (EsifAppPtr appPtr)
 
 	ESIF_TRACE_DEBUG("%s esif_ccb_library_load() %s completed.\n", ESIF_FUNC, libPath);
 
-	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(lib_handle, (char*)iface_func_name);
+	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(appPtr->fLibHandle, (char*)iface_func_name);
 	if (NULL == iface_func_ptr) {
 		rc = ESIF_E_UNSPECIFIED;
 		ESIF_TRACE_DEBUG("%s esif_ccb_library_get_func() %s failed.\n", ESIF_FUNC, iface_func_name);
@@ -660,7 +655,7 @@ exit:
 }
 
 
-eEsifError EsifAppStop (EsifAppPtr appPtr)
+eEsifError EsifAppStop(EsifAppPtr appPtr)
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_ASSERT(appPtr != NULL);
@@ -670,13 +665,15 @@ eEsifError EsifAppStop (EsifAppPtr appPtr)
 
 	rc = appPtr->fInterface.fAppDestroyFuncPtr(appPtr->fHandle);
 	if (ESIF_OK == rc) {
+		esif_ccb_free(appPtr->fLibNamePtr);
+		esif_ccb_library_unload(appPtr->fLibHandle);
 		memset(appPtr, 0, sizeof(*appPtr));
 	}
 	return rc;
 }
 
 
-static u8 isEventRegistered (
+static u8 isEventRegistered(
 	u64 RegisteredEvents,
 	enum esif_event_type eventType
 	)
@@ -688,7 +685,7 @@ static u8 isEventRegistered (
 	// left shift the bitMask so the '1' is in the correct position, and then
 	// inspect the bit at that position.
 	//
-	bitMask     = bitMask << (u32) eventType;
+	bitMask     = bitMask << (u32)eventType;
 	returnValue = (RegisteredEvents & bitMask) ? 1 : 0;
 
 	return returnValue;
@@ -696,7 +693,7 @@ static u8 isEventRegistered (
 
 
 /* Lookup participant data for a instance */
-static AppParticipantDataMapPtr find_participant_data_map_from_instance (
+static AppParticipantDataMapPtr find_participant_data_map_from_instance(
 	const EsifAppPtr appPtr,
 	const u8 participantId
 	)
@@ -738,7 +735,7 @@ exit:
 }
 
 
-eEsifError EsifAppEvent (
+eEsifError EsifAppEvent(
 	EsifAppPtr theAppPtr,
 	UInt8 participantId,
 	UInt16 domainId,
@@ -825,7 +822,7 @@ eEsifError EsifAppEvent (
 						 "eventGuid:         %s\n"
 						 "eventData:         %p\n\n",
 						 ESIF_FUNC, appHandle, participantHandle, domainHandle,
-						 esif_guid_print((esif_guid_t*)data_guid.buf_ptr, guid_str),
+						 esif_guid_print((esif_guid_t *)data_guid.buf_ptr, guid_str),
 						 eventData);
 
 		rc = theAppPtr->fInterface.fAppEventFuncPtr(
@@ -842,13 +839,13 @@ exit:
 }
 
 
-eEsifError EsifAppInit ()
+eEsifError EsifAppInit()
 {
 	return ESIF_OK;
 }
 
 
-void EsifAppExit ()
+void EsifAppExit()
 {
 }
 

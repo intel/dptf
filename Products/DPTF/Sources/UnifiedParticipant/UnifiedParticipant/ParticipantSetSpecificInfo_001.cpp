@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ParticipantSetSpecificInfo_001.h"
 
 ParticipantSetSpecificInfo_001::ParticipantSetSpecificInfo_001(ParticipantServicesInterface* participantServicesInterface) :

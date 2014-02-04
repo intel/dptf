@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
@@ -42,7 +43,7 @@ public:
     ~ParticipantProxy();
 
     // domain access
-    void bindDomain(UIntN domainIndex);
+    DomainProxy& bindDomain(UIntN domainIndex);
     void unbindDomain(UIntN domainIndex);
     DomainProxy& operator[](UIntN domainIndex);
     std::vector<UIntN> getDomainIndexes();
@@ -104,5 +105,4 @@ private:
     // services
     PolicyServicesInterfaceContainer m_policyServices;
     std::shared_ptr<TimeInterface> m_time;
-    void postDebugMessage(const PolicyMessage& message);
 };

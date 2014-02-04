@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "Dptf.h"
@@ -64,14 +65,16 @@ public:
     // Event handlers
     virtual void connectedStandbyEntry(void) override final;
     virtual void connectedStandbyExit(void) override final;
-    virtual void domainPowerControlCapabilityChanged(void) override final;
-    virtual void domainPerformanceControlCapabilityChanged(void) override final;
-    virtual void domainPerformanceControlsChanged(void) override final;
-    virtual void domainCoreControlCapabilityChanged(void) override final;
     virtual void domainConfigTdpCapabilityChanged(void) override final;
-    virtual void domainPriorityChanged(void) override final;
+    virtual void domainCoreControlCapabilityChanged(void) override final;
     virtual void domainDisplayControlCapabilityChanged(void) override final;
     virtual void domainDisplayStatusChanged(void) override final;
+    virtual void domainPerformanceControlCapabilityChanged(void) override final;
+    virtual void domainPerformanceControlsChanged(void) override final;
+    virtual void domainPowerControlCapabilityChanged(void) override final;
+    virtual void domainPriorityChanged(void) override final;
+    virtual void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus) override final;
+    virtual void domainRfProfileChanged(void) override final;
     virtual void domainTemperatureThresholdCrossed(void) override final;
     virtual void participantSpecificInfoChanged(void) override final;
 
@@ -102,19 +105,19 @@ public:
     virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN controlLimit,
         Bool isOverridable) override final;
 
-    // Domain Priority
-    virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override final;
-
-    //  Get Specific Info
-    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(
-        UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override final;
-
     // Performance Controls
     virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override final;
     virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
     virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
     virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override final;
     virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override final;
+
+    // Pixel Clock Control
+    virtual void setPixelClockControl(UIntN participantIndex, UIntN domainIndex, const PixelClockDataSet& pixelClockDataSet) override final;
+
+    // Pixel Clock Status
+    virtual PixelClockCapabilities getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual PixelClockDataSet getPixelClockDataSet(UIntN participantIndex, UIntN domainIndex) override final;
 
     // Power Controls
     virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex) override final;
@@ -124,13 +127,15 @@ public:
     // Power Status
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override final;
 
-    // ParticipantProperties
-    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) override final;
-    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) override final;
+    // Domain Priority
+    virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override final;
 
-    // Set Specific Info
-    virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex, const Temperature& temperature) override final;
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex, const CoolingPreference& coolingPreference) override final;
+    // RF Profile Control
+    virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual void setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex, const Frequency& centerFrequency) override final;
+
+    // RF Profile Status
+    virtual RfProfileData getRfProfileData(UIntN participantIndex, UIntN domainIndex) override final;
 
     // Temperature
     virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override final;
@@ -140,6 +145,18 @@ public:
 
     // Utilization
     virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override final;
+
+    //  Get Specific Info
+    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(
+        UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override final;
+
+    // ParticipantProperties
+    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) override final;
+    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) override final;
+
+    // Set Specific Info
+    virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex, const Temperature& temperature) override final;
+    virtual void setParticipantCoolingPolicy(UIntN participantIndex, const CoolingPreference& coolingPreference) override final;
 
 private:
 
@@ -177,9 +194,13 @@ private:
     void createDomainCoreControlFactoryIfMissing(void);
     void createDomainDisplayControlFactoryIfMissing(void);
     void createDomainPerformanceControlFactoryIfMissing(void);
+    void createDomainPixelClockControlFactoryIfMissing(void);
+    void createDomainPixelClockStatusFactoryIfMissing(void);
     void createDomainPowerControlFactoryIfMissing(void);
     void createDomainPowerStatusFactoryIfMissing(void);
     void createDomainPriorityFactoryIfMissing(void);
+    void createDomainRfProfileControlFactoryIfMissing(void);
+    void createDomainRfProfileStatusFactoryIfMissing(void);
     void createDomainTemperatureFactoryIfMissing(void);
     void createDomainUtilizationFactoryIfMissing(void);
     void createParticipantSetSpecificInfoFactoryIfMissing(void);
@@ -196,6 +217,7 @@ private:
     Bool m_domainPriorityEventsRegistered;
     Bool m_performanceControlEventsRegistered;
     Bool m_powerControlEventsRegistered;
+    Bool m_rfProfileEventsRegistered;
     Bool m_temperatureThresholdEventsRegistered;
 
     void updateDomainEventRegistrations(void);
@@ -204,7 +226,7 @@ private:
 
     void throwIfDomainInvalid(UIntN domainIndex);
 
-    void sendConfigTdpInfoToAllDomainsAndCreateNotification();
-    ConfigTdpControlStatus getFirstConfigTdpControlStatus();
-    ConfigTdpControlSet getFirstConfigTdpControlSet();
+    void sendConfigTdpInfoToAllDomainsAndCreateNotification(void);
+    ConfigTdpControlStatus getFirstConfigTdpControlStatus(void);
+    ConfigTdpControlSet getFirstConfigTdpControlSet(void);
 };

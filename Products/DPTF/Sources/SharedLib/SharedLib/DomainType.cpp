@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainType.h"
 #include "esif_domain_type.h"
 #include "DptfExceptions.h"
@@ -61,8 +62,16 @@ namespace DomainType
                 return "WGig";
             case Power:
                 return "Power";
-            case Manager:
-                return "Manager";
+            case Thermistor:
+                return "Thermistor";
+            case Infrared:
+                return "Infrared";
+            case WirelessRfem:
+                return "WirelessRfem";
+            case Virtual:
+                return "Virtual";
+            case Ambient:
+                return "Ambient";
             default:
                 throw dptf_exception("DomainType::Type is invalid.");
         }
@@ -109,8 +118,16 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
             return DomainType::WGig;
         case ESIF_DOMAIN_TYPE_POWER:
             return DomainType::Power;
-        case ESIF_DOMAIN_TYPE_MANAGER:
-            return DomainType::Manager;
+        case ESIF_DOMAIN_TYPE_THERMISTOR:
+            return DomainType::Thermistor;
+        case ESIF_DOMAIN_TYPE_INFRARED:
+            return DomainType::Infrared;
+        case ESIF_DOMAIN_TYPE_WIRELESSRFEM:
+            return DomainType::WirelessRfem;
+        case ESIF_DOMAIN_TYPE_VIRTUAL:
+            return DomainType::Virtual;
+        case ESIF_DOMAIN_TYPE_AMBIENT:
+            return DomainType::Ambient;
         default: break;
     }
 

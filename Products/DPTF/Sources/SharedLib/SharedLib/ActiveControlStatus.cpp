@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "ActiveControlStatus.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
@@ -39,6 +40,11 @@ Bool ActiveControlStatus::operator==(const ActiveControlStatus rhs) const
     return
         ((this->getCurrentControlId() == rhs.getCurrentControlId()) &&
          (this->getCurrentSpeed() == rhs.getCurrentSpeed()));
+}
+
+Bool ActiveControlStatus::operator!=(const ActiveControlStatus rhs) const
+{
+    return !(*this == rhs);
 }
 
 XmlNode* ActiveControlStatus::getXml(void)

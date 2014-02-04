@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,8 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "UtilizationStatus.h"
 #include "XmlNode.h"
+#include "StatusFormat.h"
+using namespace StatusFormat;
 
 UtilizationStatus::UtilizationStatus(Percentage currentUtilization) :
     m_currentUtilization(currentUtilization)
@@ -30,5 +33,5 @@ Percentage UtilizationStatus::getCurrentUtilization(void) const
 
 XmlNode* UtilizationStatus::getXml(std::string tag)
 {
-    return m_currentUtilization.getXml(tag);
+    return XmlNode::createDataElement(tag, m_currentUtilization.toString());
 }

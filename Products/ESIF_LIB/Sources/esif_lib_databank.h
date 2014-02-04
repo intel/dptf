@@ -22,17 +22,13 @@
 #include "esif_uf.h"
 #include "esif_lib_datavault.h"
 
-// Temporary Workaround: Implment global Shell lock to troubleshoot mixed output
-#ifdef  BIG_LOCK
-extern esif_ccb_mutex_t g_shellLock;
-#endif
-
 ///////////////////////////////////////////////////
 // DataBank Class
 
 #define ESIF_MAX_NAME_SPACES        5
 
 // ESIFDV File Definitions
+#define ESIFDV_DEFAULT_NAMESPACE	"dptf"				// Default DataVault/Namespace name
 #define ESIFDV_FILEEXT              ".dv"				// DataVault File Extension
 #define ESIFDV_BAKFILEEXT           ".dvk"				// DataVault File Extension for Backup
 #define ESIFDV_LOGFILEEXT           ".lg"				// DataVault Log File Extension

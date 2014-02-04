@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "BinaryParse.h"
 
 std::vector<PerformanceControl> BinaryParse::genericPpssObject(UInt32 dataLength, void* esifData)
@@ -37,7 +38,7 @@ std::vector<PerformanceControl> BinaryParse::genericPpssObject(UInt32 dataLength
             static_cast<UInt32>(currentRow->control.integer.value),
             PerformanceControlType::PerformanceState,
             static_cast<UInt32>(currentRow->power.integer.value),
-            Percentage(static_cast<UInt32>(currentRow->performancePercentage.integer.value)),
+            Percentage(static_cast<UInt32>(currentRow->performancePercentage.integer.value) / 100.0),
             static_cast<UInt32>(currentRow->latency.integer.value),
             static_cast<UInt32>(currentRow->rawPerformance.integer.value),
             std::string(
@@ -487,35 +488,46 @@ std::vector<PerformanceControl> BinaryParse::processorPssObject(UInt32 dataLengt
     if (dataLength % sizeof(EsifDataBinaryPssPackage))
     {
         // Data size mismatch, should be evenly divisible
-        throw dptf_exception("Data size mismatch.");
+        throw dptf_exception("Failed to parse PSS object.  The length of data received does not match the expected \
+                             data length.");
     }
 
-    for (UIntN i = 0; i < rows; i++)
+    for (UIntN row = 0; row < rows; row++)
     {
-        Percentage* p;
-
         if (controls.empty())
         {
-            p = new Percentage(100);
+            Percentage ratio(1.0);
+            PerformanceControl performanceControl(
+                static_cast<UInt32>(currentRow->control.integer.value),
+                PerformanceControlType::PerformanceState,
+                static_cast<UInt32>(currentRow->power.integer.value),
+                ratio,
+                static_cast<UInt32>(currentRow->latency.integer.value),
+                static_cast<UInt32>(currentRow->coreFrequency.integer.value),
+                std::string("MHz"));
+            controls.push_back(performanceControl);
         }
         else
         {
-            p = new Percentage(static_cast<UIntN>((100 * currentRow->coreFrequency.integer.value)
-                / controls.front().getControlAbsoluteValue()));
+            if (controls.front().getControlAbsoluteValue() != 0)
+            {
+                Percentage ratio((static_cast<UIntN>((100 * currentRow->coreFrequency.integer.value) / 
+                    controls.front().getControlAbsoluteValue())) / 100.0);
+                PerformanceControl performanceControl(
+                    static_cast<UInt32>(currentRow->control.integer.value),
+                    PerformanceControlType::PerformanceState,
+                    static_cast<UInt32>(currentRow->power.integer.value),
+                    ratio,
+                    static_cast<UInt32>(currentRow->latency.integer.value),
+                    static_cast<UInt32>(currentRow->coreFrequency.integer.value),
+                    std::string("MHz"));
+                controls.push_back(performanceControl);
+            }
+            else
+            {
+                throw dptf_exception("Invalid performance control set.  Performance controls will not be available for this domain.");
+            }
         }
-
-        PerformanceControl temp(
-            static_cast<UInt32>(currentRow->control.integer.value),
-            PerformanceControlType::PerformanceState,
-            static_cast<UInt32>(currentRow->power.integer.value),
-            *p,
-            static_cast<UInt32>(currentRow->latency.integer.value),
-            static_cast<UInt32>(currentRow->coreFrequency.integer.value),
-            std::string("MHz"));
-
-        controls.push_back(temp);
-
-        delete p;
 
         data += sizeof(struct EsifDataBinaryPssPackage);
         currentRow = reinterpret_cast<struct EsifDataBinaryPssPackage*>(data);
@@ -541,15 +553,15 @@ std::vector<PerformanceControl> BinaryParse::processorTssObject(PerformanceContr
 
     for (UIntN i = 0; i < rows; i++)
     {
-        Percentage p = static_cast<UIntN>(currentRow->performancePercentage.integer.value);
+        Percentage performancePercentage = static_cast<UIntN>(currentRow->performancePercentage.integer.value) / 100.0;
 
         PerformanceControl temp(
             static_cast<UInt32>(currentRow->control.integer.value),
             PerformanceControlType::ThrottleState,
             static_cast<UInt32>(currentRow->power.integer.value),
-            p,
+            performancePercentage,
             static_cast<UInt32>(currentRow->latency.integer.value),
-            pN.getControlAbsoluteValue() * p.getPercentage() / 100,
+            static_cast<UIntN>(pN.getControlAbsoluteValue() * performancePercentage),
             pN.getValueUnits());
 
         if (temp.getControlAbsoluteValue() != 0)
@@ -589,12 +601,12 @@ std::vector<PerformanceControl> BinaryParse::processorGfxPstates(UInt32 dataLeng
 
         if (controls.empty())
         {
-            p = new Percentage(100);
+            p = new Percentage(1.0);
         }
         else
         {
-            p = new Percentage(static_cast<UIntN>((100 * currentRow->maxRenderFrequency.integer.value)
-                / controls.front().getControlAbsoluteValue()));
+            p = new Percentage((static_cast<UIntN>((100 * currentRow->maxRenderFrequency.integer.value)
+                / controls.front().getControlAbsoluteValue())) / 100.0);
         }
 
         PerformanceControl temp(
@@ -677,8 +689,8 @@ std::vector<PowerControlDynamicCaps> BinaryParse::processorPpccObject(UInt32 dat
             static_cast<UIntN>(currentRow->stepSize.integer.value),
             static_cast<UIntN>(currentRow->timeWindowMinimum.integer.value),
             static_cast<UIntN>(currentRow->timeWindowMaximum.integer.value),
-            Percentage(0),
-            Percentage(0));
+            Percentage(0.0),
+            Percentage(0.0));
 
         // TODO : Need to revisit if there are more than 2 power limits
         if (controls.empty())
@@ -723,7 +735,7 @@ CoreControlLpoPreference* BinaryParse::processorClpoObject(UInt32 dataLength, vo
     preference = new CoreControlLpoPreference(
         (currentRow->lpoEnable.integer.value != 0),
         static_cast<UIntN>(currentRow->startPstateIndex.integer.value),
-        Percentage(static_cast<UIntN>(currentRow->stepSize.integer.value)),
+        Percentage(static_cast<UIntN>(currentRow->stepSize.integer.value) / 100.0),
         static_cast<CoreControlOffliningMode::Type>(currentRow->powerControlSetting.integer.value),
         static_cast<CoreControlOffliningMode::Type>(currentRow->performanceControlSetting.integer.value));
 
@@ -749,7 +761,7 @@ std::vector<DisplayControl> BinaryParse::displayBclObject(UInt32 dataLength, voi
 
     for (UIntN i = 0; i < rows; i++)
     {
-        DisplayControl temp(Percentage(static_cast<UInt32>(currentRow->brightnessLevel.integer.value)));
+        DisplayControl temp(Percentage(static_cast<UInt32>(currentRow->brightnessLevel.integer.value) / 100.0));
 
         controls.push_back(temp);
 

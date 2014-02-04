@@ -33,7 +33,7 @@
 /* Friend */
 EsifActMgr g_actMgr = {0};
 
-static EsifActPtr GetActionFromName (
+static EsifActPtr GetActionFromName(
 	EsifActMgr *THIS,
 	EsifString lib_name
 	)
@@ -120,7 +120,7 @@ static EsifActType g_kernelActions[] = {
 	{0, 0}	/* Must be NULL terminated */
 };
 
-static EsifActTypePtr GetActionType (
+static EsifActTypePtr GetActionType(
 	EsifActMgrPtr THIS,
 	UInt8 type
 	)
@@ -143,7 +143,7 @@ static EsifActTypePtr GetActionType (
 
 
 /* Insert Action Into List */
-static eEsifError AddAction (
+static eEsifError AddAction(
 	EsifActMgrPtr THIS,
 	EsifActTypePtr actionPtr
 	)
@@ -154,7 +154,7 @@ static eEsifError AddAction (
 }
 
 
-static eEsifError RemoveAction (
+static eEsifError RemoveAction(
 	EsifActMgrPtr THIS,
 	EsifActTypePtr type
 	)
@@ -166,7 +166,7 @@ static eEsifError RemoveAction (
 }
 
 
-enum esif_rc EsifActMgrInit ()
+enum esif_rc EsifActMgrInit()
 {
 	enum esif_rc rc = ESIF_OK;
 	u8 i = 0;
@@ -184,8 +184,9 @@ enum esif_rc EsifActMgrInit ()
 	g_actMgr.RemoveActType  = RemoveAction;
 
 	/* Add static Kernel Entries */
-	for (i = 0; g_kernelActions[i].fType; i++)
+	for (i = 0; g_kernelActions[i].fType; i++) {
 		g_actMgr.AddActType(&g_actMgr, &g_kernelActions[i]);
+	}
 
 	/* Action manager must be initialized */
 	EsifActInit();
@@ -194,8 +195,11 @@ enum esif_rc EsifActMgrInit ()
 }
 
 
-void EsifActMgrExit ()
+void EsifActMgrExit()
 {
+	u8 i = 0;
+	EsifActPtr a_act_ptr = NULL;
+
 	/* Call before destroying action manager */
 	EsifActExit();
 
@@ -204,6 +208,15 @@ void EsifActMgrExit ()
 	}
 
 	ESIF_TRACE_DEBUG("%s: Exit Action Manager (ACTMGR)", ESIF_FUNC);
+
+	esif_ccb_read_lock(&g_actMgr.fLock);
+	for (i = 0; i < ESIF_MAX_ACTIONS; i++) {
+		a_act_ptr = &g_actMgr.fEnrtries[i];
+		esif_ccb_free(a_act_ptr->fLibNamePtr);
+		esif_ccb_library_unload(a_act_ptr->fLibHandle);
+		esif_ccb_memset(a_act_ptr, 0, sizeof(*a_act_ptr));
+	}
+	esif_ccb_read_unlock(&g_actMgr.fLock);
 }
 
 

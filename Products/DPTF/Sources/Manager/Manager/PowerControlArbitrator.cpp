@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "PowerControlArbitrator.h"
 #include "Utility.h"
 
@@ -28,13 +29,11 @@ PowerControlArbitrator::PowerControlArbitrator(DptfManager* dptfManager) :
 
 PowerControlArbitrator::~PowerControlArbitrator(void)
 {
-    delete m_arbitratedPowerControlStatusSet;
-    m_arbitratedPowerControlStatusSet = nullptr;
+    DELETE_MEMORY_TC(m_arbitratedPowerControlStatusSet);
 
     for (UIntN i = 0; i < m_requestedPowerControlStatusSet.size(); i++)
     {
-        delete m_requestedPowerControlStatusSet[i];
-        m_requestedPowerControlStatusSet[i] = nullptr;
+        DELETE_MEMORY_TC(m_requestedPowerControlStatusSet[i]);
     }
 }
 
@@ -51,7 +50,7 @@ Bool PowerControlArbitrator::arbitrate(UIntN policyIndex, const PowerControlStat
     if (arbitratedPowerControlStatusSet != *m_arbitratedPowerControlStatusSet)
     {
         arbitratedValueChanged = true;
-        delete m_arbitratedPowerControlStatusSet;
+        DELETE_MEMORY_TC(m_arbitratedPowerControlStatusSet);
         m_arbitratedPowerControlStatusSet = new PowerControlStatusSet(arbitratedPowerControlStatusSet);
     }
 
@@ -67,19 +66,14 @@ void PowerControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
     if (policyIndex < m_requestedPowerControlStatusSet.size())
     {
-        delete m_requestedPowerControlStatusSet[policyIndex];
-        m_requestedPowerControlStatusSet[policyIndex] = nullptr;
+        DELETE_MEMORY_TC(m_requestedPowerControlStatusSet[policyIndex]);
     }
 }
 
 void PowerControlArbitrator::savePolicyRequest(UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet)
 {
     // save data for the specified policy
-    if (m_requestedPowerControlStatusSet[policyIndex] != nullptr)
-    {
-        delete m_requestedPowerControlStatusSet[policyIndex];
-        m_requestedPowerControlStatusSet[policyIndex] = nullptr;
-    }
+    DELETE_MEMORY_TC(m_requestedPowerControlStatusSet[policyIndex]);
     m_requestedPowerControlStatusSet[policyIndex] = new PowerControlStatusSet(powerControlStatusSet);
 }
 
@@ -89,7 +83,7 @@ std::vector<PowerControlStatus> PowerControlArbitrator::createInitialArbitratedP
     std::vector<PowerControlStatus> arbitratedPowerControlStatusVector;
     for (UIntN i = 0; i < PowerControlType::max; i++)
     {
-        PowerControlStatus pcs = PowerControlStatus((PowerControlType::Type)i, Power(), Constants::Invalid, Percentage());
+        PowerControlStatus pcs = PowerControlStatus((PowerControlType::Type)i, Power::createInvalid(), Constants::Invalid, Percentage::createInvalid());
         arbitratedPowerControlStatusVector.push_back(pcs);
     }
 
@@ -106,7 +100,6 @@ void PowerControlArbitrator::arbitrate(std::vector<PowerControlStatus> &arbitrat
         // loop through the request from each policy
         for (UIntN currentPolicy = 0; currentPolicy < m_requestedPowerControlStatusSet.size(); currentPolicy++)
         {
-
             if (m_requestedPowerControlStatusSet[currentPolicy] == nullptr)
             {
                 continue;
@@ -122,9 +115,9 @@ void PowerControlArbitrator::arbitrate(std::vector<PowerControlStatus> &arbitrat
                 if (currentPowerControlStatus.getPowerControlType() == currentPowerControlType)
                 {
                     // Power
-                    if ((currentPowerControlStatus.getCurrentPowerLimit().isPowerValid() == true) &&
-                        ((arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentPowerLimit().isPowerValid() == false) ||
-                        (currentPowerControlStatus.getCurrentPowerLimit() < arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentPowerLimit())))
+                    if ((currentPowerControlStatus.getCurrentPowerLimit().isValid() == true) &&
+                        ((arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentPowerLimit().isValid() == false) ||
+                         (currentPowerControlStatus.getCurrentPowerLimit() < arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentPowerLimit())))
                     {
                         arbitratedPowerControlStatusVector[currentPowerControlType].m_currentPowerLimit =
                             currentPowerControlStatus.getCurrentPowerLimit();
@@ -135,7 +128,7 @@ void PowerControlArbitrator::arbitrate(std::vector<PowerControlStatus> &arbitrat
                     // Time Window
                     if ((currentPowerControlStatus.getCurrentTimeWindow() != Constants::Invalid) &&
                         ((arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentTimeWindow() == Constants::Invalid) ||
-                        (currentPowerControlStatus.getCurrentTimeWindow() < arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentTimeWindow())))
+                         (currentPowerControlStatus.getCurrentTimeWindow() < arbitratedPowerControlStatusVector[currentPowerControlType].getCurrentTimeWindow())))
                     {
                         arbitratedPowerControlStatusVector[currentPowerControlType].m_currentTimeWindow =
                             currentPowerControlStatus.getCurrentTimeWindow();
@@ -156,7 +149,7 @@ PowerControlStatusSet PowerControlArbitrator::getArbitratedPowerControlStatusSet
     for (UIntN i = 0; i < PowerControlType::max; i++)
     {
         PowerControlStatus pcs = arbitratedPowerControlStatusVector[i];
-        if ((pcs.getCurrentPowerLimit().isPowerValid() == true) ||
+        if ((pcs.getCurrentPowerLimit().isValid() == true) ||
             (pcs.getCurrentTimeWindow() != Constants::Invalid))
         {
             reducedPowerControlStatusVector.push_back(pcs);

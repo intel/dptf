@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #ifndef _ESIF_UF_ESIF_IFACE_
 #define _ESIF_UF_ESIF_IFACE_
 
@@ -29,15 +30,6 @@
 #include "esif_uf_app_iface.h"
 
 #define ESIF_INTERFACE_VERSION 1
-
-/* Log Type */
-typedef enum {
-    eLogTypeFatal   = 0,
-    eLogTypeError   = 1,
-    eLogTypeWarning = 2,
-    eLogTypeInfo    = 3,
-    eLogTypeDebug   = 4
-} eLogType;
 
 /*
     INTERFACE Flags

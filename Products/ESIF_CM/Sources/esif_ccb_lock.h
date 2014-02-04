@@ -90,26 +90,55 @@ typedef struct esif_ccb_low_priority_thread_lock {
 } esif_ccb_low_priority_thread_lock_t;
 
 static ESIF_INLINE void esif_ccb_lock_init (esif_ccb_lock_t *lockPtr)
-{WdfSpinLockCreate(WDF_NO_OBJECT_ATTRIBUTES, &lockPtr->lock);}
+{
+	/* TODO: Change creation functions to return status and check in code */
+	NTSTATUS stat;
+	stat = WdfSpinLockCreate(WDF_NO_OBJECT_ATTRIBUTES, &lockPtr->lock);
+	NT_SUCCESS(stat);
+}
 
 #define esif_ccb_lock_uninit(lockPtr)	/* not used */
+
+
+
+_IRQL_raises_(DISPATCH_LEVEL)
+_IRQL_saves_global_(OldIrql, lockPtr->lock)
+_Requires_lock_not_held_(lockPtr->lock)
+_Acquires_lock_(lockPtr->lock)
 static ESIF_INLINE void esif_ccb_write_lock (esif_ccb_lock_t *lockPtr)
 {WdfSpinLockAcquire(lockPtr->lock);}
 
+_IRQL_restores_global_(OldIrql, lockPtr->lock)
+_IRQL_requires_(DISPATCH_LEVEL) 
+_Requires_lock_held_(lockPtr->lock)
+_Releases_lock_(lockPtr->lock)
 static ESIF_INLINE void esif_ccb_write_unlock (esif_ccb_lock_t *lockPtr)
 {WdfSpinLockRelease(lockPtr->lock);}
 
+
+_IRQL_raises_(DISPATCH_LEVEL)
+_IRQL_saves_global_(OldIrql, lockPtr)
+_Acquires_lock_(lockPtr->lock)
 static ESIF_INLINE void esif_ccb_read_lock (esif_ccb_lock_t *lockPtr)
 {WdfSpinLockAcquire(lockPtr->lock);}
 
+_IRQL_restores_global_(OldIrql, lockPtr)
+_IRQL_requires_(DISPATCH_LEVEL) 
+_Releases_lock_(lockPtr->lock)
 static ESIF_INLINE void esif_ccb_read_unlock (esif_ccb_lock_t *lockPtr)
 {WdfSpinLockRelease(lockPtr->lock);}
 
 static ESIF_INLINE void esif_ccb_low_priority_thread_lock_init (
 	esif_ccb_low_priority_thread_lock_t *lockPtr)
-{WdfWaitLockCreate(WDF_NO_OBJECT_ATTRIBUTES, &lockPtr->lock);}
+{
+	/* TODO: Change creation functions to return status and check in code */
+	NTSTATUS stat;
+	stat = WdfWaitLockCreate(WDF_NO_OBJECT_ATTRIBUTES, &lockPtr->lock);
+	NT_SUCCESS(stat);
+}
 
 #define esif_ccb_low_priority_thread_lock_uninit(lockPtr)	/* not used */
+
 static ESIF_INLINE void esif_ccb_low_priority_thread_write_lock (
 	esif_ccb_low_priority_thread_lock_t *lockPtr)
 {WdfWaitLockAcquire(lockPtr->lock, NULL);}	/* Wait forever */
@@ -141,54 +170,56 @@ static ESIF_INLINE void esif_ccb_low_priority_thread_read_unlock (
 
 #ifdef ESIF_ATTR_OS_LINUX
 
+#define PTHREAD_MUTEX_INIT_TYPE(mutex, type)	do { static pthread_mutexattr_t attr; pthread_mutexattr_settype(&attr, type); pthread_mutex_init(mutex, &attr); } while (0)
+
 /* Emulate Critical Section */
 typedef pthread_mutex_t esif_ccb_critical_section_t;
-#define esif_ccb_critical_section_init(cs) pthread_mutex_init(cs, NULL)
-#define esif_ccb_critical_section_uninit pthread_mutex_destroy
-#define esif_ccb_critical_section_enter pthread_mutex_lock
-#define esif_ccb_critical_section_leave pthread_mutex_unlock
+#define esif_ccb_critical_section_init(csPtr) PTHREAD_MUTEX_INIT_TYPE(csPtr, PTHREAD_MUTEX_RECURSIVE)
+#define esif_ccb_critical_section_uninit(csPtr) pthread_mutex_destroy(csPtr)
+#define esif_ccb_critical_section_enter(csPtr) pthread_mutex_lock(csPtr) /* reentrant */
+#define esif_ccb_critical_section_leave(csPtr) pthread_mutex_unlock(csPtr) /* reentrant */
 
 /* Mutex */
 typedef pthread_mutex_t esif_ccb_mutex_t;
-#define esif_ccb_mutex_init(mutex) pthread_mutex_init(mutex, NULL)
-#define esif_ccb_mutex_destroy pthread_mutex_destroy
-#define esif_ccb_mutex_lock pthread_mutex_lock
-#define esif_ccb_mutex_unlock pthread_mutex_unlock
+#define esif_ccb_mutex_init(mutexPtr) PTHREAD_MUTEX_INIT_TYPE(mutexPtr, PTHREAD_MUTEX_RECURSIVE)
+#define esif_ccb_mutex_uninit(mutexPtr) pthread_mutex_destroy(mutexPtr)
+#define esif_ccb_mutex_lock(mutexPtr) pthread_mutex_lock(mutexPtr) /* reentrant */
+#define esif_ccb_mutex_unlock(mutexPtr) pthread_mutex_unlock(mutexPtr) /* reentrant */
 
 /* RW Lock */
 typedef pthread_rwlock_t esif_ccb_lock_t;
 #define esif_ccb_lock_init(lockPtr)     pthread_rwlock_init(lockPtr, NULL)
 #define esif_ccb_lock_uninit(lockPtr)   pthread_rwlock_destroy(lockPtr)
-#define esif_ccb_write_lock(lockPtr)    pthread_rwlock_wrlock(lockPtr)
-#define esif_ccb_write_unlock(lockPtr)  pthread_rwlock_unlock(lockPtr)
-#define esif_ccb_read_lock(lockPtr)     pthread_rwlock_rdlock(lockPtr)
-#define esif_ccb_read_unlock(lockPtr)   pthread_rwlock_unlock(lockPtr)
+#define esif_ccb_write_lock(lockPtr)    pthread_rwlock_wrlock(lockPtr) /* NOT reentrant */
+#define esif_ccb_write_unlock(lockPtr)  pthread_rwlock_unlock(lockPtr) /* NOT reentrant */
+#define esif_ccb_read_lock(lockPtr)     pthread_rwlock_rdlock(lockPtr) /* reentrant */
+#define esif_ccb_read_unlock(lockPtr)   pthread_rwlock_unlock(lockPtr) /* reentrant */
 
 #endif /* ESIF_ATTR_OS_LINUX */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 /* Critical Section */
 typedef CRITICAL_SECTION esif_ccb_critical_section_t;
-#define esif_ccb_critical_section_init InitializeCriticalSection
-#define esif_ccb_critical_section_uninit DeleteCriticalSection
-#define esif_ccb_critical_section_enter EnterCriticalSection
-#define esif_ccb_critical_section_leave LeaveCriticalSection
+#define esif_ccb_critical_section_init(csPtr) InitializeCriticalSection(csPtr)
+#define esif_ccb_critical_section_uninit(csPtr) DeleteCriticalSection(csPtr)
+#define esif_ccb_critical_section_enter(csPtr) EnterCriticalSection(csPtr) /* reentrant */
+#define esif_ccb_critical_section_leave(csPtr) LeaveCriticalSection(csPtr) /* reentrant */
 
 /* Mutex */
 typedef HANDLE esif_ccb_mutex_t;
 #define esif_ccb_mutex_init(mutexPtr) *mutexPtr = CreateMutex(NULL, FALSE, NULL)
-#define esif_ccb_mutex_destroy(mutexPtr) CloseHandle(*mutexPtr)
-#define esif_ccb_mutex_lock(mutexPtr) WaitForSingleObject(*mutexPtr, INFINITE)
-#define esif_ccb_mutex_unlock(mutexPtr) ReleaseMutex(*mutexPtr)
+#define esif_ccb_mutex_uninit(mutexPtr) CloseHandle(*mutexPtr)
+#define esif_ccb_mutex_lock(mutexPtr) WaitForSingleObject(*mutexPtr, INFINITE) /* reentrant */
+#define esif_ccb_mutex_unlock(mutexPtr) ReleaseMutex(*mutexPtr) /* reentrant */
 
 /* RW Lock */
 typedef SRWLOCK esif_ccb_lock_t;
 #define esif_ccb_lock_init(lockPtr)     InitializeSRWLock(lockPtr)
 #define esif_ccb_lock_uninit(lockPtr)	/* not used */
-#define esif_ccb_write_lock(lockPtr)    AcquireSRWLockExclusive(lockPtr)
-#define esif_ccb_write_unlock(lockPtr)  ReleaseSRWLockExclusive(lockPtr)
-#define esif_ccb_read_lock(lockPtr)     AcquireSRWLockShared(lockPtr)
-#define esif_ccb_read_unlock(lockPtr)   ReleaseSRWLockShared(lockPtr)
+#define esif_ccb_write_lock(lockPtr)    AcquireSRWLockExclusive(lockPtr) /* NOT reentrant */
+#define esif_ccb_write_unlock(lockPtr)  ReleaseSRWLockExclusive(lockPtr) /* NOT reentrant */
+#define esif_ccb_read_lock(lockPtr)     AcquireSRWLockShared(lockPtr) /* reentrant */
+#define esif_ccb_read_unlock(lockPtr)   ReleaseSRWLockShared(lockPtr) /* reentrant */
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 #endif /* ESIF_ATTR_USER */

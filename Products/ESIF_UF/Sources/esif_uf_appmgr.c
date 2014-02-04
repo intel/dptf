@@ -16,7 +16,7 @@
 **
 ******************************************************************************/
 
-#define ESIF_TRACE_DEBUG_DISABLED // NOTE: Was Enabled for Windows, Disabled for Linux
+#define ESIF_TRACE_DEBUG_DISABLED	// NOTE: Was Enabled for Windows, Disabled for Linux
 
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_uf_appmgr.h"	/* Application Manager */
@@ -34,7 +34,7 @@
 extern int g_dst;
 EsifAppMgr g_appMgr = {0};
 
-EsifAppPtr GetAppFromHandle (const void *appHandle)
+EsifAppPtr GetAppFromHandle(const void *appHandle)
 {
 	u8 i = 0;
 	EsifAppPtr a_app_ptr = NULL;
@@ -54,7 +54,7 @@ EsifAppPtr GetAppFromHandle (const void *appHandle)
 }
 
 
-static EsifAppPtr GetAppFromName (
+static EsifAppPtr GetAppFromName(
 	EsifAppMgr *THIS,
 	EsifString lib_name
 	)
@@ -69,7 +69,7 @@ static EsifAppPtr GetAppFromName (
 			continue;
 		}
 
-		if (!strcmp(a_app_ptr->fLibNamePtr, lib_name)) {
+		if (!esif_ccb_stricmp(a_app_ptr->fLibNamePtr, lib_name)) {
 			return a_app_ptr;
 		}
 	}
@@ -77,7 +77,7 @@ static EsifAppPtr GetAppFromName (
 }
 
 
-static eEsifError GetPrompt (
+static eEsifError GetPrompt(
 	EsifAppMgr *THIS,
 	EsifDataPtr promptPtr
 	)
@@ -94,22 +94,22 @@ static eEsifError GetPrompt (
 }
 
 
-static char*esif_primitive_domain_str (
+static char *esif_primitive_domain_str(
 	u16 domain,
 	char *str,
 	u8 str_len
 	)
 {
-	u8 *ptr = (u8*)&domain;
+	u8 *ptr = (u8 *)&domain;
 	esif_ccb_sprintf(str_len, str, "%c%c", *(ptr + 1), *ptr);
 	return str;
 }
 
 
-static ESIF_INLINE void ms_guid_to_esif_guid (esif_guid_t *guid)
+static ESIF_INLINE void ms_guid_to_esif_guid(esif_guid_t *guid)
 {
 #ifdef ESIF_ATTR_OS_WINDOWS
-	u8 *ptr = (u8*)guid;
+	u8 *ptr = (u8 *)guid;
 	u8 b[ESIF_GUID_LEN] = {0};
 
 	ESIF_TRACE_DEBUG("%s:\n", ESIF_FUNC);
@@ -126,12 +126,14 @@ static ESIF_INLINE void ms_guid_to_esif_guid (esif_guid_t *guid)
 #endif
 }
 
-eEsifError EsifAppsEventByDomainType (
-	enum esif_domain_type domainType, 
-	eEsifEventType eventType, 
-	EsifDataPtr eventData)
+
+eEsifError EsifAppsEventByDomainType(
+	enum esif_domain_type domainType,
+	eEsifEventType eventType,
+	EsifDataPtr eventData
+	)
 {
-	u8 i = 0;
+	u8 i     = 0;
 	u8 found = ESIF_FALSE;
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
@@ -153,7 +155,8 @@ eEsifError EsifAppsEventByDomainType (
 	}
 }
 
-eEsifError EsifAppsEvent (
+
+eEsifError EsifAppsEvent(
 	UInt8 participantId,
 	UInt16 domainId,
 	enum esif_event_type eventType,
@@ -168,37 +171,37 @@ eEsifError EsifAppsEvent (
 
 	if (NULL == eventData) {
 		ESIF_TRACE_DEBUG("%s: APPLICATION_EVENT_NO_DATA\n"
-				   "ParticipantID: %u\n"
-				   "Domain:        %s(%04X)\n"
-				   "EventType:     %s(%d)\n",
-				   ESIF_FUNC,
-				   participantId,
-				   esif_primitive_domain_str(domainId, domain_str, 8),
-				   domainId,
-				   esif_event_type_str(eventType), eventType);
+						 "ParticipantID: %u\n"
+						 "Domain:        %s(%04X)\n"
+						 "EventType:     %s(%d)\n",
+						 ESIF_FUNC,
+						 participantId,
+						 esif_primitive_domain_str(domainId, domain_str, 8),
+						 domainId,
+						 esif_event_type_str(eventType), eventType);
 	} else {
 		ESIF_TRACE_DEBUG("%s: APPLICATION_EVENT\n"
-				   "ParticipantID: %u\n"
-				   "Domain:        %s(%04X)\n"
-				   "EventType:     %s(%d)\n"
-				   "EventDataType: %s(%d)\n"
-				   "EventData:     %p\n"
-				   "  buf_ptr      %p\n"
-				   "  buf_len      %d\n"
-				   "  data_len     %d\n",
-				   ESIF_FUNC,
-				   participantId,
-				   esif_primitive_domain_str(domainId, domain_str, 8),
-				   domainId,
-				   esif_event_type_str(eventType), eventType,
-				   esif_data_type_str(eventData->type), eventData->type,
-				   eventData,
-				   eventData->buf_ptr, eventData->buf_len, eventData->data_len
-				   );
+						 "ParticipantID: %u\n"
+						 "Domain:        %s(%04X)\n"
+						 "EventType:     %s(%d)\n"
+						 "EventDataType: %s(%d)\n"
+						 "EventData:     %p\n"
+						 "  buf_ptr      %p\n"
+						 "  buf_len      %d\n"
+						 "  data_len     %d\n",
+						 ESIF_FUNC,
+						 participantId,
+						 esif_primitive_domain_str(domainId, domain_str, 8),
+						 domainId,
+						 esif_event_type_str(eventType), eventType,
+						 esif_data_type_str(eventData->type), eventData->type,
+						 eventData,
+						 eventData->buf_ptr, eventData->buf_len, eventData->data_len
+						 );
 
 		if (ESIF_DATA_STRUCTURE == eventData->type && NULL != eventData->buf_ptr) {
 			char guid_str[ESIF_GUID_PRINT_SIZE];
-			struct esif_data_guid_event *ev_ptr = (struct esif_data_guid_event*)eventData->buf_ptr;
+			struct esif_data_guid_event *ev_ptr = (struct esif_data_guid_event *)eventData->buf_ptr;
 
 			UNREFERENCED_PARAMETER(guid_str);
 
@@ -210,7 +213,7 @@ eEsifError EsifAppsEvent (
 				"Data:          %08x\n",
 				esif_guid_print(&ev_ptr->event_GUID, guid_str),
 				ev_ptr->event_context_length,
-				*(UInt32*)ev_ptr->event_context);
+				*(UInt32 *)ev_ptr->event_context);
 		}
 
 		if (ESIF_DATA_STRING == eventData->type && NULL != eventData->buf_ptr) {
@@ -242,7 +245,7 @@ eEsifError EsifAppMgrCreateCreateParticipantInAllApps(const EsifUpPtr upPtr)
 	EsifAppPtr app_ptr = NULL;
 	UInt8 i;
 
-	if(NULL == upPtr) {
+	if (NULL == upPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -269,7 +272,7 @@ eEsifError EsifAppMgrDestroyParticipantInAllApps(const EsifUpPtr upPtr)
 	EsifAppPtr app_ptr = NULL;
 	UInt8 i;
 
-	if(NULL == upPtr) {
+	if (NULL == upPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -277,7 +280,6 @@ eEsifError EsifAppMgrDestroyParticipantInAllApps(const EsifUpPtr upPtr)
 	esif_ccb_read_lock(&g_appMgr.fLock);
 
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-
 		app_ptr = &g_appMgr.fEntries[i];
 
 		if (NULL != app_ptr->fHandle) {
@@ -291,8 +293,7 @@ exit:
 }
 
 
-
-eEsifError EsifAppMgrInit ()
+eEsifError EsifAppMgrInit()
 {
 	eEsifError rc = ESIF_OK;
 
@@ -307,7 +308,7 @@ eEsifError EsifAppMgrInit ()
 }
 
 
-void EsifAppMgrExit ()
+void EsifAppMgrExit()
 {
 	u8 i = 0;
 	EsifAppPtr a_app_ptr = NULL;
@@ -318,11 +319,9 @@ void EsifAppMgrExit ()
 	esif_ccb_read_lock(&g_appMgr.fLock);
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
 		a_app_ptr = &g_appMgr.fEntries[i];
-		
-		if (NULL != a_app_ptr->fLibNamePtr) {
-			esif_ccb_free(a_app_ptr->fLibNamePtr);
-			esif_ccb_memset(a_app_ptr, 0, sizeof(*a_app_ptr));
-		}
+		esif_ccb_free(a_app_ptr->fLibNamePtr);
+		esif_ccb_library_unload(a_app_ptr->fLibHandle);
+		esif_ccb_memset(a_app_ptr, 0, sizeof(*a_app_ptr));
 	}
 	esif_ccb_read_unlock(&g_appMgr.fLock);
 }

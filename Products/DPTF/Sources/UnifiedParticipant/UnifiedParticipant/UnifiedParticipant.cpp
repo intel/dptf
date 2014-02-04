@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,11 +15,14 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "UnifiedParticipant.h"
 #include "ParticipantGetSpecificInfoFactory.h"
 #include "ParticipantSetSpecificInfoFactory.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
+
+static const Guid FormatId(0xF0, 0xCB, 0x64, 0x06, 0xE4, 0x2B, 0x46, 0xB5, 0x9C, 0x85, 0x32, 0xD1, 0xA1, 0xB7, 0xCB, 0x68);
 
 UnifiedParticipant::UnifiedParticipant(void)
 {
@@ -59,6 +62,7 @@ void UnifiedParticipant::initialize(void)
     m_domainPriorityEventsRegistered = false;
     m_performanceControlEventsRegistered = false;
     m_powerControlEventsRegistered = false;
+    m_rfProfileEventsRegistered = false;
     m_temperatureThresholdEventsRegistered = false;
 }
 
@@ -69,9 +73,13 @@ void UnifiedParticipant::createAllMissingClassFactories(void)
     createDomainCoreControlFactoryIfMissing();
     createDomainDisplayControlFactoryIfMissing();
     createDomainPerformanceControlFactoryIfMissing();
+    createDomainPixelClockControlFactoryIfMissing();
+    createDomainPixelClockStatusFactoryIfMissing();
     createDomainPowerControlFactoryIfMissing();
     createDomainPowerStatusFactoryIfMissing();
     createDomainPriorityFactoryIfMissing();
+    createDomainRfProfileControlFactoryIfMissing();
+    createDomainRfProfileStatusFactoryIfMissing();
     createDomainTemperatureFactoryIfMissing();
     createDomainUtilizationFactoryIfMissing();
     createParticipantGetSpecificInfoFactoryIfMissing();
@@ -118,6 +126,22 @@ void UnifiedParticipant::createDomainPerformanceControlFactoryIfMissing(void)
     }
 }
 
+void UnifiedParticipant::createDomainPixelClockControlFactoryIfMissing(void)
+{
+    if (m_classFactories.domainPixelClockControlFactory == nullptr)
+    {
+        m_classFactories.domainPixelClockControlFactory = new DomainPixelClockControlFactory();
+    }
+}
+
+void UnifiedParticipant::createDomainPixelClockStatusFactoryIfMissing(void)
+{
+    if (m_classFactories.domainPixelClockStatusFactory == nullptr)
+    {
+        m_classFactories.domainPixelClockStatusFactory = new DomainPixelClockStatusFactory();
+    }
+}
+
 void UnifiedParticipant::createDomainPowerControlFactoryIfMissing(void)
 {
     if (m_classFactories.domainPowerControlFactory == nullptr)
@@ -139,6 +163,22 @@ void UnifiedParticipant::createDomainPriorityFactoryIfMissing(void)
     if (m_classFactories.domainPriorityFactory == nullptr)
     {
         m_classFactories.domainPriorityFactory = new DomainPriorityFactory();
+    }
+}
+
+void UnifiedParticipant::createDomainRfProfileControlFactoryIfMissing(void)
+{
+    if (m_classFactories.domainRfProfileControlFactory == nullptr)
+    {
+        m_classFactories.domainRfProfileControlFactory = new DomainRfProfileControlFactory();
+    }
+}
+
+void UnifiedParticipant::createDomainRfProfileStatusFactoryIfMissing(void)
+{
+    if (m_classFactories.domainRfProfileStatusFactory == nullptr)
+    {
+        m_classFactories.domainRfProfileStatusFactory = new DomainRfProfileStatusFactory();
     }
 }
 
@@ -211,11 +251,8 @@ void UnifiedParticipant::destroyParticipant(void)
 
     m_participantServicesInterface->unregisterEvent(ParticipantEvent::ParticipantSpecificInfoChanged);
 
-    delete m_getSpecificInfo;
-    m_getSpecificInfo = nullptr;
-
-    delete m_setSpecificInfo;
-    m_setSpecificInfo = nullptr;
+    DELETE_MEMORY_TC(m_getSpecificInfo);
+    DELETE_MEMORY_TC(m_setSpecificInfo);
 }
 
 void UnifiedParticipant::enableParticipant(void)
@@ -265,8 +302,8 @@ void UnifiedParticipant::createDomain(const Guid& guid, UIntN participantIndex, 
     updateDomainEventRegistrations();
 
     //
-    // When domains come on-line, we need to send any known Config TDP information down to all the domains in the 
-    // participant so they can make adjustments to their controls.  Event notifications that the control capabilities 
+    // When domains come on-line, we need to send any known Config TDP information down to all the domains in the
+    // participant so they can make adjustments to their controls.  Event notifications that the control capabilities
     // may have changed are then submitted to the work item queue.
     //
     sendConfigTdpInfoToAllDomainsAndCreateNotification();
@@ -323,8 +360,7 @@ void UnifiedParticipant::destroyDomain(const Guid& guid)
         throw dptf_exception("Domain not found.");
     }
 
-    delete m_domains[i];
-    m_domains[i] = nullptr;
+    DELETE_MEMORY_TC(m_domains[i]);
 
     updateDomainEventRegistrations();
 }
@@ -333,11 +369,7 @@ void UnifiedParticipant::destroyAllDomains(void)
 {
     for (UIntN i = 0; i < m_domains.size(); i++)
     {
-        if (m_domains[i] != nullptr)
-        {
-            delete m_domains[i];
-            m_domains[i] = nullptr;
-        }
+        DELETE_MEMORY_TC(m_domains[i]);
     }
 
     updateDomainEventRegistrations();
@@ -357,6 +389,7 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
     UIntN domainPriorityTotal = 0;
     UIntN performanceControlTotal = 0;
     UIntN powerControlTotal = 0;
+    UIntN rfProfileTotal = 0;
     UIntN temperatureThresholdTotal = 0;
 
     for (UIntN i = 0; i < m_domains.size(); i++)
@@ -373,6 +406,8 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
             domainPriorityTotal += versions.domainPriorityVersion;
             performanceControlTotal += versions.performanceControlVersion;
             powerControlTotal += versions.powerControlVersion;
+            rfProfileTotal += versions.rfProfileControlVersion;
+            rfProfileTotal += versions.rfProfileStatusVersion;
             temperatureThresholdTotal += versions.temperatureVersion;
         }
     }
@@ -398,6 +433,11 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 
     m_powerControlEventsRegistered = updateDomainEventRegistration(powerControlTotal,
         m_powerControlEventsRegistered, ParticipantEvent::Type::DomainPowerControlCapabilityChanged);
+
+    m_rfProfileEventsRegistered = updateDomainEventRegistration(rfProfileTotal,
+        m_rfProfileEventsRegistered,
+        ParticipantEvent::Type::DomainRadioConnectionStatusChanged,
+        ParticipantEvent::Type::DomainRfProfileChanged);
 
     m_temperatureThresholdEventsRegistered = updateDomainEventRegistration(temperatureThresholdTotal,
         m_temperatureThresholdEventsRegistered, ParticipantEvent::Type::DomainTemperatureThresholdCrossed);
@@ -477,7 +517,7 @@ XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
     participantRoot->addChild(XmlNode::createDataElement("index", StatusFormat::friendlyValue(m_participantIndex)));
 
     // FIXME : Remove the const_cast.  All of the get functions should be const if possible.
-    ParticipantProperties props = const_cast<UnifiedParticipant *>(this)->getParticipantProperties(Constants::Invalid);
+    ParticipantProperties props = const_cast<UnifiedParticipant*>(this)->getParticipantProperties(Constants::Invalid);
     participantRoot->addChild(props.getXml());
 
     if (domainIndex == 0 || domainIndex == Constants::Invalid)
@@ -521,7 +561,7 @@ XmlNode* UnifiedParticipant::getStatusAsXml(UIntN domainIndex) const
 {
     XmlNode* participantRoot = XmlNode::createRoot();
 
-    XmlNode* formatId = XmlNode::createComment("format_id=CAFEBEEFCAFEBEEFCAFEBEEFCAFEBEEF");
+    XmlNode* formatId = XmlNode::createComment("format_id=" + FormatId.toString());
 
     participantRoot->addChild(formatId);
 
@@ -543,14 +583,50 @@ void UnifiedParticipant::connectedStandbyExit(void)
     throw implement_me();
 }
 
-void UnifiedParticipant::domainPowerControlCapabilityChanged(void)
+void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
 {
     // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
     for (UIntN i = 0; i < m_domains.size(); i++)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getPowerControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getConfigTdpControlInterfaceExPtr()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainCoreControlCapabilityChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getCoreControlInterfaceExPtr()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainDisplayControlCapabilityChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getDisplayControlInterfaceExPtr()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainDisplayStatusChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getDisplayControlInterfaceExPtr()->clearCachedData();
         }
     }
 }
@@ -579,26 +655,14 @@ void UnifiedParticipant::domainPerformanceControlsChanged(void)
     }
 }
 
-void UnifiedParticipant::domainCoreControlCapabilityChanged(void)
+void UnifiedParticipant::domainPowerControlCapabilityChanged(void)
 {
     // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
     for (UIntN i = 0; i < m_domains.size(); i++)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getCoreControlInterfaceExPtr()->clearCachedData();
-        }
-    }
-}
-
-void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
-{
-    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-    for (UIntN i = 0; i < m_domains.size(); i++)
-    {
-        if (m_domains[i] != nullptr)
-        {
-            m_domains[i]->getConfigTdpControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getPowerControlInterfaceExPtr()->clearCachedData();
         }
     }
 }
@@ -615,28 +679,16 @@ void UnifiedParticipant::domainPriorityChanged(void)
     }
 }
 
-void UnifiedParticipant::domainDisplayControlCapabilityChanged(void)
+void UnifiedParticipant::domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus)
 {
-    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-    for (UIntN i = 0; i < m_domains.size(); i++)
-    {
-        if (m_domains[i] != nullptr)
-        {
-            m_domains[i]->getDisplayControlInterfaceExPtr()->clearCachedData();
-        }
-    }
+    // FIXME
+    throw implement_me();
 }
 
-void UnifiedParticipant::domainDisplayStatusChanged(void)
+void UnifiedParticipant::domainRfProfileChanged(void)
 {
-    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-    for (UIntN i = 0; i < m_domains.size(); i++)
-    {
-        if (m_domains[i] != nullptr)
-        {
-            m_domains[i]->getDisplayControlInterfaceExPtr()->clearCachedData();
-        }
-    }
+    // FIXME
+    throw implement_me();
 }
 
 void UnifiedParticipant::domainTemperatureThresholdCrossed(void)
@@ -720,7 +772,7 @@ void UnifiedParticipant::setConfigTdpControl(UIntN participantIndex, UIntN domai
 
     //
     // If the Config TDP level changes, we need to send that information down to all the domains in the participant
-    // so they can make adjustments to their controls.  Event notifications that the control capabilities may have 
+    // so they can make adjustments to their controls.  Event notifications that the control capabilities may have
     // changed are then submitted to the work item queue.
     //
     sendConfigTdpInfoToAllDomainsAndCreateNotification();
@@ -790,19 +842,6 @@ void UnifiedParticipant::setDisplayControl(UIntN participantIndex, UIntN domainI
         participantIndex, domainIndex, displayControlIndex, isOverridable);
 }
 
-DomainPriority UnifiedParticipant::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getDomainPriorityInterfacePtr()->getDomainPriority(
-        participantIndex, domainIndex);
-}
-
-std::map<ParticipantSpecificInfoKey::Type, UIntN> UnifiedParticipant::getParticipantSpecificInfo(UIntN participantIndex,
-    const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
-{
-    return m_getSpecificInfo->getParticipantSpecificInfo(participantIndex, requestedInfo);
-}
-
 PerformanceControlStaticCaps UnifiedParticipant::getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -838,6 +877,28 @@ void UnifiedParticipant::setPerformanceControl(UIntN participantIndex, UIntN dom
         participantIndex, domainIndex, performanceControlIndex);
 }
 
+void UnifiedParticipant::setPixelClockControl(UIntN participantIndex, UIntN domainIndex,
+    const PixelClockDataSet& pixelClockDataSet)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPixelClockControlInterfacePtr()->setPixelClockControl(participantIndex,
+        domainIndex, pixelClockDataSet);
+}
+
+PixelClockCapabilities UnifiedParticipant::getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPixelClockStatusInterfacePtr()->getPixelClockCapabilities(participantIndex,
+        domainIndex);
+}
+
+PixelClockDataSet UnifiedParticipant::getPixelClockDataSet(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPixelClockStatusInterfacePtr()->getPixelClockDataSet(participantIndex,
+        domainIndex);
+}
+
 PowerControlDynamicCapsSet UnifiedParticipant::getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -864,6 +925,70 @@ PowerStatus UnifiedParticipant::getPowerStatus(UIntN participantIndex, UIntN dom
     throwIfDomainInvalid(domainIndex);
     return m_domains[domainIndex]->getPowerStatusInterfacePtr()->getPowerStatus(
         participantIndex, domainIndex);
+}
+
+DomainPriority UnifiedParticipant::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getDomainPriorityInterfacePtr()->getDomainPriority(
+        participantIndex, domainIndex);
+}
+
+RfProfileCapabilities UnifiedParticipant::getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getRfProfileControlInterfacePtr()->getRfProfileCapabilities(participantIndex,
+        domainIndex);
+}
+
+void UnifiedParticipant::setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex,
+    const Frequency& centerFrequency)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getRfProfileControlInterfacePtr()->setRfProfileCenterFrequency(participantIndex,
+        domainIndex, centerFrequency);
+}
+
+RfProfileData UnifiedParticipant::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getRfProfileStatusInterfacePtr()->getRfProfileData(participantIndex,
+        domainIndex);
+}
+
+TemperatureStatus UnifiedParticipant::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getTemperatureInterfacePtr()->getTemperatureStatus(
+        participantIndex, domainIndex);
+}
+
+TemperatureThresholds UnifiedParticipant::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getTemperatureInterfacePtr()->getTemperatureThresholds(
+        participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
+    const TemperatureThresholds& temperatureThresholds)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getTemperatureInterfacePtr()->setTemperatureThresholds(
+        participantIndex, domainIndex, temperatureThresholds);
+}
+
+UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getUtilizationInterfacePtr()->getUtilizationStatus(
+        participantIndex, domainIndex);
+}
+
+std::map<ParticipantSpecificInfoKey::Type, UIntN> UnifiedParticipant::getParticipantSpecificInfo(UIntN participantIndex,
+    const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
+{
+    return m_getSpecificInfo->getParticipantSpecificInfo(participantIndex, requestedInfo);
 }
 
 ParticipantProperties UnifiedParticipant::getParticipantProperties(UIntN participantIndex)
@@ -900,35 +1025,6 @@ void UnifiedParticipant::setParticipantCoolingPolicy(UIntN participantIndex, con
     m_setSpecificInfo->setParticipantCoolingPolicy(participantIndex, coolingPreference);
 }
 
-TemperatureStatus UnifiedParticipant::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getTemperatureInterfacePtr()->getTemperatureStatus(
-        participantIndex, domainIndex);
-}
-
-TemperatureThresholds UnifiedParticipant::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getTemperatureInterfacePtr()->getTemperatureThresholds(
-        participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
-    const TemperatureThresholds& temperatureThresholds)
-{
-    throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getTemperatureInterfacePtr()->setTemperatureThresholds(
-        participantIndex, domainIndex, temperatureThresholds);
-}
-
-UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getUtilizationInterfacePtr()->getUtilizationStatus(
-        participantIndex, domainIndex);
-}
-
 void UnifiedParticipant::throwIfDomainInvalid(UIntN domainIndex)
 {
     if ((domainIndex >= m_domains.size()) || (m_domains[domainIndex] == nullptr))
@@ -952,18 +1048,9 @@ void UnifiedParticipant::sendConfigTdpInfoToAllDomainsAndCreateNotification()
             {
                 try
                 {
-                    m_domains[domainIndex]->getPowerControlConfigTdpSyncInterfacePtr()->updateBasedOnConfigTdpInformation(
-                        m_participantIndex, domainIndex, configTdpControlSet, configTdpControlStatus);
-                    m_participantServicesInterface->createEventDomainPowerControlCapabilityChanged();
-                }
-                catch (...)
-                {
-                }
-
-                try
-                {
-                    m_domains[domainIndex]->getPerformanceControlConfigTdpSyncInterfacePtr()->updateBasedOnConfigTdpInformation(
-                        m_participantIndex, domainIndex, configTdpControlSet, configTdpControlStatus);
+                    m_domains[domainIndex]->getPerformanceControlConfigTdpSyncInterfacePtr()->
+                        updateBasedOnConfigTdpInformation(m_participantIndex, domainIndex, configTdpControlSet, 
+                        configTdpControlStatus);
                     m_participantServicesInterface->createEventDomainPerformanceControlCapabilityChanged();
                 }
                 catch (...)
@@ -987,7 +1074,7 @@ ConfigTdpControlStatus UnifiedParticipant::getFirstConfigTdpControlStatus()
         {
             try
             {
-                configTdpControlStatus = 
+                configTdpControlStatus =
                     m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlStatus(
                         m_participantIndex, domainIndex);
                 foundStatus = true;
@@ -1019,7 +1106,7 @@ ConfigTdpControlSet UnifiedParticipant::getFirstConfigTdpControlSet()
         {
             try
             {
-                configTdpControlSet = 
+                configTdpControlSet =
                     m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlSet(
                         m_participantIndex, domainIndex);
                 foundControlSet = true;

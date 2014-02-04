@@ -95,6 +95,13 @@ union esif_binary_object {
 	union esif_data_variant *variant_ptr;
 };
 
+enum esif_rc read_mod_write_msr_bit_range(
+	const u32 msr,
+	const u8 bit_from,
+	const u8 bit_to,
+	u64 val0
+);
+
 
 /* Compare */
 static ESIF_INLINE u8 msr_has_same_val(
@@ -131,6 +138,54 @@ static ESIF_INLINE u8 msr_has_same_val(
 	return TRUE;
 }
 
+
+static ESIF_INLINE enum esif_rc read_msr_by_hint(
+	const u32 msr,
+	const u8 bit_from,
+	const u8 bit_to,
+	const u32 hint,
+	u64 *val
+	)
+{
+	u64 curr_val = 0, min_val = ~(0UL), max_val = 0; 
+	u64 cpu_mask, bit_mask; 
+	u32 cpu, i;
+	enum esif_rc rc = ESIF_OK;
+	
+	if (ESIF_ACTION_MSR_HINT_MAX != hint && ESIF_ACTION_MSR_HINT_MIN != hint)
+		return ESIF_E_NOT_IMPLEMENTED;
+
+	for (bit_mask = 0ULL, i = bit_from; i <= bit_to; i++)
+		bit_mask |= (1ULL << i);
+
+	cpu_mask = esif_ccb_get_online_cpu();
+
+	for (cpu = 0; cpu < sizeof(cpu) * 8; cpu++) {
+		/* Active CPUs */ 
+		if ((cpu_mask & (((u64) 0x1UL) << cpu))) {
+			rc = esif_ccb_read_msr((u8)cpu, msr, &curr_val);
+			if (ESIF_OK != rc)
+				return ESIF_E_MSR_IO_FAILURE; 
+
+			/* Mask-n-Shift MSR value */
+			curr_val = curr_val & bit_mask;
+			curr_val = curr_val >> bit_from;
+
+			max_val = (curr_val > max_val) ? curr_val : max_val;
+			min_val = (curr_val < min_val) ? curr_val : min_val;
+			ESIF_TRACE_DYN_GET("%s: msr 0x%x curr %llu max %llu min %llu\n", 
+				ESIF_FUNC, msr, curr_val, max_val, min_val);
+		}
+	}
+
+	if (ESIF_ACTION_MSR_HINT_MAX == hint)
+		*val = max_val; 
+	else
+		*val = min_val; 
+	return rc;
+}  
+
+
 /* Get */
 enum esif_rc esif_get_action_msr(
 	const u32 msr,
@@ -144,8 +199,14 @@ enum esif_rc esif_get_action_msr(
 {
 	union esif_binary_object bin;
 	enum esif_rc rc = ESIF_OK;
-	u64 val         = 0, bit_mask = 0, cpu_mask = 0;
-	u32 i, cpu, has_ok = 0, has_failed = 0, needed_len = 0;
+	u64 val = 0;
+	u64 bit_mask = 0;
+	u64 cpu_mask = 0;
+	u32 i;
+	u32 cpu;
+	u32 has_ok = 0;
+	u32 has_failed = 0;
+	u32 needed_len = 0;
 	u8 cpu_str[8];
 
 	UNREFERENCED_PARAMETER(req_data_ptr);
@@ -166,29 +227,39 @@ enum esif_rc esif_get_action_msr(
 	bin.buf_ptr = (u8 *)rsp_data_ptr->buf_ptr;
 
 	/*
-	 * cpus =  0, Single CPU (CPU-0)
-	 * cpus =  7, Multiple CPUs (CPU-0, 1 and 2)
-	 * cpus = -1, Multiple CPUs (Use all active ones)
+	 * cpus = 0, use single CPU (cpu-0)
+	 * cpus > 0, use UF-provided affinity mask (ex, 5 = CPU-0 and CPU-2) 
+	 * cpus < 0, unspecified, use all active CPUs 
 	 */
 	if (cpus == 0) {
-		/* Mask Bits */
+		/* Mask bits */
 		for (bit_mask = 0ULL, i = bit_from; i <= bit_to; i++)
 			bit_mask |= (1ULL << i);
 
-		/*
-		 * When Hint And UINT Response Value Are Given, Make Sure All
-		 * CPUs Have The Same Value
-		 */
-		if (((int) hint > 0) && !msr_has_same_val(msr, bit_mask))
-			return ESIF_E_MSR_MULTI_VALUES;
+		switch (hint) {
+		case ESIF_ACTION_MSR_HINT_MAX: 
+		case ESIF_ACTION_MSR_HINT_MIN: 
+			rc = read_msr_by_hint(msr, bit_from, bit_to, hint, &val);
+			if (ESIF_OK != rc)
+				return rc; 
+			break;
 
-		/* Use CPU0 By Default To Read 64-Bit Current MSR Value */
-		rc = esif_ccb_read_msr(0, msr, &val);
-		if (ESIF_OK != rc)
-			return ESIF_E_MSR_IO_FAILURE;
+		/* Same MSR value across CPUs */
+		case ESIF_ACTION_MSR_HINT_UNI: 
+			if (!msr_has_same_val(msr, bit_mask)) 
+				return ESIF_E_MSR_MULTI_VALUES;
 
-		val = val & bit_mask;
-		val = val >> bit_from;
+			/* BREAK INTENTIONALLY LEFT OUT */
+
+		/* No Hint (-1), so use CPU0 */
+		default:
+			rc = esif_ccb_read_msr(0, msr, &val);
+			if (ESIF_OK != rc)
+				return ESIF_E_MSR_IO_FAILURE;
+			
+			val = val & bit_mask;
+			val = val >> bit_from;
+		} 
 
 		switch (rsp_data_ptr->type) {
 		/*
@@ -213,6 +284,9 @@ enum esif_rc esif_get_action_msr(
 			break;
 
 		case ESIF_DATA_UINT32:
+		case ESIF_DATA_POWER:
+		case ESIF_DATA_TEMPERATURE:
+		case ESIF_DATA_TIME:
 			rsp_data_ptr->data_len = sizeof(u32);
 			if (rsp_data_ptr->buf_len >= sizeof(u32))
 				*((u32 *)rsp_data_ptr->buf_ptr) = (u32)val;
@@ -221,6 +295,7 @@ enum esif_rc esif_get_action_msr(
 			break;
 
 		case ESIF_DATA_UINT64:
+		case ESIF_DATA_FREQUENCY:
 			rsp_data_ptr->data_len = sizeof(u64);
 			if (rsp_data_ptr->buf_len >= sizeof(u64))
 				*((u64 *)rsp_data_ptr->buf_ptr) = (u64)val;
@@ -334,7 +409,6 @@ enum esif_rc esif_get_action_msr(
 			has_ok,
 			has_failed);
 	}
-
 	return rc;
 }
 
@@ -350,8 +424,14 @@ enum esif_rc esif_set_action_msr(
 	)
 {
 	enum esif_rc rc = ESIF_OK;
-	u64 saved_val   = 0, val = 0, orig_val = 0, bit_mask = 0, cpu_mask = 0;
-	u32 i, has_ok = 0, has_failed = 0;
+	u64 saved_val = 0;
+	u64 val = 0;
+	u64 orig_val = 0;
+	u64 bit_mask = 0;
+	u64 cpu_mask = 0;
+	u32 i;
+	u32 has_ok = 0;
+	u32 has_failed = 0;
 
 	UNREFERENCED_PARAMETER(hint);
 	ESIF_TRACE_DYN_SET(
@@ -393,6 +473,7 @@ enum esif_rc esif_set_action_msr(
 		break;
 
 	case ESIF_DATA_UINT64:
+	case ESIF_DATA_FREQUENCY:
 		if (req_data_ptr->buf_len >= sizeof(u64))
 			val = *((u64 *)req_data_ptr->buf_ptr);
 		else
@@ -435,7 +516,7 @@ enum esif_rc esif_set_action_msr(
 		if (ESIF_OK == rc) {
 			/* Shift Bits, OR Other Original Bits */
 			orig_val &= ~(bit_mask);
-			val = (val << bit_from) | orig_val;
+			val = ((val << bit_from) & bit_mask) | orig_val;
 
 			/* Write MSR 64-Bit Always */
 			rc = esif_ccb_write_msr((u8)0, msr, val);
@@ -527,6 +608,52 @@ void esif_action_msr_exit(void)
 	ESIF_TRACE_DYN_INIT("%s: Exit MSR Action\n", ESIF_FUNC);
 }
 
+
+enum esif_rc read_mod_write_msr_bit_range(
+	const u32 msr,
+	const u8 bit_from,
+	const u8 bit_to,
+	u64 val
+	)
+{
+	enum esif_rc rc = ESIF_OK;
+	u64 bit_mask = 0;
+	u64 orig_val = 0;
+	u32 i;
+
+	esif_ccb_write_lock(&g_esif_action_msr_lock);
+
+	/* Mask Bits */
+	for (bit_mask = 0ULL, i = bit_from; i <= bit_to; i++)
+		bit_mask |= (1ULL << i);
+
+	/* Use CPU0 By Default To Read 64-Bit Current MSR Value */
+	rc = esif_ccb_read_msr((u8)0, msr, &orig_val);
+
+	if (ESIF_OK != rc) {
+		rc = ESIF_E_MSR_IO_FAILURE;
+		goto exit;
+	}
+
+	/* Shift Bits, OR Other Original Bits */
+	orig_val &= ~(bit_mask);
+	val = ((val << bit_from) & bit_mask) | orig_val;
+
+	/* Write MSR 64-Bit Always */
+	rc = esif_ccb_write_msr((u8)0, msr, val);
+	if (ESIF_OK != rc)
+		rc = ESIF_E_MSR_IO_FAILURE;
+
+exit:
+	esif_ccb_write_unlock(&g_esif_action_msr_lock);
+
+	ESIF_TRACE_DYN_GET(
+		"%s: Single write msr 0x%x bit_from %d to %d "
+		"val 0x%llu rc %d\n",
+		ESIF_FUNC, msr, bit_from, bit_to,
+		val, rc);
+	return rc;
+}
 
 /*****************************************************************************/
 /*****************************************************************************/

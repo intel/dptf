@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #ifndef _ESIF_UF_APP_IFACE_
 #define _ESIF_UF_APP_IFACE_
 
@@ -42,6 +43,7 @@ typedef struct _t_AppData {
 
     /* Version 1 */
     esif::EsifData              fPathHome;                          /* Path to home e.g. c:\program files\Intel\DPTF... */
+    eLogType                    fLogLevel;                          /* Current Logging/Trace Level */
 
 } AppData, *AppDataPtr, **AppDataPtrLocation;
 

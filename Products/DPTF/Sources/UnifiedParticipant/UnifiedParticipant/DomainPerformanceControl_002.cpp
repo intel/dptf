@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainPerformanceControl_002.h"
 #include "XmlNode.h"
 
@@ -22,29 +23,29 @@
 
 DomainPerformanceControl_002::DomainPerformanceControl_002(ParticipantServicesInterface* participantServicesInterface) :
     m_participantServicesInterface(participantServicesInterface), m_tdpFrequencyLimitControlIndex(0),
+    m_currentPerformanceControlIndex(Constants::Invalid),
     m_performanceControlDynamicCaps(nullptr), m_performanceControlSet(nullptr), m_performanceControlStaticCaps(nullptr)
-{
-    initializeDataStructures();
+{   
 }
 
 DomainPerformanceControl_002::~DomainPerformanceControl_002(void)
 {
-    clearCachedData();
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlSet);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_002::getPerformanceControlStaticCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
-    return *m_performanceControlStaticCaps;  //This is hard-coded to FALSE in 7.0
+    initializePerformanceControlStaticCapsIfNull();
+    return *m_performanceControlStaticCaps; // This is hard-coded to FALSE in 7.0
 }
 
 PerformanceControlDynamicCaps DomainPerformanceControl_002::getPerformanceControlDynamicCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
+    initializePerformanceControlDynamicCapsIfNull(domainIndex);
     return *m_performanceControlDynamicCaps;
 }
 
@@ -53,35 +54,29 @@ PerformanceControlStatus DomainPerformanceControl_002::getPerformanceControlStat
 {
     if (m_currentPerformanceControlIndex == Constants::Invalid)
     {
-        //m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Perf status index is invalid.", domainIndex));
         throw dptf_exception("No performance control has been set.  No status available.");
     }
-
-    return *m_performanceControlStatus;
+    return PerformanceControlStatus(m_currentPerformanceControlIndex);
 }
 
 PerformanceControlSet DomainPerformanceControl_002::getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
+    initializePerformanceControlSetIfNull(domainIndex);
     return *m_performanceControlSet;
 }
 
 void DomainPerformanceControl_002::setPerformanceControl(UIntN participantIndex, UIntN domainIndex,
     UIntN performanceControlIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
-    // Bounds checking...
-    verifyPerformanceControlIndex(performanceControlIndex);
+    initializePerformanceControlDynamicCapsIfNull(domainIndex);
+    initializePerformanceControlSetIfNull(domainIndex);
+    throwIfPerformanceControlIndexIsInvalid(performanceControlIndex);
 
     PerformanceControlType::Type targetType =
         (*m_performanceControlSet)[performanceControlIndex].getPerformanceControlType();
-
     switch (targetType)
     {
         case PerformanceControlType::PerformanceState:
-
             // Set T0
             if (!m_throttlingStateSet.empty())
             {
@@ -90,176 +85,94 @@ void DomainPerformanceControl_002::setPerformanceControl(UIntN participantIndex,
                     m_throttlingStateSet.at(0).getControlId(),
                     domainIndex);
             }
-
             m_participantServicesInterface->primitiveExecuteSetAsUInt32(
                 esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
                 performanceControlIndex,
                 domainIndex);
-
             break;
-
         case PerformanceControlType::ThrottleState:
-
             // Set Pn
             m_participantServicesInterface->primitiveExecuteSetAsUInt32(
                 esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
                 static_cast<UIntN>(m_performanceStateSet.size()) - 1,
                 domainIndex);
-
             m_participantServicesInterface->primitiveExecuteSetAsUInt32(
                 esif_primitive_type::SET_TSTATE_CURRENT,
                 (*m_performanceControlSet)[performanceControlIndex].getControlId(),
                 domainIndex);
-
             break;
-
         default:
             throw dptf_exception("Invalid performance state requested.");
             break;
     }
 
     m_currentPerformanceControlIndex = performanceControlIndex;
-
-    // Refresh the status
-    if (m_performanceControlStatus != nullptr)
-    {
-        delete m_performanceControlStatus;
-    }
-    m_performanceControlStatus = new PerformanceControlStatus(m_currentPerformanceControlIndex);
-}
-
-void DomainPerformanceControl_002::initializeDataStructures(void)
-{
-    m_performanceControlDynamicCaps = nullptr;
-    m_performanceControlSet = nullptr;
-    m_performanceControlStaticCaps = nullptr;
-
-    m_currentPerformanceControlIndex = Constants::Invalid;
-    m_performanceControlStatus = new PerformanceControlStatus(m_currentPerformanceControlIndex);
 }
 
 void DomainPerformanceControl_002::clearCachedData(void)
 {
-    // TODO : Replace with Price's macro for doing nullptr checks before delete
-    delete m_performanceControlDynamicCaps;
-    delete m_performanceControlSet;
-    delete m_performanceControlStaticCaps;
-    delete m_performanceControlStatus;
-
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+    DELETE_MEMORY_TC(m_performanceControlSet);
+    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
     m_performanceStateSet.clear();
     m_throttlingStateSet.clear();
-    initializeDataStructures();
 }
 
-void DomainPerformanceControl_002::createPerformanceControlDynamicCaps(UIntN domainIndex)
+void DomainPerformanceControl_002::initializePerformanceControlStaticCapsIfNull()
 {
-    // 7.0 Reference : ProcCpuPerfControl.c -> ProcCalPerfControlCapability
-
-    // Get dynamic caps for P-states
-    UIntN pStateUpperLimitIndex;
-    UIntN pStateLowerLimitIndex;
-
-    calculatePerformanceStateLimits(pStateUpperLimitIndex, pStateLowerLimitIndex, domainIndex);
-
-    // Get dynamic caps for T-states
-
-    UIntN tStateUpperLimitIndex = Constants::Invalid;
-    UIntN tStateLowerLimitIndex = Constants::Invalid;
-
-    if (!m_throttlingStateSet.empty())
+    if (m_performanceControlStaticCaps == nullptr)
     {
-        calculateThrottlingStateLimits(tStateUpperLimitIndex, tStateLowerLimitIndex, domainIndex);
+        m_performanceControlStaticCaps = new PerformanceControlStaticCaps(false);
     }
-
-    // Arbitrate dynamic caps
-    // Upper Limit
-
-    UIntN performanceUpperLimitIndex = Constants::Invalid;
-    UIntN performanceLowerLimitIndex = Constants::Invalid;
-
-    arbitratePerformanceStateLimits(pStateUpperLimitIndex, pStateLowerLimitIndex,
-        tStateUpperLimitIndex, tStateLowerLimitIndex,
-        performanceUpperLimitIndex, performanceLowerLimitIndex);
-
-    m_performanceControlDynamicCaps = new PerformanceControlDynamicCaps(performanceLowerLimitIndex, performanceUpperLimitIndex);
 }
 
-void DomainPerformanceControl_002::createPerformanceControlSet(UIntN domainIndex)
+void DomainPerformanceControl_002::initializePerformanceControlDynamicCapsIfNull(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_PROC_PERF_SUPPORT_STATES,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
-
-    m_performanceStateSet = BinaryParse::processorPssObject(dataLength, binaryData);
-
-    if (m_performanceStateSet.empty())
+    if (m_performanceControlDynamicCaps == nullptr)
     {
-        throw dptf_exception("P-state set is empty.  \
-          Impossible if we support performance controls.");
+        // 7.0 Reference : ProcCpuPerfControl.c -> ProcCalPerfControlCapability
+
+        // Get dynamic caps for P-states
+        UIntN pStateUpperLimitIndex;
+        UIntN pStateLowerLimitIndex;
+
+        calculatePerformanceStateLimits(pStateUpperLimitIndex, pStateLowerLimitIndex, domainIndex);
+
+        // Get dynamic caps for T-states
+        UIntN tStateUpperLimitIndex = Constants::Invalid;
+        UIntN tStateLowerLimitIndex = Constants::Invalid;
+        if (!m_throttlingStateSet.empty())
+        {
+            calculateThrottlingStateLimits(tStateUpperLimitIndex, tStateLowerLimitIndex, domainIndex);
+        }
+
+        // Arbitrate dynamic caps
+        // Upper Limit
+        UIntN performanceUpperLimitIndex = Constants::Invalid;
+        UIntN performanceLowerLimitIndex = Constants::Invalid;
+        arbitratePerformanceStateLimits(pStateUpperLimitIndex, pStateLowerLimitIndex,
+            tStateUpperLimitIndex, tStateLowerLimitIndex,
+            performanceUpperLimitIndex, performanceLowerLimitIndex);
+        m_performanceControlDynamicCaps = new PerformanceControlDynamicCaps(performanceLowerLimitIndex, 
+            performanceUpperLimitIndex);
     }
-
-    binaryData.deallocate();
-    binaryData.allocate(Constants::DefaultBufferSize, true);
-
-    // Get T-States
-    try
-    {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_TSTATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-
-        m_throttlingStateSet = BinaryParse::processorTssObject(m_performanceStateSet.back(), dataLength, binaryData);
-
-        binaryData.deallocate();
-    }
-    catch (...)
-    {
-        // T-States aren't supported.
-        binaryData.deallocate();
-    }
-
-    // Create all encompassing set (P and T states)
-    //    P-States
-    std::vector<PerformanceControl> combinedStateSet(m_performanceStateSet);
-
-    //    T-States
-    combinedStateSet.insert(combinedStateSet.end(),
-        m_throttlingStateSet.begin(), m_throttlingStateSet.end());
-
-    ParticipantMessage message = ParticipantMessage(FLF, "Performance controls created.");
-    message.addMessage("Total Entries", combinedStateSet.size());
-    message.addMessage("P-State Count", m_performanceStateSet.size());
-    message.addMessage("T-State Count", m_throttlingStateSet.size());
-    m_participantServicesInterface->writeMessageInfo(message);
-
-    m_performanceControlSet = new PerformanceControlSet(combinedStateSet);
 }
 
 void DomainPerformanceControl_002::calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex)
 {
+    initializePerformanceControlSetIfNull(domainIndex);
     pStateUpperLimitIndex =
         m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-            esif_primitive_type::GET_PROC_PERF_PRESENT_CAPABILITY,
-            domainIndex);
+        esif_primitive_type::GET_PROC_PERF_PRESENT_CAPABILITY,
+        domainIndex);
 
     try
     {
         // _PDL is an optional object
         pStateLowerLimitIndex =
             m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_PROC_PERF_PSTATE_DEPTH_LIMIT,
-                domainIndex);
+            esif_primitive_type::GET_PROC_PERF_PSTATE_DEPTH_LIMIT,
+            domainIndex);
     }
     catch (dptf_exception)
     {
@@ -279,9 +192,7 @@ void DomainPerformanceControl_002::calculatePerformanceStateLimits(UIntN& pState
 
     if (pStateUpperLimitIndex > pStateLowerLimitIndex)
     {
-        // Update per review w/Vasu : If the limits are bad, ignore the lower limit.  Don't fail this control.
-
-        //throw dptf_exception("The P-state limit indexes are mismatched");
+        // Update per review w/Vasu: If the limits are bad, ignore the lower limit.  Don't fail this control.
         m_participantServicesInterface->writeMessageWarning(
             ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
         pStateLowerLimitIndex = static_cast<UIntN>(m_performanceStateSet.size() - 1);
@@ -295,8 +206,8 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(UIntN& tStateU
     {
         tStateUpperLimitIndex =
             m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_PROC_PERF_THROTTLE_PRESENT_CAPABILITY,
-                domainIndex);
+            esif_primitive_type::GET_PROC_PERF_THROTTLE_PRESENT_CAPABILITY,
+            domainIndex);
     }
     catch (dptf_exception)
     {
@@ -310,8 +221,8 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(UIntN& tStateU
         // _TDL is an optional object
         tStateLowerLimitIndex =
             m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_PROC_PERF_TSTATE_DEPTH_LIMIT,
-                domainIndex);
+            esif_primitive_type::GET_PROC_PERF_TSTATE_DEPTH_LIMIT,
+            domainIndex);
     }
     catch (dptf_exception)
     {
@@ -331,9 +242,7 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(UIntN& tStateU
 
     if (tStateUpperLimitIndex > tStateLowerLimitIndex)
     {
-        // Update per review w/Vasu : If the limits are bad, ignore the lower limit.  Don't fail this control.
-
-        //throw dptf_exception("The T-state limit indexes are mismatched");
+        // Update per review w/Vasu: If the limits are bad, ignore the lower limit.  Don't fail this control.
         m_participantServicesInterface->writeMessageWarning(
             ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
         tStateLowerLimitIndex = static_cast<UIntN>(m_throttlingStateSet.size() - 1);
@@ -362,20 +271,18 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
         // Ignore PPC/PDL if TPC is non-zero, ignore P-states
         if (tStateUpperLimitIndex != 0)
         {
-            m_participantServicesInterface->writeMessageInfo(
+            m_participantServicesInterface->writeMessageDebug(
                 ParticipantMessage(FLF, "P-states are being ignored because of the T-State upper dynamic cap."));
             performanceUpperLimitIndex = static_cast<UIntN>(m_performanceStateSet.size() + tStateUpperLimitIndex);
         }
-
         performanceUpperLimitIndex = pStateUpperLimitIndex;
     }
     performanceUpperLimitIndex = std::max(performanceUpperLimitIndex, m_tdpFrequencyLimitControlIndex);
 
     //  Lower Limit
-
-    // Lower P is P(n)
     if (pStateLowerLimitIndex == (m_performanceStateSet.size() - 1))
     {
+        // Lower P is P(n)
         if (m_throttlingStateSet.empty())
         {
             performanceLowerLimitIndex = pStateLowerLimitIndex;
@@ -385,10 +292,10 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
             performanceLowerLimitIndex = static_cast<UIntN>(m_performanceStateSet.size() + tStateLowerLimitIndex);
         }
     }
-    else //Lower P is NOT P(n), ignore T-states
+    else
     {
+        //Lower P is NOT P(n), ignore T-states
         performanceLowerLimitIndex = pStateLowerLimitIndex;
-
         if (!m_throttlingStateSet.empty())
         {
             m_participantServicesInterface->writeMessageWarning(
@@ -397,7 +304,78 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
     }
 }
 
-void DomainPerformanceControl_002::verifyPerformanceControlIndex(UIntN performanceControlIndex)
+void DomainPerformanceControl_002::initializePerformanceControlSetIfNull(UIntN domainIndex)
+{
+    if (m_performanceControlSet == nullptr)
+    {
+        UInt32 dataLength = 0;
+        DptfMemory binaryData(Constants::DefaultBufferSize);
+
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_PROC_PERF_SUPPORT_STATES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+
+        try
+        {
+            m_performanceStateSet = BinaryParse::processorPssObject(dataLength, binaryData);
+            if (m_performanceStateSet.empty())
+            {
+                throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");
+            }
+        }
+        catch (dptf_exception& ex)
+        {
+            m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
+        }
+
+        binaryData.deallocate();
+
+        // Get T-States
+        if (m_performanceStateSet.empty() == false)
+        {
+            try
+            {
+                binaryData.allocate(Constants::DefaultBufferSize, true);
+                m_participantServicesInterface->primitiveExecuteGet(
+                    esif_primitive_type::GET_TSTATES,
+                    ESIF_DATA_BINARY,
+                    binaryData,
+                    binaryData.getSize(),
+                    &dataLength,
+                    domainIndex);
+                m_throttlingStateSet = BinaryParse::processorTssObject(m_performanceStateSet.back(), dataLength, binaryData);
+                binaryData.deallocate();
+            }
+            catch (...)
+            {
+                // T-States aren't supported.
+                binaryData.deallocate();
+            }
+        }
+
+        // Create all encompassing set (P and T states)
+        //    P-States
+        std::vector<PerformanceControl> combinedStateSet(m_performanceStateSet);
+
+        //    T-States
+        combinedStateSet.insert(combinedStateSet.end(),
+            m_throttlingStateSet.begin(), m_throttlingStateSet.end());
+
+        ParticipantMessage message = ParticipantMessage(FLF, "Performance controls created.");
+        message.addMessage("Total Entries", combinedStateSet.size());
+        message.addMessage("P-State Count", m_performanceStateSet.size());
+        message.addMessage("T-State Count", m_throttlingStateSet.size());
+        m_participantServicesInterface->writeMessageDebug(message);
+
+        m_performanceControlSet = new PerformanceControlSet(combinedStateSet);
+    }
+}
+
+void DomainPerformanceControl_002::throwIfPerformanceControlIndexIsInvalid(UIntN performanceControlIndex)
 {
     if (performanceControlIndex >= m_performanceControlSet->getCount())
     {
@@ -424,30 +402,14 @@ void DomainPerformanceControl_002::verifyPerformanceControlIndex(UIntN performan
     }
 }
 
-void DomainPerformanceControl_002::checkAndCreateControlStructures(UIntN domainIndex)
-{
-    if (m_performanceControlSet == nullptr)
-    {
-        createPerformanceControlSet(domainIndex);
-    }
-
-    if (m_performanceControlDynamicCaps == nullptr)
-    {
-        createPerformanceControlDynamicCaps(domainIndex);
-    }
-
-    if (m_performanceControlStaticCaps == nullptr)
-    {
-        createPerformanceControlStaticCaps();
-    }
-}
-
 XmlNode* DomainPerformanceControl_002::getXml(UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
+    initializePerformanceControlStaticCapsIfNull();
+    initializePerformanceControlDynamicCapsIfNull(domainIndex);
+    initializePerformanceControlSetIfNull(domainIndex);
 
     XmlNode* root = XmlNode::createWrapperElement("performance_control");
-    root->addChild(m_performanceControlStatus->getXml());
+    root->addChild(PerformanceControlStatus(m_currentPerformanceControlIndex).getXml());
     root->addChild(m_performanceControlDynamicCaps->getXml());
     root->addChild(m_performanceControlStaticCaps->getXml());
     root->addChild(m_performanceControlSet->getXml());
@@ -456,12 +418,7 @@ XmlNode* DomainPerformanceControl_002::getXml(UIntN domainIndex)
     return root;
 }
 
-void DomainPerformanceControl_002::createPerformanceControlStaticCaps()
-{
-    m_performanceControlStaticCaps = new PerformanceControlStaticCaps(false);
-}
-
-void DomainPerformanceControl_002::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
+void DomainPerformanceControl_002::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
     ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
     UIntN tdpFrequencyLimit = configTdpControlSet[configTdpControlStatus.getCurrentControlIndex()].getTdpFrequency();
@@ -475,9 +432,5 @@ void DomainPerformanceControl_002::updateBasedOnConfigTdpInformation(UIntN parti
         }
     }
 
-    if (m_performanceControlDynamicCaps != nullptr)
-    {
-        delete m_performanceControlDynamicCaps;
-        m_performanceControlDynamicCaps = nullptr;
-    }
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
 }

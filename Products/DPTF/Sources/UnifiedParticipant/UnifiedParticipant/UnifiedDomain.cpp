@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "UnifiedDomain.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
@@ -22,9 +23,9 @@
 UnifiedDomain::UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, Bool domainEnabled, DomainType::Type domainType, std::string domainName,
     std::string domainDescription, DomainFunctionalityVersions domainFunctionalityVersions,
     const ClassFactories& classFactories, ParticipantServicesInterface* participantServicesInterface) : m_guid(guid),
-    m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_enabled(domainEnabled), 
-    m_domainType(domainType), m_name(domainName), m_description(domainDescription), 
-    m_domainFunctionalityVersions(domainFunctionalityVersions), 
+    m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_enabled(domainEnabled),
+    m_domainType(domainType), m_name(domainName), m_description(domainDescription),
+    m_domainFunctionalityVersions(domainFunctionalityVersions),
     m_participantServicesInterface(participantServicesInterface)
 {
     // if an error is thrown we don't want to catch it as the domain can't be created anyway.
@@ -32,10 +33,14 @@ UnifiedDomain::UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN dom
     createConfigTdpControlObject(classFactories, participantServicesInterface);
     createCoreControlObject(classFactories, participantServicesInterface);
     createDisplayControlObject(classFactories, participantServicesInterface);
-    createDomainPriorityObject(classFactories, participantServicesInterface);
     createPerformanceControlObject(classFactories, participantServicesInterface);
+    createPixelClockControlObject(classFactories, participantServicesInterface);
+    createPixelClockStatusObject(classFactories, participantServicesInterface);
     createPowerControlObject(classFactories, participantServicesInterface);
     createPowerStatusObject(classFactories, participantServicesInterface);
+    createDomainPriorityObject(classFactories, participantServicesInterface);
+    createRfProfileControlObject(classFactories, participantServicesInterface);
+    createRfProfileStatusObject(classFactories, participantServicesInterface);
     createTemperatureObject(classFactories, participantServicesInterface);
     createUtilizationObject(classFactories, participantServicesInterface);
 }
@@ -43,16 +48,20 @@ UnifiedDomain::UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN dom
 UnifiedDomain::~UnifiedDomain(void)
 {
     // destroy all objects created in the constructor
-    delete m_activeControl;
-    delete m_configTdpControl;
-    delete m_coreControl;
-    delete m_displayControl;
-    delete m_domainPriority;
-    delete m_performanceControl;
-    delete m_powerControl;
-    delete m_powerStatus;
-    delete m_temperature;
-    delete m_utilization;
+    DELETE_MEMORY_TC(m_activeControl);
+    DELETE_MEMORY_TC(m_configTdpControl);
+    DELETE_MEMORY_TC(m_coreControl);
+    DELETE_MEMORY_TC(m_displayControl);
+    DELETE_MEMORY_TC(m_performanceControl);
+    DELETE_MEMORY_TC(m_pixelClockControl);
+    DELETE_MEMORY_TC(m_pixelClockStatus);
+    DELETE_MEMORY_TC(m_powerControl);
+    DELETE_MEMORY_TC(m_powerStatus);
+    DELETE_MEMORY_TC(m_domainPriority);
+    DELETE_MEMORY_TC(m_rfProfileControl);
+    DELETE_MEMORY_TC(m_rfProfileStatus);
+    DELETE_MEMORY_TC(m_temperature);
+    DELETE_MEMORY_TC(m_utilization);
 }
 
 Guid UnifiedDomain::getGuid(void)
@@ -160,20 +169,6 @@ XmlNode* UnifiedDomain::getXml()
         m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get display control XML status!"));
     }
 
-    // Domain Priority XML Status
-    try
-    {
-        domain->addChild(getDomainPriorityInterfaceExPtr()->getXml(m_domainIndex));
-    }
-    catch (not_implemented)
-    {
-    }
-    catch (...)
-    {
-        // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get domain priority XML status!"));
-    }
-
     // Performance Control XML Status
     try
     {
@@ -186,6 +181,34 @@ XmlNode* UnifiedDomain::getXml()
     {
         // Write message log error
         m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get performance control XML status!"));
+    }
+
+    // Pixel Clock Control
+    try
+    {
+        domain->addChild(getPixelClockControlInterfaceExPtr()->getXml(m_domainIndex));
+    }
+    catch (not_implemented)
+    {
+    }
+    catch (...)
+    {
+        // Write message log error
+        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get pixel clock control XML!"));
+    }
+
+    // Pixel Clock Status
+    try
+    {
+        domain->addChild(getPixelClockStatusInterfaceExPtr()->getXml(m_domainIndex));
+    }
+    catch (not_implemented)
+    {
+    }
+    catch (...)
+    {
+        // Write message log error
+        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get pixel clock status XML!"));
     }
 
     // Power Control XML Status
@@ -214,6 +237,48 @@ XmlNode* UnifiedDomain::getXml()
     {
         // Write message log error
         m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get power reporting XML status!"));
+    }
+
+    // Domain Priority XML Status
+    try
+    {
+        domain->addChild(getDomainPriorityInterfaceExPtr()->getXml(m_domainIndex));
+    }
+    catch (not_implemented)
+    {
+    }
+    catch (...)
+    {
+        // Write message log error
+        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get domain priority XML status!"));
+    }
+
+    // RF Profile Control XML Status
+    try
+    {
+        domain->addChild(getRfProfileControlInterfaceExPtr()->getXml(m_domainIndex));
+    }
+    catch (not_implemented)
+    {
+    }
+    catch (...)
+    {
+        // Write message log error
+        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get rf profile control XML status!"));
+    }
+
+    // RF Profile Status XML Status
+    try
+    {
+        domain->addChild(getRfProfileStatusInterfaceExPtr()->getXml(m_domainIndex));
+    }
+    catch (not_implemented)
+    {
+    }
+    catch (...)
+    {
+        // Write message log error
+        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get rf profile status XML status!"));
     }
 
     // Temperature XML Status
@@ -255,8 +320,12 @@ void UnifiedDomain::clearAllCachedData(void)
     getDisplayControlInterfaceExPtr()->clearCachedData();
     getDomainPriorityInterfaceExPtr()->clearCachedData();
     getPerformanceControlInterfaceExPtr()->clearCachedData();
+    getPixelClockControlInterfaceExPtr()->clearCachedData();
+    getPixelClockStatusInterfaceExPtr()->clearCachedData();
     getPowerControlInterfaceExPtr()->clearCachedData();
     getPowerStatusInterfaceExPtr()->clearCachedData();
+    getRfProfileControlInterfaceExPtr()->clearCachedData();
+    getRfProfileStatusInterfaceExPtr()->clearCachedData();
     getTemperatureInterfaceExPtr()->clearCachedData();
     getUtilizationInterfaceExPtr()->clearCachedData();
 }
@@ -309,18 +378,6 @@ ComponentExtendedInterface* UnifiedDomain::getDisplayControlInterfaceExPtr(void)
     return dynamic_cast<ComponentExtendedInterface*>(m_displayControl);
 }
 
-DomainPriorityInterface* UnifiedDomain::getDomainPriorityInterfacePtr(void)
-{
-    throwIfDomainNotEnabled();
-    return m_domainPriority;
-}
-
-ComponentExtendedInterface* UnifiedDomain::getDomainPriorityInterfaceExPtr(void)
-{
-    throwIfDomainNotEnabled();
-    return dynamic_cast<ComponentExtendedInterface*>(m_domainPriority);
-}
-
 DomainPerformanceControlInterface* UnifiedDomain::getPerformanceControlInterfacePtr(void)
 {
     throwIfDomainNotEnabled();
@@ -339,6 +396,30 @@ ConfigTdpDataSyncInterface* UnifiedDomain::getPerformanceControlConfigTdpSyncInt
     return dynamic_cast<ConfigTdpDataSyncInterface*>(m_performanceControl);
 }
 
+DomainPixelClockControlInterface* UnifiedDomain::getPixelClockControlInterfacePtr(void)
+{
+    throwIfDomainNotEnabled();
+    return m_pixelClockControl;
+}
+
+ComponentExtendedInterface* UnifiedDomain::getPixelClockControlInterfaceExPtr(void)
+{
+    throwIfDomainNotEnabled();
+    return dynamic_cast<ComponentExtendedInterface*>(m_pixelClockControl);
+}
+
+DomainPixelClockStatusInterface* UnifiedDomain::getPixelClockStatusInterfacePtr(void)
+{
+    throwIfDomainNotEnabled();
+    return m_pixelClockStatus;
+}
+
+ComponentExtendedInterface* UnifiedDomain::getPixelClockStatusInterfaceExPtr(void)
+{
+    throwIfDomainNotEnabled();
+    return dynamic_cast<ComponentExtendedInterface*>(m_pixelClockStatus);
+}
+
 DomainPowerControlInterface* UnifiedDomain::getPowerControlInterfacePtr(void)
 {
     throwIfDomainNotEnabled();
@@ -351,12 +432,6 @@ ComponentExtendedInterface* UnifiedDomain::getPowerControlInterfaceExPtr(void)
     return dynamic_cast<ComponentExtendedInterface*>(m_powerControl);
 }
 
-ConfigTdpDataSyncInterface* UnifiedDomain::getPowerControlConfigTdpSyncInterfacePtr(void)
-{
-    throwIfDomainNotEnabled();
-    return dynamic_cast<ConfigTdpDataSyncInterface*>(m_powerControl);
-}
-
 DomainPowerStatusInterface* UnifiedDomain::getPowerStatusInterfacePtr(void)
 {
     throwIfDomainNotEnabled();
@@ -367,6 +442,42 @@ ComponentExtendedInterface* UnifiedDomain::getPowerStatusInterfaceExPtr(void)
 {
     throwIfDomainNotEnabled();
     return dynamic_cast<ComponentExtendedInterface*>(m_powerStatus);
+}
+
+DomainPriorityInterface* UnifiedDomain::getDomainPriorityInterfacePtr(void)
+{
+    throwIfDomainNotEnabled();
+    return m_domainPriority;
+}
+
+ComponentExtendedInterface* UnifiedDomain::getDomainPriorityInterfaceExPtr(void)
+{
+    throwIfDomainNotEnabled();
+    return dynamic_cast<ComponentExtendedInterface*>(m_domainPriority);
+}
+
+DomainRfProfileControlInterface* UnifiedDomain::getRfProfileControlInterfacePtr(void)
+{
+    throwIfDomainNotEnabled();
+    return m_rfProfileControl;
+}
+
+ComponentExtendedInterface* UnifiedDomain::getRfProfileControlInterfaceExPtr(void)
+{
+    throwIfDomainNotEnabled();
+    return dynamic_cast<ComponentExtendedInterface*>(m_rfProfileControl);
+}
+
+DomainRfProfileStatusInterface* UnifiedDomain::getRfProfileStatusInterfacePtr(void)
+{
+    throwIfDomainNotEnabled();
+    return m_rfProfileStatus;
+}
+
+ComponentExtendedInterface* UnifiedDomain::getRfProfileStatusInterfaceExPtr(void)
+{
+    throwIfDomainNotEnabled();
+    return dynamic_cast<ComponentExtendedInterface*>(m_rfProfileStatus);
 }
 
 DomainTemperatureInterface* UnifiedDomain::getTemperatureInterfacePtr(void)
@@ -421,18 +532,25 @@ void UnifiedDomain::createDisplayControlObject(const ClassFactories& classFactor
         m_domainFunctionalityVersions.displayControlVersion, participantServicesInterface);
 }
 
-void UnifiedDomain::createDomainPriorityObject(const ClassFactories& classFactories,
-    ParticipantServicesInterface* participantServicesInterface)
-{
-    m_domainPriority = classFactories.domainPriorityFactory->createDomainPriorityObject(
-        m_domainFunctionalityVersions.domainPriorityVersion, participantServicesInterface);
-}
-
 void UnifiedDomain::createPerformanceControlObject(const ClassFactories& classFactories,
     ParticipantServicesInterface* participantServicesInterface)
 {
     m_performanceControl = classFactories.domainPerformanceControlFactory->createDomainPerformanceControlObject(
         m_domainFunctionalityVersions.performanceControlVersion, participantServicesInterface);
+}
+
+void UnifiedDomain::createPixelClockControlObject(const ClassFactories& classFactories,
+    ParticipantServicesInterface* participantServicesInterface)
+{
+    m_pixelClockControl = classFactories.domainPixelClockControlFactory->createDomainPixelClockControlObject(
+        m_domainFunctionalityVersions.pixelClockControlVersion, participantServicesInterface);
+}
+
+void UnifiedDomain::createPixelClockStatusObject(const ClassFactories& classFactories,
+    ParticipantServicesInterface* participantServicesInterface)
+{
+    m_pixelClockStatus = classFactories.domainPixelClockStatusFactory->createDomainPixelClockStatusObject(
+        m_domainFunctionalityVersions.pixelClockStatusVersion, participantServicesInterface);
 }
 
 void UnifiedDomain::createPowerControlObject(const ClassFactories& classFactories,
@@ -447,6 +565,27 @@ void UnifiedDomain::createPowerStatusObject(const ClassFactories& classFactories
 {
     m_powerStatus = classFactories.domainPowerStatusFactory->createDomainPowerStatusObject(
         m_domainFunctionalityVersions.powerStatusVersion, participantServicesInterface);
+}
+
+void UnifiedDomain::createDomainPriorityObject(const ClassFactories& classFactories,
+    ParticipantServicesInterface* participantServicesInterface)
+{
+    m_domainPriority = classFactories.domainPriorityFactory->createDomainPriorityObject(
+        m_domainFunctionalityVersions.domainPriorityVersion, participantServicesInterface);
+}
+
+void UnifiedDomain::createRfProfileControlObject(const ClassFactories& classFactories,
+    ParticipantServicesInterface* participantServicesInterface)
+{
+    m_rfProfileControl = classFactories.domainRfProfileControlFactory->createDomainRfProfileControlObject(
+        m_domainFunctionalityVersions.rfProfileControlVersion, participantServicesInterface);
+}
+
+void UnifiedDomain::createRfProfileStatusObject(const ClassFactories& classFactories,
+    ParticipantServicesInterface* participantServicesInterface)
+{
+    m_rfProfileStatus = classFactories.domainRfProfileStatusFactory->createDomainRfProfileStatusObject(
+        m_domainFunctionalityVersions.rfProfileStatusVersion, participantServicesInterface);
 }
 
 void UnifiedDomain::createTemperatureObject(const ClassFactories& classFactories,

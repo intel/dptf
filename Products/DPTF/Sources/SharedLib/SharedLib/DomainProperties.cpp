@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainProperties.h"
 #include "StatusFormat.h"
 using namespace StatusFormat;
@@ -77,14 +78,19 @@ Bool DomainProperties::implementsDisplayControlInterface(void) const
     return isInterfaceImplemented(m_domainFunctionalityVersions.displayControlVersion);
 }
 
-Bool DomainProperties::implementsDomainPriorityInterface(void) const
-{
-    return isInterfaceImplemented(m_domainFunctionalityVersions.domainPriorityVersion);
-}
-
 Bool DomainProperties::implementsPerformanceControlInterface(void) const
 {
     return isInterfaceImplemented(m_domainFunctionalityVersions.performanceControlVersion);
+}
+
+Bool DomainProperties::implementsPixelClockControlInterface(void) const
+{
+    return isInterfaceImplemented(m_domainFunctionalityVersions.pixelClockControlVersion);
+}
+
+Bool DomainProperties::implementsPixelClockStatusInterface(void) const
+{
+    return isInterfaceImplemented(m_domainFunctionalityVersions.pixelClockStatusVersion);
 }
 
 Bool DomainProperties::implementsPowerControlInterface(void) const
@@ -97,6 +103,21 @@ Bool DomainProperties::implementsPowerStatusInterface(void) const
     return isInterfaceImplemented(m_domainFunctionalityVersions.powerStatusVersion);
 }
 
+Bool DomainProperties::implementsDomainPriorityInterface(void) const
+{
+    return isInterfaceImplemented(m_domainFunctionalityVersions.domainPriorityVersion);
+}
+
+Bool DomainProperties::implementsRfProfileControlInterface(void) const
+{
+    return isInterfaceImplemented(m_domainFunctionalityVersions.rfProfileControlVersion);
+}
+
+Bool DomainProperties::implementsRfProfileStatusInterface(void) const
+{
+    return isInterfaceImplemented(m_domainFunctionalityVersions.rfProfileStatusVersion);
+}
+
 Bool DomainProperties::implementsTemperatureInterface(void) const
 {
     return isInterfaceImplemented(m_domainFunctionalityVersions.temperatureVersion);
@@ -105,11 +126,6 @@ Bool DomainProperties::implementsTemperatureInterface(void) const
 Bool DomainProperties::implementsUtilizationInterface(void) const
 {
     return isInterfaceImplemented(m_domainFunctionalityVersions.utilizationVersion);
-}
-
-Bool DomainProperties::isInterfaceImplemented(UInt8 version) const
-{
-    return (version == 0) ? false : true;
 }
 
 XmlNode* DomainProperties::getXml()
@@ -122,4 +138,9 @@ XmlNode* DomainProperties::getXml()
     properties->addChild(XmlNode::createDataElement("name", m_name));
     properties->addChild(XmlNode::createDataElement("description", m_description));
     return properties;
+}
+
+Bool DomainProperties::isInterfaceImplemented(UInt8 version) const
+{
+    return (version != 0);
 }

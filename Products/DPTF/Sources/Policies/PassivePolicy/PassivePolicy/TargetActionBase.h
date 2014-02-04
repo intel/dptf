@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
@@ -55,8 +56,6 @@ protected:
     UIntN getTarget() const;
 
     // messaging
-    void postDebugMessage(const PolicyMessage& message);
-    void postWarningMessage(const PolicyMessage& message);
     std::string constructMessageForSources(
         std::string actionName, UIntN target, const std::vector<UIntN>& sources);
     std::string constructMessageForSourceDomains(

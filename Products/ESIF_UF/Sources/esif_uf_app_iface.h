@@ -35,6 +35,7 @@
 typedef struct _t_AppData {
 	/* Version 1 */
 	EsifData  fPathHome;		/* Path to home e.g. c:\program files\intel\DPTF... */
+	eLogType  fLogLevel;		/* Current Logging/Trace Level */
 } AppData, *AppDataPtr, **AppDataPtrLocation;
 
 /* Particiapnt METADATA */
@@ -123,7 +124,7 @@ typedef eEsifError (*AppGetNameFunction)        (EsifDataPtr appName);
 typedef eEsifError (*AppGetVersionFunction)     (EsifDataPtr appVersion);
 
 /* Must be called and completed with ESIF_OK before create will be called */
-typedef eEsifError (*AppAllocateHandle)(void * *appHandleLocation);
+typedef eEsifError (*AppAllocateHandle)(void **appHandleLocation);
 
 /* DEPENDENCY AppAllocateHandle must have previously returned a VALID handle */
 typedef eEsifError (*AppCreateFunction)(EsifInterfacePtr appServiceInterface,	/* The App MUST fill in all pointers */
@@ -193,7 +194,7 @@ typedef enum _t_eParticipantState {
 
 /* Must be called and completed with ESIF_OK before participant create will be called */
 typedef eEsifError (*AppParticipantAllocateHandle)(const void *appHandle,	/* Allocated handle for application */
-												   void * *participantHandleLocation/* Participant handle set by App */
+												   void **participantHandleLocation	/* Participant handle set by App */
 												   );
 
 /* DEPENDENCY AppParticipantAllocateHandle must have previously returned a VALID handle */
@@ -233,7 +234,7 @@ typedef enum _t_eDomainState {
 /* Must be called and completed with ESIF_OK before domain create will be called */
 typedef eEsifError (*AppDomainAllocateHandle)(const void *appHandle,/* Allocated handle for application */
 											  const void *particpantHandle,		/* Allocated participant handle */
-											  void * *domainHandleLocation	/* Domain handle set by application */
+											  void **domainHandleLocation	/* Domain handle set by application */
 											  );
 
 /* DEPENDENCY AppDomainAllocateHandle must have previously returned a VALID handle */
@@ -339,7 +340,7 @@ extern "C" {
     via Function Pointers.  This will remove the linker cruft trom the static
     funcions.  And provide a simple private type of encapsulation for the module.
  */
-eEsifError GetApplicationInterface (AppInterfacePtr theIface);
+eEsifError GetApplicationInterface(AppInterfacePtr theIface);
 
 #ifdef __cplusplus
 }

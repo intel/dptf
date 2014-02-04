@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "CallbackScheduler.h"
 
 using namespace std;
@@ -72,7 +73,7 @@ void CallbackScheduler::scheduleCallbackAsSoonAsPossible(UIntN target, UIntN sou
         m_sourceAvailability.setSourceAsBusy(source, timeNow + timeDelta);
     }
 
-    m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF,
+    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
         "Scheduled a callback in " + std::to_string(timeDelta) + " ms" +
         " for target " + std::to_string(target) + " source " + std::to_string(source) + ".", target));
 }
@@ -86,7 +87,7 @@ void CallbackScheduler::scheduleCallbackAfterShortestSamplePeriod(UIntN target)
         m_targetScheduler.scheduleCallback(target, timeDelta);
     }
 
-    m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF,
+    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
         "Scheduled a callback in " + std::to_string(timeDelta) + " ms" +
         " for target " + std::to_string(target) + ".", target));
 }
@@ -104,7 +105,7 @@ void CallbackScheduler::scheduleCallbackAfterNextSamplingPeriod(UIntN target, UI
         m_sourceAvailability.setSourceAsBusy(source, timeNow + minimumSamplePeriod);
     }
 
-    m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF,
+    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
         "Scheduled a callback in " + std::to_string(timeDelta) + " ms" +
         " for target " + std::to_string(target) + " source " + std::to_string(source) + ".", target));
 }

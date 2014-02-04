@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "TemperatureThresholdArbitrator.h"
 #include "ManagerMessage.h"
 #include "DptfManager.h"
@@ -23,8 +24,8 @@
 
 TemperatureThresholdArbitrator::TemperatureThresholdArbitrator(DptfManager* dptfManager) :
     m_dptfManager(dptfManager),
-    m_lastKnownParticipantTemperature(Temperature::invalidTemperature),
-    m_arbitratedTemperatureThresholds(Temperature::invalidTemperature, Temperature::invalidTemperature, 0)
+    m_lastKnownParticipantTemperature(Temperature::createInvalid()),
+    m_arbitratedTemperatureThresholds(Temperature::createInvalid(), Temperature::createInvalid(), 0)
 {
 }
 
@@ -32,11 +33,7 @@ TemperatureThresholdArbitrator::~TemperatureThresholdArbitrator(void)
 {
     for (UIntN i = 0; i < m_requestedTemperatureThresholds.size(); i++)
     {
-        if (m_requestedTemperatureThresholds[i] != nullptr)
-        {
-            delete m_requestedTemperatureThresholds[i];
-            m_requestedTemperatureThresholds[i] = nullptr;
-        }
+        DELETE_MEMORY_TC(m_requestedTemperatureThresholds[i]);
     }
 }
 
@@ -72,11 +69,9 @@ TemperatureThresholds TemperatureThresholdArbitrator::getArbitratedTemperatureTh
 
 void TemperatureThresholdArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if ((policyIndex < m_requestedTemperatureThresholds.size()) &&
-        (m_requestedTemperatureThresholds[policyIndex] != nullptr))
+    if (policyIndex < m_requestedTemperatureThresholds.size())
     {
-        delete m_requestedTemperatureThresholds[policyIndex];
-        m_requestedTemperatureThresholds[policyIndex] = nullptr;
+        DELETE_MEMORY_TC(m_requestedTemperatureThresholds[policyIndex]);
     }
 }
 
@@ -86,8 +81,8 @@ void TemperatureThresholdArbitrator::throwIfTemperatureThresholdsInvalid(UIntN p
     Temperature aux0 = temperatureThresholds.getAux0();
     Temperature aux1 = temperatureThresholds.getAux1();
 
-    if ((aux0.isTemperatureValid() == true && aux0 > currentTemperature) ||
-        (aux1.isTemperatureValid() == true && aux1 < currentTemperature))
+    if ((aux0.isValid() == true && aux0 > currentTemperature) ||
+        (aux1.isValid() == true && aux1 < currentTemperature))
     {
         ManagerMessage message = ManagerMessage(m_dptfManager, FLF,
             "Received invalid temperature thresholds from policy.");
@@ -116,8 +111,8 @@ Bool TemperatureThresholdArbitrator::findNewTemperatureThresholds(const Temperat
 {
     m_lastKnownParticipantTemperature = currentTemperature;
 
-    Temperature newAux0;
-    Temperature newAux1;
+    Temperature newAux0 = Temperature::createInvalid();
+    Temperature newAux1 = Temperature::createInvalid();
 
     for (UIntN i = 0; i < m_requestedTemperatureThresholds.size(); i++)
     {
@@ -129,17 +124,17 @@ Bool TemperatureThresholdArbitrator::findNewTemperatureThresholds(const Temperat
             Temperature currentAux1 = currentTemperatureThresholds->getAux1();
 
             // check for a new aux0
-            if ((currentAux0.isTemperatureValid() == true) &&
+            if ((currentAux0.isValid() == true) &&
                 (currentAux0 <= m_lastKnownParticipantTemperature) &&
-                ((newAux0.isTemperatureValid() == false) || (currentAux0 > newAux0)))
+                ((newAux0.isValid() == false) || (currentAux0 > newAux0)))
             {
                 newAux0 = currentAux0;
             }
 
             // check for a new aux1
-            if ((currentAux1.isTemperatureValid() == true) &&
+            if ((currentAux1.isValid() == true) &&
                 (currentAux1 >= m_lastKnownParticipantTemperature) &&
-                ((newAux1.isTemperatureValid() == false) || (currentAux1 < newAux1)))
+                ((newAux1.isValid() == false) || (currentAux1 < newAux1)))
             {
                 newAux1 = currentAux1;
             }

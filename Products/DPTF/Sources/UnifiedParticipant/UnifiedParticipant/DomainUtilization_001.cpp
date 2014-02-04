@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include "DomainUtilization_001.h"
 #include "XmlNode.h"
 
@@ -25,10 +26,10 @@ DomainUtilization_001::DomainUtilization_001(ParticipantServicesInterface* parti
 
 UtilizationStatus DomainUtilization_001::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    UInt32 utilization = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    Percentage utilization = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
         esif_primitive_type::GET_PARTICIPANT_UTILIZATION, domainIndex);
 
-    return UtilizationStatus(Percentage(utilization));
+    return UtilizationStatus(utilization);
 }
 
 void DomainUtilization_001::clearCachedData(void)

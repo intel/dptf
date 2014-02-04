@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2014 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #pragma once
 
 #include "DomainPerformanceControlInterface.h"
@@ -47,32 +48,33 @@ public:
     virtual XmlNode* getXml(UIntN domainIndex) override final;
 
     // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex, 
+    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
         ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
 
 private:
 
+    // hide the copy constructor and = operator
+    DomainPerformanceControl_002(const DomainPerformanceControl_002& rhs);
+    DomainPerformanceControl_002& operator=(const DomainPerformanceControl_002& rhs);
+
     ParticipantServicesInterface* m_participantServicesInterface;
 
     // Functions
-    void initializeDataStructures(void);
-    void createPerformanceControlSet(UIntN domainIndex);
-    void createPerformanceControlDynamicCaps(UIntN domainIndex);
+    void initializePerformanceControlSetIfNull(UIntN domainIndex);
+    void initializePerformanceControlDynamicCapsIfNull(UIntN domainIndex);
     void createPerformanceControlStatus(void);
     void arbitratePerformanceStateLimits(UIntN pStateUpperLimitIndex, UIntN pStateLowerLimitIndex,
         UIntN tStateUpperLimitIndex, UIntN tStateLowerLimitIndex,
         UIntN& performanceUpperLimitIndex, UIntN& performanceLowerLimitIndex);
     void calculateThrottlingStateLimits(UIntN& tStateUpperLimitIndex, UIntN& tStateLowerLimitIndex, UIntN domainIndex);
     void calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex);
-    void verifyPerformanceControlIndex(UIntN performanceControlIndex);
-    void checkAndCreateControlStructures(UIntN domainIndex);
-    void createPerformanceControlStaticCaps(void);
+    void throwIfPerformanceControlIndexIsInvalid(UIntN performanceControlIndex);
+    void initializePerformanceControlStaticCapsIfNull(void);
 
     // Vars (external)
     PerformanceControlDynamicCaps* m_performanceControlDynamicCaps;
     PerformanceControlSet* m_performanceControlSet;
     PerformanceControlStaticCaps* m_performanceControlStaticCaps;
-    PerformanceControlStatus* m_performanceControlStatus;
 
     // Vars (internal)
     UIntN m_currentPerformanceControlIndex;
