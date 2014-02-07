@@ -136,8 +136,7 @@
 #ifdef ESIF_ATTR_KERNEL
 
 #ifdef ESIF_ATTR_IOSF
-extern u32 bt_mbi_read(u8, u8, u32, u32*);
-extern u32 bt_mbi_write(u8, u8, u32, u32);
+#include <asm/iosf_mbi.h>
 #endif
 
 /* MBI Read 32 */
@@ -155,7 +154,7 @@ static ESIF_INLINE enum esif_rc esif_ccb_mbi_read(
 
 #else
 #ifdef ESIF_ATTR_IOSF
-	return bt_mbi_read(port, 0x10, punit, val_ptr);
+	return iosf_mbi_read(port, 0x10, punit, val_ptr);
 #else
 	*val_ptr = 0;
 	return ESIF_E_NOT_IMPLEMENTED;
@@ -179,7 +178,7 @@ static ESIF_INLINE enum esif_rc esif_ccb_mbi_write(
 	return esif_lf_win_mbi_write(MCR, val);
 #else
 #ifdef ESIF_ATTR_IOSF
-	return bt_mbi_write(port, 0x11, punit, val);
+	return iosf_mbi_write(port, 0x11, punit, val);
 #else
 	return ESIF_E_NOT_IMPLEMENTED;
 

@@ -84,15 +84,14 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 //
 // Set Architecture
 //
-#ifdef ESIF_ATTR_64BIT
-	#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
-		defined(ESIF_ATTR_OS_CHROME)
-			#define ESIF_DIR_PRG NULL
-			#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
-	#else
-		#define ESIF_DIR_PRG "ufx64"
-		#define ESIF_DIR_DPTF_POL "ufx64"
-	#endif
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+	defined(ESIF_ATTR_OS_CHROME)
+	// No differentiation for 32-bit or 64-bit *nix build
+	#define ESIF_DIR_PRG NULL
+	#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
+#elif defined(ESIF_ATTR_64BIT)
+	#define ESIF_DIR_PRG "ufx64"
+	#define ESIF_DIR_DPTF_POL "ufx64"
 #else
 	#define ESIF_DIR_PRG "ufx86"
 	#define ESIF_DIR_DPTF_POL "ufx86"

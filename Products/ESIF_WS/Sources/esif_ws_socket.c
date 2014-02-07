@@ -303,11 +303,11 @@ void esif_ws_socket_build_payload (
 	} else if (dataLength <= 0xFFFF) {
 		outgoingFrame[1]     = 126;
 		payLoadLength        = htons((UInt16)dataLength);
-		esif_ccb_memcpy(&outgoingFrame[2], &payLoadLength, 2);
+		esif_ccb_memcpy(&outgoingFrame[2], &payLoadLength, sizeof(UInt16));
 		*outgoingFrameLenght = 4;
 	} else {
 		outgoingFrame[1]     = 127;
-		esif_ccb_memcpy(&outgoingFrame[2], &dataLength, 8);
+		esif_ccb_memcpy(&outgoingFrame[2], &dataLength, sizeof(size_t));
 		*outgoingFrameLenght = 10;
 	}
 

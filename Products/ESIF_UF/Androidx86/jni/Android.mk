@@ -17,10 +17,10 @@
 ################################################################################
 include $(CLEAR_VARS)
 
-LOCAL_PATH := ../../
-LOCAL_CFLAGS    := -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER -Wno-multichar
-LOCAL_MODULE    := esif_uf 
-LOCAL_C_INCLUDES := ../../ESIF_CM/Sources ../../ESIF_UF/Sources ../../ESIF_WS/Sources ../../ESIF_LIB/Sources
+LOCAL_PATH := ../../../
+LOCAL_CFLAGS    := -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_DAEMON -DESIF_ATTR_USER -Wno-multichar
+LOCAL_MODULE    := esif_ufd 
+LOCAL_C_INCLUDES := ../../../ESIF_CM/Sources ../../../ESIF_UF/Sources ../../../ESIF_WS/Sources ../../../ESIF_LIB/Sources
 
 LOCAL_SRC_FILES := ESIF_UF/Sources/lin/main.c
 LOCAL_SRC_FILES += ESIF_LF/Sources/lin/esif_ipc_os_lin.c

@@ -59,6 +59,10 @@ char g_esif_kernel_version[64] = "NA";
 #include "esif_uf_app.h"
 extern struct esif_uf_dm g_dm;
 
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+#include <sys/utsname.h>
+#endif
+
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
@@ -314,11 +318,23 @@ void esif_init()
 {
 	char command[64];
 
-	EsifString os_arch = NULL;
+	EsifString os_arch = (EsifString)"Unknown";
 	EsifString build   = NULL;
 	static u8 first    = ESIF_TRUE;
 
-#ifdef ESIF_ATTR_64BIT
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+	// For Linux/Chrome we use uname system call to obtain archtecture string
+	// By doing so we can merge the two 32-bit and 64-bit makefiles into one
+	struct utsname kernel_name;
+	const EsifString x64_str="x86_64";
+	const EsifString x86_str="i686";
+	if (!uname(&kernel_name)) {
+		if (!strncmp(kernel_name.machine, x64_str, strlen(x64_str)))
+			os_arch = (EsifString)"x64";
+		else if (!strncmp(kernel_name.machine, x86_str, strlen(x86_str)))
+			os_arch = (EsifString)"x86";
+	}
+#elif defined(ESIF_ATTR_64BIT)
 	os_arch = (EsifString)"x64";
 #else
 	os_arch = (EsifString)"x86";
