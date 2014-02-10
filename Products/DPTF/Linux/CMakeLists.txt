@@ -9,8 +9,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -fPIC")
 
 if (CHROMIUM_BUILD MATCHES YES)
 	message("Building for Chromium OS...")
-	set(CMAKE_C_COMPILER "x86_64-cros-linux-gnu-gcc")
-	set(CMAKE_CXX_COMPILER "x86_64-cros-linux-gnu-g++")
 
 	if (BUILD_ARCH MATCHES 32bit)	
 	        message("Building 32-bit...")
