@@ -42,7 +42,8 @@ to install:
 Step 4 - Go to the Linux subdirectory of DPTF
 	 (<DPTF archive root>/Products/DPTF/Linux/build) and run the command:
 
-	CXXFLAGS='-g -O0' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..
+	CC="x86_64-cros-linux-gnu-gcc" CXX="x86_64-cros-linux-gnu-g++"
+	   CXXFLAGS='-g -O0' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..
 
 This command will invoke cmake and generate all the GNU make files for each 
 sub-modules of DPTF user space libraries.
@@ -69,7 +70,8 @@ Still in chroot, we can now build the ESIF shell application. Simply go to the
 run the following commands: 
 
 	make clean
-	CFLAGS='-g -O0 -DESIF_ATTR_DEBUG' make
+	CC='x86_64-cros-linux-gnu-gcc' CFLAGS='-g -O0 -DESIF_ATTR_DEBUG
+	     -DESIF_ATTR_MEMTRACE' make
 
 After the build is complete, the esif_uf binary executable will be generated in
 the current directory.
