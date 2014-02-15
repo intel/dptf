@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_DSP
 
 #include "esif_uf.h"			/* Upper Framework */
 #include "esif_dsp.h"			/* Device Support Package */
@@ -396,7 +395,6 @@ static struct esif_fpc_domain
 	struct esif_fpc_domain *curr_domain_ptr = NULL;
 	u32 i;
 
-	// printf("domain index %d\n", index);
 	for (i = 0; i < index; i++) {
 		curr_domain_ptr = (struct esif_fpc_domain *)curr_ptr->data_ptr;
 		curr_ptr = curr_ptr->next_ptr;
@@ -404,7 +402,6 @@ static struct esif_fpc_domain
 			break;	// return NULL;
 		}
 	}
-	// if( curr_domain_ptr) printf("domain = %s\n", curr_domain_ptr->descriptor.name);
 	return curr_domain_ptr;
 }
 
@@ -424,7 +421,7 @@ enum esif_rc esif_fpc_load(
 	u32 num_prim    = 0, i, j;
 
 	if (fpc_ptr->number_of_domains < 1) {
-		printf("!ERR! %s: no domain error, number_of_domain = %d (less than 1)\n",
+		ESIF_TRACE_WARN("!ERR! %s: no domain error, number_of_domain = %d (less than 1)\n",
 			   ESIF_FUNC, fpc_ptr->number_of_domains);
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
@@ -624,7 +621,12 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 
 	// use static DataVault buffer (if available), otherwise allocate space for our FPC file contents (which will not be freed)
 	if (IOStream_GetType(io_ptr) == StreamMemory && value->buf_len == 0) {
-		fpc_ptr    = (struct esif_fpc *)(IOStream_GetMemoryBuffer(io_ptr) + IOStream_GetOffset(io_ptr));
+		fpc_ptr = (struct esif_fpc *)IOStream_GetMemoryBuffer(io_ptr); 
+		if (NULL == fpc_ptr) {
+			ESIF_TRACE_DEBUG("%s: NULL buffer", ESIF_FUNC);
+			goto exit;
+		}
+		fpc_ptr += IOStream_GetOffset(io_ptr);
 		fpc_read   = fpc_size;
 		ESIF_TRACE_DEBUG("%s: static vault size %u buf_ptr=0x%p\n", ESIF_FUNC, (int)fpc_read, fpc_ptr);
 		fpc_static = ESIF_TRUE;
@@ -1079,7 +1081,7 @@ EsifString esif_uf_dm_query(
 			break;
 		}
 
-		printf("%s: DSP: %s Weight: %d\n", ESIF_FUNC, (esif_string)dsp_ptr->code_ptr, weight);
+		CMD_OUT("%s: DSP: %s Weight: %d\n", ESIF_FUNC, (esif_string)dsp_ptr->code_ptr, weight);
 
 		/*
 		** Keep track of row with most weight known as heaviest.  Note that once we
@@ -1098,9 +1100,9 @@ EsifString esif_uf_dm_query(
 	esif_ccb_read_unlock(&g_dm.lock);
 
 	if (dsp_code_ptr != NULL) {
-		printf("%s: Selected DSP: %s Score: %d of %d\n", ESIF_FUNC, dsp_code_ptr, heaviest, best);
+		CMD_OUT("%s: Selected DSP: %s Score: %d of %d\n", ESIF_FUNC, dsp_code_ptr, heaviest, best);
 	} else {
-		printf("%s: No DSP selected; DME count must be 0\n", ESIF_FUNC);
+		CMD_OUT("%s: No DSP selected; DME count must be 0\n", ESIF_FUNC);
 	}
 	return dsp_code_ptr;
 }

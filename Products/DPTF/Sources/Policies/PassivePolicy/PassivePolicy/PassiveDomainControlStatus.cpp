@@ -245,7 +245,7 @@ void PassiveDomainControlStatus::addDisplayStatus(DomainProxy& domain)
 void PassiveDomainControlStatus::addCoreStatus(DomainProxy& domain)
 {
     CoreControlFacade& coreControl = domain.getCoreControl();
-    if (coreControl.supportsCoreControls())
+    if (coreControl.supportsCoreControls() && coreControl.getPreferences().isLpoEnabled())
     {
         // get maximum processors
         UIntN maxProcessors(Constants::Invalid);

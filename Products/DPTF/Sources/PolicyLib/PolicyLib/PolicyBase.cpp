@@ -322,8 +322,7 @@ void PolicyBase::overrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
     UInt32 enabled;
     try
     {
-        enabled = getPolicyServices().platformConfigurationData->readConfigurationUInt32(
-            "EnablePolicyDebugInterface");
+        enabled = getPolicyServices().platformConfigurationData->readConfigurationUInt32("EnablePolicyDebugInterface");
     }
     catch (...)
     {

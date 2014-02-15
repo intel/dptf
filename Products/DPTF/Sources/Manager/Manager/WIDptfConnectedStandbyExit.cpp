@@ -32,7 +32,7 @@ WIDptfConnectedStandbyExit::~WIDptfConnectedStandbyExit(void)
 
 void WIDptfConnectedStandbyExit::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     // let all participants know that we are exiting connected standby
 

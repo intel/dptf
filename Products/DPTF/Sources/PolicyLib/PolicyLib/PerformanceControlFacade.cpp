@@ -98,34 +98,38 @@ const PerformanceControlDynamicCaps& PerformanceControlFacade::getDynamicCapabil
 
 void PerformanceControlFacade::initializeControlsIfNeeded()
 {
-    const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
-    UIntN upperLimitIndex = caps.getCurrentUpperLimitIndex();
-    UIntN lowerLimitIndex = caps.getCurrentLowerLimitIndex();
-    if (m_controlsHaveBeenInitialized == false)
+    if (supportsPerformanceControls())
     {
-        setControl(upperLimitIndex);
-        m_controlsHaveBeenInitialized = true;
-    }
-    else
-    {
-        if (m_isLimited)
+        const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
+        UIntN upperLimitIndex = caps.getCurrentUpperLimitIndex();
+        UIntN lowerLimitIndex = caps.getCurrentLowerLimitIndex();
+        if (m_controlsHaveBeenInitialized == false)
         {
-            if (m_lastIssuedPerformanceControlIndex < upperLimitIndex)
-            {
-                setControl(upperLimitIndex);
-            }
-            
-            if (m_lastIssuedPerformanceControlIndex > lowerLimitIndex)
-            {
-                setControl(lowerLimitIndex);
-            }
+            setControl(upperLimitIndex);
+            m_controlsHaveBeenInitialized = true;
         }
         else
         {
-            if (m_lastIssuedPerformanceControlIndex != upperLimitIndex)
+            if (m_isLimited)
             {
-                setControl(upperLimitIndex);
+                if (m_lastIssuedPerformanceControlIndex < upperLimitIndex)
+                {
+                    setControl(upperLimitIndex);
+                }
+
+                if (m_lastIssuedPerformanceControlIndex > lowerLimitIndex)
+                {
+                    setControl(lowerLimitIndex);
+                }
+            }
+            else
+            {
+                if (m_lastIssuedPerformanceControlIndex != upperLimitIndex)
+                {
+                    setControl(upperLimitIndex);
+                }
             }
         }
     }
+
 }

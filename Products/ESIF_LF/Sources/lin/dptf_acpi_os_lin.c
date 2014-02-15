@@ -364,7 +364,7 @@ static int acpi_add(struct acpi_device *acpi_dev_ptr)
 
 
 /* Remove */
-static int acpi_remove(struct acpi_device *acpi_dev_ptr, int type)
+static int acpi_remove(struct acpi_device *acpi_dev_ptr)
 {
 	struct esif_participant_iface *pi_ptr = dev_get_drvdata(
 			&acpi_dev_ptr->dev);

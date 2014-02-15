@@ -38,15 +38,7 @@ PixelClockControlFacade::~PixelClockControlFacade()
 {
 }
 
-void PixelClockControlFacade::initializeControlsIfNeeded()
-{
-    if (m_controlsHaveBeenInitialized == false)
-    {
-        m_controlsHaveBeenInitialized = true;
-    }
-}
-
-Bool PixelClockControlFacade::supportsControl()
+Bool PixelClockControlFacade::supportsPixelClockControls()
 {
     return m_domainProperties.implementsPixelClockControlInterface();
 }
@@ -80,12 +72,8 @@ XmlNode* PixelClockControlFacade::getXml()
     XmlNode* status = XmlNode::createWrapperElement("control_pixel_clock");
     if (supportsStatus())
     {
-
-    }
-
-    if (supportsControl())
-    {
-
+        status->addChild(getPixelClockCapabilities().getXml());
+        status->addChild(getPixelClockDataSet().getXml());
     }
     return status;
 }
@@ -100,7 +88,7 @@ void PixelClockControlFacade::throwIfStatusNotSupported()
 
 void PixelClockControlFacade::throwIfControlNotSupported()
 {
-    if (supportsControl() == false)
+    if (supportsPixelClockControls() == false)
     {
         throw dptf_exception("Pixel clock control is not supported.");
     }

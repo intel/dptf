@@ -33,7 +33,7 @@ WIDomainPerformanceControlCapabilityChanged::~WIDomainPerformanceControlCapabili
 
 void WIDomainPerformanceControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

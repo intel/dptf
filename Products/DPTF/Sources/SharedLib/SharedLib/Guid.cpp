@@ -59,6 +59,11 @@ Guid::Guid(UInt8 value00, UInt8 value01, UInt8 value02, UInt8 value03, UInt8 val
     m_guid[15] = value15;
 }
 
+Guid Guid::createInvalid()
+{
+    return Guid();
+}
+
 Bool Guid::operator==(const Guid& rhs) const
 {
     // FIXME: this can be switched to memcmp once implemented in esif/ccb
@@ -75,6 +80,12 @@ Bool Guid::operator==(const Guid& rhs) const
 Bool Guid::operator!=(const Guid& rhs) const
 {
     return !(*this == rhs);
+}
+
+std::ostream& operator<<(std::ostream& os, const Guid& guid)
+{
+    os << guid.toString();
+    return os;
 }
 
 Guid::operator const UInt8*(void) const

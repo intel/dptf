@@ -33,7 +33,7 @@ WIDomainPriorityChanged::~WIDomainPriorityChanged(void)
 
 void WIDomainPriorityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

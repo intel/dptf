@@ -29,5 +29,5 @@ public:
 
     virtual void sleep(void) override final;
     virtual void hibernate(void) override final;
-    virtual void shutDown(void) override final;
+    virtual void shutDown(const Temperature& currentTemperature, const Temperature& tripPointTemperature) override final;
 };

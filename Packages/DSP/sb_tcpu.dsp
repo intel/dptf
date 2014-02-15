@@ -100,6 +100,9 @@ A,0,22,True,0x606,3,0,,
 # GET_RAPL_TIME_UNIT
 P,122,255,1,24,"<schema></schema>",31,"<schema></schema>"
 A,0,22,True,0x606,19,16,,
+# GET_RAPL_TIME_WINDOW
+P,39,0,1,24,"<schema></schema>",31,"<schema></schema>"
+A,0,22,True,0x610,23,17,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
@@ -147,6 +150,9 @@ A,0,22,True,0x610,14,0,,
 # SET_RAPL_POWER_LIMIT_ENABLE
 P,222,0,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x610,15,15,,
+# SET_RAPL_TIME_WINDOW
+P,127,0,2,31,"<schema></schema>",24,"<schema></schema>"
+A,0,22,True,0x610,23,17,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
@@ -212,9 +218,6 @@ A,0,22,True,0x19a,4,0,0x1,
 # GET_TSTATES
 P,65,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"_TSS",,,,
-# SET_ACTIVE_CORE_LIMIT
-P,153,255,2,3,"<schema></schema>",24,"<schema></schema>"
-A,0,4,True,"SPUR",,,,
 # SET_PERF_PRESENT_CAPABILITY
 P,82,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"SPPC",,,,
@@ -222,6 +225,9 @@ A,0,4,True,"SPPC",,,,
 P,229,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"SPUR",,,,
 A,1,29,True,"SAFF",,,,
+# SET_PROC_NUMBER_OFFLINE_CORES
+P,153,255,2,3,"<schema></schema>",24,"<schema></schema>"
+A,0,4,True,"SPUR",,,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,

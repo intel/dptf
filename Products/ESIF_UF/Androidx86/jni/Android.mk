@@ -53,17 +53,11 @@ LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_test.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_databank.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_datacache.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_datavault.c
-LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_eqlcmd.c
-LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_eqlparser.c
-LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_eqlprovider.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_esifdata.c
-LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_esifdatalist.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_iostream.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_istring.c
-LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_istringlist.c
 
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_algo.c
-LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_cgi.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_http.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_server.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_socket.c

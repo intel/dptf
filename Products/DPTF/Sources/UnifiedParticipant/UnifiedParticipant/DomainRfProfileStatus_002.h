@@ -22,6 +22,10 @@
 #include "ComponentExtendedInterface.h"
 #include "ParticipantServicesInterface.h"
 
+//
+// version 002 is for wireless
+//
+
 class DomainRfProfileStatus_002 final : public DomainRfProfileStatusInterface,
     public ComponentExtendedInterface
 {

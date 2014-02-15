@@ -16,7 +16,7 @@
 **
 ******************************************************************************/
 
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_UF
 
 /* ESIF */
 #include "esif_uf.h"		/* ESIF Upper Framework */
@@ -73,8 +73,9 @@ struct memtrace_s g_memtrace;
 // ESIF Log File object
 typedef struct EsifLogFile_s {
 	esif_ccb_lock_t lock;		// Thread Lock
-//	esif_string		name;		// Log Name
-	FILE			*handle;	// Log file handle
+	esif_string		name;		// Log Name
+	esif_string		filename;	// Log file name
+	FILE			*handle;	// Log file handle or NULL if not open
 } EsifLogFile;
 
 static EsifLogFile g_EsifLogFile[MAX_ESIFLOG] = {0};
@@ -86,6 +87,11 @@ eEsifError EsifLogMgrInit(void)
 	for (j=0; j < MAX_ESIFLOG; j++) {
 		esif_ccb_lock_init(&g_EsifLogFile[j].lock);
 	}
+	g_EsifLogFile[ESIF_LOG_EVENTLOG].name = esif_ccb_strdup("event");
+	g_EsifLogFile[ESIF_LOG_DEBUGGER].name = esif_ccb_strdup("debug");
+	g_EsifLogFile[ESIF_LOG_SHELL].name    = esif_ccb_strdup("shell");
+	g_EsifLogFile[ESIF_LOG_TRACE].name    = esif_ccb_strdup("trace");
+	g_EsifLogFile[ESIF_LOG_UI].name       = esif_ccb_strdup("ui");
 	return ESIF_OK;
 }
 
@@ -96,6 +102,8 @@ void EsifLogMgrExit(void)
 		if (g_EsifLogFile[j].handle != NULL) {
 			esif_ccb_fclose(g_EsifLogFile[j].handle);
 		}
+		esif_ccb_free(g_EsifLogFile[j].name);
+		esif_ccb_free(g_EsifLogFile[j].filename);
 		esif_ccb_lock_uninit(&g_EsifLogFile[j].lock);
 	}
 	esif_ccb_memset(g_EsifLogFile, 0, sizeof(g_EsifLogFile));
@@ -118,6 +126,10 @@ int EsifLogFile_Open(EsifLogType type, const char *filename)
 #else
 	rc = esif_ccb_fopen(&g_EsifLogFile[type].handle, fullpath, "w");
 #endif
+	if (rc == 0) {
+		esif_ccb_free(g_EsifLogFile[type].filename);
+		g_EsifLogFile[type].filename = esif_ccb_strdup((char *)fullpath);
+	}
 	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
 	return rc;
 }
@@ -180,6 +192,16 @@ esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const ch
 
 	esif_ccb_sprintf(buf_len, buffer, "%s%s", ESIFDV_DIR, filename);
 	return buffer;
+}
+
+void EsifLogFile_DisplayList(void)
+{
+	int j;
+	for (j = 0; j < MAX_ESIFLOG; j++) {
+		if (g_EsifLogFile[j].handle != NULL && g_EsifLogFile[j].name != NULL) {
+			CMD_OUT("%s log: %s\n", g_EsifLogFile[j].name, (g_EsifLogFile[j].filename ? g_EsifLogFile[j].filename : "NA"));
+		}
+	}
 }
 
 EsifLogType EsifLogType_FromString(const char *name)
@@ -390,8 +412,6 @@ static enum esif_rc sync_lf_participants()
 			continue;
 		}
 
-		// printf("Add Existing LF Participant: %s\n", data_ptr->participant_info[i].name);
-
 		size = sizeof(struct esif_ipc_event_header) +
 			sizeof(struct esif_ipc_event_data_create_participant);
 		event_hdr_ptr = (struct esif_ipc_event_header *)esif_ccb_malloc(size);
@@ -418,7 +438,7 @@ static enum esif_rc sync_lf_participants()
 
 		esif_ccb_free(event_hdr_ptr);
 	}
-	printf("\n");
+	ESIF_TRACE_DEBUG("\n");
 
 exit:
 	ESIF_TRACE_DEBUG("%s: rc = %s(%u)", ESIF_FUNC, esif_rc_str(rc), rc);
@@ -432,7 +452,7 @@ exit:
 
 void done(const void *context)
 {
-	printf("Context = %p %s\n", context, (char *)context);
+	CMD_OUT("Context = %p %s\n", context, (char *)context);
 }
 
 
@@ -470,18 +490,22 @@ exit:
 static void *esif_web_worker_thread(void *ptr)
 {
 	UNREFERENCED_PARAMETER(ptr);
+
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+	defined(ESIF_ATTR_OS_CHROME)
+	esif_ws_init(ESIF_DIR_UI);
+#else
 	esif_ws_init(g_home);
+#endif
 
 	return 0;
 }
 
-static int g_ws_started = 0;
-static esif_thread_t g_webthread;
 
 eEsifError EsifWebStart()
 {
-	if (!g_ws_started) {
-		g_ws_started = 1;
+	static esif_thread_t g_webthread;
+	if (!EsifWebIsStarted()) {
 		esif_ccb_thread_create(&g_webthread, esif_web_worker_thread, NULL);
 	}
 	return ESIF_OK;
@@ -489,27 +513,28 @@ eEsifError EsifWebStart()
 
 void EsifWebStop()
 {
-	if (g_ws_started) {
+	if (EsifWebIsStarted()) {
 		esif_ws_exit();
 	}
-	g_ws_started = 0;
 }
 
-int EsifWebStarted()
+int EsifWebIsStarted()
 {
-	return g_ws_started;
+	extern atomic_t g_ws_threads;
+	return (atomic_read(&g_ws_threads) > 0);
 }
 
+void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
+{
+	esif_ws_set_ipaddr_port(ipaddr, port);
+}
 
 eEsifError esif_uf_init(esif_string home_dir)
 {
 	eEsifError rc = ESIF_OK;
 
 #ifdef ESIF_ATTR_MEMTRACE
-	u32 *memory_leak = 0;
 	esif_memtrace_init();	/* must be called first */
-	UNREFERENCED_PARAMETER(memory_leak);
-	// memory_leak = (u32*)esif_ccb_malloc(sizeof(*memory_leak)); /* intentional memory leak for debugging */
 #endif
 #ifdef BIG_LOCK
 	esif_ccb_mutex_init(&g_shellLock);
@@ -520,7 +545,7 @@ eEsifError esif_uf_init(esif_string home_dir)
 	esif_ccb_mempool_init_tracking();
 
 	if (NULL != home_dir) {
-		printf("%s: Home: %s\n", ESIF_FUNC, home_dir);
+		CMD_OUT("%s: Home: %s\n", ESIF_FUNC, home_dir);
 		g_home = esif_ccb_strdup(home_dir);
 	} else {
 		goto exit;
@@ -602,10 +627,12 @@ void *esif_memtrace_alloc(
 	)
 {
 	struct memalloc_s *mem = NULL;
+	struct memalloc_s **last = NULL;
 	void *mem_ptr = NULL;
 
 	esif_ccb_write_lock(&g_memtrace.lock);
 	mem = g_memtrace.allocated;
+	last = &g_memtrace.allocated;
 
 	if (file) {
 		const char *slash = strrchr(file, *ESIF_PATH_SEP);
@@ -616,18 +643,27 @@ void *esif_memtrace_alloc(
 
 	if (old_ptr) {
 		mem_ptr = native_realloc(old_ptr, size);
-		if (!mem_ptr) {
+
+		// realloc(ptr, size) leaves ptr unaffected if realloc fails and size is nonzero
+		if (!mem_ptr && size > 0) {
 			goto exit;
 		}
 		while (mem) {
 			if (old_ptr == mem->mem_ptr) {
-				mem->mem_ptr = mem_ptr;
-				mem->size    = size;
-				mem->func    = func;
-				mem->file    = file;
-				mem->line    = line;
+				// realloc(ptr, 0) behaves like free(ptr)
+				if (size == 0) {
+					*last = mem->next;
+					native_free(mem);
+				} else {
+					mem->mem_ptr = mem_ptr;
+					mem->size    = size;
+					mem->func    = func;
+					mem->file    = file;
+					mem->line    = line;
+				}
 				goto exit;
 			}
+			last = &mem->next;
 			mem = mem->next;
 		}
 	} else {

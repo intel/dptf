@@ -847,8 +847,8 @@ static void esif_unpack_acpi_object(
 				data_ptr->rc = ESIF_E_NEED_LARGER_BUFFER;
 			}
 			ESIF_TRACE_DYN_UNPACK(
-				"%s: ACPI_BUFFER %p len %lu, ESIF_BINARY "
-				"addr %p %s len (%lu + %u), needed_len %u rc %d\n",
+				"%s: ACPI_BUFFER %p len %u, ESIF_BINARY "
+				"addr %p %s len (%u + %u), needed_len %u rc %d\n",
 				ESIF_FUNC,
 				obj_ptr->string.pointer,
 				(u32)sizeof(union esif_data_variant),
@@ -1007,8 +1007,8 @@ static void esif_unpack_acpi_object(
 				data_ptr->rc = ESIF_E_NEED_LARGER_BUFFER;
 			}
 			ESIF_TRACE_DYN_UNPACK(
-				"%s: ACPI_STRING %p len %lu, ESIF_BINARY "
-				"addr %p %s len (%lu + %u), needed_len %u "
+				"%s: ACPI_STRING %p len %u, ESIF_BINARY "
+				"addr %p %s len (%u + %u), needed_len %u "
 				"rc %d\n",
 				ESIF_FUNC,
 				obj_ptr->string.pointer,

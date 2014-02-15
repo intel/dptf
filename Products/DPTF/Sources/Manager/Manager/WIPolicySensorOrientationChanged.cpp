@@ -33,7 +33,7 @@ WIPolicySensorOrientationChanged::~WIPolicySensorOrientationChanged(void)
 
 void WIPolicySensorOrientationChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

@@ -33,7 +33,6 @@ public:
         ThermalRelationshipTable& trt,
         std::shared_ptr<CallbackScheduler> callbackScheduler,
         TargetMonitor& targetMonitor,
-        UtilizationStatus utilizationBiasThreshold,
         UIntN target);
     virtual ~TargetLimitAction();
 

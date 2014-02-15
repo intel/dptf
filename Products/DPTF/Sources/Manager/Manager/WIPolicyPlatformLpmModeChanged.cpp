@@ -31,7 +31,7 @@ WIPolicyPlatformLpmModeChanged::~WIPolicyPlatformLpmModeChanged(void)
 
 void WIPolicyPlatformLpmModeChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

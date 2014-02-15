@@ -34,7 +34,7 @@ WIDomainRadioConnectionStatusChanged::~WIDomainRadioConnectionStatusChanged(void
 
 void WIDomainRadioConnectionStatusChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

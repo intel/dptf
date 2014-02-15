@@ -114,30 +114,30 @@ struct esif_data_variant_integer {  /* Same as esif_data_variant.integer */
 
 /* Static LPAT */
 static struct esif_data_variant_integer esif_lpat_table[] = {
-	{ESIF_DATA_INT64,-20}, {ESIF_DATA_UINT64, 977},
-	{ESIF_DATA_INT64,-15}, {ESIF_DATA_UINT64, 961},
-	{ESIF_DATA_INT64,-10}, {ESIF_DATA_UINT64, 941},
-	{ESIF_DATA_INT64, -5}, {ESIF_DATA_UINT64, 917},
-	{ESIF_DATA_INT64,  0}, {ESIF_DATA_UINT64, 887},
-	{ESIF_DATA_INT64,  5}, {ESIF_DATA_UINT64, 853}, 
-	{ESIF_DATA_INT64, 10}, {ESIF_DATA_UINT64, 813}, 
-	{ESIF_DATA_INT64, 15}, {ESIF_DATA_UINT64, 769},
-	{ESIF_DATA_INT64, 20}, {ESIF_DATA_UINT64, 720},
-	{ESIF_DATA_INT64, 25}, {ESIF_DATA_UINT64, 669},
-	{ESIF_DATA_INT64, 30}, {ESIF_DATA_UINT64, 615},
-	{ESIF_DATA_INT64, 35}, {ESIF_DATA_UINT64, 561},
-	{ESIF_DATA_INT64, 40}, {ESIF_DATA_UINT64, 508},
-	{ESIF_DATA_INT64, 45}, {ESIF_DATA_UINT64, 456},
-	{ESIF_DATA_INT64, 50}, {ESIF_DATA_UINT64, 407},
-	{ESIF_DATA_INT64, 55}, {ESIF_DATA_UINT64, 357},
-	{ESIF_DATA_INT64, 60}, {ESIF_DATA_UINT64, 315},
-	{ESIF_DATA_INT64, 65}, {ESIF_DATA_UINT64, 277},
-	{ESIF_DATA_INT64, 70}, {ESIF_DATA_UINT64, 243},
-	{ESIF_DATA_INT64, 75}, {ESIF_DATA_UINT64, 212},
-	{ESIF_DATA_INT64, 80}, {ESIF_DATA_UINT64, 186},
-	{ESIF_DATA_INT64, 85}, {ESIF_DATA_UINT64, 162},
-	{ESIF_DATA_INT64, 90}, {ESIF_DATA_UINT64, 140},
-	{ESIF_DATA_INT64, 100}, {ESIF_DATA_UINT64, 107}
+	{ESIF_DATA_UINT64, 2531}, {ESIF_DATA_UINT64, 976},
+        {ESIF_DATA_UINT64, 2581}, {ESIF_DATA_UINT64, 960},
+        {ESIF_DATA_UINT64, 2631}, {ESIF_DATA_UINT64, 940},
+        {ESIF_DATA_UINT64, 2681}, {ESIF_DATA_UINT64, 916},
+        {ESIF_DATA_UINT64, 2731}, {ESIF_DATA_UINT64, 884},
+        {ESIF_DATA_UINT64, 2781}, {ESIF_DATA_UINT64, 852},
+        {ESIF_DATA_UINT64, 2831}, {ESIF_DATA_UINT64, 812},
+        {ESIF_DATA_UINT64, 2881}, {ESIF_DATA_UINT64, 768},
+        {ESIF_DATA_UINT64, 2931}, {ESIF_DATA_UINT64, 720},
+        {ESIF_DATA_UINT64, 2981}, {ESIF_DATA_UINT64, 668},
+        {ESIF_DATA_UINT64, 3031}, {ESIF_DATA_UINT64, 612},
+        {ESIF_DATA_UINT64, 3081}, {ESIF_DATA_UINT64, 560},
+        {ESIF_DATA_UINT64, 3131}, {ESIF_DATA_UINT64, 508},
+        {ESIF_DATA_UINT64, 3181}, {ESIF_DATA_UINT64, 456},
+        {ESIF_DATA_UINT64, 3231}, {ESIF_DATA_UINT64, 404},
+        {ESIF_DATA_UINT64, 3281}, {ESIF_DATA_UINT64, 356},
+        {ESIF_DATA_UINT64, 3331}, {ESIF_DATA_UINT64, 312},
+        {ESIF_DATA_UINT64, 3381}, {ESIF_DATA_UINT64, 276},
+        {ESIF_DATA_UINT64, 3431}, {ESIF_DATA_UINT64, 240},
+        {ESIF_DATA_UINT64, 3481}, {ESIF_DATA_UINT64, 212},
+        {ESIF_DATA_UINT64, 3531}, {ESIF_DATA_UINT64, 184},
+        {ESIF_DATA_UINT64, 3581}, {ESIF_DATA_UINT64, 160},
+        {ESIF_DATA_UINT64, 3631}, {ESIF_DATA_UINT64, 140},
+        {ESIF_DATA_UINT64, 3731}, {ESIF_DATA_UINT64, 104},
 };
 
 extern enum esif_rc read_mod_write_msr_bit_range(
@@ -797,23 +797,18 @@ static enum esif_rc esif_set_action_code_fndg(
 	)
 {
 	enum esif_rc rc = ESIF_OK;
-	u64 msr_plat_info = 0LL;
+	u32 tuning_available = 0LL;
 	long long center_freq = 0ULL;
 	long long target_freq = 0LL;
-	long long spread_percent = 600LL; /* TODO:  Get by future primitive */
-	long long spread_limit = 0LL;
+	u32 left_spread_percent = 0ULL;
+	u32 right_spread_percent = 0ULL; 
+	long long left_spread_limit = 0LL;
+	long long right_spread_limit = 0LL;
 	long long delta = 0LL;
 	long long result = 0LL;
 	u32 msr = 0;
 	u8 bit_from = 0;
 	u8 bit_to = 0;
-
-	struct esif_primitive_tuple tuple_get_center_freq = {0};
-	struct esif_data esif_void = {ESIF_DATA_VOID, NULL, 0, 0};
-	struct esif_data esif_center_freq = {ESIF_DATA_FREQUENCY,
-					     &center_freq,
-					     sizeof(center_freq),
-					     sizeof(center_freq)};
 
 	if ((NULL == lp_ptr) || (NULL == tuple_ptr) ||
 	    (NULL == action_ptr) || (NULL == req_data_ptr)) {
@@ -824,11 +819,18 @@ static enum esif_rc esif_set_action_code_fndg(
 	/*
 	 * Verify support first
 	 */
-	rc = esif_ccb_read_msr(0, ESIF_MSR_PLATFORM_INFO, &msr_plat_info);
+
+	rc = esif_get_simple_primitive(lp_ptr,
+				       GET_PROC_RF_TUNING_AVAILABLE,
+				       tuple_ptr->domain,
+				       255,
+				       ESIF_DATA_UINT32,
+				       &tuning_available,
+				       sizeof(tuning_available));
 	if(ESIF_OK != rc) {
 		goto exit;
 	}
-	if((msr_plat_info & ESIF_MSR_BIT_FIVR_RFI_TUNING_AVAIL) == 0LL) {
+	if(tuning_available == 0) {
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
 	}
@@ -836,14 +838,13 @@ static enum esif_rc esif_set_action_code_fndg(
 	/*
 	 * Get the default frequency value for set point calculations.
 	 */
-	tuple_get_center_freq.id = GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY;
-	tuple_get_center_freq.domain = tuple_ptr->domain;
-	tuple_get_center_freq.instance = 255;
-
-	rc = esif_execute_primitive(lp_ptr,
-				    &tuple_get_center_freq,
-				    &esif_void, &esif_center_freq,
-				    NULL);
+	rc = esif_get_simple_primitive(lp_ptr,
+				       GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY,
+				       tuple_ptr->domain,
+				       255,
+				       ESIF_DATA_FREQUENCY,
+				       &center_freq,
+				       sizeof(center_freq));
 	if(rc != ESIF_OK)
 		goto exit;
 
@@ -861,19 +862,48 @@ static enum esif_rc esif_set_action_code_fndg(
 		goto exit;
 	}
 
-	target_freq = (*(u32*)req_data_ptr->buf_ptr);
+	if(req_data_ptr->buf_len >= 8) {
+		target_freq = (*(u64*)req_data_ptr->buf_ptr);
+	} else {
+		target_freq = (*(u32*)req_data_ptr->buf_ptr);
+	}
+
 	delta = target_freq - center_freq;
 
 	/*
 	 * Perform bounds checking on the requested frequency.
 	 */
-	spread_limit = (spread_percent * center_freq) / 100 / ESIF_PERCENT_CONV_FACTOR;
+	rc =  esif_get_simple_primitive(lp_ptr,
+					GET_RFPROFILE_CLIP_PERCENT_RIGHT,
+					tuple_ptr->domain,
+					255,
+					ESIF_DATA_PERCENT,
+					&right_spread_percent,
+					sizeof(right_spread_percent));
+	if(rc != ESIF_OK)
+		goto exit;
 
-	if((delta < -spread_limit) || (spread_limit < delta)) {
+	rc =  esif_get_simple_primitive(lp_ptr,
+					GET_RFPROFILE_CLIP_PERCENT_LEFT,
+					tuple_ptr->domain,
+					255,
+					ESIF_DATA_PERCENT,
+					&left_spread_percent,
+					sizeof(left_spread_percent));
+	if(rc != ESIF_OK)
+		goto exit;
+
+	left_spread_limit = (left_spread_percent * center_freq) / 100 /
+			     ESIF_PERCENT_CONV_FACTOR;
+
+	right_spread_limit = (right_spread_percent * center_freq) / 100 /
+			     ESIF_PERCENT_CONV_FACTOR;
+
+	if((delta < -left_spread_limit) || (right_spread_limit < delta)) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
-
+	
 	/*
 	 * Calculate the required encoding.  From the BWG the encoding is found
 	 * as int(value * 2^16 + 0.5); where value is the percentage from the
@@ -905,10 +935,6 @@ static enum esif_rc esif_set_action_code_fndg(
 exit:
 	return rc;
 }
-
-
-
-
 
 /*****************************************************************************/
 /*****************************************************************************/

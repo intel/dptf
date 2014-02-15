@@ -33,7 +33,7 @@ WIPolicyCoolingModeAcousticLimitChanged::~WIPolicyCoolingModeAcousticLimitChange
 
 void WIPolicyCoolingModeAcousticLimitChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

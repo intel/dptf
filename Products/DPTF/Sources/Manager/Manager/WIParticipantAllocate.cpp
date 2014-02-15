@@ -32,7 +32,7 @@ WIParticipantAllocate::~WIParticipantAllocate(void)
 
 void WIParticipantAllocate::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     try
     {

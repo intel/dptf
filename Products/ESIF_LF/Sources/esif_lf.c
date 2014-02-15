@@ -139,19 +139,50 @@ static void esif_stop_initializers(void);
 #define DTS_TO_CELCIUS(temp) ((GFX_DEGREE_TEMPERATURE_MIN) + \
 			      ((GFX_DTS_TEMPERATURE_MAX)-(temp)))
 
-
-/* LPAT Xform Algorithme */
-static u32 esif_xform_lpat(int ec, struct esif_lp_dsp *dsp_ptr)
+/* 
+* Thermistor xform example
+*    1. Input EC is 586, output Kelvin is 3055
+*    2. Input Kelvin in 3055, output EC is 586
+*
+* Lookup LPAT ACPI object = {{type, tempK}, {type, rawVal}} = {
+*                         ...
+*           {{INT64, 2891}, {UINT64, 668}},
+*           {{INT64, 3031}, {UINT64, 612}}, <-- tempK[0], raw[0]
+*           {{INT64, 3081}, {UINT64, 560}}, <-- tempK[1], raw[1] 
+*           {{INT64, 3131}, {UINT64, 508}},
+*                         ... }
+* Algorithm 
+*    FP = (tempK[1] - tempK[0]) / (raw[0] - raw[1]) 
+*       = (  3081   -  3031   ) / ( 612     - 560 )
+*       = 0.096153 
+*
+*  Kernel lacks of floating point, so make FP 1K bigger to keep precision.
+*    FP = FP * 1K = 961 
+* 
+*    Kelvin = tempK[0] + ((raw[0] - input_EC) * FP ) / 1K     
+*           =  3031    + ((  612   -   586  ) * 961) / 1K
+*           =  3031    + 24 
+*           =  3055
+#
+*    EC = raw[0] - ((input_K - tempK[0]) * 1K) / FP
+*       =   612  - ((3055    - 3031   ) * 1K) / 961
+*       =   615  - 26
+*       =   586 
+*          
+*/
+static u32 esif_xform_lpat(int input, struct esif_lp_dsp *dsp_ptr, 
+			   enum esif_temperature_type input_type) 
 {
-	u8 *var_ptr = (u8 *) dsp_ptr->table;
-	long long temp[2]={0, 0}; 
-	long long raw[2]={0, 0}; 
-	long long fp = 0; 
-	long long temp_temp = 0; 
-	long long actual_temp = 0;
-	int i = 0; 
+        u8 *var_ptr = (u8 *) dsp_ptr->table;
+	long long temp[2] = {0, 0};
+	long long raw[2] = {0, 0};
+	long long fp = 0;
+	long long output = 0; 
+	int i = 0;
 	int num_lpat = 0;
 
+	if (input_type != ESIF_TEMP_THERMISTOR && input_type != ESIF_TEMP_DECIK)
+		return 0;
 /* 
  * VS 2012 doesn't support "typeof(((type *)0)->memb *)" generic type,
  * so we can only use (long long *) instead.
@@ -160,79 +191,74 @@ static u32 esif_xform_lpat(int ec, struct esif_lp_dsp *dsp_ptr)
 #define var_offset(type, memb) ((size_t)&((type *)0)->memb)
 #define var_sizeof(type, memb) (sizeof((type *)0)->memb)
 #define val_var_offset(ptr, type, memb) *(long long *) \
-		(ptr + var_offset(type, memb))
+                (ptr + var_offset(type, memb))
 #define next_val_var_offset(ptr, type, all_memb, memb) *(long long *) \
-		(ptr + var_offset(type, memb) + var_sizeof(type, all_memb)) 
-	/* 
-	 * data_variant.integer layout = {type, value} = {
-	 *                                   ...
-	 *                               {INT64,   25},
-	 *                               {UINT64, 669},
-	 *                                   ... }  
-	 *
-	 * Thermistor algorithm (EC raw reading example ec = 596)
-	 *    Lookup LPAT ACPI object = {temp, rawVal} = {
-	 * 			   ...
-	 *                  {25, 669},
-	 *                  {30, 615}, <-- temp[0], raw[0]
-	 *                  {35, 561}, <-- temp[1], raw[1] 
-	 *                  {40, 508},
-	 *                         ... }
-	 * Algorithm 
-	 *    FP = (temp[1] - temp[0]) / (raw[0] - raw[1]) 
-	 *       = ( 35       -  30      ) / ( 615     - 561       )
-	 *       = 0.09259
-	 * 
-	 *    actual_temp = temp[0] + (raw[0] - ec) * FP;
-	 *                =   30        + ( 615     - 596   ) * 0.09259 
-	 *                =   30        + 1.759
-	 *                =   31.759
-	 *
-	 * Due to kernel lacks of floating point, we will make it into 
-	 * Milli-Celsisus in return as
-	 *
-	 *   FP = (temp[1] - temp[0]) * 1K * 1K / (raw[0] - raw[1])
-	 *      = ( 35     -  30    ) * 1K * 1K / ( 615   - 561   )
-	 *      = 92,590
-	 *
-	 *   actual_Temp = temp[0] * 1K + ((raw[0] - ec) * FP)     / 1K
-	 *               =   30,000     + (( 19        ) * 92,590) / 1K
-	 *               =   30,000     +    1,759
-	 *               =   31,759
-	 */ 
+                (ptr + var_offset(type, memb) + var_sizeof(type, all_memb)) 
+
 	if (0 == dsp_ptr->table_size)
-		goto exit;
+	        goto exit;
 
 	num_lpat = dsp_ptr->table_size / sizeof(union esif_data_variant);
 
 	for (i=0; i < ((num_lpat/2) - 1); i++) {
 		temp[0] = val_var_offset(var_ptr, ESIF_VAR, integer.value);
-		raw[0] =  next_val_var_offset(var_ptr, ESIF_VAR, integer, integer.value); 
+		raw[0]  = next_val_var_offset(var_ptr, ESIF_VAR, integer, 
+					integer.value);
 
+		/* Next element */
 		var_ptr += 2 * var_sizeof(ESIF_VAR, integer);
 		temp[1] = val_var_offset(var_ptr, ESIF_VAR, integer.value);
-		raw[1] = next_val_var_offset(var_ptr, ESIF_VAR, integer, integer.value);
-  
-		if (i == 0 && ec > raw[0])
-			goto exit;
-		if (ec <= raw[0] && ec >= raw[1]) 
+		raw[1]  = next_val_var_offset(var_ptr, ESIF_VAR, integer, 
+					integer.value);
+
+		switch (input_type) {
+		case ESIF_TEMP_THERMISTOR:
+			/* Out of boundry check - too small */
+			if (i == 0 && input > raw[0]) 
+				goto exit;
+			/* LPAT entry lookup */
+			if (input <= raw[0] && input >= raw[1])
+				goto comp;
 			break;
+		case ESIF_TEMP_DECIK:
+			if (i == 0 && input < temp[0])
+				goto exit;
+			if (input >= temp[0] && input <= temp[1]) 
+				goto comp; 
+			break;
+		default:
+			goto exit;
+		}
 	}
-	if (ec <= raw[1])
-		goto exit;
+	/* Out of boundry check - too large */
+	goto exit;
+comp:
+	/* FP = 1K * ((temp1 - temp0) / (raw0 - raw1)) */
+	fp = (temp[1] - temp[0]) * 1000;
+	do_div(fp, (raw[0] - raw[1]));
 
-	fp = (temp[1] - temp[0]) * 1000000; 
-	do_div(fp, (raw[0] - raw[1])); 
-
-	temp_temp = (raw[0] - ec) * fp;
-	do_div(temp_temp, 1000);	
-	actual_temp = (temp[0] * 1000) + temp_temp;
-
+	switch (input_type) {
+	case ESIF_TEMP_THERMISTOR:
+		/* K = temp0 + ((raw0 - EC) * FP) / 1K */
+		output = (raw[0] - input) * fp;
+		do_div(output, 1000);
+		output = temp[0] - output; 
+		break;
+	case ESIF_TEMP_DECIK:
+		/* EC = raw0 - ((K - temp0) * 1K) / FP */
+		output = (input - temp[0]) * 1000;
+		do_div(output, fp);
+		output = raw[0] - output; 
+		break;
+	default:
+		break;
+	}
 exit:
-	ESIF_TRACE_DYN_TEMP("%s: ec %d dsp.table_size %u num_plat %d LPAT[%d].raw %d actual_temp %llu\n",
-		ESIF_FUNC, ec, dsp_ptr->table_size, num_lpat, 
-		i, (int) raw[0], actual_temp);
-	return (u32) actual_temp;
+	ESIF_TRACE_DYN_TEMP("%s: input %d dsp.table_size %u num_plat %d "
+		"LPAT {temp0 %u, raw0 %u}, {temp1 %u, raw1 %u} output %llu\n",
+                ESIF_FUNC, input, dsp_ptr->table_size, num_lpat,
+                (u32)temp[0], (u32)raw[0], (u32)temp[1], (u32)raw[1], output);
+        return (u32) output; 
 }
 
 
@@ -462,10 +488,29 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 		break;
 
 	case ESIF_ALGORITHM_TYPE_TEMP_LPAT: 
-	        temp_out = esif_xform_lpat(temp_in, lp_ptr->dsp_ptr);
-		temp_in_type = ESIF_TEMP_MILLIC;
-		temp_out_type = type;
-		esif_convert_temp(temp_in_type, temp_out_type, &temp_out);
+		ESIF_TRACE_DYN_TEMP(
+			"%s: using algorithm %s temp_in %u\n", ESIF_FUNC, 
+			esif_algorithm_type_str(algo_ptr->temp_xform),
+			temp_in);
+
+		if (opcode == ESIF_PRIMITIVE_OP_GET) {
+	        	temp_out = esif_xform_lpat(temp_in, lp_ptr->dsp_ptr, 
+						   ESIF_TEMP_THERMISTOR);
+
+			temp_in_type = ESIF_TEMP_DECIK; 
+			temp_out_type = type;
+			esif_convert_temp(temp_in_type, temp_out_type, 
+					  &temp_out);
+		} else { /*ESIF_PRIMITIVE_OP_SET */
+			temp_in_type  = type;
+			temp_out_type = ESIF_TEMP_DECIK;
+			/* Normalized to Kelvin */
+			esif_convert_temp(temp_in_type, temp_out_type,
+					  &temp_out);
+
+	        	temp_out = esif_xform_lpat(temp_in, lp_ptr->dsp_ptr, 
+						   ESIF_TEMP_DECIK);
+		}
 		break;
 	
 	default:

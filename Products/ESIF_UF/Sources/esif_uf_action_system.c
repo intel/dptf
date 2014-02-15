@@ -60,6 +60,7 @@ static eEsifError ActionSystemSet(
 	/* Well known/Special Commands magic is used to avoid accidental calls*/
 	if (!strcmp("SYSTEM_SLEEP", command)) {
 		esif_ccb_suspend();
+
 	} else if (!strcmp("SYSTEM_SHUTDOWN", command)) {
 		UInt32 temperature = 0;
 		UInt32 tripPointTemperature = 0;
@@ -73,10 +74,16 @@ static eEsifError ActionSystemSet(
 			tripPointTemperature = shutdown_data->tripPointTemperature;
 		}
 		esif_ccb_shutdown(temperature, tripPointTemperature);
+
 	} else if (!strcmp("SYSTEM_HIBERNATE", command)) {
 		esif_ccb_hibernate();
+
 	} else if (!strcmp("SYSTEM_REBOOT", command)) {
 		esif_ccb_reboot();
+
+	} else if (!strcmp("SYSTEM_REMPOL", command)) {
+		//esif_ccb_remove_policy(requestPtr);
+
 	} else {
 		system(command);
 	}

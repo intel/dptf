@@ -33,7 +33,7 @@ WIParticipantSpecificInfoChanged::~WIParticipantSpecificInfoChanged(void)
 
 void WIParticipantSpecificInfoChanged::execute(void)
 {
-    WriteParticipantWorkItemStartingDebugMessage();
+    WriteParticipantWorkItemStartingInfoMessage();
 
     try
     {

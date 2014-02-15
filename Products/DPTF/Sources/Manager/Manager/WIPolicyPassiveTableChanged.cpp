@@ -31,7 +31,7 @@ WIPolicyPassiveTableChanged::~WIPolicyPassiveTableChanged(void)
 
 void WIPolicyPassiveTableChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

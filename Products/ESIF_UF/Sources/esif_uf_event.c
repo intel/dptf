@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_EVENT
 
 #include "esif_uf.h"	/* Upper Framework */
 #include "esif_dsp.h"	/* Device Support Package */
@@ -114,7 +113,7 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 	char domain_str[8] = "";
 	esif_ccb_time_t now;
 	char guid_str[ESIF_GUID_PRINT_SIZE];
-
+	struct esif_data void_data = {ESIF_DATA_VOID, NULL, 0};
 	UNREFERENCED_PARAMETER(guid_str);
 	UNREFERENCED_PARAMETER(domain_str);
 
@@ -154,6 +153,10 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 		struct esif_ipc_event_data_create_participant *data_ptr = NULL;
 		EsifString edp_filename_ptr = NULL;
 		EsifString dsp_lookup_result_ptr = NULL;
+
+		if(eventHdrPtr->data_len < sizeof(*data_ptr)) {
+			goto exit;
+		}
 
 		// Event Data
 		data_ptr = (struct esif_ipc_event_data_create_participant *)(eventHdrPtr + 1);
@@ -419,8 +422,10 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 		EsifUpManagerUnregisterParticipant(eParticipantOriginLF, &eventHdrPtr->src_id);
 	} else {
 		// Best Effor Delivery.
-		EsifAppsEvent(eventHdrPtr->dst_id, eventHdrPtr->dst_domain_id, eventHdrPtr->type, NULL);
+		EsifAppsEvent(eventHdrPtr->dst_id, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &void_data);
 	}
+exit:
+	(0);
 }
 
 

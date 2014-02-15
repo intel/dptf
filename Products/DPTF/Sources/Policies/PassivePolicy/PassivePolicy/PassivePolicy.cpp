@@ -56,7 +56,19 @@ void PassivePolicy::onCreate(void)
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayStatusChanged);
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyInitiatedCallback);
+
     m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
+    try
+    {
+        m_utilizationBiasThreshold = Percentage::fromWholeNumber(
+            getPolicyServices().platformConfigurationData->readConfigurationUInt32(
+            "PreferenceBiasUtilizationThreshold"));
+    }
+    catch (...)
+    {
+        m_utilizationBiasThreshold = Percentage(0.0);
+    }
+
     m_callbackScheduler.reset(new CallbackScheduler(getPolicyServices(), m_trt, getTime()));
 }
 
@@ -126,7 +138,7 @@ string PassivePolicy::getStatusAsXml(void) const
     XmlNode* format = XmlNode::createComment("format_id=" + getGuid().toString());
     root->addChild(format);
     XmlNode* status = XmlNode::createWrapperElement("passive_policy_status");
-    status->addChild(getParticipantTracker().getXmlForPassiveTripPoints());
+    status->addChild(getXmlForPassiveTripPoints());
     status->addChild(m_trt.getXml());
     PassiveControlStatus controlStatus(m_trt, getParticipantTracker());
     status->addChild(controlStatus.getXml());
@@ -161,11 +173,12 @@ void PassivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
     if (getParticipantTracker().remembers(participantIndex))
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
-        getParticipantTracker()[participantIndex].bindDomain(domainIndex);
+        DomainProxy& domain = getParticipantTracker()[participantIndex].bindDomain(domainIndex);
+        domain.setTstateUtilizationThreshold(m_utilizationBiasThreshold);
 
         if (participantIsSourceDevice(participantIndex))
         {
-            getParticipantTracker()[participantIndex].initializeControlsForAllDomains();
+            domain.initializeControls();
         }
 
         if (participantIsTargetDevice(participantIndex))
@@ -419,7 +432,7 @@ void PassivePolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, v
         m_callbackScheduler->acknowledgeCallback(targetIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF,
             "Callback received for target participant " + to_string(targetIndex) + ".", targetIndex));
-        takeThermalActionForTarget((UIntN)param1);
+        takeThermalActionForTarget(targetIndex);
     }
 }
 
@@ -447,32 +460,32 @@ TargetActionBase* PassivePolicy::determineAction(UIntN target)
         {
             return new TargetLimitAction(
                 getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
-                m_targetMonitor, m_utilizationBiasThreshold, target);
+                m_targetMonitor, target);
         }
         else if ((currentTemperature < Temperature(psv)) && (m_targetMonitor.isMonitoring(target)))
         {
             return new TargetUnlimitAction(
                 getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
-                m_targetMonitor, m_utilizationBiasThreshold, target);
+                m_targetMonitor, target);
         }
         else if (currentTemperature == Temperature(psv))
         {
             return new TargetCheckLaterAction(
                 getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
-                m_targetMonitor, m_utilizationBiasThreshold, target);
+                m_targetMonitor, target);
         }
         else
         {
             return new TargetNoAction(
                 getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
-                m_targetMonitor, m_utilizationBiasThreshold, target);
+                m_targetMonitor, target);
         }
     }
     else
     {
         return new TargetNoAction(
             getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
-            m_targetMonitor, m_utilizationBiasThreshold, target);
+            m_targetMonitor, target);
     }
 }
 
@@ -564,20 +577,38 @@ void PassivePolicy::reloadTrtAndCheckAllTargets()
     }
 }
 
-Bool PassivePolicy::participantIsSourceDevice(UIntN participantIndex)
+Bool PassivePolicy::participantIsSourceDevice(UIntN participantIndex) const
 {
     return getParticipantTracker().remembers(participantIndex) &&
            m_trt.isParticipantSourceDevice(participantIndex);
 }
 
-Bool PassivePolicy::participantIsTargetDevice(UIntN participantIndex)
+Bool PassivePolicy::participantIsTargetDevice(UIntN participantIndex) const
 {
     return getParticipantTracker().remembers(participantIndex) &&
            m_trt.isParticipantTargetDevice(participantIndex);
 }
 
-Bool PassivePolicy::participantIsSourceOrTargetDevice(UIntN participantIndex)
+Bool PassivePolicy::participantIsSourceOrTargetDevice(UIntN participantIndex) const
 {
     return participantIsSourceDevice(participantIndex) ||
            participantIsTargetDevice(participantIndex);
+}
+
+XmlNode* PassivePolicy::getXmlForPassiveTripPoints() const
+{
+    XmlNode* allStatus = XmlNode::createWrapperElement("passive_trip_point_status");
+    vector<UIntN> participantIndexes = getParticipantTracker().getAllTrackedIndexes();
+    for (auto participantIndex = participantIndexes.begin(); 
+        participantIndex != participantIndexes.end(); 
+        participantIndex++)
+    {
+        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
+        if (participantIsTargetDevice(*participantIndex) && 
+            participant.getPassiveTripPointProperty().supportsProperty())
+        {
+            allStatus->addChild(participant.getXmlForPassiveTripPoints());
+        }
+    }
+    return allStatus;
 }

@@ -34,7 +34,7 @@ WIDomainConfigTdpCapabilityChanged::~WIDomainConfigTdpCapabilityChanged(void)
 
 void WIDomainConfigTdpCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

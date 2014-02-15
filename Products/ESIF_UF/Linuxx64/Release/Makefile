@@ -71,17 +71,11 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_test.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_databank.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datacache.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datavault.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_eqlcmd.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_eqlparser.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_eqlprovider.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdata.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdatalist.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_iostream.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istringlist.o
 
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_algo.o
-OBJ += $(ESIF_WS_SOURCES)/esif_ws_cgi.o
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_http.o
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_server.o
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_socket.o

@@ -60,5 +60,5 @@ void DataCache_Destroy (DataCachePtr self);
 DataCacheEntryPtr DataCache_GetValue (DataCachePtr self, esif_string key);
 void DataCache_SetValue (DataCachePtr self, esif_string key, EsifData value, esif_flags_t flags);
 void DataCache_Delete (DataCachePtr self, esif_string key);
-
+UInt32 DataCache_GetCount (DataCachePtr self);
 #endif

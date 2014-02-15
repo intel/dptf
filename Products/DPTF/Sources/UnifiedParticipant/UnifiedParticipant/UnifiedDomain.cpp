@@ -124,7 +124,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get active control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get active control XML status!"));
     }
 
     // cTDP Control XML Status
@@ -138,7 +138,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get cTDP control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get cTDP control XML status!"));
     }
 
     // Core Control XML Status
@@ -152,7 +152,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get core control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get core control XML status!"));
     }
 
     // Display Control XML Status
@@ -166,7 +166,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get display control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get display control XML status!"));
     }
 
     // Performance Control XML Status
@@ -180,7 +180,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get performance control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get performance control XML status!"));
     }
 
     // Pixel Clock Control
@@ -194,7 +194,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get pixel clock control XML!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get pixel clock control XML!"));
     }
 
     // Pixel Clock Status
@@ -208,7 +208,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get pixel clock status XML!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get pixel clock status XML!"));
     }
 
     // Power Control XML Status
@@ -222,7 +222,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get power control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get power control XML status!"));
     }
 
     // Power Status XML Status
@@ -236,7 +236,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get power reporting XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get power reporting XML status!"));
     }
 
     // Domain Priority XML Status
@@ -250,7 +250,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get domain priority XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get domain priority XML status!"));
     }
 
     // RF Profile Control XML Status
@@ -264,7 +264,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get rf profile control XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get rf profile control XML status!"));
     }
 
     // RF Profile Status XML Status
@@ -278,7 +278,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get rf profile status XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get rf profile status XML status!"));
     }
 
     // Temperature XML Status
@@ -292,7 +292,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get temperature XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get temperature XML status!"));
     }
 
     // Utilization XML Status
@@ -306,7 +306,7 @@ XmlNode* UnifiedDomain::getXml()
     catch (...)
     {
         // Write message log error
-        m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get utilization XML status!"));
+        m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get utilization XML status!"));
     }
 
     return domain;

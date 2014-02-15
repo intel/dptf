@@ -25,7 +25,7 @@
 ///////////////////////////////////////////////////
 // DataBank Class
 
-#define ESIF_MAX_NAME_SPACES        5
+#define ESIF_MAX_NAME_SPACES        10
 
 // ESIFDV File Definitions
 #define ESIFDV_DEFAULT_NAMESPACE	"dptf"				// Default DataVault/Namespace name

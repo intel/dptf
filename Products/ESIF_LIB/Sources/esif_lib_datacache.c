@@ -31,7 +31,6 @@
 // DataCache Class
 
 // private members
-static int DataCache_GetCount (DataCachePtr self);
 static DataCacheEntryPtr DataCache_GetList (DataCachePtr self);
 static int DataCache_Search (DataCachePtr self, esif_string key);
 
@@ -120,29 +119,42 @@ void DataCache_Delete (
 	esif_string key
 	)
 {
-	// Do Insersion Sort using Binary Search on Sorted Array
+	// Do Insertion Sort using Binary Search on Sorted Array
 	UInt32 node = DataCache_Search(self, key);
 	if (node == EOF) {
 		return;
 	}
+	if (self->elements[node].key.buf_len) {
+		esif_ccb_free(self->elements[node].key.buf_ptr);
+	}
+	if (self->elements[node].value.buf_len) {
+		esif_ccb_free(self->elements[node].value.buf_ptr);
+	}
 	if (node < self->size - 1) {
 		memmove(&self->elements[node], &self->elements[node + 1], (self->size - node - 1) * sizeof(*self->elements));
+		esif_ccb_memset(&self->elements[self->size - 1], 0, sizeof(self->elements[0]));
 	}
-	self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size - 1) * sizeof(self->elements[0]));
+
+	if (self->size > 1) {
+		self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size - 1) * sizeof(self->elements[0]));
+	} else {
+		esif_ccb_free(self->elements);
+		self->elements = NULL;
+	}
 	self->size--;
 }
 
 
-// Private Members
-static int DataCache_GetCount (DataCachePtr self)
+UInt32 DataCache_GetCount (DataCachePtr self)
 {
-	return self->size;
+	return (self ? self->size : 0);
 }
 
 
-static DataCacheEntryPtr DataCache_GetList (DataCachePtr self)
+// Private Members
+DataCacheEntryPtr DataCache_GetList (DataCachePtr self)
 {
-	return self->elements;
+	return (self ? self->elements : NULL);
 }
 
 
@@ -167,5 +179,3 @@ static int DataCache_Search (
 	}
 	return EOF;
 }
-
-

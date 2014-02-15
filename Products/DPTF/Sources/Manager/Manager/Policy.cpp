@@ -44,7 +44,7 @@
 #include "PolicyServicesMessageLogging.h"
 
 Policy::Policy(DptfManager* dptfManager) : m_dptfManager(dptfManager), m_theRealPolicy(nullptr),
-    m_policyIndex(Constants::Invalid), m_esifLibrary(nullptr),
+    m_theRealPolicyCreated(false), m_policyIndex(Constants::Invalid), m_esifLibrary(nullptr),
     m_createPolicyInstanceFuncPtr(nullptr), m_destroyPolicyInstanceFuncPtr(nullptr)
 {
 }
@@ -85,18 +85,19 @@ void Policy::createPolicy(const std::string& policyFileName, UIntN newPolicyInde
 
     m_guid = m_theRealPolicy->getGuid();
 
-    //throw implement_me();
-    //FIXME:  for initial development skip this check for the guid
-    //Bool policySupported = supportedPolicyList.isPolicyValid(m_guid);
-    //if (policySupported == false)
-    //{
-    //    throw dptf_exception(".....
-    //}
+    Bool policySupported = supportedPolicyList.isPolicyValid(m_guid);
+    if (policySupported == false)
+    {
+        std::stringstream message;
+        message << "Policy [" << m_policyFileName << "] will not be loaded.  GUID not in supported policy list [" << m_guid << "]";
+        throw dptf_exception(message.str());
+    }
 
     // create all of the classes necessary to fill in the policy services interface container
     createPolicyServices();
 
     m_theRealPolicy->create(true, m_policyServices, newPolicyIndex);
+    m_theRealPolicyCreated = true;
 
     m_policyName = m_theRealPolicy->getName();
 }
@@ -105,7 +106,8 @@ void Policy::destroyPolicy()
 {
     try
     {
-        if (m_theRealPolicy != nullptr)
+        if ((m_theRealPolicy != nullptr) &&
+            (m_theRealPolicyCreated == true))
         {
             m_theRealPolicy->destroy();
         }

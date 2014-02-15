@@ -160,6 +160,10 @@ void DomainPerformanceControl_002::initializePerformanceControlDynamicCapsIfNull
 
 void DomainPerformanceControl_002::calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex)
 {
+    // TODO: Revisit whether we should even call this to get the upper limit as opposed to just defaulting the upper
+    // limit to 0 and arbitrate with ConfigTDP.  This primitive simply gives us the last set P-state index.  If 3rd
+    // party tools set this or if we have throttled P-states and then crash and reload, our upper limit will be
+    // whatever the last set P-state index was, which is wrong.
     initializePerformanceControlSetIfNull(domainIndex);
     pStateUpperLimitIndex =
         m_participantServicesInterface->primitiveExecuteGetAsUInt32(

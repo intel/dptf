@@ -33,7 +33,7 @@ WIDomainRfProfileChanged::~WIDomainRfProfileChanged(void)
 
 void WIDomainRfProfileChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

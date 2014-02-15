@@ -18,6 +18,7 @@
 
 #include "PolicyServicesPlatformPowerState.h"
 #include "EsifServices.h"
+#include "esif_data_misc.h"
 
 // MagicToken is defined in the ESIF HLD for use when calling sleep/hibernate/showdown.
 static const UInt32 MagicToken = 0x12345678;
@@ -39,8 +40,15 @@ void PolicyServicesPlatformPowerState::hibernate(void)
     getEsifServices()->primitiveExecuteSetAsUInt32(SET_SYSTEM_HIBERNATE, MagicToken);
 }
 
-void PolicyServicesPlatformPowerState::shutDown(void)
+void PolicyServicesPlatformPowerState::shutDown(const Temperature& currentTemperature,
+    const Temperature& tripPointTemperature)
 {
     throwIfNotWorkItemThread();
-    getEsifServices()->primitiveExecuteSetAsUInt32(SET_SYSTEM_SHUTDOWN, MagicToken);
+
+    esif_data_complex_shutdown shutdownData;
+    shutdownData.temperature = currentTemperature;
+    shutdownData.tripPointTemperature = tripPointTemperature;
+
+    getEsifServices()->primitiveExecuteSet(SET_SYSTEM_SHUTDOWN, ESIF_DATA_STRUCTURE,
+        &shutdownData, sizeof(esif_data_complex_shutdown), sizeof(esif_data_complex_shutdown));
 }

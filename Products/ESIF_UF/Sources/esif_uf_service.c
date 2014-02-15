@@ -375,19 +375,20 @@ eEsifError EsifSvcWriteLog(
 	if (msg != NULL && *msg=='\n')
 		msg++;
 
+	// Always Steer Application Messages to Target Routes if DPTF module enabled, regardless of global trace level
 	switch (logType) {
 	case eLogTypeFatal:
 	case eLogTypeError:
-		ESIF_TRACE_ERROR("%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_ERROR, "%s", msg);
 		break;
 	case eLogTypeWarning:
-		ESIF_TRACE_WARN("%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_WARN, "%s", msg);
 		break;
 	case eLogTypeInfo:
-		ESIF_TRACE_INFO("%s", msg);
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_INFO, "%s", msg);
 		break;
-	case eLogTypeDebug: // TODO: Steer to ESIF_TRACE_DEBUG?
-		ESIF_TRACE_INFO("%s", msg);
+	case eLogTypeDebug:
+		ESIF_TRACE_IFENABLED(ESIF_TRACEMODULE_DPTF, ESIF_TRACELEVEL_DEBUG, "%s", msg);
 		break;
 	default:
 		break;

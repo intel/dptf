@@ -456,16 +456,15 @@ A,0,22,True,0x19a,4,0,0x1,
 # GET_TSTATES
 P,65,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"_TSS",,,,
-# SET_ACTIVE_CORE_LIMIT
-P,153,255,2,3,"<schema></schema>",24,"<schema></schema>"
-A,0,4,True,"SPUR",,,,
 # SET_PERF_PRESENT_CAPABILITY
 P,82,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"SPPC",,,,
 # SET_PROC_LOGICAL_PROCESSOR_AFFINITY
 P,229,255,2,3,"<schema></schema>",24,"<schema></schema>"
-A,0,4,True,"SPUR",,,,
 A,1,29,True,"SAFF",,,,
+# SET_PROC_NUMBER_OFFLINE_CORES
+P,153,255,2,3,"<schema></schema>",24,"<schema></schema>"
+A,0,4,True,"SPUR",,,,
 # SET_RAPL_POWER_LIMIT
 P,130,0,2,26,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x59a8,14,0,,

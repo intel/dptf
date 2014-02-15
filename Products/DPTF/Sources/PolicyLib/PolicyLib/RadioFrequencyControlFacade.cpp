@@ -39,15 +39,7 @@ RadioFrequencyControlFacade::~RadioFrequencyControlFacade()
 {
 }
 
-void RadioFrequencyControlFacade::initializeControlsIfNeeded()
-{
-    if (m_controlsHaveBeenInitialized == false)
-    {
-        m_controlsHaveBeenInitialized = true;
-    }
-}
-
-Bool RadioFrequencyControlFacade::supportsControl()
+Bool RadioFrequencyControlFacade::supportsRfControls()
 {
     return m_domainProperties.implementsRfProfileControlInterface();
 }
@@ -73,7 +65,7 @@ XmlNode* RadioFrequencyControlFacade::getXml()
 {
     XmlNode* control = XmlNode::createWrapperElement("radio_frequency_control");
     control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
-    control->addChild(XmlNode::createDataElement("supports_set_controls", supportsControl() ? "true" : "false"));
+    control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
     if (supportsStatus())
     {
         control->addChild(getProfileData().getXml());
@@ -91,7 +83,7 @@ void RadioFrequencyControlFacade::throwIfStatusNotSupported()
 
 void RadioFrequencyControlFacade::throwIfControlNotSupported()
 {
-    if (supportsControl() == false)
+    if (supportsRfControls() == false)
     {
         throw dptf_exception("Radio frequency control is not supported.");
     }

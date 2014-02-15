@@ -76,10 +76,10 @@ private:
     EsifSemaphore* m_completionSemaphore;
 };
 
-#define WriteWorkItemStartingDebugMessage() \
+#define WriteWorkItemStartingInfoMessage() \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item."); \
     message.setFrameworkEvent(getFrameworkEventType()); \
-    getEsifServices()->writeMessageDebug(message);
+    getEsifServices()->writeMessageInfo(message);
 
 #define WriteWorkItemErrorMessage_Function(functionName) \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \

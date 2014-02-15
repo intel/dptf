@@ -32,7 +32,7 @@ WIDomainAllocate::~WIDomainAllocate(void)
 
 void WIDomainAllocate::execute(void)
 {
-    WriteParticipantWorkItemStartingDebugMessage();
+    WriteParticipantWorkItemStartingInfoMessage();
 
     try
     {

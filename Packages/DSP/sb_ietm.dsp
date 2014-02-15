@@ -79,7 +79,17 @@ A,0,20,False,"DPTF","/participants/%nm%/lpmt",,,
 A,1,4,True,"LPMT",,,,
 # GET_SUPPORTED_POLICIES
 P,92,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,4,True,"IDSP",,,,
+A,0,20,False,"DPTF","/participants/%nm%/idsp",,,
+A,1,4,True,"IDSP",,,,
+# GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+P,272,0,2,24,"<schema></schema>",8,"<schema></schema>"
+A,0,31,False,"SYSTEM_GET_CDPNAME0","","","",""
+# GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+P,272,1,2,24,"<schema></schema>",8,"<schema></schema>"
+A,0,31,False,"SYSTEM_GET_CDPNAME1","","","",""
+# GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+P,272,2,2,24,"<schema></schema>",8,"<schema></schema>"
+A,0,31,False,"SYSTEM_GET_CDPNAME2","","","",""
 # GET_THERMAL_RELATIONSHIP_TABLE
 P,91,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_trt",,,
@@ -96,9 +106,27 @@ A,0,20,False,"DPTF","/participants/%nm%/lpmt",,,
 # SET_OPERATING_SYSTEM_CAPABILITIES
 P,93,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_OSC",,,,
+# SET_SUPPORTED_POLICIES
+P,271,255,2,7,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/idsp",,,
+# SET_SYSTEM_CONFIGTDP_CLEAR_LEVELS
+P,269,255,2,24,"<schema></schema>",24,"<schema></schema>"
+A,0,31,False,"SYSTEM_CTDPCLR","","","",""
+# SET_SYSTEM_CONFIGTDP_LEVEL_NAME
+P,270,0,2,8,"<schema></schema>",24,"<schema></schema>"
+A,0,31,False,"SYSTEM_SET_CTDPNAME0","","","",""
+# SET_SYSTEM_CONFIGTDP_LEVEL_NAME
+P,270,1,2,8,"<schema></schema>",24,"<schema></schema>"
+A,0,31,False,"SYSTEM_SET_CTDPNAME1","","","",""
+# SET_SYSTEM_CONFIGTDP_LEVEL_NAME
+P,270,2,2,8,"<schema></schema>",24,"<schema></schema>"
+A,0,31,False,"SYSTEM_SET_CTDPNAME2","","","",""
 # SET_SYSTEM_HIBERNATE
 P,175,255,2,24,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_HIBERNATE","","","",""
+# SET_SYSTEM_POLICY_REMOVE
+P,273,255,2,5,"<schema></schema>",24,"<schema></schema>"
+A,0,31,False,"SYSTEM_REMPOL","","","",""
 # SET_SYSTEM_SHUTDOWN
 P,173,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_SHUTDOWN","","","",""

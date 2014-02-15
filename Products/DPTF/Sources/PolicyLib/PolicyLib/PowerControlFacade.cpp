@@ -144,50 +144,62 @@ UIntN PowerControlFacade::getPlControlSetIndex(PowerControlType::Type plType)
 
 void PowerControlFacade::initializeControlsIfNeeded()
 {
-    const PowerControlDynamicCapsSet& caps = getCapabilities();
-    if (m_controlsHaveBeenInitialized == false)
+    if (supportsPowerControls())
     {
-        vector<PowerControlStatus> initialStatusList;
-        for (UIntN capIndex = 0; capIndex < caps.getCount(); ++capIndex)
+        const PowerControlDynamicCapsSet& caps = getCapabilities();
+        if (m_controlsHaveBeenInitialized == false)
         {
-            initialStatusList.push_back(
-                PowerControlStatus(
+            vector<PowerControlStatus> initialStatusList;
+            for (UIntN capIndex = 0; capIndex < caps.getCount(); ++capIndex)
+            {
+                initialStatusList.push_back(
+                    PowerControlStatus(
                     caps[capIndex].getPowerControlType(),
                     caps[capIndex].getMaxPowerLimit(),
                     caps[capIndex].getMaxTimeWindow(),
                     caps[capIndex].getMaxDutyCycle()));
-        }
-        m_lastIssuedPowerControlStatus = initialStatusList[0];
-        m_policyServices.domainPowerControl->setPowerControl(
-            m_participantIndex, m_domainIndex, PowerControlStatusSet(initialStatusList));
-        m_controlsHaveBeenInitialized = true;
-    }
-    else
-    {
-        UIntN pl1Index = getPl1ControlSetIndex();
-        Power lastIssuedPowerLimit = m_lastIssuedPowerControlStatus.getCurrentPowerLimit();
-        Power maxPowerLimit = caps[pl1Index].getMaxPowerLimit();
-        Power minPowerLimit = caps[pl1Index].getMinPowerLimit();
-        if (m_isLimited)
-        {
-            if (lastIssuedPowerLimit > maxPowerLimit)
-            {
-                setControl(PowerControlStatus(caps[pl1Index].getPowerControlType(), caps[pl1Index].getMaxPowerLimit(), 
-                    caps[pl1Index].getMaxTimeWindow(), caps[pl1Index].getMaxDutyCycle()), 0);
             }
-
-            if (lastIssuedPowerLimit < minPowerLimit)
-            {
-                setControl(PowerControlStatus(caps[pl1Index].getPowerControlType(), caps[pl1Index].getMinPowerLimit(), 
-                    caps[pl1Index].getMaxTimeWindow(), caps[pl1Index].getMaxDutyCycle()), 0);
-            }
+            m_lastIssuedPowerControlStatus = initialStatusList[0];
+            m_policyServices.domainPowerControl->setPowerControl(
+                m_participantIndex, m_domainIndex, PowerControlStatusSet(initialStatusList));
+            m_controlsHaveBeenInitialized = true;
         }
         else
         {
-            if (lastIssuedPowerLimit != maxPowerLimit)
+            UIntN pl1Index = getPl1ControlSetIndex();
+            Power lastIssuedPowerLimit = m_lastIssuedPowerControlStatus.getCurrentPowerLimit();
+            Power maxPowerLimit = caps[pl1Index].getMaxPowerLimit();
+            Power minPowerLimit = caps[pl1Index].getMinPowerLimit();
+            if (m_isLimited)
             {
-                setControl(PowerControlStatus(caps[pl1Index].getPowerControlType(), caps[pl1Index].getMaxPowerLimit(), 
-                    caps[pl1Index].getMaxTimeWindow(), caps[pl1Index].getMaxDutyCycle()), 0);
+                if (lastIssuedPowerLimit > maxPowerLimit)
+                {
+                    setControl(PowerControlStatus(
+                        caps[pl1Index].getPowerControlType(), 
+                        caps[pl1Index].getMaxPowerLimit(), 
+                        caps[pl1Index].getMaxTimeWindow(), 
+                        caps[pl1Index].getMaxDutyCycle()), 0);
+                }
+
+                if (lastIssuedPowerLimit < minPowerLimit)
+                {
+                    setControl(PowerControlStatus(
+                        caps[pl1Index].getPowerControlType(), 
+                        caps[pl1Index].getMinPowerLimit(), 
+                        caps[pl1Index].getMaxTimeWindow(), 
+                        caps[pl1Index].getMaxDutyCycle()), 0);
+                }
+            }
+            else
+            {
+                if (lastIssuedPowerLimit != maxPowerLimit)
+                {
+                    setControl(PowerControlStatus(
+                        caps[pl1Index].getPowerControlType(), 
+                        caps[pl1Index].getMaxPowerLimit(), 
+                        caps[pl1Index].getMaxTimeWindow(), 
+                        caps[pl1Index].getMaxDutyCycle()), 0);
+                }
             }
         }
     }

@@ -28,6 +28,7 @@ LIB := -lpthread -ldl -lrt -lreadline
 INC := -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LF_SOURCES) -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES)
 
 CC_OPTIONS := -g -Wno-multichar
+##CC_OPTIONS += -DESIF_ATTR_DAEMON
 CC_OPTIONS += -DESIF_ATTR_USER 
 CC_OPTIONS += -DESIF_ATTR_OS_LINUX
 CC_OPTIONS += -DESIF_ATTR_64BIT
@@ -73,17 +74,11 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_test.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_databank.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datacache.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datavault.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_eqlcmd.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_eqlparser.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_eqlprovider.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdata.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdatalist.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_iostream.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
-OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istringlist.o
 
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_algo.o
-OBJ += $(ESIF_WS_SOURCES)/esif_ws_cgi.o
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_http.o
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_server.o
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_socket.o

@@ -165,28 +165,9 @@ static int ProviderNull (EqlCmdPtr eqlcmd)
 
 static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 {
-	// List of option names and codes. TODO: Keep this list sorted alphabetically and do a binary search
-	static struct OptionList_s {
-		StringPtr  name;
-		UInt32     option;
-	}
-
-	optionList[] = {
-		{"PERSIST",  ESIF_SERVICE_CONFIG_PERSIST },
-		{"ENCRYPT",  ESIF_SERVICE_CONFIG_ENCRYPT },
-		{"READONLY", ESIF_SERVICE_CONFIG_READONLY},
-		{"NOCACHE",  ESIF_SERVICE_CONFIG_NOCACHE },
-		{"FILELINK", ESIF_SERVICE_CONFIG_FILELINK},
-#ifdef ESIF_ATTR_OS_WINDOWS
-		{"REGLINK",  ESIF_SERVICE_CONFIG_REGLINK },
-#endif
-		{"DELETE",   ESIF_SERVICE_CONFIG_DELETE  },
-		{"STATIC",   ESIF_SERVICE_CONFIG_STATIC  },	// DataVault-Level Option
-		{         0,                            0}
-	};
 	eEsifError rc     = ESIF_E_UNSPECIFIED;
 	char *message = (char*)esif_ccb_malloc(OUT_BUF_LEN);
-	EsifDataType type = ESIF_DATA_STRING;
+	EsifDataType data_type = ESIF_DATA_STRING;
 	UInt32 options    = 0;
 	StringPtr DefaultNamespace = ESIFDV_DEFAULT_NAMESPACE;
 	int i;
@@ -194,21 +175,10 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 	if (!message)
 		return ESIF_E_NO_MEMORY;
 
+	// Translate Options to Bitmask
+	options = ESIF_SERVICE_CONFIG_PERSIST; // Implied unless NOPERSIST
 	for (i = 0; i < eqlcmd->options->items; i++) {
-		char *opt = eqlcmd->options->list[i];
-		int j;
-		// TODO: Do a binary search
-		for (j = 0; optionList[j].name; j++)
-			if (esif_ccb_stricmp(opt, optionList[j].name) == 0) {
-				options |= optionList[j].option;
-				break;
-			}
-		if (!optionList[j].name) {
-			esif_ccb_sprintf(OUT_BUF_LEN, message, "Error: Invalid Option: %s\n", opt);
-			StringList_Add(eqlcmd->messages, message);
-			esif_ccb_free(message);
-			return rc;
-		}
+		options = EsifConfigFlags_Set(options, eqlcmd->options->list[i]);
 	}
 
 	// "DELETE Adapter:Namespace(Parameters)" == "SET Adapter:Namespace(Parameters) WITH DELETE"
@@ -225,12 +195,13 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 
 		// Use supplied Data Value
 		if (eqlcmd->values->items) {
-			type = esif_data_type_string2enum(String_Get(eqlcmd->datatypes->list[0]));
+			data_type = esif_data_type_string2enum(String_Get(eqlcmd->datatypes->list[0]));
 
 			// If this is a link, use the supplied string, otherwise decode the value
 			if (options & (ESIF_SERVICE_CONFIG_FILELINK | ESIF_SERVICE_CONFIG_REGLINK)) {
-				EsifData_Set(data_value, type, eqlcmd->values->list[0], 0, ESIFAUTOLEN);
-			} else if ((rc = EsifData_FromString(data_value, eqlcmd->values->list[0], type)) != ESIF_OK) {
+				EsifData_Set(data_value, data_type, eqlcmd->values->list[0], 0, ESIFAUTOLEN);
+			} 
+			else if ((rc = EsifData_FromString(data_value, eqlcmd->values->list[0], data_type)) != ESIF_OK) {
 				EsifData_Destroy(data_nspace);
 				EsifData_Destroy(data_path);
 				EsifData_Destroy(data_value);
@@ -240,13 +211,6 @@ static eEsifError Provider_DataBank (EqlCmdPtr eqlcmd)
 		}
 		rc = EsifConfigSet(data_nspace, data_path, options, data_value);
 
-		// Hack: Delete & Re-Add if buffer in NameSpace too small
-		if (ESIF_E_NEED_LARGER_BUFFER == rc) {
-			rc = EsifConfigSet(data_nspace, data_path, options | ESIF_SERVICE_CONFIG_DELETE, data_value);
-			if (rc == ESIF_OK) {
-				rc = EsifConfigSet(data_nspace, data_path, options, data_value);
-			}
-		}
 		if (rc != ESIF_OK) {
 			StringList_Add(eqlcmd->messages, esif_rc_str(rc));
 		}
@@ -296,8 +260,10 @@ static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 	EsifDataPtr response = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 	int destination = g_dst;
 
-	if (!message)
-		return ESIF_E_NO_MEMORY;
+	if (NULL==message || NULL==request || NULL==response) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
 
 	// Participant Destination Name
 	if (eqlcmd->subtype) {
@@ -325,10 +291,7 @@ static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 		}
 	}
 	if (!id) {
-		esif_ccb_free(message);
-		EsifData_Destroy(request);
-		EsifData_Destroy(response);
-		return rc;
+		goto exit;
 	}
 
 	// Qualifier
@@ -367,6 +330,7 @@ static eEsifError Provider_Primitive (EqlCmdPtr eqlcmd)
 		StringList_Add(eqlcmd->messages, message);
 	}
 
+exit:
 	esif_ccb_free(message);
 	EsifData_Destroy(request);
 	EsifData_Destroy(response);

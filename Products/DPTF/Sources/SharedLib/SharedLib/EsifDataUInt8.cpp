@@ -35,6 +35,11 @@ EsifDataUInt8::EsifDataUInt8(const esif::EsifData& esifData)
         throw dptf_exception("Received invalid EsifData parameter.  Expected ESIF_DATA_UINT8.");
     }
 
+    if (esifData.buf_ptr == nullptr)
+    {
+        throw dptf_exception("Received ESIF_DATA_UINT8 with null buffer ptr.");
+    }
+
     UInt8* ptr = (UInt8*)esifData.buf_ptr;
     initialize(*ptr);
 }

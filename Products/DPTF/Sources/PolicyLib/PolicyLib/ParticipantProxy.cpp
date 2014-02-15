@@ -60,16 +60,6 @@ ParticipantProxy::~ParticipantProxy()
 {
 }
 
-void ParticipantProxy::initializeControlsForAllDomains()
-{
-    refreshDomainSetIfUninitialized();
-    for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
-    {
-        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF, "Initializing controls for participant.", m_index));
-        domain->second.initializeControls();
-    }
-}
-
 UIntN ParticipantProxy::getIndex() const
 {
     return m_index;

@@ -891,6 +891,9 @@ eEsifError DataVault_SetValue (
 		void *buffer  = 0;
 		UInt32 buflen = 0;
 		if (DataVault_ReadFile(self, (char*)value->buf_ptr + 2, &buffer, &buflen) == ESIF_OK) {
+			if (value->buf_len) {
+				esif_ccb_free(value->buf_ptr);
+			}
 			value->buf_ptr = buffer;
 			if (value->type == ESIF_DATA_STRING) {
 				buflen++;	// Include Null Terminator
@@ -922,20 +925,32 @@ eEsifError DataVault_SetValue (
 			} else	// ...
 #endif
 			if (keypair->value.buf_len && value->data_len > keypair->value.buf_len) {
-				rc = ESIF_E_NEED_LARGER_BUFFER;
-			} else {
-				keypair->flags = flags;
-				keypair->value.type     = value->type;
-				keypair->value.data_len = value->data_len;
-
-				// Replace the File Offset stored in buf_ptr with a copy of the data for updated NOCACHE values
-				if (keypair->flags & ESIF_SERVICE_CONFIG_NOCACHE && keypair->value.buf_len == 0) {
-					keypair->value.buf_ptr = esif_ccb_malloc(value->data_len);
-					keypair->value.buf_len = value->data_len;
+				void *new_buf = NULL;
+				
+				// Autogrow buffer if it was allocated, otherwise ask for a larger buffer
+				if (keypair->value.buf_len > 0) {
+					new_buf= (void *)esif_ccb_realloc(keypair->value.buf_ptr, value->data_len);
 				}
-				esif_ccb_memcpy(keypair->value.buf_ptr, value->buf_ptr, value->data_len);
-				rc = ESIF_OK;
+
+				if (new_buf == NULL) {
+					return ESIF_E_NEED_LARGER_BUFFER;
+				}
+				else {
+					keypair->value.buf_len = value->data_len;
+					keypair->value.buf_ptr = new_buf;
+				}
+			} 
+			keypair->flags = flags;
+			keypair->value.type     = value->type;
+			keypair->value.data_len = value->data_len;
+
+			// Replace the File Offset stored in buf_ptr with a copy of the data for updated NOCACHE values
+			if (keypair->flags & ESIF_SERVICE_CONFIG_NOCACHE && keypair->value.buf_len == 0) {
+				keypair->value.buf_ptr = esif_ccb_malloc(value->data_len);
+				keypair->value.buf_len = value->data_len;
 			}
+			esif_ccb_memcpy(keypair->value.buf_ptr, value->buf_ptr, value->data_len);
+			rc = ESIF_OK;
 		}
 	} else if (value && value->buf_ptr && !(flags & ESIF_SERVICE_CONFIG_DELETE)) {
 		// Copy Key/Value Pair to new Data Row
@@ -1049,6 +1064,48 @@ eEsifError EsifConfigFindFirst (
 	return EsifConfigFindNext(nameSpace, path, value, context);
 }
 
+// Update flags bitmask used by EsifConfigSet
+esif_flags_t EsifConfigFlags_Set(esif_flags_t bitmask, esif_string optname)
+{
+	// List of option names and codes. TODO: Keep this list sorted alphabetically and do a binary search
+	static struct OptionList_s {
+		StringPtr  name;
+		UInt32     option;
+	}
+	optionList[] = {
+		{"PERSIST",		ESIF_SERVICE_CONFIG_PERSIST },
+		{"ENCRYPT",		ESIF_SERVICE_CONFIG_ENCRYPT },
+		{"READONLY",	ESIF_SERVICE_CONFIG_READONLY},
+		{"NOCACHE",		ESIF_SERVICE_CONFIG_NOCACHE },
+		{"FILELINK",	ESIF_SERVICE_CONFIG_FILELINK},
+#ifdef ESIF_ATTR_OS_WINDOWS
+		{"REGLINK",		ESIF_SERVICE_CONFIG_REGLINK },
+#endif
+		{"DELETE",		ESIF_SERVICE_CONFIG_DELETE  },
+		{"STATIC",		ESIF_SERVICE_CONFIG_STATIC  },	// DataVault-Level Option
+
+		{"~NOPERSIST",	ESIF_SERVICE_CONFIG_PERSIST },	// Unset option
+		{         0,                            0}
+	};
+	int j;
+
+	for (j = 0; optionList[j].name; j++) {
+		// NAME = Set option
+		if (esif_ccb_stricmp(optname, optionList[j].name) == 0) {
+			bitmask |= optionList[j].option;
+			break;
+		}
+		// ~NAME = Unset option
+		if (optionList[j].name[0] == '~' && esif_ccb_stricmp(optname, optionList[j].name+1) == 0) {
+			bitmask &= ~optionList[j].option;
+			break;
+		}
+	}
+	if (!optionList[j].name) {
+		//CMD_OUT("Error: Invalid Option: %s\n", optname);
+	}
+	return bitmask;
+}
 
 /*****************************************************************************/
 /*****************************************************************************/

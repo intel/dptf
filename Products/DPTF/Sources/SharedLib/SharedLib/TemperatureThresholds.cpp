@@ -24,14 +24,15 @@ using namespace StatusFormat;
 TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1, UIntN hysteresis) :
     m_aux0(aux0), m_aux1(aux1), m_hysteresis(hysteresis)
 {
-    if ((m_aux0.isValid() == true) &&
-        (m_aux0 != Temperature(0)) &&
-        (m_aux1.isValid() == true) &&
-        (m_aux1 != Temperature(0)) &&
-        (m_aux0 >= m_aux1))
-    {
-        throw dptf_exception("Aux0 must be less than Aux1.");
-    }
+    // FIXME: this needs to be added back later
+    //if ((m_aux0.isValid() == true) &&
+    //    (m_aux0 != Temperature(0)) &&
+    //    (m_aux1.isValid() == true) &&
+    //    (m_aux1 != Temperature(0)) &&
+    //    (m_aux0 >= m_aux1))
+    //{
+    //    throw dptf_exception("Aux0 must be less than Aux1.");
+    //}
 }
 
 Temperature TemperatureThresholds::getAux0(void) const

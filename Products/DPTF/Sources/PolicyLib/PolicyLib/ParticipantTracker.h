@@ -43,13 +43,7 @@ public:
     void setTimeServiceObject(std::shared_ptr<TimeInterface> time);
 
     // status
-    XmlNode* getXmlForCriticalTripPoints();
-    XmlNode* getXmlForActiveTripPoints();
-    XmlNode* getXmlForPassiveTripPoints();
-    XmlNode* getXmlForActiveCoolingControls();
-    XmlNode* getXmlForPassiveControlKnobs();
     XmlNode* getXmlForTripPointStatistics();
-    XmlNode* getXmlForConfigTdpLevels();
 
 protected:
 

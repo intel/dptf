@@ -71,6 +71,14 @@ if (dptfManager->isDptfShuttingDown() == true) \
 
 static const Guid DptfAppGuid(0x8f, 0x0d, 0x8c, 0x59, 0xad, 0x8d, 0x4d, 0x82, 0xaa, 0x25, 0x46, 0xd3, 0xc0, 0x83, 0x30, 0x5b);
 
+void throwIfEsifDataPtrIsNull(const esif::EsifDataPtr esifDataPtr)
+{
+    if (esifDataPtr == nullptr)
+    {
+        throw dptf_exception("Received invalid parameter.  EsifDataPtr is null.");
+    }
+}
+
 UInt32 getUInt32FromEsifDataGuidEvent(const esif::EsifDataPtr esifDataPtr)
 {
     if ((esifDataPtr == nullptr) ||
@@ -210,11 +218,16 @@ extern "C"
 
     static eEsifError DptfDestroy(void* appHandle)
     {
+        DptfManager* dptfManager = (DptfManager*)appHandle;
+        RETURN_ERROR_IF_CONTEXT_DATA_NULL;
+
+        ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function execution beginning.");
+        dptfManager->getEsifServices()->writeMessageInfo(message);
+
         eEsifError rc = ESIF_OK;
 
         try
         {
-            DptfManager* dptfManager = (DptfManager*)appHandle;
             DELETE_MEMORY(dptfManager);
         }
         catch (...)
@@ -525,6 +538,7 @@ extern "C"
                     wi = new WIDptfConnectedStandbyExit(dptfManager);
                     break;
                 case FrameworkEvent::DptfLogVerbosityChanged:
+                    throwIfEsifDataPtrIsNull(esifEventDataPtr);
                     uint32param = EsifDataUInt32(*esifEventDataPtr);
                     if (uint32param > eLogType::eLogTypeDebug)
                     {
@@ -587,6 +601,7 @@ extern "C"
                     wi = new WIPolicyCoolingModePowerLimitChanged(dptfManager, (CoolingModePowerLimit::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicyForegroundApplicationChanged:
+                    throwIfEsifDataPtrIsNull(esifEventDataPtr);
                     wi = new WIPolicyForegroundApplicationChanged(dptfManager, EsifDataString(*esifEventDataPtr));
                     break;
                 case FrameworkEvent::PolicyOperatingSystemConfigTdpLevelChanged:

@@ -261,9 +261,9 @@ void esif_ccb_free(void *mem_ptr)
     #endif
 #endif /* ESIF_ATTR_KERNEL */
 #ifdef ESIF_ATTR_USER
-	if (NULL != mem_ptr) {
+	if (NULL != mem_ptr)
 		free(mem_ptr);
-	}
+
 #endif /* ESIF_ATTR_USER */
 }
 

@@ -21,6 +21,7 @@
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ComponentExtendedInterface.h"
 #include "ParticipantServicesInterface.h"
+class PrimitiveAndInstance;
 
 class ParticipantGetSpecificInfo_001 final : public ParticipantGetSpecificInfoInterface,
     public ComponentExtendedInterface
@@ -44,14 +45,8 @@ private:
     ParticipantGetSpecificInfo_001& operator=(const ParticipantGetSpecificInfo_001& rhs);
 
     ParticipantServicesInterface* m_participantServicesInterface;
-    Bool m_cacheDataCleared;
-    std::vector<ParticipantSpecificInfoKey::Type> m_supportedKeys;
     std::map<ParticipantSpecificInfoKey::Type, UIntN> m_cachedData;
 
-    void updateCacheIfCleared();
-    void updateCache(void);
-    void RequestPrimitiveTemperatureAndAddToMap(esif_primitive_type primitive,
-        ParticipantSpecificInfoKey::Type key, std::map<ParticipantSpecificInfoKey::Type, UIntN>& resultMap,
-        UIntN instance = Constants::Esif::NoInstance);
-    void createSupportedKeysVector(void);
+    Temperature readSpecificInfo(PrimitiveAndInstance primitiveAndInstance);
+    PrimitiveAndInstance getPrimitiveAndInstanceForSpecificInfoKey(ParticipantSpecificInfoKey::Type request);
 };

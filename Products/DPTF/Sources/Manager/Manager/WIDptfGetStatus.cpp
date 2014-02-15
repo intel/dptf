@@ -34,7 +34,7 @@ WIDptfGetStatus::~WIDptfGetStatus(void)
 
 void WIDptfGetStatus::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     try
     {

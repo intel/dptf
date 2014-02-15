@@ -100,6 +100,9 @@ typedef char *esif_string;		/* Opaque ESIF String ASCIIZ Today */
 				/* Note Static Init Must Be  */
 				/* In Structure Order        */
 
+/* Build option to enable coalescable timers in Windows */
+/* #define ESIF_ATTR_USE_COALESCABLE_TIMERS */
+
 /* We Use The Linux Dictionary So Add For Windows */
 typedef unsigned char u8;	/* A BYTE  */
 typedef unsigned short u16;	/* A WORD  */

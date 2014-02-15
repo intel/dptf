@@ -52,7 +52,7 @@
 *******************************************************************************/
 
 #ifdef ESIF_ATTR_USER
-# define ESIF_TRACE_DEBUG_DISABLED
+# define ESIF_TRACE_ID	ESIF_TRACEMODULE_IPC
 #endif
 
 #include "esif_ipc.h"

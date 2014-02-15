@@ -164,6 +164,7 @@ static void esif_execute_ipc_command_get_debug_module_level(
 		esif_ccb_memcpy(&data_ptr->levels,
 				&g_esif_module_category_mask,
 				sizeof(g_esif_module_category_mask));
+		data_ptr->tracelevel = g_esif_trace_level;
 
 		ESIF_TRACE_DYN_COMMAND(
 			"%s: ESIF_COMMAND_TYPE_GET_DEBUG_MODULE_LEVEL "
@@ -481,10 +482,20 @@ struct esif_ipc *esif_execute_ipc_command(
 {
 	struct esif_ipc_command *command_ptr =
 		(struct esif_ipc_command *)(ipc_ptr + 1);
+	u32 data_size = 0;
+
 	command_ptr->return_code = ESIF_E_COMMAND_DATA_INVALID;
 
 	if (ESIF_COMMAND_VERSION != command_ptr->version)
-		return ipc_ptr;
+		goto exit;
+
+	data_size = ipc_ptr->data_len - sizeof(*command_ptr);
+
+	if(((command_ptr->req_data_offset + command_ptr->req_data_len) > 
+	     data_size) ||
+	   ((command_ptr->rsp_data_offset + command_ptr->rsp_data_len) > 
+	     data_size))
+		goto exit;
 
 	ESIF_TRACE_DYN_COMMAND("%s: COMMAND Received: ipc %p\n",
 			       ESIF_FUNC,
@@ -552,7 +563,7 @@ struct esif_ipc *esif_execute_ipc_command(
 			       esif_rc_str(
 				       command_ptr->return_code),
 			       command_ptr->return_code);
-
+exit:
 	/* Send To User */
 	return ipc_ptr;
 }

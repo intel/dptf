@@ -44,11 +44,11 @@ private:
     const UIntN m_domainIndex;
 };
 
-#define WriteDomainWorkItemStartingDebugMessage() \
+#define WriteDomainWorkItemStartingInfoMessage() \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item."); \
     message.setFrameworkEvent(getFrameworkEventType()); \
     message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex()); \
-    getEsifServices()->writeMessageDebug(message);
+    getEsifServices()->writeMessageInfo(message);
 
 #define WriteDomainWorkItemErrorMessage_Message(errorMessage) \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, errorMessage); \

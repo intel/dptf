@@ -34,7 +34,7 @@ WIDomainCreate::~WIDomainCreate(void)
 
 void WIDomainCreate::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     Bool domainCreated = false;
 

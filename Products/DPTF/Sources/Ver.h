@@ -36,12 +36,12 @@ extern "C" {
 /* Version and definitions */
 #define VER_MAJOR        8
 #define VER_MAJOR_STR   "8"
-#define VER_MINOR        0
-#define VER_MINOR_STR   "0"
+#define VER_MINOR        9999
+#define VER_MINOR_STR   "9999"
 #define VER_HOTFIX       0
 #define VER_HOTFIX_STR  "0"
-#define VER_BUILD       9999
-#define VER_BUILD_STR   "9999"
+#define VER_BUILD       7
+#define VER_BUILD_STR   "7"
 
 //#define VER_BUILD_TIMESTAMP "20130101 00:00:00"
 
@@ -94,4 +94,13 @@ extern "C" {
  **************************/
 
 #endif // _VER_H_
+
+
+
+
+
+
+
+
+
 

@@ -92,7 +92,7 @@ string CriticalPolicy::getStatusAsXml(void) const
     XmlNode* format = XmlNode::createComment("format_id=" + getGuid().toString());
     XmlNode* status = XmlNode::createWrapperElement("critical_policy_status");
     status->addChild(m_stats.getXml());
-    status->addChild(getParticipantTracker().getXmlForCriticalTripPoints());
+    status->addChild(getXmlForCriticalTripPoints());
     XmlNode* root = XmlNode::createRoot();
     root->addChild(format);
     root->addChild(status);
@@ -167,30 +167,42 @@ void CriticalPolicy::takePowerActionBasedOnThermalState(ParticipantProxy& partic
     auto tripPoints = participant.getCriticalTripPointProperty().getTripPoints();
     setParticipantTemperatureThresholdNotification(currentTemperature, tripPoints.getSortedByValue(), participant);
     auto tripPointCrossed = findTripPointCrossed(tripPoints.getSortedByValue(), currentTemperature);
-    takePowerAction(tripPointCrossed);
+    Temperature crossedTripPointTemperature = Temperature::createInvalid();
+    if (tripPointCrossed != ParticipantSpecificInfoKey::None)
+    {
+        crossedTripPointTemperature = tripPoints.getItem(tripPointCrossed);
+    }
+    takePowerAction(currentTemperature, tripPointCrossed, crossedTripPointTemperature);
 }
 
-void CriticalPolicy::takePowerAction(ParticipantSpecificInfoKey::Type crossedTripPoint)
+void CriticalPolicy::takePowerAction(const Temperature& currentTemperature, 
+    ParticipantSpecificInfoKey::Type crossedTripPoint, const Temperature& crossedTripPointTemperature)
 {
     switch (crossedTripPoint)
     {
         case ParticipantSpecificInfoKey::Warm:
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to sleep."));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, "Instructing system to sleep."));
             m_stats.sleepSignalled();
             getPolicyServices().platformPowerState->sleep();
             break;
         case ParticipantSpecificInfoKey::Hot:
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to hibernate."));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, "Instructing system to hibernate."));
             m_stats.hibernateSignalled();
             getPolicyServices().platformPowerState->hibernate();
             break;
         case ParticipantSpecificInfoKey::Critical:
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to shut down."));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, string("Instructing system to shut down. ")
+                + string("Current temperature is ") + currentTemperature.toString() + string(". ")
+                + string("Trip point temperature is ") + crossedTripPointTemperature.toString() + string(".")));
             m_stats.shutdownSignalled();
-            getPolicyServices().platformPowerState->shutDown();
+            getPolicyServices().platformPowerState->shutDown(currentTemperature, crossedTripPointTemperature);
             break;
         case ParticipantSpecificInfoKey::None:
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "No power action needed."));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, "No power action needed."));
             break;
         default:
             throw dptf_exception("An invalid trip point has been selected.");
@@ -265,4 +277,21 @@ Bool CriticalPolicy::participantHasDesiredProperties(ParticipantProxy& newPartic
 {
     return (newParticipant.supportsTemperatureInterface() &&
             newParticipant.getCriticalTripPointProperty().supportsProperty());
+}
+
+XmlNode* CriticalPolicy::getXmlForCriticalTripPoints() const
+{
+    XmlNode* allStatus = XmlNode::createWrapperElement("critical_trip_point_status");
+    vector<UIntN> participantTndexes = getParticipantTracker().getAllTrackedIndexes();
+    for (auto participantIndex = participantTndexes.begin(); 
+        participantIndex != participantTndexes.end(); 
+        participantIndex++)
+    {
+        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
+        if (participant.getCriticalTripPointProperty().supportsProperty())
+        {
+            allStatus->addChild(participant.getXmlForCriticalTripPoints());
+        }
+    }
+    return allStatus;
 }

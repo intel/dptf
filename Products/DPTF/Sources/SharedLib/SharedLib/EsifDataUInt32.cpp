@@ -35,6 +35,11 @@ EsifDataUInt32::EsifDataUInt32(const esif::EsifData& esifData)
         throw dptf_exception("Received invalid EsifData parameter.  Expected ESIF_DATA_UINT32.");
     }
 
+    if (esifData.buf_ptr == nullptr)
+    {
+        throw dptf_exception("Received ESIF_DATA_UINT32 with null buffer ptr.");
+    }
+
     UInt32* ptr = (UInt32*)esifData.buf_ptr;
     initialize(*ptr);
 }

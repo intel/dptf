@@ -533,7 +533,7 @@ XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
         catch (...)
         {
             // Write message log error
-            m_participantServicesInterface->writeMessageError(ParticipantMessage(FLF, "Unable to get specific info XML status!"));
+            m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, "Unable to get specific info XML status!"));
         }
     }
 

@@ -33,7 +33,7 @@ WIPolicyCoolingModePowerLimitChanged::~WIPolicyCoolingModePowerLimitChanged(void
 
 void WIPolicyCoolingModePowerLimitChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

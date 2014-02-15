@@ -33,7 +33,7 @@ WIDomainCoreControlCapabilityChanged::~WIDomainCoreControlCapabilityChanged(void
 
 void WIDomainCoreControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

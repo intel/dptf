@@ -33,7 +33,7 @@ WIDomainPowerControlCapabilityChanged::~WIDomainPowerControlCapabilityChanged(vo
 
 void WIDomainPowerControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

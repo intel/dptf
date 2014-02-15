@@ -93,6 +93,7 @@ private:
 
     // The instance returned when we called CreatePolicyInstance on the .dll/.so
     PolicyInterface* m_theRealPolicy;
+    Bool m_theRealPolicyCreated;
 
     // The index assigned by the policy manager
     UIntN m_policyIndex;

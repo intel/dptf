@@ -33,7 +33,7 @@ WIPolicyForegroundApplicationChanged::~WIPolicyForegroundApplicationChanged(void
 
 void WIPolicyForegroundApplicationChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

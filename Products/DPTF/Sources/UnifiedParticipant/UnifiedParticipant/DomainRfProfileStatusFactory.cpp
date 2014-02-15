@@ -26,13 +26,13 @@ DomainRfProfileStatusInterface* DomainRfProfileStatusFactory::createDomainRfProf
 {
     switch (version)
     {
-        case 0:
+        case 0: // capability not supported
             return new DomainRfProfileStatus_000(participantServicesInterface);
             break;
-        case 1:
+        case 1: // fivr
             return new DomainRfProfileStatus_001(participantServicesInterface);
             break;
-        case 2:
+        case 2: // wireless
             return new DomainRfProfileStatus_002(participantServicesInterface);
             break;
         default:

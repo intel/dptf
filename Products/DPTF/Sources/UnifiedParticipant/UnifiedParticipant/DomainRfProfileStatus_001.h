@@ -22,6 +22,10 @@
 #include "ComponentExtendedInterface.h"
 #include "ParticipantServicesInterface.h"
 
+//
+// version 001 is for fivr
+//
+
 class DomainRfProfileStatus_001 final : public DomainRfProfileStatusInterface,
     public ComponentExtendedInterface
 {

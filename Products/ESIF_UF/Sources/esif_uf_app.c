@@ -16,7 +16,7 @@
 **
 ******************************************************************************/
 
-// #define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_APP
 
 #include "esif_uf.h"				/* Upper Framework */
 #include "esif_uf_appmgr.h"			/* Application Manager */

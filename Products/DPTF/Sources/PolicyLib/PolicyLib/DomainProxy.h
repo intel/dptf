@@ -82,6 +82,7 @@ public:
     void unlimit(void);
     Bool canLimit(void);
     Bool canUnlimit(void);
+    void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
 
     // status
     XmlNode* getXmlForPassiveControlKnobs();
@@ -116,6 +117,7 @@ private:
     std::shared_ptr<PowerControlKnob> m_powerControlKnob;
     std::shared_ptr<DisplayControlKnob> m_displayControlKnob;
     std::shared_ptr<CoreControlKnob> m_coreControlKnob;
+    UtilizationStatus m_tstateUtilizationThreshold;
 
     // limiting/unlimiting helper functions (TODO: move to passive policy)
     Bool limitPowerAndShouldContinue();

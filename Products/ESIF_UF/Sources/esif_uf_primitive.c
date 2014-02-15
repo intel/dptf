@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_PRIMITIVE
 
 #include "esif_uf.h"		/* Upper Framework           */
 #include "esif_uf_actmgr.h"	/* Action Manager            */
@@ -617,7 +616,7 @@ void esif_uf_dump_primitive(
 	u32 param = 0;
 	int i, j;
 
-	if (!EsifTraceIsActive(ESIF_TRACEMODULE_PRIMITIVE, ESIF_TRACELEVEL_DEBUG)) {
+	if (!ESIF_TRACEACTIVE(ESIF_TRACEMODULE_PRIMITIVE, ESIF_TRACELEVEL_DEBUG)) {
 		return;
 	}
 
@@ -705,6 +704,7 @@ eEsifError EsifExecutePrimitive(
 		   req_temp  = ESIF_FALSE, rsp_temp = ESIF_FALSE,
 		   req_power = ESIF_FALSE, rsp_power = ESIF_FALSE;
 	char *replaced_str[5] = {0};
+	struct esif_data void_data = {ESIF_DATA_VOID, NULL, 0};
 
 	// Just like what we did in LF, was_temp, was_power, etc
 	#define ESIF_UNIT_RETYPE(name, old_type, new_type, set_flag)   \
@@ -943,8 +943,16 @@ retry:
 						SET_TRIP_POINT_HOT == primitive_ptr->tuple.id ||
 						SET_TRIP_POINT_PASSIVE == primitive_ptr->tuple.id ||
 						SET_TRIP_POINT_WARM == primitive_ptr->tuple.id) {
-						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
+						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, &void_data);
 						ESIF_TRACE_DEBUG("Send Event ==> ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED\n");
+					}
+					else if (SET_THERMAL_RELATIONSHIP_TABLE == primitive_ptr->tuple.id) {
+						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED, &void_data);
+						ESIF_TRACE_DEBUG("Send Event ==>ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED\n");
+					}
+					else if (SET_ACTIVE_RELATIONSHIP_TABLE == primitive_ptr->tuple.id) {
+						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED, &void_data);
+						ESIF_TRACE_DEBUG("Send Event ==>ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED\n");
 					}
 				}
 			}

@@ -20,12 +20,13 @@
 
 #include "Dptf.h"
 #include "Guid.h"
+#include "DptfManager.h"
 
 class SupportedPolicyList
 {
 public:
 
-    SupportedPolicyList(void);
+    SupportedPolicyList(DptfManager* dptfManager);
 
     UIntN getCount(void) const;
     const Guid& operator[](UIntN index) const;
@@ -33,6 +34,7 @@ public:
 
 private:
 
+    DptfManager* m_dptfManager;
     std::vector<Guid> m_guid;
 
     // Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.

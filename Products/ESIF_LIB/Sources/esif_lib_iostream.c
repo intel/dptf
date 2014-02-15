@@ -257,8 +257,8 @@ int IOStream_OpenMemoryCloneFile (
 		self->memory.buffer = (BytePtr)esif_ccb_malloc(bytes);
 		if (self->memory.buffer != NULL) {
 			self->type = StreamMemory;
-			self->memory.data_len = bytes;
-			self->memory.buf_len  = bytes;
+			self->memory.data_len = bytes-1;
+			self->memory.buf_len  = bytes-1;
 			self->memory.offset   = 0;
 			bytesread = IOStream_Read(source, self->memory.buffer, bytes);
 			self->memory.buffer[bytesread] = 0;	// Null Terminate

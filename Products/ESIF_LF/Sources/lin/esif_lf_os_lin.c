@@ -1335,7 +1335,7 @@ static ssize_t dptf_device_aux1_store(
 	if (!sscanf(buf_ptr, "%d\n", &aux1))
 		return -EINVAL;
 
-	ESIF_TRACE_DEBUG("linux_%s: Primitive DPTF_SET_AUX0, value %d\n",
+	ESIF_TRACE_DEBUG("linux_%s: Primitive DPTF_SET_AUX1, value %d\n",
 			 ESIF_FUNC,
 			 aux1);
 
@@ -1484,7 +1484,7 @@ static ssize_t dptf_debug_module_level_store(
 */
 #define RO 0444
 #define RW 0644
-#define WO 0244
+#define WO 0200
 
 static DEVICE_ATTR(rapl_power, RO, dptf_device_rapl_power_show, NULL);
 static DEVICE_ATTR(rapl_power_default,
@@ -1500,16 +1500,16 @@ static DEVICE_ATTR(rapl_turbo_priority,
 		   RO,
 		   dptf_device_rapl_turbo_priority_show,
 		   NULL);
-static DEVICE_ATTR(rapl_pl1, RW, dptf_device_rapl_pl1_show, NULL);
-static DEVICE_ATTR(rapl_pl2, RW, dptf_device_rapl_pl2_show, NULL);
+static DEVICE_ATTR(rapl_pl1, RO, dptf_device_rapl_pl1_show, NULL);
+static DEVICE_ATTR(rapl_pl2, RO, dptf_device_rapl_pl2_show, NULL);
 static DEVICE_ATTR(rapl_pl1_enable, RO, dptf_device_rapl_pl1_enable_show, NULL);
 static DEVICE_ATTR(rapl_pl2_enable, RO, dptf_device_rapl_pl2_enable_show, NULL);
 static DEVICE_ATTR(rapl_time_window_1,
-		   RW,
+		   RO,
 		   dptf_device_rapl_time_window_1_show,
 		   NULL);
 static DEVICE_ATTR(rapl_time_window_2,
-		   RW,
+		   RO,
 		   dptf_device_rapl_time_window_2_show,
 		   NULL);
 static DEVICE_ATTR(rapl_power_min_1, RO, dptf_device_rapl_power_min_1_show,
@@ -2036,7 +2036,7 @@ static int acpi_add(struct acpi_device *dev_ptr)
 
 
 /* Remove */
-static int acpi_remove(struct acpi_device *dev_ptr, int type)
+static int acpi_remove(struct acpi_device *dev_ptr)
 {
 	enum esif_rc rc = ESIF_OK;
 	ESIF_TRACE_DEBUG("%s: acpi_dev %p\n", ESIF_FUNC, dev_ptr);

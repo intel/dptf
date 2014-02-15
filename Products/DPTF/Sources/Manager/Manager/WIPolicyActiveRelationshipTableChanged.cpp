@@ -31,7 +31,7 @@ WIPolicyActiveRelationshipTableChanged::~WIPolicyActiveRelationshipTableChanged(
 
 void WIPolicyActiveRelationshipTableChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

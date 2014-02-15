@@ -73,88 +73,12 @@ void ParticipantTracker::setPolicyServices(PolicyServicesInterfaceContainer poli
     m_policyServices = policyServices;
 }
 
-XmlNode* ParticipantTracker::getXmlForCriticalTripPoints()
-{
-    XmlNode* allStatus = XmlNode::createWrapperElement("critical_trip_point_status");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        if (item->second.getCriticalTripPointProperty().supportsProperty())
-        {
-            allStatus->addChild(item->second.getXmlForCriticalTripPoints());
-        }
-    }
-    return allStatus;
-}
-
-XmlNode* ParticipantTracker::getXmlForActiveTripPoints()
-{
-    XmlNode* allStatus = XmlNode::createWrapperElement("active_trip_point_status");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        if (item->second.getActiveTripPointProperty().supportsProperty())
-        {
-            allStatus->addChild(item->second.getXmlForActiveTripPoints());
-        }
-    }
-    return allStatus;
-}
-
-XmlNode* ParticipantTracker::getXmlForPassiveTripPoints()
-{
-    XmlNode* allStatus = XmlNode::createWrapperElement("passive_trip_point_status");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        if (item->second.getPassiveTripPointProperty().supportsProperty())
-        {
-            allStatus->addChild(item->second.getXmlForPassiveTripPoints());
-        }
-    }
-    return allStatus;
-}
-
-XmlNode* ParticipantTracker::getXmlForActiveCoolingControls()
-{
-    XmlNode* fanStatus = XmlNode::createWrapperElement("fan_status");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        auto domainIndexes = item->second.getDomainIndexes();
-        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
-        {
-            if (item->second[*domainIndex].getActiveCoolingControl().supportsActiveCoolingControls())
-            {
-                fanStatus->addChild(item->second[*domainIndex].getActiveCoolingControl().getXml());
-            }
-        }
-    }
-    return fanStatus;
-}
-
-XmlNode* ParticipantTracker::getXmlForPassiveControlKnobs()
-{
-    XmlNode* allStatus = XmlNode::createWrapperElement("passive_control_status");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        allStatus->addChild(item->second.getXmlForPassiveControlKnobs());
-    }
-    return allStatus;
-}
-
 XmlNode* ParticipantTracker::getXmlForTripPointStatistics()
 {
     XmlNode* allStatus = XmlNode::createWrapperElement("trip_point_statistics");
     for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
     {
         allStatus->addChild(item->second.getXmlForTripPointStatistics());
-    }
-    return allStatus;
-}
-
-XmlNode* ParticipantTracker::getXmlForConfigTdpLevels()
-{
-    XmlNode* allStatus = XmlNode::createWrapperElement("config_tdp_levels");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        allStatus->addChild(item->second.getXmlForConfigTdpLevel());
     }
     return allStatus;
 }

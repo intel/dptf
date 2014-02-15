@@ -32,7 +32,7 @@ WIDptfConnectedStandbyEntry::~WIDptfConnectedStandbyEntry(void)
 
 void WIDptfConnectedStandbyEntry::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     // First let all policies know that we are entering connected standby
 

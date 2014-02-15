@@ -33,8 +33,6 @@
 /* Version */
 const EsifString g_esif_etf_version = ESIF_UF_VERSION;
 
-#define TEST_DEBUG printf
-
 /* Upper and Lower Bound Test */
 static eEsifTestErrorType TestPrimitiveBounds(
 	const UInt32 ub,

@@ -53,9 +53,6 @@ public:
     const DomainPropertiesSet& getDomainPropertiesSet();
     const ParticipantProperties& getParticipantProperties();
 
-    // controls
-    void initializeControlsForAllDomains();
-
     // trip point sets
     CriticalTripPointsCachedProperty& getCriticalTripPointProperty();
     ActiveTripPointsCachedProperty& getActiveTripPointProperty();

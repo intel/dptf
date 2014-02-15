@@ -100,8 +100,8 @@ string ActivePolicy::getStatusAsXml(void) const
     XmlNode* format = XmlNode::createComment("format_id=" + getGuid().toString());
     root->addChild(format);
     XmlNode* status = XmlNode::createWrapperElement("active_policy_status");
-    status->addChild(getParticipantTracker().getXmlForActiveCoolingControls());
-    status->addChild(getParticipantTracker().getXmlForActiveTripPoints());
+    status->addChild(getXmlForActiveCoolingControls());
+    status->addChild(getXmlForActiveTripPoints());
     status->addChild(m_art.getXml());
     root->addChild(status);
     string statusString = root->toString();
@@ -462,4 +462,41 @@ Bool ActivePolicy::participantIsSourceDevice(UIntN participantIndex)
 {
     return getParticipantTracker().remembers(participantIndex) &&
            m_art.isParticipantSourceDevice(participantIndex);
+}
+
+XmlNode* ActivePolicy::getXmlForActiveTripPoints() const
+{
+    XmlNode* allStatus = XmlNode::createWrapperElement("active_trip_point_status");
+    vector<UIntN> indexes = getParticipantTracker().getAllTrackedIndexes();
+    for (auto participantIndex = indexes.begin(); participantIndex != indexes.end(); participantIndex++)
+    {
+        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
+        if (m_art.isParticipantTargetDevice(*participantIndex) && 
+            participant.getActiveTripPointProperty().supportsProperty())
+        {
+            allStatus->addChild(participant.getXmlForActiveTripPoints());
+        }
+    }
+    return allStatus;
+}
+
+XmlNode* ActivePolicy::getXmlForActiveCoolingControls() const
+{
+    XmlNode* fanStatus = XmlNode::createWrapperElement("fan_status");
+    vector<UIntN> participantTndexes = getParticipantTracker().getAllTrackedIndexes();
+    for (auto participantIndex = participantTndexes.begin(); 
+        participantIndex != participantTndexes.end(); 
+        participantIndex++)
+    {
+        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
+        auto domainIndexes = participant.getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            if (participant[*domainIndex].getActiveCoolingControl().supportsActiveCoolingControls())
+            {
+                fanStatus->addChild(participant[*domainIndex].getActiveCoolingControl().getXml());
+            }
+        }
+    }
+    return fanStatus;
 }

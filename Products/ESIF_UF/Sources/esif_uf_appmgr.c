@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED	// NOTE: Was Enabled for Windows, Disabled for Linux
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_APP
 
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_uf_appmgr.h"	/* Application Manager */
@@ -198,23 +197,6 @@ eEsifError EsifAppsEvent(
 						 eventData,
 						 eventData->buf_ptr, eventData->buf_len, eventData->data_len
 						 );
-
-		if (ESIF_DATA_STRUCTURE == eventData->type && NULL != eventData->buf_ptr) {
-			char guid_str[ESIF_GUID_PRINT_SIZE];
-			struct esif_data_guid_event *ev_ptr = (struct esif_data_guid_event *)eventData->buf_ptr;
-
-			UNREFERENCED_PARAMETER(guid_str);
-
-			ms_guid_to_esif_guid(&ev_ptr->event_GUID);
-
-			ESIF_TRACE_DEBUG(
-				"GUID:          %s\n"
-				"Data Length:   %d\n"
-				"Data:          %08x\n",
-				esif_guid_print(&ev_ptr->event_GUID, guid_str),
-				ev_ptr->event_context_length,
-				*(UInt32 *)ev_ptr->event_context);
-		}
 
 		if (ESIF_DATA_STRING == eventData->type && NULL != eventData->buf_ptr) {
 			ESIF_TRACE_DEBUG(

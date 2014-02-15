@@ -81,4 +81,8 @@ private:
     // selecting participants
     Bool participantIsSourceDevice(UIntN participantIndex);
     Bool participantIsTargetDevice(UIntN participantIndex);
+
+    // status
+    XmlNode* getXmlForActiveTripPoints() const;
+    XmlNode* getXmlForActiveCoolingControls() const;
 };

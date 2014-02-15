@@ -21,18 +21,14 @@
 
 #include "esif.h"
 #include "esif_uf_ccb_sock.h"
+#include "esif_ws_server.h"
 
 #define BUFFER_LENGTH 0xFFFF
 
-
-typedef struct _extType {
+typedef struct s_extType {
 	char  *fileExtension;
 	char  *fileType;
-}extType;
-
-
-eEsifError esif_ws_http_process_reqs(int, void*, ssize_t);
-
+} extType;
 
 /*
  *******************************************************************************
@@ -40,15 +36,8 @@ eEsifError esif_ws_http_process_reqs(int, void*, ssize_t);
  *******************************************************************************
  */
 
-void esif_ws_http_set_authenticated (int);
-
-void esif_ws_http_set_login_requested (int);
-
-int esif_ws_http_get_authenticated (void);
-
-int esif_ws_http_get_login_requested (void);
-
-void esif_ws_http_copy_server_root (char*);
+void esif_ws_http_copy_server_root(char*);
+eEsifError esif_ws_http_process_reqs(clientRecord *, void*, ssize_t);
 
 
 #endif /* ESIF_WS_HTTP_H*/

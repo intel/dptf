@@ -38,16 +38,25 @@ getp 053 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_HARDWAR
 getp 088 D0 255 -u 0xf -l 0                                  ;GET_DEVICE_STATUS
 getp 237 D0 255 -b sb_ietm_237_D0_255.bin                    ;GET_LPM_TABLE
 getp 092 D0 255 -b sb_ietm_92_D0_255.bin                     ;GET_SUPPORTED_POLICIES
+rem setp 272 D0 000                                          ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+rem setp 272 D0 001                                          ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+rem setp 272 D0 002                                          ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
 getp 091 D0 255 -b sb_ietm_91_D0_255.bin                     ;GET_THERMAL_RELATIONSHIP_TABLE
 rem setp 230 D0 255                                          ;SET_ACTIVE_RELATIONSHIP_TABLE
 rem setp 236 D0 255                                          ;SET_CURRENT_LOW_POWER_MODE
 rem setp 238 D0 255                                          ;SET_LPM_TABLE
 rem setp 093 D0 255                                          ;SET_OPERATING_SYSTEM_CAPABILITIES
+rem setp 271 D0 255                                          ;SET_SUPPORTED_POLICIES
+rem setp 269 D0 255                                          ;SET_SYSTEM_CONFIGTDP_CLEAR_LEVELS
+rem setp 270 D0 000                                          ;SET_SYSTEM_CONFIGTDP_LEVEL_NAME
+rem setp 270 D0 001                                          ;SET_SYSTEM_CONFIGTDP_LEVEL_NAME
+rem setp 270 D0 002                                          ;SET_SYSTEM_CONFIGTDP_LEVEL_NAME
 rem setp 175 D0 255                                          ;SET_SYSTEM_HIBERNATE
+rem setp 273 D0 255                                          ;SET_SYSTEM_POLICY_REMOVE
 rem setp 173 D0 255                                          ;SET_SYSTEM_SHUTDOWN
 rem setp 174 D0 255                                          ;SET_SYSTEM_SLEEP
 rem setp 231 D0 255                                          ;SET_THERMAL_RELATIONSHIP_TABLE
-echo Test Count: 15
+echo Test Count: 24
 timerstop
 geterrorlevel
 nolog

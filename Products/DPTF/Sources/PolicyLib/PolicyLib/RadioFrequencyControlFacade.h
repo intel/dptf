@@ -38,8 +38,7 @@ public:
     ~RadioFrequencyControlFacade();
 
     // controls
-    Bool supportsControl();
-    void initializeControlsIfNeeded();
+    Bool supportsRfControls();
     void setOperatingFrequency(Frequency frequency);
 
     // status

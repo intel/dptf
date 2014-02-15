@@ -32,7 +32,7 @@ WIPolicyCreate::~WIPolicyCreate(void)
 
 void WIPolicyCreate::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     try
     {

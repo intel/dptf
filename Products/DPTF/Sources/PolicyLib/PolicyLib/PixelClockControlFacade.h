@@ -37,8 +37,7 @@ public:
     ~PixelClockControlFacade();
 
     // controls
-    Bool supportsControl();
-    void initializeControlsIfNeeded();
+    Bool supportsPixelClockControls();
     void sendPixelClockFrequencies(const PixelClockDataSet& pixelClockSet);
 
     // status

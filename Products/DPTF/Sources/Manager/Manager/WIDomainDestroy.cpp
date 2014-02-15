@@ -32,7 +32,7 @@ WIDomainDestroy::~WIDomainDestroy(void)
 
 void WIDomainDestroy::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     if (getParticipantPtr()->isDomainValid(getDomainIndex()) == false)
     {

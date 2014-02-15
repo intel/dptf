@@ -41,6 +41,11 @@ EsifDataGuid::EsifDataGuid(const esif::EsifData& esifData)
         throw dptf_exception("Received invalid EsifData parameter.  Expected ESIF_DATA_GUID.");
     }
 
+    if (esifData.buf_ptr == nullptr)
+    {
+        throw dptf_exception("Received ESIF_DATA_GUID with null buffer ptr.");
+    }
+
     initialize(static_cast<const UInt8*>(esifData.buf_ptr));
 }
 

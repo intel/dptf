@@ -36,7 +36,7 @@ WIParticipantCreate::~WIParticipantCreate(void)
 
 void WIParticipantCreate::execute(void)
 {
-    WriteParticipantWorkItemStartingDebugMessage();
+    WriteParticipantWorkItemStartingInfoMessage();
 
     Bool participantCreated = false;
 

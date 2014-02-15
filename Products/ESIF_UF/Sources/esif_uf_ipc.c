@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_IPC
 
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_ipc.h"		/* IPC Abstraction */
@@ -97,6 +96,7 @@ void ipc_connect()
 		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Opened\n");
 		if (NULL != kern_str) {
 			ESIF_TRACE_DEBUG("%s", kern_str);
+			g_out_buf[sizeof(g_esif_kernel_version)-1] = 0;
 			esif_ccb_sprintf(sizeof(g_esif_kernel_version), g_esif_kernel_version, "%s", kern_str);
 		}
 	}

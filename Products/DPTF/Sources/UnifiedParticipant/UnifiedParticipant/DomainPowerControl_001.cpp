@@ -25,8 +25,8 @@ DomainPowerControl_001::DomainPowerControl_001(ParticipantServicesInterface* par
 {
     m_canProgramPowerLimit[PowerControlType::pl1] = true;
     m_canProgramPowerLimit[PowerControlType::pl2] = true;
-    m_canProgramTimeWindow[PowerControlType::pl1] = true;
-    m_canProgramTimeWindow[PowerControlType::pl2] = true;
+    m_canProgramTimeWindow[PowerControlType::pl1] = false;
+    m_canProgramTimeWindow[PowerControlType::pl2] = false;
 }
 
 DomainPowerControl_001::~DomainPowerControl_001(void)
@@ -133,7 +133,7 @@ void DomainPowerControl_001::programPowerControl(const PowerControlStatusSet& po
         {
             std::stringstream msg;
             msg << PowerControlType::ToString(powerControlStatusSet[i].getPowerControlType()) << " power control is not programmable.  Ignoring.";
-            m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, msg.str()));
+            m_participantServicesInterface->writeMessageDebug(ParticipantMessage(FLF, msg.str()));
         }
 
         if (m_canProgramTimeWindow[powerControlStatusSet[i].getPowerControlType()] == true)
@@ -148,7 +148,7 @@ void DomainPowerControl_001::programPowerControl(const PowerControlStatusSet& po
         {
             std::stringstream msg;
             msg << PowerControlType::ToString(powerControlStatusSet[i].getPowerControlType()) << " time window is not programmable.  Ignoring.";
-            m_participantServicesInterface->writeMessageWarning(ParticipantMessage(FLF, msg.str()));
+            m_participantServicesInterface->writeMessageDebug(ParticipantMessage(FLF, msg.str()));
         }
     }
 }

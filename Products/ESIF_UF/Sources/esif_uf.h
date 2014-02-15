@@ -45,6 +45,7 @@ extern int EsifLogFile_IsOpen(EsifLogType type);
 extern int EsifLogFile_Write(EsifLogType type, const char *fmt, ...);
 extern int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args);
 extern esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const char *filename);
+extern void EsifLogFile_DisplayList(void);
 
 extern EsifLogType EsifLogType_FromString(const char *name);
 
@@ -89,6 +90,7 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 	// No differentiation for 32-bit or 64-bit *nix build
 	#define ESIF_DIR_PRG NULL
 	#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
+	#define ESIF_DIR_UI "/usr/share/dptf/"
 #elif defined(ESIF_ATTR_64BIT)
 	#define ESIF_DIR_PRG "ufx64"
 	#define ESIF_DIR_DPTF_POL "ufx64"
@@ -97,7 +99,6 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 	#define ESIF_DIR_DPTF_POL "ufx86"
 #endif
 
-#define ESIF_DIR_UI  "esif_ui"
 #define ESIF_DIR_REST "esif_cmd"
 
 esif_string esif_build_path(esif_string buffer, u32 buf_len, esif_string dir, esif_string filename);
@@ -151,8 +152,8 @@ void esif_uf_os_exit(void);
 // Web
 extern eEsifError EsifWebStart();
 extern void EsifWebStop();
-extern int EsifWebStarted();
-
+extern int EsifWebIsStarted();
+extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port);
 
 #endif	// _ESIF_UF_
 

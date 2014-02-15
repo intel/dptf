@@ -17,8 +17,24 @@
 ******************************************************************************/
 
 #include "SupportedPolicyList.h"
+#include "DptfMemory.h"
+#include "EsifServices.h"
+#include "esif_primitive_type.h"
+#include "esif_ccb_memory.h"
+#include "esif_data_variant.h"
 
-SupportedPolicyList::SupportedPolicyList(void)
+static const UIntN GuidSize = 16;
+
+#pragma pack(push, 1)
+typedef struct _AcpiEsifGuid
+{
+    union esif_data_variant esifDataVariant;
+    UInt8 uuid[GuidSize];
+} AcpiEsifGuid;
+#pragma pack(pop)
+
+SupportedPolicyList::SupportedPolicyList(DptfManager* dptfManager) :
+    m_dptfManager(dptfManager)
 {
     createSupportedPolicyList();
 }
@@ -51,6 +67,36 @@ Bool SupportedPolicyList::isPolicyValid(const Guid& guid) const
 
 void SupportedPolicyList::createSupportedPolicyList(void)
 {
-    // FIXME
-    // throw implement_me();
+    m_guid.clear();
+
+    UInt32 dataLength = 0;
+    DptfMemory binaryData;
+    binaryData.allocate(Constants::DefaultBufferSize, true);
+
+    m_dptfManager->getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_SUPPORTED_POLICIES,
+        ESIF_DATA_BINARY,
+        binaryData,
+        binaryData.getSize(),
+        &dataLength);
+
+    if ((dataLength % sizeof(AcpiEsifGuid)) != 0)
+    {
+        std::stringstream message;
+        message << "Received invalid data length [" << dataLength << "] from primitive call: GET_SUPPORTED_POLICIES";
+        throw dptf_exception(message.str());
+    }
+
+    UInt32 guidCount = dataLength / sizeof(AcpiEsifGuid);
+    AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(binaryData.getPtr());
+
+    for (UInt32 i = 0; i < guidCount; i++)
+    {
+        UInt8 guidByteArray[GuidSize] = {0};
+        esif_ccb_memcpy(guidByteArray, &acpiEsifGuid[i].uuid, GuidSize);
+        Guid guid(guidByteArray);
+        m_guid.push_back(guid);
+    }
+
+    binaryData.deallocate();
 }

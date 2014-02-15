@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_PARTICIPANT
 
 /* ESIF */
 #include "esif_uf.h"		/* Upper Framework */

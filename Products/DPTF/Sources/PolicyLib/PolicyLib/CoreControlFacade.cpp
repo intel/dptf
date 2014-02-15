@@ -99,7 +99,7 @@ CoreControlLpoPreference CoreControlFacade::getPreferences()
 
 void CoreControlFacade::initializeControlsIfNeeded()
 {
-    if (m_controlsHaveBeenInitialized == false)
+    if (supportsCoreControls() && getPreferences().isLpoEnabled() && (m_controlsHaveBeenInitialized == false))
     {
         CoreControlDynamicCaps caps = getDynamicCapabilities();
         UIntN maxActiveCores = caps.getMaxActiveCores();

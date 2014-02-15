@@ -457,7 +457,7 @@ void EsifServices::registerEvent(FrameworkEvent::Type frameworkEvent, UIntN part
         message.addMessage("Guid", guid.toString());
         message.setParticipantAndDomainIndex(participantIndex, domainIndex);
         message.setEsifErrorCode(rc);
-        writeMessageError(message);
+        writeMessageWarning(message);
     }
 }
 
@@ -482,7 +482,7 @@ void EsifServices::unregisterEvent(FrameworkEvent::Type frameworkEvent, UIntN pa
         message.addMessage("Guid", guid.toString());
         message.setParticipantAndDomainIndex(participantIndex, domainIndex);
         message.setEsifErrorCode(rc);
-        writeMessageError(message);
+        writeMessageWarning(message);
     }
 }
 
@@ -543,16 +543,10 @@ void EsifServices::throwIfNotSuccessful(const std::string& fileName, UIntN lineN
 
     if ((primitive == GET_TRIP_POINT_ACTIVE) && (returnCode == ESIF_I_ACPI_TRIP_POINT_NOT_PRESENT))
     {
-        // no message
-    }
-    else if (returnCode == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
-    {
-        // error message
-        writeMessageError(message);
+        // no message.  we still throw an exception to inform the policy.
     }
     else
     {
-        // default to warning message
         writeMessageWarning(message);
     }
 

@@ -33,7 +33,7 @@ WIPolicyCoolingModePolicyChanged::~WIPolicyCoolingModePolicyChanged(void)
 
 void WIPolicyCoolingModePolicyChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

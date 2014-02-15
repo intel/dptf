@@ -81,6 +81,7 @@ enum esif_temperature_type {
 	ESIF_TEMP_DECIC,	/* Deci Celsisus  40.0 C would be 400   */
 	ESIF_TEMP_CENTIC,	/* Centi Celsisus 40.0 C would be 4000  */
 	ESIF_TEMP_MILLIC,	/* Milli Celsisus 40.0 C would be 40000 */
+	ESIF_TEMP_THERMISTOR,   /* EC Thermistor                        */
 };
 
 /* Termperature Unit Type String */
@@ -99,6 +100,7 @@ static ESIF_INLINE esif_string esif_temperature_type_str(
 		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_DECIC, str)
 		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_CENTIC, str)
 		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_MILLIC, str)
+		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_THERMISTOR, str)
 	}
 	return str;
 }
@@ -120,6 +122,7 @@ static ESIF_INLINE esif_string esif_temperature_type_desc(
 		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_DECIC, "DeciC", str)
 		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_CENTIC, "CentiC", str)
 		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_MILLIC, "MilliC", str)
+		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_THERMISTOR, "Thermistor", str)
 	}
 	return str;
 }

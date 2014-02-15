@@ -34,7 +34,7 @@ WIPolicyInitiatedCallback::~WIPolicyInitiatedCallback(void)
 
 void WIPolicyInitiatedCallback::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     try
     {

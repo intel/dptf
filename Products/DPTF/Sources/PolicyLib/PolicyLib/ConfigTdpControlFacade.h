@@ -41,7 +41,7 @@ public:
     ~ConfigTdpControlFacade();
 
     // controls
-    Bool supportsConfigTdp();
+    Bool supportsConfigTdpControls();
     void initializeControlsIfNeeded();
     void setControl(UIntN configTdpControlIndex);
     ConfigTdpControlSet getControlSet();

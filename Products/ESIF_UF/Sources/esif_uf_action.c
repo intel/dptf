@@ -16,7 +16,7 @@
 **
 ******************************************************************************/
 
-// #define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_ACTION
 
 #include "esif_uf.h"			/* Upper Framework */
 #include "esif_uf_esif_iface.h"	/* ESIF Services Interface */
@@ -151,7 +151,7 @@ static eEsifError ActionCreate(
 					 (EsifString)data_version.buf_ptr);
 
 	/* Create The Application */
-	printf("create action\n");
+	CMD_OUT("create action\n");
 	rc = actionPtr->fInterface.fActCreateFuncPtr(
 			&act_service_iface,
 			NULL,

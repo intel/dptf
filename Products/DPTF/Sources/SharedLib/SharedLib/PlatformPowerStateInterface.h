@@ -30,5 +30,5 @@ public:
 
     virtual void sleep(void) = 0;
     virtual void hibernate(void) = 0;
-    virtual void shutDown(void) = 0;
+    virtual void shutDown(const Temperature& currentTemperature, const Temperature& tripPointTemperature) = 0;
 };

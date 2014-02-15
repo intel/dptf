@@ -32,26 +32,14 @@
 
 /*
  *******************************************************************************
- ** EXTERN
- *******************************************************************************
- */
-void esif_ws_socket_delete_existing_field (char*);
-
-/*
- *******************************************************************************
  ** PRIVATE
  *******************************************************************************
  */
 
 
-void esif_ws_socket_delete_existing_field (char*);
-
 static void esif_ws_socket_convert_to_lower_case (char*);
-
 static void esif_ws_socket_copy_line (const char*, char*);
-
 static char*esif_ws_socket_get_field_value (const char*);
-
 static size_t esif_ws_socket_get_payload_size (const UInt8*, size_t, UInt8*, enum frameType*);
 
 
@@ -157,26 +145,26 @@ enum frameType esif_ws_get_initial_frame_type (
 	while (beg_input_frame < end_input_frame && beg_input_frame[0] != '\r' && beg_input_frame[1] != '\n') {
 		if (memcmp(beg_input_frame, HOST_FIELD, esif_ccb_strlen(HOST_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(HOST_FIELD, MAX_SIZE);
-			esif_ws_socket_delete_existing_field(prot->hostField);
+			esif_ccb_free(prot->hostField);
 			prot->hostField  = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == prot->hostField)
 				rc = ESIF_E_NO_MEMORY;
 		} else if (memcmp(beg_input_frame, ORIGIN_FIELD, esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame  += esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE);
-			esif_ws_socket_delete_existing_field(prot->originField);
+			esif_ccb_free(prot->originField);
 			prot->originField = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == prot->originField)
 				rc = ESIF_E_NO_MEMORY;
 		} else if (memcmp(beg_input_frame, WEB_SOCK_PROT_FIELD, esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE);
-			esif_ws_socket_delete_existing_field(prot->web_socket_field);
+			esif_ccb_free(prot->web_socket_field);
 			prot->web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
 			has_subprotocol = 1;
 			if (NULL == prot->web_socket_field)
 				rc = ESIF_E_NO_MEMORY;
 		} else if (memcmp(beg_input_frame, WEB_SOCK_KEY_FIELD, esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE);
-			esif_ws_socket_delete_existing_field(prot->keyField);
+			esif_ccb_free(prot->keyField);
 			prot->keyField   = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == prot->keyField)
 				rc = ESIF_E_NO_MEMORY;
@@ -187,28 +175,32 @@ enum frameType esif_ws_get_initial_frame_type (
 			beg_input_frame += esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE);
 			connection_field = NULL;
 			connection_field = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == connection_field)
+			if (NULL == connection_field) {
 				rc = ESIF_E_NO_MEMORY;
-			esif_ws_socket_convert_to_lower_case(connection_field);
-
-			if (strstr(connection_field, UPGRADE_FIELD) != NULL) {
-				;	
 			}
-
-			esif_ws_socket_delete_existing_field(connection_field);
-			connection_field = NULL;
+			else {
+				esif_ws_socket_convert_to_lower_case(connection_field);
+				if (strstr(connection_field, UPGRADE_FIELD) != NULL) {
+					;	
+				}
+				esif_ccb_free(connection_field);
+				connection_field = NULL;
+			}
 		} else if (memcmp(beg_input_frame, ALT_UPGRADE_FIELD, esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE);
 			web_socket_field = NULL;
 			web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
-			esif_ws_socket_convert_to_lower_case(web_socket_field);
-
-			if (memcmp(web_socket_field, WEB_SOCK_FIELD, esif_ccb_strlen(WEB_SOCK_FIELD, MAX_SIZE)) == 0) {
-				is_upgraded = 1;
+			if (NULL == web_socket_field) {
+				rc = ESIF_E_NO_MEMORY;
 			}
-
-			esif_ws_socket_delete_existing_field(web_socket_field);
-			web_socket_field = NULL;
+			else {
+				esif_ws_socket_convert_to_lower_case(web_socket_field);
+				if (memcmp(web_socket_field, WEB_SOCK_FIELD, esif_ccb_strlen(WEB_SOCK_FIELD, MAX_SIZE)) == 0) {
+					is_upgraded = 1;
+				}
+				esif_ccb_free(web_socket_field);
+				web_socket_field = NULL;
+			}
 		}
 
 
@@ -219,7 +211,7 @@ enum frameType esif_ws_get_initial_frame_type (
 		}
 	}	/* End of while loop */
 
-	if (!prot->hostField) {
+	if (rc != ESIF_OK || !prot->hostField) {
 		prot->frame = ERROR_FRAME;
 	} else if (prot->hostField && !prot->keyField) {
 		prot->frame = HTTP_FRAME;
@@ -373,15 +365,6 @@ enum frameType esif_ws_socket_get_subsequent_frame_type (
 	}
 
 	return ERROR_FRAME;
-}
-
-
-void esif_ws_socket_delete_existing_field (char *field)
-{
-	if (field) {
-		esif_ccb_free(field);
-		field = NULL;
-	}
 }
 
 

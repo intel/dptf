@@ -23,10 +23,8 @@ using namespace std;
 TargetLimitAction::TargetLimitAction(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
     ParticipantTracker& participantTracker, ThermalRelationshipTable& trt,
-    std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor,
-    UtilizationStatus utilizationBiasThreshold, UIntN target)
-    : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, 
-    utilizationBiasThreshold, target)
+    std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
+    : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
 {
 }
 
@@ -165,8 +163,8 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
         }
         else
         {
-            // limit package domains, domains that do not report utilization, and domains whose utilization is higher
-            // than the bias threshold
+            // limit package domains, domains that do not report utilization, and the domain whose priority and 
+            // utilization is highest
             vector<UIntN> packageDomains = getPackageDomains(source, domainsWithControlKnobsToTurn);
             domainsToLimitSet.insert(packageDomains.begin(), packageDomains.end());
             vector<pair<UIntN, UtilizationStatus>> domainsSortedByPreference =
@@ -177,10 +175,10 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
                 {
                     domainsToLimitSet.insert(domain->first);
                 }
-                else if (domain->second.getCurrentUtilization() >= 
-                         getUtilizationBiasThreshold().getCurrentUtilization())
+                else
                 {
                     domainsToLimitSet.insert(domain->first);
+                    break;
                 }
             }
         }

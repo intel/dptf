@@ -32,7 +32,7 @@ WIPolicyOperatingSystemLpmModeChanged::~WIPolicyOperatingSystemLpmModeChanged(vo
 
 void WIPolicyOperatingSystemLpmModeChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

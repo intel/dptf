@@ -33,7 +33,7 @@ WIPolicyDestroy::~WIPolicyDestroy(void)
 
 void WIPolicyDestroy::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     // First let the policy manager know to remove the policy
 

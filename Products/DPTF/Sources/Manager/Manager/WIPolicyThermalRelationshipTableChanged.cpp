@@ -31,7 +31,7 @@ WIPolicyThermalRelationshipTableChanged::~WIPolicyThermalRelationshipTableChange
 
 void WIPolicyThermalRelationshipTableChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

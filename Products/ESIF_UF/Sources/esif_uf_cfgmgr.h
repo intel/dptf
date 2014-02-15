@@ -43,6 +43,9 @@ eEsifError EsifConfigFindFirst(EsifDataPtr nameSpace, EsifDataPtr path, EsifData
 /* Iterate Next */
 eEsifError EsifConfigFindNext(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, UInt32 *context);
 
+esif_flags_t EsifConfigFlags_Set(esif_flags_t bitmask, esif_string optname);
+
+
 #endif /* _ESIF_UF_CFGMGR */
 
 /*****************************************************************************/

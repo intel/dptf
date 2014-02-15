@@ -212,7 +212,8 @@ struct esif_ipc *esif_execute_ipc_primitive(struct esif_ipc *ipc_ptr)
 	struct esif_ipc_primitive *primitive_ptr =
 		(struct esif_ipc_primitive *)(ipc_ptr + 1);
 
-	u8 *data_ptr = (u8 *)primitive_ptr + sizeof(struct esif_ipc_primitive);
+	u8 *data_ptr = (u8 *)primitive_ptr + sizeof(*primitive_ptr);
+	u32 data_size = 0;
 
 	struct esif_data req_data = {
 		primitive_ptr->req_data_type,
@@ -229,6 +230,15 @@ struct esif_ipc *esif_execute_ipc_primitive(struct esif_ipc *ipc_ptr)
 	/* Done this way to fix compiler warning in release build */
 	char tmp[8];
 	tmp[0] = '\0';
+
+	data_size = ipc_ptr->data_len - sizeof(*primitive_ptr);
+	if(((primitive_ptr->req_data_offset + primitive_ptr->req_data_len) > 
+	     data_size) ||
+	   ((primitive_ptr->rsp_data_offset + primitive_ptr->rsp_data_len) > 
+	     data_size)) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
 
 	ESIF_TRACE_DYN_PRIM("%s: PRIMITIVE Received:\n", ESIF_FUNC);
 	ESIF_TRACE_DYN_DECODE(
@@ -304,7 +314,7 @@ struct esif_ipc *esif_execute_ipc_primitive(struct esif_ipc *ipc_ptr)
 			    esif_data_type_str(primitive_ptr->rsp_data_type),
 			    rsp_data.type, rsp_data.data_len,
 			    rsp_data.data_len);
-
+exit:
 	return ipc_ptr;
 }
 
@@ -411,6 +421,43 @@ exit:
 	if (primitive_ptr)
 		esif_ccb_free(primitive_ptr);
 
+	return rc;
+}
+
+
+/*
+ * Simple helper function to execute a primitive that takes no special
+ * parameters.
+ */
+enum esif_rc esif_get_simple_primitive(
+	struct esif_lp *lp_ptr,
+	u16 id,
+	u16 domain,
+	u16 instance,
+	enum esif_data_type esif_type,
+	void *buffer_ptr,
+	u32 buffer_size
+	)
+{
+	enum esif_rc rc = ESIF_OK;
+
+	struct esif_primitive_tuple tuple_get = {id, domain, instance};
+	struct esif_data esif_void = {ESIF_DATA_VOID, NULL, 0, 0};
+	struct esif_data esif_return = {esif_type,
+					buffer_ptr,
+					buffer_size,
+					buffer_size};
+
+	if ((NULL == lp_ptr) || (NULL == buffer_ptr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	rc = esif_execute_primitive(lp_ptr,
+				    &tuple_get,
+				    &esif_void, &esif_return,
+				    NULL);
+exit:
 	return rc;
 }
 

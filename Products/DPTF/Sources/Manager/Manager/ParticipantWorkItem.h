@@ -46,11 +46,11 @@ private:
     const UIntN m_participantIndex;
 };
 
-#define WriteParticipantWorkItemStartingDebugMessage() \
+#define WriteParticipantWorkItemStartingInfoMessage() \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item."); \
     message.setFrameworkEvent(getFrameworkEventType()); \
     message.setParticipantIndex(getParticipantIndex()); \
-    getEsifServices()->writeMessageDebug(message);
+    getEsifServices()->writeMessageInfo(message);
 
 #define WriteParticipantWorkItemErrorMessage_Function(functionName) \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \

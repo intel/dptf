@@ -22,21 +22,32 @@
 #include "esif.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-typedef int ssize_t;
-typedef int esif_uf_ccb_sock_len;
-#define esif_uf_ccb_sock_close closesocket
+typedef size_t ssize_t;
+typedef int socklen_t;
+typedef SOCKET esif_ccb_socket_t;
 
-static void ESIF_INLINE esif_uf_ccb_sock_init()
+#define esif_ccb_socket_close(s) closesocket(s)
+
+static void ESIF_INLINE esif_ccb_socket_init(void)
 {
-	WSADATA wsaData;
+	WSADATA wsaData={0};
 
 	// Initialize Winsock
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
-		printf("WSAStartup failed: %d\n", iResult);
+		ESIF_TRACE_ERROR("WSAStartup failed: %d\n", iResult);
 	}
 }
 
+static void ESIF_INLINE esif_ccb_socket_exit(void)
+{
+	WSACleanup();
+}
+
+static int ESIF_INLINE esif_ccb_socket_error(void)
+{
+	return WSAGetLastError();
+}
 
 #endif
 
@@ -47,10 +58,21 @@ static void ESIF_INLINE esif_uf_ccb_sock_init()
 #include <arpa/inet.h>
 #include <netdb.h>
 
-typedef socklen_t esif_uf_ccb_sock_len;
-#define esif_uf_ccb_sock_close close
+typedef int esif_ccb_socket_t;
 
-static void ESIF_INLINE esif_uf_ccb_sock_init() {}
+#define INVALID_SOCKET (~0)
+#define SOCKET_ERROR (-1)
+
+#define esif_ccb_socket_close(s) close(s)
+
+static void ESIF_INLINE esif_ccb_socket_init(void) {}
+
+static void ESIF_INLINE esif_ccb_socket_exit(void) {}
+
+static int ESIF_INLINE esif_ccb_socket_error(void)
+{
+	return errno;
+}
 
 #endif
 

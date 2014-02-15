@@ -23,11 +23,9 @@ using namespace std;
 TargetActionBase::TargetActionBase(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
     ParticipantTracker& participantTracker, ThermalRelationshipTable& trt,
-    std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor,
-    UtilizationStatus utilizationBiasThreshold, UIntN target)
+    std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
     : m_policyServices(policyServices), m_time(time), m_participantTracker(participantTracker),
-    m_trt(trt), m_callbackScheduler(callbackScheduler), m_targetMonitor(targetMonitor),
-    m_utilizationBiasThreshold(utilizationBiasThreshold), m_target(target)
+    m_trt(trt), m_callbackScheduler(callbackScheduler), m_targetMonitor(targetMonitor), m_target(target)
 {
 }
 
@@ -198,11 +196,6 @@ std::shared_ptr<CallbackScheduler> TargetActionBase::getCallbackScheduler() cons
 TargetMonitor& TargetActionBase::getTargetMonitor() const
 {
     return m_targetMonitor;
-}
-
-UtilizationStatus TargetActionBase::getUtilizationBiasThreshold() const
-{
-    return m_utilizationBiasThreshold;
 }
 
 UIntN TargetActionBase::getTarget() const

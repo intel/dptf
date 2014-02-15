@@ -15,8 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#define ESIF_TRACE_DEBUG_DISABLED
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_DSP
 
 #include "esif_uf.h"	/* Upper Framework */
 #include "esif_ipc.h"	/* IPC Abstraction */
@@ -69,7 +68,7 @@ int esif_send_dsp(
 	//
 
 	if (NULL == filename) {
-		printf("%s: filename is null\n", ESIF_FUNC);
+		ESIF_TRACE_DEBUG("%s: filename is null\n", ESIF_FUNC);
 		rc = -1;
 		goto exit;
 	}
@@ -95,7 +94,7 @@ int esif_send_dsp(
 		edp_size = edp_dir.fpc_offset - edp_dir.cpc_offset;
 		IOStream_Seek(io_ptr, edp_dir.cpc_offset, SEEK_SET);
 	} else {
-		printf("%s: file not found (%s)\n", ESIF_FUNC, filename);
+		ESIF_TRACE_DEBUG("%s: file not found (%s)\n", ESIF_FUNC, filename);
 		rc = -1;
 		goto exit;
 	}
@@ -130,14 +129,14 @@ int esif_send_dsp(
 	ipc_execute(ipc_ptr);
 
 	if (ESIF_OK != ipc_ptr->return_code) {
-		printf("ipc error code = %s(%d)\n",
+		ESIF_TRACE_ERROR("ipc error code = %s(%d)\n",
 			   esif_rc_str(ipc_ptr->return_code), ipc_ptr->return_code);
 		rc = -1;
 		goto exit;
 	}
 
 	if (ESIF_OK != primitive_ptr->return_code) {
-		printf("primitive error code = %s(%d)\n",
+		ESIF_TRACE_ERROR("primitive error code = %s(%d)\n",
 			   esif_rc_str(primitive_ptr->return_code), primitive_ptr->return_code);
 		rc = -1;
 		goto exit;

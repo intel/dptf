@@ -122,6 +122,7 @@ struct esif_command_debug_modules {
 struct esif_command_get_debug_module_level {
 	u32  modules;
 	u32  levels[32];
+	u32  tracelevel;
 };
 
 struct esif_command_set_debug_module_level {

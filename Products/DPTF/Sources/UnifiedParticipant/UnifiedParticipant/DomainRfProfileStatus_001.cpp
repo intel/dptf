@@ -18,6 +18,10 @@
 
 #include "DomainRfProfileStatus_001.h"
 
+//
+// version 001 is for fivr
+//
+
 DomainRfProfileStatus_001::DomainRfProfileStatus_001(ParticipantServicesInterface* participantServicesInterface) :
     m_participantServicesInterface(participantServicesInterface)
 {
@@ -29,48 +33,22 @@ DomainRfProfileStatus_001::~DomainRfProfileStatus_001(void)
 
 RfProfileData DomainRfProfileStatus_001::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
 {
-    throw implement_me();
+    // FIXME:  can this be cached?  If so how do we know when the data changes?
 
-    //Frequency centerFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
-    //    esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
+    // if center frequency isn't available the error will get thrown back to the policy
 
-    //Frequency leftFrequencySpread = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
-    //    esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_LEFT, domainIndex);
+    Frequency centerFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+        esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
 
-    //Frequency rightFrequencySpread = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
-    //    esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT, domainIndex);
+    RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
+    RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
 
-    //UInt32 channelNumber = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-    //    esif_primitive_type::GET_RFPROFILE_CHANNEL_NUMBER, domainIndex);
-
-    //UInt32 noisePower = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-    //    esif_primitive_type::GET_RFPROFILE_NOISE_POWER, domainIndex);
-
-    //UInt32 signalToNoiseRatio = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-    //    esif_primitive_type::GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO, domainIndex);
-
-    //UInt32 rssi = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-    //    esif_primitive_type::GET_RFPROFILE_RSSI, domainIndex);
-
-    //UInt8 uint8Value = m_participantServicesInterface->primitiveExecuteGetAsUInt8(
-    //    esif_primitive_type::GET_RFPROFILE_CONNECTION_STATUS, domainIndex);
-    //RadioConnectionStatus::Type radioConnectionStatus = static_cast<RadioConnectionStatus::Type>(uint8Value);
-
-    //UInt32 bitError = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-    //    esif_primitive_type::GET_RFPROFILE_BIT_ERROR, domainIndex);
-
-    //RfProfileSupplementalData rfProfileSupplementalData(channelNumber, noisePower, signalToNoiseRatio, rssi,
-    //    radioConnectionStatus, bitError);
-
-    //RfProfileData rfProfileData(centerFrequency, leftFrequencySpread, rightFrequencySpread, rfProfileSupplementalData);
-
-    //return rfProfileData;
+    return rfProfileData;
 }
 
 void DomainRfProfileStatus_001::clearCachedData(void)
 {
-    // FIXME
-    throw implement_me();
+    // For now nothing is cached
 }
 
 XmlNode* DomainRfProfileStatus_001::getXml(UIntN domainIndex)

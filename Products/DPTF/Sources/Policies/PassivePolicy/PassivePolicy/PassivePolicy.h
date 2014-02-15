@@ -92,7 +92,10 @@ private:
         Temperature currentTemperature);
 
     // testing participant qualifications
-    Bool participantIsSourceOrTargetDevice(UIntN participantIndex);
-    Bool participantIsSourceDevice(UIntN participantIndex);
-    Bool participantIsTargetDevice(UIntN participantIndex);
+    Bool participantIsSourceOrTargetDevice(UIntN participantIndex) const;
+    Bool participantIsSourceDevice(UIntN participantIndex) const;
+    Bool participantIsTargetDevice(UIntN participantIndex) const;
+
+    // status
+    XmlNode* getXmlForPassiveTripPoints() const;
 };

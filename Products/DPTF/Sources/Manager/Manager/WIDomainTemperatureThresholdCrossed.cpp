@@ -34,7 +34,7 @@ WIDomainTemperatureThresholdCrossed::~WIDomainTemperatureThresholdCrossed(void)
 
 void WIDomainTemperatureThresholdCrossed::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

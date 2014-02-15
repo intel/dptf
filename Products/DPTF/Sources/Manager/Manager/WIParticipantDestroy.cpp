@@ -35,7 +35,7 @@ WIParticipantDestroy::~WIParticipantDestroy(void)
 
 void WIParticipantDestroy::execute(void)
 {
-    WriteParticipantWorkItemStartingDebugMessage();
+    WriteParticipantWorkItemStartingInfoMessage();
 
     // Call unbind participant for each policy before we actually destroy the participant.
 

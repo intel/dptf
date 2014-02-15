@@ -33,7 +33,7 @@ WIDomainDisplayStatusChanged::~WIDomainDisplayStatusChanged(void)
 
 void WIDomainDisplayStatusChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {

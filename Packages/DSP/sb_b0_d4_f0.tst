@@ -36,8 +36,8 @@ getp 185 D0 255                                              ;GET_CLOCK_COUNT
 getp 187 D0 001                                              ;GET_CLOCK_ORIGINAL_FREQUENCY
 getp 049 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_ADDRESS_ON_PARENT_BUS
 getp 088 D0 255 -u 0xf -l 0                                  ;GET_DEVICE_STATUS
-getp 178 D1 255 -u 3 -l 0                                    ;GET_DOMAIN_PRIORITY
-getp 178 D2 255 -u 3 -l 0                                    ;GET_DOMAIN_PRIORITY
+getp 178 D1 255 -u 32 -l 0                                   ;GET_DOMAIN_PRIORITY
+getp 178 D2 255 -u 32 -l 0                                   ;GET_DOMAIN_PRIORITY
 getp 054 D0 255 -u 105 -l 0                                  ;GET_NOTIFICATION_TEMP_THRESHOLD
 getp 137 D2 255 -b sb_b0_d4_f0_137_D2_255.bin                ;GET_PERF_SUPPORT_STATES
 getp 079 D0 255                                              ;GET_PROC_CTDP_CAPABILITY
@@ -126,14 +126,13 @@ getp 177 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_WAR
 getp 177 D1 255 -u 105 -l 0                                  ;GET_TRIP_POINT_WARM
 getp 016 D1 255                                              ;GET_TSTATE_CURRENT
 getp 065 D1 255 -b sb_b0_d4_f0_65_D1_255.bin                 ;GET_TSTATES
-rem setp 153 D1 255                                          ;SET_ACTIVE_CORE_LIMIT
 rem setp 081 D0 255                                          ;SET_COOLING_POLICY
 rem setp 083 D0 255                                          ;SET_CTDP_POINT
 rem setp 051 D0 255                                          ;SET_DEVICE_TEMPERATURE_INDICATION
 rem setp 082 D1 255                                          ;SET_PERF_PRESENT_CAPABILITY
 rem setp 082 D2 255                                          ;SET_PERF_PRESENT_CAPABILITY
 rem setp 221 D0 255                                          ;SET_PROC_CTDP_CONTROL
-rem setp 229 D1 255                                          ;SET_PROC_LOGICAL_PROCESSOR_AFFINITY
+rem setp 153 D1 255                                          ;SET_PROC_NUMBER_OFFLINE_CORES
 rem setp 220 D0 255                                          ;SET_PROC_TURBO_ACTIVATION_RATIO
 rem setp 100 D0 255                                          ;SET_PROC_TURBO_STATE
 rem setp 130 D0 000                                          ;SET_RAPL_POWER_LIMIT
@@ -165,7 +164,7 @@ rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
 rem setp 147 D1 255                                          ;SET_TSTATE_CURRENT
-echo Test Count: 133
+echo Test Count: 132
 timerstop
 geterrorlevel
 nolog

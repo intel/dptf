@@ -26,7 +26,7 @@ class EsifDataPower final
 public:
 
     EsifDataPower(void);
-    EsifDataPower(const Power & data);
+    EsifDataPower(const Power& data);
 
     operator esif::EsifDataPtr(void);
     operator Power(void) const;
@@ -34,7 +34,7 @@ public:
 private:
 
     // hide the copy constructor and assignment operator.
-    EsifDataPower(const EsifDataPower & rhs);
+    EsifDataPower(const EsifDataPower& rhs);
     EsifDataPower& operator=(const EsifDataPower& rhs);
 
     UInt32 m_esifDataValue;

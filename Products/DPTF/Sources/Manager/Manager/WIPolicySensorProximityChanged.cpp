@@ -33,7 +33,7 @@ WIPolicySensorProximityChanged::~WIPolicySensorProximityChanged(void)
 
 void WIPolicySensorProximityChanged::execute(void)
 {
-    WriteWorkItemStartingDebugMessage();
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();

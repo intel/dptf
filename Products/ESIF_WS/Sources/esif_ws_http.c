@@ -21,9 +21,10 @@
 #include <stdlib.h>
 #include "esif_ws_http.h"
 
+#include "esif_lib_databank.h" // ESIFDV_DIR reference
 
-#define VERSION 23
-// #define BASIC_AUTHENTICATION
+#define VERSION "1.0"
+#define UNKNOWN_MIME_TYPE	"application/octet-stream"
 
 extType g_exts[] = {
 	{(char*)"gif",  (char*)"image/gif"                  },
@@ -39,16 +40,16 @@ extType g_exts[] = {
 	{(char*)"xml",  (char*)"text/xml"                   },
 	{(char*)"js",   (char*)"application/javascript"     },
 	{(char*)"css",  (char*)"text/css"                   },
-	{(char*)0,      (char*)0                            }
+	{(char*)"txt",  (char*)"text/plain"                 },
+	{(char*)0,      (char*)UNKNOWN_MIME_TYPE            }
 };
 
 size_t length;
 
 
-static char g_server_root[1000];
+static char g_server_root[MAX_PATH];
 
 #include "esif_uf_ccb_file.h"
-
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -66,42 +67,19 @@ static char g_server_root[1000];
  *******************************************************************************
  */
 
-extern eEsifError esif_ws_cgi_execute_cgi_script (const char*, int, char*);
-
-void esif_ws_close_socket(int client_socket, int force);
+void esif_ws_close_socket(clientRecord *connection);
 
 /*
  *******************************************************************************
  ** PRIVATE
  *******************************************************************************
  */
-static eEsifError esif_ws_http_serve_cgi_scripts (const char*, int);
-static eEsifError esif_ws_http_process_post (const char*);
 static char*esif_ws_http_time_stamp (time_t, char*);
-
-static int esif_ws_http_server_static_pages (char*, char*, int, ssize_t, char*);
-
-// static void esif_ws_http_handle_error_codes(char *, char *, int , ssize_t , char *);
-
-
-static void esif_ws_http_send_error_code (int, int);
-
-#ifdef BASIC_AUTHENTICATION
-static void esif_ws_http_send_401 (int);
-static int esif_ws_http_is_authorized (const char*);
-
-#endif
-static void esif_ws_http_process_buffer (char*, int);
-
-static void esif_ws_http_process_get_or_post (char*, int, ssize_t);
-
+static void esif_ws_http_process_buffer (char*, ssize_t);
+static void esif_ws_http_process_request (clientRecord *, char*, ssize_t);
+static int  esif_ws_http_process_static_page (clientRecord*, char*, char*, ssize_t, char*);
 static char*esif_ws_http_get_file_type (char*);
-
-static int esif_ws_http_authenticated   = 0;
-static int esif_ws_http_login_requested = 0;
-
-const char *esif_ws_http_password = "intel123";
-
+static void esif_ws_http_send_error_code (clientRecord*, int);
 
 /*
  *******************************************************************************
@@ -110,68 +88,30 @@ const char *esif_ws_http_password = "intel123";
  */
 void esif_ws_http_copy_server_root (char *dir)
 {
-	#define MAX_LENGTH 200
-	esif_ccb_memcpy(g_server_root, dir, esif_ccb_strlen(dir, MAX_LENGTH));
+	esif_ccb_memcpy(g_server_root, dir, esif_ccb_strlen(dir, sizeof(g_server_root))+1);
 }
 
 
 eEsifError esif_ws_http_process_reqs (
-	int fd,
+	clientRecord *connection,
 	void *buf,
 	ssize_t ret
 	)
 {
 	char *buffer = (char*)buf;
-	char *cgiInd = 0;
-	int result = EOF;
-#ifdef BASIC_AUTHENTICATION
-	char *resource = NULL;
-	char *fileType = NULL;
-#endif
-
+	eEsifError result = ESIF_OK;
 
 	ESIF_TRACE_DEBUG("esif_ws_http_process_reqs \n");
 	esif_ws_http_process_buffer(buffer, ret);
 
-#ifdef BASIC_AUTHENTICATION
-	if (!esif_ws_http_get_login_requested()) {
-		ESIF_TRACE_DEBUG("Requesting login \n");
-		resource = "login.html";
-		fileType = "text/html";
-		esif_ws_http_server_static_pages(buffer, resource, fd, ret, fileType);
-		esif_ws_http_set_login_requested(1);
-		result = 200;
-	} else if (!esif_ws_http_get_authenticated()) {
-		ESIF_TRACE_DEBUG("Authenticating login \n");
-		if (esif_ws_http_is_authorized(buffer)) {
-			esif_ws_http_set_authenticated(1);
-			result = 200;
-		} else {
-			esif_ws_http_send_401(fd);
-			esif_ws_http_set_login_requested(0);
-			esif_ws_http_set_authenticated(0);
-			result = EOF;
-		}
-	} else
-#endif
-	{
-		// ESIF_TRACE_DEBUG("Buffer received: %s\n", buffer);
+	// ESIF_TRACE_DEBUG("Buffer received: %s\n", buffer);
 
-		if (!strncmp(buffer, "GET ", 4) || !strncmp(buffer, "POST ", 5)) {	/* look for Get request method*/
-			/*is it a cgi script?*/
-			cgiInd = strstr(buffer, "/cgi-bin/");
-			if (cgiInd) {
-				result = esif_ws_http_serve_cgi_scripts(buffer, fd);			
-			} else {
-				esif_ws_http_process_get_or_post(buffer, fd, ret);
-				//result = EOF;
-				result = ESIF_E_WS_DISC;
-			}			
-		} else {
-			result = 405;	/*Method not allowed*/
-		}
+	if (!strncmp(buffer, "GET ", 4) || !strncmp(buffer, "POST ", 5)) {	/* look for Get request method*/
+		esif_ws_http_process_request(connection, buffer, ret);
+		result = ESIF_E_WS_DISC; /* 404 or Connection: close */
+	} else {
+		result = ESIF_E_WS_DISC; /* 405 Method not allowed*/
 	}
-
 	return result;
 }
 
@@ -192,143 +132,33 @@ static char*esif_ws_http_time_stamp (
 }
 
 
-static eEsifError esif_ws_http_serve_cgi_scripts (
-	const char *buffer,
-	int fd
-	)
-{
-	char *blankCharPtr=NULL;
-	char *endPtr=NULL;
-	char *uri=NULL;
-	size_t uri_size=0;
-	eEsifError rc = ESIF_OK;
-
-	ESIF_TRACE_DEBUG("CGI script\n");
-
-	blankCharPtr = strchr((const char*)buffer, ' ');
-	blankCharPtr++;
-	endPtr = strchr(blankCharPtr, ' ');
-
-
-	uri_size = endPtr - blankCharPtr;
-
-	uri = (char*)esif_ccb_malloc(uri_size + 1);
-	if (uri == NULL) {
-		return ESIF_E_NO_MEMORY;
-	}
-
-
-	esif_ccb_memcpy(uri, buffer + 4, uri_size + 1);
-	uri[uri_size] = 0;
-
-	ESIF_TRACE_DEBUG("uri: %s\n", uri);
-
-	if (!strncmp(buffer, "POST ", 5)) {
-		rc = esif_ws_http_process_post((const char*)buffer);
-	}
-
-	rc = esif_ws_cgi_execute_cgi_script(uri, fd, g_server_root);
-
-	if (uri) {
-		esif_ccb_free(uri);
-		uri = NULL;
-	}
-
-	return rc;
-}
-
-
-static eEsifError esif_ws_http_process_post (const char *buffer)
-{
-	char *begPtr=NULL;
-	char *endPtr=NULL;
-	char *namebox=NULL;
-	char *nameboxVal     = NULL;
-	char *passwordbox=NULL;
-	char *passwordboxVal = NULL;
-	size_t namebox_size=0;
-	size_t passwordbox_size=0;
-	eEsifError rc = ESIF_OK;
-
-	ESIF_TRACE_DEBUG("buffer from POST: %s\n", buffer);
-
-	namebox = strstr(buffer, "namebox");
-	if (namebox) {
-		begPtr = strchr((const char*)namebox, '=');
-		begPtr++;
-		endPtr = strchr(begPtr, '&');
-		namebox_size = endPtr - begPtr;
-		nameboxVal   = (char*)esif_ccb_malloc(namebox_size + 1);
-		if (NULL == nameboxVal) {
-			return ESIF_E_NOT_FOUND;
-		}
-		esif_ccb_memcpy(nameboxVal, namebox + 8, namebox_size + 1);
-		nameboxVal[namebox_size] = 0;
-		ESIF_TRACE_DEBUG("name: %s ", nameboxVal);
-	}
-
-	passwordbox = strstr(buffer, "passwordbox");
-
-	if (passwordbox) {
-		begPtr = strchr((const char*)passwordbox, '=');
-		begPtr++;
-		endPtr = strchr(begPtr, '&');
-		passwordbox_size = endPtr - begPtr;
-		passwordboxVal   = (char*)esif_ccb_malloc(passwordbox_size + 1);
-		if (NULL == passwordboxVal) {
-			return ESIF_E_NOT_FOUND;
-		}
-		esif_ccb_memcpy(passwordboxVal, passwordbox + 12, passwordbox_size + 1);
-		passwordboxVal[passwordbox_size] = 0;
-		ESIF_TRACE_DEBUG("password: %s\n", passwordboxVal);
-	}
-
-	if (nameboxVal) {
-		esif_ccb_free(nameboxVal);
-		nameboxVal = NULL;
-	}
-
-	if (passwordboxVal) {
-		esif_ccb_free(passwordboxVal);
-		passwordboxVal = NULL;
-	}
-
-	return rc;
-}
-
-
-static int esif_ws_http_server_static_pages (
+static int esif_ws_http_process_static_pages (
+	clientRecord *connection,
 	char *buffer,
 	char *resource,
-	int fd,
 	ssize_t ret,
 	char *fileType
 	)
 {
 	struct stat st={0};
 	char tmpbuffer[128]={0};
-	char file_to_open[1000]={0};
+	char file_to_open[MAX_PATH]={0};
+	char content_disposition[MAX_PATH]={0};
 	FILE *file_fp = NULL;
-	#define MAX_SIZE 200
 
-
-	esif_ccb_memcpy(file_to_open, g_server_root, esif_ccb_strlen(g_server_root, MAX_SIZE));
-	file_to_open[esif_ccb_strlen(g_server_root, MAX_SIZE)] = '\0';
-	// ESIF_TRACE_DEBUG("file to open after esif_ccb_memcpy: %s\n", file_to_open);
-	// ESIF_TRACE_DEBUG("resource : %s\n", resource);
-
-#ifdef ESIF_ATTR_OS_WINDOWS
-
-	strcat_s((esif_string)file_to_open, 1000, resource);
+	esif_ccb_sprintf(MAX_PATH, file_to_open, "%s%s", g_server_root, resource);
 	esif_ccb_fopen(&file_fp, (esif_string)file_to_open, (esif_string)"rb");
-#else
-	strcat((esif_string)file_to_open, resource);
-	esif_ccb_fopen(&file_fp, (esif_string)file_to_open, (esif_string)"r");
-#endif
-	ESIF_TRACE_DEBUG("file to open: %s\n", file_to_open);
-	ESIF_TRACE_DEBUG("file type: %s\n", fileType);
-
-
+	
+	// Log file workaround: If not found in HTML folder, look in LOG (DV) folder
+	if (NULL == file_fp) {
+		char logpath[MAX_PATH]={0};
+		esif_ccb_sprintf(MAX_PATH, logpath, "%s%s", ESIFDV_DIR, resource);
+		esif_ccb_fopen(&file_fp, (esif_string)logpath, (esif_string)"rb");
+		if (NULL != file_fp) 
+			esif_ccb_strcpy(file_to_open, logpath, sizeof(file_to_open));
+	}
+	
+	ESIF_TRACE_DEBUG("HTTP: file=%s, type=%s\n", file_to_open, fileType);
 	if (NULL == file_fp) {
 		ESIF_TRACE_DEBUG("failed to open file: %s\n", file_to_open);
 		return 404;
@@ -340,26 +170,34 @@ static int esif_ws_http_server_static_pages (
 		return 404;
 	}
 
+	fseek(file_fp, (off_t)0, SEEK_END);
+	fseek(file_fp, (off_t)0, SEEK_SET);
 
-	(long)fseek(file_fp, (off_t)0, SEEK_END);
-	(void)fseek(file_fp, (off_t)0, SEEK_SET);
-
-	if (!strcmp(fileType, "text/xml")) {
-		(void)esif_ccb_sprintf(BUFFER_LENGTH, buffer, (char*)"HTTP/1.1 200 OK\n<?xml version==\"1.0\" encoding=\"utf-8\"?>\n"
-															 "Server: server/%d.0\n"
-															 "Content-Type: %s\nContent-Length: %ld\nConnection: close\n\n",
-							   VERSION, fileType, (long)st.st_size);
-	} else {
-		(void)esif_ccb_sprintf(BUFFER_LENGTH, buffer, (char*)"HTTP/1.1 200 OK\n"
-															 "Server: server/%d.0\nLast-Modified: %s\nDate: %s\n"
-															 "Content-Type: %s\nContent-Length: %ld\nConnection: close\n\n",
-							   VERSION,
-							   esif_ws_http_time_stamp(st.st_mtime, tmpbuffer), esif_ws_http_time_stamp(time(0), tmpbuffer), fileType, (long)st.st_size);
+	// Add Content-Disposition header to prompt user with Save-As Dialog if unknown file type
+	if (esif_ccb_strcmp(fileType, UNKNOWN_MIME_TYPE) == 0) {
+		esif_ccb_sprintf(sizeof(content_disposition), content_disposition,  "Content-Disposition: attachment; filename=\"%s\";\n", resource);
 	}
 
-	(void)send(fd, buffer, (int)esif_ccb_strlen(buffer, MAX_SIZE), 0);
+	esif_ccb_sprintf(BUFFER_LENGTH, buffer,	
+					"HTTP/1.1 200 OK\n"
+					"Server: server/%s\n"
+					"Last-Modified: %s\n"
+					"Date: %s\n"
+					"Content-Type: %s\n"
+					"Content-Length: %ld\n"
+					"%s"
+					"Connection: close\n"
+					"\n",
+				VERSION,
+				esif_ws_http_time_stamp(st.st_mtime, tmpbuffer),
+				esif_ws_http_time_stamp(time(0), tmpbuffer), 
+				fileType, 
+				(long)st.st_size, 
+				content_disposition);
+
+	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, BUFFER_LENGTH), 0);
 	while ((ret = (int)fread(buffer, 1, BUFFER_LENGTH, file_fp)) > 0) {
-		(void)send(fd, buffer, ret, 0);
+		send(connection->socket, buffer, (int)ret, 0);
 	}
 	fclose(file_fp);
 
@@ -367,101 +205,9 @@ static int esif_ws_http_server_static_pages (
 }
 
 
-#ifdef BASIC_AUTHENTICATION
-static void esif_ws_http_send_401 (int fd)
-{
-	char buffer[256]={0};
-	char tmpbuffer[128]={0};
-	char *fileType = "text/html";
-	FILE *file_fp  = NULL;
-	int len=0;
-	struct stat st={0};
-	int ret=0;
-
-
-	char *fileName = "error.html";
-
-	ESIF_TRACE_DEBUG("fileName :%s\n", fileName);
-	esif_ccb_fopen(&file_fp, fileName, "r");
-
-	if (NULL == file_fp) {
-		ESIF_TRACE_DEBUG("failed to open file: \n");
-		return;
-	}
-
-	if (esif_ccb_stat(fileName, &st) != 0) {
-		ESIF_TRACE_DEBUG("Could not stat file descriptor \n");
-		return;
-	}
-
-	len = (long)fseek(file_fp, (off_t)0, SEEK_END);
-
-	(void)fseek(file_fp, (off_t)0, SEEK_SET);
-
-	(void)esif_ccb_sprintf(256, buffer, (char*)"HTTP/1.1 401 Unauthorized\n"
-											   "Server: server/%d.0\nLast-Modified: %s\nDate: %s\n"
-											   "Content-Type: %s\nContent-Length: %ld\nConnection: close\n\n",
-						   VERSION, esif_ws_http_time_stamp(st.st_mtime, tmpbuffer), esif_ws_http_time_stamp(time(0), tmpbuffer), fileType, (long)st.st_size);
-
-	(void)send(fd, buffer, (int)esif_ccb_strlen(buffer), 0);
-
-	while ((ret = (int)fread(buffer, 1, 256, file_fp)) > 0)
-		(void)send(fd, buffer, ret, 0);
-
-	fclose(file_fp);
-}
-
-
-static int esif_ws_http_is_authorized (const char *buffer)
-{
-	char *begPtr=NULL;
-	char *endPtr=NULL;
-	char *namebox=NULL;
-	char *nameboxVal=NULL;
-	char *passwordbox=NULL;
-	char *passwordboxVal = NULL;
-	int result=0;
-
-	ESIF_TRACE_DEBUG("esif_ws_http_is_authorized : Buffer received: %s\n", buffer);
-
-	namebox = strstr(buffer, "namebox");
-	if (namebox) {
-		begPtr     = strchr((const char*)namebox, '=');
-		begPtr++;
-		endPtr     = strchr(begPtr, '&');
-		nameboxVal = (char*)esif_ccb_malloc(endPtr - begPtr + 1);
-		esif_ccb_memcpy(nameboxVal, namebox + 8, endPtr - begPtr + 1);
-		nameboxVal[endPtr - begPtr] = 0;
-		ESIF_TRACE_DEBUG("name: %s ", nameboxVal);
-	}
-
-	passwordbox = strstr(buffer, "passwordbox");
-
-	if (passwordbox) {
-		begPtr = strchr((const char*)passwordbox, '=');
-		begPtr++;
-		endPtr = strchr(begPtr, '&');
-		passwordboxVal = (char*)esif_ccb_malloc(endPtr - begPtr + 1);
-		esif_ccb_memcpy(passwordboxVal, passwordbox + 12, endPtr - begPtr + 1);
-		passwordboxVal[endPtr - begPtr] = 0;
-		ESIF_TRACE_DEBUG("esif_ws_http_password: %s\n", passwordboxVal);
-	}
-
-	if (passwordboxVal && !strcmp(passwordboxVal, esif_ws_http_password)) {
-		result = 1;
-	} else {
-		result = 0;
-	}
-
-	return result;
-}
-
-
-#endif
-
 static void esif_ws_http_process_buffer (
 	char *buffer,
-	int size
+	ssize_t size
 	)
 {
 	if (size == 0 || size == -1) {
@@ -476,9 +222,9 @@ static void esif_ws_http_process_buffer (
 }
 
 
-static void esif_ws_http_process_get_or_post (
+static void esif_ws_http_process_request (
+	clientRecord *connection,
 	char *buffer,
-	int fd,
 	ssize_t ret
 	)
 {
@@ -530,13 +276,11 @@ static void esif_ws_http_process_get_or_post (
 	ESIF_TRACE_DEBUG("resource b4: %s\n", resource);
 	if (resource[1] == '\0') {
 		ESIF_TRACE_DEBUG("empty resource: %s\n", resource);
-		result = esif_ws_http_server_static_pages(buffer, "index.html", fd, ret, "text/html");
+		result = esif_ws_http_process_static_pages(connection, buffer, "index.html", ret, "text/html");
 		if (result > 0)
 		{
-			esif_ws_http_send_error_code(fd, result);
-			
+			esif_ws_http_send_error_code(connection, result);	
 		}
-		
 		return;
 	}
 
@@ -553,21 +297,15 @@ static void esif_ws_http_process_get_or_post (
 	// ESIF_TRACE_DEBUG("str: %s\n", str);
 #endif
 	fileType = esif_ws_http_get_file_type(fileName);
-	if (NULL != fileType) {
-		result = esif_ws_http_server_static_pages(buffer, fileName, fd, ret, fileType);
-		
-		if (result > 0)
-		{
-			esif_ws_http_send_error_code(fd, result);
-			return; // DWP
-		}
-	
-	} else {
-		ESIF_TRACE_DEBUG("File type is not valid\n");
+	if (NULL == fileType) {
+		fileType = UNKNOWN_MIME_TYPE;
 	}
-	
-	esif_ws_http_send_error_code(fd, result);
-	result = result;
+
+	result = esif_ws_http_process_static_pages(connection, buffer, fileName, ret, fileType);
+
+	if (result > 0) {
+		esif_ws_http_send_error_code(connection, result);
+	}
 }
 
 
@@ -585,35 +323,27 @@ static char*esif_ws_http_get_file_type (char *resource)
 	ext++;
 
 	for (i = 0; g_exts[i].fileExtension != 0; i++)
-		if (!strncmp(ext, g_exts[i].fileExtension, esif_ccb_strlen(ext, MAX_SIZE))) {
+		if (!strncmp(ext, g_exts[i].fileExtension, esif_ccb_strlen(ext, MAX_PATH))) {
 			fileType = g_exts[i].fileType;
 			break;
 		}
-
+	
+	if (fileType == NULL)
+		fileType = g_exts[i].fileType;
 	return fileType;
 }
 
 
-void esif_ws_http_set_authenticated (int value) {esif_ws_http_authenticated = value;}
-
-void esif_ws_http_set_login_requested (int value) {esif_ws_http_login_requested = value;}
-
-int esif_ws_http_get_authenticated (void) {return esif_ws_http_authenticated;}
-
-int esif_ws_http_get_login_requested (void) {return esif_ws_http_login_requested;}
-
-#define MAX_BUFFER_SIZE 100
 static void esif_ws_http_send_error_code (
-	int fd,
+	clientRecord *connection,
 	int error_code
 	)
 {
-	char buffer[MAX_BUFFER_SIZE]={0};
+	char buffer[MAX_PATH]={0};
+	char *message = (error_code==404 ? "Not Found" : "Error");
 
-	error_code = error_code;
+	esif_ccb_sprintf(sizeof(buffer), buffer, (char*)"HTTP/1.1 %d %s\r\n\r\n<h1>%d %s</h1>", error_code, message, error_code, message);
 
-	(void)esif_ccb_sprintf(MAX_BUFFER_SIZE, buffer, (char*)"HTTP/1.1 404 Not Found\r\n\r\n<h1>404 Not Found</h1>");
-
-	(void)send(fd, buffer, (int)esif_ccb_strlen(buffer, MAX_SIZE), 0);
-	esif_ws_close_socket(fd, 1);
+	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, sizeof(buffer)), 0);
+	esif_ws_close_socket(connection);
 }

@@ -110,6 +110,18 @@ enum esif_rc esif_execute_primitive(struct esif_lp *lp_ptr,
 				    struct esif_data *rsp_data_ptr,
 				    const u16 *action_index_ptr);
 
+/*
+ * Simple helper function to execute a primitive that takes no special
+ * parameters.
+ */
+enum esif_rc esif_get_simple_primitive(struct esif_lp *lp_ptr,
+				       u16 id,
+				       u16 domain,
+				       u16 instance,
+				       enum esif_data_type esif_type,
+				       void *buffer_ptr,
+				       u32 buffer_size);
+
 #endif /* _ESIF_LF_PRIMITIVE_H_ */
 
 /*****************************************************************************/

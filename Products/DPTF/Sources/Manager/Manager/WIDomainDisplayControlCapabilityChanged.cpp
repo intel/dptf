@@ -33,7 +33,7 @@ WIDomainDisplayControlCapabilityChanged::~WIDomainDisplayControlCapabilityChange
 
 void WIDomainDisplayControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingDebugMessage();
+    WriteDomainWorkItemStartingInfoMessage();
 
     try
     {
