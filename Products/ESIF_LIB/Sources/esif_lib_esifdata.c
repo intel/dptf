@@ -268,7 +268,7 @@ UInt32 EsifData_AsUInt32 (EsifDataPtr self)
 
 
 // ToString operator [dynamic, caller-owned]
-char*EsifData_ToString (EsifDataPtr self)
+char *EsifData_ToString (EsifDataPtr self)
 {
 	char *result   = 0;
 	UInt32 alloc   = 0;
@@ -320,6 +320,12 @@ char*EsifData_ToString (EsifDataPtr self)
 		ptrlen  = self->data_len;
 		break;
 
+   case ESIF_DATA_VOID:
+	   alloc   = 0;
+	   ptrdata = NULL;
+	   ptrlen  = 0;
+	   break;
+
 	/* TODO:
 	   case ESIF_DATA_BLOB:
 	   case ESIF_DATA_DSP:
@@ -335,7 +341,6 @@ char*EsifData_ToString (EsifDataPtr self)
 	   case ESIF_DATA_STRUCTURE:
 	   case ESIF_DATA_TABLE:
 	   case ESIF_DATA_UNICODE:
-	   case ESIF_DATA_VOID:
 	 */
 	case ESIF_DATA_BINARY:
 	default:
@@ -345,10 +350,15 @@ char*EsifData_ToString (EsifDataPtr self)
 		break;
 	}
 
-	// Allocate memory and Convert data
-	if (alloc) {
+	// Allocate Memory and Convert Data
+	if (alloc == 0) {
+		return NULL;
+	}
+	else {
 		result = (char*)esif_ccb_malloc(alloc);
-		ASSERT(result);
+		if (result == NULL) {
+			return NULL;
+		}
 		switch (self->type) {
 		case ESIF_DATA_BIT:
 			esif_ccb_sprintf(alloc, result, "%ld", (long)((Int8)u32data & 0x1));
@@ -415,7 +425,6 @@ char*EsifData_ToString (EsifDataPtr self)
 		   case ESIF_DATA_STRUCTURE:
 		   case ESIF_DATA_TABLE:
 		   case ESIF_DATA_UNICODE:
-		   case ESIF_DATA_VOID:
 		 */
 		case ESIF_DATA_BINARY:
 		default:
@@ -451,35 +460,45 @@ eEsifError EsifData_FromString (
 	ASSERT(self);
 
 	if (type == ESIF_DATA_AUTO) {
-		switch (*str) {
-		case '0':
-			if (str[1] == 'x') {
-				type = ESIF_DATA_BINARY;
-			} else {
-				type = ESIF_DATA_UINT32;
+		int ch=0;
+
+		// Default = STRING unless one of the recognized formats below
+		type = ESIF_DATA_STRING;
+
+		// 0x[0-9A-F]+ = UINT32 or BINARY (STRING if invalid hex string)
+		if (esif_ccb_strnicmp(str, "0x", 2) == 0) {
+			for (ch = 2; str[ch] != 0 && isxdigit(str[ch]); ch++) {
+				;
 			}
-			break;
-
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			type = ESIF_DATA_UINT32;
-			break;
-
-		case '-':
-		case '+':
-			type = ESIF_DATA_INT32;
-			break;
-
-		default:
-			type = ESIF_DATA_STRING;
-			break;
+			if (str[ch] == 0) {
+				if (ch <= 10) {	// 0xAA, 0xAABB, 0xAABBCC, 0xAABBCCDD
+					type = ESIF_DATA_UINT32;
+				}
+				else {
+					type = ESIF_DATA_BINARY;
+				}
+			}
+		}
+		// [-+][0-9]+ = INT32, UINT32, INT64, UINT64 (STRING if non-numeric)
+		else if (str[0] == '+' || str[0] == '-' || isdigit(str[0])) {
+			int sign = str[0];
+			for (ch = 1; str[ch] != 0 && isdigit(str[ch]); ch++) {
+				;
+			}
+			if (str[ch] == 0) {
+				if (isdigit(sign)) {
+					if (ch <= 10)
+						type = ESIF_DATA_UINT32;
+					else if (ch <= 20)
+						type = ESIF_DATA_UINT64;
+				}
+				else {
+					if (ch <= 11)
+						type = ESIF_DATA_UINT32;
+					else if (ch <= 21)
+						type = ESIF_DATA_UINT64;
+				}
+			}
 		}
 		self->type = type;
 	}
@@ -518,6 +537,12 @@ eEsifError EsifData_FromString (
 		ptrlen  = alloc;
 		break;
 
+   case ESIF_DATA_VOID:
+	   alloc   = 0;
+	   ptrdata = NULL;
+	   ptrlen  = 0;
+	   break;
+
 	/* TODO:
 	   case ESIF_DATA_BLOB:
 	   case ESIF_DATA_DSP:
@@ -533,7 +558,6 @@ eEsifError EsifData_FromString (
 	   case ESIF_DATA_STRUCTURE:
 	   case ESIF_DATA_TABLE:
 	   case ESIF_DATA_UNICODE:
-	   case ESIF_DATA_VOID:
 	 */
 	case ESIF_DATA_BINARY:
 	default:
@@ -548,7 +572,11 @@ eEsifError EsifData_FromString (
 		break;
 	}
 
-	if (alloc) {
+	// Allocate Memory and Convert Data
+	if (alloc == 0) {
+		EsifData_Set(self, type, ptrdata, 0, 0);
+	}
+	else {
 		EsifData_Set(self, type, esif_ccb_malloc(alloc), alloc, alloc);
 		ASSERT(self->buf_ptr);
 		SAFETY(memset(self->buf_ptr, 0, alloc));
@@ -623,7 +651,6 @@ eEsifError EsifData_FromString (
 		   case ESIF_DATA_STRUCTURE:
 		   case ESIF_DATA_TABLE:
 		   case ESIF_DATA_UNICODE:
-		   case ESIF_DATA_VOID:
 		 */
 		case ESIF_DATA_BINARY:
 		default:

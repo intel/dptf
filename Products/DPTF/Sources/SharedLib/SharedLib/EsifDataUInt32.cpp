@@ -28,20 +28,34 @@ EsifDataUInt32::EsifDataUInt32(UInt32 data)
     initialize(data);
 }
 
-EsifDataUInt32::EsifDataUInt32(const esif::EsifData& esifData)
+EsifDataUInt32::EsifDataUInt32(const esif::EsifDataPtr esifDataPtr)
 {
-    if (esifData.type != ESIF_DATA_UINT32)
+    if (esifDataPtr == nullptr)
     {
-        throw dptf_exception("Received invalid EsifData parameter.  Expected ESIF_DATA_UINT32.");
+        throw dptf_exception("EsifDataPtr is null.");
     }
 
-    if (esifData.buf_ptr == nullptr)
+    if (esifDataPtr->type != ESIF_DATA_UINT32 && esifDataPtr->type != ESIF_DATA_BINARY)
     {
-        throw dptf_exception("Received ESIF_DATA_UINT32 with null buffer ptr.");
+        throw dptf_exception("Received unexpected esifDataPtr->type.");
     }
 
-    UInt32* ptr = (UInt32*)esifData.buf_ptr;
-    initialize(*ptr);
+    if (esifDataPtr->buf_ptr == nullptr)
+    {
+        throw dptf_exception("esifData->buf_ptr is null.");
+    }
+
+    if (esifDataPtr->buf_len < sizeof(UInt32))
+    {
+        throw dptf_exception("esifData->buf_len too small.");
+    }
+
+    if (esifDataPtr->data_len < sizeof(UInt32))
+    {
+        throw dptf_exception("esifData->data_len too small.");
+    }
+
+    initialize(*((UInt32*)esifDataPtr->buf_ptr));
 }
 
 EsifDataUInt32::operator esif::EsifDataPtr(void)

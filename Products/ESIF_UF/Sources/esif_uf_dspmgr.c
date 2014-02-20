@@ -566,7 +566,7 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	u32 fpc_static = ESIF_FALSE;
 	eEsifError rc  = ESIF_E_UNSPECIFIED;
 	UInt8 i = 0;
-	char path[MAX_PATH];
+	char path[MAX_PATH]={0};
 	UInt32 fpc_size = 0, edp_size = 0;
 	size_t fpc_read = 0;
 	struct edp_dir edp_dir;
@@ -590,7 +590,7 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	}
 
 	// Look for EDP file either on disk or in a DataVault (static or file), depending on priority setting
-	esif_ccb_sprintf(MAX_PATH, path, "%s%s%s", esif_build_path(path, MAX_PATH, ESIF_DIR_DSP, NULL), ESIF_PATH_SEP, file_ptr->filename);
+	esif_build_path(path, sizeof(path), ESIF_PATHTYPE_DSP, file_ptr->filename, NULL);
 	if ((ESIF_EDP_DV_PRIORITY == 1 || !esif_ccb_file_exists(path)) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		esif_ccb_strcpy(path, file_ptr->filename, MAX_PATH);
 		IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
@@ -792,7 +792,7 @@ static eEsifError esif_dsp_file_scan()
 	}
 
 	// 2. Load all EDP's from the DSP folder, if any exist, except ones already loaded from DataBank
-	esif_build_path(path, MAX_PATH, ESIF_DIR_DSP, NULL);
+	esif_build_path(path, MAX_PATH, ESIF_PATHTYPE_DSP, NULL, NULL);
 	esif_ccb_strcpy(pattern, "*.edp", MAX_PATH);
 
 	ESIF_TRACE_DEBUG("%s: SCAN File System For DSP Files Path = %s, Pattern %s", ESIF_FUNC, path, pattern);
@@ -876,13 +876,13 @@ esif_string esif_uf_dm_select_dsp(
 	} else if (!strcmp(name, "TMEM")) {
 		selection = (esif_string)"sb_tmem";
 	} else if (!strcmp(name, "TAMB")) {
-		selection = (esif_string)"sb_temp";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "TEFN")) {
-		selection = (esif_string)"sb_temp";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "TSKN")) {
-		selection = (esif_string)"sb_temp";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "T_VR")) {
-		selection = (esif_string)"sb_temp";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "FGEN")) {
 		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "DPLY")) {
@@ -896,7 +896,7 @@ esif_string esif_uf_dm_select_dsp(
 	} else if (!strcmp(name, "WWAN")) {
 		selection = (esif_string)"sb_wwan";
 	} else if (!strcmp(name, "TINL")) {
-		selection = (esif_string)"sb_temp";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "TCPU")) {
 		selection = (esif_string)"sb_b0_d4_f0";
 	} else if (!strcmp(name, "TPCH")) {
@@ -904,9 +904,9 @@ esif_string esif_uf_dm_select_dsp(
 	} else if (!strcmp(name, "IETM")) {
 		selection = (esif_string)"sb_ietm";
 	} else if (!strcmp(name, "GEN1")) {
-		selection = (esif_string)"sb_ther";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "GEN2")) {
-		selection = (esif_string)"sb_ther";
+		selection = (esif_string)"sb_fgen";
 	} else if (!strcmp(name, "WPKG")) {
 		selection = (esif_string)"sb_wpkg";
 	} else {

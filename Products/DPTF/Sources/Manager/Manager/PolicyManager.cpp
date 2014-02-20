@@ -117,6 +117,9 @@ void PolicyManager::destroyAllPolicies(void)
             }
             catch (...)
             {
+                ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIPolicyDestroy.");
+                message.addMessage("Policy Index", i);
+                m_dptfManager->getEsifServices()->writeMessageError(message);
             }
         }
     }
@@ -133,6 +136,9 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
         }
         catch (...)
         {
+            ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to destroy policy.");
+            message.addMessage("Policy Index", policyIndex);
+            m_dptfManager->getEsifServices()->writeMessageError(message);
         }
 
         DELETE_MEMORY_TC(m_policy[policyIndex]);

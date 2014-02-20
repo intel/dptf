@@ -237,8 +237,7 @@ eEsifError EsifConjureStart(EsifCnjPtr conjurePtr)
 	char libPath[ESIF_LIBPATH_LEN];
 
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, conjurePtr->fLibNamePtr);
-	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s",
-					 esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, conjurePtr->fLibNamePtr), ESIF_LIB_EXT);
+	esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL, conjurePtr->fLibNamePtr, ESIF_LIB_EXT);
 	conjurePtr->fLibHandle = esif_ccb_library_load(libPath);
 
 	if (NULL == conjurePtr->fLibHandle) {

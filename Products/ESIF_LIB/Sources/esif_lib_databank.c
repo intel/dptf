@@ -55,6 +55,12 @@ DataBankPtr g_DataBankMgr = 0;
 // Global DataVault Folder
 char g_DataVaultDir[MAX_PATH];
 
+// Global Default DataVault Namespace
+char g_DataVaultDefault[ESIF_NAME_LEN] = "dptf";
+
+// Optional Startup Script, if none specified in Default DataVault or cmd/start script
+char *g_DataVaultStartScript = NULL;
+
 DataBankPtr DataBank_Create ();
 void DataBank_Destroy (DataBankPtr self);
 
@@ -142,10 +148,17 @@ DataVaultPtr DataBank_GetNameSpace (
 	)
 {
 	UInt32 ns;
-	for (ns = 0; ns < self->size; ns++)
-		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
-			return &self->elements[ns];
+
+	if (NULL == nameSpace) {
+		nameSpace = g_DataVaultDefault;
+	}
+	if (NULL != nameSpace) {
+		for (ns = 0; ns < self->size; ns++) {
+			if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
+				return &self->elements[ns];
+			}
 		}
+	}
 	return NULL;
 }
 
@@ -204,14 +217,28 @@ void DataBank_CloseNameSpace (
 }
 
 
+// Does specified Key exist in the given nameSpace?
+int DataBank_KeyExists (
+	DataBankPtr self,
+	StringPtr nameSpace, // NULL == Default Namespace
+	StringPtr keyName
+	)
+{
+	DataVaultPtr DB = DataBank_GetNameSpace(self, nameSpace);
+	if (NULL != DB && DataCache_GetValue(DB->cache, keyName) != NULL) {
+		return ESIF_TRUE;
+	}
+	return ESIF_FALSE;
+}
+
+
 // Automatically Load all Static DataVaults and *.dv files in the current folder into the DataBank
 eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 {
 	eEsifError rc = ESIF_OK;
 	esif_ccb_file_find_handle find_handle;
-	esif_string file_path = 0;
-	char file_pattern[MAX_PATH];
-	char file_path_buf[MAX_PATH] = {0};
+	char file_path[MAX_PATH] = {0};
+	char file_pattern[MAX_PATH] = {0};
 	struct esif_ccb_file *ffd_ptr;
 	UInt32 idx;
 
@@ -230,12 +257,11 @@ eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 		}
 	}
 
-	// Create ESIFDV_DIR if it doesn't exit (only 1 level deep for now)
-	esif_ccb_makepath(ESIFDV_DIR);
+	// Create DataVault Directory if it doesn't exit
+	esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_DV, NULL, NULL);
+	esif_ccb_makepath(file_path);
 
 	// Import all matching *.dv files into ReadWrite DataVaults
-	esif_ccb_strcpy(file_path_buf, ESIFDV_DIR, sizeof(file_path_buf));
-	file_path = file_path_buf;
 	esif_ccb_sprintf(MAX_PATH, file_pattern, "*%s", ESIFDV_FILEEXT);
 	ffd_ptr   = (struct esif_ccb_file*)esif_ccb_malloc(sizeof(*ffd_ptr));
 	if (NULL == ffd_ptr) {
@@ -256,7 +282,7 @@ eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 				if (DataBank_GetNameSpace(self, ffd_ptr->filename) == NULL) {
 					DB = DataBank_OpenNameSpace(self, ffd_ptr->filename);
 					if (DB) {
-						esif_ccb_sprintf(MAX_PATH, dv_file.filename, "%s%s%s", file_path, DB->name, ESIFDV_FILEEXT);
+						esif_build_path(dv_file.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, DB->name, ESIFDV_FILEEXT);
 						IOStream_SetFile(DB->stream, dv_file.filename, "rb");
 						DataVault_ReadVault(DB);
 					}
@@ -291,14 +317,6 @@ void EsifConfigExit (esif_string name)
 
 eEsifError EsifCfgMgrInit ()
 {
-#ifdef ESIF_ATTR_OS_WINDOWS
-		if (GetWindowsDirectoryA(g_DataVaultDir, sizeof(g_DataVaultDir)) == 0)
-			esif_ccb_strcpy(g_DataVaultDir, "C:\\Windows", sizeof(g_DataVaultDir));
-		esif_ccb_strcat(g_DataVaultDir, "\\ServiceProfiles\\LocalService\\AppData\\Local\\Intel\\DPTF\\", sizeof(g_DataVaultDir));
-#else
-		esif_ccb_strcpy(g_DataVaultDir, "/etc/dptf/", sizeof(g_DataVaultDir));
-#endif
-
 	if (!g_DataBankMgr) {
 		g_DataBankMgr = DataBank_Create();
 		if (g_DataBankMgr) {

@@ -31,7 +31,7 @@ public:
     EsifDataGuid(void);
     EsifDataGuid(const Guid& data);
     EsifDataGuid(const esif_guid_t& esifGuid);
-    EsifDataGuid(const esif::EsifData& esifData);
+    EsifDataGuid(const esif::EsifDataPtr esifDataPtr);
 
     operator esif::EsifData(void);
     operator esif::EsifDataPtr(void);

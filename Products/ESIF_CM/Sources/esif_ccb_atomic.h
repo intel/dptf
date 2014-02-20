@@ -111,8 +111,9 @@
 #  define atomic_add(i, v)	_InterlockedExchangeAdd(v, i)
 #  define atomic_sub(i, v)	_InterlockedExchangeAdd(v, -(i))
 # endif
+#endif
 
-#else
+#ifdef ESIF_ATTR_OS_WINDOWS
 /* Linux */
 # include <asm/atomic.h> /* native atomic_t typedef here */
   typedef long _atomic_int;

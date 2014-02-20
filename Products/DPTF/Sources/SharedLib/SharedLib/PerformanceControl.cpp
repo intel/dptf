@@ -28,6 +28,11 @@ PerformanceControl::PerformanceControl(UIntN controlId, PerformanceControlType::
 {
 }
 
+PerformanceControl PerformanceControl::createInvalid()
+{
+    return PerformanceControl(0, PerformanceControlType::Unknown, 0, Percentage(0.0), 0, 0, "");
+}
+
 UIntN PerformanceControl::getControlId(void) const
 {
     return m_controlId;

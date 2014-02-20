@@ -105,9 +105,7 @@ struct esif_participant_iface {
 
 	esif_device_t  device;		/* Os Agnostic Driver Context */
 	void __iomem   *mem_base;	/* MMIO/MCHBAR Address        */
-#ifdef ESIF_ATTR_OS_WINDOWS
 	u32          mem_size;		/* MMIO/MCHBAR Size           */
-#endif
 	acpi_handle  acpi_handle;	/* ACPI Handle                */
 };
 

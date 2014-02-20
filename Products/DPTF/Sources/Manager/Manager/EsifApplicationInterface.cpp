@@ -71,30 +71,6 @@ if (dptfManager->isDptfShuttingDown() == true) \
 
 static const Guid DptfAppGuid(0x8f, 0x0d, 0x8c, 0x59, 0xad, 0x8d, 0x4d, 0x82, 0xaa, 0x25, 0x46, 0xd3, 0xc0, 0x83, 0x30, 0x5b);
 
-void throwIfEsifDataPtrIsNull(const esif::EsifDataPtr esifDataPtr)
-{
-    if (esifDataPtr == nullptr)
-    {
-        throw dptf_exception("Received invalid parameter.  EsifDataPtr is null.");
-    }
-}
-
-UInt32 getUInt32FromEsifDataGuidEvent(const esif::EsifDataPtr esifDataPtr)
-{
-    if ((esifDataPtr == nullptr) ||
-        (esifDataPtr->type != ESIF_DATA_STRUCTURE) ||
-        (esifDataPtr->buf_ptr == nullptr) ||
-        (esifDataPtr->buf_len < sizeof(esif_data_guid_event)) ||
-        (esifDataPtr->data_len < sizeof(esif_data_guid_event)))
-    {
-        throw dptf_exception("Error while trying to extract UInt32 parameter.");
-    }
-
-    esif_data_guid_event* esifDataGuidEvent = (esif_data_guid_event*)(esifDataPtr->buf_ptr);
-    UInt32 value = *((UInt32*)(esifDataGuidEvent->event_context));
-    return value;
-}
-
 //
 // Implement the required interface
 //
@@ -194,7 +170,7 @@ extern "C"
                 // manager is up and running and the polices have been created.  All future work will execute in the
                 // context of a work item and will only take place on the work item thread.
                 Bool enabled = (appInitialState == eAppState::eAppStateEnabled);
-                std::string dptfHomeDirectoryPath = EsifDataString(appData->fPathHome);
+                std::string dptfHomeDirectoryPath = EsifDataString(&appData->fPathHome);
                 DptfManager* dptfManager = (DptfManager*)appHandle;
                 dptfManager->createDptfManager(esifHandle, esifInterfacePtr, dptfHomeDirectoryPath,
                     currentLogVerbosityLevel, enabled);
@@ -481,12 +457,12 @@ extern "C"
         RETURN_ERROR_IF_WORK_ITEM_QUEUE_MANAGER_NOT_CREATED;
         RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
 
-        Guid guid;
+        Guid guid = Guid::createInvalid();
         FrameworkEvent::Type frameworkEvent = FrameworkEvent::Max;
 
         try
         {
-            guid = EsifDataGuid(*eventGuid);
+            guid = EsifDataGuid(eventGuid);
             frameworkEvent = FrameworkEventInfo::instance()->getFrameworkEventType(guid);
         }
         catch (...)
@@ -527,7 +503,6 @@ extern "C"
         {
             WorkItem* wi = nullptr;
             UInt32 uint32param = Constants::Invalid;
-            eLogType currentLogVerbosityLevel = eLogType::eLogTypeError;
 
             switch (frameworkEvent)
             {
@@ -538,14 +513,8 @@ extern "C"
                     wi = new WIDptfConnectedStandbyExit(dptfManager);
                     break;
                 case FrameworkEvent::DptfLogVerbosityChanged:
-                    throwIfEsifDataPtrIsNull(esifEventDataPtr);
-                    uint32param = EsifDataUInt32(*esifEventDataPtr);
-                    if (uint32param > eLogType::eLogTypeDebug)
-                    {
-                        throw dptf_exception("Received invalid log verbosity level.");
-                    }
-                    currentLogVerbosityLevel = static_cast<eLogType>(uint32param);
-                    dptfManager->getEsifServices()->setCurrentLogVerbosityLevel(currentLogVerbosityLevel);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
+                    dptfManager->getEsifServices()->setCurrentLogVerbosityLevel((eLogType)uint32param);
                     break;
                 case FrameworkEvent::ParticipantSpecificInfoChanged:
                     wi = new WIParticipantSpecificInfoChanged(dptfManager, participantIndex);
@@ -575,7 +544,7 @@ extern "C"
                     wi = new WIDomainPriorityChanged(dptfManager, participantIndex, domainIndex);
                     break;
                 case FrameworkEvent::DomainRadioConnectionStatusChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIDomainRadioConnectionStatusChanged(dptfManager, participantIndex, domainIndex,
                         (RadioConnectionStatus::Type)uint32param);
                     break;
@@ -589,27 +558,26 @@ extern "C"
                     wi = new WIPolicyActiveRelationshipTableChanged(dptfManager);
                     break;
                 case FrameworkEvent::PolicyCoolingModeAcousticLimitChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicyCoolingModeAcousticLimitChanged(dptfManager, (CoolingModeAcousticLimit::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicyCoolingModePolicyChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicyCoolingModePolicyChanged(dptfManager, (CoolingMode::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicyCoolingModePowerLimitChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicyCoolingModePowerLimitChanged(dptfManager, (CoolingModePowerLimit::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicyForegroundApplicationChanged:
-                    throwIfEsifDataPtrIsNull(esifEventDataPtr);
-                    wi = new WIPolicyForegroundApplicationChanged(dptfManager, EsifDataString(*esifEventDataPtr));
+                    wi = new WIPolicyForegroundApplicationChanged(dptfManager, EsifDataString(esifEventDataPtr));
                     break;
                 case FrameworkEvent::PolicyOperatingSystemConfigTdpLevelChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicyOperatingSystemConfigTdpLevelChanged(dptfManager, uint32param);
                     break;
                 case FrameworkEvent::PolicyOperatingSystemLpmModeChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicyOperatingSystemLpmModeChanged(dptfManager, uint32param);
                     break;
                 case FrameworkEvent::PolicyPassiveTableChanged:
@@ -619,15 +587,15 @@ extern "C"
                     wi = new WIPolicyPlatformLpmModeChanged(dptfManager);
                     break;
                 case FrameworkEvent::PolicySensorOrientationChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicySensorOrientationChanged(dptfManager, (SensorOrientation::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicySensorProximityChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicySensorProximityChanged(dptfManager, (SensorProximity::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicySensorSpatialOrientationChanged:
-                    uint32param = getUInt32FromEsifDataGuidEvent(esifEventDataPtr);
+                    uint32param = EsifDataUInt32(esifEventDataPtr);
                     wi = new WIPolicySensorSpatialOrientationChanged(dptfManager, (SensorSpatialOrientation::Type)uint32param);
                     break;
                 case FrameworkEvent::PolicyThermalRelationshipTableChanged:

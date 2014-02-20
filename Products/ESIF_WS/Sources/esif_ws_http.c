@@ -21,8 +21,6 @@
 #include <stdlib.h>
 #include "esif_ws_http.h"
 
-#include "esif_lib_databank.h" // ESIFDV_DIR reference
-
 #define VERSION "1.0"
 #define UNKNOWN_MIME_TYPE	"application/octet-stream"
 
@@ -46,8 +44,6 @@ extType g_exts[] = {
 
 size_t length;
 
-
-static char g_server_root[MAX_PATH];
 
 #include "esif_uf_ccb_file.h"
 
@@ -86,11 +82,6 @@ static void esif_ws_http_send_error_code (clientRecord*, int);
  ** PUBLIC
  *******************************************************************************
  */
-void esif_ws_http_copy_server_root (char *dir)
-{
-	esif_ccb_memcpy(g_server_root, dir, esif_ccb_strlen(dir, sizeof(g_server_root))+1);
-}
-
 
 eEsifError esif_ws_http_process_reqs (
 	clientRecord *connection,
@@ -146,13 +137,13 @@ static int esif_ws_http_process_static_pages (
 	char content_disposition[MAX_PATH]={0};
 	FILE *file_fp = NULL;
 
-	esif_ccb_sprintf(MAX_PATH, file_to_open, "%s%s", g_server_root, resource);
+	esif_build_path(file_to_open, sizeof(file_to_open), ESIF_PATHTYPE_UI, resource, NULL);
 	esif_ccb_fopen(&file_fp, (esif_string)file_to_open, (esif_string)"rb");
 	
-	// Log file workaround: If not found in HTML folder, look in LOG (DV) folder
+	// Log file workaround: If not found in HTML folder, look in LOG folder
 	if (NULL == file_fp) {
 		char logpath[MAX_PATH]={0};
-		esif_ccb_sprintf(MAX_PATH, logpath, "%s%s", ESIFDV_DIR, resource);
+		esif_build_path(logpath, sizeof(logpath), ESIF_PATHTYPE_LOG, resource, NULL);
 		esif_ccb_fopen(&file_fp, (esif_string)logpath, (esif_string)"rb");
 		if (NULL != file_fp) 
 			esif_ccb_strcpy(file_to_open, logpath, sizeof(file_to_open));

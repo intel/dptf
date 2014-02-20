@@ -1046,7 +1046,7 @@ static void esif_unpack_acpi_object(
 					&acpi_ref);
 			if (ESIF_FALSE ==
 			    esif_ccb_has_acpi_failure(acpi_status, NULL)) {
-#ifndef ESIF_ATTR_OS_WINDOWS
+#ifdef ESIF_ATTR_OS_LINUX
 				/* Include terminator */
 				str_len = (u32)strlen(acpi_ref.pointer) + 1;
 #endif

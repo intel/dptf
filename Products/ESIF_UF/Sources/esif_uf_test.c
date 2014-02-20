@@ -140,11 +140,9 @@ eEsifTestErrorType EsifTestPrimitiveBinary(
 		switch (option) {
 		case 'b':
 		{
-			char full_path[ESIF_PATH_LEN];
+			char full_path[ESIF_PATH_LEN]={0};
 			FILE *fp_ptr = NULL;
-			// esif_ccb_sprintf(ESIF_PATH_LEN, full_path, "..%sbin%s%s", ESIF_PATH_SEP, ESIF_PATH_SEP, optarg);
-			esif_ccb_sprintf(ESIF_PATH_LEN, full_path, "%s", esif_build_path(full_path, ESIF_PATH_LEN, ESIF_DIR_BIN, optarg));
-
+			esif_build_path(full_path, sizeof(full_path), ESIF_PATHTYPE_BIN, optarg, NULL);
 			ESIF_TRACE_DEBUG("testp_compare: %s to primitive response %u bytes\n",
 							 full_path, dataLen);
 

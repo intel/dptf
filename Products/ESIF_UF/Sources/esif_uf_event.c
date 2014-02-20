@@ -169,13 +169,13 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 		} else if (!strcmp(data_ptr->name, "TMEM")) {
 			edp_filename_ptr = (char *)"sb_tmem";
 		} else if (!strcmp(data_ptr->name, "TAMB")) {
-			edp_filename_ptr = (char *)"sb_temp";
+			edp_filename_ptr = (char *)"sb_fgen";
 		} else if (!strcmp(data_ptr->name, "TEFN")) {
-			edp_filename_ptr = (char *)"sb_temp";
+			edp_filename_ptr = (char *)"sb_fgen";
 		} else if (!strcmp(data_ptr->name, "TSKN")) {
-			edp_filename_ptr = (char *)"sb_temp";
+			edp_filename_ptr = (char *)"sb_fgen";
 		} else if (!strcmp(data_ptr->name, "T_VR")) {
-			edp_filename_ptr = (char *)"sb_temp";
+			edp_filename_ptr = (char *)"sb_fgen";
 		} else if (!strcmp(data_ptr->name, "FGEN")) {
 			edp_filename_ptr = (char *)"sb_fgen";
 		} else if (!strcmp(data_ptr->name, "DPLY")) {
@@ -189,7 +189,7 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 		} else if (!strcmp(data_ptr->name, "WWAN")) {
 			edp_filename_ptr = (char *)"sb_wwan";
 		} else if (!strcmp(data_ptr->name, "TINL")) {
-			edp_filename_ptr = (char *)"sb_temp";
+			edp_filename_ptr = (char *)"sb_fgen";
 		} else if (!strcmp(data_ptr->name, "TPCH")) {
 			edp_filename_ptr = (char *)"sb_b0_d1f_f6";
 		} else if (!strcmp(data_ptr->name, "TCPU")) {
@@ -298,8 +298,9 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 
 			{
 				struct esif_uf_dm_query_acpi qry = {0};
-					#define TEMP_LEN 12
-				char temp[TEMP_LEN]    = {0};
+				#define TEMP_LEN 12
+				char temp_type[TEMP_LEN]    = {0};
+				char temp_uid[TEMP_LEN]		= {0};
 
 				EsifString acpi_device = "*";
 				EsifString acpi_type   = "*";
@@ -317,13 +318,13 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 				}
 
 				if (type >= 0) {
-					esif_ccb_sprintf(TEMP_LEN, temp, "%d", type);
-					acpi_type = temp;
+					esif_ccb_sprintf(TEMP_LEN, temp_type, "%d", type);
+					acpi_type = temp_type;
 				}
 
 				if (uid >= 0) {
-					esif_ccb_sprintf(TEMP_LEN, temp, "%d", uid);
-					acpi_uid = temp;
+					esif_ccb_sprintf(TEMP_LEN, temp_uid, "%d", uid);
+					acpi_uid = temp_uid;
 				}
 
 				qry.acpi_device = acpi_device;
@@ -388,11 +389,10 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 		}
 
 		if (g_autocpc && NULL != edp_filename_ptr) {
-			char edp_full_path[PATH_STR_LEN];
-			esif_ccb_sprintf(PATH_STR_LEN, edp_full_path, "%s.edp",
-							 esif_build_path(edp_full_path, PATH_STR_LEN, ESIF_DIR_DSP, edp_filename_ptr));
-
+			char edp_full_path[PATH_STR_LEN]={0};
+			esif_build_path(edp_full_path, sizeof(edp_full_path), ESIF_PATHTYPE_DSP, edp_filename_ptr, ".edp");
 			ESIF_TRACE_DEBUG("AutoCPC Selected DSP Delivery Method EDP(CPC): %s\n", edp_full_path);
+
 			if (0 == esif_send_dsp(edp_full_path, eventHdrPtr->src_id)) {
 				EsifUpPtr up_ptr = NULL;
 				ESIF_TRACE_DEBUG("\nCreate Upper Participant: %s\n", data_ptr->name);

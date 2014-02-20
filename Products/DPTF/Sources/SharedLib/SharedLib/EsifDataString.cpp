@@ -29,20 +29,25 @@ EsifDataString::EsifDataString(UIntN initialBufferSize)
     initialize(std::string(initialBufferSize, 0));
 }
 
-EsifDataString::EsifDataString(const esif::EsifData& esifData)
+EsifDataString::EsifDataString(const esif::EsifDataPtr esifDataPtr)
 {
-    if (esifData.type != ESIF_DATA_STRING)
+    if (esifDataPtr == nullptr)
     {
-        throw dptf_exception("Received invalid esif_data_type.  Expected ESIF_DATA_STRING.");
+        throw dptf_exception("EsifDataPtr is null.");
     }
 
-    if (esifData.buf_ptr == nullptr)
+    if (esifDataPtr->type != ESIF_DATA_STRING && esifDataPtr->type != ESIF_DATA_BINARY)
     {
-        throw dptf_exception("Received ESIF_DATA_STRING with null buffer ptr.");
+        throw dptf_exception("Received unexpected esifDataPtr->type.");
     }
 
-    char* buffer = static_cast<char*>(esifData.buf_ptr);
-    UIntN bufferLength = esifData.buf_len;
+    if (esifDataPtr->buf_ptr == nullptr)
+    {
+        throw dptf_exception("esifData->buf_ptr is null.");
+    }
+
+    char* buffer = static_cast<char*>(esifDataPtr->buf_ptr);
+    UIntN bufferLength = esifDataPtr->buf_len;
     Bool nullTerminated = false;
 
     for (UIntN i = 0; i < bufferLength; i++)
@@ -59,7 +64,7 @@ EsifDataString::EsifDataString(const esif::EsifData& esifData)
         throw dptf_exception("Received ESIF_DATA_STRING without null terminator.");
     }
 
-    initialize(std::string(static_cast<char*>(esifData.buf_ptr)));
+    initialize(std::string(static_cast<char*>(esifDataPtr->buf_ptr)));
 }
 
 EsifDataString::operator esif::EsifData(void)

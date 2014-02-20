@@ -140,7 +140,8 @@ void esif_debug_get_module_category (
 #include "esif_uf_log.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 # include <syslog.h>
 # define IDENT		"DPTF"
 # define OPTION		LOG_PID
@@ -357,7 +358,8 @@ int EsifTraceMessage(
 			esif_ccb_free(buffer);
 		}
 	}
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 	if (g_traceinfo[level].routes & (ESIF_TRACEROUTE_EVENTLOG|ESIF_TRACEROUTE_DEBUGGER)) {
 		size_t  msglen=0;
 		char *buffer=0;

@@ -42,4 +42,6 @@ private:
     Bool m_automaticallyFreeOnDestruction;
 
     void initialize(void);
+    DptfMemory(const DptfMemory& rhs);
+    DptfMemory& operator=(const DptfMemory& rhs);
 };

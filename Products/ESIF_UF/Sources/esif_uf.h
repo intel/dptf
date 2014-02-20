@@ -21,12 +21,15 @@
 
 #include "esif.h"
 
-#define BIG_LOCK
+#define ESIF_ATTR_SHELL_LOCK
 
-// Temporary Workaround: Implment global Shell lock to troubleshoot mixed output
-#ifdef  BIG_LOCK
+// Global Shell lock to troubleshoot mixed output
+#ifdef ESIF_ATTR_SHELL_LOCK
 extern esif_ccb_mutex_t g_shellLock;
 #endif
+
+// Set to TRUE after initial ESIF Startup scripts run
+static UInt8 g_esif_started = ESIF_FALSE;
 
 // ESIF Log Types
 typedef enum eEsifLogType {
@@ -68,40 +71,30 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 #define CMD_LOGFILE(format, ...)	EsifConsole_WriteTo(CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
 
 
-#define OUT_BUF_LEN 64 * 1024
+#define OUT_BUF_LEN (64 * 1024)
 
-#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
-	defined(ESIF_ATTR_OS_CHROME)
-	#define ESIF_DIR_DSP "/usr/share/dptf/dsp"
-	#define ESIF_DIR_CMD "/usr/share/dptf/cmd"
-#else
-	#define ESIF_DIR_DSP "dsp"
-	#define ESIF_DIR_CMD "cmd"
-#endif
+// ESIF Path Types (** = Read/Write, all others Read-only)
+typedef enum e_esif_pathtype {
+	ESIF_PATHTYPE_HOME,		// Home directory
+	ESIF_PATHTYPE_TEMP,		// Temp Directory **
+	ESIF_PATHTYPE_DV,		// DataVault Directory **
+	ESIF_PATHTYPE_LOG,		// Log Files **
+	ESIF_PATHTYPE_BIN,		// Binary output files **
+	ESIF_PATHTYPE_LOCK,		// Lock Files **
+	ESIF_PATHTYPE_EXE,		// Binary Executables (.EXE and ELF binaries)
+	ESIF_PATHTYPE_DLL,		// Dynamically Loadable Libraries (.DLL and .so)
+	ESIF_PATHTYPE_DPTF,		// DPTF Policy Path sent via CreateAppData
+	ESIF_PATHTYPE_DSP,		// DSP and EDP files
+	ESIF_PATHTYPE_CMD,		// CMD scripts
+	ESIF_PATHTYPE_UI,		// UI and HTML files
+} esif_pathtype;
 
-#define ESIF_DIR_LOG "log"
-#define ESIF_DIR_BIN "bin"
-
-//
-// Set Architecture
-//
-#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
-	defined(ESIF_ATTR_OS_CHROME)
-	// No differentiation for 32-bit or 64-bit *nix build
-	#define ESIF_DIR_PRG NULL
-	#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
-	#define ESIF_DIR_UI "/usr/share/dptf/"
-#elif defined(ESIF_ATTR_64BIT)
-	#define ESIF_DIR_PRG "ufx64"
-	#define ESIF_DIR_DPTF_POL "ufx64"
-#else
-	#define ESIF_DIR_PRG "ufx86"
-	#define ESIF_DIR_DPTF_POL "ufx86"
-#endif
-
-#define ESIF_DIR_REST "esif_cmd"
-
-esif_string esif_build_path(esif_string buffer, u32 buf_len, esif_string dir, esif_string filename);
+extern esif_string esif_build_path(
+	esif_string buffer, 
+	size_t buf_len, 
+	esif_pathtype type, 
+	esif_string filename,
+	esif_string ext);
 
 //
 // Format

@@ -26,10 +26,17 @@ DomainUtilization_001::DomainUtilization_001(ParticipantServicesInterface* parti
 
 UtilizationStatus DomainUtilization_001::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    Percentage utilization = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
-        esif_primitive_type::GET_PARTICIPANT_UTILIZATION, domainIndex);
+    try
+    {
+        Percentage utilization = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
+            esif_primitive_type::GET_PARTICIPANT_UTILIZATION, domainIndex);
+        return UtilizationStatus(utilization);
+    }
+    catch (...)
+    {
+        return UtilizationStatus(Percentage(1.0));
+    }
 
-    return UtilizationStatus(utilization);
 }
 
 void DomainUtilization_001::clearCachedData(void)

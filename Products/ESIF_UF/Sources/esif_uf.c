@@ -38,7 +38,7 @@
 #include "esif_uf_ipc.h"	/* IPC */
 #include "esif_ws_server.h"	/* Web Server */
 
-#include "esif_lib_databank.h"	// ESIFDV_DIR reference
+#include "esif_lib_databank.h"
 
 /* Native memory allocation functions for use by memtrace functions only */
 #define native_malloc(siz)          malloc(siz)
@@ -47,6 +47,8 @@
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include <share.h>
+#include <shlobj.h>
+#pragma comment (lib, "shell32")
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
 // against Windows SDK/DDK included headers which we have no control over.
@@ -61,8 +63,10 @@ int g_quit		 = ESIF_FALSE;	// Quit
 int g_disconnectClient = ESIF_FALSE;// Disconnect client
 int g_quit2      = ESIF_FALSE;	// Quit 2
 
-// Temporary Workaround: Implment global Shell lock to troubleshoot mixed output
-#ifdef  BIG_LOCK
+static esif_thread_t g_webthread;  //web worker thread
+
+// Global Shell lock to limit parse_cmd to one thread at a time
+#ifdef ESIF_ATTR_SHELL_LOCK
 esif_ccb_mutex_t g_shellLock;
 #endif
 
@@ -79,6 +83,23 @@ typedef struct EsifLogFile_s {
 } EsifLogFile;
 
 static EsifLogFile g_EsifLogFile[MAX_ESIFLOG] = {0};
+
+static esif_string g_home = NULL; // Global Home directory
+
+// Set Pathname components based on OS & Architecture
+#ifdef ESIF_ATTR_OS_WINDOWS
+  #ifdef ESIF_ATTR_64BIT
+    #define ESIF_DIR_EXE	"ufx64"
+  #else 
+    #define ESIF_DIR_EXE	"ufx86"
+  #endif
+#else
+	#define ESIF_DIR_EXE	NULL
+#endif
+#define ESIF_DIR_BIN	"bin"
+#define ESIF_DIR_CMD	"cmd"
+#define ESIF_DIR_DSP	"dsp"
+#define ESIF_DIR_LOG	"log"
 
 eEsifError EsifLogMgrInit(void)
 {
@@ -190,7 +211,7 @@ esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const ch
 	if (sep != NULL)
 		filename = sep+1; // Ignore folders and use file.ext only
 
-	esif_ccb_sprintf(buf_len, buffer, "%s%s", ESIFDV_DIR, filename);
+	esif_build_path(buffer, buf_len, ESIF_PATHTYPE_LOG, (esif_string)filename, NULL);
 	return buffer;
 }
 
@@ -455,56 +476,204 @@ void done(const void *context)
 	CMD_OUT("Context = %p %s\n", context, (char *)context);
 }
 
-
-/* Build An Absoulte Path */
-esif_string g_home = NULL;
+/* Build Full Pathname for a given path type including an optional filename and extention. 
+ * Defaults below, where "C:\Program Files..." is either:
+ *     "C:\Program Files\Intel\Intel(R) Dynamic Platform and Thermal Framework"
+ *  or "C:\Program Files (x86)\Intel\Intel(R) Dynamic Platform and Thermal Framework"
+ * ("+" = writeable)
+ * 
+ * Type	Linux					Windows
+ * ----	-----------------------	----------------------------------------------------------------------------
+ * HOME	/usr/share/dptf			C:\Program Files...
+ *+TEMP /tmp					C:\Windows\Temp  or  C:\Users\<username>\AppData\Local\Temp
+ *+DV	/etc/esif				C:\Windows\ServiceProfiles\LocalService\AppData\Intel\DPTF
+ *+LOG	Same as DV				Same as DV
+ *+BIN	/usr/share/dptf/bin		C:\Program Files...\bin
+ *+LOCK	/var/run				Same as TEMP
+ * EXE	/usr/share/dptf/ufx64	C:\Program Files...\ufx64 [or ufx86]
+ * DLL	/usr/share/dptf/ufx64	C:\Program Files...\ufx64 [or ufx86]
+ * DSP	/usr/share/dptf/dsp		C:\Program Files...\dsp
+ * CMD	/usr/share/dptf/cmd		C:\Program Files...\cmd
+ * UI	/usr/share/dptf			C:\Program Files...
+ * DPTF	/usr/share/dptf			ufx64  [or ufx86]
+ */
 esif_string esif_build_path(
-	esif_string buffer,
-	u32 buf_len,
-	esif_string dir,
-	esif_string filename
-	)
+	esif_string buffer, 
+	size_t buf_len,
+	esif_pathtype type,
+	esif_string filename,
+	esif_string ext)
 {
-	char *home = g_home;
+	char home[MAX_PATH]={0};
+	size_t len = 0;
+
 	if (NULL == buffer) {
-		goto exit;
+		return NULL;
 	}
 
-	if (NULL != dir && *dir == *ESIF_PATH_SEP)
-		home = "";
-
-	if (NULL != dir && NULL != filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s%s", home, dir, ESIF_PATH_SEP, filename);
-	} else if (NULL == dir && NULL != filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s%s", home, filename);
-	} else if (NULL != dir && NULL == filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s%s", home, dir);
-	} else if (NULL == dir && NULL == filename) {
-		esif_ccb_sprintf(buf_len, buffer, "%s", home);
+	// If g_home is undefined, use default location
+	if (NULL == g_home) {
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		char winHome[MAX_PATH]={0};
+		if (SHGetSpecialFolderPathA(0, winHome, CSIDL_PROGRAM_FILES, FALSE) == TRUE) {
+			#if defined(ESIF_ATTR_64BIT)
+			esif_ccb_strcat(winHome, " (x86)", sizeof(winHome));
+			#endif
+			esif_ccb_strcat(winHome, "\\Intel\\Intel(R) Dynamic Platform and Thermal Framework", sizeof(winHome));
+		}
+		if (esif_ccb_file_exists(winHome)) {
+			g_home = esif_ccb_strdup(winHome);
+		}
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		g_home = esif_ccb_strdup("."); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		static char *home_default = "/usr/share/dptf";
+		if (esif_ccb_file_exists(home_default)) {
+			g_home = esif_ccb_strdup(home_default);
+		}
+	#endif
 	}
-exit:
+
+	// if g_DataVaultDir is undefined, use default
+	if (g_DataVaultDir[0] == 0) {
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		if (GetWindowsDirectoryA(g_DataVaultDir, sizeof(g_DataVaultDir)) == 0) {
+			esif_ccb_strcpy(g_DataVaultDir, "C:\\Windows", sizeof(g_DataVaultDir));
+		}
+		esif_ccb_strcat(g_DataVaultDir, "\\ServiceProfiles\\LocalService\\AppData\\Local\\Intel\\DPTF", sizeof(g_DataVaultDir));
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		esif_ccb_strcpy(g_DataVaultDir, ".", sizeof(g_DataVaultDir)); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		esif_ccb_strcpy(g_DataVaultDir, "/etc/dptf", sizeof(g_DataVaultDir));
+	#endif
+	}
+
+	// Build Home Directory, trimming any trailing slash
+	if (NULL != g_home) {
+		esif_ccb_strcpy(home, g_home, buf_len);
+	}
+	len = esif_ccb_strlen(home, sizeof(home));
+	if (len > 0 && home[len-1] == *ESIF_PATH_SEP) {
+		home[len-1] = 0;
+	}
+
+	// Build Directory
+	buffer[0] = 0;
+	switch (type) {
+	case ESIF_PATHTYPE_HOME: // Read-Only
+		esif_ccb_strcpy(buffer, home, buf_len);
+		break;
+	
+	// Read/Write Paths
+	case ESIF_PATHTYPE_TEMP:
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		if ((len = (size_t)GetTempPathA((DWORD)buf_len, buffer)) > 1) {
+			buffer[len-2] = 0; // Trim trailing slash
+		}
+		else {
+			buffer[0] = 0;
+		}
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		esif_ccb_strcpy(buffer, ".", buf_len); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		esif_ccb_strcpy(buffer, "/tmp", buf_len);
+	#endif
+		break;
+
+	case ESIF_PATHTYPE_DV:
+		esif_ccb_strcpy(buffer, g_DataVaultDir, buf_len);
+		break;
+
+	case ESIF_PATHTYPE_LOG:
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		esif_ccb_strcpy(buffer, g_DataVaultDir, buf_len);
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		esif_ccb_strcpy(buffer, g_DataVaultDir, buf_len); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		// This may use a different path (/var/log/...) in the future
+		esif_ccb_strcpy(buffer, g_DataVaultDir, buf_len);
+	#endif
+		break;
+
+	case ESIF_PATHTYPE_BIN:
+		// TODO: These may need to go to writable DV dir in Windows
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_BIN);
+		break;
+
+	// Read-Only Paths
+	case ESIF_PATHTYPE_EXE:
+		// Binaries Use full path (ufx64/ufx86 folder) in Windows, otherwise Home directory
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_EXE);
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		esif_ccb_strcpy(buffer, home, buf_len); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		esif_ccb_strcpy(buffer, home, buf_len);
+	#endif
+		break;
+
+	case ESIF_PATHTYPE_DLL:
+		// Shared Libraries loaded by ESIF. Use full path (ufx64/ufx86 folder), otherwise Home directory
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_EXE);
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		esif_ccb_strcpy(buffer, home, buf_len); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		esif_ccb_strcpy(buffer, "", buf_len);
+	#endif
+		break;
+
+	case ESIF_PATHTYPE_DPTF:
+		// Shared Libraries loaded by DPTF app. Always pass full path to the app.
+	#if defined(ESIF_ATTR_OS_WINDOWS)
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_EXE);
+	#elif defined(ESIF_ATTR_OS_ANDROID)
+		esif_ccb_strcpy(buffer, home, buf_len); // Placeholder
+	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
+		esif_ccb_strcpy(buffer, home, buf_len);
+	#endif
+		break;
+
+	case ESIF_PATHTYPE_DSP:
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_DSP);
+		break;
+
+	case ESIF_PATHTYPE_CMD:
+		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_CMD);
+		break;
+
+	case ESIF_PATHTYPE_UI:
+		esif_ccb_strcpy(buffer, home, buf_len);
+		break;
+	default:
+		break;
+	}
+
+	// Append Optional filename.ext
+	if (filename != NULL || ext != NULL) {
+		if (buffer[0] != 0)
+			esif_ccb_strcat(buffer, ESIF_PATH_SEP, buf_len);
+		if (filename != NULL)
+			esif_ccb_strcat(buffer, filename, buf_len);
+		if (ext != NULL)
+			esif_ccb_strcat(buffer, ext, buf_len);
+	}
 	return buffer;
 }
 
+// WebSocket Server Implemented?
+#ifdef ESIF_ATTR_WEBSOCKET
 
 static void *esif_web_worker_thread(void *ptr)
 {
 	UNREFERENCED_PARAMETER(ptr);
-
-#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
-	defined(ESIF_ATTR_OS_CHROME)
-	esif_ws_init(ESIF_DIR_UI);
-#else
-	esif_ws_init(g_home);
-#endif
-
+	esif_ws_init();
 	return 0;
 }
 
-
 eEsifError EsifWebStart()
 {
-	static esif_thread_t g_webthread;
+	
 	if (!EsifWebIsStarted()) {
 		esif_ccb_thread_create(&g_webthread, esif_web_worker_thread, NULL);
 	}
@@ -514,7 +683,7 @@ eEsifError EsifWebStart()
 void EsifWebStop()
 {
 	if (EsifWebIsStarted()) {
-		esif_ws_exit();
+		esif_ws_exit(&g_webthread);
 	}
 }
 
@@ -529,6 +698,26 @@ void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
 	esif_ws_set_ipaddr_port(ipaddr, port);
 }
 
+#else
+
+eEsifError EsifWebStart()
+{
+	return ESIF_E_NOT_IMPLEMENTED;
+}
+void EsifWebStop()
+{
+}
+int EsifWebIsStarted()
+{
+	return 0;
+}
+void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
+{
+	UNREFERENCED_PARAMETER(ipaddr);
+	UNREFERENCED_PARAMETER(port);
+}
+#endif
+
 eEsifError esif_uf_init(esif_string home_dir)
 {
 	eEsifError rc = ESIF_OK;
@@ -536,7 +725,7 @@ eEsifError esif_uf_init(esif_string home_dir)
 #ifdef ESIF_ATTR_MEMTRACE
 	esif_memtrace_init();	/* must be called first */
 #endif
-#ifdef BIG_LOCK
+#ifdef ESIF_ATTR_SHELL_LOCK
 	esif_ccb_mutex_init(&g_shellLock);
 #endif
 
@@ -544,12 +733,23 @@ eEsifError esif_uf_init(esif_string home_dir)
 
 	esif_ccb_mempool_init_tracking();
 
+	// If home_dir specified, use it, otherwise use OS-specific default
 	if (NULL != home_dir) {
-		CMD_OUT("%s: Home: %s\n", ESIF_FUNC, home_dir);
-		g_home = esif_ccb_strdup(home_dir);
-	} else {
-		goto exit;
+		size_t len = esif_ccb_strlen(home_dir, MAX_PATH);
+		if (len > 0) {
+			esif_ccb_free(g_home);
+			g_home = esif_ccb_strdup(home_dir);
+			if (g_home[len-1] == *ESIF_PATH_SEP) {
+				g_home[len-1] = 0; // trim trailing slash
+			}
+		}
+	} 
+	else {
+		char home[MAX_PATH]={0};
+		esif_build_path(home, sizeof(home), ESIF_PATHTYPE_HOME, NULL, NULL);
 	}
+	CMD_OUT("Home: %s\n", g_home);
+
 
 	/* OS Agnostic */
 	EsifLogMgrInit();
@@ -557,12 +757,9 @@ eEsifError esif_uf_init(esif_string home_dir)
 	EsifCnjMgrInit();
 	EsifUppMgrInit();
 	EsifDspMgrInit();
-	EsifAppMgrInit();
 	EsifActMgrInit();
 
-#ifdef  ESIF_ATTR_WEBSOCKET
-	EsifWebStart();
-#endif
+	/* Web Server optionally started by shell scripts in esif_init */
 
 	/* OS Specific */
 	rc = esif_uf_os_init();
@@ -572,6 +769,11 @@ eEsifError esif_uf_init(esif_string home_dir)
 
 	ipc_connect();
 	sync_lf_participants();
+
+	/* Start App Manager after all dependent components started
+	 * This does not actually start any apps.
+	 */
+	EsifAppMgrInit();
 
 exit:
 	return rc;
@@ -583,17 +785,17 @@ void esif_uf_exit()
 	/* Stop event thread */
 	g_quit = ESIF_TRUE;
 
-#ifdef  ESIF_ATTR_WEBSOCKET
+	/* Stop web server if it is running */
 	EsifWebStop();
-#endif
 
+	/* Stop all Apps before dependent components they may be using */
+	EsifAppMgrExit();
 
 	/* OS Specific */
 	esif_uf_os_exit();
 
 	/* OS Agnostic - Call in reverse order of Init */
 	EsifActMgrExit();
-	EsifAppMgrExit();
 	EsifDspMgrExit();
 	EsifUppMgrExit();
 	EsifCnjMgrExit();
@@ -604,9 +806,12 @@ void esif_uf_exit()
 
 	esif_ccb_mempool_uninit_tracking();
 
+	// Re-Initialize necessary global variables in case ESIF restarted
+	g_esif_started = ESIF_FALSE;
+
 	ESIF_TRACE_DEBUG("%s: Exit Upper Framework (UF)", ESIF_FUNC);
 
-#ifdef BIG_LOCK
+#ifdef ESIF_ATTR_SHELL_LOCK
 	esif_ccb_mutex_uninit(&g_shellLock);
 #endif
 #ifdef ESIF_ATTR_MEMTRACE
@@ -756,7 +961,7 @@ void esif_memtrace_init()
 void esif_memtrace_exit()
 {
 	struct memalloc_s *mem = NULL;
-	char tracefile[MAX_PATH];
+	char tracefile[MAX_PATH] = {0};
 	FILE *tracelog = NULL;
 
 	esif_ccb_write_lock(&g_memtrace.lock);
@@ -769,7 +974,7 @@ void esif_memtrace_exit()
 		goto exit;
 	}
 
-	esif_ccb_sprintf(MAX_PATH, tracefile, "%s%s", ESIFDV_DIR, "memtrace.txt");
+	esif_build_path(tracefile, sizeof(tracefile), ESIF_PATHTYPE_LOG, "memtrace.txt", NULL);
 	CMD_OUT("\n*** MEMORY LEAKS DETECTED ***\nFor details see %s\n", tracefile);
 	esif_ccb_fopen(&tracelog, tracefile, "w");
 	while (mem) {

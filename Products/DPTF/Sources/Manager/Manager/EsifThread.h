@@ -28,7 +28,11 @@ class EsifThread
 {
 public:
 
+    // creates the thread
     EsifThread(work_func_t function, void* contextPtr);
+
+    // destroys the thread
+    ~EsifThread(void);
 
 private:
 

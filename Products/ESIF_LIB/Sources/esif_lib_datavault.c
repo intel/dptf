@@ -130,14 +130,13 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 	}
 
 	// If any rows contain NOCACHE PERSIST values, we need to make a copy the original DataVault while creating the new one
-	// esif_ccb_sprintf(MAX_PATH, dv_file.filename, "%s%s", esif_build_path(dv_file.filename, MAX_PATH, NULL, self->name), ESIFDV_FILEEXT);
-	esif_ccb_sprintf(MAX_PATH, dv_file.filename, "%s%s%s", ESIFDV_DIR, self->name, ESIFDV_FILEEXT);
+	esif_build_path(dv_file.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, self->name, ESIFDV_FILEEXT);
 
 	for (idx = 0; idx < self->cache->size; idx++)
 		if (FLAGS_TESTALL(self->cache->elements[idx].flags, ESIF_SERVICE_CONFIG_NOCACHE | ESIF_SERVICE_CONFIG_PERSIST) &&
 			self->cache->elements[idx].value.buf_len == 0) {
 			struct stat filebak_stat = {0};
-            esif_ccb_sprintf(MAX_PATH, dv_filebak.filename, "%s%s%s", ESIFDV_DIR, self->name, ESIFDV_BAKFILEEXT);
+			esif_build_path(dv_filebak.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, self->name, ESIFDV_BAKFILEEXT);
 
 			// Delete BAK file if it exists
 			if (esif_ccb_stat(dv_filebak.filename, &filebak_stat) == 0) {
@@ -452,7 +451,7 @@ static void DataVault_WriteLog (
 		return;
 	}
 	
-	esif_ccb_sprintf(MAX_PATH, log_file.filename, "%s%s%s", ESIFDV_DIR, (EsifString)nameSpace, ESIFDV_LOGFILEEXT);
+	esif_build_path(log_file.filename, sizeof(log_file.filename), ESIF_PATHTYPE_DV, nameSpace, ESIFDV_LOGFILEEXT);
 	esif_ccb_fopen(&filePtr, log_file.filename, "ab");
 	if (NULL == filePtr) {
 		return;
@@ -1006,8 +1005,7 @@ eEsifError EsifConfigSet (
 			return ESIF_E_NOT_FOUND;
 		}
 
-		// esif_ccb_sprintf(MAX_PATH, dv_file.filename, "%s%s", esif_build_path(dv_file.filename, MAX_PATH, NULL, DB->name), ESIFDV_FILEEXT);
-		esif_ccb_sprintf(MAX_PATH, dv_file.filename, "%s%s%s", ESIFDV_DIR, DB->name, ESIFDV_FILEEXT);
+		esif_build_path(dv_file.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, DB->name, ESIFDV_FILEEXT);
 		IOStream_SetFile(DB->stream, dv_file.filename, "rb");
 		rc = DataVault_ReadVault(DB);
 		if (rc == ESIF_E_NOT_FOUND) {

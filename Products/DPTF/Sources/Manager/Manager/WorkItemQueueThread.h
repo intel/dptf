@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "ImmediateWorkItemQueue.h"
 #include "DeferredWorkItemQueue.h"
+#include "EsifThread.h"
 #include "EsifThreadId.h"
 #include "WorkItemStatistics.h"
 
@@ -51,7 +52,9 @@ private:
     ImmediateWorkItemQueue* m_immediateQueue;
     DeferredWorkItemQueue* m_deferredQueue;
     EsifSemaphore* m_workItemQueueSemaphore;
+    EsifThread* m_workItemQueueThreadHandle;
     EsifThreadId* m_workItemQueueThreadId;
+    EsifSemaphore* m_workItemQueueThreadExitSemaphore;
     WorkItemStatistics* m_workItemStatistics;
 
     friend void* ThreadStart(void* contextPtr);

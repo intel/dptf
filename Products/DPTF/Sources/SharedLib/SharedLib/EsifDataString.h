@@ -34,7 +34,7 @@ public:
     EsifDataString(UIntN initialBufferSize);
 
     // create from esif data
-    EsifDataString(const esif::EsifData& esifData);
+    EsifDataString(const esif::EsifDataPtr esifDataPtr);
 
     operator esif::EsifData(void);
     operator esif::EsifDataPtr(void);

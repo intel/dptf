@@ -376,7 +376,11 @@ Bool EsifUpManagerDoesAvailableParticipantExistByName (
 	esif_ccb_read_lock(&g_uppMgr.fLock);
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		up_ptr = EsifUpManagerGetAvailableParticipantByInstance(i);
+
+		up_ptr = NULL;
+		if (g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_REMOVED) {
+			up_ptr = g_uppMgr.fEntries[i].fUpPtr;
+		}
 
 		if (NULL == up_ptr) {
 			continue;

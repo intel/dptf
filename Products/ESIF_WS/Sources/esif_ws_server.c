@@ -39,13 +39,6 @@
 #define MESSAGE_SUCCESS 0
 #define MESSAGE_ERROR 1
 
-#ifndef FALSE
-#define FALSE               0
-#endif
-#ifndef TRUE
-#define TRUE                1
-#endif
-
 char *g_rest_out = NULL;
 
 /* Max number of Client connections. This cannot exceed FD_SETSIZE (Deafult: Windows=64, Linux=1024) */
@@ -94,7 +87,7 @@ char g_ws_port[MAX_IPADDR] = "8888";
 
 esif_ccb_socket_t g_listen = INVALID_SOCKET;
 
-int esif_ws_init (char *directory)
+int esif_ws_init(void)
 {
 	int index=0;
 	int retVal=0;
@@ -124,7 +117,6 @@ int esif_ws_init (char *directory)
 
 	CMD_OUT("Starting WebServer %s %s\n", ipaddr, port);
 
-	esif_ws_http_copy_server_root(directory);
 	esif_ccb_socket_init();
 
 	// Allocate pool of Client Records and HTTP input buffer
@@ -213,6 +205,7 @@ int esif_ws_init (char *directory)
 			continue;
 		}
 
+		/* Accept any new connections on the listening socket */
 		if (FD_ISSET(g_listen, &workingSet)) {
 			int sockets = (g_listen == INVALID_SOCKET ? 0 : 1);
 			len_inet = sizeof addrClient;
@@ -296,11 +289,11 @@ exit:
 }
 
 /* stop web server and wait for worker threads to exit */
-void esif_ws_exit ()
+void esif_ws_exit (esif_thread_t *web_thread)
 {
 	CMD_OUT("Stopping WebServer...\n");
 	atomic_set(&g_ws_quit, 1);
-
+	esif_ccb_thread_join(web_thread);  /* join to close child thread, clean up handle */
 	// Wait for worker thread to finish
 	while (atomic_read(&g_ws_threads) > 0) {
 		esif_ccb_sleep(1);
@@ -345,7 +338,6 @@ void esif_ws_server_set_rest_api (
 	const size_t dataSize
 	)
 {
-	extern esif_ccb_mutex_t g_shellLock; // temporary workaround for REST API call into parse_cmd
 	char *recv_buf    = NULL;
 	char *command_buf = NULL;
 
@@ -370,9 +362,11 @@ void esif_ws_server_set_rest_api (
 		command_buf++;
 
 		// Lock Shell so we can capture output before another thread executes another command
+#ifdef ESIF_ATTR_SHELL_LOCK
 		esif_ccb_mutex_lock(&g_shellLock);
+#endif
 		if (!atomic_read(&g_ws_quit)) {
-			EsifString cmd_results = parse_cmd(command_buf, TRUE);
+			EsifString cmd_results = parse_cmd(command_buf, ESIF_TRUE);
 			if (NULL != cmd_results) {
 				size_t out_len = esif_ccb_strlen(cmd_results, OUT_BUF_LEN) + 12;
 				esif_ccb_free(g_rest_out);
@@ -382,7 +376,9 @@ void esif_ws_server_set_rest_api (
 				}
 			}
 		}
+#ifdef ESIF_ATTR_SHELL_LOCK
 		esif_ccb_mutex_unlock(&g_shellLock);
+#endif
 	}
 	esif_ccb_free(connection->buf.msgReceive);
 	connection->buf.msgReceive = NULL;

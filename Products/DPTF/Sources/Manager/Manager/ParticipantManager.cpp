@@ -21,6 +21,7 @@
 #include "WIParticipantDestroy.h"
 #include "DptfManager.h"
 #include "Utility.h"
+#include "EsifServices.h"
 
 ParticipantManager::ParticipantManager(DptfManager* dptfManager) : m_dptfManager(dptfManager)
 {
@@ -83,6 +84,9 @@ void ParticipantManager::destroyAllParticipants(void)
             }
             catch (...)
             {
+                ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIParticipantDestroy.");
+                message.addMessage("Participant Index", i);
+                m_dptfManager->getEsifServices()->writeMessageError(message);
             }
         }
     }
@@ -98,6 +102,9 @@ void ParticipantManager::destroyParticipant(UIntN participantIndex)
         }
         catch (...)
         {
+            ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to destroy participant.");
+            message.addMessage("Participant Index", participantIndex);
+            m_dptfManager->getEsifServices()->writeMessageError(message);
         }
 
         DELETE_MEMORY_TC(m_participant[participantIndex]);

@@ -91,6 +91,7 @@ static struct esif_participant_iface pi = {
 	.device_path = "NA",	/* Filled In Dynamically By Driver */
 	.device      = NULL,	/* Driver Assigned                 */
 	.mem_base    = NULL,	/* Driver Assigned                 */
+	.mem_size    = 0,	/* Driver Assigned                 */
 	.acpi_handle = NULL,	/* Driver Assigned                 */
 
 	/* EVENT */
@@ -307,6 +308,7 @@ static int pci_cpu_probe(
 	}
 	ESIF_TRACE_DEBUG("%s: request_irq returns %d\n", ESIF_FUNC, err);
 
+	pi.mem_size = resource_len;
 	pi.mem_base = ioremap_nocache(resource_start, resource_len);
 	if (!pi.mem_base) {
 		err = -ENOMEM;

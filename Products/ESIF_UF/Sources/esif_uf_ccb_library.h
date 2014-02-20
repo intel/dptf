@@ -25,11 +25,11 @@
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 typedef HINSTANCE esif_lib_t;
-	#define ESIF_LIB_EXT "dll"
+	#define ESIF_LIB_EXT ".dll"
 #else
 	#include <dlfcn.h>
 typedef void *esif_lib_t;
-	#define ESIF_LIB_EXT "so"
+	#define ESIF_LIB_EXT ".so"
 #endif
 
 /* Load Shared .so/DLL code opaque */

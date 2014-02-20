@@ -5,13 +5,10 @@ config set @dsp sb_dply.edp      "<<../../../../../Packages/DSP/sb_dply.edp"    
 config set @dsp sb_fgen.edp      "<<../../../../../Packages/DSP/sb_fgen.edp"      BINARY nocache readonly
 config set @dsp sb_ietm.edp      "<<../../../../../Packages/DSP/sb_ietm.edp"      BINARY nocache readonly
 config set @dsp sb_tamb.edp      "<<../../../../../Packages/DSP/sb_tamb.edp"      BINARY nocache readonly
-config set @dsp sb_tchg.edp      "<<../../../../../Packages/DSP/sb_tchg.edp"      BINARY nocache readonly
 config set @dsp sb_tcpu.edp      "<<../../../../../Packages/DSP/sb_tcpu.edp"      BINARY nocache readonly
-config set @dsp sb_temp.edp      "<<../../../../../Packages/DSP/sb_temp.edp"      BINARY nocache readonly
 config set @dsp sb_tfan.edp      "<<../../../../../Packages/DSP/sb_tfan.edp"      BINARY nocache readonly
 config set @dsp sb_tmem.edp      "<<../../../../../Packages/DSP/sb_tmem.edp"      BINARY nocache readonly
 config set @dsp sb_tpwr.edp      "<<../../../../../Packages/DSP/sb_tpwr.edp"      BINARY nocache readonly
 config set @dsp sb_wgig.edp      "<<../../../../../Packages/DSP/sb_wgig.edp"      BINARY nocache readonly
 config set @dsp sb_wifi.edp      "<<../../../../../Packages/DSP/sb_wifi.edp"      BINARY nocache readonly
 config set @dsp sb_wwan.edp      "<<../../../../../Packages/DSP/sb_wwan.edp"      BINARY nocache readonly
-config set @dsp sb_ther.edp      "<<../../../../../Packages/DSP/sb_ther.edp"      BINARY nocache readonly

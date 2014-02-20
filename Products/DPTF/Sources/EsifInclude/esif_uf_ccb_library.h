@@ -38,7 +38,35 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 #ifdef ESIF_ATTR_OS_WINDOWS
     return LoadLibraryA(lib_name);
 #else
-    return dlopen(lib_name, RTLD_NOW);
+    esif_lib_t handle = dlopen(lib_name, RTLD_NOW);
+
+    /* Try different case-sensitive versions of lib_name */
+    if (NULL == handle && lib_name[0] != 0) {
+        char library[256]={0};
+        int j=0;
+
+        /* lowercase.so */
+        for (j=0; j < sizeof(library)-1 && lib_name[j]; j++) {
+            library[j] = tolower(lib_name[j]);
+        }
+        handle = dlopen(library, RTLD_NOW);
+
+        /* Capitalized.so */
+        if (NULL == handle) {
+            library[0] = toupper(library[0]);
+            handle = dlopen(library, RTLD_NOW);
+        }
+
+        /* UPPERCASE.so */
+        if (NULL == handle) {
+            for (j=0; library[j] && library[j] != '.'; j++) {
+                library[j] = toupper(library[j]);
+            }
+            handle = dlopen(library, RTLD_NOW);
+        }
+    }
+    return handle;
+
 #endif
 }
 

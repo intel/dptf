@@ -153,9 +153,9 @@ void DptfManager::shutDown(void)
     unregisterDptfFrameworkEvents();
 
     disableAndEmptyAllQueues();
-    deleteDptfStatus();
     destroyAllPolicies();
     destroyAllParticipants();
+    deleteDptfStatus();
     deleteWorkItemQueueManager();
     deletePolicyManager();
     deleteParticipantManager();
@@ -180,11 +180,6 @@ void DptfManager::disableAndEmptyAllQueues(void)
     catch (...)
     {
     }
-}
-
-void DptfManager::deleteDptfStatus()
-{
-    DELETE_MEMORY_TC(m_dptfStatus);
 }
 
 void DptfManager::destroyAllPolicies(void)
@@ -217,6 +212,11 @@ void DptfManager::destroyAllParticipants(void)
     catch (...)
     {
     }
+}
+
+void DptfManager::deleteDptfStatus()
+{
+    DELETE_MEMORY_TC(m_dptfStatus);
 }
 
 void DptfManager::deleteWorkItemQueueManager(void)
@@ -268,10 +268,29 @@ void DptfManager::destroyFrameworkEventInfo(void)
 
 void DptfManager::registerDptfFrameworkEvents(void)
 {
-    // do not catch exceptions here
-    m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyEntry);
-    m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyExit);
-    m_esifServices->registerEvent(FrameworkEvent::DptfLogVerbosityChanged);
+    try
+    {
+        m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyEntry);
+    }
+    catch (...)
+    {
+    }
+
+    try
+    {
+        m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyExit);
+    }
+    catch (...)
+    {
+    }
+
+    try
+    {
+        m_esifServices->registerEvent(FrameworkEvent::DptfLogVerbosityChanged);
+    }
+    catch (...)
+    {
+    }
 }
 
 void DptfManager::unregisterDptfFrameworkEvents(void)
@@ -279,7 +298,21 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
     try
     {
         m_esifServices->unregisterEvent(FrameworkEvent::DptfConnectedStandbyEntry);
+    }
+    catch (...)
+    {
+    }
+
+    try
+    {
         m_esifServices->unregisterEvent(FrameworkEvent::DptfConnectedStandbyExit);
+    }
+    catch (...)
+    {
+    }
+
+    try
+    {
         m_esifServices->unregisterEvent(FrameworkEvent::DptfLogVerbosityChanged);
     }
     catch (...)

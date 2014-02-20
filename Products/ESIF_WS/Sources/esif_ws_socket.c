@@ -277,12 +277,10 @@ void esif_ws_socket_build_payload (
 	const UInt8 *data,
 	size_t dataLength,
 	UInt8 *outgoingFrame,
-	size_t *outgoingFrameLenght,
+	size_t *outgoingFrameLength,
 	enum frameType frameType
 	)
 {
-	UInt16 payLoadLength=0;
-
 	if (dataLength > 0) {
 		ESIF_ASSERT(data);
 	}
@@ -291,20 +289,21 @@ void esif_ws_socket_build_payload (
 
 	if (dataLength <= 125) {
 		outgoingFrame[1]     = (UInt8)dataLength;
-		*outgoingFrameLenght = 2;
+		*outgoingFrameLength = 2;
 	} else if (dataLength <= 0xFFFF) {
+		UInt16 payLoadLength = htons((UInt16)dataLength);
 		outgoingFrame[1]     = 126;
-		payLoadLength        = htons((UInt16)dataLength);
-		esif_ccb_memcpy(&outgoingFrame[2], &payLoadLength, sizeof(UInt16));
-		*outgoingFrameLenght = 4;
+		esif_ccb_memcpy(&outgoingFrame[2], &payLoadLength, sizeof(payLoadLength));
+		*outgoingFrameLength = 2 + sizeof(payLoadLength);
 	} else {
+		UInt32 payLoadLength = htonl((UInt32)dataLength);
 		outgoingFrame[1]     = 127;
-		esif_ccb_memcpy(&outgoingFrame[2], &dataLength, sizeof(size_t));
-		*outgoingFrameLenght = 10;
+		esif_ccb_memcpy(&outgoingFrame[2], &payLoadLength, sizeof(payLoadLength));
+		*outgoingFrameLength = 2 + sizeof(payLoadLength);
 	}
 
-	esif_ccb_memcpy(&outgoingFrame[*outgoingFrameLenght], data, dataLength);
-	*outgoingFrameLenght += dataLength;
+	esif_ccb_memcpy(&outgoingFrame[*outgoingFrameLength], data, dataLength);
+	*outgoingFrameLength += dataLength;
 }
 
 

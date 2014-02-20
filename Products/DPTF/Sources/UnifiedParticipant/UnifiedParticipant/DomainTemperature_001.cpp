@@ -27,26 +27,23 @@ DomainTemperature_001::DomainTemperature_001(ParticipantServicesInterface* parti
 
 TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    Temperature temperature = m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
-        esif_primitive_type::GET_TEMPERATURE, domainIndex);
-
-    return TemperatureStatus(temperature);
+    try
+    {
+        Temperature temperature = m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
+            esif_primitive_type::GET_TEMPERATURE, domainIndex);
+        return TemperatureStatus(temperature);
+    }
+    catch (...)
+    {
+    	return TemperatureStatus(Temperature(0));
+    }
 }
 
 TemperatureThresholds DomainTemperature_001::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
 {
-    Temperature aux0 = m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
-        esif_primitive_type::GET_TEMPERATURE_THRESHOLDS, domainIndex, 0);
-
-    Temperature aux1 = m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
-        esif_primitive_type::GET_TEMPERATURE_THRESHOLDS, domainIndex, 1);
-
-    UIntN hysteresis =
-        static_cast<UIntN>(
-            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
-                esif_primitive_type::GET_TEMPERATURE_THRESHOLD_HYSTERESIS,
-                domainIndex));
-
+    Temperature aux0 = getAuxTemperatureThreshold(domainIndex, 0);
+    Temperature aux1 = getAuxTemperatureThreshold(domainIndex, 1);
+    UIntN hysteresis = getHysteresis(domainIndex);
     return TemperatureThresholds(aux0, aux1, hysteresis);
 }
 
@@ -73,6 +70,34 @@ void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIn
 void DomainTemperature_001::clearCachedData(void)
 {
     // Do nothing.  We don't cache temperature related data.
+}
+
+Temperature DomainTemperature_001::getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber)
+{
+    try
+    {
+        return m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
+            esif_primitive_type::GET_TEMPERATURE_THRESHOLDS, domainIndex, auxNumber);
+    }
+    catch (...)
+    {
+        return Temperature(0);
+    }
+}
+
+UIntN DomainTemperature_001::getHysteresis(UIntN domainIndex)
+{
+    try
+    {
+        return static_cast<UIntN>(
+            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+            esif_primitive_type::GET_TEMPERATURE_THRESHOLD_HYSTERESIS,
+            domainIndex));
+    }
+    catch (...)
+    {
+    	return 0;
+    }
 }
 
 XmlNode* DomainTemperature_001::getXml(UIntN domainIndex)

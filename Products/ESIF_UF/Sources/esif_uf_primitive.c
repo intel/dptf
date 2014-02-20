@@ -616,9 +616,11 @@ void esif_uf_dump_primitive(
 	u32 param = 0;
 	int i, j;
 
+
 	if (!ESIF_TRACEACTIVE(ESIF_TRACEMODULE_PRIMITIVE, ESIF_TRACELEVEL_DEBUG)) {
 		return;
 	}
+
 
 	ESIF_TRACE_DEBUG("esif_uf_execute_primitive: Primitive METADATA From DSP:\n"
 					   "\tOperation:        : %s(%u)\n"

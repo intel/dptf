@@ -54,15 +54,14 @@
 #ifndef _ESIF_H_
 #define _ESIF_H_
 
-
-
-/* Agnostic Kernel/User Space */
+#define ESIF_ATTR_WEBSOCKET
 typedef char *esif_string;		/* Opaque ESIF String ASCIIZ Today */
 
-
-/* Linux Derrived OS Kernel/User Space */
-#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+/* Linux Derrived OS */
+#if defined(ESIF_ATTR_OS_LINUX) || \
+    	defined(ESIF_ATTR_OS_ANDROID) || \
 	defined(ESIF_ATTR_OS_CHROME)
+
 #define ESIF_ATTR_OS "linux"	/* OS Is Linux             */
 #define ESIF_INLINE  inline	/* Normalize Compiler      */
 #define ESIF_FUNC __func__	/* Normalize Compiler      */
@@ -71,26 +70,28 @@ typedef char *esif_string;		/* Opaque ESIF String ASCIIZ Today */
 #define ESIF_ELEMENT(x) x =	/* Support C99 Init        */
 #else /* __cpluscplus */
 #define ESIF_ELEMENT(x)		/* Emulate/Ignore C99 Init */
-#endif
-#endif
+#endif /* __cplusplus */
 
-/* Andriod Override For Linux */
+/* Deduce Platform based on predefined gcc compiler flags */
+#ifdef __x86_64__
+#define ESIF_ATTR_64BIT
+#endif /* __x86_64__ */
+#endif /* Linux Derrived OS */
+
+/* Android Override For Linux */
 #ifdef ESIF_ATTR_OS_ANDROID
 #undef ESIF_ATTR_OS
 #define ESIF_ATTR_OS "android"
 #define ESIF_ATTR_OS_LINUX
-#endif
+#endif /* ESIF_ATTR_OS_ANDROID */
 
 /* Chrome Override For Linux */
 #ifdef ESIF_ATTR_OS_CHROME
 #undef ESIF_ATTR_OS
 #define ESIF_ATTR_OS "chrome"
 #define ESIF_ATTR_OS_LINUX
-#endif
+#endif /* ESIF_ATTR_OS_CHROME */
 
-#define ESIF_ATTR_WEBSOCKET
-
-/* Windows Kernel/User Space */
 #ifdef ESIF_ATTR_OS_WINDOWS
 #define ESIF_ATTR_OS "windows"	/* OS Is Windows             */
 #define ESIF_INLINE __inline	/* Normalize Compiler        */
@@ -109,31 +110,28 @@ typedef unsigned short u16;	/* A WORD  */
 typedef unsigned int u32;	/* A DWORD */
 typedef unsigned long long u64;	/* A QWORD */
 
-/* Override windows 64 Bit To ESIF or Project can include ESIF_ATTR_64BIT */
+/* Deduce Platform based on predefined compiler flags */
 #ifdef _WIN64
 #define ESIF_ATTR_64BIT
-#endif
+#endif /* _WIN64 */
 
 /* Override windows DEBUG To ESIF or Project can include ESIF_ATTR_DEBUG */
 #ifdef _DEBUG
 #define ESIF_ATTR_DEBUG
-#endif
+#endif /* _DEBUG */
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
-/* Kernel */
 #ifdef ESIF_ATTR_KERNEL
 #include "esif_version.h"
 
-
-/* Linux */
 #ifdef ESIF_ATTR_OS_LINUX
-    #include <linux/module.h>		/* Linux Module           */
-    #include <linux/platform_device.h>	/* Linux Platform Device  */
-    #include <linux/acpi.h>		/* Linux ACPI Device      */
-    #include <linux/pci.h>		/* Linux PCI Device       */
-    #include <linux/thermal.h>		/* Linux Thermals         */
-    #include <linux/kobject.h>		/* Linux Kernel Objects   */
-    #include <linux/version.h>		/* Linux Kernel Version   */
+#include <linux/module.h>		/* Linux Module           */
+#include <linux/platform_device.h>	/* Linux Platform Device  */
+#include <linux/acpi.h>		/* Linux ACPI Device      */
+#include <linux/pci.h>		/* Linux PCI Device       */
+#include <linux/thermal.h>		/* Linux Thermals         */
+#include <linux/kobject.h>		/* Linux Kernel Objects   */
+#include <linux/version.h>		/* Linux Kernel Version   */
 
 /*
  * Devices Are Defined To Be Opaque to allow for OS
@@ -143,23 +141,14 @@ typedef unsigned long long u64;	/* A QWORD */
 
 typedef struct device *esif_device_t;
 
-/*
- * The Windows Compiler Requires This It Does Not Hurt To Annotate In
- * Linux so we include it here for the abstraction.
- */
 #define UNREFERENCED_PARAMETER(x)
 #endif /* ESIF_ATTR_KERNEL::ESIF_ATTR_OS_LINUX  */
 
-/* Windows */
 #ifdef ESIF_ATTR_OS_WINDOWS
     #include "ntddk.h"		/* The Windows DDK          */
     #include "wdf.h"		/* Windows Driver Framework */
     #include "INITGUID.H"	/* Init GUID                */
     #include "wdmguid.h"	/* Windows GUIDS            */
-/*
- * #include "ntstrsafe.h"   / * The Windows Banned/Depredicated * /
- * #include "banned.h"      / * The Windows Banned/Depredicated * /
- */
 
 /*
 ** Suppress Windows Warnings for warn level 4.  Need to find out if we can
@@ -167,10 +156,8 @@ typedef struct device *esif_device_t;
 */
     #pragma warning(disable : 4127) /* Conditional expression is constant */
     #pragma warning(disable : 4204) /* Non-constant aggregate initializer */
-    #pragma \
-	warning(disable : 4221) /* Can't be initialized using address of
-				 automatic variable */
-
+    #pragma warning(disable : 4221) /* Can't be initialized using address of
+				       automatic variable */
 /*
  * Devices Are Defined To Be Opaque to allow for OS
  * implementation of Pointer VS Handle Etc. Windows uses a
@@ -211,7 +198,6 @@ typedef unsigned int u32;
 typedef unsigned long long u64;
 #endif /* USER::ESIF_ATTR_OS_LINUX */
 
-/* Windows */
 #ifdef ESIF_ATTR_OS_WINDOWS
 #define _WINSOCKAPI_			/* Override for Winsock */
 #include <windows.h>			/* Windows Includes Almost Everything */
@@ -221,23 +207,18 @@ typedef unsigned long long u64;
 #pragma warning(disable : 4221)		/* Can't be init'd with addr of autos */
 #endif /* USER::ESIF_ATTR_OS_WINDOWS */
 
-typedef u8 UInt8;	/* A CCB BYTE  */
-typedef u16 UInt16;	/* A CCB WORD  */
-typedef u32 UInt32;	/* A CCB DWORD */
-typedef u64 UInt64;	/* A CCB QWORD */
-typedef u8 Bool;	/* BOOLEAN     */
-
-typedef char Int8;
-typedef short Int16;
-typedef int Int32;
-typedef long long Int64;
+typedef u8   		UInt8;	/* A CCB BYTE  */
+typedef char 		Int8; 
+typedef u16  		UInt16;	/* A CCB WORD  */
+typedef short 		Int16;
+typedef u32 		UInt32;	/* A CCB DWORD */
+typedef int     	Int32;
+typedef u64 		UInt64;	/* A CCB QWORD */
+typedef long long 	Int64;
+typedef u8  		Bool;	/* BOOLEAN     */
 
 typedef esif_string EsifString;
 #endif /* ESIF_ATTR_USER */
-
-/*
- * OS Agnostic R0/R3 Agnostic
- */
 
 /* ID Lookup Failed To Find String */
 #define ESIF_NOT_AVAILABLE "NA"
@@ -259,20 +240,34 @@ typedef esif_string EsifString;
 #ifdef ESIF_ATTR_OS_WINDOWS
 typedef HANDLE esif_handle_t;
 #define ESIF_INVALID_HANDLE INVALID_HANDLE_VALUE
-#else
+#endif /* ESIF_ATTR_OS_WINDOWS */
+
+#ifdef ESIF_ATTR_OS_LINUX
 typedef int esif_handle_t;
 #define ESIF_INVALID_HANDLE (-1)
-#endif
+#endif /* ESIF_ATTR_OS_LINUX */
 
-typedef u32 esif_flags_t;			/* FLAGS        */
-typedef u8 esif_guid_t[ESIF_GUID_LEN];		/* GUID         */
-typedef u8 esif_ver_t;				/* Version      */
-typedef u32 esif_temp_t;			/* Temperature  */
-typedef u32 esif_power_t;			/* Power        */
+typedef u32	esif_flags_t;			/* FLAGS        */
+typedef u8 	esif_guid_t[ESIF_GUID_LEN];	/* GUID         */
+typedef u8 	esif_ver_t;			/* Version      */
+typedef u32 	esif_temp_t;			/* Temperature  */
+typedef u32 	esif_power_t;			/* Power        */
 
 #define ESIF_PLATFORM_MSG "Platform Driver Intended For Internal VM Use Only"
 #define ESIF_LICENSE "GPL"
 #define ESIF_AUTHOR  "doug.hegge@intel.com"
+
+#ifdef ESIF_ATTR_64BIT
+#define ESIF_PLATFORM_TYPE	"x64"
+#else
+#define ESIF_PLATFORM_TYPE	"x86"
+#endif /* ESIF_ATTR_64BIT */
+
+#ifdef ESIF_ATTR_DEBUG
+#define ESIF_BUILD_TYPE	"Debug"
+#else
+#define ESIF_BUILD_TYPE	"Release"
+#endif /* ESIF_ATTR_DEBUG */
 
 #include "esif_debug.h"		/* Debug Helpers    */
 #include "esif_rc.h"		/* Return Codes     */
@@ -280,23 +275,19 @@ typedef u32 esif_power_t;			/* Power        */
 #include "esif_ccb.h"		/* Common Code Base */
 #include "esif_memtype.h"	/* Memory Types     */
 
-/*
- * KERNEL OS Agnostic CCB Support
- */
 #ifdef ESIF_ATTR_KERNEL
 extern esif_ccb_lock_t g_mempool_lock;
-#endif
+#endif /* ESIF_ATTR_KERNEL */
 
 #ifdef ESIF_ATTR_USER
-
-    #include "esif_data.h"
-    #include "esif_uf_app_event_type.h"
-/* Include All Headers Here */
-    #include "esif_uf.h"
-    #include "esif_uf_iface.h"
-    #include "esif_uf_app_iface.h"
-    #include "esif_uf_esif_iface.h"
-#endif
+	#include "esif_data.h"
+	#include "esif_uf_app_event_type.h"
+	/* Include All Headers Here */
+	#include "esif_uf.h"
+	#include "esif_uf_iface.h"
+	#include "esif_uf_app_iface.h"
+	#include "esif_uf_esif_iface.h"
+#endif /* ESIF_ATTR_USER */
 #endif /* _ESIF_H_ */
 
 /*****************************************************************************/

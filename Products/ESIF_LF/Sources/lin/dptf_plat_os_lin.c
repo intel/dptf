@@ -85,6 +85,7 @@ static struct esif_participant_iface pi = {
 	.device_path = "NA",	/* Filled In Dynamically By Driver */
 	.device      = NULL,	/* Driver Assigned                 */
 	.mem_base    = NULL,	/* Driver Assigned                 */
+	.mem_size    = 0,	/* Driver Assigned                 */
 	.acpi_handle = NULL,	/* Driver Assigned                 */
 
 	/* EVENT */

@@ -114,6 +114,16 @@ static ESIF_INLINE eEsifError esif_ccb_thread_join (
 }
 
 
+/* this is a copy of thread_join, using the term destroy for clarity */
+/* we may want to alter it to be a brute force destroy later */
+static ESIF_INLINE eEsifError esif_ccb_thread_destroy (
+	esif_thread_t *thread_ptr
+	)
+{
+	return esif_ccb_thread_join(thread_ptr);
+}
+
+
 #ifdef __cplusplus
 }
 #endif /* Windows */

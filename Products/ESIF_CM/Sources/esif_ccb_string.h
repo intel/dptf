@@ -203,7 +203,8 @@ static ESIF_INLINE void esif_ccb_uni2ascii(
 #define esif_ccb_strlwr(s, count) _strlwr_s(s, count)
 #define esif_ccb_vscprintf(fmt, args) _vscprintf(fmt, args)
 
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 #include <ctype.h>
 #include <stdarg.h>
 
@@ -272,7 +273,8 @@ extern char *esif_memtrace_strdup(char *str, const char *func, const char *file,
 #ifdef ESIF_ATTR_OS_WINDOWS
 #define esif_ccb_strcpy(dst, src, siz) strncpy_s(dst, siz, src, _TRUNCATE)
 #define esif_ccb_strcat(dst, src, siz) strcat_s(dst, siz, src)
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 /*
  * #define esif_ccb_strcpy(dst, src, siz) { strncpy(dst, src, siz); if (siz)
  * ((char*)dst)[(siz)-1]=0; }

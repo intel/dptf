@@ -40,6 +40,7 @@ public:
     PerformanceControl(UIntN controlId, PerformanceControlType::Type performanceControlType, UIntN tdpPower,
         Percentage performancePercentage, UIntN transitionLatency, UIntN controlAbsoluteValue,
         std::string valueUnits);
+    static PerformanceControl createInvalid();
 
     UIntN getControlId(void) const;
     PerformanceControlType::Type getPerformanceControlType(void) const;

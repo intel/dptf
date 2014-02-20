@@ -170,7 +170,7 @@ static ESIF_INLINE char *esif_acpi_type_str(u32 type)
 		CREATE_ACPI_TYPE(ACPI_TYPE_PACKAGE, str);
 		CREATE_ACPI_TYPE(ACPI_TYPE_POWER, str);
 		CREATE_ACPI_TYPE(ACPI_TYPE_PROCESSOR, str);
-#ifndef ESIF_ATTR_OS_WINDOWS
+#ifdef ESIF_ATTR_OS_LINUX
 		CREATE_ACPI_TYPE(ACPI_TYPE_ANY, str);
 		CREATE_ACPI_TYPE(ACPI_TYPE_FIELD_UNIT, str);
 		CREATE_ACPI_TYPE(ACPI_TYPE_DEVICE, str);
@@ -197,23 +197,19 @@ static ESIF_INLINE acpi_status esif_ccb_acpi_evaluate_object(
 {
 	acpi_status rc = 0;
 
-#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_WINDOWS)
 	int orig_length = 0;
 	if (NULL != return_buffer_ptr)
 		orig_length = return_buffer_ptr->length;
-#endif
 
 	rc = acpi_evaluate_object(handle,
 				  acpi_method,
 				  in_params_ptr,
 				  return_buffer_ptr);
 
-#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_WINDOWS)
 	if (NULL != return_buffer_ptr && NULL != return_buffer_ptr->pointer &&
 	    ACPI_ALLOCATE_BUFFER == orig_length) {
 		memstat_inc(&g_memstat.allocs); /* Increment in Linux Only Not *Windows! */
 	}
-#endif
 #ifdef ESIF_ATTR_OS_LINUX
 	return rc;
 
@@ -645,7 +641,12 @@ static ESIF_INLINE u32 esif_ccb_acpi_pkg_count(union acpi_object *obj_ptr)
 
 	while (obj_len > 0) {
 		/* Calc the size of each package and move to the next one */
-		pkg_len  = (2 * sizeof(USHORT)) + pkg_ptr->package.count;
+		/* make sure if the count is less than 4 to account for the */
+		/* union. A good example would be a short string like ma\0 */
+		pkg_len  = (2 * sizeof(USHORT)) + 
+			(pkg_ptr->package.count < sizeof(ULONG) ? sizeof(ULONG): 
+			pkg_ptr->package.count);
+
 		pkg_ptr  = (union acpi_object *)((u8 *)pkg_ptr + pkg_len);
 		obj_len -= pkg_len;
 		count++;

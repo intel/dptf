@@ -210,9 +210,7 @@ eEsifError EsifActStart(EsifActPtr actionPtr)
 	char libPath[ESIF_LIBPATH_LEN];
 
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, actionPtr->fLibNamePtr);
-	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s",
-					 esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, actionPtr->fLibNamePtr), ESIF_LIB_EXT);
-
+	esif_build_path(libPath, sizeof(libPath), ESIF_PATHTYPE_DLL, actionPtr->fLibNamePtr, ESIF_LIB_EXT);
 	actionPtr->fLibHandle = esif_ccb_library_load(libPath);
 
 	if (NULL == actionPtr->fLibHandle) {

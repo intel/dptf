@@ -52,7 +52,7 @@ rem setp 270 D0 000                                          ;SET_SYSTEM_CONFIGT
 rem setp 270 D0 001                                          ;SET_SYSTEM_CONFIGTDP_LEVEL_NAME
 rem setp 270 D0 002                                          ;SET_SYSTEM_CONFIGTDP_LEVEL_NAME
 rem setp 175 D0 255                                          ;SET_SYSTEM_HIBERNATE
-rem setp 273 D0 255                                          ;SET_SYSTEM_POLICY_REMOVE
+rem setp 273 D0 255                                          ;SET_SYSTEM_POWER_SETTING_REMOVE
 rem setp 173 D0 255                                          ;SET_SYSTEM_SHUTDOWN
 rem setp 174 D0 255                                          ;SET_SYSTEM_SLEEP
 rem setp 231 D0 255                                          ;SET_THERMAL_RELATIONSHIP_TABLE

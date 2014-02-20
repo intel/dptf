@@ -24,6 +24,15 @@ EsifThread::EsifThread(work_func_t function, void* argument) :
     eEsifError rc = esif_ccb_thread_create(&m_thread, m_function, m_argument);
     if (rc != ESIF_OK)
     {
-        throw dptf_exception("Failed to create thread.");
+        throw dptf_exception("esif_ccb_thread_create() failed.");
+    }
+}
+
+EsifThread::~EsifThread()
+{
+    eEsifError rc = esif_ccb_thread_destroy(&m_thread);
+    if (rc != ESIF_OK)
+    {
+        throw dptf_exception("esif_ccb_thread_destroy() failed.");
     }
 }

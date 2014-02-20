@@ -69,10 +69,13 @@ void DomainCoreControl_001::setActiveCoreControl(UIntN participantIndex, UIntN d
     const CoreControlStatus& coreControlStatus)
 {
     verifyCoreControlStatus(domainIndex, coreControlStatus);
+    createCoreControlStaticCapsIfNeeded(domainIndex);
+    UIntN totalCores = m_coreControlStaticCaps->getTotalLogicalProcessors();
+    UIntN totalOfflineCoreRequest = totalCores - coreControlStatus.getNumActiveLogicalProcessors();
 
     m_participantServicesInterface->primitiveExecuteSetAsUInt32(
-        esif_primitive_type::SET_ACTIVE_CORE_LIMIT,
-        coreControlStatus.getNumActiveLogicalProcessors(),
+        esif_primitive_type::SET_PROC_NUMBER_OFFLINE_CORES,
+        totalOfflineCoreRequest,
         domainIndex);
 
     // Refresh the status

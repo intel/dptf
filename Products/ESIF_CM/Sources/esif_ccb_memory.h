@@ -132,7 +132,8 @@ static ESIF_INLINE void esif_ccb_memcpy(
 #ifdef ESIF_ATTR_KERNEL
 #ifdef ESIF_ATTR_OS_WINDOWS
 	memcpy_s(dest_ptr, size, src_ptr, size);
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 	memcpy(dest_ptr, src_ptr, size);
 #endif
 #endif
@@ -140,7 +141,8 @@ static ESIF_INLINE void esif_ccb_memcpy(
 #ifdef ESIF_ATTR_USER
 #ifdef ESIF_ATTR_OS_WINDOWS
 	memcpy_s(dest_ptr, size, src_ptr, size);
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 	memcpy(dest_ptr, src_ptr, size);
 #endif
 #endif
@@ -162,7 +164,8 @@ static ESIF_INLINE void esif_ccb_memmove(
 #ifdef ESIF_ATTR_KERNEL
 #ifdef ESIF_ATTR_OS_WINDOWS
 	memmove_s(dest_ptr, size, src_ptr, size);
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 	memmove(dest_ptr, src_ptr, size);
 #endif
 #endif

@@ -30,8 +30,8 @@ typedef struct s_clientRecord {
 	msgBuffer  buf;
 } clientRecord;
 
-int  esif_ws_init(esif_string webroot);
-void esif_ws_exit();
+int  esif_ws_init(void);
+void esif_ws_exit(esif_thread_t *web_thread);
 void esif_ws_set_ipaddr_port(const char *ipaddr, u32 port);
 
 #endif /* ESIF_WS_SERVER_H */

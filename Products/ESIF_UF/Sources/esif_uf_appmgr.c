@@ -301,9 +301,16 @@ void EsifAppMgrExit()
 	esif_ccb_read_lock(&g_appMgr.fLock);
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
 		a_app_ptr = &g_appMgr.fEntries[i];
-		esif_ccb_free(a_app_ptr->fLibNamePtr);
-		esif_ccb_library_unload(a_app_ptr->fLibHandle);
-		esif_ccb_memset(a_app_ptr, 0, sizeof(*a_app_ptr));
+
+		// Attempt to gracefully shutdown App before forcing library unload
+		if (a_app_ptr->fLibNamePtr != NULL) {
+			EsifAppStop(a_app_ptr);
+		}
+		if (a_app_ptr->fLibNamePtr != NULL) {
+			esif_ccb_library_unload(a_app_ptr->fLibHandle);
+			esif_ccb_free(a_app_ptr->fLibNamePtr);
+			esif_ccb_memset(a_app_ptr, 0, sizeof(*a_app_ptr));
+		}
 	}
 	esif_ccb_read_unlock(&g_appMgr.fLock);
 }

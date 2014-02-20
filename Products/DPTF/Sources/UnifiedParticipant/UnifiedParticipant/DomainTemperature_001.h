@@ -41,9 +41,12 @@ public:
 
 private:
 
+    ParticipantServicesInterface* m_participantServicesInterface;
+
     // hide the copy constructor and = operator
     DomainTemperature_001(const DomainTemperature_001& rhs);
     DomainTemperature_001& operator=(const DomainTemperature_001& rhs);
 
-    ParticipantServicesInterface* m_participantServicesInterface;
+    Temperature getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber);
+    UIntN getHysteresis(UIntN domainIndex);
 };

@@ -20,49 +20,86 @@
 #define _ESIF_UF_
 
 #include "esif.h"
+#include "esif_ccb_lock.h"
 
-extern int g_debug;
-extern FILE* g_debuglog;
+#define BIG_LOCK
 
-//
-// output to screen and optional log file
-//
-#ifdef ESIF_ATTR_OS_WINDOWS
+// Temporary Workaround: Implment global Shell lock to troubleshoot mixed output
+#ifdef  BIG_LOCK
+extern esif_ccb_mutex_t g_shellLock;
+#endif
 
-    #define BIG_LOCK
+// ESIF Log Types
+typedef enum eEsifLogType {
+    ESIF_LOG_EVENTLOG = 0,  // Overrides System Event Logger (Windows=EventLog, Linux=syslog)
+    ESIF_LOG_DEBUGGER = 1,  // Overrides System Debug Logger (Windows=OutputDebugString, Linux=syslog)
+    ESIF_LOG_SHELL    = 2,  // CMD_OUT output when shell log enabled (log/nolog)
+    ESIF_LOG_TRACE    = 3,  // ESIF_TRACE_* output when trace log enabled
+    ESIF_LOG_UI       = 4,  // UI output when ui log enabled
+} EsifLogType;
+#define MAX_ESIFLOG     5   // Max Log Types
 
-    enum esif_rc write_to_srvr_cnsl_intfc(char * pFormat, ...);
+// Log File API
+extern int EsifLogFile_Open(EsifLogType type, const char *filename);
+extern int EsifLogFile_Close(EsifLogType type);
+extern int EsifLogFile_IsOpen(EsifLogType type);
+extern int EsifLogFile_Write(EsifLogType type, const char *fmt, ...);
+extern int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args);
+extern esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const char *filename);
+extern void EsifLogFile_DisplayList(void);
 
-    #define LOCAL_DEBUG(__msg, ...)  if(g_debug) printf(__msg, ##__VA_ARGS__); \
-        if(g_debuglog && g_debuglog != stdout) fprintf(g_debuglog, __msg, ##__VA_ARGS__);
-    #define CMD_OUT(__msg, ...)  if(g_debug) write_to_srvr_cnsl_intfc(__msg, ##__VA_ARGS__); \
-        if(g_debuglog && g_debuglog != stdout) fprintf(g_debuglog, __msg, ##__VA_ARGS__);
-    #define CMD_DEBUG LOCAL_DEBUG
+extern EsifLogType EsifLogType_FromString(const char *name);
 
-#else  // !ESIF_ATTR_OS_WINDOWS
+// Console Output API
+#define CMD_WRITETO_CONSOLE 0x1     // Write to Console or Client
+#define CMD_WRITETO_LOGFILE 0x2     // Write to Log File, if open
 
-    #define LOCAL_DEBUG(__msg, ...)  if(g_debug) printf(__msg, ##__VA_ARGS__); \
-        if(g_debuglog && g_debuglog != stdout) fprintf(g_debuglog, __msg, ##__VA_ARGS__);
-    #define CMD_OUT(__msg, ...)  if(g_debug) printf(__msg, ##__VA_ARGS__); \
-        if(g_debuglog && g_debuglog != stdout) fprintf(g_debuglog, __msg, ##__VA_ARGS__);
-    #define CMD_DEBUG LOCAL_DEBUG
+extern int EsifConsole_WriteTo(u32 writeto, const char *format, ...);
+extern int EsifConsole_WriteConsole(const char *format, va_list args);
+extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 
-#endif //  !ESIF_ATTR_OS_WINDOWS
+// Write to console and optional shell log
+#define CMD_OUT(format, ...)        EsifConsole_WriteTo(CMD_WRITETO_CONSOLE|CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
+#define CMD_DEBUG(format, ...)      EsifConsole_WriteTo(CMD_WRITETO_CONSOLE|CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
 
-#define OUT_BUF_LEN 64*1024
+// Write to console only
+#define CMD_CONSOLE(format, ...)    EsifConsole_WriteTo(CMD_WRITETO_CONSOLE, format, ##__VA_ARGS__)
 
+// Write to optional shell log only
+#define CMD_LOGFILE(format, ...)    EsifConsole_WriteTo(CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
+
+
+#define OUT_BUF_LEN 64 * 1024
+
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+    defined(ESIF_ATTR_OS_CHROME)
+#define ESIF_DIR_DSP "/usr/share/dptf/dsp"
+#define ESIF_DIR_CMD "/usr/share/dptf/cmd"
+#else
 #define ESIF_DIR_DSP "dsp"
 #define ESIF_DIR_CMD "cmd"
+#endif
+
 #define ESIF_DIR_LOG "log"
 #define ESIF_DIR_BIN "bin"
 
-#ifdef _WIN64
+//
+// Set Architecture
+//
+#if defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_ANDROID) || \
+    defined(ESIF_ATTR_OS_CHROME)
+// No differentiation for 32-bit or 64-bit *nix build
+#define ESIF_DIR_PRG NULL
+#define ESIF_DIR_DPTF_POL "/usr/share/dptf"
+#define ESIF_DIR_UI "/usr/share/dptf/"
+#elif defined(ESIF_ATTR_64BIT)
 #define ESIF_DIR_PRG "ufx64"
+#define ESIF_DIR_DPTF_POL "ufx64"
 #else
 #define ESIF_DIR_PRG "ufx86"
+#define ESIF_DIR_DPTF_POL "ufx86"
 #endif
 
-#define ESIF_DIR_UI  "esif_ui"
 #define ESIF_DIR_REST "esif_cmd"
 
 esif_string esif_build_path(esif_string buffer, u32 buf_len, esif_string dir, esif_string filename);
@@ -71,16 +108,15 @@ esif_string esif_build_path(esif_string buffer, u32 buf_len, esif_string dir, es
 // Format
 //
 enum output_format {
-    FORMAT_TEXT = 0, // Text
-    FORMAT_XML       // XML
+    FORMAT_TEXT = 0,// Text
+    FORMAT_XML      // XML
 };
+
 extern enum output_format g_format;
 
 #define MAX_LINE 256
 
-//
 // Functions
-//
 unsigned int esif_atoi(const esif_string value);
 
 //
@@ -98,7 +134,7 @@ void cmd_app_subsystem(const enum app_subsystem subsystem);
 //
 EsifString parse_cmd(EsifString line, UInt8 IsRest);
 UInt16 convert_string_to_short(esif_string two_character_string);
-int timeval_subtract (struct timeval *result, struct timeval *x, struct timeval *y);
+int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 
 //
 // DSP
@@ -113,5 +149,11 @@ void esif_uf_exit(void);
 /* OS Specific Init / Exit */
 enum esif_rc esif_uf_os_init(void);
 void esif_uf_os_exit(void);
+
+// Web
+extern eEsifError EsifWebStart();
+extern void EsifWebStop();
+extern int EsifWebIsStarted();
+extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port);
 
 #endif // _ESIF_UF_

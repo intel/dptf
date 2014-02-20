@@ -92,6 +92,7 @@ static struct esif_participant_iface pi_template = {
 	.device_path = "NA",	/* Filled In Dynamically By Driver  */
 	.device      = NULL,	/* Driver Assigned                  */
 	.mem_base    = NULL,	/* Driver Assigned                  */
+	.mem_size    = 0,	/* Driver Assigned                  */
 	.acpi_handle = NULL,	/* Driver Assigned                  */
 
 	/* EVENT */
@@ -340,7 +341,7 @@ static int acpi_add(struct acpi_device *acpi_dev_ptr)
 			ESIF_TRACE_DEBUG("%s: resource_len %llu\n",
 					 ESIF_FUNC,
 					 resource_len);
-
+			pi_ptr->mem_size = resource_len;
 			pi_ptr->mem_base = ioremap_nocache(phy_addr,
 							   resource_len);
 			if (!pi_ptr->mem_base) {
@@ -364,7 +365,11 @@ static int acpi_add(struct acpi_device *acpi_dev_ptr)
 
 
 /* Remove */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3, 8, 0)
+static int acpi_remove(struct acpi_device *acpi_dev_ptr, int type)
+#else
 static int acpi_remove(struct acpi_device *acpi_dev_ptr)
+#endif
 {
 	struct esif_participant_iface *pi_ptr = dev_get_drvdata(
 			&acpi_dev_ptr->dev);

@@ -124,9 +124,9 @@ A,0,31,False,"SYSTEM_SET_CTDPNAME2","","","",""
 # SET_SYSTEM_HIBERNATE
 P,175,255,2,24,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_HIBERNATE","","","",""
-# SET_SYSTEM_POLICY_REMOVE
-P,273,255,2,5,"<schema></schema>",24,"<schema></schema>"
-A,0,31,False,"SYSTEM_REMPOL","","","",""
+# SET_SYSTEM_POWER_SETTING_REMOVE
+P,273,255,2,32,"<schema></schema>",24,"<schema></schema>"
+A,0,31,False,"SYSTEM_REM_PWRSETTING","","","",""
 # SET_SYSTEM_SHUTDOWN
 P,173,255,2,32,"<schema></schema>",24,"<schema></schema>"
 A,0,31,False,"SYSTEM_SHUTDOWN","","","",""

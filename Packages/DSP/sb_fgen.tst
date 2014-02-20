@@ -42,6 +42,7 @@ getp 138 D0 255                                              ;GET_PARTICIPANT_UT
 getp 076 D0 255                                              ;GET_PERF_PSTATE_DEPTH_LIMIT
 getp 137 D0 255 -b sb_fgen_137_D0_255.bin                    ;GET_PERF_SUPPORT_STATES
 getp 014 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE
+getp 164 D0 255 -b sb_fgen_164_D0_255.bin                    ;GET_TEMPERATURE_APPROX_TABLE
 getp 072 D0 255 -u 2 -l 2                                    ;GET_TEMPERATURE_THRESHOLD_COUNT
 getp 015 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE_THRESHOLD_HYSTERESIS
 getp 143 D0 000                                              ;GET_TEMPERATURE_THRESHOLDS
@@ -81,7 +82,7 @@ rem setp 203 D0 255                                          ;SET_TRIP_POINT_CRI
 rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
-echo Test Count: 49
+echo Test Count: 50
 timerstop
 geterrorlevel
 nolog

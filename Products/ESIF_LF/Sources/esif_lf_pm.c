@@ -177,8 +177,10 @@ static void esif_lf_pm_build_lpat(struct esif_lp *lp_ptr)
 
 	rc = esif_execute_primitive(lp_ptr, &tuple_lpat, &esif_void, 
 				&esif_lpat, NULL);
-	if (ESIF_OK != rc)
+	if (ESIF_OK != rc) {
+		esif_ccb_free(esif_lpat.buf_ptr);
 		goto exit;
+	}
 
 	dsp_ptr->table = esif_lpat.buf_ptr;
 	dsp_ptr->table_size = esif_lpat.data_len; 

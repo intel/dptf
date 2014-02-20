@@ -100,9 +100,6 @@ A,0,22,True,0x606,3,0,,
 # GET_RAPL_TIME_UNIT
 P,122,255,1,24,"<schema></schema>",31,"<schema></schema>"
 A,0,22,True,0x606,19,16,,
-# GET_RAPL_TIME_WINDOW
-P,39,0,1,24,"<schema></schema>",31,"<schema></schema>"
-A,0,22,True,0x610,23,17,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
@@ -119,6 +116,46 @@ A,0,29,True,"GTT0",,,,
 # GET_TEMPERATURE_THRESHOLDS
 P,143,1,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,29,True,"GTT1",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,0,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac0",,,
+A,1,4,True,"_AC0",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,1,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac1",,,
+A,1,4,True,"_AC1",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,2,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac2",,,
+A,1,4,True,"_AC2",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,3,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac3",,,
+A,1,4,True,"_AC3",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,4,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac4",,,
+A,1,4,True,"_AC4",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,5,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac5",,,
+A,1,4,True,"_AC5",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,6,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac6",,,
+A,1,4,True,"_AC6",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,7,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac7",,,
+A,1,4,True,"_AC7",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,8,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac8",,,
+A,1,4,True,"_AC8",,,,
+# GET_TRIP_POINT_ACTIVE
+P,1,9,1,24,"<schema></schema>",6,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac9",,,
+A,1,4,True,"_AC9",,,,
 # GET_TRIP_POINT_CRITICAL
 P,13,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_crt",,,
@@ -150,9 +187,6 @@ A,0,22,True,0x610,14,0,,
 # SET_RAPL_POWER_LIMIT_ENABLE
 P,222,0,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x610,15,15,,
-# SET_RAPL_TIME_WINDOW
-P,127,0,2,31,"<schema></schema>",24,"<schema></schema>"
-A,0,22,True,0x610,23,17,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
@@ -162,6 +196,36 @@ A,0,29,True,"STT0",,,,
 # SET_TEMPERATURE_THRESHOLDS
 P,47,1,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,29,True,"STT1",,,,
+# SET_TRIP_POINT_ACTIVE
+P,202,0,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac0",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,1,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac1",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,2,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac2",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,3,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac3",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,4,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac4",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,5,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac5",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,6,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac6",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,7,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac7",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,8,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac8",,,
+# SET_TRIP_POINT_ACTIVE
+P,202,9,2,6,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac9",,,
 # SET_TRIP_POINT_CRITICAL
 P,203,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_crt",,,

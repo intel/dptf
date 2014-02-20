@@ -21,6 +21,10 @@
 #include <termios.h>
 #include <errno.h>
 
+/* ESIF_UF Startup Script Defaults */
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
+#define ESIF_STARTUP_SCRIPT_SERVER_MODE		NULL
+
 /* Friend */
 extern EsifAppMgr g_appMgr;
 
@@ -35,6 +39,8 @@ struct instancelock {
 	int  lockfd;    /* lock file descriptor */
 };
 static struct instancelock g_instance = {"/var/run/esif_ufd.pid"};
+
+#define HOME_DIRECTORY	NULL /* use OS-specific default */
 
 /* 
 ** Not ALL OS Entries Suport All Of These
@@ -88,6 +94,25 @@ static int kbhit (void)
 	return 0;
 }
 
+#if defined(ESIF_ATTR_OS_ANDROID)
+// Instance Checking Disabled in Android for now
+
+int instance_lock()
+{
+	return ESIF_TRUE;
+}
+
+void instance_unlock()
+{
+}
+
+int instance_islocked()
+{
+	return ESIF_TRUE;
+}
+
+#else
+
 // Prevent multiple instances from running by creating and locking a .pid file
 int instance_lock()
 {
@@ -123,6 +148,8 @@ int instance_islocked()
 	return (g_instance.lockfd == 0 ? 0 : 1);
 }
 
+#endif
+
 /*
 **  Buiild Supports Deaemon?
 */
@@ -147,7 +174,8 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	FILE *fp = NULL;
 	char *ptr = NULL;
 	char line[MAX_LINE + 1] = {0};
-	
+	char line2[MAX_LINE + 1] = {0};
+
 	/* Check to see if another instance is running */
 	if (!instance_lock()) {
 		return ESIF_FALSE;
@@ -216,13 +244,14 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	** Start The Daemon
 	*/
 	g_cmdshell_enabled = 0;
-	esif_uf_init("");
+	esif_uf_init(HOME_DIRECTORY);
 	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
 
 	/* Process Input ? */
 	if (ESIF_TRUE == start_with_pipe) {
 		while (!g_quit) {
+			int count = 0;
 			fp = fopen(cmd_in, "r");
 			if (NULL == fp) {
 				break;
@@ -241,7 +270,22 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 			}
 
 			/* Parse and execute the command */
-			parse_cmd(line, ESIF_FALSE);
+			if (1 == g_repeat || !strncmp(line, "repeat", 6)) {
+					parse_cmd(line, ESIF_FALSE);
+			} else {
+					for (count = 0; count < g_repeat; count++) {
+							strcpy(line2, line);
+							parse_cmd(line2, ESIF_FALSE);   /* parse destroys command line */
+							
+							if (g_soe && g_errorlevel != 0) {
+									break;
+							}
+							if (g_repeat_delay && count + 1 < g_repeat) {
+									esif_ccb_sleep(g_repeat_delay / 1000);
+							}
+					}
+					g_repeat = 1;
+			}
 		}
 
 		if (NULL != fp) {
@@ -270,7 +314,8 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		return ESIF_FALSE;
 	}
 
-	esif_uf_init("");
+	esif_uf_init(HOME_DIRECTORY);
+
 	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
 	sleep(1); 
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
@@ -442,7 +487,7 @@ int main (int argc, char **argv)
 		if (EWOULDBLOCK == errno)
 			CMD_DEBUG("Aborting: Another Instance is already running\n");
 		else
-			CMD_DEBUG("Aborting: Unable to Obtain Lock, Error #%d\n", errno);
+			CMD_DEBUG("Aborting: Unable to Obtain Instance Lock, Error #%d\n", errno);
 		exit(EXIT_FAILURE);
 	}
 

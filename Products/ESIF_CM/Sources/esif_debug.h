@@ -201,7 +201,6 @@ struct esif_memory_stats {
 
 #define ESIF_TRACE_CATEGORY_DEFAULT   ((u32)1 << ESIF_TRACE_CATEGORY_ERROR)
 
-/* Linux */
 #ifdef ESIF_ATTR_OS_LINUX
 #define ESIF_ALWAYSFALSE (0) /*used for do...while(0) macros */
 #define ESIF_TRACENULL
@@ -213,8 +212,6 @@ struct esif_memory_stats {
 					*strrchr(__FILE__,'/')+1 : __FILE__) */
 #endif /* ESIF_ATTR_OS_LINUX */
 
-
-/* Windows */
 #ifdef ESIF_ATTR_OS_WINDOWS
 /* avoids "conditional expression is constant" warnings for do...while(0) macros in Windows */
 static char g_alwaysfalse;
@@ -357,7 +354,8 @@ static char g_alwaysfalse;
 #define ESIF_TRACEFUNC CMD_OUT
 #define ESIF_FILENAME __FILE__
 
-#else
+#endif
+#ifdef ESIF_ATTR_OS_LINUX
 #define ESIF_ALWAYSFALSE (0)
 #define ESIF_TRACENULL
 #define ESIF_TRACEFUNC printf

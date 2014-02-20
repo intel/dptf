@@ -89,6 +89,8 @@ static struct esif_participant_iface pi = {
 	.device_name = "?",	/* Filled In Dynamically By Driver */
 	.device_path = "NA",	/* Filled In Dynamically By Driver */
 	.device      = NULL,	/* Driver Assigned                 */
+ 	.mem_base    = NULL,    /* Driver Assigned                 */
+        .mem_size    = 0,       /* Driver Assigned                 */
 	.acpi_handle = NULL,	/* Driver Assigned                 */
 
 	/* EVENT */
@@ -1482,9 +1484,9 @@ static ssize_t dptf_debug_module_level_store(
 /*
 ** Setup Attributes For Linux SYSFS
 */
-#define RO 0444
-#define RW 0644
-#define WO 0200
+#define RW S_IRWXUGO  
+#define RO S_IRUGO
+#define WO S_IWUGO
 
 static DEVICE_ATTR(rapl_power, RO, dptf_device_rapl_power_show, NULL);
 static DEVICE_ATTR(rapl_power_default,
@@ -2036,7 +2038,11 @@ static int acpi_add(struct acpi_device *dev_ptr)
 
 
 /* Remove */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3, 8, 0)
+static int acpi_remove(struct acpi_device *dev_ptr, int type)
+#else
 static int acpi_remove(struct acpi_device *dev_ptr)
+#endif
 {
 	enum esif_rc rc = ESIF_OK;
 	ESIF_TRACE_DEBUG("%s: acpi_dev %p\n", ESIF_FUNC, dev_ptr);

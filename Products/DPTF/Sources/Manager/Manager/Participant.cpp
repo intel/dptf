@@ -54,7 +54,7 @@ void Participant::createParticipant(UIntN participantIndex, const AppParticipant
     if (m_theRealParticipant == nullptr)
     {
         std::stringstream message;
-        message << "Failed to create participant instance for participant: " << std::string(EsifDataString(participantDataPtr->fName));
+        message << "Failed to create participant instance for participant: " << EsifDataString(&participantDataPtr->fName);
         throw dptf_exception(message.str());
     }
 
@@ -62,20 +62,20 @@ void Participant::createParticipant(UIntN participantIndex, const AppParticipant
     {
         m_participantServices = new ParticipantServices(m_dptfManager, participantIndex);
         m_participantIndex = participantIndex;
-        m_participantGuid = EsifDataGuid(participantDataPtr->fDriverType);
-        m_participantName = EsifDataString(participantDataPtr->fName);
+        m_participantGuid = EsifDataGuid(&participantDataPtr->fDriverType);
+        m_participantName = EsifDataString(&participantDataPtr->fName);
 
         m_theRealParticipant->createParticipant(
             m_participantGuid,
             m_participantIndex,
             participantEnabled,
             m_participantName,
-            EsifDataString(participantDataPtr->fDesc),
+            EsifDataString(&participantDataPtr->fDesc),
             EsifParticipantEnumToBusType(participantDataPtr->fBusEnumerator),
             PciInfo(participantDataPtr->fPciVendor, participantDataPtr->fPciDevice, participantDataPtr->fPciBus,
                 participantDataPtr->fPciBusDevice, participantDataPtr->fPciFunction, participantDataPtr->fPciRevision,
                 participantDataPtr->fPciClass, participantDataPtr->fPciSubClass, participantDataPtr->fPciProgIf),
-            AcpiInfo(EsifDataString(participantDataPtr->fAcpiDevice), EsifDataString(participantDataPtr->fAcpiScope),
+            AcpiInfo(EsifDataString(&participantDataPtr->fAcpiDevice), EsifDataString(&participantDataPtr->fAcpiScope),
                 participantDataPtr->fAcpiUID, participantDataPtr->fAcpiType),
             m_participantServices);
     }

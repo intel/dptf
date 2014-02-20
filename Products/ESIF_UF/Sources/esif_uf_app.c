@@ -58,30 +58,23 @@ static esif_string g_qualifiers[] = {
 static AppDataPtr CreateAppData(esif_string pathBuf)
 {
 	AppDataPtr app_data_ptr = NULL;
-	esif_string full_path   = NULL;
 
 	if (NULL == pathBuf) {
 		goto exit;
 	}
 
 
-	full_path = esif_build_path(pathBuf, ESIF_PATH_LEN, ESIF_DIR_DPTF_POL, NULL);
-
-
-	if (NULL == full_path) {
-		goto exit;
-	}
-
-	ESIF_TRACE_DEBUG("%s %s %s\n\n", ESIF_FUNC, (esif_string)pathBuf, (esif_string)full_path);
+	esif_build_path(pathBuf, ESIF_PATH_LEN, ESIF_PATHTYPE_DPTF, NULL, NULL);
+	ESIF_TRACE_DEBUG("%s\n\n", (esif_string)pathBuf);
 
 	app_data_ptr = (AppDataPtr)esif_ccb_malloc(sizeof(AppData));
 	if (NULL == app_data_ptr) {
 		goto exit;
 	}
 
-	app_data_ptr->fPathHome.buf_ptr  = (void *)full_path;
+	app_data_ptr->fPathHome.buf_ptr  = (void *)pathBuf;
 	app_data_ptr->fPathHome.buf_len  = ESIF_PATH_LEN;
-	app_data_ptr->fPathHome.data_len = (UInt32)esif_ccb_strlen(full_path, ESIF_PATH_LEN);
+	app_data_ptr->fPathHome.data_len = (UInt32)esif_ccb_strlen(pathBuf, ESIF_PATH_LEN);
 	app_data_ptr->fPathHome.type     = ESIF_DATA_STRING;
 	app_data_ptr->fLogLevel          = (eLogType) g_traceLevel;
 
@@ -619,8 +612,7 @@ eEsifError EsifAppStart(EsifAppPtr appPtr)
 	char libPath[ESIF_LIBPATH_LEN];
 
 	ESIF_TRACE_DEBUG("%s name=%s\n", ESIF_FUNC, appPtr->fLibNamePtr);
-	esif_ccb_sprintf(ESIF_LIBPATH_LEN, libPath, "%s.%s", esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_DIR_PRG, appPtr->fLibNamePtr), ESIF_LIB_EXT);
-
+	esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL, appPtr->fLibNamePtr, ESIF_LIB_EXT);
 	appPtr->fLibHandle = esif_ccb_library_load(libPath);
 
 	if (NULL == appPtr->fLibHandle) {
@@ -665,8 +657,8 @@ eEsifError EsifAppStop(EsifAppPtr appPtr)
 
 	rc = appPtr->fInterface.fAppDestroyFuncPtr(appPtr->fHandle);
 	if (ESIF_OK == rc) {
-		esif_ccb_free(appPtr->fLibNamePtr);
 		esif_ccb_library_unload(appPtr->fLibHandle);
+		esif_ccb_free(appPtr->fLibNamePtr);
 		memset(appPtr, 0, sizeof(*appPtr));
 	}
 	return rc;

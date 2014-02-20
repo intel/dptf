@@ -17,27 +17,33 @@
 ******************************************************************************/
 
 #include "WorkItemQueueThread.h"
-#include "EsifThread.h"
 #include "DptfManager.h"
 #include "ParticipantManager.h"
 
 WorkItemQueueThread::WorkItemQueueThread(DptfManager* dptfManager, ImmediateWorkItemQueue* immediateQueue,
     DeferredWorkItemQueue* deferredQueue, EsifSemaphore* workItemQueueSemaphore,
     WorkItemStatistics* workItemStatistics) :
-    m_dptfManager(dptfManager), m_destroyThread(false),
+    m_dptfManager(dptfManager), m_participantManager(nullptr), m_destroyThread(false),
     m_immediateQueue(immediateQueue), m_deferredQueue(deferredQueue),
-    m_workItemQueueSemaphore(workItemQueueSemaphore), m_workItemQueueThreadId(nullptr),
+    m_workItemQueueSemaphore(workItemQueueSemaphore), 
+    m_workItemQueueThreadHandle(nullptr), m_workItemQueueThreadId(nullptr),
+    m_workItemQueueThreadExitSemaphore(nullptr),
     m_workItemStatistics(workItemStatistics)
 {
     m_participantManager = m_dptfManager->getParticipantManager();
-    EsifThread(ThreadStart, this);
+    m_workItemQueueThreadExitSemaphore = new EsifSemaphore();
+    m_workItemQueueThreadHandle = new EsifThread(ThreadStart, this);
 }
 
 WorkItemQueueThread::~WorkItemQueueThread(void)
 {
     m_destroyThread = true;
+
     m_workItemQueueSemaphore->signal();
-    DELETE_MEMORY_TC(m_workItemQueueThreadId);
+    m_workItemQueueThreadExitSemaphore->wait();
+
+    DELETE_MEMORY_TC(m_workItemQueueThreadHandle);
+    DELETE_MEMORY_TC(m_workItemQueueThreadExitSemaphore);
 }
 
 EsifThreadId WorkItemQueueThread::getWorkItemQueueThreadId(void) const
@@ -69,6 +75,10 @@ void WorkItemQueueThread::executeThread(void)
 
         m_workItemQueueSemaphore->wait();
     }
+
+    DELETE_MEMORY_TC(m_workItemQueueThreadId);
+
+    m_workItemQueueThreadExitSemaphore->signal();
 }
 
 void WorkItemQueueThread::processImmediateQueue(void)

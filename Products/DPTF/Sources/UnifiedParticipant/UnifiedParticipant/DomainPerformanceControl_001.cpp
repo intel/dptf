@@ -187,28 +187,31 @@ void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN dom
 {
     if (m_performanceControlSet == nullptr)
     {
-        UInt32 dataLength = 0;
-        DptfMemory binaryData(Constants::DefaultBufferSize);
-
-        //Build PPSS table
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_PERF_SUPPORT_STATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-
-        m_performanceControlSet = new PerformanceControlSet(BinaryParse::genericPpssObject(dataLength, binaryData));
-
-        if (m_performanceControlSet->getCount() == 0)
+        try
         {
-            binaryData.deallocate();
-
-            throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");
+            // Build PPSS table
+            UInt32 dataLength = 0;
+            DptfMemory binaryData(Constants::DefaultBufferSize);
+            m_participantServicesInterface->primitiveExecuteGet(
+                esif_primitive_type::GET_PERF_SUPPORT_STATES,
+                ESIF_DATA_BINARY,
+                binaryData,
+                binaryData.getSize(),
+                &dataLength,
+                domainIndex);
+            m_performanceControlSet = new PerformanceControlSet(BinaryParse::genericPpssObject(dataLength, binaryData));
+            if (m_performanceControlSet->getCount() == 0)
+            {
+                throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");
+            }
         }
-
-        binaryData.deallocate();
+        catch (...)
+        {
+            // Use a set with one invalid item
+        	std::vector<PerformanceControl> controls;
+            controls.push_back(PerformanceControl::createInvalid());
+            m_performanceControlSet = new PerformanceControlSet(controls);
+        }
     }
 }
 

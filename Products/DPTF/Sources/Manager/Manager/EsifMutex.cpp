@@ -25,7 +25,7 @@ EsifMutex::EsifMutex(void)
 
 EsifMutex::~EsifMutex(void)
 {
-    esif_ccb_mutex_destroy(&m_mutex);
+    esif_ccb_mutex_uninit(&m_mutex);
 }
 
 void EsifMutex::lock(void)

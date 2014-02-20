@@ -102,12 +102,19 @@ struct esif_data_complex_osc {
 	u32          capabilities;	/* Always Used By DPTF */
 };
 
+/* GUID Pair */
+struct esif_data_complex_guid_pair {
+	esif_guid_t  guid1; /* Example SUB_GROUP */
+	esif_guid_t  guid2; /* Example Power Setting */
+};
+
 #define ESIF_TABLE_NO_REVISION  0xffff
 struct esif_table_hdr {
 	u8   revision;
 	u16  rows;
 	u16  cols;
 };
+
 
 /* Variant */
 

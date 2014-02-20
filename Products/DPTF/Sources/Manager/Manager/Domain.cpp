@@ -61,8 +61,8 @@ void Domain::createDomain(UIntN participantIndex, UIntN domainIndex, Participant
     m_theRealParticipant = participantInterface;
     m_participantIndex = participantIndex;
     m_domainIndex = domainIndex;
-    m_domainGuid = EsifDataGuid(domainDataPtr->fGuid);
-    m_domainName = EsifDataString(domainDataPtr->fName);
+    m_domainGuid = EsifDataGuid(&domainDataPtr->fGuid);
+    m_domainName = EsifDataString(&domainDataPtr->fName);
     m_domainType = EsifDomainTypeToDptfDomainType(domainDataPtr->fType);
     m_domainFunctionalityVersions = DomainFunctionalityVersions(domainDataPtr->fCapabilityBytes);
     m_arbitrator = new Arbitrator(m_dptfManager);
@@ -74,7 +74,7 @@ void Domain::createDomain(UIntN participantIndex, UIntN domainIndex, Participant
         domainEnabled,
         m_domainType,
         m_domainName,
-        EsifDataString(domainDataPtr->fDescription),
+        EsifDataString(&domainDataPtr->fDescription),
         m_domainFunctionalityVersions);
 }
 

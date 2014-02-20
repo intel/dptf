@@ -76,16 +76,17 @@
 #define esif_set_action_ddigfxperf(pPrim, pAct, pLp, pReq) \
 	GfxIntfcExecuteSetAction(pPrim, pAct, pLp, pReq)
 
-#else	/* NOT ESIF_ATTR_OS_WINDOWS */
+#endif	/* ESIF_ATTR_OS_WINDOWS */
+#ifdef ESIF_ATTR_OS_LINUX
 #define esif_get_action_ddigfxdisp(pPrim, pAct, pLp, pReq, pRsp) \
-	ESIF_E_OPCODE_NOT_IMPLEMENTED
+	ESIF_E_ACTION_NOT_IMPLEMENTED	
 #define esif_set_action_ddigfxdisp(pPrim, pAct, pLp, pReq) \
-	ESIF_E_OPCODE_NOT_IMPLEMENTED
+	ESIF_E_ACTION_NOT_IMPLEMENTED
 #define esif_get_action_ddigfxperf(pPrim, pAct, pLp, pReq, pRsp) \
-	ESIF_E_OPCODE_NOT_IMPLEMENTED
+	ESIF_E_ACTION_NOT_IMPLEMENTED
 #define esif_set_action_ddigfxperf(pPrim, pAct, pLp, pReq) \
-	ESIF_E_OPCODE_NOT_IMPLEMENTED
-#endif	/* NOT ESIF_ATTR_OS_WINDOWS */
+	ESIF_E_ACTION_NOT_IMPLEMENTED	
+#endif	/* ESIF_ATTR_OS_LINUX */
 
 #endif /* ESIF_ATTR_KERNEL */
 #endif /* _ESIF_LF_CCB_GEN_ACTION_ */

@@ -42,13 +42,14 @@ T,1,6,,,1,8
 T,4,5,,,0,8
 T,11,9,,,1,8
 T,29,6,,,1,8
+T,40,13,,,1,8
 #
 E,"PCAP",0x80,11,3,24,0x9091810C-F301-44D6-B2B5-B301812E4D08
 E,"SIC",0x91,17,3,24,0x75494A00-417C-4E51-9FAB-FBDD965577D4
 E,"TTC",0x90,16,3,24,0x43CDD7D8-C96D-4EE7-9A4A-7EC5C2EE1B6E
 #
 D,"DFL","Default Domain","D0","0CEB45E0-B269-4CB9-9D12-1A02DD5965C0",0,14
-C,0x2120 ,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
+C,0x2320 ,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x1,0x1,0x0,0x0,0x0,0x1,0x0,0x0
 #
 # GET_DEVICE_DESCRIPTION
 P,60,255,1,24,"<schema></schema>",9,"<schema></schema>"
@@ -71,6 +72,7 @@ A,0,4,True,"PTYP",,,,
 # GET_PARTICIPANT_UTILIZATION
 P,138,255,1,24,"<schema></schema>",29,"<schema></schema>"
 A,0,4,True,"PUTL",,,,
+A,1,1,True,10000,,,,
 # GET_PERF_PSTATE_DEPTH_LIMIT
 P,76,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"PPDL",,,,
@@ -81,6 +83,9 @@ A,0,4,True,"PPSS",,,,
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,4,True,"_TMP",,,,
+# GET_TEMPERATURE_APPROX_TABLE
+P,164,255,1,24,"<schema></schema>",7,"<schema></schema>"
+A,0,4,True,"LPAT",,,,
 # GET_TEMPERATURE_THRESHOLD_COUNT
 P,72,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"PATC",,,,

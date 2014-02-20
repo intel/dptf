@@ -30,9 +30,10 @@ INC := -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LF_SOURCES) -I$(ESIF_W
 CC_OPTIONS := -O9 -Wno-multichar
 CC_OPTIONS += -DESIF_ATTR_USER 
 CC_OPTIONS += -DESIF_ATTR_OS_LINUX 
-CC_OPTIONS += -DESIF_ATTR_64BIT
 CC_OPTIONS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
 CC_OPTIONS += $(INC) 
+
+## CC_OPTIONS += -DESIF_ATTR_DAEMON
 
 ###############################################################################
 # EISF_UF 

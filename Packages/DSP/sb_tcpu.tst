@@ -60,7 +60,6 @@ getp 038 D0 000                                              ;GET_RAPL_POWER_LIM
 getp 126 D0 000 -u 1 -l 0                                    ;GET_RAPL_POWER_LIMIT_ENABLE
 getp 124 D0 255 -u 3 -l 3                                    ;GET_RAPL_POWER_UNIT
 getp 122 D0 255 -u 10 -l 10                                  ;GET_RAPL_TIME_UNIT
-getp 039 D0 000                                              ;GET_RAPL_TIME_WINDOW
 getp 014 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE
 getp 014 D1 255 -u 105 -l 0                                  ;GET_TEMPERATURE
 getp 014 D2 255 -u 105 -l 0                                  ;GET_TEMPERATURE
@@ -70,6 +69,16 @@ getp 072 D0 255 -u 2 -l 2                                    ;GET_TEMPERATURE_TH
 getp 015 D0 255 -u 105 -l 0                                  ;GET_TEMPERATURE_THRESHOLD_HYSTERESIS
 getp 143 D0 000                                              ;GET_TEMPERATURE_THRESHOLDS
 getp 143 D0 001                                              ;GET_TEMPERATURE_THRESHOLDS
+getp 001 D0 000 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 001 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 002 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 003 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 004 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 005 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 006 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 007 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 008 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
+getp 001 D0 009 -u 105 -l 0                                  ;GET_TRIP_POINT_ACTIVE
 getp 013 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_CRITICAL
 getp 012 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_HOT
 getp 011 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_PASSIVE
@@ -85,7 +94,6 @@ rem setp 153 D1 255                                          ;SET_PROC_NUMBER_OF
 rem setp 100 D0 255                                          ;SET_PROC_TURBO_STATE
 rem setp 130 D0 000                                          ;SET_RAPL_POWER_LIMIT
 rem setp 222 D0 000                                          ;SET_RAPL_POWER_LIMIT_ENABLE
-rem setp 127 D0 000                                          ;SET_RAPL_TIME_WINDOW
 rem setp 241 D0 255                                          ;SET_TEMPERATURE
 rem setp 241 D1 255                                          ;SET_TEMPERATURE
 rem setp 241 D2 255                                          ;SET_TEMPERATURE
@@ -93,12 +101,22 @@ rem setp 241 D3 255                                          ;SET_TEMPERATURE
 rem setp 241 D4 255                                          ;SET_TEMPERATURE
 rem setp 047 D0 000                                          ;SET_TEMPERATURE_THRESHOLDS
 rem setp 047 D0 001                                          ;SET_TEMPERATURE_THRESHOLDS
+rem setp 202 D0 000                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 001                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 002                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 003                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 004                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 005                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 006                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 007                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 008                                          ;SET_TRIP_POINT_ACTIVE
+rem setp 202 D0 009                                          ;SET_TRIP_POINT_ACTIVE
 rem setp 203 D0 255                                          ;SET_TRIP_POINT_CRITICAL
 rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
 rem setp 147 D1 255                                          ;SET_TSTATE_CURRENT
-echo Test Count: 66
+echo Test Count: 84
 timerstop
 geterrorlevel
 nolog

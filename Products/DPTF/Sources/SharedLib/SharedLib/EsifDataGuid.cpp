@@ -34,19 +34,34 @@ EsifDataGuid::EsifDataGuid(const esif_guid_t& esifGuid)
     initialize(esifGuid);
 }
 
-EsifDataGuid::EsifDataGuid(const esif::EsifData& esifData)
+EsifDataGuid::EsifDataGuid(const esif::EsifDataPtr esifDataPtr)
 {
-    if (esifData.type != ESIF_DATA_GUID)
+    if (esifDataPtr == nullptr)
     {
-        throw dptf_exception("Received invalid EsifData parameter.  Expected ESIF_DATA_GUID.");
+        throw dptf_exception("EsifDataPtr is null.");
     }
 
-    if (esifData.buf_ptr == nullptr)
+    if (esifDataPtr->type != ESIF_DATA_GUID && esifDataPtr->type != ESIF_DATA_BINARY)
     {
-        throw dptf_exception("Received ESIF_DATA_GUID with null buffer ptr.");
+        throw dptf_exception("Received unexpected esifDataPtr->type.");
     }
 
-    initialize(static_cast<const UInt8*>(esifData.buf_ptr));
+    if (esifDataPtr->buf_ptr == nullptr)
+    {
+        throw dptf_exception("esifData->buf_ptr is null.");
+    }
+
+    if (esifDataPtr->buf_len < GuidSize)
+    {
+        throw dptf_exception("esifData->buf_len too small.");
+    }
+
+    if (esifDataPtr->data_len < GuidSize)
+    {
+        throw dptf_exception("esifData->data_len too small.");
+    }
+
+    initialize(static_cast<const UInt8*>(esifDataPtr->buf_ptr));
 }
 
 EsifDataGuid::operator esif::EsifData(void)

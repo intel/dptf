@@ -27,7 +27,7 @@ public:
 
     EsifDataUInt8(void);
     EsifDataUInt8(UInt8 data);
-    EsifDataUInt8(const esif::EsifData& esifData);
+    EsifDataUInt8(const esif::EsifDataPtr esifDataPtr);
 
     operator esif::EsifDataPtr(void);
     operator UInt8(void) const;
