@@ -266,9 +266,11 @@ being addressed and will be fixed in a future release.
 * The daemon is intermittently dying after a period of time.  The root cause is
 unknown at this time.  The issue is under investigation.
 
-* Running the esif_ufd without specifying the absolute path "/usr/bin/esif_ufd"
-will occasionally fail.  This is due to directory path issues and will be
-addressed in the next release.
+* When the system first boots the daemon will sporadically appear to start but
+the DPTF application is not running.  The workaround is to restart the daemon
+with "sudo initctl restart dptf".  We have root caused the issue and are 
+currently working on a fix for the next release.
 
-* The Dptf.so currently resides in /usr/lib instead of /usr/lib64.  This will
-be addressed in the next release.
+* Compiling the code with any level of optimization beyong -O0 is causing the 
+code to break.  Do not compile with optimization at this time.  This will be
+addressed in the next release.
