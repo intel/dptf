@@ -66,7 +66,7 @@ are needed to run DPTF for this Alpha release on Chromium.
 BUILDING ESIF UPPER FRAMEWORK (SHELL APPLICATION)
 -------------------------------------------------------------------------------
 Still in chroot, we can now build the ESIF shell application. Simply go to the 
-<DPTF archive root>/Products/ESIF_UF/Chrome64 directory, and 
+<DPTF archive root>/Products/ESIF_UF/Chrome directory, and 
 run the following commands: 
 
 	make clean
