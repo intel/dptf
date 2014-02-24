@@ -119,16 +119,29 @@ but only 4 are needed and they are:
 	* dptf_pch.ko
 
 Step 6 - The ESIF lower framework drivers are dependent on the transport
-MailBox Interface (MBI) driver to exchange information with BIOS on 
-Intel (R) Atom (TM) based systems. The MBI driver has been submitted to 
-Linux Kernel Mailing List (LKML.ORG) by Intel Corp. As of this writing,
-the latest submission can be found from the link below:
+MailBox Interface (MBI) driver to exchange information with BIOS on
+Intel (R) Atom (TM) based systems. This driver is already included in the
+official Rambi build from Google's chromium.org tree, but if you need to
+test DPTF on other target platforms, you may need to build this driver
+manually. The source code of this driver can be found here:
 
-https://lkml.org/lkml/2013/12/6/723
+The header file:
+https://chromium.googlesource.com/chromiumos/third_party/kernel-next/+/chromeos-3.10/arch/x86/include/asm/iosf_mbi.h
 
-The user is expected to download this driver from lkml.org and build it
-from the chroot environment. The generated kernel module is named
-intel_baytrail.ko. 
+The source code:
+https://chromium.googlesource.com/chromiumos/third_party/kernel-next/+/chromeos-3.10/arch/x86/kernel/iosf_mbi.c
+
+The kernel config file that enables the building of this driver:
+https://chromium.googlesource.com/chromiumos/third_party/kernel-next/+/chromeos-3.10/chromeos/config/x86_64/common.config
+Note that CONFIG_IOSF_MBI is set to y in this file, but you can also set it
+to 'm' to build the driver as a loadable module.
+
+The actual kernel make file that builds this module based on the config
+file settings:
+https://chromium.googlesource.com/chromiumos/third_party/kernel-next/+/chromeos-3.10/arch/x86/kernel/Makefile
+Please note the line in this file that builds the driver based on kernel
+config file settings:
+obj-$(CONFIG_IOSF_MBI) += iosf_mbi.o
 
 -------------------------------------------------------------------------------
 CREATING DPTF TAR BALL PACKAGE
