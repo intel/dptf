@@ -60,11 +60,11 @@
 
 #define ESIF_VERSION_MAJOR 8
 #define ESIF_VERSION_MINOR 0
-#define ESIF_VERSION_HOTFIX 0
-#define ESIF_VERSION_BUILD 999
+#define ESIF_VERSION_HOTFIX 8
+#define ESIF_VERSION_BUILD 0
 
 /* Build system will should set to 0 */
-#define ESIF_SKU_TYPE 1
+#define ESIF_SKU_TYPE 0
 
 #if ESIF_SKU_TYPE == 0
 #define ESIF_VERSION EXPAND_TOSTR( \

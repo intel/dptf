@@ -167,18 +167,21 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
             // utilization is highest
             vector<UIntN> packageDomains = getPackageDomains(source, domainsWithControlKnobsToTurn);
             domainsToLimitSet.insert(packageDomains.begin(), packageDomains.end());
-            vector<pair<UIntN, UtilizationStatus>> domainsSortedByPreference =
-                getDomainsSortedByPriorityThenUtilization(source, domainsWithControlKnobsToTurn);
-            for (auto domain = domainsSortedByPreference.begin(); domain != domainsSortedByPreference.end(); domain++)
+            if (packageDomains.size() == 0)
             {
-                if (domain->second.getCurrentUtilization().isValid() == false)
+                vector<pair<UIntN, UtilizationStatus>> domainsSortedByPreference =
+                    getDomainsSortedByPriorityThenUtilization(source, domainsWithControlKnobsToTurn);
+                for (auto domain = domainsSortedByPreference.begin(); domain != domainsSortedByPreference.end(); domain++)
                 {
-                    domainsToLimitSet.insert(domain->first);
-                }
-                else
-                {
-                    domainsToLimitSet.insert(domain->first);
-                    break;
+                    if (domain->second.getCurrentUtilization().isValid() == false)
+                    {
+                        domainsToLimitSet.insert(domain->first);
+                    }
+                    else
+                    {
+                        domainsToLimitSet.insert(domain->first);
+                        break;
+                    }
                 }
             }
         }

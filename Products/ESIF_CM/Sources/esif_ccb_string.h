@@ -196,6 +196,8 @@ static ESIF_INLINE void esif_ccb_uni2ascii(
 #define esif_ccb_strncmp(s1, s2, count) strncmp(s1, s2, count)
 #define esif_ccb_strnicmp(s1, s2, cnt) _strnicmp(s1, s2, cnt)
 #define esif_ccb_strstr(str, sub) strstr(str, sub)
+#define esif_ccb_strchr(str, chr) strchr(str, chr)
+#define esif_ccb_strrchr(str, chr) strrchr(str, chr)
 #define esif_ccb_strlen(str, siz) strnlen_s(str, siz)
 #define esif_ccb_wcslen(str, siz) wcsnlen_s(str, siz)
 #define esif_ccb_strdup_notrace(str) _strdup(str)
@@ -217,6 +219,8 @@ static ESIF_INLINE void esif_ccb_uni2ascii(
 #define esif_ccb_strncmp(s1, s2, count) strncmp(s1, s2, count)
 #define esif_ccb_strnicmp(s1, s2, cnt) strncasecmp(s1, s2, cnt)
 #define esif_ccb_strstr(str, sub) strstr(str, sub)
+#define esif_ccb_strchr(str, chr) strchr(str, chr)
+#define esif_ccb_strrchr(str, chr) strrchr(str, chr)
 #define esif_ccb_strlen(str, siz) strlen(str)
 #define esif_ccb_strdup_notrace(str) strdup(str)
 
@@ -258,6 +262,22 @@ static ESIF_INLINE int esif_ccb_vscprintf(
 
 
 #endif
+
+// sprintf and concatentate results to the end of a string
+static ESIF_INLINE int esif_ccb_sprintf_concat(
+	size_t siz,			// total size of str buffer, including existing string
+	char *str,			// null terminated string
+	const char *fmt,	// format string
+	...)
+{
+	int rc = 0;
+	size_t len = esif_ccb_strlen(str, siz);
+	va_list args;
+	va_start(args, fmt);
+	rc = esif_ccb_vsprintf(siz - len, str + len, fmt, args);
+	va_end(args);
+	return rc;
+}
 
 #ifdef ESIF_ATTR_MEMTRACE
 extern char *esif_memtrace_strdup(char *str, const char *func, const char *file, int line);

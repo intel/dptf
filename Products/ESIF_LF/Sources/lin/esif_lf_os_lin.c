@@ -1062,49 +1062,41 @@ static ssize_t dptf_device_capability_show(
 {
 	struct esif_lp_domain *lpd_ptr = dev_get_platdata(dev_ptr);
 	esif_flags_t capability = lpd_ptr->capabilities;
-	ssize_t num = sprintf(buf_ptr, "Capabilities Bit Mask = 0x%08x\n",
-			      capability);
+		
+	sprintf(buf_ptr, "Capabilities Bit Mask = 0x%08x\n", capability);
 
 	/* Decode */
 	if (capability & ESIF_CAPABILITY_TEMP_STATUS)
-		num = sprintf(buf_ptr, "%sREPORTS_TEMPERATURE\n", buf_ptr);
+		strcat(buf_ptr, "REPORTS_TEMPERATURE\n");
 
 	if (capability & ESIF_CAPABILITY_POWER_STATUS)
-		num = sprintf(buf_ptr, "%sREPORTS_POWER\n", buf_ptr);
+		strcat(buf_ptr, "REPORTS_POWER\n");
 
 	if (capability & ESIF_CAPABILITY_POWER_CONTROL)
-		num = sprintf(buf_ptr, "%sPOWER_CONTROLS_AVAILABLE\n", buf_ptr);
+		strcat(buf_ptr, "POWER_CONTROLS_AVAILABLE\n");
 
-	if (capability & ESIF_CAPABILITY_PERF_CONTROL) {
-		num = sprintf(buf_ptr, "%sPERFORMANCE_CONTROLS_AVAILABLE\n",
-			      buf_ptr);
-	}
+	if (capability & ESIF_CAPABILITY_PERF_CONTROL)
+		strcat(buf_ptr, "PERFORMANCE_CONTROLS_AVAILABLE\n");
 
-	if (capability & ESIF_CAPABILITY_ACTIVE_CONTROL) {
-		num = sprintf(buf_ptr, "%sACTIVE_CONTROLS_AVAILABLE\n",
-			      buf_ptr);
-	}
+	if (capability & ESIF_CAPABILITY_ACTIVE_CONTROL)
+		strcat(buf_ptr, "ACTIVE_CONTROLS_AVAILABLE\n");
 
 	if (capability & ESIF_CAPABILITY_UTIL_STATUS)
-		num = sprintf(buf_ptr, "%sREPORTS_UTILIZATION\n", buf_ptr);
+		strcat(buf_ptr, "REPORTS_UTILIZATION\n");
 
 	if (capability & ESIF_CAPABILITY_CORE_CONTROL)
-		num = sprintf(buf_ptr, "%sCORE_CONTROLS_AVAILABLE\n", buf_ptr);
+		strcat(buf_ptr, "CORE_CONTROLS_AVAILABLE\n");
 
-	if (capability & ESIF_CAPABILITY_CTDP_CONTROL) {
-		num = sprintf(buf_ptr, "%sCONFIG_TDP_CONTROLS_AVAILABLE\n",
-			      buf_ptr);
-	}
+	if (capability & ESIF_CAPABILITY_CTDP_CONTROL)
+		strcat(buf_ptr, "CONFIG_TDP_CONTROLS_AVAILABLE\n");
 
 	if (capability & ESIF_CAPABILITY_DOMAIN_PRIORITY)
-		num = sprintf(buf_ptr, "%sREPORTS_DOMAIN_PRIORITY\n", buf_ptr);
+		strcat(buf_ptr, "REPORTS_DOMAIN_PRIORITY\n");
 
-	if (capability & ESIF_CAPABILITY_DISPLAY_CONTROL) {
-		num = sprintf(buf_ptr, "%sDISPLAY_CONTROLS_AVAILABLE\n",
-			       buf_ptr);
-	}
+	if (capability & ESIF_CAPABILITY_DISPLAY_CONTROL)
+		strcat(buf_ptr, "DISPLAY_CONTROLS_AVAILABLE\n");
 
-	return num;
+	return strlen(buf_ptr);
 }
 
 
@@ -1432,9 +1424,8 @@ static ssize_t dptf_debug_module_level_show(
 			state = "DISABLED";
 		modules = modules >> 1;
 		esif_debug_get_module_category(i, &level);
-		len     = sprintf(buf_ptr,
-				  "%smodule %02d: State: %8s Level: 0x%08X\n",
-				  buf_ptr,
+		len     = sprintf(buf_ptr + strlen(buf_ptr),
+				  "module %02d: State: %8s Level: 0x%08X\n",
 				  i,
 				  state,
 				  level);

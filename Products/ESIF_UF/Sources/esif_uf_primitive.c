@@ -660,12 +660,12 @@ void esif_uf_dump_primitive(
 			switch (data_item_ptr->data_type) {
 			case 1:	// String
 				param_str = (char *)&data_item_ptr->data;
-				esif_ccb_sprintf(128, msg, "%s%s\n", msg, param_str);
+				esif_ccb_sprintf_concat(128, msg, "%s\n", param_str);
 				break;
 
 			case 4:	// 32 Bit Integer
 				param = *(u32 *)&data_item_ptr->data;
-				esif_ccb_sprintf(128, msg, "%s0x%08x\n", msg, param);
+				esif_ccb_sprintf_concat(128, msg, "0x%08x\n", param);
 				break;
 
 			default:

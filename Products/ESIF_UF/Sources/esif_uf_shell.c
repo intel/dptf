@@ -454,9 +454,8 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 			esif_ccb_sprintf(8, version, "%u.%u",
 							 *dsp_ptr->ver_major_ptr, *dsp_ptr->ver_minor_ptr);
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  <dsp>\n", output);
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <dsp>\n");
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 							 "    <id>%u</id>\n"
 							 "    <enum>%u</enum>\n"
 							 "    <package>%s</package>\n"
@@ -476,7 +475,6 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 							 "    <pciClass></pciClass>\n"
 							 "    <pciSubClass></pciSubClass>\n"
 							 "    <pciProgIf></pciProgIf>\n",
-							 output,
 							 i,
 							 *dsp_ptr->bus_enum,
 							 dsp_ptr->code_ptr,
@@ -493,10 +491,10 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 							 *dsp_ptr->pci_bus_device,
 							 *dsp_ptr->pci_function);
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  </dsp>\n", output);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  </dsp>\n");
 		}
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</result>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
 
 		return output;
 	}
@@ -507,13 +505,13 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 					 "Count:  %u\n\n",
 					 g_dm.dme_count);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%sACPI Enumerated DSP Candidates:\n\n"
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					 "ACPI Enumerated DSP Candidates:\n\n"
 					 "Weighted Eq: = (HID(8) & TYPE(4) & UID(2) & SCOPE(1))\n"
 					 "Minterms: 4\n"
 					 "\n"
 					 "ID DSP PACKAGE  VERSION HID      TYPE UID SCOPE\n"
-					 "-- ------------ ------- -------- ---- --- ------------------------------\n", output);
+					 "-- ------------ ------- -------- ---- --- ------------------------------\n");
 
 	for (i = 0; i < g_dm.dme_count; i++) {
 		struct esif_up_dsp *dsp_ptr = g_dm.dme[i].dsp_ptr;
@@ -524,7 +522,7 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 		}
 
 		esif_ccb_sprintf(8, version, "%u.%u", *dsp_ptr->ver_major_ptr, *dsp_ptr->ver_minor_ptr);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-7s %-8s %-4s %-3s %-30s\n", output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-7s %-8s %-4s %-3s %-30s\n", 
 						 i,
 						 dsp_ptr->code_ptr,
 						 version,
@@ -534,14 +532,13 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 						 dsp_ptr->acpi_scope);
 	}
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 					 "\nPCI Enumerated DSP Candidates:\n\n"
 					 "Weighted Eq: (VENDOR(128)& DEVICE(64)& BS(32)& DV(16)& FN(8)& RV(4)& SC(2)& PI(1))\n"
 					 "Minterms: 8\n"
 					 "\n"
 					 "ID DSP PACKAGE  VERSION VENDOR DEVICE BS DV FN RV SC PI\n"
-					 "-- ------------ ------- ------ ------ -- -- -- -- -- --\n", output);
+					 "-- ------------ ------- ------ ------ -- -- -- -- -- --\n");
 
 	for (i = 0; i < g_dm.dme_count; i++) {
 		struct esif_up_dsp *dsp_ptr = g_dm.dme[i].dsp_ptr;
@@ -552,7 +549,7 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 		}
 
 		esif_ccb_sprintf(8, version, "%u.%u", *dsp_ptr->ver_major_ptr, *dsp_ptr->ver_minor_ptr);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-7s %-6s %-6s %2s %2s %2s %2s %2s %2s\n", output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-7s %-6s %-6s %2s %2s %2s %2s %2s %2s\n",
 						 i,
 						 dsp_ptr->code_ptr,
 						 version,
@@ -566,14 +563,13 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 						 "");
 	}
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 					 "\nConjure Enumerated DSP Candidates:\n\n"
 					 "Weighted Eq: (GUID(1))\n"
 					 "Minterms: 1\n"
 					 "\n"
 					 "ID DSP PACKAGE  VERSION GUID\n"
-					 "-- ------------ ------- ------------------------------------\n", output);
+					 "-- ------------ ------- ------------------------------------\n");
 
 	for (i = 0; i < g_dm.dme_count; i++) {
 		struct esif_up_dsp *dsp_ptr = g_dm.dme[i].dsp_ptr;
@@ -584,21 +580,20 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 		}
 
 		esif_ccb_sprintf(8, version, "%u.%u", *dsp_ptr->ver_major_ptr, *dsp_ptr->ver_minor_ptr);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-7s %-36s\n", output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-7s %-36s\n", 
 						 i,
 						 dsp_ptr->code_ptr,
 						 version,
 						 dsp_ptr->type);
 	}
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 					 "\nPlatform Enumerated DSP Candidates:\n\n"
 					 "Weighted Eq: (GUID(1))\n"
 					 "Minterms: 1\n"
 					 "\n"
 					 "ID DSP PACKAGE  VERSION GUID\n"
-					 "-- ------------ ------- ------------------------------------\n", output);
+					 "-- ------------ ------- ------------------------------------\n");
 
 	for (i = 0; i < g_dm.dme_count; i++) {
 		struct esif_up_dsp *dsp_ptr = g_dm.dme[i].dsp_ptr;
@@ -609,7 +604,7 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 		}
 
 		esif_ccb_sprintf(8, version, "%u.%u", *dsp_ptr->ver_major_ptr, *dsp_ptr->ver_minor_ptr);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-7s %-36s\n", output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-7s %-36s\n", 
 						 i,
 						 dsp_ptr->code_ptr,
 						 version,
@@ -617,7 +612,7 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 	}
 
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	return output;
 }
 
@@ -653,13 +648,13 @@ static char *esif_shell_cmd_conjures(EsifShellCmdPtr shell)
 		a_conjure_ptr->fInterface.fConjureGetDescriptionFuncPtr(&data_desc);
 		a_conjure_ptr->fInterface.fConjureGetVersionFuncPtr(&data_version);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-35s %-6s %-12s\n", output, i,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-35s %-6s %-12s\n", i,
 						 a_conjure_ptr->fLibNamePtr,
 						 (esif_string)desc,
 						 "plugin",
 						 (esif_string)version);
 	}
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	return output;
 }
 
@@ -690,8 +685,8 @@ static char *esif_shell_cmd_actions(EsifShellCmdPtr shell)
 					type_ptr = "static";
 				}
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s<action>\n"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								 "<action>\n"
 								 "    <id>%u</id>\n"
 								 "    <name>%s</name>\n"
 								 "    <desc>%s</desc>\n"
@@ -700,7 +695,6 @@ static char *esif_shell_cmd_actions(EsifShellCmdPtr shell)
 								 "    <version>%s</version>\n"
 								 "    <os>%s</os>\n"
 								 "  </action>\n",
-								 output,
 								 cur_actiontype_ptr->fType,
 								 cur_actiontype_ptr->fName,
 								 cur_actiontype_ptr->fDesc,
@@ -712,7 +706,7 @@ static char *esif_shell_cmd_actions(EsifShellCmdPtr shell)
 			curr_ptr = curr_ptr->next_ptr;
 		}
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</result>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
 		return output;
 	}
 
@@ -736,7 +730,7 @@ static char *esif_shell_cmd_actions(EsifShellCmdPtr shell)
 				type_ptr = "static";
 			}
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-35s %-3s %-6s %-12s %s \n", output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-35s %-3s %-6s %-12s %s \n",
 							 cur_actiontype_ptr->fType,
 							 cur_actiontype_ptr->fName,
 							 cur_actiontype_ptr->fDesc,
@@ -747,7 +741,7 @@ static char *esif_shell_cmd_actions(EsifShellCmdPtr shell)
 		}
 		curr_ptr = curr_ptr->next_ptr;
 	}
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	return output;
 }
 
@@ -782,7 +776,7 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 		a_app_ptr->fInterface.fAppGetDescriptionFuncPtr(&data_desc);
 		a_app_ptr->fInterface.fAppGetVersionFuncPtr(&data_version);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %-12s %-35s %-6s %-12s 0x%016llx\n", output, i,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-35s %-6s %-12s 0x%016llx\n", i,
 						 a_app_ptr->fLibNamePtr,
 						 (esif_string)data_desc.buf_ptr,
 						 "plugin",
@@ -795,7 +789,7 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 			if (a_app_ptr->fParticipantData[j].fAppParticipantHandle == NULL) {
 				continue;
 			}
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s = 0x%016llx Participant Registered Events\n", output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s = 0x%016llx Participant Registered Events\n", 
 							 a_app_ptr->fParticipantData[j].fUpPtr->fMetadata.fName,
 							 a_app_ptr->fParticipantData[j].fRegisteredEvents);
 
@@ -803,19 +797,19 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 				if (a_app_ptr->fParticipantData[j].fDomainData[k].fAppDomainHandle == NULL) {
 					continue;
 				}
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  D%d = 0x%016llx Domain Registered Events\n", output,
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  D%d = 0x%016llx Domain Registered Events\n", 
 								 k,
 								 a_app_ptr->fParticipantData[j].fDomainData[k].fRegisteredEvents);
 			}
 		}
 	}
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02u %s %s    0xffffffffffffffff\n",
-					 output, g_appMgr.fEntryCount,
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %s %s    0xffffffffffffffff\n",
+					 g_appMgr.fEntryCount,
 					 "esif         ESIF Shell                          static",
 					 g_esif_shell_version);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output,
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", 
 					 "\nHint To manage / connnect use appselect name e.g. appselect esif\n\n");
 	return output;
 }
@@ -872,8 +866,8 @@ static char *esif_shell_cmd_actionstart(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Start Action: %s.\n", lib_name);
 	} else {
 		/* Proceed */
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStarted Action: %s Instance %u Max %u Running %u\n\n",
-						 output, lib_name, i, ESIF_MAX_ACTIONS, g_actMgr.fEntryCount);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Started Action: %s Instance %u Max %u Running %u\n\n",
+						 lib_name, i, ESIF_MAX_ACTIONS, g_actMgr.fEntryCount);
 	}
 
 exit:
@@ -930,8 +924,8 @@ static char *esif_shell_cmd_appstart(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Start App: %s Reason %s(%d).\n", lib_name, esif_rc_str(rc), rc);
 	} else {
 		/* Proceed */
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStarted App: %s Instance %u Max %u Running %u\n\n",
-						 output, lib_name, i, ESIF_MAX_APPS, g_appMgr.fEntryCount);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Started App: %s Instance %u Max %u Running %u\n\n",
+						 lib_name, i, ESIF_MAX_APPS, g_appMgr.fEntryCount);
 	}
 
 exit:
@@ -965,8 +959,7 @@ static char *esif_shell_cmd_actionstop(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Stop Action: %s.\n", lib_name);
 	} else {
 		/* Proceed */
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStopped Action: %s\n\n",
-						 output, lib_name);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Stopped Action: %s\n\n", lib_name);
 		g_actMgr.fEntryCount--;
 	}
 
@@ -1002,8 +995,7 @@ static char *esif_shell_cmd_appstop(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Stop App: %s.\n", lib_name);
 	} else {
 		/* Proceed */
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStopped App: %s\n\n",
-						 output, lib_name);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Stopped App: %s\n\n", lib_name);
 		g_appMgr.fEntryCount--;
 	}
 exit:
@@ -1328,7 +1320,7 @@ static char *esif_shell_cmd_echo(EsifShellCmdPtr shell)
 		j++;
 	}
 	for ( ; j < argc; j++) {
-		esif_ccb_sprintf(OUT_BUF_LEN - ESIF_SHELL_STRLEN(output), output + ESIF_SHELL_STRLEN(output), "%s%s", argv[j], (j + 1 < argc ? sep : "\n"));
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s%s", argv[j], (j + 1 < argc ? sep : "\n"));
 	}
 
 	return output;
@@ -1590,9 +1582,8 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		//
 		// PRIMITIVE Error Code NEED Larger Buffer
 		//
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s error code = %s(%d) HAVE %u bytes NEED ATLEAST %u bytes\n",
-						 output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 " error code = %s(%d) HAVE %u bytes NEED ATLEAST %u bytes\n",
 						 esif_rc_str(rc),
 						 rc,
 						 response.buf_len,
@@ -1603,16 +1594,16 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		//
 		// Not An Error Just A Warning
 		//
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s info code = %s(%d)\n",
-						 output, esif_rc_str(rc), rc);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " info code = %s(%d)\n",
+						 esif_rc_str(rc), rc);
 
 		goto exit;
 	} else if (ESIF_OK != rc) {
 		//
 		// PRIMITIVE Error Code
 		//
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s: error code = %s(%d)\n",
-						 output, ESIF_FUNC, esif_rc_str(rc), rc);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s: error code = %s(%d)\n",
+						 ESIF_FUNC, esif_rc_str(rc), rc);
 		g_errorlevel = -(rc);
 		goto exit;
 	}
@@ -1672,30 +1663,29 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			eEsifTestErrorType rc = EsifTestPrimitive(id, qualifier, instance, val, optargc, optargv);
 
 			if (ESIF_TEST_OK == rc) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s value = %u(0x%08x): %s\n",
-								 output, val, val, ESIF_TEST_PASSED);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = %u(0x%08x): %s\n",
+								 val, val, ESIF_TEST_PASSED);
 			} else {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s value = %u(0x%08x): %s %s(%d)\n",
-								 output, val, val, ESIF_TEST_FAILED, EsifTestErrorStr(rc), rc);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = %u(0x%08x): %s %s(%d)\n",
+								 val, val, ESIF_TEST_FAILED, EsifTestErrorStr(rc), rc);
 				g_errorlevel = rc;
 			}
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 		} else {
 			if (FORMAT_TEXT == g_format) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s value = 0x%08x %u %s\n",
-								 output, val, val, desc);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = 0x%08x %u %s\n",
+								 val, val, desc);
 			} else {
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s<result>\n"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								 "<result>\n"
 								 "    <value>%u</value>\n"
 								 "    <valueDesc>%s</valueDesc>\n",
-								 output, val, desc);
+								 val, desc);
 			}
 		}
 	} else if (ESIF_DATA_STRING == type) {
 		char *str_ptr = (char *)(response.buf_ptr);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s string(%u of %u) = %s\n",
-						 output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " string(%u of %u) = %s\n",
 						 response.data_len,
 						 response.buf_len,
 						 str_ptr);
@@ -1703,19 +1693,18 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			   ESIF_DATA_FREQUENCY == type) {
 		u64 val = *(u64 *)(response.buf_ptr);
 		if (FORMAT_TEXT == g_format) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s value = 0x%016llx %llu %s\n",
-							 output, val, val, desc);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " value = 0x%016llx %llu %s\n",
+							 val, val, desc);
 		} else {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s<result>\n"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "<result>\n"
 							 "    <value>%llu</value>\n"
 							 "    <valueDesc>%s</valueDesc>\n",
-							 output, val, desc);
+							 val, desc);
 		}
 	} else {// Binary Dump
 		u8 *byte_ptr = (u8 *)(response.buf_ptr);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s Binary Data(%u of %u):",
-						 output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " Binary Data(%u of %u):",
 						 response.data_len,
 						 response.buf_len);
 
@@ -1725,16 +1714,13 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 															(u16)response.data_len, optargc, optargv);
 
 			if (ESIF_TEST_OK == rc) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s %s\n",
-								 output, ESIF_TEST_PASSED);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " %s\n", ESIF_TEST_PASSED);
 			} else {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s %s %s(%d)\n",
-								 output, ESIF_TEST_FAILED, EsifTestErrorStr(rc), rc);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " %s %s(%d)\n", ESIF_TEST_FAILED, EsifTestErrorStr(rc), rc);
 				g_errorlevel = rc;
 			}
 		} else {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s %s\n",
-							 output, ESIF_TEST_SKIPPED);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " %s\n", ESIF_TEST_SKIPPED);
 		}
 
 		if (0 == dump) {
@@ -1747,8 +1733,7 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			dump_binary_data(byte_ptr, response.data_len);
 		} else if (2 == dump) {
 			FILE *fp_ptr = NULL;
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s Binary Data To File: %s (%u of %u):\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " Binary Data To File: %s (%u of %u):\n",
 							 full_path,
 							 response.data_len,
 							 response.buf_len);
@@ -1760,11 +1745,11 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 				fclose(fp_ptr);
 			}
 		}
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	}
 
 	if (FORMAT_XML == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</result>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
 	}
 exit:
 	esif_ccb_free(data_ptr);
@@ -1868,8 +1853,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "FPC File Info For %s Size %u\n\n",
 						 edp_filename, fpc_size);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "FPC Source:     %s\n"
 						 "FPC Size:       %d\n"
 						 "FPC Name:       %s\n"
@@ -1878,7 +1862,6 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 						 "FPC Primitives: %d\n"
 						 "FPC Algorithms: %d\n"
 						 "FPC Domains:    %d\n",
-						 output,
 						 (IOStream_GetType(io_ptr) == StreamMemory ? "DataVault" : "File"),
 						 fpc_ptr->size,
 						 fpc_ptr->header.name,
@@ -1930,9 +1913,8 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 							 "Name     Description          Domain   Priority Capability Type               \n"
 							 "-------- -------------------- -------- -------- ---------- -----------------------------\n");
 
-			esif_ccb_sprintf(1024, temp_buf,
-							 "%s%-8s %-20s %-8s %08x %08x   %s(%d)\n",
-							 temp_buf,
+			esif_ccb_sprintf_concat(1024, temp_buf,
+							 "%-8s %-20s %-8s %08x %08x   %s(%d)\n",
 							 domain_ptr->descriptor.name,
 							 domain_ptr->descriptor.description,
 							 esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 64),
@@ -1943,7 +1925,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 
 
 			if (1 == show) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 			}
 		} else {	// FORMAT_XML
 			esif_ccb_sprintf(1024, temp_buf,
@@ -1958,13 +1940,13 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 							 domain_ptr->capability_for_domain.number_of_capability_flags,
 							 domain_ptr->capability_for_domain.capability_flags);
 			if (1 == show) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 			}
 		}
 
 
 		if (FORMAT_TEXT == g_format) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\nCAPABILITY:\n\n", output);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\nCAPABILITY:\n\n");
 		}
 
 
@@ -1977,14 +1959,14 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 								 "Capability[%d] 0x%x\n",
 								 j, domain_ptr->capability_for_domain.capability_mask[j]);
 				if (1 == show) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 				}
 			} else {	// FORMAT_XML
 				esif_ccb_sprintf(1024, temp_buf,
 								 "<Capability>%x</Capability>\n",
 								 domain_ptr->capability_for_domain.capability_mask[j]);
 				if (1 == show) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 				}
 			}
 		}
@@ -1993,7 +1975,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 			esif_ccb_sprintf(1024, temp_buf, "\nPRIMITIVES AND ACTIONS:\n\n");
 		}
 		if (1 == show) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 		}
 
 		/* First Primtive */
@@ -2020,7 +2002,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 				}
 				// Show Row?
 				if (1 == show) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 				}
 			} else {	// FORMAT_XML
 				esif_ccb_sprintf(1024, temp_buf,
@@ -2047,7 +2029,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 				}
 				// Show Row?
 				if (1 == show) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 				}
 			}
 
@@ -2077,7 +2059,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 						show = 1;
 					}
 					if (1 == show) {
-						esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 					}
 				} else {// FORMAT_XML
 					esif_ccb_sprintf(1024, temp_buf,
@@ -2108,7 +2090,7 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 						show = 1;
 					}
 					if (1 == show) {
-						esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 					}
 				}
 			}
@@ -2124,14 +2106,12 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "ALGORITHMS:\n\n"
 						 "Action Type                tempxform         tc1      tc2      powerxform         timexform\n"
 
-						 "------ ------------------- ----------------- -------- -------- ----------------- ----------------\n"
-						 , output);
+						 "------ ------------------- ----------------- -------- -------- ----------------- ----------------\n");
 	}
 
 	/* First Algorithm (Laid After The Last Domain) */
@@ -2140,9 +2120,8 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 		offset = (unsigned long)((u8 *)algorithm_ptr - base_ptr);
 
 		if (FORMAT_TEXT == g_format) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s%-2d     %-19s %-17s %08x %08x %-17s %-17s\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "%-2d     %-19s %-17s %08x %08x %-17s %-17s\n",
 							 algorithm_ptr->action_type,
 							 esif_action_type_str(algorithm_ptr->action_type),
 							 esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->temp_xform)) + 20,
@@ -2151,15 +2130,13 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 							 esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->power_xform)) + 20,
 							 esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->time_xform)) + 20);
 		} else {// FORMAT_XML
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 							 "<algorithmType>%s</algorithmType>\n"
 							 "   <tempXform>%s</tempXform>\n"
 							 "   <tempC1>%d</tempC1>\n"
 							 "   <tempC2>%d</tempC2>\n"
 							 "   <powerXform>%s</powerXform>\n"
 							 "   <timeXform>%s</timeXform>\n",
-							 output,
 							 esif_action_type_str(algorithm_ptr->action_type),
 							 esif_algorithm_type_str((enum esif_algorithm_type)(algorithm_ptr->temp_xform)),
 							 algorithm_ptr->tempC1,
@@ -2174,13 +2151,11 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "Mapped Events:\n\n"
 						 "Alias Event Identification             Group    Event Data           Event Description\n"
-						 "----- -------------------------------- -------- -------------------- --------------------------------------\n"
-						 , output);
+						 "----- -------------------------------- -------- -------------------- --------------------------------------\n");
 	}	// FORMAT_TEXT
 
 	/* First Event (Laid After The Last Algorithm) */
@@ -2189,20 +2164,16 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 		offset = (unsigned long)((u8 *)event_ptr - base_ptr);
 
 		if (FORMAT_TEXT == g_format) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 							 "%5s ",
-							 output,
 							 event_ptr->name);
 
 			for (j = 0; j < 16; j++) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02x", output, event_ptr->event_key[j]);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02x", event_ptr->event_key[j]);
 			}
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s "
-							 "%-8s %-20s %s(%d)\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 " %-8s %-20s %s(%d)\n",
 							 esif_event_group_enum_str(event_ptr->esif_group) + 17,
 							 esif_data_type_str(event_ptr->esif_group_data_type),
 							 esif_event_type_str(event_ptr->esif_event) + 11,
@@ -2211,11 +2182,10 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 			char key[64] = "";
 
 			for (j = 0; j < 16; j++) {
-				esif_ccb_sprintf(64, key, "%s%02x", key, event_ptr->event_key[j]);
+				esif_ccb_sprintf_concat(64, key, "%02x", event_ptr->event_key[j]);
 			}
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 							 "<eventName>%s</eventName>\n"
 							 "   <key>%s</key>\n"
 							 "   <group>%d</group>\n"
@@ -2224,7 +2194,6 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 							 "   <groupDataString>%s</groupDataString>\n"
 							 "   <eventNum>%d</evenNum>\n"
 							 "   <event>%s</event>\n",
-							 output,
 							 event_ptr->name,
 							 key,
 							 event_ptr->esif_group,
@@ -2353,8 +2322,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "CPC File Info For %s Size %u:\n\n",
 						 edp_filename, cpc_size);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "CPC Source:     %s\n"
 						 "CPC Size:       %d\n"
 						 "CPC Primitives: %d\n"
@@ -2368,7 +2336,6 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 						 "DSP Code:       %s\n"
 						 "DSP Content:    v%d.%d\n"
 						 "DSP Flags:      %08x\n\n",
-						 output,
 						 (IOStream_GetType(io_ptr) == StreamMemory ? "DataVault" : "File"),
 						 cpc_ptr->size,
 						 cpc_ptr->number_of_basic_primitives,
@@ -2407,7 +2374,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_XML == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  <primitives>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <primitives>\n");
 	}
 
 	primitive_ptr = (struct esif_cpc_primitive *)((u8 *)cpc_ptr + sizeof(struct esif_lp_cpc));
@@ -2433,7 +2400,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 			}
 			// Show Row?
 			if (1 == show) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 			}
 
 			action_ptr = (struct esif_cpc_action *)((u8 *)primitive_ptr +
@@ -2459,7 +2426,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 					show = 1;
 				}
 				if (1 == show) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 				}
 			}
 		} else {// FORMAT_XML
@@ -2486,7 +2453,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 			}
 			// Show Row?
 			if (1 == show) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 			}
 
 			action_ptr = (struct esif_cpc_action *)((u8 *)primitive_ptr +
@@ -2524,7 +2491,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 					show = 1;
 				}
 				if (1 == show) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s", output, temp_buf);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", temp_buf);
 				}
 			}
 		}
@@ -2534,7 +2501,7 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_XML == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  </primitives>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  </primitives>\n");
 	}
 
 	if (FORMAT_TEXT == g_format) {
@@ -2545,18 +2512,15 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 		struct esif_fpc_domain *domain_ptr  = NULL;
 		struct esif_cpc_event *event_ptr    = NULL;
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "ALGORITHMS:\n\n"
 						 "Action Description           tempxform tc1      tc2      pxform timexform\n"
-						 "------ --------------------- --------- -------- -------- ------ ---------\n"
-						 , output);
+						 "------ --------------------- --------- -------- -------- ------ ---------\n");
 
 		for (algo_index = 0; algo_index < cpc_ptr->number_of_algorithms; algo_index++) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s%-2d     %-21s %s(%d) %08x %08x %s(%d) %s(%d)\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "%-2d     %-21s %s(%d) %08x %08x %s(%d) %s(%d)\n",
 							 algo_ptr->action_type,
 							 esif_action_type_str(algo_ptr->action_type),
 							 esif_algorithm_type_str((enum esif_algorithm_type)(algo_ptr->temp_xform)),
@@ -2570,22 +2534,19 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 			algo_ptr++;
 		}
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "DOMAINS:\n\n"
 						 "Name     Description          Domain   Priority Capability Type               \n"
-						 "-------- -------------------- -------- -------- ---------- -------------------\n"
-						 , output);
+						 "-------- -------------------- -------- -------- ---------- -------------------\n");
 
 
 		domain_ptr = (struct esif_fpc_domain *)algo_ptr;
 		for (domain_index = 0; domain_index < cpc_ptr->number_of_domains; domain_index++) {
 			char qualifier_str[64];
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s%-8s %-20s %-8s %08x %08x   %s(%d)\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "%-8s %-20s %-8s %08x %08x   %s(%d)\n",
 							 domain_ptr->descriptor.name,
 							 domain_ptr->descriptor.description,
 							 esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 64),
@@ -2593,57 +2554,50 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 							 domain_ptr->capability_for_domain.capability_flags,
 							 esif_domain_type_str(domain_ptr->descriptor.domainType), domain_ptr->descriptor.domainType);
 
-			// esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s\n", output, esif_guid_print((esif_guid_t*) &domain_ptr->descriptor.guid, qualifier_str));
+			// esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", esif_guid_print((esif_guid_t*) &domain_ptr->descriptor.guid, qualifier_str));
 			domain_ptr++;
 		}
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "Mapped Events:\n\n"
 						 "Alias Event Identification             Group    Event Data           Event Description\n"
-						 "----- -------------------------------- -------- -------------------- --------------------------------------\n"
-						 , output);
+						 "----- -------------------------------- -------- -------------------- --------------------------------------\n");
 
 		event_ptr = (struct esif_cpc_event *)domain_ptr;
 		for (event_index = 0; event_index < cpc_ptr->number_of_events; event_index++) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 							 "%5s ",
-							 output,
 							 event_ptr->name);
 
 			for (i = 0; i < 16; i++) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%02x", output, event_ptr->event_key[i]);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02x", event_ptr->event_key[i]);
 			}
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s "
-							 "%-8s %-20s %s\n", output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 " %-8s %-20s %s\n", 
 							 esif_event_group_enum_str(event_ptr->esif_group) + 17,
 							 esif_data_type_str(event_ptr->esif_group_data_type),
 							 esif_event_type_str(event_ptr->esif_event) + 11);
 
 
 /*
-            esif_ccb_sprintf(OUT_BUF_LEN, output,
-                "%s"
+            esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
                 "%5s %08x       ACPI %s(%d) TBD(%d)\n",
-                output,
                 event_ptr->name,
                 (u8) event_ptr->s[0],
                 esif_event_type_str(event_ptr->esif_event), event_ptr->esif_event,
                 event_ptr->esif_group);
  */
 
-			// esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s\n", output, esif_guid_print((esif_guid_t*) &domain_ptr->descriptor.guid, qualifier_str));
+			// esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", esif_guid_print((esif_guid_t*) &domain_ptr->descriptor.guid, qualifier_str));
 			event_ptr++;
 		}
 
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	} else {// FORMAT_XML
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</cpcinfo>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</cpcinfo>\n");
 	}
 exit:
 	// Cleanup
@@ -2726,7 +2680,7 @@ static char *esif_shell_cmd_load(EsifShellCmdPtr shell)
 		EsifData_Destroy(value);
 	}
 	if (IOStream_GetType(io_ptr) == StreamNull) {
-		esif_ccb_sprintf(PATH_STR_LEN, load_full_path, "%s%s%s", load_full_path, ESIF_PATH_SEP, filename);
+		esif_ccb_sprintf_concat(PATH_STR_LEN, load_full_path, "%s%s", ESIF_PATH_SEP, filename);
 		IOStream_SetFile(io_ptr, load_full_path, "r");
 	}
 	if (IOStream_Open(io_ptr) == EOK) {
@@ -2855,12 +2809,11 @@ static char *esif_shell_cmd_log(EsifShellCmdPtr shell)
 		struct esif_ccb_file ffd = {0};
 		char file_path[MAX_PATH] = {0};
 		char *log_pattern = "*.log";
-		size_t len=0;
 
 		if (argc > arg) {
 			log_pattern = argv[arg++];
 		}
-		esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_DV, NULL, NULL);
+		esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_LOG, NULL, NULL);
 
 		// Find matching files and return in Text or XML format
 		if (g_format==FORMAT_XML) {
@@ -2868,22 +2821,20 @@ static char *esif_shell_cmd_log(EsifShellCmdPtr shell)
 		}
 		if ((find_handle = esif_ccb_file_enum_first(file_path, log_pattern, &ffd)) != INVALID_HANDLE_VALUE) {
 			do {
-				len = esif_ccb_strlen(output, OUT_BUF_LEN);
 				if (esif_ccb_strcmp(ffd.filename, ".")==0 || esif_ccb_strcmp(ffd.filename, "..")==0) {
 					continue; // Ignore . and ..
 				}
 				if (g_format==FORMAT_XML) {
-					esif_ccb_sprintf(OUT_BUF_LEN-len, output+len, "<name>%s</name>\n", ffd.filename);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "<name>%s</name>\n", ffd.filename);
 				}
 				else {
-					esif_ccb_sprintf(OUT_BUF_LEN-len, output+len, "%s\n", ffd.filename);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", ffd.filename);
 				}
 			} while (esif_ccb_file_enum_next(find_handle, log_pattern, &ffd));
 			esif_ccb_file_enum_close(find_handle);
 		}
 		if (g_format==FORMAT_XML) {
-			len = esif_ccb_strlen(output, OUT_BUF_LEN);
-			esif_ccb_sprintf(OUT_BUF_LEN-len, output+len, "%s", "</logs>\n");
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", "</logs>\n");
 		}
 	}
 	// log close [logid]
@@ -3058,12 +3009,12 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%sMemory Pools:\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "Memory Pools:\n"
 						 "Name                      Tag  Size Allocs       Frees        Inuse        Bytes    \n"
-						 "------------------------- ---- ---- ------------ ------------ ------------ ---------\n", output);
+						 "------------------------- ---- ---- ------------ ------------ ------------ ---------\n");
 	} else {// FORMAT_XML
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  <mempools>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <mempools>\n");
 	}
 
 	for (i = 0; i < ESIF_MEMPOOL_TYPE_MAX; i++) {
@@ -3074,8 +3025,7 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 		}
 
 		if (FORMAT_TEXT == g_format) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%-25s %s %-4d %-12u %-12u %-12u %-9u\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%-25s %s %-4d %-12u %-12u %-12u %-9u\n",
 							 data_ptr->mempool_stat[i].name,
 							 tag,
 							 data_ptr->mempool_stat[i].object_size,
@@ -3085,8 +3035,8 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 							 (data_ptr->mempool_stat[i].alloc_count - data_ptr->mempool_stat[i].free_count) *
 							 data_ptr->mempool_stat[i].object_size);
 		} else {// FORMAT_XML
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s    <mempool>\n"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "    <mempool>\n"
 							 "        <name>%s</name>\n"
 							 "        <tag>%s</tag>\n"
 							 "        <size>%d</size>\n"
@@ -3095,7 +3045,6 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 							 "        <inuse>%d</inuse>\n"
 							 "        <bytes>%d</bytes>\n"
 							 "    </mempool>\n",
-							 output,
 							 data_ptr->mempool_stat[i].name,
 							 tag,
 							 data_ptr->mempool_stat[i].object_size,
@@ -3108,8 +3057,8 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "\n"
 						 "MemPoolObjFrees:  %u\n"
 						 "MemPoolAllocs:    %u\n"
 						 "MemPoolFrees:     %u\n"
@@ -3117,7 +3066,6 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 						 "MemPoolObjAllocs: %u\n"
 						 "MemPoolObjFrees:  %u\n"
 						 "MemPoolObjInuse:  %u\n\n",
-						 output,
 						 data_ptr->stats.memPoolObjFrees,
 						 data_ptr->stats.memPoolAllocs,
 						 data_ptr->stats.memPoolFrees,
@@ -3126,16 +3074,16 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 						 data_ptr->stats.memPoolObjFrees,
 						 data_ptr->stats.memPoolObjAllocs - data_ptr->stats.memPoolObjFrees);
 	} else {// FORMAT_XML
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  </mempools>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  </mempools>\n");
 	}
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%sMemory Types:\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "Memory Types:\n"
 						 "Name                      Tag  Allocs       Frees        Inuse        \n"
-						 "------------------------- ---- ------------ ------------ ------------ \n", output);
+						 "------------------------- ---- ------------ ------------ ------------ \n");
 	} else {// FORMAT_XML
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s  <memtypes>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <memtypes>\n");
 	}
 
 	for (i = 0; i < ESIF_MEMTYPE_TYPE_MAX; i++) {
@@ -3146,8 +3094,7 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 		}
 
 		if (FORMAT_TEXT == g_format) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%-25s %s %-12u %-12u %-12u\n",
-							 output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%-25s %s %-12u %-12u %-12u\n",
 							 data_ptr->memtype_stat[i].name,
 							 "tag ",
 							 data_ptr->memtype_stat[i].alloc_count,
@@ -3155,15 +3102,14 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 							 data_ptr->memtype_stat[i].alloc_count -
 							 data_ptr->memtype_stat[i].free_count);
 		} else {// FORMAT_XML
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%s    <memtype>\n"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "    <memtype>\n"
 							 "        <name>%s</name>\n"
 							 "        <tag>%s</tag>\n"
 							 "        <allocs>%d</allocs>\n"
 							 "        <frees>%d</frees>\n"
 							 "        <inuse>%d</inuse>\n"
 							 "    </memtype>\n",
-							 output,
 							 data_ptr->memtype_stat[i].name,
 							 tag,
 							 data_ptr->memtype_stat[i].alloc_count,
@@ -3173,14 +3119,13 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s\nMemTypeAllocs:    %u\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "\nMemTypeAllocs:    %u\n"
 						 "MemTypeFrees:     %u\n"
 						 "MemTypeInuse:     %u\n"
 						 "MemTypeObjAllocs: %u\n"
 						 "MemTypeObjFrees:  %u\n"
 						 "MemTypeObjInuse:  %u\n\n",
-						 output,
 						 data_ptr->stats.memTypeAllocs,
 						 data_ptr->stats.memTypeFrees,
 						 data_ptr->stats.memTypeAllocs - data_ptr->stats.memTypeFrees,
@@ -3189,19 +3134,17 @@ static char *esif_shell_cmd_memstats(EsifShellCmdPtr shell)
 						 data_ptr->stats.memTypeObjAllocs - data_ptr->stats.memTypeObjFrees);
 
 #ifdef ESIF_ATTR_MEMTRACE
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%sUser Memory Stats:\n\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "User Memory Stats:\n\n"
 						 "Allocs: " ATOMIC_FMT "\n"
-											   "Frees : " ATOMIC_FMT "\n",
-						 output,
+						 "Frees : " ATOMIC_FMT "\n",
 						 atomic_read(&g_memtrace.allocs),
 						 atomic_read(&g_memtrace.frees));
 #endif
 	} else {// FORMAT_XML
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s  </memtypes>\n"
-						 "</memstats>\n",
-						 output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "  </memtypes>\n"
+						 "</memstats>\n");
 	}
 exit:
 	if (NULL != ipc_ptr) {
@@ -3297,21 +3240,20 @@ static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 						 data_ptr->state,
 						 data_ptr->timer_period);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%sACPI Attributes\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "ACPI Attributes\n"
 						 "--------------------------------------------------------------------\n"
 						 "Device:      %s\n"
 						 "Scope:       %s\n"
 						 "Unique ID:   0x%08x\n"
 						 "Type:        0x%08x\n\n",
-						 output,
 						 data_ptr->acpi_device,
 						 data_ptr->acpi_scope,
 						 data_ptr->acpi_uid,
 						 data_ptr->acpi_type);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%sPCI Attributes\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "PCI Attributes\n"
 						 "--------------------------------------------------------------------\n"
 						 "Vendor:      0x%08x\n"
 						 "Device:      0x%08x\n"
@@ -3322,7 +3264,6 @@ static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 						 "Class:       0x%02x\n"
 						 "SubClass:    0x%02x\n"
 						 "ProgIF:      0x%02x\n\n",
-						 output,
 						 data_ptr->pci_vendor,
 						 data_ptr->pci_device,
 						 data_ptr->pci_bus,
@@ -3334,83 +3275,81 @@ static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 						 data_ptr->pci_prog_if);
 
 		if (data_ptr->capability > 0) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%sParticipant Capabilities: 0x%08x                                  \n"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "Participant Capabilities: 0x%08x                                  \n"
 							 "--------------------------------------------------------------------\n",
-							 output,
 							 data_ptr->capability);
 
 			if (data_ptr->capability & ESIF_CAPABILITY_ACTIVE_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sACTIVE_CONTROL\t\tHas Fan Features\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "ACTIVE_CONTROL\t\tHas Fan Features\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_CTDP_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sCTDP_CONTROL\t\tHas CPU CTDP Controls\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "CTDP_CONTROL\t\tHas CPU CTDP Controls\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_CORE_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sCORE_CONTROL\t\t\tHas CPU/Core Controls\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "CORE_CONTROL\t\t\tHas CPU/Core Controls\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_CORE_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sCORE_CONTROL\t\t\tHas CPU/Core Controls\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "CORE_CONTROL\t\t\tHas CPU/Core Controls\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_DISPLAY_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sDISPLAY_CONTROL\t\t\tHas Display Controls\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "DISPLAY_CONTROL\t\t\tHas Display Controls\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_PERF_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sPERF_CONTROL\t\tHas Performance Controls\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "PERF_CONTROL\t\tHas Performance Controls\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_POWER_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sPOWER_CONTROL\t\tHas RAPL Power Controls\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "POWER_CONTROL\t\tHas RAPL Power Controls\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_POWER_STATUS) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sPOWER_STATUS\t\t\t\tHas RAPL Power Feature\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "POWER_STATUS\t\t\t\tHas RAPL Power Feature\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_TEMP_STATUS) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sTEMP_STATUS\t\tHas Temp Sensor\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "TEMP_STATUS\t\tHas Temp Sensor\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_TEMP_THRESHOLD) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sTEMP_THRESHOLD\t\tHas Temp Thresholds\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "TEMP_THRESHOLD\t\tHas Temp Thresholds\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_UTIL_STATUS) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sUTIL_STATUS\t\t\tReports Device Utilization\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "UTIL_STATUS\t\t\tReports Device Utilization\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_PIXELCLOCK_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sPIXELCLOCK_CONTROL\t\t\tHas Pixel Clock Control\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "PIXELCLOCK_CONTROL\t\t\tHas Pixel Clock Control\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_PIXELCLOCK_STATUS) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sPIXELCLOCK_STATUS\t\t\tHas Pixel Clock Status\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "PIXELCLOCK_STATUS\t\t\tHas Pixel Clock Status\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_RFPROFILE_STATUS) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sRFPROFILE_STATUS\t\t\tHas RF Profile Status\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "RFPROFILE_STATUS\t\t\tHas RF Profile Status\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_RFPROFILE_CONTROL) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sRFPROFILE_CONTROL\t\t\tHas RF Profile Control\n", output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "RFPROFILE_CONTROL\t\t\tHas RF Profile Control\n");
 			}
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 		}
 
 		if (1 == data_ptr->have_dsp) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%sDevice Support Package(DSP):                  \n"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "Device Support Package(DSP):                  \n"
 							 "------------------------------------------------\n"
 							 "Code:         %s\n"
 							 "Content Ver:  %d.%d\n"
 							 "Type:         %s\n\n",
-							 output,
 							 data_ptr->dsp_code,
 							 data_ptr->dsp_ver_major,
 							 data_ptr->dsp_ver_minor,
@@ -3419,14 +3358,13 @@ static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 
 		if (1 == data_ptr->have_cpc) {
 			u8 *byte_ptr = (u8 *)&data_ptr->cpc_signature;
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-							 "%sCompact Primitive Catalog(CPC):               \n"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							 "Compact Primitive Catalog(CPC):               \n"
 							 "------------------------------------------------\n"
 							 "Version:          %d\n"
 							 "Signature:        %08X (%c%c%c%c)\n"
 							 "Size:             %d\n"
 							 "Primitive Count:  %d\n\n",
-							 output,
 							 data_ptr->cpc_version,
 							 data_ptr->cpc_signature,
 							 *byte_ptr, *(byte_ptr + 1), *(byte_ptr + 2), *(byte_ptr + 3),
@@ -3446,13 +3384,13 @@ static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 		}
 
 		if (data_ptr->capability & ESIF_CAPABILITY_TEMP_STATUS) {
-			esif_ccb_sprintf(capability_str_len, capability_str, "%sTEMP_SENSOR,", capability_str);
+			esif_ccb_sprintf_concat(capability_str_len, capability_str, "TEMP_SENSOR,");
 		}
 		if (data_ptr->capability & ESIF_CAPABILITY_ACTIVE_CONTROL) {
-			esif_ccb_sprintf(capability_str_len, capability_str, "%sCOOLING_DEVICE,", capability_str);
+			esif_ccb_sprintf_concat(capability_str_len, capability_str, "COOLING_DEVICE,");
 		}
 		if (data_ptr->capability & ESIF_CAPABILITY_POWER_STATUS) {
-			esif_ccb_sprintf(capability_str_len, capability_str, "%sRAPL_DEVICE", capability_str);
+			esif_ccb_sprintf_concat(capability_str_len, capability_str, "RAPL_DEVICE");
 		}
 
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
@@ -3554,22 +3492,21 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 						 esif_pm_participant_state_str((enum esif_pm_participant_state)1),
 						 0);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "\n"
 						 "ACPI Attributes\n"
 						 "--------------------------------------------------------------------\n"
 						 "Device:      %s\n"
 						 "Scope:       %s\n"
 						 "Unique ID:   0x%08x\n"
 						 "Type:        0x%08x\n",
-						 output,
 						 up_ptr->fMetadata.fAcpiDevice,
 						 up_ptr->fMetadata.fAcpiScope,
 						 up_ptr->fMetadata.fAcpiUID,
 						 up_ptr->fMetadata.fAcpiType);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s\n"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "\n"
 						 "PCI Attributes\n"
 						 "--------------------------------------------------------------------\n"
 						 "Vendor:      0x%08x\n"
@@ -3581,7 +3518,6 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 						 "Class:       0x%02x\n"
 						 "SubClass:    0x%02x\n"
 						 "ProgIF:      0x%02x\n\n",
-						 output,
 						 up_ptr->fMetadata.fPciVendor,
 						 up_ptr->fMetadata.fPciDevice,
 						 up_ptr->fMetadata.fPciBus,
@@ -3828,8 +3764,8 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 
 
 	if (ESIF_OK != rc) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s: setp%s %03u.%s.%03d error code = %s(%d)\n",
-						 output, suffix, ESIF_FUNC, id, qualifier_str, instance,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s: setp%s %03u.%s.%03d error code = %s(%d)\n",
+						 suffix, ESIF_FUNC, id, qualifier_str, instance,
 						 esif_rc_str(rc), rc);
 
 		g_errorlevel = 6;
@@ -4256,16 +4192,16 @@ static char *esif_shell_cmd_set_osc(EsifShellCmdPtr shell)
 	ret_osc = (struct esif_data_complex_osc *)(response.buf_ptr);
 
 	if (ESIF_OK != rc) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s: set_osc error code = %s(%d), status code = %d\n",
-						 output, ESIF_FUNC,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s: set_osc error code = %s(%d), status code = %d\n",
+						 ESIF_FUNC,
 						 esif_rc_str(rc), rc,
 						 ret_osc->status);
 		g_errorlevel = 6;
 		goto exit;
 	}
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s: set_osc returned status %u\n",
-					 output, ESIF_FUNC, ret_osc->status);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s: set_osc returned status %u\n",
+					 ESIF_FUNC, ret_osc->status);
 
 exit:
 
@@ -4327,8 +4263,8 @@ static char *esif_shell_cmd_set_scp(EsifShellCmdPtr shell)
 			&response);
 
 	if (ESIF_OK != rc) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s: set_scp error code = %s(%d)\n",
-						 output, ESIF_FUNC,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s: set_scp error code = %s(%d)\n",
+						 ESIF_FUNC,
 						 esif_rc_str(rc), rc);
 		g_errorlevel = 6;
 		goto exit;
@@ -4420,7 +4356,7 @@ static char *esif_shell_cmd_test(EsifShellCmdPtr shell)
 				parse_cmd(command, ESIF_FALSE);
 
 				esif_ccb_sprintf(COMMAND_LEN, command, "loadtst %s.tst", data_ptr->participant_info[i].dsp_code);
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%sRun Test: %s DUT %d\n", output, command, g_dst);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Run Test: %s DUT %d\n", command, g_dst);
 				parse_cmd(command, ESIF_FALSE);
 
 				if (g_soe && g_errorlevel != 0) {
@@ -4523,8 +4459,8 @@ static char *esif_shell_cmd_debugshow(EsifShellCmdPtr shell)
 		}
 
 		data_ptr->modules = data_ptr->modules >> 1;
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sModule: %3s(%02u) Bit: 0x%08X State: %8s Level: 0x%08X\n",
-						 output, esif_debug_mod_str((enum esif_debug_mod)i), i, bit, state, data_ptr->levels[i]);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Module: %3s(%02u) Bit: 0x%08X State: %8s Level: 0x%08X\n",
+						 esif_debug_mod_str((enum esif_debug_mod)i), i, bit, state, data_ptr->levels[i]);
 	}
 exit:
 	if (NULL != ipc_ptr) {
@@ -4824,9 +4760,8 @@ static char *esif_shell_cmd_participantsk(EsifShellCmdPtr shell)
 
 		if (FORMAT_TEXT == g_format) {
 			if (data_ptr->participant_info[i].state > ESIF_PM_PARTICIPANT_REMOVED) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s  %-2d %-8s %-31s %4s  %d  %-12s",
-								 output,
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								 "  %-2d %-8s %-31s %4s  %d  %-12s",
 								 data_ptr->participant_info[i].id,
 								 data_ptr->participant_info[i].name,
 								 data_ptr->participant_info[i].desc,
@@ -4835,20 +4770,19 @@ static char *esif_shell_cmd_participantsk(EsifShellCmdPtr shell)
 								 state_str);
 
 				if (data_ptr->participant_info[i].state == ESIF_PM_PARTICIPANT_STATE_REGISTERED) {
-					esif_ccb_sprintf(OUT_BUF_LEN, output,
-									 "%s %s(%d.%d)\n",
-									 output,
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+									 " %s(%d.%d)\n",
 									 data_ptr->participant_info[i].dsp_code,
 									 data_ptr->participant_info[i].dsp_ver_major,
 									 data_ptr->participant_info[i].dsp_ver_minor);
 				} else {
-					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 				}
 			}
 		} else {// FORMAT_XML
 			if (data_ptr->participant_info[i].state > ESIF_PM_PARTICIPANT_REMOVED) {
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s<participant>\n"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								 "<participant>\n"
 								 "  <id>%d</id>\n"
 								 "  <name>%s</name>\n"
 								 "  <desc>%s</desc>\n"
@@ -4861,7 +4795,6 @@ static char *esif_shell_cmd_participantsk(EsifShellCmdPtr shell)
 								 "  <dspVerMajor>%d</dspVerMajor>\n"
 								 "  <dspVerMinor>%d</dspVerMinor>\n"
 								 "</participant>\n",
-								 output,
 								 data_ptr->participant_info[i].id,
 								 data_ptr->participant_info[i].name,
 								 data_ptr->participant_info[i].desc,
@@ -4878,9 +4811,9 @@ static char *esif_shell_cmd_participantsk(EsifShellCmdPtr shell)
 	}
 
 	if (FORMAT_TEXT == g_format) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	} else {// FORMAT_XML
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</participants>\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</participants>\n");
 	}
 exit:
 	if (NULL != ipc_ptr) {
@@ -4932,7 +4865,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 				/* Truncate Description If Large */
 				if (ESIF_SHELL_STRLEN(up_ptr->fMetadata.fDesc) > 12) {
 					esif_ccb_strcpy(desc, up_ptr->fMetadata.fDesc, 9);
-					esif_ccb_sprintf(ESIF_DESC_LEN, desc, "%s...", desc);
+					esif_ccb_sprintf_concat(ESIF_DESC_LEN, desc, "...");
 				} else {
 					esif_ccb_strcpy(desc, up_ptr->fMetadata.fDesc, 12);
 				}
@@ -4959,8 +4892,8 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 					esif_ccb_sprintf(8, instance_str, "%-2d", up_ptr->fLpInstance);
 				}
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s  <participant>\n"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								 "  <participant>\n"
 								 "    <UpId>%u</UpId>\n"
 								 "    <LpId>%s</LpId>\n"
 								 "    <name>%s</name>\n"
@@ -4975,7 +4908,6 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 								 "    <acpiScope>%s</acpiScope>\n"
 								 "    <acpiType>%u</acpiType>\n"
 								 "    <domainCount>%u</domainCount>\n",
-								 output,
 								 up_ptr->fInstance,
 								 instance_str,
 								 up_ptr->fMetadata.fName,
@@ -4991,17 +4923,15 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 								 up_ptr->fMetadata.fAcpiType,
 								 domainCount);
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s    <domains>\n",
-								 output);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								 "    <domains>\n");
 
 				/* Domain Kludge Here */
 				for (domain_index = 0; domain_index < domainCount; domain_index++) {
 					struct esif_fpc_domain *domain_ptr = up_ptr->fDspPtr->get_domain(up_ptr->fDspPtr, domain_index + 1);
 					if (domain_ptr) {
 						char guid_buf[ESIF_GUID_PRINT_SIZE];
-						esif_ccb_sprintf(OUT_BUF_LEN, output,
-										 "%s"
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 										 "      <domain>\n"
 										 "        <id>%d</id>\n"
 										 "        <version>1</version>\n"
@@ -5011,7 +4941,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 										 "        <type>%d</type>\n"
 										 "        <capability>0x%x</capability>\n"
 										 "      </domain>\n",
-										 output, domain_index, domain_ptr->descriptor.name,
+										 domain_index, domain_ptr->descriptor.name,
 										 domain_ptr->descriptor.description,
 										 esif_guid_print((esif_guid_t *)domain_ptr->descriptor.guid, guid_buf),
 										 domain_ptr->descriptor.domainType,
@@ -5021,14 +4951,12 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 					}
 				}
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 								 "    </domains>\n"
-								 "  </participant>\n",
-								 output);
+								 "  </participant>\n");
 			}
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</result>\n", output);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
 			return output;
 		}
 
@@ -5055,7 +4983,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 		/* Truncate Description If Large */
 		if (ESIF_SHELL_STRLEN(up_ptr->fMetadata.fDesc) > 12) {
 			esif_ccb_strcpy(desc, up_ptr->fMetadata.fDesc, 9);
-			esif_ccb_sprintf(ESIF_DESC_LEN, desc, "%s...", desc);
+			esif_ccb_sprintf_concat(ESIF_DESC_LEN, desc, "...");
 		} else {
 			esif_ccb_strcpy(desc, up_ptr->fMetadata.fDesc, 12);
 		}
@@ -5082,7 +5010,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 			esif_ccb_sprintf(8, instance_str, "%-2d", up_ptr->fLpInstance);
 		}
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s %-2d   %s  %-8s %-12s %-4s  %d  ", output,
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " %-2d   %s  %-8s %-12s %-4s  %d  ", 
 						 up_ptr->fInstance,
 						 instance_str,
 						 up_ptr->fMetadata.fName,
@@ -5092,18 +5020,18 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 
 
 		if (!strcmp(attribute, "acpi")) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%-8s %-30s %-3d %-3d\n", output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%-8s %-30s %-3d %-3d\n", 
 							 up_ptr->fMetadata.fAcpiDevice,
 							 up_ptr->fMetadata.fAcpiScope,
 							 up_ptr->fMetadata.fAcpiUID,
 							 up_ptr->fMetadata.fAcpiType);
 		} else {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%-17s %-2d\n", output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%-17s %-2d\n", 
 							 up_ptr->fDspPtr->code_ptr,
 							 domainCount);
 		}
 	}
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 
 
 	return output;
@@ -5167,17 +5095,17 @@ static char *esif_shell_cmd_timerstop(EsifShellCmdPtr shell)
 
 	esif_ccb_get_time(&stop);
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "timerstop\n");
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStart time: %06lu.%06lu\n", output,
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Start time: %06lu.%06lu\n", 
 					 g_timer.tv_sec,
 					 g_timer.tv_usec);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStop time: %06lu.%06lu\n", output,
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Stop time: %06lu.%06lu\n", 
 					 stop.tv_sec,
 					 stop.tv_usec);
 
 	timeval_subtract(&result, &stop, &g_timer);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%sTime: %06lu.%06lu (%lu seconds + %lu msec + %lu usec)\n", output,
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Time: %06lu.%06lu (%lu seconds + %lu msec + %lu usec)\n", 
 					 result.tv_sec,
 					 result.tv_usec,
 					 result.tv_sec,
@@ -5308,8 +5236,8 @@ static char *esif_shell_cmd_conjure(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Start Conjure Library: %s.\n", lib_name);
 	} else {
 		/* Proceed */
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStarted Conjure Library: %s Instance %u Max %u Running %u\n\n",
-						 output, lib_name, i, ESIF_MAX_CONJURES, g_cnjMgr.fEntryCount);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Started Conjure Library: %s Instance %u Max %u Running %u\n\n",
+						 lib_name, i, ESIF_MAX_CONJURES, g_cnjMgr.fEntryCount);
 	}
 
 exit:
@@ -5344,8 +5272,7 @@ static char *esif_shell_cmd_unconjure(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Stop Conjure Library: %s.\n", lib_name);
 	} else {
 		/* Proceed */
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%sStopped Conjure Library: %s\n\n",
-						 output, lib_name);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Stopped Conjure Library: %s\n\n", lib_name);
 		g_cnjMgr.fEntryCount--;
 	}
 
@@ -5451,12 +5378,10 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 		}
 		domain_count = (u8)up_ptr->fDspPtr->get_domain_count(up_ptr->fDspPtr);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "<stat>\n"
 						 "  <id>%d</id>\n"
 						 "  <name>%s</name>\n",
-						 output,
 						 i,
 						 up_ptr->fMetadata.fName);
 
@@ -5467,10 +5392,9 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 			}
 
 
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, 
 												  "  <domain>\n"
 												  "    <name>%s</name>\n",
-							 output,
 							 domain_ptr->descriptor.name);
 
 			if (up_ptr->fMetadata.fFlags & 0x1) {	// DPTF Zone / IETM Only
@@ -5478,9 +5402,8 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 				SYSTEM_POWER_STATUS ps = {0};
 				GetSystemPowerStatus(&ps);
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, 
 													  "    <battery>%d</battery>\n",
-								 output,
 								 ps.BatteryLifePercent);
 #endif
 			}
@@ -5510,13 +5433,11 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 										  255, &request, &hyst_response);
 
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output,
-								 "%s"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 								 "    <temp>%d</temp>\n"
 								 "    <tempAux0>%d</tempAux0>\n"
 								 "    <tempAux1>%d</tempAux1>\n"
 								 "    <tempHyst>%d</tempHyst>\n",
-								 output,
 								 temp,
 								 aux0,
 								 aux1,
@@ -5541,9 +5462,8 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 				}
 				esif_ccb_free(response.buf_ptr);
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, 
 													  "    <fanSpeed>%d</fanSpeed>\n",
-								 output,
 								 fan_speed);
 			}
 
@@ -5570,12 +5490,11 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 				}
 				esif_ccb_free(response.buf_ptr);
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, 
 													  "    <batteryState>%d</batteryState>\n"
 													  "    <batteryRate>%d</batteryRate>\n"
 													  "    <batteryCapacity>%d</batteryCapacity>\n"
 													  "    <batteryVoltage>%d</batteryVoltage>\n",
-								 output,
 								 present_state,
 								 present_rate,
 								 present_capacity,
@@ -5591,20 +5510,13 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 																					   qualifier_str,
 																					   32), 255, &request, &response);
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
-													  "    <power>%d</power>\n",
-								 output,
-								 power);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <power>%d</power>\n", power);
 			}
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
-												  "  </domain>\n",
-							 output);
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  </domain>\n");
 		}
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
-											  "</stat>\n",
-						 output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</stat>\n");
 	}
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s</status>\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</status>\n");
 	return output;
 }
 
@@ -5622,11 +5534,10 @@ static char *esif_shell_cmd_domains(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s"
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, 
 										  "\nDOMAINS:\n"
 										  "ID Name     Description          Qual PRI Capability Device Type                      \n"
-										  "-- -------- -------------------- ---- --- ---------- ---------------------------------\n",
-					 output);
+										  "-- -------- -------------------- ---- --- ---------- ---------------------------------\n");
 
 	if (NULL == up_ptr) {
 		goto exit;
@@ -5638,10 +5549,8 @@ static char *esif_shell_cmd_domains(EsifShellCmdPtr shell)
 			continue;
 		}
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						 "%02d %-8s %-20s %-4s %d   0x%08x %s(%d)\n",
-						 output,
 						 domain_index,
 						 domain_ptr->descriptor.name,
 						 domain_ptr->descriptor.description,
@@ -5650,14 +5559,14 @@ static char *esif_shell_cmd_domains(EsifShellCmdPtr shell)
 						 domain_ptr->capability_for_domain.capability_flags,
 						 esif_domain_type_str((enum esif_domain_type)domain_ptr->descriptor.domainType), domain_ptr->descriptor.domainType);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 		for (i = 0; i < 16; i++) {	/* Todo fix magic 16 */
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s%s(%d): %02X\n", output,
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s(%d): %02X\n", 
 							 esif_capability_type_str((enum esif_capability_type)i), i, domain_ptr->capability_for_domain.capability_mask[i]);
 		}
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	}
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 exit:
 	return output;
 }
@@ -5694,38 +5603,32 @@ static char *esif_shell_cmd_pst(EsifShellCmdPtr shell)
 	for (i = 0; i < 10; i++) {
 		temp = 255;
 		rc   = EsifExecutePrimitive(participant_id, GET_TRIP_POINT_ACTIVE, qualifier_str, i, &request, &response);
-		esif_ccb_sprintf(OUT_BUF_LEN, output,
-						 "%s"
-						 "  <ac%d>%d</ac%d>\n", output, i, *(UInt32 *)response.buf_ptr, i);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						 "  <ac%d>%d</ac%d>\n", i, *(UInt32 *)response.buf_ptr, i);
 	}
 
 	temp = 255;
 	rc   = EsifExecutePrimitive(participant_id, GET_TRIP_POINT_PASSIVE, qualifier_str, 255, &request, &response);
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
-					 "  <psv>%d</psv>\n", output, *(UInt32 *)response.buf_ptr);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					 "  <psv>%d</psv>\n", *(UInt32 *)response.buf_ptr);
 
 	temp = 255;
 	rc   = EsifExecutePrimitive(participant_id, GET_TRIP_POINT_WARM, qualifier_str, 255, &request, &response);
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
-					 "  <wrm>%d</wrm>\n", output, *(UInt32 *)response.buf_ptr);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					 "  <wrm>%d</wrm>\n", *(UInt32 *)response.buf_ptr);
 
 	temp = 255;
 	rc   = EsifExecutePrimitive(participant_id, GET_TRIP_POINT_CRITICAL, qualifier_str, 255, &request, &response);
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
-					 "  <crt>%d</crt>\n", output, *(UInt32 *)response.buf_ptr);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					 "  <crt>%d</crt>\n", *(UInt32 *)response.buf_ptr);
 
 	temp = 255;
 	rc   = EsifExecutePrimitive(participant_id, GET_TRIP_POINT_HOT, qualifier_str, 255, &request, &response);
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
-					 "  <hot>%d</hot>\n", output, *(UInt32 *)response.buf_ptr);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					 "  <hot>%d</hot>\n", *(UInt32 *)response.buf_ptr);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output,
-					 "%s"
-					 "</pst>\n", output);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					 "</pst>\n");
 
 	return output;
 }
@@ -5778,7 +5681,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argv);
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI (c) Intel Corp. (c) 2014\n");
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "%sHELP: * = REQUIRED\n"
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "HELP: * = REQUIRED\n"
 										  "cmd line: esif [optional filename] Load And Execute Filename Then Exit\n"
 										  "quit or exit                             Leave\n"
 										  "format [xml|text (default)]              Command Output Format\n"
@@ -5812,7 +5715,6 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 										  "dst      [*id]                           Set Destination By ID\n"
 										  "dstn     [*name]                         Set Destination By Name\n"
 										  "mode     [mode]                          Mode 0=IOCTL 1=Read/Write 2 LAL\n"
-										  "trace    [verbosity]                     Trace Level From 0 - N Least To Most Detail\n"
 										  "getp     [id][qualifier][instance][test] Execute Get Primitive With Automatica Return Type and Size\n"
 										  "getp_u32 [id][qualifier][instance][test] Execute U32 Get Primitive\n"
 										  "getp_t   [id][qualifier][instance][test] Same as getp But Converts Temperature\n"
@@ -5908,9 +5810,9 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 										  "config exec    [@datavault] [+key]    Execute Script in DataVault Key\n"
 										  "\n"
 										  "TRACE LOGGING:\n"
-										  "trace level [level]          View or Set Global Trace Level\n"
-										  "trace mask  [+level] [+bitmask] [*] Set Trace Module Bitmask\n"
-										  "trace route [+level] [+bitmask] [*] Set Trace Routing Bitmask (1=CON 2=EVT 4=DBG 8=LOG)\n"
+										  "trace level  [level]          View or Set Global Trace Level\n"
+										  "trace module [+level] [+module ...] Set Trace Module Bitmask (ALL, NONE, Name)\n"
+										  "trace route  [+level] [+route ...]  Set Trace Routing Bitmask (CON, EVT, DBG, LOG)\n"
 										  "trace log open [+filename]   Open Trace Log File\n"
 										  "trace log close              Close Trace Log File\n"
 										  "log open  [type] [+filename] Open Log File  (types: *shell trace ui) *default\n"
@@ -5925,8 +5827,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 										  "ui getmodulesingroup [+appname][+groupId]            Get A List Of Modules For The Specified Group\n"
 										  "ui getmoduledata     [+appname][+groupId][+moduleId] Get Data For The Specified App/Group/Module Tuple\n"
 										  "EVENT API:\n"
-										  "event [+eventType][participant][domain]\n\n"
-					 , output);
+										  "event [+eventType][participant][domain]\n\n");
 	return output;
 }
 
@@ -6209,11 +6110,10 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 
 		if ((find_handle = esif_ccb_file_enum_first(file_path, log_pattern, &ffd)) != INVALID_HANDLE_VALUE) {
 			do {
-				size_t len = esif_ccb_strlen(output, OUT_BUF_LEN);
-				if (esif_ccb_strcmp(ffd.filename, ".")==0 || esif_ccb_strcmp(ffd.filename, "..")==0) {
-					continue; // Ignore . and ..
+				if (esif_ccb_strcmp(ffd.filename, ".")==0 || esif_ccb_strcmp(ffd.filename, "..")==0 || esif_ccb_strchr(ffd.filename, '.')==NULL) {
+					continue; // Ignore . and .. and files w/o extensions
 				}
-				esif_ccb_sprintf(OUT_BUF_LEN-len, output+len, "%s\n", ffd.filename);
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", ffd.filename);
 			} while (esif_ccb_file_enum_next(find_handle, log_pattern, &ffd));
 			esif_ccb_file_enum_close(find_handle);
 		}
@@ -6605,7 +6505,7 @@ typedef struct EsifShellMap_t {
 char *esif_shell_cmd_ipc_autoconnect(EsifShellCmdPtr shell)
 {
 	UNREFERENCED_PARAMETER(shell);
-	ipc_autoconnect();
+	ipc_autoconnect(30); // 30 second timeout
 	return NULL;
 }
 
@@ -6618,7 +6518,6 @@ char *esif_shell_cmd_ipc_connect(EsifShellCmdPtr shell)
 	return NULL;
 }
 
-
 // Shell Command Wrapper
 char *esif_shell_cmd_ipc_disconnect(EsifShellCmdPtr shell)
 {
@@ -6626,6 +6525,7 @@ char *esif_shell_cmd_ipc_disconnect(EsifShellCmdPtr shell)
 	ipc_disconnect();
 	return NULL;
 }
+
 
 // Shell Command Mapping. Keep this array sorted alphabetically to facilitate Binary Searches
 static EsifShellMap ShellCommands[] = {
