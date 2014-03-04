@@ -283,7 +283,3 @@ unknown at this time.  The issue is under investigation.
 the DPTF application is not running.  The workaround is to restart the daemon
 with "sudo initctl restart dptf".  We have root caused the issue and are 
 currently working on a fix for the next release.
-
-* Compiling the code with any level of optimization beyong -O0 is causing the 
-code to break.  Do not compile with optimization at this time.  This will be
-addressed in the next release.
