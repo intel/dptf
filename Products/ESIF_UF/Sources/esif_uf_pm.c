@@ -255,7 +255,7 @@ eEsifError EsifUpManagerUnregisterParticipant(
 
 	instance = *(UInt8 *)participantHandle;
 
-	if (instance > MAX_PARTICIPANT_ENTRY) {
+	if (instance >= MAX_PARTICIPANT_ENTRY) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
@@ -473,6 +473,43 @@ exit:
 }
 
 
+/* Map a participant handle to  */
+eEsifError EsifUpManagerMapLpidToPartHandle(
+	const UInt8 lpInstance,
+	void *participantHandle
+	)
+{
+	eEsifError rc    = ESIF_E_INVALID_HANDLE;
+	UInt8 i = 0;
+
+	/* Validate parameters */
+	if (NULL == participantHandle) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	esif_ccb_read_lock(&g_uppMgr.fLock);
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		if (g_uppMgr.fEntries[i].fUpPtr && (g_uppMgr.fEntries[i].fUpPtr->fLpInstance == lpInstance)) {
+			break;
+		}
+	}
+
+	esif_ccb_read_unlock(&g_uppMgr.fLock);
+
+	if (i >= MAX_PARTICIPANT_ENTRY) {
+		goto exit;
+	}
+
+	*(UInt8 *)participantHandle = i;
+	rc = ESIF_OK;
+
+exit:
+	return rc;
+}
+
+
 /* Initialize manager */
 eEsifError EsifUppMgrInit(void)
 {
@@ -526,7 +563,6 @@ static eEsifError EsifUpManagerDestroyParticipants(void)
 
 	return rc;
 }
-
 
 /*****************************************************************************/
 /*****************************************************************************/

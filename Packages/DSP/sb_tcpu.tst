@@ -91,7 +91,10 @@ rem setp 082 D1 255                                          ;SET_PERF_PRESENT_C
 rem setp 082 D2 255                                          ;SET_PERF_PRESENT_CAPABILITY
 rem setp 229 D1 255                                          ;SET_PROC_LOGICAL_PROCESSOR_AFFINITY
 rem setp 153 D1 255                                          ;SET_PROC_NUMBER_OFFLINE_CORES
+rem setp 275 D1 255                                          ;SET_PROC_PERF_PSTATE_DEPTH_LIMIT
+rem setp 276 D1 255                                          ;SET_PROC_PERF_TSTATE_DEPTH_LIMIT
 rem setp 100 D0 255                                          ;SET_PROC_TURBO_STATE
+rem setp 274 D0 255                                          ;SET_RAPL_POWER_CONTROL_CAPABILITIES
 rem setp 130 D0 000                                          ;SET_RAPL_POWER_LIMIT
 rem setp 222 D0 000                                          ;SET_RAPL_POWER_LIMIT_ENABLE
 rem setp 241 D0 255                                          ;SET_TEMPERATURE
@@ -116,7 +119,7 @@ rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
 rem setp 147 D1 255                                          ;SET_TSTATE_CURRENT
-echo Test Count: 84
+echo Test Count: 87
 timerstop
 geterrorlevel
 nolog

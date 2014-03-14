@@ -25,7 +25,7 @@
 
 #define ESIF_UF_VERSION_MAJOR 8
 #define ESIF_UF_VERSION_MINOR 0
-#define ESIF_UF_VERSION_HOTFIX 8
+#define ESIF_UF_VERSION_HOTFIX 9
 #define ESIF_UF_VERSION_BUILD 0
 
 /* Build system will should set to 0 */

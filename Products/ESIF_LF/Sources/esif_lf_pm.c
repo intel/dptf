@@ -388,6 +388,22 @@ enum esif_rc esif_lf_pm_lp_set_state(
 			esif_lf_uninstrument_capability(lpd_ptr);
 		}
 		esif_lf_uninstrument_participant(lp_ptr);
+
+	} else if (ESIF_PM_PARTICIPANT_STATE_SUSPENDED == state) {
+		for (i = 0; i < lp_ptr->domain_count; i++) {
+			struct esif_lp_domain *lpd_ptr = &lp_ptr->domains[i];
+			esif_poll_stop(lpd_ptr);
+		}
+
+	} else if (ESIF_PM_PARTICIPANT_STATE_RESUMED == state) {
+		for (i = 0; i < lp_ptr->domain_count; i++) {
+			struct esif_lp_domain *lpd_ptr = &lp_ptr->domains[i];
+			if (lp_ptr->domains[i].poll_mask != 0)
+				esif_poll_start(lpd_ptr);
+		}
+		esif_ccb_write_lock(&g_pm.lock);
+		g_pm.pme[lp_ptr->instance].state = ESIF_PM_PARTICIPANT_STATE_REGISTERED;
+		esif_ccb_write_unlock(&g_pm.lock);
 	}
 exit:
 	return rc;

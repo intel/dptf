@@ -80,7 +80,7 @@ A,1,1,True,0,,,,
 P,256,255,1,24,"<schema></schema>",29,"<schema></schema>"
 A,0,41,False,3,,,,
 A,1,1,True,0,,,,
-# GET_RFPROFILE_CONNECT_STATUS
+# GET_RFPROFILE_CONNECTION_STATUS
 P,264,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,41,False,4,,,,
 A,1,1,True,0,,,,

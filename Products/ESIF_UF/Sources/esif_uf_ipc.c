@@ -107,56 +107,91 @@ static void extract_kernel_version(char *str, size_t buf_len)
 }
 
 // IPC Connect
-void ipc_connect()
+eEsifError ipc_connect()
 {
-	g_ipc_handle = esif_ipc_connect((char *)SESSION_ID);
+	eEsifError rc = ESIF_OK;
+	int check_kernel_version = ESIF_TRUE;
+
+	// Exit if IPC already connected
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+		return ESIF_OK;
+	}
+
+	// Connect to LF
+	g_ipc_handle = esif_ipc_connect((char *)SESSION_ID);
+	if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+		rc = ESIF_E_NO_LOWER_FRAMEWORK;
+	}
+	else {
 		char *kern_str = esif_cmd_info(g_out_buf);
 		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Opened\n");
 		if (NULL != kern_str) {
 			// Extract just the Kernel LF Version from the result string
 			extract_kernel_version(kern_str, sizeof(g_out_buf));
 
+			// Bypass Kernel Version check for DEBUG builds
+			#if defined(ESIF_ATTR_DEBUG)
+			check_kernel_version = ESIF_FALSE;
+			#endif
+
 			// Validate Kernel LF version is compatible with UF version
-			if (esif_ccb_strcmp(kern_str, ESIF_VERSION) == 0) {
+			if (check_kernel_version == ESIF_FALSE || esif_ccb_strcmp(kern_str, ESIF_VERSION) == 0) {
 				ESIF_TRACE_DEBUG("Kernel Version: %s", kern_str);
 				esif_ccb_sprintf(sizeof(g_esif_kernel_version), g_esif_kernel_version, "%s", kern_str);
 			}
 			else {
 				ESIF_TRACE_ERROR("ESIF_LF Version (%s) Incompatible with ESIF_UF Version (%s)\n", kern_str, ESIF_VERSION);
 				ipc_disconnect();
+				rc = ESIF_E_NOT_SUPPORTED;
 			}
 		}
 	}
+	return rc;
 }
 
-
 // IPC Auto Connect
-void ipc_autoconnect()
+eEsifError ipc_autoconnect(UInt32 max_retries)
 {
+	eEsifError rc = ESIF_OK;
+	UInt32 connect_retries = 0;
+
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
-		return;
+		return rc;
 	}
 
+	// Attempt to connect to LF indefinitely until ESIF exits (unless the LF version is unsupported)
 	while (!g_quit) {
-		ipc_connect();
-		if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+		rc = ipc_connect();
+		if (rc == ESIF_OK || rc == ESIF_E_NOT_SUPPORTED) {
 			break;
 		}
+
+		if (max_retries > 0 && ++connect_retries >= max_retries) {
+			ESIF_TRACE_ERROR("Unable to do an IPC connect\n");
+			break;
+		}
+
 		esif_ccb_sleep(1);
 	}
+	return rc;
 }
 
 
 // IPC Disconnect
 void ipc_disconnect()
 {
-	esif_ipc_disconnect(g_ipc_handle);
-	g_ipc_handle = ESIF_INVALID_HANDLE;
-
-	ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Closed\n");
+	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+		esif_ipc_disconnect(g_ipc_handle);
+		g_ipc_handle = ESIF_INVALID_HANDLE;
+		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Closed\n");
+	}
 }
 
+// Is IPC Connected?
+int ipc_isconnected()
+{
+	return (g_ipc_handle != ESIF_INVALID_HANDLE);
+}
 
 /* Declared and Handled By UF Shell */
 extern struct esif_uf_dm g_dm;

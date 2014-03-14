@@ -42,16 +42,18 @@
 
 
 enum frameType {
-	EMPTY_FRAME      = 0xF0,
-	ERROR_FRAME      = 0xF1,
-	INCOMPLETE_FRAME = 0xF2,
-	TEXT_FRAME       = 0x01,
-	BINARY_FRAME     = 0x02,
-	PING_FRAME       = 0x09,
-	PONG_FRAME       = 0x0A,
-	OPENING_FRAME    = 0xF3,
-	CLOSING_FRAME    = 0x08,
-	HTTP_FRAME       = 0xFF
+	CONTINUATION_FRAME	= 0x00,
+	TEXT_FRAME			= 0x01,
+	BINARY_FRAME		= 0x02,
+	CLOSING_FRAME		= 0x08,
+	PING_FRAME			= 0x09,
+	PONG_FRAME			= 0x0A,
+
+	EMPTY_FRAME			= 0xF0,
+	ERROR_FRAME			= 0xF1,
+	INCOMPLETE_FRAME	= 0xF2,
+	OPENING_FRAME		= 0xF3,
+	HTTP_FRAME			= 0xFF
 };
 
 
@@ -88,7 +90,7 @@ eEsifError esif_ws_socket_build_response_header (const protocol*, UInt8*, size_t
 void esif_ws_socket_build_payload(const UInt8*, size_t, UInt8*, size_t*, enum frameType);
 
 
-enum frameType esif_ws_socket_get_subsequent_frame_type(UInt8*, size_t, UInt8 * *, size_t*);
+enum frameType esif_ws_socket_get_subsequent_frame_type(UInt8*, size_t, UInt8 * *, size_t*, size_t*);
 
 
 void esif_ws_socket_initialize_frame (protocol*);

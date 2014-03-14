@@ -77,6 +77,7 @@ static eEsifError ActionConfigSet(
 	EsifDataPtr requestPtr
 	)
 {
+	eEsifError rc = ESIF_OK;
 	esif_flags_t flags = ESIF_SERVICE_CONFIG_PERSIST;
 	UNREFERENCED_PARAMETER(actionHandle);
 	UNREFERENCED_PARAMETER(devicePathPtr);
@@ -101,7 +102,21 @@ static eEsifError ActionConfigSet(
 		flags |= ESIF_SERVICE_CONFIG_DELETE;
 	}
 
-	return EsifConfigSet(p1Ptr, p2Ptr, flags, requestPtr);
+	rc = EsifConfigSet(p1Ptr, p2Ptr, flags, requestPtr);
+
+	/* Ignore DataVault I/O Errors so DSP Overrides can be written to or cleared 
+	 * from DataCache even if DV file system is read-only
+	 */
+	switch (rc) {
+	case ESIF_E_IO_ERROR:
+	case ESIF_E_IO_OPEN_FAILED:
+	case ESIF_E_IO_DELETE_FAILED:
+		rc = ESIF_OK;
+		break;
+	default:
+		break;
+	}
+	return rc;
 }
 
 

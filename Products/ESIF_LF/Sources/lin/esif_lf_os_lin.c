@@ -2210,7 +2210,7 @@ static int dptf_platform_resume(struct platform_device *dev_ptr)
 					  'NA',
 					  NULL);
 
-	ESIF_TRACE_DEBUG("%s: dev %p rc = %d\n", ESIF_FUNC, dev, rc);
+	ESIF_TRACE_DEBUG("%s: dev %p rc = %d\n", ESIF_FUNC, dev_ptr, rc);
 	if (ESIF_OK != rc)
 		return -EINVAL;
 
@@ -2309,8 +2309,8 @@ module_exit(esif_lf_unload);
 module_param(debug, int, S_IRUGO);
 module_param(g_background, int, S_IRUGO);
 
-MODULE_DESCRIPTION("ESIF Lower Framework");
-MODULE_VERSION("X1.0.1.0");
+MODULE_DESCRIPTION(ESIF_LOWER_FRAMEWORK);
+MODULE_VERSION(ESIF_VERSION);
 MODULE_LICENSE(ESIF_LICENSE);
 MODULE_AUTHOR(ESIF_AUTHOR);
 

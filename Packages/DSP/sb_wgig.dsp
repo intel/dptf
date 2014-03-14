@@ -43,8 +43,8 @@ T,4,5,,,0,8
 T,29,6,,,1,8
 #
 #
-D,"DFL","Default Domain","D0","D9540E06-BD67-4A80-854A-1BEFEBA7BF43",0,16
-C,0x2100 ,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
+D,"PKG","Package Domain","D0","E8E78971-57FC-45D8-953D-46428BE5E457",0,9
+C,0x2110 ,0x0,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
 #
 # GET_DEVICE_DESCRIPTION
 P,60,255,1,24,"<schema></schema>",9,"<schema></schema>"
@@ -55,28 +55,110 @@ A,0,4,True,"_HID",,,,
 # GET_DEVICE_UNIQUE_ID
 P,67,255,1,24,"<schema></schema>",8,"<schema></schema>"
 A,0,4,True,"_UID",,,,
+# GET_PARTICIPANT_PERF_PRESENT_CAPABILITY
+P,176,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,44,True,"PPPC",7,,,
 # GET_PARTICIPANT_TYPE
 P,139,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"PTYP",,,,
+# GET_PERF_PSTATE_DEPTH_LIMIT
+P,76,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,44,True,"PPDL",7,,,
+# GET_PERF_SUPPORT_STATES
+P,137,255,1,24,"<schema></schema>",7,"<schema></schema>"
+A,0,44,True,"PPSS",7,,,
+# GET_RFPROFILE_BIT_ERROR
+P,265,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,16,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CENTER_FREQUENCY
+P,245,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,43,False,0,,,,
+A,1,1,True,1500000,,,,
+# GET_RFPROFILE_CHANNEL_NUMBER
+P,260,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,1,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CLIP_PERCENT_LEFT
+P,255,255,1,24,"<schema></schema>",29,"<schema></schema>"
+A,0,43,False,2,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CLIP_PERCENT_RIGHT
+P,256,255,1,24,"<schema></schema>",29,"<schema></schema>"
+A,0,43,False,3,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_CONNECTION_STATUS
+P,264,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,4,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
+P,254,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,43,False,5,,,,
+A,1,1,True,1500000,,,,
+# GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
+P,257,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,43,False,6,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
+P,246,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,43,False,7,,,,
+A,1,1,True,1,,,,
+# GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT
+P,251,255,1,24,"<schema></schema>",40,"<schema></schema>"
+A,0,43,False,8,,,,
+A,1,1,True,1,,,,
+# GET_RFPROFILE_NOISE_POWER
+P,261,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,9,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_NOTCH_LEFT
+P,258,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,10,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_NOTCH_RIGHT
+P,259,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,11,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_RSSI
+P,263,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,12,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_SHAPE_LEFT
+P,247,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,13,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_SHAPE_RIGHT
+P,253,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,14,,,,
+A,1,1,True,0,,,,
+# GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO
+P,262,255,1,24,"<schema></schema>",3,"<schema></schema>"
+A,0,43,False,15,,,,
+A,1,1,True,0,,,,
 # GET_TEMPERATURE
 P,14,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
 A,1,1,True,32,,,,
+A,2,44,True,"_TMP",7,,,
 # GET_TEMPERATURE_THRESHOLD_COUNT
 P,72,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"PATC",,,,
 A,1,1,True,2,,,,
+A,2,44,True,"PATC",7,,,
 # GET_TEMPERATURE_THRESHOLD_HYSTERESIS
 P,15,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/gtsh",,,
 A,1,4,True,"GTSH",,,,
 A,2,1,True,2,,,,
+A,3,44,True,"GTSH",7,,,
 # GET_TEMPERATURE_THRESHOLDS
 P,143,0,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,29,True,"GTT0",,,,
+A,1,44,True,"GTT0",7,,,
 # GET_TEMPERATURE_THRESHOLDS
 P,143,1,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,29,True,"GTT1",,,,
+A,1,44,True,"GTT1",7,,,
 # GET_TRIP_POINT_ACTIVE
 P,1,0,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac0",,,
@@ -133,6 +215,9 @@ A,1,4,True,"_PSV",,,,
 P,177,255,1,24,"<schema></schema>",6,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/trippoint/_cr3",,,
 A,1,4,True,"_CR3",,,,
+# SET_PERF_PRESENT_CAPABILITY
+P,82,255,2,3,"<schema></schema>",24,"<schema></schema>"
+A,0,44,True,"SPPC",7,,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,
@@ -142,9 +227,11 @@ A,0,20,False,"DPTF","/participants/%nm%/gtsh",,,
 # SET_TEMPERATURE_THRESHOLDS
 P,47,0,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,29,True,"STT0",,,,
+A,0,44,True,"PAT0",7,,,
 # SET_TEMPERATURE_THRESHOLDS
 P,47,1,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,29,True,"STT1",,,,
+A,0,44,True,"PAT1",7,,,
 # SET_TRIP_POINT_ACTIVE
 P,202,0,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/trippoint/_ac0",,,
@@ -187,3 +274,15 @@ A,0,20,False,"DPTF","/participants/%nm%/trippoint/_psv",,,
 # SET_TRIP_POINT_WARM
 P,205,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/trippoint/_cr3",,,
+#
+D,"WIFI","Wifi Domain","D1","D96CAF9A-5A44-4041-B9C9-54DFB8EB2262",1,7
+C,0x6130 ,0x0,0x0,0x0,0x0,0x1,0x1,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x2,0x0
+#
+#
+D,"WGIG","Wgig Domain","D2","FC875115-A4E8-4E94-8FB9-9413F3D29EA6",2,16
+C,0x2130 ,0x0,0x0,0x0,0x0,0x1,0x1,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
+#
+#
+D,"WRFM","RFEM Domain","D3","BD315B83-545F-4E3B-BE6B-9ABDD4209C34",3,20
+C,0x2130 ,0x0,0x0,0x0,0x0,0x1,0x1,0x0,0x0,0x1,0x0,0x0,0x0,0x0,0x1,0x0,0x0
+#

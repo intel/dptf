@@ -35,13 +35,16 @@ setb 8192
 getp 060 D0 255 -s sb_wifi_60_D0_255.str                     ;GET_DEVICE_DESCRIPTION
 getp 053 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_HARDWARE_ID
 getp 067 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_UNIQUE_ID
+getp 176 D0 255                                              ;GET_PARTICIPANT_PERF_PRESENT_CAPABILITY
 getp 139 D0 255 -u 18 -l 0                                   ;GET_PARTICIPANT_TYPE
+getp 076 D0 255                                              ;GET_PERF_PSTATE_DEPTH_LIMIT
+getp 137 D0 255 -b sb_wifi_137_D0_255.bin                    ;GET_PERF_SUPPORT_STATES
 getp 265 D0 255                                              ;GET_RFPROFILE_BIT_ERROR
 getp 245 D0 255                                              ;GET_RFPROFILE_CENTER_FREQUENCY
 getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
 getp 255 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_LEFT
 getp 256 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
-getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
+getp 264 D0 255                                              ;GET_RFPROFILE_CONNECTION_STATUS
 getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
 getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
 getp 246 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
@@ -72,6 +75,7 @@ getp 013 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_CRI
 getp 012 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_HOT
 getp 011 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_PASSIVE
 getp 177 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_WARM
+rem setp 082 D0 255                                          ;SET_PERF_PRESENT_CAPABILITY
 rem setp 241 D0 255                                          ;SET_TEMPERATURE
 rem setp 232 D0 255                                          ;SET_TEMPERATURE_THRESHOLD_HYSTERESIS
 rem setp 047 D0 000                                          ;SET_TEMPERATURE_THRESHOLDS
@@ -90,7 +94,7 @@ rem setp 203 D0 255                                          ;SET_TRIP_POINT_CRI
 rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
-echo Test Count: 58
+echo Test Count: 62
 timerstop
 geterrorlevel
 nolog

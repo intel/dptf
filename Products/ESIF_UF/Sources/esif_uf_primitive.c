@@ -861,10 +861,10 @@ retry:
 		if (action_ptr->is_kernel > 0) {
 			/* ESIF LF via IPC */
 			if (ESIF_PRIMITIVE_OP_GET == primitive_ptr->operation) {
-				rc = PrimitiveActionLFGet(participantId, kernAct,
+				rc = PrimitiveActionLFGet(up_ptr->fLpInstance, kernAct,
 										  &tuple, action_ptr, requestPtr, responsePtr);
 			} else {
-				rc = PrimitiveActionLFSet(participantId, kernAct,
+				rc = PrimitiveActionLFSet(up_ptr->fLpInstance, kernAct,
 										  &tuple, action_ptr, requestPtr, responsePtr);
 			}
 			ESIF_TRACE_DEBUG("Using ESIF LF for action %d, kern_action %d! rc %s\n",

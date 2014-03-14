@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "esif_ws_http.h"
+#include "esif_uf_version.h"
 
 #define VERSION "1.0"
 #define UNKNOWN_MIME_TYPE	"application/octet-stream"
@@ -171,7 +172,7 @@ static int esif_ws_http_process_static_pages (
 
 	esif_ccb_sprintf(BUFFER_LENGTH, buffer,	
 					"HTTP/1.1 200 OK\n"
-					"Server: server/%s\n"
+					"Server: ESIF_UF/%s\n"
 					"Last-Modified: %s\n"
 					"Date: %s\n"
 					"Content-Type: %s\n"
@@ -179,7 +180,7 @@ static int esif_ws_http_process_static_pages (
 					"%s"
 					"Connection: close\n"
 					"\n",
-				VERSION,
+				ESIF_UF_VERSION,
 				esif_ws_http_time_stamp(st.st_mtime, tmpbuffer),
 				esif_ws_http_time_stamp(time(0), tmpbuffer), 
 				fileType, 

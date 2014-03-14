@@ -630,7 +630,7 @@ static void __exit dptf_cpu_unload(void)
 module_init(dptf_cpu_load);
 module_exit(dptf_cpu_unload);
 
-MODULE_VERSION("X1.0.1.0");
+MODULE_VERSION(ESIF_VERSION);
 MODULE_DESCRIPTION(ESIF_PARTICIPANT_CPU_DESC);
 MODULE_LICENSE(ESIF_LICENSE);
 MODULE_AUTHOR(ESIF_AUTHOR);

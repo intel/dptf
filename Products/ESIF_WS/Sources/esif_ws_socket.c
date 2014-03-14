@@ -42,6 +42,14 @@ static void esif_ws_socket_copy_line (const char*, char*);
 static char*esif_ws_socket_get_field_value (const char*);
 static size_t esif_ws_socket_get_payload_size (const UInt8*, size_t, UInt8*, enum frameType*);
 
+#ifdef ESIF_ATTR_OS_LINUX
+static ESIF_INLINE UInt64 htonll(UInt64 value)
+{
+	UInt32 hi = htonl((UInt32)(value >> 32));
+	UInt32 lo = htonl((UInt32)value);
+	return (((UInt64) lo) << 32) | hi;
+}
+#endif
 
 /*
  *******************************************************************************
@@ -311,15 +319,18 @@ enum frameType esif_ws_socket_get_subsequent_frame_type (
 	UInt8 *incoming_frame,
 	size_t incoming_frame_length,
 	UInt8 * *dataPtr,
-	size_t *dataLength
+	size_t *dataLength,
+	size_t *bytesRemaining
 	)
 {
 	UInt8 mode=0;
 	UInt8 *maskingKey=NULL;
 	UInt8 extraBytes=0;
 	size_t payloadLength=0;
-	enum frameType frameType=(enum frameType)0;
+	enum frameType frameType = INCOMPLETE_FRAME;
 	size_t i=0;
+
+	*bytesRemaining = 0;
 
 	if (incoming_frame_length < 2) {
 		return INCOMPLETE_FRAME;
@@ -344,16 +355,17 @@ enum frameType esif_ws_socket_get_subsequent_frame_type (
 		extraBytes    = 0;
 		payloadLength = esif_ws_socket_get_payload_size(incoming_frame, incoming_frame_length, &extraBytes, &frameType);
 		if (payloadLength > 0) {
-			if (payloadLength < incoming_frame_length - 6 - extraBytes) {	// 4-maskingKey, 2-header
+			if (payloadLength > incoming_frame_length - 6 - extraBytes) {	// 4-maskingKey, 2-header
 				return INCOMPLETE_FRAME;
-			
+			}
+			if (payloadLength < incoming_frame_length - 6 - extraBytes) {	// 4-maskingKey, 2-header
+				*bytesRemaining = incoming_frame_length - 6 - extraBytes - payloadLength;
 			}
 
 			maskingKey  = &incoming_frame[2 + extraBytes];
 
 			*dataPtr    = &incoming_frame[2 + extraBytes + 4];
 			*dataLength = payloadLength;
-
 
 			for (i = 0; i < *dataLength; i++)
 				(*dataPtr)[i] = (*dataPtr)[i] ^ maskingKey[i % 4];
@@ -428,11 +440,12 @@ static size_t esif_ws_socket_get_payload_size (
 		secondTypeOfPayLoadLength = 0;
 		*extraBytes = 2;
 		esif_ccb_memcpy(&secondTypeOfPayLoadLength, &incoming_frame[2], *extraBytes);
-		firstTypeOfPayLoadLength = secondTypeOfPayLoadLength;
+		firstTypeOfPayLoadLength = (size_t) htons(secondTypeOfPayLoadLength);
 	} else if (firstTypeOfPayLoadLength == 0x7F) {
 		UInt64 ThirdTypeOfPayLoadLength = 0;
 		*extraBytes = 8;
 		esif_ccb_memcpy(&ThirdTypeOfPayLoadLength, &incoming_frame[2], *extraBytes);
+		ThirdTypeOfPayLoadLength = (size_t) htonll(ThirdTypeOfPayLoadLength);
 
 		if (ThirdTypeOfPayLoadLength > MAXIMUM_SIZE) {
 			*frameType = ERROR_FRAME;

@@ -74,6 +74,7 @@ void DataVault_ctor (DataVaultPtr self)
 {
 	if (self) {
 		WIPEPTR(self);
+		esif_ccb_lock_init(&self->lock);
 		self->cache  = DataCache_Create();
 		self->stream = IOStream_Create();
 	}
@@ -86,6 +87,7 @@ void DataVault_dtor (DataVaultPtr self)
 	if (self) {
 		DataCache_Destroy(self->cache);
 		IOStream_Destroy(self->stream);
+		esif_ccb_lock_uninit(&self->lock);
 		WIPEPTR(self);
 	}
 }
@@ -111,7 +113,7 @@ void DataVault_Destroy (DataVaultPtr self)
 // Write DataVault to Disk
 eEsifError DataVault_WriteVault (DataVaultPtr self)
 {
-	eEsifError rc = ESIF_E_NOT_FOUND;
+	eEsifError rc = ESIF_OK;
 	DataVaultHeader header;
 	struct esif_ccb_file dv_file    = {0};
 	struct esif_ccb_file dv_filebak = {0};
@@ -120,50 +122,59 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 	u32 idx;
 
 	if (FLAGS_TEST(self->flags, ESIF_SERVICE_CONFIG_STATIC | ESIF_SERVICE_CONFIG_READONLY)) {
-		return ESIF_E_READONLY;
+		rc = ESIF_E_READONLY;
+		goto exit;
 	}
 
-	// TODO: Locking
 	vault = IOStream_Create();
 	if (!vault) {
-		return ESIF_E_NO_MEMORY;
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
 	}
 
 	// If any rows contain NOCACHE PERSIST values, we need to make a copy the original DataVault while creating the new one
 	esif_build_path(dv_file.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, self->name, ESIFDV_FILEEXT);
 
-	for (idx = 0; idx < self->cache->size; idx++)
+	for (idx = 0; idx < self->cache->size; idx++) {
 		if (FLAGS_TESTALL(self->cache->elements[idx].flags, ESIF_SERVICE_CONFIG_NOCACHE | ESIF_SERVICE_CONFIG_PERSIST) &&
 			self->cache->elements[idx].value.buf_len == 0) {
 			struct stat filebak_stat = {0};
 			esif_build_path(dv_filebak.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, self->name, ESIFDV_BAKFILEEXT);
 
 			// Delete BAK file if it exists
-			if (esif_ccb_stat(dv_filebak.filename, &filebak_stat) == 0) {
-				esif_ccb_unlink(dv_filebak.filename);
+			if (esif_ccb_stat(dv_filebak.filename, &filebak_stat) == 0 && esif_ccb_unlink(dv_filebak.filename) != EOK) {
+				rc = ESIF_E_IO_DELETE_FAILED;
 			}
-			if (esif_ccb_rename(dv_file.filename, dv_filebak.filename) == 0) {
+			// Rename DV file to BAK file
+			else if (esif_ccb_rename(dv_file.filename, dv_filebak.filename) != 0) {
+				rc = ESIF_E_IO_OPEN_FAILED;
+			}
+
+			// Open BAK File
+			if (rc != ESIF_OK) {
+				esif_ccb_memset(dv_filebak.filename, 0, sizeof(dv_filebak.filename));
+			}
+			else {
 				if ((vaultBak = IOStream_Create()) == NULL) {
 					rc = ESIF_E_NO_MEMORY;
 				}
-				if (!vaultBak || IOStream_OpenFile(vaultBak, dv_filebak.filename, "rb") != 0) {
-					IOStream_Destroy(vault);
-					IOStream_Destroy(vaultBak);
-					return rc;
+				else if (IOStream_OpenFile(vaultBak, dv_filebak.filename, "rb") != 0) {
+					rc = ESIF_E_IO_OPEN_FAILED;
 				}
 			}
 			break;
 		}
+	}
 
 	// Create DataVault, Overwrite if necessary
-	IOStream_SetFile(vault, self->stream->file.name, "wb");
-	if (IOStream_Open(vault) != 0) {
-		if (vaultBak) {
-			IOStream_Destroy(vaultBak);
-			esif_ccb_unlink(dv_filebak.filename);
-		}
-		IOStream_Destroy(vault);
-		return rc;
+	if (rc == ESIF_OK && IOStream_SetFile(vault, self->stream->file.name, "wb") != EOK) {
+		rc = ESIF_E_NO_MEMORY;
+	}
+	if (rc == ESIF_OK && IOStream_Open(vault) != EOK) {
+		rc = ESIF_E_IO_OPEN_FAILED;
+	}
+	if (rc != ESIF_OK) {
+		goto exit;
 	}
 
 	// Create File Header
@@ -174,24 +185,35 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 	header.flags = 0;	// TODO: get from self->flags
 
 	// Write File Header
-	IOStream_Seek(vault, 0, SEEK_SET);
-	IOStream_Write(vault, &header, sizeof(header));
-	rc = ESIF_OK;
+	if (IOStream_Seek(vault, 0, SEEK_SET) != EOK)
+		rc = ESIF_E_IO_ERROR;
+	if (rc == ESIF_OK && IOStream_Write(vault, &header, sizeof(header)) != sizeof(header))
+		rc = ESIF_E_IO_ERROR;
 
 	// Write All Persisted Rows from Sorted List to DataVault
-	for (idx = 0; idx < self->cache->size; idx++) {
+	for (idx = 0; rc == ESIF_OK && idx < self->cache->size; idx++) {
 		DataCacheEntryPtr keypair = &self->cache->elements[idx];
 		if (keypair->flags & ESIF_SERVICE_CONFIG_PERSIST) {
 			UInt8 *buffer     = 0;
 			UInt32 buffer_len = 0;
 			UInt32 byte = 0;
 
-			IOStream_Write(vault, &keypair->flags, sizeof(keypair->flags));
-			IOStream_Write(vault, &keypair->key.data_len, sizeof(keypair->key.data_len));
-			IOStream_Write(vault, keypair->key.buf_ptr, keypair->key.data_len);
+			// Write Key: <flags><len><value...>
+			if (rc == ESIF_OK && IOStream_Write(vault, &keypair->flags, sizeof(keypair->flags)) != sizeof(keypair->flags))
+				rc = ESIF_E_IO_ERROR;
+			if (rc == ESIF_OK && IOStream_Write(vault, &keypair->key.data_len, sizeof(keypair->key.data_len)) != sizeof(keypair->key.data_len))
+				rc = ESIF_E_IO_ERROR;
+			if (rc == ESIF_OK && IOStream_Write(vault, keypair->key.buf_ptr, keypair->key.data_len) != keypair->key.data_len)
+				rc = ESIF_E_IO_ERROR;
 
-			IOStream_Write(vault, &keypair->value.type, sizeof(keypair->value.type));
-			IOStream_Write(vault, &keypair->value.data_len, sizeof(keypair->value.data_len));
+			// Write Value: <type><len><value...>
+			if (rc == ESIF_OK && IOStream_Write(vault, &keypair->value.type, sizeof(keypair->value.type)) != sizeof(keypair->value.type))
+				rc = ESIF_E_IO_ERROR;
+			if (rc == ESIF_OK && IOStream_Write(vault, &keypair->value.data_len, sizeof(keypair->value.data_len)) != sizeof(keypair->value.data_len))
+				rc = ESIF_E_IO_ERROR;
+
+			if (rc != ESIF_OK)
+				break;
 
 			// Read NOCACHE Entries from Backup file
 			if (keypair->flags & ESIF_SERVICE_CONFIG_NOCACHE) {
@@ -208,7 +230,7 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 					}
 					if (IOStream_Seek(vaultBak, bakoffset, SEEK_SET) != 0 || IOStream_Read(vaultBak, buffer, buffer_len) != buffer_len) {
 						esif_ccb_free(buffer);
-						rc = ESIF_E_UNSPECIFIED;// TODO: ESIF_E_IOERROR;
+						rc = ESIF_E_IO_ERROR;
 						break;
 					}
 					keypair->value.buf_ptr = (void*)offset;
@@ -237,30 +259,39 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 			}
 
 			if (buffer) {
-				IOStream_Write(vault, buffer, buffer_len);
+				if (IOStream_Write(vault, buffer, buffer_len) != buffer_len)
+					rc = ESIF_E_IO_ERROR;
 				esif_ccb_free(buffer);
-			} else {
-				IOStream_Write(vault, keypair->value.buf_ptr, keypair->value.data_len);
+			}
+			else {
+				if (IOStream_Write(vault, keypair->value.buf_ptr, keypair->value.data_len) != keypair->value.data_len)
+					rc = ESIF_E_IO_ERROR;
 			}
 		}
 	}
 
+exit:
 	// Rollback on Error
 	if (rc != ESIF_OK) {
 		IOStream_Destroy(vaultBak);
 		IOStream_Destroy(vault);
-		esif_ccb_unlink(dv_file.filename);
-		IGNORE_RESULT(esif_ccb_rename(dv_filebak.filename, dv_file.filename));
-		return rc;
+		if (dv_filebak.filename[0]) {
+			IGNORE_RESULT(esif_ccb_unlink(dv_file.filename));
+			IGNORE_RESULT(esif_ccb_rename(dv_filebak.filename, dv_file.filename));
+		}
 	}
-	// Remove BAK file and Commit
-	if (vaultBak) {
-		IOStream_Close(vaultBak);
-		esif_ccb_unlink(dv_filebak.filename);
-		IOStream_Destroy(vaultBak);
+	else {
+		// Remove BAK file and Commit
+		if (vaultBak) {
+			IOStream_Close(vaultBak);
+			IGNORE_RESULT(esif_ccb_unlink(dv_filebak.filename));
+			IOStream_Destroy(vaultBak);
+		}
+		if (vault) {
+			IOStream_Close(vault);
+			IOStream_Destroy(vault);
+		}
 	}
-	IOStream_Close(vault);
-	IOStream_Destroy(vault);
 	return rc;
 }
 
@@ -268,64 +299,96 @@ eEsifError DataVault_WriteVault (DataVaultPtr self)
 // Read DataVault from Disk
 eEsifError DataVault_ReadVault (DataVaultPtr self)
 {
-	eEsifError rc = ESIF_E_UNSPECIFIED;	// TODO
+	eEsifError rc = ESIF_OK;
 	int vrc = EPERM;
-	DataVaultHeader header;
-	UInt32 min_version;
-	UInt32 max_version;
-	esif_flags_t item_flags;
+	DataVaultHeader header = {0};
+	UInt32 header_toread = sizeof(header.signature) + sizeof(header.headersize);
+	UInt32 min_version = 0;
+	UInt32 max_version = 0;
+	esif_flags_t item_flags = 0;
 	IOStreamPtr vault = self->stream;
+	EsifData key = {ESIF_DATA_STRING};
+	EsifData value = {ESIF_DATA_VOID};
+	size_t bytes = 0;
 
-	// TODO: Locking
+	if ((vault = self->stream) == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
 
 	// Open File or Memory Block
-	if ((vrc = IOStream_Open(vault)) != 0) {
+	if (rc == ESIF_OK && ((vrc = IOStream_Open(vault)) != 0)) {
 		if (vrc == ENOENT) {
 			rc = ESIF_E_NOT_FOUND;
 		}
-		return rc;
+		else {
+			rc = ESIF_E_IO_OPEN_FAILED;
+		}
+		goto exit;
+	}
+	
+	// Read File Header
+	if (IOStream_Read(vault, &header, header_toread) != header_toread) {
+		rc = ESIF_E_IO_ERROR;
+		goto exit;
+	}
+	header_toread = esif_ccb_min(header.headersize, sizeof(header)) - header_toread;
+	if (rc == ESIF_OK && IOStream_Read(vault, ((UInt8*)&header) + sizeof(header.signature) + sizeof(header.headersize), header_toread) != header_toread) {
+		rc = ESIF_E_IO_ERROR;
+		goto exit;
 	}
 
-	// Read and Verify File Header
 	// The DataVault's Major.Minor Version must be <= the App's Major.Minor Version and at least Major.0
-	memset(&header, 0, sizeof(header));
-	IOStream_Read(vault, &header, 4);	// E51F#### where #### is header size, including this
-	IOStream_Read(vault, ((UInt8*)&header) + 4, esif_ccb_min(header.headersize, sizeof(header)) - 4);
 	min_version = ESIFDV_VERSION(ESIFDV_MAJOR_VERSION, 0, 0);
 	max_version = ESIFDV_VERSION(ESIFDV_MAJOR_VERSION, ESIFDV_MINOR_VERSION, ESIFDV_MAX_REVISION);
 	if (memcmp(header.signature, ESIFDV_SIGNATURE, sizeof(header.signature)) != 0 || header.version > max_version || header.version < min_version) {
-		IOStream_Close(vault);
-		return ESIF_E_NOT_SUPPORTED;
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
 	}
-	if (header.headersize > sizeof(header)) {
-		IOStream_Seek(vault, header.headersize - sizeof(header), SEEK_CUR);
+	if (header.headersize > sizeof(header) && (IOStream_Seek(vault, header.headersize - sizeof(header), SEEK_CUR) != EOK)) {
+		rc = ESIF_E_IO_ERROR;
+		goto exit;
 	}
 	self->flags = header.flags;
 	if (IOStream_GetType(vault) == StreamMemory) {
 		self->flags |= ESIF_SERVICE_CONFIG_STATIC;
 	}
-	rc = ESIF_OK;
 
 	// Read Data and add to DataVault
-	while (IOStream_Read(vault, &item_flags, sizeof(item_flags)) == sizeof(item_flags)) {
-		EsifData key;
-		EsifData value;
-
-		// Read Key
+	while (rc == ESIF_OK) {
 		EsifData_ctor(&key);
 		EsifData_ctor(&value);
-		key.type = ESIF_DATA_STRING;
-		IOStream_Read(vault, &key.data_len, sizeof(key.data_len));
-		if (key.data_len > MAX_DV_DATALEN) {
-			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		
+		// Read Flags
+		if ((bytes = IOStream_Read(vault, &item_flags, sizeof(item_flags))) != sizeof(item_flags)) {
+			if (bytes != 0) {
+				rc = ESIF_E_IO_ERROR;
+			}
 			break;
 		}
+
+		// Read Key
+		key.type = ESIF_DATA_STRING;
+		if (IOStream_Read(vault, &key.data_len, sizeof(key.data_len)) < sizeof(key.data_len)) {
+			rc = ESIF_E_IO_ERROR;
+		}
+		if (rc == ESIF_OK && key.data_len > MAX_DV_DATALEN) {
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		}
+		if (rc != ESIF_OK) {
+			break;
+		}
+
 		switch (IOStream_GetType(vault)) {
 		case StreamMemory:
 			key.buf_len = 0;
 			key.buf_ptr = IOStream_GetMemoryBuffer(vault) + IOStream_GetOffset(vault);
-			IOStream_Seek(vault, key.data_len, SEEK_CUR);
-			item_flags &= ~ESIF_SERVICE_CONFIG_NOCACHE;	// ignore for Memory Vaults
+			if (IOStream_Seek(vault, key.data_len, SEEK_CUR) != EOK) {
+				rc = ESIF_E_IO_ERROR;
+			}
+			else {
+				item_flags &= ~ESIF_SERVICE_CONFIG_NOCACHE;	// ignore for Memory Vaults
+			}
 			break;
 
 		case StreamFile:
@@ -336,60 +399,84 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 				rc = ESIF_E_NO_MEMORY;
 				break;
 			}
-			IOStream_Read(vault, key.buf_ptr, key.data_len);
-			((esif_string)(key.buf_ptr))[key.data_len - 1] = 0;
-			break;
-		}
-		if (rc != ESIF_OK) {
-			EsifData_dtor(&key);
+			if (IOStream_Read(vault, key.buf_ptr, key.data_len) != key.data_len) {
+				rc = ESIF_E_IO_ERROR;
+			}
+			else {
+				((esif_string)(key.buf_ptr))[key.data_len - 1] = 0;
+			}
 			break;
 		}
 
 		// Read Value
-		IOStream_Read(vault, &value.type, sizeof(value.type));
-		IOStream_Read(vault, &value.data_len, sizeof(value.data_len));
-		if (value.data_len > MAX_DV_DATALEN) {
-			EsifData_dtor(&key);
+		if (rc == ESIF_OK && IOStream_Read(vault, &value.type, sizeof(value.type)) != sizeof(value.type)) {
+			rc = ESIF_E_IO_ERROR;
+		}
+		if (rc == ESIF_OK && IOStream_Read(vault, &value.data_len, sizeof(value.data_len)) != sizeof(value.data_len)) {
+			rc = ESIF_E_IO_ERROR;
+		}
+		if (rc == ESIF_OK && value.data_len > MAX_DV_DATALEN) {
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		}
+		if (rc != ESIF_OK) {
 			break;
 		}
 
 		// If NOCACHE mode, use buf_ptr to store the file offset of the data and skip the file
 		if (item_flags & ESIF_SERVICE_CONFIG_NOCACHE) {
 			size_t offset = IOStream_GetOffset(vault);
-			IOStream_Seek(vault, value.data_len, SEEK_CUR);
-			value.buf_ptr = (void*)offset;
-			value.buf_len = 0;	// data_len = original length
-		} else {
+			if (IOStream_Seek(vault, value.data_len, SEEK_CUR) != EOK) {
+				rc = ESIF_E_IO_ERROR;
+			}
+			else {
+				value.buf_ptr = (void*)offset;
+				value.buf_len = 0;	// data_len = original length
+			}
+		} 
+		else {
 			// Use static pointer for static data vaults (unless encrypted), otherwise make a dynamic copy
 			if (IOStream_GetType(vault) == StreamMemory && !(item_flags & ESIF_SERVICE_CONFIG_ENCRYPT)) {
 				value.buf_len = 0;	// static
 				value.buf_ptr = IOStream_GetMemoryBuffer(vault) + IOStream_GetOffset(vault);
-				IOStream_Seek(vault, value.data_len, SEEK_CUR);
-			} else {
+				if (value.buf_ptr == NULL || IOStream_Seek(vault, value.data_len, SEEK_CUR) != EOK) {
+					rc = ESIF_E_IO_ERROR;
+				}
+			} 
+			else {
 				value.buf_len = value.data_len;	// dynamic
 				value.buf_ptr = esif_ccb_malloc(value.buf_len);
-				if (!value.buf_ptr) {
-					EsifData_dtor(&key);
+				if (value.buf_ptr == NULL) {
 					rc = ESIF_E_NO_MEMORY;
-					break;
 				}
-				IOStream_Read(vault, value.buf_ptr, value.data_len);
+				else if (IOStream_Read(vault, value.buf_ptr, value.data_len) != value.data_len) {
+					rc = ESIF_E_IO_ERROR;
+				}
 			}
+			
 			// Decrypt Encrypted Data?
-			if (item_flags & ESIF_SERVICE_CONFIG_ENCRYPT) {
+			if (rc == ESIF_OK && (item_flags & ESIF_SERVICE_CONFIG_ENCRYPT)) {
 				UInt32 byte;
 				for (byte = 0; byte < value.data_len; byte++)
 					((UInt8*)(value.buf_ptr))[byte] = ~((UInt8*)(value.buf_ptr))[byte];
 			}
 		}
+		
 		// Add value (including allocated buf_ptr) to cache
-		DataCache_SetValue(self->cache, (esif_string)key.buf_ptr, value, item_flags);
-		value.buf_ptr = 0;
-		item_flags    = 0;
+		if (rc == ESIF_OK) {
+			DataCache_SetValue(self->cache, (esif_string)key.buf_ptr, value, item_flags);
+			value.buf_ptr = 0;
+			item_flags    = 0;
+		}
 		EsifData_dtor(&key);
 		EsifData_dtor(&value);
 	}
-	IOStream_Close(vault);
+
+exit:
+	EsifData_dtor(&key);
+	EsifData_dtor(&value);
+	if (vault) {
+		IOStream_Close(vault);
+	}
 	return rc;
 }
 
@@ -678,8 +765,6 @@ eEsifError DataVault_GetValue (
 	if (!self)
 		return ESIF_E_PARAMETER_IS_NULL;
 
-	// TODO: Locking
-
 	// Debug: Dump Entire Contents of DataVault if path="*"
 	if (strcmp((esif_string)path->buf_ptr, "*") == 0) {
 		UInt32 context = 0;
@@ -861,8 +946,6 @@ eEsifError DataVault_SetValue (
 		value = NULL;
 	}
 
-	// TODO: Locking
-
 	// AUTO data types or AUTO_ALLOCATE are not allowed for SET
 	if (value && (value->type == ESIF_DATA_AUTO || value->buf_len == ESIF_DATA_ALLOCATE)) {
 		return ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
@@ -878,8 +961,7 @@ eEsifError DataVault_SetValue (
 			if ((self->cache = DataCache_Create()) == NULL) {
 				return ESIF_E_NO_MEMORY;
 			}
-			DataVault_WriteVault(self);
-			return ESIF_OK;
+			return DataVault_WriteVault(self);
 		}
 		return ESIF_E_NOT_SUPPORTED;// "*" is an invalid key value
 	}
@@ -939,15 +1021,16 @@ eEsifError DataVault_SetValue (
 					keypair->value.buf_ptr = new_buf;
 				}
 			} 
-			keypair->flags = flags;
-			keypair->value.type     = value->type;
-			keypair->value.data_len = value->data_len;
 
 			// Replace the File Offset stored in buf_ptr with a copy of the data for updated NOCACHE values
 			if (keypair->flags & ESIF_SERVICE_CONFIG_NOCACHE && keypair->value.buf_len == 0) {
 				keypair->value.buf_ptr = esif_ccb_malloc(value->data_len);
 				keypair->value.buf_len = value->data_len;
 			}
+			keypair->flags = flags;
+			keypair->value.type     = value->type;
+			keypair->value.data_len = value->data_len;
+			
 			esif_ccb_memcpy(keypair->value.buf_ptr, value->buf_ptr, value->data_len);
 			rc = ESIF_OK;
 		}
@@ -962,7 +1045,7 @@ eEsifError DataVault_SetValue (
 
 	// If Persisted, Flush to disk
 	if (rc == ESIF_OK && FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_PERSIST)) {
-		DataVault_WriteVault(self);
+		rc = DataVault_WriteVault(self);
 	}
 	return rc;
 }
@@ -977,12 +1060,17 @@ eEsifError EsifConfigGet (
 	EsifDataPtr value
 	)
 {
+	eEsifError rc = ESIF_OK;
 	DataVaultPtr DB = DataBank_GetNameSpace(g_DataBankMgr, (StringPtr)(nameSpace->buf_ptr));
 	if (DB) {
-		return DataVault_GetValue(DB, path, value);
-	} else {
-		return ESIF_E_NOT_FOUND;
+		esif_ccb_read_lock(&DB->lock);
+		rc = DataVault_GetValue(DB, path, value);
+		esif_ccb_read_unlock(&DB->lock);
 	}
+	else {
+		rc = ESIF_E_NOT_FOUND;
+	}
+	return rc;
 }
 
 
@@ -1013,7 +1101,9 @@ eEsifError EsifConfigSet (
 		}
 	}
 	if (rc == ESIF_OK) {
+		esif_ccb_write_lock(&DB->lock);
 		rc = DataVault_SetValue(DB, path, value, flags);
+		esif_ccb_write_unlock(&DB->lock);
 	}
 	return rc;
 }
@@ -1033,17 +1123,21 @@ eEsifError EsifConfigFindNext (
 	DB = DataBank_GetNameSpace(g_DataBankMgr, (StringPtr)(nameSpace->buf_ptr));
 	if (DB) {
 		UInt32 item = *context;
-		if (item >= DB->cache->size) {
-			return rc;
-		}
-		(*context)++;
 
-		if (path->buf_len && path->buf_len < DB->cache->elements[item].value.data_len) {
-			return ESIF_E_NEED_LARGER_BUFFER;
+		esif_ccb_read_lock(&DB->lock);
+		if (item < DB->cache->size) {
+			(*context)++;
+			
+			if (path->buf_len && path->buf_len < DB->cache->elements[item].value.data_len) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+			}
+			else {
+				EsifData_Set(path, ESIF_DATA_STRING, esif_ccb_strdup(
+							 (char*)DB->cache->elements[item].key.buf_ptr), DB->cache->elements[item].key.data_len, DB->cache->elements[item].key.data_len);
+				rc = EsifConfigGet(nameSpace, path, value);
+			}
 		}
-		EsifData_Set(path, ESIF_DATA_STRING, esif_ccb_strdup(
-						 (char*)DB->cache->elements[item].key.buf_ptr), DB->cache->elements[item].key.data_len, DB->cache->elements[item].key.data_len);
-		return EsifConfigGet(nameSpace, path, value);
+		esif_ccb_read_unlock(&DB->lock);
 	}
 	return rc;
 }

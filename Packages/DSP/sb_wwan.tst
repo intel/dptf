@@ -41,7 +41,7 @@ getp 245 D0 255                                              ;GET_RFPROFILE_CENT
 getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
 getp 255 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_LEFT
 getp 256 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
-getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
+getp 264 D0 255                                              ;GET_RFPROFILE_CONNECTION_STATUS
 getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
 getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
 getp 246 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_LEFT

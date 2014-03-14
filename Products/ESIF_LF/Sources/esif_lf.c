@@ -114,6 +114,12 @@ static struct esif_init_module esif_initializers[] = {
 static enum esif_rc esif_start_initializers(void);
 static void esif_stop_initializers(void);
 
+static enum esif_rc esif_lf_allocate_and_queue_event(
+	struct esif_lp *lp_ptr,
+	enum esif_event_type type,
+	struct esif_event **event_locPtr
+);
+
 /*
  *******************************************************************************
  ** PRIVATE
@@ -718,7 +724,7 @@ enum esif_rc esif_lf_event(
 	case ESIF_EVENT_PARTICIPANT_CREATE:
 	{
 		event_ptr = esif_event_allocate(ESIF_EVENT_PARTICIPANT_CREATE,
-					sizeof(struct esif_participant_iface),
+					sizeof(evt_data),
 					ESIF_EVENT_PRIORITY_NORMAL,
 					lp_ptr->instance,
 					ESIF_INSTANCE_UF,
@@ -804,7 +810,7 @@ enum esif_rc esif_lf_event(
 		esif_ccb_memcpy(((u8 *)(ipc_ptr + 1) +
 				   sizeof(struct esif_ipc_event_header)),
 			&evt_data,
-			sizeof(struct esif_ipc_event_data_create_participant));
+			sizeof(evt_data));
 
 		/* IPC will be freed on othre side of queue operation */
 		esif_event_queue_push(ipc_ptr);
@@ -865,50 +871,45 @@ enum esif_rc esif_lf_event(
 			rc = ESIF_E_UNSPECIFIED;
 			goto exit;
 		}
+		rc = esif_lf_allocate_and_queue_event(lp_ptr, type, &event_ptr);
+		if (rc != ESIF_OK)
+			goto exit;
+		break;
 	}
-	/* BREAK INTENTIONALLY LEFT OUT */
+
+	case ESIF_EVENT_PARTICIPANT_SUSPEND:
+	{
+		if (ESIF_PM_PARTICIPANT_STATE_REGISTERED ==
+		    esif_lf_pm_lp_get_state(lp_ptr))
+			esif_lf_pm_lp_set_state(lp_ptr,
+			ESIF_PM_PARTICIPANT_STATE_SUSPENDED);
+
+		rc = esif_lf_allocate_and_queue_event(lp_ptr, type, &event_ptr);
+		if(rc != ESIF_OK)
+			goto exit;
+		break;
+	}
+
+	case ESIF_EVENT_PARTICIPANT_RESUME:
+	{
+		if (ESIF_PM_PARTICIPANT_STATE_SUSPENDED ==
+		    esif_lf_pm_lp_get_state(lp_ptr))
+			esif_lf_pm_lp_set_state(lp_ptr,
+			ESIF_PM_PARTICIPANT_STATE_RESUMED);
+
+		rc = esif_lf_allocate_and_queue_event(lp_ptr, type, &event_ptr);
+		if(rc != ESIF_OK)
+			goto exit;
+		break;
+	}
 
 	/* Everything Else Just Send The Handle */
 	default:
 	{
-		event_ptr = esif_event_allocate(type,
-						sizeof(lp_ptr->instance),
-						ESIF_EVENT_PRIORITY_NORMAL,
-						lp_ptr->instance,
-						lp_ptr->instance,
-						'NA',
-						&lp_ptr->instance);
-		if (NULL == event_ptr) {
-			rc = ESIF_E_NO_MEMORY;
+		rc = esif_lf_allocate_and_queue_event(lp_ptr, type, &event_ptr);
+		if(rc != ESIF_OK)
 			goto exit;
-		}
-
-		ipc_data_len = sizeof(struct esif_ipc_event_header);
-		ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_EVENT, ipc_data_len);
-
-		if (NULL == ipc_ptr) {
-			esif_event_free(event_ptr);
-			rc = ESIF_E_NO_MEMORY;
-			goto exit;
-		}
-
-		/* Setup Event Header And Copy To IPC Buffer */
-		evt_hdr.version       = event_ptr->version;
-		evt_hdr.type          = event_ptr->type;
-		evt_hdr.id            = event_ptr->id;
-		evt_hdr.timestamp     = event_ptr->timestamp;
-		evt_hdr.priority      = event_ptr->priority;
-		evt_hdr.src_id        = event_ptr->src;
-		evt_hdr.dst_id        = event_ptr->dst;
-		evt_hdr.dst_domain_id = 'NA';	/* event_ptr->dst_domain_id; */
-		evt_hdr.data_len      = 0;
-
-		esif_ccb_memcpy(ipc_ptr + 1,
-				&evt_hdr,
-				sizeof(struct esif_ipc_event_header));
-
-		/* IPC will be freed on other side of queue operation */
-		esif_event_queue_push(ipc_ptr);
+		break;
 	}
 	}	/* End of case */
 
@@ -923,6 +924,75 @@ enum esif_rc esif_lf_event(
 exit:
 	return rc;
 }
+
+
+static enum esif_rc esif_lf_allocate_and_queue_event(
+	struct esif_lp *lp_ptr,
+	enum esif_event_type type,
+	struct esif_event **event_locPtr
+	)
+{
+	enum esif_rc rc = ESIF_OK;
+	struct esif_event *event_ptr         = NULL;
+	struct esif_ipc *ipc_ptr             = NULL;
+	u16 ipc_data_len                     = 0;
+	struct esif_ipc_event_header evt_hdr = {0};
+
+	if ((NULL == lp_ptr) || (NULL == event_locPtr)) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	event_ptr  = esif_event_allocate(type,
+					sizeof(lp_ptr->instance),
+					ESIF_EVENT_PRIORITY_NORMAL,
+					lp_ptr->instance,
+					ESIF_INSTANCE_UF,
+					'NA',
+					&lp_ptr->instance);
+	if (NULL == event_ptr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	ipc_data_len = sizeof(struct esif_ipc_event_header);
+	ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_EVENT, ipc_data_len);
+
+	if (NULL == ipc_ptr) {
+		esif_event_free(event_ptr);
+		event_ptr = NULL;
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	/* Setup Event Header And Copy To IPC Buffer */
+	evt_hdr.version       = event_ptr->version;
+	evt_hdr.type          = event_ptr->type;
+	evt_hdr.id            = event_ptr->id;
+	evt_hdr.timestamp     = event_ptr->timestamp;
+	evt_hdr.priority      = event_ptr->priority;
+	evt_hdr.src_id        = event_ptr->src;
+	evt_hdr.dst_id        = event_ptr->dst;
+	evt_hdr.dst_domain_id = 'NA';	/* event_ptr->dst_domain_id; */
+	evt_hdr.data_len      = 0;
+
+	esif_ccb_memcpy(ipc_ptr + 1,
+			&evt_hdr,
+			sizeof(struct esif_ipc_event_header));
+
+	/* IPC will be freed on other side of queue operation */
+	esif_event_queue_push(ipc_ptr);
+
+	*event_locPtr = event_ptr;
+
+exit:
+	return rc;
+}
+
+
+
+
+
 
 
 /*

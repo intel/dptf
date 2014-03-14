@@ -57,6 +57,19 @@
 #include "win\banned.h"
 #endif
 
+// TODO: move to esif_ccb_file.h
+#ifdef _WIN32
+# include <direct.h>
+# define esif_ccb_mkdir(dir)                _mkdir(dir)
+# define esif_ccb_strchr(str, chr)          strchr(str, chr)
+# define esif_ccb_strrchr(str, chr)         strrchr(str, chr)
+#else
+#include <sys/stat.h>
+# define esif_ccb_mkdir(dir)                mkdir(dir, 755)
+# define esif_ccb_strchr(str, chr)          strchr(str, chr)
+# define esif_ccb_strrchr(str, chr)         strrchr(str, chr)
+#endif
+
 int g_autocpc    = ESIF_TRUE;	// Automatically Assign DSP/CPC
 int g_errorlevel = 0;			// Exit Errorlevel
 int g_quit		 = ESIF_FALSE;	// Quit
@@ -64,6 +77,8 @@ int g_disconnectClient = ESIF_FALSE;// Disconnect client
 int g_quit2      = ESIF_FALSE;	// Quit 2
 
 static esif_thread_t g_webthread;  //web worker thread
+
+UInt8 g_esif_started = ESIF_FALSE;
 
 // Global Shell lock to limit parse_cmd to one thread at a time
 #ifdef ESIF_ATTR_SHELL_LOCK
@@ -376,7 +391,7 @@ exit:
 
 
 /* Will sync any existing lower framework participatnts */
-static enum esif_rc sync_lf_participants()
+enum esif_rc sync_lf_participants()
 {
 	eEsifError rc = ESIF_OK;
 	struct esif_command_get_participants *data_ptr = NULL;
@@ -474,6 +489,38 @@ exit:
 void done(const void *context)
 {
 	CMD_OUT("Context = %p %s\n", context, (char *)context);
+}
+
+// Recursively create a path if it does not already exist
+int esif_ccb_makepath (char *path)
+{
+	int rc = -1;
+	struct stat st = {0};
+
+	// create path only if it does not already exist
+	if ((rc = esif_ccb_stat(path, &st)) != 0) {
+		size_t len = esif_ccb_strlen(path, MAX_PATH);
+		char dir[MAX_PATH];
+		char *slash;
+
+		// trim any trailing slash
+		esif_ccb_strcpy(dir, path, MAX_PATH);
+		if (len > 0 && dir[len - 1] == *ESIF_PATH_SEP) {
+			dir[len - 1] = 0;
+		}
+
+		// if path doesn't exist and can't be created, recursively create parent folder(s)
+		if ((rc = esif_ccb_stat(dir, &st)) != 0 && (rc = esif_ccb_mkdir(dir)) != 0) {
+			if ((slash = esif_ccb_strrchr(dir, *ESIF_PATH_SEP)) != 0) {
+				*slash = 0;
+				if ((rc = esif_ccb_makepath(dir)) == 0) {
+					*slash = *ESIF_PATH_SEP;
+					rc     = esif_ccb_mkdir(dir);
+				}
+			}
+		}
+	}
+	return rc;
 }
 
 /* Build Full Pathname for a given path type including an optional filename and extention. 

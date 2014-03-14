@@ -132,6 +132,44 @@ typedef struct EsifShellCmd_s EsifShellCmd, *EsifShellCmdPtr;
 // Output Buffer Keep Off Stack
 char g_out_buf[(64 * 1024)];
 
+#define VARIANT_MAX_FIELDS 25
+#define COLUMN_MAX_SIZE 64
+#define MAX_RESPONSE_BUFFER 4096
+#define MAX_TABLEOBJECT_KEY_LEN 256
+
+typedef struct {
+	int  forXML;
+	char *name;
+	char *label;
+	EsifDataType dataType;
+	UInt32 getPrimitive;
+	UInt32 setPrimitive;
+} TableField;
+
+typedef struct {
+	int numFields;
+	int participantId;
+	EsifDataType dataType;
+	char *name;
+	char *domainQualifier;
+	char *dataXML;
+	char *dataText;
+	UInt32 getPrimitive;
+	UInt32 setPrimitive;
+	eEsifEventType changeEvent;
+	char *dataVaultKey;
+	TableField fields[VARIANT_MAX_FIELDS];
+} TableObject;
+
+void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML);
+void TableField_Destroy(TableField *dataField);
+void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, int participantId);
+void TableObject_Destroy(TableObject *self);
+eEsifError TableObject_LoadSchema(TableObject *self);
+eEsifError TableObject_Save(TableObject *self);
+eEsifError TableObject_Delete(TableObject *self);
+eEsifError TableObject_LoadXML(TableObject *self);
+
 // Use our own strtok() function, which understands "quoted strings with spaces"
 #define ESIF_SHELL_STRTOK_SEP   " \t\r\n"
 static char *g_line_context;
@@ -315,25 +353,21 @@ void esif_init()
 		char command[MAX_LINE] = {0};
 		char filepath[MAX_PATH] = {0};
 
-#ifndef ESIF_ATTR_RELEASE_CAND
 		// Execute "start" script file in cmd directory, if one exists
 		if (esif_build_path(filepath, sizeof(filepath), ESIF_PATHTYPE_CMD, "start", NULL) != NULL && esif_ccb_file_exists(filepath)) {
 			esif_ccb_strcpy(command, "load start", sizeof(command));
 		}
-#endif
-		if (command[0] == 0) {
-			// Use startup script in startup.dv datavault, if it exists
-			if (DataBank_KeyExists(g_DataBankMgr, "startup", "start")) {
-				esif_ccb_strcpy(command, "config exec @startup start", sizeof(command));
-			}
-			// Use startup script in Default datavault, if it exists
-			else if (DataBank_KeyExists(g_DataBankMgr, g_DataVaultDefault, "start")) {
-				esif_ccb_strcpy(command, "config exec start", sizeof(command));
-			}
-			// Otherwise Use default startup script, if any
-			else if (g_DataVaultStartScript != NULL) {
-				esif_ccb_strcpy(command, g_DataVaultStartScript, sizeof(command));
-			}
+		// Use startup script in startup.dv datavault, if it exists
+		else if (DataBank_KeyExists(g_DataBankMgr, "startup", "start")) {
+			esif_ccb_strcpy(command, "config exec @startup start", sizeof(command));
+		}
+		// Use startup script in Default datavault, if it exists
+		else if (DataBank_KeyExists(g_DataBankMgr, g_DataVaultDefault, "start")) {
+			esif_ccb_strcpy(command, "config exec start", sizeof(command));
+		}
+		// Otherwise Use default startup script, if any
+		else if (g_DataVaultStartScript != NULL) {
+			esif_ccb_strcpy(command, g_DataVaultStartScript, sizeof(command));
 		}
 
 		// Execute Startup Script, if one was found
@@ -616,6 +650,452 @@ static char *esif_shell_cmd_dsps(EsifShellCmdPtr shell)
 	return output;
 }
 
+
+
+void TableField_Construct (
+	TableField *self, 
+	char *name, 
+	char *label, 
+	EsifDataType dataType,
+	int forXML
+	)
+{  
+    self->name = name;
+    self->label = label;
+    self->dataType = dataType;
+    self->forXML = forXML;
+	self->getPrimitive = 0;
+	self->setPrimitive = 0;
+}
+
+void TableField_ConstructAs (
+	TableField *self, 
+	char *name, 
+	char *label, 
+	EsifDataType dataType,
+	int forXML,
+	int getPrimitive,
+	int setPrimitive
+	)
+{  
+    self->name = name;
+    self->label = label;
+    self->dataType = dataType;
+    self->forXML = forXML;
+	self->getPrimitive = getPrimitive;
+	self->setPrimitive = setPrimitive;
+}
+ 
+void TableField_Destroy(TableField *dataField)
+{
+	dataField = 0;
+    /* tbd */
+}
+
+
+eEsifError TableObject_Save(TableObject *self)
+{
+	u8 *tableMem = NULL;
+	u8	*binaryOutput = NULL;
+	u32 totalBytesNeeded = 0;
+	u64 binaryCounter = 0;
+	u64 colValueNumber = 0;
+	int i = 0;
+	int numFields = 0;
+	char *textInput;
+	EsifDataType objDataType;
+	char *tableRow = NULL;
+	char *rowTok = NULL;
+	char *tableCol = NULL;
+	char *tmp;
+	char *colTok = NULL;
+	char rowDelims[]   = "!";
+	char colDelims[]   = ",";	
+	eEsifError rc = ESIF_OK;
+	
+	textInput = self->dataText;
+	numFields = self->numFields;
+	objDataType = self->dataType;
+	totalBytesNeeded = 0;
+
+	
+	if(objDataType == ESIF_DATA_BINARY) {
+		    u32 stringType = ESIF_DATA_STRING;
+			u32 numberType = ESIF_DATA_UINT64;
+
+			tableRow = esif_ccb_strtok(textInput, rowDelims, &rowTok);
+				
+			while (tableRow != NULL) {   
+		        i = -1;
+		        tableCol = esif_ccb_strtok(tableRow, colDelims, &colTok);	
+				while (tableCol != NULL) {
+				    u64 colValueLen = esif_ccb_strlen(tableCol, COLUMN_MAX_SIZE) + 1;	
+					        i++;				        
+					        if (i < numFields) {
+								if ((tmp = esif_ccb_strstr(tableCol, "'")) != NULL) {
+									*tmp = 0;
+								} 
+						        switch (self->fields[i].dataType) {
+							        case ESIF_DATA_STRING:						        	
+										totalBytesNeeded += sizeof(stringType) + (u32)sizeof(colValueLen) + (u32)colValueLen;
+										tableMem = (u8*) esif_ccb_realloc(tableMem, totalBytesNeeded);	 
+										if (tableMem == NULL) {
+											rc = ESIF_E_NO_MEMORY;
+											goto exit;
+										}
+										binaryOutput = tableMem;
+										binaryOutput += binaryCounter;
+										esif_ccb_memcpy(binaryOutput, &stringType, sizeof(stringType));
+										binaryOutput += sizeof(stringType);
+										binaryCounter += sizeof(stringType);
+										esif_ccb_memcpy(binaryOutput, &colValueLen, sizeof(colValueLen));
+										binaryOutput += sizeof(colValueLen);
+										binaryCounter += sizeof(colValueLen);
+										esif_ccb_memcpy(binaryOutput, tableCol, (size_t)colValueLen);
+										binaryOutput += colValueLen;
+										binaryCounter += colValueLen;
+									break;
+									case ESIF_DATA_UINT32:							
+										colValueNumber = esif_atoi(tableCol);								
+										totalBytesNeeded += sizeof(numberType) + (u32)sizeof(colValueNumber);
+										tableMem = (u8*) esif_ccb_realloc(tableMem, totalBytesNeeded);	  
+										if (tableMem == NULL) {
+											rc = ESIF_E_NO_MEMORY;
+											goto exit;
+										}
+										binaryOutput = tableMem;
+										binaryOutput += binaryCounter;
+										esif_ccb_memcpy(binaryOutput, &numberType, sizeof(numberType));
+										binaryOutput += sizeof(numberType);
+										binaryCounter += sizeof(numberType);
+										esif_ccb_memcpy(binaryOutput, &colValueNumber, sizeof(colValueNumber));
+										binaryOutput += sizeof(colValueNumber);
+										binaryCounter += sizeof(colValueNumber);
+									break;
+								}
+							}
+							
+			        // Get next column
+		            tableCol = esif_ccb_strtok(NULL, colDelims, &colTok);
+		            
+		        }
+		                         
+	            // Get next row
+	            tableRow = esif_ccb_strtok(NULL, rowDelims, &rowTok);
+				
+	        
+	    }
+
+		
+	    if (totalBytesNeeded) {
+			struct esif_data request = { ESIF_DATA_BINARY, tableMem, totalBytesNeeded, totalBytesNeeded };
+			struct esif_data response = { ESIF_DATA_VOID, NULL, 0, 0 };
+	
+			UNREFERENCED_PARAMETER(request);
+			UNREFERENCED_PARAMETER(response);
+			rc = EsifExecutePrimitive(0, self->setPrimitive, "D0", 255, &request, &response);
+		}
+		else {
+
+			rc = ESIF_E_UNSPECIFIED;
+		}
+	
+	}
+	else {
+		UInt32 temp = 0;
+		struct esif_data request = {ESIF_DATA_TEMPERATURE, &temp, sizeof(temp), sizeof(temp)};
+		struct esif_data response = {ESIF_DATA_VOID, NULL, 0, 0};
+		
+		tableRow = esif_ccb_strtok(textInput, rowDelims, &rowTok);
+		while (tableRow != NULL) {
+			i = -1;
+			tableCol = esif_ccb_strtok(tableRow, colDelims, &colTok);
+			while (tableCol != NULL) {
+				u64 colValueLen = esif_ccb_strlen(tableCol, COLUMN_MAX_SIZE) + 1;
+				UNREFERENCED_PARAMETER(colValueLen);
+				i++;
+				if (i < numFields) {
+					if ((tmp = esif_ccb_strstr(tableCol, "'")) != NULL) {
+						*tmp = 0;
+					}
+					switch (self->fields[i].dataType) {
+					case ESIF_DATA_STRING:
+						/* tableCol holds value */
+						break;
+					case ESIF_DATA_UINT32:
+						colValueNumber = esif_atoi(tableCol);
+						temp = (UInt32)colValueNumber;
+						rc = EsifExecutePrimitive((UInt8)self->participantId, self->fields[i].setPrimitive, self->domainQualifier, 255, &request, &response);
+						break;
+					}
+				}
+				// Get next column
+				tableCol = esif_ccb_strtok(NULL, colDelims, &colTok);
+			}
+			// Get next row
+			tableRow = esif_ccb_strtok(NULL, rowDelims, &rowTok);
+		}
+	}
+exit:
+	esif_ccb_free(tableMem);
+	return rc;
+}
+
+eEsifError TableObject_LoadXML (
+	TableObject *self
+	)
+{
+	int i = 1;
+	u8 *primResponse;
+	char output[OUT_BUF_LEN] = "";
+	union esif_data_variant *obj;
+	int remain_bytes = 0;
+	int counter = 1024;
+	char *strFieldValue = NULL;
+	u32 int32FieldValue = 0;
+	eEsifError rc = ESIF_OK;
+	u8 *tmp_buf = (u8 *)esif_ccb_malloc(MAX_RESPONSE_BUFFER);
+	UInt32 defaultTemp = 255;
+	EsifDataType objDataType = self->dataType;
+	struct esif_data request = { ESIF_DATA_VOID, NULL, 0, 0 };
+	struct esif_data response = { ESIF_DATA_BINARY };
+	struct esif_data tempResponse = {ESIF_DATA_TEMPERATURE, &defaultTemp, sizeof(defaultTemp), 0};
+
+	if(tmp_buf ==NULL) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	response.buf_ptr = tmp_buf;
+	response.buf_len = MAX_RESPONSE_BUFFER;
+	response.data_len = 0;
+	
+	if(objDataType == ESIF_DATA_BINARY) {
+		rc = EsifExecutePrimitive((UInt8)self->participantId, self->getPrimitive, self->domainQualifier, 255, &request, &response);
+		if(ESIF_OK != rc) {
+			goto exit;
+		}
+		primResponse = (u8 *)response.buf_ptr;
+		obj = (union esif_data_variant *)primResponse;
+		remain_bytes = response.data_len;
+		esif_ccb_sprintf(OUT_BUF_LEN, output,"<result>\n");
+
+		while (remain_bytes > 0 && counter) {
+			remain_bytes -= sizeof(*obj);
+			counter --;	
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"  <trtRow>\n");
+			for (i = 0; i < self->numFields; i++) {
+				switch(self->fields[i].dataType) {
+					case ESIF_DATA_STRING:
+						strFieldValue = (char *)((u8 *)obj + sizeof(*obj));
+						remain_bytes -= obj->string.length;
+						obj = (union esif_data_variant *)((u8 *)obj + (sizeof(*obj) + obj->string.length));
+						if (i == 1) {
+							remain_bytes -= sizeof(*obj);
+						}
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"    <%s>%s</%s>\n",self->fields[i].name,strFieldValue,self->fields[i].name);
+				
+					break;
+					case ESIF_DATA_UINT32:
+						int32FieldValue = (u32) obj->integer.value;
+						obj = (union esif_data_variant *)((u8 *)obj + sizeof(*obj));
+						remain_bytes -= sizeof(*obj);
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"    <%s>%d</%s>\n",	self->fields[i].name,	int32FieldValue,	self->fields[i].name);
+					break;
+				}
+			}
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"  </trtRow>\n");	
+		}
+	
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"</result>\n");
+	}
+	else {
+		esif_ccb_sprintf(OUT_BUF_LEN, output,"<result>\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"  <tableRow>\n");
+		for (i = 0; i < self->numFields; i++) {
+			if (self->fields[i].getPrimitive > 0) {
+				rc = EsifExecutePrimitive((UInt8)self->participantId, self->fields[i].getPrimitive, self->domainQualifier, 255, &request, &tempResponse);
+				
+				if(ESIF_OK != rc) {
+					goto exit;
+				}
+				switch(self->fields[i].dataType) {
+				case ESIF_DATA_STRING:
+					strFieldValue = "";
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%s</%s>\n", self->fields[i].name, strFieldValue, self->fields[i].name);
+					break;
+				case ESIF_DATA_UINT32:
+					int32FieldValue = *(UInt32 *)tempResponse.buf_ptr;
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%d</%s>\n", self->fields[i].name, int32FieldValue, self->fields[i].name);
+					break;
+				}
+			}
+		}
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"  </tableRow>\n");
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"</result>\n");
+	}
+	self->dataXML = esif_ccb_strdup(output);
+	goto exit;
+
+exit:
+	esif_ccb_free(tmp_buf);
+	return rc;
+}
+
+void TableObject_Construct (
+	TableObject *self, 
+	char *dataName,
+	char *domainQualifier,
+	int participantId
+	)
+{
+   self->name = esif_ccb_strdup(dataName);   
+   self->domainQualifier = esif_ccb_strdup(domainQualifier); 
+   self->participantId = participantId;
+}
+
+eEsifError TableObject_Delete (
+	TableObject *self 
+	)
+{
+	char *namesp = g_DataVaultDefault;
+	eEsifError rc = ESIF_OK;
+	EsifDataPtr  data_nspace= NULL;
+	EsifDataPtr  data_key	= NULL;
+	EsifDataPtr  data_value	= NULL;
+	esif_flags_t options = ESIF_SERVICE_CONFIG_DELETE;
+	struct esif_data voidData = {ESIF_DATA_VOID, NULL, 0};
+	UInt16 domain = 0;
+
+	if (self->dataVaultKey == NULL) {
+		rc = ESIF_E_NOT_IMPLEMENTED;
+		goto exit;
+	}
+
+	if(esif_ccb_strlen(self->domainQualifier, sizeof(UInt16)) < sizeof(UInt16)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	domain = convert_string_to_short(self->domainQualifier);
+	data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+	data_key    = EsifData_CreateAs(ESIF_DATA_STRING, self->dataVaultKey, 0, ESIFAUTOLEN);
+	data_value  = EsifData_Create();
+	
+	if (data_nspace==NULL || data_key==NULL || data_value==NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	rc = EsifConfigSet(data_nspace, data_key, options, data_value);
+	/* send event regardless of rc code to allow flexibility in the return value, and
+	 * no harm is done by the event */
+	EsifAppsEvent((UInt8)self->participantId, domain, self->changeEvent, &voidData);
+	
+
+exit:
+	EsifData_Destroy(data_nspace);
+	EsifData_Destroy(data_key);
+	EsifData_Destroy(data_value);
+	return rc;
+}
+
+eEsifError TableObject_LoadSchema (
+	TableObject *self 
+	)
+{
+	int numFields = 0;
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr up_ptr   = NULL;
+	char targetKey[MAX_TABLEOBJECT_KEY_LEN] = {0};
+
+	up_ptr = EsifUpManagerGetAvailableParticipantByInstance((UInt8)self->participantId);
+	if (NULL == up_ptr) {
+		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
+		goto exit;
+	}
+
+	/* replace with lookup */
+	if (esif_ccb_stricmp(self->name,"trt") == 0) {
+		numFields = 8;
+		TableField_Construct(&(self->fields[0]), "src", "source", ESIF_DATA_STRING, 1);
+		TableField_Construct(&(self->fields[1]), "dst", "destination", ESIF_DATA_STRING, 1);
+		TableField_Construct(&(self->fields[2]), "priority", "influence", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[3]), "sampleRate", "period", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[4]), "reserved0", "rsvd_0", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[5]), "reserved1", "rsvd_1", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[6]), "reserved2", "rsvd_2", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[7]), "reserved3", "rsvd_3", ESIF_DATA_UINT32, 1);
+	   
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_THERMAL_RELATIONSHIP_TABLE;
+		self->setPrimitive = SET_THERMAL_RELATIONSHIP_TABLE;
+		self->changeEvent = ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED;
+		self->numFields = numFields;   
+
+		esif_ccb_sprintf(MAX_TABLEOBJECT_KEY_LEN, targetKey, "/participants/%s.%s/_trt", up_ptr->fMetadata.fName, self->domainQualifier);
+		self->dataVaultKey = esif_ccb_strdup(targetKey);
+	}
+	else if (esif_ccb_stricmp(self->name,"art") == 0) {
+		numFields = 13;
+		TableField_Construct(&(self->fields[0]), "src", "source", ESIF_DATA_STRING, 1);
+		TableField_Construct(&(self->fields[1]), "dst", "destination", ESIF_DATA_STRING, 1);
+		TableField_Construct(&(self->fields[2]), "priority", "influence", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[3]), "ac0", "ac0", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[4]), "ac1", "ac1", ESIF_DATA_UINT32,	1);
+		TableField_Construct(&(self->fields[5]),	"ac2", "ac2", ESIF_DATA_UINT32,	1);
+		TableField_Construct(&(self->fields[6]),	"ac3", "ac3", ESIF_DATA_UINT32	,1);
+		TableField_Construct(&(self->fields[7]),	"ac4", "ac4", ESIF_DATA_UINT32,	1);
+		TableField_Construct(&(self->fields[8]),	"ac5", "ac5", ESIF_DATA_UINT32,	1);
+		TableField_Construct(&(self->fields[9]),	"ac6", "ac6", ESIF_DATA_UINT32,	1);
+		TableField_Construct(&(self->fields[10]), "ac7", "ac7", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[11]), "ac8", "ac8", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[12]), "ac9", "ac9", ESIF_DATA_UINT32, 1);
+	   
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_ACTIVE_RELATIONSHIP_TABLE;
+		self->setPrimitive = SET_ACTIVE_RELATIONSHIP_TABLE;
+		self->changeEvent = ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED;
+		self->numFields = numFields;
+
+		esif_ccb_sprintf(MAX_TABLEOBJECT_KEY_LEN, targetKey, "/participants/%s.%s/_art", up_ptr->fMetadata.fName, self->domainQualifier);
+		self->dataVaultKey = esif_ccb_strdup(targetKey);
+	}
+	else if (esif_ccb_stricmp(self->name,"psv") == 0) {
+		numFields = 4;
+		TableField_ConstructAs(&(self->fields[0]), "psv", "psv", ESIF_DATA_UINT32, 1, GET_TRIP_POINT_PASSIVE, SET_TRIP_POINT_PASSIVE);
+		TableField_ConstructAs(&(self->fields[1]), "cr3", "cr3",	ESIF_DATA_UINT32, 1, GET_TRIP_POINT_WARM, SET_TRIP_POINT_WARM);
+		TableField_ConstructAs(&(self->fields[2]), "hot", "hot",	ESIF_DATA_UINT32, 1, GET_TRIP_POINT_HOT, SET_TRIP_POINT_HOT);
+		TableField_ConstructAs(&(self->fields[3]), "crt", "crt",	ESIF_DATA_UINT32, 1, GET_TRIP_POINT_CRITICAL, SET_TRIP_POINT_CRITICAL);
+		self->dataType = ESIF_DATA_UINT32;
+		self->getPrimitive = 0;  /* NA for virtual tables */
+		self->setPrimitive = 0;
+		self->changeEvent = 0;
+		self->numFields = numFields;   
+
+		/* this key needs be verified and changed to go per field if we enable deleting virtual tables */
+		esif_ccb_sprintf(MAX_TABLEOBJECT_KEY_LEN, targetKey, "/participants/%s.%s/_psv", up_ptr->fMetadata.fName, self->domainQualifier);
+		self->dataVaultKey = esif_ccb_strdup(targetKey);
+	}
+	else {
+		rc = ESIF_E_NOT_IMPLEMENTED;
+	} 
+
+exit:
+	return rc;  
+}
+ 
+void TableObject_Destroy(TableObject *self)
+{
+	int i;
+	for (i=0; i < VARIANT_MAX_FIELDS; i++) {
+		TableField_Destroy(&(self->fields[i]));
+	}
+	esif_ccb_free(self->name);
+	esif_ccb_free(self->domainQualifier);
+	esif_ccb_free(self->dataText);
+	esif_ccb_free(self->dataXML);
+	esif_ccb_free(self->dataVaultKey);
+}
 
 static char *esif_shell_cmd_conjures(EsifShellCmdPtr shell)
 {
@@ -1641,7 +2121,7 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		break;
 
 	case ESIF_DATA_PERCENT:
-		esif_ccb_strcpy(&desc[0], "Percent", sizeof(desc));
+		esif_ccb_strcpy(&desc[0], "Centi-Percent", sizeof(desc));
 		break;
 
 	case ESIF_DATA_FREQUENCY:
@@ -1653,9 +2133,10 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		break;
 	}
 
-	if (ESIF_DATA_UINT32 == type ||
-		ESIF_DATA_TEMPERATURE == type ||
-		ESIF_DATA_POWER == type) {
+	if ((ESIF_DATA_UINT32 == type) ||
+		(ESIF_DATA_TEMPERATURE == type) ||
+		(ESIF_DATA_POWER == type) ||
+		(ESIF_DATA_PERCENT == type)) {
 		// Our Data
 		u32 val = *(u32 *)(response.buf_ptr);
 		if (optargc > 1) {
@@ -4552,6 +5033,103 @@ static char *esif_shell_cmd_exit(EsifShellCmdPtr shell)
 }
 
 
+static char *esif_shell_cmd_tableobject(EsifShellCmdPtr shell)
+{
+	int opt		 = 5;  /*minimum for table object construct */
+	int targetParticipantId = 0;
+	int argc     = shell->argc;
+	char **argv  = shell->argv;
+	char *output = shell->outbuf;
+	char *targetTable = NULL;
+	char *targetDomain = NULL;
+	TableObject tableObject = {0};
+	eEsifError rc = ESIF_OK;
+
+	/* at minimum, argv[1] is required */
+	if (argc <=1) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Too few parameters \n");
+		goto exit;
+	}
+	
+	/* sufficient params to create a table object */
+	// tableobject <get/set/delete> <participant> <domain> [data]
+	if (argc >= opt) {
+		targetTable = esif_ccb_strdup(argv[2]);
+		targetParticipantId = esif_atoi(argv[3]);
+		targetDomain = esif_ccb_strdup(argv[4]);
+		TableObject_Construct(&tableObject, targetTable, targetDomain, targetParticipantId);
+		rc = TableObject_LoadSchema(&tableObject);
+
+		if (rc != ESIF_OK) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Unable to load schema \n");
+			goto exit;
+		}
+	}
+	
+	// tableobject get <tablename> <participant> <domain>
+	if (esif_ccb_stricmp(argv[1],"get") == 0 && argc >= opt) {
+		if(ESIF_OK != rc) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "Primitive failed.\n");
+				goto exit;
+			}
+		rc = TableObject_LoadXML(&tableObject);
+		if(ESIF_OK != rc) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Primitive failed.\n");
+			goto exit;
+		}
+		esif_ccb_strcpy(output,tableObject.dataXML,esif_ccb_strlen(tableObject.dataXML,OUT_BUF_LEN));
+	}
+	// tableobject set <tablename> <participant> <domain> "comma,delimited,columns!bang,delimited,rows"
+	else if (esif_ccb_stricmp(argv[1],"set") == 0 && argc >= opt) {
+		if (argc < opt + 1) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Too few parameters \n");
+			goto exit;
+		}
+		
+		tableObject.dataText = esif_ccb_strdup(argv[5]);
+		rc = TableObject_Save(&tableObject);
+		
+		if (rc != ESIF_OK) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Unable to save table \n");
+			goto exit;
+		}	
+	}
+	// tableobject delete <tablename> <participant> <domain>
+	else if (esif_ccb_stricmp(argv[1],"delete") == 0  && argc >= opt) {
+		if (argc < opt) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Too few parameters \n");
+			goto exit;
+		}
+		
+		rc = TableObject_Delete(&tableObject);
+		
+		if (rc != ESIF_OK) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "Unable to delete table \n");
+			goto exit;
+		}	
+	}
+	// tableobject list <tablename>
+	else if (esif_ccb_stricmp(argv[1],"list") == 0) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, 
+			"<result>\n"
+			"    <tables>\n"
+			"       <tableName>_art</tableName>\n"
+			"       <tableName>_psv</tableName>\n"
+			"       <tableName>_trt</tableName>\n"
+			"    <tables>\n"
+			"</result>\n"
+			);
+	}	
+exit:
+	if (argc >= opt) {
+		TableObject_Destroy(&tableObject);
+	}
+	esif_ccb_free(targetTable);
+	esif_ccb_free(targetDomain);
+	return output;
+}
+
+
 // Get Buffer Size
 static char *esif_shell_cmd_getb(EsifShellCmdPtr shell)
 {
@@ -5137,7 +5715,7 @@ static char *esif_shell_cmd_unloadcpc(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
-	primitive_ptr->id       = 200;
+	primitive_ptr->id       = SET_DSP;
 	primitive_ptr->domain   = 0;
 	primitive_ptr->instance = 0;
 	primitive_ptr->src_id   = ESIF_INSTANCE_UF;
@@ -5698,7 +6276,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 										  "test     [*id | all]                     Test By ID or ALL Will Run All Tests\n"
 										  "loadcpc  [*filename]                     Load CPC To Current Selected Participant\n"
 										  "loadtst  [*filename]                     Manually Load Test\n"
-										  "unloadcpc                                Unload CPC From Selected Participant\n"
+										  "unloadcpc                                Unload CPC From Selected LF Participant\n"
 										  "autocpc  [on|off]                        Automatically Load CPC When Possible\n"
 										  "log      [*filename]                     Log To File If Debug On It Will Tee Output\n"
 										  "nolog                                    Stop Logging To File\n"
@@ -6217,6 +6795,21 @@ static char *esif_shell_cmd_shell(EsifShellCmdPtr shell)
 	return output;
 }
 
+static char *esif_shell_cmd_sleep(EsifShellCmdPtr shell)
+{
+       int argc     = shell->argc;
+       char **argv  = shell->argv;
+       char *output = shell->outbuf;
+
+       // sleep <msec>
+       if (argc > 1) {
+              UInt32 msec = esif_atoi(argv[1]);
+              esif_ccb_sleep_msec(msec);
+       }
+       return output;
+}
+
+
 
 // Run External Shell Command
 static void esif_shell_exec_cmdshell(char *line)
@@ -6370,9 +6963,10 @@ static void dump_binary_data(
 }
 
 
-// Parse Command By Subsystem
-EsifString parse_cmd(
+// Execute Shell Command
+EsifString esif_shell_exec_command(
 	char *line,
+	size_t buf_len,
 	UInt8 isRest
 	)
 {
@@ -6393,7 +6987,7 @@ EsifString parse_cmd(
 		g_format = FORMAT_XML;
 	}
 
-	cmdlen = esif_ccb_strlen(in_str, MAX_LINE);
+	cmdlen = esif_ccb_strlen(in_str, buf_len);
 	do {
 		// Skip first iteration
 		if (cmd_separator != NULL) {
@@ -6481,6 +7075,16 @@ display_output:
 	esif_ccb_mutex_unlock(&g_shellLock);
 #endif
 	return out_str;
+}
+
+
+// Parse Command By Subsystem
+EsifString parse_cmd(
+	char *line,
+	UInt8 isRest
+	)
+{
+	return esif_shell_exec_command(line, MAX_LINE, isRest);
 }
 
 
@@ -6601,8 +7205,10 @@ static EsifShellMap ShellCommands[] = {
 	{"setp_pw",              fnArgv, (VoidFunc)esif_shell_cmd_setp                },
 	{"setp_t",               fnArgv, (VoidFunc)esif_shell_cmd_setp                },
 	{"shell",                fnArgv, (VoidFunc)esif_shell_cmd_shell               },
+	{"sleep",                fnArgv, (VoidFunc)esif_shell_cmd_sleep               },
 	{"soe",                  fnArgv, (VoidFunc)esif_shell_cmd_soe                 },
 	{"status",               fnArgv, (VoidFunc)esif_shell_cmd_status              },
+	{"tableobject",           fnArgv, (VoidFunc)esif_shell_cmd_tableobject        },
 	{"test",                 fnArgv, (VoidFunc)esif_shell_cmd_test                },
 	{"timerstart",           fnArgv, (VoidFunc)esif_shell_cmd_timerstart          },
 	{"timerstop",            fnArgv, (VoidFunc)esif_shell_cmd_timerstop           },

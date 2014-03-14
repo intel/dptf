@@ -87,7 +87,8 @@ P,35,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,29,True,"GRP0",,,,
 # GET_RAPL_POWER_CONTROL_CAPABILITIES
 P,75,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,4,True,"PPCC",,,,
+A,0,20,False,"DPTF","/participants/%nm%/ppcc",,,
+A,1,4,True,"PPCC",,,,
 # GET_RAPL_POWER_LIMIT
 P,38,0,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,22,True,0x610,14,0,,
@@ -181,6 +182,9 @@ A,0,4,True,"_DTI",,,,
 # SET_PROC_TURBO_STATE
 P,100,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x199,32,32,0x1,
+# SET_RAPL_POWER_CONTROL_CAPABILITIES
+P,274,255,2,7,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/ppcc",,,
 # SET_RAPL_POWER_LIMIT
 P,130,0,2,26,"<schema></schema>",24,"<schema></schema>"
 A,0,22,True,0x610,14,0,,
@@ -256,7 +260,8 @@ P,56,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"_PPC",,,,
 # GET_PROC_PERF_PSTATE_DEPTH_LIMIT
 P,55,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,4,True,"_PDL",,,,
+A,0,20,False,"DPTF","/participants/%nm%/_pdl",,,
+A,1,4,True,"_PDL",,,,
 # GET_PROC_PERF_SUPPORT_STATES
 P,95,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,4,True,"_PSS",,,,
@@ -265,7 +270,8 @@ P,62,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,4,True,"_TPC",,,,
 # GET_PROC_PERF_TSTATE_DEPTH_LIMIT
 P,61,255,1,24,"<schema></schema>",3,"<schema></schema>"
-A,0,4,True,"_TDL",,,,
+A,0,20,False,"DPTF","/participants/%nm%/_tdl",,,
+A,1,4,True,"_TDL",,,,
 # GET_RAPL_ENERGY
 P,128,255,1,24,"<schema></schema>",3,"<schema></schema>"
 A,0,22,True,0x639,31,0,,
@@ -292,6 +298,12 @@ A,1,29,True,"SAFF",,,,
 # SET_PROC_NUMBER_OFFLINE_CORES
 P,153,255,2,3,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"SPUR",,,,
+# SET_PROC_PERF_PSTATE_DEPTH_LIMIT
+P,275,255,2,3,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/_pdl",,,
+# SET_PROC_PERF_TSTATE_DEPTH_LIMIT
+P,276,255,2,3,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/_tdl",,,
 # SET_TEMPERATURE
 P,241,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/_tmp",,,

@@ -81,10 +81,12 @@ enum esif_pm_participant_state {
 	/* Created Lower Participant Instance */
 	ESIF_PM_PARTICIPANT_STATE_CREATED,
 	/* In The Process Of Registering */
-	ESIF_PM_PARTICIPANT_STATE_REGISTERING,
-	ESIF_PM_PARTICIPANT_STATE_NEEDDSP,	/* Need DSP To Continue */
+	ESIF_PM_PARTICIPANT_STATE_REGISTERING,  /* Notifying UF and part. */
+	ESIF_PM_PARTICIPANT_STATE_NEEDDSP,	/* DSP unloaded */
 	ESIF_PM_PARTICIPANT_STATE_REQUESTDSP,	/* Requested DSP */
-	ESIF_PM_PARTICIPANT_STATE_REGISTERED,	/* Registered And Ready To Go */
+	ESIF_PM_PARTICIPANT_STATE_REGISTERED,	/* DSP Read */
+	ESIF_PM_PARTICIPANT_STATE_SUSPENDED,	/* Part out of D0 */
+	ESIF_PM_PARTICIPANT_STATE_RESUMED,	/* Returned to D0 */
 	ESIF_PM_PARTICIPANT_STATE_OPERATIONAL	/* Upper and Lower Ready */
 };
 
@@ -103,6 +105,8 @@ static ESIF_INLINE esif_string esif_pm_participant_state_str(
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_NEEDDSP, "NEED_DSP", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_REQUESTDSP, "REQUESTED_DSP", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_REGISTERED, "REGISTERED", str)
+		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_SUSPENDED, "SUSPENDED", str)
+		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_RESUMED, "RESUMED", str)
 		CREATE_STATE(ESIF_PM_PARTICIPANT_STATE_OPERATIONAL, "OPERATIONAL", str)
 	}
 	return str;
@@ -185,21 +189,27 @@ EsifUpPtr EsifUpManagerGetAvailableParticipantByInstance(const UInt8 instance);
 Bool EsifUpManagerDoesAvailableParticipantExistByName(char *participantName);
 EsifUpPtr EsifUpManagerGetAvailableParticipantByName(char *participantName);
 
-EsifUpPtr EsifUpManagerCreateParticipant(const eEsifParticipantOrigin origin,
-					 const void *handle,
-					 const void *metadataPtr);
+EsifUpPtr EsifUpManagerCreateParticipant(
+	const eEsifParticipantOrigin origin,
+	const void *handle,
+	const void *metadataPtr
+);
 
 eEsifError EsifUpManagerUnregisterParticipant(
-					const eEsifParticipantOrigin origin,
-					const void *handle);
+	const eEsifParticipantOrigin origin,
+	const void *handle
+);
 
+eEsifError EsifUpManagerMapLpidToPartHandle(
+	const UInt8 lpInstance,
+	void *participantHandle
+);
 
 typedef struct _t_EsifApp *EsifAppPtr;
 eEsifError EsifUpManagerRegisterParticipantsWithApp(EsifAppPtr aAppPtr);
 eEsifError EsifUpManagerDestroyParticipantsInApp(EsifAppPtr aAppPtr);
 
 eEsifError EsifUppMgrInit(void);
-
 void EsifUppMgrExit(void);
 
 #endif /* ESIF_ATTR_USER */

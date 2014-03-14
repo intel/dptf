@@ -38,9 +38,9 @@ getp 053 D0 255 -u 0xffffffff -l 0                           ;GET_DEVICE_HARDWAR
 getp 088 D0 255 -u 0xf -l 0                                  ;GET_DEVICE_STATUS
 getp 237 D0 255 -b sb_ietm_237_D0_255.bin                    ;GET_LPM_TABLE
 getp 092 D0 255 -b sb_ietm_92_D0_255.bin                     ;GET_SUPPORTED_POLICIES
-rem setp 272 D0 000                                          ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
-rem setp 272 D0 001                                          ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
-rem setp 272 D0 002                                          ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+getp 272 D0 000                                              ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+getp 272 D0 001                                              ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
+getp 272 D0 002                                              ;GET_SYSTEM_CONFIGTDP_LEVEL_NAME
 getp 091 D0 255 -b sb_ietm_91_D0_255.bin                     ;GET_THERMAL_RELATIONSHIP_TABLE
 rem setp 230 D0 255                                          ;SET_ACTIVE_RELATIONSHIP_TABLE
 rem setp 236 D0 255                                          ;SET_CURRENT_LOW_POWER_MODE

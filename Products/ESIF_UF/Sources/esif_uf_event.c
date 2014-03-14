@@ -33,9 +33,6 @@
 #include "win\banned.h"
 #endif
 
-// TODO move these
-void ipc_autoconnect();
-void ipc_disconnect();
 void esif_dispatch_event();
 int esif_send_dsp(char *filename, u8 dst_id);
 
@@ -110,10 +107,13 @@ void esif_dispatch_event()
 
 void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 {
+	eEsifError rc = ESIF_OK;
 	char domain_str[8] = "";
 	esif_ccb_time_t now;
 	char guid_str[ESIF_GUID_PRINT_SIZE];
 	struct esif_data void_data = {ESIF_DATA_VOID, NULL, 0};
+	UInt8 participantId;
+
 	UNREFERENCED_PARAMETER(guid_str);
 	UNREFERENCED_PARAMETER(domain_str);
 
@@ -417,12 +417,29 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 			ESIF_TRACE_DEBUG("Please manually load a CPC for this Participant\n");
 			ESIF_TRACE_DEBUG("Example: dst %d then loadcpc\n\n", eventHdrPtr->src_id);
 		}
-	} else if (ESIF_EVENT_PARTICIPANT_UNREGISTER == eventHdrPtr->type) {
-		ESIF_TRACE_DEBUG("Destroy Upper Participant: %d\n", eventHdrPtr->src_id);
-		EsifUpManagerUnregisterParticipant(eParticipantOriginLF, &eventHdrPtr->src_id);
 	} else {
-		// Best Effor Delivery.
-		EsifAppsEvent(eventHdrPtr->dst_id, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &void_data);
+		/*
+		* Can't move this above everything because if a participant is not yet created, the
+		* mapping function will fail.
+		*/
+		participantId = eventHdrPtr->src_id;
+		if (eventHdrPtr->dst_id == ESIF_INSTANCE_UF) {
+			rc = EsifUpManagerMapLpidToPartHandle(eventHdrPtr->src_id, &participantId);
+			if (rc != ESIF_OK) {
+				ESIF_TRACE_ERROR("Invalid event source received");
+				goto exit;
+			}
+		}
+
+		if (ESIF_EVENT_PARTICIPANT_UNREGISTER == eventHdrPtr->type) {
+
+			ESIF_TRACE_DEBUG("Destroy Lower Participant: %d\n", participantId);
+			EsifUpManagerUnregisterParticipant(eParticipantOriginLF, &participantId);
+
+		} else {
+			// Best Effort Delivery
+			EsifAppsEvent(participantId, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &void_data);
+		}
 	}
 exit:
 	(0);
@@ -440,18 +457,20 @@ void *esif_event_worker_thread(void *ptr)
 	UNREFERENCED_PARAMETER(ptr);
 	CMD_OUT("Start ESIF Upper Framework Shell\n");
 
-	// Connect To Kernel IPC
-	ipc_autoconnect();
+	// Connect To Kernel IPC with infinite timeout
+	ipc_autoconnect(0);
 
 	// Run Until Told To Quit
 	while (!g_quit) {
+		if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+			break;
+		}
 		FD_ZERO(&rfds);
 #ifdef ESIF_ATTR_OS_WINDOWS
 		FD_SET((SOCKET)g_ipc_handle, &rfds);
 #else
 		FD_SET((u32)g_ipc_handle, &rfds);
 #endif
-
 		tv.tv_sec  = 0;
 		tv.tv_usec = 50000;	/* 50 msec */
 

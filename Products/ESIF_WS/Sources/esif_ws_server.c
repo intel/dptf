@@ -42,7 +42,7 @@
 char *g_rest_out = NULL;
 
 /* Max number of Client connections. This cannot exceed FD_SETSIZE (Deafult: Windows=64, Linux=1024) */
-#define MAX_CLIENTS		5
+#define MAX_CLIENTS		10
 
 /*
  *******************************************************************************
@@ -50,6 +50,7 @@ char *g_rest_out = NULL;
  *******************************************************************************
  */
 void esif_ws_close_socket(clientRecord *connection);
+extern int g_shell_enabled; 
 
 /*
  *******************************************************************************
@@ -361,12 +362,36 @@ void esif_ws_server_set_rest_api (
 		*command_buf = 0;
 		command_buf++;
 
+		// Ad-Hoc UI Shell commands begin with "0:", so verify ESIF shell is enabled and command is valid
+		if (msg_id == 0) {
+			char *response = NULL;
+			if (!g_shell_enabled) {
+				response = "0:Shell Disabled";
+			}
+			else {
+				static char *unsupported[] = {"shell", "web", "exit", "quit", NULL};
+				int j=0;
+				for (j = 0; unsupported[j] != NULL; j++) {
+					if (esif_ccb_strnicmp(command_buf, unsupported[j], esif_ccb_strlen(unsupported[j], MAX_PATH)) == 0) {
+						response = "0:Unsupported Command";
+						break;
+					}
+				}
+			}
+			// Exit if shell or command disabled
+			if (response) {
+				esif_ccb_free(g_rest_out);
+				g_rest_out = esif_ccb_strdup(response);
+				goto exit;
+			}
+		}
+
 		// Lock Shell so we can capture output before another thread executes another command
 #ifdef ESIF_ATTR_SHELL_LOCK
 		esif_ccb_mutex_lock(&g_shellLock);
 #endif
 		if (!atomic_read(&g_ws_quit)) {
-			EsifString cmd_results = parse_cmd(command_buf, ESIF_TRUE);
+			EsifString cmd_results = esif_shell_exec_command(command_buf, dataSize, ESIF_TRUE);
 			if (NULL != cmd_results) {
 				size_t out_len = esif_ccb_strlen(cmd_results, OUT_BUF_LEN) + 12;
 				esif_ccb_free(g_rest_out);
@@ -380,6 +405,8 @@ void esif_ws_server_set_rest_api (
 		esif_ccb_mutex_unlock(&g_shellLock);
 #endif
 	}
+
+exit:
 	esif_ccb_free(connection->buf.msgReceive);
 	connection->buf.msgReceive = NULL;
 	connection->buf.rcvSize = 0;
@@ -507,7 +534,9 @@ static eEsifError esif_ws_server_process_request (clientRecord *connection)
 	size_t frameSize       = BUFFER_LENGTH;
 	UInt8 *data 		   = NULL;
 	size_t dataSize        = 0;
-	UInt8 *recieved_string = NULL;
+	size_t bytesRemaining  = 0;
+	UInt8 *bufferRemaining = NULL;
+	UInt8 *received_string = NULL;
 	ssize_t messageLength  = 0;
 	eEsifError result = ESIF_OK;
 	
@@ -544,8 +573,33 @@ static eEsifError esif_ws_server_process_request (clientRecord *connection)
 			 * Therefore, determine the frame type
 			 */
 
-			connection->frameType = esif_ws_socket_get_subsequent_frame_type(g_ws_http_buffer, numBytesRcvd, &data, &dataSize);
+more_data:
+			connection->frameType = esif_ws_socket_get_subsequent_frame_type(g_ws_http_buffer, numBytesRcvd, &data, &dataSize, &bytesRemaining);
 			ESIF_TRACE_DEBUG("frameType: %d\n", connection->frameType);
+
+			/* Save remaining frames for reparsing if more than one frame received */
+			if (bytesRemaining > 0) {
+				if (bufferRemaining == NULL) {
+					bufferRemaining = (UInt8 *)esif_ccb_malloc(bytesRemaining);
+					if (NULL == bufferRemaining) {
+						result = ESIF_E_NO_MEMORY;
+						goto exit;
+					}
+				}
+				esif_ccb_memcpy(bufferRemaining, data+dataSize, bytesRemaining);
+			}
+			else {
+				esif_ccb_free(bufferRemaining);
+				bufferRemaining = NULL;
+			}
+
+			/* Handle unsolicited PONG (keepalive) messages from Internet Explorer 10 */
+			if (messageLength >= 6 && connection->frameType == PONG_FRAME) {
+				esif_ws_server_setup_buffer(&frameSize, g_ws_http_buffer);
+				esif_ws_socket_build_payload((UInt8*)"", 0, g_ws_http_buffer, &frameSize, TEXT_FRAME);
+				esif_ws_server_write_to_socket(connection, g_ws_http_buffer, frameSize);
+				esif_ws_server_setup_frame(connection, &frameSize, g_ws_http_buffer);
+			}
 		}
 
 		/*Now, if the frame type is an incomplete type or if it is an error type of frame */
@@ -570,7 +624,7 @@ static eEsifError esif_ws_server_process_request (clientRecord *connection)
 				esif_ws_server_write_to_socket(connection, g_ws_http_buffer, frameSize);
 				ESIF_TRACE_DEBUG("websocket: error writing to socket line %d\n", __LINE__);
 				result =  ESIF_E_WS_DISC;
-				return result;
+				goto exit;
 			}
 			else {
 				/*
@@ -600,13 +654,13 @@ static eEsifError esif_ws_server_process_request (clientRecord *connection)
 				if (esif_ws_socket_build_response_header(&connection->prot, g_ws_http_buffer, &frameSize) != 0)	{
 					ESIF_TRACE_DEBUG("websocket: nable to build response header line %d\n", __LINE__);
 					result =   ESIF_E_WS_DISC;
-					return result;
+					goto exit;
 				}
 
 				if (esif_ws_server_write_to_socket(connection, g_ws_http_buffer, frameSize) == EXIT_FAILURE) {
 					ESIF_TRACE_DEBUG("websocket: error writing to socket line %d\n", __LINE__);
 					result =   ESIF_E_WS_DISC;
-					return result;
+					goto exit;
 				}
 
 				/*This is a websocket connection*/
@@ -628,19 +682,20 @@ static eEsifError esif_ws_server_process_request (clientRecord *connection)
 				esif_ccb_free(connection->prot.keyField);
 				connection->prot.keyField = NULL;
 				result =   ESIF_E_WS_DISC;
-				return result;
+				goto exit;
 
 			} else if (connection->frameType == TEXT_FRAME) {
-				recieved_string = (UInt8*)esif_ccb_malloc(dataSize + 1);
-				if (NULL == recieved_string) {
-					return ESIF_E_NO_MEMORY;
+				received_string = (UInt8*)esif_ccb_malloc(dataSize + 1);
+				if (NULL == received_string) {
+					result = ESIF_E_NO_MEMORY;
+					goto exit;
 				}
-				esif_ccb_memcpy(recieved_string, data, dataSize);
-				recieved_string[dataSize] = 0;
+				esif_ccb_memcpy(received_string, data, dataSize);
+				received_string[dataSize] = 0;
 
 				/* Save incoming socket message if needed */
 
-				esif_ws_server_set_rest_api(connection, (const char*)recieved_string, esif_ccb_strlen((const char*)recieved_string, BUFFER_LENGTH));
+				esif_ws_server_set_rest_api(connection, (const char*)received_string, esif_ccb_strlen((const char*)received_string, BUFFER_LENGTH));
 				esif_ws_server_setup_buffer(&frameSize, g_ws_http_buffer);
 
 				/* Get message to send*/
@@ -655,31 +710,36 @@ static eEsifError esif_ws_server_process_request (clientRecord *connection)
 					if (esif_ws_server_write_to_socket(connection, g_ws_http_buffer, frameSize) == EXIT_FAILURE) {
 						ESIF_TRACE_DEBUG("websocket: error writing to socket line %d\n", __LINE__);
 	
-						if (recieved_string) {
-							esif_ccb_free(recieved_string);
-							recieved_string = NULL;
-						}
-	
 						result =   ESIF_E_WS_DISC;
-						return result;
+						goto exit;
 					}
 				}
 
 				esif_ws_server_setup_frame(connection, &frameSize, g_ws_http_buffer);
+				esif_ccb_free(received_string);
+				received_string = NULL;
+
+				/* If more frames remaining, copy them into buffer and reparse */
+				if (bufferRemaining != NULL) {
+					esif_ccb_memcpy(g_ws_http_buffer, bufferRemaining, bytesRemaining);
+					numBytesRcvd = messageLength = bytesRemaining;
+					bytesRemaining = 0;
+					goto more_data;
+				}
 			}
 		}
 	}
-	else
-	{
+	else if (connection->frameType != PONG_FRAME) {
 		ESIF_TRACE_DEBUG("unhandled frame type %d \n", connection->frameType);
 		result =   ESIF_E_WS_DISC;
-		return result;
+		goto exit;
 	}
 
-	if (recieved_string) {
-		esif_ccb_free(recieved_string);
-		recieved_string = NULL;
-	}
+exit:
+	esif_ccb_free(received_string);
+	esif_ccb_free(bufferRemaining);
+	received_string = NULL;
+	bufferRemaining = NULL;
 
 	return result;
 }

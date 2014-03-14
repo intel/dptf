@@ -467,7 +467,7 @@ size_t IOStream_GetOffset (IOStreamPtr self)
 	default:
 		break;
 	}
-	return EBADF;
+	return 0;
 }
 
 

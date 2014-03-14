@@ -61,6 +61,36 @@ extern int g_cmdshell_enabled;
 esif_thread_t g_thread;
 void*esif_event_worker_thread (void *ptr);
 
+/* IPC Resync */
+extern enum esif_rc sync_lf_participants();
+extern esif_handle_t g_ipc_handle;
+
+u32 g_ipc_retry_msec	 = 100;		/* 100ms by default */
+u32 g_ipc_retry_max_msec = 2000;	/* 2 sec by default */
+
+/* Attempt IPC Connect and Sync for specified time if no IPC connection */
+eEsifError ipc_resync()
+{
+	eEsifError rc = ESIF_OK;
+	u32 elapsed_msec = 0;
+
+	if (g_ipc_handle == ESIF_INVALID_HANDLE) {		
+		rc = ESIF_E_NO_LOWER_FRAMEWORK;
+
+		while (!g_quit && elapsed_msec < g_ipc_retry_max_msec) {
+			ipc_connect();
+			if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+				sync_lf_participants();
+				rc = ESIF_OK;
+				break;
+			}
+			esif_ccb_sleep_msec(g_ipc_retry_msec);
+			elapsed_msec += g_ipc_retry_msec;
+		}
+	}
+	return rc;
+}
+
 /* Emulate Windows kbhit Function */
 static int kbhit (void)
 {
@@ -192,12 +222,10 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 		CMD_DEBUG("\nESIF Daemon/Loader (c) 2013-2014 Intel Corp. Ver x1.0.0.1\n");
 		CMD_DEBUG("Spawn Daemon ESIF Child Process: %d\n", process_id);
 		if (ESIF_TRUE == start_with_pipe) {
-			unlink(cmd_in);
 			CMD_DEBUG("Command Input:  %s\n", cmd_in);
 		}
 
 		if (ESIF_TRUE == start_with_log) {
-			unlink(cmd_out);
 			CMD_DEBUG("Command Output: %s\n", cmd_out);
 		}
 		exit(EXIT_SUCCESS);
@@ -215,6 +243,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 
 	/* Child will receive input from FIFO PIPE? */
 	if (ESIF_TRUE == start_with_pipe) {
+		unlink(cmd_in);
 		if (-1 == mkfifo(cmd_in, S_IROTH)) {
 		}
 	}
@@ -228,23 +257,25 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	/* 6. Open file descriptors 0, 1, and 2 and redirect */
 	/* stdin */
 	if (ESIF_TRUE == start_with_log) {
+		unlink(cmd_out);
 		open (cmd_out, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	} else {
 		open ("/dev/null", O_RDWR);
 	}
 
 	/* stdout */
-	dup(0);
-	setvbuf(stdout, NULL, _IONBF, 0);
+	if (dup(0) != -1)
+		setvbuf(stdout, NULL, _IONBF, 0);
 	/* stderr */
-	dup(0);
-	setvbuf(stderr, NULL, _IONBF, 0);
+	if (dup(0) != -1)
+		setvbuf(stderr, NULL, _IONBF, 0);
 
 	/*
 	** Start The Daemon
 	*/
 	g_cmdshell_enabled = 0;
 	esif_uf_init(HOME_DIRECTORY);
+	ipc_resync();
 	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
 
@@ -315,10 +346,11 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	}
 
 	esif_uf_init(HOME_DIRECTORY);
-
+	ipc_resync();
 	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
-	sleep(1); 
+	esif_ccb_sleep_msec(10);
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
+
  	while (!g_quit) {
 		int count = 0;
 		// Startup Command?
@@ -402,7 +434,7 @@ int main (int argc, char **argv)
 
 	optind = 1;	// Rest To 1 Restart Vector Scan
 
-	while ((c = getopt(argc, argv, "d:f:c:b:nxhq?spl")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:c:b:r:i:nxhq?spl")) != -1) {
 		switch (c) {
 		case 'd':
 			g_dst = (u8)esif_atoi(optarg);
@@ -432,6 +464,14 @@ int main (int argc, char **argv)
 			quit_after_command = ESIF_TRUE;
 			break;
 
+		case 'r':
+			g_ipc_retry_max_msec = esif_atoi(optarg);
+			break;
+
+		case 'i':
+			g_ipc_retry_msec = esif_atoi(optarg);
+			break;
+
 #if defined (ESIF_ATTR_DAEMON)
 
 		case 's':
@@ -459,6 +499,8 @@ int main (int argc, char **argv)
 			"-c [*command]       Issue Shell Command\n"
 			"-q                  Quit After Command\n"
 			"-b [*size]          Set Binary Buffer Size\n"
+			"-r [*msec]          Set IPC Retry Timeout in msec\n"
+			"-i [*msec]          Set IPC Retry Interval in msec\n"
 #if defined (ESIF_ATTR_DAEMON)
 			"-s                  Run As Server\n"
 			"-p                  Use Pipe For Input\n"

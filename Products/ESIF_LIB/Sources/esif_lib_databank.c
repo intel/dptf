@@ -64,19 +64,6 @@ char *g_DataVaultStartScript = NULL;
 DataBankPtr DataBank_Create ();
 void DataBank_Destroy (DataBankPtr self);
 
-// TODO: move to esif_ccb_file.h
-#ifdef _WIN32
-# include <direct.h>
-# define esif_ccb_mkdir(dir)                _mkdir(dir)
-# define esif_ccb_strchr(str, chr)          strchr(str, chr)
-# define esif_ccb_strrchr(str, chr)         strrchr(str, chr)
-#else
-# include <sys/stat.h>
-# define esif_ccb_mkdir(dir)                mkdir(dir, 755)
-# define esif_ccb_strchr(str, chr)          strchr(str, chr)
-# define esif_ccb_strrchr(str, chr)         strrchr(str, chr)
-#endif
-
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
@@ -86,39 +73,6 @@ void DataBank_Destroy (DataBankPtr self);
 #include "win\banned.h"
 #endif
 
-// Recursively create a path if it does not already exist
-static int esif_ccb_makepath (char *path)
-{
-	int rc = -1;
-	struct stat st = {0};
-
-	// create path only if it does not already exist
-	if ((rc = esif_ccb_stat(path, &st)) != 0) {
-		size_t len = esif_ccb_strlen(path, MAX_PATH);
-		char dir[MAX_PATH];
-		char *slash;
-
-		// trim any trailing slash
-		esif_ccb_strcpy(dir, path, MAX_PATH);
-		if (len > 0 && dir[len - 1] == *ESIF_PATH_SEP) {
-			dir[len - 1] = 0;
-		}
-
-		// if path doesn't exist and can't be created, recursively create parent folder(s)
-		if ((rc = esif_ccb_stat(dir, &st)) != 0 && (rc = esif_ccb_mkdir(dir)) != 0) {
-			if ((slash = esif_ccb_strrchr(dir, *ESIF_PATH_SEP)) != 0) {
-				*slash = 0;
-				if ((rc = esif_ccb_makepath(dir)) == 0) {
-					*slash = *ESIF_PATH_SEP;
-					rc     = esif_ccb_mkdir(dir);
-				}
-			}
-		}
-	}
-	return rc;
-}
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////
 // DataBank class
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -126,6 +80,9 @@ static int esif_ccb_makepath (char *path)
 DataBankPtr DataBank_Create ()
 {
 	DataBankPtr self = (DataBankPtr)esif_ccb_malloc(sizeof(*self));
+	if (self) {
+		esif_ccb_lock_init(&self->lock);
+	}
 	return self;
 }
 
@@ -133,10 +90,12 @@ DataBankPtr DataBank_Create ()
 void DataBank_Destroy (DataBankPtr self)
 {
 	UInt32 idx;
-	for (idx = 0; idx < self->size; idx++)
-		DataVault_dtor(&self->elements[idx]);
-	self->size = 0;
-	esif_ccb_lock_uninit(&self->lock);
+	if (self) {
+		for (idx = 0; idx < self->size; idx++)
+			DataVault_dtor(&self->elements[idx]);
+		self->size = 0;
+		esif_ccb_lock_uninit(&self->lock);
+	}
 	esif_ccb_free(self);
 }
 
@@ -147,19 +106,23 @@ DataVaultPtr DataBank_GetNameSpace (
 	StringPtr nameSpace
 	)
 {
+	DataVaultPtr result = NULL;
 	UInt32 ns;
 
 	if (NULL == nameSpace) {
 		nameSpace = g_DataVaultDefault;
 	}
 	if (NULL != nameSpace) {
+		esif_ccb_read_lock(&self->lock);
 		for (ns = 0; ns < self->size; ns++) {
 			if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
-				return &self->elements[ns];
+				result = &self->elements[ns];
+				break;
 			}
 		}
+		esif_ccb_read_unlock(&self->lock);
 	}
-	return NULL;
+	return result;
 }
 
 
@@ -171,23 +134,27 @@ DataVaultPtr DataBank_OpenNameSpace (
 	DataVaultPtr DB = NULL;
 	UInt32 ns;
 
-	// TODO: Locking
-
 	// Exit if NameSpace already exists
 	// TODO: Change this to a linked list or array of pointers so each DataVaultPtr is static
-	for (ns = 0; ns < self->size; ns++)
+	esif_ccb_read_lock(&self->lock);
+	for (ns = 0; ns < self->size; ns++) {
 		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
-			return &self->elements[ns];
+			DB = &self->elements[ns];
+			break;
 		}
-	if (ns >= ESIF_MAX_NAME_SPACES) {
-		return NULL;
+	}
+	esif_ccb_read_unlock(&self->lock);
+	if (DB != NULL || ns >= ESIF_MAX_NAME_SPACES) {
+		return DB;
 	}
 
 	// Not Found. Create NameSpace
+	esif_ccb_write_lock(&self->lock);
 	DB = &self->elements[self->size++];
 	DataVault_ctor(DB);
 	esif_ccb_strcpy(DB->name, nameSpace, ESIF_NAME_LEN);
 	esif_ccb_strlwr(DB->name, sizeof(DB->name));
+	esif_ccb_write_unlock(&self->lock);
 	return DB;
 }
 
@@ -199,10 +166,10 @@ void DataBank_CloseNameSpace (
 {
 	UInt32 ns;
 
-	// TODO: Locking
+	esif_ccb_write_lock(&self->lock);
 
 	// Find Existing NameSpace
-	for (ns = 0; ns < self->size; ns++)
+	for (ns = 0; ns < self->size; ns++) {
 		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
 			DataVault_dtor(&self->elements[ns]);
 
@@ -214,6 +181,8 @@ void DataBank_CloseNameSpace (
 			}
 			self->size--;
 		}
+	}
+	esif_ccb_write_unlock(&self->lock);
 }
 
 
@@ -224,11 +193,16 @@ int DataBank_KeyExists (
 	StringPtr keyName
 	)
 {
-	DataVaultPtr DB = DataBank_GetNameSpace(self, nameSpace);
+	DataVaultPtr DB = NULL;
+	int result = ESIF_FALSE;
+
+	esif_ccb_read_lock(&self->lock);
+	DB = DataBank_GetNameSpace(self, nameSpace);
 	if (NULL != DB && DataCache_GetValue(DB->cache, keyName) != NULL) {
-		return ESIF_TRUE;
+		result = ESIF_TRUE;
 	}
-	return ESIF_FALSE;
+	esif_ccb_read_unlock(&self->lock);
+	return result;
 }
 
 
@@ -236,16 +210,13 @@ int DataBank_KeyExists (
 eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 {
 	eEsifError rc = ESIF_OK;
-	esif_ccb_file_find_handle find_handle;
+	esif_ccb_file_find_handle find_handle = INVALID_HANDLE_VALUE;
 	char file_path[MAX_PATH] = {0};
 	char file_pattern[MAX_PATH] = {0};
 	struct esif_ccb_file *ffd_ptr;
 	UInt32 idx;
 
 	ASSERT(self);
-	esif_ccb_lock_init(&self->lock);
-
-	// TODO: Locking
 
 	// Import all Static DataVaults into ReadOnly DataVaults
 	for (idx = 0; g_StaticDataVaults[idx].name; idx++) {
@@ -265,13 +236,13 @@ eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 	esif_ccb_sprintf(MAX_PATH, file_pattern, "*%s", ESIFDV_FILEEXT);
 	ffd_ptr   = (struct esif_ccb_file*)esif_ccb_malloc(sizeof(*ffd_ptr));
 	if (NULL == ffd_ptr) {
-		return ESIF_E_NO_MEMORY;
+		rc = ESIF_E_NO_MEMORY;
 	}
 
-	find_handle = esif_ccb_file_enum_first(file_path, file_pattern, ffd_ptr);
-	if (INVALID_HANDLE_VALUE == find_handle) {
-		rc = ESIF_OK;	// No Persisted DataVaults found
-	} else {
+	if (rc == ESIF_OK) {
+		find_handle = esif_ccb_file_enum_first(file_path, file_pattern, ffd_ptr);
+	}
+	if (INVALID_HANDLE_VALUE != find_handle) {
 		do {
 			struct esif_ccb_file dv_file = {0};
 			DataVaultPtr DB = 0;

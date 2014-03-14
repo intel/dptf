@@ -184,7 +184,11 @@ enum esif_rc {
 
 	/* Action */
 	ESIF_E_ACTION_NOT_IMPLEMENTED,	/* Unsupported Action*/
-};
+
+	/* Repository File I/O */
+	ESIF_E_IO_ERROR,
+	ESIF_E_IO_OPEN_FAILED,
+	ESIF_E_IO_DELETE_FAILED,};
 
 /* Convert Return Code To A String */
 static ESIF_INLINE char
@@ -252,6 +256,9 @@ static ESIF_INLINE char
 		ESIF_CREATE_RC(ESIF_E_READONLY)
 		ESIF_CREATE_RC(ESIF_E_WS_DISC)	
 		ESIF_CREATE_RC(ESIF_E_ACTION_NOT_IMPLEMENTED)	
+		ESIF_CREATE_RC(ESIF_E_IO_ERROR)
+		ESIF_CREATE_RC(ESIF_E_IO_OPEN_FAILED)
+		ESIF_CREATE_RC(ESIF_E_IO_DELETE_FAILED)
 	}
 	return str;
 }

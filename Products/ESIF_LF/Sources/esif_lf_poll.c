@@ -361,7 +361,7 @@ void esif_poll_start(
 }
 
 
-/* Stop All Poll Domain For Participants Instance */
+/* Start All Poll Domain For Participants Instance */
 void esif_poll_start_all(
 	struct esif_lp *lp_ptr
 	)

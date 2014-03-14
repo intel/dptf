@@ -25,9 +25,10 @@
 //
 // IPC
 //
-void ipc_connect();
-void ipc_autoconnect();
+eEsifError ipc_connect();
+eEsifError ipc_autoconnect(UInt32 max_retries); // 0 = Infinite
 void ipc_disconnect();
+int ipc_isconnected();
 
 enum esif_rc ipc_execute(struct esif_ipc *ipc);
 

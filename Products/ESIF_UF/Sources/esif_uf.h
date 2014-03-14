@@ -29,7 +29,7 @@ extern esif_ccb_mutex_t g_shellLock;
 #endif
 
 // Set to TRUE after initial ESIF Startup scripts run
-static UInt8 g_esif_started = ESIF_FALSE;
+extern UInt8 g_esif_started;
 
 // ESIF Log Types
 typedef enum eEsifLogType {
@@ -124,6 +124,7 @@ void cmd_app_subsystem(const enum app_subsystem subsystem);
 //
 // Utilities
 //
+EsifString esif_shell_exec_command(EsifString line, size_t buf_len, UInt8 IsRest);
 EsifString parse_cmd(EsifString line, UInt8 IsRest);
 UInt16 convert_string_to_short(esif_string two_character_string);
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);

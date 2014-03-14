@@ -70,6 +70,7 @@ getp 011 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_PAS
 getp 177 D0 255 -u 105 -l 0                                  ;GET_TRIP_POINT_WARM
 rem setp 081 D0 255                                          ;SET_COOLING_POLICY
 rem setp 051 D0 255                                          ;SET_DEVICE_TEMPERATURE_INDICATION
+rem setp 274 D0 255                                          ;SET_RAPL_POWER_CONTROL_CAPABILITIES
 rem setp 130 D0 000                                          ;SET_RAPL_POWER_LIMIT
 rem setp 130 D0 001                                          ;SET_RAPL_POWER_LIMIT
 rem setp 222 D0 000                                          ;SET_RAPL_POWER_LIMIT_ENABLE
@@ -94,7 +95,7 @@ rem setp 203 D0 255                                          ;SET_TRIP_POINT_CRI
 rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
-echo Test Count: 62
+echo Test Count: 63
 timerstop
 geterrorlevel
 nolog

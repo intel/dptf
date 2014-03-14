@@ -82,13 +82,13 @@ P,92,255,1,24,"<schema></schema>",7,"<schema></schema>"
 A,0,20,False,"DPTF","/participants/%nm%/idsp",,,
 A,1,4,True,"IDSP",,,,
 # GET_SYSTEM_CONFIGTDP_LEVEL_NAME
-P,272,0,2,24,"<schema></schema>",8,"<schema></schema>"
+P,272,0,1,24,"<schema></schema>",8,"<schema></schema>"
 A,0,31,False,"SYSTEM_GET_CDPNAME0","","","",""
 # GET_SYSTEM_CONFIGTDP_LEVEL_NAME
-P,272,1,2,24,"<schema></schema>",8,"<schema></schema>"
+P,272,1,1,24,"<schema></schema>",8,"<schema></schema>"
 A,0,31,False,"SYSTEM_GET_CDPNAME1","","","",""
 # GET_SYSTEM_CONFIGTDP_LEVEL_NAME
-P,272,2,2,24,"<schema></schema>",8,"<schema></schema>"
+P,272,2,1,24,"<schema></schema>",8,"<schema></schema>"
 A,0,31,False,"SYSTEM_GET_CDPNAME2","","","",""
 # GET_THERMAL_RELATIONSHIP_TABLE
 P,91,255,1,24,"<schema></schema>",7,"<schema></schema>"

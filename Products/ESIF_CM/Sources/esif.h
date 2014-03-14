@@ -255,7 +255,7 @@ typedef u32 	esif_power_t;			/* Power        */
 
 #define ESIF_PLATFORM_MSG "Platform Driver Intended For Internal VM Use Only"
 #define ESIF_LICENSE "GPL"
-#define ESIF_AUTHOR  "doug.hegge@intel.com"
+#define ESIF_AUTHOR  "brad.geltz@intel.com,brian.bian@intel.com"
 
 #ifdef ESIF_ATTR_64BIT
 #define ESIF_PLATFORM_TYPE	"x64"

@@ -76,7 +76,8 @@ P,35,255,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,29,True,"GRP0",,,,
 # GET_RAPL_POWER_CONTROL_CAPABILITIES
 P,75,255,1,24,"<schema></schema>",7,"<schema></schema>"
-A,0,4,True,"PPCC",,,,
+A,0,20,False,"DPTF","/participants/%nm%/ppcc",,,
+A,1,4,True,"PPCC",,,,
 # GET_RAPL_POWER_LIMIT
 P,38,0,1,24,"<schema></schema>",26,"<schema></schema>"
 A,0,2,True,0x58e0,14,0,,
@@ -193,6 +194,9 @@ A,0,4,True,"_SCP",,,,
 # SET_DEVICE_TEMPERATURE_INDICATION
 P,51,255,2,6,"<schema></schema>",24,"<schema></schema>"
 A,0,4,True,"_DTI",,,,
+# SET_RAPL_POWER_CONTROL_CAPABILITIES
+P,274,255,2,7,"<schema></schema>",24,"<schema></schema>"
+A,0,20,False,"DPTF","/participants/%nm%/ppcc",,,
 # SET_RAPL_POWER_LIMIT
 P,130,0,2,26,"<schema></schema>",24,"<schema></schema>"
 A,0,2,True,0x58e0,14,0,,

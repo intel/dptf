@@ -581,7 +581,7 @@ static void __exit acpi_unload(void)
 module_init(acpi_load);
 module_exit(acpi_unload);
 
-MODULE_VERSION("X1.0.1.0");
+MODULE_VERSION(ESIF_VERSION);
 MODULE_DESCRIPTION(ESIF_PARTICIPANT_ACPI_DESC);
 MODULE_LICENSE(ESIF_LICENSE);
 MODULE_AUTHOR(ESIF_AUTHOR);

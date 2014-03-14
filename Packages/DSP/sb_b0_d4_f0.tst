@@ -90,7 +90,7 @@ getp 245 D0 255                                              ;GET_RFPROFILE_CENT
 getp 260 D0 255                                              ;GET_RFPROFILE_CHANNEL_NUMBER
 getp 255 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_LEFT
 getp 256 D0 255                                              ;GET_RFPROFILE_CLIP_PERCENT_RIGHT
-getp 264 D0 255                                              ;GET_RFPROFILE_CONNECT_STATUS
+getp 264 D0 255                                              ;GET_RFPROFILE_CONNECTION_STATUS
 getp 254 D0 255                                              ;GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY
 getp 257 D0 255                                              ;GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION
 getp 246 D0 255                                              ;GET_RFPROFILE_FREQUENCY_SPREAD_LEFT
@@ -133,8 +133,11 @@ rem setp 082 D1 255                                          ;SET_PERF_PRESENT_C
 rem setp 082 D2 255                                          ;SET_PERF_PRESENT_CAPABILITY
 rem setp 221 D0 255                                          ;SET_PROC_CTDP_CONTROL
 rem setp 153 D1 255                                          ;SET_PROC_NUMBER_OFFLINE_CORES
+rem setp 275 D1 255                                          ;SET_PROC_PERF_PSTATE_DEPTH_LIMIT
+rem setp 276 D1 255                                          ;SET_PROC_PERF_TSTATE_DEPTH_LIMIT
 rem setp 220 D0 255                                          ;SET_PROC_TURBO_ACTIVATION_RATIO
 rem setp 100 D0 255                                          ;SET_PROC_TURBO_STATE
+rem setp 274 D0 255                                          ;SET_RAPL_POWER_CONTROL_CAPABILITIES
 rem setp 130 D0 000                                          ;SET_RAPL_POWER_LIMIT
 rem setp 130 D0 001                                          ;SET_RAPL_POWER_LIMIT
 rem setp 130 D1 000                                          ;SET_RAPL_POWER_LIMIT
@@ -164,7 +167,7 @@ rem setp 204 D0 255                                          ;SET_TRIP_POINT_HOT
 rem setp 206 D0 255                                          ;SET_TRIP_POINT_PASSIVE
 rem setp 205 D0 255                                          ;SET_TRIP_POINT_WARM
 rem setp 147 D1 255                                          ;SET_TSTATE_CURRENT
-echo Test Count: 132
+echo Test Count: 135
 timerstop
 geterrorlevel
 nolog

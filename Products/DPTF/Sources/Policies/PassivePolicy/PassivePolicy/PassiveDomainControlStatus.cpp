@@ -100,7 +100,7 @@ void PassiveDomainControlStatus::addPstateStatus(DomainProxy& domain)
         UIntN lowerLimitIndex;
         if (firstTstateIndex != Constants::Invalid)
         {
-            lowerLimitIndex = firstTstateIndex - 1;
+            lowerLimitIndex = std::min(firstTstateIndex - 1, dynamicCapabilities.getCurrentLowerLimitIndex());
         }
         else
         {
@@ -141,6 +141,10 @@ void PassiveDomainControlStatus::addTstateStatus(DomainProxy& domain)
                 indexOfFirstControlWithType(perfControl.getControls(), PerformanceControlType::ThrottleState);
             IntN currentIndex = perfControl.getStatus().getCurrentControlSetIndex() - tstateIndexStart;
             currentIndex = std::max(0, currentIndex);
+            if (maxUnlimitedIndex == maxLimitedIndex)
+            {
+                throw dptf_exception("No T-state controls are available.");
+            }
 
             m_controlStatus.push_back(
                 ControlStatus(

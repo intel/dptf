@@ -31,10 +31,11 @@ typedef struct DataVault_s DataVault, *DataVaultPtr, **DataVaultPtrLocation;
 
 // #ifdef _DATAVAULT_CLASS
 struct DataVault_s {
-	char  name[ESIF_NAME_LEN];
-	esif_flags_t  flags;
-	DataCachePtr  cache;
-	IOStreamPtr   stream;
+	esif_ccb_lock_t lock;
+	char			name[ESIF_NAME_LEN];
+	esif_flags_t	flags;
+	DataCachePtr	cache;
+	IOStreamPtr		stream;
 };
 
 // #endif
