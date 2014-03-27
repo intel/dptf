@@ -54,6 +54,15 @@ static esif_string g_qualifiers[] = {
 	"D9"
 };
 
+static eEsifError EsifAppSpecialEventHandler(
+	EsifAppPtr theAppPtr,
+	UInt8 participantId,
+	UInt16 domainId,
+	EsifDataPtr eventData,
+	eEsifEventType eventType
+);
+
+
 /* Data For Interface Marshaling */
 static AppDataPtr CreateAppData(esif_string pathBuf)
 {
@@ -62,7 +71,6 @@ static AppDataPtr CreateAppData(esif_string pathBuf)
 	if (NULL == pathBuf) {
 		goto exit;
 	}
-
 
 	esif_build_path(pathBuf, ESIF_PATH_LEN, ESIF_PATHTYPE_DPTF, NULL, NULL);
 	ESIF_TRACE_DEBUG("%s\n\n", (esif_string)pathBuf);
@@ -751,6 +759,12 @@ eEsifError EsifAppEvent(
 	ESIF_TRACE_DEBUG("%s:\n", ESIF_FUNC);
 
 	if (0 == participantId) {
+		EsifAppSpecialEventHandler(theAppPtr,
+								   participantId,
+								   domainId,
+								   eventData,
+								   eventType);
+
 		// Application Event?
 		if (isEventRegistered(theAppPtr->fRegisteredEvents, eventType)) {
 			struct esif_fpc_event *event_ptr = NULL;
@@ -829,6 +843,52 @@ exit:
 
 	return rc;
 }
+
+
+static eEsifError EsifAppSpecialEventHandler(
+	EsifAppPtr theAppPtr,
+	UInt8 participantId,
+	UInt16 domainId,
+	EsifDataPtr eventData,
+	eEsifEventType eventType
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	UNREFERENCED_PARAMETER(domainId);
+	UNREFERENCED_PARAMETER(eventData);
+
+	//
+	// Only handle participant 0 at this time
+	//
+	if (participantId != 0) {
+		goto exit;
+	}
+
+	//
+	// Special handling for suspend/resume events
+	//
+	switch (eventType)
+	{
+	case ESIF_EVENT_PARTICIPANT_SUSPEND:
+		ESIF_TRACE_INFO("System suspend event received\n");
+		if (NULL != theAppPtr) {
+			theAppPtr->fInterface.fAppSuspendFuncPtr(theAppPtr->fHandle);
+		}
+		break;
+	case ESIF_EVENT_PARTICIPANT_RESUME:
+		ESIF_TRACE_INFO("System resume event received\n");
+		if (NULL != theAppPtr) {
+			theAppPtr->fInterface.fAppResumeFuncPtr(theAppPtr->fHandle);
+		}
+		break;
+	default:
+		break;
+	}
+exit:
+	return rc;
+}
+
 
 
 eEsifError EsifAppInit()

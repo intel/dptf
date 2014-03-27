@@ -132,3 +132,64 @@ LpmTable PolicyServicesPlatformConfigurationData::getLpmTable(void)
 
     return (lpmTable);
 }
+
+std::string PolicyServicesPlatformConfigurationData::readPlatformSettingValue(
+    PlatformSettingType::Type platformSettingType, UInt8 index)  
+{
+    throwIfNotWorkItemThread();
+
+    switch (platformSettingType)
+    {
+        case PlatformSettingType::ConfigTdp:
+        {
+            return getEsifServices()->primitiveExecuteGetAsString(esif_primitive_type::GET_SYSTEM_CONFIGTDP_LEVEL_NAME, 
+                Constants::Esif::NoParticipant, Constants::Esif::NoDomain, index);
+            break;
+        }
+        default:
+        {
+            throw dptf_exception("Invalid platform setting type referenced in call to read platform setting value.");
+        }
+    }
+
+}
+
+void PolicyServicesPlatformConfigurationData::writePlatformSettingValue(
+    PlatformSettingType::Type platformSettingType, UInt8 index, const std::string& stringValue)  
+{
+    throwIfNotWorkItemThread();
+
+    switch (platformSettingType)
+    {
+        case PlatformSettingType::ConfigTdp:
+        {
+            getEsifServices()->primitiveExecuteSetAsString(esif_primitive_type::SET_SYSTEM_CONFIGTDP_LEVEL_NAME, 
+                stringValue, Constants::Esif::NoParticipant, Constants::Esif::NoDomain, index);
+            break;
+        }
+        default:
+        {
+            throw dptf_exception("Invalid platform setting type referenced in call to write platform setting value.");
+        }
+    }
+}
+
+void PolicyServicesPlatformConfigurationData::clearPlatformSettings(
+    PlatformSettingType::Type platformSettingType)  
+{
+    throwIfNotWorkItemThread();
+
+    switch (platformSettingType)
+    {
+        case PlatformSettingType::ConfigTdp:
+        {
+            getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_SYSTEM_CONFIGTDP_CLEAR_LEVELS, 
+                esif_data_type::ESIF_DATA_VOID, nullptr, 0, 0);
+            break;
+        }
+        default:
+        {
+            throw dptf_exception("Invalid platform setting type referenced in call to clear platform settings.");
+        }
+    }
+}

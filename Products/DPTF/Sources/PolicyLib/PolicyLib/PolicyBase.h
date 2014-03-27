@@ -67,6 +67,8 @@ public:
     virtual void onThermalRelationshipTableChanged(void);
     virtual void onConnectedStandbyEntry(void);
     virtual void onConnectedStandbyExit(void);
+    virtual void onSuspend(void);
+    virtual void onResume(void);
     virtual void onForegroundApplicationChanged(const std::string& foregroundApplicationName);
     virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2);
     virtual void onOperatingSystemLpmModeChanged(UIntN lpmMode);
@@ -107,6 +109,8 @@ public:
     virtual void thermalRelationshipTableChanged(void) override final;
     virtual void connectedStandbyEntry(void) override final;
     virtual void connectedStandbyExit(void) override final;
+    virtual void suspend(void) override final;
+    virtual void resume(void) override final;
     virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) override final;
     virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) override final;
     virtual void operatingSystemLpmModeChanged(UIntN lpmMode) override final;

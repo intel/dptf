@@ -32,6 +32,8 @@
 #include "WIDomainTemperatureThresholdCrossed.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
+#include "WIDptfResume.h"
+#include "WIDptfSuspend.h"
 #include "WIDptfGetStatus.h"
 #include "WIParticipantAllocate.h"
 #include "WIParticipantCreate.h"

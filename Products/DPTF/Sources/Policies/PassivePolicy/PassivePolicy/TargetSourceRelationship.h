@@ -17,27 +17,22 @@
 ******************************************************************************/
 
 #pragma once
+#include "Dptf.h"
 
-#include "ConfigTdpControl.h"
-#include "BasicTypes.h"
-#include <vector>
-
-class XmlNode;
-
-class ConfigTdpControlSet final
+class TargetSourceRelationship
 {
 public:
-
-    ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
-    UIntN getCount(void) const;
-    const ConfigTdpControl& operator[](UIntN index) const;
-    Bool operator==(const ConfigTdpControlSet& rhs) const;
-    Bool operator!=(const ConfigTdpControlSet& rhs) const;
-    std::vector<std::string> getAsNameList() const;
-
-    XmlNode* getXml(void);
+    TargetSourceRelationship();
+    TargetSourceRelationship(UIntN newTarget, UIntN newSource);
+    Bool operator<(const TargetSourceRelationship& rhs) const;
+    Bool operator==(const TargetSourceRelationship& rhs) const;
+    
+    UIntN target;
+    UIntN source;
 
 private:
 
-    std::vector<ConfigTdpControl> m_configTdpControl;
+    void throwIfNotValid() const;
+
+    Bool m_valid;
 };

@@ -48,7 +48,6 @@ public:
     CoreControlStaticCaps getStaticCapabilities();
     CoreControlLpoPreference getPreferences();
     void refreshCapabilities();
-    void refreshStatus();
     void refreshPreferences();
 
 private:
@@ -62,8 +61,8 @@ private:
     DomainProperties m_domainProperties;
 
     // core control properties
-    CoreControlStatusCachedProperty m_status;
     CoreControlCapabilitiesCachedProperty m_capabilities;
     CoreControlPreferencesCachedProperty m_preferences;
     Bool m_controlsHaveBeenInitialized;
+    CoreControlStatus m_lastSetCoreControlStatus;
 };

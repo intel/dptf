@@ -10,5 +10,8 @@ Debug/64-Bit:
 Debug/32-Bit:
 	cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_ARCH=32bit ..
 
-Building for Chromium OS:
-cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_ARCH=64bit -DCHROMIUM_BUILD=YES ..
+Building for Chromium OS (release):
+	CC="x86_64-cros-linux-gnu-gcc" CXX="x86_64-cros-linux-gnu-g++" CXXFLAGS='-O2 -pipe -DNDEBUG' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..
+
+Building for Chromium OS (debug):
+	CC="x86_64-cros-linux-gnu-gcc" CXX="x86_64-cros-linux-gnu-g++" CXXFLAGS='-g -O0' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..

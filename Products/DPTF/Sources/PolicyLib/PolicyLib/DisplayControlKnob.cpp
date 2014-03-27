@@ -35,24 +35,30 @@ DisplayControlKnob::~DisplayControlKnob(void)
 {
 }
 
-void DisplayControlKnob::limit()
+void DisplayControlKnob::limit(UIntN target)
 {
-    if (canLimit())
+    if (canLimit(target))
     {
         try
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit display brightness.", 
-                getParticipantIndex(), getDomainIndex()));
+            stringstream messageBefore;
+            messageBefore << "Calculating request to limit display brightness.";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
-            UIntN currentControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
+            UIntN currentControlIndex = getTargetRequest(target);
+            if (currentControlIndex == m_displayControl->getCapabilities().getCurrentUpperLimit())
+            {
+                currentControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
+            }
             UIntN lowerLimit = m_displayControl->getCapabilities().getCurrentLowerLimit();
             UIntN nextControlIndex = std::min(currentControlIndex + 1, lowerLimit);
-            m_displayControl->setControl(nextControlIndex);
-            m_hasBeenLimited = true;
+            m_requests[target] = nextControlIndex;
 
-            stringstream message;
-            message << "Limited display brightness to control index" << nextControlIndex << ".";
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            stringstream messageAfter;
+            messageAfter << "Requesting to limit display brightness to" << nextControlIndex << ".";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
@@ -62,23 +68,26 @@ void DisplayControlKnob::limit()
     }
 }
 
-void DisplayControlKnob::unlimit()
+void DisplayControlKnob::unlimit(UIntN target)
 {
-    if (canUnlimit())
+    if (canUnlimit(target))
     {
         try
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to unlimit display brightness.", 
-                getParticipantIndex(), getDomainIndex()));
+            stringstream messageBefore;
+            messageBefore << "Calculating request to unlimit display brightness.";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
-            UIntN currentControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
+            UIntN currentControlIndex = getTargetRequest(target);
             UIntN upperLimit = m_displayControl->getCapabilities().getCurrentUpperLimit();
             UIntN nextControlIndex = std::max(currentControlIndex - 1, upperLimit);
-            m_displayControl->setControl(nextControlIndex);
+            m_requests[target] = nextControlIndex;
 
-            stringstream message;
-            message << "Unlimited display brightness to control index " << nextControlIndex << ".";
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            stringstream messageAfter;
+            messageAfter << "Requesting to unlimit display brightness to" << nextControlIndex << ".";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
@@ -88,14 +97,14 @@ void DisplayControlKnob::unlimit()
     }
 }
 
-Bool DisplayControlKnob::canLimit()
+Bool DisplayControlKnob::canLimit(UIntN target)
 {
     try
     {
         if (m_displayControl->supportsDisplayControls())
         {
             UIntN lowerLimitIndex = m_displayControl->getCapabilities().getCurrentLowerLimit();
-            UIntN currentLimitIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
+            UIntN currentLimitIndex = getTargetRequest(target);
             return (currentLimitIndex < lowerLimitIndex);
         }
         else
@@ -109,14 +118,14 @@ Bool DisplayControlKnob::canLimit()
     }
 }
 
-Bool DisplayControlKnob::canUnlimit()
+Bool DisplayControlKnob::canUnlimit(UIntN target)
 {
     try
     {
         if (m_displayControl->supportsDisplayControls() && (m_hasBeenLimited == true))
         {
             UIntN upperLimitIndex = m_displayControl->getCapabilities().getCurrentUpperLimit();
-            UIntN currentLimitIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
+            UIntN currentLimitIndex = getTargetRequest(target);
             return (currentLimitIndex > upperLimitIndex);
         }
         else
@@ -128,6 +137,102 @@ Bool DisplayControlKnob::canUnlimit()
     {
         return false;
     }
+}
+
+Bool DisplayControlKnob::commitSetting()
+{
+    try
+    {
+        if (m_displayControl->supportsDisplayControls())
+        {
+            UIntN nextIndex = snapToCapabilitiesBounds(findHighestDisplayIndexRequest());
+            if (m_displayControl->getStatus().getBrightnessLimitIndex() != nextIndex)
+            {
+                stringstream messageBefore;
+                messageBefore << "Attempting to change display brightness limit to " << nextIndex << ".";
+                getPolicyServices().messageLogging->writeMessageDebug(
+                    PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+
+                m_displayControl->setControl(nextIndex);
+                m_hasBeenLimited = true;
+
+                stringstream messageAfter;
+                messageAfter << "Changed display brightness limit to " << nextIndex << ".";
+                getPolicyServices().messageLogging->writeMessageDebug(
+                    PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageDebug(
+            PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+        throw ex;
+    }
+}
+
+UIntN DisplayControlKnob::findHighestDisplayIndexRequest() const
+{
+    UIntN highestIndex(m_displayControl->getCapabilities().getCurrentUpperLimit());
+    for (auto request = m_requests.begin(); request != m_requests.end(); request++)
+    {
+        if (request->second > highestIndex)
+        {
+            highestIndex = request->second;
+        }
+    }
+    return highestIndex;
+}
+
+UIntN DisplayControlKnob::snapToCapabilitiesBounds(UIntN displayIndex)
+{
+    UIntN upperLimit(m_displayControl->getCapabilities().getCurrentUpperLimit());
+    UIntN lowerLimit(m_displayControl->getCapabilities().getCurrentLowerLimit());
+    if (displayIndex < upperLimit)
+    {
+        displayIndex = upperLimit;
+    }
+    if (displayIndex > lowerLimit)
+    {
+        displayIndex = lowerLimit;
+    }
+    return displayIndex;
+}
+
+UIntN DisplayControlKnob::getTargetRequest(UIntN target) const
+{
+    auto request = m_requests.find(target);
+    if (request == m_requests.end())
+    {
+        return m_displayControl->getCapabilities().getCurrentUpperLimit();
+    }
+    else
+    {
+        return request->second;
+    }
+}
+
+void DisplayControlKnob::clearRequestForTarget(UIntN target)
+{
+    auto targetRequest = m_requests.find(target);
+    if (targetRequest != m_requests.end())
+    {
+        m_requests.erase(targetRequest);
+    }
+}
+
+void DisplayControlKnob::clearAllRequests()
+{
+    m_requests.clear();
 }
 
 XmlNode* DisplayControlKnob::getXml()

@@ -32,19 +32,20 @@ public:
     ~TargetScheduler();
 
     // making and removing callbacks
-    void scheduleCallback(UIntN target, UInt64 timeDelta);
+    void scheduleCallback(UIntN target, UInt64 time, UInt64 timeDelta);
     void cancelCallback(UIntN target);
     void removeCallback(UIntN target);
 
     // callback queries
     Bool hasCallbackScheduledAtOrBeforeTime(UIntN target, UInt64 time) const;
+    Bool hasCallbackWithinTimeRange(UIntN target, UInt64 beginTime, UInt64 endTime) const;
     
     // update services
     void setTimeObject(std::shared_ptr<TimeInterface> time);
 
     // status
     XmlNode* getXml() const;
-
+    
 private:
 
     // services

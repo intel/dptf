@@ -38,8 +38,8 @@ extern "C" {
 #define VER_MAJOR_STR   "8"
 #define VER_MINOR        0
 #define VER_MINOR_STR   "0"
-#define VER_HOTFIX       9
-#define VER_HOTFIX_STR  "9"
+#define VER_HOTFIX       10
+#define VER_HOTFIX_STR  "10"
 #define VER_BUILD       0
 #define VER_BUILD_STR   "0"
 

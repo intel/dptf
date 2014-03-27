@@ -19,6 +19,7 @@
 #include "Percentage.h"
 #include "DptfExceptions.h"
 #include "Constants.h"
+#include <iomanip>
 
 Percentage::Percentage(void)
     : m_percentage(0.0), m_valid(false)
@@ -118,11 +119,13 @@ std::string Percentage::toString() const
 {
     if (isValid())
     {
-        return std::to_string(m_percentage * 100);
+        std::stringstream stream;
+        stream << std::setprecision(2) << std::fixed << (m_percentage * 100);
+        return stream.str();
     }
     else
     {
-        return std::string(Constants::InvalidString);
+        return Constants::InvalidString;
     }
 }
 

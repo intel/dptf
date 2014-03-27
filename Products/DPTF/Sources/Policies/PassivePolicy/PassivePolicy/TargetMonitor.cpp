@@ -47,6 +47,11 @@ Bool TargetMonitor::isMonitoring(UIntN target)
     return (m_targetsMonitored.find(target) != m_targetsMonitored.end());
 }
 
+std::set<UIntN> TargetMonitor::getMonitoredTargets() const
+{
+    return m_targetsMonitored;
+}
+
 XmlNode* TargetMonitor::getXml() const
 {
     XmlNode* node = XmlNode::createWrapperElement("target_monitor");

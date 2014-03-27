@@ -74,7 +74,7 @@
 
         </xsl:when>
         <xsl:otherwise>
-          <td colspan="3" bgcolor="#B1BABF"></td>
+          <td colspan="3" bgcolor="#FFFFFF"></td>
         </xsl:otherwise>
       </xsl:choose>
 
@@ -155,7 +155,7 @@
   </tr>
   <tr bgcolor="#00AEEF">
     <th>Participant</th>
-    <th>Speed (% / CtrlID)</th>
+    <th>Speed %</th>
     <th>Fine Grain</th>
   </tr>
   <xsl:for-each select="fan_status/active_cooling_control">
@@ -371,7 +371,7 @@
       <xsl:value-of select="lpm_table/version" />
     </td>
   </tr>
-  <tr bgcolor="#FDB813">
+  <tr bgcolor="#00AEEF">
     <th>Target ACPI scope</th>
     <th>Target Index</th>
     <th>Domain Index</th>
@@ -587,7 +587,7 @@
     <td align='center' bgcolor="#ED1C24"><xsl:value-of select="min"/>-<xsl:value-of select="current"/>-<xsl:value-of select="max"/></td>
     </xsl:when>
     <xsl:when test="current!=min">
-    <td align='center' bgcolor="#FFDA00"><xsl:value-of select="min"/>-<xsl:value-of select="current"/>-<xsl:value-of select="max"/></td>
+    <td align='center' bgcolor="#FFFF00"><xsl:value-of select="min"/>-<xsl:value-of select="current"/>-<xsl:value-of select="max"/></td>
     </xsl:when>
     <xsl:otherwise>
     <td align='center'><xsl:value-of select="min"/>-<xsl:value-of select="current"/>-<xsl:value-of select="max"/></td>
@@ -816,6 +816,156 @@
 
 
 
+<!-- begin xsl -->
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- format_id=49-18-CE-C4-3A-24-F3-49-B8-D5-F9-70-02-F3-8E-6A -->
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:template match="/act_policy_status">
+
+<table border="1">
+  <tr bgcolor="#00AEEF" colspan="5">
+    <th colspan="5">FIVR Devices</th>
+  </tr>
+  <tr bgcolor="#00AEEF">
+    <th>Participant</th>
+    <th>Domain</th>
+    <th>Last Set Frequency</th>
+  </tr>
+  <xsl:for-each select="fivr_device_list/fivr_device">
+  <tr>
+    <td align='left'><xsl:value-of select="participant_name"/> (<xsl:value-of select="participant_index"/>)</td>
+    <td align='left'><xsl:value-of select="domain_name"/> (<xsl:value-of select="domain_index"/>)</td>
+    <td align='right'><xsl:value-of select="radio_frequency_control/last_set_frequency"/></td>
+  </tr>
+  </xsl:for-each>
+</table>
+
+<br></br>
+
+<table border="1">
+  <tr bgcolor="#00AEEF" colspan="6">
+    <th colspan="6">Radio Devices</th>
+  </tr>
+  <tr bgcolor="#00AEEF">
+    <th>Participant</th>
+    <th>Domain</th>
+    <th>Connection Status</th>
+    <th>Center Frequency</th>
+    <th>Left Spread</th>
+    <th>Right Spread</th>
+  </tr>
+  <xsl:for-each select="radio_device_list/radio_device">
+  <tr>
+    <td align='left'><xsl:value-of select="participant_name"/> (<xsl:value-of select="participant_index"/>)</td>
+    <td align='left'><xsl:value-of select="domain_name"/> (<xsl:value-of select="domain_index"/>)</td>
+    <td align='right'><xsl:value-of select="last_known_connection_status"/></td>
+    <td align='right'><xsl:value-of select="radio_frequency_profile_data/center_frequency"/></td>
+    <td align='right'><xsl:value-of select="radio_frequency_profile_data/left_frequency_spread"/></td>
+    <td align='right'><xsl:value-of select="radio_frequency_profile_data/right_frequency_spread"/></td>
+  </tr>
+  </xsl:for-each>
+</table>
+
+<br></br>
+
+<table border="1">
+  <tr bgcolor="#00AEEF" colspan="9">
+    <th colspan="9">Pixel Clock Device Properties</th>
+  </tr>
+  <tr bgcolor="#00AEEF">
+    <th>Participant</th>
+    <th>Domain</th>
+    <th>Deviation</th>
+    <th>Upward Deviation</th>
+    <th>Downward Deviation</th>
+    <th>Channel Type</th>
+    <th>SSC Enabled</th>
+    <th>Spread Type</th>
+    <th>Spread Percentage</th>
+  </tr>
+
+  <xsl:for-each select="pixel_clock_device_list/pixel_clock_device">
+  <tr>
+    <td align='left'><xsl:value-of select="participant_name"/> (<xsl:value-of select="participant_index"/>)</td>
+    <td align='left'><xsl:value-of select="domain_name"/> (<xsl:value-of select="domain_index"/>)</td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/deviation"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/upward_deviation"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/downward_deviation"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/channel_type"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/ssc_enabled"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/spread_type"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_capabilities/spread_percentage"/></td>
+  </tr>
+  </xsl:for-each>
+</table>
+
+<br></br>
+
+<table border="1">
+  <tr bgcolor="#00AEEF" colspan="4">
+    <th colspan="4">Pixel Clock Device Frequencies</th>
+  </tr>
+  <tr bgcolor="#00AEEF">
+    <th>Pixel Clock</th>
+    <th>Panel Frequency</th>
+    <th>SSC Enabled Nudge Frequency</th>
+    <th>SSC Disabled Nudge Frequency</th>
+  </tr>
+<xsl:for-each select="pixel_clock_device_list/pixel_clock_device/pixel_clock_data_set/pixel_clock">
+  <tr>
+    <td align='right'><xsl:value-of select="pixel_clock_number"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_data/panel_input_frequency"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_data/ssc_enabled_nudge_frequency"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_data/ssc_disabled_nudge_frequency"/></td>
+  </tr>
+  </xsl:for-each>
+</table>
+
+<br></br>
+
+<table border="1">
+  <tr bgcolor="#00AEEF" colspan="4">
+    <th colspan="4">Pixel Clock Candidate Sets</th>
+  </tr>
+  <tr bgcolor="#00AEEF">
+    <th>Name</th>
+    <th>Spread Type</th>
+    <th>Spread %</th>
+    <th>Candidate Sets</th>
+  </tr>
+  <xsl:for-each select="pixel_clock_device_list/pixel_clock_device/candidate_sets/candidate_set">
+  <tr>
+    <td align='left'><xsl:value-of select="name"/></td>
+    <td align='left'><xsl:value-of select="pixel_clock_frequency_table/spread_type"/></td>
+    <td align='right'><xsl:value-of select="pixel_clock_frequency_table/spread_percentage"/></td>
+    <td align='right'>
+      <table border="1">
+        <tr bgcolor="#00AEEF">
+          <th>Pixel Clock</th>
+          <th>Frequency</th>
+        </tr>
+        <xsl:for-each select="pixel_clock_frequency_table/pixel_clock_frequencies/pixel_clock">
+        <tr>
+          <td align='right'><xsl:value-of select="pixel_clock_number"/></td>
+          <td align='right'>
+          <xsl:for-each select="frequency">
+            <xsl:value-of select="current()"/><br/>
+          </xsl:for-each>
+          </td>
+        </tr>
+        </xsl:for-each>
+      </table>
+    </td>
+  </tr>
+  </xsl:for-each>
+</table>
+    
+</xsl:template>
+</xsl:stylesheet>
+<!-- end xsl -->
+
+
+        
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <!-- format_id=F0-CB-64-06-E4-2B-46-B5-9C-85-32-D1-A1-B7-CB-68 -->

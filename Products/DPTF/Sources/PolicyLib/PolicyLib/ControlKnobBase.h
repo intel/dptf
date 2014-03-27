@@ -32,10 +32,13 @@ public:
         UIntN domainIndex);
     ~ControlKnobBase(void);
 
-    virtual void limit() = 0;
-    virtual void unlimit() = 0;
-    virtual Bool canLimit() = 0;
-    virtual Bool canUnlimit() = 0;
+    virtual void limit(UIntN target) = 0;
+    virtual void unlimit(UIntN target) = 0;
+    virtual Bool canLimit(UIntN target) = 0;
+    virtual Bool canUnlimit(UIntN target) = 0;
+    virtual Bool commitSetting() = 0;
+    virtual void clearRequestForTarget(UIntN target) = 0;
+    virtual void clearAllRequests() = 0;
 
 protected:
 

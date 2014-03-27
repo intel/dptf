@@ -95,6 +95,7 @@ void SupportedPolicyList::createSupportedPolicyList(void)
         UInt8 guidByteArray[GuidSize] = {0};
         esif_ccb_memcpy(guidByteArray, &acpiEsifGuid[i].uuid, GuidSize);
         Guid guid(guidByteArray);
+        m_dptfManager->getEsifServices()->writeMessageInfo("Supported GUID: " + guid.toString());
         m_guid.push_back(guid);
     }
 

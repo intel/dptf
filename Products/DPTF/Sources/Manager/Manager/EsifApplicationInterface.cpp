@@ -40,13 +40,13 @@
 //
 
 #define RETURN_ERROR_IF_CONTEXT_DATA_NULL \
-if (dptfManager == nullptr) \
+    if (dptfManager == nullptr) \
 { \
     return ESIF_E_PARAMETER_IS_NULL; \
 }
 
 #define RETURN_ERROR_IF_WORK_ITEM_QUEUE_MANAGER_NOT_CREATED \
-if (dptfManager->isWorkItemQueueManagerCreated() == false) \
+    if (dptfManager->isWorkItemQueueManagerCreated() == false) \
 { \
     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function call from ESIF ignored.  DPTF work item queue has not been created."); \
     dptfManager->getEsifServices()->writeMessageError(message); \
@@ -54,7 +54,7 @@ if (dptfManager->isWorkItemQueueManagerCreated() == false) \
 }
 
 #define RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED \
-if (dptfManager->isDptfManagerCreated() == false) \
+    if (dptfManager->isDptfManagerCreated() == false) \
 { \
     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function call from ESIF ignored.  DPTF manager creation is not complete."); \
     dptfManager->getEsifServices()->writeMessageError(message); \
@@ -62,7 +62,7 @@ if (dptfManager->isDptfManagerCreated() == false) \
 }
 
 #define RETURN_ERROR_IF_DPTF_SHUTTING_DOWN \
-if (dptfManager->isDptfShuttingDown() == true) \
+    if (dptfManager->isDptfShuttingDown() == true) \
 { \
     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function call from ESIF ignored.  DPTF manager is shutting down."); \
     dptfManager->getEsifServices()->writeMessageError(message); \
@@ -196,6 +196,8 @@ extern "C"
     {
         DptfManager* dptfManager = (DptfManager*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
+        RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
+        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
 
         ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function execution beginning.");
         dptfManager->getEsifServices()->writeMessageInfo(message);
@@ -205,6 +207,67 @@ extern "C"
         try
         {
             DELETE_MEMORY(dptfManager);
+        }
+        catch (...)
+        {
+            rc = ESIF_E_UNSPECIFIED;
+        }
+
+        return rc;
+    }
+
+    static eEsifError DptfSuspend(const void* appHandle)
+    {
+        return ESIF_OK;
+
+        // FIXME:
+        //
+        // Problem:
+        //  We've temporarily commented out the code below to prevent a deadlock.  We added both the DptfSuspend and
+        //  DptfResume functions specifically for the case of Critical policy needing to process temperature threshold
+        //  events on D0 Entry.  However, we have a deadlock.  When Critical policy (using a work item thread) calls
+        //  to shut down the system, we automatically get a call to DptfSuspend.  But the WIDptfSuspend work item
+        //  never executes because it is waiting for the thread to return from the call to shut down the system.
+        //
+        // Solution:
+        //  Update the policy services sleep(), hibernate(), and shutdown() functions.  The Manager should create a separate
+        //  thread for these calls so we don't have the deadlock on the work item thread.
+        //
+
+
+        //DptfManager* dptfManager = (DptfManager*)appHandle;
+        //RETURN_ERROR_IF_CONTEXT_DATA_NULL;
+        //RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
+        //RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+
+        //eEsifError rc = ESIF_OK;
+
+        //try
+        //{
+        //    WorkItem* workItem = new WIDptfSuspend(dptfManager);
+        //    dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
+        //}
+        //catch (...)
+        //{
+        //    rc = ESIF_E_UNSPECIFIED;
+        //}
+
+        //return rc;
+    }
+
+    static eEsifError DptfResume(const void* appHandle)
+    {
+        DptfManager* dptfManager = (DptfManager*)appHandle;
+        RETURN_ERROR_IF_CONTEXT_DATA_NULL;
+        RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
+        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+
+        eEsifError rc = ESIF_OK;
+
+        try
+        {
+            WorkItem* workItem = new WIDptfResume(dptfManager);
+            dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
         }
         catch (...)
         {
@@ -506,102 +569,104 @@ extern "C"
 
             switch (frameworkEvent)
             {
-                case FrameworkEvent::DptfConnectedStandbyEntry:
-                    wi = new WIDptfConnectedStandbyEntry(dptfManager);
-                    break;
-                case FrameworkEvent::DptfConnectedStandbyExit:
-                    wi = new WIDptfConnectedStandbyExit(dptfManager);
-                    break;
-                case FrameworkEvent::DptfLogVerbosityChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    dptfManager->getEsifServices()->setCurrentLogVerbosityLevel((eLogType)uint32param);
-                    break;
-                case FrameworkEvent::ParticipantSpecificInfoChanged:
-                    wi = new WIParticipantSpecificInfoChanged(dptfManager, participantIndex);
-                    break;
-                case FrameworkEvent::DomainConfigTdpCapabilityChanged:
-                    wi = new WIDomainConfigTdpCapabilityChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainCoreControlCapabilityChanged:
-                    wi = new WIDomainCoreControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainDisplayControlCapabilityChanged:
-                    wi = new WIDomainDisplayControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainDisplayStatusChanged:
-                    wi = new WIDomainDisplayStatusChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainPerformanceControlCapabilityChanged:
-                    wi = new WIDomainPerformanceControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainPerformanceControlsChanged:
-                    wi = new WIDomainPerformanceControlsChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainPowerControlCapabilityChanged:
-                    wi = new WIDomainPowerControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainPriorityChanged:
-                    wi = new WIDomainPriorityChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainRadioConnectionStatusChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIDomainRadioConnectionStatusChanged(dptfManager, participantIndex, domainIndex,
-                        (RadioConnectionStatus::Type)uint32param);
-                    break;
-                case FrameworkEvent::DomainRfProfileChanged:
-                    wi = new WIDomainRfProfileChanged(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::DomainTemperatureThresholdCrossed:
-                    wi = new WIDomainTemperatureThresholdCrossed(dptfManager, participantIndex, domainIndex);
-                    break;
-                case FrameworkEvent::PolicyActiveRelationshipTableChanged:
-                    wi = new WIPolicyActiveRelationshipTableChanged(dptfManager);
-                    break;
-                case FrameworkEvent::PolicyCoolingModeAcousticLimitChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicyCoolingModeAcousticLimitChanged(dptfManager, (CoolingModeAcousticLimit::Type)uint32param);
-                    break;
-                case FrameworkEvent::PolicyCoolingModePolicyChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicyCoolingModePolicyChanged(dptfManager, (CoolingMode::Type)uint32param);
-                    break;
-                case FrameworkEvent::PolicyCoolingModePowerLimitChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicyCoolingModePowerLimitChanged(dptfManager, (CoolingModePowerLimit::Type)uint32param);
-                    break;
-                case FrameworkEvent::PolicyForegroundApplicationChanged:
-                    wi = new WIPolicyForegroundApplicationChanged(dptfManager, EsifDataString(esifEventDataPtr));
-                    break;
-                case FrameworkEvent::PolicyOperatingSystemConfigTdpLevelChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicyOperatingSystemConfigTdpLevelChanged(dptfManager, uint32param);
-                    break;
-                case FrameworkEvent::PolicyOperatingSystemLpmModeChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicyOperatingSystemLpmModeChanged(dptfManager, uint32param);
-                    break;
-                case FrameworkEvent::PolicyPassiveTableChanged:
-                    wi = new WIPolicyPassiveTableChanged(dptfManager);
-                    break;
-                case FrameworkEvent::PolicyPlatformLpmModeChanged:
-                    wi = new WIPolicyPlatformLpmModeChanged(dptfManager);
-                    break;
-                case FrameworkEvent::PolicySensorOrientationChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicySensorOrientationChanged(dptfManager, (SensorOrientation::Type)uint32param);
-                    break;
-                case FrameworkEvent::PolicySensorProximityChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicySensorProximityChanged(dptfManager, (SensorProximity::Type)uint32param);
-                    break;
-                case FrameworkEvent::PolicySensorSpatialOrientationChanged:
-                    uint32param = EsifDataUInt32(esifEventDataPtr);
-                    wi = new WIPolicySensorSpatialOrientationChanged(dptfManager, (SensorSpatialOrientation::Type)uint32param);
-                    break;
-                case FrameworkEvent::PolicyThermalRelationshipTableChanged:
-                    wi = new WIPolicyThermalRelationshipTableChanged(dptfManager);
-                    break;
-                default:
+            //FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high priority.
+            //        Should these return synchronously?  If so they don't belong here.
+            case FrameworkEvent::DptfConnectedStandbyEntry:
+                wi = new WIDptfConnectedStandbyEntry(dptfManager);
+                break;
+            case FrameworkEvent::DptfConnectedStandbyExit:
+                wi = new WIDptfConnectedStandbyExit(dptfManager);
+                break;
+            case FrameworkEvent::DptfLogVerbosityChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                dptfManager->getEsifServices()->setCurrentLogVerbosityLevel((eLogType)uint32param);
+                break;
+            case FrameworkEvent::ParticipantSpecificInfoChanged:
+                wi = new WIParticipantSpecificInfoChanged(dptfManager, participantIndex);
+                break;
+            case FrameworkEvent::DomainConfigTdpCapabilityChanged:
+                wi = new WIDomainConfigTdpCapabilityChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainCoreControlCapabilityChanged:
+                wi = new WIDomainCoreControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainDisplayControlCapabilityChanged:
+                wi = new WIDomainDisplayControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainDisplayStatusChanged:
+                wi = new WIDomainDisplayStatusChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPerformanceControlCapabilityChanged:
+                wi = new WIDomainPerformanceControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPerformanceControlsChanged:
+                wi = new WIDomainPerformanceControlsChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPowerControlCapabilityChanged:
+                wi = new WIDomainPowerControlCapabilityChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPriorityChanged:
+                wi = new WIDomainPriorityChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainRadioConnectionStatusChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIDomainRadioConnectionStatusChanged(dptfManager, participantIndex, domainIndex,
+                    (RadioConnectionStatus::Type)uint32param);
+                break;
+            case FrameworkEvent::DomainRfProfileChanged:
+                wi = new WIDomainRfProfileChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainTemperatureThresholdCrossed:
+                wi = new WIDomainTemperatureThresholdCrossed(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::PolicyActiveRelationshipTableChanged:
+                wi = new WIPolicyActiveRelationshipTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyCoolingModeAcousticLimitChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyCoolingModeAcousticLimitChanged(dptfManager, (CoolingModeAcousticLimit::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyCoolingModePolicyChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyCoolingModePolicyChanged(dptfManager, (CoolingMode::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyCoolingModePowerLimitChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyCoolingModePowerLimitChanged(dptfManager, (CoolingModePowerLimit::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyForegroundApplicationChanged:
+                wi = new WIPolicyForegroundApplicationChanged(dptfManager, EsifDataString(esifEventDataPtr));
+                break;
+            case FrameworkEvent::PolicyOperatingSystemConfigTdpLevelChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemConfigTdpLevelChanged(dptfManager, uint32param);
+                break;
+            case FrameworkEvent::PolicyOperatingSystemLpmModeChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemLpmModeChanged(dptfManager, uint32param);
+                break;
+            case FrameworkEvent::PolicyPassiveTableChanged:
+                wi = new WIPolicyPassiveTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyPlatformLpmModeChanged:
+                wi = new WIPolicyPlatformLpmModeChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicySensorOrientationChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicySensorOrientationChanged(dptfManager, (SensorOrientation::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicySensorProximityChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicySensorProximityChanged(dptfManager, (SensorProximity::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicySensorSpatialOrientationChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicySensorSpatialOrientationChanged(dptfManager, (SensorSpatialOrientation::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyThermalRelationshipTableChanged:
+                wi = new WIPolicyThermalRelationshipTableChanged(dptfManager);
+                break;
+            default:
                 {
                     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Received unexpected event");
                     message.setParticipantAndDomainIndex(participantIndex, domainIndex);
@@ -650,6 +715,8 @@ extern "C"
         appInterfacePtr->fAppAllocateHandleFuncPtr = DptfAllocateHandle;
         appInterfacePtr->fAppCreateFuncPtr = DptfCreate;
         appInterfacePtr->fAppDestroyFuncPtr = DptfDestroy;
+        appInterfacePtr->fAppSuspendFuncPtr = DptfSuspend;
+        appInterfacePtr->fAppResumeFuncPtr = DptfResume;
 
         appInterfacePtr->fAppCommandFuncPtr = DptfCommand;
         appInterfacePtr->fAppGetAboutFuncPtr = GetDptfAbout;

@@ -37,29 +37,34 @@ void TargetUnlimitAction::execute()
     try
     {
         // choose sources to unlimit for target
-        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to unlimit target participant.", getTarget()));
-        vector<UIntN> sourcesToUnlimit = chooseSourcesToUnlimitForTarget(getTarget());
-        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, constructMessageForSources("unlimit", getTarget(), sourcesToUnlimit)));
+        getPolicyServices().messageLogging->writeMessageDebug(
+            PolicyMessage(FLF, "Attempting to unlimit target participant.", getTarget()));
 
+        UInt64 time = getTime()->getCurrentTimeInMilliseconds();
+        vector<UIntN> sourcesToUnlimit = chooseSourcesToUnlimitForTarget(getTarget());
         if (sourcesToUnlimit.size() > 0)
         {
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, constructMessageForSources("unlimit", getTarget(), sourcesToUnlimit)));
+
             for (auto source = sourcesToUnlimit.begin(); source != sourcesToUnlimit.end(); source++)
             {
-                // if source is busy right now, schedule a callback as soon as possible
-                if (getCallbackScheduler()->isSourceBusyNow(*source))
+                if (getCallbackScheduler()->isFreeForRequests(getTarget(), *source, time))
                 {
-                    getCallbackScheduler()->scheduleCallbackAsSoonAsPossible(getTarget(), *source);
-                }
-                else
-                {
-                    // unlimit appropriate domains for source and schedule a callback after the next sampling period
-                    vector<UIntN> domainsToUnlimit = chooseDomainsToUnlimitForSource(getTarget(), *source);
-                    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, constructMessageForSourceDomains("unlimit", getTarget(), *source, domainsToUnlimit)));
-                    for (auto domain = domainsToUnlimit.begin(); domain != domainsToUnlimit.end(); domain++)
+                    vector<UIntN> domains = chooseDomainsToUnlimitForSource(getTarget(), *source);
+                    getPolicyServices().messageLogging->writeMessageDebug(
+                        PolicyMessage(FLF, constructMessageForSourceDomains("unlimit", getTarget(), *source, domains)));
+                    for (auto domain = domains.begin(); domain != domains.end(); domain++)
                     {
-                        unlimitDomain(*source, *domain);
+                        requestUnlimit(*source, *domain, getTarget());
                     }
-                    getCallbackScheduler()->scheduleCallbackAfterNextSamplingPeriod(getTarget(), *source);
+                    getCallbackScheduler()->markBusyForRequests(getTarget(), *source, time);
+                }
+                getCallbackScheduler()->ensureCallbackByNextSamplePeriod(getTarget(), *source, time);
+
+                if (getCallbackScheduler()->isFreeForCommits(*source, time))
+                {
+                    commitUnlimit(*source, time);
                 }
             }
         }
@@ -77,17 +82,19 @@ void TargetUnlimitAction::execute()
             // monitoring the target as there is nothing else to unlimit.
             if ((currentTemperature < Temperature(psv)) && (currentTemperature >= Temperature(psv - hysteresis)))
             {
-                getCallbackScheduler()->scheduleCallbackAfterShortestSamplePeriod(getTarget());
+                getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
             }
             else
             {
                 getTargetMonitor().stopMonitoring(getTarget());
+                removeAllRequestsForTarget(getTarget());
             }
         }
     }
     catch (...)
     {
-        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(FLF, "Failed to unlimit source(s) for target.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageWarning(
+            PolicyMessage(FLF, "Failed to unlimit source(s) for target.", getTarget()));
     }
 }
 
@@ -96,7 +103,7 @@ std::vector<UIntN> TargetUnlimitAction::chooseSourcesToUnlimitForTarget(UIntN ta
     // get TRT entries for target with sources that have controls that can be unlimited
     vector<UIntN> sourcesToLimit;
     vector<ThermalRelationshipTableEntry> availableSourcesForTarget = getTrt().getEntriesForTarget(target);
-    availableSourcesForTarget = getEntriesWithControlsToUnlimit(availableSourcesForTarget);
+    availableSourcesForTarget = getEntriesWithControlsToUnlimit(target, availableSourcesForTarget);
 
     if (availableSourcesForTarget.size() > 0)
     {
@@ -113,7 +120,8 @@ std::vector<UIntN> TargetUnlimitAction::chooseSourcesToUnlimitForTarget(UIntN ta
     return sourcesToLimit;
 }
 
-std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithControlsToUnlimit(const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget)
+std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithControlsToUnlimit(
+    UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget)
 {
     vector<ThermalRelationshipTableEntry> entriesThatCanBeUnlimited;
     for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
@@ -122,7 +130,7 @@ std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithCo
         {
             // if source has controls that can be unlimited, add it to the list
             vector<UIntN> domainsWithControlKnobsToTurn =
-                getDomainsWithControlKnobsToUnlimit(getParticipantTracker()[entry->sourceDeviceIndex()]);
+                getDomainsWithControlKnobsToUnlimit(getParticipantTracker()[entry->sourceDeviceIndex()], target);
             if (domainsWithControlKnobsToTurn.size() > 0)
             {
                 entriesThatCanBeUnlimited.push_back(*entry);
@@ -132,14 +140,14 @@ std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithCo
     return entriesThatCanBeUnlimited;
 }
 
-std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(ParticipantProxy& participant)
+std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(ParticipantProxy& participant, UIntN target)
 {
     vector<UIntN> domainsWithControlKnobsToTurn;
     auto domainIndexes = participant.getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
         // if domain has controls that can be unlimited, add it to the list
-        if (participant[*domainIndex].canUnlimit())
+        if (participant[*domainIndex].canUnlimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
         }
@@ -149,7 +157,7 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(Part
 
 std::vector<UIntN> TargetUnlimitAction::chooseDomainsToUnlimitForSource(UIntN target, UIntN source)
 {
-    vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(getParticipantTracker()[source]);
+    vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(getParticipantTracker()[source], target);
     set<UIntN> domainsToUnlimitSet;
 
     if (domainsWithControlKnobsToTurn.size() > 0)
@@ -195,7 +203,8 @@ std::vector<UIntN> TargetUnlimitAction::chooseDomainsToUnlimitForSource(UIntN ta
     return domainsToUnlimit;
 }
 
-UIntN TargetUnlimitAction::getDomainWithLowestTemperature(UIntN source, std::vector<UIntN> domainsWithControlKnobsToTurn)
+UIntN TargetUnlimitAction::getDomainWithLowestTemperature(
+    UIntN source, std::vector<UIntN> domainsWithControlKnobsToTurn)
 {
     pair<Temperature, UIntN> domainWithLowestTemperature(Temperature::createInvalid(), Constants::Invalid);
     for (auto domain = domainsWithControlKnobsToTurn.begin();
@@ -265,7 +274,52 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
     return domainsWithLowestPriority;
 }
 
-void TargetUnlimitAction::unlimitDomain(UIntN source, UIntN domain)
+void TargetUnlimitAction::requestUnlimit(UIntN source, UIntN domain, UIntN target)
 {
-    getParticipantTracker()[source][domain].unlimit();
+    getParticipantTracker()[source][domain].requestUnlimit(target);
+}
+
+void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
+{
+    Bool madeChanges(false);
+    vector<UIntN> domainIndexes = getParticipantTracker()[source].getDomainIndexes();
+    for (auto domain = domainIndexes.begin(); domain != domainIndexes.end(); domain++)
+    {
+        try
+        {
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, "Committing limits to source.", source, *domain));
+
+            Bool madeChange = getParticipantTracker()[source][*domain].commitLimits();
+            if (madeChange)
+            {
+                madeChanges = true;
+            }
+        }
+        catch (std::exception& ex)
+        {
+            getPolicyServices().messageLogging->writeMessageWarning(
+                PolicyMessage(FLF, "Failed to limit source: " + string(ex.what()), source, *domain));
+        }
+    }
+
+    if (madeChanges)
+    {
+        getCallbackScheduler()->markSourceAsBusy(source, getTargetMonitor(), time);
+    }
+}
+
+void TargetUnlimitAction::removeAllRequestsForTarget(UIntN target)
+{
+    vector<UIntN> participantIndexes = getParticipantTracker().getAllTrackedIndexes();
+    for (auto participantIndex = participantIndexes.begin(); 
+        participantIndex != participantIndexes.end(); 
+        participantIndex++)
+    {
+        vector<UIntN> domainIndexes = getParticipantTracker()[*participantIndex].getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            getParticipantTracker()[*participantIndex][*domainIndex].clearAllRequestsForTarget(target);
+        }
+    }
 }

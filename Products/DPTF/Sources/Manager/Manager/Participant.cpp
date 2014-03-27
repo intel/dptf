@@ -344,6 +344,22 @@ void Participant::connectedStandbyExit(void)
     }
 }
 
+void Participant::suspend(void)
+{
+    if (isEventRegistered(ParticipantEvent::DptfSuspend))
+    {
+        m_theRealParticipant->suspend();
+    }
+}
+
+void Participant::resume(void)
+{
+    if (isEventRegistered(ParticipantEvent::DptfResume))
+    {
+        m_theRealParticipant->resume();
+    }
+}
+
 void Participant::domainConfigTdpCapabilityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainConfigTdpCapabilityChanged))

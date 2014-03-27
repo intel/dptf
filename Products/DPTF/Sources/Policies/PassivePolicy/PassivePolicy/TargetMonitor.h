@@ -31,6 +31,7 @@ public:
     void startMonitoring(UIntN target);
     void stopMonitoring(UIntN target);
     Bool isMonitoring(UIntN target);
+    std::set<UIntN> getMonitoredTargets() const;
     XmlNode* getXml() const;
 
 private:

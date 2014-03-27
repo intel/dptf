@@ -34,15 +34,23 @@ public:
         UIntN domainIndex);
     ~DisplayControlKnob(void);
 
-    virtual void limit() override;
-    virtual void unlimit() override;
-    virtual Bool canLimit() override;
-    virtual Bool canUnlimit() override;
+    virtual void limit(UIntN target) override;
+    virtual void unlimit(UIntN target) override;
+    virtual Bool canLimit(UIntN target) override;
+    virtual Bool canUnlimit(UIntN target) override;
+    virtual Bool commitSetting() override;
+    virtual void clearRequestForTarget(UIntN target) override;
+    virtual void clearAllRequests() override;
 
     XmlNode* getXml();
-
+    
 private:
 
     std::shared_ptr<DisplayControlFacade> m_displayControl;
+    std::map<UIntN, UIntN> m_requests;
     Bool m_hasBeenLimited; // only unlimit if the control has been limited in the past due to thermal condition
+
+    UIntN findHighestDisplayIndexRequest() const;
+    UIntN getTargetRequest(UIntN target) const;
+    UIntN snapToCapabilitiesBounds(UIntN displayIndex);
 };

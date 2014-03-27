@@ -18,7 +18,6 @@
 
 #include "DomainTemperature_001.h"
 #include "XmlNode.h"
-#include "StatusFormat.h"
 
 DomainTemperature_001::DomainTemperature_001(ParticipantServicesInterface* participantServicesInterface) :
     m_participantServicesInterface(participantServicesInterface)
@@ -35,7 +34,7 @@ TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantI
     }
     catch (...)
     {
-    	return TemperatureStatus(Temperature(0));
+        return TemperatureStatus(Temperature(0));
     }
 }
 
@@ -50,21 +49,35 @@ TemperatureThresholds DomainTemperature_001::getTemperatureThresholds(UIntN part
 void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
     const TemperatureThresholds& temperatureThresholds)
 {
-    Temperature aux0(temperatureThresholds.getAux0());
-    if (aux0.isValid() == false)
+    try
     {
-        aux0 = 5;
+        Temperature aux0(temperatureThresholds.getAux0());
+        if (aux0.isValid() == false)
+        {
+            aux0 = 5;
+        }
+        m_participantServicesInterface->primitiveExecuteSetAsTemperatureC(
+            esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux0, domainIndex, 0);
     }
-    m_participantServicesInterface->primitiveExecuteSetAsTemperatureC(
-        esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux0, domainIndex, 0);
+    catch (...)
+    {
+        // eat any errors here
+    }
 
-    Temperature aux1(temperatureThresholds.getAux1());
-    if (aux1.isValid() == false)
+    try
     {
-        aux1 = 199;
+        Temperature aux1(temperatureThresholds.getAux1());
+        if (aux1.isValid() == false)
+        {
+            aux1 = 199;
+        }
+        m_participantServicesInterface->primitiveExecuteSetAsTemperatureC(
+            esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux1, domainIndex, 1);
     }
-    m_participantServicesInterface->primitiveExecuteSetAsTemperatureC(
-        esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux1, domainIndex, 1);
+    catch (...)
+    {
+        // eat any errors here
+    }
 }
 
 void DomainTemperature_001::clearCachedData(void)
@@ -96,7 +109,7 @@ UIntN DomainTemperature_001::getHysteresis(UIntN domainIndex)
     }
     catch (...)
     {
-    	return 0;
+        return 0;
     }
 }
 

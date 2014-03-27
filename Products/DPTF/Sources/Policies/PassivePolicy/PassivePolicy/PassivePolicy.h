@@ -42,6 +42,7 @@ public:
     virtual void onDisable(void) override;
     virtual void onConnectedStandbyEntry(void) override;
     virtual void onConnectedStandbyExit(void) override;
+    virtual void onResume(void) override;
 
     virtual bool autoNotifyPlatformOscOnCreateDestroy() const override;
     virtual bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
@@ -80,6 +81,7 @@ private:
     TargetActionBase* determineAction(UIntN target);
     void takeThermalActionForAllTargetsForSource(UIntN source);
     void takeThermalActionForTarget(UIntN target);
+    void removeAllRequestsForTarget(UIntN target);
     
     // TRT actions
     void associateParticipantInTrt(ParticipantProxy& trackedParticipants);

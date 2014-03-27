@@ -38,6 +38,7 @@ public:
     virtual void onDisable(void) override;
     virtual void onConnectedStandbyEntry(void) override;
     virtual void onConnectedStandbyExit(void) override;
+    virtual void onResume(void) override;
 
     virtual bool autoNotifyPlatformOscOnCreateDestroy() const override;
     virtual bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
@@ -53,6 +54,7 @@ public:
     virtual void onUnbindDomain(UIntN participantIndex, UIntN domainIndex) override;
     virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
     virtual void onParticipantSpecificInfoChanged(UIntN participantIndex) override;
+    virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2) override;
 
 private:
 

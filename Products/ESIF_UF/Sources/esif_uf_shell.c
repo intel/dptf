@@ -129,6 +129,21 @@ struct EsifShellCmd_s {
 
 typedef struct EsifShellCmd_s EsifShellCmd, *EsifShellCmdPtr;
 
+// Workaround until normalization moved to Lower Framework
+// Normalize ACPI Scope from '\_SB.*' to '\_SB_.*'
+static void AcpiScopeNormalize(
+	char   *scope,
+	size_t buf_len
+	)
+{
+	size_t len = esif_ccb_strlen(scope, buf_len);
+
+	if (esif_ccb_strnicmp(scope, "\\_", 2) == 0 && isalpha(scope[2]) && isalpha(scope[3]) && scope[4] == '.' && len < buf_len-1) {
+		esif_ccb_memmove(&scope[5], &scope[4], len-4+1);
+		scope[4] = '_';
+	}
+}
+
 // Output Buffer Keep Off Stack
 char g_out_buf[(64 * 1024)];
 
@@ -793,7 +808,7 @@ eEsifError TableObject_Save(TableObject *self)
 	
 			UNREFERENCED_PARAMETER(request);
 			UNREFERENCED_PARAMETER(response);
-			rc = EsifExecutePrimitive(0, self->setPrimitive, "D0", 255, &request, &response);
+			rc = EsifExecutePrimitive((UInt8)self->participantId, self->setPrimitive, self->domainQualifier, 255, &request, &response);
 		}
 		else {
 
@@ -1058,6 +1073,29 @@ eEsifError TableObject_LoadSchema (
 		self->numFields = numFields;
 
 		esif_ccb_sprintf(MAX_TABLEOBJECT_KEY_LEN, targetKey, "/participants/%s.%s/_art", up_ptr->fMetadata.fName, self->domainQualifier);
+		self->dataVaultKey = esif_ccb_strdup(targetKey);
+	}
+	else if (esif_ccb_stricmp(self->name,"ppcc") == 0) {
+		numFields = 13;
+		TableField_Construct(&(self->fields[0]), "revision", "revision", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[1]), "PL1Index", "PL1Index", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[2]), "PL1Min", "PL1Min", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[3]), "PL1Max", "PL1Max", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[4]), "PL1TimeMin", "PL1TimeMin", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[5]), "PL1TimeMax", "PL1TimeMax", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[6]), "PL1Step", "PL1Step", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[7]), "PL2Index", "PL2Index", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[8]), "PL2Min", "PL2Min", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[9]), "PL2Max", "PL2Max", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[10]), "PL2TimeMin", "PL2TimeMin", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[11]), "PL2TimeMax", "PL2TimeMax", ESIF_DATA_UINT32, 1);
+		TableField_Construct(&(self->fields[12]), "PL2Step", "PL2Step", ESIF_DATA_UINT32, 1);
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_RAPL_POWER_CONTROL_CAPABILITIES;
+		self->setPrimitive = SET_RAPL_POWER_CONTROL_CAPABILITIES;
+		self->changeEvent = ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED;
+		self->numFields = numFields;
+		esif_ccb_sprintf(MAX_TABLEOBJECT_KEY_LEN, targetKey, "/participants/%s.%s/ppcc", up_ptr->fMetadata.fName, self->domainQualifier);
 		self->dataVaultKey = esif_ccb_strdup(targetKey);
 	}
 	else if (esif_ccb_stricmp(self->name,"psv") == 0) {
@@ -5114,6 +5152,7 @@ static char *esif_shell_cmd_tableobject(EsifShellCmdPtr shell)
 			"<result>\n"
 			"    <tables>\n"
 			"       <tableName>_art</tableName>\n"
+			"       <tableName>_ppcc</tableName>\n"
 			"       <tableName>_psv</tableName>\n"
 			"       <tableName>_trt</tableName>\n"
 			"    <tables>\n"
@@ -5410,6 +5449,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 	u8 i = 0;
 	char *attribute = "";
 	u8 domain_index = 0;
+	char AcpiScope[ESIF_SCOPE_LEN] = {0};
 
 	// Qualifier
 	if (argc > 1) {
@@ -5470,6 +5510,10 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 					esif_ccb_sprintf(8, instance_str, "%-2d", up_ptr->fLpInstance);
 				}
 
+				// Workaround until normalization moved to LF
+				esif_ccb_strcpy(AcpiScope, up_ptr->fMetadata.fAcpiScope, sizeof(AcpiScope));
+				AcpiScopeNormalize(AcpiScope, sizeof(AcpiScope));
+
 				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 								 "  <participant>\n"
 								 "    <UpId>%u</UpId>\n"
@@ -5497,7 +5541,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 								 up_ptr->fDspPtr->code_ptr,
 								 up_ptr->fMetadata.fAcpiDevice,
 								 up_ptr->fMetadata.fAcpiUID,
-								 up_ptr->fMetadata.fAcpiScope,
+								 AcpiScope,
 								 up_ptr->fMetadata.fAcpiType,
 								 domainCount);
 

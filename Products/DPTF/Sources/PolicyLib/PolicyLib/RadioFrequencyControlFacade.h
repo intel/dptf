@@ -44,6 +44,7 @@ public:
     // status
     Bool supportsStatus();
     RfProfileData getProfileData();
+    void invalidateProfileData();
 
     // properties
     XmlNode* getXml();
@@ -57,11 +58,11 @@ private:
     UIntN m_participantIndex;
     UIntN m_domainIndex;
     DomainProperties m_domainProperties;
-    RfStatusCachedProperty m_rfProfileData;
 
     // control properties
+    RfStatusCachedProperty m_rfProfileData;
+    Frequency m_lastSetFrequency;
     Bool m_controlsHaveBeenInitialized;
-
     void throwIfControlNotSupported();
     void throwIfStatusNotSupported();
 };

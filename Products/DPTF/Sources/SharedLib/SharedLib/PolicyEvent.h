@@ -31,6 +31,8 @@ namespace PolicyEvent
         Invalid,
         DptfConnectedStandbyEntry,
         DptfConnectedStandbyExit,
+        DptfSuspend,
+        DptfResume,
         ParticipantSpecificInfoChanged,
         DomainConfigTdpCapabilityChanged,
         DomainCoreControlCapabilityChanged,
@@ -43,20 +45,20 @@ namespace PolicyEvent
         DomainRadioConnectionStatusChanged,
         DomainRfProfileChanged,
         DomainTemperatureThresholdCrossed,
-        PolicyActiveRelationshipTableChanged,                       // RequiresEsifEventRegistration()
-        PolicyCoolingModeAcousticLimitChanged,                      // RequiresEsifEventRegistration()
-        PolicyCoolingModePolicyChanged,                             // RequiresEsifEventRegistration()
-        PolicyCoolingModePowerLimitChanged,                         // RequiresEsifEventRegistration()
-        PolicyForegroundApplicationChanged,                         // RequiresEsifEventRegistration()
+        PolicyActiveRelationshipTableChanged,
+        PolicyCoolingModeAcousticLimitChanged,
+        PolicyCoolingModePolicyChanged,
+        PolicyCoolingModePowerLimitChanged,
+        PolicyForegroundApplicationChanged,
         PolicyInitiatedCallback,
-        PolicyOperatingSystemConfigTdpLevelChanged,                 // RequiresEsifEventRegistration()
-        PolicyOperatingSystemLpmModeChanged,                        // RequiresEsifEventRegistration()
-        PolicyPassiveTableChanged,                                  // RequiresEsifEventRegistration()
-        PolicyPlatformLpmModeChanged,                               // RequiresEsifEventRegistration()
-        PolicySensorOrientationChanged,                             // RequiresEsifEventRegistration()
-        PolicySensorProximityChanged,                               // RequiresEsifEventRegistration()
-        PolicySensorSpatialOrientationChanged,                      // RequiresEsifEventRegistration()
-        PolicyThermalRelationshipTableChanged,                      // RequiresEsifEventRegistration()
+        PolicyOperatingSystemConfigTdpLevelChanged,
+        PolicyOperatingSystemLpmModeChanged,
+        PolicyPassiveTableChanged,
+        PolicyPlatformLpmModeChanged,
+        PolicySensorOrientationChanged,
+        PolicySensorProximityChanged,
+        PolicySensorSpatialOrientationChanged,
+        PolicyThermalRelationshipTableChanged,
         Max
     };
 

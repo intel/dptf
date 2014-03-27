@@ -70,6 +70,18 @@ PixelClockCapabilities DomainPixelClockStatus_001::getPixelClockCapabilities(UIn
     Percentage spreadPercentage = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
         esif_primitive_type::GET_DISPLAY_CLOCK_SPREAD_PERCENTAGE, domainIndex);
 
+    // Check for invalid values and substitute defaults
+    // TODO: should this be in ESIF instead?
+    if (clockDeviation == 0)
+    {
+        clockDeviation = 2; // TODO: change to 20 as 10th percent.
+    }
+    if ((upwardDeviation == 0) && (downwardDeviation == 0))
+    {
+        upwardDeviation = 1;
+        downwardDeviation = 1;
+    }
+
     PixelClockCapabilities pixelClockCapabilities(pixelClockPanelType, clockDeviation, upwardDeviation,
         downwardDeviation, pixelClockChannelType, sscEnabled, sscSpreadDirection, spreadPercentage);
 
@@ -87,6 +99,10 @@ PixelClockDataSet DomainPixelClockStatus_001::getPixelClockDataSet(UIntN partici
     {
         Frequency panelInputFrequencySpecification = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
             esif_primitive_type::GET_CLOCK_ORIGINAL_FREQUENCY, domainIndex, static_cast<UInt8>(i));
+        if (panelInputFrequencySpecification == Frequency(0))
+        {
+            throw dptf_exception("Original Clock frequency has an invalid value of 0.");
+        }
         Frequency sscEnabledNudgeFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
             esif_primitive_type::GET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY, domainIndex, static_cast<UInt8>(i));
         Frequency sscDisabledNudgeFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(

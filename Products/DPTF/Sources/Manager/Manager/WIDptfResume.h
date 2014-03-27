@@ -18,26 +18,14 @@
 
 #pragma once
 
-#include "ConfigTdpControl.h"
-#include "BasicTypes.h"
-#include <vector>
+#include "WorkItem.h"
 
-class XmlNode;
-
-class ConfigTdpControlSet final
+class WIDptfResume : public WorkItem
 {
 public:
 
-    ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
-    UIntN getCount(void) const;
-    const ConfigTdpControl& operator[](UIntN index) const;
-    Bool operator==(const ConfigTdpControlSet& rhs) const;
-    Bool operator!=(const ConfigTdpControlSet& rhs) const;
-    std::vector<std::string> getAsNameList() const;
+    WIDptfResume(DptfManager* dptfManager);
+    virtual ~WIDptfResume(void);
 
-    XmlNode* getXml(void);
-
-private:
-
-    std::vector<ConfigTdpControl> m_configTdpControl;
+    virtual void execute(void) override final;
 };

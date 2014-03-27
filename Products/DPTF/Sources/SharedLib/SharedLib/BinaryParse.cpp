@@ -648,10 +648,10 @@ std::vector<ConfigTdpControl> BinaryParse::processorTdplObject(UInt32 dataLength
     for (UIntN i = 0; i < rows; i++)
     {
         ConfigTdpControl* temp = new ConfigTdpControl(
-            static_cast<UIntN>(currentRow->tdpControl.integer.value),
-            static_cast<UIntN>(currentRow->frequencyControl.integer.value),
-            static_cast<UIntN>(currentRow->tdpPower.integer.value),
-            static_cast<UIntN>(currentRow->frequency.integer.value));
+            currentRow->tdpControl.integer.value,
+            currentRow->frequencyControl.integer.value,
+            currentRow->tdpPower.integer.value,
+            currentRow->frequency.integer.value);
 
         controls.push_back(*temp);
         delete temp;

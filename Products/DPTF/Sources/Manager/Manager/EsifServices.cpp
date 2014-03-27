@@ -366,6 +366,18 @@ std::string EsifServices::primitiveExecuteGetAsString(esif_primitive_type primit
     return esifResult;
 }
 
+void EsifServices::primitiveExecuteSetAsString(esif_primitive_type primitive, std::string stringValue, 
+    UIntN participantIndex, UIntN domainIndex, UInt8 instance)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataString(stringValue), EsifDataVoid(), primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+}
+
 void EsifServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_type esifDataType,
     void* bufferPtr, UInt32 bufferLength, UInt32* dataLength, UIntN participantIndex,
     UIntN domainIndex, UInt8 instance)

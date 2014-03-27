@@ -19,29 +19,30 @@
 #include "ConfigTdpControl.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
+#include <iomanip>
 
-ConfigTdpControl::ConfigTdpControl(UIntN controlId, UIntN tarRatio, UIntN tdpPower, UIntN tdpFrequency) :
+ConfigTdpControl::ConfigTdpControl(UInt64 controlId, UInt64 tarRatio, UInt64 tdpPower, UInt64 tdpFrequency) :
     m_controlId(controlId), m_tdpPower(tdpPower), m_tdpFrequency(tdpFrequency),
     m_tdpRatio(tarRatio)
 {
 }
 
-UIntN ConfigTdpControl::getControlId(void) const
+UInt64 ConfigTdpControl::getControlId(void) const
 {
     return m_controlId;
 }
 
-UIntN ConfigTdpControl::getTdpRatio(void) const
+UInt64 ConfigTdpControl::getTdpRatio(void) const
 {
     return m_tdpRatio;
 }
 
-UIntN ConfigTdpControl::getTdpPower(void) const
+UInt64 ConfigTdpControl::getTdpPower(void) const
 {
     return m_tdpPower;
 }
 
-UIntN ConfigTdpControl::getTdpFrequency(void) const
+UInt64 ConfigTdpControl::getTdpFrequency(void) const
 {
     return m_tdpFrequency;
 }
@@ -58,6 +59,17 @@ Bool ConfigTdpControl::operator==(const ConfigTdpControl& rhs) const
 Bool ConfigTdpControl::operator!=(const ConfigTdpControl& rhs) const
 {
     return !(*this == rhs);
+}
+
+std::string ConfigTdpControl::getNameListString() const
+{
+    double powerInWatts = (double)getTdpPower() / (double)1000;
+    double frequencyInGHz = (double)getTdpFrequency() / (double)1000;
+    std::stringstream stream;
+    stream << std::setprecision(1) << std::fixed << powerInWatts << "W";
+    stream << " @ ";
+    stream << std::setprecision(1) << std::fixed << frequencyInGHz << "GHz";
+    return stream.str();
 }
 
 XmlNode* ConfigTdpControl::getXml(void)

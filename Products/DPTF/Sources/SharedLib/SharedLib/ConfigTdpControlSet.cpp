@@ -19,13 +19,9 @@
 #include "ConfigTdpControlSet.h"
 #include "XmlNode.h"
 
-ConfigTdpControlSet::ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl, UIntN nominalControlIndex) :
-    m_configTdpControl(configTdpControl), m_nominalControlIndex(nominalControlIndex)
+ConfigTdpControlSet::ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl) :
+    m_configTdpControl(configTdpControl)
 {
-    if (nominalControlIndex >= configTdpControl.size())
-    {
-        throw dptf_exception("Nominal control index is great than the number of items in the vector");
-    }
 }
 
 UIntN ConfigTdpControlSet::getCount(void) const
@@ -38,16 +34,9 @@ const ConfigTdpControl& ConfigTdpControlSet::operator[](UIntN index) const
     return m_configTdpControl.at(index);
 }
 
-UIntN ConfigTdpControlSet::getNominalControlIndex(void) const
-{
-    return m_nominalControlIndex;
-}
-
 Bool ConfigTdpControlSet::operator==(const ConfigTdpControlSet& rhs) const
 {
-    return
-        ((this->getNominalControlIndex() == rhs.getNominalControlIndex()) &&
-         (this->m_configTdpControl == rhs.m_configTdpControl));
+    return (this->m_configTdpControl == rhs.m_configTdpControl);
 }
 
 Bool ConfigTdpControlSet::operator!=(const ConfigTdpControlSet& rhs) const
@@ -55,14 +44,22 @@ Bool ConfigTdpControlSet::operator!=(const ConfigTdpControlSet& rhs) const
     return !(*this == rhs);
 }
 
+std::vector<std::string> ConfigTdpControlSet::getAsNameList() const
+{
+    std::vector<std::string> nameList;
+    for (auto control = m_configTdpControl.begin(); control != m_configTdpControl.end(); control++)
+    {
+        nameList.push_back(control->getNameListString());
+    }
+    return nameList;
+}
+
 XmlNode* ConfigTdpControlSet::getXml(void)
 {
     XmlNode* root = XmlNode::createWrapperElement("config_tdp_control_set");
-
     for (UIntN i = 0; i < m_configTdpControl.size(); i++)
     {
         root->addChild(m_configTdpControl[i].getXml());
     }
-
     return root;
 }

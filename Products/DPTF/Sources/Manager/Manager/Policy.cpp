@@ -194,6 +194,22 @@ void Policy::executeConnectedStandbyExit(void)
     }
 }
 
+void Policy::executeSuspend(void)
+{
+    if (isEventRegistered(PolicyEvent::DptfSuspend))
+    {
+        m_theRealPolicy->suspend();
+    }
+}
+
+void Policy::executeResume(void)
+{
+    if (isEventRegistered(PolicyEvent::DptfResume))
+    {
+        m_theRealPolicy->resume();
+    }
+}
+
 void Policy::executeDomainConfigTdpCapabilityChanged(UIntN participantIndex)
 {
     if (isEventRegistered(PolicyEvent::DomainConfigTdpCapabilityChanged))

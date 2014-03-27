@@ -92,6 +92,8 @@ public:
     // Event handlers
     virtual void connectedStandbyEntry(void) = 0;
     virtual void connectedStandbyExit(void) = 0;
+    virtual void suspend(void) = 0;
+    virtual void resume(void) = 0;
     virtual void domainConfigTdpCapabilityChanged(void) = 0;
     virtual void domainCoreControlCapabilityChanged(void) = 0;
     virtual void domainDisplayControlCapabilityChanged(void) = 0;

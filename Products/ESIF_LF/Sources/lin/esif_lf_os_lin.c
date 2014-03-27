@@ -2074,54 +2074,72 @@ static void acpi_notify(
 }
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)
+#ifdef CONFIG_PM_SLEEP
 /* Suspend */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)
 static int acpi_suspend(
-	struct acpi_device *dev_ptr,
-	pm_message_t state
-	)
+		struct acpi_device *dev_ptr,
+		pm_message_t state
+    )
 {
-	enum esif_rc rc = dptf_send_event(ESIF_EVENT_PARTICIPANT_SUSPEND,
-					'NA', &state);
-
-	ESIF_TRACE_DEBUG("%s: dev %p rc = %d\n", ESIF_FUNC, dev_ptr, rc);
-	if (ESIF_OK != rc)
-		return -EINVAL;
-	return 0;
-}
-
-
-/* Resume */
-static int acpi_resume(struct acpi_device *dev_ptr)
+    enum esif_rc rc; 
+#else
+static int acpi_suspend(
+		struct device *dev_ptr
+    )
 {
-	enum esif_rc rc = dptf_send_event(ESIF_EVENT_PARTICIPANT_RESUME,
-					  'NA',
-					  NULL);
-
-	ESIF_TRACE_DEBUG("%s: dev %p rc = %d\n", ESIF_FUNC, dev_ptr, rc);
-	if (ESIF_OK != rc)
-		return -EINVAL;
-	return 0;
-}
-
+    enum esif_rc rc; 
+    pm_message_t state = dev_ptr->power.power_state;
+    ESIF_TRACE_DEBUG("%s: pm_state %d\n", ESIF_FUNC, state.event); 
 
 #endif
+    rc = dptf_send_event(ESIF_EVENT_PARTICIPANT_SUSPEND, 'NA', &state);
+
+    ESIF_TRACE_DEBUG("%s: dev %p rc = %d\n", ESIF_FUNC, dev_ptr, rc);
+    if (ESIF_OK != rc)
+        return -EINVAL;
+    return 0;
+}
+
+/* Resume */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)
+static int acpi_resume(struct acpi_device *dev_ptr)
+#else
+static int acpi_resume(struct device *dev_ptr)
+#endif
+{
+    enum esif_rc rc = dptf_send_event(ESIF_EVENT_PARTICIPANT_RESUME,
+        'NA',
+        NULL);
+
+    ESIF_TRACE_DEBUG("%s: dev %p rc = %d\n", ESIF_FUNC, dev_ptr, rc);
+    if (ESIF_OK != rc)
+        return -EINVAL;
+    return 0;
+}
+#endif
+
+static SIMPLE_DEV_PM_OPS(esif_acpi_thermal_pm, acpi_suspend, acpi_resume);
 
 /* ACPI Driver */
 static struct acpi_driver dptf_acpi_driver = {
-	.name  = DRIVER_NAME,
-	.class = "dptf",
-	.ids   = acpi_device_ids,
-	.ops   = {
-		.add     = acpi_add,
-		.remove  = acpi_remove,
-		.notify  = acpi_notify,
+    .name  = DRIVER_NAME,
+    .class = "dptf",
+    .ids   = acpi_device_ids,
+    .ops   = {
+        .add     = acpi_add,
+        .remove  = acpi_remove,
+        .notify  = acpi_notify,
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)
-		.suspend = acpi_suspend,
-		.resume  = acpi_resume,
+        .suspend = acpi_suspend,
+        .resume  = acpi_resume,
 #endif
-	}
+    },
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0)
+    .drv.pm = &esif_acpi_thermal_pm
+#endif
 };
+
 
 #else /* ESIF_ATTR_PLATFORM */
 

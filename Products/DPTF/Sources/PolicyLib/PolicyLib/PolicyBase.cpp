@@ -245,6 +245,18 @@ void PolicyBase::connectedStandbyExit(void)
     }
 }
 
+void PolicyBase::suspend(void)
+{
+    throwIfPolicyIsDisabled();
+    onSuspend();
+}
+
+void PolicyBase::resume(void)
+{
+    throwIfPolicyIsDisabled();
+    onResume();
+}
+
 void PolicyBase::foregroundApplicationChanged(const std::string& foregroundApplicationName)
 {
     throwIfPolicyIsDisabled();
@@ -415,6 +427,16 @@ void PolicyBase::onConnectedStandbyEntry(void)
 }
 
 void PolicyBase::onConnectedStandbyExit(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onSuspend(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onResume(void)
 {
     throw not_implemented();
 }

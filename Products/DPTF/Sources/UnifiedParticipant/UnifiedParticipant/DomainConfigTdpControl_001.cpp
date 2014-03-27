@@ -19,6 +19,8 @@
 #include "DomainConfigTdpControl_001.h"
 #include "XmlNode.h"
 
+static const UInt8 MaxNumberOfConfigTdpControls = 3;
+
 DomainConfigTdpControl_001::DomainConfigTdpControl_001(ParticipantServicesInterface* participantServicesInterface) :
     m_participantServicesInterface(participantServicesInterface),
     m_configTdpControlSet(nullptr),
@@ -72,12 +74,12 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
 
     m_participantServicesInterface->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_CTDP_CONTROL,
-        (*m_configTdpControlSet)[configTdpControlIndex].getControlId(), // This is what 7.x does
+        (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getControlId(), // This is what 7.x does
         domainIndex);
 
     m_participantServicesInterface->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_TURBO_ACTIVATION_RATIO,
-        (*m_configTdpControlSet)[configTdpControlIndex].getTdpRatio() - 1, // This is what 7.x does
+        (UInt32)((*m_configTdpControlSet)[configTdpControlIndex].getTdpRatio() - 1), // This is what 7.x does
         domainIndex);
 
     // Then BIOS
@@ -143,10 +145,9 @@ void DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainI
 
 void DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
 {
+    // Build TDPL table
     UInt32 dataLength = 0;
     DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    //Build TDPL table
     m_participantServicesInterface->primitiveExecuteGet(
         esif_primitive_type::GET_PROC_CTDP_POINT_LIST,
         ESIF_DATA_BINARY,
@@ -154,8 +155,9 @@ void DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
         binaryData.getSize(),
         &dataLength,
         domainIndex);
-
     std::vector<ConfigTdpControl> controls = BinaryParse::processorTdplObject(dataLength, binaryData);
+    binaryData.deallocate();
+
     checkHWConfigTdpSupport(controls, domainIndex);
 
     // If any lock bit is set, we only provide 1 cTDP level to the policies.
@@ -167,9 +169,7 @@ void DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
         }
     }
 
-    m_configTdpControlSet = new ConfigTdpControlSet(controls, m_configTdpControlStatus->getCurrentControlIndex());
-
-    binaryData.deallocate();
+    m_configTdpControlSet = new ConfigTdpControlSet(controls);
 }
 
 void DomainConfigTdpControl_001::checkHWConfigTdpSupport(std::vector<ConfigTdpControl> controls, UIntN domainIndex)

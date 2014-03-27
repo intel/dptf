@@ -64,19 +64,19 @@
 
 #ifdef ESIF_ATTR_OS_LINUX
 typedef rwlock_t esif_ccb_lock_t;
-typedef rwlock_t esif_ccb_low_priority_thread_lock_t;
+typedef struct rw_semaphore esif_ccb_low_priority_thread_lock_t;
 #define esif_ccb_lock_init(lockPtr)    rwlock_init(lockPtr)
 #define esif_ccb_lock_uninit(lockPtr)	/* not used */
 #define esif_ccb_write_lock(lockPtr)   write_lock(lockPtr)
 #define esif_ccb_write_unlock(lockPtr) write_unlock(lockPtr)
 #define esif_ccb_read_lock(lockPtr)    read_lock(lockPtr)
 #define esif_ccb_read_unlock(lockPtr)  read_unlock(lockPtr)
-#define esif_ccb_low_priority_thread_lock_init(lockPtr)    rwlock_init(lockPtr)
+#define esif_ccb_low_priority_thread_lock_init(lockPtr)    init_rwsem(lockPtr)
 #define esif_ccb_low_priority_thread_lock_uninit(lockPtr)	/* not used */
-#define esif_ccb_low_priority_thread_write_lock(lockPtr)   write_lock(lockPtr)
-#define esif_ccb_low_priority_thread_write_unlock(lockPtr) write_unlock(lockPtr)
-#define esif_ccb_low_priority_thread_read_lock(lockPtr)    read_lock(lockPtr)
-#define esif_ccb_low_priority_thread_read_unlock(lockPtr)  read_unlock(lockPtr)
+#define esif_ccb_low_priority_thread_write_lock(lockPtr)   down_write(lockPtr)
+#define esif_ccb_low_priority_thread_write_unlock(lockPtr) up_write(lockPtr)
+#define esif_ccb_low_priority_thread_read_lock(lockPtr)    down_read(lockPtr)
+#define esif_ccb_low_priority_thread_read_unlock(lockPtr)  up_read(lockPtr)
 
 #endif /* ESIF_ATTR_OS_LINUX */
 

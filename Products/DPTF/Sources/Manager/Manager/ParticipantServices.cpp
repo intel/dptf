@@ -142,6 +142,14 @@ std::string ParticipantServices::primitiveExecuteGetAsString(esif_primitive_type
     return m_esifServices->primitiveExecuteGetAsString(primitive, m_participantIndex, domainIndex, instance);
 }
 
+void ParticipantServices::primitiveExecuteSetAsString(esif_primitive_type primitive, std::string stringValue, 
+    UIntN domainIndex, UInt8 instance)  
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->primitiveExecuteSetAsString(primitive, stringValue,
+        m_participantIndex, domainIndex, instance);
+}
+
 void ParticipantServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_type esifDataType,
     void* bufferPtr, UInt32 bufferLength, UInt32* dataLength, UIntN domainIndex, UInt8 instance)
 {

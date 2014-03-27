@@ -18,6 +18,11 @@
 
 #include "ThermalRelationshipTable.h"
 
+UInt64 tensOfSecondsToMilliseconds(UInt64 tensOfSeconds)
+{
+    return tensOfSeconds * 100;
+}
+
 ThermalRelationshipTable::ThermalRelationshipTable(const std::vector<ThermalRelationshipTableEntry>& entries)
     : RelationshipTableBase(),
     m_entries(entries)
@@ -83,12 +88,14 @@ RelationshipTableEntryBase* ThermalRelationshipTable::getEntry(UIntN index) cons
     return (RelationshipTableEntryBase*)(&m_entries.at(index));
 }
 
-UInt32 ThermalRelationshipTable::getMinimumSamplePeriodForSource(UIntN sourceIndex)
+UInt64 ThermalRelationshipTable::getMinimumActiveSamplePeriodForSource(
+    UIntN sourceIndex, std::set<UIntN> activeTargets)
 {
     UInt32 minimumSamplePeriod = Constants::Invalid;
     for (UIntN row = 0; row < m_entries.size(); ++row)
     {
-        if (m_entries[row].sourceDeviceIndex() == sourceIndex)
+        if ((m_entries[row].sourceDeviceIndex() == sourceIndex) &&
+            (activeTargets.find(m_entries[row].targetDeviceIndex()) != activeTargets.end()))
         {
             if (m_entries[row].thermalSamplingPeriod() < minimumSamplePeriod)
             {
@@ -96,10 +103,10 @@ UInt32 ThermalRelationshipTable::getMinimumSamplePeriodForSource(UIntN sourceInd
             }
         }
     }
-    return minimumSamplePeriod;
+    return tensOfSecondsToMilliseconds(minimumSamplePeriod);
 }
 
-UInt32 ThermalRelationshipTable::getShortestSamplePeriodForTarget(UIntN target)
+UInt64 ThermalRelationshipTable::getShortestSamplePeriodForTarget(UIntN target)
 {
     UInt32 shortestSamplePeriod(Constants::Invalid);
     for (UIntN row = 0; row < m_entries.size(); ++row)
@@ -113,7 +120,20 @@ UInt32 ThermalRelationshipTable::getShortestSamplePeriodForTarget(UIntN target)
         }
     }
 
-    return shortestSamplePeriod;
+    return tensOfSecondsToMilliseconds(shortestSamplePeriod);
+}
+
+UInt64 ThermalRelationshipTable::getSampleTimeForRelationship(UIntN target, UIntN source) const
+{
+    for (UIntN row = 0; row < m_entries.size(); ++row)
+    {
+        if ((m_entries[row].targetDeviceIndex() == target) &&
+            (m_entries[row].sourceDeviceIndex() == source))
+        {
+            return tensOfSecondsToMilliseconds(m_entries[row].thermalSamplingPeriod());
+        }
+    }
+    throw dptf_exception("No match found for target and source in TRT.");
 }
 
 XmlNode* ThermalRelationshipTable::getXml()

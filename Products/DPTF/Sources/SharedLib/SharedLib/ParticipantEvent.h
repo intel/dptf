@@ -31,6 +31,8 @@ namespace ParticipantEvent
         Invalid,
         DptfConnectedStandbyEntry,
         DptfConnectedStandbyExit,
+        DptfSuspend,
+        DptfResume,
         ParticipantSpecificInfoChanged,
         DomainConfigTdpCapabilityChanged,
         DomainCoreControlCapabilityChanged,

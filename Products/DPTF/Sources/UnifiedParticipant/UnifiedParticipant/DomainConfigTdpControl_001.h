@@ -50,25 +50,18 @@ private:
     DomainConfigTdpControl_001(const DomainConfigTdpControl_001& rhs);
     DomainConfigTdpControl_001& operator=(const DomainConfigTdpControl_001& rhs);
 
-    ParticipantServicesInterface* m_participantServicesInterface;
-
-    // Functions
     void checkHWConfigTdpSupport(std::vector<ConfigTdpControl> controls, UIntN domainIndex);
     Bool isLockBitSet(UIntN domainIndex);
     UIntN getLevelCount(UIntN domainIndex);
-
     void createConfigTdpControlSet(UIntN domainIndex);
     void createConfigTdpControlDynamicCaps(UIntN domainIndex);
-    //UInt32 translateTdpRatioToPstate(UInt32 maxNonTurboRatio, UIntN domainIndex);
     void verifyConfigTdpControlIndex(UIntN configTdpControlIndex);
     void checkAndCreateControlStructures(UIntN domainIndex);
 
-    // Vars (external)
+    ParticipantServicesInterface* m_participantServicesInterface;
     ConfigTdpControlDynamicCaps* m_configTdpControlDynamicCaps;
     ConfigTdpControlSet* m_configTdpControlSet;
     ConfigTdpControlStatus* m_configTdpControlStatus;
-
-    // Vars (internal)
     UInt32 m_configTdpLevelsAvailable;
     UInt32 m_currentConfigTdpControlId;
     Bool m_configTdpLock;

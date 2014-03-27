@@ -79,13 +79,20 @@ void DomainPerformanceControl_001::setPerformanceControl(UIntN participantIndex,
         return;
     }
 
-    checkAndCreateControlStructures(domainIndex);
-    verifyPerformanceControlIndex(performanceControlIndex);
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
-        esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
-        performanceControlIndex,
-        domainIndex);
-    m_currentPerformanceControlIndex = performanceControlIndex;
+    try
+    {
+        checkAndCreateControlStructures(domainIndex);
+        verifyPerformanceControlIndex(performanceControlIndex);
+        m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+            esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
+            performanceControlIndex,
+            domainIndex);
+        m_currentPerformanceControlIndex = performanceControlIndex;
+    }
+    catch (...)
+    {
+        // eat any errors
+    }
 }
 
 void DomainPerformanceControl_001::clearCachedData(void)
@@ -208,8 +215,9 @@ void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN dom
         catch (...)
         {
             // Use a set with one invalid item
-        	std::vector<PerformanceControl> controls;
+            std::vector<PerformanceControl> controls;
             controls.push_back(PerformanceControl::createInvalid());
+            DELETE_MEMORY_TC(m_performanceControlSet);
             m_performanceControlSet = new PerformanceControlSet(controls);
         }
     }

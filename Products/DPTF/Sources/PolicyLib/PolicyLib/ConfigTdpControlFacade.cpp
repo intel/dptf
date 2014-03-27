@@ -45,18 +45,24 @@ void ConfigTdpControlFacade::setControl(UIntN configTdpControlIndex)
 {
     if (supportsConfigTdpControls())
     {
-        UIntN arbitratedConfigTdpIndex = configTdpControlIndex;
-        if (configTdpControlIndex > m_configTdpCapabilities.getDynamicCaps().getCurrentLowerLimitIndex())
+        const ConfigTdpControlDynamicCaps& capabilities = m_configTdpCapabilities.getDynamicCaps();
+        UIntN arbitratedConfigTdpIndex;
+        if ((configTdpControlIndex >= capabilities.getCurrentUpperLimitIndex()) && 
+            (configTdpControlIndex <= capabilities.getCurrentLowerLimitIndex()))
         {
-            arbitratedConfigTdpIndex = m_configTdpCapabilities.getDynamicCaps().getCurrentLowerLimitIndex();
+            arbitratedConfigTdpIndex = configTdpControlIndex;
         }
-        else if (configTdpControlIndex < m_configTdpCapabilities.getDynamicCaps().getCurrentUpperLimitIndex())
+        else if (configTdpControlIndex < capabilities.getCurrentUpperLimitIndex())
         {
-            arbitratedConfigTdpIndex = m_configTdpCapabilities.getDynamicCaps().getCurrentUpperLimitIndex();
+            arbitratedConfigTdpIndex = capabilities.getCurrentUpperLimitIndex();
+        }
+        else if (configTdpControlIndex > capabilities.getCurrentLowerLimitIndex())
+        {
+            arbitratedConfigTdpIndex = capabilities.getCurrentLowerLimitIndex();
         }
         else
         {
-            arbitratedConfigTdpIndex = configTdpControlIndex;
+            arbitratedConfigTdpIndex = capabilities.getCurrentUpperLimitIndex();
         }
 
         m_policyServices.domainConfigTdpControl->setConfigTdpControl(
@@ -134,7 +140,7 @@ XmlNode* ConfigTdpControlFacade::getXml()
         catch (...)
         {
             status->addChild(ConfigTdpControlSet(vector<ConfigTdpControl>(1, 
-                ConfigTdpControl(Constants::Invalid, Constants::Invalid, Constants::Invalid, Constants::Invalid)), 0).getXml());
+                ConfigTdpControl(Constants::Invalid, Constants::Invalid, Constants::Invalid, Constants::Invalid))).getXml());
         }
     }
     return status;

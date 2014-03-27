@@ -26,6 +26,8 @@
 #include <set>
 #include "SourceAvailability.h"
 #include "TargetScheduler.h"
+#include "TargetMonitor.h"
+#include "TargetSourceRelationship.h"
 
 // responsible for determining when to schedule callbacks for targets based on sampling intervals in the TRT
 class dptf_export CallbackScheduler
@@ -35,18 +37,21 @@ public:
     CallbackScheduler(
         const PolicyServicesInterfaceContainer& policyServices,
         const ThermalRelationshipTable& trt,
+        TargetMonitor* targetMonitor,
         std::shared_ptr<TimeInterface> time);
     ~CallbackScheduler();
 
-    // scheduling callbacks
-    void scheduleCallbackAsSoonAsPossible(UIntN target, UIntN source);
-    void scheduleCallbackAfterShortestSamplePeriod(UIntN target);
-    void scheduleCallbackAfterNextSamplingPeriod(UIntN target, UIntN source);
+    Bool isFreeForRequests(UIntN target, UIntN source, UInt64 time) const;
+    void markBusyForRequests(UIntN target, UIntN source, UInt64 time);
+    void ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, UInt64 time);
+    Bool isFreeForCommits(UIntN source, UInt64 time) const;
+    void markBusyForCommits(UIntN source, UInt64 time);
+    void ensureCallbackByShortestSamplePeriod(UIntN target, UInt64 time);
     void acknowledgeCallback(UIntN target);
 
     // participant availability
     void removeParticipantFromSchedule(UIntN participant);
-    Bool isSourceBusyNow(UIntN sourceIndex);
+    void markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, UInt64 time);
 
     // updates service objects
     void setTrt(const ThermalRelationshipTable& trt);
@@ -54,15 +59,17 @@ public:
 
     // status
     XmlNode* getXml() const;
-
+    
 private:
 
     // participant availability
     SourceAvailability m_sourceAvailability;
     TargetScheduler m_targetScheduler;
+    std::map<TargetSourceRelationship, UInt64> m_requestSchedule;
 
     // services
     ThermalRelationshipTable m_trt;
     std::shared_ptr<TimeInterface> m_time;
     PolicyServicesInterfaceContainer m_policyServices;
+    TargetMonitor* m_targetMonitor;
 };

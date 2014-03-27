@@ -21,7 +21,7 @@
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
 #include "PowerControlSetCachedProperty.h"
-#include "PowerStatusCachedProperty.h"
+#include "PowerStatusProperty.h"
 #include "PowerControlCapabilitiesCachedProperty.h"
 
 // this facade class provides a simpler interface on top of power controls as well as combines all of the power
@@ -45,9 +45,8 @@ public:
     // properties
     void refreshCapabilities();
     void refreshControls();
-    void refreshStatus();
-    void invalidateStatus();
-    const PowerStatus& getStatus();
+    PowerStatus getCurrentPower();
+    PowerControlStatus getLastIssuedPowerLimit();
     const PowerControlStatusSet& getControls();
     const PowerControlDynamicCapsSet& getCapabilities();
     UIntN getPl1ControlSetIndex();
@@ -65,9 +64,8 @@ private:
 
     // control properties
     PowerControlSetCachedProperty m_powerControlSetProperty;
-    PowerStatusCachedProperty m_powerStatusProperty;
+    PowerStatusProperty m_powerStatusProperty;
     PowerControlCapabilitiesCachedProperty m_powerControlCapabilitiesProperty;
     Bool m_controlsHaveBeenInitialized;
     PowerControlStatus m_lastIssuedPowerControlStatus;
-    Bool m_isLimited;
 };

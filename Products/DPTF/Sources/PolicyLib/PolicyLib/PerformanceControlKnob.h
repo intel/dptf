@@ -23,6 +23,7 @@
 #include "PerformanceControl.h"
 #include "XmlNode.h"
 #include <memory>
+#include <map>
 
 // control knob for performance controls.  the instantiation of this knob can be either for p-states or t-states.
 class dptf_export PerformanceControlKnob : public ControlKnobBase
@@ -34,13 +35,21 @@ public:
         UIntN participantIndex,
         UIntN domainIndex,
         std::shared_ptr<PerformanceControlFacade> performanceControl,
+        std::shared_ptr<std::map<UIntN, UIntN>> perfControlRequests, 
         PerformanceControlType::Type controlType);
     ~PerformanceControlKnob(void);
 
-    virtual void limit() override;
-    virtual void unlimit() override;
-    virtual Bool canLimit() override;
-    virtual Bool canUnlimit() override;
+    virtual void limit(UIntN target) override;
+    virtual void unlimit(UIntN target) override;
+    virtual Bool canLimit(UIntN target) override;
+    virtual Bool canUnlimit(UIntN target) override;
+    virtual Bool commitSetting() override;
+    virtual void clearRequestForTarget(UIntN target) override;
+    virtual void clearAllRequests() override;
+
+    Bool supportsPerformanceControls() const;
+    UIntN getTargetRequest(UIntN target) const;
+    void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
 
     XmlNode* getXml();
 
@@ -48,6 +57,12 @@ private:
 
     std::shared_ptr<PerformanceControlFacade> m_performanceControl;
     PerformanceControlType::Type m_controlType;
+    std::shared_ptr<std::map<UIntN, UIntN>> m_requests;
+    UtilizationStatus m_tstateUtilizationThreshold;
 
     std::string controlTypeToString(PerformanceControlType::Type controlType);
+    UIntN findHighestPerformanceIndexRequest() const;
+    Bool canCommit(UIntN currentIndex, UIntN nextIndex) const;
+    Bool checkUtilizationIsLessThanThreshold() const;
+    UIntN snapToCapabilitiesBounds(UIntN controlIndex);
 };

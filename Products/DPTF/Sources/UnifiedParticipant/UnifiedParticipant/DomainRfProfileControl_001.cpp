@@ -51,7 +51,7 @@ void DomainRfProfileControl_001::setRfProfileCenterFrequency(UIntN participantIn
     const Frequency& centerFrequency)
 {
     m_participantServicesInterface->primitiveExecuteSetAsFrequency(
-        esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY, centerFrequency, domainIndex, 0);
+        esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY, centerFrequency, domainIndex, Constants::Esif::NoInstance);
 }
 
 void DomainRfProfileControl_001::clearCachedData(void)

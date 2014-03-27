@@ -22,6 +22,7 @@
 #include "ActiveRelationshipTable.h"
 #include "ThermalRelationshipTable.h"
 #include "LpmTable.h"
+#include "PlatformSettingType.h"
 #include <string>
 
 class PlatformConfigurationDataInterface
@@ -35,6 +36,11 @@ public:
     virtual UInt32 readConfigurationUInt32(const std::string& key) = 0;
     virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) = 0;
     virtual std::string readConfigurationString(const std::string& key) = 0;
+
+    virtual std::string readPlatformSettingValue(PlatformSettingType::Type platformSettingType, UInt8 index) = 0;
+    virtual void writePlatformSettingValue(PlatformSettingType::Type platformSettingType, UInt8 index, 
+        const std::string& stringValue) = 0;
+    virtual void clearPlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
 
     //FIXME:  ESIF Primitives
     virtual ActiveRelationshipTable getActiveRelationshipTable(void) = 0;

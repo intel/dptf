@@ -36,7 +36,7 @@ DptfManager::DptfManager(void) : m_dptfManagerCreateStarted(false), m_dptfManage
 }
 
 void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr,
-    const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled)
+                                    const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled)
 {
     if (m_dptfManagerCreateStarted == true)
     {
@@ -268,6 +268,10 @@ void DptfManager::destroyFrameworkEventInfo(void)
 
 void DptfManager::registerDptfFrameworkEvents(void)
 {
+    // FIXME:  Do these belong here?
+    //  DptfConnectedStandbyEntry
+    //  DptfConnectedStandbyExit
+
     try
     {
         m_esifServices->registerEvent(FrameworkEvent::DptfConnectedStandbyEntry);

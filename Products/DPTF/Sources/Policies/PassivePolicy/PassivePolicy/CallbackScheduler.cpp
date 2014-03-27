@@ -19,24 +19,103 @@
 #include "CallbackScheduler.h"
 
 using namespace std;
-
-UInt64 tensOfSecondsToMilliseconds(UInt64 tensOfSeconds)
-{
-    return tensOfSeconds * 100;
-}
+//
+//UInt64 tensOfSecondsToMilliseconds(UInt64 tensOfSeconds)
+//{
+//    return tensOfSeconds * 100;
+//}
 
 CallbackScheduler::CallbackScheduler(
     const PolicyServicesInterfaceContainer& policyServices,
     const ThermalRelationshipTable& trt,
+    TargetMonitor* targetMonitor, 
     std::shared_ptr<TimeInterface> time)
     : m_policyServices(policyServices), m_time(time), m_trt(trt),
     m_sourceAvailability(policyServices, time),
-    m_targetScheduler(policyServices, time)
+    m_targetScheduler(policyServices, time),
+    m_targetMonitor(targetMonitor)
 {
 }
 
 CallbackScheduler::~CallbackScheduler()
 {
+}
+
+Bool CallbackScheduler::isFreeForRequests(UIntN target, UIntN source, UInt64 time) const
+{
+    auto relationship = m_requestSchedule.find(TargetSourceRelationship(target, source));
+    if (relationship == m_requestSchedule.end())
+    {
+        return true;
+    }
+    else
+    {
+        UInt64 timeBusyUntil = relationship->second;
+        return (time >= timeBusyUntil);
+    }
+}
+
+void CallbackScheduler::markBusyForRequests(UIntN target, UIntN source, UInt64 time)
+{
+    UInt64 sampleTime = m_trt.getSampleTimeForRelationship(target, source);
+    UInt64 timeBusyUntil = time + sampleTime;
+    m_requestSchedule[TargetSourceRelationship(target, source)] = timeBusyUntil;
+}
+
+void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, UInt64 time)
+{
+    UInt64 sampleTime = m_trt.getSampleTimeForRelationship(target, source);
+    if (m_targetScheduler.hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
+    {
+        m_targetScheduler.cancelCallback(target);
+        m_targetScheduler.scheduleCallback(target, time, sampleTime);
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
+            "Scheduled a callback in " + std::to_string(sampleTime) + " ms" +
+            " for target " + std::to_string(target) + ".", target));
+    }
+}
+
+void CallbackScheduler::ensureCallbackByShortestSamplePeriod(UIntN target, UInt64 time)
+{
+    UInt64 sampleTime = m_trt.getShortestSamplePeriodForTarget(target);
+    if (m_targetScheduler.hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
+    {
+        m_targetScheduler.cancelCallback(target);
+        m_targetScheduler.scheduleCallback(target, time, sampleTime);
+        m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
+            "Scheduled a callback in " + std::to_string(sampleTime) + " ms" +
+            " for target " + std::to_string(target) + ".", target));
+    }
+}
+
+Bool CallbackScheduler::isFreeForCommits(UIntN source, UInt64 time) const
+{
+    return !m_sourceAvailability.isBusy(source, time);
+}
+
+void CallbackScheduler::markBusyForCommits(UIntN source, UInt64 time)
+{
+    UInt64 minimumSamplePeriod = m_trt.getMinimumActiveSamplePeriodForSource(
+        source, m_targetMonitor->getMonitoredTargets());
+    m_sourceAvailability.setSourceAsBusy(source, time + minimumSamplePeriod);
+}
+
+void CallbackScheduler::removeParticipantFromSchedule(UIntN participant)
+{
+    m_sourceAvailability.remove(participant);
+    m_targetScheduler.cancelCallback(participant);
+}
+
+void CallbackScheduler::markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, UInt64 time)
+{
+    UInt64 minimumSamplePeriod = m_trt.getMinimumActiveSamplePeriodForSource(
+        source, targetMonitor.getMonitoredTargets());
+    m_sourceAvailability.setSourceAsBusy(source, time + minimumSamplePeriod);
+}
+
+void CallbackScheduler::acknowledgeCallback(UIntN target)
+{
+    m_targetScheduler.removeCallback(target);
 }
 
 void CallbackScheduler::setTrt(const ThermalRelationshipTable& trt)
@@ -47,72 +126,8 @@ void CallbackScheduler::setTrt(const ThermalRelationshipTable& trt)
 void CallbackScheduler::setTimeObject(std::shared_ptr<TimeInterface> time)
 {
     m_time = time;
-    m_sourceAvailability.setTime(time);
     m_targetScheduler.setTimeObject(time);
-}
-
-void CallbackScheduler::removeParticipantFromSchedule(UIntN participant)
-{
-    m_sourceAvailability.remove(participant);
-    m_targetScheduler.cancelCallback(participant);
-}
-
-Bool CallbackScheduler::isSourceBusyNow(UIntN sourceIndex)
-{
-    return m_sourceAvailability.isBusyNow(sourceIndex);
-}
-
-void CallbackScheduler::scheduleCallbackAsSoonAsPossible(UIntN target, UIntN source)
-{
-    UInt64 timeNow = m_time->getCurrentTimeInMilliseconds();
-    UInt64 timeDelta = m_sourceAvailability.getNextAvailableTime(source, timeNow);
-    if (m_targetScheduler.hasCallbackScheduledAtOrBeforeTime(target, timeDelta) == false)
-    {
-        m_targetScheduler.cancelCallback(target);
-        m_targetScheduler.scheduleCallback(target, timeDelta);
-        m_sourceAvailability.setSourceAsBusy(source, timeNow + timeDelta);
-    }
-
-    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
-        "Scheduled a callback in " + std::to_string(timeDelta) + " ms" +
-        " for target " + std::to_string(target) + " source " + std::to_string(source) + ".", target));
-}
-
-void CallbackScheduler::scheduleCallbackAfterShortestSamplePeriod(UIntN target)
-{
-    UInt64 timeDelta = tensOfSecondsToMilliseconds(m_trt.getShortestSamplePeriodForTarget(target));
-    if (m_targetScheduler.hasCallbackScheduledAtOrBeforeTime(target, timeDelta) == false)
-    {
-        m_targetScheduler.cancelCallback(target);
-        m_targetScheduler.scheduleCallback(target, timeDelta);
-    }
-
-    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
-        "Scheduled a callback in " + std::to_string(timeDelta) + " ms" +
-        " for target " + std::to_string(target) + ".", target));
-}
-
-void CallbackScheduler::scheduleCallbackAfterNextSamplingPeriod(UIntN target, UIntN source)
-{
-    UInt64 timeNow = m_time->getCurrentTimeInMilliseconds();
-    const ThermalRelationshipTableEntry& entry = m_trt.getEntryForTargetAndSource(target, source);
-    UInt64 timeDelta = tensOfSecondsToMilliseconds(entry.thermalSamplingPeriod());
-    if (m_targetScheduler.hasCallbackScheduledAtOrBeforeTime(target, timeDelta) == false)
-    {
-        m_targetScheduler.cancelCallback(target);
-        m_targetScheduler.scheduleCallback(target, timeDelta);
-        UInt64 minimumSamplePeriod = tensOfSecondsToMilliseconds(m_trt.getMinimumSamplePeriodForSource(source));
-        m_sourceAvailability.setSourceAsBusy(source, timeNow + minimumSamplePeriod);
-    }
-
-    m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
-        "Scheduled a callback in " + std::to_string(timeDelta) + " ms" +
-        " for target " + std::to_string(target) + " source " + std::to_string(source) + ".", target));
-}
-
-void CallbackScheduler::acknowledgeCallback(UIntN target)
-{
-    m_targetScheduler.removeCallback(target);
+    m_sourceAvailability.setTime(time);
 }
 
 XmlNode* CallbackScheduler::getXml() const

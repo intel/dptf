@@ -35,12 +35,18 @@ void TargetCheckLaterAction::execute()
 {
     try
     {
+        // make sure target is now being monitored
+        getTargetMonitor().startMonitoring(getTarget());
+
         // schedule a callback as soon as possible
-        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to schedule callback for target participant.", getTarget()));
-        getCallbackScheduler()->scheduleCallbackAfterShortestSamplePeriod(getTarget());
+        getPolicyServices().messageLogging->writeMessageDebug(
+            PolicyMessage(FLF, "Attempting to schedule callback for target participant.", getTarget()));
+        UInt64 time = getTime()->getCurrentTimeInMilliseconds();
+        getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
     }
     catch (...)
     {
-        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(FLF, "Failed to schedule callback for target participant.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageWarning(
+            PolicyMessage(FLF, "Failed to schedule callback for target participant.", getTarget()));
     }
 }

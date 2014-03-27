@@ -65,6 +65,8 @@ public:
     // Event handlers
     virtual void connectedStandbyEntry(void) override final;
     virtual void connectedStandbyExit(void) override final;
+    virtual void suspend(void) override final;
+    virtual void resume(void) override final;
     virtual void domainConfigTdpCapabilityChanged(void) override final;
     virtual void domainCoreControlCapabilityChanged(void) override final;
     virtual void domainDisplayControlCapabilityChanged(void) override final;

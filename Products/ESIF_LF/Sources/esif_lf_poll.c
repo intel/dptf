@@ -331,12 +331,6 @@ void esif_poll(
 	} else {
 		ESIF_TRACE_DYN_POLL("%s: no DSP can't do work\n", ESIF_FUNC);
 	}
-
-	/* RESET The Timer */
-	esif_ccb_timer_set_msec(&lpd_ptr->timer,
-				lpd_ptr->timer_period_msec,
-				esif_poll,
-				lpd_ptr);
 }
 
 
@@ -352,6 +346,7 @@ void esif_poll_start(
 	esif_ccb_timer_init(&lpd_ptr->timer);
 	esif_ccb_timer_set_msec(&lpd_ptr->timer,
 				lpd_ptr->timer_period_msec,
+				ESIF_TRUE,
 				esif_poll,
 				lpd_ptr);
 

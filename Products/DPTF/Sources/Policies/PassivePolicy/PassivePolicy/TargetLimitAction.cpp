@@ -39,44 +39,50 @@ void TargetLimitAction::execute()
         // make sure target is now being monitored
         getTargetMonitor().startMonitoring(getTarget());
         
-        // choose sources to limit for target
-        getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit target participant.", getTarget()));
-        vector<UIntN> sourcesToLimit = chooseSourcesToLimitForTarget(getTarget());
+        getPolicyServices().messageLogging->writeMessageDebug(
+            PolicyMessage(FLF, "Attempting to limit target participant.", getTarget()));
 
+        // choose sources to limit for target
+        UInt64 time = getTime()->getCurrentTimeInMilliseconds();
+        vector<UIntN> sourcesToLimit = chooseSourcesToLimitForTarget(getTarget());
         if (sourcesToLimit.size() > 0)
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, constructMessageForSources("limit", getTarget(), sourcesToLimit)));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, constructMessageForSources("limit", getTarget(), sourcesToLimit)));
+
             for (auto source = sourcesToLimit.begin(); source != sourcesToLimit.end(); source++)
             {
-                // if source is busy now, schedule a callback as soon as possible
-                if (getCallbackScheduler()->isSourceBusyNow(*source))
+                if (getCallbackScheduler()->isFreeForRequests(getTarget(), *source, time))
                 {
-                    getCallbackScheduler()->scheduleCallbackAsSoonAsPossible(getTarget(), *source);
-                }
-                else
-                {
-                    // limit the appropriate domains for the source and schedule a callback after the next sampling
-                    // period
                     vector<UIntN> domains = chooseDomainsToLimitForSource(getTarget(), *source);
-                    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, constructMessageForSourceDomains("limit", getTarget(), *source, domains)));
+                    getPolicyServices().messageLogging->writeMessageDebug(
+                        PolicyMessage(FLF, constructMessageForSourceDomains("limit", getTarget(), *source, domains)));
                     for (auto domain = domains.begin(); domain != domains.end(); domain++)
                     {
-                        limitDomain(*source, *domain);
+                        requestLimit(*source, *domain, getTarget());
                     }
-                    getCallbackScheduler()->scheduleCallbackAfterNextSamplingPeriod(getTarget(), *source);
+                    getCallbackScheduler()->markBusyForRequests(getTarget(), *source, time);
+                }
+                getCallbackScheduler()->ensureCallbackByNextSamplePeriod(getTarget(), *source, time);
+
+                if (getCallbackScheduler()->isFreeForCommits(*source, time))
+                {
+                    commitLimit(*source, time);
                 }
             }
         }
         else
         {
             // schedule a callback as soon as possible if there are no sources that can be limited
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "No sources to limit for target.", getTarget()));
-            getCallbackScheduler()->scheduleCallbackAfterShortestSamplePeriod(getTarget());
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, "No sources to limit for target.", getTarget()));
+            getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
         }
     }
     catch (...)
     {
-        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(FLF, "Failed to limit source(s) for target.", getTarget()));
+        getPolicyServices().messageLogging->writeMessageWarning(
+            PolicyMessage(FLF, "Failed to limit source(s) for target.", getTarget()));
     }
 }
 
@@ -85,7 +91,7 @@ std::vector<UIntN> TargetLimitAction::chooseSourcesToLimitForTarget(UIntN target
     // choose sources that are tied for the highest influence in the TRT
     vector<UIntN> sourcesToLimit;
     vector<ThermalRelationshipTableEntry> availableSourcesForTarget = getTrt().getEntriesForTarget(target);
-    availableSourcesForTarget = getEntriesWithControlsToLimit(availableSourcesForTarget);
+    availableSourcesForTarget = getEntriesWithControlsToLimit(target, availableSourcesForTarget);
     if (availableSourcesForTarget.size() > 0)
     {
         sort(availableSourcesForTarget.begin(), availableSourcesForTarget.end(), compareTrtTableEntriesOnInfluence);
@@ -100,7 +106,8 @@ std::vector<UIntN> TargetLimitAction::chooseSourcesToLimitForTarget(UIntN target
     return sourcesToLimit;
 }
 
-std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithControlsToLimit(const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget)
+std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithControlsToLimit(
+    UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget)
 {
     // choose TRT entries whose source has domains that can be limited
     std::vector<ThermalRelationshipTableEntry> entriesThatCanBeLimited;
@@ -109,7 +116,7 @@ std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithCont
         if (entry->sourceDeviceIndex() != Constants::Invalid)
         {
             vector<UIntN> domainsWithControlKnobsToTurn =
-                getDomainsWithControlKnobsToLimit(getParticipantTracker()[entry->sourceDeviceIndex()]);
+                getDomainsWithControlKnobsToLimit(getParticipantTracker()[entry->sourceDeviceIndex()], target);
             if (domainsWithControlKnobsToTurn.size() > 0)
             {
                 entriesThatCanBeLimited.push_back(*entry);
@@ -119,14 +126,14 @@ std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithCont
     return entriesThatCanBeLimited;
 }
 
-std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(ParticipantProxy& participant)
+std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(ParticipantProxy& participant, UIntN target)
 {
     // choose domains in the participant that have controls that can be limited
     vector<UIntN> domainsWithControlKnobsToTurn;
     auto domainIndexes = participant.getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
-        if (participant[*domainIndex].canLimit())
+        if (participant[*domainIndex].canLimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
         }
@@ -137,14 +144,16 @@ std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(Particip
 std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target, UIntN source)
 {
     // select domains that can be limited for the source
-    vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToLimit(getParticipantTracker()[source]);
+    vector<UIntN> domainsWithControlKnobsToTurn = 
+        getDomainsWithControlKnobsToLimit(getParticipantTracker()[source], target);
     set<UIntN> domainsToLimitSet;
     if (domainsWithControlKnobsToTurn.size() > 0)
     {
         if (source == target)
         {
-            // if selected domain list contains package domains, choose to limit those first.  otherwise, choose domains
-            // that do not report temperature as well as the domain with the highest temperature.
+            // if selected domain list contains package domains, choose to limit those first.  
+            // otherwise, choose domains that do not report temperature as well as the domain with the highest 
+            // temperature.
             vector<UIntN> domainsThatDoNotReportTemperature =
                 getDomainsThatDoNotReportTemperature(source, domainsWithControlKnobsToTurn);
             domainsToLimitSet.insert(
@@ -163,15 +172,18 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
         }
         else
         {
-            // limit package domains, domains that do not report utilization, and the domain whose priority and 
-            // utilization is highest
+            // Limit package domains first.  If there are no package domains that have controls to limit, 
+            // choose domains that do not report utilization and the domain whose priority and 
+            // utilization is highest.
             vector<UIntN> packageDomains = getPackageDomains(source, domainsWithControlKnobsToTurn);
             domainsToLimitSet.insert(packageDomains.begin(), packageDomains.end());
             if (packageDomains.size() == 0)
             {
                 vector<pair<UIntN, UtilizationStatus>> domainsSortedByPreference =
                     getDomainsSortedByPriorityThenUtilization(source, domainsWithControlKnobsToTurn);
-                for (auto domain = domainsSortedByPreference.begin(); domain != domainsSortedByPreference.end(); domain++)
+                for (auto domain = domainsSortedByPreference.begin(); 
+                    domain != domainsSortedByPreference.end(); 
+                    domain++)
                 {
                     if (domain->second.getCurrentUtilization().isValid() == false)
                     {
@@ -229,7 +241,14 @@ std::vector<std::pair<UIntN, UtilizationStatus>> TargetLimitAction::getDomainsSo
         UtilizationStatus utilStatus = UtilizationStatus(Percentage::createInvalid());
         if (domainReportsUtilization(source, *domain))
         {
-            utilStatus = getParticipantTracker()[source][*domain].getUtilizationStatus();
+            try
+            {
+                utilStatus = getParticipantTracker()[source][*domain].getUtilizationStatus();
+            }
+            catch (...)
+            {
+                // best effort to get utilization.  assume invalid utilization if failure.
+            }
         }
         domainPreference.push_back(
             tuple<UIntN, DomainPriority, UtilizationStatus>(*domain, domainPriority, utilStatus));
@@ -251,7 +270,37 @@ Bool TargetLimitAction::domainReportsUtilization(UIntN source, UIntN domain)
     return getParticipantTracker()[source][domain].getDomainProperties().implementsUtilizationInterface();
 }
 
-void TargetLimitAction::limitDomain(UIntN source, UIntN domain)
+void TargetLimitAction::requestLimit(UIntN source, UIntN domain, UIntN target)
 {
-    getParticipantTracker()[source][domain].limit();
+    getParticipantTracker()[source][domain].requestLimit(target);
+}
+
+void TargetLimitAction::commitLimit(UIntN source, UInt64 time)
+{
+    Bool madeChanges(false);
+    vector<UIntN> domainIndexes = getParticipantTracker()[source].getDomainIndexes();
+    for (auto domain = domainIndexes.begin(); domain != domainIndexes.end(); domain++)
+    {
+        try
+        {
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, "Committing limits to source.", source, *domain));
+
+            Bool madeChange = getParticipantTracker()[source][*domain].commitLimits();
+            if (madeChange)
+            {
+                madeChanges = true;
+            }
+        }
+        catch (std::exception& ex)
+        {
+            getPolicyServices().messageLogging->writeMessageWarning(
+                PolicyMessage(FLF, "Failed to limit source: " + string(ex.what()), source, *domain));
+        }
+    }
+
+    if (madeChanges)
+    {
+        getCallbackScheduler()->markSourceAsBusy(source, getTargetMonitor(), time);
+    }
 }

@@ -96,6 +96,8 @@ public:
     // DPTF Event handlers
     virtual void connectedStandbyEntry(void) = 0;
     virtual void connectedStandbyExit(void) = 0;
+    virtual void suspend(void) = 0;
+    virtual void resume(void) = 0;
 
     // Participant/Domain Event Handlers
     virtual void domainConfigTdpCapabilityChanged(UIntN participantIndex) = 0;

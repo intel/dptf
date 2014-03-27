@@ -34,17 +34,25 @@ public:
         UIntN domainIndex);
     ~PowerControlKnob(void);
 
-    virtual void limit() override;
-    virtual void unlimit() override;
-    virtual Bool canLimit() override;
-    virtual Bool canUnlimit() override;
+    virtual void limit(UIntN target) override;
+    virtual void unlimit(UIntN target) override;
+    virtual Bool canLimit(UIntN target) override;
+    virtual Bool canUnlimit(UIntN target) override;
+    virtual Bool commitSetting() override;
+    virtual void clearRequestForTarget(UIntN target) override;
+    virtual void clearAllRequests() override;
 
     XmlNode* getXml() const;
 
 private:
 
     std::shared_ptr<PowerControlFacade> m_powerControl;
+    std::map<UIntN, Power> m_requests;
 
     Power calculateNextLowerPowerLimit(
         Power currentPower, Power minimumPowerLimit, Power stepSize, Power currentPowerLimit);
+    Power findLowestPowerLimitRequest(const std::map<UIntN, Power>& m_requests);
+    Power getTargetRequest(UIntN target);
+    UIntN snapToCapabilitiesBounds(Power powerLimit);
+    
 };

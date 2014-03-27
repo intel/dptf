@@ -43,14 +43,16 @@ private:
     // source filtering
     std::vector<UIntN> chooseSourcesToUnlimitForTarget(UIntN target);
     std::vector<ThermalRelationshipTableEntry> getEntriesWithControlsToUnlimit(
-        const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
+        UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
 
     // domain filtering
-    std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxy& participant);
+    std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxy& participant, UIntN target);
     std::vector<UIntN> chooseDomainsToUnlimitForSource(UIntN target, UIntN source);
     UIntN getDomainWithLowestTemperature(UIntN source, std::vector<UIntN> domainsWithControlKnobsToTurn);
     std::vector<UIntN> getDomainsWithLowestPriority(UIntN source, std::vector<UIntN> domains);
 
     // domain unlimiting
-    void unlimitDomain(UIntN source, UIntN domain);
+    void requestUnlimit(UIntN source, UIntN domain, UIntN target);
+    void commitUnlimit(UIntN source, UInt64 time);
+    void removeAllRequestsForTarget(UIntN target);
 };

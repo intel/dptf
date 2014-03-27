@@ -149,6 +149,13 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
 
+    void primitiveExecuteSetAsString(
+        esif_primitive_type primitive,
+        std::string stringValue,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
     void primitiveExecuteGet(
         esif_primitive_type primitive,
         esif_data_type esifDataType,

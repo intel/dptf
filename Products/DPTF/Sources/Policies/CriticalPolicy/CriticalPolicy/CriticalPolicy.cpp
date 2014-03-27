@@ -38,12 +38,16 @@ void CriticalPolicy::onCreate(void)
 {
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::ParticipantSpecificInfoChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DptfResume);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyInitiatedCallback);
 }
 
 void CriticalPolicy::onDestroy(void)
 {
     getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
     getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::ParticipantSpecificInfoChanged);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DptfResume);
+    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyInitiatedCallback);
 }
 
 void CriticalPolicy::onEnable(void)
@@ -60,6 +64,57 @@ void CriticalPolicy::onConnectedStandbyEntry(void)
 
 void CriticalPolicy::onConnectedStandbyExit(void)
 {
+}
+
+void CriticalPolicy::onResume(void)
+{
+    ParticipantSpecificInfoKey::Type maxThresholdCrossed = ParticipantSpecificInfoKey::None;
+    UIntN maxThresholdCrossedParticipant = Constants::Invalid;
+    Temperature maxThresholdCrossedTemperature;
+    auto participantIndexes = getParticipantTracker().getAllTrackedIndexes();
+    for (auto index = participantIndexes.begin(); index != participantIndexes.end(); index++)
+    {
+        try
+        {
+            ParticipantProxy& participant = getParticipantTracker()[*index];
+            if (participant[0].getTemperatureProperty().supportsProperty())
+            {
+                auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
+                auto tripPoints = participant.getCriticalTripPointProperty().getTripPoints();
+                setParticipantTemperatureThresholdNotification(
+                    currentTemperature, tripPoints.getSortedByValue(), participant);
+                auto tripPointCrossed = findTripPointCrossed(tripPoints.getSortedByValue(), currentTemperature);
+                if (tripPointCrossed > maxThresholdCrossed)
+                {
+                    maxThresholdCrossed = tripPointCrossed;
+                    maxThresholdCrossedParticipant = *index;
+                    maxThresholdCrossedTemperature = currentTemperature;
+                }
+            }
+        }
+        catch (...)
+        {
+            // Ignore failures as this will be best effort
+        }
+    }
+
+    Temperature crossedTripPointTemperature;
+    if (maxThresholdCrossed != ParticipantSpecificInfoKey::None)
+    {
+        ParticipantProxy& participant = getParticipantTracker()[maxThresholdCrossedParticipant];
+        auto tripPoints = participant.getCriticalTripPointProperty().getTripPoints();
+        crossedTripPointTemperature = tripPoints.getItem(maxThresholdCrossed);
+        getPolicyServices().policyInitiatedCallback->createPolicyInitiatedImmediateCallback(
+            maxThresholdCrossedTemperature, maxThresholdCrossed, (void*)(UInt32)crossedTripPointTemperature);
+    }
+}
+
+void CriticalPolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2)
+{
+    Temperature maxThresholdCrossedTemperature = (UInt32)eventCode;
+    ParticipantSpecificInfoKey::Type maxThresholdCrossed = (ParticipantSpecificInfoKey::Type)param1;
+    Temperature crossedTripPointTemperature = (UInt32)((UInt64)param2);
+    takePowerAction(maxThresholdCrossedTemperature, maxThresholdCrossed, crossedTripPointTemperature);
 }
 
 bool CriticalPolicy::autoNotifyPlatformOscOnCreateDestroy() const
@@ -263,7 +318,10 @@ ParticipantSpecificInfoKey::Type CriticalPolicy::findTripPointCrossed(
     {
         if (currentTemperature >= Temperature(tp->second))
         {
-            crossedTripPoint = tp->first;
+            if (tp->first > crossedTripPoint)
+            {
+                crossedTripPoint = tp->first;
+            }
         }
         else
         {

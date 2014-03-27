@@ -55,9 +55,16 @@ RfProfileData RadioFrequencyControlFacade::getProfileData()
     return m_rfProfileData.getProfileData();
 }
 
+void RadioFrequencyControlFacade::invalidateProfileData()
+{
+    throwIfStatusNotSupported();
+    m_rfProfileData.invalidate();
+}
+
 void RadioFrequencyControlFacade::setOperatingFrequency(Frequency frequency)
 {
     throwIfControlNotSupported();
+    m_lastSetFrequency = frequency;
     m_policyServices.domainRfProfileControl->setRfProfileCenterFrequency(m_participantIndex, m_domainIndex, frequency);
 }
 
@@ -66,6 +73,7 @@ XmlNode* RadioFrequencyControlFacade::getXml()
     XmlNode* control = XmlNode::createWrapperElement("radio_frequency_control");
     control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
     control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
+    control->addChild(XmlNode::createDataElement("last_set_frequency", m_lastSetFrequency.toString()));
     if (supportsStatus())
     {
         control->addChild(getProfileData().getXml());

@@ -36,15 +36,16 @@ public:
     std::vector<ThermalRelationshipTableEntry> getEntriesForTarget(UIntN targetIndex);
     std::vector<ThermalRelationshipTableEntry> getEntriesForSource(UIntN sourceIndex);
     const ThermalRelationshipTableEntry& getEntryForTargetAndSource(UIntN targetIndex, UIntN sourceIndex) const;
-    UInt32 getMinimumSamplePeriodForSource(UIntN sourceIndex);
-    UInt32 getShortestSamplePeriodForTarget(UIntN target);
+    UInt64 getMinimumActiveSamplePeriodForSource(UIntN sourceIndex, std::set<UIntN> activeTargets);
+    UInt64 getShortestSamplePeriodForTarget(UIntN target);
+    UInt64 getSampleTimeForRelationship(UIntN target, UIntN source) const;
 
     XmlNode* getXml();
 
 protected:
 
     virtual RelationshipTableEntryBase* getEntry(UIntN index) const override;
-
+    
 private:
 
     std::vector<ThermalRelationshipTableEntry> m_entries;

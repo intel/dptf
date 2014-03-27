@@ -243,6 +243,7 @@ void UnifiedParticipant::createParticipant(const Guid& guid, UIntN participantIn
     m_setSpecificInfoEx = dynamic_cast<ComponentExtendedInterface*>(m_setSpecificInfo);
 
     m_participantServicesInterface->registerEvent(ParticipantEvent::ParticipantSpecificInfoChanged);
+    m_participantServicesInterface->registerEvent(ParticipantEvent::DptfResume);
 }
 
 void UnifiedParticipant::destroyParticipant(void)
@@ -250,6 +251,7 @@ void UnifiedParticipant::destroyParticipant(void)
     destroyAllDomains();
 
     m_participantServicesInterface->unregisterEvent(ParticipantEvent::ParticipantSpecificInfoChanged);
+    m_participantServicesInterface->unregisterEvent(ParticipantEvent::DptfResume);
 
     DELETE_MEMORY_TC(m_getSpecificInfo);
     DELETE_MEMORY_TC(m_setSpecificInfo);
@@ -574,13 +576,26 @@ void UnifiedParticipant::connectedStandbyEntry(void)
 {
     // FIXME:  Not sure if the participant needs to do anything here.  If we do, we will probably have different
     // functionality for different participants and will need a class factory to create the versions.
-    throw implement_me();
+    //throw implement_me();
 }
 
 void UnifiedParticipant::connectedStandbyExit(void)
 {
-    // FIXME:  See note above (connectedStandbyEntry)
-    throw implement_me();
+    // FIXME:  Not sure if the participant needs to do anything here.  If we do, we will probably have different
+    // functionality for different participants and will need a class factory to create the versions.
+    //throw implement_me();
+}
+
+void UnifiedParticipant::suspend(void)
+{
+    // FIXME:  Not sure if the participant needs to do anything here.  If we do, we will probably have different
+    // functionality for different participants and will need a class factory to create the versions.
+    //throw implement_me();
+}
+
+void UnifiedParticipant::resume(void)
+{
+    clearAllCachedData();
 }
 
 void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
@@ -1099,7 +1114,7 @@ ConfigTdpControlStatus UnifiedParticipant::getFirstConfigTdpControlStatus()
 ConfigTdpControlSet UnifiedParticipant::getFirstConfigTdpControlSet()
 {
     Bool foundControlSet = false;
-    ConfigTdpControlSet configTdpControlSet(std::vector<ConfigTdpControl>(1, ConfigTdpControl(0, 0, 0, 0)), 0);
+    ConfigTdpControlSet configTdpControlSet(std::vector<ConfigTdpControl>(1, ConfigTdpControl(0, 0, 0, 0)));
     for (UIntN domainIndex = 0; domainIndex < m_domains.size(); domainIndex++)
     {
         if (m_domains[domainIndex] != nullptr)

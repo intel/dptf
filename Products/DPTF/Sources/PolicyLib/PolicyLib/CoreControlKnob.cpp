@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "CoreControlKnob.h"
-#include <math.h>
+#include <cmath>
 using namespace std;
 
 CoreControlKnob::CoreControlKnob(
@@ -25,10 +25,10 @@ CoreControlKnob::CoreControlKnob(
     UIntN participantIndex,
     UIntN domainIndex,
     shared_ptr<CoreControlFacade> coreControl,
-    shared_ptr<PerformanceControlFacade> performanceControl)
+    std::shared_ptr<PerformanceControlKnob> performanceControlKnob)
     : ControlKnobBase(policyServices, participantIndex, domainIndex),
     m_coreControl(coreControl),
-    m_performanceControl(performanceControl)
+    m_performanceControlKnob(performanceControlKnob)
 {
 }
 
@@ -36,65 +36,73 @@ CoreControlKnob::~CoreControlKnob(void)
 {
 }
 
-void CoreControlKnob::limit()
+void CoreControlKnob::limit(UIntN target)
 {
-    if (canLimit())
+    if (canLimit(target))
     {
         try
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to limit cores.", 
-                getParticipantIndex(), getDomainIndex()));
+            stringstream messageBefore;
+            messageBefore << "Calculating request to limit active cores.";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
             Percentage stepSize = m_coreControl->getPreferences().getStepSize();
             UIntN totalCores = m_coreControl->getStaticCapabilities().getTotalLogicalProcessors();
             UIntN stepAmount = calculateStepAmount(stepSize, totalCores);
-            UIntN currentActiveCores = m_coreControl->getStatus().getNumActiveLogicalProcessors();
+            UIntN currentActiveCores = getTargetRequest(target);
             UIntN minActiveCores = m_coreControl->getDynamicCapabilities().getMinActiveCores();
-            UIntN nextActiveCores = std::max(currentActiveCores - stepAmount, minActiveCores);
-            m_coreControl->setControl(CoreControlStatus(nextActiveCores));
+            UIntN nextActiveCores = std::max((int)currentActiveCores - (int)stepAmount, (int)minActiveCores);
+            m_requests[target] = nextActiveCores;
 
-            stringstream message;
-            message << "Limited cores to " << nextActiveCores << ".";
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            stringstream messageAfter;
+            messageAfter << "Requesting to limit active cores to" << nextActiveCores << ".";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
 }
 
-void CoreControlKnob::unlimit()
+void CoreControlKnob::unlimit(UIntN target)
 {
-    if (canUnlimit())
+    if (canUnlimit(target))
     {
         try
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Attempting to unlimit cores.", 
-                getParticipantIndex(), getDomainIndex()));
+            stringstream messageBefore;
+            messageBefore << "Calculating request to unlimit active cores.";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
             Percentage stepSize = m_coreControl->getPreferences().getStepSize();
             UIntN totalCores = m_coreControl->getStaticCapabilities().getTotalLogicalProcessors();
             UIntN stepAmount = calculateStepAmount(stepSize, totalCores);
-            UIntN currentActiveCores = m_coreControl->getStatus().getNumActiveLogicalProcessors();
+            UIntN currentActiveCores = getTargetRequest(target);
             UIntN maxActiveCores = m_coreControl->getDynamicCapabilities().getMaxActiveCores();
-            UIntN nextActiveCores = std::min(currentActiveCores + stepAmount, maxActiveCores);
-            m_coreControl->setControl(CoreControlStatus(nextActiveCores));
+            UIntN nextActiveCores = std::min((int)currentActiveCores + (int)stepAmount, (int)maxActiveCores);
+            m_requests[target] = nextActiveCores;
 
-            stringstream message;
-            message << "Unlimited cores to " << nextActiveCores << ".";
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+            stringstream messageAfter;
+            messageAfter << "Requesting to unlimit active cores to" << nextActiveCores << ".";
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
         }
         catch (std::exception& ex)
         {
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+            getPolicyServices().messageLogging->writeMessageDebug(
+                PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
             throw ex;
         }
     }
 }
 
-Bool CoreControlKnob::canLimit()
+Bool CoreControlKnob::canLimit(UIntN target)
 {
     try
     {
@@ -106,18 +114,18 @@ Bool CoreControlKnob::canLimit()
 
         UIntN startPerformanceIndex = m_coreControl->getPreferences().getStartPState();
         UIntN currentPerformanceIndex;
-        if (m_performanceControl->supportsPerformanceControls())
+        if (m_performanceControlKnob->supportsPerformanceControls())
         {
-            currentPerformanceIndex = m_performanceControl->getStatus().getCurrentControlSetIndex();
+            currentPerformanceIndex = m_performanceControlKnob->getTargetRequest(target);
         }
         else
         {
             currentPerformanceIndex = startPerformanceIndex;
         }
 
-        UIntN numActiveCores = m_coreControl->getStatus().getNumActiveLogicalProcessors();
+        UIntN numActiveCoreRequest = getTargetRequest(target);
         UIntN minActiveCores = m_coreControl->getDynamicCapabilities().getMinActiveCores();
-        return ((currentPerformanceIndex >= startPerformanceIndex) && (numActiveCores > minActiveCores));
+        return ((currentPerformanceIndex >= startPerformanceIndex) && (numActiveCoreRequest > minActiveCores));
     }
     catch (...)
     {
@@ -125,7 +133,7 @@ Bool CoreControlKnob::canLimit()
     }
 }
 
-Bool CoreControlKnob::canUnlimit()
+Bool CoreControlKnob::canUnlimit(UIntN target)
 {
     try
     {
@@ -135,9 +143,9 @@ Bool CoreControlKnob::canUnlimit()
             return false;
         }
 
-        UIntN numActiveCores = m_coreControl->getStatus().getNumActiveLogicalProcessors();
+        UIntN numActiveCoreRequest = getTargetRequest(target);
         UIntN maxActiveCores = m_coreControl->getDynamicCapabilities().getMaxActiveCores();
-        return (numActiveCores < maxActiveCores);
+        return (numActiveCoreRequest < maxActiveCores);
     }
     catch (...)
     {
@@ -148,7 +156,110 @@ Bool CoreControlKnob::canUnlimit()
 UIntN CoreControlKnob::calculateStepAmount(Percentage stepSize, UIntN totalAvailableCores)
 {
     double result = stepSize * (double)totalAvailableCores;
-    return (UIntN)ceil(result);
+    return (UIntN)std::ceil(result);
+}
+
+Bool CoreControlKnob::commitSetting()
+{
+    try
+    {
+        if ((m_coreControl->supportsCoreControls() == true) &&
+            (m_coreControl->getPreferences().isLpoEnabled() == true))
+        {
+            UIntN nextActiveCores = snapToCapabilitiesBounds(findLowestActiveCoresRequest());
+            if (m_coreControl->getStatus().getNumActiveLogicalProcessors() != nextActiveCores)
+            {
+                stringstream messageBefore;
+                messageBefore << "Attempting to change active core limit to " << nextActiveCores << ".";
+                getPolicyServices().messageLogging->writeMessageDebug(
+                    PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+
+                m_coreControl->setControl(CoreControlStatus(nextActiveCores));
+
+                stringstream messageAfter;
+                messageAfter << "Changed active core limit to " << nextActiveCores << ".";
+                getPolicyServices().messageLogging->writeMessageDebug(
+                    PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageDebug(
+            PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+        throw ex;
+    }
+}
+
+UIntN CoreControlKnob::findLowestActiveCoresRequest() const
+{
+    if (m_requests.size() == 0)
+    {
+        return m_coreControl->getStatus().getNumActiveLogicalProcessors();
+    }
+    else
+    {
+        UIntN lowestActiveCores(Constants::Invalid);
+        for (auto request = m_requests.begin(); request != m_requests.end(); request++)
+        {
+            if (request->second < lowestActiveCores)
+            {
+                lowestActiveCores = request->second;
+            }
+        }
+        return lowestActiveCores;
+    }
+}
+
+UIntN CoreControlKnob::getTargetRequest(UIntN target)
+{
+    auto request = m_requests.find(target);
+    if (request == m_requests.end())
+    {
+        return m_coreControl->getDynamicCapabilities().getMaxActiveCores();
+    }
+    else
+    {
+        return request->second;
+    }
+}
+
+UIntN CoreControlKnob::snapToCapabilitiesBounds(UIntN numActiveCores)
+{
+    UIntN maxActiveCores(m_coreControl->getDynamicCapabilities().getMaxActiveCores());
+    UIntN minActiveCores(m_coreControl->getDynamicCapabilities().getMinActiveCores());
+    if (numActiveCores < minActiveCores)
+    {
+        numActiveCores = minActiveCores;
+    }
+    if (numActiveCores > maxActiveCores)
+    {
+        numActiveCores = maxActiveCores;
+    }
+    return numActiveCores;
+}
+
+void CoreControlKnob::clearRequestForTarget(UIntN target)
+{
+    auto targetRequest = m_requests.find(target);
+    if (targetRequest != m_requests.end())
+    {
+        m_requests.erase(targetRequest);
+    }
+}
+
+void CoreControlKnob::clearAllRequests()
+{
+    m_requests.clear();
 }
 
 XmlNode* CoreControlKnob::getXml()

@@ -37,6 +37,8 @@ namespace PolicyEvent
         {
             CASE(DptfConnectedStandbyEntry)
             CASE(DptfConnectedStandbyExit)
+            CASE(DptfSuspend)
+            CASE(DptfResume)
             CASE(ParticipantSpecificInfoChanged)
             CASE(DomainConfigTdpCapabilityChanged)
             CASE(DomainCoreControlCapabilityChanged)

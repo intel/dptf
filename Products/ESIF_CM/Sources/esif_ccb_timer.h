@@ -72,10 +72,12 @@ typedef void (*esif_ccb_timer_cb)(void *context);
 
 #ifdef ESIF_ATTR_OS_LINUX
 typedef struct {
-	struct delayed_work  work;
-	esif_ccb_timer_cb    function_ptr;
+	struct delayed_work work;
+	esif_ccb_timer_cb function_ptr;
 	esif_ccb_low_priority_thread_lock_t context_lock;
-	esif_flags_t         exit_flag;
+	u32 exit_flag;
+	u32  timer_period_msec;
+	u32 periodic_flag;
 	void *context_ptr;
 } esif_ccb_timer_t;
 #endif /* ESIF_ATTR_OS_LINUX */
@@ -85,7 +87,9 @@ typedef struct {
 typedef struct {
 	esif_ccb_timer_cb function_ptr;
 	esif_ccb_low_priority_thread_lock_t context_lock;
-	esif_flags_t exit_flag;
+	u32 exit_flag;
+	esif_ccb_time_t  timer_period_msec;
+	u32 periodic_flag;
 	void *context_ptr;
 } esif_ccb_timer_context_t;
 
@@ -114,6 +118,15 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(esif_ccb_timer_context_t,
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
+static enum esif_rc esif_ccb_timer_set_msec(
+	esif_ccb_timer_t *timer_ptr,
+	esif_ccb_time_t timeout,
+	esif_flags_t periodic,
+	esif_ccb_timer_cb function_ptr,
+	void *context_ptr
+);
+
+
 #ifdef ESIF_ATTR_OS_LINUX
 /* Timer Callback Wrapper  Find And Fire Function */
 static ESIF_INLINE void esif_ccb_timer_cb_wrapper(struct work_struct *work)
@@ -127,8 +140,18 @@ static ESIF_INLINE void esif_ccb_timer_cb_wrapper(struct work_struct *work)
 	if ((NULL != timer_ptr) && (!timer_ptr->exit_flag)) {
 		esif_ccb_low_priority_thread_read_lock(&timer_ptr->context_lock);
 		timer_ptr->function_ptr(timer_ptr->context_ptr);
+
 		esif_ccb_low_priority_thread_read_unlock(
 			&timer_ptr->context_lock);
+
+		/* RESET The Timer */
+		if (timer_ptr->periodic_flag) {	
+			esif_ccb_timer_set_msec(timer_ptr,
+						timer_ptr->timer_period_msec,
+						ESIF_TRUE,
+						timer_ptr->function_ptr,
+						timer_ptr->context_ptr);
+		}
 	}
 }
 
@@ -170,6 +193,15 @@ static void esif_ccb_timer_cb_wrapper(
 		timer_context_ptr->function_ptr(timer_context_ptr->context_ptr);
 		esif_ccb_low_priority_thread_read_unlock(
 			&timer_context_ptr->context_lock);
+
+		/* RESET The Timer */
+		if (timer_context_ptr->periodic_flag) {	
+			esif_ccb_timer_set_msec(timer_ptr,
+					timer_context_ptr->timer_period_msec,
+					ESIF_TRUE,
+					timer_context_ptr->function_ptr,
+					timer_context_ptr->context_ptr);
+		}
 	}
 exit:
 	WdfObjectDelete(work_item);
@@ -225,6 +257,15 @@ ESIF_INLINE void esif_ccb_timer_cb_wrapper(WDFTIMER timer)
 		timer_context_ptr->function_ptr(timer_context_ptr->context_ptr);
 		esif_ccb_low_priority_thread_read_unlock(
 			&timer_context_ptr->context_lock);
+
+		/* RESET The Timer */
+		if (timer_context_ptr->periodic_flag) {	
+			esif_ccb_timer_set_msec(&timer,
+						timer_context_ptr->timer_period_msec,
+						ESIF_TRUE,
+						timer_context_ptr->function_ptr,
+						timer_context_ptr->context_ptr);
+		}
 	}
 }
 #endif /* NOT ESIF_ATTR_USE_COALESCABLE_TIMERS */
@@ -300,6 +341,7 @@ exit:
 static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec(
 	esif_ccb_timer_t *timer_ptr,
 	esif_ccb_time_t timeout,
+	esif_flags_t periodic,
 	esif_ccb_timer_cb function_ptr,
 	void *context_ptr
 	)
@@ -310,6 +352,8 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec(
 	u64 y;
 	u8 result;
 #
+	timer_ptr->periodic_flag = periodic;
+	timer_ptr->timer_period_msec = timeout;
 	timer_ptr->function_ptr = function_ptr;
 	timer_ptr->context_ptr  = context_ptr;
 
@@ -345,6 +389,8 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_set_msec(
 	timer_context_ptr = &timer_ptr->timer_context;
 	timer_context_ptr->function_ptr = function_ptr;
 	timer_context_ptr->context_ptr  = context_ptr;
+	timer_context_ptr->periodic_flag = periodic;
+	timer_context_ptr->timer_period_msec = timeout;
 	timer_context_ptr->exit_flag    = FALSE;
 
 	due_time.QuadPart = (LONGLONG)timeout * -10000;
@@ -367,6 +413,8 @@ exit:
 	/* Set Context */
 	timer_context_ptr = esif_ccb_get_timer_context(*timer_ptr);
 	if (NULL != timer_context_ptr) {
+		timer_context_ptr->timer_period_msec = timeout;
+		timer_context_ptr->periodic_flag = periodic;
 		timer_context_ptr->function_ptr = function_ptr;
 		timer_context_ptr->context_ptr  = context_ptr;
 		timer_context_ptr->exit_flag    = FALSE;
@@ -626,15 +674,13 @@ static ESIF_INLINE eEsifError esif_ccb_timer_set_msec(
 	if (NULL != timer_ptr) {
 #ifdef ESIF_ATTR_OS_WINDOWS
 		if (ESIF_TRUE == CreateTimerQueueTimer(&timer_ptr->timer,
-						       NULL,
-						       (WAITORTIMERCALLBACK)
-						       timer_ptr->timer_ctx_ptr
-						       ->cb_func,
-						       timer_ptr->timer_ctx_ptr
-						       ->cb_context_ptr,
-						       (DWORD)timeout,
-						       0,
-						       WT_EXECUTEONLYONCE)) {
+				NULL,
+				(WAITORTIMERCALLBACK)
+				timer_ptr->timer_ctx_ptr->cb_func,
+				timer_ptr->timer_ctx_ptr->cb_context_ptr,
+				(DWORD)timeout,
+				0,
+				WT_EXECUTEONLYONCE)) {
 			rc = ESIF_OK;
 		}
 #endif

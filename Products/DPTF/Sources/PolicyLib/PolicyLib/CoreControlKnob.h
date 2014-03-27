@@ -20,7 +20,7 @@
 #include "Dptf.h"
 #include "ControlKnobBase.h"
 #include "CoreControlFacade.h"
-#include "PerformanceControlFacade.h"
+#include "PerformanceControlKnob.h"
 #include "XmlNode.h"
 #include <memory>
 
@@ -34,20 +34,27 @@ public:
         UIntN participantIndex,
         UIntN domainIndex,
         std::shared_ptr<CoreControlFacade> coreControl,
-        std::shared_ptr<PerformanceControlFacade> performanceControl);
+        std::shared_ptr<PerformanceControlKnob> performanceControlKnob);
     ~CoreControlKnob(void);
 
-    virtual void limit() override;
-    virtual void unlimit() override;
-    virtual Bool canLimit() override;
-    virtual Bool canUnlimit() override;
+    virtual void limit(UIntN target) override;
+    virtual void unlimit(UIntN target) override;
+    virtual Bool canLimit(UIntN target) override;
+    virtual Bool canUnlimit(UIntN target) override;
+    virtual Bool commitSetting() override;
+    virtual void clearRequestForTarget(UIntN target) override;
+    virtual void clearAllRequests() override;
 
     XmlNode* getXml();
 
 private:
 
     std::shared_ptr<CoreControlFacade> m_coreControl;
-    std::shared_ptr<PerformanceControlFacade> m_performanceControl;
+    std::shared_ptr<PerformanceControlKnob> m_performanceControlKnob;
+    std::map<UIntN, UIntN> m_requests;
 
     UIntN calculateStepAmount(Percentage stepSize, UIntN totalAvailableCores);
+    UIntN findLowestActiveCoresRequest() const;
+    UIntN getTargetRequest(UIntN target);
+    UIntN snapToCapabilitiesBounds(UIntN numActiveCores);
 };

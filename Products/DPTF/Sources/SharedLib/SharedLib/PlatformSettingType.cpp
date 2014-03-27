@@ -16,28 +16,18 @@
 **
 ******************************************************************************/
 
-#pragma once
+#include "PlatformSettingType.h"
 
-#include "ConfigTdpControl.h"
-#include "BasicTypes.h"
-#include <vector>
-
-class XmlNode;
-
-class ConfigTdpControlSet final
+namespace PlatformSettingType
 {
-public:
-
-    ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
-    UIntN getCount(void) const;
-    const ConfigTdpControl& operator[](UIntN index) const;
-    Bool operator==(const ConfigTdpControlSet& rhs) const;
-    Bool operator!=(const ConfigTdpControlSet& rhs) const;
-    std::vector<std::string> getAsNameList() const;
-
-    XmlNode* getXml(void);
-
-private:
-
-    std::vector<ConfigTdpControl> m_configTdpControl;
-};
+    std::string ToString(PlatformSettingType::Type type)
+    {
+        switch (type)
+        {
+            case PlatformSettingType::ConfigTdp:
+                return "ConfigTDP";
+            default:
+                throw dptf_exception("PlatformSettingType::Type is invalid.");
+        }
+    }
+}

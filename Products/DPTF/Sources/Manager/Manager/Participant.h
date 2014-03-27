@@ -73,6 +73,8 @@ public:
     //
     void connectedStandbyEntry(void);
     void connectedStandbyExit(void);
+    void suspend(void);
+    void resume(void);
     void domainConfigTdpCapabilityChanged(void);
     void domainCoreControlCapabilityChanged(void);
     void domainDisplayControlCapabilityChanged(void);

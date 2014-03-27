@@ -425,7 +425,7 @@ XmlNode* DomainPerformanceControl_002::getXml(UIntN domainIndex)
 void DomainPerformanceControl_002::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
     ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
-    UIntN tdpFrequencyLimit = configTdpControlSet[configTdpControlStatus.getCurrentControlIndex()].getTdpFrequency();
+    UInt64 tdpFrequencyLimit = configTdpControlSet[configTdpControlStatus.getCurrentControlIndex()].getTdpFrequency();
     PerformanceControlSet controlSet = getPerformanceControlSet(participantIndex, domainIndex);
     for (UIntN controlIndex = 0; controlIndex < controlSet.getCount(); controlIndex++)
     {

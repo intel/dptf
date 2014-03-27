@@ -142,6 +142,12 @@ typedef eEsifError (*AppCreateFunction)(EsifInterfacePtr appServiceInterface,	/*
 /* Destroy */
 typedef eEsifError (*AppDestroyFunction)(void *appHandle);
 
+/* Suspend */
+typedef eEsifError (*AppSuspendFunction)(void *appHandle);
+
+/* Resume */
+typedef eEsifError (*AppResumeFunction)(void *appHandle);
+
 /* Banner */
 typedef eEsifError (*AppGetBannerFunction)(const void *appHandle,	/* Allocated handle for application */
 										   EsifDataPtr appBanner/* Applicaiton banner / greeting to display for CLI */
@@ -293,6 +299,8 @@ struct _t_AppInterface {
 	AppAllocateHandle      fAppAllocateHandleFuncPtr;
 	AppCreateFunction      fAppCreateFuncPtr;
 	AppDestroyFunction     fAppDestroyFuncPtr;
+	AppSuspendFunction     fAppSuspendFuncPtr;
+	AppResumeFunction      fAppResumeFuncPtr;
 
 	AppCommandFunction     fAppCommandFuncPtr;
 	AppGetAboutFunction    fAppGetAboutFuncPtr;

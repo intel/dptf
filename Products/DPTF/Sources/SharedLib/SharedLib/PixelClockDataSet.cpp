@@ -47,9 +47,12 @@ Bool PixelClockDataSet::operator!=(const PixelClockDataSet& rhs) const
 XmlNode* PixelClockDataSet::getXml(void) const
 {
     XmlNode* dataSet = XmlNode::createWrapperElement("pixel_clock_data_set");
-    for (auto data = m_pixelClockData.begin(); data != m_pixelClockData.end(); data++)
+    for (UIntN pcIndex = 0; pcIndex < m_pixelClockData.size(); pcIndex++)
     {
-        dataSet->addChild(data->getXml());
+        XmlNode* pixelClock = XmlNode::createWrapperElement("pixel_clock");
+        pixelClock->addChild(XmlNode::createDataElement("pixel_clock_number", std::to_string(pcIndex)));
+        pixelClock->addChild(m_pixelClockData[pcIndex].getXml());
+        dataSet->addChild(pixelClock);
     }
     return dataSet;
 }

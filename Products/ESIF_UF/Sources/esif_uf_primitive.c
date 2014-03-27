@@ -956,6 +956,10 @@ retry:
 						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED, &void_data);
 						ESIF_TRACE_DEBUG("Send Event ==>ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED\n");
 					}
+					else if (SET_RAPL_POWER_CONTROL_CAPABILITIES == primitive_ptr->tuple.id) {
+						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED, &void_data);
+						ESIF_TRACE_DEBUG("Send Event ==>ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED\n");
+					}
 				}
 			}
 			ESIF_TRACE_DEBUG("Using User-Level service for action %d! rc %s\n", i, esif_rc_str(rc));

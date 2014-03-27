@@ -32,8 +32,10 @@ public:
         std::shared_ptr<TimeInterface> time);
     ~SourceAvailability();
 
-    // source availability
     void setSourceAsBusy(UIntN source, UInt64 time);
+    Bool isBusy(UIntN source, UInt64 time) const;
+
+    // source availability
     Bool isBusyNow(UIntN source);
     UInt64 getNextAvailableTime(UIntN source, UInt64 startTime);
     void remove(UIntN source);
@@ -43,7 +45,7 @@ public:
 
     // status
     XmlNode* getXml() const;
-
+    
 private:
 
     // services

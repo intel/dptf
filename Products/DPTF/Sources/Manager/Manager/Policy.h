@@ -55,6 +55,8 @@ public:
 
     void executeConnectedStandbyEntry(void);
     void executeConnectedStandbyExit(void);
+    void executeSuspend(void);
+    void executeResume(void);
     void executeDomainConfigTdpCapabilityChanged(UIntN participantIndex);
     void executeDomainCoreControlCapabilityChanged(UIntN participantIndex);
     void executeDomainDisplayControlCapabilityChanged(UIntN participantIndex);

@@ -38,6 +38,8 @@ namespace FrameworkEvent
         // DPTF Events
         DptfConnectedStandbyEntry,
         DptfConnectedStandbyExit,
+        DptfSuspend,
+        DptfResume,
         DptfGetStatus,
         DptfLogVerbosityChanged,
 

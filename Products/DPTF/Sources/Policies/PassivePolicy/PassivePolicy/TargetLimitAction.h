@@ -43,10 +43,10 @@ private:
     // source filtering
     std::vector<UIntN> chooseSourcesToLimitForTarget(UIntN target);
     std::vector<ThermalRelationshipTableEntry> getEntriesWithControlsToLimit(
-        const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
+        UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
 
     // domain filtering
-    std::vector<UIntN> getDomainsWithControlKnobsToLimit(ParticipantProxy& participant);
+    std::vector<UIntN> getDomainsWithControlKnobsToLimit(ParticipantProxy& participant, UIntN target);
     std::vector<UIntN> chooseDomainsToLimitForSource(UIntN target, UIntN source);
     UIntN getDomainWithHighestTemperature(UIntN source, const std::vector<UIntN>& domainsWithControlKnobsToTurn);
     std::vector<std::pair<UIntN, UtilizationStatus>> getDomainsSortedByPriorityThenUtilization(
@@ -54,5 +54,6 @@ private:
     Bool domainReportsUtilization(UIntN source, UIntN domain);
 
     // domain limiting
-    void limitDomain(UIntN source, UIntN domain);
+    void requestLimit(UIntN source, UIntN domain, UIntN target);
+    void commitLimit(UIntN source, UInt64 time);
 };

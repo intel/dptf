@@ -26,13 +26,13 @@
 
 #define INIT_EVENT_WITH_GUID(eventType, priority, guid) \
     { \
-        UInt8 theGuid[Constants::GuidSize] = guid; \
-        initializeEvent(FrameworkEvent::eventType, priority, #eventType, Guid(theGuid)); \
+    UInt8 theGuid[Constants::GuidSize] = guid; \
+    initializeEvent(FrameworkEvent::eventType, priority, #eventType, Guid(theGuid)); \
     }
 
 #define INIT_EVENT(eventType, priority) \
     { \
-        initializeEvent(FrameworkEvent::eventType, priority, #eventType, Guid()); \
+    initializeEvent(FrameworkEvent::eventType, priority, #eventType, Guid()); \
     }
 
 FrameworkEventInfo* FrameworkEventInfo::frameworkEventInfo = NULL;
@@ -115,6 +115,8 @@ void FrameworkEventInfo::initializeEvents()
     // DPTF Events
     INIT_EVENT_WITH_GUID(DptfConnectedStandbyEntry, 0, CONNECTED_STANDBY_ENTRY);
     INIT_EVENT_WITH_GUID(DptfConnectedStandbyExit, 0, CONNECTED_STANDBY_EXIT);
+    INIT_EVENT_WITH_GUID(DptfSuspend, 0, SUSPEND);
+    INIT_EVENT_WITH_GUID(DptfResume, 0, RESUME);
     INIT_EVENT(DptfGetStatus, 0);
     INIT_EVENT_WITH_GUID(DptfLogVerbosityChanged, 0, LOG_VERBOSITY_CHANGED);
 
@@ -158,7 +160,7 @@ void FrameworkEventInfo::initializeEvents()
 }
 
 void FrameworkEventInfo::initializeEvent(FrameworkEvent::Type eventId, UIntN immediateQueuePriority,
-    const std::string& name, const Guid& guid)
+                                         const std::string& name, const Guid& guid)
 {
     m_events[eventId].priority = immediateQueuePriority;
     m_events[eventId].name = name;

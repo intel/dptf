@@ -17,27 +17,29 @@
 ******************************************************************************/
 
 #pragma once
+#include "Dptf.h"
+#include "PolicyServicesInterfaceContainer.h"
+#include "DomainProperties.h"
+#include "CachedProperty.h"
+#include "PowerStatus.h"
+#include "DomainProperty.h"
 
-#include "ConfigTdpControl.h"
-#include "BasicTypes.h"
-#include <vector>
-
-class XmlNode;
-
-class ConfigTdpControlSet final
+class dptf_export PowerStatusProperty : public DomainProperty
 {
 public:
 
-    ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
-    UIntN getCount(void) const;
-    const ConfigTdpControl& operator[](UIntN index) const;
-    Bool operator==(const ConfigTdpControlSet& rhs) const;
-    Bool operator!=(const ConfigTdpControlSet& rhs) const;
-    std::vector<std::string> getAsNameList() const;
+    PowerStatusProperty(
+        UIntN participantIndex,
+        UIntN domainIndex,
+        const DomainProperties& domainProperties,
+        const PolicyServicesInterfaceContainer& policyServices);
+    ~PowerStatusProperty(void);
 
-    XmlNode* getXml(void);
+    PowerStatus getStatus();
+    virtual Bool supportsProperty() override;
 
-private:
+protected:
 
-    std::vector<ConfigTdpControl> m_configTdpControl;
+    Bool implementsPowerStatusInterface();
+
 };

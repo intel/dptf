@@ -25,7 +25,7 @@ ConfigTdpControlSetCachedProperty::ConfigTdpControlSetCachedProperty(
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
     : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_configTdpControlSet(std::vector<ConfigTdpControl>(1, ConfigTdpControl(0, 0, 0, 0)), 0)
+    m_configTdpControlSet(std::vector<ConfigTdpControl>(1, ConfigTdpControl(0, 0, 0, 0)))
 {
 }
 

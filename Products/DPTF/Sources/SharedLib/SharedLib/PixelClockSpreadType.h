@@ -25,9 +25,9 @@ namespace PixelClockSpreadType
     enum Type
     {
         None,
+        Center,
         Down,
-        Up,
-        Center
+        Up
     };
 
     std::string ToString(PixelClockSpreadType::Type type);

@@ -114,6 +114,12 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) = 0;
 
+    virtual void primitiveExecuteSetAsString(
+        esif_primitive_type primitive,
+        std::string stringValue,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance) = 0;
+
     virtual void primitiveExecuteGet(
         esif_primitive_type primitive,
         esif_data_type esifDataType,

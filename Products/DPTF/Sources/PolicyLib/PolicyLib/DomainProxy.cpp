@@ -33,8 +33,7 @@ DomainProxy::DomainProxy(
     m_policyServices(policyServices),
     m_temperatureProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_activeCoolingControl(participantIndex, domainIndex, domainProperties, participantProperties, policyServices),
-    m_domainPriorityProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_tstateUtilizationThreshold(Percentage(0.0))
+    m_domainPriorityProperty(participantIndex, domainIndex, domainProperties, policyServices)
 {
     // create control facades
     m_performanceControl = std::make_shared<PerformanceControlFacade>(
@@ -53,19 +52,20 @@ DomainProxy::DomainProxy(
         participantIndex, domainIndex, domainProperties, policyServices);
 
     // create control knobs (TODO: move to passive policy)
-    m_pstateControlKnob = std::make_shared<PerformanceControlKnob>(
+    m_perfControlRequests = std::make_shared<std::map<UIntN, UIntN>>();
+    m_pstateControlKnob = std::make_shared<PerformanceControlKnob>(PerformanceControlKnob(
         policyServices, participantIndex, domainIndex,
-        m_performanceControl, PerformanceControlType::PerformanceState);
-    m_tstateControlKnob = std::make_shared<PerformanceControlKnob>(
+        m_performanceControl, m_perfControlRequests, PerformanceControlType::PerformanceState));
+    m_tstateControlKnob = std::make_shared<PerformanceControlKnob>(PerformanceControlKnob(
         policyServices, participantIndex, domainIndex,
-        m_performanceControl, PerformanceControlType::ThrottleState);
+        m_performanceControl, m_perfControlRequests, PerformanceControlType::ThrottleState));
     m_powerControlKnob = std::make_shared<PowerControlKnob>(
         policyServices, m_powerControl, participantIndex, domainIndex);
     m_displayControlKnob = std::make_shared<DisplayControlKnob>(
         policyServices, m_displayControl, participantIndex, domainIndex);
     m_coreControlKnob = std::make_shared<CoreControlKnob>(
         policyServices, participantIndex, domainIndex,
-        m_coreControl, m_performanceControl);
+        m_coreControl, m_pstateControlKnob);
 }
 
 DomainProxy::DomainProxy()
@@ -77,8 +77,7 @@ DomainProxy::DomainProxy()
     m_domainPriorityProperty(Constants::Invalid, Constants::Invalid, m_domainProperties,
         PolicyServicesInterfaceContainer()),
     m_activeCoolingControl(Constants::Invalid, Constants::Invalid, m_domainProperties, m_participantProperties,
-        PolicyServicesInterfaceContainer()),
-    m_tstateUtilizationThreshold(Percentage(0.0))
+        PolicyServicesInterfaceContainer())
 {
 }
 
@@ -99,6 +98,11 @@ UIntN DomainProxy::getDomainIndex() const
 const DomainProperties& DomainProxy::getDomainProperties() const
 {
     return m_domainProperties;
+}
+
+const ParticipantProperties& DomainProxy::getParticipantProperties() const
+{
+    return m_participantProperties;
 }
 
 TemperatureProperty& DomainProxy::getTemperatureProperty()
@@ -198,37 +202,37 @@ void DomainProxy::initializeControls()
     }
 }
 
-void DomainProxy::limit(void)
+void DomainProxy::requestLimit(UIntN target)
 {
     // attempt to limit each control in turn.  if any is not supported or has a problem, it will return "true" and the
     // execution will continue to the next limit attempt.  these lines of code take advantage of the 'short circuit'
     // rule in C++ in that the next limit will not be called if the previous one returns false.
-    limitPowerAndShouldContinue() &&
-    limitPstatesWithCoresAndShouldContinue() &&
-    limitCoresAndShouldContinue() &&
-    limitTstatesAndContinue() &&
-    limitDisplayAndContinue();
+    requestLimitPowerAndShouldContinue(target) &&
+    requestLimitPstatesWithCoresAndShouldContinue(target) &&
+    requestLimitCoresAndShouldContinue(target) &&
+    requestLimitTstatesAndContinue(target) &&
+    requestLimitDisplayAndContinue(target);
 }
 
-void DomainProxy::unlimit(void)
+void DomainProxy::requestUnlimit(UIntN target)
 {
     // attempt to unlimit each control in turn.  if any is not supported or has a problem, it will return "true" and the
     // execution will continue to the next unlimit attempt.  these lines of code take advantage of the 'short circuit'
     // rule in C++ in that the next unlimit will not be called if the previous one returns false.
-    unlimitDisplayAndContinue() &&
-    unlimitTstatesAndContinue() &&
-    unlimitCoresWithPstatesAndShouldContinue() &&
-    unlimitPstatesAndShouldContinue() &&
-    unlimitPowerAndShouldContinue();
+    requestUnlimitDisplayAndContinue(target) &&
+    requestUnlimitTstatesAndContinue(target) &&
+    requestUnlimitCoresWithPstatesAndShouldContinue(target) &&
+    requestUnlimitPstatesAndShouldContinue(target) &&
+    requestUnlimitPowerAndShouldContinue(target);
 }
 
-Bool DomainProxy::limitPowerAndShouldContinue()
+Bool DomainProxy::requestLimitPowerAndShouldContinue(UIntN target)
 {
     try
     {
-        if (m_powerControlKnob->canLimit())
+        if (m_powerControlKnob->canLimit(target))
         {
-            m_powerControlKnob->limit();
+            m_powerControlKnob->limit(target);
             return false;
         }
     }
@@ -239,19 +243,19 @@ Bool DomainProxy::limitPowerAndShouldContinue()
     return true;
 }
 
-Bool DomainProxy::limitPstatesWithCoresAndShouldContinue()
+Bool DomainProxy::requestLimitPstatesWithCoresAndShouldContinue(UIntN target)
 {
     try
     {
-        if (m_pstateControlKnob->canLimit())
+        if (m_pstateControlKnob->canLimit(target))
         {
-            m_pstateControlKnob->limit();
+            m_pstateControlKnob->limit(target);
 
             try
             {
-                if (m_coreControlKnob->canLimit())
+                if (m_coreControlKnob->canLimit(target))
                 {
-                    m_coreControlKnob->limit();
+                    m_coreControlKnob->limit(target);
                 }
             }
             catch (...)
@@ -269,13 +273,13 @@ Bool DomainProxy::limitPstatesWithCoresAndShouldContinue()
     return true;
 }
 
-Bool DomainProxy::limitCoresAndShouldContinue()
+Bool DomainProxy::requestLimitCoresAndShouldContinue(UIntN target)
 {
     try
     {
-        if (m_coreControlKnob->canLimit())
+        if (m_coreControlKnob->canLimit(target))
         {
-            m_coreControlKnob->limit();
+            m_coreControlKnob->limit(target);
             return false;
         }
     }
@@ -286,45 +290,13 @@ Bool DomainProxy::limitCoresAndShouldContinue()
     return true;
 }
 
-Bool DomainProxy::limitTstatesAndContinue()
+Bool DomainProxy::requestLimitTstatesAndContinue(UIntN target)
 {
     try
     {
-        if (m_tstateControlKnob->canLimit())
+        if (m_tstateControlKnob->canLimit(target))
         {
-            UtilizationStatus utilization = UtilizationStatus(Percentage::createInvalid());
-            try
-            {
-                utilization = getUtilizationStatus();
-            }
-            catch (...)
-            {
-                // assume 100% utilization if it does not report utilization
-                utilization = UtilizationStatus(1.0);
-            }
-
-            // only limit t-states if domain is not idle
-            if (utilization.getCurrentUtilization() > m_tstateUtilizationThreshold.getCurrentUtilization())
-            {
-                m_tstateControlKnob->limit();
-                return false;
-            }
-        }
-    }
-    catch (...)
-    {
-        // we want to continue on if this control fails for whatever reason
-    }
-    return true;
-}
-
-Bool DomainProxy::limitDisplayAndContinue()
-{
-    try
-    {
-        if (m_displayControlKnob->canLimit())
-        {
-            m_displayControlKnob->limit();
+            m_tstateControlKnob->limit(target);
             return false;
         }
     }
@@ -335,13 +307,13 @@ Bool DomainProxy::limitDisplayAndContinue()
     return true;
 }
 
-Bool DomainProxy::unlimitDisplayAndContinue()
+Bool DomainProxy::requestLimitDisplayAndContinue(UIntN target)
 {
     try
     {
-        if (m_displayControlKnob->canUnlimit())
+        if (m_displayControlKnob->canLimit(target))
         {
-            m_displayControlKnob->unlimit();
+            m_displayControlKnob->limit(target);
             return false;
         }
     }
@@ -352,13 +324,13 @@ Bool DomainProxy::unlimitDisplayAndContinue()
     return true;
 }
 
-Bool DomainProxy::unlimitTstatesAndContinue()
+Bool DomainProxy::requestUnlimitDisplayAndContinue(UIntN target)
 {
     try
     {
-        if (m_tstateControlKnob->canUnlimit())
+        if (m_displayControlKnob->canUnlimit(target))
         {
-            m_tstateControlKnob->unlimit();
+            m_displayControlKnob->unlimit(target);
             return false;
         }
     }
@@ -369,19 +341,36 @@ Bool DomainProxy::unlimitTstatesAndContinue()
     return true;
 }
 
-Bool DomainProxy::unlimitCoresWithPstatesAndShouldContinue()
+Bool DomainProxy::requestUnlimitTstatesAndContinue(UIntN target)
 {
     try
     {
-        if (m_coreControlKnob->canUnlimit())
+        if (m_tstateControlKnob->canUnlimit(target))
         {
-            m_coreControlKnob->unlimit();
+            m_tstateControlKnob->unlimit(target);
+            return false;
+        }
+    }
+    catch (...)
+    {
+        // we want to continue on if this control fails for whatever reason
+    }
+    return true;
+}
+
+Bool DomainProxy::requestUnlimitCoresWithPstatesAndShouldContinue(UIntN target)
+{
+    try
+    {
+        if (m_coreControlKnob->canUnlimit(target))
+        {
+            m_coreControlKnob->unlimit(target);
 
             try
             {
-                if (m_pstateControlKnob->canUnlimit())
+                if (m_pstateControlKnob->canUnlimit(target))
                 {
-                    m_pstateControlKnob->unlimit();
+                    m_pstateControlKnob->unlimit(target);
                 }
             }
             catch (...)
@@ -398,13 +387,13 @@ Bool DomainProxy::unlimitCoresWithPstatesAndShouldContinue()
     return true;
 }
 
-Bool DomainProxy::unlimitPstatesAndShouldContinue()
+Bool DomainProxy::requestUnlimitPstatesAndShouldContinue(UIntN target)
 {
     try
     {
-        if (m_pstateControlKnob->canUnlimit())
+        if (m_pstateControlKnob->canUnlimit(target))
         {
-            m_pstateControlKnob->unlimit();
+            m_pstateControlKnob->unlimit(target);
             return false;
         }
     }
@@ -415,13 +404,13 @@ Bool DomainProxy::unlimitPstatesAndShouldContinue()
     return true;
 }
 
-Bool DomainProxy::unlimitPowerAndShouldContinue()
+Bool DomainProxy::requestUnlimitPowerAndShouldContinue(UIntN target)
 {
     try
     {
-        if (m_powerControlKnob->canUnlimit())
+        if (m_powerControlKnob->canUnlimit(target))
         {
-            m_powerControlKnob->unlimit();
+            m_powerControlKnob->unlimit(target);
             return false;
         }
     }
@@ -432,29 +421,68 @@ Bool DomainProxy::unlimitPowerAndShouldContinue()
     return true;
 }
 
-Bool DomainProxy::canLimit(void)
+Bool DomainProxy::commitLimits()
 {
-    return
-        m_powerControlKnob->canLimit() ||
-        m_pstateControlKnob->canLimit() ||
-        m_coreControlKnob->canLimit() ||
-        m_tstateControlKnob->canLimit() ||
-        m_displayControlKnob->canLimit();
+    Bool committedPower = m_powerControlKnob->commitSetting();
+    Bool committedPstate = m_pstateControlKnob->commitSetting();
+    Bool committedCore = m_coreControlKnob->commitSetting();
+    Bool committedTstate = m_tstateControlKnob->commitSetting();
+    Bool committedDisplay = m_displayControlKnob->commitSetting();
+    return committedPower || committedPstate || committedCore || committedTstate || committedDisplay;
 }
 
-Bool DomainProxy::canUnlimit(void)
+Bool DomainProxy::canLimit(UIntN target)
 {
     return
-        m_displayControlKnob->canUnlimit() ||
-        m_tstateControlKnob->canUnlimit() ||
-        m_coreControlKnob->canUnlimit() ||
-        m_pstateControlKnob->canUnlimit() ||
-        m_powerControlKnob->canUnlimit();
+        m_powerControlKnob->canLimit(target) ||
+        m_pstateControlKnob->canLimit(target) ||
+        m_coreControlKnob->canLimit(target) ||
+        m_tstateControlKnob->canLimit(target) ||
+        m_displayControlKnob->canLimit(target);
+}
+
+Bool DomainProxy::canUnlimit(UIntN target)
+{
+    return
+        m_displayControlKnob->canUnlimit(target) ||
+        m_tstateControlKnob->canUnlimit(target) ||
+        m_coreControlKnob->canUnlimit(target) ||
+        m_pstateControlKnob->canUnlimit(target) ||
+        m_powerControlKnob->canUnlimit(target);
 }
 
 void DomainProxy::setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold)
 {
-    m_tstateUtilizationThreshold = tstateUtilizationThreshold;
+    m_tstateControlKnob->setTstateUtilizationThreshold(tstateUtilizationThreshold);
+}
+
+void DomainProxy::clearAllRequestsForTarget(UIntN target)
+{
+    m_powerControlKnob->clearRequestForTarget(target);
+    m_pstateControlKnob->clearRequestForTarget(target);
+    m_coreControlKnob->clearRequestForTarget(target);
+    m_tstateControlKnob->clearRequestForTarget(target);
+    m_displayControlKnob->clearRequestForTarget(target);
+}
+
+void DomainProxy::clearAllPerformanceControlRequests()
+{
+    m_perfControlRequests->clear();
+}
+
+void DomainProxy::clearAllPowerControlRequests()
+{
+    m_powerControlKnob->clearAllRequests();
+}
+
+void DomainProxy::clearAllCoreControlRequests()
+{
+    m_coreControlKnob->clearAllRequests();
+}
+
+void DomainProxy::clearAllDisplayControlRequests()
+{
+    m_displayControlKnob->clearAllRequests();
 }
 
 XmlNode* DomainProxy::getXmlForPassiveControlKnobs()

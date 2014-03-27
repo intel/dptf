@@ -33,12 +33,31 @@ TargetScheduler::~TargetScheduler()
 {
 }
 
+Bool TargetScheduler::hasCallbackWithinTimeRange(UIntN target, UInt64 beginTime, UInt64 endTime) const
+{
+    auto row = m_schedule.find(target);
+    if (row == m_schedule.end())
+    {
+        return false;
+    }
+
+    UInt64 scheduledTime = row->second.getTimeStamp() + row->second.getTimeDelta();
+    if ((beginTime <= scheduledTime) && (scheduledTime <= endTime))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 Bool TargetScheduler::hasCallbackScheduledAtOrBeforeTime(UIntN target, UInt64 time) const
 {
     auto row = m_schedule.find(target);
     if (row != m_schedule.end())
     {
-        return row->second.getTimeDelta() <= time;
+        return row->second.getTimeStamp() <= time;
     }
     else
     {
@@ -61,12 +80,11 @@ void TargetScheduler::removeCallback(UIntN target)
     m_schedule.erase(target);
 }
 
-void TargetScheduler::scheduleCallback(UIntN target, UInt64 timeDelta)
+void TargetScheduler::scheduleCallback(UIntN target, UInt64 time, UInt64 timeDelta)
 {
-    UInt64 currentTime = m_time->getCurrentTimeInMilliseconds();
     UInt64 callbackHandle =
         m_policyServices.policyInitiatedCallback->createPolicyInitiatedDeferredCallback(0, target, nullptr, timeDelta);
-    m_schedule[target] = TargetCallback(timeDelta, currentTime, callbackHandle);
+    m_schedule[target] = TargetCallback(timeDelta, time, callbackHandle);
 }
 
 void TargetScheduler::setTimeObject(std::shared_ptr<TimeInterface> time)

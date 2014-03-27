@@ -31,6 +31,13 @@ public:
     virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) override final;
     virtual std::string readConfigurationString(const std::string& key) override final;
 
+    virtual std::string readPlatformSettingValue(
+        PlatformSettingType::Type platformSettingType, UInt8 index) override final;
+    virtual void writePlatformSettingValue(
+        PlatformSettingType::Type platformSettingType, UInt8 index, const std::string& stringValue) override final;
+    virtual void clearPlatformSettings(
+        PlatformSettingType::Type platformSettingType) override final;
+
     virtual ActiveRelationshipTable getActiveRelationshipTable(void) override final;
     virtual ThermalRelationshipTable getThermalRelationshipTable(void) override final;
     virtual LpmTable getLpmTable(void) override final;
