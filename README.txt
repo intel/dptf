@@ -268,18 +268,7 @@ generic Linux kernels (32 and 64 bit) will be coming shortly.
 platforms and the 4th generation Intel® Core ™ processor based development 
 platforms using the UEFI BIOS.
 
-* When running ESIF UF application, the user may encounter minor memory leaks. 
-This issue is being addressed and will be fixed in the next revisions.
-
 * Compilation warnings will be noticed during the build process. These are 
 being addressed and will be fixed in a future release.
     
 * Display brightness control is not currently functional.
-
-* The daemon is intermittently dying after a period of time.  The root cause is
-unknown at this time.  The issue is under investigation.
-
-* When the system first boots the daemon will sporadically appear to start but
-the DPTF application is not running.  The workaround is to restart the daemon
-with "sudo initctl restart dptf".  We have root caused the issue and are 
-currently working on a fix for the next release.
