@@ -51,7 +51,6 @@ private:
 
     void createPowerControlDynamicCapsSet(UIntN domainIndex);
     void validatePowerControlDynamicCapsSet();
-    void determinePowerControlProgrammability();
     void programPowerControl(const PowerControlStatusSet& powerControlStatusSet, UIntN domainIndex);
     void validatePowerControlStatus(const PowerControlStatusSet& powerControlStatusSet, UIntN domainIndex);
     void initializePowerControlDynamicCapsSetIfNull(UIntN domainIndex);
@@ -61,6 +60,4 @@ private:
     ParticipantServicesInterface* m_participantServicesInterface;
     PowerControlDynamicCapsSet* m_powerControlDynamicCaps;
     PowerControlStatusSet* m_powerControlStatusSet;
-    std::map<PowerControlType::Type, Bool> m_canProgramPowerLimit;
-    std::map<PowerControlType::Type, Bool> m_canProgramTimeWindow;
 };

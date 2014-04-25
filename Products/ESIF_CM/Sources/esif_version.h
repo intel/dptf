@@ -60,7 +60,7 @@
 
 #define ESIF_VERSION_MAJOR 8
 #define ESIF_VERSION_MINOR 0
-#define ESIF_VERSION_HOTFIX 10
+#define ESIF_VERSION_HOTFIX 11
 #define ESIF_VERSION_BUILD 0
 
 /* Build system will should set to 0 */

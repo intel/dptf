@@ -52,7 +52,7 @@ extern u32 g_uf_xform;
 */
 
 /* Temperature Transform */
-static ESIF_INLINE enum esif_rc esif_xform_temp(
+static enum esif_rc esif_xform_temp(
 	const enum esif_temperature_type type,
 	esif_temp_t *temp_ptr,
 	const enum esif_action_type action,
@@ -70,6 +70,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 	UNREFERENCED_PARAMETER(temp_in);
 
 	if ((temp_ptr == NULL) || (dsp_ptr == NULL)) {
+		ESIF_TRACE_ERROR("The temperature or dsp pointer is NULL\n");
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 	temp_in  = *temp_ptr;
@@ -77,6 +78,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 
 	algo_ptr = dsp_ptr->get_algorithm(dsp_ptr, action);
 	if (algo_ptr == NULL) {
+		ESIF_TRACE_ERROR("The algorithm is not available for the action in dsp\n");
 		return ESIF_E_NEED_ALGORITHM;
 	}
 
@@ -94,11 +96,11 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 		if (opcode == ESIF_PRIMITIVE_OP_GET) {
 			temp_in_type  = ESIF_TEMP_MILLIC;
 			temp_out_type = type;
-			esif_convert_temp(temp_in_type, temp_out_type, &temp_out);	// Normalized from Kelvin
+			esif_convert_temp(temp_in_type, temp_out_type, &temp_out);	// Normalized from millic
 		} else {/* ESIF_PRIMITIVE_OP_SET */
 			temp_in_type  = type;
 			temp_out_type = ESIF_TEMP_MILLIC;
-			esif_convert_temp(temp_in_type, temp_out_type, &temp_out);	// Normalized to Kelvin
+			esif_convert_temp(temp_in_type, temp_out_type, &temp_out);	// Normalized to millic
 		}
 		break;
 
@@ -131,7 +133,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 
 		/* Tjmax must be provided by DSP */
 		if (opcode == ESIF_PRIMITIVE_OP_GET) {
-			temp_out      = tjmax - temp_out;
+			temp_out = (temp_out > tjmax) ? 0 : tjmax - temp_out;
 			temp_in_type  = ESIF_TEMP_C;
 			temp_out_type = type;
 			esif_convert_temp(temp_in_type, temp_out_type, &temp_out);
@@ -139,7 +141,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 			temp_in_type  = type;
 			temp_out_type = ESIF_TEMP_C;
 			esif_convert_temp(temp_in_type, temp_out_type, &temp_out);
-			temp_out = tjmax - temp_out;
+			temp_out = (temp_out > tjmax) ? 0 : tjmax - temp_out;
 		}
 		break;
 	}
@@ -196,7 +198,7 @@ static ESIF_INLINE enum esif_rc esif_xform_temp(
 
 
 /* Power Transform */
-static ESIF_INLINE enum esif_rc esif_xform_power(
+static enum esif_rc esif_xform_power(
 	const enum esif_power_unit_type type,
 	esif_power_t *power_ptr,
 	const enum esif_action_type action,
@@ -212,6 +214,7 @@ static ESIF_INLINE enum esif_rc esif_xform_power(
 	esif_power_t power_out;
 
 	if ((power_ptr == NULL) || (dsp_ptr == NULL)) {
+		ESIF_TRACE_ERROR("The power or dsp pointer is NULL\n");
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 	power_in  = *power_ptr;
@@ -219,6 +222,7 @@ static ESIF_INLINE enum esif_rc esif_xform_power(
 
 	algo_ptr  = dsp_ptr->get_algorithm(dsp_ptr, action);
 	if (algo_ptr == NULL) {
+		ESIF_TRACE_ERROR("The algorithm is not available for the action in dsp\n");
 		return ESIF_E_NEED_ALGORITHM;
 	}
 
@@ -340,7 +344,7 @@ static eEsifError PrimitiveActionUFGet(
 	/*  Participant Check */
 	if (NULL == up_ptr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
-		ESIF_TRACE_DEBUG("%s: Participant For Type %d NOT FOUND\n", ESIF_FUNC, participantId);
+		ESIF_TRACE_WARN("%s: Participant For Participant ID %d NOT FOUND\n", ESIF_FUNC, participantId);
 		goto exit;
 	}
 
@@ -353,6 +357,7 @@ static eEsifError PrimitiveActionUFGet(
 
 	/* Validate Action */
 	if (ESIF_TRUE == actiontype_ptr->fIsKernel || NULL == actiontype_ptr->fGetFuncPtr) {
+		ESIF_TRACE_DEBUG("Invalid action : kernel action or action function pointer is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
@@ -396,19 +401,20 @@ static eEsifError PrimitiveActionUFSet(
 	/* Participant Check */
 	if (NULL == up_ptr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
-		ESIF_TRACE_ERROR("%s: Participant For Type %d NOT FOUND\n", ESIF_FUNC, participantId);
+		ESIF_TRACE_WARN("%s: Participant For Participant ID %d NOT FOUND\n", ESIF_FUNC, participantId);
 		goto exit;
 	}
 
 	/* Find Action From Action Type LIST */
 	if (NULL == actiontype_ptr) {
 		rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
-		ESIF_TRACE_WARN("%s: Action For Type %d NOT FOUND Skipping...\n", ESIF_FUNC, type);
+		ESIF_TRACE_DEBUG("%s: Action For Type %d NOT FOUND Skipping...\n", ESIF_FUNC, type);
 		goto exit;
 	}
 
 	/* Validate Action */
 	if (ESIF_TRUE == actiontype_ptr->fIsKernel || NULL == actiontype_ptr->fSetFuncPtr) {
+		ESIF_TRACE_DEBUG("Invalid action : kernel action or action function pointer is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
@@ -452,12 +458,14 @@ static eEsifError PrimitiveActionLFGet(
 	ESIF_TRACE_DEBUG("%s: Send To LOWER_FRAMEWORK/KERNEL\n", ESIF_FUNC);
 
 	if ((NULL == requestPtr) || (NULL == responsePtr)) {
+		ESIF_TRACE_ERROR("The request/response buffer pointer is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
 	ipc_ptr = esif_ipc_alloc_primitive(&primitive_ptr, (responsePtr->buf_len + requestPtr->buf_len));
 	if (NULL == ipc_ptr || NULL == primitive_ptr) {
+		ESIF_TRACE_ERROR("Fail to allocate EsifIpc/EsifIpcPrimitive for IPC privimitive execution\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
@@ -535,6 +543,7 @@ static eEsifError PrimitiveActionLFSet(
 
 	ipc_ptr = esif_ipc_alloc_primitive(&primitive_ptr, requestPtr->buf_len);
 	if (NULL == ipc_ptr || NULL == primitive_ptr) {
+		ESIF_TRACE_ERROR("Fail to allocate EsifIpc/EsifIpcPrimitive for IPC privimitive execution\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
@@ -562,11 +571,13 @@ static eEsifError PrimitiveActionLFSet(
 
 	if (ESIF_OK != ipc_ptr->return_code) {
 		rc = ipc_ptr->return_code;
+		ESIF_TRACE_DEBUG("ipc_ptr return_code failure - %s\n", esif_rc_str(rc));
 		goto exit;
 	}
 
 	if (ESIF_OK != primitive_ptr->return_code) {
 		rc = primitive_ptr->return_code;
+		ESIF_TRACE_DEBUG("primitive_ptr return_code failure - %s\n", esif_rc_str(rc));
 		goto exit;
 	}
 exit:
@@ -750,6 +761,7 @@ eEsifError EsifExecutePrimitive(
 
 	dsp_ptr = up_ptr->fDspPtr;
 	if (NULL == dsp_ptr) {
+		ESIF_TRACE_ERROR("DSP is not found for participant %d\n", participantId);
 		rc = ESIF_E_NEED_DSP;
 		goto exit;
 	}
@@ -760,6 +772,7 @@ eEsifError EsifExecutePrimitive(
 
 	primitive_ptr  = dsp_ptr->get_primitive(dsp_ptr, &tuple);
 	if (NULL == primitive_ptr) {
+		ESIF_TRACE_DEBUG("The primivite id %d is not found in DSP\n", primitiveId);
 		rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
 		goto exit;
 	}
@@ -804,6 +817,7 @@ eEsifError EsifExecutePrimitive(
 		responsePtr->buf_ptr = esif_ccb_malloc(size);
 		responsePtr->buf_len = size;
 		if (NULL == responsePtr->buf_ptr) {
+			ESIF_TRACE_ERROR("Fail to allocate response buffer\n");
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
@@ -825,6 +839,7 @@ retry:
 	}
 
 	if (primitive_ptr->num_actions == 0) {
+		ESIF_TRACE_ERROR("No action is supported for primitive %d\n", primitiveId);
 		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 		goto exit;
 	}
@@ -835,6 +850,7 @@ retry:
 	for (kernAct = 0, i = 0; i < (int)primitive_ptr->num_actions; i++) {
 		action_ptr = dsp_ptr->get_action(dsp_ptr, primitive_ptr, (u8)i);
 		if (NULL == action_ptr) {
+			ESIF_TRACE_DEBUG("The action is not found for primitive id %d\n", primitiveId);
 			rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 			goto exit;
 		}
@@ -960,6 +976,11 @@ retry:
 						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED, &void_data);
 						ESIF_TRACE_DEBUG("Send Event ==>ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED\n");
 					}
+					else if (SET_PROC_PERF_PSTATE_DEPTH_LIMIT == primitive_ptr->tuple.id || 
+							 SET_PERF_SUPPORT_STATE == primitive_ptr->tuple.id) {
+						EsifAppsEvent(participantId, primitive_ptr->tuple.domain, ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED, &void_data);
+						ESIF_TRACE_DEBUG("Send Event ==>ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED\n");
+					}
 				}
 			}
 			ESIF_TRACE_DEBUG("Using User-Level service for action %d! rc %s\n", i, esif_rc_str(rc));
@@ -1014,6 +1035,7 @@ retry:
 			responsePtr->buf_ptr = esif_ccb_malloc(responsePtr->data_len);
 			responsePtr->buf_len = responsePtr->data_len;
 			if (NULL == responsePtr->buf_ptr) {
+				ESIF_TRACE_ERROR("Fail to allocate response buffer\n");
 				rc = ESIF_E_NO_MEMORY;
 				goto exit;
 			}

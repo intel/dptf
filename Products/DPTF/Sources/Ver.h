@@ -38,8 +38,8 @@ extern "C" {
 #define VER_MAJOR_STR   "8"
 #define VER_MINOR        0
 #define VER_MINOR_STR   "0"
-#define VER_HOTFIX       10
-#define VER_HOTFIX_STR  "10"
+#define VER_HOTFIX       11
+#define VER_HOTFIX_STR  "11"
 #define VER_BUILD       0
 #define VER_BUILD_STR   "0"
 
@@ -70,13 +70,13 @@ extern "C" {
 #define VERSION_RC VERSION_STR "\0"
 
 /* Defines a common Copyright String used in the tools and OROM headers */
-#define COPYRIGHT_STR  "Copyright(C) 2003-2013 Intel Corporation.  All Rights Reserved."
+#define COPYRIGHT_STR  "Copyright(C) 2003-2014 Intel Corporation.  All Rights Reserved."
 
 /* Defines a common Copyright String used in the Windows UI */
-#define COPYRIGHT_UI_STR  "Copyright(C) 2003-2013 Intel Corporation \0"
+#define COPYRIGHT_UI_STR  "Copyright(C) 2003-2014 Intel Corporation \0"
 
 /* Defines a common Copyright String used in the Windows Driver */
-#define COPYRIGHT_DRV_STR "Copyright(C) 2003-2013 Intel Corporation \0"
+#define COPYRIGHT_DRV_STR "Copyright(C) 2003-2014 Intel Corporation \0"
 
 // NOTE:  VER_VERSION is used for displaying version in RC file
 #define VER_VERSION  VER_MAJOR, VER_MINOR, VER_HOTFIX, VER_BUILD

@@ -23,10 +23,6 @@ DomainPowerControl_001::DomainPowerControl_001(ParticipantServicesInterface* par
     m_participantServicesInterface(participantServicesInterface),
     m_powerControlDynamicCaps(nullptr), m_powerControlStatusSet(nullptr)
 {
-    m_canProgramPowerLimit[PowerControlType::pl1] = true;
-    m_canProgramPowerLimit[PowerControlType::pl2] = true;
-    m_canProgramTimeWindow[PowerControlType::pl1] = false;
-    m_canProgramTimeWindow[PowerControlType::pl2] = false;
 }
 
 DomainPowerControl_001::~DomainPowerControl_001(void)
@@ -105,7 +101,7 @@ void DomainPowerControl_001::programPowerControl(const PowerControlStatusSet& po
 {
     for (UIntN i = 0; i < powerControlStatusSet.getCount(); i++)
     {
-        if (m_canProgramPowerLimit[powerControlStatusSet[i].getPowerControlType()] == true)
+        if (powerControlStatusSet[i].getPowerControlType() == PowerControlType::pl1)
         {
             m_participantServicesInterface->primitiveExecuteSetAsPower(
                 esif_primitive_type::SET_RAPL_POWER_LIMIT,
@@ -133,21 +129,6 @@ void DomainPowerControl_001::programPowerControl(const PowerControlStatusSet& po
         {
             std::stringstream msg;
             msg << PowerControlType::ToString(powerControlStatusSet[i].getPowerControlType()) << " power control is not programmable.  Ignoring.";
-            m_participantServicesInterface->writeMessageDebug(ParticipantMessage(FLF, msg.str()));
-        }
-
-        if (m_canProgramTimeWindow[powerControlStatusSet[i].getPowerControlType()] == true)
-        {
-            m_participantServicesInterface->primitiveExecuteSetAsUInt32(
-                esif_primitive_type::SET_RAPL_TIME_WINDOW,
-                powerControlStatusSet[i].getCurrentTimeWindow(),
-                domainIndex,
-                static_cast<UInt8>(powerControlStatusSet[i].getPowerControlType()));
-        }
-        else
-        {
-            std::stringstream msg;
-            msg << PowerControlType::ToString(powerControlStatusSet[i].getPowerControlType()) << " time window is not programmable.  Ignoring.";
             m_participantServicesInterface->writeMessageDebug(ParticipantMessage(FLF, msg.str()));
         }
     }
@@ -194,7 +175,6 @@ void DomainPowerControl_001::initializePowerControlDynamicCapsSetIfNull(UIntN do
             dynamicCapsSetFromControl));
         binaryData.deallocate();
         validatePowerControlDynamicCapsSet();
-        determinePowerControlProgrammability();
     }
 }
 
@@ -225,22 +205,6 @@ void DomainPowerControl_001::validatePowerControlDynamicCapsSet()
         {
             msg << " Bad duty cycle capabilities. Max is < min.";
             throw dptf_exception(msg.str());
-        }
-    }
-}
-
-void DomainPowerControl_001::determinePowerControlProgrammability()
-{
-    for (UIntN i = 0; i < m_powerControlDynamicCaps->getCount(); i++)
-    {
-        if ((*m_powerControlDynamicCaps)[i].getMaxPowerLimit() == (*m_powerControlDynamicCaps)[i].getMinPowerLimit())
-        {
-            m_canProgramPowerLimit[(*m_powerControlDynamicCaps)[i].getPowerControlType()] = false;
-        }
-
-        if ((*m_powerControlDynamicCaps)[i].getMaxTimeWindow() == (*m_powerControlDynamicCaps)[i].getMinTimeWindow())
-        {
-            m_canProgramTimeWindow[(*m_powerControlDynamicCaps)[i].getPowerControlType()] = false;
         }
     }
 }
