@@ -1,0 +1,15 @@
+if (IN_SOURCE_BUILD MATCHES YES)                                                                                                                                                                                                                                        
+        include_directories(..)
+        include_directories(../EsifSdk)
+        include_directories(../ThirdParty)
+        file(GLOB_RECURSE shared_lib_SOURCES "*.cpp")
+else ()
+        include_directories(../../Sources)
+        include_directories(../../Sources/EsifSdk)
+        include_directories(../../Sources/ThirdParty)
+        file(GLOB_RECURSE shared_lib_SOURCES "../../Sources/SharedLib/*.cpp")
+endif()
+
+add_library(${SHARED_LIB} STATIC ${shared_lib_SOURCES})
+
+set_target_properties(${SHARED_LIB} PROPERTIES PREFIX "")

@@ -1,3 +1,0 @@
-getp_bs 84 D0 255 sb_tfan_84_D0_255 ;GET_FAN_INFORMATION
-getp_bs 85 D0 255 sb_tfan_85_D0_255 ;GET_FAN_PERFORMANCE_STATES
-rem done

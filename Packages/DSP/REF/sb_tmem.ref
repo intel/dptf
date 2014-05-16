@@ -1,2 +1,0 @@
-getp_bs 75 D0 255 sb_tmem_75_D0_255 ;GET_RAPL_POWER_CONTROL_CAPABILITIES
-rem done

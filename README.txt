@@ -1,5 +1,5 @@
 Intel (R) Dynamic Platform and Thermal Framework (Intel (R) DPTF) 
-for Chromium OS - Alpha Release 
+for Chromium OS - 8.0.10001 Release 
 
 README
 
@@ -40,23 +40,22 @@ to install:
 	sudo emerge cmake
 
 Step 4 - Go to the Linux subdirectory of DPTF
-	 (<DPTF archive root>/Products/DPTF/Linux/build) and run the command:
+	 (<DPTF archive root>/DPTF/Linux/build) and run the command:
 
-	CC="x86_64-cros-linux-gnu-gcc" CXX="x86_64-cros-linux-gnu-g++"
-	   CXXFLAGS='-g -O0' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..
+	CC="x86_64-cros-linux-gnu-gcc" CXX="x86_64-cros-linux-gnu-g++" CXXFLAGS='-g -O0' cmake -DCHROMIUM_BUILD=YES -DBUILD_ARCH=64bit ..
 
 This command will invoke cmake and generate all the GNU make files for each 
 sub-modules of DPTF user space libraries.
 
 Step 5 - Run make to build all DPTF shared libraries.
 
-	make
+	make -j`nproc`
 
 The generated shared libraries will be located under 
 <DPTF root>/Products/DPTF/Linux/build/x64 directory. Users can disregard
 the static .a libraries as these static libraries are only used to build the
 shared library. Here is the break down of the generated shared libraries that
-are needed to run DPTF for this Alpha release on Chromium.
+are needed to run DPTF for this release on Chromium.
 
 	* Dptf.so
 	* DptfPolicyCritical.so
@@ -70,8 +69,7 @@ Still in chroot, we can now build the ESIF shell application. Simply go to the
 run the following commands: 
 
 	make clean
-	CC='x86_64-cros-linux-gnu-gcc' CFLAGS='-g -O0 -DESIF_ATTR_DEBUG
-	     -DESIF_ATTR_MEMTRACE' make
+	CC='x86_64-cros-linux-gnu-gcc' CFLAGS='-g -O0 -DESIF_ATTR_DEBUG -DESIF_ATTR_MEMTRACE' make
 
 After the build is complete, the esif_uf binary executable will be generated in
 the current directory.
@@ -83,8 +81,8 @@ The ESIF kernel modules will also be built in the chroot environment.
 
 Step 1 - Locate the makefile for ESIF_LF. Depending on if the user wants to 
 build the debug or the release version, this file should be located under
-<DPTF archive root>/Products/ESIF_LF/Linuxx64Atom/Debug or 
-<DPTF archive root>/Products/ESIF_LF/Linuxx64Atom/Release directory.
+<DPTF archive root>/ESIF/Products/ESIF_LF/Linuxx64Atom/Debug or 
+<DPTF archive root>/ESIF/Products/ESIF_LF/Linuxx64Atom/Release directory.
 
 Step 2 - Setup a symbolic link at /usr/src/linux that points to the desired
 kernel headers.  Example:
@@ -108,8 +106,8 @@ file. This file is needed when building ESIF_IF kernel modules.
 Step 5 - After all the above steps are done, the user can now issue "make clean"
 followed by "make" commands in the ESIF_LF directory to build the ESIF kernel
 modules. Depending on if the user needs the debug or release version, the 
-makefile is located under ESID/Products/ESIF_LF/Linuxx64/Debug or 
-ESID/Products/ESIF_LF/Linuxx64/Release directory. The kernel modules will 
+makefile is located under ESIF/Products/ESIF_LF/Linuxx64/Debug or 
+ESIF/Products/ESIF_LF/Linuxx64/Release directory. The kernel modules will 
 be generated in the current local diretory. There will be 5 files generated,
 but only 4 are needed and they are:
 
@@ -192,12 +190,12 @@ esif_uf application will be looking for various files at this location.
 The commands to do the move are as follows (executed from the chrome_build
 dir):
 	a. mkdir /usr/share/dptf (if it doesn't already exist)
-	b. cp -R ./dsp /usr/share/dptf
-	c. cp ./ufx64/DptfPolicy*.so /usr/share/dptf
-	d. cp ./ufx64/Dptf.so /usr/lib
-	e. cp ./ufx64/combined.xsl /usr/share/dptf 
-	f. cp ./ufx64/esif_ufd /usr/bin
-	g. cp -R ./cmd /usr/share/dptf	
+	b. mkdir /etc/dptf (if it doesn't already exist)
+	c. cp dsp.dv /etc/dptf
+	d. cp ./ufx64/DptfPolicy*.so /usr/share/dptf
+	e. cp ./ufx64/Dptf.so /usr/lib
+	f. cp ./ufx64/combined.xsl /usr/share/dptf 
+	g. cp ./ufx64/esif_ufd /usr/bin
 
 Step 3 - Start ESIF Upper Framework Daemon
 To start ESIF upper framework shell, go to the ufx64 subdirectory and run
@@ -209,11 +207,7 @@ you cannot interact with.  If you wish to run interactively, pass it the -s
 switch.  The help text for the esif_ufd can be viewed by passing it the -h
 switch.
 
-Provided that the contents of the /usr/share/dptf/cmd/start file are exactly
-"appstart Dptf", DPTF will be automatically started when esif_ufd is executed.
-If you wish to manually start DPTF, remove the /usr/share/dptf/cmd/start file.
-
-Once the appstart has been issued, DPTF will be active.
+DPTF will be automatically started when esif_ufd is executed. 
 
 (Optional) Step 4 - Start ESIF Upper Framework Daemon w/command pipe and log
 Since the esif_ufd runs as a daemon by default, switches can be passed to
@@ -234,7 +228,7 @@ This will create a command pipe at /tmp/esifd.cmd and an output log at
 -------------------------------------------------------------------------------
 VERIFY INSTALL/CONFIGURATION
 -------------------------------------------------------------------------------
-Once you can successfully enter the ESIF shell (by running the esif_uf),
+Once you can successfully enter the ESIF shell (by running the esif_ufd),
 commands can be issues to verify what has been exposed to ESIF.  These commands
 include (help text available by typing "help" or "help <command>"):
 
@@ -261,10 +255,9 @@ KNOWN ISSUES / LIMITATIONS
 -------------------------------------------------------------------------------
 
 * The code on GitHub has only been built, tested, and validated on the 
-BayTrail-M kernel for Chromium 64 bit.  Instructions on how to build for the 
-generic Linux kernels (32 and 64 bit) will be coming shortly.
+BayTrail-M kernel for Chromium 64 bit.  
 
-* Limited testing has only been performed on Intel BayTrail-M based development
+* Testing has been performed on Intel BayTrail-M based Chromebook
 platforms and the 4th generation Intel® Core ™ processor based development 
 platforms using the UEFI BIOS.
 

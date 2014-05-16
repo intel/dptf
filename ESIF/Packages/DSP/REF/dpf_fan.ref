@@ -1,0 +1,3 @@
+getp_bs 84 D0 255 dpf_fan_84_D0_255 ;GET_FAN_INFORMATION
+getp_bs 85 D0 255 dpf_fan_85_D0_255 ;GET_FAN_PERFORMANCE_STATES
+rem done
