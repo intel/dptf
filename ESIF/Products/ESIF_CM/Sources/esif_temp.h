@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -88,21 +88,18 @@ enum esif_temperature_type {
 static ESIF_INLINE esif_string esif_temperature_type_str(
 	enum esif_temperature_type type)
 {
-	#define ESIF_CREATE_TEMP_TYPE(t, str) case t: str = #t; break;
-
-	esif_string str = ESIF_NOT_AVAILABLE;
 	switch (type) {
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_K, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_DECIK, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_CENTIK, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_MILLIK, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_C, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_DECIC, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_CENTIC, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_MILLIC, str)
-		ESIF_CREATE_TEMP_TYPE(ESIF_TEMP_THERMISTOR, str)
+	ESIF_CASE_ENUM(ESIF_TEMP_K);
+	ESIF_CASE_ENUM(ESIF_TEMP_DECIK);
+	ESIF_CASE_ENUM(ESIF_TEMP_CENTIK);
+	ESIF_CASE_ENUM(ESIF_TEMP_MILLIK);
+	ESIF_CASE_ENUM(ESIF_TEMP_C);
+	ESIF_CASE_ENUM(ESIF_TEMP_DECIC);
+	ESIF_CASE_ENUM(ESIF_TEMP_CENTIC);
+	ESIF_CASE_ENUM(ESIF_TEMP_MILLIC);
+	ESIF_CASE_ENUM(ESIF_TEMP_THERMISTOR);
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -110,21 +107,18 @@ static ESIF_INLINE esif_string esif_temperature_type_str(
 static ESIF_INLINE esif_string esif_temperature_type_desc(
 	enum esif_temperature_type type)
 {
-	#define ESIF_CREATE_TEMP_UNIT_DESC(t, td, str) case t: str = td; break;
-
-	esif_string str = ESIF_NOT_AVAILABLE;
 	switch (type) {
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_K, "K", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_DECIK, "DeciK", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_CENTIK, "CentiK", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_MILLIK, "MilliK", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_C, "C", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_DECIC, "DeciC", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_CENTIC, "CentiC", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_MILLIC, "MilliC", str)
-		ESIF_CREATE_TEMP_UNIT_DESC(ESIF_TEMP_THERMISTOR, "Thermistor", str)
+	ESIF_CASE(ESIF_TEMP_K, "K");
+	ESIF_CASE(ESIF_TEMP_DECIK, "DeciK");
+	ESIF_CASE(ESIF_TEMP_CENTIK, "CentiK");
+	ESIF_CASE(ESIF_TEMP_MILLIK, "MilliK");
+	ESIF_CASE(ESIF_TEMP_C, "C");
+	ESIF_CASE(ESIF_TEMP_DECIC, "DeciC");
+	ESIF_CASE(ESIF_TEMP_CENTIC, "CentiC");
+	ESIF_CASE(ESIF_TEMP_MILLIC, "MilliC");
+	ESIF_CASE(ESIF_TEMP_THERMISTOR, "Thermistor");
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -137,6 +131,95 @@ static ESIF_INLINE esif_string esif_temperature_type_desc(
 
 /* Convert In Between Kelvin and Celsius */
 #define DPTF_KELVIN_BASE 2732
+
+/* Normalize Values Functions: Add 5, 50 or 500 To Make It Round Up */
+static ESIF_INLINE esif_temp_t esif_temp_c2c(
+	enum esif_temperature_type out,
+	esif_temp_t val)
+{
+	switch (out) {
+	case ESIF_TEMP_C:
+		val = ((val) + 500) / 1000;
+		break;
+	case ESIF_TEMP_DECIC:
+		val = ((val) + 50) / 100;
+		break;
+	case ESIF_TEMP_CENTIC:
+		val = ((val) + 5) / 10;
+		break;
+	case ESIF_TEMP_MILLIC:
+	default:
+		break;
+	}
+	return val;
+}
+
+static ESIF_INLINE esif_temp_t esif_temp_k2c(
+	enum esif_temperature_type out,
+	esif_temp_t val)
+{
+	switch (out) {
+	case ESIF_TEMP_C:
+		val = (((val) - (DPTF_KELVIN_BASE * 100)) + 500) / 1000;
+		break;
+	case ESIF_TEMP_DECIC:
+		val = (((val) - (DPTF_KELVIN_BASE * 100)) + 50) / 100;
+		break;
+	case ESIF_TEMP_CENTIC:
+		val = (((val) - (DPTF_KELVIN_BASE * 100)) + 5) / 10;
+		break;
+	case ESIF_TEMP_MILLIC:
+		val = ((val) - (DPTF_KELVIN_BASE * 100));
+		break;
+	default:
+		break;
+	}
+	return val;
+}
+
+static ESIF_INLINE esif_temp_t esif_temp_c2k(
+	enum esif_temperature_type out,
+	esif_temp_t val)
+{
+	switch (out) {
+	case ESIF_TEMP_K:
+		val = (((val) + (DPTF_KELVIN_BASE * 100)) + 500) / 1000;
+		break;
+	case ESIF_TEMP_DECIK:
+		val = (((val) + (DPTF_KELVIN_BASE * 100)) + 50) / 100;
+		break;
+	case ESIF_TEMP_CENTIK:
+		val = (((val) + (DPTF_KELVIN_BASE * 100)) + 5) / 10;
+		break;
+	case ESIF_TEMP_MILLIK:
+		val = ((val) + (DPTF_KELVIN_BASE * 100));
+		break;
+	default:
+		break;
+	}
+	return val;
+}
+
+static ESIF_INLINE esif_temp_t esif_temp_k2k(
+	enum esif_temperature_type out,
+	esif_temp_t val)
+{
+	switch (out) {
+	case ESIF_TEMP_K:
+		val = ((val) + 500) / 1000;
+		break;
+	case ESIF_TEMP_DECIK:
+		val = ((val) + 50) / 100;
+		break;
+	case ESIF_TEMP_CENTIK:
+		val = ((val) + 5) / 10;
+		break;
+	case ESIF_TEMP_MILLIK:
+	default:
+		break;
+	}
+	return val;
+}
 
 /* Normalize Celisus temperature. */
 static ESIF_INLINE int esif_convert_temp(
@@ -179,76 +262,6 @@ static ESIF_INLINE int esif_convert_temp(
 		return ESIF_E_UNSUPPORTED_REQUEST_TEMP_TYPE;
 	}
 
-	/* Add 5, 50 or 500 To Make It Round Up */
-	#define esif_temp_c2c(out, val) {		\
-		switch (out) {				\
-		case ESIF_TEMP_C:			\
-			val = (val + 500) / 1000;	\
-			break;				\
-		case ESIF_TEMP_DECIC:			\
-			val = (val + 50) / 100;		\
-			break;				\
-		case ESIF_TEMP_CENTIC:			\
-			val = (val + 5) / 10;		\
-			break;				\
-		case ESIF_TEMP_MILLIC:			\
-		default:				\
-			break;				\
-		}					\
-}
-	#define esif_temp_k2c(out, val)  {				\
-		switch (out) {						\
-		case ESIF_TEMP_C:					\
-			val = ((val - (DPTF_KELVIN_BASE * 100)) + 500) / 1000;\
-			break;						\
-		case ESIF_TEMP_DECIC:					\
-			val = ((val - (DPTF_KELVIN_BASE * 100)) + 50) / 100;\
-			break;						\
-		case ESIF_TEMP_CENTIC:					\
-			val = ((val - (DPTF_KELVIN_BASE * 100)) + 5) / 10;\
-			break;						\
-		case ESIF_TEMP_MILLIC:					\
-			val = (val - (DPTF_KELVIN_BASE * 100));		\
-			break;						\
-		default:						\
-			break;						\
-		}							\
-}
-	#define esif_temp_c2k(out, val) {				\
-		switch (out) {						\
-		case ESIF_TEMP_K:					\
-			val = ((val + (DPTF_KELVIN_BASE * 100)) + 500) / 1000;\
-			break;						\
-		case ESIF_TEMP_DECIK:					\
-			val = ((val + (DPTF_KELVIN_BASE * 100)) + 50) / 100;\
-			break;						\
-		case ESIF_TEMP_CENTIK:					\
-			val = ((val + (DPTF_KELVIN_BASE * 100)) + 5) / 10;\
-			break;						\
-		case ESIF_TEMP_MILLIK:					\
-			val = (val + (DPTF_KELVIN_BASE * 100));		\
-			break;						\
-		default:						\
-			break;						\
-		}							\
-}
-	#define esif_temp_k2k(out, val) {		\
-		switch (out) {				\
-		case ESIF_TEMP_K:			\
-			val = (val + 500) / 1000;	\
-			break;				\
-		case ESIF_TEMP_DECIK:			\
-			val = (val + 50) / 100;		\
-			break;				\
-		case ESIF_TEMP_CENTIK:			\
-			val = (val + 5) / 10;		\
-			break;				\
-		case ESIF_TEMP_MILLIK:			\
-		default:				\
-			break;				\
-		}					\
-}
-
 	/* Normalize To Output Type */
 	switch (out) {
 	case ESIF_TEMP_C:
@@ -260,11 +273,11 @@ static ESIF_INLINE int esif_convert_temp(
 		case ESIF_TEMP_DECIK:
 		case ESIF_TEMP_CENTIK:
 		case ESIF_TEMP_MILLIK:
-			esif_temp_k2c(out, val);
+			val = esif_temp_k2c(out, val);
 			break;
 
 		default:
-			esif_temp_c2c(out, val);
+			val = esif_temp_c2c(out, val);
 		}
 		break;
 
@@ -277,11 +290,11 @@ static ESIF_INLINE int esif_convert_temp(
 		case ESIF_TEMP_DECIK:
 		case ESIF_TEMP_CENTIK:
 		case ESIF_TEMP_MILLIK:
-			esif_temp_k2k(out, val);
+			val = esif_temp_k2k(out, val);
 			break;
 
 		default:
-			esif_temp_c2k(out, val);
+			val = esif_temp_c2k(out, val);
 		}
 		break;
 

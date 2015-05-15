@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -61,7 +61,7 @@ void ESIF_INLINE IString_ctor (IStringPtr self)
 
 void ESIF_INLINE IString_dtor (IStringPtr self)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->buf_len) {
 		esif_ccb_free(self->buf_ptr);
 	}
@@ -182,7 +182,7 @@ u32 IString_DataLen (IStringPtr self)
 // Truncate an IString
 void IString_Truncate (IStringPtr self)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->data_len) {
 		*((ZString)(self->buf_ptr)) = 0;
 		self->data_len = 1;
@@ -253,31 +253,15 @@ int IString_Sscanf (
 	)
 {
 	int result = 0;
-	const char *fmtstr = 0;
 	va_list args;
 
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->data_len <= 1) {
 		return result;
 	}
 
 	va_start(args, format);
-
-	// If format specifier is a string (%s, %S, %[...]), get buffer length from arguments
-	fmtstr = strchr(format, '%');
-	if (fmtstr) {
-		const char *fmt = fmtstr + 1;
-		u32 len = 0;
-		BytePtr arg     = va_arg(args, BytePtr);
-
-		// Skip optional width & size4
-		while (*fmt != 0 && (isdigit(*fmt) || strchr("ILlh", *fmt) != 0))
-			fmt++;
-		if (strchr("sS[]", *fmt) != 0) {// %s, %S, %[a-z]
-			len = va_arg(args, u32);
-		}
-		result = esif_ccb_sscanf((ZString)self->buf_ptr, format, arg, len);
-	}
+	esif_ccb_vsscanf((ZString)self->buf_ptr, format, args);
 	va_end(args);
 	return result;
 }
@@ -292,7 +276,7 @@ ZString IString_Resize (
 	u32 buf_len
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	// Allocate initial buffer if it has never been allocated
 	if (self->buf_ptr == 0) {
 		self->buf_ptr = esif_ccb_malloc(buf_len);
@@ -334,7 +318,7 @@ ZString IString_Copy (
 	IStringPtr src
 	)
 {
-	ASSERT(self && src);
+	ESIF_ASSERT(self && src);
 	if (src->data_len > self->buf_len) {
 #ifdef ISTRING_AUTOGROW
 		if (IString_Resize(self, src->data_len + ISTRING_AUTOGROW) == NULL)
@@ -354,7 +338,7 @@ ZString IString_Concat (
 	)
 {
 	u32 self_len;
-	ASSERT(self && src);
+	ESIF_ASSERT(self && src);
 	self_len = (self->data_len ? self->data_len - 1 : 0);
 	if (self_len + src->data_len > self->buf_len) {
 #ifdef ISTRING_AUTOGROW
@@ -378,7 +362,7 @@ int IString_VSprintfTo (
 {
 	u32 len;
 	int result = 0;
-	ASSERT(self);
+	ESIF_ASSERT(self);
 
 	len    = esif_ccb_vscprintf(format, args);
 	offset = (self->data_len > 0 ? esif_ccb_min(offset, self->data_len - 1) : 0);
@@ -438,7 +422,7 @@ ZString IString_ReplaceIString (
 	u32 count, oldsize, newsize;
 
 	// Sanity checks. Cannot replace an empty string
-	ASSERT(self && what && with);
+	ESIF_ASSERT(self && what && with);
 	if (self->data_len <= 1 || what->data_len <= 1) {
 		return 0;
 	}
@@ -545,7 +529,7 @@ int IString_Strcmp (
 	ZString str2
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->buf_ptr && str2) {
 		return esif_ccb_strcmp((ZString)self->buf_ptr, str2);
 	}
@@ -558,7 +542,7 @@ int IString_Stricmp (
 	ZString str2
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->buf_ptr && str2) {
 		return esif_ccb_stricmp((ZString)self->buf_ptr, str2);
 	}
@@ -572,7 +556,7 @@ int IString_Strncmp (
 	u32 count
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->buf_ptr && str2) {
 		return esif_ccb_strncmp((ZString)self->buf_ptr, str2, count);
 	}
@@ -586,7 +570,7 @@ int IString_Strnicmp (
 	u32 count
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->buf_ptr && str2) {
 		return esif_ccb_strnicmp((ZString)self->buf_ptr, str2, count);
 	}

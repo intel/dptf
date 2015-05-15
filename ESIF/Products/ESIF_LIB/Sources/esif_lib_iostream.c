@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <string.h>
-#include <assert.h>
 #include <errno.h>
 # include <sys/stat.h>
 
@@ -106,7 +105,7 @@ int IOStream_SetFile (
 	StringPtr mode
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	IOStream_dtor(self);
 	self->type = StreamFile;
 	self->file.name = esif_ccb_strdup(filename);
@@ -124,7 +123,7 @@ int IOStream_SetMemory (
 	size_t size
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	IOStream_dtor(self);
 	self->type = StreamMemory;
 	self->memory.buffer   = buffer;
@@ -223,7 +222,7 @@ int IOStream_OpenMemoryClone (
 	size_t size
 	)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	IOStream_Close(self);
 	self->memory.buffer = (BytePtr)esif_ccb_malloc(size);
 	if (self->memory.buffer != NULL) {
@@ -249,7 +248,7 @@ int IOStream_OpenMemoryCloneFile (
 	size_t bytes = 0;
 	size_t bytesread   = 0;
 
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	IOStream_Close(self);
 	source = (IOStreamPtr)IOStream_Create();
 	bytes  = IOStream_GetFileSize(filename) + 1;// Include Hidden Null Terminator
@@ -296,7 +295,7 @@ size_t IOStream_Read (
 	)
 {
 	size_t rc = 0;
-	ASSERT(self && dest_buffer);
+	ESIF_ASSERT(self && dest_buffer);
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -328,7 +327,7 @@ size_t IOStream_Write (
 	)
 {
 	size_t rc = 0;
-	ASSERT(self && src_buffer);
+	ESIF_ASSERT(self && src_buffer);
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -355,7 +354,7 @@ StringPtr IOStream_GetLine (
 	)
 {
 	StringPtr result = 0;
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -399,7 +398,7 @@ int IOStream_Seek (
 	)
 {
 	int rc = EBADF;
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -452,7 +451,7 @@ int IOStream_Seek (
 // Get the current offset (from start) of the open IOStream
 size_t IOStream_GetOffset (IOStreamPtr self)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	switch (self->type) {
 	case StreamFile:
 		return esif_ccb_ftell(self->file.handle);
@@ -474,7 +473,7 @@ size_t IOStream_GetOffset (IOStreamPtr self)
 // Return the IOStream type
 StreamType IOStream_GetType (IOStreamPtr self)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	return self->type;
 }
 
@@ -506,7 +505,7 @@ size_t IOStream_GetSize (IOStreamPtr self)
 // Return the Memory Buffer address of a Memory Buffer IOStream (or NULL if not StreamMemory)
 BytePtr IOStream_GetMemoryBuffer (IOStreamPtr self)
 {
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	switch (self->type) {
 	case StreamMemory:
 		return self->memory.buffer;

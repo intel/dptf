@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -86,7 +86,7 @@ void StringList_Add (
 	char *str
 	)
 {
-	ASSERT(str);
+	ESIF_ASSERT(str);
 	self->list = (char**)esif_ccb_realloc(self->list, (self->items + 2) * sizeof(self->list[0]));
 	if (self->list) {
 		self->list[self->items++] = String_Clone(str);

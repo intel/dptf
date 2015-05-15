@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,6 +41,28 @@
 #define MAX_EDP_SIZE    0x7fffffff
 #define MAX_FPC_SIZE    0x7fffffff
 
+#define MIN_VIABLE_DSP_WEIGHT 1
+
+enum dspSelectorWeight {
+	ACPI_HID_WEIGHT = 10,
+	ACPI_PTYPE_WEIGHT = 18,
+	PCI_DEVICE_ID_WEIGHT = 20,
+	PCI_VENDOR_ID_WEIGHT = 2,
+	PARTICIPANT_TYPE_WEIGHT = 4,
+	PARTICIPANT_NAME_WEIGHT = 8
+};
+
+static int compare_and_weight_minterm(
+	esif_string dsp,
+	esif_string qry,
+	enum dspSelectorWeight weight
+	);
+
+EsifString GetDSPFromList(
+	EsifString name
+	);
+
+
 /*
  *******************************************************************************
  ** PRIVATE
@@ -52,10 +74,6 @@
 ** and their attributes.
 */
 struct esif_uf_dm g_dm = {0};
-
-/* ESIF Memory Pool */
-struct esif_ccb_mempool *g_mempool[ESIF_MEMPOOL_TYPE_MAX] = {0};
-esif_ccb_lock_t g_mempool_lock;
 
 
 /* Allocate DSP Upper Insance */
@@ -73,7 +91,7 @@ static void esif_dsp_destroy(struct esif_up_dsp *dsp_ptr)
 	if (NULL == dsp_ptr) {
 		return;
 	}
-	esif_hash_table_destroy(dsp_ptr->ht_ptr);
+	esif_ht_destroy(dsp_ptr->ht_ptr, NULL);
 	esif_link_list_destroy(dsp_ptr->algo_ptr);
 	esif_link_list_destroy(dsp_ptr->domain_ptr);
 	esif_link_list_destroy(dsp_ptr->cap_ptr);
@@ -128,15 +146,14 @@ static u32 get_temp_c1(
 }
 
 
-static u32 get_temp_c2(
+static u32 get_percent_xform(
 	struct esif_up_dsp *dsp,
 	const enum esif_action_type action
 	)
 {
-	/* TODO: Assume tempC2 Is Slope */
 	struct esif_fpc_algorithm *algo_ptr = dsp->get_algorithm(dsp, action);
 	if (algo_ptr) {
-		return algo_ptr->tempC2;
+		return algo_ptr->percent_xform;
 	} else {
 		return 0xffffffff;
 	}
@@ -152,73 +169,27 @@ static eEsifError insert_primitive(
 	if (NULL == primitive_ptr) {
 		return ESIF_E_NULL_PRIMITIVE;
 	} else {
-		return esif_hash_table_put_item((UInt8 *)&primitive_ptr->tuple,	/* Key */
-										sizeof(struct esif_primitive_tuple),/* Size Of Key */
-										primitive_ptr,						/* Item        */
-										dsp_ptr->ht_ptr);						/* Hash Table  */
+		return esif_ht_add_item(dsp_ptr->ht_ptr, /* Hash Table  */
+			(UInt8 *)&primitive_ptr->tuple,	/* Key */
+			sizeof(primitive_ptr->tuple),/* Size Of Key */
+			primitive_ptr); /* Item        */
 	}
 }
 
-
-static int is_same_primitive(
-	const struct esif_primitive_tuple *t1_ptr,
-	const struct esif_primitive_tuple *t2_ptr
-	)
-{
-	if (NULL == t1_ptr || NULL == t2_ptr) {
-		return 0;
-	}
-	return memcmp(t1_ptr, t2_ptr, sizeof(struct esif_primitive_tuple)) == 0;
-}
-
-
-static EsifFpcPrimitivePtr find_primitive_in_list(
-	struct esif_link_list *list_ptr,
-	const struct esif_primitive_tuple *tuple_ptr
-	)
-{
-	EsifFpcPrimitivePtr cur_primitive_ptr = NULL;
-	EsifFpcPrimitivePtr primitive_ptr     = NULL;
-	struct esif_link_list_node *curr_ptr  = list_ptr->head_ptr;
-
-	while (curr_ptr) {
-		cur_primitive_ptr = (EsifFpcPrimitivePtr)curr_ptr->data_ptr;
-		if (cur_primitive_ptr != NULL) {
-			if (is_same_primitive(tuple_ptr, &cur_primitive_ptr->tuple)) {
-				primitive_ptr = cur_primitive_ptr;
-				goto end;
-			}
-		}
-		curr_ptr = curr_ptr->next_ptr;
-	}
-end:
-	return primitive_ptr;
-}
-
-
-/* Get Primtivie */
+/* Get Primitive */
 static EsifFpcPrimitivePtr get_primitive(
 	struct esif_up_dsp *dsp_ptr,
 	const struct esif_primitive_tuple *tuple_ptr
 	)
 {
 	EsifFpcPrimitivePtr primitive_ptr = NULL;
-	struct esif_link_list *row_ptr;
 
-	row_ptr = esif_hash_table_get_item((u8 *)tuple_ptr, sizeof(struct esif_primitive_tuple),
-									   dsp_ptr->ht_ptr);
-	if (NULL == row_ptr) {
-		goto exit;
-	}
+	primitive_ptr = (EsifFpcPrimitivePtr)
+		esif_ht_get_item(dsp_ptr->ht_ptr,
+			(u8 *)tuple_ptr,
+			sizeof(*tuple_ptr));
 
-	primitive_ptr = find_primitive_in_list(row_ptr, tuple_ptr);
-	if (NULL == primitive_ptr) {
-		goto exit;
-	}
 	return primitive_ptr;
-
-exit:
-	return NULL;
 }
 
 
@@ -230,28 +201,14 @@ static EsifFpcActionPtr get_action(
 	)
 {
 	EsifFpcActionPtr action_ptr    = NULL;
-	struct esif_link_list *row_ptr = NULL;
 	int i;
 
 	if (NULL == dsp_ptr || NULL == primitive_ptr) {
 		return NULL;
 	}
 
-	row_ptr = esif_hash_table_get_item((UInt8 *)&primitive_ptr->tuple,
-									   sizeof(struct esif_primitive_tuple),
-									   dsp_ptr->ht_ptr);
-
-	if (NULL == row_ptr) {
-		return NULL;
-	}
-
-	primitive_ptr = find_primitive_in_list(row_ptr, &primitive_ptr->tuple);
-	if (NULL == primitive_ptr) {
-		return NULL;
-	}
-
 	/* First Action */
-	action_ptr = (EsifFpcActionPtr)((UInt8 *)primitive_ptr + sizeof(EsifFpcPrimitive));
+	action_ptr = (EsifFpcActionPtr)(primitive_ptr + 1);
 
 	/* Locate i-th Action We Are Looking For */
 	for (i = 0; i < index; i++) {
@@ -272,8 +229,7 @@ static enum esif_rc insert_algorithm(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	esif_link_list_node_add(dsp_ptr->algo_ptr, esif_link_list_create_node((void *)algo_ptr));
-	return ESIF_OK;
+	return esif_link_list_add_at_back(dsp_ptr->algo_ptr, (void *)algo_ptr);
 }
 
 
@@ -287,8 +243,7 @@ static enum esif_rc insert_event(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	esif_link_list_node_add(dsp_ptr->evt_ptr, esif_link_list_create_node((void *)evt_ptr));
-	return ESIF_OK;
+	return esif_link_list_add_at_back(dsp_ptr->evt_ptr, (void *)evt_ptr);
 }
 
 
@@ -371,8 +326,7 @@ static enum esif_rc insert_domain(
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	esif_link_list_node_add(dsp_ptr->domain_ptr, esif_link_list_create_node((void *)domain_ptr));
-	return ESIF_OK;
+	return esif_link_list_add_at_back(dsp_ptr->domain_ptr, (void *)domain_ptr);
 }
 
 
@@ -391,14 +345,13 @@ static struct esif_fpc_domain *get_domain(
 	struct esif_link_list *list_ptr = dsp_ptr->domain_ptr;
 	struct esif_link_list_node *curr_ptr    = list_ptr->head_ptr;
 	struct esif_fpc_domain *curr_domain_ptr = NULL;
-	u32 i;
+	u32 i = 0;
 
-	for (i = 0; i < index; i++) {
-		curr_domain_ptr = (struct esif_fpc_domain *)curr_ptr->data_ptr;
+	while ((++i < index) && (curr_ptr != NULL)) {
 		curr_ptr = curr_ptr->next_ptr;
-		if (curr_ptr == NULL) {
-			break;	// return NULL;
-		}
+	}
+	if (curr_ptr != NULL) {
+		curr_domain_ptr = (struct esif_fpc_domain *)curr_ptr->data_ptr;
 	}
 	return curr_domain_ptr;
 }
@@ -426,15 +379,15 @@ enum esif_rc esif_fpc_load(
 	}
 
 	if (fpc_ptr->number_of_domains < 1) {
-		ESIF_TRACE_WARN("!ERR! %s: no domain error, number_of_domain = %d (less than 1)\n",
-			   ESIF_FUNC, fpc_ptr->number_of_domains);
+		ESIF_TRACE_WARN("No domain error, number_of_domain = %d (less than 1)\n",
+			fpc_ptr->number_of_domains);
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 	dsp_ptr->domain_count = &fpc_ptr->number_of_domains;
 
 	/* Allocate Hash and List. Hash Size 31 Is Hard-Coded And Chosen By DSP Compiler */
-	dsp_ptr->ht_ptr     = esif_hash_table_create(31);
+	dsp_ptr->ht_ptr     = esif_ht_create(ESIF_DSP_HASHTABLE_SIZE);
 	dsp_ptr->algo_ptr   = esif_link_list_create();
 	dsp_ptr->domain_ptr = esif_link_list_create();
 	dsp_ptr->cap_ptr    = esif_link_list_create();
@@ -446,8 +399,8 @@ enum esif_rc esif_fpc_load(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("%s <fpc @ %p> FPC name '%s' ver %x,%x desc '%s' size %u num_domains %d num_algorithms %d num_events %d",
-					 ESIF_FUNC, fpc_ptr,
+	ESIF_TRACE_DEBUG("<fpc @ %p> FPC name '%s' ver %x,%x desc '%s' size %u num_domains %d num_algorithms %d num_events %d",
+					 fpc_ptr,
 					 fpc_ptr->header.name,
 					 fpc_ptr->header.ver_major,
 					 fpc_ptr->header.ver_minor,
@@ -458,7 +411,7 @@ enum esif_rc esif_fpc_load(
 					 fpc_ptr->number_of_events);
 
 	/* First Domain, Ok To Have Zero Primitive Of A Domain */
-	domain_ptr = (struct esif_fpc_domain *)((u8 *)fpc_ptr + sizeof(struct esif_fpc));
+	domain_ptr = (struct esif_fpc_domain *)(fpc_ptr + 1);
 	for (i = 0; i < fpc_ptr->number_of_domains; i++) {
 		offset = (unsigned long)((u8 *)domain_ptr - base_ptr);
 		ESIF_TRACE_DEBUG("<%04lu> Domain[%d] name %s size %d num_of_primitives %d  "
@@ -483,8 +436,7 @@ enum esif_rc esif_fpc_load(
 		}
 
 		/* First Primtive */
-		primitive_ptr = (struct esif_fpc_primitive *)((u8 *)domain_ptr +
-													  sizeof(struct esif_fpc_domain));
+		primitive_ptr = (struct esif_fpc_primitive *)(domain_ptr + 1);
 		for (j = 0; j < domain_ptr->number_of_primitives; j++, num_prim++) {
 			offset = (unsigned long)(((u8 *)primitive_ptr) - base_ptr);
 			ESIF_TRACE_DEBUG("<%04lu> Primitive[%03d]: size %3d tuple_id <%03u %03u %03u> "
@@ -520,13 +472,13 @@ enum esif_rc esif_fpc_load(
 	for (i = 0; i < fpc_ptr->number_of_algorithms; i++) {
 		offset = (unsigned long)((u8 *)algorithm_ptr - base_ptr);
 		ESIF_TRACE_DEBUG("<%04lu> Algorithm[%03d]:  action_type %u(%s) temp_xform %u "
-						 "tempC1 %u tempC2 %u size %u",
+						 "tempC1 %u percent_xform %u size %u",
 						 offset, i,
 						 algorithm_ptr->action_type,
 						 esif_action_type_str(algorithm_ptr->action_type),
 						 algorithm_ptr->temp_xform,
 						 algorithm_ptr->tempC1,
-						 algorithm_ptr->tempC2,
+						 algorithm_ptr->percent_xform,
 						 algorithm_ptr->size);
 
 		/* Insert Algorithm Into Linked List */
@@ -537,8 +489,7 @@ enum esif_rc esif_fpc_load(
 		}
 
 		/* Next Algorithm */
-		algorithm_ptr = (struct esif_fpc_algorithm *)((u8 *)algorithm_ptr +
-													  sizeof(struct esif_fpc_algorithm));
+		algorithm_ptr = (struct esif_fpc_algorithm *)(algorithm_ptr + 1);
 	}
 
 	/* First Event (Laid After The Last Algorithm) */
@@ -556,8 +507,7 @@ enum esif_rc esif_fpc_load(
 		}
 
 		/* Next Event */
-		event_ptr = (struct esif_fpc_event *)((u8 *)event_ptr +
-											  sizeof(struct esif_fpc_event));
+		event_ptr = (struct esif_fpc_event *)(event_ptr + 1);
 	}
 
 exit:
@@ -600,7 +550,7 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("%s: Filename: %s", ESIF_FUNC, file_ptr->filename);
+	ESIF_TRACE_DEBUG("Filename: %s", file_ptr->filename);
 
 	dsp_ptr = esif_dsp_create();
 	if (NULL == dsp_ptr) {
@@ -616,10 +566,10 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	} else {
 		IOStream_SetFile(io_ptr, path, "rb");
 	}
-	ESIF_TRACE_DEBUG("%s: Fullpath: %s", ESIF_FUNC, path);
+	ESIF_TRACE_DEBUG("Fullpath: %s", path);
 
 	if (IOStream_Open(io_ptr) != 0) {
-		ESIF_TRACE_ERROR("%s: file not found (%s)", ESIF_FUNC, path);
+		ESIF_TRACE_ERROR("File not found (%s)", path);
 		goto exit;
 	}
 
@@ -627,45 +577,45 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	if (esif_ccb_strstr(&path[0], ".edp")) {
 		/* EDP - Only Read The FPC Part */
 		edp_size = (UInt32)IOStream_GetSize(io_ptr);
-		fpc_read = IOStream_Read(io_ptr, &edp_dir, sizeof(struct edp_dir));
+		fpc_read = IOStream_Read(io_ptr, &edp_dir, sizeof(edp_dir));
 		fpc_size = edp_size - edp_dir.fpc_offset;
 		if (edp_size > MAX_EDP_SIZE || fpc_size > MAX_FPC_SIZE) {
 			ESIF_TRACE_ERROR("The edp or fpc file size is larger than maximum\n");
 			goto exit;
 		}
 		IOStream_Seek(io_ptr, edp_dir.fpc_offset, SEEK_SET);
-		ESIF_TRACE_DEBUG("%s: file found (%s) size %u, FPC size %u from offset %u", ESIF_FUNC, path, edp_size, fpc_size, edp_dir.fpc_offset);
+		ESIF_TRACE_DEBUG("File found (%s) size %u, FPC size %u from offset %u", path, edp_size, fpc_size, edp_dir.fpc_offset);
 	} else {
-		ESIF_TRACE_DEBUG("%s: file %s does not have .fpc and .edp format!", ESIF_FUNC, path, fpc_size);
+		ESIF_TRACE_DEBUG("File %s does not have .fpc and .edp format!", path);
 	}
 
 	// use static DataVault buffer (if available), otherwise allocate space for our FPC file contents (which will not be freed)
 	if (IOStream_GetType(io_ptr) == StreamMemory && value->buf_len == 0) {
 		fpc_ptr = (struct esif_fpc *)IOStream_GetMemoryBuffer(io_ptr); 
 		if (NULL == fpc_ptr) {
-			ESIF_TRACE_ERROR("%s: NULL buffer", ESIF_FUNC);
+			ESIF_TRACE_ERROR("NULL buffer");
 			goto exit;
 		}
 		fpc_ptr  = (struct esif_fpc *) (((BytePtr) fpc_ptr) + IOStream_GetOffset(io_ptr));
 		fpc_read = fpc_size;
-		ESIF_TRACE_DEBUG("%s: static vault size %u buf_ptr=0x%p\n", ESIF_FUNC, (int)fpc_read, fpc_ptr);
+		ESIF_TRACE_DEBUG("Static vault size %u buf_ptr=0x%p\n", (int)fpc_read, fpc_ptr);
 		fpc_static = ESIF_TRUE;
 	} else {
 		fpc_ptr = (struct esif_fpc *)esif_ccb_malloc(fpc_size);
 		if (NULL == fpc_ptr) {
-			ESIF_TRACE_ERROR("%s: malloc failed to allocate %u bytes\n", ESIF_FUNC, fpc_size);
+			ESIF_TRACE_ERROR("malloc failed to allocate %u bytes\n", fpc_size);
 			goto exit;
 		}
-		ESIF_TRACE_DEBUG("%s: file malloc size %u", ESIF_FUNC, fpc_size);
+		ESIF_TRACE_DEBUG("File malloc size %u", fpc_size);
 
 		// read file contents
 		fpc_read = IOStream_Read(io_ptr, fpc_ptr, fpc_size);
 		if (fpc_read < fpc_size) {
-			ESIF_TRACE_ERROR("%s: read short received %u of %u bytes\n", ESIF_FUNC, (int)fpc_read, fpc_size);
+			ESIF_TRACE_ERROR("Read short received %u of %u bytes\n", (int)fpc_read, fpc_size);
 			goto exit;
 		}
 
-		ESIF_TRACE_DEBUG("%s: file read size %u", ESIF_FUNC, (int)fpc_read);
+		ESIF_TRACE_DEBUG("File read size %u", (int)fpc_read);
 	}
 	ESIF_TRACE_DEBUG("\nDecode Length:  %u", fpc_ptr->size);
 	ESIF_TRACE_DEBUG("Code:           %s", fpc_ptr->header.code);
@@ -682,7 +632,7 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	ESIF_TRACE_DEBUG("PCI Device ID:  %s", fpc_ptr->header.pci_device_id);
 	ESIF_TRACE_DEBUG("PCI Bus:        %s", fpc_ptr->header.pci_bus);
 	ESIF_TRACE_DEBUG("PCI Device:     %s", fpc_ptr->header.pci_device);
-	ESIF_TRACE_DEBUG("PCI Function:   -1x%02x", fpc_ptr->header.pci_function);
+	ESIF_TRACE_DEBUG("PCI Function:   %s", fpc_ptr->header.pci_function);
 
 	dsp_ptr->code_ptr = (EsifString)fpc_ptr->header.name;
 	dsp_ptr->bus_enum = (UInt8 *)&fpc_ptr->header.bus_enum;
@@ -703,7 +653,7 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	dsp_ptr->get_ver_minor     = get_ver_minor;
 	dsp_ptr->get_ver_major     = get_ver_major;
 	dsp_ptr->get_temp_tc1      = get_temp_c1;
-	dsp_ptr->get_temp_tc2      = get_temp_c2;
+	dsp_ptr->get_percent_xform      = get_percent_xform;
 
 	dsp_ptr->insert_primitive  = insert_primitive;
 	dsp_ptr->insert_algorithm  = insert_algorithm;
@@ -721,10 +671,9 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 
 	rc = esif_fpc_load(fpc_ptr, dsp_ptr);
 	if (ESIF_OK == rc) {
-		ESIF_TRACE_DEBUG("%s: FPC %s load successfully", ESIF_FUNC, path);
+		ESIF_TRACE_DEBUG("FPC %s load successfully", path);
 	} else {
-		ESIF_TRACE_DEBUG("%s: Unable to load FPC %s, rc %s",
-						 ESIF_FUNC, path, esif_rc_str(rc));
+		ESIF_TRACE_DEBUG("Unable to load FPC %s, rc %s", path, esif_rc_str(rc));
 	}
 
 	/* Lock DSP Manager */
@@ -777,7 +726,7 @@ static eEsifError esif_dsp_file_scan()
 {
 	eEsifError rc = ESIF_OK;
 	struct esif_ccb_file *ffd_ptr = NULL;
-	esif_ccb_file_find_handle find_handle = INVALID_HANDLE_VALUE;
+	esif_ccb_file_enum_t find_handle = INVALID_HANDLE_VALUE;
 	char path[MAX_PATH]    = {0};
 	char pattern[MAX_PATH] = {0};
 	int files = 0;
@@ -786,10 +735,10 @@ static eEsifError esif_dsp_file_scan()
 
 	// 1. Load all EDP's in the DSP Configuration Namespace, if any exist
 	if (DB) {
-		UInt32 context        = 0;
 		EsifDataPtr nameSpace = EsifData_CreateAs(ESIF_DATA_AUTO, namesp, 0, ESIFAUTOLEN);
 		EsifDataPtr key       = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 		EsifDataPtr value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		EsifConfigFindContext context = NULL;
 
 		ESIF_TRACE_DEBUG("SCAN CONFIG For DSP Files NameSpace = %s, Pattern %s", namesp, pattern);
 		if (nameSpace != NULL && key != NULL && value != NULL &&
@@ -805,7 +754,7 @@ static eEsifError esif_dsp_file_scan()
 				EsifData_Set(key, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 				EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 			} while ((rc = EsifConfigFindNext(nameSpace, key, value, &context)) == ESIF_OK);
-			if (rc == ESIF_E_NOT_FOUND) {
+			if (rc == ESIF_E_ITERATION_DONE) {
 				rc = ESIF_OK;
 			}
 		}
@@ -818,7 +767,7 @@ static eEsifError esif_dsp_file_scan()
 	esif_build_path(path, MAX_PATH, ESIF_PATHTYPE_DSP, NULL, NULL);
 	esif_ccb_strcpy(pattern, "*.edp", MAX_PATH);
 
-	ESIF_TRACE_DEBUG("%s: SCAN File System For DSP Files Path = %s, Pattern %s", ESIF_FUNC, path, pattern);
+	ESIF_TRACE_DEBUG("SCAN File System For DSP Files Path = %s, Pattern %s", path, pattern);
 	/* Find the first file in the directory that matches are search */
 	ffd_ptr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffd_ptr));
 	if (ffd_ptr == NULL) {
@@ -856,7 +805,7 @@ exit:
 static eEsifError esif_dsp_table_build()
 {
 	eEsifError rc = ESIF_OK;
-	ESIF_TRACE_INFO("%s: Build DSP Table", ESIF_FUNC);
+	ESIF_TRACE_INFO("Build DSP Table");
 	esif_dsp_file_scan();
 	return rc;
 }
@@ -865,7 +814,7 @@ static eEsifError esif_dsp_table_build()
 void esif_dsp_table_destroy()
 {
 	UInt8 i;
-	ESIF_TRACE_INFO("%s: Destroy DSP Table", ESIF_FUNC);
+	ESIF_TRACE_INFO("Destroy DSP Table");
 	for (i = 0; i < g_dm.dme_count; i++) {
 		esif_dsp_destroy(g_dm.dme[i].dsp_ptr);
 		esif_ccb_free(g_dm.dme[i].file_ptr);
@@ -882,7 +831,7 @@ void esif_dsp_table_destroy()
  *******************************************************************************
  */
 
-typedef struct dsp_map_s {
+struct dsp_map_s {
 	esif_string name;		/* participant name or NULL for Default or end-of-list */
 	esif_string dsp_name;	/* DSP name or NULL for end-of-list */
 };
@@ -902,17 +851,21 @@ static struct dsp_map_s dsp_mapping[] = {
 		{"WWAN",	"dpf_wwan"},
 		{"TINL",	"dpf_fgen"},
 		{"TCPU",	"shb_proc"},
+		{"B0DB",	"dpf_proc"},
+		{"B0D4",	"dpf_proc"},
 		{"TPCH",	"shb_pch" },
 		{"IETM",	"dpf_dptf"},
 		{"DPTFZ",	"dpf_dptf"},
 		{"GEN1",	"dpf_fgen"},
+		{"TCHG",	"dpf_fgen"},
 		{"GEN2",	"dpf_fgen"},
 		{"WPKG",	"dpf_wpkg"},
+		{"VTS1",	"dpf_virt"},
+		{"VTS2",	"dpf_virt"},
 		{NULL,		"dpf_fgen"},
 };
 
 esif_string esif_uf_dm_select_dsp(
-	eEsifParticipantOrigin origin,
 	void *piPtr
 	)
 {
@@ -920,8 +873,6 @@ esif_string esif_uf_dm_select_dsp(
 	EsifParticipantIfacePtr pi_ptr = (EsifParticipantIfacePtr)piPtr;
 	esif_string name = pi_ptr->name;
 	u32 item = 0;
-
-	UNREFERENCED_PARAMETER(origin);
 
 	for (item = 0; dsp_mapping[item].dsp_name != NULL; item++) {
 		if (dsp_mapping[item].name == NULL || esif_ccb_strcmp(dsp_mapping[item].name, name) == 0) {
@@ -948,459 +899,147 @@ struct esif_up_dsp *esif_uf_dm_select_dsp_by_code(esif_string code)
 	return found_ptr;
 }
 
-
-EsifString esif_uf_dm_select_dsp_for_participant(
-	struct esif_ipc_event_data_create_participant *data_ptr
+EsifString GetDSPFromList(
+	EsifString name
 	)
 {
-	EsifString edp_filename_ptr = NULL;
-	EsifString dsp_lookup_result_ptr = NULL;
-	char guid_str[ESIF_GUID_PRINT_SIZE];
+	EsifString selection = NULL;
 	u32 item = 0;
 
 	for (item = 0; dsp_mapping[item].dsp_name != NULL; item++) {
-		if (dsp_mapping[item].name == NULL || esif_ccb_strcmp(dsp_mapping[item].name, data_ptr->name) == 0) {
-			edp_filename_ptr = dsp_mapping[item].dsp_name;
+		if (dsp_mapping[item].name == NULL || esif_ccb_strcmp(dsp_mapping[item].name, name) == 0) {
+			selection = dsp_mapping[item].dsp_name;
 			break;
 		}
 	}
-
-	// PCI
-	if (1 == data_ptr->enumerator) {
-		ESIF_TRACE_DEBUG(
-			"==================================================\n"
-			"ESIF IPC EVENT DATA CREATE PCI PARTICIPANT:\n"
-			"==================================================\n"
-			"Instance:       %d\n"
-			"Version:        %d\n"
-			"Class:          %s\n"
-			"Enumerator:     %s(%u)\n"
-			"Flags:          0x%08x\n"
-			"Name:           %s\n"
-			"Description:    %s\n"
-			"Driver Name:    %s\n"
-			"Device Name:    %s\n"
-			"Device Path:    %s\n"
-			"ACPI Scope:     %s\n"
-			"PCI Vendor:     0x%04X %s\n"
-			"PCI Device:     0x%04X %s\n"
-			"PCI Bus:        0x%02X\n"
-			"PCI Bus Device: 0x%02X\n"
-			"PCI Function:   0x%02X\n"
-			"PCI Revision:   0x%02X\n"
-			"PCI Class:      0x%02X %s\n"
-			"PCI SubClass:   0x%02X\n"
-			"PCI ProgIF:     0x%02X\n\n",
-			data_ptr->id,
-			data_ptr->version,
-			esif_guid_print((esif_guid_t *)data_ptr->class_guid, guid_str),
-			esif_participant_enum_str(data_ptr->enumerator),
-			data_ptr->enumerator,
-			data_ptr->flags,
-			data_ptr->name,
-			data_ptr->desc,
-			data_ptr->driver_name,
-			data_ptr->device_name,
-			data_ptr->device_path,
-			data_ptr->acpi_scope,
-			data_ptr->pci_vendor,
-			esif_vendor_str(data_ptr->pci_vendor),
-			data_ptr->pci_device,
-			esif_device_str(data_ptr->pci_device),
-			data_ptr->pci_bus,
-			data_ptr->pci_bus_device,
-			data_ptr->pci_function,
-			data_ptr->pci_revision,
-			data_ptr->pci_class,
-			esif_pci_class_str(data_ptr->pci_class),
-			data_ptr->pci_sub_class,
-			data_ptr->pci_prog_if);
-
-		{
-			struct esif_uf_dm_query_pci qry = {0};
-			char temp_vid[MAX_VENDOR_ID_STRING_LENGTH]		= {0};
-			char temp_did[MAX_DEVICE_ID_STRING_LENGTH]		= {0};
-
-			esif_ccb_sprintf(MAX_VENDOR_ID_STRING_LENGTH, temp_vid, "0x%04X", data_ptr->pci_vendor);
-			esif_ccb_sprintf(MAX_DEVICE_ID_STRING_LENGTH, temp_did, "0x%04X", data_ptr->pci_device);
-
-			qry.pci_vid = (EsifString)temp_vid;
-			qry.pci_did = (EsifString)temp_did;
-
-			ESIF_TRACE_DEBUG(
-				"\n\nQuery WHERE Clause:\n\n"
-				"pci_vid: %s\n"
-				"pci_did: %s\n",
-				qry.pci_vid,
-				qry.pci_did);
-
-			dsp_lookup_result_ptr = esif_uf_dm_query(ESIF_UF_DM_QUERY_TYPE_PCI, &qry);
-
-			ESIF_TRACE_DEBUG("DSP Lookup: %s\n", dsp_lookup_result_ptr);
-
-			if (NULL == dsp_lookup_result_ptr) {
-				dsp_lookup_result_ptr = edp_filename_ptr;
-			}
-
-			ESIF_TRACE_DEBUG("\nDSP Lookup: %s\n", dsp_lookup_result_ptr);
-
-			/* We are all in for PCI so override our selection */
-			edp_filename_ptr = dsp_lookup_result_ptr;
-		}
-
-		// ACPI
-	} else if (0 == data_ptr->enumerator) {
-		ESIF_TRACE_DEBUG(
-			"==================================================\n"
-			"ESIF IPC EVENT DATA CREATE ACPI PARTICIPANT:\n"
-			"==================================================\n"
-			"Instance:       %d\n"
-			"Version:        %d\n"
-			"Class:          %s\n"
-			"Enumerator:     %s(%u)\n"
-			"Flags:          0x%08x\n"
-			"Name:           %s\n"
-			"Description:    %s\n"
-			"Driver Name:    %s\n"
-			"Device Name:    %s\n"
-			"Device Path:    %s\n"
-			"ACPI Device:    %s %s\n"
-			"ACPI Scope:     %s\n",
-			data_ptr->id,
-			data_ptr->version,
-			esif_guid_print((esif_guid_t *)&data_ptr->class_guid, guid_str),
-			esif_participant_enum_str(data_ptr->enumerator),
-			data_ptr->enumerator,
-			data_ptr->flags,
-			data_ptr->name,
-			data_ptr->desc,
-			data_ptr->driver_name,
-			data_ptr->device_name,
-			data_ptr->device_path,
-			data_ptr->acpi_device,
-			esif_acpi_device_str(data_ptr->acpi_device),
-			data_ptr->acpi_scope);
-
-		if (!strcmp(data_ptr->acpi_uid, ESIF_PARTICIPANT_INVALID_UID)) {
-			ESIF_TRACE_DEBUG("ACPI UID:       %s\n",
-								 data_ptr->acpi_uid);
-		}
-
-
-
-		if (data_ptr->acpi_type != 0xFFFFFFFF) {
-			ESIF_TRACE_DEBUG("ACPI Type:      0x%x %s\n",
-								data_ptr->acpi_type,
-								esif_domain_type_str((enum esif_domain_type)data_ptr->acpi_type));
-		}
-
-		{
-			struct esif_uf_dm_query_acpi qry = {0};
-			#define TEMP_LEN 12
-			char temp_type[TEMP_LEN]    = {0};
-
-			EsifString acpi_device = "*";
-			EsifString acpi_type   = "*";
-			EsifString acpi_uid    = "*";
-			EsifString acpi_scope  = "*";
-
-			int type = data_ptr->acpi_type;
-
-			if (esif_ccb_strlen(data_ptr->acpi_device, ESIF_NAME_LEN) > 0) {
-				acpi_device = data_ptr->acpi_device;
-			}
-			if (esif_ccb_strlen(data_ptr->acpi_scope, ESIF_SCOPE_LEN) > 0) {
-				acpi_scope = data_ptr->acpi_scope;
-			}
-
-			if (type >= 0) {
-				esif_ccb_sprintf(TEMP_LEN, temp_type, "%d", type);
-				acpi_type = temp_type;
-			}
-
-			if (esif_ccb_strlen(data_ptr->acpi_uid, sizeof(data_ptr->acpi_uid)) > 0) {
-				acpi_uid = data_ptr->acpi_uid;
-			}
-
-			qry.acpi_device = acpi_device;
-			qry.acpi_type   = acpi_type;
-			qry.acpi_uid    = acpi_uid;
-			qry.acpi_scope  = acpi_scope;
-
-			ESIF_TRACE_DEBUG(
-				"\n\nQuery WHERE Clause:\n\n"
-				"acpi_device: %s\n"
-				"acpi_type:   %s\n"
-				"acpi_uid:    %s\n"
-				"acpi_scope:  %s\n",
-				acpi_device,
-				acpi_type,
-				acpi_uid,
-				acpi_scope);
-
-			dsp_lookup_result_ptr = esif_uf_dm_query(ESIF_UF_DM_QUERY_TYPE_ACPI, &qry);
-
-			ESIF_TRACE_DEBUG("DSP Lookup: %s\n", dsp_lookup_result_ptr);
-
-			if (NULL == dsp_lookup_result_ptr) {
-				dsp_lookup_result_ptr = edp_filename_ptr;
-			}
-
-			ESIF_TRACE_DEBUG("\nDSP Lookup: %s\n", dsp_lookup_result_ptr);
-
-			/* We are all in for ACPI so override our selection */
-			edp_filename_ptr = dsp_lookup_result_ptr;
-		}
-	} else {
-		ESIF_TRACE_DEBUG(
-			"=======================================================\n"
-			"ESIF IPC EVENT DATA CREATE PLATFORM PARTICIPANT:\n"
-			"=======================================================\n"
-			"Instance:       %d\n"
-			"Version:        %d\n"
-			"Class:          %s\n"
-			"Enumerator:     %s(%u)\n"
-			"Flags:          0x%08x\n"
-			"Name:           %s\n"
-			"Description:    %s\n"
-			"Driver Name:    %s\n"
-			"Device Name:    %s\n"
-			"Device Path:    %s\n\n",
-			data_ptr->id,
-			data_ptr->version,
-			esif_guid_print((esif_guid_t *)data_ptr->class_guid, guid_str),
-			esif_participant_enum_str(data_ptr->enumerator),
-			data_ptr->enumerator,
-			data_ptr->flags,
-			data_ptr->name,
-			data_ptr->desc,
-			data_ptr->driver_name,
-			data_ptr->device_name,
-			data_ptr->device_path);
-	}
-
-	return edp_filename_ptr;
-}	
-
-
-/* Handle each weighted Minterm */
-static int compare_and_weight_minterm(
-	esif_string dsp,
-	esif_string qry,
-	u8 weight
-	)
-{
-	int score = 0;
-	if (0 == *dsp || '*' == *dsp) {	/* DSP don't care trumps all */
-		score = 0;
-	} else if (0 == *qry || '*' == *qry) {	/* blank == blank don't care. */
-		score = 0;
-	} else if (0 == strcmp(dsp, qry)) {	/* data == data match. */
-		score = weight;
-	} else {
-		score = -1;	/* no match. */
-	}
-	return score;
+	return selection;
 }
 
-
-/* ACPI Weighted Query */
-static int weighted_acpi_eq(
-	struct esif_up_dsp *dsp_ptr,
-	struct esif_uf_dm_query_acpi *qry_ptr
-	)
-{
-	int weight  = 0;
-	int minterm = 0;
-
-	minterm = compare_and_weight_minterm(dsp_ptr->acpi_device, qry_ptr->acpi_device, 8);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	minterm = compare_and_weight_minterm(dsp_ptr->acpi_type, qry_ptr->acpi_type, 4);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	minterm = compare_and_weight_minterm("", qry_ptr->acpi_uid, 2);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	minterm = compare_and_weight_minterm(dsp_ptr->acpi_scope, qry_ptr->acpi_scope, 1);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	return weight;
-
-no_match:
-	return -1;
-}
-
-
-/* PCI Weighted Query */
-static int weighted_pci_eq(
-	struct esif_up_dsp *dsp_ptr,
-	struct esif_uf_dm_query_pci *qry_ptr
-	)
-{
-	int weight  = 0;
-	int minterm = 0;
-
-	minterm = compare_and_weight_minterm(dsp_ptr->vendor_id, qry_ptr->pci_vid, 2);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	minterm = compare_and_weight_minterm(dsp_ptr->device_id, qry_ptr->pci_did, 1);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	return weight;
-
-no_match:
-	return -1;
-}
-
-
-/* PLAT Weighted Query */
-static int weighted_plat_eq(
-	struct esif_up_dsp *dsp_ptr,
-	struct esif_uf_dm_query_plat *qry_ptr
-	)
-{
-	int weight  = 0;
-	int minterm = 0;
-
-	minterm = compare_and_weight_minterm(dsp_ptr->acpi_device, qry_ptr->plat_type, 2);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	minterm = compare_and_weight_minterm("", qry_ptr->plat_name, 1);
-	if (minterm == -1) {
-		goto no_match;
-	}
-	weight += minterm;
-
-	return weight;
-
-no_match:
-	return -1;
-}
-
-
-/*
-** Query the upper framework dsp manager to find the BEST DSP match for the query
-** critieria provided. This query is based on a weighted N Minterm boolean equation.
-** The DSP may indicate don't cares by using blanks.  Query's may indicate don't
-** haves with blanks as well.
-*/
-EsifString esif_uf_dm_query(
-	enum esif_uf_dm_query_type query_type,
-	void *qry_ptr
+EsifString EsifDspMgr_SelectDsp(
+	EsifDspQuery query
 	)
 {
 	int i = 0;							// Loop index for DSP table.
-	int weight   = 0;						// Current weight of DSP table row.
+	int weight = 0;						// Total weight of DSP query
+	int primaryWeight = 0;				// Weight of items sufficient for selection.
+	int secondaryWeight = 0;			// Weight of items allowed to sway results, but cannot stand alone.
 	int heaviest = -1;					// Heaviest Row Found.
-	EsifString dsp_code_ptr = NULL;		// DSP Name/Code To Use.
-	int best     = 0;						// Best Weight Possible.
+	EsifString dspNamePtr = NULL;		// DSP Name/Code To Use.
+	int best = 0;						// Best Weight Possible.
 
 	/*
 	** Query table for weighted match highest score wins. It is
-	** unlikely that the table would chnage but we lock it just
+	** unlikely that the table would change but we lock it just
 	** to be sure it can't.
 	*/
-
+	
 	// LOCK
 	esif_ccb_read_lock(&g_dm.lock);
 
 	for (i = 0; i < g_dm.dme_count; i++) {
 		struct esif_up_dsp *dsp_ptr = g_dm.dme[i].dsp_ptr;
+		char busEnum[ENUM_TO_STRING_LEN] = { 0 };
+		char *defaultDsp = NULL;
 
-		// Skip NULL and Non Query Type Rows
-		if (dsp_ptr == NULL || *dsp_ptr->bus_enum != query_type) {
+		if (dsp_ptr == NULL) {
 			continue;
 		}
 
-		switch (query_type) {
-		case ESIF_UF_DM_QUERY_TYPE_ACPI:
-			best   = 16 + 8 + 4 + 2 + 1;// 5 minterms
-			weight = weighted_acpi_eq(dsp_ptr, (struct esif_uf_dm_query_acpi *)qry_ptr);
-			break;
+		esif_ccb_sprintf(ENUM_TO_STRING_LEN, busEnum, "%d", *dsp_ptr->bus_enum);
+		
+		defaultDsp = GetDSPFromList(query.participantName);
 
-		case ESIF_UF_DM_QUERY_TYPE_PCI:
-			best = 2 + 1;
-			weight = weighted_pci_eq(dsp_ptr, (struct esif_uf_dm_query_pci *)qry_ptr);
-			break;
+		// Primary weight indicates items that can result in a match
+		primaryWeight =
+			compare_and_weight_minterm(dsp_ptr->device_id, query.deviceId, PCI_DEVICE_ID_WEIGHT) +
+			compare_and_weight_minterm(dsp_ptr->acpi_device, query.hid, ACPI_HID_WEIGHT) +
+			compare_and_weight_minterm(dsp_ptr->acpi_type, query.ptype, ACPI_PTYPE_WEIGHT) +
+			compare_and_weight_minterm(dsp_ptr->code_ptr, defaultDsp, PARTICIPANT_NAME_WEIGHT);
 
-		// TBD
-		case ESIF_UF_DM_QUERY_TYPE_PLATFORM:
-			best   = 2 + 1;
-			weight = weighted_plat_eq(dsp_ptr, (struct esif_uf_dm_query_plat *)qry_ptr);
-			break;
+		// Secondary items can contribute only if at least one primary match is found
+		secondaryWeight = 
+			compare_and_weight_minterm(dsp_ptr->vendor_id, query.vendorId, PCI_VENDOR_ID_WEIGHT) +
+			compare_and_weight_minterm(busEnum, query.participantType, PARTICIPANT_TYPE_WEIGHT);
+
+		// Items in secondary can weigh in on the results but cannot be the sole factor
+		if (primaryWeight < MIN_VIABLE_DSP_WEIGHT) {
+			weight = primaryWeight;
+		}
+		else {
+			weight = primaryWeight + secondaryWeight;
 		}
 
-		ESIF_TRACE_DEBUG("%s: DSP: %s Weight: %d\n", ESIF_FUNC, (esif_string)dsp_ptr->code_ptr, weight);
+		ESIF_TRACE_DEBUG("DSP: %s Weight: %d\n", (esif_string) dsp_ptr->code_ptr, weight);
 
-		/*
-		** Keep track of row with most weight known as heaviest.  Note that once we
-		** find the heaviest row anoher row must be heavier if it is the same we use
-		** the first row.  An optimization code be to check for a perfect match / weight
-		** and bail out early.  For now we scan the entire table an return the best/weighted
-		** DSP as our query result.
-		*/
+		//Keep track of row with most weight.  
 		if (weight > heaviest) {
-			heaviest     = weight;
-			dsp_code_ptr = dsp_ptr->code_ptr;
+			heaviest = weight;
+			dspNamePtr = dsp_ptr->code_ptr;
 		}
 	}
 
 	// UNLOCK
 	esif_ccb_read_unlock(&g_dm.lock);
 
-	if (dsp_code_ptr != NULL) {
-		ESIF_TRACE_DEBUG("%s: Selected DSP: %s Score: %d of %d\n", ESIF_FUNC, dsp_code_ptr, heaviest, best);
-	} else {
-		ESIF_TRACE_DEBUG("%s: No DSP selected; DME count must be 0\n", ESIF_FUNC);
+	if (dspNamePtr != NULL) {
+		ESIF_TRACE_DEBUG("Selected DSP: %s Score: %d of %d\n", dspNamePtr, heaviest, best);
 	}
-	return dsp_code_ptr;
+	else {
+		ESIF_TRACE_ERROR("No DSP selected for %s. \n", query.participantName);
+	}
+
+	return dspNamePtr;
 }
 
 
+/* Handle each weighted Minterm */
+static int compare_and_weight_minterm(
+	esif_string dsp,
+	esif_string qry,
+enum dspSelectorWeight weight
+	)
+{
+	int score = 0;
+	
+	if (0 == *dsp || '*' == *dsp) {	/* DSP don't care trumps all */
+		score = 0;
+	}
+	else if (0 == *qry || '*' == *qry) {	/* blank == blank don't care. */
+		score = 0;
+	}
+	else if (0 == strcmp(dsp, qry)) {	/* data == data match. */
+		score = (int) weight;
+	}
+	else {
+		score = -1;	/* no match. */
+	}
+	ESIF_TRACE_DEBUG("DSP VALUE: %s VERSUS PARTICIPANT VALUE: %s  = SCORE: %d \n", dsp, qry, score);
+	return score;
+}
+
 eEsifError EsifDspMgrInit()
 {
-	ESIF_TRACE_INFO("%s: Init DSP Manager(DSPMGR)", ESIF_FUNC);
+	ESIF_TRACE_ENTRY_INFO();
+
 	esif_ccb_lock_init(&g_dm.lock);
 
-	/* Initialize Hash For FPC Entry */
-	esif_link_list_init();
-	esif_hash_table_init();
 	esif_dsp_table_build();
 	EsifDspInit();
+
+	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
 
 
 void EsifDspMgrExit()
 {
+	ESIF_TRACE_ENTRY_INFO();
+
 	EsifDspExit();
 	esif_dsp_table_destroy();
-	esif_hash_table_exit();
-	esif_link_list_exit();
 	esif_ccb_lock_uninit(&g_dm.lock);
-	ESIF_TRACE_INFO("%s: Exit DSP Manager (DSPMGR)", ESIF_FUNC);
+
+	ESIF_TRACE_EXIT_INFO();
 }
 
 

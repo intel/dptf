@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include "esif_ws_http.h"
 #include "esif_uf_version.h"
+#include "esif_ccb_file.h"
+#include "esif_ws_socket.h"
+#include "esif_ws_server.h"
 
 #define VERSION "1.0"
 #define UNKNOWN_MIME_TYPE	"application/octet-stream"
@@ -45,9 +48,6 @@ extType g_exts[] = {
 
 size_t length;
 
-
-#include "esif_uf_ccb_file.h"
-
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
@@ -64,19 +64,18 @@ size_t length;
  *******************************************************************************
  */
 
-void esif_ws_close_socket(clientRecord *connection);
 
 /*
  *******************************************************************************
  ** PRIVATE
  *******************************************************************************
  */
-static char*esif_ws_http_time_stamp (time_t, char*);
-static void esif_ws_http_process_buffer (char*, ssize_t);
-static void esif_ws_http_process_request (clientRecord *, char*, ssize_t);
-static int  esif_ws_http_process_static_page (clientRecord*, char*, char*, ssize_t, char*);
-static char*esif_ws_http_get_file_type (char*);
-static void esif_ws_http_send_error_code (clientRecord*, int);
+static char *esif_ws_http_time_stamp(time_t, char *);
+static void esif_ws_http_process_buffer(char*, ssize_t);
+static void esif_ws_http_process_request(ClientRecordPtr , char *, ssize_t);
+static int  esif_ws_http_process_static_page(ClientRecordPtr , char *, char *, ssize_t, char *);
+static char *esif_ws_http_get_file_type(char *);
+static void esif_ws_http_send_error_code(ClientRecordPtr , int);
 
 /*
  *******************************************************************************
@@ -85,7 +84,7 @@ static void esif_ws_http_send_error_code (clientRecord*, int);
  */
 
 eEsifError esif_ws_http_process_reqs (
-	clientRecord *connection,
+	ClientRecordPtr connection,
 	void *buf,
 	ssize_t ret
 	)
@@ -125,7 +124,7 @@ static char*esif_ws_http_time_stamp (
 
 
 static int esif_ws_http_process_static_pages (
-	clientRecord *connection,
+	ClientRecordPtr connection,
 	char *buffer,
 	char *resource,
 	ssize_t ret,
@@ -170,7 +169,7 @@ static int esif_ws_http_process_static_pages (
 		esif_ccb_sprintf(sizeof(content_disposition), content_disposition,  "Content-Disposition: attachment; filename=\"%s\";\n", resource);
 	}
 
-	esif_ccb_sprintf(BUFFER_LENGTH, buffer,	
+	esif_ccb_sprintf(WS_BUFFER_LENGTH, buffer,	
 					"HTTP/1.1 200 OK\n"
 					"Server: ESIF_UF/%s\n"
 					"Last-Modified: %s\n"
@@ -187,8 +186,8 @@ static int esif_ws_http_process_static_pages (
 				(long)st.st_size, 
 				content_disposition);
 
-	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, BUFFER_LENGTH), ESIF_WS_SEND_FLAGS);
-	while ((ret = (int)fread(buffer, 1, BUFFER_LENGTH, file_fp)) > 0) {
+	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, WS_BUFFER_LENGTH), ESIF_WS_SEND_FLAGS);
+	while ((ret = (int)fread(buffer, 1, WS_BUFFER_LENGTH, file_fp)) > 0) {
 		send(connection->socket, buffer, (int)ret, ESIF_WS_SEND_FLAGS);
 	}
 	fclose(file_fp);
@@ -206,7 +205,7 @@ static void esif_ws_http_process_buffer (
 		ESIF_TRACE_DEBUG("failed to read browser request\n");
 	}
 
-	if (size > 0 && size < BUFFER_LENGTH) {
+	if (size > 0 && size < WS_BUFFER_LENGTH) {
 		buffer[size] = 0;
 	} else {
 		buffer[0] = 0;
@@ -215,7 +214,7 @@ static void esif_ws_http_process_buffer (
 
 
 static void esif_ws_http_process_request (
-	clientRecord *connection,
+	ClientRecordPtr connection,
 	char *buffer,
 	ssize_t ret
 	)
@@ -327,7 +326,7 @@ static char*esif_ws_http_get_file_type (char *resource)
 
 
 static void esif_ws_http_send_error_code (
-	clientRecord *connection,
+	ClientRecordPtr connection,
 	int error_code
 	)
 {
@@ -337,5 +336,5 @@ static void esif_ws_http_send_error_code (
 	esif_ccb_sprintf(sizeof(buffer), buffer, (char*)"HTTP/1.1 %d %s\r\n\r\n<h1>%d %s</h1>", error_code, message, error_code, message);
 
 	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, sizeof(buffer)), ESIF_WS_SEND_FLAGS);
-	esif_ws_close_socket(connection);
+	esif_ws_client_close_client(connection);
 }

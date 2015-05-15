@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,11 +18,10 @@
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_EVENT
 
 #include "esif_uf.h"	/* Upper Framework */
-#include "esif_dsp.h"	/* Device Support Package */
-#include "esif_pm.h"	/* Upper Participant Manager */
-#include "esif_ipc.h"	/* IPC Abstraction */
-#include "esif_uf_appmgr.h"
 #include "esif_uf_ipc.h"
+#include "esif_uf_primitive.h"
+#include "esif_uf_eventmgr.h"
+#include "esif_uf_ccb_sock.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -33,38 +32,26 @@
 #include "win\banned.h"
 #endif
 
-void esif_dispatch_event();
-int esif_send_dsp(char *filename, u8 dst_id);
+void EsifEvent_GetAndSignalIpcEvent();
 
 extern int g_quit;
-extern int g_quit2;
 extern int g_disconnectClient;
-extern int g_autocpc;
 extern esif_handle_t g_ipc_handle;
-
-#define PATH_STR_LEN 128
-
-static char *esif_primitive_domain_str(
-	u16 domain,
-	char *str,
-	u8 str_len
-	)
-{
-	u8 *ptr = (u8 *)&domain;
-	esif_ccb_sprintf(str_len, str, "%c%c", *(ptr + 1), *ptr);
-	return str;
-}
 
 
 // Dispatch An Event
-void esif_dispatch_event()
+void EsifEvent_GetAndSignalIpcEvent()
 {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	// NOOP
+#else
 	int r_bytes     = 0;
 	int data_len    = 1024;	/* TODO: Change from "magic number" */
 	enum esif_rc rc = ESIF_OK;
+	struct esif_ipc *ipc_ptr = NULL;
+	struct esif_ipc_event *event_ptr = NULL;
 
-
-	struct esif_ipc *ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_EVENT, data_len);
+	ipc_ptr = esif_ipc_alloc_event(&event_ptr, data_len);
 	if (NULL == ipc_ptr) {
 		ESIF_TRACE_ERROR("Fail to allocate esif_ipc\n");
 		return;
@@ -91,30 +78,33 @@ void esif_dispatch_event()
 
 	// Have Event?
 	if (r_bytes > 0) {
-		struct esif_ipc_event_header *event_hdr_ptr = NULL;
-		ESIF_TRACE_DEBUG("%s_%s: ipc version=%d, type=%d, len = %d, data_len=%d\n",
-						 ESIF_ATTR_OS, ESIF_FUNC,
-						 ipc_ptr->version,
-						 ipc_ptr->type,
-						 r_bytes,
-						 ipc_ptr->data_len);
+		ESIF_TRACE_DEBUG("IPC version=%d, type=%d, len = %d, data_len=%d\n",
+			ipc_ptr->version,
+			ipc_ptr->type,
+			r_bytes,
+			ipc_ptr->data_len);
 
-		event_hdr_ptr = (struct esif_ipc_event_header *)(ipc_ptr + 1);
-		EsifEventProcess(event_hdr_ptr);
+		EsifEvent_SignalIpcEvent(event_ptr);
 	}
 	esif_ipc_free(ipc_ptr);
+#endif
 }
 
 
-void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
+void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	UNREFERENCED_PARAMETER(domainStr);
+#else
 	eEsifError rc = ESIF_OK;
-	char domain_str[8] = "";
-	esif_ccb_time_t now;
-	struct esif_data void_data = {ESIF_DATA_VOID, NULL, 0};
+	EsifData binaryData = {ESIF_DATA_BINARY, NULL, 0, 0};
+	EsifData voidData = {ESIF_DATA_VOID, NULL, 0};
+	EsifDataPtr dataPtr = NULL;
 	UInt8 participantId;
+	char domainStr[8] = "";
+	esif_ccb_time_t now;
 
-	UNREFERENCED_PARAMETER(domain_str);
+	UNREFERENCED_PARAMETER(domainStr);
 
 	esif_ccb_system_time(&now);
 
@@ -144,84 +134,36 @@ void EsifEventProcess(struct esif_ipc_event_header *eventHdrPtr)
 		eventHdrPtr->priority,
 		eventHdrPtr->src_id,
 		eventHdrPtr->dst_id,
-		esif_primitive_domain_str(eventHdrPtr->dst_domain_id, domain_str, 8),
+		esif_primitive_domain_str(eventHdrPtr->dst_domain_id, domainStr, 8),
 		eventHdrPtr->dst_domain_id,
 		eventHdrPtr->data_len);
 
-	if (ESIF_EVENT_PARTICIPANT_CREATE == eventHdrPtr->type) {
-		struct esif_ipc_event_data_create_participant *data_ptr = NULL;
-		EsifString edp_filename_ptr = NULL;
+	dataPtr = &voidData;
+	if (eventHdrPtr->data_len > 0) {
+		binaryData.buf_ptr = eventHdrPtr + 1;
+		binaryData.buf_len = eventHdrPtr->data_len;
+		binaryData.data_len = eventHdrPtr->data_len;
+		dataPtr = &binaryData;
+	}
 
-		if(eventHdrPtr->data_len < sizeof(*data_ptr)) {
-			ESIF_TRACE_ERROR("The event data is not enough for ESIF_EVENT_PARTICIPANT_CREATE\n");
-			goto exit;
-		}
-
-		// Event Data
-		data_ptr = (struct esif_ipc_event_data_create_participant *)(eventHdrPtr + 1);
-
-		edp_filename_ptr = esif_uf_dm_select_dsp_for_participant(data_ptr);
-
-		if (EsifUpManagerDoesAvailableParticipantExistByName(data_ptr->name)) {
-			ESIF_TRACE_WARN("Participant %s has already existed in UF\n", data_ptr->name);
-			return;
-		}
-
-		if (g_autocpc && NULL != edp_filename_ptr) {
-			char edp_full_path[PATH_STR_LEN]={0};
-			esif_build_path(edp_full_path, sizeof(edp_full_path), ESIF_PATHTYPE_DSP, edp_filename_ptr, ".edp");
-			ESIF_TRACE_DEBUG("AutoCPC Selected DSP Delivery Method EDP(CPC): %s\n", edp_full_path);
-
-			if (0 == esif_send_dsp(edp_full_path, eventHdrPtr->src_id)) {
-				EsifUpPtr up_ptr = NULL;
-				ESIF_TRACE_DEBUG("\nCreate Upper Participant: %s\n", data_ptr->name);
-
-				up_ptr = EsifUpManagerCreateParticipant(eParticipantOriginLF, &eventHdrPtr->src_id, data_ptr);
-				if (up_ptr) {
-					/* Associate a DSP with the participant */
-					up_ptr->fDspPtr = esif_uf_dm_select_dsp_by_code(edp_filename_ptr);
-					if (up_ptr->fDspPtr) {
-						ESIF_TRACE_DEBUG("Hit DSP Lookup %s\n", up_ptr->fDspPtr->code_ptr);
-
-						/* Now offer this participant to each running application */
-						EsifAppMgrCreateCreateParticipantInAllApps(up_ptr);
-					} else {
-						ESIF_TRACE_ERROR("Missed DSP Lookup %s\n", edp_filename_ptr);
-						EsifUpManagerUnregisterParticipant(eParticipantOriginLF, up_ptr);
-						up_ptr = NULL;
-					}
-				}
-			}
-		} else {
-			ESIF_TRACE_DEBUG("Please manually load a CPC for this Participant\n");
-			ESIF_TRACE_DEBUG("Example: dst %d then loadcpc\n\n", eventHdrPtr->src_id);
-		}
-	} else {
-		/*
-		* Can't move this above everything because if a participant is not yet created, the
-		* mapping function will fail.
-		*/
-		participantId = eventHdrPtr->src_id;
-		if (eventHdrPtr->dst_id == ESIF_INSTANCE_UF) {
-			rc = EsifUpManagerMapLpidToPartHandle(eventHdrPtr->src_id, &participantId);
-			if (rc != ESIF_OK) {
-				ESIF_TRACE_ERROR("Invalid event source received");
-				goto exit;
-			}
-		}
-
-		if (ESIF_EVENT_PARTICIPANT_UNREGISTER == eventHdrPtr->type) {
-
-			ESIF_TRACE_INFO("Destroy Lower Participant: %d\n", participantId);
-			EsifUpManagerUnregisterParticipant(eParticipantOriginLF, &participantId);
-
-		} else {
-			// Best Effort Delivery
-			EsifAppsEvent(participantId, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &void_data);
+	/*
+	* If the mapping function fails, we assume that the participant hasn't been created
+	* In that case, we use 0 for the participant as the real ID will be gathered from
+	* the creation data.
+	*/
+	participantId = eventHdrPtr->dst_id;
+	if (eventHdrPtr->dst_id == ESIF_INSTANCE_UF) {
+		rc = EsifUpPm_MapLpidToParticipantInstance(eventHdrPtr->src_id, &participantId);
+		if (rc != ESIF_OK) {
+			participantId = 0;
 		}
 	}
-exit:
-	(0);
+
+	// Best Effort Delivery
+	EsifEventMgr_SignalEvent(participantId, eventHdrPtr->dst_domain_id, eventHdrPtr->type, dataPtr);
+
+	return;
+#endif
 }
 
 
@@ -235,46 +177,47 @@ void *esif_event_worker_thread(void *ptr)
 
 	UNREFERENCED_PARAMETER(ptr);
 	ESIF_TRACE_ENTRY_INFO();
-	CMD_OUT("Start ESIF Upper Framework Shell\n");
+	CMD_OUT("Start ESIF Event Thread\n");
 
 	// Connect To Kernel IPC with infinite timeout
 	ipc_autoconnect(0);
 
 	// Run Until Told To Quit
 	while (!g_quit) {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+		esif_ccb_sleep_msec(250);
+#else
 		if (g_ipc_handle == ESIF_INVALID_HANDLE) {
 			break;
 		}
+		if (rc > 0) {
+			EsifEvent_GetAndSignalIpcEvent();
+		}
 		FD_ZERO(&rfds);
-#ifdef ESIF_ATTR_OS_WINDOWS
-		FD_SET((SOCKET)g_ipc_handle, &rfds);
-#else
-		FD_SET((u32)g_ipc_handle, &rfds);
-#endif
+		FD_SET((esif_ccb_socket_t)g_ipc_handle, &rfds);
 		tv.tv_sec  = 0;
 		tv.tv_usec = 50000;	/* 50 msec */
 
 #ifdef ESIF_ATTR_OS_LINUX
 		rc = select(g_ipc_handle + 1, &rfds, NULL, NULL, &tv);
 #endif
+		
 #ifdef ESIF_ATTR_OS_WINDOWS
 		// Windows does not support select/poll so we simulate here
-		Sleep(50);
+		esif_ccb_sleep_msec(50);
 		rc = 1;
 #endif
-		if (rc > 0) {
-			esif_dispatch_event();
-		}
+		
+#endif
 	}
 
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
 		ipc_disconnect();
 	}
-	g_quit2 = 1;
+
 	ESIF_TRACE_EXIT_INFO();
 	return 0;
 }
-
 
 /*****************************************************************************/
 /*****************************************************************************/

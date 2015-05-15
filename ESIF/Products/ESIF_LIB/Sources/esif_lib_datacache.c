@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -74,7 +74,7 @@ DataCacheEntryPtr DataCache_GetValue (
 }
 
 
-void DataCache_SetValue (
+eEsifError DataCache_SetValue (
 	DataCachePtr self,
 	esif_string key,
 	EsifData value,
@@ -99,7 +99,9 @@ void DataCache_SetValue (
 		node = 0;
 	}
 	self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size + 1) * sizeof(self->elements[0]));
-	if (self->elements) {
+	if (NULL == self->elements) {
+		return ESIF_E_NO_MEMORY;
+	} else {
 		EsifData keydata;
 		EsifData_ctor(&keydata);
 		EsifData_Set(&keydata, ESIF_DATA_STRING, esif_ccb_strdup(key), ESIFAUTOLEN, ESIFAUTOLEN);
@@ -111,10 +113,11 @@ void DataCache_SetValue (
 		self->elements[node].flags = flags;
 		self->size++;
 	}
+	return ESIF_OK;
 }
 
 
-void DataCache_Delete (
+eEsifError DataCache_Delete(
 	DataCachePtr self,
 	esif_string key
 	)
@@ -122,7 +125,7 @@ void DataCache_Delete (
 	// Do Insertion Sort using Binary Search on Sorted Array
 	UInt32 node = DataCache_Search(self, key);
 	if (node == EOF) {
-		return;
+		return ESIF_E_NOT_FOUND;
 	}
 	if (self->elements[node].key.buf_len) {
 		esif_ccb_free(self->elements[node].key.buf_ptr);
@@ -142,6 +145,7 @@ void DataCache_Delete (
 		self->elements = NULL;
 	}
 	self->size--;
+	return ESIF_OK;
 }
 
 

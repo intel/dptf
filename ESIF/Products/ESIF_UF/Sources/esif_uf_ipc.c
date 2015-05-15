@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,7 +35,6 @@
 void ipc_disconnect();
 
 int g_timestamp = 0;	// Time Stamp IPC Execute
-int g_ipcmode   = 0;	// IPC Mode
 
 // Time Helper
 int timeval_subtract(
@@ -73,14 +72,14 @@ extern int g_quit;
 extern int g_disconnectClient;
 extern int g_timestamp;
 
-enum esif_rc ipc_execute(struct esif_ipc *ipc);
-
 esif_handle_t g_ipc_handle = ESIF_INVALID_HANDLE;
 
 // String To Short
-u16 convert_string_to_short(char *two_character_string)
+u16 domain_str_to_short(char *two_character_string)
 {
-	return *((short *)(two_character_string));
+	UInt16 domain = *((short*)(two_character_string));
+	*((char *)&domain) = (char)toupper(*two_character_string);
+	return domain;
 }
 
 
@@ -88,8 +87,38 @@ u16 convert_string_to_short(char *two_character_string)
 // IPC
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+
+eEsifError ipc_connect()
+{
+	return ESIF_E_NO_LOWER_FRAMEWORK;
+}
+
+eEsifError ipc_autoconnect(UInt32 max_retries)
+{
+	UNREFERENCED_PARAMETER(max_retries);
+	return ESIF_E_NO_LOWER_FRAMEWORK;
+}
+
+void ipc_disconnect()
+{
+}
+
+int ipc_isconnected()
+{
+	return ESIF_FALSE;
+}
+
+enum esif_rc ipc_execute(struct esif_ipc *ipc)
+{
+	UNREFERENCED_PARAMETER(ipc);
+	return ESIF_E_NO_LOWER_FRAMEWORK;
+}
+
+#else
+
 extern char g_esif_kernel_version[64]; // "Kernel Version = XXXXX\n"
-extern char g_out_buf[64 * 1024];
+extern char g_out_buf[OUT_BUF_LEN];
 
 // This extracts the Kernel version from the string returned by esif_cmd_info()
 static void extract_kernel_version(char *str, size_t buf_len)
@@ -111,6 +140,8 @@ eEsifError ipc_connect()
 {
 	eEsifError rc = ESIF_OK;
 	int check_kernel_version = ESIF_TRUE;
+
+	ESIF_TRACE_ENTRY_INFO();
 
 	// Exit if IPC already connected
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
@@ -147,6 +178,7 @@ eEsifError ipc_connect()
 			}
 		}
 	}
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -156,7 +188,7 @@ eEsifError ipc_autoconnect(UInt32 max_retries)
 	eEsifError rc = ESIF_OK;
 	UInt32 connect_retries = 0;
 
-	ESIF_TRACE_INFO("Ipc auto connect...\n");
+	ESIF_TRACE_ENTRY_INFO();
 
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
 		return rc;
@@ -176,19 +208,22 @@ eEsifError ipc_autoconnect(UInt32 max_retries)
 
 		esif_ccb_sleep(1);
 	}
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
-
 
 // IPC Disconnect
 void ipc_disconnect()
 {
-	ESIF_TRACE_INFO("Ipc disconnect...\n");
+	ESIF_TRACE_ENTRY_INFO();
+
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
 		esif_ipc_disconnect(g_ipc_handle);
 		g_ipc_handle = ESIF_INVALID_HANDLE;
 		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Closed\n");
 	}
+
+	ESIF_TRACE_EXIT_INFO();
 }
 
 // Is IPC Connected?
@@ -238,4 +273,4 @@ exit:
 	return rc;
 }
 
-
+#endif

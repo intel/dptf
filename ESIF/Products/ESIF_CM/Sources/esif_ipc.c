@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,7 +57,9 @@
 
 #include "esif_ipc.h"
 #include "esif_primitive.h"
+#include "esif_event.h"
 #include "esif_debug.h"
+#include "esif_ccb_time.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 /*
@@ -75,20 +77,10 @@
 
 #define ESIF_DEBUG_MODULE ESIF_DEBUG_MOD_IPC
 
-/* Debug Logging Defintions */
-#define RESERVED0     0	/* Used By OS Version */
-#define RESERVED1     1	/* Used By OS Version */
-#define RESERVED2     2	/* Used By OS Version */
-#define RESERVED4     3	/* Used By OS Version */
-#define INIT_DEBUG    4	/* Init Debug */
-#define IPC_DEBUG     5	/* IPC Debug */
-#define RESERVED20    6	/* Reserved */
-#define RESERVED40    7	/* Reserved */
-
-#define ESIF_TRACE_DYN_INIT(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, INIT_DEBUG, format, ##__VA_ARGS__)
-#define ESIF_TRACE_DYN_IPC(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_DEBUG, format, ##__VA_ARGS__)
+#define ESIF_TRACE_DYN_INIT(fmt, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_TRACE_INIT, fmt, ##__VA_ARGS__)
+#define ESIF_TRACE_DYN_IPC(fmt, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_TRACE_DEBUG, fmt, ##__VA_ARGS__)
 
 /*
  * Kernel Implementation
@@ -106,7 +98,13 @@ struct esif_ipc *esif_ipc_process(
 	)
 {
 	struct esif_ipc *ipc_ret_ptr = ipc_ptr;
-	ESIF_TRACE_DYN_IPC("%s: START ipc %p\n", ESIF_FUNC, ipc_ptr);
+	struct esif_ipc_command *cmd_ptr = NULL;
+	struct esif_ipc_primitive *prim_ptr = NULL;
+
+	ESIF_TRACE_DYN_IPC("START ipc %p\n", ipc_ptr);
+
+	if (NULL == ipc_ptr)
+		goto exit;
 
 	/*
 	 * If we got this far we are guaranteed to have a valid IPC
@@ -118,17 +116,20 @@ struct esif_ipc *esif_ipc_process(
 	switch (ipc_ptr->type) {
 	/* Command e.g. Get Participants, Etc. */
 	case ESIF_IPC_TYPE_COMMAND:
-		ESIF_TRACE_DYN_IPC("%s: COMMAND Received\n", ESIF_FUNC);
-		if (ipc_ptr->data_len < sizeof(struct esif_ipc_command))
+		ESIF_TRACE_DYN_IPC("COMMAND Received\n");
+		cmd_ptr = (struct esif_ipc_command *)(ipc_ptr + 1);
+		if ((ipc_ptr->data_len < sizeof(*cmd_ptr)) ||
+		    (ipc_ptr->data_len < (esif_ipc_command_get_data_len(cmd_ptr) + sizeof(*cmd_ptr))))
 			ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
-		else
-			ipc_ret_ptr = esif_execute_ipc_command(ipc_ptr);
+		else 
+			
+			esif_execute_ipc_command(cmd_ptr);
 		break;
 
-	/* Retireve A Signaled Event Or Check Event Queue */
+	/* Retrieve A Signaled Event Or Check Event Queue */
 	case ESIF_IPC_TYPE_EVENT:
-		ESIF_TRACE_DYN_IPC("%s: EVENT Received\n", ESIF_FUNC);
-		if (ipc_ptr->data_len < sizeof(struct esif_ipc_event_header))
+		ESIF_TRACE_DYN_IPC("EVENT Received\n");
+		if (ipc_ptr->data_len < sizeof(struct esif_ipc_event))
 			ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
 		else
 			ipc_ret_ptr = esif_event_queue_pull();
@@ -136,31 +137,32 @@ struct esif_ipc *esif_ipc_process(
 
 	/* Execute Primitive e.g. GET_TEMPERATURE */
 	case ESIF_IPC_TYPE_PRIMITIVE:
-		ESIF_TRACE_DYN_IPC("%s: PRIMITIVE Received\n", ESIF_FUNC);
-		if (ipc_ptr->data_len < sizeof(struct esif_ipc_primitive))
+		ESIF_TRACE_DYN_IPC("PRIMITIVE Received\n");
+		prim_ptr = (struct esif_ipc_primitive *)(ipc_ptr + 1);
+		if ((ipc_ptr->data_len < sizeof(*prim_ptr)) ||
+		    (ipc_ptr->data_len < (esif_ipc_primitive_get_data_len(prim_ptr) + sizeof(*prim_ptr))))
 			ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
 		else
-			ipc_ret_ptr = esif_execute_ipc_primitive(ipc_ptr);
+			esif_execute_ipc_primitive(prim_ptr);
 		break;
 
 	/* NOOP For Testing */
 	case ESIF_IPC_TYPE_NOOP:
-		ESIF_TRACE_DYN_IPC("%s: NOOP Received\n", ESIF_FUNC);
+		ESIF_TRACE_DYN_IPC("NOOP Received\n");
 		ipc_ret_ptr = NULL;
 		break;
 
 	/* Unsupported or Unknown IPC Type Received */
 	default:
-		ESIF_TRACE_DYN_IPC("%s: Unknown IPC Type Received type=%u\n",
-				   ESIF_FUNC,
-				   ipc_ptr->type);
+		ESIF_TRACE_DYN_IPC("Unknown IPC Type Received type=%u\n",
+			ipc_ptr->type);
 		ipc_ptr->return_code = ESIF_E_IPC_DATA_INVALID;
 		break;
 	}
-	ESIF_TRACE_DYN_IPC("%s: FINISH return result: %s(%u)\n",
-			   ESIF_FUNC,
-			   esif_rc_str(ipc_ptr->return_code),
-			   ipc_ptr->return_code);
+	ESIF_TRACE_DYN_IPC("FINISH return result: %s(%u)\n",
+		esif_rc_str(ipc_ptr->return_code),
+		ipc_ptr->return_code);
+exit:
 	return ipc_ret_ptr;
 }
 
@@ -170,7 +172,7 @@ enum esif_rc esif_ipc_init(
 	esif_device_t device
 	)
 {
-	ESIF_TRACE_DYN_INIT("%s: Initialize IPC\n", ESIF_FUNC);
+	ESIF_TRACE_DYN_INIT("Initialize IPC\n");
 
 	return esif_os_ipc_init(device);
 }
@@ -183,7 +185,7 @@ void esif_ipc_exit(
 {
 	esif_os_ipc_exit(device);
 
-	ESIF_TRACE_DYN_INIT("%s: Exit IPC\n", ESIF_FUNC);
+	ESIF_TRACE_DYN_INIT("Exit IPC\n");
 }
 
 
@@ -199,8 +201,7 @@ esif_handle_t esif_ipc_connect(
 	esif_string session_id
 	)
 {
-	ESIF_TRACE_DEBUG("%s: IPC session_id = %s\n",
-			 ESIF_FUNC, session_id);
+	ESIF_TRACE_DEBUG("IPC session_id = %s\n", session_id);
 	return esif_os_ipc_connect(session_id);
 }
 
@@ -210,8 +211,7 @@ void esif_ipc_disconnect(
 	esif_handle_t handle
 	)
 {
-	ESIF_TRACE_DEBUG("%s: IPC handle = %d\n",
-			 ESIF_FUNC, handle);
+	ESIF_TRACE_DEBUG("IPC handle = %d\n", handle);
 	esif_os_ipc_disconnect(handle);
 }
 
@@ -222,8 +222,7 @@ enum esif_rc esif_ipc_execute(
 	struct esif_ipc *ipc_ptr
 	)
 {
-	ESIF_TRACE_DEBUG("%s: handle = %d, IPC = %p\n",
-			 ESIF_FUNC, handle, ipc_ptr);
+	ESIF_TRACE_DEBUG("Handle = %d, IPC = %p\n", handle, ipc_ptr);
 	return esif_os_ipc_execute(handle, ipc_ptr);
 }
 
@@ -236,13 +235,15 @@ enum esif_rc esif_ipc_execute(
 */
 
 /* Allocate IPC */
-struct esif_ipc *esif_ipc_alloc(
+static struct esif_ipc *esif_ipc_alloc(
 	enum esif_ipc_type type,
 	u32 data_len
 	)
 {
-	u32 ipc_size = data_len + sizeof(struct esif_ipc);
-	struct esif_ipc *ipc_ptr = (struct esif_ipc *)esif_ccb_malloc(ipc_size);
+	struct esif_ipc *ipc_ptr = NULL;
+	u32 ipc_size = sizeof(*ipc_ptr) + data_len;
+
+	ipc_ptr = (struct esif_ipc *)esif_ccb_malloc(ipc_size);
 	if (NULL == ipc_ptr)
 		return NULL;
 
@@ -251,12 +252,10 @@ struct esif_ipc *esif_ipc_alloc(
 	ipc_ptr->data_len    = data_len;
 	ipc_ptr->return_code = ESIF_OK;
 
-#ifdef ESIF_ATTR_HMAC
-	esif_ccb_memcpy(ipc->hmac, x, ESIF_HMAC_LEN);
-#endif
-	ESIF_TRACE_DEBUG("%s: ipc = %p, type = %d, size = %d data_len = %d\n",
-			 ESIF_FUNC, ipc_ptr, type, (int)ipc_size,
-			 (int)data_len);
+	ESIF_TRACE_DEBUG("IPC = %p, type = %d, size = %d data_len = %d\n",
+		ipc_ptr, type,
+		(int)ipc_size,
+		(int)data_len);
 	return ipc_ptr;
 }
 
@@ -269,8 +268,10 @@ struct esif_ipc *esif_ipc_alloc_command(
 {
 	struct esif_ipc *ipc_ptr = NULL;
 
+	ESIF_ASSERT(command_ptr_ptr != NULL);
+
 	ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_COMMAND,
-				 data_len + sizeof(struct esif_ipc_command));
+		data_len + sizeof(**command_ptr_ptr));
 
 	if (NULL == ipc_ptr) {
 		*command_ptr_ptr = NULL;
@@ -294,8 +295,11 @@ struct esif_ipc *esif_ipc_alloc_primitive(
 	)
 {
 	struct esif_ipc *ipc_ptr = NULL;
+
+	ESIF_ASSERT(primitive_ptr_ptr != NULL);
+
 	ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_PRIMITIVE,
-				 data_len + sizeof(struct esif_ipc_primitive));
+		data_len + sizeof(**primitive_ptr_ptr));
 
 	if (NULL == ipc_ptr) {
 		*primitive_ptr_ptr = NULL;
@@ -311,10 +315,43 @@ struct esif_ipc *esif_ipc_alloc_primitive(
 }
 
 
+/* Allocate Event IPC */
+struct esif_ipc *esif_ipc_alloc_event(
+	struct esif_ipc_event **event_ptr_ptr,
+	u32 data_len
+	)
+{
+	struct esif_ipc *ipc_ptr = NULL;
+
+	ESIF_ASSERT(event_ptr_ptr != NULL);
+
+	ipc_ptr = esif_ipc_alloc(ESIF_IPC_TYPE_EVENT,
+		data_len + sizeof(**event_ptr_ptr));
+
+	if (NULL == ipc_ptr) {
+		*event_ptr_ptr = NULL;
+	} else {
+		esif_ccb_time_t timestamp = {0};
+		struct esif_ipc_event *event_ptr = NULL;
+		event_ptr = (struct esif_ipc_event *)(ipc_ptr + 1);
+
+		event_ptr->version  = ESIF_EVENT_VERSION;
+		event_ptr->priority = ESIF_EVENT_PRIORITY_NORMAL;
+		event_ptr->data_len = data_len;
+
+		esif_ccb_system_time(&timestamp);
+		event_ptr->timestamp = (u64)timestamp;
+
+		*event_ptr_ptr          = event_ptr;
+	}
+	return ipc_ptr;
+}
+
+	
 /* Free IPC */
 void esif_ipc_free(struct esif_ipc *ipc_ptr)
 {
-	ESIF_TRACE_DEBUG("%s: ipc = %p\n", ESIF_FUNC, ipc_ptr);
+	ESIF_TRACE_DEBUG("IPC = %p\n", ipc_ptr);
 	esif_ccb_free(ipc_ptr);
 }
 

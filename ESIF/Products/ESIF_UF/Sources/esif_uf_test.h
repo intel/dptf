@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,22 +40,19 @@ typedef enum _t_EsifTestErrorType {
 /* Error To String */
 static ESIF_INLINE EsifString EsifTestErrorStr(eEsifTestErrorType type)
 {
-	#define CREATE_ESIF_TEST_ERROR(e, s) case e: \
-	str = (EsifString)s;break;
-	EsifString str = (EsifString)ESIF_NOT_AVAILABLE;
 	switch (type) {
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_OK, "Tests executed properly")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_SKIP, "Skip test")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_HELP, "A help function was triggered")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_NEED_ARG, "Exited due to a lack of arguments")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_BINARY, "Test was for a binary.  check file output")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_OUT_OF_BOUNDS, "Test produced out of bounds results")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_FILE_NOT_FOUND, "Comparison file not found")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_FILE_SIZE_DIFFER, "Comparison and reference size differ")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_FILE_COMPARE, "Contents of buffer/file differ")
-		CREATE_ESIF_TEST_ERROR(ESIF_TEST_E_NO_MEMORY, "Memory allocation failure")
+	ESIF_CASE(ESIF_TEST_OK, "Tests executed properly");
+	ESIF_CASE(ESIF_TEST_SKIP, "Skip test");
+	ESIF_CASE(ESIF_TEST_E_HELP, "A help function was triggered");
+	ESIF_CASE(ESIF_TEST_E_NEED_ARG, "Exited due to a lack of arguments");
+	ESIF_CASE(ESIF_TEST_E_BINARY, "Test was for a binary.  check file output");
+	ESIF_CASE(ESIF_TEST_E_OUT_OF_BOUNDS, "Test produced out of bounds results");
+	ESIF_CASE(ESIF_TEST_E_FILE_NOT_FOUND, "Comparison file not found");
+	ESIF_CASE(ESIF_TEST_E_FILE_SIZE_DIFFER, "Comparison and reference size differ");
+	ESIF_CASE(ESIF_TEST_E_FILE_COMPARE, "Contents of buffer/file differ");
+	ESIF_CASE(ESIF_TEST_E_NO_MEMORY, "Memory allocation failure");
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 

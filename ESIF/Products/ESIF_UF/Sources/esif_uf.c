@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,9 +27,14 @@
 #include "esif_uf_appmgr.h"	/* Application Manager */
 #include "esif_uf_cfgmgr.h"	/* Config Manager */
 #include "esif_uf_cnjmgr.h"	/* Conjure Manager */
+#include "esif_uf_version.h"
+#include "esif_uf_eventmgr.h"
 
 /* Init */
 #include "esif_dsp.h"		/* Device Support Package */
+#include "esif_link_list.h"
+#include "esif_hash_table.h"
+#include "esif_uf_logging.h"
 
 /* IPC */
 #include "esif_command.h"	/* Command Interface */
@@ -39,6 +44,10 @@
 #include "esif_ws_server.h"	/* Web Server */
 
 #include "esif_lib_databank.h"
+#include "esif_ccb_timer.h"
+
+
+
 
 /* Native memory allocation functions for use by memtrace functions only */
 #define native_malloc(siz)          malloc(siz)
@@ -47,8 +56,6 @@
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include <share.h>
-#include <shlobj.h>
-#pragma comment (lib, "shell32")
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
 // against Windows SDK/DDK included headers which we have no control over.
@@ -57,13 +64,15 @@
 #include "win\banned.h"
 #endif
 
-int g_autocpc    = ESIF_TRUE;	// Automatically Assign DSP/CPC
 int g_errorlevel = 0;			// Exit Errorlevel
 int g_quit		 = ESIF_FALSE;	// Quit
 int g_disconnectClient = ESIF_FALSE;// Disconnect client
-int g_quit2      = ESIF_FALSE;	// Quit 2
 
 UInt8 g_esif_started = ESIF_FALSE;
+
+/* ESIF Memory Pool */
+struct esif_ccb_mempool *g_mempool[ESIF_MEMPOOL_TYPE_MAX] = {0};
+esif_ccb_lock_t g_mempool_lock;
 
 static esif_thread_t g_webthread;  //web worker thread
 
@@ -86,56 +95,23 @@ typedef struct EsifLogFile_s {
 
 static EsifLogFile g_EsifLogFile[MAX_ESIFLOG] = {0};
 
-static esif_string g_home = NULL; // Global Home directory
-
-// Set Pathname components based on OS & Architecture. Only esif_build_path should use these.
-#ifdef ESIF_ATTR_OS_WINDOWS
-  #ifdef ESIF_ATTR_64BIT
-    #define ESIF_DIR_EXE	"ufx64"
-  #else 
-    #define ESIF_DIR_EXE	"ufx86"
-  #endif
-#else
-	#define ESIF_DIR_EXE	NULL
-#endif
-#define ESIF_DIR_BIN	"bin"
-#define ESIF_DIR_LOCK	"tmp"
-#define ESIF_DIR_CMD	"cmd"
-#define ESIF_DIR_DSP	"dsp"
-#define ESIF_DIR_LOG	"log"
-#define ESIF_DIR_UI		"ui"
-
-// OS-specific Full Pathnames. Only esif_build_path should use these.
-#if defined(ESIF_ATTR_OS_CHROME)
-# define ESIF_FULLPATH_HOME	"/usr/share/dptf"
-# define ESIF_FULLPATH_DV	"/etc/dptf"
-# define ESIF_FULLPATH_TEMP	"/tmp"
-# define ESIF_FULLPATH_LOG	"/usr/local/var/log/dptf"
-#elif defined(ESIF_ATTR_OS_ANDROID)
-# define ESIF_FULLPATH_HOME	"/etc/dptf"
-# define ESIF_FULLPATH_DV	"/etc/dptf/dv"
-# define ESIF_FULLPATH_TEMP	"/data/misc/dptf/tmp"
-#elif defined(ESIF_ATTR_OS_LINUX)
-# define ESIF_FULLPATH_HOME	"/usr/share/dptf"
-# define ESIF_FULLPATH_DV	"/etc/dptf"
-# define ESIF_FULLPATH_TEMP	"/tmp"
-#endif
+enum esif_rc esif_pathlist_init(esif_string path_list);
+void esif_pathlist_exit(void);
+int esif_pathlist_count(void);
 
 // Optional Custom path configuration file support
 #ifdef ESIF_ATTR_OS_WINDOWS
-# define ESIF_CUSTOM_PATH_FILENAME	"C:\\Windows\\esif.conf"	
+# define ESIF_PATHLIST_FILENAME	"C:\\Windows\\esif.conf"	
 #else
-# define ESIF_CUSTOM_PATH_FILENAME	"/etc/esif.conf"
+# define ESIF_PATHLIST_FILENAME	"/etc/esif.conf"
 #endif
-#define PATHTYPE_INIT	((esif_pathtype)(-1))
-#define PATHTYPE_EXIT	((esif_pathtype)(-2))
-#define esif_custom_path_init()	esif_custom_path(PATHTYPE_INIT)
-#define esif_custom_path_exit()	esif_custom_path(PATHTYPE_EXIT)
-static int g_custom_path_initialized=0;
 
 eEsifError EsifLogMgrInit(void)
 {
 	int j;
+
+	ESIF_TRACE_ENTRY_INFO();
+
 	esif_ccb_memset(g_EsifLogFile, 0, sizeof(g_EsifLogFile));
 	for (j=0; j < MAX_ESIFLOG; j++) {
 		esif_ccb_lock_init(&g_EsifLogFile[j].lock);
@@ -145,6 +121,7 @@ eEsifError EsifLogMgrInit(void)
 	g_EsifLogFile[ESIF_LOG_SHELL].name    = esif_ccb_strdup("shell");
 	g_EsifLogFile[ESIF_LOG_TRACE].name    = esif_ccb_strdup("trace");
 	g_EsifLogFile[ESIF_LOG_UI].name       = esif_ccb_strdup("ui");
+
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
@@ -152,6 +129,9 @@ eEsifError EsifLogMgrInit(void)
 void EsifLogMgrExit(void)
 {
 	int j;
+
+	ESIF_TRACE_ENTRY_INFO();
+
 	for (j=0; j < MAX_ESIFLOG; j++) {
 		if (g_EsifLogFile[j].handle != NULL) {
 			esif_ccb_fclose(g_EsifLogFile[j].handle);
@@ -161,6 +141,7 @@ void EsifLogMgrExit(void)
 		esif_ccb_lock_uninit(&g_EsifLogFile[j].lock);
 	}
 	esif_ccb_memset(g_EsifLogFile, 0, sizeof(g_EsifLogFile));
+
 	ESIF_TRACE_EXIT_INFO();
 }
 
@@ -280,7 +261,7 @@ EsifLogType EsifLogType_FromString(const char *name)
 }
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-extern enum esif_rc write_to_srvr_cnsl_intfc_varg(const char *pFormat, va_list args);
+extern enum esif_rc ESIF_CALLCONV write_to_srvr_cnsl_intfc_varg(const char *pFormat, va_list args);
 # define EsifConsole_vprintf(fmt, args)		write_to_srvr_cnsl_intfc_varg(fmt, args)
 #else
 # define EsifConsole_vprintf(fmt, args)		vprintf(fmt, args)
@@ -329,10 +310,10 @@ static enum esif_rc get_participant_data(
 {
 	eEsifError rc = ESIF_OK;
 
-	struct esif_command_get_participant_detail *data_ptr = NULL;
+	struct esif_command_get_part_detail *data_ptr = NULL;
 	struct esif_ipc_command *command_ptr = NULL;
 	struct esif_ipc *ipc_ptr = NULL;
-	const u32 data_len = sizeof(struct esif_command_get_participant_detail);
+	const u32 data_len = sizeof(struct esif_command_get_part_detail);
 
 	ipc_ptr = esif_ipc_alloc_command(&command_ptr, data_len);
 	if (NULL == ipc_ptr || NULL == command_ptr) {
@@ -370,7 +351,7 @@ static enum esif_rc get_participant_data(
 	}
 
 	// our data
-	data_ptr = (struct esif_command_get_participant_detail *)(command_ptr + 1);
+	data_ptr = (struct esif_command_get_part_detail *)(command_ptr + 1);
 	if (0 == data_ptr->version) {
 		ESIF_TRACE_ERROR("Participant version is 0\n");
 		goto exit;
@@ -424,15 +405,16 @@ enum esif_rc sync_lf_participants()
 	struct esif_ipc_command *command_ptr = NULL;
 	UInt8 i = 0;
 	UInt32 count = 0;
-
-	struct esif_ipc *ipc_ptr = esif_ipc_alloc_command(&command_ptr, data_len);
+	struct esif_ipc *ipc_ptr = NULL;
+	
+	ESIF_TRACE_ENTRY_INFO();
+	
+	ipc_ptr = esif_ipc_alloc_command(&command_ptr, data_len);
 	if (NULL == ipc_ptr || NULL == command_ptr) {
 		ESIF_TRACE_ERROR("Fail to allocate esif_ipc/esif_ipc_command\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
-
-	ESIF_TRACE_DEBUG("%s: SYNC", ESIF_FUNC);
 
 	command_ptr->type = ESIF_COMMAND_TYPE_GET_PARTICIPANTS;
 	command_ptr->req_data_type   = ESIF_DATA_VOID;
@@ -460,59 +442,28 @@ enum esif_rc sync_lf_participants()
 	}
 
 	/* Participant Data */
-
 	data_ptr = (struct esif_command_get_participants *)(command_ptr + 1);
 	count    = data_ptr->count;
 
 	for (i = 0; i < count; i++) {
-		struct esif_ipc_event_header *event_hdr_ptr = NULL;
-		struct esif_ipc_event_data_create_participant *event_cp_ptr = NULL;
+		struct esif_ipc_event_data_create_participant participantData;
+		EsifData esifParticipantData = {ESIF_DATA_BINARY, &participantData, sizeof(participantData), sizeof(participantData)};
 
-		esif_ccb_time_t now;
-		int size = 0;
-		esif_ccb_system_time(&now);
-
-		if (data_ptr->participant_info[i].state <= ESIF_PM_PARTICIPANT_REMOVED) {
+		rc = get_participant_data(&participantData, i);
+		if (ESIF_OK != rc) {
+			rc = ESIF_OK; /* Ignore RC for get_participant_data */
 			continue;
 		}
-
-		size = sizeof(struct esif_ipc_event_header) +
-			sizeof(struct esif_ipc_event_data_create_participant);
-		event_hdr_ptr = (struct esif_ipc_event_header *)esif_ccb_malloc(size);
-		if (event_hdr_ptr == NULL) {
-			ESIF_TRACE_ERROR("Fail to allocate esif_ipc_event_header\n");
-			rc = ESIF_E_NO_MEMORY;
-			goto exit;
-		}
-
-		/* Fillin Event Header */
-		event_hdr_ptr->data_len = sizeof(struct esif_ipc_event_data_create_participant);
-		event_hdr_ptr->dst_id   = ESIF_INSTANCE_UF;
-		event_hdr_ptr->dst_domain_id = 'NA';
-		event_hdr_ptr->id        = 0;
-		event_hdr_ptr->priority  = ESIF_EVENT_PRIORITY_NORMAL;
-		event_hdr_ptr->src_id    = i;
-		event_hdr_ptr->timestamp = now;
-		event_hdr_ptr->type      = ESIF_EVENT_PARTICIPANT_CREATE;
-		event_hdr_ptr->version   = ESIF_EVENT_VERSION;
-
-		event_cp_ptr = (struct esif_ipc_event_data_create_participant *)(event_hdr_ptr + 1);
-		get_participant_data(event_cp_ptr, i);
-
-		EsifEventProcess(event_hdr_ptr);
-
-		esif_ccb_free(event_hdr_ptr);
+		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_CREATE, &esifParticipantData);
 	}
-	ESIF_TRACE_DEBUG("\n");
-
 exit:
-	ESIF_TRACE_INFO("%s: rc = %s(%u)", ESIF_FUNC, esif_rc_str(rc), rc);
+	ESIF_TRACE_INFO("rc = %s(%u)", esif_rc_str(rc), rc);
 
 	if (NULL != ipc_ptr) {
 		esif_ipc_free(ipc_ptr);
 	}
 
-	ESIF_TRACE_EXIT_INFO();
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -522,122 +473,147 @@ void done(const void *context)
 	CMD_OUT("Context = %p %s\n", context, (char *)context);
 }
 
-// Recursively create a path if it does not already exist
-int esif_ccb_makepath (char *path)
+// Name to Pathtype Map
+typedef struct esif_pathmap_s {
+	esif_string		name;
+	esif_pathtype	type;
+} esif_pathmap;
+
+// Pathname List
+typedef struct esif_pathlist_s {
+		int				initialized;
+		esif_pathmap	*pathmap;
+		int				num_paths;
+		esif_string		*pathlist;
+} esif_pathlist;
+
+static esif_pathlist g_pathlist;
+
+// Initialize Pathname List
+enum esif_rc esif_pathlist_init(esif_string paths)
 {
-	int rc = -1;
-	struct stat st = {0};
+	static esif_pathmap pathmap[] = {
+		{ "HOME",	ESIF_PATHTYPE_HOME },
+		{ "TEMP",	ESIF_PATHTYPE_TEMP },
+		{ "DV",		ESIF_PATHTYPE_DV },
+		{ "LOG",	ESIF_PATHTYPE_LOG },
+		{ "BIN",	ESIF_PATHTYPE_BIN },
+		{ "LOCK",	ESIF_PATHTYPE_LOCK },
+		{ "EXE",	ESIF_PATHTYPE_EXE },
+		{ "DLL",	ESIF_PATHTYPE_DLL },
+		{ "DPTF",	ESIF_PATHTYPE_DPTF },
+		{ "DSP",	ESIF_PATHTYPE_DSP },
+		{ "CMD",	ESIF_PATHTYPE_CMD },
+		{ "UI",		ESIF_PATHTYPE_UI  },
+		{ NULL }
+	};
+	static int num_paths = (sizeof(pathmap)/sizeof(*pathmap)) - 1;
+	esif_string *pathlist = NULL;
+	enum esif_rc rc = ESIF_OK;
 
-	// create path only if it does not already exist
-	if ((rc = esif_ccb_stat(path, &st)) != 0) {
-		size_t len = esif_ccb_strlen(path, MAX_PATH);
-		char dir[MAX_PATH];
-		char *slash;
-
-		// trim any trailing slash
-		esif_ccb_strcpy(dir, path, MAX_PATH);
-		if (len > 0 && dir[len - 1] == *ESIF_PATH_SEP) {
-			dir[len - 1] = 0;
-		}
-
-		// if path doesn't exist and can't be created, recursively create parent folder(s)
-		if ((rc = esif_ccb_stat(dir, &st)) != 0 && (rc = esif_ccb_mkdir(dir)) != 0) {
-			if ((slash = esif_ccb_strrchr(dir, *ESIF_PATH_SEP)) != 0) {
-				*slash = 0;
-				if ((rc = esif_ccb_makepath(dir)) == 0) {
-					*slash = *ESIF_PATH_SEP;
-					rc     = esif_ccb_mkdir(dir);
-				}
-			}
-		}
-	}
-	return rc;
-}
-
-// Load Custom Paths from configuration file, overriding defaults?
-static char *esif_custom_path(esif_pathtype type)
-{
-	static char *names[] = {"HOME","TEMP","DV","LOG","BIN","LOCK","EXE","DLL","DPTF","DSP","CMD","UI",0};
-	static char *conf_buffer=0;
-	static char **custom_path = NULL;
-	static int  num_pathtypes = (sizeof(names)/sizeof(char *)) - 1;
-	char *result = NULL;
-
-	if (type == PATHTYPE_EXIT) {
-		esif_ccb_free(custom_path);
-		esif_ccb_free(conf_buffer);
-		custom_path = 0;
-		conf_buffer = 0;
-		g_custom_path_initialized = 0;
-		return result;
-	}
-
-	if (!g_custom_path_initialized) {
-		char *filename = ESIF_CUSTOM_PATH_FILENAME;
+	if (!g_pathlist.initialized) {
+		char *buffer = NULL;
+		char *filename = ESIF_PATHLIST_FILENAME;
 		FILE *fp = NULL;
 		struct stat st={0};
 
-		g_custom_path_initialized = 1;
-		if (esif_ccb_stat(filename, &st) == 0 && esif_ccb_fopen(&fp, ESIF_CUSTOM_PATH_FILENAME, "rb") == 0) {
-			char *ctxt = 0;
-			conf_buffer = (char *) esif_ccb_malloc(st.st_size + 1);
-			custom_path = (char **)esif_ccb_malloc(num_pathtypes * sizeof(char *));
-
-			if (conf_buffer == NULL || custom_path == NULL) {
-				result = esif_custom_path(PATHTYPE_EXIT);
+		// Use pathlist file, if it exists
+		if (esif_ccb_stat(filename, &st) == 0 && esif_ccb_fopen(&fp, filename, "rb") == 0) {
+			if ((buffer = (char *) esif_ccb_malloc(st.st_size + 1)) != NULL) {
+				if (esif_ccb_fread(buffer, st.st_size, sizeof(char), st.st_size, fp) != (size_t)st.st_size) {
+					rc = ESIF_E_IO_ERROR;
+				}
 			}
-			else if (esif_ccb_fread(conf_buffer, st.st_size, sizeof(char), st.st_size, fp) == (size_t)st.st_size) {
-				char *keypair = esif_ccb_strtok(conf_buffer, "\r\n", &ctxt);
+			esif_ccb_fclose(fp);
+		}
+		// Otherwise, use default pathlist
+		else if (buffer == NULL && paths != NULL) {
+			buffer = esif_ccb_strdup(paths);
+		}
+
+		if ((buffer == NULL) || ((pathlist = (esif_string *)esif_ccb_malloc(num_paths * sizeof(esif_string))) == NULL)) {
+			esif_ccb_free(buffer);
+			buffer = NULL;
+			rc = ESIF_E_NO_MEMORY;
+		}
+
+		// Parse key/value pairs into pathlist
+		if (rc == ESIF_OK && buffer != NULL) {
+			char *ctxt = 0;
+				char *keypair = esif_ccb_strtok(buffer, "\r\n", &ctxt);
 				char *value = 0;
 				int  id=0;
+
+				g_pathlist.initialized = 1;
+				g_pathlist.pathmap = pathmap;
+				g_pathlist.num_paths = num_paths;
+				g_pathlist.pathlist = pathlist;
 
 				while (keypair != NULL) {
 					value = esif_ccb_strchr(keypair, '=');
 					if (value) {
 						*value++ = 0;
-						for (id=0; id < num_pathtypes && names[id]; id++) {
-							if (esif_ccb_stricmp(keypair, names[id]) == 0) {
-								custom_path[(esif_pathtype)id] = value;
+						for (id = 0; id < g_pathlist.num_paths && g_pathlist.pathmap[id].name; id++) {
+							if (esif_ccb_stricmp(keypair, g_pathlist.pathmap[id].name) == 0) {
+								esif_pathlist_set(g_pathlist.pathmap[id].type, value);
 								break;
 							}
 						}
 					}
 					keypair = esif_ccb_strtok(NULL, "\r\n", &ctxt);
 				}
-			}
-			esif_ccb_fclose(fp);
+		}
+		esif_ccb_free(buffer);
+	}
+	return rc;
+}
+
+// Uninitialize Pathname List
+void esif_pathlist_exit(void)
+{
+	int j;
+	for (j = 0; g_pathlist.pathlist != NULL && j < g_pathlist.num_paths; j++) {
+		esif_ccb_free(g_pathlist.pathlist[j]);
+	}
+	esif_ccb_free(g_pathlist.pathlist);
+	memset(&g_pathlist, 0, sizeof(g_pathlist));
+}
+
+// Set a Pathname
+enum esif_rc  esif_pathlist_set(esif_pathtype type, esif_string value)
+{
+	enum esif_rc rc = ESIF_E_PARAMETER_IS_NULL;
+	if (value != NULL && g_pathlist.pathlist != NULL && type < g_pathlist.num_paths) {
+		esif_string pathvalue = esif_ccb_strdup(value);
+		if (pathvalue == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+		}
+		else {
+			esif_ccb_free(g_pathlist.pathlist[type]);
+			g_pathlist.pathlist[type] = pathvalue;
+			rc = ESIF_OK;
 		}
 	}
+	return rc;
+}
 
-	if (conf_buffer && custom_path && type < num_pathtypes) {
-		result = custom_path[type];
+// Get a Pathname
+esif_string esif_pathlist_get(esif_pathtype type)
+{
+	esif_string result = NULL;
+	if (g_pathlist.pathlist && type < g_pathlist.num_paths) {
+		result = g_pathlist.pathlist[type];
 	}
 	return result;
 }
 
-/* Build Full Pathname for a given path type including an optional filename and extention. 
- * Defaults below, where "C:\Program Files..." is either:
- *     "C:\Program Files\Intel\Intel(R) Dynamic Platform and Thermal Framework"
- *  or "C:\Program Files (x86)\Intel\Intel(R) Dynamic Platform and Thermal Framework"
- * ("+" = writeable)
- * 
- * Type	Linux					Windows															Chrome
- * ----	-----------------------	---------------------------------------------------------------	-----------------
- * HOME	/usr/share/dptf			C:\Program Files...												Same as Linux
- *+TEMP /tmp					C:\Windows\Temp  or  C:\Users\<username>\AppData\Local\Temp		Same as Linux
- *+DV	/etc/dptf				C:\Windows\ServiceProfiles\LocalService\AppData\Intel\DPTF		Same as Linux
- *+LOG	/usr/share/dptf/log		C:\Windows\ServiceProfiles\LocalService\AppData\Intel\DPTF\log	/usr/local/var/log/dptf
- *+BIN	/usr/share/dptf/bin		C:\Windows\ServiceProfiles\LocalService\AppData\Intel\DPTF\bin	Same as Linux
- *+LOCK	/var/run				Same as TEMP													Same as Linux
- * EXE	N/A						C:\Program Files...\ufx64 [or ufx86]							Same as Linux
- * DLL	N/A						C:\Program Files...\ufx64 [or ufx86]							Same as Linux
- * DSP	/etc/dptf/dsp			C:\Program Files...\dsp											Same as Linux
- * CMD	/etc/dptf/cmd			C:\Program Files...\cmd											Same as Linux
- * UI	/usr/share/dptf/ui		C:\Program Files...\ui											Same as Linux
- * DPTF	/usr/share/dptf			ufx64  [or ufx86]												Same as Linux
- *
- * N/A = Do not use Full Paths. Must use relative paths so OS can search /usr/lib64, /usr/bin, etc
- */
+// Return Pathname List count
+int esif_pathlist_count(void)
+{
+	return g_pathlist.num_paths;
+}
+
+// Build Full Pathname for a given path type including an optional filename and extention. 
 esif_string esif_build_path(
 	esif_string buffer, 
 	size_t buf_len,
@@ -645,185 +621,21 @@ esif_string esif_build_path(
 	esif_string filename,
 	esif_string ext)
 {
-	char *custom_path = NULL;
-	char home[MAX_PATH]={0};
-	size_t len = 0;
-	int was_initialized = g_custom_path_initialized;
+	char *pathname = NULL;
 
 	if (NULL == buffer) {
 		return NULL;
 	}
 
-	// Read optional custom path file
-	if ((custom_path = esif_custom_path(type)) != NULL) {
-		// Do not return full path if it starts with "#", unless no filename specified
-		if (*custom_path == '#') {
+	// Get Pathname. Do not return full path in result string if it starts with a "#" unless no filename specified
+	if ((pathname = esif_pathlist_get(type)) != NULL) {
+		if (*pathname == '#') {
 			if (filename == NULL && ext == NULL)
-				custom_path++;
+				pathname++;
 			else
-				custom_path = "";
+				pathname = "";
 		}
-		esif_ccb_strcpy(buffer, custom_path, buf_len);
-		goto exit;
-	}
-
-	// If g_home is undefined, use default location
-	if (NULL == g_home) {
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		char winHome[MAX_PATH]={0};
-		if (SHGetSpecialFolderPathA(0, winHome, CSIDL_PROGRAM_FILES, FALSE) == TRUE) {
-			#if defined(ESIF_ATTR_64BIT)
-			esif_ccb_strcat(winHome, " (x86)", sizeof(winHome));
-			#endif
-			esif_ccb_strcat(winHome, "\\Intel\\Intel(R) Dynamic Platform and Thermal Framework", sizeof(winHome));
-		}
-		if (esif_ccb_file_exists(winHome)) {
-			g_home = esif_ccb_strdup(winHome);
-		}
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-		static char *home_default = ESIF_FULLPATH_HOME;
-		if (esif_ccb_file_exists(home_default)) {
-			g_home = esif_ccb_strdup(home_default);
-		}
-	#endif
-	}
-
-	// if g_DataVaultDir is undefined, use default
-	if (g_DataVaultDir[0] == '\0') {
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		if (GetWindowsDirectoryA(g_DataVaultDir, sizeof(g_DataVaultDir)) == 0) {
-			esif_ccb_strcpy(g_DataVaultDir, "C:\\Windows", sizeof(g_DataVaultDir));
-		}
-		esif_ccb_strcat(g_DataVaultDir, "\\ServiceProfiles\\LocalService\\AppData\\Local\\Intel\\DPTF", sizeof(g_DataVaultDir));
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(g_DataVaultDir, ESIF_FULLPATH_DV, sizeof(g_DataVaultDir));
-	#endif
-	}
-
-	// Build Home Directory, trimming any trailing slash
-	if (NULL != g_home) {
-		esif_ccb_strcpy(home, g_home, buf_len);
-	}
-	len = esif_ccb_strlen(home, sizeof(home));
-	if (len > 0 && home[len-1] == *ESIF_PATH_SEP) {
-		home[len-1] = '\0';
-	}
-
-	// Build Directory
-	buffer[0] = '\0';
-	switch (type) {
-	case ESIF_PATHTYPE_HOME: // Read-Only
-		esif_ccb_strcpy(buffer, home, buf_len);
-		break;
-	
-	// Read/Write Paths
-	case ESIF_PATHTYPE_TEMP:
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		if ((len = (size_t)GetTempPathA((DWORD)buf_len, buffer)) > 1) {
-			buffer[len-2] = '\0'; // Trim trailing slash
-		}
-		else {
-			buffer[0] = '\0';
-		}
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(buffer, ESIF_FULLPATH_TEMP, buf_len);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_DV:
-		esif_ccb_strcpy(buffer, g_DataVaultDir, buf_len);
-		break;
-
-	case ESIF_PATHTYPE_LOG:
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", g_DataVaultDir, ESIF_PATH_SEP, ESIF_DIR_LOG);
-	#elif defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(buffer, "/data/misc/dptf/log", buf_len);
-	#elif defined(ESIF_ATTR_OS_CHROME)
-		esif_ccb_strcpy(buffer, ESIF_FULLPATH_LOG, buf_len);
-	#elif defined(ESIF_ATTR_OS_LINUX)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_LOG);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_BIN:
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", g_DataVaultDir, ESIF_PATH_SEP, ESIF_DIR_BIN);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_BIN);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_LOCK:
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", g_DataVaultDir, ESIF_PATH_SEP, ESIF_DIR_LOCK);
-	#elif defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(buffer, "/mnt/dptf", buf_len);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
-		esif_ccb_strcpy(buffer, "/var/run", buf_len);
-	#endif
-		break;
-
-	// Read-Only Paths
-	case ESIF_PATHTYPE_EXE:
-		// Binaries Use full path (ufx64/ufx86 folder) in Windows, otherwise Home directory
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_EXE);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(buffer, "", buf_len);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_DLL:
-		// Shared Libraries loaded by ESIF. Use full path in Windows only, otherwise use name only so OS searches /usr/lib*
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_EXE);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(buffer, "", buf_len);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_DPTF:
-		// Shared Libraries loaded by external DPTF app. Always pass full path to the app.
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_EXE);
-	#elif defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_strcpy(buffer, "/etc/dptf/bin", buf_len);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
-		esif_ccb_strcpy(buffer, home, buf_len);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_DSP:
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_DSP);
-	#elif defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_DSP);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", g_DataVaultDir, ESIF_PATH_SEP, ESIF_DIR_DSP);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_CMD:
-	#if defined(ESIF_ATTR_OS_WINDOWS)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_CMD);
-	#elif defined(ESIF_ATTR_OS_ANDROID)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_CMD);
-	#elif defined(ESIF_ATTR_OS_LINUX) || defined(ESIF_ATTR_OS_CHROME)
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", g_DataVaultDir, ESIF_PATH_SEP, ESIF_DIR_CMD);
-	#endif
-		break;
-
-	case ESIF_PATHTYPE_UI:
-		esif_ccb_sprintf(buf_len, buffer, "%s%s%s", home, ESIF_PATH_SEP, ESIF_DIR_UI);
-		break;
-	default:
-		break;
-	}
-
-exit:
-	if (!was_initialized) {
-		esif_custom_path_exit();
+		esif_ccb_strcpy(buffer, pathname, buf_len);
 	}
 
 	// Create folder if necessary
@@ -840,13 +652,16 @@ exit:
 		if (ext != NULL)
 			esif_ccb_strcat(buffer, ext, buf_len);
 	}
+	if (buffer[0] == '\0') {
+		buffer = NULL;
+	}
 	return buffer;
 }
 
 // WebSocket Server Implemented?
 #ifdef ESIF_ATTR_WEBSOCKET
 
-static void *esif_web_worker_thread(void *ptr)
+static void *ESIF_CALLCONV esif_web_worker_thread(void *ptr)
 {
 	UNREFERENCED_PARAMETER(ptr);
 
@@ -880,7 +695,7 @@ int EsifWebIsStarted()
 
 void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
 {
-	esif_ws_set_ipaddr_port(ipaddr, port);
+	esif_ws_server_set_ipaddr_port(ipaddr, port);
 }
 
 #else
@@ -903,45 +718,34 @@ void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
 }
 #endif
 
-eEsifError esif_uf_init(esif_string home_dir)
+eEsifError esif_uf_init()
 {
 	eEsifError rc = ESIF_OK;
+	ESIF_TRACE_ENTRY_INFO();
 
-#ifdef ESIF_ATTR_MEMTRACE
-	esif_memtrace_init();	/* must be called first */
-#endif
 #ifdef ESIF_ATTR_SHELL_LOCK
 	esif_ccb_mutex_init(&g_shellLock);
 #endif
-	esif_custom_path_init();
 
-	ESIF_TRACE_DEBUG("%s: Init Upper Framework (UF)", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("Init Upper Framework (UF)");
 
 	esif_ccb_mempool_init_tracking();
 
-	// If home_dir specified, use it, otherwise use OS-specific default
-	if (NULL != home_dir) {
-		size_t len = esif_ccb_strlen(home_dir, MAX_PATH);
-		if (len > 0) {
-			esif_ccb_free(g_home);
-			g_home = esif_ccb_strdup(home_dir);
-			if (g_home[len-1] == *ESIF_PATH_SEP) {
-				g_home[len-1] = 0; // trim trailing slash
-			}
-		}
-	} 
-	else {
-		char home[MAX_PATH]={0};
-		esif_build_path(home, sizeof(home), ESIF_PATHTYPE_HOME, NULL, NULL);
-	}
-	CMD_OUT("Home: %s\n", g_home);
+	// Get Home directory
+	CMD_OUT("Home: %s\n", esif_pathlist_get(ESIF_PATHTYPE_HOME));
 
 
 	/* OS Agnostic */
 	EsifLogMgrInit();
+
+	esif_link_list_init();
+	esif_ht_init();
+	esif_ccb_tmrm_init();
+
 	EsifCfgMgrInit();
+	EsifEventMgr_Init();
 	EsifCnjMgrInit();
-	EsifUppMgrInit();
+	EsifUpPm_Init();
 	EsifDspMgrInit();
 	EsifActMgrInit();
 
@@ -958,11 +762,15 @@ eEsifError esif_uf_init(esif_string home_dir)
 	 */
 	EsifAppMgrInit();
 
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	SysfsRegisterParticipants();
+#else
 	ipc_connect();
 	sync_lf_participants();
+#endif
 
-exit:
-	ESIF_TRACE_EXIT_INFO();
+exit: 
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -974,6 +782,8 @@ void esif_uf_exit()
 
 	/* Stop web server if it is running */
 	EsifWebStop();
+	EsifDataLogStop();
+	EsifUFPollStop();
 
 	/* Stop all Apps before dependent components they may be using */
 	EsifAppMgrExit();
@@ -982,33 +792,56 @@ void esif_uf_exit()
 	esif_uf_os_exit();
 
 	/* OS Agnostic - Call in reverse order of Init */
+	EsifUpPm_Exit();
 	EsifActMgrExit();
 	EsifDspMgrExit();
-	EsifUppMgrExit();
+	EsifEventMgr_Exit();
 	EsifCnjMgrExit();
 	EsifCfgMgrExit();
 	EsifLogMgrExit();
-
-	esif_ccb_free(g_home);
-
+	esif_ccb_tmrm_exit();
+	esif_ht_exit();
+	esif_link_list_exit();
 	esif_ccb_mempool_uninit_tracking();
 
 	// Re-Initialize necessary global variables in case ESIF restarted
 	g_esif_started = ESIF_FALSE;
 
-	ESIF_TRACE_DEBUG("%s: Exit Upper Framework (UF)", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("Exit Upper Framework (UF)");
 
-	esif_custom_path_exit();
 
 #ifdef ESIF_ATTR_SHELL_LOCK
 	esif_ccb_mutex_uninit(&g_shellLock);
 #endif
-#ifdef ESIF_ATTR_MEMTRACE
-	esif_memtrace_exit();	/* must be called last */
-#endif
 	ESIF_TRACE_EXIT_INFO();
 }
 
+// Initialize at OS entry point
+enum esif_rc esif_main_init(esif_string path_list)
+{
+	enum esif_rc rc = ESIF_OK;
+
+#ifdef ESIF_ATTR_MEMTRACE
+	esif_memtrace_init();	/* must be called first */
+#endif
+
+	esif_pathlist_init(path_list);
+
+	// Return control to main OS entry point, which eventually calls esif_uf_init 
+	return rc;
+}
+
+// Initialize at OS exit point
+void esif_main_exit()
+{
+	// esif_uf_init and esif_uf_exit have already been called at this point
+
+#ifdef ESIF_ATTR_MEMTRACE
+	esif_memtrace_exit();	/* must be called last */
+#else
+	esif_pathlist_exit();	/* called by esif_memtrace_exit */
+#endif
+}
 
 /* Memory Allocation Trace Support */
 #ifdef ESIF_ATTR_MEMTRACE
@@ -1088,7 +921,7 @@ exit:
 
 
 char *esif_memtrace_strdup(
-	char *str,
+	const char *str,
 	const char *func,
 	const char *file,
 	int line
@@ -1155,6 +988,9 @@ void esif_memtrace_exit()
 	char tracefile[MAX_PATH] = {0};
 	FILE *tracelog = NULL;
 
+	esif_build_path(tracefile, sizeof(tracefile), ESIF_PATHTYPE_LOG, "memtrace.txt", NULL);
+	esif_pathlist_exit();
+
 	esif_ccb_write_lock(&g_memtrace.lock);
 	mem = g_memtrace.allocated;
 	g_memtrace.allocated = NULL;
@@ -1165,9 +1001,14 @@ void esif_memtrace_exit()
 		goto exit;
 	}
 
-	esif_build_path(tracefile, sizeof(tracefile), ESIF_PATHTYPE_LOG, "memtrace.txt", NULL);
 	CMD_OUT("\n*** MEMORY LEAKS DETECTED ***\nFor details see %s\n", tracefile);
-	esif_ccb_fopen(&tracelog, tracefile, "w");
+	esif_ccb_fopen(&tracelog, tracefile, "a");
+	if (tracelog) {
+		time_t now = time(NULL);
+		char timestamp[MAX_CTIME_LEN] = {0};
+		esif_ccb_ctime(timestamp, sizeof(timestamp), &now);
+		fprintf(tracelog, "\n*** %.24s: MEMORY LEAKS DETECTED (%s) ***\n", timestamp, ESIF_UF_VERSION);
+	}
 	while (mem) {
 		struct memalloc_s *node = mem;
 		if (tracelog) {
@@ -1182,7 +1023,6 @@ void esif_memtrace_exit()
 	}
 exit:
 	esif_ccb_lock_uninit(&g_memtrace.lock);
-	ESIF_TRACE_EXIT_INFO();
 }
 
 

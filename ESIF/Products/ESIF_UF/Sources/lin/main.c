@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,13 +16,28 @@
 **
 ******************************************************************************/
 
-#include "esif_uf.h"
-#include "esif_uf_appmgr.h"
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
+
 #include <termios.h>
 #include <errno.h>
+#include <fcntl.h>
+
+#include "esif_uf.h"
+#include "esif_uf_appmgr.h"
+#include "esif_version.h"
+#include "esif_uf_eventmgr.h"
+
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2015 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
+#define LF "\n"
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+/* Place holder for SysFs model that may require different startup script */
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
+#else 
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
+#endif
+
 #define ESIF_STARTUP_SCRIPT_SERVER_MODE		NULL
 
 /* Friend */
@@ -31,6 +46,12 @@ extern EsifAppMgr g_appMgr;
 #ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
 	#include <readline/readline.h>
 	#include <readline/history.h>
+#endif
+
+#ifdef ESIF_FEAT_OPT_DBUS
+#include <dbus/dbus.h>
+esif_thread_t g_dbus_thread;
+DBusConnection *g_dbus_conn;
 #endif
 
 /* Instance Lock */
@@ -42,6 +63,62 @@ static struct instancelock g_instance = {"esif_ufd.pid"};
 
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
+#ifdef ESIF_ATTR_64BIT
+#define ARCHNAME "x64"
+#define ARCHBITS "64"
+#else
+#define ARCHNAME "x86"
+#define ARCHBITS ""
+#endif
+
+// Default ESIF Paths for each OS
+// Paths preceded by "#" indicate that full path is not specified when loading the binary
+static const esif_string ESIF_PATHLIST =
+#if defined(ESIF_ATTR_OS_ANDROID)
+	// Android
+	"HOME=/etc/dptf\n"
+	"TEMP=/data/misc/dptf/tmp\n"
+	"DV=/etc/dptf/dv\n"
+	"LOG=/data/misc/dptf/log\n"
+	"BIN=/etc/dptf/bin\n"
+	"LOCK=/mnt/dptf\n"
+	"EXE=#/system/bin\n"
+	"DLL=#/system/lib\n"
+	"DPTF=/etc/dptf/bin\n"
+	"DSP=/etc/dptf/dsp\n"
+	"CMD=/etc/dptf/cmd\n"
+	"UI=/etc/dptf/ui\n"
+#elif defined(ESIF_ATTR_OS_CHROME)
+	// Chromium
+	"HOME=/usr/share/dptf\n"
+	"TEMP=/tmp\n"
+	"DV=/etc/dptf\n"
+	"LOG=/usr/local/var/log/dptf\n"
+	"BIN=/usr/share/dptf/bin\n"
+	"LOCK=/var/run\n"
+	"EXE=/usr/bin\n"
+	"DLL=/usr/lib" ARCHBITS "\n"
+	"DPTF=/usr/lib" ARCHBITS "\n"
+	"DSP=/etc/dptf/dsp\n"
+	"CMD=/etc/dptf/cmd\n"
+	"UI=/usr/share/dptf/ui\n"
+#else
+	// Generic Linux
+	"HOME=/usr/share/dptf\n"
+	"TEMP=/tmp\n"
+	"DV=/etc/dptf\n"
+	"LOG=/usr/share/dptf/log\n"
+	"BIN=/usr/share/dptf/bin\n"
+	"LOCK=/var/run\n"
+	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
+	"DLL=/usr/share/dptf/uf" ARCHNAME "\n"
+	"DPTF=/usr/share/dptf/uf" ARCHNAME "\n"
+	"DSP=/usr/share/dptf/dsp\n"
+	"CMD=/usr/share/dptf/cmd\n"
+	"UI=/usr/share/dptf/ui\n"
+#endif
+;
+
 /* Enable Instance Lock? */
 #define ESIF_ATTR_INSTANCE_LOCK
 
@@ -50,7 +127,6 @@ static struct instancelock g_instance = {"esif_ufd.pid"};
 ** Not Declared In Header File Intentionallly
 */
 extern int g_dst;
-extern int g_autocpc;
 extern int g_binary_buf_size;
 extern int g_errorlevel;
 extern int g_quit;
@@ -62,6 +138,7 @@ extern int g_cmdshell_enabled;
 extern char *g_DataVaultStartScript;
 
 /* Worker Thread in esif_uf */
+Bool g_start_event_thread = ESIF_TRUE;
 esif_thread_t g_thread;
 void *esif_event_worker_thread (void *ptr);
 
@@ -75,6 +152,9 @@ u32 g_ipc_retry_max_msec = 2000;	/* 2 sec by default */
 /* Attempt IPC Connect and Sync for specified time if no IPC connection */
 eEsifError ipc_resync()
 {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	return ESIF_OK;
+#else
 	eEsifError rc = ESIF_OK;
 	u32 elapsed_msec = 0;
 
@@ -93,6 +173,7 @@ eEsifError ipc_resync()
 		}
 	}
 	return rc;
+#endif
 }
 
 /* Emulate Windows kbhit Function */
@@ -206,6 +287,59 @@ int instance_islocked()
 
 #endif
 
+#ifdef ESIF_FEAT_OPT_DBUS
+static DBusHandlerResult
+s3_callback(DBusConnection *conn, DBusMessage *message, void *user_data)
+{
+	int message_type = dbus_message_get_type (message);
+	int i = 0;
+
+	if (DBUS_MESSAGE_TYPE_SIGNAL == message_type) {
+		if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendImminent")) {
+			ESIF_TRACE_INFO("D-Bus: received SuspendImminent signal\n");
+			for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++)
+				EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL);
+		} else if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendDone")) {
+			ESIF_TRACE_INFO("D-Bus: received SuspendDone signal\n");
+			for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++)
+				EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_RESUME, NULL);
+		}
+	}
+
+	return DBUS_HANDLER_RESULT_HANDLED;
+}
+
+void* dbus_listen()
+{
+	DBusError err = {0};
+
+	dbus_error_init(&err);
+	g_dbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
+
+	if (dbus_error_is_set(&err)) {
+		fprintf(stderr, "Connection Error (%s)\n", err.message);
+		dbus_error_free(&err);
+		return NULL;
+	}
+
+	dbus_bus_add_match(g_dbus_conn, "type='signal'", &err);
+	if (dbus_error_is_set(&err)) {
+		fprintf(stderr, "Connection Error (%s)\n", err.message);
+		dbus_error_free(&err);
+		return NULL;
+	}
+
+	if (!dbus_connection_add_filter(g_dbus_conn, s3_callback, NULL, NULL)) {
+		fprintf(stderr, "Couldn't add filter!\n");
+		return NULL;
+	}
+
+	while (dbus_connection_read_write_dispatch(g_dbus_conn, -1));
+
+	return NULL;
+}
+#endif
+
 /*
 **  Buiild Supports Deaemon?
 */
@@ -255,7 +389,8 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 		return ESIF_FALSE;
 	} else if (process_id != 0) {
 		/* 2. Exit From Parent */
-		CMD_DEBUG("\nESIF Daemon/Loader (c) 2013-2014 Intel Corp. Ver x1.0.0.1\n");
+		CMD_DEBUG("\nESIF Daemon/Loader Version %s\n", ESIF_VERSION);
+		CMD_DEBUG(COPYRIGHT_NOTICE "\n");
 		CMD_DEBUG("Spawn Daemon ESIF Child Process: %d\n", process_id);
 		if (ESIF_TRUE == start_with_pipe) {
 			CMD_DEBUG("Command Input:  %s\n", cmd_in);
@@ -278,13 +413,6 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	}
 	sigterm_enable();
 
-	/* Child will receive input from FIFO PIPE? */
-	if (ESIF_TRUE == start_with_pipe) {
-		unlink(cmd_in);
-		if (-1 == mkfifo(cmd_in, S_IROTH)) {
-		}
-	}
-
 	/* 4. Change to known directory.  Performed in main */
 	/* 5. Close all file descriptors incuding stdin, stdout, stderr */
 	close(STDIN_FILENO); /* stdin */
@@ -296,30 +424,75 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	if (ESIF_TRUE == start_with_log) {
 		unlink(cmd_out);
 		open (cmd_out, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-	} else {
+	}
+	else {
 		open ("/dev/null", O_RDWR);
 	}
 
-	/* stdout */
-	if (dup(0) != -1)
+	/* stdout, stderr */
+	if (dup(0) != -1) {
 		setvbuf(stdout, NULL, _IONBF, 0);
-	/* stderr */
-	if (dup(0) != -1)
+	}
+	if (dup(0) != -1) {
 		setvbuf(stderr, NULL, _IONBF, 0);
+	}
+
 
 	/*
 	** Start The Daemon
 	*/
 	g_cmdshell_enabled = 0;
 	g_DataVaultStartScript = ESIF_STARTUP_SCRIPT_DAEMON_MODE;
-	esif_uf_init(HOME_DIRECTORY);
+	esif_uf_init();
 	ipc_resync();
-	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
+	if (g_start_event_thread) {
+		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
+	}
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
+
+	/* Start D-Bus listener thread if necessary */
+#ifdef ESIF_FEAT_OPT_DBUS
+	esif_ccb_thread_create(&g_dbus_thread, dbus_listen, "D-Bus Listener");
+#endif
+
+	/* UF Startup Script may have enabled/disabled ESIF Shell */
+	if (!g_shell_enabled) {
+		CMD_OUT("Shell Unavailable. Closing Command Pipes.\n");
+
+		/* Redirect stdout, stderr to NULL and close input pipe */
+		if (ESIF_TRUE == start_with_log) {
+			close(STDIN_FILENO);
+			close(STDOUT_FILENO);
+			close(STDERR_FILENO);
+			open("/dev/null", O_RDWR);
+			if (dup(0) != -1) {
+				setvbuf(stdout, NULL, _IONBF, 0);
+			}
+			if (dup(0) != -1) {
+				setvbuf(stderr, NULL, _IONBF, 0);
+			}
+		}
+		if (ESIF_TRUE == start_with_pipe) {
+			unlink(cmd_in);
+		}
+	}
 
 	/* Process Input ? */
 	if (ESIF_TRUE == start_with_pipe) {
-		while (!g_quit) {
+
+		/* Open Input Pipe using FIFO PIPE? */
+		if (!g_shell_enabled) {
+			start_with_pipe = ESIF_FALSE;
+		}
+		else {
+			unlink(cmd_in);
+			if (-1 == mkfifo(cmd_in, S_IROTH)) {
+				start_with_pipe = ESIF_FALSE;
+			}
+		}
+
+		/* Wait for input from pipe until exit */
+		while (start_with_pipe && !g_quit) {
 			int count = 0;
 			fp = fopen(cmd_in, "r");
 			if (NULL == fp) {
@@ -338,23 +511,8 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 				ptr++;
 			}
 
-			/* Parse and execute the command */
-			if (1 == g_repeat || !strncmp(line, "repeat", 6)) {
-					parse_cmd(line, ESIF_FALSE);
-			} else {
-					for (count = 0; count < g_repeat; count++) {
-							strcpy(line2, line);
-							parse_cmd(line2, ESIF_FALSE);   /* parse destroys command line */
-
-							if (g_soe && g_errorlevel != 0) {
-									break;
-							}
-							if (g_repeat_delay && count + 1 < g_repeat) {
-									esif_ccb_sleep(g_repeat_delay / 1000);
-							}
-					}
-					g_repeat = 1;
-			}
+			/* execute command */
+			esif_shell_execute(line);
 		}
 
 		if (NULL != fp) {
@@ -384,13 +542,19 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	}
 	sigterm_enable();
 
-	g_shell_enabled = 1; /* enabled in shell mode by default */
 	g_DataVaultStartScript = ESIF_STARTUP_SCRIPT_SERVER_MODE;
-	esif_uf_init(HOME_DIRECTORY);
+	esif_uf_init();
 	ipc_resync();
-	esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
-	esif_ccb_sleep_msec(10);
+	if (g_start_event_thread) {
+		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
+		esif_ccb_sleep_msec(10);
+	}
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
+
+	/* Start D-Bus listener thread if necessary */
+#ifdef ESIF_FEAT_OPT_DBUS
+	esif_ccb_thread_create(&g_dbus_thread, dbus_listen, "D-Bus Listener");
+#endif
 
  	while (!g_quit) {
 		int count = 0;
@@ -419,6 +583,11 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		sprintf(full_prompt, "%s ", prompt);
 		CMD_LOGFILE("%s ", prompt);
 		ptr = readline(full_prompt);
+
+		// Skip command and wait for graceful shutdown if readline returns NULL due to SIGTERM
+		if (NULL == ptr)
+			continue;
+
 		// Add To History NO NUL's
 		if (ptr[0] != 0) {
 				add_history(ptr);
@@ -441,24 +610,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 #endif
 		CMD_LOGFILE("%s\n", line);
 
-		if (1 == g_repeat || !strncmp(line, "repeat", 6)) {
-					parse_cmd(line, ESIF_FALSE);
-			} else {
-					for (count = 0; count < g_repeat; count++) {
-							strcpy(line2, line);
-							parse_cmd(line2, ESIF_FALSE);   /* parse destroys command line */
-							if (kbhit()) {
-									break;
-							}
-							if (g_soe && g_errorlevel != 0) {
-									break;
-							}
-							if (g_repeat_delay && count + 1 < g_repeat) {
-									esif_ccb_sleep(g_repeat_delay / 1000);
-							}
-					}
-					g_repeat = 1;
-			}
+		esif_shell_execute(line);
 	}
 	return ESIF_TRUE;
 }
@@ -478,18 +630,18 @@ int main (int argc, char **argv)
 #endif
 
 	// Init ESIF
-	int rc = chdir("..");
+	esif_main_init(ESIF_PATHLIST);
+
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	g_start_event_thread = ESIF_FALSE;
+#endif
 
 	optind = 1;	// Rest To 1 Restart Vector Scan
 
-	while ((c = getopt(argc, argv, "d:f:c:b:r:i:nxhq?spl")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:c:b:r:i:xhq?spl")) != -1) {
 		switch (c) {
 		case 'd':
 			g_dst = (u8)esif_atoi(optarg);
-			break;
-
-		case 'n':
-			g_autocpc = ESIF_FALSE;
 			break;
 
 		case 'x':
@@ -539,10 +691,9 @@ int main (int argc, char **argv)
 		case '?':
 			CMD_DEBUG(
 			"ESIF Eco-System Independent Framework Shell\n"
-			"(c) 2013-2014 Intel Corp\n\n"
+			COPYRIGHT_NOTICE "\n"
 			"-d [*id]            Set Destination\n"
 			"-f [*filename]      Load Filename\n"
-			"-n                  No Auto CPC Assignment\n"
 			"-x                  XML Output Data Format\n"
 			"-c [*command]       Issue Shell Command\n"
 			"-q                  Quit After Command\n"
@@ -581,20 +732,37 @@ int main (int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
- 	if (fp && fp != stdin) {
-                fclose(fp);
-        }
+	if (fp && fp != stdin) {
+		fclose(fp);
+	}
 
-	/* NICE Wait For Worker Thread To Exit */
-	CMD_DEBUG("Waiting For EVENT Thread To Exit...\n");
-	esif_ccb_thread_join(&g_thread);
+	/* Wait For Worker Thread To Exit if started, otherwise wait for ESIF to exit */
+	if (g_start_event_thread) {
+		CMD_DEBUG("Stopping EVENT Thread...\n");
+		esif_ccb_thread_join(&g_thread);
+	}
+	else {
+		while (!g_quit) {
+			esif_ccb_sleep_msec(250);
+		}
+	}
 	CMD_DEBUG("Errorlevel Returned: %d\n", g_errorlevel);
+
+#ifdef ESIF_FEAT_OPT_DBUS
+	CMD_DEBUG("Stopping D-Bus listener thread...\n");
+	pthread_cancel(g_dbus_thread);
+	esif_ccb_thread_join(&g_dbus_thread);
+	if (g_dbus_conn)
+		dbus_connection_unref(g_dbus_conn);
+#endif
+
 
 	/* Exit ESIF */
 	esif_uf_exit();
 
 	/* Release Instance Lock and exit*/
 	instance_unlock();
+	esif_main_exit();
 	exit(g_errorlevel);
 }
 

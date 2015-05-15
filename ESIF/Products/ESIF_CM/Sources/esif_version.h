@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,30 +54,39 @@
 #ifndef _ESIF_VERSION_H_
 #define _ESIF_VERSION_H_
 
+#include "Ver.h"
+
 #define STR(arg) #arg
 #define STR2(arg) STR(##arg)
 #define EXPAND_TOSTR(arg) STR(arg)
 
-#define ESIF_VERSION_MAJOR 8
-#define ESIF_VERSION_MINOR 0
-#define ESIF_VERSION_HOTFIX 10001
-#define ESIF_VERSION_BUILD 0
+#define ESIF_VERSION_MAJOR	VER_MAJOR
+#define ESIF_VERSION_MINOR	VER_MINOR
+#define ESIF_VERSION_HOTFIX	VER_HOTFIX
+#define ESIF_VERSION_BUILD	VER_BUILD
 
 /* Build system will should set to 0 */
-#define ESIF_SKU_TYPE 0
+#define ESIF_SKU_TYPE	DEV_BUILD
 
 #if ESIF_SKU_TYPE == 0
-#define ESIF_VERSION EXPAND_TOSTR( \
-		ESIF_VERSION_MAJOR.ESIF_VERSION_MINOR.ESIF_VERSION_HOTFIX.ESIF_VERSION_BUILD)
+#define ESIF_VERSION EXPAND_TOSTR(ESIF_VERSION_MAJOR.ESIF_VERSION_MINOR.ESIF_VERSION_HOTFIX.ESIF_VERSION_BUILD)
 #else
 /* X denotes development */
-#define ESIF_VERSION EXPAND_TOSTR( \
-		X.ESIF_VERSION_MAJOR.ESIF_VERSION_MINOR.ESIF_VERSION_HOTFIX.ESIF_VERSION_BUILD)
+#define ESIF_VERSION EXPAND_TOSTR(X.ESIF_VERSION_MAJOR.ESIF_VERSION_MINOR.ESIF_VERSION_HOTFIX.ESIF_VERSION_BUILD)
 #endif
 
+/* ESIF Product and Copyright Definitions */
+#define ESIF_PRODUCT   "Dynamic Platform Thermal Framework"
+#define ESIF_COPYRIGHT "Copyright (c) 2013-2015 Intel Corporation"
+#define ESIF_COMPANY   "Intel Corporation"
+#define ESIF_LOWER_FRAMEWORK "ESIF Lower Framework"
+#define ESIF_UPPER_FRAMEWORK "ESIF Upper Framework"
 
 #endif /* _ESIF_VERSION_H_ */
 
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/
+
+
+

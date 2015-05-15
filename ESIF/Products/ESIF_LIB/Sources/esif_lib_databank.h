@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,7 +54,6 @@ extern "C" {
 #endif
 
 extern DataBankPtr g_DataBankMgr;		// Global Instance, Dynamically Allocated
-extern char g_DataVaultDir[MAX_PATH];	// Global Folder which contains all DataVaults
 extern char g_DataVaultDefault[ESIF_NAME_LEN]; // Global Default DataVault Namespace
 extern char *g_DataVaultStartScript;    // Optional Startup Script, if none specified in Default DataVault or cmd/start script
 

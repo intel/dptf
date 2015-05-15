@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -80,7 +80,7 @@ struct esif_cpc_header {
 
 /* Must Be Aligned With DSP's cpc.h: cpc{} */
 struct esif_lp_cpc {
-	u32  size;
+	u32  size; /* Includes this header */
 	struct esif_cpc_header header;
 	u32  number_of_algorithms;
 	u32  number_of_basic_primitives;
@@ -95,11 +95,11 @@ struct esif_lp_cpc {
 /* CPC Primitive */
 /* Must Be Aligned With DSP's basic_primitive.h: basic_primitive{} */
 struct esif_cpc_primitive {
-	u32  size;
+	u32  size; /* Includes this structure */
 	struct esif_primitive_tuple  tuple;
 	enum esif_primitive_opcode   operation; /* ESIF_PRIMITIVE_OP_GET */
 	u32  number_of_actions;
-	/* actions are laid down here */
+	/* struct esif_cpc_action actions are laid down here */
 };
 
 /* CPC Action */
@@ -118,7 +118,7 @@ struct esif_cpc_algorithm {
 	enum esif_action_type  action_type;
 	u32  temp_xform;
 	u32  tempC1;
-	u32  tempC2;
+	u32  percent_xform;
 	u32  power_xform;
 	u32  time_xform;
 	u32  size;
@@ -172,14 +172,8 @@ extern "C" {
 #endif
 
 enum esif_rc esif_cpc_unpack(struct esif_lp_dsp *dsp_ptr,
-			     const struct esif_data *cpc_ptr);
-
-/* Free CPC Data From DSP */
-void esif_cpc_free(struct esif_lp_dsp *dsp_ptr);
-
-/* Init / Exit */
-enum esif_rc esif_cpc_init(void);
-void esif_cpc_exit(void);
+	const struct esif_data *cpc_ptr
+	);
 
 #ifdef __cplusplus
 }

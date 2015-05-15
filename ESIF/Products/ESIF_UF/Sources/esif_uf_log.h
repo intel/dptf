@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,17 +53,14 @@ extern char *esif_str_replace(char *orig, char *rep, char *with);
 /* Primitive Opcodes String */
 static ESIF_INLINE esif_string esif_log_type_str(eLogType logType)
 {
-	#define CREATE_LOG_TYPE(lt) case lt: \
-	str = (char *) #lt;break;
-	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
 	switch (logType) {
-		CREATE_LOG_TYPE(eLogTypeFatal)
-		CREATE_LOG_TYPE(eLogTypeError)
-		CREATE_LOG_TYPE(eLogTypeWarning)
-		CREATE_LOG_TYPE(eLogTypeInfo)
-		CREATE_LOG_TYPE(eLogTypeDebug)
+	ESIF_CASE_ENUM(eLogTypeFatal);
+	ESIF_CASE_ENUM(eLogTypeError);
+	ESIF_CASE_ENUM(eLogTypeWarning);
+	ESIF_CASE_ENUM(eLogTypeInfo);
+	ESIF_CASE_ENUM(eLogTypeDebug);
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 #include "esif_uf_version.h"

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -55,44 +55,115 @@
 #define _ESIF_PARTICIPANT_H_
 
 #include "esif.h"
-#include "esif_participant_iface.h"
+#include "esif_sdk_iface_participant.h"
 #include "esif_event.h"
 
 #define ESIF_PARTICIPANT_INVALID_TYPE 0xFFFFFFFF
-#define ESIF_PARTICIPANT_INVALID_UID "" 
+#define ESIF_PARTICIPANT_INVALID_UID ""
+#define ESIF_PARTICIPANT_INVALID_INSTANCE 0xFF
+
+#define ESIF_NUM_LPAT_ENTRIES 512
+#define ESIF_VARS_PER_LPAT_ENTRY 2
+
+
+/* ESIF LF Participant States */
+enum esif_lp_state {
+	ESIF_LP_STATE_INVALID = 0,
+	/* Suspended and no DSP */
+	ESIF_LP_STATE_SUSPENDED_NEEDDSP,
+	/* DSP Received while suspended */
+	ESIF_LP_STATE_REGISTERED_SUSPENDED,
+	/* In The Process Of Registering or DSP unloaded */
+	ESIF_LP_STATE_NEEDDSP,
+	ESIF_LP_STATE_REGISTERED,	/* DSP Ready */
+	ESIF_LP_STATE_SUSPENDED,	/* Part out of D0 */
+	ESIF_LP_STATE_RESUMED,		/* Returned to D0 */
+};
+
+
+/* ESIF LF Participant State Descriptions */
+static ESIF_INLINE esif_string esif_lp_state_str(
+	enum esif_lp_state state)
+{
+	switch (state) {
+	ESIF_CASE(ESIF_LP_STATE_INVALID, "INVALID");
+	ESIF_CASE(ESIF_LP_STATE_SUSPENDED_NEEDDSP, "SUSPENDED_NEEDDSP");
+	ESIF_CASE(ESIF_LP_STATE_REGISTERED_SUSPENDED, "REGISTERED_SUSPENDED");
+	ESIF_CASE(ESIF_LP_STATE_NEEDDSP, "NEED_DSP");
+	ESIF_CASE(ESIF_LP_STATE_REGISTERED, "REGISTERED");
+	ESIF_CASE(ESIF_LP_STATE_SUSPENDED, "SUSPENDED");
+	ESIF_CASE(ESIF_LP_STATE_RESUMED, "RESUMED");
+	}
+	return ESIF_NOT_AVAILABLE;
+}
 
 #ifdef ESIF_ATTR_KERNEL
 
 #include "esif_dsp.h"
 #include "esif_temp.h"
 #include "esif_power.h"
+#include "esif_time.h"
+#include "esif_percent.h"
 #include "esif_primitive.h"
 #include "esif_lf_domain.h"
 
-/*
-** TODO: Hookup CCB Debug
-*/
+/* ESIF LF Participant State Machine Event types */
+enum esif_lp_sm_event {
+	ESIF_LP_SM_EVENT_DSP_LOAD = 0,
+	ESIF_LP_SM_EVENT_DSP_UNLOAD,
+	ESIF_LP_SM_EVENT_SUSPEND,
+	ESIF_LP_SM_EVENT_RESUME,
+};
+
+
+/* ESIF LF Participant State Machine Event Descriptions */
+static ESIF_INLINE esif_string esif_lp_sm_event_str(
+	enum esif_lp_sm_event state)
+{
+	switch (state) {
+	ESIF_CASE(ESIF_LP_SM_EVENT_DSP_LOAD, "DSP_LOAD");
+	ESIF_CASE(ESIF_LP_SM_EVENT_DSP_UNLOAD, "DSP_UNLOAD");
+	ESIF_CASE(ESIF_LP_SM_EVENT_SUSPEND, "LP_SUSPEND");
+	ESIF_CASE(ESIF_LP_SM_EVENT_RESUME, "LP_RESUME");
+	}
+	return ESIF_NOT_AVAILABLE;
+}
+
 
 /* Lower Participant */
-#ifndef ESIF_ATTR_OS_LINUX_DRIVER
+#ifndef ESIF_FEAT_OPT_USE_VIRT_DRVRS
 struct esif_lp {
+
+	/* State control items */
 	u8  instance;			/* Lower Participant Instance */
 	char pi_name[ESIF_NAME_LEN];	/* PI Name */
+	enum esif_lp_state lp_state;	/* Participant state */
+
 	struct esif_participant_iface *pi_ptr;	/* Particpant INTERFACE */
-	u8  enable;			/* Boolean Enable Disable */
-	struct esif_lp_dsp *dsp_ptr;			/* DSP */
+
+	struct esif_lp_dsp *dsp_ptr;		/* DSP */
+
 	/* Number Of Qualifiers For A Participant */
 	u8  domain_count;
 	/* Domains For Participants */
 	struct esif_lp_domain  domains[ESIF_DOMAIN_MAX];
 
+	u32 ref_count;			/* Reference count */
+	u8 marked_for_delete;		/* Delete pending flag */
+	esif_ccb_low_priority_thread_lock_t  lp_lock;	/* LP Lock */
+	esif_ccb_low_priority_thread_lock_t  lp_sm_lock;/* For State Machine */
+
+	/* Signals waiters when the LP is no longer in use and may be destroyed */
+	esif_ccb_event_t lp_destroy_event;
+
+	/* Interface Functions*/
 	/* XFORM Temperature */
 	enum esif_rc  (*xform_temp)(const enum esif_temperature_type,
-				    esif_temp_t *temp,
-				    const enum esif_action_type action,
-				    const struct esif_lp_dsp *dsp,
-				    const struct esif_lp_primitive *primitive_ptr,
-				    const struct esif_lp *lp_ptr);
+			    esif_temp_t *temp,
+			    const enum esif_action_type action,
+			    const struct esif_lp_dsp *dsp,
+			    const struct esif_lp_primitive *primitive_ptr,
+			    const struct esif_lp *lp_ptr);
 
 	/* XFORM Power */
 	enum esif_rc  (*xform_power)(const enum esif_power_unit_type,
@@ -100,13 +171,119 @@ struct esif_lp {
 				     const enum esif_action_type action,
 				     const struct esif_lp_dsp *dsp,
 				     const enum esif_primitive_opcode opcode);
+
+	/* XFORM Time */
+	enum esif_rc (*xform_time)(const enum esif_time_type,
+		esif_time_t *time,
+		const enum esif_action_type action,
+		const struct esif_lp_dsp *dsp_ptr,
+		const struct esif_lp_primitive *primitive_ptr,
+		const struct esif_lp *lp_ptr);
+
+	/* XFORM Percent */
+	enum esif_rc (*xform_percent)(const enum esif_percent_type type,
+		u32 *value_ptr,
+		const enum esif_action_type action,
+		const struct esif_lp_dsp *dsp_ptr,
+		const struct esif_lp_primitive *primitive_ptr);
+
 };
 
-#endif /* ESIF_ATTR_OS_LINUX_DRIVER */
+/* Takes an additional reference on an LP object */
+enum esif_rc esif_lp_get_ref(
+	struct esif_lp *self
+	);
+
+/* Release a reference on an LP */
+void esif_lp_put_ref(
+	struct esif_lp *self
+	);
+
+/* 
+ * Locks the state of an LP so that it can be used with all state changes
+ * blocked.  Must not be called by any function which will call
+ * esif_lp_handle_event
+ */
+void esif_lp_lock_state(
+	struct esif_lp *self
+	);
+
+/* 
+ * Unlocks the state of an LP after using it with the state locked by
+ * esif_lp_lock_state
+ */
+void esif_lp_unlock_state(
+	struct esif_lp *self
+	);
+
+/* Get State */
+enum esif_lp_state esif_lp_get_state(
+	/* Lower Participant Intance */
+	const struct esif_lp *self
+	);
+
+/* Set State */
+enum esif_rc esif_lp_handle_event(
+	/* Lower Participant Instance */
+	struct esif_lp *self,
+	/* Particpant State Machine Event Enumeration*/
+	const enum esif_lp_sm_event state,
+	/* Event-dependent context data */
+	void *ctx_ptr
+	);
+
+esif_string esif_lp_get_name(
+	const struct esif_lp *self
+	);
+
+enum esif_rc esif_lp_get_dmn_by_index(
+	const struct esif_lp *self,
+	const u8 index,
+	struct esif_lp_domain **dmn_ptr
+	);
+
+enum esif_rc esif_lp_get_dmn_by_id(
+	const struct esif_lp *self,
+	const u16 id,
+	struct esif_lp_domain **dmn_ptr
+	);
+
+enum esif_rc esif_lp_check_msr_whitelist(
+	const struct esif_lp *self,
+	const u32 msr,
+	const enum whitelist_access req_access
+	);
+
+enum esif_rc esif_lp_check_mmio_whitelist(
+	const struct esif_lp *self,
+	const u32 offset,
+	const enum whitelist_access req_access
+	);
+
+enum esif_rc esif_lp_load_dsp(
+	struct esif_lp *self,
+	const struct esif_data *cpc_ptr
+	);
+
+void esif_lp_unload_dsp(
+	struct esif_lp *self
+	);
+
+enum esif_rc esif_lp_suspend(
+	struct esif_lp *self
+	);
+
+enum esif_rc esif_lp_resume(
+	struct esif_lp *self
+	);
+
+#endif /* ESIF_FEAT_OPT_USE_VIRT_DRVRS */
 #endif /* ESIF ATTR_KERNEL          */
 #ifdef ESIF_ATTR_USER
 
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
+#include "esif_uf_fpc.h"
+#include "esif_uf_domain.h"
 
 typedef enum {
 	eParticipantOriginLF,
@@ -150,12 +327,130 @@ typedef struct _t_EsifUpData {
 typedef struct _t_EsifUp {
 	UInt8  fInstance;	/* Unique Upper Participant Instance */
 	UInt8  fLpInstance;	/* Lower Participant Instance */
-	void   *fUpHandle;	/* Upper Participant Handle */
-	UInt8  fEnabled;	/* Enabled / Disabled */
 	eEsifParticipantOrigin  fOrigin;	/* Origin Of Creation */
 	struct esif_up_dsp      *fDspPtr;	/* Pointer To Our DSP */
 	EsifUpData fMetadata;	/* Participant Data */
+
+	/* Domains For Participants */
+	UInt8 domainCount;
+	EsifUpDomain domains[ESIF_DOMAIN_MAX];
+
+	/* life control */
+	UInt32 refCount;		
+	UInt8 markedForDelete;
+	esif_ccb_event_t deleteEvent;
+	esif_ccb_lock_t objLock;
 } EsifUp, *EsifUpPtr, **EsifUpPtrLocation;
+
+/*
+ * Execute Primitive (Internal version)
+ * NOTE: This version should only be called by functions within the
+ * participant /domain while Participant Mangager or participant locks are
+ * already or from within the participant when executing in a
+ * known/guaranteed state.  EsifExecutePrimitive should be called when executing
+ * outside the context of the participant.
+ */
+eEsifError EsifUp_ExecutePrimitive(
+	EsifUpPtr upPtr,
+	EsifPrimitiveTuplePtr tuplePtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+);
+
+eEsifError EsifUp_DspReadyInit(
+	EsifUpPtr self
+);
+
+eEsifError EsifUp_UpdatePolling(
+	EsifUpPtr self,
+	UInt16 domain_index,
+	UInt32 period
+);
+
+eEsifError EsifUp_UpdateHysteresis(
+	EsifUpPtr self,
+	UInt16 domain_index,
+	esif_temp_t hysteresis_val
+);
+
+EsifFpcEventPtr EsifUp_GetFpcEventByType(
+	EsifUpPtr self,
+	eEsifEventType eventType
+);
+
+EsifFpcEventPtr EsifUp_GetFpcEventByGuid(
+	EsifUpPtr self,
+	esif_guid_t *guid
+);
+
+EsifString EsifUp_GetName(
+	EsifUpPtr self
+);
+
+eEsifError EsifUp_CreateParticipant(
+	const eEsifParticipantOrigin origin,
+	UInt8 upInstance,
+	const void *metadataPtr,
+	EsifUpPtr *upPtr
+);
+
+eEsifError EsifUp_ReInitializeParticipant(
+	EsifUpPtr self,
+	const eEsifParticipantOrigin origin,
+	const void *metadataPtr
+);
+
+void EsifUp_DestroyParticipant(
+	EsifUpPtr self
+);
+
+
+eEsifError EsifUp_SuspendParticipant(
+	EsifUpPtr self
+	);
+
+eEsifError EsifUp_ResumeParticipant(
+	EsifUpPtr self
+	); 
+
+UInt8 EsifUp_GetInstance(
+	EsifUpPtr self
+);
+
+void EsifUp_PollParticipant(
+	EsifUpPtr self
+	);
+
+void EsifUp_RegisterParticipantForPolling(
+	EsifUpPtr self
+	);
+
+void EsifUp_UnRegisterParticipantForPolling(
+	EsifUpPtr self
+	);
+
+static ESIF_INLINE EsifString EsifUp_IntToShellDomainStr(
+	UInt32 domain_index,
+	EsifString str,
+	UInt8 str_len
+	)
+{
+	esif_ccb_sprintf(str_len, str, "D%X", domain_index);
+	return str;
+}
+
+EsifUpDomainPtr EsifUp_GetDomainById(
+	EsifUpPtr self,
+	UInt16 domainId
+);
+
+eEsifError EsifUp_GetRef(
+	EsifUpPtr self
+);
+
+void EsifUp_PutRef(
+	EsifUpPtr self
+);
 
 #endif /* ESIF_ATTR_USER */
 #endif /* _ESIF_PARTICIPANT_H_ */

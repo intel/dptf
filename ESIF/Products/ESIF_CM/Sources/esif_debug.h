@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -68,7 +68,7 @@
  * so that the kernel-mode debug level can be decoded in user-mode.
  */
 enum esif_debug_mod {
-	ESIF_DEBUG_MOD_ACTION_VAR      = 0,	/* Action Variable        */
+	ESIF_DEBUG_MOD_AVAIL1          = 0,	/* Available for use      */
 	ESIF_DEBUG_MOD_ACTION_CONST    = 1,	/* Action Constant        */
 	ESIF_DEBUG_MOD_ACTION_MSR      = 2,	/* Action MSR             */
 	ESIF_DEBUG_MOD_ACTION_MMIO     = 3,	/* Action MMIO            */
@@ -78,76 +78,58 @@ enum esif_debug_mod {
 	ESIF_DEBUG_MOD_PRIMITIVE       = 7,	/* Primitive Requires DSP */
 	ESIF_DEBUG_MOD_ACTION          = 8,	/* Primitive Requires DSP */
 	ESIF_DEBUG_MOD_CPC             = 9,	/* Loads DSP              */
-	ESIF_DEBUG_MOD_DATA            = 10,	/* Data Operations        */
+	ESIF_DEBUG_MOD_AVAIL2          = 10,	/* Available for use      */
 	ESIF_DEBUG_MOD_DSP             = 11,	/* DSP Operations         */
 	ESIF_DEBUG_MOD_EVENT           = 12,	/* Event Processing       */
 	ESIF_DEBUG_MOD_ELF             = 13,	/* ESIF Lower Framework   */
-	ESIF_DEBUG_MOD_PMG             = 14,	/* Package Manager        */
+	ESIF_DEBUG_MOD_PMG             = 14,	/* Participant Manager    */
 	ESIF_DEBUG_MOD_QUEUE           = 15,	/* Queue Manager          */
 	ESIF_DEBUG_MOD_HASH            = 16,	/* Hash Tables            */
 	ESIF_DEBUG_MOD_ACTION_SYSTEMIO = 17,	/* Action SYSTEM IO       */
 	ESIF_DEBUG_MOD_ACTION_CODE     = 18,	/* Action Code            */
-	ESIF_DEBUG_MOD_POL             = 19,	/* Polling Code           */
+	ESIF_DEBUG_MOD_DOMAIN	       = 19,	/* Domain Code            */
 	ESIF_DEBUG_MOD_ACTION_MBI      = 20,	/* Action MBI (ATOM)      */
-	ESIF_DEBUG_MOD_GENERAL         = 21,	/* Non-Specific tracing   */
+	ESIF_DEBUG_MOD_DRVM	       = 21,    /* Driver Manager         */
 	ESIF_DEBUG_MOD_WINDOWS         = 22,	/* Windows-Specific       */
 	ESIF_DEBUG_MOD_LINUX           = 23,	/* Linux-Specific         */
+	ESIF_DEBUG_MOD_ACTION_DELEGATE = 24,	/* Action Delegate        */
+	ESIF_DEBUG_MOD_LP              = 25,    /* LF Participant         */
 	ESIF_DEBUG_MOD_MAX
 };
 
 static ESIF_INLINE char *esif_debug_mod_str(enum esif_debug_mod mod)
 {
-	#define ESIF_CREATE_MOD(mod, ab, str) case mod: str = (esif_string) #ab; break;
-
-	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
 	switch (mod) {
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_VAR, VAR, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_CONST, CON, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_MSR, MSR, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_MMIO, MMI, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_ACPI, ACP, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_IPC, IPC, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_COMMAND, CMD, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_PRIMITIVE, PRI, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION, ACT, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_CPC, CPC, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_DATA, DAT, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_DSP, DSP, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_EVENT, EVE, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ELF, ELF, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_PMG, PMG, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_QUEUE, QUE, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_HASH, HSH, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_SYSTEMIO, SIO, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_CODE, COD, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_POL, POL, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_ACTION_MBI, MBI, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_GENERAL, GNL, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_WINDOWS, WND, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_LINUX, LNX, str)
-		ESIF_CREATE_MOD(ESIF_DEBUG_MOD_MAX, MAX, str)
+	ESIF_CASE(ESIF_DEBUG_MOD_AVAIL1, "AV1");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_CONST, "CON");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_MSR, "MSR");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_MMIO, "MMI");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_ACPI, "ACP");
+	ESIF_CASE(ESIF_DEBUG_MOD_IPC, "IPC");
+	ESIF_CASE(ESIF_DEBUG_MOD_COMMAND, "CMD");
+	ESIF_CASE(ESIF_DEBUG_MOD_PRIMITIVE, "PRI");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION, "ACT");
+	ESIF_CASE(ESIF_DEBUG_MOD_CPC, "CPC");
+	ESIF_CASE(ESIF_DEBUG_MOD_AVAIL2, "AV2");
+	ESIF_CASE(ESIF_DEBUG_MOD_DSP, "DSP");
+	ESIF_CASE(ESIF_DEBUG_MOD_EVENT, "EVE");
+	ESIF_CASE(ESIF_DEBUG_MOD_ELF, "ELF");
+	ESIF_CASE(ESIF_DEBUG_MOD_PMG, "PMG");
+	ESIF_CASE(ESIF_DEBUG_MOD_QUEUE, "QUE");
+	ESIF_CASE(ESIF_DEBUG_MOD_HASH, "HSH");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_SYSTEMIO, "SIO");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_CODE, "COD");
+	ESIF_CASE(ESIF_DEBUG_MOD_DOMAIN, "DMN");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_MBI, "MBI");
+	ESIF_CASE(ESIF_DEBUG_MOD_DRVM, "DVM");
+	ESIF_CASE(ESIF_DEBUG_MOD_WINDOWS, "WND");
+	ESIF_CASE(ESIF_DEBUG_MOD_LINUX, "LNX");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_DELEGATE, "DLG");
+	ESIF_CASE(ESIF_DEBUG_MOD_LP, "LP ");
+	ESIF_CASE(ESIF_DEBUG_MOD_MAX, "MAX");
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
-
-
-/*
- * Kernel Memory Statistics
- */
-#pragma pack(push,1)
-struct esif_memory_stats {
-	u32  allocs;		/* Total number of allocations */
-	u32  frees;		/* Total number of frees       */
-	u32  memPoolAllocs;	/* Total number of allocations */
-	u32  memPoolFrees;	/* Total number of frees       */
-	u32  memPoolObjAllocs;	/* Total number of allocations */
-	u32  memPoolObjFrees;	/* Total number of frees       */
-	u32  memTypeAllocs;	/* Total number of allocations */
-	u32  memTypeFrees;	/* Total number of frees       */
-	u32  memTypeObjAllocs;	/* Total number of allocations */
-	u32  memTypeObjFrees;	/* Total number of frees       */
-};
-#pragma pack(pop)
 
 /* ESIF Trace Levels. These correspond to eLogLevel enum type */
 #define ESIF_TRACELEVEL_FATAL       0
@@ -200,13 +182,14 @@ struct esif_memory_stats {
  * DEBUG (28) = TRACELEVEL_DEBUG (4)
  * All others = TRACELEVEL_DEBUG (4)
  */
-#define ESIF_TRACE_CATEGORY_TO_TRACELEVEL(id) \
-  ((((id) & 0x1F) > ESIF_TRACE_CATEGORY_DEBUG) ? (32-(id)) : ESIF_TRACELEVEL_DEBUG)
+#define ESIF_CATEGORY_TO_TRACELEVEL(id) \
+	((((id) & 0x1F) > ESIF_TRACE_CATEGORY_DEBUG) ? (32-(id)) : \
+	ESIF_TRACELEVEL_DEBUG)
 
 #define ESIF_TRACE_CATEGORY_DEFAULT   ((u32)1 << ESIF_TRACE_CATEGORY_ERROR)
 
 #ifdef ESIF_ATTR_OS_LINUX
-#define ESIF_ALWAYSFALSE (0) /*used for do...while(0) macros */
+#define ESIF_ALWAYSFALSE (0)
 #define ESIF_TRACENULL
 #define ESIF_TRACEFUNC  printk
 #define ESIF_KERN_ERR   KERN_ERR
@@ -216,10 +199,7 @@ struct esif_memory_stats {
 #endif /* ESIF_ATTR_OS_LINUX */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-/* Avoids "conditional expression is constant" warnings for do...while(0) macros in Windows */
-static char g_alwaysfalse;
-#define ESIF_ALWAYSFALSE (!&g_alwaysfalse)
-
+#define ESIF_ALWAYSFALSE (0)
 #define ESIF_TRACENULL  (0)
 #define ESIF_TRACEFUNC  DbgPrint
 #define ESIF_KERN_ERR
@@ -230,36 +210,37 @@ static char g_alwaysfalse;
 
 #define ESIF_TRACE_FMT_ERROR(fmt, ...)  \
 	ESIF_TRACEFUNC(ESIF_KERN_ERR   "!ERR! %s:%d: %s: " fmt, \
-		ESIF_FILENAME, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+		ESIF_FILENAME, __LINE__, ESIF_FUNC, ##__VA_ARGS__)
 #define ESIF_TRACE_FMT_WARN(fmt, ...) \
 	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "!WRN! %s:%d: %s: " fmt, \
-		ESIF_FILENAME, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+		ESIF_FILENAME, __LINE__, ESIF_FUNC, ##__VA_ARGS__)
 #define ESIF_TRACE_FMT_INFO(fmt, ...) \
 	ESIF_TRACEFUNC(ESIF_KERN_INFO  "=INF= %s:%d: %s: " fmt, \
-		ESIF_FILENAME, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+		ESIF_FILENAME, __LINE__, ESIF_FUNC, ##__VA_ARGS__)
 #define ESIF_TRACE_FMT_DEBUG(fmt, ...) \
 	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "~DBG~ %s:%d: %s: " fmt, \
-		ESIF_FILENAME, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+		ESIF_FILENAME, __LINE__, ESIF_FUNC, ##__VA_ARGS__)
 #define ESIF_TRACE_FMT_ENTRY() \
-	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "--> %s:%d: %s:...", \
-		ESIF_FILENAME, __LINE__, __FUNCTION__)
+	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "--> %s:%d: %s:...\n", \
+		ESIF_FILENAME, __LINE__, ESIF_FUNC)
 #define ESIF_TRACE_FMT_EXIT() \
-	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s:...", \
-		ESIF_FILENAME, __LINE__, __FUNCTION__)
+	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s:...\n", \
+		ESIF_FILENAME, __LINE__, ESIF_FUNC)
 #define ESIF_TRACE_FMT_EXIT_W_STATUS(status) \
-	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s: Exit status = 0x%08X", \
-		ESIF_FILENAME, __LINE__, __FUNCTION__, status)
+	ESIF_TRACEFUNC(ESIF_KERN_DEBUG "<-- %s:%d: %s: Exit code = 0x%08X\n", \
+		ESIF_FILENAME, __LINE__, ESIF_FUNC, status)
 
 #define ESIF_TRACE_CATEGORY_ON(module, category) \
-	((ESIF_TRACE_CATEGORY_TO_TRACELEVEL(category) <= g_esif_trace_level) && \
+	((ESIF_CATEGORY_TO_TRACELEVEL(category) <= g_esif_trace_level) && \
 	 ((1 << (module)) & g_esif_module_mask) != 0 && \
 	 ((1 << (category)) & g_esif_module_category_mask[(module)]) != 0)
 
 #define ESIF_TRACE_ERROR(format, ...) \
 	do { \
-		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ERROR)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, \
+		    ESIF_TRACE_CATEGORY_ERROR)) \
 			ESIF_TRACE_FMT_ERROR(format, ##__VA_ARGS__); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 
 /*
@@ -268,45 +249,51 @@ static char g_alwaysfalse;
  */
 #define ESIF_TRACE_WARN(format, ...) \
 	do { \
-		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_WARN)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, \
+			ESIF_TRACE_CATEGORY_WARN)) \
 			ESIF_TRACE_FMT_WARN(format, ##__VA_ARGS__); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_INFO(format, ...) \
 	do { \
-		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_INFO)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, \
+			ESIF_TRACE_CATEGORY_INFO)) \
 			ESIF_TRACE_FMT_INFO(format, ##__VA_ARGS__); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_DEBUG(format, ...) \
 	do { \
-		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_DEBUG)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, \
+			ESIF_TRACE_CATEGORY_DEBUG)) \
 			ESIF_TRACE_FMT_DEBUG(format, ##__VA_ARGS__); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_ENTRY() \
 	do { \
-	    if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, \
+			ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
 			ESIF_TRACE_FMT_ENTRY(); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_EXIT() \
 	do { \
-		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, \
+			ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
 			ESIF_TRACE_FMT_EXIT(); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_EXIT_W_STATUS(status) \
 	do { \
-		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE, ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
+		if (ESIF_TRACE_CATEGORY_ON(ESIF_DEBUG_MODULE,\
+			ESIF_TRACE_CATEGORY_ENTRY_AND_EXIT)) \
 			ESIF_TRACE_FMT_EXIT_W_STATUS(status); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #define ESIF_TRACE_DYN(module, module_level, format, ...) \
 	do { \
 		if (ESIF_TRACE_CATEGORY_ON(module, module_level)) \
 			ESIF_TRACE_FMT_DEBUG(format, ##__VA_ARGS__); \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 
 /* Initialize the enabled module debug categories */
@@ -329,17 +316,13 @@ extern u32 g_esif_trace_level;
 extern u32 g_esif_module_mask;
 extern u32 g_esif_module_category_mask[ESIF_DEBUG_MOD_MAX];
 
-/* Kernel Memory Statistics */
-extern struct esif_memory_stats g_memstat;
-
 #else /* NOT ESIF_ATTR_KERNEL */
 
 /* USER Mode Debug Interface */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-/* Avoid "conditional expression is constant" warnings in macros */
-static char g_alwaysfalse;
-#define ESIF_ALWAYSFALSE (!&g_alwaysfalse)
+
+#define ESIF_ALWAYSFALSE (0)
 
 /* Avoid Klocworks "suspicious semicolon" warnings */
 #define ESIF_TRACENULL (0)
@@ -357,7 +340,7 @@ static char g_alwaysfalse;
 /* Enumerated Type Base Macros */
 #define ENUMDECL(ENUM)              ENUM,
 #define ENUMLIST(ENUM)              {ENUM, #ENUM},
-#define ENUMSWITCH(ENUM)            case ENUM: return #ENUM;break;
+#define ENUMSWITCH(ENUM)            case ENUM: return #ENUM;
 
 /* Enumerated Type Macros with Explicit Values */
 #define ENUMDECL_VAL(ENUM, VAL)      ENUM = VAL,
@@ -403,6 +386,7 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_ACTION)		/* Actions */ \
 	ENUM(ESIF_TRACEMODULE_APP)			/* Apps */ \
 	ENUM(ESIF_TRACEMODULE_CONJURE)		/* Conjure */ \
+	ENUM(ESIF_TRACEMODULE_DOMAIN)		/* Domains */ \
 	ENUM(ESIF_TRACEMODULE_DSP)			/* DSPs */ \
 	ENUM(ESIF_TRACEMODULE_EVENT)		/* Events */ \
 	ENUM(ESIF_TRACEMODULE_IPC)			/* IPC */ \
@@ -418,6 +402,9 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_WINDOWS)		/* Windows General */ \
 	ENUM(ESIF_TRACEMODULE_ACTWIRELESS)	/* Windows ACT Wireless */ \
 	ENUM(ESIF_TRACEMODULE_UMDF)			/* Windows UMDF */ \
+	\
+	ENUM(ESIF_TRACEMODULE_LINUX)		/* Linux General */ \
+
 
 enum esif_tracemodule {
 	ENUM_TRACEMODULE(ENUMDECL)
@@ -457,6 +444,9 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
 }
 #endif
 
+/* Alias for Current Module's Trace Module Mask that can be passed to DOTRACE and TRACEACTIVE/ENABLED macros */
+#define ESIF_TRACEMASK_CURRENT	ESIF_TRACEMASK(ESIF_TRACE_ID)
+
 /* Test whether Tracing is currently active for the given module and level based on the currrent trace level*/
 #define ESIF_TRACEACTIVE(module, level) ((g_traceLevel >= (level)) && !!(g_traceinfo[level].modules & (module)))
 
@@ -469,9 +459,9 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
 #define ESIF_DOTRACE_IFACTIVE(module, level, msg, ...) \
 	do { \
 		if (ESIF_TRACEACTIVE(module, level)) { \
-			EsifTraceMessage(module, level,	__FUNCTION__, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
+			EsifTraceMessage(module, level,	ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
 		} \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 /*
  * Conditionally route trace message if given module/level are currently enabled, regardless of the current trace level.
@@ -480,13 +470,13 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
 #define ESIF_DOTRACE_IFENABLED(module, level, msg, ...) \
 	do { \
 		if (ESIF_TRACEENABLED(module, level)) { \
-			EsifTraceMessage(module, level,	__FUNCTION__, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
+			EsifTraceMessage(module, level,	ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
 		} \
-	} while (ESIF_ALWAYSFALSE)
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 /* Always route trace message regardless of current module masks and trace level */
 #define ESIF_DOTRACE_ALWAYS(module, level, msg, ...) \
-	EsifTraceMessage(module, level,	__FUNCTION__, __FILE__, __LINE__, msg, ##__VA_ARGS__)
+	EsifTraceMessage(module, level,	ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__)
 
 /* Never route a trace message and compile it out of the binary */
 #define ESIF_DOTRACE_NEVER(mod, lev, msg, ...)	((void)0)
@@ -508,16 +498,16 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
  * ESIF_TRACE_XXXX messages are conditionally routed depending on current trace level and module masks.
  * ESIF_DOTRACE_IFCOMPILED is used for trace levels that may be conditionally compiled out of the binary
  */
-#define ESIF_TRACE_FATAL(msg, ...) ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK(ESIF_TRACE_ID), ESIF_TRACELEVEL_FATAL, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_ERROR(msg, ...) ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK(ESIF_TRACE_ID), ESIF_TRACELEVEL_ERROR, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_WARN(msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK(ESIF_TRACE_ID), ESIF_TRACELEVEL_WARN, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_INFO(msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK(ESIF_TRACE_ID), ESIF_TRACELEVEL_INFO, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_DEBUG(msg, ...) ESIF_DOTRACE_IFCOMPILED(ESIF_TRACEMASK(ESIF_TRACE_ID), ESIF_TRACELEVEL_DEBUG, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_FATAL(msg, ...) ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_FATAL, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_ERROR(msg, ...) ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_ERROR, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_WARN(msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_WARN, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_INFO(msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_INFO, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_DEBUG(msg, ...) ESIF_DOTRACE_IFCOMPILED(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_DEBUG, msg, ##__VA_ARGS__)
 
 /* ESIF_TRACE_IFACTIVE messages are always compiled into binary and routed if module/level active, based on current trace level  */
 #define ESIF_TRACE_IFACTIVE(module, level, msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK(module), level, msg, ##__VA_ARGS__)
 
-/* ESIF_TRACE_IFENABLED messages are always compiled into binary and routed if module/level enabled, regardles of current trace level */
+/* ESIF_TRACE_IFENABLED messages are always compiled into binary and routed if module/level enabled, regardless of current trace level */
 #define ESIF_TRACE_IFENABLED(module, level, msg, ...) ESIF_DOTRACE_IFENABLED(ESIF_TRACEMASK(module), level, msg, ##__VA_ARGS__)
 
 /* Use these for tracing Entry/Exit of functions */
@@ -525,8 +515,9 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
 #define ESIF_TRACE_EXIT()		ESIF_TRACE_DEBUG("Exiting Function")
 
 /* Use these for tracing Entry/Exit of functions that you need logged at INFO level (rare) */
-#define ESIF_TRACE_ENTRY_INFO()	ESIF_TRACE_INFO("Entering Function")
-#define ESIF_TRACE_EXIT_INFO()	ESIF_TRACE_INFO("Exiting Function")
+#define ESIF_TRACE_ENTRY_INFO()	ESIF_TRACE_INFO("Entering function...")
+#define ESIF_TRACE_EXIT_INFO()	ESIF_TRACE_INFO("Exiting function...")
+#define ESIF_TRACE_EXIT_INFO_W_STATUS(status)	ESIF_TRACE_INFO("Exiting function: Exit code = 0x%08X...", status)
 
 #endif /* ESIF_ATTR_USER */
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,19 +19,19 @@
 #ifndef _ESIF_UF_VERSION_H_
 #define _ESIF_UF_VERSION_H_
 
-#include "../../../../Common/Ver.h"
+#include "Ver.h"
 
 #define STR(arg) #arg
 #define STR2(arg) STR(##arg)
 #define EXPAND_TOSTR(arg) STR(arg)
 
-#define ESIF_UF_VERSION_MAJOR VER_MAJOR
-#define ESIF_UF_VERSION_MINOR VER_MINOR
-#define ESIF_UF_VERSION_HOTFIX VER_HOTFIX
-#define ESIF_UF_VERSION_BUILD VER_BUILD
+#define ESIF_UF_VERSION_MAJOR	VER_MAJOR
+#define ESIF_UF_VERSION_MINOR	VER_MINOR
+#define ESIF_UF_VERSION_HOTFIX	VER_HOTFIX
+#define ESIF_UF_VERSION_BUILD	VER_BUILD
 
 /* Build system will should set to 0 */
-#define ESIF_SKU_TYPE DEV_BUILD
+#define ESIF_SKU_TYPE	DEV_BUILD
 
 #if ESIF_SKU_TYPE == 0
 #define ESIF_UF_VERSION EXPAND_TOSTR(ESIF_UF_VERSION_MAJOR.ESIF_UF_VERSION_MINOR.ESIF_UF_VERSION_HOTFIX.ESIF_UF_VERSION_BUILD)

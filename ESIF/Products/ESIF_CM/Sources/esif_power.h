@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -80,6 +80,7 @@ enum esif_power_unit_type {
 	ESIF_POWER_DECIW,	    /* Deci Watts   .1 Watts     */
 	ESIF_POWER_CENTIW,	    /* Centi Watts  .01 Watts    */
 	ESIF_POWER_MILLIW,	    /* Milli Watts .001 Watts    */
+	ESIF_POWER_MICROW,	    /* Micro Watts .000001 Watts */
 	ESIF_POWER_UNIT_ATOM,   /* 1 * (2 ^ RAPL_POWER_UNIT) */
 	ESIF_POWER_UNIT_CORE	/* 1 / (2 ^ RAPL_POWER_UNIT)   */
 };
@@ -88,18 +89,16 @@ enum esif_power_unit_type {
 static ESIF_INLINE esif_string esif_power_unit_type_str(
 	enum esif_power_unit_type type)
 {
-	#define ESIF_CREATE_POWER_UNIT_TYPE(t, str) case t: str = #t; break;
-
-	esif_string str = ESIF_NOT_AVAILABLE;
 	switch (type) {
-		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_W, str)
-		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_DECIW, str)
-		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_CENTIW, str)
-		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_MILLIW, str)
-		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_UNIT_ATOM, str)
-		ESIF_CREATE_POWER_UNIT_TYPE(ESIF_POWER_UNIT_CORE, str)
+	ESIF_CASE_ENUM(ESIF_POWER_W);
+	ESIF_CASE_ENUM(ESIF_POWER_DECIW);
+	ESIF_CASE_ENUM(ESIF_POWER_CENTIW);
+	ESIF_CASE_ENUM(ESIF_POWER_MILLIW);
+	ESIF_CASE_ENUM(ESIF_POWER_MICROW);
+	ESIF_CASE_ENUM(ESIF_POWER_UNIT_ATOM);
+	ESIF_CASE_ENUM(ESIF_POWER_UNIT_CORE);
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -107,18 +106,16 @@ static ESIF_INLINE esif_string esif_power_unit_type_str(
 static ESIF_INLINE esif_string esif_power_unit_desc(
 	enum esif_power_unit_type type)
 {
-	#define ESIF_CREATE_POWER_UNIT_DESC(t, td, str) case t: str = td; break;
-	esif_string str = ESIF_NOT_AVAILABLE;
-
 	switch (type) {
-		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_W, "Watts", str)
-		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_DECIW, "DeciW", str)
-		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_CENTIW, "CentiW", str)
-		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_MILLIW, "MilliW", str)
-	        ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_UNIT_ATOM, "UnitAtom", str)
-		ESIF_CREATE_POWER_UNIT_DESC(ESIF_POWER_UNIT_CORE, "UnitCore", str)
+	ESIF_CASE(ESIF_POWER_W, "Watts");
+	ESIF_CASE(ESIF_POWER_DECIW, "DeciW");
+	ESIF_CASE(ESIF_POWER_CENTIW, "CentiW");
+	ESIF_CASE(ESIF_POWER_MILLIW, "MilliW");
+	ESIF_CASE(ESIF_POWER_MICROW, "MicroW");
+	ESIF_CASE(ESIF_POWER_UNIT_ATOM, "UnitAtom");
+	ESIF_CASE(ESIF_POWER_UNIT_CORE, "UnitCore");
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -136,7 +133,7 @@ static ESIF_INLINE int esif_convert_power(
 	esif_power_t *power_ptr
 	)
 {
-	esif_power_t val = 0;
+	u64 val = 0;
 
 	if (NULL == power_ptr)
 		return ESIF_E_PARAMETER_IS_NULL;
@@ -152,6 +149,9 @@ static ESIF_INLINE int esif_convert_power(
 
 	/* Convert To Output */
 	switch (out) {
+	case ESIF_POWER_MICROW:
+		val *= 1000000;
+		break;
 	case ESIF_POWER_MILLIW:
 		val *= 1000;
 		break;
@@ -165,12 +165,12 @@ static ESIF_INLINE int esif_convert_power(
 		break;
 
 	case ESIF_POWER_UNIT_ATOM:
-		val *= 32; /* RAPL_POWER_UNIT = 5  1 * (2 ^ POWER_UNIT) = 32 */
+		val = (val * 1000)/32; /* RAPL_POWER_UNIT = 5, Power 1mw * (2 ^ RAPL_POWER_UNIT) = 32mw*/
 		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
 		break;
 
 	case ESIF_POWER_UNIT_CORE:
-		val *= 8;   /* RAPL_POWER_UNIT = 3  1 * (2 ^ POWER_UNIT) = 8 */
+		val *= 8;   /* RAPL_POWER_UNIT = 3, Power 1000mw / (2 ^ RAPL_POWER_UNIT) = 125mw */
 		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
 		break;
 
@@ -183,6 +183,9 @@ static ESIF_INLINE int esif_convert_power(
 
 	/* Normalize To Watts */
 	switch (in) {
+	case ESIF_POWER_MICROW:
+		val /= 1000000;
+		break;
 	case ESIF_POWER_MILLIW:
 		val /= 1000;
 		break;
@@ -196,12 +199,12 @@ static ESIF_INLINE int esif_convert_power(
 		break;
 
 	case ESIF_POWER_UNIT_ATOM:
-		val /= 32;  /* RAPL_POWER_UNIT - 5 1 / (2 ^ (POWER_UNIT) = 32 */
+		val = (val * 32)/1000;  /* RAPL_POWER_UNIT = 5, Power 1mw * (2 ^ RAPL_POWER_UNIT) = 32mw*/
 		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
 		break;
 
 	case ESIF_POWER_UNIT_CORE:
-		val /= 8;   /* RAPL_POWER_UNIT = 3 1 / (2 ^ (POWER_UNIT) = 8 */
+		val /= 8;   /* RAPL_POWER_UNIT = 3, Power 1000mw / (2 ^ RAPL_POWER_UNIT) = 125mw */
 		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
 		break;
 
@@ -212,7 +215,7 @@ static ESIF_INLINE int esif_convert_power(
 		return ESIF_E_UNSUPPORTED_REQUEST_POWER_TYPE;
 	}
 
-	*power_ptr = val;
+	*power_ptr = (esif_power_t)val;
 	return ESIF_OK;
 }
 

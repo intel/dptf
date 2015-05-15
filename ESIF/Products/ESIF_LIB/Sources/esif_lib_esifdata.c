@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -186,7 +186,7 @@ EsifDataPtr EsifData_CreateArray (int size)
 	EsifDataPtr self = (size ? (EsifDataPtr)esif_ccb_malloc(size * sizeof(*self)) : 0);
 	int idx;
 
-	ASSERT(self || !size);
+	ESIF_ASSERT(self || !size);
 	for (idx = 0; idx < size; idx++)
 		EsifData_ctor(&self[idx]);
 	return self;
@@ -201,7 +201,7 @@ void EsifData_DestroyArray (
 {
 	int idx;
 
-	ASSERT(self || !size);
+	ESIF_ASSERT(self || !size);
 	for (idx = 0; idx < size; idx++)
 		EsifData_dtor(&self[idx]);
 	esif_ccb_free(self);
@@ -214,7 +214,7 @@ EsifDataPtr EsifData_GetArray (
 	int item
 	)
 {
-	ASSERT(self || !item);
+	ESIF_ASSERT(self || !item);
 	return &self[item];
 }
 
@@ -229,7 +229,7 @@ void EsifData_Set (
 	)
 {
 	int bytes = ((buf_ptr && (buf_len == ESIFAUTOLEN || data_len == ESIFAUTOLEN)) ? (UInt32)esif_ccb_strlen((char*)buf_ptr, MAXAUTOLEN) + 1 : 0);
-	ASSERT(self);
+	ESIF_ASSERT(self);
 	if (self->buf_len) {
 		esif_ccb_free(self->buf_ptr);
 	}
@@ -255,14 +255,14 @@ Byte*EsifData_AsPointer (EsifDataPtr self)
 
 Int32 EsifData_AsInt32 (EsifDataPtr self)
 {
-	ASSERT(self && self->data_len == 4);
+	ESIF_ASSERT(self && self->data_len == 4);
 	return *STATIC_CAST(Int32*, self->buf_ptr);
 }
 
 
 UInt32 EsifData_AsUInt32 (EsifDataPtr self)
 {
-	ASSERT(self && self->data_len == 4);
+	ESIF_ASSERT(self && self->data_len == 4);
 	return *STATIC_CAST(UInt32*, self->buf_ptr);
 }
 
@@ -278,7 +278,7 @@ char *EsifData_ToString (EsifDataPtr self)
 	UInt32 ptrlen  = 0;
 	UInt32 idx     = 0;
 
-	if (self == NULL || self->buf_ptr == NULL) {
+	if (self == NULL || self->buf_ptr == NULL || self->data_len == 0) {
 		return NULL;
 	}
 
@@ -457,7 +457,13 @@ eEsifError EsifData_FromString (
 	Byte *buffer   = 0;
 	UInt32 idx     = 0;
 
-	ASSERT(self);
+	ESIF_ASSERT(self);
+
+	// Store NULL as 1 byte buffers, 0 length so they get freed
+	if (NULL == str || '\0' == *str) {
+		EsifData_Set(self, type, esif_ccb_malloc(1), 1, alloc);
+		return ESIF_OK;
+	}
 
 	if (type == ESIF_DATA_AUTO) {
 		int ch=0;
@@ -578,7 +584,7 @@ eEsifError EsifData_FromString (
 	}
 	else {
 		EsifData_Set(self, type, esif_ccb_malloc(alloc), alloc, alloc);
-		ASSERT(self->buf_ptr);
+		ESIF_ASSERT(self->buf_ptr);
 		SAFETY(memset(self->buf_ptr, 0, alloc));
 		buffer = (Byte*)self->buf_ptr;
 		rc     = ESIF_OK;

@@ -34,6 +34,10 @@ namespace BusType
                 return "Conjure";
             case BusType::None:
                 return "None";
+            case BusType::Usb:
+                return "Usb";
+            case BusType::Sysfs:
+                return "Sysfs";
             default:
                 throw dptf_exception("BusType::Type is invalid.");
         }
@@ -52,6 +56,10 @@ BusType::Type EsifParticipantEnumToBusType(esif_participant_enum esifParticipant
             return BusType::Type::Plat;
         case ESIF_PARTICIPANT_ENUM_CONJURE:
             return BusType::Type::Conjure;
+        case ESIF_PARTICIPANT_ENUM_USB:
+            return BusType::Type::Usb;
+        case ESIF_PARTICIPANT_ENUM_SYSFS:
+            return BusType::Type::Sysfs;
         default:
             throw dptf_exception("Received unexpected esif_participant_enum.");
     }

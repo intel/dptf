@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,40 +54,68 @@
 #ifndef _ESIF_QUEUE_H_
 #define _ESIF_QUEUE_H_
 
-#include "esif_ipc.h"
+#include "esif_ccb.h"
+#include "esif_link_list.h"
+#include "esif_ccb_sem.h"
+#include "esif_ccb_lock.h"
+
+#define ESIF_QUEUE_NAME_LEN 32
+
 
 /* Queue Instance */
 struct esif_queue_instance {
 	u32  us_timeout;	/* Timeout in Microseconds */
 	u32  max_size;		/* Maximum allowable queue size in items */
 	u32  current_size;	/* Current queeue size in items */
-	esif_ccb_lock_t  lock;		/* Lock */
-	esif_ccb_sem_t   semaphore;	/* To allow blocking if queue is empty */
-	struct esif_queue_node  *head_ptr;	/* First event or NULL if queue Is empty */
-	struct esif_queue_node  *tail_ptr;	/* Last event or NULL if queue Is empty */
-	char *name_ptr;		/* Queue Name */
+	esif_ccb_lock_t lock;	/* Lock */
+	esif_ccb_sem_t semaphore;	/* Allow blocking if queue is empty */
+	struct esif_link_list	*queue_list_ptr;
+	char queue_name[ESIF_QUEUE_NAME_LEN];		/* Queue Name */
 };
+
+#ifdef ESIF_ATTR_USER
+typedef struct esif_queue_instance EsifQueue, *EsifQueuePtr;
+#endif
+
+typedef void (*queue_item_destroy_func) (void *item_ptr);
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct esif_queue_instance *esif_queue_create (u32 depth, char *name_ptr);
-void esif_queue_destroy (struct esif_queue_instance *queue_ptr);
+struct esif_queue_instance *esif_queue_create(
+	u32 depth,
+	char *name_ptr,
+	u32 us_timeout
+	);
 
-enum esif_rc esif_queue_push (struct esif_queue_instance *queue_ptr,
-			      struct esif_ipc *ipc_ptr);
+void esif_queue_destroy(
+	struct esif_queue_instance *self,
+	queue_item_destroy_func destroy_func_ptr
+	);
 
-enum esif_rc esif_queue_requeue (struct esif_queue_instance *queue_ptr,
-				 struct esif_ipc *ipc_ptr);
+enum esif_rc esif_queue_enqueue(
+	struct esif_queue_instance *self,
+	void *data_ptr
+	);
 
-struct esif_ipc *esif_queue_pull (struct esif_queue_instance *queue_ptr);
+enum esif_rc esif_queue_requeue(
+	struct esif_queue_instance *self,
+	void *data_ptr
+	);
 
-u32 esif_queue_size (struct esif_queue_instance *queue_ptr);
+void *esif_queue_dequeue(struct esif_queue_instance *self);
+void *esif_queue_pull(struct esif_queue_instance *self);
+
+/* Used to allow a waiting event thread to exit before destruction */
+void esif_queue_signal_event(struct esif_queue_instance *self);
+
+u32 esif_queue_size(struct esif_queue_instance *self);
 
 /* Init / Exit */
-enum esif_rc esif_queue_init (void);
-void esif_queue_exit (void);
+enum esif_rc esif_queue_init(void);
+void esif_queue_exit(void);
 
 #ifdef __cplusplus
 }

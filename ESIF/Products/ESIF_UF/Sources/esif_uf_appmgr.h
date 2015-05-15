@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,14 +44,11 @@ extern "C" {
 
 EsifAppPtr GetAppFromHandle(const void *handle);
 
-/* Send Event */
-eEsifError EsifAppsEvent(UInt8 participantId, UInt16 domainId, eEsifEventType eventType, EsifDataPtr eventData);
-
 /* Send event by domain type to all applications */
 eEsifError EsifAppsEventByDomainType(enum esif_domain_type domainType, eEsifEventType eventType, EsifDataPtr eventData);
 
 eEsifError EsifAppMgrDestroyParticipantInAllApps(const EsifUpPtr upPtr);
-eEsifError EsifAppMgrCreateCreateParticipantInAllApps(const EsifUpPtr upPtr);
+eEsifError EsifAppMgrCreateParticipantInAllApps(const EsifUpPtr upPtr);
 
 /* Init / Exit */
 eEsifError EsifAppMgrInit(void);
