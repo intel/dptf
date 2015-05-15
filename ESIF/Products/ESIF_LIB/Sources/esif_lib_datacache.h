@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -62,8 +62,8 @@ void DataCache_Destroy (DataCachePtr self);
 
 // members
 DataCacheEntryPtr DataCache_GetValue (DataCachePtr self, esif_string key);
-void DataCache_SetValue (DataCachePtr self, esif_string key, EsifData value, esif_flags_t flags);
-void DataCache_Delete (DataCachePtr self, esif_string key);
+eEsifError DataCache_SetValue (DataCachePtr self, esif_string key, EsifData value, esif_flags_t flags);
+eEsifError DataCache_Delete (DataCachePtr self, esif_string key);
 UInt32 DataCache_GetCount (DataCachePtr self);
 
 #ifdef __cplusplus

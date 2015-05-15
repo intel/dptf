@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -65,6 +65,12 @@
 #include "esif_command.h"
 
 #define IPC_DEVICE "esif_lf"
+
+/* Kernel Debug Trace Selectors */
+#define IPC_TRACE_INIT		0	/* Init Debug */
+#define IPC_TRACE_DEBUG		1	/* IPC Debug */
+#define IPC_TRACE_POLL		2	/* Poll Debug */
+
 
 /* IOCTLS May There Be Few */
 #ifdef ESIF_ATTR_OS_LINUX
@@ -128,14 +134,14 @@ struct esif_ipc_primitive {
 	u16  domain;		/* Primitive Domain e.g. CPU, GFX, Etc.*/
 	u8   instance;		/* Instance e.g.  _AC0, _AC1, Etc. */
 	u8   src_id;		/* Source Of Primitive */
-	u8   dst_id;		/* Destination Of Primitive UCAST, MCAST, BCAST */
+	u8   dst_id;		/* Dest Of Primitive UCAST, MCAST, BCAST */
 	enum esif_rc return_code;	/* Result Of Primitive Execution */
 	u16  kern_action;	/* i-th Kernel Action To Run */
-	enum esif_action_type action_type;	/* Request Action Type Or LF Execute All */
-	u32  payload_len;	/* Payload Length */
+	enum esif_action_type action_type;
+	u32  payload_len;	/* Size not including this header */
 	enum esif_data_type req_data_type;	/* Request Data Type */
 	u32  req_data_offset;	/* Start Of Request Data Usually Zero */
-	u32  req_data_len;	/* Length Of Request Data  May Be Zero No Data */
+	u32  req_data_len;	/* Request Data  May Be Zero No Data */
 	enum esif_data_type rsp_data_type;	/* Respond Data Type */
 	u32  rsp_data_offset;	/* Respond Data Offset */
 	u32  rsp_data_len;	/* Respond Data Length */
@@ -150,7 +156,7 @@ typedef struct esif_ipc_primitive EsifIpcPrimitive, *EsifIpcPrimitivePtr,
 #endif
 
 /* Primitive Source Is Always Upper Framework Or UNICAST */
-static ESIF_INLINE esif_string esif_primitive_src_str (u8 src_id)
+static ESIF_INLINE esif_string esif_primitive_src_str(u8 src_id)
 {
 	if (ESIF_INSTANCE_UF == src_id)
 		return (esif_string)"ESIF_UF";
@@ -160,7 +166,7 @@ static ESIF_INLINE esif_string esif_primitive_src_str (u8 src_id)
 
 
 /* Privite Destination Can Be UNICAST, MULTICAST Or BROADCAST */
-static ESIF_INLINE esif_string esif_primitive_dst_str (u8 dst_id)
+static ESIF_INLINE esif_string esif_primitive_dst_str(u8 dst_id)
 {
 	if (ESIF_INSTANCE_BROADCAST == dst_id) {
 		return (esif_string)"BROADCAST";
@@ -179,12 +185,12 @@ static ESIF_INLINE esif_string esif_primitive_dst_str (u8 dst_id)
 
 /* USE Native Data Types With Packed Structures */
 #pragma pack(push, 1)
-struct esif_ipc_event_header {
+struct esif_ipc_event {
 	u8   version;		/* Version Of Primitive Event */
-	enum esif_event_type type;		/* Event Type */
 	u64  id;		/* Event Transaction ID  */
 	u64  timestamp;		/* Event Timestamp In msec */
-	enum esif_event_priority priority;	/* Event Priority  */
+	enum esif_event_type type; /* Event Type */
+	enum esif_event_priority priority;	/* Event Priority */
 	u8   src_id;		/* Source Of Event            */
 	u8   dst_id;		/* Dest Of Event              */
 	u16  dst_domain_id;	/* Destination Domain ID      */
@@ -212,13 +218,13 @@ struct esif_ipc_event_data_create_participant {
 	char  driver_name[ESIF_NAME_LEN];	/* Driver Name */
 	char  device_name[ESIF_NAME_LEN];	/* Device Name */
 	char  device_path[ESIF_PATH_LEN];	/* Device Path */
-	char  acpi_device[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g. \_SB.PCI0.TPCH  */
-	char  acpi_scope[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g. \_SB.PCI0.TPCH  */
+	char  acpi_device[ESIF_SCOPE_LEN];
+	char  acpi_scope[ESIF_SCOPE_LEN];
 	char  acpi_uid[ESIF_ACPI_UID_LEN];	/* Unique ID If Any */
 	u32   acpi_type;			/* Participant Type If Any */
 	u32   pci_vendor;			/* PCI Vendor For PCI Devices */
 	u32   pci_device;			/* PCE Device For PCI Devices */
-	u8    pci_bus;				/* Bus Device Was Enumerated On */
+	u8    pci_bus;				/* Bus Device Enumerated On */
 	u8    pci_bus_device;			/* Device Number On Bus */
 	u8    pci_function;			/* PCI Function Of Device */
 	u8    pci_revision;			/* PCI Hardware Revision */
@@ -237,16 +243,19 @@ struct esif_ipc_event_data_create_participant {
 #pragma pack(push, 1)
 struct esif_ipc_command {
 	u8  version;		/* Version Of Primitive Event */
-	enum esif_command_type      type;		/* Command Type */
-	enum esif_command_priority  priority;		/* Event Priority */
-	enum esif_rc         return_code;	/* Result Of Primitive Execution */
-	u32                  payload_len;	/* Payload Length */
+	enum esif_command_type      type;	/* Command Type */
+	enum esif_command_priority  priority;	/* Event Priority */
+	enum esif_rc         return_code;	/* Result Of Primitive
+						   Execution */
+	u32                  payload_len;	/* Size not including this header */
 	enum esif_data_type  req_data_type;	/* Request Data Type */
-	u32                  req_data_offset; /* Start Of Request Data Usually Zero */
-	u32                  req_data_len; /* Length Of Request Data May Be 0 (None) */
+	u32                  req_data_offset;	/* Offset after this
+						   structure */
+	u32                  req_data_len;	/* Request Data Length*/
 	enum esif_data_type  rsp_data_type;	/* Request Data Type */
 	u32                  rsp_data_offset;	/* Request Data Offset */
-	u32                  rsp_data_len;	/* Request Data Length  */
+	u32                  rsp_data_len;	/* Request Data Length */
+	/* Data Is Here ... */
 };
 
 #pragma pack(pop)
@@ -257,15 +266,20 @@ struct esif_ipc_command {
 extern "C" {
 #endif
 
-struct esif_ipc *esif_ipc_alloc(enum esif_ipc_type type, u32 dataLen);
-
 struct esif_ipc *esif_ipc_alloc_command(
 	struct esif_ipc_command **command_ptr_ptr,
-	u32 data_len);
+	u32 data_len
+	);
 
 struct esif_ipc *esif_ipc_alloc_primitive(
 	struct esif_ipc_primitive **primitive_ptr_ptr,
-	u32 data_len);
+	u32 data_len
+	);
+
+struct esif_ipc *esif_ipc_alloc_event(
+	struct esif_ipc_event **event_ptr_ptr,
+	u32 data_len
+	);
 
 void esif_ipc_free(struct esif_ipc *ipc_ptr);
 

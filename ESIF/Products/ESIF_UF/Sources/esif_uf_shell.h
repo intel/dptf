@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,15 @@
 
 #ifndef _ESIF_UF_SHELL_
 #define _ESIF_UF_SHELL_
+
+#include "esif.h"
+
+typedef struct EsifShellCmd_s {
+	int   argc;
+	char  **argv;
+	char  *outbuf;
+} EsifShellCmd, *EsifShellCmdPtr;
+
 
 #ifdef __cplusplus
 extern "C" {

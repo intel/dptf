@@ -494,9 +494,9 @@ std::vector<PerformanceControl> BinaryParse::processorPssObject(UInt32 dataLengt
 
     for (UIntN row = 0; row < rows; row++)
     {
+        Percentage ratio(1.0);
         if (controls.empty())
         {
-            Percentage ratio(1.0);
             PerformanceControl performanceControl(
                 static_cast<UInt32>(currentRow->control.integer.value),
                 PerformanceControlType::PerformanceState,
@@ -511,22 +511,22 @@ std::vector<PerformanceControl> BinaryParse::processorPssObject(UInt32 dataLengt
         {
             if (controls.front().getControlAbsoluteValue() != 0)
             {
-                Percentage ratio((static_cast<UIntN>((100 * currentRow->coreFrequency.integer.value) / 
-                    controls.front().getControlAbsoluteValue())) / 100.0);
-                PerformanceControl performanceControl(
-                    static_cast<UInt32>(currentRow->control.integer.value),
-                    PerformanceControlType::PerformanceState,
-                    static_cast<UInt32>(currentRow->power.integer.value),
-                    ratio,
-                    static_cast<UInt32>(currentRow->latency.integer.value),
-                    static_cast<UInt32>(currentRow->coreFrequency.integer.value),
-                    std::string("MHz"));
-                controls.push_back(performanceControl);
+                ratio = (static_cast<UIntN>((100 * currentRow->coreFrequency.integer.value) / 
+                    controls.front().getControlAbsoluteValue())) / 100.0;
             }
             else
             {
-                throw dptf_exception("Invalid performance control set.  Performance controls will not be available for this domain.");
+                ratio = (rows - row) / static_cast<double>(rows);
             }
+            PerformanceControl performanceControl(
+                static_cast<UInt32>(currentRow->control.integer.value),
+                PerformanceControlType::PerformanceState,
+                static_cast<UInt32>(currentRow->power.integer.value),
+                ratio,
+                static_cast<UInt32>(currentRow->latency.integer.value),
+                static_cast<UInt32>(currentRow->coreFrequency.integer.value),
+                std::string("MHz"));
+            controls.push_back(performanceControl);
         }
 
         data += sizeof(struct EsifDataBinaryPssPackage);

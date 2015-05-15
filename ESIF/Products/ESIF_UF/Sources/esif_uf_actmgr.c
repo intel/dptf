@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,69 +60,9 @@ static EsifActPtr GetActionFromName(
     ACTION MANAGER
  */
 #define ACT_VERSION "x1.0.0.1"
-#define IS_KERNEL 1
-#define IS_PLUGIN 0
-#define PAD 0
 #define GUID 0
 #define OS "ALL"
 #define OS_WINDOWS "WINDOWS"
-
-/* Kernel Actions */
-static EsifActType g_kernelActions[] = {
-	{0, ESIF_ACTION_ACPI,       {PAD}, "ACPI",       "Advanced Config Power Interface", OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_CODE,       {PAD}, "CODE",       "Programmed Action",               OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-// JDH TODO Fix This!
-#ifdef ESIF_ATTR_OS_WINDOWS
-	{0, ESIF_ACTION_DDIGFXDISP, {PAD}, "DDIGFXDISP", "D2D Graphics Display",            OS_WINDOWS, ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_DDIGFXPERF, {PAD}, "DDIGFXPERF", "D2D Graphics Performance",        OS_WINDOWS, ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-#endif
-	{0, ESIF_ACTION_KONST,      {PAD}, "KONST",      "Kernel Constant",                 OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_IOSF,       {PAD}, "IOSF",       "IO Sideband Fabric",              OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_MMIO,       {PAD}, "MMIO",       "Memory Mapped IO",                OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_MMIOTJMAX,  {PAD}, "MMIOTJMAX", "TjMax-Relative Memory Mapped IO",  OS,		ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_MSR,        {PAD}, "MSR",        "Model Specific Register",         OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_SYSTEMIO,   {PAD}, "SYSTEMIO",   "System IO",                       OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_VAR,        {PAD}, "VAR",        "Persisted State Management",      OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-	{0, ESIF_ACTION_VIRTUAL,    {PAD}, "VIRTUAL",    "Virtual Action/Sensor",           OS,         ACT_VERSION,
-	  {GUID},
-	  IS_KERNEL, IS_PLUGIN, {PAD}, NULL,
-	  NULL},
-
-	{0, 0}	/* Must be NULL terminated */
-};
 
 static EsifActTypePtr GetActionType(
 	EsifActMgrPtr THIS,
@@ -130,7 +70,11 @@ static EsifActTypePtr GetActionType(
 	)
 {
 	EsifActTypePtr found_ptr = NULL;
-	struct esif_link_list_node *curr_ptr = THIS->fActTypes->head_ptr;
+	struct esif_link_list_node *curr_ptr = NULL;
+	if (THIS->fActTypes == NULL) {
+		goto exit;
+	}
+	curr_ptr = THIS->fActTypes->head_ptr;
 
 	while (curr_ptr) {
 		EsifActTypePtr cur_actiontype_ptr = (EsifActTypePtr)curr_ptr->data_ptr;
@@ -142,6 +86,7 @@ static EsifActTypePtr GetActionType(
 		}
 		curr_ptr = curr_ptr->next_ptr;
 	}
+exit:
 	return found_ptr;
 }
 
@@ -152,9 +97,8 @@ static eEsifError AddAction(
 	EsifActTypePtr actionPtr
 	)
 {
-	esif_link_list_node_add(THIS->fActTypes, esif_link_list_create_node(actionPtr));
-	ESIF_TRACE_DEBUG("%s: item %p", ESIF_FUNC, actionPtr);
-	return ESIF_OK;
+	ESIF_TRACE_DEBUG("Item %p", actionPtr);
+	return  esif_link_list_add_at_back(THIS->fActTypes, (void *)actionPtr);
 }
 
 
@@ -173,15 +117,15 @@ static eEsifError RemoveAction(
 eEsifError EsifActMgrInit()
 {
 	eEsifError rc = ESIF_OK;
-	u8 i = 0;
 
-	ESIF_TRACE_DEBUG("%s: Init Action Manager (ACTMGR)", ESIF_FUNC);
+	ESIF_TRACE_ENTRY_INFO();
 
 	esif_ccb_lock_init(&g_actMgr.fLock);
 
 	g_actMgr.fActTypes = esif_link_list_create();
 	if (NULL == g_actMgr.fActTypes) {
-		return ESIF_E_NO_MEMORY;
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
 	}
 
 	g_actMgr.GetActType     = GetActionType;
@@ -189,15 +133,10 @@ eEsifError EsifActMgrInit()
 	g_actMgr.AddActType     = AddAction;
 	g_actMgr.RemoveActType  = RemoveAction;
 
-	/* Add static Kernel Entries */
-	for (i = 0; g_kernelActions[i].fType; i++) {
-		g_actMgr.AddActType(&g_actMgr, &g_kernelActions[i]);
-	}
-
 	/* Action manager must be initialized */
 	EsifActInit();
-
-	ESIF_TRACE_EXIT_INFO();
+exit:
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -207,14 +146,15 @@ void EsifActMgrExit()
 	u8 i = 0;
 	EsifActPtr a_act_ptr = NULL;
 
+	ESIF_TRACE_ENTRY_INFO();
+
 	/* Call before destroying action manager */
 	EsifActExit();
 
 	if (NULL != g_actMgr.fActTypes) {
 		esif_link_list_destroy(g_actMgr.fActTypes);
+		g_actMgr.fActTypes = NULL;  //set to null so that it will be caught if mid-execution
 	}
-
-	ESIF_TRACE_DEBUG("%s: Exit Action Manager (ACTMGR)", ESIF_FUNC);
 
 	esif_ccb_read_lock(&g_actMgr.fLock);
 	for (i = 0; i < ESIF_MAX_ACTIONS; i++) {

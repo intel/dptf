@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,8 +23,6 @@
 #include "esif_uf_ccb_sock.h"
 #include "esif_ws_server.h"
 
-#define BUFFER_LENGTH 0xFFFF
-
 typedef struct s_extType {
 	char  *fileExtension;
 	char  *fileType;
@@ -37,7 +35,7 @@ typedef struct s_extType {
  */
 
 void esif_ws_http_copy_server_root(char*);
-eEsifError esif_ws_http_process_reqs(clientRecord *, void*, ssize_t);
+eEsifError esif_ws_http_process_reqs(ClientRecordPtr , void *, ssize_t);
 
 
 #endif /* ESIF_WS_HTTP_H*/

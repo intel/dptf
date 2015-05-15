@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,9 +51,6 @@ g_StaticDataVaults[] = {
 
 // Global DataBank (NameSpace) Manager
 DataBankPtr g_DataBankMgr = 0;
-
-// Global DataVault Folder
-char g_DataVaultDir[MAX_PATH];
 
 // Global Default DataVault Namespace
 char g_DataVaultDefault[ESIF_NAME_LEN] = "dptf";
@@ -210,21 +207,23 @@ int DataBank_KeyExists (
 eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 {
 	eEsifError rc = ESIF_OK;
-	esif_ccb_file_find_handle find_handle = INVALID_HANDLE_VALUE;
+	esif_ccb_file_enum_t find_handle = INVALID_HANDLE_VALUE;
 	char file_path[MAX_PATH] = {0};
 	char file_pattern[MAX_PATH] = {0};
 	struct esif_ccb_file *ffd_ptr;
 	UInt32 idx;
 
-	ASSERT(self);
+	ESIF_ASSERT(self);
 
 	// Import all Static DataVaults into ReadOnly DataVaults
 	for (idx = 0; g_StaticDataVaults[idx].name; idx++) {
 		DataVaultPtr DB = DataBank_OpenNameSpace(self, g_StaticDataVaults[idx].name);
 		if (DB) {
 			IOStream_SetMemory(DB->stream, g_StaticDataVaults[idx].buffer, g_StaticDataVaults[idx].buf_len);
-			DB->flags |= (ESIF_SERVICE_CONFIG_READONLY | ESIF_SERVICE_CONFIG_NOCACHE);
-			DataVault_ReadVault(DB);
+			DB->flags |= (ESIF_SERVICE_CONFIG_READONLY | ESIF_SERVICE_CONFIG_NOCACHE | ESIF_SERVICE_CONFIG_STATIC);
+			if (DataVault_ReadVault(DB) != ESIF_OK) {
+				DataBank_CloseNameSpace(self, g_StaticDataVaults[idx].name);
+			}
 		}
 	}
 
@@ -255,7 +254,9 @@ eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 					if (DB) {
 						esif_build_path(dv_file.filename, sizeof(dv_file.filename), ESIF_PATHTYPE_DV, DB->name, ESIFDV_FILEEXT);
 						IOStream_SetFile(DB->stream, dv_file.filename, "rb");
-						DataVault_ReadVault(DB);
+						if (DataVault_ReadVault(DB) != ESIF_OK) {
+							DataBank_CloseNameSpace(self, ffd_ptr->filename);
+						}
 					}
 				}
 			}
@@ -288,22 +289,33 @@ void EsifConfigExit (esif_string name)
 
 eEsifError EsifCfgMgrInit ()
 {
+	eEsifError rc = ESIF_OK;
+
+	ESIF_TRACE_ENTRY_INFO();
+
 	if (!g_DataBankMgr) {
 		g_DataBankMgr = DataBank_Create();
-		if (g_DataBankMgr) {
-			return DataBank_LoadDataVaults(g_DataBankMgr);
+		if (!g_DataBankMgr) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
 		}
+		rc = DataBank_LoadDataVaults(g_DataBankMgr);
 	}
-	return ESIF_E_NO_MEMORY;
+exit:
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
 }
 
 
 void EsifCfgMgrExit ()
 {
+	ESIF_TRACE_ENTRY_INFO();
+
 	if (g_DataBankMgr) {
 		DataBank_Destroy(g_DataBankMgr);
 		g_DataBankMgr = 0;
 	}
+	ESIF_TRACE_EXIT_INFO();
 }
 
 

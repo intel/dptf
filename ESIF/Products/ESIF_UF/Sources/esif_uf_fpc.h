@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,10 @@
 #ifndef _ESIF_UF_FPC_
 #define _ESIF_UF_FPC_
 
+#include "esif.h"
+#include "esif_sdk_domain_type.h"
+#include "esif_sdk_action_type.h"
+#include "esif_sdk_event_type.h"
 #include "esif_primitive.h"
 
 
@@ -63,7 +67,7 @@
  *               < ... more actions ... >
  *
  *
- *     Algorithm   {action_type, temp_xform, tempC1, tempC2, power_xform, time_xform, size}
+ *     Algorithm   {action_type, temp_xform, tempC1, percent_xform, power_xform, time_xform, size}
  *
  *     < ... more algorithms ... >
  *
@@ -146,21 +150,21 @@ struct esif_fpc_algorithm {
 	enum esif_action_type  action_type;
 	unsigned int  temp_xform;
 	unsigned int  tempC1;
-	unsigned int  tempC2;
+	unsigned int  percent_xform;
 	unsigned int  power_xform;
 	unsigned int  time_xform;
 	unsigned int  size;
 };
 
 /* Must Be Aligned With DSP's event.h: event{} */
-struct esif_fpc_event {
-	char  name[MAX_NAME_STRING_LENGTH];
+typedef struct esif_fpc_event {
+	char  event_name[MAX_NAME_STRING_LENGTH];
 	u8    event_key[ESIF_GUID_LEN];					/* Event ID */
 	enum esif_event_type esif_event;	/* ESIF Event */
 	u8    event_guid[ESIF_GUID_LEN];	/* Event GUID */
 	enum esif_event_group  esif_group;	/* ESIF Event Group */
 	enum esif_data_type    esif_group_data_type;
-};
+} EsifFpcEvent, *EsifFpcEventPtr;
 
 
 /* Must Be Aligned With DSP's primitive.h: primitive{} */

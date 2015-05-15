@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,13 +37,13 @@ eEsifError EsifCnjMgrInit()
 {
 	eEsifError rc = ESIF_OK;
 
-	ESIF_TRACE_DEBUG("%s: Init Action Manager (CNJMGR)", ESIF_FUNC);
+	ESIF_TRACE_ENTRY_INFO();
 
 	esif_ccb_lock_init(&g_cnjMgr.fLock);
 
 	EsifCnjInit();
 
-	ESIF_TRACE_EXIT_INFO();
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -53,8 +53,9 @@ void EsifCnjMgrExit()
 	u8 i = 0;
 	EsifCnjPtr a_conjure_ptr = NULL;
 
+	ESIF_TRACE_ENTRY_INFO();
+
 	EsifCnjExit();
-	ESIF_TRACE_DEBUG("%s: Exit Action Manager (CNJMGR)", ESIF_FUNC);
 
 	esif_ccb_read_lock(&g_cnjMgr.fLock);
 	for (i = 0; i < ESIF_MAX_CONJURES; i++) {

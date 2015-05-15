@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,20 +26,20 @@ extern "C" {
 #endif
 
 /* ESIF Services  Interface Functions */
-eEsifError EsifSvcConfigGet(const void *esifHandle,
+eEsifError ESIF_CALLCONV EsifSvcConfigGet(const void *esifHandle,
 							const void *appHandle,
 							const EsifDataPtr nameSpacePtr,
 							const EsifDataPtr elementPathPtr,
 							EsifDataPtr elementValuePtr);
 
-eEsifError EsifSvcConfigSet(const void *esifHandle,
+eEsifError ESIF_CALLCONV EsifSvcConfigSet(const void *esifHandle,
 							const void *appHandle,
 							const EsifDataPtr nameSpacePtr,
 							const EsifDataPtr elementPathPtr,
 							const EsifDataPtr elementValuePtr,
 							const EsifFlags elementFlags);
 
-eEsifError EsifSvcPrimitiveExec(const void *esifHandle,
+eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(const void *esifHandle,
 								const void *appHandle,
 								const void *participantHandle,
 								const void *domainHandle,
@@ -48,20 +48,20 @@ eEsifError EsifSvcPrimitiveExec(const void *esifHandle,
 								const ePrimitiveType primitive,
 								const UInt8 instance);
 
-eEsifError EsifSvcWriteLog(const void *esifHandle,
+eEsifError ESIF_CALLCONV EsifSvcWriteLog(const void *esifHandle,
 						   const void *appHandle,
 						   const void *participantHandle,
 						   const void *domainHandle,
 						   const EsifDataPtr messagePtr,
 						   const eLogType logType);
 
-eEsifError EsifSvcEventRegister(const void *esifHandle,
+eEsifError ESIF_CALLCONV EsifSvcEventRegister(const void *esifHandle,
 								const void *appHandle,
 								const void *participantHandle,
 								const void *domainHandle,
 								const EsifDataPtr eventGuid);
 
-eEsifError EsifSvcEventUnregister(const void *esifHandle,
+eEsifError ESIF_CALLCONV EsifSvcEventUnregister(const void *esifHandle,
 								  const void *appHandle,
 								  const void *participantHandle,
 								  const void *domainHandle,

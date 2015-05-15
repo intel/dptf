@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -66,21 +66,12 @@
 /* Debug Logging Defintions */
 #define ESIF_DEBUG_MODULE ESIF_DEBUG_MOD_LINUX
 
-#define INIT_DEBUG      0	/* this */
-#define IPC_DEBUG       1	/* this */
-#define IPC_POLL        2	/* this */
-#define RESERVED4       3	/* this */
-#define RESERVED8       4	/* esif_ipc.c */
-#define RESERVED10      5	/* esif_ipc.c */
-#define RESERVED20      6	/* esif_ipc.c */
-#define RESERVED40      7	/* esif_ipc.c */
-
-#define ESIF_TRACE_DYN_INIT(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, INIT_DEBUG, format, ##__VA_ARGS__)
-#define ESIF_TRACE_DYN_IPC(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_DEBUG, format, ##__VA_ARGS__)
-#define ESIF_TRACE_DYN_IPC_POLL(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_POLL, format, ##__VA_ARGS__)
+#define ESIF_TRACE_DYN_INIT(fmt, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_TRACE_INIT, fmt, ##__VA_ARGS__)
+#define ESIF_TRACE_DYN_IPC(fmt, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_TRACE_DEBUG, fmt, ##__VA_ARGS__)
+#define ESIF_TRACE_DYN_IPC_POLL(fmt, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_IPC, IPC_TRACE_POLL, fmt, ##__VA_ARGS__)
 
 /*
  ******************************************************************************
@@ -143,9 +134,7 @@ static int esif_ipc_kernel_to_user(
 	len = ipc_kernel_ptr->data_len + sizeof(struct esif_ipc);
 
 	ESIF_TRACE_DYN_IPC(
-		"linux_%s: ipc version=%d, type=%d, len = %d, "
-		"data_len=%d, rc=%d\n",
-		__func__,
+		"ipc version=%d, type=%d, len = %d, data_len=%d, rc=%d\n",
 		ipc_kernel_ptr->version,
 		ipc_kernel_ptr->type,
 		(int)len,
@@ -188,7 +177,7 @@ static int esif_ipc_ioctl(struct esif_ipc *ipc_user_ptr)
 	} else {
 		rc = -EINVAL;
 	}
-	esif_ccb_free(ipc_req_ptr);
+	esif_ipc_free(ipc_req_ptr);
 	return rc;
 }
 
@@ -261,7 +250,7 @@ static ssize_t esif_file_ipc(
 		if (ipc_req_ptr != ipc_rsp_ptr)
 			esif_ipc_free(ipc_rsp_ptr);
 	}
-	esif_ccb_free(ipc_req_ptr);
+	esif_ipc_free(ipc_req_ptr);
 	return len;
 }
 
@@ -368,12 +357,14 @@ enum esif_rc esif_os_ipc_init(esif_device_t device)
 		return ESIF_E_UNSPECIFIED;
 	}
 
-	ESIF_TRACE_DYN_INIT("linux_%s: IPC Registration:\n"
-			    "  Method: IOCTL\n"
-			    "  Device: /dev/%s\n"
-			    "  Type:   char\n"
-			    "  Mode:   READ/WRITE\n",
-			    __func__, IPC_DEVICE);
+	ESIF_TRACE_DYN_INIT(
+		"linux_%s: IPC Registration:\n"
+		"Method: IOCTL\n"
+		"Device: /dev/%s\n"
+		"Type:   char\n"
+		"Mode:   READ/WRITE\n",
+		__func__,
+		IPC_DEVICE);
 
 	return ESIF_OK;
 }

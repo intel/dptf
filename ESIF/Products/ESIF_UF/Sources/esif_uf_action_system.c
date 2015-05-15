@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,37 +31,36 @@
 /*
  * Handle ESIF Action "Get" Request
  */
-static eEsifError ActionSystemGet(
+static eEsifError ESIF_CALLCONV ActionSystemGet(
 	const void *actionHandle,
-	const EsifString devicePathPtr,
-	const EsifDataPtr p1Ptr,
-	const EsifDataPtr p2Ptr,
-	const EsifDataPtr p3Ptr,
-	const EsifDataPtr p4Ptr,
-	const EsifDataPtr p5Ptr,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr actionPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
 {
-	eEsifError esifStatus = ESIF_E_UNSUPPORTED_ACTION_TYPE;
+	eEsifError esifStatus = ESIF_E_ACTION_NOT_IMPLEMENTED;
+	EsifData p1 = {0};
 	EsifString command = NULL;
 
 	UNREFERENCED_PARAMETER(actionHandle);
-	UNREFERENCED_PARAMETER(devicePathPtr);
-	UNREFERENCED_PARAMETER(p2Ptr);
-	UNREFERENCED_PARAMETER(p3Ptr);
-	UNREFERENCED_PARAMETER(p4Ptr);
-	UNREFERENCED_PARAMETER(p5Ptr);
+	UNREFERENCED_PARAMETER(upPtr);
+	UNREFERENCED_PARAMETER(primitivePtr);
+	UNREFERENCED_PARAMETER(actionPtr);
 	UNREFERENCED_PARAMETER(requestPtr);
 
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
 
-	ESIF_ASSERT(NULL != p1Ptr);
-	ESIF_ASSERT(NULL != p1Ptr->buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_STRING == p1Ptr->type);
+	esifStatus = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
+	if (ESIF_OK != esifStatus) {
+		goto exit;
+	}
+	ESIF_ASSERT(NULL != p1.buf_ptr);
+	ESIF_ASSERT(ESIF_DATA_STRING == p1.type);
 
-	command = (EsifString)p1Ptr->buf_ptr;
+	command = (EsifString)p1.buf_ptr;
 
 	if (!strcmp("SYSTEM_GET_CDPNAME0", command)) {
 		esifStatus = system_get_ctdp_name(responsePtr, 0);
@@ -72,7 +71,7 @@ static eEsifError ActionSystemGet(
 	} else if (!strcmp("SYSTEM_GET_CDPNAME2", command)) {
 		esifStatus = system_get_ctdp_name(responsePtr, 2);
 	} 
-
+exit:
 	return esifStatus;
 }
 
@@ -80,32 +79,31 @@ static eEsifError ActionSystemGet(
 /*
  * Handle ESIF Action "Set" Request
  */
-static eEsifError ActionSystemSet(
+static eEsifError ESIF_CALLCONV ActionSystemSet(
 	const void *actionHandle,
-	const EsifString devicePathPtr,
-	const EsifDataPtr p1Ptr,
-	const EsifDataPtr p2Ptr,
-	const EsifDataPtr p3Ptr,
-	const EsifDataPtr p4Ptr,
-	const EsifDataPtr p5Ptr,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr actionPtr,
 	const EsifDataPtr requestPtr
 	)
 {
 	eEsifError esifStatus = ESIF_OK;
+	EsifData p1 = {0};
 	EsifString command = NULL;
 
 	UNREFERENCED_PARAMETER(actionHandle);
-	UNREFERENCED_PARAMETER(devicePathPtr);
-	UNREFERENCED_PARAMETER(p2Ptr);
-	UNREFERENCED_PARAMETER(p3Ptr);
-	UNREFERENCED_PARAMETER(p4Ptr);
-	UNREFERENCED_PARAMETER(p5Ptr);
+	UNREFERENCED_PARAMETER(upPtr);
+	UNREFERENCED_PARAMETER(primitivePtr);
+	UNREFERENCED_PARAMETER(actionPtr);
 
-	ESIF_ASSERT(NULL != p1Ptr);
-	ESIF_ASSERT(NULL != p1Ptr->buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_STRING == p1Ptr->type);
+	esifStatus = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
+	if (ESIF_OK != esifStatus) {
+		goto exit;
+	}
+	ESIF_ASSERT(NULL != p1.buf_ptr);
+	ESIF_ASSERT(ESIF_DATA_STRING == p1.type);
 
-	command = (EsifString)p1Ptr->buf_ptr;
+	command = (EsifString)p1.buf_ptr;
 
 	/* Well known/Special Commands magic is used to avoid accidental calls*/
 	if (!strcmp("SYSTEM_SLEEP", command)) {
@@ -150,9 +148,16 @@ static eEsifError ActionSystemSet(
 	} else if (!strcmp("SYSTEM_SET_CTDPNAME2", command)) {
 		esifStatus = system_set_ctdp_name(requestPtr, 2);
 
+	} else if (!strcmp("SYSTEM_ENA_PWRSETTING", command)) {
+		esifStatus = esif_ccb_enable_power_setting(requestPtr);
+
+	} else if (!strcmp("SYSTEM_DIS_PWRSETTING", command)) {
+		esifStatus = esif_ccb_disable_power_setting(requestPtr);
+
 	} else {
 		system(command);
 	}
+exit:
 	return esifStatus;
 }
 
@@ -162,12 +167,6 @@ static eEsifError ActionSystemSet(
  * Register ACTION with ESIF
  *******************************************************************************
  */
-extern EsifActMgr g_actMgr;
-
-#define PAD 0
-#define IS_KERNEL 0
-#define IS_PLUGIN 0
-
 static EsifActType g_system = {
 	0,
 	ESIF_ACTION_SYSTEM,
@@ -177,11 +176,13 @@ static EsifActType g_system = {
 	"ALL",
 	"x1.0.0.1",
 	{0},
-	IS_KERNEL,
-	IS_PLUGIN,
+	ESIF_ACTION_IS_NOT_KERNEL_ACTION,
+	ESIF_ACTION_IS_NOT_PLUGIN,
 	{PAD},
 	ActionSystemGet,
-	ActionSystemSet
+	ActionSystemSet,
+	NULL,
+	NULL
 };
 
 enum esif_rc EsifActSystemInit()

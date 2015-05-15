@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,7 @@ static eEsifTestErrorType TestPrimitiveBounds(
 	const UInt32 value
 	)
 {
-	ESIF_TRACE_DEBUG("%s:\n", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("\n");
 
 	if (value >= lb && value <= ub) {
 		return ESIF_TEST_OK;
@@ -69,14 +69,12 @@ eEsifTestErrorType EsifTestPrimitive(
 	UNREFERENCED_PARAMETER(qualifier);
 	UNREFERENCED_PARAMETER(instance);
 
-	ESIF_TRACE_DEBUG("%s: argc count %d\n", ESIF_FUNC, argc);
+	ESIF_TRACE_DEBUG("argc count %d\n", argc);
 
 	// parse command line options: -l## -u##
 	for (j = 0; j < argc; j++) {
 		int option   = 0;
 		char *optarg = 0;
-
-		// ESIF_TRACE_DEBUG("%s: argc = %d argv = %p argv = %s\n", ESIF_FUNC, j, argv[j], argv[j]);
 
 		if (argv[j][0] == '-') {
 			option = argv[j][1];
@@ -124,7 +122,7 @@ eEsifTestErrorType EsifTestPrimitiveBinary(
 	UNREFERENCED_PARAMETER(qualifier);
 	UNREFERENCED_PARAMETER(instance);
 
-	ESIF_TRACE_DEBUG("%s:\n", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("\n");
 
 	// parse command line options: -b##
 	for (j = 0; j < argc; j++) {

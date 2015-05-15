@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -53,7 +53,18 @@
 #ifndef _ESIF_COMMAND_H_
 #define _ESIF_COMMAND_H_
 
+#include "esif_ccb.h"
+#include "esif_sdk.h"
+#include "esif_pm.h"
+#include "esif_dsp.h"
+
 #define ESIF_COMMAND_VERSION 0x1
+
+/* Command Kernel Trace Selectors */
+#define CMD_TRACE_INIT		0	/* Init Debug */
+#define CMD_TRACE_DEBUG		1	/* Command Debug */
+#define CMD_TRACE_DECODE	2	/* Decode Debug */
+
 
 /* Command Priority */
 enum esif_command_priority {
@@ -64,14 +75,10 @@ enum esif_command_priority {
 static ESIF_INLINE esif_string esif_command_priority_str(
 	enum esif_command_priority priority)
 {
-	#define CREATE_COMMAND_PRIORITY(cp, str) case cp: str = (esif_string) #cp; break;
-
-	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
-
 	switch (priority) {
-		CREATE_COMMAND_PRIORITY(ESIF_COMMAND_PRIORITY_NORMAL, str);
+	ESIF_CASE_ENUM(ESIF_COMMAND_PRIORITY_NORMAL);
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -85,26 +92,30 @@ enum esif_command_type {
 	ESIF_COMMAND_TYPE_GET_PARTICIPANTS,
 	ESIF_COMMAND_TYPE_GET_PARTICIPANT_DETAIL,
 	ESIF_COMMAND_TYPE_GET_MEMORY_STATS,
+	ESIF_COMMAND_TYPE_GET_DRIVERS,
+	ESIF_COMMAND_TYPE_GET_ACTIONS,
+	ESIF_COMMAND_TYPE_SEND_KPE_EVENT,
+	ESIF_COMMAND_TYPE_SEND_DSP,
 };
 
 static ESIF_INLINE esif_string esif_command_type_str(
 	enum esif_command_type type)
 {
-	#define CREATE_COMMAND_TYPE(ct, str) case ct: str = (esif_string) #ct; break;
-
-	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
-
 	switch (type) {
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_GET_DEBUG_MODULE_LEVEL, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_GET_DEBUG_MODULES, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_SET_DEBUG_MODULE_LEVEL, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_SET_DEBUG_MODULES, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_GET_KERNEL_INFO, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_GET_PARTICIPANTS, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_GET_PARTICIPANT_DETAIL, str)
-		CREATE_COMMAND_TYPE(ESIF_COMMAND_TYPE_GET_MEMORY_STATS, str)
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_DEBUG_MODULE_LEVEL);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_DEBUG_MODULES);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SET_DEBUG_MODULE_LEVEL);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SET_DEBUG_MODULES);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_KERNEL_INFO);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_PARTICIPANTS);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_PARTICIPANT_DETAIL);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_MEMORY_STATS);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_DRIVERS);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_ACTIONS);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SEND_KPE_EVENT);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SEND_DSP);
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -130,7 +141,7 @@ struct esif_command_set_debug_module_level {
 	u32  level;
 };
 
-struct esif_command_get_participant {
+struct esif_part_info {
 	u32   id;
 	u32   version;
 	u32   state;
@@ -145,10 +156,10 @@ struct esif_command_get_participant {
 
 struct esif_command_get_participants {
 	u32  count;
-	struct esif_command_get_participant participant_info[20];
+	struct esif_part_info participant_info[MAX_PARTICIPANT_ENTRY];
 };
 
-struct esif_command_get_participant_detail {
+struct esif_command_get_part_detail {
 	/* Participant Info */
 	u32   id;			/* Participant ID */
 	u8    version; /* Participant Version */
@@ -185,7 +196,7 @@ struct esif_command_get_participant_detail {
 
 	/* DSP */
 	u32   have_dsp;
-	char  dsp_code[12 + 1];
+	char  dsp_code[ESIF_DSP_NAME_LEN];
 	u8    dsp_ver_major;
 	u8    dsp_ver_minor;
 
@@ -205,18 +216,59 @@ struct esif_mempool_stat {
 	u32   free_count;
 };
 
-struct esif_memtype_stat {
-	u32   pool_tag;
-	char  name[ESIF_NAME_LEN];
-	u32   alloc_count;
-	u32   free_count;
-};
-
 struct esif_command_get_memory_stats {
 	struct esif_mempool_stat  mempool_stat[ESIF_MEMPOOL_TYPE_MAX];
-	struct esif_memtype_stat  memtype_stat[ESIF_MEMTYPE_TYPE_MAX];
 	struct esif_memory_stats  stats;
 };
+
+struct esif_driver_info {
+	enum esif_action_type action_type; /* Action exported by the KPE */
+	esif_ver_t version;    /* Interface version */
+	esif_guid_t class_guid;/* KPE class GUID */
+	esif_flags_t flags;
+
+	char name[ESIF_NAME_LEN]; /* KPE name */
+	char desc[ESIF_DESC_LEN]; /* KPE description */
+
+	char driver_name[ESIF_NAME_LEN]; /* Driver name */
+	char device_name[ESIF_NAME_LEN]; /* Driver device description */
+};
+
+struct esif_action_info {
+	enum esif_action_type action_type;
+	u8 dynamic_action; /* TRUE if Dynamic action type */
+
+};
+
+struct esif_command_get_drivers {
+	u32 available_count;
+	u32 returned_count;
+	/* Array size depends on the number of drivers */
+	struct esif_driver_info driver_info[1];
+};
+
+struct esif_command_get_actions {
+	u32 available_count;
+	u32 returned_count;
+	/* Array size depends on the number of actions */
+	struct esif_action_info action_info[1];
+};
+
+struct esif_command_send_kpe_event {
+	u32 instance;
+	enum esif_event_type event_type;
+	u8 data_present;
+	u32 data;
+};
+
+struct esif_command_send_dsp {
+	u32 id;	/* Participant ID */
+	u32 data_len; /* Length of data (not including this header) */
+	/* Data Is Here ... */
+};
+
+
+
 
 #pragma pack(pop)
 
@@ -224,10 +276,15 @@ struct esif_command_get_memory_stats {
 extern "C" {
 #endif
 
-struct esif_ipc *esif_execute_ipc_command (struct esif_ipc *ipc_ptr);
+struct esif_ipc_command;
+void esif_execute_ipc_command(struct esif_ipc_command *cmd_ptr);
 
-enum esif_rc esif_command_init (void);
-void esif_command_exit (void);
+enum esif_rc esif_command_init(void);
+void esif_command_exit(void);
+
+#ifdef ESIF_ATTR_KERNEL
+u32 esif_ipc_command_get_data_len(struct esif_ipc_command *cmd_ptr);
+#endif
 
 #ifdef __cplusplus
 }

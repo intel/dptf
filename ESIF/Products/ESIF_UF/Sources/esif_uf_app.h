@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #define _ESIF_UF_APP_
 
 #include "esif.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 #include "esif_participant.h"
 #include "esif_pm.h"
 
@@ -41,14 +41,12 @@ typedef struct _t_AppDomainDataMap {
 	AppDomainDataPtr  fAppDomainDataPtr;
 	esif_string       fQualifier;
 	UInt16  fQualifierId;
-	UInt64  fRegisteredEvents;
 } AppDomainDataMap, *AppDomainDataMapPtr, **AppDomainDataMapPtrLocation;
 
 /* Map App Domain Handle To ESIF Participant Data */
 typedef struct _t_AppParticipantDataMap {
 	EsifUpPtr  fUpPtr;
 	void       *fAppParticipantHandle;
-	UInt64     fRegisteredEvents;
 
 	/* Each Participant May Have Many Domains */
 	AppDomainDataMap  fDomainData[MAX_DOMAIN_ENTRY];
@@ -59,7 +57,6 @@ typedef struct _t_EsifApp {
 	void  *fHandle;				/* The Application Handle Opaque To Us */
 	AppInterface  fInterface;			/* The Application Interface */
 	EsifString    fLibNamePtr;			/* The Name Of The Library To Load */
-	UInt64  fRegisteredEvents;	/* Registered Events For Application */
 	esif_lib_t    fLibHandle;	/* Loadable Library Handle */
 
 	/* Each Application May Have Many Participants */
@@ -78,11 +75,32 @@ eEsifError EsifAppDestroyParticipant(const EsifAppPtr appPtr, const EsifUpPtr up
 eEsifError EsifAppStart(EsifAppPtr appPtr);
 eEsifError EsifAppStop(EsifAppPtr appPtr);
 
-eEsifError EsifAppEvent(EsifAppPtr appPtr, UInt8 participantId, UInt16 domainId, EsifDataPtr eventData, eEsifEventType eventType);
-
 /* Init / Exit */
 eEsifError EsifAppInit(void);
 void EsifAppExit(void);
+
+/* Application Event Functions */
+eEsifError EsifApp_RegisterEvent(
+	const void *esifHandle,
+	const void *appHandle,
+	const void *upHandle,
+	const void *domainHandle,
+	const EsifDataPtr eventGuidPtr
+	);
+
+eEsifError EsifApp_UnregisterEvent(
+	const void *esifHandle,
+	const void *appHandle,
+	const void *upHandle,
+	const void *domainHandle,
+	const EsifDataPtr eventGuidPtr
+	);
+
+
+AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromHandle(
+	const EsifAppPtr appPtr,
+	const void *participantHandle
+	);
 
 #ifdef __cplusplus
 }

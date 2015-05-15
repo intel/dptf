@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #define _ESIF_UF_ACT_IFACE_
 
 #include "esif.h"
-#include "esif_uf_iface.h"
+#include "esif_sdk_iface.h"
 
 #define ACTION_INTERFACE_VERSION 1
 

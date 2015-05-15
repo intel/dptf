@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,9 +54,11 @@
 #ifndef _ESIF_DSP_H_
 #define _ESIF_DSP_H_
 
-#define ESIF_DSP_NAME_LEN (12 + 1)
+#include "esif.h"
 
-#include "esif_participant.h"
+#define ESIF_DSP_NAME_LEN (12 + 1)
+#define ESIF_DSP_HASHTABLE_SIZE 32
+
 
 /* EDP Struct Referred By Both LF and UF */
 struct edp_dir {
@@ -95,74 +97,132 @@ struct esif_lp_dsp {
 	/* Raw Cannonical Data For DSP Pointeers  */
 	struct esif_lp_cpc      *cpc_ptr;
 	/* DSP Hash Table Will Contain Pointers Into CPC */
-	struct esif_hash_table  *ht_ptr;
+	struct esif_ht  *ht_ptr;
 	struct esif_link_list   *algo_ptr;	/* Algorithm */
 	struct esif_link_list   *evt_ptr;	/* Event */
-	esif_ccb_lock_t         lock;		/* DSP Lock */
 
-	void *table;    /* Add'l Static Or Dynamic Table(s) */ 
+	void *table;    /* Add'l Static Or Dynamic Table(s) */
 	u32 table_size; /* Table(s) Size Of Each */
 
 /* public: */
 
-	u32   (*get_id)(THIS);
-	void  (*set_id)(THIS, u32 id);
+	esif_string (*get_code)(THIS);
+	u8 (*get_domain_count)(THIS);
 
-	esif_string   (*get_code)(THIS);
-	u8            (*get_domain_count)(THIS);
-	esif_flags_t  (*get_domain_capability)(THIS, u8 domain_index);
-	enum esif_domain_type (*get_domain_type)(THIS, u8 domain_index);
-	u16           (*get_domain_id)(THIS, u8 domain_index);
-	esif_string   (*get_domain_desc)(THIS, u8 domain_index);
-	esif_string   (*get_domain_name)(THIS, u8 domain_index);
+	esif_flags_t (*get_domain_capability)(
+		THIS,
+		u8 domain_index
+		);
+	enum esif_domain_type (*get_domain_type)(
+		THIS,
+		u8 domain_index
+		);
+	u16 (*get_domain_id)(
+		THIS,
+		u8 domain_index
+		);
+	esif_string (*get_domain_desc)(
+		THIS,
+		u8 domain_index
+		);
+	esif_string (*get_domain_name)(
+		THIS,
+		u8 domain_index
+		);
 
-	u8            (*get_ver_major)(THIS);
-	u8            (*get_ver_minor)(THIS);
+	u8 (*get_ver_major)(THIS);
+	u8 (*get_ver_minor)(THIS);
 
-	u32           (*get_temp_tc1) (THIS,
-				       const enum esif_action_type action);
-	u32           (*get_temp_tc2)(THIS, const enum esif_action_type action);
-
-	enum esif_rc  (*insert_primitive)(THIS,
-					  struct esif_cpc_primitive *
-					  primitive_ptr);
-	enum esif_rc  (*insert_algorithm)(THIS,
-					  struct esif_cpc_algorithm *
-					  algorithm_ptr);
-	enum esif_rc  (*insert_event)(THIS, struct esif_cpc_event *event_ptr);
-	struct esif_lp_primitive  * (*get_primitive)(THIS,
-						     const struct
-						     esif_primitive_tuple *
-	tuple_ptr);
-	struct esif_lp_action  * (*get_action)(THIS,
-					       struct esif_lp_primitive *
-					       primitive_ptr, u8 index);
-	struct esif_cpc_algorithm  * (*get_algorithm)(THIS,
-						      const enum
-						      esif_action_type
-						      action_type);
-
-	u32 (*dsp_has_algorithm)( THIS, const enum esif_algorithm_type);
-
-	struct esif_cpc_event  * (*get_event)(THIS, u32 event);
+	u32 (*get_temp_tc1)(
+		THIS,
+		const enum esif_action_type action
+		);
+	u32 (*get_percent_xform)(
+		THIS,
+		const enum esif_action_type action
+		);
+	enum esif_rc  (*insert_primitive)(
+		THIS,
+		struct esif_cpc_primitive *primitive_ptr
+		);
+	enum esif_rc  (*insert_algorithm)(
+		THIS,
+		struct esif_cpc_algorithm *algorithm_ptr
+		);
+	enum esif_rc  (*insert_event)(
+		THIS,
+		struct esif_cpc_event *event_ptr
+		);
+	struct esif_lp_primitive  *(*get_primitive)(
+		THIS,
+		const struct esif_primitive_tuple *tuple_ptr
+		);
+	struct esif_lp_action  *(*get_action)(
+		THIS,
+		struct esif_lp_primitive *primitive_ptr,
+		u8 index
+		);
+	struct esif_cpc_algorithm  *(*get_algorithm)(
+		THIS,
+		const enum esif_action_type action_type
+		);
+	u32 (*dsp_has_algorithm)(
+		THIS,
+		const enum esif_algorithm_type
+		);
+	struct esif_cpc_event  *(*get_event)(
+		THIS,
+		u32 event
+		);
 };
 
 #undef THIS
 
-/* Load DSP */
-enum esif_rc esif_dsp_load (struct esif_lp *lp_ptr,
-			    const struct esif_data *cpc_ptr);
-void esif_dsp_unload (struct esif_lp *lp_ptr);
+/* Create DSP */
+enum esif_rc esif_dsp_create(
+	const struct esif_data *cpc_ptr,
+	struct esif_lp_dsp **dsp_ptr
+	);
+
+void esif_dsp_destroy(struct esif_lp_dsp * dsp_ptr);
 
 /* Init / Exit */
-enum esif_rc esif_dsp_init (void);
-void esif_dsp_exit (void);
+enum esif_rc esif_dsp_init(void);
+void esif_dsp_exit(void);
+
+esif_flags_t get_domain_capability(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+esif_string get_domain_desc(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+u16 get_domain_id(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+esif_string get_domain_name(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
+
+enum esif_domain_type get_domain_type(
+	const struct esif_lp_dsp *dsp_ptr,
+	u8 domain_index
+	);
 
 #endif /* ESIF_ATTR_KERNEL */
 
 
 #ifdef ESIF_ATTR_USER
+#include "esif_primitive.h"
 #include "esif_uf_fpc.h"
+
+#undef THIS
 #define THIS struct esif_up_dsp *THIS
 
 #define MAX_DSP_MANAGER_ENTRY 128
@@ -172,6 +232,8 @@ void esif_dsp_exit (void);
 						 * in DataVault, 1=EDP in
 						 * DataVault overrides EDP on
 						 * disk */
+
+struct esif_up_dsp;
 
 /* DSP Manager Entry */
 struct esif_uf_dme {
@@ -183,11 +245,18 @@ struct esif_uf_dme {
 /* DSP Manager */
 struct esif_uf_dm {
 	UInt8  dme_count;			/* Current Reference Count */
-	struct esif_uf_dme  dme[MAX_DSP_MANAGER_ENTRY];	/* Maximum Participants
-							 *   */
-	esif_ccb_lock_t     lock;			/* Package Manager Lock
-							 *   */
+	struct esif_uf_dme dme[MAX_DSP_MANAGER_ENTRY];	/* Max Participants */
+	esif_ccb_lock_t lock;			/* Package Manager Lock */
 };
+
+typedef struct _t_EsifDspQuery {
+	esif_string  deviceId;
+	esif_string  vendorId;
+	esif_string  hid;
+	esif_string  ptype;
+	esif_string  participantType;
+	esif_string  participantName;
+} EsifDspQuery;
 
 /* Upper Framework DSP */
 struct esif_up_dsp {
@@ -222,21 +291,15 @@ struct esif_up_dsp {
 	/* Raw Cannonical Data For DSP Pointeers  */
 	struct esif_uf_pc       *pc_ptr;
 	/* DSP Hash Table Will Contain Pointers Into CPC*/
-	struct esif_hash_table  *ht_ptr;
+	struct esif_ht  *ht_ptr;
 	struct esif_link_list   *domain_ptr; /* Domain */
 	struct esif_link_list   *cap_ptr;	/* Capability */
 	struct esif_link_list   *algo_ptr;	/* Algorithm */
 	struct esif_link_list   *evt_ptr;	/* Events */
 
-	/* Lock */
-	esif_ccb_lock_t  lock;		/* DSP Lock*/
-
-
 	/*
 	 * PUBLIC INTRERFACE
 	 */
-	UInt32  (*get_id)   (THIS);
-	void    (*set_id)   (THIS, u32 id);
 	UInt32  (*get_domain_count)(THIS);
 
 	/* Description */
@@ -260,36 +323,56 @@ struct esif_up_dsp {
 	UInt8   (*get_pci_function)     (THIS);
 
 	/* Attributes */
-	UInt32        (*get_temp_tc1) (THIS, enum esif_action_type action);
-	UInt32        (*get_temp_tc2) (THIS, enum esif_action_type action);
-
-	enum esif_rc  (*insert_primitive)(THIS,
-					  EsifFpcPrimitivePtr primitive_ptr);
-	enum esif_rc  (*insert_algorithm)(THIS,
-					  struct esif_fpc_algorithm *
-					  algorithm_ptr);
-	enum esif_rc  (*insert_domain)   (THIS,
-					  struct esif_fpc_domain *domain_ptr);
-	enum esif_rc  (*insert_event)   (THIS,
-					 struct esif_fpc_event *event_ptr);
-
-	EsifFpcPrimitivePtr  (*get_primitive)(THIS,
-					      const struct esif_primitive_tuple
-					      *tuple_ptr);
-	EsifFpcActionPtr  (*get_action)   (THIS,
-					   EsifFpcPrimitivePtr primitive_ptr,
-					   u8 index);
-
-	struct esif_fpc_algorithm  * (*get_algorithm)(THIS,
-						      const enum
-						      esif_action_type
-	action_type);
-	struct esif_fpc_event  * (*get_event_by_type)(THIS,
-						      const enum
-						      esif_event_type event_type);
-	struct esif_fpc_event   * (*get_event_by_guid)(THIS,
-						       const esif_guid_t guid);
-	struct esif_fpc_domain  * (*get_domain)   (THIS, const u32 index);
+	UInt32 (*get_temp_tc1)(
+		THIS,
+		enum esif_action_type action
+		);
+	UInt32 (*get_percent_xform)(
+		THIS,
+		enum esif_action_type action
+		);
+	enum esif_rc (*insert_primitive)(
+		THIS,
+		EsifFpcPrimitivePtr primitive_ptr
+		);
+	enum esif_rc  (*insert_algorithm)(
+		THIS,
+		struct esif_fpc_algorithm * algorithm_ptr
+		);
+	enum esif_rc (*insert_domain)(
+		THIS,
+		struct esif_fpc_domain *domain_ptr
+		);
+	enum esif_rc (*insert_event)(
+		THIS,
+		struct esif_fpc_event *event_ptr
+		);
+	EsifFpcPrimitivePtr (*get_primitive)(
+		THIS,
+		const struct esif_primitive_tuple
+		*tuple_ptr
+		);
+	EsifFpcActionPtr (*get_action)(
+		THIS,
+		EsifFpcPrimitivePtr primitive_ptr,
+		u8 index
+		);
+	struct esif_fpc_algorithm  *(*get_algorithm)(
+		THIS,
+		const enum esif_action_type action_type
+		);
+	struct esif_fpc_event  *(*get_event_by_type)(
+		THIS,
+		const enum esif_event_type event_type
+		);
+	struct esif_fpc_event *(*get_event_by_guid)(
+		THIS,
+		const esif_guid_t guid
+		);
+	struct esif_fpc_domain *(*get_domain)(
+		THIS,
+		const u32 index
+		);
 };
 
 #undef THIS
@@ -329,10 +412,8 @@ struct esif_ipc_event_data_create_participant;
 extern "C" {
 #endif
 
-esif_string esif_uf_dm_query(enum esif_uf_dm_query_type query_type, void *qry_ptr);
 struct esif_up_dsp *esif_uf_dm_select_dsp_by_code (esif_string code);
-esif_string esif_uf_dm_select_dsp (eEsifParticipantOrigin origin, void *piPtr);
-EsifString esif_uf_dm_select_dsp_for_participant(struct esif_ipc_event_data_create_participant *data_ptr);
+EsifString EsifDspMgr_SelectDsp(EsifDspQuery query);
 
 /* Init / Exit */
 enum esif_rc EsifDspInit (void);

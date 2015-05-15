@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,24 +39,26 @@
 #endif
 
 // Send DSP
-int esif_send_dsp(
+enum esif_rc esif_send_dsp(
 	char *filename,
-	u8 dst_id
+	u8 dstId
 	)
 {
-	int edp_size = 512;
-	struct esif_ipc_primitive *primitive_ptr = NULL;
-	struct esif_ipc *ipc_ptr = NULL;
-	int rc = 0;
-	struct edp_dir edp_dir;
-	size_t r_bytes;
-	char *edp_name        = 0;
-	IOStreamPtr io_ptr    = IOStream_Create();
+	enum esif_rc rc = ESIF_OK;
+	int edpSize = 512;
+	int cmdSize = 0;
+	struct esif_ipc *ipcPtr = NULL;
+	struct esif_ipc_command *commandPtr = NULL; 
+	struct esif_command_send_dsp *dspCommandPtr = NULL;
+	struct edp_dir edpDir;
+	size_t bytesRead;
+	char *edpName        = 0;
+	IOStreamPtr ioPtr    = IOStream_Create();
 	EsifDataPtr nameSpace = 0;
 	EsifDataPtr key       = 0;
 	EsifDataPtr value     = 0;
 
-	if (io_ptr == NULL) {
+	if (ioPtr == NULL) {
 		ESIF_TRACE_ERROR("Fail to create IOStream\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
@@ -67,18 +69,17 @@ int esif_send_dsp(
 	// note this is opaque it is up to the receiver to verify that this is in fact
 	// a CPC.
 	//
-
 	if (NULL == filename) {
-		ESIF_TRACE_ERROR("%s: filename is null\n", ESIF_FUNC);
-		rc = -1;
+		ESIF_TRACE_ERROR("Filename is null\n");
+		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
 	// Use name portion of filename for the DataVault key (C:\path\file.edp = file.edp)
-	edp_name  = strrchr(filename, *ESIF_PATH_SEP);
-	edp_name  = (edp_name ? ++edp_name : filename);
+	edpName  = strrchr(filename, *ESIF_PATH_SEP);
+	edpName  = (edpName ? ++edpName : filename);
 	nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, ESIF_DSP_NAMESPACE, 0, ESIFAUTOLEN);
-	key       = EsifData_CreateAs(ESIF_DATA_STRING, edp_name, 0, ESIFAUTOLEN);
+	key       = EsifData_CreateAs(ESIF_DATA_STRING, edpName, 0, ESIFAUTOLEN);
 	value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 
 	if (nameSpace == NULL || key == NULL || value == NULL) {
@@ -88,76 +89,74 @@ int esif_send_dsp(
 
 	// Look for EDP file either on disk or in a DataVault (static or file), depending on priority setting
 	if ((ESIF_EDP_DV_PRIORITY == 1 || !esif_ccb_file_exists(filename)) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
-		filename = edp_name;
-		IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
+		filename = edpName;
+		IOStream_SetMemory(ioPtr, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
-		IOStream_SetFile(io_ptr, filename, (char *)"rb");
+		IOStream_SetFile(ioPtr, filename, (char *)"rb");
 	}
 
 	/* FIND CPC within EDP file */
-	if (IOStream_Open(io_ptr) == 0) {
-		r_bytes  = IOStream_Read(io_ptr, &edp_dir, sizeof(struct edp_dir));
-		edp_size = edp_dir.fpc_offset - edp_dir.cpc_offset;
-		IOStream_Seek(io_ptr, edp_dir.cpc_offset, SEEK_SET);
-	} else {
-		ESIF_TRACE_ERROR("%s: file not found (%s)\n", ESIF_FUNC, filename);
-		rc = -1;
+	if (IOStream_Open(ioPtr) != 0) {
+		ESIF_TRACE_ERROR("File not found (%s)\n", filename);
+		rc = ESIF_E_IO_OPEN_FAILED;
 		goto exit;
 	}
-	if (edp_size > MAX_EDP_SIZE) {
-		ESIF_TRACE_ERROR("The edp size %d is larger than maximum edp size\n", edp_size);
-		rc = -1;
-		goto exit;
-	}
+	bytesRead  = IOStream_Read(ioPtr, &edpDir, sizeof(struct edp_dir));
+	edpSize = edpDir.fpc_offset - edpDir.cpc_offset;
+	IOStream_Seek(ioPtr, edpDir.cpc_offset, SEEK_SET);
 
-	ipc_ptr = esif_ipc_alloc_primitive(&primitive_ptr, edp_size);
-	if (NULL == ipc_ptr || NULL == primitive_ptr) {
-		ESIF_TRACE_ERROR("Fail to allocate esif_ipc/esif_ipc_primitive\n");
-		rc = -1;
+	if (edpSize > MAX_EDP_SIZE) {
+		ESIF_TRACE_ERROR("The edp size %d is larger than maximum edp size\n", edpSize);
+		rc = -ESIF_E_UNSPECIFIED;
 		goto exit;
 	}
 
-	r_bytes = IOStream_Read(io_ptr, (primitive_ptr + 1), edp_size);
-	ESIF_TRACE_DEBUG("%s: loaded file %s bytes %d\n", ESIF_FUNC, filename, (int)r_bytes, edp_size);
+	cmdSize = edpSize + sizeof(*dspCommandPtr);
 
-	primitive_ptr->id       = 200;
-	primitive_ptr->domain   = 0;
-	primitive_ptr->instance = 0;
-	primitive_ptr->src_id   = ESIF_INSTANCE_UF;
-	primitive_ptr->dst_id   = dst_id;
-	primitive_ptr->req_data_type   = ESIF_DATA_DSP;
-	primitive_ptr->req_data_offset = 0;
-	primitive_ptr->req_data_len    = edp_size;
-	primitive_ptr->rsp_data_type   = ESIF_DATA_VOID;
-	primitive_ptr->rsp_data_offset = 0;
-	primitive_ptr->rsp_data_len    = 0;
-
-	ESIF_TRACE_INFO("%s: CPC file %s(%d) sent to participant %d\n", ESIF_FUNC, filename, edp_size, dst_id);
-
-	ipc_execute(ipc_ptr);
-
-	if (ESIF_OK != ipc_ptr->return_code) {
-		ESIF_TRACE_ERROR("ipc error code = %s(%d)\n",
-			   esif_rc_str(ipc_ptr->return_code), ipc_ptr->return_code);
-		rc = -1;
+	ipcPtr = esif_ipc_alloc_command(&commandPtr, cmdSize);
+	if (NULL == ipcPtr || NULL == commandPtr) {
+		ESIF_TRACE_ERROR("Fail to allocate esif_ipc/esif_ipc_command\n");
+		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
 
-	if (ESIF_OK != primitive_ptr->return_code) {
-		ESIF_TRACE_ERROR("primitive error code = %s(%d)\n",
-			   esif_rc_str(primitive_ptr->return_code), primitive_ptr->return_code);
-		rc = -1;
+	commandPtr->type = ESIF_COMMAND_TYPE_SEND_DSP;
+	commandPtr->req_data_type = ESIF_DATA_STRUCTURE;
+	commandPtr->req_data_offset = 0;
+	commandPtr->req_data_len = cmdSize;
+	commandPtr->rsp_data_type = ESIF_DATA_VOID;
+	commandPtr->rsp_data_offset = 0;
+	commandPtr->rsp_data_len = 0;
+
+	dspCommandPtr = (struct esif_command_send_dsp *)(commandPtr + 1);
+	dspCommandPtr->id = dstId;
+	dspCommandPtr->data_len = edpSize;
+
+	bytesRead = IOStream_Read(ioPtr, dspCommandPtr + 1, edpSize);
+	ESIF_TRACE_DEBUG("loaded file %s bytes %d\n", filename, (int)bytesRead);
+
+	ESIF_TRACE_INFO("CPC file %s(%d) sent to participant %d\n", filename, edpSize, dstId);
+
+	ipc_execute(ipcPtr);
+
+	if (ESIF_OK != ipcPtr->return_code) {
+		ESIF_TRACE_ERROR("ipc error code = %s(%d)\n", esif_rc_str(ipcPtr->return_code), ipcPtr->return_code);
+		rc = ipcPtr->return_code;
 		goto exit;
 	}
 
-	ESIF_TRACE_INFO("%s: COMPLETED\n", ESIF_FUNC);
+	rc = commandPtr->return_code;
+	if ((rc != ESIF_OK) && (rc != ESIF_E_DSP_ALREADY_LOADED)) {
+		ESIF_TRACE_ERROR("primitive error code = %s(%d)\n", esif_rc_str(commandPtr->return_code), commandPtr->return_code);
+		goto exit;
+	}
 exit:
-	if (NULL != ipc_ptr) {
-		esif_ipc_free(ipc_ptr);
+	if (NULL != ipcPtr) {
+		esif_ipc_free(ipcPtr);
 	}
-	if (NULL != io_ptr) {
-		IOStream_Close(io_ptr);
-		IOStream_Destroy(io_ptr);
+	if (NULL != ioPtr) {
+		IOStream_Close(ioPtr);
+		IOStream_Destroy(ioPtr);
 	}
 	EsifData_Destroy(nameSpace);
 	EsifData_Destroy(key);
@@ -169,14 +168,14 @@ exit:
 eEsifError EsifDspInit()
 {
 	eEsifError rc = ESIF_OK;
-	ESIF_TRACE_INFO("%s: Init Device Support Package (DSP)", ESIF_FUNC);
+	ESIF_TRACE_INFO("Init Device Support Package (DSP)");
 	return rc;
 }
 
 
 void EsifDspExit()
 {
-	ESIF_TRACE_INFO("%s: Exit Device Support Package (DSP)", ESIF_FUNC);
+	ESIF_TRACE_INFO("Exit Device Support Package (DSP)");
 }
 
 

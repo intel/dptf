@@ -29,6 +29,8 @@ namespace BusType
         Pci,
         Plat,
         Conjure,
+        Usb,
+        Sysfs,
         None
     };
 

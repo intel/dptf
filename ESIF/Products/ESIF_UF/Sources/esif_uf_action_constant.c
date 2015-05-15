@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,68 +31,41 @@
 ** Handle ESIF Action Request
 */
 
-static eEsifError ActionConstGet(
+static eEsifError ESIF_CALLCONV ActionConstGet(
 	const void *actionHandle,
-	const EsifString devicePathPtr,
-	const EsifDataPtr p1Ptr,
-	const EsifDataPtr p2Ptr,
-	const EsifDataPtr p3Ptr,
-	const EsifDataPtr p4Ptr,
-	const EsifDataPtr p5Ptr,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr actionPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
 {
 	eEsifError rc = ESIF_OK;
+	EsifData p1 = {0};
 	UInt32 val    = 0;
 
 	UNREFERENCED_PARAMETER(actionHandle);
-	UNREFERENCED_PARAMETER(devicePathPtr);
-	UNREFERENCED_PARAMETER(p1Ptr);
-	UNREFERENCED_PARAMETER(p2Ptr);
-	UNREFERENCED_PARAMETER(p3Ptr);
-	UNREFERENCED_PARAMETER(p4Ptr);
-	UNREFERENCED_PARAMETER(p5Ptr);
+	UNREFERENCED_PARAMETER(upPtr);
+	UNREFERENCED_PARAMETER(primitivePtr);
 	UNREFERENCED_PARAMETER(requestPtr);
-	UNREFERENCED_PARAMETER(responsePtr);
 
-	ESIF_ASSERT(NULL != requestPtr);
-	ESIF_ASSERT(NULL != requestPtr->buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_UINT32 == requestPtr->type);
+	ESIF_ASSERT(NULL != responsePtr);
+	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
 
-	ESIF_ASSERT(NULL != p1Ptr);
-	ESIF_ASSERT(NULL != p1Ptr->buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_UINT32 == p1Ptr->type);
-
-	val = *(UInt32 *)p1Ptr->buf_ptr;
-
-
-	/*
-	 * Const items are kept as 32-bit values; however, the call may be for
-	 * a different size depending on type.  Return data as the largest
-	 * type the buffer passed in can accept.
-	 */
-	if (responsePtr->buf_len >= sizeof(UInt64)) {
-		responsePtr->data_len = sizeof(UInt64);
-		*((UInt64 *)responsePtr->buf_ptr) = (UInt64)val;
-
-	} else if (responsePtr->buf_len >= sizeof(UInt32)) {
-		responsePtr->data_len = sizeof(UInt32);
-		*((UInt32 *)responsePtr->buf_ptr) = (UInt32)val;
-
-	} else if (responsePtr->buf_len >= sizeof(UInt16)) {
-		responsePtr->data_len = sizeof(UInt16);
-		*((UInt16 *)responsePtr->buf_ptr) = (UInt16)val;
-
-	} else if (responsePtr->buf_len >= sizeof(UInt8)) {
-		responsePtr->data_len = sizeof(UInt8);
-		*((UInt8 *)responsePtr->buf_ptr) = (UInt8)val;
-
-	} else {
-		/* Should only happen if buffer len is 0 */
-		rc = ESIF_E_OVERFLOWED_RESULT_TYPE;
+	rc = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
+	if (ESIF_OK != rc) {
+		goto exit;
 	}
 
+	ESIF_ASSERT(NULL != p1.buf_ptr);
+	ESIF_ASSERT(ESIF_DATA_UINT32 == p1.type);
+
+	val = *(UInt32 *)p1.buf_ptr;
+
+	rc = EsifActionCopyIntToBufBySize(esif_data_type_sizeof(responsePtr->type),
+		responsePtr->buf_ptr,
+		(UInt64)val);
+exit:
 	return rc;
 }
 
@@ -102,12 +75,6 @@ static eEsifError ActionConstGet(
  ** Register ACTION with ESIF
  *******************************************************************************
  */
-extern EsifActMgr g_actMgr;
-
-#define PAD 0
-#define IS_KERNEL 0
-#define IS_PLUGIN 0
-
 static EsifActType g_const = {
 	0,
 	ESIF_ACTION_CONST,
@@ -117,10 +84,12 @@ static EsifActType g_const = {
 	"ALL",
 	"x1.0.0.1",
 	{0},
-	IS_KERNEL,
-	IS_PLUGIN,
+	ESIF_ACTION_IS_NOT_KERNEL_ACTION,
+	ESIF_ACTION_IS_NOT_PLUGIN,
 	{PAD},
 	ActionConstGet,
+	NULL,
+	NULL,
 	NULL
 };
 

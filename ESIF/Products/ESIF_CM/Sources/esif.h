@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -51,85 +51,40 @@
 **
 *******************************************************************************/
 
-#ifndef _ESIF_H_
-#define _ESIF_H_
+#pragma once
 
+#include "esif_sdk.h"
+
+/* Enable WebSocket Server */
 #define ESIF_ATTR_WEBSOCKET
-typedef char *esif_string;		/* Opaque ESIF String ASCIIZ Today */
 
-/* Linux Derrived OS */
-#if defined(ESIF_ATTR_OS_LINUX) || \
-    	defined(ESIF_ATTR_OS_ANDROID) || \
-	defined(ESIF_ATTR_OS_CHROME)
+/* Definitions not moved to esif_ccb.h or esif_sdk.h */
 
-#define ESIF_CALLCONV	
+#ifdef ESIF_ATTR_OS_LINUX	/* All Linux-Derived OS */
 
-#define ESIF_ATTR_OS "linux"	/* OS Is Linux             */
-/* 
- * ESIF_FEAT_OPT_SYSFS exports SYSFS entries. It is defined 
+/*
+ * ESIF_FEAT_OPT_SYSFS exports SYSFS entries. It is defined
  * in ESIF_LF/Linuxx64/Debug/makefile and
  * ESIF_LF/Linuxx64/Release/makefile. It is disabled by default.
  * To enable it, it must be uncommented out in makefile.
  */
-#define ESIF_INLINE  inline	/* Normalize Compiler      */
-#define ESIF_FUNC __func__	/* Normalize Compiler      */
-#define ESIF_PATH_SEP "/"	/* Path Seperator          */
-#ifdef __cpluscplus
-#define ESIF_ELEMENT(x) x =	/* Support C99 Init        */
-#else /* __cpluscplus */
-#define ESIF_ELEMENT(x)		/* Emulate/Ignore C99 Init */
-#endif /* __cplusplus */
 
-/* Deduce Platform based on predefined gcc compiler flags */
-#ifdef __x86_64__
-#define ESIF_ATTR_64BIT
-#endif /* __x86_64__ */
-#endif /* Linux Derrived OS */
-
-/* Android Override For Linux */
-#ifdef ESIF_ATTR_OS_ANDROID
-#undef ESIF_ATTR_OS
-#define ESIF_ATTR_OS "android"
-#define ESIF_ATTR_OS_LINUX
-#endif /* ESIF_ATTR_OS_ANDROID */
-
-/* Chrome Override For Linux */
-#ifdef ESIF_ATTR_OS_CHROME
-#undef ESIF_ATTR_OS
-#define ESIF_ATTR_OS "chrome"
-#define ESIF_ATTR_OS_LINUX
-#endif /* ESIF_ATTR_OS_CHROME */
+#endif /* Linux Derived OS */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-
-#define ESIF_CALLCONV	__cdecl
-
-#define ESIF_ATTR_OS "windows"	/* OS Is Windows             */
-#define ESIF_INLINE __inline	/* Normalize Compiler        */
-#define ESIF_FUNC __FUNCTION__	/* Normalize Compiler        */
-#define ESIF_PATH_SEP "\\"	/* Path Seperator            */
-#define ESIF_ELEMENT(x)		/* Emulate/Ignore C99 Init   */
-				/* Note Static Init Must Be  */
-				/* In Structure Order        */
 
 /* Build option to enable coalescable timers in Windows */
 #define ESIF_FEAT_OPT_USE_COALESCABLE_TIMERS
 
-/* We Use The Linux Dictionary So Add For Windows */
-typedef unsigned char u8;	/* A BYTE  */
-typedef unsigned short u16;	/* A WORD  */
-typedef unsigned int u32;	/* A DWORD */
-typedef unsigned long long u64;	/* A QWORD */
+/* Build option to enable thermal interrupt support for Windows*/
+#define ESIF_FEAT_OPT_THERMAL_INTERRUPTS_ENABLED
 
-/* Deduce Platform based on predefined compiler flags */
-#ifdef _WIN64
-#define ESIF_ATTR_64BIT
-#endif /* _WIN64 */
+/* Build option to enable sensor support in Windows */
+#define ESIF_FEAT_OPT_SENSOR_SUPPORT_ENABLED
 
-/* Override windows DEBUG To ESIF or Project can include ESIF_ATTR_DEBUG */
-#ifdef _DEBUG
-#define ESIF_ATTR_DEBUG
-#endif /* _DEBUG */
+/* Build option to enable PERC support in Windows */
+#define ESIF_FEAT_OPT_PERC_SUPPORT_ENABLED
+
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
 #ifdef ESIF_ATTR_KERNEL
@@ -149,10 +104,10 @@ typedef unsigned long long u64;	/* A QWORD */
  * implementation of Pointer VS Handle Etc. Linux uses a
  * a device pointer.
  */
+#define esif_device_t struct device * /* opaque: use #define not typedef */
 
-typedef struct device *esif_device_t;
+#define ESIF_FEAT_OPT_THERMAL_INTERRUPTS_ENABLED
 
-#define UNREFERENCED_PARAMETER(x)
 #endif /* ESIF_ATTR_KERNEL::ESIF_ATTR_OS_LINUX  */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -165,7 +120,6 @@ typedef struct device *esif_device_t;
 ** Suppress Windows Warnings for warn level 4.  Need to find out if we can
 ** challenge the Windows Blue /W4 /WX with no pragramas assumption?
 */
-    #pragma warning(disable : 4127) /* Conditional expression is constant */
     #pragma warning(disable : 4204) /* Non-constant aggregate initializer */
     #pragma warning(disable : 4221) /* Can't be initialized using address of
 				       automatic variable */
@@ -183,6 +137,8 @@ extern WDFQUEUE g_wdf_ipc_queue_handle;
 #define __iomem			/* NOOP For Windows          */
 #define __le16 short int	/* Add To Windows Dictionary */
 
+#define EXPORT_SYMBOL_GPL(fn) extern void NOOP_##fn(void) /* NOOP for Windows */
+
 #endif /* ESIF_ATTR_KERNEL:: ESIF_ATTR_OS_WINDOWS */
 #endif /* ESIF_ATTR_KERNEL */
 
@@ -192,60 +148,20 @@ extern WDFQUEUE g_wdf_ipc_queue_handle;
  * OS Agnostic
  */
 
-#include <stdio.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-
 /* Linux */
 #ifdef ESIF_ATTR_OS_LINUX
-#include <sys/ioctl.h>			/* IOCTL Interface */
-#include <unistd.h>			/* Unix Standard Library */
-#include <sys/time.h>			/* Time */
-#define ESIF_ASSERT(x)	(0)		/* NOOP For Now */
-#define UNREFERENCED_PARAMETER(x) (0)	/* NOOP For Now */
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
 #endif /* USER::ESIF_ATTR_OS_LINUX */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-#define _WINSOCKAPI_			/* Override for Winsock */
-#include <windows.h>			/* Windows Includes Almost Everything */
-#include <winioctl.h>			/* Except IOCTL Interface */
-#define ESIF_ASSERT(x)	(0)		/* NOOP For Now */
 #pragma warning(disable : 4204)		/* Non-constant aggregate initializer */
 #pragma warning(disable : 4221)		/* Can't be init'd with addr of autos */
 #endif /* USER::ESIF_ATTR_OS_WINDOWS */
 
-typedef u8   		UInt8;	/* A CCB BYTE  */
-typedef char 		Int8; 
-typedef u16  		UInt16;	/* A CCB WORD  */
-typedef short 		Int16;
-typedef u32 		UInt32;	/* A CCB DWORD */
-typedef int     	Int32;
-typedef u64 		UInt64;	/* A CCB QWORD */
-typedef long long 	Int64;
-typedef u8  		Bool;	/* BOOLEAN     */
-
 typedef esif_string EsifString;
 #endif /* ESIF_ATTR_USER */
-
-/* ID Lookup Failed To Find String */
-#define ESIF_NOT_AVAILABLE "NA"
-
-/* Data Lengths */
-#define ESIF_NAME_LEN		64	/* Maximum Name Length        */
-#define ESIF_DESC_LEN		64	/* Maximum Description Length */
-#define ESIF_SCOPE_LEN		64	/* Maximum ACPI Scope Length  */
-#define ESIF_OBJ_LEN		64	/* Maximum Object Name Length */
-#define ESIF_GUID_LEN		16	/* Length of a GUID In Bytes  */
-#define ESIF_PATH_LEN		128	/* Maximum Path Length        */
-#define ESIF_LIBPATH_LEN	128	/* Maximum Lib Path Length    */
-#define ESIF_ACPI_UID_LEN	64	/* Maximum ACPI UID Length  */
-
-#define ESIF_TRUE 1		/* C True */
-#define ESIF_FALSE 0		/* C False */
 
 #define ESIF_PERCENT_CONV_FACTOR 100 /* Percentages are in 100ths */
 
@@ -255,19 +171,17 @@ typedef HANDLE esif_handle_t;
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
 #ifdef ESIF_ATTR_OS_LINUX
+#ifdef ESIF_ATTR_KERNEL
+#define esif_handle_t int /* opaque: use #define not typedef */
+#else
 typedef int esif_handle_t;
+#endif
 #define ESIF_INVALID_HANDLE (-1)
 #endif /* ESIF_ATTR_OS_LINUX */
 
-typedef u32	esif_flags_t;			/* FLAGS        */
-typedef u8 	esif_guid_t[ESIF_GUID_LEN];	/* GUID         */
-typedef u8 	esif_ver_t;			/* Version      */
-typedef u32 	esif_temp_t;			/* Temperature  */
-typedef u32 	esif_power_t;			/* Power        */
-
-#define ESIF_PLATFORM_MSG "Platform Driver Intended For Internal VM Use Only"
-#define ESIF_LICENSE "GPL"
-#define ESIF_AUTHOR  "brad.geltz@intel.com,brian.bian@intel.com"
+#define ESIF_PLATFORM_MSG "Registering Platform Driver"
+#define ESIF_LICENSE "Dual BSD/GPL"
+#define ESIF_AUTHOR  "Intel Corporation <dptf@lists.01.org>"
 
 #ifdef ESIF_ATTR_64BIT
 #define ESIF_PLATFORM_TYPE	"x64"
@@ -281,26 +195,89 @@ typedef u32 	esif_power_t;			/* Power        */
 #define ESIF_BUILD_TYPE	"Release"
 #endif /* ESIF_ATTR_DEBUG */
 
-#include "esif_debug.h"		/* Debug Helpers    */
-#include "esif_rc.h"		/* Return Codes     */
-#include "esif_mempool.h"	/* Memory Pool      */
-#include "esif_ccb.h"		/* Common Code Base */
-#include "esif_memtype.h"	/* Memory Types     */
+/* Debug Options */
+#define MEMPOOL_DEBUG NO_ESIF_DEBUG
 
-#ifdef ESIF_ATTR_KERNEL
-extern esif_ccb_lock_t g_mempool_lock;
-#endif /* ESIF_ATTR_KERNEL */
+/*
+ * Common Code Base - OS/Platform Abstraction layer
+ */
+#include "esif_ccb_rc.h"	/* Return Codes     */
 
 #ifdef ESIF_ATTR_USER
-	#include "esif_data.h"
-	/* Include All Headers Here */
-	#include "esif_uf.h"
-	#include "esif_uf_iface.h"
-	#include "esif_uf_app_iface.h"
-	#include "esif_uf_esif_iface.h"
-#endif /* ESIF_ATTR_USER */
-#endif /* _ESIF_H_ */
 
-/*****************************************************************************/
-/*****************************************************************************/
-/*****************************************************************************/
+#include <stdlib.h>		/* Standard Library */
+#include <string.h>		/* String Library   */
+#include "esif_ccb_thread.h"
+#include "esif_ccb_library.h"
+#include "esif_ccb_file.h"
+
+#endif /* ESIF_ATTR_USER */
+
+#include "esif_ccb_lock.h"
+#include "esif_ccb_mempool.h"
+#include "esif_ccb_memory.h"
+#include "esif_ccb_time.h"
+#include "esif_ccb_string.h"
+#include "esif_ccb_sem.h"
+#include "esif_ccb_timer.h"
+
+#ifdef ESIF_ATTR_KERNEL
+
+#include "esif_lf_ccb_mbi.h"
+#include "esif_lf_ccb_mmio.h"
+#include "esif_lf_ccb_msr.h"
+#include "esif_lf_ccb_acpi.h"
+
+#endif /* ESIF_ATTR_KERNEL */
+
+/*
+ * Autogenerated Data Types
+ */
+#ifdef ESIF_ATTR_USER
+
+/* Autogen Types Required for Upper Framework */
+#include "esif_enum_algorithm_type.h"
+#include "esif_enum_acpi_device.h"
+#include "esif_enum_event_group.h"
+#include "esif_enum_pci_device.h"
+#include "esif_enum_vendor_type.h"
+#include "esif_sdk_action_type.h"
+#include "esif_sdk_capability_type.h"
+#include "esif_sdk_class_guid.h"
+#include "esif_sdk_data.h"
+#include "esif_sdk_data_misc.h"
+#include "esif_sdk_domain_type.h"
+#include "esif_sdk_event_type.h"
+#include "esif_sdk_iface.h"
+#include "esif_sdk_iface_app.h"
+#include "esif_sdk_iface_esif.h"
+#include "esif_sdk_participant_enum.h"
+#include "esif_sdk_primitive_type.h"
+
+#include "esif_uf.h"
+
+#endif /* ESIF_ATTR_USER */
+
+#ifdef ESIF_ATTR_KERNEL
+
+/* Autogen Types Required for Lower Framework */
+#include "esif_enum_algorithm_type.h"
+#include "esif_enum_acpi_device.h"
+#include "esif_enum_event_group.h"
+#include "esif_enum_pci_device.h"
+#include "esif_sdk_action_type.h"
+#include "esif_sdk_capability_type.h"
+#include "esif_sdk_class_guid.h"
+#include "esif_sdk_domain_type.h"
+#include "esif_sdk_primitive_type.h"
+
+#endif /* ESIF_ATTR_KERNEL */
+
+/* OS Agnostic */
+#include "esif_debug.h"		/* Debug Helpers    */
+#include "esif_mempool.h"	/* Memory Pool      */
+
+/* Opaque Types */
+typedef u32 esif_temp_t;	/* Temperature  */
+typedef u32 esif_power_t;	/* Power        */
+typedef u32 esif_time_t;	/* Time         */

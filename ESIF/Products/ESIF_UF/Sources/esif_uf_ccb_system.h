@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #define _ESIF_CCB_SYSTEM_H_
 
 #include "esif.h"
-#include "esif_data.h"
+#include "esif_sdk_data.h"
 #include "esif_temp.h"
 
 
@@ -84,7 +84,6 @@ static ESIF_INLINE void esif_guid_to_ms_guid(esif_guid_t *guid)
 	u8 *ptr = (u8 *)guid;
 	u8 b[ESIF_GUID_LEN] = {0};
 
-	ESIF_TRACE_DEBUG("%s:\n", ESIF_FUNC);
 	esif_ccb_memcpy(&b, ptr, ESIF_GUID_LEN);
 
 	*(ptr + 0) = b[3];
@@ -147,11 +146,18 @@ static ESIF_INLINE void esif_ccb_shutdown(
 #endif
 }
 
+#define SUSPEND_DELAY_IN_MILLISECONDS 400
 
 // Enter S4 Hibernation
 static ESIF_INLINE void esif_ccb_hibernate()
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
+	/*
+	** TODO: Remove this code later as this is only a temporary solution for
+	** problems related to attempting a hibernate too soon after a resume in
+	** Windows.
+	*/
+	esif_ccb_sleep_msec(SUSPEND_DELAY_IN_MILLISECONDS);
 	SetSuspendState(1, 1, 0);
 #elif defined(ESIF_ATTR_OS_CHROME)
 	/* NA */
@@ -165,6 +171,12 @@ static ESIF_INLINE void esif_ccb_hibernate()
 static ESIF_INLINE void esif_ccb_suspend()
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
+	/*
+	** TODO: Remove this code later as this is only a temporary solution for
+	** problems related to attempting a sleep too soon after a resume in
+	** Windows.
+	*/
+	esif_ccb_sleep_msec(SUSPEND_DELAY_IN_MILLISECONDS);
 	SetSuspendState(0, 1, 0);
 #elif defined(ESIF_ATTR_OS_CHROME)
 	system("powerd_dbus_suspend");
@@ -176,6 +188,15 @@ static ESIF_INLINE void esif_ccb_suspend()
 }
 
 #ifdef ESIF_ATTR_OS_WINDOWS
+#define esif_ccb_disable_all_power_settings \
+	esif_ccb_disable_all_power_settings_win
+
+#define esif_ccb_enable_power_setting(req_ptr) \
+	esif_ccb_enable_power_setting_win(req_ptr)
+
+#define esif_ccb_disable_power_setting(req_ptr) \
+	esif_ccb_disable_power_setting_win(req_ptr)
+
 #define esif_ccb_remove_power_setting(req_ptr) \
 	esif_ccb_remove_power_setting_win(req_ptr)
 
@@ -189,6 +210,15 @@ static ESIF_INLINE void esif_ccb_suspend()
 	system_get_ctdp_name_win(response, instance)
 
 #else
+#define esif_ccb_disable_all_power_settings \
+	ESIF_E_ACTION_NOT_IMPLEMENTED
+
+#define esif_ccb_enable_power_setting(req_ptr) \
+	ESIF_E_ACTION_NOT_IMPLEMENTED
+
+#define esif_ccb_disable_power_setting(req_ptr) \
+	ESIF_E_ACTION_NOT_IMPLEMENTED
+
 #define esif_ccb_remove_power_setting(req_ptr) \
 	ESIF_E_ACTION_NOT_IMPLEMENTED
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,16 +28,27 @@
 #define ESIF_WS_SEND_FLAGS 0
 #endif
 
-typedef struct s_clientRecord {
+
+#pragma pack(push, 1)
+
+typedef enum SocketState_e {
+	STATE_OPENING,
+	STATE_NORMAL
+}SocketState, *SocketStatePtr;
+
+typedef struct ClientRecord_s {
 	esif_ccb_socket_t socket;
-	enum socketState  state;
-	enum frameType    frameType;
-	protocol   prot;
-	msgBuffer  buf;
-} clientRecord;
+	SocketState state;
+	Protocol prot;
+} ClientRecord, *ClientRecordPtr;
+
+#pragma pack(pop)
+
+
 
 int  esif_ws_init(void);
-void esif_ws_exit(esif_thread_t *web_thread);
-void esif_ws_set_ipaddr_port(const char *ipaddr, u32 port);
+void esif_ws_exit(esif_thread_t *threadPtr);
+void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 port);
+void esif_ws_client_close_client(ClientRecordPtr clientPtr);
 
 #endif /* ESIF_WS_SERVER_H */

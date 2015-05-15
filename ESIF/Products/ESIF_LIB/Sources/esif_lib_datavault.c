@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,14 +44,6 @@
 
 // Limits
 #define MAX_DV_DATALEN  0x7fffffff
-
-/*
-   // TODO: Delayed Writes
-   DataVault_BeginTran
-   DataVault_RollbackTran
-   DataVault_CommitTran
-   DataVault_Flush
- */
 
 #define ESIFDV_VERSION(major, minor, revision)  ((UInt32)((((major) & 0xFF) << 24) | (((minor) & 0xFF) << 16) | ((revision) & 0xFFFF)))
 
@@ -302,7 +294,7 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 	eEsifError rc = ESIF_OK;
 	int vrc = EPERM;
 	DataVaultHeader header = {0};
-	UInt32 header_toread = sizeof(header.signature) + sizeof(header.headersize);
+	UInt16 header_toread = sizeof(header.signature) + sizeof(header.headersize);
 	UInt32 min_version = 0;
 	UInt32 max_version = 0;
 	esif_flags_t item_flags = 0;
@@ -332,7 +324,7 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	header_toread = esif_ccb_min(header.headersize, sizeof(header)) - header_toread;
+	header_toread = esif_ccb_max(header_toread, esif_ccb_min(header.headersize, sizeof(header))) - header_toread;
 	if (rc == ESIF_OK && IOStream_Read(vault, ((UInt8*)&header) + sizeof(header.signature) + sizeof(header.headersize), header_toread) != header_toread) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
@@ -350,9 +342,6 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 		goto exit;
 	}
 	self->flags = header.flags;
-	if (IOStream_GetType(vault) == StreamMemory) {
-		self->flags |= ESIF_SERVICE_CONFIG_STATIC;
-	}
 
 	// Read Data and add to DataVault
 	while (rc == ESIF_OK) {
@@ -379,21 +368,19 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 			break;
 		}
 
-		switch (IOStream_GetType(vault)) {
-		case StreamMemory:
+		// Use Memory Pointers for Static DataVaults, otherwise allocate memory
+		if ((IOStream_GetType(vault) == StreamMemory) && (self->flags & ESIF_SERVICE_CONFIG_STATIC)) {
 			key.buf_len = 0;
 			key.buf_ptr = IOStream_GetMemoryBuffer(vault) + IOStream_GetOffset(vault);
 			if (IOStream_Seek(vault, key.data_len, SEEK_CUR) != EOK) {
 				rc = ESIF_E_IO_ERROR;
 			}
 			else {
-				item_flags &= ~ESIF_SERVICE_CONFIG_NOCACHE;	// ignore for Memory Vaults
+				item_flags &= ~ESIF_SERVICE_CONFIG_NOCACHE;	// ignore for Static DataVaults
 			}
-			break;
-
-		case StreamFile:
-		default:
-			key.buf_len = key.data_len;
+		}
+		else {
+			key.buf_len = esif_ccb_max(1, key.data_len);
 			key.buf_ptr = esif_ccb_malloc(key.buf_len);
 			if (!key.buf_ptr) {
 				rc = ESIF_E_NO_MEMORY;
@@ -402,10 +389,9 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 			if (IOStream_Read(vault, key.buf_ptr, key.data_len) != key.data_len) {
 				rc = ESIF_E_IO_ERROR;
 			}
-			else {
+			else if (key.data_len) {
 				((esif_string)(key.buf_ptr))[key.data_len - 1] = 0;
 			}
-			break;
 		}
 
 		// Read Value
@@ -435,7 +421,7 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 		} 
 		else {
 			// Use static pointer for static data vaults (unless encrypted), otherwise make a dynamic copy
-			if (IOStream_GetType(vault) == StreamMemory && !(item_flags & ESIF_SERVICE_CONFIG_ENCRYPT)) {
+			if ((IOStream_GetType(vault) == StreamMemory) && (self->flags & ESIF_SERVICE_CONFIG_STATIC) && !(item_flags & ESIF_SERVICE_CONFIG_ENCRYPT)) {
 				value.buf_len = 0;	// static
 				value.buf_ptr = IOStream_GetMemoryBuffer(vault) + IOStream_GetOffset(vault);
 				if (value.buf_ptr == NULL || IOStream_Seek(vault, value.data_len, SEEK_CUR) != EOK) {
@@ -443,7 +429,7 @@ eEsifError DataVault_ReadVault (DataVaultPtr self)
 				}
 			} 
 			else {
-				value.buf_len = value.data_len;	// dynamic
+				value.buf_len = esif_ccb_max(1, value.data_len); // dynamic
 				value.buf_ptr = esif_ccb_malloc(value.buf_len);
 				if (value.buf_ptr == NULL) {
 					rc = ESIF_E_NO_MEMORY;
@@ -588,170 +574,6 @@ static eEsifError DataVault_ReadFile (
 }
 
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-static struct {
-	HKEY  hkey;
-	char  *name;
-}
-
-HKeyList[] = {
-	{HKEY_LOCAL_MACHINE,  "HKLM"                        },
-	{HKEY_LOCAL_MACHINE,  "HKEY_LOCAL_MACHINE"          },
-	{HKEY_CLASSES_ROOT,   "HKCR"                        },
-	{HKEY_CLASSES_ROOT,   "HKEY_CLASSES_ROOT"           },
-	{HKEY_USERS,          "HKU"                         },
-	{HKEY_USERS,          "HKEY_USERS"                  },
-	{HKEY_CURRENT_USER,   "HKCU"                        },
-	{HKEY_CURRENT_USER,   "HKEY_CURRENT_USER"           },
-	{HKEY_CURRENT_CONFIG, "HKCC"                        },
-	{HKEY_CURRENT_CONFIG, "HKEY_CURRENT_CONFIG"         },
-	{                  0,                              0}
-};
-
-// Read a Registry Key Value into a specified memory buffer
-static eEsifError DataVault_ReadRegistry (
-	DataVaultPtr self,
-	esif_string keyname,
-	void * *buffer,
-	UInt32 *buf_size
-	)
-{
-	eEsifError rc   = ESIF_E_UNSPECIFIED;
-	HKEY hKey       = 0;
-	DWORD dwFlags   = RRF_RT_ANY;
-	DWORD dwError   = 0;
-	DWORD dwSize    = 0;
-	char *regkey    = 0;
-	char *valuename = 0;
-	u32 j;
-
-	UNREFERENCED_PARAMETER(self);
-
-	// Format: HKLM\Subkey\Path\ValueName
-	for (j = 0; HKeyList[j].name; j++) {
-		size_t namelen = esif_ccb_strlen(HKeyList[j].name, 30);
-		if (esif_ccb_strnicmp(HKeyList[j].name, keyname, namelen) == 0 && keyname[namelen] == '\\') {
-			hKey     = HKeyList[j].hkey;
-			keyname += esif_ccb_strlen(HKeyList[j].name, 30) + 1;
-			break;
-		}
-	}
-	if (!hKey) {
-		return rc;
-	}
-
-	regkey = esif_ccb_strdup(keyname);
-	if ((valuename = strrchr(regkey, '\\')) == 0) {
-		esif_ccb_free(regkey);
-		return rc;
-	}
-	*valuename++ = 0;
-
-	// Get Data Size from Registry and copy into buffer if found
-	if ((dwError = RegGetValueA(hKey, regkey, valuename, dwFlags, NULL, 0, &dwSize)) == 0) {
-		void *reg_buf = esif_ccb_malloc(dwSize);
-		dwError = RegGetValueA(hKey, regkey, valuename, dwFlags, NULL, reg_buf, &dwSize);
-		if (dwError == 0) {
-			*buffer   = reg_buf;
-			*buf_size = dwSize;
-			rc = ESIF_OK;
-		} else {
-			esif_ccb_free(reg_buf);
-		}
-	} else {
-		rc = ESIF_E_NOT_FOUND;
-	}
-	esif_ccb_free(regkey);
-	return rc;
-}
-
-
-// Write a Registry Key Value from an EsifData value
-static eEsifError DataVault_WriteRegistry (
-	DataVaultPtr self,
-	esif_string keyname,
-	EsifDataPtr value
-	)
-{
-	eEsifError rc   = ESIF_E_UNSPECIFIED;
-	HKEY hKey       = 0;
-	DWORD dwFlags   = RRF_RT_ANY;
-	DWORD dwError   = 0;
-	DWORD dwSize    = 0;
-	DWORD dwType    = REG_NONE;
-	char *regkey    = 0;
-	char *valuename = 0;
-	u32 j;
-
-	UNREFERENCED_PARAMETER(self);
-
-	// Keyname Format: "HKLM\Subkey\Path\ValueName"
-	for (j = 0; HKeyList[j].name; j++) {
-		size_t namelen = esif_ccb_strlen(HKeyList[j].name, 30);
-		if (esif_ccb_strnicmp(HKeyList[j].name, keyname, namelen) == 0 && keyname[namelen] == '\\') {
-			hKey     = HKeyList[j].hkey;
-			keyname += esif_ccb_strlen(HKeyList[j].name, 30) + 1;
-			break;
-		}
-	}
-	if (!hKey) {
-		return rc;
-	}
-
-	regkey = esif_ccb_strdup(keyname);
-	if ((valuename = strrchr(regkey, '\\')) == 0) {
-		esif_ccb_free(regkey);
-		return rc;
-	}
-	*valuename++ = 0;
-
-	// Get Data Type from Registry if value already exists, otherwise deduce it from ESIF Data Type
-	if ((dwError = RegGetValueA(hKey, regkey, valuename, dwFlags, &dwType, 0, 0)) != 0) {
-		switch (value->type) {
-		case ESIF_DATA_INT32:
-		case ESIF_DATA_UINT32:
-		case ESIF_DATA_TEMPERATURE:
-			dwType = REG_DWORD;
-			dwSize = value->data_len;
-			break;
-
-		case ESIF_DATA_INT64:
-		case ESIF_DATA_UINT64:
-		case ESIF_DATA_FREQUENCY:
-			dwType = REG_QWORD;
-			dwSize = value->data_len;
-			break;
-
-		case ESIF_DATA_STRING:
-			dwType = REG_SZ;
-			dwSize = value->data_len;
-			break;
-
-		case ESIF_DATA_BINARY:
-		case ESIF_DATA_BLOB:
-			dwType = REG_BINARY;
-			dwSize = value->data_len;
-			break;
-
-		default:
-			rc = ESIF_E_NOT_SUPPORTED;
-			break;
-		}
-	}
-	// Write Registry Value
-	if (dwType != REG_NONE) {
-		dwError = RegSetKeyValueA(hKey, regkey, valuename, dwType, value->buf_ptr, value->data_len);
-		if (dwError == 0) {
-			rc = ESIF_OK;
-		}
-	}
-	esif_ccb_free(regkey);
-	return rc;
-}
-
-
-#endif
-
 // Retrieve a single value from a DataVault
 eEsifError DataVault_GetValue (
 	DataVaultPtr self,
@@ -765,66 +587,59 @@ eEsifError DataVault_GetValue (
 	if (!self)
 		return ESIF_E_PARAMETER_IS_NULL;
 
-	// Debug: Dump Entire Contents of DataVault if path="*"
-	if (strcmp((esif_string)path->buf_ptr, "*") == 0) {
-		UInt32 context = 0;
+	// Display all Matching Keys in DataCache if path contains "*" or "?"
+	if (esif_ccb_strpbrk((esif_string)path->buf_ptr, "*?") != NULL) {
 		EsifDataPtr nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, esif_ccb_strdup(self->name), ESIFAUTOLEN, ESIFAUTOLEN);
-		EsifDataPtr key       = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		EsifDataPtr key       = EsifData_CreateAs(ESIF_DATA_STRING, path->buf_ptr, 0, ESIFAUTOLEN);
 		EsifDataPtr value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		EsifConfigFindContext context = NULL;
+		int item = 0;
 
-#ifdef ESIF_ATTR_DEBUG
-		// Dump DataCache if Debug Mode
-		UInt32 i;
-		for (i = 0; i < self->cache->size; i++) {
-			DataCacheEntryPtr keypair = &self->cache->elements[i];
-			CMD_DEBUG("\n"
-					  "id=%d\n"
-					  "key=%s\n"
-					  "flags=%08X\n"
-					  "value.type = %s (%d)\n"
-					  "value.buf_ptr = %p %s\n"
-					  "value.buf_len = %d\n"
-					  "value.data_len= %d\n",
-					  i,
-					  (char*)keypair->key.buf_ptr,
-					  keypair->flags,
-					  esif_data_type_str(keypair->value.type), keypair->value.type,
-					  keypair->value.buf_ptr,
-					  ((keypair->flags & (ESIF_SERVICE_CONFIG_FILELINK | ESIF_SERVICE_CONFIG_REGLINK)) ? (esif_string)keypair->value.buf_ptr : ""),
-					  keypair->value.buf_len,
-					  keypair->value.data_len
-					  );
-		}
-		if (i > 0) {
-			CMD_DEBUG("*****************\n");
-		}
-#endif
-		// Iterate the Contents of the Data Cache
 		if (nameSpace != NULL && key != NULL && value != NULL && (rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
 			do {
 				StringPtr valuestr = EsifData_ToString(value);
+				item++;
 				CMD_DEBUG("\n"
-						  "EsifFind%s(\"%s\",%d):\n"
-						  "  path = %s\n"
-						  "  value= %s%s%s\n"
-						  "  type = %s, len=%d\n",
-						  (context <= 1 ? "First" : "Next"), (char*)nameSpace->buf_ptr, context - 1,
-						  (char*)key->buf_ptr,
-						  (value->type == ESIF_DATA_STRING ? "\"" : ""), (valuestr ? valuestr : ""), (value->type == ESIF_DATA_STRING ? "\"" : ""),
-						  esif_data_type_str(value->type), value->data_len
-						  );
+					"item    = %d\n"
+					"type    = %s\n"
+					"length  = %d\n"
+					"key     = \"%s\"\n"
+					"value   = %s%s%s\n",
+					item,
+					esif_data_type_str(value->type),
+					value->data_len,
+					(char*)key->buf_ptr,
+					(value->type == ESIF_DATA_STRING ? "\"" : ""), (valuestr ? valuestr : ""), (value->type == ESIF_DATA_STRING ? "\"" : "")
+					);
+
+#ifdef ESIF_ATTR_DEBUG
+				keypair = DataCache_GetValue(self->cache, (esif_string)key->buf_ptr);
+				if (keypair) {
+					CMD_DEBUG(
+					"flags   = 0x%08X\n"
+					"buf_ptr = %p %s\n"
+					"buf_len = %d\n"
+					"data_len= %d\n",
+					keypair->flags,
+					keypair->value.buf_ptr,
+					((keypair->flags & ESIF_SERVICE_CONFIG_FILELINK) ? (esif_string)keypair->value.buf_ptr : ""),
+					keypair->value.buf_len,
+					keypair->value.data_len
+					);
+				}
+#endif
 				esif_ccb_free(valuestr);
-				EsifData_Set(key, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+				EsifData_Set(key, ESIF_DATA_STRING, path->buf_ptr, 0, ESIFAUTOLEN);
 				EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 			} while ((rc = EsifConfigFindNext(nameSpace, key, value, &context)) == ESIF_OK);
-			if (rc == ESIF_E_NOT_FOUND) {
+			if (rc == ESIF_E_ITERATION_DONE) {
 				rc = ESIF_OK;
 			}
 		}
 		EsifData_Destroy(nameSpace);
 		EsifData_Destroy(key);
 		EsifData_Destroy(value);
-		return ESIF_OK;
+		return rc;
 	}
 
 	// Write to Log before retrieval if AUTO
@@ -859,30 +674,13 @@ eEsifError DataVault_GetValue (
 			buf_len = data_len;
 		}
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-		// Registry Redirect?
-		else if (keypair->flags & ESIF_SERVICE_CONFIG_REGLINK) {
-			if (DataVault_ReadRegistry(self, (esif_string)buf_ptr, &buf_ptr, &data_len) != ESIF_OK) {
-				value->data_len = 0;
-				if (value->type == ESIF_DATA_AUTO) {
-					value->type = keypair->value.type;
-				}
-				if (value->buf_len == ESIF_DATA_ALLOCATE) {
-					value->buf_len = 0;
-					value->buf_ptr = 0;
-				}
-				return ESIF_OK;	// return OK and a blank buffer if Registry value not found/error
-			}
-			buf_len = data_len;
-		}
-#endif
 		// Match Found. Verify Data Type matches unless AUTO
 		if (value->type != keypair->value.type && value->type != ESIF_DATA_AUTO) {
 			rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;	// TODO: ESIF_E_INVALID_DATA_TYPE
 		}
 		// Verify Data Buffer is large enough unless Auto-Allocate
 		else if (value->buf_len < data_len && value->buf_len != ESIF_DATA_ALLOCATE) {
-			value->buf_len = data_len;
+			value->data_len = data_len;
 			rc = ESIF_E_NEED_LARGER_BUFFER;
 		}
 		// Return pointer to static contents if this is a static vault
@@ -901,7 +699,7 @@ eEsifError DataVault_GetValue (
 				value->type = keypair->value.type;
 			}
 			if (ESIF_DATA_ALLOCATE == value->buf_len) {
-				value->buf_len = data_len;
+				value->buf_len = esif_ccb_max(1, data_len);
 				value->buf_ptr = esif_ccb_malloc(value->buf_len);
 				if (!value->buf_ptr) {
 					return ESIF_E_NO_MEMORY;
@@ -964,19 +762,46 @@ eEsifError DataVault_SetValue (
 		return ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
 	}
 
+	// Reject SETs for static-sized data types whose buffer is too small
+	if (value) {
+		u32 len = (u32) esif_data_type_sizeof(value->type);
+		if (len > 0 && value->buf_len < len) {
+			value->data_len = len;
+
+			return ESIF_E_NEED_LARGER_BUFFER;
+		}
+	}
+
 	// Write to Log
 	DataVault_WriteLog(self, (flags & ESIF_SERVICE_CONFIG_DELETE ? "DELETE" : "SET"), self->name, path, flags, value);
 
-	// Delete entire DataVault?
-	if (strcmp((esif_string)path->buf_ptr, "*") == 0) {
+	// Delete DataVault Key(s)?
+	if (esif_ccb_strpbrk((esif_string)path->buf_ptr, "*?") != NULL) {
 		if (flags & ESIF_SERVICE_CONFIG_DELETE) {
-			DataCache_Destroy(self->cache);
-			if ((self->cache = DataCache_Create()) == NULL) {
-				return ESIF_E_NO_MEMORY;
+			// Delete Entire DataVault?
+			if (esif_ccb_strcmp((esif_string)path->buf_ptr, "*") == 0) {
+				DataCache_Destroy(self->cache);
+				if ((self->cache = DataCache_Create()) == NULL) {
+					return ESIF_E_NO_MEMORY;
+				}
+				return DataVault_WriteVault(self);
 			}
-			return DataVault_WriteVault(self);
+			// Delete matching keys only
+			else {
+				UInt32 item = 0;
+				while (item < self->cache->size) {
+					if (esif_ccb_strmatch((esif_string)self->cache->elements[item].key.buf_ptr, (esif_string)path->buf_ptr)) {
+						flags |= FLAGS_TEST(self->cache->elements[item].flags, ESIF_SERVICE_CONFIG_PERSIST);
+						if (DataCache_Delete(self->cache, (esif_string)self->cache->elements[item].key.buf_ptr) == ESIF_OK) {
+							continue;
+						}
+					}
+					item++;
+				}
+				goto exit;
+			}
 		}
-		return ESIF_E_NOT_SUPPORTED;// "*" is an invalid key value
+		return ESIF_E_NOT_SUPPORTED; // Keys may not contain "*" or "?"
 	}
 
 	// Read data from File
@@ -1011,34 +836,29 @@ eEsifError DataVault_SetValue (
 			DataCache_Delete(self->cache, (esif_string)path->buf_ptr);
 		} else if (value && value->buf_ptr) {
 			// UPDATE
-#ifdef ESIF_ATTR_OS_WINDOWS
-			// Update Registry Value for REGKEY values if REGLINK is *NOT* specified in SET command
-			if ((keypair->flags & ESIF_SERVICE_CONFIG_REGLINK) && !(flags & ESIF_SERVICE_CONFIG_REGLINK)) {
-				keypair->value.type = value->type;
-				rc = DataVault_WriteRegistry(self, (esif_string)keypair->value.buf_ptr, value);
-			} else	// ...
-#endif
-			if (keypair->value.buf_len && value->data_len > keypair->value.buf_len) {
+			if (keypair->value.buf_len && value->data_len != keypair->value.buf_len) {
 				void *new_buf = NULL;
+				u32 new_buf_len = 0;
 				
-				// Autogrow buffer if it was allocated, otherwise ask for a larger buffer
+				// Grow or shrink buffer if it was allocated, otherwise ask for a larger buffer
 				if (keypair->value.buf_len > 0) {
-					new_buf= (void *)esif_ccb_realloc(keypair->value.buf_ptr, value->data_len);
+					new_buf_len = esif_ccb_max(1, value->data_len);
+					new_buf= (void *)esif_ccb_realloc(keypair->value.buf_ptr, new_buf_len);
 				}
 
 				if (new_buf == NULL) {
 					return ESIF_E_NEED_LARGER_BUFFER;
 				}
 				else {
-					keypair->value.buf_len = value->data_len;
+					keypair->value.buf_len = new_buf_len;
 					keypair->value.buf_ptr = new_buf;
 				}
 			} 
 
 			// Replace the File Offset stored in buf_ptr with a copy of the data for updated NOCACHE values
 			if (keypair->flags & ESIF_SERVICE_CONFIG_NOCACHE && keypair->value.buf_len == 0) {
-				keypair->value.buf_ptr = esif_ccb_malloc(value->data_len);
-				keypair->value.buf_len = value->data_len;
+				keypair->value.buf_len = esif_ccb_max(1, value->data_len);
+				keypair->value.buf_ptr = esif_ccb_malloc(value->buf_len);
 			}
 			keypair->flags = flags;
 			keypair->value.type     = value->type;
@@ -1050,12 +870,13 @@ eEsifError DataVault_SetValue (
 	} else if (value && value->buf_ptr && !(flags & ESIF_SERVICE_CONFIG_DELETE)) {
 		// Copy Key/Value Pair to new Data Row
 		EsifData newkey   = {ESIF_DATA_STRING, esif_ccb_strdup((esif_string)path->buf_ptr), path->data_len, path->data_len};
-		EsifData newvalue = {value->type, esif_ccb_malloc(esif_ccb_max(value->buf_len, value->data_len)), value->data_len, value->data_len};
+		EsifData newvalue = {value->type, esif_ccb_malloc(esif_ccb_max(1, esif_ccb_max(value->buf_len, value->data_len))), esif_ccb_max(1, value->data_len), value->data_len};
 		esif_ccb_memcpy(newvalue.buf_ptr, value->buf_ptr, value->data_len);
 		DataCache_SetValue(self->cache, (esif_string)newkey.buf_ptr, newvalue, flags);
 		esif_ccb_free(newkey.buf_ptr);
 	}
 
+exit:
 	// If Persisted, Flush to disk
 	if (rc == ESIF_OK && FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_PERSIST)) {
 		rc = DataVault_WriteVault(self);
@@ -1121,34 +942,76 @@ eEsifError EsifConfigSet (
 	return rc;
 }
 
+// Test whether a pattern matches a given path (key) [case-insensitive, only "*" and "?" supported]
+int EsifConfigKeyMatch(
+	EsifDataPtr pattern,
+	EsifDataPtr path
+	)
+{
+	int result = ESIF_TRUE;
+
+	// Do pattern match for ESIF_DATA_STRING only. ESIF_DATA_AUTO and all other types always match
+	if (pattern->type == ESIF_DATA_STRING) {
+		result = esif_ccb_strmatch(path->buf_ptr, pattern->buf_ptr);
+	}
+	return result;
+}
 
 // Find Next path in nameSpace
-eEsifError EsifConfigFindNext (
+eEsifError EsifConfigFindNext(
 	EsifDataPtr nameSpace,
 	EsifDataPtr path,
 	EsifDataPtr value,
-	UInt32 *context
+	EsifConfigFindContextPtr context
 	)
 {
-	eEsifError rc   = ESIF_E_NOT_FOUND;
+	eEsifError rc = ESIF_E_NOT_FOUND;
 	DataVaultPtr DB = 0;
-	ASSERT(nameSpace && path && value && context);
+
+	ESIF_ASSERT(nameSpace && path && context);
 	DB = DataBank_GetNameSpace(g_DataBankMgr, (StringPtr)(nameSpace->buf_ptr));
 	if (DB) {
-		UInt32 item = *context;
+		UInt32 item = 0;
 
 		esif_ccb_read_lock(&DB->lock);
+
+		for (item = 0; item < DB->cache->size; item++) {
+			if (*context == NULL || esif_ccb_stricmp(DB->cache->elements[item].key.buf_ptr, *context) > 0) {
+				break;
+			}
+		}
+
+		// Find next matching key
+		while (item < DB->cache->size && EsifConfigKeyMatch(path, &DB->cache->elements[item].key) != ESIF_TRUE) {
+			item++;
+		}
+
+		// Return matching item, if any
 		if (item < DB->cache->size) {
-			(*context)++;
+			esif_ccb_free(*context);
+			*context = esif_ccb_strdup(DB->cache->elements[item].key.buf_ptr);
 			
-			if (path->buf_len && path->buf_len < DB->cache->elements[item].value.data_len) {
+			if (path->buf_len && path->buf_len < DB->cache->elements[item].key.data_len) {
 				rc = ESIF_E_NEED_LARGER_BUFFER;
 			}
 			else {
-				EsifData_Set(path, ESIF_DATA_STRING, esif_ccb_strdup(
-							 (char*)DB->cache->elements[item].key.buf_ptr), DB->cache->elements[item].key.data_len, DB->cache->elements[item].key.data_len);
-				rc = EsifConfigGet(nameSpace, path, value);
+				EsifData_Set(path, 
+							 ESIF_DATA_STRING,
+							 esif_ccb_strdup((char*)DB->cache->elements[item].key.buf_ptr),
+							 DB->cache->elements[item].key.data_len,
+							 DB->cache->elements[item].key.data_len);
+
+				// If no value buffer for result, just return next matching key
+				if (NULL == value)
+					rc = ESIF_OK;
+				else
+					rc = EsifConfigGet(nameSpace, path, value);
 			}
+		}
+		else if (*context != NULL) {
+			rc = ESIF_E_ITERATION_DONE;
+			esif_ccb_free(*context);
+			*context = NULL;
 		}
 		esif_ccb_read_unlock(&DB->lock);
 	}
@@ -1157,15 +1020,15 @@ eEsifError EsifConfigFindNext (
 
 
 // Find First path in nameSpace
-eEsifError EsifConfigFindFirst (
+eEsifError EsifConfigFindFirst(
 	EsifDataPtr nameSpace,
 	EsifDataPtr path,
 	EsifDataPtr value,
-	UInt32 *context
+	EsifConfigFindContextPtr context
 	)
 {
-	ASSERT(nameSpace && path && value && context);
-	*context = 0;
+	ESIF_ASSERT(nameSpace && path && context);
+	*context = NULL;
 	return EsifConfigFindNext(nameSpace, path, value, context);
 }
 
@@ -1183,12 +1046,8 @@ esif_flags_t EsifConfigFlags_Set(esif_flags_t bitmask, esif_string optname)
 		{"READONLY",	ESIF_SERVICE_CONFIG_READONLY},
 		{"NOCACHE",		ESIF_SERVICE_CONFIG_NOCACHE },
 		{"FILELINK",	ESIF_SERVICE_CONFIG_FILELINK},
-#ifdef ESIF_ATTR_OS_WINDOWS
-		{"REGLINK",		ESIF_SERVICE_CONFIG_REGLINK },
-#endif
 		{"DELETE",		ESIF_SERVICE_CONFIG_DELETE  },
 		{"STATIC",		ESIF_SERVICE_CONFIG_STATIC  },	// DataVault-Level Option
-
 		{"~NOPERSIST",	ESIF_SERVICE_CONFIG_PERSIST },	// Unset option
 		{         0,                            0}
 	};
@@ -1210,6 +1069,87 @@ esif_flags_t EsifConfigFlags_Set(esif_flags_t bitmask, esif_string optname)
 		//CMD_OUT("Error: Invalid Option: %s\n", optname);
 	}
 	return bitmask;
+}
+
+/* Copy/Merge Keys from one NameSpace to Another */
+eEsifError EsifConfigCopy(
+	EsifDataPtr nameSpaceFrom,	// Source DV
+	EsifDataPtr nameSpaceTo,	// Target DV
+	EsifDataPtr keyspecs,		// Tab-separated Keyspec List (wildcards OK)
+	esif_flags_t flags,			// Item Flags
+	Bool replaceKeys)			// TRUE=COPY Keys (Replace if exists), FALSE=MERGE Keys (Do Not Replace)
+{
+	eEsifError rc = ESIF_OK;
+	EsifConfigFindContext context = NULL;
+	EsifDataPtr data_key = NULL;
+	EsifDataPtr data_value = NULL;
+	esif_string keylist = NULL;
+	esif_string keyspec = NULL;
+	esif_string keyspec_context = NULL;
+
+	ESIF_ASSERT(nameSpaceFrom && nameSpaceTo && keyspecs && nameSpaceFrom->buf_ptr && nameSpaceTo->buf_ptr && keyspecs->buf_ptr);
+
+	// Parse Key List (optionally Tab-separated)
+	keylist = esif_ccb_strdup((esif_string)keyspecs->buf_ptr);
+	if (keylist == NULL) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	// Enumerate Each Matching keyspec
+	keyspec = esif_ccb_strtok(keylist, "\t", &keyspec_context);
+	while (rc == ESIF_OK && keyspec != NULL) {
+		data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+		if ((rc = EsifConfigFindFirst(nameSpaceFrom, data_key, NULL, &context)) == ESIF_OK) {
+			do {
+				// copy  = always replace existing key in target if it already exists
+				// merge = never replace existing key in target if it already exists
+				if (replaceKeys == ESIF_TRUE || DataBank_KeyExists(g_DataBankMgr, (esif_string)nameSpaceTo->buf_ptr, (esif_string)data_key->buf_ptr) == ESIF_FALSE) {
+
+					data_value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+					if (data_value == NULL) {
+						rc = ESIF_E_NO_MEMORY;
+						break;
+					}
+					rc = EsifConfigGet(nameSpaceFrom, data_key, data_value);
+					if (rc != ESIF_OK) {
+						break;
+					}
+					rc = EsifConfigSet(nameSpaceTo, data_key, flags, data_value);
+					if (rc != ESIF_OK) {
+						break;
+					}
+
+					ESIF_TRACE_DEBUG("DV %s: @%s => @%s [%s] {%s, %u bytes}\n",
+						(replaceKeys ? "Copy" : "Merge"),
+						(esif_string)nameSpaceFrom->buf_ptr,
+						(esif_string)nameSpaceTo->buf_ptr,
+						(esif_string)data_key->buf_ptr,
+						esif_data_type_str(data_value->type),
+						data_value->data_len);
+
+					EsifData_Destroy(data_value);
+					data_value = NULL;
+				}
+
+				// Reset Key for next search
+				EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+			} while ((rc == ESIF_OK) && ((rc = EsifConfigFindNext(nameSpaceFrom, data_key, NULL, &context)) == ESIF_OK));
+
+			EsifData_Destroy(data_key);
+			data_key = NULL;
+		}
+		if (rc == ESIF_E_ITERATION_DONE || rc == ESIF_E_NOT_FOUND) {
+			rc = ESIF_OK;
+		}
+		keyspec = esif_ccb_strtok(NULL, "\t", &keyspec_context);
+	}
+
+exit:
+	EsifData_Destroy(data_key);
+	EsifData_Destroy(data_value);
+	esif_ccb_free(keylist);
+	return rc;
 }
 
 /*****************************************************************************/

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,6 +57,7 @@
 #include "esif.h"
 
 #define ESIF_PRIMITIVE_VERSION 1
+#define ESIF_PRIMITIVE_DOMAIN_D0 '0D'
 
 /* Primitive Opcodes */
 enum esif_primitive_opcode {
@@ -65,17 +66,14 @@ enum esif_primitive_opcode {
 };
 
 /* Primitive Opcodes String */
-static ESIF_INLINE esif_string esif_primitive_opcode_str (
+static ESIF_INLINE esif_string esif_primitive_opcode_str(
 	enum esif_primitive_opcode opcode)
 {
-	#define CREATE_PRIMITIVE_OPCODE(oc, str) case oc: str = (char *) #oc; break;
-
-	esif_string str = (esif_string)ESIF_NOT_AVAILABLE;
 	switch (opcode) {
-		CREATE_PRIMITIVE_OPCODE(ESIF_PRIMITIVE_OP_GET, str)
-		CREATE_PRIMITIVE_OPCODE(ESIF_PRIMITIVE_OP_SET, str)
+	ESIF_CASE_ENUM(ESIF_PRIMITIVE_OP_GET);
+	ESIF_CASE_ENUM(ESIF_PRIMITIVE_OP_SET);
 	}
-	return str;
+	return ESIF_NOT_AVAILABLE;
 }
 
 
@@ -86,17 +84,18 @@ struct esif_primitive_tuple {
 	u16  instance;	/* ff: no instance required */
 };
 
-#ifdef ESIF_ATTR_USER
-typedef struct esif_primitive_tuple EsifPrimitiveTuple, *EsifPrimitiveTuplePtr,
-	**EsifPrimitiveTuplePtrLoction;
-#endif
 
 struct esif_lp_primitive {
 	struct esif_primitive_tuple  tuple;	/* PRIMITIVE Tuple */
 	enum esif_primitive_opcode   opcode;	/* PRIMITIVE Operation Type */
 	u8  action_count;	/* Number Of Actions For This Primitive */
-	struct esif_data *context_ptr;	/* Context For Primitive e.g. VAR */
 };
+
+#ifdef ESIF_ATTR_USER
+typedef struct esif_primitive_tuple EsifPrimitiveTuple, *EsifPrimitiveTuplePtr,
+	**EsifPrimitiveTuplePtrLoction;
+#endif
+
 
 #pragma pack(pop)
 
@@ -104,28 +103,60 @@ struct esif_lp_primitive {
 extern "C" {
 #endif
 
-struct esif_ipc *esif_execute_ipc_primitive(struct esif_ipc *ipc_ptr);
-
 struct esif_lp;
 struct esif_ipc_primitive;
-enum esif_rc esif_execute_primitive(struct esif_lp *lp_ptr,
-				    const struct esif_primitive_tuple *tuple_ptr,
-				    const struct esif_data *req_data_ptr,
-				    struct esif_data *rsp_data_ptr,
-				    const u16 *action_index_ptr);
+
+#ifdef ESIF_ATTR_KERNEL
+
+void esif_execute_ipc_primitive(struct esif_ipc_primitive *prim_ptr);
+
+enum esif_rc esif_execute_primitive(
+	struct esif_lp *lp_ptr,
+	const struct esif_primitive_tuple *tuple_ptr,
+	const struct esif_data *req_data_ptr,
+	struct esif_data *rsp_data_ptr,
+	const u16 *action_index_ptr
+);
 
 /*
- * Simple helper function to execute a primitive that takes no special
+ * Simple helper functions to execute primitives that takes no special
  * parameters.
  */
-enum esif_rc esif_get_simple_primitive(struct esif_lp *lp_ptr,
-				       u16 id,
-				       u16 domain,
-				       u16 instance,
-				       enum esif_data_type esif_type,
-				       void *buffer_ptr,
-				       u32 buffer_size);
+enum esif_rc esif_get_simple_primitive(
+	struct esif_lp *lp_ptr,
+	u16 id,
+	u16 domain,
+	u16 instance,
+	enum esif_data_type esif_type,
+	void *buffer_ptr,
+	u32 buffer_size
+);
 
+enum esif_rc esif_set_simple_primitive(
+	struct esif_lp *lp_ptr,
+	u16 id,
+	u16 domain,
+	u16 instance,
+	enum esif_data_type esif_type,
+	void *buffer_ptr,
+	u32 buffer_size
+);
+
+char *esif_primitive_domain_str(
+	u16 domain,
+	char *str_ptr
+	);
+
+u32 esif_ipc_primitive_get_data_len(struct esif_ipc_primitive *primitive_ptr);
+
+#else
+char *esif_primitive_domain_str(
+	u16 domain,
+	char *str,
+	u8 str_len
+	);
+
+#endif
 #ifdef __cplusplus
 }
 #endif

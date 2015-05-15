@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_uf_appmgr.h"	/* Application Manager */
+#include "esif_uf_eventmgr.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -32,6 +33,16 @@
 /* Friends */
 extern int g_dst;
 EsifAppMgr g_appMgr = {0};
+
+static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
+	void *contextPtr,
+	UInt8 participantId,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	);
+
+
 
 EsifAppPtr GetAppFromHandle(const void *appHandle)
 {
@@ -93,39 +104,6 @@ static eEsifError GetPrompt(
 }
 
 
-static char *esif_primitive_domain_str(
-	u16 domain,
-	char *str,
-	u8 str_len
-	)
-{
-	u8 *ptr = (u8 *)&domain;
-	esif_ccb_sprintf(str_len, str, "%c%c", *(ptr + 1), *ptr);
-	return str;
-}
-
-
-static ESIF_INLINE void ms_guid_to_esif_guid(esif_guid_t *guid)
-{
-#ifdef ESIF_ATTR_OS_WINDOWS
-	u8 *ptr = (u8 *)guid;
-	u8 b[ESIF_GUID_LEN] = {0};
-
-	ESIF_TRACE_DEBUG("%s:\n", ESIF_FUNC);
-	esif_ccb_memcpy(&b, ptr, ESIF_GUID_LEN);
-
-	*(ptr + 0) = b[3];
-	*(ptr + 1) = b[2];
-	*(ptr + 2) = b[1];
-	*(ptr + 3) = b[0];
-	*(ptr + 4) = b[5];
-	*(ptr + 5) = b[4];
-	*(ptr + 6) = b[7];
-	*(ptr + 7) = b[6];
-#endif
-}
-
-
 eEsifError EsifAppsEventByDomainType(
 	enum esif_domain_type domainType,
 	eEsifEventType eventType,
@@ -136,92 +114,89 @@ eEsifError EsifAppsEventByDomainType(
 	u8 found = ESIF_FALSE;
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		EsifUpPtr up_ptr = EsifUpManagerGetAvailableParticipantByInstance(i);
-		if (NULL == up_ptr) {
+		EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
+		if (NULL == upPtr) {
 			continue;
 		}
 
-		if (up_ptr->fMetadata.fAcpiType == domainType) {
+		if (upPtr->fMetadata.fAcpiType == domainType) {
 			found = ESIF_TRUE;
+			EsifUp_PutRef(upPtr);
 			break;
 		}
+
+		EsifUp_PutRef(upPtr);
 	}
 
 	if (ESIF_FALSE == found) {
 		return ESIF_E_NOT_FOUND;
 	} else {
-		return EsifAppsEvent(i, 'NA', eventType, eventData);
+		return EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_NA, eventType, eventData);
 	}
 }
 
 
-eEsifError EsifAppsEvent(
+/* Event handler for events targeted at ALL apps without app registration */
+static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
+	void *contextPtr,
 	UInt8 participantId,
 	UInt16 domainId,
-	enum esif_event_type eventType,
-	EsifDataPtr eventData
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
 	)
 {
-	EsifAppPtr app_ptr = NULL;
-	u8 i = 0;
-	char domain_str[8] = "";
+	eEsifError rc = ESIF_OK;
+	EsifAppPtr appPtr = NULL;
+	UInt8 i = 0;
 
-	UNREFERENCED_PARAMETER(domain_str);
+	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(domainId);
+	UNREFERENCED_PARAMETER(eventDataPtr);
 
-	if (NULL == eventData) {
-		ESIF_TRACE_DEBUG("%s: APPLICATION_EVENT_NO_DATA\n"
-						 "ParticipantID: %u\n"
-						 "Domain:        %s(%04X)\n"
-						 "EventType:     %s(%d)\n",
-						 ESIF_FUNC,
-						 participantId,
-						 esif_primitive_domain_str(domainId, domain_str, 8),
-						 domainId,
-						 esif_event_type_str(eventType), eventType);
-	} else {
-		ESIF_TRACE_DEBUG("%s: APPLICATION_EVENT\n"
-						 "ParticipantID: %u\n"
-						 "Domain:        %s(%04X)\n"
-						 "EventType:     %s(%d)\n"
-						 "EventDataType: %s(%d)\n"
-						 "EventData:     %p\n"
-						 "  buf_ptr      %p\n"
-						 "  buf_len      %d\n"
-						 "  data_len     %d\n",
-						 ESIF_FUNC,
-						 participantId,
-						 esif_primitive_domain_str(domainId, domain_str, 8),
-						 domainId,
-						 esif_event_type_str(eventType), eventType,
-						 esif_data_type_str(eventData->type), eventData->type,
-						 eventData,
-						 eventData->buf_ptr, eventData->buf_len, eventData->data_len
-						 );
-
-		if (ESIF_DATA_STRING == eventData->type && NULL != eventData->buf_ptr) {
-			ESIF_TRACE_DEBUG(
-				"Data Length:   %d\n"
-				"Data:          %s\n",
-				eventData->data_len,
-				(EsifString)eventData->buf_ptr);
-		}
+	if (NULL == fpcEventPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
 	}
 
-	/* For Each Application Send EVENT */
+	// Only handle at the app level
+	if (participantId != 0) {
+		goto exit;
+	}
+
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		app_ptr = &g_appMgr.fEntries[i];
-		if (NULL == app_ptr->fHandle) {
+		appPtr = &g_appMgr.fEntries[i];
+		if (NULL == appPtr->fHandle) {
 			continue;
 		}
-		ESIF_TRACE_DEBUG("Send To APPLICATION: %s\n", app_ptr->fLibNamePtr);
-		EsifAppEvent(app_ptr, participantId, domainId, eventData, eventType);
+
+		switch (fpcEventPtr->esif_event)
+		{
+		case ESIF_EVENT_PARTICIPANT_SUSPEND:
+			ESIF_TRACE_INFO("System suspend event received\n");
+			if (NULL != appPtr->fInterface.fAppSuspendFuncPtr) {
+				appPtr->fInterface.fAppSuspendFuncPtr(appPtr->fHandle);
+			}
+			break;
+
+		case ESIF_EVENT_PARTICIPANT_RESUME:
+			ESIF_TRACE_INFO("System resume event received\n");
+			if (NULL != appPtr->fInterface.fAppResumeFuncPtr) {
+				appPtr->fInterface.fAppResumeFuncPtr(appPtr->fHandle);
+			}
+			break;
+
+		default:
+			break;
+		}
 	}
-	return ESIF_OK;
+
+exit:
+	return rc;
 }
 
 
 /* Creates the participant in each running application */
-eEsifError EsifAppMgrCreateCreateParticipantInAllApps(const EsifUpPtr upPtr)
+eEsifError EsifAppMgrCreateParticipantInAllApps(const EsifUpPtr upPtr)
 {
 	eEsifError rc = ESIF_OK;
 	EsifAppPtr app_ptr = NULL;
@@ -281,7 +256,7 @@ eEsifError EsifAppMgrInit()
 {
 	eEsifError rc = ESIF_OK;
 
-	ESIF_TRACE_DEBUG("%s: Init Action Manager (APPMGR)", ESIF_FUNC);
+	ESIF_TRACE_ENTRY_INFO();
 
 	esif_ccb_lock_init(&g_appMgr.fLock);
 
@@ -290,7 +265,10 @@ eEsifError EsifAppMgrInit()
 	g_appMgr.GetAppFromName = GetAppFromName;
 	g_appMgr.GetPrompt = GetPrompt;
 
-	ESIF_TRACE_EXIT_INFO();
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -300,8 +278,13 @@ void EsifAppMgrExit()
 	u8 i = 0;
 	EsifAppPtr a_app_ptr = NULL;
 
+	ESIF_TRACE_ENTRY_INFO();
+
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+
 	EsifAppExit();
-	ESIF_TRACE_DEBUG("%s: Exit Action Manager (APPMGR)", ESIF_FUNC);
+	ESIF_TRACE_DEBUG("Exit Action Manager (APPMGR)");
 
 	esif_ccb_read_lock(&g_appMgr.fLock);
 	for (i = 0; i < ESIF_MAX_APPS; i++) {

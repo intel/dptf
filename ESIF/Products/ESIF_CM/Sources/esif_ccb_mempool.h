@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -53,6 +53,10 @@
 
 #ifndef _ESIF_CCB_MEMPOOL_H_
 #define _ESIF_CCB_MEMPOOL_H_
+
+#include "esif_mempool.h"
+#include "esif_debug.h"
+#include "esif_ccb_memory.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -121,8 +125,9 @@ static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
 	g_mempool[pool_type] = pool_ptr;
 	memstat_inc(&g_memstat.memPoolAllocs);
 
-	MEMPOOL_DEBUG("%s: Memory Pool %s Create Object Size=%d\n", ESIF_FUNC,
-		      pool_ptr->name_ptr, pool_ptr->object_size);
+	MEMPOOL_DEBUG("Memory Pool %s Create Object Size=%d\n",
+		pool_ptr->name_ptr,
+		pool_ptr->object_size);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 
@@ -152,8 +157,7 @@ static ESIF_INLINE void esif_ccb_mempool_destroy(
 	}
 
 	remain = pool_ptr->alloc_count - pool_ptr->free_count;
-	MEMPOOL_DEBUG("%s: Memory Pool %s Destroy alloc=%d free=%d remain=%d\n",
-		      ESIF_FUNC,
+	MEMPOOL_DEBUG("Memory Pool %s Destroy alloc=%d free=%d remain=%d\n",
 		      pool_ptr->name_ptr,
 		      pool_ptr->alloc_count,
 		      pool_ptr->free_count,
@@ -213,11 +217,10 @@ static ESIF_INLINE void *esif_ccb_mempool_alloc(
 	pool_ptr->alloc_count++;
 	memstat_inc(&g_memstat.memPoolObjAllocs);
 
-	MEMPOOL_DEBUG("%s: MP Entry Allocated(%d)=%p From Mempool %s\n",
-		      ESIF_FUNC,
-		      pool_ptr->alloc_count,
-		      mem_ptr,
-		      pool_ptr->name_ptr);
+	MEMPOOL_DEBUG("MP Entry Allocated(%d)=%p From Mempool %s\n",
+		pool_ptr->alloc_count,
+		mem_ptr,
+		pool_ptr->name_ptr);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 exit:
@@ -255,8 +258,9 @@ static ESIF_INLINE void esif_ccb_mempool_free(
 	pool_ptr->free_count++;
 	memstat_inc(&g_memstat.memPoolObjFrees);
 
-	MEMPOOL_DEBUG("%s: MP Entry Freed(%d)=%p From Mempool %s\n", ESIF_FUNC,
-		      pool_ptr->free_count, mem_ptr, pool_ptr->name);
+	MEMPOOL_DEBUG("MP Entry Freed(%d)=%p From Mempool %s\n",
+		pool_ptr->free_count,
+		mem_ptr, pool_ptr->name);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 exit:
@@ -310,8 +314,9 @@ static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
 
 	g_mempool[pool_type] = pool_ptr;
 
-	MEMPOOL_DEBUG("%s: Memory Pool %s Create Object Size=%d\n", ESIF_FUNC,
-		      pool_ptr->name_ptr, pool_ptr->object_size);
+	MEMPOOL_DEBUG("Memory Pool %s Create Object Size=%d\n",
+		pool_ptr->name_ptr,
+		pool_ptr->object_size);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 exit:
@@ -339,12 +344,11 @@ static ESIF_INLINE void esif_ccb_mempool_destroy(
 	}
 
 	remain = pool_ptr->alloc_count - pool_ptr->free_count;
-	MEMPOOL_DEBUG("%s: Memory Pool %s Destroy alloc=%d free=%d remain=%d\n",
-		      ESIF_FUNC,
-		      pool_ptr->name_ptr,
-		      pool_ptr->alloc_count,
-		      pool_ptr->free_count,
-		      remain);
+	MEMPOOL_DEBUG("Memory Pool %s Destroy alloc=%d free=%d remain=%d\n",
+		pool_ptr->name_ptr,
+		pool_ptr->alloc_count,
+		pool_ptr->free_count,
+		remain);
 
 	g_mempool[pool_type] = NULL;
 
@@ -383,11 +387,10 @@ static ESIF_INLINE void *esif_ccb_mempool_alloc(
 
 	pool_ptr->alloc_count++;
 
-	MEMPOOL_DEBUG("%s: MP Entry Allocated(%d)=%p From Mempool %s\n",
-		      ESIF_FUNC,
-		      pool_ptr->alloc_count,
-		      mem_ptr,
-		      pool_ptr->name_ptr);
+	MEMPOOL_DEBUG("MP Entry Allocated(%d)=%p From Mempool %s\n",
+		pool_ptr->alloc_count,
+		mem_ptr,
+		pool_ptr->name_ptr);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 
@@ -421,8 +424,10 @@ static ESIF_INLINE void esif_ccb_mempool_free(
 
 	pool_ptr->free_count++;
 
-	MEMPOOL_DEBUG("%s: MP Entry Freed(%d)=%p From Mempool %s\n", ESIF_FUNC,
-		      pool_ptr->free_count, mem_ptr, pool_ptr->name_ptr);
+	MEMPOOL_DEBUG("MP Entry Freed(%d)=%p From Mempool %s\n",
+		pool_ptr->free_count,
+		mem_ptr,
+		pool_ptr->name_ptr);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 

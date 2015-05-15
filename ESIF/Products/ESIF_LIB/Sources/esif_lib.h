@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 
 #include <stdlib.h>
 #include <memory.h>
-#include <assert.h>
 #include <string.h>
 
 #include "esif.h"
@@ -31,13 +30,11 @@ typedef u8 Byte;
 
 #define STATIC_CAST(type, value)    ((type)(value))
 
-#ifdef _DEBUG
-# define    ASSERT(stmt)        assert(stmt)
+#ifdef ESIF_ATTR_DEBUG
 # define    SAFETY(stmt)        stmt
 # define    WIPEPTR(p)          memset(p, 0, sizeof(*p))
 # define    WIPEARRAY(a, n)      memset(a, 0, sizeof(*a) * n)
 #else
-# define    ASSERT(stmt)
 # define    SAFETY(stmt)
 # define    WIPEPTR(p)          memset(p, 0, sizeof(*p))
 # define    WIPEARRAY(a, n)      memset(a, 0, sizeof(*a) * n)
@@ -55,6 +52,6 @@ typedef u8 Byte;
 // Limits
 #define MAXAUTOLEN      65536		// Max length of strings when creating with ESIFAUTOLEN
 
-#define IGNORE_RESULT(expr)		do { if (expr) ; } while (ESIF_ALWAYSFALSE)
+#define IGNORE_RESULT(expr)		do { if (expr) ; } while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #endif

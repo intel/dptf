@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,15 +22,32 @@
 #include "esif.h"
 #include "esif_link_list.h"
 #include "esif_uf_action.h"
+#include "esif_participant.h"
+#include "esif_uf_action_iface.h"
 
 #define ESIF_MAX_ACTIONS 5
+#define ESIF_ACTION_IS_KERNEL_ACTION 1
+#define ESIF_ACTION_IS_NOT_KERNEL_ACTION 0
+#define ESIF_ACTION_IS_PLUGIN 1
+#define ESIF_ACTION_IS_NOT_PLUGIN 0
+#define PAD 0
 
-typedef eEsifError (*ActGetFunction)(const void *actionHandle, const EsifString devicePathPtr, const EsifDataPtr p1Ptr, const EsifDataPtr p2Ptr,
-									 const EsifDataPtr p3Ptr, const EsifDataPtr p4Ptr, const EsifDataPtr p5Ptr, const EsifDataPtr requestPtr,
-									 EsifDataPtr responsePtr);
+typedef eEsifError(ESIF_CALLCONV *ActGetFunction)(
+	const void *actionHandle,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr actionPtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	);
 
-typedef eEsifError (*ActSetFunction)(const void *actionHandle, const EsifString devicePathPtr, const EsifDataPtr p1Ptr, const EsifDataPtr p2Ptr,
-									 const EsifDataPtr p3Ptr, const EsifDataPtr p4Ptr, const EsifDataPtr p5Ptr, const EsifDataPtr requestPtr);
+typedef eEsifError(ESIF_CALLCONV *ActSetFunction)(
+	const void *actionHandle,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr actionPtr,
+	const EsifDataPtr requestPtr
+	);
 
 typedef struct _t_EsifActType {
 	void   *fHandle;/* NULL for built in actions */
@@ -46,6 +63,8 @@ typedef struct _t_EsifActType {
 	UInt8  fReserved2[2];
 	ActGetFunction  fGetFuncPtr;
 	ActSetFunction  fSetFuncPtr;
+	ActExecuteGetFunction  fActGetFuncPtr; /* For plug-in actions */
+	ActExecuteSetFunction  fActSetFuncPtr;
 } EsifActType, *EsifActTypePtr, **EsifActTypePtrLocation;
 
 #define THIS struct _t_EsifActMgr *THIS
@@ -69,6 +88,9 @@ typedef struct _t_EsifActMgr {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Declare as friend here, no need to declare it in the file being used */
+extern EsifActMgr g_actMgr;
 
 /* Init / Exit */
 eEsifError EsifActMgrInit();

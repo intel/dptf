@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -51,47 +51,70 @@
 **
 *******************************************************************************/
 
-#ifndef _ESIF_HASH_TABLE_H_
-#define _ESIF_HASH_TABLE_H_
+#pragma once
 
 #include "esif.h"
 #include "esif_link_list.h"
 
-struct esif_hash_table {
-	u32  size;
+typedef void (*item_destroy_func) (void *item_ptr);
+
+struct esif_ht {
+	u32 size;
 	struct esif_link_list **table;
+};
+
+struct esif_ht_node {
+	u8 *key_ptr;
+	u32 key_length;
+	void *item_ptr; /* points to the actual item */
 };
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct esif_hash_table *esif_hash_table_create (u32 size);
-void esif_hash_table_destroy(struct esif_hash_table *hash_table_ptr);
+struct esif_ht *esif_ht_create(
+	u32 size
+	);
+void esif_ht_destroy(
+	struct esif_ht *self,
+	item_destroy_func item_destroy_fptr
+	);
 
-struct esif_link_list *esif_hash_table_get_item(u8 *key_ptr,
-						u32 key_length,
-						struct esif_hash_table *hash_table_ptr);
 
-enum esif_rc esif_hash_table_put_item(u8 *key_ptr,
-				      u32 key_length,
-				      void *item_ptr,
-				      struct esif_hash_table *hash_table_ptr);
+/* Adds an item in the Hash Table */
+enum esif_rc esif_ht_add_item(
+	struct esif_ht *self, u8 *key_ptr,
+	u32 key_length,
+	void *item_ptr
+	);
+
+/* Removes an item from the Hash Table */
+enum esif_rc esif_ht_remove_item(
+	struct esif_ht *self, u8 *key_ptr,
+	u32 key_length
+	);
+
+/* Gets an item from the Hash Table */
+void *esif_ht_get_item(
+	struct esif_ht *self, u8 *key_ptr,
+	u32 key_length
+	);
+
 
 /* Init */
-enum esif_rc esif_hash_table_init (void);
-void esif_hash_table_exit (void);
+enum esif_rc esif_ht_init(void);
+void esif_ht_exit(void);
 
 #ifdef __cplusplus
 }
 #endif
 
+/* TODO */
 #ifdef ESIF_ATTR_USER
-typedef struct esif_hash_table EsifHashTable, *EsifHashTablePtr,
-	**EsifHashTablePtrLocation;
+typedef struct esif_ht EsifHashTable2, *EsifHashTable2Ptr,
+	**EsifHashTable2PtrLocation;
 #endif
-
-#endif /* _ESIF_HASH_TABLE_H_ */
 
 /*****************************************************************************/
 /*****************************************************************************/

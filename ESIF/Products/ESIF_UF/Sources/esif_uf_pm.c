@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,9 @@
 #include "esif_ipc.h"		/* IPC Abstraction */
 #include "esif_uf_appmgr.h"	/* Application Manager */
 #include "esif_dsp.h"		/* Device Support Package */
+#include "esif_uf_eventmgr.h"
+#include "esif_participant.h"
+
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -36,107 +39,73 @@
 /* This Module */
 EsifUppMgr g_uppMgr = {0};
 
+/*
+* econo-poll...different from domain polling
+* because it is condensed to one thread
+*/
+static atomic_t g_ufpollQuit = ATOMIC_INIT(1);
+static int g_ufpollPeriod = ESIF_UFPOLL_PERIOD_DEFAULT;
+static esif_thread_t g_ufpollThread;
+static void EsifUfPollExit(esif_thread_t *ufpollThread);
 
 /*
 ** ===========================================================================
 ** PRIVATE
 ** ===========================================================================
 */
-static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata(const eEsifParticipantOrigin origin, const void *metadataPtr);
-static eEsifError EsifUpManagerDestroyParticipants(void);
+static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadata(
+	const eEsifParticipantOrigin origin,
+	const void *metadataPtr
+	);
 
+static eEsifError EsifUpPm_DestroyParticipants(void);
 
-/*
-**  Map lower participant metadata to upper participant instance.  Every
-**  lower participant must have a corresponding upper particpant.  Here we
-**  intialize the data from the upper participant from the lower participant
-**  registration data.
-*/
-static void UpInitializeOriginLF(
-	const EsifUpPtr upPtr,
-	const UInt8 lpInstance,
-	const void *lpMetadataPtr
-	)
+static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
+	void *contextPtr,
+	UInt8 upInstance,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	);
+
+static void *ESIF_CALLCONV EsifUfPollWorkerThread(void *ptr)
 {
-	/* Lower Framework Participant Metadata Format */
-	struct esif_ipc_event_data_create_participant *metadata_ptr =
-		(struct esif_ipc_event_data_create_participant *)lpMetadataPtr;
+	UInt8 i = 0;
+	
+	UNREFERENCED_PARAMETER(ptr);
 
-	ESIF_ASSERT(upPtr != NULL);
-	ESIF_ASSERT(metadata_ptr != NULL);
+	atomic_set(&g_ufpollQuit, 0);
 
-	/* Store Lower Framework Instance. */
-	upPtr->fLpInstance = lpInstance;
+	CMD_OUT("Starting Upper Framework Polling... \n");
 
-	/* Common */
-	upPtr->fMetadata.fVersion    = metadata_ptr->version;
-	upPtr->fMetadata.fEnumerator = (enum esif_participant_enum)metadata_ptr->enumerator;
-	upPtr->fMetadata.fFlags = metadata_ptr->flags;
+	/* check temperature */
+	while (!atomic_read(&g_ufpollQuit)) {
+		
+		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+			EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
+			
+			if (NULL == upPtr) {
+				continue;
+			}
+			
+			EsifUp_PollParticipant(upPtr);
+			EsifUp_PutRef(upPtr);
 
-	esif_ccb_memcpy(&upPtr->fMetadata.fDriverType, &metadata_ptr->class_guid, ESIF_GUID_LEN);
+		}
+		esif_ccb_sleep_msec(g_ufpollPeriod);
+	}
 
-	esif_ccb_strcpy(upPtr->fMetadata.fName, metadata_ptr->name, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDesc, metadata_ptr->desc, ESIF_DESC_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDriverName, metadata_ptr->driver_name, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDeviceName, metadata_ptr->device_name, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDevicePath, metadata_ptr->device_path, ESIF_PATH_LEN);
-
-	/* ACPI */
-	esif_ccb_strcpy(upPtr->fMetadata.fAcpiUID, metadata_ptr->acpi_uid, sizeof(upPtr->fMetadata.fAcpiUID));
-	upPtr->fMetadata.fAcpiType = metadata_ptr->acpi_type;
-	esif_ccb_strcpy(upPtr->fMetadata.fAcpiDevice, metadata_ptr->acpi_device, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fAcpiScope, metadata_ptr->acpi_scope, ESIF_SCOPE_LEN);
-
-	/* PCI */
-	upPtr->fMetadata.fPciVendor    = (u16)metadata_ptr->pci_vendor;
-	upPtr->fMetadata.fPciDevice    = (u16)metadata_ptr->pci_device;
-	upPtr->fMetadata.fPciBus       = metadata_ptr->pci_bus;
-	upPtr->fMetadata.fPciBusDevice = metadata_ptr->pci_bus_device;
-	upPtr->fMetadata.fPciFunction  = metadata_ptr->pci_function;
-	upPtr->fMetadata.fPciRevision  = metadata_ptr->pci_revision;
-	upPtr->fMetadata.fPciClass     = metadata_ptr->pci_class;
-	upPtr->fMetadata.fPciSubClass  = metadata_ptr->pci_sub_class;
-	upPtr->fMetadata.fPciProgIf    = metadata_ptr->pci_prog_if;
+	return 0;
 }
 
 
-/*
-   Map upper participant metadata to upper particpant instance.  A participant
-   that is created from the upperframework will never have a lower framework
-   component.  These participants are to cover the case were we either have no
-   Kernel corresponding participant or in some cases we may not even have a
-   lower frame work present.
- */
-static void UpInitializeOriginUF(
-	const EsifUpPtr upPtr,
-	const void *upMetadataPtr
-	)
+static void EsifUfPollExit(esif_thread_t *ufpollThread)
 {
-	/* Upper Participant Metadata Format */
-	EsifParticipantIfacePtr metadata_ptr =
-		(EsifParticipantIfacePtr)upMetadataPtr;
-
-	ESIF_ASSERT(upPtr != NULL);
-	ESIF_ASSERT(metadata_ptr != NULL);
-
-	/* Store Lower Framework Instance */
-	upPtr->fLpInstance = 255;	/* Not Used */
-
-	/* Common */
-	upPtr->fMetadata.fVersion    = metadata_ptr->version;
-	upPtr->fMetadata.fEnumerator = (enum esif_participant_enum)metadata_ptr->enumerator;
-	upPtr->fMetadata.fFlags = metadata_ptr->flags;
-
-	esif_ccb_memcpy(&upPtr->fMetadata.fDriverType, &metadata_ptr->class_guid, ESIF_GUID_LEN);
-
-	esif_ccb_strcpy(upPtr->fMetadata.fName, metadata_ptr->name, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDesc, metadata_ptr->desc, ESIF_DESC_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDriverName, metadata_ptr->driver_name, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDeviceName, metadata_ptr->device_name, ESIF_NAME_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fDevicePath, metadata_ptr->device_path, ESIF_PATH_LEN);
-	esif_ccb_strcpy(upPtr->fMetadata.fAcpiScope, metadata_ptr->object_id, ESIF_SCOPE_LEN);
+	CMD_OUT("Stopping Upper Framework Polling...\n");
+	atomic_set(&g_ufpollQuit, 1);
+	esif_ccb_thread_join(ufpollThread);
+	CMD_OUT("Upper Framework Polling Stopped\n");
 }
-
 
 /*
 ** ===========================================================================
@@ -144,219 +113,420 @@ static void UpInitializeOriginUF(
 ** ===========================================================================
 */
 
-/* Create participant */
-EsifUpPtr EsifUpManagerCreateParticipant(
+/* Add participant in participant manager */
+eEsifError EsifUpPm_RegisterParticipant(
 	const eEsifParticipantOrigin origin,
-	const void *handle,
-	const void *metadataPtr
+	const void *metadataPtr,
+	UInt8 *upInstancePtr
 	)
 {
-	EsifUpPtr up_ptr = NULL;
-	EsifUpManagerEntryPtr entry_ptr = NULL;
+    eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+	EsifUpManagerEntryPtr entryPtr = NULL;
 	UInt8 i = 0;
-	UInt8 lpInstance;
-
-	/* Lock manager */
-	esif_ccb_write_lock(&g_uppMgr.fLock);
+	Bool isUppMgrLocked = ESIF_FALSE;
 
 	/* Validate parameters */
-	if (NULL == handle || NULL == metadataPtr) {
-		ESIF_TRACE_ERROR("Invalid handle or meta data pointer\n");
+	if ((NULL == metadataPtr) || (NULL == upInstancePtr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	lpInstance = *(UInt8 *)handle;
-
+	*upInstancePtr = ESIF_INSTANCE_INVALID;
+	
 	/*
 	 * Check if a participant has already been created, but was then removed.
 	 * In that case, just re-enable the participant.
 	 */
-	entry_ptr = EsifUpManagerGetParticipantEntryFromMetadata(origin, metadataPtr);
-	if (NULL != entry_ptr) {
-		up_ptr = entry_ptr->fUpPtr;
-		entry_ptr->fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
-		g_uppMgr.fEntryCount++;
-		goto exit;
-	}
-
-	/* Allocate a particpant */
-	up_ptr = (EsifUpPtr)esif_ccb_malloc(sizeof(EsifUp));
-	if (NULL == up_ptr) {
-		ESIF_TRACE_ERROR("Fail to allocate EsifUp\n");
-		ESIF_ASSERT(up_ptr != NULL);
-		goto exit;
-	}
-
-	/*
-	**  Find available slot in participant manager table.  Simple Table Lookup For Now.
-	**  Scan table and find first empty slot.  Empty slot indicated by AVAILABLE state.
-	*/
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		if (ESIF_PM_PARTICIPANT_STATE_AVAILABLE == g_uppMgr.fEntries[i].fState) {
-			break;
+	entryPtr = EsifUpPm_GetParticipantEntryFromMetadata(origin, metadataPtr);
+	
+	if (NULL != entryPtr) {
+		if (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) {
+			goto exit;
 		}
+
+		/* Lock manager */
+		esif_ccb_write_lock(&g_uppMgr.fLock);
+		isUppMgrLocked = ESIF_TRUE;
+
+		upPtr = entryPtr->fUpPtr;
+		ESIF_ASSERT(upPtr != NULL);
+
+		rc = EsifUp_GetRef(upPtr);
+		if (ESIF_OK != rc) {
+			/* clear upPtr since we don't need to call EsifUp_PutRef in the end */
+			upPtr = NULL;
+			rc = ESIF_E_NO_CREATE;
+			goto exit;
+		}
+
+		rc = EsifUp_ReInitializeParticipant(upPtr, origin, metadataPtr);
+
+		if (ESIF_OK != rc) {
+			rc = ESIF_E_NO_CREATE;
+			goto exit;
+		}
+
+		*upInstancePtr = EsifUp_GetInstance(upPtr);
+
+		entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
+		g_uppMgr.fEntryCount++;
+		esif_ccb_write_unlock(&g_uppMgr.fLock);
+		isUppMgrLocked = ESIF_FALSE;
+	}
+	else {
+		esif_ccb_write_lock(&g_uppMgr.fLock);
+		isUppMgrLocked = ESIF_TRUE;
+
+		/*
+		 *  Find available slot in participant manager table.  Simple Table Lookup For Now.
+		 *  Scan table and find first empty slot.  Empty slot indicated by AVAILABLE state.
+		 */
+		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+			if (ESIF_PM_PARTICIPANT_STATE_AVAILABLE == g_uppMgr.fEntries[i].fState) {
+				break;
+			}
+		}
+
+		/* If no available slots return */
+		if (i >= MAX_PARTICIPANT_ENTRY) {
+			ESIF_TRACE_ERROR("No available slot in participant manager\n");
+			rc = ESIF_E_NO_CREATE;
+			goto exit;
+		}
+
+		rc = EsifUp_CreateParticipant(origin, i, metadataPtr, &upPtr);
+		if ((rc != ESIF_OK) || (upPtr == NULL)) {
+			/* clear upPtr since we don't need to call EsifUp_PutRef in the end */
+			upPtr = NULL;
+			rc = ESIF_E_NO_CREATE;
+			goto exit;
+		}
+
+		rc = EsifUp_GetRef(upPtr);
+		if (rc != ESIF_OK) {
+			/* clear upPtr since we don't need to call EsifUp_PutRef in the end */
+			upPtr = NULL;
+			rc = ESIF_E_NO_CREATE;
+			goto exit;
+		}
+
+		g_uppMgr.fEntries[i].fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
+		g_uppMgr.fEntries[i].fUpPtr = upPtr;
+		g_uppMgr.fEntryCount++;
+
+		*upInstancePtr = i;
+
+		esif_ccb_write_unlock(&g_uppMgr.fLock);
+		isUppMgrLocked = ESIF_FALSE;
 	}
 
-	/* If no available slots return */
-	if (i >= MAX_PARTICIPANT_ENTRY) {
-		ESIF_TRACE_ERROR("No available slot in participant manager\n");
-		esif_ccb_free(up_ptr);
-		up_ptr = NULL;
+	/* Perform initialization that requires primitive support */
+	EsifUp_DspReadyInit(upPtr);
+
+	/* Now offer this participant to each running application */
+	rc = EsifAppMgrCreateParticipantInAllApps(upPtr);
+
+exit:
+	if (isUppMgrLocked == ESIF_TRUE) {
+		/* Unlock manager */
+		esif_ccb_write_unlock(&g_uppMgr.fLock);
+	}
+
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+
+	return rc;
+}
+
+
+static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
+	void *contextPtr,
+	UInt8 upInstance,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	struct esif_ipc_event_data_create_participant *creationDataPtr = NULL;
+	UInt8 newInstance = ESIF_INSTANCE_INVALID;
+
+	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(domainId);
+
+	if (NULL == fpcEventPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	/* Take slot */
-	g_uppMgr.fEntries[i].fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
-	g_uppMgr.fEntryCount++;
+	switch(fpcEventPtr->esif_event){
+	case ESIF_EVENT_PARTICIPANT_CREATE:
 
-	/* Initialize participant */
-	up_ptr->fInstance = i;
-	up_ptr->fEnabled  = ESIF_TRUE;
+		if (NULL == eventDataPtr) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+			goto exit;
+		}
+		if (eventDataPtr->data_len < sizeof(*creationDataPtr)) {
+			rc = 	ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			goto exit;
+		}
 
-	/* Initialize based on origin */
-	switch (origin) {
-	case eParticipantOriginLF:
-		UpInitializeOriginLF(up_ptr, lpInstance, metadataPtr);
+		creationDataPtr = (struct esif_ipc_event_data_create_participant *) eventDataPtr->buf_ptr;
+
+		if (EsifUpPm_DoesAvailableParticipantExistByName(creationDataPtr->name)) {
+			ESIF_TRACE_WARN("Participant %s has already existed in UF\n", creationDataPtr->name);
+			goto exit;
+		}
+
+		rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, creationDataPtr, &newInstance);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_ERROR("Fail to add participant %s in participant manager\n", creationDataPtr->name);
+			goto exit;
+		}
+
+		ESIF_TRACE_DEBUG("\nCreate new UF participant: %s, instance = %d\n", creationDataPtr->name, newInstance);
 		break;
 
-	case eParticipantOriginUF:
-		UpInitializeOriginUF(up_ptr, metadataPtr);
+	case ESIF_EVENT_PARTICIPANT_SUSPEND:
+		if (upInstance != ESIF_INSTANCE_LF) {
+			ESIF_TRACE_INFO("Suspending Participant: %d\n", upInstance);
+			rc = EsifUpPm_UnregisterParticipant(eParticipantOriginLF, upInstance);
+		}
+		break;
+
+	case ESIF_EVENT_PARTICIPANT_RESUME:
+		if (upInstance != ESIF_INSTANCE_LF) {
+			ESIF_TRACE_INFO("Reregistering Participant: %d\n", upInstance);
+			rc = EsifUpPm_ResumeParticipant(upInstance);
+		}
+		break;
+
+	case ESIF_EVENT_PARTICIPANT_UNREGISTER: 
+			ESIF_TRACE_INFO("Unregistering Participant: %d\n", upInstance);
+			rc = EsifUpPm_UnregisterParticipant(eParticipantOriginLF, upInstance);
 		break;
 
 	default:
 		break;
 	}
 
-	/* Unlock manager */
-	g_uppMgr.fEntries[i].fUpPtr = up_ptr;
-	ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", up_ptr->fMetadata.fName, i);
-
 exit:
-	esif_ccb_write_unlock(&g_uppMgr.fLock);
-	return up_ptr;
+	return rc;
 }
 
+eEsifError EsifUFPollStart(int pollInterval)
+{
+	eEsifError rc = ESIF_OK;
+	UInt8 i = 0;
+
+	if (pollInterval >= ESIF_UFPOLL_PERIOD_MIN) {
+		g_ufpollPeriod = pollInterval;
+	}
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
+		
+		if (NULL == upPtr) {
+			continue;
+		}
+		
+		EsifUp_RegisterParticipantForPolling(upPtr);
+
+		EsifUp_PutRef(upPtr);
+	}
+
+	if (!EsifUFPollStarted()) {
+		rc = esif_ccb_thread_create(&g_ufpollThread, EsifUfPollWorkerThread, NULL);
+	}
+	return rc;
+}
+
+void EsifUFPollStop()
+{
+	if (EsifUFPollStarted()) {
+		UInt8 i = 0;
+		
+		EsifUfPollExit(&g_ufpollThread);
+
+		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+			EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
+			
+			if (NULL == upPtr) {
+				continue;
+			}
+
+			EsifUp_UnRegisterParticipantForPolling(upPtr);
+
+			EsifUp_PutRef(upPtr);
+		}
+	}
+}
+
+Bool EsifUFPollStarted()
+{
+	return ((Bool)atomic_read(&g_ufpollQuit) == 0);
+}
 
 /* Unregister Upper Participant Instance */
-eEsifError EsifUpManagerUnregisterParticipant(
+eEsifError EsifUpPm_UnregisterParticipant(
 	const eEsifParticipantOrigin origin,
-	const void *participantHandle
+	const UInt8 upInstance
 	)
 {
 	eEsifError rc    = ESIF_OK;
-	EsifUpManagerEntryPtr entry_ptr = NULL;
-	EsifUpPtr up_ptr = NULL;
-	UInt8 instance;
+	EsifUpManagerEntryPtr entryPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+	Bool isUppMgrLocked = ESIF_FALSE;
 
 	UNREFERENCED_PARAMETER(origin);
 
-	/* Validate parameters */
-	if (NULL == participantHandle) {
-		ESIF_TRACE_ERROR("The participant handle pointer is NULL\n");
-		ESIF_ASSERT(participantHandle != NULL);
-		rc = ESIF_E_PARAMETER_IS_NULL;
+	if (upInstance >= MAX_PARTICIPANT_ENTRY) {
+		ESIF_TRACE_ERROR("Instance id %d is out of range\n", upInstance);
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
 
-	instance = *(UInt8 *)participantHandle;
+	esif_ccb_write_lock(&g_uppMgr.fLock);
+	isUppMgrLocked = ESIF_TRUE;
 
-	if (instance >= MAX_PARTICIPANT_ENTRY) {
-		ESIF_TRACE_ERROR("Instance id %d is out of range\n", instance);
+	entryPtr = &g_uppMgr.fEntries[upInstance];
+	if (NULL != entryPtr) {
+		upPtr = entryPtr->fUpPtr;
+		if ((NULL != upPtr) && (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED)) {
+			/*
+			 * Get reference on participant before pass it to other function
+			 * Make sure the participant is not destroyed before the function returns
+			 */
+			rc = EsifUp_GetRef(upPtr);
+			if (rc != ESIF_OK) {
+				upPtr = NULL;
+				goto exit;
+			}
+
+			esif_ccb_write_unlock(&g_uppMgr.fLock);
+			EsifUp_SuspendParticipant(upPtr);
+			esif_ccb_write_lock(&g_uppMgr.fLock);
+
+			entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_REMOVED;
+			g_uppMgr.fEntryCount--;
+
+		} else {
+			upPtr = NULL;
+		}
+	}
+
+	esif_ccb_write_unlock(&g_uppMgr.fLock);
+	isUppMgrLocked = ESIF_FALSE;
+
+	if (NULL != upPtr) {
+		rc = EsifAppMgrDestroyParticipantInAllApps(upPtr);
+	}
+
+	ESIF_TRACE_INFO("Unregister participant, instant id = %d\n", upInstance);
+
+exit:
+	if (isUppMgrLocked == ESIF_TRUE) {
+		esif_ccb_write_unlock(&g_uppMgr.fLock);
+	}
+
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+	return rc;
+}
+
+
+/* Resume upper participant instance that existed previously */
+eEsifError EsifUpPm_ResumeParticipant(
+	const UInt8 upInstance
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpManagerEntryPtr entryPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+
+	/* Should never have to re-register Participant 0 */
+	if (0 == upInstance) {
+		goto exit;
+	}
+
+	if (upInstance >= MAX_PARTICIPANT_ENTRY) {
+		ESIF_TRACE_ERROR("Instance id %d is out of range\n", upInstance);
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
 
 	esif_ccb_write_lock(&g_uppMgr.fLock);
 
-	entry_ptr = &g_uppMgr.fEntries[instance];
-	if (NULL != entry_ptr) {
-		up_ptr = entry_ptr->fUpPtr;
-		if (NULL != up_ptr) {
-			entry_ptr->fState = ESIF_PM_PARTICIPANT_REMOVED;
-			g_uppMgr.fEntryCount--;
+	entryPtr = &g_uppMgr.fEntries[upInstance];
+	if (NULL != entryPtr) {
+		upPtr = entryPtr->fUpPtr;
+		if ((NULL != upPtr) && (entryPtr->fState < ESIF_PM_PARTICIPANT_STATE_CREATED)) {
+			entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
+			g_uppMgr.fEntryCount++;
+
+			/*
+			 * Get reference on participant before pass it to other function
+			 * Make sure the participant is not destroyed before the function returns
+			 */
+			rc = EsifUp_GetRef(upPtr);
+			if (rc != ESIF_OK) {
+				upPtr = NULL;
+			}
+		}
+		else {
+			upPtr = NULL;
 		}
 	}
 	esif_ccb_write_unlock(&g_uppMgr.fLock);
 
-	if (NULL != up_ptr) {
-		rc = EsifAppMgrDestroyParticipantInAllApps(up_ptr);
+	if (NULL != upPtr) {
+		EsifUp_ResumeParticipant(upPtr);
+		rc = EsifAppMgrCreateParticipantInAllApps(upPtr);
 	}
 
-	ESIF_TRACE_INFO("Unregister participant, instant id = %d\n", instance);
+	ESIF_TRACE_INFO("Reregistered participant, instant id = %d\n", upInstance);
 exit:
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
 	return rc;
 }
 
 
-eEsifError EsifUpManagerRegisterParticipantsWithApp(EsifAppPtr aAppPtr)
-{
-	eEsifError rc = ESIF_OK;
-	UInt8 i = 0;
-
-	if (NULL == aAppPtr) {
-		ESIF_TRACE_ERROR("Esif app pointer is NULL\n");
-		return ESIF_E_PARAMETER_IS_NULL;
-	}
-
-	esif_ccb_read_lock(&g_uppMgr.fLock);
-
-	/* Skip 0 ESIF treats this as a participant no one else does :) */
-	for (i = 1; i < MAX_PARTICIPANT_ENTRY; i++) {
-		EsifUpPtr up_ptr = g_uppMgr.fEntries[i].fUpPtr;
-		if ((NULL != up_ptr) && (g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_REMOVED)) {
-			rc = EsifAppCreateParticipant(aAppPtr, up_ptr);
-			if (ESIF_OK != rc) {
-				break;
-			}
-		}
-	}
-
-	esif_ccb_read_unlock(&g_uppMgr.fLock);
-
-	ESIF_TRACE_INFO("Register participants with App, status = %s\n", esif_rc_str(rc));
-	return rc;
-}
-
-
-eEsifError EsifUpManagerDestroyParticipantsInApp(EsifAppPtr aAppPtr)
-{
-	UInt8 i = 0;
-
-	esif_ccb_read_lock(&g_uppMgr.fLock);
-
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		EsifUpPtr up_ptr = g_uppMgr.fEntries[i].fUpPtr;
-		if ((NULL != up_ptr) && (g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_REMOVED)) {
-			EsifAppDestroyParticipant(aAppPtr, up_ptr);
-		}
-	}
-
-	esif_ccb_read_unlock(&g_uppMgr.fLock);
-
-	ESIF_TRACE_INFO("Destroy participants in App\n");
-	return ESIF_OK;
-}
-
-
-/* Get By Instance From ID */
-EsifUpPtr EsifUpManagerGetAvailableParticipantByInstance (
-	const UInt8 id
+/*
+ * Get By Instance From ID
+ * the caller should call EsifUp_PutRef to release reference on participant when done with it
+ */
+EsifUpPtr EsifUpPm_GetAvailableParticipantByInstance(
+	const UInt8 upInstance
 	)
 {
-	EsifUpPtr up_ptr = NULL;
-	ESIF_TRACE_DEBUG("%s: instance %d\n", ESIF_FUNC, id);
+	EsifUpPtr upPtr = NULL;
+	eEsifError rc = ESIF_OK;
 
-	if (id >= MAX_PARTICIPANT_ENTRY) {
-		ESIF_TRACE_ERROR("Instance id %d is out of range\n", id);
-		ESIF_ASSERT(0);
+	ESIF_TRACE_DEBUG("Instance %d\n", upInstance);
+
+	if (upInstance >= MAX_PARTICIPANT_ENTRY) {
+		ESIF_TRACE_ERROR("Instance id %d is out of range\n", upInstance);
+		ESIF_ASSERT(ESIF_FALSE);
 		goto exit;
 	}
 
 	/* Lock manager */
 	esif_ccb_read_lock(&g_uppMgr.fLock);
 
-	if (g_uppMgr.fEntries[id].fState > ESIF_PM_PARTICIPANT_REMOVED) {
-		up_ptr = g_uppMgr.fEntries[id].fUpPtr;
+	if (g_uppMgr.fEntries[upInstance].fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) {
+		upPtr = g_uppMgr.fEntries[upInstance].fUpPtr;
+		if (upPtr != NULL) {
+			rc = EsifUp_GetRef(upPtr);
+			if (rc != ESIF_OK) {
+				ESIF_TRACE_INFO("Unable to acquire reference on participant\n");
+				upPtr = NULL;
+			}
+		}
 	}
 
 	/* Unlock Manager */
@@ -364,21 +534,20 @@ EsifUpPtr EsifUpManagerGetAvailableParticipantByInstance (
 
 exit:
 
-	if (NULL == up_ptr) {
-		ESIF_TRACE_DEBUG("%s: instance %d NOT found or OUT OF BOUNDS\n",
-						 ESIF_FUNC, id);
+	if (NULL == upPtr) {
+		ESIF_TRACE_DEBUG("Instance %d NOT found or OUT OF BOUNDS\n", upInstance);
 	}
-	return up_ptr;
+	return upPtr;
 }
 
 
 /* Check if a participant already exists by the name */
-Bool EsifUpManagerDoesAvailableParticipantExistByName (
+Bool EsifUpPm_DoesAvailableParticipantExistByName (
 	char *participantName
 	)
 {
 	Bool bRet = ESIF_FALSE;
-	EsifUpPtr up_ptr = NULL;
+	EsifUpPtr upPtr = NULL;
 	UInt8 i;
 
 	if (NULL == participantName) {
@@ -389,28 +558,36 @@ Bool EsifUpManagerDoesAvailableParticipantExistByName (
 	esif_ccb_read_lock(&g_uppMgr.fLock);
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		up_ptr = EsifUpManagerGetAvailableParticipantByInstance(i);
+		upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
 
-		if (NULL == up_ptr) {
+		if (NULL == upPtr) {
 			continue;
 		}
 
-		if ((g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_REMOVED) && !strcmp(up_ptr->fMetadata.fName, participantName)) {
+		if ((g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) && !strcmp(upPtr->fMetadata.fName, participantName)) {
 			bRet = ESIF_TRUE;
 			break;
 		}
+
+		EsifUp_PutRef(upPtr);
+		upPtr = NULL;
 	}
+
 	esif_ccb_read_unlock(&g_uppMgr.fLock);
 exit:
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+
 	return bRet;
 }
 
-
-EsifUpPtr EsifUpManagerGetAvailableParticipantByName (
+/* the caller should call EsifUp_PutRef to release reference on participant when done with it */
+EsifUpPtr EsifUpPm_GetAvailableParticipantByName (
 	char *participantName
 	)
 {
-	EsifUpPtr up_ptr = NULL;
+	EsifUpPtr upPtr = NULL;
 	UInt8 i;
 
 	if (NULL == participantName) {
@@ -421,29 +598,32 @@ EsifUpPtr EsifUpManagerGetAvailableParticipantByName (
 	esif_ccb_read_lock(&g_uppMgr.fLock);
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		up_ptr = EsifUpManagerGetAvailableParticipantByInstance(i);
+		upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
 
-		if (NULL == up_ptr) {
+		if (NULL == upPtr) {
 			continue;
 		}
-		if (!strcmp(participantName, up_ptr->fMetadata.fName)) {
+
+		if (!strcmp(participantName, upPtr->fMetadata.fName)) {
 			break;
 		}
-		up_ptr = NULL;
+
+		EsifUp_PutRef(upPtr);
+		upPtr = NULL;
 	}
 
 	esif_ccb_read_unlock(&g_uppMgr.fLock);
 exit:
-	return up_ptr;
+	return upPtr;
 }
 
 
-static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata(
+static EsifUpManagerEntryPtr EsifUpPm_GetParticipantEntryFromMetadata(
 	const eEsifParticipantOrigin origin,
 	const void *metadataPtr
 	)
 {
-	EsifUpManagerEntryPtr entry_ptr = NULL;
+	EsifUpManagerEntryPtr entryPtr = NULL;
 	char *participantName = "";
 	UInt8 i;
 
@@ -467,34 +647,35 @@ static EsifUpManagerEntryPtr EsifUpManagerGetParticipantEntryFromMetadata(
 		break;
 	}
 
-
+	esif_ccb_write_lock(&g_uppMgr.fLock);
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		entry_ptr = &g_uppMgr.fEntries[i];
+		entryPtr = &g_uppMgr.fEntries[i];
 
-		if (NULL != entry_ptr->fUpPtr) {
-			if (!strcmp(entry_ptr->fUpPtr->fMetadata.fName, participantName)) {
+		if (NULL != entryPtr->fUpPtr) {
+			if (!strcmp(entryPtr->fUpPtr->fMetadata.fName, participantName)) {
 				break;
 			}
 		}
-		entry_ptr = NULL;
+		entryPtr = NULL;
 	}
+	esif_ccb_write_unlock(&g_uppMgr.fLock);
 
 exit:
-	return entry_ptr;
+	return entryPtr;
 }
 
 
 /* Map a participant handle to  */
-eEsifError EsifUpManagerMapLpidToPartHandle(
+eEsifError EsifUpPm_MapLpidToParticipantInstance(
 	const UInt8 lpInstance,
-	void *participantHandle
+	UInt8 *upInstancePtr
 	)
 {
 	eEsifError rc    = ESIF_E_INVALID_HANDLE;
 	UInt8 i = 0;
 
 	/* Validate parameters */
-	if (NULL == participantHandle) {
+	if (NULL == upInstancePtr) {
 		ESIF_TRACE_ERROR("The participant handle pointer is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
@@ -514,7 +695,7 @@ eEsifError EsifUpManagerMapLpidToPartHandle(
 		goto exit;
 	}
 
-	*(UInt8 *)participantHandle = i;
+	*upInstancePtr = i;
 	rc = ESIF_OK;
 
 exit:
@@ -523,52 +704,68 @@ exit:
 
 
 /* Initialize manager */
-eEsifError EsifUppMgrInit(void)
+eEsifError EsifUpPm_Init(void)
 {
 	eEsifError rc = ESIF_OK;
-	ESIF_TRACE_INFO("%s: Init Upper Participant Manager (PM)", ESIF_FUNC);
+
+	ESIF_TRACE_ENTRY_INFO();
 
 	/* Initialize Lock */
 	esif_ccb_lock_init(&g_uppMgr.fLock);
 
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
 
 /* Exit manager */
-void EsifUppMgrExit(void)
+void EsifUpPm_Exit(void)
 {
+	ESIF_TRACE_ENTRY_INFO();
+
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+
 	/* Clean up resources */
-	EsifUpManagerDestroyParticipants();
+	EsifUpPm_DestroyParticipants();
 
 	/* Uninitialize Lock */
 	esif_ccb_lock_uninit(&g_uppMgr.fLock);
 
-	ESIF_TRACE_INFO("%s: Exit Upper Participant Manager (PM)", ESIF_FUNC);
+	ESIF_TRACE_EXIT_INFO();
 }
 
 
 /* This should only be called when shutting down */
-static eEsifError EsifUpManagerDestroyParticipants(void)
+static eEsifError EsifUpPm_DestroyParticipants(void)
 {
 	eEsifError rc = ESIF_OK;
-	EsifUpManagerEntryPtr entry_ptr = NULL;
+	EsifUpManagerEntryPtr entryPtr = NULL;
 	UInt8 i = 0;
 
 	esif_ccb_write_lock(&g_uppMgr.fLock);
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		entry_ptr = &g_uppMgr.fEntries[i];
+		entryPtr = &g_uppMgr.fEntries[i];
 
-		if (entry_ptr->fState > ESIF_PM_PARTICIPANT_REMOVED) {
-			g_uppMgr.fEntryCount--;
-		}
-		entry_ptr->fState = ESIF_PM_PARTICIPANT_STATE_AVAILABLE;
+		if (NULL != entryPtr->fUpPtr) {
 
-		if (NULL != entry_ptr->fUpPtr) {
-			esif_ccb_free(entry_ptr->fUpPtr);
-			entry_ptr->fUpPtr = NULL;
+			// This will be cleaned up when the reference counting code is brought in
+			esif_ccb_write_unlock(&g_uppMgr.fLock);
+			EsifUpPm_UnregisterParticipant(entryPtr->fUpPtr->fOrigin, i);
+			esif_ccb_write_lock(&g_uppMgr.fLock);
+
+			EsifUp_DestroyParticipant(entryPtr->fUpPtr);
 		}
+		entryPtr->fUpPtr = NULL;
+		entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_AVAILABLE;
 	}
 
 	esif_ccb_write_unlock(&g_uppMgr.fLock);

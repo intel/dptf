@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -71,7 +71,7 @@ int IString_Compare (IStringPtr self, IStringPtr str2, int IgnoreCase);				// Co
 int IString_CompareMax (IStringPtr self, IStringPtr str2, u32 count, int IgnoreCase);	// Compare up to count characters of two IStrings (optional IgnoreCase)
 void IString_ToUpper (IStringPtr self);					// Convert an IString to UPPERCASE
 void IString_ToLower (IStringPtr self);					// Convert an IString to lowercase
-int IString_Sscanf (IStringPtr self, ZString format, ...);	// SScanf from IString into a variable. Must include buffer size if target is a String
+int IString_Sscanf (IStringPtr self, ZString format, ...);	// SScanf from IString into a variable. Must use SCANFBUF() if target is a String
 
 // TODO:    Find, FindAny, InsertAt, DeleteAt, StrTok, ...
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -75,7 +75,8 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 #define CMD_LOGFILE(format, ...)	EsifConsole_WriteTo(CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
 
 
-#define OUT_BUF_LEN (64 * 1024)
+#define OUT_BUF_LEN (128 * 1024)
+#define ENUM_TO_STRING_LEN 12
 
 // ESIF Path Types (** = Read/Write, all others Read-only)
 typedef enum e_esif_pathtype {
@@ -94,9 +95,9 @@ typedef enum e_esif_pathtype {
 } esif_pathtype;
 
 esif_string esif_build_path(
-	esif_string buffer, 
-	size_t buf_len, 
-	esif_pathtype type, 
+	esif_string buffer,
+	size_t buf_len,
+	esif_pathtype type,
 	esif_string filename,
 	esif_string ext);
 
@@ -128,20 +129,62 @@ void cmd_app_subsystem(const enum app_subsystem subsystem);
 //
 // Utilities
 //
+enum esif_rc esif_shell_execute(char *command);
 EsifString esif_shell_exec_command(EsifString line, size_t buf_len, UInt8 IsRest);
 EsifString parse_cmd(EsifString line, UInt8 IsRest);
-UInt16 convert_string_to_short(esif_string two_character_string);
+UInt16 domain_str_to_short(esif_string two_character_string);
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
+
+/*
+ * GUID - String requires a 37 byte buffer minimum
+ */
+#define ESIF_GUID_PRINT_SIZE 64
+static ESIF_INLINE esif_string esif_guid_print(
+	esif_guid_t *guid,
+	esif_string buf
+	)
+{
+	u8 *ptr = (u8 *)guid;
+	esif_ccb_sprintf(ESIF_GUID_PRINT_SIZE,
+			 buf,
+			 "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
+			 *ptr,
+			 *(ptr + 1),
+			 *(ptr + 2),
+			 *(ptr + 3),
+			 *(ptr + 4),
+			 *(ptr + 5),
+			 *(ptr + 6),
+			 *(ptr + 7),
+			 *(ptr + 8),
+			 *(ptr + 9),
+			 *(ptr + 10),
+			 *(ptr + 11),
+			 *(ptr + 12),
+			 *(ptr + 13),
+			 *(ptr + 14),
+			 *(ptr + 15)
+			 );
+	return buf;
+}
 
 //
 // DSP
 //
 
-int esif_send_dsp(esif_string filename, UInt8 dst);
+enum esif_rc esif_send_dsp(esif_string filename, UInt8 dst);
 
 /* Init / Exit */
-enum esif_rc esif_uf_init(esif_string home_dir);
+enum esif_rc esif_uf_init(void);
 void esif_uf_exit(void);
+
+enum esif_rc esif_main_init(esif_string path_list);
+void esif_main_exit(void);
+
+/* Path Management */
+enum esif_rc esif_pathlist_set(esif_pathtype type, esif_string value);
+esif_string esif_pathlist_get(esif_pathtype type);
+int esif_pathlist_count(void);
 
 /* OS Specific Init / Exit */
 enum esif_rc esif_uf_os_init(void);
