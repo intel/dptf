@@ -68,6 +68,7 @@ public:
 
     // control facades
     void initializeControls();
+    void setControlsToMax();
     ActiveCoolingControl& getActiveCoolingControl();
     PerformanceControlFacade& getPerformanceControl();
     PowerControlFacade& getPowerControl();
@@ -95,6 +96,7 @@ public:
     void clearAllPowerControlRequests();
     void clearAllCoreControlRequests();
     void clearAllDisplayControlRequests();
+    void clearAllControlKnobRequests();
 
     // status
     XmlNode* getXmlForPassiveControlKnobs();

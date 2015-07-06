@@ -137,6 +137,7 @@ char *EsifShellCmdDataLog(EsifShellCmdPtr shell)
 				rc = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
+			dataLogContextPtr->dataLogParticipantList = NULL;
 		}
 
 		dataLogContextPtr->dataLogInterval = DEFAULT_STATUS_LOG_INTERVAL;
@@ -405,6 +406,47 @@ static eEsifError EsifDataLogValidateParticipantList(char *inParticipantList)
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++){
 		g_dataLogParticipants[i].participantId = 0;
 		g_dataLogParticipants[i].participantNumFields = 0;
+	}
+	
+	if (inParticipantList == NULL) {
+		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+			EsifUpPtr upPtr = NULL;
+
+			participantId = (UInt8) i;
+			upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
+
+			if (NULL != upPtr) {
+				int j = 0;
+				int fieldCounter = 0;
+				struct esif_fpc_domain *domainPtr = NULL;
+				UInt8 domainCount = (u8)upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr);
+				DataLogParticipant nextParticipant = { 0 };
+
+				for (j = 0; j < domainCount; j++) {
+					domainPtr = upPtr->fDspPtr->get_domain(upPtr->fDspPtr, j + 1);
+					if (NULL == domainPtr) {
+						continue;
+					}
+					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_STATUS) {
+						fieldCounter += 4;
+					}
+					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_POWER_CONTROL) {
+						fieldCounter += 2;
+					}
+					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_ACTIVE_CONTROL) {
+						fieldCounter += 1;
+					}
+				}
+				nextParticipant.participantId = participantId;
+				nextParticipant.participantNumFields = fieldCounter;
+				g_dataLogParticipants[participantCounter] = nextParticipant;
+
+				totalFields += fieldCounter;
+				EsifUp_PutRef(upPtr);
+				participantCounter++;
+			}
+		}
+		goto exit;
 	}
 
 	if (esif_ccb_strlen(inParticipantList, MAX_LOG_LINE) >= 1) {

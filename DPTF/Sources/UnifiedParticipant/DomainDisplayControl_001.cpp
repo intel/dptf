@@ -196,13 +196,28 @@ void DomainDisplayControl_001::createDisplayControlSet(UIntN domainIndex)
     UInt32 dataLength = 0;
     DptfMemory binaryData(Constants::DefaultBufferSize);
 
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+    try
+    {
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
 
     std::vector<DisplayControl> controls = BinaryParse::displayBclObject(dataLength, binaryData);
 

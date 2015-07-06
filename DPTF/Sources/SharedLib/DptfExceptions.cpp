@@ -37,9 +37,14 @@ memory_allocation_failure::memory_allocation_failure(const std::string& descript
 {
 }
 
-buffer_too_small::buffer_too_small(const std::string& description) :
-    dptf_exception(description)
+buffer_too_small::buffer_too_small(const std::string& description, UInt32 neededBufferSize) :
+dptf_exception(description), m_neededBufferSize(neededBufferSize)
 {
+}
+
+UInt32 buffer_too_small::getNeededBufferSize()
+{
+    return m_neededBufferSize;
 }
 
 primitive_execution_failed::primitive_execution_failed(const std::string& description) :

@@ -36,6 +36,7 @@ public:
     const UInt32& thermalSamplingPeriod() const;
 
     XmlNode* getXml();
+    Bool operator==(const ThermalRelationshipTableEntry& trtEntry) const;
 
 private:
 

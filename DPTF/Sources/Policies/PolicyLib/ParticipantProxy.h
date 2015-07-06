@@ -62,6 +62,7 @@ public:
     void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound);
     TemperatureThresholds getTemperatureThresholds();
     void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature);
+    void refreshHysteresis();
 
     // thresholds
     void setThresholdCrossed(const Temperature& temperature, UInt64 timestampInMs);

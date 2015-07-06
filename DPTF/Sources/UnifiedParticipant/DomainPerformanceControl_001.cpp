@@ -193,18 +193,34 @@ void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN dom
 {
     if (m_performanceControlSet == nullptr)
     {
+        UInt32 dataLength = 0;
+        DptfMemory binaryData(Constants::DefaultBufferSize);
         try
         {
-            // Build PPSS table
-            UInt32 dataLength = 0;
-            DptfMemory binaryData(Constants::DefaultBufferSize);
-            m_participantServicesInterface->primitiveExecuteGet(
-                esif_primitive_type::GET_PERF_SUPPORT_STATES,
-                ESIF_DATA_BINARY,
-                binaryData,
-                binaryData.getSize(),
-                &dataLength,
-                domainIndex);
+            try
+            {
+                // Build PPSS table
+                m_participantServicesInterface->primitiveExecuteGet(
+                    esif_primitive_type::GET_PERF_SUPPORT_STATES,
+                    ESIF_DATA_BINARY,
+                    binaryData,
+                    binaryData.getSize(),
+                    &dataLength,
+                    domainIndex);
+            }
+            catch (buffer_too_small e)
+            {
+                binaryData.deallocate();
+                binaryData.allocate(e.getNeededBufferSize(), true);
+                m_participantServicesInterface->primitiveExecuteGet(
+                    esif_primitive_type::GET_PERF_SUPPORT_STATES,
+                    ESIF_DATA_BINARY,
+                    binaryData,
+                    binaryData.getSize(),
+                    &dataLength,
+                    domainIndex);
+            }
+
             m_performanceControlSet = new PerformanceControlSet(BinaryParse::genericPpssObject(dataLength, binaryData));
             if (m_performanceControlSet->getCount() == 0)
             {
@@ -219,6 +235,7 @@ void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN dom
             DELETE_MEMORY_TC(m_performanceControlSet);
             m_performanceControlSet = new PerformanceControlSet(controls);
         }
+        binaryData.deallocate();
     }
 }
 

@@ -142,18 +142,7 @@ void PowerControlFacade::initializeControlsIfNeeded()
         const PowerControlDynamicCapsSet& caps = getCapabilities();
         if (m_controlsHaveBeenInitialized == false)
         {
-            vector<PowerControlStatus> initialStatusList;
-            for (UIntN capIndex = 0; capIndex < caps.getCount(); ++capIndex)
-            {
-                initialStatusList.push_back(PowerControlStatus(
-                    caps[capIndex].getPowerControlType(),
-                    caps[capIndex].getMaxPowerLimit(),
-                    caps[capIndex].getMaxTimeWindow(),
-                    caps[capIndex].getMaxDutyCycle()));
-            }
-            m_lastIssuedPowerControlStatus = initialStatusList[0];
-            m_policyServices.domainPowerControl->setPowerControl(
-                m_participantIndex, m_domainIndex, PowerControlStatusSet(initialStatusList));
+            setControlsToMax();
             m_controlsHaveBeenInitialized = true;
         }
         else
@@ -187,5 +176,25 @@ void PowerControlFacade::initializeControlsIfNeeded()
         }
         m_policyServices.messageLogging->writeMessageDebug(
             PolicyMessage(FLF, "Power control initialization finished."));
+    }
+}
+
+void PowerControlFacade::setControlsToMax()
+{
+    if (supportsPowerControls())
+    {
+        const PowerControlDynamicCapsSet& caps = getCapabilities();
+        vector<PowerControlStatus> initialStatusList;
+        for (UIntN capIndex = 0; capIndex < caps.getCount(); ++capIndex)
+        {
+            initialStatusList.push_back(PowerControlStatus(
+                caps[capIndex].getPowerControlType(),
+                caps[capIndex].getMaxPowerLimit(),
+                caps[capIndex].getMaxTimeWindow(),
+                caps[capIndex].getMaxDutyCycle()));
+        }
+        m_lastIssuedPowerControlStatus = initialStatusList[0];
+        m_policyServices.domainPowerControl->setPowerControl(
+            m_participantIndex, m_domainIndex, PowerControlStatusSet(initialStatusList));
     }
 }

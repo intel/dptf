@@ -172,7 +172,7 @@ void PassivePolicy::onBindParticipant(UIntN participantIndex)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding participant.", participantIndex));
     getParticipantTracker().remember(participantIndex);
-    associateParticipantInTrt(getParticipantTracker()[participantIndex]);
+    associateParticipantInTrt(getParticipantTracker()[participantIndex], m_trt);
     m_callbackScheduler->setTrt(m_trt);
 }
 
@@ -228,6 +228,7 @@ void PassivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
             FLF, "Specific info changed for target participant.", participantIndex));
         ParticipantProxy& participant = getParticipantTracker()[participantIndex];
         participant.getPassiveTripPointProperty().refresh();
+        participant.refreshHysteresis();
         if (participant.getDomainPropertiesSet().getDomainCount() > 0)
         {
             auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
@@ -440,12 +441,7 @@ void PassivePolicy::onThermalRelationshipTableChanged(void)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Thermal Relationship Table changed"));
     m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
-    vector<UIntN> allIndicies = getParticipantTracker().getAllTrackedIndexes();
-    for (auto index = allIndicies.begin(); index != allIndicies.end(); ++index)
-    {
-        associateParticipantInTrt(getParticipantTracker()[*index]);
-    }
-    m_callbackScheduler->setTrt(m_trt);
+    reloadTrtAndCheckAllTargets();
 }
 
 void PassivePolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2)
@@ -558,9 +554,9 @@ void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxy& particip
     }
 }
 
-void PassivePolicy::associateParticipantInTrt(ParticipantProxy& participant)
+void PassivePolicy::associateParticipantInTrt(ParticipantProxy& participant, ThermalRelationshipTable& trt)
 {
-    m_trt.associateParticipant(
+    trt.associateParticipant(
         participant.getParticipantProperties().getAcpiInfo().getAcpiScope(),
         participant.getIndex());
 }
@@ -576,27 +572,27 @@ void PassivePolicy::takeThermalActionForAllTargetsForSource(UIntN source)
 
 void PassivePolicy::reloadTrtAndCheckAllTargets()
 {
-    m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
-    vector<UIntN> allParticipants = getParticipantTracker().getAllTrackedIndexes();
-    for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
+    auto newTrt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
+    associateAllParticipantsInTrt(newTrt);
+    if (m_trt != newTrt)
     {
-        associateParticipantInTrt(getParticipantTracker()[*index]);
-        if (m_trt.isParticipantTargetDevice(*index))
+        clearAllSourceControls(); // resets the sources from current TRT
+        m_trt = newTrt;
+        associateAllParticipantsInTrt(m_trt);
+        m_targetMonitor.stopMonitoringAll();
+        m_callbackScheduler->setTrt(m_trt);
+        clearAllSourceControls(); // resets the sources from new TRT
+        vector<UIntN> allParticipants = getParticipantTracker().getAllTrackedIndexes();
+        for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
         {
-            getParticipantTracker()[*index].getPassiveTripPointProperty().refresh();
-        }
-    }
-    m_callbackScheduler->setTrt(m_trt);
-
-    for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
-    {
-        if (m_trt.isParticipantTargetDevice(*index))
-        {
-            auto currentTemperature =
-                getParticipantTracker()[*index][0].getTemperatureProperty().getCurrentTemperature();
-            setParticipantTemperatureThresholdNotification(getParticipantTracker()[*index], currentTemperature);
-            notifyPlatformOfDeviceTemperature(getParticipantTracker()[*index], currentTemperature);
-            takeThermalActionForTarget(*index);
+            if (m_trt.isParticipantTargetDevice(*index))
+            {
+                auto currentTemperature =
+                    getParticipantTracker()[*index][0].getTemperatureProperty().getCurrentTemperature();
+                setParticipantTemperatureThresholdNotification(getParticipantTracker()[*index], currentTemperature);
+                notifyPlatformOfDeviceTemperature(getParticipantTracker()[*index], currentTemperature);
+                takeThermalActionForTarget(*index);
+            }
         }
     }
 }
@@ -653,4 +649,32 @@ XmlNode* PassivePolicy::getXmlForPassiveTripPoints() const
         }
     }
     return allStatus;
+}
+
+void PassivePolicy::clearAllSourceControls()
+{
+    vector<UIntN> allIndicies = getParticipantTracker().getAllTrackedIndexes();
+    for (auto index = allIndicies.begin(); index != allIndicies.end(); ++index)
+    {
+        ParticipantProxy& participant = getParticipantTracker()[*index];
+        if (participantIsSourceDevice(participant.getIndex()))
+        {
+            auto domainIndexes = participant.getDomainIndexes();
+            for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+            {
+                DomainProxy& domain = getParticipantTracker()[*index][*domainIndex];
+                domain.clearAllControlKnobRequests();
+                domain.setControlsToMax();
+            }
+        }
+    }
+}
+
+void PassivePolicy::associateAllParticipantsInTrt(ThermalRelationshipTable& trt)
+{
+    vector<UIntN> allParticipants = getParticipantTracker().getAllTrackedIndexes();
+    for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
+    {
+        associateParticipantInTrt(getParticipantTracker()[*index], trt);
+    }
 }

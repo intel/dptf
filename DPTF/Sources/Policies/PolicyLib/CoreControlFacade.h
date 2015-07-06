@@ -41,6 +41,7 @@ public:
     // controls
     Bool supportsCoreControls();
     void initializeControlsIfNeeded();
+    void setControlsToMax();
     void setControl(CoreControlStatus coreControl);
 
     // properties

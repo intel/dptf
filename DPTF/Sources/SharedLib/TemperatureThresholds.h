@@ -26,15 +26,15 @@ class TemperatureThresholds final
 {
 public:
 
-    TemperatureThresholds(Temperature aux0, Temperature aux1, UIntN hysteresis);
+    TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis);
     Temperature getAux0(void) const;
     Temperature getAux1(void) const;
-    UIntN getHysteresis(void) const;
+    Temperature getHysteresis(void) const;
     XmlNode* getXml(void);
 
 private:
 
     Temperature m_aux0;                                             // lower bound in degrees Celsius
     Temperature m_aux1;                                             // upper bound in degrees Celsius
-    UIntN m_hysteresis;
+    Temperature m_hysteresis;
 };

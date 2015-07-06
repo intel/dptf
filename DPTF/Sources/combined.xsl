@@ -1137,28 +1137,44 @@
 
   <!-- Performance Control Set -->
   <xsl:if test="performance_control">
+    <!-- First check to see if the table contains any real frequency data -->
+	<xsl:variable name="total_performance">
+		<xsl:value-of select="sum(performance_control/performance_control_set/performance_control/transition_latency)"/>
+	</xsl:variable>
     <table border="1">
       <tr bgcolor="#00AEEF" colspan="7">
         <th colspan="7">Performance Control Set</th>
       </tr>
       <tr bgcolor="#00AEEF">
         <th>Index</th>
-        <th>Control ID</th>
         <th>Type</th>
-        <th>TDP Power (mW)</th>
-        <th>Performance %</th>
-        <th>Transition Latency (ms)</th>
-        <th>Control Value</th>
+		<xsl:choose>
+			<xsl:when test="$total_performance &gt; 0">
+				<th>Control ID</th>
+				<th>TDP Power (mW)</th>
+				<th>Performance %</th>
+				<th>Transition Latency (ms)</th>
+				<th>Control Value</th>
+			</xsl:when>
+			<xsl:otherwise>
+			</xsl:otherwise>
+		</xsl:choose>
       </tr>
       <xsl:for-each select="performance_control/performance_control_set/performance_control">
       <tr>
         <td align='right'><xsl:value-of select="position() - 1" /></td>
-        <td align='right'><xsl:value-of select="control_id" /></td>
         <td><xsl:value-of select="control_type" /></td>
-        <td align='right'><xsl:value-of select="tdp_power" /></td>
-        <td align='right'><xsl:value-of select="performance_percentage" /></td>
-        <td align='right'><xsl:value-of select="transition_latency" /></td>
-        <td align='right'><xsl:value-of select="control_absolute_value" />&#160;<xsl:value-of select="value_units" /></td>
+		<xsl:choose>
+          <xsl:when test="$total_performance &gt; 0">
+            <td align='right'><xsl:value-of select="control_id" /></td>
+			<td align='right'><xsl:value-of select="tdp_power" /></td>
+			<td align='right'><xsl:value-of select="performance_percentage" /></td>
+			<td align='right'><xsl:value-of select="transition_latency" /></td>
+			<td align='right'><xsl:value-of select="control_absolute_value" />&#160;<xsl:value-of select="value_units" /></td>
+          </xsl:when>
+          <xsl:otherwise>
+          </xsl:otherwise>
+        </xsl:choose>
       </tr>
       </xsl:for-each>
     </table>

@@ -33,6 +33,7 @@ public:
     UIntN targetDeviceIndex() const;
     void associateParticipant(std::string deviceAcpiScope, UIntN deviceIndex);
     void disassociateParticipant(UIntN deviceIndex);
+    Bool operator==(const RelationshipTableEntryBase& baseEntry) const;
 
 private:
 

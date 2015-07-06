@@ -54,12 +54,26 @@ ActiveRelationshipTable PolicyServicesPlatformConfigurationData::getActiveRelati
     DptfMemory binaryData;
     binaryData.allocate(Constants::DefaultBufferSize, true);
 
-    getEsifServices()->primitiveExecuteGet(
-        esif_primitive_type::GET_ACTIVE_RELATIONSHIP_TABLE,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength);
+    try
+    {
+        getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_ACTIVE_RELATIONSHIP_TABLE,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_ACTIVE_RELATIONSHIP_TABLE,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength);
+    }
 
     ActiveRelationshipTable art(BinaryParse::activeArtObject(dataLength, binaryData));
 
@@ -76,12 +90,26 @@ ThermalRelationshipTable PolicyServicesPlatformConfigurationData::getThermalRela
     DptfMemory binaryData;
     binaryData.allocate(Constants::DefaultBufferSize, true);
 
-    getEsifServices()->primitiveExecuteGet(
-        esif_primitive_type::GET_THERMAL_RELATIONSHIP_TABLE,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength);
+    try
+    {
+        getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_THERMAL_RELATIONSHIP_TABLE,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_THERMAL_RELATIONSHIP_TABLE,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength);
+    }
 
     ThermalRelationshipTable trt(BinaryParse::passiveTrtObject(dataLength, binaryData));
 
@@ -119,7 +147,20 @@ LpmTable PolicyServicesPlatformConfigurationData::getLpmTable(void)
             );
 
         lpmTable = BinaryParse::lpmTableObject(dataLength, binaryData);
+    }
+    catch (buffer_too_small e)
+    {
         binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_LPM_TABLE,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength
+            );
+
+        lpmTable = BinaryParse::lpmTableObject(dataLength, binaryData);
     }
     catch (...)
     {
@@ -130,6 +171,7 @@ LpmTable PolicyServicesPlatformConfigurationData::getLpmTable(void)
         lpmTable = LpmTable(LpmConfigurationVersion::v1, vector<LpmEntry>());
     }
 
+    binaryData.deallocate();
     return (lpmTable);
 }
 

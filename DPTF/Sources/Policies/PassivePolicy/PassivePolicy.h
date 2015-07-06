@@ -80,10 +80,12 @@ private:
     void takeThermalActionForAllTargetsForSource(UIntN source);
     void takeThermalActionForTarget(UIntN target);
     void removeAllRequestsForTarget(UIntN target);
+    void clearAllSourceControls();
     
     // TRT actions
-    void associateParticipantInTrt(ParticipantProxy& trackedParticipants);
+    void associateParticipantInTrt(ParticipantProxy& participant, ThermalRelationshipTable& trt);
     void reloadTrtAndCheckAllTargets();
+    void associateAllParticipantsInTrt(ThermalRelationshipTable& trt);
 
     // temperature notification actions
     void notifyPlatformOfDeviceTemperature(ParticipantProxy& participant, UIntN currentTemperature);

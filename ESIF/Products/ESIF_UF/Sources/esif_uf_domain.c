@@ -38,6 +38,8 @@
 #include "win\banned.h"
 #endif
 
+#define PERF_STATE_POLL_PERIOD 3000  /* msec to poll perf state (will detect AC/DC change) */
+
 static Bool EsifUpDomain_IsTempOutOfThresholds(
 	EsifUpDomainPtr self,
 	UInt32 temp
@@ -74,7 +76,15 @@ static eEsifError EsifUpDomain_StartTempPollPriv(
 	EsifUpDomainPtr self
 	);
 
+static eEsifError EsifUpDomain_StartStatePollPriv(
+	EsifUpDomainPtr self
+	);
+
 static void EsifUpDomain_PollTemp(
+	const void *ctx
+	);
+
+static void EsifUpDomain_PollState(
 	const void *ctx
 	);
 
@@ -110,7 +120,7 @@ eEsifError EsifUpDomain_InitDomain(
 	esif_ccb_strcpy(self->participantName, EsifUp_GetName(upPtr), sizeof(self->participantName));
 
 	esif_ccb_lock_init(&self->tempLock);
-
+	
 exit:
 	return rc;
 }
@@ -138,10 +148,13 @@ eEsifError EsifUpDomain_DspReadyInit(
 		goto exit;
 	}
 	
+/* Perf state detection handled in upper framework for Sysfs model */
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	rc = EsifUpDomain_StateDetectInit(self);
 	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED)) {
 		goto exit;
 	}
+#endif
 exit:
 	return rc;
 }
@@ -240,10 +253,10 @@ static eEsifError EsifUpDomain_StateDetectInit(
 	eEsifError rc = ESIF_OK;
 	UInt32 stateValue = ESIF_DOMAIN_STATE_INVALID;
 	EsifPrimitiveTuple stateTuple = {GET_PARTICIPANT_PERF_PRESENT_CAPABILITY, 0, 255};
-	EsifData stateData = { ESIF_DATA_TEMPERATURE, &stateValue, sizeof(stateValue), 0 };
+	EsifData stateData = { ESIF_DATA_UINT32, &stateValue, sizeof(stateValue), 0 };
 
 	ESIF_ASSERT(self != NULL);
-
+	
 	self->lastState = ESIF_DOMAIN_STATE_INVALID;
 	
 	if (!(self->capabilities & ESIF_CAPABILITY_PERF_CONTROL)) {
@@ -263,8 +276,15 @@ static eEsifError EsifUpDomain_StateDetectInit(
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
 	}
+	else {
+		ESIF_TRACE_DEBUG("%s %s: Starting poll of performance state. \n",
+			self->participantName,
+			self->domainStr);
+		EsifUpDomain_SetStatePollPeriod(self, PERF_STATE_POLL_PERIOD);
+	}
 
 	self->lastState = stateValue;
+	
 exit:
 	return rc;
 }
@@ -521,6 +541,10 @@ eEsifError EsifUpDomain_CheckState(EsifUpDomainPtr self)
 	EsifPrimitiveTuple stateTuple = {GET_PARTICIPANT_PERF_PRESENT_CAPABILITY, 0, 255};
 	struct esif_data stateResponse = { ESIF_DATA_UINT32, &state, sizeof(state), 0 };
 
+	ESIF_TRACE_DEBUG("%s %s: Polled performance state. \n",
+		self->participantName,
+		self->domainStr);
+
 	stateTuple.domain = self->domain;
 	rc = EsifUp_ExecutePrimitive(self->upPtr, &stateTuple, NULL, &stateResponse);
 	if (rc != ESIF_OK) {
@@ -535,6 +559,33 @@ eEsifError EsifUpDomain_CheckState(EsifUpDomainPtr self)
 exit:
 	return rc;
 }
+
+static void EsifUpDomain_PollState(
+	const void *ctx
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpDomainPtr self = (EsifUpDomainPtr) ctx;
+	
+	if (self == NULL) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CheckState(self);
+
+	/* If another type of polling was started, skip the timer reset */
+	if (self->statePollType != ESIF_POLL_DOMAIN) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_StartStatePollPriv(self);
+exit:
+	
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Unable to set poll timer on %s %s : %s(%d)\n", self->participantName, self->domainName, esif_rc_str(rc), rc);
+	}
+}
+
 
 static void EsifUpDomain_PollTemp(
 	const void *ctx
@@ -635,6 +686,53 @@ exit:
 	return rc;
 }
 
+static eEsifError EsifUpDomain_StartStatePollPriv(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+
+	/* Skip if another type of polling is started */
+	if (self->statePollType != ESIF_POLL_NONE && self->statePollType != ESIF_POLL_DOMAIN) {
+		goto exit;
+	}
+
+	/* Skip if the poll period is invalid */
+	if (self->statePollPeriod <= 0) {
+		ESIF_TRACE_DEBUG(
+			"%s %s: Skipping perf state poll due to invalid period: %d. \n",
+			self->participantName,
+			self->domainName,
+			self->statePollPeriod);
+		goto exit;
+	}
+
+	if (!self->statePollInitialized == ESIF_TRUE) {
+
+		ESIF_TRACE_DEBUG(
+			"%s %s: Starting perf state polling\n",
+			self->participantName,
+			self->domainName);
+
+		rc = esif_ccb_timer_init(&self->statePollTimer, (esif_ccb_timer_cb) EsifUpDomain_PollState, self);
+		if (ESIF_OK != rc)
+			goto exit;
+
+		self->statePollInitialized = ESIF_TRUE;
+		self->statePollType = ESIF_POLL_DOMAIN;
+	}
+	
+	rc = esif_ccb_timer_set_msec(&self->statePollTimer, self->statePollPeriod);
+	
+exit:
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_ERROR("Error with setting uf poll timer: %s(%d)\n", esif_rc_str(rc), rc);
+	}
+	return rc;
+}
+
 static Bool EsifUpDomain_IsTempOutOfThresholds(
 	EsifUpDomainPtr self,
 	UInt32 temp
@@ -725,6 +823,32 @@ eEsifError EsifUpDomain_SetTempPollPeriod(
 	return rc;
 }
 
+eEsifError EsifUpDomain_SetStatePollPeriod(
+	EsifUpDomainPtr self,
+	UInt32 sampleTime
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+
+	if (sampleTime <= 0) {
+		ESIF_TRACE_ERROR("Invalid time period attempted for perf state poll. \n");
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	self->statePollPeriod = sampleTime;
+	rc = EsifUpDomain_StartStatePollPriv(self);
+	
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_ERROR("Error with setting uf poll timer: %s(%d)\n", esif_rc_str(rc), rc);
+		goto exit;
+	}
+exit:
+	return rc;
+}
+
 void EsifUpDomain_SetVirtualTemperature(
 	EsifUpDomainPtr self,
 	UInt32 virtTemp
@@ -739,6 +863,22 @@ void EsifUpDomain_SetVirtualTemperature(
 	}
 
 	return;
+}
+
+eEsifError EsifUpDomain_SetTempHysteresis(
+	EsifUpDomainPtr self,
+	esif_temp_t tempHysteresis
+	)
+{
+	ESIF_ASSERT(self != NULL);
+
+	esif_ccb_write_lock(&self->tempLock);
+
+	self->tempHysteresis = tempHysteresis;
+	self->tempAux0WHyst = EsifUpDomain_CalcAux0WHyst(self, self->tempAux0);
+
+	esif_ccb_write_unlock(&self->tempLock);
+	return ESIF_OK;
 }
 
 /*****************************************************************************/

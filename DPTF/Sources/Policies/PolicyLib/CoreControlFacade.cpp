@@ -125,3 +125,12 @@ void CoreControlFacade::initializeControlsIfNeeded()
             PolicyMessage(FLF, "Core control initialization finished."));
     }
 }
+
+void CoreControlFacade::setControlsToMax()
+{
+    if (supportsCoreControls())
+    {
+        CoreControlDynamicCaps caps = getDynamicCapabilities();
+        setControl(CoreControlStatus(caps.getMaxActiveCores()));
+    }
+}

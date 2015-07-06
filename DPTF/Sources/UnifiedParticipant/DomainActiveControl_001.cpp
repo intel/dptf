@@ -130,13 +130,28 @@ void DomainActiveControl_001::createActiveControlStaticCaps(UIntN domainIndex)
     UInt32 dataLength = 0;
     DptfMemory binaryData(Constants::DefaultBufferSize);
 
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_FAN_INFORMATION,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+    try
+    {
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_FAN_INFORMATION,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_FAN_INFORMATION,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
 
     m_activeControlStaticCaps = BinaryParse::fanFifObject(dataLength, binaryData);
 
@@ -148,13 +163,29 @@ void DomainActiveControl_001::createActiveControlStatus(UIntN domainIndex)
     UInt32 dataLength = 0;
     DptfMemory binaryData(Constants::DefaultBufferSize);
 
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_FAN_STATUS,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+    try
+    {
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_FAN_STATUS,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_FAN_STATUS,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+
 
     m_activeControlStatus = BinaryParse::fanFstObject(dataLength, binaryData);
 
@@ -167,13 +198,28 @@ void DomainActiveControl_001::createActiveControlSet(UIntN domainIndex)
     DptfMemory binaryData(Constants::DefaultBufferSize);
 
     // Build _FPS table
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_FAN_PERFORMANCE_STATES,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+    try
+    {
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_FAN_PERFORMANCE_STATES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_FAN_PERFORMANCE_STATES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
 
     m_activeControlSet = new ActiveControlSet(BinaryParse::fanFpsObject(dataLength, binaryData));
 

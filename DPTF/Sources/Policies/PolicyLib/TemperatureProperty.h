@@ -39,6 +39,7 @@ public:
     void setTemperatureNotificationThresholds(const Temperature& lowerBound, const Temperature& upperBound);
     TemperatureThresholds getTemperatureNotificationThresholds();
     virtual Bool supportsProperty() override;
+    void refreshHysteresis();
 
 private:
 

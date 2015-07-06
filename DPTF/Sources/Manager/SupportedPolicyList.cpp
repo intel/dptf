@@ -73,12 +73,26 @@ void SupportedPolicyList::createSupportedPolicyList(void)
     DptfMemory binaryData;
     binaryData.allocate(Constants::DefaultBufferSize, true);
 
-    m_dptfManager->getEsifServices()->primitiveExecuteGet(
-        esif_primitive_type::GET_SUPPORTED_POLICIES,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength);
+    try
+    {
+        m_dptfManager->getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_SUPPORTED_POLICIES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_dptfManager->getEsifServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_SUPPORTED_POLICIES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength);
+    }
 
     if ((dataLength % sizeof(AcpiEsifGuid)) != 0)
     {

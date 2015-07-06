@@ -52,6 +52,15 @@ std::set<UIntN> TargetMonitor::getMonitoredTargets() const
     return m_targetsMonitored;
 }
 
+void TargetMonitor::stopMonitoringAll()
+{
+    auto targetsCopy = m_targetsMonitored;
+    for (auto target = targetsCopy.begin(); target != targetsCopy.end(); target++)
+    {
+        stopMonitoring(*target);
+    }
+}
+
 XmlNode* TargetMonitor::getXml() const
 {
     XmlNode* node = XmlNode::createWrapperElement("target_monitor");

@@ -315,13 +315,28 @@ void DomainPerformanceControl_002::initializePerformanceControlSetIfNull(UIntN d
         UInt32 dataLength = 0;
         DptfMemory binaryData(Constants::DefaultBufferSize);
 
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_PROC_PERF_SUPPORT_STATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
+        try
+        {
+            m_participantServicesInterface->primitiveExecuteGet(
+                esif_primitive_type::GET_PROC_PERF_SUPPORT_STATES,
+                ESIF_DATA_BINARY,
+                binaryData,
+                binaryData.getSize(),
+                &dataLength,
+                domainIndex);
+        }
+        catch (buffer_too_small e)
+        {
+            binaryData.deallocate();
+            binaryData.allocate(e.getNeededBufferSize(), true);
+            m_participantServicesInterface->primitiveExecuteGet(
+                esif_primitive_type::GET_PROC_PERF_SUPPORT_STATES,
+                ESIF_DATA_BINARY,
+                binaryData,
+                binaryData.getSize(),
+                &dataLength,
+                domainIndex);
+        }
 
         try
         {
@@ -344,6 +359,20 @@ void DomainPerformanceControl_002::initializePerformanceControlSetIfNull(UIntN d
             try
             {
                 binaryData.allocate(Constants::DefaultBufferSize, true);
+                m_participantServicesInterface->primitiveExecuteGet(
+                    esif_primitive_type::GET_TSTATES,
+                    ESIF_DATA_BINARY,
+                    binaryData,
+                    binaryData.getSize(),
+                    &dataLength,
+                    domainIndex);
+                m_throttlingStateSet = BinaryParse::processorTssObject(m_performanceStateSet.back(), dataLength, binaryData);
+                binaryData.deallocate();
+            }
+            catch (buffer_too_small e)
+            {
+                binaryData.deallocate();
+                binaryData.allocate(e.getNeededBufferSize(), true);
                 m_participantServicesInterface->primitiveExecuteGet(
                     esif_primitive_type::GET_TSTATES,
                     ESIF_DATA_BINARY,

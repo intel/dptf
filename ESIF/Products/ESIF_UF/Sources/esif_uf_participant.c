@@ -813,8 +813,11 @@ eEsifError EsifUp_ResumeParticipant(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	UInt32 domainCount;
-	UInt32 domainIndex;
+	UInt32 domainCount = 0;
+	UInt32 domainIndex = 0;
+	UInt32 powerValue = 0;
+	EsifPrimitiveTuple powerTuple = {GET_RAPL_POWER, 0, 255};
+	EsifData powerData = { ESIF_DATA_POWER, &powerValue, sizeof(powerValue), 0 };
 
 	if ((NULL == self) ||
 		(NULL == self->fDspPtr) ||
@@ -825,7 +828,15 @@ eEsifError EsifUp_ResumeParticipant(
 
 	domainCount = self->fDspPtr->get_domain_count(self->fDspPtr);
 
+	ESIF_TRACE_INFO("Issue extra GET_RAPL_POWER primitives upon resume to reset power readings\n");
 	for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
+		esif_flags_t capabilities = self->domains[domainIndex].capabilities;
+		if (capabilities & ESIF_CAPABILITY_POWER_STATUS) {
+			// Ignore return code of GET_RAPL_POWER since domains from generic 
+			// participant may not implement this primitive
+			powerTuple.domain = self->domains[domainIndex].domain;
+			EsifUp_ExecutePrimitive(self, &powerTuple, NULL, &powerData);
+		}
 	}
 
 exit:

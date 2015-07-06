@@ -33,6 +33,7 @@ public:
     void stopMonitoring(UIntN target);
     Bool isMonitoring(UIntN target);
     std::set<UIntN> getMonitoredTargets() const;
+    void stopMonitoringAll();
     XmlNode* getXml() const;
 
 private:

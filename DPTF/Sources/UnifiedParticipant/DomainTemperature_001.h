@@ -49,5 +49,5 @@ private:
     DomainTemperature_001& operator=(const DomainTemperature_001& rhs);
 
     Temperature getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber);
-    UIntN getHysteresis(UIntN domainIndex);
+    Temperature getHysteresis(UIntN domainIndex);
 };

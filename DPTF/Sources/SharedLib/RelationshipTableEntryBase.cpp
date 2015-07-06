@@ -77,3 +77,9 @@ void RelationshipTableEntryBase::disassociateParticipant(UIntN deviceIndex)
         m_targetDeviceIndex = Constants::Invalid;
     }
 }
+
+Bool RelationshipTableEntryBase::operator==(const RelationshipTableEntryBase& baseEntry) const
+{
+    return ((m_sourceDeviceAcpiScope == baseEntry.m_sourceDeviceAcpiScope) && (m_sourceDeviceIndex == baseEntry.m_sourceDeviceIndex)
+        && (m_targetDeviceAcpiScope == baseEntry.m_targetDeviceAcpiScope) && (m_targetDeviceIndex == baseEntry.m_targetDeviceIndex));
+}

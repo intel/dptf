@@ -120,3 +120,12 @@ void PerformanceControlFacade::initializeControlsIfNeeded()
             PolicyMessage(FLF, "Performance control initialization finished."));
     }
 }
+
+void PerformanceControlFacade::setControlsToMax()
+{
+    if (supportsPerformanceControls())
+    {
+        const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
+        setControl(caps.getCurrentUpperLimitIndex());
+    }
+}

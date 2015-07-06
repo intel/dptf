@@ -202,6 +202,33 @@ void DomainProxy::initializeControls()
     }
 }
 
+void DomainProxy::setControlsToMax()
+{
+    try
+    {
+        m_performanceControl->setControlsToMax();
+    }
+    catch (...)
+    {
+    }
+
+    try
+    {
+        m_powerControl->setControlsToMax();
+    }
+    catch (...)
+    {
+    }
+
+    try
+    {
+        m_coreControl->setControlsToMax();
+    }
+    catch (...)
+    {
+    }
+}
+
 void DomainProxy::requestLimit(UIntN target)
 {
     // attempt to limit each control in turn.  if any is not supported or has a problem, it will return "true" and the
@@ -556,6 +583,14 @@ void DomainProxy::clearAllCoreControlRequests()
 void DomainProxy::clearAllDisplayControlRequests()
 {
     m_displayControlKnob->clearAllRequests();
+}
+
+void DomainProxy::clearAllControlKnobRequests()
+{
+    clearAllPerformanceControlRequests();
+    clearAllPowerControlRequests();
+    clearAllCoreControlRequests();
+    clearAllDisplayControlRequests();
 }
 
 XmlNode* DomainProxy::getXmlForPassiveControlKnobs()

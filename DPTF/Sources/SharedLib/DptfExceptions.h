@@ -21,6 +21,7 @@
 // Do not include Dptf.h
 
 #include "DptfExport.h"
+#include "BasicTypes.h"
 #include <stdexcept>
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -52,7 +53,11 @@ class buffer_too_small : public dptf_exception
 {
 public:
 
-    buffer_too_small(const std::string& description);
+    buffer_too_small(const std::string& description, UInt32 neededBufferSize);
+    UInt32 getNeededBufferSize();
+
+private:
+    UInt32 m_neededBufferSize;
 };
 
 class primitive_execution_failed : public dptf_exception

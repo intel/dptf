@@ -41,6 +41,8 @@ public:
     UInt64 getSampleTimeForRelationship(UIntN target, UIntN source) const;
 
     XmlNode* getXml();
+    Bool operator==(const ThermalRelationshipTable& trt) const;
+    Bool operator!=(const ThermalRelationshipTable& trt) const;
 
 protected:
 

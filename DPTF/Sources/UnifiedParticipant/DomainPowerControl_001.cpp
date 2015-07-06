@@ -162,13 +162,29 @@ void DomainPowerControl_001::initializePowerControlDynamicCapsSetIfNull(UIntN do
     {
         UInt32 dataLength = 0;
         DptfMemory binaryData(Constants::DefaultBufferSize);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
+
+        try
+        {
+            m_participantServicesInterface->primitiveExecuteGet(
+                esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES,
+                ESIF_DATA_BINARY,
+                binaryData,
+                binaryData.getSize(),
+                &dataLength,
+                domainIndex);
+        }
+        catch (buffer_too_small e)
+        {
+            binaryData.deallocate();
+            binaryData.allocate(e.getNeededBufferSize(), true);
+            m_participantServicesInterface->primitiveExecuteGet(
+                esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES,
+                ESIF_DATA_BINARY,
+                binaryData,
+                binaryData.getSize(),
+                &dataLength,
+                domainIndex);
+        }
 
         PowerControlDynamicCapsSet dynamicCapsSetFromControl(BinaryParse::processorPpccObject(dataLength, binaryData));
         m_powerControlDynamicCaps = new PowerControlDynamicCapsSet(getAdjustedDynamicCapsBasedOnConfigTdpMaxLimit(

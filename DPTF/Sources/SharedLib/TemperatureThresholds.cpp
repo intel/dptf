@@ -21,7 +21,7 @@
 #include "StatusFormat.h"
 using namespace StatusFormat;
 
-TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1, UIntN hysteresis) :
+TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis) :
     m_aux0(aux0), m_aux1(aux1), m_hysteresis(hysteresis)
 {
     // FIXME: this needs to be added back later
@@ -45,7 +45,7 @@ Temperature TemperatureThresholds::getAux1(void) const
     return m_aux1;
 }
 
-UIntN TemperatureThresholds::getHysteresis(void) const
+Temperature TemperatureThresholds::getHysteresis(void) const
 {
     return m_hysteresis;
 }
@@ -56,7 +56,7 @@ XmlNode* TemperatureThresholds::getXml(void)
 
     root->addChild(XmlNode::createDataElement("aux0", getAux0().toString()));
     root->addChild(XmlNode::createDataElement("aux1", getAux1().toString()));
-    root->addChild(XmlNode::createDataElement("hysteresis", StatusFormat::friendlyValue(m_hysteresis)));
+    root->addChild(XmlNode::createDataElement("hysteresis", getHysteresis().toString()));
 
     return root;
 }

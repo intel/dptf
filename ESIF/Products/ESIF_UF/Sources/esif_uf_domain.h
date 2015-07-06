@@ -81,7 +81,12 @@ typedef struct EsifUpDomain_s {
 	esif_ccb_time_t lastPowerTime;		/* time of last power sample in microseconds */
 	EsifDomainPollTypeId powerPollType;	/* Single threaded, multi threaded, or none */
 	UInt32 lastState;					/* check perf participants for state change */
+	/* Perf state detection */
+	esif_ccb_lock_t stateLock;
+	esif_ccb_timer_t statePollTimer;	/* Timer for polling participant for state change  */
+	UInt32 statePollPeriod;				/* Perf state polling interval: 0-disabled */
 	EsifDomainPollTypeId statePollType;	/* Single threaded, multi threaded, or none */
+	UInt8 statePollInitialized;
 } EsifUpDomain, *EsifUpDomainPtr;
 
 #ifdef __cplusplus
@@ -133,11 +138,20 @@ eEsifError EsifUpDomain_SetTempPollPeriod(
 	UInt32 sampleTime
 	);
 
+eEsifError EsifUpDomain_SetStatePollPeriod(
+	EsifUpDomainPtr self,
+	UInt32 sampleTime
+	);
+
 void EsifUpDomain_SetVirtualTemperature(
 	EsifUpDomainPtr self,
 	UInt32 virtTemp
 	);
 
+eEsifError EsifUpDomain_SetTempHysteresis(
+	EsifUpDomainPtr self,
+	esif_temp_t tempHysteresis
+	);
 
 #ifdef __cplusplus
 }

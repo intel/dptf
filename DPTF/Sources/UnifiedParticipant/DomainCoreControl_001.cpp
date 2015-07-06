@@ -152,6 +152,18 @@ void DomainCoreControl_001::createCoreControlLpoPreferenceIfNeeded(UIntN domainI
                 &dataLength,
                 domainIndex);
         }
+        catch (buffer_too_small e)
+        {
+            binaryData.deallocate();
+            binaryData.allocate(e.getNeededBufferSize(), true);
+            m_participantServicesInterface->primitiveExecuteGet(
+                esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING,
+                ESIF_DATA_BINARY,
+                binaryData,
+                binaryData.getSize(),
+                &dataLength,
+                domainIndex);
+        }
         catch (...)
         {
             m_participantServicesInterface->writeMessageWarning(

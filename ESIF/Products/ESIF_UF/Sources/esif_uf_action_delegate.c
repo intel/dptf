@@ -63,6 +63,10 @@ static eEsifError EsifGetActionDelegateGddv(
 	EsifDataPtr responsePtr
 	);
 
+static eEsifError EsifSetActionDelegateSphb(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr);
+	
 static eEsifError EsifSetActionDelegatePat0(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr);
@@ -199,14 +203,19 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegatePat1(domainPtr, requestPtr);
 		break;
 
-	case 'BSPS': /* Participant Sample Behavior */
-		ESIF_TRACE_INFO("Set Sample Behavior  received\n");
+	case 'BSPS':	/* SPSB: Set Participant Sample Behavior */
+		ESIF_TRACE_INFO("Set Sample Behavior received\n");
 		rc = EsifSetActionDelegateSampleBehavior(domainPtr, requestPtr);
 		break;
 
-	case 'PMTV': /* Virtual Temperature */
+	case 'PMTV':	/* VTMP: Virtual Temperature */
 		ESIF_TRACE_INFO("Set Virtual Temperature received\n");
 		rc = EsifSetActionDelegateVirtualTemperature(domainPtr, requestPtr);
+		break;
+
+	case 'BHPS':	/* SPHB: Set Participant Hysteresis Behavior */
+		ESIF_TRACE_INFO("Set Participant Hysteresis Behavior received\n");
+		rc = EsifSetActionDelegateSphb(domainPtr, requestPtr);
 		break;
 
 	default:
@@ -232,12 +241,37 @@ static eEsifError EsifGetActionDelegateTemp(
 	return EsifUp_ExecutePrimitive(domainPtr->upPtr, &tempTuple, requestPtr, responsePtr);
 }
 
+static eEsifError EsifSetActionDelegateSphb(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr)
+{
+	eEsifError rc = ESIF_OK;
+	u32 tempHysteresis = ESIF_DOMAIN_TEMP_INVALID;
+
+	ESIF_ASSERT(domainPtr != NULL);
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if (requestPtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	tempHysteresis = *(u32 *)requestPtr->buf_ptr;
+
+	rc = EsifUpDomain_SetTempHysteresis(domainPtr, tempHysteresis);
+
+	ESIF_TRACE_DEBUG("Setting Hysterisis = %d\n", tempHysteresis);
+
+exit:
+	return rc;
+}
+
 static eEsifError EsifSetActionDelegatePat0(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr)
 {
 	eEsifError rc = ESIF_OK;
-	EsifPrimitiveTuple auxTuple = {SET_TEMPERATURE_THRESHOLDS_SUR, 0, (UInt8)ESIF_DOMAIN_AUX0};
+	EsifPrimitiveTuple auxTuple = { SET_TEMPERATURE_THRESHOLDS_SUR, 0, (UInt8)ESIF_DOMAIN_AUX0 };
 	u32 tempThreshold = ESIF_DOMAIN_TEMP_INVALID;
 
 	ESIF_ASSERT(domainPtr != NULL);
@@ -248,7 +282,7 @@ static eEsifError EsifSetActionDelegatePat0(
 		goto exit;
 	}
 
-	tempThreshold = *(u32 *) requestPtr->buf_ptr;
+	tempThreshold = *(u32 *)requestPtr->buf_ptr;
 
 	ESIF_TRACE_DEBUG("Setting AUX0 = %d\n", tempThreshold);
 

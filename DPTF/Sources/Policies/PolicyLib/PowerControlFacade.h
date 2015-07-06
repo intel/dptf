@@ -41,6 +41,7 @@ public:
     // controls
     Bool supportsPowerControls();
     void initializeControlsIfNeeded();
+    void setControlsToMax();
     void setControl(const PowerControlStatus& powerControlStatus, UIntN controlSetIndex);
 
     // properties

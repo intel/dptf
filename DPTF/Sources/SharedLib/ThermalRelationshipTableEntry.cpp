@@ -52,3 +52,9 @@ XmlNode* ThermalRelationshipTableEntry::getXml()
     entry->addChild(XmlNode::createDataElement("sampling_period", friendlyValue(m_thermalSamplingPeriod / 10)));
     return entry;
 }
+
+Bool ThermalRelationshipTableEntry::operator==(const ThermalRelationshipTableEntry& trtEntry) const
+{
+    return ((m_thermalInfluence == trtEntry.m_thermalInfluence) && (m_thermalSamplingPeriod == trtEntry.m_thermalSamplingPeriod)
+        && ((RelationshipTableEntryBase)*this) == ((RelationshipTableEntryBase)trtEntry));
+}

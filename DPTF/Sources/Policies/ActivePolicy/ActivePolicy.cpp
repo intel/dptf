@@ -202,7 +202,9 @@ void ActivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Specific info changed for target participant.", participantIndex));
-        getParticipantTracker()[participantIndex].getActiveTripPointProperty().refresh();
+        ParticipantProxy& participant = getParticipantTracker()[participantIndex];
+        participant.getActiveTripPointProperty().refresh();
+        participant.refreshHysteresis();
         coolTargetParticipant(getParticipantTracker()[participantIndex]);
     }
 }

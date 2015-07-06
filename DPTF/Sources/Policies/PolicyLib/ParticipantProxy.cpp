@@ -321,3 +321,14 @@ XmlNode* ParticipantProxy::getXmlForConfigTdpLevel()
     }
     return status;
 }
+
+void ParticipantProxy::refreshHysteresis()
+{
+    for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+    {
+        if (domain->second.getTemperatureProperty().supportsProperty())
+        {
+            domain->second.getTemperatureProperty().refreshHysteresis();
+        }
+    }
+}

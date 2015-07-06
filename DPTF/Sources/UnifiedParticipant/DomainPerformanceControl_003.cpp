@@ -91,13 +91,28 @@ void DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex
     DptfMemory binaryData(Constants::DefaultBufferSize);
 
     //Build GFX performance table
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_PERF_SUPPORT_STATES,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+    try
+    {
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_PERF_SUPPORT_STATES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_PERF_SUPPORT_STATES,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
 
     m_performanceControlSet = new PerformanceControlSet(BinaryParse::processorGfxPstates(dataLength, binaryData));
 

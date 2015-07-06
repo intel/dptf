@@ -25,7 +25,7 @@ TemperatureProperty::TemperatureProperty(
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
     : DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_lastThresholdsSet(Temperature::createInvalid(), Temperature::createInvalid(), Constants::Invalid),
+    m_lastThresholdsSet(Temperature::createInvalid(), Temperature::createInvalid(), Temperature::createInvalid()),
     m_lastThresholdsSetValid(false)
 {
 }
@@ -84,4 +84,13 @@ void TemperatureProperty::updateThresholdsIfRequired()
 Bool TemperatureProperty::supportsProperty()
 {
     return getDomainProperties().implementsTemperatureInterface();
+}
+
+void TemperatureProperty::refreshHysteresis()
+{
+    if (supportsProperty())
+    {
+        m_lastThresholdsSetValid = false;
+        updateThresholdsIfRequired();
+    }
 }

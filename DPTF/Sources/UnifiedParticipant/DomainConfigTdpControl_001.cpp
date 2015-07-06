@@ -148,13 +148,30 @@ void DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
     // Build TDPL table
     UInt32 dataLength = 0;
     DptfMemory binaryData(Constants::DefaultBufferSize);
-    m_participantServicesInterface->primitiveExecuteGet(
-        esif_primitive_type::GET_PROC_CTDP_POINT_LIST,
-        ESIF_DATA_BINARY,
-        binaryData,
-        binaryData.getSize(),
-        &dataLength,
-        domainIndex);
+
+    try
+    {
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_PROC_CTDP_POINT_LIST,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+    catch (buffer_too_small e)
+    {
+        binaryData.deallocate();
+        binaryData.allocate(e.getNeededBufferSize(), true);
+        m_participantServicesInterface->primitiveExecuteGet(
+            esif_primitive_type::GET_PROC_CTDP_POINT_LIST,
+            ESIF_DATA_BINARY,
+            binaryData,
+            binaryData.getSize(),
+            &dataLength,
+            domainIndex);
+    }
+
     std::vector<ConfigTdpControl> controls = BinaryParse::processorTdplObject(dataLength, binaryData);
     binaryData.deallocate();
 

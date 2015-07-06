@@ -44,6 +44,7 @@ public:
     Bool supportsPerformanceControls();
     void initializeControlsIfNeeded();
     void setControl(UIntN performanceControlIndex);
+    void setControlsToMax();
 
     // properties
     void refreshCapabilities();

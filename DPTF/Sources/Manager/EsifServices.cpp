@@ -389,6 +389,11 @@ void EsifServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifData, primitive, instance);
+
+    if (rc == ESIF_E_NEED_LARGER_BUFFER)
+    {
+        throw buffer_too_small("Need larger buffer.", esifData.getDataLength());
+    }
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 
     *dataLength = esifData.getDataLength();

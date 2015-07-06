@@ -145,3 +145,13 @@ XmlNode* ThermalRelationshipTable::getXml()
     }
     return status;
 }
+
+Bool ThermalRelationshipTable::operator==(const ThermalRelationshipTable& trt) const
+{
+    return (m_entries == trt.m_entries);
+}
+
+Bool ThermalRelationshipTable::operator!=(const ThermalRelationshipTable& trt) const
+{
+    return (m_entries != trt.m_entries);
+}

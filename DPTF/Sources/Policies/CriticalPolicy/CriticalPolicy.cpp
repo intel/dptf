@@ -195,7 +195,9 @@ void CriticalPolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
     if (getParticipantTracker().remembers(participantIndex))
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Specific info changed for participant.", participantIndex));
-        getParticipantTracker()[participantIndex].getCriticalTripPointProperty().refresh();
+        ParticipantProxy& participant = getParticipantTracker()[participantIndex];
+        participant.getCriticalTripPointProperty().refresh();
+        participant.refreshHysteresis();
         if (participantHasDesiredProperties(getParticipantTracker()[participantIndex]))
         {
             takePowerActionBasedOnThermalState(getParticipantTracker()[participantIndex]);

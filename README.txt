@@ -114,12 +114,115 @@ Upon system boot, you should be able to observe the esif_ufd process that has
 been launched by upstart.
 
 -------------------------------------------------------------------------------
+MANUALLY INSTALL DPTF ON UBUNTU LINUX
+-------------------------------------------------------------------------------
+Even though DPTF is not yet officially supported on Linux, users who wish to
+try it on Linux can follow steps below. Please note that these steps apply to
+Ubuntu Linux only, and may vary if your Linux distro is different.
+
+Requirement: DPTF requires corresponding ACPI support in BIOS. Not all
+Intel based platforms support DPTF in BIOS. Please contact your BIOS vendor
+to see if DPTF is enabled in your system.
+
+The 8.1.x version of DPTF also requires 4.0-rc7 kernel or later in order to 
+run properly. To compile the DPTF source code, you need GCC version 4.8 or
+later.
+
+Step 1 - Install CMake tool if you have not installed it on your Linux system:
+
+	sudo apt-get install cmake
+
+Step 2 - Install libreadline if you have not done so already on your Linux
+system:
+
+	sudo apt-get install libreadline6 libreadline6-dev
+
+Step 3 - Go to the Linux subdirectory of DPTF (<DPTF root>/DPTF/Linux/build)
+and run the command:
+
+	cmake ..
+
+This command will invoke cmake and generate all the GNU make files for each 
+sub-modules of DPTF user space libraries. By default this command will 
+generate the make files for 64-bit release version. If you want to build a 
+different flavor, please examine the <DPTF root>/DPTF/Linux/CMakeLists.txt
+to find out what environment variables that you may need to pass to cmake.
+
+Step 4 - Run make to build all DPTF shared libraries.
+
+	make -j`nproc`
+
+The generated shared libraries will be located under 
+<DPTF root>/Products/DPTF/Linux/build/x64 directory. Users can disregard
+the static .a libraries as these static libraries are only used to build the
+shared library. Here is the break down of the generated shared libraries that
+are needed to run DPTF on Linux:
+
+	* Dptf.so
+	* DptfPolicyActive.so
+	* DptfPolicyCritical.so
+	* DptfPolicyPassive.so
+
+Step 5 - Copy the above shared libraries and other DPTF configuration files
+to proper locations on your system:
+
+	sudo mkdir -p /usr/share/dptf/bin
+	sudo cp Dptf*.so /usr/share/dptf/bin
+	sudo cp <DPTF root>/DPTF/Sources/combined.xsl /usr/share/dptf/bin
+	sudo mkdir -p /etc/dptf
+	sudo cp <DPTF root>/ESIF/Packages/DSP/dsp.dv /etc/dptf
+
+Step 6 - Run make under <DPTF root>/ESIF/Products/ESIF_UF/Linux to build
+the esif_ufd executable. This is the main DPTF service executable that loads
+the DPTF policies that you have built in Step 3. After the build is complete,
+you will find the esif_ufd executable generated under the same directory.
+
+Please note that the default make target is a 64-bit release version. If you
+want to build a different flavor, please examine the Makefile under this 
+directory to find out what environment variable you want to pass to Gnu make.
+Please do not alter the default settings for OS, OPT_GMIN and OPT_DBUS 
+environment variables - they are for Chromium OS builds only, and for Linux
+builds, please use the default values.
+
+Step 7 - Copy the DPTF executable to the proper location on your system:
+	sudo cp esif_ufd /usr/bin
+
+Step 8 - Start DPTF. Simply run:
+	sudo /usr/bin/esif_ufd
+
+This executable will run in daemon mode, and DPTF policies will automatically
+be loaded by this executable. You can check the status of the DPTF service
+by running this command:
+
+	pgrep -l esif_ufd
+
+This command will show the active DPTF process ID.
+
+-------------------------------------------------------------------------------
+INSTALL DPTF SERVICE INIT SCRIPT
+-------------------------------------------------------------------------------
+If you want the DPTF service to start automatically upon system boot, assuming
+that you are using upstart init system (which is the case for both Chromium OS
+and Ubuntu), you can simply copy the dptf.conf script to /etc/init:
+
+	sudo cp <DPTF root>/Packages/Installers/chrome/dptf.conf /etc/init/
+
+On next system reboot, DPTF service (esif_ufd) will execute automatically. To
+manually stop the running DPTF service, type:
+
+	sudo initctl stop dptf
+
+To start a stopped service, type:
+
+	sudo initctl start dptf
+
+To restart the DPTF service, type:
+
+	sudo initctl restart dptf
+
+-------------------------------------------------------------------------------
 KNOWN ISSUES / LIMITATIONS
 -------------------------------------------------------------------------------
-* This build may not correctly detect charger's AC/DC change event, and as a
-result, DPTF may not be able to correctly throttle charger's charging rate when
-necessary.
-
 * Testing has only been performed on Intel BayTrail-M and Braswell based
 Chromebook platforms and the 4th generation Intel® Core ™ processor based
 development platforms using the UEFI BIOS.
@@ -127,3 +230,4 @@ development platforms using the UEFI BIOS.
 * Compilation warnings will be noticed during the build for overlays that run
 3.10 kernel. No warnings should be observed though for overlays that are based
 on 3.18 kernel.
+
