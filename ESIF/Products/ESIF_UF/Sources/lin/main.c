@@ -21,6 +21,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/file.h>
 
 #include "esif_uf.h"
 #include "esif_uf_appmgr.h"
