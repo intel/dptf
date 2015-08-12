@@ -50,7 +50,7 @@ CONFIG_INTEL_DPTF_PCH=m	# Set only if overlay has a PCI PCH Reporting device
 CONFIG_IOSF_MBI=y
 
 Step 4 - Check if the overlay of interest has DPTF enabled or not. Edit the 
-src/overlay/overlay-${BOARD}/make.conf and add this line if DPTF is not enabled
+src/overlays/overlay-${BOARD}/make.conf and add this line if DPTF is not enabled
 yet on this overlay:
 
 USE="${USE} dptf"
