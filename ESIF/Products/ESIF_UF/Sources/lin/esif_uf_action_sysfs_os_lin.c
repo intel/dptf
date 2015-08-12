@@ -115,7 +115,7 @@ static int sysfs_get_u64_direct(int fd, u64 *p_u64);
 static int replace_str(char *str, char *old, char *new, char *rpl_buff, int rpl_buff_len);
 static int get_key_value_pair_from_str(const char *str, char *key, char *value);
 static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *table_str);
-static void* get_full_scope_str(char *orig, char *new);
+static void get_full_scope_str(char *orig, char *new);
 static void replace_cpu_id(char *str);
 static u64 GetPowerLimit0MaxUw(void);
 static enum esif_rc get_supported_policies(char *table_str, int idspNum, char *sysfs_str);
@@ -846,7 +846,7 @@ static u64 GetPowerLimit0MaxUw(void)
 // acpi_thermal_rel driver only returns the leaf node strings,
 // DPTF expects full scope, so  prepend source/target stringS
 // with \_UP.CNJR scope namE
-static void* get_full_scope_str(char *orig, char *new)
+static void get_full_scope_str(char *orig, char *new)
 {
         esif_ccb_strcpy(new, "\\_UP.CNJR.", MAX_ACPI_SCOPE_LEN);
         esif_ccb_strcat(new, orig, MAX_ACPI_SCOPE_LEN); // length is total size of buffeR
