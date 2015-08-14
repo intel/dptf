@@ -50,7 +50,7 @@ static int sysfsSetString(char *path, char *filename, char *val);
 static int scanPCI(void);
 static int scanPlat(void);
 static int scanThermal(void);
-static eEsifError newParticipantCreate (
+static void newParticipantCreate (
 	UInt8 version,
 	esif_guid_t classGuid,
 	enum esif_participant_enum enumerator,
@@ -185,7 +185,7 @@ void SysfsRegisterParticipants ()
 	ESIF_TRACE_EXIT_INFO();
 }
 
-static eEsifError newParticipantCreate (
+static void newParticipantCreate (
 	UInt8 version,
 	esif_guid_t classGuid,
 	enum esif_participant_enum enumerator,
