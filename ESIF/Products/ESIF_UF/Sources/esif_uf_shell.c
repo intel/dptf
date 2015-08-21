@@ -25,7 +25,7 @@ extern char *g_esif_etf_version;
 
 char g_esif_kernel_version[64] = "NA";
 
-/* ESIF */
+/* ESIF  headers*/
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_uf_shell.h"	/* Shell / Command Line Interface */
 #include "esif_uf_test.h"	/* Test Framework */
