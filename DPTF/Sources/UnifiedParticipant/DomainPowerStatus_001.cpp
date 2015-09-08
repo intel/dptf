@@ -26,6 +26,11 @@ DomainPowerStatus_001::DomainPowerStatus_001(ParticipantServicesInterface* parti
 
 PowerStatus DomainPowerStatus_001::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
+    m_participantServicesInterface->primitiveExecuteGetAsPower(
+        esif_primitive_type::GET_RAPL_POWER, domainIndex);
+
+    esif_ccb_sleep_msec(250);
+
     Power power = m_participantServicesInterface->primitiveExecuteGetAsPower(
         esif_primitive_type::GET_RAPL_POWER, domainIndex);
 
