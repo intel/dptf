@@ -18,6 +18,7 @@
 
 #include "DomainPowerStatus_001.h"
 #include "XmlNode.h"
+#include "esif_ccb.h"
 
 DomainPowerStatus_001::DomainPowerStatus_001(ParticipantServicesInterface* participantServicesInterface) :
     m_participantServicesInterface(participantServicesInterface)

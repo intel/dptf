@@ -22,8 +22,8 @@
 #define VER_MAJOR_STR   "8"
 #define VER_MINOR        1
 #define VER_MINOR_STR   "1"
-#define VER_HOTFIX       10700
-#define VER_HOTFIX_STR  "10700"
+#define VER_HOTFIX       10701
+#define VER_HOTFIX_STR  "10701"
 #define VER_BUILD       9999
 #define VER_BUILD_STR   "9999"
 
