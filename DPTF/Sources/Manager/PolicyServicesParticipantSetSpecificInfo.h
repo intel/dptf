@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,11 +26,12 @@ class PolicyServicesParticipantSetSpecificInfo final : public PolicyServices, pu
 {
 public:
 
-    PolicyServicesParticipantSetSpecificInfo(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesParticipantSetSpecificInfo(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     // _DTI
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex, const Temperature& temperature) override final;
 
     // _SCP
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex, const CoolingPreference& coolingPreference) override final;
+    virtual void setParticipantCoolingPolicy(UIntN participantIndex,
+        const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override final;
 };

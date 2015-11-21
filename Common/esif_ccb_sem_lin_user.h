@@ -21,6 +21,7 @@
 #if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <semaphore.h>
+#include <pthread.h>
 
 /* Semphore */
 typedef sem_t esif_ccb_sem_t;

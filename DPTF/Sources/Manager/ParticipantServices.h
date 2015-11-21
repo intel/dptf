@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -113,6 +113,17 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 
+    virtual TimeSpan primitiveExecuteGetAsTimeInMilliseconds(
+        esif_primitive_type primitive, 
+        UIntN domainIndex = Constants::Esif::NoDomain, 
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    virtual void primitiveExecuteSetAsTimeInMilliseconds(
+        esif_primitive_type primitive, 
+        TimeSpan time, 
+        UIntN domainIndex = Constants::Esif::NoDomain, 
+        UInt8 instance = Constants::Esif::NoInstance);
+
     virtual std::string primitiveExecuteGetAsString(
         esif_primitive_type primitive,
         UIntN domainIndex = Constants::Esif::NoDomain,
@@ -124,12 +135,9 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 
-    virtual void primitiveExecuteGet(
+    virtual DptfBuffer primitiveExecuteGet(
         esif_primitive_type primitive,
         esif_data_type esifDataType,
-        void* bufferPtr,
-        UInt32 bufferLength,
-        UInt32* dataLength,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 

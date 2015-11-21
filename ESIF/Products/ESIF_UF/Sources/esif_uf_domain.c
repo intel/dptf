@@ -49,11 +49,27 @@ static Bool EsifUpDomain_AnyTempThresholdValid(
 	EsifUpDomainPtr self
 	);
 
+static eEsifError EsifUpDomain_CapDetect(
+	EsifUpDomainPtr self,
+	enum esif_capability_type cap,
+	EsifPrimitiveTuplePtr tuplePtr,
+	EsifDataPtr dataPtr
+	);
+
+static void EsifUpDomain_DisableCap(
+	EsifUpDomainPtr self,
+	enum esif_capability_type cap
+	);
+
 static eEsifError EsifUpDomain_TempDetectInit(
 	EsifUpDomainPtr self
 	);
 
 static eEsifError EsifUpDomain_PowerDetectInit(
+	EsifUpDomainPtr self
+	);
+
+static eEsifError EsifUpDomain_CoreDetectInit(
 	EsifUpDomainPtr self
 	);
 
@@ -112,11 +128,11 @@ eEsifError EsifUpDomain_InitDomain(
 		sizeof(self->domainStr));
 
 	self->domainType = fpcDomainPtr->descriptor.domainType;
-	self->capabilities = fpcDomainPtr->capability_for_domain.capability_flags;
+	esif_ccb_memcpy(&self->capability_for_domain, &fpcDomainPtr->capability_for_domain, sizeof(self->capability_for_domain));
 	esif_ccb_strcpy(self->domainName, fpcDomainPtr->descriptor.name, sizeof(self->domainName));	
 
 	self->upPtr = upPtr;
-	self->participantId = upPtr->fInstance;
+	self->participantId = EsifUp_GetInstance(upPtr);
 	esif_ccb_strcpy(self->participantName, EsifUp_GetName(upPtr), sizeof(self->participantName));
 
 	esif_ccb_lock_init(&self->tempLock);
@@ -139,14 +155,20 @@ eEsifError EsifUpDomain_DspReadyInit(
 	}
 	
 	rc = EsifUpDomain_TempDetectInit(self);
-	if ((rc != ESIF_OK)  && (rc != ESIF_E_NOT_SUPPORTED)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN)) {
 		goto exit;
 	}
 	
 	rc = EsifUpDomain_PowerDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN)) {
 		goto exit;
 	}
+
+	rc = EsifUpDomain_CoreDetectInit(self);
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN)) {
+		goto exit;
+	}
+
 	
 /* Perf state detection handled in upper framework for Sysfs model */
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
@@ -155,6 +177,55 @@ eEsifError EsifUpDomain_DspReadyInit(
 		goto exit;
 	}
 #endif
+exit:
+	return rc;
+}
+
+static void EsifUpDomain_DisableCap(
+	EsifUpDomainPtr self,
+	enum esif_capability_type cap
+	)
+{
+	ESIF_ASSERT(self != NULL);
+	self->capability_for_domain.capability_flags &= ~(1 << cap);
+	self->capability_for_domain.capability_mask[cap] = 0;
+}
+
+static eEsifError EsifUpDomain_CapDetect(
+	EsifUpDomainPtr self,
+	enum esif_capability_type cap,
+	EsifPrimitiveTuplePtr tuplePtr,
+	EsifDataPtr dataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+	ESIF_ASSERT(tuplePtr != NULL);
+	ESIF_ASSERT(dataPtr != NULL);
+
+	tuplePtr->domain = self->domain;
+
+	if (!(self->capability_for_domain.capability_flags & (1 << cap))) {
+		ESIF_TRACE_DEBUG("%s %s: Capability %s is not supported in DSP\n",
+			self->participantName,
+			self->domainStr,
+			esif_capability_type_str(cap));
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+
+	/* Validate the capability */
+	rc = EsifUp_ExecutePrimitive(self->upPtr, tuplePtr, NULL, dataPtr);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		ESIF_TRACE_DEBUG("%s %s: Error validating capability %s . Return code: %s\n",
+			self->participantName,
+			self->domainStr,
+			esif_capability_type_str(cap),
+			esif_rc_str(rc));
+	}
+
 exit:
 	return rc;
 }
@@ -173,22 +244,11 @@ static eEsifError EsifUpDomain_TempDetectInit(
 
 	ESIF_ASSERT(self != NULL);
 
-	if (!(self->capabilities & ESIF_CAPABILITY_TEMP_THRESHOLD)) {
-		ESIF_TRACE_DEBUG("Capability is not supported\n");
-		rc = ESIF_E_NOT_SUPPORTED;
-		self->tempPollType = ESIF_POLL_UNSUPPORTED;
-		goto exit;
-	}
-
-	/* Validate the interface */
-	tempTuple.domain = self->domain;
-	rc = EsifUp_ExecutePrimitive(self->upPtr, &tempTuple, NULL, &tempData);
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_TEMP_STATUS, &tempTuple, &tempData);
 	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
-		ESIF_TRACE_DEBUG("%s %s: Error getting temperature, resetting capabilities to reflect this. \n",
-			self->participantName,
-			self->domainStr);
-		self->capabilities = self->capabilities & ~ESIF_CAPABILITY_TEMP_THRESHOLD;
 		self->tempPollType = ESIF_POLL_UNSUPPORTED;
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_TEMP_STATUS);
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD);
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
 	}
@@ -225,24 +285,32 @@ static eEsifError EsifUpDomain_PowerDetectInit(
 
 	ESIF_ASSERT(self != NULL);
 
-	if (!(self->capabilities & ESIF_CAPABILITY_POWER_STATUS)) {
-		ESIF_TRACE_DEBUG("Capability is not supported\n");
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_POWER_STATUS, &powerTuple, &powerData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_POWER_STATUS);
 		rc = ESIF_E_NOT_SUPPORTED;
-		goto exit;
 	}
 
-	powerTuple.domain = self->domain;
+	return rc;
+}
 
-	rc = EsifUp_ExecutePrimitive(self->upPtr, &powerTuple, NULL, &powerData);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("%s %s: Error getting power. \n",
-			self->participantName,
-			self->domainStr);
+static eEsifError EsifUpDomain_CoreDetectInit(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 coreValue = 0;
+	EsifPrimitiveTuple coreTuple = { GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING, 0, 255 };
+	EsifData coreData = { ESIF_DATA_BINARY, &coreValue, sizeof(coreValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_CORE_CONTROL, &coreTuple, &coreData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_CORE_CONTROL);
 		rc = ESIF_E_NOT_SUPPORTED;
-		goto exit;
 	}
 
-exit:
 	return rc;
 }
 
@@ -258,31 +326,26 @@ static eEsifError EsifUpDomain_StateDetectInit(
 	ESIF_ASSERT(self != NULL);
 	
 	self->lastState = ESIF_DOMAIN_STATE_INVALID;
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &stateTuple, &stateData);
 	
-	if (!(self->capabilities & ESIF_CAPABILITY_PERF_CONTROL)) {
-		ESIF_TRACE_DEBUG("Capability is not supported\n");
-		rc = ESIF_E_NOT_SUPPORTED;
-		self->statePollType = ESIF_POLL_UNSUPPORTED;
-		goto exit;
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+		// Domain may be a processor domain, in this case, we need to
+		// query again but with a different primitive
+		stateTuple.id = GET_PROC_PERF_PRESENT_CAPABILITY;
+		rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &stateTuple, &stateData);
+		if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+			self->statePollType = ESIF_POLL_UNSUPPORTED;
+			EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
+			rc = ESIF_E_NOT_SUPPORTED;
+			goto exit;
+		}
 	}
 
-	stateTuple.domain = self->domain;
-	rc = EsifUp_ExecutePrimitive(self->upPtr, &stateTuple, NULL, &stateData);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("%s %s: Error getting current performance state. \n",
-			self->participantName,
-			self->domainStr);
-		self->statePollType = ESIF_POLL_UNSUPPORTED;
-		rc = ESIF_E_NOT_SUPPORTED;
-		goto exit;
-	}
-	else {
-		ESIF_TRACE_DEBUG("%s %s: Starting poll of performance state. \n",
-			self->participantName,
-			self->domainStr);
-		EsifUpDomain_SetStatePollPeriod(self, PERF_STATE_POLL_PERIOD);
-	}
+	ESIF_TRACE_DEBUG("%s %s: Starting poll of performance state. \n",
+		self->participantName,
+		self->domainStr);
 
+	EsifUpDomain_SetStatePollPeriod(self, PERF_STATE_POLL_PERIOD);
 	self->lastState = stateValue;
 	
 exit:
@@ -452,7 +515,7 @@ eEsifError EsifUpDomain_SetTempThresh(
 		goto exit;
 	}
 
-	if (!(self->capabilities & ESIF_CAPABILITY_TEMP_THRESHOLD)) {
+	if (!(self->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_THRESHOLD)) {
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
 	}
@@ -609,12 +672,7 @@ static void EsifUpDomain_PollTemp(
 		goto exit;
 	}
 
-	if (upPtr->fDspPtr == NULL) {
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-
-	dspPtr = upPtr->fDspPtr;
+	dspPtr = EsifUp_GetDsp(upPtr);
 	if (dspPtr == NULL) {
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
@@ -879,6 +937,79 @@ eEsifError EsifUpDomain_SetTempHysteresis(
 
 	esif_ccb_write_unlock(&self->tempLock);
 	return ESIF_OK;
+}
+
+/*
+* Used to iterate through the available domains.
+* First call EsifUpDomain_InitIterator to initialize the iterator.
+* Next, call EsifUpDomain_GetNextUp using the iterator.  Repeat until
+* EsifUpDomain_GetNextUp fails. The call will release the reference of the
+* associated upper participant.  If you stop iteration part way through
+* all domains of a particular participant, the caller is responsible for 
+* releasing the reference on the associated upper participant.  Iteration\
+* is complete when ESIF_E_ITERATOR_DONE is returned.
+*/
+eEsifError EsifUpDomain_InitIterator(
+	UpDomainIteratorPtr iteratorPtr,
+	struct _t_EsifUp *upPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	if ((NULL == iteratorPtr) || (NULL == upPtr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	esif_ccb_memset(iteratorPtr, 0, sizeof(*iteratorPtr));
+	rc = EsifUp_GetRef(upPtr);
+	if (ESIF_OK != rc) {
+		rc = ESIF_E_NO_CREATE;
+		goto exit;
+	}
+
+	iteratorPtr->upPtr = upPtr;
+	iteratorPtr->marker = UP_DOMAIN_ITERATOR_MARKER;
+exit:
+	return rc;
+}
+
+
+/* See EsifUpDomain_InitIterator for usage */
+eEsifError EsifUpDomain_GetNextUd(
+	UpDomainIteratorPtr iteratorPtr,
+	EsifUpDomainPtr *upDomainPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+
+	if ((NULL == upDomainPtr) || (NULL == iteratorPtr)) {
+		ESIF_TRACE_WARN("Parameter is NULL\n");
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (iteratorPtr->marker != UP_DOMAIN_ITERATOR_MARKER) {
+		ESIF_TRACE_WARN("Iterator is invalid\n");
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	upPtr = iteratorPtr->upPtr;
+	if (iteratorPtr->handle >= upPtr->domainCount) {
+		*upDomainPtr = NULL;
+		EsifUp_PutRef(upPtr);
+		iteratorPtr->marker = 0;	// Prevent any further PutRef operations through this iterator
+		rc = ESIF_E_ITERATION_DONE;
+		goto exit;
+	} 
+	
+	*upDomainPtr = &upPtr->domains[iteratorPtr->handle];
+	iteratorPtr->handle++;
+
+exit:
+	return rc;
 }
 
 /*****************************************************************************/

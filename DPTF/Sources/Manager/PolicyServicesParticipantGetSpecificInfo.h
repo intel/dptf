@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class PolicyServicesParticipantGetSpecificInfo final : public PolicyServices, pu
 {
 public:
 
-    PolicyServicesParticipantGetSpecificInfo(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesParticipantGetSpecificInfo(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(UIntN participantIndex,
         const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override final;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,13 +16,15 @@
 **
 ******************************************************************************/
 
+#define ESIF_CCB_LINK_LIST_MAIN
+#define ESIF_CCB_TIMER_MAIN
 #include "EsifTimer.h"
 
 EsifTimer::EsifTimer(esif_ccb_timer_cb callbackFunction, void* contextPtr) :
     m_callbackFunction(callbackFunction), m_contextPtr(contextPtr), m_timerInitialized(false),
     m_expirationTime(EsifTime(0))
 {
-    esif_ccb_memset(&m_timer, sizeof(esif_ccb_timer_t), 0);
+    esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
 }
 
 EsifTimer::~EsifTimer(void)
@@ -57,7 +59,7 @@ void EsifTimer::esifTimerInit()
         eEsifError rc = esif_ccb_timer_init(&m_timer, m_callbackFunction, m_contextPtr);
         if (rc != ESIF_OK)
         {
-            esif_ccb_memset(&m_timer, sizeof(esif_ccb_timer_t), 0);
+            esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
             throw dptf_exception("Failed to initialize timer.");
         }
 
@@ -69,11 +71,11 @@ void EsifTimer::esifTimerKill()
 {
     if (m_timerInitialized == true)
     {
-        // Do not check the return code or throw an exception.  ESIF is responsible for
+		// Do not check the return code or throw an exception.  ESIF is responsible for
         // killing the timer and we can't do anything if this fails.
-        esif_ccb_timer_kill(&m_timer);
+        esif_ccb_timer_kill_w_wait(&m_timer);
 
-        esif_ccb_memset(&m_timer, sizeof(esif_ccb_timer_t), 0);
+        esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
         m_timerInitialized = false;
         m_expirationTime = EsifTime(0);
     }

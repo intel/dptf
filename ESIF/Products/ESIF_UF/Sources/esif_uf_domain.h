@@ -29,6 +29,8 @@
 #define ESIF_DOMAIN_POLL_DISABLE 0xffffffff
 #define ESIF_DOMAIN_STATE_INVALID 0xffffffff
 
+#define UP_DOMAIN_ITERATOR_MARKER 'UPDM'
+
 typedef enum EsifDomainAuxId_e {
 	ESIF_DOMAIN_AUX0 = 0,
 	ESIF_DOMAIN_AUX1,
@@ -48,7 +50,7 @@ struct _t_EsifUp;
 typedef struct EsifUpDomain_s {
 	UInt16 domain;						/* Domain ID */
 	char domainStr[3];
-	esif_flags_t capabilities;			/* Capabilities */
+	EsifDomainCapability capability_for_domain;		/* Capabilities */
 	enum esif_domain_type domainType;	/* Domain Type */
 	char domainName[ESIF_NAME_LEN];
 	struct _t_EsifUp *upPtr;			/* Back pointer to the UP*/
@@ -88,6 +90,12 @@ typedef struct EsifUpDomain_s {
 	EsifDomainPollTypeId statePollType;	/* Single threaded, multi threaded, or none */
 	UInt8 statePollInitialized;
 } EsifUpDomain, *EsifUpDomainPtr;
+
+typedef struct UpDomainIterator_s {
+	u32 marker;
+	UInt8 handle;
+	struct _t_EsifUp *upPtr;
+} UpDomainIterator, *UpDomainIteratorPtr;
 
 #ifdef __cplusplus
 extern "C" {
@@ -153,6 +161,26 @@ eEsifError EsifUpDomain_SetTempHysteresis(
 	esif_temp_t tempHysteresis
 	);
 
+/*
+* Used to iterate through the available domains.
+* First call EsifUpDomain_InitIterator to initialize the iterator.
+* Next, call EsifUpDomain_GetNextUp using the iterator.  Repeat until
+* EsifUpDomain_GetNextUp fails. The call will release the reference of the
+* associated upper participant.  If you stop iteration part way through
+* all domains of a particular participant, the caller is responsible for
+* releasing the reference on the associated upper participant.  Iteration\
+* is complete when ESIF_E_ITERATOR_DONE is returned.
+*/
+eEsifError EsifUpDomain_InitIterator(
+	UpDomainIteratorPtr iteratorPtr,
+	struct _t_EsifUp *upPtr
+	);
+
+/* See EsifUpDomain_InitIterator for usage */
+eEsifError EsifUpDomain_GetNextUd(
+	UpDomainIteratorPtr iteratorPtr,
+	EsifUpDomainPtr *upDomainPtr
+	);
 #ifdef __cplusplus
 }
 #endif

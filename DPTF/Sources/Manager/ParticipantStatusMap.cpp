@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,7 +56,7 @@ std::string ParticipantStatusMap::getGroupsString()
             XmlNode* module = XmlNode::createWrapperElement("module");
             modules->addChild(module);
 
-            XmlNode* participantId = XmlNode::createDataElement("id", std::to_string(i));
+            XmlNode* participantId = XmlNode::createDataElement("id", StlOverride::to_string(i));
             module->addChild(participantId);
 
             XmlNode* participantName = XmlNode::createDataElement("name", name.str());
@@ -99,15 +99,22 @@ void ParticipantStatusMap::buildParticipantDomainsList()
 
 XmlNode* ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
 {
-    if (m_participantDomainsList.size() == 0)
+    try
     {
-        buildParticipantDomainsList();
+        if (m_participantDomainsList.size() == 0)
+        {
+            buildParticipantDomainsList();
+        }
+
+        UIntN participantIndex = m_participantDomainsList[mappedIndex].first;
+        UIntN domainIndex = m_participantDomainsList[mappedIndex].second;
+
+        Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
+        return participant->getStatusAsXml(domainIndex);
     }
-
-    UIntN participantIndex = m_participantDomainsList[mappedIndex].first;
-    UIntN domainIndex = m_participantDomainsList[mappedIndex].second;
-
-    Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
-
-    return participant->getStatusAsXml(domainIndex);
+    catch (...)
+    {
+    	// Participant not available
+        return XmlNode::createRoot();
+    }
 }

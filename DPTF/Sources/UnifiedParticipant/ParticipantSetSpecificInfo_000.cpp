@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "ParticipantSetSpecificInfo_000.h"
 
-ParticipantSetSpecificInfo_000::ParticipantSetSpecificInfo_000(ParticipantServicesInterface* participantServicesInterface)
+ParticipantSetSpecificInfo_000::ParticipantSetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : ParticipantSetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -30,7 +32,7 @@ void ParticipantSetSpecificInfo_000::setParticipantDeviceTemperatureIndication(U
 }
 
 void ParticipantSetSpecificInfo_000::setParticipantCoolingPolicy(UIntN participantIndex,
-    const CoolingPreference& coolingPreference)
+    const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
 {
     throw not_implemented();
 }
@@ -43,4 +45,9 @@ void ParticipantSetSpecificInfo_000::clearCachedData(void)
 XmlNode* ParticipantSetSpecificInfo_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string ParticipantSetSpecificInfo_000::getName(void)
+{
+    return "Set Specific Info Control (Version 0)";
 }

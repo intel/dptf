@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,8 +20,9 @@
 
 #include "Dptf.h"
 #include "ParticipantInterface.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 #include "Arbitrator.h"
+#include "PlatformPowerLimitType.h"
 
 class DptfManager;
 
@@ -39,6 +40,7 @@ public:
     void enableDomain(void);
     void disableDomain(void);
     Bool isDomainEnabled(void);
+    Bool isCreated(void);
 
     std::string getDomainName(void) const;
 
@@ -78,7 +80,7 @@ public:
     DisplayControlDynamicCaps getDisplayControlDynamicCaps(void);
     DisplayControlStatus getDisplayControlStatus(void);
     DisplayControlSet getDisplayControlSet(void);
-    void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex, Bool isOverridable);
+    void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex);
 
     // Performance controls
     PerformanceControlStaticCaps getPerformanceControlStaticCaps(void);
@@ -96,11 +98,42 @@ public:
 
     // Power controls
     PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(void);
-    PowerControlStatusSet getPowerControlStatusSet(void);
-    void setPowerControl(UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet);
+    void setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
+    Bool isPowerLimitEnabled(PowerControlType::Type controlType);
+    Power getPowerLimit(PowerControlType::Type controlType);
+    void setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType,
+        const Power& powerLimit);
+    TimeSpan getPowerLimitTimeWindow(PowerControlType::Type controlType);
+    void setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type controlType,
+        const TimeSpan& timeWindow);
+    Percentage getPowerLimitDutyCycle(PowerControlType::Type controlType);
+    void setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type controlType,
+        const Percentage& dutyCycle);
 
     // Power status
     PowerStatus getPowerStatus(void);
+
+    // Platform Power Controls
+    Bool isPlatformPowerLimitEnabled(PlatformPowerLimitType::Type limitType);
+    Power getPlatformPowerLimit(PlatformPowerLimitType::Type limitType);
+    void setPlatformPowerLimit(PlatformPowerLimitType::Type limitType, const Power& powerLimit);
+    TimeSpan getPlatformPowerLimitTimeWindow(PlatformPowerLimitType::Type limitType);
+    void setPlatformPowerLimitTimeWindow(PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow);
+    Percentage getPlatformPowerLimitDutyCycle(PlatformPowerLimitType::Type limitType);
+    void setPlatformPowerLimitDutyCycle(PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle);
+
+    // Platform Power Status
+    Power getMaxBatteryPower(void);
+    Power getAdapterPower(void);
+    Power getPlatformPowerConsumption(void);
+    Power getPlatformRestOfPower(void);
+    Power getAdapterPowerRating(void);
+    DptfBuffer getBatteryStatus(void);
+    PlatformPowerSource::Type getPlatformPowerSource(void);
+    ChargerType::Type getChargerType(void);
+    Percentage getPlatformStateOfCharge(void);
+    Power getACPeakPower(void);
+    TimeSpan getACPeakTimeWindow(void);
 
     // priority
     DomainPriority getDomainPriority(void);
@@ -116,9 +149,24 @@ public:
     TemperatureStatus getTemperatureStatus(void);
     TemperatureThresholds getTemperatureThresholds(void);
     void setTemperatureThresholds(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
+    DptfBuffer getVirtualSensorCalibrationTable(void);
+    DptfBuffer getVirtualSensorPollingTable(void);
+    Bool isVirtualTemperature(void);
+    void setVirtualTemperature(const Temperature& temperature);
 
     // utilization
     UtilizationStatus getUtilizationStatus(void);
+
+    // Hardware Duty Cycle
+    DptfBuffer getHardwareDutyCycleUtilizationSet(void);
+    Bool isEnabledByPlatform(void);
+    Bool isSupportedByPlatform(void);
+    Bool isEnabledByOperatingSystem(void);
+    Bool isSupportedByOperatingSystem(void);
+    Bool isHdcOobEnabled(void);
+    void setHdcOobEnable(const UInt8& hdcOobEnable);
+    void setHardwareDutyCycle(const Percentage& dutyCycle);
+    Percentage getHardwareDutyCycle(void);
 
 private:
 
@@ -181,10 +229,32 @@ private:
 
     // Power controls
     PowerControlDynamicCapsSet* m_powerControlDynamicCapsSet;
-    PowerControlStatusSet* m_powerControlStatusSet;
+    std::map<PowerControlType::Type, Bool> m_powerLimitEnabled;
+    std::map<PowerControlType::Type, Power> m_powerLimit;
+    std::map<PowerControlType::Type, TimeSpan> m_powerLimitTimeWindow;
+    std::map<PowerControlType::Type, Percentage> m_powerLimitDutyCycle;
 
     // Power status
     PowerStatus* m_powerStatus;
+
+    // Platform Power Controls
+    std::map<PlatformPowerLimitType::Type, Bool> m_platformPowerLimitEnabled;
+    std::map<PlatformPowerLimitType::Type, Power> m_platformPowerLimit;
+    std::map<PlatformPowerLimitType::Type, TimeSpan> m_platformPowerLimitTimeWindow;
+    std::map<PlatformPowerLimitType::Type, Percentage> m_platformPowerLimitDutyCycle;
+
+    // Platform Power Status
+    Power* m_maxBatteryPower;
+    Power* m_adapterPower;
+    Power* m_platformPower;
+    Power* m_adapterRating;
+    Power* m_platformRestOfPower;
+    Power* m_acPeakPower;
+    TimeSpan* m_acPeakTimeWindow;
+    PlatformPowerSource::Type* m_platformPowerSource;
+    ChargerType::Type* m_chargerType;
+    Percentage* m_platformStateOfCharge;
+    DptfBuffer m_batteryStatusBuffer;
 
     // priority
     DomainPriority* m_domainPriority;
@@ -198,9 +268,21 @@ private:
     // temperature
     TemperatureStatus* m_temperatureStatus;
     TemperatureThresholds* m_temperatureThresholds;
+    DptfBuffer m_virtualSensorCalculationTableBuffer;
+    DptfBuffer m_virtualSensorPollingTableBuffer;
+    Bool* m_isVirtualTemperature;
 
     // utilization
     UtilizationStatus* m_utilizationStatus;
+
+    // Hardware Duty Cycle
+    DptfBuffer m_hardwareDutyCycleUtilizationSet;
+    Percentage* m_hardwareDutyCycle;
+    Bool* m_isEnabledByPlatform;
+    Bool* m_isSupportedByPlatform;
+    Bool* m_isEnabledByOperatingSystem;
+    Bool* m_isSupportedByOperatingSystem;
+    Bool* m_isHdcOobEnabled;
 
     void clearDomainCachedDataActiveControl();
     void clearDomainCachedDataConfigTdpControl();
@@ -211,9 +293,12 @@ private:
     void clearDomainCachedDataPixelClockStatus();
     void clearDomainCachedDataPowerControl();
     void clearDomainCachedDataPowerStatus();
+    void clearDomainCachedDataPlatformPowerControl();
     void clearDomainCachedDataPriority();
     void clearDomainCachedDataRfProfileControl();
     void clearDomainCachedDataRfProfileStatus();
     void clearDomainCachedDataTemperature();
     void clearDomainCachedDataUtilizationStatus();
+    void clearDomainCachedDataHardwareDutyCycle();
+    void clearDomainCachedDataHdcOobEnable();
 };

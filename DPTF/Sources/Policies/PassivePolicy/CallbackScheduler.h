@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 #include "TimeInterface.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "SourceAvailability.h"
-#include "TargetScheduler.h"
+#include "PolicyCallbackScheduler.h"
 #include "TargetMonitor.h"
 #include "TargetSourceRelationship.h"
 
@@ -43,7 +43,6 @@ public:
     void markBusyForRequests(UIntN target, UIntN source, UInt64 time);
     void ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, UInt64 time);
     Bool isFreeForCommits(UIntN source, UInt64 time) const;
-    void markBusyForCommits(UIntN source, UInt64 time);
     void ensureCallbackByShortestSamplePeriod(UIntN target, UInt64 time);
     void acknowledgeCallback(UIntN target);
 
@@ -60,14 +59,9 @@ public:
     
 private:
 
-    // participant availability
     SourceAvailability m_sourceAvailability;
-    TargetScheduler m_targetScheduler;
-    std::map<TargetSourceRelationship, UInt64> m_requestSchedule;
-
-    // services
     ThermalRelationshipTable m_trt;
-    std::shared_ptr<TimeInterface> m_time;
-    PolicyServicesInterfaceContainer m_policyServices;
     TargetMonitor* m_targetMonitor;
+    std::shared_ptr<PolicyCallbackSchedulerInterface> m_targetScheduler;
+    std::map<TargetSourceRelationship, UInt64> m_requestSchedule;
 };

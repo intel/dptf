@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,9 @@
 // version 002 is for wireless
 //
 
-DomainRfProfileStatus_002::DomainRfProfileStatus_002(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainRfProfileStatus_002::DomainRfProfileStatus_002(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -39,32 +40,32 @@ RfProfileData DomainRfProfileStatus_002::getRfProfileData(UIntN participantIndex
     // If any of these primitive calls fail we allow the exception to throw back to the requesting policy.
     //
 
-    Frequency centerFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+    Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
         esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
 
-    Frequency leftFrequencySpread = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+    Frequency leftFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
         esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_LEFT, domainIndex);
 
-    Frequency rightFrequencySpread = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+    Frequency rightFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
         esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT, domainIndex);
 
-    UInt32 channelNumber = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    UInt32 channelNumber = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_RFPROFILE_CHANNEL_NUMBER, domainIndex);
 
-    UInt32 noisePower = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    UInt32 noisePower = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_RFPROFILE_NOISE_POWER, domainIndex);
 
-    UInt32 signalToNoiseRatio = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    UInt32 signalToNoiseRatio = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO, domainIndex);
 
-    UInt32 rssi = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    UInt32 rssi = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_RFPROFILE_RSSI, domainIndex);
 
-    UInt8 uint8Value = m_participantServicesInterface->primitiveExecuteGetAsUInt8(
+    UInt32 uint32Value = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_RFPROFILE_CONNECTION_STATUS, domainIndex);
-    RadioConnectionStatus::Type radioConnectionStatus = static_cast<RadioConnectionStatus::Type>(uint8Value);
+    RadioConnectionStatus::Type radioConnectionStatus = static_cast<RadioConnectionStatus::Type>(uint32Value);
 
-    UInt32 bitError = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    UInt32 bitError = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_RFPROFILE_BIT_ERROR, domainIndex);
 
     RfProfileSupplementalData rfProfileSupplementalData(channelNumber, noisePower, signalToNoiseRatio, rssi,
@@ -84,4 +85,9 @@ XmlNode* DomainRfProfileStatus_002::getXml(UIntN domainIndex)
 {
     // FIXME
     throw implement_me();
+}
+
+std::string DomainRfProfileStatus_002::getName(void)
+{
+    return "RF Profile Status (Version 2)";
 }

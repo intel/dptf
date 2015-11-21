@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,8 +18,9 @@
 
 #include "DomainRfProfileControl_001.h"
 
-DomainRfProfileControl_001::DomainRfProfileControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainRfProfileControl_001::DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -29,16 +30,16 @@ DomainRfProfileControl_001::~DomainRfProfileControl_001(void)
 
 RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
-    Frequency defaultCenterFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+    Frequency defaultCenterFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
         esif_primitive_type::GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY, domainIndex);
 
-    Percentage leftClipPercent = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
+    Percentage leftClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
         esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_LEFT, domainIndex);
 
-    Percentage rightClipPercent = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
+    Percentage rightClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
         esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_RIGHT, domainIndex);
 
-    Frequency frequencyAdjustResolution = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+    Frequency frequencyAdjustResolution = getParticipantServices()->primitiveExecuteGetAsFrequency(
         esif_primitive_type::GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION, domainIndex);
 
     RfProfileCapabilities rfProfileCapabilities(defaultCenterFrequency, leftClipPercent, rightClipPercent,
@@ -50,7 +51,7 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 void DomainRfProfileControl_001::setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex,
     const Frequency& centerFrequency)
 {
-    m_participantServicesInterface->primitiveExecuteSetAsFrequency(
+    getParticipantServices()->primitiveExecuteSetAsFrequency(
         esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY, centerFrequency, domainIndex, Constants::Esif::NoInstance);
 }
 
@@ -63,4 +64,9 @@ XmlNode* DomainRfProfileControl_001::getXml(UIntN domainIndex)
 {
     // FIXME
     throw implement_me();
+}
+
+std::string DomainRfProfileControl_001::getName(void)
+{
+    return "RF Profile Control (Version 1)";
 }

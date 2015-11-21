@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,7 @@ class dptf_export PassiveControlStatus
 {
 public:
 
-    PassiveControlStatus(const ThermalRelationshipTable& trt, ParticipantTracker& trackedParticipants);
+    PassiveControlStatus(const ThermalRelationshipTable& trt, std::shared_ptr<ParticipantTrackerInterface> trackedParticipants);
     XmlNode* getXml();
 
 private:

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 #include "Dptf.h"
 #include "ControlKnobBase.h"
-#include "PowerControlFacade.h"
+#include "PowerControlFacadeInterface.h"
 
 // control knob for power controls
 class dptf_export PowerControlKnob : public ControlKnobBase
@@ -29,7 +29,7 @@ public:
 
     PowerControlKnob(
         const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<PowerControlFacade> powerControl,
+        std::shared_ptr<PowerControlFacadeInterface> powerControl,
         UIntN participantIndex,
         UIntN domainIndex);
     ~PowerControlKnob(void);
@@ -47,7 +47,7 @@ public:
 
 private:
 
-    std::shared_ptr<PowerControlFacade> m_powerControl;
+    std::shared_ptr<PowerControlFacadeInterface> m_powerControl;
     std::map<UIntN, Power> m_requests;
 
     Power calculateNextLowerPowerLimit(

@@ -17,7 +17,8 @@
 ******************************************************************************/
 
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
-
+#include <sys/socket.h>
+#include <linux/netlink.h>
 #include <termios.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -25,21 +26,35 @@
 
 #include "esif_uf.h"
 #include "esif_uf_appmgr.h"
+#include "esif_pm.h"
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
 
 #define COPYRIGHT_NOTICE "Copyright (c) 2013-2015 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
-#define LF "\n"
-#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
-/* Place holder for SysFs model that may require different startup script */
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
-#else 
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
-#endif
-
 #define ESIF_STARTUP_SCRIPT_SERVER_MODE		NULL
+
+static void esif_udev_start();
+static void esif_udev_stop();
+static void esif_udev_exit();
+static Bool esif_udev_is_started();
+static void *esif_udev_listen(void *ptr);
+static void esif_process_udev_event(char *udev_target);
+
+static esif_thread_t g_udev_thread;
+static Bool g_udev_quit = ESIF_TRUE;
+static char *g_udev_target = NULL;
+
+#define MAX_PAYLOAD 1024 /* max message size*/
+
+static struct sockaddr_nl sock_addr_src, sock_addr_dest;
+static struct nlmsghdr *netlink_msg = NULL;
+static struct iovec msg_buf;
+static int sock_fd;
+static struct msghdr msg;
+
 
 /* Friend */
 extern EsifAppMgr g_appMgr;
@@ -69,7 +84,7 @@ static struct instancelock g_instance = {"esif_ufd.pid"};
 #define ARCHBITS "64"
 #else
 #define ARCHNAME "x86"
-#define ARCHBITS ""
+#define ARCHBITS "32"
 #endif
 
 // Default ESIF Paths for each OS
@@ -97,9 +112,9 @@ static const esif_string ESIF_PATHLIST =
 	"LOG=/usr/local/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
 	"LOCK=/var/run\n"
-	"EXE=/usr/bin\n"
-	"DLL=/usr/lib" ARCHBITS "\n"
-	"DPTF=/usr/lib" ARCHBITS "\n"
+	"EXE=#/usr/bin\n"
+	"DLL=#/usr/lib" ARCHBITS "\n"
+	"DPTF=/usr/share/dptf\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
 	"UI=/usr/share/dptf/ui\n"
@@ -226,6 +241,24 @@ void sigterm_enable()
     sigaction(SIGQUIT, &action, NULL);
 }
 
+// The SIGUSR1 handler below is the alternative
+// solution for Android where the pthread_cancel()
+// is not implemented in Android NDK
+
+/* SIGUSR1 Signal Handler */
+static void sigusr1_handler(int signum)
+{
+	pthread_exit(0);
+}
+
+/* Enable or Disable SIGTERM Handler */
+static void sigusr1_enable()
+{
+	struct sigaction action={0};
+	action.sa_handler = sigusr1_handler;
+	sigaction(SIGUSR1, &action, NULL);
+}
+
 #if !defined(ESIF_ATTR_INSTANCE_LOCK)
 // Instance Checking Disabled in Android for now
 
@@ -288,6 +321,202 @@ int instance_islocked()
 
 #endif
 
+static void esif_udev_start()
+{
+	if (!esif_udev_is_started()) {
+		g_udev_quit = ESIF_FALSE;
+		g_udev_target = esif_ccb_malloc(MAX_PAYLOAD);
+		if (g_udev_target != NULL) {
+			esif_ccb_thread_create(&g_udev_thread, esif_udev_listen, NULL);
+		}
+		else {
+			CMD_DEBUG("Unable to start ESIF udev listener (no memory)");
+		}
+	}
+}
+
+static void esif_udev_stop()
+{
+	if (esif_udev_is_started()) {
+		esif_udev_exit();
+	}
+}
+
+static void esif_udev_exit()
+{
+	g_udev_quit = ESIF_TRUE;
+#ifdef ESIF_ATTR_OS_ANDROID
+	// Android NDK does not support pthread_cancel()
+	// Use pthread_kill() to emualte
+	pthread_kill(g_udev_thread, SIGUSR1);
+#else
+	pthread_cancel(g_udev_thread);
+#endif
+	esif_ccb_thread_join(&g_udev_thread);
+	esif_ccb_free(g_udev_target);
+}
+
+static Bool esif_udev_is_started()
+{
+	return !g_udev_quit;
+}
+
+
+static void *esif_udev_listen(void *ptr)
+{
+	UNREFERENCED_PARAMETER(ptr);
+#ifdef ESIF_ATTR_OS_ANDROID
+	sigusr1_enable();
+#endif
+	sock_fd = socket(PF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT);
+	if (sock_fd < 0) {
+		goto exit;
+	}
+
+	memset(&sock_addr_src, 0, sizeof(sock_addr_src));
+	sock_addr_src.nl_family = AF_NETLINK;
+	sock_addr_src.nl_pid = getpid(); 
+	sock_addr_src.nl_groups = -1;
+
+	bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src));
+
+	memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
+	memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
+	sock_addr_dest.nl_family = AF_NETLINK;
+	sock_addr_dest.nl_pid = 0;
+	sock_addr_dest.nl_groups = 0; 
+
+	netlink_msg = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
+	memset(netlink_msg, 0, NLMSG_SPACE(MAX_PAYLOAD));
+	netlink_msg->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
+	netlink_msg->nlmsg_pid = getpid();
+	netlink_msg->nlmsg_flags = 0;
+
+	msg_buf.iov_base = (void *)netlink_msg;
+	msg_buf.iov_len = netlink_msg->nlmsg_len;
+	msg.msg_name = (void *)&sock_addr_dest;
+	msg.msg_namelen = sizeof(sock_addr_dest);
+	msg.msg_iov = &msg_buf;
+	msg.msg_iovlen = 1;
+
+	/* Read message from kernel */
+	while(!g_udev_quit) {
+		char *parsed = NULL;
+		char *ctx = NULL;	
+		recvmsg(sock_fd, &msg, 0);
+		parsed = esif_ccb_strtok(NLMSG_DATA(netlink_msg),"/",&ctx);
+		while (parsed != NULL) {
+			esif_ccb_strcpy(g_udev_target,parsed,MAX_PAYLOAD);
+			parsed = esif_ccb_strtok(NULL,"/",&ctx);
+		}
+		// We only process uevents that have the "thermal_zone" prefix
+		if (esif_ccb_strstr(g_udev_target, "thermal_zone")) {
+			esif_process_udev_event(g_udev_target);
+		}
+	}
+	
+	close(sock_fd);
+exit: 
+	return NULL;
+}
+
+static void esif_domain_signal_and_stop_poll(EsifUpPtr up_ptr, UInt8 participant_id, char *udev_target)
+{
+	eEsifError iter_rc = ESIF_OK;
+	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	UInt32 domain_index = 0;
+
+	iter_rc = EsifUpDomain_InitIterator(&udIter, up_ptr);
+	if (ESIF_OK != iter_rc) {
+		return;
+	}
+
+	iter_rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == iter_rc) {
+		if (NULL == domainPtr) {
+			iter_rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			domain_index++;
+			continue;
+		}
+
+		ESIF_TRACE_INFO("Udev Event: THRESHOLD CROSSED in thermal zone: %s\n",udev_target);
+		EsifEventMgr_SignalEvent(participant_id, domain_index++, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
+
+		// Find a valid domain, check if it is being polled
+		if (domainPtr->tempPollType != ESIF_POLL_NONE) {
+			EsifUpDomain_StopTempPoll(domainPtr);
+		}
+		iter_rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (iter_rc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(up_ptr);
+	}
+}
+
+static void esif_process_udev_event(char *udev_target)
+{
+	char *participant_device_path = NULL;
+	EsifUpPtr up_ptr = NULL;
+	EsifUpPtr up_proc_ptr = NULL;
+	char *parsed = NULL;
+	char *ctx = NULL;
+	UInt32 domain_count = 0;
+	UInt8 participant_id = 0;
+	UInt8 processor_id = 0;
+	eEsifError iter_rc = ESIF_OK;
+	UfPmIterator up_iter = { 0 };
+	int participantCounter = 0;
+	Bool target_tz_found = ESIF_FALSE;
+	
+	participant_device_path = esif_ccb_malloc(MAX_PAYLOAD);
+
+	iter_rc = EsifUpPm_InitIterator(&up_iter);
+	if (iter_rc != ESIF_OK) {
+		goto exit;
+	}
+
+	iter_rc = EsifUpPm_GetNextUp(&up_iter, &up_ptr);
+	while (ESIF_OK == iter_rc) {
+		char *path_to_compare = esif_ccb_strdup(up_ptr->fMetadata.fDevicePath);
+		participant_id = EsifUp_GetInstance(up_ptr);
+		if (!esif_ccb_strcmp(up_ptr->fMetadata.fAcpiDevice, "INT3401")) {
+			processor_id = participant_id;
+			up_proc_ptr = up_ptr;
+		}
+
+		parsed = esif_ccb_strtok(path_to_compare,"/",&ctx);
+		while (parsed != NULL) {
+			esif_ccb_strcpy(participant_device_path,parsed,MAX_PAYLOAD);
+			parsed = esif_ccb_strtok(NULL,"/",&ctx);
+		}
+		if (!esif_ccb_strcmp(udev_target, participant_device_path)) {
+			target_tz_found = ESIF_TRUE;
+			esif_domain_signal_and_stop_poll(up_ptr, participant_id, udev_target);
+			esif_ccb_free(path_to_compare);
+			break;
+		}
+
+		esif_ccb_free(path_to_compare);
+		iter_rc = EsifUpPm_GetNextUp(&up_iter, &up_ptr);
+	}
+	
+	// If we cannot match UEVENT target to any participant path, we assume it is for 
+	// the SoC itself (which is under x86_package_temp sysfs and does not belong to 
+	// any thermal_zone sysfs). Better be safe than sorry! 
+	if (!target_tz_found) {
+		esif_domain_signal_and_stop_poll(up_proc_ptr, processor_id, udev_target);
+	}
+
+	if (ESIF_E_ITERATION_DONE != iter_rc) {
+		EsifUp_PutRef(up_ptr);	
+	}
+	
+exit:
+	esif_ccb_free(participant_device_path);
+}
+
 #ifdef ESIF_FEAT_OPT_DBUS
 static DBusHandlerResult
 s3_callback(DBusConnection *conn, DBusMessage *message, void *user_data)
@@ -313,6 +542,10 @@ s3_callback(DBusConnection *conn, DBusMessage *message, void *user_data)
 void* dbus_listen()
 {
 	DBusError err = {0};
+
+#ifdef ESIF_ATTR_OS_ANDROID
+	sigusr1_enable();
+#endif
 
 	dbus_error_init(&err);
 	g_dbus_conn = dbus_bus_get(DBUS_BUS_SYSTEM, &err);
@@ -450,6 +683,11 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	}
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
+	
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	/* uevent listener */
+	esif_udev_start();
+#endif
 
 	/* Start D-Bus listener thread if necessary */
 #ifdef ESIF_FEAT_OPT_DBUS
@@ -551,6 +789,11 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		esif_ccb_sleep_msec(10);
 	}
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
+	
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	/* uevent listener */
+	esif_udev_start();
+#endif
 
 	/* Start D-Bus listener thread if necessary */
 #ifdef ESIF_FEAT_OPT_DBUS
@@ -559,6 +802,13 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 
  	while (!g_quit) {
 		int count = 0;
+		// Exit if Shell disabled
+		if (!g_shell_enabled) {
+			CMD_OUT("Shell Unavailable.\n");
+			g_quit = 1;
+			continue;
+		}
+		
 		// Startup Command?
 		if (command) {
 				parse_cmd(command, ESIF_FALSE);
@@ -566,13 +816,6 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 						g_quit = 1;
 						continue;
 				}
-		}
-
-		// Exit if Shell disabled
-		if (!g_shell_enabled) {
-			CMD_OUT("Shell Unavailable.\n");
-			g_quit = 1;
-			continue;
 		}
 
 		// Get User Input
@@ -751,7 +994,13 @@ int main (int argc, char **argv)
 
 #ifdef ESIF_FEAT_OPT_DBUS
 	CMD_DEBUG("Stopping D-Bus listener thread...\n");
+#ifdef ESIF_ATTR_OS_ANDROID
+	// Android NDK does not support pthread_cancel()
+	// Use pthread_kill() to emualte
+	pthread_kill(g_dbus_thread, SIGUSR1);
+#else
 	pthread_cancel(g_dbus_thread);
+#endif
 	esif_ccb_thread_join(&g_dbus_thread);
 	if (g_dbus_conn)
 		dbus_connection_unref(g_dbus_conn);
@@ -775,6 +1024,8 @@ eEsifError esif_uf_os_init ()
 
 void esif_uf_os_exit ()
 {
+	/* Stop uevent listener */
+	esif_udev_stop();
 }
 
 /*****************************************************************************/

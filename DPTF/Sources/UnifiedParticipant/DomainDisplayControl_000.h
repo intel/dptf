@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,29 +19,27 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainDisplayControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainDisplayControlBase.h"
 
 //
 // Implements the Null Object pattern.  In the case that the functionality isn't implemented, we use
 // this in place so we don't have to check for NULL pointers all throughout the participant implementation.
 //
 
-class DomainDisplayControl_000 final : public DomainDisplayControlInterface,
-    public ComponentExtendedInterface
+class DomainDisplayControl_000 : public DomainDisplayControlBase
 {
 public:
 
-    DomainDisplayControl_000(ParticipantServicesInterface* participantServicesInterface);
+    DomainDisplayControl_000(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
 
-    virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex,
-        Bool isOverridable) override final;
+    virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
+    virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 };

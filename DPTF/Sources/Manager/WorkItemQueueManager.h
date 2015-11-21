@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public:
     void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority);
     void enqueueImmediateWorkItemAndWait(WorkItem* workItem);
     void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority);
-    void enqueueDeferredWorkItem(WorkItem* workItem, UInt64 numMilliSecUntilExecution);
+    void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution);
 
     UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria);
     Bool isWorkItemThread(void);

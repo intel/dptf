@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainRfProfileStatus_000.h"
 
-DomainRfProfileStatus_000::DomainRfProfileStatus_000(ParticipantServicesInterface* participantServicesInterface)
+DomainRfProfileStatus_000::DomainRfProfileStatus_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -36,4 +38,9 @@ void DomainRfProfileStatus_000::clearCachedData(void)
 XmlNode* DomainRfProfileStatus_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string DomainRfProfileStatus_000::getName(void)
+{
+    return "RF Profile Status (Version 0)";
 }

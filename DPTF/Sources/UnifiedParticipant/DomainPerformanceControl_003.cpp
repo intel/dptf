@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,11 +19,12 @@
 #include "DomainPerformanceControl_003.h"
 #include "XmlNode.h"
 
-DomainPerformanceControl_003::DomainPerformanceControl_003(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface),
+DomainPerformanceControl_003::DomainPerformanceControl_003(UIntN participantIndex, UIntN domainIndex,
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface),
+    m_performanceControlSet(nullptr),
     m_performanceControlDynamicCaps(nullptr),
     m_performanceControlStaticCaps(nullptr),
-    m_performanceControlSet(nullptr),
     m_currentPerformanceControlIndex(Constants::Invalid)
 {
     
@@ -71,7 +72,7 @@ void DomainPerformanceControl_003::setPerformanceControl(UIntN participantIndex,
 {
     checkAndCreateControlStructures(domainIndex);
     verifyPerformanceControlIndex(performanceControlIndex);
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PERF_PRESENT_CAPABILITY, // SET_PERF_SUPPORT_STATE
         performanceControlIndex,
         domainIndex);
@@ -87,42 +88,18 @@ void DomainPerformanceControl_003::clearCachedData(void)
 
 void DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    //Build GFX performance table
-    try
+    if (m_performanceControlSet == nullptr)
     {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_PERF_SUPPORT_STATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
+        // Build GFX performance table
+        DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
+        m_performanceControlSet = new PerformanceControlSet(
+            BinaryParse::processorGfxPstates(buffer));
+        if (m_performanceControlSet->getCount() == 0)
+        {
+            throw dptf_exception("GFX P-state set is empty. Impossible if we support performance controls.");
+        }
     }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_PERF_SUPPORT_STATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-
-    m_performanceControlSet = new PerformanceControlSet(BinaryParse::processorGfxPstates(dataLength, binaryData));
-
-    if (m_performanceControlSet->getCount() == 0)
-    {
-        throw dptf_exception("GFX P-state set is empty.  \
-                                 Impossible if we support performance controls.");
-    }
-
-    binaryData.deallocate();
 }
 
 void DomainPerformanceControl_003::createPerformanceControlDynamicCaps(UIntN domainIndex)
@@ -203,4 +180,9 @@ void DomainPerformanceControl_003::updateBasedOnConfigTdpInformation(UIntN parti
     ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
     throw not_implemented();
+}
+
+std::string DomainPerformanceControl_003::getName(void)
+{
+    return "Performance Control (Version 3)";
 }

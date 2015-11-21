@@ -15,9 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#ifndef _ESIF_UF_ACTMGR_
-#define _ESIF_UF_ACTMGR_
+#pragma once
 
 #include "esif.h"
 #include "esif_link_list.h"
@@ -25,82 +23,95 @@
 #include "esif_participant.h"
 #include "esif_uf_action_iface.h"
 
-#define ESIF_MAX_ACTIONS 5
-#define ESIF_ACTION_IS_KERNEL_ACTION 1
-#define ESIF_ACTION_IS_NOT_KERNEL_ACTION 0
-#define ESIF_ACTION_IS_PLUGIN 1
-#define ESIF_ACTION_IS_NOT_PLUGIN 0
-#define PAD 0
+#define ACT_MGR_ITERATOR_MARKER 'AMGR'
+#define ACT_MGR_NO_UPINSTANCE 0xFF
 
-typedef eEsifError(ESIF_CALLCONV *ActGetFunction)(
-	const void *actionHandle,
-	EsifUpPtr upPtr,
-	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
-	const EsifDataPtr requestPtr,
-	EsifDataPtr responsePtr
-	);
 
-typedef eEsifError(ESIF_CALLCONV *ActSetFunction)(
-	const void *actionHandle,
-	EsifUpPtr upPtr,
-	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
-	const EsifDataPtr requestPtr
-	);
+typedef struct ActMgrIterator_s {
+	u32 marker;
+	enum esif_action_type type;
+	Bool ref_taken;
+	EsifActPtr actPtr;
+} ActMgrIterator, *ActMgrIteratorPtr;
 
-typedef struct _t_EsifActType {
-	void   *fHandle;/* NULL for built in actions */
-	UInt8  fType;
-	UInt8  fReserved[3];
-	char   fName[ESIF_NAME_LEN];
-	char   fDesc[ESIF_DESC_LEN];
-	char   fOsType[ESIF_NAME_LEN];
-	char   fVersion[ESIF_DESC_LEN];
-	esif_guid_t fGuid;
-	UInt8  fIsKernel;
-	UInt8  fIsPlugin;
-	UInt8  fReserved2[2];
-	ActGetFunction  fGetFuncPtr;
-	ActSetFunction  fSetFuncPtr;
-	ActExecuteGetFunction  fActGetFuncPtr; /* For plug-in actions */
-	ActExecuteSetFunction  fActSetFuncPtr;
-} EsifActType, *EsifActTypePtr, **EsifActTypePtrLocation;
+typedef struct EsifActMgrEntry_s {
+	enum esif_action_type type; /* Quick access to the type */
+	UInt8 upInstance;			/*Upper participant instance - if applicable */
+	esif_context_t actCtx; /* Action handle for the action associated with a specific participant */
 
-#define THIS struct _t_EsifActMgr *THIS
-typedef struct _t_EsifActMgr {
-	UInt8    fEntryCount;
-	EsifAct  fEnrtries[ESIF_MAX_ACTIONS];
-	EsifActPtr  fSelectedActionPtr;
-	esif_ccb_lock_t  fLock;
+	Bool loadDelayed; /* Indicates that the action will not be loaded until used */
+	EsifString libName; /* The Name Of The Library To Load */
+	esif_lib_t lib; /* Library object */
 
-	/* Action Accessors */
-	eEsifError (*AddActType)(THIS, EsifActTypePtr typePtr);
-	eEsifError (*RemoveActType)(THIS, EsifActTypePtr typePtr);
-	EsifActTypePtr (*GetActType)(THIS, UInt8 type);
-	EsifActPtr (*GetActFromName)(THIS, EsifString name);
+	EsifActPtr actPtr;
+} EsifActMgrEntry, *EsifActMgrEntryPtr;
+
+
+typedef struct EsifActMgr_s {
+	esif_ccb_lock_t mgrLock;
 
 	/* List of Actions */
-	EsifLinkListPtr  fActTypes;	/* Action Types */
-} EsifActMgr, *EsifActMgrPtr, **EsifActMgrPtrLocation;
-#undef THIS
+	UInt8 numActions;
+	EsifLinkListPtr actions;	/* EsifActMgrEntry items */
+
+	EsifLinkListPtr possibleActions;/* EsifActMgrEntry items for delayed load */
+} EsifActMgr, *EsifActMgrPtr;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Declare as friend here, no need to declare it in the file being used */
-extern EsifActMgr g_actMgr;
-
 /* Init / Exit */
 eEsifError EsifActMgrInit();
 void EsifActMgrExit();
 
+/*
+ * Note:  This function takes an additional reference on the returned action
+ * object.  When done using the action, EsifAct_PutRef must be called to
+ * release the reference.
+ */
+EsifActPtr EsifActMgr_GetAction(
+	enum esif_action_type type,
+	const UInt8 instance
+	);
+
+/*
+ * Used to iterate through the available participants.
+ * First call EsifActMgr_InitIterator to initialize the iterator.
+ * Next, call EsifActMgr_GetNexAction using the iterator.  Repeat until
+ * EsifActMgr_GetNexAction fails. The call will release the reference of the
+ * participant from the previous call.  If you stop iteration part way through
+ * all participants, the caller is responsible for releasing the reference on
+ * the last participant returned.  Iteration is complete when
+ * ESIF_E_ITERATOR_DONE is returned.
+ */
+eEsifError EsifActMgr_InitIterator(
+	ActMgrIteratorPtr iteratorPtr
+	);
+
+/* See EsifActMgr_InitIterator for usage */
+eEsifError EsifActMgr_GetNexAction(
+	ActMgrIteratorPtr iteratorPtr,
+	EsifActPtr *upPtr
+	);
+
+/* For static actions */
+eEsifError EsifActMgr_RegisterAction(EsifActIfacePtr actIfacePtr);
+eEsifError EsifActMgr_UnregisterAction(EsifActIfacePtr actIfacePtr);
+	
+/* For plugin library UPE actions */
+eEsifError EsifActMgr_RegisterDelayedLoadAction(enum esif_action_type type);
+
+eEsifError EsifActMgr_StartUpe(
+	EsifString upeName,
+	UInt8 upInstance
+	);
+
+eEsifError EsifActMgr_StopUpe(EsifString upeName);
+
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* ESIF_UF_ACTMGR */
 
 /*****************************************************************************/
 /*****************************************************************************/

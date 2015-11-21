@@ -129,7 +129,7 @@ static void esif_ccb_tmrm_add_destroy_event(
 	);
 
 static void esif_ccb_tmrm_signal_waiters(
-	struct esif_tmrm_item *self
+	void *data_ptr
 	);
 
 static struct esif_link_list_node *esif_ccb_tmrm_find_timer_node_wlock(
@@ -688,8 +688,7 @@ static void esif_ccb_tmrm_destroy_tmrm_item(
 	if (NULL == self)
 		goto exit;
 
-	esif_ccb_tmrm_signal_waiters(self);
-	esif_link_list_destroy(self->destroy_list_ptr);
+	esif_link_list_free_data_and_destroy(self->destroy_list_ptr, esif_ccb_tmrm_signal_waiters);
 
 	if (self->timer_obj_ptr !=  NULL)
 		esif_ccb_timer_obj_destroy(self->timer_obj_ptr);
@@ -701,29 +700,10 @@ exit:
 
 	
 static void esif_ccb_tmrm_signal_waiters(
-	struct esif_tmrm_item *self
+	void *data_ptr
 	)
 {
-	struct esif_link_list_node *event_node_ptr = NULL;
-
-	ESIF_ASSERT(self != NULL);
-
-	if (NULL == self->destroy_list_ptr)
-		goto exit;
-
-	/* Signal any threads waiting for the timer's destruction */
-	event_node_ptr = self->destroy_list_ptr->head_ptr;
-	while (event_node_ptr != NULL) {
-
-		ESIF_ASSERT(event_node_ptr->data_ptr != NULL);
-
-		esif_ccb_event_set((esif_ccb_event_t *)
-			event_node_ptr->data_ptr);
-
-		event_node_ptr = event_node_ptr->next_ptr;
-	}
-exit:
-	return;
+	esif_ccb_event_set((esif_ccb_event_t *)data_ptr);
 }
 
 

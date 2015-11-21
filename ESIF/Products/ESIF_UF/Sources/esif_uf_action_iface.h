@@ -16,114 +16,70 @@
 **
 ******************************************************************************/
 
-#ifndef _ESIF_UF_ACT_IFACE_
-#define _ESIF_UF_ACT_IFACE_
+#pragma once
 
 #include "esif.h"
+#include "esif_uf.h"
 #include "esif_sdk_iface.h"
+#include "esif_sdk_iface_upe.h"
+#include "esif_dsp.h"
 
-#define ACTION_INTERFACE_VERSION 1
 
-typedef enum _t_EsifActState {
-	eEsifActStateDisabled = 0,
-	eEsifActStateEnabled
-} eEsifActState;
+#define ESIF_ACTION_VERSION_DEFAULT 1
+#define ESIF_ACTION_VERSION_INVALID ((UInt16)-1)
+#define ESIF_ACTION_FLAGS_DEFAULT 0
 
-typedef eEsifError (ESIF_CALLCONV *ActGetAboutFunction)(EsifDataPtr actionAbout);
-typedef eEsifError (ESIF_CALLCONV *ActGetDescriptionFunction)(EsifDataPtr actionDescription);
-typedef eEsifError (ESIF_CALLCONV *ActGetIDFunction)(EsifDataPtr actionId);
-typedef eEsifError (ESIF_CALLCONV *ActGetGuidFunction)(EsifDataPtr actionGuid);
-typedef eEsifError (ESIF_CALLCONV *ActGetNameFunction)(EsifDataPtr actionName);
-typedef eEsifError (ESIF_CALLCONV *ActGetVersionFunction)(EsifDataPtr actionVersion);
 
-typedef eEsifError (ESIF_CALLCONV *ActCreateFunction)(
-	EsifInterfacePtr esifServiceInterface,	/* The App MUST fill in all pointers */
-	const void *esifHandle,	/* ESIF will provide App MUST save for use with callbacks */
-	void **actionHandleLocation,	/* The App MUST provide esif will save for use with callbacks */
-	const eEsifActState initialActionState, 
-	const EsifDataPtr P1PtrDescription, 
-	const EsifDataPtr P2PtrDescription,
-	const EsifDataPtr P3PtrDescription, 
-	const EsifDataPtr P4PtrDescription, 
-	const EsifDataPtr P5PtrDescription
-	);
+typedef struct _t_EsifUp *EsifUpPtr;
 
-/*
-
-    DEPENDENCY
-    The remaining funcitons are dependent on application create.
- */
-
-typedef eEsifError (ESIF_CALLCONV *ActDestroyFunction)(void *actionHandle);
-
-typedef eEsifError (ESIF_CALLCONV *ActExecuteGetFunction)(
-	const void *actionHandle, 
-	const esif_string devicePathPtr, 
-	const EsifDataPtr P1Ptr, 
-	const EsifDataPtr P2Ptr,
-	const EsifDataPtr P3Ptr, 
-	const EsifDataPtr P4Ptr, 
-	const EsifDataPtr P5Ptr, 
+typedef eEsifError(ESIF_CALLCONV *ActGetFunctionStatic)(
+	esif_context_t actCtx,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	);
 
-typedef eEsifError (ESIF_CALLCONV *ActExecuteSetFunction)(
-	const void *actionHandle, 
-	const esif_string devicePathPtr, 
-	const EsifDataPtr P1Ptr, 
-	const EsifDataPtr P2Ptr,
-	const EsifDataPtr P3Ptr, 
-	const EsifDataPtr P4Ptr, 
-	const EsifDataPtr P5Ptr, 
+typedef eEsifError(ESIF_CALLCONV *ActSetFunctionStatic)(
+	esif_context_t actCtx,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr
 	);
 
-typedef eEsifActState (ESIF_CALLCONV *ActGetStateFunction)(const void *actionHandle);
-
-typedef eEsifError (ESIF_CALLCONV *ActSetStateFunction)(
-	const void *actionHandle, 
-	const eEsifActState actionState
-	);
-
-typedef eEsifError (ESIF_CALLCONV *ActGetStatusFunction)(
-	const void *actionHandle, 
-	EsifDataPtr statusPtr
-	);
 
 #pragma pack(push,1)
 
-typedef struct _t_EsifActInterface {
-	// Header
-	eIfaceType  fIfaceType;
-	UInt16      fIfaceVersion;
-	UInt16      fIfaceSize;
+typedef struct EsifActIfaceStatic_s {
+	EsifIfaceHdr hdr;
 
-	// Get
-	ActGetAboutFunction    fActGetAboutFuncPtr;
-	ActGetGuidFunction     fActGetGuidFuncPtr;
-	ActGetIDFunction       fActGetIDFuncPtr;
-	ActGetNameFunction     fActGetNameFuncPtr;
-	ActGetDescriptionFunction fActGetDescriptionFuncPtr;
-	ActGetVersionFunction  fActGetVersionFuncPtr;
+	enum esif_action_type type;
+	esif_flags_t flags;
 
-	// Create
-	ActCreateFunction   fActCreateFuncPtr;
-	ActDestroyFunction  fActDestroyFuncPtr;
+	char name[ESIF_NAME_LEN];
+	char desc[ESIF_DESC_LEN];
 
-	// State
-	ActSetStateFunction    fActSetStateFuncPtr;
-	ActGetStateFunction    fActGetStateFuncPtr;
+	UInt16 actVersion; /* Version of the action (not the interface) */
 
-	ActExecuteGetFunction  fActGetFuncPtr;
-	ActExecuteSetFunction  fActSetFuncPtr;
+	ActCreateFunction	createFuncPtr;
+	ActDestroyFunction	destroyFuncPtr;
 
-	ActGetStatusFunction   fActGetStatusFuncPtr;
-} EsifActInterface, *EsifActInterfacePtr, **EsifActInterfacePtrLocation;
+	ActGetFunctionStatic  getFuncPtr;
+	ActSetFunctionStatic  setFuncPtr;
+} EsifActIfaceStatic, *EsifActIfaceStaticPtr;
+
+
+typedef union EsifActIface_u {
+	EsifIfaceHdr hdr;
+	EsifActIfaceStatic ifaceStatic;
+	EsifActIfaceUpeV1 actIfaceV1; /* Use with loadable actions */
+} EsifActIface, *EsifActIfacePtr;
+
 
 #pragma pack(pop)
 
-#endif	// _ESIF_UF_ACT_IFACE_
 
 /*****************************************************************************/
 /*****************************************************************************/

@@ -19,7 +19,7 @@
 
 #include "esif_uf.h"		/* Upper Framework           */
 #include "esif_pm.h"		/* Upper Participant Manager */
-#include "esif_debug.h"
+#include "esif_uf_trace.h"
 #include "esif_dsp.h"
 #include "esif_uf_action.h"
 
@@ -38,7 +38,7 @@ void EsifUfDumpPrimitive(
 	EsifFpcPrimitivePtr primitivePtr
 	)
 {
-	struct esif_fpc_action *actionPtr;
+	EsifFpcActionPtr fpcActionPtr;
 	DataItemPtr dataItemPtr;
 	char msg[128];
 	char *paramStr = NULL;
@@ -73,18 +73,18 @@ void EsifUfDumpPrimitive(
 					   primitivePtr->size);
 
 	for (i = 0; i < (int)primitivePtr->num_actions; i++) {
-		actionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
+		fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
 		ESIF_TRACE_DEBUG("Action[%u]: size %u type %d(%s) is_kern %u "
 						   "param_valid %x:%x:%x:%x:%x\n",
-						   i, actionPtr->size,
-						   actionPtr->type, esif_action_type_str(actionPtr->type),
-						   actionPtr->is_kernel,
-						   (u32)actionPtr->param_valid[0], (u32)actionPtr->param_valid[1],
-						   (u32)actionPtr->param_valid[2], (u32)actionPtr->param_valid[3],
-						   (u32)actionPtr->param_valid[4]);
+						   i, fpcActionPtr->size,
+						   fpcActionPtr->type, esif_action_type_str(fpcActionPtr->type),
+						   fpcActionPtr->is_kernel,
+						   (u32)fpcActionPtr->param_valid[0], (u32)fpcActionPtr->param_valid[1],
+						   (u32)fpcActionPtr->param_valid[2], (u32)fpcActionPtr->param_valid[3],
+						   (u32)fpcActionPtr->param_valid[4]);
 
 		for (j = 0; j < 5; j++) {
-			dataItemPtr = EsifActionGetParam(actionPtr, (const UInt8)j);
+			dataItemPtr = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)j);
 			if (NULL == dataItemPtr) {
 				continue;
 			}
@@ -198,7 +198,7 @@ Bool EsifPrimitiveVerifyOpcode(
 		goto exit;
 	}
 
-	dspPtr = upPtr->fDspPtr;
+	dspPtr = EsifUp_GetDsp(upPtr);
 	if (NULL == dspPtr) {
 		goto exit;
 	}

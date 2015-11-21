@@ -165,20 +165,6 @@ typedef esif_string EsifString;
 
 #define ESIF_PERCENT_CONV_FACTOR 100 /* Percentages are in 100ths */
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-typedef HANDLE esif_handle_t;
-#define ESIF_INVALID_HANDLE INVALID_HANDLE_VALUE
-#endif /* ESIF_ATTR_OS_WINDOWS */
-
-#ifdef ESIF_ATTR_OS_LINUX
-#ifdef ESIF_ATTR_KERNEL
-#define esif_handle_t int /* opaque: use #define not typedef */
-#else
-typedef int esif_handle_t;
-#endif
-#define ESIF_INVALID_HANDLE (-1)
-#endif /* ESIF_ATTR_OS_LINUX */
-
 #define ESIF_PLATFORM_MSG "Registering Platform Driver"
 #define ESIF_LICENSE "Dual BSD/GPL"
 #define ESIF_AUTHOR  "Intel Corporation <dptf@lists.01.org>"
@@ -274,7 +260,6 @@ typedef int esif_handle_t;
 #endif /* ESIF_ATTR_KERNEL */
 
 /* OS Agnostic */
-#include "esif_debug.h"		/* Debug Helpers    */
 #include "esif_mempool.h"	/* Memory Pool      */
 
 /* Opaque Types */

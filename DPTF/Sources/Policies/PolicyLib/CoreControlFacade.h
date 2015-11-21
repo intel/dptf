@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,16 +18,13 @@
 
 #pragma once
 
-#include "Dptf.h"
+#include "CoreControlFacadeInterface.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
-#include "CoreControlStatusCachedProperty.h"
-#include "CoreControlCapabilitiesCachedProperty.h"
-#include "CoreControlPreferencesCachedProperty.h"
 
 // this facade class provides a simpler interface on top of core controls as well as combines all of the core control 
 // properties and capabilities into a single class.  these properties also have the ability to be cached.
-class dptf_export CoreControlFacade
+class dptf_export CoreControlFacade : public CoreControlFacadeInterface
 {
 public:
 
@@ -39,18 +36,19 @@ public:
     ~CoreControlFacade();
 
     // controls
-    Bool supportsCoreControls();
-    void initializeControlsIfNeeded();
-    void setControlsToMax();
-    void setControl(CoreControlStatus coreControl);
+    virtual Bool supportsCoreControls() override;
+    virtual void initializeControlsIfNeeded() override;
+    virtual void setControlsToMax() override;
+    virtual void setControl(CoreControlStatus coreControl) override;
 
     // properties
-    CoreControlStatus getStatus();
-    CoreControlDynamicCaps getDynamicCapabilities();
-    CoreControlStaticCaps getStaticCapabilities();
-    CoreControlLpoPreference getPreferences();
-    void refreshCapabilities();
-    void refreshPreferences();
+    virtual CoreControlStatus getStatus() override;
+    virtual CoreControlDynamicCaps getDynamicCapabilities() override;
+    virtual CoreControlStaticCaps getStaticCapabilities() override;
+    virtual CoreControlLpoPreference getPreferences() override;
+    virtual void refreshCapabilities() override;
+    virtual void refreshPreferences() override;
+    virtual void setValueWithinCapabilities() override;
 
 private:
 
@@ -67,4 +65,6 @@ private:
     CoreControlPreferencesCachedProperty m_preferences;
     Bool m_controlsHaveBeenInitialized;
     CoreControlStatus m_lastSetCoreControlStatus;
+
+    void throwIfControlNotSupported();
 };

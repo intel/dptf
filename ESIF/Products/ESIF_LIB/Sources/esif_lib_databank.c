@@ -212,6 +212,7 @@ eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 	char file_pattern[MAX_PATH] = {0};
 	struct esif_ccb_file *ffd_ptr;
 	UInt32 idx;
+	size_t name_len;
 
 	ESIF_ASSERT(self);
 
@@ -247,8 +248,9 @@ eEsifError DataBank_LoadDataVaults (DataBankPtr self)
 			DataVaultPtr DB = 0;
 
 			// Read DataVault File, unless it's already been loaded as a Static DataVault
-			if (esif_ccb_strlen(ffd_ptr->filename, MAX_PATH) > sizeof(ESIFDV_FILEEXT)) {
-				ffd_ptr->filename[esif_ccb_strlen(ffd_ptr->filename, MAX_PATH) - (sizeof(ESIFDV_FILEEXT) - 1)] = 0;	// Truncate ".dv" extension
+			name_len = esif_ccb_strlen(ffd_ptr->filename, MAX_PATH);
+			if ((name_len < MAX_PATH) && (name_len >= sizeof(ESIFDV_FILEEXT))) {
+				ffd_ptr->filename[name_len - (sizeof(ESIFDV_FILEEXT) - 1)] = 0;	// Truncate ".dv" extension
 				if (DataBank_GetNameSpace(self, ffd_ptr->filename) == NULL) {
 					DB = DataBank_OpenNameSpace(self, ffd_ptr->filename);
 					if (DB) {

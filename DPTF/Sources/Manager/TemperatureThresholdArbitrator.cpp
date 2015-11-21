@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -125,7 +125,6 @@ Bool TemperatureThresholdArbitrator::findNewTemperatureThresholds(const Temperat
 
             // check for a new aux0
             if ((currentAux0.isValid() == true) &&
-                (currentAux0 <= m_lastKnownParticipantTemperature) &&
                 ((newAux0.isValid() == false) || (currentAux0 > newAux0)))
             {
                 newAux0 = currentAux0;
@@ -133,7 +132,6 @@ Bool TemperatureThresholdArbitrator::findNewTemperatureThresholds(const Temperat
 
             // check for a new aux1
             if ((currentAux1.isValid() == true) &&
-                (currentAux1 >= m_lastKnownParticipantTemperature) &&
                 ((newAux1.isValid() == false) || (currentAux1 < newAux1)))
             {
                 newAux1 = currentAux1;
@@ -168,7 +166,7 @@ void TemperatureThresholdArbitrator::addArbitrationDataToMessage(ManagerMessage&
         TemperatureThresholds* threshold = m_requestedTemperatureThresholds[i];
         if (threshold != nullptr)
         {
-            message.addMessage("Policy " + std::to_string(i), threshold->getAux0().toString() +
+            message.addMessage("Policy " + StlOverride::to_string(i), threshold->getAux0().toString() +
                 "/" + threshold->getAux1().toString());
         }
     }

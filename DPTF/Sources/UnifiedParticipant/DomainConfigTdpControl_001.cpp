@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,10 +21,11 @@
 
 static const UInt8 MaxNumberOfConfigTdpControls = 3;
 
-DomainConfigTdpControl_001::DomainConfigTdpControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface),
-    m_configTdpControlSet(nullptr),
+DomainConfigTdpControl_001::DomainConfigTdpControl_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainConfigTdpControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_configTdpControlDynamicCaps(nullptr),
+    m_configTdpControlSet(nullptr),
     m_configTdpControlStatus(nullptr),
     m_configTdpLevelsAvailable(0),
     m_currentConfigTdpControlId(Constants::Invalid),
@@ -64,7 +65,7 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
     // If any of the lock bits are set, we cannot program cTDP
     if (m_configTdpLock)
     {
-        m_participantServicesInterface->writeMessageWarning(
+        getParticipantServices()->writeMessageWarning(
             ParticipantMessage(FLF, "cTDP set level ignored, lock bit is set!"));
         return;
     }
@@ -72,18 +73,18 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
     // Bounds checking
     verifyConfigTdpControlIndex(configTdpControlIndex);
 
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_CTDP_CONTROL,
         (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getControlId(), // This is what 7.x does
         domainIndex);
 
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_TURBO_ACTIVATION_RATIO,
         (UInt32)((*m_configTdpControlSet)[configTdpControlIndex].getTdpRatio() - 1), // This is what 7.x does
         domainIndex);
 
     // Then BIOS
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_CTDP_POINT,
         configTdpControlIndex,
         domainIndex);
@@ -130,7 +131,7 @@ void DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainI
         lowerLimitIndex = m_configTdpControlSet->getCount() - 1;  // This is what the 7.0 code does
 
         upperLimitIndex =
-            m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+            getParticipantServices()->primitiveExecuteGetAsUInt32(
                 esif_primitive_type::GET_PROC_CTDP_CAPABILITY,
                 domainIndex);
 
@@ -146,34 +147,9 @@ void DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainI
 void DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
 {
     // Build TDPL table
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    try
-    {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_PROC_CTDP_POINT_LIST,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_PROC_CTDP_POINT_LIST,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-
-    std::vector<ConfigTdpControl> controls = BinaryParse::processorTdplObject(dataLength, binaryData);
-    binaryData.deallocate();
+    DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_PROC_CTDP_POINT_LIST, ESIF_DATA_BINARY, domainIndex);
+    std::vector<ConfigTdpControl> controls = BinaryParse::processorTdplObject(buffer);
 
     checkHWConfigTdpSupport(controls, domainIndex);
 
@@ -195,7 +171,7 @@ void DomainConfigTdpControl_001::checkHWConfigTdpSupport(std::vector<ConfigTdpCo
     m_configTdpLock = isLockBitSet(domainIndex);
 
     UIntN currentTdpControl = //ulTdpControl NOT index...
-        m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        getParticipantServices()->primitiveExecuteGetAsUInt32(
             esif_primitive_type::GET_PROC_CTDP_CURRENT_SETTING,
             domainIndex);
 
@@ -247,7 +223,7 @@ void DomainConfigTdpControl_001::verifyConfigTdpControlIndex(UIntN configTdpCont
 UIntN DomainConfigTdpControl_001::getLevelCount(UIntN domainIndex)
 {
     UInt32 cTDPSupport =
-        m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        getParticipantServices()->primitiveExecuteGetAsUInt32(
             esif_primitive_type::GET_PROC_CTDP_SUPPORT_CHECK,
             domainIndex);
 
@@ -273,18 +249,18 @@ Bool DomainConfigTdpControl_001::isLockBitSet(UIntN domainIndex)
 {
     // Check to see if the TAR or if cTDP is locked
     Bool tarLock =
-        (m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        (getParticipantServices()->primitiveExecuteGetAsUInt32(
              esif_primitive_type::GET_PROC_CTDP_TAR_LOCK_STATUS,
              domainIndex) == 1) ? true : false;
 
     Bool configTdpLock =
-        (m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        (getParticipantServices()->primitiveExecuteGetAsUInt32(
              esif_primitive_type::GET_PROC_CTDP_LOCK_STATUS,
              domainIndex) == 1) ? true : false;
 
     if (tarLock || configTdpLock)
     {
-        m_participantServicesInterface->writeMessageWarning(
+        getParticipantServices()->writeMessageWarning(
             ParticipantMessage(FLF, "cTDP is supported, but the lock bit is set!"));
         return true;
     }
@@ -305,4 +281,9 @@ void DomainConfigTdpControl_001::checkAndCreateControlStructures(UIntN domainInd
     {
         createConfigTdpControlDynamicCaps(domainIndex);
     }
+}
+
+std::string DomainConfigTdpControl_001::getName(void)
+{
+    return "Config TDP Control (Version 1)";
 }

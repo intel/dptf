@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,9 +26,10 @@ class PolicyServicesPlatformPowerState final : public PolicyServices, public Pla
 {
 public:
 
-    PolicyServicesPlatformPowerState(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesPlatformPowerState(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual void sleep(void) override final;
     virtual void hibernate(void) override final;
     virtual void shutDown(const Temperature& currentTemperature, const Temperature& tripPointTemperature) override final;
+
 };

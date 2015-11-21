@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 #include "Dptf.h"
 #include "ControlKnobBase.h"
-#include "DisplayControlFacade.h"
+#include "DisplayControlFacadeInterface.h"
 
 // control knob for display controls
 class dptf_export DisplayControlKnob : public ControlKnobBase
@@ -29,7 +29,7 @@ public:
 
     DisplayControlKnob(
         const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<DisplayControlFacade> displayControl,
+        std::shared_ptr<DisplayControlFacadeInterface> displayControl,
         UIntN participantIndex,
         UIntN domainIndex);
     ~DisplayControlKnob(void);
@@ -47,11 +47,13 @@ public:
     
 private:
 
-    std::shared_ptr<DisplayControlFacade> m_displayControl;
+    std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
     std::map<UIntN, UIntN> m_requests;
     Bool m_hasBeenLimited; // only unlimit if the control has been limited in the past due to thermal condition
+    UIntN m_initialIndexSet;
 
     UIntN findHighestDisplayIndexRequest() const;
     UIntN getTargetRequest(UIntN target) const;
     UIntN snapToCapabilitiesBounds(UIntN displayIndex);
+    UIntN calculateNextIndex(UIntN target);
 };

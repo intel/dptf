@@ -80,13 +80,22 @@ typedef enum _t_eIfaceType {
 	eIfaceTypeConjureService
 } eIfaceType;
 
+/* Header structure common to all ESIF interfaces */
+typedef struct _t_EsifIfaceHdr {
+	/* Interface */
+	eIfaceType  fIfaceType; /* Inteface type: App, ESIF, action, etc. */
+	UInt16      fIfaceVersion; /* Version of the given interface type */
+	UInt16      fIfaceSize; /* Size of the whole structure including this header */
+} EsifIfaceHdr, *EsifIfaceHdrPtr;
+
+
 /* Application Interface */
 struct _t_AppInterface;
-typedef struct _t_AppInterface AppInterface, *AppInterfacePtr, **AppInterfacePtrLocation;
+typedef struct _t_AppInterface AppInterface, *AppInterfacePtr;
 
 /* ESIF Interface */
 struct _t_EsifInterface;
-typedef struct _t_EsifInterface EsifInterface, *EsifInterfacePtr, **EsifInterfacePtrLocation;
+typedef struct _t_EsifInterface EsifInterface, *EsifInterfacePtr;
 
 typedef enum esif_primitive_type	ePrimitiveType;
 typedef enum esif_participant_enum	eParticipantBus;

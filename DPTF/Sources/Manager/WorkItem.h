@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,8 +23,8 @@
 #include "EsifSemaphore.h"
 #include "ManagerMessage.h"
 #include "EsifTime.h"
+#include "DptfManagerInterface.h"
 
-class DptfManager;
 class PolicyManager;
 class ParticipantManager;
 class EsifServices;
@@ -33,12 +33,12 @@ class WorkItem : public WorkItemInterface
 {
 public:
 
-    WorkItem(DptfManager* dptfManager, FrameworkEvent::Type frameworkEventType);
+    WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType);
 
     // in the destructor we signal the semaphore if provided
     virtual ~WorkItem(void);
 
-    DptfManager* getDptfManager(void) const;
+    DptfManagerInterface* getDptfManager(void) const;
     PolicyManager* getPolicyManager(void) const;
     ParticipantManager* getParticipantManager(void) const;
     EsifServices* getEsifServices(void) const;
@@ -61,7 +61,7 @@ private:
     WorkItem(const WorkItem& rhs);
     WorkItem& operator=(const WorkItem& rhs);
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     PolicyManager* m_policyManager;
     ParticipantManager* m_participantManager;
     EsifServices* m_esifServices;
@@ -86,6 +86,12 @@ private:
     message.setFrameworkEvent(getFrameworkEventType()); \
     message.setExceptionCaught(functionName, ex.what()); \
     getEsifServices()->writeMessageError(message);
+
+#define WriteWorkItemWarningMessage_Function(functionName) \
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \
+    message.setFrameworkEvent(getFrameworkEventType()); \
+    message.setExceptionCaught(functionName, ex.what()); \
+    getEsifServices()->writeMessageWarning(message);
 
 #define WriteWorkItemErrorMessage_Function_Policy(functionName, policyIndex) \
     ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \

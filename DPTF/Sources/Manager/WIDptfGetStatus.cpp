@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,12 +17,11 @@
 ******************************************************************************/
 
 #include "WIDptfGetStatus.h"
-#include "DptfManager.h"
 #include "DptfStatus.h"
 #include "EsifServices.h"
 
-WIDptfGetStatus::WIDptfGetStatus(DptfManager* dptfManager, const eAppStatusCommand command,
-    const UInt32 appStatusIn, esif::EsifDataPtr appStatusOut, eEsifError* returnCode) :
+WIDptfGetStatus::WIDptfGetStatus(DptfManagerInterface* dptfManager, const eAppStatusCommand command,
+    const UInt32 appStatusIn, EsifDataPtr appStatusOut, eEsifError* returnCode) :
     WorkItem(dptfManager, FrameworkEvent::DptfGetStatus),
     m_command(command), m_appStatusIn(appStatusIn), m_appStatusOut(appStatusOut), m_returnCode(returnCode)
 {
@@ -42,6 +41,6 @@ void WIDptfGetStatus::execute(void)
     }
     catch (std::exception ex)
     {
-        WriteWorkItemErrorMessage_Function("DptfStatus::getStatus");
+        WriteWorkItemWarningMessage_Function("DptfStatus::getStatus");
     }
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class PolicyServicesDomainRfProfileControl final : public PolicyServices, public
 {
 public:
 
-    PolicyServicesDomainRfProfileControl(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesDomainRfProfileControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
     virtual void setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex, const Frequency& centerFrequency) override final;

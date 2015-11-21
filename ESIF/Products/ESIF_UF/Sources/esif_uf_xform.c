@@ -679,8 +679,16 @@ void EsifUfExecuteTransform(
 			dsp_ptr,
 			opcode);
 		break;
+	case ESIF_DATA_PERCENT:
+		ESIF_TRACE_DEBUG("esif xform percent\n");
+		EsifUfXformPercent(NORMALIZE_PERCENT_TYPE,
+			(u32 *) transformDataPtr->buf_ptr,
+			action,
+			dsp_ptr,
+			opcode);
+		break;
 	default:
-		ESIF_TRACE_DEBUG("No tranformation. \n");
+		ESIF_TRACE_DEBUG("No transformation. \n");
 		break;
 	}
 }

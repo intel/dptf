@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,13 +49,13 @@ void ParticipantTracker::forget(UIntN participantIndex)
     }
 }
 
-ParticipantProxy& ParticipantTracker::operator[](UIntN participantIndex)
+ParticipantProxyInterface* ParticipantTracker::getParticipant(UIntN participantIndex)
 {
     if (remembers(participantIndex) == false)
     {
         throw dptf_exception("The participant at the given index is not valid.");
     }
-    return m_trackedParticipants[participantIndex];
+    return &m_trackedParticipants[participantIndex];
 }
 
 vector<UIntN> ParticipantTracker::getAllTrackedIndexes() const
@@ -81,6 +81,38 @@ XmlNode* ParticipantTracker::getXmlForTripPointStatistics()
         allStatus->addChild(item->second.getXmlForTripPointStatistics());
     }
     return allStatus;
+}
+
+XmlNode* ParticipantTracker::getXmlForScpDscpSupport()
+{
+    XmlNode* allStatus = XmlNode::createWrapperElement("scp_dscp_support");
+    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
+    {
+        allStatus->addChild(item->second.getXmlForScpDscpSupport());
+    }
+    return allStatus;
+}
+
+DomainProxyInterface* ParticipantTracker::findDomain(DomainType::Type domainType)
+{
+    auto participantIndexes = getAllTrackedIndexes();
+    for (auto participantIndex = participantIndexes.begin();
+        participantIndex != participantIndexes.end();
+        participantIndex++)
+    {
+        auto participant = getParticipant(*participantIndex);
+        auto domainIndexes = participant->getDomainIndexes();
+        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+        {
+            auto domain = participant->getDomain(*domainIndex);
+            if ((domain->getDomainProperties().getDomainType() == DomainType::MultiFunction))
+            {
+                return domain;
+            }
+        }
+    }
+
+    throw dptf_exception("Domain " + DomainType::ToString(domainType) + " not found.");
 }
 
 void ParticipantTracker::setTimeServiceObject(std::shared_ptr<TimeInterface> time)

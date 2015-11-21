@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,14 +24,14 @@ PerformanceControlKnob::PerformanceControlKnob(
     const PolicyServicesInterfaceContainer& policyServices,
     UIntN participantIndex,
     UIntN domainIndex,
-    shared_ptr<PerformanceControlFacade> performanceControl,
+    shared_ptr<PerformanceControlFacadeInterface> performanceControl,
     std::shared_ptr<std::map<UIntN, UIntN>> perfControlRequests,
     PerformanceControlType::Type controlType)
     : ControlKnobBase(policyServices, participantIndex, domainIndex),
     m_performanceControl(performanceControl),
     m_controlType(controlType),
-    m_tstateUtilizationThreshold(0.0),
-    m_requests(perfControlRequests)
+    m_requests(perfControlRequests),
+    m_tstateUtilizationThreshold(0.0)
 {
     
 }
@@ -116,14 +116,80 @@ Bool PerformanceControlKnob::canLimit(UIntN target)
             UIntN lowerLimitIndex = dynamicCapabilities.getCurrentLowerLimitIndex();
             UIntN upperLimitIndex = dynamicCapabilities.getCurrentUpperLimitIndex();
             UIntN currentIndex = std::max(getTargetRequest(target), upperLimitIndex);
+            UIntN nextIndex = currentIndex + 1;
             if (currentIndex >= lowerLimitIndex)
             {
                 return false;
             }
 
+            PerformanceControlType::Type currControlType =
+                m_performanceControl->getControls()[currentIndex].getPerformanceControlType();
             PerformanceControlType::Type nextControlType =
-                m_performanceControl->getControls()[currentIndex + 1].getPerformanceControlType();
-            return (nextControlType == m_controlType);
+                m_performanceControl->getControls()[nextIndex].getPerformanceControlType();
+
+            // pstate to pstate
+            if ((currControlType == PerformanceControlType::PerformanceState) &&
+                (nextControlType == PerformanceControlType::PerformanceState))
+            {
+                if (m_controlType == PerformanceControlType::PerformanceState)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            // pstate to tstate
+            else if ((currControlType == PerformanceControlType::PerformanceState) &&
+                (nextControlType == PerformanceControlType::ThrottleState))
+            {
+                if (m_controlType == PerformanceControlType::PerformanceState)
+                {
+                    return checkUtilizationIsLessThanThreshold();
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            // t-state to t-state
+            else if ((currControlType == PerformanceControlType::ThrottleState) &&
+                (nextControlType == PerformanceControlType::ThrottleState))
+            {
+                if (m_controlType == PerformanceControlType::ThrottleState)
+                {
+                    if (nextIndex > currentIndex)
+                    {
+                        return checkUtilizationIsLessThanThreshold();
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            // tstate to pstate
+            else if ((currControlType == PerformanceControlType::ThrottleState) &&
+                (nextControlType == PerformanceControlType::PerformanceState))
+            {
+                if (m_controlType == PerformanceControlType::ThrottleState)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
@@ -189,26 +255,19 @@ Bool PerformanceControlKnob::commitSetting()
             UIntN nextIndex = snapToCapabilitiesBounds(findHighestPerformanceIndexRequest());
             if (currentIndex != nextIndex)
             {
-                if (canCommit(currentIndex, nextIndex))
-                {
-                    stringstream messageBefore;
-                    messageBefore << "Attempting to change " << controlTypeToString(m_controlType) << " limit to "
-                        << nextIndex << ".";
-                    getPolicyServices().messageLogging->writeMessageDebug(
-                        PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+                stringstream messageBefore;
+                messageBefore << "Attempting to change " << controlTypeToString(m_controlType) << " limit to "
+                    << nextIndex << ".";
+                getPolicyServices().messageLogging->writeMessageDebug(
+                    PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
-                    m_performanceControl->setControl(nextIndex);
+                m_performanceControl->setControl(nextIndex);
 
-                    stringstream messageAfter;
-                    messageAfter << "Changed " << controlTypeToString(m_controlType) << " limit to " << nextIndex << ".";
-                    getPolicyServices().messageLogging->writeMessageDebug(
-                        PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                stringstream messageAfter;
+                messageAfter << "Changed " << controlTypeToString(m_controlType) << " limit to " << nextIndex << ".";
+                getPolicyServices().messageLogging->writeMessageDebug(
+                    PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+                return true;
             }
             else
             {
@@ -263,78 +322,6 @@ UIntN PerformanceControlKnob::findHighestPerformanceIndexRequest() const
             }
         }
         return highestIndex;
-    }
-}
-
-Bool PerformanceControlKnob::canCommit(UIntN currentIndex, UIntN nextIndex) const
-{
-    PerformanceControlType::Type currControlType =
-        m_performanceControl->getControls()[currentIndex].getPerformanceControlType();
-    PerformanceControlType::Type nextControlType =
-        m_performanceControl->getControls()[nextIndex].getPerformanceControlType();
-
-    // pstate to pstate
-    if ((currControlType == PerformanceControlType::PerformanceState) &&
-        (nextControlType == PerformanceControlType::PerformanceState))
-    {
-        if (m_controlType == PerformanceControlType::PerformanceState)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    // pstate to tstate
-    else if ((currControlType == PerformanceControlType::PerformanceState) &&
-        (nextControlType == PerformanceControlType::ThrottleState))
-    {
-        if (m_controlType == PerformanceControlType::PerformanceState)
-        {
-            return checkUtilizationIsLessThanThreshold();
-        }
-        else
-        {
-            return false;
-        }
-    }
-    // t-state to t-state
-    else if ((currControlType == PerformanceControlType::ThrottleState) && 
-        (nextControlType == PerformanceControlType::ThrottleState))
-    {
-        if (m_controlType == PerformanceControlType::ThrottleState)
-        {
-            if (nextIndex > currentIndex)
-            {
-                return checkUtilizationIsLessThanThreshold();
-            }
-            else
-            {
-                return true;
-            }
-        }
-        else
-        {
-            return false;
-        }
-    }
-    // tstate to pstate
-    else if ((currControlType == PerformanceControlType::ThrottleState) && 
-        (nextControlType == PerformanceControlType::PerformanceState))
-    {
-        if (m_controlType == PerformanceControlType::ThrottleState)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else
-    {
-        return false;
     }
 }
 

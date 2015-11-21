@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainDisplayControl_000.h"
 
-DomainDisplayControl_000::DomainDisplayControl_000(ParticipantServicesInterface* participantServicesInterface)
+DomainDisplayControl_000::DomainDisplayControl_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -38,8 +40,7 @@ DisplayControlSet DomainDisplayControl_000::getDisplayControlSet(UIntN participa
     throw not_implemented();
 }
 
-void DomainDisplayControl_000::setDisplayControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN displayControlIndex, Bool isOverridable)
+void DomainDisplayControl_000::setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
 {
     throw not_implemented();
 }
@@ -52,4 +53,9 @@ void DomainDisplayControl_000::clearCachedData(void)
 XmlNode* DomainDisplayControl_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string DomainDisplayControl_000::getName(void)
+{
+    return "Display Control (Version 0)";
 }

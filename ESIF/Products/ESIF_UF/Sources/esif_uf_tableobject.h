@@ -23,6 +23,17 @@
 #define VARIANT_MAX_FIELDS 50
 #define TABLE_OBJECT_MAX_NAME_LEN 255
 
+enum tableMode {
+	GET = 0,
+	SET
+};
+
+enum tableType {
+	BINARY = 0,
+	VIRTUAL,
+	DATAVAULT
+};
+
 typedef struct TableField_s {
 	char *name;
 	char *label;
@@ -38,9 +49,12 @@ typedef struct TableObject_s {
 	int numFields;
 	int participantId;
 	esif_flags_t options;
+	enum tableType type;
 	EsifDataType dataType;
 	char *name;
 	char *domainQualifier;
+	char *dataSource;
+	char *dataMember;
 	char *dataXML;
 	char *dataText;
 	u8 *binaryData;
@@ -48,10 +62,11 @@ typedef struct TableObject_s {
 	UInt32 getPrimitive;
 	UInt32 setPrimitive;
 	eEsifEventType changeEvent;
-	char *dataVaultNamespace;
-	char *dataVaultKey;
 	char *dataVaultCategory;
 	TableField fields[VARIANT_MAX_FIELDS];
+	int dynamicColumnCount;
+	UInt64 version;
+	enum tableMode mode;
 } TableObject;
 
 struct esif_data_binary_fst_package {
@@ -67,9 +82,11 @@ struct esif_data_binary_fst_package {
 
 void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML);
 void TableField_Destroy(TableField *dataField);
-void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, int participantId);
+void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, char *dataSource, char *dataMember, char *dataText, int participantId, enum tableMode mode);
 void TableObject_Destroy(TableObject *self);
+eEsifError TableObject_LoadData(TableObject *self);
 eEsifError TableObject_LoadSchema(TableObject *self);
+eEsifError TableObject_LoadAttributes(TableObject *self);
 eEsifError TableObject_Save(TableObject *self);
 eEsifError TableObject_Delete(TableObject *self);
 eEsifError TableObject_LoadXML(TableObject *self);

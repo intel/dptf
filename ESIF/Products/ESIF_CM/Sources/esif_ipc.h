@@ -184,6 +184,7 @@ static ESIF_INLINE esif_string esif_primitive_dst_str(u8 dst_id)
  */
 
 /* USE Native Data Types With Packed Structures */
+/* Version 2 added data_type */
 #pragma pack(push, 1)
 struct esif_ipc_event {
 	u8   version;		/* Version Of Primitive Event */
@@ -194,6 +195,7 @@ struct esif_ipc_event {
 	u8   src_id;		/* Source Of Event            */
 	u8   dst_id;		/* Dest Of Event              */
 	u16  dst_domain_id;	/* Destination Domain ID      */
+	enum esif_data_type data_type; /* Event data type */
 	u32  data_len;		/* Data Length May Be Zero    */
 	/* Data Is Here ... */
 };
@@ -278,6 +280,7 @@ struct esif_ipc *esif_ipc_alloc_primitive(
 
 struct esif_ipc *esif_ipc_alloc_event(
 	struct esif_ipc_event **event_ptr_ptr,
+	enum esif_data_type data_type,
 	u32 data_len
 	);
 

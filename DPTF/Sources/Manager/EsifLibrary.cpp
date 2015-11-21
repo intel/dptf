@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,7 @@ EsifLibrary::~EsifLibrary(void)
     if (m_libraryLoaded == true)
     {
         esif_ccb_library_unload(m_library);
+        m_library = nullptr;
         m_libraryLoaded = false;
     }
 }
@@ -55,10 +56,12 @@ void EsifLibrary::load(void)
         esif_string esifString = const_cast<esif_string>(m_fileName.c_str());
         m_library = esif_ccb_library_load(esifString);
 
-        if (m_library == nullptr)
+        if (m_library == nullptr || m_library->handle == nullptr)
         {
             std::stringstream message;
-            message << "Library failed to load: " << m_fileName;
+            message << "Library failed to load: " << m_fileName << ": " << esif_ccb_library_errormsg(m_library);
+            esif_ccb_library_unload(m_library);
+            m_library = nullptr;
             throw dptf_exception(message.str());
         }
 
@@ -71,6 +74,7 @@ void EsifLibrary::unload(void)
     if (m_libraryLoaded == true)
     {
         esif_ccb_library_unload(m_library);
+        m_library = nullptr;
         m_libraryLoaded = false;
     }
 }
@@ -88,7 +92,7 @@ void* EsifLibrary::getFunctionPtr(std::string functionName)
     if (funcPtr == nullptr)
     {
         std::stringstream message;
-        message << "Could not get pointer to function: " << functionName;
+        message << "Could not get pointer to function: " << functionName << ": " << esif_ccb_library_errormsg(m_library);
         throw dptf_exception(message.str());
     }
 

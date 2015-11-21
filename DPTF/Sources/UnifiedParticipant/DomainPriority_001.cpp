@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,8 +20,9 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-DomainPriority_001::DomainPriority_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainPriority_001::DomainPriority_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
     clearCachedData();
 }
@@ -60,7 +61,7 @@ void DomainPriority_001::updateCache(UIntN domainIndex)
 {
     try
     {
-        UInt32 priority = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        UInt32 priority = getParticipantServices()->primitiveExecuteGetAsUInt32(
             esif_primitive_type::GET_DOMAIN_PRIORITY, domainIndex);
 
         m_currentPriority = DomainPriority(priority);
@@ -72,4 +73,9 @@ void DomainPriority_001::updateCache(UIntN domainIndex)
     }
 
     m_cacheDataCleared = false;
+}
+
+std::string DomainPriority_001::getName(void)
+{
+    return "Domain Priority (Version 1)";
 }

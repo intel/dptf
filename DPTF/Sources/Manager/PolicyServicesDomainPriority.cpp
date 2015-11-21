@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #include "PolicyServicesDomainPriority.h"
 #include "ParticipantManager.h"
 
-PolicyServicesDomainPriority::PolicyServicesDomainPriority(DptfManager* dptfManager, UIntN policyIndex) :
+PolicyServicesDomainPriority::PolicyServicesDomainPriority(DptfManagerInterface* dptfManager, UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)
 {
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,6 +33,7 @@
 #include "DomainRfProfileStatusInterface.h"
 #include "DomainTemperatureInterface.h"
 #include "DomainUtilizationInterface.h"
+#include "DomainHardwareDutyCycleControlInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
 #include "ParticipantSetSpecificInfoInterface.h"
@@ -43,6 +44,10 @@
 #include "PolicyInitiatedCallbackInterface.h"
 #include "MessageLoggingInterface.h"
 #include "PolicyMessage.h"
+#include "PolicyWorkloadHintConfigurationInterface.h"
+#include "DomainPlatformPowerControlInterface.h"
+#include "DomainPlatformPowerStatusInterface.h"
+#include "PlatformStateInterface.h"
 
 struct PolicyServicesInterfaceContainer
 {
@@ -57,11 +62,14 @@ struct PolicyServicesInterfaceContainer
     DomainPixelClockStatusInterface* domainPixelClockStatus;
     DomainPowerControlInterface* domainPowerControl;
     DomainPowerStatusInterface* domainPowerStatus;
+    DomainPlatformPowerControlInterface* domainPlatformPowerControl;
+    DomainPlatformPowerStatusInterface* domainPlatformPowerStatus;
     DomainPriorityInterface* domainPriority;
     DomainRfProfileControlInterface* domainRfProfileControl;
     DomainRfProfileStatusInterface* domainRfProfileStatus;
     DomainTemperatureInterface* domainTemperature;
     DomainUtilizationInterface* domainUtilization;
+    DomainHardwareDutyCycleControlInterface* domainHardwareDutyCycleControl;
     ParticipantGetSpecificInfoInterface* participantGetSpecificInfo;
     ParticipantPropertiesInterface* participantProperties;
     ParticipantSetSpecificInfoInterface* participantSetSpecificInfo;
@@ -71,4 +79,6 @@ struct PolicyServicesInterfaceContainer
     PolicyEventRegistrationInterface* policyEventRegistration;
     PolicyInitiatedCallbackInterface* policyInitiatedCallback;
     MessageLoggingInterface* messageLogging;
+    PolicyWorkloadHintConfigurationInterface* workloadHintConfiguration;
+    PlatformStateInterface* platformState;
 };

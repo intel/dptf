@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #include "ParticipantManager.h"
 #include "EsifServices.h"
 
-WIParticipantAllocate::WIParticipantAllocate(DptfManager* dptfManager, UIntN* newParticipantIndex) :
+WIParticipantAllocate::WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex) :
     WorkItem(dptfManager, FrameworkEvent::ParticipantAllocate),
     m_newParticipantIndex(newParticipantIndex)
 {

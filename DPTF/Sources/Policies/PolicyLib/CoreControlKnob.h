@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 #include "Dptf.h"
 #include "ControlKnobBase.h"
-#include "CoreControlFacade.h"
+#include "CoreControlFacadeInterface.h"
 #include "PerformanceControlKnob.h"
 #include "XmlNode.h"
 
@@ -33,7 +33,7 @@ public:
         const PolicyServicesInterfaceContainer& policyServices,
         UIntN participantIndex,
         UIntN domainIndex,
-        std::shared_ptr<CoreControlFacade> coreControl,
+        std::shared_ptr<CoreControlFacadeInterface> coreControl,
         std::shared_ptr<PerformanceControlKnob> performanceControlKnob);
     ~CoreControlKnob(void);
 
@@ -50,7 +50,7 @@ public:
 
 private:
 
-    std::shared_ptr<CoreControlFacade> m_coreControl;
+    std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
     std::shared_ptr<PerformanceControlKnob> m_performanceControlKnob;
     std::map<UIntN, UIntN> m_requests;
 

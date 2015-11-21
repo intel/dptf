@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "Domain.h"
 #include "ParticipantInterface.h"
 #include "ParticipantServices.h"
+#include "PlatformPowerLimitType.h"
 
 class XmlNode;
 
@@ -87,6 +88,18 @@ public:
     void domainRfProfileChanged(void);
     void domainTemperatureThresholdCrossed(void);
     void participantSpecificInfoChanged(void);
+    void domainVirtualSensorCalibrationTableChanged(void);
+    void domainVirtualSensorPollingTableChanged(void);
+    void domainVirtualSensorRecalcChanged(void);
+    void domainBatteryStatusChanged(void);
+    void domainAdapterPowerChanged(void);
+    void domainPlatformPowerConsumptionChanged(void);
+    void domainPlatformPowerSourceChanged(void);
+    void domainAdapterPowerRatingChanged(void);
+    void domainChargerTypeChanged(void);
+    void domainPlatformRestOfPowerChanged(void);
+    void domainACPeakPowerChanged(void);
+    void domainACPeakTimeWindowChanged(void);
 
     //
     // The following set of functions implement the ParticipantInterface related functionality
@@ -116,7 +129,7 @@ public:
     DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex);
     DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
     DisplayControlSet getDisplayControlSet(UIntN domainIndex);
-    void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex, Bool isOverridable);
+    void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
 
     // Performance controls
     PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN domainIndex);
@@ -134,11 +147,43 @@ public:
 
     // Power controls
     PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex);
-    PowerControlStatusSet getPowerControlStatusSet(UIntN domainIndex);
-    void setPowerControl(UIntN domainIndex, UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet);
+    void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
+    Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
+    Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
+    void setPowerLimit(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+        const Power& powerLimit);
+    TimeSpan getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType);
+    void setPowerLimitTimeWindow(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+        const TimeSpan& timeWindow);
+    Percentage getPowerLimitDutyCycle(UIntN domainIndex, PowerControlType::Type controlType);
+    void setPowerLimitDutyCycle(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+        const Percentage& dutyCycle);
+
 
     // Power status
     PowerStatus getPowerStatus(UIntN domainIndex);
+
+    // Platform Power Controls
+    Bool isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+    Power getPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+    void setPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const Power& powerLimit);
+    TimeSpan getPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+    void setPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow);
+    Percentage getPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+    void setPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle);
+
+    // Platform Power Status
+    Power getMaxBatteryPower(UIntN domainIndex);
+    Power getAdapterPower(UIntN domainIndex);
+    Power getPlatformPowerConsumption(UIntN domainIndex);
+    Power getPlatformRestOfPower(UIntN domainIndex);
+    Power getAdapterPowerRating(UIntN domainIndex);
+    DptfBuffer getBatteryStatus(UIntN domainIndex);
+    PlatformPowerSource::Type getPlatformPowerSource(UIntN domainIndex);
+    ChargerType::Type getChargerType(UIntN domainIndex);
+    Percentage getPlatformStateOfCharge(UIntN domainIndex);
+    Power getACPeakPower(UIntN domainIndex);
+    TimeSpan getACPeakTimeWindow(UIntN domainIndex);
 
     // priority
     DomainPriority getDomainPriority(UIntN domainIndex);
@@ -154,9 +199,24 @@ public:
     TemperatureStatus getTemperatureStatus(UIntN domainIndex);
     TemperatureThresholds getTemperatureThresholds(UIntN domainIndex);
     void setTemperatureThresholds(UIntN domainIndex, UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
+    DptfBuffer getVirtualSensorCalibrationTable(UIntN domainIndex);
+    DptfBuffer getVirtualSensorPollingTable(UIntN domainIndex);
+    Bool isVirtualTemperature(UIntN domainIndex);
+    void setVirtualTemperature(UIntN domainIndex, const Temperature& temperature);
 
     // utilization
     UtilizationStatus getUtilizationStatus(UIntN domainIndex);
+
+    // hardware duty cycle
+    DptfBuffer getHardwareDutyCycleUtilizationSet(UIntN domainIndex);
+    Bool isEnabledByPlatform(UIntN domainIndex);
+    Bool isSupportedByPlatform(UIntN domainIndex);
+    Bool isEnabledByOperatingSystem(UIntN domainIndex);
+    Bool isSupportedByOperatingSystem(UIntN domainIndex);
+    Bool isHdcOobEnabled(UIntN domainIndex);
+    void setHdcOobEnable(UIntN domainIndex, const UInt8& hdcOobEnable);
+    void setHardwareDutyCycle(UIntN domainIndex, const Percentage& dutyCycle);
+    Percentage getHardwareDutyCycle(UIntN domainIndex);
 
     // Get specific info
     std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(
@@ -168,7 +228,7 @@ public:
 
     // Set specific info
     void setParticipantDeviceTemperatureIndication(const Temperature& temperature);
-    void setParticipantCoolingPolicy(const CoolingPreference& coolingPreference);
+    void setParticipantCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type);
 
 private:
 
@@ -191,5 +251,6 @@ private:
 
     std::vector<Domain*> m_domain;
 
-    void throwIfDomainIndexInvalid(UIntN domainIndex);
+    void throwIfDomainInvalid(UIntN domainIndex) const;
+    void throwIfRealParticipantIsInvalid() const;
 };

@@ -58,7 +58,7 @@
 #include "esif_ipc.h"
 #include "esif_primitive.h"
 #include "esif_event.h"
-#include "esif_debug.h"
+#include "esif_trace.h"
 #include "esif_ccb_time.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -318,6 +318,7 @@ struct esif_ipc *esif_ipc_alloc_primitive(
 /* Allocate Event IPC */
 struct esif_ipc *esif_ipc_alloc_event(
 	struct esif_ipc_event **event_ptr_ptr,
+	enum esif_data_type data_type,
 	u32 data_len
 	)
 {
@@ -337,12 +338,14 @@ struct esif_ipc *esif_ipc_alloc_event(
 
 		event_ptr->version  = ESIF_EVENT_VERSION;
 		event_ptr->priority = ESIF_EVENT_PRIORITY_NORMAL;
+
+		event_ptr->data_type = data_type;
 		event_ptr->data_len = data_len;
 
 		esif_ccb_system_time(&timestamp);
 		event_ptr->timestamp = (u64)timestamp;
 
-		*event_ptr_ptr          = event_ptr;
+		*event_ptr_ptr = event_ptr;
 	}
 	return ipc_ptr;
 }

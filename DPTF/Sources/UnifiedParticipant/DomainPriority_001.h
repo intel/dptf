@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,23 +19,22 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPriorityInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainPriorityBase.h"
 
-class DomainPriority_001 final : public DomainPriorityInterface,
-    public ComponentExtendedInterface
+class DomainPriority_001 : public DomainPriorityBase
 {
 public:
 
-    DomainPriority_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainPriority_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
 
     // DomainPriorityInterface
-    virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
@@ -43,7 +42,6 @@ private:
     DomainPriority_001(const DomainPriority_001& rhs);
     DomainPriority_001& operator=(const DomainPriority_001& rhs);
 
-    ParticipantServicesInterface* m_participantServicesInterface;
     Bool m_cacheDataCleared;
     DomainPriority m_currentPriority;
 

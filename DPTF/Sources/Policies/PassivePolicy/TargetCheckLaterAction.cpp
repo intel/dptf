@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@ using namespace std;
 
 TargetCheckLaterAction::TargetCheckLaterAction(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    ParticipantTracker& participantTracker, ThermalRelationshipTable& trt,
+    std::shared_ptr<ParticipantTrackerInterface> participantTracker, ThermalRelationshipTable& trt,
     std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
     : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
 {

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "ParticipantGetSpecificInfo_000.h"
 
-ParticipantGetSpecificInfo_000::ParticipantGetSpecificInfo_000(ParticipantServicesInterface* participantServicesInterface)
+ParticipantGetSpecificInfo_000::ParticipantGetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -37,4 +39,9 @@ void ParticipantGetSpecificInfo_000::clearCachedData(void)
 XmlNode* ParticipantGetSpecificInfo_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string ParticipantGetSpecificInfo_000::getName(void)
+{
+    return "Get Specific Info Control (Version 0)";
 }

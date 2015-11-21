@@ -72,6 +72,15 @@
  *    esif_link_list_create - Allocates a new esif_link_list.  Must be called
  *        before other functions that operate on the list
  *
+ *    esif_link_list_free_data_and_destroy- Destroys a list and all data it
+ *        contains.  It will call the provided callback function to free the
+ *        data associated with each node during destruction, or will call
+ *        esif_ccb_free on the data if no callback function is provided. No
+ *        other functions should be called on a list after this is called.
+ *        WARNING:  Care should be taken that an and locks held during the
+ *        call of this function must be taken into account in the callback
+ *        function to destroy the data.
+ *
  *    esif_link_list_destroy- Destroys a list and all nodes it contains.  It
  *        is the responsibility of the user to free any resources that were
  *        passed in as data within before calling this function.  No other
@@ -125,6 +134,7 @@ typedef struct esif_link_list EsifLinkList, *EsifLinkListPtr;
 typedef struct esif_link_list_node EsifLinkListNode, *EsifLinkListNodePtr;
 #endif
 
+typedef void (*link_list_data_destroy_func)(void *data_ptr);
 
 #ifdef __cplusplus
 extern "C" {
@@ -135,6 +145,11 @@ void esif_link_list_exit(void);
 
 struct esif_link_list *esif_link_list_create(void);
 void esif_link_list_destroy(struct esif_link_list *self);
+
+void esif_link_list_free_data_and_destroy(
+	struct esif_link_list *self,
+	link_list_data_destroy_func destroy_func
+	);
 
 enum esif_rc esif_link_list_add_at_front(
 	struct esif_link_list *self,

@@ -29,6 +29,10 @@
 #include "win\dppe.h"
 #endif
 
+#ifdef ESIF_ATTR_OS_ANDROID
+#include <sys/reboot.h>
+#endif
+
 // Execute System Command. Encapsulate to avoid Linux warnings when using gcc -O9
 static ESIF_INLINE void esif_ccb_system(const char *cmd)
 {
@@ -140,7 +144,7 @@ static ESIF_INLINE void esif_ccb_shutdown(
 #elif defined(ESIF_ATTR_OS_CHROME)
 	system("shutdown -P now");
 #elif defined(ESIF_ATTR_OS_ANDROID)
-	system("reboot -p");
+	reboot(RB_POWER_OFF);
 #else
 	system("shutdown -h now");
 #endif

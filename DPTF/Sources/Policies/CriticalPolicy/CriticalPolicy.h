@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,13 +34,13 @@ public:
     virtual void onDestroy(void) override;
     virtual void onEnable(void) override;
     virtual void onDisable(void) override;
+    virtual void onResume(void) override;
     virtual void onConnectedStandbyEntry(void) override;
     virtual void onConnectedStandbyExit(void) override;
-    virtual void onResume(void) override;
 
-    virtual bool autoNotifyPlatformOscOnCreateDestroy() const override;
-    virtual bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
-    virtual bool autoNotifyPlatformOscOnEnableDisable() const override;
+    virtual Bool autoNotifyPlatformOscOnCreateDestroy() const override;
+    virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
+    virtual Bool autoNotifyPlatformOscOnEnableDisable() const override;
 
     virtual Guid getGuid(void) const override;
     virtual std::string getName(void) const override;
@@ -52,18 +52,19 @@ public:
     virtual void onUnbindDomain(UIntN participantIndex, UIntN domainIndex) override;
     virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
     virtual void onParticipantSpecificInfoChanged(UIntN participantIndex) override;
-    virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2) override;
 
 private:
 
     mutable CriticalPolicyStatistics m_stats;
+    Bool m_sleepRequested;
+    Bool m_hibernateRequested;
 
-    bool participantHasDesiredProperties(ParticipantProxy& newParticipant);
-    void takePowerActionBasedOnThermalState(ParticipantProxy& participant);
+    Bool participantHasDesiredProperties(ParticipantProxyInterface* newParticipant);
+    void takePowerActionBasedOnThermalState(ParticipantProxyInterface* participant);
     void setParticipantTemperatureThresholdNotification(
         Temperature currentTemperature,
         std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints,
-        ParticipantProxy& participant);
+        ParticipantProxyInterface* participant);
     Temperature determineLowerTemperatureThreshold(
         Temperature currentTemperature,
         std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints);

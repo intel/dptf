@@ -181,7 +181,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	UInt8 participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
-	EsifDataPtr eventData
+	const EsifDataPtr eventData
 	);
 
 UInt64 EsifEventMgr_GetEventMask(

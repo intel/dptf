@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include "EsifDataGuid.h"
 #include "EsifDataString.h"
 #include "Utility.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 #include "ManagerMessage.h"
 
 Participant::Participant(DptfManager* dptfManager) :
@@ -131,16 +131,19 @@ void Participant::destroyParticipant(void)
 
 void Participant::enableParticipant(void)
 {
+    throwIfRealParticipantIsInvalid();
     m_theRealParticipant->enableParticipant();
 }
 
 void Participant::disableParticipant(void)
 {
+    throwIfRealParticipantIsInvalid();
     m_theRealParticipant->disableParticipant();
 }
 
 Bool Participant::isParticipantEnabled(void)
 {
+    throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->isParticipantEnabled();
 }
 
@@ -212,19 +215,19 @@ Bool Participant::isDomainValid(UIntN domainIndex)
 
 void Participant::enableDomain(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->enableDomain();
 }
 
 void Participant::disableDomain(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->disableDomain();
 }
 
 Bool Participant::isDomainEnabled(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->isDomainEnabled();
 }
 
@@ -310,17 +313,19 @@ std::string Participant::getParticipantName(void) const
 
 std::string Participant::getDomainName(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getDomainName();
 }
 
 XmlNode* Participant::getXml(UIntN domainIndex) const
 {
+    throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getXml(domainIndex);
 }
 
 XmlNode* Participant::getStatusAsXml(UIntN domainIndex) const
 {
+    throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getStatusAsXml(domainIndex);
 }
 
@@ -332,6 +337,7 @@ void Participant::connectedStandbyEntry(void)
 {
     if (isEventRegistered(ParticipantEvent::DptfConnectedStandbyEntry))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->connectedStandbyEntry();
     }
 }
@@ -340,6 +346,7 @@ void Participant::connectedStandbyExit(void)
 {
     if (isEventRegistered(ParticipantEvent::DptfConnectedStandbyExit))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->connectedStandbyExit();
     }
 }
@@ -348,6 +355,7 @@ void Participant::suspend(void)
 {
     if (isEventRegistered(ParticipantEvent::DptfSuspend))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->suspend();
     }
 }
@@ -356,6 +364,7 @@ void Participant::resume(void)
 {
     if (isEventRegistered(ParticipantEvent::DptfResume))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->resume();
     }
 }
@@ -364,6 +373,7 @@ void Participant::domainConfigTdpCapabilityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainConfigTdpCapabilityChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainConfigTdpCapabilityChanged();
     }
 }
@@ -372,6 +382,7 @@ void Participant::domainCoreControlCapabilityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainCoreControlCapabilityChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainCoreControlCapabilityChanged();
     }
 }
@@ -380,6 +391,7 @@ void Participant::domainDisplayControlCapabilityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainDisplayControlCapabilityChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainDisplayControlCapabilityChanged();
     }
 }
@@ -388,6 +400,7 @@ void Participant::domainDisplayStatusChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainDisplayStatusChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainDisplayStatusChanged();
     }
 }
@@ -396,6 +409,7 @@ void Participant::domainPerformanceControlCapabilityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainPerformanceControlCapabilityChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainPerformanceControlCapabilityChanged();
     }
 }
@@ -404,6 +418,7 @@ void Participant::domainPerformanceControlsChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainPerformanceControlsChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainPerformanceControlsChanged();
     }
 }
@@ -412,6 +427,7 @@ void Participant::domainPowerControlCapabilityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainPowerControlCapabilityChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainPowerControlCapabilityChanged();
     }
 }
@@ -420,6 +436,7 @@ void Participant::domainPriorityChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainPriorityChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainPriorityChanged();
     }
 }
@@ -428,6 +445,7 @@ void Participant::domainRadioConnectionStatusChanged(RadioConnectionStatus::Type
 {
     if (isEventRegistered(ParticipantEvent::DomainRadioConnectionStatusChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainRadioConnectionStatusChanged(radioConnectionStatus);
     }
 }
@@ -436,6 +454,7 @@ void Participant::domainRfProfileChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainRfProfileChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainRfProfileChanged();
     }
 }
@@ -444,6 +463,7 @@ void Participant::domainTemperatureThresholdCrossed(void)
 {
     if (isEventRegistered(ParticipantEvent::DomainTemperatureThresholdCrossed))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->domainTemperatureThresholdCrossed();
     }
 }
@@ -452,7 +472,116 @@ void Participant::participantSpecificInfoChanged(void)
 {
     if (isEventRegistered(ParticipantEvent::ParticipantSpecificInfoChanged))
     {
+        throwIfRealParticipantIsInvalid();
         m_theRealParticipant->participantSpecificInfoChanged();
+    }
+}
+
+void Participant::domainVirtualSensorCalibrationTableChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainVirtualSensorCalibrationTableChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainVirtualSensorCalibrationTableChanged();
+    }
+}
+
+void Participant::domainVirtualSensorPollingTableChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainVirtualSensorPollingTableChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainVirtualSensorPollingTableChanged();
+    }
+}
+
+void Participant::domainVirtualSensorRecalcChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainVirtualSensorRecalcChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainVirtualSensorRecalcChanged();
+    }
+}
+
+void Participant::domainBatteryStatusChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainBatteryStatusChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainBatteryStatusChanged();
+    }
+}
+
+void Participant::domainAdapterPowerChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainAdapterPowerChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainAdapterPowerChanged();
+    }
+}
+
+void Participant::domainPlatformPowerConsumptionChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainPlatformPowerConsumptionChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainPlatformPowerConsumptionChanged();
+    }
+}
+
+void Participant::domainPlatformPowerSourceChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainPlatformPowerSourceChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainPlatformPowerSourceChanged();
+    }
+}
+
+void Participant::domainAdapterPowerRatingChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainAdapterPowerRatingChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainAdapterPowerRatingChanged();
+    }
+}
+
+void Participant::domainChargerTypeChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainChargerTypeChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainChargerTypeChanged();
+    }
+}
+
+void Participant::domainPlatformRestOfPowerChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainPlatformRestOfPowerChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainPlatformRestOfPowerChanged();
+    }
+}
+
+void Participant::domainACPeakPowerChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainACPeakPowerChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainACPeakPowerChanged();
+    }
+}
+
+void Participant::domainACPeakTimeWindowChanged(void)
+{
+    if (isEventRegistered(ParticipantEvent::DomainACPeakTimeWindowChanged))
+    {
+        throwIfRealParticipantIsInvalid();
+        m_theRealParticipant->domainACPeakTimeWindowChanged();
     }
 }
 
@@ -462,262 +591,493 @@ void Participant::participantSpecificInfoChanged(void)
 
 ActiveControlStaticCaps Participant::getActiveControlStaticCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getActiveControlStaticCaps();
 }
 
 ActiveControlStatus Participant::getActiveControlStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getActiveControlStatus();
 }
 
 ActiveControlSet Participant::getActiveControlSet(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getActiveControlSet();
 }
 
 void Participant::setActiveControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setActiveControl(policyIndex, controlIndex);
 }
 
 void Participant::setActiveControl(UIntN domainIndex, UIntN policyIndex, const Percentage& fanSpeed)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setActiveControl(policyIndex, fanSpeed);
 }
 
 ConfigTdpControlDynamicCaps Participant::getConfigTdpControlDynamicCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getConfigTdpControlDynamicCaps();
 }
 
 ConfigTdpControlStatus Participant::getConfigTdpControlStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getConfigTdpControlStatus();
 }
 
 ConfigTdpControlSet Participant::getConfigTdpControlSet(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getConfigTdpControlSet();
 }
 
 void Participant::setConfigTdpControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setConfigTdpControl(policyIndex, controlIndex);
 }
 
 CoreControlStaticCaps Participant::getCoreControlStaticCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getCoreControlStaticCaps();
 }
 
 CoreControlDynamicCaps Participant::getCoreControlDynamicCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getCoreControlDynamicCaps();
 }
 
 CoreControlLpoPreference Participant::getCoreControlLpoPreference(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getCoreControlLpoPreference();
 }
 
 CoreControlStatus Participant::getCoreControlStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getCoreControlStatus();
 }
 
 void Participant::setActiveCoreControl(UIntN domainIndex, UIntN policyIndex, const CoreControlStatus& coreControlStatus)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setActiveCoreControl(policyIndex, coreControlStatus);
 }
 
 DisplayControlDynamicCaps Participant::getDisplayControlDynamicCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getDisplayControlDynamicCaps();
 }
 
 DisplayControlStatus Participant::getDisplayControlStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getDisplayControlStatus();
 }
 
 DisplayControlSet Participant::getDisplayControlSet(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getDisplayControlSet();
 }
 
-void Participant::setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex, Bool isOverridable)
+void Participant::setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
-    m_domain[domainIndex]->setDisplayControl(policyIndex, displayControlIndex, isOverridable);
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setDisplayControl(policyIndex, displayControlIndex);
 }
 
 PerformanceControlStaticCaps Participant::getPerformanceControlStaticCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPerformanceControlStaticCaps();
 }
 
 PerformanceControlDynamicCaps Participant::getPerformanceControlDynamicCaps(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPerformanceControlDynamicCaps();
 }
 
 PerformanceControlStatus Participant::getPerformanceControlStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPerformanceControlStatus();
 }
 
 PerformanceControlSet Participant::getPerformanceControlSet(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPerformanceControlSet();
 }
 
 void Participant::setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setPerformanceControl(policyIndex, performanceControlIndex);
 }
 
 void Participant::setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setPixelClockControl(policyIndex, pixelClockDataSet);
 }
 
 PixelClockCapabilities Participant::getPixelClockCapabilities(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPixelClockCapabilities();
 }
 
 PixelClockDataSet Participant::getPixelClockDataSet(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPixelClockDataSet();
 }
 
 PowerControlDynamicCapsSet Participant::getPowerControlDynamicCapsSet(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPowerControlDynamicCapsSet();
 }
 
-PowerControlStatusSet Participant::getPowerControlStatusSet(UIntN domainIndex)
+void Participant::setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet)
 {
-    throwIfDomainIndexInvalid(domainIndex);
-    return m_domain[domainIndex]->getPowerControlStatusSet();
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerControlDynamicCapsSet(policyIndex, capsSet);
 }
 
-void Participant::setPowerControl(UIntN domainIndex, UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet)
+Bool Participant::isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType)
 {
-    throwIfDomainIndexInvalid(domainIndex);
-    m_domain[domainIndex]->setPowerControl(policyIndex, powerControlStatusSet);
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isPowerLimitEnabled(controlType);
+}
+
+Power Participant::getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPowerLimit(controlType);
+}
+
+void Participant::setPowerLimit(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+    const Power& powerLimit)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerLimit(policyIndex, controlType, powerLimit);
+}
+
+TimeSpan Participant::getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPowerLimitTimeWindow(controlType);
+}
+
+void Participant::setPowerLimitTimeWindow(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+    const TimeSpan& timeWindow)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerLimitTimeWindow(policyIndex, controlType, timeWindow);
+}
+
+Percentage Participant::getPowerLimitDutyCycle(UIntN domainIndex, PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPowerLimitDutyCycle(controlType);
+}
+
+void Participant::setPowerLimitDutyCycle(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+    const Percentage& dutyCycle)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerLimitDutyCycle(policyIndex, controlType, dutyCycle);
 }
 
 PowerStatus Participant::getPowerStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPowerStatus();
+}
+
+Bool Participant::isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isPlatformPowerLimitEnabled(limitType);
+}
+
+Power Participant::getPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformPowerLimit(limitType);
+}
+
+void Participant::setPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const Power& powerLimit)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPlatformPowerLimit(limitType, powerLimit);
+}
+
+TimeSpan Participant::getPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformPowerLimitTimeWindow(limitType);
+}
+
+void Participant::setPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPlatformPowerLimitTimeWindow(limitType, timeWindow);
+}
+
+Percentage Participant::getPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformPowerLimitDutyCycle(limitType);
+}
+
+void Participant::setPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPlatformPowerLimitDutyCycle(limitType, dutyCycle);
+}
+
+Power Participant::getMaxBatteryPower(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getMaxBatteryPower();
+}
+
+Power Participant::getAdapterPower(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getAdapterPower();
+}
+
+Power Participant::getPlatformPowerConsumption(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformPowerConsumption();
+}
+
+Power Participant::getPlatformRestOfPower(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformRestOfPower();
+}
+
+Power Participant::getAdapterPowerRating(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getAdapterPowerRating();
+}
+
+DptfBuffer Participant::getBatteryStatus(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getBatteryStatus();
+}
+
+PlatformPowerSource::Type Participant::getPlatformPowerSource(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformPowerSource();
+}
+
+ChargerType::Type Participant::getChargerType(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getChargerType();
+}
+
+Percentage Participant::getPlatformStateOfCharge(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getPlatformStateOfCharge();
+}
+
+Power Participant::getACPeakPower(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getACPeakPower();
+}
+
+TimeSpan Participant::getACPeakTimeWindow(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getACPeakTimeWindow();
 }
 
 DomainPriority Participant::getDomainPriority(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getDomainPriority();
 }
 
 RfProfileCapabilities Participant::getRfProfileCapabilities(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getRfProfileCapabilities();
 }
 
 void Participant::setRfProfileCenterFrequency(UIntN domainIndex, UIntN policyIndex, const Frequency& centerFrequency)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setRfProfileCenterFrequency(policyIndex, centerFrequency);
 }
 
 RfProfileData Participant::getRfProfileData(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getRfProfileData();
 }
 
 TemperatureStatus Participant::getTemperatureStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getTemperatureStatus();
 }
 
 TemperatureThresholds Participant::getTemperatureThresholds(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getTemperatureThresholds();
 }
 
 void Participant::setTemperatureThresholds(UIntN domainIndex, UIntN policyIndex, const TemperatureThresholds& temperatureThresholds)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setTemperatureThresholds(policyIndex, temperatureThresholds);
 }
 
 UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)
 {
-    throwIfDomainIndexInvalid(domainIndex);
+    throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getUtilizationStatus();
+}
+
+DptfBuffer Participant::getHardwareDutyCycleUtilizationSet(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getHardwareDutyCycleUtilizationSet();
+}
+
+Bool Participant::isEnabledByPlatform(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isEnabledByPlatform();
+}
+
+Bool Participant::isSupportedByPlatform(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isSupportedByPlatform();
+}
+
+Bool Participant::isEnabledByOperatingSystem(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isEnabledByOperatingSystem();
+}
+
+Bool Participant::isSupportedByOperatingSystem(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isSupportedByOperatingSystem();
+}
+
+Bool Participant::isHdcOobEnabled(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isHdcOobEnabled();
+}
+
+void Participant::setHdcOobEnable(UIntN domainIndex, const UInt8& hdcOobEnable)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setHdcOobEnable(hdcOobEnable);
+}
+
+void Participant::setHardwareDutyCycle(UIntN domainIndex, const Percentage& dutyCycle)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setHardwareDutyCycle(dutyCycle);
+}
+
+Percentage Participant::getHardwareDutyCycle(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getHardwareDutyCycle();
+}
+
+DptfBuffer Participant::getVirtualSensorCalibrationTable(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getVirtualSensorCalibrationTable();
+}
+
+DptfBuffer Participant::getVirtualSensorPollingTable(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getVirtualSensorPollingTable();
+}
+
+Bool Participant::isVirtualTemperature(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isVirtualTemperature();
+}
+
+void Participant::setVirtualTemperature(UIntN domainIndex, const Temperature& temperature)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setVirtualTemperature(temperature);
 }
 
 std::map<ParticipantSpecificInfoKey::Type, UIntN> Participant::getParticipantSpecificInfo(
     const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
+    throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getParticipantSpecificInfo(m_participantIndex, requestedInfo);
 }
 
 ParticipantProperties Participant::getParticipantProperties(void)
 {
+    throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getParticipantProperties(m_participantIndex);
 }
 
 DomainPropertiesSet Participant::getDomainPropertiesSet(void)
 {
+    throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getDomainPropertiesSet(m_participantIndex);
 }
 
 void Participant::setParticipantDeviceTemperatureIndication(const Temperature& temperature)
 {
+    throwIfRealParticipantIsInvalid();
     m_theRealParticipant->setParticipantDeviceTemperatureIndication(m_participantIndex, temperature);
 }
 
-void Participant::setParticipantCoolingPolicy(const CoolingPreference& coolingPreference)
+void Participant::setParticipantCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
 {
-    m_theRealParticipant->setParticipantCoolingPolicy(m_participantIndex, coolingPreference);
+    throwIfRealParticipantIsInvalid();
+    m_theRealParticipant->setParticipantCoolingPolicy(m_participantIndex, coolingPreference, type);
 }
 
-void Participant::throwIfDomainIndexInvalid(UIntN domainIndex)
+void Participant::throwIfDomainInvalid(UIntN domainIndex) const
 {
     if ((domainIndex >= m_domain.size()) ||
-        (m_domain[domainIndex] == nullptr))
+        (m_domain[domainIndex] == nullptr) ||
+        (m_domain[domainIndex]->isCreated() == false))
     {
         ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Domain index is invalid for this participant.");
         message.addMessage("Domain Index", domainIndex);
@@ -725,5 +1085,13 @@ void Participant::throwIfDomainIndexInvalid(UIntN domainIndex)
         m_dptfManager->getEsifServices()->writeMessageWarning(message);
 
         throw dptf_exception(message);
+    }
+}
+
+void Participant::throwIfRealParticipantIsInvalid() const
+{
+    if ((m_theRealParticipant == nullptr) || (m_participantCreated == false))
+    {
+        throw dptf_exception("Real Participant is not valid.");
     }
 }

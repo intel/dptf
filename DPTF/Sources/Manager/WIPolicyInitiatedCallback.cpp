@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIPolicyInitiatedCallback::WIPolicyInitiatedCallback(DptfManager* dptfManager, UIntN policyIndex,
+WIPolicyInitiatedCallback::WIPolicyInitiatedCallback(DptfManagerInterface* dptfManager, UIntN policyIndex,
     UInt64 policyDefinedEventCode, UInt64 param1, void* param2) :
     WorkItem(dptfManager, FrameworkEvent::PolicyInitiatedCallback),
     m_policyIndex(policyIndex), m_policyDefinedEventCode(policyDefinedEventCode),

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,30 +17,26 @@
 ******************************************************************************/
 
 #include "UnifiedParticipant.h"
-#include "ParticipantGetSpecificInfoFactory.h"
-#include "ParticipantSetSpecificInfoFactory.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
+
 
 static const Guid FormatId(0xF0, 0xCB, 0x64, 0x06, 0xE4, 0x2B, 0x46, 0xB5, 0x9C, 0x85, 0x32, 0xD1, 0xA1, 0xB7, 0xCB, 0x68);
 
 UnifiedParticipant::UnifiedParticipant(void)
 {
     initialize();
-
-    // In this cases, which is the default, all class factories need to be created.
-    createAllMissingClassFactories();
 }
 
-UnifiedParticipant::UnifiedParticipant(const ClassFactories& classFactories) :
+UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories) :
     m_classFactories(classFactories)
 {
     initialize();
 
+    // TODO: Check if this is needed
     // In this case, which is provided for validation purposes, any class factories that aren't
     // provided via the constructor will be filled in.  This allows test code to be written
     // that only sends in the 'fake' factories as needed.
-    createAllMissingClassFactories();
 }
 
 void UnifiedParticipant::initialize(void)
@@ -53,9 +49,7 @@ void UnifiedParticipant::initialize(void)
     m_acpiInfo = AcpiInfo();
     m_participantServicesInterface = nullptr;
     m_getSpecificInfo = nullptr;
-    m_getSpecificInfoEx = nullptr;
     m_setSpecificInfo = nullptr;
-    m_setSpecificInfoEx = nullptr;
     m_configTdpEventsRegistered = false;
     m_coreControlEventsRegistered = false;
     m_displayControlEventsRegistered = false;
@@ -63,160 +57,13 @@ void UnifiedParticipant::initialize(void)
     m_performanceControlEventsRegistered = false;
     m_powerControlEventsRegistered = false;
     m_rfProfileEventsRegistered = false;
-    m_temperatureThresholdEventsRegistered = false;
-}
-
-void UnifiedParticipant::createAllMissingClassFactories(void)
-{
-    createDomainActiveControlFactoryIfMissing();
-    createDomainConfigTdpControlFactoryIfMissing();
-    createDomainCoreControlFactoryIfMissing();
-    createDomainDisplayControlFactoryIfMissing();
-    createDomainPerformanceControlFactoryIfMissing();
-    createDomainPixelClockControlFactoryIfMissing();
-    createDomainPixelClockStatusFactoryIfMissing();
-    createDomainPowerControlFactoryIfMissing();
-    createDomainPowerStatusFactoryIfMissing();
-    createDomainPriorityFactoryIfMissing();
-    createDomainRfProfileControlFactoryIfMissing();
-    createDomainRfProfileStatusFactoryIfMissing();
-    createDomainTemperatureFactoryIfMissing();
-    createDomainUtilizationFactoryIfMissing();
-    createParticipantGetSpecificInfoFactoryIfMissing();
-    createParticipantSetSpecificInfoFactoryIfMissing();
-}
-
-void UnifiedParticipant::createDomainActiveControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainActiveControlFactory == nullptr)
-    {
-        m_classFactories.domainActiveControlFactory = new DomainActiveControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainConfigTdpControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainConfigTdpControlFactory == nullptr)
-    {
-        m_classFactories.domainConfigTdpControlFactory = new DomainConfigTdpControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainCoreControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainCoreControlFactory == nullptr)
-    {
-        m_classFactories.domainCoreControlFactory = new DomainCoreControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainDisplayControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainDisplayControlFactory == nullptr)
-    {
-        m_classFactories.domainDisplayControlFactory = new DomainDisplayControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainPerformanceControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainPerformanceControlFactory == nullptr)
-    {
-        m_classFactories.domainPerformanceControlFactory = new DomainPerformanceControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainPixelClockControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainPixelClockControlFactory == nullptr)
-    {
-        m_classFactories.domainPixelClockControlFactory = new DomainPixelClockControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainPixelClockStatusFactoryIfMissing(void)
-{
-    if (m_classFactories.domainPixelClockStatusFactory == nullptr)
-    {
-        m_classFactories.domainPixelClockStatusFactory = new DomainPixelClockStatusFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainPowerControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainPowerControlFactory == nullptr)
-    {
-        m_classFactories.domainPowerControlFactory = new DomainPowerControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainPowerStatusFactoryIfMissing(void)
-{
-    if (m_classFactories.domainPowerStatusFactory == nullptr)
-    {
-        m_classFactories.domainPowerStatusFactory = new DomainPowerStatusFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainPriorityFactoryIfMissing(void)
-{
-    if (m_classFactories.domainPriorityFactory == nullptr)
-    {
-        m_classFactories.domainPriorityFactory = new DomainPriorityFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainRfProfileControlFactoryIfMissing(void)
-{
-    if (m_classFactories.domainRfProfileControlFactory == nullptr)
-    {
-        m_classFactories.domainRfProfileControlFactory = new DomainRfProfileControlFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainRfProfileStatusFactoryIfMissing(void)
-{
-    if (m_classFactories.domainRfProfileStatusFactory == nullptr)
-    {
-        m_classFactories.domainRfProfileStatusFactory = new DomainRfProfileStatusFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainTemperatureFactoryIfMissing(void)
-{
-    if (m_classFactories.domainTemperatureFactory == nullptr)
-    {
-        m_classFactories.domainTemperatureFactory = new DomainTemperatureFactory();
-    }
-}
-
-void UnifiedParticipant::createDomainUtilizationFactoryIfMissing(void)
-{
-    if (m_classFactories.domainUtilizationFactory == nullptr)
-    {
-        m_classFactories.domainUtilizationFactory = new DomainUtilizationFactory();
-    }
-}
-
-void UnifiedParticipant::createParticipantGetSpecificInfoFactoryIfMissing(void)
-{
-    if (m_classFactories.participantGetSpecificInfoFactory == nullptr)
-    {
-        m_classFactories.participantGetSpecificInfoFactory = new ParticipantGetSpecificInfoFactory();
-    }
-}
-
-void UnifiedParticipant::createParticipantSetSpecificInfoFactoryIfMissing(void)
-{
-    if (m_classFactories.participantSetSpecificInfoFactory == nullptr)
-    {
-        m_classFactories.participantSetSpecificInfoFactory = new ParticipantSetSpecificInfoFactory();
-    }
+    m_temperatureEventsRegistered = false;
+    m_powerStatusEventsRegistered = false;
 }
 
 UnifiedParticipant::~UnifiedParticipant(void)
 {
-    m_classFactories.deleteAllFactories();
+
 }
 
 void UnifiedParticipant::createParticipant(const Guid& guid, UIntN participantIndex, Bool enabled,
@@ -234,13 +81,13 @@ void UnifiedParticipant::createParticipant(const Guid& guid, UIntN participantIn
     m_acpiInfo = acpiInfo;
     m_participantServicesInterface = participantServicesInterface;
 
-    m_getSpecificInfo = m_classFactories.participantGetSpecificInfoFactory->createParticipantGetSpecificInfoObject(
-        GetSpecificInfoVersionDefault, m_participantServicesInterface);
-    m_getSpecificInfoEx = dynamic_cast<ComponentExtendedInterface*>(m_getSpecificInfo);
+    m_getSpecificInfo = dynamic_cast<ParticipantGetSpecificInfoBase*>(
+        m_classFactories.getFactory(ControlFactoryType::GetSpecificInfo)->make(
+        participantIndex, 0, GetSpecificInfoVersionDefault, m_participantServicesInterface));
 
-    m_setSpecificInfo = m_classFactories.participantSetSpecificInfoFactory->createParticipantSetSpecificInfoObject(
-        SetSpecificInfoVersionDefault, m_participantServicesInterface);
-    m_setSpecificInfoEx = dynamic_cast<ComponentExtendedInterface*>(m_setSpecificInfo);
+    m_setSpecificInfo = dynamic_cast<ParticipantSetSpecificInfoBase*>(
+        m_classFactories.getFactory(ControlFactoryType::SetSpecificInfo)->make(
+        participantIndex, 0, SetSpecificInfoVersionDefault, m_participantServicesInterface));
 
     m_participantServicesInterface->registerEvent(ParticipantEvent::ParticipantSpecificInfoChanged);
     m_participantServicesInterface->registerEvent(ParticipantEvent::DptfResume);
@@ -270,8 +117,8 @@ void UnifiedParticipant::disableParticipant(void)
 
 void UnifiedParticipant::clearAllCachedData(void)
 {
-    m_getSpecificInfoEx->clearCachedData();
-    m_setSpecificInfoEx->clearCachedData();
+    m_getSpecificInfo->clearCachedData();
+    m_setSpecificInfo->clearCachedData();
 
     // Clear all cached data on all domains
     for (UIntN i = 0; i < m_domains.size(); i++)
@@ -392,7 +239,8 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
     UIntN performanceControlTotal = 0;
     UIntN powerControlTotal = 0;
     UIntN rfProfileTotal = 0;
-    UIntN temperatureThresholdTotal = 0;
+    UIntN temperatureControlTotal = 0;
+    UIntN powerStatusControlTotal = 0;
 
     for (UIntN i = 0; i < m_domains.size(); i++)
     {
@@ -410,59 +258,86 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
             powerControlTotal += versions.powerControlVersion;
             rfProfileTotal += versions.rfProfileControlVersion;
             rfProfileTotal += versions.rfProfileStatusVersion;
-            temperatureThresholdTotal += versions.temperatureVersion;
+            temperatureControlTotal += versions.temperatureVersion;
+            temperatureControlTotal += versions.temperatureThresholdVersion;
+            powerStatusControlTotal += versions.powerStatusVersion;
         }
     }
 
-    m_configTdpEventsRegistered = updateDomainEventRegistration(configTdpTotal,
-        m_configTdpEventsRegistered, ParticipantEvent::Type::DomainConfigTdpCapabilityChanged);
+    std::set<ParticipantEvent::Type> configTdpEvents;
+    configTdpEvents.insert(ParticipantEvent::Type::DomainConfigTdpCapabilityChanged);
+    m_configTdpEventsRegistered = updateDomainEventRegistration(configTdpTotal, m_configTdpEventsRegistered, 
+        configTdpEvents);
 
-    m_coreControlEventsRegistered = updateDomainEventRegistration(coreControlTotal,
-        m_coreControlEventsRegistered, ParticipantEvent::Type::DomainCoreControlCapabilityChanged);
+    std::set<ParticipantEvent::Type> coreControlEvents;
+    coreControlEvents.insert(ParticipantEvent::Type::DomainCoreControlCapabilityChanged);
+    m_coreControlEventsRegistered = updateDomainEventRegistration(coreControlTotal, m_coreControlEventsRegistered, 
+        coreControlEvents);
 
-    m_displayControlEventsRegistered = updateDomainEventRegistration(displayControlTotal,
-        m_displayControlEventsRegistered,
-        ParticipantEvent::Type::DomainDisplayControlCapabilityChanged,
-        ParticipantEvent::Type::DomainDisplayStatusChanged);
+    std::set<ParticipantEvent::Type> displayControlEvents;
+    displayControlEvents.insert(ParticipantEvent::Type::DomainDisplayControlCapabilityChanged);
+    displayControlEvents.insert(ParticipantEvent::Type::DomainDisplayStatusChanged);
+    m_displayControlEventsRegistered = updateDomainEventRegistration(displayControlTotal, 
+        m_displayControlEventsRegistered, displayControlEvents);
 
-    m_domainPriorityEventsRegistered = updateDomainEventRegistration(domainPriorityTotal,
-        m_domainPriorityEventsRegistered, ParticipantEvent::Type::DomainPriorityChanged);
+    std::set<ParticipantEvent::Type> domainPriorityEvents;
+    domainPriorityEvents.insert(ParticipantEvent::Type::DomainPriorityChanged);
+    m_domainPriorityEventsRegistered = updateDomainEventRegistration(domainPriorityTotal, 
+        m_domainPriorityEventsRegistered, domainPriorityEvents);
 
+    std::set<ParticipantEvent::Type> performanceControlEvents;
+    performanceControlEvents.insert(ParticipantEvent::Type::DomainPerformanceControlCapabilityChanged);
+    performanceControlEvents.insert(ParticipantEvent::Type::DomainPerformanceControlsChanged);
     m_performanceControlEventsRegistered = updateDomainEventRegistration(performanceControlTotal,
-        m_performanceControlEventsRegistered,
-        ParticipantEvent::Type::DomainPerformanceControlCapabilityChanged,
-        ParticipantEvent::Type::DomainPerformanceControlsChanged);
+        m_performanceControlEventsRegistered, performanceControlEvents);
 
-    m_powerControlEventsRegistered = updateDomainEventRegistration(powerControlTotal,
-        m_powerControlEventsRegistered, ParticipantEvent::Type::DomainPowerControlCapabilityChanged);
+    std::set<ParticipantEvent::Type> powerControlEvents;
+    powerControlEvents.insert(ParticipantEvent::Type::DomainPowerControlCapabilityChanged);
+    m_powerControlEventsRegistered = updateDomainEventRegistration(powerControlTotal, m_powerControlEventsRegistered, 
+        powerControlEvents);
 
-    m_rfProfileEventsRegistered = updateDomainEventRegistration(rfProfileTotal,
-        m_rfProfileEventsRegistered,
-        ParticipantEvent::Type::DomainRadioConnectionStatusChanged,
-        ParticipantEvent::Type::DomainRfProfileChanged);
+    std::set<ParticipantEvent::Type> radioEvents;
+    radioEvents.insert(ParticipantEvent::Type::DomainRadioConnectionStatusChanged);
+    radioEvents.insert(ParticipantEvent::Type::DomainRfProfileChanged);
+    m_rfProfileEventsRegistered = updateDomainEventRegistration(rfProfileTotal, m_rfProfileEventsRegistered, 
+        radioEvents);
 
-    m_temperatureThresholdEventsRegistered = updateDomainEventRegistration(temperatureThresholdTotal,
-        m_temperatureThresholdEventsRegistered, ParticipantEvent::Type::DomainTemperatureThresholdCrossed);
+    std::set<ParticipantEvent::Type> temperatureEvents;
+    temperatureEvents.insert(ParticipantEvent::Type::DomainTemperatureThresholdCrossed);
+    temperatureEvents.insert(ParticipantEvent::Type::DomainVirtualSensorCalibrationTableChanged);
+    temperatureEvents.insert(ParticipantEvent::Type::DomainVirtualSensorPollingTableChanged);
+    temperatureEvents.insert(ParticipantEvent::Type::DomainVirtualSensorRecalcChanged);
+    m_temperatureEventsRegistered = updateDomainEventRegistration(temperatureControlTotal, 
+        m_temperatureEventsRegistered, temperatureEvents);
+
+    std::set<ParticipantEvent::Type> powerStatusEvents;
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainBatteryStatusChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainAdapterPowerChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformPowerConsumptionChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformPowerSourceChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainAdapterPowerRatingChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainChargerTypeChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformRestOfPowerChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainACPeakPowerChanged);
+    powerStatusEvents.insert(ParticipantEvent::Type::DomainACPeakTimeWindowChanged);
+    m_powerStatusEventsRegistered = updateDomainEventRegistration(powerStatusControlTotal,
+        m_powerStatusEventsRegistered, powerStatusEvents);
 }
 
 Bool UnifiedParticipant::updateDomainEventRegistration(UIntN total, Bool currentlyRegistered,
-    ParticipantEvent::Type participantEvent_0,
-    ParticipantEvent::Type participantEvent_1)
+    std::set<ParticipantEvent::Type> participantEvents)
 {
     Bool newRegistration = currentlyRegistered;
 
     if (total > 0 && currentlyRegistered == false)
     {
         // need to register
-
-        if (participantEvent_0 != ParticipantEvent::Type::Invalid)
+        for (auto pEvent = participantEvents.begin(); pEvent != participantEvents.end(); pEvent++)
         {
-            m_participantServicesInterface->registerEvent(participantEvent_0);
-        }
-
-        if (participantEvent_1 != ParticipantEvent::Type::Invalid)
-        {
-            m_participantServicesInterface->registerEvent(participantEvent_1);
+            if (*pEvent != ParticipantEvent::Type::Invalid)
+            {
+                m_participantServicesInterface->registerEvent(*pEvent);
+            }
         }
 
         newRegistration = true;
@@ -470,15 +345,12 @@ Bool UnifiedParticipant::updateDomainEventRegistration(UIntN total, Bool current
     else if (total == 0 && currentlyRegistered == true)
     {
         // need to unregister
-
-        if (participantEvent_0 != ParticipantEvent::Type::Invalid)
+        for (auto pEvent = participantEvents.begin(); pEvent != participantEvents.end(); pEvent++)
         {
-            m_participantServicesInterface->unregisterEvent(participantEvent_0);
-        }
-
-        if (participantEvent_1 != ParticipantEvent::Type::Invalid)
-        {
-            m_participantServicesInterface->unregisterEvent(participantEvent_1);
+            if (*pEvent != ParticipantEvent::Type::Invalid)
+            {
+                m_participantServicesInterface->unregisterEvent(*pEvent);
+            }
         }
 
         newRegistration = false;
@@ -527,7 +399,7 @@ XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
         // Specific Info XML Status
         try
         {
-            participantRoot->addChild(m_getSpecificInfoEx->getXml(Constants::Invalid));
+            participantRoot->addChild(m_getSpecificInfo->getXml(Constants::Invalid));
         }
         catch (not_implemented)
         {
@@ -548,12 +420,18 @@ XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
     {
         for (UIntN i = 0; i < m_domains.size(); i++)
         {
-            domainsRoot->addChild(m_domains[i]->getXml());
+            if (m_domains[i] != nullptr)
+            {
+                domainsRoot->addChild(m_domains[i]->getXml());
+            }
         }
     }
     else
     {
-        domainsRoot->addChild(m_domains[domainIndex]->getXml());
+        if (m_domains[domainIndex] != nullptr)
+        {
+            domainsRoot->addChild(m_domains[domainIndex]->getXml());
+        }
     }
 
     return participantRoot;
@@ -605,7 +483,7 @@ void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getConfigTdpControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getConfigTdpControl()->clearCachedData();
         }
     }
 }
@@ -617,7 +495,7 @@ void UnifiedParticipant::domainCoreControlCapabilityChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getCoreControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getCoreControl()->clearCachedData();
         }
     }
 }
@@ -629,7 +507,7 @@ void UnifiedParticipant::domainDisplayControlCapabilityChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getDisplayControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getDisplayControl()->clearCachedData();
         }
     }
 }
@@ -641,7 +519,7 @@ void UnifiedParticipant::domainDisplayStatusChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getDisplayControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getDisplayControl()->clearCachedData();
         }
     }
 }
@@ -653,7 +531,7 @@ void UnifiedParticipant::domainPerformanceControlCapabilityChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getPerformanceControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getPerformanceControl()->clearCachedData();
         }
     }
 }
@@ -665,7 +543,7 @@ void UnifiedParticipant::domainPerformanceControlsChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getPerformanceControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getPerformanceControl()->clearCachedData();
         }
     }
 }
@@ -677,7 +555,7 @@ void UnifiedParticipant::domainPowerControlCapabilityChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getPowerControlInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getPowerControl()->clearCachedData();
         }
     }
 }
@@ -689,7 +567,7 @@ void UnifiedParticipant::domainPriorityChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getDomainPriorityInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getDomainPriorityControl()->clearCachedData();
         }
     }
 }
@@ -701,7 +579,7 @@ void UnifiedParticipant::domainRadioConnectionStatusChanged(RadioConnectionStatu
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getRfProfileStatusInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getRfProfileStatusControl()->clearCachedData();
         }
     }
 }
@@ -713,7 +591,7 @@ void UnifiedParticipant::domainRfProfileChanged(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getRfProfileStatusInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getRfProfileStatusControl()->clearCachedData();
         }
     }
 }
@@ -725,76 +603,217 @@ void UnifiedParticipant::domainTemperatureThresholdCrossed(void)
     {
         if (m_domains[i] != nullptr)
         {
-            m_domains[i]->getTemperatureInterfaceExPtr()->clearCachedData();
+            m_domains[i]->getTemperatureControl()->clearCachedData();
         }
     }
 }
 
 void UnifiedParticipant::participantSpecificInfoChanged(void)
 {
-    m_getSpecificInfoEx->clearCachedData();
+    m_getSpecificInfo->clearCachedData();
+}
+
+void UnifiedParticipant::domainVirtualSensorCalibrationTableChanged(void)
+{
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getTemperatureControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainVirtualSensorPollingTableChanged(void)
+{
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getTemperatureControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainVirtualSensorRecalcChanged(void)
+{
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getTemperatureControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainBatteryStatusChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainAdapterPowerChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainPlatformPowerConsumptionChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainPlatformPowerSourceChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainAdapterPowerRatingChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainChargerTypeChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainPlatformRestOfPowerChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainACPeakPowerChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainACPeakTimeWindowChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
 }
 
 ActiveControlStaticCaps UnifiedParticipant::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getActiveControlInterfacePtr()->getActiveControlStaticCaps(
+    return m_domains[domainIndex]->getActiveControl()->getActiveControlStaticCaps(
         participantIndex, domainIndex);
 }
 
 ActiveControlStatus UnifiedParticipant::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getActiveControlInterfacePtr()->getActiveControlStatus(
+    return m_domains[domainIndex]->getActiveControl()->getActiveControlStatus(
         participantIndex, domainIndex);
 }
 
 ActiveControlSet UnifiedParticipant::getActiveControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getActiveControlInterfacePtr()->getActiveControlSet(
+    return m_domains[domainIndex]->getActiveControl()->getActiveControlSet(
         participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getActiveControlInterfacePtr()->setActiveControl(
+    m_domains[domainIndex]->getActiveControl()->setActiveControl(
         participantIndex, domainIndex, controlIndex);
 }
 
 void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getActiveControlInterfacePtr()->setActiveControl(
+    m_domains[domainIndex]->getActiveControl()->setActiveControl(
         participantIndex, domainIndex, fanSpeed);
 }
 
 ConfigTdpControlDynamicCaps UnifiedParticipant::getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlDynamicCaps(
+    return m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlDynamicCaps(
         participantIndex, domainIndex);
 }
 
 ConfigTdpControlStatus UnifiedParticipant::getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlStatus(
+    return m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlStatus(
         participantIndex, domainIndex);
 }
 
 ConfigTdpControlSet UnifiedParticipant::getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlSet(
+    return m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlSet(
         participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->setConfigTdpControl(
+    m_domains[domainIndex]->getConfigTdpControl()->setConfigTdpControl(
         participantIndex, domainIndex, configTdpControlIndex);
 
     //
@@ -808,99 +827,98 @@ void UnifiedParticipant::setConfigTdpControl(UIntN participantIndex, UIntN domai
 CoreControlStaticCaps UnifiedParticipant::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getCoreControlInterfacePtr()->getCoreControlStaticCaps(
+    return m_domains[domainIndex]->getCoreControl()->getCoreControlStaticCaps(
         participantIndex, domainIndex);
 }
 
 CoreControlDynamicCaps UnifiedParticipant::getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getCoreControlInterfacePtr()->getCoreControlDynamicCaps(
+    return m_domains[domainIndex]->getCoreControl()->getCoreControlDynamicCaps(
         participantIndex, domainIndex);
 }
 
 CoreControlLpoPreference UnifiedParticipant::getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getCoreControlInterfacePtr()->getCoreControlLpoPreference(
+    return m_domains[domainIndex]->getCoreControl()->getCoreControlLpoPreference(
         participantIndex, domainIndex);
 }
 
 CoreControlStatus UnifiedParticipant::getCoreControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getCoreControlInterfacePtr()->getCoreControlStatus(
+    return m_domains[domainIndex]->getCoreControl()->getCoreControlStatus(
         participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setActiveCoreControl(UIntN participantIndex, UIntN domainIndex, const CoreControlStatus& coreControlStatus)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getCoreControlInterfacePtr()->setActiveCoreControl(
+    m_domains[domainIndex]->getCoreControl()->setActiveCoreControl(
         participantIndex, domainIndex, coreControlStatus);
 }
 
 DisplayControlDynamicCaps UnifiedParticipant::getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getDisplayControlInterfacePtr()->getDisplayControlDynamicCaps(
+    return m_domains[domainIndex]->getDisplayControl()->getDisplayControlDynamicCaps(
         participantIndex, domainIndex);
 }
 
 DisplayControlStatus UnifiedParticipant::getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getDisplayControlInterfacePtr()->getDisplayControlStatus(
+    return m_domains[domainIndex]->getDisplayControl()->getDisplayControlStatus(
         participantIndex, domainIndex);
 }
 
 DisplayControlSet UnifiedParticipant::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getDisplayControlInterfacePtr()->getDisplayControlSet(
+    return m_domains[domainIndex]->getDisplayControl()->getDisplayControlSet(
         participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setDisplayControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN displayControlIndex, Bool isOverridable)
+    UIntN displayControlIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getDisplayControlInterfacePtr()->setDisplayControl(
-        participantIndex, domainIndex, displayControlIndex, isOverridable);
+    m_domains[domainIndex]->getDisplayControl()->setDisplayControl(participantIndex, domainIndex, displayControlIndex);
 }
 
 PerformanceControlStaticCaps UnifiedParticipant::getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPerformanceControlInterfacePtr()->getPerformanceControlStaticCaps(
+    return m_domains[domainIndex]->getPerformanceControl()->getPerformanceControlStaticCaps(
         participantIndex, domainIndex);
 }
 
 PerformanceControlDynamicCaps UnifiedParticipant::getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPerformanceControlInterfacePtr()->getPerformanceControlDynamicCaps(
+    return m_domains[domainIndex]->getPerformanceControl()->getPerformanceControlDynamicCaps(
         participantIndex, domainIndex);
 }
 
 PerformanceControlStatus UnifiedParticipant::getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPerformanceControlInterfacePtr()->getPerformanceControlStatus(
+    return m_domains[domainIndex]->getPerformanceControl()->getPerformanceControlStatus(
         participantIndex, domainIndex);
 }
 
 PerformanceControlSet UnifiedParticipant::getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPerformanceControlInterfacePtr()->getPerformanceControlSet(
+    return m_domains[domainIndex]->getPerformanceControl()->getPerformanceControlSet(
         participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getPerformanceControlInterfacePtr()->setPerformanceControl(
+    m_domains[domainIndex]->getPerformanceControl()->setPerformanceControl(
         participantIndex, domainIndex, performanceControlIndex);
 }
 
@@ -908,63 +926,190 @@ void UnifiedParticipant::setPixelClockControl(UIntN participantIndex, UIntN doma
     const PixelClockDataSet& pixelClockDataSet)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getPixelClockControlInterfacePtr()->setPixelClockControl(participantIndex,
+    m_domains[domainIndex]->getPixelClockControl()->setPixelClockControl(participantIndex,
         domainIndex, pixelClockDataSet);
 }
 
 PixelClockCapabilities UnifiedParticipant::getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPixelClockStatusInterfacePtr()->getPixelClockCapabilities(participantIndex,
+    return m_domains[domainIndex]->getPixelClockStatusControl()->getPixelClockCapabilities(participantIndex,
         domainIndex);
 }
 
 PixelClockDataSet UnifiedParticipant::getPixelClockDataSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPixelClockStatusInterfacePtr()->getPixelClockDataSet(participantIndex,
+    return m_domains[domainIndex]->getPixelClockStatusControl()->getPixelClockDataSet(participantIndex,
         domainIndex);
 }
 
 PowerControlDynamicCapsSet UnifiedParticipant::getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPowerControlInterfacePtr()->getPowerControlDynamicCapsSet(
+    return m_domains[domainIndex]->getPowerControl()->getPowerControlDynamicCapsSet(
         participantIndex, domainIndex);
 }
 
-PowerControlStatusSet UnifiedParticipant::getPowerControlStatusSet(UIntN participantIndex, UIntN domainIndex)
+void UnifiedParticipant::setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlDynamicCapsSet capsSet)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPowerControlInterfacePtr()->getPowerControlStatusSet(
-        participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setPowerControl(UIntN participantIndex, UIntN domainIndex, const PowerControlStatusSet& powerControlSet)
-{
-    throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getPowerControlInterfacePtr()->setPowerControl(
-        participantIndex, domainIndex, powerControlSet);
+    m_domains[domainIndex]->getPowerControl()->setPowerControlDynamicCapsSet(
+        participantIndex, domainIndex, capsSet);
 }
 
 PowerStatus UnifiedParticipant::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPowerStatusInterfacePtr()->getPowerStatus(
+    return m_domains[domainIndex]->getPowerStatusControl()->getPowerStatus(
+        participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex,
+    PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerControl()->isPlatformPowerLimitEnabled(
+        participantIndex, domainIndex, limitType);
+}
+
+Power UnifiedParticipant::getPlatformPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+    PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerControl()->getPlatformPowerLimit(
+        participantIndex, domainIndex, limitType);
+}
+
+void UnifiedParticipant::setPlatformPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+    PlatformPowerLimitType::Type limitType, const Power& powerLimit)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPlatformPowerControl()->setPlatformPowerLimit(
+        participantIndex, domainIndex, limitType, powerLimit);
+}
+
+TimeSpan UnifiedParticipant::getPlatformPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
+    PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerControl()->getPlatformPowerLimitTimeWindow(
+        participantIndex, domainIndex, limitType);
+}
+
+void UnifiedParticipant::setPlatformPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+    PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPlatformPowerControl()->setPlatformPowerLimitTimeWindow(
+        participantIndex, domainIndex, limitType, timeWindow);
+}
+
+Percentage UnifiedParticipant::getPlatformPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+    PlatformPowerLimitType::Type limitType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerControl()->getPlatformPowerLimitDutyCycle(
+        participantIndex, domainIndex, limitType);
+}
+
+void UnifiedParticipant::setPlatformPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+    PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPlatformPowerControl()->setPlatformPowerLimitDutyCycle(
+        participantIndex, domainIndex, limitType, dutyCycle);
+}
+
+Power UnifiedParticipant::getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getMaxBatteryPower(
+        participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getAdapterPower(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getAdapterPower(
+        participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformPowerConsumption(
+        participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformRestOfPower(
+        participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getAdapterPowerRating(
+        participantIndex, domainIndex);
+}
+
+DptfBuffer UnifiedParticipant::getBatteryStatus(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getBatteryStatus(
+        participantIndex, domainIndex);
+}
+
+PlatformPowerSource::Type UnifiedParticipant::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformPowerSource(
+        participantIndex, domainIndex);
+}
+
+ChargerType::Type UnifiedParticipant::getChargerType(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getChargerType(
+        participantIndex, domainIndex);
+}
+
+Percentage UnifiedParticipant::getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformStateOfCharge(
+        participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getACPeakPower(
+        participantIndex, domainIndex);
+}
+
+TimeSpan UnifiedParticipant::getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getACPeakTimeWindow(
         participantIndex, domainIndex);
 }
 
 DomainPriority UnifiedParticipant::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getDomainPriorityInterfacePtr()->getDomainPriority(
+    return m_domains[domainIndex]->getDomainPriorityControl()->getDomainPriority(
         participantIndex, domainIndex);
 }
 
 RfProfileCapabilities UnifiedParticipant::getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getRfProfileControlInterfacePtr()->getRfProfileCapabilities(participantIndex,
+    return m_domains[domainIndex]->getRfProfileControl()->getRfProfileCapabilities(participantIndex,
         domainIndex);
 }
 
@@ -972,28 +1117,28 @@ void UnifiedParticipant::setRfProfileCenterFrequency(UIntN participantIndex, UIn
     const Frequency& centerFrequency)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getRfProfileControlInterfacePtr()->setRfProfileCenterFrequency(participantIndex,
+    m_domains[domainIndex]->getRfProfileControl()->setRfProfileCenterFrequency(participantIndex,
         domainIndex, centerFrequency);
 }
 
 RfProfileData UnifiedParticipant::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getRfProfileStatusInterfacePtr()->getRfProfileData(participantIndex,
+    return m_domains[domainIndex]->getRfProfileStatusControl()->getRfProfileData(participantIndex,
         domainIndex);
 }
 
 TemperatureStatus UnifiedParticipant::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getTemperatureInterfacePtr()->getTemperatureStatus(
+    return m_domains[domainIndex]->getTemperatureControl()->getTemperatureStatus(
         participantIndex, domainIndex);
 }
 
 TemperatureThresholds UnifiedParticipant::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getTemperatureInterfacePtr()->getTemperatureThresholds(
+    return m_domains[domainIndex]->getTemperatureControl()->getTemperatureThresholds(
         participantIndex, domainIndex);
 }
 
@@ -1001,15 +1146,41 @@ void UnifiedParticipant::setTemperatureThresholds(UIntN participantIndex, UIntN 
     const TemperatureThresholds& temperatureThresholds)
 {
     throwIfDomainInvalid(domainIndex);
-    m_domains[domainIndex]->getTemperatureInterfacePtr()->setTemperatureThresholds(
+    m_domains[domainIndex]->getTemperatureControl()->setTemperatureThresholds(
         participantIndex, domainIndex, temperatureThresholds);
 }
 
 UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getUtilizationInterfacePtr()->getUtilizationStatus(
+    return m_domains[domainIndex]->getUtilizationControl()->getUtilizationStatus(
         participantIndex, domainIndex);
+}
+
+DptfBuffer UnifiedParticipant::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getTemperatureControl()->getCalibrationTable(participantIndex, domainIndex);
+}
+
+DptfBuffer UnifiedParticipant::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getTemperatureControl()->getPollingTable(participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getTemperatureControl()->isVirtualTemperature(participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, 
+    const Temperature& temperature)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getTemperatureControl()->setVirtualTemperature(
+        participantIndex, domainIndex, temperature);
 }
 
 std::map<ParticipantSpecificInfoKey::Type, UIntN> UnifiedParticipant::getParticipantSpecificInfo(UIntN participantIndex,
@@ -1047,12 +1218,13 @@ void UnifiedParticipant::setParticipantDeviceTemperatureIndication(UIntN partici
     m_setSpecificInfo->setParticipantDeviceTemperatureIndication(participantIndex, temperature);
 }
 
-void UnifiedParticipant::setParticipantCoolingPolicy(UIntN participantIndex, const CoolingPreference& coolingPreference)
+void UnifiedParticipant::setParticipantCoolingPolicy(UIntN participantIndex,
+    const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
 {
-    m_setSpecificInfo->setParticipantCoolingPolicy(participantIndex, coolingPreference);
+    m_setSpecificInfo->setParticipantCoolingPolicy(participantIndex, coolingPreference, type);
 }
 
-void UnifiedParticipant::throwIfDomainInvalid(UIntN domainIndex)
+void UnifiedParticipant::throwIfDomainInvalid(UIntN domainIndex) const
 {
     if ((domainIndex >= m_domains.size()) || (m_domains[domainIndex] == nullptr))
     {
@@ -1075,7 +1247,7 @@ void UnifiedParticipant::sendConfigTdpInfoToAllDomainsAndCreateNotification()
             {
                 try
                 {
-                    m_domains[domainIndex]->getPerformanceControlConfigTdpSyncInterfacePtr()->
+                    m_domains[domainIndex]->getPerformanceControl()->
                         updateBasedOnConfigTdpInformation(m_participantIndex, domainIndex, configTdpControlSet, 
                         configTdpControlStatus);
                     m_participantServicesInterface->createEventDomainPerformanceControlCapabilityChanged();
@@ -1102,7 +1274,7 @@ ConfigTdpControlStatus UnifiedParticipant::getFirstConfigTdpControlStatus()
             try
             {
                 configTdpControlStatus =
-                    m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlStatus(
+                    m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlStatus(
                         m_participantIndex, domainIndex);
                 foundStatus = true;
                 break;
@@ -1134,7 +1306,7 @@ ConfigTdpControlSet UnifiedParticipant::getFirstConfigTdpControlSet()
             try
             {
                 configTdpControlSet =
-                    m_domains[domainIndex]->getConfigTdpControlInterfacePtr()->getConfigTdpControlSet(
+                    m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlSet(
                         m_participantIndex, domainIndex);
                 foundControlSet = true;
                 break;
@@ -1153,4 +1325,124 @@ ConfigTdpControlSet UnifiedParticipant::getFirstConfigTdpControlSet()
     {
         throw dptf_exception("No domain provided any Config TDP control set.");
     }
+}
+
+Bool UnifiedParticipant::isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPowerControl()->isPowerLimitEnabled(
+        participantIndex, domainIndex, controlType);
+}
+
+Power UnifiedParticipant::getPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPowerControl()->getPowerLimit(
+        participantIndex, domainIndex, controlType);
+}
+
+void UnifiedParticipant::setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType, const Power& powerLimit)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPowerControl()->setPowerLimit(
+        participantIndex, domainIndex, controlType, powerLimit);
+}
+
+TimeSpan UnifiedParticipant::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPowerControl()->getPowerLimitTimeWindow(
+        participantIndex, domainIndex, controlType);
+}
+
+void UnifiedParticipant::setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType, const TimeSpan& timeWindow)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPowerControl()->setPowerLimitTimeWindow(
+        participantIndex, domainIndex, controlType, timeWindow);
+}
+
+Percentage UnifiedParticipant::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPowerControl()->getPowerLimitDutyCycle(
+        participantIndex, domainIndex, controlType);
+}
+
+void UnifiedParticipant::setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType, const Percentage& dutyCycle)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPowerControl()->setPowerLimitDutyCycle(
+        participantIndex, domainIndex, controlType, dutyCycle);
+}
+
+DptfBuffer UnifiedParticipant::getHardwareDutyCycleUtilizationSet(
+    UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->getHardwareDutyCycleUtilizationSet(
+        participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isEnabledByPlatform(UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->isEnabledByPlatform(
+        participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isSupportedByPlatform(UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->isSupportedByPlatform(
+        participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isEnabledByOperatingSystem(UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->isEnabledByOperatingSystem(
+        participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isSupportedByOperatingSystem(UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->isSupportedByOperatingSystem(
+        participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isHdcOobEnabled(UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->isHdcOobEnabled(
+        participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setHdcOobEnable(UIntN participantIndex, UIntN domainIndex, const UInt8& hdcOobEnable)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getHardareDutyCycleControl()->setHdcOobEnable(
+        participantIndex, domainIndex, hdcOobEnable);
+}
+
+void UnifiedParticipant::setHardwareDutyCycle(UIntN participantIndex, UIntN domainIndex, const Percentage& dutyCycle)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getHardareDutyCycleControl()->setHardwareDutyCycle(
+        participantIndex, domainIndex, dutyCycle);
+}
+
+Percentage UnifiedParticipant::getHardwareDutyCycle(UIntN participantIndex, UIntN domainIndex) const
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getHardareDutyCycleControl()->getHardwareDutyCycle(
+        participantIndex, domainIndex);
 }

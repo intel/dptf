@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,14 +20,18 @@
 
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
-#include "esif.h"
 #include "CoolingModeAcousticLimit.h"
 #include "CoolingModePowerLimit.h"
 #include "CoolingMode.h"
 #include "SensorOrientation.h"
-#include "SensorProximity.h"
+#include "SensorMotion.h"
 #include "SensorSpatialOrientation.h"
 #include "RadioConnectionStatus.h"
+#include "OsHdcStatus.h"
+#include "OsPowerSource.h"
+#include "OsLidState.h"
+#include "OsPlatformType.h"
+#include "OsDockMode.h"
 
 class dptf_export PolicyInterface
 {
@@ -112,6 +116,18 @@ public:
     virtual void domainRfProfileChanged(UIntN participantIndex) = 0;
     virtual void domainTemperatureThresholdCrossed(UIntN participantIndex) = 0;
     virtual void participantSpecificInfoChanged(UIntN participantIndex) = 0;
+    virtual void domainVirtualSensorCalibrationTableChanged(UIntN participantIndex) = 0;
+    virtual void domainVirtualSensorPollingTableChanged(UIntN participantIndex) = 0;
+    virtual void domainVirtualSensorRecalcChanged(UIntN participantIndex) = 0;
+    virtual void domainBatteryStatusChanged(UIntN participantIndex) = 0;
+    virtual void domainAdapterPowerChanged(UIntN participantIndex) = 0;
+    virtual void domainPlatformPowerConsumptionChanged(UIntN participantIndex) = 0;
+    virtual void domainPlatformPowerSourceChanged(UIntN participantIndex) = 0;
+    virtual void domainAdapterPowerRatingChanged(UIntN participantIndex) = 0;
+    virtual void domainChargerTypeChanged(UIntN participantIndex) = 0;
+    virtual void domainPlatformRestOfPowerChanged(UIntN participantIndex) = 0;
+    virtual void domainACPeakPowerChanged(UIntN participantIndex) = 0;
+    virtual void domainACPeakTimeWindowChanged(UIntN participantIndex) = 0;
 
     // Policy Event Handlers
     virtual void activeRelationshipTableChanged(void) = 0;
@@ -122,12 +138,24 @@ public:
     virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) = 0;
     virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) = 0;
     virtual void operatingSystemLpmModeChanged(UIntN lpmMode) = 0;
+    virtual void operatingSystemHdcStatusChanged(OsHdcStatus::Type status) = 0;
+    virtual void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
+    virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
+    virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) = 0;
+    virtual void operatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType) = 0;
+    virtual void operatingSystemDockModeChanged(OsDockMode::Type osDockMode) = 0;
     virtual void passiveTableChanged(void) = 0;
     virtual void platformLpmModeChanged(void) = 0;
     virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
-    virtual void sensorProximityChanged(SensorProximity::Type sensorProximity) = 0;
+    virtual void sensorMotionChanged(SensorMotion::Type sensorMotion) = 0;
     virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
     virtual void thermalRelationshipTableChanged(void) = 0;
+    virtual void adaptivePerformanceConditionsTableChanged(void) = 0;
+    virtual void adaptivePerformanceActionsTableChanged(void) = 0;
+    virtual void oemVariablesChanged(void) = 0;
+    virtual void powerDeviceRelationshipTableChanged(void) = 0;
+    virtual void powerBossConditionsTableChanged(void) = 0;
+    virtual void powerBossActionsTableChanged(void) = 0;
 };
 
 //

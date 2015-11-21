@@ -31,7 +31,7 @@
 #define MAX_NAME_STRING_LENGTH 32
 #define MAX_DESCRIPTION_STRING_LENGTH 128
 #define MAX_TYPE_STRING_LENGTH 64
-#define MAX_ACPI_DEVICE_STRING_LENGTH 32
+#define MAX_ACPI_DEVICE_STRING_LENGTH 64
 #define MAX_ACPI_UID_STRING_LENGTH 32
 #define MAX_ACPI_TYPE_STRING_LENGTH 32
 #define MAX_ACPI_SCOPE_STRING_LENGTH 32
@@ -75,7 +75,7 @@
 
 /*--- FPC ---*/
 /* Must Be Aligned With DSP's dsp_descriptor.h: dsp_descriptor {} */
-struct esif_fpc_descriptor {
+typedef struct esif_fpc_descriptor {
 	char  code[MAX_CODE_NAME_STRING_LENGTH];
 	unsigned char  ver_major;
 	unsigned char  ver_minor;
@@ -96,12 +96,12 @@ struct esif_fpc_descriptor {
 	char  pci_class[MAX_CLASS_STRING_LENGTH];
 	char  pci_subClass[MAX_SUBCLASS_STRING_LENGTH];
 	char  pci_progIf[MAX_PROGIF_STRING_LENGTH];
-};
+} EsifFpcDescriptor, *EsifFpcDescriptorPtr;
 
 /* Must Be Aligned With DSP's compact_dsp.h: compact_dsp{} */
-struct esif_fpc {
+typedef struct esif_fpc {
 	unsigned int  size;
-	struct esif_fpc_descriptor header;
+	EsifFpcDescriptor header;
 	unsigned int  number_of_domains;
 	unsigned int  number_of_algorithms;
 	unsigned int  number_of_events;
@@ -109,44 +109,44 @@ struct esif_fpc {
 	// algorithms come after the domains
 	// TBD: remove OLD: unsigned int number_of_basic_primitives;
 	// events are after algorithms
-};
+} EsifFpc, *EsifFpcPtr;
 
 #define MAX_NAME_STRING_LENGTH 32
 #define MAX_DOMAIN_TYPE_STRING_LENGTH2 16
 #define MAX_DESCRIPTION_STRING_LENGTH 128
 
 /* Must Be Aligned With DSP's domain.h: domain_descriptor{} */
-struct esif_domain_descriptor {
+typedef struct esif_domain_descriptor {
 	char  name[MAX_NAME_STRING_LENGTH];
 	char  description[MAX_DESCRIPTION_STRING_LENGTH];
 	unsigned short domain;
 	char  guid[MAX_DOMAIN_TYPE_STRING_LENGTH2];
 	unsigned int  priority;
 	enum esif_domain_type domainType;
-};
+} EsifDomainDescriptor, *EsifDomainDescriptorPtr;
 
 #define MAX_MASK_SIZE 32
 
 /* Must Be Aligned With DSP's capability.h: capability{} */
-struct esif_domain_capability {
+typedef struct esif_domain_capability {
 	unsigned int   capability_flags;
 	unsigned char  number_of_capability_flags;
 	unsigned char  reserved[3];
 	unsigned char  capability_mask[MAX_MASK_SIZE];
-};
+} EsifDomainCapability, *EsifDomainCapabilityPtr;
 
 
 /* Must Be Aligned With DSP's domain.h: domain{} */
-struct esif_fpc_domain {
+typedef struct esif_fpc_domain {
 	unsigned int  size;
-	struct esif_domain_descriptor descriptor;
+	EsifDomainDescriptor descriptor;
 	unsigned int  number_of_primitives;
-	struct esif_domain_capability  capability_for_domain;
+	EsifDomainCapability  capability_for_domain;
 	// primitives are laid out beyond this point
-};
+} EsifFpcDomain, *EsifFpcDomainPtr;
 
 /* Must Be Aligned With DSP's algorithm.h: algorithm{} */
-struct esif_fpc_algorithm {
+typedef struct esif_fpc_algorithm {
 	enum esif_action_type  action_type;
 	unsigned int  temp_xform;
 	unsigned int  tempC1;
@@ -154,7 +154,7 @@ struct esif_fpc_algorithm {
 	unsigned int  power_xform;
 	unsigned int  time_xform;
 	unsigned int  size;
-};
+} EsifFpcAlgorithm, *EsifFpcAlgorithmPtr;
 
 /* Must Be Aligned With DSP's event.h: event{} */
 typedef struct esif_fpc_event {
@@ -179,7 +179,7 @@ typedef struct esif_fpc_primitive {	// _t_EsifFpcPrimitive
 	char result_schema[MAX_SCHEMA_STRING_LENGTH];
 	unsigned int  num_actions;
 	/* action(s) falls after the offsets */
-} EsifFpcPrimitive, *EsifFpcPrimitivePtr, **EsifFpcPrimitivePtrLocation;
+} EsifFpcPrimitive, *EsifFpcPrimitivePtr;
 
 /* Must Be Aligned With DSP's action.h: action {} */
 #define NUMBER_OF_PARAMETERS_FOR_AN_ACTION 5
@@ -191,7 +191,7 @@ typedef struct esif_fpc_action {// _t_EsifFpcAction
 	unsigned char  param_valid[NUMBER_OF_PARAMETERS_FOR_AN_ACTION];
 	unsigned int   param_offset[NUMBER_OF_PARAMETERS_FOR_AN_ACTION];
 	/* parameters are laid out beyond the offset table */
-} EsifFpcAction, *EsifFpcActionPtr, **EsifFpcActionPtrLocation;
+} EsifFpcAction, *EsifFpcActionPtr;
 
 #endif /* _ESIF_UF_FPC_ */
 

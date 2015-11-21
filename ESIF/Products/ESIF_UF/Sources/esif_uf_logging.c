@@ -18,7 +18,7 @@
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_SHELL
 
 #include "esif_uf_logging.h"
-#include "esif_debug.h"
+#include "esif_uf_trace.h"
 #include "esif_pm.h"
 #include "esif_participant.h"
 #include "esif_dsp.h"
@@ -51,9 +51,13 @@ static UInt32 g_dataLogInterval = DEFAULT_STATUS_LOG_INTERVAL;
 static void EsifDataLogExit(esif_thread_t *dataLogThread);
 static void EsifDataLogFire(int isHeader);
 static eEsifError EsifDataLogValidateParticipantList(char *inParticipantList);
+static eEsifError EsifDataLogEnableAllParticipants();
+static eEsifError EsifDataLogEnableParticipantsFromList(char *inParticipantList);
+static int EsifDataLogGetCapabilityFieldCount(EsifUpPtr upPtr);
+static eEsifError EsifDataLogAddParticipantToList(EsifUpPtr upPtr, int indexPosition);
 static eEsifError EsifDataLogAddParticipant(char *logString, int logColumn, int isHeader);
 static void *ESIF_CALLCONV EsifDataLogWorkerThread(void *ptr);
-static UInt8 EsifDataIsLogStarted();
+static Bool EsifDataIsLogStarted();
 static eEsifError EsifDataLogOpenLogFile();
 static void EsifDataLogStart();
 static void EsifDataLogSchedule(const void *ctx);
@@ -75,7 +79,8 @@ char *EsifShellCmdDataLog(EsifShellCmdPtr shell)
 	int argc = shell->argc;
 	char **argv = shell->argv;
 	char *output = shell->outbuf;
-	char participantList[MAX_LOG_LINE] = { 0 };
+	char *participantListPtr = NULL;
+
 
 	/*
 	 * Serialize access to the datalog state.
@@ -105,10 +110,16 @@ char *EsifShellCmdDataLog(EsifShellCmdPtr shell)
 			}
 		}
 		if (argc > 3) {
-			esif_ccb_sprintf(sizeof(participantList), participantList, "%s", argv[3]);
+			participantListPtr = (char *)esif_ccb_malloc(MAX_LOG_LINE);
+			if (NULL == participantListPtr) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "Error:  Unable to allocate memory for participant list.\n");
+				goto exit;
+			}
+
+			esif_ccb_sprintf(MAX_LOG_LINE, participantListPtr, "%s", argv[3]);
 		}
 
-		rc = EsifDataLogValidateParticipantList(participantList);
+		rc = EsifDataLogValidateParticipantList(participantListPtr);
 		if (rc != ESIF_OK) {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "There was a problem with your participant list. You may have selected invalid participants, or too many participants. \n");
 			goto exit;
@@ -187,6 +198,7 @@ char *EsifShellCmdDataLog(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Invalid parameter specified\n");
 	}
 exit:
+	esif_ccb_free(participantListPtr);
 	atomic_set(&g_dataLogLock, ESIF_FALSE);
 	return output;
 }
@@ -352,7 +364,7 @@ exit:
 static void EsifDataLogFire(int isHeader)
 {
 	int i = 0;
-	char outLine[MAX_LOG_LINE] = { 0 };
+	char *outLinePtr = NULL;
 	EsifLogType logtype = ESIF_LOG_UI;
 	time_t now = time(NULL);
 	struct tm time = { 0 };
@@ -360,12 +372,18 @@ static void EsifDataLogFire(int isHeader)
 
 	esif_ccb_system_time(&msec);
 
+	outLinePtr = (char *)esif_ccb_malloc(MAX_LOG_LINE);
+	if (NULL == outLinePtr) {
+		ESIF_TRACE_ERROR("Unable to allocate memory for logging data.");
+		goto exit;
+	}
+
 	if (isHeader > 0) {
-		esif_ccb_sprintf(MAX_LOG_LINE, outLine, "Time,Server Msec,");
+		esif_ccb_sprintf(MAX_LOG_LINE, outLinePtr, "Time,Server Msec,");
 	}
 	else {
 		if (esif_ccb_localtime(&time, &now) == 0) {
-				esif_ccb_sprintf(MAX_LOG_LINE, outLine, "%04d-%02d-%02d %02d:%02d:%02d,%llu,",
+				esif_ccb_sprintf(MAX_LOG_LINE, outLinePtr, "%04d-%02d-%02d %02d:%02d:%02d,%llu,",
 					time.tm_year + 1900, time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec, msec);
 		}
 	}
@@ -374,10 +392,12 @@ static void EsifDataLogFire(int isHeader)
 		DataLogParticipant currentParticipant = g_dataLogParticipants[i];
 
 		if (currentParticipant.participantNumFields > 0) {
-			rc = EsifDataLogAddParticipant(outLine, i, isHeader);
+			rc = EsifDataLogAddParticipant(outLinePtr, i, isHeader);
 		}
 	}
-	EsifLogFile_Write(logtype, "%s\n", outLine);
+	EsifLogFile_Write(logtype, "%s\n", outLinePtr);
+exit:
+	esif_ccb_free(outLinePtr);
 }
 
 
@@ -390,165 +410,152 @@ static void EsifDataLogExit(esif_thread_t *dataLogThread)
 	esif_ccb_event_uninit(&g_dataLogQuitEvent);
 }
 
-
-static eEsifError EsifDataLogValidateParticipantList(char *inParticipantList)
+static int EsifDataLogGetCapabilityFieldCount(EsifUpPtr upPtr)
 {
-	int i = 0;
+	EsifDspPtr dspPtr = NULL;
+	EsifFpcDomainPtr domainPtr = NULL;
+	UInt32 domainCount = 0;
+	UInt32 domainIndex = 0;
+	int fieldCounter = 0;
+
+	dspPtr = EsifUp_GetDsp(upPtr);
+	if (dspPtr != NULL) {
+		domainCount = dspPtr->get_domain_count(dspPtr);
+
+		for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
+			domainPtr = dspPtr->get_domain(dspPtr, domainIndex);
+			if (NULL == domainPtr) {
+				continue;
+			}
+			if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_STATUS) {
+				fieldCounter += 4;
+			}
+			if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_POWER_CONTROL) {
+				fieldCounter += 2;
+			}
+			if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_ACTIVE_CONTROL) {
+				fieldCounter += 1;
+			}
+		}
+	}
+
+	return fieldCounter;
+}
+
+static eEsifError EsifDataLogEnableParticipantsFromList(char *inParticipantList)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
 	char *participantList = NULL;
 	char *participantSelect = NULL;
 	char colDelims [] = ",";
 	char *partTok = NULL;
 	UInt8 participantId = 0;
 	int participantCounter = 0;
-	int totalFields = 0;
+	
+	participantList = esif_ccb_strdup(inParticipantList);
+	participantSelect = esif_ccb_strtok(participantList, colDelims, &partTok);
+
+	while (participantSelect != NULL) {
+		if (participantCounter >= (sizeof(g_dataLogParticipants) / sizeof(*g_dataLogParticipants))) {
+			rc = ESIF_E_NOT_SUPPORTED;
+			goto exit;
+		}
+
+		if ((int) esif_atoi(participantSelect) > 0 || esif_ccb_strcmp(participantSelect, "0") == 0) {
+			participantId = (UInt8) esif_atoi(participantSelect);
+			upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
+		}
+		else {
+			upPtr = EsifUpPm_GetAvailableParticipantByName(participantSelect);
+			participantId = EsifUp_GetInstance(upPtr);
+		}
+		if (NULL == upPtr) {
+			rc = ESIF_E_PARTICIPANT_NOT_FOUND;
+			goto exit;
+		}
+
+		EsifDataLogAddParticipantToList(upPtr, participantCounter);
+		EsifUp_PutRef(upPtr);
+		participantCounter++;
+		participantSelect = esif_ccb_strtok(NULL, colDelims, &partTok);
+	}
+exit:
+	esif_ccb_free(participantList);
+
+	return rc;
+}
+
+static eEsifError EsifDataLogEnableAllParticipants()
+{
 	eEsifError rc = ESIF_OK;
+	eEsifError iterRc = ESIF_OK;
+	UfPmIterator upIter = { 0 };
+	EsifUpPtr upPtr = NULL;
+	int participantCounter = 0;
+
+	iterRc = EsifUpPm_InitIterator(&upIter);
+	if (iterRc != ESIF_OK) {
+		rc = iterRc;
+		goto exit;
+	}
+
+	iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	while (ESIF_OK == iterRc) {
+		EsifDataLogAddParticipantToList(upPtr, participantCounter);
+		participantCounter++;
+		iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
+	
+exit:
+	EsifUp_PutRef(upPtr);
+	return rc;
+}
+
+static eEsifError EsifDataLogAddParticipantToList(EsifUpPtr upPtr, int indexPosition)
+{
+	eEsifError rc = ESIF_OK;
+	UInt8 participantId = 0;
+	int fieldCounter = 0;
+	DataLogParticipant nextParticipant = { 0 };
+
+	fieldCounter = EsifDataLogGetCapabilityFieldCount(upPtr);
+
+	participantId = EsifUp_GetInstance(upPtr);
+	nextParticipant.participantId = participantId;
+	nextParticipant.participantNumFields = fieldCounter;
+	g_dataLogParticipants[indexPosition] = nextParticipant;
+
+	return rc;
+}
+static eEsifError EsifDataLogValidateParticipantList(char *inParticipantList)
+{
+	eEsifError rc = ESIF_OK;
+	int totalFields = 0;
+	int i = 0;
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++){
 		g_dataLogParticipants[i].participantId = 0;
 		g_dataLogParticipants[i].participantNumFields = 0;
 	}
-	
+
 	if (inParticipantList == NULL) {
-		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-			EsifUpPtr upPtr = NULL;
-
-			participantId = (UInt8) i;
-			upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
-
-			if (NULL != upPtr) {
-				int j = 0;
-				int fieldCounter = 0;
-				struct esif_fpc_domain *domainPtr = NULL;
-				UInt8 domainCount = (u8)upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr);
-				DataLogParticipant nextParticipant = { 0 };
-
-				for (j = 0; j < domainCount; j++) {
-					domainPtr = upPtr->fDspPtr->get_domain(upPtr->fDspPtr, j + 1);
-					if (NULL == domainPtr) {
-						continue;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_STATUS) {
-						fieldCounter += 4;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_POWER_CONTROL) {
-						fieldCounter += 2;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_ACTIVE_CONTROL) {
-						fieldCounter += 1;
-					}
-				}
-				nextParticipant.participantId = participantId;
-				nextParticipant.participantNumFields = fieldCounter;
-				g_dataLogParticipants[participantCounter] = nextParticipant;
-
-				totalFields += fieldCounter;
-				EsifUp_PutRef(upPtr);
-				participantCounter++;
-			}
-		}
+		rc = EsifDataLogEnableAllParticipants();
 		goto exit;
 	}
 
 	if (esif_ccb_strlen(inParticipantList, MAX_LOG_LINE) >= 1) {
-
-		participantList = esif_ccb_strdup(inParticipantList);
-		participantSelect = esif_ccb_strtok(participantList, colDelims, &partTok);
-
-		while (participantSelect != NULL) {
-			EsifUpPtr upPtr = { 0 };
-
-			if (participantCounter >= (sizeof(g_dataLogParticipants)/sizeof(*g_dataLogParticipants))) {
-					rc = ESIF_E_NOT_SUPPORTED;
-					goto exit;
-			}
-
-			if ((int)esif_atoi(participantSelect) > 0 || esif_ccb_strcmp(participantSelect, "0") == 0) {
-				participantId = (UInt8) esif_atoi(participantSelect);
-				upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
-			}
-			else {
-				upPtr = EsifUpPm_GetAvailableParticipantByName(participantSelect);
-			}
-			if (NULL == upPtr) {
-				rc = ESIF_E_PARTICIPANT_NOT_FOUND;
-				goto exit;
-			}
-			else {
-				int j = 0;
-				int fieldCounter = 0;
-				struct esif_fpc_domain *domainPtr = NULL;
-				UInt8 domainCount = (u8) upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr);
-				DataLogParticipant nextParticipant = { 0 };
-				participantId = (UInt8) upPtr->fInstance; /* redundant in the case of an id passed in, but needed for name*/
-
-				for (j = 0; j < domainCount; j++) {
-					domainPtr = upPtr->fDspPtr->get_domain(upPtr->fDspPtr, j + 1);
-					if (NULL == domainPtr) {
-						continue;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_STATUS) {
-						fieldCounter += 4;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_POWER_CONTROL) {
-						fieldCounter += 2;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_ACTIVE_CONTROL) {
-						fieldCounter += 1;
-					}
-				}
-				nextParticipant.participantId = participantId;
-				nextParticipant.participantNumFields = fieldCounter;
-				g_dataLogParticipants[participantCounter] = nextParticipant;
-
-				totalFields += fieldCounter;
-				EsifUp_PutRef(upPtr);
-				participantCounter++;
-			}
-			participantSelect = esif_ccb_strtok(NULL, colDelims, &partTok);
-		}
+		rc = EsifDataLogEnableParticipantsFromList(inParticipantList);
 	}
 	else {
-		for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-			EsifUpPtr upPtr = NULL;
-
-			participantId = (UInt8) i;
-			upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
-
-			if (NULL != upPtr) {
-				int j = 0;
-				int fieldCounter = 0;
-				struct esif_fpc_domain *domainPtr = NULL;
-				UInt8 domainCount = (u8)upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr);
-				DataLogParticipant nextParticipant = { 0 };
-
-				for (j = 0; j < domainCount; j++) {
-					domainPtr = upPtr->fDspPtr->get_domain(upPtr->fDspPtr, j + 1);
-					if (NULL == domainPtr) {
-						continue;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_STATUS) {
-						fieldCounter += 4;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_POWER_CONTROL) {
-						fieldCounter += 2;
-					}
-					if (domainPtr->capability_for_domain.capability_flags & ESIF_CAPABILITY_ACTIVE_CONTROL) {
-						fieldCounter += 1;
-					}
-				}
-				nextParticipant.participantId = participantId;
-				nextParticipant.participantNumFields = fieldCounter;
-				g_dataLogParticipants[participantCounter] = nextParticipant;
-
-				totalFields += fieldCounter;
-				EsifUp_PutRef(upPtr);
-				participantCounter++;
-			}
-		}
+		rc = EsifDataLogEnableAllParticipants();
 	}
-exit:
-	esif_ccb_free(participantList);
 
+exit:
+	//make sure there is at least one valid field to log
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		totalFields += g_dataLogParticipants[i].participantNumFields;
+	}
 	if (totalFields == 0) {
 		rc = ESIF_E_NOT_SUPPORTED;
 	}
@@ -566,13 +573,14 @@ exit:
 static eEsifError EsifDataLogAddParticipant(char *logString, int logColumn, int isHeader)
 {
 	eEsifError rc = ESIF_OK;
-	char qualifier_str[32] = "D0";
-	u8 domain_count = 1;
+	char qualifierStr[32] = "D0";
 	char *participantNullValue = "";
-	int j = 0;
+	UInt32 domainCount = 0;
+	UInt32 domainIndex = 0;
 	DataLogParticipant currentParticipant = g_dataLogParticipants[logColumn];
 	UInt8 participantId = currentParticipant.participantId;
 	EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
+	EsifDspPtr dspPtr = NULL;
 
 	if (NULL == upPtr) {
 		int colCounter = 0;
@@ -585,8 +593,15 @@ static eEsifError EsifDataLogAddParticipant(char *logString, int logColumn, int 
 		}
 		goto exit;
 	}
-	domain_count = (u8)upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr);
-	for (j = 0; j < domain_count; j++) {
+
+	dspPtr = EsifUp_GetDsp(upPtr);
+	if (NULL == dspPtr) {
+		rc = ESIF_E_NEED_DSP;
+		goto exit;
+	}
+
+	domainCount = dspPtr->get_domain_count(dspPtr);
+	for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
 		UInt32 temp = 255;
 		UInt32 aux0 = 255;
 		UInt32 aux1 = 255;
@@ -595,7 +610,7 @@ static eEsifError EsifDataLogAddParticipant(char *logString, int logColumn, int 
 		UInt32 powerLimit = 0;
 		UInt32 fanspeed = 0;
 	
-		struct esif_fpc_domain *domain_ptr = NULL;
+		EsifFpcDomainPtr domain_ptr = NULL;
 		struct esif_data request = { ESIF_DATA_VOID, NULL, 0, 0 };
 		struct esif_data temp_response = { ESIF_DATA_TEMPERATURE, &temp, sizeof(temp), 4 };
 		struct esif_data aux0_response = { ESIF_DATA_TEMPERATURE, &aux0, sizeof(aux0), 4 };
@@ -606,47 +621,49 @@ static eEsifError EsifDataLogAddParticipant(char *logString, int logColumn, int 
 		struct esif_data_binary_fst_package fanpkg = { 0 };
 		struct esif_data fan_response = { ESIF_DATA_BINARY, &fanpkg, sizeof(fanpkg), 4 };
 
-		domain_ptr = upPtr->fDspPtr->get_domain(upPtr->fDspPtr, j + 1);
+		domain_ptr = dspPtr->get_domain(dspPtr, domainIndex);
 		if (NULL == domain_ptr) {
 			continue;
 		}
 
 		if (domain_ptr->capability_for_domain.capability_flags & ESIF_CAPABILITY_TEMP_STATUS) {
 			if (isHeader) {
-				esif_ccb_sprintf_concat(MAX_LOG_LINE, logString, "%s_D%d_temp,%s_D%d_aux0,%s_D%d_aux1,%s_D%d_hysteresis,", upPtr->fMetadata.fName, j, upPtr->fMetadata.fName, j, upPtr->fMetadata.fName, j, upPtr->fMetadata.fName, j);
+				EsifString partName = EsifUp_GetName(upPtr);
+				esif_ccb_sprintf_concat(MAX_LOG_LINE, logString, "%s_D%d_temp,%s_D%d_aux0,%s_D%d_aux1,%s_D%d_hysteresis,", partName, domainIndex, partName, domainIndex, partName, domainIndex, partName, domainIndex);
 			}
 			else {
-				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 255, &request, &temp_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 255, &request, &temp_response);
 				LOG_APPEND_VALUE_OR_DEFAULT(rc, temp);
 
-				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE_THRESHOLDS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 0, &request, &aux0_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE_THRESHOLDS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 0, &request, &aux0_response);
 				LOG_APPEND_VALUE_OR_DEFAULT(rc, aux0);
 
-				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE_THRESHOLDS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 1, &request, &aux1_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE_THRESHOLDS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 1, &request, &aux1_response);
 				LOG_APPEND_VALUE_OR_DEFAULT(rc, aux1);
 
-				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE_THRESHOLD_HYSTERESIS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 255, &request, &hyst_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_TEMPERATURE_THRESHOLD_HYSTERESIS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 255, &request, &hyst_response);
 				LOG_APPEND_VALUE_OR_DEFAULT(rc, hyst);
 			}
 		}
 		if (domain_ptr->capability_for_domain.capability_flags & ESIF_CAPABILITY_POWER_CONTROL) {
 			if (isHeader) {
-				esif_ccb_sprintf_concat(MAX_LOG_LINE, logString, "%s_D%d_power,%s_D%d_powerlimit,", upPtr->fMetadata.fName, j, upPtr->fMetadata.fName, j);
+				EsifString partName = EsifUp_GetName(upPtr);
+				esif_ccb_sprintf_concat(MAX_LOG_LINE, logString, "%s_D%d_power,%s_D%d_powerlimit,", partName, domainIndex, partName, domainIndex);
 			}
 			else {
-				rc = EsifExecutePrimitive((u8) participantId, GET_RAPL_POWER, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 255, &request, &power_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_RAPL_POWER, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 255, &request, &power_response);
 				LOG_APPEND_VALUE_OR_DEFAULT(rc, power);
 
-				rc = EsifExecutePrimitive((u8) participantId, GET_RAPL_POWER_LIMIT, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 0, &request, &power_limit_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_RAPL_POWER_LIMIT, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 0, &request, &power_limit_response);
 				LOG_APPEND_VALUE_OR_DEFAULT(rc, powerLimit);
 			}
 		}
 		if (domain_ptr->capability_for_domain.capability_flags & ESIF_CAPABILITY_ACTIVE_CONTROL) {
 			if (isHeader) {
-				esif_ccb_sprintf_concat(MAX_LOG_LINE, logString, "%s_D%d_fanspeed,", upPtr->fMetadata.fName, j);
+				esif_ccb_sprintf_concat(MAX_LOG_LINE, logString, "%s_D%d_fanspeed,", EsifUp_GetName(upPtr), domainIndex);
 			}
 			else {
-				rc = EsifExecutePrimitive((u8) participantId, GET_FAN_STATUS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifier_str, 32), 255, &request, &fan_response);
+				rc = EsifExecutePrimitive((u8) participantId, GET_FAN_STATUS, esif_primitive_domain_str(domain_ptr->descriptor.domain, qualifierStr, 32), 255, &request, &fan_response);
 				if (rc == ESIF_OK) {
 					struct esif_data_binary_fst_package *fanPtr = (struct esif_data_binary_fst_package *)fan_response.buf_ptr;
 					fanspeed = (u32) fanPtr->control.integer.value;

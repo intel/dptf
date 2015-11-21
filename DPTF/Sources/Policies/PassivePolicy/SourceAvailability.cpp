@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,24 +25,12 @@ using namespace StatusFormat;
 SourceAvailability::SourceAvailability(
     const PolicyServicesInterfaceContainer& policyServices,
     std::shared_ptr<TimeInterface> time)
-    : m_policyServices(policyServices), m_time(time)
+    : m_time(time), m_policyServices(policyServices)
 {
 }
 
 SourceAvailability::~SourceAvailability()
 {
-}
-
-UInt64 SourceAvailability::getNextAvailableTime(UIntN source, UInt64 startTime)
-{
-    if (startTime < m_schedule[source])
-    {
-        return m_schedule[source] - startTime;
-    }
-    else
-    {
-        return 0;
-    }
 }
 
 void SourceAvailability::setSourceAsBusy(UIntN source, UInt64 time)
@@ -56,19 +44,6 @@ void SourceAvailability::remove(UIntN source)
     if (item != m_schedule.end())
     {
         m_schedule.erase(item);
-    }
-}
-
-Bool SourceAvailability::isBusyNow(UIntN source)
-{
-    auto item = m_schedule.find(source);
-    if (item != m_schedule.end())
-    {
-        return (m_time->getCurrentTimeInMilliseconds() < item->second);
-    }
-    else
-    {
-        return false;
     }
 }
 

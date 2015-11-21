@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class PolicyServicesDomainPixelClockStatus final : public PolicyServices, public
 {
 public:
 
-    PolicyServicesDomainPixelClockStatus(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesDomainPixelClockStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual PixelClockCapabilities getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
     virtual PixelClockDataSet getPixelClockDataSet(UIntN participantIndex, UIntN domainIndex) override final;

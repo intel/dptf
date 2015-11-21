@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIPolicySensorOrientationChanged::WIPolicySensorOrientationChanged(DptfManager* dptfManager,
+WIPolicySensorOrientationChanged::WIPolicySensorOrientationChanged(DptfManagerInterface* dptfManager,
     SensorOrientation::Type sensorOrientation) :
     WorkItem(dptfManager, FrameworkEvent::PolicySensorOrientationChanged),
     m_sensorOrientation(sensorOrientation)
@@ -42,6 +42,7 @@ void WIPolicySensorOrientationChanged::execute(void)
     {
         try
         {
+            getDptfManager()->getEventCache()->sensorOrientation.set(m_sensorOrientation);
             Policy* policy = policyManager->getPolicyPtr(i);
             policy->executePolicySensorOrientationChanged(m_sensorOrientation);
         }

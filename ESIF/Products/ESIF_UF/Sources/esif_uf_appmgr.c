@@ -110,29 +110,36 @@ eEsifError EsifAppsEventByDomainType(
 	EsifDataPtr eventData
 	)
 {
-	u8 i     = 0;
+	eEsifError rc = ESIF_OK;
 	u8 found = ESIF_FALSE;
+	UInt8 participantId = 0;
+	UfPmIterator upIter = {0};
+	EsifUpPtr upPtr = NULL;
+	EsifUpDataPtr metaPtr = NULL;
 
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
-		if (NULL == upPtr) {
-			continue;
-		}
-
-		if (upPtr->fMetadata.fAcpiType == domainType) {
-			found = ESIF_TRUE;
-			EsifUp_PutRef(upPtr);
-			break;
-		}
-
-		EsifUp_PutRef(upPtr);
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc!= ESIF_OK) {
+		goto exit;
 	}
 
+	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	while (ESIF_OK == rc) {
+		metaPtr = EsifUp_GetMetadata(upPtr);
+		if ((metaPtr != NULL) && (metaPtr->fAcpiType == domainType)) {
+				participantId = EsifUp_GetInstance(upPtr);
+				found = ESIF_TRUE;
+				break;
+		}
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
+exit:
+	EsifUp_PutRef(upPtr);
 	if (ESIF_FALSE == found) {
-		return ESIF_E_NOT_FOUND;
+		rc = ESIF_E_NOT_FOUND;
 	} else {
-		return EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_NA, eventType, eventData);
+		rc = EsifEventMgr_SignalEvent(participantId, EVENT_MGR_DOMAIN_NA, eventType, eventData);
 	}
+	return rc;
 }
 
 

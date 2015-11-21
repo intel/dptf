@@ -72,3 +72,21 @@
 #endif
 
 #endif /* USER */
+
+/* OS/Kernel Agnostic */
+
+/* Case-insensitive string pattern match function (only "*" and "?" supported) */
+static ESIF_INLINE int esif_ccb_strmatch(char *string, char *pattern)
+{
+	while (*pattern || *string) {
+		if (*pattern == '*') {
+			return (esif_ccb_strmatch(string, pattern + 1) || (*string && esif_ccb_strmatch(string + 1, pattern)));
+		}
+		if (*string && ((*pattern == '?') || (*pattern && (tolower(*string) == tolower(*pattern))))) {
+			string++, pattern++;
+			continue;
+		}
+		return ESIF_FALSE;
+	}
+	return ESIF_TRUE;
+}

@@ -84,7 +84,49 @@ exit:
 }
 
 
-/* Destroy Linked List */
+/*
+ * Destroys a list and all data it contains.
+ * It will call the provided callback function to free the data associated with
+ * each node during destruction, or will call esif_ccb_free on the data if no
+ * callback function is provided. No other functions should be called on a list
+ * after this is called.
+ * WARNING: Care should be taken that an and locks held during the call of this
+ * function must be taken into account in the callback function to destroy the
+ * data.
+ */
+void esif_link_list_free_data_and_destroy(
+	struct esif_link_list *self,
+	link_list_data_destroy_func destroy_func
+	)
+{
+	struct esif_link_list_node *curr_ptr = NULL;
+	void *data_ptr = NULL;
+	
+	if (NULL == self)
+		goto exit;
+
+	curr_ptr = self->head_ptr;
+	while (curr_ptr) {
+		data_ptr = curr_ptr->data_ptr;
+		curr_ptr->data_ptr = NULL;
+
+		esif_link_list_node_remove(self, curr_ptr);
+
+		if (destroy_func != NULL) {
+			(*destroy_func)(data_ptr);
+		} else {
+			esif_ccb_free(data_ptr);
+		}
+		curr_ptr = self->head_ptr;
+	}
+
+	esif_ccb_free(self);
+exit:
+	return;
+}
+
+ 
+ /* Destroy Linked List */
 void esif_link_list_destroy(struct esif_link_list *self)
 {
 	struct esif_link_list_node *curr_ptr = NULL;
@@ -94,9 +136,8 @@ void esif_link_list_destroy(struct esif_link_list *self)
 
 	curr_ptr = self->head_ptr;
 	while (curr_ptr) {
-		struct esif_link_list_node *next_node_ptr = curr_ptr->next_ptr;
-		esif_link_list_destroy_node(curr_ptr);
-		curr_ptr = next_node_ptr;
+		esif_link_list_node_remove(self, curr_ptr);
+		curr_ptr = self->head_ptr;
 	}
 
 	esif_ccb_free(self);
@@ -224,8 +265,8 @@ void esif_link_list_add_node_at_back(
 		new_node_ptr->next_ptr = NULL;
 		self->tail_ptr->next_ptr = new_node_ptr;
 		self->tail_ptr = new_node_ptr;
+		self->nodes++;
 	}
-	self->nodes++;
 exit:
 	return;
 }

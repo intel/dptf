@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,9 @@
 #pragma once
 
 #include "Dptf.h"
-#include "PowerControlStatusSet.h"
 #include "PowerControlDynamicCapsSet.h"
+#include "PowerControlType.h"
+#include "TimeSpan.h"
 
 class DomainPowerControlInterface
 {
@@ -30,8 +31,25 @@ public:
     {
     };
 
+    virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType) = 0;
+
+    virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType) = 0;
+    virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const Power& powerLimit) = 0;
+
+    virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType) = 0;
+    virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const TimeSpan& timeWindow) = 0;
+
+    virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType) = 0;
+    virtual void setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const Percentage& dutyCycle) = 0;
+
     virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual PowerControlStatusSet getPowerControlStatusSet(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual void setPowerControl(UIntN participantIndex, UIntN domainIndex,
-        const PowerControlStatusSet& powerControlStatusSet) = 0;
+    virtual void setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlDynamicCapsSet capsSet) = 0;
 };

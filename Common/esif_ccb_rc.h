@@ -107,6 +107,7 @@ enum esif_rc {
 	ESIF_E_INVALID_REQUEST_TYPE,          /* Request Type Invalid */
 	ESIF_E_XFORM_NOT_AVAILABLE,           /* Xform Is Unavailable */
 	ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS,    /* Request data invalid */
+	ESIF_E_ACTION_ALREADY_STARTED,	/* Action already available */
 
 	/* Buffer */
 	ESIF_E_NEED_LARGER_BUFFER = 1300, /* Response Data Size Will Contain
@@ -239,6 +240,8 @@ static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
 	ESIF_CASE_ENUM(ESIF_E_INVALID_REQUEST_TYPE);
 	ESIF_CASE_ENUM(ESIF_E_XFORM_NOT_AVAILABLE);
 	ESIF_CASE_ENUM(ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS);
+	ESIF_CASE_ENUM(ESIF_E_ACTION_ALREADY_STARTED);
+	
 	
 	ESIF_CASE_ENUM(ESIF_E_NEED_LARGER_BUFFER);
 	ESIF_CASE_ENUM(ESIF_E_NEED_BINARY_BUFFER);

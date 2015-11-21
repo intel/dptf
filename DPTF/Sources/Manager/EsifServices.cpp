@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,15 +31,18 @@
 #include "EsifDataUInt64.h"
 #include "EsifDataVoid.h"
 #include "EsifDataGuid.h"
-#include "esif_ccb_memory.h"
-#include "esif_rc.h"
+#include "esif_ccb_rc.h"
 #include "ManagerMessage.h"
+#include "EsifDataTime.h"
 
-EsifServices::EsifServices(const DptfManager* dptfManager, const void* esifHandle,
-    const EsifInterfacePtr esifInterfacePtr, eLogType currentLogVerbosityLevel) :
-    m_dptfManager(dptfManager), m_esifHandle(esifHandle), m_currentLogVerbosityLevel(currentLogVerbosityLevel)
+using namespace std;
+
+EsifServices::EsifServices(const DptfManagerInterface* dptfManager, const void* esifHandle,
+    EsifAppServicesInterface* appServices, eLogType currentLogVerbosityLevel) :
+    m_dptfManager(dptfManager), m_esifHandle(esifHandle), m_appServices(appServices),
+    m_currentLogVerbosityLevel(currentLogVerbosityLevel)
 {
-    esif_ccb_memcpy(&m_esifInterface, esifInterfacePtr, sizeof(EsifInterface));
+
 }
 
 eLogType EsifServices::getCurrentLogVerbosityLevel(void) const
@@ -56,7 +59,7 @@ UInt32 EsifServices::readConfigurationUInt32(const std::string& elementPath)
 {
     EsifDataUInt32 esifResult;
 
-    eEsifError rc = m_esifInterface.fGetConfigFuncPtr(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
+    eEsifError rc = m_appServices->getConfigurationValue(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
         EsifDataString(elementPath), esifResult);
 
     if (rc != ESIF_OK)
@@ -74,7 +77,7 @@ UInt32 EsifServices::readConfigurationUInt32(const std::string& elementPath)
 
 void EsifServices::writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue)
 {
-    eEsifError rc = m_esifInterface.fSetConfigFuncPtr(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
+    eEsifError rc = m_appServices->setConfigurationValue(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
         EsifDataString(elementPath), EsifDataUInt32(elementValue), ESIF_SERVICE_CONFIG_PERSIST);
 
     if (rc != ESIF_OK)
@@ -93,7 +96,7 @@ std::string EsifServices::readConfigurationString(const std::string& elementPath
 {
     EsifDataString esifResult(Constants::DefaultBufferSize);
 
-    eEsifError rc = m_esifInterface.fGetConfigFuncPtr(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
+    eEsifError rc = m_appServices->getConfigurationValue(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
         EsifDataString(elementPath), esifResult);
 
     if (rc != ESIF_OK)
@@ -109,6 +112,25 @@ std::string EsifServices::readConfigurationString(const std::string& elementPath
     return esifResult;
 }
 
+DptfBuffer EsifServices::readConfigurationBinary(const std::string& elementPath)
+{
+    DptfBuffer buffer(Constants::DefaultBufferSize);
+    EsifDataContainer esifData(esif_data_type::ESIF_DATA_BINARY , buffer.get(), buffer.size(), 0);
+    eEsifError rc = m_appServices->getConfigurationValue(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
+        EsifDataString(elementPath), esifData);
+    if (rc == ESIF_E_NEED_LARGER_BUFFER)
+    {
+        buffer.allocate(esifData.getDataLength());
+        EsifDataContainer esifDataTryAgain(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
+        rc = m_appServices->getConfigurationValue(m_esifHandle, m_dptfManager, EsifDataString("dptf"),
+            EsifDataString(elementPath), esifData);
+    }
+    throwIfNotSuccessful(FLF, rc, string("Failed to read configuration binary for ") + elementPath + string("."));
+
+    buffer.trim(esifData.getDataLength());
+    return buffer;
+}
+
 UInt8 EsifServices::primitiveExecuteGetAsUInt8(esif_primitive_type primitive, UIntN participantIndex,
     UIntN domainIndex, UInt8 instance)
 {
@@ -116,7 +138,7 @@ UInt8 EsifServices::primitiveExecuteGetAsUInt8(esif_primitive_type primitive, UI
 
     EsifDataUInt8 esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -130,7 +152,7 @@ void EsifServices::primitiveExecuteSetAsUInt8(esif_primitive_type primitive, UIn
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataUInt8(elementValue), EsifDataVoid(), primitive, instance);
@@ -144,7 +166,7 @@ UInt32 EsifServices::primitiveExecuteGetAsUInt32(esif_primitive_type primitive, 
 
     EsifDataUInt32 esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -158,7 +180,7 @@ void EsifServices::primitiveExecuteSetAsUInt32(esif_primitive_type primitive, UI
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataUInt32(elementValue), EsifDataVoid(), primitive, instance);
@@ -172,7 +194,7 @@ UInt64 EsifServices::primitiveExecuteGetAsUInt64(esif_primitive_type primitive, 
 
     EsifDataUInt64 esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -186,7 +208,7 @@ void EsifServices::primitiveExecuteSetAsUInt64(esif_primitive_type primitive, UI
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataUInt64(elementValue), EsifDataVoid(), primitive, instance);
@@ -200,7 +222,7 @@ Temperature EsifServices::primitiveExecuteGetAsTemperatureC(esif_primitive_type 
 
     EsifDataTemperature esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -242,7 +264,7 @@ void EsifServices::primitiveExecuteSetAsTemperatureC(esif_primitive_type primiti
     }
 #endif
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataTemperature(temperature), EsifDataVoid(), primitive, instance);
@@ -272,7 +294,7 @@ Percentage EsifServices::primitiveExecuteGetAsPercentage(esif_primitive_type pri
 
     EsifDataPercentage esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -286,7 +308,7 @@ void EsifServices::primitiveExecuteSetAsPercentage(esif_primitive_type primitive
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataPercentage(percentage), EsifDataVoid(), primitive, instance);
@@ -300,7 +322,7 @@ Frequency EsifServices::primitiveExecuteGetAsFrequency(esif_primitive_type primi
 
     EsifDataFrequency esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -314,7 +336,7 @@ void EsifServices::primitiveExecuteSetAsFrequency(esif_primitive_type primitive,
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataFrequency(frequency), EsifDataVoid(), primitive, instance);
@@ -328,7 +350,7 @@ Power EsifServices::primitiveExecuteGetAsPower(esif_primitive_type primitive, UI
 
     EsifDataPower esifResult;
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -342,10 +364,45 @@ void EsifServices::primitiveExecuteSetAsPower(esif_primitive_type primitive, Pow
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataPower(power), EsifDataVoid(), primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+}
+
+TimeSpan EsifServices::primitiveExecuteGetAsTimeInMilliseconds(
+    esif_primitive_type primitive, 
+    UIntN participantIndex /*= Constants::Esif::NoParticipant*/, 
+    UIntN domainIndex /*= Constants::Esif::NoDomain*/, 
+    UInt8 instance /*= Constants::Esif::NoInstance*/)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    EsifDataTime esifResult;
+
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataVoid(), esifResult, primitive, instance);
+    throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
+
+    return esifResult.createTimeSpanFromMilliseconds();
+}
+
+void EsifServices::primitiveExecuteSetAsTimeInMilliseconds(
+    esif_primitive_type primitive, 
+    TimeSpan time, 
+    UIntN participantIndex /*= Constants::Esif::NoParticipant*/, 
+    UIntN domainIndex /*= Constants::Esif::NoDomain*/, 
+    UInt8 instance /*= Constants::Esif::NoInstance*/)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        EsifDataTime(time.asMillisecondsInt()), EsifDataVoid(), primitive, instance);
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
@@ -356,7 +413,7 @@ std::string EsifServices::primitiveExecuteGetAsString(esif_primitive_type primit
 
     EsifDataString esifResult(Constants::DefaultBufferSize);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifResult, primitive, instance);
@@ -370,33 +427,37 @@ void EsifServices::primitiveExecuteSetAsString(esif_primitive_type primitive, st
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataString(stringValue), EsifDataVoid(), primitive, instance);
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
-void EsifServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_type esifDataType,
-    void* bufferPtr, UInt32 bufferLength, UInt32* dataLength, UIntN participantIndex,
-    UIntN domainIndex, UInt8 instance)
+DptfBuffer EsifServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_type esifDataType,
+    UIntN participantIndex, UIntN domainIndex, UInt8 instance)
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    EsifData esifData(esifDataType, bufferPtr, bufferLength, 0);
-
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    DptfBuffer buffer(Constants::DefaultBufferSize);
+    EsifDataContainer esifData(esifDataType, buffer.get(), buffer.size(), 0);
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataVoid(), esifData, primitive, instance);
-
     if (rc == ESIF_E_NEED_LARGER_BUFFER)
     {
-        throw buffer_too_small("Need larger buffer.", esifData.getDataLength());
+        buffer.allocate(esifData.getDataLength());
+        EsifDataContainer esifDataTryAgain(esifDataType, buffer.get(), buffer.size(), 0);
+        rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
+            (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+            (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+            EsifDataVoid(), esifDataTryAgain, primitive, instance);
     }
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 
-    *dataLength = esifData.getDataLength();
+    buffer.trim(esifData.getDataLength());
+    return buffer;
 }
 
 void EsifServices::primitiveExecuteSet(esif_primitive_type primitive, esif_data_type esifDataType,
@@ -405,10 +466,10 @@ void EsifServices::primitiveExecuteSet(esif_primitive_type primitive, esif_data_
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-    eEsifError rc = m_esifInterface.fPrimitiveFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->executePrimitive(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
-        EsifData(esifDataType, bufferPtr, bufferLength, dataLength), EsifDataVoid(), primitive, instance);
+        EsifDataContainer(esifDataType, bufferPtr, bufferLength, dataLength), EsifDataVoid(), primitive, instance);
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
@@ -458,7 +519,7 @@ void EsifServices::registerEvent(FrameworkEvent::Type frameworkEvent, UIntN part
 
     Guid guid = FrameworkEventInfo::instance()->getGuid(frameworkEvent);
 
-    eEsifError rc = m_esifInterface.fRegisterEventFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->registerForEvent(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataGuid(guid));
@@ -483,7 +544,7 @@ void EsifServices::unregisterEvent(FrameworkEvent::Type frameworkEvent, UIntN pa
 
     Guid guid = FrameworkEventInfo::instance()->getGuid(frameworkEvent);
 
-    eEsifError rc = m_esifInterface.fUnregisterEventFuncPtr(m_esifHandle, m_dptfManager,
+    eEsifError rc = m_appServices->unregisterForEvent(m_esifHandle, m_dptfManager,
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
         (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
         EsifDataGuid(guid));
@@ -516,7 +577,7 @@ void EsifServices::writeMessage(eLogType messageLevel, MessageCategory::Type mes
     {
 #endif
 
-        m_esifInterface.fWriteLogFuncPtr(m_esifHandle, m_dptfManager, nullptr,
+        m_appServices->writeLog(m_esifHandle, m_dptfManager, nullptr,
             nullptr, EsifDataString(message), messageLevel);
 
 #ifdef ONLY_LOG_TEMPERATURE_THRESHOLDS
@@ -566,6 +627,31 @@ void EsifServices::throwIfNotSuccessful(const std::string& fileName, UIntN lineN
         writeMessageWarning(message);
     }
 
+    if (returnCode == ESIF_I_AGAIN)
+    {
+        throw primitive_try_again(message);
+    }
+    else if (returnCode == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
+    {
+        throw primitive_not_found_in_dsp(message);
+    }
+
+    throw primitive_execution_failed(message);
+}
+
+void EsifServices::throwIfNotSuccessful(const std::string& fileName, UIntN lineNumber, 
+    const std::string& executingFunctionName, eEsifError returnCode, const std::string& messageText)
+{
+    if (returnCode == ESIF_OK)
+    {
+        return;
+    }
+
+    ManagerMessage message = ManagerMessage(m_dptfManager, fileName, lineNumber, executingFunctionName,
+        "Error returned from ESIF services interface function call");
+    message.setEsifErrorCode(returnCode);
+    message.addMessage(messageText);
+    writeMessageWarning(message);
     throw primitive_execution_failed(message);
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,13 @@
 
 #include "Dptf.h"
 #include "DomainWorkItem.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 
 class WIDomainCreate : public DomainWorkItem
 {
 public:
 
-    WIDomainCreate(DptfManager* dptfManager, UIntN participantIndex, UIntN domainIndex,
+    WIDomainCreate(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex,
         const AppDomainDataPtr domainDataPtr, Bool domainEnabled, Bool* domainCreated);
     virtual ~WIDomainCreate(void);
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,16 +21,16 @@
 using namespace std;
 using namespace StatusFormat;
 
-PassiveParticipantControlStatus::PassiveParticipantControlStatus(ParticipantProxy& participant)
+PassiveParticipantControlStatus::PassiveParticipantControlStatus(ParticipantProxyInterface* participant)
     : m_participantIndex(Constants::Invalid), m_name("")
 {
-    m_participantIndex = participant.getIndex();
-    m_name = participant.getParticipantProperties().getName();
+    m_participantIndex = participant->getIndex();
+    m_name = participant->getParticipantProperties().getName();
 
-    auto domainIndexes = participant.getDomainIndexes();
+    auto domainIndexes = participant->getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
-        m_domainStatus.push_back(PassiveDomainControlStatus(participant[*domainIndex]));
+        m_domainStatus.push_back(PassiveDomainControlStatus(participant->getDomain(*domainIndex)));
     }
 }
 

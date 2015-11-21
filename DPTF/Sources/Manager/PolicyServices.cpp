@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,14 +17,13 @@
 ******************************************************************************/
 
 #include "PolicyServices.h"
-#include "DptfManager.h"
 #include "EsifServices.h"
 #include "WorkItemQueueManager.h"
 #include "PolicyManager.h"
 #include "ParticipantManager.h"
 
 
-PolicyServices::PolicyServices(DptfManager* dptfManager, UIntN policyIndex) :
+PolicyServices::PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex) :
     m_dptfManager(dptfManager), m_policyIndex(policyIndex)
 {
     m_policyManager = m_dptfManager->getPolicyManager();
@@ -34,7 +33,7 @@ PolicyServices::PolicyServices(DptfManager* dptfManager, UIntN policyIndex) :
     m_esifServices = m_dptfManager->getEsifServices();
 }
 
-DptfManager* PolicyServices::getDptfManager(void) const
+DptfManagerInterface* PolicyServices::getDptfManager(void) const
 {
     return m_dptfManager;
 }
@@ -69,7 +68,7 @@ EsifServices* PolicyServices::getEsifServices(void) const
     return m_esifServices;
 }
 
-void PolicyServices::throwIfNotWorkItemThread(void)
+void PolicyServices::throwIfNotWorkItemThread(void) const
 {
     if (m_workItemQueueManager->isWorkItemThread() == false)
     {

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,10 +28,10 @@ ActiveCoolingControl::ActiveCoolingControl(
     const ParticipantProperties& participantProperties,
     const PolicyServicesInterfaceContainer& policyServices)
     : m_policyServices(policyServices),
-    m_participantIndex(participantIndex),
-    m_domainIndex(domainIndex),
     m_domainProperties(domainProperties),
     m_participantProperties(participantProperties),
+    m_participantIndex(participantIndex),
+    m_domainIndex(domainIndex),
     m_staticCaps(participantIndex, domainIndex, domainProperties, policyServices),
     m_lastFanSpeedRequest(Percentage::createInvalid()),
     m_lastFanSpeedRequestIndex(Constants::Invalid)

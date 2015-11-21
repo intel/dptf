@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,9 +34,12 @@
 #include "DomainRfProfileStatusInterface.h"
 #include "DomainTemperatureInterface.h"
 #include "DomainUtilizationInterface.h"
+#include "DomainHardwareDutyCycleControlInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
 #include "ParticipantSetSpecificInfoInterface.h"
+#include "DomainPlatformPowerControlInterface.h"
+#include "DomainPlatformPowerStatusInterface.h"
 
 class XmlNode;
 
@@ -45,11 +48,14 @@ class ParticipantInterface :
     public DomainConfigTdpControlInterface,
     public DomainCoreControlInterface,
     public DomainDisplayControlInterface,
+    public DomainHardwareDutyCycleControlInterface,
     public DomainPerformanceControlInterface,
     public DomainPixelClockControlInterface,
     public DomainPixelClockStatusInterface,
     public DomainPowerControlInterface,
     public DomainPowerStatusInterface,
+    public DomainPlatformPowerControlInterface,
+    public DomainPlatformPowerStatusInterface,
     public DomainPriorityInterface,
     public DomainRfProfileControlInterface,
     public DomainRfProfileStatusInterface,
@@ -106,6 +112,18 @@ public:
     virtual void domainRfProfileChanged(void) = 0;
     virtual void domainTemperatureThresholdCrossed(void) = 0;
     virtual void participantSpecificInfoChanged(void) = 0;
+    virtual void domainVirtualSensorCalibrationTableChanged(void) = 0;
+    virtual void domainVirtualSensorPollingTableChanged(void) = 0;
+    virtual void domainVirtualSensorRecalcChanged(void) = 0;
+    virtual void domainBatteryStatusChanged(void) = 0;
+    virtual void domainAdapterPowerChanged(void) = 0;
+    virtual void domainPlatformPowerConsumptionChanged(void) = 0;
+    virtual void domainPlatformPowerSourceChanged(void) = 0;
+    virtual void domainAdapterPowerRatingChanged(void) = 0;
+    virtual void domainChargerTypeChanged(void) = 0;
+    virtual void domainPlatformRestOfPowerChanged(void) = 0;
+    virtual void domainACPeakPowerChanged(void) = 0;
+    virtual void domainACPeakTimeWindowChanged(void) = 0;
 };
 
 //

@@ -88,10 +88,10 @@ static eEsifError EsifSetActionDelegateVirtualTemperature(
 */
 
 static eEsifError ESIF_CALLCONV ActionDelegateGet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
@@ -101,13 +101,13 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 	UInt32 method;
 	EsifUpDomainPtr domainPtr = NULL;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(upPtr);
-	UNREFERENCED_PARAMETER(primitivePtr);
-	UNREFERENCED_PARAMETER(actionPtr);
 
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
+	ESIF_ASSERT(NULL != primitivePtr);
+	ESIF_ASSERT(NULL != fpcActionPtr);
 
 	domainPtr = EsifUp_GetDomainById(upPtr, primitivePtr->tuple.domain);
 	if (NULL == domainPtr) {
@@ -116,8 +116,8 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		goto exit;
 	}
 
-	rc = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
-	if (ESIF_OK != rc) {
+	rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 0, &p1);
+	if ((ESIF_OK != rc) || (NULL == p1.buf_ptr)) {
 		ESIF_TRACE_ERROR("Unable to get parameters\n");
 		goto exit;
 	}
@@ -155,10 +155,10 @@ exit:
 }
 
 static eEsifError ESIF_CALLCONV ActionDelegateSet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	EsifDataPtr requestPtr
 	)
 {
@@ -167,13 +167,13 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 	UInt32 method;
 	EsifUpDomainPtr domainPtr = NULL;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(upPtr);
-	UNREFERENCED_PARAMETER(primitivePtr);
-	UNREFERENCED_PARAMETER(actionPtr);
 
 	ESIF_ASSERT(NULL != requestPtr);
 	ESIF_ASSERT(NULL != requestPtr->buf_ptr);
+	ESIF_ASSERT(NULL != primitivePtr);
+	ESIF_ASSERT(NULL != fpcActionPtr);
 	
 	domainPtr = EsifUp_GetDomainById(upPtr, primitivePtr->tuple.domain);
 	if (NULL == domainPtr) {
@@ -182,8 +182,8 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		goto exit;
 	}
 
-	rc = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
-	if (ESIF_OK != rc) {
+	rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 0, &p1);
+	if ((ESIF_OK != rc) || (NULL == p1.buf_ptr)) {
 		ESIF_TRACE_ERROR("Unable to get parameters\n");
 		goto exit;
 	}
@@ -290,6 +290,8 @@ static eEsifError EsifSetActionDelegatePat0(
 
 	auxTuple.domain = domainPtr->domain;
 	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &auxTuple, requestPtr, NULL);
+	if (rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
+		rc = ESIF_OK;
 exit:
 	return rc;
 }
@@ -318,6 +320,8 @@ static eEsifError EsifSetActionDelegatePat1(
 
 	auxTuple.domain = domainPtr->domain;
 	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &auxTuple, requestPtr, NULL);
+	if (rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
+		rc = ESIF_OK;
 exit:
 	return rc;
 }
@@ -415,10 +419,31 @@ static eEsifError EsifGetActionDelegateGddv(
 
 			// Load Datavault into temporary namespace. DV may or may not be preceded by a variant
 			if (DB) {
-				u32 skipbytes = (memcmp(surrogateData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
-				void *buffer = esif_ccb_malloc(surrogateData.data_len);
+				u32 skipbytes = 0;
+				void *buffer = NULL;
+
+				//
+				// This is in place to resolve a static code analysis issue.
+				// This should never happen if EsifUp_ExecutePrimitive is successful above.
+				//
+				if (NULL == surrogateData.buf_ptr) {
+					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+					ESIF_TRACE_DEBUG("No data returned for BIOS datavault.\n");
+					goto exit;
+				}
+
+				skipbytes = (memcmp(surrogateData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
+				buffer = esif_ccb_malloc(surrogateData.data_len);
+				if (NULL == buffer) {
+					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+					ESIF_TRACE_DEBUG("Unable to allocate memory\n");
+					rc = ESIF_E_NO_MEMORY;
+					goto exit;
+				}
+
 				esif_ccb_memcpy(buffer, (u8*)surrogateData.buf_ptr + skipbytes, surrogateData.data_len - skipbytes);
 				IOStream_SetMemory(DB->stream, buffer, surrogateData.data_len - skipbytes);
+
 				if ((rc = DataVault_ReadVault(DB)) != ESIF_OK) {
 					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
 					ESIF_TRACE_DEBUG("Unable to Open DataVault: %s\n", esif_rc_str(rc));
@@ -454,6 +479,7 @@ static eEsifError EsifGetActionDelegateGddv(
 			}
 		}
 	}
+exit:
 	esif_ccb_free(surrogateData.buf_ptr);
 	return rc;
 }
@@ -513,38 +539,31 @@ exit:
  ** Register ACTION with ESIF
  *******************************************************************************
  */
-static EsifActType g_delegate = {
-	0,
+static EsifActIfaceStatic g_delegate = {
+	eIfaceTypeAction,
+	ESIF_ACT_IFACE_VER_STATIC,
+	sizeof(g_delegate),
 	ESIF_ACTION_DELEGATE,
-	{PAD},
+	ESIF_ACTION_FLAGS_DEFAULT,
 	"DELEGATE",
 	"Delegate Action",
-	"ALL",
-	"x1.0.0.1",
-	{0},
-	ESIF_ACTION_IS_NOT_KERNEL_ACTION,
-	ESIF_ACTION_IS_NOT_PLUGIN,
-	{PAD},
-	ActionDelegateGet,
-	ActionDelegateSet,
+	ESIF_ACTION_VERSION_DEFAULT,
 	NULL,
-	NULL
+	NULL,
+	ActionDelegateGet,
+	ActionDelegateSet
 };
 
 eEsifError EsifActDelegateInit()
 {
-	if (NULL != g_actMgr.AddActType) {
-		g_actMgr.AddActType(&g_actMgr, &g_delegate);
-	}
+	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_delegate);
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
 
 void EsifActDelegateExit()
 {
-	if (NULL != g_actMgr.RemoveActType) {
-		g_actMgr.RemoveActType(&g_actMgr, 0);
-	}
+	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_delegate);
 	ESIF_TRACE_EXIT_INFO();
 }
 

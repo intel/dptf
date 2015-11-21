@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "SupportedPolicyList.h"
 #include "PolicyInterface.h"
 #include "EsifLibrary.h"
+#include "OsHdcStatus.h"
 
 class DptfManager;
 
@@ -67,6 +68,18 @@ public:
     void executeDomainRfProfileChanged(UIntN participantIndex);
     void executeDomainTemperatureThresholdCrossed(UIntN participantIndex);
     void executeParticipantSpecificInfoChanged(UIntN participantIndex);
+    void executeDomainVirtualSensorCalibrationTableChanged(UIntN participantIndex);
+    void executeDomainVirtualSensorPollingTableChanged(UIntN participantIndex);
+    void executeDomainVirtualSensorRecalcChanged(UIntN participantIndex);
+    void executeDomainBatteryStatusChanged(UIntN participantIndex);
+    void executeDomainAdapterPowerChanged(UIntN participantIndex);
+    void executeDomainPlatformPowerConsumptionChanged(UIntN participantIndex);
+    void executeDomainPlatformPowerSourceChanged(UIntN participantIndex);
+    void executeDomainAdapterPowerRatingChanged(UIntN participantIndex);
+    void executeDomainChargerTypeChanged(UIntN participantIndex);
+    void executeDomainPlatformRestOfPowerChanged(UIntN participantIndex);
+    void executeDomainACPeakPowerChanged(UIntN participantIndex);
+    void executeDomainACPeakTimeWindowChanged(UIntN participantIndex);
     void executePolicyActiveRelationshipTableChanged(void);
     void executePolicyCoolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit);
     void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode);
@@ -75,12 +88,24 @@ public:
     void executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2);
     void executePolicyOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel);
     void executePolicyOperatingSystemLpmModeChanged(UIntN lpmMode);
+    void executePolicyOperatingSystemHdcStatusChanged(OsHdcStatus::Type status);
     void executePolicyPassiveTableChanged(void);
     void executePolicyPlatformLpmModeChanged(void);
     void executePolicySensorOrientationChanged(SensorOrientation::Type sensorOrientation);
-    void executePolicySensorProximityChanged(SensorProximity::Type sensorProximity);
+    void executePolicySensorMotionChanged(SensorMotion::Type sensorMotion);
     void executePolicySensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
     void executePolicyThermalRelationshipTableChanged(void);
+    void executePolicyAdaptivePerformanceConditionsTableChanged(void);
+    void executePolicyAdaptivePerformanceActionsTableChanged(void);
+    void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource);
+    void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState);
+    void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage);
+    void executePolicyOperatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType);
+    void executePolicyOperatingSystemDockModeChanged(OsDockMode::Type osDockMode);
+    void executePolicyOemVariablesChanged(void);
+    void executePolicyPowerDeviceRelationshipTableChanged(void);
+    void executePolicyPowerBossConditionsTableChanged(void);
+    void executePolicyPowerBossActionsTableChanged(void);
 
 private:
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,8 +36,6 @@ public:
     Bool isBusy(UIntN source, UInt64 time) const;
 
     // source availability
-    Bool isBusyNow(UIntN source);
-    UInt64 getNextAvailableTime(UIntN source, UInt64 startTime);
     void remove(UIntN source);
 
     // update services

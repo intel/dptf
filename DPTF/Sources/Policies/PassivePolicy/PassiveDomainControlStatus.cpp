@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 using namespace std;
 using namespace StatusFormat;
 
-PassiveDomainControlStatus::PassiveDomainControlStatus(DomainProxy& domain)
+PassiveDomainControlStatus::PassiveDomainControlStatus(DomainProxyInterface* domain)
     : m_participantIndex(Constants::Invalid),
     m_domainIndex(Constants::Invalid),
     m_domainName(""),
@@ -57,16 +57,16 @@ XmlNode* PassiveDomainControlStatus::getXml()
     return domainControlStatus;
 }
 
-void PassiveDomainControlStatus::addPstateStatus(DomainProxy& domain)
+void PassiveDomainControlStatus::addPstateStatus(DomainProxyInterface* domain)
 {
-    PerformanceControlFacade& perfControl = domain.getPerformanceControl();
-    if (perfControl.supportsPerformanceControls())
+    auto perfControl = domain->getPerformanceControl();
+    if (perfControl->supportsPerformanceControls())
     {
         // get current p-state
         UIntN currentIndex(Constants::Invalid);
         try
         {
-            currentIndex = perfControl.getStatus().getCurrentControlSetIndex();
+            currentIndex = perfControl->getStatus().getCurrentControlSetIndex();
         }
         catch (...)
         {
@@ -77,7 +77,7 @@ void PassiveDomainControlStatus::addPstateStatus(DomainProxy& domain)
         try
         {
             firstTstateIndex =
-                indexOfFirstControlWithType(perfControl.getControls(), PerformanceControlType::ThrottleState);
+                indexOfFirstControlWithType(perfControl->getControls(), PerformanceControlType::ThrottleState);
         }
         catch (...)
         {
@@ -87,7 +87,7 @@ void PassiveDomainControlStatus::addPstateStatus(DomainProxy& domain)
         PerformanceControlDynamicCaps dynamicCapabilities(Constants::Invalid, Constants::Invalid);
         try
         {
-            dynamicCapabilities = perfControl.getDynamicCapabilities();
+            dynamicCapabilities = perfControl->getDynamicCapabilities();
         }
         catch (...)
         {
@@ -123,23 +123,23 @@ void PassiveDomainControlStatus::addPstateStatus(DomainProxy& domain)
     }
 }
 
-void PassiveDomainControlStatus::addTstateStatus(DomainProxy& domain)
+void PassiveDomainControlStatus::addTstateStatus(DomainProxyInterface* domain)
 {
-    PerformanceControlFacade& perfControl = domain.getPerformanceControl();
-    if (perfControl.supportsPerformanceControls())
+    auto perfControl = domain->getPerformanceControl();
+    if (perfControl->supportsPerformanceControls())
     {
         try
         {
             PerformanceControlSet tstateControls = 
                 filterControlSet(
-                    perfControl.getControls(), 
-                    perfControl.getDynamicCapabilities(), 
+                    perfControl->getControls(), 
+                    perfControl->getDynamicCapabilities(), 
                     PerformanceControlType::ThrottleState);
             UIntN maxUnlimitedIndex = 0;
             UIntN maxLimitedIndex = tstateControls.getCount() == 0 ? 0 : tstateControls.getCount() - 1;
             IntN tstateIndexStart = 
-                indexOfFirstControlWithType(perfControl.getControls(), PerformanceControlType::ThrottleState);
-            IntN currentIndex = perfControl.getStatus().getCurrentControlSetIndex() - tstateIndexStart;
+                indexOfFirstControlWithType(perfControl->getControls(), PerformanceControlType::ThrottleState);
+            IntN currentIndex = perfControl->getStatus().getCurrentControlSetIndex() - tstateIndexStart;
             currentIndex = std::max(0, currentIndex);
             if (maxUnlimitedIndex == maxLimitedIndex)
             {
@@ -166,20 +166,19 @@ void PassiveDomainControlStatus::addTstateStatus(DomainProxy& domain)
     }
 }
 
-void PassiveDomainControlStatus::addPowerStatus(DomainProxy& domain)
+void PassiveDomainControlStatus::addPowerStatus(DomainProxyInterface* domain)
 {
-    PowerControlFacade& powerControl = domain.getPowerControl();
-    if (powerControl.supportsPowerControls())
+    auto powerControl = domain->getPowerControl();
+    if (powerControl->supportsPowerControls())
     {
         // get the min and max power limits
         Power min(Power::createInvalid());
         Power max(Power::createInvalid());
         try
         {
-            UIntN pl1Index = powerControl.getPl1ControlSetIndex();
-            PowerControlDynamicCaps pl1Capabilities = powerControl.getCapabilities()[pl1Index];
-            max = pl1Capabilities.getMinPowerLimit();
-            min = pl1Capabilities.getMaxPowerLimit();
+            auto capability = powerControl->getCapabilities().getCapability(PowerControlType::PL1);
+            max = capability.getMinPowerLimit();
+            min = capability.getMaxPowerLimit();
         }
         catch (...)
         {
@@ -189,7 +188,7 @@ void PassiveDomainControlStatus::addPowerStatus(DomainProxy& domain)
         Power current(Power::createInvalid());
         try
         {
-            current = powerControl.getLastIssuedPowerLimit().getCurrentPowerLimit();
+            current = powerControl->getPowerLimitPL1();
         }
         catch (...)
         {
@@ -206,18 +205,18 @@ void PassiveDomainControlStatus::addPowerStatus(DomainProxy& domain)
     }
 }
 
-void PassiveDomainControlStatus::addDisplayStatus(DomainProxy& domain)
+void PassiveDomainControlStatus::addDisplayStatus(DomainProxyInterface* domain)
 {
-    DisplayControlFacade& displayControl = domain.getDisplayControl();
-    if (displayControl.supportsDisplayControls())
+    std::shared_ptr<DisplayControlFacadeInterface> displayControl = domain->getDisplayControl();
+    if (displayControl->supportsDisplayControls())
     {
         // get the max limited and unlimited indexes
         UIntN maxUnlimitedIndex(Constants::Invalid);
         UIntN maxLimitedIndex(Constants::Invalid);
         try
         {
-            maxUnlimitedIndex = displayControl.getCapabilities().getCurrentUpperLimit();
-            maxLimitedIndex = displayControl.getCapabilities().getCurrentLowerLimit();
+            maxUnlimitedIndex = displayControl->getCapabilities().getCurrentUpperLimit();
+            maxLimitedIndex = displayControl->getCapabilities().getCurrentLowerLimit();
         }
         catch (...)
         {
@@ -227,7 +226,7 @@ void PassiveDomainControlStatus::addDisplayStatus(DomainProxy& domain)
         UIntN currentLimitIndex(Constants::Invalid);
         try
         {
-            currentLimitIndex = displayControl.getStatus().getBrightnessLimitIndex();
+            currentLimitIndex = displayControl->getStatus().getBrightnessLimitIndex();
         }
         catch (...)
         {
@@ -245,16 +244,16 @@ void PassiveDomainControlStatus::addDisplayStatus(DomainProxy& domain)
     }
 }
 
-void PassiveDomainControlStatus::addCoreStatus(DomainProxy& domain)
+void PassiveDomainControlStatus::addCoreStatus(DomainProxyInterface* domain)
 {
-    CoreControlFacade& coreControl = domain.getCoreControl();
-    if (coreControl.supportsCoreControls() && coreControl.getPreferences().isLpoEnabled())
+    std::shared_ptr<CoreControlFacadeInterface> coreControl = domain->getCoreControl();
+    if (coreControl->supportsCoreControls() && coreControl->getPreferences().isLpoEnabled())
     {
         // get maximum processors
         UIntN maxProcessors(Constants::Invalid);
         try
         {
-            maxProcessors = coreControl.getStaticCapabilities().getTotalLogicalProcessors();
+            maxProcessors = coreControl->getStaticCapabilities().getTotalLogicalProcessors();
         }
         catch (...)
         {
@@ -264,7 +263,7 @@ void PassiveDomainControlStatus::addCoreStatus(DomainProxy& domain)
         UIntN minProcessors(Constants::Invalid);
         try
         {
-            minProcessors = coreControl.getDynamicCapabilities().getMinActiveCores();
+            minProcessors = coreControl->getDynamicCapabilities().getMinActiveCores();
         }
         catch (...)
         {
@@ -274,7 +273,7 @@ void PassiveDomainControlStatus::addCoreStatus(DomainProxy& domain)
         UIntN currentProcessors(Constants::Invalid);
         try
         {
-            currentProcessors = coreControl.getStatus().getNumActiveLogicalProcessors();
+            currentProcessors = coreControl->getStatus().getNumActiveLogicalProcessors();
         }
         catch (...)
         {
@@ -305,20 +304,6 @@ UIntN PassiveDomainControlStatus::indexOfFirstControlWithType(
     throw dptf_exception("Performance control set does not contain the specified type.");
 }
 
-UIntN PassiveDomainControlStatus::getNumberOfElementsOfControlType(
-    const PerformanceControlSet& controlSet, PerformanceControlType::Type type) const
-{
-    UIntN count(0);
-    for (UIntN controlIndex = 0; controlIndex < controlSet.getCount(); controlIndex++)
-    {
-        if (controlSet[controlIndex].getPerformanceControlType() == type)
-        {
-            count++;
-        }
-    }
-    return count;
-}
-
 PerformanceControlSet PassiveDomainControlStatus::filterControlSet(
     const PerformanceControlSet& controlSet, 
     PerformanceControlDynamicCaps dynamicCapabilities, 
@@ -337,28 +322,28 @@ PerformanceControlSet PassiveDomainControlStatus::filterControlSet(
     return PerformanceControlSet(filteredControls);
 }
 
-void PassiveDomainControlStatus::aquireDomainStatus(DomainProxy& domain)
+void PassiveDomainControlStatus::aquireDomainStatus(DomainProxyInterface* domain)
 {
-    m_participantIndex = domain.getParticipantIndex();
-    m_domainIndex = domain.getDomainIndex();
-    m_domainName = domain.getDomainProperties().getName();
+    m_participantIndex = domain->getParticipantIndex();
+    m_domainIndex = domain->getDomainIndex();
+    m_domainName = domain->getDomainProperties().getName();
     try
     {
-        m_domainTemperature = domain.getTemperatureProperty().getCurrentTemperature();
+        m_domainTemperature = domain->getTemperatureControl()->getCurrentTemperature();
     }
     catch (...)
     {
     }
     try
     {
-        m_domainPriority = domain.getDomainPriorityProperty().getDomainPriority();
+        m_domainPriority = domain->getDomainPriorityProperty().getDomainPriority();
     }
     catch (...)
     {
     }
     try
     {
-        m_domainUtilization = domain.getUtilizationStatus();
+        m_domainUtilization = domain->getUtilizationStatus();
     }
     catch (...)
     {

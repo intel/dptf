@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,16 +19,18 @@
 #include "PassiveControlStatus.h"
 using namespace std;
 
-PassiveControlStatus::PassiveControlStatus(const ThermalRelationshipTable& trt, ParticipantTracker& trackedParticipants)
+PassiveControlStatus::PassiveControlStatus(
+    const ThermalRelationshipTable& trt, 
+    std::shared_ptr<ParticipantTrackerInterface> trackedParticipants)
 {
-    vector<UIntN> trackedParticipantIndicies = trackedParticipants.getAllTrackedIndexes();
+    vector<UIntN> trackedParticipantIndicies = trackedParticipants->getAllTrackedIndexes();
     for (auto participant = trackedParticipantIndicies.begin();
          participant != trackedParticipantIndicies.end();
          participant++)
     {
         if (trt.isParticipantSourceDevice(*participant))
         {
-            m_participantStatus.push_back(PassiveParticipantControlStatus(trackedParticipants[*participant]));
+            m_participantStatus.push_back(PassiveParticipantControlStatus(trackedParticipants->getParticipant(*participant)));
         }
     }
 }

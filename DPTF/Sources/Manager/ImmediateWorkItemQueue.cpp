@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include "XmlNode.h"
 
 ImmediateWorkItemQueue::ImmediateWorkItemQueue(EsifSemaphore* workItemQueueSemaphore) :
-    m_workItemQueueSemaphore(workItemQueueSemaphore), m_maxCount(0)
+    m_maxCount(0), m_workItemQueueSemaphore(workItemQueueSemaphore)
 {
 }
 
@@ -137,8 +137,8 @@ XmlNode* ImmediateWorkItemQueue::getXml(void) const
     esifMutexHelper.lock();
 
     XmlNode* immediateQueueStastics = XmlNode::createWrapperElement("immediate_queue_statistics");
-    immediateQueueStastics->addChild(XmlNode::createDataElement("current_count", std::to_string(m_queue.size())));
-    immediateQueueStastics->addChild(XmlNode::createDataElement("max_count", std::to_string(m_maxCount)));
+    immediateQueueStastics->addChild(XmlNode::createDataElement("current_count", StlOverride::to_string(m_queue.size())));
+    immediateQueueStastics->addChild(XmlNode::createDataElement("max_count", StlOverride::to_string(m_maxCount)));
 
     esifMutexHelper.unlock();
 

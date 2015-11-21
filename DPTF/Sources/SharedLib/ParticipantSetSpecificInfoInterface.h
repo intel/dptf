@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "CoolingPreference.h"
+#include "CoolingPreferenceType.h"
 
 class ParticipantSetSpecificInfoInterface
 {
@@ -33,5 +33,5 @@ public:
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex, const Temperature& temperature) = 0;
 
     // _SCP
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex, const CoolingPreference& coolingPreference) = 0;
+    virtual void setParticipantCoolingPolicy(UIntN participantIndex, const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) = 0;
 };

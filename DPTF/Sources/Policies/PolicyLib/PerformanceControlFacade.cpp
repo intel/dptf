@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,10 +26,10 @@ PerformanceControlFacade::PerformanceControlFacade(
     UIntN domainIndex,
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
-    : m_participantIndex(participantIndex),
+    : m_policyServices(policyServices),
+    m_participantIndex(participantIndex),
     m_domainIndex(domainIndex),
     m_domainProperties(domainProperties),
-    m_policyServices(policyServices),
     m_performanceControlSetProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_performanceControlCapabilitiesProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_controlsHaveBeenInitialized(false),
@@ -84,6 +84,12 @@ const PerformanceControlDynamicCaps& PerformanceControlFacade::getDynamicCapabil
 PerformanceControlStatus PerformanceControlFacade::getStatus() const
 {
     return PerformanceControlStatus(m_lastIssuedPerformanceControlIndex);
+}
+
+PerformanceControlStatus PerformanceControlFacade::getLiveStatus() const
+{
+    return m_policyServices.domainPerformanceControl->getPerformanceControlStatus(
+        m_participantIndex, m_domainIndex);
 }
 
 void PerformanceControlFacade::initializeControlsIfNeeded()

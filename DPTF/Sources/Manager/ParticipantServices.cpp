@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -135,6 +135,27 @@ void ParticipantServices::primitiveExecuteSetAsPower(esif_primitive_type primiti
         m_participantIndex, domainIndex, instance);
 }
 
+TimeSpan ParticipantServices::primitiveExecuteGetAsTimeInMilliseconds(
+    esif_primitive_type primitive, 
+    UIntN domainIndex /*= Constants::Esif::NoDomain*/, 
+    UInt8 instance /*= Constants::Esif::NoInstance*/)
+{
+    throwIfNotWorkItemThread();
+    return m_esifServices->primitiveExecuteGetAsTimeInMilliseconds(
+        primitive, m_participantIndex, domainIndex, instance);
+}
+
+void ParticipantServices::primitiveExecuteSetAsTimeInMilliseconds(
+    esif_primitive_type primitive, 
+    TimeSpan time, 
+    UIntN domainIndex /*= Constants::Esif::NoDomain*/, 
+    UInt8 instance /*= Constants::Esif::NoInstance*/)
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->primitiveExecuteSetAsTimeInMilliseconds(primitive, time,
+        m_participantIndex, domainIndex, instance);
+}
+
 std::string ParticipantServices::primitiveExecuteGetAsString(esif_primitive_type primitive,
     UIntN domainIndex, UInt8 instance)
 {
@@ -150,11 +171,11 @@ void ParticipantServices::primitiveExecuteSetAsString(esif_primitive_type primit
         m_participantIndex, domainIndex, instance);
 }
 
-void ParticipantServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_type esifDataType,
-    void* bufferPtr, UInt32 bufferLength, UInt32* dataLength, UIntN domainIndex, UInt8 instance)
+DptfBuffer ParticipantServices::primitiveExecuteGet(esif_primitive_type primitive, esif_data_type esifDataType,
+    UIntN domainIndex, UInt8 instance)
 {
     throwIfNotWorkItemThread();
-    m_esifServices->primitiveExecuteGet(primitive, esifDataType, bufferPtr, bufferLength, dataLength,
+    return m_esifServices->primitiveExecuteGet(primitive, esifDataType,
         m_participantIndex, domainIndex, instance);
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,13 +18,15 @@
 
 #include "PolicyBase.h"
 #include "DptfTime.h"
+#include "ParticipantTracker.h"
 using namespace std;
 
 PolicyBase::PolicyBase(void)
     : m_enabled(false)
 {
     m_time.reset(new DptfTime());
-    m_trackedParticipants.setTimeServiceObject(m_time);
+    m_trackedParticipants.reset(new ParticipantTracker());
+    m_trackedParticipants->setTimeServiceObject(m_time);
 }
 
 PolicyBase::~PolicyBase(void)
@@ -36,7 +38,7 @@ void PolicyBase::create(Bool enabled, PolicyServicesInterfaceContainer policySer
 {
     m_enabled = enabled;
     m_policyServices = policyServices;
-    m_trackedParticipants.setPolicyServices(policyServices);
+    m_trackedParticipants->setPolicyServices(policyServices);
     throwIfPolicyRequirementsNotMet();
     takeControlOfOsc(m_enabled && autoNotifyPlatformOscOnCreateDestroy());
 
@@ -197,6 +199,78 @@ void PolicyBase::participantSpecificInfoChanged(UIntN participantIndex)
     onParticipantSpecificInfoChanged(participantIndex);
 }
 
+void PolicyBase::domainVirtualSensorCalibrationTableChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainVirtualSensorCalibrationTableChanged(participantIndex);
+}
+
+void PolicyBase::domainVirtualSensorPollingTableChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainVirtualSensorPollingTableChanged(participantIndex);
+}
+
+void PolicyBase::domainVirtualSensorRecalcChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainVirtualSensorRecalcChanged(participantIndex);
+}
+
+void PolicyBase::domainBatteryStatusChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainBatteryStatusChanged(participantIndex);
+}
+
+void PolicyBase::domainAdapterPowerChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainAdapterPowerChanged(participantIndex);
+}
+
+void PolicyBase::domainPlatformPowerConsumptionChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainPlatformPowerConsumptionChanged(participantIndex);
+}
+
+void PolicyBase::domainPlatformPowerSourceChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainPlatformPowerSourceChanged(participantIndex);
+}
+
+void PolicyBase::domainAdapterPowerRatingChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainAdapterPowerRatingChanged(participantIndex);
+}
+
+void PolicyBase::domainChargerTypeChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainChargerTypeChanged(participantIndex);
+}
+
+void PolicyBase::domainPlatformRestOfPowerChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainPlatformRestOfPowerChanged(participantIndex);
+}
+
+void PolicyBase::domainACPeakPowerChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainACPeakPowerChanged(participantIndex);
+}
+
+void PolicyBase::domainACPeakTimeWindowChanged(UIntN participantIndex)
+{
+    throwIfPolicyIsDisabled();
+    onDomainACPeakTimeWindowChanged(participantIndex);
+}
+
 void PolicyBase::activeRelationshipTableChanged(void)
 {
     throwIfPolicyIsDisabled();
@@ -207,6 +281,18 @@ void PolicyBase::thermalRelationshipTableChanged(void)
 {
     throwIfPolicyIsDisabled();
     onThermalRelationshipTableChanged();
+}
+
+void PolicyBase::adaptivePerformanceConditionsTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    onAdaptivePerformanceConditionsTableChanged();
+}
+
+void PolicyBase::adaptivePerformanceActionsTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    onAdaptivePerformanceActionsTableChanged();
 }
 
 void PolicyBase::connectedStandbyEntry(void)
@@ -287,6 +373,42 @@ void PolicyBase::operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
     onOperatingSystemConfigTdpLevelChanged(configTdpLevel);
 }
 
+void PolicyBase::operatingSystemHdcStatusChanged(OsHdcStatus::Type status)
+{
+    throwIfPolicyIsDisabled();
+    onOperatingSystemHdcStatusChanged(status);
+}
+
+void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
+{
+    throwIfPolicyIsDisabled();
+    onOperatingSystemPowerSourceChanged(powerSource);
+}
+
+void PolicyBase::operatingSystemLidStateChanged(OsLidState::Type lidState)
+{
+    throwIfPolicyIsDisabled();
+    onOperatingSystemLidStateChanged(lidState);
+}
+
+void PolicyBase::operatingSystemBatteryPercentageChanged(UIntN batteryPercentage)
+{
+    throwIfPolicyIsDisabled();
+    onOperatingSystemBatteryPercentageChanged(batteryPercentage);
+}
+
+void PolicyBase::operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType)
+{
+    throwIfPolicyIsDisabled();
+    onOperatingSystemPlatformTypeChanged(platformType);
+}
+
+void PolicyBase::operatingSystemDockModeChanged(OsDockMode::Type dockMode)
+{
+    throwIfPolicyIsDisabled();
+    onOperatingSystemDockModeChanged(dockMode);
+}
+
 void PolicyBase::coolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit)
 {
     throwIfPolicyIsDisabled();
@@ -323,31 +445,41 @@ void PolicyBase::sensorSpatialOrientationChanged(SensorSpatialOrientation::Type 
     onSensorSpatialOrientationChanged(sensorSpatialOrientation);
 }
 
-void PolicyBase::sensorProximityChanged(SensorProximity::Type sensorProximity)
+void PolicyBase::sensorMotionChanged(SensorMotion::Type sensorMotion)
 {
     throwIfPolicyIsDisabled();
-    onSensorProximityChanged(sensorProximity);
+    onSensorMotionChanged(sensorMotion);
+}
+
+void PolicyBase::oemVariablesChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    onOemVariablesChanged();
+}
+
+void PolicyBase::powerDeviceRelationshipTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    onPowerDeviceRelationshipTableChanged();
+}
+
+void PolicyBase::powerBossConditionsTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    onPowerBossConditionsTableChanged();
+}
+
+void PolicyBase::powerBossActionsTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    onPowerBossActionsTableChanged();
 }
 
 void PolicyBase::overrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
 {
-    UInt32 enabled;
-    try
-    {
-        enabled = getPolicyServices().platformConfigurationData->readConfigurationUInt32("EnablePolicyDebugInterface");
-    }
-    catch (...)
-    {
-        // assume enable not set
-        enabled = 0;
-    }
-
-    if (enabled > 0)
-    {
-        m_time = timeObject;
-        m_trackedParticipants.setTimeServiceObject(timeObject);
-        onOverrideTimeObject(timeObject);
-    }
+    m_time = timeObject;
+    m_trackedParticipants->setTimeServiceObject(m_time);
+    onOverrideTimeObject(timeObject);
 }
 
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
@@ -411,12 +543,82 @@ void PolicyBase::onParticipantSpecificInfoChanged(UIntN participantIndex)
     throw not_implemented();
 }
 
+void PolicyBase::onDomainVirtualSensorCalibrationTableChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainVirtualSensorPollingTableChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainVirtualSensorRecalcChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainBatteryStatusChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainAdapterPowerChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainPlatformPowerConsumptionChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainPlatformPowerSourceChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainAdapterPowerRatingChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainChargerTypeChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainPlatformRestOfPowerChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainACPeakPowerChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onDomainACPeakTimeWindowChanged(UIntN participantIndex)
+{
+    throw not_implemented();
+}
+
 void PolicyBase::onActiveRelationshipTableChanged(void)
 {
     throw not_implemented();
 }
 
 void PolicyBase::onThermalRelationshipTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onAdaptivePerformanceConditionsTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onAdaptivePerformanceActionsTableChanged(void)
 {
     throw not_implemented();
 }
@@ -466,6 +668,36 @@ void PolicyBase::onOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
     throw not_implemented();
 }
 
+void PolicyBase::onOperatingSystemHdcStatusChanged(OsHdcStatus::Type status)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemLidStateChanged(OsLidState::Type lidState)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemPlatformTypeChanged(OsPlatformType::Type platformType)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemDockModeChanged(OsDockMode::Type dockMode)
+{
+    throw not_implemented();
+}
+
 void PolicyBase::onCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit)
 {
     throw not_implemented();
@@ -496,7 +728,27 @@ void PolicyBase::onSensorSpatialOrientationChanged(SensorSpatialOrientation::Typ
     throw not_implemented();
 }
 
-void PolicyBase::onSensorProximityChanged(SensorProximity::Type sensorProximity)
+void PolicyBase::onSensorMotionChanged(SensorMotion::Type sensorMotion)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onOemVariablesChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onPowerDeviceRelationshipTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onPowerBossConditionsTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onPowerBossActionsTableChanged(void)
 {
     throw not_implemented();
 }
@@ -511,7 +763,7 @@ PolicyServicesInterfaceContainer& PolicyBase::getPolicyServices() const
     return m_policyServices;
 }
 
-ParticipantTracker& PolicyBase::getParticipantTracker() const
+std::shared_ptr<ParticipantTrackerInterface> PolicyBase::getParticipantTracker() const
 {
     return m_trackedParticipants;
 }
@@ -548,6 +800,11 @@ void PolicyBase::takeControlOfOsc(bool shouldTakeControl)
         {
             m_policyServices.platformNotification->notifyPlatformPolicyTakeControl();
         }
+        catch (std::exception ex)
+        {
+            m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF, "Failed to acquire OSC: " +
+                string(ex.what())));
+        }
         catch (...)
         {
             m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF, "Failed to acquire OSC."));
@@ -562,6 +819,11 @@ void PolicyBase::releaseControlofOsc(bool shouldReleaseControl)
         try
         {
             m_policyServices.platformNotification->notifyPlatformPolicyReleaseControl();
+        }
+        catch (std::exception ex)
+        {
+            m_policyServices.messageLogging->writeMessageError(PolicyMessage(FLF, "Failed to release OSC: " +
+                string(ex.what())));
         }
         catch (...)
         {

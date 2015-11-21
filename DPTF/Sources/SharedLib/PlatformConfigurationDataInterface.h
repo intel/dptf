@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,8 +21,11 @@
 #include "Dptf.h"
 #include "ActiveRelationshipTable.h"
 #include "ThermalRelationshipTable.h"
-#include "LpmTable.h"
 #include "PlatformSettingType.h"
+#include "SensorOrientation.h"
+#include "SensorMotion.h"
+#include "SensorSpatialOrientation.h"
+#include "CoolingPreferenceType.h"
 
 class PlatformConfigurationDataInterface
 {
@@ -35,15 +38,30 @@ public:
     virtual UInt32 readConfigurationUInt32(const std::string& key) = 0;
     virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) = 0;
     virtual std::string readConfigurationString(const std::string& key) = 0;
+    virtual DptfBuffer readConfigurationBinary(const std::string& key) = 0;
 
     virtual std::string readPlatformSettingValue(PlatformSettingType::Type platformSettingType, UInt8 index) = 0;
     virtual void writePlatformSettingValue(PlatformSettingType::Type platformSettingType, UInt8 index, 
         const std::string& stringValue) = 0;
     virtual void clearPlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
+    virtual void enablePlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
+    virtual void disablePlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
 
     //FIXME:  ESIF Primitives
     virtual ActiveRelationshipTable getActiveRelationshipTable(void) = 0;
     virtual ThermalRelationshipTable getThermalRelationshipTable(void) = 0;
-    virtual LpmTable getLpmTable(void) = 0;
+    virtual DptfBuffer getPassiveTable(void) = 0;
+    virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) = 0;
+    virtual void setPassiveTable(DptfBuffer data) = 0;
+    virtual DptfBuffer getAdaptivePerformanceActionsTable(void) = 0;
+    virtual DptfBuffer getLpmTable(void) = 0;
     virtual UInt32 getLpmMode(void) = 0;
+    virtual SensorOrientation::Type getSensorOrientation(void) = 0;
+    virtual SensorMotion::Type getSensorMotion(void) = 0;
+    virtual SensorSpatialOrientation::Type getSensorSpatialOrientation(void) = 0;
+    virtual DptfBuffer getOemVariables(void) = 0;
+    virtual void setDptfCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) = 0;
+    virtual DptfBuffer getPowerDeviceRelationshipTable(void) = 0;
+    virtual DptfBuffer getPowerBossConditionsTable(void) = 0;
+    virtual DptfBuffer getPowerBossActionsTable(void) = 0;
 };

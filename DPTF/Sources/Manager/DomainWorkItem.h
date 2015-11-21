@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@ class DomainWorkItem : public ParticipantWorkItem
 {
 public:
 
-    DomainWorkItem(DptfManager* dptfManager, FrameworkEvent::Type frameworkEventType, UIntN participantIndex,
+    DomainWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType, UIntN participantIndex,
         UIntN domainIndex);
     virtual ~DomainWorkItem(void);
 

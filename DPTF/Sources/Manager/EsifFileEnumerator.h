@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "esif_uf_ccb_file.h"
+#include "esif_ccb_file.h"
 
 class EsifFileEnumerator
 {
@@ -39,6 +39,6 @@ private:
 
     std::string m_path;
     std::string m_pattern;
-    esif_ccb_file_find_handle m_fileHandle;
+    esif_ccb_file_enum_t m_fileHandle;
     esif_ccb_file m_file;
 };

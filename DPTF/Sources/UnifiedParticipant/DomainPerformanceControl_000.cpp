@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainPerformanceControl_000.h"
 
-DomainPerformanceControl_000::DomainPerformanceControl_000(ParticipantServicesInterface* participantServicesInterface)
+DomainPerformanceControl_000::DomainPerformanceControl_000(UIntN participantIndex, UIntN domainIndex,
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -66,4 +68,9 @@ void DomainPerformanceControl_000::updateBasedOnConfigTdpInformation(UIntN parti
     ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus)
 {
     throw not_implemented();
+}
+
+std::string DomainPerformanceControl_000::getName(void)
+{
+    return "Performance Control (Version 0)";
 }

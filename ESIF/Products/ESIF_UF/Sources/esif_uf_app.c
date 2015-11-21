@@ -288,7 +288,7 @@ exit:
 
 
 /* Data For Interface Marshaling */
-static AppDomainDataPtr CreateDomainData(const struct esif_fpc_domain *domainPtr)
+static AppDomainDataPtr CreateDomainData(const struct esif_fpc_domain *domainPtr, const EsifUpDomainPtr upDomainPtr)
 {
 	AppDomainDataPtr dom_data_ptr = (AppDomainDataPtr)esif_ccb_malloc(sizeof(AppDomainData));
 
@@ -315,8 +315,8 @@ static AppDomainDataPtr CreateDomainData(const struct esif_fpc_domain *domainPtr
 
 	dom_data_ptr->fVersion    = APP_DOMAIN_VERSION;
 	dom_data_ptr->fType       = (enum esif_domain_type)domainPtr->descriptor.domainType;
-	dom_data_ptr->fCapability = domainPtr->capability_for_domain.capability_flags;
-	esif_ccb_memcpy(dom_data_ptr->fCapabilityBytes, domainPtr->capability_for_domain.capability_mask, 32);
+	dom_data_ptr->fCapability = upDomainPtr->capability_for_domain.capability_flags;
+	esif_ccb_memcpy(dom_data_ptr->fCapabilityBytes, upDomainPtr->capability_for_domain.capability_mask, 32);
 
 exit:
 
@@ -328,7 +328,8 @@ static eEsifError CreateDomain(
 	UInt8 domainId,
 	EsifAppPtr appPtr,
 	AppParticipantDataMapPtr participantDataMapPtr,
-	struct esif_fpc_domain *domainPtr
+	struct esif_fpc_domain *domainPtr,
+	EsifUpDomainPtr upDomainPtr
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -341,7 +342,7 @@ static eEsifError CreateDomain(
 		goto exit;
 	}
 
-	domain_data_ptr = CreateDomainData(domainPtr);
+	domain_data_ptr = CreateDomainData(domainPtr, upDomainPtr);
 	if (NULL == domain_data_ptr) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
@@ -396,24 +397,40 @@ static eEsifError CreateDomains(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	UInt8 i = 0;
+	EsifDspPtr dspPtr = NULL;
+	UInt32 domainCount = 0;
+	UInt32 domainIndex = 0;
+	EsifUpDomainPtr upDomainPtr = NULL;
+
+	ESIF_ASSERT(appPtr != NULL);
+	ESIF_ASSERT(upPtr != NULL);
+	ESIF_ASSERT(participantDataMapPtr != NULL);
 
 	ESIF_TRACE_DEBUG("Create Domains\n");
-	for (i = 0; i < upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr); i++) {
-		struct esif_fpc_domain *domain_ptr = upPtr->fDspPtr->get_domain(upPtr->fDspPtr, i + 1);
-		if (NULL == domain_ptr) {
+
+	dspPtr = EsifUp_GetDsp(upPtr);
+	if (NULL == dspPtr) {
+		rc = ESIF_E_NEED_DSP;
+		goto exit;
+	}
+
+	domainCount = dspPtr->get_domain_count(dspPtr);
+	for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
+		EsifFpcDomainPtr domainPtr = dspPtr->get_domain(dspPtr, domainIndex);
+		if (NULL == domainPtr) {
 			continue;
 		}
 
-		rc = CreateDomain(i, appPtr, participantDataMapPtr, domain_ptr);
-		if (ESIF_OK != rc) {
-			goto exit;
+		upDomainPtr = EsifUp_GetDomainById(upPtr, domainPtr->descriptor.domain);
+		if (upDomainPtr) {
+			rc = CreateDomain((UInt8)domainIndex, appPtr, participantDataMapPtr, domainPtr, upDomainPtr);
+			if (ESIF_OK != rc) {
+				goto exit;
+			}
+			ESIF_TRACE_DEBUG("Create Domain %s\n", domainPtr->descriptor.name);
 		}
-		ESIF_TRACE_DEBUG("Create Domain %s\n", domain_ptr->descriptor.name);
 	}
-
 exit:
-
 	return rc;
 }
 
@@ -424,51 +441,55 @@ static AppParticipantDataPtr CreateParticipantData(
 	const EsifUpDataPtr upDataPtr
 	)
 {
-	AppParticipantDataPtr app_data_ptr = NULL;
+	AppParticipantDataPtr appDataPtr = NULL;
+	EsifDspPtr dspPtr = NULL;
 
-	if (upPtr->fDspPtr == NULL) {
+	ESIF_ASSERT(upPtr != NULL);
+	ESIF_ASSERT(upDataPtr != NULL);
+
+	dspPtr = EsifUp_GetDsp(upPtr);
+	if (dspPtr == NULL) {
 		goto exit;
 	}
 
-	app_data_ptr = (AppParticipantDataPtr)esif_ccb_malloc(sizeof(AppParticipantData));
-	if (NULL == app_data_ptr) {
+	appDataPtr = (AppParticipantDataPtr)esif_ccb_malloc(sizeof(AppParticipantData));
+	if (NULL == appDataPtr) {
 		goto exit;
 	}
 
 	/* Common */
-	app_data_ptr->fVersion = upDataPtr->fVersion;
-	ASSIGN_DATA_GUID(app_data_ptr->fDriverType, upDataPtr->fDriverType);
-	ASSIGN_DATA_GUID(app_data_ptr->fDeviceType, upDataPtr->fDriverType);
-	ASSIGN_DATA_STRING(app_data_ptr->fName, upDataPtr->fName, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(app_data_ptr->fDesc, upDataPtr->fDesc, ESIF_DESC_LEN);
+	appDataPtr->fVersion = upDataPtr->fVersion;
+	ASSIGN_DATA_GUID(appDataPtr->fDriverType, upDataPtr->fDriverType);
+	ASSIGN_DATA_GUID(appDataPtr->fDeviceType, upDataPtr->fDriverType);
+	ASSIGN_DATA_STRING(appDataPtr->fName, upDataPtr->fName, ESIF_NAME_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fDesc, upDataPtr->fDesc, ESIF_DESC_LEN);
 
-	ASSIGN_DATA_STRING(app_data_ptr->fDriverName, upDataPtr->fDriverName, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(app_data_ptr->fDeviceName, upDataPtr->fDeviceName, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(app_data_ptr->fDevicePath, upDataPtr->fDevicePath, ESIF_PATH_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fDriverName, upDataPtr->fDriverName, ESIF_NAME_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fDeviceName, upDataPtr->fDeviceName, ESIF_NAME_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fDevicePath, upDataPtr->fDevicePath, ESIF_PATH_LEN);
 
-	app_data_ptr->fDomainCount   = (u8)upPtr->fDspPtr->get_domain_count(upPtr->fDspPtr);
-	app_data_ptr->fBusEnumerator = upDataPtr->fEnumerator;
+	appDataPtr->fDomainCount   = (UInt8)dspPtr->get_domain_count(dspPtr);
+	appDataPtr->fBusEnumerator = upDataPtr->fEnumerator;
 
 	/* ACPI Device */
-	ASSIGN_DATA_STRING(app_data_ptr->fAcpiDevice, upDataPtr->fAcpiDevice, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(app_data_ptr->fAcpiScope, upDataPtr->fAcpiScope, ESIF_SCOPE_LEN);
-	app_data_ptr->fAcpiType = upDataPtr->fAcpiType;
-	ASSIGN_DATA_STRING(app_data_ptr->fAcpiUID, upDataPtr->fAcpiUID, sizeof(app_data_ptr->fAcpiUID));
+	ASSIGN_DATA_STRING(appDataPtr->fAcpiDevice, upDataPtr->fAcpiDevice, ESIF_NAME_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fAcpiScope, upDataPtr->fAcpiScope, ESIF_SCOPE_LEN);
+	appDataPtr->fAcpiType = upDataPtr->fAcpiType;
+	ASSIGN_DATA_STRING(appDataPtr->fAcpiUID, upDataPtr->fAcpiUID, sizeof(appDataPtr->fAcpiUID));
 
 	/* PCI Device */
-	app_data_ptr->fPciVendor    = upDataPtr->fPciVendor;
-	app_data_ptr->fPciDevice    = upDataPtr->fPciDevice;
-	app_data_ptr->fPciBus       = upDataPtr->fPciBus;
-	app_data_ptr->fPciBusDevice = upDataPtr->fPciBusDevice;
-	app_data_ptr->fPciFunction  = upDataPtr->fPciFunction;
-	app_data_ptr->fPciRevision  = upDataPtr->fPciRevision;
-	app_data_ptr->fPciClass     = upDataPtr->fPciClass;
-	app_data_ptr->fPciSubClass  = upDataPtr->fPciSubClass;
-	app_data_ptr->fPciProgIf    = upDataPtr->fPciProgIf;
+	appDataPtr->fPciVendor    = upDataPtr->fPciVendor;
+	appDataPtr->fPciDevice    = upDataPtr->fPciDevice;
+	appDataPtr->fPciBus       = upDataPtr->fPciBus;
+	appDataPtr->fPciBusDevice = upDataPtr->fPciBusDevice;
+	appDataPtr->fPciFunction  = upDataPtr->fPciFunction;
+	appDataPtr->fPciRevision  = upDataPtr->fPciRevision;
+	appDataPtr->fPciClass     = upDataPtr->fPciClass;
+	appDataPtr->fPciSubClass  = upDataPtr->fPciSubClass;
+	appDataPtr->fPciProgIf    = upDataPtr->fPciProgIf;
 
 exit:
-
-	return app_data_ptr;
+	return appDataPtr;
 }
 
 
@@ -480,14 +501,21 @@ eEsifError EsifAppCreateParticipant(
 	eEsifError rc = ESIF_OK;
 	void *participant_handle = NULL;
 	AppParticipantDataPtr participant_data_ptr = NULL;
+	AppParticipantDataMapPtr participantDataMapPtr = NULL;
 
 	if (NULL == appPtr || NULL == upPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
+	participantDataMapPtr = &appPtr->fParticipantData[EsifUp_GetInstance(upPtr)];
+
+	// Exit if llready registered in this app
+	if (participantDataMapPtr->fUpPtr != NULL) {
+		goto exit;
+	}
 
 	/* Create participant metadata to marshall though interface */
-	participant_data_ptr = CreateParticipantData(upPtr, &upPtr->fMetadata);
+	participant_data_ptr = CreateParticipantData(upPtr, EsifUp_GetMetadata(upPtr));
 	if (NULL == participant_data_ptr) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
@@ -505,40 +533,40 @@ eEsifError EsifAppCreateParticipant(
 		if (NULL == participant_handle) {
 			rc = ESIF_E_INVALID_HANDLE;
 		} else {
-			ESIF_TRACE_DEBUG("Participant(%u) Mapping Error %s(%d)\n", upPtr->fInstance, esif_rc_str(rc), rc);
+			ESIF_TRACE_DEBUG("Participant(%u) Mapping Error %s(%d)\n", EsifUp_GetInstance(upPtr), esif_rc_str(rc), rc);
 		}
 		goto exit;
 	}
 
-	{
-		AppParticipantDataMapPtr participantDataMapPtr = &appPtr->fParticipantData[upPtr->fInstance];
-		participantDataMapPtr->fAppParticipantHandle = participant_handle;	/* Application Participant */
-		participantDataMapPtr->fUpPtr = upPtr;								/* ESIF Participant */
-
-		/* get reference on participant since we save a copy of pointer for later use*/
-		rc = EsifUp_GetRef(upPtr);
-		if (ESIF_OK != rc) {
-			goto exit;
-		}
-
-		ESIF_TRACE_DEBUG("Participant(%u) Esif 0x%p Mapped To Handle 0x%p\n",
-						 upPtr->fInstance,
-						 participantDataMapPtr->fUpPtr,
-						 participantDataMapPtr->fAppParticipantHandle);
-
-		/* Call through the interface to create the participant instance in the app. */
-		rc = appPtr->fInterface.fParticipantCreateFuncPtr(
-				appPtr->fHandle,
-				participant_handle,
-				participant_data_ptr,
-				eParticipantStateEnabled);
-		if (ESIF_OK != rc) {
-			goto exit;
-		}
-
-		rc = CreateDomains(appPtr, upPtr, participantDataMapPtr);
+	/* get reference on participant since we save a copy of pointer for later use*/
+	rc = EsifUp_GetRef(upPtr);
+	if (ESIF_OK != rc) {
+		participantDataMapPtr->fUpPtr = NULL;
+		goto exit;
 	}
 
+	participantDataMapPtr->fAppParticipantHandle = participant_handle;	/* Application Participant */
+	participantDataMapPtr->fUpPtr = upPtr;								/* ESIF Participant */
+
+	ESIF_TRACE_DEBUG("Participant(%u) Esif 0x%p Mapped To Handle 0x%p\n",
+						EsifUp_GetInstance(upPtr),
+						participantDataMapPtr->fUpPtr,
+						participantDataMapPtr->fAppParticipantHandle);
+
+	/* Call through the interface to create the participant instance in the app. */
+	rc = appPtr->fInterface.fParticipantCreateFuncPtr(
+			appPtr->fHandle,
+			participant_handle,
+			participant_data_ptr,
+			eParticipantStateEnabled);
+	if (ESIF_OK != rc) {
+		EsifUp_PutRef(upPtr);
+		participantDataMapPtr->fAppParticipantHandle = NULL;	/* Application Participant */
+		participantDataMapPtr->fUpPtr = NULL;					/* ESIF Participant */
+		goto exit;
+	}
+
+	rc = CreateDomains(appPtr, upPtr, participantDataMapPtr);
 exit:
 	if (participant_data_ptr) {
 		esif_ccb_free(participant_data_ptr);
@@ -610,7 +638,7 @@ eEsifError EsifAppDestroyParticipant(
 		goto exit;
 	}
 
-	participant_data_map_ptr = &appPtr->fParticipantData[upPtr->fInstance];
+	participant_data_map_ptr = &appPtr->fParticipantData[EsifUp_GetInstance(upPtr)];
 
 	// If created as NULL no need for callback.
 	if (NULL == participant_data_map_ptr ||
@@ -629,12 +657,12 @@ eEsifError EsifAppDestroyParticipant(
 
 	if (ESIF_OK == rc) {
 		ESIF_TRACE_DEBUG("ParticipantMap(%u) Esif 0x%p UnMapped From Handle 0x%p\n",
-						 participant_data_map_ptr->fUpPtr->fInstance,
+						 EsifUp_GetInstance(participant_data_map_ptr->fUpPtr),
 						 participant_data_map_ptr->fUpPtr,
 						 participant_data_map_ptr->fAppParticipantHandle);
 	} else {
 		ESIF_TRACE_DEBUG("ParticipantMap(%u) UnMapping Error %s(%d)\n",
-						 participant_data_map_ptr->fUpPtr->fInstance,
+						 EsifUp_GetInstance(participant_data_map_ptr->fUpPtr),
 						 esif_rc_str(rc), rc);
 	}
 
@@ -716,23 +744,34 @@ static eEsifError EsifApp_RegisterParticipantsWithApp(
 {
 	eEsifError rc = ESIF_OK;
 	EsifUpPtr upPtr = NULL;
-	UInt8 i = 0;
+	UfPmIterator upIter = {0};
 
 	ESIF_ASSERT(self != NULL);
 
-	/* Skip 0 ESIF treats this as a participant no one else does :) */
-	/* TODO:  Use iterator here.  This function shouldn't know the number of participants */
-	for (i = 1; i < MAX_PARTICIPANT_ENTRY; i++) {
-		upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
-		if (NULL == upPtr) {
-			continue;
-		}
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc!= ESIF_OK) {
+		goto exit;
+	}
+
+	/* Skip participant 0: ESIF treats this as a participant no one else does */
+	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	if (rc!= ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	while (ESIF_OK == rc) {
 		rc = EsifAppCreateParticipant(self, upPtr);
-		EsifUp_PutRef(upPtr);
 		if (ESIF_OK != rc) {
 			break;
 		}
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	}
+exit:
+	EsifUp_PutRef(upPtr);	
+	if (ESIF_E_ITERATION_DONE == rc) {
+		rc = ESIF_OK;
+	} 
 	ESIF_TRACE_INFO("Register participants with App, status = %s\n", esif_rc_str(rc));
 	return rc;
 }
@@ -759,21 +798,24 @@ eEsifError EsifAppStop(EsifAppPtr appPtr)
 
 static eEsifError EsifApp_DestroyParticipants(EsifAppPtr self)
 {
+	eEsifError rc = ESIF_OK;
+	UfPmIterator upIter = {0};
 	EsifUpPtr upPtr = NULL;
-	UInt8 i = 0;
 
 	ESIF_ASSERT(self != NULL);
 
-	/* TODO:  Use iterator here.  This function shouldn't know the number of participants */
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
-		if (NULL == upPtr) {
-			continue;
-		}
-		EsifAppDestroyParticipant(self, upPtr);
-		EsifUp_PutRef(upPtr);
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc != ESIF_OK) {
+		goto exit;
 	}
 
+	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	while (ESIF_OK == rc) {
+		EsifAppDestroyParticipant(self, upPtr);
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
+exit:
+	EsifUp_PutRef(upPtr);	
 	ESIF_TRACE_INFO("Destroy participants in App\n");
 	return ESIF_OK;
 }
@@ -1020,7 +1062,7 @@ eEsifError EsifApp_RegisterEvent(
 		}
 		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upMapPtr->fUpPtr));
 
-		rc = EsifEventMgr_RegisterEventByGuid(eventGuidPtr->buf_ptr, upMapPtr->fUpPtr->fInstance, EVENT_MGR_MATCH_ANY, EsifApp_EventCallback, appPtr->fHandle);
+		rc = EsifEventMgr_RegisterEventByGuid(eventGuidPtr->buf_ptr, EsifUp_GetInstance(upMapPtr->fUpPtr), EVENT_MGR_MATCH_ANY, EsifApp_EventCallback, appPtr->fHandle);
 		if (ESIF_OK != rc) {
 			goto exit;
 		}
@@ -1056,7 +1098,7 @@ eEsifError EsifApp_RegisterEvent(
 		}
 		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upMapPtr->fUpPtr));
 
-		rc = EsifEventMgr_RegisterEventByGuid(eventGuidPtr->buf_ptr, upMapPtr->fUpPtr->fInstance, domainPtr->fQualifierId, EsifApp_EventCallback, appPtr->fHandle);
+		rc = EsifEventMgr_RegisterEventByGuid(eventGuidPtr->buf_ptr, EsifUp_GetInstance(upMapPtr->fUpPtr), domainPtr->fQualifierId, EsifApp_EventCallback, appPtr->fHandle);
 		if (ESIF_OK != rc) {
 			goto exit;
 		}
@@ -1158,7 +1200,7 @@ eEsifError EsifApp_UnregisterEvent(
 		}
 		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upMapPtr->fUpPtr));
 
-		rc = EsifEventMgr_UnregisterEventByGuid(eventGuidPtr->buf_ptr, upMapPtr->fUpPtr->fInstance, EVENT_MGR_DOMAIN_D0, EsifApp_EventCallback, appPtr->fHandle);
+		rc = EsifEventMgr_UnregisterEventByGuid(eventGuidPtr->buf_ptr, EsifUp_GetInstance(upMapPtr->fUpPtr), EVENT_MGR_MATCH_ANY, EsifApp_EventCallback, appPtr->fHandle);
 		if (ESIF_OK != rc) {
 			goto exit;
 		}
@@ -1184,7 +1226,7 @@ eEsifError EsifApp_UnregisterEvent(
 		}
 		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upMapPtr->fUpPtr));
 
-		rc = EsifEventMgr_UnregisterEventByGuid(eventGuidPtr->buf_ptr, upMapPtr->fUpPtr->fInstance, domainPtr->fQualifierId, EsifApp_EventCallback, appPtr->fHandle);
+		rc = EsifEventMgr_UnregisterEventByGuid(eventGuidPtr->buf_ptr, EsifUp_GetInstance(upMapPtr->fUpPtr), domainPtr->fQualifierId, EsifApp_EventCallback, appPtr->fHandle);
 		if (ESIF_OK != rc) {
 			goto exit;
 		}
@@ -1210,8 +1252,7 @@ AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromHandle(
 	AppParticipantDataMapPtr upDataMapPtr = NULL;
 
 	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		if (appPtr->fParticipantData[i].fAppParticipantHandle ==
-			participantHandle) {
+		if (appPtr->fParticipantData[i].fAppParticipantHandle == participantHandle) {
 			upDataMapPtr = &appPtr->fParticipantData[i];
 			break;
 		}

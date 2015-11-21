@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,10 +22,10 @@
 
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
-#include "TemperatureProperty.h"
 #include "ActiveCoolingControl.h"
 #include "DomainPriorityCachedProperty.h"
 
+#include "TemperatureControlFacade.h"
 #include "PerformanceControlFacade.h"
 #include "PowerControlFacade.h"
 #include "DisplayControlFacade.h"
@@ -33,15 +33,18 @@
 #include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
 #include "PixelClockControlFacade.h"
+#include "HardwareDutyCycleControlFacadeInterface.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
 #include "CoreControlKnob.h"
 #include "PerformanceControlKnob.h"
+#include "DomainProxyInterface.h"
+#include "PlatformPowerControlFacade.h"
 
 // represents a domain inside a participant.  holds cached records of all properties and potential controls for the
 // domain.
-class dptf_export DomainProxy
+class dptf_export DomainProxy : public DomainProxyInterface
 {
 public:
 
@@ -55,52 +58,55 @@ public:
     ~DomainProxy();
 
     // domain properties
-    UIntN getParticipantIndex() const;
-    UIntN getDomainIndex() const;
-    const DomainProperties& getDomainProperties() const;
-    const ParticipantProperties& getParticipantProperties() const;
-    TemperatureProperty& getTemperatureProperty();
-    DomainPriorityCachedProperty& getDomainPriorityProperty();
-    UtilizationStatus getUtilizationStatus();
+    UIntN getParticipantIndex() const override;
+    UIntN getDomainIndex() const override;
+    const DomainProperties& getDomainProperties() const override;
+    const ParticipantProperties& getParticipantProperties() const override;
+    DomainPriorityCachedProperty& getDomainPriorityProperty() override;
+    UtilizationStatus getUtilizationStatus() override;
 
     // domain actions
-    void clearTemperatureThresholds();
+    void clearTemperatureThresholds() override;
 
     // control facades
-    void initializeControls();
-    void setControlsToMax();
-    ActiveCoolingControl& getActiveCoolingControl();
-    PerformanceControlFacade& getPerformanceControl();
-    PowerControlFacade& getPowerControl();
-    DisplayControlFacade& getDisplayControl();
-    CoreControlFacade& getCoreControl();
-    ConfigTdpControlFacade& getConfigTdpControl();
-    RadioFrequencyControlFacade& getRadioFrequencyControl() const;
-    PixelClockControlFacade& getPixelClockControl() const;
+    virtual void initializeControls() override;
+    virtual void setControlsToMax() override;
+    virtual std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() override;
+    virtual ActiveCoolingControl& getActiveCoolingControl() override;
+    virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
+    virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
+    virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() override;
+    virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
+    virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
+    virtual ConfigTdpControlFacade& getConfigTdpControl() override;
+    virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
+    virtual PixelClockControlFacade& getPixelClockControl() const override;
+    virtual std::shared_ptr<HardwareDutyCycleControlFacadeInterface> getHardwareDutyCycleControl() const override;
 
     // passive controls (TODO: move to passive policy)
-    void requestLimit(UIntN target);
-    void requestUnlimit(UIntN target);
-    Bool canLimit(UIntN target);
-    Bool canUnlimit(UIntN target);
-    Bool commitLimits();
-    void setArbitratedPowerLimit();
-    void setArbitratedPerformanceLimit();
-    void setArbitratedCoreLimit();
-    void adjustPowerRequests();
-    void adjustPerformanceRequests();
-    void adjustCoreRequests();
-    void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
-    void clearAllRequestsForTarget(UIntN target);
-    void clearAllPerformanceControlRequests();
-    void clearAllPowerControlRequests();
-    void clearAllCoreControlRequests();
-    void clearAllDisplayControlRequests();
-    void clearAllControlKnobRequests();
+    virtual void requestLimit(UIntN target) override;
+    virtual void requestUnlimit(UIntN target) override;
+    virtual Bool canLimit(UIntN target) override;
+    virtual Bool canUnlimit(UIntN target) override;
+    virtual Bool commitLimits() override;
+    virtual void setArbitratedPowerLimit() override;
+    virtual void setArbitratedPerformanceLimit() override;
+    virtual void setArbitratedCoreLimit() override;
+    virtual void adjustPowerRequests() override;
+    virtual void adjustPerformanceRequests() override;
+    virtual void adjustCoreRequests() override;
+    virtual void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold) override;
+    virtual void clearAllRequestsForTarget(UIntN target) override;
+    virtual void clearAllPerformanceControlRequests() override;
+    virtual void clearAllPowerControlRequests() override;
+    virtual void clearAllCoreControlRequests() override;
+    virtual void clearAllDisplayControlRequests() override;
+    virtual void clearAllControlKnobRequests() override;
 
     // status
     XmlNode* getXmlForPassiveControlKnobs();
     XmlNode* getXmlForConfigTdpLevel();
+    virtual XmlNode* getXml() const override;
     
 private:
 
@@ -109,18 +115,20 @@ private:
     UIntN m_domainIndex;
     DomainProperties m_domainProperties;
     ParticipantProperties m_participantProperties;
-    TemperatureProperty m_temperatureProperty;
     DomainPriorityCachedProperty m_domainPriorityProperty;
     ActiveCoolingControl m_activeCoolingControl;
 
     // control facades
+    std::shared_ptr<TemperatureControlFacadeInterface> m_temperatureControl;
     std::shared_ptr<PerformanceControlFacade> m_performanceControl;
     std::shared_ptr<PowerControlFacade> m_powerControl;
-    std::shared_ptr<DisplayControlFacade> m_displayControl;
-    std::shared_ptr<CoreControlFacade> m_coreControl;
+    std::shared_ptr<PlatformPowerControlFacade> m_platformPowerControl;
+    std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
+    std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
     std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
     std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
     std::shared_ptr<PixelClockControlFacade> m_pixelClockControl;
+    std::shared_ptr<HardwareDutyCycleControlFacadeInterface> m_hardwareDutyCycleControl;
 
     // services
     PolicyServicesInterfaceContainer m_policyServices;

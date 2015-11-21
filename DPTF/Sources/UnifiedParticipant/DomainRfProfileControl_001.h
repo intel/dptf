@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,33 +19,30 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainRfProfileControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainRfProfileControlBase.h"
 
-class DomainRfProfileControl_001 final : public DomainRfProfileControlInterface,
-    public ComponentExtendedInterface
+class DomainRfProfileControl_001 : public DomainRfProfileControlBase
 {
 public:
 
-    DomainRfProfileControl_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainRfProfileControl_001(void);
 
     // DomainRfProfileControlInterface
     virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex,
-        UIntN domainIndex) override final;
+        UIntN domainIndex) override;
     virtual void setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex,
-        const Frequency& centerFrequency) override final;
+        const Frequency& centerFrequency) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
     // hide the copy constructor and = operator
     DomainRfProfileControl_001(const DomainRfProfileControl_001& rhs);
     DomainRfProfileControl_001& operator=(const DomainRfProfileControl_001& rhs);
-
-    ParticipantServicesInterface* m_participantServicesInterface;
 };

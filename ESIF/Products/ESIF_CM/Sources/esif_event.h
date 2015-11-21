@@ -56,7 +56,7 @@
 #include "esif.h"
 #include "esif_sdk_event_type.h"
 
-#define ESIF_EVENT_VERSION 0x1
+#define ESIF_EVENT_VERSION 0x2
 #define ESIF_LF_EVENT_QUEUE_NAME "EVENT"
 #define ESIF_LF_EVENT_QUEUE_SIZE 10240
 #define ESIF_LF_EVENT_QUEUE_TIMEOUT 1000000 /* Second */

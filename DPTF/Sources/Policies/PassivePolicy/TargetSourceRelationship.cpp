@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,12 +19,6 @@
 #include "TargetSourceRelationship.h"
 
 using namespace std;
-
-TargetSourceRelationship::TargetSourceRelationship()
-    : target(Constants::Invalid), source(Constants::Invalid), m_valid(false)
-{
-
-}
 
 TargetSourceRelationship::TargetSourceRelationship(UIntN newTarget, UIntN newSource)
     : target(newTarget), source(newSource), m_valid(true)
@@ -47,12 +41,6 @@ Bool TargetSourceRelationship::operator<(const TargetSourceRelationship& rhs) co
     {
         return false;
     }
-}
-
-Bool TargetSourceRelationship::operator==(const TargetSourceRelationship& rhs) const
-{
-    throwIfNotValid();
-    return ((target == rhs.target) && (source == rhs.source));
 }
 
 void TargetSourceRelationship::throwIfNotValid() const

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,9 @@
 #include "DomainTemperature_001.h"
 #include "XmlNode.h"
 
-DomainTemperature_001::DomainTemperature_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainTemperature_001::DomainTemperature_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -28,12 +29,14 @@ TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantI
 {
     try
     {
-        Temperature temperature = m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
+        Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureC(
             esif_primitive_type::GET_TEMPERATURE, domainIndex);
         return TemperatureStatus(temperature);
     }
     catch (...)
     {
+        getParticipantServices()->writeMessageError(
+            ParticipantMessage(FLF, "Request for current temperature reading failed."));
         return TemperatureStatus(Temperature(0));
     }
 }
@@ -56,7 +59,7 @@ void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIn
         {
             aux0 = 5;
         }
-        m_participantServicesInterface->primitiveExecuteSetAsTemperatureC(
+        getParticipantServices()->primitiveExecuteSetAsTemperatureC(
             esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux0, domainIndex, 0);
     }
     catch (...)
@@ -71,13 +74,34 @@ void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIn
         {
             aux1 = 199;
         }
-        m_participantServicesInterface->primitiveExecuteSetAsTemperatureC(
+        getParticipantServices()->primitiveExecuteSetAsTemperatureC(
             esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux1, domainIndex, 1);
     }
     catch (...)
     {
         // eat any errors here
     }
+}
+
+DptfBuffer DomainTemperature_001::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
+DptfBuffer DomainTemperature_001::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
+Bool DomainTemperature_001::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+{
+    return false;
+}
+
+void DomainTemperature_001::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, 
+    const Temperature& temperature)
+{
+    throw not_implemented();
 }
 
 void DomainTemperature_001::clearCachedData(void)
@@ -89,7 +113,7 @@ Temperature DomainTemperature_001::getAuxTemperatureThreshold(UIntN domainIndex,
 {
     try
     {
-        return m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
+        return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
             esif_primitive_type::GET_TEMPERATURE_THRESHOLDS, domainIndex, auxNumber);
     }
     catch (...)
@@ -102,30 +126,28 @@ Temperature DomainTemperature_001::getHysteresis(UIntN domainIndex)
 {
     try
     {
-        return m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
+        return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
             esif_primitive_type::GET_TEMPERATURE_THRESHOLD_HYSTERESIS,
             domainIndex);
     }
     catch (...)
     {
-        return 0;
+        return Temperature(0);
     }
 }
 
 XmlNode* DomainTemperature_001::getXml(UIntN domainIndex)
 {
     XmlNode* root = XmlNode::createWrapperElement("temperature_control");
+    root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     root->addChild(getTemperatureStatus(Constants::Invalid, domainIndex).getXml());
-
-    try
-    {
-        root->addChild(getTemperatureThresholds(Constants::Invalid, domainIndex).getXml());
-    }
-    catch (...)
-    {
-        //FIXME : There needs to be an interface change to decouple thresholds from temperature status.
-    }
+    root->addChild(getTemperatureThresholds(Constants::Invalid, domainIndex).getXml());
 
     return root;
+}
+
+std::string DomainTemperature_001::getName(void)
+{
+    return "Temperature Control (Version 1)";
 }

@@ -1,5 +1,5 @@
 Intel (R) Dynamic Platform and Thermal Framework (Intel (R) DPTF) 
-for Chromium OS - 8.1.x Release 
+for Chromium OS - 8.x Release
 
 README
 
@@ -124,7 +124,7 @@ Requirement: DPTF requires corresponding ACPI support in BIOS. Not all
 Intel based platforms support DPTF in BIOS. Please contact your BIOS vendor
 to see if DPTF is enabled in your system.
 
-The 8.1.x version of DPTF also requires 4.0-rc7 kernel or later in order to 
+The 8.x version of DPTF also requires 4.0-rc7 kernel or later in order to
 run properly. To compile the DPTF source code, you need GCC version 4.8 or
 later.
 

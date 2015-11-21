@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,13 @@
 
 #include "Dptf.h"
 #include "ParticipantWorkItem.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 
 class WIParticipantCreate : public ParticipantWorkItem
 {
 public:
 
-    WIParticipantCreate(DptfManager* dptfManager, UIntN participantIndex,
+    WIParticipantCreate(DptfManagerInterface* dptfManager, UIntN participantIndex,
         const AppParticipantDataPtr participantDataPtr, Bool participantEnabled,
         Bool* participantCreated);
     virtual ~WIParticipantCreate(void);

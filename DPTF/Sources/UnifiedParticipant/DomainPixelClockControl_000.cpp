@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainPixelClockControl_000.h"
 
-DomainPixelClockControl_000::DomainPixelClockControl_000(ParticipantServicesInterface* participantServicesInterface)
+DomainPixelClockControl_000::DomainPixelClockControl_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainPixelClockControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -37,4 +39,9 @@ void DomainPixelClockControl_000::clearCachedData(void)
 XmlNode* DomainPixelClockControl_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string DomainPixelClockControl_000::getName(void)
+{
+    return "Pixel Clock Control (Version 0)";
 }

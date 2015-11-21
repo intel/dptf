@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,18 +18,15 @@
 
 #pragma once
 
-#include "Dptf.h"
+#include "PerformanceControlFacadeInterface.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
-#include "PerformanceControlStatus.h"
-#include "PerformanceControlSetCachedProperty.h"
-#include "PerformanceControlStatusCachedProperty.h"
-#include "PerformanceControlCapabilitiesCachedProperty.h"
+
 
 // this facade class provides a simpler interface on top of performance controls as well as combines all of the
 // performance control properties and capabilities into a single class.  these properties also have the ability to be 
 // cached.
-class dptf_export PerformanceControlFacade
+class dptf_export PerformanceControlFacade : public PerformanceControlFacadeInterface
 {
 public:
 
@@ -38,20 +35,21 @@ public:
         UIntN domainIndex,
         const DomainProperties& domainProperties,
         const PolicyServicesInterfaceContainer& policyServices);
-    ~PerformanceControlFacade();
+    virtual ~PerformanceControlFacade();
 
     // controls
-    Bool supportsPerformanceControls();
-    void initializeControlsIfNeeded();
-    void setControl(UIntN performanceControlIndex);
-    void setControlsToMax();
+    virtual Bool supportsPerformanceControls() override;
+    virtual void initializeControlsIfNeeded() override;
+    virtual void setControl(UIntN performanceControlIndex) override;
+    virtual void setControlsToMax() override;
 
     // properties
-    void refreshCapabilities();
-    void refreshControls();
-    PerformanceControlStatus getStatus() const;
-    const PerformanceControlSet& getControls();
-    const PerformanceControlDynamicCaps& getDynamicCapabilities();
+    virtual void refreshCapabilities() override;
+    virtual void refreshControls() override;
+    virtual PerformanceControlStatus getStatus() const override;
+    virtual PerformanceControlStatus getLiveStatus() const override;
+    virtual const PerformanceControlSet& getControls() override;
+    virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() override;
 
 private:
 

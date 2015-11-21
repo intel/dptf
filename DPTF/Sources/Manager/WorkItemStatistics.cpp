@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -137,9 +137,9 @@ XmlNode* WorkItemStatistics::getXml(void)
     // print the total number that have executed in each queue
 
     workItemStatistics->addChild(XmlNode::createDataElement("total_deferred_work_items_executed",
-        std::to_string(m_totalDeferredWorkItemsExecuted)));
+        StlOverride::to_string(m_totalDeferredWorkItemsExecuted)));
     workItemStatistics->addChild(XmlNode::createDataElement("total_immediate_work_items_executed",
-        std::to_string(m_totalImmediateWorkItemsExecuted)));
+        StlOverride::to_string(m_totalImmediateWorkItemsExecuted)));
 
     // create a table containing one row for each work item type.  this is for immediate work items only.
 
@@ -164,19 +164,19 @@ XmlNode* WorkItemStatistics::getXml(void)
         immediateWorkItemStatistics->addChild(workItem);
 
         workItem->addChild(XmlNode::createDataElement("work_item_type", event.name));
-        workItem->addChild(XmlNode::createDataElement("total_executed", std::to_string(totalExecuted)));
+        workItem->addChild(XmlNode::createDataElement("total_executed", StlOverride::to_string(totalExecuted)));
 
-        workItem->addChild(XmlNode::createDataElement("average_queue_time", std::to_string(averageQueueTime)));
+        workItem->addChild(XmlNode::createDataElement("average_queue_time", StlOverride::to_string(averageQueueTime)));
         workItem->addChild(XmlNode::createDataElement("min_queue_time",
-            std::to_string(m_immediateWorkItemStatistics[i].minQueueTimeMilliseconds)));
+            StlOverride::to_string(m_immediateWorkItemStatistics[i].minQueueTimeMilliseconds)));
         workItem->addChild(XmlNode::createDataElement("max_queue_time",
-            std::to_string(m_immediateWorkItemStatistics[i].maxQueueTimeMilliseconds)));
+            StlOverride::to_string(m_immediateWorkItemStatistics[i].maxQueueTimeMilliseconds)));
 
-        workItem->addChild(XmlNode::createDataElement("average_execution_time", std::to_string(averageExecutionTime)));
+        workItem->addChild(XmlNode::createDataElement("average_execution_time", StlOverride::to_string(averageExecutionTime)));
         workItem->addChild(XmlNode::createDataElement("min_execution_time",
-            std::to_string(m_immediateWorkItemStatistics[i].minExecutionTimeMilliseconds)));
+            StlOverride::to_string(m_immediateWorkItemStatistics[i].minExecutionTimeMilliseconds)));
         workItem->addChild(XmlNode::createDataElement("max_execution_time",
-            std::to_string(m_immediateWorkItemStatistics[i].maxExecutionTimeMilliseconds)));
+            StlOverride::to_string(m_immediateWorkItemStatistics[i].maxExecutionTimeMilliseconds)));
     }
 
     return workItemStatistics;

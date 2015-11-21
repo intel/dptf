@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,8 @@
 #include "PolicyServicesDomainDisplayControl.h"
 #include "ParticipantManager.h"
 
-PolicyServicesDomainDisplayControl::PolicyServicesDomainDisplayControl(DptfManager* dptfManager, UIntN policyIndex) :
+PolicyServicesDomainDisplayControl::PolicyServicesDomainDisplayControl(DptfManagerInterface* dptfManager, 
+    UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)
 {
 }
@@ -45,9 +46,9 @@ DisplayControlSet PolicyServicesDomainDisplayControl::getDisplayControlSet(UIntN
 }
 
 void PolicyServicesDomainDisplayControl::setDisplayControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN displayControlIndex, Bool isOverridable)
+    UIntN displayControlIndex)
 {
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setDisplayControl(domainIndex,
-        getPolicyIndex(), displayControlIndex, isOverridable);
+        getPolicyIndex(), displayControlIndex);
 }

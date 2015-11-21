@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using namespace std;
 
 TargetUnlimitAction::TargetUnlimitAction(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    ParticipantTracker& participantTracker, ThermalRelationshipTable& trt,
+    std::shared_ptr<ParticipantTrackerInterface> participantTracker, ThermalRelationshipTable& trt,
     std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
     : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
 {
@@ -71,11 +71,10 @@ void TargetUnlimitAction::execute()
         else
         {
             // get temperature, hysteresis, and psv for target
-            ParticipantProxy& participant = getParticipantTracker()[getTarget()];
-            auto hysteresis = participant.getTemperatureThresholds().getHysteresis();
-            auto currentTemperature =
-                participant[0].getTemperatureProperty().getCurrentTemperature();
-            auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+            ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(getTarget());
+            auto hysteresis = participant->getTemperatureThresholds().getHysteresis();
+            auto currentTemperature = participant->getFirstDomainTemperature();
+            auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
             auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
 
             // if temperature is between psv and (psv - hysteresis) then schedule another callback, otherwise stop
@@ -113,7 +112,7 @@ std::vector<UIntN> TargetUnlimitAction::chooseSourcesToUnlimitForTarget(UIntN ta
         {
             if (entry->thermalInfluence() == availableSourcesForTarget.back().thermalInfluence())
             {
-                sourcesToLimit.push_back(entry->sourceDeviceIndex());
+                sourcesToLimit.push_back(entry->getSourceDeviceIndex());
             }
         }
     }
@@ -126,11 +125,11 @@ std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithCo
     vector<ThermalRelationshipTableEntry> entriesThatCanBeUnlimited;
     for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
     {
-        if (entry->sourceDeviceIndex() != Constants::Invalid)
+        if (entry->getSourceDeviceIndex() != Constants::Invalid)
         {
             // if source has controls that can be unlimited, add it to the list
-            vector<UIntN> domainsWithControlKnobsToTurn =
-                getDomainsWithControlKnobsToUnlimit(getParticipantTracker()[entry->sourceDeviceIndex()], target);
+            vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(
+                getParticipantTracker()->getParticipant(entry->getSourceDeviceIndex()), target);
             if (domainsWithControlKnobsToTurn.size() > 0)
             {
                 entriesThatCanBeUnlimited.push_back(*entry);
@@ -140,14 +139,14 @@ std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithCo
     return entriesThatCanBeUnlimited;
 }
 
-std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(ParticipantProxy& participant, UIntN target)
+std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(ParticipantProxyInterface* participant, UIntN target)
 {
     vector<UIntN> domainsWithControlKnobsToTurn;
-    auto domainIndexes = participant.getDomainIndexes();
+    auto domainIndexes = participant->getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
         // if domain has controls that can be unlimited, add it to the list
-        if (participant[*domainIndex].canUnlimit(target))
+        if (participant->getDomain(*domainIndex)->canUnlimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
         }
@@ -157,7 +156,8 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(Part
 
 std::vector<UIntN> TargetUnlimitAction::chooseDomainsToUnlimitForSource(UIntN target, UIntN source)
 {
-    vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(getParticipantTracker()[source], target);
+    vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(
+        getParticipantTracker()->getParticipant(source), target);
     set<UIntN> domainsToUnlimitSet;
 
     if (domainsWithControlKnobsToTurn.size() > 0)
@@ -213,8 +213,9 @@ UIntN TargetUnlimitAction::getDomainWithLowestTemperature(
     {
         try
         {
-            Temperature domainTemperature =
-                getParticipantTracker()[source][*domain].getTemperatureProperty().getCurrentTemperature();
+            ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            Temperature domainTemperature = sourceDomain->getTemperatureControl()->getCurrentTemperature();
             if (domainWithLowestTemperature.first.isValid())
             {
                 if (domainTemperature < domainWithLowestTemperature.first)
@@ -246,8 +247,9 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
     {
         try
         {
-            DomainPriority priority =
-                getParticipantTracker()[source][*domain].getDomainPriorityProperty().getDomainPriority();
+            ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            DomainPriority priority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
             if (priority < lowestPriority)
             {
                 lowestPriority = priority;
@@ -264,8 +266,9 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
         domain != domains.end();
         domain++)
     {
-        DomainPriority priority =
-            getParticipantTracker()[source][*domain].getDomainPriorityProperty().getDomainPriority();
+        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+        DomainPriority priority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
         if (priority == lowestPriority)
         {
             domainsWithLowestPriority.push_back(*domain);
@@ -276,13 +279,16 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
 
 void TargetUnlimitAction::requestUnlimit(UIntN source, UIntN domain, UIntN target)
 {
-    getParticipantTracker()[source][domain].requestUnlimit(target);
+    ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+    DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(domain);
+    sourceDomain->requestUnlimit(target);
 }
 
 void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
 {
     Bool madeChanges(false);
-    vector<UIntN> domainIndexes = getParticipantTracker()[source].getDomainIndexes();
+    ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+    vector<UIntN> domainIndexes = sourceParticipant->getDomainIndexes();
     for (auto domain = domainIndexes.begin(); domain != domainIndexes.end(); domain++)
     {
         try
@@ -290,7 +296,8 @@ void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
             getPolicyServices().messageLogging->writeMessageDebug(
                 PolicyMessage(FLF, "Committing limits to source.", source, *domain));
 
-            Bool madeChange = getParticipantTracker()[source][*domain].commitLimits();
+            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            Bool madeChange = sourceDomain->commitLimits();
             if (madeChange)
             {
                 madeChanges = true;
@@ -311,15 +318,17 @@ void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
 
 void TargetUnlimitAction::removeAllRequestsForTarget(UIntN target)
 {
-    vector<UIntN> participantIndexes = getParticipantTracker().getAllTrackedIndexes();
+    vector<UIntN> participantIndexes = getParticipantTracker()->getAllTrackedIndexes();
     for (auto participantIndex = participantIndexes.begin(); 
         participantIndex != participantIndexes.end(); 
         participantIndex++)
     {
-        vector<UIntN> domainIndexes = getParticipantTracker()[*participantIndex].getDomainIndexes();
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
+        vector<UIntN> domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
-            getParticipantTracker()[*participantIndex][*domainIndex].clearAllRequestsForTarget(target);
+            DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+            domain->clearAllRequestsForTarget(target);
         }
     }
 }

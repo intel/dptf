@@ -45,6 +45,7 @@
 
 #include "esif_lib_databank.h"
 #include "esif_ccb_timer.h"
+#include "esif_uf_ccb_imp_spec.h"
 
 
 
@@ -199,24 +200,42 @@ int EsifLogFile_Write(EsifLogType type, const char *fmt, ...)
 	va_list args;
 
 	va_start(args, fmt);
-	esif_ccb_write_lock(&g_EsifLogFile[type].lock);
-	if (g_EsifLogFile[type].handle != NULL) {
-		rc = esif_ccb_vfprintf(g_EsifLogFile[type].handle, fmt, args);
-		fflush(g_EsifLogFile[type].handle);
-	}
-	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
+	rc = EsifLogFile_WriteArgs(type, fmt, args);
 	va_end(args);
 	return rc;
 }
 
 int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args)
 {
+	return EsifLogFile_WriteArgsAppend(type, NULL, fmt, args);
+}
+
+int EsifLogFile_WriteArgsAppend(EsifLogType type, const char *append, const char *fmt, va_list args)
+{
 	int rc = 0;
-	
+	int appendlen = (append ? (int)esif_ccb_strlen(append, MAX_PATH) : 0);
+
 	esif_ccb_write_lock(&g_EsifLogFile[type].lock);
 	if (g_EsifLogFile[type].handle != NULL) {
-		rc = esif_ccb_vfprintf(g_EsifLogFile[type].handle, fmt, args);
-		fflush(g_EsifLogFile[type].handle);
+		// Convert all Newlines to Tabs when logging to a file (except trailing newline)
+		int  buflen = esif_ccb_vscprintf(fmt, args) + 2;
+		char *buffer = esif_ccb_malloc(buflen);
+		if (buffer) {
+			char *ch = NULL;
+			rc = esif_ccb_vsprintf(buflen, buffer, fmt, args);
+			for (ch = buffer; ch[0] && ch[1]; ch++) {
+				if (*ch == '\n')
+					*ch = '\t';
+			}
+			// Auto-append string (i.e. newline) if necessary
+			if (append && rc > appendlen && rc + appendlen < buflen && esif_ccb_strcmp(buffer + rc - appendlen, append) != 0) {
+				esif_ccb_strcat(buffer, append, buflen);
+				rc += appendlen;
+			}
+			rc = (int)esif_ccb_fwrite(buffer, sizeof(char), rc, g_EsifLogFile[type].handle);
+			fflush(g_EsifLogFile[type].handle);
+			esif_ccb_free(buffer);
+		}
 	}
 	esif_ccb_write_unlock(&g_EsifLogFile[type].lock);
 	return rc;
@@ -447,7 +466,7 @@ enum esif_rc sync_lf_participants()
 
 	for (i = 0; i < count; i++) {
 		struct esif_ipc_event_data_create_participant participantData;
-		EsifData esifParticipantData = {ESIF_DATA_BINARY, &participantData, sizeof(participantData), sizeof(participantData)};
+		EsifData esifParticipantData = {ESIF_DATA_STRUCTURE, &participantData, sizeof(participantData), sizeof(participantData)};
 
 		rc = get_participant_data(&participantData, i);
 		if (ESIF_OK != rc) {
@@ -693,9 +712,9 @@ int EsifWebIsStarted()
 	return (atomic_read(&g_ws_threads) > 0);
 }
 
-void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
+void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
 {
-	esif_ws_server_set_ipaddr_port(ipaddr, port);
+	esif_ws_server_set_ipaddr_port(ipaddr, port, restricted);
 }
 
 #else
@@ -711,10 +730,11 @@ int EsifWebIsStarted()
 {
 	return 0;
 }
-void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
+void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
 {
 	UNREFERENCED_PARAMETER(ipaddr);
 	UNREFERENCED_PARAMETER(port);
+	UNREFERENCED_PARAMETER(restricted);
 }
 #endif
 
@@ -762,12 +782,7 @@ eEsifError esif_uf_init()
 	 */
 	EsifAppMgrInit();
 
-#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
-	SysfsRegisterParticipants();
-#else
-	ipc_connect();
-	sync_lf_participants();
-#endif
+	esif_ccb_participants_initialize();
 
 exit: 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);

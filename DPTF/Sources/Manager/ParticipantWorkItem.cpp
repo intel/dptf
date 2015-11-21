@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #include "ParticipantWorkItem.h"
 #include "ParticipantManager.h"
 
-ParticipantWorkItem::ParticipantWorkItem(DptfManager* dptfManager, FrameworkEvent::Type frameworkEventType,
+ParticipantWorkItem::ParticipantWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType,
     UIntN participantIndex) : WorkItem(dptfManager, frameworkEventType), m_participantIndex(participantIndex)
 {
 }

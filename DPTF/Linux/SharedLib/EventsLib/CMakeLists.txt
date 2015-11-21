@@ -1,0 +1,15 @@
+if (IN_SOURCE_BUILD MATCHES YES)                                                                                                                                                                                                                                        
+        include_directories(../)
+        include_directories(../../../../Common)
+		include_directories(../../SharedLib/BasicTypesLib)
+        file(GLOB_RECURSE events_lib_SOURCES "*.cpp")
+else ()
+        include_directories(../../../Sources)
+        include_directories(../../../../Common)
+		include_directories(../../../Sources/SharedLib/BasicTypesLib)
+        file(GLOB_RECURSE events_lib_SOURCES "../../../Sources/SharedLib/EventsLib/*.cpp")
+endif()
+
+add_library(${EVENTS_LIB} STATIC ${events_lib_SOURCES})
+
+set_target_properties(${EVENTS_LIB} PROPERTIES PREFIX "")

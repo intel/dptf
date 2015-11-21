@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainProxy.h"
+#include "DomainProxyInterface.h"
 #include "ControlStatus.h"
 
 // contains the control status for a given domain inside a participant
@@ -27,7 +27,7 @@ class dptf_export PassiveDomainControlStatus
 {
 public:
 
-    PassiveDomainControlStatus(DomainProxy& participant);
+    PassiveDomainControlStatus(DomainProxyInterface* domain);
     XmlNode* getXml();
 
 private:
@@ -40,18 +40,16 @@ private:
     DomainPriority m_domainPriority;
     UtilizationStatus m_domainUtilization;
 
-    void aquireDomainStatus(DomainProxy& domain);
-    void addPowerStatus(DomainProxy& domain);
-    void addPstateStatus(DomainProxy& domain);
-    void addTstateStatus(DomainProxy& domain);
-    void addDisplayStatus(DomainProxy& domain);
-    void addCoreStatus(DomainProxy& domain);
+    void aquireDomainStatus(DomainProxyInterface* domain);
+    void addPowerStatus(DomainProxyInterface* domain);
+    void addPstateStatus(DomainProxyInterface* domain);
+    void addTstateStatus(DomainProxyInterface* domain);
+    void addDisplayStatus(DomainProxyInterface* domain);
+    void addCoreStatus(DomainProxyInterface* domain);
 
     UIntN indexOfFirstControlWithType(const PerformanceControlSet& controlSet, PerformanceControlType::Type type) const;
     PerformanceControlSet filterControlSet(
         const PerformanceControlSet& controlSet, 
         PerformanceControlDynamicCaps dynamicCapabilities, 
         PerformanceControlType::Type type) const;
-    UIntN getNumberOfElementsOfControlType(
-        const PerformanceControlSet& controlSet, PerformanceControlType::Type type) const;
 };

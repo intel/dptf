@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "ParticipantProxy.h"
+#include "ParticipantProxyInterface.h"
 #include "PassiveDomainControlStatus.h"
 
 // contains the control status information for a given participant 
@@ -27,7 +27,7 @@ class dptf_export PassiveParticipantControlStatus
 {
 public:
 
-    PassiveParticipantControlStatus(ParticipantProxy& participant);
+    PassiveParticipantControlStatus(ParticipantProxyInterface* participant);
     XmlNode* getXml();
 
 private:

@@ -46,16 +46,20 @@ void EsifEvent_GetAndSignalIpcEvent()
 	// NOOP
 #else
 	int r_bytes     = 0;
-	int data_len    = 1024;	/* TODO: Change from "magic number" */
+	u32 data_len    = 1024;	/* TODO: Change from "magic number" */
+	u32 event_len   = 0;
 	enum esif_rc rc = ESIF_OK;
 	struct esif_ipc *ipc_ptr = NULL;
 	struct esif_ipc_event *event_ptr = NULL;
 
-	ipc_ptr = esif_ipc_alloc_event(&event_ptr, data_len);
+	ipc_ptr = esif_ipc_alloc_event(&event_ptr,
+		ESIF_DATA_VOID, /* The type is changed to the actual event data type.*/
+		data_len);
 	if (NULL == ipc_ptr) {
 		ESIF_TRACE_ERROR("Fail to allocate esif_ipc\n");
 		return;
 	}
+	event_len = ipc_ptr->data_len;
 
 //
 // TODO:  This needs to be in an OS abstraction layer
@@ -71,7 +75,7 @@ void EsifEvent_GetAndSignalIpcEvent()
 	// (The current LF code does not change the original data_len or fail the request if there are not events.)
 	//
 	r_bytes = 0;
-	if ((ESIF_OK == rc) && (ipc_ptr->data_len != (u32)data_len)) {
+	if ((ESIF_OK == rc) && (ipc_ptr->data_len < event_len)) {
 		r_bytes = ipc_ptr->data_len;
 	}
 #endif
@@ -84,7 +88,9 @@ void EsifEvent_GetAndSignalIpcEvent()
 			r_bytes,
 			ipc_ptr->data_len);
 
-		EsifEvent_SignalIpcEvent(event_ptr);
+		if (event_ptr->data_len <= data_len) {
+			EsifEvent_SignalIpcEvent(event_ptr);
+		}
 	}
 	esif_ipc_free(ipc_ptr);
 #endif
@@ -97,14 +103,17 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 	UNREFERENCED_PARAMETER(domainStr);
 #else
 	eEsifError rc = ESIF_OK;
-	EsifData binaryData = {ESIF_DATA_BINARY, NULL, 0, 0};
-	EsifData voidData = {ESIF_DATA_VOID, NULL, 0};
-	EsifDataPtr dataPtr = NULL;
+	EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 	UInt8 participantId;
 	char domainStr[8] = "";
 	esif_ccb_time_t now;
 
 	UNREFERENCED_PARAMETER(domainStr);
+
+	if (eventHdrPtr->version != ESIF_EVENT_VERSION) {
+		ESIF_TRACE_ERROR("Unsupported event version received\n");
+		goto exit;
+	}
 
 	esif_ccb_system_time(&now);
 
@@ -122,6 +131,7 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 		"Source:      %d\n"
 		"Dest:        %d\n"
 		"Dest Domain: %s(%04X)\n"
+		"Data Type:   %s\n"
 		"Data Size:   %u\n\n",
 		(u64)now,
 		(int)(now - eventHdrPtr->timestamp),
@@ -136,14 +146,14 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 		eventHdrPtr->dst_id,
 		esif_primitive_domain_str(eventHdrPtr->dst_domain_id, domainStr, 8),
 		eventHdrPtr->dst_domain_id,
+		esif_data_type_str(eventHdrPtr->data_type),
 		eventHdrPtr->data_len);
 
-	dataPtr = &voidData;
 	if (eventHdrPtr->data_len > 0) {
-		binaryData.buf_ptr = eventHdrPtr + 1;
-		binaryData.buf_len = eventHdrPtr->data_len;
-		binaryData.data_len = eventHdrPtr->data_len;
-		dataPtr = &binaryData;
+		eventData.buf_ptr = eventHdrPtr + 1;
+		eventData.type = eventHdrPtr->data_type;
+		eventData.buf_len = eventHdrPtr->data_len;
+		eventData.data_len = eventHdrPtr->data_len;
 	}
 
 	/*
@@ -160,8 +170,8 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 	}
 
 	// Best Effort Delivery
-	EsifEventMgr_SignalEvent(participantId, eventHdrPtr->dst_domain_id, eventHdrPtr->type, dataPtr);
-
+	EsifEventMgr_SignalEvent(participantId, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &eventData);
+exit:
 	return;
 #endif
 }

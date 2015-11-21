@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,9 +19,8 @@
 #pragma once
 
 #include "Dptf.h"
-#include "ClassFactories.h"
 #include "ParticipantServicesInterface.h"
-#include "ComponentExtendedInterface.h"
+#include "ControlBase.h"
 #include "DomainType.h"
 #include "ConfigTdpDataSyncInterface.h"
 #include "DomainFunctionalityVersions.h"
@@ -37,16 +36,38 @@
 #include "DomainPriorityFactory.h"
 #include "DomainRfProfileControlFactory.h"
 #include "DomainRfProfileStatusFactory.h"
+#include "ParticipantGetSpecificInfoFactory.h"
+#include "ParticipantSetSpecificInfoFactory.h"
+#include "DomainHardwareDutyCycleControlFactory.h"
 #include "DomainTemperatureFactory.h"
 #include "DomainUtilizationFactory.h"
+#include "DomainHardwareDutyCycleControlBase.h"
+#include "DomainActiveControlBase.h"
+#include "DomainConfigTdpControlBase.h"
+#include "DomainCoreControlBase.h"
+#include "DomainDisplayControlBase.h"
+#include "DomainPerformanceControlBase.h"
+#include "DomainPixelClockControlBase.h"
+#include "DomainPixelClockStatusBase.h"
+#include "DomainPowerControlBase.h"
+#include "DomainPowerStatusBase.h"
+#include "DomainPriorityBase.h"
+#include "DomainRfProfileControlBase.h"
+#include "DomainRfProfileStatusBase.h"
+#include "DomainTemperatureBase.h"
+#include "DomainUtilizationBase.h"
+#include "ControlFactoryList.h"
+#include "DomainControlList.h"
+#include <memory>
 
 class UnifiedDomain
 {
 public:
 
-    UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, Bool domainEnabled, DomainType::Type domainType, std::string domainName,
+    UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, 
+        Bool domainEnabled, DomainType::Type domainType, std::string domainName,
         std::string domainDescription, DomainFunctionalityVersions domainFunctionalityVersions,
-        const ClassFactories& classFactories, ParticipantServicesInterface* participantServicesInterface);
+        const ControlFactoryList& classFactories, ParticipantServicesInterface* participantServicesInterface);
     ~UnifiedDomain(void);
 
     Guid getGuid(void);
@@ -62,62 +83,23 @@ public:
 
     void clearAllCachedData(void);
 
-    // active control
-    DomainActiveControlInterface* getActiveControlInterfacePtr(void);
-    ComponentExtendedInterface* getActiveControlInterfaceExPtr(void);
-
-    // configTdp control
-    DomainConfigTdpControlInterface* getConfigTdpControlInterfacePtr(void);
-    ComponentExtendedInterface* getConfigTdpControlInterfaceExPtr(void);
-
-    // core control
-    DomainCoreControlInterface* getCoreControlInterfacePtr(void);
-    ComponentExtendedInterface* getCoreControlInterfaceExPtr(void);
-
-    // display control
-    DomainDisplayControlInterface* getDisplayControlInterfacePtr(void);
-    ComponentExtendedInterface* getDisplayControlInterfaceExPtr(void);
-
-    // performance control
-    DomainPerformanceControlInterface* getPerformanceControlInterfacePtr(void);
-    ComponentExtendedInterface* getPerformanceControlInterfaceExPtr(void);
-    ConfigTdpDataSyncInterface* getPerformanceControlConfigTdpSyncInterfacePtr(void);
-
-    // Pixel Clock Control
-    DomainPixelClockControlInterface* getPixelClockControlInterfacePtr(void);
-    ComponentExtendedInterface* getPixelClockControlInterfaceExPtr(void);
-
-    // Pixel Clock Status
-    DomainPixelClockStatusInterface* getPixelClockStatusInterfacePtr(void);
-    ComponentExtendedInterface* getPixelClockStatusInterfaceExPtr(void);
-
-    // power control
-    DomainPowerControlInterface* getPowerControlInterfacePtr(void);
-    ComponentExtendedInterface* getPowerControlInterfaceExPtr(void);
-
-    // power status
-    DomainPowerStatusInterface* getPowerStatusInterfacePtr(void);
-    ComponentExtendedInterface* getPowerStatusInterfaceExPtr(void);
-
-    // priority
-    DomainPriorityInterface* getDomainPriorityInterfacePtr(void);
-    ComponentExtendedInterface* getDomainPriorityInterfaceExPtr(void);
-
-    // RF Profile Control
-    DomainRfProfileControlInterface* getRfProfileControlInterfacePtr(void);
-    ComponentExtendedInterface* getRfProfileControlInterfaceExPtr(void);
-
-    // RF Profile Status
-    DomainRfProfileStatusInterface* getRfProfileStatusInterfacePtr(void);
-    ComponentExtendedInterface* getRfProfileStatusInterfaceExPtr(void);
-
-    // temperature
-    DomainTemperatureInterface* getTemperatureInterfacePtr(void);
-    ComponentExtendedInterface* getTemperatureInterfaceExPtr(void);
-
-    // utilization
-    DomainUtilizationInterface* getUtilizationInterfacePtr(void);
-    ComponentExtendedInterface* getUtilizationInterfaceExPtr(void);
+    std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
+    std::shared_ptr<DomainConfigTdpControlBase> getConfigTdpControl(void);
+    std::shared_ptr<DomainCoreControlBase> getCoreControl(void);
+    std::shared_ptr<DomainDisplayControlBase> getDisplayControl(void);
+    std::shared_ptr<DomainPerformanceControlBase> getPerformanceControl(void);
+    std::shared_ptr<DomainPixelClockControlBase> getPixelClockControl(void);
+    std::shared_ptr<DomainPixelClockStatusBase> getPixelClockStatusControl(void);
+    std::shared_ptr<DomainPowerControlBase> getPowerControl(void);
+    std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
+    std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
+    std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
+    std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
+    std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);
+    std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
+    std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
+    std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
+    std::shared_ptr<DomainHardwareDutyCycleControlBase> getHardareDutyCycleControl(void);
 
 private:
 
@@ -134,52 +116,7 @@ private:
     std::string m_description;
     DomainFunctionalityVersions m_domainFunctionalityVersions;
     ParticipantServicesInterface* m_participantServicesInterface;
-
-    // Interface pointers to the classes that will do the actual work for the domain.
-    DomainActiveControlInterface* m_activeControl;
-    DomainConfigTdpControlInterface* m_configTdpControl;
-    DomainCoreControlInterface* m_coreControl;
-    DomainDisplayControlInterface* m_displayControl;
-    DomainPerformanceControlInterface* m_performanceControl;
-    DomainPixelClockControlInterface* m_pixelClockControl;
-    DomainPixelClockStatusInterface* m_pixelClockStatus;
-    DomainPowerControlInterface* m_powerControl;
-    DomainPowerStatusInterface* m_powerStatus;
-    DomainPriorityInterface* m_domainPriority;
-    DomainRfProfileControlInterface* m_rfProfileControl;
-    DomainRfProfileStatusInterface* m_rfProfileStatus;
-    DomainTemperatureInterface* m_temperature;
-    DomainUtilizationInterface* m_utilization;
-
-    // use the class factories to create the needed objects
-    void createActiveControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createConfigTdpControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createCoreControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createDisplayControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createPerformanceControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createPixelClockControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createPixelClockStatusObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createPowerControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createPowerStatusObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createDomainPriorityObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createRfProfileControlObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createRfProfileStatusObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createTemperatureObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
-    void createUtilizationObject(const ClassFactories& classFactories,
-        ParticipantServicesInterface* participantServicesInterface);
+    std::shared_ptr<DomainControlList> m_domainControls;
 
     void throwIfDomainNotEnabled(void);
 };

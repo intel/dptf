@@ -48,7 +48,7 @@ typedef struct ClientRecord_s {
 
 int  esif_ws_init(void);
 void esif_ws_exit(esif_thread_t *threadPtr);
-void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 port);
+void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 port, Bool restricted);
 void esif_ws_client_close_client(ClientRecordPtr clientPtr);
 
 #endif /* ESIF_WS_SERVER_H */

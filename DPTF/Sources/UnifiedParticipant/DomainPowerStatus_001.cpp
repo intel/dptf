@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,24 +18,40 @@
 
 #include "DomainPowerStatus_001.h"
 #include "XmlNode.h"
-#include "esif_ccb.h"
 
-DomainPowerStatus_001::DomainPowerStatus_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainPowerStatus_001::DomainPowerStatus_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
 PowerStatus DomainPowerStatus_001::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    m_participantServicesInterface->primitiveExecuteGetAsPower(
-        esif_primitive_type::GET_RAPL_POWER, domainIndex);
+    Power power = Power::createInvalid();
 
+    power = getPower(participantIndex, domainIndex);
     esif_ccb_sleep_msec(250);
-
-    Power power = m_participantServicesInterface->primitiveExecuteGetAsPower(
-        esif_primitive_type::GET_RAPL_POWER, domainIndex);
+    power = getPower(participantIndex, domainIndex);
 
     return PowerStatus(power);
+}
+
+Power DomainPowerStatus_001::getPower(UIntN participantIndex, UIntN domainIndex)
+{
+    Power power = Power::createInvalid();
+
+    try
+    {
+        power = getParticipantServices()->primitiveExecuteGetAsPower(
+            esif_primitive_type::GET_RAPL_POWER, domainIndex);
+    }
+    catch (primitive_try_again)
+    {
+        power = getParticipantServices()->primitiveExecuteGetAsPower(
+            esif_primitive_type::GET_RAPL_POWER, domainIndex);
+    }
+
+    return power;
 }
 
 void DomainPowerStatus_001::clearCachedData(void)
@@ -50,4 +66,9 @@ XmlNode* DomainPowerStatus_001::getXml(UIntN domainIndex)
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
+}
+
+std::string DomainPowerStatus_001::getName(void)
+{
+    return "Power Status (Version 1)";
 }

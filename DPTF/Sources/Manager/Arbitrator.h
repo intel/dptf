@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "PerformanceControlArbitrator.h"
 #include "PowerControlArbitrator.h"
 #include "TemperatureThresholdArbitrator.h"
+#include "PowerControlCapabilitiesArbitrator.h"
 
 class DptfManager;
 
@@ -45,6 +46,7 @@ public:
     PerformanceControlArbitrator* getPerformanceControlArbitrator(void) const;
     PowerControlArbitrator* getPowerControlArbitrator(void) const;
     TemperatureThresholdArbitrator* getTemperatureThresholdArbitrator(void) const;
+    PowerControlCapabilitiesArbitrator* getPowerControlCapabilitiesArbitrator(void) const;
 
     // toXml()
 
@@ -63,4 +65,5 @@ private:
     PerformanceControlArbitrator* m_performanceControlArbitrator;
     PowerControlArbitrator* m_powerControlArbitrator;
     TemperatureThresholdArbitrator* m_temperatureThresholdArbitrator;
+    PowerControlCapabilitiesArbitrator* m_powerControlCapabilitiesArbitrator;
 };

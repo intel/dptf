@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,9 +22,9 @@ using namespace std;
 
 TargetActionBase::TargetActionBase(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    ParticipantTracker& participantTracker, ThermalRelationshipTable& trt,
+    std::shared_ptr<ParticipantTrackerInterface> participantTracker, ThermalRelationshipTable& trt,
     std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
-    : m_policyServices(policyServices), m_time(time), m_participantTracker(participantTracker),
+    : m_time(time), m_policyServices(policyServices), m_participantTracker(participantTracker),
     m_trt(trt), m_callbackScheduler(callbackScheduler), m_targetMonitor(targetMonitor), m_target(target)
 {
 }
@@ -38,8 +38,8 @@ vector<UIntN> TargetActionBase::getPackageDomains(UIntN source, const vector<UIn
     vector<UIntN> packageDomains;
     for (auto domain = domainsWithControlKnobsToTurn.begin(); domain != domainsWithControlKnobsToTurn.end(); domain++)
     {
-        DomainProxy& domainProxy = getParticipantTracker()[source][*domain];
-        DomainType::Type domainType = domainProxy.getDomainProperties().getDomainType();
+        DomainProxyInterface* domainProxy = getParticipantTracker()->getParticipant(source)->getDomain(*domain);
+        DomainType::Type domainType = domainProxy->getDomainProperties().getDomainType();
         if (domainType == DomainType::MultiFunction)
         {
             packageDomains.push_back(*domain);
@@ -78,7 +78,9 @@ std::vector<UIntN> TargetActionBase::getDomainsThatDoNotReportTemperature(UIntN 
     vector<UIntN> domainsWithNoTemperature;
     for (auto domain = domains.begin(); domain != domains.end(); domain++)
     {
-        if (!getParticipantTracker()[source][*domain].getTemperatureProperty().implementsTemperatureInterface())
+        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+        if (!sourceDomain->getTemperatureControl()->supportsTemperatureControls())
         {
             domainsWithNoTemperature.push_back(*domain);
         }
@@ -97,23 +99,30 @@ Bool TargetActionBase::compareDomainsOnPriorityAndUtilization(
     const tuple<UIntN, DomainPriority, UtilizationStatus>& left,
     const tuple<UIntN, DomainPriority, UtilizationStatus>& right)
 {
-    if (get<1>(left) < get<1>(right))
+    try
     {
-        return true;
-    }
-    else if (get<1>(left) == get<1>(right))
-    {
-        if (get<2>(left).getCurrentUtilization() >
-            get<2>(right).getCurrentUtilization())
+        if (get<1>(left) < get<1>(right))
         {
             return true;
+        }
+        else if (get<1>(left) == get<1>(right))
+        {
+            if (get<2>(left).getCurrentUtilization() >
+                get<2>(right).getCurrentUtilization())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
             return false;
         }
     }
-    else
+    catch (...)
     {
         return false;
     }
@@ -178,7 +187,7 @@ std::shared_ptr<TimeInterface> TargetActionBase::getTime() const
     return m_time;
 }
 
-ParticipantTracker& TargetActionBase::getParticipantTracker() const
+std::shared_ptr<ParticipantTrackerInterface> TargetActionBase::getParticipantTracker() const
 {
     return m_participantTracker;
 }

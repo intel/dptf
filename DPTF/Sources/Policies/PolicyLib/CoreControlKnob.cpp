@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,7 +24,7 @@ CoreControlKnob::CoreControlKnob(
     const PolicyServicesInterfaceContainer& policyServices,
     UIntN participantIndex,
     UIntN domainIndex,
-    shared_ptr<CoreControlFacade> coreControl,
+    shared_ptr<CoreControlFacadeInterface> coreControl,
     std::shared_ptr<PerformanceControlKnob> performanceControlKnob)
     : ControlKnobBase(policyServices, participantIndex, domainIndex),
     m_coreControl(coreControl),

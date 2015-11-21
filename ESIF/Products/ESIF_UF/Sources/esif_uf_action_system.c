@@ -32,10 +32,10 @@
  * Handle ESIF Action "Get" Request
  */
 static eEsifError ESIF_CALLCONV ActionSystemGet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
@@ -44,21 +44,24 @@ static eEsifError ESIF_CALLCONV ActionSystemGet(
 	EsifData p1 = {0};
 	EsifString command = NULL;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(upPtr);
 	UNREFERENCED_PARAMETER(primitivePtr);
-	UNREFERENCED_PARAMETER(actionPtr);
 	UNREFERENCED_PARAMETER(requestPtr);
 
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
+	ESIF_ASSERT(NULL != fpcActionPtr);
 
-	esifStatus = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
+	esifStatus = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 0, &p1);
 	if (ESIF_OK != esifStatus) {
 		goto exit;
 	}
-	ESIF_ASSERT(NULL != p1.buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_STRING == p1.type);
+
+	if ((NULL == p1.buf_ptr) || (ESIF_DATA_STRING != p1.type)) {
+		esifStatus = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
 
 	command = (EsifString)p1.buf_ptr;
 
@@ -80,10 +83,10 @@ exit:
  * Handle ESIF Action "Set" Request
  */
 static eEsifError ESIF_CALLCONV ActionSystemSet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr
 	)
 {
@@ -91,17 +94,20 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 	EsifData p1 = {0};
 	EsifString command = NULL;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(upPtr);
 	UNREFERENCED_PARAMETER(primitivePtr);
-	UNREFERENCED_PARAMETER(actionPtr);
 
-	esifStatus = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
+	ESIF_ASSERT(NULL != fpcActionPtr);
+
+	esifStatus = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 0, &p1);
 	if (ESIF_OK != esifStatus) {
 		goto exit;
 	}
-	ESIF_ASSERT(NULL != p1.buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_STRING == p1.type);
+	if ((NULL == p1.buf_ptr) || (ESIF_DATA_STRING != p1.type)) {
+		esifStatus = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
 
 	command = (EsifString)p1.buf_ptr;
 
@@ -167,29 +173,24 @@ exit:
  * Register ACTION with ESIF
  *******************************************************************************
  */
-static EsifActType g_system = {
-	0,
+static EsifActIfaceStatic g_system = {
+	eIfaceTypeAction,
+	ESIF_ACT_IFACE_VER_STATIC,
+	sizeof(g_system),
 	ESIF_ACTION_SYSTEM,
-	{PAD},
+	ESIF_ACTION_FLAGS_DEFAULT,
 	"SYSTEM",
 	"System Call",
-	"ALL",
-	"x1.0.0.1",
-	{0},
-	ESIF_ACTION_IS_NOT_KERNEL_ACTION,
-	ESIF_ACTION_IS_NOT_PLUGIN,
-	{PAD},
-	ActionSystemGet,
-	ActionSystemSet,
+	ESIF_ACTION_VERSION_DEFAULT,
 	NULL,
-	NULL
+	NULL,
+	ActionSystemGet,
+	ActionSystemSet
 };
 
 enum esif_rc EsifActSystemInit()
 {
-	if (NULL != g_actMgr.AddActType) {
-		g_actMgr.AddActType(&g_actMgr, &g_system);
-	}
+	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_system);
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
@@ -197,9 +198,7 @@ enum esif_rc EsifActSystemInit()
 
 void EsifActSystemExit()
 {
-	if (NULL != g_actMgr.RemoveActType) {
-		g_actMgr.RemoveActType(&g_actMgr, 0);
-	}
+	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_system);
 	ESIF_TRACE_EXIT_INFO();
 }
 

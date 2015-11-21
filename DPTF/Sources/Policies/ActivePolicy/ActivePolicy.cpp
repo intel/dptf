@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,10 +35,21 @@ ActivePolicy::~ActivePolicy(void)
 
 void ActivePolicy::onCreate(void)
 {
+    try
+    {
+        m_art = getPolicyServices().platformConfigurationData->getActiveRelationshipTable();
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(
+            FLF, "No active relationship table was found. Active Policy will not load without it"
+            + string(ex.what())));
+        throw;
+    }
+
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::ParticipantSpecificInfoChanged);
     getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyActiveRelationshipTableChanged);
-    m_art = getPolicyServices().platformConfigurationData->getActiveRelationshipTable();
 }
 
 void ActivePolicy::onDestroy(void)
@@ -112,26 +123,26 @@ string ActivePolicy::getStatusAsXml(void) const
 void ActivePolicy::onBindParticipant(UIntN participantIndex)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding participant.", participantIndex));
-    getParticipantTracker().remember(participantIndex);
-    associateParticipantInArt(getParticipantTracker()[participantIndex]);
+    getParticipantTracker()->remember(participantIndex);
+    associateParticipantInArt(getParticipantTracker()->getParticipant(participantIndex));
 }
 
 void ActivePolicy::onUnbindParticipant(UIntN participantIndex)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Unbinding participant.", participantIndex));
     m_art.disassociateParticipant(participantIndex);
-    getParticipantTracker().forget(participantIndex);
+    getParticipantTracker()->forget(participantIndex);
 }
 
 void ActivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
 {
-    if (getParticipantTracker().remembers(participantIndex))
+    if (getParticipantTracker()->remembers(participantIndex))
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
-        getParticipantTracker()[participantIndex].bindDomain(domainIndex);
+        getParticipantTracker()->getParticipant(participantIndex)->bindDomain(domainIndex);
         if (participantIsTargetDevice(participantIndex))
         {
-            coolTargetParticipant(getParticipantTracker()[participantIndex]);
+            coolTargetParticipant(getParticipantTracker()->getParticipant(participantIndex));
         }
         else if (participantIsSourceDevice(participantIndex))
         {
@@ -139,9 +150,10 @@ void ActivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
             vector<ActiveRelationshipTableEntry> entries = m_art.getEntriesForSource(participantIndex);
             for (auto entry = entries.begin(); entry != entries.end(); entry++)
             {
-                if (participantIsTargetDevice(entry->targetDeviceIndex()))
+                if (participantIsTargetDevice(entry->getTargetDeviceIndex()) && 
+                    (getParticipantTracker()->getParticipant(entry->getTargetDeviceIndex())->supportsTemperatureInterface()))
                 {
-                    coolTargetParticipant(getParticipantTracker()[entry->targetDeviceIndex()]);
+                    coolTargetParticipant(getParticipantTracker()->getParticipant(entry->getTargetDeviceIndex()));
                 }
             }
         }
@@ -154,14 +166,14 @@ void ActivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
 
 void ActivePolicy::onUnbindDomain(UIntN participantIndex, UIntN domainIndex)
 {
-    if (getParticipantTracker().remembers(participantIndex))
+    if (getParticipantTracker()->remembers(participantIndex))
     {
         if (participantIsTargetDevice(participantIndex))
         {
             auto entries = m_art.getEntriesForTarget(participantIndex);
             for (auto entry = entries.begin(); entry != entries.end(); entry++)
             {
-                if (participantIsSourceDevice(entry->sourceDeviceIndex()))
+                if (participantIsSourceDevice(entry->getSourceDeviceIndex()))
                 {
                     try
                     {
@@ -174,25 +186,7 @@ void ActivePolicy::onUnbindDomain(UIntN participantIndex, UIntN domainIndex)
                 }
             }
         }
-        else if (participantIsSourceDevice(participantIndex))
-        {
-            auto entries = m_art.getEntriesForSource(participantIndex);
-            for (auto entry = entries.begin(); entry != entries.end(); entry++)
-            {
-                if (participantIsSourceDevice(entry->sourceDeviceIndex()))
-                {
-                    try
-                    {
-                        requestFanTurnedOff(*entry);
-                    }
-                    catch (...)
-                    {
-                        // no action for failure.  make best attempt to turn off the fan.
-                    }
-                }
-            }
-        }
-        getParticipantTracker()[participantIndex].unbindDomain(domainIndex);
+        getParticipantTracker()->getParticipant(participantIndex)->unbindDomain(domainIndex);
     }
 }
 
@@ -202,10 +196,10 @@ void ActivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Specific info changed for target participant.", participantIndex));
-        ParticipantProxy& participant = getParticipantTracker()[participantIndex];
-        participant.getActiveTripPointProperty().refresh();
-        participant.refreshHysteresis();
-        coolTargetParticipant(getParticipantTracker()[participantIndex]);
+        auto participant = getParticipantTracker()->getParticipant(participantIndex);
+        participant->getActiveTripPointProperty().refresh();
+        participant->refreshHysteresis();
+        coolTargetParticipant(participant);
     }
 }
 
@@ -215,32 +209,46 @@ void ActivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Temperature threshold crossed for target participant.", participantIndex));
-        coolTargetParticipant(getParticipantTracker()[participantIndex]);
+        coolTargetParticipant(getParticipantTracker()->getParticipant(participantIndex));
     }
 }
 
 void ActivePolicy::onActiveRelationshipTableChanged(void)
 {
+    vector<UIntN> indexes = getParticipantTracker()->getAllTrackedIndexes();
+    for (auto participantIndex = indexes.begin(); participantIndex != indexes.end(); participantIndex++)
+    {
+        if (participantIsTargetDevice(*participantIndex))
+        {
+            ParticipantProxyInterface* target = getParticipantTracker()->getParticipant(*participantIndex);
+            target->setTemperatureThresholds(Temperature::createInvalid(), Temperature::createInvalid());
+            auto entries = m_art.getEntriesForTarget(*participantIndex);
+            for (auto entry = entries.begin(); entry != entries.end(); entry++)
+            {
+                requestFanTurnedOff(*entry);
+            }
+        }
+    }
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Active Relationship Table changed."));
     m_art = getPolicyServices().platformConfigurationData->getActiveRelationshipTable();
     associateAllParticipantsInArt();
 
     for (UIntN entryIndex = 0; entryIndex < m_art.getNumberOfEntries(); entryIndex++)
     {
-        if (participantIsTargetDevice(m_art[entryIndex].targetDeviceIndex()))
+        if (participantIsTargetDevice(m_art[entryIndex].getTargetDeviceIndex()))
         {
-            coolTargetParticipant(getParticipantTracker()[m_art[entryIndex].targetDeviceIndex()]);
+            coolTargetParticipant(getParticipantTracker()->getParticipant(m_art[entryIndex].getTargetDeviceIndex()));
         }
     }
 }
 
-void ActivePolicy::coolTargetParticipant(ParticipantProxy& participant)
+void ActivePolicy::coolTargetParticipant(ParticipantProxyInterface* participant)
 {
-    if (participant.getActiveTripPointProperty().supportsProperty())
+    if (participant->getActiveTripPointProperty().supportsProperty())
     {
-        if (participant.getDomainPropertiesSet().getDomainCount() > 0)
+        if (participant->getDomainPropertiesSet().getDomainCount() > 0)
         {
-            auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
+            auto currentTemperature = participant->getFirstDomainTemperature();
             getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Considering actions based on temperature of " + 
                 currentTemperature.toString() + "."));
             setTripPointNotificationForTarget(participant, currentTemperature);
@@ -249,12 +257,12 @@ void ActivePolicy::coolTargetParticipant(ParticipantProxy& participant)
     }
 }
 
-void ActivePolicy::requestFanSpeedChangesForTarget(ParticipantProxy& target, const Temperature& currentTemperature)
+void ActivePolicy::requestFanSpeedChangesForTarget(ParticipantProxyInterface* target, const Temperature& currentTemperature)
 {
-    auto artEntriesForTarget = m_art.getEntriesForTarget(target.getIndex());
+    auto artEntriesForTarget = m_art.getEntriesForTarget(target->getIndex());
     for (auto entry = artEntriesForTarget.begin(); entry != artEntriesForTarget.end(); entry++)
     {
-        if (participantIsSourceDevice(entry->sourceDeviceIndex()))
+        if (participantIsSourceDevice(entry->getSourceDeviceIndex()))
         {
             requestFanSpeedChange(*entry, currentTemperature);
         }
@@ -265,24 +273,25 @@ void ActivePolicy::requestFanSpeedChange(
     const ActiveRelationshipTableEntry& entry,
     const Temperature& currentTemperature)
 {
-    auto tripPoints = getParticipantTracker()[entry.targetDeviceIndex()].getActiveTripPointProperty().getTripPoints();
-    auto domainIndexes = getParticipantTracker()[entry.sourceDeviceIndex()].getDomainIndexes();
+    auto tripPoints = getParticipantTracker()->getParticipant(entry.getTargetDeviceIndex())->getActiveTripPointProperty().getTripPoints();
+    auto domainIndexes = getParticipantTracker()->getParticipant(entry.getSourceDeviceIndex())->getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
-        ActiveCoolingControl& coolingControl =
-            getParticipantTracker()[entry.sourceDeviceIndex()][*domainIndex].getActiveCoolingControl();
+        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(entry.getSourceDeviceIndex());
+        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domainIndex);
+        ActiveCoolingControl& coolingControl = sourceDomain->getActiveCoolingControl();
         if (coolingControl.supportsFineGrainControl())
         {
             Percentage fanSpeed = selectFanSpeed(entry, tripPoints, currentTemperature);
             getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Requesting fan speed of " + fanSpeed.toString() + "."));
-            coolingControl.requestFanSpeedPercentage(entry.targetDeviceIndex(), fanSpeed);
+            coolingControl.requestFanSpeedPercentage(entry.getTargetDeviceIndex(), fanSpeed);
         }
         else
         {
             UIntN activeControlIndex = selectActiveControlIndex(entry, tripPoints, currentTemperature);
             getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-                FLF, "Requesting fan speed index of " + to_string(activeControlIndex) + "."));
-            coolingControl.requestActiveControlIndex(entry.targetDeviceIndex(), activeControlIndex);
+                FLF, "Requesting fan speed index of " + StlOverride::to_string(activeControlIndex) + "."));
+            coolingControl.requestActiveControlIndex(entry.getTargetDeviceIndex(), activeControlIndex);
         }
     }
 }
@@ -290,22 +299,23 @@ void ActivePolicy::requestFanSpeedChange(
 void ActivePolicy::requestFanTurnedOff(const ActiveRelationshipTableEntry& entry)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-        FLF, "Requesting fan turned off for participant " + to_string(entry.sourceDeviceIndex()) + "."));
-    auto domainIndexes = getParticipantTracker()[entry.sourceDeviceIndex()].getDomainIndexes();
+        FLF, "Requesting fan turned off for participant " + StlOverride::to_string(entry.getSourceDeviceIndex()) + "."));
+    auto domainIndexes = getParticipantTracker()->getParticipant(entry.getSourceDeviceIndex())->getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
-        ActiveCoolingControl& coolingControl =
-            getParticipantTracker()[entry.sourceDeviceIndex()][*domainIndex].getActiveCoolingControl();
+        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(entry.getSourceDeviceIndex());
+        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domainIndex);
+        ActiveCoolingControl& coolingControl = sourceDomain->getActiveCoolingControl();
         if (coolingControl.supportsFineGrainControl())
         {
             coolingControl.requestFanSpeedPercentage(
-                entry.targetDeviceIndex(),
+                entry.getTargetDeviceIndex(),
                 Percentage(0.0));
         }
         else
         {
             coolingControl.requestActiveControlIndex(
-                entry.targetDeviceIndex(),
+                entry.getTargetDeviceIndex(),
                 ActiveRelationshipTableEntry::FanOffIndex);
         }
     }
@@ -317,13 +327,14 @@ void ActivePolicy::turnOffAllFans()
     vector<UIntN> sources = m_art.getAllSources();
     for (auto source = sources.begin(); source != sources.end(); source++)
     {
-        auto domainIndexes = getParticipantTracker()[*source].getDomainIndexes();
+        auto domainIndexes = getParticipantTracker()->getParticipant(*source)->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                ActiveCoolingControl& coolingControl =
-                    getParticipantTracker()[*source][*domainIndex].getActiveCoolingControl();
+                ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(*source);
+                DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domainIndex);
+                ActiveCoolingControl& coolingControl = sourceDomain->getActiveCoolingControl();
                 coolingControl.forceFanOff();
             }
             catch (...)
@@ -336,24 +347,33 @@ void ActivePolicy::turnOffAllFans()
 
 void ActivePolicy::refreshArtAndTargetsAndTakeCoolingAction()
 {
+    reloadArt();
+    takeCoolingActionsForAllParticipants();
+}
+
+void ActivePolicy::reloadArt()
+{
     m_art = getPolicyServices().platformConfigurationData->getActiveRelationshipTable();
     associateAllParticipantsInArt();
+}
 
+void ActivePolicy::takeCoolingActionsForAllParticipants()
+{
     vector<UIntN> targets = m_art.getAllTargets();
     for (auto target = targets.begin(); target != targets.end(); target++)
     {
-        getParticipantTracker()[*target].getActiveTripPointProperty().refresh();
-        coolTargetParticipant(getParticipantTracker()[*target]);
+        getParticipantTracker()->getParticipant(*target)->getActiveTripPointProperty().refresh();
+        coolTargetParticipant(getParticipantTracker()->getParticipant(*target));
     }
 }
 
-void ActivePolicy::setTripPointNotificationForTarget(ParticipantProxy& target, const Temperature& currentTemperature)
+void ActivePolicy::setTripPointNotificationForTarget(ParticipantProxyInterface* target, const Temperature& currentTemperature)
 {
-    auto tripPoints = target.getActiveTripPointProperty().getTripPoints();
+    auto tripPoints = target->getActiveTripPointProperty().getTripPoints();
     Temperature lowerTemperatureThreshold = determineLowerTemperatureThreshold(currentTemperature, tripPoints);
     Temperature upperTemperatureThreshold = determineUpperTemperatureThreshold(currentTemperature, tripPoints);
-    target.setTemperatureThresholds(lowerTemperatureThreshold, upperTemperatureThreshold);
-    target.notifyPlatformOfDeviceTemperature(currentTemperature);
+    target->setTemperatureThresholds(lowerTemperatureThreshold, upperTemperatureThreshold);
+    target->notifyPlatformOfDeviceTemperature(currentTemperature);
 }
 
 Temperature ActivePolicy::determineLowerTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const
@@ -440,43 +460,43 @@ UIntN ActivePolicy::findTripPointCrossed(SpecificInfo& tripPoints, const Tempera
 
 void ActivePolicy::associateAllParticipantsInArt()
 {
-    vector<UIntN> participantIndicies = getParticipantTracker().getAllTrackedIndexes();
+    vector<UIntN> participantIndicies = getParticipantTracker()->getAllTrackedIndexes();
     for (auto index = participantIndicies.begin(); index != participantIndicies.end(); index++)
     {
-        associateParticipantInArt(getParticipantTracker()[*index]);
+        associateParticipantInArt(getParticipantTracker()->getParticipant(*index));
     }
 }
 
-void ActivePolicy::associateParticipantInArt(ParticipantProxy& participant)
+void ActivePolicy::associateParticipantInArt(ParticipantProxyInterface* participant)
 {
     m_art.associateParticipant(
-        participant.getParticipantProperties().getAcpiInfo().getAcpiScope(),
-        participant.getIndex());
+        participant->getParticipantProperties().getAcpiInfo().getAcpiScope(),
+        participant->getIndex());
 }
 
 Bool ActivePolicy::participantIsTargetDevice(UIntN participantIndex)
 {
-    return getParticipantTracker().remembers(participantIndex) &&
+    return getParticipantTracker()->remembers(participantIndex) &&
            m_art.isParticipantTargetDevice(participantIndex);
 }
 
 Bool ActivePolicy::participantIsSourceDevice(UIntN participantIndex)
 {
-    return getParticipantTracker().remembers(participantIndex) &&
+    return getParticipantTracker()->remembers(participantIndex) &&
            m_art.isParticipantSourceDevice(participantIndex);
 }
 
 XmlNode* ActivePolicy::getXmlForActiveTripPoints() const
 {
     XmlNode* allStatus = XmlNode::createWrapperElement("active_trip_point_status");
-    vector<UIntN> indexes = getParticipantTracker().getAllTrackedIndexes();
+    vector<UIntN> indexes = getParticipantTracker()->getAllTrackedIndexes();
     for (auto participantIndex = indexes.begin(); participantIndex != indexes.end(); participantIndex++)
     {
-        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
         if (m_art.isParticipantTargetDevice(*participantIndex) && 
-            participant.getActiveTripPointProperty().supportsProperty())
+            participant->getActiveTripPointProperty().supportsProperty())
         {
-            allStatus->addChild(participant.getXmlForActiveTripPoints());
+            allStatus->addChild(participant->getXmlForActiveTripPoints());
         }
     }
     return allStatus;
@@ -485,18 +505,24 @@ XmlNode* ActivePolicy::getXmlForActiveTripPoints() const
 XmlNode* ActivePolicy::getXmlForActiveCoolingControls() const
 {
     XmlNode* fanStatus = XmlNode::createWrapperElement("fan_status");
-    vector<UIntN> participantTndexes = getParticipantTracker().getAllTrackedIndexes();
+    vector<UIntN> participantTndexes = getParticipantTracker()->getAllTrackedIndexes();
     for (auto participantIndex = participantTndexes.begin(); 
         participantIndex != participantTndexes.end(); 
         participantIndex++)
     {
-        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
-        auto domainIndexes = participant.getDomainIndexes();
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
-            if (participant[*domainIndex].getActiveCoolingControl().supportsActiveCoolingControls())
+            if (participant->getDomain(*domainIndex)->getActiveCoolingControl().supportsActiveCoolingControls())
             {
-                fanStatus->addChild(participant[*domainIndex].getActiveCoolingControl().getXml());
+                try
+                {
+                    fanStatus->addChild(participant->getDomain(*domainIndex)->getActiveCoolingControl().getXml());
+                }
+                catch (...)
+                {                	
+                }
             }
         }
     }

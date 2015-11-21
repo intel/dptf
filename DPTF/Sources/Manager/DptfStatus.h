@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 #include "Dptf.h"
 #include "DptfManager.h"
-#include "esif_rc.h"
+#include "esif_ccb_rc.h"
 #include "ParticipantSpecificInfoKey.h"
 
 class XmlNode;
@@ -36,7 +36,8 @@ public:
     ~DptfStatus();
 
     void getStatus(const eAppStatusCommand command, const UInt32 appStatusIn,
-        esif::EsifDataPtr appStatusOut, eEsifError* returnCode);
+        EsifDataPtr appStatusOut, eEsifError* returnCode);
+    void clearCache();
 
 private:
 
@@ -59,7 +60,7 @@ private:
     XmlNode* getXmlForFrameworkLoadedPolicies();
     XmlNode* getXmlForFrameworkLoadedParticipants();
 
-    void fillEsifString(esif::EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
+    void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
 
     // KW error resolution
     DptfStatus(const DptfStatus&);

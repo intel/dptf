@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,14 +26,14 @@ CoreControlFacade::CoreControlFacade(
     UIntN domainIndex,
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
-    : m_participantIndex(participantIndex),
+    : m_policyServices(policyServices),
+    m_participantIndex(participantIndex),
     m_domainIndex(domainIndex),
     m_domainProperties(domainProperties),
-    m_policyServices(policyServices),
     m_capabilities(participantIndex, domainIndex, domainProperties, policyServices),
     m_preferences(participantIndex, domainIndex, domainProperties, policyServices),
-    m_lastSetCoreControlStatus(0),
-    m_controlsHaveBeenInitialized(false)
+    m_controlsHaveBeenInitialized(false),
+    m_lastSetCoreControlStatus(0)
 {
 }
 
@@ -44,51 +44,6 @@ CoreControlFacade::~CoreControlFacade()
 Bool CoreControlFacade::supportsCoreControls()
 {
     return m_domainProperties.implementsCoreControlInterface() && getPreferences().isLpoEnabled();
-}
-
-CoreControlStatus CoreControlFacade::getStatus()
-{
-    initializeControlsIfNeeded();
-    return m_lastSetCoreControlStatus;
-}
-
-void CoreControlFacade::setControl(CoreControlStatus status)
-{
-    if (supportsCoreControls())
-    {
-        m_policyServices.domainCoreControl->setActiveCoreControl(
-            m_participantIndex, m_domainIndex, status);
-        m_lastSetCoreControlStatus = status;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the core control interface.");
-    }
-}
-
-void CoreControlFacade::refreshCapabilities()
-{
-    m_capabilities.refresh();
-}
-
-void CoreControlFacade::refreshPreferences()
-{
-    m_preferences.refresh();
-}
-
-CoreControlDynamicCaps CoreControlFacade::getDynamicCapabilities()
-{
-    return m_capabilities.getDynamicCaps();
-}
-
-CoreControlStaticCaps CoreControlFacade::getStaticCapabilities()
-{
-    return m_capabilities.getStaticCaps();
-}
-
-CoreControlLpoPreference CoreControlFacade::getPreferences()
-{
-    return m_preferences.getPreferences();
 }
 
 void CoreControlFacade::initializeControlsIfNeeded()
@@ -132,5 +87,68 @@ void CoreControlFacade::setControlsToMax()
     {
         CoreControlDynamicCaps caps = getDynamicCapabilities();
         setControl(CoreControlStatus(caps.getMaxActiveCores()));
+    }
+}
+
+void CoreControlFacade::setControl(CoreControlStatus status)
+{
+    if (supportsCoreControls())
+    {
+        m_policyServices.domainCoreControl->setActiveCoreControl(
+            m_participantIndex, m_domainIndex, status);
+        m_lastSetCoreControlStatus = status;
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the core control interface.");
+    }
+}
+
+CoreControlStatus CoreControlFacade::getStatus()
+{
+    initializeControlsIfNeeded();
+    return m_lastSetCoreControlStatus;
+}
+
+CoreControlDynamicCaps CoreControlFacade::getDynamicCapabilities()
+{
+    return m_capabilities.getDynamicCaps();
+}
+
+CoreControlStaticCaps CoreControlFacade::getStaticCapabilities()
+{
+    return m_capabilities.getStaticCaps();
+}
+
+CoreControlLpoPreference CoreControlFacade::getPreferences()
+{
+    return m_preferences.getPreferences();
+}
+
+void CoreControlFacade::refreshCapabilities()
+{
+    m_capabilities.refresh();
+}
+
+void CoreControlFacade::refreshPreferences()
+{
+    m_preferences.refresh();
+}
+
+void CoreControlFacade::setValueWithinCapabilities()
+{
+    auto controlValue = m_lastSetCoreControlStatus.getNumActiveLogicalProcessors();
+    controlValue = std::min(m_capabilities.getStaticCaps().getTotalLogicalProcessors(), controlValue);
+    controlValue = std::max(m_capabilities.getDynamicCaps().getMinActiveCores(), controlValue);
+    controlValue = std::min(m_capabilities.getDynamicCaps().getMaxActiveCores(), controlValue);
+    setControl(CoreControlStatus(controlValue));
+}
+
+void CoreControlFacade::throwIfControlNotSupported()
+{
+    if (supportsCoreControls() == false)
+    {
+        throw dptf_exception("Cannot perform core control action because core controls \
+                             are not supported on the domain.");
     }
 }

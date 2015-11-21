@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,8 +20,9 @@
 #include "XmlNode.h"
 #include <algorithm>
 
-DomainDisplayControl_001::DomainDisplayControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainDisplayControl_001::DomainDisplayControl_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     initializeDataStructures();
 }
@@ -30,7 +31,6 @@ DomainDisplayControl_001::~DomainDisplayControl_001(void)
 {
     DELETE_MEMORY_TC(m_displayControlDynamicCaps);
     DELETE_MEMORY_TC(m_displayControlSet);
-    DELETE_MEMORY_TC(m_displayControlStatus);
 }
 
 DisplayControlDynamicCaps DomainDisplayControl_001::getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
@@ -42,22 +42,21 @@ DisplayControlDynamicCaps DomainDisplayControl_001::getDisplayControlDynamicCaps
 
 DisplayControlStatus DomainDisplayControl_001::getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    if (m_currentDisplayControlIndex == Constants::Invalid)
+    checkAndCreateControlStructures(domainIndex);
+
+    // FIXME : This primitive will return the brightness after ALS setting has been applied!
+
+    Percentage brightnessPercentage = getParticipantServices()->primitiveExecuteGetAsPercentage(
+        esif_primitive_type::GET_DISPLAY_BRIGHTNESS, domainIndex);
+
+    auto displayControlIndex = m_displayControlSet->getControlIndex(brightnessPercentage);
+
+    if (displayControlIndex != m_currentDisplayControlIndex)
     {
-        checkAndCreateControlStructures(domainIndex);
-
-        // FIXME : This primitive will return the brightness after ALS setting has been applied!
-
-        Percentage brightnessPercentage = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
-            esif_primitive_type::GET_DISPLAY_BRIGHTNESS_SOFT, domainIndex);
-
-        m_currentDisplayControlIndex = m_displayControlSet->getControlIndex(brightnessPercentage);
-
-        DELETE_MEMORY_TC(m_displayControlStatus);
-        m_displayControlStatus = new DisplayControlStatus(m_currentDisplayControlIndex);
+        m_currentDisplayControlIndex = displayControlIndex;
     }
 
-    return *m_displayControlStatus;
+    return DisplayControlStatus(m_currentDisplayControlIndex);
 }
 
 DisplayControlSet DomainDisplayControl_001::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
@@ -67,58 +66,42 @@ DisplayControlSet DomainDisplayControl_001::getDisplayControlSet(UIntN participa
     return *m_displayControlSet;
 }
 
-void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN displayControlIndex, Bool isOverridable)
+void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
 {
     checkAndCreateControlStructures(domainIndex);
 
     if (displayControlIndex == m_currentDisplayControlIndex)
     {
-        m_participantServicesInterface->writeMessageDebug(
+        getParticipantServices()->writeMessageDebug(
             ParticipantMessage(FLF, "Requested limit = current limit.  Ignoring."));
         return;
     }
 
     verifyDisplayControlIndex(displayControlIndex);
 
-    Percentage newBrightness = (*m_displayControlSet)[m_currentDisplayControlIndex].getBrightness();
+    Percentage newBrightness = (*m_displayControlSet)[displayControlIndex].getBrightness();
 
-    if (isOverridable == true)
-    {
-        m_participantServicesInterface->primitiveExecuteSetAsPercentage(
-            esif_primitive_type::SET_DISPLAY_BRIGHTNESS_SOFT,
-            newBrightness,
-            domainIndex);
-    }
-    else
-    {
-        m_participantServicesInterface->primitiveExecuteSetAsPercentage(
-            esif_primitive_type::SET_DISPLAY_BRIGHTNESS_HARD,
-            newBrightness,
-            domainIndex);
-    }
+    getParticipantServices()->primitiveExecuteSetAsPercentage(
+        esif_primitive_type::SET_DISPLAY_BRIGHTNESS,
+        newBrightness,
+        domainIndex);
 
-    // Refresh the status
+    // Refresh the current index
     m_currentDisplayControlIndex = displayControlIndex;
-    DELETE_MEMORY_TC(m_displayControlStatus);
-    m_displayControlStatus = new DisplayControlStatus(m_currentDisplayControlIndex);
 }
 
 void DomainDisplayControl_001::initializeDataStructures(void)
 {
     m_displayControlDynamicCaps = nullptr;
     m_displayControlSet = nullptr;
-    m_displayControlStatus = nullptr;
 
     m_currentDisplayControlIndex = Constants::Invalid;
-    m_displayControlStatus = new DisplayControlStatus(m_currentDisplayControlIndex);
 }
 
 void DomainDisplayControl_001::clearCachedData(void)
 {
-    delete m_displayControlDynamicCaps;
-    delete m_displayControlSet;
-    delete m_displayControlStatus;
+    DELETE_MEMORY_TC(m_displayControlDynamicCaps);
+    DELETE_MEMORY_TC(m_displayControlSet);
 
     initializeDataStructures();
 }
@@ -147,23 +130,23 @@ void DomainDisplayControl_001::createDisplayControlDynamicCaps(UIntN domainIndex
     //  to indices before they can be used.
 
     // FIXME:  ESIF treats this as a UInt32 but we treat this as a percentage.  Need to get this in sync.
-    uint32val = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    uint32val = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_DISPLAY_DEPTH_LIMIT, domainIndex);
-    Percentage lowerLimitBrightness = Percentage::fromWholeNumber(uint32val / 100);
+    Percentage lowerLimitBrightness = Percentage::fromWholeNumber(uint32val);
     lowerLimitIndex = m_displayControlSet->getControlIndex(lowerLimitBrightness);
 
     try
     {
         // FIXME:  ESIF treats this as a UInt32 but we treat this as a percentage.  Need to get this in sync.
-        uint32val = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        uint32val = getParticipantServices()->primitiveExecuteGetAsUInt32(
             esif_primitive_type::GET_DISPLAY_CAPABILITY, domainIndex);
-        Percentage upperLimitBrightness = static_cast<double>(uint32val) / 100.0;
+        Percentage upperLimitBrightness = Percentage::fromWholeNumber(uint32val);
         upperLimitIndex = m_displayControlSet->getControlIndex(upperLimitBrightness);
     }
     catch (...)
     {
         // DDPC is optional
-        m_participantServicesInterface->writeMessageDebug(
+        getParticipantServices()->writeMessageDebug(
             ParticipantMessage(FLF, "DDPC was not present.  Setting upper limit to 100."));
         upperLimitIndex = 0; // Max brightness
     }
@@ -182,7 +165,7 @@ void DomainDisplayControl_001::createDisplayControlDynamicCaps(UIntN domainIndex
     if (upperLimitIndex > lowerLimitIndex)
     {
         lowerLimitIndex = m_displayControlSet->getCount() - 1;
-        m_participantServicesInterface->writeMessageWarning(
+        getParticipantServices()->writeMessageWarning(
             ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
     }
 
@@ -192,46 +175,14 @@ void DomainDisplayControl_001::createDisplayControlDynamicCaps(UIntN domainIndex
 void DomainDisplayControl_001::createDisplayControlSet(UIntN domainIndex)
 {
     // _BCL Table
-
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    try
-    {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-
-    std::vector<DisplayControl> controls = BinaryParse::displayBclObject(dataLength, binaryData);
-
+    DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS, ESIF_DATA_BINARY, domainIndex);
+    std::vector<DisplayControl> controls = BinaryParse::displayBclObject(buffer);
     if (controls.size() == 0)
     {
-        binaryData.deallocate();
-
-        throw dptf_exception("P-state set is empty.  \
-                             Impossible if we support performance controls.");
+        throw dptf_exception("P-state set is empty. Impossible if we support performance controls.");
     }
-
     m_displayControlSet = new DisplayControlSet(processDisplayControlSetData(controls));
-
-    binaryData.deallocate();
 }
 
 void DomainDisplayControl_001::verifyDisplayControlIndex(UIntN displayControlIndex)
@@ -289,4 +240,9 @@ std::vector<DisplayControl> DomainDisplayControl_001::processDisplayControlSetDa
     std::reverse(brightnessSet.begin(), brightnessSet.end());
 
     return brightnessSet;
+}
+
+std::string DomainDisplayControl_001::getName(void)
+{
+    return "Display Control (Version 1)";
 }

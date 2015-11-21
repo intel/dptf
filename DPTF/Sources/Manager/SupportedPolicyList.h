@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,11 +31,11 @@ public:
     const Guid& operator[](UIntN index) const;
     Bool isPolicyValid(const Guid& guid) const;
 
+    // Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.
+    void update(void);
+
 private:
 
     DptfManager* m_dptfManager;
     std::vector<Guid> m_guid;
-
-    // Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.
-    void createSupportedPolicyList(void);
 };

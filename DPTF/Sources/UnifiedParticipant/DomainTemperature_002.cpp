@@ -1,0 +1,179 @@
+/******************************************************************************
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+**
+** Licensed under the Apache License, Version 2.0 (the "License"); you may not
+** use this file except in compliance with the License.
+**
+** You may obtain a copy of the License at
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+** WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+******************************************************************************/
+
+#include "DomainTemperature_002.h"
+#include "XmlNode.h"
+
+DomainTemperature_002::DomainTemperature_002(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface),
+    m_lastSetTemperature(Temperature::createInvalid())
+{
+}
+
+DomainTemperature_002::~DomainTemperature_002(void)
+{
+    clearCachedData();
+}
+
+TemperatureStatus DomainTemperature_002::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
+{
+    if (m_lastSetTemperature.isValid())
+    {
+        return m_lastSetTemperature;
+    }
+
+    getParticipantServices()->writeMessageWarning(
+        ParticipantMessage(FLF, "Last set temperature for virtual sensor is invalid."));
+    return TemperatureStatus(Temperature(0));
+}
+
+TemperatureThresholds DomainTemperature_002::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
+{
+    Temperature aux0 = getAuxTemperatureThreshold(domainIndex, 0);
+    Temperature aux1 = getAuxTemperatureThreshold(domainIndex, 1);
+    Temperature hysteresis = getHysteresis(domainIndex);
+    return TemperatureThresholds(aux0, aux1, hysteresis);
+}
+
+void DomainTemperature_002::setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex, const TemperatureThresholds& temperatureThresholds)
+{
+    try
+    {
+        Temperature aux0(temperatureThresholds.getAux0());
+        if (aux0.isValid() == false)
+        {
+            aux0 = 5;
+        }
+        getParticipantServices()->primitiveExecuteSetAsTemperatureC(
+            esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux0, domainIndex, 0);
+    }
+    catch (...)
+    {
+        // eat any errors here
+    }
+
+    try
+    {
+        Temperature aux1(temperatureThresholds.getAux1());
+        if (aux1.isValid() == false)
+        {
+            aux1 = 199;
+        }
+        getParticipantServices()->primitiveExecuteSetAsTemperatureC(
+            esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux1, domainIndex, 1);
+    }
+    catch (...)
+    {
+        // eat any errors here
+    }
+}
+
+DptfBuffer DomainTemperature_002::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+{
+    if (m_calibrationTableBuffer.size() == 0)
+    {
+        createCalibrationTableBuffer(domainIndex);
+    }
+
+    return m_calibrationTableBuffer;
+}
+
+DptfBuffer DomainTemperature_002::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+{
+    if (m_pollingTableBuffer.size() == 0)
+    {
+        createPollingTableBuffer(domainIndex);
+    }
+
+    return m_pollingTableBuffer;
+}
+
+Bool DomainTemperature_002::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+{
+    return true;
+}
+
+void DomainTemperature_002::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, 
+    const Temperature& temperature)
+{
+    getParticipantServices()->primitiveExecuteSetAsTemperatureC(
+            esif_primitive_type::SET_VIRTUAL_TEMPERATURE, temperature, domainIndex);
+    m_lastSetTemperature = temperature;
+}
+
+void DomainTemperature_002::clearCachedData(void)
+{
+    m_calibrationTableBuffer.allocate(0);
+    m_pollingTableBuffer.allocate(0);
+}
+
+std::string DomainTemperature_002::getName(void)
+{
+    return "Temperature Control (Version 2)";
+}
+
+XmlNode* DomainTemperature_002::getXml(UIntN domainIndex)
+{
+    XmlNode* root = XmlNode::createWrapperElement("temperature_control");
+    root->addChild(XmlNode::createDataElement("control_knob_version", "002"));
+
+    root->addChild(getTemperatureStatus(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getTemperatureThresholds(Constants::Invalid, domainIndex).getXml());
+
+    return root;
+}
+
+void DomainTemperature_002::createCalibrationTableBuffer(UIntN domainIndex)
+{
+    m_calibrationTableBuffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_VIRTUAL_SENSOR_CALIB_TABLE, ESIF_DATA_BINARY, domainIndex);
+}
+
+void DomainTemperature_002::createPollingTableBuffer(UIntN domainIndex)
+{
+    m_pollingTableBuffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_VIRTUAL_SENSOR_POLLING_TABLE, ESIF_DATA_BINARY, domainIndex);
+}
+
+Temperature DomainTemperature_002::getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber)
+{
+    try
+    {
+        return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
+            esif_primitive_type::GET_TEMPERATURE_THRESHOLDS, domainIndex, auxNumber);
+    }
+    catch (...)
+    {
+        return Temperature(0);
+    }
+}
+
+Temperature DomainTemperature_002::getHysteresis(UIntN domainIndex)
+{
+    try
+    {
+        return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
+            esif_primitive_type::GET_TEMPERATURE_THRESHOLD_HYSTERESIS,
+            domainIndex);
+    }
+    catch (...)
+    {
+        return Temperature(0);
+    }
+}

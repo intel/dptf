@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,10 +27,11 @@
 #include "PassiveTripPointsCachedProperty.h"
 #include "DomainProxy.h"
 #include "TimeInterface.h"
+#include "ParticipantProxyInterface.h"
 
 // represents a participant.  contains cached records of participant properties and a list of domains contained within
 // the participant.
-class dptf_export ParticipantProxy
+class dptf_export ParticipantProxy : public ParticipantProxyInterface
 {
 public:
 
@@ -42,40 +43,51 @@ public:
     ~ParticipantProxy();
 
     // domain access
-    DomainProxy& bindDomain(UIntN domainIndex);
-    void unbindDomain(UIntN domainIndex);
-    DomainProxy& operator[](UIntN domainIndex);
-    std::vector<UIntN> getDomainIndexes();
+    virtual DomainProxyInterface* bindDomain(UIntN domainIndex) override;
+    virtual void unbindDomain(UIntN domainIndex) override;
+    virtual DomainProxyInterface* getDomain(UIntN domainIndex) override;
+    virtual std::vector<UIntN> getDomainIndexes() override;
 
     // properties
-    UIntN getIndex() const;
-    const DomainPropertiesSet& getDomainPropertiesSet();
-    const ParticipantProperties& getParticipantProperties();
+    virtual UIntN getIndex() const override;
+    virtual const DomainPropertiesSet& getDomainPropertiesSet() override;
+    virtual const ParticipantProperties& getParticipantProperties() override;
 
     // trip point sets
-    CriticalTripPointsCachedProperty& getCriticalTripPointProperty();
-    ActiveTripPointsCachedProperty& getActiveTripPointProperty();
-    PassiveTripPointsCachedProperty& getPassiveTripPointProperty();
+    virtual CriticalTripPointsCachedProperty& getCriticalTripPointProperty() override;
+    virtual ActiveTripPointsCachedProperty& getActiveTripPointProperty() override;
+    virtual PassiveTripPointsCachedProperty& getPassiveTripPointProperty() override;
+    virtual XmlNode* getXmlForCriticalTripPoints() override;
+    virtual XmlNode* getXmlForActiveTripPoints() override;
+    virtual XmlNode* getXmlForPassiveTripPoints() override;
 
     // temperatures
-    Bool supportsTemperatureInterface();
-    void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound);
-    TemperatureThresholds getTemperatureThresholds();
-    void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature);
-    void refreshHysteresis();
+    virtual Bool supportsTemperatureInterface()  override;
+    virtual Temperature getFirstDomainTemperature() override;
+    virtual void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound) override;
+    virtual TemperatureThresholds getTemperatureThresholds() override;
+    virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) override;
+    XmlNode* getXmlForTripPointStatistics();
+    virtual void refreshHysteresis() override;
+    virtual void refreshVirtualSensorTables() override;
 
     // thresholds
-    void setThresholdCrossed(const Temperature& temperature, UInt64 timestampInMs);
-    UInt64 getTimeOfLastThresholdCrossed() const;
-    Temperature getTemperatureOfLastThresholdCrossed() const;
+    virtual void setThresholdCrossed(const Temperature& temperature, UInt64 timestampInMs) override;
+    virtual UInt64 getTimeOfLastThresholdCrossed() const override;
+    virtual Temperature getTemperatureOfLastThresholdCrossed() const override;
 
-    // status
-    XmlNode* getXmlForCriticalTripPoints();
-    XmlNode* getXmlForActiveTripPoints();
-    XmlNode* getXmlForPassiveTripPoints();
-    XmlNode* getXmlForPassiveControlKnobs();
-    XmlNode* getXmlForTripPointStatistics();
-    XmlNode* getXmlForConfigTdpLevel();
+    // capabilities
+    virtual Bool hasSetDscpSupported() override;
+    virtual Bool hasSetScpSupported() override;
+    virtual Bool supportsDscp() override;
+    virtual Bool supportsScp() override;
+    virtual void setDscpSupport(Bool dscpSupported) override;
+    virtual void setScpSupport(Bool scpSupported) override;
+    virtual void setCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
+    virtual XmlNode* getXmlForScpDscpSupport() override;
+    virtual XmlNode* getXmlForPassiveControlKnobs() override;
+    virtual XmlNode* getXmlForConfigTdpLevel() override;
+
 private:
 
     // participant properties
@@ -90,14 +102,22 @@ private:
     std::map<UIntN, DomainProxy> m_domains;
     void refreshDomainSetIfUninitialized();
     void refreshDomains();
-    DomainProxy& getDomain(UIntN domainIndex);
 
     // Temperatures
+    Temperature getTemperatureForStatus(DomainProxyInterface* domainProxy);
+    TemperatureThresholds getTemperatureThresholdsForStatus();
+
     Temperature m_previousLowerBound;
     Temperature m_previousUpperBound;
     Temperature m_lastIndicationTemperatureLowerBound;
     Temperature m_lastThresholdCrossedTemperature;
     UInt64 m_timeOfLastThresholdCrossed;
+
+    // capabilities
+    Bool m_supportsDscp;
+    Bool m_supportsDscpValid;
+    Bool m_supportsScp;
+    Bool m_supportsScpValid;
 
     // services
     PolicyServicesInterfaceContainer m_policyServices;

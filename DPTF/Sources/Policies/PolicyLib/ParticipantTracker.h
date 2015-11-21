@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,28 +22,28 @@
 #include "ParticipantProxy.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "TimeInterface.h"
+#include "ParticipantTrackerInterface.h"
 
 // keeps track of participants as they come and go on the system.
-class dptf_export ParticipantTracker
+class dptf_export ParticipantTracker : public ParticipantTrackerInterface
 {
 public:
 
     ParticipantTracker();
     ~ParticipantTracker();
 
-    // participant tracking
-    void remember(UIntN participantIndex);
-    bool remembers(UIntN participantIndex);
-    void forget(UIntN participantIndex);
-    ParticipantProxy& operator[](UIntN participantIndex);
-    std::vector<UIntN> getAllTrackedIndexes() const;
+    virtual void remember(UIntN participantIndex) override;
+    virtual Bool remembers(UIntN participantIndex) override;
+    virtual void forget(UIntN participantIndex) override;
+    virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) override;
+    virtual std::vector<UIntN> getAllTrackedIndexes() const override;
+    virtual void setPolicyServices(PolicyServicesInterfaceContainer policyServices) override;
+    virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
 
-    // services
-    void setPolicyServices(PolicyServicesInterfaceContainer policyServices);
-    void setTimeServiceObject(std::shared_ptr<TimeInterface> time);
+    virtual XmlNode* getXmlForTripPointStatistics() override;
+    virtual XmlNode* getXmlForScpDscpSupport() override;
 
-    // status
-    XmlNode* getXmlForTripPointStatistics();
+    virtual DomainProxyInterface* findDomain(DomainType::Type domainType);
 
 protected:
 

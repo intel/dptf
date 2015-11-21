@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,8 +18,9 @@
 
 #include "DomainPixelClockControl_001.h"
 
-DomainPixelClockControl_001::DomainPixelClockControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainPixelClockControl_001::DomainPixelClockControl_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainPixelClockControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -30,7 +31,7 @@ DomainPixelClockControl_001::~DomainPixelClockControl_001(void)
 void DomainPixelClockControl_001::setPixelClockControl(UIntN participantIndex, UIntN domainIndex,
     const PixelClockDataSet& pixelClockDataSet)
 {
-    UInt32 clockCount = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+    UInt32 clockCount = getParticipantServices()->primitiveExecuteGetAsUInt32(
         esif_primitive_type::GET_CLOCK_COUNT, domainIndex);
 
     if (clockCount != pixelClockDataSet.getCount())
@@ -40,11 +41,11 @@ void DomainPixelClockControl_001::setPixelClockControl(UIntN participantIndex, U
 
     for (UIntN i = 0; i < pixelClockDataSet.getCount(); i++)
     {
-        m_participantServicesInterface->primitiveExecuteSetAsUInt64(
-            esif_primitive_type::SET_CLOCK_SSC_ENABLED, pixelClockDataSet[i].getSscEnabledNudgeFrequency(),
+        getParticipantServices()->primitiveExecuteSetAsUInt64(
+            esif_primitive_type::SET_DISPLAY_CLOCK_SSC_ENABLED_FREQUENCY, pixelClockDataSet[i].getSscEnabledNudgeFrequency(),
             domainIndex, static_cast<UInt8>(i));
-        m_participantServicesInterface->primitiveExecuteSetAsUInt64(
-            esif_primitive_type::SET_CLOCK_SSC_DISABLED, pixelClockDataSet[i].getSscDisabledNudgeFrequency(),
+        getParticipantServices()->primitiveExecuteSetAsUInt64(
+            esif_primitive_type::SET_DISPLAY_CLOCK_SSC_DISABLED_FREQUENCY, pixelClockDataSet[i].getSscDisabledNudgeFrequency(),
             domainIndex, static_cast<UInt8>(i));
     }
 }
@@ -58,4 +59,9 @@ XmlNode* DomainPixelClockControl_001::getXml(UIntN domainIndex)
 {
     // FIXME;
     throw implement_me();
+}
+
+std::string DomainPixelClockControl_001::getName(void)
+{
+    return "Pixel Clock Control (Version 1)";
 }

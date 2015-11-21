@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,13 +17,9 @@
 ******************************************************************************/
 
 #include "Dptf.h"
-#include "Ver.h"
-#include "esif.h"
-#include "esif_uf_app_iface.h"
-#include "esif_uf_iface.h"
-#include "esif_uf_esif_iface.h"
-#include "esif_uf_app_event_type.h"
-#include "esif_data_misc.h"
+#include "DptfVer.h"
+#include "esif_sdk_iface_app.h"
+#include "esif_sdk_iface_esif.h"
 #include "DptfManager.h"
 #include "PolicyManager.h"
 #include "ParticipantManager.h"
@@ -77,23 +73,23 @@ static const Guid DptfAppGuid(0x8f, 0x0d, 0x8c, 0x59, 0xad, 0x8d, 0x4d, 0x82, 0x
 
 extern "C"
 {
-    static eEsifError GetDptfAbout(esif::EsifDataPtr dataPtr)
+    static eEsifError GetDptfAbout(EsifDataPtr dataPtr)
     {
         return FillDataPtrWithString(dataPtr, "About DPTF");
     }
 
-    static eEsifError GetDptfDescription(esif::EsifDataPtr dataPtr)
+    static eEsifError GetDptfDescription(EsifDataPtr dataPtr)
     {
         return FillDataPtrWithString(dataPtr, "DPTF application description");
     }
 
-    static eEsifError GetDptfGuid(esif::EsifDataPtr appGuidPtr)
+    static eEsifError GetDptfGuid(EsifDataPtr appGuidPtr)
     {
+        appGuidPtr->data_len = ESIF_GUID_LEN;
         if (appGuidPtr->buf_len >= ESIF_GUID_LEN)
         {
             appGuidPtr->type = ESIF_DATA_GUID;
             esif_ccb_memcpy(appGuidPtr->buf_ptr, DptfAppGuid, ESIF_GUID_LEN);
-            appGuidPtr->data_len = ESIF_GUID_LEN;
             return ESIF_OK;
         }
         else
@@ -102,12 +98,12 @@ extern "C"
         }
     }
 
-    static eEsifError GetDptfName(esif::EsifDataPtr dataPtr)
+    static eEsifError GetDptfName(EsifDataPtr dataPtr)
     {
         return FillDataPtrWithString(dataPtr, "DPTF");
     }
 
-    static eEsifError GetDptfVersion(esif::EsifDataPtr dataPtr)
+    static eEsifError GetDptfVersion(EsifDataPtr dataPtr)
     {
         return FillDataPtrWithString(dataPtr, VERSION_STR);
     }
@@ -216,7 +212,7 @@ extern "C"
         return rc;
     }
 
-    static eEsifError DptfSuspend(const void* appHandle)
+    static eEsifError DptfSuspend(void* appHandle)
     {
         return ESIF_OK;
 
@@ -255,7 +251,7 @@ extern "C"
         //return rc;
     }
 
-    static eEsifError DptfResume(const void* appHandle)
+    static eEsifError DptfResume(void* appHandle)
     {
         DptfManager* dptfManager = (DptfManager*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
@@ -277,22 +273,50 @@ extern "C"
         return rc;
     }
 
-    static eEsifError GetDptfBanner(const void* appHandle, esif::EsifDataPtr dataPtr)
+    static eEsifError GetDptfBanner(const void* appHandle, EsifDataPtr dataPtr)
     {
         return FillDataPtrWithString(dataPtr, "DPTF application banner");
     }
 
-    static eEsifError GetDptfPrompt(const void* appHandle, esif::EsifDataPtr dataPtr)
+    static eEsifError GetDptfPrompt(const void* appHandle, EsifDataPtr dataPtr)
     {
         // FIXME:  Remove this from ESIF interface.
         return FillDataPtrWithString(dataPtr, "DPTF application prompt [not supported]");
     }
 
-    static eEsifError DptfCommand(const void* appHandle, const esif::EsifDataPtr request,
-        const esif::EsifDataPtr response, esif_string appParseContext)
+    static eEsifError DptfCommand(const void* appHandle, const EsifDataPtr request,
+        const EsifDataPtr response, esif_string appParseContext)
     {
-        // FIXME:  Remove this from ESIF interface.
-        return ESIF_E_NOT_SUPPORTED;
+        // Until now (19 Dec 2014), this function was unused by ESIF and no usage was in the POR. In fact the 
+        // comment here was to remove the function. The Automation,
+        // (LiveTest ABAT) has found a use for it, but only one so far, to initiate a policy reload for testing purposes.
+        // There exists no messaging standardized communication language, protocol or syntax for use on entry here.
+        // In the absence of that, the test will use this function for one thing only, and will therefore us ony 2 entry 
+        // parameters. The apphandle, and the request->buf_ptr. The code will look for a GET_SUPPORTED_POLICIES primitive
+        // in the request pointer, and on receiveing it will initiate a policy reload. 
+        // TODO - If more usages are needed later, we  address standardization.
+
+        esif_primitive_type requestedOperation = *(esif_primitive_type*)request->buf_ptr;
+
+        if (requestedOperation == GET_SUPPORTED_POLICIES)
+        {
+            DptfManager* dptfManager = (DptfManager*)appHandle;
+            RETURN_ERROR_IF_CONTEXT_DATA_NULL;
+            RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
+            RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+
+            try
+            {
+                WorkItem* workItem = new WIPolicyReload(dptfManager);
+                dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
+            }
+            catch (...)
+            {
+                return ESIF_E_UNSPECIFIED;
+            }
+        }
+
+        return ESIF_OK;
     }
 
     static eEsifError SetDptfState(const void* appHandle, const eAppState appState)
@@ -302,7 +326,7 @@ extern "C"
     }
 
     static eEsifError GetDptfStatus(const void* appHandle, const eAppStatusCommand command,
-        const UInt32 appStatusIn, esif::EsifDataPtr appStatusOut)
+        const UInt32 appStatusIn, EsifDataPtr appStatusOut)
     {
         DptfManager* dptfManager = (DptfManager*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
@@ -513,7 +537,7 @@ extern "C"
     }
 
     static eEsifError DptfEvent(const void* appHandle, const void* participantHandle, const void* domainHandle,
-        const esif::EsifDataPtr esifEventDataPtr, const esif::EsifDataPtr eventGuid)
+        const EsifDataPtr esifEventDataPtr, const EsifDataPtr eventGuid)
     {
         DptfManager* dptfManager = (DptfManager*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
@@ -540,7 +564,7 @@ extern "C"
             return ESIF_E_UNSPECIFIED;
         }
 
-        IndexContainer* idx = dptfManager->getIndexContainer();
+        IndexContainerInterface* idx = dptfManager->getIndexContainer();
         UIntN participantIndex = idx->getIndex((IndexStructPtr)participantHandle);
         UIntN domainIndex = idx->getIndex((IndexStructPtr)domainHandle);
 
@@ -619,6 +643,42 @@ extern "C"
             case FrameworkEvent::DomainTemperatureThresholdCrossed:
                 wi = new WIDomainTemperatureThresholdCrossed(dptfManager, participantIndex, domainIndex);
                 break;
+            case FrameworkEvent::DomainVirtualSensorCalibrationTableChanged:
+                wi = new WIDomainVirtualSensorCalibrationTableChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainVirtualSensorPollingTableChanged:
+                wi = new WIDomainVirtualSensorPollingTableChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainVirtualSensorRecalcChanged:
+                wi = new WIDomainVirtualSensorRecalcChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainBatteryStatusChanged:
+                wi = new WIDomainBatteryStatusChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainAdapterPowerChanged:
+                wi = new WIDomainAdapterPowerChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPlatformPowerConsumptionChanged:
+                wi = new WIDomainPlatformPowerConsumptionChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPlatformPowerSourceChanged:
+                wi = new WIDomainPlatformPowerSourceChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainAdapterPowerRatingChanged:
+                wi = new WIDomainAdapterPowerRatingChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainChargerTypeChanged:
+                wi = new WIDomainChargerTypeChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPlatformRestOfPowerChanged:
+                wi = new WIDomainPlatformRestOfPowerChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainACPeakPowerChanged:
+                wi = new WIDomainACPeakPowerChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainACPeakTimeWindowChanged:
+                wi = new WIDomainACPeakTimeWindowChanged(dptfManager, participantIndex, domainIndex);
+                break;
             case FrameworkEvent::PolicyActiveRelationshipTableChanged:
                 wi = new WIPolicyActiveRelationshipTableChanged(dptfManager);
                 break;
@@ -645,6 +705,30 @@ extern "C"
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 wi = new WIPolicyOperatingSystemLpmModeChanged(dptfManager, uint32param);
                 break;
+            case FrameworkEvent::PolicyOperatingSystemHdcStatusChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemHdcStatusChanged(dptfManager, (OsHdcStatus::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyOperatingSystemPowerSourceChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemPowerSourceChanged(dptfManager, (OsPowerSource::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyOperatingSystemLidStateChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemLidStateChanged(dptfManager, (OsLidState::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyOperatingSystemBatteryPercentageChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemBatteryPercentageChanged(dptfManager, uint32param);
+                break;
+            case FrameworkEvent::PolicyOperatingSystemPlatformTypeChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemPlatformTypeChanged(dptfManager, (OsPlatformType::Type)uint32param);
+                break;
+            case FrameworkEvent::PolicyOperatingSystemDockModeChanged:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemDockModeChanged(dptfManager, (OsDockMode::Type)uint32param);
+                break;
             case FrameworkEvent::PolicyPassiveTableChanged:
                 wi = new WIPolicyPassiveTableChanged(dptfManager);
                 break;
@@ -655,9 +739,9 @@ extern "C"
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 wi = new WIPolicySensorOrientationChanged(dptfManager, (SensorOrientation::Type)uint32param);
                 break;
-            case FrameworkEvent::PolicySensorProximityChanged:
+            case FrameworkEvent::PolicySensorMotionChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
-                wi = new WIPolicySensorProximityChanged(dptfManager, (SensorProximity::Type)uint32param);
+                wi = new WIPolicySensorMotionChanged(dptfManager, (SensorMotion::Type)uint32param);
                 break;
             case FrameworkEvent::PolicySensorSpatialOrientationChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -666,12 +750,30 @@ extern "C"
             case FrameworkEvent::PolicyThermalRelationshipTableChanged:
                 wi = new WIPolicyThermalRelationshipTableChanged(dptfManager);
                 break;
+            case FrameworkEvent::PolicyAdaptivePerformanceConditionsTableChanged:
+                wi = new WIPolicyAdaptivePerformanceConditionsTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyAdaptivePerformanceActionsTableChanged:
+                wi = new WIPolicyAdaptivePerformanceActionsTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyOemVariablesChanged:
+                wi = new WIPolicyOemVariablesChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyPowerDeviceRelationshipTableChanged:
+                wi = new WIPolicyPowerDeviceRelationshipTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyPowerBossConditionsTableChanged:
+                wi = new WIPolicyPowerBossConditionsTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyPowerBossActionsTableChanged:
+                wi = new WIPolicyPowerBossActionsTableChanged(dptfManager);
+                break;
             default:
                 {
                     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Received unexpected event");
                     message.setParticipantAndDomainIndex(participantIndex, domainIndex);
                     message.setFrameworkEvent(frameworkEvent);
-                    dptfManager->getEsifServices()->writeMessageError(message);
+                    dptfManager->getEsifServices()->writeMessageWarning(message);
                     rc = ESIF_E_NOT_SUPPORTED;
                     break;
                 }

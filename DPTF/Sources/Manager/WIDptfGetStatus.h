@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,14 +20,14 @@
 
 #include "Dptf.h"
 #include "WorkItem.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 
 class WIDptfGetStatus : public WorkItem
 {
 public:
 
-    WIDptfGetStatus(DptfManager* dptfManager, const eAppStatusCommand command,
-        const UInt32 appStatusIn, esif::EsifDataPtr appStatusOut, eEsifError* returnCode);
+    WIDptfGetStatus(DptfManagerInterface* dptfManager, const eAppStatusCommand command,
+        const UInt32 appStatusIn, EsifDataPtr appStatusOut, eEsifError* returnCode);
     virtual ~WIDptfGetStatus(void);
 
     virtual void execute(void) override final;
@@ -36,6 +36,6 @@ private:
 
     const eAppStatusCommand m_command;
     const UInt32 m_appStatusIn;
-    esif::EsifDataPtr m_appStatusOut;
+    EsifDataPtr m_appStatusOut;
     eEsifError* m_returnCode;
 };

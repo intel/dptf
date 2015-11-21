@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,8 +42,8 @@ void CriticalPolicyStatistics::shutdownSignalled()
 XmlNode* CriticalPolicyStatistics::getXml()
 {
     XmlNode* node = XmlNode::createWrapperElement("critical_policy_statistics");
-    node->addChild(XmlNode::createDataElement("sleep_signaled", std::to_string(m_numberOfTimesSleepSignalled)));
-    node->addChild(XmlNode::createDataElement("hibernate_signaled", std::to_string(m_numberOfTimesHibernateSignalled)));
-    node->addChild(XmlNode::createDataElement("shutdown_signaled", std::to_string(m_numberOfTimesShutdownSignalled)));
+    node->addChild(XmlNode::createDataElement("sleep_signaled", StlOverride::to_string(m_numberOfTimesSleepSignalled)));
+    node->addChild(XmlNode::createDataElement("hibernate_signaled", StlOverride::to_string(m_numberOfTimesHibernateSignalled)));
+    node->addChild(XmlNode::createDataElement("shutdown_signaled", StlOverride::to_string(m_numberOfTimesShutdownSignalled)));
     return node;
 }

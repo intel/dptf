@@ -16,8 +16,7 @@
 **
 ******************************************************************************/
 
-#ifndef _ESIF_UF_ACTION_
-#define _ESIF_UF_ACTION_
+#pragma once
 
 #include "esif.h"
 #include "esif_uf_action_iface.h"
@@ -36,33 +35,80 @@ typedef enum DataItemType_e {
 } DataItemType, *DataItemTypePtr;
 
 
-/* Map App Data To ESIF Prticipants */
-typedef struct EsifAct_s {
-	void  *fHandle;			/* The Action Handle Opaque To Us */
-	EsifActInterface  fInterface;		/* The Action Interface */
-	EsifString fLibNamePtr;		/* The Name Of The Library To Load */
-	esif_lib_t fLibHandle;		/* Loadable Library Handle */
-} EsifAct, *EsifActPtr, **EsifActPtrLocation;
-
 
 typedef struct DataItem_s {
 	UInt8 data_type;
 	UInt16 data_length_in_bytes;
 	UInt8 data[1];
-} DataItem, *DataItemPtr, **DataItemPtrLocation;
+} DataItem, *DataItemPtr;
 
+
+typedef struct EsifAct_s {
+	enum esif_action_type type; /* Quick access to the type defined by the interface */
+	UInt8 upInstace; /* Upper participant instance */
+	esif_context_t actCtx; /* Context for the action associated with a specific participant */
+
+	Bool isPlugin;
+	Bool createCalled;
+
+	EsifActIface iface;
+
+	/* life control */
+	UInt32 refCount;		
+	Bool markedForDelete;
+	esif_ccb_event_t deleteEvent;
+	esif_ccb_lock_t objLock;
+} EsifAct, *EsifActPtr;
+
+
+#pragma pack(push, 1)
+
+typedef union ActionHandle_u{
+	struct {
+		UInt32 type:16;
+		UInt32 upInstance:8;
+		UInt32 rsvd:8;
+	}s;
+	UInt32 asDword;
+} ActionHandle, *ActionHandlePtr;
+
+#pragma pack(pop)
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Control */
-eEsifError EsifActStart(EsifActPtr actPtr);
-eEsifError EsifActStop(EsifActPtr actPtr);
 
-/* Init/Exit */
-eEsifError EsifActInit(void);
-void EsifActExit(void);
+/*
+ * EsifAct object public interface
+ */
+
+/*
+ * Takes an additional reference on an action object.  (The function is
+ * called for you by the Action Manager when one of the functions are
+ * called which returns a pointer to an action.)  After using the
+ * action, EsifAct_PutRef must be called to release the reference.
+ */
+eEsifError EsifAct_GetRef(EsifActPtr self);
+
+/*
+ * Releases a reference on an action object.  This function should be
+ * called when done using an action pointer obtained through any of the
+ * Action Manager interfaces.
+ */
+void EsifAct_PutRef(EsifActPtr self);
+
+EsifActIfacePtr EsifAct_GetIface(EsifActPtr self);
+EsifActIfaceVer EsifAct_GetIfaceVersion(EsifActPtr self);
+enum esif_action_type EsifAct_GetType(EsifActPtr self);
+EsifString EsifAct_GetName(EsifActPtr self);
+EsifString EsifAct_GetDesc(EsifActPtr self);
+UInt16 EsifAct_GetVersion(EsifActPtr self);
+Bool EsifAct_IsPlugin(EsifActPtr self);
+esif_context_t EsifAct_GetActCtx(EsifActPtr self);
+
+
+/* Control */
 
 eEsifError EsifActConfigInit(void);
 void EsifActConfigExit(void);
@@ -72,53 +118,45 @@ void EsifActConstExit(void);
 
 eEsifError EsifActSystemInit(void);
 void EsifActSystemExit(void);
+
 eEsifError EsifActDelegateInit(void);
 void EsifActDelegateExit(void);
 
-eEsifError EsifActSysfsInit(void);
-void EsifActSysfsExit(void);
-
-eEsifError EsifActionGetParams(
-	EsifFpcActionPtr actionPtr,
+eEsifError EsifFpcAction_GetParams(
+	EsifFpcActionPtr fpcActionPtr,
 	EsifDataPtr paramsPtr,
 	UInt8 numParams
 	);
 
-eEsifError EsifActionGetParamAsEsifData(
-	EsifFpcActionPtr actionPtr,
+eEsifError EsifFpcAction_GetParamAsEsifData(
+	EsifFpcActionPtr fpcActionPtr,
 	UInt8 paramNum,
 	EsifDataPtr paramPtr
 	);
 
-EsifString EsifActionCreateTokenReplacedParamString(
-	const EsifString paramStr,
-	const EsifUpPtr upPtr,
-	const EsifFpcPrimitivePtr primitivePtr
-	);
-
-DataItemPtr EsifActionGetParam(
-	const EsifFpcActionPtr actionPtr,
+DataItemPtr EsifFpcAction_GetParam(
+	const EsifFpcActionPtr fpcActionPtr,
 	const UInt8 paramNum
 	);
 
 eEsifError EsifActCallPluginGet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	ActExecuteGetFunction actGetFuncPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	);
 
 eEsifError EsifActCallPluginSet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	ActExecuteSetFunction actSetFuncPtr,
 	const EsifDataPtr requestPtr
 	);
 
-eEsifError EsifActionCopyIntToBufBySize(
+eEsifError EsifCopyIntToBufBySize(
 	size_t typeSize,
 	void *dstPtr,
 	u64 val
@@ -128,7 +166,6 @@ eEsifError EsifActionCopyIntToBufBySize(
 }
 #endif
 
-#endif	// _ESIF_UF_ACTION_
 
 /*****************************************************************************/
 /*****************************************************************************/

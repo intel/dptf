@@ -19,11 +19,13 @@
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_ACTION
 
 #include "esif_uf.h"			/* Upper Framework */
+#include "esif_sdk_iface_upe.h"
 #include "esif_sdk_iface_esif.h"	/* ESIF Services Interface */
 #include "esif_uf_actmgr.h"		/* Action Manager */
-#include "esif_uf_service.h"	/* ESIF Service */
 #include "esif_uf_primitive.h"
 #include "esif_uf_action.h"
+#include "esif_uf_service.h"
+#include "esif_uf_eventmgr.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -34,238 +36,667 @@
 #include "win\banned.h"
 #endif
 
-#ifndef ESIF_FEAT_OPT_ACTION_SYSFS
-#define EsifActSysfsExit()
-#define EsifActSysfsInit()
-#endif
-#define ACTION_DEBUG ESIF_DEBUG
+/*
+ * PUBLIC FRIEND FUNCTIONS
+ */
+eEsifError EsifAct_CreateAction(
+	EsifActIfacePtr actIfacePtr,
+	UInt8 upInstance,
+	EsifActPtr *actPtr
+	);
 
-typedef eEsifError (ESIF_CALLCONV *GetIfaceFuncPtr)(EsifActInterfacePtr);
+void EsifAct_DestroyAction(EsifActPtr actPtr);
+
+eEsifError EsifActIface_GetType(
+	EsifActIfacePtr self,
+	enum esif_action_type *typePtr
+	);
+	
+void EsifAct_MarkAsPlugin(EsifActPtr self);
+
 
 /*
- * Need to move to header POC.  Also don't forget to free returned
- * memory JDH
+ * PRIVATE FUNCTION PROTOTYPES
  */
-extern char *esif_str_replace(char *orig, char *rep, char *with);
+UInt16 EsifActIface_Sizeof(EsifActIfaceVer fIfaceVersion);
+static UInt16 EsifActIface_GetVersion(EsifActIfacePtr self);
+static EsifString EsifActIface_GetDesc(EsifActIfacePtr self);
+static EsifString EsifActIface_GetName(EsifActIfacePtr self);
+static eEsifError EsifAct_CallIfaceDestroy(EsifActPtr self);
+static eEsifError EsifAct_CallIfaceCreate(EsifActPtr self);
+static eEsifError EsifAct_RegisterEvents(EsifActPtr self);
+static void EsifAct_UnregisterEvents(EsifActPtr self);
 
-static eEsifError ActionCreate(
-	EsifActPtr actionPtr,
-	GetIfaceFuncPtr ifaceFuncPtr
+static eEsifError EsifActIface_RegisterEvents(
+	EsifActIfacePtr self,
+	esif_handle_t esifInstHandle
+	);
+
+static void EsifActIface_UnregisterEvents(
+	EsifActIfacePtr self,
+	esif_handle_t esifInstHandle
+	);
+	
+static eEsifError ESIF_CALLCONV EsifActWriteLogHandler(
+	const EsifDataPtr message,
+	const eLogType logType
+	);
+
+static eEsifError ESIF_CALLCONV EsifAct_EventCallback(
+	void *contextPtr,
+	UInt8 upInstance,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	);
+
+static eEsifError EsifActIface_SendIfaceEvent(
+	EsifActIfacePtr ifacePtr,
+	esif_context_t actCtx,
+	enum esif_event_type eventType,
+	UInt16 domainId,
+	EsifDataPtr eventDataPtr
+	);
+	
+static eEsifError ESIF_CALLCONV EsifActIface_ReceiveEventV1(
+	const esif_handle_t esifInstHandle,
+	enum esif_event_type eventType,
+	UInt16 domain,
+	const EsifDataPtr dataPtr
+	);
+
+
+/*
+ * FUNCTION DEFINITIONS
+ */
+eEsifError EsifAct_CreateAction(
+	EsifActIfacePtr actIfacePtr,
+	UInt8 upInstance,
+	EsifActPtr *actPtr
 	)
 {
 	eEsifError rc = ESIF_OK;
-	EsifActTypePtr action_type_ptr = NULL;
-	EsifData p1   = {ESIF_DATA_STRING, "action_iD", sizeof("action_id")};
-	EsifData p2   = {ESIF_DATA_STRING, "domain_qualifier", sizeof("domain_qaulifier")};
-	EsifData p3   = {ESIF_DATA_UINT32, "kernel_abi_type", sizeof("Kernel_abi_type")};
-	EsifData p4   = {ESIF_DATA_UINT8, "mode", sizeof("mode")};
+	EsifActPtr newActPtr = NULL;
+	enum esif_action_type actionType;
+	UInt16 intfcSize = 0;
 
-	char name[ESIF_NAME_LEN] = {0};
-	ESIF_DATA(data_name, ESIF_DATA_STRING, name, ESIF_NAME_LEN);
-
-	char desc[ESIF_DESC_LEN] = {0};
-	ESIF_DATA(data_desc, ESIF_DATA_STRING, desc, ESIF_DESC_LEN);
-
-	char version[ESIF_DESC_LEN] = {0};
-	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_DESC_LEN);
-
-	UInt32 action_type_id = 0;
-	EsifData action_type  = {ESIF_DATA_UINT32, &action_type_id, sizeof(action_type_id), 0};
-
-	esif_guid_t guid   = {0};
-	EsifData data_guid = {ESIF_DATA_GUID, &guid, sizeof(guid), 0};
-
-	EsifString act_type_ptr = NULL;
-	EsifInterface act_service_iface;
-
-	ESIF_ASSERT(actionPtr != NULL);
-	ESIF_ASSERT(ifaceFuncPtr != NULL);
-
-	/* Assign the EsifInterface Functions */
-	act_service_iface.fIfaceType              = eIfaceTypeEsifService;
-	act_service_iface.fIfaceVersion           = 1;
-	act_service_iface.fIfaceSize              = (UInt16)sizeof(EsifInterface);
-
-	act_service_iface.fGetConfigFuncPtr       = EsifSvcConfigGet;
-	act_service_iface.fSetConfigFuncPtr       = EsifSvcConfigSet;
-	act_service_iface.fPrimitiveFuncPtr       = EsifSvcPrimitiveExec;
-	act_service_iface.fWriteLogFuncPtr        = EsifSvcWriteLog;
-	act_service_iface.fRegisterEventFuncPtr   = EsifSvcEventRegister;
-	act_service_iface.fUnregisterEventFuncPtr = EsifSvcEventUnregister;
-
-	/* GetApplicationInterface Handleshake send ESIF receive APP Interface */
-	rc = ifaceFuncPtr(&actionPtr->fInterface);
-	if (ESIF_OK != rc) {
+	if ((NULL == actIfacePtr) || (NULL == actPtr)){
+		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	/* Check EsifAppInterface */
-	if (actionPtr->fInterface.fIfaceType != eIfaceTypeAction ||
-		actionPtr->fInterface.fIfaceSize != (UInt16)sizeof(EsifActInterface) ||
-		actionPtr->fInterface.fIfaceVersion != 1 ||
-
-		/* Functions Pointers */
-		actionPtr->fInterface.fActCreateFuncPtr == NULL ||
-		actionPtr->fInterface.fActDestroyFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetAboutFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetDescriptionFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetIDFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetGuidFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetNameFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetStateFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetStatusFuncPtr == NULL ||
-		actionPtr->fInterface.fActGetVersionFuncPtr == NULL ||
-		actionPtr->fInterface.fActSetFuncPtr == NULL ||
-		actionPtr->fInterface.fActSetStateFuncPtr == NULL) {
-		ESIF_TRACE_ERROR("The required function pointer in EsifActInterface is NULL\n");
+	intfcSize = EsifActIface_Sizeof(actIfacePtr->hdr.fIfaceVersion);
+	if (intfcSize != actIfacePtr->hdr.fIfaceSize) {
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
 
-	/* Callback for application information */
-	rc = actionPtr->fInterface.fActGetNameFuncPtr(&data_name);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	rc = actionPtr->fInterface.fActGetDescriptionFuncPtr(&data_desc);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	rc = actionPtr->fInterface.fActGetVersionFuncPtr(&data_version);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	rc = actionPtr->fInterface.fActGetIDFuncPtr(&action_type);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	rc = actionPtr->fInterface.fActGetGuidFuncPtr(&data_guid);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	act_type_ptr = "plugin";
-
-	ESIF_TRACE_DEBUG("\n\n"
-		"Action Name   : %s\n"
-		"Action Desc   : %s\n"
-		"Action Type   : %s\n"
-		"Action Version: %s\n\n",
-		(EsifString)data_name.buf_ptr,
-		(EsifString)data_desc.buf_ptr,
-		(EsifString)act_type_ptr,
-		(EsifString)data_version.buf_ptr);
-
-	/* Create The Application */
-	CMD_OUT("create action\n");
-	rc = actionPtr->fInterface.fActCreateFuncPtr(
-		&act_service_iface,
-		NULL,
-		&actionPtr->fHandle,
-		eEsifActStateEnabled,
-		&p1,
-		&p2,
-		&p3,
-		&p4,
-		NULL);
-
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	/* Append New Action To Linked List */
-	action_type_ptr = (EsifActTypePtr)esif_ccb_malloc(sizeof(EsifActType));
-
-	if (NULL == action_type_ptr) {
-		ESIF_TRACE_ERROR("Fail to allocate EsifActType\n");
+	newActPtr = esif_ccb_malloc(sizeof(*newActPtr));
+	if (NULL == newActPtr) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
-	action_type_ptr->fHandle = actionPtr->fHandle;
-	action_type_ptr->fType   = *(UInt8 *)action_type.buf_ptr;
 
-	esif_ccb_strcpy(action_type_ptr->fName,
-					(EsifString)data_name.buf_ptr, ESIF_NAME_LEN);
-	esif_ccb_strcpy(action_type_ptr->fDesc,
-					(EsifString)data_desc.buf_ptr, ESIF_DESC_LEN);
-	esif_ccb_strcpy(action_type_ptr->fOsType, 
-		            ESIF_ATTR_OS, ESIF_NAME_LEN);
-	esif_ccb_strcpy(action_type_ptr->fVersion, 
-		            (EsifString)data_version.buf_ptr, ESIF_NAME_LEN);
+	esif_ccb_memcpy(&newActPtr->iface, actIfacePtr, intfcSize);
 
-	action_type_ptr->fActGetFuncPtr = actionPtr->fInterface.fActGetFuncPtr;
-	action_type_ptr->fActSetFuncPtr = actionPtr->fInterface.fActSetFuncPtr;
-	action_type_ptr->fGetFuncPtr = NULL;
-	action_type_ptr->fSetFuncPtr = NULL;
+	rc = EsifActIface_GetType(actIfacePtr, &actionType);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+	newActPtr->type = actionType;
+	newActPtr->upInstace = upInstance;
 
-	esif_ccb_memcpy(action_type_ptr->fGuid, data_guid.buf_ptr, ESIF_GUID_LEN);
-	action_type_ptr->fIsKernel   = ESIF_ACTION_IS_NOT_KERNEL_ACTION;
-	action_type_ptr->fIsPlugin   = ESIF_ACTION_IS_PLUGIN;
+	newActPtr->refCount = 1;
+	newActPtr->markedForDelete = ESIF_FALSE;
 
-	/* Register Action */
-	if (NULL != g_actMgr.AddActType) {
-		rc = g_actMgr.AddActType(&g_actMgr, action_type_ptr);
-	} else {
-		ESIF_TRACE_ERROR("Fail to add action type since g_actMrg.AddActType is NULL\n");
-		esif_ccb_free(action_type_ptr);
-		rc = ESIF_E_NO_CREATE;
+	esif_ccb_lock_init(&newActPtr->objLock);
+	esif_ccb_event_init(&newActPtr->deleteEvent);
+
+	rc = EsifAct_CallIfaceCreate(newActPtr);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifAct_RegisterEvents(newActPtr);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("\n"
+		"Created new action:"
+		"  Name   : %s\n"
+		"  Desc   : %s\n"
+		"  Type   : %d\n"
+		"  Version: %u\n",
+		EsifAct_GetName(newActPtr),
+		EsifAct_GetDesc(newActPtr),
+		EsifAct_GetType(newActPtr),
+		EsifAct_GetVersion(newActPtr));
+
+	*actPtr = newActPtr;
+exit:
+	if (rc != ESIF_OK) {
+		EsifAct_DestroyAction(newActPtr);
+	}
+	return rc;
+}
+
+
+void EsifAct_DestroyAction(
+	EsifActPtr self
+	)
+{
+	if (NULL == self) {
+		goto exit;
+	}
+
+	self->markedForDelete = ESIF_TRUE;
+	EsifAct_PutRef(self);
+
+	ESIF_TRACE_INFO("Destroy action %d : waiting for delete event...\n", self->type);
+	esif_ccb_event_wait(&self->deleteEvent);
+
+	EsifAct_UnregisterEvents(self);
+
+	EsifAct_CallIfaceDestroy(self);
+
+	esif_ccb_event_uninit(&self->deleteEvent);
+	esif_ccb_lock_uninit(&self->objLock);
+
+	esif_ccb_free(self);
+exit:
+	return;
+}
+
+
+static eEsifError EsifAct_CallIfaceCreate(
+	EsifActPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	ActionHandle actHandle = {0}; 
+
+	ESIF_ASSERT(self != NULL);
+		
+	switch (self->iface.hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		if (self->iface.ifaceStatic.createFuncPtr != NULL) {
+			rc = self->iface.ifaceStatic.createFuncPtr(&self->iface,
+				NULL,
+				(esif_handle_t)(size_t)self->type,
+				&self->actCtx);
+			self->createCalled = ESIF_TRUE;
+		}
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		if (self->iface.actIfaceV1.createFuncPtr != NULL) {
+
+			self->iface.actIfaceV1.traceLevel = g_traceLevel;
+			self->iface.actIfaceV1.writeLogFuncPtr = EsifActWriteLogHandler;
+			self->iface.actIfaceV1.sendEventFuncPtr = EsifActIface_ReceiveEventV1;
+
+			actHandle.s.type = self->type;
+			actHandle.s.upInstance = self->upInstace;
+
+			rc = self->iface.actIfaceV1.createFuncPtr(&self->iface,
+				NULL,
+				(esif_handle_t)(size_t)actHandle.asDword,
+				&self->actCtx);		
+			self->createCalled = ESIF_TRUE;
+		}
+		break;
+	default:
+		break;
+	}
+exit:
+	if (ESIF_OK != rc) {
+		ESIF_TRACE_ERROR("Error creating action. Error Code : %x", rc);
+		goto exit;
+	}	
+	return rc;
+}
+
+
+static eEsifError EsifAct_CallIfaceDestroy(EsifActPtr self)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+
+	if (self->createCalled) {
+		switch (self->iface.hdr.fIfaceVersion) {
+		case ESIF_ACT_IFACE_VER_STATIC:
+			if (self->iface.ifaceStatic.destroyFuncPtr != NULL) {
+				rc = self->iface.ifaceStatic.destroyFuncPtr(self->actCtx);
+			}
+			break;
+		case ESIF_ACT_IFACE_VER_V1:
+			if (self->iface.actIfaceV1.destroyFuncPtr != NULL) {
+				rc = self->iface.actIfaceV1.destroyFuncPtr(self->actCtx);		
+			}
+			break;
+		default:
+			break;
+		}
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_ERROR("Error destroying action. Error Code : %x", rc);
+		}	
+	}
+	return rc;
+}
+
+
+/*
+ * Takes an additional reference on an action object.  (The function is
+ * called for you by the Action Manager when one of the functions are
+ * called which returns a pointer to an action.)  After using the
+ * action, EsifAct_PutRef must be called to release the reference.
+ */
+eEsifError EsifAct_GetRef(EsifActPtr self)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (self == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	esif_ccb_write_lock(&self->objLock);
+
+	if (self->markedForDelete == ESIF_TRUE) {
+		esif_ccb_write_unlock(&self->objLock);
+		ESIF_TRACE_DEBUG("Action marked for delete\n");
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	self->refCount++;
+	ESIF_TRACE_DEBUG("ref = %d\n", self->refCount);
+	esif_ccb_write_unlock(&self->objLock);
+exit:
+	return rc;
+}
+
+/*
+ * Releases a reference on an action object.  This function should be
+ * called when done using an action pointer obtained through any of the
+ * Action Manager interfaces.
+ */
+void EsifAct_PutRef(EsifActPtr self)
+{
+	UInt8 needRelease = ESIF_FALSE;
+
+	if (self != NULL) {
+		esif_ccb_write_lock(&self->objLock);
+
+		self->refCount--;
+
+		ESIF_TRACE_DEBUG("ref = %d\n", self->refCount);
+
+		if ((self->refCount == 0) && (self->markedForDelete)) {
+			needRelease = ESIF_TRUE;
+		}
+
+		esif_ccb_write_unlock(&self->objLock);
+
+		if (needRelease == ESIF_TRUE) {
+			ESIF_TRACE_DEBUG("Signal delete event\n");
+			esif_ccb_event_set(&self->deleteEvent);
+		}
+	}
+}
+
+
+static eEsifError EsifAct_RegisterEvents(
+	EsifActPtr self
+	)
+{
+	ESIF_ASSERT(self != NULL);
+
+	EsifActIface_RegisterEvents(&self->iface, (esif_handle_t)(size_t)self->type);
+
+	return ESIF_OK;
+}
+
+
+static eEsifError EsifActIface_RegisterEvents(
+	EsifActIfacePtr self,
+	esif_handle_t esifInstHandle
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_V1:
+		if (NULL == self->actIfaceV1.rcvEventFuncPtr) {
+			rc = ESIF_E_NOT_SUPPORTED;
+			goto exit;
+		}
+		EsifEventMgr_RegisterEventByType(ESIF_EVENT_LOG_VERBOSITY_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAct_EventCallback, (void *)(size_t)esifInstHandle);
+		break;
+	case ESIF_ACT_IFACE_VER_STATIC:
+	default:
+		break;
 	}
 exit:
 	return rc;
 }
 
 
-eEsifError EsifActStart(EsifActPtr actionPtr)
+static void EsifAct_UnregisterEvents(
+	EsifActPtr self
+	)
+{
+	ESIF_ASSERT(self != NULL);
+
+	EsifActIface_UnregisterEvents(&self->iface, (esif_handle_t)(size_t)self->type);
+
+	return;
+}
+
+
+static void EsifActIface_UnregisterEvents(
+	EsifActIfacePtr self,
+	esif_handle_t esifInstHandle
+	)
 {
 	eEsifError rc = ESIF_OK;
-	GetIfaceFuncPtr iface_func_ptr = NULL;
-	EsifString iface_func_name     = "GetActionInterface";
 
-	char libPath[ESIF_LIBPATH_LEN];
+	ESIF_ASSERT(self != NULL);
 
-	ESIF_TRACE_DEBUG("Name=%s\n", actionPtr->fLibNamePtr);
-	esif_build_path(libPath, sizeof(libPath), ESIF_PATHTYPE_DLL, actionPtr->fLibNamePtr, ESIF_LIB_EXT);
-	actionPtr->fLibHandle = esif_ccb_library_load(libPath);
-
-	if (NULL == actionPtr->fLibHandle || NULL == actionPtr->fLibHandle->handle) {
-		rc = esif_ccb_library_error(actionPtr->fLibHandle);
-		ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(actionPtr->fLibHandle));
-		goto exit;
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_V1:
+		if (NULL == self->actIfaceV1.rcvEventFuncPtr) {
+			rc = ESIF_E_NOT_SUPPORTED;
+			goto exit;
+		}
+		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_LOG_VERBOSITY_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAct_EventCallback, (void *)(size_t)esifInstHandle);
+		break;
+	case ESIF_ACT_IFACE_VER_STATIC:
+	default:
+		break;
 	}
-	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);
-
-	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(actionPtr->fLibHandle, (EsifString)iface_func_name);
-	if (NULL == iface_func_ptr) {
-		rc = esif_ccb_library_error(actionPtr->fLibHandle);
-		ESIF_TRACE_ERROR("esif_ccb_library_get_func() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(actionPtr->fLibHandle));
-		goto exit;
-	}
-
-	ESIF_TRACE_DEBUG("esif_ccb_library_get_func() %s completed.\n", iface_func_name);
-	rc = ActionCreate(actionPtr, iface_func_ptr);
-	if (ESIF_OK != rc) {
-		ESIF_TRACE_DEBUG("ActionCreate failed.\n");
-		goto exit;
-	}
-	ESIF_TRACE_DEBUG("ActionCreate completed.\n");
-
 exit:
-	if (ESIF_OK != rc) {
-		esif_ccb_library_unload(actionPtr->fLibHandle);
-		actionPtr->fLibHandle = NULL;
+	return;
+}
+
+
+static eEsifError ESIF_CALLCONV EsifAct_EventCallback(
+	void *contextPtr,
+	UInt8 upInstance,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifActPtr actPtr = NULL;
+
+	UNREFERENCED_PARAMETER(upInstance);
+
+	if (NULL == fpcEventPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
 	}
+
+	actPtr = EsifActMgr_GetAction((UInt8)(size_t)contextPtr, upInstance);
+	if (NULL == actPtr) {
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;
+	}
+	rc = EsifActIface_SendIfaceEvent(&actPtr->iface, 
+		actPtr->actCtx,
+		fpcEventPtr->esif_event,
+		domainId,
+		eventDataPtr);
+exit:
+	EsifAct_PutRef(actPtr);
 	return rc;
+}
+
+
+static eEsifError EsifActIface_SendIfaceEvent(
+	EsifActIfacePtr self,
+	esif_context_t actCtx,
+	enum esif_event_type eventType,
+	UInt16 domainId,
+	EsifDataPtr eventDataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_V1:
+		if (NULL == self->actIfaceV1.rcvEventFuncPtr) {
+			rc = ESIF_E_NOT_SUPPORTED;
+			goto exit;
+		}
+		self->actIfaceV1.rcvEventFuncPtr(actCtx,
+			eventType,
+			domainId,
+			eventDataPtr
+			);
+		break;
+	case ESIF_ACT_IFACE_VER_STATIC:
+	default:
+		break;
+	}
+exit:
+return rc;
+}
+
+
+static eEsifError ESIF_CALLCONV EsifActIface_ReceiveEventV1(
+	const esif_handle_t esifInstHandle,
+	enum esif_event_type eventType,
+	UInt16 domain,
+	const EsifDataPtr dataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifActPtr actPtr = NULL;
+	ActionHandle actHandle = {0}; 
+
+	actHandle.asDword = (UInt32)(size_t)esifInstHandle;
+
+	actPtr = EsifActMgr_GetAction(actHandle.s.type, ACT_MGR_NO_UPINSTANCE);
+	if (NULL == actPtr) {
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;
+	}
+
+	rc = EsifEventMgr_SignalEvent((UInt8)actHandle.s.upInstance, domain, eventType, dataPtr);
+exit:
+	EsifAct_PutRef(actPtr);
+	return rc;
+}
+
+
+EsifActIfacePtr EsifAct_GetIface(EsifActPtr self)
+{
+	return (self != NULL) ? &self->iface : NULL;
+}
+
+
+EsifActIfaceVer EsifAct_GetIfaceVersion(
+	EsifActPtr self
+	)
+{
+	return (self != NULL) ? self->iface.hdr.fIfaceVersion : ESIF_ACT_IFACE_VER_INVALID;
+}
+
+
+/*
+ * If you pass in a NULL pointer, it will return 0.
+ */
+enum esif_action_type EsifAct_GetType(
+	EsifActPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	enum esif_action_type type = 0;
+
+	if (NULL == self) {
+		goto exit;
+	}
+
+	rc = EsifActIface_GetType(&self->iface, &type);
+	if (rc != ESIF_OK) {
+		type = 0;
+	}
+exit:
+	return type;
+}
+
+
+eEsifError EsifActIface_GetType(
+	EsifActIfacePtr self,
+	enum esif_action_type *typePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	if ((NULL == self) || (NULL == typePtr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		*typePtr = self->ifaceStatic.type;
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		*typePtr = self->actIfaceV1.type;
+		break;
+	default:
+		rc = ESIF_E_NOT_SUPPORTED;
+		break;
+	}
+exit:
+	return rc;
+}
+
+
+Bool EsifAct_IsPlugin(EsifActPtr self)
+{
+	return (self != NULL) ? self->isPlugin : ESIF_FALSE;
+}
+
+
+esif_context_t EsifAct_GetActCtx(EsifActPtr self)
+{
+	return (self != NULL) ? self->actCtx : NULL;
+}
+
+
+EsifString EsifAct_GetName(EsifActPtr self) {
+	return (self != NULL) ? EsifActIface_GetName(&self->iface) : "UNK";
+}
+
+static EsifString EsifActIface_GetName(
+	EsifActIfacePtr self
+	)
+{
+	EsifString name = "UNK";
+
+	ESIF_ASSERT(self != NULL);
+
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		name = self->ifaceStatic.name;
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		name = self->actIfaceV1.name;
+		break;
+	default:
+		break;
+
+	}
+	return name;
+}
+
+
+EsifString EsifAct_GetDesc(EsifActPtr self) {
+	return (self != NULL) ? EsifActIface_GetDesc(&self->iface) : "UNK";
+}
+
+static EsifString EsifActIface_GetDesc(
+	EsifActIfacePtr self
+	)
+{
+	EsifString desc = "UNK";
+
+	ESIF_ASSERT(self != NULL);
+
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		desc = self->ifaceStatic.desc;
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		desc = self->actIfaceV1.desc;
+		break;
+	default:
+		break;
+
+	}
+	return desc;
+}
+
+
+UInt16 EsifAct_GetVersion(EsifActPtr self) {
+	return (self != NULL) ? EsifActIface_GetVersion(&self->iface) : ESIF_ACTION_VERSION_INVALID;
+}
+
+static UInt16 EsifActIface_GetVersion(
+	EsifActIfacePtr self
+	)
+{
+	UInt16 actVersion = ESIF_ACTION_VERSION_INVALID;
+
+	ESIF_ASSERT(self != NULL);
+
+	switch (self->hdr.fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		actVersion = self->ifaceStatic.actVersion;
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		actVersion = self->actIfaceV1.actVersion;
+		break;
+	default:
+		break;
+	}
+	return actVersion;
+}
+
+
+UInt16 EsifActIface_Sizeof(
+	EsifActIfaceVer fIfaceVersion
+	)
+{
+	UInt16 size = 0xFFFF;
+
+	switch (fIfaceVersion) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		size = sizeof(EsifActIfaceStatic);
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		size = sizeof(EsifActIfaceUpeV1);
+		break;
+	default:
+		break;
+
+	}
+return size;
 }
 
 
 eEsifError EsifActCallPluginGet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	ActExecuteGetFunction actGetFuncPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
@@ -277,11 +708,11 @@ eEsifError EsifActCallPluginGet(
 	/*  Participant Check */
 	if (NULL == upPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
-		ESIF_TRACE_WARN("Participant For Participant ID %d NOT FOUND\n", upPtr->fInstance);
+		ESIF_TRACE_WARN("Participant For Participant ID %d NOT FOUND\n", EsifUp_GetInstance(upPtr));
 		goto exit;
 	}
 
-	if (NULL == actionPtr) {
+	if (NULL == fpcActionPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		ESIF_TRACE_WARN("NULL action pointer received\n");
 		goto exit;	
@@ -299,14 +730,14 @@ eEsifError EsifActCallPluginGet(
 		goto exit;
 	}
 
-	rc = EsifActionGetParams(actionPtr,
+	rc = EsifFpcAction_GetParams(fpcActionPtr,
 		params,
 		sizeof(params)/sizeof(*params));
 	if (ESIF_OK != rc) {
 		goto exit;
 	}
 
-	rc = actGetFuncPtr(actionHandle,
+	rc = actGetFuncPtr(actCtx,
 		upPtr->fMetadata.fDevicePath,
 		&params[0],
 		&params[1],
@@ -321,9 +752,9 @@ exit:
 
 
 eEsifError EsifActCallPluginSet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	ActExecuteSetFunction actSetFuncPtr,
 	const EsifDataPtr requestPtr
 	)
@@ -333,21 +764,15 @@ eEsifError EsifActCallPluginSet(
 
 	if (NULL == upPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
-		ESIF_TRACE_WARN("Participant For Participant ID %d NOT FOUND\n", upPtr->fInstance);
+		ESIF_TRACE_WARN("Participant For Participant ID %d NOT FOUND\n", EsifUp_GetInstance(upPtr));
 		goto exit;
 	}
 
-	if (NULL == actionPtr) {
+	if (NULL == fpcActionPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		ESIF_TRACE_WARN("NULL action pointer received\n");
 		goto exit;	
 	}
-
-	//if (NULL == actSetFuncPtr) {
-	//	ESIF_TRACE_DEBUG("Plugin function pointer is NULL\n");
-	//	rc = ESIF_E_PARAMETER_IS_NULL;
-	//	goto exit;
-	//}
 
 	if (NULL == requestPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -355,14 +780,14 @@ eEsifError EsifActCallPluginSet(
 		goto exit;
 	}
 
-	rc = EsifActionGetParams(actionPtr,
+	rc = EsifFpcAction_GetParams(fpcActionPtr,
 		params,
 		sizeof(params)/sizeof(*params));
 	if (ESIF_OK != rc) {
 		goto exit;
 	}
 
-	rc = actSetFuncPtr(actionHandle,
+	rc = actSetFuncPtr(actCtx,
 		upPtr->fMetadata.fDevicePath,
 		&params[0],
 		&params[1],
@@ -375,9 +800,41 @@ exit:
 }
 
 
+void EsifAct_MarkAsPlugin(
+	EsifActPtr self
+	)
+{
+	if (self != NULL){
+		self->isPlugin = ESIF_TRUE;
+	}
+}
+
+static eEsifError ESIF_CALLCONV EsifActWriteLogHandler(
+	const EsifDataPtr message,	/* Message For Log */
+	const eLogType logType		/* Log Type e.g. crticial, debug, info,e tc */
+	)
+{
+	eEsifError rc = ESIF_OK;
+	size_t msgLen = 0;
+
+	if ((NULL == message) || (NULL == message->buf_ptr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	msgLen = esif_ccb_strlen(message->buf_ptr, message->buf_len);
+	if (msgLen > 0) {
+		ESIF_TRACE_IFACTIVE(ESIF_TRACE_ID, logType,  message->buf_ptr);
+	}
+
+exit:
+	return rc;
+}
+
+
 /* WARNING:  The allocated strings in replacedStrsPtr must be released by the caller */
-eEsifError EsifActionGetParams(
-	EsifFpcActionPtr actionPtr,
+eEsifError EsifFpcAction_GetParams(
+	EsifFpcActionPtr fpcActionPtr,
 	EsifDataPtr paramsPtr,
 	UInt8 numParams
 	)
@@ -385,13 +842,13 @@ eEsifError EsifActionGetParams(
 	eEsifError rc = ESIF_OK;
 	UInt8 i;
 
-	if ((NULL == actionPtr) || (NULL == paramsPtr)) {
+	if ((NULL == fpcActionPtr) || (NULL == paramsPtr)) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
 	for (i = 0; i < numParams; i++) {
-		rc = EsifActionGetParamAsEsifData(actionPtr,
+		rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr,
 			i,
 			&paramsPtr[i]);
 		if (ESIF_OK != rc) {
@@ -404,8 +861,8 @@ exit:
 
 
 /* WARNING:  The allocated strings in replacedStrPtr must be released by the caller */
-eEsifError EsifActionGetParamAsEsifData(
-	EsifFpcActionPtr actionPtr,
+eEsifError EsifFpcAction_GetParamAsEsifData(
+	EsifFpcActionPtr fpcActionPtr,
 	UInt8 paramNum,
 	EsifDataPtr paramPtr
 	)
@@ -414,7 +871,7 @@ eEsifError EsifActionGetParamAsEsifData(
 	DataItemPtr dataItemPtr = NULL;
 	EsifString paramStr = NULL;
 
-	if ((NULL == actionPtr) || (NULL == paramPtr)) {
+	if ((NULL == fpcActionPtr) || (NULL == paramPtr)) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -423,7 +880,7 @@ eEsifError EsifActionGetParamAsEsifData(
 	paramPtr->buf_ptr = NULL;
 	paramPtr->type    = ESIF_DATA_UINT32;
 
-	dataItemPtr = EsifActionGetParam(actionPtr, paramNum);
+	dataItemPtr = EsifFpcAction_GetParam(fpcActionPtr, paramNum);
 	if (NULL == dataItemPtr) {
 		goto exit;
 	}
@@ -455,37 +912,8 @@ exit:
 }
 
 
-/* WARNING:  The allocated strings in replacedStrPtr must be released by the caller */
-/* Return a NULL string if no token replacement takes place */
-EsifString EsifActionCreateTokenReplacedParamString(
-	const EsifString paramStr,
-	const EsifUpPtr upPtr,
-	const EsifFpcPrimitivePtr primitivePtr
-	)
-{
-	EsifString replacedStr = NULL;
-	char domainStr[8] = "";
-	char idBuf[ESIF_NAME_LEN + 1 + sizeof(domainStr)];
-
-	if ((NULL == paramStr) || (NULL == upPtr) || (NULL == primitivePtr)) {
-		goto exit;
-	}
-
-	esif_primitive_domain_str(primitivePtr->tuple.domain, domainStr, sizeof(domainStr));
-	esif_ccb_sprintf(sizeof(idBuf) - 1, idBuf, "%s.%s", upPtr->fMetadata.fName, domainStr);
-
-	replacedStr = esif_str_replace(paramStr, "%nm%", idBuf);
-
-	if (replacedStr != NULL) {
-		ESIF_TRACE_DEBUG("\tEXPANDED data %s\n", replacedStr);
-	}
-exit:
-	return replacedStr;
-}
-
-
-DataItemPtr EsifActionGetParam(
-	const EsifFpcActionPtr actionPtr,
+DataItemPtr EsifFpcAction_GetParam(
+	const EsifFpcActionPtr fpcActionPtr,
 	const UInt8 paramNum
 	)
 {
@@ -493,15 +921,15 @@ DataItemPtr EsifActionGetParam(
 		return NULL;
 	}
 
-	if (actionPtr->param_valid[paramNum] == 0) {
+	if (fpcActionPtr->param_valid[paramNum] == 0) {
 		return NULL;
 	}
 
-	return (DataItemPtr)(((UInt8 *)actionPtr) + actionPtr->param_offset[paramNum]);
+	return (DataItemPtr)(((UInt8 *)fpcActionPtr) + fpcActionPtr->param_offset[paramNum]);
 }
 
 
-eEsifError EsifActionCopyIntToBufBySize(
+eEsifError EsifCopyIntToBufBySize(
 	size_t typeSize,
 	void *dstPtr,
 	u64 val
@@ -529,46 +957,6 @@ eEsifError EsifActionCopyIntToBufBySize(
 		break;
 	}
 	return rc;
-}
-
-
-
-eEsifError EsifActStop (EsifActPtr actPtr)
-{
-	eEsifError rc = ESIF_OK;
-	ESIF_ASSERT(actPtr != NULL);
-
-	// TODO: Cleanup
-
-	if (ESIF_OK == rc) {
-		esif_ccb_free(actPtr->fLibNamePtr);
-		esif_ccb_library_unload(actPtr->fLibHandle);
-		memset(actPtr, 0, sizeof(*actPtr));
-	}
-	return rc;
-}
-
-
-eEsifError EsifActInit()
-{
-	EsifActConfigInit();
-	EsifActConstInit();
-	EsifActSystemInit();
-	EsifActDelegateInit();
-	EsifActSysfsInit();
-	ESIF_TRACE_EXIT_INFO();
-	return ESIF_OK;
-}
-
-
-void EsifActExit()
-{
-	EsifActConfigExit();
-	EsifActConstExit();
-	EsifActSystemExit();
-	EsifActDelegateExit();
-	EsifActSysfsExit();
-	ESIF_TRACE_EXIT_INFO();
 }
 
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@ class WIPolicyDestroy : public WorkItem
 {
 public:
 
-    WIPolicyDestroy(DptfManager* dptfManager, UIntN policyIndex);
+    WIPolicyDestroy(DptfManagerInterface* dptfManager, UIntN policyIndex);
     virtual ~WIPolicyDestroy(void);
 
     virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;

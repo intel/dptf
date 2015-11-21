@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,27 +19,26 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPixelClockControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainPixelClockControlBase.h"
 
 //
 // Implements the Null Object pattern.  In the case that the functionality isn't implemented, we use
 // this in place so we don't have to check for NULL pointers all throughout the participant implementation.
 //
 
-class DomainPixelClockControl_000 final : public DomainPixelClockControlInterface,
-    public ComponentExtendedInterface
+class DomainPixelClockControl_000 : public DomainPixelClockControlBase
 {
 public:
 
-    DomainPixelClockControl_000(ParticipantServicesInterface* participantServicesInterface);
+    DomainPixelClockControl_000(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
 
     // DomainPixelClockControlInterface
     virtual void setPixelClockControl(UIntN participantIndex, UIntN domainIndex,
-        const PixelClockDataSet& pixelClockDataSet) override final;
+        const PixelClockDataSet& pixelClockDataSet) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 };

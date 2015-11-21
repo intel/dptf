@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "DptfManager.h"
 #include "Utility.h"
 #include "EsifServices.h"
+#include "DptfStatus.h"
 
 ParticipantManager::ParticipantManager(DptfManager* dptfManager) : m_dptfManager(dptfManager)
 {
@@ -40,6 +41,7 @@ void ParticipantManager::allocateParticipant(UIntN* newParticipantIndex)
     try
     {
         // create an instance of the participant class and save at the first available index.
+        m_dptfManager->getDptfStatus()->clearCache();
         participant = new Participant(m_dptfManager);
         firstAvailableIndex = getFirstNonNullIndex(m_participant);
         m_participant[firstAvailableIndex] = participant;
@@ -67,6 +69,7 @@ void ParticipantManager::createParticipant(UIntN participantIndex, const AppPart
 
     // When this completes the actual participant will be instantiated and the functionality will
     // be available through the interface function pointers.
+    m_dptfManager->getDptfStatus()->clearCache();
     m_participant[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
 }
 
@@ -79,6 +82,7 @@ void ParticipantManager::destroyAllParticipants(void)
             try
             {
                 // Queue up a work item and wait for the return.
+                m_dptfManager->getDptfStatus()->clearCache();
                 WorkItem* workItem = new WIParticipantDestroy(m_dptfManager, i);
                 m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
             }
@@ -98,6 +102,7 @@ void ParticipantManager::destroyParticipant(UIntN participantIndex)
     {
         try
         {
+            m_dptfManager->getDptfStatus()->clearCache();
             m_participant[participantIndex]->destroyParticipant();
         }
         catch (...)
@@ -129,6 +134,7 @@ Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex)
 
 void ParticipantManager::clearAllParticipantCachedData()
 {
+    m_dptfManager->getDptfStatus()->clearCache();
     for (UIntN i = 0; i < m_participant.size(); i++)
     {
         if (m_participant[i] != nullptr)

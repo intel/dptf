@@ -233,30 +233,39 @@ enum esif_domain_type get_domain_type(
 						 * DataVault overrides EDP on
 						 * disk */
 
+#define FPC_DOMAIN_ITERATOR_MARKER 'FPCD'
+
 struct esif_up_dsp;
 
 /* DSP Manager Entry */
-struct esif_uf_dme {
+typedef struct esif_uf_dme {
 	struct esif_up_dsp    *dsp_ptr;	/* DSP Instance       */
 	struct esif_ccb_file  *file_ptr;/* Optional ESIF File Instance */
 	struct esif_fpc       *fpc_ptr; /* FPC buffer (0 if static) */
-};
+} EsifUfDme, *EsifUfDmePtr;
 
 /* DSP Manager */
-struct esif_uf_dm {
+typedef struct esif_uf_dm {
 	UInt8  dme_count;			/* Current Reference Count */
-	struct esif_uf_dme dme[MAX_DSP_MANAGER_ENTRY];	/* Max Participants */
+	EsifUfDme dme[MAX_DSP_MANAGER_ENTRY];	/* Max Participants */
 	esif_ccb_lock_t lock;			/* Package Manager Lock */
-};
+} EsifUfDm, *EsifUfDmPtr;
 
 typedef struct _t_EsifDspQuery {
 	esif_string  deviceId;
 	esif_string  vendorId;
 	esif_string  hid;
+	esif_string  uid;
 	esif_string  ptype;
-	esif_string  participantType;
+	esif_string  enumerator;
 	esif_string  participantName;
-} EsifDspQuery;
+} EsifDspQuery, *EsifDspQueryPtr;
+
+typedef struct _t_fpcDomainIterator {
+	u32 marker;
+	struct esif_link_list_node *currPtr;
+	EsifFpcDomainPtr *fpcDomainPtr;
+} EsifFpcDomainIterator, *EsifFpcDomainIteratorPtr;
 
 /* Upper Framework DSP */
 struct esif_up_dsp {
@@ -266,7 +275,6 @@ struct esif_up_dsp {
 
 	/* Pointers Will Point Into PC Block Of Memory */
 	esif_string  code_ptr;		/* Code Short Name          */
-	esif_string  desc_ptr;		/* Description              */
 	esif_string  type;		/* Unique Identifier        */
 	UInt8        *bus_enum;		/* Bus Enumeration Type     */
 	UInt8        *ver_major_ptr;	/* Content Major            */
@@ -276,6 +284,7 @@ struct esif_up_dsp {
 	esif_string  acpi_device;	/* ACPI Device e.g. INT3400 */
 	esif_string  acpi_scope;	/* _SB.PCI0.B0D4            */
 	esif_string  acpi_type;		/* ACPI Type                */
+	esif_string  acpi_uid;		/* ACPI UID                 */
 
 	/* PCI */
 	esif_string  vendor_id;		/* Vendor ID 8086 For Intel */
@@ -288,8 +297,6 @@ struct esif_up_dsp {
 	/* UInt32  *capability_ptr; / * Enhanced Capability * / */
 	UInt32  *domain_count;	/* Domain Count */
 
-	/* Raw Cannonical Data For DSP Pointeers  */
-	struct esif_uf_pc       *pc_ptr;
 	/* DSP Hash Table Will Contain Pointers Into CPC*/
 	struct esif_ht  *ht_ptr;
 	struct esif_link_list   *domain_ptr; /* Domain */
@@ -304,23 +311,8 @@ struct esif_up_dsp {
 
 	/* Description */
 	esif_string  (*get_code)         (THIS);
-	esif_string  (*get_desc)         (THIS);
-	esif_guid_t  * (*get_type)         (THIS);
-	UInt8        (*get_bus_enum)     (THIS);
 	UInt8        (*get_ver_major)    (THIS);
 	UInt8        (*get_ver_minor)    (THIS);
-
-	/* ACPI */
-	esif_string  (*get_acpi_device)  (THIS);
-	esif_string  (*get_acpi_scope)   (THIS);
-	UInt8        (*get_acpi_type)    (THIS);
-
-	/* PCI */
-	UInt32  (*get_device_id)        (THIS);
-	UInt32  (*get_vendor_id)        (THIS);
-	UInt8   (*get_pci_bus)          (THIS);
-	UInt8   (*get_pci_bus_device)   (THIS);
-	UInt8   (*get_pci_function)     (THIS);
 
 	/* Attributes */
 	UInt32 (*get_temp_tc1)(
@@ -333,45 +325,55 @@ struct esif_up_dsp {
 		);
 	enum esif_rc (*insert_primitive)(
 		THIS,
-		EsifFpcPrimitivePtr primitive_ptr
+		EsifFpcPrimitivePtr primitivePtr
 		);
 	enum esif_rc  (*insert_algorithm)(
 		THIS,
-		struct esif_fpc_algorithm * algorithm_ptr
+		EsifFpcAlgorithmPtr algorithmPtr
 		);
 	enum esif_rc (*insert_domain)(
 		THIS,
-		struct esif_fpc_domain *domain_ptr
+		EsifFpcDomainPtr domainPtr
 		);
 	enum esif_rc (*insert_event)(
 		THIS,
-		struct esif_fpc_event *event_ptr
+		EsifFpcEventPtr eventPtr
 		);
 	EsifFpcPrimitivePtr (*get_primitive)(
 		THIS,
-		const struct esif_primitive_tuple
-		*tuple_ptr
+		const EsifPrimitiveTuplePtr tuplePtr
 		);
 	EsifFpcActionPtr (*get_action)(
 		THIS,
-		EsifFpcPrimitivePtr primitive_ptr,
+		EsifFpcPrimitivePtr primitivePtr,
 		u8 index
 		);
-	struct esif_fpc_algorithm  *(*get_algorithm)(
+	EsifFpcAlgorithmPtr (*get_algorithm)(
 		THIS,
-		const enum esif_action_type action_type
+		const enum esif_action_type actionType
 		);
-	struct esif_fpc_event  *(*get_event_by_type)(
+	EsifFpcEventPtr (*get_event_by_type)(
 		THIS,
-		const enum esif_event_type event_type
+		const enum esif_event_type eventType
 		);
-	struct esif_fpc_event *(*get_event_by_guid)(
+	EsifFpcEventPtr (*get_event_by_guid)(
 		THIS,
 		const esif_guid_t guid
 		);
-	struct esif_fpc_domain *(*get_domain)(
+	EsifFpcDomainPtr (*get_domain)(
 		THIS,
 		const u32 index
+		);
+
+	enum esif_rc (*init_fpc_iterator)(
+		THIS,
+		EsifFpcDomainIteratorPtr iteratorPtr
+		);
+
+	enum esif_rc (*get_next_fpc_domain)(
+		THIS,
+		EsifFpcDomainIteratorPtr iteratorPtr,
+		EsifFpcDomainPtr *fpcDomainPtr
 		);
 };
 

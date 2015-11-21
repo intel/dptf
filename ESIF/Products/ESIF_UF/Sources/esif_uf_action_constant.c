@@ -32,10 +32,10 @@
 */
 
 static eEsifError ESIF_CALLCONV ActionConstGet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
@@ -44,7 +44,7 @@ static eEsifError ESIF_CALLCONV ActionConstGet(
 	EsifData p1 = {0};
 	UInt32 val    = 0;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(upPtr);
 	UNREFERENCED_PARAMETER(primitivePtr);
 	UNREFERENCED_PARAMETER(requestPtr);
@@ -52,8 +52,8 @@ static eEsifError ESIF_CALLCONV ActionConstGet(
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
 
-	rc = EsifActionGetParamAsEsifData(actionPtr, 0, &p1);
-	if (ESIF_OK != rc) {
+	rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 0, &p1);
+	if ((ESIF_OK != rc) || (NULL == p1.buf_ptr)) {
 		goto exit;
 	}
 
@@ -62,7 +62,7 @@ static eEsifError ESIF_CALLCONV ActionConstGet(
 
 	val = *(UInt32 *)p1.buf_ptr;
 
-	rc = EsifActionCopyIntToBufBySize(esif_data_type_sizeof(responsePtr->type),
+	rc = EsifCopyIntToBufBySize(esif_data_type_sizeof(responsePtr->type),
 		responsePtr->buf_ptr,
 		(UInt64)val);
 exit:
@@ -75,29 +75,24 @@ exit:
  ** Register ACTION with ESIF
  *******************************************************************************
  */
-static EsifActType g_const = {
-	0,
+static EsifActIfaceStatic g_const = {
+	eIfaceTypeAction,
+	ESIF_ACT_IFACE_VER_STATIC,
+	sizeof(g_const),
 	ESIF_ACTION_CONST,
-	{PAD},
+	ESIF_ACTION_FLAGS_DEFAULT,
 	"CONST",
 	"User Space Constant",
-	"ALL",
-	"x1.0.0.1",
-	{0},
-	ESIF_ACTION_IS_NOT_KERNEL_ACTION,
-	ESIF_ACTION_IS_NOT_PLUGIN,
-	{PAD},
+	ESIF_ACTION_VERSION_DEFAULT,
+	NULL,
+	NULL,
 	ActionConstGet,
-	NULL,
-	NULL,
 	NULL
 };
 
 enum esif_rc EsifActConstInit()
 {
-	if (NULL != g_actMgr.AddActType) {
-		g_actMgr.AddActType(&g_actMgr, &g_const);
-	}
+	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_const);
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
@@ -105,9 +100,7 @@ enum esif_rc EsifActConstInit()
 
 void EsifActConstExit()
 {
-	if (NULL != g_actMgr.RemoveActType) {
-		g_actMgr.RemoveActType(&g_actMgr, 0);
-	}
+	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_const);
 	ESIF_TRACE_EXIT_INFO();
 }
 

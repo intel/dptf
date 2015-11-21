@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,15 +23,16 @@
 #include "ParticipantManager.h"
 #include "UniqueIdGenerator.h"
 #include "IndexContainer.h"
-#include "esif_uf_app_iface.h"
-#include "esif_uf_iface.h"
+#include "esif_sdk_iface_app.h"
 #include "DptfStatus.h"
 #include "EsifDataString.h"
+#include "EsifAppServices.h"
+#include "StringParser.h"
 
 DptfManager::DptfManager(void) : m_dptfManagerCreateStarted(false), m_dptfManagerCreateFinished(false),
-    m_dptfShuttingDown(false), m_workItemQueueManagerCreated(false), m_dptfEnabled(false), m_esifServices(nullptr),
-    m_workItemQueueManager(nullptr), m_policyManager(nullptr), m_participantManager(nullptr),
-    m_dptfStatus(nullptr), m_indexContainer(nullptr)
+m_dptfShuttingDown(false), m_workItemQueueManagerCreated(false), m_dptfEnabled(false), m_esifAppServices(nullptr), 
+m_esifServices(nullptr), m_workItemQueueManager(nullptr), m_policyManager(nullptr), m_participantManager(nullptr),
+m_dptfStatus(nullptr), m_indexContainer(nullptr), m_dptfPolicyLoadNameOnly(false)
 {
 }
 
@@ -46,16 +47,37 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
 
     try
     {
-#ifdef ESIF_ATTR_OS_WINDOWS
-        m_dptfHomeDirectoryPath = dptfHomeDirectoryPath + "\\";
-#else
-        m_dptfHomeDirectoryPath = dptfHomeDirectoryPath + "/";
-#endif
-
+        // Parse DPTF Home Path. Possible formats:
+        //   homepath           = Location of both XSL Files and Policy Libraries; specify full path when loading Libraries
+        //   homepath|libpath   = (1) Location of XSL Files (2) Location of Policy Libraries [use full path when loading Libraries]
+        //   homepath|#libpath  = (1) Location of XSL Files (2) Location of Policy Libraries [DO NOT use full path when loading Libraries]
+        std::string homePath = dptfHomeDirectoryPath;
+        std::string policyPath = dptfHomeDirectoryPath;
+        std::vector<std::string> dptfPaths = StringParser::split(dptfHomeDirectoryPath, '|');
+        if (dptfPaths.size() > 1)
+        {
+            homePath = dptfPaths[0];
+            policyPath = dptfPaths[1];
+            if (policyPath[0] == '#')
+            {
+                policyPath.erase(0, 1);
+                m_dptfPolicyLoadNameOnly = true;
+            }
+        }
+        if (homePath.back() != *ESIF_PATH_SEP) {
+            homePath += ESIF_PATH_SEP;
+        }
+        if (policyPath.back() != *ESIF_PATH_SEP) {
+            policyPath += ESIF_PATH_SEP;
+        }
+        m_dptfHomeDirectoryPath = homePath;
+        m_dptfPolicyDirectoryPath = policyPath;
         m_dptfEnabled = dptfEnabled;
 
+        m_eventCache = std::make_shared<EventCache>();
         m_indexContainer = new IndexContainer(Constants::Participants::MaxParticipantEstimate);
-        m_esifServices = new EsifServices(this, esifHandle, esifInterfacePtr, currentLogVerbosityLevel);
+        m_esifAppServices = new EsifAppServices(esifInterfacePtr);
+        m_esifServices = new EsifServices(this, esifHandle, m_esifAppServices, currentLogVerbosityLevel);
         m_participantManager = new ParticipantManager(this);
         m_policyManager = new PolicyManager(this);
 
@@ -65,7 +87,7 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
 
         m_dptfStatus = new DptfStatus(this);
 
-        m_policyManager->createAllPolicies(m_dptfHomeDirectoryPath);
+        m_policyManager->createAllPolicies(m_dptfPolicyDirectoryPath);
 
         registerDptfFrameworkEvents();
 
@@ -127,12 +149,12 @@ ParticipantManager* DptfManager::getParticipantManager(void) const
     return m_participantManager;
 }
 
-DptfStatus* DptfManager::getDptfStatus(void) const
+DptfStatus* DptfManager::getDptfStatus(void)
 {
     return m_dptfStatus;
 }
 
-IndexContainer* DptfManager::getIndexContainer(void) const
+IndexContainerInterface* DptfManager::getIndexContainer(void) const
 {
     return m_indexContainer;
 }
@@ -140,6 +162,16 @@ IndexContainer* DptfManager::getIndexContainer(void) const
 std::string DptfManager::getDptfHomeDirectoryPath(void) const
 {
     return m_dptfHomeDirectoryPath;
+}
+
+std::string DptfManager::getDptfPolicyDirectoryPath(void) const
+{
+    return m_dptfPolicyDirectoryPath;
+}
+
+Bool DptfManager::isDptfPolicyLoadNameOnly(void) const
+{
+    return m_dptfPolicyLoadNameOnly;
 }
 
 void DptfManager::shutDown(void)
@@ -152,14 +184,15 @@ void DptfManager::shutDown(void)
     disableAndEmptyAllQueues();
     destroyAllPolicies();
     destroyAllParticipants();
-    deleteDptfStatus();
     deleteWorkItemQueueManager();
     deletePolicyManager();
     deleteParticipantManager();
     deleteEsifServices();
+    deleteEsifAppServices();
     deleteIndexContainer();
     destroyUniqueIdGenerator();
     destroyFrameworkEventInfo();
+    deleteDptfStatus();
 }
 
 void DptfManager::disableAndEmptyAllQueues(void)
@@ -229,6 +262,11 @@ void DptfManager::deletePolicyManager(void)
 void DptfManager::deleteParticipantManager(void)
 {
     DELETE_MEMORY_TC(m_participantManager);
+}
+
+void DptfManager::deleteEsifAppServices(void)
+{
+    DELETE_MEMORY_TC(m_esifAppServices);
 }
 
 void DptfManager::deleteEsifServices(void)
@@ -318,5 +356,128 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
     }
     catch (...)
     {
+    }
+}
+
+std::shared_ptr<EventCache> DptfManager::getEventCache(void) const
+{
+    return m_eventCache;
+}
+
+void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
+{
+    UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
+
+    for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
+    {
+        for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+        {
+            try
+            {
+                Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+                policy->bindDomain(participantIndex, domainIndex);
+            }
+            catch (dptf_exception ex)
+            {
+                ManagerMessage message = ManagerMessage(this, FLF, "DPTF was not able to bind domain to policies: " + ex.getDescription() + ".");
+                message.addMessage("Participant Index", participantIndex);
+                message.addMessage("Domain Index", domainIndex);
+                message.addMessage("Policy Index", policyIndex);
+                getEsifServices()->writeMessageWarning(message);
+            }
+            catch (...)
+            {
+                ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::bindDomainsToPolicies Failed.");
+                message.addMessage("Participant Index", participantIndex);
+                message.addMessage("Domain Index", domainIndex);
+                message.addMessage("Policy Index", policyIndex);
+                getEsifServices()->writeMessageWarning(message);
+            }
+        }
+    }
+}
+
+void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
+{
+    UIntN domainCount = m_participantManager->getParticipantPtr(participantIndex)->getDomainCount();
+
+    for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
+    {
+        for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+        {
+            try
+            {
+                Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+                policy->unbindDomain(participantIndex, domainIndex);
+            }
+            catch (dptf_exception ex)
+            {
+                ManagerMessage message = ManagerMessage(this, FLF, "DPTF was not able to unbind domain from policies: " + ex.getDescription() + ".");
+                message.addMessage("Participant Index", participantIndex);
+                message.addMessage("Domain Index", domainIndex);
+                message.addMessage("Policy Index", policyIndex);
+                getEsifServices()->writeMessageWarning(message);
+            }
+            catch (...)
+            {
+                ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::unbindDomainsFromPolicies Failed.");
+                message.addMessage("Participant Index", participantIndex);
+                message.addMessage("Domain Index", domainIndex);
+                message.addMessage("Policy Index", policyIndex);
+                getEsifServices()->writeMessageWarning(message);
+            }
+        }
+    }
+}
+
+void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
+{
+    for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+    {
+        try
+        {
+            Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+            policy->bindParticipant(participantIndex);
+        }
+        catch (dptf_exception ex)
+        {
+            ManagerMessage message = ManagerMessage(this, FLF, "DPTF was not able to bind participant to policies: " + ex.getDescription() + ".");
+            message.addMessage("Participant Index", participantIndex);
+            message.addMessage("Policy Index", policyIndex);
+            getEsifServices()->writeMessageWarning(message);
+        }
+        catch (...)
+        {
+            ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::bindParticipantToPolicies Failed.");
+            message.addMessage("Participant Index", participantIndex);
+            message.addMessage("Policy Index", policyIndex);
+            getEsifServices()->writeMessageWarning(message);
+        }
+    }
+}
+
+void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
+{
+    for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+    {
+        try
+        {
+            Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+            policy->unbindParticipant(participantIndex);
+        }
+        catch (dptf_exception ex)
+        {
+            ManagerMessage message = ManagerMessage(this, FLF, "DPTF was not able to unbind participant from policies: " + ex.getDescription() + ".");
+            message.addMessage("Participant Index", participantIndex);
+            message.addMessage("Policy Index", policyIndex);
+            getEsifServices()->writeMessageWarning(message);
+        }
+        catch (...)
+        {
+            ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::unbindParticipantFromPolicies Failed.");
+            message.addMessage("Participant Index", participantIndex);
+            message.addMessage("Policy Index", policyIndex);
+            getEsifServices()->writeMessageWarning(message);
+        }
     }
 }

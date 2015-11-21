@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainTemperature_000.h"
 
-DomainTemperature_000::DomainTemperature_000(ParticipantServicesInterface* participantServicesInterface)
+DomainTemperature_000::DomainTemperature_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -39,6 +41,27 @@ void DomainTemperature_000::setTemperatureThresholds(UIntN participantIndex, UIn
     throw not_implemented();
 }
 
+DptfBuffer DomainTemperature_000::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
+DptfBuffer DomainTemperature_000::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
+Bool DomainTemperature_000::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+{
+    return false;
+}
+
+void DomainTemperature_000::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, 
+    const Temperature& temperature)
+{
+    throw not_implemented();
+}
+
 void DomainTemperature_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
@@ -47,4 +70,9 @@ void DomainTemperature_000::clearCachedData(void)
 XmlNode* DomainTemperature_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string DomainTemperature_000::getName(void)
+{
+    return "Temperature Control (Version 0)";
 }

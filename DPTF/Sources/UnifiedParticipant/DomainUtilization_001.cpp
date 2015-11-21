@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,9 @@
 #include "DomainUtilization_001.h"
 #include "XmlNode.h"
 
-DomainUtilization_001::DomainUtilization_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainUtilization_001::DomainUtilization_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainUtilizationBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -28,7 +29,7 @@ UtilizationStatus DomainUtilization_001::getUtilizationStatus(UIntN participantI
 {
     try
     {
-        Percentage utilization = m_participantServicesInterface->primitiveExecuteGetAsPercentage(
+        Percentage utilization = getParticipantServices()->primitiveExecuteGetAsPercentage(
             esif_primitive_type::GET_PARTICIPANT_UTILIZATION, domainIndex);
         return UtilizationStatus(utilization);
     }
@@ -49,4 +50,9 @@ XmlNode* DomainUtilization_001::getXml(UIntN domainIndex)
     XmlNode* root = getUtilizationStatus(Constants::Invalid, domainIndex).getXml("utilization");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
     return root;
+}
+
+std::string DomainUtilization_001::getName(void)
+{
+    return "Utilization Status (Version 1)";
 }

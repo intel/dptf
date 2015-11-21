@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,9 @@ EsifThread::EsifThread(work_func_t function, void* argument) :
 
 EsifThread::~EsifThread()
 {
-    eEsifError rc = esif_ccb_thread_destroy(&m_thread);
+    eEsifError rc = esif_ccb_thread_join(&m_thread);
     if (rc != ESIF_OK)
     {
-        throw dptf_exception("esif_ccb_thread_destroy() failed.");
+        throw dptf_exception("esif_ccb_thread_join() failed.");
     }
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainRfProfileControl_000.h"
 
-DomainRfProfileControl_000::DomainRfProfileControl_000(ParticipantServicesInterface* participantServicesInterface)
+DomainRfProfileControl_000::DomainRfProfileControl_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -41,4 +43,9 @@ void DomainRfProfileControl_000::clearCachedData(void)
 XmlNode* DomainRfProfileControl_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
+}
+
+std::string DomainRfProfileControl_000::getName(void)
+{
+    return "RF Profile Control (Version 0)";
 }

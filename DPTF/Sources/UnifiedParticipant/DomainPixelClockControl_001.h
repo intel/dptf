@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,31 +19,28 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPixelClockControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainPixelClockControlBase.h"
 
-class DomainPixelClockControl_001 final : public DomainPixelClockControlInterface,
-    public ComponentExtendedInterface
+class DomainPixelClockControl_001 : public DomainPixelClockControlBase
 {
 public:
 
-    DomainPixelClockControl_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainPixelClockControl_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainPixelClockControl_001(void);
 
     // DomainPixelClockControlInterface
     virtual void setPixelClockControl(UIntN participantIndex, UIntN domainIndex,
-        const PixelClockDataSet& pixelClockDataSet) override final;
+        const PixelClockDataSet& pixelClockDataSet) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
     // hide the copy constructor and = operator
     DomainPixelClockControl_001(const DomainPixelClockControl_001& rhs);
     DomainPixelClockControl_001& operator=(const DomainPixelClockControl_001& rhs);
-
-    ParticipantServicesInterface* m_participantServicesInterface;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "TimeInterface.h"
-#include "ParticipantTracker.h"
+#include "ParticipantTrackerInterface.h"
 #include "CallbackScheduler.h"
 #include "TargetMonitor.h"
 
@@ -33,7 +33,7 @@ public:
     TargetActionBase(
         PolicyServicesInterfaceContainer& policyServices, 
         std::shared_ptr<TimeInterface> time,
-        ParticipantTracker& participantTracker, 
+        std::shared_ptr<ParticipantTrackerInterface> participantTracker,
         ThermalRelationshipTable& trt,
         std::shared_ptr<CallbackScheduler> callbackScheduler,
         TargetMonitor& targetMonitor,
@@ -47,7 +47,7 @@ protected:
     // policy state access
     PolicyServicesInterfaceContainer getPolicyServices() const;
     std::shared_ptr<TimeInterface> getTime() const;
-    ParticipantTracker& getParticipantTracker() const;
+    std::shared_ptr<ParticipantTrackerInterface> getParticipantTracker() const;
     ThermalRelationshipTable& getTrt() const;
     std::shared_ptr<CallbackScheduler> getCallbackScheduler() const;
     TargetMonitor& getTargetMonitor() const;
@@ -81,7 +81,7 @@ private:
     // action state
     std::shared_ptr<TimeInterface> m_time;
     PolicyServicesInterfaceContainer& m_policyServices;
-    ParticipantTracker& m_participantTracker;
+    std::shared_ptr<ParticipantTrackerInterface> m_participantTracker;
     ThermalRelationshipTable& m_trt;
     std::shared_ptr<CallbackScheduler> m_callbackScheduler;
     TargetMonitor& m_targetMonitor;

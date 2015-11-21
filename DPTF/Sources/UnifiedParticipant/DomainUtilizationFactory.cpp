@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,16 +20,16 @@
 #include "DomainUtilization_000.h"
 #include "DomainUtilization_001.h"
 
-DomainUtilizationInterface* DomainUtilizationFactory::createDomainUtilizationObject(
-    UIntN version, ParticipantServicesInterface* participantServicesInterface)
+ControlBase* DomainUtilizationFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
+    ParticipantServicesInterface* participantServicesInterface)
 {
     switch (version)
     {
         case 0:
-            return new DomainUtilization_000(participantServicesInterface);
+            return new DomainUtilization_000(participantIndex, domainIndex, participantServicesInterface);
             break;
         case 1:
-            return new DomainUtilization_001(participantServicesInterface);
+            return new DomainUtilization_001(participantIndex, domainIndex, participantServicesInterface);
             break;
         default:
             std::stringstream message;

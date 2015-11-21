@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,18 +20,17 @@
 
 #include "Dptf.h"
 #include "DptfMessage.h"
-
-class DptfManager;
+#include "DptfManagerInterface.h"
 
 class ManagerMessage : public DptfMessage
 {
 public:
 
-    ManagerMessage(const DptfManager* dptfManager, const std::string& fileName, UIntN lineNumber,
+    ManagerMessage(const DptfManagerInterface* dptfManager, const std::string& fileName, UIntN lineNumber,
         const std::string& executingFunctionName);
-    ManagerMessage(const DptfManager* dptfManager, const std::string& fileName, UIntN lineNumber,
+    ManagerMessage(const DptfManagerInterface* dptfManager, const std::string& fileName, UIntN lineNumber,
         const std::string& executingFunctionName, const std::string& message);
-    ManagerMessage(const DptfManager* dptfManager, const DptfMessage& dptfMessage);
+    ManagerMessage(const DptfManagerInterface* dptfManager, const DptfMessage& dptfMessage);
     virtual ~ManagerMessage(void);
 
     void setFrameworkEvent(FrameworkEvent::Type frameworkEvent);
@@ -47,7 +46,7 @@ public:
 
 private:
 
-    const DptfManager* m_dptfManager;
+    const DptfManagerInterface* m_dptfManager;
 
     mutable Bool m_outputMessageStringCreated;
     mutable std::string m_outputMessageString;

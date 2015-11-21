@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,14 +17,13 @@
 ******************************************************************************/
 
 #include "ManagerMessage.h"
-#include "DptfManager.h"
 #include "ParticipantManager.h"
 #include "Participant.h"
 #include "PolicyManager.h"
 #include "Policy.h"
 #include "FrameworkEvent.h"
 
-ManagerMessage::ManagerMessage(const DptfManager* dptfManager, const std::string& fileName,
+ManagerMessage::ManagerMessage(const DptfManagerInterface* dptfManager, const std::string& fileName,
     UIntN lineNumber, const std::string& executingFunctionName) :
     DptfMessage(fileName, lineNumber, executingFunctionName),
     m_dptfManager(dptfManager),
@@ -32,7 +31,7 @@ ManagerMessage::ManagerMessage(const DptfManager* dptfManager, const std::string
 {
 }
 
-ManagerMessage::ManagerMessage(const DptfManager* dptfManager, const std::string& fileName,
+ManagerMessage::ManagerMessage(const DptfManagerInterface* dptfManager, const std::string& fileName,
     UIntN lineNumber, const std::string& executingFunctionName, const std::string& message) :
     DptfMessage(fileName, lineNumber, executingFunctionName),
     m_dptfManager(dptfManager),
@@ -41,7 +40,7 @@ ManagerMessage::ManagerMessage(const DptfManager* dptfManager, const std::string
     addMessage(message);
 }
 
-ManagerMessage::ManagerMessage(const DptfManager* dptfManager, const DptfMessage& dptfMessage) :
+ManagerMessage::ManagerMessage(const DptfManagerInterface* dptfManager, const DptfMessage& dptfMessage) :
     DptfMessage(dptfMessage),
     m_dptfManager(dptfManager),
     m_outputMessageStringCreated(false)
@@ -327,7 +326,7 @@ std::string ManagerMessage::createStandardizedIndex(UIntN index) const
 
     try
     {
-        newIndex = " [" + std::to_string(index) + "]";
+        newIndex = " [" + StlOverride::to_string(index) + "]";
     }
     catch (...)
     {
@@ -342,7 +341,7 @@ std::string ManagerMessage::numToString(UInt64 number) const
 
     try
     {
-        outputNumber = std::to_string(number);
+        outputNumber = StlOverride::to_string(number);
     }
     catch (...)
     {

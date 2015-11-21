@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIDomainCreate::WIDomainCreate(DptfManager* dptfManager, UIntN participantIndex, UIntN domainIndex,
+WIDomainCreate::WIDomainCreate(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex,
     const AppDomainDataPtr domainDataPtr, Bool domainEnabled, Bool* domainCreated) :
     DomainWorkItem(dptfManager, FrameworkEvent::DomainCreate, participantIndex, domainIndex),
     m_domainDataPtr(domainDataPtr), m_domainEnabled(domainEnabled), m_domainCreated(domainCreated)

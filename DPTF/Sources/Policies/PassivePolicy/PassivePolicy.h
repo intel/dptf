@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,6 @@ public:
     virtual void onDisable(void) override;
     virtual void onConnectedStandbyEntry(void) override;
     virtual void onConnectedStandbyExit(void) override;
-    virtual void onResume(void) override;
 
     virtual bool autoNotifyPlatformOscOnCreateDestroy() const override;
     virtual bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
@@ -64,6 +63,7 @@ public:
     virtual void onDomainDisplayControlCapabilityChanged(UIntN participantIndex) override;
     virtual void onDomainDisplayStatusChanged(UIntN participantIndex) override;
     virtual void onThermalRelationshipTableChanged(void) override;
+
     virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2) override;
     virtual void onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject) override;
 
@@ -77,24 +77,25 @@ private:
 
     // thermal action decisions
     TargetActionBase* determineAction(UIntN target);
-    void takeThermalActionForAllTargetsForSource(UIntN source);
     void takeThermalActionForTarget(UIntN target);
     void removeAllRequestsForTarget(UIntN target);
+    void takePossibleThermalActionForAllTargets();
+    void takePossibleThermalActionForTarget(UIntN participantIndex);
+    void takePossibleThermalActionForTarget(UIntN participantIndex, const Temperature& temperature);
     void clearAllSourceControls();
     
     // TRT actions
-    void associateParticipantInTrt(ParticipantProxy& participant, ThermalRelationshipTable& trt);
-    void reloadTrtAndCheckAllTargets();
+    void associateParticipantInTrt(ParticipantProxyInterface* participant, ThermalRelationshipTable& trt);
+    void reloadTrtIfDifferent();
     void associateAllParticipantsInTrt(ThermalRelationshipTable& trt);
 
     // temperature notification actions
-    void notifyPlatformOfDeviceTemperature(ParticipantProxy& participant, UIntN currentTemperature);
+    void notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, UIntN currentTemperature);
     void setParticipantTemperatureThresholdNotification(
-        ParticipantProxy& participant,
+        ParticipantProxyInterface* participant,
         Temperature currentTemperature);
 
     // testing participant qualifications
-    Bool participantIsSourceOrTargetDevice(UIntN participantIndex) const;
     Bool participantIsSourceDevice(UIntN participantIndex) const;
     Bool participantIsTargetDevice(UIntN participantIndex) const;
 

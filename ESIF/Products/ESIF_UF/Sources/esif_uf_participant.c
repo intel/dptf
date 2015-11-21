@@ -33,6 +33,12 @@
 #endif
 
 /*
+ * Need to move to header POC.  Also don't forget to free returned
+ * memory JDH
+ */
+extern char *esif_str_replace(char *orig, char *rep, char *with);
+
+/*
  * PRIVATE FUNCTION PROTOTYPES
  */
 static eEsifError EsifUp_CreateParticipantByLpEventData(
@@ -72,7 +78,7 @@ static eEsifError EsifUp_InitDomains(EsifUpPtr self);
 static eEsifError EsifUp_ExecuteLfSetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const UInt16 kernActionNum,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
@@ -80,7 +86,7 @@ static eEsifError EsifUp_ExecuteLfSetAction(
 static eEsifError EsifUp_ExecuteLfGetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const UInt16 kernActionNum,
 	EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
@@ -88,27 +94,51 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 static eEsifError EsifUp_ExecuteUfSetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr
 	);
 static eEsifError EsifUp_ExecuteUfGetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
+	EsifDataPtr requestPtr,
+	const EsifDataPtr responsePtr
+	);
+static eEsifError EsifUp_ExecuteIfaceGet(
+	EsifUpPtr self,
+	EsifActPtr actionPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	);
 static eEsifError EsifUp_ExecuteAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	UInt16 kernelActNum,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	);
+static eEsifError EsifUp_ExecuteIfaceSet(
+	EsifUpPtr self,
+	EsifActPtr actionPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
+	EsifDataPtr requestPtr
+	);
 static EsifString EsifUp_SelectDsp(
 	EsifUpPtr self
 	);
+
+/*
+ * Friend functions
+ */
+void EsifUp_DestroyParticipant(
+	EsifUpPtr self
+);
+
+
 /*
  * FUNCTION DEFINITIONS
  */
@@ -119,20 +149,15 @@ eEsifError EsifUp_DspReadyInit(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	UInt32 domainCount;
 	UInt32 domainIndex;
 	char domain_str[8] = "";
 
-	if ((NULL == self) ||
-		(NULL == self->fDspPtr) ||
-		(NULL == self->fDspPtr->get_domain_count)) {
+	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	domainCount = self->fDspPtr->get_domain_count(self->fDspPtr);
-
-	for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
+	for (domainIndex = 0; domainIndex < self->domainCount; domainIndex++) {
 		UInt32 period = 0;
 		EsifPrimitiveTuple periodTuple = {GET_PARTICIPANT_SAMPLE_PERIOD, self->domains[domainIndex].domain, 255};
 		EsifPrimitiveTuple behaviorTuple = {SET_PARTICIPANT_SAMPLE_BEHAVIOR, self->domains[domainIndex].domain, 255};
@@ -140,11 +165,11 @@ eEsifError EsifUp_DspReadyInit(
 
 		rc = EsifUp_ExecutePrimitive(self, &periodTuple, NULL, &periodData);
 		if (ESIF_OK == rc) {
-			ESIF_TRACE_DEBUG("Setting polling period for %s:%s to %d\n", self->fMetadata.fName, domain_str, period);
+			ESIF_TRACE_DEBUG("Setting polling period for %s:%s to %d\n", EsifUp_GetName(self), domain_str, period);
 
 			rc = EsifUp_ExecutePrimitive(self, &behaviorTuple, &periodData, NULL);
 			if (rc != ESIF_OK) {
-				ESIF_TRACE_WARN("Failed to set polling period for %s:%s\n", self->fMetadata.fName, domain_str);
+				ESIF_TRACE_WARN("Failed to set polling period for %s:%s\n", EsifUp_GetName(self), domain_str);
 			}
 		}
 
@@ -171,10 +196,10 @@ eEsifError EsifUp_UpdatePolling(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Updating polling period for %s:0x%04X to %d\n", self->fMetadata.fName, domainValue, period);
+	ESIF_TRACE_DEBUG("Updating polling period for %s:0x%04X to %d\n", EsifUp_GetName(self), domainValue, period);
 	rc = EsifUp_ExecutePrimitive(self, &behaviorTuple, &periodData, NULL);
 	if (rc != ESIF_OK) {
-		ESIF_TRACE_WARN("Failed to set polling period for %s:0x%04X\n", self->fMetadata.fName, domainValue);
+		ESIF_TRACE_WARN("Failed to set polling period for %s:0x%04X\n", EsifUp_GetName(self), domainValue);
 	}
 
 exit:
@@ -196,10 +221,10 @@ eEsifError EsifUp_UpdateHysteresis(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Updating hysteresis for %s:0x%04X to %d\n", self->fMetadata.fName, domainValue, hysteresis_val);
+	ESIF_TRACE_DEBUG("Updating hysteresis for %s:0x%04X to %d\n", EsifUp_GetName(self), domainValue, hysteresis_val);
 	rc = EsifUp_ExecutePrimitive(self, &hystTuple, &hystData, NULL);
 	if (rc != ESIF_OK) {
-		ESIF_TRACE_INFO("Failed to set hysteresis for %s:0x%04X\n", self->fMetadata.fName, domainValue);
+		ESIF_TRACE_INFO("Failed to set hysteresis for %s:0x%04X\n", EsifUp_GetName(self), domainValue);
 	}
 
 exit:
@@ -213,11 +238,13 @@ EsifFpcEventPtr EsifUp_GetFpcEventByType(
 	)
 {
 	EsifFpcEventPtr eventPtr = NULL;
+	EsifDspPtr dspPtr = NULL;
 
-	if (NULL == self) {
+	dspPtr = EsifUp_GetDsp(self);
+	if (NULL == dspPtr) {
 		goto exit;
 	}
-	eventPtr = self->fDspPtr->get_event_by_type(self->fDspPtr, eventType);
+	eventPtr = dspPtr->get_event_by_type(dspPtr, eventType);
 
 exit:
 	return eventPtr;
@@ -230,27 +257,16 @@ EsifFpcEventPtr EsifUp_GetFpcEventByGuid(
 	)
 {
 	EsifFpcEventPtr eventPtr = NULL;
+	EsifDspPtr dspPtr = NULL;
 
-	if ((NULL == self) || (NULL == guidPtr)) {
+	dspPtr = EsifUp_GetDsp(self);
+	if ((NULL ==dspPtr) || (NULL == guidPtr)) {
 		goto exit;
 	}
-	eventPtr = self->fDspPtr->get_event_by_guid(self->fDspPtr, *guidPtr);
+	eventPtr = dspPtr->get_event_by_guid(dspPtr, *guidPtr);
 
 exit:
 	return eventPtr;
-}
-
-
-EsifString EsifUp_GetName(
-	EsifUpPtr self
-	)
-{
-	if (self != NULL) {
-		return self->fMetadata.fName;
-	}
-	else {
-		return "UNK";
-	}
 }
 
 
@@ -279,72 +295,93 @@ exit:
 
 void EsifUp_RegisterParticipantForPolling(EsifUpPtr self)
 {
-	UInt16 j = 0;
-	UInt8 domainCount = 0;
 	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	eEsifError rc = ESIF_OK;
 
-	ESIF_ASSERT(self != NULL);
-	ESIF_ASSERT(self->fDspPtr != NULL);
-	ESIF_ASSERT(self->fDspPtr->get_domain_count != NULL);
+	if (NULL == self) {
+		return;
+	}
 
-	domainCount = (u8) self->fDspPtr->get_domain_count(self->fDspPtr);
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		return;
 
-	for (j = 0; j < domainCount; j++) {
-		domainPtr = EsifUp_GetDomainById(self, self->domains[j].domain);
-
+	rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == rc) {
 		if (NULL == domainPtr) {
+			rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
 			continue;
 		}
 
 		EsifUpDomain_RegisterForTempPoll(domainPtr, ESIF_POLL_ECONO);
 		EsifUpDomain_RegisterForStatePoll(domainPtr, ESIF_POLL_ECONO);
+		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (rc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(self);
 	}
 }
 
 void EsifUp_UnRegisterParticipantForPolling(EsifUpPtr self)
 {
-	UInt16 j = 0;
-	UInt8 domainCount = 0;
 	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	eEsifError rc = ESIF_OK;
 
-	ESIF_ASSERT(self != NULL);
-	ESIF_ASSERT(self->fDspPtr != NULL);
-	ESIF_ASSERT(self->fDspPtr->get_domain_count != NULL);
+	if (NULL == self) {
+		return;
+	}
 
-	domainCount = (u8) self->fDspPtr->get_domain_count(self->fDspPtr);
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		return;
 
-	for (j = 0; j < domainCount; j++) {
-		domainPtr = EsifUp_GetDomainById(self, self->domains[j].domain);
-
+	rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == rc) {
 		if (NULL == domainPtr) {
+			rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
 			continue;
 		}
 
 		EsifUpDomain_UnRegisterForTempPoll(domainPtr);
 		EsifUpDomain_UnRegisterForStatePoll(domainPtr);
+		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (rc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(self);
 	}
 }
 
 void EsifUp_PollParticipant(EsifUpPtr self)
 {
-	UInt16 j = 0;
-	UInt8 domainCount = 0;
 	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	eEsifError rc = ESIF_OK;
 
-	ESIF_ASSERT(self != NULL);
-	ESIF_ASSERT(self->fDspPtr != NULL);
-	ESIF_ASSERT(self->fDspPtr->get_domain_count != NULL);
+	if (NULL == self) {
+		return;
+	}
 
-	domainCount = (u8) self->fDspPtr->get_domain_count(self->fDspPtr);
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		return;
 
-	for (j = 0; j < domainCount; j++) {
-		domainPtr = EsifUp_GetDomainById(self, self->domains[j].domain);
-
+	rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == rc) {
 		if (NULL == domainPtr) {
+			rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
 			continue;
 		}
 
 		EsifUpDomain_Poll(domainPtr);
+		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (rc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(self);
 	}
 }
 
@@ -430,7 +467,7 @@ static eEsifError EsifUp_CreateParticipantByLpEventData(
 
 exit:
 	if (rc == ESIF_OK) {
-		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", newUpPtr->fMetadata.fName, upInstance);
+		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", EsifUp_GetName(newUpPtr), upInstance);
 		*upPtr = newUpPtr;
 	} else if (newUpPtr != NULL) {
 		EsifUp_DestroyParticipant(newUpPtr);
@@ -499,7 +536,7 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	rc = EsifUp_InitDomains(newUpPtr);
 exit:
 	if (rc == ESIF_OK) {
-		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", newUpPtr->fMetadata.fName, upInstance);
+		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", EsifUp_GetName(newUpPtr), upInstance);
 		*upPtr = newUpPtr;
 	}
 	else if (newUpPtr != NULL) {
@@ -517,23 +554,21 @@ static eEsifError EsifUp_InitDomains(
 	eEsifError rc = ESIF_OK;
 	UInt8 domainIndex = 0;
 	struct esif_fpc_domain *fpcDomainPtr = NULL;
+	EsifDspPtr dspPtr = NULL;
 
-	if ((NULL == self) ||
-		(NULL == self->fDspPtr) ||
-		(NULL == self->fDspPtr->get_domain_count) ||
-		(NULL == self->fDspPtr->get_domain)) {
+	dspPtr = EsifUp_GetDsp(self);
+	if (NULL == dspPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	
-	self->domainCount = (UInt8) self->fDspPtr->get_domain_count(self->fDspPtr);
+	self->domainCount = (UInt8) dspPtr->get_domain_count(dspPtr);
 
-	fpcDomainPtr = self->fDspPtr->get_domain(self->fDspPtr, domainIndex + 1);
+	fpcDomainPtr = dspPtr->get_domain(dspPtr, domainIndex);
 
 	while (fpcDomainPtr != NULL) {
 		EsifUpDomain_InitDomain(&self->domains[domainIndex], self, fpcDomainPtr);
-		fpcDomainPtr = self->fDspPtr->get_domain(self->fDspPtr, ++domainIndex + 1);
+		fpcDomainPtr = dspPtr->get_domain(dspPtr, ++domainIndex);
 	}
 
 exit:
@@ -595,11 +630,11 @@ static eEsifError EsifUp_ReInitializeParticipantByLpEventData(
 
 
 static eEsifError EsifUp_ReInitializeParticipantByUpInterface(
-    EsifUpPtr self,
-    EsifParticipantIfacePtr upInterfacePtr
-    )
+	EsifUpPtr self,
+	EsifParticipantIfacePtr upInterfacePtr
+	)
 {
-    eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_OK;
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(upInterfacePtr != NULL);
@@ -608,7 +643,7 @@ static eEsifError EsifUp_ReInitializeParticipantByUpInterface(
 
 	rc = EsifUp_SelectDspByUpInterface(self, upInterfacePtr);
 
-    return rc;
+	return rc;
 }
 
 
@@ -653,7 +688,7 @@ void EsifUp_DestroyParticipant(
 		self->markedForDelete = ESIF_TRUE;
 		EsifUp_PutRef(self);
 
-		ESIF_TRACE_INFO("Destroy participant %d : wait for delete event...\n", self->fInstance);
+		ESIF_TRACE_INFO("Destroy participant %d : wait for delete event...\n", EsifUp_GetInstance(self));
 		esif_ccb_event_wait(&self->deleteEvent);
 
 		esif_ccb_event_uninit(&self->deleteEvent);
@@ -701,7 +736,7 @@ static eEsifError EsifUp_SelectDspByLpEventData(
 		rc = ESIF_E_NEED_DSP;
 	}
 	else {
-		ESIF_TRACE_DEBUG("Selected DSP (%s) for participant: %s. \n", dspName, self->fMetadata.fName);
+		ESIF_TRACE_DEBUG("Selected DSP (%s) for participant: %s. \n", dspName, EsifUp_GetName(self));
 	}
 
 exit:
@@ -734,7 +769,7 @@ static eEsifError EsifUp_SelectDspByUpInterface(
 		rc = ESIF_E_NEED_DSP;
 	}
 	else {
-		ESIF_TRACE_DEBUG("Selected DSP (%s) for participant: %s. \n", dspName, self->fMetadata.fName);
+		ESIF_TRACE_DEBUG("Selected DSP (%s) for participant: %s. \n", dspName, EsifUp_GetName(self));
 	}
 
 exit:
@@ -758,26 +793,13 @@ EsifString EsifUp_SelectDsp(
 
 	query.vendorId = (EsifString) vendorId;
 	query.deviceId = (EsifString) deviceId;
-	query.participantType = (EsifString) participantEnum;
-	query.hid = (EsifString) self->fMetadata.fAcpiDevice;
-	query.ptype = (EsifString) participantPType;
-	query.participantName = (EsifString) self->fMetadata.fName;
+	query.enumerator = (EsifString) participantEnum;
+	query.hid = (EsifString)self->fMetadata.fAcpiDevice;
+	query.uid = (EsifString)self->fMetadata.fAcpiUID;
+	query.ptype = (EsifString)participantPType;
+	query.participantName = (EsifString)EsifUp_GetName(self);
 
 	return EsifDspMgr_SelectDsp(query);
-}
-
-
-UInt8 EsifUp_GetInstance(
-	EsifUpPtr self
-	)
-{
-	UInt8 instance = ESIF_PARTICIPANT_INVALID_INSTANCE;
-
-	if (self != NULL) {
-		instance = self->fInstance;
-	}
-
-	return instance;
 }
 
 
@@ -785,23 +807,34 @@ eEsifError EsifUp_SuspendParticipant(
 	EsifUpPtr self
 	)
 {
+	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
 	eEsifError rc = ESIF_OK;
-	UInt32 domainCount;
-	UInt32 domainIndex;
 
-	if ((NULL == self) ||
-		(NULL == self->fDspPtr) ||
-		(NULL == self->fDspPtr->get_domain_count)) {
+	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	domainCount = self->fDspPtr->get_domain_count(self->fDspPtr);
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		goto exit;
 
-	for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
-		if (self->domains[domainIndex].tempPollInitialized == ESIF_TRUE) {
-			EsifUpDomain_StopTempPoll(&self->domains[domainIndex]);
+	rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == rc) {
+		if (NULL == domainPtr) {
+			rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
 		}
+
+		EsifUpDomain_StopTempPoll(domainPtr);
+		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (rc == ESIF_E_ITERATION_DONE) {
+		rc = ESIF_OK;
+	} else {
+		EsifUp_PutRef(self);
 	}
 
 exit:
@@ -812,31 +845,34 @@ eEsifError EsifUp_ResumeParticipant(
 	EsifUpPtr self
 	)
 {
+	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
 	eEsifError rc = ESIF_OK;
-	UInt32 domainCount = 0;
-	UInt32 domainIndex = 0;
-	UInt32 powerValue = 0;
-	EsifPrimitiveTuple powerTuple = {GET_RAPL_POWER, 0, 255};
-	EsifData powerData = { ESIF_DATA_POWER, &powerValue, sizeof(powerValue), 0 };
 
-	if ((NULL == self) ||
-		(NULL == self->fDspPtr) ||
-		(NULL == self->fDspPtr->get_domain_count)) {
+	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	domainCount = self->fDspPtr->get_domain_count(self->fDspPtr);
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		goto exit;
 
-	ESIF_TRACE_INFO("Issue extra GET_RAPL_POWER primitives upon resume to reset power readings\n");
-	for (domainIndex = 0; domainIndex < domainCount; domainIndex++) {
-		esif_flags_t capabilities = self->domains[domainIndex].capabilities;
-		if (capabilities & ESIF_CAPABILITY_POWER_STATUS) {
-			// Ignore return code of GET_RAPL_POWER since domains from generic 
-			// participant may not implement this primitive
-			powerTuple.domain = self->domains[domainIndex].domain;
-			EsifUp_ExecutePrimitive(self, &powerTuple, NULL, &powerData);
+	rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == rc) {
+		if (NULL == domainPtr) {
+			rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
 		}
+
+		//TODO: Add domain specific resume code here
+		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (rc == ESIF_E_ITERATION_DONE) {
+		rc = ESIF_OK;
+	} else {
+		EsifUp_PutRef(self);
 	}
 
 exit:
@@ -860,7 +896,7 @@ eEsifError EsifUp_GetRef(
 	isLocked = ESIF_TRUE;
 
 	if (self->markedForDelete == ESIF_TRUE) {
-		ESIF_TRACE_DEBUG("Driver marked for delete\n");
+		ESIF_TRACE_DEBUG("Participant marked for delete\n");
 		rc = ESIF_E_UNSPECIFIED;
 		goto exit;
 	}
@@ -921,7 +957,7 @@ eEsifError EsifUp_ExecutePrimitive(
 	eEsifError rc = ESIF_OK;
 	EsifDspPtr dspPtr = NULL;
 	EsifFpcPrimitivePtr primitivePtr = NULL;
-	EsifFpcActionPtr actionPtr = NULL;
+	EsifFpcActionPtr fpcActionPtr = NULL;
 	UInt16 kernAct;
 	UInt32 i;
 	UInt32 reqAuto  = ESIF_FALSE;
@@ -947,16 +983,16 @@ eEsifError EsifUp_ExecutePrimitive(
 		"  Instance             : %u\n\n"
 		"  Request              : %p\n"
 		"  Response             : %p\n",
-		self->fInstance,
+		EsifUp_GetInstance(self),
 		esif_primitive_str((enum esif_primitive_type)tuplePtr->id), tuplePtr->id,
 		tuplePtr->id,
 		tuplePtr->instance,
 		requestPtr,
 		responsePtr);
 
-	dspPtr = self->fDspPtr;
+	dspPtr = EsifUp_GetDsp(self);
 	if (NULL == dspPtr) {
-		ESIF_TRACE_ERROR("DSP is not found for participant %d\n", self->fInstance);
+		ESIF_TRACE_ERROR("DSP is not found for participant %d\n", EsifUp_GetInstance(self));
 		rc = ESIF_E_NEED_DSP;
 		goto exit;
 	}	
@@ -1040,15 +1076,15 @@ eEsifError EsifUp_ExecutePrimitive(
 	 * Execute each action in the primitive until one succeeds
 	 */
 	for (kernAct = 0, i = 0; i < (int)primitivePtr->num_actions; i++) {
-		actionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
+		fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
 
-		if (NULL == actionPtr) {
+		if (NULL == fpcActionPtr) {
 			ESIF_TRACE_DEBUG("No actions succeeded for primitive (%d), current action %d\n", tuplePtr->id, i);
 			rc = ESIF_E_PRIMITIVE_NO_ACTION_SUCCESSFUL;
 			goto exit;
 		}
 
-		rc = EsifUp_ExecuteAction(self, primitivePtr, actionPtr, kernAct, requestPtr, responsePtr);
+		rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, kernAct, requestPtr, responsePtr);
 		if (ESIF_OK == rc ) {
 			break;
 		}
@@ -1079,13 +1115,13 @@ eEsifError EsifUp_ExecutePrimitive(
 				rc = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
-			rc = EsifUp_ExecuteAction(self, primitivePtr, actionPtr, kernAct, requestPtr, responsePtr);
+			rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, kernAct, requestPtr, responsePtr);
 			if (ESIF_OK == rc ) {
 				break;
 			}
 		}
 
-		if (actionPtr->is_kernel > 0) {
+		if (fpcActionPtr->is_kernel > 0) {
 			kernAct++;
 		}
 	}
@@ -1099,7 +1135,7 @@ exit:
 static eEsifError EsifUp_ExecuteAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	UInt16 kernelActNum,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
@@ -1109,21 +1145,21 @@ static eEsifError EsifUp_ExecuteAction(
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
-	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
 
-	if (actionPtr->is_kernel > 0) {
+	if (fpcActionPtr->is_kernel > 0) {
 		/* ESIF LF via IPC */
 		if (ESIF_PRIMITIVE_OP_GET == primitivePtr->operation) {
 			rc = EsifUp_ExecuteLfGetAction(self,
 				primitivePtr,
-				actionPtr,
+				fpcActionPtr,
 				kernelActNum,
 				requestPtr,
 				responsePtr);
 		} else {
 			rc = EsifUp_ExecuteLfSetAction(self,
 				primitivePtr,
-				actionPtr,
+				fpcActionPtr,
 				kernelActNum,
 				requestPtr,
 				responsePtr);
@@ -1137,13 +1173,13 @@ static eEsifError EsifUp_ExecuteAction(
 		if (ESIF_PRIMITIVE_OP_GET == primitivePtr->operation) {
 			rc = EsifUp_ExecuteUfGetAction(self,
 				primitivePtr,
-				actionPtr,
+				fpcActionPtr,
 				requestPtr,
 				responsePtr);
 		} else {
 			rc = EsifUp_ExecuteUfSetAction(self,
 				primitivePtr,
-				actionPtr,
+				fpcActionPtr,
 				requestPtr);
 		}
 		ESIF_TRACE_DEBUG("Used User-Level service for action %u; rc = %s\n", kernelActNum, esif_rc_str(rc));
@@ -1155,19 +1191,19 @@ static eEsifError EsifUp_ExecuteAction(
 static eEsifError EsifUp_ExecuteUfGetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
 {
 	eEsifError rc = ESIF_OK;
 	enum esif_action_type actionType;
-	EsifActTypePtr actiontypePtr = NULL;
+	EsifActPtr actionPtr = NULL;
 	struct esif_data voidRequest  = {ESIF_DATA_VOID, NULL, 0, 0};
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
-	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
 
 	if (NULL == responsePtr) {
 		ESIF_TRACE_ERROR("Response pointer is NULL\n");
@@ -1179,27 +1215,20 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 		requestPtr = &voidRequest;
 	}
 
-	actionType = actionPtr->type;
+	actionType = fpcActionPtr->type;
 
 	/* Find Action From Action Type LIST */
-	actiontypePtr = g_actMgr.GetActType(&g_actMgr, actionType);
-	if (NULL == actiontypePtr) {
+	actionPtr = EsifActMgr_GetAction(actionType, self->fInstance);
+	if (NULL == actionPtr) {
 		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 		ESIF_TRACE_DEBUG("Action For Type %d NOT FOUND Skipping...\n", actionType);
 		goto exit;
 	}
-
-	/* Validate Action Type */
-	if (ESIF_TRUE == actiontypePtr->fIsKernel) {
-		ESIF_TRACE_DEBUG("Invalid action : Kernel action\n");
-		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-		goto exit;
-	}
-
 	/* Have Action So Execute */
 	ESIF_TRACE_DEBUG("Have Action %s(%d)\n",
 		esif_action_type_str(actionType),
 		actionType);
+
 
 	/*
 	 * Perform a sanity check at the topmost level between the "integer"
@@ -1212,28 +1241,8 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 		goto exit;
 	}
 
-	if(actiontypePtr->fIsPlugin == ESIF_FALSE) {
-		/* Validate Action Pointer */
-		if (NULL == actiontypePtr->fGetFuncPtr) {
-			ESIF_TRACE_DEBUG("Invalid action : Action function pointer is NULL\n");
-			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-			goto exit;
-		}
-
-		rc = actiontypePtr->fGetFuncPtr(actiontypePtr->fHandle,
-			self,
-			primitivePtr,
-			actionPtr,
-			requestPtr,
-			responsePtr);
-	} else {
-		rc = EsifActCallPluginGet(actiontypePtr->fHandle,
-			self,
-			actionPtr,
-			actiontypePtr->fActGetFuncPtr,
-			requestPtr,
-			responsePtr);
-	}
+	rc = EsifUp_ExecuteIfaceGet(self, actionPtr, primitivePtr, fpcActionPtr, requestPtr, responsePtr);
+	
 	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),
 		responsePtr->buf_len,
@@ -1244,8 +1253,65 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 		EsifUfExecuteTransform(
 			responsePtr,
 			actionType,
-			self->fDspPtr,
+			EsifUp_GetDsp(self),
 			ESIF_PRIMITIVE_OP_GET);
+	}
+exit:
+	EsifAct_PutRef(actionPtr);
+	return rc;
+}
+
+
+static eEsifError EsifUp_ExecuteIfaceGet(
+	EsifUpPtr self,
+	EsifActPtr actionPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
+	EsifDataPtr requestPtr,
+	const EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifActIfacePtr actIfacePtr = NULL;
+	esif_context_t actCtx = NULL;
+
+	ESIF_ASSERT(self != NULL);
+	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(primitivePtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
+
+
+	actIfacePtr = EsifAct_GetIface(actionPtr);
+	if (NULL == actIfacePtr) {
+		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
+		goto exit;
+	}
+	actCtx = EsifAct_GetActCtx(actionPtr);
+
+	switch (EsifAct_GetIfaceVersion(actionPtr)) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+		if (NULL == actIfacePtr->ifaceStatic.getFuncPtr) {
+			ESIF_TRACE_DEBUG("Invalid action : Action function pointer is NULL\n");
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			goto exit;
+		}
+		rc = actIfacePtr->ifaceStatic.getFuncPtr(actCtx,
+			self,
+			primitivePtr,
+			fpcActionPtr,
+			requestPtr,
+			responsePtr);
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		rc = EsifActCallPluginGet(actCtx,
+			self,
+			fpcActionPtr,
+			actIfacePtr->actIfaceV1.getFuncPtr,
+			requestPtr,
+			responsePtr);
+		break;
+	default:
+		break;
 	}
 exit:
 	return rc;
@@ -1255,17 +1321,17 @@ exit:
 static eEsifError EsifUp_ExecuteUfSetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr
 	)
 {
 	eEsifError rc    = ESIF_OK;
 	enum esif_action_type actionType;
-	EsifActTypePtr actiontypePtr = NULL;
+	EsifActPtr actionPtr = NULL;
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
-	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
 
 	if (NULL == requestPtr) {
 		ESIF_TRACE_ERROR("Request pointer is NULL\n");
@@ -1274,18 +1340,11 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	}
 
 	/* Find Action From Action Type LIST */
-	actionType = actionPtr->type;
-	actiontypePtr = g_actMgr.GetActType(&g_actMgr, actionType);
-	if (NULL == actiontypePtr) {
+	actionType = fpcActionPtr->type;
+	actionPtr = EsifActMgr_GetAction(actionType, self->fInstance);
+	if (NULL == actionPtr) {
 		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 		ESIF_TRACE_DEBUG("Action For Type %d NOT FOUND Skipping...\n", actionType);
-		goto exit;
-	}
-
-	/* Validate Action */
-	if (ESIF_TRUE == actiontypePtr->fIsKernel) {
-		ESIF_TRACE_DEBUG("Invalid action : Kernel action\n");
-		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
 
@@ -1311,33 +1370,78 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	/* UF Transform*/
 	EsifUfExecuteTransform(requestPtr,
 		actionType,
-		self->fDspPtr,
+		EsifUp_GetDsp(self),
 		ESIF_PRIMITIVE_OP_SET);
 
-	if(actiontypePtr->fIsPlugin == ESIF_FALSE) {
-		/* Validate Action Pointer */
-		if (NULL == actiontypePtr->fSetFuncPtr) {
-			ESIF_TRACE_DEBUG("Invalid action : Action function pointer is NULL\n");
-			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-			goto exit;
-		}
+	rc = EsifUp_ExecuteIfaceSet(self,
+		actionPtr,
+		primitivePtr,
+		fpcActionPtr,
+		requestPtr);
 
-		rc = actiontypePtr->fSetFuncPtr(actiontypePtr->fHandle,
-			self,
-			primitivePtr,
-			actionPtr,
-			requestPtr);
-	} else {
-		rc = EsifActCallPluginSet(actiontypePtr->fHandle,
-			self,
-			actionPtr,
-			actiontypePtr->fActSetFuncPtr,
-			requestPtr);
-	}
+
 	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),
 		requestPtr->buf_len,
 		requestPtr->data_len);
+exit:
+	EsifAct_PutRef(actionPtr);
+	return rc;
+}
+
+
+static eEsifError EsifUp_ExecuteIfaceSet(
+	EsifUpPtr self,
+	EsifActPtr actionPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
+	EsifDataPtr requestPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifActIfacePtr actIfacePtr = NULL;
+	esif_context_t actCtx = NULL;
+
+	ESIF_ASSERT(self != NULL);
+	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(primitivePtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
+
+	actIfacePtr = EsifAct_GetIface(actionPtr);
+	if (NULL == actIfacePtr) {
+		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
+		goto exit;
+	}
+	actCtx = EsifAct_GetActCtx(actionPtr);
+
+	switch (EsifAct_GetIfaceVersion(actionPtr)) {
+	case ESIF_ACT_IFACE_VER_STATIC:
+			/* Validate Action Pointer */
+			if (NULL == actIfacePtr->ifaceStatic.setFuncPtr) {
+				ESIF_TRACE_DEBUG("Invalid action : Action function pointer is NULL\n");
+				rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+				goto exit;
+			}
+
+			rc = actIfacePtr->ifaceStatic.setFuncPtr(actCtx,
+				self,
+				primitivePtr,
+				fpcActionPtr,
+				requestPtr);
+		break;
+	case ESIF_ACT_IFACE_VER_V1:
+		rc = EsifActCallPluginSet(actCtx,
+			self,
+			fpcActionPtr,
+			actIfacePtr->actIfaceV1.setFuncPtr,
+			requestPtr);
+		break;
+	default:
+		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
+		ESIF_TRACE_DEBUG("Unsupported action interface version %u ...\n", actIfacePtr->hdr.fIfaceVersion);
+		goto exit;
+		break;
+	}
 exit:
 	return rc;
 }
@@ -1346,7 +1450,7 @@ exit:
 static eEsifError EsifUp_ExecuteLfGetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const UInt16 kernActionNum,
 	EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
@@ -1360,7 +1464,7 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
-	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
 
 	ESIF_TRACE_DEBUG("Send To LOWER_FRAMEWORK/KERNEL\n");
 
@@ -1385,9 +1489,9 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 	ipcPrimPtr->domain          = primitivePtr->tuple.domain;
 	ipcPrimPtr->instance        = (u8)primitivePtr->tuple.instance;
 	ipcPrimPtr->src_id          = ESIF_INSTANCE_UF;
-	ipcPrimPtr->dst_id          = self->fLpInstance;
+	ipcPrimPtr->dst_id          = EsifUp_GetLpInstance(self);
 	ipcPrimPtr->kern_action     = kernActionNum;
-	ipcPrimPtr->action_type     = (enum esif_action_type)actionPtr->type;
+	ipcPrimPtr->action_type     = (enum esif_action_type)fpcActionPtr->type;
 
 	ipcPrimPtr->rsp_data_type   = responsePtr->type;
 	ipcPrimPtr->rsp_data_offset = 0;
@@ -1440,7 +1544,7 @@ exit:
 static eEsifError EsifUp_ExecuteLfSetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const UInt16 kernActionNum,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
@@ -1453,7 +1557,7 @@ static eEsifError EsifUp_ExecuteLfSetAction(
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
-	ESIF_ASSERT(actionPtr != NULL);
+	ESIF_ASSERT(fpcActionPtr != NULL);
 
 	ESIF_TRACE_DEBUG("Send To LOWER_FRAMEWORK/KERNEL\n");
 
@@ -1478,10 +1582,10 @@ static eEsifError EsifUp_ExecuteLfSetAction(
 	ipcPrimPtr->domain          = primitivePtr->tuple.domain;
 	ipcPrimPtr->instance        = (u8)primitivePtr->tuple.instance;
 	ipcPrimPtr->src_id          = ESIF_INSTANCE_UF;
-	ipcPrimPtr->dst_id          = self->fLpInstance;
+	ipcPrimPtr->dst_id          = EsifUp_GetLpInstance(self);
 	ipcPrimPtr->kern_action     = kernActionNum;
 	ipcPrimPtr->req_data_type   = requestPtr->type;
-	ipcPrimPtr->action_type     = (enum esif_action_type)actionPtr->type;
+	ipcPrimPtr->action_type     = (enum esif_action_type)fpcActionPtr->type;
 	ipcPrimPtr->req_data_offset = 0;
 	ipcPrimPtr->req_data_len    = requestPtr->buf_len;
 	ipcPrimPtr->rsp_data_type   = responsePtr->type;
@@ -1514,6 +1618,35 @@ exit:
 }
 
 
+/*
+ * WARNING:  The allocated strings returned must be released by the caller 
+ * Returns a NULL string if no token replacement takes place
+ */
+EsifString EsifUp_CreateTokenReplacedParamString(
+	const EsifUpPtr self,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifString paramStr
+	)
+{
+	EsifString replacedStr = NULL;
+	char domainStr[8] = "";
+	char idBuf[ESIF_NAME_LEN + 1 + sizeof(domainStr)];
+
+	if ((NULL == paramStr) || (NULL == self) || (NULL == primitivePtr)) {
+		goto exit;
+	}
+
+	esif_primitive_domain_str(primitivePtr->tuple.domain, domainStr, sizeof(domainStr));
+	esif_ccb_sprintf(sizeof(idBuf) - 1, idBuf, "%s.%s", EsifUp_GetName(self), domainStr);
+
+	replacedStr = esif_str_replace(paramStr, "%nm%", idBuf);
+
+	if (replacedStr != NULL) {
+		ESIF_TRACE_DEBUG("\tEXPANDED data %s\n", replacedStr);
+	}
+exit:
+	return replacedStr;
+}
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/

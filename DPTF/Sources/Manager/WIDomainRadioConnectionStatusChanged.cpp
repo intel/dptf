@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIDomainRadioConnectionStatusChanged::WIDomainRadioConnectionStatusChanged(DptfManager* dptfManager,
+WIDomainRadioConnectionStatusChanged::WIDomainRadioConnectionStatusChanged(DptfManagerInterface* dptfManager,
     UIntN participantIndex, UIntN domainIndex, RadioConnectionStatus::Type radioConnectionStatus) :
     DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainRadioConnectionStatusChanged, participantIndex, domainIndex),
     m_radioConnectionStatus(radioConnectionStatus)

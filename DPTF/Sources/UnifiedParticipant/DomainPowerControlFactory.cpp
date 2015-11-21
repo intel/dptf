@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,15 +20,16 @@
 #include "DomainPowerControl_000.h"
 #include "DomainPowerControl_001.h"
 
-DomainPowerControlInterface* DomainPowerControlFactory::createDomainPowerControlObject(UIntN version, ParticipantServicesInterface* participantServicesInterface)
+ControlBase* DomainPowerControlFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
+    ParticipantServicesInterface* participantServicesInterface)
 {
     switch (version)
     {
         case 0:
-            return new DomainPowerControl_000(participantServicesInterface);
+            return new DomainPowerControl_000(participantIndex, domainIndex, participantServicesInterface);
             break;
         case 1:
-            return new DomainPowerControl_001(participantServicesInterface);
+            return new DomainPowerControl_001(participantIndex, domainIndex, participantServicesInterface);
             break;
         default:
             std::stringstream message;

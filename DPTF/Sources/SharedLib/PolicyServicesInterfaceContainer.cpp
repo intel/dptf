@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,11 +28,14 @@ PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void) :
     domainPixelClockStatus(nullptr),
     domainPowerControl(nullptr),
     domainPowerStatus(nullptr),
+    domainPlatformPowerControl(nullptr),
+    domainPlatformPowerStatus(nullptr),
     domainPriority(nullptr),
     domainRfProfileControl(nullptr),
     domainRfProfileStatus(nullptr),
     domainTemperature(nullptr),
     domainUtilization(nullptr),
+    domainHardwareDutyCycleControl(nullptr),
     participantGetSpecificInfo(nullptr),
     participantProperties(nullptr),
     participantSetSpecificInfo(nullptr),
@@ -41,6 +44,8 @@ PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void) :
     platformPowerState(nullptr),
     policyEventRegistration(nullptr),
     policyInitiatedCallback(nullptr),
-    messageLogging(nullptr)
+    messageLogging(nullptr),
+    workloadHintConfiguration(nullptr),
+    platformState(nullptr)
 {
 }

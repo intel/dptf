@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 ******************************************************************************/
 
 #include "SupportedPolicyList.h"
-#include "DptfMemory.h"
 #include "EsifServices.h"
-#include "esif_primitive_type.h"
 #include "esif_ccb_memory.h"
-#include "esif_data_variant.h"
+#include "esif_sdk_primitive_type.h"
+#include "esif_sdk_data.h"
 
 static const UIntN GuidSize = 16;
 
@@ -36,7 +35,7 @@ typedef struct _AcpiEsifGuid
 SupportedPolicyList::SupportedPolicyList(DptfManager* dptfManager) :
     m_dptfManager(dptfManager)
 {
-    createSupportedPolicyList();
+    update();
 }
 
 UIntN SupportedPolicyList::getCount(void) const
@@ -51,6 +50,12 @@ const Guid& SupportedPolicyList::operator[](UIntN index) const
 
 Bool SupportedPolicyList::isPolicyValid(const Guid& guid) const
 {
+#ifdef DISABLE_VALID_POLICY_CHECK
+
+    return true;
+
+#else
+
     Bool supported = false;
 
     for (auto it = m_guid.begin(); it != m_guid.end(); it++)
@@ -63,46 +68,30 @@ Bool SupportedPolicyList::isPolicyValid(const Guid& guid) const
     }
 
     return supported;
+
+#endif
 }
 
-void SupportedPolicyList::createSupportedPolicyList(void)
+void SupportedPolicyList::update(void)
 {
     m_guid.clear();
 
-    UInt32 dataLength = 0;
-    DptfMemory binaryData;
-    binaryData.allocate(Constants::DefaultBufferSize, true);
+    // TODO: This should be moved to a DPTF Initialization class. For now, ignore empty result buffer
+    DptfBuffer ignore = m_dptfManager->getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_DPTF_CONFIGURATION, ESIF_DATA_BINARY);
+    
+    DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
 
-    try
-    {
-        m_dptfManager->getEsifServices()->primitiveExecuteGet(
-            esif_primitive_type::GET_SUPPORTED_POLICIES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength);
-    }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_dptfManager->getEsifServices()->primitiveExecuteGet(
-            esif_primitive_type::GET_SUPPORTED_POLICIES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength);
-    }
-
-    if ((dataLength % sizeof(AcpiEsifGuid)) != 0)
+    if ((buffer.size() % sizeof(AcpiEsifGuid)) != 0)
     {
         std::stringstream message;
-        message << "Received invalid data length [" << dataLength << "] from primitive call: GET_SUPPORTED_POLICIES";
+        message << "Received invalid data length [" << buffer.size() << "] from primitive call: GET_SUPPORTED_POLICIES";
         throw dptf_exception(message.str());
     }
 
-    UInt32 guidCount = dataLength / sizeof(AcpiEsifGuid);
-    AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(binaryData.getPtr());
+    UInt32 guidCount = buffer.size() / sizeof(AcpiEsifGuid);
+    AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(buffer.get());
 
     for (UInt32 i = 0; i < guidCount; i++)
     {
@@ -112,6 +101,4 @@ void SupportedPolicyList::createSupportedPolicyList(void)
         m_dptfManager->getEsifServices()->writeMessageInfo("Supported GUID: " + guid.toString());
         m_guid.push_back(guid);
     }
-
-    binaryData.deallocate();
 }

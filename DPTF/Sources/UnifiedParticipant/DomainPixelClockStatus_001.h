@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,31 +19,28 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPixelClockStatusInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainPixelClockStatusBase.h"
 
-class DomainPixelClockStatus_001 final : public DomainPixelClockStatusInterface,
-    public ComponentExtendedInterface
+class DomainPixelClockStatus_001 : public DomainPixelClockStatusBase
 {
 public:
 
-    DomainPixelClockStatus_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainPixelClockStatus_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainPixelClockStatus_001(void);
 
     // DomainPixelClockStatusInterface
-    virtual PixelClockCapabilities getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PixelClockDataSet getPixelClockDataSet(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual PixelClockCapabilities getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex) override;
+    virtual PixelClockDataSet getPixelClockDataSet(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
     // hide the copy constructor and = operator
     DomainPixelClockStatus_001(const DomainPixelClockStatus_001& rhs);
     DomainPixelClockStatus_001& operator=(const DomainPixelClockStatus_001& rhs);
-
-    ParticipantServicesInterface* m_participantServicesInterface;
 };

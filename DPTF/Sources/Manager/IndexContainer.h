@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,23 +20,19 @@
 
 #include "Dptf.h"
 #include "EsifMutex.h"
+#include "IndexContainerInterface.h"
 
-typedef struct _IndexStruct
-{
-    UIntN index;
-} IndexStruct, *IndexStructPtr;
-
-class IndexContainer final
+class IndexContainer : public IndexContainerInterface
 {
 public:
 
     IndexContainer(UIntN initialCount);
     ~IndexContainer(void);
 
-    IndexStructPtr getIndexPtr(UIntN index);
-    UIntN getIndex(IndexStructPtr indexStructPtr);
+    virtual IndexStructPtr getIndexPtr(UIntN index) override;
+    virtual UIntN getIndex(IndexStructPtr indexStructPtr) override;
 
-public:
+private:
 
     // hide the copy constructor and assignment operator.
     IndexContainer(const IndexContainer& rhs);

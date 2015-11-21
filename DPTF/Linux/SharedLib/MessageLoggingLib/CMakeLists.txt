@@ -1,0 +1,17 @@
+if (IN_SOURCE_BUILD MATCHES YES)                                                                                                                                                                                                                                        
+        include_directories(../)
+        include_directories(../../../../Common)
+		include_directories(../../SharedLib/BasicTypesLib)
+		include_directories(../../SharedLib/EventsLib)
+        file(GLOB_RECURSE message_logging_lib_SOURCES "*.cpp")
+else ()
+        include_directories(../../../Sources)
+        include_directories(../../../../Common)
+		include_directories(../../../Sources/SharedLib/BasicTypesLib)
+		include_directories(../../../Sources/SharedLib/EventsLib)
+        file(GLOB_RECURSE message_logging_lib_SOURCES "../../../Sources/SharedLib/MessageLoggingLib/*.cpp")
+endif()
+
+add_library(${MESSAGE_LOGGING_LIB} STATIC ${message_logging_lib_SOURCES})
+
+set_target_properties(${MESSAGE_LOGGING_LIB} PROPERTIES PREFIX "")

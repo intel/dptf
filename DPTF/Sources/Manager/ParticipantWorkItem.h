@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,7 +27,7 @@ class ParticipantWorkItem : public WorkItem
 {
 public:
 
-    ParticipantWorkItem(DptfManager* dptfManager, FrameworkEvent::Type frameworkEventType, UIntN participantIndex);
+    ParticipantWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType, UIntN participantIndex);
     virtual ~ParticipantWorkItem(void);
 
     // the following are implemented in the ParticipantWorkItem class and *can* be overridden

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,9 +19,8 @@
 #pragma once
 
 #include "Dptf.h"
-#include "PowerControlStatusSet.h"
-
-class DptfManager;
+#include "TimeSpan.h"
+#include "PowerControlType.h"
 
 //
 // Arbitration Rule:
@@ -29,38 +28,63 @@ class DptfManager;
 // for each (PL1, PL2, Pl3)
 //  lowest power level wins
 //  lowest time window wins
+//  lowest duty cycle wins
 //
 // *It is allowed to mix and match between policies.  The lowest PL1 power level can be from one policy and the
 //  lowest time window can be from another policy
 //
 
 
-class PowerControlArbitrator
+class dptf_export PowerControlArbitrator
 {
 public:
 
-    PowerControlArbitrator(DptfManager* dptfManager);
-    ~PowerControlArbitrator(void);
+    PowerControlArbitrator();
+    ~PowerControlArbitrator();
 
     // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet);
-
-    PowerControlStatusSet getArbitratedPowerControlStatusSet(void) const;
-    void clearPolicyCachedData(UIntN policyIndex);
+    Bool arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
+    Bool arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
+    Bool arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
+    Power getArbitratedPowerLimit(PowerControlType::Type controlType) const;
+    TimeSpan getArbitratedTimeWindow(PowerControlType::Type controlType) const;
+    Percentage getArbitratedDutyCycle(PowerControlType::Type controlType) const;
+    void removeRequestsForPolicy(UIntN policyIndex);
 
 private:
 
-    // hide the copy constructor and assignment operator.
-    PowerControlArbitrator(const PowerControlArbitrator& rhs);
-    PowerControlArbitrator& operator=(const PowerControlArbitrator& rhs);
+    std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedPowerLimits;
+    std::map<PowerControlType::Type, Power> m_arbitratedPowerLimit;
+    std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>> m_requestedTimeWindows;
+    std::map<PowerControlType::Type, TimeSpan> m_arbitratedTimeWindow;
+    std::map<UIntN, std::map<PowerControlType::Type, Percentage>> m_requestedDutyCycles;
+    std::map<PowerControlType::Type, Percentage> m_arbitratedDutyCycle;
 
-    DptfManager* m_dptfManager;
+    Power getLowestRequest(PowerControlType::Type controlType, 
+        const std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerLimits);
+    TimeSpan getLowestRequest(PowerControlType::Type controlType, 
+        const std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& timeWindows);
+    Percentage getLowestRequest(PowerControlType::Type controlType, 
+        const std::map<UIntN, std::map<PowerControlType::Type, Percentage>>& dutyCycles);
+    Bool setArbitratedRequest(PowerControlType::Type controlType, const Power& lowestRequest);
+    Bool setArbitratedRequest(PowerControlType::Type controlType, const TimeSpan& lowestRequest);
+    Bool setArbitratedRequest(PowerControlType::Type controlType, const Percentage& lowestRequest);
+    void updatePolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
+    void updatePolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
+    void updatePolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
 
-    PowerControlStatusSet* m_arbitratedPowerControlStatusSet;
-    std::vector<PowerControlStatusSet*> m_requestedPowerControlStatusSet;
+    void removePowerLimitRequest(UIntN policyIndex);
+    void removeTimeWindowRequest(UIntN policyIndex);
+    void removeDutyCycleRequest(UIntN policyIndex);
+    
+    std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
+        const std::map<PowerControlType::Type, Power>& controlRequests);
+    std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
+        const std::map<PowerControlType::Type, TimeSpan>& controlRequests);
+    std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
+        const std::map<PowerControlType::Type, Percentage>& controlRequests);
 
-    void savePolicyRequest(UIntN policyIndex, const PowerControlStatusSet& powerControlStatusSet);
-    std::vector<PowerControlStatus> createInitialArbitratedPowerControlStatusVector();
-    void arbitrate(std::vector<PowerControlStatus> &arbitratedPowerControlStatusVector);
-    PowerControlStatusSet getArbitratedPowerControlStatusSet(std::vector<PowerControlStatus>& arbitratedPowerControlStatusVector);
+    void setArbitratedPowerLimitForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
+    void setArbitratedTimeWindowsForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
+    void setArbitratedDutyCyclesForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
 };

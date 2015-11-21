@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ public:
     TargetUnlimitAction(
         PolicyServicesInterfaceContainer& policyServices, 
         std::shared_ptr<TimeInterface> time,
-        ParticipantTracker& participantTracker, 
+        std::shared_ptr<ParticipantTrackerInterface> participantTracker,
         ThermalRelationshipTable& trt,
         std::shared_ptr<CallbackScheduler> callbackScheduler,
         TargetMonitor& targetMonitor,
@@ -47,7 +47,7 @@ private:
         UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
 
     // domain filtering
-    std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxy& participant, UIntN target);
+    std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxyInterface* participant, UIntN target);
     std::vector<UIntN> chooseDomainsToUnlimitForSource(UIntN target, UIntN source);
     UIntN getDomainWithLowestTemperature(UIntN source, std::vector<UIntN> domainsWithControlKnobsToTurn);
     std::vector<UIntN> getDomainsWithLowestPriority(UIntN source, std::vector<UIntN> domains);

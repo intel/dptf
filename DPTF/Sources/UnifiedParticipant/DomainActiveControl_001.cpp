@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,11 +19,12 @@
 #include "DomainActiveControl_001.h"
 #include "XmlNode.h"
 
-DomainActiveControl_001::DomainActiveControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface),
-    m_activeControlSet(nullptr),
+DomainActiveControl_001::DomainActiveControl_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainActiveControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_activeControlStaticCaps(nullptr),
-    m_activeControlStatus(nullptr)
+    m_activeControlStatus(nullptr),
+    m_activeControlSet(nullptr)
 {
 }
 
@@ -70,7 +71,7 @@ void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN dom
         throw dptf_exception("The desired control index is out of bounds.");
     }
 
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_FAN_LEVEL,
         (*m_activeControlSet)[controlIndex].getControlId(),
         domainIndex);
@@ -95,7 +96,7 @@ void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN dom
     // which would be 90 for 90%.  This is an exception and should be corrected in the future.
     UInt32 convertedFanSpeedPercentage = static_cast<UInt32>(fanSpeed * 100);
 
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_FAN_LEVEL,
         convertedFanSpeedPercentage,
         domainIndex);
@@ -127,103 +128,23 @@ XmlNode* DomainActiveControl_001::getXml(UIntN domainIndex)
 
 void DomainActiveControl_001::createActiveControlStaticCaps(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    try
-    {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_FAN_INFORMATION,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_FAN_INFORMATION,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-
-    m_activeControlStaticCaps = BinaryParse::fanFifObject(dataLength, binaryData);
-
-    binaryData.deallocate();
+    DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_FAN_INFORMATION, ESIF_DATA_BINARY, domainIndex);
+    m_activeControlStaticCaps = BinaryParse::fanFifObject(buffer);
 }
 
 void DomainActiveControl_001::createActiveControlStatus(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    try
-    {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_FAN_STATUS,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_FAN_STATUS,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-
-
-    m_activeControlStatus = BinaryParse::fanFstObject(dataLength, binaryData);
-
-    binaryData.deallocate();
+    DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_FAN_STATUS, ESIF_DATA_BINARY, domainIndex);
+    m_activeControlStatus = BinaryParse::fanFstObject(buffer);
 }
 
 void DomainActiveControl_001::createActiveControlSet(UIntN domainIndex)
 {
-    UInt32 dataLength = 0;
-    DptfMemory binaryData(Constants::DefaultBufferSize);
-
-    // Build _FPS table
-    try
-    {
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_FAN_PERFORMANCE_STATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-    catch (buffer_too_small e)
-    {
-        binaryData.deallocate();
-        binaryData.allocate(e.getNeededBufferSize(), true);
-        m_participantServicesInterface->primitiveExecuteGet(
-            esif_primitive_type::GET_FAN_PERFORMANCE_STATES,
-            ESIF_DATA_BINARY,
-            binaryData,
-            binaryData.getSize(),
-            &dataLength,
-            domainIndex);
-    }
-
-    m_activeControlSet = new ActiveControlSet(BinaryParse::fanFpsObject(dataLength, binaryData));
-
-    binaryData.deallocate();
+    DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_FAN_PERFORMANCE_STATES, ESIF_DATA_BINARY, domainIndex);
+    m_activeControlSet = new ActiveControlSet(BinaryParse::fanFpsObject(buffer));
 }
 
 void DomainActiveControl_001::checkAndCreateControlStructures(UIntN domainIndex)
@@ -242,4 +163,9 @@ void DomainActiveControl_001::checkAndCreateControlStructures(UIntN domainIndex)
     {
         createActiveControlSet(domainIndex);
     }
+}
+
+std::string DomainActiveControl_001::getName(void)
+{
+    return "Active Control (Version 1)";
 }

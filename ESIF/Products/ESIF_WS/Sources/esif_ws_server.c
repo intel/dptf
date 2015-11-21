@@ -50,6 +50,11 @@ extern int g_shell_enabled;
  ** PRIVATE
  *******************************************************************************
  */
+#define WEBSOCKET_DEFAULT_IPADDR	"0.0.0.0"	// All Interfaces
+#define WEBSOCKET_DEFAULT_PORT		"8888"		// Public Port
+#define WEBSOCKET_RESTRICTED_IPADDR	"127.0.0.1"	// Localhost Only
+#define WEBSOCKET_RESTRICTED_PORT	"888"		// System Port
+
 static char *esif_ws_server_get_rest_response(size_t *msgLenPtr);
 static char *esif_ws_server_get_rest_buffer(void);
 static void esif_ws_server_initialize_clients(void);
@@ -106,8 +111,9 @@ atomic_t g_ws_threads = 0;
  *******************************************************************************
  */
 #define MAX_IPADDR 20
-char g_ws_ipaddr[MAX_IPADDR]= "0.0.0.0";
-char g_ws_port[MAX_IPADDR] = "8888";
+char g_ws_ipaddr[MAX_IPADDR]= WEBSOCKET_DEFAULT_IPADDR;
+char g_ws_port[MAX_IPADDR] =  WEBSOCKET_DEFAULT_PORT;
+Bool g_ws_restricted = ESIF_FALSE;
 
 esif_ccb_socket_t g_listen = INVALID_SOCKET;
 
@@ -332,14 +338,17 @@ void esif_ws_exit(esif_thread_t *threadPtr)
 	CMD_OUT("WebServer Stopped\n");
 }
 
-void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 portPtr)
+void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 portPtr, Bool restricted)
 {
-	if (ipaddr) {
-		esif_ccb_strcpy(g_ws_ipaddr, ipaddr, sizeof(g_ws_ipaddr));
+	if (ipaddr == NULL) {
+		ipaddr = (restricted ? WEBSOCKET_RESTRICTED_IPADDR : WEBSOCKET_DEFAULT_IPADDR);
 	}
-	if (portPtr) {
-		esif_ccb_sprintf(sizeof(g_ws_port), g_ws_port, "%d", portPtr);
+	if (portPtr == 0) {
+		portPtr = atoi(restricted ? WEBSOCKET_RESTRICTED_PORT : WEBSOCKET_DEFAULT_PORT);
 	}
+	esif_ccb_strcpy(g_ws_ipaddr, ipaddr, sizeof(g_ws_ipaddr));
+	esif_ccb_sprintf(sizeof(g_ws_port), g_ws_port, "%d", portPtr);
+	g_ws_restricted = restricted;
 }
 
 
@@ -382,25 +391,44 @@ void esif_ws_server_execute_rest_cmd(
 		command_buf++;
 
 		// Ad-Hoc UI Shell commands begin with "0:", so verify ESIF shell is enabled and command is valid
-		if (msg_id == 0) {
+		if (msg_id == 0 || g_ws_restricted) {
 			char *response = NULL;
-			if (!g_shell_enabled) {
-				response = "0:Shell Disabled";
+			if (msg_id == 0 && !g_shell_enabled) {
+				response = "Shell Disabled";
 			}
 			else {
-				static char *unsupported[] = {"shell", "web", "exit", "quit", NULL};
-				int j=0;
-				for (j = 0; unsupported[j] != NULL; j++) {
-					if (esif_ccb_strnicmp(command_buf, unsupported[j], esif_ccb_strlen(unsupported[j], MAX_PATH)) == 0) {
-						response = "0:Unsupported Command";
-						break;
+				static char *whitelist[] = { "status", "participants", NULL };
+				static char *blacklist[] = { "shell", "web", "exit", "quit", NULL };
+				Bool blocked = ESIF_FALSE;
+				int j = 0;
+				if (g_ws_restricted) {
+					for (j = 0; whitelist[j] != NULL; j++) {
+						if (esif_ccb_strnicmp(command_buf, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
+							break;
+						}
+					}
+					if (whitelist[j] == NULL) {
+						blocked = ESIF_TRUE;
 					}
 				}
+				else {
+					for (j = 0; blacklist[j] != NULL; j++) {
+						if (esif_ccb_strnicmp(command_buf, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
+							blocked = ESIF_TRUE;
+							break;
+						}
+					}
+				}
+				if (blocked) {
+					response = "Unsupported Command";
+				}
 			}
-			// Exit if shell or command disabled
+			// Exit if shell or command unavailable
 			if (response) {
+				char buffer[MAX_PATH] = { 0 };
+				esif_ccb_sprintf(sizeof(buffer), buffer, "%d:%s", msg_id, response);
 				esif_ccb_free(g_rest_out);
-				g_rest_out = esif_ccb_strdup((char *)response);
+				g_rest_out = esif_ccb_strdup(buffer);
 				goto exit;
 			}
 		}

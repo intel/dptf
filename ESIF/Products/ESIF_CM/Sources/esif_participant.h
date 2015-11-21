@@ -57,6 +57,7 @@
 #include "esif.h"
 #include "esif_sdk_iface_participant.h"
 #include "esif_event.h"
+#include "esif_dsp.h"
 
 #define ESIF_PARTICIPANT_INVALID_TYPE 0xFFFFFFFF
 #define ESIF_PARTICIPANT_INVALID_UID ""
@@ -325,11 +326,20 @@ typedef struct _t_EsifUpData {
 
 /* Upper Participant */
 typedef struct _t_EsifUp {
+	/*
+	 * The following data items may be accessed through accessor functions.
+	 * See below
+	 */
 	UInt8  fInstance;	/* Unique Upper Participant Instance */
 	UInt8  fLpInstance;	/* Lower Participant Instance */
+	EsifDspPtr fDspPtr; /* Pointer To Our DSP */
+	EsifUpData fMetadata; /* Participant Data */
+
+	/*
+	 * Data below this point is private to the participant and
+	 * Participant Manager.
+	 */
 	eEsifParticipantOrigin  fOrigin;	/* Origin Of Creation */
-	struct esif_up_dsp      *fDspPtr;	/* Pointer To Our DSP */
-	EsifUpData fMetadata;	/* Participant Data */
 
 	/* Domains For Participants */
 	UInt8 domainCount;
@@ -343,9 +353,79 @@ typedef struct _t_EsifUp {
 } EsifUp, *EsifUpPtr, **EsifUpPtrLocation;
 
 /*
+ * Takes an additional reference on a participant object.  (The function is
+ * called for you by the Participant Manager when one of the PM functions are
+ * called which returns a pointer to a participant.)  After using the
+ * participant, EsifUp_PutRef must be called to release the reference.
+ */
+eEsifError EsifUp_GetRef(
+	EsifUpPtr self
+	);
+
+/*
+ * Releases a reference on a participant object.  This function should be
+ * called when done using a participant pointer obtained through any of the
+ * Participant Manager interfaces.
+ */
+void EsifUp_PutRef(
+	EsifUpPtr self
+	);
+
+/*
+ * The following functions are data "accessor" functions
+ */
+static ESIF_INLINE UInt8 EsifUp_GetInstance(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fInstance : ESIF_PARTICIPANT_INVALID_INSTANCE;
+}
+
+
+static ESIF_INLINE UInt8 EsifUp_GetLpInstance(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fLpInstance : ESIF_PARTICIPANT_INVALID_INSTANCE;
+}
+
+static ESIF_INLINE EsifString EsifUp_GetName(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fMetadata.fName : "UNK";
+}
+
+
+static ESIF_INLINE  EsifDspPtr EsifUp_GetDsp(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fDspPtr : NULL;
+}
+
+
+static ESIF_INLINE EsifUpDataPtr EsifUp_GetMetadata(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? &self->fMetadata : NULL;
+}
+
+EsifFpcEventPtr EsifUp_GetFpcEventByType(
+	EsifUpPtr self,
+	eEsifEventType eventType
+	);
+
+EsifFpcEventPtr EsifUp_GetFpcEventByGuid(
+	EsifUpPtr self,
+	esif_guid_t *guid
+	);
+
+/*
  * Execute Primitive (Internal version)
  * NOTE: This version should only be called by functions within the
- * participant /domain while Participant Mangager or participant locks are
+ * participant/domain while Participant Mangager or participant locks are
  * already or from within the participant when executing in a
  * known/guaranteed state.  EsifExecutePrimitive should be called when executing
  * outside the context of the participant.
@@ -355,102 +435,30 @@ eEsifError EsifUp_ExecutePrimitive(
 	EsifPrimitiveTuplePtr tuplePtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
-);
-
-eEsifError EsifUp_DspReadyInit(
-	EsifUpPtr self
-);
+	);
 
 eEsifError EsifUp_UpdatePolling(
 	EsifUpPtr self,
 	UInt16 domain_index,
 	UInt32 period
-);
+	);
 
 eEsifError EsifUp_UpdateHysteresis(
 	EsifUpPtr self,
 	UInt16 domain_index,
 	esif_temp_t hysteresis_val
-);
-
-EsifFpcEventPtr EsifUp_GetFpcEventByType(
-	EsifUpPtr self,
-	eEsifEventType eventType
-);
-
-EsifFpcEventPtr EsifUp_GetFpcEventByGuid(
-	EsifUpPtr self,
-	esif_guid_t *guid
-);
-
-EsifString EsifUp_GetName(
-	EsifUpPtr self
-);
-
-eEsifError EsifUp_CreateParticipant(
-	const eEsifParticipantOrigin origin,
-	UInt8 upInstance,
-	const void *metadataPtr,
-	EsifUpPtr *upPtr
-);
-
-eEsifError EsifUp_ReInitializeParticipant(
-	EsifUpPtr self,
-	const eEsifParticipantOrigin origin,
-	const void *metadataPtr
-);
-
-void EsifUp_DestroyParticipant(
-	EsifUpPtr self
-);
-
-
-eEsifError EsifUp_SuspendParticipant(
-	EsifUpPtr self
 	);
-
-eEsifError EsifUp_ResumeParticipant(
-	EsifUpPtr self
-	); 
-
-UInt8 EsifUp_GetInstance(
-	EsifUpPtr self
-);
-
-void EsifUp_PollParticipant(
-	EsifUpPtr self
-	);
-
-void EsifUp_RegisterParticipantForPolling(
-	EsifUpPtr self
-	);
-
-void EsifUp_UnRegisterParticipantForPolling(
-	EsifUpPtr self
-	);
-
-static ESIF_INLINE EsifString EsifUp_IntToShellDomainStr(
-	UInt32 domain_index,
-	EsifString str,
-	UInt8 str_len
-	)
-{
-	esif_ccb_sprintf(str_len, str, "D%X", domain_index);
-	return str;
-}
 
 EsifUpDomainPtr EsifUp_GetDomainById(
 	EsifUpPtr self,
 	UInt16 domainId
-);
+	);
 
-eEsifError EsifUp_GetRef(
-	EsifUpPtr self
-);
-
-void EsifUp_PutRef(
-	EsifUpPtr self
-);
+EsifString EsifUp_CreateTokenReplacedParamString(
+	const EsifUpPtr self,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifString paramStr
+	);
 
 #endif /* ESIF_ATTR_USER */
 #endif /* _ESIF_PARTICIPANT_H_ */

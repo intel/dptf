@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,6 @@ public:
     virtual UInt64 createPolicyInitiatedImmediateCallback(UInt64 policyDefinedEventCode, UInt64 param1,
         void* param2) = 0;
     virtual UInt64 createPolicyInitiatedDeferredCallback(UInt64 policyDefinedEventCode, UInt64 param1,
-        void* param2, UInt64 timeDeltaInMilliSeconds) = 0;
+        void* param2, const TimeSpan& timeDelta) = 0;
     virtual Bool removePolicyInitiatedCallback(UInt64 callbackHandle) = 0;
 };

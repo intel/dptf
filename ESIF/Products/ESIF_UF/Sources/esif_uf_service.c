@@ -220,7 +220,7 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 	} else {
 		participant_data_map_ptr = EsifApp_GetParticipantDataMapFromHandle(appPtr, upHandle);
 		if (NULL != participant_data_map_ptr) {
-			participant_id = participant_data_map_ptr->fUpPtr->fInstance;
+			participant_id = EsifUp_GetInstance(participant_data_map_ptr->fUpPtr);
 		}
 	}
 

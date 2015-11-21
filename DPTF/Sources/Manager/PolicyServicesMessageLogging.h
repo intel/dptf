@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class PolicyServicesMessageLogging final : public PolicyServices, public Message
 {
 public:
 
-    PolicyServicesMessageLogging(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesMessageLogging(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual void writeMessageFatal(const DptfMessage& message) override final;
     virtual void writeMessageError(const DptfMessage& message) override final;

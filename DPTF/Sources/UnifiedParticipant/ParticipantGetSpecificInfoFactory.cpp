@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,16 +20,16 @@
 #include "ParticipantGetSpecificInfo_000.h"
 #include "ParticipantGetSpecificInfo_001.h"
 
-ParticipantGetSpecificInfoInterface* ParticipantGetSpecificInfoFactory::createParticipantGetSpecificInfoObject(
-    UIntN version, ParticipantServicesInterface* participantServicesInterface)
+ControlBase* ParticipantGetSpecificInfoFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
+    ParticipantServicesInterface* participantServicesInterface)
 {
     switch (version)
     {
         case 0:
-            return new ParticipantGetSpecificInfo_000(participantServicesInterface);
+            return new ParticipantGetSpecificInfo_000(participantIndex, domainIndex, participantServicesInterface);
             break;
         case 1:
-            return new ParticipantGetSpecificInfo_001(participantServicesInterface);
+            return new ParticipantGetSpecificInfo_001(participantIndex, domainIndex, participantServicesInterface);
             break;
         default:
             std::stringstream message;

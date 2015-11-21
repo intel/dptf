@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,23 +19,22 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPowerStatusInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainPowerStatusBase.h"
 
-class DomainPowerStatus_001 final : public DomainPowerStatusInterface,
-    public ComponentExtendedInterface
+class DomainPowerStatus_001 : public DomainPowerStatusBase
 {
 public:
 
-    DomainPowerStatus_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainPowerStatus_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
 
     // DomainPowerStatusInterface
-    virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
@@ -43,5 +42,5 @@ private:
     DomainPowerStatus_001(const DomainPowerStatus_001& rhs);
     DomainPowerStatus_001& operator=(const DomainPowerStatus_001& rhs);
 
-    ParticipantServicesInterface* m_participantServicesInterface;
+    Power getPower(UIntN participantIndex, UIntN domainIndex);
 };

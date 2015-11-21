@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,41 +19,36 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainDisplayControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
-#include "DptfMemory.h"
+#include "DomainDisplayControlBase.h"
 #include "BinaryParse.h"
 
 //
 // Implements the regular display controls, v001.
 //
 
-class DomainDisplayControl_001 final : public DomainDisplayControlInterface,
-    public ComponentExtendedInterface
+class DomainDisplayControl_001 : public DomainDisplayControlBase
 {
 public:
 
-    DomainDisplayControl_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainDisplayControl_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainDisplayControl_001(void);
 
-    virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex,
-        Bool isOverridable) override final;
+    virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
+    virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
     // hide the copy constructor and = operator
     DomainDisplayControl_001(const DomainDisplayControl_001& rhs);
     DomainDisplayControl_001& operator=(const DomainDisplayControl_001& rhs);
-
-    ParticipantServicesInterface* m_participantServicesInterface;
 
     // Functions
     void initializeDataStructures(void);
@@ -65,7 +60,6 @@ private:
     // Vars (external)
     DisplayControlDynamicCaps* m_displayControlDynamicCaps;
     DisplayControlSet* m_displayControlSet;
-    DisplayControlStatus* m_displayControlStatus;
 
     // Vars (internal)
     UIntN m_currentDisplayControlIndex;

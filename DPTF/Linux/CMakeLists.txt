@@ -5,7 +5,14 @@ cmake_minimum_required(VERSION 2.8.6)
 message ("CXX Flags (initial) : " ${CMAKE_CXX_FLAGS}) 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -fPIC")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2")
+if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0") 
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
+endif()
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z now")
 
 if (CHROMIUM_BUILD MATCHES YES)
 	message("Building for Chromium OS...")
@@ -69,6 +76,15 @@ message ("CXX Release Flags : " ${CMAKE_CXX_FLAGS_RELEASE})
 
 add_definitions(-DESIF_ATTR_OS_LINUX -DESIF_ATTR_USER)
 
+set(BASIC_TYPES_LIB "DptfBasicTypesLib")
+set(ESIF_TYPES_LIB "DptfEsifTypesLib")
+set(DPTF_TYPES_LIB "DptfDptfTypesLib")
+set(DPTF_OBJECTS_LIB "DptfDptfObjectsLib")
+set(XML_LIB "DptfXmlLib")
+set(EVENTS_LIB "DptfEventsLib")
+set(MESSAGE_LOGGING_LIB "DptfMessageLoggingLib")
+set(PARTICIPANT_CONTROLS_LIB "DptfParticipantControlsLib")
+set(PARTICIPANT_LIB "DptfParticipantLib")
 set(SHARED_LIB "DptfSharedLib")
 add_subdirectory(SharedLib)
 

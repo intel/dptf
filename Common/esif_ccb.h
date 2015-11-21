@@ -77,8 +77,11 @@
 #define ESIF_CALLCONV	__cdecl			/* SDK Calling Convention */
 #define ESIF_PATH_SEP	"\\"			/* Path Separator String */
 #define ESIF_EXPORT	__declspec(dllexport)	/* Used for Exported Symbols */
+#define ESIF_INVALID_HANDLE INVALID_HANDLE_VALUE
 
-typedef	char *esif_string;
+typedef	char *esif_string;		/* NULL-teriminated ANSI string */
+typedef HANDLE esif_handle_t;	/* opaque Handle (not a pointer) */
+typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 
 #ifdef __cplusplus
 #define ESIF_ELEMENT(x)  /* C99 Designated Initializers unsupported in C++ */
@@ -154,11 +157,16 @@ typedef unsigned long long u64;	/* A QWORD */
 #define ESIF_CALLCONV				/* Func Calling Convention */
 #define ESIF_PATH_SEP	"/"			/* Path Separator String */
 #define ESIF_EXPORT				/* Used for Exported Symbols */
+#define ESIF_INVALID_HANDLE (-1)		/* Invalid Handle */
 
 #ifdef ESIF_ATTR_KERNEL
 #define esif_string char *	/* opaque: use #define instead of typedef */
+#define esif_handle_t int /* opaque Handle: use #define not typedef */
+#define esif_context_t void * /* opaque Context ptr: use #define not typedef */
 #else
-typedef char *esif_string;
+typedef char *esif_string;		/* NULL-terminated ANSI string */
+typedef int esif_handle_t;		/* opaque Handle (not a pointer) */
+typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 #endif
 
 #ifdef ESIF_ATTR_DEBUG

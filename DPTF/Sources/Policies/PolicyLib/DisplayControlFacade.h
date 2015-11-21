@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,16 +18,9 @@
 
 #pragma once
 
-#include "Dptf.h"
-#include "PolicyServicesInterfaceContainer.h"
-#include "DomainProperties.h"
-#include "DisplayControlSetCachedProperty.h"
-#include "DisplayControlStatusCachedProperty.h"
-#include "DisplayControlCapabilitiesCachedProperty.h"
+#include "DisplayControlFacadeInterface.h"
 
-// this facade class provides a simpler interface on top of display controls as well as combines all of the display 
-// control properties and capabilities into a single class.  these properties also have the ability to be cached.
-class dptf_export DisplayControlFacade
+class dptf_export DisplayControlFacade : public DisplayControlFacadeInterface
 {
 public:
 
@@ -39,16 +32,16 @@ public:
     ~DisplayControlFacade();
 
     // controls
-    Bool supportsDisplayControls();
-    void setControl(UIntN displayControlIndex);
+    virtual Bool supportsDisplayControls() override;
+    virtual void setControl(UIntN displayControlIndex) override;
 
     // properties
-    void refreshCapabilities();
-    void invalidateControlSet();
-    void invalidateStatus();
-    const DisplayControlStatus& getStatus();
-    const DisplayControlSet& getControls();
-    const DisplayControlDynamicCaps& getCapabilities();
+    virtual void refreshCapabilities() override;
+    virtual void invalidateControlSet() override;
+    virtual const DisplayControlStatus& getStatus() override;
+    virtual const DisplayControlSet& getControls() override;
+    virtual const DisplayControlDynamicCaps& getCapabilities() override;
+    virtual void setValueWithinCapabilities() override;
 
 private:
 
@@ -62,6 +55,6 @@ private:
     
     // display control properties
     DisplayControlSetCachedProperty m_displayControlSetProperty;
-    DisplayControlStatusCachedProperty m_displayControlStatusProperty;
+    DisplayControlStatusProperty m_displayControlStatusProperty;
     DisplayControlCapabilitiesCachedProperty m_displayControlCapabilitiesProperty;
 };

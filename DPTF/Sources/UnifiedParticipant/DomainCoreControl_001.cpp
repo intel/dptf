@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,9 @@
 #include "DomainCoreControl_001.h"
 #include "XmlNode.h"
 
-DomainCoreControl_001::DomainCoreControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface),
+DomainCoreControl_001::DomainCoreControl_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_coreControlStaticCaps(nullptr),
     m_coreControlDynamicCaps(nullptr),
     m_coreControlLpoPreference(nullptr),
@@ -73,7 +74,7 @@ void DomainCoreControl_001::setActiveCoreControl(UIntN participantIndex, UIntN d
     UIntN totalCores = m_coreControlStaticCaps->getTotalLogicalProcessors();
     UIntN totalOfflineCoreRequest = totalCores - coreControlStatus.getNumActiveLogicalProcessors();
 
-    m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_NUMBER_OFFLINE_CORES,
         totalOfflineCoreRequest,
         domainIndex);
@@ -114,7 +115,7 @@ void DomainCoreControl_001::createCoreControlStaticCapsIfNeeded(UIntN domainInde
 {
     if (m_coreControlStaticCaps == nullptr)
     {
-        UInt32 logicalCoreCount = m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+        UInt32 logicalCoreCount = getParticipantServices()->primitiveExecuteGetAsUInt32(
             esif_primitive_type::GET_PROC_LOGICAL_PROCESSOR_COUNT,
             domainIndex);
 
@@ -139,34 +140,15 @@ void DomainCoreControl_001::createCoreControlLpoPreferenceIfNeeded(UIntN domainI
     if (m_coreControlLpoPreference == nullptr)
     {
         Bool useDefault = false;
-        UInt32 dataLength = 0;
-        DptfMemory binaryData(Constants::DefaultBufferSize);
-
+        DptfBuffer buffer;
         try
         {
-            m_participantServicesInterface->primitiveExecuteGet(
-                esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING,
-                ESIF_DATA_BINARY,
-                binaryData,
-                binaryData.getSize(),
-                &dataLength,
-                domainIndex);
-        }
-        catch (buffer_too_small e)
-        {
-            binaryData.deallocate();
-            binaryData.allocate(e.getNeededBufferSize(), true);
-            m_participantServicesInterface->primitiveExecuteGet(
-                esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING,
-                ESIF_DATA_BINARY,
-                binaryData,
-                binaryData.getSize(),
-                &dataLength,
-                domainIndex);
+            buffer = getParticipantServices()->primitiveExecuteGet(
+                esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING, ESIF_DATA_BINARY, domainIndex);
         }
         catch (...)
         {
-            m_participantServicesInterface->writeMessageWarning(
+            getParticipantServices()->writeMessageWarning(
                 ParticipantMessage(FLF, "CLPO not found.  Using defaults."));
             useDefault = true;
         }
@@ -175,11 +157,11 @@ void DomainCoreControl_001::createCoreControlLpoPreferenceIfNeeded(UIntN domainI
         {
             try
             {
-                m_coreControlLpoPreference = BinaryParse::processorClpoObject(dataLength, binaryData);
+                m_coreControlLpoPreference = BinaryParse::processorClpoObject(buffer);
             }
             catch (...)
             {
-                m_participantServicesInterface->writeMessageWarning(
+                getParticipantServices()->writeMessageWarning(
                     ParticipantMessage(FLF, "Could not parse CLPO data.  Using defaults."));
                 DELETE_MEMORY_TC(m_coreControlLpoPreference);
                 useDefault = true;
@@ -191,8 +173,6 @@ void DomainCoreControl_001::createCoreControlLpoPreferenceIfNeeded(UIntN domainI
             m_coreControlLpoPreference = new CoreControlLpoPreference(true, 0, Percentage(.50),
                 CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core);
         }
-
-        binaryData.deallocate();
     }
 }
 
@@ -205,4 +185,9 @@ void DomainCoreControl_001::verifyCoreControlStatus(UIntN domainIndex, const Cor
     {
         throw dptf_exception("Desired number of cores outside dynamic caps range.");
     }
+}
+
+std::string DomainCoreControl_001::getName(void)
+{
+    return "Core Control (Version 1)";
 }

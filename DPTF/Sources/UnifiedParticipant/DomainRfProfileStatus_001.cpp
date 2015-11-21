@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,9 @@
 // version 001 is for fivr
 //
 
-DomainRfProfileStatus_001::DomainRfProfileStatus_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface)
+DomainRfProfileStatus_001::DomainRfProfileStatus_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -37,7 +38,7 @@ RfProfileData DomainRfProfileStatus_001::getRfProfileData(UIntN participantIndex
 
     // if center frequency isn't available the error will get thrown back to the policy
 
-    Frequency centerFrequency = m_participantServicesInterface->primitiveExecuteGetAsFrequency(
+    Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
         esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
 
     RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
@@ -55,4 +56,9 @@ XmlNode* DomainRfProfileStatus_001::getXml(UIntN domainIndex)
 {
     // FIXME
     throw implement_me();
+}
+
+std::string DomainRfProfileStatus_001::getName(void)
+{
+    return "RF Profile Status (Version 1)";
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,13 @@
 
 // Generic Participant Performance Controls
 
-DomainPerformanceControl_001::DomainPerformanceControl_001(ParticipantServicesInterface* participantServicesInterface) :
-    m_participantServicesInterface(participantServicesInterface),
+DomainPerformanceControl_001::DomainPerformanceControl_001(UIntN participantIndex, UIntN domainIndex,
+    ParticipantServicesInterface* participantServicesInterface) :
+    DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface),
+    m_currentPerformanceControlIndex(Constants::Invalid),
     m_performanceControlStaticCaps(nullptr),
     m_performanceControlDynamicCaps(nullptr),
-    m_performanceControlSet(nullptr),
-    m_currentPerformanceControlIndex(Constants::Invalid)
+    m_performanceControlSet(nullptr)
 {
     
 }
@@ -73,7 +74,7 @@ void DomainPerformanceControl_001::setPerformanceControl(UIntN participantIndex,
 {
     if (performanceControlIndex == m_currentPerformanceControlIndex)
     {
-        m_participantServicesInterface->writeMessageDebug(
+        getParticipantServices()->writeMessageDebug(
             ParticipantMessage(FLF, "Requested limit = current limit.  Ignoring."));
         return;
     }
@@ -82,7 +83,7 @@ void DomainPerformanceControl_001::setPerformanceControl(UIntN participantIndex,
     {
         checkAndCreateControlStructures(domainIndex);
         verifyPerformanceControlIndex(performanceControlIndex);
-        m_participantServicesInterface->primitiveExecuteSetAsUInt32(
+        getParticipantServices()->primitiveExecuteSetAsUInt32(
             esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
             performanceControlIndex,
             domainIndex);
@@ -149,7 +150,7 @@ void DomainPerformanceControl_001::createPerformanceControlDynamicCapsIfNeeded(U
         try
         {
             lowerLimitIndex =
-                m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+                getParticipantServices()->primitiveExecuteGetAsUInt32(
                     esif_primitive_type::GET_PERF_PSTATE_DEPTH_LIMIT,
                     domainIndex);
         }
@@ -163,7 +164,7 @@ void DomainPerformanceControl_001::createPerformanceControlDynamicCapsIfNeeded(U
         {
             // If PPPC is not supported, default to P0
             upperLimitIndex =
-                m_participantServicesInterface->primitiveExecuteGetAsUInt32(
+                getParticipantServices()->primitiveExecuteGetAsUInt32(
                     esif_primitive_type::GET_PARTICIPANT_PERF_PRESENT_CAPABILITY,
                     domainIndex);
         }
@@ -181,7 +182,7 @@ void DomainPerformanceControl_001::createPerformanceControlDynamicCapsIfNeeded(U
         if (upperLimitIndex > lowerLimitIndex)
         {
             lowerLimitIndex = m_performanceControlSet->getCount() - 1;
-            m_participantServicesInterface->writeMessageWarning(
+            getParticipantServices()->writeMessageWarning(
                 ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
         }
 
@@ -193,49 +194,15 @@ void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN dom
 {
     if (m_performanceControlSet == nullptr)
     {
-        UInt32 dataLength = 0;
-        DptfMemory binaryData(Constants::DefaultBufferSize);
-        try
+        // Build PPSS table
+        DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
+        m_performanceControlSet = new PerformanceControlSet(
+            BinaryParse::genericPpssObject(buffer));
+        if (m_performanceControlSet->getCount() == 0)
         {
-            try
-            {
-                // Build PPSS table
-                m_participantServicesInterface->primitiveExecuteGet(
-                    esif_primitive_type::GET_PERF_SUPPORT_STATES,
-                    ESIF_DATA_BINARY,
-                    binaryData,
-                    binaryData.getSize(),
-                    &dataLength,
-                    domainIndex);
-            }
-            catch (buffer_too_small e)
-            {
-                binaryData.deallocate();
-                binaryData.allocate(e.getNeededBufferSize(), true);
-                m_participantServicesInterface->primitiveExecuteGet(
-                    esif_primitive_type::GET_PERF_SUPPORT_STATES,
-                    ESIF_DATA_BINARY,
-                    binaryData,
-                    binaryData.getSize(),
-                    &dataLength,
-                    domainIndex);
-            }
-
-            m_performanceControlSet = new PerformanceControlSet(BinaryParse::genericPpssObject(dataLength, binaryData));
-            if (m_performanceControlSet->getCount() == 0)
-            {
-                throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");
-            }
+            throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");
         }
-        catch (...)
-        {
-            // Use a set with one invalid item
-            std::vector<PerformanceControl> controls;
-            controls.push_back(PerformanceControl::createInvalid());
-            DELETE_MEMORY_TC(m_performanceControlSet);
-            m_performanceControlSet = new PerformanceControlSet(controls);
-        }
-        binaryData.deallocate();
     }
 }
 
@@ -264,4 +231,9 @@ void DomainPerformanceControl_001::verifyPerformanceControlIndex(UIntN performan
 
         throw dptf_exception(infoMessage.str());
     }
+}
+
+std::string DomainPerformanceControl_001::getName(void)
+{
+    return "Performance Control (Version 1)";
 }

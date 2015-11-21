@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #include "DptfStatus.h"
 #include "Indent.h"
 #include "esif_ccb_string.h"
-#include "esif_uf_app_iface.h"
+#include "esif_sdk_iface_app.h"
 #include "ParticipantSpecificInfoKey.h"
 #include "Participant.h"
 #include "Policy.h"
@@ -62,7 +62,7 @@ namespace GroupType
 }
 
 void DptfStatus::getStatus(const eAppStatusCommand command, const UInt32 appStatusIn,
-    esif::EsifDataPtr appStatusOut, eEsifError* returnCode)
+    EsifDataPtr appStatusOut, eEsifError* returnCode)
 {
     std::string response;
 
@@ -85,6 +85,11 @@ void DptfStatus::getStatus(const eAppStatusCommand command, const UInt32 appStat
             throw dptf_exception("Received invalid command status code.");
     }
     fillEsifString(appStatusOut, response, returnCode);
+}
+
+void DptfStatus::clearCache()
+{
+    m_participantStatusMap->clearCachedData();
 }
 
 std::string DptfStatus::getFileContent(std::string fileName)
@@ -186,7 +191,7 @@ std::string DptfStatus::getPoliciesGroup()
             XmlNode* module = XmlNode::createWrapperElement("module");
             modules->addChild(module);
 
-            XmlNode* policyId = XmlNode::createDataElement("id", std::to_string(policyIndex));
+            XmlNode* policyId = XmlNode::createDataElement("id", StlOverride::to_string(policyIndex));
             module->addChild(policyId);
 
             XmlNode* policyName = XmlNode::createDataElement("name", name);
@@ -218,7 +223,7 @@ std::string DptfStatus::getFrameworkGroup()
     XmlNode* module = XmlNode::createWrapperElement("module");
     modules->addChild(module);
 
-    XmlNode* moduleId = XmlNode::createDataElement("id", std::to_string(0));
+    XmlNode* moduleId = XmlNode::createDataElement("id", StlOverride::to_string(0));
     module->addChild(moduleId);
 
     XmlNode* moduleName = XmlNode::createDataElement("name", "DPPM Status");
@@ -231,7 +236,7 @@ std::string DptfStatus::getFrameworkGroup()
     module = XmlNode::createWrapperElement("module");
     modules->addChild(module);
 
-    moduleId = XmlNode::createDataElement("id", std::to_string(1));
+    moduleId = XmlNode::createDataElement("id", StlOverride::to_string(1));
     module->addChild(moduleId);
 
     moduleName = XmlNode::createDataElement("name", "Work Item Statistics");
@@ -299,8 +304,16 @@ std::string DptfStatus::getXmlForParticipant(UInt32 mappedIndex, eEsifError* ret
     // Total # of participants + domains for error checking
     for (UIntN i = 0; i < participantCount; i++)
     {
-        Participant* participant = m_participantManager->getParticipantPtr(i);
-        totalDomainCount += participant->getDomainCount();
+        try
+        {
+            Participant* participant = m_participantManager->getParticipantPtr(i);
+            totalDomainCount += participant->getDomainCount();
+        }
+        catch (...)
+        {
+            // If participant pointer couldn't be returned or couldn't get domain count
+            // Most likely, a participant was removed and left bind a null pointer
+        }
     }
 
     if (mappedIndex >= totalDomainCount)
@@ -345,6 +358,9 @@ std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* retur
             XmlNode* participantsRoot = getXmlForFrameworkLoadedParticipants();
             dppmRoot->addChild(participantsRoot);
 
+            XmlNode* policyManagerRoot = m_policyManager->getStatusAsXml();
+            dppmRoot->addChild(policyManagerRoot);
+
             *returnCode = ESIF_OK;
             break;
         }
@@ -374,6 +390,8 @@ XmlNode* DptfStatus::getXmlForFrameworkLoadedPolicies()
     XmlNode* policiesRoot = XmlNode::createWrapperElement("policies");
 
     UIntN policyCount = m_policyManager->getPolicyListCount();
+    policiesRoot->addChild(XmlNode::createDataElement("policy_count", StlOverride::to_string(policyCount)));
+
     for (UIntN i = 0; i < policyCount; i++)
     {
         try
@@ -383,7 +401,7 @@ XmlNode* DptfStatus::getXmlForFrameworkLoadedPolicies()
 
             XmlNode* policyRoot = XmlNode::createWrapperElement("policy");
 
-            XmlNode* policyIndex = XmlNode::createDataElement("policy_index", std::to_string(i));
+            XmlNode* policyIndex = XmlNode::createDataElement("policy_index", StlOverride::to_string(i));
             policyRoot->addChild(policyIndex);
 
             XmlNode* policyName = XmlNode::createDataElement("policy_name", name);
@@ -407,19 +425,25 @@ XmlNode* DptfStatus::getXmlForFrameworkLoadedParticipants()
     UIntN participantCount = m_participantManager->getParticipantListCount();
     for (UIntN i = 0; i < participantCount; i++)
     {
-        Participant* p = m_participantManager->getParticipantPtr(i);
-        participantsRoot->addChild(p->getXml(Constants::Invalid));
+        try
+        {
+            Participant* p = m_participantManager->getParticipantPtr(i);
+            participantsRoot->addChild(p->getXml(Constants::Invalid));
+        }
+        catch (...)
+        {
+            // Participant not available
+        }
     }
 
     return participantsRoot;
 }
 
-void DptfStatus::fillEsifString(esif::EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode)
+void DptfStatus::fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode)
 {
-    eEsifError result = FillDataPtrWithString(outputLocation, inputString);
-    if (result != ESIF_OK)
+    *returnCode = FillDataPtrWithString(outputLocation, inputString);
+    if (*returnCode != ESIF_OK)
     {
-        *returnCode = result;
         throw dptf_exception("Failed to fill ESIF data pointer with string.");
     }
 }

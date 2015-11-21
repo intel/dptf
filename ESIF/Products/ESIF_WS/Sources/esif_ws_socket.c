@@ -92,6 +92,7 @@ FrameType esif_ws_socket_get_initial_frame_type(
 	char version[2]={0};
 	char *connection_field = NULL;
 	char *web_socket_field = NULL;
+	static const char uri_scheme[] = "http://";
 	eEsifError rc = ESIF_OK;
 
 	#define MAX_SIZE 1000
@@ -207,6 +208,14 @@ FrameType esif_ws_socket_get_initial_frame_type(
 			return ERROR_FRAME;
 		}
 	}	/* End of while loop */
+
+	/* Verify WebSocket Origin (No current HTTPS support) */
+	if (protPtr->hostField && protPtr->originField && (esif_ccb_strncmp(protPtr->originField, uri_scheme, sizeof(uri_scheme)-1) == 0)) {
+		char *origin = protPtr->originField + esif_ccb_strlen(uri_scheme, sizeof(uri_scheme));
+		if (esif_ccb_stricmp(protPtr->hostField, origin) != 0) {
+			rc = ESIF_E_NOT_SUPPORTED;
+		}
+	}
 
 	if (rc != ESIF_OK || !protPtr->hostField) {
 		protPtr->frameType = ERROR_FRAME;

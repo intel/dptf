@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,20 +42,18 @@ PassivePolicy::~PassivePolicy(void)
 
 void PassivePolicy::onCreate(void)
 {
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::ParticipantSpecificInfoChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPowerControlCapabilityChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPerformanceControlCapabilityChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPerformanceControlsChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainCoreControlCapabilityChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPriorityChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayControlCapabilityChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayStatusChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyInitiatedCallback);
-    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DptfResume);
+    try
+    {
+        m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(
+            FLF, "No thermal relationship table was found. Passive Policy will not load without it" 
+            + string(ex.what())));
+        throw;
+    }
 
-    m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
     try
     {
         m_utilizationBiasThreshold = Percentage::fromWholeNumber(
@@ -68,6 +66,18 @@ void PassivePolicy::onCreate(void)
     }
 
     m_callbackScheduler.reset(new CallbackScheduler(getPolicyServices(), m_trt, &m_targetMonitor, getTime()));
+
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::ParticipantSpecificInfoChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPowerControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPerformanceControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPerformanceControlsChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainCoreControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainPriorityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayControlCapabilityChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainDisplayStatusChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
+    getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyInitiatedCallback);    
 }
 
 void PassivePolicy::onDestroy(void)
@@ -83,12 +93,12 @@ void PassivePolicy::onDestroy(void)
     getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainDisplayStatusChanged);
     getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
     getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyInitiatedCallback);
-    getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DptfResume);
 }
 
 void PassivePolicy::onEnable(void)
 {
-    reloadTrtAndCheckAllTargets();
+    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Policy enable event received."));
+    reloadTrtIfDifferent();
 }
 
 void PassivePolicy::onDisable(void)
@@ -103,26 +113,7 @@ void PassivePolicy::onConnectedStandbyEntry(void)
 
 void PassivePolicy::onConnectedStandbyExit(void)
 {
-    reloadTrtAndCheckAllTargets();
-}
-
-void PassivePolicy::onResume(void)
-{
-    // FIXME (BRG) - Reevaluate performance caps on S3 resume
-    //  Passive should be reevaluating more capabilities than just performance,
-    //  however this could also be solved by destroying and recreating all of
-    //  the policies.
-    vector<UIntN> participantIndexes = getParticipantTracker().getAllTrackedIndexes();
-
-    for (auto participantIndex = participantIndexes.begin(); 
-        participantIndex != participantIndexes.end(); 
-        participantIndex++)
-    {
-        if (getParticipantTracker()[*participantIndex].getParticipantProperties().getName() == "TCHG")
-        {
-            onDomainPerformanceControlCapabilityChanged(*participantIndex);
-        }
-    }
+    // no defined action for this event
 }
 
 bool PassivePolicy::autoNotifyPlatformOscOnCreateDestroy() const
@@ -160,8 +151,9 @@ string PassivePolicy::getStatusAsXml(void) const
     status->addChild(m_trt.getXml());
     PassiveControlStatus controlStatus(m_trt, getParticipantTracker());
     status->addChild(controlStatus.getXml());
-    status->addChild(getParticipantTracker().getXmlForTripPointStatistics());
+    status->addChild(getParticipantTracker()->getXmlForTripPointStatistics());
     status->addChild(m_callbackScheduler->getXml());
+    status->addChild(XmlNode::createDataElement("utilization_threshold", m_utilizationBiasThreshold.getCurrentUtilization().toString()));
     root->addChild(status);
     string statusString = root->toString();
     delete root;
@@ -171,8 +163,8 @@ string PassivePolicy::getStatusAsXml(void) const
 void PassivePolicy::onBindParticipant(UIntN participantIndex)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding participant.", participantIndex));
-    getParticipantTracker().remember(participantIndex);
-    associateParticipantInTrt(getParticipantTracker()[participantIndex], m_trt);
+    getParticipantTracker()->remember(participantIndex);
+    associateParticipantInTrt(getParticipantTracker()->getParticipant(participantIndex), m_trt);
     m_callbackScheduler->setTrt(m_trt);
 }
 
@@ -184,39 +176,34 @@ void PassivePolicy::onUnbindParticipant(UIntN participantIndex)
     m_callbackScheduler->setTrt(m_trt);
     m_targetMonitor.stopMonitoring(participantIndex);
     removeAllRequestsForTarget(participantIndex);
-    getParticipantTracker().forget(participantIndex);
+    getParticipantTracker()->forget(participantIndex);
 }
 
 void PassivePolicy::onBindDomain(UIntN participantIndex, UIntN domainIndex)
 {
-    if (getParticipantTracker().remembers(participantIndex))
+    if (getParticipantTracker()->remembers(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Binding domain for participant.", participantIndex, domainIndex));
-        DomainProxy& domain = getParticipantTracker()[participantIndex].bindDomain(domainIndex);
-        domain.setTstateUtilizationThreshold(m_utilizationBiasThreshold);
+        DomainProxyInterface* domain = participant->bindDomain(domainIndex);
+        domain->setTstateUtilizationThreshold(m_utilizationBiasThreshold);
 
         if (participantIsSourceDevice(participantIndex))
         {
-            domain.initializeControls();
+            domain->initializeControls();
         }
 
-        if (participantIsTargetDevice(participantIndex))
-        {
-            auto currentTemperature = 
-                getParticipantTracker()[participantIndex][0].getTemperatureProperty().getCurrentTemperature();
-            setParticipantTemperatureThresholdNotification(getParticipantTracker()[participantIndex], currentTemperature);
-            notifyPlatformOfDeviceTemperature(getParticipantTracker()[participantIndex], currentTemperature);
-            takeThermalActionForTarget(participantIndex);
-        }
+        takePossibleThermalActionForTarget(participantIndex);
     }
 }
 
 void PassivePolicy::onUnbindDomain(UIntN participantIndex, UIntN domainIndex)
 {
-    if (getParticipantTracker().remembers(participantIndex))
+    if (getParticipantTracker()->remembers(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Unbinding domain for participant.", participantIndex, domainIndex));
-        getParticipantTracker()[participantIndex].unbindDomain(domainIndex);
+        participant->unbindDomain(domainIndex);
     }
 }
 
@@ -226,35 +213,36 @@ void PassivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Specific info changed for target participant.", participantIndex));
-        ParticipantProxy& participant = getParticipantTracker()[participantIndex];
-        participant.getPassiveTripPointProperty().refresh();
-        participant.refreshHysteresis();
-        if (participant.getDomainPropertiesSet().getDomainCount() > 0)
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
+        participant->getPassiveTripPointProperty().refresh();
+        participant->refreshHysteresis();
+        if (participant->getDomainPropertiesSet().getDomainCount() > 0)
         {
-            auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
-            setParticipantTemperatureThresholdNotification(participant, currentTemperature);
-            notifyPlatformOfDeviceTemperature(participant, currentTemperature);
-            takeThermalActionForTarget(participantIndex);
+            takePossibleThermalActionForTarget(participantIndex);
         }
     }
 }
 
 void PassivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 {
-    if (participantIsTargetDevice(participantIndex))
+    try
     {
-        ParticipantProxy& participant = getParticipantTracker()[participantIndex];
-        if (participant.getDomainPropertiesSet().getDomainCount() > 0)
+        if (participantIsTargetDevice(participantIndex))
         {
-            auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
-            getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF,
-                "Temperature threshold crossed for target participant " + to_string(participantIndex) +
-                " with temperature " + currentTemperature.toString() + "."));
-            participant.setThresholdCrossed(currentTemperature, getTime()->getCurrentTimeInMilliseconds());
-            setParticipantTemperatureThresholdNotification(participant, currentTemperature);
-            notifyPlatformOfDeviceTemperature(participant, currentTemperature);
-            takeThermalActionForTarget(participantIndex);
+            ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
+            if (participant->getDomainPropertiesSet().getDomainCount() > 0)
+            {
+                auto currentTemperature = participant->getFirstDomainTemperature();
+                participant->setThresholdCrossed(currentTemperature, getTime()->getCurrentTimeInMilliseconds());
+                takePossibleThermalActionForTarget(participantIndex, currentTemperature);
+            }
         }
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(
+            FLF, "Failed to take thermal action for target on temperature threshold crossed event: " 
+            + string(ex.what()), participantIndex));
     }
 }
 
@@ -262,19 +250,20 @@ void PassivePolicy::onDomainPowerControlCapabilityChanged(UIntN participantIndex
 {
     if (participantIsSourceDevice(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Power control capabilities changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                if (domain.getPowerControl().supportsPowerControls())
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                if (domain->getPowerControl()->supportsPowerControls())
                 {
-                    domain.getPowerControl().refreshCapabilities();
-                    domain.adjustPowerRequests();
-                    domain.setArbitratedPowerLimit();
+                    domain->getPowerControl()->refreshCapabilities();
+                    domain->adjustPowerRequests();
+                    domain->setArbitratedPowerLimit();
                 }
             }
             catch (std::exception& ex)
@@ -289,19 +278,20 @@ void PassivePolicy::onDomainPerformanceControlCapabilityChanged(UIntN participan
 {
     if (participantIsSourceDevice(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Performance control capabilities changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                if (domain.getPerformanceControl().supportsPerformanceControls())
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                if (domain->getPerformanceControl()->supportsPerformanceControls())
                 {
-                    domain.getPerformanceControl().refreshCapabilities();
-                    domain.adjustPerformanceRequests();
-                    domain.setArbitratedPerformanceLimit();
+                    domain->getPerformanceControl()->refreshCapabilities();
+                    domain->adjustPerformanceRequests();
+                    domain->setArbitratedPerformanceLimit();
                 }
             }
             catch (std::exception& ex)
@@ -316,17 +306,18 @@ void PassivePolicy::onDomainPerformanceControlsChanged(UIntN participantIndex)
 {
     if (participantIsSourceDevice(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Performance control set changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                if (domain.getPerformanceControl().supportsPerformanceControls())
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                if (domain->getPerformanceControl()->supportsPerformanceControls())
                 {
-                    domain.getPerformanceControl().refreshControls();
+                    domain->getPerformanceControl()->refreshControls();
                 }
             }
             catch (std::exception& ex)
@@ -341,19 +332,20 @@ void PassivePolicy::onDomainCoreControlCapabilityChanged(UIntN participantIndex)
 {
     if (participantIsSourceDevice(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Core control capabilities changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                if (domain.getCoreControl().supportsCoreControls())
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                if (domain->getCoreControl()->supportsCoreControls())
                 {
-                    domain.getCoreControl().refreshCapabilities();
-                    domain.adjustCoreRequests();
-                    domain.setArbitratedCoreLimit();
+                    domain->getCoreControl()->refreshCapabilities();
+                    domain->adjustCoreRequests();
+                    domain->setArbitratedCoreLimit();
                 }
             }
             catch (std::exception& ex)
@@ -368,18 +360,19 @@ void PassivePolicy::onDomainDisplayControlCapabilityChanged(UIntN participantInd
 {
     if (participantIsSourceDevice(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Display control capabilities changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                if (domain.getDisplayControl().supportsDisplayControls())
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                if (domain->getDisplayControl()->supportsDisplayControls())
                 {
-                    domain.getDisplayControl().refreshCapabilities();
-                    domain.clearAllDisplayControlRequests();
+                    domain->getDisplayControl()->refreshCapabilities();
+                    domain->clearAllDisplayControlRequests();
                 }
             }
             catch (std::exception& ex)
@@ -396,22 +389,6 @@ void PassivePolicy::onDomainDisplayStatusChanged(UIntN participantIndex)
     {
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Display status changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
-        for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
-        {
-            try
-            {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                if (domain.getDisplayControl().supportsDisplayControls())
-                {
-                    domain.getDisplayControl().invalidateStatus();
-                }
-            }
-            catch (std::exception& ex)
-            {
-                getPolicyServices().messageLogging->writeMessageError(PolicyMessage(FLF, ex.what()));
-            }
-        }
     }
 }
 
@@ -419,15 +396,16 @@ void PassivePolicy::onDomainPriorityChanged(UIntN participantIndex)
 {
     if (participantIsSourceDevice(participantIndex))
     {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
             FLF, "Domain priority changed for source participant.", participantIndex));
-        auto domainIndexes = getParticipantTracker()[participantIndex].getDomainIndexes();
+        auto domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
             try
             {
-                DomainProxy& domain = getParticipantTracker()[participantIndex][*domainIndex];
-                domain.getDomainPriorityProperty().refresh();
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                domain->getDomainPriorityProperty().refresh();
             }
             catch (std::exception& ex)
             {
@@ -440,8 +418,7 @@ void PassivePolicy::onDomainPriorityChanged(UIntN participantIndex)
 void PassivePolicy::onThermalRelationshipTableChanged(void)
 {
     getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Thermal Relationship Table changed"));
-    m_trt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
-    reloadTrtAndCheckAllTargets();
+    reloadTrtIfDifferent();
 }
 
 void PassivePolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2)
@@ -451,7 +428,7 @@ void PassivePolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, v
     {
         m_callbackScheduler->acknowledgeCallback(targetIndex);
         getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF,
-            "Callback received for target participant " + to_string(targetIndex) + ".", targetIndex));
+            "Callback received for target participant " + StlOverride::to_string(targetIndex) + ".", targetIndex));
         takeThermalActionForTarget(targetIndex);
     }
 }
@@ -470,11 +447,11 @@ void PassivePolicy::takeThermalActionForTarget(UIntN target)
 
 TargetActionBase* PassivePolicy::determineAction(UIntN target)
 {
-    ParticipantProxy& participant = getParticipantTracker()[target];
-    if (participant.getDomainPropertiesSet().getDomainCount() > 0)
+    ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(target);
+    if (participant->getDomainPropertiesSet().getDomainCount() > 0)
     {
-        auto currentTemperature = participant[0].getTemperatureProperty().getCurrentTemperature();
-        auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+        auto currentTemperature = participant->getFirstDomainTemperature();
+        auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
         auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
         if (currentTemperature > Temperature(psv))
         {
@@ -510,10 +487,10 @@ TargetActionBase* PassivePolicy::determineAction(UIntN target)
 }
 
 void PassivePolicy::setParticipantTemperatureThresholdNotification(
-    ParticipantProxy& participant,
+    ParticipantProxyInterface* participant,
     Temperature currentTemperature)
 {
-    auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+    auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
     Temperature psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
     Temperature lowerBoundTemperature(Temperature::createInvalid());
     Temperature upperBoundTemperature = psv;
@@ -537,63 +514,53 @@ void PassivePolicy::setParticipantTemperatureThresholdNotification(
             upperBoundTemperature = Temperature::createInvalid();
         }
     }
-    participant.setTemperatureThresholds(lowerBoundTemperature, upperBoundTemperature);
+    participant->setTemperatureThresholds(lowerBoundTemperature, upperBoundTemperature);
 }
 
-void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxy& participant, UIntN currentTemperature)
+void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, UIntN currentTemperature)
 {
-    auto passiveTripPoints = participant.getPassiveTripPointProperty().getTripPoints();
+    auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
     if (passiveTripPoints.hasItem(ParticipantSpecificInfoKey::NTT))
     {
         auto ntt = passiveTripPoints.getItem(ParticipantSpecificInfoKey::NTT);
         auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
         if (currentTemperature >= (psv + ntt))
         {
-            participant.notifyPlatformOfDeviceTemperature(currentTemperature);
+            participant->notifyPlatformOfDeviceTemperature(currentTemperature);
         }
     }
 }
 
-void PassivePolicy::associateParticipantInTrt(ParticipantProxy& participant, ThermalRelationshipTable& trt)
+void PassivePolicy::associateParticipantInTrt(ParticipantProxyInterface* participant, ThermalRelationshipTable& trt)
 {
     trt.associateParticipant(
-        participant.getParticipantProperties().getAcpiInfo().getAcpiScope(),
-        participant.getIndex());
+        participant->getParticipantProperties().getAcpiInfo().getAcpiScope(),
+        participant->getIndex());
 }
 
-void PassivePolicy::takeThermalActionForAllTargetsForSource(UIntN source)
-{
-    vector<ThermalRelationshipTableEntry> entries = m_trt.getEntriesForSource(source);
-    for (auto entry = entries.begin(); entry != entries.end(); entry++)
-    {
-        takeThermalActionForTarget(entry->targetDeviceIndex());
-    }
-}
-
-void PassivePolicy::reloadTrtAndCheckAllTargets()
+void PassivePolicy::reloadTrtIfDifferent()
 {
     auto newTrt = getPolicyServices().platformConfigurationData->getThermalRelationshipTable();
     associateAllParticipantsInTrt(newTrt);
     if (m_trt != newTrt)
     {
+        vector<UIntN> indexes = getParticipantTracker()->getAllTrackedIndexes();
+        for (auto participantIndex = indexes.begin(); participantIndex != indexes.end(); participantIndex++)
+        {
+            if (m_trt.isParticipantTargetDevice(*participantIndex))
+            {
+                ParticipantProxyInterface* target = getParticipantTracker()->getParticipant(*participantIndex);
+                target->setTemperatureThresholds(Temperature::createInvalid(), Temperature::createInvalid());
+            }
+        }
+
         clearAllSourceControls(); // resets the sources from current TRT
         m_trt = newTrt;
         associateAllParticipantsInTrt(m_trt);
         m_targetMonitor.stopMonitoringAll();
-        m_callbackScheduler->setTrt(m_trt);
+        m_callbackScheduler.reset(new CallbackScheduler(getPolicyServices(), m_trt, &m_targetMonitor, getTime()));
         clearAllSourceControls(); // resets the sources from new TRT
-        vector<UIntN> allParticipants = getParticipantTracker().getAllTrackedIndexes();
-        for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
-        {
-            if (m_trt.isParticipantTargetDevice(*index))
-            {
-                auto currentTemperature =
-                    getParticipantTracker()[*index][0].getTemperatureProperty().getCurrentTemperature();
-                setParticipantTemperatureThresholdNotification(getParticipantTracker()[*index], currentTemperature);
-                notifyPlatformOfDeviceTemperature(getParticipantTracker()[*index], currentTemperature);
-                takeThermalActionForTarget(*index);
-            }
-        }
+        takePossibleThermalActionForAllTargets();
     }
 }
 
@@ -601,15 +568,17 @@ void PassivePolicy::removeAllRequestsForTarget(UIntN target)
 {
     if (participantIsTargetDevice(target))
     {
-        vector<UIntN> participantIndexes = getParticipantTracker().getAllTrackedIndexes();
+        vector<UIntN> participantIndexes = getParticipantTracker()->getAllTrackedIndexes();
         for (auto participantIndex = participantIndexes.begin(); 
             participantIndex != participantIndexes.end(); 
             participantIndex++)
         {
-            vector<UIntN> domainIndexes = getParticipantTracker()[*participantIndex].getDomainIndexes();
+            ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
+            vector<UIntN> domainIndexes = participant->getDomainIndexes();
             for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
             {
-                getParticipantTracker()[*participantIndex][*domainIndex].clearAllRequestsForTarget(target);
+                DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+                domain->clearAllRequestsForTarget(target);
             }
         }
     }
@@ -617,35 +586,29 @@ void PassivePolicy::removeAllRequestsForTarget(UIntN target)
 
 Bool PassivePolicy::participantIsSourceDevice(UIntN participantIndex) const
 {
-    return getParticipantTracker().remembers(participantIndex) &&
+    return getParticipantTracker()->remembers(participantIndex) &&
            m_trt.isParticipantSourceDevice(participantIndex);
 }
 
 Bool PassivePolicy::participantIsTargetDevice(UIntN participantIndex) const
 {
-    return getParticipantTracker().remembers(participantIndex) &&
+    return getParticipantTracker()->remembers(participantIndex) &&
            m_trt.isParticipantTargetDevice(participantIndex);
-}
-
-Bool PassivePolicy::participantIsSourceOrTargetDevice(UIntN participantIndex) const
-{
-    return participantIsSourceDevice(participantIndex) ||
-           participantIsTargetDevice(participantIndex);
 }
 
 XmlNode* PassivePolicy::getXmlForPassiveTripPoints() const
 {
     XmlNode* allStatus = XmlNode::createWrapperElement("passive_trip_point_status");
-    vector<UIntN> participantIndexes = getParticipantTracker().getAllTrackedIndexes();
+    vector<UIntN> participantIndexes = getParticipantTracker()->getAllTrackedIndexes();
     for (auto participantIndex = participantIndexes.begin(); 
         participantIndex != participantIndexes.end(); 
         participantIndex++)
     {
-        ParticipantProxy& participant = getParticipantTracker()[*participantIndex];
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
         if (participantIsTargetDevice(*participantIndex) && 
-            participant.getPassiveTripPointProperty().supportsProperty())
+            participant->getPassiveTripPointProperty().supportsProperty())
         {
-            allStatus->addChild(participant.getXmlForPassiveTripPoints());
+            allStatus->addChild(participant->getXmlForPassiveTripPoints());
         }
     }
     return allStatus;
@@ -653,18 +616,18 @@ XmlNode* PassivePolicy::getXmlForPassiveTripPoints() const
 
 void PassivePolicy::clearAllSourceControls()
 {
-    vector<UIntN> allIndicies = getParticipantTracker().getAllTrackedIndexes();
+    vector<UIntN> allIndicies = getParticipantTracker()->getAllTrackedIndexes();
     for (auto index = allIndicies.begin(); index != allIndicies.end(); ++index)
     {
-        ParticipantProxy& participant = getParticipantTracker()[*index];
-        if (participantIsSourceDevice(participant.getIndex()))
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*index);
+        if (participantIsSourceDevice(participant->getIndex()))
         {
-            auto domainIndexes = participant.getDomainIndexes();
+            auto domainIndexes = participant->getDomainIndexes();
             for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
             {
-                DomainProxy& domain = getParticipantTracker()[*index][*domainIndex];
-                domain.clearAllControlKnobRequests();
-                domain.setControlsToMax();
+                auto domain = participant->getDomain(*domainIndex);
+                domain->clearAllControlKnobRequests();
+                domain->setControlsToMax();
             }
         }
     }
@@ -672,9 +635,56 @@ void PassivePolicy::clearAllSourceControls()
 
 void PassivePolicy::associateAllParticipantsInTrt(ThermalRelationshipTable& trt)
 {
-    vector<UIntN> allParticipants = getParticipantTracker().getAllTrackedIndexes();
-    for (auto index = allParticipants.begin(); index != allParticipants.end(); index++)
+    vector<UIntN> allIndicies = getParticipantTracker()->getAllTrackedIndexes();
+    for (auto index = allIndicies.begin(); index != allIndicies.end(); ++index)
     {
-        associateParticipantInTrt(getParticipantTracker()[*index], trt);
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*index);
+        associateParticipantInTrt(participant, trt);
+    }
+}
+
+void PassivePolicy::takePossibleThermalActionForAllTargets()
+{
+    vector<UIntN> allIndicies = getParticipantTracker()->getAllTrackedIndexes();
+    for (auto index = allIndicies.begin(); index != allIndicies.end(); ++index)
+    {
+        takePossibleThermalActionForTarget(*index);
+    }
+}
+
+void PassivePolicy::takePossibleThermalActionForTarget(UIntN participantIndex)
+{
+    try
+    {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
+        if (participantIsTargetDevice(participant->getIndex()) && participant->supportsTemperatureInterface())
+        {
+            auto currentTemperature = participant->getFirstDomainTemperature();
+            takePossibleThermalActionForTarget(participantIndex, currentTemperature);
+        }
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(
+            FLF, "Failed to take thermal action for target: " + string(ex.what()), participantIndex));
+    }
+}
+
+void PassivePolicy::takePossibleThermalActionForTarget(UIntN participantIndex, const Temperature& temperature)
+{
+    try
+    {
+        ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(participantIndex);
+        if (participantIsTargetDevice(participant->getIndex()) && participant->supportsTemperatureInterface())
+        {
+            setParticipantTemperatureThresholdNotification(participant, temperature);
+            notifyPlatformOfDeviceTemperature(participant, temperature);
+            takeThermalActionForTarget(participant->getIndex());
+        }
+    }
+    catch (std::exception& ex)
+    {
+        getPolicyServices().messageLogging->writeMessageWarning(PolicyMessage(
+            FLF, "Failed to take thermal action for target: " + string(ex.what()), participantIndex));
     }
 }

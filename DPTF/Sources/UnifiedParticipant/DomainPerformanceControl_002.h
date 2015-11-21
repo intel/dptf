@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,33 +19,35 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPerformanceControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ConfigTdpDataSyncInterface.h"
-#include "ParticipantServicesInterface.h"
 #include "BinaryParse.h"
-#include "DptfMemory.h"
+#include "DomainPerformanceControlBase.h"
 
 // Processor Participant Performance Controls
 
-class DomainPerformanceControl_002 final : public DomainPerformanceControlInterface,
-    public ComponentExtendedInterface, public ConfigTdpDataSyncInterface
+class DomainPerformanceControl_002 : public DomainPerformanceControlBase
 {
 public:
 
-    DomainPerformanceControl_002(ParticipantServicesInterface* participantServicesInterface);
+    DomainPerformanceControl_002(UIntN participantIndex, UIntN domainIndex,
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainPerformanceControl_002(void);
 
     // DomainPerformanceControlInterface
-    virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override final;
+    virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
+        UIntN participantIndex, UIntN domainIndex) override;
+    virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(
+        UIntN participantIndex, UIntN domainIndex) override;
+    virtual PerformanceControlStatus getPerformanceControlStatus(
+        UIntN participantIndex, UIntN domainIndex) override;
+    virtual PerformanceControlSet getPerformanceControlSet(
+        UIntN participantIndex, UIntN domainIndex) override;
+    virtual void setPerformanceControl(
+        UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
     // ConfigTdpDataSyncInterface
     virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
@@ -56,8 +58,6 @@ private:
     // hide the copy constructor and = operator
     DomainPerformanceControl_002(const DomainPerformanceControl_002& rhs);
     DomainPerformanceControl_002& operator=(const DomainPerformanceControl_002& rhs);
-
-    ParticipantServicesInterface* m_participantServicesInterface;
 
     // Functions
     void initializePerformanceControlSetIfNull(UIntN domainIndex);
@@ -70,6 +70,7 @@ private:
     void calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex);
     void throwIfPerformanceControlIndexIsInvalid(UIntN performanceControlIndex);
     void initializePerformanceControlStaticCapsIfNull(void);
+    void createPerformanceControlSet(UIntN domainIndex);
 
     // Vars (external)
     PerformanceControlDynamicCaps* m_performanceControlDynamicCaps;
@@ -81,4 +82,5 @@ private:
     std::vector<PerformanceControl> m_performanceStateSet; // P-states
     std::vector<PerformanceControl> m_throttlingStateSet; // T-states
     UIntN m_tdpFrequencyLimitControlIndex;
+	bool m_isFirstTstateDeleted;
 };

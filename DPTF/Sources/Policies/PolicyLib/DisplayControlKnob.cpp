@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using namespace std;
 
 DisplayControlKnob::DisplayControlKnob(
     const PolicyServicesInterfaceContainer& policyServices,
-    std::shared_ptr<DisplayControlFacade> displayControl,
+    std::shared_ptr<DisplayControlFacadeInterface> displayControl,
     UIntN participantIndex,
     UIntN domainIndex)
     : ControlKnobBase(policyServices, participantIndex, domainIndex),
@@ -46,13 +46,7 @@ void DisplayControlKnob::limit(UIntN target)
             getPolicyServices().messageLogging->writeMessageDebug(
                 PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
-            UIntN currentControlIndex = getTargetRequest(target);
-            if (currentControlIndex == m_displayControl->getCapabilities().getCurrentUpperLimit())
-            {
-                currentControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
-            }
-            UIntN lowerLimit = m_displayControl->getCapabilities().getCurrentLowerLimit();
-            UIntN nextControlIndex = std::min(currentControlIndex + 1, lowerLimit);
+            UIntN nextControlIndex = calculateNextIndex(target);
             m_requests[target] = nextControlIndex;
 
             stringstream messageAfter;
@@ -125,11 +119,22 @@ Bool DisplayControlKnob::canUnlimit(UIntN target)
         if (m_displayControl->supportsDisplayControls() && (m_hasBeenLimited == true))
         {
             UIntN upperLimitIndex = m_displayControl->getCapabilities().getCurrentUpperLimit();
+            upperLimitIndex = std::max(upperLimitIndex, m_initialIndexSet);
             UIntN currentLimitIndex = getTargetRequest(target);
-            return (currentLimitIndex > upperLimitIndex);
+            if (currentLimitIndex > upperLimitIndex)
+            {
+                return true;
+            }
+            else
+            {
+                m_hasBeenLimited = false;
+                clearRequestForTarget(target);
+                return false;
+            }
         }
         else
         {
+            clearRequestForTarget(target);
             return false;
         }
     }
@@ -145,8 +150,9 @@ Bool DisplayControlKnob::commitSetting()
     {
         if (m_displayControl->supportsDisplayControls())
         {
-            UIntN nextIndex = snapToCapabilitiesBounds(findHighestDisplayIndexRequest());
-            if (m_displayControl->getStatus().getBrightnessLimitIndex() != nextIndex)
+            UIntN nextIndex = findHighestDisplayIndexRequest();
+            auto currentValue = m_displayControl->getStatus().getBrightnessLimitIndex();
+            if (currentValue != nextIndex)
             {
                 stringstream messageBefore;
                 messageBefore << "Attempting to change display brightness limit to " << nextIndex << ".";
@@ -154,7 +160,11 @@ Bool DisplayControlKnob::commitSetting()
                     PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
                 m_displayControl->setControl(nextIndex);
-                m_hasBeenLimited = true;
+                if (m_hasBeenLimited == false)
+                {
+                    m_hasBeenLimited = true;
+                    m_initialIndexSet = currentValue;
+                }
 
                 stringstream messageAfter;
                 messageAfter << "Changed display brightness limit to " << nextIndex << ".";
@@ -162,10 +172,12 @@ Bool DisplayControlKnob::commitSetting()
                     PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
                 return true;
             }
-            else
+
+            if (m_hasBeenLimited && currentValue == m_initialIndexSet)
             {
-                return false;
+                m_hasBeenLimited = false;
             }
+            return false;
         }
         else
         {
@@ -204,6 +216,11 @@ UIntN DisplayControlKnob::findHighestDisplayIndexRequest() const
 UIntN DisplayControlKnob::snapToCapabilitiesBounds(UIntN displayIndex)
 {
     UIntN upperLimit(m_displayControl->getCapabilities().getCurrentUpperLimit());
+    if (m_hasBeenLimited)
+    {
+        upperLimit = std::max(upperLimit, m_initialIndexSet);
+    }
+
     UIntN lowerLimit(m_displayControl->getCapabilities().getCurrentLowerLimit());
     if (displayIndex < upperLimit)
     {
@@ -254,4 +271,35 @@ XmlNode* DisplayControlKnob::getXml()
         status->addChild(displayCapabilities.getXml());
     }
     return status;
+}
+
+UIntN DisplayControlKnob::calculateNextIndex(UIntN target)
+{
+    UIntN nextIndex = Constants::Invalid;
+
+    if (m_hasBeenLimited == false)
+    {
+        auto actualControlIndex = m_displayControl->getStatus().getBrightnessLimitIndex();
+        auto currentIndex = snapToCapabilitiesBounds(actualControlIndex);
+        if (actualControlIndex < currentIndex)
+        {
+            // Snap to max
+            nextIndex = currentIndex;
+        }
+        else if (actualControlIndex > currentIndex)
+        {
+            // Leave below min
+            nextIndex = actualControlIndex;
+        }
+        else
+        {
+            nextIndex = actualControlIndex + 1;
+        }
+    }
+    else
+    {
+        nextIndex = snapToCapabilitiesBounds(getTargetRequest(target) + 1);
+    }
+
+    return nextIndex;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,8 @@
 #include "DptfManager.h"
 #include "EsifServices.h"
 
-PolicyServicesDomainTemperature::PolicyServicesDomainTemperature(DptfManager* dptfManager, UIntN policyIndex) :
+PolicyServicesDomainTemperature::PolicyServicesDomainTemperature(DptfManagerInterface* dptfManager, 
+    UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)
 {
 }
@@ -58,4 +59,28 @@ void PolicyServicesDomainTemperature::setTemperatureThresholds(UIntN participant
 
     getParticipantManager()->getParticipantPtr(participantIndex)->setTemperatureThresholds(
         domainIndex, getPolicyIndex(), temperatureThresholds);
+}
+
+DptfBuffer PolicyServicesDomainTemperature::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getVirtualSensorCalibrationTable(domainIndex);
+}
+
+DptfBuffer PolicyServicesDomainTemperature::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getVirtualSensorPollingTable(domainIndex);
+}
+
+Bool PolicyServicesDomainTemperature::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->isVirtualTemperature(domainIndex);
+}
+
+void PolicyServicesDomainTemperature::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& temperature)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->setVirtualTemperature(domainIndex, temperature);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,7 @@ using namespace std;
 
 PowerControlKnob::PowerControlKnob(
     const PolicyServicesInterfaceContainer& policyServices,
-    std::shared_ptr<PowerControlFacade> powerControl,
+    std::shared_ptr<PowerControlFacadeInterface> powerControl,
     UIntN participantIndex,
     UIntN domainIndex)
     : ControlKnobBase(policyServices, participantIndex, domainIndex),
@@ -45,8 +45,7 @@ void PowerControlKnob::limit(UIntN target)
                 PolicyMessage(FLF, "Calculating request to limit power controls.", 
                 getParticipantIndex(), getDomainIndex()));
 
-            UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-            const PowerControlDynamicCaps& pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
+            const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
             Power minimumPowerLimit = pl1Capabilities.getMinPowerLimit();
             Power stepSize = pl1Capabilities.getPowerStepSize();
 
@@ -94,8 +93,7 @@ void PowerControlKnob::unlimit(UIntN target)
                 PolicyMessage(FLF, "Calculating request to unlimit power controls.", 
                 getParticipantIndex(), getDomainIndex()));
 
-            UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-            const PowerControlDynamicCaps& pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
+            const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
 
             Power lastRequest = getTargetRequest(target);
             Power nextPowerAfterStep = lastRequest + pl1Capabilities.getPowerStepSize();
@@ -122,9 +120,8 @@ Bool PowerControlKnob::canLimit(UIntN target)
     {
         if (m_powerControl->supportsPowerControls())
         {
-            UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
             const PowerControlDynamicCaps& pl1Capabilities =
-                m_powerControl->getCapabilities()[pl1Index];
+                m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
             Power currentStatus = getTargetRequest(target);
             return (currentStatus > pl1Capabilities.getMinPowerLimit());
         }
@@ -145,9 +142,8 @@ Bool PowerControlKnob::canUnlimit(UIntN target)
     {
         if (m_powerControl->supportsPowerControls())
         {
-            UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
             const PowerControlDynamicCaps& pl1Capabilities =
-                m_powerControl->getCapabilities()[pl1Index];
+                m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
             Power currentStatus = getTargetRequest(target);
             return (currentStatus < pl1Capabilities.getMaxPowerLimit());
         }
@@ -195,24 +191,17 @@ Bool PowerControlKnob::commitSetting()
             Power lowestPowerLimit = snapToCapabilitiesBounds(findLowestPowerLimitRequest(m_requests));
 
             // set new power status
-            UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-            PowerControlStatus currentControlStatus = m_powerControl->getLastIssuedPowerLimit();
-            if (currentControlStatus.getCurrentPowerLimit() != lowestPowerLimit)
+            Power currentPowerLimit = m_powerControl->getPowerLimitPL1();
+            if (currentPowerLimit != lowestPowerLimit)
             {
                 stringstream messageBefore;
                 messageBefore << "Attempting to change power limit to " << lowestPowerLimit.toString() << ".";
                 getPolicyServices().messageLogging->writeMessageDebug(
                     PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
-
-                PowerControlStatus newStatus(
-                    currentControlStatus.getPowerControlType(),
-                    lowestPowerLimit,
-                    currentControlStatus.getCurrentTimeWindow(),
-                    currentControlStatus.getCurrentDutyCycle());
-                m_powerControl->setControl(newStatus, pl1Index);
+                m_powerControl->setPowerLimitPL1(lowestPowerLimit);
 
                 stringstream messageAfter;
-                messageAfter << "Changed power limit to " << newStatus.getCurrentPowerLimit().toString() << ".";
+                messageAfter << "Changed power limit to " << lowestPowerLimit.toString() << ".";
                 getPolicyServices().messageLogging->writeMessageDebug(
                     PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
                 return true;
@@ -247,8 +236,7 @@ Power PowerControlKnob::findLowestPowerLimitRequest(const std::map<UIntN, Power>
 {
     if (m_requests.size() == 0)
     {
-        UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-        const PowerControlDynamicCaps& pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
+        const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
         return pl1Capabilities.getMaxPowerLimit();
     }
     else
@@ -274,8 +262,7 @@ Power PowerControlKnob::findLowestPowerLimitRequest(const std::map<UIntN, Power>
 
 Power PowerControlKnob::getTargetRequest(UIntN target)
 {
-    UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-    const PowerControlDynamicCaps& pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
+    const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
     auto targetRequest = m_requests.find(target);
     if (targetRequest == m_requests.end())
     {
@@ -289,8 +276,7 @@ Power PowerControlKnob::getTargetRequest(UIntN target)
 
 UIntN PowerControlKnob::snapToCapabilitiesBounds(Power powerLimit)
 {
-    UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-    const PowerControlDynamicCaps& pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
+    const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
     Power maxPowerLimit = pl1Capabilities.getMaxPowerLimit();
     Power minPowerLimit = pl1Capabilities.getMinPowerLimit();
     if (powerLimit > maxPowerLimit)
@@ -323,11 +309,11 @@ XmlNode* PowerControlKnob::getXml() const
     XmlNode* knobStatus = XmlNode::createWrapperElement("power_control_status");
     if (m_powerControl->supportsPowerControls())
     {
-        UIntN pl1Index = m_powerControl->getPl1ControlSetIndex();
-        PowerControlDynamicCaps pl1Capabilities = m_powerControl->getCapabilities()[pl1Index];
+        auto pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
         knobStatus->addChild(pl1Capabilities.getXml());
-        PowerControlStatus currentControlStatus = m_powerControl->getLastIssuedPowerLimit();
-        knobStatus->addChild(currentControlStatus.getXml());
+        Power currentPowerLimit = m_powerControl->getPowerLimitPL1();
+        XmlNode* powerControl = XmlNode::createDataElement("power_limit", currentPowerLimit.toString());
+        knobStatus->addChild(powerControl);
     }
     return knobStatus;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,26 +19,25 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainPowerStatusInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainPowerStatusBase.h"
 
 //
 // Implements the Null Object pattern.  In the case that the functionality isn't implemented, we use
 // this in place so we don't have to check for NULL pointers all throughout the participant implementation.
 //
 
-class DomainPowerStatus_000 final : public DomainPowerStatusInterface,
-    public ComponentExtendedInterface
+class DomainPowerStatus_000 : public DomainPowerStatusBase
 {
 public:
 
-    DomainPowerStatus_000(ParticipantServicesInterface* participantServicesInterface);
+    DomainPowerStatus_000(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
 
     // DomainPowerStatusInterface
-    virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 };

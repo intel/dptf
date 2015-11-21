@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,14 +59,4 @@ void TargetMonitor::stopMonitoringAll()
     {
         stopMonitoring(*target);
     }
-}
-
-XmlNode* TargetMonitor::getXml() const
-{
-    XmlNode* node = XmlNode::createWrapperElement("target_monitor");
-    for (auto target = m_targetsMonitored.begin(); target != m_targetsMonitored.end(); target++)
-    {
-        node->addChild(XmlNode::createDataElement("target", std::to_string(*target)));
-    }
-    return node;
 }

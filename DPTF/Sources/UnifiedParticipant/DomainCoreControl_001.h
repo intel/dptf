@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,42 +19,39 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainCoreControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
 #include "BinaryParse.h"
-#include "DptfMemory.h"
+#include "DomainCoreControlBase.h"
 
 //
 // Core Controls (Processor)
 //
 
-class DomainCoreControl_001 final : public DomainCoreControlInterface,
-    public ComponentExtendedInterface
+class DomainCoreControl_001 : public DomainCoreControlBase
 {
 public:
 
-    DomainCoreControl_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainCoreControl_001(UIntN participantIndex, UIntN domainIndex,
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainCoreControl_001(void);
 
     // DomainCoreControlInterface
-    virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setActiveCoreControl(UIntN participantIndex, UIntN domainIndex, const CoreControlStatus& coreControlStatus) override final;
+    virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+    virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+    virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) override;
+    virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual void setActiveCoreControl(UIntN participantIndex, UIntN domainIndex, 
+        const CoreControlStatus& coreControlStatus) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
     // hide the copy constructor and = operator
     DomainCoreControl_001(const DomainCoreControl_001& rhs);
     DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs);
-
-    ParticipantServicesInterface* m_participantServicesInterface;
 
     // Functions
     void createCoreControlStaticCapsIfNeeded(UIntN domainIndex);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-
-class DptfManager;
+#include "DptfManagerInterface.h"
 class PolicyManager;
 class Policy;
 class ParticipantManager;
@@ -31,20 +30,20 @@ class PolicyServices
 {
 public:
 
-    PolicyServices(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    DptfManager* getDptfManager(void) const;
+    DptfManagerInterface* getDptfManager(void) const;
     UIntN getPolicyIndex(void) const;
     PolicyManager* getPolicyManager(void) const;
     Policy* getPolicy(void) const;
     ParticipantManager* getParticipantManager(void) const;
     WorkItemQueueManager* getWorkItemQueueManager(void) const;
     EsifServices* getEsifServices(void) const;
-    void throwIfNotWorkItemThread(void);
+    void throwIfNotWorkItemThread(void) const;
 
 private:
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     UIntN m_policyIndex;
     PolicyManager* m_policyManager;
     Policy* m_policy;

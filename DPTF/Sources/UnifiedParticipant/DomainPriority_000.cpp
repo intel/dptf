@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 
 #include "DomainPriority_000.h"
 
-DomainPriority_000::DomainPriority_000(ParticipantServicesInterface* participantServicesInterface)
+DomainPriority_000::DomainPriority_000(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.
 }
@@ -37,4 +39,9 @@ XmlNode* DomainPriority_000::getXml(UIntN domainIndex)
 {
     // Do nothing.  Not an error.
     throw not_implemented();
+}
+
+std::string DomainPriority_000::getName(void)
+{
+    return "Domain Priority (Version 0)";
 }

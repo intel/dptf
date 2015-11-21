@@ -57,4 +57,12 @@ static int ESIF_INLINE esif_ccb_localtime(
 	return (localtime_r(time, tm_ptr) != NULL ? 0 : EINVAL);
 }
 
+static int ESIF_INLINE esif_ccb_gmtime(
+	struct tm *tm_ptr,
+	const time_t *time
+	)
+{
+	return (gmtime_r(time, tm_ptr) != NULL ? 0 : EINVAL);
+}
+
 #endif /* LINUX USER */

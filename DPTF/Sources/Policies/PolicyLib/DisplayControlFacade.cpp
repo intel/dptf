@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,10 +24,10 @@ DisplayControlFacade::DisplayControlFacade(
     UIntN domainIndex,
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
-    : m_participantIndex(participantIndex),
+    : m_policyServices(policyServices),
+    m_participantIndex(participantIndex),
     m_domainIndex(domainIndex),
     m_domainProperties(domainProperties),
-    m_policyServices(policyServices),
     m_displayControlSetProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_displayControlStatusProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_displayControlCapabilitiesProperty(participantIndex, domainIndex, domainProperties, policyServices)
@@ -53,8 +53,7 @@ void DisplayControlFacade::setControl(UIntN displayControlIndex)
     if (supportsDisplayControls())
     {
         m_policyServices.domainDisplayControl->setDisplayControl(
-            m_participantIndex, m_domainIndex, displayControlIndex, true);
-        m_displayControlStatusProperty.invalidate();
+            m_participantIndex, m_domainIndex, displayControlIndex);
     }
     else
     {
@@ -70,7 +69,6 @@ const DisplayControlSet& DisplayControlFacade::getControls()
 void DisplayControlFacade::invalidateControlSet()
 {
     m_displayControlSetProperty.invalidate();
-    m_displayControlStatusProperty.invalidate();
 }
 
 void DisplayControlFacade::refreshCapabilities()
@@ -83,7 +81,11 @@ const DisplayControlDynamicCaps& DisplayControlFacade::getCapabilities()
     return m_displayControlCapabilitiesProperty.getCapabilities();
 }
 
-void DisplayControlFacade::invalidateStatus()
+void DisplayControlFacade::setValueWithinCapabilities()
 {
-    m_displayControlStatusProperty.invalidate();
+    auto controlValue = m_displayControlStatusProperty.getStatus().getBrightnessLimitIndex();
+    auto capabilities = m_displayControlCapabilitiesProperty.getCapabilities();
+    controlValue = std::max(capabilities.getCurrentUpperLimit(), controlValue);
+    controlValue = std::min(capabilities.getCurrentLowerLimit(), controlValue);
+    setControl(controlValue);
 }

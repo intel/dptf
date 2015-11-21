@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "XmlNode.h"
 
 DeferredWorkItemQueue::DeferredWorkItemQueue(EsifSemaphore* workItemQueueSemaphore) :
-    m_workItemQueueSemaphore(workItemQueueSemaphore), m_timer(TimerCallback, this), m_maxCount(0)
+    m_maxCount(0), m_workItemQueueSemaphore(workItemQueueSemaphore), m_timer(TimerCallback, this)
 {
 }
 
@@ -139,8 +139,8 @@ XmlNode* DeferredWorkItemQueue::getXml(void) const
     esifMutexHelper.lock();
 
     XmlNode* deferredQueueStastics = XmlNode::createWrapperElement("deferred_queue_statistics");
-    deferredQueueStastics->addChild(XmlNode::createDataElement("current_count", std::to_string(m_queue.size())));
-    deferredQueueStastics->addChild(XmlNode::createDataElement("max_count", std::to_string(m_maxCount)));
+    deferredQueueStastics->addChild(XmlNode::createDataElement("current_count", StlOverride::to_string(m_queue.size())));
+    deferredQueueStastics->addChild(XmlNode::createDataElement("max_count", StlOverride::to_string(m_maxCount)));
 
     esifMutexHelper.unlock();
 
@@ -169,20 +169,7 @@ void DeferredWorkItemQueue::setTimer(void)
         DeferredWorkItem* firstWorkItem = m_queue.front();
         EsifTime firstWorkItemTime = firstWorkItem->getDeferredProcessingTime();
 
-        if (m_timer.isExpirationTimeValid() == true)
-        {
-            // Make sure the timer is set correctly.  If not, cancel and reset it.
-            EsifTime expirationTime = m_timer.getExpirationTime();
-            if (firstWorkItemTime != expirationTime)
-            {
-                m_timer.startTimer(firstWorkItemTime);
-            }
-        }
-        else
-        {
-            // Need to start the timer
-            m_timer.startTimer(firstWorkItemTime);
-        }
+		m_timer.startTimer(firstWorkItemTime);
     }
 }
 
@@ -246,7 +233,7 @@ void DeferredWorkItemQueue::timerCallback(void) const
     m_workItemQueueSemaphore->signal();
 }
 
-void TimerCallback(const void* context_ptr)
+void TimerCallback(void* context_ptr)
 {
     const DeferredWorkItemQueue* deferredWorkItemQueue = static_cast<const DeferredWorkItemQueue*>(context_ptr);
     deferredWorkItemQueue->timerCallback();

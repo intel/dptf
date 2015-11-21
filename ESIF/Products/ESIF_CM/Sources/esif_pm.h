@@ -190,6 +190,14 @@ void esif_lf_pm_exit(void);
 
 #ifdef ESIF_ATTR_USER
 
+typedef struct UfPmIterator_s {
+	u32 marker;
+	UInt8 handle;
+	Bool ref_taken;
+	EsifUpPtr upPtr;
+} UfPmIterator, *UfPmIteratorPtr;
+
+#define UF_PM_ITERATOR_MARKER 'UFPM'
 
 /* Participant Manager Entry */
 typedef struct _t_EsifUpManagerEntry {
@@ -230,10 +238,30 @@ eEsifError EsifUpPm_UnregisterParticipant(
 
 eEsifError EsifUpPm_ResumeParticipant(const UInt8 upInstance);
 
+/*
+ * Used to iterate through the available participants.
+ * First call EsifUpPm_InitIterator to initialize the iterator.
+ * Next, call EsifUpPm_GetNextUp using the iterator.  Repeat until
+ * EsifUpPm_GetNextUp fails. The call will release the reference of the
+ * participant from the previous call.  If you stop iteration part way through
+ * all participants, the caller is responsible for releasing the reference on
+ * the last participant returned.  Iteration is complete when
+ * ESIF_E_ITERATOR_DONE is returned.
+ */
+eEsifError EsifUpPm_InitIterator(
+	UfPmIteratorPtr iteratorPtr
+	);
+
+/* See EsifUpPm_InitIterator for usage */
+eEsifError EsifUpPm_GetNextUp(
+	UfPmIteratorPtr iteratorPtr,
+	EsifUpPtr *upPtr
+	);
+
 eEsifError EsifUpPm_MapLpidToParticipantInstance(
 	const UInt8 lpInstance,
 	UInt8 *upInstancePtr
-);
+	);
 
 eEsifError EsifUpPm_Init(void);
 void EsifUpPm_Exit(void);

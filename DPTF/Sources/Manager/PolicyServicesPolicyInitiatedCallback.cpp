@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,10 +19,9 @@
 #include "PolicyServicesPolicyInitiatedCallback.h"
 #include "WIPolicyInitiatedCallback.h"
 #include "WorkItemQueueManager.h"
-#include "DptfManager.h"
 
 PolicyServicesPolicyInitiatedCallback::PolicyServicesPolicyInitiatedCallback(
-    DptfManager* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
+    DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
 {
 }
 
@@ -38,12 +37,12 @@ UInt64 PolicyServicesPolicyInitiatedCallback::createPolicyInitiatedImmediateCall
 }
 
 UInt64 PolicyServicesPolicyInitiatedCallback::createPolicyInitiatedDeferredCallback(
-    UInt64 policyDefinedEventCode, UInt64 param1, void* param2, UInt64 timeDeltaInMilliSeconds)
+    UInt64 policyDefinedEventCode, UInt64 param1, void* param2, const TimeSpan& timeDelta)
 {
     // This can be called from any thread
     WorkItem* workItem = new WIPolicyInitiatedCallback(getDptfManager(), getPolicyIndex(), policyDefinedEventCode, param1, param2);
     UInt64 workItemUniqueId = workItem->getUniqueId();
-    getWorkItemQueueManager()->enqueueDeferredWorkItem(workItem, timeDeltaInMilliSeconds);
+    getWorkItemQueueManager()->enqueueDeferredWorkItem(workItem, timeDelta);
 
     return workItemUniqueId;
 }

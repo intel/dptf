@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,12 +19,13 @@
 #include "PolicyServicesPlatformNotification.h"
 #include "Policy.h"
 #include "EsifServices.h"
-#include "esif_data_misc.h"
 #include "esif_ccb_memory.h"
-#include "esif_primitive_type.h"
-#include "esif_data_type.h"
+#include "esif_sdk_data_type.h"
+#include "esif_sdk_data_misc.h"
+#include "esif_sdk_primitive_type.h"
 
-PolicyServicesPlatformNotification::PolicyServicesPlatformNotification(DptfManager* dptfManager, UIntN policyIndex) :
+PolicyServicesPlatformNotification::PolicyServicesPlatformNotification(DptfManagerInterface* dptfManager, 
+    UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)
 {
 }
@@ -51,6 +52,7 @@ void PolicyServicesPlatformNotification::executeOsc(const Guid& guid, UInt32 osc
     osc.count = 2;
     osc.status = 0;
     osc.capabilities = oscCapabilities;
+    std::string failureMessage;
 
     try
     {
@@ -58,8 +60,13 @@ void PolicyServicesPlatformNotification::executeOsc(const Guid& guid, UInt32 osc
             sizeof(esif_data_complex_osc), sizeof(esif_data_complex_osc));
         successful = true;
     }
+    catch (std::exception ex)
+    {
+        failureMessage = ex.what();
+    }
     catch (...)
     {
+        failureMessage = "Unknown error.";
     }
 
     if (osc.status & 0xE)
@@ -82,6 +89,6 @@ void PolicyServicesPlatformNotification::executeOsc(const Guid& guid, UInt32 osc
 
     if (successful == false)
     {
-        throw dptf_exception("Failure during execution of _OSC.");
+        throw dptf_exception("Failure during execution of _OSC: " + failureMessage);
     }
 }

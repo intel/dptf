@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,12 +19,12 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainConfigTdpControlFactoryInterface.h"
+#include "ControlFactoryInterface.h"
 
-class DomainConfigTdpControlFactory final : public DomainConfigTdpControlFactoryInterface
+class DomainConfigTdpControlFactory : public ControlFactoryInterface
 {
 public:
 
-    virtual DomainConfigTdpControlInterface* createDomainConfigTdpControlObject(UIntN version,
-        ParticipantServicesInterface* participantServicesInterface) override final;
+    virtual ControlBase* make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
+        ParticipantServicesInterface* participantServicesInterface) override;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,8 +25,6 @@
 #include "EsifSemaphore.h"
 #include "EsifTime.h"
 #include "EsifTimer.h"
-
-static void TimerCallback(const void* context_ptr);
 
 class DeferredWorkItemQueue : public WorkItemQueueInterface
 {
@@ -65,7 +63,7 @@ private:
     // The timer will call a 'C' function which will need to forward the call to our private
     // timerCallback method.  We set it up as a friend so it has access.
     void timerCallback(void) const;
-    friend void TimerCallback(const void* context_ptr);
+    friend void TimerCallback(void* context_ptr);
 };
 
-void TimerCallback(const void* context_ptr);
+void TimerCallback(void* context_ptr);

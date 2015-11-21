@@ -45,8 +45,8 @@
  *   EsifEventMgr_RegisterEventByGuid
  *   EsifEventMgr_UnregisterEventByGuid
  *
- * Event observer information is maintained as an array of linked lists with a list of observers for each event type
- * 64 event types are currently supported.
+ * Event observer information is maintained as an array of linked lists with a list of observers the event types
+ * There are 64 event lists (Information is placed in a given list given by the modulo 64 of the event type)
  * Event observers may register based on the event type or GUID.
  * EVENT_MGR_MATCH_ANY may be used as the participant ID during registration to observe events from all participants;
  * or if registration takes place before the participants are present.
@@ -91,13 +91,13 @@ static eEsifError EsifEventMgr_DisableEvent(EventMgrEntryPtr entryPtr);
 static eEsifError EsifEventMgr_MoveEntryToGarbage(EventMgrEntryPtr entryPtr);
 static eEsifError EsifEventMgr_DumpGarbage();
 static void EsifEventMgr_QueueDestroyCallback(void *ctxPtr);
-
+static void EsifEventMgr_LLEntryDestroyCallback(void *dataPtr);
 
 eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	UInt8 participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
-	EsifDataPtr eventDataPtr
+	const EsifDataPtr eventDataPtr
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -115,19 +115,23 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 		goto exit;
 	}
 
-	if ((eventDataPtr != NULL) && (eventDataPtr->buf_ptr != NULL) && (eventDataPtr->buf_len > 0)) {
+	if ((eventDataPtr != NULL) &&
+	    (eventDataPtr->buf_ptr != NULL) && 
+	    (eventDataPtr->buf_len > 0) &&
+	    (eventDataPtr->data_len > 0) &&
+	    (eventDataPtr->buf_len >= eventDataPtr->data_len)) {
 
-		queueDataPtr = esif_ccb_malloc(eventDataPtr->buf_len);
+		queueDataPtr = esif_ccb_malloc(eventDataPtr->data_len);
 		if (NULL == queueDataPtr) {
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
 
-		esif_ccb_memcpy(queueDataPtr, eventDataPtr->buf_ptr, eventDataPtr->buf_len);
+		esif_ccb_memcpy(queueDataPtr, eventDataPtr->buf_ptr, eventDataPtr->data_len);
 
 		queueEventPtr->eventData.type = eventDataPtr->type;
 		queueEventPtr->eventData.buf_ptr = queueDataPtr;
-		queueEventPtr->eventData.buf_len = eventDataPtr->buf_len;
+		queueEventPtr->eventData.buf_len = eventDataPtr->data_len;
 		queueEventPtr->eventData.data_len = eventDataPtr->data_len;
 	}
 
@@ -240,14 +244,20 @@ static eEsifError EsifEventMgr_ProcessEvent(
 		}
 	}
 
-	if ((eventType < 0) || (eventType >= MAX_EVENT_TYPES)) {
+	if (eventType < 0) {
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
 
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	listPtr = g_EsifEventMgr.observerLists[eventType];
+	listPtr = g_EsifEventMgr.observerLists[eventType % MAX_EVENT_TYPES];
+	if(NULL == listPtr) {
+		rc = ESIF_E_UNSPECIFIED;
+		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+		goto exit;
+	}
+
 	nodePtr = listPtr->head_ptr;
 	while (NULL != nodePtr) {
 		nextNodePtr = nodePtr->next_ptr;
@@ -550,15 +560,9 @@ static eEsifError EsifEventMgr_AddEntry(
 
 	ESIF_ASSERT(eventCallback != NULL);
 
-
-	if (fpcEventPtr->esif_event >= MAX_EVENT_TYPES) {
-		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-		goto exit;
-	}
-
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event];
+	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event % MAX_EVENT_TYPES];
 	if(NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
 		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
@@ -656,12 +660,7 @@ static eEsifError EsifEventMgr_ReleaseEntry(
 
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	if (fpcEventPtr->esif_event >= MAX_EVENT_TYPES) {
-		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-		goto exit;
-	}
-
-	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event];
+	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event % MAX_EVENT_TYPES];
 	if(NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
 		goto exit;
@@ -793,6 +792,10 @@ UInt64 EsifEventMgr_GetEventMask(
 	esif_ccb_read_lock(&g_EsifEventMgr.listLock);
 	for (i = 0; i < MAX_EVENT_TYPES; i++) {
 		listPtr = g_EsifEventMgr.observerLists[i];
+		if (NULL == listPtr) {
+			continue;
+		}
+
 		nodePtr = listPtr->head_ptr;
 		while(NULL != nodePtr) {
 			entryPtr = (EventMgrEntryPtr)nodePtr->data_ptr;
@@ -859,7 +862,6 @@ eEsifError EsifEventMgr_Exit()
 	eEsifError rc = ESIF_OK;
 	UInt8 i;
 	EsifLinkListPtr listPtr = NULL;
-	EsifLinkListNodePtr nodePtr = NULL;
 
 	ESIF_TRACE_ENTRY_INFO();
 
@@ -868,17 +870,7 @@ eEsifError EsifEventMgr_Exit()
 
 	for (i = 0; i < MAX_EVENT_TYPES; i++) {
 		listPtr = g_EsifEventMgr.observerLists[i];
-		if (NULL == listPtr) {
-			continue;
-		}
-
-		nodePtr = listPtr->head_ptr;
-		while(nodePtr != NULL){
-			EsifEventMgr_MoveEntryToGarbage(nodePtr->data_ptr);
-			esif_link_list_node_remove(listPtr, nodePtr);
-			nodePtr = listPtr->head_ptr;
-		}
-		esif_link_list_destroy(g_EsifEventMgr.observerLists[i]);
+		esif_link_list_free_data_and_destroy(listPtr, EsifEventMgr_LLEntryDestroyCallback);
 		g_EsifEventMgr.observerLists[i] = NULL;
 	}
 
@@ -893,10 +885,12 @@ eEsifError EsifEventMgr_Exit()
 	esif_queue_destroy(g_EsifEventMgr.eventQueuePtr, EsifEventMgr_QueueDestroyCallback);
 	g_EsifEventMgr.eventQueuePtr = NULL;
 
-	/* Dump garbage and destroy the garbage list */
-	EsifEventMgr_DumpGarbage();
-	esif_link_list_destroy(g_EsifEventMgr.garbageList);
+
+	/* Destroy the garbage list */
+	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+	esif_link_list_free_data_and_destroy(g_EsifEventMgr.garbageList, EsifEventMgr_LLEntryDestroyCallback);
 	g_EsifEventMgr.garbageList = NULL;
+	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 
 	esif_ccb_lock_uninit(&g_EsifEventMgr.listLock);
 
@@ -929,7 +923,6 @@ static eEsifError EsifEventMgr_DumpGarbage()
 	EsifLinkListPtr listPtr = g_EsifEventMgr.garbageList;
 	EsifLinkListNodePtr nodePtr = NULL;
 	EventMgrEntryPtr entryPtr = NULL;
-
 
 	if (NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
@@ -966,6 +959,18 @@ static void EsifEventMgr_QueueDestroyCallback(void *ctxPtr)
 		esif_ccb_free(queueEventPtr);
 	}
 }
+
+
+static void EsifEventMgr_LLEntryDestroyCallback(
+	void *dataPtr
+	)
+{
+	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+	EsifEventMgr_DisableEvent((EventMgrEntryPtr)dataPtr);
+	esif_ccb_free(dataPtr);
+	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+}
+
 
 /*****************************************************************************/
 /*****************************************************************************/

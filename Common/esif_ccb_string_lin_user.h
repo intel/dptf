@@ -24,15 +24,6 @@
 #include <stdarg.h>
 #include <string.h>
 
-/* Enable GNU Extensions for fnmatch() so we can use FNM_CASEFOLD */
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#include <fnmatch.h>
-#undef  _GNU_SOURCE
-#else
-#include <fnmatch.h>
-#endif
-
 /*
 * Kernel/User Agnostic
 */
@@ -73,7 +64,11 @@ static ESIF_INLINE void esif_ccb_strcat(
  * NOTE: SCANFBUF is mandatory when using esif_ccb_sscanf or esif_ccb_vsscanf to scan into strings:
  *       esif_ccb_sscanf(str, "%s=%d", SCANFBUF(name, sizeof(name)), &value);
  */
+#ifdef ESIF_ATTR_DEBUG
+#define SCANFBUF(str, siz)			(char *)memset(str, 0xFE, siz)
+#else
 #define SCANFBUF(str, siz)			str
+#endif
 #define esif_ccb_vsprintf(siz, str, fmt, ...)	vsnprintf(str, siz, fmt, ##__VA_ARGS__)
 #define esif_ccb_vsscanf(str, fmt, args)	vsscanf(str, fmt, args)
 #define esif_ccb_sscanf(str, fmt, ...)		sscanf(str, fmt, ##__VA_ARGS__)
@@ -157,21 +152,6 @@ static ESIF_INLINE void esif_ccb_strncpy(
 	esif_ccb_strcpy(dst, src, siz);
 	if (len < siz)
 		memset(dst + len, 0, siz - len);
-}
-
-/* Case-insensitive string pattern match function (only "*" and "?" supported) */
-static ESIF_INLINE int esif_ccb_strmatch(
-	esif_string string,
-	esif_string pattern
-	)
-{
-	int result = 0;
-
-	/* [RegEx] Pattern matching unsupported in Windows so only match patterns without [RegEx] */
-	if (esif_ccb_strpbrk(pattern, "[]") == NULL) {
-		result = (int)(fnmatch(pattern, string, FNM_NOESCAPE | FNM_CASEFOLD) == 0);
-	}
-	return result;
 }
 
 #endif /* LINUX USER */

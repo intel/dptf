@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,8 @@
 #include "PolicyServicesDomainPowerControl.h"
 #include "ParticipantManager.h"
 
-PolicyServicesDomainPowerControl::PolicyServicesDomainPowerControl(DptfManager* dptfManager, UIntN policyIndex) :
+PolicyServicesDomainPowerControl::PolicyServicesDomainPowerControl(DptfManagerInterface* dptfManager, 
+    UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)
 {
 }
@@ -31,17 +32,66 @@ PowerControlDynamicCapsSet PolicyServicesDomainPowerControl::getPowerControlDyna
     return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerControlDynamicCapsSet(domainIndex);
 }
 
-PowerControlStatusSet PolicyServicesDomainPowerControl::getPowerControlStatusSet(
-    UIntN participantIndex, UIntN domainIndex)
+void PolicyServicesDomainPowerControl::setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlDynamicCapsSet capsSet)
 {
     throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerControlStatusSet(domainIndex);
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerControlDynamicCapsSet(domainIndex,
+        getPolicyIndex(), capsSet);
 }
 
-void PolicyServicesDomainPowerControl::setPowerControl(UIntN participantIndex, UIntN domainIndex,
-    const PowerControlStatusSet& powerControlStatusSet)
+Bool PolicyServicesDomainPowerControl::isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
 {
     throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerControl(domainIndex,
-        getPolicyIndex(), powerControlStatusSet);
+    return getParticipantManager()->getParticipantPtr(participantIndex)->isPowerLimitEnabled(domainIndex,
+        controlType);
+}
+
+Power PolicyServicesDomainPowerControl::getPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimit(domainIndex,
+        controlType);
+}
+
+void PolicyServicesDomainPowerControl::setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType, const Power& powerLimit)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimit(domainIndex,
+        getPolicyIndex(), controlType, powerLimit);
+}
+
+TimeSpan PolicyServicesDomainPowerControl::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimitTimeWindow(domainIndex,
+        controlType);
+}
+
+void PolicyServicesDomainPowerControl::setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType, const TimeSpan& timeWindow)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitTimeWindow(domainIndex,
+        getPolicyIndex(), controlType, timeWindow);
+}
+
+Percentage PolicyServicesDomainPowerControl::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimitDutyCycle(domainIndex,
+        controlType);
+}
+
+void PolicyServicesDomainPowerControl::setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+    PowerControlType::Type controlType, const Percentage& dutyCycle)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitDutyCycle(domainIndex,
+        getPolicyIndex(), controlType, dutyCycle);
 }

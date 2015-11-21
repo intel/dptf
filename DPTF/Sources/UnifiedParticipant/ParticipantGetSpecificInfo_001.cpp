@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,8 +27,9 @@ public:
     UInt32 instance;
 };
 
-ParticipantGetSpecificInfo_001::ParticipantGetSpecificInfo_001(ParticipantServicesInterface* participantServicesInterface)
-    : m_participantServicesInterface(participantServicesInterface)
+ParticipantGetSpecificInfo_001::ParticipantGetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
+    ParticipantServicesInterface* participantServicesInterface)
+    : ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
     clearCachedData();
 }
@@ -66,7 +67,7 @@ void ParticipantGetSpecificInfo_001::clearCachedData(void)
 
 Temperature ParticipantGetSpecificInfo_001::readSpecificInfo(PrimitiveAndInstance primitiveAndInstance)
 {
-    return m_participantServicesInterface->primitiveExecuteGetAsTemperatureC(
+    return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
         primitiveAndInstance.primitive, Constants::Esif::NoDomain, static_cast<UInt8>(primitiveAndInstance.instance));
 }
 PrimitiveAndInstance ParticipantGetSpecificInfo_001::getPrimitiveAndInstanceForSpecificInfoKey(
@@ -136,7 +137,7 @@ PrimitiveAndInstance ParticipantGetSpecificInfo_001::getPrimitiveAndInstanceForS
         primitiveAndInstance.instance = 9;
         break;
     default:
-        throw dptf_exception("Received unexpected Specific Info Key: " + std::to_string(request));
+        throw dptf_exception("Received unexpected Specific Info Key: " + StlOverride::to_string(request));
         break;
     }
     return primitiveAndInstance;
@@ -226,4 +227,9 @@ XmlNode* ParticipantGetSpecificInfo_001::getXml(UIntN domainIndex)
     }
 
     return root;
+}
+
+std::string ParticipantGetSpecificInfo_001::getName(void)
+{
+    return "Get Specific Info Control (Version 1)";
 }

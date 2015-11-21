@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,15 +59,17 @@ private:
     mutable ActiveRelationshipTable m_art;
 
     // cooling targets
-    void coolTargetParticipant(ParticipantProxy& participant);
-    void requestFanSpeedChangesForTarget(ParticipantProxy& target, const Temperature& currentTemperature);
+    void coolTargetParticipant(ParticipantProxyInterface* participant);
+    void requestFanSpeedChangesForTarget(ParticipantProxyInterface* target, const Temperature& currentTemperature);
     void requestFanSpeedChange(const ActiveRelationshipTableEntry& entry, const Temperature& currentTemperature);
     void requestFanTurnedOff(const ActiveRelationshipTableEntry& entry);
     void turnOffAllFans();
     void refreshArtAndTargetsAndTakeCoolingAction();
+    void reloadArt();
+    void takeCoolingActionsForAllParticipants();
 
     // setting target trip point notification
-    void setTripPointNotificationForTarget(ParticipantProxy& target, const Temperature& currentTemperature);
+    void setTripPointNotificationForTarget(ParticipantProxyInterface* target, const Temperature& currentTemperature);
     Temperature determineLowerTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
     Temperature determineUpperTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
 
@@ -78,7 +80,7 @@ private:
 
     // associating participants with entries in the ART
     void associateAllParticipantsInArt();
-    void associateParticipantInArt(ParticipantProxy& participant);
+    void associateParticipantInArt(ParticipantProxyInterface* participant);
 
     // selecting participants
     Bool participantIsSourceDevice(UIntN participantIndex);
@@ -87,4 +89,5 @@ private:
     // status
     XmlNode* getXmlForActiveTripPoints() const;
     XmlNode* getXmlForActiveCoolingControls() const;
+
 };

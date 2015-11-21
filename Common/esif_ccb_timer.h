@@ -106,7 +106,7 @@
  */
 
 
-#define esif_ccb_timer_handle_t u32
+#define esif_ccb_timer_handle_t esif_handle_t
 
 /* Agnostic timer object */
 

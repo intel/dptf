@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIDomainDestroy::WIDomainDestroy(DptfManager* dptfManager, UIntN participantIndex, UIntN domainIndex) :
+WIDomainDestroy::WIDomainDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
     DomainWorkItem(dptfManager, FrameworkEvent::DomainDestroy, participantIndex, domainIndex)
 {
 }

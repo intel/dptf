@@ -32,14 +32,13 @@ endif
 ESIF_SOURCES := ../..
 ESIF_UF_SOURCES := $(ESIF_SOURCES)/ESIF_UF/Sources
 ESIF_CM_SOURCES := $(ESIF_SOURCES)/ESIF_CM/Sources
-ESIF_LF_SOURCES := $(ESIF_SOURCES)/ESIF_LF/Sources
 ESIF_WS_SOURCES := $(ESIF_SOURCES)/ESIF_WS/Sources
 ESIF_LIB_SOURCES := $(ESIF_SOURCES)/ESIF_LIB/Sources
 ESIF_SDK_SOURCES := $(ESIF_SOURCES)/../../Common
 
 LDLIBS := -lpthread -ldl -lrt -lreadline
 
-CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LF_SOURCES) -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(ESIF_SDK_SOURCES)
+CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(ESIF_SDK_SOURCES)
 CPPFLAGS += -DESIF_ATTR_USER 
 CPPFLAGS += -DESIF_ATTR_DAEMON
 
@@ -119,12 +118,11 @@ $(info ++++ )
 
 # OS Specific
 OBJ := $(ESIF_UF_SOURCES)/lin/main.o
-OBJ += $(ESIF_LF_SOURCES)/lin/esif_ipc_os_lin.o
+OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_ipc_os_lin.o
 OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_action_sysfs_os_lin.o
 OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_sysfs_enumerate_os_lin.o
 
 # Common Source 
-OBJ += $(ESIF_CM_SOURCES)/esif_debug.o
 OBJ += $(ESIF_CM_SOURCES)/esif_ipc.o
 OBJ += $(ESIF_CM_SOURCES)/esif_hash_table.o
 OBJ += $(ESIF_CM_SOURCES)/esif_queue.o
@@ -157,6 +155,7 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_service.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_shell.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_tableobject.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_test.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_trace.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_participant.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_xform.o
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,28 +18,20 @@
 
 #pragma once
 
-#include "Dptf.h"
-#include "esif_data.h"
-
+#include "DptfManagerInterface.h"
+#include "EsifAppServicesInterface.h"
+#include "EventCache.h"
 class EsifServices;
 class WorkItemQueueManager;
 class PolicyManager;
 class ParticipantManager;
-class IndexContainer;
 class DptfStatus;
-enum _t_eAppStatusCommand : unsigned int;
-enum _t_eLogType : unsigned int;
-
-struct _t_EsifInterface;
-typedef struct _t_EsifInterface* EsifInterfacePtr;
-typedef enum _t_eAppStatusCommand eAppStatusCommand;
-typedef enum _t_eLogType eLogType;
 
 //
 // DPTF starts here!!!
 //
 
-class DptfManager
+class DptfManager : public DptfManagerInterface
 {
 public:
 
@@ -50,21 +42,29 @@ public:
     ~DptfManager(void);
 
     // This will create all of the DPTF subsystems.
-    void createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr,
-        const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled);
+    virtual void createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr,
+        const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled) override;
 
-    Bool isDptfManagerCreated(void) const;
-    Bool isDptfShuttingDown(void) const;
-    Bool isWorkItemQueueManagerCreated(void) const;
+    virtual Bool isDptfManagerCreated(void) const override;
+    virtual Bool isDptfShuttingDown(void) const override;
+    virtual Bool isWorkItemQueueManagerCreated(void) const override;
 
-    EsifServices* getEsifServices(void) const;
-    WorkItemQueueManager* getWorkItemQueueManager(void) const;
-    PolicyManager* getPolicyManager(void) const;
-    ParticipantManager* getParticipantManager(void) const;
-    DptfStatus* getDptfStatus(void) const;
-    IndexContainer* getIndexContainer(void) const;
+    virtual EsifServices* getEsifServices(void) const override;
+    virtual std::shared_ptr<EventCache> getEventCache(void) const override;
+    virtual WorkItemQueueManager* getWorkItemQueueManager(void) const override;
+    virtual PolicyManager* getPolicyManager(void) const override;
+    virtual ParticipantManager* getParticipantManager(void) const override;
+    virtual DptfStatus* getDptfStatus(void) override;
+    virtual IndexContainerInterface* getIndexContainer(void) const override;
 
-    std::string getDptfHomeDirectoryPath(void) const;
+    virtual std::string getDptfHomeDirectoryPath(void) const override;
+    virtual std::string getDptfPolicyDirectoryPath(void) const override;
+    virtual Bool isDptfPolicyLoadNameOnly(void) const override;
+
+    void bindDomainsToPolicies(UIntN participantIndex) const override;
+    void unbindDomainsFromPolicies(UIntN participantIndex) const override;
+    void bindParticipantToPolicies(UIntN participantIndex) const override;
+    void unbindParticipantFromPolicies(UIntN participantIndex) const override;
 
 private:
 
@@ -80,6 +80,7 @@ private:
     Bool m_dptfEnabled;
 
     // EsifServices is the only way to make calls back to ESIF.
+    EsifAppServicesInterface* m_esifAppServices;
     EsifServices* m_esifServices;
 
     // All work item threads, enqueueing, dequeuing, and work item dispatch is handled by the WorkItemQueueManager.
@@ -94,12 +95,16 @@ private:
     // will be notified as they come in to the DPTF framework.
     ParticipantManager* m_participantManager;
 
+    std::shared_ptr<EventCache> m_eventCache;
+
     // Creates XML needed for requests from the UI
     DptfStatus* m_dptfStatus;
 
-    IndexContainer* m_indexContainer;
+    IndexContainerInterface* m_indexContainer;
 
     std::string m_dptfHomeDirectoryPath;
+    std::string m_dptfPolicyDirectoryPath;
+    Bool m_dptfPolicyLoadNameOnly;
 
     void shutDown(void);
     void disableAndEmptyAllQueues(void);
@@ -109,6 +114,7 @@ private:
     void deleteWorkItemQueueManager(void);
     void deletePolicyManager(void);
     void deleteParticipantManager(void);
+    void deleteEsifAppServices(void);
     void deleteEsifServices(void);
     void deleteIndexContainer(void);
     void destroyUniqueIdGenerator(void);

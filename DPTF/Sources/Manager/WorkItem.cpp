@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include "ParticipantManager.h"
 #include "UniqueIdGenerator.h"
 
-WorkItem::WorkItem(DptfManager* dptfManager, FrameworkEvent::Type frameworkEventType) :
+WorkItem::WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType) :
     m_dptfManager(dptfManager),
     m_policyManager(dptfManager->getPolicyManager()),
     m_participantManager(dptfManager->getParticipantManager()),
@@ -44,7 +44,7 @@ WorkItem::~WorkItem(void)
     }
 }
 
-DptfManager* WorkItem::getDptfManager(void) const
+DptfManagerInterface* WorkItem::getDptfManager(void) const
 {
     return m_dptfManager;
 }

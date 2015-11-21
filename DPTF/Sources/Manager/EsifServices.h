@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,13 @@
 #include "Dptf.h"
 #include "PolicyEvent.h"
 #include "ParticipantEvent.h"
-#include "esif_uf_esif_iface.h"
-#include "esif_uf_iface.h"
-#include "esif_primitive_type.h"
+#include "esif_sdk_iface_esif.h"
+#include "esif_sdk_primitive_type.h"
 #include "MessageCategory.h"
-
-class DptfManager;
+#include "DptfBuffer.h"
+#include "EsifAppServicesInterface.h"
+#include "DptfManagerInterface.h"
+#include "TimeSpan.h"
 
 //
 // Implements the ESIF services interface which allows the framework to call into ESIF.  See the ESIF HLD for a
@@ -34,11 +35,11 @@ class DptfManager;
 // communicate with ESIF.
 //
 
-class EsifServices
+class dptf_export EsifServices
 {
 public:
 
-    EsifServices(const DptfManager* dptfManager, const void* esifHandle, const EsifInterfacePtr esifInterfacePtr,
+    EsifServices(const DptfManagerInterface* dptfManager, const void* esifHandle, EsifAppServicesInterface* appServices,
         eLogType currentLogVerbosityLevel);
 
     eLogType getCurrentLogVerbosityLevel(void) const;
@@ -49,6 +50,7 @@ public:
     UInt32 readConfigurationUInt32(const std::string& elementPath);
     void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue);
     std::string readConfigurationString(const std::string& elementPath);
+    DptfBuffer readConfigurationBinary(const std::string& elementPath);
 
     // Primitives
 
@@ -143,6 +145,19 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
 
+    TimeSpan primitiveExecuteGetAsTimeInMilliseconds(
+        esif_primitive_type primitive,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
+    void primitiveExecuteSetAsTimeInMilliseconds(
+        esif_primitive_type primitive,
+        TimeSpan time,
+        UIntN participantIndex = Constants::Esif::NoParticipant,
+        UIntN domainIndex = Constants::Esif::NoDomain,
+        UInt8 instance = Constants::Esif::NoInstance);
+
     std::string primitiveExecuteGetAsString(
         esif_primitive_type primitive,
         UIntN participantIndex = Constants::Esif::NoParticipant,
@@ -156,12 +171,9 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
 
-    void primitiveExecuteGet(
+    DptfBuffer primitiveExecuteGet(
         esif_primitive_type primitive,
         esif_data_type esifDataType,
-        void* bufferPtr,
-        UInt32 bufferLength,
-        UInt32* dataLength,
         UIntN participantIndex = Constants::Esif::NoParticipant,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
@@ -202,9 +214,9 @@ private:
     EsifServices(const EsifServices& rhs);
     EsifServices& operator=(const EsifServices& rhs);
 
-    const DptfManager* m_dptfManager;
+    const DptfManagerInterface* m_dptfManager;
     const void* m_esifHandle;
-    EsifInterface m_esifInterface;
+    EsifAppServicesInterface* m_appServices;
     eLogType m_currentLogVerbosityLevel;
 
     void writeMessage(eLogType messageLevel, MessageCategory::Type messageCategory, const std::string& message);
@@ -217,6 +229,8 @@ private:
     void throwIfNotSuccessful(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName,
         eEsifError returnCode, esif_primitive_type primitive, UIntN participantIndex, UIntN domainIndex,
         UInt8 instance);
+    void throwIfNotSuccessful(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName,
+        eEsifError returnCode, const std::string& messageText);
     void throwIfParticipantDomainCombinationInvalid(const std::string& fileName, UIntN lineNumber,
         const std::string& executingFunctionName, UIntN participantIndex, UIntN domainIndex);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,22 +22,22 @@
 #include "DomainPerformanceControl_002.h"
 #include "DomainPerformanceControl_003.h"
 
-DomainPerformanceControlInterface* DomainPerformanceControlFactory::createDomainPerformanceControlObject(
-    UIntN version, ParticipantServicesInterface* participantServicesInterface)
+ControlBase* DomainPerformanceControlFactory::make(UIntN participant, UIntN domain, UIntN version, 
+    ParticipantServicesInterface* participantServicesInterface)
 {
     switch (version)
     {
         case 0:
-            return new DomainPerformanceControl_000(participantServicesInterface);
+            return new DomainPerformanceControl_000(participant, domain, participantServicesInterface);
             break;
         case 1: // Generic Participant
-            return new DomainPerformanceControl_001(participantServicesInterface);
+            return new DomainPerformanceControl_001(participant, domain, participantServicesInterface);
             break;
         case 2: // Processor participant (CPU domain)
-            return new DomainPerformanceControl_002(participantServicesInterface);
+            return new DomainPerformanceControl_002(participant, domain, participantServicesInterface);
             break;
         case 3: // Processor participant (GFX domain, Interface V1)
-            return new DomainPerformanceControl_003(participantServicesInterface);
+            return new DomainPerformanceControl_003(participant, domain, participantServicesInterface);
             break;
         default:
             std::stringstream message;

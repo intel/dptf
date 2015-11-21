@@ -45,12 +45,14 @@ typedef enum eEsifLogType {
 } EsifLogType;
 #define MAX_ESIFLOG		5	// Max Log Types
 
+
 // Log File API
 extern int EsifLogFile_Open(EsifLogType type, const char *filename, int append);
 extern int EsifLogFile_Close(EsifLogType type);
 extern int EsifLogFile_IsOpen(EsifLogType type);
 extern int EsifLogFile_Write(EsifLogType type, const char *fmt, ...);
 extern int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args);
+extern int EsifLogFile_WriteArgsAppend(EsifLogType type, const char *append, const char *fmt, va_list args);
 extern esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const char *filename);
 extern void EsifLogFile_DisplayList(void);
 
@@ -168,6 +170,25 @@ static ESIF_INLINE esif_string esif_guid_print(
 	return buf;
 }
 
+
+static ESIF_INLINE void esif_copy_shorts_to_bytes(
+	UInt8 *byte_ptr,
+	UInt16 *short_ptr,
+	size_t count
+	)
+{
+	if ((NULL == byte_ptr) || (NULL == short_ptr)) {
+		goto exit;
+	}
+	while(count--) {
+		*byte_ptr++ = (UInt8)*short_ptr++;
+	}
+exit:
+	return;
+}
+
+
+
 //
 // DSP
 //
@@ -194,7 +215,7 @@ void esif_uf_os_exit(void);
 extern eEsifError EsifWebStart();
 extern void EsifWebStop();
 extern int EsifWebIsStarted();
-extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port);
+extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted);
 
 #ifdef __cplusplus
 }

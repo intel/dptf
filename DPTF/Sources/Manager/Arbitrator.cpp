@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,8 +27,9 @@ Arbitrator::Arbitrator(DptfManager* dptfManager) :
     m_coreControlArbitrator = new CoreControlArbitrator(m_dptfManager);
     m_displayControlArbitrator = new DisplayControlArbitrator(m_dptfManager);
     m_performanceControlArbitrator = new PerformanceControlArbitrator(m_dptfManager);
-    m_powerControlArbitrator = new PowerControlArbitrator(m_dptfManager);
+    m_powerControlArbitrator = new PowerControlArbitrator();
     m_temperatureThresholdArbitrator = new TemperatureThresholdArbitrator(m_dptfManager);
+    m_powerControlCapabilitiesArbitrator = new PowerControlCapabilitiesArbitrator();
 }
 
 Arbitrator::~Arbitrator(void)
@@ -40,6 +41,7 @@ Arbitrator::~Arbitrator(void)
     DELETE_MEMORY_TC(m_performanceControlArbitrator);
     DELETE_MEMORY_TC(m_powerControlArbitrator);
     DELETE_MEMORY_TC(m_temperatureThresholdArbitrator);
+    DELETE_MEMORY_TC(m_powerControlCapabilitiesArbitrator);
 }
 
 void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
@@ -50,8 +52,9 @@ void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
     m_coreControlArbitrator->clearPolicyCachedData(policyIndex);
     m_displayControlArbitrator->clearPolicyCachedData(policyIndex);
     m_performanceControlArbitrator->clearPolicyCachedData(policyIndex);
-    m_powerControlArbitrator->clearPolicyCachedData(policyIndex);
+    m_powerControlArbitrator->removeRequestsForPolicy(policyIndex);
     m_temperatureThresholdArbitrator->clearPolicyCachedData(policyIndex);
+    m_powerControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
 }
 
 ActiveControlArbitrator* Arbitrator::getActiveControlArbitrator(void) const
@@ -87,4 +90,9 @@ PowerControlArbitrator* Arbitrator::getPowerControlArbitrator(void) const
 TemperatureThresholdArbitrator* Arbitrator::getTemperatureThresholdArbitrator(void) const
 {
     return m_temperatureThresholdArbitrator;
+}
+
+PowerControlCapabilitiesArbitrator* Arbitrator::getPowerControlCapabilitiesArbitrator(void) const
+{
+    return m_powerControlCapabilitiesArbitrator;
 }

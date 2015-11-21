@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,6 +33,9 @@ public:
     void createAllPolicies(const std::string& dptfHomeDirectoryPath);
     void createPolicy(const std::string& policyFileName);
 
+    // ReCreate Policies
+    void reloadAllPolicies(const std::string& dptfHomeDirectoryPath);
+
     // Destroy policies
     void destroyAllPolicies(void);
     void destroyPolicy(UIntN policyIndex);
@@ -47,7 +50,7 @@ public:
     void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent);
     void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent);
 
-    std::string GetStatusAsXml(void);
+    XmlNode* getStatusAsXml(void);
 
 private:
 
@@ -64,4 +67,6 @@ private:
 
     Bool isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent);
     UIntN getPolicyCount(void);
+    XmlNode* getEventsXmlForPolicy(UIntN policyIndex);
+    XmlNode* getEventsInXml();
 };

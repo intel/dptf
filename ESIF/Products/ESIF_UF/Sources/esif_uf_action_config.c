@@ -41,10 +41,10 @@ static eEsifError ActionConfigSignalChangeEvents(
  */
 
 static eEsifError ESIF_CALLCONV ActionConfigGet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	)
@@ -55,13 +55,13 @@ static eEsifError ESIF_CALLCONV ActionConfigGet(
 	EsifString replacedStr = NULL;
 	UInt8 i;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(requestPtr);
 
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
 
-	rc = EsifActionGetParams(actionPtr,
+	rc = EsifFpcAction_GetParams(fpcActionPtr,
 		params,
 		sizeof(params)/sizeof(*params));
 	if (ESIF_OK != rc) {
@@ -69,7 +69,7 @@ static eEsifError ESIF_CALLCONV ActionConfigGet(
 	}
 
 	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
-		replacedStr = EsifActionCreateTokenReplacedParamString(params[i].buf_ptr, upPtr, primitivePtr);
+		replacedStr = EsifUp_CreateTokenReplacedParamString(upPtr, primitivePtr, params[i].buf_ptr);
 		if (replacedStr != NULL) {
 			params[i].buf_ptr = replacedStr;
 			replacedStrs[i] = replacedStr;
@@ -89,10 +89,10 @@ exit:
 
 
 static eEsifError ESIF_CALLCONV ActionConfigSet(
-	const void *actionHandle,
+	esif_context_t actCtx,
 	EsifUpPtr upPtr,
 	const EsifFpcPrimitivePtr primitivePtr,
-	const EsifFpcActionPtr actionPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	EsifDataPtr requestPtr
 	)
 {
@@ -104,7 +104,7 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	UInt8 i;
 	UInt8 nparams = 2;
 
-	UNREFERENCED_PARAMETER(actionHandle);
+	UNREFERENCED_PARAMETER(actCtx);
 
 	ESIF_ASSERT(NULL != requestPtr);
 	ESIF_ASSERT(NULL != requestPtr->buf_ptr);
@@ -116,11 +116,11 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	}
 
 	/* Optional 3rd Parameter = Config Flags */
-	if (actionPtr->param_valid[2]) {
+	if (fpcActionPtr->param_valid[2]) {
 		nparams++;
 	}
 
-	rc = EsifActionGetParams(actionPtr,
+	rc = EsifFpcAction_GetParams(fpcActionPtr,
 		params,
 		nparams);
 	if (ESIF_OK != rc) {
@@ -133,7 +133,7 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	}
 
 	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
-		replacedStr = EsifActionCreateTokenReplacedParamString(params[i].buf_ptr, upPtr, primitivePtr);
+		replacedStr = EsifUp_CreateTokenReplacedParamString(upPtr, primitivePtr, params[i].buf_ptr);
 		if (replacedStr != NULL) {
 			params[i].buf_ptr = replacedStr;
 			replacedStrs[i] = replacedStr;
@@ -179,7 +179,6 @@ static eEsifError ActionConfigSignalChangeEvents(
 	eEsifError rc    = ESIF_OK;
 	eEsifEventType targetEvent = 0;
 	char domainStr[8] = "";
-	struct esif_data voidData = {ESIF_DATA_VOID, NULL, 0};
 
 	ESIF_ASSERT(upPtr != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
@@ -251,14 +250,20 @@ static eEsifError ActionConfigSignalChangeEvents(
 		targetEvent = ESIF_EVENT_DOMAIN_DISPLAY_CAPABILITY_CHANGED;
 		break;
 	case SET_PDR_TABLE:
-		targetEvent = ESIF_EVENT_OS_POWER_SOURCE_CHANGED;
+		targetEvent = ESIF_EVENT_POWER_DEVICE_RELATIONSHIP_CHANGED;
+		break;
+	case SET_POWER_BOSS_CONDITIONS_TABLE:
+		targetEvent = ESIF_EVENT_POWER_BOSS_CONDITIONS_TABLE_CHANGED;
+		break;
+	case SET_POWER_BOSS_ACTIONS_TABLE:
+		targetEvent = ESIF_EVENT_POWER_BOSS_ACTIONS_TABLE_CHANGED;
 		break;
 	default:
 		targetEvent = 0;
 		break;
 	}
 	if (targetEvent > 0) {
-		EsifEventMgr_SignalEvent(upPtr->fInstance, primitivePtr->tuple.domain, targetEvent, &voidData);
+		EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), primitivePtr->tuple.domain, targetEvent, NULL);
 	}	
 exit:
 	return rc;
@@ -270,29 +275,24 @@ exit:
  ** Register ACTION with ESIF
  *******************************************************************************
  */
-static EsifActType g_config = {
-	0,
+static EsifActIfaceStatic g_config = {
+	eIfaceTypeAction,
+	ESIF_ACT_IFACE_VER_STATIC,
+	sizeof(g_config),
 	ESIF_ACTION_CONFIG,
-	{PAD},
+	ESIF_ACTION_FLAGS_DEFAULT,
 	"CONFIG",
 	"Configuration Data Management",
-	"ALL",
-	"x1.0.0.1",
-	{0},
-	ESIF_ACTION_IS_NOT_KERNEL_ACTION,
-	ESIF_ACTION_IS_NOT_PLUGIN,
-	{PAD},
-	ActionConfigGet,
-	ActionConfigSet,
+	ESIF_ACTION_VERSION_DEFAULT,
 	NULL,
-	NULL
+	NULL,
+	ActionConfigGet,
+	ActionConfigSet
 };
 
 enum esif_rc EsifActConfigInit()
 {
-	if (NULL != g_actMgr.AddActType) {
-		g_actMgr.AddActType(&g_actMgr, &g_config);
-	}
+	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_config);
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
@@ -300,9 +300,7 @@ enum esif_rc EsifActConfigInit()
 
 void EsifActConfigExit()
 {
-	if (NULL != g_actMgr.RemoveActType) {
-		g_actMgr.RemoveActType(&g_actMgr, 0);
-	}
+	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_config);
 	ESIF_TRACE_EXIT_INFO();
 }
 

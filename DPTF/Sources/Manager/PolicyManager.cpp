@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,11 +19,15 @@
 #include "PolicyManager.h"
 #include "DptfManager.h"
 #include "WorkItemQueueManager.h"
-#include "WIPolicyCreate.h"
+#include "WIPolicyCreateAll.h"
 #include "WIPolicyDestroy.h"
 #include "EsifFileEnumerator.h"
+#include "EsifLibrary.h"
 #include "EsifServices.h"
 #include "Utility.h"
+#include "StatusFormat.h"
+
+using namespace StatusFormat;
 
 PolicyManager::PolicyManager(DptfManager* dptfManager) : m_dptfManager(dptfManager),
     m_supportedPolicyList(dptfManager)
@@ -35,30 +39,25 @@ PolicyManager::~PolicyManager(void)
     destroyAllPolicies();
 }
 
-void PolicyManager::createAllPolicies(const std::string& dptfHomeDirectoryPath)
+void PolicyManager::reloadAllPolicies(const std::string& dptfPolicyDirectoryPath)
 {
-#ifdef ESIF_ATTR_OS_WINDOWS
-    EsifFileEnumerator fileEnumerator(dptfHomeDirectoryPath, "DptfPolicy*.dll");
-#else
-    EsifFileEnumerator fileEnumerator(dptfHomeDirectoryPath, "DptfPolicy*.so");
-#endif
+    m_supportedPolicyList.update();
+    createAllPolicies(dptfPolicyDirectoryPath);
+}
 
-    std::string policyFileName = fileEnumerator.getFirstFile();
-
-    while (policyFileName.length() > 0)
+void PolicyManager::createAllPolicies(const std::string& dptfPolicyDirectoryPath)
+{
+    try
     {
-        try
-        {
-            // Queue up a work item and wait for the return.
-            std::string policyFilePath = dptfHomeDirectoryPath + policyFileName;
-            WorkItem* workItem = new WIPolicyCreate(m_dptfManager, policyFilePath);
-            m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
-        }
-        catch (...)
-        {
-        }
-
-        policyFileName = fileEnumerator.getNextFile();
+        // Queue up a work item and wait for the return.
+        WorkItem* workItem = new WIPolicyCreateAll(m_dptfManager, dptfPolicyDirectoryPath);
+        m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
+    }
+    catch (...)
+    {
+        ManagerMessage message = ManagerMessage(
+            m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIPolicyCreateAll.");
+        m_dptfManager->getEsifServices()->writeMessageError(message);
     }
 
     if (getPolicyCount() == 0)
@@ -181,20 +180,44 @@ void PolicyManager::registerEvent(UIntN policyIndex, PolicyEvent::Type policyEve
 
 void PolicyManager::unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent)
 {
-    getPolicyPtr(policyIndex)->unregisterEvent(policyEvent);
-    m_registeredEvents.set(policyEvent, isAnyPolicyRegisteredForEvent(policyEvent));
-
-    if ((m_registeredEvents.test(policyEvent) == false) &&
-        (PolicyEvent::RequiresEsifEventRegistration(policyEvent)))
+    if (isAnyPolicyRegisteredForEvent(policyEvent) == true)
     {
-        FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
-        m_dptfManager->getEsifServices()->unregisterEvent(frameworkEvent);
+        getPolicyPtr(policyIndex)->unregisterEvent(policyEvent);
+        m_registeredEvents.set(policyEvent, isAnyPolicyRegisteredForEvent(policyEvent));
+
+        if ((m_registeredEvents.test(policyEvent) == false) &&
+            (PolicyEvent::RequiresEsifEventRegistration(policyEvent)))
+        {
+            FrameworkEvent::Type frameworkEvent = PolicyEvent::ToFrameworkEvent(policyEvent);
+            m_dptfManager->getEsifServices()->unregisterEvent(frameworkEvent);
+        }
     }
 }
 
-std::string PolicyManager::GetStatusAsXml(void)
+XmlNode* PolicyManager::getStatusAsXml(void)
 {
-    throw implement_me();
+    XmlNode* status = XmlNode::createWrapperElement("policy_manager");
+    status->addChild(getEventsInXml());
+
+    auto policyCount = getPolicyListCount();
+    for (UIntN index = 0; index < policyCount; index++)
+    {
+        try
+        {
+            auto policy = getPolicyPtr(index);
+            std::string name = policy->getName();
+            XmlNode* policyStatus = XmlNode::createWrapperElement("policy_status");
+            XmlNode* policyName = XmlNode::createDataElement("policy_name", name);
+            policyStatus->addChild(policyName);
+            policyStatus->addChild(getEventsXmlForPolicy(index));
+            status->addChild(policyStatus);
+        }
+        catch (...)
+        {
+            // Policy not available, do not add.
+        }
+    }
+    return status;
 }
 
 Bool PolicyManager::isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent)
@@ -226,4 +249,36 @@ UIntN PolicyManager::getPolicyCount(void)
     }
 
     return policyCount;
+}
+
+XmlNode* PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
+{
+    XmlNode* status = XmlNode::createWrapperElement("event_values");
+    auto eventCount = PolicyEvent::Max;
+    auto policy = getPolicyPtr(policyIndex);
+    for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++)   // Skip the "Invalid" event
+    {
+        XmlNode* event = XmlNode::createWrapperElement("event");
+        XmlNode* eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
+        event->addChild(eventName);
+        XmlNode* eventStatus = XmlNode::createDataElement("event_status",
+            friendlyValue(policy->isEventRegistered((PolicyEvent::Type)eventIndex)));
+        event->addChild(eventStatus);
+        status->addChild(event);
+    }
+    return status;
+}
+
+XmlNode* PolicyManager::getEventsInXml()
+{
+    XmlNode* status = XmlNode::createWrapperElement("events");
+    auto eventCount = PolicyEvent::Max;
+    for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++)   // Skip the "Invalid" event
+    {
+        XmlNode* event = XmlNode::createWrapperElement("event");
+        XmlNode* eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
+        event->addChild(eventName);
+        status->addChild(event);
+    }
+    return status;
 }

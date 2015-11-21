@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class PolicyServicesParticipantProperties final : public PolicyServices, public 
 {
 public:
 
-    PolicyServicesParticipantProperties(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesParticipantProperties(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) override final;
     virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) override final;

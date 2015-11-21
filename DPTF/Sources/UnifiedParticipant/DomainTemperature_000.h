@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,29 +19,32 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainTemperatureInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
+#include "DomainTemperatureBase.h"
 
 //
 // Implements the Null Object pattern.  In the case that the functionality isn't implemented, we use
 // this in place so we don't have to check for NULL pointers all throughout the participant implementation.
 //
 
-class DomainTemperature_000 final : public DomainTemperatureInterface,
-    public ComponentExtendedInterface
+class DomainTemperature_000 : public DomainTemperatureBase
 {
 public:
 
-    DomainTemperature_000(ParticipantServicesInterface* participantServicesInterface);
+    DomainTemperature_000(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
 
     // DomainTemperatureInterface
-    virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual TemperatureThresholds getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual TemperatureThresholds getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
-        const TemperatureThresholds& temperatureThresholds) override final;
+        const TemperatureThresholds& temperatureThresholds) override; 
+    virtual DptfBuffer getCalibrationTable(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DptfBuffer getPollingTable(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Bool isVirtualTemperature(UIntN participantIndex, UIntN domainIndex) override;
+    virtual void setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& temperature) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 };

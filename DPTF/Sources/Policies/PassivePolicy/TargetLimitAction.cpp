@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using namespace std;
 
 TargetLimitAction::TargetLimitAction(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    ParticipantTracker& participantTracker, ThermalRelationshipTable& trt,
+    std::shared_ptr<ParticipantTrackerInterface> participantTracker, ThermalRelationshipTable& trt,
     std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
     : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
 {
@@ -99,7 +99,7 @@ std::vector<UIntN> TargetLimitAction::chooseSourcesToLimitForTarget(UIntN target
         {
             if (entry->thermalInfluence() == availableSourcesForTarget.front().thermalInfluence())
             {
-                sourcesToLimit.push_back(entry->sourceDeviceIndex());
+                sourcesToLimit.push_back(entry->getSourceDeviceIndex());
             }
         }
     }
@@ -113,10 +113,10 @@ std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithCont
     std::vector<ThermalRelationshipTableEntry> entriesThatCanBeLimited;
     for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
     {
-        if (entry->sourceDeviceIndex() != Constants::Invalid)
+        if (entry->getSourceDeviceIndex() != Constants::Invalid)
         {
             vector<UIntN> domainsWithControlKnobsToTurn =
-                getDomainsWithControlKnobsToLimit(getParticipantTracker()[entry->sourceDeviceIndex()], target);
+                getDomainsWithControlKnobsToLimit(getParticipantTracker()->getParticipant(entry->getSourceDeviceIndex()), target);
             if (domainsWithControlKnobsToTurn.size() > 0)
             {
                 entriesThatCanBeLimited.push_back(*entry);
@@ -126,14 +126,14 @@ std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithCont
     return entriesThatCanBeLimited;
 }
 
-std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(ParticipantProxy& participant, UIntN target)
+std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(ParticipantProxyInterface* participant, UIntN target)
 {
     // choose domains in the participant that have controls that can be limited
     vector<UIntN> domainsWithControlKnobsToTurn;
-    auto domainIndexes = participant.getDomainIndexes();
+    auto domainIndexes = participant->getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
-        if (participant[*domainIndex].canLimit(target))
+        if (participant->getDomain(*domainIndex)->canLimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
         }
@@ -145,7 +145,7 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
 {
     // select domains that can be limited for the source
     vector<UIntN> domainsWithControlKnobsToTurn = 
-        getDomainsWithControlKnobsToLimit(getParticipantTracker()[source], target);
+        getDomainsWithControlKnobsToLimit(getParticipantTracker()->getParticipant(source), target);
     set<UIntN> domainsToLimitSet;
     if (domainsWithControlKnobsToTurn.size() > 0)
     {
@@ -181,18 +181,21 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
             {
                 vector<pair<UIntN, UtilizationStatus>> domainsSortedByPreference =
                     getDomainsSortedByPriorityThenUtilization(source, domainsWithControlKnobsToTurn);
+                bool isDomainChosenWithHighPriorityAndUtilization = false;
                 for (auto domain = domainsSortedByPreference.begin(); 
                     domain != domainsSortedByPreference.end(); 
                     domain++)
                 {
                     if (domain->second.getCurrentUtilization().isValid() == false)
                     {
+                        //Need to limit all domains that do not support Utilization capability
                         domainsToLimitSet.insert(domain->first);
                     }
-                    else
+                    else if (isDomainChosenWithHighPriorityAndUtilization == false)
                     {
+                        //Need to limit only the Domain with highest Priority and Utilization
+                        isDomainChosenWithHighPriorityAndUtilization = true;
                         domainsToLimitSet.insert(domain->first);
-                        break;
                     }
                 }
             }
@@ -213,8 +216,9 @@ UIntN TargetLimitAction::getDomainWithHighestTemperature(UIntN source,
     {
         try
         {
-            Temperature domainTemperature =
-                getParticipantTracker()[source][*domain].getTemperatureProperty().getCurrentTemperature();
+            ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            Temperature domainTemperature = sourceDomain->getTemperatureControl()->getCurrentTemperature();
             if (domainTemperature > domainWithHighestTemperature.first)
             {
                 domainWithHighestTemperature.first = domainTemperature;
@@ -236,14 +240,15 @@ std::vector<std::pair<UIntN, UtilizationStatus>> TargetLimitAction::getDomainsSo
     vector<tuple<UIntN, DomainPriority, UtilizationStatus>> domainPreference;
     for (auto domain = domains.begin(); domain != domains.end(); domain++)
     {
-        DomainPriority domainPriority =
-            getParticipantTracker()[source][*domain].getDomainPriorityProperty().getDomainPriority();
+        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+        DomainPriority domainPriority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
         UtilizationStatus utilStatus = UtilizationStatus(Percentage::createInvalid());
         if (domainReportsUtilization(source, *domain))
         {
             try
             {
-                utilStatus = getParticipantTracker()[source][*domain].getUtilizationStatus();
+                utilStatus = sourceDomain->getUtilizationStatus();
             }
             catch (...)
             {
@@ -267,18 +272,18 @@ std::vector<std::pair<UIntN, UtilizationStatus>> TargetLimitAction::getDomainsSo
 
 Bool TargetLimitAction::domainReportsUtilization(UIntN source, UIntN domain)
 {
-    return getParticipantTracker()[source][domain].getDomainProperties().implementsUtilizationInterface();
+    return getParticipantTracker()->getParticipant(source)->getDomain(domain)->getDomainProperties().implementsUtilizationInterface();
 }
 
 void TargetLimitAction::requestLimit(UIntN source, UIntN domain, UIntN target)
 {
-    getParticipantTracker()[source][domain].requestLimit(target);
+    getParticipantTracker()->getParticipant(source)->getDomain(domain)->requestLimit(target);
 }
 
 void TargetLimitAction::commitLimit(UIntN source, UInt64 time)
 {
     Bool madeChanges(false);
-    vector<UIntN> domainIndexes = getParticipantTracker()[source].getDomainIndexes();
+    vector<UIntN> domainIndexes = getParticipantTracker()->getParticipant(source)->getDomainIndexes();
     for (auto domain = domainIndexes.begin(); domain != domainIndexes.end(); domain++)
     {
         try
@@ -286,7 +291,7 @@ void TargetLimitAction::commitLimit(UIntN source, UInt64 time)
             getPolicyServices().messageLogging->writeMessageDebug(
                 PolicyMessage(FLF, "Committing limits to source.", source, *domain));
 
-            Bool madeChange = getParticipantTracker()[source][*domain].commitLimits();
+            Bool madeChange = getParticipantTracker()->getParticipant(source)->getDomain(*domain)->commitLimits();
             if (madeChange)
             {
                 madeChanges = true;

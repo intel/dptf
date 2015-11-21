@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,12 +26,12 @@ RadioFrequencyControlFacade::RadioFrequencyControlFacade(
     UIntN domainIndex,
     const DomainProperties& domainProperties,
     const PolicyServicesInterfaceContainer& policyServices)
-    : m_participantIndex(participantIndex),
+    : m_policyServices(policyServices),
+    m_participantIndex(participantIndex),
     m_domainIndex(domainIndex),
     m_domainProperties(domainProperties),
-    m_policyServices(policyServices),
-    m_controlsHaveBeenInitialized(false),
-    m_rfProfileData(participantIndex, domainIndex, domainProperties, policyServices)
+    m_rfProfileData(participantIndex, domainIndex, domainProperties, policyServices),
+    m_controlsHaveBeenInitialized(false)
 {
 }
 
@@ -76,7 +76,13 @@ XmlNode* RadioFrequencyControlFacade::getXml()
     control->addChild(XmlNode::createDataElement("last_set_frequency", m_lastSetFrequency.toString()));
     if (supportsStatus())
     {
-        control->addChild(getProfileData().getXml());
+        try
+        {
+            control->addChild(getProfileData().getXml());
+        }
+        catch (...)
+        {        	
+        }
     }
     return control;
 }

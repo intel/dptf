@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,30 +19,27 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainConfigTdpControlInterface.h"
-#include "ComponentExtendedInterface.h"
-#include "ParticipantServicesInterface.h"
-#include "PerformanceControl.h"
 #include "BinaryParse.h"
-#include "DptfMemory.h"
+#include "DomainConfigTdpControlBase.h"
 
-class DomainConfigTdpControl_001 final : public DomainConfigTdpControlInterface,
-    public ComponentExtendedInterface
+class DomainConfigTdpControl_001 : public DomainConfigTdpControlBase
 {
 public:
 
-    DomainConfigTdpControl_001(ParticipantServicesInterface* participantServicesInterface);
+    DomainConfigTdpControl_001(UIntN participantIndex, UIntN domainIndex, 
+        ParticipantServicesInterface* participantServicesInterface);
     ~DomainConfigTdpControl_001(void);
 
     // DomainConfigTdpControlInterface
-    virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex) override final;
+    virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+    virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override;
+    virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex) override;
 
     // ComponentExtendedInterface
-    virtual void clearCachedData(void) override final;
-    virtual XmlNode* getXml(UIntN domainIndex) override final;
+    virtual void clearCachedData(void) override;
+    virtual std::string getName(void) override;
+    virtual XmlNode* getXml(UIntN domainIndex) override;
 
 private:
 
@@ -58,7 +55,6 @@ private:
     void verifyConfigTdpControlIndex(UIntN configTdpControlIndex);
     void checkAndCreateControlStructures(UIntN domainIndex);
 
-    ParticipantServicesInterface* m_participantServicesInterface;
     ConfigTdpControlDynamicCaps* m_configTdpControlDynamicCaps;
     ConfigTdpControlSet* m_configTdpControlSet;
     ConfigTdpControlStatus* m_configTdpControlStatus;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,8 +52,7 @@ IndexStructPtr IndexContainer::getIndexPtr(UIntN index)
     EsifMutexHelper esifMutexHelper(&m_mutex);
     esifMutexHelper.lock();
 
-    if ((index == Constants::Esif::NoParticipant) ||
-        (index == Constants::Esif::NoDomain) ||
+    if ((index == Constants::Esif::NoParticipant) || // or Constants::Esif::NoDomain
         (index == Constants::Invalid) ||
         (index > currentVectorSize))
     {

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,13 +22,26 @@
 #include "PolicyServices.h"
 #include "DomainPowerControlInterface.h"
 
-class PolicyServicesDomainPowerControl final : public PolicyServices, public DomainPowerControlInterface
+class PolicyServicesDomainPowerControl : public PolicyServices, public DomainPowerControlInterface
 {
 public:
 
-    PolicyServicesDomainPowerControl(DptfManager* dptfManager, UIntN policyIndex);
+    PolicyServicesDomainPowerControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PowerControlStatusSet getPowerControlStatusSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setPowerControl(UIntN participantIndex, UIntN domainIndex, const PowerControlStatusSet& powerControlStatusSet) override final;
+    virtual void setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, PowerControlDynamicCapsSet capsSet) override final;
+    virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType) override;
+    virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType) override;
+    virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType, const Power& powerLimit) override;
+    virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType) override;
+    virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
+    virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType) override;
+    virtual void setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType, const Percentage& dutyCycle) override;
 };

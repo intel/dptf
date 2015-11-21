@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 
 #include "Dptf.h"
 #include "ControlKnobBase.h"
-#include "PerformanceControlFacade.h"
+#include "PerformanceControlFacadeInterface.h"
 #include "PerformanceControl.h"
 #include "XmlNode.h"
 
@@ -33,7 +33,7 @@ public:
         const PolicyServicesInterfaceContainer& policyServices,
         UIntN participantIndex,
         UIntN domainIndex,
-        std::shared_ptr<PerformanceControlFacade> performanceControl,
+        std::shared_ptr<PerformanceControlFacadeInterface> performanceControl,
         std::shared_ptr<std::map<UIntN, UIntN>> perfControlRequests, 
         PerformanceControlType::Type controlType);
     ~PerformanceControlKnob(void);
@@ -55,14 +55,13 @@ public:
 
 private:
 
-    std::shared_ptr<PerformanceControlFacade> m_performanceControl;
+    std::shared_ptr<PerformanceControlFacadeInterface> m_performanceControl;
     PerformanceControlType::Type m_controlType;
     std::shared_ptr<std::map<UIntN, UIntN>> m_requests;
     UtilizationStatus m_tstateUtilizationThreshold;
 
     std::string controlTypeToString(PerformanceControlType::Type controlType);
     UIntN findHighestPerformanceIndexRequest() const;
-    Bool canCommit(UIntN currentIndex, UIntN nextIndex) const;
     Bool checkUtilizationIsLessThanThreshold() const;
     UIntN snapToCapabilitiesBounds(UIntN controlIndex);
 };

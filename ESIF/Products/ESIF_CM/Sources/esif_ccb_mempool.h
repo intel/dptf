@@ -55,7 +55,6 @@
 #define _ESIF_CCB_MEMPOOL_H_
 
 #include "esif_mempool.h"
-#include "esif_debug.h"
 #include "esif_ccb_memory.h"
 
 #ifdef __cplusplus
@@ -69,6 +68,8 @@ extern esif_ccb_lock_t g_mempool_lock;
 #endif
 
 #ifdef ESIF_ATTR_KERNEL
+
+#include "esif_lf_trace.h"
 
 struct esif_ccb_mempool {
 #ifdef ESIF_ATTR_OS_LINUX
@@ -273,6 +274,7 @@ exit:
 #ifdef ESIF_ATTR_USER
 
 #include "esif.h"
+#include "esif_uf_trace.h"
 
 #pragma pack(push,1)
 

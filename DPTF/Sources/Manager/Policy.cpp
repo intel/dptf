@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2014 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,6 +43,11 @@
 #include "PolicyServicesPolicyEventRegistration.h"
 #include "PolicyServicesPolicyInitiatedCallback.h"
 #include "PolicyServicesMessageLogging.h"
+#include "PolicyServicesDomainHardwareDutyCycleControl.h"
+#include "PolicyWorkloadHintConfiguration.h"
+#include "PolicyServicesDomainPlatformPowerControl.h"
+#include "PolicyServicesDomainPlatformPowerStatus.h"
+#include "PolicyServicesPlatformState.h"
 
 Policy::Policy(DptfManager* dptfManager) : m_dptfManager(dptfManager), m_theRealPolicy(nullptr),
     m_theRealPolicyCreated(false), m_policyIndex(Constants::Invalid), m_esifLibrary(nullptr),
@@ -98,18 +103,16 @@ void Policy::createPolicy(const std::string& policyFileName, UIntN newPolicyInde
     // create all of the classes necessary to fill in the policy services interface container
     createPolicyServices();
 
-    m_theRealPolicy->create(true, m_policyServices, newPolicyIndex);
     m_theRealPolicyCreated = true;
-
     m_policyName = m_theRealPolicy->getName();
+    m_theRealPolicy->create(true, m_policyServices, newPolicyIndex);
 }
 
 void Policy::destroyPolicy()
 {
     try
     {
-        if ((m_theRealPolicy != nullptr) &&
-            (m_theRealPolicyCreated == true))
+        if ((m_theRealPolicy != nullptr) && (m_theRealPolicyCreated == true))
         {
             m_theRealPolicy->destroy();
         }
@@ -301,6 +304,30 @@ void Policy::executeDomainTemperatureThresholdCrossed(UIntN participantIndex)
     }
 }
 
+void Policy::executeDomainVirtualSensorCalibrationTableChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainVirtualSensorCalibrationTableChanged))
+    {
+        m_theRealPolicy->domainVirtualSensorCalibrationTableChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainVirtualSensorPollingTableChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainVirtualSensorPollingTableChanged))
+    {
+        m_theRealPolicy->domainVirtualSensorPollingTableChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainVirtualSensorRecalcChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainVirtualSensorRecalcChanged))
+    {
+        m_theRealPolicy->domainVirtualSensorRecalcChanged(participantIndex);
+    }
+}
+
 void Policy::executeParticipantSpecificInfoChanged(UIntN participantIndex)
 {
     if (isEventRegistered(PolicyEvent::ParticipantSpecificInfoChanged))
@@ -370,6 +397,54 @@ void Policy::executePolicyOperatingSystemLpmModeChanged(UIntN lpmMode)
     }
 }
 
+void Policy::executePolicyOperatingSystemHdcStatusChanged(OsHdcStatus::Type status)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemHdcStatusChanged))
+    {
+        m_theRealPolicy->operatingSystemHdcStatusChanged(status);
+    }
+}
+
+void Policy::executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemPowerSourceChanged))
+    {
+        m_theRealPolicy->operatingSystemPowerSourceChanged(powerSource);
+    }
+}
+
+void Policy::executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemLidStateChanged))
+    {
+        m_theRealPolicy->operatingSystemLidStateChanged(lidState);
+    }
+}
+
+void Policy::executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemBatteryPercentageChanged))
+    {
+        m_theRealPolicy->operatingSystemBatteryPercentageChanged(batteryPercentage);
+    }
+}
+
+void Policy::executePolicyOperatingSystemPlatformTypeChanged(OsPlatformType::Type platformType)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemPlatformTypeChanged))
+    {
+        m_theRealPolicy->operatingSystemPlatformTypeChanged(platformType);
+    }
+}
+
+void Policy::executePolicyOperatingSystemDockModeChanged(OsDockMode::Type dockMode)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemDockModeChanged))
+    {
+        m_theRealPolicy->operatingSystemDockModeChanged(dockMode);
+    }
+}
+
 void Policy::executePolicyPassiveTableChanged(void)
 {
     if (isEventRegistered(PolicyEvent::PolicyPassiveTableChanged))
@@ -394,11 +469,11 @@ void Policy::executePolicySensorOrientationChanged(SensorOrientation::Type senso
     }
 }
 
-void Policy::executePolicySensorProximityChanged(SensorProximity::Type sensorProximity)
+void Policy::executePolicySensorMotionChanged(SensorMotion::Type sensorMotion)
 {
-    if (isEventRegistered(PolicyEvent::PolicySensorProximityChanged))
+    if (isEventRegistered(PolicyEvent::PolicySensorMotionChanged))
     {
-        m_theRealPolicy->sensorProximityChanged(sensorProximity);
+        m_theRealPolicy->sensorMotionChanged(sensorMotion);
     }
 }
 
@@ -417,6 +492,55 @@ void Policy::executePolicyThermalRelationshipTableChanged(void)
         m_theRealPolicy->thermalRelationshipTableChanged();
     }
 }
+
+void Policy::executePolicyAdaptivePerformanceConditionsTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged))
+    {
+        m_theRealPolicy->adaptivePerformanceConditionsTableChanged();
+    }
+}
+
+void Policy::executePolicyAdaptivePerformanceActionsTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged))
+    {
+        m_theRealPolicy->adaptivePerformanceActionsTableChanged();
+    }
+}
+
+void Policy::executePolicyOemVariablesChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOemVariablesChanged))
+    {
+        m_theRealPolicy->oemVariablesChanged();
+    }
+}
+
+void Policy::executePolicyPowerDeviceRelationshipTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyPowerDeviceRelationshipTableChanged))
+    {
+        m_theRealPolicy->powerDeviceRelationshipTableChanged();
+    }
+}
+
+void Policy::executePolicyPowerBossConditionsTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyPowerBossConditionsTableChanged))
+    {
+        m_theRealPolicy->powerBossConditionsTableChanged();
+    }
+}
+
+void Policy::executePolicyPowerBossActionsTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyPowerBossActionsTableChanged))
+    {
+        m_theRealPolicy->powerBossActionsTableChanged();
+    }
+}
+
 
 void Policy::registerEvent(PolicyEvent::Type policyEvent)
 {
@@ -444,11 +568,14 @@ void Policy::createPolicyServices(void)
     m_policyServices.domainPixelClockStatus = new PolicyServicesDomainPixelClockStatus(m_dptfManager, m_policyIndex);
     m_policyServices.domainPowerControl = new PolicyServicesDomainPowerControl(m_dptfManager, m_policyIndex);
     m_policyServices.domainPowerStatus = new PolicyServicesDomainPowerStatus(m_dptfManager, m_policyIndex);
+    m_policyServices.domainPlatformPowerControl = new PolicyServicesDomainPlatformPowerControl(m_dptfManager, m_policyIndex);
+    m_policyServices.domainPlatformPowerStatus = new PolicyServicesDomainPlatformPowerStatus(m_dptfManager, m_policyIndex);
     m_policyServices.domainPriority = new PolicyServicesDomainPriority(m_dptfManager, m_policyIndex);
     m_policyServices.domainRfProfileControl = new PolicyServicesDomainRfProfileControl(m_dptfManager, m_policyIndex);
     m_policyServices.domainRfProfileStatus = new PolicyServicesDomainRfProfileStatus(m_dptfManager, m_policyIndex);
     m_policyServices.domainTemperature = new PolicyServicesDomainTemperature(m_dptfManager, m_policyIndex);
     m_policyServices.domainUtilization = new PolicyServicesDomainUtilization(m_dptfManager, m_policyIndex);
+    m_policyServices.domainHardwareDutyCycleControl = new PolicyServicesDomainHardwareDutyCycleControl(m_dptfManager, m_policyIndex);
     m_policyServices.participantGetSpecificInfo = new PolicyServicesParticipantGetSpecificInfo(m_dptfManager, m_policyIndex);
     m_policyServices.participantProperties = new PolicyServicesParticipantProperties(m_dptfManager, m_policyIndex);
     m_policyServices.participantSetSpecificInfo = new PolicyServicesParticipantSetSpecificInfo(m_dptfManager, m_policyIndex);
@@ -458,6 +585,8 @@ void Policy::createPolicyServices(void)
     m_policyServices.policyEventRegistration = new PolicyServicesPolicyEventRegistration(m_dptfManager, m_policyIndex);
     m_policyServices.policyInitiatedCallback = new PolicyServicesPolicyInitiatedCallback(m_dptfManager, m_policyIndex);
     m_policyServices.messageLogging = new PolicyServicesMessageLogging(m_dptfManager, m_policyIndex);
+    m_policyServices.workloadHintConfiguration = new PolicyWorkloadHintConfiguration(m_policyServices.platformConfigurationData);
+    m_policyServices.platformState = new PolicyServicesPlatformState(m_dptfManager, m_policyIndex);
 }
 
 void Policy::destroyPolicyServices(void)
@@ -471,11 +600,14 @@ void Policy::destroyPolicyServices(void)
     DELETE_MEMORY_TC(m_policyServices.domainPixelClockStatus);
     DELETE_MEMORY_TC(m_policyServices.domainPowerControl);
     DELETE_MEMORY_TC(m_policyServices.domainPowerStatus);
+    DELETE_MEMORY_TC(m_policyServices.domainPlatformPowerControl);
+    DELETE_MEMORY_TC(m_policyServices.domainPlatformPowerStatus);
     DELETE_MEMORY_TC(m_policyServices.domainPriority);
     DELETE_MEMORY_TC(m_policyServices.domainRfProfileControl);
     DELETE_MEMORY_TC(m_policyServices.domainRfProfileStatus);
     DELETE_MEMORY_TC(m_policyServices.domainTemperature);
     DELETE_MEMORY_TC(m_policyServices.domainUtilization);
+    DELETE_MEMORY_TC(m_policyServices.domainHardwareDutyCycleControl);
     DELETE_MEMORY_TC(m_policyServices.participantGetSpecificInfo);
     DELETE_MEMORY_TC(m_policyServices.participantProperties);
     DELETE_MEMORY_TC(m_policyServices.participantSetSpecificInfo);
@@ -485,4 +617,77 @@ void Policy::destroyPolicyServices(void)
     DELETE_MEMORY_TC(m_policyServices.policyEventRegistration);
     DELETE_MEMORY_TC(m_policyServices.policyInitiatedCallback);
     DELETE_MEMORY_TC(m_policyServices.messageLogging);
+    DELETE_MEMORY_TC(m_policyServices.platformState);
+}
+
+void Policy::executeDomainBatteryStatusChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainBatteryStatusChanged))
+    {
+        m_theRealPolicy->domainBatteryStatusChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainAdapterPowerChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainAdapterPowerChanged))
+    {
+        m_theRealPolicy->domainAdapterPowerChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainPlatformPowerConsumptionChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainPlatformPowerConsumptionChanged))
+    {
+        m_theRealPolicy->domainPlatformPowerConsumptionChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainPlatformPowerSourceChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainPlatformPowerSourceChanged))
+    {
+        m_theRealPolicy->domainPlatformPowerSourceChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainAdapterPowerRatingChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainAdapterPowerRatingChanged))
+    {
+        m_theRealPolicy->domainAdapterPowerRatingChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainChargerTypeChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainChargerTypeChanged))
+    {
+        m_theRealPolicy->domainChargerTypeChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainPlatformRestOfPowerChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainPlatformRestOfPowerChanged))
+    {
+        m_theRealPolicy->domainPlatformRestOfPowerChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainACPeakPowerChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainACPeakPowerChanged))
+    {
+        m_theRealPolicy->domainACPeakPowerChanged(participantIndex);
+    }
+}
+
+void Policy::executeDomainACPeakTimeWindowChanged(UIntN participantIndex)
+{
+    if (isEventRegistered(PolicyEvent::DomainACPeakTimeWindowChanged))
+    {
+        m_theRealPolicy->domainACPeakTimeWindowChanged(participantIndex);
+    }
 }
