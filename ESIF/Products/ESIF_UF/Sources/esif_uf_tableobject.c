@@ -214,6 +214,9 @@ eEsifError TableObject_Save(TableObject *self)
 
 		/* Wipe any table-level datavault keys so that new key table can be regenerated*/
 		if (self->dataMember != NULL) {
+			if (self->dataSource == NULL) {
+				self->dataSource = esif_ccb_strdup(ESIF_DSP_OVERRIDE_NAMESPACE);
+			}
 			options = ESIF_SERVICE_CONFIG_DELETE;
 			
 			data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, self->dataSource, 0, ESIFAUTOLEN);
@@ -1245,6 +1248,7 @@ eEsifError TableObject_LoadAttributes(
 		self->getPrimitive = 0;  /* NA for virtual tables */
 		self->setPrimitive = 0;
 		self->changeEvent = 0;
+		self->dataSource = esif_ccb_strdup(g_DataVaultDefault);
 		self->dataMember = esif_ccb_strdup("/shared/export/workload_hints/*");
 	}
 	else if (esif_ccb_stricmp(self->name, "participant_min") == 0) {
