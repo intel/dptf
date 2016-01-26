@@ -20,7 +20,7 @@
 
 #define VER_MAJOR        8
 #define VER_MINOR        2
-#define VER_HOTFIX       10100
+#define VER_HOTFIX       10101
 #define VER_BUILD        9999
 
 #define DEV_BUILD        0

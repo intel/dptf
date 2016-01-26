@@ -1436,8 +1436,8 @@ static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *t
 
 	len = 0;
 	if (ART == type) {
-		// Special case for ART - need to prepend revision number 2 to table
-		len += snprintf(table_str + len, 4, "02:");
+		// Special case for ART - need to prepend revision number 0 to table
+		len += snprintf(table_str + len, 4, "00:");
 	}
 
 	while (count) {
