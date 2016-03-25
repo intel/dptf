@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,19 +35,22 @@
 #include "WIDomainVirtualSensorPollingTableChanged.h"
 #include "WIDomainVirtualSensorRecalcChanged.h"
 #include "WIDomainBatteryStatusChanged.h"
-#include "WIDomainAdapterPowerChanged.h"
-#include "WIDomainPlatformPowerConsumptionChanged.h"
+#include "WIDomainBatteryInformationChanged.h"
 #include "WIDomainPlatformPowerSourceChanged.h"
 #include "WIDomainAdapterPowerRatingChanged.h"
 #include "WIDomainChargerTypeChanged.h"
 #include "WIDomainPlatformRestOfPowerChanged.h"
 #include "WIDomainACPeakPowerChanged.h"
 #include "WIDomainACPeakTimeWindowChanged.h"
+#include "WIDomainMaxBatteryPowerChanged.h"
+#include "WIDomainPlatformBatterySteadyStateChanged.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
 #include "WIDptfResume.h"
 #include "WIDptfSuspend.h"
 #include "WIDptfGetStatus.h"
+#include "WIDptfParticipantActivityLoggingEnabled.h"
+#include "WIDptfParticipantActivityLoggingDisabled.h"
 #include "WIParticipantAllocate.h"
 #include "WIParticipantCreate.h"
 #include "WIParticipantDestroy.h"
@@ -69,6 +72,8 @@
 #include "WIPolicyOperatingSystemBatteryPercentageChanged.h"
 #include "WIPolicyOperatingSystemPlatformTypeChanged.h"
 #include "WIPolicyOperatingSystemDockModeChanged.h"
+#include "WIPolicyOperatingSystemMobileNotification.h"
+#include "WIPolicyOperatingSystemPowerSchemePersonalityChanged.h"
 #include "WIPolicyPassiveTableChanged.h"
 #include "WIPolicyPlatformLpmModeChanged.h"
 #include "WIPolicySensorOrientationChanged.h"
@@ -81,3 +86,5 @@
 #include "WIPolicyPowerDeviceRelationshipTableChanged.h"
 #include "WIPolicyPowerBossConditionsTableChanged.h"
 #include "WIPolicyPowerBossActionsTableChanged.h"
+#include "WIDptfPolicyActivityLoggingEnabled.h"
+#include "WIDptfPolicyActivityLoggingDisabled.h"

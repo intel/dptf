@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -252,15 +252,6 @@
 	0xBE, 0xAE, 0xB7, 0x02, 0x90, 0x01, 0x12, 0x87 }
 
 /*
- * Event Name:  COOLING_MODE_ACOUSTIC_LIMIT_CHANGED
- * Event GUID:  0CB6C2E2-3242-40FC-845F-17F824FB857E
- * Event Desc:  Cooling mode Acoustic Limit Changed
- */
-#define COOLING_MODE_ACOUSTIC_LIMIT_CHANGED { \
-	0x0C, 0xB6, 0xC2, 0xE2, 0x32, 0x42, 0x40, 0xFC, \
-	0x84, 0x5F, 0x17, 0xF8, 0x24, 0xFB, 0x85, 0x7E }
-
-/*
  * Event Name:  COOLING_MODE_POWER_LIMIT_CHANGED
  * Event GUID:  DBF7B2CF-3B16-4773-9CA9-DD74FF91D6BF
  * Event Desc:  Cooling Mode Power Limit Changed
@@ -286,6 +277,15 @@
 #define PASSIVE_TABLE_CHANGED { \
 	0x66, 0x1C, 0x68, 0xE1, 0xB7, 0x3E, 0x4D, 0x02, \
 	0x85, 0x9B, 0xF1, 0xC1, 0x50, 0x5F, 0x90, 0xD1 }
+
+/*
+ * Event Name:  COOLING_MODE_ACOUSTIC_LIMIT_CHANGED
+ * Event GUID:  0CB6C2E2-3242-40FC-845F-17F824FB857E
+ * Event Desc:  Cooling mode Acoustic Limit Changed
+ */
+#define COOLING_MODE_ACOUSTIC_LIMIT_CHANGED { \
+	0x0C, 0xB6, 0xC2, 0xE2, 0x32, 0x42, 0x40, 0xFC, \
+	0x84, 0x5F, 0x17, 0xF8, 0x24, 0xFB, 0x85, 0x7E }
 
 /*
  * Event Name:  DISPLAY_ORIENTATION_CHANGED
@@ -369,15 +369,6 @@
 	0x99, 0xC8, 0xD0, 0xBA, 0x02, 0x96, 0x86, 0x65 }
 
 /*
- * Event Name:  POWER_SOURCE_CHANGED
- * Event GUID:  B84795D7-F7E2-4691-BD56-029C08E0DB31
- * Event Desc:  Power Source Changed
- */
-#define POWER_SOURCE_CHANGED { \
-	0xB8, 0x47, 0x95, 0xD7, 0xF7, 0xE2, 0x46, 0x91, \
-	0xBD, 0x56, 0x02, 0x9C, 0x08, 0xE0, 0xDB, 0x31 }
-
-/*
  * Event Name:  OS_HDC_CHANGED
  * Event GUID:  8FC7DA49-521A-46CC-B298-6C197FEB7092
  * Event Desc:  OS HDC Enable State Changed
@@ -385,6 +376,15 @@
 #define OS_HDC_CHANGED { \
 	0x8F, 0xC7, 0xDA, 0x49, 0x52, 0x1A, 0x46, 0xCC, \
 	0xB2, 0x98, 0x6C, 0x19, 0x7F, 0xEB, 0x70, 0x92 }
+
+/*
+ * Event Name:  POWER_SOURCE_CHANGED
+ * Event GUID:  B84795D7-F7E2-4691-BD56-029C08E0DB31
+ * Event Desc:  Power Source Changed
+ */
+#define POWER_SOURCE_CHANGED { \
+	0xB8, 0x47, 0x95, 0xD7, 0xF7, 0xE2, 0x46, 0x91, \
+	0xBD, 0x56, 0x02, 0x9C, 0x08, 0xE0, 0xDB, 0x31 }
 
 /*
  * Event Name:  ADAPTIVE_PERFORMANCE_CONDITIONS_CHANGED
@@ -504,20 +504,20 @@
 	0x8B, 0x20, 0xB9, 0x8F, 0x6F, 0xFC, 0x80, 0xA9 }
 
 /*
- * Event Name:  ADAPTER_POWER_CHANGED
- * Event GUID:  DD8B154C-7737-4B96-BFE4-F8B921FC372E
- * Event Desc:  Adapter Power Changed
+ * Event Name:  BATTERY_INFORMATION_CHANGED
+ * Event GUID:  277361E1-64F9-45E6-87A4-6E181B9D9349
+ * Event Desc:  Battery Information Changed
  */
-#define ADAPTER_POWER_CHANGED { \
-	0xDD, 0x8B, 0x15, 0x4C, 0x77, 0x37, 0x4B, 0x96, \
-	0xBF, 0xE4, 0xF8, 0xB9, 0x21, 0xFC, 0x37, 0x2E }
+#define BATTERY_INFORMATION_CHANGED { \
+	0x27, 0x73, 0x61, 0xE1, 0x64, 0xF9, 0x45, 0xE6, \
+	0x87, 0xA4, 0x6E, 0x18, 0x1B, 0x9D, 0x93, 0x49 }
 
 /*
- * Event Name:  PLATFORM_POWER_CONSUMPTION_CHANGED
+ * Event Name:  PLATFORM_BATTERY_STEADY_STATE_CHANGED
  * Event GUID:  B345DE0C-2CDF-41FD-9B34-9B281869414E
- * Event Desc:  Platform Power Consumption Changed
+ * Event Desc:  Platform Battery Steady State Changed
  */
-#define PLATFORM_POWER_CONSUMPTION_CHANGED { \
+#define PLATFORM_BATTERY_STEADY_STATE_CHANGED { \
 	0xB3, 0x45, 0xDE, 0x0C, 0x2C, 0xDF, 0x41, 0xFD, \
 	0x9B, 0x34, 0x9B, 0x28, 0x18, 0x69, 0x41, 0x4E }
 
@@ -646,4 +646,40 @@
 #define DPTF_PARTICIPANT_CONTROL_ACTION { \
 	0xA4, 0x0A, 0xA4, 0xC8, 0x68, 0x5D, 0x4B, 0x8E, \
 	0xA8, 0x83, 0xA6, 0x57, 0xAA, 0x43, 0xF9, 0x14 }
+
+/*
+ * Event Name:  MAX_BATTERY_POWER_CHANGED
+ * Event GUID:  878E5AB7-70C0-4772-AB35-F0D2C6DE8EA4
+ * Event Desc:  Max Battery Power Changed
+ */
+#define MAX_BATTERY_POWER_CHANGED { \
+	0x87, 0x8E, 0x5A, 0xB7, 0x70, 0xC0, 0x47, 0x72, \
+	0xAB, 0x35, 0xF0, 0xD2, 0xC6, 0xDE, 0x8E, 0xA4 }
+
+/*
+ * Event Name:  OS_POWERSCHEME_PERSONALITY_CHANGED
+ * Event GUID:  D64BF1F6-5E26-409B-BAE4-A7C79550D7F1
+ * Event Desc:  OS PowerScheme Pesonality Changed
+ */
+#define OS_POWERSCHEME_PERSONALITY_CHANGED { \
+	0xD6, 0x4B, 0xF1, 0xF6, 0x5E, 0x26, 0x40, 0x9B, \
+	0xBA, 0xE4, 0xA7, 0xC7, 0x95, 0x50, 0xD7, 0xF1 }
+
+/*
+ * Event Name:  OS_MOBILE_NOTIFICATION
+ * Event GUID:  00FFBAD8-5CCD-49B9-A61D-E250C29D455A
+ * Event Desc:  OS Mobile Notification
+ */
+#define OS_MOBILE_NOTIFICATION { \
+	0x00, 0xFF, 0xBA, 0xD8, 0x5C, 0xCD, 0x49, 0xB9, \
+	0xA6, 0x1D, 0xE2, 0x50, 0xC2, 0x9D, 0x45, 0x5A }
+
+/*
+ * Event Name:  EMERGENCY_CALL_MODE_TABLE_CHANGED
+ * Event GUID:  634368F0-6881-47AF-849E-6A5ED4876826
+ * Event Desc:  Emergency Call Mode Table Changed
+ */
+#define EMERGENCY_CALL_MODE_TABLE_CHANGED { \
+	0x63, 0x43, 0x68, 0xF0, 0x68, 0x81, 0x47, 0xAF, \
+	0x84, 0x9E, 0x6A, 0x5E, 0xD4, 0x87, 0x68, 0x26 }
 

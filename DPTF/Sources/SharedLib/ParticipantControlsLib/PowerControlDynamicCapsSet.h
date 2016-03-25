@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public:
     Power snapToCapability(PowerControlType::Type controlType, Power powerValue) const;
     TimeSpan snapToCapability(PowerControlType::Type controlType, TimeSpan timeValue) const;
     DptfBuffer toPpccBinary() const;
-    XmlNode* getXml(void) const;
+    std::shared_ptr<XmlNode> getXml(void) const;
 
     Bool operator==(const PowerControlDynamicCapsSet& rhs) const;
     Bool operator!=(const PowerControlDynamicCapsSet& rhs) const;

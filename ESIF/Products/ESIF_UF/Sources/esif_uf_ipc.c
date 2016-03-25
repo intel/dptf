@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -118,7 +118,6 @@ enum esif_rc ipc_execute(struct esif_ipc *ipc)
 #else
 
 extern char g_esif_kernel_version[64]; // "Kernel Version = XXXXX\n"
-extern char g_out_buf[OUT_BUF_LEN];
 
 // This extracts the Kernel version from the string returned by esif_cmd_info()
 static void extract_kernel_version(char *str, size_t buf_len)
@@ -155,11 +154,12 @@ eEsifError ipc_connect()
 		rc = ESIF_E_NO_LOWER_FRAMEWORK;
 	}
 	else {
-		char *kern_str = esif_cmd_info(g_out_buf);
+		char *outbuf = esif_ccb_malloc(OUT_BUF_LEN);
+		char *kern_str = (outbuf != NULL ? esif_cmd_info(outbuf) : NULL);
 		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Opened\n");
 		if (NULL != kern_str) {
 			// Extract just the Kernel LF Version from the result string
-			extract_kernel_version(kern_str, sizeof(g_out_buf));
+			extract_kernel_version(kern_str, OUT_BUF_LEN);
 
 			// Bypass Kernel Version check for DEBUG builds
 			#if defined(ESIF_ATTR_DEBUG)
@@ -177,6 +177,7 @@ eEsifError ipc_connect()
 				rc = ESIF_E_NOT_SUPPORTED;
 			}
 		}
+		esif_ccb_free(outbuf);
 	}
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;

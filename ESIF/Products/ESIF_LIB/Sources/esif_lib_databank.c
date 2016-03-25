@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -109,16 +109,14 @@ DataVaultPtr DataBank_GetNameSpace (
 	if (NULL == nameSpace) {
 		nameSpace = g_DataVaultDefault;
 	}
-	if (NULL != nameSpace) {
-		esif_ccb_read_lock(&self->lock);
-		for (ns = 0; ns < self->size; ns++) {
-			if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
-				result = &self->elements[ns];
-				break;
-			}
+	esif_ccb_read_lock(&self->lock);
+	for (ns = 0; ns < self->size; ns++) {
+		if (esif_ccb_stricmp(nameSpace, self->elements[ns].name) == 0) {
+			result = &self->elements[ns];
+			break;
 		}
-		esif_ccb_read_unlock(&self->lock);
 	}
+	esif_ccb_read_unlock(&self->lock);
 	return result;
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "Percentage.h"
+#include <cmath>
 
 Percentage::Percentage(void)
     : m_valid(false), m_percentage(0.0)
@@ -115,7 +116,7 @@ Bool Percentage::isValid() const
 
 UIntN Percentage::toWholeNumber() const
 {
-    return (UIntN)(m_percentage * 100);
+    return (UIntN)round(m_percentage * 100.0);
 }
 
 UInt64 Percentage::toCentiPercent() const

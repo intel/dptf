@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -84,44 +84,20 @@ void PolicyCallbackScheduler::setTimeObject(std::shared_ptr<TimeInterface> time)
     m_time = time;
 }
 
-XmlNode* PolicyCallbackScheduler::getStatus()
+std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatus()
 {
-    XmlNode* status = XmlNode::createWrapperElement("policy_callback_scheduler");
+    auto status = XmlNode::createWrapperElement("policy_callback_scheduler");
     for (auto participant = m_schedule.begin(); participant != m_schedule.end(); participant++)
     {
-        XmlNode* participantCallback = XmlNode::createWrapperElement("participant_callback");
-        participantCallback->addChild(
-            XmlNode::createDataElement("participant_index", friendlyValue(participant->first)));
-        
-        try
-        {
-            float expireTime = (float)participant->second.getTimeStamp() +
-                (float)participant->second.getTimeDelta().asMillisecondsInt();
-            float expireTimeDiffFromNow = (expireTime - getCurrentTime()) / (float)1000;
-            if (expireTimeDiffFromNow >= 0.0)
-            {
-                participantCallback->addChild(
-                    XmlNode::createDataElement("time_until_expires", friendlyValue(expireTimeDiffFromNow)));
-            }
-            else
-            {
-                participantCallback->addChild(XmlNode::createDataElement("time_until_expires", "X"));
-            }
-        }
-        catch (dptf_exception)
-        {
-            participantCallback->addChild(XmlNode::createDataElement("time_until_expires", "X"));
-        }
-
-        status->addChild(participantCallback);
+        status->addChild(getStatusForParticipant(participant->first));
     }
 
     return status;
 }
 
-XmlNode* PolicyCallbackScheduler::getStatusForParticipant(UIntN participantIndex)
+std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(UIntN participantIndex)
 {
-    XmlNode* status = XmlNode::createWrapperElement("participant_callback");
+    auto status = XmlNode::createWrapperElement("participant_callback");
 
     try
     {
@@ -131,11 +107,12 @@ XmlNode* PolicyCallbackScheduler::getStatusForParticipant(UIntN participantIndex
         auto scheduledCallback = m_schedule.find(participantIndex);
         if (scheduledCallback != m_schedule.end())
         {
-            float expireTime = (float)scheduledCallback->second.getTimeStamp() +
-                (float)scheduledCallback->second.getTimeDelta().asMillisecondsInt();
-            float expireTimeDiffFromNow = (expireTime - getCurrentTime()) / (float)1000;
-            if (expireTimeDiffFromNow >= 0.0)
+            auto expireTime = scheduledCallback->second.getTimeStamp() +
+                scheduledCallback->second.getTimeDelta().asMillisecondsInt();
+            auto currentTime = getCurrentTime();
+            if (expireTime >= currentTime)
             {
+                auto expireTimeDiffFromNow = (double)(expireTime - currentTime) / 1000.0;
                 status->addChild(
                     XmlNode::createDataElement("time_until_expires", friendlyValue(expireTimeDiffFromNow)));
             }

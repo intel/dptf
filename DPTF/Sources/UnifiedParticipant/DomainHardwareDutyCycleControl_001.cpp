@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,9 +33,9 @@ void DomainHardwareDutyCycleControl_001::clearCachedData(void)
     
 }
 
-XmlNode* DomainHardwareDutyCycleControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainHardwareDutyCycleControl_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("hardware_duty_cycle_control");
+    auto root = XmlNode::createWrapperElement("hardware_duty_cycle_control");
     root->addChild(XmlNode::createDataElement("hardware_duty_cycle", 
         getHardwareDutyCycle(Constants::Invalid, domainIndex).toString()));
     root->addChild(XmlNode::createDataElement("is_supported_by_platform", 
@@ -112,6 +112,26 @@ Percentage DomainHardwareDutyCycleControl_001::getHardwareDutyCycle(UIntN partic
     Percentage dutyCycle = getParticipantServices()->primitiveExecuteGetAsPercentage(
         esif_primitive_type::GET_PROC_HDC_DUTY_CYCLE, domainIndex);
     return dutyCycle;
+}
+
+void DomainHardwareDutyCycleControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true) 
+        {
+            EsifCapabilityData capability;
+            capability.type = Capability::HdcControl;
+            capability.size = sizeof(capability);
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
 }
 
 std::string DomainHardwareDutyCycleControl_001::getName(void)

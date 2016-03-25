@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -61,7 +61,8 @@ ParticipantProxy::ParticipantProxy(
     m_supportsScpValid(false),
     m_policyServices(policyServices),
     m_time(time)
-    {
+{
+    m_participantProperties.refresh();
 }
 
 ParticipantProxy::~ParticipantProxy()
@@ -73,9 +74,13 @@ UIntN ParticipantProxy::getIndex() const
     return m_index;
 }
 
+void ParticipantProxy::refreshDomainProperties()
+{
+    m_domainSetProperty.refresh();
+}
+
 const DomainPropertiesSet& ParticipantProxy::getDomainPropertiesSet()
 {
-    refreshDomainSetIfUninitialized();
     return m_domainSetProperty.getDomainPropertiesSet();
 }
 
@@ -109,17 +114,9 @@ std::vector<UIntN> ParticipantProxy::getDomainIndexes()
     return domainIndexes;
 }
 
-DomainProxyInterface* ParticipantProxy::bindDomain(UIntN domainIndex)
+void ParticipantProxy::bindDomain(std::shared_ptr<DomainProxyInterface> domain)
 {
-    m_domainSetProperty.refresh();
-    m_domains[domainIndex] =
-        DomainProxy(
-            getIndex(),
-            domainIndex,
-            m_domainSetProperty.getDomainProperties(domainIndex),
-            getParticipantProperties(),
-            m_policyServices);
-    return getDomain(domainIndex); 
+    m_domains[domain->getDomainIndex()] = domain;
 }
 
 void ParticipantProxy::unbindDomain(UIntN domainIndex)
@@ -127,36 +124,15 @@ void ParticipantProxy::unbindDomain(UIntN domainIndex)
     m_domains.erase(domainIndex);
 }
 
-void ParticipantProxy::refreshDomains()
-{
-    m_previousLowerBound = Temperature::createInvalid();
-    m_previousUpperBound = Temperature::createInvalid();
-    m_domains.clear();
-    m_domainSetProperty.refresh();
-    UIntN numberOfDomains = m_domainSetProperty.getDomainPropertiesSet().getDomainCount();
-    for (UIntN setIndex = 0; setIndex < numberOfDomains; ++setIndex)
-    {
-        DomainProperties domainProperties = m_domainSetProperty.getDomainProperties(setIndex);
-        m_domains[domainProperties.getDomainIndex()] =
-            DomainProxy(
-            getIndex(),
-            domainProperties.getDomainIndex(),
-            domainProperties,
-            getParticipantProperties(),
-            m_policyServices);
-    }
-}
-
 void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound)
 {
-    refreshDomainSetIfUninitialized();
     if (m_domains.find(0) != m_domains.end())
     {
-        if (m_domains[0].getTemperatureControl()->supportsTemperatureThresholds())
+        if (m_domains[0]->getTemperatureControl()->supportsTemperatureThresholds())
         {
             m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
                 "Setting thresholds to " + lowerBound.toString() + ":" + upperBound.toString() + "."));
-            m_domains[0].getTemperatureControl()->setTemperatureNotificationThresholds(lowerBound, upperBound);
+            m_domains[0]->getTemperatureControl()->setTemperatureNotificationThresholds(lowerBound, upperBound);
         }
     }
 
@@ -166,10 +142,9 @@ void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, c
 
 Bool ParticipantProxy::supportsTemperatureInterface()
 {
-    refreshDomainSetIfUninitialized();
     for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
     {
-        if (domain->second.getTemperatureControl()->supportsTemperatureControls())
+        if (domain->second->getTemperatureControl()->supportsTemperatureControls())
         {
             return true;
         }
@@ -180,14 +155,13 @@ Bool ParticipantProxy::supportsTemperatureInterface()
 Temperature ParticipantProxy::getFirstDomainTemperature()
 {
     auto participantTemperature = Temperature::createInvalid();
-    refreshDomainSetIfUninitialized();
     if (m_domains.size() > 0)
     {
         for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
         {
-            if (domain->second.getTemperatureControl()->supportsTemperatureControls())
+            if (domain->second->getTemperatureControl()->supportsTemperatureControls())
             {
-                participantTemperature = domain->second.getTemperatureControl()->getCurrentTemperature();
+                participantTemperature = domain->second->getTemperatureControl()->getCurrentTemperature();
                 break;
             }
         }
@@ -195,22 +169,13 @@ Temperature ParticipantProxy::getFirstDomainTemperature()
     return participantTemperature;
 }
 
-void ParticipantProxy::refreshDomainSetIfUninitialized()
-{
-    if (m_domains.size() == 0)
-    {
-        refreshDomains();
-    }
-}
-
 TemperatureThresholds ParticipantProxy::getTemperatureThresholds()
 {
-    refreshDomainSetIfUninitialized();
     for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
     {
         try
         {
-            return domain->second.getTemperatureControl()->getTemperatureNotificationThresholds();
+            return domain->second->getTemperatureControl()->getTemperatureNotificationThresholds();
         }
         catch (...)
         {
@@ -263,66 +228,76 @@ Temperature ParticipantProxy::getTemperatureOfLastThresholdCrossed() const
     return m_lastThresholdCrossedTemperature;
 }
 
-DomainProxyInterface* ParticipantProxy::getDomain(UIntN domainIndex)
+std::shared_ptr<DomainProxyInterface> ParticipantProxy::getDomain(UIntN domainIndex)
 {
-    refreshDomainSetIfUninitialized();
-    return &m_domains.at(domainIndex);
+    return m_domains.at(domainIndex);
 }
 
-XmlNode* ParticipantProxy::getXmlForCriticalTripPoints()
+std::shared_ptr<XmlNode> ParticipantProxy::getXmlForCriticalTripPoints()
 {
-    XmlNode* participant = XmlNode::createWrapperElement("participant");
+    auto participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", 
         friendlyValue(m_index)));
     participant->addChild(XmlNode::createDataElement("name", 
         m_participantProperties.getParticipantProperties().getName()));
-    participant->addChild(XmlNode::createDataElement("temperature", 
-        getTemperatureForStatus(getDomain(0)).toString()));
+    if (m_domains.find(0) != m_domains.end())
+    {
+        participant->addChild(XmlNode::createDataElement("temperature",
+            getTemperatureForStatus(getDomain(0)).toString()));
+    }
+    else
+    {
+        participant->addChild(XmlNode::createDataElement("temperature", "Error"));
+    }
     participant->addChild(m_criticalTripPointProperty.getXml());
     return participant;
 }
 
-XmlNode* ParticipantProxy::getXmlForActiveTripPoints()
+std::shared_ptr<XmlNode> ParticipantProxy::getXmlForActiveTripPoints()
 {
-    XmlNode* participant = XmlNode::createWrapperElement("participant");
+    auto participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", 
         friendlyValue(m_index)));
     participant->addChild(XmlNode::createDataElement("name", 
         m_participantProperties.getParticipantProperties().getName()));
-    participant->addChild(XmlNode::createDataElement("temperature", 
-        getTemperatureForStatus(getDomain(0)).toString()));
+    if (m_domains.find(0) != m_domains.end())
+    {
+        participant->addChild(XmlNode::createDataElement("temperature",
+            getTemperatureForStatus(getDomain(0)).toString()));
+    }
+    else
+    {
+        participant->addChild(XmlNode::createDataElement("temperature", "Error"));
+    }
     participant->addChild(getTemperatureThresholdsForStatus().getXml());
     participant->addChild(m_activeTripPointProperty.getXml());
     return participant;
 }
 
-XmlNode* ParticipantProxy::getXmlForPassiveTripPoints()
+std::shared_ptr<XmlNode> ParticipantProxy::getXmlForPassiveTripPoints()
 {
-    XmlNode* participant = XmlNode::createWrapperElement("participant");
+    auto participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", 
         friendlyValue(m_index)));
     participant->addChild(XmlNode::createDataElement("name", 
         m_participantProperties.getParticipantProperties().getName()));
-    participant->addChild(XmlNode::createDataElement("temperature", 
-        getTemperatureForStatus(getDomain(0)).toString()));
+    if (m_domains.find(0) != m_domains.end())
+    {
+        participant->addChild(XmlNode::createDataElement("temperature",
+            getTemperatureForStatus(getDomain(0)).toString()));
+    }
+    else
+    {
+        participant->addChild(XmlNode::createDataElement("temperature", "Error"));
+    }
     participant->addChild(getTemperatureThresholdsForStatus().getXml());
     participant->addChild(m_passiveTripPointProperty.getXml());
     return participant;
 }
 
-XmlNode* ParticipantProxy::getXmlForPassiveControlKnobs()
+std::shared_ptr<XmlNode> ParticipantProxy::getXmlForScpDscpSupport()
 {
-    XmlNode* participant = XmlNode::createWrapperElement("passive_control_knobs");
-    for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
-    {
-        participant->addChild(domain->second.getXmlForPassiveControlKnobs());
-    }
-    return participant;
-}
-
-XmlNode* ParticipantProxy::getXmlForScpDscpSupport()
-{
-    XmlNode* participant = XmlNode::createWrapperElement("participant");
+    auto participant = XmlNode::createWrapperElement("participant");
     participant->addChild(XmlNode::createDataElement("index", StlOverride::to_string(m_index)));
     std::string name = m_participantProperties.getParticipantProperties().getName();
     participant->addChild(XmlNode::createDataElement("name", name));
@@ -331,16 +306,24 @@ XmlNode* ParticipantProxy::getXmlForScpDscpSupport()
     return participant;
 }
 
-XmlNode* ParticipantProxy::getXmlForTripPointStatistics()
+std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 {
-    XmlNode* stats = XmlNode::createWrapperElement("participant_trip_point_statistics");
+    auto stats = XmlNode::createWrapperElement("participant_trip_point_statistics");
     stats->addChild
         (XmlNode::createDataElement("participant_index", friendlyValue(m_index)));
     stats->addChild(
         XmlNode::createDataElement("participant_name", m_participantProperties.getParticipantProperties().getName()));
-    Bool supportsTripPoints = getDomain(0)->getTemperatureControl()->supportsTemperatureControls();
-    stats->addChild(
-        XmlNode::createDataElement("supports_trip_points", friendlyValue(supportsTripPoints)));
+    if (m_domains.find(0) != m_domains.end())
+    {
+        Bool supportsTripPoints = getDomain(0)->getTemperatureControl()->supportsTemperatureControls();
+        stats->addChild(
+            XmlNode::createDataElement("supports_trip_points", friendlyValue(supportsTripPoints)));
+    }
+    else
+    {
+        stats->addChild(
+            XmlNode::createDataElement("supports_trip_points", friendlyValue(false)));
+    }
 
     if (m_timeOfLastThresholdCrossed == 0)
     {
@@ -361,21 +344,21 @@ XmlNode* ParticipantProxy::getXmlForTripPointStatistics()
     return stats;
 }
 
-XmlNode* ParticipantProxy::getXmlForConfigTdpLevel()
+std::shared_ptr<XmlNode> ParticipantProxy::getXmlForConfigTdpLevel()
 {
-    XmlNode* status = XmlNode::createWrapperElement("participant_config_tdp_level");
+    auto status = XmlNode::createWrapperElement("participant_config_tdp_level");
     status->addChild(XmlNode::createDataElement(
         "participant_index", StatusFormat::friendlyValue(getIndex())));
     status->addChild(XmlNode::createDataElement(
         "participant_name", getParticipantProperties().getName()));
     for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
     {
-        status->addChild(domain->second.getXmlForConfigTdpLevel());
+        status->addChild(domain->second->getXmlForConfigTdpLevel());
     }
     return status;
 }
 
-Temperature ParticipantProxy::getTemperatureForStatus(DomainProxyInterface* domainProxy)
+Temperature ParticipantProxy::getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy)
 {
     if (domainProxy->getTemperatureControl()->supportsTemperatureControls())
     {
@@ -410,9 +393,9 @@ void ParticipantProxy::refreshHysteresis()
 {
     for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
     {
-        if (domain->second.getTemperatureControl()->supportsTemperatureThresholds())
+        if (domain->second->getTemperatureControl()->supportsTemperatureThresholds())
         {
-            domain->second.getTemperatureControl()->refreshHysteresis();
+            domain->second->getTemperatureControl()->refreshHysteresis();
         }
     }
 }
@@ -421,9 +404,9 @@ void ParticipantProxy::refreshVirtualSensorTables()
 {
     for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
     {
-        if (domain->second.getTemperatureControl()->supportsTemperatureControls())
+        if (domain->second->getTemperatureControl()->supportsTemperatureControls())
         {
-            domain->second.getTemperatureControl()->refreshVirtualSensorTables();
+            domain->second->getTemperatureControl()->refreshVirtualSensorTables();
         }
     }
 }

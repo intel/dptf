@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,33 +31,29 @@ XmlNode::XmlNode(NodeType::Type type, std::string rootXmlTag, std::string data) 
 
 XmlNode::~XmlNode(void)
 {
-    for (UIntN i = 0; i < m_children.size(); i++)
-    {
-        DELETE_MEMORY_TC(m_children[i]);
-    }
 }
 
-XmlNode* XmlNode::createRoot()
+std::shared_ptr<XmlNode> XmlNode::createRoot()
 {
-    return new XmlNode(NodeType::Root, "");
+    return std::make_shared<XmlNode>(XmlNode(NodeType::Root, ""));
 }
 
-XmlNode* XmlNode::createComment(std::string comment)
+std::shared_ptr<XmlNode> XmlNode::createComment(std::string comment)
 {
-    return new XmlNode(NodeType::Comment, "", std::string(" ") + comment + std::string(" "));
+    return std::make_shared<XmlNode>(XmlNode(NodeType::Comment, "", std::string(" ") + comment + std::string(" ")));
 }
 
-XmlNode* XmlNode::createWrapperElement(std::string tagName)
+std::shared_ptr<XmlNode> XmlNode::createWrapperElement(std::string tagName)
 {
-    return new XmlNode(NodeType::Element, tagName);
+    return std::make_shared<XmlNode>(XmlNode(NodeType::Element, tagName));
 }
 
-XmlNode* XmlNode::createDataElement(std::string tagName, std::string data)
+std::shared_ptr<XmlNode> XmlNode::createDataElement(std::string tagName, std::string data)
 {
-    return new XmlNode(NodeType::Element, tagName, data);
+    return std::make_shared<XmlNode>(XmlNode(NodeType::Element, tagName, data));
 }
 
-void XmlNode::addChild(XmlNode* child)
+void XmlNode::addChild(std::shared_ptr<XmlNode> child)
 {
     m_children.push_back(child);
 }
@@ -67,7 +63,7 @@ void XmlNode::addAttribute(std::string attribute)
     m_attributes.push_back(attribute);
 }
 
-std::vector<XmlNode*> XmlNode::getChildren()
+std::vector<std::shared_ptr<XmlNode>> XmlNode::getChildren()
 {
     return m_children;
 }

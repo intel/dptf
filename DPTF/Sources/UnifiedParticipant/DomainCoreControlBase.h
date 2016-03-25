@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,9 @@
 #include "DomainCoreControlInterface.h"
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
+#include "ParticipantActivityLoggingInterface.h"
 
-class DomainCoreControlBase : public ControlBase, public DomainCoreControlInterface
+class DomainCoreControlBase : public ControlBase, public DomainCoreControlInterface, public ParticipantActivityLoggingInterface
 {
 public:
 

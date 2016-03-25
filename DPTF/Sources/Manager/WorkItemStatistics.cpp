@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -130,9 +130,9 @@ void WorkItemStatistics::incrementDeferredTotals(WorkItemInterface* workItem)
     m_totalDeferredWorkItemsExecuted += 1;
 }
 
-XmlNode* WorkItemStatistics::getXml(void)
+std::shared_ptr<XmlNode> WorkItemStatistics::getXml(void)
 {
-    XmlNode* workItemStatistics = XmlNode::createWrapperElement("work_item_statistics");
+    auto workItemStatistics = XmlNode::createWrapperElement("work_item_statistics");
 
     // print the total number that have executed in each queue
 
@@ -143,7 +143,7 @@ XmlNode* WorkItemStatistics::getXml(void)
 
     // create a table containing one row for each work item type.  this is for immediate work items only.
 
-    XmlNode* immediateWorkItemStatistics = XmlNode::createWrapperElement("immediate_work_item_statistics");
+    auto immediateWorkItemStatistics = XmlNode::createWrapperElement("immediate_work_item_statistics");
     workItemStatistics->addChild(immediateWorkItemStatistics);
 
     for (UIntN i = 0; i < FrameworkEvent::Max; i++)
@@ -160,7 +160,7 @@ XmlNode* WorkItemStatistics::getXml(void)
             averageExecutionTime = m_immediateWorkItemStatistics[i].totalExecutionTimeMilliseconds / totalExecuted;
         }
 
-        XmlNode* workItem = XmlNode::createWrapperElement("work_item");
+        auto workItem = XmlNode::createWrapperElement("work_item");
         immediateWorkItemStatistics->addChild(workItem);
 
         workItem->addChild(XmlNode::createDataElement("work_item_type", event.name));

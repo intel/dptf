@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -59,7 +59,6 @@
 #include "esif_event.h"
 #include "esif_dsp.h"
 
-#define ESIF_PARTICIPANT_INVALID_TYPE 0xFFFFFFFF
 #define ESIF_PARTICIPANT_INVALID_UID ""
 #define ESIF_PARTICIPANT_INVALID_INSTANCE 0xFF
 
@@ -156,38 +155,6 @@ struct esif_lp {
 
 	/* Signals waiters when the LP is no longer in use and may be destroyed */
 	esif_ccb_event_t lp_destroy_event;
-
-	/* Interface Functions*/
-	/* XFORM Temperature */
-	enum esif_rc  (*xform_temp)(const enum esif_temperature_type,
-			    esif_temp_t *temp,
-			    const enum esif_action_type action,
-			    const struct esif_lp_dsp *dsp,
-			    const struct esif_lp_primitive *primitive_ptr,
-			    const struct esif_lp *lp_ptr);
-
-	/* XFORM Power */
-	enum esif_rc  (*xform_power)(const enum esif_power_unit_type,
-				     esif_power_t *power,
-				     const enum esif_action_type action,
-				     const struct esif_lp_dsp *dsp,
-				     const enum esif_primitive_opcode opcode);
-
-	/* XFORM Time */
-	enum esif_rc (*xform_time)(const enum esif_time_type,
-		esif_time_t *time,
-		const enum esif_action_type action,
-		const struct esif_lp_dsp *dsp_ptr,
-		const struct esif_lp_primitive *primitive_ptr,
-		const struct esif_lp *lp_ptr);
-
-	/* XFORM Percent */
-	enum esif_rc (*xform_percent)(const enum esif_percent_type type,
-		u32 *value_ptr,
-		const enum esif_action_type action,
-		const struct esif_lp_dsp *dsp_ptr,
-		const struct esif_lp_primitive *primitive_ptr);
-
 };
 
 /* Takes an additional reference on an LP object */
@@ -353,25 +320,6 @@ typedef struct _t_EsifUp {
 } EsifUp, *EsifUpPtr, **EsifUpPtrLocation;
 
 /*
- * Takes an additional reference on a participant object.  (The function is
- * called for you by the Participant Manager when one of the PM functions are
- * called which returns a pointer to a participant.)  After using the
- * participant, EsifUp_PutRef must be called to release the reference.
- */
-eEsifError EsifUp_GetRef(
-	EsifUpPtr self
-	);
-
-/*
- * Releases a reference on a participant object.  This function should be
- * called when done using a participant pointer obtained through any of the
- * Participant Manager interfaces.
- */
-void EsifUp_PutRef(
-	EsifUpPtr self
-	);
-
-/*
  * The following functions are data "accessor" functions
  */
 static ESIF_INLINE UInt8 EsifUp_GetInstance(
@@ -411,6 +359,57 @@ static ESIF_INLINE EsifUpDataPtr EsifUp_GetMetadata(
 {
 	return (self != NULL) ? &self->fMetadata : NULL;
 }
+
+static ESIF_INLINE UInt8 EsifUp_GetDomainCount(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->domainCount : 0;
+}
+
+static ESIF_INLINE unsigned int EsifUp_GetDomainCapabilityMask(
+	EsifUpDomainPtr domainPtr
+	)
+{
+	return (domainPtr != NULL) ? domainPtr->capability_for_domain.capability_flags: 0;
+}
+
+static ESIF_INLINE unsigned char EsifUp_GetDomainCapabilityCount(
+	EsifUpDomainPtr domainPtr
+	)
+{
+	return (domainPtr != NULL) ? domainPtr->capability_for_domain.number_of_capability_flags : 0;
+}
+
+static ESIF_INLINE UInt16 EsifUp_GetDomainId(
+	EsifUpDomainPtr domainPtr
+	)
+{
+	return (domainPtr != NULL) ? domainPtr->domain : 0;
+}
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*
+ * Takes an additional reference on a participant object.  (The function is
+ * called for you by the Participant Manager when one of the PM functions are
+ * called which returns a pointer to a participant.)  After using the
+ * participant, EsifUp_PutRef must be called to release the reference.
+ */
+eEsifError EsifUp_GetRef(
+	EsifUpPtr self
+	);
+
+/*
+ * Releases a reference on a participant object.  This function should be
+ * called when done using a participant pointer obtained through any of the
+ * Participant Manager interfaces.
+ */
+void EsifUp_PutRef(
+	EsifUpPtr self
+	);
 
 EsifFpcEventPtr EsifUp_GetFpcEventByType(
 	EsifUpPtr self,
@@ -454,12 +453,20 @@ EsifUpDomainPtr EsifUp_GetDomainById(
 	UInt16 domainId
 	);
 
+EsifUpDomainPtr EsifUp_GetDomainByIndex(
+	EsifUpPtr self,
+	UInt8 domainIndex
+	);
+
 EsifString EsifUp_CreateTokenReplacedParamString(
 	const EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
 	const EsifString paramStr
 	);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* ESIF_ATTR_USER */
 #endif /* _ESIF_PARTICIPANT_H_ */
 

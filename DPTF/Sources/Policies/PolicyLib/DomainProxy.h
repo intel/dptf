@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,6 +41,7 @@
 #include "PerformanceControlKnob.h"
 #include "DomainProxyInterface.h"
 #include "PlatformPowerControlFacade.h"
+#include "ParticipantProxyInterface.h"
 
 // represents a domain inside a participant.  holds cached records of all properties and potential controls for the
 // domain.
@@ -50,12 +51,10 @@ public:
 
     DomainProxy();
     DomainProxy(
-        UIntN participantIndex,
         UIntN domainIndex,
-        DomainProperties domainProperties,
-        ParticipantProperties participantProperties,
+        ParticipantProxyInterface* participant,
         const PolicyServicesInterfaceContainer& policyServices);
-    ~DomainProxy();
+    virtual ~DomainProxy();
 
     // domain properties
     UIntN getParticipantIndex() const override;
@@ -83,42 +82,22 @@ public:
     virtual PixelClockControlFacade& getPixelClockControl() const override;
     virtual std::shared_ptr<HardwareDutyCycleControlFacadeInterface> getHardwareDutyCycleControl() const override;
 
-    // passive controls (TODO: move to passive policy)
-    virtual void requestLimit(UIntN target) override;
-    virtual void requestUnlimit(UIntN target) override;
-    virtual Bool canLimit(UIntN target) override;
-    virtual Bool canUnlimit(UIntN target) override;
-    virtual Bool commitLimits() override;
-    virtual void setArbitratedPowerLimit() override;
-    virtual void setArbitratedPerformanceLimit() override;
-    virtual void setArbitratedCoreLimit() override;
-    virtual void adjustPowerRequests() override;
-    virtual void adjustPerformanceRequests() override;
-    virtual void adjustCoreRequests() override;
-    virtual void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold) override;
-    virtual void clearAllRequestsForTarget(UIntN target) override;
-    virtual void clearAllPerformanceControlRequests() override;
-    virtual void clearAllPowerControlRequests() override;
-    virtual void clearAllCoreControlRequests() override;
-    virtual void clearAllDisplayControlRequests() override;
-    virtual void clearAllControlKnobRequests() override;
-
     // status
-    XmlNode* getXmlForPassiveControlKnobs();
-    XmlNode* getXmlForConfigTdpLevel();
-    virtual XmlNode* getXml() const override;
+    virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
+    virtual std::shared_ptr<XmlNode> getXml() const override;
     
-private:
+protected:
 
     // domain properties
     UIntN m_participantIndex;
     UIntN m_domainIndex;
+    ParticipantProxyInterface* m_participant;
+    DomainPriorityCachedProperty m_domainPriorityProperty;
     DomainProperties m_domainProperties;
     ParticipantProperties m_participantProperties;
-    DomainPriorityCachedProperty m_domainPriorityProperty;
-    ActiveCoolingControl m_activeCoolingControl;
 
     // control facades
+    ActiveCoolingControl m_activeCoolingControl;
     std::shared_ptr<TemperatureControlFacadeInterface> m_temperatureControl;
     std::shared_ptr<PerformanceControlFacade> m_performanceControl;
     std::shared_ptr<PowerControlFacade> m_powerControl;
@@ -132,24 +111,4 @@ private:
 
     // services
     PolicyServicesInterfaceContainer m_policyServices;
-
-    // control knobs (TODO: move to passive policy)
-    std::shared_ptr<PerformanceControlKnob> m_pstateControlKnob;
-    std::shared_ptr<PerformanceControlKnob> m_tstateControlKnob;
-    std::shared_ptr<PowerControlKnob> m_powerControlKnob;
-    std::shared_ptr<DisplayControlKnob> m_displayControlKnob;
-    std::shared_ptr<CoreControlKnob> m_coreControlKnob;
-    std::shared_ptr<std::map<UIntN, UIntN>> m_perfControlRequests;
-
-    // limiting/unlimiting helper functions (TODO: move to passive policy)
-    Bool requestLimitPowerAndShouldContinue(UIntN target);
-    Bool requestLimitPstatesWithCoresAndShouldContinue(UIntN target);
-    Bool requestLimitCoresAndShouldContinue(UIntN target);
-    Bool requestLimitTstatesAndContinue(UIntN target);
-    Bool requestLimitDisplayAndContinue(UIntN target);
-    Bool requestUnlimitDisplayAndContinue(UIntN target);
-    Bool requestUnlimitTstatesAndContinue(UIntN target);
-    Bool requestUnlimitCoresWithPstatesAndShouldContinue(UIntN target);
-    Bool requestUnlimitPstatesAndShouldContinue(UIntN target);
-    Bool requestUnlimitPowerAndShouldContinue(UIntN target);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,27 +19,20 @@
 #pragma once
 
 #include "Dptf.h"
-#include "RelationshipTableEntryBase.h"
-#include "XmlNode.h"
+#include "esif_sdk_data.h"
 
-class dptf_export ThermalRelationshipTableEntry : public RelationshipTableEntryBase
+#pragma pack(push, 1)
+
+struct EsifDataBinaryTrtPackage
 {
-public:
-
-    ThermalRelationshipTableEntry(
-        const std::string& sourceDeviceAcpiScope,
-        const std::string& targetDeviceAcpiScope,
-        UInt32 thermalInfluence,
-        UInt32 thermalSamplingPeriod);
-
-    const UInt32& thermalInfluence() const;
-    const UInt32& thermalSamplingPeriod() const;
-
-    XmlNode* getXml();
-    Bool operator==(const ThermalRelationshipTableEntry& trtEntry) const;
-
-private:
-
-    UInt32 m_thermalInfluence;
-    UInt32 m_thermalSamplingPeriod;
+    union esif_data_variant sourceDevice;           //ObjectReference - 64 byte string
+    union esif_data_variant targetDevice;           //ObjectReference - 64 byte string
+    union esif_data_variant thermalInfluence;       //ULONG
+    union esif_data_variant thermalSamplingPeriod;  //ULONG
+    union esif_data_variant reserved1;              //ULONG
+    union esif_data_variant reserved2;              //ULONG
+    union esif_data_variant reserved3;              //ULONG
+    union esif_data_variant reserved4;              //ULONG
 };
+
+#pragma pack(pop)

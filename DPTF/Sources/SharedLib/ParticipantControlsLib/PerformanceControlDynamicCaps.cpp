@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,9 +38,20 @@ UIntN PerformanceControlDynamicCaps::getCurrentUpperLimitIndex(void) const
     return m_currentUpperLimitIndex;
 }
 
-XmlNode* PerformanceControlDynamicCaps::getXml(void)
+Bool PerformanceControlDynamicCaps::operator==(const PerformanceControlDynamicCaps& rhs) const
 {
-    XmlNode* root = XmlNode::createWrapperElement("performance_control_dynamic_caps");
+    return (m_currentUpperLimitIndex == rhs.m_currentUpperLimitIndex &&
+        m_currentLowerLimitIndex == rhs.m_currentLowerLimitIndex);
+}
+
+Bool PerformanceControlDynamicCaps::operator!=(const PerformanceControlDynamicCaps& rhs) const
+{
+    return !(*this == rhs);
+}
+
+std::shared_ptr<XmlNode> PerformanceControlDynamicCaps::getXml(void)
+{
+    auto root = XmlNode::createWrapperElement("performance_control_dynamic_caps");
 
     root->addChild(XmlNode::createDataElement("upper_limit_index", StatusFormat::friendlyValue(m_currentUpperLimitIndex)));
     root->addChild(XmlNode::createDataElement("lower_limit_index", StatusFormat::friendlyValue(m_currentLowerLimitIndex)));

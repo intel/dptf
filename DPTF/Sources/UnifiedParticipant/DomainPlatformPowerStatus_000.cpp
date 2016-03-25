@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,16 +30,6 @@ Power DomainPlatformPowerStatus_000::getMaxBatteryPower(UIntN participantIndex, 
     throw not_implemented();
 }
 
-Power DomainPlatformPowerStatus_000::getAdapterPower(UIntN participantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
-Power DomainPlatformPowerStatus_000::getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
 Power DomainPlatformPowerStatus_000::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
 {
     throw not_implemented();
@@ -55,17 +45,17 @@ DptfBuffer DomainPlatformPowerStatus_000::getBatteryStatus(UIntN participantInde
     throw not_implemented();
 }
 
+DptfBuffer DomainPlatformPowerStatus_000::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 PlatformPowerSource::Type DomainPlatformPowerStatus_000::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
 {
     throw not_implemented();
 }
 
 ChargerType::Type DomainPlatformPowerStatus_000::getChargerType(UIntN participantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
-Percentage DomainPlatformPowerStatus_000::getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex)
 {
     throw not_implemented();
 }
@@ -80,14 +70,18 @@ TimeSpan DomainPlatformPowerStatus_000::getACPeakTimeWindow(UIntN participantInd
     throw not_implemented();
 }
 
+Power DomainPlatformPowerStatus_000::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 void DomainPlatformPowerStatus_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
 }
 
-XmlNode* DomainPlatformPowerStatus_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPlatformPowerStatus_000::getXml(UIntN domainIndex)
 {
-    // Do nothing.  Not an error.
     throw not_implemented();
 }
 

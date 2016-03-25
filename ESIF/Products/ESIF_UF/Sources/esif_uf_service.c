@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -232,7 +232,7 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 
 	/* Lookup or Domain Qualifier from the provided domain handle */
 	/* If the domainHandle is NULL use domain 0 as agreed with DPTF */
-	if (NULL == participant_data_map_ptr || NULL == domainHandle) {
+	if (NULL == domainHandle) {
 		domain_id     = 0;
 		qualifier_str = "D0";
 	} else {
@@ -395,6 +395,20 @@ eEsifError ESIF_CALLCONV EsifSvcEventUnregister(
 	return EsifApp_UnregisterEvent(esifHandle, appHandle, upHandle, domainHandle, eventGuidPtr);
 }
 
+/*
+** Provide interface for App to send event to ESIF
+*/
+eEsifError ESIF_CALLCONV EsifSvcEventReceive(
+	const void *esifHandle,     
+	const void *appHandle,		
+	const void *participantHandle,
+	const void *domainHandle,	
+	const EsifDataPtr eventDataPtr,
+	const EsifDataPtr eventGuidPtr
+	)
+{
+	return EsifApp_ReceiveEvent(esifHandle, appHandle, participantHandle, domainHandle, eventDataPtr, eventGuidPtr);
+}
 
 eEsifError EsifSvcInit()
 {

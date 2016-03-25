@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,6 +50,7 @@ public:
     virtual void onUnbindParticipant(UIntN participantIndex) override;
     virtual void onBindDomain(UIntN participantIndex, UIntN domainIndex) override;
     virtual void onUnbindDomain(UIntN participantIndex, UIntN domainIndex) override;
+    virtual void onOperatingSystemEmergencyCallModeChanged(UIntN emergencyCallMode) override;
     virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
     virtual void onParticipantSpecificInfoChanged(UIntN participantIndex) override;
 
@@ -58,6 +59,7 @@ private:
     mutable CriticalPolicyStatistics m_stats;
     Bool m_sleepRequested;
     Bool m_hibernateRequested;
+    Bool m_inEmergencyCallMode;
 
     Bool participantHasDesiredProperties(ParticipantProxyInterface* newParticipant);
     void takePowerActionBasedOnThermalState(ParticipantProxyInterface* participant);
@@ -72,8 +74,9 @@ private:
         Temperature currentTemperature,
         std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints);
     void takePowerAction(const Temperature& currentTemperature, ParticipantSpecificInfoKey::Type crossedTripPoint, const Temperature& crossedTripPointTemperature);
+    void reEvaluateAllParticipants();
     ParticipantSpecificInfoKey::Type findTripPointCrossed(
         const std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>>& tripPoints,
         const Temperature& currentTemperature);
-    XmlNode* getXmlForCriticalTripPoints() const;
+    std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() const;
 };

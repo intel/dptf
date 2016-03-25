@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,21 @@ DomainPropertiesSet::DomainPropertiesSet(std::vector<DomainProperties> domainPro
 DomainPropertiesSet::DomainPropertiesSet(DomainProperties domainProperties)
 {
     m_domainProperties.push_back(domainProperties);
+}
+
+DomainProperties DomainPropertiesSet::getDomainProperties(UIntN domainIndex) const
+{
+    for (auto properties = m_domainProperties.begin(); properties != m_domainProperties.end(); properties++)
+    {
+        if (properties->getDomainIndex() == domainIndex)
+        {
+            return *properties;
+        }
+    }
+
+    throw dptf_exception("Domain properties for domain index of " + 
+        StlOverride::to_string(domainIndex) + 
+        " does not exist.");
 }
 
 UIntN DomainPropertiesSet::getDomainCount(void) const

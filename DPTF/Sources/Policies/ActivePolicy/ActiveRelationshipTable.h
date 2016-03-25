@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,24 +22,26 @@
 #include "RelationshipTableBase.h"
 #include "ActiveRelationshipTableEntry.h"
 #include "XmlNode.h"
-#include "BinaryParse.h"
+#include "EsifDataBinaryArtPackage.h"
 #include "DptfBuffer.h"
 
 class dptf_export ActiveRelationshipTable final : public RelationshipTableBase
 {
 public:
 
+    ActiveRelationshipTable();
     ActiveRelationshipTable(const std::vector<ActiveRelationshipTableEntry>& entries);
     virtual ~ActiveRelationshipTable();
 
     static ActiveRelationshipTable createArtFromDptfBuffer(const DptfBuffer& buffer);
+    DptfBuffer toArtBinary() const;
     virtual UIntN getNumberOfEntries(void) const override;
     const ActiveRelationshipTableEntry& operator[](UIntN index) const;
     std::vector<UIntN> getAllSources(void) const;
     std::vector<UIntN> getAllTargets(void) const;
     std::vector<ActiveRelationshipTableEntry> getEntriesForTarget(UIntN target);
     std::vector<ActiveRelationshipTableEntry> getEntriesForSource(UIntN source);
-    XmlNode* getXml();
+    std::shared_ptr<XmlNode> getXml();
     Bool operator==(const ActiveRelationshipTable& art) const;
 
 protected:
@@ -50,4 +52,5 @@ private:
 
     std::vector<ActiveRelationshipTableEntry> m_entries;
     static UIntN countArtRows(UInt32 size, UInt8* data);
+    static void throwIfOutOfRange(IntN bytesRemaining);
 };

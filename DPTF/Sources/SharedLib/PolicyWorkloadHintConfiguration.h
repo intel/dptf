@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,7 +31,7 @@ public:
     void add(const PolicyWorkloadGroup& workloadGroup);
     UInt32 getHintForApplication(const std::string& application);
 
-    XmlNode* getXml() const;
+    std::shared_ptr<XmlNode> getXml() const;
 
 private:
 

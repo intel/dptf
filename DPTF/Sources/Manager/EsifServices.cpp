@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -635,6 +635,10 @@ void EsifServices::throwIfNotSuccessful(const std::string& fileName, UIntN lineN
     {
         throw primitive_not_found_in_dsp(message);
     }
+    else if (returnCode == ESIF_E_PRIMITIVE_DST_UNAVAIL)
+    {
+        throw primitive_destination_unavailable(message);
+    }
 
     throw primitive_execution_failed(message);
 }
@@ -666,5 +670,29 @@ void EsifServices::throwIfParticipantDomainCombinationInvalid(const std::string&
 
         writeMessageWarning(message);
         throw dptf_exception(message);
+    }
+}
+
+void EsifServices::sendDptfEvent(FrameworkEvent::Type frameworkEvent, UIntN participantIndex, UIntN domainIndex, EsifData eventData)
+{
+    throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
+
+    Guid guid = FrameworkEventInfo::instance()->getGuid(frameworkEvent);
+
+    eEsifError rc = m_appServices->sendEvent(m_esifHandle, m_dptfManager, 
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(participantIndex),
+        (void*)m_dptfManager->getIndexContainer()->getIndexPtr(domainIndex),
+        &eventData,
+        EsifDataGuid(guid));
+
+    if (rc != ESIF_OK)
+    {
+        ManagerMessage message = ManagerMessage(m_dptfManager, FLF,
+            "Error returned from ESIF send event function call");
+        message.setFrameworkEvent(frameworkEvent);
+        message.addMessage("Guid", guid.toString());
+        message.setParticipantAndDomainIndex(participantIndex, domainIndex);
+        message.setEsifErrorCode(rc);
+        writeMessageWarning(message);
     }
 }

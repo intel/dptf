@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -146,11 +146,11 @@ Bool PerformanceControlKnob::canLimit(UIntN target)
             {
                 if (m_controlType == PerformanceControlType::PerformanceState)
                 {
-                    return checkUtilizationIsLessThanThreshold();
+                    return false;
                 }
                 else
                 {
-                    return false;
+                    return checkUtilizationIsLessThanThreshold();
                 }
             }
             // t-state to t-state
@@ -398,9 +398,9 @@ void PerformanceControlKnob::clearAllRequests()
     m_requests->clear();
 }
 
-XmlNode* PerformanceControlKnob::getXml()
+std::shared_ptr<XmlNode> PerformanceControlKnob::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("performance_control_status");
+    auto status = XmlNode::createWrapperElement("performance_control_status");
     if (m_performanceControl->supportsPerformanceControls())
     {
         status->addChild(XmlNode::createDataElement("type", controlTypeToString(m_controlType)));

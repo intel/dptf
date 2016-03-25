@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -149,6 +149,7 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_event.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_eventmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_ipc.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_logging.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_loggingmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_pm.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_primitive.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_service.o

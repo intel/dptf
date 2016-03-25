@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,6 +27,7 @@ public:
 
     DomainPropertiesSet(std::vector<DomainProperties> domainProperties);
     DomainPropertiesSet(DomainProperties domainProperties);
+    DomainProperties getDomainProperties(UIntN domainIndex) const;
     UIntN getDomainCount(void) const;
     const DomainProperties& operator[](UIntN index) const;
     UIntN getDomainIndexFromDomainType(DomainType::Type domainType) const;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -228,15 +228,16 @@ void EsifData_Set (
 	u32 data_len
 	)
 {
-	int bytes = ((buf_ptr && (buf_len == ESIFAUTOLEN || data_len == ESIFAUTOLEN)) ? (UInt32)esif_ccb_strlen((char*)buf_ptr, MAXAUTOLEN) + 1 : 0);
-	ESIF_ASSERT(self);
-	if (self->buf_len) {
-		esif_ccb_free(self->buf_ptr);
+	if (self) {
+		int bytes = ((buf_ptr && (buf_len == ESIFAUTOLEN || data_len == ESIFAUTOLEN)) ? (UInt32)esif_ccb_strlen((char*)buf_ptr, MAXAUTOLEN) + 1 : 0);
+		if (self->buf_len) {
+			esif_ccb_free(self->buf_ptr);
+		}
+		self->type     = type;
+		self->buf_ptr  = buf_ptr;
+		self->buf_len  = (buf_len == ESIFAUTOLEN ?  bytes : buf_len);
+		self->data_len = (data_len == ESIFAUTOLEN ? bytes : data_len);
 	}
-	self->type     = type;
-	self->buf_ptr  = buf_ptr;
-	self->buf_len  = (buf_len == ESIFAUTOLEN ?  bytes : buf_len);
-	self->data_len = (data_len == ESIFAUTOLEN ? bytes : data_len);
 }
 
 
@@ -355,33 +356,40 @@ char *EsifData_ToString (EsifDataPtr self)
 		return NULL;
 	}
 	else {
+		char intstr[MAXSTR_INT64] = { 0 };
 		result = (char*)esif_ccb_malloc(alloc);
 		if (result == NULL) {
 			return NULL;
 		}
 		switch (self->type) {
 		case ESIF_DATA_BIT:
-			esif_ccb_sprintf(alloc, result, "%ld", (long)((Int8)u32data & 0x1));
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%ld", (long)((Int8)u32data & 0x1));
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_INT8:
-			esif_ccb_sprintf(alloc, result, "%ld", (long)((Int8)u32data));
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%ld", (long)((Int8)u32data));
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_INT16:
-			esif_ccb_sprintf(alloc, result, "%hd", (Int16)u32data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%hd", (Int16)u32data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_INT32:
-			esif_ccb_sprintf(alloc, result, "%ld", (long)u32data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%ld", (long)u32data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_UINT8:
-			esif_ccb_sprintf(alloc, result, "%lu", (long unsigned)(UInt8)u32data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%lu", (long unsigned)(UInt8)u32data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_UINT16:
-			esif_ccb_sprintf(alloc, result, "%hu", (UInt16)u32data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%hu", (UInt16)u32data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_UINT32:
@@ -389,16 +397,19 @@ char *EsifData_ToString (EsifDataPtr self)
 		case ESIF_DATA_POWER:
 		case ESIF_DATA_TIME:
 		case ESIF_DATA_PERCENT:
-			esif_ccb_sprintf(alloc, result, "%lu", (long unsigned)u32data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%lu", (long unsigned)u32data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_INT64:
-			esif_ccb_sprintf(alloc, result, "%lld", (Int64)u64data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%lld", (Int64)u64data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_UINT64:
 		case ESIF_DATA_FREQUENCY:
-			esif_ccb_sprintf(alloc, result, "%llu", (UInt64)u64data);
+			esif_ccb_sprintf(sizeof(intstr), intstr, "%llu", (UInt64)u64data);
+			esif_ccb_strcpy(result, intstr, alloc);
 			break;
 
 		case ESIF_DATA_STRING:
@@ -538,7 +549,7 @@ eEsifError EsifData_FromString (
 		break;
 
 	case ESIF_DATA_STRING:
-		alloc   = (str ? (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) + 1 : 0);
+		alloc   = (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) + 1;
 		ptrdata = (Byte*)str;
 		ptrlen  = alloc;
 		break;
@@ -568,12 +579,12 @@ eEsifError EsifData_FromString (
 	case ESIF_DATA_BINARY:
 	default:
 		ptrdata = (Byte*)str;
-		ptrlen  = (str ? (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) : 0);
-		if (NULL != str && esif_ccb_strnicmp(str, "0x", 2) == 0) {
+		ptrlen  = (UInt32)esif_ccb_strlen(str, MAXAUTOLEN);
+		if (esif_ccb_strnicmp(str, "0x", 2) == 0) {
 			alloc = ptrlen / 2 - 1;	// "0xABCD"
 		} else {
 			// else treat as string for now
-			alloc = (str ? (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) + 1 : 0);
+			alloc = (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) + 1;
 		}
 		break;
 	}
@@ -587,7 +598,11 @@ eEsifError EsifData_FromString (
 		ESIF_ASSERT(self->buf_ptr);
 		SAFETY(memset(self->buf_ptr, 0, alloc));
 		buffer = (Byte*)self->buf_ptr;
-		rc     = ESIF_OK;
+		if (buffer == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+		rc = ESIF_OK;
 
 		// Convert Data
 		switch (type) {
@@ -663,10 +678,11 @@ eEsifError EsifData_FromString (
 			// TODO: Convert "0xABCD"
 			if (esif_ccb_strnicmp(str, "0x", 2) == 0) {
 				idx = 0;
-				if (ptrlen % 2 == 1 && idx < alloc) {	// Odd-length hex vaules: 0xABC
+				if (ptrlen % 2 == 1) {	// Handle odd-length hex vaules: 0xABC 0xABCDE
 					buffer[idx++] = (UInt8)tohexdigit(str[0]);
 					str++;
-				} else {
+				} 
+				else {
 					str += 2;
 				}
 				for ( ; idx < alloc && isxdigit(str[idx * 2]) && isxdigit(str[idx * 2 + 1]); idx++)
@@ -678,5 +694,7 @@ eEsifError EsifData_FromString (
 			break;
 		}
 	}
+
+exit:
 	return rc;
 }

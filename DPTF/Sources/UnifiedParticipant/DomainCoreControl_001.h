@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "BinaryParse.h"
 #include "DomainCoreControlBase.h"
+#include "CachedValue.h"
 
 //
 // Core Controls (Processor)
@@ -42,10 +43,13 @@ public:
     virtual void setActiveCoreControl(UIntN participantIndex, UIntN domainIndex, 
         const CoreControlStatus& coreControlStatus) override;
 
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 
@@ -54,14 +58,14 @@ private:
     DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs);
 
     // Functions
-    void createCoreControlStaticCapsIfNeeded(UIntN domainIndex);
-    void createCoreControlDynamicCapsIfNeeded(UIntN domainIndex);
-    void createCoreControlLpoPreferenceIfNeeded(UIntN domainIndex);
+    CoreControlStaticCaps createCoreControlStaticCaps(UIntN domainIndex);
+    CoreControlDynamicCaps createCoreControlDynamicCaps(UIntN domainIndex);
+    CoreControlLpoPreference createCoreControlLpoPreference(UIntN domainIndex);
     void verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus);
 
     // Vars (external)
-    CoreControlStaticCaps* m_coreControlStaticCaps;
-    CoreControlDynamicCaps* m_coreControlDynamicCaps;
-    CoreControlLpoPreference* m_coreControlLpoPreference;
-    CoreControlStatus* m_coreControlStatus;
+    CachedValue<CoreControlStaticCaps> m_coreControlStaticCaps;
+    CachedValue<CoreControlDynamicCaps> m_coreControlDynamicCaps;
+    CachedValue<CoreControlLpoPreference> m_coreControlLpoPreference;
+    CachedValue<CoreControlStatus> m_coreControlStatus;
 };

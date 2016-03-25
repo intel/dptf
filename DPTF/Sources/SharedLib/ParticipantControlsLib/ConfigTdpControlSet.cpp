@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,9 +54,9 @@ std::vector<std::string> ConfigTdpControlSet::getAsNameList() const
     return nameList;
 }
 
-XmlNode* ConfigTdpControlSet::getXml(void)
+std::shared_ptr<XmlNode> ConfigTdpControlSet::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("config_tdp_control_set");
+    auto root = XmlNode::createWrapperElement("config_tdp_control_set");
     for (UIntN i = 0; i < m_configTdpControl.size(); i++)
     {
         root->addChild(m_configTdpControl[i].getXml());

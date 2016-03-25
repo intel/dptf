@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -121,9 +121,9 @@ std::shared_ptr<T> DomainControlList::makeControl(
     return control;
 }
 
-XmlNode* DomainControlList::getXml()
+std::shared_ptr<XmlNode> DomainControlList::getXml()
 {
-    XmlNode* domain = XmlNode::createWrapperElement("domain_controls");
+    auto domain = XmlNode::createWrapperElement("domain_controls");
     for (auto control = m_controlList.begin(); control != m_controlList.end(); control++)
     {
         try

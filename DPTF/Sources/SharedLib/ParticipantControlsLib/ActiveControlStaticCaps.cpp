@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,9 +53,9 @@ Bool ActiveControlStaticCaps::operator!=(const ActiveControlStaticCaps& rhs) con
     return !(*this == rhs);
 }
 
-XmlNode* ActiveControlStaticCaps::getXml(void)
+std::shared_ptr<XmlNode> ActiveControlStaticCaps::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("active_control_static_caps");
+    auto root = XmlNode::createWrapperElement("active_control_static_caps");
 
     root->addChild(XmlNode::createDataElement("fine_grained_control", StatusFormat::friendlyValue(m_fineGrainedControl)));
     root->addChild(XmlNode::createDataElement("low_speed_notification", StatusFormat::friendlyValue(m_lowSpeedNotification)));

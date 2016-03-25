@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -81,8 +81,6 @@ enum esif_power_unit_type {
 	ESIF_POWER_CENTIW,	    /* Centi Watts  .01 Watts    */
 	ESIF_POWER_MILLIW,	    /* Milli Watts .001 Watts    */
 	ESIF_POWER_MICROW,	    /* Micro Watts .000001 Watts */
-	ESIF_POWER_UNIT_ATOM,   /* 1 * (2 ^ RAPL_POWER_UNIT) */
-	ESIF_POWER_UNIT_CORE	/* 1 / (2 ^ RAPL_POWER_UNIT)   */
 };
 
 /* Power Unit Type String */
@@ -95,8 +93,6 @@ static ESIF_INLINE esif_string esif_power_unit_type_str(
 	ESIF_CASE_ENUM(ESIF_POWER_CENTIW);
 	ESIF_CASE_ENUM(ESIF_POWER_MILLIW);
 	ESIF_CASE_ENUM(ESIF_POWER_MICROW);
-	ESIF_CASE_ENUM(ESIF_POWER_UNIT_ATOM);
-	ESIF_CASE_ENUM(ESIF_POWER_UNIT_CORE);
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -112,8 +108,6 @@ static ESIF_INLINE esif_string esif_power_unit_desc(
 	ESIF_CASE(ESIF_POWER_CENTIW, "CentiW");
 	ESIF_CASE(ESIF_POWER_MILLIW, "MilliW");
 	ESIF_CASE(ESIF_POWER_MICROW, "MicroW");
-	ESIF_CASE(ESIF_POWER_UNIT_ATOM, "UnitAtom");
-	ESIF_CASE(ESIF_POWER_UNIT_CORE, "UnitCore");
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -164,16 +158,6 @@ static ESIF_INLINE int esif_convert_power(
 		val *= 10;
 		break;
 
-	case ESIF_POWER_UNIT_ATOM:
-		val = (val * 1000)/32; /* RAPL_POWER_UNIT = 5, Power 1mw * (2 ^ RAPL_POWER_UNIT) = 32mw*/
-		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
-		break;
-
-	case ESIF_POWER_UNIT_CORE:
-		val *= 8;   /* RAPL_POWER_UNIT = 3, Power 1000mw / (2 ^ RAPL_POWER_UNIT) = 125mw */
-		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
-		break;
-
 	case ESIF_POWER_W:
 		break;
 
@@ -196,16 +180,6 @@ static ESIF_INLINE int esif_convert_power(
 
 	case ESIF_POWER_DECIW:
 		val /= 10;
-		break;
-
-	case ESIF_POWER_UNIT_ATOM:
-		val = (val * 32)/1000;  /* RAPL_POWER_UNIT = 5, Power 1mw * (2 ^ RAPL_POWER_UNIT) = 32mw*/
-		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
-		break;
-
-	case ESIF_POWER_UNIT_CORE:
-		val /= 8;   /* RAPL_POWER_UNIT = 3, Power 1000mw / (2 ^ RAPL_POWER_UNIT) = 125mw */
-		/* LIFU TODO Get Power Unit From GET_RAPL_POWER_UNIT */
 		break;
 
 	case ESIF_POWER_W:

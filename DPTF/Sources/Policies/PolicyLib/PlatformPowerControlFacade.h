@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,7 +54,7 @@ public:
     virtual void setPl3TimeWindow(const TimeSpan& timeWindow) override;
     virtual void setPl3DutyCycle(const Percentage& dutyCycle) override;
 
-    XmlNode* getXml() const;
+    std::shared_ptr<XmlNode> getXml() const;
 
 private:
 
@@ -77,7 +77,7 @@ private:
     CachedValue<TimeSpan> m_pl3TimeWindow;
     CachedValue<Percentage> m_pl3DutyCycle;
 
-    XmlNode* createPl1XmlData() const;
-    XmlNode* createPl2XmlData() const;
-    XmlNode* createPl3XmlData() const;
+    std::shared_ptr<XmlNode> createPl1XmlData() const;
+    std::shared_ptr<XmlNode> createPl2XmlData() const;
+    std::shared_ptr<XmlNode> createPl3XmlData() const;
 };

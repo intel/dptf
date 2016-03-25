@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,6 +37,11 @@ std::string dptf_exception::getDescription() const
     return m_description;
 }
 
+temperature_out_of_range::temperature_out_of_range(const std::string& description) : 
+    dptf_exception(description)
+{
+}
+
 memory_allocation_failure::memory_allocation_failure(const std::string& description) :
     dptf_exception(description)
 {
@@ -53,6 +58,11 @@ primitive_execution_failed::primitive_execution_failed(const std::string& descri
 }
 
 primitive_try_again::primitive_try_again(const std::string& description) :
+dptf_exception(description)
+{
+}
+
+primitive_destination_unavailable::primitive_destination_unavailable(const std::string& description) :
 dptf_exception(description)
 {
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,8 +57,8 @@ private:
     std::string getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCode);
     std::string getXmlForParticipant(UInt32 mappedIndex, eEsifError* returnCode);
     std::string getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode);
-    XmlNode* getXmlForFrameworkLoadedPolicies();
-    XmlNode* getXmlForFrameworkLoadedParticipants();
+    std::shared_ptr<XmlNode> getXmlForFrameworkLoadedPolicies();
+    std::shared_ptr<XmlNode> getXmlForFrameworkLoadedParticipants();
 
     void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
 

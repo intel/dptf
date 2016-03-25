@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -80,6 +80,15 @@ static eEsifError EsifSetActionDelegateSampleBehavior(
 	const EsifDataPtr requestPtr);
 
 static eEsifError EsifSetActionDelegateVirtualTemperature(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr);
+
+static eEsifError EsifSetActionDelegateToSignalOSEvent(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr,
+	eEsifEventType eventType);
+
+static eEsifError EsifSetActionDelegateToSignalForegroundAppChanged(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr);
 
@@ -216,6 +225,61 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 	case 'BHPS':	/* SPHB: Set Participant Hysteresis Behavior */
 		ESIF_TRACE_INFO("Set Participant Hysteresis Behavior received\n");
 		rc = EsifSetActionDelegateSphb(domainPtr, requestPtr);
+		break;
+
+	case 'CSPS':    /* SPSC: Set Platform State Of Charge */
+		ESIF_TRACE_INFO("Set OS Battery Percentage received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED);
+		break;
+
+	case 'SPPS':    /* SPPS: Set Platform Power Source */
+		ESIF_TRACE_INFO("Set Platform Power Source received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_POWER_SOURCE_CHANGED);
+		break;
+
+	case 'OPDS':    /* SDPO: Set Display Orientation */
+		ESIF_TRACE_INFO("Set Display Orientation received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED);
+		break;
+
+	case 'OVDS':    /* SDVO: Set Device Orientation */
+		ESIF_TRACE_INFO("Set Device Orientation received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DEVICE_ORIENTATION_CHANGED);
+		break;
+
+	case 'COMS':    /* SMOC: Set Motion Changed */
+		ESIF_TRACE_INFO("Set Motion Changed received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_MOTION_CHANGED);
+		break;
+
+	case 'MKDS':    /* SDKM: Set Dock Mode */
+		ESIF_TRACE_INFO("Set Dock Mode received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_DOCK_MODE_CHANGED);
+		break;
+
+	case 'MLCS':    /* SCLM: Set Cooling Mode */
+		ESIF_TRACE_INFO("Set Cooling Mode received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED);
+		break;
+
+	case 'TSLS':    /* SLST: Set Lid State */
+		ESIF_TRACE_INFO("Set Lid State received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_LID_STATE_CHANGED);
+		break;
+
+	case 'TFPS':    /* SPFT: Set Platform Type */
+		ESIF_TRACE_INFO("Set Platform Type received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED);
+		break;
+
+	case 'AGFS':    /* SFGA: Set Foreground Application */
+		ESIF_TRACE_INFO("Set Foreground Application received\n");
+		rc = EsifSetActionDelegateToSignalForegroundAppChanged(domainPtr, requestPtr);
+		break;
+
+	case 'NOMS':    /* SMON: Set Mobile Notification */
+		ESIF_TRACE_INFO("Set Mobile Notification request received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_MOBILE_NOTIFICATION);
 		break;
 
 	default:
@@ -412,71 +476,68 @@ static eEsifError EsifGetActionDelegateGddv(
 		DataVaultPtr DB = DataBank_GetNameSpace(g_DataBankMgr, dv_name);
 		if (DB != NULL) {
 			DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-			DB = NULL;
 		}
-		if (DB == NULL) {
-			DB = DataBank_OpenNameSpace(g_DataBankMgr, dv_name);
+		DB = DataBank_OpenNameSpace(g_DataBankMgr, dv_name);
 
-			// Load Datavault into temporary namespace. DV may or may not be preceded by a variant
-			if (DB) {
-				u32 skipbytes = 0;
-				void *buffer = NULL;
+		// Load Datavault into temporary namespace. DV may or may not be preceded by a variant
+		if (DB) {
+			u32 skipbytes = 0;
+			void *buffer = NULL;
 
-				//
-				// This is in place to resolve a static code analysis issue.
-				// This should never happen if EsifUp_ExecutePrimitive is successful above.
-				//
-				if (NULL == surrogateData.buf_ptr) {
-					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-					ESIF_TRACE_DEBUG("No data returned for BIOS datavault.\n");
-					goto exit;
-				}
+			//
+			// This is in place to resolve a static code analysis issue.
+			// This should never happen if EsifUp_ExecutePrimitive is successful above.
+			//
+			if (NULL == surrogateData.buf_ptr) {
+				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+				ESIF_TRACE_DEBUG("No data returned for BIOS datavault.\n");
+				goto exit;
+			}
 
-				skipbytes = (memcmp(surrogateData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
-				buffer = esif_ccb_malloc(surrogateData.data_len);
-				if (NULL == buffer) {
-					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-					ESIF_TRACE_DEBUG("Unable to allocate memory\n");
+			skipbytes = (memcmp(surrogateData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
+			buffer = esif_ccb_malloc(surrogateData.data_len);
+			if (NULL == buffer) {
+				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+				ESIF_TRACE_DEBUG("Unable to allocate memory\n");
+				rc = ESIF_E_NO_MEMORY;
+				goto exit;
+			}
+
+			esif_ccb_memcpy(buffer, (u8*)surrogateData.buf_ptr + skipbytes, surrogateData.data_len - skipbytes);
+			IOStream_SetMemory(DB->stream, buffer, surrogateData.data_len - skipbytes);
+
+			if ((rc = DataVault_ReadVault(DB)) != ESIF_OK) {
+				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+				ESIF_TRACE_DEBUG("Unable to Open DataVault: %s\n", esif_rc_str(rc));
+				rc = ESIF_OK;
+			}
+			else {
+				EsifDataPtr data_nspace = NULL;
+				EsifDataPtr data_key = NULL;
+				EsifDataPtr data_targetdv = NULL;
+				esif_flags_t options = 0; // NOPERSIST
+				esif_string keyspec = "*"; // Merge All Keys
+				esif_string targetdv = g_DataVaultDefault;
+
+				DB->flags |= (ESIF_SERVICE_CONFIG_READONLY);
+				ESIF_TRACE_DEBUG("DV Opened: %s\n", dv_name);
+
+				// Merge Contents into Default DataVault
+				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, dv_name, 0, ESIFAUTOLEN);
+				data_targetdv = EsifData_CreateAs(ESIF_DATA_STRING, targetdv, 0, ESIFAUTOLEN);
+				data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+				if (data_nspace == NULL || data_key == NULL || data_targetdv == NULL) {
 					rc = ESIF_E_NO_MEMORY;
-					goto exit;
-				}
-
-				esif_ccb_memcpy(buffer, (u8*)surrogateData.buf_ptr + skipbytes, surrogateData.data_len - skipbytes);
-				IOStream_SetMemory(DB->stream, buffer, surrogateData.data_len - skipbytes);
-
-				if ((rc = DataVault_ReadVault(DB)) != ESIF_OK) {
-					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-					ESIF_TRACE_DEBUG("Unable to Open DataVault: %s\n", esif_rc_str(rc));
-					rc = ESIF_OK;
 				}
 				else {
-					EsifDataPtr data_nspace = NULL;
-					EsifDataPtr data_key = NULL;
-					EsifDataPtr data_targetdv = NULL;
-					esif_flags_t options = 0; // NOPERSIST
-					esif_string keyspec = "*"; // Merge All Keys
-					esif_string targetdv = g_DataVaultDefault;
-
-					DB->flags |= (ESIF_SERVICE_CONFIG_READONLY);
-					ESIF_TRACE_DEBUG("DV Opened: %s\n", dv_name);
-
-					// Merge Contents into Default DataVault
-					data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, dv_name, 0, ESIFAUTOLEN);
-					data_targetdv = EsifData_CreateAs(ESIF_DATA_STRING, targetdv, 0, ESIFAUTOLEN);
-					data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
-					if (data_nspace == NULL || data_key == NULL || data_targetdv == NULL) {
-						rc = ESIF_E_NO_MEMORY;
-					}
-					else {
-						rc = EsifConfigCopy(data_nspace, data_targetdv, data_key, options, ESIF_FALSE);
-					}
-					EsifData_Destroy(data_nspace);
-					EsifData_Destroy(data_key);
-					EsifData_Destroy(data_targetdv);
-					DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+					rc = EsifConfigCopy(data_nspace, data_targetdv, data_key, options, ESIF_FALSE, NULL);
 				}
-				esif_ccb_free(buffer);
+				EsifData_Destroy(data_nspace);
+				EsifData_Destroy(data_key);
+				EsifData_Destroy(data_targetdv);
+				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
 			}
+			esif_ccb_free(buffer);
 		}
 	}
 exit:
@@ -529,6 +590,54 @@ static eEsifError EsifSetActionDelegateVirtualTemperature(
 	ESIF_TRACE_DEBUG("Setting Virtual Temp = %d\n", virtTemp);
 
 	EsifUpDomain_SetVirtualTemperature(domainPtr, virtTemp);
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifSetActionDelegateToSignalOSEvent(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr,
+	eEsifEventType eventType)
+{
+	eEsifError rc = ESIF_OK;
+	u32 updatedValue = 0;
+
+	ESIF_ASSERT(domainPtr != NULL);
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if (requestPtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	updatedValue = *(u32 *)requestPtr->buf_ptr;
+	EsifUpDomain_SignalOSEvent(domainPtr, updatedValue, eventType);
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifSetActionDelegateToSignalForegroundAppChanged(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr)
+{
+	eEsifError rc = ESIF_OK;
+	EsifString appName = NULL;
+
+	ESIF_ASSERT(domainPtr != NULL);
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if (requestPtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	appName = (EsifString)requestPtr->buf_ptr;
+
+	ESIF_TRACE_DEBUG("Setting Foreground App = %s\n", appName);
+
+	EsifUpDomain_SignalForegroundAppChanged(domainPtr, appName);
 
 exit:
 	return rc;

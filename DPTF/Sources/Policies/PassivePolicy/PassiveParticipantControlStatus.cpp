@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,9 +34,9 @@ PassiveParticipantControlStatus::PassiveParticipantControlStatus(ParticipantProx
     }
 }
 
-XmlNode* PassiveParticipantControlStatus::getXml()
+std::shared_ptr<XmlNode> PassiveParticipantControlStatus::getXml()
 {
-    XmlNode* participantControlStatus = XmlNode::createWrapperElement("participant_control_status");
+    auto participantControlStatus = XmlNode::createWrapperElement("participant_control_status");
     participantControlStatus->addChild(XmlNode::createDataElement("index", friendlyValue(m_participantIndex)));
     participantControlStatus->addChild(XmlNode::createDataElement("name", m_name));
     for (auto status = m_domainStatus.begin(); status != m_domainStatus.end(); status++)

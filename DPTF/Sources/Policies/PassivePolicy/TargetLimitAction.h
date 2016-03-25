@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,7 +31,7 @@ public:
         PolicyServicesInterfaceContainer& policyServices, 
         std::shared_ptr<TimeInterface> time,
         std::shared_ptr<ParticipantTrackerInterface> participantTracker,
-        ThermalRelationshipTable& trt,
+        std::shared_ptr<ThermalRelationshipTable> trt,
         std::shared_ptr<CallbackScheduler> callbackScheduler,
         TargetMonitor& targetMonitor,
         UIntN target);
@@ -55,6 +55,6 @@ private:
     Bool domainReportsUtilization(UIntN source, UIntN domain);
 
     // domain limiting
-    void requestLimit(UIntN source, UIntN domain, UIntN target);
+    void requestLimit(UIntN source, UIntN domainIndex, UIntN target);
     void commitLimit(UIntN source, UInt64 time);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -86,6 +86,7 @@
 	TRACEOFF(ESIF_TRACEMODULE_WINDOWS)  | \
 	TRACEON (ESIF_TRACEMODULE_ACTWIRELESS)  | \
 	TRACEOFF(ESIF_TRACEMODULE_UMDF) | \
+	TRACEOFF(ESIF_TRACEMODULE_LOGGINGMGR) | \
 	TRACEOFF(0) )
 
 int g_traceLevel = ESIF_TRACELEVEL_DEFAULT;
@@ -134,7 +135,7 @@ static const char *EsifTraceModule_FullName(enum esif_tracemodule val)
 const char *EsifTraceModule_ToString(enum esif_tracemodule val)
 {
 	const char *str = EsifTraceModule_FullName(val);
-	if (str && esif_ccb_strlen(str, 20) >= 17)
+	if (esif_ccb_strlen(str, 20) >= 17)
 		str += 17; // Truncate "ESIF_TRACEMODULE_"
 	return str;
 }

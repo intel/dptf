@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -75,6 +75,7 @@ static eEsifError EsifUp_SelectDspByUpInterface(
 
 static eEsifError EsifUp_InitDomains(EsifUpPtr self);
 
+#ifndef ESIF_FEAT_OPT_ACTION_SYSFS
 static eEsifError EsifUp_ExecuteLfSetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
@@ -91,6 +92,7 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 	EsifDataPtr requestPtr,
 	const EsifDataPtr responsePtr
 	);
+#endif
 static eEsifError EsifUp_ExecuteUfSetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
@@ -149,8 +151,8 @@ eEsifError EsifUp_DspReadyInit(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	UInt32 domainIndex;
-	char domain_str[8] = "";
+	UInt32 domainIndex = 0;
+	EsifUpDomainPtr upDomainPtr = NULL;
 
 	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -158,22 +160,13 @@ eEsifError EsifUp_DspReadyInit(
 	}
 
 	for (domainIndex = 0; domainIndex < self->domainCount; domainIndex++) {
-		UInt32 period = 0;
-		EsifPrimitiveTuple periodTuple = {GET_PARTICIPANT_SAMPLE_PERIOD, self->domains[domainIndex].domain, 255};
-		EsifPrimitiveTuple behaviorTuple = {SET_PARTICIPANT_SAMPLE_BEHAVIOR, self->domains[domainIndex].domain, 255};
-		EsifData periodData = {ESIF_DATA_TIME, &period, sizeof(period), 0};
-
-		rc = EsifUp_ExecutePrimitive(self, &periodTuple, NULL, &periodData);
-		if (ESIF_OK == rc) {
-			ESIF_TRACE_DEBUG("Setting polling period for %s:%s to %d\n", EsifUp_GetName(self), domain_str, period);
-
-			rc = EsifUp_ExecutePrimitive(self, &behaviorTuple, &periodData, NULL);
-			if (rc != ESIF_OK) {
-				ESIF_TRACE_WARN("Failed to set polling period for %s:%s\n", EsifUp_GetName(self), domain_str);
-			}
+		
+		upDomainPtr = EsifUp_GetDomainById(self, self->domains[domainIndex].domain);
+		if (upDomainPtr) {
+			EsifUpDomain_InitTempPoll(upDomainPtr);
+			EsifUpDomain_InitPowerPoll(upDomainPtr);
+			EsifUpDomain_DspReadyInit(upDomainPtr);
 		}
-
-		EsifUpDomain_DspReadyInit(&self->domains[domainIndex]);
 	}
 	rc = ESIF_OK; /* Domain loop above best-effort */
 exit:
@@ -285,6 +278,26 @@ EsifUpDomainPtr EsifUp_GetDomainById(
 
 	rc = EsifDomainIdToIndex(domainId, &domainIndex);
 	if ((rc != ESIF_OK) || (domainIndex >= self->domainCount)) {
+		goto exit;
+	}
+
+	domainPtr = &self->domains[domainIndex];
+exit:
+	return domainPtr;
+}
+
+EsifUpDomainPtr EsifUp_GetDomainByIndex(
+	EsifUpPtr self,
+	UInt8 domainIndex
+	)
+{
+	EsifUpDomainPtr domainPtr = NULL;
+
+	if (NULL == self) {
+		goto exit;
+	}
+
+	if (domainIndex >= esif_ccb_min(self->domainCount, ESIF_DOMAIN_MAX)) {
 		goto exit;
 	}
 
@@ -518,6 +531,7 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	newUpPtr->fMetadata.fVersion = upInterfacePtr->version;
 	newUpPtr->fMetadata.fEnumerator = (enum esif_participant_enum)upInterfacePtr->enumerator;
 	newUpPtr->fMetadata.fFlags = upInterfacePtr->flags;
+	newUpPtr->fMetadata.fAcpiType = upInterfacePtr->acpi_type;
 
 	esif_ccb_memcpy(&newUpPtr->fMetadata.fDriverType, &upInterfacePtr->class_guid, ESIF_GUID_LEN);
 
@@ -528,7 +542,7 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	esif_ccb_strcpy(newUpPtr->fMetadata.fAcpiDevice, upInterfacePtr->device_name, ESIF_NAME_LEN);
 	esif_ccb_strcpy(newUpPtr->fMetadata.fDevicePath, upInterfacePtr->device_path, ESIF_PATH_LEN);
 	esif_ccb_strcpy(newUpPtr->fMetadata.fAcpiScope, upInterfacePtr->object_id, ESIF_SCOPE_LEN);
-
+	
 	rc = EsifUp_SelectDspByUpInterface(newUpPtr, upInterfacePtr);
 	if (rc != ESIF_OK) {
 		goto exit;
@@ -1148,6 +1162,9 @@ static eEsifError EsifUp_ExecuteAction(
 	ESIF_ASSERT(fpcActionPtr != NULL);
 
 	if (fpcActionPtr->is_kernel > 0) {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+		rc = ESIF_E_NO_LOWER_FRAMEWORK;
+#else
 		/* ESIF LF via IPC */
 		if (ESIF_PRIMITIVE_OP_GET == primitivePtr->operation) {
 			rc = EsifUp_ExecuteLfGetAction(self,
@@ -1167,7 +1184,7 @@ static eEsifError EsifUp_ExecuteAction(
 		ESIF_TRACE_DEBUG("Used ESIF LF for kernel action %d; rc = %s\n",
 			kernelActNum,
 			esif_rc_str(rc));
-
+#endif
 	} else {
 		/* User-Level Only */
 		if (ESIF_PRIMITIVE_OP_GET == primitivePtr->operation) {
@@ -1218,7 +1235,7 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 	actionType = fpcActionPtr->type;
 
 	/* Find Action From Action Type LIST */
-	actionPtr = EsifActMgr_GetAction(actionType, self->fInstance);
+	actionPtr = EsifActMgr_GetAction(actionType);
 	if (NULL == actionPtr) {
 		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 		ESIF_TRACE_DEBUG("Action For Type %d NOT FOUND Skipping...\n", actionType);
@@ -1243,19 +1260,21 @@ static eEsifError EsifUp_ExecuteUfGetAction(
 
 	rc = EsifUp_ExecuteIfaceGet(self, actionPtr, primitivePtr, fpcActionPtr, requestPtr, responsePtr);
 	
+	/* UF Transform*/
+	if (rc == ESIF_OK) {
+		rc = EsifUfExecuteTransform(
+			responsePtr,
+			self,
+			actionType,
+			ESIF_PRIMITIVE_OP_GET);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_DEBUG("Transformation error %s\n", esif_rc_str(rc));
+		}
+	}
 	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),
 		responsePtr->buf_len,
 		responsePtr->data_len);
-
-	/* UF Transform*/
-	if (rc == ESIF_OK) {
-		EsifUfExecuteTransform(
-			responsePtr,
-			actionType,
-			EsifUp_GetDsp(self),
-			ESIF_PRIMITIVE_OP_GET);
-	}
 exit:
 	EsifAct_PutRef(actionPtr);
 	return rc;
@@ -1341,7 +1360,7 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 
 	/* Find Action From Action Type LIST */
 	actionType = fpcActionPtr->type;
-	actionPtr = EsifActMgr_GetAction(actionType, self->fInstance);
+	actionPtr = EsifActMgr_GetAction(actionType);
 	if (NULL == actionPtr) {
 		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 		ESIF_TRACE_DEBUG("Action For Type %d NOT FOUND Skipping...\n", actionType);
@@ -1368,17 +1387,20 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	}
 
 	/* UF Transform*/
-	EsifUfExecuteTransform(requestPtr,
+	rc = EsifUfExecuteTransform(requestPtr,
+		self,
 		actionType,
-		EsifUp_GetDsp(self),
 		ESIF_PRIMITIVE_OP_SET);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Transformation error %s\n", esif_rc_str(rc));
+		goto exit;
+	}
 
 	rc = EsifUp_ExecuteIfaceSet(self,
 		actionPtr,
 		primitivePtr,
 		fpcActionPtr,
 		requestPtr);
-
 
 	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),
@@ -1446,7 +1468,7 @@ exit:
 	return rc;
 }
 
-
+#ifndef ESIF_FEAT_OPT_ACTION_SYSFS
 static eEsifError EsifUp_ExecuteLfGetAction(
 	EsifUpPtr self,
 	const EsifFpcPrimitivePtr primitivePtr,
@@ -1616,7 +1638,7 @@ exit:
 	}
 	return rc;
 }
-
+#endif
 
 /*
  * WARNING:  The allocated strings returned must be released by the caller 

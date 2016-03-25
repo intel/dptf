@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -121,19 +121,32 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 		UInt32 tripPointTemperature = 0;
 		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type) {
 			/*
-			** Thermal shutdown data was provided with request
-			*/
-			struct esif_data_complex_shutdown *shutdown_data =
-				(struct esif_data_complex_shutdown *)requestPtr->buf_ptr;
-			temperature = shutdown_data->temperature;
-			tripPointTemperature = shutdown_data->tripPointTemperature;
+			 * Thermal  data was provided with request
+			 */
+			struct esif_data_complex_thermal_event *eventDataPtr =
+				(struct esif_data_complex_thermal_event *)requestPtr->buf_ptr;
+			temperature = eventDataPtr->temperature;
+			tripPointTemperature = eventDataPtr->tripPointTemperature;
 		}
+		
 		ESIF_TRACE_INFO("SYSTEM_SHUTDOWN command received - temperature = %d, trip point = %d\n", temperature, tripPointTemperature);
-		esif_ccb_shutdown(temperature, tripPointTemperature);
+		esif_ccb_shutdown(temperature,tripPointTemperature);
 
 	} else if (!strcmp("SYSTEM_HIBERNATE", command)) {
+		UInt32 temperature = 0;
+		UInt32 tripPointTemperature = 0;
+		if (requestPtr && requestPtr->buf_ptr && ESIF_DATA_STRUCTURE == requestPtr->type) {
+			/*
+			 * Thermal data was provided with request
+			 */
+			struct esif_data_complex_thermal_event *eventDataPtr =
+				(struct esif_data_complex_thermal_event *)requestPtr->buf_ptr;
+			temperature = eventDataPtr->temperature;
+			tripPointTemperature = eventDataPtr->tripPointTemperature;
+		}
+
 		ESIF_TRACE_INFO("SYSTEM_HIBERNATE command received - system hibernate...\n");
-		esif_ccb_hibernate();
+		esif_ccb_hibernate(temperature,tripPointTemperature);
 
 	} else if (!strcmp("SYSTEM_REBOOT", command)) {
 		ESIF_TRACE_INFO("SYSTEM_REBOOT command received - system reboot...\n");
@@ -161,7 +174,7 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 		esifStatus = esif_ccb_disable_power_setting(requestPtr);
 
 	} else {
-		system(command);
+		esif_ccb_system(command);
 	}
 exit:
 	return esifStatus;

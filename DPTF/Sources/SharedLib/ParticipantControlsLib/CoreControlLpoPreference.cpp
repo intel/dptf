@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -69,9 +69,9 @@ Bool CoreControlLpoPreference::operator!=(const CoreControlLpoPreference& rhs) c
     return !(*this == rhs);
 }
 
-XmlNode* CoreControlLpoPreference::getXml(void)
+std::shared_ptr<XmlNode> CoreControlLpoPreference::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("core_control_lpo_preference");
+    auto root = XmlNode::createWrapperElement("core_control_lpo_preference");
     root->addChild(XmlNode::createDataElement("lpo_enabled", StatusFormat::friendlyValue(m_lpoEnabled)));
     root->addChild(XmlNode::createDataElement("start_p_state", StatusFormat::friendlyValue(m_startPState)));
     root->addChild(XmlNode::createDataElement("step_size", m_stepSize.toString()));

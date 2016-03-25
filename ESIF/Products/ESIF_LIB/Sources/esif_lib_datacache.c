@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -98,8 +98,10 @@ eEsifError DataCache_SetValue (
 	if (node == EOF) {
 		node = 0;
 	}
+	DataCacheEntryPtr old_elements = self->elements;
 	self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size + 1) * sizeof(self->elements[0]));
 	if (NULL == self->elements) {
+		self->elements = old_elements;
 		return ESIF_E_NO_MEMORY;
 	} else {
 		EsifData keydata;
@@ -139,7 +141,12 @@ eEsifError DataCache_Delete(
 	}
 
 	if (self->size > 1) {
+		DataCacheEntryPtr old_elements = self->elements;
 		self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size - 1) * sizeof(self->elements[0]));
+		if (NULL == self->elements) {
+			self->elements = old_elements;
+			return ESIF_E_NO_MEMORY;
+		}
 	} else {
 		esif_ccb_free(self->elements);
 		self->elements = NULL;

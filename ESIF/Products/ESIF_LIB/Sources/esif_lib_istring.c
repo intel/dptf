@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -461,7 +461,7 @@ ZString IString_ReplaceIString (
 			esif_ccb_memcpy(to, (ZString)with->buf_ptr, with->data_len - 1);
 			to += with->data_len - 1;
 		}
-		from = find + (what->data_len > 0 ? what->data_len - 1 : 0);
+		from = find + (what->data_len - 1);
 	}
 	// Copy remainder of string, if any
 	if (to < from) {

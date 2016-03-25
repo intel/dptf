@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public:
 private:
 
     Bool m_valid;
-    T m_value;
+    std::shared_ptr<T> m_value;
 };
 
 template <typename T>
@@ -50,8 +50,9 @@ CachedValue<T>::CachedValue()
 
 template <typename T>
 CachedValue<T>::CachedValue(const T& value)
-    : m_valid(true), m_value(value)
+    : m_valid(true)
 {
+    m_value = std::make_shared<T>(value);
 }
 
 template <typename T>
@@ -68,7 +69,7 @@ void CachedValue<T>::invalidate()
 template <typename T>
 void CachedValue<T>::set(const T& value)
 {
-    m_value = value;
+    m_value = std::make_shared<T>(value);
     m_valid = true;
 }
 
@@ -79,7 +80,7 @@ const T& CachedValue<T>::get() const
     {
         throw dptf_exception("Cached value is not valid.");
     }
-    return m_value;
+    return *m_value;
 }
 
 template <typename T>

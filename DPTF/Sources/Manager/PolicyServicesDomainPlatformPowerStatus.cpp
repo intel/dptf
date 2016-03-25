@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,20 +32,6 @@ Power PolicyServicesDomainPlatformPowerStatus::getMaxBatteryPower(UIntN particip
     return participant->getMaxBatteryPower(domainIndex);
 }
 
-Power PolicyServicesDomainPlatformPowerStatus::getAdapterPower(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getAdapterPower(domainIndex);
-}
-
-Power PolicyServicesDomainPlatformPowerStatus::getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformPowerConsumption(domainIndex);
-}
-
 Power PolicyServicesDomainPlatformPowerStatus::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfNotWorkItemThread();
@@ -67,6 +53,13 @@ DptfBuffer PolicyServicesDomainPlatformPowerStatus::getBatteryStatus(UIntN parti
     return participant->getBatteryStatus(domainIndex);
 }
 
+DptfBuffer PolicyServicesDomainPlatformPowerStatus::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+    return participant->getBatteryInformation(domainIndex);
+}
+
 PlatformPowerSource::Type PolicyServicesDomainPlatformPowerStatus::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfNotWorkItemThread();
@@ -81,13 +74,6 @@ ChargerType::Type PolicyServicesDomainPlatformPowerStatus::getChargerType(UIntN 
     return participant->getChargerType(domainIndex);
 }
 
-Percentage PolicyServicesDomainPlatformPowerStatus::getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformStateOfCharge(domainIndex);
-}
-
 Power PolicyServicesDomainPlatformPowerStatus::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfNotWorkItemThread();
@@ -100,4 +86,11 @@ TimeSpan PolicyServicesDomainPlatformPowerStatus::getACPeakTimeWindow(UIntN part
     throwIfNotWorkItemThread();
     auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
     return participant->getACPeakTimeWindow(domainIndex);
+}
+
+Power PolicyServicesDomainPlatformPowerStatus::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+    return participant->getPlatformBatterySteadyState(domainIndex);
 }

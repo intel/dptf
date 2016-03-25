@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,12 +45,22 @@ void DomainDisplayControl_000::setDisplayControl(UIntN participantIndex, UIntN d
     throw not_implemented();
 }
 
+void DomainDisplayControl_000::setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, DisplayControlDynamicCaps newCapabilities)
+{
+    throw not_implemented();
+}
+
+void DomainDisplayControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 void DomainDisplayControl_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
 }
 
-XmlNode* DomainDisplayControl_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainDisplayControl_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
 }

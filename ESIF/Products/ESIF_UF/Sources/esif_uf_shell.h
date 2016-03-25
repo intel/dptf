@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,14 @@ typedef struct EsifShellCmd_s {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+eEsifError esif_uf_shell_init(void);
+void esif_uf_shell_exit(void);
+
+void esif_uf_shell_lock(void);
+void esif_uf_shell_unlock(void);
+
+char *esif_shell_resize(size_t buf_len);
 
 EsifString esif_cmd_info(EsifString output);
 

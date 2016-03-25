@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,6 +37,15 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
+
+// Verify EDP Header
+Bool esif_verify_edp(struct edp_dir *edp, size_t size)
+{
+	// Verify Header Size, Signature, and Major DSP Version
+	return ((size == sizeof(struct edp_dir)) &&
+		(edp->signature == *(unsigned int *)ESIF_EDP_SIGNATURE) &&
+		(edp->version == (unsigned int)atoi(ESIF_DSP_VERSION)));
+}
 
 // Send DSP
 enum esif_rc esif_send_dsp(
@@ -87,8 +96,8 @@ enum esif_rc esif_send_dsp(
 		goto exit;
 	}
 
-	// Look for EDP file either on disk or in a DataVault (static or file), depending on priority setting
-	if ((ESIF_EDP_DV_PRIORITY == 1 || !esif_ccb_file_exists(filename)) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
+	// Look for EDP file on disk first then DataVault (static or file)
+	if (!esif_ccb_file_exists(filename) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		filename = edpName;
 		IOStream_SetMemory(ioPtr, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
@@ -102,6 +111,11 @@ enum esif_rc esif_send_dsp(
 		goto exit;
 	}
 	bytesRead  = IOStream_Read(ioPtr, &edpDir, sizeof(struct edp_dir));
+	if (!esif_verify_edp(&edpDir, bytesRead)) {
+		ESIF_TRACE_ERROR("Invalid EDP Header: Signature=%4.4s Version=%d\n", (char *)&edpDir.signature, edpDir.version);
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
 	edpSize = edpDir.fpc_offset - edpDir.cpc_offset;
 	IOStream_Seek(ioPtr, edpDir.cpc_offset, SEEK_SET);
 
@@ -163,7 +177,6 @@ exit:
 	EsifData_Destroy(value);
 	return rc;
 }
-
 
 eEsifError EsifDspInit()
 {

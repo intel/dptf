@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,11 +40,11 @@ std::string PolicyWorkloadGroup::getHint() const
     return m_hint;
 }
 
-XmlNode* PolicyWorkloadGroup::getXml() const
+std::shared_ptr<XmlNode> PolicyWorkloadGroup::getXml() const
 {
-    XmlNode* workloadGroup = XmlNode::createWrapperElement("workload_group");
+    auto workloadGroup = XmlNode::createWrapperElement("workload_group");
     workloadGroup->addChild(XmlNode::createDataElement("id", m_hint));
-    XmlNode* applications = XmlNode::createWrapperElement("applications");
+    auto applications = XmlNode::createWrapperElement("applications");
     for (auto application = m_applications.begin(); application != m_applications.end(); application++)
     {
         applications->addChild(XmlNode::createDataElement("application", *application));

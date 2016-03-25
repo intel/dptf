@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -59,9 +59,21 @@
 #include "esif_sdk_iface.h"
 #include "esif_sdk_iface_participant.h"
 
+/*
+ * Name of the function that must be exported to initialize the interface (see function prototype below)
+ */
+#define CONJURE_GET_INTERFACE_FUNCTION "GetConjureInterface"
+
 #define ESIF_PARTICIPANT_CONJURE_CLASS_GUID {0xe3, 0x78, 0x02, 0xdf, 0xdf, 0x3d, 0x46, 0xa7, 0xb9, 0x9b, 0x1f, 0x1c, 0x78, 0x5f, 0xd9, 0x1b}
 
+typedef enum EsifCnjIfaceVer_e {
+	ESIF_CNJ_IFACE_VER_INVALID = -1,
+	ESIF_CNJ_IFACE_VER_V1 = 1,
+	ESIF_CNJ_FACE_VER_MAX = ESIF_CNJ_IFACE_VER_V1
+}EsifCnjIfaceVer, *EsifCnjIfaceVerPtr;
 
+
+#define CONJURE_IFACE_VERSION ESIF_CNJ_IFACE_VER_V1
 /*
     =============================================================================
     Conjure Service Interface (Conjure -> ESIF)
@@ -72,13 +84,13 @@
     Upper Framework Register Participant. Provides the same functionality as the LF
     version.  Maybe called many times by one Conjure Library.
  */
-typedef eEsifError (ESIF_CALLCONV *RegisterParticipantFunction)(const EsifParticipantIfacePtr pi);
+typedef eEsifError (ESIF_CALLCONV *RegisterParticipantFunction)(const EsifParticipantIfacePtr pi, esif_handle_t *participantInstance);
 
 /*
     Upper Framework UnRegister Participant.  Provides the same functionality as the LF
     version.  Maybe called many times by one Conjure Library.
  */
-typedef eEsifError (ESIF_CALLCONV *UnRegisterParticipantFunction)(const EsifParticipantIfacePtr pi);
+typedef eEsifError (ESIF_CALLCONV *UnRegisterParticipantFunction)(esif_handle_t participantHandle);
 
 /* ESIF Conjure Services Interface */
 #pragma pack(push, 1)
@@ -125,19 +137,18 @@ typedef eEsifError (ESIF_CALLCONV *ConjureDestroyFunction)(void *conjureHandle);
 #pragma pack(push, 1)
 
 typedef struct _t_EsifConjureInterface {
-	/* Header */
-	eIfaceType  fIfaceType;
-	UInt16      fIfaceVersion;
-	UInt16      fIfaceSize;
+	EsifIfaceHdr hdr;
+
+	esif_flags_t flags;
+
+	char name[ESIF_NAME_LEN];
+	char desc[ESIF_DESC_LEN];
+
+	UInt16 cnjVersion; /* Version of the conjure (not the interface) */
 
 	/* Function Pointers */
 	ConjureCreateFunction      fConjureCreateFuncPtr;
 	ConjureDestroyFunction     fConjureDestroyFuncPtr;
-	ConjureGetAboutFunction    fConjureGetAboutFuncPtr;
-	ConjureGetDescriptionFunction fConjureGetDescriptionFuncPtr;
-	ConjureGetGuidFunction     fConjureGetGuidFuncPtr;
-	ConjureGetNameFunction     fConjureGetNameFuncPtr;
-	ConjureGetVersionFunction  fConjureGetVersionFuncPtr;
 } EsifConjureInterface, *EsifConjureInterfacePtr, **EsifConjureInteracePtrLocation;
 
 #pragma pack(pop)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,9 +18,7 @@
 
 #include "DptfStatus.h"
 #include "Indent.h"
-#include "esif_ccb_string.h"
 #include "esif_sdk_iface_app.h"
-#include "ParticipantSpecificInfoKey.h"
 #include "Participant.h"
 #include "Policy.h"
 #include <fstream>
@@ -28,8 +26,6 @@
 #include "PolicyManager.h"
 #include "ParticipantManager.h"
 #include "WorkItemQueueManager.h"
-#include "StatusFormat.h"
-#include <iostream>
 #include "BinaryParse.h"
 #include "XmlGeneratorFactory.h"
 #include "XmlNode.h"
@@ -129,25 +125,24 @@ std::string DptfStatus::getXsltContent(eEsifError* returnCode)
 
 std::string DptfStatus::getGroupsXml(eEsifError* returnCode)
 {
-    XmlNode* groups = XmlNode::createWrapperElement("groups");
+    auto groups = XmlNode::createWrapperElement("groups");
 
-    XmlNode* group0 = XmlNode::createWrapperElement("group");
+    auto group0 = XmlNode::createWrapperElement("group");
     groups->addChild(group0);
     group0->addChild(XmlNode::createDataElement("id", "0"));
     group0->addChild(XmlNode::createDataElement("name", "Policies"));
 
-    XmlNode* group1 = XmlNode::createWrapperElement("group");
+    auto group1 = XmlNode::createWrapperElement("group");
     groups->addChild(group1);
     group1->addChild(XmlNode::createDataElement("id", "1"));
     group1->addChild(XmlNode::createDataElement("name", "Participants"));
 
-    XmlNode* group2 = XmlNode::createWrapperElement("group");
+    auto group2 = XmlNode::createWrapperElement("group");
     groups->addChild(group2);
     group2->addChild(XmlNode::createDataElement("id", "2"));
     group2->addChild(XmlNode::createDataElement("name", "Manager"));
 
     std::string s = groups->toString();
-    delete groups;
 
     return s;
 }
@@ -176,7 +171,7 @@ std::string DptfStatus::getModulesInGroup(const UInt32 appStatusIn, eEsifError* 
 
 std::string DptfStatus::getPoliciesGroup()
 {
-    XmlNode* modules = XmlNode::createWrapperElement("modules");
+    auto modules = XmlNode::createWrapperElement("modules");
 
     UIntN policyCount = m_policyManager->getPolicyListCount();
     for (UIntN policyIndex = 0; policyIndex < policyCount; policyIndex++)
@@ -188,13 +183,13 @@ std::string DptfStatus::getPoliciesGroup()
             Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
             std::string name = policy->getName();
 
-            XmlNode* module = XmlNode::createWrapperElement("module");
+            auto module = XmlNode::createWrapperElement("module");
             modules->addChild(module);
 
-            XmlNode* policyId = XmlNode::createDataElement("id", StlOverride::to_string(policyIndex));
+            auto policyId = XmlNode::createDataElement("id", StlOverride::to_string(policyIndex));
             module->addChild(policyId);
 
-            XmlNode* policyName = XmlNode::createDataElement("name", name);
+            auto policyName = XmlNode::createDataElement("name", name);
             module->addChild(policyName);
         }
         catch (...)
@@ -204,7 +199,6 @@ std::string DptfStatus::getPoliciesGroup()
     }
 
     std::string s = modules->toString();
-    delete modules;
 
     return s;
 }
@@ -216,17 +210,17 @@ std::string DptfStatus::getParticipantsGroup()
 
 std::string DptfStatus::getFrameworkGroup()
 {
-    XmlNode* modules = XmlNode::createWrapperElement("modules");
+    auto modules = XmlNode::createWrapperElement("modules");
 
     // DPPM Status
 
-    XmlNode* module = XmlNode::createWrapperElement("module");
+    auto module = XmlNode::createWrapperElement("module");
     modules->addChild(module);
 
-    XmlNode* moduleId = XmlNode::createDataElement("id", StlOverride::to_string(0));
+    auto moduleId = XmlNode::createDataElement("id", StlOverride::to_string(0));
     module->addChild(moduleId);
 
-    XmlNode* moduleName = XmlNode::createDataElement("name", "DPPM Status");
+    auto moduleName = XmlNode::createDataElement("name", "DPPM Status");
     module->addChild(moduleName);
 
 #ifdef INCLUDE_WORK_ITEM_STATISTICS
@@ -245,7 +239,6 @@ std::string DptfStatus::getFrameworkGroup()
 #endif
 
     std::string s = modules->toString();
-    delete modules;
 
     return s;
 }
@@ -324,9 +317,8 @@ std::string DptfStatus::getXmlForParticipant(UInt32 mappedIndex, eEsifError* ret
 
     try
     {
-        XmlNode* participantData = m_participantStatusMap->getStatusAsXml(mappedIndex);
+        auto participantData = m_participantStatusMap->getStatusAsXml(mappedIndex);
         std::string s = participantData->toString();
-        delete participantData;
 
         return s;
     }
@@ -339,26 +331,26 @@ std::string DptfStatus::getXmlForParticipant(UInt32 mappedIndex, eEsifError* ret
 
 std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode)
 {
-    XmlNode* frameworkRoot = nullptr;
+    std::shared_ptr<XmlNode> frameworkRoot;
 
     switch (moduleIndex)
     {
         case 0:
         {
             frameworkRoot = XmlNode::createRoot();
-            XmlNode* formatId = XmlNode::createComment("format_id=" + FormatId.toString());
+            auto formatId = XmlNode::createComment("format_id=" + FormatId.toString());
             frameworkRoot->addChild(formatId);
 
-            XmlNode* dppmRoot = XmlNode::createWrapperElement("dppm_status");
+            auto dppmRoot = XmlNode::createWrapperElement("dppm_status");
             frameworkRoot->addChild(dppmRoot);
 
-            XmlNode* policiesRoot = getXmlForFrameworkLoadedPolicies();
+            auto policiesRoot = getXmlForFrameworkLoadedPolicies();
             dppmRoot->addChild(policiesRoot);
 
-            XmlNode* participantsRoot = getXmlForFrameworkLoadedParticipants();
+            auto participantsRoot = getXmlForFrameworkLoadedParticipants();
             dppmRoot->addChild(participantsRoot);
 
-            XmlNode* policyManagerRoot = m_policyManager->getStatusAsXml();
+            auto policyManagerRoot = m_policyManager->getStatusAsXml();
             dppmRoot->addChild(policyManagerRoot);
 
             *returnCode = ESIF_OK;
@@ -379,15 +371,14 @@ std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* retur
     if (frameworkRoot != nullptr)
     {
         s = frameworkRoot->toString();
-        delete frameworkRoot;
     }
 
     return s;
 }
 
-XmlNode* DptfStatus::getXmlForFrameworkLoadedPolicies()
+std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedPolicies()
 {
-    XmlNode* policiesRoot = XmlNode::createWrapperElement("policies");
+    auto policiesRoot = XmlNode::createWrapperElement("policies");
 
     UIntN policyCount = m_policyManager->getPolicyListCount();
     policiesRoot->addChild(XmlNode::createDataElement("policy_count", StlOverride::to_string(policyCount)));
@@ -399,12 +390,12 @@ XmlNode* DptfStatus::getXmlForFrameworkLoadedPolicies()
             Policy* policy = m_policyManager->getPolicyPtr(i);
             std::string name = policy->getName();
 
-            XmlNode* policyRoot = XmlNode::createWrapperElement("policy");
+            auto policyRoot = XmlNode::createWrapperElement("policy");
 
-            XmlNode* policyIndex = XmlNode::createDataElement("policy_index", StlOverride::to_string(i));
+            auto policyIndex = XmlNode::createDataElement("policy_index", StlOverride::to_string(i));
             policyRoot->addChild(policyIndex);
 
-            XmlNode* policyName = XmlNode::createDataElement("policy_name", name);
+            auto policyName = XmlNode::createDataElement("policy_name", name);
             policyRoot->addChild(policyName);
 
             policiesRoot->addChild(policyRoot);
@@ -418,9 +409,9 @@ XmlNode* DptfStatus::getXmlForFrameworkLoadedPolicies()
     return policiesRoot;
 }
 
-XmlNode* DptfStatus::getXmlForFrameworkLoadedParticipants()
+std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedParticipants()
 {
-    XmlNode* participantsRoot = XmlNode::createWrapperElement("participants");
+    auto participantsRoot = XmlNode::createWrapperElement("participants");
 
     UIntN participantCount = m_participantManager->getParticipantListCount();
     for (UIntN i = 0; i < participantCount; i++)
@@ -442,7 +433,7 @@ XmlNode* DptfStatus::getXmlForFrameworkLoadedParticipants()
 void DptfStatus::fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode)
 {
     *returnCode = FillDataPtrWithString(outputLocation, inputString);
-    if (*returnCode != ESIF_OK)
+    if ((*returnCode != ESIF_OK) && (*returnCode != ESIF_E_NEED_LARGER_BUFFER))
     {
         throw dptf_exception("Failed to fill ESIF data pointer with string.");
     }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,6 +52,6 @@ typedef u8 Byte;
 // Limits
 #define MAXAUTOLEN      65536		// Max length of strings when creating with ESIFAUTOLEN
 
-#define IGNORE_RESULT(expr)		do { if (expr) ; } while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
+#define IGNORE_RESULT(expr)		do { if (expr) {} } while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 #endif

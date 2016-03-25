@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -176,7 +176,7 @@ int IOStream_Open (IOStreamPtr self)
 		if (self->file.mode) {
 			mode = self->file.mode;
 		}
-		rc = esif_ccb_fopen(&(self->file.handle), self->file.name, mode);
+		self->file.handle = esif_ccb_fopen(self->file.name, mode, &rc);
 		break;
 
 	case StreamMemory:

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,14 @@ public:
     ControlBase(UIntN participantIndex, UIntN domainIndex, ParticipantServicesInterface* participantServices);
     virtual ~ControlBase();
 
+    // ComponentExtendedInterface
     virtual void clearCachedData(void) = 0;
     virtual std::string getName(void) = 0;
-    virtual XmlNode* getXml(UIntN domainIndex) = 0;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) = 0;
+
+    Bool isActivityLoggingEnabled(void);
+    void enableActivityLogging(void);
+    void disableActivityLogging(void);
 
 protected:
 
@@ -45,4 +50,5 @@ private:
     UIntN m_participantIndex;
     UIntN m_domainIndex;
     ParticipantServicesInterface* m_participantServices;
+    Bool m_activityLoggingEnabled;
 };

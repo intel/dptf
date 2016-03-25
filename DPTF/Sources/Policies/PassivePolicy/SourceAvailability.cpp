@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,15 +47,15 @@ void SourceAvailability::remove(UIntN source)
     }
 }
 
-XmlNode* SourceAvailability::getXml() const
+std::shared_ptr<XmlNode> SourceAvailability::getXml() const
 {
     UInt64 time = m_time->getCurrentTimeInMilliseconds();
     double currentTime = (double)time;
 
-    XmlNode* status = XmlNode::createWrapperElement("source_availability");
+    auto status = XmlNode::createWrapperElement("source_availability");
     for (auto source = m_schedule.begin(); source != m_schedule.end(); source++)
     {
-        XmlNode* activeSource = XmlNode::createWrapperElement("activity");
+        auto activeSource = XmlNode::createWrapperElement("activity");
         activeSource->addChild(XmlNode::createDataElement("source", friendlyValue(source->first)));
         double timeTilAvailable = ((double)source->second - currentTime) / (double)1000;
         activeSource->addChild(XmlNode::createDataElement("time_until_available", friendlyValue(timeTilAvailable)));

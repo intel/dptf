@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -85,6 +85,9 @@ enum esif_rc {
 	ESIF_E_INVALID_HANDLE,          /* INVALID Handle Provided */
 	ESIF_E_ITERATION_DONE,          /* Indicates iteration is complete */
 	ESIF_E_STOP_POLL,               /* Indicates to stop the polling */
+	ESIF_E_ORDERED_INSERT,          /* Adding to an ordered collection failed */
+	ESIF_E_API_ERROR,				/* OS-specific API error */
+
 
 	/* ACPI */
 	ESIF_E_NO_ACPI_SUPPORT = 1100, /* No ACPI Platform Support */
@@ -94,7 +97,7 @@ enum esif_rc {
 	ESIF_E_ACPI_REQUEST_TYPE,	   /* Error Reading ACPI Data */
 	ESIF_E_ACPI_EVAL_FAILURE,	   /* ACPI Evaluation Failure */
 	ESIF_E_ACPI_OBJECT_NOT_FOUND,      /* Requested ACPI Object
-					      Not Found */
+						  Not Found */
 	ESIF_E_UNSUPPORTED_ACPI_NOTIFY_EVENT, /* ACPI Notify Event is Not
 						Supported/Recognized */
 
@@ -111,7 +114,7 @@ enum esif_rc {
 
 	/* Buffer */
 	ESIF_E_NEED_LARGER_BUFFER = 1300, /* Response Data Size Will Contain
-					     Needed Buf_Size */
+						 Needed Buf_Size */
 	ESIF_E_NEED_BINARY_BUFFER, /* Action Response Data Must Be Binary */
 	ESIF_E_REQ_SIZE_TYPE_MISTMATCH, /* The req data buffer is too small for
 					   specified type */
@@ -201,6 +204,16 @@ enum esif_rc {
 
 	/* Participant extension */
 	ESIF_E_IFACE_DISABLED = 3400,
+	ESIF_E_IFACE_NOT_SUPPORTED,
+
+	/*Events*/
+	ESIF_E_EVENT_NOT_FOUND = 3500,
+
+	/*Participant data logging*/
+	ESIF_E_INVALID_ARGUMENT_COUNT = 3600,
+	ESIF_E_INVALID_PARTICIPANT_ID,
+	ESIF_E_INVALID_DOMAIN_ID,
+	ESIF_E_INVALID_CAPABILITY_MASK,
 
 };
 
@@ -222,6 +235,8 @@ static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
 	ESIF_CASE_ENUM(ESIF_E_INVALID_HANDLE);
 	ESIF_CASE_ENUM(ESIF_E_ITERATION_DONE);
 	ESIF_CASE_ENUM(ESIF_E_STOP_POLL);
+	ESIF_CASE_ENUM(ESIF_E_ORDERED_INSERT);
+	ESIF_CASE_ENUM(ESIF_E_API_ERROR);
 
 	ESIF_CASE_ENUM(ESIF_E_NO_ACPI_SUPPORT);
 	ESIF_CASE_ENUM(ESIF_E_NO_ACPII_SUPPORT);
@@ -313,6 +328,15 @@ static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
 
 
 	ESIF_CASE_ENUM(ESIF_E_IFACE_DISABLED);
+	ESIF_CASE_ENUM(	ESIF_E_IFACE_NOT_SUPPORTED);
+
+	ESIF_CASE_ENUM(ESIF_E_EVENT_NOT_FOUND);
+
+	ESIF_CASE_ENUM(ESIF_E_INVALID_ARGUMENT_COUNT);
+	ESIF_CASE_ENUM(ESIF_E_INVALID_PARTICIPANT_ID);
+	ESIF_CASE_ENUM(ESIF_E_INVALID_DOMAIN_ID);
+	ESIF_CASE_ENUM(ESIF_E_INVALID_CAPABILITY_MASK);
+
 	}
 	return ESIF_NOT_AVAILABLE;
 }

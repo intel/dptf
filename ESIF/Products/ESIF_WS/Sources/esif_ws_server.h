@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,5 +50,6 @@ int  esif_ws_init(void);
 void esif_ws_exit(esif_thread_t *threadPtr);
 void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 port, Bool restricted);
 void esif_ws_client_close_client(ClientRecordPtr clientPtr);
+u32  esif_ws_buffer_resize(u32 size);
 
 #endif /* ESIF_WS_SERVER_H */

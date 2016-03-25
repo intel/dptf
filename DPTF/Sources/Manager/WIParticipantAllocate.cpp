@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,7 +38,7 @@ void WIParticipantAllocate::execute(void)
     {
         getParticipantManager()->allocateParticipant(m_newParticipantIndex);
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         *m_newParticipantIndex = Constants::Esif::NoParticipant;
         WriteWorkItemErrorMessage_Function("ParticipantManager::allocateParticipant")

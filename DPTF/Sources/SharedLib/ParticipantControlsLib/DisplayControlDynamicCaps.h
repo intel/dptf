@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,10 +31,10 @@ public:
     UIntN getCurrentLowerLimit(void) const;
     Bool operator==(const DisplayControlDynamicCaps& rhs) const;
     Bool operator!=(const DisplayControlDynamicCaps& rhs) const;
-    XmlNode* getXml(void);
+    std::shared_ptr<XmlNode> getXml(void);
 
 private:
 
-    UIntN m_currentUpperLimit;                                      // Index of DisplayControl representing current allowed upper limit
-    UIntN m_currentLowerLimit;                                      // Index of DisplayControl representing current allowed lower limit
+    UIntN m_currentUpperLimit;            // Index of DisplayControl representing current allowed upper limit
+    UIntN m_currentLowerLimit;            // Index of DisplayControl representing current allowed lower limit
 };

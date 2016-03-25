@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,7 +53,7 @@ void WIParticipantDestroy::execute(void)
         {
             // do nothing.  No item in the policy list at this index.
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
             WriteParticipantWorkItemErrorMessage_Function_Policy("Policy::unbindParticipant", i);
         }
@@ -67,7 +67,7 @@ void WIParticipantDestroy::execute(void)
         workItemMatchCriteria.addParticipantIndexToMatchList(getParticipantIndex());
         getDptfManager()->getWorkItemQueueManager()->removeIfMatches(workItemMatchCriteria);
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         WriteParticipantWorkItemErrorMessage_Function("WorkItemQueueManager::removeIfMatches");
     }
@@ -78,7 +78,7 @@ void WIParticipantDestroy::execute(void)
     {
         getParticipantManager()->destroyParticipant(getParticipantIndex());
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         WriteParticipantWorkItemErrorMessage_Function("ParticipantManager::destroyParticipant");
     }

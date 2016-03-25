@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -56,14 +56,14 @@
 #include "esif_sdk_iface.h"
 #include "esif_sdk_data.h"
 #include "esif_sdk_participant_enum.h"
-
-#include "esif_event.h"
+#include "esif_sdk_event_type.h"
 
 /* Participant Interface Versions:
  * 2 - Added "whitelist" pointers (used by LF only)
  */
 #define ESIF_PARTICIPANT_VERSION 2
-
+#define ESIF_PARTICIPANT_INVALID_TYPE ((u32)ESIF_DOMAIN_TYPE_INVALID)
+#define ESIF_INSTANCE_INVALID	255
 
 #ifdef ESIF_ATTR_KERNEL
 
@@ -155,20 +155,19 @@ struct esif_participant_iface {
 
 #pragma pack(push,1)
 
-/* Conjure Participant INTERFACE */
+/* Upper Framework Initiated Participant INTERFACE */
 typedef struct _t_EsifParticipantIface {
-	esif_ver_t    version;				/* Version */
-	esif_guid_t   class_guid;			/* Class GUID */
+	esif_ver_t			version;				/* Version */
+	esif_guid_t			class_guid;			/* Class GUID */
 	enum esif_participant_enum enumerator; /* Device Enumerator If Any */
-	esif_flags_t  flags;				/* Flags If Any */
-	char          name[ESIF_NAME_LEN];		/* Friendly Name */
-	char          desc[ESIF_DESC_LEN];		/* Description */
-	char          driver_name[ESIF_NAME_LEN];	/* Driver Name */
-	char          device_name[ESIF_NAME_LEN];	/* Device Name */
-	char          device_path[ESIF_PATH_LEN];	/* Device Path /sys/bus/platform...*/
-
-	char          object_id[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g.\_UF.CNJR.WIDI  */
-
+	esif_flags_t		flags;				/* Flags If Any */
+	char				name[ESIF_NAME_LEN];		/* Friendly Name */
+	char				desc[ESIF_DESC_LEN];		/* Description */
+	char				driver_name[ESIF_NAME_LEN];	/* Driver Name */
+	char				device_name[ESIF_NAME_LEN];	/* Device Name */
+	char				device_path[ESIF_PATH_LEN];	/* Device Path /sys/bus/platform...*/
+	char				object_id[ESIF_SCOPE_LEN];	/* Scope/REGEX e.g.\_UF.CNJR.WIDI  */
+	u32					acpi_type;
 	/* EVENT Send Event From Conjure To Framework */
 	enum esif_rc (ESIF_CALLCONV *send_event)(struct _t_EsifParticipantIface *pi,
 				   enum esif_event_type type, void *data);

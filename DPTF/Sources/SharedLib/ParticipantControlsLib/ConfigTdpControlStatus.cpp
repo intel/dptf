@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,9 @@ UIntN ConfigTdpControlStatus::getCurrentControlIndex(void) const
     return m_currentControlIndex;
 }
 
-XmlNode* ConfigTdpControlStatus::getXml(void)
+std::shared_ptr<XmlNode> ConfigTdpControlStatus::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("config_tdp_control_status");
+    auto root = XmlNode::createWrapperElement("config_tdp_control_status");
 
     root->addChild(XmlNode::createDataElement("control_index", StatusFormat::friendlyValue(m_currentControlIndex)));
 

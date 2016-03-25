@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,16 +32,18 @@ namespace NodeType
 
 class XmlNode
 {
-public: ~XmlNode(void);
+public: 
+    
+    ~XmlNode(void);
 
-    static XmlNode* createRoot();
-    static XmlNode* createComment(std::string comment);
-    static XmlNode* createWrapperElement(std::string tagName);
-    static XmlNode* createDataElement(std::string tagName, std::string data);
+    static std::shared_ptr<XmlNode> createRoot();
+    static std::shared_ptr<XmlNode> createComment(std::string comment);
+    static std::shared_ptr<XmlNode> createWrapperElement(std::string tagName);
+    static std::shared_ptr<XmlNode> createDataElement(std::string tagName, std::string data);
 
-    void addChild(XmlNode* child);
+    void addChild(std::shared_ptr<XmlNode> child);
     void addAttribute(std::string attribute);
-    std::vector<XmlNode*> getChildren();
+    std::vector<std::shared_ptr<XmlNode>> getChildren();
     std::vector<std::string> getAttributes();
     std::string getXmlTag();
     std::string getData();
@@ -57,5 +59,5 @@ private:
     std::string m_rootXmlTag;
     std::string m_data;
     std::vector<std::string> m_attributes;
-    std::vector<XmlNode*> m_children;
+    std::vector<std::shared_ptr<XmlNode>> m_children;
 };

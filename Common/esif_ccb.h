@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -147,6 +147,10 @@ typedef unsigned long long u64;	/* A QWORD */
 
 #ifdef ESIF_ATTR_USER
 #include <unistd.h>	/* POSIX API */
+
+/* Common Widows Symbols */
+#define MAX_PATH 260
+#define INVALID_HANDLE_VALUE NULL
 #endif
 
 #ifndef ESIF_ATTR_OS
@@ -175,18 +179,18 @@ typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 #  define ESIF_ASSERT(x)   assert(x)
 # else
 #  define ESIF_ASSERT(x)	\
-       do {			\
-              if (x)		\
-                     break;	\
-              printk(KERN_EMERG "!ESIF_ASSERT! [%s@%s#%d]: %s\n", ESIF_FUNC, __FILE__, __LINE__, #x); \
-              BUG();		\
-       } while (0)
+	   do {			\
+			  if (x)		\
+					 break;	\
+			  printk(KERN_EMERG "!ESIF_ASSERT! [%s@%s#%d]: %s\n", ESIF_FUNC, __FILE__, __LINE__, #x); \
+			  BUG();		\
+	   } while (0)
 # endif
 #else
 # define ESIF_ASSERT(x)
 #endif
 
-#define UNREFERENCED_PARAMETER(x) /* Avoid Unused Variable warnings */
+#define UNREFERENCED_PARAMETER(x) (x) /* Avoid Unused Variable Klocwork errors */
 
 /* Sleep Interface */
 #define esif_ccb_sleep(sec)		sleep(sec)
@@ -263,3 +267,6 @@ typedef u8		Bool;	/* C BOOLEAN */
 /* True and False */
 #define ESIF_TRUE	1
 #define ESIF_FALSE	0
+
+/* Invalid or Undefined enum type value */
+#define ESIF_INVALID_ENUM_VALUE  (-1)

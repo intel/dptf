@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -92,14 +92,16 @@ public:
 
     // Misc
     virtual std::string getName(void) const = 0;
-    virtual XmlNode* getXml(UIntN domainIndex) const = 0;
-    virtual XmlNode* getStatusAsXml(UIntN domainIndex) const = 0;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const = 0;
+    virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const = 0;
 
     // Event handlers
     virtual void connectedStandbyEntry(void) = 0;
     virtual void connectedStandbyExit(void) = 0;
     virtual void suspend(void) = 0;
     virtual void resume(void) = 0;
+    virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityId) = 0;
+    virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityId) = 0;
     virtual void domainConfigTdpCapabilityChanged(void) = 0;
     virtual void domainCoreControlCapabilityChanged(void) = 0;
     virtual void domainDisplayControlCapabilityChanged(void) = 0;
@@ -116,14 +118,15 @@ public:
     virtual void domainVirtualSensorPollingTableChanged(void) = 0;
     virtual void domainVirtualSensorRecalcChanged(void) = 0;
     virtual void domainBatteryStatusChanged(void) = 0;
-    virtual void domainAdapterPowerChanged(void) = 0;
-    virtual void domainPlatformPowerConsumptionChanged(void) = 0;
+    virtual void domainBatteryInformationChanged(void) = 0;
     virtual void domainPlatformPowerSourceChanged(void) = 0;
     virtual void domainAdapterPowerRatingChanged(void) = 0;
     virtual void domainChargerTypeChanged(void) = 0;
     virtual void domainPlatformRestOfPowerChanged(void) = 0;
     virtual void domainACPeakPowerChanged(void) = 0;
     virtual void domainACPeakTimeWindowChanged(void) = 0;
+    virtual void domainMaxBatteryPowerChanged(void) = 0;
+    virtual void domainPlatformBatterySteadyStateChanged(void) = 0;
 };
 
 //

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,75 +18,11 @@
 
 #include "BinaryParse.h"
 #include "esif_sdk_fan.h"
+#include "EsifDataBinaryPpccPackage.h"
+#include "EsifDataBinaryClpoPackage.h"
 
-std::vector<PerformanceControl> BinaryParse::genericPpssObject(const DptfBuffer& buffer)
+ActiveControlStaticCaps BinaryParse::fanFifObject(const DptfBuffer& buffer)
 {
-    std::vector<PerformanceControl> controls;
-    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-    struct EsifDataBinaryPpssPackage* currentRow = reinterpret_cast<struct EsifDataBinaryPpssPackage*>(data);
-
-    validateData(buffer.size());
-
-    UIntN rows = countPpssRows(buffer.size(), data);
-
-    // Reset currentRow to point to the beginning of the data block
-    data = reinterpret_cast<UInt8*>(buffer.get());
-    currentRow = reinterpret_cast<struct EsifDataBinaryPpssPackage*>(data);
-
-    for (UIntN i = 0; i < rows; i++)
-    {
-        PerformanceControl temp(
-            static_cast<UInt32>(currentRow->control.integer.value),
-            PerformanceControlType::PerformanceState,
-            static_cast<UInt32>(currentRow->power.integer.value),
-            Percentage(static_cast<UInt32>(currentRow->performancePercentage.integer.value) / 100.0),
-            static_cast<UInt32>(currentRow->latency.integer.value),
-            static_cast<UInt32>(currentRow->rawPerformance.integer.value),
-            std::string(
-                reinterpret_cast<const char*>(&(currentRow->rawUnits)) + sizeof(union esif_data_variant),
-                currentRow->rawUnits.string.length
-                ));
-
-        controls.push_back(temp);
-
-        data += sizeof(struct EsifDataBinaryPpssPackage) + currentRow->rawUnits.string.length;
-        currentRow = reinterpret_cast<struct EsifDataBinaryPpssPackage*>(data);
-    }
-
-    return controls;
-}
-
-UIntN BinaryParse::countPpssRows(UIntN size, UInt8* data)
-{
-    IntN bytesRemaining = size;
-    UIntN rows = 0;
-
-    struct EsifDataBinaryPpssPackage* currentRow = reinterpret_cast<struct EsifDataBinaryPpssPackage*>(data);
-
-    while (bytesRemaining > 0)
-    {
-        bytesRemaining -= sizeof(struct EsifDataBinaryPpssPackage);
-        bytesRemaining -= currentRow->rawUnits.string.length;
-
-        if (bytesRemaining >= 0)
-        {
-            // The math done here will vary based on the number of strings in the BIOS object
-            rows++;
-            data += sizeof(struct EsifDataBinaryPpssPackage) + currentRow->rawUnits.string.length;
-            currentRow = reinterpret_cast<struct EsifDataBinaryPpssPackage*>(data);
-        }
-        else // Data size mismatch, we went negative
-        {
-            throw dptf_exception("Expected binary data size mismatch. (PPSS)");
-        }
-    }
-
-    return rows;
-}
-
-ActiveControlStaticCaps* BinaryParse::fanFifObject(const DptfBuffer& buffer)
-{
-    ActiveControlStaticCaps* control;
     UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
     struct EsifDataBinaryFifPackage* currentRow = reinterpret_cast<struct EsifDataBinaryFifPackage*>(data);
 
@@ -98,12 +34,10 @@ ActiveControlStaticCaps* BinaryParse::fanFifObject(const DptfBuffer& buffer)
         throw dptf_exception("Data size mismatch.");
     }
 
-    control = new ActiveControlStaticCaps(
+    return ActiveControlStaticCaps(
         (static_cast<UInt32>(currentRow->hasFineGrainControl.integer.value) != 0),
         (static_cast<UInt32>(currentRow->supportsLowSpeedNotification.integer.value) != 0),
         static_cast<UInt32>(currentRow->stepSize.integer.value));
-
-    return control;
 }
 
 std::vector<ActiveControl> BinaryParse::fanFpsObject(const DptfBuffer& buffer)
@@ -142,9 +76,8 @@ std::vector<ActiveControl> BinaryParse::fanFpsObject(const DptfBuffer& buffer)
     return controls;
 }
 
-ActiveControlStatus* BinaryParse::fanFstObject(const DptfBuffer& buffer)
+ActiveControlStatus BinaryParse::fanFstObject(const DptfBuffer& buffer)
 {
-    ActiveControlStatus* control;
     UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
     struct EsifDataBinaryFstPackage* currentRow = reinterpret_cast<struct EsifDataBinaryFstPackage*>(data);
 
@@ -156,11 +89,9 @@ ActiveControlStatus* BinaryParse::fanFstObject(const DptfBuffer& buffer)
         throw dptf_exception("Data size mismatch.");
     }
 
-    control = new ActiveControlStatus(
+    return ActiveControlStatus(
         static_cast<UInt32>(currentRow->control.integer.value),
         static_cast<UInt32>(currentRow->speed.integer.value));
-
-    return control;
 }
 
 void BinaryParse::validateData(UInt32 size)
@@ -183,150 +114,6 @@ UInt64 BinaryParse::extractBits(UInt16 startBit, UInt16 stopBit, UInt64 data)
     UInt64 mask = (1 << bitCount) - 1;
 
     return (data >> stopBit) & mask;
-}
-
-std::vector<PerformanceControl> BinaryParse::processorPssObject(const DptfBuffer& buffer)
-{
-    std::vector<PerformanceControl> controls;
-    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-    struct EsifDataBinaryPssPackage* currentRow = reinterpret_cast<struct EsifDataBinaryPssPackage*>(data);
-
-    validateData(buffer.size());
-
-    UIntN rows = buffer.size() / sizeof(EsifDataBinaryPssPackage);
-
-    if (buffer.size() % sizeof(EsifDataBinaryPssPackage))
-    {
-        // Data size mismatch, should be evenly divisible
-        throw dptf_exception("Failed to parse PSS object.  The length of data received does not match the expected \
-                             data length.");
-    }
-
-    for (UIntN row = 0; row < rows; row++)
-    {
-        Percentage ratio(1.0);
-
-        if (!controls.empty())
-        {
-            if (controls.front().getControlAbsoluteValue() != 0)
-            {
-                ratio = (static_cast<UIntN>((100 * currentRow->coreFrequency.integer.value) / 
-                    controls.front().getControlAbsoluteValue())) / 100.0;
-            }
-            else
-            {
-                ratio = (rows - row) / static_cast<double>(rows);
-            }
-        }
-
-        PerformanceControl performanceControl(
-            static_cast<UInt32>(currentRow->control.integer.value),
-            PerformanceControlType::PerformanceState,
-            static_cast<UInt32>(currentRow->power.integer.value),
-            ratio,
-            static_cast<UInt32>(currentRow->latency.integer.value),
-            static_cast<UInt32>(currentRow->coreFrequency.integer.value),
-            std::string("MHz"));
-        controls.push_back(performanceControl);
-
-        data += sizeof(struct EsifDataBinaryPssPackage);
-        currentRow = reinterpret_cast<struct EsifDataBinaryPssPackage*>(data);
-    }
-    return controls;
-}
-
-std::vector<PerformanceControl> BinaryParse::processorTssObject(PerformanceControl pN, const DptfBuffer& buffer)
-{
-    std::vector<PerformanceControl> controls;
-    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-    struct EsifDataBinaryTssPackage* currentRow = reinterpret_cast<struct EsifDataBinaryTssPackage*>(data);
-
-    validateData(buffer.size());
-
-    UIntN rows = buffer.size() / sizeof(EsifDataBinaryTssPackage);
-
-    if (buffer.size() % sizeof(EsifDataBinaryTssPackage))
-    {
-        // Data size mismatch, should be evenly divisible
-        throw dptf_exception("Data size mismatch.");
-    }
-
-    for (UIntN i = 0; i < rows; i++)
-    {
-        Percentage performancePercentage = static_cast<UIntN>(currentRow->performancePercentage.integer.value) / 100.0;
-
-        PerformanceControl temp(
-            static_cast<UInt32>(currentRow->control.integer.value),
-            PerformanceControlType::ThrottleState,
-            static_cast<UInt32>(currentRow->power.integer.value),
-            performancePercentage,
-            static_cast<UInt32>(currentRow->latency.integer.value),
-            static_cast<UIntN>(pN.getControlAbsoluteValue() * performancePercentage),
-            pN.getValueUnits());
-
-        if (temp.getControlAbsoluteValue() != 0)
-        {
-            controls.push_back(temp);
-        }
-
-        data += sizeof(struct EsifDataBinaryTssPackage);
-        currentRow = reinterpret_cast<struct EsifDataBinaryTssPackage*>(data);
-    }
-    return controls;
-}
-
-std::vector<PerformanceControl> BinaryParse::processorGfxPstates(const DptfBuffer& buffer)
-{
-    std::vector<PerformanceControl> controls;
-    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-    struct EsifDataBinaryGfxPstateConfig* currentRow = reinterpret_cast<struct EsifDataBinaryGfxPstateConfig*>(data);
-
-    validateData(buffer.size());
-
-    UIntN rows = buffer.size() / sizeof(EsifDataBinaryGfxPstateConfig);
-
-    if (buffer.size() % sizeof(EsifDataBinaryGfxPstateConfig))
-    {
-        // Data size mismatch, should be evenly divisible
-        throw dptf_exception("Data size mismatch.");
-    }
-
-    // Reset currentRow to point to the beginning of the data block
-    data = reinterpret_cast<UInt8*>(buffer.get());
-    currentRow = reinterpret_cast<struct EsifDataBinaryGfxPstateConfig*>(data);
-
-    for (UIntN i = 0; i < rows; i++)
-    {
-        Percentage* p;
-
-        if (controls.empty())
-        {
-            p = new Percentage(1.0);
-        }
-        else
-        {
-            p = new Percentage((static_cast<UIntN>((100 * currentRow->maxRenderFrequency.integer.value)
-                / controls.front().getControlAbsoluteValue())) / 100.0);
-        }
-
-        PerformanceControl temp(
-            i, // GFX has no control ID so the index is used.
-            PerformanceControlType::PerformanceState,
-            Constants::Invalid,
-            *p,
-            GFX_PSTATE_TRANSITION_LATENCY,
-            static_cast<UInt32>(currentRow->maxRenderFrequency.integer.value),
-            std::string("MHz"));
-
-        delete p;
-
-        controls.push_back(temp);
-
-        data += sizeof(struct EsifDataBinaryGfxPstateConfig);
-        currentRow = reinterpret_cast<struct EsifDataBinaryGfxPstateConfig*>(data);
-    }
-
-    return controls;
 }
 
 std::vector<ConfigTdpControl> BinaryParse::processorTdplObject(const DptfBuffer& buffer)
@@ -415,10 +202,8 @@ std::vector<PowerControlDynamicCaps> BinaryParse::processorPpccObject(const Dptf
     return controls;
 }
 
-CoreControlLpoPreference* BinaryParse::processorClpoObject(const DptfBuffer& buffer)
+CoreControlLpoPreference BinaryParse::processorClpoObject(const DptfBuffer& buffer)
 {
-    CoreControlLpoPreference* preference;
-
     UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
     data += sizeof(esif_data_variant); //Ignore revision field
 
@@ -432,14 +217,12 @@ CoreControlLpoPreference* BinaryParse::processorClpoObject(const DptfBuffer& buf
         throw dptf_exception("dataLength is invalid.");
     }
 
-    preference = new CoreControlLpoPreference(
+    return CoreControlLpoPreference(
         (currentRow->lpoEnable.integer.value != 0),
         static_cast<UIntN>(currentRow->startPstateIndex.integer.value),
         Percentage(static_cast<UIntN>(currentRow->stepSize.integer.value) / 100.0),
         static_cast<CoreControlOffliningMode::Type>(currentRow->powerControlSetting.integer.value),
         static_cast<CoreControlOffliningMode::Type>(currentRow->performanceControlSetting.integer.value));
-
-    return preference;
 }
 
 std::vector<DisplayControl> BinaryParse::displayBclObject(const DptfBuffer& buffer)

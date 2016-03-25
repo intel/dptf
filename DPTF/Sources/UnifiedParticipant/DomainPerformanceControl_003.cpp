@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -79,6 +79,27 @@ void DomainPerformanceControl_003::setPerformanceControl(UIntN participantIndex,
     m_currentPerformanceControlIndex = performanceControlIndex;
 }
 
+void DomainPerformanceControl_003::setPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
+    PerformanceControlDynamicCaps newCapabilities)
+{
+    throw not_implemented();
+}
+
+UIntN DomainPerformanceControl_003::getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex)
+{
+    return m_currentPerformanceControlIndex;
+}
+
+PerformanceControlDynamicCaps DomainPerformanceControl_003::getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex)
+{
+    return *m_performanceControlDynamicCaps;
+}
+
+void DomainPerformanceControl_003::intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex)
+{
+    checkAndCreateControlStructures(domainIndex);
+}
+
 void DomainPerformanceControl_003::clearCachedData(void)
 {
     DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
@@ -94,7 +115,7 @@ void DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex
         DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
             esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
         m_performanceControlSet = new PerformanceControlSet(
-            BinaryParse::processorGfxPstates(buffer));
+            PerformanceControlSet::createFromProcessorGfxPstates(buffer));
         if (m_performanceControlSet->getCount() == 0)
         {
             throw dptf_exception("GFX P-state set is empty. Impossible if we support performance controls.");
@@ -162,11 +183,11 @@ void DomainPerformanceControl_003::createPerformanceControlStaticCaps()
     m_performanceControlStaticCaps = new PerformanceControlStaticCaps(false);
 }
 
-XmlNode* DomainPerformanceControl_003::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPerformanceControl_003::getXml(UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
 
-    XmlNode* root = XmlNode::createWrapperElement("performance_control");
+    auto root = XmlNode::createWrapperElement("performance_control");
     root->addChild(PerformanceControlStatus(m_currentPerformanceControlIndex).getXml());
     root->addChild(m_performanceControlDynamicCaps->getXml());
     root->addChild(m_performanceControlStaticCaps->getXml());

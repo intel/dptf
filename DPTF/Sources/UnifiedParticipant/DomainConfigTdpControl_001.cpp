@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -94,6 +94,38 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
     m_configTdpControlStatus = new ConfigTdpControlStatus(configTdpControlIndex);
 }
 
+void DomainConfigTdpControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true) 
+        {
+            checkAndCreateControlStructures(domainIndex);
+            UInt32 configTdpControlIndex = m_configTdpControlStatus->getCurrentControlIndex();
+
+            if (configTdpControlIndex == Constants::Invalid)
+            {
+                configTdpControlIndex = m_configTdpControlDynamicCaps->getCurrentUpperLimitIndex();
+            }
+
+            EsifCapabilityData capability;
+            capability.type = Capability::CtdpControl;
+            capability.size = sizeof(capability);
+            capability.data.configTdpControl.controlId = configTdpControlIndex;
+            capability.data.configTdpControl.tdpFrequency = (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getTdpFrequency();
+            capability.data.configTdpControl.tdpPower = (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getTdpPower();
+            capability.data.configTdpControl.tdpRatio = (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getTdpRatio();
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
+}
+
 void DomainConfigTdpControl_001::clearCachedData(void)
 {
     DELETE_MEMORY_TC(m_configTdpControlSet);
@@ -101,11 +133,11 @@ void DomainConfigTdpControl_001::clearCachedData(void)
     DELETE_MEMORY_TC(m_configTdpControlStatus);
 }
 
-XmlNode* DomainConfigTdpControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainConfigTdpControl_001::getXml(UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
 
-    XmlNode* root = XmlNode::createWrapperElement("config_tdp_control");
+    auto root = XmlNode::createWrapperElement("config_tdp_control");
 
     root->addChild(m_configTdpControlDynamicCaps->getXml());
     root->addChild(m_configTdpControlSet->getXml());

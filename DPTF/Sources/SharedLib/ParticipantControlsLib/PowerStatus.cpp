@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,9 +29,9 @@ Power PowerStatus::getCurrentPower(void) const
     return m_currentPower;
 }
 
-XmlNode* PowerStatus::getXml(void)
+std::shared_ptr<XmlNode> PowerStatus::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("power_status");
+    auto root = XmlNode::createWrapperElement("power_status");
     root->addChild(XmlNode::createDataElement("power", m_currentPower.toString()));
     return root;
 }

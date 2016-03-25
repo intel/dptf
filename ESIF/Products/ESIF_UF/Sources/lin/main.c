@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,10 +30,14 @@
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2015 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2016 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
+#ifdef ESIF_ATTR_OS_ANDROID
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"conjure upe_java && appstart dptf"
+#else
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
+#endif
 #define ESIF_STARTUP_SCRIPT_SERVER_MODE		NULL
 
 static void esif_udev_start();
@@ -80,11 +84,15 @@ static struct instancelock g_instance = {"esif_ufd.pid"};
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
 #ifdef ESIF_ATTR_64BIT
-#define ARCHNAME "x64"
-#define ARCHBITS "64"
+# define ARCHNAME "x64"
+# define ARCHBITS "64"
 #else
 #define ARCHNAME "x86"
-#define ARCHBITS "32"
+# ifdef ESIF_ATTR_OS_ANDROID
+#  define ARCHBITS ""	// Android Libs go in /system/vendor/lib64 or lib, not lib32
+# else
+#  define ARCHBITS "32"
+# endif
 #endif
 
 // Default ESIF Paths for each OS
@@ -97,9 +105,9 @@ static const esif_string ESIF_PATHLIST =
 	"DV=/etc/dptf/dv\n"
 	"LOG=/data/misc/dptf/log\n"
 	"BIN=/etc/dptf/bin\n"
-	"LOCK=/mnt/dptf\n"
-	"EXE=#/system/bin\n"
-	"DLL=#/system/lib\n"
+	"LOCK=/data/misc/dptf/lock\n"
+	"EXE=#/system/vendor/bin\n"
+	"DLL=#/system/vendor/lib" ARCHBITS "\n"
 	"DPTF=/etc/dptf/bin\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
@@ -234,11 +242,11 @@ static void sigterm_handler(int signum)
 /* Enable or Disable SIGTERM Handler */
 void sigterm_enable()
 {
-    struct sigaction action={0};
-    action.sa_handler = sigterm_handler;
-    sigaction(SIGTERM, &action, NULL);
-    sigaction(SIGINT,  &action, NULL);
-    sigaction(SIGQUIT, &action, NULL);
+	struct sigaction action={0};
+	action.sa_handler = sigterm_handler;
+	sigaction(SIGTERM, &action, NULL);
+	sigaction(SIGINT,  &action, NULL);
+	sigaction(SIGQUIT, &action, NULL);
 }
 
 // The SIGUSR1 handler below is the alternative
@@ -290,14 +298,14 @@ int instance_lock()
 	}
 
 	esif_build_path(fullpath, sizeof(fullpath), ESIF_PATHTYPE_LOCK, g_instance.lockfile, NULL);
-	if ((g_instance.lockfd = open(fullpath, O_CREAT | O_RDWR, 0644)) == 0 || flock(g_instance.lockfd, LOCK_EX | LOCK_NB) != 0) {
-		int error = errno;
-		close(g_instance.lockfd);
+	if ((g_instance.lockfd = open(fullpath, O_CREAT | O_RDWR, 0644)) < 0 || flock(g_instance.lockfd, LOCK_EX | LOCK_NB) < 0) {
+		if (g_instance.lockfd >= 0) {
+			close(g_instance.lockfd);
+		}
 		g_instance.lockfd = 0;
-		errno = error;
 		return ESIF_FALSE;
 	}
-	sprintf(pid_buffer, "%d\n", getpid());
+	esif_ccb_sprintf(sizeof(pid_buffer), pid_buffer, "%d\n", getpid());
 	rc = write(g_instance.lockfd, pid_buffer, strlen(pid_buffer));
 	return ESIF_TRUE;
 }
@@ -386,7 +394,10 @@ static void *esif_udev_listen(void *ptr)
 	sock_addr_dest.nl_pid = 0;
 	sock_addr_dest.nl_groups = 0; 
 
-	netlink_msg = (struct nlmsghdr *)malloc(NLMSG_SPACE(MAX_PAYLOAD));
+	netlink_msg = (struct nlmsghdr *)esif_ccb_malloc(NLMSG_SPACE(MAX_PAYLOAD));
+	if (netlink_msg == NULL) {
+		goto exit;
+	}
 	memset(netlink_msg, 0, NLMSG_SPACE(MAX_PAYLOAD));
 	netlink_msg->nlmsg_len = NLMSG_SPACE(MAX_PAYLOAD);
 	netlink_msg->nlmsg_pid = getpid();
@@ -415,8 +426,12 @@ static void *esif_udev_listen(void *ptr)
 		}
 	}
 	
-	close(sock_fd);
-exit: 
+exit:
+	if (sock_fd >= 0) {
+		close(sock_fd);
+	}
+	esif_ccb_free(netlink_msg);
+	netlink_msg = NULL;
 	return NULL;
 }
 
@@ -462,15 +477,16 @@ static void esif_process_udev_event(char *udev_target)
 	EsifUpPtr up_proc_ptr = NULL;
 	char *parsed = NULL;
 	char *ctx = NULL;
-	UInt32 domain_count = 0;
 	UInt8 participant_id = 0;
 	UInt8 processor_id = 0;
 	eEsifError iter_rc = ESIF_OK;
 	UfPmIterator up_iter = { 0 };
-	int participantCounter = 0;
 	Bool target_tz_found = ESIF_FALSE;
 	
 	participant_device_path = esif_ccb_malloc(MAX_PAYLOAD);
+	if (participant_device_path == NULL) {
+		goto exit;
+	}
 
 	iter_rc = EsifUpPm_InitIterator(&up_iter);
 	if (iter_rc != ESIF_OK) {
@@ -593,14 +609,14 @@ void* dbus_listen()
 static char *cmd_infile  = "esifd.cmd"; /* -p parameter, created in temp path */
 static char *cmd_outfile = "esifd.log"; /* -l parameter, created in temp path */
 
-static int run_as_daemon(int start_with_pipe, int start_with_log)
+static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_background)
 {
-	FILE *fp = NULL;
 	char *ptr = NULL;
 	char line[MAX_LINE + 1] = {0};
 	char line2[MAX_LINE + 1] = {0};
 	char cmd_in[MAX_PATH] = {0};
 	char cmd_out[MAX_PATH] = {0};
+	int  stdinfd = -1;
 
 	/* Check to see if another instance is running */
 	if (!instance_lock()) {
@@ -616,16 +632,18 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 		esif_build_path(cmd_out, sizeof(cmd_out), ESIF_PATHTYPE_TEMP, cmd_outfile, NULL);
 	}
 
-	/* 1. Call Fork */
-	pid_t process_id = fork();
+	/* 1. Call Fork (if background daemon) */
+	pid_t process_id = (start_in_background ? fork() : getpid());
 
 	if (-1 == process_id) {
+		printf("ESIF_UFD: %s failed. Error #%d\n", (start_in_background ? "fork" : "getpid"), errno);
 		return ESIF_FALSE;
-	} else if (process_id != 0) {
-		/* 2. Exit From Parent */
+	}
+	else if (process_id != 0) {
+		/* 2. Exit From Parent (if background daemon) */
 		CMD_DEBUG("\nESIF Daemon/Loader Version %s\n", ESIF_VERSION);
 		CMD_DEBUG(COPYRIGHT_NOTICE "\n");
-		CMD_DEBUG("Spawn Daemon ESIF Child Process: %d\n", process_id);
+		CMD_DEBUG("%s: %d\n", (start_in_background ? "Spawn Daemon ESIF Child Process" : "Foreground Daemon Process"), process_id);
 		if (ESIF_TRUE == start_with_pipe) {
 			CMD_DEBUG("Command Input:  %s\n", cmd_in);
 		}
@@ -633,11 +651,13 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 		if (ESIF_TRUE == start_with_log) {
 			CMD_DEBUG("Command Output: %s\n", cmd_out);
 		}
-		exit(EXIT_SUCCESS);
+		if (start_in_background)
+			exit(EXIT_SUCCESS);
 	}
 
-	/* 3. Call setsid */
-	if (-1 == setsid()) {
+	/* 3. Call setsid (if background daemon) */
+	if (start_in_background && -1 == setsid()) {
+		printf("ESIF_UFD: setsid failed. Error #%d\n", errno);
 		return ESIF_FALSE;
 	}
 
@@ -657,10 +677,10 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 	/* stdin */
 	if (ESIF_TRUE == start_with_log) {
 		unlink(cmd_out);
-		open (cmd_out, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+		stdinfd = open (cmd_out, O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
 	}
 	else {
-		open ("/dev/null", O_RDWR);
+		stdinfd = open ("/dev/null", O_RDWR);
 	}
 
 	/* stdout, stderr */
@@ -700,10 +720,11 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 
 		/* Redirect stdout, stderr to NULL and close input pipe */
 		if (ESIF_TRUE == start_with_log) {
-			close(STDIN_FILENO);
+			close(stdinfd != -1 ? stdinfd : STDIN_FILENO);
 			close(STDOUT_FILENO);
 			close(STDERR_FILENO);
-			open("/dev/null", O_RDWR);
+			
+			stdinfd = open("/dev/null", O_RDWR);
 			if (dup(0) != -1) {
 				setvbuf(stdout, NULL, _IONBF, 0);
 			}
@@ -732,14 +753,13 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 
 		/* Wait for input from pipe until exit */
 		while (start_with_pipe && !g_quit) {
-			int count = 0;
-			fp = fopen(cmd_in, "r");
-			if (NULL == fp) {
+			FILE *fp = NULL;
+			if ((fp = esif_ccb_fopen(cmd_in, "r", NULL)) == NULL) {
 				break;
 			}
 
 			/* Grab line from FIFO PIPE */
-			if (fgets(line, MAX_LINE, fp) == NULL) {
+			if (esif_ccb_fgets(line, MAX_LINE, fp) == NULL) {
 				/* do nothing */
 			}
 			ptr = line;
@@ -752,12 +772,11 @@ static int run_as_daemon(int start_with_pipe, int start_with_log)
 
 			/* execute command */
 			esif_shell_execute(line);
-		}
-
-		if (NULL != fp) {
-			fclose(fp);
+			esif_ccb_fclose(fp);
 		}
 	}
+	if (stdinfd != -1)
+		close(stdinfd);
 	return ESIF_TRUE;
 }
 #endif
@@ -774,6 +793,9 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	char full_prompt[MAX_LINE + 1] = {0};
 	char prompt_buf[PROMPT_LEN] = {0};
 	ESIF_DATA(data_prompt, ESIF_DATA_STRING, prompt_buf, PROMPT_LEN);
+
+	if (input == NULL)
+		input = stdin;
 
 	/* Guarantee a single instance is running */
 	if (!instance_lock()) {
@@ -800,8 +822,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	esif_ccb_thread_create(&g_dbus_thread, dbus_listen, "D-Bus Listener");
 #endif
 
- 	while (!g_quit) {
-		int count = 0;
+	while (!g_quit) {
 		// Exit if Shell disabled
 		if (!g_shell_enabled) {
 			CMD_OUT("Shell Unavailable.\n");
@@ -824,7 +845,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 
 #ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
 		// Use Readline With History
-		sprintf(full_prompt, "%s ", prompt);
+		esif_ccb_sprintf(sizeof(full_prompt), full_prompt, "%s ", prompt);
 		CMD_LOGFILE("%s ", prompt);
 		ptr = readline(full_prompt);
 
@@ -836,12 +857,12 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		if (ptr[0] != 0) {
 				add_history(ptr);
 		}
-		strcpy(line, ptr);
+		esif_ccb_strcpy(line, ptr, sizeof(line));
 		free(ptr);
 #else
 		// No History So Sorry
 		CMD_OUT("%s ", prompt);
-		if (fgets(line, MAX_LINE, input) == NULL) {
+		if (esif_ccb_fgets(line, MAX_LINE, input) == NULL) {
 				break;
 		}
 		ptr = line;
@@ -853,7 +874,6 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		}
 #endif
 		CMD_LOGFILE("%s\n", line);
-
 		esif_shell_execute(line);
 	}
 	return ESIF_TRUE;
@@ -862,13 +882,14 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 int main (int argc, char **argv)
 {
 	int c = 0;
-	FILE *fp = stdin;
+	FILE *fp = NULL;
 	char command[MAX_LINE + 1] = {0};
 	int quit_after_command = ESIF_FALSE;
 #if defined(ESIF_ATTR_DAEMON)
 	int start_as_server = ESIF_FALSE;
 	int start_with_pipe = ESIF_FALSE;
 	int start_with_log = ESIF_FALSE;
+	int start_in_background = ESIF_TRUE;
 #else
 	int start_as_server = ESIF_TRUE;
 #endif
@@ -882,7 +903,7 @@ int main (int argc, char **argv)
 
 	optind = 1;	// Rest To 1 Restart Vector Scan
 
-	while ((c = getopt(argc, argv, "d:f:c:b:r:i:xhq?spl")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:c:b:r:i:xhq?snzpl")) != -1) {
 		switch (c) {
 		case 'd':
 			g_dst = (u8)esif_atoi(optarg);
@@ -897,11 +918,13 @@ int main (int argc, char **argv)
 			break;
 
 		case 'f':
-			fp = fopen(optarg, "r");
+			if (fp)
+				esif_ccb_fclose(fp);
+			fp = esif_ccb_fopen(optarg, "r", NULL);
 			break;
 
 		case 'c':
-			sprintf(command, "%s", optarg);
+			esif_ccb_sprintf(sizeof(command), command, "%s", optarg);
 			break;
 
 		case 'q':
@@ -920,6 +943,14 @@ int main (int argc, char **argv)
 
 		case 's':
 			start_as_server = ESIF_TRUE;
+			break;
+
+		case 'n':
+			start_in_background = ESIF_FALSE;
+			break;
+
+		case 'z':
+			start_in_background = ESIF_TRUE;
 			break;
 
 		case 'p':
@@ -946,6 +977,8 @@ int main (int argc, char **argv)
 			"-i [*msec]          Set IPC Retry Interval in msec\n"
 #if defined (ESIF_ATTR_DAEMON)
 			"-s                  Run As Server\n"
+			"-z                  Run As Daemon in Background [Default]\n"
+			"-n                  Run As Daemon in Foreground\n"
 			"-p                  Use Pipe For Input\n"
 			"-l                  Use Log For Output\n"
 #endif
@@ -962,7 +995,11 @@ int main (int argc, char **argv)
 	if (start_as_server) {
 		run_as_server(fp, command, quit_after_command);
 	} else {
-		run_as_daemon(start_with_pipe, start_with_log);
+		if (fp) {
+			esif_ccb_fclose(fp);
+			fp = NULL;
+		}
+		run_as_daemon(start_with_pipe, start_with_log, start_in_background);
 	}
 #else
 	run_as_server(fp, command, quit_after_command);
@@ -976,8 +1013,8 @@ int main (int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	if (fp && fp != stdin) {
-		fclose(fp);
+	if (fp) {
+		esif_ccb_fclose(fp);
 	}
 
 	/* Wait For Worker Thread To Exit if started, otherwise wait for ESIF to exit */

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,13 +16,11 @@
 **
 ******************************************************************************/
 
-#ifndef _ESIF_CCB_SYSTEM_H_
-#define _ESIF_CCB_SYSTEM_H_
+#pragma once
 
 #include "esif.h"
 #include "esif_sdk_data.h"
-#include "esif_temp.h"
-
+#include "esif_uf_ccb_thermalapi.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include "powrprof.h"
@@ -30,57 +28,30 @@
 #endif
 
 #ifdef ESIF_ATTR_OS_ANDROID
-#include <sys/reboot.h>
+#include <cutils/android_reboot.h>
+#include <cutils/properties.h>
 #endif
+
+#define MAX_SYSTEM_CMD	256
 
 // Execute System Command. Encapsulate to avoid Linux warnings when using gcc -O9
 static ESIF_INLINE void esif_ccb_system(const char *cmd)
 {
-	int rc = system(cmd);
-	UNREFERENCED_PARAMETER(rc);
+	if (esif_ccb_strlen(cmd, MAX_SYSTEM_CMD) < MAX_SYSTEM_CMD) {
+		int rc = system(cmd);
+		UNREFERENCED_PARAMETER(rc);
+	}
 }
-
-
-#define system(cmd) esif_ccb_system(cmd)
 
 // Reboot
 static ESIF_INLINE void esif_ccb_reboot()
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
-	system("shutdown /r /t 0");
+	esif_ccb_system("shutdown /r /t 0");
 #else
-	system("reboot");
+	esif_ccb_system("reboot");
 #endif
 }
-
-
-#if defined(ESIF_ATTR_OS_WINDOWS)
-//
-// _THERMAL_EVENT and PowerReportThermalEvent have been defined in WinBlue WDK
-//
-#ifndef THERMAL_EVENT_VERSION
-
-#define THERMAL_EVENT_VERSION 1
-typedef struct _THERMAL_EVENT {
-	ULONG   Version;
-	ULONG   Size;
-	ULONG   Type;
-	ULONG   Temperature;
-	ULONG   TripPointTemperature;
-	LPWSTR  Initiator;
-} THERMAL_EVENT, *PTHERMAL_EVENT;
-
-#endif
-
-typedef DWORD (WINAPI * PFNPOWERREPORTTHERMALEVENT)(
-	PTHERMAL_EVENT Event);
-
-#define THERMAL_EVENT_SHUTDOWN 0
-#define THERMAL_EVENT_HIBERNATE 1
-#define THERMAL_EVENT_UNSPECIFIED 0xffffffff
-
-#endif
-
 
 static ESIF_INLINE void esif_guid_to_ms_guid(esif_guid_t *guid)
 {
@@ -108,54 +79,35 @@ static ESIF_INLINE void esif_ccb_shutdown(
 	)
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
-
-	/*
-	** Report Thermal Event Before Shutdown With This UNDOCUMENTED API
-	** Only Available in Windows 8.1/Blue.
-	*/
-
-	HMODULE hModule = LoadLibrary(L"powrprof.dll");
-	if (NULL != hModule) {
-		PFNPOWERREPORTTHERMALEVENT pfnPowerReportThermalEvent = (PFNPOWERREPORTTHERMALEVENT)GetProcAddress(
-				hModule,
-				"PowerReportThermalEvent");
-
-		if (NULL != pfnPowerReportThermalEvent) {
-			THERMAL_EVENT t_event = {0};
-			/*
-			 * API expects temperatures in Kelvin
-			 */
-			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_K, &temperature);
-			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_K, &tripPointTemperature);
-
-			t_event.Version     = THERMAL_EVENT_VERSION;
-			t_event.Size        = sizeof(THERMAL_EVENT);
-			t_event.Type        = THERMAL_EVENT_SHUTDOWN;
-			t_event.Temperature = temperature;
-			t_event.TripPointTemperature = tripPointTemperature;
-			t_event.Initiator   = L"Intel(R) Dynamic Platform Thermal Framework";
-
-			/* Best effort we are shutting down anyway */
-			pfnPowerReportThermalEvent(&t_event);
-		}
-		FreeLibrary(hModule);
-	}
-	system("shutdown /s /f /t 0");
+	esif_ccb_report_thermal_event(
+		ENVIRONMENTAL_EVENT_SHUTDOWN,
+		temperature,
+		tripPointTemperature
+		);
+	esif_ccb_system("shutdown /s /f /t 0");
 #elif defined(ESIF_ATTR_OS_CHROME)
-	system("shutdown -P now");
+	esif_ccb_system("shutdown -P now");
 #elif defined(ESIF_ATTR_OS_ANDROID)
-	reboot(RB_POWER_OFF);
+	property_set(ANDROID_RB_PROPERTY, "shutdown");
 #else
-	system("shutdown -h now");
+	esif_ccb_system("shutdown -h now");
 #endif
 }
 
 #define SUSPEND_DELAY_IN_MILLISECONDS 400
 
 // Enter S4 Hibernation
-static ESIF_INLINE void esif_ccb_hibernate()
+static ESIF_INLINE void esif_ccb_hibernate(
+	UInt32 temperature,
+	UInt32 tripPointTemperature
+	)
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
+	esif_ccb_report_thermal_event(
+		ENVIRONMENTAL_EVENT_HIBERNATE,
+		temperature,
+		tripPointTemperature
+		);
 	/*
 	** TODO: Remove this code later as this is only a temporary solution for
 	** problems related to attempting a hibernate too soon after a resume in
@@ -166,7 +118,7 @@ static ESIF_INLINE void esif_ccb_hibernate()
 #elif defined(ESIF_ATTR_OS_CHROME)
 	/* NA */
 #else
-	system("pm-hibernate");
+	esif_ccb_system("pm-hibernate");
 #endif
 }
 
@@ -183,11 +135,11 @@ static ESIF_INLINE void esif_ccb_suspend()
 	esif_ccb_sleep_msec(SUSPEND_DELAY_IN_MILLISECONDS);
 	SetSuspendState(0, 1, 0);
 #elif defined(ESIF_ATTR_OS_CHROME)
-	system("powerd_dbus_suspend");
+	esif_ccb_system("powerd_dbus_suspend");
 #elif defined(ESIF_ATTR_OS_ANDROID)
-	system("input keyevent 26");
+	esif_ccb_system("input keyevent 26");
 #else
-	system("pm-suspend");
+	esif_ccb_system("pm-suspend");
 #endif
 }
 
@@ -236,8 +188,6 @@ static ESIF_INLINE void esif_ccb_suspend()
 	ESIF_E_ACTION_NOT_IMPLEMENTED
 
 #endif
-
-#endif /* _ESIF_CCB_SYSTEM_H_ */
 
 /*****************************************************************************/
 /*****************************************************************************/

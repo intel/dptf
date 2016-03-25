@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,41 +25,18 @@
 #include "esif_time.h"
 #include "esif_percent.h"
 #include "esif_dsp.h"
+#include "esif_participant.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Transforms */
-enum esif_rc EsifUfXformTime(
-	const enum esif_time_type type,
-	esif_time_t *time_ptr,
-	const enum esif_action_type action,
-	const EsifDspPtr dsp_ptr,
-	const enum esif_primitive_opcode opcode
-);
-
-enum esif_rc EsifUfXformPower(
-	const enum esif_power_unit_type type,
-	esif_power_t *power_ptr,
-	const enum esif_action_type action,
-	const EsifDspPtr dsp_ptr,
-	const enum esif_primitive_opcode opcode
-);
-
-enum esif_rc EsifUfXformTemp(
-	const enum esif_temperature_type type,
-	esif_temp_t *temp_ptr,
-	const enum esif_action_type action,
-	const EsifDspPtr dsp_ptr,
-	const enum esif_primitive_opcode opcode
-);
-
-void EsifUfExecuteTransform(
+eEsifError EsifUfExecuteTransform(
 	const EsifDataPtr transformDataPtr,
-	const enum esif_action_type action,
-	const EsifDspPtr dsp_ptr,
-	const enum esif_primitive_opcode opcode);
+	const EsifUpPtr upPtr,
+	const enum esif_action_type action_type,
+	const enum esif_primitive_opcode opcode
+	);
 
 #ifdef __cplusplus
 }

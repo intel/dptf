@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,14 @@
 #include "Dptf.h"
 #include "DomainWorkItem.h"
 
-class WIDomainPlatformPowerConsumptionChanged : public DomainWorkItem
+class WIDptfParticipantActivityLoggingEnabled : public DomainWorkItem
 {
 public:
 
-    WIDomainPlatformPowerConsumptionChanged(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex);
-    virtual ~WIDomainPlatformPowerConsumptionChanged(void);
+    WIDptfParticipantActivityLoggingEnabled(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex, UInt32 parameter);
+    virtual ~WIDptfParticipantActivityLoggingEnabled(void);
 
     virtual void execute(void) override final;
+private:
+    const UInt32 m_capabilityId;
 };

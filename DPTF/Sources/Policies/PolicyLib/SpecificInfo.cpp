@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -90,12 +90,12 @@ UIntN SpecificInfo::getItem(ParticipantSpecificInfoKey::Type key)
     }
 }
 
-XmlNode* SpecificInfo::getXml() const
+std::shared_ptr<XmlNode> SpecificInfo::getXml() const
 {
-    XmlNode* wrapper = XmlNode::createWrapperElement("specific_info");
+    auto wrapper = XmlNode::createWrapperElement("specific_info");
     for (auto tp = m_specificInfo.begin(); tp != m_specificInfo.end(); tp++)
     {
-        XmlNode* node = XmlNode::createDataElement(
+        auto node = XmlNode::createDataElement(
             ParticipantSpecificInfoKey::ToString((ParticipantSpecificInfoKey::Type)tp->first),
             StlOverride::to_string(tp->second));
         wrapper->addChild(node);

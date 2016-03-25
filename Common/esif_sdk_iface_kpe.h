@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -92,6 +92,7 @@ struct esif_driver_iface {
 
 	enum esif_rc (*set_handler)( /* Action SET handler */
 		const void *context_ptr,
+		const u32 domain_handle,
 		const u32 p1,
 		const u32 p2,
 		const u32 p3,
@@ -103,14 +104,14 @@ struct esif_driver_iface {
 	enum esif_rc (*send_event)( /* Used to send events to ESIF */
 		const struct esif_driver_iface *di_ptr,
 		const enum esif_event_type type,
-		const u16 domain, /* Must Be '0D' */
+		const u32 domain_handle,
 		const struct esif_data *data_ptr
 		);
 
 	enum esif_rc (*recv_event)( /* Used to send events to the KPE */
 		const void *context_ptr,
 		const enum esif_event_type type,
-		const u16 domain, 	/* Must Be '0D' */
+		const u32 domain_handle, /* Reserved */
 		const struct esif_data *data_ptr
 		);
 };

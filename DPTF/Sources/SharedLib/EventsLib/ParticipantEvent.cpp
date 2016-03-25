@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,14 +53,18 @@ namespace ParticipantEvent
             CASE(DomainVirtualSensorPollingTableChanged)
             CASE(DomainVirtualSensorRecalcChanged)
             CASE(DomainBatteryStatusChanged)
-            CASE(DomainAdapterPowerChanged)
-            CASE(DomainPlatformPowerConsumptionChanged)
+            CASE(DomainBatteryInformationChanged)
             CASE(DomainPlatformPowerSourceChanged)
             CASE(DomainAdapterPowerRatingChanged)
             CASE(DomainChargerTypeChanged)
             CASE(DomainPlatformRestOfPowerChanged)
             CASE(DomainACPeakPowerChanged)
             CASE(DomainACPeakTimeWindowChanged)
+            CASE(DomainMaxBatteryPowerChanged)
+            CASE(DomainPlatformBatterySteadyStateChanged)
+            CASE(DptfParticipantActivityLoggingEnabled)
+            CASE(DptfParticipantActivityLoggingDisabled)
+            CASE(DptfParticipantControlAction)
             default:
                 throw dptf_exception("ParticipantEvent::Type is invalid.");
         }

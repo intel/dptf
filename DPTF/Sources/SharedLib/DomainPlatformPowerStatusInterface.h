@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,14 +29,13 @@ public:
     virtual ~DomainPlatformPowerStatusInterface() {};
 
     virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Power getAdapterPower(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Power getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Percentage getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual Power getACPeakPower(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual TimeSpan getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) = 0;
 };

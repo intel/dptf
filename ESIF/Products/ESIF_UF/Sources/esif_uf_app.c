@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -131,7 +131,7 @@ exit:
 
 
 /*
-    IMPLEMENT EsifAppInterface
+	IMPLEMENT EsifAppInterface
  */
 typedef eEsifError (ESIF_CALLCONV *GetIfaceFuncPtr)(AppInterfacePtr);
 
@@ -174,6 +174,9 @@ static eEsifError AppCreate(
 	app_service_iface.fWriteLogFuncPtr        = EsifSvcWriteLog;
 	app_service_iface.fRegisterEventFuncPtr   = EsifSvcEventRegister;
 	app_service_iface.fUnregisterEventFuncPtr = EsifSvcEventUnregister;
+
+	//For Version 2
+	app_service_iface.fSendEventFuncPtr       = EsifSvcEventReceive;
 
 	/* GetApplicationInterface Handleshake send ESIF receive APP Interface */
 	rc = ifaceFuncPtr(&appPtr->fInterface);
@@ -461,21 +464,21 @@ static AppParticipantDataPtr CreateParticipantData(
 	appDataPtr->fVersion = upDataPtr->fVersion;
 	ASSIGN_DATA_GUID(appDataPtr->fDriverType, upDataPtr->fDriverType);
 	ASSIGN_DATA_GUID(appDataPtr->fDeviceType, upDataPtr->fDriverType);
-	ASSIGN_DATA_STRING(appDataPtr->fName, upDataPtr->fName, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(appDataPtr->fDesc, upDataPtr->fDesc, ESIF_DESC_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fName, upDataPtr->fName, sizeof(upDataPtr->fName));
+	ASSIGN_DATA_STRING(appDataPtr->fDesc, upDataPtr->fDesc, sizeof(upDataPtr->fDesc));
 
-	ASSIGN_DATA_STRING(appDataPtr->fDriverName, upDataPtr->fDriverName, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(appDataPtr->fDeviceName, upDataPtr->fDeviceName, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(appDataPtr->fDevicePath, upDataPtr->fDevicePath, ESIF_PATH_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fDriverName, upDataPtr->fDriverName, sizeof(upDataPtr->fDriverName));
+	ASSIGN_DATA_STRING(appDataPtr->fDeviceName, upDataPtr->fDeviceName, sizeof(upDataPtr->fDeviceName));
+	ASSIGN_DATA_STRING(appDataPtr->fDevicePath, upDataPtr->fDevicePath, sizeof(upDataPtr->fDevicePath));
 
 	appDataPtr->fDomainCount   = (UInt8)dspPtr->get_domain_count(dspPtr);
 	appDataPtr->fBusEnumerator = upDataPtr->fEnumerator;
 
 	/* ACPI Device */
-	ASSIGN_DATA_STRING(appDataPtr->fAcpiDevice, upDataPtr->fAcpiDevice, ESIF_NAME_LEN);
-	ASSIGN_DATA_STRING(appDataPtr->fAcpiScope, upDataPtr->fAcpiScope, ESIF_SCOPE_LEN);
+	ASSIGN_DATA_STRING(appDataPtr->fAcpiDevice, upDataPtr->fAcpiDevice, sizeof(upDataPtr->fAcpiDevice));
+	ASSIGN_DATA_STRING(appDataPtr->fAcpiScope, upDataPtr->fAcpiScope, sizeof(upDataPtr->fAcpiScope));
 	appDataPtr->fAcpiType = upDataPtr->fAcpiType;
-	ASSIGN_DATA_STRING(appDataPtr->fAcpiUID, upDataPtr->fAcpiUID, sizeof(appDataPtr->fAcpiUID));
+	ASSIGN_DATA_STRING(appDataPtr->fAcpiUID, upDataPtr->fAcpiUID, sizeof(upDataPtr->fAcpiUID));
 
 	/* PCI Device */
 	appDataPtr->fPciVendor    = upDataPtr->fPciVendor;
@@ -641,8 +644,7 @@ eEsifError EsifAppDestroyParticipant(
 	participant_data_map_ptr = &appPtr->fParticipantData[EsifUp_GetInstance(upPtr)];
 
 	// If created as NULL no need for callback.
-	if (NULL == participant_data_map_ptr ||
-		NULL == participant_data_map_ptr->fAppParticipantHandle) {
+	if (NULL == participant_data_map_ptr->fAppParticipantHandle) {
 		goto exit;
 	}
 
@@ -720,15 +722,14 @@ eEsifError EsifAppStart(EsifAppPtr appPtr)
 	}
 	ESIF_TRACE_DEBUG("AppCreate completed.\n");
 
-	rc = EsifApp_RegisterParticipantsWithApp(appPtr);
-	if (ESIF_OK != rc) {
-		ESIF_TRACE_DEBUG("EsifApp_RegisterParticipantsWithApp failed.\n");
-		goto exit;
-	}
+	/*
+	 * Participant registration with an application is best effort, as we
+	 * should not unload an app if there is a failure while registering a
+	 * participant.
+	 */
+	EsifApp_RegisterParticipantsWithApp(appPtr);
 	ESIF_TRACE_DEBUG("EsifApp_RegisterParticipantsWithApp completed.\n");
-
 exit:
-
 	if (ESIF_OK != rc) {
 		esif_ccb_library_unload(appPtr->fLibHandle);
 		appPtr->fLibHandle = NULL;
@@ -900,9 +901,9 @@ static eEsifError ESIF_CALLCONV EsifApp_EventCallback(
 	void *domainHandle = NULL;
 	EsifData dataGuid     = {ESIF_DATA_GUID, NULL, sizeof(fpcEventPtr->event_guid), sizeof(fpcEventPtr->event_guid)};
 	char guidStr[ESIF_GUID_PRINT_SIZE];
+	UInt8 domainIndex = 0;
 
 	UNREFERENCED_PARAMETER(guidStr);
-	UNREFERENCED_PARAMETER(domainId);
 
 	if (NULL == fpcEventPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -943,6 +944,11 @@ static eEsifError ESIF_CALLCONV EsifApp_EventCallback(
 		}
 
 		participantHandle = upDataMapPtr->fAppParticipantHandle;
+		EsifDomainIdToIndex(domainId, &domainIndex);
+
+		if (domainIndex < MAX_DOMAIN_ENTRY) {
+			domainHandle = upDataMapPtr->fDomainData[domainIndex].fAppDomainHandle;
+		}
 
 		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upDataMapPtr->fUpPtr));
 		ESIF_TRACE_DEBUG("Ring Participant Door Bell:\n");
@@ -961,7 +967,7 @@ static eEsifError ESIF_CALLCONV EsifApp_EventCallback(
 	rc = appPtr->fInterface.fAppEventFuncPtr(
 			appHandle,
 			participantHandle,
-			NULL,
+			domainHandle,
 			eventDataPtr,
 			&dataGuid);
 exit:
@@ -979,7 +985,7 @@ eEsifError EsifApp_RegisterEvent(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	char guidStr[ESIF_GUID_PRINT_SIZE];
+	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
 	UNREFERENCED_PARAMETER(guidStr);
 
 	if (NULL == esifHandle) {
@@ -1241,6 +1247,175 @@ exit:
 	return rc;
 }
 
+/* Receives the events from DPTF -> ESIF */
+eEsifError EsifApp_ReceiveEvent(
+	const void *esifHandle,
+	const void *appHandle,
+	const void *participantHandle,
+	const void *domainHandle,
+	const EsifDataPtr eventDataPtr,
+	const EsifDataPtr eventGuidPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	EsifAppPtr appPtr = NULL;
+	eEsifEventType eventType = (eEsifEventType)ESIF_INVALID_ENUM_VALUE;
+	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
+	
+	if (NULL == esifHandle) {
+		ESIF_TRACE_ERROR("Invalid esif handle\n");
+		return ESIF_E_INVALID_HANDLE;
+	}
+
+	if (NULL == appHandle) {
+		ESIF_TRACE_ERROR("Invalid app handle\n");
+		return ESIF_E_INVALID_HANDLE;
+	}
+
+	if ((NULL == eventGuidPtr) || (NULL == eventGuidPtr->buf_ptr) || (ESIF_DATA_GUID != eventGuidPtr->type)) {
+		ESIF_TRACE_ERROR("Invalid event GUID\n");
+		return ESIF_E_PARAMETER_IS_NULL;
+	}
+
+	ESIF_TRACE_DEBUG("Received Event\n\n"
+		"ESIF Handle          : %p\n"
+		"App Handle           : %p\n"
+		"Participant Handle   : %p\n"
+		"Domain Handle        : %p\n"
+		"Event Data           : %p\n"
+		"Event GUID           : %s\n\n",
+		esifHandle,
+		appHandle,
+		participantHandle,
+		domainHandle,
+		eventDataPtr,
+		esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr));
+	
+	/* Determine what to do based on provided parameters */
+	switch (EsifApp_CategorizeEvent(appHandle, participantHandle, domainHandle)) {
+	case EVENT_CATEGORY_APP:
+	{
+		appPtr = GetAppFromHandle(appHandle);
+		if (NULL == appPtr) {
+			ESIF_TRACE_ERROR("The app data was not found from app handle\n");
+			rc = ESIF_E_INVALID_HANDLE;
+			goto exit;
+		}
+
+		if (esif_event_map_guid2type(eventGuidPtr->buf_ptr, &eventType) == ESIF_FALSE) {
+			rc = ESIF_E_EVENT_NOT_FOUND;
+			goto exit;
+		}
+		
+		ESIF_TRACE_DEBUG(
+			"Received APP event\n"
+			"  GUID: %s\n"
+			"  Type: %s(%d)\n",
+			esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
+			esif_event_type_str(eventType), eventType);
+		
+		rc = EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, eventType, eventDataPtr);
+		if (ESIF_OK != rc) {
+			goto exit;
+		}
+	}
+	break;
+
+	case EVENT_CATEGORY_PARTICIPANT:
+	{
+		AppParticipantDataMapPtr upMapPtr = NULL;
+
+		appPtr = GetAppFromHandle(appHandle);
+		if (NULL == appPtr) {
+			ESIF_TRACE_ERROR("The app data was not found from app handle\n");
+			rc = ESIF_E_INVALID_HANDLE;
+			goto exit;
+		}
+
+		upMapPtr = EsifApp_GetParticipantDataMapFromHandle(appPtr, participantHandle);
+		if (NULL == upMapPtr) {
+			ESIF_TRACE_ERROR("The app participant data was not found from participant handle\n");
+			rc = ESIF_E_INVALID_HANDLE;
+			goto exit;
+		}
+		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upMapPtr->fUpPtr));
+		
+		if (esif_event_map_guid2type(eventGuidPtr->buf_ptr, &eventType) == ESIF_FALSE) {
+			rc = ESIF_E_EVENT_NOT_FOUND;
+			goto exit;
+		}
+				
+		ESIF_TRACE_DEBUG(
+			"Received Participant event\n"
+			"  GUID: %s\n"
+			"  Type: %s(%d)\n",
+			esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
+			esif_event_type_str(eventType), eventType);
+
+		rc = EsifEventMgr_SignalEvent(EsifUp_GetInstance(upMapPtr->fUpPtr), EVENT_MGR_MATCH_ANY, eventType, eventDataPtr);
+		if (ESIF_OK != rc) {
+			goto exit;
+		}
+	}
+	break;
+
+	case EVENT_CATEGORY_DOMAIN:
+	{
+		AppParticipantDataMapPtr upMapPtr = NULL;
+		AppDomainDataMapPtr domainPtr = NULL;
+
+		appPtr = GetAppFromHandle(appHandle);
+		if (NULL == appPtr) {
+			ESIF_TRACE_ERROR("The app data was not found from app handle\n");
+			rc = ESIF_E_INVALID_HANDLE;
+			goto exit;
+		}
+
+		upMapPtr = EsifApp_GetParticipantDataMapFromHandle(appPtr, participantHandle);
+		if (NULL == upMapPtr) {
+			ESIF_TRACE_ERROR("The app participant data was not found from participant handle\n");
+			rc = ESIF_E_INVALID_HANDLE;
+			goto exit;
+		}
+
+		domainPtr = EsifApp_GetDomainDataMapByHandle(upMapPtr, domainHandle);
+		if (NULL == domainPtr) {
+			ESIF_TRACE_ERROR("The app domain data was not found from domain handle\n");
+			rc = ESIF_E_INVALID_HANDLE;
+			goto exit;
+		}
+		ESIF_TRACE_DEBUG("Using Participant %s\n", EsifUp_GetName(upMapPtr->fUpPtr));
+
+		if (esif_event_map_guid2type(eventGuidPtr->buf_ptr, &eventType) == ESIF_FALSE) {
+			ESIF_TRACE_ERROR("esif_event_map_guid2type() failed");
+			rc = ESIF_E_EVENT_NOT_FOUND;
+			goto exit;
+		}
+
+		ESIF_TRACE_DEBUG(
+			"Received Domain event\n"
+			"  GUID: %s\n"
+			"  Type: %s(%d)\n",
+			esif_guid_print((esif_guid_t *)eventGuidPtr->buf_ptr, guidStr),
+			esif_event_type_str(eventType), eventType);
+
+		rc = EsifEventMgr_SignalEvent(EsifUp_GetInstance(upMapPtr->fUpPtr), domainPtr->fQualifierId, eventType, eventDataPtr);
+		if (ESIF_OK != rc) {
+			goto exit;
+		}
+	}
+	break;
+
+	default:
+		ESIF_TRACE_ERROR("Unknown category type\n");
+		rc = ESIF_E_INVALID_HANDLE;
+		break;
+	}
+		
+exit:
+	return rc;
+}
 
 /* Lookup participant data for a handle */
 AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromHandle(

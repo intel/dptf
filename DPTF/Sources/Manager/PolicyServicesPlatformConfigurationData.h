@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,8 +45,9 @@ public:
     virtual void disablePlatformSettings(
         PlatformSettingType::Type platformSettingType) override final;
 
-    virtual ActiveRelationshipTable getActiveRelationshipTable(void) override final;
-    virtual ThermalRelationshipTable getThermalRelationshipTable(void) override final;
+    virtual DptfBuffer getActiveRelationshipTable(void) override final;
+    virtual void setActiveRelationshipTable(DptfBuffer data) override final;
+    virtual DptfBuffer getThermalRelationshipTable(void) override final;
     virtual DptfBuffer getPassiveTable(void) override final;
     virtual void setPassiveTable(DptfBuffer data) override final;
     virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) override final;
@@ -61,4 +62,5 @@ public:
     virtual DptfBuffer getPowerDeviceRelationshipTable(void) override final;
     virtual DptfBuffer getPowerBossConditionsTable(void) override final;
     virtual DptfBuffer getPowerBossActionsTable(void) override final;
+    virtual DptfBuffer getEmergencyCallModeTable(void) override final;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,7 +37,7 @@ std::string ParticipantStatusMap::getGroupsString()
         buildParticipantDomainsList();
     }
 
-    XmlNode* modules = XmlNode::createWrapperElement("modules");
+    auto modules = XmlNode::createWrapperElement("modules");
 
     for (UIntN i = 0; i < m_participantDomainsList.size(); i++)
     {
@@ -53,13 +53,13 @@ std::string ParticipantStatusMap::getGroupsString()
                 name << '(' << m_participantDomainsList[i].second << ')';
             }
 
-            XmlNode* module = XmlNode::createWrapperElement("module");
+            auto module = XmlNode::createWrapperElement("module");
             modules->addChild(module);
 
-            XmlNode* participantId = XmlNode::createDataElement("id", StlOverride::to_string(i));
+            auto participantId = XmlNode::createDataElement("id", StlOverride::to_string(i));
             module->addChild(participantId);
 
-            XmlNode* participantName = XmlNode::createDataElement("name", name.str());
+            auto participantName = XmlNode::createDataElement("name", name.str());
             module->addChild(participantName);
         }
         catch (dptf_exception)
@@ -69,7 +69,6 @@ std::string ParticipantStatusMap::getGroupsString()
     }
 
     std::string s = modules->toString();
-    delete modules;
 
     return s;
 }
@@ -97,7 +96,7 @@ void ParticipantStatusMap::buildParticipantDomainsList()
     }
 }
 
-XmlNode* ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
+std::shared_ptr<XmlNode> ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
 {
     try
     {

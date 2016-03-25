@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,7 +39,7 @@ void WIDomainACPeakTimeWindowChanged::execute(void)
     {
         getParticipantPtr()->domainACPeakTimeWindowChanged();
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         WriteDomainWorkItemErrorMessage_Function("Participant::domainACPeakTimeWindowChanged");
     }
@@ -58,7 +58,7 @@ void WIDomainACPeakTimeWindowChanged::execute(void)
         {
             // do nothing.  No item in the policy list at this index.
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
             WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainACPeakTimeWindowChanged", i);
         }

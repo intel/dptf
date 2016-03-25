@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,12 +37,18 @@ void ParticipantSetSpecificInfo_000::setParticipantCoolingPolicy(UIntN participa
     throw not_implemented();
 }
 
+void ParticipantSetSpecificInfo_000::setParticipantSpecificInfo(UIntN participantIndex, 
+    ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)
+{
+    throw not_implemented();
+}
+
 void ParticipantSetSpecificInfo_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
 }
 
-XmlNode* ParticipantSetSpecificInfo_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> ParticipantSetSpecificInfo_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
 }

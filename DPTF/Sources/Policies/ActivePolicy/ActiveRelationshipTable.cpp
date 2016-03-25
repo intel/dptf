@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,11 @@
 ActiveRelationshipTable::ActiveRelationshipTable(const std::vector<ActiveRelationshipTableEntry>& entries)
     : RelationshipTableBase(),
     m_entries(entries)
+{
+}
+
+ActiveRelationshipTable::ActiveRelationshipTable()
+    : RelationshipTableBase()
 {
 }
 
@@ -92,7 +97,21 @@ ActiveRelationshipTable ActiveRelationshipTable::createArtFromDptfBuffer(const D
             static_cast<UInt32>(currentRow->weight.integer.value),
             acEntries);
 
-        entries.push_back(temp);
+        // Check for duplicate entries. Don't add entry if previous entry exists with same target/source pair
+        Bool isDuplicateEntry = false;
+        for (auto e = entries.begin(); e != entries.end(); e++)
+        {
+            if (temp.isSameAs(*e))
+            {
+                isDuplicateEntry = true;
+                break;
+            }
+        }
+
+        if (isDuplicateEntry == false)
+        {
+            entries.push_back(temp);
+        }
 
         // Since we've already accounted for the strings, we now move the pointer by the size of the structure
         //  to get to the next row.
@@ -109,39 +128,54 @@ UIntN ActiveRelationshipTable::countArtRows(UInt32 size, UInt8* data)
     UIntN rows = 0;
 
     //Remove revision field
-    data += sizeof(esif_data_variant);
-    bytesRemaining -= sizeof(esif_data_variant);
+    esif_data_variant* revision = reinterpret_cast<esif_data_variant*>(data);
+    if ((revision->type == esif_data_type::ESIF_DATA_UINT32) || (revision->type == esif_data_type::ESIF_DATA_UINT64))
+    {
+        data += sizeof(esif_data_variant);
+        bytesRemaining -= sizeof(esif_data_variant);
+    }
+    else
+    {
+        throw dptf_exception("Revision Field is Missing. (ART)");
+    }
+
+    throwIfOutOfRange(bytesRemaining);
 
     struct EsifDataBinaryArtPackage* currentRow = reinterpret_cast<struct EsifDataBinaryArtPackage*>(data);
 
     while (bytesRemaining > 0)
     {
         bytesRemaining -= sizeof(struct EsifDataBinaryArtPackage);
+        throwIfOutOfRange(bytesRemaining);
+
         bytesRemaining -= currentRow->sourceDevice.string.length;
+        throwIfOutOfRange(bytesRemaining);
 
         data += currentRow->sourceDevice.string.length;
         currentRow = reinterpret_cast<struct EsifDataBinaryArtPackage*>(data);
 
         bytesRemaining -= currentRow->targetDevice.string.length;
+        throwIfOutOfRange(bytesRemaining);
 
         data += currentRow->targetDevice.string.length;
         currentRow = reinterpret_cast<struct EsifDataBinaryArtPackage*>(data);
 
-        if (bytesRemaining >= 0)
-        {
-            // The math done here will vary based on the number of strings in the BIOS object
-            rows++;
+        // The math done here will vary based on the number of strings in the BIOS object
+        rows++;
 
-            data += sizeof(struct EsifDataBinaryArtPackage);
-            currentRow = reinterpret_cast<struct EsifDataBinaryArtPackage*>(data);
-        }
-        else // Data size mismatch, we went negative
-        {
-            throw dptf_exception("Expected binary data size mismatch. (ART)");
-        }
+        data += sizeof(struct EsifDataBinaryArtPackage);
+        currentRow = reinterpret_cast<struct EsifDataBinaryArtPackage*>(data);
     }
 
     return rows;
+}
+
+void ActiveRelationshipTable::throwIfOutOfRange(IntN bytesRemaining)
+{
+    if (bytesRemaining < 0)
+    {
+        throw dptf_exception("Expected binary data size mismatch. (ART)");
+    }
 }
 
 UIntN ActiveRelationshipTable::getNumberOfEntries(void) const
@@ -211,9 +245,9 @@ std::vector<UIntN> ActiveRelationshipTable::getAllTargets(void) const
     return std::vector<UIntN>(targets.begin(), targets.end());
 }
 
-XmlNode* ActiveRelationshipTable::getXml()
+std::shared_ptr<XmlNode> ActiveRelationshipTable::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("art");
+    auto status = XmlNode::createWrapperElement("art");
     for (auto entry = m_entries.begin(); entry != m_entries.end(); entry++)
     {
         status->addChild(entry->getXml());
@@ -224,4 +258,116 @@ XmlNode* ActiveRelationshipTable::getXml()
 Bool ActiveRelationshipTable::operator==(const ActiveRelationshipTable& art) const
 {
     return (m_entries == art.m_entries);
+}
+
+DptfBuffer ActiveRelationshipTable::toArtBinary() const
+{
+    esif_data_variant revisionField;
+    revisionField.integer.type = esif_data_type::ESIF_DATA_UINT64;
+    revisionField.integer.value = 1;
+
+    DptfBuffer packages;
+    UInt32 offset = 0;
+    for (auto entry = m_entries.begin(); entry != m_entries.end(); entry++)
+    {
+        UInt32 sourceScopeLength = (UInt32)entry->getSourceDeviceAcpiScope().size();
+        UInt32 targetScopeLength = (UInt32)entry->getTargetDeviceAcpiScope().size();
+
+        DptfBuffer packageBuffer;
+        packageBuffer.allocate(sizeof(EsifDataBinaryArtPackage) + sourceScopeLength + targetScopeLength);
+
+        EsifDataBinaryArtPackage entryPackage;
+        UInt32 dataAddress = 0;
+
+        // Source Scope
+        entryPackage.sourceDevice.string.length = sourceScopeLength;
+        entryPackage.sourceDevice.type = esif_data_type::ESIF_DATA_STRING;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.sourceDevice)), sizeof(entryPackage.sourceDevice));
+        dataAddress += sizeof(entryPackage.sourceDevice);
+        packageBuffer.put(dataAddress, (UInt8*)(entry->getSourceDeviceAcpiScope().c_str()), sourceScopeLength);
+        dataAddress += sourceScopeLength;
+
+        // Target Scope
+        entryPackage.targetDevice.string.length = targetScopeLength;
+        entryPackage.targetDevice.type = esif_data_type::ESIF_DATA_STRING;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.targetDevice)), sizeof(entryPackage.targetDevice));
+        dataAddress += sizeof(entryPackage.targetDevice);
+        packageBuffer.put(dataAddress, (UInt8*)(entry->getTargetDeviceAcpiScope().c_str()), targetScopeLength);
+        dataAddress += targetScopeLength;
+
+        // Weight
+        entryPackage.weight.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.weight.integer.value = entry->getWeight();
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.weight)), sizeof(entryPackage.weight));
+        dataAddress += sizeof(entryPackage.weight);
+
+        // AC0
+        entryPackage.ac0MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac0MaxFanSpeed.integer.value = entry->ac(0);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac0MaxFanSpeed)), sizeof(entryPackage.ac0MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac0MaxFanSpeed);
+
+        // AC1
+        entryPackage.ac1MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac1MaxFanSpeed.integer.value = entry->ac(1);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac1MaxFanSpeed)), sizeof(entryPackage.ac1MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac1MaxFanSpeed);
+
+        // AC2
+        entryPackage.ac2MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac2MaxFanSpeed.integer.value = entry->ac(2);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac2MaxFanSpeed)), sizeof(entryPackage.ac2MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac2MaxFanSpeed);
+
+        // AC3
+        entryPackage.ac3MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac3MaxFanSpeed.integer.value = entry->ac(3);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac3MaxFanSpeed)), sizeof(entryPackage.ac3MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac3MaxFanSpeed);
+
+        // AC4
+        entryPackage.ac4MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac4MaxFanSpeed.integer.value = entry->ac(4);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac4MaxFanSpeed)), sizeof(entryPackage.ac4MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac4MaxFanSpeed);
+
+        // AC5
+        entryPackage.ac5MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac5MaxFanSpeed.integer.value = entry->ac(5);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac5MaxFanSpeed)), sizeof(entryPackage.ac5MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac5MaxFanSpeed);
+
+        // AC6
+        entryPackage.ac6MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac6MaxFanSpeed.integer.value = entry->ac(6);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac6MaxFanSpeed)), sizeof(entryPackage.ac6MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac6MaxFanSpeed);
+
+        // AC7
+        entryPackage.ac7MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac7MaxFanSpeed.integer.value = entry->ac(7);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac7MaxFanSpeed)), sizeof(entryPackage.ac7MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac7MaxFanSpeed);
+
+        // AC8
+        entryPackage.ac8MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac8MaxFanSpeed.integer.value = entry->ac(8);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac8MaxFanSpeed)), sizeof(entryPackage.ac8MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac8MaxFanSpeed);
+
+        // AC9
+        entryPackage.ac9MaxFanSpeed.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.ac9MaxFanSpeed.integer.value = entry->ac(9);
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.ac9MaxFanSpeed)), sizeof(entryPackage.ac9MaxFanSpeed));
+        dataAddress += sizeof(entryPackage.ac9MaxFanSpeed);
+
+        packages.put(offset, packageBuffer.get(), packageBuffer.size());
+        offset += packageBuffer.size();
+    }
+
+    UInt32 sizeOfRevision = (UInt32)sizeof(revisionField);
+    DptfBuffer buffer(sizeOfRevision + packages.size());
+    buffer.put(0, (UInt8*)&revisionField, sizeOfRevision);
+    buffer.put(sizeOfRevision, packages.get(), packages.size());
+    return buffer;
 }

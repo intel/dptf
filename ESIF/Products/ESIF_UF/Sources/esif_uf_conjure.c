@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,15 +40,17 @@ typedef eEsifError (ESIF_CALLCONV *GetIfaceFuncPtr)(EsifConjureInterfacePtr);
 /* Friends */
 extern EsifCnjMgr g_cnjMgr;
 
-static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePtr piPtr)
+static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePtr piPtr, esif_handle_t *participantInstance)
 {
 	eEsifError rc    = ESIF_OK;
 	char guid_str[ESIF_GUID_PRINT_SIZE];
 	UInt8 newInstance = ESIF_INSTANCE_INVALID;
+	EsifUpPtr up_ptr = NULL;
 
 	UNREFERENCED_PARAMETER(guid_str);
 
 	ESIF_ASSERT(piPtr != NULL);
+	*participantInstance = (esif_handle_t)ESIF_INSTANCE_INVALID;
 	ESIF_TRACE_INFO(
 		"\n"
 		"=======================================================\n"
@@ -76,9 +78,13 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 		piPtr->device_path,
 		piPtr->object_id);
 
-	if (EsifUpPm_DoesAvailableParticipantExistByName(piPtr->name)) {
+	/* if participant exists, simply return current id */
+	up_ptr = EsifUpPm_GetAvailableParticipantByName(piPtr->name);
+	if (NULL != up_ptr) {
+		*participantInstance = (esif_handle_t)(UInt32)EsifUp_GetInstance(up_ptr);
 		ESIF_TRACE_WARN("Participant %s has already existed in upper framework\n", piPtr->name);
-		rc     = ESIF_E_UNSPECIFIED;
+		rc = ESIF_E_UNSPECIFIED;
+		EsifUp_PutRef(up_ptr);
 		goto exit;
 	}
 
@@ -86,6 +92,9 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 	if (ESIF_OK != rc) {
 		ESIF_TRACE_ERROR("Fail to add participant %s in participant manager\n", piPtr->name);
 		goto exit;
+	}
+	else {
+		*participantInstance = (esif_handle_t)(UInt32)newInstance;
 	}
 
 	ESIF_TRACE_DEBUG("Create new UF participant: %s, instance = %d\n", piPtr->name, newInstance);
@@ -100,26 +109,24 @@ exit:
 }
 
 
-static eEsifError ESIF_CALLCONV UnRegisterParticipant(const EsifParticipantIfacePtr piPtr)
+static eEsifError ESIF_CALLCONV UnRegisterParticipant(esif_handle_t participantHandle)
 {
-	eEsifError rc = ESIF_E_UNSPECIFIED;
-	EsifUpPtr up_ptr = NULL;
-	UInt8 instance = ESIF_INSTANCE_INVALID;
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr upPtr = NULL;
+	UInt8 participantId = (UInt8)(UInt32)participantHandle;
 
-	ESIF_ASSERT(piPtr != NULL);
-
-	up_ptr = EsifUpPm_GetAvailableParticipantByName(piPtr->name);
-	if (NULL == up_ptr) {
-		ESIF_TRACE_WARN("Unregister Participant Not Found: %s\n", piPtr->name);
-		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
-		goto exit;
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
+	
+	if (upPtr != NULL) {
+		ESIF_TRACE_DEBUG("Unregister Participant: %d\n",participantId);
+		rc = EsifUpPm_UnregisterParticipant(eParticipantOriginUF, participantId);
+		EsifUp_PutRef(upPtr);
 	}
-	ESIF_TRACE_DEBUG("Unregister Participant\n");
-	instance = EsifUp_GetInstance(up_ptr);
-	EsifUp_PutRef(up_ptr);
-	rc = EsifUpPm_UnregisterParticipant(eParticipantOriginUF, instance);
+	else {
+		ESIF_TRACE_WARN("Unregister Participant ID Not Found: %d\n", participantId);
+		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
+	}
 
-exit:
 	return rc;
 }
 
@@ -133,15 +140,6 @@ static eEsifError ConjureCreate(
 	eEsifError rc = ESIF_OK;
 	EsifConjureServiceInterface conjure_service_iface;
 
-	char name[ESIF_NAME_LEN] = "";
-	ESIF_DATA(data_name, ESIF_DATA_STRING, name, ESIF_NAME_LEN);
-
-	char desc[ESIF_DESC_LEN] = "";
-	ESIF_DATA(data_desc, ESIF_DATA_STRING, desc, ESIF_DESC_LEN);
-
-	char version[ESIF_DESC_LEN] = "";
-	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_DESC_LEN);
-
 	ESIF_ASSERT(conjurePtr != NULL);
 	ESIF_ASSERT(ifaceFuncPtr != NULL);
 
@@ -153,41 +151,26 @@ static eEsifError ConjureCreate(
 	conjure_service_iface.fRegisterParticipantFuncPtr   = RegisterParticipant;
 	conjure_service_iface.fUnRegisterParticipantFuncPtr = UnRegisterParticipant;
 
-	/* GetConjureInterface Handleshake send ESIF receive APP Interface */
+
+	/* GetConjureInterface handeshake send ESIF conjure Interface */
+	conjurePtr->fInterface.hdr.fIfaceType = eIfaceTypeConjure;
+	conjurePtr->fInterface.hdr.fIfaceVersion = CONJURE_IFACE_VERSION;
+	conjurePtr->fInterface.hdr.fIfaceSize = sizeof(conjurePtr->fInterface);
+
 	rc = ifaceFuncPtr(&conjurePtr->fInterface);
 	if (ESIF_OK != rc) {
 		goto exit;
 	}
 
-	/* Check EsifAppInterface */
-	if (conjurePtr->fInterface.fIfaceType != eIfaceTypeConjure ||
-		conjurePtr->fInterface.fIfaceSize != (UInt16)sizeof(EsifConjureInterface) ||
-		conjurePtr->fInterface.fIfaceVersion != 1 ||
+	/* Check interface */
+	if (conjurePtr->fInterface.hdr.fIfaceType != eIfaceTypeConjure ||
+		conjurePtr->fInterface.hdr.fIfaceSize < (UInt16)sizeof(conjurePtr->fInterface) ||
+		conjurePtr->fInterface.hdr.fIfaceVersion > CONJURE_IFACE_VERSION ||
 
 		/* Functions Pointers */
 		conjurePtr->fInterface.fConjureCreateFuncPtr == NULL ||
-		conjurePtr->fInterface.fConjureDestroyFuncPtr == NULL ||
-		conjurePtr->fInterface.fConjureGetAboutFuncPtr == NULL ||
-		conjurePtr->fInterface.fConjureGetDescriptionFuncPtr == NULL ||
-		conjurePtr->fInterface.fConjureGetGuidFuncPtr == NULL ||
-		conjurePtr->fInterface.fConjureGetNameFuncPtr == NULL ||
-		conjurePtr->fInterface.fConjureGetVersionFuncPtr == NULL) {
+		conjurePtr->fInterface.fConjureDestroyFuncPtr == NULL) {
 		ESIF_TRACE_ERROR("The required function pointer of EsifConjureInterface is NULL\n");
-		goto exit;
-	}
-
-	/* Callback for application information */
-	rc = conjurePtr->fInterface.fConjureGetNameFuncPtr(&data_name);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-	rc = conjurePtr->fInterface.fConjureGetDescriptionFuncPtr(&data_desc);
-	if (ESIF_OK != rc) {
-		goto exit;
-	}
-
-	rc = conjurePtr->fInterface.fConjureGetVersionFuncPtr(&data_version);
-	if (ESIF_OK != rc) {
 		goto exit;
 	}
 
@@ -195,11 +178,11 @@ static eEsifError ConjureCreate(
 		"Conjure Lib Name   : %s\n"
 		"Conjure Lib Desc   : %s\n"
 		"Conjure Lib Type   : %s\n"
-		"Conjure Lib Version: %s\n\n",
-		(EsifString)data_name.buf_ptr,
-		(EsifString)data_desc.buf_ptr,
+		"Conjure Lib Version: %d\n\n",
+		(EsifString)conjurePtr->fInterface.name,
+		(EsifString)conjurePtr->fInterface.desc,
 		(EsifString)"plugin",
-		(EsifString)data_version.buf_ptr);
+		conjurePtr->fInterface.cnjVersion);
 
 	/* Create The Conjure */
 	rc = conjurePtr->fInterface.fConjureCreateFuncPtr(
@@ -221,7 +204,7 @@ eEsifError EsifConjureStart(EsifCnjPtr conjurePtr)
 {
 	eEsifError rc = ESIF_OK;
 	GetIfaceFuncPtr iface_func_ptr = NULL;
-	EsifString iface_func_name     = "GetConjureInterface";
+	EsifString iface_func_name     = CONJURE_GET_INTERFACE_FUNCTION;
 
 	char libPath[ESIF_LIBPATH_LEN];
 
@@ -304,6 +287,7 @@ eEsifError EsifCnjInit()
 
 void EsifCnjExit()
 {
+	
 }
 
 

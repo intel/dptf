@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,7 +60,7 @@ void PolicyServicesPlatformNotification::executeOsc(const Guid& guid, UInt32 osc
             sizeof(esif_data_complex_osc), sizeof(esif_data_complex_osc));
         successful = true;
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         failureMessage = ex.what();
     }

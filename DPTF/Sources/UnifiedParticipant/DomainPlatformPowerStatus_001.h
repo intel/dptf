@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,21 +31,20 @@ public:
 
     // DomainPlatformPowerStatusInterface
     virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Power getAdapterPower(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Power getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex) override;
     virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) override;
     virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) override;
     virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) override;
     virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) override;
     virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Percentage getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex) override;
     virtual Power getACPeakPower(UIntN participantIndex, UIntN domainIndex) override;
     virtual TimeSpan getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 
@@ -55,13 +54,11 @@ private:
     void initializeDataStructures(void);
 
     Power m_maxBatteryPower;                                           // PMAX in mW
-    Power m_adapterPower;                                              // APWR in mW
-    Power m_platformPower;                                             // NPWR in mW
     Power m_adapterRating;                                             // ARTG in mW
     Power m_platformRestOfPower;                                       // PROP in mW
     Power m_acPeakPower;                                               // APKP in mW
     TimeSpan m_acPeakTimeWindow;                                       // APKT in msec
-    PlatformPowerSource::Type m_platformPowerSource;                   // PSOC
+    PlatformPowerSource::Type m_platformPowerSource;                   // PSRC
     ChargerType::Type m_chargerType;                                   // CTYP
-    Percentage m_stateOfCharge;                                        // PSOC in %
+    Power m_batterySteadyState;                                        // PBSS in mW
 };

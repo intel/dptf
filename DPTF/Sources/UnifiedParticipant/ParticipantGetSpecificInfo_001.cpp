@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -143,7 +143,7 @@ PrimitiveAndInstance ParticipantGetSpecificInfo_001::getPrimitiveAndInstanceForS
     return primitiveAndInstance;
 }
 
-XmlNode* ParticipantGetSpecificInfo_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainIndex)
 {
     // Setup request vector
     std::vector<ParticipantSpecificInfoKey::Type> tripRequest;
@@ -161,7 +161,7 @@ XmlNode* ParticipantGetSpecificInfo_001::getXml(UIntN domainIndex)
     std::map<ParticipantSpecificInfoKey::Type, UIntN> tripPoints = 
         getParticipantSpecificInfo(Constants::Invalid, tripRequest);
 
-    XmlNode* root = XmlNode::createWrapperElement("specific_info");
+    auto root = XmlNode::createWrapperElement("specific_info");
 
     auto tripPoint = tripPoints.end();
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::Critical)) != tripPoints.end())

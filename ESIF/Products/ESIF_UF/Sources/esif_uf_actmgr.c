@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -46,7 +46,6 @@ static EsifActMgr g_actMgr = {0};
  */
 eEsifError EsifAct_CreateAction(
 	EsifActIfacePtr actIfacePtr,
-	UInt8 upInstance,
 	EsifActPtr *actPtr
 	);
 
@@ -59,6 +58,8 @@ eEsifError EsifActIface_GetType(
 	
 void EsifAct_MarkAsPlugin(EsifActPtr self);
 UInt16 EsifActIface_Sizeof(EsifActIfaceVer fIfaceVersion);
+Bool EsifActIface_IsSupported(EsifActIfacePtr self);
+
 
 /*
  * PRIVATE FUNCTION PROTOTYPES
@@ -87,8 +88,7 @@ static struct esif_link_list_node *EsifActMgr_GetNodeFromEntry_Locked(EsifActMgr
 static eEsifError EsifActMgr_CreatePossActList_Locked();
 
 static eEsifError EsifActMgr_LoadDelayLoadAction(
-	enum esif_action_type type,
-	UInt8 upInstance
+	enum esif_action_type type
 	);
 
 static eEsifError EsifActMgr_GetTypeFromPossAct_Locked(
@@ -105,8 +105,7 @@ static void EsifActMgr_LLEntryDestroyCallback(
  */
 
 EsifActPtr EsifActMgr_GetAction(
-	enum esif_action_type type,
-	const UInt8 instance
+	enum esif_action_type type
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -122,7 +121,7 @@ EsifActPtr EsifActMgr_GetAction(
 		esif_ccb_write_unlock(&g_actMgr.mgrLock);
 		goto exit;
 	}
-	if (entryPtr->loadDelayed != ESIF_TRUE) {
+	if (entryPtr->loadDelayed == ESIF_FALSE) {
 		actPtr = entryPtr->actPtr;
 		rc = EsifAct_GetRef(actPtr);
 		if (rc != ESIF_OK) {
@@ -136,22 +135,22 @@ EsifActPtr EsifActMgr_GetAction(
 		esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
 		EsifActMgr_DestroyEntry(entryPtr);
-		EsifActMgr_LoadDelayLoadAction(type, instance);
-		actPtr = EsifActMgr_GetAction(type, instance);
+		EsifActMgr_LoadDelayLoadAction(type);
+		actPtr = EsifActMgr_GetAction(type);
 	}
 exit:
 	return actPtr;
 }
 
 /*
- * Used to iterate through the available participants.
+ * Used to iterate through the static and currently loaded actions.
  * First call EsifActMgr_InitIterator to initialize the iterator.
  * Next, call EsifActMgr_GetNexAction using the iterator.  Repeat until
- * EsifActMgr_GetNexAction fails. The call will release the reference of the
- * participant from the previous call.  If you stop iteration part way through
- * all participants, the caller is responsible for releasing the reference on
- * the last participant returned.  Iteration is complete when
- * ESIF_E_ITERATOR_DONE is returned.
+ * EsifActMgr_GetNexAction fails. (The call will release the reference of the
+ * participant from the previous call.)  If you stop iteration part way through
+ * all actions, the caller is responsible for releasing the reference on
+ * the last action returned.  Iteration is complete when ESIF_E_ITERATOR_DONE
+ * is returned.
  */
 eEsifError EsifActMgr_InitIterator(
 	ActMgrIteratorPtr iteratorPtr
@@ -171,7 +170,7 @@ exit:
 }
 
 
-/* See EsifUpPm_InitIterator for usage */
+/* See EsifActMgr_InitIterator for usage */
 eEsifError EsifActMgr_GetNexAction(
 	ActMgrIteratorPtr iteratorPtr,
 	EsifActPtr *actPtr
@@ -212,13 +211,18 @@ eEsifError EsifActMgr_GetNexAction(
 
 	curNodePtr = g_actMgr.actions->head_ptr;
 
+	/*
+	 * If this is the first action of the iteraction, use the head; else, find
+	 * the next node after the current action type, but skip delay load actions
+	 */
 	if (iteratorPtr->type == 0) {
 		nextNodePtr = curNodePtr;
 	} else {
 		while (curNodePtr) {
 			entryPtr = (EsifActMgrEntryPtr)curNodePtr->data_ptr;
 			if (entryPtr != NULL) {
-				if (entryPtr->type == iteratorPtr->type) {
+				if ((entryPtr->type == iteratorPtr->type) &&
+					(entryPtr->loadDelayed == ESIF_FALSE)) {
 					nextNodePtr = curNodePtr->next_ptr;
 					break;
 				}
@@ -227,18 +231,22 @@ eEsifError EsifActMgr_GetNexAction(
 		}
 	}
 
+	/* Skip any delay loaded actions */
 	iteratorPtr->type = 0;
-	if (nextNodePtr != NULL) {
+	while (nextNodePtr != NULL) {
 		entryPtr = (EsifActMgrEntryPtr)nextNodePtr->data_ptr;
-		if (entryPtr != NULL) {
+		if ((entryPtr != NULL) &&
+			(entryPtr->loadDelayed == ESIF_FALSE)) {
 			iteratorPtr->type = entryPtr->type;
+			break;
 		}
+		nextNodePtr = nextNodePtr->next_ptr;
 	}
 
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
 	if (iteratorPtr->type != 0) {
-		nextActPtr = EsifActMgr_GetAction(iteratorPtr->type, ACT_MGR_NO_UPINSTANCE);
+		nextActPtr = EsifActMgr_GetAction(iteratorPtr->type);
 	}
 
 	*actPtr = nextActPtr;
@@ -260,7 +268,30 @@ eEsifError EsifActMgr_RegisterAction(
 	)
 {
 	eEsifError rc = ESIF_OK;
+	enum esif_action_type actType = 0;
+	EsifActMgrEntryPtr existingEntryPtr = NULL;
 	EsifActMgrEntryPtr entryPtr = NULL;
+
+	/* Check EsifActIface */
+	if (!EsifActIface_IsSupported(actIfacePtr)) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;	
+	}
+
+	/* Check if this type is already available; we only allow one instance */
+	rc = EsifActIface_GetType(actIfacePtr, &actType);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	esif_ccb_write_lock(&g_actMgr.mgrLock);
+	existingEntryPtr = EsifActMgr_GetActionEntry_Locked(actType);
+	esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+	if (existingEntryPtr != NULL) {
+		rc = ESIF_E_ACTION_ALREADY_STARTED;
+		goto exit;
+	}
 
 	rc = EsifActMgr_CreateEntry(&entryPtr);
 	if (rc != ESIF_OK) {
@@ -351,8 +382,7 @@ exit:
 
 
 static eEsifError EsifActMgr_LoadDelayLoadAction(
-	enum esif_action_type type,
-	UInt8 upInstance
+	enum esif_action_type type
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -406,10 +436,7 @@ static eEsifError EsifActMgr_LoadDelayLoadAction(
 			esif_link_list_node_remove(g_actMgr.possibleActions, curNodePtr);
 			esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
-			rc = EsifActMgr_StartUpe(entryPtr->libName, upInstance);
-			if (rc == ESIF_OK) {
-				CMD_OUT("Started UPE: %s\n", entryPtr->libName);
-			}
+			rc = EsifActMgr_StartUpe(entryPtr->libName);
 
 			EsifActMgr_DestroyEntry(entryPtr);
 			goto exit;
@@ -458,6 +485,9 @@ static eEsifError EsifActMgr_CreatePossActList_Locked()
 
 			esif_link_list_add_at_back(g_actMgr.possibleActions, (void *)newPossPtr);
 		}
+		else {
+			esif_ccb_free(newPossPtr);
+		}
 	} while (esif_ccb_file_enum_next(fileIter, filePattern, &curFile));
 	esif_ccb_file_enum_close(fileIter);
 exit:
@@ -489,7 +519,7 @@ static eEsifError EsifActMgr_GetTypeFromPossAct_Locked(
 	}
 
 	iface.hdr.fIfaceType = eIfaceTypeAction;
-	iface.hdr.fIfaceVersion = ESIF_INTERFACE_VERSION;
+	iface.hdr.fIfaceVersion = ACTION_UPE_IFACE_VERSION;
 	iface.hdr.fIfaceSize = sizeof(iface);
 
 	rc = getIfacePtr(&iface);
@@ -502,6 +532,7 @@ static eEsifError EsifActMgr_GetTypeFromPossAct_Locked(
 		iface.hdr.fIfaceVersion > ESIF_ACT_FACE_VER_MAX ||
 		iface.hdr.fIfaceSize != EsifActIface_Sizeof(iface.hdr.fIfaceVersion)) {
 		ESIF_TRACE_ERROR("The action interface does not meet requirements\n");
+		rc = ESIF_E_IFACE_NOT_SUPPORTED;
 		goto exit;
 	}
 
@@ -513,7 +544,7 @@ static eEsifError EsifActMgr_GetTypeFromPossAct_Locked(
 
 	*typePtr = entryPtr->type;
 exit:
-	if (rc != ESIF_OK) {
+	if (entryPtr->lib != NULL) {
 		EsifActMgr_UnloadAction(entryPtr);
 	}
 	return rc;
@@ -522,14 +553,16 @@ exit:
 
 /* Loads a pluggable UPE action by library name */
 eEsifError EsifActMgr_StartUpe(
-	EsifString upeName,
-	UInt8 upInstance
+	EsifString upeName
 	)
 {
 	eEsifError rc = ESIF_OK;
+	EsifActMgrEntryPtr existingEntryPtr = NULL;
+	struct esif_link_list_node *existingNodePtr = NULL;
 	EsifActMgrEntryPtr entryPtr = NULL;
 	GetIfaceFuncPtr getIfacePtr = NULL;
 	EsifActIface iface = {0};
+	enum esif_action_type actType = 0;
 
 	if (NULL == upeName) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -538,10 +571,9 @@ eEsifError EsifActMgr_StartUpe(
 
 	/* Check to see if the action is already running only one instance per action allowed */
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
-	entryPtr = EsifActMgr_GetActEntryByLibname_Locked(upeName);
+	existingEntryPtr = EsifActMgr_GetActEntryByLibname_Locked(upeName);
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
-	if (entryPtr != NULL) {
-		entryPtr = NULL; /* Keep from being destroy on exit for this failure type */
+	if (existingEntryPtr != NULL) {
 		rc = ESIF_E_ACTION_ALREADY_STARTED;
 		goto exit;
 	}
@@ -552,7 +584,6 @@ eEsifError EsifActMgr_StartUpe(
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
-	entryPtr->upInstance = upInstance;
 	entryPtr->libName = (esif_string)esif_ccb_strdup(upeName);
 
 	rc = EsifActMgr_LoadAction(entryPtr, &getIfacePtr);
@@ -561,13 +592,40 @@ eEsifError EsifActMgr_StartUpe(
 	}
 
 	iface.hdr.fIfaceType = eIfaceTypeAction;
-	iface.hdr.fIfaceVersion = ESIF_INTERFACE_VERSION;
+	iface.hdr.fIfaceVersion = ACTION_UPE_IFACE_VERSION;
 	iface.hdr.fIfaceSize = sizeof(iface);
 
 	rc = getIfacePtr(&iface);
 	if (ESIF_OK != rc) {
 		goto exit;
 	}
+
+	/* Check EsifActIface */
+	if (!EsifActIface_IsSupported(&iface)) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;	
+	}
+
+	/*
+	 * If we already have an action of the given type loaded, remove the
+	 * current entry and replace it with the new action.
+	 */
+	rc = EsifActIface_GetType(&iface, &actType);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	esif_ccb_write_lock(&g_actMgr.mgrLock);
+	existingEntryPtr = EsifActMgr_GetActionEntry_Locked(actType);
+
+	if (existingEntryPtr != NULL) {
+		existingNodePtr = EsifActMgr_GetNodeFromEntry_Locked(existingEntryPtr);
+		esif_link_list_node_remove(g_actMgr.actions, existingNodePtr);
+		g_actMgr.numActions--;
+	}
+
+	esif_ccb_write_unlock(&g_actMgr.mgrLock);
+	EsifActMgr_DestroyEntry(existingEntryPtr);
 
 	rc = EsifActMgr_CreateAction(entryPtr, &iface);
 	if (ESIF_OK != rc) {
@@ -634,7 +692,7 @@ static eEsifError EsifActMgr_LoadAction(
 {
 	eEsifError rc = ESIF_OK;
 	GetIfaceFuncPtr ifaceFuncPtr = NULL;
-	EsifString ifaceFuncName     = "GetActionInterface";
+	EsifString ifaceFuncName = ACTION_UPE_GET_INTERFACE_FUNCTION;
 	char libPath[ESIF_LIBPATH_LEN];
 
 	ESIF_ASSERT(entryPtr != NULL);
@@ -700,8 +758,6 @@ static eEsifError EsifActMgr_CreateEntry(
 		goto exit;
 	}
 
-	newEntryPtr->upInstance = ACT_MGR_NO_UPINSTANCE;
-
 	*entryPtr = newEntryPtr;
 exit:
 	return rc;
@@ -754,34 +810,12 @@ static eEsifError EsifActMgr_CreateAction(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	enum esif_action_type actType = 0;
 	EsifActPtr actPtr = NULL;
 
 	ESIF_ASSERT(entryPtr != NULL);
 	ESIF_ASSERT(actIfacePtr != NULL);
 
-	/* Check EsifActIface */
-	if (actIfacePtr->hdr.fIfaceType != eIfaceTypeAction ||
-		actIfacePtr->hdr.fIfaceVersion > ESIF_ACT_FACE_VER_MAX ||
-		actIfacePtr->hdr.fIfaceSize != EsifActIface_Sizeof(actIfacePtr->hdr.fIfaceVersion)) {
-		ESIF_TRACE_ERROR("The action interface does not meet requirements\n");
-		goto exit;
-	}
-
-	/* Check if this type is already available; we only allow one instance */
-	rc = EsifActIface_GetType(actIfacePtr, &actType);
-	if (rc != ESIF_OK) {
-		goto exit;
-	}
-
-	actPtr = EsifActMgr_GetAction(actType, ACT_MGR_NO_UPINSTANCE);
-	if (actPtr != NULL) {
-		EsifAct_PutRef(actPtr);
-		rc = ESIF_E_ACTION_ALREADY_STARTED;
-		goto exit;
-	}
-
-	rc = EsifAct_CreateAction(actIfacePtr, entryPtr->upInstance, &actPtr);
+	rc = EsifAct_CreateAction(actIfacePtr, &actPtr);
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
@@ -934,6 +968,8 @@ static void EsifActMgr_LLEntryDestroyCallback(
 static eEsifError EsifActMgr_InitActions()
 {
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_DPTFWWAN);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_USBFAN);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_JAVA);
 
 	EsifActConfigInit();
 	EsifActConstInit();

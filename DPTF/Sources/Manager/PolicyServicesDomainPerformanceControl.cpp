@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,4 +59,12 @@ void PolicyServicesDomainPerformanceControl::setPerformanceControl(
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceControl(
         domainIndex, getPolicyIndex(), performanceControlIndex);
+}
+
+void PolicyServicesDomainPerformanceControl::setPerformanceControlDynamicCaps(
+    UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceControlDynamicCaps(
+        domainIndex, getPolicyIndex(), newCapabilities);
 }

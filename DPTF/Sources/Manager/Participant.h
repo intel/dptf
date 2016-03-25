@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,8 +66,8 @@ public:
 
     std::string getParticipantName(void) const;
     std::string getDomainName(UIntN domainIndex);
-    XmlNode* getXml(UIntN domainIndex) const;
-    XmlNode* getStatusAsXml(UIntN domainIndex) const;
+    std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
+    std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
 
     //
     // Event handlers
@@ -76,6 +76,8 @@ public:
     void connectedStandbyExit(void);
     void suspend(void);
     void resume(void);
+    void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityId);
+    void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityId);
     void domainConfigTdpCapabilityChanged(void);
     void domainCoreControlCapabilityChanged(void);
     void domainDisplayControlCapabilityChanged(void);
@@ -92,14 +94,15 @@ public:
     void domainVirtualSensorPollingTableChanged(void);
     void domainVirtualSensorRecalcChanged(void);
     void domainBatteryStatusChanged(void);
-    void domainAdapterPowerChanged(void);
-    void domainPlatformPowerConsumptionChanged(void);
+    void domainBatteryInformationChanged(void);
     void domainPlatformPowerSourceChanged(void);
     void domainAdapterPowerRatingChanged(void);
     void domainChargerTypeChanged(void);
     void domainPlatformRestOfPowerChanged(void);
     void domainACPeakPowerChanged(void);
     void domainACPeakTimeWindowChanged(void);
+    void domainMaxBatteryPowerChanged(void);
+    void domainPlatformBatterySteadyStateChanged(void);
 
     //
     // The following set of functions implement the ParticipantInterface related functionality
@@ -130,6 +133,7 @@ public:
     DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
     DisplayControlSet getDisplayControlSet(UIntN domainIndex);
     void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
+    void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 
     // Performance controls
     PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN domainIndex);
@@ -137,6 +141,7 @@ public:
     PerformanceControlStatus getPerformanceControlStatus(UIntN domainIndex);
     PerformanceControlSet getPerformanceControlSet(UIntN domainIndex);
     void setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex);
+    void setPerformanceControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
 
     // Pixel Clock Control
     void setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
@@ -159,7 +164,6 @@ public:
     void setPowerLimitDutyCycle(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
         const Percentage& dutyCycle);
 
-
     // Power status
     PowerStatus getPowerStatus(UIntN domainIndex);
 
@@ -174,16 +178,15 @@ public:
 
     // Platform Power Status
     Power getMaxBatteryPower(UIntN domainIndex);
-    Power getAdapterPower(UIntN domainIndex);
-    Power getPlatformPowerConsumption(UIntN domainIndex);
     Power getPlatformRestOfPower(UIntN domainIndex);
     Power getAdapterPowerRating(UIntN domainIndex);
     DptfBuffer getBatteryStatus(UIntN domainIndex);
+    DptfBuffer getBatteryInformation(UIntN domainIndex);
     PlatformPowerSource::Type getPlatformPowerSource(UIntN domainIndex);
     ChargerType::Type getChargerType(UIntN domainIndex);
-    Percentage getPlatformStateOfCharge(UIntN domainIndex);
     Power getACPeakPower(UIntN domainIndex);
     TimeSpan getACPeakTimeWindow(UIntN domainIndex);
+    Power getPlatformBatterySteadyState(UIntN domainIndex);
 
     // priority
     DomainPriority getDomainPriority(UIntN domainIndex);
@@ -229,6 +232,7 @@ public:
     // Set specific info
     void setParticipantDeviceTemperatureIndication(const Temperature& temperature);
     void setParticipantCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type);
+    void setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue);
 
 private:
 

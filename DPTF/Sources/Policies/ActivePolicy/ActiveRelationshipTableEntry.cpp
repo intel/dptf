@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "ActiveRelationshipTableEntry.h"
 #include "StatusFormat.h"
 #include "ParticipantSpecificInfoKey.h"
+#include "ActiveCoolingControl.h"
 using namespace StatusFormat;
 
 ActiveRelationshipTableEntry::ActiveRelationshipTableEntry(
@@ -38,16 +39,21 @@ ActiveRelationshipTableEntry::~ActiveRelationshipTableEntry()
 
 const UInt32& ActiveRelationshipTableEntry::ac(UIntN acLevel) const
 {
-    if (acLevel >= FanOffIndex)
+    if (acLevel >= ActiveCoolingControl::FanOffIndex)
     {
         throw dptf_exception("Requested AC level outside of expected range.");
     }
     return m_acEntries[acLevel];
 }
 
-XmlNode* ActiveRelationshipTableEntry::getXml()
+UInt32 ActiveRelationshipTableEntry::getWeight() const
 {
-    XmlNode* entry = XmlNode::createWrapperElement("art_entry");
+    return m_weight;
+}
+
+std::shared_ptr<XmlNode> ActiveRelationshipTableEntry::getXml()
+{
+    auto entry = XmlNode::createWrapperElement("art_entry");
     entry->addChild(XmlNode::createDataElement("target_index", friendlyValue(getTargetDeviceIndex())));
     entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceAcpiScope()));
     entry->addChild(XmlNode::createDataElement("source_index", friendlyValue(getSourceDeviceIndex())));
@@ -60,6 +66,11 @@ XmlNode* ActiveRelationshipTableEntry::getXml()
             ParticipantSpecificInfoKey::ToString(ParticipantSpecificInfoKey::Type(acNum)), friendlyValue(ac(index))));
     }
     return entry;
+}
+
+Bool ActiveRelationshipTableEntry::isSameAs(const ActiveRelationshipTableEntry& artEntry) const
+{
+    return ((RelationshipTableEntryBase)*this) == ((RelationshipTableEntryBase)artEntry);
 }
 
 Bool ActiveRelationshipTableEntry::operator==(const ActiveRelationshipTableEntry& artEntry) const

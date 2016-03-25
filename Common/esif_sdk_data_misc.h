@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -86,8 +86,8 @@ struct esif_data_complex_dscp {
 	u32  reserved;
 };
 
-/* Thermal Shutdown Event */
-struct esif_data_complex_shutdown {
+/* Thermal Event */
+struct esif_data_complex_thermal_event {
 	u32 temperature;
 	u32 tripPointTemperature;
 };

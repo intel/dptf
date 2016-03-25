@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -65,9 +65,9 @@ Bool ActiveControl::operator!=(const ActiveControl& rhs) const
     return !(*this == rhs);
 }
 
-XmlNode* ActiveControl::getXml(void)
+std::shared_ptr<XmlNode> ActiveControl::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("active_control");
+    auto root = XmlNode::createWrapperElement("active_control");
 
     root->addChild(XmlNode::createDataElement("control_id", StatusFormat::friendlyValue(m_controlId)));
     root->addChild(XmlNode::createDataElement("trip_point", StatusFormat::friendlyValue(m_tripPoint)));

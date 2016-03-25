@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -117,6 +117,7 @@ static ESIF_INLINE enum esif_rc esif_ccb_timer_obj_enable_timer(
 		goto exit;
 	}
 exit:
+	pthread_attr_destroy(&attr);
 	return rc;
 }
 

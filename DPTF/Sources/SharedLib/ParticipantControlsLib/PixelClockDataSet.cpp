@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,12 +44,12 @@ Bool PixelClockDataSet::operator!=(const PixelClockDataSet& rhs) const
     return !(*this == rhs);
 }
 
-XmlNode* PixelClockDataSet::getXml(void) const
+std::shared_ptr<XmlNode> PixelClockDataSet::getXml(void) const
 {
-    XmlNode* dataSet = XmlNode::createWrapperElement("pixel_clock_data_set");
+    auto dataSet = XmlNode::createWrapperElement("pixel_clock_data_set");
     for (UIntN pcIndex = 0; pcIndex < m_pixelClockData.size(); pcIndex++)
     {
-        XmlNode* pixelClock = XmlNode::createWrapperElement("pixel_clock");
+        auto pixelClock = XmlNode::createWrapperElement("pixel_clock");
         pixelClock->addChild(XmlNode::createDataElement("pixel_clock_number", StlOverride::to_string(pcIndex)));
         pixelClock->addChild(m_pixelClockData[pcIndex].getXml());
         dataSet->addChild(pixelClock);

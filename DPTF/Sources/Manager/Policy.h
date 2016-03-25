@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "PolicyInterface.h"
 #include "EsifLibrary.h"
 #include "OsHdcStatus.h"
+#include "esif_sdk_logging_data.h"
 
 class DptfManager;
 
@@ -72,14 +73,15 @@ public:
     void executeDomainVirtualSensorPollingTableChanged(UIntN participantIndex);
     void executeDomainVirtualSensorRecalcChanged(UIntN participantIndex);
     void executeDomainBatteryStatusChanged(UIntN participantIndex);
-    void executeDomainAdapterPowerChanged(UIntN participantIndex);
-    void executeDomainPlatformPowerConsumptionChanged(UIntN participantIndex);
+    void executeDomainBatteryInformationChanged(UIntN participantIndex);
     void executeDomainPlatformPowerSourceChanged(UIntN participantIndex);
     void executeDomainAdapterPowerRatingChanged(UIntN participantIndex);
     void executeDomainChargerTypeChanged(UIntN participantIndex);
     void executeDomainPlatformRestOfPowerChanged(UIntN participantIndex);
     void executeDomainACPeakPowerChanged(UIntN participantIndex);
     void executeDomainACPeakTimeWindowChanged(UIntN participantIndex);
+    void executeDomainMaxBatteryPowerChanged(UIntN participantIndex);
+    void executeDomainPlatformBatterySteadyStateChanged(UIntN participantIndex);
     void executePolicyActiveRelationshipTableChanged(void);
     void executePolicyCoolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit);
     void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode);
@@ -100,12 +102,16 @@ public:
     void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource);
     void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState);
     void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage);
+    void executePolicyOperatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality);
     void executePolicyOperatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType);
     void executePolicyOperatingSystemDockModeChanged(OsDockMode::Type osDockMode);
+    void executePolicyOperatingSystemMobileNotification(UIntN mobileNotification);
     void executePolicyOemVariablesChanged(void);
     void executePolicyPowerDeviceRelationshipTableChanged(void);
     void executePolicyPowerBossConditionsTableChanged(void);
     void executePolicyPowerBossActionsTableChanged(void);
+    void executePolicyActivityLoggingEnabled(void);
+    void executePolicyActivityLoggingDisabled(void);    
 
 private:
 
@@ -125,6 +131,12 @@ private:
 
     // The guid retrieved when the file was loaded
     Guid m_guid;
+
+    Bool m_isPolicyLoggingEnabled;
+    Bool isPolicyLoggingEnabled();
+    void enablePolicyLogging(void);
+    void disablePolicyLogging(void);
+    void sendPolicyLogDataIfEnabled(void);
 
     // The name of the policy.
     std::string m_policyName;

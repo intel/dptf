@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -90,9 +90,9 @@ Bool PixelClockCapabilities::operator!=(const PixelClockCapabilities& rhs) const
     return !(*this == rhs);
 }
 
-XmlNode* PixelClockCapabilities::getXml(void) const
+std::shared_ptr<XmlNode> PixelClockCapabilities::getXml(void) const
 {
-    XmlNode* capabilities = XmlNode::createWrapperElement("pixel_clock_capabilities");
+    auto capabilities = XmlNode::createWrapperElement("pixel_clock_capabilities");
     capabilities->addChild(XmlNode::createDataElement("panel_type", 
         PixelClockPanelType::ToString(m_pixelClockPanelType)));
     capabilities->addChild(XmlNode::createDataElement("deviation", friendlyValue(m_clockDeviation)));

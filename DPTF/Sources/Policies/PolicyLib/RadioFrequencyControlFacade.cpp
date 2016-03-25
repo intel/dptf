@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -68,9 +68,9 @@ void RadioFrequencyControlFacade::setOperatingFrequency(Frequency frequency)
     m_policyServices.domainRfProfileControl->setRfProfileCenterFrequency(m_participantIndex, m_domainIndex, frequency);
 }
 
-XmlNode* RadioFrequencyControlFacade::getXml()
+std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 {
-    XmlNode* control = XmlNode::createWrapperElement("radio_frequency_control");
+    auto control = XmlNode::createWrapperElement("radio_frequency_control");
     control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
     control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
     control->addChild(XmlNode::createDataElement("last_set_frequency", m_lastSetFrequency.toString()));

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,14 +33,29 @@ DomainTemperature_002::~DomainTemperature_002(void)
 
 TemperatureStatus DomainTemperature_002::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    if (m_lastSetTemperature.isValid())
+    try
     {
-        return m_lastSetTemperature;
-    }
+        Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureC(
+            esif_primitive_type::GET_TEMPERATURE, domainIndex);
 
-    getParticipantServices()->writeMessageWarning(
-        ParticipantMessage(FLF, "Last set temperature for virtual sensor is invalid."));
-    return TemperatureStatus(Temperature(0));
+        if (!temperature.isValid())
+        {
+            getParticipantServices()->writeMessageWarning(
+                ParticipantMessage(FLF, "Last set temperature for virtual sensor is invalid."));
+            return TemperatureStatus(Temperature(0));
+        }
+
+        return TemperatureStatus(temperature);
+    }
+    catch (primitive_destination_unavailable)
+    {
+        return TemperatureStatus(Temperature(0));
+    }
+    catch (dptf_exception& ex)
+    {
+        getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
+        return TemperatureStatus(Temperature(0));
+    }
 }
 
 TemperatureThresholds DomainTemperature_002::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
@@ -117,6 +132,31 @@ void DomainTemperature_002::setVirtualTemperature(UIntN participantIndex, UIntN 
     m_lastSetTemperature = temperature;
 }
 
+void DomainTemperature_002::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            TemperatureThresholds tempthreshold = getTemperatureThresholds(participantIndex, domainIndex);
+
+            EsifCapabilityData capability;
+            capability.type = Capability::TemperatureThreshold;
+            capability.size = sizeof(capability);
+            capability.data.temperatureControl.aux0 = tempthreshold.getAux0();
+            capability.data.temperatureControl.aux1 = tempthreshold.getAux1();
+            capability.data.temperatureControl.hysteresis = tempthreshold.getHysteresis();
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
+}
+
 void DomainTemperature_002::clearCachedData(void)
 {
     m_calibrationTableBuffer.allocate(0);
@@ -128,9 +168,9 @@ std::string DomainTemperature_002::getName(void)
     return "Temperature Control (Version 2)";
 }
 
-XmlNode* DomainTemperature_002::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainTemperature_002::getXml(UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("temperature_control");
+    auto root = XmlNode::createWrapperElement("temperature_control");
     root->addChild(XmlNode::createDataElement("control_knob_version", "002"));
 
     root->addChild(getTemperatureStatus(Constants::Invalid, domainIndex).getXml());

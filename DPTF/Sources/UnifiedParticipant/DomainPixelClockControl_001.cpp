@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,12 +50,32 @@ void DomainPixelClockControl_001::setPixelClockControl(UIntN participantIndex, U
     }
 }
 
+void DomainPixelClockControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            EsifCapabilityData capability;
+            capability.type = Capability::PixelClockControl;
+            capability.size = sizeof(capability);
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
+}
+
 void DomainPixelClockControl_001::clearCachedData(void)
 {
     // FIXME:  do we clear the cache for DomainPixelClockStatus?
 }
 
-XmlNode* DomainPixelClockControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPixelClockControl_001::getXml(UIntN domainIndex)
 {
     // FIXME;
     throw implement_me();

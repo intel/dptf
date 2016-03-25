@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 #include "ParticipantManager.h"
 #include "WorkItemQueueManager.h"
 #include "WIAll.h"
-#include "IndexContainer.h"
 #include "EsifDataString.h"
 #include "EsifServices.h"
 #include "EsifDataGuid.h"
@@ -137,7 +136,8 @@ extern "C"
         // is return an error.
         if (esifInterfacePtr == nullptr ||
             esifInterfacePtr->fIfaceType != eIfaceTypeEsifService ||
-            esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION ||
+            ((esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION_1) &&
+            (esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION_2))||
             esifInterfacePtr->fIfaceSize != (UInt16)sizeof(EsifInterface) ||
             esifInterfacePtr->fGetConfigFuncPtr == nullptr ||
             esifInterfacePtr->fSetConfigFuncPtr == nullptr ||
@@ -145,6 +145,8 @@ extern "C"
             esifInterfacePtr->fWriteLogFuncPtr == nullptr ||
             esifInterfacePtr->fRegisterEventFuncPtr == nullptr ||
             esifInterfacePtr->fUnregisterEventFuncPtr == nullptr ||
+            ((esifInterfacePtr->fIfaceVersion == ESIF_INTERFACE_VERSION_2) &&
+            (esifInterfacePtr->fSendEventFuncPtr == nullptr)) ||
             appHandle == nullptr ||
             appData == nullptr)
         {
@@ -605,6 +607,20 @@ extern "C"
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 dptfManager->getEsifServices()->setCurrentLogVerbosityLevel((eLogType)uint32param);
                 break;
+            case FrameworkEvent::DptfParticipantActivityLoggingEnabled:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIDptfParticipantActivityLoggingEnabled(dptfManager, participantIndex, domainIndex, uint32param);
+                break;
+            case FrameworkEvent::DptfParticipantActivityLoggingDisabled:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIDptfParticipantActivityLoggingDisabled(dptfManager, participantIndex, domainIndex, uint32param);
+                break;
+            case FrameworkEvent::DptfPolicyActivityLoggingEnabled:
+                wi = new WIDptfPolicyActivityLoggingEnabled(dptfManager);
+                break;
+            case FrameworkEvent::DptfPolicyActivityLoggingDisabled:
+                wi = new WIDptfPolicyActivityLoggingDisabled(dptfManager);
+                break;
             case FrameworkEvent::ParticipantSpecificInfoChanged:
                 wi = new WIParticipantSpecificInfoChanged(dptfManager, participantIndex);
                 break;
@@ -655,11 +671,8 @@ extern "C"
             case FrameworkEvent::DomainBatteryStatusChanged:
                 wi = new WIDomainBatteryStatusChanged(dptfManager, participantIndex, domainIndex);
                 break;
-            case FrameworkEvent::DomainAdapterPowerChanged:
-                wi = new WIDomainAdapterPowerChanged(dptfManager, participantIndex, domainIndex);
-                break;
-            case FrameworkEvent::DomainPlatformPowerConsumptionChanged:
-                wi = new WIDomainPlatformPowerConsumptionChanged(dptfManager, participantIndex, domainIndex);
+            case FrameworkEvent::DomainBatteryInformationChanged:
+                wi = new WIDomainBatteryInformationChanged(dptfManager, participantIndex, domainIndex);
                 break;
             case FrameworkEvent::DomainPlatformPowerSourceChanged:
                 wi = new WIDomainPlatformPowerSourceChanged(dptfManager, participantIndex, domainIndex);
@@ -678,6 +691,12 @@ extern "C"
                 break;
             case FrameworkEvent::DomainACPeakTimeWindowChanged:
                 wi = new WIDomainACPeakTimeWindowChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainMaxBatteryPowerChanged:
+                wi = new WIDomainMaxBatteryPowerChanged(dptfManager, participantIndex, domainIndex);
+                break;
+            case FrameworkEvent::DomainPlatformBatterySteadyStateChanged:
+                wi = new WIDomainPlatformBatterySteadyStateChanged(dptfManager, participantIndex, domainIndex);
                 break;
             case FrameworkEvent::PolicyActiveRelationshipTableChanged:
                 wi = new WIPolicyActiveRelationshipTableChanged(dptfManager);
@@ -729,6 +748,10 @@ extern "C"
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 wi = new WIPolicyOperatingSystemDockModeChanged(dptfManager, (OsDockMode::Type)uint32param);
                 break;
+            case FrameworkEvent::PolicyOperatingSystemMobileNotification:
+                uint32param = EsifDataUInt32(esifEventDataPtr);
+                wi = new WIPolicyOperatingSystemMobileNotification(dptfManager, uint32param);
+                break;
             case FrameworkEvent::PolicyPassiveTableChanged:
                 wi = new WIPolicyPassiveTableChanged(dptfManager);
                 break;
@@ -768,6 +791,13 @@ extern "C"
             case FrameworkEvent::PolicyPowerBossActionsTableChanged:
                 wi = new WIPolicyPowerBossActionsTableChanged(dptfManager);
                 break;
+            case FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged:
+            {
+                EsifDataGuid guidParam(esifEventDataPtr);
+                uint32param = OsPowerSchemePersonality::toType(Guid(guidParam));
+                wi = new WIPolicyOperatingSystemPowerSchemePersonalityChanged(dptfManager, (OsPowerSchemePersonality::Type)uint32param);
+                break;
+            }
             default:
                 {
                     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Received unexpected event");
@@ -793,7 +823,7 @@ extern "C"
             dptfManager->getEsifServices()->writeMessageDebug(message);
             rc = ESIF_OK;
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
             ManagerMessage message = ManagerMessage(dptfManager, FLF, "Error while trying to create work item for event received from ESIF.");
             message.setParticipantAndDomainIndex(participantIndex, domainIndex);
@@ -811,7 +841,7 @@ extern "C"
         // header
         appInterfacePtr->fIfaceType = eIfaceTypeApplication;
         appInterfacePtr->fIfaceSize = (UInt16)sizeof(AppInterface);
-        appInterfacePtr->fIfaceVersion = ESIF_INTERFACE_VERSION;
+        appInterfacePtr->fIfaceVersion = APP_INTERFACE_VERSION;
 
         /* Application */
         appInterfacePtr->fAppAllocateHandleFuncPtr = DptfAllocateHandle;

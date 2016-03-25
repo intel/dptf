@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -144,7 +144,7 @@ eEsifTestErrorType EsifTestPrimitiveBinary(
 			ESIF_TRACE_DEBUG("testp_compare: %s to primitive response %u bytes\n",
 							 full_path, dataLen);
 
-			esif_ccb_fopen(&fp_ptr, full_path, (char *)"rb");
+			fp_ptr = esif_ccb_fopen(full_path, (char *)"rb", NULL);
 			if (fp_ptr) {
 				UInt32 ref_size = 0;
 				struct stat ref_file_stat = {0};

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "CoolingMode.h"
 #include "OsPlatformType.h"
 #include "OsDockMode.h"
+#include "OsPowerSchemePersonality.h"
 
 class PlatformStateInterface
 {
@@ -46,4 +47,5 @@ public:
     virtual UIntN getBatteryPercentage(void) const = 0;
     virtual OsPlatformType::Type getPlatformType(void) const = 0;
     virtual OsDockMode::Type getDockMode(void) const = 0;
+    virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const = 0;
 };

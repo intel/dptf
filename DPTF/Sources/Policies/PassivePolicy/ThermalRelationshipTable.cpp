@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,10 +17,17 @@
 ******************************************************************************/
 
 #include "ThermalRelationshipTable.h"
+#include "EsifDataBinaryTrtPackage.h"
+#include "BinaryParse.h"
 
 ThermalRelationshipTable::ThermalRelationshipTable(const std::vector<ThermalRelationshipTableEntry>& entries)
     : RelationshipTableBase(),
     m_entries(entries)
+{
+}
+
+ThermalRelationshipTable::ThermalRelationshipTable()
+    : RelationshipTableBase()
 {
 }
 
@@ -74,7 +81,21 @@ ThermalRelationshipTable ThermalRelationshipTable::createTrtFromDptfBuffer(const
                 static_cast<UInt32>(currentRow->thermalInfluence.integer.value),
                 static_cast<UInt32>(currentRow->thermalSamplingPeriod.integer.value));
 
-            entries.push_back(temp);
+            // Check for duplicate entries. Don't add entry if previous entry exists with same target/source pair
+            Bool isDuplicateEntry = false;
+            for (auto e = entries.begin(); e != entries.end(); e++)
+            {
+                if (temp.isSameAs(*e))
+                {
+                    isDuplicateEntry = true;
+                    break;
+                }
+            }
+
+            if (isDuplicateEntry == false)
+            {
+                entries.push_back(temp);
+            }
 
             // Since we've already accounted for the strings, we now move the pointer by the size of the structure
             //  to get to the next row.
@@ -156,9 +177,9 @@ TimeSpan ThermalRelationshipTable::getSampleTimeForRelationship(UIntN target, UI
     throw dptf_exception("No match found for target and source in TRT.");
 }
 
-XmlNode* ThermalRelationshipTable::getXml()
+std::shared_ptr<XmlNode> ThermalRelationshipTable::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("trt");
+    auto status = XmlNode::createWrapperElement("trt");
     for (auto entry = m_entries.begin(); entry != m_entries.end(); entry++)
     {
         status->addChild(entry->getXml());
@@ -176,28 +197,24 @@ UIntN ThermalRelationshipTable::countTrtRows(UInt32 size, UInt8* data)
     while (bytesRemaining > 0)
     {
         bytesRemaining -= sizeof(struct EsifDataBinaryTrtPackage);
+        throwIfOutOfRange(bytesRemaining);
         bytesRemaining -= currentRow->sourceDevice.string.length;
+        throwIfOutOfRange(bytesRemaining);
 
         data += currentRow->sourceDevice.string.length;
         currentRow = reinterpret_cast<struct EsifDataBinaryTrtPackage*>(data);
 
         bytesRemaining -= currentRow->targetDevice.string.length;
+        throwIfOutOfRange(bytesRemaining);
 
         data += currentRow->targetDevice.string.length;
         currentRow = reinterpret_cast<struct EsifDataBinaryTrtPackage*>(data);
 
-        if (bytesRemaining >= 0)
-        {
-            // The math done here will vary based on the number of strings in the BIOS object
-            rows++;
+        // The math done here will vary based on the number of strings in the BIOS object
+        rows++;
 
-            data += sizeof(struct EsifDataBinaryTrtPackage);
-            currentRow = reinterpret_cast<struct EsifDataBinaryTrtPackage*>(data);
-        }
-        else // Data size mismatch, we went negative
-        {
-            throw dptf_exception("Expected binary data size mismatch. (TRT)");
-        }
+        data += sizeof(struct EsifDataBinaryTrtPackage);
+        currentRow = reinterpret_cast<struct EsifDataBinaryTrtPackage*>(data);
     }
 
     return rows;
@@ -211,4 +228,90 @@ Bool ThermalRelationshipTable::operator==(const ThermalRelationshipTable& trt) c
 Bool ThermalRelationshipTable::operator!=(const ThermalRelationshipTable& trt) const
 {
     return (m_entries != trt.m_entries);
+}
+
+DptfBuffer ThermalRelationshipTable::toTrtBinary() const
+{
+    DptfBuffer packages;
+    UInt32 offset = 0;
+    for (auto entry = m_entries.begin(); entry != m_entries.end(); entry++)
+    {
+        UInt32 sourceScopeLength = (UInt32)entry->getSourceDeviceAcpiScope().size();
+        UInt32 targetScopeLength = (UInt32)entry->getTargetDeviceAcpiScope().size();
+
+        DptfBuffer packageBuffer;
+        packageBuffer.allocate(sizeof(EsifDataBinaryTrtPackage) + sourceScopeLength + targetScopeLength);
+
+        EsifDataBinaryTrtPackage entryPackage;
+        UInt32 dataAddress = 0;
+
+        // Source Scope
+        entryPackage.sourceDevice.string.length = sourceScopeLength;
+        entryPackage.sourceDevice.type = esif_data_type::ESIF_DATA_STRING;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.sourceDevice)), sizeof(entryPackage.sourceDevice));
+        dataAddress += sizeof(entryPackage.sourceDevice);
+        packageBuffer.put(dataAddress, (UInt8*)(entry->getSourceDeviceAcpiScope().c_str()), sourceScopeLength);
+        dataAddress += sourceScopeLength;
+
+        // Target Scope
+        entryPackage.targetDevice.string.length = targetScopeLength;
+        entryPackage.targetDevice.type = esif_data_type::ESIF_DATA_STRING;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.targetDevice)), sizeof(entryPackage.targetDevice));
+        dataAddress += sizeof(entryPackage.targetDevice);
+        packageBuffer.put(dataAddress, (UInt8*)(entry->getTargetDeviceAcpiScope().c_str()), targetScopeLength);
+        dataAddress += targetScopeLength;
+
+        // Thermal Influence
+        entryPackage.thermalInfluence.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.thermalInfluence.integer.value = entry->thermalInfluence();
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.thermalInfluence)), 
+            sizeof(entryPackage.thermalInfluence));
+        dataAddress += sizeof(entryPackage.thermalInfluence);
+
+        // Sampling Period
+        entryPackage.thermalSamplingPeriod.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.thermalSamplingPeriod.integer.value = entry->thermalSamplingPeriod();
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.thermalSamplingPeriod)), 
+            sizeof(entryPackage.thermalSamplingPeriod));
+        dataAddress += sizeof(entryPackage.thermalSamplingPeriod);
+
+        // Reserved1
+        entryPackage.reserved1.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.reserved1.integer.value = 0;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.reserved1)), sizeof(entryPackage.reserved1));
+        dataAddress += sizeof(entryPackage.reserved1);
+
+        // Reserved2
+        entryPackage.reserved2.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.reserved2.integer.value = 0;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.reserved2)), sizeof(entryPackage.reserved2));
+        dataAddress += sizeof(entryPackage.reserved2);
+
+        // Reserved3
+        entryPackage.reserved3.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.reserved3.integer.value = 0;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.reserved3)), sizeof(entryPackage.reserved3));
+        dataAddress += sizeof(entryPackage.reserved3);
+
+        // Reserved4
+        entryPackage.reserved4.integer.type = esif_data_type::ESIF_DATA_UINT64;
+        entryPackage.reserved4.integer.value = 0;
+        packageBuffer.put(dataAddress, (UInt8*)(&(entryPackage.reserved4)), sizeof(entryPackage.reserved4));
+        dataAddress += sizeof(entryPackage.reserved4);
+
+        packages.put(offset, packageBuffer.get(), packageBuffer.size());
+        offset += packageBuffer.size();
+    }
+
+    DptfBuffer buffer(packages.size());
+    buffer.put(0, packages.get(), packages.size());
+    return buffer;
+}
+
+void ThermalRelationshipTable::throwIfOutOfRange(IntN bytesRemaining)
+{
+    if (bytesRemaining < 0)
+    {
+        throw dptf_exception("Expected binary data size mismatch. (TRT)");
+    }
 }

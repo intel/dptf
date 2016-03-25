@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -342,11 +342,15 @@ eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByType(
 		/* Find the event associated with the participant */
 		fpcEventPtr = EsifUp_GetFpcEventByType(upPtr, eventType);
 		if (NULL == fpcEventPtr) {
-			rc = ESIF_E_NOT_FOUND;
+			rc = ESIF_E_EVENT_NOT_FOUND;
 			goto exit;
 		}
 
 	} else {
+		if (esif_event_map_type2guid(&phonyFpcEvent.event_guid, &eventType) == ESIF_FALSE) {
+			rc = ESIF_E_EVENT_NOT_FOUND;
+			goto exit;
+		}
 		phonyFpcEvent.esif_event = eventType;
 		fpcEventPtr = &phonyFpcEvent;
 	}
@@ -463,7 +467,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByGuid(
 	/* Find the event associated with the participant */
 	fpcEventPtr = EsifUp_GetFpcEventByGuid(upPtr, guidPtr);
 	if (NULL == fpcEventPtr) {
-		rc = ESIF_E_NOT_FOUND;
+		rc = ESIF_E_EVENT_NOT_FOUND;
 		goto exit;
 	}
 
@@ -524,7 +528,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterEventByGuid(
 	/* Find the event associated with the participant */
 	fpcEventPtr = EsifUp_GetFpcEventByGuid(upPtr, guidPtr);
 	if (NULL == fpcEventPtr) {
-		rc = ESIF_E_NOT_FOUND;
+		rc = ESIF_E_EVENT_NOT_FOUND;
 		goto exit;
 	}
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ void DomainHardwareDutyCycleControl_000::clearCachedData(void)
 
 }
 
-XmlNode* DomainHardwareDutyCycleControl_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainHardwareDutyCycleControl_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
 }
@@ -78,6 +78,11 @@ void DomainHardwareDutyCycleControl_000::setHardwareDutyCycle(
 }
 
 Percentage DomainHardwareDutyCycleControl_000::getHardwareDutyCycle(UIntN participantIndex, UIntN domainIndex) const
+{
+    throw not_implemented();
+}
+
+void DomainHardwareDutyCycleControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
     throw not_implemented();
 }

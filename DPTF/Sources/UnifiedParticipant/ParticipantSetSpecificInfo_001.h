@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,11 +33,13 @@ public:
         const Temperature& temperature) override;
     virtual void setParticipantCoolingPolicy(UIntN participantIndex,
         const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
+    virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint,
+        const Temperature& tripValue) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 

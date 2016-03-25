@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -72,4 +72,9 @@ OsPlatformType::Type PolicyServicesPlatformState::getPlatformType(void) const
 OsDockMode::Type PolicyServicesPlatformState::getDockMode(void) const
 {
     return getDptfManager()->getEventCache()->dockMode.get();
+}
+
+OsPowerSchemePersonality::Type PolicyServicesPlatformState::getPowerSchemePersonality(void) const
+{
+    return getDptfManager()->getEventCache()->powerSchemePersonality.get();
 }

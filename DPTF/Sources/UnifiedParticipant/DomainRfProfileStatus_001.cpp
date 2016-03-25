@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,12 +47,31 @@ RfProfileData DomainRfProfileStatus_001::getRfProfileData(UIntN participantIndex
     return rfProfileData;
 }
 
+void DomainRfProfileStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true) {
+            EsifCapabilityData capability;
+            capability.type = Capability::RfProfileStatus;
+            capability.size = sizeof(capability);
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
+}
+
 void DomainRfProfileStatus_001::clearCachedData(void)
 {
     // For now nothing is cached
 }
 
-XmlNode* DomainRfProfileStatus_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainRfProfileStatus_001::getXml(UIntN domainIndex)
 {
     // FIXME
     throw implement_me();

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,8 @@
 #include "esif_lib_esifdata.h"
 
 #define VARIANT_MAX_FIELDS 50
-#define TABLE_OBJECT_MAX_NAME_LEN 255
+#define TABLE_OBJECT_MAX_NAME_LEN	255
+#define TABLE_OBJECT_MAX_BINARY_LEN	0x7FFFFFFF
 
 enum tableMode {
 	GET = 0,
@@ -58,7 +59,7 @@ typedef struct TableObject_s {
 	char *dataXML;
 	char *dataText;
 	u8 *binaryData;
-	int binaryDataSize;
+	UInt32 binaryDataSize;
 	UInt32 getPrimitive;
 	UInt32 setPrimitive;
 	eEsifEventType changeEvent;

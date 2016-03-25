@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -228,10 +228,6 @@ enum esif_domain_type get_domain_type(
 #define MAX_DSP_MANAGER_ENTRY 128
 #define ESIF_DSP_NAMESPACE              "dsp"	/* DSP DataVault Namespace */
 #define ESIF_DSP_OVERRIDE_NAMESPACE	"override" /* DSP Overrides DV name */
-#define ESIF_EDP_DV_PRIORITY    0		/* 0=EDP on disk overrides EDP
-						 * in DataVault, 1=EDP in
-						 * DataVault overrides EDP on
-						 * disk */
 
 #define FPC_DOMAIN_ITERATOR_MARKER 'FPCD'
 

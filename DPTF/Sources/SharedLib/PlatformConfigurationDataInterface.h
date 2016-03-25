@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "ActiveRelationshipTable.h"
-#include "ThermalRelationshipTable.h"
 #include "PlatformSettingType.h"
 #include "SensorOrientation.h"
 #include "SensorMotion.h"
@@ -48,8 +46,9 @@ public:
     virtual void disablePlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
 
     //FIXME:  ESIF Primitives
-    virtual ActiveRelationshipTable getActiveRelationshipTable(void) = 0;
-    virtual ThermalRelationshipTable getThermalRelationshipTable(void) = 0;
+    virtual DptfBuffer getActiveRelationshipTable(void) = 0;
+    virtual void setActiveRelationshipTable(DptfBuffer data) = 0;
+    virtual DptfBuffer getThermalRelationshipTable(void) = 0;
     virtual DptfBuffer getPassiveTable(void) = 0;
     virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) = 0;
     virtual void setPassiveTable(DptfBuffer data) = 0;
@@ -64,4 +63,5 @@ public:
     virtual DptfBuffer getPowerDeviceRelationshipTable(void) = 0;
     virtual DptfBuffer getPowerBossConditionsTable(void) = 0;
     virtual DptfBuffer getPowerBossActionsTable(void) = 0;
+    virtual DptfBuffer getEmergencyCallModeTable(void) = 0;
 };

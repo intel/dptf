@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,7 +53,7 @@ void WIPolicyCreateAll::execute(void)
 
                 getDptfManager()->getPolicyManager()->createPolicy(policyFilePath);
             }
-            catch (std::exception ex)
+            catch (std::exception& ex)
             {
                 WriteWorkItemErrorMessage_Function_MessageKey_MessageValue("PolicyManager::createPolicy",
                     "Policy File Name", policyFileName);
@@ -62,7 +62,7 @@ void WIPolicyCreateAll::execute(void)
             policyFileName = fileEnumerator.getNextFile();
         }
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         WriteWorkItemErrorMessage_Function("PolicyManager::createAllPolicies");
     }

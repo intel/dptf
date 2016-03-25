@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,33 +16,24 @@
 **
 ******************************************************************************/
 
-#include "WIDomainPlatformPowerConsumptionChanged.h"
-#include "Participant.h"
+#include "WIPolicyOperatingSystemMobileNotification.h"
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIDomainPlatformPowerConsumptionChanged::WIDomainPlatformPowerConsumptionChanged(
-    DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
-    DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainPlatformPowerConsumptionChanged, participantIndex, domainIndex)
+WIPolicyOperatingSystemMobileNotification::WIPolicyOperatingSystemMobileNotification(
+    DptfManagerInterface* dptfManager, UIntN mobileNotification) :
+    WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemMobileNotification),
+    m_mobileNotification(mobileNotification)
 {
 }
 
-WIDomainPlatformPowerConsumptionChanged::~WIDomainPlatformPowerConsumptionChanged(void)
+WIPolicyOperatingSystemMobileNotification::~WIPolicyOperatingSystemMobileNotification(void)
 {
 }
 
-void WIDomainPlatformPowerConsumptionChanged::execute(void)
+void WIPolicyOperatingSystemMobileNotification::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
-
-    try
-    {
-        getParticipantPtr()->domainPlatformPowerConsumptionChanged();
-    }
-    catch (std::exception ex)
-    {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPlatformPowerConsumptionChanged");
-    }
+    WriteWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -51,16 +42,17 @@ void WIDomainPlatformPowerConsumptionChanged::execute(void)
     {
         try
         {
+            getDptfManager()->getEventCache()->mobileNotification.set(m_mobileNotification);
             Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeDomainPlatformPowerConsumptionChanged(getParticipantIndex());
+            policy->executePolicyOperatingSystemMobileNotification(m_mobileNotification);
         }
         catch (policy_index_invalid ex)
         {
             // do nothing.  No item in the policy list at this index.
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPlatformPowerConsumptionChanged", i);
+            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemMobileNotification", i);
         }
     }
 }

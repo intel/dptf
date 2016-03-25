@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 #include "CriticalTripPointsCachedProperty.h"
 #include "ActiveTripPointsCachedProperty.h"
 #include "PassiveTripPointsCachedProperty.h"
-#include "DomainProxy.h"
+#include "DomainProxyInterface.h"
 #include "TimeInterface.h"
 #include "ParticipantProxyInterface.h"
 
@@ -43,13 +43,14 @@ public:
     ~ParticipantProxy();
 
     // domain access
-    virtual DomainProxyInterface* bindDomain(UIntN domainIndex) override;
+    virtual void bindDomain(std::shared_ptr<DomainProxyInterface> domain) override;
     virtual void unbindDomain(UIntN domainIndex) override;
-    virtual DomainProxyInterface* getDomain(UIntN domainIndex) override;
+    virtual std::shared_ptr<DomainProxyInterface> getDomain(UIntN domainIndex) override;
     virtual std::vector<UIntN> getDomainIndexes() override;
 
     // properties
     virtual UIntN getIndex() const override;
+    virtual void refreshDomainProperties() override;
     virtual const DomainPropertiesSet& getDomainPropertiesSet() override;
     virtual const ParticipantProperties& getParticipantProperties() override;
 
@@ -57,9 +58,9 @@ public:
     virtual CriticalTripPointsCachedProperty& getCriticalTripPointProperty() override;
     virtual ActiveTripPointsCachedProperty& getActiveTripPointProperty() override;
     virtual PassiveTripPointsCachedProperty& getPassiveTripPointProperty() override;
-    virtual XmlNode* getXmlForCriticalTripPoints() override;
-    virtual XmlNode* getXmlForActiveTripPoints() override;
-    virtual XmlNode* getXmlForPassiveTripPoints() override;
+    virtual std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() override;
+    virtual std::shared_ptr<XmlNode> getXmlForActiveTripPoints() override;
+    virtual std::shared_ptr<XmlNode> getXmlForPassiveTripPoints() override;
 
     // temperatures
     virtual Bool supportsTemperatureInterface()  override;
@@ -67,7 +68,7 @@ public:
     virtual void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound) override;
     virtual TemperatureThresholds getTemperatureThresholds() override;
     virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) override;
-    XmlNode* getXmlForTripPointStatistics();
+    std::shared_ptr<XmlNode> getXmlForTripPointStatistics();
     virtual void refreshHysteresis() override;
     virtual void refreshVirtualSensorTables() override;
 
@@ -84,9 +85,8 @@ public:
     virtual void setDscpSupport(Bool dscpSupported) override;
     virtual void setScpSupport(Bool scpSupported) override;
     virtual void setCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
-    virtual XmlNode* getXmlForScpDscpSupport() override;
-    virtual XmlNode* getXmlForPassiveControlKnobs() override;
-    virtual XmlNode* getXmlForConfigTdpLevel() override;
+    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() override;
+    virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
 
 private:
 
@@ -99,12 +99,10 @@ private:
 
     // domain properties
     DomainSetCachedProperty m_domainSetProperty;
-    std::map<UIntN, DomainProxy> m_domains;
-    void refreshDomainSetIfUninitialized();
-    void refreshDomains();
+    std::map<UIntN, std::shared_ptr<DomainProxyInterface>> m_domains;
 
     // Temperatures
-    Temperature getTemperatureForStatus(DomainProxyInterface* domainProxy);
+    Temperature getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy);
     TemperatureThresholds getTemperatureThresholdsForStatus();
 
     Temperature m_previousLowerBound;

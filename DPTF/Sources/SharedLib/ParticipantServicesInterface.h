@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,11 +24,13 @@
 #include "ParticipantEventRegistrationInterface.h"
 #include "FrameworkEventCreationInterface.h"
 #include "ParticipantMessage.h"
+#include "DptfEventInterface.h"
 
 class ParticipantServicesInterface :
     public MessageLoggingInterface,
     public EsifPrimitiveInterface,
     public ParticipantEventRegistrationInterface,
-    public FrameworkEventCreationInterface
+    public FrameworkEventCreationInterface,
+    public DptfEventInterface
 {
 };

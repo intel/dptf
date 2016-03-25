@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,6 +57,18 @@ std::string StringConverter::toUpper(const std::string& input)
     return upperCaseString;
 }
 
+std::string StringConverter::toLower(const std::string& input)
+{
+    std::string lowerCaseString;
+
+    for (auto i = input.begin(); i != input.end(); i++)
+    {
+        lowerCaseString += (char)tolower(*i);
+    }
+
+    return lowerCaseString;
+}
+
 std::string StringConverter::trimWhitespace(const std::string& input)
 {
     std::string delimiters = " \f\n\r\t\v";
@@ -64,4 +76,16 @@ std::string StringConverter::trimWhitespace(const std::string& input)
     trimmedString.erase(0, trimmedString.find_first_not_of(delimiters));
     trimmedString.erase(trimmedString.find_last_not_of(delimiters) + 1);
     return trimmedString;
+}
+
+Int32 StringConverter::toInt32(const std::string& input)
+{
+    Int32 integer(0);
+    istringstream stream(input);
+    stream >> integer;
+    if (stream.fail())
+    {
+        throw dptf_exception("Failed to convert string \"" + input + "\" to Int32 value.");
+    }
+    return integer;
 }

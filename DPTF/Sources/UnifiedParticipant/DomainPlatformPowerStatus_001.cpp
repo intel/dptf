@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,20 +38,6 @@ Power DomainPlatformPowerStatus_001::getMaxBatteryPower(UIntN participantIndex, 
     return m_maxBatteryPower;
 }
 
-Power DomainPlatformPowerStatus_001::getAdapterPower(UIntN participantIndex, UIntN domainIndex)
-{
-    m_adapterPower = getParticipantServices()->primitiveExecuteGetAsPower(
-        esif_primitive_type::GET_ADAPTER_POWER, domainIndex);
-    return m_adapterPower;
-}
-
-Power DomainPlatformPowerStatus_001::getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex)
-{
-    m_platformPower = getParticipantServices()->primitiveExecuteGetAsPower(
-        esif_primitive_type::GET_PLATFORM_POWER_CONSUMPTION, domainIndex);
-    return m_platformPower;
-}
-
 Power DomainPlatformPowerStatus_001::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
 {
     m_platformRestOfPower = getParticipantServices()->primitiveExecuteGetAsPower(
@@ -72,6 +58,12 @@ DptfBuffer DomainPlatformPowerStatus_001::getBatteryStatus(UIntN participantInde
         esif_primitive_type::GET_BATTERY_STATUS, ESIF_DATA_BINARY, domainIndex);
 }
 
+DptfBuffer DomainPlatformPowerStatus_001::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
+{
+    return getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_BATTERY_INFORMATION, ESIF_DATA_BINARY, domainIndex);
+}
+
 PlatformPowerSource::Type DomainPlatformPowerStatus_001::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
 {
     auto powerSource = getParticipantServices()->primitiveExecuteGetAsUInt32(
@@ -88,13 +80,6 @@ ChargerType::Type DomainPlatformPowerStatus_001::getChargerType(UIntN participan
     return m_chargerType;
 }
 
-Percentage DomainPlatformPowerStatus_001::getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex)
-{
-    m_stateOfCharge = getParticipantServices()->primitiveExecuteGetAsPercentage(
-        esif_primitive_type::GET_PLATFORM_STATE_OF_CHARGE, domainIndex);
-    return m_stateOfCharge;
-}
-
 Power DomainPlatformPowerStatus_001::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
 {
     m_acPeakPower = getParticipantServices()->primitiveExecuteGetAsPower(
@@ -109,105 +94,126 @@ TimeSpan DomainPlatformPowerStatus_001::getACPeakTimeWindow(UIntN participantInd
     return m_acPeakTimeWindow;
 }
 
+Power DomainPlatformPowerStatus_001::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
+{
+    m_batterySteadyState = getParticipantServices()->primitiveExecuteGetAsPower(
+        esif_primitive_type::GET_PLATFORM_BATTERY_STEADY_STATE, domainIndex);
+    return m_batterySteadyState;
+}
+
 void DomainPlatformPowerStatus_001::clearCachedData(void)
 {
     initializeDataStructures();
 }
 
-XmlNode* DomainPlatformPowerStatus_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("platform_power_status");
+    auto root = XmlNode::createWrapperElement("platform_power_status");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
+
+    auto pmaxStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    pmaxStatus->addChild(XmlNode::createDataElement("name", "Max Battery Power (PMAX)"));
     try
     {
-        root->addChild(XmlNode::createDataElement(
-            "max_battery_power", getMaxBatteryPower(Constants::Invalid, domainIndex).toString() + "mW"));
+        pmaxStatus->addChild(XmlNode::createDataElement(
+            "value", getMaxBatteryPower(Constants::Invalid, domainIndex).toString() + "mW"));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("max_battery_power", "Error"));
+        pmaxStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(pmaxStatus);
+    
+    auto psrcStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    psrcStatus->addChild(XmlNode::createDataElement("name", "Platform Power Source (PSRC)"));
     try
     {
-    root->addChild(XmlNode::createDataElement(
-        "adapter_power", getAdapterPower(Constants::Invalid, domainIndex).toString() + "mW"));
-    }
-    catch (...)
-    {
-        root->addChild(XmlNode::createDataElement("adapter_power", "Error"));
-    }
-    try
-    {
-    root->addChild(XmlNode::createDataElement(
-        "platform_power_consumption", getPlatformPowerConsumption(Constants::Invalid, domainIndex).toString() + "mW"));
-    }
-    catch (...)
-    {
-        root->addChild(XmlNode::createDataElement("platform_power_consumption", "Error"));
-    }
-    try
-    {
-    root->addChild(XmlNode::createDataElement(
-        "platform_state_of_charge", getPlatformStateOfCharge(Constants::Invalid, domainIndex).toString() + "%"));
-    }
-    catch (...)
-    {
-        root->addChild(XmlNode::createDataElement("platform_state_of_charge", "Error"));
-    }
-    try
-    {
-    root->addChild(XmlNode::createDataElement("platform_power_source", 
+        psrcStatus->addChild(XmlNode::createDataElement("value",
         PlatformPowerSource::ToString(getPlatformPowerSource(Constants::Invalid, domainIndex))));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("platform_power_source", "Error"));
+        psrcStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(psrcStatus);
+
+    auto artgStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    artgStatus->addChild(XmlNode::createDataElement("name", "Adapter Power Rating (ARTG)"));
     try
     {
-    root->addChild(XmlNode::createDataElement(
-        "adapter_power_rating", getAdapterPowerRating(Constants::Invalid, domainIndex).toString() + "mW"));
+        artgStatus->addChild(XmlNode::createDataElement(
+        "value", getAdapterPowerRating(Constants::Invalid, domainIndex).toString() + "mW"));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("adapter_power_rating", "Error"));
+        artgStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(artgStatus);
+
+    auto ctypStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    ctypStatus->addChild(XmlNode::createDataElement("name", "Charger Type (CTYP)"));
     try
     {
-    root->addChild(XmlNode::createDataElement("charger_type", 
+        ctypStatus->addChild(XmlNode::createDataElement("value",
         ChargerType::ToString(getChargerType(Constants::Invalid, domainIndex))));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("charger_type", "Error"));
+        ctypStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(ctypStatus);
+
+    auto propStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    propStatus->addChild(XmlNode::createDataElement("name", "Platform Rest Of Power (PROP)"));
     try
     {
-    root->addChild(XmlNode::createDataElement(
-        "platform_rest_of_power", getPlatformRestOfPower(Constants::Invalid, domainIndex).toString() + "mW"));
+        propStatus->addChild(XmlNode::createDataElement(
+        "value", getPlatformRestOfPower(Constants::Invalid, domainIndex).toString() + "mW"));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("platform_rest_of_power", "Error"));
+        propStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(propStatus);
+
+    auto apkpStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    apkpStatus->addChild(XmlNode::createDataElement("name", "AC Peak Power (APKP)"));
     try
     {
-    root->addChild(XmlNode::createDataElement(
-        "ac_peak_power", getACPeakPower(Constants::Invalid, domainIndex).toString() + "mW"));
+        apkpStatus->addChild(XmlNode::createDataElement(
+        "value", getACPeakPower(Constants::Invalid, domainIndex).toString() + "mW"));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("ac_peak_power", "Error"));
+        apkpStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(apkpStatus);
+
+    auto apktStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    apktStatus->addChild(XmlNode::createDataElement("name", "AC Peak Time Window (APKT)"));
     try
     {
-    root->addChild(XmlNode::createDataElement(
-        "ac_peak_time_window", getACPeakTimeWindow(Constants::Invalid, domainIndex).toStringMilliseconds() + "msec"));
+        apktStatus->addChild(XmlNode::createDataElement(
+        "value", getACPeakTimeWindow(Constants::Invalid, domainIndex).toStringMilliseconds() + "msec"));
     }
     catch (...)
     {
-        root->addChild(XmlNode::createDataElement("ac_peak_time_window", "Error"));
+        apktStatus->addChild(XmlNode::createDataElement("value", "Error"));
     }
+    root->addChild(apktStatus);
+
+    auto pbssStatus = XmlNode::createWrapperElement("platform_power_status_object");
+    pbssStatus->addChild(XmlNode::createDataElement("name", "Platform Battery Steady State (PBSS)"));
+    try
+    {
+        pbssStatus->addChild(XmlNode::createDataElement(
+            "value", getPlatformBatterySteadyState(Constants::Invalid, domainIndex).toString() + "mW"));
+    }
+    catch (...)
+    {
+        pbssStatus->addChild(XmlNode::createDataElement("value", "Error"));
+    }
+    root->addChild(pbssStatus);
 
     return root;
 }
@@ -220,11 +226,9 @@ std::string DomainPlatformPowerStatus_001::getName(void)
 void DomainPlatformPowerStatus_001::initializeDataStructures(void)
 {
     m_maxBatteryPower = Power::createInvalid();
-    m_adapterPower = Power::createInvalid();
-    m_platformPower = Power::createInvalid();
     m_platformRestOfPower = Power::createInvalid();
     m_adapterRating = Power::createInvalid();
-    m_stateOfCharge = Percentage::createInvalid();
     m_acPeakPower = Power::createInvalid();
     m_acPeakTimeWindow = TimeSpan::createInvalid();
+    m_batterySteadyState = Power::createInvalid();
 }

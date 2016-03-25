@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,14 +55,15 @@ namespace PolicyEvent
             CASE(DomainVirtualSensorPollingTableChanged)
             CASE(DomainVirtualSensorRecalcChanged)
             CASE(DomainBatteryStatusChanged)
-            CASE(DomainAdapterPowerChanged)
-            CASE(DomainPlatformPowerConsumptionChanged)
+            CASE(DomainBatteryInformationChanged)
             CASE(DomainPlatformPowerSourceChanged)
             CASE(DomainAdapterPowerRatingChanged)
             CASE(DomainChargerTypeChanged)
             CASE(DomainPlatformRestOfPowerChanged)
             CASE(DomainACPeakPowerChanged)
             CASE(DomainACPeakTimeWindowChanged)
+            CASE(DomainMaxBatteryPowerChanged)
+            CASE(DomainPlatformBatterySteadyStateChanged)
             CASE(PolicyActiveRelationshipTableChanged)
             CASE(PolicyCoolingModeAcousticLimitChanged)
             CASE(PolicyCoolingModePolicyChanged)
@@ -85,10 +86,15 @@ namespace PolicyEvent
             CASE(PolicyOperatingSystemBatteryPercentageChanged)
             CASE(PolicyOperatingSystemPlatformTypeChanged)
             CASE(PolicyOperatingSystemDockModeChanged)
+            CASE(PolicyOperatingSystemMobileNotification)
             CASE(PolicyOemVariablesChanged)
             CASE(PolicyPowerDeviceRelationshipTableChanged)
             CASE(PolicyPowerBossConditionsTableChanged)
             CASE(PolicyPowerBossActionsTableChanged)
+            CASE(DptfPolicyLoadedUnloadedEvent)
+            CASE(DptfPolicyActivityLoggingEnabled)
+            CASE(DptfPolicyActivityLoggingDisabled)
+            CASE(PolicyOperatingSystemPowerSchemePersonalityChanged)
             default:
                 throw dptf_exception("PolicyEvent::Type is invalid.");
         }
@@ -117,10 +123,12 @@ namespace PolicyEvent
             (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryPercentageChanged) ||
             (policyEventType == PolicyEvent::PolicyOperatingSystemPlatformTypeChanged) ||
             (policyEventType == PolicyEvent::PolicyOperatingSystemDockModeChanged) ||
+            (policyEventType == PolicyEvent::PolicyOperatingSystemMobileNotification) ||
             (policyEventType == PolicyEvent::PolicyOemVariablesChanged) ||
             (policyEventType == PolicyEvent::PolicyPowerDeviceRelationshipTableChanged) ||
             (policyEventType == PolicyEvent::PolicyPowerBossConditionsTableChanged) ||
-            (policyEventType == PolicyEvent::PolicyPowerBossActionsTableChanged));
+            (policyEventType == PolicyEvent::PolicyPowerBossActionsTableChanged) ||
+            (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged));
     }
 
     std::string toString(Type type)
@@ -167,10 +175,8 @@ namespace PolicyEvent
             return "DomainVirtualSensorRecalcChanged";
         case PolicyEvent::DomainBatteryStatusChanged:
             return "DomainBatteryStatusChanged";
-        case PolicyEvent::DomainAdapterPowerChanged:
-            return "DomainAdapterPowerChanged";
-        case PolicyEvent::DomainPlatformPowerConsumptionChanged:
-            return "DomainPlatformPowerConsumptionChanged";
+        case PolicyEvent::DomainBatteryInformationChanged:
+            return "DomainBatteryInformationChanged";
         case PolicyEvent::DomainPlatformPowerSourceChanged:
             return "DomainPlatformPowerSourceChanged";
         case PolicyEvent::DomainAdapterPowerRatingChanged:
@@ -183,6 +189,10 @@ namespace PolicyEvent
             return "DomainACPeakPowerChanged";
         case PolicyEvent::DomainACPeakTimeWindowChanged:
             return "DomainACPeakTimeWindowChanged";
+        case PolicyEvent::DomainMaxBatteryPowerChanged:
+            return "DomainMaxBatteryPowerChanged";
+        case PolicyEvent::DomainPlatformBatterySteadyStateChanged:
+            return "DomainPlatformBatterySteadyStateChanged";
         case PolicyEvent::PolicyActiveRelationshipTableChanged:
             return "PolicyActiveRelationshipTableChanged";
         case PolicyEvent::PolicyCoolingModeAcousticLimitChanged:
@@ -227,6 +237,8 @@ namespace PolicyEvent
             return "PolicyOperatingSystemPlatformTypeChanged";
         case PolicyEvent::PolicyOperatingSystemDockModeChanged:
             return "PolicyOperatingSystemDockModeChanged";
+        case PolicyEvent::PolicyOperatingSystemMobileNotification:
+            return "PolicyOperatingSystemMobileNotification";
         case PolicyEvent::PolicyOemVariablesChanged:
             return "PolicyOemVariablesChanged";
         case PolicyEvent::PolicyPowerDeviceRelationshipTableChanged:
@@ -235,7 +247,14 @@ namespace PolicyEvent
             return "PolicyPowerBossConditionsTableChanged";
         case PolicyEvent::PolicyPowerBossActionsTableChanged:
             return "PolicyPowerBossActionsTableChanged";
-
+        case PolicyEvent::DptfPolicyLoadedUnloadedEvent:
+            return "DptfPolicyLoadedUnloadedEvent";
+        case PolicyEvent::DptfPolicyActivityLoggingEnabled:
+            return "DptfPolicyActivityLoggingEnabled";
+        case PolicyEvent::DptfPolicyActivityLoggingDisabled:
+            return "DptfPolicyActivityLoggingDisabled";
+        case PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged:
+            return "PolicyOperatingSystemPowerSchemePersonalityChanged";
         case PolicyEvent::Invalid:
         case PolicyEvent::Max:
         default:

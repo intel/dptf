@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -78,25 +78,6 @@ public:
     virtual PixelClockControlFacade& getPixelClockControl() const = 0;
     virtual std::shared_ptr<HardwareDutyCycleControlFacadeInterface> getHardwareDutyCycleControl() const = 0;
 
-    virtual XmlNode* getXml() const = 0;
-
-    // passive controls (TODO: move to passive policy)
-    virtual void requestLimit(UIntN target) = 0;
-    virtual void requestUnlimit(UIntN target) = 0;
-    virtual Bool canLimit(UIntN target) = 0;
-    virtual Bool canUnlimit(UIntN target) = 0;
-    virtual Bool commitLimits() = 0;
-    virtual void setArbitratedPowerLimit() = 0;
-    virtual void setArbitratedPerformanceLimit() = 0;
-    virtual void setArbitratedCoreLimit() = 0;
-    virtual void adjustPowerRequests() = 0;
-    virtual void adjustPerformanceRequests() = 0;
-    virtual void adjustCoreRequests() = 0;
-    virtual void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold) = 0;
-    virtual void clearAllRequestsForTarget(UIntN target) = 0;
-    virtual void clearAllPerformanceControlRequests() = 0;
-    virtual void clearAllPowerControlRequests() = 0;
-    virtual void clearAllCoreControlRequests() = 0;
-    virtual void clearAllDisplayControlRequests() = 0;
-    virtual void clearAllControlKnobRequests() = 0;
+    virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() = 0;
+    virtual std::shared_ptr<XmlNode> getXml() const = 0;
 };

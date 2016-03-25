@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -81,6 +81,7 @@ public:
     DisplayControlStatus getDisplayControlStatus(void);
     DisplayControlSet getDisplayControlSet(void);
     void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex);
+    void setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 
     // Performance controls
     PerformanceControlStaticCaps getPerformanceControlStaticCaps(void);
@@ -88,6 +89,7 @@ public:
     PerformanceControlStatus getPerformanceControlStatus(void);
     PerformanceControlSet getPerformanceControlSet(void);
     void setPerformanceControl(UIntN policyIndex, UIntN performanceControlIndex);
+    void setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
 
     // Pixel Clock Control
     void setPixelClockControl(UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
@@ -124,16 +126,15 @@ public:
 
     // Platform Power Status
     Power getMaxBatteryPower(void);
-    Power getAdapterPower(void);
-    Power getPlatformPowerConsumption(void);
     Power getPlatformRestOfPower(void);
     Power getAdapterPowerRating(void);
     DptfBuffer getBatteryStatus(void);
+    DptfBuffer getBatteryInformation(void);
     PlatformPowerSource::Type getPlatformPowerSource(void);
     ChargerType::Type getChargerType(void);
-    Percentage getPlatformStateOfCharge(void);
     Power getACPeakPower(void);
     TimeSpan getACPeakTimeWindow(void);
+    Power getPlatformBatterySteadyState(void);
 
     // priority
     DomainPriority getDomainPriority(void);
@@ -245,16 +246,15 @@ private:
 
     // Platform Power Status
     Power* m_maxBatteryPower;
-    Power* m_adapterPower;
-    Power* m_platformPower;
     Power* m_adapterRating;
     Power* m_platformRestOfPower;
     Power* m_acPeakPower;
     TimeSpan* m_acPeakTimeWindow;
     PlatformPowerSource::Type* m_platformPowerSource;
     ChargerType::Type* m_chargerType;
-    Percentage* m_platformStateOfCharge;
     DptfBuffer m_batteryStatusBuffer;
+    DptfBuffer m_batteryInformationBuffer;
+    Power* m_batterySteadyState;
 
     // priority
     DomainPriority* m_domainPriority;
@@ -301,4 +301,5 @@ private:
     void clearDomainCachedDataUtilizationStatus();
     void clearDomainCachedDataHardwareDutyCycle();
     void clearDomainCachedDataHdcOobEnable();
+    void clearDomainCachedDataPlatformPowerStatus();
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,4 +36,10 @@ void PolicyServicesParticipantSetSpecificInfo::setParticipantCoolingPolicy(
 {
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantCoolingPolicy(coolingPreference, type);
+}
+
+void PolicyServicesParticipantSetSpecificInfo::setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantSpecificInfo(tripPoint, tripValue);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -82,4 +82,10 @@ eEsifError EsifAppServices::unregisterForEvent(const void* esifHandle, const voi
     const void* participantHandle, const void* domainHandle, const EsifDataPtr eventGuid)
 {
     return m_esifInterface.fUnregisterEventFuncPtr(esifHandle, appHandle, participantHandle, domainHandle, eventGuid);
+}
+
+eEsifError EsifAppServices::sendEvent(const void* esifHandle, const void* appHandle,
+    const void* participantHandle, const void* domainHandle, const EsifDataPtr eventData, const EsifDataPtr eventGuid)
+{
+    return m_esifInterface.fSendEventFuncPtr(esifHandle, appHandle, participantHandle, domainHandle, eventData, eventGuid);
 }

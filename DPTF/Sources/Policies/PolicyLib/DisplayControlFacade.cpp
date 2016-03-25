@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,6 +54,21 @@ void DisplayControlFacade::setControl(UIntN displayControlIndex)
     {
         m_policyServices.domainDisplayControl->setDisplayControl(
             m_participantIndex, m_domainIndex, displayControlIndex);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
+}
+
+void DisplayControlFacade::setDisplayControlDynamicCaps(DisplayControlDynamicCaps newCapabilities)
+{
+    if (supportsDisplayControls())
+    {
+        m_displayControlCapabilitiesProperty.invalidate();
+        m_policyServices.domainDisplayControl->setDisplayControlDynamicCaps(
+            m_participantIndex, m_domainIndex, newCapabilities);
+        refreshCapabilities();
     }
     else
     {

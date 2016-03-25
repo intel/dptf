@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,14 +66,15 @@ public:
     virtual void onDomainVirtualSensorPollingTableChanged(UIntN participantIndex);
     virtual void onDomainVirtualSensorRecalcChanged(UIntN participantIndex);
     virtual void onDomainBatteryStatusChanged(UIntN participantIndex);
-    virtual void onDomainAdapterPowerChanged(UIntN participantIndex);
-    virtual void onDomainPlatformPowerConsumptionChanged(UIntN participantIndex);
+    virtual void onDomainBatteryInformationChanged(UIntN participantIndex);
     virtual void onDomainPlatformPowerSourceChanged(UIntN participantIndex);
     virtual void onDomainAdapterPowerRatingChanged(UIntN participantIndex);
     virtual void onDomainChargerTypeChanged(UIntN participantIndex);
     virtual void onDomainPlatformRestOfPowerChanged(UIntN participantIndex);
     virtual void onDomainACPeakPowerChanged(UIntN participantIndex);
     virtual void onDomainACPeakTimeWindowChanged(UIntN participantIndex);
+    virtual void onDomainMaxBatteryPowerChanged(UIntN participantIndex);
+    virtual void onDomainPlatformBatterySteadyStateChanged(UIntN participantIndex);
     virtual void onActiveRelationshipTableChanged(void);
     virtual void onThermalRelationshipTableChanged(void);
     virtual void onAdaptivePerformanceConditionsTableChanged(void);
@@ -89,8 +90,11 @@ public:
     virtual void onOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource);
     virtual void onOperatingSystemLidStateChanged(OsLidState::Type lidState);
     virtual void onOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage);
+    virtual void onOperatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality);
     virtual void onOperatingSystemPlatformTypeChanged(OsPlatformType::Type platformType);
     virtual void onOperatingSystemDockModeChanged(OsDockMode::Type dockMode);
+    virtual void onOperatingSystemEmergencyCallModeChanged(UIntN emergencyCallMode);
+    virtual void onOperatingSystemMobileNotification(UIntN mobileNotificationType, UIntN value);
     virtual void onPlatformLpmModeChanged(void);
     virtual void onOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel);
     virtual void onCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit);
@@ -132,14 +136,15 @@ public:
     virtual void domainVirtualSensorPollingTableChanged(UIntN participantIndex) override final;
     virtual void domainVirtualSensorRecalcChanged(UIntN participantIndex) override final;
     virtual void domainBatteryStatusChanged(UIntN participantIndex) override final;
-    virtual void domainAdapterPowerChanged(UIntN participantIndex) override final;
-    virtual void domainPlatformPowerConsumptionChanged(UIntN participantIndex) override final;
+    virtual void domainBatteryInformationChanged(UIntN participantIndex) override final;
     virtual void domainPlatformPowerSourceChanged(UIntN participantIndex) override final;
     virtual void domainAdapterPowerRatingChanged(UIntN participantIndex) override final;
     virtual void domainChargerTypeChanged(UIntN participantIndex) override final;
     virtual void domainPlatformRestOfPowerChanged(UIntN participantIndex) override final;
     virtual void domainACPeakPowerChanged(UIntN participantIndex) override final;
     virtual void domainACPeakTimeWindowChanged(UIntN participantIndex) override final;
+    virtual void domainMaxBatteryPowerChanged(UIntN participantIndex) override final;
+    virtual void domainPlatformBatterySteadyStateChanged(UIntN participantIndex) override final;
     virtual void activeRelationshipTableChanged(void) override final;
     virtual void thermalRelationshipTableChanged(void) override final;
     virtual void adaptivePerformanceConditionsTableChanged(void) override final;
@@ -155,8 +160,10 @@ public:
     virtual void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override final;
     virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) override final;
     virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override final;
+    virtual void operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type batteryPercentage) override final;
     virtual void operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType) override final;
     virtual void operatingSystemDockModeChanged(OsDockMode::Type dockMode) override final;
+    virtual void operatingSystemMobileNotification(UIntN mobileNotification) override final;
     virtual void platformLpmModeChanged(void) override final;
     virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) override final;
     virtual void coolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit) override final;

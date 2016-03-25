@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -270,9 +270,9 @@ void CoreControlKnob::clearAllRequests()
     m_requests.clear();
 }
 
-XmlNode* CoreControlKnob::getXml()
+std::shared_ptr<XmlNode> CoreControlKnob::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("core_control_knob_status");
+    auto status = XmlNode::createWrapperElement("core_control_knob_status");
     if (m_coreControl->supportsCoreControls())
     {
         status->addChild(m_coreControl->getStaticCapabilities().getXml());

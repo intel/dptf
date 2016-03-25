@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,11 +18,12 @@
 
 #include "TargetUnlimitAction.h"
 #include <algorithm>
+#include "PassiveDomainProxy.h"
 using namespace std;
 
 TargetUnlimitAction::TargetUnlimitAction(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    std::shared_ptr<ParticipantTrackerInterface> participantTracker, ThermalRelationshipTable& trt,
+    std::shared_ptr<ParticipantTrackerInterface> participantTracker, std::shared_ptr<ThermalRelationshipTable> trt,
     std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
     : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
 {
@@ -101,7 +102,7 @@ std::vector<UIntN> TargetUnlimitAction::chooseSourcesToUnlimitForTarget(UIntN ta
 {
     // get TRT entries for target with sources that have controls that can be unlimited
     vector<UIntN> sourcesToLimit;
-    vector<ThermalRelationshipTableEntry> availableSourcesForTarget = getTrt().getEntriesForTarget(target);
+    vector<ThermalRelationshipTableEntry> availableSourcesForTarget = getTrt()->getEntriesForTarget(target);
     availableSourcesForTarget = getEntriesWithControlsToUnlimit(target, availableSourcesForTarget);
 
     if (availableSourcesForTarget.size() > 0)
@@ -146,7 +147,8 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(Part
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
         // if domain has controls that can be unlimited, add it to the list
-        if (participant->getDomain(*domainIndex)->canUnlimit(target))
+        auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
+        if (domain->canUnlimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
         }
@@ -213,8 +215,8 @@ UIntN TargetUnlimitAction::getDomainWithLowestTemperature(
     {
         try
         {
-            ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
-            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            auto sourceParticipant = getParticipantTracker()->getParticipant(source);
+            auto sourceDomain = sourceParticipant->getDomain(*domain);
             Temperature domainTemperature = sourceDomain->getTemperatureControl()->getCurrentTemperature();
             if (domainWithLowestTemperature.first.isValid())
             {
@@ -247,8 +249,8 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
     {
         try
         {
-            ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
-            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            auto sourceParticipant = getParticipantTracker()->getParticipant(source);
+            auto sourceDomain = sourceParticipant->getDomain(*domain);
             DomainPriority priority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
             if (priority < lowestPriority)
             {
@@ -266,8 +268,8 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
         domain != domains.end();
         domain++)
     {
-        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
-        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+        auto sourceParticipant = getParticipantTracker()->getParticipant(source);
+        auto sourceDomain = sourceParticipant->getDomain(*domain);
         DomainPriority priority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
         if (priority == lowestPriority)
         {
@@ -279,15 +281,15 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
 
 void TargetUnlimitAction::requestUnlimit(UIntN source, UIntN domain, UIntN target)
 {
-    ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
-    DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(domain);
+    auto sourceParticipant = getParticipantTracker()->getParticipant(source);
+    auto sourceDomain = dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(domain));
     sourceDomain->requestUnlimit(target);
 }
 
 void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
 {
     Bool madeChanges(false);
-    ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
+    auto sourceParticipant = getParticipantTracker()->getParticipant(source);
     vector<UIntN> domainIndexes = sourceParticipant->getDomainIndexes();
     for (auto domain = domainIndexes.begin(); domain != domainIndexes.end(); domain++)
     {
@@ -296,7 +298,7 @@ void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
             getPolicyServices().messageLogging->writeMessageDebug(
                 PolicyMessage(FLF, "Committing limits to source.", source, *domain));
 
-            DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+            auto sourceDomain = dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(*domain));
             Bool madeChange = sourceDomain->commitLimits();
             if (madeChange)
             {
@@ -327,7 +329,7 @@ void TargetUnlimitAction::removeAllRequestsForTarget(UIntN target)
         vector<UIntN> domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
-            DomainProxyInterface* domain = participant->getDomain(*domainIndex);
+            auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
             domain->clearAllRequestsForTarget(target);
         }
     }

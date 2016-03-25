@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "esif_uf_action.h"
 #include "esif_uf_service.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_pm.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -41,7 +42,6 @@
  */
 eEsifError EsifAct_CreateAction(
 	EsifActIfacePtr actIfacePtr,
-	UInt8 upInstance,
 	EsifActPtr *actPtr
 	);
 
@@ -53,6 +53,8 @@ eEsifError EsifActIface_GetType(
 	);
 	
 void EsifAct_MarkAsPlugin(EsifActPtr self);
+
+Bool EsifActIface_IsSupported(EsifActIfacePtr self);
 
 
 /*
@@ -94,6 +96,7 @@ static eEsifError EsifActIface_SendIfaceEvent(
 	EsifActIfacePtr ifacePtr,
 	esif_context_t actCtx,
 	enum esif_event_type eventType,
+	UInt8 upInstance,
 	UInt16 domainId,
 	EsifDataPtr eventDataPtr
 	);
@@ -105,13 +108,20 @@ static eEsifError ESIF_CALLCONV EsifActIface_ReceiveEventV1(
 	const EsifDataPtr dataPtr
 	);
 
+static eEsifError ESIF_CALLCONV  EsifActIface_ExecutePrimitiveV1(
+	const esif_handle_t participantHandle,
+	const UInt16 primitiveId,
+	const UInt16 domain,
+	const UInt8 instance,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	);
 
 /*
  * FUNCTION DEFINITIONS
  */
 eEsifError EsifAct_CreateAction(
 	EsifActIfacePtr actIfacePtr,
-	UInt8 upInstance,
 	EsifActPtr *actPtr
 	)
 {
@@ -123,6 +133,12 @@ eEsifError EsifAct_CreateAction(
 	if ((NULL == actIfacePtr) || (NULL == actPtr)){
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
+	}
+
+	/* Check EsifActIface */
+	if (!EsifActIface_IsSupported(actIfacePtr)) {
+		rc = ESIF_E_IFACE_NOT_SUPPORTED;
+		goto exit;	
 	}
 
 	intfcSize = EsifActIface_Sizeof(actIfacePtr->hdr.fIfaceVersion);
@@ -144,7 +160,6 @@ eEsifError EsifAct_CreateAction(
 		goto exit;
 	}
 	newActPtr->type = actionType;
-	newActPtr->upInstace = upInstance;
 
 	newActPtr->refCount = 1;
 	newActPtr->markedForDelete = ESIF_FALSE;
@@ -214,17 +229,16 @@ static eEsifError EsifAct_CallIfaceCreate(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	ActionHandle actHandle = {0}; 
 
-	ESIF_ASSERT(self != NULL);
+	if (self == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
 		
 	switch (self->iface.hdr.fIfaceVersion) {
 	case ESIF_ACT_IFACE_VER_STATIC:
 		if (self->iface.ifaceStatic.createFuncPtr != NULL) {
-			rc = self->iface.ifaceStatic.createFuncPtr(&self->iface,
-				NULL,
-				(esif_handle_t)(size_t)self->type,
-				&self->actCtx);
+			rc = self->iface.ifaceStatic.createFuncPtr(&self->iface, &self->actCtx);
 			self->createCalled = ESIF_TRUE;
 		}
 		break;
@@ -234,14 +248,9 @@ static eEsifError EsifAct_CallIfaceCreate(
 			self->iface.actIfaceV1.traceLevel = g_traceLevel;
 			self->iface.actIfaceV1.writeLogFuncPtr = EsifActWriteLogHandler;
 			self->iface.actIfaceV1.sendEventFuncPtr = EsifActIface_ReceiveEventV1;
+			self->iface.actIfaceV1.execPrimitiveFuncPtr = EsifActIface_ExecutePrimitiveV1;
 
-			actHandle.s.type = self->type;
-			actHandle.s.upInstance = self->upInstace;
-
-			rc = self->iface.actIfaceV1.createFuncPtr(&self->iface,
-				NULL,
-				(esif_handle_t)(size_t)actHandle.asDword,
-				&self->actCtx);		
+			rc = self->iface.actIfaceV1.createFuncPtr(&self->iface, &self->actCtx);		
 			self->createCalled = ESIF_TRUE;
 		}
 		break;
@@ -251,7 +260,6 @@ static eEsifError EsifAct_CallIfaceCreate(
 exit:
 	if (ESIF_OK != rc) {
 		ESIF_TRACE_ERROR("Error creating action. Error Code : %x", rc);
-		goto exit;
 	}	
 	return rc;
 }
@@ -261,7 +269,10 @@ static eEsifError EsifAct_CallIfaceDestroy(EsifActPtr self)
 {
 	eEsifError rc = ESIF_OK;
 
-	ESIF_ASSERT(self != NULL);
+	if (self == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
 
 	if (self->createCalled) {
 		switch (self->iface.hdr.fIfaceVersion) {
@@ -282,6 +293,7 @@ static eEsifError EsifAct_CallIfaceDestroy(EsifActPtr self)
 			ESIF_TRACE_ERROR("Error destroying action. Error Code : %x", rc);
 		}	
 	}
+exit:
 	return rc;
 }
 
@@ -353,9 +365,7 @@ static eEsifError EsifAct_RegisterEvents(
 {
 	ESIF_ASSERT(self != NULL);
 
-	EsifActIface_RegisterEvents(&self->iface, (esif_handle_t)(size_t)self->type);
-
-	return ESIF_OK;
+	return EsifActIface_RegisterEvents(&self->iface, (esif_handle_t)(size_t)self->type);
 }
 
 
@@ -434,20 +444,19 @@ static eEsifError ESIF_CALLCONV EsifAct_EventCallback(
 	eEsifError rc = ESIF_OK;
 	EsifActPtr actPtr = NULL;
 
-	UNREFERENCED_PARAMETER(upInstance);
-
 	if (NULL == fpcEventPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	actPtr = EsifActMgr_GetAction((UInt8)(size_t)contextPtr, upInstance);
+	actPtr = EsifActMgr_GetAction((UInt8)(size_t)contextPtr);
 	if (NULL == actPtr) {
 		rc = ESIF_E_NOT_FOUND;
 		goto exit;
 	}
 	rc = EsifActIface_SendIfaceEvent(&actPtr->iface, 
 		actPtr->actCtx,
+		upInstance,
 		fpcEventPtr->esif_event,
 		domainId,
 		eventDataPtr);
@@ -461,6 +470,7 @@ static eEsifError EsifActIface_SendIfaceEvent(
 	EsifActIfacePtr self,
 	esif_context_t actCtx,
 	enum esif_event_type eventType,
+	UInt8 upInstance,
 	UInt16 domainId,
 	EsifDataPtr eventDataPtr
 	)
@@ -476,6 +486,7 @@ static eEsifError EsifActIface_SendIfaceEvent(
 			goto exit;
 		}
 		self->actIfaceV1.rcvEventFuncPtr(actCtx,
+			(esif_handle_t)(size_t)upInstance,
 			eventType,
 			domainId,
 			eventDataPtr
@@ -486,32 +497,44 @@ static eEsifError EsifActIface_SendIfaceEvent(
 		break;
 	}
 exit:
-return rc;
+	return rc;
 }
 
 
 static eEsifError ESIF_CALLCONV EsifActIface_ReceiveEventV1(
-	const esif_handle_t esifInstHandle,
+	const esif_handle_t participantHandle,
 	enum esif_event_type eventType,
 	UInt16 domain,
 	const EsifDataPtr dataPtr
 	)
 {
+	return EsifEventMgr_SignalEvent((UInt8)(size_t)participantHandle, domain, eventType, dataPtr);
+}
+
+
+static eEsifError ESIF_CALLCONV  EsifActIface_ExecutePrimitiveV1(
+	const esif_handle_t participantHandle,	/* Pass back in calls to ESIF for the participant instance */
+	const UInt16 primitiveId,
+	const UInt16 domain,					/* Must Be '0D' */
+	const UInt8 instance,					/* Primitive instance */
+	const EsifDataPtr requestPtr,			/* Input data to the primitive */
+	EsifDataPtr responsePtr					/* Output data returned by primitivie execution */
+	)
+{
 	eEsifError rc = ESIF_OK;
-	EsifActPtr actPtr = NULL;
-	ActionHandle actHandle = {0}; 
+	EsifUpPtr upPtr = NULL;
+	EsifPrimitiveTuple tuple = {primitiveId, domain, instance};
 
-	actHandle.asDword = (UInt32)(size_t)esifInstHandle;
-
-	actPtr = EsifActMgr_GetAction(actHandle.s.type, ACT_MGR_NO_UPINSTANCE);
-	if (NULL == actPtr) {
-		rc = ESIF_E_NOT_FOUND;
+	/* Get the participant from the handle */
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance((UInt8)(size_t)participantHandle);
+	if (NULL == upPtr) {
+		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
 		goto exit;
 	}
 
-	rc = EsifEventMgr_SignalEvent((UInt8)actHandle.s.upInstance, domain, eventType, dataPtr);
+	rc = EsifUp_ExecutePrimitive(upPtr, &tuple, requestPtr, responsePtr);
 exit:
-	EsifAct_PutRef(actPtr);
+	EsifUp_PutRef(upPtr);
 	return rc;
 }
 
@@ -572,7 +595,7 @@ eEsifError EsifActIface_GetType(
 		*typePtr = self->actIfaceV1.type;
 		break;
 	default:
-		rc = ESIF_E_NOT_SUPPORTED;
+		rc = ESIF_E_IFACE_NOT_SUPPORTED;
 		break;
 	}
 exit:
@@ -650,6 +673,7 @@ UInt16 EsifAct_GetVersion(EsifActPtr self) {
 	return (self != NULL) ? EsifActIface_GetVersion(&self->iface) : ESIF_ACTION_VERSION_INVALID;
 }
 
+
 static UInt16 EsifActIface_GetVersion(
 	EsifActIfacePtr self
 	)
@@ -669,6 +693,29 @@ static UInt16 EsifActIface_GetVersion(
 		break;
 	}
 	return actVersion;
+}
+
+
+Bool EsifActIface_IsSupported(
+		EsifActIfacePtr self
+	)
+{
+	Bool isSupported = ESIF_TRUE;
+
+	if (NULL == self) {
+		isSupported = ESIF_FALSE;
+		ESIF_TRACE_ERROR("Interface ptr is NULL\n");
+		goto exit;
+	}
+
+	if (self->hdr.fIfaceType != eIfaceTypeAction ||
+		self->hdr.fIfaceVersion > ESIF_ACT_FACE_VER_MAX ||
+		self->hdr.fIfaceSize != EsifActIface_Sizeof(self->hdr.fIfaceVersion)) {
+		isSupported = ESIF_FALSE;
+		ESIF_TRACE_INFO("The action interface does not meet requirements\n");
+	}
+exit:
+	return isSupported;
 }
 
 
@@ -738,6 +785,7 @@ eEsifError EsifActCallPluginGet(
 	}
 
 	rc = actGetFuncPtr(actCtx,
+		(esif_handle_t)(size_t)upPtr->fInstance,
 		upPtr->fMetadata.fDevicePath,
 		&params[0],
 		&params[1],
@@ -788,6 +836,7 @@ eEsifError EsifActCallPluginSet(
 	}
 
 	rc = actSetFuncPtr(actCtx,
+		(esif_handle_t)(size_t)upPtr->fInstance,
 		upPtr->fMetadata.fDevicePath,
 		&params[0],
 		&params[1],

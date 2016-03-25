@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -95,6 +95,52 @@ void DomainPerformanceControl_001::setPerformanceControl(UIntN participantIndex,
     }
 }
 
+void DomainPerformanceControl_001::setPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
+    PerformanceControlDynamicCaps newCapabilities)
+{
+    checkAndCreateControlStructures(domainIndex);
+    auto upperLimitIndex = newCapabilities.getCurrentUpperLimitIndex();
+    auto lowerLimitIndex = newCapabilities.getCurrentLowerLimitIndex();
+
+    auto size = m_performanceControlSet->getCount();
+    if (upperLimitIndex >= size)
+    {
+        throw dptf_exception("Upper Limit index is out of control set bounds.");
+    }
+    else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
+    {
+        lowerLimitIndex = size - 1;
+        getParticipantServices()->writeMessageWarning(
+            ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
+    }
+
+    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
+
+    getParticipantServices()->primitiveExecuteSetAsUInt32(
+        esif_primitive_type::SET_PERF_PSTATE_DEPTH_LIMIT,
+        lowerLimitIndex,
+        domainIndex);
+
+    // TODO: allow DPTF to change the MAX limit
+    getParticipantServices()->writeMessageInfo(
+        ParticipantMessage(FLF, "Currently DPTF cannot change the MAX limit."));
+}
+
+UIntN DomainPerformanceControl_001::getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex)
+{
+    return m_currentPerformanceControlIndex;
+}
+
+PerformanceControlDynamicCaps DomainPerformanceControl_001::getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex)
+{
+    return *m_performanceControlDynamicCaps;
+}
+
+void DomainPerformanceControl_001::intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex)
+{
+    checkAndCreateControlStructures(domainIndex);
+}
+
 void DomainPerformanceControl_001::clearCachedData(void)
 {
     DELETE_MEMORY_TC(m_performanceControlSet);
@@ -102,11 +148,11 @@ void DomainPerformanceControl_001::clearCachedData(void)
     DELETE_MEMORY_TC(m_performanceControlStaticCaps);
 }
 
-XmlNode* DomainPerformanceControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPerformanceControl_001::getXml(UIntN domainIndex)
 {
     checkAndCreateControlStructures(domainIndex);
 
-    XmlNode* root = XmlNode::createWrapperElement("performance_control");
+    auto root = XmlNode::createWrapperElement("performance_control");
     root->addChild(PerformanceControlStatus(m_currentPerformanceControlIndex).getXml());
     root->addChild(m_performanceControlDynamicCaps->getXml());
     root->addChild(m_performanceControlStaticCaps->getXml());
@@ -198,7 +244,7 @@ void DomainPerformanceControl_001::createPerformanceControlSetIfNeeded(UIntN dom
         DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
             esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
         m_performanceControlSet = new PerformanceControlSet(
-            BinaryParse::genericPpssObject(buffer));
+            PerformanceControlSet::createFromGenericPpss(buffer));
         if (m_performanceControlSet->getCount() == 0)
         {
             throw dptf_exception("P-state set is empty.  Impossible if we support performance controls.");

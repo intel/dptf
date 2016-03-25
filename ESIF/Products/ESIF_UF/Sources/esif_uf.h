@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,15 +21,8 @@
 
 #include "esif.h"
 
-#define ESIF_ATTR_SHELL_LOCK
-
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-// Global Shell lock to troubleshoot mixed output
-#ifdef ESIF_ATTR_SHELL_LOCK
-extern esif_ccb_mutex_t g_shellLock;
 #endif
 
 // Set to TRUE after initial ESIF Startup scripts run
@@ -37,13 +30,15 @@ extern UInt8 g_esif_started;
 
 // ESIF Log Types
 typedef enum eEsifLogType {
-	ESIF_LOG_EVENTLOG = 0,	// Overrides System Event Logger (Windows=EventLog, Linux=syslog)
-	ESIF_LOG_DEBUGGER = 1,	// Overrides System Debug Logger (Windows=OutputDebugString, Linux=syslog)
-	ESIF_LOG_SHELL    = 2,	// CMD_OUT output when shell log enabled (log/nolog)
-	ESIF_LOG_TRACE    = 3,	// ESIF_TRACE_* output when trace log enabled
-	ESIF_LOG_UI       = 4,	// UI output when ui log enabled
+	ESIF_LOG_EVENTLOG     = 0,	// Overrides System Event Logger (Windows=EventLog, Linux=syslog)
+	ESIF_LOG_DEBUGGER     = 1,	// Overrides System Debug Logger (Windows=OutputDebugString, Linux=syslog)
+	ESIF_LOG_SHELL        = 2,	// CMD_OUT output when shell log enabled (log/nolog)
+	ESIF_LOG_TRACE        = 3,	// ESIF_TRACE_* output when trace log enabled
+	ESIF_LOG_UI           = 4,	// UI output when ui log enabled
+	ESIF_LOG_PARTICIPANT  = 5,  // Participant Log
 } EsifLogType;
-#define MAX_ESIFLOG		5	// Max Log Types
+
+#define MAX_ESIFLOG		6	// Max Log Types
 
 
 // Log File API
@@ -55,6 +50,7 @@ extern int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args
 extern int EsifLogFile_WriteArgsAppend(EsifLogType type, const char *append, const char *fmt, va_list args);
 extern esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const char *filename);
 extern void EsifLogFile_DisplayList(void);
+extern esif_string EsifLogFile_GetFileNameFromType(EsifLogType logType);
 
 extern EsifLogType EsifLogType_FromString(const char *name);
 
@@ -76,8 +72,10 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 // Write to optional shell log only
 #define CMD_LOGFILE(format, ...)	EsifConsole_WriteTo(CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
 
+extern  UInt32 g_outbuf_len;				// Current (or Default) Size of ESIF Shell Output Buffer
+#define OUT_BUF_LEN			g_outbuf_len	// Alias for backwards compatibility
+#define OUT_BUF_LEN_DEFAULT	(64 * 1024)		// Default size for ESIF Shell Output Buffer
 
-#define OUT_BUF_LEN (128 * 1024)
 #define ENUM_TO_STRING_LEN 12
 
 // ESIF Path Types (** = Read/Write, all others Read-only)
@@ -193,6 +191,20 @@ exit:
 // DSP
 //
 
+/*
+ * DSP Version is the File Format version of the DSP source file and the generated EDP file. 
+ * It is not the same as the major/minor version in the H record, which is the content version:
+ *  1. Major.Minor match required between .dsp file and dsp_compiler to generate .edp
+ *  2. Major match required between .edp file and esif_uf (Major embedded in .edp)
+ * Major Version should change when .edp, .fpc, .cpc, or .dsp file format(s) change
+ * Minor Version should change when only .dsp file format changes and .edp is unaffected
+ */
+#define ESIF_DSP_VERSION	"2.0"	// DSP Version [Major=EDP Version, Minor=DSP Revision]
+#define ESIF_EDP_SIGNATURE	"@EDP"	// EDP File Signature (converted to UINT)
+#define ESIF_CPC_SIGNATURE	"@CPC"	// CPC File Signature (converted to UINT)
+
+struct edp_dir;
+Bool esif_verify_edp(struct edp_dir *edp, size_t size);
 enum esif_rc esif_send_dsp(esif_string filename, UInt8 dst);
 
 /* Init / Exit */

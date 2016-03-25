@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,9 +27,16 @@ class PerformanceControlSet final
 {
 public:
 
+    PerformanceControlSet();
     PerformanceControlSet(const std::vector<PerformanceControl>& performanceControl);
+    static PerformanceControlSet createFromGenericPpss(const DptfBuffer& buffer);
+    static PerformanceControlSet createFromProcessorPss(const DptfBuffer& buffer);
+    static PerformanceControlSet createFromProcessorTss(PerformanceControl pN, const DptfBuffer& buffer);
+    static PerformanceControlSet createFromProcessorGfxPstates(const DptfBuffer& buffer);
+
     UIntN getCount(void) const;
-    XmlNode* getXml(void);
+    void append(const PerformanceControlSet& controlSet, UIntN fromIndex);
+    std::shared_ptr<XmlNode> getXml(void);
     const PerformanceControl& operator[](UIntN index) const;
     Bool operator==(const PerformanceControlSet& rhs) const;
     Bool operator!=(const PerformanceControlSet& rhs) const;
@@ -37,4 +44,5 @@ public:
 private:
 
     std::vector<PerformanceControl> m_performanceControl;
+    static UIntN countPpssRows(UInt32 size, UInt8* data);
 };

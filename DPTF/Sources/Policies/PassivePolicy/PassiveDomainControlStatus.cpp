@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,7 @@
 using namespace std;
 using namespace StatusFormat;
 
-PassiveDomainControlStatus::PassiveDomainControlStatus(DomainProxyInterface* domain)
+PassiveDomainControlStatus::PassiveDomainControlStatus(std::shared_ptr<DomainProxyInterface> domain)
     : m_participantIndex(Constants::Invalid),
     m_domainIndex(Constants::Invalid),
     m_domainName(""),
@@ -37,9 +37,9 @@ PassiveDomainControlStatus::PassiveDomainControlStatus(DomainProxyInterface* dom
     addDisplayStatus(domain);
 }
 
-XmlNode* PassiveDomainControlStatus::getXml()
+std::shared_ptr<XmlNode> PassiveDomainControlStatus::getXml()
 {
-    XmlNode* domainControlStatus = XmlNode::createWrapperElement("domain_control_status");
+    auto domainControlStatus = XmlNode::createWrapperElement("domain_control_status");
     domainControlStatus->addChild(XmlNode::createDataElement("index", friendlyValue(m_domainIndex)));
     domainControlStatus->addChild(XmlNode::createDataElement("name", m_domainName));
     domainControlStatus->addChild(
@@ -48,7 +48,7 @@ XmlNode* PassiveDomainControlStatus::getXml()
     domainControlStatus->addChild(
         XmlNode::createDataElement("priority",
             friendlyValue(m_domainPriority.getCurrentPriority())));
-    XmlNode* controls = XmlNode::createWrapperElement("controls");
+    auto controls = XmlNode::createWrapperElement("controls");
     for (auto control = m_controlStatus.begin(); control != m_controlStatus.end(); control++)
     {
         controls->addChild(control->getXml());
@@ -57,7 +57,7 @@ XmlNode* PassiveDomainControlStatus::getXml()
     return domainControlStatus;
 }
 
-void PassiveDomainControlStatus::addPstateStatus(DomainProxyInterface* domain)
+void PassiveDomainControlStatus::addPstateStatus(std::shared_ptr<DomainProxyInterface> domain)
 {
     auto perfControl = domain->getPerformanceControl();
     if (perfControl->supportsPerformanceControls())
@@ -123,7 +123,7 @@ void PassiveDomainControlStatus::addPstateStatus(DomainProxyInterface* domain)
     }
 }
 
-void PassiveDomainControlStatus::addTstateStatus(DomainProxyInterface* domain)
+void PassiveDomainControlStatus::addTstateStatus(std::shared_ptr<DomainProxyInterface> domain)
 {
     auto perfControl = domain->getPerformanceControl();
     if (perfControl->supportsPerformanceControls())
@@ -166,7 +166,7 @@ void PassiveDomainControlStatus::addTstateStatus(DomainProxyInterface* domain)
     }
 }
 
-void PassiveDomainControlStatus::addPowerStatus(DomainProxyInterface* domain)
+void PassiveDomainControlStatus::addPowerStatus(std::shared_ptr<DomainProxyInterface> domain)
 {
     auto powerControl = domain->getPowerControl();
     if (powerControl->supportsPowerControls())
@@ -205,7 +205,7 @@ void PassiveDomainControlStatus::addPowerStatus(DomainProxyInterface* domain)
     }
 }
 
-void PassiveDomainControlStatus::addDisplayStatus(DomainProxyInterface* domain)
+void PassiveDomainControlStatus::addDisplayStatus(std::shared_ptr<DomainProxyInterface> domain)
 {
     std::shared_ptr<DisplayControlFacadeInterface> displayControl = domain->getDisplayControl();
     if (displayControl->supportsDisplayControls())
@@ -244,7 +244,7 @@ void PassiveDomainControlStatus::addDisplayStatus(DomainProxyInterface* domain)
     }
 }
 
-void PassiveDomainControlStatus::addCoreStatus(DomainProxyInterface* domain)
+void PassiveDomainControlStatus::addCoreStatus(std::shared_ptr<DomainProxyInterface> domain)
 {
     std::shared_ptr<CoreControlFacadeInterface> coreControl = domain->getCoreControl();
     if (coreControl->supportsCoreControls() && coreControl->getPreferences().isLpoEnabled())
@@ -322,7 +322,7 @@ PerformanceControlSet PassiveDomainControlStatus::filterControlSet(
     return PerformanceControlSet(filteredControls);
 }
 
-void PassiveDomainControlStatus::aquireDomainStatus(DomainProxyInterface* domain)
+void PassiveDomainControlStatus::aquireDomainStatus(std::shared_ptr<DomainProxyInterface> domain)
 {
     m_participantIndex = domain->getParticipantIndex();
     m_domainIndex = domain->getDomainIndex();

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -70,9 +70,9 @@ std::string ConfigTdpControl::getNameListString() const
     return stream.str();
 }
 
-XmlNode* ConfigTdpControl::getXml(void)
+std::shared_ptr<XmlNode> ConfigTdpControl::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("config_tdp_control");
+    auto root = XmlNode::createWrapperElement("config_tdp_control");
 
     root->addChild(XmlNode::createDataElement("control_id", StatusFormat::friendlyValue(m_controlId)));
     root->addChild(XmlNode::createDataElement("tdp_ratio", StatusFormat::friendlyValue(m_tdpRatio)));

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "CoolingPreferenceType.h"
+#include "ParticipantSpecificInfoKey.h"
 
 class ParticipantSetSpecificInfoInterface
 {
@@ -34,4 +35,7 @@ public:
 
     // _SCP
     virtual void setParticipantCoolingPolicy(UIntN participantIndex, const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) = 0;
+
+    //_ACX only
+    virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue) = 0;
 };

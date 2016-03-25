@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,13 +41,21 @@ public:
     virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, 
         UIntN performanceControlIndex) override;
-
+    virtual void setPerformanceControlDynamicCaps(
+        UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override;
+    
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
     // ConfigTdpDataSyncInterface
     virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
         ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
+
+protected:
+    virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;
+    virtual PerformanceControlDynamicCaps getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex) override;
+    virtual void intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex) override;
+
 };

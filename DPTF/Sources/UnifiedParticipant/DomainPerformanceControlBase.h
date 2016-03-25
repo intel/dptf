@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,13 +23,22 @@
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
 #include "ConfigTdpDataSyncInterface.h"
+#include "ParticipantActivityLoggingInterface.h"
 
 class DomainPerformanceControlBase : public ControlBase, public DomainPerformanceControlInterface, 
-    public ConfigTdpDataSyncInterface
+    public ConfigTdpDataSyncInterface, public ParticipantActivityLoggingInterface
 {
 public:
 
     DomainPerformanceControlBase(UIntN participantIndex, UIntN domainIndex,
         ParticipantServicesInterface* participantServicesInterface);
     virtual ~DomainPerformanceControlBase();
+
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN ParticipantIndex, UIntN domainIndex) override;
+
+protected:
+    virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) = 0;
+    virtual PerformanceControlDynamicCaps getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex) = 0;
+    virtual void intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex) = 0;
 };

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -111,18 +111,18 @@
 #endif /* ESIF_ATTR_KERNEL::ESIF_ATTR_OS_LINUX  */
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-    #include "ntddk.h"		/* The Windows DDK          */
-    #include "wdf.h"		/* Windows Driver Framework */
-    #include "INITGUID.H"	/* Init GUID                */
-    #include "wdmguid.h"	/* Windows GUIDS            */
+	#include "ntddk.h"		/* The Windows DDK          */
+	#include "wdf.h"		/* Windows Driver Framework */
+	#include "INITGUID.H"	/* Init GUID                */
+	#include "wdmguid.h"	/* Windows GUIDS            */
 
 /*
 ** Suppress Windows Warnings for warn level 4.  Need to find out if we can
 ** challenge the Windows Blue /W4 /WX with no pragramas assumption?
 */
-    #pragma warning(disable : 4204) /* Non-constant aggregate initializer */
-    #pragma warning(disable : 4221) /* Can't be initialized using address of
-				       automatic variable */
+	#pragma warning(disable : 4204) /* Non-constant aggregate initializer */
+	#pragma warning(disable : 4221) /* Can't be initialized using address of
+					   automatic variable */
 /*
  * Devices Are Defined To Be Opaque to allow for OS
  * implementation of Pointer VS Handle Etc. Windows uses a
@@ -234,12 +234,13 @@ typedef esif_string EsifString;
 #include "esif_sdk_data_misc.h"
 #include "esif_sdk_domain_type.h"
 #include "esif_sdk_event_type.h"
+#include "esif_sdk_event_map.h"
 #include "esif_sdk_iface.h"
 #include "esif_sdk_iface_app.h"
 #include "esif_sdk_iface_esif.h"
 #include "esif_sdk_participant_enum.h"
 #include "esif_sdk_primitive_type.h"
-
+#include "esif_sdk_logging_data.h"
 #include "esif_uf.h"
 
 #endif /* ESIF_ATTR_USER */

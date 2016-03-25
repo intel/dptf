@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -108,12 +108,12 @@ void DomainPlatformPowerControl_001::clearCachedData(void)
 {
 }
 
-XmlNode* DomainPlatformPowerControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("platform_power_control");
+    auto root = XmlNode::createWrapperElement("platform_power_control");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
-    XmlNode* set = XmlNode::createWrapperElement("platform_power_limit_set");
+    auto set = XmlNode::createWrapperElement("platform_power_limit_set");
     set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL1));
     set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL2));
     set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL3));
@@ -121,9 +121,9 @@ XmlNode* DomainPlatformPowerControl_001::getXml(UIntN domainIndex)
     return root;
 }
 
-XmlNode* DomainPlatformPowerControl_001::createStatusNode(PlatformPowerLimitType::Type limitType)
+std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::createStatusNode(PlatformPowerLimitType::Type limitType)
 {
-    XmlNode* pl = XmlNode::createWrapperElement("platform_power_limit");
+    auto pl = XmlNode::createWrapperElement("platform_power_limit");
     pl->addChild(XmlNode::createDataElement("type", PlatformPowerLimitType::ToString(limitType)));
     pl->addChild(XmlNode::createDataElement("enabled", createStatusStringForEnabled(limitType)));
     pl->addChild(XmlNode::createDataElement("limit_value", createStatusStringForLimitValue(limitType)));

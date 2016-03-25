@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "WIPolicyCreateAll.h"
 #include "WIPolicyDestroy.h"
 #include "EsifFileEnumerator.h"
-#include "EsifLibrary.h"
 #include "EsifServices.h"
 #include "Utility.h"
 #include "StatusFormat.h"
@@ -194,9 +193,9 @@ void PolicyManager::unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyE
     }
 }
 
-XmlNode* PolicyManager::getStatusAsXml(void)
+std::shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
 {
-    XmlNode* status = XmlNode::createWrapperElement("policy_manager");
+    auto status = XmlNode::createWrapperElement("policy_manager");
     status->addChild(getEventsInXml());
 
     auto policyCount = getPolicyListCount();
@@ -206,8 +205,8 @@ XmlNode* PolicyManager::getStatusAsXml(void)
         {
             auto policy = getPolicyPtr(index);
             std::string name = policy->getName();
-            XmlNode* policyStatus = XmlNode::createWrapperElement("policy_status");
-            XmlNode* policyName = XmlNode::createDataElement("policy_name", name);
+            auto policyStatus = XmlNode::createWrapperElement("policy_status");
+            auto policyName = XmlNode::createDataElement("policy_name", name);
             policyStatus->addChild(policyName);
             policyStatus->addChild(getEventsXmlForPolicy(index));
             status->addChild(policyStatus);
@@ -251,17 +250,17 @@ UIntN PolicyManager::getPolicyCount(void)
     return policyCount;
 }
 
-XmlNode* PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
+std::shared_ptr<XmlNode> PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
 {
-    XmlNode* status = XmlNode::createWrapperElement("event_values");
+    auto status = XmlNode::createWrapperElement("event_values");
     auto eventCount = PolicyEvent::Max;
     auto policy = getPolicyPtr(policyIndex);
     for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++)   // Skip the "Invalid" event
     {
-        XmlNode* event = XmlNode::createWrapperElement("event");
-        XmlNode* eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
+        auto event = XmlNode::createWrapperElement("event");
+        auto eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
         event->addChild(eventName);
-        XmlNode* eventStatus = XmlNode::createDataElement("event_status",
+        auto eventStatus = XmlNode::createDataElement("event_status",
             friendlyValue(policy->isEventRegistered((PolicyEvent::Type)eventIndex)));
         event->addChild(eventStatus);
         status->addChild(event);
@@ -269,14 +268,14 @@ XmlNode* PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
     return status;
 }
 
-XmlNode* PolicyManager::getEventsInXml()
+std::shared_ptr<XmlNode> PolicyManager::getEventsInXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("events");
+    auto status = XmlNode::createWrapperElement("events");
     auto eventCount = PolicyEvent::Max;
     for (auto eventIndex = 1; eventIndex < eventCount; eventIndex++)   // Skip the "Invalid" event
     {
-        XmlNode* event = XmlNode::createWrapperElement("event");
-        XmlNode* eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
+        auto event = XmlNode::createWrapperElement("event");
+        auto eventName = XmlNode::createDataElement("event_name", PolicyEvent::toString((PolicyEvent::Type)eventIndex));
         event->addChild(eventName);
         status->addChild(event);
     }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,9 +56,9 @@ AcpiInfo ParticipantProperties::getAcpiInfo(void) const
     return m_acpiInfo;
 }
 
-XmlNode* ParticipantProperties::getXml(void) const
+std::shared_ptr<XmlNode> ParticipantProperties::getXml(void) const
 {
-    XmlNode* root = XmlNode::createWrapperElement("participant_properties");
+    auto root = XmlNode::createWrapperElement("participant_properties");
 
     root->addChild(XmlNode::createDataElement("name", m_name));
     root->addChild(XmlNode::createDataElement("description", m_description));

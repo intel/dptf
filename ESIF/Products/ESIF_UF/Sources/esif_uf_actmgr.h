@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,8 +24,6 @@
 #include "esif_uf_action_iface.h"
 
 #define ACT_MGR_ITERATOR_MARKER 'AMGR'
-#define ACT_MGR_NO_UPINSTANCE 0xFF
-
 
 typedef struct ActMgrIterator_s {
 	u32 marker;
@@ -36,7 +34,6 @@ typedef struct ActMgrIterator_s {
 
 typedef struct EsifActMgrEntry_s {
 	enum esif_action_type type; /* Quick access to the type */
-	UInt8 upInstance;			/*Upper participant instance - if applicable */
 	esif_context_t actCtx; /* Action handle for the action associated with a specific participant */
 
 	Bool loadDelayed; /* Indicates that the action will not be loaded until used */
@@ -71,19 +68,18 @@ void EsifActMgrExit();
  * release the reference.
  */
 EsifActPtr EsifActMgr_GetAction(
-	enum esif_action_type type,
-	const UInt8 instance
+	enum esif_action_type type
 	);
 
 /*
- * Used to iterate through the available participants.
+ * Used to iterate through the static and currently loaded actions.
  * First call EsifActMgr_InitIterator to initialize the iterator.
  * Next, call EsifActMgr_GetNexAction using the iterator.  Repeat until
- * EsifActMgr_GetNexAction fails. The call will release the reference of the
- * participant from the previous call.  If you stop iteration part way through
- * all participants, the caller is responsible for releasing the reference on
- * the last participant returned.  Iteration is complete when
- * ESIF_E_ITERATOR_DONE is returned.
+ * EsifActMgr_GetNexAction fails. (The call will release the reference of the
+ * participant from the previous call.)  If you stop iteration part way through
+ * all actions, the caller is responsible for releasing the reference on
+ * the last action returned.  Iteration is complete when ESIF_E_ITERATOR_DONE
+ * is returned.
  */
 eEsifError EsifActMgr_InitIterator(
 	ActMgrIteratorPtr iteratorPtr
@@ -102,11 +98,7 @@ eEsifError EsifActMgr_UnregisterAction(EsifActIfacePtr actIfacePtr);
 /* For plugin library UPE actions */
 eEsifError EsifActMgr_RegisterDelayedLoadAction(enum esif_action_type type);
 
-eEsifError EsifActMgr_StartUpe(
-	EsifString upeName,
-	UInt8 upInstance
-	);
-
+eEsifError EsifActMgr_StartUpe(EsifString upeName);
 eEsifError EsifActMgr_StopUpe(EsifString upeName);
 
 #ifdef __cplusplus

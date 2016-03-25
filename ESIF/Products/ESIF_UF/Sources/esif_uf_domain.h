@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "esif_ccb.h"
 #include "esif_sdk.h"
 #include "esif_uf_fpc.h"
+#include "esif_event.h"
 
 #define ESIF_DOMAIN_MAX 10
 #define ESIF_DOMAIN_TEMP_INVALID 0xffffffff
@@ -49,6 +50,8 @@ struct _t_EsifUp;
 
 typedef struct EsifUpDomain_s {
 	UInt16 domain;						/* Domain ID */
+	UInt32 domainPriority;				
+	char domainGuid[ESIF_GUID_LEN];
 	char domainStr[3];
 	EsifDomainCapability capability_for_domain;		/* Capabilities */
 	enum esif_domain_type domainType;	/* Domain Type */
@@ -78,7 +81,12 @@ typedef struct EsifUpDomain_s {
 										 * since our current timer implementation does not support kill > restart.
 										 * This should remain set until the timer object is killed, even if polling 
 										 * is suspended.
-										*/
+										 */
+	UInt8 tempLastTempValid;			/*
+										 * Used to determine when threshold crossed events should be sent if
+										 * the device is no longer providing valid temperatures (so DPTF can
+										 * unthrottle for example if unable to read device temp)
+										 */
 	UInt64 lastPower;					/* rapl energy (prior to conversion) */
 	esif_ccb_time_t lastPowerTime;		/* time of last power sample in microseconds */
 	EsifDomainPollTypeId powerPollType;	/* Single threaded, multi threaded, or none */
@@ -107,6 +115,15 @@ eEsifError EsifUpDomain_InitDomain(
 	struct _t_EsifUp *upPtr,
 	struct esif_fpc_domain *fpcDomainPtr
 	);
+
+eEsifError EsifUpDomain_InitTempPoll(
+	EsifUpDomainPtr self
+	);
+
+eEsifError EsifUpDomain_InitPowerPoll(
+	EsifUpDomainPtr self
+	);
+
 
 eEsifError EsifUpDomain_DspReadyInit(
 	EsifUpDomainPtr self
@@ -161,6 +178,17 @@ eEsifError EsifUpDomain_SetTempHysteresis(
 	esif_temp_t tempHysteresis
 	);
 
+eEsifError EsifUpDomain_SignalOSEvent(
+	EsifUpDomainPtr self,
+	UInt32 updatedValue,
+	eEsifEventType eventType
+	);
+
+eEsifError EsifUpDomain_SignalForegroundAppChanged(
+	EsifUpDomainPtr self,
+	EsifString appName
+	);
+
 /*
 * Used to iterate through the available domains.
 * First call EsifUpDomain_InitIterator to initialize the iterator.
@@ -181,6 +209,7 @@ eEsifError EsifUpDomain_GetNextUd(
 	UpDomainIteratorPtr iteratorPtr,
 	EsifUpDomainPtr *upDomainPtr
 	);
+
 #ifdef __cplusplus
 }
 #endif

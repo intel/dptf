@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,7 @@ void WIDomainConfigTdpCapabilityChanged::execute(void)
     {
         getParticipantPtr()->domainConfigTdpCapabilityChanged();
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         WriteDomainWorkItemErrorMessage_Function("Participant::domainConfigTdpCapabilityChanged");
     }
@@ -59,7 +59,7 @@ void WIDomainConfigTdpCapabilityChanged::execute(void)
         {
             // do nothing.  No item in the policy list at this index.
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
             WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainConfigTdpCapabilityChanged", i);
         }

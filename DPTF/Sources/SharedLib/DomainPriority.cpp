@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,7 +53,7 @@ Bool DomainPriority::operator<(const DomainPriority& rhs) const
     return (this->getCurrentPriority() < rhs.getCurrentPriority());
 }
 
-XmlNode* DomainPriority::getXml(void)
+std::shared_ptr<XmlNode> DomainPriority::getXml(void)
 {
     return XmlNode::createDataElement("domain_priority", StatusFormat::friendlyValue(m_currentPriority));
 }

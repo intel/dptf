@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -93,7 +93,7 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
 
         m_dptfManagerCreateFinished = true;
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         std::stringstream message;
         message << "The DPTF application has failed to start." << std::endl;
@@ -330,6 +330,40 @@ void DptfManager::registerDptfFrameworkEvents(void)
     catch (...)
     {
     }
+    if (m_esifAppServices->getInterfaceVersion() == ESIF_INTERFACE_VERSION_2)
+    {
+        try
+        {
+            m_esifServices->registerEvent(FrameworkEvent::DptfParticipantActivityLoggingEnabled);
+        }
+        catch (...)
+        {
+        }
+
+        try
+        {
+            m_esifServices->registerEvent(FrameworkEvent::DptfParticipantActivityLoggingDisabled);
+        }
+        catch (...)
+        {
+        }
+        
+        try
+        {
+            m_esifServices->registerEvent(FrameworkEvent::DptfPolicyActivityLoggingEnabled);
+        }
+        catch (...)
+        {
+        }
+
+        try
+        {
+            m_esifServices->registerEvent(FrameworkEvent::DptfPolicyActivityLoggingDisabled);
+        }
+        catch (...)
+        {
+        }
+    }
 }
 
 void DptfManager::unregisterDptfFrameworkEvents(void)
@@ -356,6 +390,40 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
     }
     catch (...)
     {
+    }
+    if (m_esifAppServices->getInterfaceVersion() == ESIF_INTERFACE_VERSION_2)
+    {
+        try
+        {
+            m_esifServices->unregisterEvent(FrameworkEvent::DptfParticipantActivityLoggingEnabled);
+        }
+        catch (...)
+        {
+        }
+
+        try
+        {
+            m_esifServices->unregisterEvent(FrameworkEvent::DptfParticipantActivityLoggingDisabled);
+        }
+        catch (...)
+        {
+        }
+        
+        try
+        {
+            m_esifServices->unregisterEvent(FrameworkEvent::DptfPolicyActivityLoggingEnabled);
+        }
+        catch (...)
+        {
+        }
+
+        try
+        {
+            m_esifServices->unregisterEvent(FrameworkEvent::DptfPolicyActivityLoggingDisabled);
+        }
+        catch (...)
+        {
+        }
     }
 }
 

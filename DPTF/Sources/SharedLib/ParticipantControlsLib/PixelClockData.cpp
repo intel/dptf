@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,9 +55,9 @@ Bool PixelClockData::operator!=(const PixelClockData& rhs) const
     return !(*this == rhs);
 }
 
-XmlNode* PixelClockData::getXml(void) const
+std::shared_ptr<XmlNode> PixelClockData::getXml(void) const
 {
-    XmlNode* data = XmlNode::createWrapperElement("pixel_clock_data");
+    auto data = XmlNode::createWrapperElement("pixel_clock_data");
     data->addChild(XmlNode::createDataElement("panel_input_frequency", m_panelInputFrequencySpecification.toString()));
     data->addChild(XmlNode::createDataElement("ssc_enabled_nudge_frequency", m_sscEnabledNudgeFrequency.toString()));
     data->addChild(XmlNode::createDataElement("ssc_disabled_nudge_frequency", m_sscDisabledNudgeFrequency.toString()));

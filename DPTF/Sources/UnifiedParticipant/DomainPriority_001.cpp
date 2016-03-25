@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,8 +29,28 @@ DomainPriority_001::DomainPriority_001(UIntN participantIndex, UIntN domainIndex
 
 DomainPriority DomainPriority_001::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
 {
-    updateCacheIfCleared(domainIndex);
+    updateCacheIfCleared(participantIndex, domainIndex);
     return m_currentPriority;
+}
+
+void DomainPriority_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            EsifCapabilityData capability;
+            capability.type = Capability::DomainPriority;
+            capability.size = sizeof(capability);
+            capability.data.domainPriority.priority = m_currentPriority.getCurrentPriority();
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
 }
 
 void DomainPriority_001::clearCachedData(void)
@@ -39,9 +59,9 @@ void DomainPriority_001::clearCachedData(void)
     m_cacheDataCleared = true;
 }
 
-XmlNode* DomainPriority_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPriority_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("domain_priority");
+    std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("domain_priority");
 
     root->addChild(getDomainPriority(Constants::Invalid, domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
@@ -49,15 +69,15 @@ XmlNode* DomainPriority_001::getXml(UIntN domainIndex)
     return root;
 }
 
-void DomainPriority_001::updateCacheIfCleared(UIntN domainIndex)
+void DomainPriority_001::updateCacheIfCleared(UIntN participantIndex, UIntN domainIndex)
 {
     if (m_cacheDataCleared == true)
     {
-        updateCache(domainIndex);
+        updateCache(participantIndex, domainIndex);
     }
 }
 
-void DomainPriority_001::updateCache(UIntN domainIndex)
+void DomainPriority_001::updateCache(UIntN participantIndex,UIntN domainIndex)
 {
     try
     {
@@ -73,6 +93,7 @@ void DomainPriority_001::updateCache(UIntN domainIndex)
     }
 
     m_cacheDataCleared = false;
+    sendActivityLoggingDataIfEnabled(participantIndex, domainIndex);
 }
 
 std::string DomainPriority_001::getName(void)

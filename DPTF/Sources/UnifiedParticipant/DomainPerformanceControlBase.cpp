@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,10 +22,40 @@ DomainPerformanceControlBase::DomainPerformanceControlBase(UIntN participantInde
     ParticipantServicesInterface* participantServicesInterface)
     : ControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    
+
 }
 
 DomainPerformanceControlBase::~DomainPerformanceControlBase()
 {
 
+}
+
+void DomainPerformanceControlBase::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            intializeControlStructuresIfRequired(participantIndex, domainIndex);
+            UInt32 performanceControlIndex = getCurrentPerformanceControlIndex(participantIndex, domainIndex);
+
+            if (performanceControlIndex == Constants::Invalid)
+            {
+                performanceControlIndex = 0;
+            }
+            EsifCapabilityData capability;
+            capability.type = Capability::PerformanceControl;
+            capability.size = sizeof(capability);
+            capability.data.performanceControl.pStateLimit = performanceControlIndex;
+            capability.data.performanceControl.lowerLimit = getDynamicCapability(participantIndex, domainIndex).getCurrentLowerLimitIndex();
+            capability.data.performanceControl.upperLimit = getDynamicCapability(participantIndex, domainIndex).getCurrentUpperLimitIndex();
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
 }

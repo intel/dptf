@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -260,9 +260,9 @@ void DisplayControlKnob::clearAllRequests()
     m_requests.clear();
 }
 
-XmlNode* DisplayControlKnob::getXml()
+std::shared_ptr<XmlNode> DisplayControlKnob::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("display_control_knob_status");
+    auto status = XmlNode::createWrapperElement("display_control_knob_status");
     if (m_displayControl->supportsDisplayControls())
     {
         auto displayStatus = m_displayControl->getStatus();

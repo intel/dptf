@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -131,12 +131,12 @@ UIntN ImmediateWorkItemQueue::removeIfMatches(const WorkItemMatchCriteria& match
     return numRemoved;
 }
 
-XmlNode* ImmediateWorkItemQueue::getXml(void) const
+std::shared_ptr<XmlNode> ImmediateWorkItemQueue::getXml(void) const
 {
     EsifMutexHelper esifMutexHelper(&m_mutex);
     esifMutexHelper.lock();
 
-    XmlNode* immediateQueueStastics = XmlNode::createWrapperElement("immediate_queue_statistics");
+    auto immediateQueueStastics = XmlNode::createWrapperElement("immediate_queue_statistics");
     immediateQueueStastics->addChild(XmlNode::createDataElement("current_count", StlOverride::to_string(m_queue.size())));
     immediateQueueStastics->addChild(XmlNode::createDataElement("max_count", StlOverride::to_string(m_maxCount)));
 

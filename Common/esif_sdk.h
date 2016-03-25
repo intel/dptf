@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -68,6 +68,7 @@
 #define ESIF_PATH_LEN		128	/* Maximum Path Length        */
 #define ESIF_LIBPATH_LEN	128	/* Maximum Lib Path Length    */
 #define ESIF_ACPI_UID_LEN	64	/* Maximum ACPI UID Length  */
+#define ESIF_ACPI_NAME_LEN	5	/* Maximum ACPI Device Name Length */
 
 /* Opaque Types */
 typedef u32 esif_flags_t;                   /* FLAGS        */

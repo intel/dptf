@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -133,12 +133,12 @@ UIntN DeferredWorkItemQueue::removeIfMatches(const WorkItemMatchCriteria& matchC
     return numRemoved;
 }
 
-XmlNode* DeferredWorkItemQueue::getXml(void) const
+std::shared_ptr<XmlNode> DeferredWorkItemQueue::getXml(void) const
 {
     EsifMutexHelper esifMutexHelper(&m_mutex);
     esifMutexHelper.lock();
 
-    XmlNode* deferredQueueStastics = XmlNode::createWrapperElement("deferred_queue_statistics");
+    auto deferredQueueStastics = XmlNode::createWrapperElement("deferred_queue_statistics");
     deferredQueueStastics->addChild(XmlNode::createDataElement("current_count", StlOverride::to_string(m_queue.size())));
     deferredQueueStastics->addChild(XmlNode::createDataElement("max_count", StlOverride::to_string(m_maxCount)));
 
@@ -169,7 +169,7 @@ void DeferredWorkItemQueue::setTimer(void)
         DeferredWorkItem* firstWorkItem = m_queue.front();
         EsifTime firstWorkItemTime = firstWorkItem->getDeferredProcessingTime();
 
-		m_timer.startTimer(firstWorkItemTime);
+        m_timer.startTimer(firstWorkItemTime);
     }
 }
 

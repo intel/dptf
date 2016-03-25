@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,14 +59,16 @@ public:
 
     // Misc
     virtual std::string getName() const override;
-    virtual XmlNode* getXml(UIntN domainIndex) const override;
-    virtual XmlNode* getStatusAsXml(UIntN domainIndex) const override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const override;
+    virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const override;
 
     // Event handlers
     virtual void connectedStandbyEntry(void) override;
     virtual void connectedStandbyExit(void) override;
     virtual void suspend(void) override;
     virtual void resume(void) override;
+    virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityId) override;
+    virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityId) override;
     virtual void domainConfigTdpCapabilityChanged(void) override;
     virtual void domainCoreControlCapabilityChanged(void) override;
     virtual void domainDisplayControlCapabilityChanged(void) override;
@@ -83,14 +85,15 @@ public:
     virtual void domainVirtualSensorPollingTableChanged(void) override;
     virtual void domainVirtualSensorRecalcChanged(void) override;
     virtual void domainBatteryStatusChanged(void) override;
-    virtual void domainAdapterPowerChanged(void) override;
-    virtual void domainPlatformPowerConsumptionChanged(void) override;
+    virtual void domainBatteryInformationChanged(void) override;
     virtual void domainPlatformPowerSourceChanged(void) override;
     virtual void domainAdapterPowerRatingChanged(void) override;
     virtual void domainChargerTypeChanged(void) override;
     virtual void domainPlatformRestOfPowerChanged(void) override;
     virtual void domainACPeakPowerChanged(void) override;
     virtual void domainACPeakTimeWindowChanged(void) override;
+    virtual void domainMaxBatteryPowerChanged(void) override;
+    virtual void domainPlatformBatterySteadyStateChanged(void) override;
 
     // Active Controls
     virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
@@ -119,6 +122,8 @@ public:
     virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+    virtual void setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex,
+        DisplayControlDynamicCaps newCapabilities) override;
 
     // Performance Controls
     virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
@@ -131,6 +136,8 @@ public:
         UIntN participantIndex, UIntN domainIndex) override;
     virtual void setPerformanceControl(
         UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override;
+    virtual void setPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex,
+        PerformanceControlDynamicCaps newCapabilities) override;
 
     // Pixel Clock Control
     virtual void setPixelClockControl(
@@ -184,16 +191,15 @@ public:
 
     // Platform Power Status
     virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Power getAdapterPower(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Power getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex) override;
     virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) override;
     virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) override;
     virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) override;
     virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) override;
     virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Percentage getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex) override;
     virtual Power getACPeakPower(UIntN participantIndex, UIntN domainIndex) override;
     virtual TimeSpan getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) override;
 
     // Domain Priority
     virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override;
@@ -232,6 +238,8 @@ public:
         UIntN participantIndex, const Temperature& temperature) override;
     virtual void setParticipantCoolingPolicy(
         UIntN participantIndex, const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
+    virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint,
+        const Temperature& tripValue) override;
 
     // Hardware Duty Cycle
     virtual DptfBuffer getHardwareDutyCycleUtilizationSet(
@@ -287,6 +295,7 @@ private:
     Bool m_rfProfileEventsRegistered;
     Bool m_temperatureEventsRegistered;
     Bool m_powerStatusEventsRegistered;
+    Bool m_loggingEventsRegistered;
 
     void updateDomainEventRegistrations(void);
     Bool updateDomainEventRegistration(UIntN total, Bool currentlyRegistered, 
@@ -297,4 +306,7 @@ private:
     void sendConfigTdpInfoToAllDomainsAndCreateNotification(void);
     ConfigTdpControlStatus getFirstConfigTdpControlStatus(void);
     ConfigTdpControlSet getFirstConfigTdpControlSet(void);
+
+    //Activity Logging Utility functions
+    void sendActivityLoggingDataIfEnabled(UInt32 domainIndex, Capability::Type capability);
 };

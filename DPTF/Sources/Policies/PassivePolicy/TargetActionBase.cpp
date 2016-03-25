@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using namespace std;
 
 TargetActionBase::TargetActionBase(
     PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    std::shared_ptr<ParticipantTrackerInterface> participantTracker, ThermalRelationshipTable& trt,
+    std::shared_ptr<ParticipantTrackerInterface> participantTracker, std::shared_ptr<ThermalRelationshipTable> trt,
     std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
     : m_time(time), m_policyServices(policyServices), m_participantTracker(participantTracker),
     m_trt(trt), m_callbackScheduler(callbackScheduler), m_targetMonitor(targetMonitor), m_target(target)
@@ -38,7 +38,7 @@ vector<UIntN> TargetActionBase::getPackageDomains(UIntN source, const vector<UIn
     vector<UIntN> packageDomains;
     for (auto domain = domainsWithControlKnobsToTurn.begin(); domain != domainsWithControlKnobsToTurn.end(); domain++)
     {
-        DomainProxyInterface* domainProxy = getParticipantTracker()->getParticipant(source)->getDomain(*domain);
+        auto domainProxy = getParticipantTracker()->getParticipant(source)->getDomain(*domain);
         DomainType::Type domainType = domainProxy->getDomainProperties().getDomainType();
         if (domainType == DomainType::MultiFunction)
         {
@@ -78,8 +78,8 @@ std::vector<UIntN> TargetActionBase::getDomainsThatDoNotReportTemperature(UIntN 
     vector<UIntN> domainsWithNoTemperature;
     for (auto domain = domains.begin(); domain != domains.end(); domain++)
     {
-        ParticipantProxyInterface* sourceParticipant = getParticipantTracker()->getParticipant(source);
-        DomainProxyInterface* sourceDomain = sourceParticipant->getDomain(*domain);
+        auto sourceParticipant = getParticipantTracker()->getParticipant(source);
+        auto sourceDomain = sourceParticipant->getDomain(*domain);
         if (!sourceDomain->getTemperatureControl()->supportsTemperatureControls())
         {
             domainsWithNoTemperature.push_back(*domain);
@@ -192,7 +192,7 @@ std::shared_ptr<ParticipantTrackerInterface> TargetActionBase::getParticipantTra
     return m_participantTracker;
 }
 
-ThermalRelationshipTable& TargetActionBase::getTrt() const
+std::shared_ptr<ThermalRelationshipTable> TargetActionBase::getTrt() const
 {
     return m_trt;
 }

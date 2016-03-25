@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,10 +40,10 @@ public:
     virtual void setPolicyServices(PolicyServicesInterfaceContainer policyServices) override;
     virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
 
-    virtual XmlNode* getXmlForTripPointStatistics() override;
-    virtual XmlNode* getXmlForScpDscpSupport() override;
+    virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
+    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() override;
 
-    virtual DomainProxyInterface* findDomain(DomainType::Type domainType);
+    virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType);
 
 protected:
 

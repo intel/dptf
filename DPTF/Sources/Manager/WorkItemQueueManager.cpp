@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -102,7 +102,7 @@ void WorkItemQueueManager::enqueueImmediateWorkItemAndReturn(WorkItem* workItem,
         {
             m_immediateQueue->enqueue(immediateWorkItem);
         }
-        catch (std::exception ex)
+        catch (...)
         {
             DELETE_MEMORY_TC(immediateWorkItem);
             throw;
@@ -152,7 +152,7 @@ void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(WorkItem* workItem, U
             {
                 m_immediateQueue->enqueue(immediateWorkItem);
             }
-            catch (std::exception ex)
+            catch (...)
             {
                 DELETE_MEMORY_TC(immediateWorkItem);
                 throw;
@@ -183,7 +183,7 @@ void WorkItemQueueManager::enqueueDeferredWorkItem(WorkItem* workItem, const Tim
         {
             m_deferredQueue->enqueue(deferredWorkItem);
         }
-        catch (std::exception ex)
+        catch (...)
         {
             DELETE_MEMORY_TC(deferredWorkItem);
             throw;
@@ -238,15 +238,15 @@ Bool WorkItemQueueManager::isWorkItemThread()
     return isWorkItemThread;
 }
 
-XmlNode* WorkItemQueueManager::getStatusAsXml(void)
+std::shared_ptr<XmlNode> WorkItemQueueManager::getStatusAsXml(void)
 {
     EsifMutexHelper esifMutexHelper(&m_mutex);
     esifMutexHelper.lock();
 
-    XmlNode* root = XmlNode::createRoot();
+    auto root = XmlNode::createRoot();
     root->addChild(XmlNode::createComment("format_id=C5-61-4D-E9-30-80-4D-B5-98-1A-D1-D1-67-DD-4C-D7"));
 
-    XmlNode* workItemQueueManagerStatus = XmlNode::createWrapperElement("work_item_queue_manager_status");
+    auto workItemQueueManagerStatus = XmlNode::createWrapperElement("work_item_queue_manager_status");
     root->addChild(workItemQueueManagerStatus);
 
     workItemQueueManagerStatus->addChild(m_immediateQueue->getXml());

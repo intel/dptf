@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -81,9 +81,9 @@ DomainFunctionalityVersions UnifiedDomain::getDomainFunctionalityVersions(void)
     return m_domainFunctionalityVersions;
 }
 
-XmlNode* UnifiedDomain::getXml()
+std::shared_ptr<XmlNode> UnifiedDomain::getXml()
 {
-    XmlNode* domain = XmlNode::createWrapperElement("domain");
+    auto domain = XmlNode::createWrapperElement("domain");
     domain->addChild(XmlNode::createDataElement("index", StatusFormat::friendlyValue(m_domainIndex)));
     domain->addChild(XmlNode::createDataElement("name", getName()));
     domain->addChild(XmlNode::createDataElement("description", getDescription()));

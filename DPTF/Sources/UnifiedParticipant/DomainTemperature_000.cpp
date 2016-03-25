@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -62,12 +62,17 @@ void DomainTemperature_000::setVirtualTemperature(UIntN participantIndex, UIntN 
     throw not_implemented();
 }
 
+void DomainTemperature_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 void DomainTemperature_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
 }
 
-XmlNode* DomainTemperature_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainTemperature_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
 }

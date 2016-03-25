@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -107,10 +107,10 @@ Bool PowerControlDynamicCaps::operator!=(const PowerControlDynamicCaps& rhs) con
     return !(*this == rhs);
 }
 
-XmlNode* PowerControlDynamicCaps::getXml(void) const
+std::shared_ptr<XmlNode> PowerControlDynamicCaps::getXml(void) const
 {
     throwIfNotValid();
-    XmlNode* root = XmlNode::createWrapperElement("power_control_dynamic_caps");
+    auto root = XmlNode::createWrapperElement("power_control_dynamic_caps");
     root->addChild(XmlNode::createDataElement("control_type", PowerControlType::ToString(m_powerControlType)));
     root->addChild(XmlNode::createDataElement("max_power_limit", m_maxPowerLimit.toString()));
     root->addChild(XmlNode::createDataElement("min_power_limit", m_minPowerLimit.toString()));

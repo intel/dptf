@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,10 +24,10 @@
  * Linux User: Use native x86/x64 type and __sync builtin functions
  * Requires gcc 4.4 or higher
  */
-typedef long atomic_int;
+typedef long atomic_basetype;
 #define  ATOMIC_FMT "%ld"
 
-typedef volatile atomic_int atomic_t;
+typedef volatile atomic_basetype atomic_t;
 
 #if !defined(ATOMIC_LIB_DISABLE)
 #define ATOMIC_INIT(i)		(i)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,7 +45,6 @@ typedef struct DataItem_s {
 
 typedef struct EsifAct_s {
 	enum esif_action_type type; /* Quick access to the type defined by the interface */
-	UInt8 upInstace; /* Upper participant instance */
 	esif_context_t actCtx; /* Context for the action associated with a specific participant */
 
 	Bool isPlugin;
@@ -59,20 +58,6 @@ typedef struct EsifAct_s {
 	esif_ccb_event_t deleteEvent;
 	esif_ccb_lock_t objLock;
 } EsifAct, *EsifActPtr;
-
-
-#pragma pack(push, 1)
-
-typedef union ActionHandle_u{
-	struct {
-		UInt32 type:16;
-		UInt32 upInstance:8;
-		UInt32 rsvd:8;
-	}s;
-	UInt32 asDword;
-} ActionHandle, *ActionHandlePtr;
-
-#pragma pack(pop)
 
 #ifdef __cplusplus
 extern "C" {

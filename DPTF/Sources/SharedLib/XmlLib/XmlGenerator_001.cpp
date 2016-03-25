@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,25 +35,25 @@ void XmlGenerator_001::addNode(XmlNode* node)
         RapidXml::xml_node<>* root = allocateRapidXmlNode(node);
         m_doc.append_node(root);
 
-        std::vector<XmlNode*> children = node->getChildren();
+        auto children = node->getChildren();
 
         for (UIntN i = 0; i < children.size(); i++)
         {
-            RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i]);
+            RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
             root->append_node(currentChild);
-            addChildren(children[i], currentChild);
+            addChildren(children[i].get(), currentChild);
         }
     }
     else
     {
         // Add children (and children of children, etc.)
-        std::vector<XmlNode*> children = node->getChildren();
+        auto children = node->getChildren();
 
         for (UIntN i = 0; i < children.size(); i++)
         {
-            RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i]);
+            RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
             m_doc.append_node(currentChild);
-            addChildren(children[i], currentChild);
+            addChildren(children[i].get(), currentChild);
         }
     }
 }
@@ -68,14 +68,14 @@ std::string XmlGenerator_001::toString(void)
 void XmlGenerator_001::addChildren(XmlNode* node, RapidXml::xml_node<>* tempNode)
 {
     // Add children (and children of children, etc.)
-    std::vector<XmlNode*> children = node->getChildren();
+    auto children = node->getChildren();
 
     for (UIntN i = 0; i < children.size(); i++)
     {
-        RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i]);
+        RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
         tempNode->append_node(currentChild);
 
-        addChildren(children[i], currentChild);
+        addChildren(children[i].get(), currentChild);
     }
 }
 

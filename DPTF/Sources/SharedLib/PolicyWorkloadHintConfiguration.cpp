@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,7 +41,8 @@ void PolicyWorkloadHintConfiguration::add(const PolicyWorkloadGroup& workloadGro
 
 UInt32 PolicyWorkloadHintConfiguration::getHintForApplication(const std::string& application)
 {
-    auto result = m_workloadLookupTable.find(application);
+    std::string lowerCaseApplication = StringConverter::toLower(application);
+    auto result = m_workloadLookupTable.find(lowerCaseApplication);
     if (result == m_workloadLookupTable.end())
     {
         throw dptf_exception("Application not found in workload hint configuration.");
@@ -49,9 +50,9 @@ UInt32 PolicyWorkloadHintConfiguration::getHintForApplication(const std::string&
     return result->second;
 }
 
-XmlNode* PolicyWorkloadHintConfiguration::getXml() const
+std::shared_ptr<XmlNode> PolicyWorkloadHintConfiguration::getXml() const
 {
-    XmlNode* config = XmlNode::createWrapperElement("workload_hint_configuration");
+    auto config = XmlNode::createWrapperElement("workload_hint_configuration");
     for (auto group = m_workloadGroups.begin(); group != m_workloadGroups.end(); group++)
     {
         config->addChild(group->getXml());
@@ -97,7 +98,7 @@ void PolicyWorkloadHintConfiguration::generateWorkloadTable()
             }
         }
     }
-    catch (std::exception ex)
+    catch (...)
     {
         // Log failure to read workload hint
     }
@@ -122,6 +123,7 @@ std::string PolicyWorkloadHintConfiguration::readWorkloadHintConfigurationValues
     try
     {
         std::string hint = m_platformConfigData->readConfigurationString(key);
+        hint = StringConverter::toLower(hint);
         return hint;
     }
     catch (...)

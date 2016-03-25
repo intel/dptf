@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -166,7 +166,7 @@ eEsifError EsifUpPm_RegisterParticipant(
 	UInt8 *upInstancePtr
 	)
 {
-    eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_OK;
 	EsifUpPtr upPtr = NULL;
 	EsifUpManagerEntryPtr entryPtr = NULL;
 	UInt8 i = 0;
@@ -436,18 +436,16 @@ eEsifError EsifUpPm_UnregisterParticipant(
 	esif_ccb_write_lock(&g_uppMgr.fLock);
 
 	entryPtr = &g_uppMgr.fEntries[upInstance];
-	if (NULL != entryPtr) {
-		upPtr = entryPtr->fUpPtr;
-		if ((NULL != upPtr) && (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED)) {
+	upPtr = entryPtr->fUpPtr;
+	if ((NULL != upPtr) && (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED)) {
 
-			EsifUp_SuspendParticipant(upPtr);
+		EsifUp_SuspendParticipant(upPtr);
 
-			entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_REMOVED;
-			g_uppMgr.fEntryCount--;
+		entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_REMOVED;
+		g_uppMgr.fEntryCount--;
 
-		} else {
-			upPtr = NULL;
-		}
+	} else {
+		upPtr = NULL;
 	}
 
 	esif_ccb_write_unlock(&g_uppMgr.fLock);
@@ -485,24 +483,22 @@ eEsifError EsifUpPm_ResumeParticipant(
 	esif_ccb_write_lock(&g_uppMgr.fLock);
 
 	entryPtr = &g_uppMgr.fEntries[upInstance];
-	if (NULL != entryPtr) {
-		upPtr = entryPtr->fUpPtr;
-		if ((NULL != upPtr) && (entryPtr->fState < ESIF_PM_PARTICIPANT_STATE_CREATED)) {
-			entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
-			g_uppMgr.fEntryCount++;
+	upPtr = entryPtr->fUpPtr;
+	if ((NULL != upPtr) && (entryPtr->fState < ESIF_PM_PARTICIPANT_STATE_CREATED)) {
+		entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_CREATED;
+		g_uppMgr.fEntryCount++;
 
-			/*
-			 * Get reference on participant before pass it to other function
-			 * Make sure the participant is not destroyed before the function returns
-			 */
-			rc = EsifUp_GetRef(upPtr);
-			if (rc != ESIF_OK) {
-				upPtr = NULL;
-			}
-		}
-		else {
+		/*
+			* Get reference on participant before pass it to other function
+			* Make sure the participant is not destroyed before the function returns
+			*/
+		rc = EsifUp_GetRef(upPtr);
+		if (rc != ESIF_OK) {
 			upPtr = NULL;
 		}
+	}
+	else {
+		upPtr = NULL;
 	}
 	esif_ccb_write_unlock(&g_uppMgr.fLock);
 
@@ -558,6 +554,53 @@ exit:
 	return upPtr;
 }
 
+/* Check if a participant already exists by the HID */
+Bool EsifUpPm_DoesAvailableParticipantExistByHID(
+	char *participantHID
+	)
+{
+	Bool bRet = ESIF_FALSE;
+	EsifUpPtr upPtr = NULL;
+	EsifUpDataPtr metaPtr = NULL;
+	UInt8 i;
+
+	if (NULL == participantHID) {
+		ESIF_TRACE_ERROR("The participant HID pointer is NULL\n");
+		goto exit;
+	}
+
+	esif_ccb_read_lock(&g_uppMgr.fLock);
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
+
+		if (NULL == upPtr) {
+			continue;
+		}
+
+		metaPtr = EsifUp_GetMetadata(upPtr);
+		if (NULL == metaPtr) {
+			continue;
+		}
+		if ((g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) && !esif_ccb_strcmp(metaPtr->fAcpiDevice, participantHID)) {
+			bRet = ESIF_TRUE;
+			break;
+		}
+
+		EsifUp_PutRef(upPtr);
+		upPtr = NULL;
+	}
+
+	esif_ccb_read_unlock(&g_uppMgr.fLock);
+exit:
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+
+	return bRet;
+}
+
+
 
 /* Check if a participant already exists by the name */
 Bool EsifUpPm_DoesAvailableParticipantExistByName (
@@ -582,7 +625,7 @@ Bool EsifUpPm_DoesAvailableParticipantExistByName (
 			continue;
 		}
 
-		if ((g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) && !strcmp(EsifUp_GetName(upPtr), participantName)) {
+		if ((g_uppMgr.fEntries[i].fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) && !esif_ccb_strcmp(EsifUp_GetName(upPtr), participantName)) {
 			bRet = ESIF_TRUE;
 			break;
 		}
@@ -596,7 +639,7 @@ exit:
 	if (upPtr != NULL) {
 		EsifUp_PutRef(upPtr);
 	}
-
+	
 	return bRet;
 }
 
@@ -622,7 +665,7 @@ EsifUpPtr EsifUpPm_GetAvailableParticipantByName (
 			continue;
 		}
 
-		if (!strcmp(participantName, EsifUp_GetName(upPtr))) {
+		if (!esif_ccb_stricmp(participantName, EsifUp_GetName(upPtr))) {
 			break;
 		}
 
@@ -767,7 +810,7 @@ eEsifError EsifUpPm_GetNextUp(
 
 	/* Verify the iterator is initialized */
 	if ((iteratorPtr->marker != UF_PM_ITERATOR_MARKER) ||
-	    (iteratorPtr->handle >= MAX_PARTICIPANT_ENTRY)) {
+		(iteratorPtr->handle >= MAX_PARTICIPANT_ENTRY)) {
 		ESIF_TRACE_WARN("Iterator invalid\n");
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;

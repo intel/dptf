@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,12 @@
 #define ACTION_UPE_GET_INTERFACE_FUNCTION "GetActionInterface"
 
 /*
+ * Handle used to represent IETM (Participant 0)
+ * Note:  All other participants require the handle provided during calls to the interface
+ */
+#define ACTION_UPE_IETM_HANDLE NULL
+
+/*
  * Value used to represent Domain 0 (only domain used in current version of the interface.)
  */
 #define ACTION_UPE_DOMAIN_D0 '0D'
@@ -62,22 +68,11 @@ typedef union EsifActIface_u  *EsifActIfacePtr;
 /*
  * Creates the action.  Called after the interface has been retrieved and allows
  * the action to receive interface functions from ESIF and return an
- * instance-specific context.  The function also receives an instance-specific
- * handle from ESIF, which should be used in any interface calls back to ESIF
- * for a given instance.  (For the initial interface version, only a single
- * instance is associated.)
+ * instance-specific context.
  */
 typedef eEsifError (ESIF_CALLCONV *ActCreateFunction)(
 	/* For UPE's, this can be cast to a EsifUpeIfacePtr */
 	const EsifActIfacePtr actIfacePtr,
-
-	/* Not used in this version */
-	const EsifDataPtr uidPtr,
-	/*
-	 * To be passed back in calls to ESIF for the specific instance associated with
-	 * the given participant UID
-	 */
-	const esif_handle_t esifInstHandle, 
 	/*
 	 * To be returned by the action during this function and will be passed back
 	 * in calls to the action for the specific instance associated with the
@@ -98,6 +93,7 @@ typedef eEsifError (ESIF_CALLCONV *ActDestroyFunction)(esif_context_t actCtx);
  */
 typedef eEsifError (ESIF_CALLCONV *ActExecuteGetFunction)(
 	esif_context_t actCtx, 
+	const esif_handle_t participantHandle, 
 	const esif_string devicePathPtr, 
 	const EsifDataPtr p1Ptr, 
 	const EsifDataPtr p2Ptr,
@@ -114,6 +110,7 @@ typedef eEsifError (ESIF_CALLCONV *ActExecuteGetFunction)(
  */
 typedef eEsifError (ESIF_CALLCONV *ActExecuteSetFunction)(
 	esif_context_t actCtx, 
+	const esif_handle_t participantHandle, 
 	const esif_string devicePathPtr, 
 	const EsifDataPtr p1Ptr, 
 	const EsifDataPtr p2Ptr,
@@ -130,21 +127,27 @@ typedef eEsifError (ESIF_CALLCONV *ActExecuteSetFunction)(
  * entry event may not be received until after reseume from S3.)
  */
 typedef eEsifError (ESIF_CALLCONV *ActReceiveEventFunction)(
-	esif_context_t actCtx,			/* Context provided by the UPE during action creation */
-	enum esif_event_type type,		/* Event type */
-	UInt16 domain, 					/* Ignored in initial implementation */
-	const EsifDataPtr dataPtr	/* Event data if required (may be NULL) */
+	esif_context_t actCtx,					/* Context provided by the UPE during action creation */
+	const esif_handle_t participantHandle,	/* Pass back in calls to ESIF for the participant instance */
+	enum esif_event_type eventType,			/* Event type */	
+	UInt16 domain, 							/* Ignored in initial implementation */
+	const EsifDataPtr dataPtr				/* Event data if required (may be NULL) */
 	);
 
 /*
  * Used to send events to ESIF - The function pointer is provided during the
  * call to create the action.
- */
+ * Note:  When executing in the context of a GET/SET call to the action, the participant handle
+ * is normally the same as that passed to those interface functions.  If the action executes
+ * primitives outside the context of such a function, it is the responsibility of the action to
+ * maintain a binding between the devices it controls and the partcipant handles for such calls.
+ * Such a binding may be initiated during the first call to access a given participant.
+*/
 typedef eEsifError (ESIF_CALLCONV *ActSendEventFunction)(/*  */
-	const esif_handle_t esifInstHandle,
-	enum esif_event_type eventType,	/* Event type */
-	UInt16 domain,					/* Must Be '0D' */
-	const EsifDataPtr dataPtr	/* Event data if required (dependent on event type) */
+	const esif_handle_t participantHandle,	/* Pass back in calls to ESIF for the participant instance */
+	enum esif_event_type eventType,			/* Event type */
+	UInt16 domain,							/* Must Be '0D' */
+	const EsifDataPtr dataPtr				/* Event data if required (dependent on event type) */
 	);
 
 /*
@@ -157,6 +160,24 @@ typedef eEsifError(ESIF_CALLCONV *ActWriteLogFunction)(
 	const EsifDataPtr message,	/* Message For Log */
 	const eLogType logType		/* Log Type e.g. crticial, debug, info,e tc */
 );
+
+/*
+ * Used to execute primitives through ESIF.
+ * Note:  When executing in the context of a GET/SET call to the action, the participant handle
+ * is normally the same as that passed to those interface functions.  If the action executes
+ * primitives outside the context of such a function, it is the responsibility of the action to
+ * maintain a binding between the devices it controls and the partcipant handles for such calls.
+ * Such a binding may be initiated during the first call to access a given participant.
+ */
+typedef eEsifError(ESIF_CALLCONV *ActExecutePrimitiveFunction)(
+	const esif_handle_t participantHandle,	/* Pass back in calls to ESIF for the participant instance */
+	const UInt16 primitiveId,
+	const UInt16 domain,					/* Must Be '0D' */
+	const UInt8 instance,					/* Primitive instance */
+	const EsifDataPtr requestPtr,			/* Input data to the primitive */
+	EsifDataPtr responsePtr					/* Output data returned by primitivie execution */
+);
+
 
 #pragma pack(push,1)
 
@@ -183,14 +204,20 @@ typedef struct EsifActIfaceUpeV1_s {
 	 * Below this point are value provided by ESIF when the creation function is
 	 * called - Not available at the time the interface is retrieved
 	 */
-	ActSendEventFunction sendEventFuncPtr; /* Filled in by ESIF */
+	ActSendEventFunction sendEventFuncPtr;	/* Filled in by ESIF */
 
 	/*
 	 * traceLevel - Initial value only (The trace level will be updated through
 	 * ESIF_EVENT_LOG_VERBOSITY_CHANGED messages)
 	 */
-	eLogType traceLevel;
-	ActWriteLogFunction writeLogFuncPtr;
+	eLogType traceLevel;					/* Filled in by ESIF */
+	ActWriteLogFunction writeLogFuncPtr;	/* Filled in by ESIF */
+
+	/*
+	 * Use to execute primitives using ESIF
+	 */
+	ActExecutePrimitiveFunction	execPrimitiveFuncPtr;	/* Filled in by ESIF */
+
 } EsifActIfaceUpeV1, *EsifActIfaceUpeV1Ptr;
 
 

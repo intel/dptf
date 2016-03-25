@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -100,7 +100,6 @@ void EsifEvent_GetAndSignalIpcEvent()
 void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 {
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
-	UNREFERENCED_PARAMETER(domainStr);
 #else
 	eEsifError rc = ESIF_OK;
 	EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
@@ -185,6 +184,11 @@ void *esif_event_worker_thread(void *ptr)
 	fd_set rfds = {0};
 	struct timeval tv = {0};
 
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	UNREFERENCED_PARAMETER(rc);
+	UNREFERENCED_PARAMETER(rfds);
+	UNREFERENCED_PARAMETER(tv);
+#endif
 	UNREFERENCED_PARAMETER(ptr);
 	ESIF_TRACE_ENTRY_INFO();
 	CMD_OUT("Start ESIF Event Thread\n");

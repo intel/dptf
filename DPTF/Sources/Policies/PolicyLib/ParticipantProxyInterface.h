@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,13 +36,14 @@ public:
     virtual ~ParticipantProxyInterface() {};
 
     // domain access
-    virtual DomainProxyInterface* bindDomain(UIntN domainIndex) = 0;
+    virtual void bindDomain(std::shared_ptr<DomainProxyInterface> domain) = 0;
     virtual void unbindDomain(UIntN domainIndex) = 0;
-    virtual DomainProxyInterface* getDomain(UIntN domainIndex) = 0;
+    virtual std::shared_ptr<DomainProxyInterface> getDomain(UIntN domainIndex) = 0;
     virtual std::vector<UIntN> getDomainIndexes() = 0;
 
     // properties
     virtual UIntN getIndex() const = 0;
+    virtual void refreshDomainProperties() = 0;
     virtual const DomainPropertiesSet& getDomainPropertiesSet() = 0;
     virtual const ParticipantProperties& getParticipantProperties() = 0;
 
@@ -69,12 +70,11 @@ public:
     virtual ActiveTripPointsCachedProperty& getActiveTripPointProperty() = 0;
     virtual PassiveTripPointsCachedProperty& getPassiveTripPointProperty() = 0;
 
-    virtual XmlNode* getXmlForCriticalTripPoints() = 0;
-    virtual XmlNode* getXmlForActiveTripPoints() = 0;
-    virtual XmlNode* getXmlForPassiveTripPoints() = 0;
-    virtual XmlNode* getXmlForScpDscpSupport() = 0;
-    virtual XmlNode* getXmlForPassiveControlKnobs() = 0;
-    virtual XmlNode* getXmlForConfigTdpLevel() = 0;
+    virtual std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() = 0;
+    virtual std::shared_ptr<XmlNode> getXmlForActiveTripPoints() = 0;
+    virtual std::shared_ptr<XmlNode> getXmlForPassiveTripPoints() = 0;
+    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() = 0;
+    virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() = 0;
 
 
 };

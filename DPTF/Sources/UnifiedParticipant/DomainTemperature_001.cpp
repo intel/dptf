@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,10 +33,15 @@ TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantI
             esif_primitive_type::GET_TEMPERATURE, domainIndex);
         return TemperatureStatus(temperature);
     }
-    catch (...)
+    catch (primitive_destination_unavailable)
     {
-        getParticipantServices()->writeMessageError(
-            ParticipantMessage(FLF, "Request for current temperature reading failed."));
+        return TemperatureStatus(Temperature(0));
+    }
+    catch (dptf_exception& ex)
+    {
+        getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
+
+        // TODO: Let the policies handle the exceptions themselves and don't return a value.
         return TemperatureStatus(Temperature(0));
     }
 }
@@ -136,9 +141,34 @@ Temperature DomainTemperature_001::getHysteresis(UIntN domainIndex)
     }
 }
 
-XmlNode* DomainTemperature_001::getXml(UIntN domainIndex)
+void DomainTemperature_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("temperature_control");
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            TemperatureThresholds tempthreshold = getTemperatureThresholds(participantIndex, domainIndex);
+
+            EsifCapabilityData capability;
+            capability.type = Capability::TemperatureThreshold;
+            capability.size = sizeof(capability);
+            capability.data.temperatureControl.aux0 = tempthreshold.getAux0();
+            capability.data.temperatureControl.aux1 = tempthreshold.getAux1();
+            capability.data.temperatureControl.hysteresis = tempthreshold.getHysteresis();
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
+}
+
+std::shared_ptr<XmlNode> DomainTemperature_001::getXml(UIntN domainIndex)
+{
+    auto root = XmlNode::createWrapperElement("temperature_control");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     root->addChild(getTemperatureStatus(Constants::Invalid, domainIndex).getXml());

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,7 +57,7 @@ Bool PassiveTripPointsCachedProperty::supportsProperty(void)
     return passiveTripPoints.hasItem(ParticipantSpecificInfoKey::PSV);
 }
 
-XmlNode* PassiveTripPointsCachedProperty::getXml()
+std::shared_ptr<XmlNode> PassiveTripPointsCachedProperty::getXml()
 {
     return getTripPoints().getXml();
 }

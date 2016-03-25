@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,6 +29,8 @@
 #include "win\banned.h"
 #endif
 
+extern Bool g_ws_restricted;
+#define MAX_ORIGIN	MAX_PATH
 
 /*
  *******************************************************************************
@@ -92,7 +94,6 @@ FrameType esif_ws_socket_get_initial_frame_type(
 	char version[2]={0};
 	char *connection_field = NULL;
 	char *web_socket_field = NULL;
-	static const char uri_scheme[] = "http://";
 	eEsifError rc = ESIF_OK;
 
 	#define MAX_SIZE 1000
@@ -125,12 +126,16 @@ FrameType esif_ws_socket_get_initial_frame_type(
 		protPtr->webpage = NULL;
 	}
 
-	protPtr->webpage = (char*)esif_ccb_malloc(end_resource - beg_resource + 1);
+	size_t buf_len = end_resource - beg_resource + 1;
+	protPtr->webpage = (char*)esif_ccb_malloc(buf_len);
 	if (NULL == protPtr->webpage) {
 		return ERROR_FRAME;
 	}
 
-	if (esif_ccb_sscanf(beg_input_frame, ("GET %s HTTP/1.1\r\n"), SCANFBUF(protPtr->webpage, (UInt32)(end_resource - beg_resource + 1)) ) != 1) {
+	// Use dynamic format width specifier to avoid scanf buffer overflow
+	char request_fmt[MAX_PATH] = { 0 };
+	esif_ccb_sprintf(sizeof(request_fmt), request_fmt, "GET %%%ds HTTP/1.1\r\n", (int)buf_len - 1);
+	if (esif_ccb_sscanf(beg_input_frame, request_fmt, SCANFBUF(protPtr->webpage, (UInt32)(buf_len))) != 1) {
 		return ERROR_FRAME;
 	}
 
@@ -209,19 +214,54 @@ FrameType esif_ws_socket_get_initial_frame_type(
 		}
 	}	/* End of while loop */
 
-	/* Verify WebSocket Origin (No current HTTPS support) */
-	if (protPtr->hostField && protPtr->originField && (esif_ccb_strncmp(protPtr->originField, uri_scheme, sizeof(uri_scheme)-1) == 0)) {
-		char *origin = protPtr->originField + esif_ccb_strlen(uri_scheme, sizeof(uri_scheme));
-		if (esif_ccb_stricmp(protPtr->hostField, origin) != 0) {
+	/* Verify WebSocket Origin:
+	 * 1. Host: and Origin: must be an exact match (minus http prefix) unless Non-Restricted mode and Origin: in whitelist
+	 * 2. Host: and Origin: must be "127.0.0.1:port" or "localhost:port" for Restricted Mode
+	 */
+	if (rc == ESIF_OK && protPtr->hostField && protPtr->originField) {
+		char *origin_whitelist[] = { "null", "file://", NULL }; // Origin: values sent by browsers when loading html via file instead of url
+		char *origin_prefixes[] = { "http://", NULL }; // Origin: prefixes allowed for Restrcited and Non-Restricted modes
+		char *origin = protPtr->originField;
+		Bool origin_valid = ESIF_FALSE;
+		Bool prefix_valid = ESIF_FALSE;
+		int  item = 0;
+
+		// Origin: exact matches in Whitelist allowed in Non-Restricted mode only
+		for (item = 0; !g_ws_restricted && !origin_valid && origin_whitelist[item] != NULL; item++) {
+			if (esif_ccb_stricmp(origin, origin_whitelist[item]) == 0) {
+				origin_valid = ESIF_TRUE;
+			}
+		}
+
+		// Origin: prefixes in Prefix List allowed in Restricted and Non-Restricted modes
+		for (item = 0; !origin_valid && !prefix_valid && origin_prefixes[item] != NULL; item++) {
+			size_t item_len = esif_ccb_strlen(origin_prefixes[item], MAX_ORIGIN);
+			if (esif_ccb_strncmp(origin, origin_prefixes[item], item_len) == 0) {
+				origin += item_len;
+				prefix_valid = ESIF_TRUE;
+			}
+		}
+
+		// Origin: and Host: must be exact match in Restricted mode or if Origin has a valid prefix
+		// Only "127.0.0.1:port" or "localhost:port" are valid Origins in Restricted mode
+		if (!origin_valid && prefix_valid && esif_ccb_stricmp(protPtr->hostField, origin) == 0) {
+			if ((!g_ws_restricted) ||
+				((esif_ccb_strlen(origin, MAX_ORIGIN) >= 9) &&
+				 (esif_ccb_strnicmp(origin, "127.0.0.1", 9) == 0 || esif_ccb_strnicmp(origin, "localhost", 9) == 0) &&
+				 (origin[9] == ':'))) {
+				origin_valid = ESIF_TRUE;
+			}
+		}
+		if (!origin_valid) {
 			rc = ESIF_E_NOT_SUPPORTED;
 		}
 	}
 
 	if (rc != ESIF_OK || !protPtr->hostField) {
 		protPtr->frameType = ERROR_FRAME;
-	} else if (protPtr->hostField && !protPtr->keyField) {
+	} else if (!protPtr->keyField) {
 		protPtr->frameType = HTTP_FRAME;
-	} else if (protPtr->keyField || !is_upgraded || has_subprotocol || memcmp(version, VERSION_FIELD, esif_ccb_strlen(VERSION_FIELD, 3)) == 0) {
+	} else if (!is_upgraded || has_subprotocol || memcmp(version, VERSION_FIELD, esif_ccb_strlen(VERSION_FIELD, 3)) == 0) {
 		protPtr->frameType = OPENING_FRAME;
 	}
 
@@ -244,7 +284,7 @@ eEsifError esif_ws_socket_build_protocol_change_response(
 	UInt32 length = (UInt32)esif_ccb_strlen(protPtr->keyField, WS_PROT_KEY_SIZE_MAX) + (UInt32)esif_ccb_strlen(KEY, WS_PROT_KEY_SIZE_MAX);
 	response_key = (char*)esif_ccb_malloc(length + 1);
 
-	if ( NULL == response_key) {
+	if (NULL == response_key) {
 		return ESIF_E_NO_MEMORY;
 	}
 
@@ -264,11 +304,7 @@ eEsifError esif_ws_socket_build_protocol_change_response(
 
 	*outgoingFrameSizePtr = num_bytes;
 
-	if (response_key) {
-		esif_ccb_free(response_key);
-		response_key = NULL;
-	}
-
+	esif_ccb_free(response_key);
 	return rc;
 }
 
@@ -426,6 +462,11 @@ static char *esif_ws_socket_get_field_value(const char *source)
 
 	esif_ccb_memcpy(destination, source, adjusted_length);
 	destination[adjusted_length] = 0;
+
+	/* trim trailing blanks */
+	while (adjusted_length > 0 && destination[adjusted_length - 1] == ' ') {
+		destination[--adjusted_length] = 0;
+	}
 
 	return destination;
 }

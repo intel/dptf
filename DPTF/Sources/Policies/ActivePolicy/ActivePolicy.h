@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "PolicyBase.h"
 #include "ParticipantTracker.h"
+#include "ActiveRelationshipTable.h"
 
 class dptf_export ActivePolicy final : public PolicyBase
 {
@@ -37,9 +38,9 @@ public:
     virtual void onConnectedStandbyEntry() override;
     virtual void onConnectedStandbyExit() override;
 
-    virtual bool autoNotifyPlatformOscOnCreateDestroy() const override;
-    virtual bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
-    virtual bool autoNotifyPlatformOscOnEnableDisable() const override;
+    virtual Bool autoNotifyPlatformOscOnCreateDestroy() const override;
+    virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
+    virtual Bool autoNotifyPlatformOscOnEnableDisable() const override;
 
     virtual Guid getGuid(void) const override;
     virtual std::string getName(void) const override;
@@ -56,7 +57,7 @@ public:
 
 private:
 
-    mutable ActiveRelationshipTable m_art;
+    std::shared_ptr<ActiveRelationshipTable> m_art;
 
     // cooling targets
     void coolTargetParticipant(ParticipantProxyInterface* participant);
@@ -87,7 +88,7 @@ private:
     Bool participantIsTargetDevice(UIntN participantIndex);
 
     // status
-    XmlNode* getXmlForActiveTripPoints() const;
-    XmlNode* getXmlForActiveCoolingControls() const;
+    std::shared_ptr<XmlNode> getXmlForActiveTripPoints() const;
+    std::shared_ptr<XmlNode> getXmlForActiveCoolingControls() const;
 
 };

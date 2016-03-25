@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,9 +45,9 @@ void DomainUtilization_001::clearCachedData(void)
     // Do nothing.  We don't cache domain utilization related data.
 }
 
-XmlNode* DomainUtilization_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainUtilization_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = getUtilizationStatus(Constants::Invalid, domainIndex).getXml("utilization");
+    auto root = getUtilizationStatus(Constants::Invalid, domainIndex).getXml("utilization");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
     return root;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,9 +40,9 @@ Bool CoreControlStatus::operator!=(const CoreControlStatus& rhs) const
     return !(*this == rhs);
 }
 
-XmlNode* CoreControlStatus::getXml(void)
+std::shared_ptr<XmlNode> CoreControlStatus::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("core_control_status");
+    auto root = XmlNode::createWrapperElement("core_control_status");
 
     root->addChild(XmlNode::createDataElement("active_logical_processors", StatusFormat::friendlyValue(m_numActiveLogicalProcessors)));
 

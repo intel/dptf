@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,19 +29,25 @@ Temperature::Temperature(void)
 Temperature::Temperature(UInt32 temperatureInCelsius)
     : m_valid(true), m_temperature(temperatureInCelsius)
 {
-    if (temperatureInCelsius > maxValidTemperature)
+    if (temperatureInCelsius > maxValidTemperature && temperatureInCelsius != Constants::MaxUInt32)
     {
-        throw dptf_exception("Temperature out of valid range");
+        throw temperature_out_of_range("Temperature out of valid range");
     }
 }
 
 Temperature Temperature::createTemperatureFromTenthKelvin(UInt32 temperatureInTenthKelvin)
 {
-    UInt32 temperatureInCelsius = UInt32(round(((double)temperatureInTenthKelvin / 10.0) - celsiusToKelvinDifference));
+    auto temperatureInKelvin = (double)temperatureInTenthKelvin / 10.0;
+    if (temperatureInKelvin < celsiusToKelvinDifference)
+    {
+        throw temperature_out_of_range("Temperature is in the negative range");
+    }
+
+    UInt32 temperatureInCelsius = UInt32(round(temperatureInKelvin - celsiusToKelvinDifference));
 
     if (temperatureInCelsius > maxValidTemperature)
     {
-        throw dptf_exception("Temperature out of valid range");
+        throw temperature_out_of_range("Temperature out of valid range");
     }
 
     return Temperature(temperatureInCelsius);

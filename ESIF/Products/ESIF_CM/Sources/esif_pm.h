@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -71,7 +71,6 @@
 #define ESIF_INSTANCE_FIRST     1	/* The First Useable Instance        */
 #define ESIF_INSTANCE_UF        254	/* Reserved For ESIF Upper Framework */
 #define ESIF_INSTANCE_BROADCAST 255	/* Send To All ESIF Instances        */
-#define ESIF_INSTANCE_INVALID	255
 
 
 /* Participant Manager State Machine States */
@@ -221,6 +220,7 @@ extern "C" {
 EsifUpPtr EsifUpPm_GetAvailableParticipantByInstance(const UInt8 upInstance);
 
 Bool EsifUpPm_DoesAvailableParticipantExistByName(char *participantName);
+Bool EsifUpPm_DoesAvailableParticipantExistByHID(char *participantHID);
 
 /* The caller should call EsifUp_PutRef to release reference on participant when done with it */
 EsifUpPtr EsifUpPm_GetAvailableParticipantByName(char *participantName);

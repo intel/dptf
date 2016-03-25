@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -168,18 +168,18 @@ void PlatformPowerControlFacade::setPl3DutyCycle(const Percentage& dutyCycle)
     m_pl3DutyCycle.set(dutyCycle);
 }
 
-XmlNode* PlatformPowerControlFacade::getXml() const
+std::shared_ptr<XmlNode> PlatformPowerControlFacade::getXml() const
 {
-    XmlNode* control = XmlNode::createWrapperElement("platform_power_control");
+    auto control = XmlNode::createWrapperElement("platform_power_control");
     control->addChild(createPl1XmlData());
     control->addChild(createPl2XmlData());
     control->addChild(createPl3XmlData());
     return control;
 }
 
-XmlNode* PlatformPowerControlFacade::createPl1XmlData() const
+std::shared_ptr<XmlNode> PlatformPowerControlFacade::createPl1XmlData() const
 {
-    XmlNode* pl1 = XmlNode::createWrapperElement("power_limit_1");
+    auto pl1 = XmlNode::createWrapperElement("power_limit_1");
     if (m_pl1PowerLimitEnabled.isValid())
     {
         pl1->addChild(XmlNode::createDataElement("enabled", friendlyValue(m_pl1PowerLimitEnabled.get())));
@@ -210,9 +210,9 @@ XmlNode* PlatformPowerControlFacade::createPl1XmlData() const
     return pl1;
 }
 
-XmlNode* PlatformPowerControlFacade::createPl2XmlData() const
+std::shared_ptr<XmlNode> PlatformPowerControlFacade::createPl2XmlData() const
 {
-    XmlNode* pl2 = XmlNode::createWrapperElement("power_limit_2");
+    auto pl2 = XmlNode::createWrapperElement("power_limit_2");
     if (m_pl2PowerLimitEnabled.isValid())
     {
         pl2->addChild(XmlNode::createDataElement("enabled", friendlyValue(m_pl2PowerLimitEnabled.get())));
@@ -236,9 +236,9 @@ XmlNode* PlatformPowerControlFacade::createPl2XmlData() const
     return pl2;
 }
 
-XmlNode* PlatformPowerControlFacade::createPl3XmlData() const
+std::shared_ptr<XmlNode> PlatformPowerControlFacade::createPl3XmlData() const
 {
-    XmlNode* pl3 = XmlNode::createWrapperElement("power_limit_3");
+    auto pl3 = XmlNode::createWrapperElement("power_limit_3");
     if (m_pl3PowerLimitEnabled.isValid())
     {
         pl3->addChild(XmlNode::createDataElement("enabled", friendlyValue(m_pl3PowerLimitEnabled.get())));

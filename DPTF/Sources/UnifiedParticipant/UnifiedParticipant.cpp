@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,6 +59,7 @@ void UnifiedParticipant::initialize(void)
     m_rfProfileEventsRegistered = false;
     m_temperatureEventsRegistered = false;
     m_powerStatusEventsRegistered = false;
+    m_loggingEventsRegistered = false;
 }
 
 UnifiedParticipant::~UnifiedParticipant(void)
@@ -240,7 +241,8 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
     UIntN powerControlTotal = 0;
     UIntN rfProfileTotal = 0;
     UIntN temperatureControlTotal = 0;
-    UIntN powerStatusControlTotal = 0;
+    UIntN platformPowerStatusControlTotal = 0;
+    UIntN loggingTotal = 0;
 
     for (UIntN i = 0; i < m_domains.size(); i++)
     {
@@ -260,7 +262,16 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
             rfProfileTotal += versions.rfProfileStatusVersion;
             temperatureControlTotal += versions.temperatureVersion;
             temperatureControlTotal += versions.temperatureThresholdVersion;
-            powerStatusControlTotal += versions.powerStatusVersion;
+            platformPowerStatusControlTotal += versions.platformPowerStatusVersion;
+            if ((configTdpTotal != 0) ||
+                (coreControlTotal != 0) ||
+                (displayControlTotal != 0) ||
+                (domainPriorityTotal != 0) ||
+                (performanceControlTotal != 0) ||
+                (temperatureControlTotal != 0))
+            {
+                loggingTotal = 1;
+            }
         }
     }
 
@@ -310,18 +321,25 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
     m_temperatureEventsRegistered = updateDomainEventRegistration(temperatureControlTotal, 
         m_temperatureEventsRegistered, temperatureEvents);
 
-    std::set<ParticipantEvent::Type> powerStatusEvents;
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainBatteryStatusChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainAdapterPowerChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformPowerConsumptionChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformPowerSourceChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainAdapterPowerRatingChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainChargerTypeChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformRestOfPowerChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainACPeakPowerChanged);
-    powerStatusEvents.insert(ParticipantEvent::Type::DomainACPeakTimeWindowChanged);
-    m_powerStatusEventsRegistered = updateDomainEventRegistration(powerStatusControlTotal,
-        m_powerStatusEventsRegistered, powerStatusEvents);
+    std::set<ParticipantEvent::Type> platformPowerStatusEvents;
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainBatteryStatusChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainBatteryInformationChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformPowerSourceChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainAdapterPowerRatingChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainChargerTypeChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformRestOfPowerChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainACPeakPowerChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainACPeakTimeWindowChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainMaxBatteryPowerChanged);
+    platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformBatterySteadyStateChanged);
+    m_powerStatusEventsRegistered = updateDomainEventRegistration(platformPowerStatusControlTotal,
+        m_powerStatusEventsRegistered, platformPowerStatusEvents);
+   
+    std::set<ParticipantEvent::Type> loggingEvents;
+    loggingEvents.insert(ParticipantEvent::Type::DptfParticipantActivityLoggingEnabled);
+    loggingEvents.insert(ParticipantEvent::Type::DptfParticipantActivityLoggingDisabled);
+    m_loggingEventsRegistered = updateDomainEventRegistration(loggingTotal,
+        m_loggingEventsRegistered, loggingEvents);
 }
 
 Bool UnifiedParticipant::updateDomainEventRegistration(UIntN total, Bool currentlyRegistered,
@@ -384,9 +402,9 @@ std::string UnifiedParticipant::getName() const
     return m_name;
 }
 
-XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
+std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 {
-    XmlNode* participantRoot = XmlNode::createWrapperElement("participant");
+    auto participantRoot = XmlNode::createWrapperElement("participant");
 
     participantRoot->addChild(XmlNode::createDataElement("index", StatusFormat::friendlyValue(m_participantIndex)));
 
@@ -411,7 +429,7 @@ XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
         }
     }
 
-    XmlNode* domainsRoot = XmlNode::createWrapperElement("domains");
+    auto domainsRoot = XmlNode::createWrapperElement("domains");
     participantRoot->addChild(domainsRoot);
 
     // Return all the domains if Constants::Invalid was passed
@@ -437,11 +455,11 @@ XmlNode* UnifiedParticipant::getXml(UIntN domainIndex) const
     return participantRoot;
 }
 
-XmlNode* UnifiedParticipant::getStatusAsXml(UIntN domainIndex) const
+std::shared_ptr<XmlNode> UnifiedParticipant::getStatusAsXml(UIntN domainIndex) const
 {
-    XmlNode* participantRoot = XmlNode::createRoot();
+    auto participantRoot = XmlNode::createRoot();
 
-    XmlNode* formatId = XmlNode::createComment("format_id=" + FormatId.toString());
+    auto formatId = XmlNode::createComment("format_id=" + FormatId.toString());
 
     participantRoot->addChild(formatId);
 
@@ -474,6 +492,414 @@ void UnifiedParticipant::suspend(void)
 void UnifiedParticipant::resume(void)
 {
     clearAllCachedData();
+}
+
+void UnifiedParticipant::activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityId)
+{    
+    for (UInt32 index = 0; index < Capability::Max; index++)
+    {
+        UInt32 currentCapability = (Capability::ToCapabilityId((Capability::Type)index));
+        if ((capabilityId & currentCapability) != 0)
+        {
+            switch ((Capability::Type)index)
+            {
+                case Capability::ActiveControl:
+                {
+                    if ((domainIndex != Constants::Invalid) && 
+                        (m_domains[domainIndex] != NULL) && 
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().activeControlVersion > 0))
+                    {
+                        m_domains[domainIndex]->getActiveControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) && 
+                                (m_domains[i]->getDomainFunctionalityVersions().activeControlVersion > 0))
+                            {
+                                m_domains[i]->getActiveControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::CoreControl:
+                {
+                    if ((domainIndex != Constants::Invalid) && 
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().coreControlVersion > 0))
+                    {
+                        m_domains[domainIndex]->getCoreControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().coreControlVersion > 0))
+                            {
+                                m_domains[i]->getCoreControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::DisplayControl:
+                {
+                    if ((domainIndex != Constants::Invalid) &&
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().displayControlVersion > 0))
+                    {
+                        m_domains[domainIndex]->getDisplayControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().displayControlVersion > 0))
+                            {
+                                m_domains[i]->getActiveControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::PerformanceControl:
+                {
+                    if ((domainIndex != Constants::Invalid) &&
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().performanceControlVersion > 0))
+                    {
+                        m_domains[domainIndex]->getPerformanceControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().performanceControlVersion > 0))
+                            {
+                                m_domains[i]->getPerformanceControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::TemperatureThreshold:
+                {
+                    if ((domainIndex != Constants::Invalid) &&
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().temperatureThresholdVersion > 0))
+                    {
+                        m_domains[domainIndex]->getTemperatureControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().temperatureThresholdVersion > 0))
+                            {
+                                m_domains[i]->getTemperatureControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::CtdpControl:
+                {
+                    if ((domainIndex != Constants::Invalid) &&
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().configTdpControlVersion > 0))
+                    {
+                        m_domains[domainIndex]->getConfigTdpControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().configTdpControlVersion > 0))
+                            {
+                                m_domains[i]->getConfigTdpControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::DomainPriority:
+                {
+                    if ((domainIndex != Constants::Invalid) &&
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().domainPriorityVersion > 0))
+                    {
+                        m_domains[domainIndex]->getDomainPriorityControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().domainPriorityVersion > 0))
+                            {
+                                m_domains[i]->getDomainPriorityControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::PowerControl:
+                {
+                    if ((domainIndex != Constants::Invalid) &&
+                        (m_domains[domainIndex] != NULL) &&
+                        (m_domains[domainIndex]->getDomainFunctionalityVersions().powerControlVersion > 0))
+                    {
+                        m_domains[domainIndex]->getPowerControl()->enableActivityLogging();
+                        sendActivityLoggingDataIfEnabled(domainIndex, (Capability::Type)index);
+                    }
+                    else
+                    {
+                        for (UIntN i = 0; i < m_domains.size(); i++)
+                        {
+                            if ((m_domains[i] != nullptr) &&
+                                (m_domains[i]->getDomainFunctionalityVersions().powerControlVersion > 0))
+                            {
+                                m_domains[i]->getPowerControl()->enableActivityLogging();
+                                sendActivityLoggingDataIfEnabled(i, (Capability::Type)index);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case Capability::PixelClockControl:
+                case Capability::RfProfileControl:
+                case Capability::HdcControl:
+                default:
+                    //To do for other capabilities as part of data logging
+                    break;
+            }
+        }
+    }
+}
+
+void UnifiedParticipant::activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityId)
+{
+    for (UInt32 index = 0; index < Capability::Max; index++)
+    {
+        UInt32 currentCapability = (Capability::ToCapabilityId((Capability::Type)index));
+        if ((capabilityId & currentCapability) != 0)
+        {
+            switch ((Capability::Type)index)
+            {
+            case Capability::ActiveControl:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getActiveControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getActiveControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::CoreControl:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getCoreControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getCoreControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::DisplayControl:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getDisplayControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getActiveControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::PerformanceControl:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getPerformanceControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getPerformanceControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::TemperatureThreshold:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getTemperatureControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getTemperatureControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::CtdpControl:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getConfigTdpControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getConfigTdpControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::DomainPriority:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getDomainPriorityControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getDomainPriorityControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::PowerControl:
+            {
+                if (domainIndex != Constants::Invalid && m_domains[domainIndex] != NULL)
+                {
+                    m_domains[domainIndex]->getPowerControl()->disableActivityLogging();
+                }
+                else
+                {
+                    for (UIntN i = 0; i < m_domains.size(); i++)
+                    {
+                        if (m_domains[i] != nullptr)
+                        {
+                            m_domains[i]->getPowerControl()->disableActivityLogging();
+                        }
+                    }
+                }
+                break;
+            }
+            case Capability::PixelClockControl:
+            case Capability::RfProfileControl:
+            case Capability::HdcControl:
+            default:
+                //To do for other capabilities as part of data logging
+                break;
+            }
+        }
+    }
+}
+
+void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, Capability::Type capability)
+{
+    throwIfDomainInvalid(domainIndex);
+
+    switch (capability)
+    {
+    case Capability::ActiveControl:
+        m_domains[domainIndex]->getActiveControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;	
+    case Capability::CoreControl:
+        m_domains[domainIndex]->getCoreControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;
+    case Capability::DisplayControl:
+        m_domains[domainIndex]->getDisplayControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;	
+    case Capability::PerformanceControl:
+        m_domains[domainIndex]->getPerformanceControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;
+    case Capability::TemperatureThreshold:
+        m_domains[domainIndex]->getTemperatureControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;
+    case Capability::CtdpControl:
+        m_domains[domainIndex]->getConfigTdpControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;
+    case Capability::PowerControl:
+        m_domains[domainIndex]->getPowerControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;
+    case Capability::DomainPriority:
+        m_domains[domainIndex]->getDomainPriorityControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+        break;
+    case Capability::PixelClockControl:
+    case Capability::RfProfileControl:
+    case Capability::HdcControl:
+    default:
+        break;
+    }
+
+    return;
 }
 
 void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
@@ -658,19 +1084,7 @@ void UnifiedParticipant::domainBatteryStatusChanged(void)
     }
 }
 
-void UnifiedParticipant::domainAdapterPowerChanged(void)
-{
-    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-    for (UIntN i = 0; i < m_domains.size(); i++)
-    {
-        if (m_domains[i] != nullptr)
-        {
-            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
-        }
-    }
-}
-
-void UnifiedParticipant::domainPlatformPowerConsumptionChanged(void)
+void UnifiedParticipant::domainBatteryInformationChanged(void)
 {
     // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
     for (UIntN i = 0; i < m_domains.size(); i++)
@@ -754,6 +1168,30 @@ void UnifiedParticipant::domainACPeakTimeWindowChanged(void)
     }
 }
 
+void UnifiedParticipant::domainMaxBatteryPowerChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
+void UnifiedParticipant::domainPlatformBatterySteadyStateChanged(void)
+{
+    // Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+    for (UIntN i = 0; i < m_domains.size(); i++)
+    {
+        if (m_domains[i] != nullptr)
+        {
+            m_domains[i]->getPlatformPowerStatusControl()->clearCachedData();
+        }
+    }
+}
+
 ActiveControlStaticCaps UnifiedParticipant::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -780,6 +1218,8 @@ void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIn
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getActiveControl()->setActiveControl(
         participantIndex, domainIndex, controlIndex);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::ActiveControl);
 }
 
 void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed)
@@ -822,6 +1262,8 @@ void UnifiedParticipant::setConfigTdpControl(UIntN participantIndex, UIntN domai
     // changed are then submitted to the work item queue.
     //
     sendConfigTdpInfoToAllDomainsAndCreateNotification();
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::CtdpControl);
 }
 
 CoreControlStaticCaps UnifiedParticipant::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -857,6 +1299,8 @@ void UnifiedParticipant::setActiveCoreControl(UIntN participantIndex, UIntN doma
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getCoreControl()->setActiveCoreControl(
         participantIndex, domainIndex, coreControlStatus);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::CoreControl);
 }
 
 DisplayControlDynamicCaps UnifiedParticipant::getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
@@ -885,6 +1329,16 @@ void UnifiedParticipant::setDisplayControl(UIntN participantIndex, UIntN domainI
 {
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getDisplayControl()->setDisplayControl(participantIndex, domainIndex, displayControlIndex);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::DisplayControl);
+}
+
+void UnifiedParticipant::setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, DisplayControlDynamicCaps newCapabilities)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getDisplayControl()->setDisplayControlDynamicCaps(participantIndex, domainIndex, newCapabilities);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::DisplayControl);
 }
 
 PerformanceControlStaticCaps UnifiedParticipant::getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -920,6 +1374,18 @@ void UnifiedParticipant::setPerformanceControl(UIntN participantIndex, UIntN dom
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getPerformanceControl()->setPerformanceControl(
         participantIndex, domainIndex, performanceControlIndex);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::PerformanceControl);
+}
+
+void UnifiedParticipant::setPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
+    PerformanceControlDynamicCaps newCapabilities)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domains[domainIndex]->getPerformanceControl()->setPerformanceControlDynamicCaps(
+        participantIndex, domainIndex, newCapabilities);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::PerformanceControl);
 }
 
 void UnifiedParticipant::setPixelClockControl(UIntN participantIndex, UIntN domainIndex,
@@ -1029,20 +1495,6 @@ Power UnifiedParticipant::getMaxBatteryPower(UIntN participantIndex, UIntN domai
         participantIndex, domainIndex);
 }
 
-Power UnifiedParticipant::getAdapterPower(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getAdapterPower(
-        participantIndex, domainIndex);
-}
-
-Power UnifiedParticipant::getPlatformPowerConsumption(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformPowerConsumption(
-        participantIndex, domainIndex);
-}
-
 Power UnifiedParticipant::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -1064,6 +1516,13 @@ DptfBuffer UnifiedParticipant::getBatteryStatus(UIntN participantIndex, UIntN do
         participantIndex, domainIndex);
 }
 
+DptfBuffer UnifiedParticipant::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getBatteryInformation(
+        participantIndex, domainIndex);
+}
+
 PlatformPowerSource::Type UnifiedParticipant::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -1078,13 +1537,6 @@ ChargerType::Type UnifiedParticipant::getChargerType(UIntN participantIndex, UIn
         participantIndex, domainIndex);
 }
 
-Percentage UnifiedParticipant::getPlatformStateOfCharge(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformStateOfCharge(
-        participantIndex, domainIndex);
-}
-
 Power UnifiedParticipant::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -1096,6 +1548,13 @@ TimeSpan UnifiedParticipant::getACPeakTimeWindow(UIntN participantIndex, UIntN d
 {
     throwIfDomainInvalid(domainIndex);
     return m_domains[domainIndex]->getPlatformPowerStatusControl()->getACPeakTimeWindow(
+        participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformBatterySteadyState(
         participantIndex, domainIndex);
 }
 
@@ -1148,6 +1607,8 @@ void UnifiedParticipant::setTemperatureThresholds(UIntN participantIndex, UIntN 
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getTemperatureControl()->setTemperatureThresholds(
         participantIndex, domainIndex, temperatureThresholds);
+
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::TemperatureThreshold);
 }
 
 UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
@@ -1222,6 +1683,12 @@ void UnifiedParticipant::setParticipantCoolingPolicy(UIntN participantIndex,
     const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
 {
     m_setSpecificInfo->setParticipantCoolingPolicy(participantIndex, coolingPreference, type);
+}
+
+void UnifiedParticipant::setParticipantSpecificInfo(UIntN participantIndex, 
+    ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)
+{
+    m_setSpecificInfo->setParticipantSpecificInfo(participantIndex, tripPoint, tripValue);
 }
 
 void UnifiedParticipant::throwIfDomainInvalid(UIntN domainIndex) const
@@ -1349,6 +1816,7 @@ void UnifiedParticipant::setPowerLimit(UIntN participantIndex, UIntN domainIndex
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getPowerControl()->setPowerLimit(
         participantIndex, domainIndex, controlType, powerLimit);
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::PowerControl);
 }
 
 TimeSpan UnifiedParticipant::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
@@ -1365,6 +1833,7 @@ void UnifiedParticipant::setPowerLimitTimeWindow(UIntN participantIndex, UIntN d
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getPowerControl()->setPowerLimitTimeWindow(
         participantIndex, domainIndex, controlType, timeWindow);
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::PowerControl);
 }
 
 Percentage UnifiedParticipant::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
@@ -1381,6 +1850,7 @@ void UnifiedParticipant::setPowerLimitDutyCycle(UIntN participantIndex, UIntN do
     throwIfDomainInvalid(domainIndex);
     m_domains[domainIndex]->getPowerControl()->setPowerLimitDutyCycle(
         participantIndex, domainIndex, controlType, dutyCycle);
+    sendActivityLoggingDataIfEnabled(domainIndex, Capability::PowerControl);
 }
 
 DptfBuffer UnifiedParticipant::getHardwareDutyCycleUtilizationSet(

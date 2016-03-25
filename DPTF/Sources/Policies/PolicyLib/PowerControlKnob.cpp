@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -304,15 +304,15 @@ void PowerControlKnob::clearAllRequests()
     m_requests.clear();
 }
 
-XmlNode* PowerControlKnob::getXml() const
+std::shared_ptr<XmlNode> PowerControlKnob::getXml() const
 {
-    XmlNode* knobStatus = XmlNode::createWrapperElement("power_control_status");
+    auto knobStatus = XmlNode::createWrapperElement("power_control_status");
     if (m_powerControl->supportsPowerControls())
     {
         auto pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
         knobStatus->addChild(pl1Capabilities.getXml());
         Power currentPowerLimit = m_powerControl->getPowerLimitPL1();
-        XmlNode* powerControl = XmlNode::createDataElement("power_limit", currentPowerLimit.toString());
+        auto powerControl = XmlNode::createDataElement("power_limit", currentPowerLimit.toString());
         knobStatus->addChild(powerControl);
     }
     return knobStatus;

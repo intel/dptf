@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -233,7 +233,7 @@ static int esif_ws_http_process_static_pages (
 	}
 
 	// Open and Serve File
-	esif_ccb_fopen(&file_fp, (esif_string)file_to_open, (esif_string)"rb");
+	file_fp = esif_ccb_fopen((esif_string)file_to_open, (esif_string)"rb", NULL);
 	if (NULL == file_fp) {
 		status = HTTP_STATUS_NOT_FOUND;
 		goto exit;

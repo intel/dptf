@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -96,6 +96,14 @@ eEsifError EsifApp_UnregisterEvent(
 	const EsifDataPtr eventGuidPtr
 	);
 
+eEsifError EsifApp_ReceiveEvent(
+	const void *esifHandle,
+	const void *appHandle,
+	const void *upHandle,
+	const void *domainHandle,
+	const EsifDataPtr eventDataPtr,
+	const EsifDataPtr eventGuidPtr
+	);
 
 AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromHandle(
 	const EsifAppPtr appPtr,

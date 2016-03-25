@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace PlatformPowerSource
             return "DC";
         case PlatformPowerSource::USB:
             return "USB";
-        case PlatformPowerSource::Wireless:
+        case PlatformPowerSource::WC:
             return "Wireless";
         default:
             throw dptf_exception("PlatformPowerSource::Type is invalid.");

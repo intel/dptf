@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #include "DomainProperties.h"
 #include "XmlNode.h"
 #include "PlatformPowerStatusFacadeInterface.h"
-#include "CachedValue.h"
 
 class dptf_export PlatformPowerStatusFacade : public PlatformPowerStatusFacadeInterface
 {
@@ -37,18 +36,17 @@ public:
     ~PlatformPowerStatusFacade(void);
 
     virtual Power getMaxBatteryPower(void) override;
-    virtual Power getAdapterPower(void) override;
-    virtual Power getPlatformPowerConsumption(void) override;
     virtual Power getPlatformRestOfPower(void) override;
     virtual Power getAdapterPowerRating(void) override;
     virtual DptfBuffer getBatteryStatus(void) override;
+    virtual DptfBuffer getBatteryInformation(void) override;
     virtual PlatformPowerSource::Type getPlatformPowerSource(void) override;
     virtual ChargerType::Type getChargerType(void) override;
-    virtual Percentage getPlatformStateOfCharge(void) override;
     virtual Power getACPeakPower(void) override;
     virtual TimeSpan getACPeakTimeWindow(void) override;
+    virtual Power getPlatformBatterySteadyState(void) override;
 
-    XmlNode* getXml() const;
+    std::shared_ptr<XmlNode> getXml() const;
 
 private:
 
@@ -60,17 +58,12 @@ private:
     UIntN m_participantIndex;
     UIntN m_domainIndex;
 
-    // cached values
-    CachedValue<Power> m_maxBatteryPower;
-    CachedValue<Power> m_adapterPower;
-    CachedValue<Power> m_platformPowerConsumption;
-    CachedValue<Power> m_platformRestOfPower;
-    CachedValue<Power> m_adapterPowerRating;
-    CachedValue<PlatformPowerSource::Type> m_platformPowerSource;
-    CachedValue<ChargerType::Type> m_chargerType;
-    CachedValue<Percentage> m_platformStateOfCharge;
-    CachedValue<Power> m_acPeakPower;
-    CachedValue<TimeSpan> m_acPeakTimeWindow;
-    DptfBuffer m_batteryStatus;
-    bool m_batteryStatusValid;
+    Power m_maxBatteryPower;
+    Power m_platformRestOfPower;
+    Power m_adapterPowerRating;
+    PlatformPowerSource::Type m_platformPowerSource;
+    ChargerType::Type m_chargerType;
+    Power m_acPeakPower;
+    TimeSpan m_acPeakTimeWindow;
+    Power m_batterySteadyState;
 };

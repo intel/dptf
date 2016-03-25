@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,6 +42,7 @@ public:
     virtual void initializeControlsIfNeeded() override;
     virtual void setControl(UIntN performanceControlIndex) override;
     virtual void setControlsToMax() override;
+    virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) override;
 
     // properties
     virtual void refreshCapabilities() override;

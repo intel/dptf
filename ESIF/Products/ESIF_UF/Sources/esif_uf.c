@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,7 +35,7 @@
 #include "esif_link_list.h"
 #include "esif_hash_table.h"
 #include "esif_uf_logging.h"
-
+#include "esif_uf_loggingmgr.h"
 /* IPC */
 #include "esif_command.h"	/* Command Interface */
 #include "esif_event.h"		/* Events */
@@ -77,11 +77,6 @@ esif_ccb_lock_t g_mempool_lock;
 
 static esif_thread_t g_webthread;  //web worker thread
 
-// Global Shell lock to limit parse_cmd to one thread at a time
-#ifdef ESIF_ATTR_SHELL_LOCK
-esif_ccb_mutex_t g_shellLock;
-#endif
-
 #ifdef ESIF_ATTR_MEMTRACE
 struct memtrace_s g_memtrace;
 #endif
@@ -117,11 +112,12 @@ eEsifError EsifLogMgrInit(void)
 	for (j=0; j < MAX_ESIFLOG; j++) {
 		esif_ccb_lock_init(&g_EsifLogFile[j].lock);
 	}
-	g_EsifLogFile[ESIF_LOG_EVENTLOG].name = esif_ccb_strdup("event");
-	g_EsifLogFile[ESIF_LOG_DEBUGGER].name = esif_ccb_strdup("debug");
-	g_EsifLogFile[ESIF_LOG_SHELL].name    = esif_ccb_strdup("shell");
-	g_EsifLogFile[ESIF_LOG_TRACE].name    = esif_ccb_strdup("trace");
-	g_EsifLogFile[ESIF_LOG_UI].name       = esif_ccb_strdup("ui");
+	g_EsifLogFile[ESIF_LOG_EVENTLOG].name    = esif_ccb_strdup("event");
+	g_EsifLogFile[ESIF_LOG_DEBUGGER].name    = esif_ccb_strdup("debug");
+	g_EsifLogFile[ESIF_LOG_SHELL].name       = esif_ccb_strdup("shell");
+	g_EsifLogFile[ESIF_LOG_TRACE].name       = esif_ccb_strdup("trace");
+	g_EsifLogFile[ESIF_LOG_UI].name          = esif_ccb_strdup("ui");
+	g_EsifLogFile[ESIF_LOG_PARTICIPANT].name = esif_ccb_strdup("participant");
 
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
@@ -163,9 +159,9 @@ int EsifLogFile_Open(EsifLogType type, const char *filename, int append)
 	if (g_EsifLogFile[type].handle == NULL)
 		rc = errno;
 #else
-	rc = esif_ccb_fopen(&g_EsifLogFile[type].handle, fullpath, mode);
+	g_EsifLogFile[type].handle = esif_ccb_fopen(fullpath, mode, &rc);
 #endif
-	if (rc == 0) {
+	if (g_EsifLogFile[type].handle != NULL) {
 		esif_ccb_free(g_EsifLogFile[type].filename);
 		g_EsifLogFile[type].filename = esif_ccb_strdup((char *)fullpath);
 	}
@@ -251,6 +247,11 @@ esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const ch
 	return buffer;
 }
 
+esif_string EsifLogFile_GetFileNameFromType(EsifLogType logType)
+{
+	return g_EsifLogFile[logType].filename;
+}
+
 void EsifLogFile_DisplayList(void)
 {
 	int j;
@@ -276,6 +277,8 @@ EsifLogType EsifLogType_FromString(const char *name)
 		result = ESIF_LOG_TRACE;
 	else if (esif_ccb_stricmp(name, "ui")==0)
 		result = ESIF_LOG_UI;
+	else if (esif_ccb_stricmp(name, "participant") == 0)
+		result = ESIF_LOG_PARTICIPANT;
 	return result;
 }
 
@@ -327,6 +330,9 @@ static enum esif_rc get_participant_data(
 	UInt8 participantId
 	)
 {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	eEsifError rc = ESIF_E_NO_LOWER_FRAMEWORK;
+#else
 	eEsifError rc = ESIF_OK;
 
 	struct esif_command_get_part_detail *data_ptr = NULL;
@@ -411,6 +417,7 @@ exit:
 	if (NULL != ipc_ptr) {
 		esif_ipc_free(ipc_ptr);
 	}
+#endif
 	return rc;
 }
 
@@ -418,6 +425,9 @@ exit:
 /* Will sync any existing lower framework participatnts */
 enum esif_rc sync_lf_participants()
 {
+#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	eEsifError rc = ESIF_E_NO_LOWER_FRAMEWORK;
+#else
 	eEsifError rc = ESIF_OK;
 	struct esif_command_get_participants *data_ptr = NULL;
 	const UInt32 data_len = sizeof(struct esif_command_get_participants);
@@ -483,14 +493,10 @@ exit:
 	}
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+#endif
 	return rc;
 }
 
-
-void done(const void *context)
-{
-	CMD_OUT("Context = %p %s\n", context, (char *)context);
-}
 
 // Name to Pathtype Map
 typedef struct esif_pathmap_s {
@@ -537,7 +543,7 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 		struct stat st={0};
 
 		// Use pathlist file, if it exists
-		if (esif_ccb_stat(filename, &st) == 0 && esif_ccb_fopen(&fp, filename, "rb") == 0) {
+		if (esif_ccb_stat(filename, &st) == 0 && ((fp = esif_ccb_fopen(filename, "rb", NULL)) != NULL)) {
 			if ((buffer = (char *) esif_ccb_malloc(st.st_size + 1)) != NULL) {
 				if (esif_ccb_fread(buffer, st.st_size, sizeof(char), st.st_size, fp) != (size_t)st.st_size) {
 					rc = ESIF_E_IO_ERROR;
@@ -546,7 +552,7 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 			esif_ccb_fclose(fp);
 		}
 		// Otherwise, use default pathlist
-		else if (buffer == NULL && paths != NULL) {
+		else if (paths != NULL) {
 			buffer = esif_ccb_strdup(paths);
 		}
 
@@ -557,7 +563,7 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 		}
 
 		// Parse key/value pairs into pathlist
-		if (rc == ESIF_OK && buffer != NULL) {
+		if (rc == ESIF_OK) {
 			char *ctxt = 0;
 				char *keypair = esif_ccb_strtok(buffer, "\r\n", &ctxt);
 				char *value = 0;
@@ -743,9 +749,7 @@ eEsifError esif_uf_init()
 	eEsifError rc = ESIF_OK;
 	ESIF_TRACE_ENTRY_INFO();
 
-#ifdef ESIF_ATTR_SHELL_LOCK
-	esif_ccb_mutex_init(&g_shellLock);
-#endif
+	esif_uf_shell_init();
 
 	ESIF_TRACE_DEBUG("Init Upper Framework (UF)");
 
@@ -798,6 +802,7 @@ void esif_uf_exit()
 	/* Stop web server if it is running */
 	EsifWebStop();
 	EsifDataLogStop();
+	EsifLogMgr_Exit();
 	EsifUFPollStop();
 
 	/* Stop all Apps before dependent components they may be using */
@@ -824,10 +829,8 @@ void esif_uf_exit()
 
 	ESIF_TRACE_DEBUG("Exit Upper Framework (UF)");
 
+	esif_uf_shell_exit();
 
-#ifdef ESIF_ATTR_SHELL_LOCK
-	esif_ccb_mutex_uninit(&g_shellLock);
-#endif
 	ESIF_TRACE_EXIT_INFO();
 }
 
@@ -1017,7 +1020,7 @@ void esif_memtrace_exit()
 	}
 
 	CMD_OUT("\n*** MEMORY LEAKS DETECTED ***\nFor details see %s\n", tracefile);
-	esif_ccb_fopen(&tracelog, tracefile, "a");
+	tracelog = esif_ccb_fopen(tracefile, "a", NULL);
 	if (tracelog) {
 		time_t now = time(NULL);
 		char timestamp[MAX_CTIME_LEN] = {0};

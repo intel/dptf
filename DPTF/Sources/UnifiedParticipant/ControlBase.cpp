@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,8 @@
 #include "ControlBase.h"
 
 ControlBase::ControlBase(UIntN participantIndex, UIntN domainIndex, ParticipantServicesInterface* participantServices)
-    : m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_participantServices(participantServices)
+    : m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_participantServices(participantServices),
+    m_activityLoggingEnabled(false)
 {
 
 }
@@ -37,6 +38,21 @@ UIntN ControlBase::getParticipantIndex() const
 UIntN ControlBase::getDomainIndex() const
 {
     return m_domainIndex;
+}
+
+Bool ControlBase::isActivityLoggingEnabled(void)
+{
+    return m_activityLoggingEnabled;
+}
+
+void ControlBase::enableActivityLogging(void)
+{
+    m_activityLoggingEnabled = true;
+}
+
+void ControlBase::disableActivityLogging(void)
+{
+    m_activityLoggingEnabled = false;
 }
 
 ParticipantServicesInterface* ControlBase::getParticipantServices() const

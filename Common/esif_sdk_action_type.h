@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -73,6 +73,7 @@ enum esif_action_type {
 	ESIF_ACTION_DPTFWWAN = 50,
 	ESIF_ACTION_GFXESC = 30,
 	ESIF_ACTION_IOSF = 34,
+	ESIF_ACTION_JAVA = 62,
 	ESIF_ACTION_KDELEGATE = 52,
 	ESIF_ACTION_KODE = 29,
 	ESIF_ACTION_KONST = 1,
@@ -82,6 +83,7 @@ enum esif_action_type {
 	ESIF_ACTION_MMIOTJMAX = 48,
 	ESIF_ACTION_MSR = 22,
 	ESIF_ACTION_MSRHDC = 58,
+	ESIF_ACTION_NVME = 63,
 	ESIF_ACTION_PERC = 61,
 	ESIF_ACTION_PSM = 44,
 	ESIF_ACTION_RFPWIFI = 43,
@@ -109,6 +111,7 @@ static ESIF_INLINE esif_string esif_action_type_str(enum esif_action_type type)
 	ESIF_CASE_ENUM(ESIF_ACTION_DPTFWWAN);
 	ESIF_CASE_ENUM(ESIF_ACTION_GFXESC);
 	ESIF_CASE_ENUM(ESIF_ACTION_IOSF);
+	ESIF_CASE_ENUM(ESIF_ACTION_JAVA);
 	ESIF_CASE_ENUM(ESIF_ACTION_KDELEGATE);
 	ESIF_CASE_ENUM(ESIF_ACTION_KODE);
 	ESIF_CASE_ENUM(ESIF_ACTION_KONST);
@@ -118,6 +121,7 @@ static ESIF_INLINE esif_string esif_action_type_str(enum esif_action_type type)
 	ESIF_CASE_ENUM(ESIF_ACTION_MMIOTJMAX);
 	ESIF_CASE_ENUM(ESIF_ACTION_MSR);
 	ESIF_CASE_ENUM(ESIF_ACTION_MSRHDC);
+	ESIF_CASE_ENUM(ESIF_ACTION_NVME);
 	ESIF_CASE_ENUM(ESIF_ACTION_PERC);
 	ESIF_CASE_ENUM(ESIF_ACTION_PSM);
 	ESIF_CASE_ENUM(ESIF_ACTION_RFPWIFI);

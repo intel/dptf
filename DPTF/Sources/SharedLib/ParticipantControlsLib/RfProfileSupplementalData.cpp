@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -78,9 +78,9 @@ Bool RfProfileSupplementalData::operator!=(const RfProfileSupplementalData& rhs)
     return !(*this == rhs);
 }
 
-XmlNode* RfProfileSupplementalData::getXml(void) const
+std::shared_ptr<XmlNode> RfProfileSupplementalData::getXml(void) const
 {
-    XmlNode* supplementalData = XmlNode::createWrapperElement("radio_frequency_supplemental_data");
+    auto supplementalData = XmlNode::createWrapperElement("radio_frequency_supplemental_data");
     supplementalData->addChild(XmlNode::createDataElement("channel_number", friendlyValue(m_channelNumber)));
     supplementalData->addChild(XmlNode::createDataElement("noise_power", friendlyValue(m_noisePower)));
     supplementalData->addChild(XmlNode::createDataElement("signal_to_noise_ratio", friendlyValue(m_signalToNoiseRatio)));

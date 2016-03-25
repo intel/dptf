@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,6 +37,14 @@ Domain::Domain(DptfManager* dptfManager) :
     m_pixelClockCapabilities(nullptr), m_pixelClockDataSet(nullptr),
     m_powerControlDynamicCapsSet(nullptr),
     m_powerStatus(nullptr),
+    m_maxBatteryPower(nullptr),
+    m_adapterRating(nullptr),
+    m_platformRestOfPower(nullptr),
+    m_acPeakPower(nullptr),
+    m_acPeakTimeWindow(nullptr),
+    m_platformPowerSource(nullptr),
+    m_chargerType(nullptr),
+    m_batterySteadyState(nullptr),
     m_domainPriority(nullptr),
     m_rfProfileCapabilities(nullptr),
     m_rfProfileData(nullptr),
@@ -150,6 +158,7 @@ void Domain::clearDomainCachedData(void)
     clearDomainCachedDataTemperature();
     clearDomainCachedDataUtilizationStatus();
     clearDomainCachedDataHardwareDutyCycle();
+    clearDomainCachedDataPlatformPowerStatus();
 }
 
 void Domain::clearArbitrationDataForPolicy(UIntN policyIndex)
@@ -299,14 +308,18 @@ void Domain::setDisplayControl(UIntN policyIndex, UIntN displayControlIndex)
 {
     DisplayControlArbitrator* displayControlArbitrator = m_arbitrator->getDisplayControlArbitrator();
 
-    Bool updated = displayControlArbitrator->arbitrate(policyIndex, displayControlIndex);
+    displayControlArbitrator->arbitrate(policyIndex, displayControlIndex);
 
-    if (updated == true)
-    {
-        UIntN arbitratedDisplayControlIndex = displayControlArbitrator->getArbitratedDisplayControlIndex();
-        m_theRealParticipant->setDisplayControl(m_participantIndex, m_domainIndex, arbitratedDisplayControlIndex);
-        clearDomainCachedDataDisplayControl();
-    }
+    UIntN arbitratedDisplayControlIndex = displayControlArbitrator->getArbitratedDisplayControlIndex();
+    m_theRealParticipant->setDisplayControl(m_participantIndex, m_domainIndex, arbitratedDisplayControlIndex);
+    clearDomainCachedDataDisplayControl();
+}
+
+void Domain::setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities)
+{
+    // TODO add to the arbitrator if other policies can modify the caps??
+    m_theRealParticipant->setDisplayControlDynamicCaps(m_participantIndex, m_domainIndex, newCapabilities);
+    clearDomainCachedDataDisplayControl();
 }
 
 PerformanceControlStaticCaps Domain::getPerformanceControlStaticCaps(void)
@@ -341,6 +354,13 @@ void Domain::setPerformanceControl(UIntN policyIndex, UIntN performanceControlIn
         m_theRealParticipant->setPerformanceControl(m_participantIndex, m_domainIndex, arbitratedPerformanceControlIndex);
         clearDomainCachedDataPerformanceControl();
     }
+}
+
+void Domain::setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities)
+{
+    // TODO add to the arbitrator if other policies can modify the caps??
+    m_theRealParticipant->setPerformanceControlDynamicCaps(m_participantIndex, m_domainIndex, newCapabilities);
+    clearDomainCachedDataPerformanceControl();
 }
 
 void Domain::setPixelClockControl(UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet)
@@ -534,16 +554,6 @@ Power Domain::getMaxBatteryPower(void)
     FILL_CACHE_AND_RETURN(m_maxBatteryPower, Power, getMaxBatteryPower);
 }
 
-Power Domain::getAdapterPower(void)
-{
-    FILL_CACHE_AND_RETURN(m_adapterPower, Power, getAdapterPower);
-}
-
-Power Domain::getPlatformPowerConsumption(void)
-{
-    FILL_CACHE_AND_RETURN(m_platformPower, Power, getPlatformPowerConsumption);
-}
-
 Power Domain::getPlatformRestOfPower(void)
 {
     FILL_CACHE_AND_RETURN(m_platformRestOfPower, Power, getPlatformRestOfPower);
@@ -563,6 +573,15 @@ DptfBuffer Domain::getBatteryStatus(void)
     return m_batteryStatusBuffer;
 }
 
+DptfBuffer Domain::getBatteryInformation(void)
+{
+    if (m_batteryInformationBuffer.size() == 0)
+    {
+        m_batteryInformationBuffer = m_theRealParticipant->getBatteryInformation(m_participantIndex, m_domainIndex);
+    }
+    return m_batteryInformationBuffer;
+}
+
 PlatformPowerSource::Type Domain::getPlatformPowerSource(void)
 {
     FILL_CACHE_AND_RETURN(m_platformPowerSource, PlatformPowerSource::Type, getPlatformPowerSource);
@@ -573,11 +592,6 @@ ChargerType::Type Domain::getChargerType(void)
     FILL_CACHE_AND_RETURN(m_chargerType, ChargerType::Type, getChargerType);
 }
 
-Percentage Domain::getPlatformStateOfCharge(void)
-{
-    FILL_CACHE_AND_RETURN(m_platformStateOfCharge, Percentage, getPlatformStateOfCharge);
-}
-
 Power Domain::getACPeakPower(void)
 {
     FILL_CACHE_AND_RETURN(m_acPeakPower, Power, getACPeakPower);
@@ -586,6 +600,11 @@ Power Domain::getACPeakPower(void)
 TimeSpan Domain::getACPeakTimeWindow(void)
 {
     FILL_CACHE_AND_RETURN(m_acPeakTimeWindow, TimeSpan, getACPeakTimeWindow);
+}
+
+Power Domain::getPlatformBatterySteadyState(void)
+{
+    FILL_CACHE_AND_RETURN(m_batterySteadyState, Power, getPlatformBatterySteadyState);
 }
 
 DomainPriority Domain::getDomainPriority(void)
@@ -823,6 +842,20 @@ void Domain::clearDomainCachedDataHardwareDutyCycle()
 void Domain::clearDomainCachedDataHdcOobEnable()
 {
     DELETE_MEMORY_TC(m_isHdcOobEnabled);
+}
+
+void Domain::clearDomainCachedDataPlatformPowerStatus()
+{
+    DELETE_MEMORY_TC(m_maxBatteryPower);
+    DELETE_MEMORY_TC(m_adapterRating);
+    DELETE_MEMORY_TC(m_platformRestOfPower);
+    DELETE_MEMORY_TC(m_acPeakPower);
+    DELETE_MEMORY_TC(m_acPeakTimeWindow);
+    DELETE_MEMORY_TC(m_platformPowerSource);
+    DELETE_MEMORY_TC(m_chargerType);
+    DELETE_MEMORY_TC(m_batterySteadyState);
+    m_batteryStatusBuffer.allocate(0);
+    m_batteryInformationBuffer.allocate(0);
 }
 
 void Domain::clearDomainCachedDataPlatformPowerControl()

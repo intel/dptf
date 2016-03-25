@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,14 +48,15 @@ namespace PolicyEvent
         DomainVirtualSensorPollingTableChanged,
         DomainVirtualSensorRecalcChanged,
         DomainBatteryStatusChanged,
-        DomainAdapterPowerChanged,
-        DomainPlatformPowerConsumptionChanged,
+        DomainBatteryInformationChanged,
         DomainPlatformPowerSourceChanged,
         DomainAdapterPowerRatingChanged,
         DomainChargerTypeChanged,
         DomainPlatformRestOfPowerChanged,
         DomainACPeakPowerChanged,
         DomainACPeakTimeWindowChanged,
+        DomainMaxBatteryPowerChanged,
+        DomainPlatformBatterySteadyStateChanged,
         PolicyActiveRelationshipTableChanged,
         PolicyCoolingModeAcousticLimitChanged,
         PolicyCoolingModePolicyChanged,
@@ -78,11 +79,15 @@ namespace PolicyEvent
         PolicyOperatingSystemBatteryPercentageChanged,
         PolicyOperatingSystemPlatformTypeChanged,
         PolicyOperatingSystemDockModeChanged,
+        PolicyOperatingSystemMobileNotification,
         PolicyOemVariablesChanged,
         PolicyPowerDeviceRelationshipTableChanged,
         PolicyPowerBossConditionsTableChanged,
         PolicyPowerBossActionsTableChanged,
-
+        DptfPolicyActivityLoggingEnabled,
+        DptfPolicyActivityLoggingDisabled,
+        DptfPolicyLoadedUnloadedEvent,
+        PolicyOperatingSystemPowerSchemePersonalityChanged,
         Max
     };
 

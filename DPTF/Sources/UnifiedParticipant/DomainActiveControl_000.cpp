@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,12 +50,17 @@ void DomainActiveControl_000::setActiveControl(UIntN participantIndex, UIntN dom
     throw not_implemented();
 }
 
+void DomainActiveControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 void DomainActiveControl_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
 }
 
-XmlNode* DomainActiveControl_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainActiveControl_000::getXml(UIntN domainIndex)
 {
     throw not_implemented();
 }

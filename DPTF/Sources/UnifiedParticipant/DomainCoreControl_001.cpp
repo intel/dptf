@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,57 +21,59 @@
 
 DomainCoreControl_001::DomainCoreControl_001(UIntN participantIndex, UIntN domainIndex, 
     ParticipantServicesInterface* participantServicesInterface) :
-    DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface),
-    m_coreControlStaticCaps(nullptr),
-    m_coreControlDynamicCaps(nullptr),
-    m_coreControlLpoPreference(nullptr),
-    m_coreControlStatus(nullptr)
+    DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    m_coreControlStatus = new CoreControlStatus(Constants::Invalid);
 }
 
 DomainCoreControl_001::~DomainCoreControl_001(void)
 {
-    DELETE_MEMORY_TC(m_coreControlStaticCaps);
-    DELETE_MEMORY_TC(m_coreControlDynamicCaps);
-    DELETE_MEMORY_TC(m_coreControlLpoPreference);
-    DELETE_MEMORY_TC(m_coreControlStatus);
 }
 
 CoreControlStaticCaps DomainCoreControl_001::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
-    createCoreControlStaticCapsIfNeeded(domainIndex);
-    return *m_coreControlStaticCaps;
+    if (m_coreControlStaticCaps.isInvalid())
+    {
+        m_coreControlStaticCaps.set(createCoreControlStaticCaps(domainIndex));
+    }
+
+    return m_coreControlStaticCaps.get();
 }
 
 CoreControlDynamicCaps DomainCoreControl_001::getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 {
-    createCoreControlDynamicCapsIfNeeded(domainIndex);
-    return *m_coreControlDynamicCaps;
+    if (m_coreControlDynamicCaps.isInvalid())
+    {
+        m_coreControlDynamicCaps.set(createCoreControlDynamicCaps(domainIndex));
+    }
+
+    return m_coreControlDynamicCaps.get();
 }
 
 CoreControlLpoPreference DomainCoreControl_001::getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex)
 {
-    createCoreControlLpoPreferenceIfNeeded(domainIndex);
-    return *m_coreControlLpoPreference;
+    if (m_coreControlLpoPreference.isInvalid())
+    {
+        m_coreControlLpoPreference.set(createCoreControlLpoPreference(domainIndex));
+    }
+
+    return m_coreControlLpoPreference.get();
 }
 
 CoreControlStatus DomainCoreControl_001::getCoreControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    if (m_coreControlStatus->getNumActiveLogicalProcessors() == Constants::Invalid)
+    if (m_coreControlStatus.isInvalid())
     {
         throw dptf_exception("No core control has been set.  No status available.");
     }
 
-    return *m_coreControlStatus;
+    return m_coreControlStatus.get();
 }
 
 void DomainCoreControl_001::setActiveCoreControl(UIntN participantIndex, UIntN domainIndex,
     const CoreControlStatus& coreControlStatus)
 {
     verifyCoreControlStatus(domainIndex, coreControlStatus);
-    createCoreControlStaticCapsIfNeeded(domainIndex);
-    UIntN totalCores = m_coreControlStaticCaps->getTotalLogicalProcessors();
+    UIntN totalCores = getCoreControlStaticCaps(participantIndex, domainIndex).getTotalLogicalProcessors();
     UIntN totalOfflineCoreRequest = totalCores - coreControlStatus.getNumActiveLogicalProcessors();
 
     getParticipantServices()->primitiveExecuteSetAsUInt32(
@@ -80,8 +82,42 @@ void DomainCoreControl_001::setActiveCoreControl(UIntN participantIndex, UIntN d
         domainIndex);
 
     // Refresh the status
-    DELETE_MEMORY_TC(m_coreControlStatus);
-    m_coreControlStatus = new CoreControlStatus(coreControlStatus.getNumActiveLogicalProcessors());
+    m_coreControlStatus.set(CoreControlStatus(coreControlStatus.getNumActiveLogicalProcessors()));
+}
+
+void DomainCoreControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true) 
+        {
+            createCoreControlStaticCaps(domainIndex);
+            UInt32 activeCores;
+            if (m_coreControlStatus.isValid())
+            {
+                activeCores = getCoreControlStatus(participantIndex, domainIndex).getNumActiveLogicalProcessors();
+            }
+            else
+            {
+                activeCores = getCoreControlStaticCaps(participantIndex, domainIndex).getTotalLogicalProcessors();
+            }
+
+            EsifCapabilityData capability;
+            capability.type = Capability::CoreControl;
+            capability.size = sizeof(capability);
+            capability.data.coreControl.activeLogicalProcessors = activeCores;
+            capability.data.coreControl.minimumActiveCores = 1;
+            capability.data.coreControl.maximumActiveCores = 
+                getCoreControlStaticCaps(participantIndex, domainIndex).getTotalLogicalProcessors();
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
 }
 
 void DomainCoreControl_001::clearCachedData(void)
@@ -89,99 +125,79 @@ void DomainCoreControl_001::clearCachedData(void)
     // Do not delete m_coreControlStatus.  We can't read this from ESIF.  We store it whenever it is 'set' and return
     // the value when requested.
 
-    DELETE_MEMORY_TC(m_coreControlStaticCaps);
-    DELETE_MEMORY_TC(m_coreControlDynamicCaps);
-    DELETE_MEMORY_TC(m_coreControlLpoPreference);
+    m_coreControlStaticCaps.invalidate();
+    m_coreControlDynamicCaps.invalidate();
+    m_coreControlLpoPreference.invalidate();
 }
 
-XmlNode* DomainCoreControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainCoreControl_001::getXml(UIntN domainIndex)
 {
-    createCoreControlStaticCapsIfNeeded(domainIndex);
-    createCoreControlDynamicCapsIfNeeded(domainIndex);
-    createCoreControlLpoPreferenceIfNeeded(domainIndex);
+    auto root = XmlNode::createWrapperElement("core_control");
 
-    XmlNode* root = XmlNode::createWrapperElement("core_control");
-
-    root->addChild(m_coreControlStatus->getXml());
-    root->addChild(m_coreControlStaticCaps->getXml());
-    root->addChild(m_coreControlDynamicCaps->getXml());
-    root->addChild(m_coreControlLpoPreference->getXml());
+    root->addChild(getCoreControlStatus(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getCoreControlStaticCaps(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getCoreControlDynamicCaps(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getCoreControlLpoPreference(Constants::Invalid, domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
 }
 
-void DomainCoreControl_001::createCoreControlStaticCapsIfNeeded(UIntN domainIndex)
+CoreControlStaticCaps DomainCoreControl_001::createCoreControlStaticCaps(UIntN domainIndex)
 {
-    if (m_coreControlStaticCaps == nullptr)
-    {
-        UInt32 logicalCoreCount = getParticipantServices()->primitiveExecuteGetAsUInt32(
-            esif_primitive_type::GET_PROC_LOGICAL_PROCESSOR_COUNT,
-            domainIndex);
+    UInt32 logicalCoreCount = getParticipantServices()->primitiveExecuteGetAsUInt32(
+        esif_primitive_type::GET_PROC_LOGICAL_PROCESSOR_COUNT,
+        domainIndex);
 
-        m_coreControlStaticCaps = new CoreControlStaticCaps(logicalCoreCount);
-    }
+    return CoreControlStaticCaps(logicalCoreCount);
 }
 
-void DomainCoreControl_001::createCoreControlDynamicCapsIfNeeded(UIntN domainIndex)
+CoreControlDynamicCaps DomainCoreControl_001::createCoreControlDynamicCaps(UIntN domainIndex)
 {
-    if (m_coreControlDynamicCaps == nullptr)
-    {
-        createCoreControlStaticCapsIfNeeded(domainIndex);
-
-        UInt32 minActiveCoreLimit = 1;
-        UInt32 maxActiveCoreLimit = m_coreControlStaticCaps->getTotalLogicalProcessors();
-        m_coreControlDynamicCaps = new CoreControlDynamicCaps(minActiveCoreLimit, maxActiveCoreLimit);
-    }
+    UInt32 minActiveCoreLimit = 1;
+    UInt32 maxActiveCoreLimit = getCoreControlStaticCaps(Constants::Invalid, domainIndex).getTotalLogicalProcessors();
+    return CoreControlDynamicCaps(minActiveCoreLimit, maxActiveCoreLimit);
 }
 
-void DomainCoreControl_001::createCoreControlLpoPreferenceIfNeeded(UIntN domainIndex)
+CoreControlLpoPreference DomainCoreControl_001::createCoreControlLpoPreference(UIntN domainIndex)
 {
-    if (m_coreControlLpoPreference == nullptr)
+    Bool useDefault = false;
+    DptfBuffer buffer;
+    try
     {
-        Bool useDefault = false;
-        DptfBuffer buffer;
+        buffer = getParticipantServices()->primitiveExecuteGet(
+            esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING, ESIF_DATA_BINARY, domainIndex);
+    }
+    catch (...)
+    {
+        getParticipantServices()->writeMessageWarning(
+            ParticipantMessage(FLF, "CLPO not found.  Using defaults."));
+        useDefault = true;
+    }
+
+    if (useDefault == false)
+    {
         try
         {
-            buffer = getParticipantServices()->primitiveExecuteGet(
-                esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING, ESIF_DATA_BINARY, domainIndex);
+            return BinaryParse::processorClpoObject(buffer);
         }
         catch (...)
         {
             getParticipantServices()->writeMessageWarning(
-                ParticipantMessage(FLF, "CLPO not found.  Using defaults."));
+                ParticipantMessage(FLF, "Could not parse CLPO data.  Using defaults."));
             useDefault = true;
         }
-
-        if (useDefault == false)
-        {
-            try
-            {
-                m_coreControlLpoPreference = BinaryParse::processorClpoObject(buffer);
-            }
-            catch (...)
-            {
-                getParticipantServices()->writeMessageWarning(
-                    ParticipantMessage(FLF, "Could not parse CLPO data.  Using defaults."));
-                DELETE_MEMORY_TC(m_coreControlLpoPreference);
-                useDefault = true;
-            }
-        }
-
-        if (useDefault == true)
-        {
-            m_coreControlLpoPreference = new CoreControlLpoPreference(true, 0, Percentage(.50),
-                CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core);
-        }
     }
+
+    return CoreControlLpoPreference(true, 0, Percentage(.50),
+        CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core);
 }
 
 void DomainCoreControl_001::verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus)
 {
-    createCoreControlDynamicCapsIfNeeded(domainIndex);
-
-    if (coreControlStatus.getNumActiveLogicalProcessors() > m_coreControlDynamicCaps->getMaxActiveCores() ||
-        coreControlStatus.getNumActiveLogicalProcessors() < m_coreControlDynamicCaps->getMinActiveCores())
+    auto caps = getCoreControlDynamicCaps(Constants::Invalid, domainIndex);
+    if (coreControlStatus.getNumActiveLogicalProcessors() > caps.getMaxActiveCores() ||
+        coreControlStatus.getNumActiveLogicalProcessors() < caps.getMinActiveCores())
     {
         throw dptf_exception("Desired number of cores outside dynamic caps range.");
     }

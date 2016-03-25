@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,12 +23,21 @@
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 void SysfsRegisterParticipants();
+void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
 eEsifError EsifActSysfsInit(void);
 void EsifActSysfsExit(void);
 
 static ESIF_INLINE void esif_ccb_participants_initialize()
 {
 	SysfsRegisterParticipants();
+	#ifdef ESIF_ATTR_OS_ANDROID
+	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3406")) {
+		SysfsRegisterCustomParticipant("INT3406","TDSP", (UInt32) ESIF_DOMAIN_TYPE_INVALID);
+	}
+	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3408")) {
+		SysfsRegisterCustomParticipant("INT3408","WWAN", (UInt32) ESIF_DOMAIN_TYPE_WWAN);
+	}
+	#endif
 }
 
 static ESIF_INLINE void esif_ccb_imp_spec_actions_init()

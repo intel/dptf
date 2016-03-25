@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,9 +26,9 @@ ControlStatus::ControlStatus(const std::string& name, UIntN min, UIntN max, UInt
 {
 }
 
-XmlNode* ControlStatus::getXml()
+std::shared_ptr<XmlNode> ControlStatus::getXml()
 {
-    XmlNode* control = XmlNode::createWrapperElement("control");
+    auto control = XmlNode::createWrapperElement("control");
     control->addChild(XmlNode::createDataElement("name", m_name));
     control->addChild(XmlNode::createDataElement("min", friendlyValue(m_min)));
     control->addChild(XmlNode::createDataElement("max", friendlyValue(m_max)));

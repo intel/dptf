@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,8 +18,6 @@
 
 #include "PolicyServicesPlatformConfigurationData.h"
 #include "EsifServices.h"
-#include "BinaryParse.h"
-#include "ThermalRelationshipTable.h"
 #include "esif_sdk_data_misc.h"
 
 PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData(
@@ -53,24 +51,29 @@ DptfBuffer PolicyServicesPlatformConfigurationData::readConfigurationBinary(cons
     return getEsifServices()->readConfigurationBinary(key);
 }
 
-ActiveRelationshipTable PolicyServicesPlatformConfigurationData::getActiveRelationshipTable(void)
+DptfBuffer PolicyServicesPlatformConfigurationData::getActiveRelationshipTable(void)
 {
     throwIfNotWorkItemThread();
 
-    DptfBuffer buffer = getEsifServices()->primitiveExecuteGet(
+    return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_ACTIVE_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
-    ActiveRelationshipTable art(ActiveRelationshipTable::createArtFromDptfBuffer(buffer));
-    return art;
 }
 
-ThermalRelationshipTable PolicyServicesPlatformConfigurationData::getThermalRelationshipTable(void)
+void PolicyServicesPlatformConfigurationData::setActiveRelationshipTable(DptfBuffer data)
 {
     throwIfNotWorkItemThread();
 
-    DptfBuffer buffer = getEsifServices()->primitiveExecuteGet(
+    getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_ACTIVE_RELATIONSHIP_TABLE,
+        esif_data_type::ESIF_DATA_BINARY, data.get(), data.size(), data.size(),
+        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersist);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getThermalRelationshipTable(void)
+{
+    throwIfNotWorkItemThread();
+
+    return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_THERMAL_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
-    ThermalRelationshipTable trt(ThermalRelationshipTable::createTrtFromDptfBuffer(buffer));
-    return trt;
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPassiveTable(void)
@@ -328,4 +331,12 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPowerBossActionsTable(voi
 
     return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_POWER_BOSS_ACTIONS_TABLE, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getEmergencyCallModeTable(void)
+{
+    throwIfNotWorkItemThread();
+
+    return getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_EMERGENCY_CALL_MODE_TABLE, ESIF_DATA_BINARY);
 }

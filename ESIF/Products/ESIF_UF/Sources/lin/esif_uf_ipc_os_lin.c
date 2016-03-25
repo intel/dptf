@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,9 +24,9 @@
 esif_handle_t esif_os_ipc_connect(char *session_id)
 {
 	int fd = 0;
-	char device[64];/* Jacob Is There a Standard Path Length? */
+	char device[MAX_PATH] = { 0 };
 
-	sprintf(device, "/dev/%s", IPC_DEVICE);
+	esif_ccb_sprintf(sizeof(device), device, "/dev/%s", IPC_DEVICE);
 	fd = open(device, O_RDWR);
 
 	ESIF_TRACE_DEBUG("linux_%s: session_id=%s device=%s handle=%d\n",

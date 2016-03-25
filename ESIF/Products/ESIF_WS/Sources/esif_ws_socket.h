@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,7 +27,9 @@
 #include "esif_uf_ccb_sock.h"
 #include "esif_ws_algo.h"
 
-#define WS_BUFFER_LENGTH OUT_BUF_LEN
+#define WS_HEADER_BUF_LEN	128		/* Buffer size for Websocket Header in REST responses */
+
+#define WS_BUFFER_LENGTH (OUT_BUF_LEN + WS_HEADER_BUF_LEN)
 
 #define WS_PROT_KEY_SIZE_MAX 1000
 #define WS_FRAME_SIZE_TYPE_1	125 /* For payloads <= 125 bytes*/

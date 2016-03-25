@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,14 +19,19 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainWorkItem.h"
+#include "WorkItem.h"
+#include "OsPowerSchemePersonality.h"
 
-class WIDomainAdapterPowerChanged : public DomainWorkItem
+class WIPolicyOperatingSystemPowerSchemePersonalityChanged : public WorkItem
 {
 public:
 
-    WIDomainAdapterPowerChanged(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex);
-    virtual ~WIDomainAdapterPowerChanged(void);
+    WIPolicyOperatingSystemPowerSchemePersonalityChanged(DptfManagerInterface* dptfManager, OsPowerSchemePersonality::Type powerSchemePersonality);
+    virtual ~WIPolicyOperatingSystemPowerSchemePersonalityChanged(void);
 
     virtual void execute(void) override final;
+
+private:
+
+    const OsPowerSchemePersonality::Type m_powerSchemePersonality;
 };

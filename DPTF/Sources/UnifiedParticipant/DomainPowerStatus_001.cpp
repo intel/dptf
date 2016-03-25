@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "DomainPowerStatus_001.h"
 #include "XmlNode.h"
+#include "esif_ccb.h"
 
 DomainPowerStatus_001::DomainPowerStatus_001(UIntN participantIndex, UIntN domainIndex, 
     ParticipantServicesInterface* participantServicesInterface) :
@@ -27,13 +28,9 @@ DomainPowerStatus_001::DomainPowerStatus_001(UIntN participantIndex, UIntN domai
 
 PowerStatus DomainPowerStatus_001::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    Power power = Power::createInvalid();
-
-    power = getPower(participantIndex, domainIndex);
+    getPower(participantIndex, domainIndex);
     esif_ccb_sleep_msec(250);
-    power = getPower(participantIndex, domainIndex);
-
-    return PowerStatus(power);
+    return PowerStatus(getPower(participantIndex, domainIndex));
 }
 
 Power DomainPowerStatus_001::getPower(UIntN participantIndex, UIntN domainIndex)
@@ -59,9 +56,9 @@ void DomainPowerStatus_001::clearCachedData(void)
     // Do nothing.  We don't cache the power status.
 }
 
-XmlNode* DomainPowerStatus_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPowerStatus_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = getPowerStatus(Constants::Invalid, domainIndex).getXml();
+    std::shared_ptr<XmlNode> root = getPowerStatus(Constants::Invalid, domainIndex).getXml();
 
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 

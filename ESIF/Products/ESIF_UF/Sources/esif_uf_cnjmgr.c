@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,7 +51,7 @@ eEsifError EsifCnjMgrInit()
 void EsifCnjMgrExit()
 {
 	u8 i = 0;
-	EsifCnjPtr a_conjure_ptr = NULL;
+	EsifCnjPtr cnjrPtr = NULL;
 
 	ESIF_TRACE_ENTRY_INFO();
 
@@ -59,13 +59,18 @@ void EsifCnjMgrExit()
 
 	esif_ccb_read_lock(&g_cnjMgr.fLock);
 	for (i = 0; i < ESIF_MAX_CONJURES; i++) {
-		a_conjure_ptr = &g_cnjMgr.fEnrtries[i];
-		esif_ccb_free(a_conjure_ptr->fLibNamePtr);
-		esif_ccb_library_unload(a_conjure_ptr->fLibHandle);
-		esif_ccb_memset(a_conjure_ptr, 0, sizeof(*a_conjure_ptr));
+		cnjrPtr = &g_cnjMgr.fEnrtries[i];
+		if (NULL == cnjrPtr->fLibNamePtr) {
+			continue;
+		}
+		if (NULL != cnjrPtr->fInterface.fConjureDestroyFuncPtr) {
+			cnjrPtr->fInterface.fConjureDestroyFuncPtr(cnjrPtr->fHandle);
+		}
+		esif_ccb_free(cnjrPtr->fLibNamePtr);
+		esif_ccb_library_unload(cnjrPtr->fLibHandle);
+		esif_ccb_memset(cnjrPtr, 0, sizeof(*cnjrPtr));
 	}
 	esif_ccb_read_unlock(&g_cnjMgr.fLock);
-
 	esif_ccb_lock_uninit(&g_cnjMgr.fLock);
 
 	ESIF_TRACE_EXIT_INFO();

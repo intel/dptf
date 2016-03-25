@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,12 @@
 #include "esif_uf_domain.h"
 #include "esif_dsp.h"		/* Device Support Package    */
 #include "esif_participant.h"
-#include "esif_event.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_link_list.h"
 #include "esif_uf_primitive.h"
 #include "esif_temp.h"
 #include "esif_pm.h"		/* Upper Participant Manager */
+#include "esif_lib_esifdata.h"
 
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -70,6 +70,38 @@ static eEsifError EsifUpDomain_PowerDetectInit(
 	);
 
 static eEsifError EsifUpDomain_CoreDetectInit(
+	EsifUpDomainPtr self
+	);
+
+static eEsifError EsifUpDomain_PsysDetectInit(
+	EsifUpDomainPtr self
+	);
+
+static eEsifError EsifUpDomain_PerfDetectInit(
+	EsifUpDomainPtr self
+	);
+
+static eEsifError EsifUpDomain_ProcPerfDetect(
+	EsifUpDomainPtr self
+	);
+
+static Bool EsifUpDomain_IsHwpCapable(
+	EsifUpDomainPtr self
+	);
+
+static Bool EsifUpDomain_IsHwpSupported(
+	EsifUpDomainPtr self
+	);
+
+static Bool EsifUpDomain_IsHwpEnabled(
+	EsifUpDomainPtr self
+	);
+
+static eEsifError EsifUpDomain_CTDPDetectInit(
+	EsifUpDomainPtr self
+	);
+
+static eEsifError EsifUpDomain_PlatPowerDetectInit(
 	EsifUpDomainPtr self
 	);
 
@@ -122,7 +154,8 @@ eEsifError EsifUpDomain_InitDomain(
 	}
 
 	self->domain = fpcDomainPtr->descriptor.domain;
-
+	self->domainPriority = fpcDomainPtr->descriptor.priority;
+	esif_ccb_strcpy(self->domainGuid,fpcDomainPtr->descriptor.guid,sizeof(self->domainGuid));
 	esif_ccb_strcpy(self->domainStr,
 		esif_primitive_domain_str(self->domain, domainBuf, sizeof(domainBuf)),
 		sizeof(self->domainStr));
@@ -155,17 +188,37 @@ eEsifError EsifUpDomain_DspReadyInit(
 	}
 	
 	rc = EsifUpDomain_TempDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		goto exit;
 	}
 	
 	rc = EsifUpDomain_PowerDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_PsysDetectInit(self);
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+	
+	rc = EsifUpDomain_PlatPowerDetectInit(self);
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+	
+	rc = EsifUpDomain_CTDPDetectInit(self);
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_PerfDetectInit(self);
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		goto exit;
 	}
 
 	rc = EsifUpDomain_CoreDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		goto exit;
 	}
 
@@ -173,7 +226,7 @@ eEsifError EsifUpDomain_DspReadyInit(
 /* Perf state detection handled in upper framework for Sysfs model */
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	rc = EsifUpDomain_StateDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		goto exit;
 	}
 #endif
@@ -187,8 +240,10 @@ static void EsifUpDomain_DisableCap(
 	)
 {
 	ESIF_ASSERT(self != NULL);
+	
 	self->capability_for_domain.capability_flags &= ~(1 << cap);
 	self->capability_for_domain.capability_mask[cap] = 0;
+
 }
 
 static eEsifError EsifUpDomain_CapDetect(
@@ -245,7 +300,7 @@ static eEsifError EsifUpDomain_TempDetectInit(
 	ESIF_ASSERT(self != NULL);
 
 	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_TEMP_STATUS, &tempTuple, &tempData);
-	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		self->tempPollType = ESIF_POLL_UNSUPPORTED;
 		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_TEMP_STATUS);
 		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD);
@@ -286,8 +341,168 @@ static eEsifError EsifUpDomain_PowerDetectInit(
 	ESIF_ASSERT(self != NULL);
 
 	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_POWER_STATUS, &powerTuple, &powerData);
-	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_POWER_STATUS);
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	return rc;
+}
+
+static eEsifError EsifUpDomain_PlatPowerDetectInit(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 powerValue = 0;
+	EsifPrimitiveTuple powerTuple = { GET_PLATFORM_POWER_SOURCE, 0, 255 };
+	EsifData powerData = { ESIF_DATA_POWER, &powerValue, sizeof(powerValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS, &powerTuple, &powerData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS);
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	return rc;
+}
+
+static eEsifError EsifUpDomain_PsysDetectInit(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 flagValue = 0;
+	EsifPrimitiveTuple flagTuple = { GET_PLATFORM_POWER_LIMIT_ENABLE, 0, 0 };
+	EsifData flagData = { ESIF_DATA_BIT, &flagValue, sizeof(flagValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PSYS_CONTROL, &flagTuple, &flagData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PSYS_CONTROL);
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	return rc;
+}
+
+static eEsifError EsifUpDomain_PerfDetectInit(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple perfTuple = { GET_PERF_SUPPORT_STATES, 0, 255 };
+	EsifData perfData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(self != NULL);
+	
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &perfTuple, &perfData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		// Domain may be a processor domain, in this case, we need to
+		// query again but with a different primitive
+		rc = EsifUpDomain_ProcPerfDetect(self);
+
+		if ((rc == ESIF_OK) && (EsifUpDomain_IsHwpCapable(self) != ESIF_FALSE)) {
+			rc = ESIF_E_NOT_SUPPORTED;
+		}
+
+		if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+			EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
+			rc = ESIF_E_NOT_SUPPORTED;
+		}
+	}
+
+	esif_ccb_free(perfData.buf_ptr);
+	return rc;
+}
+
+static eEsifError EsifUpDomain_ProcPerfDetect(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple procPerfTuple = { GET_PROC_PERF_SUPPORT_STATES, 0, 255 };
+	EsifData procPerfData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &procPerfTuple, &procPerfData);
+
+	esif_ccb_free(procPerfData.buf_ptr);
+	return rc;
+}
+
+static Bool EsifUpDomain_IsHwpCapable(
+	EsifUpDomainPtr self
+	)
+{
+	Bool isCapable = ESIF_FALSE;
+	ESIF_ASSERT(self != NULL);
+
+	if (EsifUpDomain_IsHwpSupported(self)) {
+		isCapable = EsifUpDomain_IsHwpEnabled(self);
+	}
+
+	return isCapable;
+}
+
+static Bool EsifUpDomain_IsHwpSupported(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple hwpTuple = { GET_PROC_HWP_SUPPORT_CHECK, 0, 255 };
+	UInt32 isSupported = ESIF_FALSE;
+	EsifData supportedData = { ESIF_DATA_UINT32, &isSupported, sizeof(isSupported), 0 };
+
+	ESIF_ASSERT(self != NULL);
+	hwpTuple.domain = self->domain;
+
+	rc = EsifUp_ExecutePrimitive(self->upPtr, &hwpTuple, NULL, &supportedData);
+	if (rc != ESIF_OK) {
+		isSupported = ESIF_FALSE;
+	}
+
+	return isSupported != ESIF_FALSE;
+}
+
+static Bool EsifUpDomain_IsHwpEnabled(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple hwpTuple = { GET_PROC_HWP_ENABLE, 0, 255 };
+	UInt32 isEnabled = ESIF_FALSE;
+	EsifData enabledData = { ESIF_DATA_UINT32, &isEnabled, sizeof(isEnabled), 0 };
+
+	ESIF_ASSERT(self != NULL);
+	hwpTuple.domain = self->domain;
+
+	rc = EsifUp_ExecutePrimitive(self->upPtr, &hwpTuple, NULL, &enabledData);
+	if (rc != ESIF_OK) {
+		isEnabled = ESIF_FALSE;
+	}
+
+	return isEnabled != ESIF_FALSE;
+}
+
+static eEsifError EsifUpDomain_CTDPDetectInit(
+EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 ctdpValue = 0;
+	EsifPrimitiveTuple ctdpTuple = { GET_PROC_CTDP_CAPABILITY, 0, 255 };
+	EsifData ctdpData = { ESIF_DATA_UINT32, &ctdpValue, sizeof(ctdpValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_CTDP_CONTROL, &ctdpTuple, &ctdpData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_CTDP_CONTROL);
 		rc = ESIF_E_NOT_SUPPORTED;
 	}
 
@@ -328,12 +543,12 @@ static eEsifError EsifUpDomain_StateDetectInit(
 	self->lastState = ESIF_DOMAIN_STATE_INVALID;
 	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &stateTuple, &stateData);
 	
-	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 		// Domain may be a processor domain, in this case, we need to
 		// query again but with a different primitive
 		stateTuple.id = GET_PROC_PERF_PRESENT_CAPABILITY;
 		rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &stateTuple, &stateData);
-		if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN)) {
+		if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
 			self->statePollType = ESIF_POLL_UNSUPPORTED;
 			EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
 			rc = ESIF_E_NOT_SUPPORTED;
@@ -585,9 +800,20 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 		if (rc == ESIF_E_STOP_POLL) {
 			self->tempPollType = ESIF_POLL_UNSUPPORTED;
 		}
+
+		if (ESIF_FALSE != self->tempLastTempValid) {
+			EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);		
+			ESIF_TRACE_DEBUG("Temp read invalid; Sending THRESHOLD CROSSED EVENT Participant: %s, Domain: %s, Temperature: %d \n",
+				self->participantName,
+				self->domainName,
+				temp);
+		}
+		self->tempLastTempValid = ESIF_FALSE;
 		goto exit;
 	}
 	
+	self->tempLastTempValid = ESIF_TRUE;
+
 	if (EsifUpDomain_IsTempOutOfThresholds(self, temp)) {
 		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
 		ESIF_TRACE_DEBUG("THRESHOLD CROSSED EVENT!!! Participant: %s, Domain: %s, Temperature: %d \n", self->participantName, self->domainName, temp);
@@ -708,6 +934,54 @@ exit:
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_DEBUG("Unable to set poll timer on %s %s : %s(%d)\n", self->participantName, self->domainName, esif_rc_str(rc), rc);
 	}
+}
+
+eEsifError EsifUpDomain_InitTempPoll(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 period = 0;
+	EsifPrimitiveTuple periodTuple = { GET_PARTICIPANT_SAMPLE_PERIOD,self->domain, 255 };
+	EsifPrimitiveTuple behaviorTuple = { SET_PARTICIPANT_SAMPLE_BEHAVIOR, self->domain, 255 };
+	EsifData periodData = { ESIF_DATA_TIME, &period, sizeof(period), 0 };
+	
+	//Set up polling for thermal
+	rc = EsifUp_ExecutePrimitive(self->upPtr, &periodTuple, NULL, &periodData);
+	if (ESIF_OK == rc) {
+		ESIF_TRACE_DEBUG("Setting thermal polling period for %s:%s to %d\n", self->participantName, self->domainStr, period);
+
+		rc = EsifUp_ExecutePrimitive(self->upPtr, &behaviorTuple, &periodData, NULL);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_WARN("Failed to set thermal polling period for %s:%s\n", self->participantName, self->domainStr);
+		}
+	}
+
+	return rc;
+}
+
+eEsifError EsifUpDomain_InitPowerPoll(
+	EsifUpDomainPtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 period = 0;
+	EsifPrimitiveTuple periodTuple = { GET_POWER_SAMPLE_PERIOD, self->domain, 255 };
+	EsifPrimitiveTuple behaviorTuple = { SET_POWER_SAMPLE_BEHAVIOR, self->domain, 255 };
+	EsifData periodData = { ESIF_DATA_TIME, &period, sizeof(period), 0 };
+
+	//Set up polling for power
+	rc = EsifUp_ExecutePrimitive(self->upPtr, &periodTuple, NULL, &periodData);
+	if (ESIF_OK == rc) {
+		ESIF_TRACE_DEBUG("Setting polling period for %s:%s to %d\n", self->participantName, self->domainStr, period);
+
+		rc = EsifUp_ExecutePrimitive(self->upPtr, &behaviorTuple, &periodData, NULL);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_WARN("Failed to set power polling period for %s:%s\n", self->participantName, self->domainStr);
+		}
+	}
+
+	return rc;
 }
 
 static eEsifError EsifUpDomain_StartTempPollPriv(
@@ -939,6 +1213,55 @@ eEsifError EsifUpDomain_SetTempHysteresis(
 	return ESIF_OK;
 }
 
+eEsifError EsifUpDomain_SignalOSEvent(
+	EsifUpDomainPtr self,
+	UInt32 updatedValue,
+	eEsifEventType eventType
+	)
+{
+	EsifData evdata;
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(self != NULL);
+
+	evdata.type = ESIF_DATA_UINT32;
+	evdata.buf_ptr = &updatedValue;
+	evdata.buf_len = sizeof(updatedValue);
+	evdata.data_len = sizeof(updatedValue);
+	rc = EsifEventMgr_SignalEvent(self->participantId, self->domain, eventType, &evdata);
+	ESIF_TRACE_DEBUG(
+		"Event %s signaled with value %d. rc = %d(%s)\n", 
+		esif_event_type_str(eventType), updatedValue, rc, esif_rc_str(rc));
+
+	return rc;
+}
+
+eEsifError EsifUpDomain_SignalForegroundAppChanged(
+	EsifUpDomainPtr self,
+	EsifString appName
+	)
+{
+	EsifDataPtr evdataPtr = NULL;
+	eEsifError rc = ESIF_OK;
+	
+	EsifString appNameToSend = esif_ccb_strdup(appName);
+
+
+	ESIF_ASSERT(self != NULL);
+
+	evdataPtr = EsifData_CreateAs(ESIF_DATA_STRING, appNameToSend, ESIFAUTOLEN, ESIFAUTOLEN);
+
+	if (evdataPtr != NULL) {
+		rc = EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_APP_FOREGROUND_CHANGED, evdataPtr);
+	}
+
+	EsifData_Destroy(evdataPtr);
+
+	ESIF_TRACE_DEBUG("Foreground application set to: %s. rc = %d(%s)\n", appName, rc, esif_rc_str(rc));
+
+	return rc;
+}
+
 /*
 * Used to iterate through the available domains.
 * First call EsifUpDomain_InitIterator to initialize the iterator.
@@ -1011,7 +1334,6 @@ eEsifError EsifUpDomain_GetNextUd(
 exit:
 	return rc;
 }
-
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/

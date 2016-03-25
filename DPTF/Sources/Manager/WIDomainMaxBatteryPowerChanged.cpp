@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,32 +16,32 @@
 **
 ******************************************************************************/
 
-#include "WIDomainAdapterPowerChanged.h"
+#include "WIDomainMaxBatteryPowerChanged.h"
 #include "Participant.h"
 #include "PolicyManager.h"
 #include "EsifServices.h"
 
-WIDomainAdapterPowerChanged::WIDomainAdapterPowerChanged(
+WIDomainMaxBatteryPowerChanged::WIDomainMaxBatteryPowerChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
-    DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainAdapterPowerChanged, participantIndex, domainIndex)
+    DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainMaxBatteryPowerChanged, participantIndex, domainIndex)
 {
 }
 
-WIDomainAdapterPowerChanged::~WIDomainAdapterPowerChanged(void)
+WIDomainMaxBatteryPowerChanged::~WIDomainMaxBatteryPowerChanged(void)
 {
 }
 
-void WIDomainAdapterPowerChanged::execute(void)
+void WIDomainMaxBatteryPowerChanged::execute(void)
 {
     WriteDomainWorkItemStartingInfoMessage();
 
     try
     {
-        getParticipantPtr()->domainAdapterPowerChanged();
+        getParticipantPtr()->domainMaxBatteryPowerChanged();
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainAdapterPowerChanged");
+        WriteDomainWorkItemErrorMessage_Function("Participant::domainMaxBatteryPowerChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -52,15 +52,15 @@ void WIDomainAdapterPowerChanged::execute(void)
         try
         {
             Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeDomainAdapterPowerChanged(getParticipantIndex());
+            policy->executeDomainMaxBatteryPowerChanged(getParticipantIndex());
         }
         catch (policy_index_invalid ex)
         {
             // do nothing.  No item in the policy list at this index.
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainAdapterPowerChanged", i);
+            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainMaxBatteryPowerChanged", i);
         }
     }
 }

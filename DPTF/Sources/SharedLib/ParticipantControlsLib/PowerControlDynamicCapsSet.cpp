@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 #include "PowerControlDynamicCapsSet.h"
 #include "XmlNode.h"
-#include "ObjectsProcessor.h"
+#include "EsifDataBinaryPpccPackage.h"
 
 using namespace std;
 
@@ -147,9 +147,9 @@ Bool PowerControlDynamicCapsSet::operator!=(const PowerControlDynamicCapsSet& rh
     return !(*this == rhs);
 }
 
-XmlNode* PowerControlDynamicCapsSet::getXml(void) const
+std::shared_ptr<XmlNode> PowerControlDynamicCapsSet::getXml(void) const
 {
-    XmlNode* root = XmlNode::createWrapperElement("power_control_dynamic_caps_set");
+    auto root = XmlNode::createWrapperElement("power_control_dynamic_caps_set");
     for (auto capability = m_capabilities.begin(); capability != m_capabilities.end(); capability++)
     {
         root->addChild(capability->second.getXml());

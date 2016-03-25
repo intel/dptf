@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -46,9 +46,9 @@ Bool DisplayControlDynamicCaps::operator!=(const DisplayControlDynamicCaps& rhs)
     return !(*this == rhs);
 }
 
-XmlNode* DisplayControlDynamicCaps::getXml(void)
+std::shared_ptr<XmlNode> DisplayControlDynamicCaps::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("display_control_dynamic_caps");
+    auto root = XmlNode::createWrapperElement("display_control_dynamic_caps");
 
     root->addChild(XmlNode::createDataElement("upper_limit_index", StatusFormat::friendlyValue(m_currentUpperLimit)));
     root->addChild(XmlNode::createDataElement("lower_limit_index", StatusFormat::friendlyValue(m_currentLowerLimit)));

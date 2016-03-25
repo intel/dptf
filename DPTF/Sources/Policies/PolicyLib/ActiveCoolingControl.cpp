@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -127,7 +127,7 @@ void ActiveCoolingControl::updateActiveControlRequestTable(UIntN requestorIndex,
 
 UIntN ActiveCoolingControl::chooseHighestActiveControlIndex()
 {
-    UIntN highestActiveControlIndex = ActiveRelationshipTableEntry::FanOffIndex;
+    UIntN highestActiveControlIndex = ActiveCoolingControl::FanOffIndex;
     for (auto request = m_activeControlRequestTable.begin(); request != m_activeControlRequestTable.end(); request++)
     {
         if (request->second < highestActiveControlIndex)
@@ -151,15 +151,15 @@ void ActiveCoolingControl::forceFanOff(void)
         else
         {
             m_policyServices.domainActiveControl->setActiveControl(
-                m_participantIndex, m_domainIndex, ActiveRelationshipTableEntry::FanOffIndex);
-            m_lastFanSpeedRequestIndex = ActiveRelationshipTableEntry::FanOffIndex;
+                m_participantIndex, m_domainIndex, ActiveCoolingControl::FanOffIndex);
+            m_lastFanSpeedRequestIndex = ActiveCoolingControl::FanOffIndex;
         }
     }
 }
 
-XmlNode* ActiveCoolingControl::getXml()
+std::shared_ptr<XmlNode> ActiveCoolingControl::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("active_cooling_control");
+    auto status = XmlNode::createWrapperElement("active_cooling_control");
     status->addChild(XmlNode::createDataElement("participant_index", friendlyValue(m_participantIndex)));
     status->addChild(XmlNode::createDataElement("domain_index", friendlyValue(m_domainIndex)));
     status->addChild(XmlNode::createDataElement("name", m_participantProperties.getAcpiInfo().getAcpiScope()));

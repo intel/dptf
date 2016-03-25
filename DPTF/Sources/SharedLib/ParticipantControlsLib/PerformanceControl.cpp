@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -100,9 +100,9 @@ std::string PerformanceControl::PerformanceControlTypeToString(PerformanceContro
     }
 }
 
-XmlNode* PerformanceControl::getXml()
+std::shared_ptr<XmlNode> PerformanceControl::getXml()
 {
-    XmlNode* root = XmlNode::createWrapperElement("performance_control");
+    auto root = XmlNode::createWrapperElement("performance_control");
 
     root->addChild(XmlNode::createDataElement("control_id", StatusFormat::friendlyValue(m_controlId)));
     root->addChild(XmlNode::createDataElement("control_type", PerformanceControlTypeToString(m_performanceControlType)));

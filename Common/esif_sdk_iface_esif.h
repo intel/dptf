@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,7 +57,9 @@
 
 #include "esif_sdk_iface.h"
 
-#define ESIF_INTERFACE_VERSION 1
+#define ESIF_INTERFACE_VERSION_1 1
+#define ESIF_INTERFACE_VERSION_2 2
+#define ESIF_INTERFACE_VERSION ESIF_INTERFACE_VERSION_2
 
 /*
  * INTERFACE Flags
@@ -142,6 +144,16 @@ typedef eEsifError(ESIF_CALLCONV *AppEventUnregisterFunction)(
 	const EsifDataPtr eventGuid	/* Event GUID to be unregistered */
 );
 
+/* Version 2*/
+/* Send Event  Application -> ESIF */
+typedef eEsifError(ESIF_CALLCONV *AppSendEventFunction)(
+	const void *esifHandle,      /* ESIF provided context handle */
+	const void *appHandle,		/* Allocated handle for application */
+	const void *participantHandle,	/* Optional Participant ESIF_NO_HANDLE indicates App Level Event */
+	const void *domainHandle,	/* Optional Domain ESIF_NO_HANDLE indicates non-domain Level Event */
+	const EsifDataPtr eventData,	/* Data included with the event if any MAY Be NULL */
+	const EsifDataPtr eventGuid	/* Event GUID */
+	);
 /*
  * ESIF Service Interface ESIF <-- APPLICATION
  * Forward declared and typedef in esif_uf_iface.h
@@ -168,6 +180,7 @@ struct _t_EsifInterface {
 	AppEventUnregisterFunction  fUnregisterEventFuncPtr;
 
 	/* Version 2 */
+	AppSendEventFunction fSendEventFuncPtr;
 };
 
 #pragma pack(pop)

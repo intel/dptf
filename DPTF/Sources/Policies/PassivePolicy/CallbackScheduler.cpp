@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@ using namespace std;
 
 CallbackScheduler::CallbackScheduler(
     const PolicyServicesInterfaceContainer& policyServices,
-    const ThermalRelationshipTable& trt,
+    std::shared_ptr<ThermalRelationshipTable> trt,
     TargetMonitor* targetMonitor, 
     std::shared_ptr<TimeInterface> time)
     : m_sourceAvailability(policyServices, time), m_trt(trt), m_targetMonitor(targetMonitor)
@@ -50,14 +50,14 @@ Bool CallbackScheduler::isFreeForRequests(UIntN target, UIntN source, UInt64 tim
 
 void CallbackScheduler::markBusyForRequests(UIntN target, UIntN source, UInt64 time)
 {
-    TimeSpan sampleTime = m_trt.getSampleTimeForRelationship(target, source);
+    TimeSpan sampleTime = m_trt->getSampleTimeForRelationship(target, source);
     UInt64 timeBusyUntil = time + sampleTime.asMillisecondsInt();
     m_requestSchedule[TargetSourceRelationship(target, source)] = timeBusyUntil;
 }
 
 void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, UInt64 time)
 {
-    TimeSpan sampleTime = m_trt.getSampleTimeForRelationship(target, source);
+    TimeSpan sampleTime = m_trt->getSampleTimeForRelationship(target, source);
     if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime.asMillisecondsInt()) == false)
     {
         m_targetScheduler->cancelCallback(target);
@@ -67,7 +67,7 @@ void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN sou
 
 void CallbackScheduler::ensureCallbackByShortestSamplePeriod(UIntN target, UInt64 time)
 {
-    TimeSpan sampleTime = m_trt.getShortestSamplePeriodForTarget(target);
+    TimeSpan sampleTime = m_trt->getShortestSamplePeriodForTarget(target);
     if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime.asMillisecondsInt()) == false)
     {
         m_targetScheduler->cancelCallback(target);
@@ -88,7 +88,7 @@ void CallbackScheduler::removeParticipantFromSchedule(UIntN participant)
 
 void CallbackScheduler::markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, UInt64 time)
 {
-    TimeSpan minimumSamplePeriod = m_trt.getMinimumActiveSamplePeriodForSource(
+    TimeSpan minimumSamplePeriod = m_trt->getMinimumActiveSamplePeriodForSource(
         source, targetMonitor.getMonitoredTargets());
     m_sourceAvailability.setSourceAsBusy(source, time + minimumSamplePeriod.asMillisecondsInt());
 }
@@ -98,7 +98,7 @@ void CallbackScheduler::acknowledgeCallback(UIntN target)
     m_targetScheduler->acknowledgeCallback(target);
 }
 
-void CallbackScheduler::setTrt(const ThermalRelationshipTable& trt)
+void CallbackScheduler::setTrt(std::shared_ptr<ThermalRelationshipTable> trt)
 {
     m_trt = trt;
 }
@@ -109,9 +109,9 @@ void CallbackScheduler::setTimeObject(std::shared_ptr<TimeInterface> time)
     m_sourceAvailability.setTime(time);
 }
 
-XmlNode* CallbackScheduler::getXml() const
+std::shared_ptr<XmlNode> CallbackScheduler::getXml() const
 {
-    XmlNode* status = XmlNode::createWrapperElement("callback_scheduler");
+    auto status = XmlNode::createWrapperElement("callback_scheduler");
     status->addChild(m_sourceAvailability.getXml());
     status->addChild(m_targetScheduler->getStatus());
     return status;

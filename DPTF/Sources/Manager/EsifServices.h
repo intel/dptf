@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -208,6 +208,12 @@ public:
         UIntN participantIndex = Constants::Esif::NoParticipant,
         UIntN domainIndex = Constants::Esif::NoDomain);
 
+    void sendDptfEvent(
+        FrameworkEvent::Type frameworkEvent,
+        UIntN participantIndex,
+        UIntN domainIndex,
+        EsifData eventData
+        );
 private:
 
     // hide the copy constructor and assignment operator.

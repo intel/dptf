@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,7 +41,7 @@
 
 // Limits
 #define MAX_EDP_SIZE    0x7fffffff
-#define MAX_FPC_SIZE    0x7fffffff
+#define MAX_FPC_SIZE    0x7ffffffe
 
 #define MIN_VIABLE_DSP_WEIGHT 1
 
@@ -651,9 +651,9 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 		goto exit;
 	}
 
-	// Look for EDP file either on disk or in a DataVault (static or file), depending on priority setting
+	// Look for EDP file on disk first then in DataVault (static or file)
 	esif_build_path(path, sizeof(path), ESIF_PATHTYPE_DSP, file_ptr->filename, NULL);
-	if ((ESIF_EDP_DV_PRIORITY == 1 || !esif_ccb_file_exists(path)) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
+	if (!esif_ccb_file_exists(path) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		esif_ccb_strcpy(path, file_ptr->filename, MAX_PATH);
 		IOStream_SetMemory(ioPtr, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
@@ -671,6 +671,10 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 		/* EDP - Only Read The FPC Part */
 		edpSize = (UInt32)IOStream_GetSize(ioPtr);
 		numFpcBytesRead = IOStream_Read(ioPtr, &edp_dir, sizeof(edp_dir));
+		if (!esif_verify_edp(&edp_dir, numFpcBytesRead)) {
+			ESIF_TRACE_ERROR("Invalid EDP Header: Signature=%4.4s Version=%d\n", (char *)&edp_dir.signature, edp_dir.version);
+			goto exit;
+		}
 		fpcSize = edpSize - edp_dir.fpc_offset;
 		if (edpSize > MAX_EDP_SIZE || fpcSize > MAX_FPC_SIZE) {
 			ESIF_TRACE_ERROR("The edp or fpc file size is larger than maximum\n");
@@ -846,12 +850,16 @@ static eEsifError esif_dsp_file_scan()
 				if (key->data_len >= 5 && esif_ccb_stricmp(((StringPtr)(key->buf_ptr)) + key->data_len - 5, ".edp") == 0) {
 					ffdPtr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffdPtr));
 					esif_ccb_strcpy(ffdPtr->filename, (StringPtr)key->buf_ptr, sizeof(ffdPtr->filename));
-					esif_dsp_entry_create(ffdPtr);
+					if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
+						esif_ccb_free(ffdPtr);
+					}
 					files++;
 				}
 				EsifData_Set(key, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 				EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 			} while ((rc = EsifConfigFindNext(nameSpace, key, value, &context)) == ESIF_OK);
+
+			EsifConfigFindClose(&context);
 			if (rc == ESIF_E_ITERATION_DONE) {
 				rc = ESIF_OK;
 			}
@@ -884,7 +892,9 @@ static eEsifError esif_dsp_file_scan()
 	do {
 		// Don't process the file if it the same name was already loaded from a DataVault
 		if (DB == NULL || DataCache_GetValue(DB->cache, ffdPtr->filename) == NULL) {
-			esif_dsp_entry_create(ffdPtr);
+			if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
+				esif_ccb_free(ffdPtr);
+			}
 			ffdPtr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffdPtr));
 			files++;
 		}

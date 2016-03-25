@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -118,12 +118,17 @@ void FrameworkEventInfo::initializeEvents()
     INIT_EVENT_WITH_GUID(DptfResume, 0, RESUME);
     INIT_EVENT(DptfGetStatus, 0);
     INIT_EVENT_WITH_GUID(DptfLogVerbosityChanged, 0, LOG_VERBOSITY_CHANGED);
+    INIT_EVENT_WITH_GUID(DptfParticipantActivityLoggingEnabled, 0, DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED);
+    INIT_EVENT_WITH_GUID(DptfParticipantActivityLoggingDisabled, 0, DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED);
+    INIT_EVENT_WITH_GUID(DptfPolicyActivityLoggingEnabled, 0, DPTF_POLICY_ACTIVITY_LOGGING_ENABLED);
+    INIT_EVENT_WITH_GUID(DptfPolicyActivityLoggingDisabled, 0, DPTF_POLICY_ACTIVITY_LOGGING_DISABLED);
 
     // Participant and Domain events
     INIT_EVENT(ParticipantAllocate, 31);
     INIT_EVENT(ParticipantCreate, 31);
     INIT_EVENT(ParticipantDestroy, 31);
     INIT_EVENT_WITH_GUID(ParticipantSpecificInfoChanged, 0, SPEC_INFO_CHANGED);
+    INIT_EVENT_WITH_GUID(DptfParticipantControlAction, 0, DPTF_PARTICIPANT_CONTROL_ACTION);
     INIT_EVENT(DomainAllocate, 31);
     INIT_EVENT(DomainCreate, 31);
     INIT_EVENT(DomainDestroy, 31);
@@ -142,14 +147,15 @@ void FrameworkEventInfo::initializeEvents()
     INIT_EVENT_WITH_GUID(DomainVirtualSensorPollingTableChanged, 0, VIRTUAL_SENSOR_POLLING_TABLE_CHANGED);
     INIT_EVENT_WITH_GUID(DomainVirtualSensorRecalcChanged, 0, VIRTUAL_SENSOR_RECALC_CHANGED);
     INIT_EVENT_WITH_GUID(DomainBatteryStatusChanged, 0, BATTERY_STATUS_CHANGED);
-    INIT_EVENT_WITH_GUID(DomainAdapterPowerChanged, 0, ADAPTER_POWER_CHANGED);
-    INIT_EVENT_WITH_GUID(DomainPlatformPowerConsumptionChanged, 0, PLATFORM_POWER_CONSUMPTION_CHANGED);
+    INIT_EVENT_WITH_GUID(DomainBatteryInformationChanged, 0, BATTERY_INFORMATION_CHANGED);
     INIT_EVENT_WITH_GUID(DomainPlatformPowerSourceChanged, 0, PLATFORM_POWER_SOURCE_CHANGED);
     INIT_EVENT_WITH_GUID(DomainAdapterPowerRatingChanged, 0, ADAPTER_POWER_RATING_CHANGED);
     INIT_EVENT_WITH_GUID(DomainChargerTypeChanged, 0, CHARGER_TYPE_CHANGED);
     INIT_EVENT_WITH_GUID(DomainPlatformRestOfPowerChanged, 0, PLATFORM_REST_OF_POWER_CHANGED);
     INIT_EVENT_WITH_GUID(DomainACPeakPowerChanged, 0, AC_PEAK_POWER_CHANGED);
     INIT_EVENT_WITH_GUID(DomainACPeakTimeWindowChanged, 0, AC_PEAK_TIME_WINDOW_CHANGED);
+    INIT_EVENT_WITH_GUID(DomainMaxBatteryPowerChanged, 0, MAX_BATTERY_POWER_CHANGED);
+    INIT_EVENT_WITH_GUID(DomainPlatformBatterySteadyStateChanged, 0, PLATFORM_BATTERY_STEADY_STATE_CHANGED);
 
     // Policy events
     INIT_EVENT(PolicyCreate, 31);
@@ -176,10 +182,13 @@ void FrameworkEventInfo::initializeEvents()
     INIT_EVENT_WITH_GUID(PolicyOperatingSystemBatteryPercentageChanged, 0, OS_BATTERY_PERCENT_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyOperatingSystemPlatformTypeChanged, 0, OS_PLATFORM_TYPE_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyOperatingSystemDockModeChanged, 0, OS_DOCK_MODE_CHANGED);
+    INIT_EVENT_WITH_GUID(PolicyOperatingSystemMobileNotification, 0, OS_MOBILE_NOTIFICATION);
     INIT_EVENT_WITH_GUID(PolicyOemVariablesChanged, 0, OEM_VARS_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyPowerDeviceRelationshipTableChanged, 0, POWER_DEVICE_RELATIONSHIP_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyPowerBossConditionsTableChanged, 0, POWER_BOSS_CONDITIONS_TABLE_CHANGED);
     INIT_EVENT_WITH_GUID(PolicyPowerBossActionsTableChanged, 0, POWER_BOSS_ACTIONS_TABLE_CHANGED);
+    INIT_EVENT_WITH_GUID(DptfPolicyLoadedUnloadedEvent, 0, DPTF_POLICY_LOADED_UNLOADED);
+    INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSchemePersonalityChanged, 0, OS_POWERSCHEME_PERSONALITY_CHANGED);
 }
 
 void FrameworkEventInfo::initializeEvent(FrameworkEvent::Type eventId, UIntN immediateQueuePriority,

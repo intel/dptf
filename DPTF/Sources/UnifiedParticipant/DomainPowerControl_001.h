@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,10 +53,13 @@ public:
     virtual void setPowerControlDynamicCapsSet(
         UIntN participantIndex, UIntN domainIndex, PowerControlDynamicCapsSet capsSet) override;
 
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 
@@ -79,7 +82,7 @@ private:
     void throwIfDutyCycleIsOutsideCapabilityRange(const Percentage& dutyCycle);
     void throwIfDynamicCapabilitiesAreWrong(const PowerControlDynamicCapsSet& capabilities);
 
-    XmlNode* createStatusNode(PowerControlType::Type controlType);
+    std::shared_ptr<XmlNode> createStatusNode(PowerControlType::Type controlType);
     std::string createStatusStringForEnabled(PowerControlType::Type controlType);
     std::string createStatusStringForLimitValue(PowerControlType::Type controlType);
     std::string createStatusStringForTimeWindow(PowerControlType::Type controlType);

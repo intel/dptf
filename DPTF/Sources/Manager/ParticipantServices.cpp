@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -267,4 +267,11 @@ void ParticipantServices::throwIfNotWorkItemThread(void)
     {
         throw dptf_exception("Participant Services functionality called from an unknown thread.");
     }
+}
+
+void ParticipantServices::sendDptfEvent(ParticipantEvent::Type participantEvent, UIntN domainId, esif_data eventData)
+{
+    throwIfNotWorkItemThread();
+    m_esifServices->sendDptfEvent(ParticipantEvent::ToFrameworkEvent(ParticipantEvent::DptfParticipantControlAction), 
+        m_participantIndex, domainId, eventData);
 }

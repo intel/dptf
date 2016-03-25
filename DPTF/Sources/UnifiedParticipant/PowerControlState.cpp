@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,11 +54,11 @@ void PowerControlState::restore()
     restoreDutyCycle(PowerControlType::PL3, m_pl3DutyCycle);
 }
 
-XmlNode* PowerControlState::toXml() const
+std::shared_ptr<XmlNode> PowerControlState::toXml() const
 {
-    XmlNode* set = XmlNode::createWrapperElement("power_control_state_set");
+    auto set = XmlNode::createWrapperElement("power_control_state_set");
 
-    XmlNode* entryPl1 = XmlNode::createWrapperElement("power_control_state_entry");
+    auto entryPl1 = XmlNode::createWrapperElement("power_control_state_entry");
     entryPl1->addChild(XmlNode::createDataElement("control", PowerControlType::ToString(PowerControlType::PL1)));
     entryPl1->addChild(XmlNode::createDataElement("enabled", StatusFormat::friendlyValue(m_pl1Enabled.get())));
     entryPl1->addChild(XmlNode::createDataElement("limit", m_pl1Limit.get().toString()));
@@ -66,7 +66,7 @@ XmlNode* PowerControlState::toXml() const
     entryPl1->addChild(XmlNode::createDataElement("duty_cycle", "DISABLED"));
     set->addChild(entryPl1);
 
-    XmlNode* entryPl2 = XmlNode::createWrapperElement("power_control_state_entry");
+    auto entryPl2 = XmlNode::createWrapperElement("power_control_state_entry");
     entryPl1->addChild(XmlNode::createDataElement("control", PowerControlType::ToString(PowerControlType::PL2)));
     entryPl1->addChild(XmlNode::createDataElement("enabled", StatusFormat::friendlyValue(m_pl2Enabled.get())));
     entryPl1->addChild(XmlNode::createDataElement("limit", m_pl2Limit.get().toString()));
@@ -74,7 +74,7 @@ XmlNode* PowerControlState::toXml() const
     entryPl1->addChild(XmlNode::createDataElement("duty_cycle", "DISABLED"));
     set->addChild(entryPl2);
 
-    XmlNode* entryPl3 = XmlNode::createWrapperElement("power_control_state_entry");
+    auto entryPl3 = XmlNode::createWrapperElement("power_control_state_entry");
     entryPl1->addChild(XmlNode::createDataElement("control", PowerControlType::ToString(PowerControlType::PL3)));
     entryPl1->addChild(XmlNode::createDataElement("enabled", StatusFormat::friendlyValue(m_pl3Enabled.get())));
     entryPl1->addChild(XmlNode::createDataElement("limit", m_pl3Limit.get().toString()));
@@ -82,7 +82,7 @@ XmlNode* PowerControlState::toXml() const
     entryPl1->addChild(XmlNode::createDataElement("duty_cycle", m_pl3DutyCycle.get().toString()));
     set->addChild(entryPl3);
 
-    XmlNode* entryPl4 = XmlNode::createWrapperElement("power_control_state_entry");
+    auto entryPl4 = XmlNode::createWrapperElement("power_control_state_entry");
     entryPl1->addChild(XmlNode::createDataElement("control", PowerControlType::ToString(PowerControlType::PL4)));
     entryPl1->addChild(XmlNode::createDataElement("enabled", StatusFormat::friendlyValue(m_pl4Enabled.get())));
     entryPl1->addChild(XmlNode::createDataElement("limit", m_pl4Limit.get().toString()));
@@ -90,7 +90,7 @@ XmlNode* PowerControlState::toXml() const
     entryPl1->addChild(XmlNode::createDataElement("duty_cycle", "DISABLED"));
     set->addChild(entryPl4);
 
-    XmlNode* root = XmlNode::createWrapperElement("power_control_state");
+    auto root = XmlNode::createWrapperElement("power_control_state");
     root->addChild(set);
 
     return root;

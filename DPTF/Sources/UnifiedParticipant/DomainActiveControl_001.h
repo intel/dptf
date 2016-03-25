@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "BinaryParse.h"
 #include "DomainActiveControlBase.h"
+#include "CachedValue.h"
 
 class DomainActiveControl_001 : public DomainActiveControlBase
 {
@@ -37,10 +38,13 @@ public:
     virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override;
     virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
 
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 
@@ -49,13 +53,15 @@ private:
     DomainActiveControl_001& operator=(const DomainActiveControl_001& rhs);
 
     // Functions
-    void createActiveControlSet(UIntN domainIndex);
-    void createActiveControlStaticCaps(UIntN domainIndex);
-    void createActiveControlStatus(UIntN domainIndex);
-    void checkAndCreateControlStructures(UIntN domainIndex);
+    ActiveControlSet createActiveControlSet(UIntN domainIndex);
+    ActiveControlStaticCaps createActiveControlStaticCaps(UIntN domainIndex);
+    ActiveControlStatus createActiveControlStatus(UIntN domainIndex);
+    void throwIfFineGrainedControlIsSupported(UIntN participantIndex, UIntN domainIndex);
+    void throwIfControlIndexIsInvalid(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex);
+    void throwIfFineGrainedControlIsNotSupported(UIntN participantIndex, UIntN domainIndex);
 
     // Vars
-    ActiveControlStaticCaps* m_activeControlStaticCaps;
-    ActiveControlStatus* m_activeControlStatus;
-    ActiveControlSet* m_activeControlSet;
+    CachedValue<ActiveControlStaticCaps> m_activeControlStaticCaps;
+    CachedValue<ActiveControlStatus> m_activeControlStatus;
+    CachedValue<ActiveControlSet> m_activeControlSet;
 };

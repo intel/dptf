@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,24 +22,23 @@
 
 #include <errno.h>
 #include <sys/stat.h>
-#include <stdlib.h> /* qsort */
 #include "esif_ccb_string.h"
 
 /*
  * File Management
  */
 
-#define MAX_PATH 260
-#define INVALID_HANDLE_VALUE NULL
-
-static ESIF_INLINE int esif_ccb_fopen(
-	FILE **fp,
+static ESIF_INLINE FILE *esif_ccb_fopen(
 	esif_string name,
-	esif_string mode
+	esif_string mode,
+	int *errnoPtr
 	)
 {
-	*fp = fopen(name, mode);
-	return (*fp ? 0 : errno);
+	FILE *fp = fopen(name, mode);
+	if (errnoPtr) {
+		*errnoPtr = (fp ? 0 : errno);
+	}
+	return fp;
 }
 
 /* NOTE: SCANFBUF is mandatory when using esif_ccb_fscanf to scan into strings:
@@ -98,6 +97,7 @@ static ESIF_INLINE int esif_ccb_makepath(char *path)
 #include <dirent.h>
 #include <fnmatch.h>
 #include "esif_ccb_memory.h"
+#include "esif_ccb_sort.h"
 
 #pragma pack(push,1)
 struct esif_ccb_file_enum {
@@ -108,15 +108,6 @@ struct esif_ccb_file_enum {
 #pragma pack(pop)
 
 typedef struct esif_ccb_file_enum *esif_ccb_file_enum_t;
-
-/* qsort() callback to do case-insenstive sort on an array of null-terminated strings */
-static ESIF_INLINE int esif_ccb_file_find_qsort(
-	const void *arg1,
-	const void *arg2
-	)
-{
-	return esif_ccb_stricmp(*(char **)arg1, *(char **)arg2);
-}
 
 /* CCB File Abstraction */
 #pragma pack(push,1)
@@ -142,7 +133,10 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 	esif_ccb_sprintf(MAX_PATH, full_path, "%s", path);
 
 	find_handle = (esif_ccb_file_enum_t)esif_ccb_malloc(sizeof(struct esif_ccb_file_enum));
-
+	if (NULL == find_handle) {
+		find_handle = INVALID_HANDLE_VALUE;
+		goto exit;
+	}
 	find_handle->handle = opendir(full_path);
 	if (INVALID_HANDLE_VALUE == find_handle->handle) {
 		esif_ccb_free(find_handle);
@@ -170,13 +164,14 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 
 	// If any matches, sort the results and return the first match, freeing it from the result array
 	if (find_handle->matches) {
-		qsort(find_handle->files, find_handle->matches, sizeof(char *), esif_ccb_file_find_qsort);
+		esif_context_t qsort_ctx = 0;
+		esif_ccb_qsort(find_handle->files, find_handle->matches, sizeof(char *), esif_ccb_qsort_stricmp, &qsort_ctx);
 		esif_ccb_strcpy(file->filename, find_handle->files[0], MAX_PATH);
 		esif_ccb_free(find_handle->files[0]);
 		find_handle->files[0] = NULL;
 		goto exit;
 	}
-	
+
 	closedir(find_handle->handle);
 	esif_ccb_free(find_handle);
 	find_handle = INVALID_HANDLE_VALUE; // no matches

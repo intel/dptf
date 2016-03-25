@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -168,18 +168,55 @@ void DomainPowerControl_001::setAndCheckEnabled(PowerControlType::Type controlTy
     }
 }
 
+void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            EsifCapabilityData capability;
+            capability.type = Capability::PowerControl;
+            capability.size = sizeof(capability);
+
+            for (UInt32 powerType = PowerControlType::PL1; powerType < PowerControlType::max; powerType++)
+            {
+                capability.data.powerControl.powerDataSet[powerType].isEnabled = (UInt32)checkEnabled((PowerControlType::Type)powerType);
+                if (capability.data.powerControl.powerDataSet[powerType].isEnabled == (UInt32)true)
+                {
+                    PowerControlDynamicCaps powerControlCaps = m_powerControlDynamicCaps.get().getCapability((PowerControlType::Type)powerType);
+                    capability.data.powerControl.powerDataSet[powerType].powerType = (PowerControlType::Type)powerType + 1;
+                    capability.data.powerControl.powerDataSet[powerType].powerLimit = (UInt32)getPowerLimit(participantIndex, domainIndex, (PowerControlType::Type)powerType);
+                    capability.data.powerControl.powerDataSet[powerType].lowerLimit = powerControlCaps.getMinPowerLimit();
+                    capability.data.powerControl.powerDataSet[powerType].upperLimit = powerControlCaps.getMaxPowerLimit();
+                    capability.data.powerControl.powerDataSet[powerType].stepsize = powerControlCaps.getPowerStepSize();
+                    capability.data.powerControl.powerDataSet[powerType].minTimeWindow = (UInt32)powerControlCaps.getMinTimeWindow().asMillisecondsInt();
+                    capability.data.powerControl.powerDataSet[powerType].maxTimeWindow = (UInt32)powerControlCaps.getMaxTimeWindow().asMillisecondsInt();
+                    capability.data.powerControl.powerDataSet[powerType].minDutyCycle = powerControlCaps.getMinDutyCycle().toWholeNumber();
+                    capability.data.powerControl.powerDataSet[powerType].maxDutyCycle = powerControlCaps.getMaxDutyCycle().toWholeNumber();
+                }
+            }
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
+}
+
 void DomainPowerControl_001::clearCachedData(void)
 {
     m_powerControlDynamicCaps.invalidate();
 }
 
-XmlNode* DomainPowerControl_001::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPowerControl_001::getXml(UIntN domainIndex)
 {
-    XmlNode* root = XmlNode::createWrapperElement("power_control");
+    auto root = XmlNode::createWrapperElement("power_control");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
     root->addChild(getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex()).getXml());
 
-    XmlNode* set = XmlNode::createWrapperElement("power_limit_set");
+    auto set = XmlNode::createWrapperElement("power_limit_set");
     set->addChild(createStatusNode(PowerControlType::PL1));
     set->addChild(createStatusNode(PowerControlType::PL2));
     set->addChild(createStatusNode(PowerControlType::PL3));
@@ -189,9 +226,9 @@ XmlNode* DomainPowerControl_001::getXml(UIntN domainIndex)
     return root;
 }
 
-XmlNode* DomainPowerControl_001::createStatusNode(PowerControlType::Type controlType)
+std::shared_ptr<XmlNode> DomainPowerControl_001::createStatusNode(PowerControlType::Type controlType)
 {
-    XmlNode* pl = XmlNode::createWrapperElement("power_limit");
+    auto pl = XmlNode::createWrapperElement("power_limit");
     pl->addChild(XmlNode::createDataElement("type", PowerControlType::ToString(controlType)));
     pl->addChild(XmlNode::createDataElement("enabled", createStatusStringForEnabled(controlType)));
     pl->addChild(XmlNode::createDataElement("limit_value", createStatusStringForLimitValue(controlType)));

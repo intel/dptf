@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,12 +30,17 @@ DomainPriority DomainPriority_000::getDomainPriority(UIntN participantIndex, UIn
     return DomainPriority(0);
 }
 
+void DomainPriority_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 void DomainPriority_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
 }
 
-XmlNode* DomainPriority_000::getXml(UIntN domainIndex)
+std::shared_ptr<XmlNode> DomainPriority_000::getXml(UIntN domainIndex)
 {
     // Do nothing.  Not an error.
     throw not_implemented();

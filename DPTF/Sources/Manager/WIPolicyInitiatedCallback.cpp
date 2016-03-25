@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,7 +41,7 @@ void WIPolicyInitiatedCallback::execute(void)
         Policy* policy = getPolicyManager()->getPolicyPtr(m_policyIndex);
         policy->executePolicyInitiatedCallback(m_policyDefinedEventCode, m_param1, m_param2);
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyInitiatedCallback", m_policyIndex);
     }

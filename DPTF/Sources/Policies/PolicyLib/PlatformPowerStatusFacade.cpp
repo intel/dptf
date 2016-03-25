@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,12 @@ PlatformPowerStatusFacade::PlatformPowerStatusFacade(
     m_domainProperties(domainProperties),
     m_participantIndex(participantIndex),
     m_domainIndex(domainIndex),
-    m_batteryStatusValid(false)
+    m_maxBatteryPower(Power::createInvalid()),
+    m_platformRestOfPower(Power::createInvalid()),
+    m_adapterPowerRating(Power::createInvalid()),
+    m_acPeakPower(Power::createInvalid()),
+    m_acPeakTimeWindow(TimeSpan::createInvalid()),
+    m_batterySteadyState(Power::createInvalid())
 {
 }
 
@@ -39,128 +44,117 @@ PlatformPowerStatusFacade::~PlatformPowerStatusFacade(void)
 
 Power PlatformPowerStatusFacade::getMaxBatteryPower(void)
 {
-    if (m_maxBatteryPower.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_maxBatteryPower.set(m_policyServices.domainPlatformPowerStatus->getMaxBatteryPower(
-            m_participantIndex, m_domainIndex));
+        m_maxBatteryPower = m_policyServices.domainPlatformPowerStatus->getMaxBatteryPower(
+            m_participantIndex, m_domainIndex);
     }
-    return m_maxBatteryPower.get();
-}
-
-Power PlatformPowerStatusFacade::getAdapterPower(void)
-{
-    if (m_adapterPower.isInvalid())
-    {
-        m_adapterPower.set(m_policyServices.domainPlatformPowerStatus->getAdapterPower(
-            m_participantIndex, m_domainIndex));
-    }
-    return m_adapterPower.get();
-}
-
-Power PlatformPowerStatusFacade::getPlatformPowerConsumption(void)
-{
-    if (m_platformPowerConsumption.isInvalid())
-    {
-        m_platformPowerConsumption.set(m_policyServices.domainPlatformPowerStatus->getPlatformPowerConsumption(
-            m_participantIndex, m_domainIndex));
-    }
-    return m_platformPowerConsumption.get();
+    return m_maxBatteryPower;
 }
 
 Power PlatformPowerStatusFacade::getPlatformRestOfPower(void)
 {
-    if (m_platformRestOfPower.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_platformRestOfPower.set(m_policyServices.domainPlatformPowerStatus->getPlatformRestOfPower(
-            m_participantIndex, m_domainIndex));
+        m_platformRestOfPower = m_policyServices.domainPlatformPowerStatus->getPlatformRestOfPower(
+            m_participantIndex, m_domainIndex);
     }
-    return m_platformRestOfPower.get();
+    return m_platformRestOfPower;
 }
 
 Power PlatformPowerStatusFacade::getAdapterPowerRating(void)
 {
-    if (m_adapterPowerRating.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_adapterPowerRating.set(m_policyServices.domainPlatformPowerStatus->getAdapterPowerRating(
-            m_participantIndex, m_domainIndex));
+        m_adapterPowerRating = m_policyServices.domainPlatformPowerStatus->getAdapterPowerRating(
+            m_participantIndex, m_domainIndex);
     }
-    return m_adapterPowerRating.get();
+    return m_adapterPowerRating;
 }
 
 DptfBuffer PlatformPowerStatusFacade::getBatteryStatus(void)
 {
-    if (m_batteryStatusValid == false)
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_batteryStatus = m_policyServices.domainPlatformPowerStatus->getBatteryStatus(
+        return m_policyServices.domainPlatformPowerStatus->getBatteryStatus(
             m_participantIndex, m_domainIndex);
-        m_batteryStatusValid = true;
     }
-    return m_batteryStatus;
+
+    throw dptf_exception("No support for platform power status interface");
+}
+
+DptfBuffer PlatformPowerStatusFacade::getBatteryInformation(void)
+{
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
+    {
+        return m_policyServices.domainPlatformPowerStatus->getBatteryInformation(
+            m_participantIndex, m_domainIndex);
+    }
+
+    throw dptf_exception("No support for platform power status interface");
 }
 
 PlatformPowerSource::Type PlatformPowerStatusFacade::getPlatformPowerSource(void)
 {
-    if (m_platformPowerSource.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_platformPowerSource.set(m_policyServices.domainPlatformPowerStatus->getPlatformPowerSource(
-            m_participantIndex, m_domainIndex));
+        m_platformPowerSource = m_policyServices.domainPlatformPowerStatus->getPlatformPowerSource(
+            m_participantIndex, m_domainIndex);
     }
-    return m_platformPowerSource.get();
+    return m_platformPowerSource;
 }
 
 ChargerType::Type PlatformPowerStatusFacade::getChargerType(void)
 {
-    if (m_chargerType.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_chargerType.set(m_policyServices.domainPlatformPowerStatus->getChargerType(
-            m_participantIndex, m_domainIndex));
+        m_chargerType = m_policyServices.domainPlatformPowerStatus->getChargerType(
+            m_participantIndex, m_domainIndex);
     }
-    return m_chargerType.get();
-}
-
-Percentage PlatformPowerStatusFacade::getPlatformStateOfCharge(void)
-{
-    if (m_platformStateOfCharge.isInvalid())
-    {
-        m_platformStateOfCharge.set(m_policyServices.domainPlatformPowerStatus->getPlatformStateOfCharge(
-            m_participantIndex, m_domainIndex));
-    }
-    return m_platformStateOfCharge.get();
+    return m_chargerType;
 }
 
 Power PlatformPowerStatusFacade::getACPeakPower(void)
 {
-    if (m_acPeakPower.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_acPeakPower.set(m_policyServices.domainPlatformPowerStatus->getACPeakPower(
-            m_participantIndex, m_domainIndex));
+        m_acPeakPower = m_policyServices.domainPlatformPowerStatus->getACPeakPower(
+            m_participantIndex, m_domainIndex);
     }
-    return m_acPeakPower.get();
+    return m_acPeakPower;
 }
 
 TimeSpan PlatformPowerStatusFacade::getACPeakTimeWindow(void)
 {
-    if (m_acPeakTimeWindow.isInvalid())
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
     {
-        m_acPeakTimeWindow.set(m_policyServices.domainPlatformPowerStatus->getACPeakTimeWindow(
-            m_participantIndex, m_domainIndex));
+        m_acPeakTimeWindow = m_policyServices.domainPlatformPowerStatus->getACPeakTimeWindow(
+            m_participantIndex, m_domainIndex);
     }
-    return m_acPeakTimeWindow.get();
+    return m_acPeakTimeWindow;
 }
 
-XmlNode* PlatformPowerStatusFacade::getXml() const
+Power PlatformPowerStatusFacade::getPlatformBatterySteadyState(void)
 {
-    XmlNode* control = XmlNode::createWrapperElement("platform_power_status");
-    control->addChild(XmlNode::createDataElement("max_battery_power", m_maxBatteryPower.get().toString()));
-    control->addChild(XmlNode::createDataElement("adapter_power", m_adapterPower.get().toString()));
-    control->addChild(XmlNode::createDataElement("platform_power_consumption", m_platformPowerConsumption.get().toString()));
-    control->addChild(XmlNode::createDataElement("platform_state_of_charge", m_platformStateOfCharge.get().toString()));
+    if (m_domainProperties.implementsPlatformPowerStatusInterface())
+    {
+        m_batterySteadyState = m_policyServices.domainPlatformPowerStatus->getPlatformBatterySteadyState(
+            m_participantIndex, m_domainIndex);
+    }
+    return m_batterySteadyState;
+}
+
+std::shared_ptr<XmlNode> PlatformPowerStatusFacade::getXml() const
+{
+    auto control = XmlNode::createWrapperElement("platform_power_status");
+    control->addChild(XmlNode::createDataElement("max_battery_power", m_maxBatteryPower.toString()));
     control->addChild(XmlNode::createDataElement(
-        "platform_power_source", PlatformPowerSource::ToString(m_platformPowerSource.get())));
-    control->addChild(XmlNode::createDataElement("adapter_power_rating", m_adapterPowerRating.get().toString()));
-    control->addChild(XmlNode::createDataElement("charger_type", ChargerType::ToString(m_chargerType.get())));
-    control->addChild(XmlNode::createDataElement("platform_rest_of_power", m_platformRestOfPower.get().toString()));
-    control->addChild(XmlNode::createDataElement("ac_peak_power", m_acPeakPower.get().toString()));
-    control->addChild(XmlNode::createDataElement("ac_peak_time_window", m_acPeakTimeWindow.get().toStringMilliseconds()));
+        "platform_power_source", PlatformPowerSource::ToString(m_platformPowerSource)));
+    control->addChild(XmlNode::createDataElement("adapter_power_rating", m_adapterPowerRating.toString()));
+    control->addChild(XmlNode::createDataElement("charger_type", ChargerType::ToString(m_chargerType)));
+    control->addChild(XmlNode::createDataElement("platform_rest_of_power", m_platformRestOfPower.toString()));
+    control->addChild(XmlNode::createDataElement("ac_peak_power", m_acPeakPower.toString()));
+    control->addChild(XmlNode::createDataElement("ac_peak_time_window", m_acPeakTimeWindow.toStringMilliseconds()));
+    control->addChild(XmlNode::createDataElement("battery_steady_state", m_batterySteadyState.toString()));
     return control;
 }

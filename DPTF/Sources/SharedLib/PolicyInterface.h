@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,7 @@
 #include "OsLidState.h"
 #include "OsPlatformType.h"
 #include "OsDockMode.h"
+#include "OsPowerSchemePersonality.h"
 
 class dptf_export PolicyInterface
 {
@@ -120,14 +121,15 @@ public:
     virtual void domainVirtualSensorPollingTableChanged(UIntN participantIndex) = 0;
     virtual void domainVirtualSensorRecalcChanged(UIntN participantIndex) = 0;
     virtual void domainBatteryStatusChanged(UIntN participantIndex) = 0;
-    virtual void domainAdapterPowerChanged(UIntN participantIndex) = 0;
-    virtual void domainPlatformPowerConsumptionChanged(UIntN participantIndex) = 0;
+    virtual void domainBatteryInformationChanged(UIntN participantIndex) = 0;
     virtual void domainPlatformPowerSourceChanged(UIntN participantIndex) = 0;
     virtual void domainAdapterPowerRatingChanged(UIntN participantIndex) = 0;
     virtual void domainChargerTypeChanged(UIntN participantIndex) = 0;
     virtual void domainPlatformRestOfPowerChanged(UIntN participantIndex) = 0;
     virtual void domainACPeakPowerChanged(UIntN participantIndex) = 0;
     virtual void domainACPeakTimeWindowChanged(UIntN participantIndex) = 0;
+    virtual void domainMaxBatteryPowerChanged(UIntN participantIndex) = 0;
+    virtual void domainPlatformBatterySteadyStateChanged(UIntN participantIndex) = 0;
 
     // Policy Event Handlers
     virtual void activeRelationshipTableChanged(void) = 0;
@@ -142,8 +144,10 @@ public:
     virtual void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
     virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
     virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) = 0;
+    virtual void operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality) = 0;
     virtual void operatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType) = 0;
     virtual void operatingSystemDockModeChanged(OsDockMode::Type osDockMode) = 0;
+    virtual void operatingSystemMobileNotification(UIntN mobileNotification) = 0;
     virtual void passiveTableChanged(void) = 0;
     virtual void platformLpmModeChanged(void) = 0;
     virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;

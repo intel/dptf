@@ -1,12 +1,12 @@
 set(PASSIVE_POLICY "DptfPolicyPassive")
 
 if (IN_SOURCE_BUILD MATCHES YES)
-        file(GLOB_RECURSE passive_policy_SOURCES "*.cpp")
+        file(GLOB_RECURSE PASSIVE_POLICY_SOURCES "*.cpp")
 else ()
-	file(GLOB_RECURSE passive_policy_SOURCES "../../../Sources/Policies/PassivePolicy/*.cpp")
+	file(GLOB_RECURSE PASSIVE_POLICY_SOURCES "../../../Sources/Policies/PassivePolicy/*.cpp")
 endif()
 
-add_library(${PASSIVE_POLICY} MODULE ${passive_policy_SOURCES})
+add_library(${PASSIVE_POLICY} MODULE ${PASSIVE_POLICY_SOURCES})
 
 set_target_properties(${PASSIVE_POLICY} PROPERTIES PREFIX "")
 

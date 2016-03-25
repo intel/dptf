@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,6 +54,21 @@ void PerformanceControlFacade::setControl(UIntN performanceControlIndex)
             m_participantIndex, m_domainIndex, performanceControlIndex);
         m_lastIssuedPerformanceControlIndex = performanceControlIndex;
         
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the performance control interface.");
+    }
+}
+
+void PerformanceControlFacade::setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities)
+{
+    if (supportsPerformanceControls())
+    {
+        m_performanceControlCapabilitiesProperty.invalidate();
+        m_policyServices.domainPerformanceControl->setPerformanceControlDynamicCaps(
+            m_participantIndex, m_domainIndex, newCapabilities);
+        refreshCapabilities();
     }
     else
     {

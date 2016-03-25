@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,29 +19,18 @@
 #pragma once
 
 #include "Dptf.h"
-#include "RelationshipTableEntryBase.h"
-#include "XmlNode.h"
+#include "WorkItem.h"
 
-class dptf_export ActiveRelationshipTableEntry : public RelationshipTableEntryBase
+class WIPolicyOperatingSystemMobileNotification : public WorkItem
 {
 public:
 
-    ActiveRelationshipTableEntry(
-        const std::string& sourceDeviceAcpiScope,
-        const std::string& targetDeviceAcpiScope,
-        UInt32 weight,
-        const std::vector<UInt32>& acEntries);
-    ~ActiveRelationshipTableEntry();
+    WIPolicyOperatingSystemMobileNotification(DptfManagerInterface* dptfManager, UIntN mobileNotification);
+    virtual ~WIPolicyOperatingSystemMobileNotification(void);
 
-    const UInt32& ac(UIntN acLevel) const;
-
-    XmlNode* getXml();
-    Bool operator==(const ActiveRelationshipTableEntry& artEntry) const;
-
-    static const UIntN FanOffIndex = 10;
+    virtual void execute(void) override final;
 
 private:
 
-    UInt32 m_weight;
-    std::vector<UInt32> m_acEntries;
+    const UIntN m_mobileNotification;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -110,9 +110,9 @@ ConfigTdpControlSet ConfigTdpControlFacade::getControlSet()
     return m_configTdpControlSet.getControlSet();
 }
 
-XmlNode* ConfigTdpControlFacade::getXml()
+std::shared_ptr<XmlNode> ConfigTdpControlFacade::getXml()
 {
-    XmlNode* status = XmlNode::createWrapperElement("control_config_tdp_level");
+    auto status = XmlNode::createWrapperElement("control_config_tdp_level");
     if (supportsConfigTdpControls())
     {
         try

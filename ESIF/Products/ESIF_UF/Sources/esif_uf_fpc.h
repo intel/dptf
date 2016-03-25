@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -168,15 +168,12 @@ typedef struct esif_fpc_event {
 
 
 /* Must Be Aligned With DSP's primitive.h: primitive{} */
-#define MAX_SCHEMA_STRING_LENGTH 128
 typedef struct esif_fpc_primitive {	// _t_EsifFpcPrimitive
 	unsigned int  size;
 	struct esif_primitive_tuple tuple;
 	unsigned int  operation;
 	unsigned int  request_type;
-	char request_schema[MAX_SCHEMA_STRING_LENGTH];
 	unsigned int  result_type;
-	char result_schema[MAX_SCHEMA_STRING_LENGTH];
 	unsigned int  num_actions;
 	/* action(s) falls after the offsets */
 } EsifFpcPrimitive, *EsifFpcPrimitivePtr;

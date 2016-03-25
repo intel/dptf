@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "DomainDisplayControlBase.h"
 #include "BinaryParse.h"
+#include "CachedValue.h"
 
 //
 // Implements the regular display controls, v001.
@@ -38,11 +39,16 @@ public:
     virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+    virtual void setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
+        DisplayControlDynamicCaps newCapabilities) override;
+
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
-    virtual XmlNode* getXml(UIntN domainIndex) override;
+    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
 
@@ -51,17 +57,18 @@ private:
     DomainDisplayControl_001& operator=(const DomainDisplayControl_001& rhs);
 
     // Functions
-    void initializeDataStructures(void);
-    void createDisplayControlDynamicCaps(UIntN domainIndex);
-    void createDisplayControlSet(UIntN domainIndex);
-    void verifyDisplayControlIndex(UIntN displayControlIndex);
-    void checkAndCreateControlStructures(UIntN domainIndex);
+    DisplayControlDynamicCaps createDisplayControlDynamicCaps(UIntN domainIndex);
+    DisplayControlSet createDisplayControlSet(UIntN domainIndex);
+    void throwIfControlIndexIsOutOfRange(UIntN displayControlIndex, UIntN domainIndex);
+    void throwIfDisplaySetIsEmpty(UIntN sizeOfSet);
+    UIntN getLowerLimitIndex(UIntN domainIndex, DisplayControlSet displaySet);
+    UIntN getUpperLimitIndex(UIntN domainIndex, DisplayControlSet displaySet);
 
     // Vars (external)
-    DisplayControlDynamicCaps* m_displayControlDynamicCaps;
-    DisplayControlSet* m_displayControlSet;
+    CachedValue<DisplayControlDynamicCaps> m_displayControlDynamicCaps;
+    CachedValue<DisplayControlSet> m_displayControlSet;
 
     // Vars (internal)
-    UIntN m_currentDisplayControlIndex;
+    CachedValue<UIntN> m_currentDisplayControlIndex;
     std::vector<DisplayControl> processDisplayControlSetData(std::vector<DisplayControl> controls);
 };

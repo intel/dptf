@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,24 +57,30 @@ namespace DomainType
                 return "Other";
             case WWan:
                 return "WWan";
-            case WGig:
-                return "WGig";
             case Power:
                 return "Power";
             case Thermistor:
                 return "Thermistor";
             case Infrared:
                 return "Infrared";
-            case WirelessRfem:
-                return "WirelessRfem";
             case Virtual:
                 return "Virtual";
             case Ambient:
                 return "Ambient";
-            case Ds4:
-                return "Ds4";
+            case DSx:
+                return "DSx";
+            case Rfem:
+                return "Rfem";
+            case M2Cnv:
+                return "M2Cnv";
+            case SocCnv:
+                return "SocCnv";
+            case IVCam:
+                return "IVCam";
             case All:
                 return "All";
+            case Invalid:
+                return "NA";
             default:
                 throw dptf_exception("DomainType::Type is invalid.");
         }
@@ -101,7 +107,7 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
             return DomainType::Ethernet;
         case ESIF_DOMAIN_TYPE_WIRELESS:
             return DomainType::Wireless;
-        case ESIF_DOMAIN_TYPE_ATSG:
+        case ESIF_DOMAIN_TYPE_AHCI:
             return DomainType::Storage;
         case ESIF_DOMAIN_TYPE_MULTIFUNCTION:
             return DomainType::MultiFunction;
@@ -117,24 +123,30 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
             return DomainType::Other;
         case ESIF_DOMAIN_TYPE_WWAN:
             return DomainType::WWan;
-        case ESIF_DOMAIN_TYPE_WGIG:
-            return DomainType::WGig;
         case ESIF_DOMAIN_TYPE_POWER:
             return DomainType::Power;
         case ESIF_DOMAIN_TYPE_THERMISTOR:
             return DomainType::Thermistor;
         case ESIF_DOMAIN_TYPE_INFRARED:
             return DomainType::Infrared;
-        case ESIF_DOMAIN_TYPE_WIRELESSRFEM:
-            return DomainType::WirelessRfem;
         case ESIF_DOMAIN_TYPE_VIRTUAL:
             return DomainType::Virtual;
         case ESIF_DOMAIN_TYPE_AMBIENT:
             return DomainType::Ambient;
-        case ESIF_DOMAIN_TYPE_DS4:
-            return DomainType::Ds4;
+        case ESIF_DOMAIN_TYPE_DSX:
+            return DomainType::DSx;
+        case ESIF_DOMAIN_TYPE_RFEM:
+            return DomainType::Rfem;
+        case ESIF_DOMAIN_TYPE_M2CNV:
+            return DomainType::M2Cnv;
+        case ESIF_DOMAIN_TYPE_SOCCNV:
+            return DomainType::SocCnv;
+        case ESIF_DOMAIN_TYPE_IVCAM:
+            return DomainType::IVCam;
         case ESIF_DOMAIN_TYPE_ALL:
             return DomainType::All;
+        case ESIF_DOMAIN_TYPE_INVALID:
+            return DomainType::Invalid;
         default: break;
     }
 
@@ -162,7 +174,7 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
     case DomainType::Wireless:
         return ESIF_DOMAIN_TYPE_WIRELESS;
     case DomainType::Storage:
-        return ESIF_DOMAIN_TYPE_ATSG;
+        return ESIF_DOMAIN_TYPE_AHCI;
     case DomainType::MultiFunction:
         return ESIF_DOMAIN_TYPE_MULTIFUNCTION;
     case DomainType::Display:
@@ -177,24 +189,30 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
         return ESIF_DOMAIN_TYPE_OTHER;
     case DomainType::WWan:
         return ESIF_DOMAIN_TYPE_WWAN;
-    case DomainType::WGig:
-        return ESIF_DOMAIN_TYPE_WGIG;
     case DomainType::Power:
         return ESIF_DOMAIN_TYPE_POWER;
     case DomainType::Thermistor:
         return ESIF_DOMAIN_TYPE_THERMISTOR;
     case DomainType::Infrared:
         return ESIF_DOMAIN_TYPE_INFRARED;
-    case DomainType::WirelessRfem:
-        return ESIF_DOMAIN_TYPE_WIRELESSRFEM;
     case DomainType::Virtual:
         return ESIF_DOMAIN_TYPE_VIRTUAL;
     case DomainType::Ambient:
         return ESIF_DOMAIN_TYPE_AMBIENT;
-    case DomainType::Ds4:
-        return ESIF_DOMAIN_TYPE_DS4;
+    case DomainType::DSx:
+        return ESIF_DOMAIN_TYPE_DSX;
+    case DomainType::Rfem:
+        return ESIF_DOMAIN_TYPE_RFEM;
+    case DomainType::M2Cnv:
+        return ESIF_DOMAIN_TYPE_M2CNV;
+    case DomainType::SocCnv:
+        return ESIF_DOMAIN_TYPE_SOCCNV;
+    case DomainType::IVCam:
+        return ESIF_DOMAIN_TYPE_IVCAM;
     case DomainType::All:
         return ESIF_DOMAIN_TYPE_ALL;
+    case DomainType::Invalid:
+        return ESIF_DOMAIN_TYPE_INVALID;
     default: break;
     }
 

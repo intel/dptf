@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,9 @@ UIntN DisplayControlStatus::getBrightnessLimitIndex(void) const
     return m_brightnessLimitIndex;
 }
 
-XmlNode* DisplayControlStatus::getXml(void)
+std::shared_ptr<XmlNode> DisplayControlStatus::getXml(void)
 {
-    XmlNode* root = XmlNode::createWrapperElement("display_control_status");
+    auto root = XmlNode::createWrapperElement("display_control_status");
 
     root->addChild(XmlNode::createDataElement("brightness_limit_index", StatusFormat::friendlyValue(m_brightnessLimitIndex)));
 

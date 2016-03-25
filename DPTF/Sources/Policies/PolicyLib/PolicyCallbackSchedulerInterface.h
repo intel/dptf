@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,6 +33,6 @@ public:
     virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, UInt64 beginTime, UInt64 endTime) const = 0;
     virtual void acknowledgeCallback(UIntN participantIndex) = 0;
     virtual void setTimeObject(std::shared_ptr<TimeInterface> time) = 0;
-    virtual XmlNode* getStatus() = 0;
-    virtual XmlNode* getStatusForParticipant(UIntN participantIndex) = 0;
+    virtual std::shared_ptr<XmlNode> getStatus() = 0;
+    virtual std::shared_ptr<XmlNode> getStatusForParticipant(UIntN participantIndex) = 0;
 };

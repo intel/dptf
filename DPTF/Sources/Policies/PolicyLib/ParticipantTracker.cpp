@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,7 @@ void ParticipantTracker::remember(UIntN participantIndex)
     m_trackedParticipants.insert(std::pair<UIntN, ParticipantProxy>(participantIndex, participant));
 }
 
-bool ParticipantTracker::remembers(UIntN participantIndex)
+Bool ParticipantTracker::remembers(UIntN participantIndex)
 {
     return (m_trackedParticipants.find(participantIndex) != m_trackedParticipants.end());
 }
@@ -53,7 +53,8 @@ ParticipantProxyInterface* ParticipantTracker::getParticipant(UIntN participantI
 {
     if (remembers(participantIndex) == false)
     {
-        throw dptf_exception("The participant at the given index is not valid.");
+        throw dptf_exception(std::string("The participant at the given index is not valid: ") + 
+            StlOverride::to_string(participantIndex));
     }
     return &m_trackedParticipants[participantIndex];
 }
@@ -73,9 +74,9 @@ void ParticipantTracker::setPolicyServices(PolicyServicesInterfaceContainer poli
     m_policyServices = policyServices;
 }
 
-XmlNode* ParticipantTracker::getXmlForTripPointStatistics()
+std::shared_ptr<XmlNode> ParticipantTracker::getXmlForTripPointStatistics()
 {
-    XmlNode* allStatus = XmlNode::createWrapperElement("trip_point_statistics");
+    auto allStatus = XmlNode::createWrapperElement("trip_point_statistics");
     for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
     {
         allStatus->addChild(item->second.getXmlForTripPointStatistics());
@@ -83,9 +84,9 @@ XmlNode* ParticipantTracker::getXmlForTripPointStatistics()
     return allStatus;
 }
 
-XmlNode* ParticipantTracker::getXmlForScpDscpSupport()
+std::shared_ptr<XmlNode> ParticipantTracker::getXmlForScpDscpSupport()
 {
-    XmlNode* allStatus = XmlNode::createWrapperElement("scp_dscp_support");
+    auto allStatus = XmlNode::createWrapperElement("scp_dscp_support");
     for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
     {
         allStatus->addChild(item->second.getXmlForScpDscpSupport());
@@ -93,7 +94,7 @@ XmlNode* ParticipantTracker::getXmlForScpDscpSupport()
     return allStatus;
 }
 
-DomainProxyInterface* ParticipantTracker::findDomain(DomainType::Type domainType)
+std::shared_ptr<DomainProxyInterface> ParticipantTracker::findDomain(DomainType::Type domainType)
 {
     auto participantIndexes = getAllTrackedIndexes();
     for (auto participantIndex = participantIndexes.begin();

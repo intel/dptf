@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,10 +51,13 @@ eEsifError EsifConfigFindFirst(EsifDataPtr nameSpace, EsifDataPtr path, EsifData
 /* Iterate Next */
 eEsifError EsifConfigFindNext(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, EsifConfigFindContextPtr context);
 
+/* Iterate Close */
+void EsifConfigFindClose(EsifConfigFindContextPtr context);
+
 esif_flags_t EsifConfigFlags_Set(esif_flags_t bitmask, esif_string optname);
 
 /* Copy/Merge */
-eEsifError EsifConfigCopy(EsifDataPtr nameSpaceFrom, EsifDataPtr nameSpaceTo, EsifDataPtr keyspecs, esif_flags_t flags, Bool replaceKeys);
+eEsifError EsifConfigCopy(EsifDataPtr nameSpaceFrom, EsifDataPtr nameSpaceTo, EsifDataPtr keyspecs, esif_flags_t flags, Bool replaceKeys, UInt32 *keycount);
 
 #ifdef __cplusplus
 }

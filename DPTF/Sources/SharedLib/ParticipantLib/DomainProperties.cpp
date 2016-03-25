@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -148,9 +148,9 @@ Bool DomainProperties::implementsHardwareDutyCycleControlInterface(void) const
     return isInterfaceImplemented(m_domainFunctionalityVersions.hardwareDutyCycleVersion);
 }
 
-XmlNode* DomainProperties::getXml() const
+std::shared_ptr<XmlNode> DomainProperties::getXml() const
 {
-    XmlNode* properties = XmlNode::createWrapperElement("domain_properties");
+    auto properties = XmlNode::createWrapperElement("domain_properties");
     properties->addChild(XmlNode::createDataElement("guid", m_guid.toString()));
     properties->addChild(XmlNode::createDataElement("index", friendlyValue(m_domainIndex)));
     properties->addChild(XmlNode::createDataElement("enabled", friendlyValue(m_enabled)));

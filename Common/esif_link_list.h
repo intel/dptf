@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -136,6 +136,25 @@ typedef struct esif_link_list_node EsifLinkListNode, *EsifLinkListNodePtr;
 
 typedef void (*link_list_data_destroy_func)(void *data_ptr);
 
+/*
+ * Return a non-zero value through sort_value_ptr if node should be inserted
+ * after node containing the prev_data_ptr, and zero if it should not.
+ * Notes:
+ * (1) The prev and/or next pointers may be NULL if at head, tail, or the
+ * list is empty.  The callback must handle these conditions.
+ * (2) The first call will always have the prev_data_ptr NULL to allow
+ * insertion before the current head node.
+ * (3) If the entire list is searched and a non-zero value is not returned,
+ * the new data will not be inserted and ESIF_E_UNSPECIFIED shall be returned
+ * from the ordered insertion function
+ */
+typedef enum esif_rc (*esif_link_list_sort_cb)(
+	void* prev_data_ptr,
+	void* next_data_ptr,
+	void* cur_data_ptr,
+	int* sort_value_ptr
+	);
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -146,6 +165,10 @@ void esif_link_list_exit(void);
 struct esif_link_list *esif_link_list_create(void);
 void esif_link_list_destroy(struct esif_link_list *self);
 
+void esif_link_list_free_data(
+	struct esif_link_list *self,
+	link_list_data_destroy_func destroy_func
+	);
 void esif_link_list_free_data_and_destroy(
 	struct esif_link_list *self,
 	link_list_data_destroy_func destroy_func
@@ -159,6 +182,27 @@ enum esif_rc esif_link_list_add_at_front(
 enum esif_rc esif_link_list_add_at_back(
 	struct esif_link_list *self,
 	void *data_ptr
+	);
+
+/*
+ * Allocates and inserts a new node after the specified node
+ * Note: If the node specified is NULL, then the new node is inserted at the
+ * head.
+ */
+enum esif_rc esif_link_list_add_after(
+	struct esif_link_list *self,
+	struct esif_link_list_node *node_ptr,
+	void *data_ptr
+	);
+
+/*
+ * Allocates a new node and inserts it in the list based on a sorting callback function
+ * See esif_link_list_sort_cb for a description of callback usage.
+ */
+enum esif_rc esif_link_list_insert_ordered(
+	struct esif_link_list *self,
+	void *data_ptr,
+	 esif_link_list_sort_cb callback_ptr
 	);
 
 struct esif_link_list_node *esif_link_list_create_node(void *data_ptr);
@@ -178,6 +222,8 @@ void esif_link_list_node_remove(
 	struct esif_link_list *self,
 	struct esif_link_list_node *node_ptr
 	);
+
+u32 esif_link_list_get_node_count(struct esif_link_list *self);
 
 #ifdef __cplusplus
 }

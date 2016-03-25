@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2015 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 #include "PolicyServicesPlatformPowerState.h"
 #include "EsifServices.h"
-#include "esif_sdk_data_misc.h"
 #include "esif_ccb_thread.h"
 
 void* ThreadSleep(void* self);
@@ -34,6 +33,17 @@ PolicyServicesPlatformPowerState::PolicyServicesPlatformPowerState(DptfManagerIn
 
 }
 
+esif_data_complex_thermal_event* PolicyServicesPlatformPowerState::getThermalEventPtr(void)
+{
+    return &m_thermalEvent;
+}
+
+void PolicyServicesPlatformPowerState::setThermalEvent(const Temperature currentTemperature, const Temperature tripPointTemperature)
+{
+    m_thermalEvent.temperature = currentTemperature;
+    m_thermalEvent.tripPointTemperature = tripPointTemperature;
+}
+
 void PolicyServicesPlatformPowerState::sleep(void)
 {
     throwIfNotWorkItemThread();
@@ -42,11 +52,13 @@ void PolicyServicesPlatformPowerState::sleep(void)
     esif_ccb_thread_create(&threadId, ThreadSleep, this);
 }
 
-void PolicyServicesPlatformPowerState::hibernate(void)
+void PolicyServicesPlatformPowerState::hibernate(const Temperature& currentTemperature, 
+    const Temperature& tripPointTemperature)
 {
     throwIfNotWorkItemThread();
 
     esif_thread_t threadId;
+    setThermalEvent(currentTemperature, tripPointTemperature);
     esif_ccb_thread_create(&threadId, ThreadHibernate, this);
 }
 
@@ -55,12 +67,9 @@ void PolicyServicesPlatformPowerState::shutDown(const Temperature& currentTemper
 {
     throwIfNotWorkItemThread();
 
-    esif_data_complex_shutdown shutdownData;
-    shutdownData.temperature = currentTemperature;
-    shutdownData.tripPointTemperature = tripPointTemperature;
-
+    setThermalEvent(currentTemperature, tripPointTemperature);
     getEsifServices()->primitiveExecuteSet(SET_SYSTEM_SHUTDOWN, ESIF_DATA_STRUCTURE,
-        &shutdownData, sizeof(esif_data_complex_shutdown), sizeof(esif_data_complex_shutdown));
+        getThermalEventPtr(), sizeof(esif_data_complex_thermal_event), sizeof(esif_data_complex_thermal_event));
 }
 
 void* ThreadSleep(void* self)
@@ -87,7 +96,8 @@ void* ThreadHibernate(void* self)
         try
         {
             PolicyServicesPlatformPowerState* me = (PolicyServicesPlatformPowerState*)self;
-            me->getEsifServices()->primitiveExecuteSetAsUInt32(SET_SYSTEM_HIBERNATE, MagicToken);
+            me->getEsifServices()->primitiveExecuteSet(SET_SYSTEM_HIBERNATE, ESIF_DATA_STRUCTURE,
+                me->getThermalEventPtr(), sizeof(esif_data_complex_thermal_event), sizeof(esif_data_complex_thermal_event));
         }
         catch (...)
         {
