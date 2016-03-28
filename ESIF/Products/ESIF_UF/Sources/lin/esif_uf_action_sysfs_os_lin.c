@@ -591,7 +591,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	case ESIF_SYSFS_DIRECT_QUERY_ENUM:
 		/* This is a search loop, so default to failure */
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		
+
 		if (get_key_value_pair_from_str(parm2, srchnm, srchval)) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
@@ -933,22 +933,22 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 				event.operation = RFKILL_OP_CHANGE_ALL;
 				event.soft = sysval;
 				event.hard = 0;
-				
+
 				if((rfkill_fd = open("/dev/rfkill", O_RDWR)) < 0){
 				   rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 				   goto exit;
 				}
-				
+
 				if(write(rfkill_fd, &event, sizeof(event)) < 0){
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 				}
-			 
+
 				close(rfkill_fd);
 				break;
 			case ESIF_SYSFS_SET_OSC:  /* osc */
 				rc = SetOsc(upPtr, requestPtr);
 				break;
-	
+
 			case ESIF_SYSFS_SET_FAN_LEVEL:
 				rc = SetFanLevel(upPtr, requestPtr, devicePathPtr);
 				break;
@@ -1762,7 +1762,7 @@ static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr)
 		ESIF_TRACE_WARN("Failed get participant's max display brightness\n");
 		goto exit;
 	}
-	
+
 	if (sysfs_get_u64(path, "brightness", &curVal) < 1) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Failed get participant's current brightness\n");
@@ -1814,11 +1814,13 @@ exit:
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr)
 {
 	EsifUpDomainPtr d0 = EsifUp_GetDomainByIndex(upPtr, 0);
-	EsifPrimitiveTuple notifyJhsTuple = {SET_JAVA_HELPER_SERVICE_NOTIFICATION, d0->domain, 255};
-	// No need to check return code from EsifUp_ExecutePrimitive() call
-	// We are trying to tell JHS that DPTF is up, but JHS itself may not be up
-	// If EsifUp_ExecutePrimitive() fails it does not matter
-	EsifUp_ExecutePrimitive(upPtr, &notifyJhsTuple, requestPtr, NULL);
+	if (NULL != d0) {
+		EsifPrimitiveTuple notifyJhsTuple = {SET_JAVA_HELPER_SERVICE_NOTIFICATION, d0->domain, 255};
+		// No need to check return code from EsifUp_ExecutePrimitive() call
+		// We are trying to tell JHS that DPTF is up, but JHS itself may not be up
+		// If EsifUp_ExecutePrimitive() fails it does not matter
+		EsifUp_ExecutePrimitive(upPtr, &notifyJhsTuple, requestPtr, NULL);
+	}
 }
 
 static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, const char *cur_node_name)
@@ -1837,7 +1839,7 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 			goto exit;
 		}
 	}
-			
+
 	int lineNum = sysfs_get_string_multiline("/sys/devices/platform/INT3400:00/uuids/", "available_uuids", sys_long_string_val);
 	char fmt[MAX_FMT_STR_LEN] = { 0 };
 	int i = 0;
@@ -1851,7 +1853,7 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 			if (sysfs_set_string("/sys/devices/platform/INT3400:00/uuids/", "current_uuid", sysvalstring) < 0) {
 				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 				goto exit;
-			} 
+			}
 		} else {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
@@ -1864,7 +1866,7 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 			goto exit;
 		}
 	}
-	
+
 exit:
 	return rc;
 }
