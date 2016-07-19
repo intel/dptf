@@ -383,7 +383,7 @@ static void *esif_udev_listen(void *ptr)
 
 	memset(&sock_addr_src, 0, sizeof(sock_addr_src));
 	sock_addr_src.nl_family = AF_NETLINK;
-	sock_addr_src.nl_pid = getpid(); 
+	sock_addr_src.nl_pid = getpid();
 	sock_addr_src.nl_groups = -1;
 
 	bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src));
@@ -392,7 +392,7 @@ static void *esif_udev_listen(void *ptr)
 	memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
 	sock_addr_dest.nl_family = AF_NETLINK;
 	sock_addr_dest.nl_pid = 0;
-	sock_addr_dest.nl_groups = 0; 
+	sock_addr_dest.nl_groups = 0;
 
 	netlink_msg = (struct nlmsghdr *)esif_ccb_malloc(NLMSG_SPACE(MAX_PAYLOAD));
 	if (netlink_msg == NULL) {
@@ -413,7 +413,7 @@ static void *esif_udev_listen(void *ptr)
 	/* Read message from kernel */
 	while(!g_udev_quit) {
 		char *parsed = NULL;
-		char *ctx = NULL;	
+		char *ctx = NULL;
 		recvmsg(sock_fd, &msg, 0);
 		parsed = esif_ccb_strtok(NLMSG_DATA(netlink_msg),"/",&ctx);
 		while (parsed != NULL) {
@@ -422,10 +422,17 @@ static void *esif_udev_listen(void *ptr)
 		}
 		// We only process uevents that have the "thermal_zone" prefix
 		if (esif_ccb_strstr(g_udev_target, "thermal_zone")) {
-			esif_process_udev_event(g_udev_target);
+			// FIXME - disable thermal_zone udev events because there
+			// is current a bug in INT340x thermal zone drivers, i.e.,
+			// every time when ESIF sets aux0/aux1 successfully, a
+			// new uevent is generated indicating thershold cross, which
+			// causes DPTF to re-set aux0/aux1, therefore causing a
+			// forever loop. We have to disable thermal zone uevent
+			// until the driver issue is resolved.
+			//esif_process_udev_event(g_udev_target);
 		}
 	}
-	
+
 exit:
 	if (sock_fd >= 0) {
 		close(sock_fd);
@@ -482,7 +489,7 @@ static void esif_process_udev_event(char *udev_target)
 	eEsifError iter_rc = ESIF_OK;
 	UfPmIterator up_iter = { 0 };
 	Bool target_tz_found = ESIF_FALSE;
-	
+
 	participant_device_path = esif_ccb_malloc(MAX_PAYLOAD);
 	if (participant_device_path == NULL) {
 		goto exit;
@@ -517,18 +524,18 @@ static void esif_process_udev_event(char *udev_target)
 		esif_ccb_free(path_to_compare);
 		iter_rc = EsifUpPm_GetNextUp(&up_iter, &up_ptr);
 	}
-	
-	// If we cannot match UEVENT target to any participant path, we assume it is for 
-	// the SoC itself (which is under x86_package_temp sysfs and does not belong to 
-	// any thermal_zone sysfs). Better be safe than sorry! 
+
+	// If we cannot match UEVENT target to any participant path, we assume it is for
+	// the SoC itself (which is under x86_package_temp sysfs and does not belong to
+	// any thermal_zone sysfs). Better be safe than sorry!
 	if (!target_tz_found) {
 		esif_domain_signal_and_stop_poll(up_proc_ptr, processor_id, udev_target);
 	}
 
 	if (ESIF_E_ITERATION_DONE != iter_rc) {
-		EsifUp_PutRef(up_ptr);	
+		EsifUp_PutRef(up_ptr);
 	}
-	
+
 exit:
 	esif_ccb_free(participant_device_path);
 }
@@ -703,7 +710,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	}
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
-	
+
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	/* uevent listener */
 	esif_udev_start();
@@ -723,7 +730,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 			close(stdinfd != -1 ? stdinfd : STDIN_FILENO);
 			close(STDOUT_FILENO);
 			close(STDERR_FILENO);
-			
+
 			stdinfd = open("/dev/null", O_RDWR);
 			if (dup(0) != -1) {
 				setvbuf(stdout, NULL, _IONBF, 0);
@@ -811,7 +818,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		esif_ccb_sleep_msec(10);
 	}
 	cmd_app_subsystem(SUBSYSTEM_ESIF);
-	
+
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	/* uevent listener */
 	esif_udev_start();
@@ -829,7 +836,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 			g_quit = 1;
 			continue;
 		}
-		
+
 		// Startup Command?
 		if (command) {
 				parse_cmd(command, ESIF_FALSE);
