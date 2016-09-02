@@ -46,6 +46,7 @@ static void esif_udev_exit();
 static Bool esif_udev_is_started();
 static void *esif_udev_listen(void *ptr);
 static void esif_process_udev_event(char *udev_target);
+static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event);
 
 static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
@@ -80,6 +81,7 @@ struct instancelock {
 	int  lockfd;    /* lock file descriptor */
 };
 static struct instancelock g_instance = {"esif_ufd.pid"};
+static char *device_path = "/devices/virtual/thermal/thermal_zone";
 
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
@@ -173,6 +175,14 @@ extern esif_handle_t g_ipc_handle;
 u32 g_ipc_retry_msec	 = 100;		/* 100ms by default */
 u32 g_ipc_retry_max_msec = 2000;	/* 2 sec by default */
 
+/* Thermal notification reason */
+enum thermal_notify_event {
+	THERMAL_EVENT_UNDEFINED, /* Undefined event */
+	THERMAL_EVENT_TEMP_SAMPLE, /* New Temperature sample */
+	THERMAL_EVENT_TRIP_VIOLATED, /* TRIP Point violation */
+	THERMAL_EVENT_TRIP_CHANGED, /* TRIP Point temperature changed */
+};
+
 /* Attempt IPC Connect and Sync for specified time if no IPC connection */
 eEsifError ipc_resync()
 {
@@ -230,6 +240,101 @@ static int kbhit (void)
 	if (key != EOF) {
 		return 1;
 	}
+	return 0;
+}
+
+static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
+{
+	int i = 0;
+
+	*temp = -1;
+	*event = -1;
+
+	while (i < len) {
+		if (strlen(buffer + i) > strlen("NAME=")
+				&& !strncmp(buffer + i, "NAME=", strlen("NAME="))) {
+				*zone_name = buffer + i + strlen("NAME=");
+		}
+		else if (strlen(buffer + i) > strlen("TEMP=")
+				&& !strncmp(buffer + i, "TEMP=", strlen("TEMP="))) {
+				*temp= atoi(buffer + i + strlen("TEMP="));
+		}
+		else if (strlen(buffer + i) > strlen("EVENT=")
+				&& !strncmp(buffer + i, "EVENT=", strlen("EVENT="))) {
+				*event= atoi(buffer + i + strlen("EVENT="));
+		}
+		i += strlen(buffer + i) + 1;
+	}
+
+	if (*temp != -1 && *event != -1)
+		return 1;
+	else
+		return 0;
+}
+
+static int check_for_uevent(int fd) {
+	int i = 0, j;
+	int len;
+	const char *dev_path = "DEVPATH=";
+	unsigned int dev_path_len = strlen(dev_path);
+	char buffer[MAX_PAYLOAD + 1];
+	char thermal_path[MAX_PAYLOAD + 1];
+	char *buf_ptr;
+	char *zone_name;
+	int temp;
+	int event;
+
+	len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+
+	while (i < len) {
+
+		buf_ptr = buffer + i;
+		if (!buf_ptr)
+			break;
+
+		if (strlen(buf_ptr) > dev_path_len
+				&& !strncmp(buf_ptr, dev_path, dev_path_len)) {
+
+			if (!strncmp(buf_ptr + dev_path_len, device_path,
+				strlen(device_path))) {
+				char *parsed = NULL;
+				char *ctx = NULL;
+
+				strncpy(thermal_path, buf_ptr + dev_path_len, MAX_PAYLOAD);
+				parsed = esif_ccb_strtok(thermal_path, "/", &ctx);
+				while (parsed != NULL) {
+					esif_ccb_strcpy(g_udev_target,parsed,MAX_PAYLOAD);
+					parsed = esif_ccb_strtok(NULL,"/",&ctx);
+				}
+
+				if (!kobj_uevent_parse(buffer, len, &zone_name, &temp, &event))
+					break;
+
+				switch (event) {
+				case THERMAL_EVENT_UNDEFINED:
+					ESIF_TRACE_INFO("THERMAL_EVENT_UNDEFINED\n");
+					break;
+				case THERMAL_EVENT_TEMP_SAMPLE:
+					ESIF_TRACE_INFO("THERMAL_EVENT_TEMP_SAMPLE\n");
+					break;
+				case THERMAL_EVENT_TRIP_VIOLATED:
+					ESIF_TRACE_INFO("THERMAL_EVENT_TRIP_VIOLATED\n");
+					esif_process_udev_event(g_udev_target);
+					break;
+				case THERMAL_EVENT_TRIP_CHANGED:
+					ESIF_TRACE_INFO("THERMAL_EVENT_TRIP_CHANGED\n");
+					for (j = 0; j < MAX_PARTICIPANT_ENTRY; j++)
+						EsifEventMgr_SignalEvent(j, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
+					break;
+				default:
+					break;
+				}
+				return 1;
+			}
+		}
+		i += strlen(buffer + i) + 1;
+	}
+
 	return 0;
 }
 
@@ -414,12 +519,7 @@ static void *esif_udev_listen(void *ptr)
 	while(!g_udev_quit) {
 		char *parsed = NULL;
 		char *ctx = NULL;
-		recvmsg(sock_fd, &msg, 0);
-		parsed = esif_ccb_strtok(NLMSG_DATA(netlink_msg),"/",&ctx);
-		while (parsed != NULL) {
-			esif_ccb_strcpy(g_udev_target,parsed,MAX_PAYLOAD);
-			parsed = esif_ccb_strtok(NULL,"/",&ctx);
-		}
+
 		// We only process uevents that have the "thermal_zone" prefix
 		if (esif_ccb_strstr(g_udev_target, "thermal_zone")) {
 			// FIXME - disable thermal_zone udev events because there
@@ -431,6 +531,8 @@ static void *esif_udev_listen(void *ptr)
 			// until the driver issue is resolved.
 			//esif_process_udev_event(g_udev_target);
 		}
+
+		check_for_uevent(sock_fd);
 	}
 
 exit:
