@@ -284,7 +284,7 @@ static int check_for_uevent(int fd) {
 	int temp;
 	int event;
 
-	len = recv(fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+	len = recv(fd, buffer, sizeof(buffer), 0);
 
 	while (i < len) {
 
@@ -517,21 +517,6 @@ static void *esif_udev_listen(void *ptr)
 
 	/* Read message from kernel */
 	while(!g_udev_quit) {
-		char *parsed = NULL;
-		char *ctx = NULL;
-
-		// We only process uevents that have the "thermal_zone" prefix
-		if (esif_ccb_strstr(g_udev_target, "thermal_zone")) {
-			// FIXME - disable thermal_zone udev events because there
-			// is current a bug in INT340x thermal zone drivers, i.e.,
-			// every time when ESIF sets aux0/aux1 successfully, a
-			// new uevent is generated indicating thershold cross, which
-			// causes DPTF to re-set aux0/aux1, therefore causing a
-			// forever loop. We have to disable thermal zone uevent
-			// until the driver issue is resolved.
-			//esif_process_udev_event(g_udev_target);
-		}
-
 		check_for_uevent(sock_fd);
 	}
 
