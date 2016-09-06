@@ -7736,6 +7736,8 @@ EsifString esif_shell_exec_command(
 	enum output_format last_format = g_format;
 	char *cmd_separator = NULL;
 	size_t cmdlen=0;
+	char multi_cmd_sep[] = " && ";
+	size_t multi_cmd_seplen = sizeof(multi_cmd_sep) - 1;
 
 	if (esif_ccb_strlen(line, buf_len) >= (buf_len - 1)) {
 		return NULL;
@@ -7762,12 +7764,25 @@ EsifString esif_shell_exec_command(
 			esif_ccb_strcpy(line, cmd_separator, cmdlen);
 		}
 
-		// Allow multiple commands separated by newlines
-		if (((cmd_separator = strstr(line, "\n")) != NULL) || 
-			((cmd_separator = strstr(line, " && ")) != NULL)) {
-			char sep = *cmd_separator;
-			*cmd_separator = 0;
-			cmd_separator += (sep=='\n' ? 1 : 4);
+		// Allow multiple commands separated by newlines or " && " (except in quoted strings)
+		if ((cmd_separator = strstr(line, "\n")) != NULL) {
+			*cmd_separator++ = 0;
+		}
+		else if (strstr(line, multi_cmd_sep) != NULL) {
+			char lastquote = 0;
+			char *ch = 0;
+			for (ch = line; cmd_separator == NULL && *ch != 0; ch++) {
+				if (*ch == lastquote) {
+					lastquote = 0;
+				}
+				else if (*ch == '\"' || *ch == '\'') {
+					lastquote = *ch;
+				}
+				else if (!lastquote && esif_ccb_strncmp(ch, multi_cmd_sep, multi_cmd_seplen) == 0) {
+					*ch = 0;
+					cmd_separator = ch + multi_cmd_seplen;
+				}
+			}
 		}
 
 		g_errorlevel = 0;
