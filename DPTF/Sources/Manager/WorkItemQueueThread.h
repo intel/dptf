@@ -25,14 +25,13 @@
 #include "EsifThreadId.h"
 #include "WorkItemStatistics.h"
 
-class DptfManager;
-class ParticipantManager;
+class ParticipantManagerInterface;
 
 class WorkItemQueueThread
 {
 public:
 
-    WorkItemQueueThread(DptfManager* dptfManager, ImmediateWorkItemQueue* immediateQueue,
+    WorkItemQueueThread(DptfManagerInterface* dptfManager, ImmediateWorkItemQueue* immediateQueue,
         DeferredWorkItemQueue* deferredQueue, EsifSemaphore* workItemQueueSemaphore,
         WorkItemStatistics* workItemStatistics);
     ~WorkItemQueueThread(void);
@@ -46,8 +45,8 @@ private:
     WorkItemQueueThread(const WorkItemQueueThread& rhs);
     WorkItemQueueThread& operator=(const WorkItemQueueThread& rhs);
 
-    DptfManager* m_dptfManager;
-    ParticipantManager* m_participantManager;
+    DptfManagerInterface* m_dptfManager;
+	ParticipantManagerInterface* m_participantManager;
     Bool m_destroyThread;
     ImmediateWorkItemQueue* m_immediateQueue;
     DeferredWorkItemQueue* m_deferredQueue;

@@ -20,35 +20,29 @@
 
 #include "Dptf.h"
 
-class DptfManager;
-
 //
 // Arbitration Rule:
 //
 // Highest display control index wins.  This is the lowest brightness.
 //
 
-class DisplayControlArbitrator
+class dptf_export DisplayControlArbitrator
 {
 public:
 
-    DisplayControlArbitrator(DptfManager* dptfManager);
+    DisplayControlArbitrator();
     ~DisplayControlArbitrator(void);
 
-    // arbitrate() returns true if the arbitrated value has changed
+    // arbitrate() returns true if arbitrated value has changed
     Bool arbitrate(UIntN policyIndex, UIntN displayControlIndex);
-
     UIntN getArbitratedDisplayControlIndex(void) const;
     void clearPolicyCachedData(UIntN policyIndex);
 
 private:
 
-    // hide the copy constructor and assignment operator.
+    // hide the copy constructor.
     DisplayControlArbitrator(const DisplayControlArbitrator& rhs);
-    DisplayControlArbitrator& operator=(const DisplayControlArbitrator& rhs);
-
-    DptfManager* m_dptfManager;
 
     UIntN m_arbitratedDisplayControlIndex;
-    std::vector<UIntN> m_requestedDisplayControlIndex;
+    std::map<UIntN, UIntN> m_requestedDisplayControlIndex;
 };

@@ -89,10 +89,10 @@ std::vector<UIntN> TargetActionBase::getDomainsThatDoNotReportTemperature(UIntN 
 }
 
 Bool TargetActionBase::compareTrtTableEntriesOnInfluence(
-    const ThermalRelationshipTableEntry& left,
-    const ThermalRelationshipTableEntry& right)
+    const  std::shared_ptr<ThermalRelationshipTableEntry>& left,
+    const  std::shared_ptr<ThermalRelationshipTableEntry>& right)
 {
-    return (left.thermalInfluence() > right.thermalInfluence());
+    return (left->thermalInfluence() > right->thermalInfluence());
 }
 
 Bool TargetActionBase::compareDomainsOnPriorityAndUtilization(

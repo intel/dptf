@@ -18,13 +18,13 @@
 
 #include "WIDptfParticipantActivityLoggingEnabled.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "EsifServices.h"
 
 WIDptfParticipantActivityLoggingEnabled::WIDptfParticipantActivityLoggingEnabled(
-    DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex, UInt32 capabilityId) :
+    DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex, UInt32 capabilityBitMask) :
     DomainWorkItem(dptfManager, FrameworkEvent::Type::DptfParticipantActivityLoggingEnabled, participantIndex, domainIndex),
-    m_capabilityId(capabilityId)
+    m_capabilityBitMask(capabilityBitMask)
 {
 }
 
@@ -34,14 +34,14 @@ WIDptfParticipantActivityLoggingEnabled::~WIDptfParticipantActivityLoggingEnable
 
 void WIDptfParticipantActivityLoggingEnabled::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
-        getParticipantPtr()->activityLoggingEnabled(getDomainIndex(), m_capabilityId);
+        getParticipantPtr()->activityLoggingEnabled(getDomainIndex(), m_capabilityBitMask);
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::activityLoggingEnabled");
+        writeDomainWorkItemErrorMessage(ex, "Participant::activityLoggingEnabled");
     }
 }

@@ -28,7 +28,7 @@ class dptf_export DomainSetCachedProperty : public CachedProperty, ParticipantPr
 {
 public:
 
-    DomainSetCachedProperty(PolicyServicesInterfaceContainer policyServices, UIntN participantIndex);
+    DomainSetCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex);
     ~DomainSetCachedProperty();
 
     const DomainPropertiesSet& getDomainPropertiesSet();

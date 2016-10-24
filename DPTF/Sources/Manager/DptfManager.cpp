@@ -54,6 +54,8 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
         std::string homePath = dptfHomeDirectoryPath;
         std::string policyPath = dptfHomeDirectoryPath;
         std::vector<std::string> dptfPaths = StringParser::split(dptfHomeDirectoryPath, '|');
+        EsifData eventData = { ESIF_DATA_VOID, NULL, 0, 0 };
+
         if (dptfPaths.size() > 1)
         {
             homePath = dptfPaths[0];
@@ -75,6 +77,7 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
         m_dptfEnabled = dptfEnabled;
 
         m_eventCache = std::make_shared<EventCache>();
+        m_userPreferredCache = std::make_shared<UserPreferredCache>();
         m_indexContainer = new IndexContainer(Constants::Participants::MaxParticipantEstimate);
         m_esifAppServices = new EsifAppServices(esifInterfacePtr);
         m_esifServices = new EsifServices(this, esifHandle, m_esifAppServices, currentLogVerbosityLevel);
@@ -92,6 +95,8 @@ void DptfManager::createDptfManager(const void* esifHandle, EsifInterfacePtr esi
         registerDptfFrameworkEvents();
 
         m_dptfManagerCreateFinished = true;
+
+        m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppLoaded, Constants::Invalid, Constants::Invalid, eventData);
     }
     catch (std::exception& ex)
     {
@@ -134,7 +139,7 @@ EsifServices* DptfManager::getEsifServices(void) const
     return m_esifServices;
 }
 
-WorkItemQueueManager* DptfManager::getWorkItemQueueManager(void) const
+WorkItemQueueManagerInterface* DptfManager::getWorkItemQueueManager(void) const
 {
     return m_workItemQueueManager;
 }
@@ -144,12 +149,12 @@ PolicyManager* DptfManager::getPolicyManager(void) const
     return m_policyManager;
 }
 
-ParticipantManager* DptfManager::getParticipantManager(void) const
+ParticipantManagerInterface* DptfManager::getParticipantManager(void) const
 {
     return m_participantManager;
 }
 
-DptfStatus* DptfManager::getDptfStatus(void)
+DptfStatusInterface* DptfManager::getDptfStatus(void)
 {
     return m_dptfStatus;
 }
@@ -176,9 +181,11 @@ Bool DptfManager::isDptfPolicyLoadNameOnly(void) const
 
 void DptfManager::shutDown(void)
 {
+    EsifData eventData = { ESIF_DATA_VOID, NULL, 0, 0 };
     m_dptfShuttingDown = true;
     m_dptfEnabled = false;
 
+    m_esifServices->sendDptfEvent(FrameworkEvent::DptfAppUnloaded, Constants::Invalid, Constants::Invalid, eventData);
     unregisterDptfFrameworkEvents();
 
     disableAndEmptyAllQueues();
@@ -430,6 +437,11 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
 std::shared_ptr<EventCache> DptfManager::getEventCache(void) const
 {
     return m_eventCache;
+}
+
+std::shared_ptr<UserPreferredCache> DptfManager::getUserPreferredCache(void) const
+{
+    return m_userPreferredCache;
 }
 
 void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const

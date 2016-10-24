@@ -25,7 +25,7 @@ ParticipantGetSpecificInfo_000::ParticipantGetSpecificInfo_000(UIntN participant
     // Do nothing.  Not an error.
 }
 
-std::map<ParticipantSpecificInfoKey::Type, UIntN> ParticipantGetSpecificInfo_000::getParticipantSpecificInfo(
+std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificInfo_000::getParticipantSpecificInfo(
     UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
     throw not_implemented();

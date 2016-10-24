@@ -20,11 +20,11 @@
 
 #include "Dptf.h"
 #include "ParticipantServicesInterface.h"
+#include "DptfManagerInterface.h"
 
-class DptfManager;
-class ParticipantManager;
+class ParticipantManagerInterface;
 class Participant;
-class WorkItemQueueManager;
+class WorkItemQueueManagerInterface;
 class EsifServices;
 
 // When a participant is created it receives this interface as a parameter.  These are the functions provided
@@ -34,7 +34,7 @@ class ParticipantServices final : public ParticipantServicesInterface
 {
 public:
 
-    ParticipantServices(DptfManager* dptfManager, UIntN participantIndex);
+    ParticipantServices(DptfManagerInterface* dptfManager, UIntN participantIndex);
 
     virtual UInt8 primitiveExecuteGetAsUInt8(
         esif_primitive_type primitive,
@@ -69,12 +69,12 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 
-    virtual Temperature primitiveExecuteGetAsTemperatureC(
+    virtual Temperature primitiveExecuteGetAsTemperatureTenthK(
         esif_primitive_type primitive,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance) override final;
 
-    virtual void primitiveExecuteSetAsTemperatureC(
+    virtual void primitiveExecuteSetAsTemperatureTenthK(
         esif_primitive_type primitive,
         Temperature temperature,
         UIntN domainIndex = Constants::Esif::NoDomain,
@@ -163,16 +163,23 @@ public:
     virtual void createEventDomainPowerControlCapabilityChanged() override final;
 
     virtual void sendDptfEvent(ParticipantEvent::Type participantEvent, UIntN domainId, esif_data eventData) override final;
+
+    // Display Cache
+    virtual UIntN getUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual void setUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex, UIntN userPreferredIndex) override final;
+    virtual void invalidateUserPreferredDisplayCache(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual Bool isUserPreferredDisplayCacheValid(UIntN participantIndex, UIntN domainIndex) override final;
+
 private:
 
     // hide the copy constructor and assignment operator.
     ParticipantServices(const ParticipantServices& rhs);
     ParticipantServices& operator=(const ParticipantServices& rhs);
 
-    DptfManager* m_dptfManager;
-    ParticipantManager* m_participantManager;
+    DptfManagerInterface* m_dptfManager;
+    ParticipantManagerInterface* m_participantManager;
     Participant* m_participant;
-    WorkItemQueueManager* m_workItemQueueManager;
+    WorkItemQueueManagerInterface* m_workItemQueueManager;
     EsifServices* m_esifServices;
     UIntN m_participantIndex;
 

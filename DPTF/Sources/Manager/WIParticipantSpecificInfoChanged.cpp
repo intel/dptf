@@ -33,7 +33,7 @@ WIParticipantSpecificInfoChanged::~WIParticipantSpecificInfoChanged(void)
 
 void WIParticipantSpecificInfoChanged::execute(void)
 {
-    WriteParticipantWorkItemStartingInfoMessage();
+    writeParticipantWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIParticipantSpecificInfoChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteParticipantWorkItemErrorMessage_Function("Participant::participantSpecificInfoChanged");
+        writeParticipantWorkItemErrorMessage(ex, "Participant::participantSpecificInfoChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -58,9 +58,13 @@ void WIParticipantSpecificInfoChanged::execute(void)
         {
             // do nothing.  No item in the policy list at this index.
         }
+        catch (temperature_out_of_range ex)
+        {
+            writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
+        }
         catch (std::exception& ex)
         {
-            WriteParticipantWorkItemErrorMessage_Function_Policy("Policy::executeParticipantSpecificInfoChanged", i);
+            writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
         }
     }
 }

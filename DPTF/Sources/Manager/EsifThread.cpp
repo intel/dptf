@@ -30,9 +30,5 @@ EsifThread::EsifThread(work_func_t function, void* argument) :
 
 EsifThread::~EsifThread()
 {
-    eEsifError rc = esif_ccb_thread_join(&m_thread);
-    if (rc != ESIF_OK)
-    {
-        throw dptf_exception("esif_ccb_thread_join() failed.");
-    }
+    esif_ccb_thread_join(&m_thread);
 }

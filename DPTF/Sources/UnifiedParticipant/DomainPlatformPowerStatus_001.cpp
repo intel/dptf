@@ -18,11 +18,12 @@
 
 #include "DomainPlatformPowerStatus_001.h"
 #include "XmlNode.h"
-#include "BinaryParse.h"
 
 DomainPlatformPowerStatus_001::DomainPlatformPowerStatus_001(UIntN participantIndex, UIntN domainIndex,
     ParticipantServicesInterface* participantServicesInterface) :
-    DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
+    DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface),
+    m_platformPowerSource(),
+    m_chargerType()
 {
     initializeDataStructures();
 }
@@ -116,7 +117,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         pmaxStatus->addChild(XmlNode::createDataElement(
-            "value", getMaxBatteryPower(Constants::Invalid, domainIndex).toString() + "mW"));
+            "value", getMaxBatteryPower(getParticipantIndex(), domainIndex).toString() + "mW"));
     }
     catch (...)
     {
@@ -129,7 +130,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         psrcStatus->addChild(XmlNode::createDataElement("value",
-        PlatformPowerSource::ToString(getPlatformPowerSource(Constants::Invalid, domainIndex))));
+        PlatformPowerSource::ToString(getPlatformPowerSource(getParticipantIndex(), domainIndex))));
     }
     catch (...)
     {
@@ -142,7 +143,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         artgStatus->addChild(XmlNode::createDataElement(
-        "value", getAdapterPowerRating(Constants::Invalid, domainIndex).toString() + "mW"));
+        "value", getAdapterPowerRating(getParticipantIndex(), domainIndex).toString() + "mW"));
     }
     catch (...)
     {
@@ -155,7 +156,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         ctypStatus->addChild(XmlNode::createDataElement("value",
-        ChargerType::ToString(getChargerType(Constants::Invalid, domainIndex))));
+        ChargerType::ToString(getChargerType(getParticipantIndex(), domainIndex))));
     }
     catch (...)
     {
@@ -168,7 +169,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         propStatus->addChild(XmlNode::createDataElement(
-        "value", getPlatformRestOfPower(Constants::Invalid, domainIndex).toString() + "mW"));
+        "value", getPlatformRestOfPower(getParticipantIndex(), domainIndex).toString() + "mW"));
     }
     catch (...)
     {
@@ -181,7 +182,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         apkpStatus->addChild(XmlNode::createDataElement(
-        "value", getACPeakPower(Constants::Invalid, domainIndex).toString() + "mW"));
+        "value", getACPeakPower(getParticipantIndex(), domainIndex).toString() + "mW"));
     }
     catch (...)
     {
@@ -194,7 +195,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         apktStatus->addChild(XmlNode::createDataElement(
-        "value", getACPeakTimeWindow(Constants::Invalid, domainIndex).toStringMilliseconds() + "msec"));
+        "value", getACPeakTimeWindow(getParticipantIndex(), domainIndex).toStringMilliseconds() + "msec"));
     }
     catch (...)
     {
@@ -207,7 +208,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
     try
     {
         pbssStatus->addChild(XmlNode::createDataElement(
-            "value", getPlatformBatterySteadyState(Constants::Invalid, domainIndex).toString() + "mW"));
+            "value", getPlatformBatterySteadyState(getParticipantIndex(), domainIndex).toString() + "mW"));
     }
     catch (...)
     {

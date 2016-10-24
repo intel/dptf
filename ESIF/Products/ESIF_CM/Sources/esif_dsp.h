@@ -68,6 +68,15 @@ struct edp_dir {
 	unsigned int  fpc_offset;
 };
 
+/* DSP Action Parameter Data Types in DSP (not enum esif_data_type) */
+enum esif_dsp_parameter_type {
+	ESIF_DSP_PARAMETER_TYPE_STRING = 1,
+	ESIF_DSP_PARAMETER_TYPE_NUMBER = 2,
+	ESIF_DSP_PARAMETER_TYPE_HEXNUM = 3,
+	ESIF_DSP_PARAMETER_TYPE_VARIANT = 4,
+	ESIF_DSP_PARAMETER_TYPE_ACPI_METHOD = 5,
+	ESIF_DSP_PARAMETER_TYPE_ARGUMENT = 6,
+};
 
 #ifdef ESIF_ATTR_KERNEL
 
@@ -300,6 +309,9 @@ struct esif_up_dsp {
 	struct esif_link_list   *algo_ptr;	/* Algorithm */
 	struct esif_link_list   *evt_ptr;	/* Events */
 
+	/* Boolean array indicating if a given action type is used in the DSP */
+	UInt8 contained_actions[MAX_ESIF_ACTION_ENUM_VALUE];
+
 	/*
 	 * PUBLIC INTRERFACE
 	 */
@@ -413,12 +425,8 @@ extern "C" {
 struct esif_up_dsp *esif_uf_dm_select_dsp_by_code (esif_string code);
 EsifString EsifDspMgr_SelectDsp(EsifDspQuery query);
 
-/* Init / Exit */
-enum esif_rc EsifDspInit (void);
-void EsifDspExit (void);
-
 /* DSP Manager Init */
-enum esif_rc EsifDspMgrInit (void);
+eEsifError EsifDspMgrInit(void);
 
 /* DSP Manager Exit */
 void EsifDspMgrExit (void);

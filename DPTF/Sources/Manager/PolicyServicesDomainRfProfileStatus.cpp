@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainRfProfileStatus.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainRfProfileStatus::PolicyServicesDomainRfProfileStatus(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :

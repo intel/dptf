@@ -44,7 +44,6 @@ void PowerControlState::capture()
 
 void PowerControlState::restore()
 {
-    restoreEnables();
     restoreLimit(PowerControlType::PL1, m_pl1Limit);
     restoreLimit(PowerControlType::PL2, m_pl2Limit);
     restoreLimit(PowerControlType::PL3, m_pl3Limit);
@@ -52,6 +51,7 @@ void PowerControlState::restore()
     restoreTimeWindow(PowerControlType::PL1, m_pl1TimeWindow);
     restoreTimeWindow(PowerControlType::PL3, m_pl3TimeWindow);
     restoreDutyCycle(PowerControlType::PL3, m_pl3DutyCycle);
+    restoreEnables();
 }
 
 std::shared_ptr<XmlNode> PowerControlState::toXml() const
@@ -112,16 +112,20 @@ void PowerControlState::restoreEnables()
     {
         m_control->setEnabled(PowerControlType::PL3, m_pl3Enabled.get());
     }
-
+    
     // there is no PL4 enable functionality
 }
 
 void PowerControlState::captureEnables()
 {
-    m_pl1Enabled.set(m_control->checkEnabled(PowerControlType::PL1));
-    m_pl2Enabled.set(m_control->checkEnabled(PowerControlType::PL2));
-    m_pl3Enabled.set(m_control->checkEnabled(PowerControlType::PL3));
-    m_pl4Enabled.set(true);
+    m_control->updateEnabled(PowerControlType::PL1);
+    m_pl1Enabled.set(m_control->isEnabled(PowerControlType::PL1));
+    m_control->updateEnabled(PowerControlType::PL2);
+    m_pl2Enabled.set(m_control->isEnabled(PowerControlType::PL2));
+    m_control->updateEnabled(PowerControlType::PL3);
+    m_pl3Enabled.set(m_control->isEnabled(PowerControlType::PL3));
+    m_control->updateEnabled(PowerControlType::PL4);
+    m_pl4Enabled.set(m_control->isEnabled(PowerControlType::PL4));
 }
 
 void PowerControlState::captureLimit(PowerControlType::Type controlType, CachedValue<Power>& limit)
@@ -172,7 +176,7 @@ void PowerControlState::restoreLimit(PowerControlType::Type controlType, const C
     {
         try
         {
-            m_control->setPowerLimit(
+            m_control->setPowerLimitIgnoringCaps(
                 m_control->getParticipantIndex(), m_control->getDomainIndex(),
                 controlType, limit.get());
         }
@@ -188,7 +192,7 @@ void PowerControlState::restoreTimeWindow(PowerControlType::Type controlType, co
     {
         try
         {
-            m_control->setPowerLimitTimeWindow(
+            m_control->setPowerLimitTimeWindowIgnoringCaps(
                 m_control->getParticipantIndex(), m_control->getDomainIndex(),
                 controlType, timeWindow.get());
         }

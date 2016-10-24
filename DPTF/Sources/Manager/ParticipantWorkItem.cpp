@@ -17,7 +17,8 @@
 ******************************************************************************/
 
 #include "ParticipantWorkItem.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
+#include "EsifServices.h"
 
 ParticipantWorkItem::ParticipantWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType,
     UIntN participantIndex) : WorkItem(dptfManager, frameworkEventType), m_participantIndex(participantIndex)
@@ -46,4 +47,41 @@ UIntN ParticipantWorkItem::getParticipantIndex(void) const
 Participant* ParticipantWorkItem::getParticipantPtr(void) const
 {
     return getParticipantManager()->getParticipantPtr(m_participantIndex);
+}
+
+void ParticipantWorkItem::writeParticipantWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantIndex(getParticipantIndex());
+    message.setExceptionCaught(functionName, ex.what());
+    getEsifServices()->writeMessageError(message);
+}
+
+void ParticipantWorkItem::writeParticipantWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex)
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantIndex(getParticipantIndex());
+    message.setExceptionCaught(functionName, ex.what());
+    message.setPolicyIndex(policyIndex);
+    getEsifServices()->writeMessageError(message);
+}
+
+void ParticipantWorkItem::writeParticipantWorkItemWarningMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex)
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantIndex(getParticipantIndex());
+    message.setExceptionCaught(functionName, ex.what());
+    message.setPolicyIndex(policyIndex);
+    getEsifServices()->writeMessageWarning(message);
+}
+
+void ParticipantWorkItem::writeParticipantWorkItemStartingInfoMessage() const
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item.");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantIndex(getParticipantIndex());
+    getEsifServices()->writeMessageInfo(message);
 }

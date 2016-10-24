@@ -18,7 +18,7 @@
 
 #include "WIDptfConnectedStandbyExit.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "EsifServices.h"
 
 WIDptfConnectedStandbyExit::WIDptfConnectedStandbyExit(DptfManagerInterface* dptfManager) :
@@ -32,11 +32,11 @@ WIDptfConnectedStandbyExit::~WIDptfConnectedStandbyExit(void)
 
 void WIDptfConnectedStandbyExit::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     // let all participants know that we are exiting connected standby
 
-    ParticipantManager* participantManager = getParticipantManager();
+	auto participantManager = getParticipantManager();
     UIntN participantListCount = participantManager->getParticipantListCount();
 
     for (UIntN i = 0; i < participantListCount; i++)
@@ -52,7 +52,7 @@ void WIDptfConnectedStandbyExit::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Participant("Participant::connectedStandbyExit", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyExit", i);
         }
     }
 
@@ -74,7 +74,7 @@ void WIDptfConnectedStandbyExit::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executeConnectedStandbyExit", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executeConnectedStandbyExit", i);
         }
     }
 }

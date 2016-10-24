@@ -22,39 +22,32 @@
 #include "esif_uf_ipc.h"
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
-void SysfsRegisterParticipants();
-void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
-eEsifError EsifActSysfsInit(void);
-void EsifActSysfsExit(void);
 
-static ESIF_INLINE void esif_ccb_participants_initialize()
+static ESIF_INLINE enum esif_rc esif_ccb_participants_initialize(void)
 {
+	void SysfsRegisterParticipants();
 	SysfsRegisterParticipants();
-	#ifdef ESIF_ATTR_OS_ANDROID
-	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3406")) {
-		SysfsRegisterCustomParticipant("INT3406","TDSP", (UInt32) ESIF_DOMAIN_TYPE_INVALID);
-	}
-	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3408")) {
-		SysfsRegisterCustomParticipant("INT3408","WWAN", (UInt32) ESIF_DOMAIN_TYPE_WWAN);
-	}
-	#endif
+	return ESIF_OK;
 }
 
 static ESIF_INLINE void esif_ccb_imp_spec_actions_init()
 {
+	eEsifError EsifActSysfsInit(void);
 	EsifActSysfsInit();
 }
 
 static ESIF_INLINE void esif_ccb_imp_spec_actions_exit()
 {
+	void EsifActSysfsExit(void);
 	EsifActSysfsExit();
 }
 #else
 enum esif_rc sync_lf_participants();
-static ESIF_INLINE void esif_ccb_participants_initialize()
+static ESIF_INLINE enum esif_rc esif_ccb_participants_initialize(void)
 {
 	ipc_connect();
 	sync_lf_participants();
+	return ESIF_OK;
 }
 
 #define esif_ccb_imp_spec_actions_init()

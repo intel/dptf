@@ -44,7 +44,7 @@ void TargetLimitAction::execute()
             PolicyMessage(FLF, "Attempting to limit target participant.", getTarget()));
 
         // choose sources to limit for target
-        UInt64 time = getTime()->getCurrentTimeInMilliseconds();
+        auto time = getTime()->getCurrentTime();
         vector<UIntN> sourcesToLimit = chooseSourcesToLimitForTarget(getTarget());
         if (sourcesToLimit.size() > 0)
         {
@@ -91,33 +91,33 @@ std::vector<UIntN> TargetLimitAction::chooseSourcesToLimitForTarget(UIntN target
 {
     // choose sources that are tied for the highest influence in the TRT
     vector<UIntN> sourcesToLimit;
-    vector<ThermalRelationshipTableEntry> availableSourcesForTarget = getTrt()->getEntriesForTarget(target);
+    auto availableSourcesForTarget = getTrt()->getEntriesForTarget(target);
     availableSourcesForTarget = getEntriesWithControlsToLimit(target, availableSourcesForTarget);
     if (availableSourcesForTarget.size() > 0)
     {
         sort(availableSourcesForTarget.begin(), availableSourcesForTarget.end(), compareTrtTableEntriesOnInfluence);
         for (auto entry = availableSourcesForTarget.begin(); entry != availableSourcesForTarget.end(); entry++)
         {
-            if (entry->thermalInfluence() == availableSourcesForTarget.front().thermalInfluence())
+            if ((*entry)->thermalInfluence() == availableSourcesForTarget.front()->thermalInfluence())
             {
-                sourcesToLimit.push_back(entry->getSourceDeviceIndex());
+                sourcesToLimit.push_back((*entry)->getSourceDeviceIndex());
             }
         }
     }
     return sourcesToLimit;
 }
 
-std::vector<ThermalRelationshipTableEntry> TargetLimitAction::getEntriesWithControlsToLimit(
-    UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget)
+std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> TargetLimitAction::getEntriesWithControlsToLimit(
+    UIntN target, const std::vector<std::shared_ptr<ThermalRelationshipTableEntry>>& sourcesForTarget)
 {
     // choose TRT entries whose source has domains that can be limited
-    std::vector<ThermalRelationshipTableEntry> entriesThatCanBeLimited;
+    std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> entriesThatCanBeLimited;
     for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
     {
-        if (entry->getSourceDeviceIndex() != Constants::Invalid)
+        if ((*entry)->getSourceDeviceIndex() != Constants::Invalid)
         {
             vector<UIntN> domainsWithControlKnobsToTurn =
-                getDomainsWithControlKnobsToLimit(getParticipantTracker()->getParticipant(entry->getSourceDeviceIndex()), target);
+                getDomainsWithControlKnobsToLimit(getParticipantTracker()->getParticipant((*entry)->getSourceDeviceIndex()), target);
             if (domainsWithControlKnobsToTurn.size() > 0)
             {
                 entriesThatCanBeLimited.push_back(*entry);
@@ -134,7 +134,7 @@ std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(Particip
     auto domainIndexes = participant->getDomainIndexes();
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
-        auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
+        auto domain = std::dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
         if (domain->canLimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
@@ -211,7 +211,7 @@ std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target
 UIntN TargetLimitAction::getDomainWithHighestTemperature(UIntN source, 
     const std::vector<UIntN>& domainsWithControlKnobsToTurn)
 {
-    pair<Temperature, UIntN> domainWithHighestTemperature(0, Constants::Invalid);
+    pair<Temperature, UIntN> domainWithHighestTemperature(Temperature::fromCelsius(ESIF_SDK_MIN_AUX_TRIP), Constants::Invalid);
     for (auto domain = domainsWithControlKnobsToTurn.begin();
         domain != domainsWithControlKnobsToTurn.end();
         domain++)
@@ -280,11 +280,11 @@ Bool TargetLimitAction::domainReportsUtilization(UIntN source, UIntN domain)
 void TargetLimitAction::requestLimit(UIntN source, UIntN domainIndex, UIntN target)
 {
     auto participant = getParticipantTracker()->getParticipant(source);
-    auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(domainIndex));
+    auto domain = std::dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(domainIndex));
     domain->requestLimit(target);
 }
 
-void TargetLimitAction::commitLimit(UIntN source, UInt64 time)
+void TargetLimitAction::commitLimit(UIntN source, const TimeSpan& time)
 {
     Bool madeChanges(false);
     auto participant = getParticipantTracker()->getParticipant(source);
@@ -295,7 +295,7 @@ void TargetLimitAction::commitLimit(UIntN source, UInt64 time)
         {
             getPolicyServices().messageLogging->writeMessageDebug(
                 PolicyMessage(FLF, "Committing limits to source.", source, *domainIndex));
-            auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
+            auto domain = std::dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
             Bool madeChange = domain->commitLimits();
             if (madeChange)
             {

@@ -442,9 +442,10 @@ exit:
 
 
 /* NOTE:  This function is common to user and kernel mode */
-static ESIF_INLINE void esif_ccb_mempool_init_tracking(void)
+static ESIF_INLINE enum esif_rc esif_ccb_mempool_init_tracking(void)
 {
 	esif_ccb_lock_init(&g_mempool_lock);
+	return ESIF_OK;
 }
 
 

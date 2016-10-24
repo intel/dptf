@@ -23,10 +23,13 @@ DomainActiveControl_001::DomainActiveControl_001(UIntN participantIndex, UIntN d
     ParticipantServicesInterface* participantServicesInterface) :
     DomainActiveControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
+    clearCachedData();
+    capture();
 }
 
 DomainActiveControl_001::~DomainActiveControl_001(void)
 {
+    restore();
 }
 
 ActiveControlStaticCaps DomainActiveControl_001::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -88,17 +91,17 @@ void DomainActiveControl_001::sendActivityLoggingDataIfEnabled(UIntN participant
         if (isActivityLoggingEnabled() == true)
         {
             throwIfFineGrainedControlIsNotSupported(participantIndex, domainIndex);
-            UInt32 activeControlIndex = getActiveControlStatus(participantIndex,domainIndex).getCurrentControlId();
+            UInt32 controlId = getActiveControlStatus(participantIndex,domainIndex).getCurrentControlId();
 
-            if (activeControlIndex == Constants::Invalid)
+            if (controlId == Constants::Invalid)
             {
-                activeControlIndex = 0;
+                controlId = 0;
             }
             EsifCapabilityData capability;
-            capability.type = Capability::ActiveControl;
+            capability.type = ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL;
             capability.size = sizeof(capability);
-            capability.data.activeControl.controlId = getActiveControlSet(participantIndex,domainIndex)[activeControlIndex].getControlId();
-            capability.data.activeControl.speed = getActiveControlSet(participantIndex, domainIndex)[activeControlIndex].getSpeed();
+            capability.data.activeControl.controlId = controlId;
+            capability.data.activeControl.speed = getActiveControlStatus(participantIndex, domainIndex).getCurrentSpeed();
 
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
                 domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
@@ -124,33 +127,68 @@ void DomainActiveControl_001::clearCachedData(void)
 std::shared_ptr<XmlNode> DomainActiveControl_001::getXml(UIntN domainIndex)
 {
     auto root = XmlNode::createWrapperElement("active_control");
-    root->addChild(getActiveControlStatus(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getActiveControlStaticCaps(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getActiveControlSet(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getActiveControlStatus(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getActiveControlStaticCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getActiveControlSet(getParticipantIndex(), domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
+}
+
+void DomainActiveControl_001::capture(void)
+{
+    try
+    {
+        m_initialStatus.set(getActiveControlStatus(getParticipantIndex(), getDomainIndex()));
+    }
+    catch (dptf_exception& e)
+    {
+        m_initialStatus.invalidate();
+        std::string warningMsg = e.what();
+        getParticipantServices()->writeMessageWarning(ParticipantMessage(
+            FLF, "Failed to get the initial active control status. " + warningMsg));
+    }
+}
+
+void DomainActiveControl_001::restore(void)
+{
+    if (m_initialStatus.isValid())
+    {
+        try
+        {
+            getParticipantServices()->primitiveExecuteSetAsUInt32(
+                esif_primitive_type::SET_FAN_LEVEL,
+                m_initialStatus.get().getCurrentControlId(),
+                getDomainIndex());
+        }
+        catch (...)
+        {
+            // best effort
+            getParticipantServices()->writeMessageDebug(ParticipantMessage(
+                FLF, "Failed to restore the initial active control status. "));
+        }
+    }
 }
 
 ActiveControlStaticCaps DomainActiveControl_001::createActiveControlStaticCaps(UIntN domainIndex)
 {
     DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
         esif_primitive_type::GET_FAN_INFORMATION, ESIF_DATA_BINARY, domainIndex);
-    return BinaryParse::fanFifObject(buffer);
+    return ActiveControlStaticCaps::createFromFif(buffer);
 }
 
 ActiveControlStatus DomainActiveControl_001::createActiveControlStatus(UIntN domainIndex)
 {
     DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
         esif_primitive_type::GET_FAN_STATUS, ESIF_DATA_BINARY, domainIndex);
-    return BinaryParse::fanFstObject(buffer);
+    return ActiveControlStatus::createFromFst(buffer);
 }
 
 ActiveControlSet DomainActiveControl_001::createActiveControlSet(UIntN domainIndex)
 {
     DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
         esif_primitive_type::GET_FAN_PERFORMANCE_STATES, ESIF_DATA_BINARY, domainIndex);
-    return ActiveControlSet(BinaryParse::fanFpsObject(buffer));
+    return ActiveControlSet::createFromFps(buffer);
 }
 
 void DomainActiveControl_001::throwIfFineGrainedControlIsSupported(UIntN participantIndex, UIntN domainIndex)

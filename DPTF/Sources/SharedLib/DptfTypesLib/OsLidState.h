@@ -25,7 +25,7 @@ namespace OsLidState
     enum Type
     {
         Closed = 0,
-        Opened = 1
+        Open = 1
     };
 
     std::string toString(OsLidState::Type osLidState);

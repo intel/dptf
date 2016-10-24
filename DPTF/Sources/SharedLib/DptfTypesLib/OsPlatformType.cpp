@@ -24,12 +24,14 @@ namespace OsPlatformType
     {
         switch (osPlatformType)
         {
-            case Clamshell:
-                return "Clamshell";
-            case Tablet:
-                return "Tablet";
-            default:
-                throw dptf_exception("OsPlatformType::Type is invalid");
+        case InvalidPlatformType:
+            return "Invalid";
+        case Clamshell:
+            return "Clamshell";
+        case Tablet:
+            return "Tablet";
+        default:
+            throw dptf_exception("OsPlatformType::Type is invalid");
         }
     }
 }

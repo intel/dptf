@@ -19,7 +19,6 @@
 #include "UnifiedDomain.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
-#include "DomainActiveControlInterface.h"
 using namespace std;
 
 UnifiedDomain::UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, 
@@ -190,12 +189,6 @@ std::shared_ptr<DomainUtilizationBase> UnifiedDomain::getUtilizationControl(void
 {
     throwIfDomainNotEnabled();
     return m_domainControls->getUtilizationControl();
-}
-
-std::shared_ptr<DomainHardwareDutyCycleControlBase> UnifiedDomain::getHardareDutyCycleControl(void)
-{
-    throwIfDomainNotEnabled();
-    return m_domainControls->getHardareDutyCycleControl();
 }
 
 void UnifiedDomain::throwIfDomainNotEnabled(void)

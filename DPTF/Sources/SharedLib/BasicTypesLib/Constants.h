@@ -44,10 +44,15 @@ namespace Constants
         const UIntN NoParticipant = 1999;
         const UIntN NoDomain = 1999;
 
-        // NoPersist indicates an Instance ID for a SET Primitive that is NOT Persisted to disk (Reset on Restart)
-        const UInt8 NoPersist = 254;
-
-        // NoInstance is defined by ESIF to be 255
+        // NoInstance is defined by ESIF to be 255 (default)
         const UInt8 NoInstance = 255;
+
+        // NoPersistInstance indicates the non persistent version of the default instance (255)
+        // for a SET Primitive that is NOT Persisted to disk (Reset on Restart)
+        const UInt8 NoPersistInstance = 254;
+
+        // NoPersistInstanceOffset indicates an offset added to the Instance ID (0-199)
+        // for a SET Primitive that is NOT Persisted to disk (Reset on Restart)
+        const UInt8 NoPersistInstanceOffset = 200;
     }
 }

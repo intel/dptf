@@ -27,24 +27,18 @@
 
 #define ESIF_MAX_NAME_SPACES        10
 
-// ESIFDV File Definitions
-#define ESIFDV_FILEEXT              ".dv"				// DataVault File Extension
-#define ESIFDV_BAKFILEEXT           ".dvk"				// DataVault File Extension for Backup
-#define ESIFDV_LOGFILEEXT           ".lg"				// DataVault Log File Extension
-#define ESIFDV_SIGNATURE            "\xE5\x1F"			// "ESIF" Signature = 0xE51F
-#define ESIFDV_MAJOR_VERSION        1
-#define ESIFDV_MINOR_VERSION        0
-#define ESIFDV_REVISION             0
-#define ESIFDV_MAX_REVISION         0xFFFF
-
 struct DataBank_s;
 typedef struct DataBank_s DataBank, *DataBankPtr, **DataBankPtrLocation;
 
 #ifdef _DATABANK_CLASS
 struct DataBank_s {
 	UInt32     size;
-	DataVault  elements[ESIF_MAX_NAME_SPACES];
+	// TODO: Change to a dynamically-sized data structure
+	DataVault  *elements[ESIF_MAX_NAME_SPACES];
 	esif_ccb_lock_t lock;
+
+	// State information to allow pausing initialization
+	Bool staticVaultsLoaded;
 };
 
 #endif
@@ -57,20 +51,14 @@ extern DataBankPtr g_DataBankMgr;		// Global Instance, Dynamically Allocated
 extern char g_DataVaultDefault[ESIF_NAME_LEN]; // Global Default DataVault Namespace
 extern char *g_DataVaultStartScript;    // Optional Startup Script, if none specified in Default DataVault or cmd/start script
 
-// object management
-DataBankPtr DataBank_Create ();
-void DataBank_Destroy (DataBankPtr self);
-
 // methods
-DataVaultPtr DataBank_GetNameSpace (DataBankPtr self, StringPtr nameSpace);
-DataVaultPtr DataBank_OpenNameSpace (DataBankPtr self, esif_string nameSpace);
-void DataBank_CloseNameSpace (DataBankPtr self, esif_string nameSpace);
-int DataBank_KeyExists (DataBankPtr self, StringPtr nameSpace, StringPtr keyName);
-eEsifError DataBank_LoadDataVaults (DataBankPtr self);
+DataVaultPtr DataBank_GetNameSpace(DataBankPtr self, StringPtr nameSpace);
+DataVaultPtr DataBank_OpenNameSpace(DataBankPtr self, esif_string nameSpace); /* Creates new if not present */
+void DataBank_CloseNameSpace(DataBankPtr self, esif_string nameSpace);
+int DataBank_KeyExists(DataBankPtr self, StringPtr nameSpace, StringPtr keyName);
 
-// Backwards compatibility
-eEsifError EsifCfgMgrInit (void);
-void EsifCfgMgrExit (void);
+eEsifError EsifCfgMgrInit(void);
+void EsifCfgMgrExit(void);
 
 #ifdef __cplusplus
 }

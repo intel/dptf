@@ -33,7 +33,7 @@ WIDomainCoreControlCapabilityChanged::~WIDomainCoreControlCapabilityChanged(void
 
 void WIDomainCoreControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainCoreControlCapabilityChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainCoreControlCapabilityChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainCoreControlCapabilityChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainCoreControlCapabilityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainCoreControlCapabilityChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainCoreControlCapabilityChanged", i);
         }
     }
 }

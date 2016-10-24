@@ -33,7 +33,7 @@ WIPolicyOperatingSystemLidStateChanged::~WIPolicyOperatingSystemLidStateChanged(
 
 void WIPolicyOperatingSystemLidStateChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyOperatingSystemLidStateChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemLidStateChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemLidStateChanged", i);
         }
     }
 }

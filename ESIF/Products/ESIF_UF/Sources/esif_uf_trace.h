@@ -57,23 +57,6 @@
 #include "esif.h"
 #include "esif_trace.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-
-#define ESIF_ALWAYSFALSE (0)
-
-/* Avoid Klocworks "suspicious semicolon" warnings */
-#define ESIF_TRACENULL (0)
-#define ESIF_TRACEFUNC CMD_OUT
-#define ESIF_FILENAME __FILE__
-
-#endif /* ESIF_ATTR_OS_WINDOWS */
-#ifdef ESIF_ATTR_OS_LINUX
-#define ESIF_ALWAYSFALSE (0)
-#define ESIF_TRACENULL
-#define ESIF_TRACEFUNC printf
-#define ESIF_FILENAME __FILE__
-#endif
-
 /* Enumerated Type Base Macros */
 #define ENUMDECL(ENUM)              ENUM,
 #define ENUMLIST(ENUM)              {ENUM, #ENUM},
@@ -91,6 +74,28 @@ typedef u8		esif_traceroute_t;
 #define esif_tracemask_fmtx	"%x"	// %x or %llx
 #define ESIF_TRACEMASK_MAX		32
 #define ESIF_TRACEMAPPING_MAX	256
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+
+/* Avoid Klocworks "suspicious semicolon" warnings */
+#define ESIF_ALWAYSFALSE (0)
+#define ESIF_TRACENULL(fmt, ...) (0)
+#define ESIF_TRACEFUNC(fmt, ...) CMD_OUT(fmt, ##__VA_ARGS__)
+#define ESIF_FILENAME __FILE__
+
+/* OS Trace is only available for UMDF driver */
+#ifdef ESIF_ATTR_UMDF_IS_FILT_DRVR
+#define ESIF_FEAT_OPT_OS_TRACE
+#endif
+
+#endif /* ESIF_ATTR_OS_WINDOWS */
+
+#ifdef ESIF_ATTR_OS_LINUX
+#define ESIF_ALWAYSFALSE (0)
+#define ESIF_TRACENULL(fmt, ...)
+#define ESIF_TRACEFUNC(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define ESIF_FILENAME __FILE__
+#endif /* LINUX */
 
 /* 
  * ESIF_TRACE_ID must be #defined in each source file before any #includes
@@ -143,7 +148,11 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_LINUX)		/* Linux General */ \
 	\
 	ENUM(ESIF_TRACEMODULE_LOGGINGMGR)   /* Logging Manager */ \
-
+	\
+	ENUM(ESIF_TRACEMODULE_APITRACE)     /* Entry/Exit for  */ \
+	ENUM(ESIF_TRACEMODULE_POWER)        /* Device power state information  */ \
+	ENUM(ESIF_TRACEMODULE_PNP)          /* PnP information  */ \
+	ENUM(ESIF_TRACEMODULE_TABLEOBJECT)  /* TableObject  */ \
 
 enum esif_tracemodule {
 	ENUM_TRACEMODULE(ENUMDECL)
@@ -177,7 +186,6 @@ extern struct esif_tracelevel_s g_traceinfo[];
 
 extern const enum esif_tracemodule EsifTraceModule_FromString(const char *name);
 extern const char *EsifTraceModule_ToString(enum esif_tracemodule val);
-extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func, const char *file, int line, const char *msg, ...);
 
 #ifdef __cplusplus
 }
@@ -192,13 +200,93 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
 /* Test whether Tracing is currently enabled for the given module and level (regardless of current trace level) */
 #define ESIF_TRACEENABLED(module, level) (!!(g_traceinfo[level].modules & (module)))
 
+/* OS Trace Support. Note different parameters for EsifUfTraceMessage for non-OS-Trace builds to conserve code size */
+#ifdef ESIF_FEAT_OPT_OS_TRACE
+#ifdef __cplusplus
+extern "C" {
+#endif
+	extern int EsifUfTraceMessage(
+		int isEsifTrace,
+		int isOsTrace,
+		esif_tracemask_t module,
+		int level,
+		const char *func,
+		const char *file,
+		int line,
+		const char *msg, 
+		...);
+	extern int IsEsifUfEtwEnabled(
+		esif_tracemask_t moduleMask,
+		int level
+		);
+	extern int EsifUfEtwPrintArgs(
+		esif_tracemask_t moduleMask,
+		int level,
+		const char *funcPtr,
+		const char *filePtr,
+		int line,
+		const char *fmtPtr,
+		va_list argList
+		);
+#ifdef __cplusplus
+}
+#endif
+#define ESIF_OS_TRACEACTIVE(module, level)		IsEsifUfEtwEnabled(module, level)
+
+/* Conditionally route trace message if given module/level are currently active, based on the current trace level.
+ * Optional arguments are not evaluated and message string not created if message not routed
+ */
+#define ESIF_DOTRACE_IFACTIVE(module, level, msg, ...) \
+	do { \
+		int isEsifTrace = ESIF_TRACEACTIVE(module, level), isOsTrace = ESIF_OS_TRACEACTIVE(module, level); \
+		if (isEsifTrace || isOsTrace) { \
+			EsifUfTraceMessage(isEsifTrace, isOsTrace, module, level, ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
+		} \
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
+
+/*
+ * Conditionally route trace message if given module/level are currently enabled, regardless of the current trace level.
+ * Optional arguments are not evaluated and message string not created if message not routed
+ */
+#define ESIF_DOTRACE_IFENABLED(module, level, msg, ...) \
+	do { \
+		int isEsifTrace = ESIF_TRACEENABLED(module, level), isOsTrace = ESIF_OS_TRACEACTIVE(module, level); \
+		if (isEsifTrace || isOsTrace) { \
+			EsifUfTraceMessage(isEsifTrace, isOsTrace, module, level, ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
+		} \
+	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
+
+/* Always route trace message regardless of current module masks and trace level */
+#define ESIF_DOTRACE_ALWAYS(module, level, msg, ...) \
+		EsifUfTraceMessage(1, 1, module, level,	ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
+
+#else /* not ESIF_FEAT_OPT_OS_TRACE */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+	/* Note different parameter list for non-OS Trace build to conserve code size */
+	extern int EsifUfTraceMessage(
+		esif_tracemask_t module,
+		int level,
+		const char *func,
+		const char *file,
+		int line,
+		const char *msg,
+		...);
+#ifdef __cplusplus
+}
+#endif
+
+#define ESIF_OS_TRACEACTIVE(module, level)		(0)
+
 /* Conditionally route trace message if given module/level are currently active, based on the current trace level.
  * Optional arguments are not evaluated and message string not created if message not routed
  */
 #define ESIF_DOTRACE_IFACTIVE(module, level, msg, ...) \
 	do { \
 		if (ESIF_TRACEACTIVE(module, level)) { \
-			EsifTraceMessage(module, level,	ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
+			EsifUfTraceMessage(module, level, ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
 		} \
 	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
@@ -209,22 +297,18 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
 #define ESIF_DOTRACE_IFENABLED(module, level, msg, ...) \
 	do { \
 		if (ESIF_TRACEENABLED(module, level)) { \
-			EsifTraceMessage(module, level,	ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
+			EsifUfTraceMessage(module, level,	ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
 		} \
 	} while ESIF_CONSTEXPR(ESIF_ALWAYSFALSE)
 
 /* Always route trace message regardless of current module masks and trace level */
 #define ESIF_DOTRACE_ALWAYS(module, level, msg, ...) \
-	EsifTraceMessage(module, level,	ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__)
+		EsifUfTraceMessage(module, level,	ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
+
+#endif
 
 /* Never route a trace message and compile it out of the binary */
-#define ESIF_DOTRACE_NEVER(mod, lev, msg, ...)	((void)0)
-
-/*
- * Change ESIF_DOTRACE_INACTIVE to ESIF_DOTRACE_NEVER in the following macro
- * to compile out all ESIF_TRACE_DEBUG messages from the Upper Framework binaries.
- */
-#define ESIF_DOTRACE_IFCOMPILED(mod, lev, msg, ...) ESIF_DOTRACE_IFACTIVE(mod, lev, msg, ##__VA_ARGS__)
+#define ESIF_DOTRACE_NEVER(mod, lev, msg, ...)	(0)
 
 /* Default User-Mode Trace Level at startup */
 #define ESIF_TRACELEVEL_DEFAULT	ESIF_TRACELEVEL_ERROR
@@ -234,29 +318,105 @@ extern int EsifTraceMessage(esif_tracemask_t module, int level, const char *func
  ****************************************************************************/
 
 /*
- * ESIF_TRACE_XXXX messages are conditionally routed depending on current trace level and module masks.
- * ESIF_DOTRACE_IFCOMPILED is used for trace levels that may be conditionally compiled out of the binary
- */
-#define ESIF_TRACE_FATAL(msg, ...) ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_FATAL, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_ERROR(msg, ...) ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_ERROR, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_WARN(msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_WARN, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_INFO(msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_INFO, msg, ##__VA_ARGS__)
-#define ESIF_TRACE_DEBUG(msg, ...) ESIF_DOTRACE_IFCOMPILED(ESIF_TRACEMASK_CURRENT, ESIF_TRACELEVEL_DEBUG, msg, ##__VA_ARGS__)
+* ESIF_TRACE_XXXX messages are conditionally routed depending on current trace level and module masks.
+* Change ESIF_DOTRACE_IFACTIVE to ESIF_DOTRACE_NEVER in macros below to compile them out of the binaries.
+*/
+#define ESIF_TRACE_FATAL(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK_CURRENT, \
+			ESIF_TRACELEVEL_FATAL, \
+			msg, \
+			##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_ERROR(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK_CURRENT, \
+			ESIF_TRACELEVEL_ERROR, \
+			msg, \
+			##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_WARN(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK_CURRENT, \
+			ESIF_TRACELEVEL_WARN, \
+			msg, \
+			##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_INFO(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK_CURRENT, \
+			ESIF_TRACELEVEL_INFO, \
+			msg, \
+			##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_DEBUG(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK_CURRENT, \
+			ESIF_TRACELEVEL_DEBUG, \
+			msg, \
+			##__VA_ARGS__ \
+		)
 
 /* ESIF_TRACE_IFACTIVE messages are always compiled into binary and routed if module/level active, based on current trace level  */
-#define ESIF_TRACE_IFACTIVE(module, level, msg, ...)  ESIF_DOTRACE_IFACTIVE(ESIF_TRACEMASK(module), level, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_IFACTIVE(module, level, msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(module), \
+			level, \
+			msg, \
+			##__VA_ARGS__ \
+		)
 
 /* ESIF_TRACE_IFENABLED messages are always compiled into binary and routed if module/level enabled, regardless of current trace level */
-#define ESIF_TRACE_IFENABLED(module, level, msg, ...) ESIF_DOTRACE_IFENABLED(ESIF_TRACEMASK(module), level, msg, ##__VA_ARGS__)
+#define ESIF_TRACE_IFENABLED(module, level, msg, ...) \
+		ESIF_DOTRACE_IFENABLED( \
+			ESIF_TRACEMASK(module), \
+			level, \
+			msg, \
+			##__VA_ARGS__ \
+		)
 
 /* Use these for tracing Entry/Exit of functions */
-#define ESIF_TRACE_ENTRY()		ESIF_TRACE_DEBUG("Entering Function")
-#define ESIF_TRACE_EXIT()		ESIF_TRACE_DEBUG("Exiting Function")
+#define ESIF_TRACE_ENTRY() \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEMODULE_APITRACE), \
+			ESIF_TRACELEVEL_DEBUG, \
+			"Entering Function..." \
+		)
+#define ESIF_TRACE_EXIT() \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEMODULE_APITRACE), \
+			ESIF_TRACELEVEL_DEBUG, \
+			"Exiting Function..." \
+		)
 
 /* Use these for tracing Entry/Exit of functions that you need logged at INFO level (rare) */
-#define ESIF_TRACE_ENTRY_INFO()	ESIF_TRACE_INFO("Entering function...")
-#define ESIF_TRACE_EXIT_INFO()	ESIF_TRACE_INFO("Exiting function...")
-#define ESIF_TRACE_EXIT_INFO_W_STATUS(status)	ESIF_TRACE_INFO("Exiting function: Exit code = 0x%08X...", status)
+#define ESIF_TRACE_ENTRY_INFO() \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEMODULE_APITRACE), \
+			ESIF_TRACELEVEL_INFO, \
+			"Entering Function..." \
+		)
+#define ESIF_TRACE_EXIT_INFO() \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEMODULE_APITRACE), \
+			ESIF_TRACELEVEL_INFO, \
+			"Exiting Function..." \
+		)
+#define ESIF_TRACE_EXIT_INFO_W_STATUS(status) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEMODULE_APITRACE), \
+			ESIF_TRACELEVEL_INFO, \
+			"Exiting function: Exit code = 0x%08X...", \
+			status \
+		)
+
+#define ESIF_TRACE_API_INFO(msg, ...) \
+		ESIF_DOTRACE_IFACTIVE( \
+			ESIF_TRACEMASK(ESIF_TRACEMODULE_APITRACE), \
+			ESIF_TRACELEVEL_INFO, \
+			msg, \
+			##__VA_ARGS__ \
+		)
 
 #endif	/* _ESIF_DEBUG_H_ */
 

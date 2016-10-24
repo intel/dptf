@@ -35,9 +35,13 @@ public:
 
     // DomainPowerStatusInterface
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Power getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 };

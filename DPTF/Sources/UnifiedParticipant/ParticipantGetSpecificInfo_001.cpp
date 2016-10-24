@@ -34,10 +34,14 @@ ParticipantGetSpecificInfo_001::ParticipantGetSpecificInfo_001(UIntN participant
     clearCachedData();
 }
 
-std::map<ParticipantSpecificInfoKey::Type, UIntN> ParticipantGetSpecificInfo_001::getParticipantSpecificInfo(
+ParticipantGetSpecificInfo_001::~ParticipantGetSpecificInfo_001()
+{
+}
+
+std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificInfo_001::getParticipantSpecificInfo(
     UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
-    std::map<ParticipantSpecificInfoKey::Type, UIntN> results;
+    std::map<ParticipantSpecificInfoKey::Type, Temperature> results;
     for (auto request = requestedInfo.cbegin(); request != requestedInfo.cend(); request++)
     {
         try
@@ -52,8 +56,8 @@ std::map<ParticipantSpecificInfoKey::Type, UIntN> ParticipantGetSpecificInfo_001
         }
         catch (...)
         {
-            // if the primitive isn't available in the cache we receive an exception and
-            // we don't add this item to the map
+            // if the primitive isn't available in the cache we receive an exception
+            results[*request] = Temperature(Constants::MaxUInt32);
         }
     }
 
@@ -67,9 +71,13 @@ void ParticipantGetSpecificInfo_001::clearCachedData(void)
 
 Temperature ParticipantGetSpecificInfo_001::readSpecificInfo(PrimitiveAndInstance primitiveAndInstance)
 {
-    return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
+    auto tripPoint = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
         primitiveAndInstance.primitive, Constants::Esif::NoDomain, static_cast<UInt8>(primitiveAndInstance.instance));
+    tripPoint = Temperature::snapWithinAllowableTripPointRange(tripPoint);
+
+    return tripPoint;
 }
+
 PrimitiveAndInstance ParticipantGetSpecificInfo_001::getPrimitiveAndInstanceForSpecificInfoKey(
     ParticipantSpecificInfoKey::Type request)
 {
@@ -158,15 +166,15 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
         tripRequest.push_back((ParticipantSpecificInfoKey::Type)ac);
     }
 
-    std::map<ParticipantSpecificInfoKey::Type, UIntN> tripPoints = 
-        getParticipantSpecificInfo(Constants::Invalid, tripRequest);
+    std::map<ParticipantSpecificInfoKey::Type, Temperature> tripPoints = 
+        getParticipantSpecificInfo(getParticipantIndex(), tripRequest);
 
     auto root = XmlNode::createWrapperElement("specific_info");
 
     auto tripPoint = tripPoints.end();
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::Critical)) != tripPoints.end())
     {
-        root->addChild(XmlNode::createDataElement("crt", StatusFormat::friendlyValue(tripPoint->second)));
+        root->addChild(XmlNode::createDataElement("crt", tripPoint->second.toString()));
     }
     else
     {
@@ -175,7 +183,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::Hot)) != tripPoints.end())
     {
-        root->addChild(XmlNode::createDataElement("hot", StatusFormat::friendlyValue(tripPoint->second)));
+        root->addChild(XmlNode::createDataElement("hot", tripPoint->second.toString()));
     }
     else
     {
@@ -184,7 +192,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::Warm)) != tripPoints.end())
     {
-        root->addChild(XmlNode::createDataElement("wrm", StatusFormat::friendlyValue(tripPoint->second)));
+        root->addChild(XmlNode::createDataElement("wrm", tripPoint->second.toString()));
     }
     else
     {
@@ -193,7 +201,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::PSV)) != tripPoints.end())
     {
-        root->addChild(XmlNode::createDataElement("psv", StatusFormat::friendlyValue(tripPoint->second)));
+        root->addChild(XmlNode::createDataElement("psv", tripPoint->second.toString()));
     }
     else
     {
@@ -202,7 +210,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::NTT)) != tripPoints.end())
     {
-        root->addChild(XmlNode::createDataElement("ntt", StatusFormat::friendlyValue(tripPoint->second)));
+        root->addChild(XmlNode::createDataElement("ntt", tripPoint->second.toString()));
     }
     else
     {
@@ -218,7 +226,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 
         if ((tripPoint = tripPoints.find((ParticipantSpecificInfoKey::Type)ac)) != tripPoints.end())
         {
-            root->addChild(XmlNode::createDataElement(acx.str(), StatusFormat::friendlyValue(tripPoint->second)));
+            root->addChild(XmlNode::createDataElement(acx.str(), tripPoint->second.toString()));
         }
         else
         {

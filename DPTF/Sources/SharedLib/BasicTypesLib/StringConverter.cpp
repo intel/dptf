@@ -89,3 +89,15 @@ Int32 StringConverter::toInt32(const std::string& input)
     }
     return integer;
 }
+
+double StringConverter::toDouble(const std::string& input)
+{
+    double value(0);
+    istringstream stream(input);
+    stream >> value;
+    if (stream.fail())
+    {
+        throw dptf_exception("Failed to convert string \"" + input + "\" to double value.");
+    }
+    return value;
+}

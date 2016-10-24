@@ -578,7 +578,7 @@ static enum esif_rc esif_ccb_tmrm_get_next_handle(
 
 	do {
 		try_count++;
-		timer.timer_handle = (esif_ccb_timer_handle_t)++g_next_timer_handle;
+		timer.timer_handle = (esif_ccb_timer_handle_t)(size_t)++g_next_timer_handle;
 		node_ptr = esif_ccb_tmrm_find_timer_node_wlock(timer.timer_handle);
 	} while ((node_ptr != NULL) && (try_count < ESIF_CNT_HNDL_RETRIES_MAX));
 
@@ -603,7 +603,7 @@ static enum esif_rc esif_ccb_tmrm_get_next_cb_handle_wlock(
 	if (0 == g_next_timer_cb_handle)
 		g_next_timer_cb_handle++;
 
-	*handle_ptr = (esif_ccb_timer_handle_t)g_next_timer_cb_handle;
+	*handle_ptr = (esif_ccb_timer_handle_t)(size_t)g_next_timer_cb_handle;
 	return ESIF_OK;
 }
 

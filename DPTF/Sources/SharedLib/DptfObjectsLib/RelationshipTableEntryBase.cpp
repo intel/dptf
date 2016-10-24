@@ -19,20 +19,36 @@
 #include "RelationshipTableEntryBase.h"
 
 RelationshipTableEntryBase::RelationshipTableEntryBase(
-    const std::string& sourceDeviceAcpiScope,
-    const std::string& targetDeviceAcpiScope)
-    : m_sourceDeviceAcpiScope(sourceDeviceAcpiScope),
-    m_sourceDeviceIndex(Constants::Invalid),
-    m_targetDeviceAcpiScope(targetDeviceAcpiScope),
-    m_targetDeviceIndex(Constants::Invalid)
+    const std::string & sourceDeviceScope, DomainType::Type sourceDomainType, 
+    const std::string & targetDeviceScope, DomainType::Type targetDomainType)
+    : m_sourceDeviceScope(sourceDeviceScope), m_sourceDeviceIndex(Constants::Invalid),
+    m_sourceDomainType(sourceDomainType), m_sourceDomainIndex(Constants::Invalid),
+    m_targetDeviceScope(targetDeviceScope), m_targetDeviceIndex(Constants::Invalid),
+    m_targetDomainType(targetDomainType), m_targetDomainIndex(Constants::Invalid)
 {
 }
 
 RelationshipTableEntryBase::RelationshipTableEntryBase(
-    const std::string& targetDeviceAcpiScope)
-    : m_sourceDeviceIndex(Constants::Invalid), 
-    m_targetDeviceAcpiScope(targetDeviceAcpiScope),
-    m_targetDeviceIndex(Constants::Invalid)
+    const std::string & participantScope, DomainType::Type domainType)
+    : m_sourceDeviceIndex(Constants::Invalid),
+    m_sourceDomainType(DomainType::Invalid),
+    m_sourceDomainIndex(Constants::Invalid),
+    m_targetDeviceScope(participantScope),
+    m_targetDeviceIndex(Constants::Invalid),
+    m_targetDomainType(domainType),
+    m_targetDomainIndex(Constants::Invalid)
+{
+}
+
+RelationshipTableEntryBase::RelationshipTableEntryBase(
+    const std::string& sourceDeviceScope,
+    const std::string& targetDeviceScope)
+    : RelationshipTableEntryBase(sourceDeviceScope, DomainType::Invalid, targetDeviceScope, DomainType::Invalid)
+{
+}
+
+RelationshipTableEntryBase::RelationshipTableEntryBase(const std::string& participantScope)
+    : RelationshipTableEntryBase(participantScope, DomainType::Invalid)
 {
 }
 
@@ -40,9 +56,9 @@ RelationshipTableEntryBase::~RelationshipTableEntryBase()
 {
 }
 
-const std::string& RelationshipTableEntryBase::getSourceDeviceAcpiScope() const
+const std::string& RelationshipTableEntryBase::getSourceDeviceScope() const
 {
-    return m_sourceDeviceAcpiScope;
+    return m_sourceDeviceScope;
 }
 
 UIntN RelationshipTableEntryBase::getSourceDeviceIndex() const
@@ -50,9 +66,9 @@ UIntN RelationshipTableEntryBase::getSourceDeviceIndex() const
     return m_sourceDeviceIndex;
 }
 
-const std::string& RelationshipTableEntryBase::getTargetDeviceAcpiScope() const
+const std::string& RelationshipTableEntryBase::getTargetDeviceScope() const
 {
-    return m_targetDeviceAcpiScope;
+    return m_targetDeviceScope;
 }
 
 UIntN RelationshipTableEntryBase::getTargetDeviceIndex() const
@@ -60,36 +76,83 @@ UIntN RelationshipTableEntryBase::getTargetDeviceIndex() const
     return m_targetDeviceIndex;
 }
 
-void RelationshipTableEntryBase::associateParticipant(std::string deviceAcpiScope, UIntN deviceIndex)
+void RelationshipTableEntryBase::associateParticipant(std::string participantScope, UIntN participantIndex)
 {
-    if (m_sourceDeviceAcpiScope == deviceAcpiScope)
+    if (m_sourceDeviceScope == participantScope)
     {
-        m_sourceDeviceIndex = deviceIndex;
+        m_sourceDeviceIndex = participantIndex;
     }
 
-    if (m_targetDeviceAcpiScope == deviceAcpiScope)
+    if (m_targetDeviceScope == participantScope)
     {
-        m_targetDeviceIndex = deviceIndex;
+        m_targetDeviceIndex = participantIndex;
     }
 }
 
-void RelationshipTableEntryBase::disassociateParticipant(UIntN deviceIndex)
+void RelationshipTableEntryBase::disassociateParticipant(UIntN participantIndex)
 {
-    if (m_sourceDeviceIndex == deviceIndex)
+    if (m_sourceDeviceIndex == participantIndex)
     {
         m_sourceDeviceIndex = Constants::Invalid;
+        m_sourceDomainIndex = Constants::Invalid;
     }
 
-    if (m_targetDeviceIndex == deviceIndex)
+    if (m_targetDeviceIndex == participantIndex)
     {
         m_targetDeviceIndex = Constants::Invalid;
+        m_targetDomainIndex = Constants::Invalid;
     }
 }
 
-Bool RelationshipTableEntryBase::operator==(const RelationshipTableEntryBase& baseEntry) const
+void RelationshipTableEntryBase::associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex)
 {
-    return ((m_sourceDeviceAcpiScope == baseEntry.m_sourceDeviceAcpiScope) && (m_sourceDeviceIndex == baseEntry.m_sourceDeviceIndex)
-            && (m_targetDeviceAcpiScope == baseEntry.m_targetDeviceAcpiScope) && (m_targetDeviceIndex == baseEntry.m_targetDeviceIndex));
+    if ((m_sourceDeviceScope == participantScope) && (m_sourceDomainType == domainType))
+    {
+        m_sourceDomainIndex = domainIndex;
+    }
+
+    if ((m_targetDeviceScope == participantScope) && (m_targetDomainType == domainType))
+    {
+        m_targetDomainIndex = domainIndex;
+    }
+}
+
+void RelationshipTableEntryBase::associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex)
+{
+    if ((m_sourceDeviceIndex == participantIndex) && (m_sourceDomainType == domainType))
+    {
+        m_sourceDomainIndex = domainIndex;
+    }
+
+    if ((m_targetDeviceIndex == participantIndex) && (m_targetDomainType == domainType))
+    {
+        m_targetDomainIndex = domainIndex;
+    }
+}
+
+void RelationshipTableEntryBase::disassociateDomain(UIntN participantIndex, UIntN domainIndex)
+{
+    if ((m_sourceDeviceIndex == participantIndex) && (m_sourceDomainIndex == domainIndex))
+    {
+        m_sourceDomainIndex = Constants::Invalid;
+    }
+
+    if ((m_targetDeviceIndex == participantIndex) && (m_targetDomainIndex == domainIndex))
+    {
+        m_targetDomainIndex = Constants::Invalid;
+    }
+}
+
+Bool RelationshipTableEntryBase::operator==(const RelationshipTableEntryInterface& baseEntry) const
+{
+    return ((m_sourceDeviceScope == baseEntry.getSourceDeviceScope()) && 
+        (m_sourceDeviceIndex == baseEntry.getSourceDeviceIndex()) &&
+        (m_sourceDomainType == baseEntry.getSourceDomainType()) &&
+        (m_sourceDomainIndex == baseEntry.getSourceDomainIndex()) &&
+        (m_targetDeviceScope == baseEntry.getTargetDeviceScope()) && 
+        (m_targetDeviceIndex == baseEntry.getTargetDeviceIndex()) &&
+        (m_targetDomainType == baseEntry.getTargetDomainType()) &&
+        (m_targetDomainIndex == baseEntry.getTargetDomainIndex()));
 }
 
 Bool RelationshipTableEntryBase::sourceDeviceIndexValid(void) const
@@ -97,7 +160,37 @@ Bool RelationshipTableEntryBase::sourceDeviceIndexValid(void) const
     return (m_sourceDeviceIndex != Constants::Invalid);
 }
 
+Bool RelationshipTableEntryBase::sourceDomainIndexValid(void) const
+{
+    return (m_sourceDomainIndex != Constants::Invalid);
+}
+
+UIntN RelationshipTableEntryBase::getSourceDomainIndex() const
+{
+    return m_sourceDomainIndex;
+}
+
+DomainType::Type RelationshipTableEntryBase::getSourceDomainType() const
+{
+    return m_sourceDomainType;
+}
+
 Bool RelationshipTableEntryBase::targetDeviceIndexValid(void) const
 {
     return (m_targetDeviceIndex != Constants::Invalid);
+}
+
+Bool RelationshipTableEntryBase::targetDomainIndexValid(void) const
+{
+    return (m_targetDomainIndex != Constants::Invalid);
+}
+
+UIntN RelationshipTableEntryBase::getTargetDomainIndex() const
+{
+    return m_targetDomainIndex;
+}
+
+DomainType::Type RelationshipTableEntryBase::getTargetDomainType() const
+{
+    return m_targetDomainType;
 }

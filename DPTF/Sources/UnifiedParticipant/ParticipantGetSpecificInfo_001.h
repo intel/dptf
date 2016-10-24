@@ -28,10 +28,11 @@ public:
 
     ParticipantGetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
+    virtual ~ParticipantGetSpecificInfo_001();
 
     // ParticipantGetSpecificInfoInterface
-    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(UIntN participantIndex,
-        const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
+    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> 
+        getParticipantSpecificInfo(UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
@@ -44,7 +45,7 @@ private:
     ParticipantGetSpecificInfo_001(const ParticipantGetSpecificInfo_001& rhs);
     ParticipantGetSpecificInfo_001& operator=(const ParticipantGetSpecificInfo_001& rhs);
 
-    std::map<ParticipantSpecificInfoKey::Type, UIntN> m_cachedData;
+    std::map<ParticipantSpecificInfoKey::Type, Temperature> m_cachedData;
 
     Temperature readSpecificInfo(PrimitiveAndInstance primitiveAndInstance);
     PrimitiveAndInstance getPrimitiveAndInstanceForSpecificInfoKey(ParticipantSpecificInfoKey::Type request);

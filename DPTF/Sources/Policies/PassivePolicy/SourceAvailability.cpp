@@ -33,7 +33,7 @@ SourceAvailability::~SourceAvailability()
 {
 }
 
-void SourceAvailability::setSourceAsBusy(UIntN source, UInt64 time)
+void SourceAvailability::setSourceAsBusy(UIntN source, const TimeSpan& time)
 {
     m_schedule[source] = time;
 }
@@ -49,16 +49,14 @@ void SourceAvailability::remove(UIntN source)
 
 std::shared_ptr<XmlNode> SourceAvailability::getXml() const
 {
-    UInt64 time = m_time->getCurrentTimeInMilliseconds();
-    double currentTime = (double)time;
-
+    auto currentTime = m_time->getCurrentTime();
     auto status = XmlNode::createWrapperElement("source_availability");
     for (auto source = m_schedule.begin(); source != m_schedule.end(); source++)
     {
         auto activeSource = XmlNode::createWrapperElement("activity");
         activeSource->addChild(XmlNode::createDataElement("source", friendlyValue(source->first)));
-        double timeTilAvailable = ((double)source->second - currentTime) / (double)1000;
-        activeSource->addChild(XmlNode::createDataElement("time_until_available", friendlyValue(timeTilAvailable)));
+        auto timeTilAvailable = source->second - currentTime;
+        activeSource->addChild(XmlNode::createDataElement("time_until_available", timeTilAvailable.toStringSeconds()));
         status->addChild(activeSource);
     }
     return status;
@@ -69,7 +67,7 @@ void SourceAvailability::setTime(std::shared_ptr<TimeInterface> time)
     m_time = time;
 }
 
-Bool SourceAvailability::isBusy(UIntN source, UInt64 time) const
+Bool SourceAvailability::isBusy(UIntN source, const TimeSpan& time) const
 {
     auto sourceSchedule = m_schedule.find(source);
     if (sourceSchedule == m_schedule.end())

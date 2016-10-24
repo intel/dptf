@@ -81,7 +81,7 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 	/* if participant exists, simply return current id */
 	up_ptr = EsifUpPm_GetAvailableParticipantByName(piPtr->name);
 	if (NULL != up_ptr) {
-		*participantInstance = (esif_handle_t)(UInt32)EsifUp_GetInstance(up_ptr);
+		*participantInstance = (esif_handle_t)(size_t)EsifUp_GetInstance(up_ptr);
 		ESIF_TRACE_WARN("Participant %s has already existed in upper framework\n", piPtr->name);
 		rc = ESIF_E_UNSPECIFIED;
 		EsifUp_PutRef(up_ptr);
@@ -94,7 +94,7 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 		goto exit;
 	}
 	else {
-		*participantInstance = (esif_handle_t)(UInt32)newInstance;
+		*participantInstance = (esif_handle_t)(size_t)newInstance;
 	}
 
 	ESIF_TRACE_DEBUG("Create new UF participant: %s, instance = %d\n", piPtr->name, newInstance);
@@ -113,7 +113,7 @@ static eEsifError ESIF_CALLCONV UnRegisterParticipant(esif_handle_t participantH
 {
 	eEsifError rc = ESIF_OK;
 	EsifUpPtr upPtr = NULL;
-	UInt8 participantId = (UInt8)(UInt32)participantHandle;
+	UInt8 participantId = (UInt8)(size_t)participantHandle;
 
 	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
 	
@@ -276,18 +276,6 @@ EsifCnjPtr esif_uf_conjure_get_instance_from_name(esif_string lib_name)
 		}
 	}
 	return NULL;
-}
-
-
-eEsifError EsifCnjInit()
-{
-	return ESIF_OK;
-}
-
-
-void EsifCnjExit()
-{
-	
 }
 
 

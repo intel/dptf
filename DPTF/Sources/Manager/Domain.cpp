@@ -19,9 +19,9 @@
 #include "Domain.h"
 #include "EsifDataString.h"
 #include "EsifDataGuid.h"
-#include "DptfStatus.h"
+#include "DptfStatusInterface.h"
 
-Domain::Domain(DptfManager* dptfManager) :
+Domain::Domain(DptfManagerInterface* dptfManager) :
     m_domainCreated(false), m_dptfManager(dptfManager), m_theRealParticipant(nullptr),
     m_participantIndex(Constants::Invalid), m_domainIndex(Constants::Invalid),
     m_domainGuid(Guid()), m_domainName(""), m_domainType(DomainType::Invalid),
@@ -50,11 +50,7 @@ Domain::Domain(DptfManager* dptfManager) :
     m_rfProfileData(nullptr),
     m_temperatureStatus(nullptr), m_temperatureThresholds(nullptr),
     m_isVirtualTemperature(nullptr),
-    m_utilizationStatus(nullptr),
-    m_hardwareDutyCycle(nullptr),
-    m_isEnabledByPlatform(nullptr), m_isSupportedByPlatform(nullptr),
-    m_isEnabledByOperatingSystem(nullptr), m_isSupportedByOperatingSystem(nullptr),
-    m_isHdcOobEnabled(nullptr)
+    m_utilizationStatus(nullptr)
 {
 }
 
@@ -70,29 +66,36 @@ void Domain::createDomain(UIntN participantIndex, UIntN domainIndex, Participant
     {
         throw dptf_exception("Domain::createDomain() already executed.");
     }
-    m_domainCreated = true;
 
-    m_theRealParticipant = participantInterface;
-    m_participantIndex = participantIndex;
-    m_domainIndex = domainIndex;
-    m_domainGuid = EsifDataGuid(&domainDataPtr->fGuid);
-    m_domainName = EsifDataString(&domainDataPtr->fName);
-    m_domainType = EsifDomainTypeToDptfDomainType(domainDataPtr->fType);
-    m_domainFunctionalityVersions = DomainFunctionalityVersions(domainDataPtr->fCapabilityBytes);
-    m_arbitrator = new Arbitrator(m_dptfManager);
+    try
+    {
+        m_theRealParticipant = participantInterface;
+        m_participantIndex = participantIndex;
+        m_domainIndex = domainIndex;
+        m_domainGuid = EsifDataGuid(&domainDataPtr->fGuid);
+        m_domainName = EsifDataString(&domainDataPtr->fName);
+        m_domainType = EsifDomainTypeToDptfDomainType(domainDataPtr->fType);
+        m_domainFunctionalityVersions = DomainFunctionalityVersions(domainDataPtr->fCapabilityBytes);
+        m_arbitrator = new Arbitrator(m_dptfManager);
 
-    m_dptfManager->getDptfStatus()->clearCache();
-    m_theRealParticipant->createDomain(
-        m_domainGuid,
-        m_participantIndex,
-        m_domainIndex,
-        domainEnabled,
-        m_domainType,
-        m_domainName,
-        EsifDataString(&domainDataPtr->fDescription),
-        m_domainFunctionalityVersions);
+        m_dptfManager->getDptfStatus()->clearCache();
+        m_theRealParticipant->createDomain(
+            m_domainGuid,
+            m_participantIndex,
+            m_domainIndex,
+            domainEnabled,
+            m_domainType,
+            m_domainName,
+            EsifDataString(&domainDataPtr->fDescription),
+            m_domainFunctionalityVersions);
+
+        m_domainCreated = true;
+    }
+    catch (...)
+    {
+        m_domainCreated = false;
+    }
 }
-
 void Domain::destroyDomain(void)
 {
     if (m_theRealParticipant != nullptr)
@@ -157,7 +160,6 @@ void Domain::clearDomainCachedData(void)
     clearDomainCachedDataRfProfileStatus();
     clearDomainCachedDataTemperature();
     clearDomainCachedDataUtilizationStatus();
-    clearDomainCachedDataHardwareDutyCycle();
     clearDomainCachedDataPlatformPowerStatus();
 }
 
@@ -294,6 +296,16 @@ DisplayControlDynamicCaps Domain::getDisplayControlDynamicCaps(void)
     FILL_CACHE_AND_RETURN(m_displayControlDynamicCaps, DisplayControlDynamicCaps, getDisplayControlDynamicCaps)
 }
 
+UIntN Domain::getUserPreferredDisplayIndex(void)
+{
+    return m_theRealParticipant->getUserPreferredDisplayIndex(m_participantIndex, m_domainIndex);
+}
+
+Bool Domain::isUserPreferredIndexModified()
+{
+    return m_theRealParticipant->isUserPreferredIndexModified(m_participantIndex, m_domainIndex);
+}
+
 DisplayControlStatus Domain::getDisplayControlStatus(void)
 {
     FILL_CACHE_AND_RETURN(m_displayControlStatus, DisplayControlStatus, getDisplayControlStatus)
@@ -307,9 +319,8 @@ DisplayControlSet Domain::getDisplayControlSet(void)
 void Domain::setDisplayControl(UIntN policyIndex, UIntN displayControlIndex)
 {
     DisplayControlArbitrator* displayControlArbitrator = m_arbitrator->getDisplayControlArbitrator();
-
     displayControlArbitrator->arbitrate(policyIndex, displayControlIndex);
-
+    // always set even if arbitrated value has not changed
     UIntN arbitratedDisplayControlIndex = displayControlArbitrator->getArbitratedDisplayControlIndex();
     m_theRealParticipant->setDisplayControl(m_participantIndex, m_domainIndex, arbitratedDisplayControlIndex);
     clearDomainCachedDataDisplayControl();
@@ -317,9 +328,24 @@ void Domain::setDisplayControl(UIntN policyIndex, UIntN displayControlIndex)
 
 void Domain::setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities)
 {
-    // TODO add to the arbitrator if other policies can modify the caps??
-    m_theRealParticipant->setDisplayControlDynamicCaps(m_participantIndex, m_domainIndex, newCapabilities);
-    clearDomainCachedDataDisplayControl();
+    DisplayControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getDisplayControlCapabilitiesArbitrator();
+    Bool updated = arbitrator->arbitrate(policyIndex, newCapabilities);
+    if (updated == true)
+    {
+        auto arbitratedCaps = arbitrator->getArbitratedDisplayControlCapabilities();
+        m_theRealParticipant->setDisplayControlDynamicCaps(m_participantIndex, m_domainIndex, arbitratedCaps);
+        clearDomainCachedDataDisplayControl();
+    }
+}
+
+void Domain::setDisplayCapsLock(UIntN policyIndex, Bool lock)
+{
+    DisplayControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getDisplayControlCapabilitiesArbitrator();
+    Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
+    if (updated == true)
+    {
+        m_theRealParticipant->setDisplayCapsLock(m_participantIndex, m_domainIndex, arbitrator->getArbitratedLock());
+    }
 }
 
 PerformanceControlStaticCaps Domain::getPerformanceControlStaticCaps(void)
@@ -358,9 +384,24 @@ void Domain::setPerformanceControl(UIntN policyIndex, UIntN performanceControlIn
 
 void Domain::setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities)
 {
-    // TODO add to the arbitrator if other policies can modify the caps??
-    m_theRealParticipant->setPerformanceControlDynamicCaps(m_participantIndex, m_domainIndex, newCapabilities);
-    clearDomainCachedDataPerformanceControl();
+    PerformanceControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPerformanceControlCapabilitiesArbitrator();
+    Bool updated = arbitrator->arbitrate(policyIndex, newCapabilities);
+    if (updated == true)
+    {
+        auto arbitratedCaps = arbitrator->getArbitratedPerformanceControlCapabilities();
+        m_theRealParticipant->setPerformanceControlDynamicCaps(m_participantIndex, m_domainIndex, arbitratedCaps);
+        clearDomainCachedDataPerformanceControl();
+    }
+}
+
+void Domain::setPerformanceCapsLock(UIntN policyIndex, Bool lock)
+{
+    PerformanceControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPerformanceControlCapabilitiesArbitrator();
+    Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
+    if (updated == true)
+    {
+        m_theRealParticipant->setPerformanceCapsLock(m_participantIndex, m_domainIndex, arbitrator->getArbitratedLock());
+    }
 }
 
 void Domain::setPixelClockControl(UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet)
@@ -434,6 +475,12 @@ void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType
     }
 }
 
+void Domain::setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
+{
+    m_theRealParticipant->setPowerLimitIgnoringCaps(
+        m_participantIndex, m_domainIndex, controlType, powerLimit);
+}
+
 TimeSpan Domain::getPowerLimitTimeWindow(PowerControlType::Type controlType)
 {
     auto limit = m_powerLimitTimeWindow.find(controlType);
@@ -456,6 +503,12 @@ void Domain::setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type c
             m_participantIndex, m_domainIndex, controlType, arbitratedTimeWindow);
         clearDomainCachedDataPowerControl();
     }
+}
+
+void Domain::setPowerLimitTimeWindowIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow)
+{
+    m_theRealParticipant->setPowerLimitTimeWindowIgnoringCaps(
+        m_participantIndex, m_domainIndex, controlType, timeWindow);
 }
 
 Percentage Domain::getPowerLimitDutyCycle(PowerControlType::Type controlType)
@@ -482,9 +535,24 @@ void Domain::setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type co
     }
 }
 
+void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock)
+{
+    PowerControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPowerControlCapabilitiesArbitrator();
+    Bool updated = arbitrator->arbitrateLockRequests(policyIndex, lock);
+    if (updated == true)
+    {
+        m_theRealParticipant->setPowerCapsLock(m_participantIndex, m_domainIndex, arbitrator->getArbitratedLock());
+    }
+}
+
 PowerStatus Domain::getPowerStatus(void)
 {
     FILL_CACHE_AND_RETURN(m_powerStatus, PowerStatus, getPowerStatus)
+}
+
+Power Domain::getAveragePower(const PowerControlDynamicCaps& capabilities)
+{
+    return m_theRealParticipant->getAveragePower(m_participantIndex, m_domainIndex, capabilities);
 }
 
 Bool Domain::isPlatformPowerLimitEnabled(PlatformPowerLimitType::Type limitType)
@@ -660,58 +728,6 @@ UtilizationStatus Domain::getUtilizationStatus(void)
     FILL_CACHE_AND_RETURN(m_utilizationStatus, UtilizationStatus, getUtilizationStatus)
 }
 
-DptfBuffer Domain::getHardwareDutyCycleUtilizationSet()
-{
-    if (m_hardwareDutyCycleUtilizationSet.size() == 0)
-    {
-        m_hardwareDutyCycleUtilizationSet = m_theRealParticipant->getHardwareDutyCycleUtilizationSet(m_participantIndex, m_domainIndex);
-    }
-    return m_hardwareDutyCycleUtilizationSet;
-}
-
-Bool Domain::isEnabledByPlatform()
-{
-    FILL_CACHE_AND_RETURN(m_isEnabledByPlatform, Bool, isEnabledByPlatform);
-}
-
-Bool Domain::isSupportedByPlatform()
-{
-    FILL_CACHE_AND_RETURN(m_isSupportedByPlatform, Bool, isSupportedByPlatform);
-}
-
-Bool Domain::isEnabledByOperatingSystem()
-{
-    FILL_CACHE_AND_RETURN(m_isEnabledByOperatingSystem, Bool, isEnabledByOperatingSystem);
-}
-
-Bool Domain::isSupportedByOperatingSystem()
-{
-    FILL_CACHE_AND_RETURN(m_isSupportedByOperatingSystem, Bool, isSupportedByOperatingSystem);
-}
-
-Bool Domain::isHdcOobEnabled()
-{
-    FILL_CACHE_AND_RETURN(m_isHdcOobEnabled, Bool, isHdcOobEnabled);
-}
-
-void Domain::setHdcOobEnable(const UInt8& hdcOobEnable)
-{
-    // No arbitration.
-    m_theRealParticipant->setHdcOobEnable(m_participantIndex, m_domainIndex, hdcOobEnable);
-}
-
-void Domain::setHardwareDutyCycle(const Percentage& dutyCycle)
-{
-    // No arbitration.  Last caller wins.
-    m_theRealParticipant->setHardwareDutyCycle(m_participantIndex, m_domainIndex, dutyCycle);
-    clearDomainCachedDataHardwareDutyCycle();
-}
-
-Percentage Domain::getHardwareDutyCycle()
-{
-    FILL_CACHE_AND_RETURN(m_hardwareDutyCycle, Percentage, getHardwareDutyCycle);
-}
-
 DptfBuffer Domain::getVirtualSensorCalibrationTable(void)
 {
     if (m_virtualSensorCalculationTableBuffer.size() == 0)
@@ -831,17 +847,6 @@ void Domain::clearDomainCachedDataTemperature()
 void Domain::clearDomainCachedDataUtilizationStatus()
 {
     DELETE_MEMORY_TC(m_utilizationStatus);
-}
-
-void Domain::clearDomainCachedDataHardwareDutyCycle()
-{
-    DELETE_MEMORY_TC(m_hardwareDutyCycle);
-    m_hardwareDutyCycleUtilizationSet.allocate(0);
-}
-
-void Domain::clearDomainCachedDataHdcOobEnable()
-{
-    DELETE_MEMORY_TC(m_isHdcOobEnabled);
 }
 
 void Domain::clearDomainCachedDataPlatformPowerStatus()

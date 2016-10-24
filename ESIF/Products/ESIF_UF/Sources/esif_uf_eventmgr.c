@@ -244,14 +244,9 @@ static eEsifError EsifEventMgr_ProcessEvent(
 		}
 	}
 
-	if (eventType < 0) {
-		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-		goto exit;
-	}
-
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	listPtr = g_EsifEventMgr.observerLists[eventType % MAX_EVENT_TYPES];
+	listPtr = g_EsifEventMgr.observerLists[(unsigned)eventType % NUM_EVENT_LISTS];
 	if(NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
 		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
@@ -265,7 +260,8 @@ static eEsifError EsifEventMgr_ProcessEvent(
 		entryPtr = (EventMgrEntryPtr)nodePtr->data_ptr;
 		ESIF_ASSERT(entryPtr != NULL);
 
-		if (((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY)) &&
+		if ((eventType == entryPtr->fpcEvent.esif_event) &&
+			((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY)) &&
 			((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
 			(entryPtr->refCount > 0)) {
 
@@ -566,7 +562,7 @@ static eEsifError EsifEventMgr_AddEntry(
 
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event % MAX_EVENT_TYPES];
+	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event % NUM_EVENT_LISTS];
 	if(NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
 		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
@@ -664,7 +660,7 @@ static eEsifError EsifEventMgr_ReleaseEntry(
 
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event % MAX_EVENT_TYPES];
+	listPtr = g_EsifEventMgr.observerLists[fpcEventPtr->esif_event % NUM_EVENT_LISTS];
 	if(NULL == listPtr) {
 		rc = ESIF_E_UNSPECIFIED;
 		goto exit;
@@ -781,48 +777,47 @@ exit:
 }
 
 
-UInt64 EsifEventMgr_GetEventMask(
+Bool EsifEventMgr_IsEventRegistered(
+	eEsifEventType eventType,
 	void *key,
 	UInt8 participantId,
 	UInt16 domainId
 	)
 {
-	UInt64 mask = 0ULL;
-	UInt8 i;
+	Bool bRet = ESIF_FALSE;
 	EsifLinkListPtr listPtr = NULL;
 	EsifLinkListNodePtr nodePtr = NULL;
 	EventMgrEntryPtr entryPtr = NULL;
 
 	esif_ccb_read_lock(&g_EsifEventMgr.listLock);
-	for (i = 0; i < MAX_EVENT_TYPES; i++) {
-		listPtr = g_EsifEventMgr.observerLists[i];
-		if (NULL == listPtr) {
-			continue;
-		}
-
-		nodePtr = listPtr->head_ptr;
-		while(NULL != nodePtr) {
-			entryPtr = (EventMgrEntryPtr)nodePtr->data_ptr;
-			ESIF_ASSERT(entryPtr != NULL);
-
-			if((entryPtr->contextPtr == key) && 
-			  ((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY)) &&
-				((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
-				(entryPtr->refCount > 0)) {
-
-				mask |= (1ULL << i);
-			}
-
-			nodePtr = nodePtr->next_ptr;
-		}
+	listPtr = g_EsifEventMgr.observerLists[eventType % NUM_EVENT_LISTS];
+	if (NULL == listPtr) {
+		goto exit;
 	}
-	esif_ccb_read_unlock(&g_EsifEventMgr.listLock);
+	nodePtr = listPtr->head_ptr;
+	while(NULL != nodePtr) {
+		entryPtr = (EventMgrEntryPtr)nodePtr->data_ptr;
+		ESIF_ASSERT(entryPtr != NULL);
 
-	return mask;
+		if((eventType == entryPtr->fpcEvent.esif_event) &&
+			(entryPtr->contextPtr == key) && 
+			((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY)) &&
+			((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
+			(entryPtr->refCount > 0)) {
+
+			bRet = ESIF_TRUE;
+			break;
+		}
+
+		nodePtr = nodePtr->next_ptr;
+	}
+exit:
+	esif_ccb_read_unlock(&g_EsifEventMgr.listLock);
+	return bRet;
 }
 
 
-eEsifError EsifEventMgr_Init()
+eEsifError EsifEventMgr_Init(void)
 {
 	eEsifError rc = ESIF_OK;
 	UInt8 i;
@@ -831,7 +826,7 @@ eEsifError EsifEventMgr_Init()
 
 	esif_ccb_lock_init(&g_EsifEventMgr.listLock);
 
-	for (i = 0; i < MAX_EVENT_TYPES; i++) {
+	for (i = 0; i < NUM_EVENT_LISTS; i++) {
 		g_EsifEventMgr.observerLists[i] = esif_link_list_create();
 		if (NULL == g_EsifEventMgr.observerLists[i]) {
 			rc = ESIF_E_NO_MEMORY;
@@ -861,9 +856,8 @@ exit:
 }
 
 
-eEsifError EsifEventMgr_Exit()
+void EsifEventMgr_Exit(void)
 {
-	eEsifError rc = ESIF_OK;
 	UInt8 i;
 	EsifLinkListPtr listPtr = NULL;
 
@@ -872,7 +866,7 @@ eEsifError EsifEventMgr_Exit()
 	/* Remove all listeners */
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
-	for (i = 0; i < MAX_EVENT_TYPES; i++) {
+	for (i = 0; i < NUM_EVENT_LISTS; i++) {
 		listPtr = g_EsifEventMgr.observerLists[i];
 		esif_link_list_free_data_and_destroy(listPtr, EsifEventMgr_LLEntryDestroyCallback);
 		g_EsifEventMgr.observerLists[i] = NULL;
@@ -898,8 +892,7 @@ eEsifError EsifEventMgr_Exit()
 
 	esif_ccb_lock_uninit(&g_EsifEventMgr.listLock);
 
-	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
-	return rc;
+	ESIF_TRACE_EXIT_INFO();
 }
 
 /* Write lock should be held when called */

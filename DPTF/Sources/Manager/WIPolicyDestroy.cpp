@@ -19,7 +19,7 @@
 #include "WIPolicyDestroy.h"
 #include "DptfManager.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "EsifServices.h"
 
 WIPolicyDestroy::WIPolicyDestroy(DptfManagerInterface* dptfManager, UIntN policyIndex) :
@@ -33,7 +33,7 @@ WIPolicyDestroy::~WIPolicyDestroy(void)
 
 void WIPolicyDestroy::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     // First let the policy manager know to remove the policy
 
@@ -43,13 +43,13 @@ void WIPolicyDestroy::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteWorkItemErrorMessage_Function("PolicyManager::destroyPolicy");
+        writeWorkItemErrorMessage(ex, "PolicyManager::destroyPolicy");
     }
 
     // Now let the participants know so they can clear all arbitration data that
     // is stored for this policy
 
-    ParticipantManager* participantManager = getParticipantManager();
+    auto participantManager = getParticipantManager();
     UIntN participantListCount = participantManager->getParticipantListCount();
 
     for (UIntN i = 0; i < participantListCount; i++)
@@ -65,7 +65,7 @@ void WIPolicyDestroy::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Participant("Participant::clearArbitrationDataForPolicy", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::clearArbitrationDataForPolicy", i);
         }
     }
 }

@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainPixelClockControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPixelClockControl::PolicyServicesDomainPixelClockControl(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :

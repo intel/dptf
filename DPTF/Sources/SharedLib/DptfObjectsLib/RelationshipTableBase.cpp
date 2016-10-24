@@ -18,8 +18,12 @@
 
 #include "RelationshipTableBase.h"
 
-
 RelationshipTableBase::RelationshipTableBase()
+{
+}
+
+RelationshipTableBase::RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries)
+    : m_entries(entries)
 {
 }
 
@@ -27,30 +31,57 @@ RelationshipTableBase::~RelationshipTableBase()
 {
 }
 
-void RelationshipTableBase::associateParticipant(std::string acpiScope, UIntN participantIndex)
+void RelationshipTableBase::associateParticipant(std::string participantScope, UIntN participantIndex)
 {
-    auto tableRows = findTableRowsWithAcpiScope(acpiScope);
-    for (UIntN tableRow = 0; tableRow < tableRows.size(); ++tableRow)
+    auto tableRows = findTableRowsWithParticipantScope(participantScope);
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
     {
-        getEntry(tableRows[tableRow])->associateParticipant(acpiScope, participantIndex);
+        m_entries.at(*tableRow)->associateParticipant(participantScope, participantIndex);
     }
 }
 
 void RelationshipTableBase::disassociateParticipant(UIntN participantIndex)
 {
     auto tableRows = findTableRowsWithParticipantIndex(participantIndex);
-    for (UIntN tableRow = 0; tableRow < tableRows.size(); ++tableRow)
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
     {
-        getEntry(tableRows[tableRow])->disassociateParticipant(participantIndex);
+        m_entries.at(*tableRow)->disassociateParticipant(participantIndex);
+    }
+}
+
+void RelationshipTableBase::associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex)
+{
+    auto tableRows = findTableRowsWithParticipantScope(participantScope);
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
+    {
+        m_entries.at(*tableRow)->associateDomain(participantScope, domainType, domainIndex);
+    }
+}
+
+void RelationshipTableBase::associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex)
+{
+    auto tableRows = findTableRowsWithParticipantIndex(participantIndex);
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
+    {
+        m_entries.at(*tableRow)->associateDomain(participantIndex, domainType, domainIndex);
+    }
+}
+
+void RelationshipTableBase::disassociateDomain(UIntN participantIndex, UIntN domainIndex)
+{
+    auto tableRows = findTableRowsWithParticipantIndex(participantIndex);
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
+    {
+        m_entries.at(*tableRow)->disassociateDomain(participantIndex, domainIndex);
     }
 }
 
 Bool RelationshipTableBase::isParticipantSourceDevice(UIntN participantIndex) const
 {
     auto tableRows = findTableRowsWithParticipantIndex(participantIndex);
-    for (UIntN tableRow = 0; tableRow < tableRows.size(); ++tableRow)
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
     {
-        if (getEntry(tableRows[tableRow])->getSourceDeviceIndex() == participantIndex)
+        if (m_entries.at(*tableRow)->getSourceDeviceIndex() == participantIndex)
         {
             return true;
         }
@@ -61,9 +92,9 @@ Bool RelationshipTableBase::isParticipantSourceDevice(UIntN participantIndex) co
 Bool RelationshipTableBase::isParticipantTargetDevice(UIntN participantIndex) const
 {
     auto tableRows = findTableRowsWithParticipantIndex(participantIndex);
-    for (UIntN tableRow = 0; tableRow < tableRows.size(); ++tableRow)
+    for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
     {
-        if (getEntry(tableRows[tableRow])->getTargetDeviceIndex() == participantIndex)
+        if (m_entries.at(*tableRow)->getTargetDeviceIndex() == participantIndex)
         {
             return true;
         }
@@ -71,13 +102,19 @@ Bool RelationshipTableBase::isParticipantTargetDevice(UIntN participantIndex) co
     return false;
 }
 
-std::vector<UIntN> RelationshipTableBase::findTableRowsWithAcpiScope(std::string acpiScope) const
+UIntN RelationshipTableBase::getNumberOfEntries(void) const
+{
+    return (UIntN)m_entries.size();
+}
+
+std::vector<UIntN> RelationshipTableBase::findTableRowsWithParticipantScope(std::string participantScope) const
 {
     std::vector<UIntN> rows;
     for (UIntN row = 0; row < getNumberOfEntries(); ++row)
     {
-        if ((getEntry(row)->getSourceDeviceAcpiScope() == acpiScope) ||
-            (getEntry(row)->getTargetDeviceAcpiScope() == acpiScope))
+        auto entry = m_entries.at(row);
+        if ((entry->getSourceDeviceScope() == participantScope) ||
+            (entry->getTargetDeviceScope() == participantScope))
         {
             rows.push_back(row);
         }
@@ -90,8 +127,9 @@ std::vector<UIntN> RelationshipTableBase::findTableRowsWithParticipantIndex(UInt
     std::vector<UIntN> rows;
     for (UIntN row = 0; row < getNumberOfEntries(); ++row)
     {
-        if ((getEntry(row)->getSourceDeviceIndex() == participantIndex) ||
-            (getEntry(row)->getTargetDeviceIndex() == participantIndex))
+        auto entry = m_entries.at(row);
+        if ((entry->getSourceDeviceIndex() == participantIndex) ||
+            (entry->getTargetDeviceIndex() == participantIndex))
         {
             rows.push_back(row);
         }

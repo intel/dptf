@@ -59,7 +59,7 @@
  * PCI Devices
  */
 
-enum esif_pci_device_id {
+typedef enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_SNB = 0x0103,
 	ESIF_PCI_DEVICE_ID_IVB = 0x0153,
 	ESIF_PCI_DEVICE_ID_HSW_ULT = 0x0a03,
@@ -70,12 +70,13 @@ enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_CPT = 0x1c24,
 	ESIF_PCI_DEVICE_ID_PPT = 0x1e24,
 	ESIF_PCI_DEVICE_ID_CHV = 0x22dc,
+	ESIF_PCI_DEVICE_ID_CNL = 0x5a03,
 	ESIF_PCI_DEVICE_ID_LPT = 0x8c24,
 	ESIF_PCI_DEVICE_ID_LPT_LP = 0x9c24,
 	ESIF_PCI_DEVICE_ID_WCP = 0x9ca4,
-};
+} esif_pci_device_id_t;
 
-static ESIF_INLINE esif_string esif_device_str(u32 device_id)
+static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 {
 	switch (device_id) {
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_SNB,
@@ -98,6 +99,8 @@ static ESIF_INLINE esif_string esif_device_str(u32 device_id)
 		"Panther Point(DPTF PCH)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_CHV,
 		"Cherry View SOC(DPTF CPU)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_CNL,
+		"DPTF Participant for 7th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT,
 		"Lynx Point(DPTF PCH)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT_LP,
@@ -151,6 +154,7 @@ const struct pci_device_id esif_pci_cpu_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_HSW_ULT) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_BDW) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_SKL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CNL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CHV) },
 	{ 0 }
 };

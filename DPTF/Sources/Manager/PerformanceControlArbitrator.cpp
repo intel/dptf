@@ -19,8 +19,7 @@
 #include "PerformanceControlArbitrator.h"
 #include "Utility.h"
 
-PerformanceControlArbitrator::PerformanceControlArbitrator(DptfManager* dptfManager) :
-    m_dptfManager(dptfManager),
+PerformanceControlArbitrator::PerformanceControlArbitrator() :
     m_arbitratedPerformanceControlIndex(Constants::Invalid)
 {
 }
@@ -34,19 +33,18 @@ Bool PerformanceControlArbitrator::arbitrate(UIntN policyIndex, UIntN performanc
     Bool arbitratedValueChanged = false;
     UIntN maxRequestedPerformanceControlIndex = Constants::Invalid;
 
-    increaseVectorSizeIfNeeded(m_requestedPerformanceControlIndex, policyIndex, Constants::Invalid);
     m_requestedPerformanceControlIndex[policyIndex] = performanceControlIndex;
 
     //
-    // loop through the array and find the max requested performance control index (which is the lowest p-state performance)
+    // loop through and find the max requested performance control index (which is the lowest p-state performance)
     //
-    for (UIntN i = 0; i < m_requestedPerformanceControlIndex.size(); i++)
+    for (auto request = m_requestedPerformanceControlIndex.begin(); request != m_requestedPerformanceControlIndex.end(); request++)
     {
-        if ((m_requestedPerformanceControlIndex[i] != Constants::Invalid) &&
+        if ((request->second != Constants::Invalid) &&
             ((maxRequestedPerformanceControlIndex == Constants::Invalid) ||
-             (m_requestedPerformanceControlIndex[i] > maxRequestedPerformanceControlIndex)))
+             (request->second > maxRequestedPerformanceControlIndex)))
         {
-            maxRequestedPerformanceControlIndex = m_requestedPerformanceControlIndex[i];
+            maxRequestedPerformanceControlIndex = request->second;
         }
     }
 
@@ -69,8 +67,10 @@ UIntN PerformanceControlArbitrator::getArbitratedPerformanceControlIndex(void) c
 
 void PerformanceControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if (policyIndex < m_requestedPerformanceControlIndex.size())
+    auto policyRequest = m_requestedPerformanceControlIndex.find(policyIndex);
+    if (policyRequest != m_requestedPerformanceControlIndex.end())
     {
         m_requestedPerformanceControlIndex[policyIndex] = Constants::Invalid;
+        arbitrate(policyIndex, Constants::Invalid);
     }
 }

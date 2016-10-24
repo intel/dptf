@@ -25,6 +25,11 @@ DomainUtilization_001::DomainUtilization_001(UIntN participantIndex, UIntN domai
 {
 }
 
+DomainUtilization_001::~DomainUtilization_001()
+{
+
+}
+
 UtilizationStatus DomainUtilization_001::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
     try
@@ -47,7 +52,7 @@ void DomainUtilization_001::clearCachedData(void)
 
 std::shared_ptr<XmlNode> DomainUtilization_001::getXml(UIntN domainIndex)
 {
-    auto root = getUtilizationStatus(Constants::Invalid, domainIndex).getXml("utilization");
+    auto root = getUtilizationStatus(getParticipantIndex(), domainIndex).getXml("utilization");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
     return root;
 }

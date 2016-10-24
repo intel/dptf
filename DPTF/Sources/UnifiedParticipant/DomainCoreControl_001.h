@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "BinaryParse.h"
 #include "DomainCoreControlBase.h"
 #include "CachedValue.h"
 
@@ -33,7 +32,7 @@ public:
 
     DomainCoreControl_001(UIntN participantIndex, UIntN domainIndex,
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainCoreControl_001(void);
+    virtual ~DomainCoreControl_001(void);
 
     // DomainCoreControlInterface
     virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
@@ -50,6 +49,9 @@ public:
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+
+protected:
+    virtual void restore(void) override;
 
 private:
 

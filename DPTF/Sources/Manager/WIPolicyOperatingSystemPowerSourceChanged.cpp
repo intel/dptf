@@ -33,7 +33,7 @@ WIPolicyOperatingSystemPowerSourceChanged::~WIPolicyOperatingSystemPowerSourceCh
 
 void WIPolicyOperatingSystemPowerSourceChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyOperatingSystemPowerSourceChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemPowerSourceChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPowerSourceChanged", i);
         }
     }
 }

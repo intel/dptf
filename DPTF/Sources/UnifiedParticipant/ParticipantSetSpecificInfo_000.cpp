@@ -31,12 +31,6 @@ void ParticipantSetSpecificInfo_000::setParticipantDeviceTemperatureIndication(U
     throw not_implemented();
 }
 
-void ParticipantSetSpecificInfo_000::setParticipantCoolingPolicy(UIntN participantIndex,
-    const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
-{
-    throw not_implemented();
-}
-
 void ParticipantSetSpecificInfo_000::setParticipantSpecificInfo(UIntN participantIndex, 
     ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)
 {

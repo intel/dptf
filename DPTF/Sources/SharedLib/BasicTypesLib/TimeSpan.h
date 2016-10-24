@@ -36,6 +36,7 @@ public:
 
     Int64 asMicroseconds() const;
     double asMilliseconds() const;
+    UInt64 asMillisecondsUInt() const;
     Int64 asMillisecondsInt() const;
     Int64 asTenthSecondsInt() const;
     double asTenthSeconds() const;
@@ -47,16 +48,21 @@ public:
     Bool isInvalid() const;
 
     TimeSpan operator+(const TimeSpan& rhs) const;
+    TimeSpan operator+=(const TimeSpan& rhs) const;
     TimeSpan operator-(const TimeSpan& rhs) const;
+    TimeSpan operator-=(const TimeSpan& rhs) const;
     TimeSpan operator*(Int64 multiplier) const;
     TimeSpan operator/(Int64 divider) const;
     Bool operator==(const TimeSpan& rhs) const;
     Bool operator!=(const TimeSpan& rhs) const;
     Bool operator<(const TimeSpan& rhs) const;
     Bool operator>(const TimeSpan& rhs) const;
+    Bool operator<=(const TimeSpan& rhs) const;
+    Bool operator>=(const TimeSpan& rhs) const;
 
     std::string toStringMicroseconds() const;
     std::string toStringMilliseconds() const;
+    std::string toStringSeconds() const;
 
 private:
 

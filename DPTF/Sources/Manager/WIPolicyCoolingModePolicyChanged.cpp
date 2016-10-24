@@ -33,7 +33,7 @@ WIPolicyCoolingModePolicyChanged::~WIPolicyCoolingModePolicyChanged(void)
 
 void WIPolicyCoolingModePolicyChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyCoolingModePolicyChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyCoolingModePolicyChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyCoolingModePolicyChanged", i);
         }
     }
 }

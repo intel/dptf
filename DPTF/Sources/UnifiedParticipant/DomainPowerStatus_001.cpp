@@ -22,18 +22,33 @@
 
 DomainPowerStatus_001::DomainPowerStatus_001(UIntN participantIndex, UIntN domainIndex, 
     ParticipantServicesInterface* participantServicesInterface) :
-    DomainPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
+    DomainPowerStatusBase(participantIndex, domainIndex, participantServicesInterface),
+    m_lastPowerSentToFilter(Power::createInvalid()),
+    m_domainPowerFilter(participantIndex, domainIndex, participantServicesInterface)
+{
+}
+
+DomainPowerStatus_001::~DomainPowerStatus_001()
 {
 }
 
 PowerStatus DomainPowerStatus_001::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    getPower(participantIndex, domainIndex);
+    getPower(domainIndex);
     esif_ccb_sleep_msec(250);
-    return PowerStatus(getPower(participantIndex, domainIndex));
+    return PowerStatus(getPower(domainIndex));
 }
 
-Power DomainPowerStatus_001::getPower(UIntN participantIndex, UIntN domainIndex)
+Power DomainPowerStatus_001::getAveragePower(UIntN participantIndex, UIntN domainIndex,
+    const PowerControlDynamicCaps& capabilities)
+{
+    m_lastPowerSentToFilter = getPowerStatus(participantIndex, domainIndex).getCurrentPower();
+    Power averagePower = m_domainPowerFilter.getAveragePower(capabilities, m_lastPowerSentToFilter);
+
+    return averagePower;
+}
+
+Power DomainPowerStatus_001::getPower(UIntN domainIndex)
 {
     Power power = Power::createInvalid();
 
@@ -53,16 +68,39 @@ Power DomainPowerStatus_001::getPower(UIntN participantIndex, UIntN domainIndex)
 
 void DomainPowerStatus_001::clearCachedData(void)
 {
-    // Do nothing.  We don't cache the power status.
+    m_domainPowerFilter.clearCachedData();
 }
 
 std::shared_ptr<XmlNode> DomainPowerStatus_001::getXml(UIntN domainIndex)
 {
-    std::shared_ptr<XmlNode> root = getPowerStatus(Constants::Invalid, domainIndex).getXml();
-
+    std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("power_status_set"); 
+    root->addChild(getPowerStatus(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(m_domainPowerFilter.getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
+}
+
+void DomainPowerStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+    try
+    {
+        if (isActivityLoggingEnabled() == true)
+        {
+            EsifCapabilityData capability;
+            capability.type = ESIF_CAPABILITY_TYPE_POWER_STATUS;
+            capability.size = sizeof(capability);
+            capability.data.powerStatus.powerFilterData.currentPowerSentToFilter = m_lastPowerSentToFilter;
+            capability.data.powerStatus.powerFilterData.powerCalculatedByFilter = m_domainPowerFilter.getLastPowerUsed(PowerControlType::PL1);
+
+            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
+                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
+        }
+    }
+    catch (...)
+    {
+        // skip if there are any issue in sending log data
+    }
 }
 
 std::string DomainPowerStatus_001::getName(void)

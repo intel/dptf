@@ -59,32 +59,12 @@
 #define ESIF_DATA_ALLOCATE 0xFFFFFFFF
 
 #define ACPI_OSC_ARG_COUNT 4
-#define ACPI_SCP_ARG_COUNT 3
-#define ACPI_DSCP_ARG_COUNT 7
 
 /*
  * OS and Kernel/User Agnostic
  */
 
 #pragma pack(push, 1)
-
-/* Cooling Mode Policy */
-struct esif_data_complex_scp {
-	u32  cooling_mode;
-	u32  acoustic_limit;
-	u32  power_limit;
-};
-
-/* DPTF Cooling Mode Policy */
-struct esif_data_complex_dscp {
-	u32  version;
-	u32  cooling_mode;
-	u32  acoustic_limit;
-	u32  power_limit;
-	u32  workload_hint;
-	u32  device_state_hint;
-	u32  reserved;
-};
 
 /* Thermal Event */
 struct esif_data_complex_thermal_event {
@@ -150,5 +130,13 @@ struct esif_table_hdr {
 		ESIF_ELEMENT(.buf_len) 0 \
 	}
 
+/* BINARY Primitive Tuple Parameter for passing from DPTF to a DSP Action */
+#pragma pack(push, 1)
+typedef struct esif_primitive_tuple_parameter {
+	union esif_data_variant  id;
+	union esif_data_variant  domain;
+	union esif_data_variant  instance;
+} EsifPrimitiveTupleParameter;
+#pragma pack(pop)
 
 #endif /* ESIF_ATTR_USER */

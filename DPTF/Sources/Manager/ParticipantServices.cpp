@@ -17,15 +17,14 @@
 ******************************************************************************/
 
 #include "ParticipantServices.h"
-#include "DptfManager.h"
-#include "ParticipantManager.h"
-#include "WorkItemQueueManager.h"
+#include "ParticipantManagerInterface.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "WIDomainPerformanceControlCapabilityChanged.h"
 #include "WIDomainPowerControlCapabilityChanged.h"
 #include "EsifServices.h"
 #include "ManagerMessage.h"
 
-ParticipantServices::ParticipantServices(DptfManager* dptfManager, UIntN participantIndex) :
+ParticipantServices::ParticipantServices(DptfManagerInterface* dptfManager, UIntN participantIndex) :
     m_dptfManager(dptfManager),
     m_participantManager(dptfManager->getParticipantManager()),
     m_participant(dptfManager->getParticipantManager()->getParticipantPtr(participantIndex)),
@@ -77,18 +76,18 @@ void ParticipantServices::primitiveExecuteSetAsUInt64(esif_primitive_type primit
     m_esifServices->primitiveExecuteSetAsUInt64(primitive, value, m_participantIndex, domainIndex, instance);
 }
 
-Temperature ParticipantServices::primitiveExecuteGetAsTemperatureC(esif_primitive_type primitive,
+Temperature ParticipantServices::primitiveExecuteGetAsTemperatureTenthK(esif_primitive_type primitive,
     UIntN domainIndex, UInt8 instance)
 {
     throwIfNotWorkItemThread();
-    return m_esifServices->primitiveExecuteGetAsTemperatureC(primitive, m_participantIndex, domainIndex, instance);
+    return m_esifServices->primitiveExecuteGetAsTemperatureTenthK(primitive, m_participantIndex, domainIndex, instance);
 }
 
-void ParticipantServices::primitiveExecuteSetAsTemperatureC(esif_primitive_type primitive,
+void ParticipantServices::primitiveExecuteSetAsTemperatureTenthK(esif_primitive_type primitive,
     Temperature temperature, UIntN domainIndex, UInt8 instance)
 {
     throwIfNotWorkItemThread();
-    m_esifServices->primitiveExecuteSetAsTemperatureC(primitive, temperature,
+    m_esifServices->primitiveExecuteSetAsTemperatureTenthK(primitive, temperature,
         m_participantIndex, domainIndex, instance);
 }
 
@@ -274,4 +273,47 @@ void ParticipantServices::sendDptfEvent(ParticipantEvent::Type participantEvent,
     throwIfNotWorkItemThread();
     m_esifServices->sendDptfEvent(ParticipantEvent::ToFrameworkEvent(ParticipantEvent::DptfParticipantControlAction), 
         m_participantIndex, domainId, eventData);
+}
+
+// We get/set/invalidate only the display cache value now, 
+// to be re-factored if more controls need to be cached later
+
+UIntN ParticipantServices::getUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+
+    auto participantScope = m_participant->getParticipantProperties().getAcpiInfo().getAcpiScope();
+    auto domainType = m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
+
+    return m_dptfManager->getUserPreferredCache()->getUserPreferredDisplayCacheValue(participantScope, domainType);
+}
+
+void ParticipantServices::setUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex, UIntN userPreferredIndex)
+{
+    throwIfNotWorkItemThread();
+
+    auto participantScope = m_participant->getParticipantProperties().getAcpiInfo().getAcpiScope();
+    auto domainType = m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
+
+    m_dptfManager->getUserPreferredCache()->setUserPreferredDisplayCacheValue(participantScope, domainType, userPreferredIndex);
+}
+
+void ParticipantServices::invalidateUserPreferredDisplayCache(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+
+    auto participantScope = m_participant->getParticipantProperties().getAcpiInfo().getAcpiScope();
+    auto domainType = m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
+
+    m_dptfManager->getUserPreferredCache()->invalidateUserPreferredDisplayCache(participantScope, domainType);
+}
+
+Bool ParticipantServices::isUserPreferredDisplayCacheValid(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+
+    auto participantScope = m_participant->getParticipantProperties().getAcpiInfo().getAcpiScope();
+    auto domainType = m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
+
+    return m_dptfManager->getUserPreferredCache()->isUserPreferredDisplayCacheValid(participantScope, domainType);
 }

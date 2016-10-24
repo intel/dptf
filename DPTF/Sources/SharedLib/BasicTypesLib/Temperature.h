@@ -19,15 +19,19 @@
 #pragma once
 
 #include "Dptf.h"
+#define CELSIUS_TO_TENTH_KELVIN 2732
 
 class Temperature final
 {
 public:
 
     Temperature(void); // Initialized to invalid by default
-    Temperature(UInt32 temperatureinCelsius);
+    Temperature(UInt32 temperatureInTenthKelvin);
     static Temperature createInvalid();
-    static Temperature createTemperatureFromTenthKelvin(UInt32 temperatureInTenthKelvin);
+    static Temperature fromCelsius(double temperatureInCelsius);
+    static const UInt32 maxValidTemperature = 4732; // 200C
+    static const UInt32 minValidTemperature = 1372; // -136C
+    static Temperature snapWithinAllowableTripPointRange(Temperature aux);
 
     Bool operator==(const Temperature& rhs) const;
     Bool operator!=(const Temperature& rhs) const;
@@ -35,17 +39,17 @@ public:
     Bool operator>=(const Temperature& rhs) const;
     Bool operator<(const Temperature& rhs) const;
     Bool operator<=(const Temperature& rhs) const;
+    Temperature operator+(const Temperature& rhs) const;
+    Temperature operator-(const Temperature& rhs) const;
     friend std::ostream& operator<<(std::ostream& os, const Temperature& temperature);
     operator UInt32(void) const;
 
     Bool isValid() const;
     std::string toString() const;
-    UInt32 toTenthKelvin() const;
+    double getTemperatureInCelsius() const;
 
 private:
 
-    static const UInt32 maxValidTemperature = 2500;
-    static const double celsiusToKelvinDifference;
     Bool m_valid;
     UInt32 m_temperature;
 

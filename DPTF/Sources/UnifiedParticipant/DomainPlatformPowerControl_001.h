@@ -28,7 +28,7 @@ public:
 
     DomainPlatformPowerControl_001(UIntN participantIndex, UIntN domainIndex,
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainPlatformPowerControl_001(void);
+    virtual ~DomainPlatformPowerControl_001(void);
 
     // DomainPlatformPowerControlInterface
     virtual Bool isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
@@ -51,6 +51,10 @@ public:
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
+protected:
+    virtual void capture(void) override;
+    virtual void restore(void) override;
+
 private:
 
     DomainPlatformPowerControl_001(const DomainPlatformPowerControl_001& rhs);
@@ -64,13 +68,8 @@ private:
     std::shared_ptr<XmlNode> createStatusNode(PlatformPowerLimitType::Type limitType);
     std::string createStatusStringForEnabled(PlatformPowerLimitType::Type limitType);
     std::string createStatusStringForLimitValue(PlatformPowerLimitType::Type limitType);
-    Bool isEnabled(PlatformPowerLimitType::Type limitType) const;
     std::string createStatusStringForTimeWindow(PlatformPowerLimitType::Type limitType);
     std::string createStatusStringForDutyCycle(PlatformPowerLimitType::Type limitType);
-
-    Bool m_pl1Enabled;
-    Bool m_pl2Enabled;
-    Bool m_pl3Enabled;
 
     PlatformPowerControlState m_initialState;
 };

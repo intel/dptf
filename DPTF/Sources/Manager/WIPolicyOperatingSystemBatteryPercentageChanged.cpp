@@ -33,7 +33,7 @@ WIPolicyOperatingSystemBatteryPercentageChanged::~WIPolicyOperatingSystemBattery
 
 void WIPolicyOperatingSystemBatteryPercentageChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyOperatingSystemBatteryPercentageChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemBatteryPercentageChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemBatteryPercentageChanged", i);
         }
     }
 }

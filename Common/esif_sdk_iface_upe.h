@@ -227,6 +227,21 @@ typedef union EsifUpeIface_u {
 } EsifUpeIface, *EsifUpeIfacePtr;
 
 
+/*
+ * The following are for system simulation support
+ */
+
+typedef struct EsifSimTuple_s {
+	u16  id;	/* Primitive ID - GET_TEMP etc. */
+	u16  domain;	/* DO, NA, ...              */
+	u16  instance;	/* ff: no instance required */
+}EsifSimTuple, *EsifSimTuplePtr;
+
+typedef struct EsifSimRequest_s {
+	EsifSimTuple primitiveTuple;
+	EsifDataPtr orgRequestPtr;
+} EsifSimRequest, *EsifSimRequestPtr;
+
 #pragma pack(pop)
 
 

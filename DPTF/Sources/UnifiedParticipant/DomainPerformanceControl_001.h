@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "DomainPerformanceControlBase.h"
+#include "CachedValue.h"
 
 // Generic Participant Performance Controls
 
@@ -29,7 +30,7 @@ public:
 
     DomainPerformanceControl_001(UIntN participantIndex, UIntN domainIndex,
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainPerformanceControl_001(void);
+    virtual ~DomainPerformanceControl_001(void);
 
     // DomainPerformanceControlInterface
     virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
@@ -44,6 +45,7 @@ public:
         UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override;
     virtual void setPerformanceControlDynamicCaps(
         UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override;
+    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
     
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
@@ -55,9 +57,9 @@ public:
         ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
 
 protected:
-    virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlDynamicCaps getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex) override;
-    virtual void intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex) override;
+    virtual void capture(void) override;
+    virtual void restore(void) override;
+    virtual UIntN getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex) override;
 
 private:
 
@@ -65,14 +67,15 @@ private:
     DomainPerformanceControl_001(const DomainPerformanceControl_001& rhs);
     DomainPerformanceControl_001& operator=(const DomainPerformanceControl_001& rhs);
 
-    void createPerformanceControlStaticCapsIfNeeded();
-    void createPerformanceControlDynamicCapsIfNeeded(UIntN domainIndex);
-    void createPerformanceControlSetIfNeeded(UIntN domainIndex);
-    void verifyPerformanceControlIndex(UIntN performanceControlIndex);
-    void checkAndCreateControlStructures(UIntN domainIndex);
+    PerformanceControlStaticCaps createPerformanceControlStaticCaps();
+    PerformanceControlDynamicCaps createPerformanceControlDynamicCaps(UIntN domainIndex);
+    PerformanceControlSet createPerformanceControlSet(UIntN domainIndex);
+    void throwIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);
 
-    UIntN m_currentPerformanceControlIndex;
-    PerformanceControlStaticCaps* m_performanceControlStaticCaps;
-    PerformanceControlDynamicCaps* m_performanceControlDynamicCaps;
-    PerformanceControlSet* m_performanceControlSet;
+    CachedValue<PerformanceControlStaticCaps> m_performanceControlStaticCaps;
+    CachedValue<PerformanceControlDynamicCaps> m_performanceControlDynamicCaps;
+    CachedValue<PerformanceControlSet> m_performanceControlSet;
+    CachedValue<PerformanceControlStatus> m_performanceControlStatus;
+    CachedValue<PerformanceControlDynamicCaps> m_initialStatus;
+    Bool m_capabilitiesLocked;
 };

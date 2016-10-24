@@ -32,5 +32,5 @@ public:
 
 private:
 
-    Temperature m_currentTemperature;                               // in degrees Celsius
+    Temperature m_currentTemperature;                               // in Tenth Kelvin
 };

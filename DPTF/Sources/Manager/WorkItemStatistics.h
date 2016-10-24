@@ -29,13 +29,13 @@ struct WorkItemTypeExecutionStatistics
 {
     UInt64 totalExecuted;
 
-    UInt64 totalQueueTimeMilliseconds;
-    UInt64 minQueueTimeMilliseconds;
-    UInt64 maxQueueTimeMilliseconds;
+    TimeSpan totalQueueTime;
+    TimeSpan minQueueTime;
+    TimeSpan maxQueueTime;
 
-    UInt64 totalExecutionTimeMilliseconds;
-    UInt64 minExecutionTimeMilliseconds;
-    UInt64 maxExecutionTimeMilliseconds;
+    TimeSpan totalExecutionTime;
+    TimeSpan minExecutionTime;
+    TimeSpan maxExecutionTime;
 };
 
 class WorkItemStatistics
@@ -59,8 +59,8 @@ private:
     WorkItemTypeExecutionStatistics m_immediateWorkItemStatistics[FrameworkEvent::Max];
 
     // This is here to prevent the UI work items (WIDptfGetStatus) from skewing the statistics
-    EsifTime m_lastDptfGetStatusWorkItemCreationTime;
-    EsifTime m_lastDptfGetStatusWorkItemExecutionStartTime;
-    EsifTime m_lastDptfGetStatusWorkItemCompletionTime;
-    UInt64 m_lastDptfGetStatusWorkItemExecutionTimeMilliseconds;
+    TimeSpan m_lastDptfGetStatusWorkItemCreationTime;
+    TimeSpan m_lastDptfGetStatusWorkItemExecutionStartTime;
+    TimeSpan m_lastDptfGetStatusWorkItemCompletionTime;
+    TimeSpan m_lastDptfGetStatusWorkItemExecutionTime;
 };

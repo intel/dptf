@@ -31,10 +31,6 @@ public:
     // _DTI
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex, const Temperature& temperature) override final;
 
-    // _SCP
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex,
-        const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override final;
-
     // _ACX only
     virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint,
         const Temperature& tripValue) override final;

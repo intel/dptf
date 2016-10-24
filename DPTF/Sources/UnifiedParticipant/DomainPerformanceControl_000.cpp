@@ -60,17 +60,12 @@ void DomainPerformanceControl_000::setPerformanceControlDynamicCaps(UIntN partic
     throw not_implemented();
 }
 
+void DomainPerformanceControl_000::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+{
+    throw not_implemented();
+}
+
 UIntN DomainPerformanceControl_000::getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
-PerformanceControlDynamicCaps DomainPerformanceControl_000::getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
-void DomainPerformanceControl_000::intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex)
 {
     throw not_implemented();
 }
@@ -81,6 +76,16 @@ void DomainPerformanceControl_000::clearCachedData(void)
 }
 
 std::shared_ptr<XmlNode> DomainPerformanceControl_000::getXml(UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
+void DomainPerformanceControl_000::capture(void)
+{
+    throw not_implemented();
+}
+
+void DomainPerformanceControl_000::restore(void)
 {
     throw not_implemented();
 }

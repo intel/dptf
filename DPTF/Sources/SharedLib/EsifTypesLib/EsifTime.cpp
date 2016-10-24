@@ -24,7 +24,8 @@ EsifTime::EsifTime(void)
     m_timeStamp = getCurrentTime();
 }
 
-EsifTime::EsifTime(UInt64 numMilliSeconds) : m_timeStamp(numMilliSeconds)
+EsifTime::EsifTime(UInt64 numMilliSeconds) : 
+    m_timeStamp(TimeSpan::createFromMilliseconds(numMilliSeconds))
 {
 }
 
@@ -33,86 +34,54 @@ void EsifTime::refresh(void)
     m_timeStamp = getCurrentTime();
 }
 
-UInt64 EsifTime::getTimeStampInMilliSec(void) const
+const TimeSpan& EsifTime::getTimeStamp(void) const
 {
     return m_timeStamp;
 }
 
 Bool EsifTime::operator==(const EsifTime& rhs) const
 {
-    return (this->getTimeStampInMilliSec() == rhs.getTimeStampInMilliSec());
+    return (this->getTimeStamp() == rhs.getTimeStamp());
 }
 
 Bool EsifTime::operator!=(const EsifTime& rhs) const
 {
-    return (this->getTimeStampInMilliSec() != rhs.getTimeStampInMilliSec());
+    return (this->getTimeStamp() != rhs.getTimeStamp());
 }
 
 Bool EsifTime::operator>(const EsifTime& rhs) const
 {
-    return (this->getTimeStampInMilliSec() > rhs.getTimeStampInMilliSec());
+    return (this->getTimeStamp() > rhs.getTimeStamp());
 }
 
 Bool EsifTime::operator>=(const EsifTime& rhs) const
 {
-    return (this->getTimeStampInMilliSec() >= rhs.getTimeStampInMilliSec());
+    return (this->getTimeStamp() >= rhs.getTimeStamp());
 }
 
 Bool EsifTime::operator<(const EsifTime& rhs) const
 {
-    return (this->getTimeStampInMilliSec() < rhs.getTimeStampInMilliSec());
+    return (this->getTimeStamp() < rhs.getTimeStamp());
 }
 
 Bool EsifTime::operator<=(const EsifTime& rhs) const
 {
-    return (this->getTimeStampInMilliSec() <= rhs.getTimeStampInMilliSec());
+    return (this->getTimeStamp() <= rhs.getTimeStamp());
 }
 
-EsifTime EsifTime::operator+(UInt64 numMilliSeconds) const
+TimeSpan EsifTime::operator-(const EsifTime& rhs) const
 {
-    return EsifTime(m_timeStamp + numMilliSeconds);
-}
-
-EsifTime EsifTime::operator-(UInt64 numMilliSeconds) const
-{
-    if (numMilliSeconds > m_timeStamp)
-    {
-        throw dptf_exception("numMilliSeconds > internal time stamp");
-    }
-
-    return EsifTime(m_timeStamp - numMilliSeconds);
-}
-
-EsifTime& EsifTime::operator+=(UInt64 numMilliSeconds)
-{
-    m_timeStamp += numMilliSeconds;
-    return *this;
-}
-
-EsifTime& EsifTime::operator-=(UInt64 numMilliSeconds)
-{
-    if (numMilliSeconds > m_timeStamp)
-    {
-        throw dptf_exception("numMilliSeconds > internal time stamp");
-    }
-
-    m_timeStamp -= numMilliSeconds;
-    return *this;
-}
-
-UInt64 EsifTime::operator-(const EsifTime& rhs) const
-{
-    if (rhs.getTimeStampInMilliSec() > m_timeStamp)
+    if (rhs.getTimeStamp() > m_timeStamp)
     {
         throw dptf_exception("rhs numMilliSeconds > internal time stamp");
     }
 
-    return m_timeStamp - rhs.getTimeStampInMilliSec();
+    return m_timeStamp - rhs.getTimeStamp();
 }
 
-UInt64 EsifTime::getCurrentTime(void)
+TimeSpan EsifTime::getCurrentTime(void)
 {
     esif_ccb_time_t currentTimeInMilliSeconds;
     esif_ccb_system_time(&currentTimeInMilliSeconds);
-    return currentTimeInMilliSeconds;
+    return TimeSpan::createFromMilliseconds(currentTimeInMilliSeconds);
 }

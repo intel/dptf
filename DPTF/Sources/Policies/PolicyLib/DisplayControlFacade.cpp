@@ -29,7 +29,6 @@ DisplayControlFacade::DisplayControlFacade(
     m_domainIndex(domainIndex),
     m_domainProperties(domainProperties),
     m_displayControlSetProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_displayControlStatusProperty(participantIndex, domainIndex, domainProperties, policyServices),
     m_displayControlCapabilitiesProperty(participantIndex, domainIndex, domainProperties, policyServices)
 {
 }
@@ -43,9 +42,40 @@ Bool DisplayControlFacade::supportsDisplayControls()
     return m_domainProperties.implementsDisplayControlInterface();
 }
 
-const DisplayControlStatus& DisplayControlFacade::getStatus()
+DisplayControlStatus DisplayControlFacade::getStatus()
 {
-    return m_displayControlStatusProperty.getStatus();
+    if (supportsDisplayControls())
+    {
+        return m_policyServices.domainDisplayControl->getDisplayControlStatus(m_participantIndex, m_domainIndex);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
+}
+
+UIntN DisplayControlFacade::getUserPreferredDisplayIndex()
+{
+    if (supportsDisplayControls())
+    {
+        return m_policyServices.domainDisplayControl->getUserPreferredDisplayIndex(m_participantIndex, m_domainIndex);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
+}
+
+Bool DisplayControlFacade::isUserPreferredIndexModified()
+{
+    if (supportsDisplayControls())
+    {
+        return m_policyServices.domainDisplayControl->isUserPreferredIndexModified(m_participantIndex, m_domainIndex);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
 }
 
 void DisplayControlFacade::setControl(UIntN displayControlIndex)
@@ -76,6 +106,30 @@ void DisplayControlFacade::setDisplayControlDynamicCaps(DisplayControlDynamicCap
     }
 }
 
+void DisplayControlFacade::lockCapabilities()
+{
+    if (supportsDisplayControls())
+    {
+        m_policyServices.domainDisplayControl->setDisplayCapsLock(m_participantIndex, m_domainIndex, true);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
+}
+
+void DisplayControlFacade::unlockCapabilities()
+{
+    if (supportsDisplayControls())
+    {
+        m_policyServices.domainDisplayControl->setDisplayCapsLock(m_participantIndex, m_domainIndex, false);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
+}
+
 const DisplayControlSet& DisplayControlFacade::getControls()
 {
     return m_displayControlSetProperty.getControls();
@@ -98,7 +152,7 @@ const DisplayControlDynamicCaps& DisplayControlFacade::getCapabilities()
 
 void DisplayControlFacade::setValueWithinCapabilities()
 {
-    auto controlValue = m_displayControlStatusProperty.getStatus().getBrightnessLimitIndex();
+    auto controlValue = getStatus().getBrightnessLimitIndex();
     auto capabilities = m_displayControlCapabilitiesProperty.getCapabilities();
     controlValue = std::max(capabilities.getCurrentUpperLimit(), controlValue);
     controlValue = std::min(capabilities.getCurrentLowerLimit(), controlValue);

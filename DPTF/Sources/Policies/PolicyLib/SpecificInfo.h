@@ -27,22 +27,24 @@ class dptf_export SpecificInfo
 {
 public:
 
-    SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, UIntN> specificInfo);
+    SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, Temperature> specificInfo);
     ~SpecificInfo(void);
 
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> getSortedByValue();
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> getSortedByKey();
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> getSortedByValue();
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> getSortedByKey();
 
     Bool hasItem(ParticipantSpecificInfoKey::Type key);
-    UIntN getItem(ParticipantSpecificInfoKey::Type key);
+    Temperature getItem(ParticipantSpecificInfoKey::Type key);
+    Bool operator==(SpecificInfo& rhs);
+    Bool operator!=(SpecificInfo& rhs);
 
     std::shared_ptr<XmlNode> getXml() const;
 
 private:
 
-    std::map<ParticipantSpecificInfoKey::Type, UIntN> m_specificInfo;
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> m_sortedTripPointsByValue;
+    std::map<ParticipantSpecificInfoKey::Type, Temperature> m_specificInfo;
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> m_sortedTripPointsByValue;
     Bool m_sortedTripPointsByValueValid;
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> m_sortedTripPointsByKey;
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> m_sortedTripPointsByKey;
     Bool m_sortedTripPointsByKeyValid;
 };

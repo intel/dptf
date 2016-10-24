@@ -153,9 +153,9 @@ void CriticalPolicy::onUnbindDomain(UIntN participantIndex, UIntN domainIndex)
     }
 }
 
-void CriticalPolicy::onOperatingSystemEmergencyCallModeChanged(UIntN emergencyCallMode)
+void CriticalPolicy::onOperatingSystemEmergencyCallModeChanged(OnOffToggle::Type emergencyCallMode)
 {
-    if (emergencyCallMode > 0)
+    if (emergencyCallMode == OnOffToggle::On)
     {
         m_inEmergencyCallMode = true;
 
@@ -175,9 +175,13 @@ void CriticalPolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
     if (getParticipantTracker()->remembers(participantIndex))
     {
         auto participant = getParticipantTracker()->getParticipant(participantIndex);
+        auto oldTrips = participant->getCriticalTripPointProperty().getTripPoints();
+
         participant->getCriticalTripPointProperty().refresh();
         participant->refreshHysteresis();
-        if (participantHasDesiredProperties(participant))
+
+        auto newTrips = participant->getCriticalTripPointProperty().getTripPoints();
+        if (oldTrips != newTrips && participantHasDesiredProperties(participant))
         {
             takePowerActionBasedOnThermalState(participant);
         }
@@ -286,7 +290,7 @@ void CriticalPolicy::reEvaluateAllParticipants()
 
 void CriticalPolicy::setParticipantTemperatureThresholdNotification(
     Temperature currentTemperature,
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints,
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> tripPoints,
     ParticipantProxyInterface* participant)
 {
     Temperature lowerTemperatureThreshold = determineLowerTemperatureThreshold(currentTemperature, tripPoints);
@@ -296,12 +300,12 @@ void CriticalPolicy::setParticipantTemperatureThresholdNotification(
 
 Temperature CriticalPolicy::determineLowerTemperatureThreshold(
     Temperature currentTemperature,
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints)
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> tripPoints)
 {
     Temperature lowerTemperatureThreshold(Temperature::createInvalid());
     for (auto tp = tripPoints.begin(); tp != tripPoints.end(); ++tp)
     {
-        if (currentTemperature >= Temperature(tp->second))
+        if (currentTemperature >= tp->second)
         {
             lowerTemperatureThreshold = tp->second;
         }
@@ -315,12 +319,12 @@ Temperature CriticalPolicy::determineLowerTemperatureThreshold(
 
 Temperature CriticalPolicy::determineUpperTemperatureThreshold(
     Temperature currentTemperature,
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints)
+    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> tripPoints)
 {
     Temperature upperTemperatureThreshold(Temperature::createInvalid());
     for (auto tp = tripPoints.begin(); tp != tripPoints.end(); ++tp)
     {
-        if (currentTemperature < Temperature(tp->second))
+        if (currentTemperature < tp->second)
         {
             upperTemperatureThreshold = tp->second;
             break;
@@ -330,13 +334,13 @@ Temperature CriticalPolicy::determineUpperTemperatureThreshold(
 }
 
 ParticipantSpecificInfoKey::Type CriticalPolicy::findTripPointCrossed(
-    const std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>>& tripPoints,
+    const std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>>& tripPoints,
     const Temperature& currentTemperature)
 {
     auto crossedTripPoint = ParticipantSpecificInfoKey::None;
     for (auto tp = tripPoints.begin(); tp != tripPoints.end(); ++tp)
     {
-        if (currentTemperature >= Temperature(tp->second))
+        if (currentTemperature >= tp->second)
         {
             if (tp->first > crossedTripPoint)
             {

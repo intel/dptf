@@ -29,19 +29,19 @@ WorkItemStatistics::WorkItemStatistics(void)
     {
         m_immediateWorkItemStatistics[i].totalExecuted = 0;
 
-        m_immediateWorkItemStatistics[i].totalQueueTimeMilliseconds = 0;
-        m_immediateWorkItemStatistics[i].minQueueTimeMilliseconds = 0;
-        m_immediateWorkItemStatistics[i].maxQueueTimeMilliseconds = 0;
+        m_immediateWorkItemStatistics[i].totalQueueTime = TimeSpan::createFromSeconds(0);
+        m_immediateWorkItemStatistics[i].minQueueTime = TimeSpan::createFromSeconds(0);
+        m_immediateWorkItemStatistics[i].maxQueueTime = TimeSpan::createFromSeconds(0);
 
-        m_immediateWorkItemStatistics[i].totalExecutionTimeMilliseconds = 0;
-        m_immediateWorkItemStatistics[i].minExecutionTimeMilliseconds = 0;
-        m_immediateWorkItemStatistics[i].maxExecutionTimeMilliseconds = 0;
+        m_immediateWorkItemStatistics[i].totalExecutionTime = TimeSpan::createFromSeconds(0);
+        m_immediateWorkItemStatistics[i].minExecutionTime = TimeSpan::createFromSeconds(0);
+        m_immediateWorkItemStatistics[i].maxExecutionTime = TimeSpan::createFromSeconds(0);
     }
 
-    m_lastDptfGetStatusWorkItemCreationTime = EsifTime(0);
-    m_lastDptfGetStatusWorkItemExecutionStartTime = EsifTime(0);
-    m_lastDptfGetStatusWorkItemCompletionTime = EsifTime(0);
-    m_lastDptfGetStatusWorkItemExecutionTimeMilliseconds = 0;
+    m_lastDptfGetStatusWorkItemCreationTime = TimeSpan::createFromSeconds(0);
+    m_lastDptfGetStatusWorkItemExecutionStartTime = TimeSpan::createFromSeconds(0);
+    m_lastDptfGetStatusWorkItemCompletionTime = TimeSpan::createFromSeconds(0);
+    m_lastDptfGetStatusWorkItemExecutionTime = TimeSpan::createFromSeconds(0);
 }
 
 WorkItemStatistics::~WorkItemStatistics(void)
@@ -56,13 +56,13 @@ void WorkItemStatistics::incrementImmediateTotals(WorkItemInterface* workItem)
         return;
     }
 
-    EsifTime currentTime = EsifTime();
+    auto currentTime = EsifTime().getTimeStamp();
 
     m_totalImmediateWorkItemsExecuted += 1;
     m_immediateWorkItemStatistics[eventType].totalExecuted += 1;
 
-    UInt64 queueTimeMilliseconds = workItem->getWorkItemExecutionStartTime() - workItem->getWorkItemCreationTime();
-    UInt64 executionTimeMilliseconds = currentTime - workItem->getWorkItemExecutionStartTime();
+    auto queueTime = workItem->getWorkItemExecutionStartTime() - workItem->getWorkItemCreationTime();
+    auto executionTime = currentTime - workItem->getWorkItemExecutionStartTime();
 
     // See if a DptfGetStatus work item executed while this work item was sitting in the queue.  If so we need to
     // adjust the queueTimeMilliseconds.
@@ -72,47 +72,47 @@ void WorkItemStatistics::incrementImmediateTotals(WorkItemInterface* workItem)
         if (m_lastDptfGetStatusWorkItemExecutionStartTime >= workItem->getWorkItemCreationTime())
         {
             // deduct all of the DptfGetStatus execution time
-            queueTimeMilliseconds -= m_lastDptfGetStatusWorkItemExecutionTimeMilliseconds;
+            queueTime -= m_lastDptfGetStatusWorkItemExecutionTime;
         }
         else
         {
             // only deduct part of the DptfGetStatus execution time
-            UInt64 numMillisecondsToDeduct = m_lastDptfGetStatusWorkItemCompletionTime - workItem->getWorkItemCreationTime();
-            queueTimeMilliseconds -= numMillisecondsToDeduct;
+            auto timeToDeduct = m_lastDptfGetStatusWorkItemCompletionTime - workItem->getWorkItemCreationTime();
+            queueTime -= timeToDeduct;
         }
     }
 
-    m_immediateWorkItemStatistics[eventType].totalQueueTimeMilliseconds += queueTimeMilliseconds;
-    m_immediateWorkItemStatistics[eventType].totalExecutionTimeMilliseconds += executionTimeMilliseconds;
+    m_immediateWorkItemStatistics[eventType].totalQueueTime += queueTime;
+    m_immediateWorkItemStatistics[eventType].totalExecutionTime += executionTime;
 
     if (m_immediateWorkItemStatistics[eventType].totalExecuted == 1)
     {
-        m_immediateWorkItemStatistics[eventType].minQueueTimeMilliseconds = queueTimeMilliseconds;
-        m_immediateWorkItemStatistics[eventType].maxQueueTimeMilliseconds = queueTimeMilliseconds;
+        m_immediateWorkItemStatistics[eventType].minQueueTime = queueTime;
+        m_immediateWorkItemStatistics[eventType].maxQueueTime = queueTime;
 
-        m_immediateWorkItemStatistics[eventType].minExecutionTimeMilliseconds = executionTimeMilliseconds;
-        m_immediateWorkItemStatistics[eventType].maxExecutionTimeMilliseconds = executionTimeMilliseconds;
+        m_immediateWorkItemStatistics[eventType].minExecutionTime = executionTime;
+        m_immediateWorkItemStatistics[eventType].maxExecutionTime = executionTime;
     }
     else
     {
-        if (queueTimeMilliseconds < m_immediateWorkItemStatistics[eventType].minQueueTimeMilliseconds)
+        if (queueTime < m_immediateWorkItemStatistics[eventType].minQueueTime)
         {
-            m_immediateWorkItemStatistics[eventType].minQueueTimeMilliseconds = queueTimeMilliseconds;
+            m_immediateWorkItemStatistics[eventType].minQueueTime = queueTime;
         }
 
-        if (queueTimeMilliseconds > m_immediateWorkItemStatistics[eventType].maxQueueTimeMilliseconds)
+        if (queueTime > m_immediateWorkItemStatistics[eventType].maxQueueTime)
         {
-            m_immediateWorkItemStatistics[eventType].maxQueueTimeMilliseconds = queueTimeMilliseconds;
+            m_immediateWorkItemStatistics[eventType].maxQueueTime = queueTime;
         }
 
-        if (executionTimeMilliseconds < m_immediateWorkItemStatistics[eventType].minExecutionTimeMilliseconds)
+        if (executionTime < m_immediateWorkItemStatistics[eventType].minExecutionTime)
         {
-            m_immediateWorkItemStatistics[eventType].minExecutionTimeMilliseconds = executionTimeMilliseconds;
+            m_immediateWorkItemStatistics[eventType].minExecutionTime = executionTime;
         }
 
-        if (executionTimeMilliseconds > m_immediateWorkItemStatistics[eventType].maxExecutionTimeMilliseconds)
+        if (executionTime > m_immediateWorkItemStatistics[eventType].maxExecutionTime)
         {
-            m_immediateWorkItemStatistics[eventType].maxExecutionTimeMilliseconds = executionTimeMilliseconds;
+            m_immediateWorkItemStatistics[eventType].maxExecutionTime = executionTime;
         }
     }
 
@@ -121,7 +121,7 @@ void WorkItemStatistics::incrementImmediateTotals(WorkItemInterface* workItem)
         m_lastDptfGetStatusWorkItemCreationTime = workItem->getWorkItemCreationTime();
         m_lastDptfGetStatusWorkItemExecutionStartTime = workItem->getWorkItemExecutionStartTime();
         m_lastDptfGetStatusWorkItemCompletionTime = currentTime;
-        m_lastDptfGetStatusWorkItemExecutionTimeMilliseconds = executionTimeMilliseconds;
+        m_lastDptfGetStatusWorkItemExecutionTime = executionTime;
     }
 }
 
@@ -151,13 +151,13 @@ std::shared_ptr<XmlNode> WorkItemStatistics::getXml(void)
         const FrameworkEventData event = (*FrameworkEventInfo::instance())[(FrameworkEvent::Type)i];
         UInt64 totalExecuted = m_immediateWorkItemStatistics[i].totalExecuted;
 
-        UInt64 averageQueueTime = 0;
-        UInt64 averageExecutionTime = 0;
+        auto averageQueueTime = TimeSpan::createFromSeconds(0);
+        auto averageExecutionTime = TimeSpan::createFromSeconds(0);
 
         if (totalExecuted > 0)
         {
-            averageQueueTime = m_immediateWorkItemStatistics[i].totalQueueTimeMilliseconds / totalExecuted;
-            averageExecutionTime = m_immediateWorkItemStatistics[i].totalExecutionTimeMilliseconds / totalExecuted;
+            averageQueueTime = m_immediateWorkItemStatistics[i].totalQueueTime / totalExecuted;
+            averageExecutionTime = m_immediateWorkItemStatistics[i].totalExecutionTime / totalExecuted;
         }
 
         auto workItem = XmlNode::createWrapperElement("work_item");
@@ -166,17 +166,13 @@ std::shared_ptr<XmlNode> WorkItemStatistics::getXml(void)
         workItem->addChild(XmlNode::createDataElement("work_item_type", event.name));
         workItem->addChild(XmlNode::createDataElement("total_executed", StlOverride::to_string(totalExecuted)));
 
-        workItem->addChild(XmlNode::createDataElement("average_queue_time", StlOverride::to_string(averageQueueTime)));
-        workItem->addChild(XmlNode::createDataElement("min_queue_time",
-            StlOverride::to_string(m_immediateWorkItemStatistics[i].minQueueTimeMilliseconds)));
-        workItem->addChild(XmlNode::createDataElement("max_queue_time",
-            StlOverride::to_string(m_immediateWorkItemStatistics[i].maxQueueTimeMilliseconds)));
+        workItem->addChild(XmlNode::createDataElement("average_queue_time", averageQueueTime.toStringMilliseconds()));
+        workItem->addChild(XmlNode::createDataElement("min_queue_time", m_immediateWorkItemStatistics[i].minQueueTime.toStringMilliseconds()));
+        workItem->addChild(XmlNode::createDataElement("max_queue_time", m_immediateWorkItemStatistics[i].maxQueueTime.toStringMilliseconds()));
 
-        workItem->addChild(XmlNode::createDataElement("average_execution_time", StlOverride::to_string(averageExecutionTime)));
-        workItem->addChild(XmlNode::createDataElement("min_execution_time",
-            StlOverride::to_string(m_immediateWorkItemStatistics[i].minExecutionTimeMilliseconds)));
-        workItem->addChild(XmlNode::createDataElement("max_execution_time",
-            StlOverride::to_string(m_immediateWorkItemStatistics[i].maxExecutionTimeMilliseconds)));
+        workItem->addChild(XmlNode::createDataElement("average_execution_time", averageExecutionTime.toStringMilliseconds()));
+        workItem->addChild(XmlNode::createDataElement("min_execution_time", m_immediateWorkItemStatistics[i].minExecutionTime.toStringMilliseconds()));
+        workItem->addChild(XmlNode::createDataElement("max_execution_time", m_immediateWorkItemStatistics[i].maxExecutionTime.toStringMilliseconds()));
     }
 
     return workItemStatistics;

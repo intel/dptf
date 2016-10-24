@@ -39,16 +39,16 @@ public:
         std::shared_ptr<TimeInterface> time);
     ~CallbackScheduler();
 
-    Bool isFreeForRequests(UIntN target, UIntN source, UInt64 time) const;
-    void markBusyForRequests(UIntN target, UIntN source, UInt64 time);
-    void ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, UInt64 time);
-    Bool isFreeForCommits(UIntN source, UInt64 time) const;
-    void ensureCallbackByShortestSamplePeriod(UIntN target, UInt64 time);
+    Bool isFreeForRequests(UIntN target, UIntN source, const TimeSpan& time) const;
+    void markBusyForRequests(UIntN target, UIntN source, const TimeSpan& time);
+    void ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, const TimeSpan& time);
+    Bool isFreeForCommits(UIntN source, const TimeSpan& time) const;
+    void ensureCallbackByShortestSamplePeriod(UIntN target, const TimeSpan& time);
     void acknowledgeCallback(UIntN target);
 
     // participant availability
     void removeParticipantFromSchedule(UIntN participant);
-    void markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, UInt64 time);
+    void markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, const TimeSpan& time);
 
     // updates service objects
     void setTrt(std::shared_ptr<ThermalRelationshipTable> trt);
@@ -63,5 +63,5 @@ private:
     std::shared_ptr<ThermalRelationshipTable> m_trt;
     TargetMonitor* m_targetMonitor;
     std::shared_ptr<PolicyCallbackSchedulerInterface> m_targetScheduler;
-    std::map<TargetSourceRelationship, UInt64> m_requestSchedule;
+    std::map<TargetSourceRelationship, TimeSpan> m_requestSchedule;
 };

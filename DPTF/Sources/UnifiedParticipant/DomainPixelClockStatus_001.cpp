@@ -22,6 +22,7 @@ DomainPixelClockStatus_001::DomainPixelClockStatus_001(UIntN participantIndex, U
     ParticipantServicesInterface* participantServicesInterface) :
     DomainPixelClockStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
+    // TODO: capture if needed
 }
 
 DomainPixelClockStatus_001::~DomainPixelClockStatus_001(void)
@@ -125,7 +126,7 @@ void DomainPixelClockStatus_001::sendActivityLoggingDataIfEnabled(UIntN particip
         if (isActivityLoggingEnabled() == true)
         {
             EsifCapabilityData capability;
-            capability.type = Capability::PixelClockStatus;
+            capability.type = ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS;
             capability.size = sizeof(capability);
 
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,

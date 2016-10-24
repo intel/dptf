@@ -43,11 +43,14 @@ public:
         UIntN performanceControlIndex) override;
     virtual void setPerformanceControlDynamicCaps(
         UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override;
+    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
     
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+    virtual void capture(void) override;
+    virtual void restore(void) override;
 
     // ConfigTdpDataSyncInterface
     virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
@@ -55,7 +58,5 @@ public:
 
 protected:
     virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlDynamicCaps getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex) override;
-    virtual void intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex) override;
 
 };

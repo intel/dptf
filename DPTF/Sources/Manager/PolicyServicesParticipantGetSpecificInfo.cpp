@@ -17,14 +17,14 @@
 ******************************************************************************/
 
 #include "PolicyServicesParticipantGetSpecificInfo.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesParticipantGetSpecificInfo::PolicyServicesParticipantGetSpecificInfo(
     DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
 {
 }
 
-std::map<ParticipantSpecificInfoKey::Type, UIntN> PolicyServicesParticipantGetSpecificInfo::getParticipantSpecificInfo(
+std::map<ParticipantSpecificInfoKey::Type, Temperature> PolicyServicesParticipantGetSpecificInfo::getParticipantSpecificInfo(
     UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
     throwIfNotWorkItemThread();

@@ -18,7 +18,7 @@
 
 #include "PolicyManager.h"
 #include "DptfManager.h"
-#include "WorkItemQueueManager.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "WIPolicyCreateAll.h"
 #include "WIPolicyDestroy.h"
 #include "EsifFileEnumerator.h"
@@ -28,7 +28,7 @@
 
 using namespace StatusFormat;
 
-PolicyManager::PolicyManager(DptfManager* dptfManager) : m_dptfManager(dptfManager),
+PolicyManager::PolicyManager(DptfManagerInterface* dptfManager) : m_dptfManager(dptfManager),
     m_supportedPolicyList(dptfManager)
 {
 }

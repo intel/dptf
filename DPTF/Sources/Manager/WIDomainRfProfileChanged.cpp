@@ -33,7 +33,7 @@ WIDomainRfProfileChanged::~WIDomainRfProfileChanged(void)
 
 void WIDomainRfProfileChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainRfProfileChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainRfProfileChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainRfProfileChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainRfProfileChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainRfProfileChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainRfProfileChanged", i);
         }
     }
 }

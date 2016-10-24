@@ -33,7 +33,7 @@ WIPolicyOperatingSystemConfigTdpLevelChanged::~WIPolicyOperatingSystemConfigTdpL
 
 void WIPolicyOperatingSystemConfigTdpLevelChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -51,7 +51,7 @@ void WIPolicyOperatingSystemConfigTdpLevelChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemConfigTdpLevelChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemConfigTdpLevelChanged", i);
         }
     }
 }

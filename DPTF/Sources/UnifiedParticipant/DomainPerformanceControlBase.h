@@ -38,7 +38,5 @@ public:
     virtual void sendActivityLoggingDataIfEnabled(UIntN ParticipantIndex, UIntN domainIndex) override;
 
 protected:
-    virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) = 0;
-    virtual PerformanceControlDynamicCaps getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex) = 0;
-    virtual void intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex) = 0;
+    virtual UIntN getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex) = 0;
 };

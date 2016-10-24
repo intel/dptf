@@ -32,6 +32,8 @@ namespace SensorOrientation
                 return "Landscape Inverted";
             case PortraitInverted:
                 return "Portrait Inverted";
+            case Indeterminate:
+                return "Indeterminate";
             default:
                 throw dptf_exception("SensorOrientation::Type is invalid");
         }

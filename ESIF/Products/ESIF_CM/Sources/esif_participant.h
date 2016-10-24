@@ -439,13 +439,13 @@ eEsifError EsifUp_ExecutePrimitive(
 eEsifError EsifUp_UpdatePolling(
 	EsifUpPtr self,
 	UInt16 domain_index,
-	UInt32 period
+	esif_time_t *period_ptr
 	);
 
 eEsifError EsifUp_UpdateHysteresis(
 	EsifUpPtr self,
 	UInt16 domain_index,
-	esif_temp_t hysteresis_val
+	esif_temp_t *hysteresis_ptr
 	);
 
 EsifUpDomainPtr EsifUp_GetDomainById(

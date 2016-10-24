@@ -50,10 +50,8 @@ private:
     std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
     std::map<UIntN, UIntN> m_requests;
     Bool m_hasBeenLimited; // only unlimit if the control has been limited in the past due to thermal condition
-    UIntN m_initialIndexSet;
 
     UIntN findHighestDisplayIndexRequest() const;
     UIntN getTargetRequest(UIntN target) const;
-    UIntN snapToCapabilitiesBounds(UIntN displayIndex);
     UIntN calculateNextIndex(UIntN target);
 };

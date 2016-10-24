@@ -33,6 +33,6 @@ public:
     // For the input parameters, pass in the destination participant index and a vector containing
     // all keys of interest.  The participant will return a map containing each key and associated
     // value.
-    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(UIntN participantIndex,
-        const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) = 0;
+    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> 
+        getParticipantSpecificInfo(UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) = 0;
 };

@@ -33,7 +33,6 @@
 #include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
 #include "PixelClockControlFacade.h"
-#include "HardwareDutyCycleControlFacade.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -41,6 +40,7 @@
 #include "PerformanceControlKnob.h"
 #include "XmlNode.h"
 #include "PlatformPowerControlFacadeInterface.h"
+#include "ActiveCoolingControlFacadeInterface.h"
 
 
 // represents a domain inside a participant.  holds cached records of all properties and potential controls for the
@@ -67,7 +67,7 @@ public:
     virtual void initializeControls() = 0;
     virtual void setControlsToMax() = 0;
     virtual std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() = 0;
-    virtual ActiveCoolingControl& getActiveCoolingControl() = 0;
+    virtual std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() = 0;
     virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() = 0;
     virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() = 0;
     virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() = 0;
@@ -76,7 +76,6 @@ public:
     virtual ConfigTdpControlFacade& getConfigTdpControl() = 0;
     virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const = 0;
     virtual PixelClockControlFacade& getPixelClockControl() const = 0;
-    virtual std::shared_ptr<HardwareDutyCycleControlFacadeInterface> getHardwareDutyCycleControl() const = 0;
 
     virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() = 0;
     virtual std::shared_ptr<XmlNode> getXml() const = 0;

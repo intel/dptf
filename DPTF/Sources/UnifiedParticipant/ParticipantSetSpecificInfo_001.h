@@ -27,12 +27,11 @@ public:
 
     ParticipantSetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
+    virtual ~ParticipantSetSpecificInfo_001();
 
     // ParticipantSetSpecificInfoInterface
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex,
         const Temperature& temperature) override;
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex,
-        const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
     virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint,
         const Temperature& tripValue) override;
 

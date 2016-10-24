@@ -42,8 +42,8 @@ namespace ControlKnobType
                 return "CoreControlLpo";
             case ControlKnobType::DisplayControlBrightness:
                 return "DisplayControlBrightness";
-            case ControlKnobType::ActiveCoolingControlFanSpeed:
-                return "ActiveCoolingControlFanSpeed";
+            case ControlKnobType::PercentageFanControl:
+                return "PercentageFanControl";
             case ControlKnobType::ConfigTdpControlTurboState:
                 return "ConfigTdpControlTurboState";
             case ControlKnobType::TauControlPl1:
@@ -62,6 +62,8 @@ namespace ControlKnobType
                 return "PSysPowerControlPl2";
             case ControlKnobType::PSysPowerControlPl3:
                 return "PSysPowerControlPl3";
+            case ControlKnobType::RPMFanControl:
+                return "RPMFanControl";
             default:
                 throw dptf_exception("ControlKnobType::Type is invalid.");
         }

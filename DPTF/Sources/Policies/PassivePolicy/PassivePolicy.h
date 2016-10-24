@@ -89,7 +89,7 @@ private:
     void associateAllParticipantsInTrt(std::shared_ptr<ThermalRelationshipTable> trt);
 
     // temperature notification actions
-    void notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, UIntN currentTemperature);
+    void notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, Temperature currentTemperature);
     void setParticipantTemperatureThresholdNotification(
         ParticipantProxyInterface* participant,
         Temperature currentTemperature);

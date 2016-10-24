@@ -21,14 +21,19 @@
 #include "StatusFormat.h"
 using namespace StatusFormat;
 
+TemperatureThresholds::TemperatureThresholds()
+{
+    createInvalid();
+}
+
 TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis) :
     m_aux0(aux0), m_aux1(aux1), m_hysteresis(hysteresis)
 {
     // FIXME: this needs to be added back later
     //if ((m_aux0.isValid() == true) &&
-    //    (m_aux0 != Temperature(0)) &&
+    //    (m_aux0 != Temperature::fromCelsius(0)) &&
     //    (m_aux1.isValid() == true) &&
-    //    (m_aux1 != Temperature(0)) &&
+    //    (m_aux1 != Temperature::fromCelsius(0)) &&
     //    (m_aux0 >= m_aux1))
     //{
     //    throw dptf_exception("Aux0 must be less than Aux1.");
@@ -67,4 +72,11 @@ std::shared_ptr<XmlNode> TemperatureThresholds::getXml(void)
     root->addChild(XmlNode::createDataElement("hysteresis", m_hysteresis.toString()));
 
     return root;
+}
+
+Bool TemperatureThresholds::operator==(const TemperatureThresholds & thresholds) const
+{
+    return ((m_aux0 == thresholds.m_aux0)
+        && (m_aux1 == thresholds.m_aux1)
+        && (m_hysteresis == thresholds.m_hysteresis));
 }

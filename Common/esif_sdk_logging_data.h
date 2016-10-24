@@ -127,9 +127,15 @@ typedef struct _t_EsifPowerControl {
 	EsifPowerData powerDataSet[MAX_POWER_CONTROL_TYPE];
 } EsifPowerControl, *EsifPowerControlPtr;
 
+typedef struct _t_EsifPowerFilterData {
+	UInt32 currentPowerSentToFilter;
+	UInt32 powerCalculatedByFilter;
+} EsifPowerFilterData;
+
 /* Power Status Data */
 typedef struct _t_EsifPowerStatus {
-	UInt32 power;
+	EsifPowerFilterData powerFilterData;
+	UInt32 currentPower;
 } EsifPowerStatus, *EsifPowerStatusPtr;
 
 /* Temperature Status Data */
@@ -144,28 +150,28 @@ typedef struct _t_EsifUtilizationStatus {
 
 /* Pixel Clock Status Data */
 typedef struct _t_EsifPixelClockStatus {
-	//TBD
+	//Place Holder
 	UInt32 pixelClockStatus;
 } EsifPixelClockStatus, *EsifPixelClockStatusPtr;
 
 /* Pixel Clock Control Data */
 typedef struct _t_EsifPixelClockControl {
-	//TBD
+	//Place Holder
 	UInt32 pixelClockControl;
 } EsifPixelClockControl, *EsifPixelClockControlPtr;
 
 /* Platform Power Status Data */
 typedef struct _t_EsifPlatformPowerStatus{
-	//TBD
+	//Place Holder
 	UInt32 platformPowerStatus;
 } EsifPlatformPowerStatus, *EsifPlatformPowerStatusPtr;
 
 /* Temperature Control Data */
-typedef struct _t_EsifTemperatureControl {
+typedef struct _t_EsifTemperatureThresholdControl {
 	UInt32 aux0;
 	UInt32 aux1;
 	UInt32 hysteresis;
-} EsifTemperatureControl, *EsifTemperatureControlPtr;
+} EsifTemperatureThresholdControl, *EsifTemperatureThresholdControlPtr;
 
 /* Rfprofile Status Data */
 typedef struct _t_EsifRfProfileStatus {
@@ -179,21 +185,21 @@ typedef struct _t_EsifRfProfileControl {
 
 /* Network Control Data */
 typedef struct _t_EsifNetworkControl {
-	//TBD
+	//Place Holder
 	UInt32 networkControl;
 } EsifNetworkControl, *EsifNetworkControlPtr;
 
 /* XmitPower Control Data */
 typedef struct _t_EsifXmitPowerControl {
-	//TBD
+	//Place Holder
 	UInt32 xmitPowerControl;
 } EsifXmitPowerControl, *EsifXmitPowerControlPtr;
 
-/* Hdc Control Data */
-typedef struct _t_EsifHdcControl {
-	UInt32 hdcStatus;
-	UInt32 hdcDutyCycle;
-} EsifHdcControl, *EsifHdcControlPtr;
+/* Current Control Data */
+typedef struct _t_EsifCurrentControl {
+	//Place Holder
+	UInt32 currentControl;
+} EsifCurrentControl, *EsifCurrentControlPtr;
 
 /* Psys Control Data */
 typedef struct _t_EsifPSysControl {
@@ -217,12 +223,11 @@ typedef union _t_EsifCapability {
 	EsifPixelClockStatus pixelClockStatus;
 	EsifPixelClockControl pixelClockControl;
 	EsifPlatformPowerStatus platformPowerStatus;
-	EsifTemperatureControl temperatureControl;
+	EsifTemperatureThresholdControl temperatureThresholdControl;
 	EsifRfProfileStatus rfProfileStatus;
 	EsifRfProfileControl rfProfileControl;
 	EsifNetworkControl networkControl;
 	EsifXmitPowerControl xmitPowerControl;
-	EsifHdcControl HdcControl;
 	EsifPSysControl psysControl;
 } EsifCapability, *EsifCapabilityPtr;
 

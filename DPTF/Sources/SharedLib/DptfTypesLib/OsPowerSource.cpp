@@ -24,14 +24,14 @@ namespace OsPowerSource
     {
         switch (osPowerSource)
         {
-            case AC:
-                return "AC";
-            case DC:
-                return "DC";
-            case ShortTermDC:
-                return "ShortTermDC";
-            default:
-                throw dptf_exception("OsPowerSource::Type is invalid");
+        case AC:
+            return "AC";
+        case DC:
+            return "DC";
+        case ShortTermDC:
+            return "Short Term DC";
+        default:
+            throw dptf_exception("OsPowerSource::Type is invalid");
         }
     }
 }

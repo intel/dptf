@@ -17,8 +17,9 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainTemperature.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "ManagerMessage.h"
+#include "EsifServices.h"
 
 PolicyServicesDomainTemperature::PolicyServicesDomainTemperature(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :
@@ -54,7 +55,6 @@ void PolicyServicesDomainTemperature::setTemperatureThresholds(UIntN participant
     message.setPolicyIndex(getPolicyIndex());
     getDptfManager()->getEsifServices()->writeMessageDebug(message, MessageCategory::TemperatureThresholds);
 #endif
-
     getParticipantManager()->getParticipantPtr(participantIndex)->setTemperatureThresholds(
         domainIndex, getPolicyIndex(), temperatureThresholds);
 }

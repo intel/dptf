@@ -43,8 +43,8 @@ private:
 
     // source filtering
     std::vector<UIntN> chooseSourcesToLimitForTarget(UIntN target);
-    std::vector<ThermalRelationshipTableEntry> getEntriesWithControlsToLimit(
-        UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
+    std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> getEntriesWithControlsToLimit(
+        UIntN target, const std::vector<std::shared_ptr<ThermalRelationshipTableEntry>>& sourcesForTarget);
 
     // domain filtering
     std::vector<UIntN> getDomainsWithControlKnobsToLimit(ParticipantProxyInterface* participant, UIntN target);
@@ -56,5 +56,5 @@ private:
 
     // domain limiting
     void requestLimit(UIntN source, UIntN domainIndex, UIntN target);
-    void commitLimit(UIntN source, UInt64 time);
+    void commitLimit(UIntN source, const TimeSpan& time);
 };

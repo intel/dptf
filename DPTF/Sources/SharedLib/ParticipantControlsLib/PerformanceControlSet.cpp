@@ -241,7 +241,7 @@ void PerformanceControlSet::append(const PerformanceControlSet& controlSet, UInt
         controlSet.m_performanceControl.begin() + fromIndex, controlSet.m_performanceControl.end());
 }
 
-const PerformanceControl& PerformanceControlSet::operator[](UIntN index) const
+PerformanceControl PerformanceControlSet::operator[](UIntN index) const
 {
     return m_performanceControl.at(index);
 }

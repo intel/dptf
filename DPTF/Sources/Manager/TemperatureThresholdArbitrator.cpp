@@ -22,19 +22,15 @@
 #include "EsifServices.h"
 #include "Utility.h"
 
-TemperatureThresholdArbitrator::TemperatureThresholdArbitrator(DptfManager* dptfManager) :
+TemperatureThresholdArbitrator::TemperatureThresholdArbitrator(DptfManagerInterface* dptfManager) :
     m_dptfManager(dptfManager),
     m_lastKnownParticipantTemperature(Temperature::createInvalid()),
-    m_arbitratedTemperatureThresholds(Temperature::createInvalid(), Temperature::createInvalid(), 0)
+    m_arbitratedTemperatureThresholds(Temperature::createInvalid(), Temperature::createInvalid(), Temperature::createInvalid())
 {
 }
 
 TemperatureThresholdArbitrator::~TemperatureThresholdArbitrator(void)
 {
-    for (UIntN i = 0; i < m_requestedTemperatureThresholds.size(); i++)
-    {
-        DELETE_MEMORY_TC(m_requestedTemperatureThresholds[i]);
-    }
 }
 
 Bool TemperatureThresholdArbitrator::arbitrate(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds,
@@ -49,7 +45,6 @@ Bool TemperatureThresholdArbitrator::arbitrate(UIntN policyIndex, const Temperat
     addArbitrationDataToMessage(message, "Arbitration data before applying update");
 #endif
 
-    increaseVectorSizeIfNeeded(m_requestedTemperatureThresholds, policyIndex);
     throwIfTemperatureThresholdsInvalid(policyIndex, temperatureThresholds, currentTemperature);
     updateTemperatureDataForPolicy(policyIndex, temperatureThresholds);
     Bool result = findNewTemperatureThresholds(currentTemperature);
@@ -69,9 +64,11 @@ TemperatureThresholds TemperatureThresholdArbitrator::getArbitratedTemperatureTh
 
 void TemperatureThresholdArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if (policyIndex < m_requestedTemperatureThresholds.size())
+    auto policyRequest = m_requestedTemperatureThresholds.find(policyIndex);
+    if (policyRequest != m_requestedTemperatureThresholds.end())
     {
-        DELETE_MEMORY_TC(m_requestedTemperatureThresholds[policyIndex]);
+        policyRequest->second = TemperatureThresholds::createInvalid();
+        arbitrate(policyIndex, TemperatureThresholds::createInvalid(), Temperature::createInvalid());
     }
 }
 
@@ -97,45 +94,34 @@ void TemperatureThresholdArbitrator::throwIfTemperatureThresholdsInvalid(UIntN p
 void TemperatureThresholdArbitrator::updateTemperatureDataForPolicy(UIntN policyIndex,
     const TemperatureThresholds& temperatureThresholds)
 {
-    if (m_requestedTemperatureThresholds[policyIndex] == nullptr)
-    {
-        m_requestedTemperatureThresholds[policyIndex] = new TemperatureThresholds(temperatureThresholds);
-    }
-    else
-    {
-        *(m_requestedTemperatureThresholds[policyIndex]) = temperatureThresholds;
-    }
+    m_requestedTemperatureThresholds[policyIndex] = temperatureThresholds;
 }
 
 Bool TemperatureThresholdArbitrator::findNewTemperatureThresholds(const Temperature& currentTemperature)
 {
     m_lastKnownParticipantTemperature = currentTemperature;
 
-    Temperature newAux0 = Temperature::createInvalid();
-    Temperature newAux1 = Temperature::createInvalid();
+    auto newAux0 = Temperature::createInvalid();
+    auto newAux1 = Temperature::createInvalid();
 
-    for (UIntN i = 0; i < m_requestedTemperatureThresholds.size(); i++)
+    for (auto thresholds = m_requestedTemperatureThresholds.begin(); thresholds != m_requestedTemperatureThresholds.end(); thresholds++)
     {
-        TemperatureThresholds* currentTemperatureThresholds = m_requestedTemperatureThresholds[i];
+        auto currentTemperatureThresholds = thresholds->second;
+        auto currentAux0 = currentTemperatureThresholds.getAux0();
+        auto currentAux1 = currentTemperatureThresholds.getAux1();
 
-        if (currentTemperatureThresholds != nullptr)
+        // check for a new aux0
+        if ((currentAux0.isValid() == true) &&
+            ((newAux0.isValid() == false) || (currentAux0 > newAux0)))
         {
-            Temperature currentAux0 = currentTemperatureThresholds->getAux0();
-            Temperature currentAux1 = currentTemperatureThresholds->getAux1();
+            newAux0 = currentAux0;
+        }
 
-            // check for a new aux0
-            if ((currentAux0.isValid() == true) &&
-                ((newAux0.isValid() == false) || (currentAux0 > newAux0)))
-            {
-                newAux0 = currentAux0;
-            }
-
-            // check for a new aux1
-            if ((currentAux1.isValid() == true) &&
-                ((newAux1.isValid() == false) || (currentAux1 < newAux1)))
-            {
-                newAux1 = currentAux1;
-            }
+        // check for a new aux1
+        if ((currentAux1.isValid() == true) &&
+            ((newAux1.isValid() == false) || (currentAux1 < newAux1)))
+        {
+            newAux1 = currentAux1;
         }
     }
 
@@ -143,7 +129,7 @@ Bool TemperatureThresholdArbitrator::findNewTemperatureThresholds(const Temperat
     if ((newAux0 != m_arbitratedTemperatureThresholds.getAux0()) ||
         (newAux1 != m_arbitratedTemperatureThresholds.getAux1()))
     {
-        m_arbitratedTemperatureThresholds = TemperatureThresholds(newAux0, newAux1, 0);
+        m_arbitratedTemperatureThresholds = TemperatureThresholds(newAux0, newAux1, Temperature::createInvalid());
         return true;
     }
     else
@@ -161,13 +147,9 @@ void TemperatureThresholdArbitrator::addArbitrationDataToMessage(ManagerMessage&
         "/" + m_arbitratedTemperatureThresholds.getAux1().toString());
 
     message.addMessage("--Requested temperature thresholds table contents--");
-    for (UIntN i = 0; i < m_requestedTemperatureThresholds.size(); i++)
+    for (auto thresholds = m_requestedTemperatureThresholds.begin(); thresholds != m_requestedTemperatureThresholds.end(); thresholds++)
     {
-        TemperatureThresholds* threshold = m_requestedTemperatureThresholds[i];
-        if (threshold != nullptr)
-        {
-            message.addMessage("Policy " + StlOverride::to_string(i), threshold->getAux0().toString() +
-                "/" + threshold->getAux1().toString());
-        }
+        message.addMessage("Policy " + StlOverride::to_string(thresholds->first), thresholds->second.getAux0().toString() +
+                "/" + thresholds->second.getAux1().toString());
     }
 }

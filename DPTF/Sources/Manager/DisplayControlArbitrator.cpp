@@ -19,8 +19,7 @@
 #include "DisplayControlArbitrator.h"
 #include "Utility.h"
 
-DisplayControlArbitrator::DisplayControlArbitrator(DptfManager* dptfManager) :
-    m_dptfManager(dptfManager),
+DisplayControlArbitrator::DisplayControlArbitrator() :
     m_arbitratedDisplayControlIndex(Constants::Invalid)
 {
 }
@@ -34,19 +33,18 @@ Bool DisplayControlArbitrator::arbitrate(UIntN policyIndex, UIntN displayControl
     Bool arbitratedValueChanged = false;
     UIntN maxRequestedDisplayControlIndex = Constants::Invalid;
 
-    increaseVectorSizeIfNeeded(m_requestedDisplayControlIndex, policyIndex, Constants::Invalid);
     m_requestedDisplayControlIndex[policyIndex] = displayControlIndex;
 
     //
-    // loop through the array and find the max requested display control index
+    // loop through and find the max requested display control index
     //
-    for (UIntN i = 0; i < m_requestedDisplayControlIndex.size(); i++)
+    for (auto request = m_requestedDisplayControlIndex.begin(); request != m_requestedDisplayControlIndex.end(); request++)
     {
-        if ((m_requestedDisplayControlIndex[i] != Constants::Invalid) &&
+        if ((request->second != Constants::Invalid) &&
             ((maxRequestedDisplayControlIndex == Constants::Invalid) ||
-             (m_requestedDisplayControlIndex[i] > maxRequestedDisplayControlIndex)))
+             (request->second > maxRequestedDisplayControlIndex)))
         {
-            maxRequestedDisplayControlIndex = m_requestedDisplayControlIndex[i];
+            maxRequestedDisplayControlIndex = request->second;
         }
     }
 
@@ -69,8 +67,10 @@ UIntN DisplayControlArbitrator::getArbitratedDisplayControlIndex(void) const
 
 void DisplayControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if (policyIndex < m_requestedDisplayControlIndex.size())
+    auto policyRequest = m_requestedDisplayControlIndex.find(policyIndex);
+    if (policyRequest != m_requestedDisplayControlIndex.end())
     {
         m_requestedDisplayControlIndex[policyIndex] = Constants::Invalid;
+        arbitrate(policyIndex, Constants::Invalid);
     }
 }

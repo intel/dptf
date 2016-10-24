@@ -612,13 +612,6 @@ static void esif_process_udev_event(char *udev_target)
 		iter_rc = EsifUpPm_GetNextUp(&up_iter, &up_ptr);
 	}
 
-	// If we cannot match UEVENT target to any participant path, we assume it is for
-	// the SoC itself (which is under x86_package_temp sysfs and does not belong to
-	// any thermal_zone sysfs). Better be safe than sorry!
-	if (!target_tz_found) {
-		esif_domain_signal_and_stop_poll(up_proc_ptr, processor_id, udev_target);
-	}
-
 	if (ESIF_E_ITERATION_DONE != iter_rc) {
 		EsifUp_PutRef(up_ptr);
 	}
@@ -796,7 +789,6 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	if (g_start_event_thread) {
 		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	}
-	cmd_app_subsystem(SUBSYSTEM_ESIF);
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	/* uevent listener */
@@ -904,7 +896,6 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
 		esif_ccb_sleep_msec(10);
 	}
-	cmd_app_subsystem(SUBSYSTEM_ESIF);
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	/* uevent listener */
@@ -926,7 +917,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 
 		// Startup Command?
 		if (command) {
-				parse_cmd(command, ESIF_FALSE);
+				parse_cmd(command, ESIF_FALSE, ESIF_TRUE);
 				if (ESIF_TRUE == quit_after_command) {
 						g_quit = 1;
 						continue;

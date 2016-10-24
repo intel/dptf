@@ -18,13 +18,16 @@
 
 #include "DomainPriority_001.h"
 #include "XmlNode.h"
-#include "StatusFormat.h"
 
 DomainPriority_001::DomainPriority_001(UIntN participantIndex, UIntN domainIndex, 
     ParticipantServicesInterface* participantServicesInterface) :
     DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
     clearCachedData();
+}
+
+DomainPriority_001::~DomainPriority_001()
+{
 }
 
 DomainPriority DomainPriority_001::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
@@ -40,7 +43,7 @@ void DomainPriority_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex
         if (isActivityLoggingEnabled() == true)
         {
             EsifCapabilityData capability;
-            capability.type = Capability::DomainPriority;
+            capability.type = ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY;
             capability.size = sizeof(capability);
             capability.data.domainPriority.priority = m_currentPriority.getCurrentPriority();
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
@@ -63,7 +66,7 @@ std::shared_ptr<XmlNode> DomainPriority_001::getXml(UIntN domainIndex)
 {
     std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("domain_priority");
 
-    root->addChild(getDomainPriority(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getDomainPriority(getParticipantIndex(), domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;

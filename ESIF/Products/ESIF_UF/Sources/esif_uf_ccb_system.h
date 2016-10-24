@@ -53,9 +53,12 @@ static ESIF_INLINE void esif_ccb_reboot()
 #endif
 }
 
-static ESIF_INLINE void esif_guid_to_ms_guid(esif_guid_t *guid)
+/* Convert GUID format from
+   AABBCCDD-EEFF-GGHH-IIJJ-KKLLMMNNOOPP to 
+   DDCCBBAA-FFEE-HHGG-IIJJ-KKLLMMNNOOPP 
+ */
+static ESIF_INLINE void esif_guid_mangle(esif_guid_t *guid)
 {
-#ifdef ESIF_ATTR_OS_WINDOWS
 	u8 *ptr = (u8 *)guid;
 	u8 b[ESIF_GUID_LEN] = {0};
 
@@ -69,7 +72,6 @@ static ESIF_INLINE void esif_guid_to_ms_guid(esif_guid_t *guid)
 	*(ptr + 5) = b[4];
 	*(ptr + 6) = b[7];
 	*(ptr + 7) = b[6];
-#endif
 }
 
 // Enter S0 Shutdown

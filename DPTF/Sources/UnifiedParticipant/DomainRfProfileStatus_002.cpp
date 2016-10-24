@@ -83,7 +83,7 @@ void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participa
         if (isActivityLoggingEnabled() == true)
         {
             EsifCapabilityData capability;
-            capability.type = Capability::RfProfileStatus;
+            capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
             capability.size = sizeof(capability);
 
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,

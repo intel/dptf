@@ -29,7 +29,7 @@ UIntN PixelClockDataSet::getCount(void) const
     return static_cast<UIntN>(m_pixelClockData.size());
 }
 
-const PixelClockData& PixelClockDataSet::operator[](UIntN index) const
+PixelClockData PixelClockDataSet::operator[](UIntN index) const
 {
     return m_pixelClockData.at(index);
 }

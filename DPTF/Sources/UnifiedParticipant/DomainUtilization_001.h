@@ -27,6 +27,7 @@ public:
 
     DomainUtilization_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
+    virtual ~DomainUtilization_001();
 
     // DomainUtilizationInterface
     virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;

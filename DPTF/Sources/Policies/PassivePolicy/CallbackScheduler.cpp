@@ -34,7 +34,7 @@ CallbackScheduler::~CallbackScheduler()
 {
 }
 
-Bool CallbackScheduler::isFreeForRequests(UIntN target, UIntN source, UInt64 time) const
+Bool CallbackScheduler::isFreeForRequests(UIntN target, UIntN source, const TimeSpan& time) const
 {
     auto relationship = m_requestSchedule.find(TargetSourceRelationship(target, source));
     if (relationship == m_requestSchedule.end())
@@ -43,39 +43,39 @@ Bool CallbackScheduler::isFreeForRequests(UIntN target, UIntN source, UInt64 tim
     }
     else
     {
-        UInt64 timeBusyUntil = relationship->second;
+        auto timeBusyUntil = relationship->second;
         return (time >= timeBusyUntil);
     }
 }
 
-void CallbackScheduler::markBusyForRequests(UIntN target, UIntN source, UInt64 time)
+void CallbackScheduler::markBusyForRequests(UIntN target, UIntN source, const TimeSpan& time)
 {
-    TimeSpan sampleTime = m_trt->getSampleTimeForRelationship(target, source);
-    UInt64 timeBusyUntil = time + sampleTime.asMillisecondsInt();
+    auto sampleTime = m_trt->getSampleTimeForRelationship(target, source);
+    auto timeBusyUntil = time + sampleTime;
     m_requestSchedule[TargetSourceRelationship(target, source)] = timeBusyUntil;
 }
 
-void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, UInt64 time)
+void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, const TimeSpan& time)
 {
     TimeSpan sampleTime = m_trt->getSampleTimeForRelationship(target, source);
-    if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime.asMillisecondsInt()) == false)
+    if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
     {
         m_targetScheduler->cancelCallback(target);
         m_targetScheduler->suspend(target, time, sampleTime);
     }
 }
 
-void CallbackScheduler::ensureCallbackByShortestSamplePeriod(UIntN target, UInt64 time)
+void CallbackScheduler::ensureCallbackByShortestSamplePeriod(UIntN target, const TimeSpan& time)
 {
     TimeSpan sampleTime = m_trt->getShortestSamplePeriodForTarget(target);
-    if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime.asMillisecondsInt()) == false)
+    if (sampleTime.isValid() && m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
     {
         m_targetScheduler->cancelCallback(target);
         m_targetScheduler->suspend(target, time, sampleTime);
     }
 }
 
-Bool CallbackScheduler::isFreeForCommits(UIntN source, UInt64 time) const
+Bool CallbackScheduler::isFreeForCommits(UIntN source, const TimeSpan& time) const
 {
     return !m_sourceAvailability.isBusy(source, time);
 }
@@ -86,11 +86,11 @@ void CallbackScheduler::removeParticipantFromSchedule(UIntN participant)
     m_targetScheduler->cancelCallback(participant);
 }
 
-void CallbackScheduler::markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, UInt64 time)
+void CallbackScheduler::markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, const TimeSpan& time)
 {
     TimeSpan minimumSamplePeriod = m_trt->getMinimumActiveSamplePeriodForSource(
         source, targetMonitor.getMonitoredTargets());
-    m_sourceAvailability.setSourceAsBusy(source, time + minimumSamplePeriod.asMillisecondsInt());
+    m_sourceAvailability.setSourceAsBusy(source, time + minimumSamplePeriod);
 }
 
 void CallbackScheduler::acknowledgeCallback(UIntN target)

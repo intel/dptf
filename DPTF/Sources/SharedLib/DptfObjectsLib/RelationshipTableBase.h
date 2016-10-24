@@ -19,25 +19,30 @@
 #pragma once
 
 #include "Dptf.h"
+#include "RelationshipTableInterface.h"
 #include "RelationshipTableEntryBase.h"
 
-class dptf_export RelationshipTableBase
+class dptf_export RelationshipTableBase : public RelationshipTableInterface
 {
 public:
 
     RelationshipTableBase();
+    RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
     virtual ~RelationshipTableBase();
 
-    void associateParticipant(std::string acpiScope, UIntN participantIndex);
-    void disassociateParticipant(UIntN participantIndex);
-    virtual UIntN getNumberOfEntries(void) const = 0;
-    Bool isParticipantSourceDevice(UIntN participantIndex) const;
-    Bool isParticipantTargetDevice(UIntN participantIndex) const;
+    virtual void associateParticipant(std::string participantScope, UIntN participantIndex) override;
+    virtual void disassociateParticipant(UIntN participantIndex) override;
+    virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
+    virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;
+    virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Bool isParticipantSourceDevice(UIntN participantIndex) const override;
+    virtual Bool isParticipantTargetDevice(UIntN participantIndex) const override;
+    virtual UIntN getNumberOfEntries(void) const override;
 
 protected:
 
-    virtual RelationshipTableEntryBase* getEntry(UIntN index) const = 0;
-
-    std::vector<UIntN> findTableRowsWithAcpiScope(std::string acpiScope) const;
+    std::vector<UIntN> findTableRowsWithParticipantScope(std::string participantScope) const;
     std::vector<UIntN> findTableRowsWithParticipantIndex(UIntN participantIndex) const;
+
+    std::vector<std::shared_ptr<RelationshipTableEntryBase>> m_entries;
 };

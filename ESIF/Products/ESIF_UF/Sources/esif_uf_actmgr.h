@@ -59,8 +59,8 @@ extern "C" {
 #endif
 
 /* Init / Exit */
-eEsifError EsifActMgrInit();
-void EsifActMgrExit();
+eEsifError EsifActMgrInit(void);
+void EsifActMgrExit(void);
 
 /*
  * Note:  This function takes an additional reference on the returned action

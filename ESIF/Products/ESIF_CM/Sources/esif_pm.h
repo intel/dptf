@@ -270,8 +270,8 @@ void EsifUpPm_Exit(void);
 #define ESIF_UFPOLL_PERIOD_DEFAULT 1000
 #define ESIF_UFPOLL_PERIOD_MIN 500
 eEsifError EsifUFPollStart(int pollInterval);
-void EsifUFPollStop();
-Bool EsifUFPollStarted();
+void EsifUFPollStop(void);
+Bool EsifUFPollStarted(void);
 
 #ifdef __cplusplus
 }

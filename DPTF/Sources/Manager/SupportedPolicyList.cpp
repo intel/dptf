@@ -32,7 +32,7 @@ typedef struct _AcpiEsifGuid
 } AcpiEsifGuid;
 #pragma pack(pop)
 
-SupportedPolicyList::SupportedPolicyList(DptfManager* dptfManager) :
+SupportedPolicyList::SupportedPolicyList(DptfManagerInterface* dptfManager) :
     m_dptfManager(dptfManager)
 {
     update();
@@ -43,7 +43,7 @@ UIntN SupportedPolicyList::getCount(void) const
     return static_cast<UIntN>(m_guid.size());
 }
 
-const Guid& SupportedPolicyList::operator[](UIntN index) const
+Guid SupportedPolicyList::operator[](UIntN index) const
 {
     return m_guid.at(index);
 }
@@ -76,10 +76,6 @@ void SupportedPolicyList::update(void)
 {
     m_guid.clear();
 
-    // TODO: This should be moved to a DPTF Initialization class. For now, ignore empty result buffer
-    DptfBuffer ignore = m_dptfManager->getEsifServices()->primitiveExecuteGet(
-        esif_primitive_type::GET_DPTF_CONFIGURATION, ESIF_DATA_BINARY);
-    
     DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
 

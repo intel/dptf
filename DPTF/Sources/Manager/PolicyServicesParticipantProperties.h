@@ -28,6 +28,6 @@ public:
 
     PolicyServicesParticipantProperties(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) override final;
-    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) override final;
+    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) const override final;
+    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) const override final;
 };

@@ -23,10 +23,13 @@ DomainCoreControl_001::DomainCoreControl_001(UIntN participantIndex, UIntN domai
     ParticipantServicesInterface* participantServicesInterface) :
     DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
+    clearCachedData();
+    capture();
 }
 
 DomainCoreControl_001::~DomainCoreControl_001(void)
 {
+    restore();
 }
 
 CoreControlStaticCaps DomainCoreControl_001::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -63,7 +66,7 @@ CoreControlStatus DomainCoreControl_001::getCoreControlStatus(UIntN participantI
 {
     if (m_coreControlStatus.isInvalid())
     {
-        throw dptf_exception("No core control has been set.  No status available.");
+        m_coreControlStatus.set(CoreControlStatus(Constants::Invalid));
     }
 
     return m_coreControlStatus.get();
@@ -92,18 +95,15 @@ void DomainCoreControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIn
         if (isActivityLoggingEnabled() == true) 
         {
             createCoreControlStaticCaps(domainIndex);
-            UInt32 activeCores;
-            if (m_coreControlStatus.isValid())
-            {
-                activeCores = getCoreControlStatus(participantIndex, domainIndex).getNumActiveLogicalProcessors();
-            }
-            else
+            UInt32 activeCores = getCoreControlStatus(participantIndex, domainIndex).getNumActiveLogicalProcessors();
+
+            if (activeCores == Constants::Invalid)
             {
                 activeCores = getCoreControlStaticCaps(participantIndex, domainIndex).getTotalLogicalProcessors();
             }
 
             EsifCapabilityData capability;
-            capability.type = Capability::CoreControl;
+            capability.type = ESIF_CAPABILITY_TYPE_CORE_CONTROL;
             capability.size = sizeof(capability);
             capability.data.coreControl.activeLogicalProcessors = activeCores;
             capability.data.coreControl.minimumActiveCores = 1;
@@ -134,13 +134,30 @@ std::shared_ptr<XmlNode> DomainCoreControl_001::getXml(UIntN domainIndex)
 {
     auto root = XmlNode::createWrapperElement("core_control");
 
-    root->addChild(getCoreControlStatus(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getCoreControlStaticCaps(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getCoreControlDynamicCaps(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getCoreControlLpoPreference(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getCoreControlStatus(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getCoreControlStaticCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getCoreControlDynamicCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getCoreControlLpoPreference(getParticipantIndex(), domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
+}
+
+void DomainCoreControl_001::restore(void)
+{
+    try
+    {
+        getParticipantServices()->primitiveExecuteSetAsUInt32(
+            esif_primitive_type::SET_PROC_NUMBER_OFFLINE_CORES,
+            0,  // No cores are parked
+            getDomainIndex());
+    }
+    catch (...)
+    {
+        // best effort
+        getParticipantServices()->writeMessageWarning(ParticipantMessage(
+            FLF, "Failed to restore the initial core status. "));
+    }
 }
 
 CoreControlStaticCaps DomainCoreControl_001::createCoreControlStaticCaps(UIntN domainIndex)
@@ -155,7 +172,7 @@ CoreControlStaticCaps DomainCoreControl_001::createCoreControlStaticCaps(UIntN d
 CoreControlDynamicCaps DomainCoreControl_001::createCoreControlDynamicCaps(UIntN domainIndex)
 {
     UInt32 minActiveCoreLimit = 1;
-    UInt32 maxActiveCoreLimit = getCoreControlStaticCaps(Constants::Invalid, domainIndex).getTotalLogicalProcessors();
+    UInt32 maxActiveCoreLimit = getCoreControlStaticCaps(getParticipantIndex(), domainIndex).getTotalLogicalProcessors();
     return CoreControlDynamicCaps(minActiveCoreLimit, maxActiveCoreLimit);
 }
 
@@ -179,7 +196,7 @@ CoreControlLpoPreference DomainCoreControl_001::createCoreControlLpoPreference(U
     {
         try
         {
-            return BinaryParse::processorClpoObject(buffer);
+            return CoreControlLpoPreference::createFromClpo(buffer);
         }
         catch (...)
         {
@@ -195,7 +212,7 @@ CoreControlLpoPreference DomainCoreControl_001::createCoreControlLpoPreference(U
 
 void DomainCoreControl_001::verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus)
 {
-    auto caps = getCoreControlDynamicCaps(Constants::Invalid, domainIndex);
+    auto caps = getCoreControlDynamicCaps(getParticipantIndex(), domainIndex);
     if (coreControlStatus.getNumActiveLogicalProcessors() > caps.getMaxActiveCores() ||
         coreControlStatus.getNumActiveLogicalProcessors() < caps.getMinActiveCores())
     {

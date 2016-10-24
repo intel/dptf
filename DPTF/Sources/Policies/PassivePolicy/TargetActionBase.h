@@ -67,8 +67,8 @@ protected:
 
     // comparisons
     static Bool compareTrtTableEntriesOnInfluence(
-        const ThermalRelationshipTableEntry& left, 
-        const ThermalRelationshipTableEntry& right);
+        const  std::shared_ptr<ThermalRelationshipTableEntry>& left,
+        const  std::shared_ptr<ThermalRelationshipTableEntry>& right);
     static Bool compareDomainsOnPriorityAndUtilization(
         const std::tuple<UIntN, DomainPriority, UtilizationStatus>& left, 
         const std::tuple<UIntN, DomainPriority, UtilizationStatus>& right);

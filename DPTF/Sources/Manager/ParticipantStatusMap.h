@@ -21,13 +21,13 @@
 #include "Dptf.h"
 
 class XmlNode;
-class ParticipantManager;
+class ParticipantManagerInterface;
 
 class ParticipantStatusMap
 {
 public:
 
-    ParticipantStatusMap(ParticipantManager* dptfManager);
+    ParticipantStatusMap(ParticipantManagerInterface* participantManager);
 
     std::string getGroupsString();
     std::shared_ptr<XmlNode> getStatusAsXml(UIntN mappedIndex);
@@ -35,7 +35,7 @@ public:
 
 private:
 
-    ParticipantManager* m_participantManager;
+    ParticipantManagerInterface* m_participantManager;
     std::vector<std::pair<UIntN, UIntN>> m_participantDomainsList;
     void buildParticipantDomainsList();
 };

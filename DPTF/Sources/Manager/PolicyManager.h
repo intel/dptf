@@ -26,7 +26,7 @@ class PolicyManager
 {
 public:
 
-    PolicyManager(DptfManager* dptfManager);
+    PolicyManager(DptfManagerInterface* dptfManager);
     ~PolicyManager(void);
 
     // Create policies
@@ -58,7 +58,7 @@ private:
     PolicyManager(const PolicyManager& rhs);
     PolicyManager& operator=(const PolicyManager& rhs);
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     std::vector<Policy*> m_policy;
     SupportedPolicyList m_supportedPolicyList;
 

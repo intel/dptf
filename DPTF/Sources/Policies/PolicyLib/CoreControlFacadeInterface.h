@@ -33,7 +33,7 @@ public:
     virtual Bool supportsCoreControls() = 0;
     virtual void initializeControlsIfNeeded() = 0;
     virtual void setControlsToMax() = 0;
-    virtual void setControl(CoreControlStatus coreControl) = 0;
+    virtual void setActiveCoreControl(CoreControlStatus coreControl) = 0;
 
     // properties
     virtual CoreControlStatus getStatus() = 0;

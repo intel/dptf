@@ -41,6 +41,8 @@ public:
     virtual void setPowerLimitTimeWindowPL3(const TimeSpan& timeWindow) = 0;
     virtual void setPowerLimitDutyCyclePL3(const Percentage& dutyCycle) = 0;
     virtual void setValuesWithinCapabilities() = 0;
+    virtual void lockCapabilities() = 0;
+    virtual void unlockCapabilities() = 0;
 
     // queries
     virtual Bool supportsPowerControls() const = 0;
@@ -49,7 +51,8 @@ public:
     virtual Bool isPl2PowerLimitEnabled(void) = 0;
     virtual Bool isPl3PowerLimitEnabled(void) = 0;
     virtual Bool isPl4PowerLimitEnabled(void) = 0;
-    virtual PowerStatus getCurrentPower() = 0;
+    virtual Power getCurrentPower() = 0;
+    virtual Power getAveragePower() = 0;
     virtual const PowerControlDynamicCapsSet& getCapabilities() = 0;
     virtual Power getPowerLimitPL1() = 0;
     virtual Power getPowerLimitPL2() = 0;

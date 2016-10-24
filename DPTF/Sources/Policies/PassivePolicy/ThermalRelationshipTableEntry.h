@@ -27,13 +27,13 @@ class dptf_export ThermalRelationshipTableEntry : public RelationshipTableEntryB
 public:
 
     ThermalRelationshipTableEntry(
-        const std::string& sourceDeviceAcpiScope,
-        const std::string& targetDeviceAcpiScope,
+        const std::string& sourceDeviceScope,
+        const std::string& targetDeviceScope,
         UInt32 thermalInfluence,
-        UInt32 thermalSamplingPeriod);
+        const TimeSpan& thermalSamplingPeriod);
 
     const UInt32& thermalInfluence() const;
-    const UInt32& thermalSamplingPeriod() const;
+    const TimeSpan& thermalSamplingPeriod() const;
 
     std::shared_ptr<XmlNode> getXml();
     Bool isSameAs(const ThermalRelationshipTableEntry& trtEntry) const;
@@ -42,5 +42,5 @@ public:
 private:
 
     UInt32 m_thermalInfluence;
-    UInt32 m_thermalSamplingPeriod;
+    TimeSpan m_thermalSamplingPeriod;
 };

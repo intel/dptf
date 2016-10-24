@@ -30,7 +30,7 @@ public:
     PixelClockDataSet(const std::vector<PixelClockData>& pixelClockData);
 
     UIntN getCount(void) const;
-    const PixelClockData& operator[](UIntN index) const;
+    PixelClockData operator[](UIntN index) const;
 
     Bool operator==(const PixelClockDataSet& rhs) const;
     Bool operator!=(const PixelClockDataSet& rhs) const;

@@ -33,7 +33,7 @@ WIDomainPowerControlCapabilityChanged::~WIDomainPowerControlCapabilityChanged(vo
 
 void WIDomainPowerControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainPowerControlCapabilityChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPowerControlCapabilityChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainPowerControlCapabilityChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainPowerControlCapabilityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPowerControlCapabilityChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPowerControlCapabilityChanged", i);
         }
     }
 }

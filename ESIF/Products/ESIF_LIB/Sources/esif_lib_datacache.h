@@ -26,14 +26,19 @@
 ///////////////////////////////////////////////////////
 // DataCacheEntry Class
 
+// TODO: DEPRECATE
+#define ESIFDV_DATA_CAT_UNSPECIFIED 0
+#define ESIFDV_DATA_CAT_MAX	1
+
 struct DataCacheEntry_s;
 typedef struct DataCacheEntry_s DataCacheEntry, *DataCacheEntryPtr, **DataCacheEntryPtrLocation;
 
 #ifdef _DATACACHE_CLASS
+
 struct DataCacheEntry_s {
-	esif_flags_t  flags;		// Flags for this Row (i.e., Persist, Encrypted, etc)
-	EsifData      key;			// Key for this Row
-	EsifData      value;		// Value for this Row
+	esif_flags_t		flags;		// Flags for this Row (i.e., Persist, Encrypted, etc)
+	EsifData			key;		// Key for this Row
+	EsifData			value;		// Value for this Row
 };
 
 #endif	// _DATACACHE_CLASS
@@ -46,8 +51,8 @@ typedef struct DataCache_s DataCache, *DataCachePtr, **DataCachePtrLocation;
 
 #ifdef _DATACACHE_CLASS
 struct DataCache_s {
-	UInt32  size;
-	DataCacheEntryPtr elements;
+	UInt32				size; // Number of DataCacheEntry's
+	DataCacheEntryPtr	elements; // Array of entry pointers
 };
 
 #endif	// _DATACACHE_CLASS
@@ -57,14 +62,26 @@ extern "C" {
 #endif
 
 // object management
-DataCachePtr DataCache_Create ();
-void DataCache_Destroy (DataCachePtr self);
+DataCachePtr DataCache_Create();
+void DataCache_Destroy(DataCachePtr self);
 
 // members
-DataCacheEntryPtr DataCache_GetValue (DataCachePtr self, esif_string key);
-eEsifError DataCache_SetValue (DataCachePtr self, esif_string key, EsifData value, esif_flags_t flags);
-eEsifError DataCache_Delete (DataCachePtr self, esif_string key);
-UInt32 DataCache_GetCount (DataCachePtr self);
+DataCacheEntryPtr DataCache_GetValue(DataCachePtr self, esif_string key);
+//
+// Inserts a key value pair
+// Note: The pair is inserted even if a key with the same name already exists.
+//
+// Warning: The valuePtr parameter represent a "cache data" item, so a 0 buf_len
+// member indicates the buf_ptr represents a file offset; not whether the EsifData
+// items owns the associated buffer as traditionally used in the EsifData items.
+//
+eEsifError DataCache_InsertValue(DataCachePtr self, esif_string key, EsifDataPtr valuePtr, esif_flags_t flags);
+eEsifError DataCache_DeleteValue(DataCachePtr self, esif_string key);
+UInt32 DataCache_GetCount(DataCachePtr self);
+
+DataCachePtr DataCache_Clone(
+	DataCachePtr self
+	);
 
 #ifdef __cplusplus
 }

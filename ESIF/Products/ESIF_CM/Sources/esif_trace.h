@@ -56,7 +56,7 @@
 
 #include "esif.h"
 
-#define NO_ESIF_DEBUG(fmt, ...) ESIF_TRACENULL
+#define NO_ESIF_DEBUG(fmt, ...) ESIF_TRACENULL(fmt, ##__VA_ARGS__)
 #define ESIF_DEBUG(fmt, ...)    ESIF_TRACE_DEBUG(fmt, ##__VA_ARGS__)
 
 /*
@@ -68,39 +68,41 @@
  * so that the kernel-mode debug level can be decoded in user-mode.
  */
 enum esif_debug_mod {
-	ESIF_DEBUG_MOD_AVAIL1          = 0,	/* Available for use      */
-	ESIF_DEBUG_MOD_ACTION_CONST    = 1,	/* Action Constant        */
-	ESIF_DEBUG_MOD_ACTION_MSR      = 2,	/* Action MSR             */
-	ESIF_DEBUG_MOD_ACTION_MMIO     = 3,	/* Action MMIO            */
-	ESIF_DEBUG_MOD_ACTION_ACPI     = 4,	/* Action ACPI            */
-	ESIF_DEBUG_MOD_IPC             = 5,	/* IPC                    */
-	ESIF_DEBUG_MOD_COMMAND         = 6,	/* Command Pre DSP        */
-	ESIF_DEBUG_MOD_PRIMITIVE       = 7,	/* Primitive Requires DSP */
-	ESIF_DEBUG_MOD_ACTION          = 8,	/* Primitive Requires DSP */
-	ESIF_DEBUG_MOD_CPC             = 9,	/* Loads DSP              */
-	ESIF_DEBUG_MOD_AVAIL2          = 10,	/* Available for use      */
-	ESIF_DEBUG_MOD_DSP             = 11,	/* DSP Operations         */
-	ESIF_DEBUG_MOD_EVENT           = 12,	/* Event Processing       */
-	ESIF_DEBUG_MOD_ELF             = 13,	/* ESIF Lower Framework   */
-	ESIF_DEBUG_MOD_PMG             = 14,	/* Participant Manager    */
-	ESIF_DEBUG_MOD_QUEUE           = 15,	/* Queue Manager          */
-	ESIF_DEBUG_MOD_HASH            = 16,	/* Hash Tables            */
-	ESIF_DEBUG_MOD_ACTION_SYSTEMIO = 17,	/* Action SYSTEM IO       */
-	ESIF_DEBUG_MOD_ACTION_CODE     = 18,	/* Action Code            */
-	ESIF_DEBUG_MOD_DOMAIN	       = 19,	/* Domain Code            */
-	ESIF_DEBUG_MOD_ACTION_MBI      = 20,	/* Action MBI (ATOM)      */
-	ESIF_DEBUG_MOD_DRVM	       = 21,    /* Driver Manager         */
-	ESIF_DEBUG_MOD_WINDOWS         = 22,	/* Windows-Specific       */
-	ESIF_DEBUG_MOD_LINUX           = 23,	/* Linux-Specific         */
-	ESIF_DEBUG_MOD_ACTION_DELEGATE = 24,	/* Action Delegate        */
-	ESIF_DEBUG_MOD_LP              = 25,    /* LF Participant         */
-	ESIF_DEBUG_MOD_MAX
+	ESIF_DEBUG_MOD_API_TRACE       = 0,  /* OS Trace of Entry/Exit	*/
+	ESIF_DEBUG_MOD_ACTION_CONST    = 1,  /* Action Constant		*/
+	ESIF_DEBUG_MOD_ACTION_MSR      = 2,  /* Action MSR		*/
+	ESIF_DEBUG_MOD_ACTION_MMIO     = 3,  /* Action MMIO		*/
+	ESIF_DEBUG_MOD_ACTION_ACPI     = 4,  /* Action ACPI		*/
+	ESIF_DEBUG_MOD_IPC             = 5,  /* IPC			*/
+	ESIF_DEBUG_MOD_COMMAND         = 6,  /* Command Pre DSP		*/
+	ESIF_DEBUG_MOD_PRIMITIVE       = 7,  /* Primitive Requires DSP	*/
+	ESIF_DEBUG_MOD_ACTION          = 8,  /* Primitive Requires DSP	*/
+	ESIF_DEBUG_MOD_CPC             = 9,  /* Loads DSP		*/
+	ESIF_DEBUG_MOD_POWER           = 10, /* Power state change info	*/
+	ESIF_DEBUG_MOD_DSP             = 11, /* DSP Operations		*/
+	ESIF_DEBUG_MOD_EVENT           = 12, /* Event Processing	*/
+	ESIF_DEBUG_MOD_ELF             = 13, /* ESIF Lower Framework	*/
+	ESIF_DEBUG_MOD_PMG             = 14, /* Participant Manager	*/
+	ESIF_DEBUG_MOD_QUEUE           = 15, /* Queue Manager		*/
+	ESIF_DEBUG_MOD_HASH            = 16, /* Hash Tables		*/
+	ESIF_DEBUG_MOD_PNP             = 17, /* PnP-related items	*/
+	ESIF_DEBUG_MOD_ACTION_CODE     = 18, /* Action Code		*/
+	ESIF_DEBUG_MOD_DOMAIN	       = 19, /* Domain Code		*/
+	ESIF_DEBUG_MOD_ACTION_MBI      = 20, /* Action MBI (ATOM)	*/
+	ESIF_DEBUG_MOD_DRVM            = 21, /* Driver Manager		*/
+	ESIF_DEBUG_MOD_WINDOWS         = 22, /* Windows-Specific	*/
+	ESIF_DEBUG_MOD_LINUX           = 23, /* Linux-Specific		*/
+	ESIF_DEBUG_MOD_ACTION_DELEGATE = 24, /* Action Delegate		*/
+	ESIF_DEBUG_MOD_LP              = 25, /* LF Participant		*/
+	ESIF_DEBUG_MOD_ACTION_KIOCTL   = 26, /* Action Ioctle		*/
 };
+
+#define	ESIF_DEBUG_MOD_MAX	(ESIF_DEBUG_MOD_ACTION_KIOCTL + 1)
 
 static ESIF_INLINE char *esif_debug_mod_str(enum esif_debug_mod mod)
 {
 	switch (mod) {
-	ESIF_CASE(ESIF_DEBUG_MOD_AVAIL1, "AV1");
+	ESIF_CASE(ESIF_DEBUG_MOD_API_TRACE, "API");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_CONST, "CON");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_MSR, "MSR");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_MMIO, "MMI");
@@ -110,14 +112,14 @@ static ESIF_INLINE char *esif_debug_mod_str(enum esif_debug_mod mod)
 	ESIF_CASE(ESIF_DEBUG_MOD_PRIMITIVE, "PRI");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION, "ACT");
 	ESIF_CASE(ESIF_DEBUG_MOD_CPC, "CPC");
-	ESIF_CASE(ESIF_DEBUG_MOD_AVAIL2, "AV2");
+	ESIF_CASE(ESIF_DEBUG_MOD_POWER, "PWR");
 	ESIF_CASE(ESIF_DEBUG_MOD_DSP, "DSP");
 	ESIF_CASE(ESIF_DEBUG_MOD_EVENT, "EVE");
 	ESIF_CASE(ESIF_DEBUG_MOD_ELF, "ELF");
 	ESIF_CASE(ESIF_DEBUG_MOD_PMG, "PMG");
 	ESIF_CASE(ESIF_DEBUG_MOD_QUEUE, "QUE");
 	ESIF_CASE(ESIF_DEBUG_MOD_HASH, "HSH");
-	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_SYSTEMIO, "SIO");
+	ESIF_CASE(ESIF_DEBUG_MOD_PNP, "PNP");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_CODE, "COD");
 	ESIF_CASE(ESIF_DEBUG_MOD_DOMAIN, "DMN");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_MBI, "MBI");
@@ -126,7 +128,7 @@ static ESIF_INLINE char *esif_debug_mod_str(enum esif_debug_mod mod)
 	ESIF_CASE(ESIF_DEBUG_MOD_LINUX, "LNX");
 	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_DELEGATE, "DLG");
 	ESIF_CASE(ESIF_DEBUG_MOD_LP, "LP ");
-	ESIF_CASE(ESIF_DEBUG_MOD_MAX, "MAX");
+	ESIF_CASE(ESIF_DEBUG_MOD_ACTION_KIOCTL, "KIO");
 	}
 	return ESIF_NOT_AVAILABLE;
 }

@@ -34,7 +34,7 @@ WIPolicyCreateAll::~WIPolicyCreateAll(void)
 
 void WIPolicyCreateAll::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     try
     {
@@ -55,8 +55,12 @@ void WIPolicyCreateAll::execute(void)
             }
             catch (std::exception& ex)
             {
-                WriteWorkItemErrorMessage_Function_MessageKey_MessageValue("PolicyManager::createPolicy",
-                    "Policy File Name", policyFileName);
+                writeWorkItemErrorMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+            }
+            catch (...)
+            {
+                dptf_exception ex("Unknown exception type caught when attempting to create a policy.");
+                writeWorkItemErrorMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
             }
 
             policyFileName = fileEnumerator.getNextFile();
@@ -64,6 +68,11 @@ void WIPolicyCreateAll::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteWorkItemErrorMessage_Function("PolicyManager::createAllPolicies");
+        writeWorkItemErrorMessage(ex, "PolicyManager::createAllPolicies");
+    }
+    catch (...)
+    {
+        dptf_exception ex("Unknown exception type caught when attempting to create all policies.");
+        writeWorkItemErrorMessage(ex, "PolicyManager::createAllPolicies");
     }
 }

@@ -20,6 +20,8 @@
 
 #include "Dptf.h"
 #include "DomainPowerStatusBase.h"
+#include "DomainPowerFilter.h"
+#include "CachedValue.h"
 
 class DomainPowerStatus_001 : public DomainPowerStatusBase
 {
@@ -27,14 +29,19 @@ public:
 
     DomainPowerStatus_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
+    virtual ~DomainPowerStatus_001();
 
     // DomainPowerStatusInterface
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Power getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+
+    // ParticipantActivityLoggingInterface
+    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 private:
 
@@ -42,5 +49,7 @@ private:
     DomainPowerStatus_001(const DomainPowerStatus_001& rhs);
     DomainPowerStatus_001& operator=(const DomainPowerStatus_001& rhs);
 
-    Power getPower(UIntN participantIndex, UIntN domainIndex);
+    Power getPower(UIntN domainIndex);
+    Power m_lastPowerSentToFilter;
+    DomainPowerFilter m_domainPowerFilter;
 };

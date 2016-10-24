@@ -28,8 +28,10 @@ class ConfigTdpControlSet final
 public:
 
     ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
+    static ConfigTdpControlSet createFromTdpl(const DptfBuffer& buffer);
     UIntN getCount(void) const;
-    const ConfigTdpControl& operator[](UIntN index) const;
+    void removeLastControl(void);
+    ConfigTdpControl operator[](UIntN index) const;
     Bool operator==(const ConfigTdpControlSet& rhs) const;
     Bool operator!=(const ConfigTdpControlSet& rhs) const;
     std::vector<std::string> getAsNameList() const;

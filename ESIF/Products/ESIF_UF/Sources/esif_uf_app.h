@@ -61,6 +61,13 @@ typedef struct _t_EsifApp {
 
 	/* Each Application May Have Many Participants */
 	AppParticipantDataMap  fParticipantData[MAX_PARTICIPANT_ENTRY];
+
+	/* State information for pausing initialization */
+	Bool appCreationDone;
+	Bool partRegDone;
+	Bool iteratorValid;
+	UfPmIterator upIter;
+	EsifUpPtr upPtr;
 } EsifApp, *EsifAppPtr, **EsifAppPtrLocation;
 
 #ifdef __cplusplus
@@ -74,10 +81,6 @@ eEsifError EsifAppDestroyParticipant(const EsifAppPtr appPtr, const EsifUpPtr up
 /* Control */
 eEsifError EsifAppStart(EsifAppPtr appPtr);
 eEsifError EsifAppStop(EsifAppPtr appPtr);
-
-/* Init / Exit */
-eEsifError EsifAppInit(void);
-void EsifAppExit(void);
 
 /* Application Event Functions */
 eEsifError EsifApp_RegisterEvent(

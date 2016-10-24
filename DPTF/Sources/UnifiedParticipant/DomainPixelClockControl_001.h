@@ -27,7 +27,7 @@ public:
 
     DomainPixelClockControl_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainPixelClockControl_001(void);
+    virtual ~DomainPixelClockControl_001(void);
 
     // DomainPixelClockControlInterface
     virtual void setPixelClockControl(UIntN participantIndex, UIntN domainIndex,

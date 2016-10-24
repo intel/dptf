@@ -23,37 +23,12 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #endif
 
-#include "esif.h"
+#include "esif_ccb.h"
+#include "esif_ccb_rc.h"
 #include "esif_uf_ccb_sock.h"
-#include "esif_ws_algo.h"
 
 #define WS_HEADER_BUF_LEN	128		/* Buffer size for Websocket Header in REST responses */
-
 #define WS_BUFFER_LENGTH (OUT_BUF_LEN + WS_HEADER_BUF_LEN)
-
-#define WS_PROT_KEY_SIZE_MAX 1000
-#define WS_FRAME_SIZE_TYPE_1	125 /* For payloads <= 125 bytes*/
-#define WS_FRAME_SIZE_TYPE_2	126 /* For payload up to 64K - 1 in size */
-#define WS_FRAME_SIZE_TYPE_3	127 /* For payloads > 64K - 1*/
-
-#define WS_FRAME_SIZE_TYPE_1_MAX_PAYLOAD	125		/* Maximum payload size for a Type 1 frame size */
-#define WS_FRAME_SIZE_TYPE_2_MAX_PAYLOAD	0xFFFF	/* Maximum payload size for a Type 2 frame size */
-
-#define MAXIMUM_SIZE 0x7F
-
-#define HOST_FIELD                      "Host: "
-#define ORIGIN_FIELD                    "Origin: "
-#define WEB_SOCK_PROT_FIELD             "Sec-WebSocket-Protocol: "
-#define WEB_SOCK_KEY_FIELD              "Sec-WebSocket-Key: "
-#define WEB_SOCK_VERSION_FIELD          "Sec-WebSocket-Version: "
-
-#define CONNECTION_FIELD                "Connection: "
-#define UPGRADE_FIELD                   "upgrade"
-#define ALT_UPGRADE_FIELD               "Upgrade: "
-#define WEB_SOCK_FIELD                  "websocket"
-#define VERSION_FIELD                   "13"
-#define KEY                             "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-
 
 typedef enum FrameType_e {
 	CONTINUATION_FRAME	= 0x00,
@@ -80,7 +55,6 @@ typedef struct Protocol_s {
 	char  *web_socket_field;
 	FrameType frameType;
 } Protocol, *ProtocolPtr;
-
 
 #pragma warning(disable:4214)
 typedef union WsSocketFrameHeader_u {
@@ -139,7 +113,9 @@ typedef struct WsSocketFrame_s {
 
 #pragma pack(pop)
 
-
+/*
+ * Public Interface
+ */
 
 FrameType esif_ws_socket_get_initial_frame_type(
 	const char *framePtr,

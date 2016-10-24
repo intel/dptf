@@ -29,7 +29,7 @@ public:
     DomainPropertiesSet(DomainProperties domainProperties);
     DomainProperties getDomainProperties(UIntN domainIndex) const;
     UIntN getDomainCount(void) const;
-    const DomainProperties& operator[](UIntN index) const;
+    const DomainProperties operator[](UIntN index) const;
     UIntN getDomainIndexFromDomainType(DomainType::Type domainType) const;
 
 private:

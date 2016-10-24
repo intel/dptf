@@ -31,7 +31,7 @@ WIPolicyThermalRelationshipTableChanged::~WIPolicyThermalRelationshipTableChange
 
 void WIPolicyThermalRelationshipTableChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -49,7 +49,7 @@ void WIPolicyThermalRelationshipTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyThermalRelationshipTableChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyThermalRelationshipTableChanged", i);
         }
     }
 }

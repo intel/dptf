@@ -24,33 +24,32 @@
 
 namespace Capability
 {
-    UInt32 ToCapabilityId(Capability::Type capabilityType)
+    UInt32 ToCapabilityId(eEsifCapabilityType capabilityType)
     {
         switch (capabilityType)
         {
-            CASE(ActiveControl)
-            CASE(CtdpControl)
-            CASE(CoreControl)
-            CASE(DisplayControl)
-            CASE(DomainPriority)
-            CASE(PerformanceControl)
-            CASE(PowerControl)
-            CASE(PowerStatus)
-            CASE(TemperatureStatus)
-            CASE(UtilizationStatus)
-            CASE(PixelClockStatus)
-            CASE(PixelClockControl)
-            CASE(PlatformPowerStatus)
-            CASE(TemperatureThreshold)
-            CASE(RfProfileStatus)
-            CASE(RfProfileControl)
-            CASE(NetworkControl)
-            CASE(TransmitPowerControl)
-            CASE(CurrentControl)
-            CASE(HdcControl)
-            CASE(PSysControl)            
-            default:
-                throw dptf_exception("Capability::Type is invalid.");
+        CASE(ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_CTDP_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_CORE_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY)
+        CASE(ESIF_CAPABILITY_TYPE_PERF_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_POWER_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_POWER_STATUS)
+        CASE(ESIF_CAPABILITY_TYPE_TEMP_STATUS)
+        CASE(ESIF_CAPABILITY_TYPE_UTIL_STATUS)
+        CASE(ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS)
+        CASE(ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS)
+        CASE(ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD)
+        CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS)
+        CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_NETWORK_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_XMITPOWER_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_CURRENT_CONTROL)
+        CASE(ESIF_CAPABILITY_TYPE_PSYS_CONTROL)
+        default:
+            throw dptf_exception("Capability::Type is invalid.");
         }
     }
 

@@ -25,21 +25,15 @@ using namespace std;
 DomainPlatformPowerControl_001::DomainPlatformPowerControl_001(UIntN participantIndex, UIntN domainIndex,
     ParticipantServicesInterface* participantServicesInterface) :
     DomainPlatformPowerControlBase(participantIndex, domainIndex, participantServicesInterface),
-    m_pl1Enabled(false),
-    m_pl2Enabled(false),
-    m_pl3Enabled(false),
-    m_initialState(this)
+    m_initialState(this)    // the platform power control state needs the control to capture and restore
 {
-    m_initialState.capture();
-
-    m_pl1Enabled = checkEnabled(PlatformPowerLimitType::PSysPL1);
-    m_pl2Enabled = checkEnabled(PlatformPowerLimitType::PSysPL2);
-    m_pl3Enabled = checkEnabled(PlatformPowerLimitType::PSysPL3);
+    clearCachedData();
+    capture();
 }
 
 DomainPlatformPowerControl_001::~DomainPlatformPowerControl_001(void)
 {
-    m_initialState.restore();
+    restore();
 }
 
 Bool DomainPlatformPowerControl_001::isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
@@ -119,6 +113,16 @@ std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::getXml(UIntN domainInde
     set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL3));
     root->addChild(set);
     return root;
+}
+
+void DomainPlatformPowerControl_001::capture(void)
+{
+    m_initialState.capture();
+}
+
+void DomainPlatformPowerControl_001::restore(void)
+{
+    m_initialState.restore();
 }
 
 std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::createStatusNode(PlatformPowerLimitType::Type limitType)
@@ -210,21 +214,6 @@ std::string DomainPlatformPowerControl_001::createStatusStringForDutyCycle(Platf
     catch (...)
     {
         return "ERROR";
-    }
-}
-
-Bool DomainPlatformPowerControl_001::isEnabled(PlatformPowerLimitType::Type limitType) const
-{
-    switch (limitType)
-    {
-    case PlatformPowerLimitType::PSysPL1:
-        return m_pl1Enabled;
-    case PlatformPowerLimitType::PSysPL2:
-        return m_pl2Enabled;
-    case PlatformPowerLimitType::PSysPL3:
-        return m_pl3Enabled;
-    default:
-        return false;
     }
 }
 

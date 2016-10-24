@@ -32,11 +32,11 @@ WIDomainDestroy::~WIDomainDestroy(void)
 
 void WIDomainDestroy::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     if (getParticipantPtr()->isDomainValid(getDomainIndex()) == false)
     {
-        WriteDomainWorkItemErrorMessage_Message("Received request to remove a domain that is invalid.");
+        writeDomainWorkItemErrorMessage("Received request to remove a domain that is invalid.");
     }
     else
     {
@@ -58,7 +58,7 @@ void WIDomainDestroy::execute(void)
             }
             catch (std::exception& ex)
             {
-                WriteDomainWorkItemErrorMessage_Function_Policy("Policy::unbindDomain", i);
+                writeDomainWorkItemErrorMessagePolicy(ex, "Policy::unbindDomain", i);
             }
         }
 
@@ -70,7 +70,7 @@ void WIDomainDestroy::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function("Participant::destroyDomain");
+            writeDomainWorkItemErrorMessage(ex, "Participant::destroyDomain");
         }
     }
 }

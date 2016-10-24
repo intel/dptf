@@ -26,11 +26,11 @@ class ConfigTdpControl final
 {
 public:
 
-    ConfigTdpControl(UInt64 controlId, UInt64 tarRatio, UInt64 tdpPower, UInt64 tdpFrequency);
-    UInt64 getControlId(void) const;
-    UInt64 getTdpRatio(void) const;
-    UInt64 getTdpPower(void) const;
-    UInt64 getTdpFrequency(void) const;
+    ConfigTdpControl(UInt32 controlId, UInt32 tarRatio, UInt32 tdpPower, UInt32 tdpFrequency);
+    UInt32 getControlId(void) const;
+    UInt32 getTdpRatio(void) const;
+    UInt32 getTdpPower(void) const;
+    UInt32 getTdpFrequency(void) const;
     Bool operator==(const ConfigTdpControl& rhs) const;
     Bool operator!=(const ConfigTdpControl& rhs) const;
     std::string getNameListString() const;
@@ -38,8 +38,8 @@ public:
 
 private:
 
-    UInt64 m_controlId; // Unique identifier for this control
-    UInt64 m_tdpRatio; // Unique control value used to calculate the TAR (Turbo Activation Ratio)
-    UInt64 m_tdpPower; // Tdp Power consumed by this ConfigTDP level; unit: mW
-    UInt64 m_tdpFrequency; // IA Tdp frequency for this ConfigTDP level; unit: MHZ
+    UInt32 m_controlId; // Unique identifier for this control
+    UInt32 m_tdpRatio; // Unique control value used to calculate the TAR (Turbo Activation Ratio)
+    UInt32 m_tdpPower; // Tdp Power consumed by this ConfigTDP level; unit: mW
+    UInt32 m_tdpFrequency; // IA Tdp frequency for this ConfigTDP level; unit: MHZ
 };

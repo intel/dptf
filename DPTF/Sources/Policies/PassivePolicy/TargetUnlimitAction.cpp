@@ -41,7 +41,7 @@ void TargetUnlimitAction::execute()
         getPolicyServices().messageLogging->writeMessageDebug(
             PolicyMessage(FLF, "Attempting to unlimit target participant.", getTarget()));
 
-        UInt64 time = getTime()->getCurrentTimeInMilliseconds();
+        auto time = getTime()->getCurrentTime();
         vector<UIntN> sourcesToUnlimit = chooseSourcesToUnlimitForTarget(getTarget());
         if (sourcesToUnlimit.size() > 0)
         {
@@ -102,7 +102,7 @@ std::vector<UIntN> TargetUnlimitAction::chooseSourcesToUnlimitForTarget(UIntN ta
 {
     // get TRT entries for target with sources that have controls that can be unlimited
     vector<UIntN> sourcesToLimit;
-    vector<ThermalRelationshipTableEntry> availableSourcesForTarget = getTrt()->getEntriesForTarget(target);
+    auto availableSourcesForTarget = getTrt()->getEntriesForTarget(target);
     availableSourcesForTarget = getEntriesWithControlsToUnlimit(target, availableSourcesForTarget);
 
     if (availableSourcesForTarget.size() > 0)
@@ -111,26 +111,26 @@ std::vector<UIntN> TargetUnlimitAction::chooseSourcesToUnlimitForTarget(UIntN ta
         sort(availableSourcesForTarget.begin(), availableSourcesForTarget.end(), compareTrtTableEntriesOnInfluence);
         for (auto entry = availableSourcesForTarget.begin(); entry != availableSourcesForTarget.end(); entry++)
         {
-            if (entry->thermalInfluence() == availableSourcesForTarget.back().thermalInfluence())
+            if ((*entry)->thermalInfluence() == availableSourcesForTarget.back()->thermalInfluence())
             {
-                sourcesToLimit.push_back(entry->getSourceDeviceIndex());
+                sourcesToLimit.push_back((*entry)->getSourceDeviceIndex());
             }
         }
     }
     return sourcesToLimit;
 }
 
-std::vector<ThermalRelationshipTableEntry> TargetUnlimitAction::getEntriesWithControlsToUnlimit(
-    UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget)
+std::vector< std::shared_ptr<ThermalRelationshipTableEntry>> TargetUnlimitAction::getEntriesWithControlsToUnlimit(
+    UIntN target, const std::vector<shared_ptr<ThermalRelationshipTableEntry>>& sourcesForTarget)
 {
-    vector<ThermalRelationshipTableEntry> entriesThatCanBeUnlimited;
+    vector< std::shared_ptr<ThermalRelationshipTableEntry>> entriesThatCanBeUnlimited;
     for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
     {
-        if (entry->getSourceDeviceIndex() != Constants::Invalid)
+        if ((*entry)->getSourceDeviceIndex() != Constants::Invalid)
         {
             // if source has controls that can be unlimited, add it to the list
             vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(
-                getParticipantTracker()->getParticipant(entry->getSourceDeviceIndex()), target);
+                getParticipantTracker()->getParticipant((*entry)->getSourceDeviceIndex()), target);
             if (domainsWithControlKnobsToTurn.size() > 0)
             {
                 entriesThatCanBeUnlimited.push_back(*entry);
@@ -147,7 +147,7 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(Part
     for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
     {
         // if domain has controls that can be unlimited, add it to the list
-        auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
+        auto domain = std::dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
         if (domain->canUnlimit(target))
         {
             domainsWithControlKnobsToTurn.push_back(*domainIndex);
@@ -282,11 +282,11 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
 void TargetUnlimitAction::requestUnlimit(UIntN source, UIntN domain, UIntN target)
 {
     auto sourceParticipant = getParticipantTracker()->getParticipant(source);
-    auto sourceDomain = dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(domain));
+    auto sourceDomain = std::dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(domain));
     sourceDomain->requestUnlimit(target);
 }
 
-void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
+void TargetUnlimitAction::commitUnlimit(UIntN source, const TimeSpan& time)
 {
     Bool madeChanges(false);
     auto sourceParticipant = getParticipantTracker()->getParticipant(source);
@@ -298,7 +298,7 @@ void TargetUnlimitAction::commitUnlimit(UIntN source, UInt64 time)
             getPolicyServices().messageLogging->writeMessageDebug(
                 PolicyMessage(FLF, "Committing limits to source.", source, *domain));
 
-            auto sourceDomain = dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(*domain));
+            auto sourceDomain = std::dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(*domain));
             Bool madeChange = sourceDomain->commitLimits();
             if (madeChange)
             {
@@ -329,7 +329,7 @@ void TargetUnlimitAction::removeAllRequestsForTarget(UIntN target)
         vector<UIntN> domainIndexes = participant->getDomainIndexes();
         for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
         {
-            auto domain = dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
+            auto domain = std::dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
             domain->clearAllRequestsForTarget(target);
         }
     }

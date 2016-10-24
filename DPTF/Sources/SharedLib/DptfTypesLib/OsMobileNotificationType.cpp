@@ -35,6 +35,8 @@ namespace OsMobileNotificationType
             return "ActionRequestShutdown";
         case OsMobileNotificationType::ConnectivityState:
             return "ConnectivityState";
+        case OsMobileNotificationType::ScreenState:
+            return "ScreenState";
         default:
             return "X";
         }

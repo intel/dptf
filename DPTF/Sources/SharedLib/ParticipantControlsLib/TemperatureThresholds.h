@@ -26,16 +26,18 @@ class TemperatureThresholds final
 {
 public:
 
+    TemperatureThresholds(void);
     TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis);
     static TemperatureThresholds createInvalid();
     Temperature getAux0(void) const;
     Temperature getAux1(void) const;
     Temperature getHysteresis(void) const;
     std::shared_ptr<XmlNode> getXml(void);
+    Bool operator==(const TemperatureThresholds& thresholds) const;
 
 private:
 
-    Temperature m_aux0;                                             // lower bound in degrees Celsius
-    Temperature m_aux1;                                             // upper bound in degrees Celsius
-    Temperature m_hysteresis;
+    Temperature m_aux0;                                             // lower bound in Tenth Kelvin
+    Temperature m_aux1;                                             // upper bound in Tenth Kelvin
+    Temperature m_hysteresis;                                       // In Tenth Kelvin
 };

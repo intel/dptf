@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "ControlBase.h"
+#include "esif_sdk_data_misc.h"
 
 ControlBase::ControlBase(UIntN participantIndex, UIntN domainIndex, ParticipantServicesInterface* participantServices)
     : m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_participantServices(participantServices),
@@ -28,6 +29,16 @@ ControlBase::ControlBase(UIntN participantIndex, UIntN domainIndex, ParticipantS
 ControlBase::~ControlBase()
 {
 
+}
+
+void ControlBase::capture(void)
+{
+    // do nothing
+}
+
+void ControlBase::restore(void)
+{
+    // do nothing
 }
 
 UIntN ControlBase::getParticipantIndex() const
@@ -58,4 +69,28 @@ void ControlBase::disableActivityLogging(void)
 ParticipantServicesInterface* ControlBase::getParticipantServices() const
 {
     return m_participantServices;
+}
+
+DptfBuffer ControlBase::createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const
+{
+    esif_primitive_tuple_parameter tuple;
+    tuple.id.integer.type = esif_data_type::ESIF_DATA_UINT16;
+    tuple.id.integer.value = primitive;
+    tuple.domain.integer.type = esif_data_type::ESIF_DATA_UINT16;
+    UInt16 domainIndex = createTupleDomain();
+    tuple.domain.integer.value = domainIndex;
+    tuple.instance.integer.type = esif_data_type::ESIF_DATA_UINT16;
+    tuple.instance.integer.value = instance;
+
+    UInt32 sizeOfTuple = (UInt32)sizeof(tuple);
+    DptfBuffer buffer(sizeOfTuple);
+    buffer.put(0, (UInt8*)&tuple, sizeOfTuple);
+    return buffer;
+}
+
+UInt16 ControlBase::createTupleDomain() const
+{
+    UInt16 tupleDomain;
+    tupleDomain = (('0' + (UInt8)m_domainIndex) << 8) + 'D';
+    return tupleDomain;
 }

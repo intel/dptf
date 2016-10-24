@@ -20,6 +20,8 @@
 
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_ACTION
 
+#include "esif_uf.h"
+#include "esif_uf_ccb_system.h"
 #include "esif_pm.h"		/* Upper Participant Manager */
 #include "esif_uf_actmgr.h"		/* Action Manager */
 #include "esif_uf_tableobject.h"
@@ -38,6 +40,7 @@
 #define MAX_ESIF_TABLES 2
 #define BINARY_TABLE_SIZE OUT_BUF_LEN
 #define MAX_GUID_STR_LEN 40 // Assuming XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
+#define MAX_STR_LINE_LEN 64
 #define MAX_FMT_STR_LEN 15 // "%<Int32>s"
 #define MAX_ACTION_HT_SIZE 30
 #define MAX_SYSFS_POLL_STRING 50
@@ -61,8 +64,13 @@
 #define SYSFS_PCI		"/sys/bus/pci/devices"
 #define SYSFS_PLATFORM		"/sys/bus/platform/devices"
 #define SYSFS_PSTATE_PATH	"/sys/devices/system/cpu/intel_pstate/"
+#define SYSFS_THERMAL		"/sys/class/thermal"
 
 static const char *CPU_location[] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1", NULL};
+
+static int *cpufreq; //Array storing Intercative Governor Cpu Frequencies
+
+static int number_of_cores;
 
 struct trt_table {
 	char trt_source_device[8]; /* ACPI single name */
@@ -154,20 +162,28 @@ struct sysfsActionHashKey {
 	struct esif_primitive_tuple primitiveTuple;
 	u8 participantId;
 };
+
+struct tzPolicy {
+	char policy[MAX_SYSFS_PATH];
+};
 #pragma pack(pop)
 
-static int sysfs_set_u64(char *path, char *filename, u64 val);
+static struct tzPolicy* tzPolicies = NULL;
+
+static int sysfs_set_int64(char *path, char *filename, Int64 val);
 static int sysfs_set_string(const char *path, const char *filename, char *val);
 static int sysfs_get_string(const char *path, const char *filename, char *str);
 static int sysfs_get_string_multiline(const char *path, const char *filename, char *str);
-static int sysfs_get_u64(const char *path, const char *filename, u64 *p_u64);
-static int sysfs_get_u64_direct(int fd, u64 *p_u64);
+static int sysfs_get_int64(const char *path, const char *filename, Int64 *p64);
+static int sysfs_get_int64_direct(int fd, Int64 *p64);
 static int replace_str(char *str, char *old, char *new, char *rpl_buff, int rpl_buff_len);
 static int get_key_value_pair_from_str(const char *str, char *key, char *value);
 static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *table_str);
 static void get_full_scope_str(char *orig, char *new);
 static void replace_cpu_id(char *str);
 static u64 GetPowerLimit0MaxUw(void);
+static u64 GetCpuFreqPdl(void);
+static void GetNumberOfCpuCores();
 static enum esif_rc get_supported_policies(char *table_str, int idspNum, char *sysfs_str);
 static enum esif_rc get_rapl_power_control_capabilities(char *table_str, esif_guid_t *target_guid);
 static enum esif_rc get_proc_perf_support_states(char *table_str);
@@ -185,6 +201,9 @@ static eEsifError GetFanPerfStates(EsifDataPtr responsePtr);
 static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString devicePathPtr);
 static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr);
 static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
+static eEsifError ResetThermalZonePolicyToDefault();
+static eEsifError SetThermalZonePolicy();
+static eEsifError SetIntelPState(u64 val);
 
 #ifdef ESIF_ATTR_OS_ANDROID
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
@@ -320,7 +339,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	// actionContext is not a pointer but instead the file descriptor. It cannot possibly be 0 because 0 is reserved for stdout
 	// So if we do get 0 it would translate to NULL pointer which means that the key is not found in the hash table
 	if (actionContext) {
-		if (sysfs_get_u64_direct((int) actionContext, &sysval) > 0) {
+		if (sysfs_get_int64_direct((int) actionContext, &sysval) > 0) {
 			tripval = sysval;
 			*(u32 *) responsePtr->buf_ptr = (u32) tripval;
 			goto exit;
@@ -339,7 +358,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		else {
 			deviceTargetPathPtr = devicePathPtr;
 		}
-		pathAccessReturn = sysfs_get_u64(devicePathPtr, parm1, &sysval);
+		pathAccessReturn = sysfs_get_int64(devicePathPtr, parm1, &sysval);
 		if (pathAccessReturn < 1) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			ESIF_TRACE_WARN("Failed to get value from path: %s/%s . Error: %d \n",devicePathPtr,parm1,pathAccessReturn);
@@ -360,7 +379,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 				goto exit;
 			}
-			if (sysfs_get_u64(devicePathPtr, cur_node_name, &sysval) > 0 && sysval > 0) {
+			if (sysfs_get_int64(devicePathPtr, cur_node_name, &sysval) > 0 && sysval > 0) {
 				candidate_found = 1;
 				if (SetActionContext(&key, devicePathPtr, cur_node_name)) {
 					ESIF_TRACE_WARN("Fail to save context for participant %d, primitive %d, domain %d, instance %d\n",
@@ -376,7 +395,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		}
 		break;
 	case ESIF_SYSFS_ALT_PATH:
-		if (sysfs_get_u64(parm1, parm2, &sysval) < 1) {
+		if (sysfs_get_int64(parm1, parm2, &sysval) < 1) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
@@ -406,7 +425,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			}
 			if (sysfs_get_string(devicePathPtr, cur_node_name, sysvalstring) > -1) {
 				if (esif_ccb_stricmp(parm2, sysvalstring) == 0) {
-					if (sysfs_get_u64(devicePathPtr, alt_node_name, &sysval) > 0 && sysval > 0 && node_idx >= min_idx) {
+					if (sysfs_get_int64(devicePathPtr, alt_node_name, &sysval) > 0 && sysval > 0 && node_idx >= min_idx) {
 						if (SetActionContext(&key, devicePathPtr, alt_node_name)) {
 							ESIF_TRACE_WARN("Fail to save context for participant %d, primitive %d, domain %d, instance %d\n",
 							key.participantId, key.primitiveTuple.id, key.primitiveTuple.domain, key.primitiveTuple.instance);
@@ -452,7 +471,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 							// replacement is successful, set node name pointer to alt
 							node_name_ptr = alt_node_name;
 						}
-						if (sysfs_get_u64(cur_node_name, node_name_ptr, &sysval) > 0 && sysval > 0) {
+						if (sysfs_get_int64(cur_node_name, node_name_ptr, &sysval) > 0 && sysval > 0) {
 							if (SetActionContext(&key, cur_node_name, node_name_ptr)) {
 								ESIF_TRACE_WARN("Fail to save context for participant %d, primitive %d, domain %d, instance %d\n",
 								key.participantId, key.primitiveTuple.id, key.primitiveTuple.domain, key.primitiveTuple.instance);
@@ -492,7 +511,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				esif_ccb_get_time(&endtm);
 				elapsed_tm = (((endtm.tv_sec * 1000000) + endtm.tv_usec) - (domainPtr->lastPowerTime)) / 1000000.0;
 
-				if (sysfs_get_u64(parm1, parm2, &sysval) < 1) {
+				if (sysfs_get_int64(parm1, parm2, &sysval) < 1) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
 				}
@@ -506,14 +525,18 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				*(u32 *) responsePtr->buf_ptr = (u32) ret_val;
 				break;
 			case ESIF_SYSFS_GET_CPU_PDL: /* pdl */
-				if ((sysfs_get_u64("/sys/devices/system/cpu/intel_pstate/", "num_pstates", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PSTATES)) {
-					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					goto exit;
+				if (sysfs_get_string(SYSFS_PSTATE_PATH, "num_pstates", sysvalstring) > -1) {
+					if ((sysfs_get_int64("/sys/devices/system/cpu/intel_pstate/", "num_pstates", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PSTATES)) {
+						rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+						goto exit;
+					}
+					/* Sysfs returns total states - we want the max state, so subtract one */
+					pdl_val -= 1;	
 				}
-				/* Sysfs returns total states - we want the max state, so subtract one */
-				if (pdl_val != 0) {
-					pdl_val -= 1;
+				else {
+					pdl_val = GetCpuFreqPdl();
 				}
+				
 				*(u32 *) responsePtr->buf_ptr = (u32) pdl_val;
 				break;
 			case ESIF_SYSFS_GET_SOC_PL1: /* power limit */
@@ -525,7 +548,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 					goto exit;
 				}
 
-				if (sysfs_get_u64("/sys/class/powercap/intel-rapl:0", "constraint_0_power_limit_uw", &sysval) < 1) {
+				if (sysfs_get_int64("/sys/class/powercap/intel-rapl:0", "constraint_0_power_limit_uw", &sysval) < 1) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
 				}
@@ -559,7 +582,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 
 				// Even if there is only one sub-domain that has a valid temperature, we will take it
 				if ((temp_val0 >= 0) || (temp_val1 >=0)) {
-					*(u32 *) responsePtr->buf_ptr = esif_ccb_max(temp_val0, temp_val1) * 1000;
+					temp_val0 = esif_ccb_max(temp_val0, temp_val1);
+					esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_MILLIC, &temp_val0);
+					*(u32 *)responsePtr->buf_ptr = temp_val0;
 				} else {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
@@ -612,7 +637,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			if (sysfs_get_string(devicePathPtr, cur_node_name, sysvalstring) > -1) {
 				if (esif_ccb_stricmp(srchnm, sysvalstring) == 0) {
 					if (cur_item_count == target_item_count) {
-						if (sysfs_get_u64(devicePathPtr, alt_node_name, &sysval) < 1) {
+						if (sysfs_get_int64(devicePathPtr, alt_node_name, &sysval) < 1) {
 							rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 							goto exit;
 						}
@@ -778,6 +803,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 	EsifUpDataPtr metaPtr = NULL;
 	int rfkill_fd = 0;
 	struct rfkill_event event = {0};
+	int core = 0;
 
 	UNREFERENCED_PARAMETER(actCtx);
 
@@ -836,7 +862,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 			rc = ESIF_E_PARAMETER_IS_NULL;
 			goto exit;
 		}
-		if (sysfs_set_u64(deviceTargetPathPtr, parm1, *(u32 *) requestPtr->buf_ptr) < 0) {
+		if (sysfs_set_int64(deviceTargetPathPtr, parm1, *(Int32 *) requestPtr->buf_ptr) < 0) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
@@ -854,7 +880,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 			sysval = (sysval < powerLimit0Max) ? sysval : powerLimit0Max;
 		}
 
-		if (sysfs_set_u64(parm1, parm2, sysval) < 0) {
+		if (sysfs_set_int64(parm1, parm2, sysval) < 0) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
@@ -874,7 +900,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 			}
 			if (sysfs_get_string(cur_node_name, srchnm, sysvalstring) > -1) {
 				if (esif_ccb_stricmp(srchval, sysvalstring) == 0) {
-					if (sysfs_set_u64(cur_node_name, parm3, *(u32 *) requestPtr->buf_ptr) == 0) {
+					if (sysfs_set_int64(cur_node_name, parm3, *(u32 *) requestPtr->buf_ptr) == 0) {
 						candidate_found = 1;
 						break;
 					}
@@ -890,37 +916,29 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 		calc_type = *(enum esif_sysfs_param *) parm3;
 		switch(calc_type) {
 			case ESIF_SYSFS_SET_CPU_PSTATE:  /* pstate to perc */
-				if (sysfs_get_u64(SYSFS_PSTATE_PATH, "num_pstates", &pdl_val) < 1) {
-					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					goto exit;
+				sysval = *(u32 *) requestPtr->buf_ptr;
+				
+				if (sysfs_get_string(SYSFS_PSTATE_PATH, "num_pstates", sysvalstring) > -1) {
+					rc = SetIntelPState(sysval);
 				}
-				target_perc = ((1.00 / (double) pdl_val) * ((u32) pdl_val - *(u32 *) requestPtr->buf_ptr)) * 100.0;
-				if (target_perc > 100) {
-					target_perc = 100;
-				}
-				else if (target_perc < MIN_PERF_PERCENTAGE) {
-					target_perc = MIN_PERF_PERCENTAGE;
-				}
-				if (sysfs_set_u64(parm1, parm2, (int) target_perc) < 0) {
-					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					goto exit;
-				}
-				// Logic to turn on or off turbo
-				if (sysfs_get_u64(SYSFS_PSTATE_PATH, "turbo_pct", &turbo_perc) > 0) {
-					// Sys FS node exposes turbo frequency range, we need to convert it to turbo target
-					turbo_perc = 100 - turbo_perc;
-					if (target_perc < turbo_perc) {
-						if (sysfs_set_u64(SYSFS_PSTATE_PATH, "no_turbo",1) < 0) {
-							rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-							goto exit;
+				else {
+					pdl_val = GetCpuFreqPdl();
+					if ((sysval <= pdl_val) && (cpufreq != NULL)) {
+						for(core = 0; core < (number_of_cores+1); core++) {
+							char cpuString[MAX_SYSFS_PATH] = {0};
+							esif_ccb_sprintf(MAX_SYSFS_PATH, cpuString,"/sys/devices/system/cpu/cpu%d/cpufreq", core);
+							if (sysfs_set_int64(cpuString, "scaling_max_freq", cpufreq[sysval]) < 0) {
+								rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+							}	
 						}
 					}
 					else {
-						if (sysfs_set_u64(SYSFS_PSTATE_PATH, "no_turbo",0) < 0) {
-							rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-							goto exit;
-						}
+						rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					}
+				}
+				
+				if (rc != ESIF_OK) {
+					goto exit;					
 				}
 				break;
 			case ESIF_SYSFS_SET_WWAN_PSTATE:
@@ -969,6 +987,51 @@ exit:
 	return rc;
 }
 
+static eEsifError SetIntelPState(u64 sysval)
+{
+	u64 pdl_val = 0;
+	double target_perc = 0.0;
+	u64 turbo_perc = 0;
+	eEsifError rc = ESIF_OK;
+	
+	if ((sysfs_get_int64(SYSFS_PSTATE_PATH, "num_pstates", &pdl_val) < 1) && (sysval >= pdl_val)) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
+	target_perc = ((1.00 / (double) pdl_val) * ((u32) pdl_val - sysval)) * 100.0;
+	if (target_perc > 100) {
+		target_perc = 100;
+	}
+	else if (target_perc < MIN_PERF_PERCENTAGE) {
+		target_perc = MIN_PERF_PERCENTAGE;
+	}
+	if (sysfs_set_int64("/sys/devices/system/cpu/intel_pstate","max_perf_pct", (int) target_perc) < 0) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
+	// Logic to turn on or off turbo
+	if (sysfs_get_int64(SYSFS_PSTATE_PATH, "turbo_pct", &turbo_perc) > 0) {
+		// Sys FS node exposes turbo frequency range, we need to convert it to turbo target
+		turbo_perc = 100 - turbo_perc;
+		if (target_perc < turbo_perc) {
+			if (sysfs_set_int64(SYSFS_PSTATE_PATH, "no_turbo",1) < 0) {
+				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+				goto exit;
+			}
+		}
+		else {
+			if (sysfs_set_int64(SYSFS_PSTATE_PATH, "no_turbo",0) < 0) {
+				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+				goto exit;
+			}
+		}
+	}
+
+exit:
+	return rc;
+}
+
+
 static void replace_cpu_id(char *str)
 {
 	char cpu_path[MAX_SYSFS_PATH] = { 0 };
@@ -990,7 +1053,7 @@ static u64 GetPowerLimit0MaxUw(void)
 	// Try Atom PCI first
 	while (CPU_location[cpu_loc_counter] != NULL) {
 		esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s/power_limits", SYSFS_PCI, CPU_location[cpu_loc_counter]);
-	if (sysfs_get_u64(fullPath, "power_limit_0_max_uw", &sysVal) > 0)
+	if (sysfs_get_int64(fullPath, "power_limit_0_max_uw", &sysVal) > 0)
 		goto exit;
 		cpu_loc_counter++;
 	}
@@ -998,12 +1061,44 @@ static u64 GetPowerLimit0MaxUw(void)
 
 	// Finally try Atom ACPI
 	esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s/power_limits", SYSFS_PLATFORM, ACPI_CPU);
-	if (sysfs_get_u64(fullPath, "power_limit_0_max_uw", &sysVal) > 0)
+	if (sysfs_get_int64(fullPath, "power_limit_0_max_uw", &sysVal) > 0)
 		goto exit;
 
 	sysVal = 0;	// 0 indicates "not found"
 exit:
 	return sysVal;
+}
+
+static u64 GetCpuFreqPdl(void)
+{
+	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
+	char *token;
+	char *next_token;
+	const char delimiter[2] = " ";
+	u64 pdl_val = -1;
+	if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/cpufreq", "scaling_available_frequencies", sysvalstring) > -1) {
+		token = esif_ccb_strtok(sysvalstring,delimiter,&next_token);
+		while ((token != NULL) && (isdigit(*token))) {
+			token = esif_ccb_strtok(NULL,delimiter,&next_token);
+			pdl_val++;
+		}
+	}
+	return pdl_val;
+}
+
+static void GetNumberOfCpuCores()
+{
+	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
+	char *token;
+	char *next_token;
+	const char delimiter[2] = "-";
+	if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/topology", "core_siblings_list", sysvalstring) > -1) {
+		token = esif_ccb_strtok(sysvalstring,delimiter,&next_token);
+		while ((token != NULL) && (isdigit(*token))) {
+			number_of_cores = esif_atoi(token);
+			token = esif_ccb_strtok(NULL,delimiter,&next_token);
+		}
+	}
 }
 
 // acpi_thermal_rel driver only returns the leaf node strings,
@@ -1114,7 +1209,7 @@ static int sysfs_get_string_multiline(const char *path, const char *filename, ch
 	FILE *fp = NULL;
 	int rc = 0;
 	char filepath[MAX_SYSFS_PATH] = { 0 };
-	char lineStr[MAX_GUID_STR_LEN + 1] = { 0 };
+	char lineStr[MAX_STR_LINE_LEN + 1] = { 0 };
 
 	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
 
@@ -1123,7 +1218,7 @@ static int sysfs_get_string_multiline(const char *path, const char *filename, ch
 	}
 
 	*str = 0; // Initialize first character to ensure that concat works properly
-	while (esif_ccb_fgets(lineStr, MAX_GUID_STR_LEN, fp)) {
+	while (esif_ccb_fgets(lineStr, MAX_STR_LINE_LEN, fp)) {
 		esif_ccb_sprintf_concat(MAX_SYSFS_STRING, str, "%s\n", lineStr);
 		rc++;
 	}
@@ -1135,7 +1230,7 @@ exit:
 }
 
 
-static int sysfs_get_u64(const char *path, const char *filename, u64 *p_u64)
+static int sysfs_get_int64(const char *path, const char *filename, Int64 *p64)
 {
 	FILE *fd = NULL;
 	int rc = 0;
@@ -1145,21 +1240,21 @@ static int sysfs_get_u64(const char *path, const char *filename, u64 *p_u64)
 	if ((fd = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
 		goto exit;
 	}
-	rc = esif_ccb_fscanf(fd, "%llu", (u64 *)p_u64);
+	rc = esif_ccb_fscanf(fd, "%lld", p64);
 	esif_ccb_fclose(fd);
 
 exit:
 	return rc;
 }
 
-static int sysfs_get_u64_direct(int fd, u64 *p_u64)
+static int sysfs_get_int64_direct(int fd, Int64 *p64)
 {
 	int rc = 0;
 	char buf[MAX_SYSFS_STRING] = {0};
 
 	lseek(fd, 0, SEEK_SET);
 	if (read(fd, buf, MAX_SYSFS_STRING) > 0) {
-		rc = esif_ccb_sscanf(buf, "%llu", p_u64);
+		rc = esif_ccb_sscanf(buf, "%lld", p64);
 		if (ESIF_OK != rc) {
 			ESIF_TRACE_WARN("Failed to get file scan. Error code: %d .\n",rc);
 		}
@@ -1171,7 +1266,7 @@ static int sysfs_get_u64_direct(int fd, u64 *p_u64)
 	return rc;
 }
 
-static int sysfs_set_u64(char *path, char *filename, u64 val)
+static int sysfs_set_int64(char *path, char *filename, Int64 val)
 {
 	FILE *fd = NULL;
 	int rc = -1;
@@ -1183,7 +1278,7 @@ static int sysfs_set_u64(char *path, char *filename, u64 val)
 		goto exit;
 	}
 
-	esif_ccb_fprintf(fd, "%llu", (u64)val);
+	esif_ccb_fprintf(fd, "%lld", val);
 	esif_ccb_fclose(fd);
 	rc = 0;
 
@@ -1243,7 +1338,7 @@ static enum esif_rc get_perf_support_states(char *table_str, char *participant_p
 	int pcounter = 0;
 	eEsifError rc = ESIF_OK;
 
-	if ((sysfs_get_u64(participant_path, "max_state", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PERF_STATES)){
+	if ((sysfs_get_int64(participant_path, "max_state", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PERF_STATES)){
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		goto exit;
 	}
@@ -1278,12 +1373,38 @@ static enum esif_rc get_proc_perf_support_states(char *table_str)
 	u64 placeholder_val =0;
 	int pcounter = 0;
 	eEsifError rc = ESIF_OK;
-
-	if ((sysfs_get_u64("/sys/devices/system/cpu/intel_pstate/", "num_pstates", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PSTATES)) {
-		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		goto exit;
+	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
+	char *token;
+	char *next_token;
+	const char s[2] = " ";
+	int counter = 0;
+	
+	if (sysfs_get_string(SYSFS_PSTATE_PATH, "num_pstates", sysvalstring) > -1) {
+		if ((sysfs_get_int64("/sys/devices/system/cpu/intel_pstate/", "num_pstates", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PSTATES)) {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			goto exit;
+		}
 	}
+	else {
+		pdl_val = GetCpuFreqPdl();
+		cpufreq = (int*)esif_ccb_malloc(sizeof(int) * pdl_val);
+		if (cpufreq == NULL) {
+			ESIF_TRACE_ERROR("Unable to allocate cpufreq\n");
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
 
+		if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/cpufreq", "scaling_available_frequencies", sysvalstring) > -1) {
+			token = esif_ccb_strtok(sysvalstring,s,&next_token);
+			while ((token != NULL) && (isdigit(*token))) {
+				cpufreq[counter] = esif_atoi(token);
+				esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d,%llu,%llu,%llu,%llu,%llu!",(cpufreq	[counter]/1000),placeholder_val,placeholder_val,placeholder_val,placeholder_val,placeholder_val);
+				token = esif_ccb_strtok(NULL,s,&next_token);
+				counter++;	
+			}
+		}
+		goto exit;			
+	}
 	/* Sysfs returns total states - we want the max state, so subtract one */
 	if (pdl_val != 0) {
 		pdl_val -= 1;
@@ -1384,43 +1505,43 @@ static enum esif_rc get_rapl_power_control_capabilities(
 
 
 	esif_ccb_sprintf(MAX_SYSFS_PATH, cur_path, "%s/%s/power_limits", path, node);
-	if (sysfs_get_u64(cur_path, "power_limit_0_min_uw", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_0_min_uw", &sysval) < 1) {
 		goto exit;
 	}
 	pl1Min = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_0_max_uw",  &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_0_max_uw",  &sysval) < 1) {
 		goto exit;
 	}
 	pl1Max = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_0_step_uw", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_0_step_uw", &sysval) < 1) {
 		goto exit;
 	}
 	step1 = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_0_tmin_us", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_0_tmin_us", &sysval) < 1) {
 		goto exit;
 	}
 	time1Min = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_0_tmax_us", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_0_tmax_us", &sysval) < 1) {
 		goto exit;
 	}
 	time1Max = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_1_min_uw",  &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_1_min_uw",  &sysval) < 1) {
 		sysval = 0;  /* we don't care - dptf doesn't use this value anyways */
 	}
 	pl2Min = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_1_max_uw",  &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_1_max_uw",  &sysval) < 1) {
 		sysval = 0;  /* we don't care - dptf doesn't use this value anyways */
 	}
 	pl2Max = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_1_step_uw", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_1_step_uw", &sysval) < 1) {
 		sysval = 0;  /* we don't care - dptf doesn't use this value anyways */
 	}
 	step2 = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_1_tmin_us", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_1_tmin_us", &sysval) < 1) {
 		sysval = 0;  /* we don't care - dptf doesn't use this value anyways */
 	}
 	time2Min = sysval;
-	if (sysfs_get_u64(cur_path, "power_limit_1_tmax_us", &sysval) < 1) {
+	if (sysfs_get_int64(cur_path, "power_limit_1_tmax_us", &sysval) < 1) {
 		sysval = 0;  /* we don't care - dptf doesn't use this value anyways */
 	}
 	time2Max = sysval;
@@ -1630,7 +1751,7 @@ static eEsifError SetFanLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPt
 	u64 curVal = 0;
 	double target_perc = 0;
 
-	if (sysfs_get_u64(devicePathPtr, "max_state", &pdlVal) < 1) {
+	if (sysfs_get_int64(devicePathPtr, "max_state", &pdlVal) < 1) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Fail get participant %d's fan max_state\n", upPtr->fInstance);
 		goto exit;
@@ -1638,7 +1759,7 @@ static eEsifError SetFanLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPt
 
 	target_perc = ((double) *(u32 *) requestPtr->buf_ptr) / 100.0;
 	curVal = (target_perc + EPSILON_CONVERT_PERC) * pdlVal; // Avoid rounding errors
-	if (sysfs_set_u64(devicePathPtr, "cur_state", curVal) < 0) {
+	if (sysfs_set_int64(devicePathPtr, "cur_state", curVal) < 0) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Fail set participant %d's fan cur_state\n", upPtr->fInstance);
 		goto exit;
@@ -1657,7 +1778,7 @@ static eEsifError SetBrightnessLevel(const EsifUpPtr upPtr, const EsifDataPtr re
 	u64 curVal = 0;
 	double target_perc = 0;
 
-	if (sysfs_get_u64(devicePathPtr, "max_brightness", &bdlVal) < 1) {
+	if (sysfs_get_int64(devicePathPtr, "max_brightness", &bdlVal) < 1) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Fail get participant %d's max_brightness\n", upPtr->fInstance);
 		goto exit;
@@ -1665,7 +1786,7 @@ static eEsifError SetBrightnessLevel(const EsifUpPtr upPtr, const EsifDataPtr re
 
 	target_perc = ((double) *(u32 *) requestPtr->buf_ptr) / 100.0;
 	curVal = (u64)((target_perc * bdlVal) + EPSILON_CONVERT_PERC); // Avoid rounding errors
-	if (sysfs_set_u64(devicePathPtr, "brightness", curVal) < 0) {
+	if (sysfs_set_int64(devicePathPtr, "brightness", curVal) < 0) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Fail set participant %d's brightness\n", upPtr->fInstance);
 		goto exit;
@@ -1757,13 +1878,13 @@ static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr)
 	u64 curVal = 0;
 	double target_perc = 0;
 
-	if (sysfs_get_u64(path, "max_brightness", &bdlVal) < 1) {
+	if (sysfs_get_int64(path, "max_brightness", &bdlVal) < 1) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Failed get participant's max display brightness\n");
 		goto exit;
 	}
 
-	if (sysfs_get_u64(path, "brightness", &curVal) < 1) {
+	if (sysfs_get_int64(path, "brightness", &curVal) < 1) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		ESIF_TRACE_WARN("Failed get participant's current brightness\n");
 		goto exit;
@@ -1798,7 +1919,7 @@ static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString deviceP
 	fst.speed.integer.type = ESIF_DATA_UINT64;
 	fst.speed.integer.value = INVALID_64BIT_UINTEGER;
 
-	if (sysfs_get_u64(devicePathPtr, "cur_state", &curVal) < 1) {
+	if (sysfs_get_int64(devicePathPtr, "cur_state", &curVal) < 1) {
 		// Do nothing, best effort.
 	}
 	else {
@@ -1827,45 +1948,40 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 {
 	eEsifError rc = ESIF_OK;
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
+	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
+	esif_guid_t *guidPtr = (esif_guid_t *) oscPtr->guid;
+
+	// Convert IDSP GUID from binary format to text format because
+	// INT3400 driver only takes text format as input
+	esif_guid_mangle(guidPtr);
+	esif_guid_print(guidPtr, guidStr);
 
 	if (oscPtr->capabilities) {	// DPTF to take over thermal control
-		if (sysfs_set_string(cur_node_name, "mode", "disabled") < 0) {
-			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-			goto exit;
-		}
-	} else {
 		if (sysfs_set_string(cur_node_name, "mode", "enabled") < 0) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
-	}
-
-	int lineNum = sysfs_get_string_multiline("/sys/devices/platform/INT3400:00/uuids/", "available_uuids", sys_long_string_val);
-	char fmt[MAX_FMT_STR_LEN] = { 0 };
-	int i = 0;
-	int count = 0;
-
-	// Need to output available IDSP GUID to current_uuid sysfs node one by one.
-	esif_ccb_sprintf(sizeof(fmt), fmt, "%%%ds", (int)MAX_SYSFS_PATH - 1);
-	for (i = 0; i < lineNum; ++i) {
-		if (esif_ccb_sscanf(sys_long_string_val + count, fmt, SCANFBUF(sysvalstring, MAX_SYSFS_PATH)) > 0) {
-			count += esif_ccb_strlen(sysvalstring, MAX_SYSFS_PATH) + 1; // Plus white space
-			if (sysfs_set_string("/sys/devices/platform/INT3400:00/uuids/", "current_uuid", sysvalstring) < 0) {
-				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-				goto exit;
-			}
-		} else {
+	} else {
+		if (sysfs_set_string(cur_node_name, "mode", "disabled") < 0) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
+	}
+
+	if (sysfs_set_string("/sys/devices/platform/INT3400:00/uuids/", "current_uuid", guidStr) < 0) {
+		ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
 	}
 
 	if (sysfs_get_string(cur_node_name, "policy", sysvalstring) > -1) {
 		if (sysfs_set_string(cur_node_name, "policy", "user_space") < 0) {
+			ESIF_TRACE_WARN("Failed to change INT3400 driver to user_space mode\n");
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
 	}
+	ESIF_TRACE_DEBUG("Successfully set _OSC for GUID: %s\n", guidStr);
 
 exit:
 	return rc;
@@ -1919,6 +2035,86 @@ exit:
  *******************************************************************************
  */
 
+static eEsifError SetThermalZonePolicy()
+{
+	DIR *dir;
+	struct dirent **namelist;
+	int n;
+	char cur_node_name[MAX_SYSFS_PATH] = { 0 };
+	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
+	eEsifError rc = ESIF_E_UNSPECIFIED;
+
+	dir = opendir(SYSFS_THERMAL);
+	if (!dir) {
+		ESIF_TRACE_DEBUG("No thermal sysfs\n");
+	}
+	n = scandir(SYSFS_THERMAL, &namelist, 0, alphasort);
+	tzPolicies = (struct tzPolicy*)esif_ccb_malloc(sizeof(struct tzPolicy) * n);
+	if (tzPolicies == NULL) {
+		ESIF_TRACE_ERROR("Unable to allocate tzPolicies\n");
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	if (n < 0) {
+		//no scan
+	}
+	else {
+		while (n--) {
+			esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name, "%s/%s", SYSFS_THERMAL,namelist[n]->d_name);
+			if (sysfs_get_string(cur_node_name, "policy", sysvalstring) > -1) {
+				esif_ccb_sprintf(MAX_SYSFS_PATH,tzPolicies[n].policy,"%s",sysvalstring);
+				if (0 != esif_ccb_strcmp(sysvalstring, "user_space")) {
+					if (sysfs_set_string(cur_node_name, "policy", "user_space") < 0) {
+						ESIF_TRACE_WARN("Failed to change thermal zone policy type to user_space mode\n");
+					}	
+				}
+			}
+		}
+	}
+exit:
+	return rc;
+}
+
+static eEsifError ResetThermalZonePolicy()
+{
+	DIR *dir;
+	struct dirent **namelist;
+	int n;
+	int i = 0;
+	char cur_node_name[MAX_SYSFS_PATH] = { 0 };
+	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
+	eEsifError rc = ESIF_E_UNSPECIFIED;
+
+	if (tzPolicies == NULL) {
+		ESIF_TRACE_ERROR("Unable to allocate tzPolicies\n");
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	dir = opendir(SYSFS_THERMAL);
+	if (!dir) {
+		ESIF_TRACE_DEBUG("No thermal sysfs\n");
+	}
+	n = scandir(SYSFS_THERMAL, &namelist, 0, alphasort);
+	if (n < 0) {
+		//no scan
+	}
+	else {
+		while (n--) {
+			esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name, "%s/%s", SYSFS_THERMAL,namelist[n]->d_name);
+			if (sysfs_get_string(cur_node_name, "policy", sysvalstring) > -1) {
+				if (sysfs_set_string(cur_node_name, "policy", tzPolicies[n].policy) < 0) {
+					ESIF_TRACE_WARN("Failed to change thermal zone policy type to default\n");
+				}
+			}
+		}
+	}
+	
+	esif_ccb_free(tzPolicies);
+exit:
+	return rc;
+}
+
 static EsifActIfaceStatic g_sysfs = {
 	eIfaceTypeAction,
 	ESIF_ACT_IFACE_VER_STATIC,
@@ -1938,6 +2134,8 @@ enum esif_rc EsifActSysfsInit()
 {
 	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_sysfs);
 	actionHashTablePtr = esif_ht_create(MAX_ACTION_HT_SIZE);
+	SetThermalZonePolicy();
+	GetNumberOfCpuCores();
 	ESIF_TRACE_EXIT_INFO();
 	return ESIF_OK;
 }
@@ -1948,6 +2146,9 @@ void EsifActSysfsExit()
 	EsifActMgr_UnregisterAction((EsifActIfacePtr)&g_sysfs);
 	if (actionHashTablePtr)
 		esif_ht_destroy(actionHashTablePtr, ActionContextCleanUp);
+	if(cpufreq)
+		esif_ccb_free(cpufreq);
+	ResetThermalZonePolicy();
 	ESIF_TRACE_EXIT_INFO();
 }
 

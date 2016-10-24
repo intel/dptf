@@ -59,17 +59,20 @@
  * Event Groups
  */
 
-enum esif_event_group {
+typedef enum esif_event_group {
 	ESIF_EVENT_GROUP_DPTF = 0,
 	ESIF_EVENT_GROUP_POWER = 1,
 	ESIF_EVENT_GROUP_SENSOR = 2,
 	ESIF_EVENT_GROUP_ACPI = 3,
 	ESIF_EVENT_GROUP_CODE = 4,
 	ESIF_EVENT_GROUP_SYSTEM_METRICS = 5,
-};
+} esif_event_group_t;
+
+/* Max Enum Value for Iteration purposes */
+#define MAX_ESIF_EVENT_GROUP_ENUM_VALUE  ESIF_EVENT_GROUP_SYSTEM_METRICS
 
 static ESIF_INLINE esif_string esif_event_group_enum_str(
-	enum esif_event_group group)
+	esif_event_group_t group)
 {
 	switch (group) {
 	ESIF_CASE_ENUM(ESIF_EVENT_GROUP_DPTF);

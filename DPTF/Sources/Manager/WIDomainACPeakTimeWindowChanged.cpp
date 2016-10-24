@@ -33,7 +33,7 @@ WIDomainACPeakTimeWindowChanged::~WIDomainACPeakTimeWindowChanged(void)
 
 void WIDomainACPeakTimeWindowChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainACPeakTimeWindowChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainACPeakTimeWindowChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainACPeakTimeWindowChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainACPeakTimeWindowChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainACPeakTimeWindowChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainACPeakTimeWindowChanged", i);
         }
     }
 }

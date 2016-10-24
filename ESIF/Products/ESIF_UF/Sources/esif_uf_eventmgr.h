@@ -59,7 +59,7 @@
 #include "esif_queue.h"
 #include "esif_ccb_thread.h"
 
-#define MAX_EVENT_TYPES 73
+#define NUM_EVENT_LISTS 64
 #define EVENT_MGR_DOMAIN_D0 '0D'
 #define EVENT_MGR_DOMAIN_NA 'NA'
  /*
@@ -117,7 +117,7 @@ typedef struct EventMgrEntry_s {
 } EventMgrEntry, *EventMgrEntryPtr;
 
 typedef struct EsifEventMgr_s {
-	EsifLinkListPtr observerLists[MAX_EVENT_TYPES];
+	EsifLinkListPtr observerLists[NUM_EVENT_LISTS];
 	esif_ccb_lock_t listLock;
 
 	EsifLinkListPtr garbageList;
@@ -142,8 +142,8 @@ typedef struct EsifEventQueueItem_s {
 extern "C" {
 #endif
 
-eEsifError EsifEventMgr_Init();
-eEsifError EsifEventMgr_Exit();
+eEsifError EsifEventMgr_Init(void);
+void EsifEventMgr_Exit(void);
 
 eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByGuid(
 	esif_guid_t *guidPtr,
@@ -184,7 +184,8 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	const EsifDataPtr eventData
 	);
 
-UInt64 EsifEventMgr_GetEventMask(
+Bool EsifEventMgr_IsEventRegistered(
+	eEsifEventType eventType,
 	void *key,
 	UInt8 participantId,
 	UInt16 domainId

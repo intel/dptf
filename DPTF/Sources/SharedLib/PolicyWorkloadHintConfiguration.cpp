@@ -53,10 +53,19 @@ UInt32 PolicyWorkloadHintConfiguration::getHintForApplication(const std::string&
 std::shared_ptr<XmlNode> PolicyWorkloadHintConfiguration::getXml() const
 {
     auto config = XmlNode::createWrapperElement("workload_hint_configuration");
+
     for (auto group = m_workloadGroups.begin(); group != m_workloadGroups.end(); group++)
     {
-        config->addChild(group->getXml());
+        try
+        {
+            config->addChild(group->getXml());
+        }
+        catch (...)
+        {
+            // skip group if getXml fails
+        }
     }
+
     return config;
 }
 

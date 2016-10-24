@@ -28,7 +28,8 @@ namespace OsMobileNotificationType
         AirplaneMode = 1,
         ServiceState = 2,
         ActionRequestShutdown = 3,
-        ConnectivityState = 4
+        ConnectivityState = 4,
+        ScreenState = 6
     };
 
     std::string ToString(OsMobileNotificationType::Type type);

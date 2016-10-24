@@ -25,7 +25,7 @@ namespace OsDockMode
     enum Type
     {
         InvalidDockMode = 0,
-        UnDocked = 1,
+        Undocked = 1,
         Docked = 2
     };
 

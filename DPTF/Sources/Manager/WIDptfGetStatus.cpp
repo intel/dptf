@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "WIDptfGetStatus.h"
-#include "DptfStatus.h"
+#include "DptfStatusInterface.h"
 #include "EsifServices.h"
 
 WIDptfGetStatus::WIDptfGetStatus(DptfManagerInterface* dptfManager, const eAppStatusCommand command,
@@ -33,7 +33,7 @@ WIDptfGetStatus::~WIDptfGetStatus(void)
 
 void WIDptfGetStatus::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,6 +41,6 @@ void WIDptfGetStatus::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteWorkItemWarningMessage_Function("DptfStatus::getStatus");
+        writeWorkItemWarningMessage(ex, "DptfStatus::getStatus");
     }
 }

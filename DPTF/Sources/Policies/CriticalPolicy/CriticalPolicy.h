@@ -50,7 +50,7 @@ public:
     virtual void onUnbindParticipant(UIntN participantIndex) override;
     virtual void onBindDomain(UIntN participantIndex, UIntN domainIndex) override;
     virtual void onUnbindDomain(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void onOperatingSystemEmergencyCallModeChanged(UIntN emergencyCallMode) override;
+    virtual void onOperatingSystemEmergencyCallModeChanged(OnOffToggle::Type emergencyCallMode) override;
     virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
     virtual void onParticipantSpecificInfoChanged(UIntN participantIndex) override;
 
@@ -65,18 +65,18 @@ private:
     void takePowerActionBasedOnThermalState(ParticipantProxyInterface* participant);
     void setParticipantTemperatureThresholdNotification(
         Temperature currentTemperature,
-        std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints,
+        std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> tripPoints,
         ParticipantProxyInterface* participant);
     Temperature determineLowerTemperatureThreshold(
         Temperature currentTemperature,
-        std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints);
+        std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> tripPoints);
     Temperature determineUpperTemperatureThreshold(
         Temperature currentTemperature,
-        std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> tripPoints);
+        std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> tripPoints);
     void takePowerAction(const Temperature& currentTemperature, ParticipantSpecificInfoKey::Type crossedTripPoint, const Temperature& crossedTripPointTemperature);
     void reEvaluateAllParticipants();
     ParticipantSpecificInfoKey::Type findTripPointCrossed(
-        const std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>>& tripPoints,
+        const std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>>& tripPoints,
         const Temperature& currentTemperature);
     std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() const;
 };

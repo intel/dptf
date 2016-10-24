@@ -17,10 +17,9 @@
 ******************************************************************************/
 
 #include "WorkItemQueueThread.h"
-#include "DptfManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
-WorkItemQueueThread::WorkItemQueueThread(DptfManager* dptfManager, ImmediateWorkItemQueue* immediateQueue,
+WorkItemQueueThread::WorkItemQueueThread(DptfManagerInterface* dptfManager, ImmediateWorkItemQueue* immediateQueue,
     DeferredWorkItemQueue* deferredQueue, EsifSemaphore* workItemQueueSemaphore,
     WorkItemStatistics* workItemStatistics) :
     m_dptfManager(dptfManager), m_participantManager(nullptr), m_destroyThread(false),

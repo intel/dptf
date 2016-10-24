@@ -35,6 +35,16 @@ DisplayControlStatus DomainDisplayControl_000::getDisplayControlStatus(UIntN par
     throw not_implemented();
 }
 
+UIntN DomainDisplayControl_000::getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
+Bool DomainDisplayControl_000::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
+{
+    throw not_implemented();
+}
+
 DisplayControlSet DomainDisplayControl_000::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     throw not_implemented();
@@ -46,6 +56,11 @@ void DomainDisplayControl_000::setDisplayControl(UIntN participantIndex, UIntN d
 }
 
 void DomainDisplayControl_000::setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, DisplayControlDynamicCaps newCapabilities)
+{
+    throw not_implemented();
+}
+
+void DomainDisplayControl_000::setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
     throw not_implemented();
 }

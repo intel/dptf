@@ -20,14 +20,14 @@
 #include "esif_ccb_memory.h"
 
 EsifFileEnumerator::EsifFileEnumerator(std::string path, std::string pattern) : m_path(path), m_pattern(pattern),
-    m_fileHandle(INVALID_HANDLE_VALUE)
+    m_fileHandle(ESIF_INVALID_FILE_ENUM_HANDLE)
 {
     esif_ccb_memset(m_file.filename, 0, MAX_PATH);
 }
 
 EsifFileEnumerator::~EsifFileEnumerator(void)
 {
-    if (m_fileHandle != INVALID_HANDLE_VALUE)
+    if (m_fileHandle != ESIF_INVALID_FILE_ENUM_HANDLE)
     {
         esif_ccb_file_enum_close(m_fileHandle);
     }
@@ -40,7 +40,7 @@ std::string EsifFileEnumerator::getFirstFile(void)
 
     m_fileHandle = esif_ccb_file_enum_first(path, pattern, &m_file);
 
-    if (m_fileHandle == INVALID_HANDLE_VALUE)
+    if (m_fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
     {
         throw dptf_exception("Error while trying to find first file.");
     }
@@ -50,7 +50,7 @@ std::string EsifFileEnumerator::getFirstFile(void)
 
 std::string EsifFileEnumerator::getNextFile(void)
 {
-    if (m_fileHandle == INVALID_HANDLE_VALUE)
+    if (m_fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
     {
         throw dptf_exception("File handle not initialized.");
     }

@@ -21,9 +21,8 @@
 #include "Dptf.h"
 #include "PlatformSettingType.h"
 #include "SensorOrientation.h"
-#include "SensorMotion.h"
+#include "OnOffToggle.h"
 #include "SensorSpatialOrientation.h"
-#include "CoolingPreferenceType.h"
 
 class PlatformConfigurationDataInterface
 {
@@ -42,8 +41,8 @@ public:
     virtual void writePlatformSettingValue(PlatformSettingType::Type platformSettingType, UInt8 index, 
         const std::string& stringValue) = 0;
     virtual void clearPlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
-    virtual void enablePlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
-    virtual void disablePlatformSettings(PlatformSettingType::Type platformSettingType) = 0;
+
+    virtual TimeSpan getMinimumAllowableSamplePeriod(void) = 0;
 
     //FIXME:  ESIF Primitives
     virtual DptfBuffer getActiveRelationshipTable(void) = 0;
@@ -51,17 +50,17 @@ public:
     virtual DptfBuffer getThermalRelationshipTable(void) = 0;
     virtual DptfBuffer getPassiveTable(void) = 0;
     virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) = 0;
+    virtual DptfBuffer getAdaptivePerformanceParticipantConditionTable(void) = 0;
     virtual void setPassiveTable(DptfBuffer data) = 0;
     virtual DptfBuffer getAdaptivePerformanceActionsTable(void) = 0;
-    virtual DptfBuffer getLpmTable(void) = 0;
-    virtual UInt32 getLpmMode(void) = 0;
     virtual SensorOrientation::Type getSensorOrientation(void) = 0;
-    virtual SensorMotion::Type getSensorMotion(void) = 0;
+    virtual OnOffToggle::Type getSensorMotion(void) = 0;
     virtual SensorSpatialOrientation::Type getSensorSpatialOrientation(void) = 0;
     virtual DptfBuffer getOemVariables(void) = 0;
-    virtual void setDptfCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) = 0;
-    virtual DptfBuffer getPowerDeviceRelationshipTable(void) = 0;
     virtual DptfBuffer getPowerBossConditionsTable(void) = 0;
     virtual DptfBuffer getPowerBossActionsTable(void) = 0;
+    virtual DptfBuffer getPowerBossMathTable(void) = 0;
     virtual DptfBuffer getEmergencyCallModeTable(void) = 0;
+    virtual DptfBuffer getPidAlgorithmTable(void) = 0;
+    virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;
 };

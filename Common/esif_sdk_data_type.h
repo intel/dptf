@@ -59,7 +59,7 @@
  * Data Type Declarations
  */
 
-enum esif_data_type {
+typedef enum esif_data_type {
 	ESIF_DATA_ANGLE = 41,
 	ESIF_DATA_AUTO = 36,
 	ESIF_DATA_BINARY = 7,
@@ -95,9 +95,12 @@ enum esif_data_type {
 	ESIF_DATA_UNICODE = 9,
 	ESIF_DATA_VOID = 24,
 	ESIF_DATA_XML = 38,
-};
+} esif_data_type_t;
 
-static ESIF_INLINE esif_string esif_data_type_str(enum esif_data_type type)
+/* Max Enum Value for Iteration purposes */
+#define MAX_ESIF_DATA_ENUM_VALUE  ESIF_DATA_ANGLE
+
+static ESIF_INLINE esif_string esif_data_type_str(esif_data_type_t type)
 {
 	switch (type) {
 	ESIF_CASE_ENUM(ESIF_DATA_ANGLE);
@@ -139,7 +142,7 @@ static ESIF_INLINE esif_string esif_data_type_str(enum esif_data_type type)
 	return ESIF_NOT_AVAILABLE;
 }
 
-static ESIF_INLINE size_t esif_data_type_sizeof(enum esif_data_type type)
+static ESIF_INLINE size_t esif_data_type_sizeof(esif_data_type_t type)
 {
 	switch (type) {
 	ESIF_CASE_VAL(ESIF_DATA_ANGLE, sizeof(unsigned int));
@@ -173,11 +176,11 @@ static ESIF_INLINE size_t esif_data_type_sizeof(enum esif_data_type type)
 
 #ifdef ESIF_ATTR_USER
 #ifdef esif_ccb_stricmp
-static ESIF_INLINE enum esif_data_type esif_data_type_str2enum(esif_string name)
+static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(esif_string name)
 {
 	int j;
 	struct esif_data_type_map_t {
-		enum esif_data_type type;
+		esif_data_type_t type;
 		esif_string name;
 	}
 	esif_data_type_map[] = {

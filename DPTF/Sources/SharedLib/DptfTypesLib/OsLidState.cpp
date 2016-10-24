@@ -24,12 +24,12 @@ namespace OsLidState
     {
         switch (osLidState)
         {
-            case Closed:
-                return "Closed";
-            case Opened:
-                return "Opened";
-            default:
-                throw dptf_exception("OsLidState::Type is invalid");
+        case Closed:
+            return "Closed";
+        case Open:
+            return "Open";
+        default:
+            throw dptf_exception("OsLidState::Type is invalid");
         }
     }
 }

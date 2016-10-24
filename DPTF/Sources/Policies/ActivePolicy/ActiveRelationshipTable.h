@@ -30,27 +30,20 @@ class dptf_export ActiveRelationshipTable final : public RelationshipTableBase
 public:
 
     ActiveRelationshipTable();
-    ActiveRelationshipTable(const std::vector<ActiveRelationshipTableEntry>& entries);
+    ActiveRelationshipTable(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
     virtual ~ActiveRelationshipTable();
 
     static ActiveRelationshipTable createArtFromDptfBuffer(const DptfBuffer& buffer);
     DptfBuffer toArtBinary() const;
-    virtual UIntN getNumberOfEntries(void) const override;
-    const ActiveRelationshipTableEntry& operator[](UIntN index) const;
     std::vector<UIntN> getAllSources(void) const;
     std::vector<UIntN> getAllTargets(void) const;
-    std::vector<ActiveRelationshipTableEntry> getEntriesForTarget(UIntN target);
-    std::vector<ActiveRelationshipTableEntry> getEntriesForSource(UIntN source);
+    std::vector<std::shared_ptr<ActiveRelationshipTableEntry>> getEntriesForTarget(UIntN target);
+    std::vector<std::shared_ptr<ActiveRelationshipTableEntry>> getEntriesForSource(UIntN source);
     std::shared_ptr<XmlNode> getXml();
     Bool operator==(const ActiveRelationshipTable& art) const;
 
-protected:
-
-    virtual RelationshipTableEntryBase* getEntry(UIntN index) const override;
-
 private:
 
-    std::vector<ActiveRelationshipTableEntry> m_entries;
     static UIntN countArtRows(UInt32 size, UInt8* data);
     static void throwIfOutOfRange(IntN bytesRemaining);
 };

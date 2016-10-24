@@ -39,7 +39,7 @@ FrameworkEvent::Type ImmediateWorkItem::getFrameworkEventType(void) const
     return m_workItem->getFrameworkEventType();
 }
 
-EsifTime ImmediateWorkItem::getWorkItemCreationTime(void) const
+const TimeSpan& ImmediateWorkItem::getWorkItemCreationTime(void) const
 {
     return m_workItem->getWorkItemCreationTime();
 }
@@ -49,7 +49,7 @@ void ImmediateWorkItem::setWorkItemExecutionStartTime(void)
     m_workItem->setWorkItemExecutionStartTime();
 }
 
-EsifTime ImmediateWorkItem::getWorkItemExecutionStartTime(void) const
+const TimeSpan& ImmediateWorkItem::getWorkItemExecutionStartTime(void) const
 {
     return m_workItem->getWorkItemExecutionStartTime();
 }

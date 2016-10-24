@@ -41,8 +41,6 @@ eEsifError EsifCnjMgrInit()
 
 	esif_ccb_lock_init(&g_cnjMgr.fLock);
 
-	EsifCnjInit();
-
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
@@ -54,8 +52,6 @@ void EsifCnjMgrExit()
 	EsifCnjPtr cnjrPtr = NULL;
 
 	ESIF_TRACE_ENTRY_INFO();
-
-	EsifCnjExit();
 
 	esif_ccb_read_lock(&g_cnjMgr.fLock);
 	for (i = 0; i < ESIF_MAX_CONJURES; i++) {

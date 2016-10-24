@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainDisplayControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainDisplayControl::PolicyServicesDomainDisplayControl(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :
@@ -37,6 +37,18 @@ DisplayControlStatus PolicyServicesDomainDisplayControl::getDisplayControlStatus
 {
     throwIfNotWorkItemThread();
     return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlStatus(domainIndex);
+}
+
+UIntN PolicyServicesDomainDisplayControl::getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getUserPreferredDisplayIndex(domainIndex);
+}
+
+Bool PolicyServicesDomainDisplayControl::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->isUserPreferredIndexModified(domainIndex);
 }
 
 DisplayControlSet PolicyServicesDomainDisplayControl::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
@@ -59,4 +71,10 @@ void PolicyServicesDomainDisplayControl::setDisplayControlDynamicCaps(UIntN part
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setDisplayControlDynamicCaps(domainIndex,
         getPolicyIndex(), newCapabilities);
+}
+
+void PolicyServicesDomainDisplayControl::setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setDisplayCapsLock(domainIndex, getPolicyIndex(), lock);
 }

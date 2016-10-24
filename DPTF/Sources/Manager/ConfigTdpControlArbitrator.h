@@ -20,19 +20,17 @@
 
 #include "Dptf.h"
 
-class DptfManager;
-
 //
 // Arbitration Rule:
 //
 // Highest config tdp control index wins.  This is the lowest power (tdp).
 //
 
-class ConfigTdpControlArbitrator
+class dptf_export ConfigTdpControlArbitrator
 {
 public:
 
-    ConfigTdpControlArbitrator(DptfManager* dptfManager);
+    ConfigTdpControlArbitrator();
     ~ConfigTdpControlArbitrator(void);
 
     // arbitrate() returns true if the arbitrated value has changed
@@ -43,12 +41,9 @@ public:
 
 private:
 
-    // hide the copy constructor and assignment operator.
+    // hide the copy constructor.
     ConfigTdpControlArbitrator(const ConfigTdpControlArbitrator& rhs);
-    ConfigTdpControlArbitrator& operator=(const ConfigTdpControlArbitrator& rhs);
-
-    DptfManager* m_dptfManager;
 
     UIntN m_arbitratedConfigTdpControlIndex;
-    std::vector<UIntN> m_requestedConfigTdpControlIndex;
+    std::map<UIntN, UIntN> m_requestedConfigTdpControlIndex;
 };

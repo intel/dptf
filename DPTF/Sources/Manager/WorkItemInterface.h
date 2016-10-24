@@ -34,9 +34,9 @@ public:
 
     virtual UInt64 getUniqueId(void) const = 0;
     virtual FrameworkEvent::Type getFrameworkEventType(void) const = 0;
-    virtual EsifTime getWorkItemCreationTime(void) const = 0;
+    virtual const TimeSpan& getWorkItemCreationTime(void) const = 0;
     virtual void setWorkItemExecutionStartTime(void) = 0;
-    virtual EsifTime getWorkItemExecutionStartTime(void) const = 0;
+    virtual const TimeSpan& getWorkItemExecutionStartTime(void) const = 0;
     virtual void signalAtCompletion(EsifSemaphore* semaphore) = 0;
     virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const = 0;
     virtual std::string toXml(void) const = 0;

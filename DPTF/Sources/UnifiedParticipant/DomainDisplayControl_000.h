@@ -35,10 +35,13 @@ public:
 
     virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
     virtual void setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex,
         DisplayControlDynamicCaps newCapabilities) override;
+    virtual void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
     // ParticipantActivityLoggingInterface
     virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

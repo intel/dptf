@@ -27,6 +27,7 @@ class ActiveControlStaticCaps final
 public:
 
     ActiveControlStaticCaps(Bool fineGrainedControl, Bool lowSpeedNotification, UIntN stepSize);
+    static ActiveControlStaticCaps createFromFif(const DptfBuffer& buffer);
     Bool supportsFineGrainedControl(void) const;
     Bool supportsLowSpeedNotification(void) const;
     UIntN getStepSize(void) const;

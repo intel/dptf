@@ -19,31 +19,29 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DptfManager.h"
-#include "esif_ccb_rc.h"
-#include "ParticipantSpecificInfoKey.h"
+#include "DptfStatusInterface.h"
 
 class XmlNode;
 class Indent;
 class Participant;
 class ParticipantStatusMap;
 
-class DptfStatus
+class DptfStatus : public DptfStatusInterface
 {
 public:
 
-    DptfStatus(DptfManager* dptfManager);
+    DptfStatus(DptfManagerInterface* dptfManager);
     ~DptfStatus();
 
-    void getStatus(const eAppStatusCommand command, const UInt32 appStatusIn,
-        EsifDataPtr appStatusOut, eEsifError* returnCode);
-    void clearCache();
+    virtual void getStatus(const eAppStatusCommand command, const UInt32 appStatusIn,
+        EsifDataPtr appStatusOut, eEsifError* returnCode) override;
+    virtual void clearCache() override;
 
 private:
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     PolicyManager* m_policyManager;
-    ParticipantManager* m_participantManager;
+    ParticipantManagerInterface* m_participantManager;
     ParticipantStatusMap* m_participantStatusMap;
 
     std::string getFileContent(std::string fileName);

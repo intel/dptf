@@ -33,7 +33,7 @@ WIDomainPerformanceControlCapabilityChanged::~WIDomainPerformanceControlCapabili
 
 void WIDomainPerformanceControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainPerformanceControlCapabilityChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPerformanceControlCapabilityChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainPerformanceControlCapabilityChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainPerformanceControlCapabilityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPerformanceControlCapabilityChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPerformanceControlCapabilityChanged", i);
         }
     }
 }

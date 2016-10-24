@@ -30,6 +30,6 @@ public:
     {
     };
 
-    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) = 0;
-    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) = 0;
+    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) const = 0;
+    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) const = 0;
 };

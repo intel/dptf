@@ -43,6 +43,7 @@ public:
     UIntN toWholeNumber() const;
     UInt64 toCentiPercent() const;
     std::string toString() const;
+    std::string toStringWithPrecision(UInt32 precision) const;
 
 private:
 

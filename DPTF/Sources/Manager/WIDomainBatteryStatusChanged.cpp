@@ -33,7 +33,7 @@ WIDomainBatteryStatusChanged::~WIDomainBatteryStatusChanged(void)
 
 void WIDomainBatteryStatusChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainBatteryStatusChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainBatteryStatusChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainBatteryStatusChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainBatteryStatusChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainBatteryStatusChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainBatteryStatusChanged", i);
         }
     }
 }

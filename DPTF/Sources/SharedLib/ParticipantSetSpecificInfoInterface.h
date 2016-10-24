@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "CoolingPreferenceType.h"
 #include "ParticipantSpecificInfoKey.h"
 
 class ParticipantSetSpecificInfoInterface
@@ -32,9 +31,6 @@ public:
 
     // _DTI
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex, const Temperature& temperature) = 0;
-
-    // _SCP
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex, const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) = 0;
 
     //_ACX only
     virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue) = 0;

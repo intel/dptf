@@ -54,7 +54,9 @@ public:
     Bool implementsTemperatureInterface(void) const;
     Bool implementsTemperatureThresholdInterface(void) const;
     Bool implementsUtilizationInterface(void) const;
-    Bool implementsHardwareDutyCycleControlInterface(void) const;
+
+    Bool operator==(const DomainProperties& domain);
+    Bool operator!=(const DomainProperties& domain);
 
     std::shared_ptr<XmlNode> getXml() const;
 

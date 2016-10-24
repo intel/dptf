@@ -22,8 +22,9 @@
 #include "DomainPowerStatusInterface.h"
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
+#include "ParticipantActivityLoggingInterface.h"
 
-class DomainPowerStatusBase : public ControlBase, public DomainPowerStatusInterface
+class DomainPowerStatusBase : public ControlBase, public DomainPowerStatusInterface, public ParticipantActivityLoggingInterface
 {
 public:
 

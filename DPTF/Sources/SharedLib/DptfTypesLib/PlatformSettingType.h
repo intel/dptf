@@ -24,8 +24,7 @@ namespace PlatformSettingType
 {
     enum Type
     {
-        ConfigTdp,
-        HardwareDutyCycle
+        ConfigTdp
     };
 
     std::string ToString(PlatformSettingType::Type type);

@@ -18,7 +18,7 @@
 
 #include "WIDptfSuspend.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "EsifServices.h"
 
 WIDptfSuspend::WIDptfSuspend(DptfManagerInterface* dptfManager) :
@@ -35,7 +35,7 @@ void WIDptfSuspend::execute(void)
     // On a Windows machine DptfSuspend/DptfResume is called during the D0 Entry/Exit callback functions.  This is
     // synchronous and the new state doesn't take effect until this work item completes.
 
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     // notify all policies
 
@@ -55,13 +55,13 @@ void WIDptfSuspend::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executeSuspend", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executeSuspend", i);
         }
     }
 
     // notify all participants
 
-    ParticipantManager* participantManager = getParticipantManager();
+    auto participantManager = getParticipantManager();
     UIntN participantListCount = participantManager->getParticipantListCount();
 
     for (UIntN i = 0; i < participantListCount; i++)
@@ -77,7 +77,7 @@ void WIDptfSuspend::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Participant("Participant::suspend", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::suspend", i);
         }
     }
 }

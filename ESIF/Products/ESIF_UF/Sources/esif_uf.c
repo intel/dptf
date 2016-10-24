@@ -34,7 +34,6 @@
 #include "esif_dsp.h"		/* Device Support Package */
 #include "esif_link_list.h"
 #include "esif_hash_table.h"
-#include "esif_uf_logging.h"
 #include "esif_uf_loggingmgr.h"
 /* IPC */
 #include "esif_command.h"	/* Command Interface */
@@ -47,14 +46,6 @@
 #include "esif_ccb_timer.h"
 #include "esif_uf_ccb_imp_spec.h"
 
-
-
-
-/* Native memory allocation functions for use by memtrace functions only */
-#define native_malloc(siz)          malloc(siz)
-#define native_realloc(ptr, siz)    realloc(ptr, siz)
-#define native_free(ptr)            free(ptr)
-
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include <share.h>
 //
@@ -65,11 +56,19 @@
 #include "win\banned.h"
 #endif
 
+/* Native memory allocation functions for use by memtrace functions only */
+#define native_malloc(siz)          malloc(siz)
+#define native_realloc(ptr, siz)    realloc(ptr, siz)
+#define native_free(ptr)            free(ptr)
+
 int g_errorlevel = 0;			// Exit Errorlevel
 int g_quit		 = ESIF_FALSE;	// Quit
 int g_disconnectClient = ESIF_FALSE;// Disconnect client
 
-UInt8 g_esif_started = ESIF_FALSE;
+int g_esifUfInitIndex = -1; // Index into the intialization/tear-down table of the highest completed item
+int g_stopEsifUfInit = ESIF_FALSE; // Used to stop initialization in the middle of the stages
+int g_initVarSet = ESIF_FALSE; // Used to set initialization variables only once
+esif_ccb_event_t g_esifUfInitEvent = { 0 };
 
 /* ESIF Memory Pool */
 struct esif_ccb_mempool *g_mempool[ESIF_MEMPOOL_TYPE_MAX] = {0};
@@ -95,6 +94,13 @@ enum esif_rc esif_pathlist_init(esif_string path_list);
 void esif_pathlist_exit(void);
 int esif_pathlist_count(void);
 
+eEsifError EsifLogsInit(void);
+void EsifLogsExit(void);
+
+static eEsifError esif_uf_exec_startup_primitives(void);
+static eEsifError esif_uf_exec_startup_script(void);
+
+
 // Optional Custom path configuration file support
 #ifdef ESIF_ATTR_OS_WINDOWS
 # define ESIF_PATHLIST_FILENAME	"C:\\Windows\\esif.conf"	
@@ -102,8 +108,22 @@ int esif_pathlist_count(void);
 # define ESIF_PATHLIST_FILENAME	"/etc/esif.conf"
 #endif
 
-eEsifError EsifLogMgrInit(void)
+// DCFG Support
+static DCfgOptions g_DCfg = { 0 };
+
+DCfgOptions DCfg_Get()
 {
+	return g_DCfg;
+}
+
+void DCfg_Set(DCfgOptions opt)
+{
+	g_DCfg = opt;
+}
+
+eEsifError EsifLogsInit(void)
+{
+	eEsifError rc = ESIF_OK;
 	int j;
 
 	ESIF_TRACE_ENTRY_INFO();
@@ -119,11 +139,11 @@ eEsifError EsifLogMgrInit(void)
 	g_EsifLogFile[ESIF_LOG_UI].name          = esif_ccb_strdup("ui");
 	g_EsifLogFile[ESIF_LOG_PARTICIPANT].name = esif_ccb_strdup("participant");
 
-	ESIF_TRACE_EXIT_INFO();
-	return ESIF_OK;
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
 }
 
-void EsifLogMgrExit(void)
+void EsifLogsExit(void)
 {
 	int j;
 
@@ -239,9 +259,15 @@ int EsifLogFile_WriteArgsAppend(EsifLogType type, const char *append, const char
 
 esif_string EsifLogFile_GetFullPath(esif_string buffer, size_t buf_len, const char *filename)
 {
-	char *sep = strrchr((char *)filename, *ESIF_PATH_SEP);
+	char *sep = NULL;
+	
+	if ((NULL == buffer) || (NULL == filename)) {
+		return NULL;
+	}
+	
+	sep = strrchr((char *)filename, *ESIF_PATH_SEP);
 	if (sep != NULL)
-		filename = sep+1; // Ignore folders and use file.ext only
+		filename = sep + 1; // Ignore folders and use file.ext only
 
 	esif_build_path(buffer, buf_len, ESIF_PATHTYPE_LOG, (esif_string)filename, NULL);
 	return buffer;
@@ -744,95 +770,149 @@ void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
 }
 #endif
 
-eEsifError esif_uf_init()
+
+EsifInitTableEntry g_esifUfInitTable[] = {
+	{esif_uf_shell_init,				esif_uf_shell_exit,					ESIF_INIT_FLAG_NONE},
+	{esif_ccb_mempool_init_tracking,	esif_ccb_mempool_uninit_tracking,	ESIF_INIT_FLAG_NONE},
+	{EsifLogsInit,						EsifLogsExit,						ESIF_INIT_FLAG_NONE},
+	{esif_link_list_init,				esif_link_list_exit,				ESIF_INIT_FLAG_NONE},
+	{esif_ht_init,						esif_ht_exit,						ESIF_INIT_FLAG_NONE},
+	{esif_ccb_tmrm_init,				esif_ccb_tmrm_exit,					ESIF_INIT_FLAG_NONE},
+	{EsifCfgMgrInit,					EsifCfgMgrExit,						ESIF_INIT_FLAG_NONE},
+	{EsifEventMgr_Init,					EsifEventMgr_Exit,					ESIF_INIT_FLAG_NONE},
+	{EsifDspMgrInit,					EsifDspMgrExit,						ESIF_INIT_FLAG_IGNORE_ERROR | ESIF_INIT_FLAG_CHECK_STOP_AFTER},
+	{EsifActMgrInit,					EsifActMgrExit,						ESIF_INIT_FLAG_NONE},
+	{EsifUpPm_Init,						EsifUpPm_Exit,						ESIF_INIT_FLAG_NONE},
+	{esif_uf_os_init,					esif_uf_os_exit,					ESIF_INIT_FLAG_NONE},
+	{EsifAppMgrInit,					EsifAppMgrExit,						ESIF_INIT_FLAG_NONE},
+	{EsifCnjMgrInit,					EsifCnjMgrExit,						ESIF_INIT_FLAG_NONE},
+	{esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE},
+	// Next NULL init items may or may not be running and are only started once ESIF is fully initialized
+	{NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE},
+	{NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE},
+	{NULL,								esif_uf_shell_stop,					ESIF_INIT_FLAG_NONE},
+	{NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE},
+	{esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_NONE},
+	{esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER},
+	{esif_uf_shell_banner_init,			NULL,								ESIF_INIT_FLAG_NONE},
+};
+
+//
+// esif_uf_init may be stopped (esif_uf_stop_init) and restarted, but there
+// should never be multiple attempts to init the UF at the same time as
+// there is no synchronization for such a case.
+//
+eEsifError esif_uf_init(void)
 {
 	eEsifError rc = ESIF_OK;
+	int index = 0;
+	EsifInitTableEntryPtr curEntryPtr = NULL;
+
 	ESIF_TRACE_ENTRY_INFO();
 
-	esif_uf_shell_init();
+	esif_ccb_event_reset(&g_esifUfInitEvent);
 
-	ESIF_TRACE_DEBUG("Init Upper Framework (UF)");
+	for (index = g_esifUfInitIndex + 1; index < (int)(sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr)); index++) {
+		curEntryPtr = &g_esifUfInitTable[index];
 
-	esif_ccb_mempool_init_tracking();
+		ESIF_TRACE_API_INFO("[INIT] Performing ESIF UF init Step %d\n", index);
 
-	// Get Home directory
-	CMD_OUT("Home: %s\n", esif_pathlist_get(ESIF_PATHTYPE_HOME));
+		if (curEntryPtr->initFunc == NULL) {
+			ESIF_TRACE_API_INFO("[INIT] ESIF UF init Step %d complete\n", index);
+			continue;
+		}
 
+		//
+		// Note that we only break when g_stopEsifUfInit is set if the
+		// current entry is NOT NULL.  This allows the index to increment
+		// so that items at the end which do not have init counterparts
+		// are executed during uninit if intialization is stopped
+		// (This condition should not occur as items at the end shouldn't
+		// ever be needed unless fully initialized...)
+		//
+		if (g_stopEsifUfInit != ESIF_FALSE) {
+			ESIF_TRACE_API_INFO("[INIT] Pausing ESIF UF init at Step %d\n", index - 1);
+			rc = ESIF_I_INIT_PAUSED;
+			break;
+		}
 
-	/* OS Agnostic */
-	EsifLogMgrInit();
+		rc = curEntryPtr->initFunc();
+		if (ESIF_I_INIT_PAUSED == rc) {
+			break;
+		}
+		if ((rc != ESIF_OK) && !(curEntryPtr->flags & ESIF_INIT_FLAG_IGNORE_ERROR)) {
+			ESIF_TRACE_API_INFO("[INIT] Error in ESIF UF init Step %d; rc = %d\n", index, rc);
+			break;				
+		}
+		rc = ESIF_OK;
 
-	esif_link_list_init();
-	esif_ht_init();
-	esif_ccb_tmrm_init();
-
-	EsifCfgMgrInit();
-	EsifEventMgr_Init();
-	EsifCnjMgrInit();
-	EsifUpPm_Init();
-	EsifDspMgrInit();
-	EsifActMgrInit();
-
-	/* Web Server optionally started by shell scripts in esif_init */
-
-	/* OS Specific */
-	rc = esif_uf_os_init();
-	if (ESIF_OK != rc) {
-		goto exit;
+		/*
+		 * For some items, we do not get a return code to base our decision on.
+		 * In this case, we check if we are pausing init after it returns.  In
+		 * this case, we may end up re-running a step that completed
+		 * successfully.  Such steps must be made such that they can be re-run
+		 * without side-effects.
+		 */
+		if ((g_stopEsifUfInit != ESIF_FALSE) && (curEntryPtr->flags & ESIF_INIT_FLAG_CHECK_STOP_AFTER)) {
+			ESIF_TRACE_API_INFO("[INIT] Pausing ESIF UF init at Step %d (after)\n", index - 1);
+			rc = ESIF_I_INIT_PAUSED;
+			break;			
+		}
+		ESIF_TRACE_API_INFO("[INIT] ESIF UF init Step %d complete\n", index);
 	}
+	g_esifUfInitIndex = index - 1;  // Set the completed index to the last successful item index
 
-	/* Start App Manager after all dependent components started
-	 * This does not actually start any apps.
-	 */
-	EsifAppMgrInit();
+	g_stopEsifUfInit = ESIF_FALSE;
+	esif_ccb_event_set(&g_esifUfInitEvent);
 
-	esif_ccb_participants_initialize();
-
-exit: 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
-
+//
+// WARNING:  This routine should only be called within the context of a system
+// thread, and not from within any ESIF UF init/uninit routine or any routine
+// called by them.  (This function will block waiting for esif_uf_init to exit;
+// therefore it must not be called in the same thread as esif_uf_init when it is
+// executing, or a deadlock will occur.)
+//
 void esif_uf_exit()
 {
-	/* Stop event thread */
-	g_quit = ESIF_TRUE;
+	EsifInitTableEntryPtr curEntryPtr = NULL;
 
-	/* Stop web server if it is running */
-	EsifWebStop();
-	EsifDataLogStop();
-	EsifLogMgr_Exit();
-	EsifUFPollStop();
+	ESIF_TRACE_ENTRY_INFO();
 
-	/* Stop all Apps before dependent components they may be using */
-	EsifAppMgrExit();
+	esif_uf_stop_init();
 
-	/* OS Specific */
-	esif_uf_os_exit();
+	if (g_esifUfInitIndex >= (int)(sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr))) {
+		goto exit;
+	}
+	curEntryPtr = &g_esifUfInitTable[g_esifUfInitIndex];
 
-	/* OS Agnostic - Call in reverse order of Init */
-	EsifUpPm_Exit();
-	EsifActMgrExit();
-	EsifDspMgrExit();
-	EsifEventMgr_Exit();
-	EsifCnjMgrExit();
-	EsifCfgMgrExit();
-	EsifLogMgrExit();
-	esif_ccb_tmrm_exit();
-	esif_ht_exit();
-	esif_link_list_exit();
-	esif_ccb_mempool_uninit_tracking();
-
-	// Re-Initialize necessary global variables in case ESIF restarted
-	g_esif_started = ESIF_FALSE;
-
-	ESIF_TRACE_DEBUG("Exit Upper Framework (UF)");
-
-	esif_uf_shell_exit();
-
+	for (; g_esifUfInitIndex >= 0; g_esifUfInitIndex--, curEntryPtr--) {
+	
+		if (curEntryPtr->exitFunc != NULL) {
+			curEntryPtr->exitFunc();
+		}
+	}
+exit:
 	ESIF_TRACE_EXIT_INFO();
 }
+
+
+//
+// WARNING:  This routine should only be called within the context of a system
+// thread, and not from within any ESIF UF init/uninit routine or any routine
+// called by them.  (This function will block waiting for esif_uf_init to exit;
+// therefore it must not be called in the same thread as esif_uf_init when it is
+// executing, or a deadlock will occur.)
+//
+void esif_uf_stop_init()
+{
+	g_stopEsifUfInit = ESIF_TRUE;
+	esif_ccb_event_wait(&g_esifUfInitEvent);
+}
+
 
 // Initialize at OS entry point
 enum esif_rc esif_main_init(esif_string path_list)
@@ -845,6 +925,9 @@ enum esif_rc esif_main_init(esif_string path_list)
 
 	esif_pathlist_init(path_list);
 
+	esif_ccb_event_init(&g_esifUfInitEvent);
+	esif_ccb_event_set(&g_esifUfInitEvent);
+
 	// Return control to main OS entry point, which eventually calls esif_uf_init 
 	return rc;
 }
@@ -853,6 +936,7 @@ enum esif_rc esif_main_init(esif_string path_list)
 void esif_main_exit()
 {
 	// esif_uf_init and esif_uf_exit have already been called at this point
+	esif_ccb_event_uninit(&g_esifUfInitEvent);
 
 #ifdef ESIF_ATTR_MEMTRACE
 	esif_memtrace_exit();	/* must be called last */
@@ -860,6 +944,77 @@ void esif_main_exit()
 	esif_pathlist_exit();	/* called by esif_memtrace_exit */
 #endif
 }
+
+
+/*
+* Execute Startup Primitives after ESIF_UF Initialization and before any Shell commands or Apps are started.
+* For Windows (UMDF) and Linux (SYSFS) the IETM Participant is guaranteed to have been created by this point.
+*
+* For Windows (Server Mode) and Linux (Out of Tree), there is no guarantee that the IETM Participant has been
+* created due to timing issues with ESIF_LF, so these primitives will need to be called from a start script or
+* the autoexec script before calling appstart in order to guarantee that configuration is loaded before Apps.
+*/
+static eEsifError esif_uf_exec_startup_primitives(void)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple tuple = { GET_CONFIG, ESIF_PRIMITIVE_DOMAIN_D0, 255 };
+	EsifData requestData = { ESIF_DATA_VOID, 0, 0, 0 };
+	EsifData responseData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+	EsifUpPtr upPtr = NULL;
+
+	ESIF_TRACE_ENTRY_INFO();
+
+	// IETM may not be present if conjuring, so do not fail if IETM not found
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(ESIF_INSTANCE_LF); // IETM Participant
+	if (NULL == upPtr) {
+		goto exit;
+	}
+
+	// Execute CNFG Delegate to load all DPTF Configuration data
+	rc = EsifUp_ExecutePrimitive(upPtr, &tuple, &requestData, &responseData);
+exit:
+	EsifUp_PutRef(upPtr);
+	esif_ccb_free(responseData.buf_ptr);
+
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
+}
+
+
+static eEsifError esif_uf_exec_startup_script(void)
+{
+	eEsifError rc = ESIF_OK;
+	char command[MAX_LINE] = {0};
+	char filepath[MAX_PATH] = {0};
+
+	ESIF_TRACE_ENTRY_INFO();
+
+	// Execute "start" script file in cmd directory, if one exists
+	if (esif_build_path(filepath, sizeof(filepath), ESIF_PATHTYPE_CMD, "start", NULL) != NULL && esif_ccb_file_exists(filepath)) {
+		esif_ccb_strcpy(command, "load start", sizeof(command));
+	}
+	// Use startup script in startup.dv datavault, if it exists
+	else if (DataBank_KeyExists(g_DataBankMgr, "startup", "start")) {
+		esif_ccb_strcpy(command, "config exec @startup start", sizeof(command));
+	}
+	// Use startup script in Default datavault, if it exists
+	else if (DataBank_KeyExists(g_DataBankMgr, g_DataVaultDefault, "start")) {
+		esif_ccb_strcpy(command, "config exec start", sizeof(command));
+	}
+	// Otherwise Use default startup script, if any
+	else {
+		esif_ccb_strcpy(command, "autoexec", sizeof(command));
+	}
+
+	// Execute Startup Script, if one was found
+	if (command[0]) {
+		parse_cmd(command, ESIF_FALSE, ESIF_TRUE);
+	}
+
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
+}
+
 
 /* Memory Allocation Trace Support */
 #ifdef ESIF_ATTR_MEMTRACE

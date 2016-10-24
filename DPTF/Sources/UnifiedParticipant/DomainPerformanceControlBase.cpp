@@ -36,7 +36,6 @@ void DomainPerformanceControlBase::sendActivityLoggingDataIfEnabled(UIntN partic
     {
         if (isActivityLoggingEnabled() == true)
         {
-            intializeControlStructuresIfRequired(participantIndex, domainIndex);
             UInt32 performanceControlIndex = getCurrentPerformanceControlIndex(participantIndex, domainIndex);
 
             if (performanceControlIndex == Constants::Invalid)
@@ -44,11 +43,13 @@ void DomainPerformanceControlBase::sendActivityLoggingDataIfEnabled(UIntN partic
                 performanceControlIndex = 0;
             }
             EsifCapabilityData capability;
-            capability.type = Capability::PerformanceControl;
+            capability.type = ESIF_CAPABILITY_TYPE_PERF_CONTROL;
             capability.size = sizeof(capability);
             capability.data.performanceControl.pStateLimit = performanceControlIndex;
-            capability.data.performanceControl.lowerLimit = getDynamicCapability(participantIndex, domainIndex).getCurrentLowerLimitIndex();
-            capability.data.performanceControl.upperLimit = getDynamicCapability(participantIndex, domainIndex).getCurrentUpperLimitIndex();
+            capability.data.performanceControl.lowerLimit = 
+                getPerformanceControlDynamicCaps(participantIndex, domainIndex).getCurrentLowerLimitIndex();
+            capability.data.performanceControl.upperLimit = 
+                getPerformanceControlDynamicCaps(participantIndex, domainIndex).getCurrentUpperLimitIndex();
 
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
                 domainIndex, Capability::getEsifDataFromCapabilityData(&capability));

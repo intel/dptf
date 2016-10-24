@@ -33,7 +33,7 @@ WIPolicyOperatingSystemPowerSchemePersonalityChanged::~WIPolicyOperatingSystemPo
 
 void WIPolicyOperatingSystemPowerSchemePersonalityChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyOperatingSystemPowerSchemePersonalityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemPowerSchemePersonalityChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPowerSchemePersonalityChanged", i);
         }
     }
 }

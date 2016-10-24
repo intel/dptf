@@ -22,7 +22,6 @@
 #include "SupportedPolicyList.h"
 #include "PolicyInterface.h"
 #include "EsifLibrary.h"
-#include "OsHdcStatus.h"
 #include "esif_sdk_logging_data.h"
 
 class DptfManager;
@@ -31,7 +30,7 @@ class Policy final
 {
 public:
 
-    Policy(DptfManager* dptfManager);
+    Policy(DptfManagerInterface* dptfManager);
     ~Policy(void);
 
     void createPolicy(const std::string& policyFileName, UIntN newPolicyIndex,
@@ -83,20 +82,16 @@ public:
     void executeDomainMaxBatteryPowerChanged(UIntN participantIndex);
     void executeDomainPlatformBatterySteadyStateChanged(UIntN participantIndex);
     void executePolicyActiveRelationshipTableChanged(void);
-    void executePolicyCoolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit);
     void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode);
-    void executePolicyCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit);
     void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName);
     void executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2);
     void executePolicyOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel);
-    void executePolicyOperatingSystemLpmModeChanged(UIntN lpmMode);
-    void executePolicyOperatingSystemHdcStatusChanged(OsHdcStatus::Type status);
     void executePolicyPassiveTableChanged(void);
-    void executePolicyPlatformLpmModeChanged(void);
     void executePolicySensorOrientationChanged(SensorOrientation::Type sensorOrientation);
-    void executePolicySensorMotionChanged(SensorMotion::Type sensorMotion);
+    void executePolicySensorMotionChanged(OnOffToggle::Type sensorMotion);
     void executePolicySensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation);
     void executePolicyThermalRelationshipTableChanged(void);
+    void executePolicyAdaptivePerformanceParticipantConditionTableChanged(void);
     void executePolicyAdaptivePerformanceConditionsTableChanged(void);
     void executePolicyAdaptivePerformanceActionsTableChanged(void);
     void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource);
@@ -105,14 +100,17 @@ public:
     void executePolicyOperatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality);
     void executePolicyOperatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType);
     void executePolicyOperatingSystemDockModeChanged(OsDockMode::Type osDockMode);
-    void executePolicyOperatingSystemMobileNotification(UIntN mobileNotification);
+    void executePolicyOperatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState);
+    void executePolicyOperatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value);
     void executePolicyOemVariablesChanged(void);
-    void executePolicyPowerDeviceRelationshipTableChanged(void);
     void executePolicyPowerBossConditionsTableChanged(void);
     void executePolicyPowerBossActionsTableChanged(void);
+    void executePolicyPowerBossMathTableChanged(void);
     void executePolicyActivityLoggingEnabled(void);
     void executePolicyActivityLoggingDisabled(void);    
-
+    void executePolicyEmergencyCallModeTableChanged(void);
+    void executePolicyPidAlgorithmTableChanged(void);
+    void executePolicyActiveControlPointRelationshipTableChanged(void);
 private:
 
     // hide the copy constructor and assignment operator.
@@ -120,7 +118,7 @@ private:
     Policy& operator=(const Policy& rhs);
 
     // Pointer to the DPTF manager class which has access to most of the manager components.
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
 
     // The instance returned when we called CreatePolicyInstance on the .dll/.so
     PolicyInterface* m_theRealPolicy;

@@ -27,7 +27,7 @@ public:
 
     DomainPlatformPowerStatus_001(UIntN participantIndex, UIntN domainIndex,
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainPlatformPowerStatus_001(void);
+    virtual ~DomainPlatformPowerStatus_001(void);
 
     // DomainPlatformPowerStatusInterface
     virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;

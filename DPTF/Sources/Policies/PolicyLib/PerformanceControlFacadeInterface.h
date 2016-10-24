@@ -36,6 +36,8 @@ public:
     virtual void setControlsToMax() = 0;
     virtual void setControl(UIntN performanceControlIndex) = 0;
     virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) = 0;
+    virtual void lockCapabilities() = 0;
+    virtual void unlockCapabilities() = 0;
 
     // properties
     virtual void refreshCapabilities() = 0;

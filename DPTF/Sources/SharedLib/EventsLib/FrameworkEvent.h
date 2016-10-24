@@ -82,22 +82,18 @@ namespace FrameworkEvent
         PolicyCreate,
         PolicyDestroy,
         PolicyActiveRelationshipTableChanged,
-        PolicyCoolingModeAcousticLimitChanged,
         PolicyCoolingModePolicyChanged,                             // Active cooling mode vs. Passive cooling mode
-        PolicyCoolingModePowerLimitChanged,
         PolicyForegroundApplicationChanged,
         PolicyInitiatedCallback,                                    // The policy created the event so it will get called back on a work item thread
         PolicyOperatingSystemConfigTdpLevelChanged,
-        PolicyOperatingSystemLpmModeChanged,
         PolicyPassiveTableChanged,
-        PolicyPlatformLpmModeChanged,
         PolicySensorOrientationChanged,
         PolicySensorMotionChanged,
         PolicySensorSpatialOrientationChanged,
         PolicyThermalRelationshipTableChanged,
         PolicyAdaptivePerformanceConditionsTableChanged,
+        PolicyAdaptivePerformanceParticipantConditionTableChanged,
         PolicyAdaptivePerformanceActionsTableChanged,
-        PolicyOperatingSystemHdcStatusChanged,
         PolicyOperatingSystemPowerSourceChanged,
         PolicyOperatingSystemLidStateChanged,
         PolicyOperatingSystemBatteryPercentageChanged,
@@ -105,11 +101,19 @@ namespace FrameworkEvent
         PolicyOperatingSystemDockModeChanged,
         PolicyOperatingSystemMobileNotification,
         PolicyOemVariablesChanged,
-        PolicyPowerDeviceRelationshipTableChanged,
         PolicyPowerBossConditionsTableChanged,
         PolicyPowerBossActionsTableChanged,
+        PolicyPowerBossMathTableChanged,
         DptfPolicyLoadedUnloadedEvent,
         PolicyOperatingSystemPowerSchemePersonalityChanged,
+        PolicyEmergencyCallModeTableChanged,
+        PolicyPidAlgorithmTableChanged,
+        PolicyActiveControlPointRelationshipTableChanged,
+        //App Events
+        DptfAppLoaded,
+        DptfAppUnloaded,
+        DptfAppUnloading,
+
         Max
     };
 }

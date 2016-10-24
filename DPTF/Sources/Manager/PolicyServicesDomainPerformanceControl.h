@@ -40,4 +40,5 @@ public:
         UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override final;
     virtual void setPerformanceControlDynamicCaps(
         UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override final;
+    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override final;
 };

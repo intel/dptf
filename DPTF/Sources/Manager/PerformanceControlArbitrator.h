@@ -20,19 +20,17 @@
 
 #include "Dptf.h"
 
-class DptfManager;
-
 //
 // Arbitration Rule:
 //
 // The lowest p-state (highest index value) wins!!!
 //
 
-class PerformanceControlArbitrator
+class dptf_export PerformanceControlArbitrator
 {
 public:
 
-    PerformanceControlArbitrator(DptfManager* dptfManager);
+    PerformanceControlArbitrator();
     ~PerformanceControlArbitrator(void);
 
     // arbitrate() returns true if the arbitrated value has changed
@@ -43,12 +41,9 @@ public:
 
 private:
 
-    // hide the copy constructor and assignment operator.
+    // hide the copy constructor.
     PerformanceControlArbitrator(const PerformanceControlArbitrator& rhs);
-    PerformanceControlArbitrator& operator=(const PerformanceControlArbitrator& rhs);
-
-    DptfManager* m_dptfManager;
 
     UIntN m_arbitratedPerformanceControlIndex;
-    std::vector<UIntN> m_requestedPerformanceControlIndex;
+    std::map<UIntN, UIntN> m_requestedPerformanceControlIndex;
 };

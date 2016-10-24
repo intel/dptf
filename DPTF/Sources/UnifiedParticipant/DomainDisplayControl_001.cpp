@@ -18,16 +18,22 @@
 
 #include "DomainDisplayControl_001.h"
 #include "XmlNode.h"
-#include <algorithm>
 
 DomainDisplayControl_001::DomainDisplayControl_001(UIntN participantIndex, UIntN domainIndex, 
     ParticipantServicesInterface* participantServicesInterface) :
-    DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
+    DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface),
+    m_userPreferredIndex(Constants::Invalid),
+    m_lastSetDisplayBrightness(Constants::Invalid),
+    m_isUserPreferredIndexModified(true),
+    m_capabilitiesLocked(false)
 {
+    clearCachedData();
+    capture();
 }
 
 DomainDisplayControl_001::~DomainDisplayControl_001(void)
 {
+    restore();
 }
 
 DisplayControlDynamicCaps DomainDisplayControl_001::getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
@@ -49,6 +55,36 @@ DisplayControlStatus DomainDisplayControl_001::getDisplayControlStatus(UIntN par
     return DisplayControlStatus(m_currentDisplayControlIndex.get());
 }
 
+UIntN DomainDisplayControl_001::getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex)
+{
+    if ((getParticipantServices()->isUserPreferredDisplayCacheValid(participantIndex, domainIndex)) == true)
+    {
+        m_userPreferredIndex = getParticipantServices()->getUserPreferredDisplayCacheValue(participantIndex, domainIndex);
+        getParticipantServices()->invalidateUserPreferredDisplayCache(participantIndex, domainIndex);
+    }
+    else
+    {
+        auto currentStatus = getDisplayControlStatus(participantIndex, domainIndex);
+        auto currentIndex = currentStatus.getBrightnessLimitIndex();
+        if (m_userPreferredIndex == Constants::Invalid || currentIndex != m_lastSetDisplayBrightness)
+        {
+            m_userPreferredIndex = currentIndex;
+            m_isUserPreferredIndexModified = true;
+        }
+        else
+        {
+            m_isUserPreferredIndexModified = false;
+        }
+    }
+
+    return m_userPreferredIndex;
+}
+
+Bool DomainDisplayControl_001::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
+{
+    return m_isUserPreferredIndexModified;
+}
+
 DisplayControlSet DomainDisplayControl_001::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
     if (m_displayControlSet.isInvalid())
@@ -60,17 +96,34 @@ DisplayControlSet DomainDisplayControl_001::getDisplayControlSet(UIntN participa
 
 void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
 {
-    throwIfControlIndexIsOutOfRange(displayControlIndex, domainIndex);
-
+    auto indexToset = getAllowableDisplayBrightnessIndex(participantIndex, domainIndex, displayControlIndex);
     auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
-    Percentage newBrightness = displaySet[displayControlIndex].getBrightness();
+    Percentage newBrightness = displaySet[indexToset].getBrightness();
 
     getParticipantServices()->primitiveExecuteSetAsPercentage(
         esif_primitive_type::SET_DISPLAY_BRIGHTNESS,
         newBrightness,
         domainIndex);
 
-    m_currentDisplayControlIndex.set(displayControlIndex);
+    m_lastSetDisplayBrightness = indexToset;
+}
+
+UIntN DomainDisplayControl_001::getAllowableDisplayBrightnessIndex(UIntN participantIndex,
+    UIntN domainIndex, UIntN requestedIndex)
+{
+    auto userPreferred = getUserPreferredDisplayIndex(participantIndex, domainIndex);
+    auto dynamicCapabilities = getDisplayControlDynamicCaps(participantIndex, domainIndex);
+    auto maxLimit = std::max(dynamicCapabilities.getCurrentUpperLimit(), userPreferred);
+
+    auto valueToRequest = std::max(requestedIndex, maxLimit);
+
+    auto minIndex = dynamicCapabilities.getCurrentLowerLimit();
+    if (userPreferred <= minIndex)
+    {
+        valueToRequest = std::min(valueToRequest, minIndex);
+    }
+
+    return valueToRequest;
 }
 
 void DomainDisplayControl_001::setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
@@ -80,31 +133,59 @@ void DomainDisplayControl_001::setDisplayControlDynamicCaps(UIntN participantInd
     auto upperLimitIndex = newCapabilities.getCurrentUpperLimit();
     auto lowerLimitIndex = newCapabilities.getCurrentLowerLimit();
 
-    auto size = displaySet.getCount();
-    if (upperLimitIndex >= size)
+    if (upperLimitIndex != Constants::Invalid && lowerLimitIndex != Constants::Invalid)
     {
-        throw dptf_exception("Upper Limit index is out of control set bounds.");
+        auto size = displaySet.getCount();
+        if (upperLimitIndex >= size)
+        {
+            throw dptf_exception("Upper Limit index is out of control set bounds.");
+        }
+        else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
+        {
+            lowerLimitIndex = size - 1;
+            getParticipantServices()->writeMessageWarning(
+                ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
+        }
+
+        m_displayControlDynamicCaps.invalidate();
+
+        Percentage upperLimitBrightness = displaySet[upperLimitIndex].getBrightness();
+        UInt32 uint32UpperLimit = upperLimitBrightness.toWholeNumber();
+        getParticipantServices()->primitiveExecuteSetAsUInt32(
+            esif_primitive_type::SET_DISPLAY_CAPABILITY,
+            uint32UpperLimit,
+            domainIndex,
+            Constants::Esif::NoPersistInstance);
+
+        Percentage lowerLimitBrightness = displaySet[lowerLimitIndex].getBrightness();
+        UInt32 uint32LowerLimit = lowerLimitBrightness.toWholeNumber();
+        getParticipantServices()->primitiveExecuteSetAsUInt32(
+            esif_primitive_type::SET_DISPLAY_DEPTH_LIMIT,
+            uint32LowerLimit,
+            domainIndex,
+            Constants::Esif::NoPersistInstance);
     }
-    else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
+    else
     {
-        lowerLimitIndex = size - 1;
-        getParticipantServices()->writeMessageWarning(
-            ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
+        m_displayControlDynamicCaps.invalidate();
+
+        getParticipantServices()->primitiveExecuteSetAsUInt32(
+            esif_primitive_type::SET_DISPLAY_CAPABILITY,
+            upperLimitIndex,
+            domainIndex,
+            Constants::Esif::NoPersistInstance);
+
+        getParticipantServices()->primitiveExecuteSetAsUInt32(
+            esif_primitive_type::SET_DISPLAY_DEPTH_LIMIT,
+            lowerLimitIndex,
+            domainIndex,
+            Constants::Esif::NoPersistInstance);
     }
+}
 
-    m_displayControlDynamicCaps.invalidate();
-
-    Percentage newUpperBrightness = displaySet[upperLimitIndex].getBrightness();
-    getParticipantServices()->primitiveExecuteSetAsPercentage(
-        esif_primitive_type::SET_DISPLAY_CAPABILITY,
-        newUpperBrightness,
-        domainIndex);
-
-    Percentage newLowerBrightness = displaySet[lowerLimitIndex].getBrightness();
-    getParticipantServices()->primitiveExecuteSetAsPercentage(
-        esif_primitive_type::SET_DISPLAY_DEPTH_LIMIT,
-        newLowerBrightness,
-        domainIndex);
+void DomainDisplayControl_001::setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+{
+    m_capabilitiesLocked = lock;
 }
 
 void DomainDisplayControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
@@ -125,7 +206,7 @@ void DomainDisplayControl_001::sendActivityLoggingDataIfEnabled(UIntN participan
         }
 
         EsifCapabilityData capability;
-        capability.type = Capability::DisplayControl;
+        capability.type = ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL;
         capability.size = sizeof(capability);
         capability.data.displayControl.currentDPTFLimit = displaySet[displayControlIndex].getBrightness().toWholeNumber();
         capability.data.displayControl.lowerLimit = displaySet[dynamicCaps.getCurrentLowerLimit()].getBrightness().toWholeNumber();
@@ -141,22 +222,69 @@ void DomainDisplayControl_001::clearCachedData(void)
     m_displayControlDynamicCaps.invalidate();
     m_displayControlSet.invalidate();
     m_currentDisplayControlIndex.invalidate();
+
+    if (m_capabilitiesLocked == false)
+    {
+        DptfBuffer capabilityBuffer = createResetPrimitiveTupleBinary(
+            esif_primitive_type::SET_DISPLAY_CAPABILITY, Constants::Esif::NoPersistInstance);
+        getParticipantServices()->primitiveExecuteSet(
+            esif_primitive_type::SET_CONFIG_RESET, ESIF_DATA_BINARY,
+            capabilityBuffer.get(), capabilityBuffer.size(), capabilityBuffer.size(), 
+            0, Constants::Esif::NoInstance);
+
+        DptfBuffer depthLimitBuffer = createResetPrimitiveTupleBinary(
+            esif_primitive_type::SET_DISPLAY_DEPTH_LIMIT, Constants::Esif::NoPersistInstance);
+        getParticipantServices()->primitiveExecuteSet(
+            esif_primitive_type::SET_CONFIG_RESET, ESIF_DATA_BINARY,
+            depthLimitBuffer.get(), depthLimitBuffer.size(), depthLimitBuffer.size(),
+            0, Constants::Esif::NoInstance);
+    }
 }
 
 std::shared_ptr<XmlNode> DomainDisplayControl_001::getXml(UIntN domainIndex)
 {
     auto root = XmlNode::createWrapperElement("display_control");
-    root->addChild(getDisplayControlStatus(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getDisplayControlDynamicCaps(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getDisplayControlSet(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getDisplayControlStatus(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getDisplayControlDynamicCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getDisplayControlSet(getParticipantIndex(), domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
 }
 
+void DomainDisplayControl_001::restore(void)
+{
+    if (m_userPreferredIndex != Constants::Invalid)
+    {
+        try
+        {
+            getParticipantServices()->setUserPreferredDisplayCacheValue(getParticipantIndex(), getDomainIndex(), m_userPreferredIndex);
+
+            auto displaySet = getDisplayControlSet(getParticipantIndex(), getDomainIndex());
+            auto upperLimitIndex = getDisplayControlDynamicCaps(getParticipantIndex(), getDomainIndex()).getCurrentUpperLimit();
+            if (m_userPreferredIndex < upperLimitIndex)
+            {
+                m_userPreferredIndex = upperLimitIndex;
+            }
+            Percentage newBrightness = displaySet[m_userPreferredIndex].getBrightness();
+
+            getParticipantServices()->primitiveExecuteSetAsPercentage(
+                esif_primitive_type::SET_DISPLAY_BRIGHTNESS,
+                newBrightness,
+                getDomainIndex());
+        }
+        catch (...)
+        {
+            // best effort
+            getParticipantServices()->writeMessageDebug(ParticipantMessage(
+                FLF, "Failed to restore the user preferred display status. "));
+        }
+    }
+}
+
 DisplayControlDynamicCaps DomainDisplayControl_001::createDisplayControlDynamicCaps(UIntN domainIndex)
 {
-    auto displaySet = getDisplayControlSet(Constants::Invalid, domainIndex);
+    auto displaySet = getDisplayControlSet(getParticipantIndex(), domainIndex);
 
     // Get dynamic caps
     //  The caps are stored in BIOS as brightness percentage.  They must be converted
@@ -184,18 +312,18 @@ DisplayControlSet DomainDisplayControl_001::createDisplayControlSet(UIntN domain
     // _BCL Table
     DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
         esif_primitive_type::GET_DISPLAY_BRIGHTNESS_LEVELS, ESIF_DATA_BINARY, domainIndex);
-    std::vector<DisplayControl> controls = BinaryParse::displayBclObject(buffer);
-    throwIfDisplaySetIsEmpty((UIntN)controls.size());
+    auto displayControlSet = DisplayControlSet::createFromBcl(buffer);
+    throwIfDisplaySetIsEmpty(displayControlSet.getCount());
 
-    return DisplayControlSet(processDisplayControlSetData(controls));
+    return displayControlSet;
 }
 
 void DomainDisplayControl_001::throwIfControlIndexIsOutOfRange(UIntN displayControlIndex, UIntN domainIndex)
 {
-    auto dynamicCaps = getDisplayControlDynamicCaps(Constants::Invalid, domainIndex);
+    auto dynamicCaps = getDisplayControlDynamicCaps(getParticipantIndex(), domainIndex);
     auto upperLimit = dynamicCaps.getCurrentUpperLimit();
     auto lowerLimit = dynamicCaps.getCurrentLowerLimit();
-    auto displaySet = getDisplayControlSet(Constants::Invalid, domainIndex);
+    auto displaySet = getDisplayControlSet(getParticipantIndex(), domainIndex);
     auto size = displaySet.getCount();
 
     if (displayControlIndex >= size || displayControlIndex < upperLimit || displayControlIndex > lowerLimit)
@@ -246,15 +374,6 @@ UIntN DomainDisplayControl_001::getUpperLimitIndex(UIntN domainIndex, DisplayCon
         upperLimitIndex = 0; // Max brightness
     }
     return upperLimitIndex;
-}
-
-std::vector<DisplayControl> DomainDisplayControl_001::processDisplayControlSetData(std::vector<DisplayControl> controls)
-{
-    std::sort(controls.begin(), controls.end());
-    controls.erase(std::unique(controls.begin(), controls.end()), controls.end());  // remove duplicates
-    std::reverse(controls.begin(), controls.end());
-
-    return controls;
 }
 
 std::string DomainDisplayControl_001::getName(void)

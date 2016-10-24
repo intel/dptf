@@ -33,8 +33,8 @@ public:
     // sets the internal structure to the current time.
     void refresh(void);
 
-    // returns the internal time stamp (milliseconds)
-    UInt64 getTimeStampInMilliSec(void) const;
+    // returns the internal time stamp
+    const TimeSpan& getTimeStamp(void) const;
 
     Bool operator==(const EsifTime& rhs) const;
     Bool operator!=(const EsifTime& rhs) const;
@@ -42,17 +42,11 @@ public:
     Bool operator>=(const EsifTime& rhs) const;
     Bool operator<(const EsifTime& rhs) const;
     Bool operator<=(const EsifTime& rhs) const;
-
-    EsifTime operator+(UInt64 numMilliSeconds) const;
-    EsifTime operator-(UInt64 numMilliSeconds) const;
-    EsifTime& operator+=(UInt64 numMilliSeconds);
-    EsifTime& operator-=(UInt64 numMilliSeconds);
-
-    UInt64 operator-(const EsifTime& rhs) const;
+    TimeSpan operator-(const EsifTime& rhs) const;
 
 private:
 
-    UInt64 m_timeStamp;                                             // stores num milliseconds since fixed point in time
+    TimeSpan m_timeStamp;            // stores time stamp for fixed point in time
 
-    UInt64 getCurrentTime(void);
+    TimeSpan getCurrentTime(void);
 };

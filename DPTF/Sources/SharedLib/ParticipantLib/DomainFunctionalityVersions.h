@@ -48,7 +48,9 @@ struct DomainFunctionalityVersions final
     UInt8 pixelClockStatusVersion;
     UInt8 rfProfileControlVersion;
     UInt8 rfProfileStatusVersion;
-    UInt8 hardwareDutyCycleVersion;
     UInt8 platformPowerControlVersion;
     UInt8 platformPowerStatusVersion;
+
+    Bool operator==(const DomainFunctionalityVersions& domainFunctionality);
+    Bool operator!=(const DomainFunctionalityVersions& domainFunctionality);
 };

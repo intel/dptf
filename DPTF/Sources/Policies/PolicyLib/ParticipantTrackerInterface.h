@@ -36,9 +36,8 @@ public:
     virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) = 0;
     virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType) = 0;
     virtual std::vector<UIntN> getAllTrackedIndexes() const = 0;
-    virtual void setPolicyServices(PolicyServicesInterfaceContainer policyServices) = 0;
+    virtual void setPolicyServices(const PolicyServicesInterfaceContainer &policyServices) = 0;
     virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) = 0;
     virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() = 0;
-    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() = 0;
 
 };

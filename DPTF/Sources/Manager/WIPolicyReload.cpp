@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "WIPolicyReload.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "Participant.h"
 #include "PolicyManager.h"
 #include "EsifServices.h"
@@ -33,7 +33,7 @@ WIPolicyReload::~WIPolicyReload(void)
 
 void WIPolicyReload::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     // Iterate through the list of policies and unbind all participant and domains from them
     
@@ -57,7 +57,7 @@ void WIPolicyReload::execute(void)
     }
     catch (dptf_exception ex)
     {
-        WriteWorkItemErrorMessage_Function("policyManager::reloadAllPolicies");
+        writeWorkItemErrorMessage(ex, "policyManager::reloadAllPolicies");
     }
 
     // Bind every participant and domain to every policy

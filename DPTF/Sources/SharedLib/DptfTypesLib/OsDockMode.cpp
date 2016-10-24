@@ -24,12 +24,14 @@ namespace OsDockMode
     {
         switch (osDockMode)
         {
-            case Docked:
-                return "Docked";
-            case UnDocked:
-                return "UnDocked";
-            default:
-                throw dptf_exception("OsDockMode::Type is invalid");
+        case InvalidDockMode:
+            return "Invalid";
+        case Docked:
+            return "Docked";
+        case Undocked:
+            return "Undocked";
+        default:
+            throw dptf_exception("OsDockMode::Type is invalid");
         }
     }
 }

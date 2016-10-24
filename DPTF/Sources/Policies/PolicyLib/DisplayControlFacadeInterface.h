@@ -22,7 +22,6 @@
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
 #include "DisplayControlSetCachedProperty.h"
-#include "DisplayControlStatusProperty.h"
 #include "DisplayControlCapabilitiesCachedProperty.h"
 
 // this facade class provides a simpler interface on top of display controls as well as combines all of the display 
@@ -38,8 +37,12 @@ public:
     virtual void setDisplayControlDynamicCaps(DisplayControlDynamicCaps newCapabilities) = 0;
     virtual void refreshCapabilities() = 0;
     virtual void invalidateControlSet() = 0;
-    virtual const DisplayControlStatus& getStatus() = 0;
+    virtual DisplayControlStatus getStatus() = 0;
+    virtual UIntN getUserPreferredDisplayIndex() = 0;
+    virtual Bool isUserPreferredIndexModified() = 0;
     virtual const DisplayControlSet& getControls() = 0;
     virtual const DisplayControlDynamicCaps& getCapabilities() = 0;
     virtual void setValueWithinCapabilities() = 0;
+    virtual void lockCapabilities() = 0;
+    virtual void unlockCapabilities() = 0;
 };

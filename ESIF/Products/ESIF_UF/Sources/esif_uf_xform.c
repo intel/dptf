@@ -72,23 +72,23 @@ enum esif_rc EsifUfXformTemp(
 	case ESIF_ALGORITHM_TYPE_TEMP_C:
 		/*
 		 * Convert temp before/after action
-		 *   For Get: From reading returned in Celcius
+		 *   For Get: From reading returned in Celsius
 		 *     To normalized temp
 		 *   For Set: From user request buffer in normalized temp
-		 *     To celcius temp
+		 *     To celsius temp
 		 */
-		ESIF_TRACE_DYN_TEMP("Using algorithm Celcius (%s), for temp\n",
+		ESIF_TRACE_DYN_TEMP("Using algorithm Celsius (%s), for temp\n",
 			esif_algorithm_type_str(algoType));
 
 		if (opcode == ESIF_PRIMITIVE_OP_GET) {
 			tempInType = ESIF_TEMP_C;
 			tempOutType = tempType;
-			esif_convert_temp(tempInType, tempOutType, &tempOut);	// Normalized from celcius
+			esif_convert_temp(tempInType, tempOutType, &tempOut);	// Normalized from celsius
 		}
 		else {/* ESIF_PRIMITIVE_OP_SET */
 			tempInType = tempType;
 			tempOutType = ESIF_TEMP_C;
-			esif_convert_temp(tempInType, tempOutType, &tempOut);	// Normalized to celcius
+			esif_convert_temp(tempInType, tempOutType, &tempOut);	// Normalized to celsius
 		}
 		break;
 
@@ -156,17 +156,8 @@ enum esif_rc EsifUfXformTemp(
 		break;
 
 	case ESIF_ALGORITHM_TYPE_TEMP_NONE:
-		ESIF_TRACE_DYN_TEMP("Using algorithm none (%s), for Code and Konst temp\n",
+		ESIF_TRACE_DYN_TEMP("Using algorithm none (%s)\n",
 			esif_algorithm_type_str(algoType));
-		if (opcode == ESIF_PRIMITIVE_OP_GET) {
-			tempInType  = ESIF_TEMP_C;
-			tempOutType = tempType;
-			esif_convert_temp(tempInType, tempOutType, &tempOut);
-		} else {/* ESIF_PRIMITIVE_OP_SET */
-			tempInType  = tempType;
-			tempOutType = ESIF_TEMP_C;
-			esif_convert_temp(tempInType, tempOutType, &tempOut);
-		}
 		break;
 
 	default:

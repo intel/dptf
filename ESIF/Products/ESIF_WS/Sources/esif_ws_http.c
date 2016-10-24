@@ -24,6 +24,7 @@
 #include "esif_ccb_file.h"
 #include "esif_ws_socket.h"
 #include "esif_ws_server.h"
+#include "esif_ccb_string.h"
 
 #define VERSION "1.0"
 #define UNKNOWN_MIME_TYPE	"application/octet-stream"
@@ -83,8 +84,8 @@ extern Bool g_ws_restricted;
  */
 static char *esif_ws_http_time_stamp(time_t, char *);
 static time_t esif_ws_http_time_local(char *);
-static void esif_ws_http_process_buffer(char*, ssize_t);
-static void esif_ws_http_process_request(ClientRecordPtr , char *, ssize_t);
+static void esif_ws_http_process_buffer(char*, ssize_t, ssize_t);
+static int esif_ws_http_process_request(ClientRecordPtr , char *, ssize_t);
 static int  esif_ws_http_process_static_page(ClientRecordPtr , char *, char *, ssize_t, char *);
 static char *esif_ws_http_get_file_type(char *);
 static void esif_ws_http_send_error_code(ClientRecordPtr , int);
@@ -98,24 +99,21 @@ static void esif_ws_http_send_error_code(ClientRecordPtr , int);
 eEsifError esif_ws_http_process_reqs (
 	ClientRecordPtr connection,
 	void *buf,
-	ssize_t ret
+	ssize_t bufSize,
+	ssize_t msgLen
 	)
 {
-	char *buffer = (char*)buf;
-	eEsifError result = ESIF_OK;
+	eEsifError rc = ESIF_OK;
+	int httpStatus = HTTP_STATUS_OK;
 
 	ESIF_TRACE_DEBUG("esif_ws_http_process_reqs \n");
-	esif_ws_http_process_buffer(buffer, ret);
+	esif_ws_http_process_buffer((char *) buf, bufSize, msgLen);
 
-	// ESIF_TRACE_DEBUG("Buffer received: %s\n", buffer);
-
-	if (!strncmp(buffer, "GET ", 4) || !strncmp(buffer, "POST ", 5)) {	/* look for Get request method*/
-		esif_ws_http_process_request(connection, buffer, ret);
-		result = ESIF_E_WS_DISC; /* HTTP_STATUS_NOT_FOUND */
-	} else {
-		result = ESIF_E_WS_DISC; /* HTTP_STATUS_METHOD_NOT_ALLOWED */
+	httpStatus = esif_ws_http_process_request(connection, buf, bufSize);
+	if (httpStatus != HTTP_STATUS_OK) {
+		rc = ESIF_E_WS_DISC;
 	}
-	return result;
+	return rc;
 }
 
 static char*esif_ws_http_time_stamp (
@@ -179,8 +177,8 @@ static time_t esif_ws_http_time_local(char *str)
 static int esif_ws_http_process_static_pages (
 	ClientRecordPtr connection,
 	char *buffer,
+	ssize_t bufferSize,
 	char *resource,
-	ssize_t ret,
 	char *fileType
 	)
 {
@@ -192,6 +190,7 @@ static int esif_ws_http_process_static_pages (
 	char file_to_open[MAX_PATH]={0};
 	char content_disposition[MAX_PATH]={0};
 	FILE *file_fp = NULL;
+	ssize_t msgLen = 0;
 
 	// Do not server pages in Restricted Mode
 	if (g_ws_restricted)
@@ -217,17 +216,17 @@ static int esif_ws_http_process_static_pages (
 
 		if (st.st_mtime <= modified) {
 			status = HTTP_STATUS_NOT_MODIFIED;
-			esif_ccb_sprintf(WS_BUFFER_LENGTH, buffer,
-					"HTTP/1.1 %d Not Modified\n"
-					"Server: ESIF_UF/%s\n"
-					"Date: %s\n"
-					"Connection: close\n"
-					"\n",
+			esif_ccb_sprintf(bufferSize, buffer,
+					"HTTP/1.1 %d Not Modified" CRLF
+					"Server: ESIF_UF/%s" CRLF
+					"Date: %s" CRLF
+					"Connection: close" CRLF
+					CRLF,
 				status,
 				ESIF_UF_VERSION,
 				esif_ws_http_time_stamp(time(0), tmpbuffer));
 
-			send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, WS_BUFFER_LENGTH), ESIF_WS_SEND_FLAGS);
+			send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, bufferSize), ESIF_WS_SEND_FLAGS);
 			goto exit;
 		}
 	}
@@ -244,20 +243,20 @@ static int esif_ws_http_process_static_pages (
 
 	// Add Content-Disposition header to prompt user with Save-As Dialog if unknown file type
 	if (esif_ccb_strcmp(fileType, UNKNOWN_MIME_TYPE) == 0) {
-		esif_ccb_sprintf(sizeof(content_disposition), content_disposition,  "Content-Disposition: attachment; filename=\"%s\";\n", resource);
+		esif_ccb_sprintf(sizeof(content_disposition), content_disposition,  "Content-Disposition: attachment; filename=\"%s\";" CRLF, resource);
 	}
 
 	status = HTTP_STATUS_OK;
-	esif_ccb_sprintf(WS_BUFFER_LENGTH, buffer,
-					"HTTP/1.1 %d OK\n"
-					"Server: ESIF_UF/%s\n"
-					"Last-Modified: %s\n"
-					"Date: %s\n"
-					"Content-Type: %s\n"
-					"Content-Length: %ld\n"
+	esif_ccb_sprintf(bufferSize, buffer,
+					"HTTP/1.1 %d OK" CRLF
+					"Server: ESIF_UF/%s" CRLF
+					"Last-Modified: %s" CRLF
+					"Date: %s" CRLF
+					"Content-Type: %s" CRLF
+					"Content-Length: %ld" CRLF
 					"%s"
-					"Connection: close\n"
-					"\n",
+					"Connection: close" CRLF
+					CRLF,
 				status,
 				ESIF_UF_VERSION,
 				esif_ws_http_time_stamp(st.st_mtime, tmpbuffer),
@@ -266,9 +265,9 @@ static int esif_ws_http_process_static_pages (
 				(long)st.st_size, 
 				content_disposition);
 
-	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, WS_BUFFER_LENGTH), ESIF_WS_SEND_FLAGS);
-	while ((ret = (int)esif_ccb_fread(buffer, WS_BUFFER_LENGTH, 1, WS_BUFFER_LENGTH, file_fp)) > 0) {
-		send(connection->socket, buffer, (int)ret, ESIF_WS_SEND_FLAGS);
+	send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, bufferSize), ESIF_WS_SEND_FLAGS);
+	while ((msgLen = (int)esif_ccb_fread(buffer, bufferSize, 1, bufferSize, file_fp)) > 0) {
+		send(connection->socket, buffer, (int)msgLen, ESIF_WS_SEND_FLAGS);
 	}
 	esif_ccb_fclose(file_fp);
 
@@ -280,76 +279,89 @@ exit:
 
 static void esif_ws_http_process_buffer (
 	char *buffer,
-	ssize_t size
+	ssize_t bufferSize,
+	ssize_t msgLen
 	)
 {
-	if (size == 0 || size == -1) {
+	if ((msgLen == 0) || (msgLen == -1)) {
 		ESIF_TRACE_DEBUG("failed to read browser request\n");
 	}
 
-	if (size > 0 && size < WS_BUFFER_LENGTH) {
-		buffer[size] = 0;
+	if ((msgLen > 0) && (msgLen < bufferSize)) {
+		buffer[msgLen] = '\0';
 	} else {
-		buffer[0] = 0;
+		buffer[0] = '\0';
 	}
 }
 
 
-static void esif_ws_http_process_request (
+static int esif_ws_http_process_request (
 	ClientRecordPtr connection,
 	char *buffer,
-	ssize_t ret
+	ssize_t bufferSize
 	)
 {
-	char *blankCharPtr0    = NULL;
-	char *blankCharPtr1    = NULL;
+	int httpStatus = HTTP_STATUS_OK;
+	char *uriPtr = NULL;
+	char *secondBlankPtr = NULL;
 	char *questMarkCharPtr = NULL;
-	char resource[100]={0};
-	char *fileName=NULL;
-	char *method=NULL;
+	char *resource = NULL;
+	ssize_t resourceSize = 0;
+	char *fileName = NULL;
 	char *fileType = NULL;
-	int result     = 0;
 
-	if (!strncmp(buffer, "GET ", 4)) {
-		method = "GET";
-	} else {
-		method = "POST";
+	/*
+	 * 5.1 - Request-Line = Method SP Request-URI SP HTTP-Version CRLF
+	 * If method unknown, return 501 - Not Implemented.
+	 */
+	if (strncmp(buffer, "GET ", 4) &&
+		strncmp(buffer, "POST ", 5)) {
+		httpStatus = HTTP_STATUS_NOT_IMPLEMENTED;
+		goto exit;
 	}
 
-	blankCharPtr0    = strchr(buffer, ' ');
-	blankCharPtr0++;
-	blankCharPtr1    = strchr(blankCharPtr0, ' ');
-	questMarkCharPtr = strchr(blankCharPtr0, '?');
+	uriPtr = esif_ccb_strchr(buffer, ' ');
+	if (NULL == uriPtr) {
+		/* Logically should never happen; unless failure in strchr */
+		httpStatus = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+		goto exit;
+	}
 
+	uriPtr++;
+	if ('\0' == *uriPtr) {
+		httpStatus = HTTP_STATUS_BAD_REQUEST;
+		goto exit;
+	}
+
+	secondBlankPtr = esif_ccb_strchr(uriPtr, ' ');
+	if (NULL == secondBlankPtr) {
+		httpStatus = HTTP_STATUS_BAD_REQUEST;
+		goto exit;	
+	}
+
+	questMarkCharPtr = esif_ccb_strchr(uriPtr, '?');
 
 	/* special case */
-	if (questMarkCharPtr && questMarkCharPtr < blankCharPtr1) {
-		// resource =  (char *)esif_ccb_malloc(questMarkCharPtr - blankCharPtr0 );
-		if (!strcmp(method, "GET")) {
-			esif_ccb_memcpy(resource, buffer + 4, questMarkCharPtr - blankCharPtr0);
-		} else {
-			esif_ccb_memcpy(resource, buffer + 5, questMarkCharPtr - blankCharPtr0);
-		}
-		resource[questMarkCharPtr - blankCharPtr0] = 0;
+	if (questMarkCharPtr && (questMarkCharPtr < secondBlankPtr)) {
+		resourceSize = (questMarkCharPtr - uriPtr) + 1;
 	} else {
-		// resource =  (char *)esif_ccb_malloc(blankCharPtr1 - blankCharPtr0);
-		if (!strcmp(method, "GET")) {
-			esif_ccb_memcpy(resource, buffer + 4, blankCharPtr1 - blankCharPtr0);
-		} else {
-			esif_ccb_memcpy(resource, buffer + 5, blankCharPtr1 - blankCharPtr0);
-		}
-		resource[blankCharPtr1 - blankCharPtr0] = 0;
+		resourceSize = (secondBlankPtr - uriPtr) + 1;
 	}
+
+	resource = (char *)esif_ccb_malloc(resourceSize);
+	if (NULL == resource) {
+		httpStatus = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+		goto exit;
+	}
+
+	esif_ccb_memcpy(resource, uriPtr, resourceSize - 1);
+	resource[resourceSize - 1] = '\0';
 
 	ESIF_TRACE_DEBUG("resource b4: %s\n", resource);
 	if (resource[1] == '\0') {
 		ESIF_TRACE_DEBUG("empty resource: %s\n", resource);
-		result = esif_ws_http_process_static_pages(connection, buffer, "index.html", ret, "text/html");
-		if (result != HTTP_STATUS_OK)
-		{
-			esif_ws_http_send_error_code(connection, result);	
-		}
-		return;
+		httpStatus = esif_ws_http_process_static_pages(connection, buffer, bufferSize, "index.html", "text/html");
+		goto exit;
 	}
 
 	fileName = &resource[1];
@@ -359,11 +371,13 @@ static void esif_ws_http_process_request (
 		fileType = UNKNOWN_MIME_TYPE;
 	}
 
-	result = esif_ws_http_process_static_pages(connection, buffer, fileName, ret, fileType);
-
-	if (result != HTTP_STATUS_OK) {
-		esif_ws_http_send_error_code(connection, result);
+	httpStatus = esif_ws_http_process_static_pages(connection, buffer, bufferSize, fileName, fileType);
+exit:
+	esif_ccb_free(resource);
+	if (httpStatus != HTTP_STATUS_OK) {
+		esif_ws_http_send_error_code(connection, httpStatus);
 	}
+	return httpStatus;
 }
 
 
@@ -400,9 +414,21 @@ static void esif_ws_http_send_error_code (
 	// Close connection with no response in Restricted Mode, otherwise return HTTP Status
 	if (!g_ws_restricted) {
 		char buffer[MAX_PATH] = { 0 };
-		char *message = (error_code == HTTP_STATUS_NOT_FOUND ? "Not Found" : "Server Error");
+		char *message = NULL;
 
-		esif_ccb_sprintf(sizeof(buffer), buffer, (char*)"HTTP/1.1 %d %s\r\n\r\n<h1>%d %s</h1>", error_code, message, error_code, message);
+		switch(error_code) {
+		case HTTP_STATUS_NOT_FOUND:
+			message = "Not Found";
+			break;
+		case HTTP_STATUS_NOT_IMPLEMENTED:
+			message = "Not Implemented";
+			break;
+		default:
+			message = "Server Error";
+			break;
+		}
+		
+		esif_ccb_sprintf(sizeof(buffer), buffer, (char*)"HTTP/1.1 %d %s" CRLF CRLF "<h1>%d %s</h1>", error_code, message, error_code, message);
 		send(connection->socket, buffer, (int)esif_ccb_strlen(buffer, sizeof(buffer)), ESIF_WS_SEND_FLAGS);
 	}
 	esif_ws_client_close_client(connection);

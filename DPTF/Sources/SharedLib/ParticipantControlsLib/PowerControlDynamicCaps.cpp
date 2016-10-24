@@ -32,7 +32,8 @@ PowerControlDynamicCaps::PowerControlDynamicCaps(PowerControlType::Type powerCon
 }
 
 PowerControlDynamicCaps::PowerControlDynamicCaps()
-    : m_valid(false)
+    : m_valid(false),
+    m_powerControlType()
 {
 }
 
@@ -62,6 +63,21 @@ Power PowerControlDynamicCaps::getPowerStepSize(void) const
 {
     throwIfNotValid();
     return m_powerStepSize;
+}
+
+void PowerControlDynamicCaps::setMinPowerLimit(Power minPower)
+{
+    m_minPowerLimit = minPower;
+}
+
+void PowerControlDynamicCaps::setMaxPowerLimit(Power maxPower)
+{
+    m_maxPowerLimit = maxPower;
+}
+
+void PowerControlDynamicCaps::setPowerStepSize(Power stepSize)
+{
+    m_powerStepSize = stepSize;
 }
 
 TimeSpan PowerControlDynamicCaps::getMinTimeWindow(void) const

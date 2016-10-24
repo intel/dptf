@@ -24,12 +24,13 @@
 #include "esif_sdk_iface_esif.h"
 #include "IndexContainerInterface.h"
 #include "EventCache.h"
+#include "UserPreferredCache.h"
 
 class EsifServices;
-class WorkItemQueueManager;
+class WorkItemQueueManagerInterface;
 class PolicyManager;
-class ParticipantManager;
-class DptfStatus;
+class ParticipantManagerInterface;
+class DptfStatusInterface;
 
 class DptfManagerInterface
 {
@@ -42,10 +43,11 @@ public:
     virtual Bool isWorkItemQueueManagerCreated(void) const = 0;
     virtual EsifServices* getEsifServices(void) const = 0;
     virtual std::shared_ptr<EventCache> getEventCache(void) const = 0;
-    virtual WorkItemQueueManager* getWorkItemQueueManager(void) const = 0;
+    virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const = 0;
+    virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const = 0;
     virtual PolicyManager* getPolicyManager(void) const = 0;
-    virtual ParticipantManager* getParticipantManager(void) const = 0;
-    virtual DptfStatus* getDptfStatus(void) = 0;
+    virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
+    virtual DptfStatusInterface* getDptfStatus(void) = 0;
     virtual IndexContainerInterface* getIndexContainer(void) const = 0;
     virtual std::string getDptfHomeDirectoryPath(void) const = 0;
     virtual std::string getDptfPolicyDirectoryPath(void) const = 0;

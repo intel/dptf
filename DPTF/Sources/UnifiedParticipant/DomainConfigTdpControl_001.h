@@ -19,8 +19,8 @@
 #pragma once
 
 #include "Dptf.h"
-#include "BinaryParse.h"
 #include "DomainConfigTdpControlBase.h"
+#include "CachedValue.h"
 
 class DomainConfigTdpControl_001 : public DomainConfigTdpControlBase
 {
@@ -28,7 +28,7 @@ public:
 
     DomainConfigTdpControl_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainConfigTdpControl_001(void);
+    virtual ~DomainConfigTdpControl_001(void);
 
     // DomainConfigTdpControlInterface
     virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
@@ -44,24 +44,28 @@ public:
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
+protected:
+    virtual void capture(void) override;
+    virtual void restore(void) override;
+
 private:
 
     // hide the copy constructor and = operator
     DomainConfigTdpControl_001(const DomainConfigTdpControl_001& rhs);
     DomainConfigTdpControl_001& operator=(const DomainConfigTdpControl_001& rhs);
 
-    void checkHWConfigTdpSupport(std::vector<ConfigTdpControl> controls, UIntN domainIndex);
+    void checkHWConfigTdpSupport(UIntN domainIndex);
     Bool isLockBitSet(UIntN domainIndex);
     UIntN getLevelCount(UIntN domainIndex);
-    void createConfigTdpControlSet(UIntN domainIndex);
-    void createConfigTdpControlDynamicCaps(UIntN domainIndex);
-    void verifyConfigTdpControlIndex(UIntN configTdpControlIndex);
-    void checkAndCreateControlStructures(UIntN domainIndex);
+    ConfigTdpControlSet createConfigTdpControlSet(UIntN domainIndex);
+    ConfigTdpControlDynamicCaps createConfigTdpControlDynamicCaps(UIntN domainIndex);
+    void throwIfConfigTdpControlIndexIsOutOfBounds(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex);
 
-    ConfigTdpControlDynamicCaps* m_configTdpControlDynamicCaps;
-    ConfigTdpControlSet* m_configTdpControlSet;
-    ConfigTdpControlStatus* m_configTdpControlStatus;
+    CachedValue<ConfigTdpControlDynamicCaps> m_configTdpControlDynamicCaps;
+    CachedValue<ConfigTdpControlSet> m_configTdpControlSet;
+    CachedValue<ConfigTdpControlStatus> m_configTdpControlStatus;
     UInt32 m_configTdpLevelsAvailable;
     UInt32 m_currentConfigTdpControlId;
     Bool m_configTdpLock;
+    CachedValue<ConfigTdpControlStatus> m_initialStatus;
 };

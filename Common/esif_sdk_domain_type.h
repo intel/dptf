@@ -59,7 +59,7 @@
  * Domain Type
  */
 
-enum esif_domain_type {
+typedef enum esif_domain_type {
 	ESIF_DOMAIN_TYPE_INVALID = -1,
 	ESIF_DOMAIN_TYPE_PROCESSOR = 0,
 	ESIF_DOMAIN_TYPE_GRAPHICS = 1,
@@ -88,9 +88,12 @@ enum esif_domain_type {
 	ESIF_DOMAIN_TYPE_SOCCNV = 34,
 	ESIF_DOMAIN_TYPE_IVCAM = 35,
 	ESIF_DOMAIN_TYPE_ALL = 255,
-};
+} esif_domain_type_t;
 
-static ESIF_INLINE esif_string esif_domain_type_str(enum esif_domain_type type)
+/* Max Enum Value for Iteration purposes (Excluding ALL) */
+#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_IVCAM
+
+static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 {
 	switch (type) {
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_INVALID);

@@ -21,11 +21,13 @@
 #include "DptfManagerInterface.h"
 #include "EsifAppServicesInterface.h"
 #include "EventCache.h"
+#include "UserPreferredCache.h"
+
 class EsifServices;
-class WorkItemQueueManager;
+class WorkItemQueueManagerInterface;
 class PolicyManager;
-class ParticipantManager;
-class DptfStatus;
+class ParticipantManagerInterface;
+class DptfStatusInterface;
 
 //
 // DPTF starts here!!!
@@ -51,10 +53,11 @@ public:
 
     virtual EsifServices* getEsifServices(void) const override;
     virtual std::shared_ptr<EventCache> getEventCache(void) const override;
-    virtual WorkItemQueueManager* getWorkItemQueueManager(void) const override;
+    virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const override;
+    virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const override;
     virtual PolicyManager* getPolicyManager(void) const override;
-    virtual ParticipantManager* getParticipantManager(void) const override;
-    virtual DptfStatus* getDptfStatus(void) override;
+    virtual ParticipantManagerInterface* getParticipantManager(void) const override;
+    virtual DptfStatusInterface* getDptfStatus(void) override;
     virtual IndexContainerInterface* getIndexContainer(void) const override;
 
     virtual std::string getDptfHomeDirectoryPath(void) const override;
@@ -84,7 +87,7 @@ private:
     EsifServices* m_esifServices;
 
     // All work item threads, enqueueing, dequeuing, and work item dispatch is handled by the WorkItemQueueManager.
-    WorkItemQueueManager* m_workItemQueueManager;
+    WorkItemQueueManagerInterface* m_workItemQueueManager;
 
     // Manages all of the polices and events that are registered for each policy.  When PolicyManager is instantiated
     // each policy is also created.
@@ -93,12 +96,13 @@ private:
     // Manages all of the participants.  When ParticipantManager is first created there are no participants.  When
     // ESIF calls AppParticipantCreate() and AppDomainCreate() the participants will get created and the policies
     // will be notified as they come in to the DPTF framework.
-    ParticipantManager* m_participantManager;
+    ParticipantManagerInterface* m_participantManager;
 
     std::shared_ptr<EventCache> m_eventCache;
+    std::shared_ptr<UserPreferredCache> m_userPreferredCache;
 
     // Creates XML needed for requests from the UI
-    DptfStatus* m_dptfStatus;
+    DptfStatusInterface* m_dptfStatus;
 
     IndexContainerInterface* m_indexContainer;
 

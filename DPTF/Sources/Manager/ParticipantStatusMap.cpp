@@ -17,10 +17,10 @@
 ******************************************************************************/
 
 #include "ParticipantStatusMap.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "XmlNode.h"
 
-ParticipantStatusMap::ParticipantStatusMap(ParticipantManager* participantManager) :
+ParticipantStatusMap::ParticipantStatusMap(ParticipantManagerInterface* participantManager) :
     m_participantManager(participantManager)
 {
 }

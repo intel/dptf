@@ -38,12 +38,10 @@
 #include "DomainRfProfileStatusFactory.h"
 #include "ParticipantGetSpecificInfoFactory.h"
 #include "ParticipantSetSpecificInfoFactory.h"
-#include "DomainHardwareDutyCycleControlFactory.h"
 #include "DomainPlatformPowerControlFactory.h"
 #include "DomainPlatformPowerStatusFactory.h"
 #include "DomainTemperatureFactory.h"
 #include "DomainUtilizationFactory.h"
-#include "DomainHardwareDutyCycleControlBase.h"
 #include "DomainActiveControlBase.h"
 #include "DomainConfigTdpControlBase.h"
 #include "DomainCoreControlBase.h"
@@ -90,7 +88,6 @@ public:
     std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
     std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
     std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
-    std::shared_ptr<DomainHardwareDutyCycleControlBase> getHardareDutyCycleControl(void);
 
     void clearAllCachedData(void);
     std::shared_ptr<XmlNode> getXml();

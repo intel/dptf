@@ -35,14 +35,7 @@ EsifDataTemperature::operator EsifDataPtr(void)
 
 EsifDataTemperature::operator Temperature(void) const
 {
-    if (m_esifDataValue == Constants::Invalid)
-    {
-        return Temperature::createInvalid();
-    }
-    else
-    {
-        return Temperature(m_esifDataValue);
-    }
+    return Temperature(m_esifDataValue);
 }
 
 void EsifDataTemperature::initialize(UInt32 data)

@@ -35,7 +35,6 @@
 #define PARTICITPANTLOG_SUB_CMD_INDEX   2         /* sub command index in input parameters*/
 #define START_CMD_TRIPLET               3         /* pid/did/cap mask triplet*/
 #define DEFAULT_SCHEDULE_DELAY_INTERVAL 5000      /* in ms*/
-#define MAX_COMMAND_ARGUMENTS           32        /* maximum number of arguments supported*/
 
 #define PARTICIPANTLOG_CMD_START_STR        "start"
 #define PARTICIPANTLOG_CMD_STOP_STR         "stop"
@@ -44,10 +43,7 @@
 #define PARTICIPANTLOG_CMD_SCHEDULE_STR     "schedule"
 
 #define ESIF_INVALID_DATA        0xFFFFFFFF
-#define CONTROL_CAPABIILTY_MASK  0xFFFFFC7F
-#define STATUS_CAPABIILTY_MASK   0x00000380
 
-#define INVALID_TEMP_VALUE        255
 #define MAX_DOMAIN_ID_LENGTH      2
 #define ESIF_DOMAIN_IDENT_CHAR_D  'D'
 #define ESIF_DOMAIN_IDENT_CHAR_d  'd'
@@ -90,8 +86,8 @@ typedef struct EsifLoggingManager_s {
 	Bool isLogSuspended;
 	Bool isDefaultFile;
 	UInt32 listenersMask;
-	char *argv[MAX_COMMAND_ARGUMENTS];
-	int argc;
+	char **argv;
+	UInt32 argc;
 	EsifCommandInfoPtr commandInfo;
 	int commandInfoCount;
 	char *logData;
@@ -149,7 +145,7 @@ extern "C" {
 #endif
 
 char *EsifShellCmd_ParticipantLog(EsifShellCmdPtr shell);
-void EsifLogMgr_Exit();
+void EsifLogMgr_Exit(void);
 
 eEsifError EsifUf_GetNextCapability(
 	esif_flags_t capabilitymask,

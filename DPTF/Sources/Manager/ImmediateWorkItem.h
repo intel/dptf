@@ -35,9 +35,9 @@ public:
     // implement WorkItemInterface
     virtual UInt64 getUniqueId(void) const override;
     virtual FrameworkEvent::Type getFrameworkEventType(void) const override;
-    virtual EsifTime getWorkItemCreationTime(void) const override;
+    virtual const TimeSpan& getWorkItemCreationTime(void) const override;
     virtual void setWorkItemExecutionStartTime(void) override;
-    virtual EsifTime getWorkItemExecutionStartTime(void) const override;
+    virtual const TimeSpan& getWorkItemExecutionStartTime(void) const override;
     virtual void signalAtCompletion(EsifSemaphore* semaphore) override;
     virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
     virtual std::string toXml(void) const override;

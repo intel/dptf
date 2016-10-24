@@ -76,6 +76,30 @@ void PerformanceControlFacade::setPerformanceControlDynamicCaps(PerformanceContr
     }
 }
 
+void PerformanceControlFacade::lockCapabilities()
+{
+    if (supportsPerformanceControls())
+    {
+        m_policyServices.domainPerformanceControl->setPerformanceCapsLock(m_participantIndex, m_domainIndex, true);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the performance control interface.");
+    }
+}
+
+void PerformanceControlFacade::unlockCapabilities()
+{
+    if (supportsPerformanceControls())
+    {
+        m_policyServices.domainPerformanceControl->setPerformanceCapsLock(m_participantIndex, m_domainIndex, false);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the performance control interface.");
+    }
+}
+
 const PerformanceControlSet& PerformanceControlFacade::getControls()
 {
     return m_performanceControlSetProperty.getPerformanceControlSet();

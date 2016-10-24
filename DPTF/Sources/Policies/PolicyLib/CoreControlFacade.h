@@ -39,7 +39,7 @@ public:
     virtual Bool supportsCoreControls() override;
     virtual void initializeControlsIfNeeded() override;
     virtual void setControlsToMax() override;
-    virtual void setControl(CoreControlStatus coreControl) override;
+    virtual void setActiveCoreControl(CoreControlStatus coreControl) override;
 
     // properties
     virtual CoreControlStatus getStatus() override;

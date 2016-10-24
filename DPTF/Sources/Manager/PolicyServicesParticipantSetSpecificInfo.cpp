@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesParticipantSetSpecificInfo.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesParticipantSetSpecificInfo::PolicyServicesParticipantSetSpecificInfo(
     DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
@@ -29,13 +29,6 @@ void PolicyServicesParticipantSetSpecificInfo::setParticipantDeviceTemperatureIn
 {
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantDeviceTemperatureIndication(temperature);
-}
-
-void PolicyServicesParticipantSetSpecificInfo::setParticipantCoolingPolicy(
-    UIntN participantIndex, const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
-{
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantCoolingPolicy(coolingPreference, type);
 }
 
 void PolicyServicesParticipantSetSpecificInfo::setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)

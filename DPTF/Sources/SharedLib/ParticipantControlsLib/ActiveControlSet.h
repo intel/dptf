@@ -28,8 +28,9 @@ class ActiveControlSet final
 public:
 
     ActiveControlSet(const std::vector<ActiveControl>& activeControl);
+    static ActiveControlSet createFromFps(const DptfBuffer& buffer);
     UIntN getCount(void) const;
-    const ActiveControl& operator[](UIntN index) const;
+    ActiveControl operator[](UIntN index) const;
     Bool operator==(const ActiveControlSet& rhs) const;
     Bool operator!=(const ActiveControlSet& rhs) const;
     std::shared_ptr<XmlNode> getXml(void);

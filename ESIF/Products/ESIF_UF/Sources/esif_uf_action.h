@@ -97,6 +97,11 @@ esif_context_t EsifAct_GetActCtx(EsifActPtr self);
 
 eEsifError EsifActConfigInit(void);
 void EsifActConfigExit(void);
+eEsifError EsifActConfigSignalChangeEvents(
+	EsifUpPtr upPtr,
+	const EsifPrimitiveTuple tuple,
+	const EsifDataPtr requestPtr
+	);
 
 eEsifError EsifActConstInit(void);
 void EsifActConstExit(void);

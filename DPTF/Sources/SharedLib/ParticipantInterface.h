@@ -34,7 +34,6 @@
 #include "DomainRfProfileStatusInterface.h"
 #include "DomainTemperatureInterface.h"
 #include "DomainUtilizationInterface.h"
-#include "DomainHardwareDutyCycleControlInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
 #include "ParticipantSetSpecificInfoInterface.h"
@@ -48,7 +47,6 @@ class ParticipantInterface :
     public DomainConfigTdpControlInterface,
     public DomainCoreControlInterface,
     public DomainDisplayControlInterface,
-    public DomainHardwareDutyCycleControlInterface,
     public DomainPerformanceControlInterface,
     public DomainPixelClockControlInterface,
     public DomainPixelClockStatusInterface,
@@ -100,8 +98,8 @@ public:
     virtual void connectedStandbyExit(void) = 0;
     virtual void suspend(void) = 0;
     virtual void resume(void) = 0;
-    virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityId) = 0;
-    virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityId) = 0;
+    virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityBitMask) = 0;
+    virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityBitMask) = 0;
     virtual void domainConfigTdpCapabilityChanged(void) = 0;
     virtual void domainCoreControlCapabilityChanged(void) = 0;
     virtual void domainDisplayControlCapabilityChanged(void) = 0;

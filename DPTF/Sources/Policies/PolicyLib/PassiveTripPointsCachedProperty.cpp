@@ -20,9 +20,9 @@
 #include "XmlCommon.h"
 using namespace std;
 
-PassiveTripPointsCachedProperty::PassiveTripPointsCachedProperty(PolicyServicesInterfaceContainer policyServices, UIntN participantIndex)
+PassiveTripPointsCachedProperty::PassiveTripPointsCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex)
     : CachedProperty(), ParticipantProperty(participantIndex, policyServices),
-    m_passiveTripPoints(map<ParticipantSpecificInfoKey::Type, UIntN>())
+    m_passiveTripPoints(map<ParticipantSpecificInfoKey::Type, Temperature>())
 {
 }
 

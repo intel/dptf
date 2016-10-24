@@ -36,6 +36,13 @@ public:
     // the following is not virtual
     UIntN getDomainIndex(void) const;
 
+protected:
+
+    void writeDomainWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
+    void writeDomainWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex) const;
+    void writeDomainWorkItemErrorMessage(const std::string& errorMessage) const;
+    void writeDomainWorkItemStartingInfoMessage() const;
+
 private:
 
     // hide the copy constructor and assignment operator.
@@ -44,30 +51,3 @@ private:
 
     const UIntN m_domainIndex;
 };
-
-#define WriteDomainWorkItemStartingInfoMessage() \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item."); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex()); \
-    getEsifServices()->writeMessageInfo(message);
-
-#define WriteDomainWorkItemErrorMessage_Message(errorMessage) \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, errorMessage); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex()); \
-    getEsifServices()->writeMessageError(message);
-
-#define WriteDomainWorkItemErrorMessage_Function(functionName) \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex()); \
-    message.setExceptionCaught(functionName, ex.what()); \
-    getEsifServices()->writeMessageError(message);
-
-#define WriteDomainWorkItemErrorMessage_Function_Policy(functionName, policyIndex) \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex()); \
-    message.setExceptionCaught(functionName, ex.what()); \
-    message.setPolicyIndex(policyIndex); \
-    getEsifServices()->writeMessageError(message);

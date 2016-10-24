@@ -20,6 +20,9 @@
 
 PlatformPowerControlState::PlatformPowerControlState(DomainPlatformPowerControlBase* control)
     : m_control(control),
+    m_pl1Enabled(false),
+    m_pl2Enabled(false),
+    m_pl3Enabled(false),
     m_enablesValid(false),
     m_pl1LimitValid(false), m_pl2LimitValid(false), m_pl3LimitValid(false),
     m_pl1TimeWindowValid(false), m_pl3TimeWindowValid(false),
@@ -52,6 +55,7 @@ void PlatformPowerControlState::restore()
     restoreTimeWindow(PlatformPowerLimitType::PSysPL1, m_pl1TimeWindow, m_pl1TimeWindowValid);
     restoreTimeWindow(PlatformPowerLimitType::PSysPL3, m_pl3TimeWindow, m_pl3TimeWindowValid);
     restoreDutyCycle(PlatformPowerLimitType::PSysPL3, m_pl3DutyCycle, m_pl3DutyCycleValid);
+    restoreEnables();
 }
 
 void PlatformPowerControlState::restoreEnables()
@@ -66,9 +70,12 @@ void PlatformPowerControlState::restoreEnables()
 
 void PlatformPowerControlState::captureEnables()
 {
-    m_pl1Enabled = m_control->checkEnabled(PlatformPowerLimitType::PSysPL1);
-    m_pl2Enabled = m_control->checkEnabled(PlatformPowerLimitType::PSysPL2);
-    m_pl3Enabled = m_control->checkEnabled(PlatformPowerLimitType::PSysPL3);
+    m_control->updateEnabled(PlatformPowerLimitType::PSysPL1);
+    m_pl1Enabled = m_control->isEnabled(PlatformPowerLimitType::PSysPL1);
+    m_control->updateEnabled(PlatformPowerLimitType::PSysPL2);
+    m_pl2Enabled = m_control->isEnabled(PlatformPowerLimitType::PSysPL2);
+    m_control->updateEnabled(PlatformPowerLimitType::PSysPL3);
+    m_pl3Enabled = m_control->isEnabled(PlatformPowerLimitType::PSysPL3);
     m_enablesValid = true;
 }
 

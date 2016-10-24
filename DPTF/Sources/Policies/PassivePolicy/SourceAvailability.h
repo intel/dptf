@@ -32,8 +32,8 @@ public:
         std::shared_ptr<TimeInterface> time);
     ~SourceAvailability();
 
-    void setSourceAsBusy(UIntN source, UInt64 time);
-    Bool isBusy(UIntN source, UInt64 time) const;
+    void setSourceAsBusy(UIntN source, const TimeSpan& time);
+    Bool isBusy(UIntN source, const TimeSpan& time) const;
 
     // source availability
     void remove(UIntN source);
@@ -51,5 +51,5 @@ private:
     PolicyServicesInterfaceContainer m_policyServices;
 
     // source availaiblity
-    std::map<UIntN, UInt64> m_schedule;
+    std::map<UIntN, TimeSpan> m_schedule;
 };

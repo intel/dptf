@@ -137,8 +137,10 @@ eEsifError ESIF_CALLCONV EsifSvcConfigSet(
 					 (EsifString)elementValuePtr->buf_ptr,
 					 elementFlags);
 
-	return EsifConfigSet(nameSpacePtr, elementPathPtr, elementFlags,
-						 elementValuePtr);
+	return EsifConfigSet(nameSpacePtr,
+		elementPathPtr,
+		elementFlags,
+		elementValuePtr);
 }
 
 
@@ -225,7 +227,7 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 	}
 
 	if (NULL == participant_data_map_ptr) {
-		ESIF_TRACE_ERROR("The participant data was not found from participant handle\n");
+		ESIF_TRACE_WARN("The participant data was not found from participant handle\n");
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
@@ -238,7 +240,7 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 	} else {
 		domain_data_map_ptr = find_domain_data_from_handle(participant_data_map_ptr, domainHandle);
 		if (NULL == domain_data_map_ptr) {
-			ESIF_TRACE_ERROR("The domain data was not found from domain handle\n");
+			ESIF_TRACE_WARN("The domain data was not found from domain handle\n");
 			rc = ESIF_E_INVALID_HANDLE;
 			goto exit;
 		}

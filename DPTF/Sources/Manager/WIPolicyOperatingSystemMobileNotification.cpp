@@ -19,6 +19,7 @@
 #include "WIPolicyOperatingSystemMobileNotification.h"
 #include "PolicyManager.h"
 #include "EsifServices.h"
+#include "OsMobileNotificationType.h"
 
 WIPolicyOperatingSystemMobileNotification::WIPolicyOperatingSystemMobileNotification(
     DptfManagerInterface* dptfManager, UIntN mobileNotification) :
@@ -33,18 +34,41 @@ WIPolicyOperatingSystemMobileNotification::~WIPolicyOperatingSystemMobileNotific
 
 void WIPolicyOperatingSystemMobileNotification::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)
     {
+        std::string functionName = "";
         try
         {
-            getDptfManager()->getEventCache()->mobileNotification.set(m_mobileNotification);
             Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executePolicyOperatingSystemMobileNotification(m_mobileNotification);
+
+            OsMobileNotificationType::Type notificationType =
+                (OsMobileNotificationType::Type)(((UInt32)m_mobileNotification & 0xFFFF0000) >> 16);
+            UInt32 notificationValue = (UInt32)m_mobileNotification & 0xFFFF;
+
+            switch (notificationType)
+            {
+            case OsMobileNotificationType::EmergencyCallMode:
+                getDptfManager()->getEventCache()->emergencyCallModeState.set(notificationValue);
+                functionName = "Policy::executePolicyOperatingSystemEmergencyCallModeStateChanged";
+                policy->executePolicyOperatingSystemEmergencyCallModeStateChanged((OnOffToggle::Type)notificationValue);
+                break;
+
+            case OsMobileNotificationType::ScreenState:
+                getDptfManager()->getEventCache()->screenState.set(notificationValue);
+                functionName = "Policy::executePolicyOperatingSystemMobileNotification";
+                policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
+                break;
+
+            default:
+                functionName = "Policy::executePolicyOperatingSystemMobileNotification";
+                policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
+                break;
+            }
         }
         catch (policy_index_invalid ex)
         {
@@ -52,7 +76,7 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemMobileNotification", i);
+            writeWorkItemErrorMessagePolicy(ex, functionName, i);
         }
     }
 }

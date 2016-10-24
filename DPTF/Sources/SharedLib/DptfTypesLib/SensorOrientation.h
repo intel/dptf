@@ -27,7 +27,8 @@ namespace SensorOrientation
         Landscape = 0,
         Portrait = 1,
         LandscapeInverted = 2,
-        PortraitInverted = 3
+        PortraitInverted = 3,
+        Indeterminate = 4
     };
 
     std::string toString(SensorOrientation::Type sensorOrientationType);

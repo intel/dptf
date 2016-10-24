@@ -20,6 +20,7 @@
 #define _ESIF_UF_CFGMGR_
 
 #include "esif_uf.h"
+#include "esif_lib_datacache.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,15 +33,13 @@ void EsifCfgMgrExit(void);
 // Backwards Compatibility
 //////////////////////////
 
-eEsifError EsifConfigInit(esif_string name);
-void EsifConfigExit(esif_string name);
-
 /* Get */
 eEsifError EsifConfigGet(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value);
 eEsifError EsifConfigGetItem(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, esif_flags_t *flagsPtr);
 
 /* Set */
 eEsifError EsifConfigSet(EsifDataPtr nameSpace, EsifDataPtr path, esif_flags_t flags, EsifDataPtr value);
+eEsifError EsifConfigDelete(EsifDataPtr nameSpace, EsifDataPtr path);
 
 /* Iterate Context type */
 typedef esif_string EsifConfigFindContext, *EsifConfigFindContextPtr;

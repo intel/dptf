@@ -26,5 +26,5 @@ class dptf_export DptfTime : public TimeInterface
 {
 public:
 
-    virtual UInt64 getCurrentTimeInMilliseconds(void);
+    virtual TimeSpan getCurrentTime(void);
 };

@@ -24,44 +24,82 @@ static const UInt8 MaxNumberOfConfigTdpControls = 3;
 DomainConfigTdpControl_001::DomainConfigTdpControl_001(UIntN participantIndex, UIntN domainIndex, 
     ParticipantServicesInterface* participantServicesInterface) :
     DomainConfigTdpControlBase(participantIndex, domainIndex, participantServicesInterface),
-    m_configTdpControlDynamicCaps(nullptr),
-    m_configTdpControlSet(nullptr),
-    m_configTdpControlStatus(nullptr),
     m_configTdpLevelsAvailable(0),
     m_currentConfigTdpControlId(Constants::Invalid),
     m_configTdpLock(false)
 {
+    clearCachedData();
+    capture();
 }
 
 DomainConfigTdpControl_001::~DomainConfigTdpControl_001(void)
 {
-    clearCachedData();
+    restore();
 }
 
 ConfigTdpControlDynamicCaps DomainConfigTdpControl_001::getConfigTdpControlDynamicCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    return *m_configTdpControlDynamicCaps;
+    if (m_configTdpControlDynamicCaps.isInvalid())
+    {
+        m_configTdpControlDynamicCaps.set(createConfigTdpControlDynamicCaps(domainIndex));
+    }
+
+    return m_configTdpControlDynamicCaps.get();
 }
 
 ConfigTdpControlStatus DomainConfigTdpControl_001::getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    return *m_configTdpControlStatus;
+    if (m_configTdpControlStatus.isInvalid())
+    {
+        UIntN currentTdpControl = //ulTdpControl NOT index...
+            getParticipantServices()->primitiveExecuteGetAsUInt32(
+            esif_primitive_type::GET_PROC_CTDP_CURRENT_SETTING,
+            domainIndex);
+
+        // Determine the index...
+        Bool controlIdFound = false;
+        auto controlSet = getConfigTdpControlSet(participantIndex, domainIndex);
+        for (UIntN i = 0; i < controlSet.getCount(); i++)
+        {
+            if (currentTdpControl == controlSet[i].getControlId())
+            {
+                m_configTdpControlStatus.set(ConfigTdpControlStatus(i));
+                controlIdFound = true;
+            }
+        }
+
+        if (controlIdFound == false)
+        {
+            throw dptf_exception("cTDP control not found in set.");
+        }
+    }
+
+    return m_configTdpControlStatus.get();
 }
 
 ConfigTdpControlSet DomainConfigTdpControl_001::getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    return *m_configTdpControlSet;
+    if (m_configTdpControlSet.isInvalid())
+    {
+        checkHWConfigTdpSupport(domainIndex);
+        m_configTdpControlSet.set(createConfigTdpControlSet(domainIndex));
+
+        // If any lock bit is set, we only provide 1 cTDP level to the policies.
+        if (m_configTdpLock)
+        {
+            auto controlSet = m_configTdpControlSet.get();
+            controlSet.removeLastControl();
+            m_configTdpControlSet.set(controlSet);
+        }
+    }
+
+    return m_configTdpControlSet.get();
 }
 
 void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIntN domainIndex,
     UIntN configTdpControlIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
     // If any of the lock bits are set, we cannot program cTDP
     if (m_configTdpLock)
     {
@@ -70,17 +108,17 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
         return;
     }
 
-    // Bounds checking
-    verifyConfigTdpControlIndex(configTdpControlIndex);
+    throwIfConfigTdpControlIndexIsOutOfBounds(participantIndex, domainIndex, configTdpControlIndex);
 
+    auto controlSet = getConfigTdpControlSet(participantIndex, domainIndex);
     getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_CTDP_CONTROL,
-        (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getControlId(), // This is what 7.x does
+        controlSet[configTdpControlIndex].getControlId(), // This is what 7.x does
         domainIndex);
 
     getParticipantServices()->primitiveExecuteSetAsUInt32(
         esif_primitive_type::SET_PROC_TURBO_ACTIVATION_RATIO,
-        (UInt32)((*m_configTdpControlSet)[configTdpControlIndex].getTdpRatio() - 1), // This is what 7.x does
+        controlSet[configTdpControlIndex].getTdpRatio() - 1, // This is what 7.x does
         domainIndex);
 
     // Then BIOS
@@ -90,8 +128,7 @@ void DomainConfigTdpControl_001::setConfigTdpControl(UIntN participantIndex, UIn
         domainIndex);
 
     // Refresh the status
-    DELETE_MEMORY_TC(m_configTdpControlStatus);
-    m_configTdpControlStatus = new ConfigTdpControlStatus(configTdpControlIndex);
+    m_configTdpControlStatus.set(ConfigTdpControlStatus(configTdpControlIndex));
 }
 
 void DomainConfigTdpControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
@@ -100,21 +137,21 @@ void DomainConfigTdpControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
     {
         if (isActivityLoggingEnabled() == true) 
         {
-            checkAndCreateControlStructures(domainIndex);
-            UInt32 configTdpControlIndex = m_configTdpControlStatus->getCurrentControlIndex();
+            UInt32 configTdpControlIndex = getConfigTdpControlStatus(participantIndex, domainIndex).getCurrentControlIndex();
 
             if (configTdpControlIndex == Constants::Invalid)
             {
-                configTdpControlIndex = m_configTdpControlDynamicCaps->getCurrentUpperLimitIndex();
+                configTdpControlIndex = getConfigTdpControlDynamicCaps(participantIndex, domainIndex).getCurrentUpperLimitIndex();
             }
 
             EsifCapabilityData capability;
-            capability.type = Capability::CtdpControl;
+            capability.type = ESIF_CAPABILITY_TYPE_CTDP_CONTROL;
             capability.size = sizeof(capability);
             capability.data.configTdpControl.controlId = configTdpControlIndex;
-            capability.data.configTdpControl.tdpFrequency = (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getTdpFrequency();
-            capability.data.configTdpControl.tdpPower = (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getTdpPower();
-            capability.data.configTdpControl.tdpRatio = (UInt32)(*m_configTdpControlSet)[configTdpControlIndex].getTdpRatio();
+            auto controlSet = getConfigTdpControlSet(participantIndex, domainIndex);
+            capability.data.configTdpControl.tdpFrequency = controlSet[configTdpControlIndex].getTdpFrequency();
+            capability.data.configTdpControl.tdpPower = controlSet[configTdpControlIndex].getTdpPower();
+            capability.data.configTdpControl.tdpRatio = controlSet[configTdpControlIndex].getTdpRatio();
 
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
                 domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
@@ -128,31 +165,63 @@ void DomainConfigTdpControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 
 void DomainConfigTdpControl_001::clearCachedData(void)
 {
-    DELETE_MEMORY_TC(m_configTdpControlSet);
-    DELETE_MEMORY_TC(m_configTdpControlDynamicCaps);
-    DELETE_MEMORY_TC(m_configTdpControlStatus);
+    m_configTdpControlSet.invalidate();
+    m_configTdpControlDynamicCaps.invalidate();
+    m_configTdpControlStatus.invalidate();
 }
 
 std::shared_ptr<XmlNode> DomainConfigTdpControl_001::getXml(UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
     auto root = XmlNode::createWrapperElement("config_tdp_control");
 
-    root->addChild(m_configTdpControlDynamicCaps->getXml());
-    root->addChild(m_configTdpControlSet->getXml());
-    root->addChild(m_configTdpControlStatus->getXml());
+    root->addChild(getConfigTdpControlDynamicCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getConfigTdpControlSet(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getConfigTdpControlStatus(getParticipantIndex(), domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
     return root;
 }
 
-void DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainIndex)
+void DomainConfigTdpControl_001::capture(void)
 {
-    if (m_configTdpControlSet == nullptr)
+    try
     {
-        createConfigTdpControlSet(domainIndex);
+        m_initialStatus.set(getConfigTdpControlStatus(getParticipantIndex(), getDomainIndex()));
     }
+    catch(dptf_exception& e)
+    {
+        std::string warningMsg = e.what();
+        getParticipantServices()->writeMessageWarning(ParticipantMessage(
+            FLF, "Failed to get the initial cTDP status. " + warningMsg));
+    }
+}
+
+void DomainConfigTdpControl_001::restore(void)
+{
+    if (m_initialStatus.isValid())
+    {
+        try
+        {
+            setConfigTdpControl(getParticipantIndex(), getDomainIndex(), m_initialStatus.get().getCurrentControlIndex());
+        }
+        catch (dptf_exception& e)
+        {
+            std::string warningMsg = e.what();
+            getParticipantServices()->writeMessageWarning(ParticipantMessage(
+                FLF, "Failed to restore the initial cTDP status. " + warningMsg));
+        }
+        catch (...)
+        {
+            // best effort
+            getParticipantServices()->writeMessageDebug(ParticipantMessage(
+                FLF, "Failed to restore the initial cTDP control status. "));
+        }
+    }
+}
+
+ConfigTdpControlDynamicCaps DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainIndex)
+{
+    auto controlSet = getConfigTdpControlSet(getParticipantIndex(), domainIndex);
 
     // Get dynamic caps
     UInt32 lowerLimitIndex = 0;
@@ -160,10 +229,9 @@ void DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainI
 
     if (!m_configTdpLock)
     {
-        lowerLimitIndex = m_configTdpControlSet->getCount() - 1;  // This is what the 7.0 code does
+        lowerLimitIndex = controlSet.getCount() - 1;  // This is what the 7.0 code does
 
-        upperLimitIndex =
-            getParticipantServices()->primitiveExecuteGetAsUInt32(
+        upperLimitIndex = getParticipantServices()->primitiveExecuteGetAsUInt32(
                 esif_primitive_type::GET_PROC_CTDP_CAPABILITY,
                 domainIndex);
 
@@ -173,80 +241,48 @@ void DomainConfigTdpControl_001::createConfigTdpControlDynamicCaps(UIntN domainI
         }
     }
 
-    m_configTdpControlDynamicCaps = new ConfigTdpControlDynamicCaps(lowerLimitIndex, upperLimitIndex);
+    return ConfigTdpControlDynamicCaps(lowerLimitIndex, upperLimitIndex);
 }
 
-void DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
+ConfigTdpControlSet DomainConfigTdpControl_001::createConfigTdpControlSet(UIntN domainIndex)
 {
     // Build TDPL table
     DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
         esif_primitive_type::GET_PROC_CTDP_POINT_LIST, ESIF_DATA_BINARY, domainIndex);
-    std::vector<ConfigTdpControl> controls = BinaryParse::processorTdplObject(buffer);
-
-    checkHWConfigTdpSupport(controls, domainIndex);
-
-    // If any lock bit is set, we only provide 1 cTDP level to the policies.
-    if (m_configTdpLock)
-    {
-        while (controls.size() > 1)
-        {
-            controls.pop_back();
-        }
-    }
-
-    m_configTdpControlSet = new ConfigTdpControlSet(controls);
+    return ConfigTdpControlSet(ConfigTdpControlSet::createFromTdpl(buffer));
 }
 
-void DomainConfigTdpControl_001::checkHWConfigTdpSupport(std::vector<ConfigTdpControl> controls, UIntN domainIndex)
+void DomainConfigTdpControl_001::checkHWConfigTdpSupport(UIntN domainIndex)
 {
     m_configTdpLevelsAvailable = getLevelCount(domainIndex);
     m_configTdpLock = isLockBitSet(domainIndex);
-
-    UIntN currentTdpControl = //ulTdpControl NOT index...
-        getParticipantServices()->primitiveExecuteGetAsUInt32(
-            esif_primitive_type::GET_PROC_CTDP_CURRENT_SETTING,
-            domainIndex);
-
-    // Determine the index...
-    Bool controlIdFound = false;
-    for (UIntN i = 0; i < controls.size(); i++)
-    {
-        if (currentTdpControl == controls.at(i).getControlId())
-        {
-            DELETE_MEMORY_TC(m_configTdpControlStatus);
-            m_configTdpControlStatus = new ConfigTdpControlStatus(i);
-            controlIdFound = true;
-        }
-    }
-
-    if (controlIdFound == false)
-    {
-        throw dptf_exception("cTDP control not found in set.");
-    }
 }
 
-void DomainConfigTdpControl_001::verifyConfigTdpControlIndex(UIntN configTdpControlIndex)
+void DomainConfigTdpControl_001::throwIfConfigTdpControlIndexIsOutOfBounds(
+    UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex)
 {
-    if (configTdpControlIndex >= m_configTdpControlSet->getCount())
+    auto controlSet = getConfigTdpControlSet(participantIndex, domainIndex);
+    if (configTdpControlIndex >= controlSet.getCount())
     {
         std::stringstream infoMessage;
 
         infoMessage << "Control index out of control set bounds." << std::endl
                     << "Desired Index : " << configTdpControlIndex << std::endl
-                    << "PerformanceControlSet size :" << m_configTdpControlSet->getCount() << std::endl;
+                    << "ConfigTdpControlSet size :" << controlSet.getCount() << std::endl;
 
         throw dptf_exception(infoMessage.str());
     }
 
-    if (configTdpControlIndex < m_configTdpControlDynamicCaps->getCurrentUpperLimitIndex() ||
-        configTdpControlIndex > m_configTdpControlDynamicCaps->getCurrentLowerLimitIndex())
+    auto dynamicCaps = getConfigTdpControlDynamicCaps(participantIndex, domainIndex);
+    if (configTdpControlIndex < dynamicCaps.getCurrentUpperLimitIndex() ||
+        configTdpControlIndex > dynamicCaps.getCurrentLowerLimitIndex())
     {
         std::stringstream infoMessage;
 
-        infoMessage << "Got a performance control index that was outside the allowable range." << std::endl
+        infoMessage << "Got a config TDP control index that was outside the allowable range." << std::endl
                     << "Desired Index : " << configTdpControlIndex << std::endl
-                    << "Upper Limit Index : " << m_configTdpControlDynamicCaps->getCurrentUpperLimitIndex() << std::endl
-                    << "Lower Limit Index : " << m_configTdpControlDynamicCaps->getCurrentLowerLimitIndex() << std::endl;
+                    << "Upper Limit Index : " << dynamicCaps.getCurrentUpperLimitIndex() << std::endl
+                    << "Lower Limit Index : " << dynamicCaps.getCurrentLowerLimitIndex() << std::endl;
 
         throw dptf_exception(infoMessage.str());
     }
@@ -299,19 +335,6 @@ Bool DomainConfigTdpControl_001::isLockBitSet(UIntN domainIndex)
     else
     {
         return false;
-    }
-}
-
-void DomainConfigTdpControl_001::checkAndCreateControlStructures(UIntN domainIndex)
-{
-    if (m_configTdpControlSet == nullptr)
-    {
-        createConfigTdpControlSet(domainIndex);
-    }
-
-    if (m_configTdpControlDynamicCaps == nullptr)
-    {
-        createConfigTdpControlDynamicCaps(domainIndex);
     }
 }
 

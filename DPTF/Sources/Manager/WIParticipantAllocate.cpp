@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "WIParticipantAllocate.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "EsifServices.h"
 
 WIParticipantAllocate::WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex) :
@@ -32,7 +32,7 @@ WIParticipantAllocate::~WIParticipantAllocate(void)
 
 void WIParticipantAllocate::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,6 +41,6 @@ void WIParticipantAllocate::execute(void)
     catch (std::exception& ex)
     {
         *m_newParticipantIndex = Constants::Esif::NoParticipant;
-        WriteWorkItemErrorMessage_Function("ParticipantManager::allocateParticipant")
+        writeWorkItemErrorMessage(ex, "ParticipantManager::allocateParticipant");
     }
 }

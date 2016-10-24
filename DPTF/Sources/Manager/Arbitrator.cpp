@@ -19,17 +19,19 @@
 #include "Arbitrator.h"
 #include "DptfManager.h"
 
-Arbitrator::Arbitrator(DptfManager* dptfManager) :
+Arbitrator::Arbitrator(DptfManagerInterface* dptfManager) :
     m_dptfManager(dptfManager)
 {
-    m_activeControlArbitrator = new ActiveControlArbitrator(m_dptfManager);
-    m_configTdpControlArbitrator = new ConfigTdpControlArbitrator(m_dptfManager);
-    m_coreControlArbitrator = new CoreControlArbitrator(m_dptfManager);
-    m_displayControlArbitrator = new DisplayControlArbitrator(m_dptfManager);
-    m_performanceControlArbitrator = new PerformanceControlArbitrator(m_dptfManager);
+    m_activeControlArbitrator = new ActiveControlArbitrator();
+    m_configTdpControlArbitrator = new ConfigTdpControlArbitrator();
+    m_coreControlArbitrator = new CoreControlArbitrator();
+    m_displayControlArbitrator = new DisplayControlArbitrator();
+    m_performanceControlArbitrator = new PerformanceControlArbitrator();
     m_powerControlArbitrator = new PowerControlArbitrator();
     m_temperatureThresholdArbitrator = new TemperatureThresholdArbitrator(m_dptfManager);
     m_powerControlCapabilitiesArbitrator = new PowerControlCapabilitiesArbitrator();
+    m_displayControlCapabilitiesArbitrator = new DisplayControlCapabilitiesArbitrator();
+    m_performanceControlCapabilitiesArbitrator = new PerformanceControlCapabilitiesArbitrator();
 }
 
 Arbitrator::~Arbitrator(void)
@@ -42,6 +44,8 @@ Arbitrator::~Arbitrator(void)
     DELETE_MEMORY_TC(m_powerControlArbitrator);
     DELETE_MEMORY_TC(m_temperatureThresholdArbitrator);
     DELETE_MEMORY_TC(m_powerControlCapabilitiesArbitrator);
+    DELETE_MEMORY_TC(m_displayControlCapabilitiesArbitrator);
+    DELETE_MEMORY_TC(m_performanceControlCapabilitiesArbitrator);
 }
 
 void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
@@ -55,6 +59,8 @@ void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
     m_powerControlArbitrator->removeRequestsForPolicy(policyIndex);
     m_temperatureThresholdArbitrator->clearPolicyCachedData(policyIndex);
     m_powerControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
+    m_displayControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
+    m_performanceControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
 }
 
 ActiveControlArbitrator* Arbitrator::getActiveControlArbitrator(void) const
@@ -95,4 +101,14 @@ TemperatureThresholdArbitrator* Arbitrator::getTemperatureThresholdArbitrator(vo
 PowerControlCapabilitiesArbitrator* Arbitrator::getPowerControlCapabilitiesArbitrator(void) const
 {
     return m_powerControlCapabilitiesArbitrator;
+}
+
+DisplayControlCapabilitiesArbitrator* Arbitrator::getDisplayControlCapabilitiesArbitrator(void) const
+{
+    return m_displayControlCapabilitiesArbitrator;
+}
+
+PerformanceControlCapabilitiesArbitrator* Arbitrator::getPerformanceControlCapabilitiesArbitrator(void) const
+{
+    return m_performanceControlCapabilitiesArbitrator;
 }

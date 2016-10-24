@@ -65,21 +65,17 @@ namespace PolicyEvent
             CASE(DomainMaxBatteryPowerChanged)
             CASE(DomainPlatformBatterySteadyStateChanged)
             CASE(PolicyActiveRelationshipTableChanged)
-            CASE(PolicyCoolingModeAcousticLimitChanged)
             CASE(PolicyCoolingModePolicyChanged)
-            CASE(PolicyCoolingModePowerLimitChanged)
             CASE(PolicyForegroundApplicationChanged)
             CASE(PolicyInitiatedCallback)
             CASE(PolicyOperatingSystemConfigTdpLevelChanged)
-            CASE(PolicyOperatingSystemLpmModeChanged)
-            CASE(PolicyOperatingSystemHdcStatusChanged)
             CASE(PolicyPassiveTableChanged)
-            CASE(PolicyPlatformLpmModeChanged)
             CASE(PolicySensorOrientationChanged)
             CASE(PolicySensorMotionChanged)
             CASE(PolicySensorSpatialOrientationChanged)
             CASE(PolicyThermalRelationshipTableChanged)
             CASE(PolicyAdaptivePerformanceConditionsTableChanged)
+            CASE(PolicyAdaptivePerformanceParticipantConditionTableChanged)
             CASE(PolicyAdaptivePerformanceActionsTableChanged)
             CASE(PolicyOperatingSystemPowerSourceChanged)
             CASE(PolicyOperatingSystemLidStateChanged)
@@ -88,13 +84,16 @@ namespace PolicyEvent
             CASE(PolicyOperatingSystemDockModeChanged)
             CASE(PolicyOperatingSystemMobileNotification)
             CASE(PolicyOemVariablesChanged)
-            CASE(PolicyPowerDeviceRelationshipTableChanged)
             CASE(PolicyPowerBossConditionsTableChanged)
             CASE(PolicyPowerBossActionsTableChanged)
+            CASE(PolicyPowerBossMathTableChanged)
             CASE(DptfPolicyLoadedUnloadedEvent)
             CASE(DptfPolicyActivityLoggingEnabled)
             CASE(DptfPolicyActivityLoggingDisabled)
             CASE(PolicyOperatingSystemPowerSchemePersonalityChanged)
+            CASE(PolicyEmergencyCallModeTableChanged)
+            CASE(PolicyPidAlgorithmTableChanged)
+            CASE(PolicyActiveControlPointRelationshipTableChanged)
             default:
                 throw dptf_exception("PolicyEvent::Type is invalid.");
         }
@@ -103,20 +102,16 @@ namespace PolicyEvent
     Bool RequiresEsifEventRegistration(PolicyEvent::Type policyEventType)
     {
         return ((policyEventType == PolicyEvent::PolicyActiveRelationshipTableChanged) ||
-            (policyEventType == PolicyEvent::PolicyCoolingModeAcousticLimitChanged) ||
             (policyEventType == PolicyEvent::PolicyCoolingModePolicyChanged) ||
-            (policyEventType == PolicyEvent::PolicyCoolingModePowerLimitChanged) ||
             (policyEventType == PolicyEvent::PolicyForegroundApplicationChanged) ||
             (policyEventType == PolicyEvent::PolicyOperatingSystemConfigTdpLevelChanged) ||
-            (policyEventType == PolicyEvent::PolicyOperatingSystemLpmModeChanged) ||
-            (policyEventType == PolicyEvent::PolicyOperatingSystemHdcStatusChanged) ||
             (policyEventType == PolicyEvent::PolicyPassiveTableChanged) ||
-            (policyEventType == PolicyEvent::PolicyPlatformLpmModeChanged) ||
             (policyEventType == PolicyEvent::PolicySensorOrientationChanged) ||
             (policyEventType == PolicyEvent::PolicySensorMotionChanged) ||
             (policyEventType == PolicyEvent::PolicySensorSpatialOrientationChanged) ||
             (policyEventType == PolicyEvent::PolicyThermalRelationshipTableChanged) ||
             (policyEventType == PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged) ||
+            (policyEventType == PolicyEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged) ||
             (policyEventType == PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged) ||
             (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSourceChanged) ||
             (policyEventType == PolicyEvent::PolicyOperatingSystemLidStateChanged) ||
@@ -125,10 +120,13 @@ namespace PolicyEvent
             (policyEventType == PolicyEvent::PolicyOperatingSystemDockModeChanged) ||
             (policyEventType == PolicyEvent::PolicyOperatingSystemMobileNotification) ||
             (policyEventType == PolicyEvent::PolicyOemVariablesChanged) ||
-            (policyEventType == PolicyEvent::PolicyPowerDeviceRelationshipTableChanged) ||
             (policyEventType == PolicyEvent::PolicyPowerBossConditionsTableChanged) ||
             (policyEventType == PolicyEvent::PolicyPowerBossActionsTableChanged) ||
-            (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged));
+            (policyEventType == PolicyEvent::PolicyPowerBossMathTableChanged) ||
+            (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged) ||
+            (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged) ||
+            (policyEventType == PolicyEvent::PolicyPidAlgorithmTableChanged) ||
+            (policyEventType == PolicyEvent::PolicyActiveControlPointRelationshipTableChanged));
     }
 
     std::string toString(Type type)
@@ -195,26 +193,16 @@ namespace PolicyEvent
             return "DomainPlatformBatterySteadyStateChanged";
         case PolicyEvent::PolicyActiveRelationshipTableChanged:
             return "PolicyActiveRelationshipTableChanged";
-        case PolicyEvent::PolicyCoolingModeAcousticLimitChanged:
-            return "PolicyCoolingModeAcousticLimitChanged";
         case PolicyEvent::PolicyCoolingModePolicyChanged:
             return "PolicyCoolingModePolicyChanged";
-        case PolicyEvent::PolicyCoolingModePowerLimitChanged:
-            return "PolicyCoolingModePowerLimitChanged";
         case PolicyEvent::PolicyForegroundApplicationChanged:
             return "PolicyForegroundApplicationChanged";
         case PolicyEvent::PolicyInitiatedCallback:
             return "PolicyInitiatedCallback";
         case PolicyEvent::PolicyOperatingSystemConfigTdpLevelChanged:
             return "PolicyOperatingSystemConfigTdpLevelChanged";
-        case PolicyEvent::PolicyOperatingSystemLpmModeChanged:
-            return "PolicyOperatingSystemLpmModeChanged";
-        case PolicyEvent::PolicyOperatingSystemHdcStatusChanged:
-            return "PolicyOperatingSystemHdcStatusChanged";
         case PolicyEvent::PolicyPassiveTableChanged:
             return "PolicyPassiveTableChanged";
-        case PolicyEvent::PolicyPlatformLpmModeChanged:
-            return "PolicyPlatformLpmModeChanged";
         case PolicyEvent::PolicySensorOrientationChanged:
             return "PolicySensorOrientationChanged";
         case PolicyEvent::PolicySensorMotionChanged:
@@ -225,6 +213,8 @@ namespace PolicyEvent
             return "PolicyThermalRelationshipTableChanged";
         case PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged:
             return "PolicyAdaptivePerformanceConditionsTableChanged";
+        case PolicyEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged:
+            return "PolicyAdaptivePerformanceParticipantConditionTableChanged";
         case PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged:
             return "PolicyAdaptivePerformanceActionsTableChanged";
         case PolicyEvent::PolicyOperatingSystemPowerSourceChanged:
@@ -241,12 +231,12 @@ namespace PolicyEvent
             return "PolicyOperatingSystemMobileNotification";
         case PolicyEvent::PolicyOemVariablesChanged:
             return "PolicyOemVariablesChanged";
-        case PolicyEvent::PolicyPowerDeviceRelationshipTableChanged:
-            return "PolicyPowerDeviceRelationshipTableChanged";
         case PolicyEvent::PolicyPowerBossConditionsTableChanged:
             return "PolicyPowerBossConditionsTableChanged";
         case PolicyEvent::PolicyPowerBossActionsTableChanged:
             return "PolicyPowerBossActionsTableChanged";
+        case PolicyEvent::PolicyPowerBossMathTableChanged:
+            return "PolicyPowerBossMathTableChanged";
         case PolicyEvent::DptfPolicyLoadedUnloadedEvent:
             return "DptfPolicyLoadedUnloadedEvent";
         case PolicyEvent::DptfPolicyActivityLoggingEnabled:
@@ -255,10 +245,16 @@ namespace PolicyEvent
             return "DptfPolicyActivityLoggingDisabled";
         case PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged:
             return "PolicyOperatingSystemPowerSchemePersonalityChanged";
+        case PolicyEvent::PolicyEmergencyCallModeTableChanged:
+            return "PolicyEmergencyCallModeTableChanged";
+        case PolicyEvent::PolicyPidAlgorithmTableChanged:
+            return "PolicyPidAlgorithmTableChanged";
+        case PolicyEvent::PolicyActiveControlPointRelationshipTableChanged:
+            return "PolicyActiveControlPointRelationshipTableChanged";
         case PolicyEvent::Invalid:
         case PolicyEvent::Max:
         default:
-            throw dptf_exception("PolicyEvent::Type is invalid.");
+            throw dptf_exception("Event type is not a Policy Event.");
         }
     }
 

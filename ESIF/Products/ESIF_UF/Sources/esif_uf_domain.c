@@ -65,9 +65,13 @@ static eEsifError EsifUpDomain_TempDetectInit(
 	EsifUpDomainPtr self
 	);
 
-static eEsifError EsifUpDomain_PowerDetectInit(
+static eEsifError EsifUpDomain_PowerStatusDetectInit(
 	EsifUpDomainPtr self
 	);
+
+static eEsifError EsifUpDomain_PowerControlDetectInit(
+	EsifUpDomainPtr self
+);
 
 static eEsifError EsifUpDomain_CoreDetectInit(
 	EsifUpDomainPtr self
@@ -180,57 +184,49 @@ eEsifError EsifUpDomain_DspReadyInit(
 	)
 {
 	eEsifError rc = ESIF_OK;
-
+	
 	if (NULL == self) {
 		ESIF_TRACE_DEBUG("Self is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
-		goto exit;
 	}
 	
-	rc = EsifUpDomain_TempDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	//multiple rc codes are acceptable for capability detection
+	if (rc == ESIF_OK) {
+		rc = EsifUpDomain_TempDetectInit(self);
 	}
-	
-	rc = EsifUpDomain_PowerDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_PowerStatusDetectInit(self);
 	}
-
-	rc = EsifUpDomain_PsysDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_PowerControlDetectInit(self);
 	}
-	
-	rc = EsifUpDomain_PlatPowerDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_PsysDetectInit(self);
 	}
-	
-	rc = EsifUpDomain_CTDPDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_PlatPowerDetectInit(self);
 	}
-
-	rc = EsifUpDomain_PerfDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_CTDPDetectInit(self);
 	}
-
-	rc = EsifUpDomain_CoreDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_PerfDetectInit(self);
 	}
-
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_CoreDetectInit(self);
+	}
 	
 /* Perf state detection handled in upper framework for Sysfs model */
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
-	rc = EsifUpDomain_StateDetectInit(self);
-	if ((rc != ESIF_OK) && (rc != ESIF_E_NOT_SUPPORTED) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		goto exit;
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_StateDetectInit(self);
 	}
 #endif
-exit:
+
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = ESIF_OK;
+	}
+
 	return rc;
 }
 
@@ -244,6 +240,24 @@ static void EsifUpDomain_DisableCap(
 	self->capability_for_domain.capability_flags &= ~(1 << cap);
 	self->capability_for_domain.capability_mask[cap] = 0;
 
+}
+
+eEsifError EsifUpDomain_EnableCaps(
+	EsifUpDomainPtr self,
+	unsigned int capabilityFlags,
+	unsigned char *capabilityMaskPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	if (self == NULL || capabilityMaskPtr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	self->capability_for_domain.capability_flags = capabilityFlags;
+	esif_ccb_memcpy(self->capability_for_domain.capability_mask, capabilityMaskPtr, sizeof(self->capability_for_domain.capability_mask));
+exit:
+	return rc;
 }
 
 static eEsifError EsifUpDomain_CapDetect(
@@ -315,13 +329,14 @@ static eEsifError EsifUpDomain_TempDetectInit(
 		ESIF_TRACE_DEBUG("%s %s: Error getting hysteresis\n",
 			self->participantName,
 			self->domainStr);
-		rc = ESIF_E_NOT_SUPPORTED;
+		self->tempHysteresis = esif_temp_rel_to_abs(ESIF_DOMAIN_HYST_DEF);
+		rc = ESIF_OK;
 		goto exit;
 	}
 	ESIF_TRACE_DEBUG("%s %s: Setting hysteresis to %d\n",
 		self->participantName,
 		self->domainStr,
-		self->tempHysteresis);
+		esif_temp_abs_to_rel(self->tempHysteresis));
 
 	self->tempAux0 = ESIF_DOMAIN_TEMP_INVALID;
 	self->tempAux1 = ESIF_DOMAIN_TEMP_INVALID;
@@ -329,13 +344,13 @@ exit:
 	return rc;
 }
 
-static eEsifError EsifUpDomain_PowerDetectInit(
+static eEsifError EsifUpDomain_PowerStatusDetectInit(
 	EsifUpDomainPtr self
 	)
 {
 	eEsifError rc = ESIF_OK;
 	UInt32 powerValue = 0;
-	EsifPrimitiveTuple powerTuple = {GET_RAPL_POWER, 0, 255};
+	EsifPrimitiveTuple powerTuple = { GET_RAPL_POWER, 0, 255 };
 	EsifData powerData = { ESIF_DATA_POWER, &powerValue, sizeof(powerValue), 0 };
 
 	ESIF_ASSERT(self != NULL);
@@ -346,6 +361,26 @@ static eEsifError EsifUpDomain_PowerDetectInit(
 		rc = ESIF_E_NOT_SUPPORTED;
 	}
 
+	return rc;
+}
+
+static eEsifError EsifUpDomain_PowerControlDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	EsifPrimitiveTuple powerCapsTuple = { GET_RAPL_POWER_CONTROL_CAPABILITIES, 0, 255 };
+	EsifData powerCapsData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_POWER_CONTROL, &powerCapsTuple, &powerCapsData);
+	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
+		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
+	esif_ccb_free(powerCapsData.buf_ptr);
 	return rc;
 }
 
@@ -575,8 +610,8 @@ static eEsifError EsifUpDomain_SetTempThreshWLock(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	esif_temp_t tempMin = ESIF_DOMAIN_TEMP_MIN;
-	esif_temp_t tempMax = ESIF_DOMAIN_TEMP_MAX;
+	esif_temp_t tempMin = (esif_temp_t)ESIF_SDK_MIN_AUX_TRIP;
+	esif_temp_t tempMax = ESIF_SDK_MAX_AUX_TRIP;
 	esif_temp_t tempAux0Def = ESIF_DOMAIN_TEMP_AUX0_DEF;
 	esif_temp_t tempAux1Def;
 	esif_temp_t temp;
@@ -677,18 +712,25 @@ static esif_temp_t EsifUpDomain_CalcAux0WHyst(
 	esif_temp_t aux0
 	)
 {
-	esif_temp_t aux0WHyst = ESIF_DOMAIN_TEMP_MIN;
+	esif_temp_t aux0WHyst = (esif_temp_t)ESIF_SDK_MIN_AUX_TRIP;
 	esif_temp_t tempAux0Def = ESIF_DOMAIN_TEMP_AUX0_DEF;
+	esif_temp_t hystRel = {0};
+	esif_temp_t oneDegreeRel = 1; /* 1C */
 
 	esif_convert_temp(ESIF_TEMP_C, NORMALIZE_TEMP_TYPE, &aux0WHyst);
+
+	esif_convert_temp(ESIF_TEMP_C, NORMALIZE_TEMP_TYPE, &oneDegreeRel);
+	oneDegreeRel = esif_temp_abs_to_rel(oneDegreeRel);
 
 	if (ESIF_DOMAIN_TEMP_INVALID == aux0) {
 		esif_convert_temp(ESIF_TEMP_C, NORMALIZE_TEMP_TYPE, &tempAux0Def);
 		aux0 = tempAux0Def;
 	}
 
-	if (self->tempHysteresis < (aux0 - 1))
-		aux0WHyst = aux0 - self->tempHysteresis - 1;
+	hystRel = esif_temp_abs_to_rel(self->tempHysteresis);
+	if (hystRel < (aux0 - oneDegreeRel)) {
+		aux0WHyst = aux0 - hystRel - oneDegreeRel;
+	}
 
 	return aux0WHyst;
 }
@@ -813,10 +855,17 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 	}
 	
 	self->tempLastTempValid = ESIF_TRUE;
-
+	
 	if (EsifUpDomain_IsTempOutOfThresholds(self, temp)) {
 		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
-		ESIF_TRACE_DEBUG("THRESHOLD CROSSED EVENT!!! Participant: %s, Domain: %s, Temperature: %d \n", self->participantName, self->domainName, temp);
+		ESIF_TRACE_DEBUG("THRESHOLD CROSSED EVENT!!! Participant: %s, Domain: %s, Temperature: %d, Aux0: %d, Aux0WHyst: %d, Aux1: %d, Hyst: %d \n",
+			self->participantName,
+			self->domainName,
+			temp,
+			self->tempAux0,
+			self->tempAux0WHyst,
+			self->tempAux1,
+			esif_temp_abs_to_rel(self->tempHysteresis));
 	}
 
 exit:

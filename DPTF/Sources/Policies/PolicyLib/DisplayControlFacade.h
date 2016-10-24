@@ -35,11 +35,15 @@ public:
     virtual Bool supportsDisplayControls() override;
     virtual void setControl(UIntN displayControlIndex) override;
     virtual void setDisplayControlDynamicCaps(DisplayControlDynamicCaps newCapabilities) override;
+    virtual void lockCapabilities() override;
+    virtual void unlockCapabilities() override;
 
     // properties
     virtual void refreshCapabilities() override;
     virtual void invalidateControlSet() override;
-    virtual const DisplayControlStatus& getStatus() override;
+    virtual DisplayControlStatus getStatus() override;
+    virtual UIntN getUserPreferredDisplayIndex() override;
+    virtual Bool isUserPreferredIndexModified() override;
     virtual const DisplayControlSet& getControls() override;
     virtual const DisplayControlDynamicCaps& getCapabilities() override;
     virtual void setValueWithinCapabilities() override;
@@ -56,6 +60,5 @@ private:
     
     // display control properties
     DisplayControlSetCachedProperty m_displayControlSetProperty;
-    DisplayControlStatusProperty m_displayControlStatusProperty;
     DisplayControlCapabilitiesCachedProperty m_displayControlCapabilitiesProperty;
 };

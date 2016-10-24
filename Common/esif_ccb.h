@@ -69,6 +69,7 @@
 #include <windows.h>
 #else
 #include <ntddk.h>
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
 #endif
 
 #define ESIF_ATTR_OS	"Windows"		/* OS Is Windows */
@@ -150,7 +151,8 @@ typedef unsigned long long u64;	/* A QWORD */
 
 /* Common Widows Symbols */
 #define MAX_PATH 260
-#define INVALID_HANDLE_VALUE NULL
+#define INVALID_HANDLE_VALUE (-1)
+#define STATUS_SUCCESS 0
 #endif
 
 #ifndef ESIF_ATTR_OS
@@ -244,6 +246,7 @@ typedef u8		Bool;	/* C BOOLEAN */
  */
 #define esif_ccb_max(a, b)	((a) >= (b) ? (a) : (b))
 #define esif_ccb_min(a, b)	((a) <= (b) ? (a) : (b))
+#define esif_ccb_handle2lld(h)	((long long)(size_t)(h))	/* for use with "%lld" formats */
 
 /*
  * Macros required for esif_rc and esif_sdk headers

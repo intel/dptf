@@ -36,12 +36,17 @@ public:
         PowerControlType::Type controlType) override;
     virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType, const Power& powerLimit) override;
+    virtual void setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const Power& powerLimit) override;
     virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType) override;
     virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
+    virtual void setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
         PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
     virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType) override;
     virtual void setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType, const Percentage& dutyCycle) override;
+    virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override final;
 };

@@ -66,7 +66,7 @@
  * These flags will be used by the ESIF Configuration Management Data Base CMDB
  */
 #define ESIF_SERVICE_CONFIG_PERSIST     0x00000001	/* Persist Data To Disk */
-#define ESIF_SERVICE_CONFIG_ENCRYPT     0x00000002	/* Encrypt Data For Storage */
+#define ESIF_SERVICE_CONFIG_SCRAMBLE    0x00000002	/* Scramble Data For Storage */
 #define ESIF_SERVICE_CONFIG_READONLY    0x00000004	/* Data is Read-Only */
 #define ESIF_SERVICE_CONFIG_NOCACHE     0x00000008	/* Data is not cached in memory (except key) */
 #define ESIF_SERVICE_CONFIG_FILELINK    0x00000010	/* Data is a link to an external file */
@@ -96,7 +96,7 @@ typedef eEsifError(ESIF_CALLCONV *AppSetConfigFunction)(
 	const EsifDataPtr nameSpace,	/* Name space to use e.g. ESIF, DPTF, ACT, Etc. */
 	const EsifDataPtr elementPath,	/* Element path e.g. /a/b/c must be unique within a name space */
 	const EsifDataPtr elementValue,	/* Any valid esif_data_type maybe set accept ESIF_DATA_AUTO */
-	const EsifFlags elementFlags	/* Flags for handling data including persist, encrypt, etc. */
+	const EsifFlags elementFlags	/* Flags for handling data including persist, scramble, etc. */
 );
 
 /*

@@ -50,6 +50,19 @@ PowerStatus PowerStatusProperty::getStatus()
     }
 }
 
+Power PowerStatusProperty::getAveragePower(const PowerControlDynamicCaps& capabilities)
+{
+    if (implementsPowerStatusInterface())
+    {
+        return getPolicyServices().domainPowerStatus->getAveragePower(
+            getParticipantIndex(), getDomainIndex(), capabilities);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the power status interface.");
+    }
+}
+
 Bool PowerStatusProperty::supportsProperty(void)
 {
     return implementsPowerStatusInterface();

@@ -34,7 +34,7 @@ WIDomainVirtualSensorRecalcChanged::~WIDomainVirtualSensorRecalcChanged(void)
 
 void WIDomainVirtualSensorRecalcChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -42,7 +42,7 @@ void WIDomainVirtualSensorRecalcChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainVirtualSensorRecalcChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorRecalcChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -61,7 +61,7 @@ void WIDomainVirtualSensorRecalcChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainVirtualSensorRecalcChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorRecalcChanged", i);
         }
     }
 }

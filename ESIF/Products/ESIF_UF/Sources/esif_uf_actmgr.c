@@ -22,6 +22,7 @@
 #include "esif_uf_actmgr.h"	/* Action Manager */
 #include "esif_uf_service.h"
 #include "esif_uf_ccb_imp_spec.h"
+#include "esif_uf_eventmgr.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -469,7 +470,7 @@ static eEsifError EsifActMgr_CreatePossActList_Locked()
 	esif_build_path(libPath, sizeof(libPath), ESIF_PATHTYPE_DLL, NULL, NULL);
 
 	fileIter = esif_ccb_file_enum_first(libPath, filePattern, &curFile);
-	if (INVALID_HANDLE_VALUE == fileIter) {
+	if (ESIF_INVALID_FILE_ENUM_HANDLE == fileIter) {
 		goto exit;
 	}
 
@@ -563,6 +564,7 @@ eEsifError EsifActMgr_StartUpe(
 	GetIfaceFuncPtr getIfacePtr = NULL;
 	EsifActIface iface = {0};
 	enum esif_action_type actType = 0;
+	EsifData eventData = { ESIF_DATA_UINT32, &actType, sizeof(actType), sizeof(actType) };
 
 	if (NULL == upeName) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -639,6 +641,8 @@ eEsifError EsifActMgr_StartUpe(
 		goto exit;
 	}
 
+	EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_LOADED, &eventData);
+
 	ESIF_TRACE_DEBUG("Added action %s\n", upeName);
 exit:
 	if (rc != ESIF_OK) {
@@ -655,6 +659,8 @@ eEsifError EsifActMgr_StopUpe(EsifString upeName)
 	eEsifError rc = ESIF_OK;
 	EsifActMgrEntryPtr entryPtr = NULL;
 	struct esif_link_list_node *nodePtr = NULL;
+	enum esif_action_type actType = 0;
+	EsifData eventData = { ESIF_DATA_UINT32, &actType, sizeof(actType), sizeof(actType) };
 
 	if (NULL == upeName) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -676,6 +682,9 @@ eEsifError EsifActMgr_StopUpe(EsifString upeName)
 	g_actMgr.numActions--;
 
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+	actType = entryPtr->type;
+	EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_UNLOADED, &eventData);
 
 	EsifActMgr_DestroyEntry(entryPtr);
 
@@ -970,6 +979,8 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_DPTFWWAN);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_USBFAN);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_JAVA);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SIM);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_NVME);
 
 	EsifActConfigInit();
 	EsifActConstInit();

@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "BinaryParse.h"
 #include "DomainPowerControlBase.h"
 #include "CachedValue.h"
 #include "PowerControlState.h"
@@ -30,7 +29,7 @@ public:
 
     DomainPowerControl_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainPowerControl_001(void);
+    virtual ~DomainPowerControl_001(void);
 
     // DomainPowerControlInterface
     virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
@@ -39,9 +38,13 @@ public:
         PowerControlType::Type controlType) override;
     virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType, const Power& powerLimit) override;
+    virtual void setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const Power& powerLimit) override;
     virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType) override;
     virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
+    virtual void setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
         PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
     virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType) override;
@@ -52,6 +55,7 @@ public:
         UIntN participantIndex, UIntN domainIndex) override;
     virtual void setPowerControlDynamicCapsSet(
         UIntN participantIndex, UIntN domainIndex, PowerControlDynamicCapsSet capsSet) override;
+    virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
     // ParticipantActivityLoggingInterface
     virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
@@ -61,6 +65,10 @@ public:
     virtual std::string getName(void) override;
     virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
+protected:
+    virtual void capture(void) override;
+    virtual void restore(void) override;
+
 private:
 
     // Don't allow this class to be copied
@@ -68,10 +76,7 @@ private:
     DomainPowerControl_001& operator=(const DomainPowerControl_001& rhs);
 
     PowerControlDynamicCapsSet getDynamicCapabilities();
-    void createPowerControlDynamicCapsSet(UIntN domainIndex);
-    void initializePowerControlDynamicCapsSetIfNull(UIntN domainIndex);
-    Bool isEnabled(PowerControlType::Type controlType) const;
-    void setAndCheckEnabled(PowerControlType::Type controlType);
+    void setAndUpdateEnabled(PowerControlType::Type controlType);
 
     void throwIfLimitNotEnabled(PowerControlType::Type controlType);
     void throwIfTypeInvalidForPowerLimit(PowerControlType::Type controlType);
@@ -90,8 +95,5 @@ private:
 
     CachedValue<PowerControlDynamicCapsSet> m_powerControlDynamicCaps;
     PowerControlState m_initialState;
-    Bool m_pl1Enabled;
-    Bool m_pl2Enabled;
-    Bool m_pl3Enabled;
-    Bool m_pl4Enabled;
+    Bool m_capabilitiesLocked;
 };

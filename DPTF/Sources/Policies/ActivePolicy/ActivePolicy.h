@@ -62,8 +62,8 @@ private:
     // cooling targets
     void coolTargetParticipant(ParticipantProxyInterface* participant);
     void requestFanSpeedChangesForTarget(ParticipantProxyInterface* target, const Temperature& currentTemperature);
-    void requestFanSpeedChange(const ActiveRelationshipTableEntry& entry, const Temperature& currentTemperature);
-    void requestFanTurnedOff(const ActiveRelationshipTableEntry& entry);
+    void requestFanSpeedChange(std::shared_ptr<ActiveRelationshipTableEntry> entry, const Temperature& currentTemperature);
+    void requestFanTurnedOff(std::shared_ptr<ActiveRelationshipTableEntry> entry);
     void turnOffAllFans();
     void refreshArtAndTargetsAndTakeCoolingAction();
     void reloadArt();
@@ -75,8 +75,8 @@ private:
     Temperature determineUpperTemperatureThreshold(const Temperature& currentTemperature, SpecificInfo& tripPoints) const;
 
     // selecting a fan speed
-    Percentage selectFanSpeed(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature);
-    UIntN selectActiveControlIndex(const ActiveRelationshipTableEntry& entry, SpecificInfo& tripPoints, const Temperature& temperature);
+    Percentage selectFanSpeed(std::shared_ptr<ActiveRelationshipTableEntry> entry, SpecificInfo& tripPoints, const Temperature& temperature);
+    UIntN selectActiveControlIndex(std::shared_ptr<ActiveRelationshipTableEntry> entry, SpecificInfo& tripPoints, const Temperature& temperature);
     UIntN findTripPointCrossed(SpecificInfo& tripPoints, const Temperature& temperature);
 
     // associating participants with entries in the ART

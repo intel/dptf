@@ -18,7 +18,6 @@
 
 #include "DomainProxy.h"
 #include "StatusFormat.h"
-#include "HardwareDutyCycleControlFacade.h"
 using namespace std;
 
 DomainProxy::DomainProxy(
@@ -33,17 +32,12 @@ DomainProxy::DomainProxy(
         PolicyServicesInterfaceContainer()),
     m_domainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
     m_participantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo()),
-    m_activeCoolingControl(Constants::Invalid, Constants::Invalid, 
-        DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()), 
-        ParticipantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo()), PolicyServicesInterfaceContainer()),
     m_policyServices(policyServices)
 {
     m_domainProperties = DomainProperties(participant->getDomainPropertiesSet().getDomainProperties(domainIndex));
     m_participantProperties = ParticipantProperties(participant->getParticipantProperties());
     m_domainPriorityProperty = DomainPriorityCachedProperty(m_participantIndex, domainIndex, 
         m_domainProperties, policyServices);
-    m_activeCoolingControl = ActiveCoolingControl(m_participantIndex, domainIndex, 
-        m_domainProperties, m_participantProperties, policyServices);
 
     // create control facades
     m_temperatureControl = std::make_shared<TemperatureControlFacade>(
@@ -64,8 +58,8 @@ DomainProxy::DomainProxy(
         m_participantIndex, domainIndex, m_domainProperties, policyServices);
     m_pixelClockControl = std::make_shared<PixelClockControlFacade>(
         m_participantIndex, domainIndex, m_domainProperties, policyServices);
-    m_hardwareDutyCycleControl = std::make_shared<HardwareDutyCycleControlFacade>(
-        m_participantIndex, domainIndex, m_domainProperties, m_participantProperties, policyServices);
+    m_activeCoolingControl = std::make_shared<ActiveCoolingControl>(m_participantIndex, domainIndex,
+        m_domainProperties, m_participantProperties, policyServices);
 }
 
 DomainProxy::DomainProxy()
@@ -76,10 +70,7 @@ DomainProxy::DomainProxy()
         DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
         PolicyServicesInterfaceContainer()),
     m_domainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
-    m_participantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo()),
-    m_activeCoolingControl(Constants::Invalid, Constants::Invalid,
-        DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
-        ParticipantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo()), PolicyServicesInterfaceContainer())
+    m_participantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo())
 {
 }
 
@@ -110,11 +101,6 @@ const ParticipantProperties& DomainProxy::getParticipantProperties() const
 std::shared_ptr<TemperatureControlFacadeInterface> DomainProxy::getTemperatureControl()
 {
     return m_temperatureControl;
-}
-
-ActiveCoolingControl& DomainProxy::getActiveCoolingControl()
-{
-    return m_activeCoolingControl;
 }
 
 DomainPriorityCachedProperty& DomainProxy::getDomainPriorityProperty()
@@ -162,9 +148,9 @@ PixelClockControlFacade& DomainProxy::getPixelClockControl() const
     return *m_pixelClockControl;
 }
 
-shared_ptr<HardwareDutyCycleControlFacadeInterface> DomainProxy::getHardwareDutyCycleControl() const
+shared_ptr<ActiveCoolingControlFacadeInterface> DomainProxy::getActiveCoolingControl()
 {
-    return m_hardwareDutyCycleControl;
+    return m_activeCoolingControl;
 }
 
 UtilizationStatus DomainProxy::getUtilizationStatus()

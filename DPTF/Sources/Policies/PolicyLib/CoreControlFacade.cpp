@@ -55,7 +55,7 @@ void CoreControlFacade::initializeControlsIfNeeded()
         CoreControlDynamicCaps caps = getDynamicCapabilities();
         if (m_controlsHaveBeenInitialized == false)
         {
-            setControl(CoreControlStatus(caps.getMaxActiveCores()));
+            setActiveCoreControl(CoreControlStatus(caps.getMaxActiveCores()));
             m_controlsHaveBeenInitialized = true;
         }
         else
@@ -67,13 +67,13 @@ void CoreControlFacade::initializeControlsIfNeeded()
             {
                 m_policyServices.messageLogging->writeMessageDebug(
                     PolicyMessage(FLF, "Adjusting active core limit to minimum allowed."));
-                setControl(CoreControlStatus(maxActiveCores));
+                setActiveCoreControl(CoreControlStatus(maxActiveCores));
             }
             else if (lastSetActiveCores < minActiveCores)
             {
                 m_policyServices.messageLogging->writeMessageDebug(
                     PolicyMessage(FLF, "Adjusting active core limit to minimum allowed."));
-                setControl(CoreControlStatus(minActiveCores));
+                setActiveCoreControl(CoreControlStatus(minActiveCores));
             }
         }
         m_policyServices.messageLogging->writeMessageDebug(
@@ -86,11 +86,11 @@ void CoreControlFacade::setControlsToMax()
     if (supportsCoreControls())
     {
         CoreControlDynamicCaps caps = getDynamicCapabilities();
-        setControl(CoreControlStatus(caps.getMaxActiveCores()));
+        setActiveCoreControl(CoreControlStatus(caps.getMaxActiveCores()));
     }
 }
 
-void CoreControlFacade::setControl(CoreControlStatus status)
+void CoreControlFacade::setActiveCoreControl(CoreControlStatus status)
 {
     if (supportsCoreControls())
     {
@@ -141,7 +141,7 @@ void CoreControlFacade::setValueWithinCapabilities()
     controlValue = std::min(m_capabilities.getStaticCaps().getTotalLogicalProcessors(), controlValue);
     controlValue = std::max(m_capabilities.getDynamicCaps().getMinActiveCores(), controlValue);
     controlValue = std::min(m_capabilities.getDynamicCaps().getMaxActiveCores(), controlValue);
-    setControl(CoreControlStatus(controlValue));
+    setActiveCoreControl(CoreControlStatus(controlValue));
 }
 
 void CoreControlFacade::throwIfControlNotSupported()

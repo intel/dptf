@@ -31,7 +31,7 @@ WIPolicyAdaptivePerformanceActionsTableChanged::~WIPolicyAdaptivePerformanceActi
 
 void WIPolicyAdaptivePerformanceActionsTableChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -49,7 +49,7 @@ void WIPolicyAdaptivePerformanceActionsTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy(
+            writeWorkItemErrorMessagePolicy(ex, 
                 "Policy::executePolicyAdaptivePerformanceActionsTableChanged", i);
         }
     }

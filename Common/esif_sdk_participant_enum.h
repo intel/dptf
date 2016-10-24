@@ -59,18 +59,21 @@
  * Participant Enumeration Types
  */
 
-enum esif_participant_enum {
+typedef enum esif_participant_enum {
 	ESIF_PARTICIPANT_ENUM_ACPI = 0,
 	ESIF_PARTICIPANT_ENUM_PCI = 1,
 	ESIF_PARTICIPANT_ENUM_PLAT = 2,
 	ESIF_PARTICIPANT_ENUM_CONJURE = 3,
 	ESIF_PARTICIPANT_ENUM_USB = 4,
 	ESIF_PARTICIPANT_ENUM_SYSFS = 5,
-};
+} esif_participant_enum_t;
+
+/* Max Enum Value for Iteration purposes */
+#define MAX_ESIF_PARTICIPANT_ENUM_VALUE  ESIF_PARTICIPANT_ENUM_SYSFS
 
 /* Enumeration String */
 static ESIF_INLINE esif_string esif_participant_enum_str(
-	enum esif_participant_enum index)
+	esif_participant_enum_t index)
 {
 	switch (index) {
 	ESIF_CASE_ENUM(ESIF_PARTICIPANT_ENUM_ACPI);

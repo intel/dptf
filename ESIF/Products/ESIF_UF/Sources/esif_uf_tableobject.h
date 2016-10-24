@@ -19,6 +19,7 @@
 #ifndef _ESIF_UF_TABLEOBJECT_
 #define _ESIF_UF_TABLEOBJECT_
 #include "esif_lib_esifdata.h"
+#include "esif_temp.h"
 
 #define VARIANT_MAX_FIELDS 50
 #define TABLE_OBJECT_MAX_NAME_LEN	255
@@ -68,6 +69,7 @@ typedef struct TableObject_s {
 	int dynamicColumnCount;
 	UInt64 version;
 	enum tableMode mode;
+	UInt64 controlMode;
 } TableObject;
 
 struct esif_data_binary_fst_package {
@@ -79,7 +81,7 @@ struct esif_data_binary_fst_package {
 /* Bit Flags for TableObject.options */
 #define TABLEOPT_CONTAINS_REVISION		0x00000001	// Contains Table Revision
 #define TABLEOPT_ALLOW_SELF_DEFINE		0x00000002	// Allow Self-Define
-#define TABLEOPT_HAS_NOPERSIST			0x00000004	// Table may have a /nopersist/%nm%/name value in OVERRIDE
+#define TABLEOPT_CONTAINS_MODE          0x00000004  // Contains Mode
 
 void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML);
 void TableField_Destroy(TableField *dataField);
@@ -90,7 +92,8 @@ eEsifError TableObject_LoadSchema(TableObject *self);
 eEsifError TableObject_LoadAttributes(TableObject *self);
 eEsifError TableObject_Save(TableObject *self);
 eEsifError TableObject_Delete(TableObject *self);
-eEsifError TableObject_LoadXML(TableObject *self);
+eEsifError TableObject_LoadXML(TableObject *self, enum esif_temperature_type tempXformType);
 eEsifError TableObject_Convert(TableObject *self);
+eEsifError TableObject_ResetConfig(TableObject *self, UInt32 primitiveToReset, const UInt8 instance);
 
 #endif

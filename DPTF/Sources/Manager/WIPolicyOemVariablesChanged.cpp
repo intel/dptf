@@ -31,7 +31,7 @@ WIPolicyOemVariablesChanged::~WIPolicyOemVariablesChanged(void)
 
 void WIPolicyOemVariablesChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -49,7 +49,7 @@ void WIPolicyOemVariablesChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOemVariablesChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOemVariablesChanged", i);
         }
     }
 }

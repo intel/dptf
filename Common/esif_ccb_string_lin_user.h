@@ -85,7 +85,18 @@ static ESIF_INLINE void esif_ccb_strcat(
 #ifdef ESIF_ATTR_MEMTRACE
 #include "esif_ccb_memtrace.h"
 #else
-#define esif_ccb_strdup(str)			strdup(str)
+
+/* Linux _strupr_s() equlivalent */
+static ESIF_INLINE char *esif_ccb_strdup(
+	const char *str
+	)
+{
+	char *newStr = NULL;
+	if(str) {
+		newStr = strdup(str);
+	}
+	return newStr;
+}
 #endif
 
 /* Linux _strupr_s() equlivalent */

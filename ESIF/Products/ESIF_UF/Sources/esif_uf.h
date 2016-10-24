@@ -25,8 +25,36 @@
 extern "C" {
 #endif
 
-// Set to TRUE after initial ESIF Startup scripts run
-extern UInt8 g_esif_started;
+/* DCFG Bitmask Options. Default Values must always be 0 for backwards compatibility */
+typedef union DCfgOptions_u {
+	struct {
+		UInt32 GenericUIAccessControl : 1;			// 0:0 - 0 = Enable [default], 1 = Disable access
+		UInt32 RestrictedUIAccessControl : 1;		// 1:1 - 0 = Enable [default], 1 = Disable access
+		UInt32 ShellAccessControl : 1;				// 2:2 - 0 = Enable [default], 1 = Disable access
+		UInt32 EnvMonitoringReportControl : 1;		// 3:3 - 0 = Report is allowed [default], 1 = No environmental monitoring report to Microsoft
+		UInt32 ThermalMitigationReportControl : 1;	// 4:4 - 0 = No mitigation report to Microsoft [default], 1 = Report is allowed
+		UInt32 ThermalPolicyReportControl : 1;		// 5:5 - 0 = No thermal policy report to Microsoft [default], 1 = Report is allowed
+		UInt32 Reserved : 26;						// 31:6  Reserved
+	} opt;
+	UInt32 asU32;
+} DCfgOptions;
+
+extern DCfgOptions DCfg_Get();
+extern void DCfg_Set(DCfgOptions opt);
+
+typedef eEsifError (*EsifInitFunc)();
+typedef void (*EsifExitFunc)();
+
+typedef struct EsifInitTableEntry_s {
+	EsifInitFunc initFunc;
+	EsifExitFunc exitFunc;
+	esif_flags_t flags;
+} EsifInitTableEntry, *EsifInitTableEntryPtr;
+
+// ESIF Init Table Entry flags:
+#define ESIF_INIT_FLAG_NONE					0
+#define	ESIF_INIT_FLAG_IGNORE_ERROR			1
+#define	ESIF_INIT_FLAG_CHECK_STOP_AFTER		2
 
 // ESIF Log Types
 typedef enum eEsifLogType {
@@ -117,21 +145,11 @@ extern enum output_format g_format;
 unsigned int esif_atoi(const esif_string value);
 
 //
-// SubSystem
-//
-enum app_subsystem {
-	SUBSYSTEM_ESIF = 0
-};
-
-extern enum app_subsystem subsystem;
-void cmd_app_subsystem(const enum app_subsystem subsystem);
-
-//
 // Utilities
 //
-enum esif_rc esif_shell_execute(char *command);
-EsifString esif_shell_exec_command(EsifString line, size_t buf_len, UInt8 IsRest);
-EsifString parse_cmd(EsifString line, UInt8 IsRest);
+enum esif_rc esif_shell_execute(const char *command);
+char *esif_shell_exec_command(const char *line, size_t buf_len, UInt8 IsRest, UInt8 showOutput);
+char *parse_cmd(const char *line, UInt8 IsRest, UInt8 showOutput);
 UInt16 domain_str_to_short(esif_string two_character_string);
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 
@@ -199,7 +217,7 @@ exit:
  * Major Version should change when .edp, .fpc, .cpc, or .dsp file format(s) change
  * Minor Version should change when only .dsp file format changes and .edp is unaffected
  */
-#define ESIF_DSP_VERSION	"2.0"	// DSP Version [Major=EDP Version, Minor=DSP Revision]
+#define ESIF_DSP_VERSION	"3.0"	// DSP Version [Major=EDP Version, Minor=DSP Revision]
 #define ESIF_EDP_SIGNATURE	"@EDP"	// EDP File Signature (converted to UINT)
 #define ESIF_CPC_SIGNATURE	"@CPC"	// CPC File Signature (converted to UINT)
 
@@ -208,8 +226,10 @@ Bool esif_verify_edp(struct edp_dir *edp, size_t size);
 enum esif_rc esif_send_dsp(esif_string filename, UInt8 dst);
 
 /* Init / Exit */
-enum esif_rc esif_uf_init(void);
+eEsifError esif_uf_init(void);
+void esif_uf_stop_init(void);
 void esif_uf_exit(void);
+extern int g_stopEsifUfInit;
 
 enum esif_rc esif_main_init(esif_string path_list);
 void esif_main_exit(void);
@@ -220,12 +240,12 @@ esif_string esif_pathlist_get(esif_pathtype type);
 int esif_pathlist_count(void);
 
 /* OS Specific Init / Exit */
-enum esif_rc esif_uf_os_init(void);
+eEsifError esif_uf_os_init(void);
 void esif_uf_os_exit(void);
 
 // Web
 extern eEsifError EsifWebStart();
-extern void EsifWebStop();
+extern void EsifWebStop(void);
 extern int EsifWebIsStarted();
 extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted);
 

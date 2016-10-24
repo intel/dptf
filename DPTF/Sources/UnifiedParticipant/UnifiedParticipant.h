@@ -67,8 +67,8 @@ public:
     virtual void connectedStandbyExit(void) override;
     virtual void suspend(void) override;
     virtual void resume(void) override;
-    virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityId) override;
-    virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityId) override;
+    virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityBitMask) override;
+    virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityBitMask) override;
     virtual void domainConfigTdpCapabilityChanged(void) override;
     virtual void domainCoreControlCapabilityChanged(void) override;
     virtual void domainDisplayControlCapabilityChanged(void) override;
@@ -120,10 +120,13 @@ public:
     // Display Controls
     virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
     virtual void setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex,
         DisplayControlDynamicCaps newCapabilities) override;
+    virtual void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
     // Performance Controls
     virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
@@ -138,6 +141,7 @@ public:
         UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override;
     virtual void setPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex,
         PerformanceControlDynamicCaps newCapabilities) override;
+    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
     // Pixel Clock Control
     virtual void setPixelClockControl(
@@ -154,14 +158,19 @@ public:
         PowerControlType::Type controlType) override;
     virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType, const Power& powerLimit) override;
+    virtual void setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const Power& powerLimit) override;
     virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType) override;
     virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+        PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
+    virtual void setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
         PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
     virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType) override;
     virtual void setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
         PowerControlType::Type controlType, const Percentage& dutyCycle) override;
+    virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
     virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(
         UIntN participantIndex, UIntN domainIndex) override;
@@ -170,6 +179,7 @@ public:
 
     // Power Status
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Power getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities) override;
 
     // Platform Power Controls
     virtual Bool isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
@@ -226,32 +236,17 @@ public:
     virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;
 
     //  Get Specific Info
-    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(
-        UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
+    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
 
     // ParticipantProperties
-    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) override;
-    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) override;
+    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) const override;
+    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) const override;
 
     // Set Specific Info
     virtual void setParticipantDeviceTemperatureIndication(
         UIntN participantIndex, const Temperature& temperature) override;
-    virtual void setParticipantCoolingPolicy(
-        UIntN participantIndex, const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
     virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint,
         const Temperature& tripValue) override;
-
-    // Hardware Duty Cycle
-    virtual DptfBuffer getHardwareDutyCycleUtilizationSet(
-        UIntN participantIndex, UIntN domainIndex) const override;
-    virtual Bool isEnabledByPlatform(UIntN participantIndex, UIntN domainIndex) const override;
-    virtual Bool isSupportedByPlatform(UIntN participantIndex, UIntN domainIndex) const override;
-    virtual Bool isEnabledByOperatingSystem(UIntN participantIndex, UIntN domainIndex) const override;
-    virtual Bool isSupportedByOperatingSystem(UIntN participantIndex, UIntN domainIndex) const override;
-    virtual Bool isHdcOobEnabled(UIntN participantIndex, UIntN domainIndex) const override;
-    virtual void setHdcOobEnable(UIntN participantIndex, UIntN domainIndex, const UInt8& hdcOobEnable) override;
-    virtual void setHardwareDutyCycle(UIntN participantIndex, UIntN domainIndex, const Percentage& dutyCycle) override;
-    virtual Percentage getHardwareDutyCycle(UIntN participantIndex, UIntN domainIndex) const override;
 
 private:
 
@@ -308,5 +303,5 @@ private:
     ConfigTdpControlSet getFirstConfigTdpControlSet(void);
 
     //Activity Logging Utility functions
-    void sendActivityLoggingDataIfEnabled(UInt32 domainIndex, Capability::Type capability);
+    void sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eEsifCapabilityType capability);
 };

@@ -48,6 +48,8 @@ public:
     virtual void setPowerLimitTimeWindowPL3(const TimeSpan& timeWindow) override;
     virtual void setPowerLimitDutyCyclePL3(const Percentage& dutyCycle) override;
     virtual void setValuesWithinCapabilities() override;
+    virtual void lockCapabilities() override;
+    virtual void unlockCapabilities() override;
 
     // queries
     virtual Bool supportsPowerControls() const override;
@@ -56,7 +58,8 @@ public:
     virtual Bool isPl2PowerLimitEnabled(void) override;
     virtual Bool isPl3PowerLimitEnabled(void) override;
     virtual Bool isPl4PowerLimitEnabled(void) override;
-    virtual PowerStatus getCurrentPower() override;
+    virtual Power getCurrentPower() override;
+    virtual Power getAveragePower() override;
     virtual const PowerControlDynamicCapsSet& getCapabilities() override;
     virtual Power getPowerLimitPL1() override;
     virtual Power getPowerLimitPL2() override;

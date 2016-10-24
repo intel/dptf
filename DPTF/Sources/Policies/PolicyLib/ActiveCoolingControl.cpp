@@ -174,3 +174,38 @@ std::shared_ptr<XmlNode> ActiveCoolingControl::getXml()
     status->addChild(XmlNode::createDataElement("fine_grain", friendlyValue(supportsFineGrainControl())));
     return status;
 }
+
+void ActiveCoolingControl::setControl(Percentage activeCoolingControlFanSpeed)
+{
+    if (supportsActiveCoolingControls())
+    {
+        m_policyServices.domainActiveControl->setActiveControl(
+            m_participantIndex, m_domainIndex, activeCoolingControlFanSpeed);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the active control fan interface.");
+    }
+}
+
+void ActiveCoolingControl::refreshCapabilities()
+{
+    m_staticCaps.refresh();
+}
+
+const ActiveControlStaticCaps& ActiveCoolingControl::getCapabilities()
+{
+    return m_staticCaps.getCapabilities();
+}
+
+ActiveControlStatus ActiveCoolingControl::getStatus()
+{
+    if (supportsActiveCoolingControls())
+    {
+        return m_policyServices.domainActiveControl->getActiveControlStatus(m_participantIndex, m_domainIndex);
+    }
+    else
+    {
+        throw dptf_exception("Domain does not support the display control interface.");
+    }
+}

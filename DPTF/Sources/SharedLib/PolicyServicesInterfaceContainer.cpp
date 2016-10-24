@@ -35,7 +35,6 @@ PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void) :
     domainRfProfileStatus(nullptr),
     domainTemperature(nullptr),
     domainUtilization(nullptr),
-    domainHardwareDutyCycleControl(nullptr),
     participantGetSpecificInfo(nullptr),
     participantProperties(nullptr),
     participantSetSpecificInfo(nullptr),

@@ -30,7 +30,9 @@ public:
 
     // arbitrate() returns true if the arbitrated value has changed
     Bool arbitrate(UIntN policyIndex, const PowerControlDynamicCapsSet& capSet);
+    Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
     PowerControlDynamicCapsSet getArbitratedPowerControlCapabilities() const;
+    Bool getArbitratedLock() const;
     void removeRequestsForPolicy(UIntN policyIndex);
 
 private:
@@ -40,8 +42,10 @@ private:
     std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedPowerLimitStep;
     std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>> m_requestedMaxTimeWindow;
     std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>> m_requestedMinTimeWindow;
+    std::map<UIntN, Bool> m_requestedLocks;
 
     void updatePolicyRequest(const PowerControlDynamicCapsSet &capSet, UIntN policyIndex);
+    void updatePolicyLockRequest(Bool lock, UIntN policyIndex);
     Power getLowestMaxPowerLimit(PowerControlType::Type controlType) const;
     Power getHighestMinPowerLimit(PowerControlType::Type controlType) const;
     Power getHighestPowerLimitStep(PowerControlType::Type controlType) const;

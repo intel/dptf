@@ -33,15 +33,18 @@ WIDomainPlatformPowerSourceChanged::~WIDomainPlatformPowerSourceChanged(void)
 
 void WIDomainPlatformPowerSourceChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
         getParticipantPtr()->domainPlatformPowerSourceChanged();
+        getParticipantPtr()->domainAdapterPowerRatingChanged();
+        getParticipantPtr()->domainACPeakPowerChanged();
+        getParticipantPtr()->domainACPeakTimeWindowChanged();
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPlatformPowerSourceChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainPlatformPowerSourceChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -52,7 +55,19 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
         try
         {
             Policy* policy = policyManager->getPolicyPtr(i);
+
+            // FIXME:
+            // As requested by DPTF architecture, the event for power source changed
+            // should also result in DPTF re-reading up to 3 other data items.  Because
+            // we do not have separate events for these on the platform, we are
+            // representing these data change events separately in DPTF only.
+            // Alternative is to represent all 4 pieces of information as a single
+            // data structure with a single event mapped to it, or BIOS/EC should send
+            // a different event code for each item if it changes.
             policy->executeDomainPlatformPowerSourceChanged(getParticipantIndex());
+            policy->executeDomainAdapterPowerRatingChanged(getParticipantIndex());
+            policy->executeDomainACPeakPowerChanged(getParticipantIndex());
+            policy->executeDomainACPeakTimeWindowChanged(getParticipantIndex());
         }
         catch (policy_index_invalid ex)
         {
@@ -60,7 +75,7 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPlatformPowerSourceChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPlatformPowerSourceChanged", i);
         }
     }
 }

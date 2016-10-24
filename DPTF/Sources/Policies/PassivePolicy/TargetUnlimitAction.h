@@ -43,8 +43,8 @@ private:
     
     // source filtering
     std::vector<UIntN> chooseSourcesToUnlimitForTarget(UIntN target);
-    std::vector<ThermalRelationshipTableEntry> getEntriesWithControlsToUnlimit(
-        UIntN target, const std::vector<ThermalRelationshipTableEntry>& sourcesForTarget);
+    std::vector< std::shared_ptr<ThermalRelationshipTableEntry>> getEntriesWithControlsToUnlimit(
+        UIntN target, const std::vector< std::shared_ptr<ThermalRelationshipTableEntry>>& sourcesForTarget);
 
     // domain filtering
     std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxyInterface* participant, UIntN target);
@@ -54,6 +54,6 @@ private:
 
     // domain unlimiting
     void requestUnlimit(UIntN source, UIntN domain, UIntN target);
-    void commitUnlimit(UIntN source, UInt64 time);
+    void commitUnlimit(UIntN source, const TimeSpan& time);
     void removeAllRequestsForTarget(UIntN target);
 };

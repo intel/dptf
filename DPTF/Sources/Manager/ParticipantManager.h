@@ -18,34 +18,30 @@
 
 #pragma once
 
-#include "Dptf.h"
-#include "Participant.h"
-#include "esif_sdk_iface_app.h"
+#include "ParticipantManagerInterface.h"
 
-class DptfManager;
-
-class ParticipantManager
+class ParticipantManager : public ParticipantManagerInterface
 {
 public:
 
-    ParticipantManager(DptfManager* dptfManager);
+    ParticipantManager(DptfManagerInterface* dptfManager);
     ~ParticipantManager(void);
 
-    void allocateParticipant(UIntN* newParticipantIndex);
-    void createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
-        Bool participantEnabled);
+    virtual void allocateParticipant(UIntN* newParticipantIndex) override;
+    virtual void createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
+        Bool participantEnabled) override;
 
-    void destroyAllParticipants(void);
-    void destroyParticipant(UIntN participantIndex);
+    virtual void destroyAllParticipants(void) override;
+    virtual void destroyParticipant(UIntN participantIndex) override;
 
-    UIntN getParticipantListCount(void) const;
-    Participant* getParticipantPtr(UIntN participantIndex);
+    virtual UIntN getParticipantListCount(void) const override;
+    virtual Participant* getParticipantPtr(UIntN participantIndex) const override;
 
     // This will clear the cached data stored within all participants *within* the framework.  It will not ask the
     // actual participants to clear their caches.
-    void clearAllParticipantCachedData();
+    virtual void clearAllParticipantCachedData() override;
 
-    std::string GetStatusAsXml(void);
+    virtual std::string GetStatusAsXml(void) override;
 
 private:
 
@@ -53,6 +49,6 @@ private:
     ParticipantManager(const ParticipantManager& rhs);
     ParticipantManager& operator=(const ParticipantManager& rhs);
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     std::vector<Participant*> m_participant;
 };

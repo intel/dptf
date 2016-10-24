@@ -17,11 +17,48 @@
 ******************************************************************************/
 
 #include "DisplayControlSet.h"
+#include "EsifDataBinaryBclPackage.h"
 #include "XmlNode.h"
+#include <algorithm>
 
 DisplayControlSet::DisplayControlSet(const std::vector<DisplayControl>& displayControl) :
     m_displayControl(displayControl)
 {
+}
+
+DisplayControlSet DisplayControlSet::createFromBcl(const DptfBuffer& buffer)
+{
+    std::vector<DisplayControl> controls;
+    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+    struct EsifDataBinaryBclPackage* currentRow = reinterpret_cast<struct EsifDataBinaryBclPackage*>(data);
+
+    if (buffer.size() == 0)
+    {
+        throw dptf_exception("Received empty BCL buffer.");
+    }
+
+    UIntN rows = buffer.size() / sizeof(EsifDataBinaryBclPackage);
+
+    if (buffer.size() % sizeof(EsifDataBinaryBclPackage))
+    {
+        throw dptf_exception("Expected binary data size mismatch. (BCL)");
+    }
+
+    for (UIntN i = 0; i < rows; i++)
+    {
+        DisplayControl temp(Percentage(static_cast<UInt32>(currentRow->brightnessLevel.integer.value) / 100.0));
+
+        controls.push_back(temp);
+
+        data += sizeof(struct EsifDataBinaryBclPackage);
+        currentRow = reinterpret_cast<struct EsifDataBinaryBclPackage*>(data);
+    }
+
+    std::sort(controls.begin(), controls.end());
+    controls.erase(std::unique(controls.begin(), controls.end()), controls.end());  // remove duplicates
+    std::reverse(controls.begin(), controls.end());
+
+    return DisplayControlSet(controls);
 }
 
 UIntN DisplayControlSet::getCount(void) const
@@ -29,7 +66,7 @@ UIntN DisplayControlSet::getCount(void) const
     return static_cast<UIntN>(m_displayControl.size());
 }
 
-const DisplayControl& DisplayControlSet::operator[](UIntN index) const
+DisplayControl DisplayControlSet::operator[](UIntN index) const
 {
     return m_displayControl.at(index);
 }

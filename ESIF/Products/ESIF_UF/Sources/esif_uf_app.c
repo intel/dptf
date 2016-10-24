@@ -29,6 +29,8 @@
 #include "esif_dsp.h"
 #include "esif_pm.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_ccb_thermalapi.h"
+#include "esif_uf_control_action_broadcast.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -86,6 +88,10 @@ static ESIF_INLINE EventCategory EsifApp_CategorizeEvent(
 	);
 
 static eEsifError EsifApp_RegisterParticipantsWithApp(
+	EsifAppPtr self
+	);
+
+static eEsifError EsifApp_CreateApp(
 	EsifAppPtr self
 	);
 
@@ -159,6 +165,8 @@ static eEsifError AppCreate(
 
 	esif_string app_type_ptr = NULL;
 	EsifInterface app_service_iface;
+
+	ESIF_TRACE_ENTRY_INFO();
 
 	ESIF_ASSERT(appPtr != NULL);
 	ESIF_ASSERT(ifaceFuncPtr != NULL);
@@ -270,9 +278,8 @@ static eEsifError AppCreate(
 	}
 
 	CMD_OUT("%s\n", (esif_string)data_banner.buf_ptr);
-
 exit:
-
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -506,13 +513,15 @@ eEsifError EsifAppCreateParticipant(
 	AppParticipantDataPtr participant_data_ptr = NULL;
 	AppParticipantDataMapPtr participantDataMapPtr = NULL;
 
+	ESIF_TRACE_ENTRY_INFO();
+
 	if (NULL == appPtr || NULL == upPtr) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 	participantDataMapPtr = &appPtr->fParticipantData[EsifUp_GetInstance(upPtr)];
 
-	// Exit if llready registered in this app
+	// Exit if already registered in this app
 	if (participantDataMapPtr->fUpPtr != NULL) {
 		goto exit;
 	}
@@ -525,10 +534,15 @@ eEsifError EsifAppCreateParticipant(
 	}
 
 	/* Create particpant Handle */
-	rc = appPtr->fInterface.fParticipantAllocateHandleFuncPtr(
+	if (NULL == appPtr->fInterface.fParticipantAllocateHandleFuncPtr) {
+		rc = ESIF_E_IFACE_DISABLED;
+	}
+
+	if (rc == ESIF_OK) {
+		rc = appPtr->fInterface.fParticipantAllocateHandleFuncPtr(
 			appPtr->fHandle,
 			&participant_handle);
-
+	}
 	if ((rc != ESIF_OK) || (NULL == participant_handle)) {
 		esif_ccb_free(participant_data_ptr);
 		participant_data_ptr = NULL;
@@ -557,11 +571,16 @@ eEsifError EsifAppCreateParticipant(
 						participantDataMapPtr->fAppParticipantHandle);
 
 	/* Call through the interface to create the participant instance in the app. */
-	rc = appPtr->fInterface.fParticipantCreateFuncPtr(
+	if (NULL == appPtr->fInterface.fParticipantCreateFuncPtr) {
+		rc = ESIF_E_IFACE_DISABLED;
+	}
+	if (rc == ESIF_OK) {
+		rc = appPtr->fInterface.fParticipantCreateFuncPtr(
 			appPtr->fHandle,
 			participant_handle,
 			participant_data_ptr,
 			eParticipantStateEnabled);
+	}
 	if (ESIF_OK != rc) {
 		EsifUp_PutRef(upPtr);
 		participantDataMapPtr->fAppParticipantHandle = NULL;	/* Application Participant */
@@ -570,11 +589,19 @@ eEsifError EsifAppCreateParticipant(
 	}
 
 	rc = CreateDomains(appPtr, upPtr, participantDataMapPtr);
+
+	/* Enable this participant for thermal API (Windows) */
+	EsifThermalApi_ParticipantCreate(upPtr);
+
+	/* Enable control action event broadcast for this participant (currently limited to WebSocket IPC) */
+	EsifControlActionBroadcastEnableParticipant(upPtr);
+
 exit:
 	if (participant_data_ptr) {
 		esif_ccb_free(participant_data_ptr);
 		participant_data_ptr = NULL;
 	}
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
@@ -688,51 +715,76 @@ exit:
 
 eEsifError EsifAppStart(EsifAppPtr appPtr)
 {
+	eEsifError rc = ESIF_OK;
+
 	ESIF_TRACE_ENTRY_INFO();
 
-	eEsifError rc = ESIF_OK;
-	GetIfaceFuncPtr iface_func_ptr = NULL;
-	esif_string iface_func_name    = GET_APPLICATION_INTERFACE_FUNCTION;
-
-	char libPath[ESIF_LIBPATH_LEN];
-	ESIF_TRACE_DEBUG("name=%s\n", appPtr->fLibNamePtr);
-	esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL, appPtr->fLibNamePtr, ESIF_LIB_EXT);
-	appPtr->fLibHandle = esif_ccb_library_load(libPath);
-
-	if (NULL == appPtr->fLibHandle || NULL == appPtr->fLibHandle->handle) {
-		rc = esif_ccb_library_error(appPtr->fLibHandle);
-		ESIF_TRACE_DEBUG("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(appPtr->fLibHandle));
+	if (NULL == appPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);
-
-	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(appPtr->fLibHandle, (char*)iface_func_name);
-	if (NULL == iface_func_ptr) {
-		rc = esif_ccb_library_error(appPtr->fLibHandle);
-		ESIF_TRACE_DEBUG("esif_ccb_library_get_func() %s failed [%s (%d)]: %s\n", iface_func_name, esif_rc_str(rc), rc, esif_ccb_library_errormsg(appPtr->fLibHandle));
-		goto exit;
-	}
-
-	ESIF_TRACE_DEBUG("esif_ccb_library_get_func() %s completed.\n", iface_func_name);
-	rc = AppCreate(appPtr, iface_func_ptr);
-	if (ESIF_OK != rc) {
-		ESIF_TRACE_DEBUG("AppCreate failed.\n");
-		goto exit;
-	}
-	ESIF_TRACE_DEBUG("AppCreate completed.\n");
+	rc = EsifApp_CreateApp(appPtr);
 
 	/*
 	 * Participant registration with an application is best effort, as we
 	 * should not unload an app if there is a failure while registering a
 	 * participant.
 	 */
-	EsifApp_RegisterParticipantsWithApp(appPtr);
-	ESIF_TRACE_DEBUG("EsifApp_RegisterParticipantsWithApp completed.\n");
+	if ((!appPtr->partRegDone) && ((ESIF_OK == rc) || (ESIF_E_APP_ALREADY_STARTED == rc))) {
+		EsifApp_RegisterParticipantsWithApp(appPtr);
+	}
 exit:
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
+}
+
+
+static eEsifError EsifApp_CreateApp(EsifAppPtr self)
+{
+	eEsifError rc = ESIF_OK;
+	GetIfaceFuncPtr iface_func_ptr = NULL;
+	esif_string iface_func_name = GET_APPLICATION_INTERFACE_FUNCTION;
+	char libPath[ESIF_LIBPATH_LEN];
+
+	ESIF_ASSERT(self != NULL);
+
+	if (self->appCreationDone) {
+		rc = ESIF_E_APP_ALREADY_STARTED;
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("name=%s\n", self->fLibNamePtr);
+	esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL, self->fLibNamePtr, ESIF_LIB_EXT);
+	self->fLibHandle = esif_ccb_library_load(libPath);
+
+	if (NULL == self->fLibHandle || NULL == self->fLibHandle->handle) {
+		rc = esif_ccb_library_error(self->fLibHandle);
+		ESIF_TRACE_DEBUG("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(self->fLibHandle));
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);
+
+	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(self->fLibHandle, (char*)iface_func_name);
+	if (NULL == iface_func_ptr) {
+		rc = esif_ccb_library_error(self->fLibHandle);
+		ESIF_TRACE_DEBUG("esif_ccb_library_get_func() %s failed [%s (%d)]: %s\n", iface_func_name, esif_rc_str(rc), rc, esif_ccb_library_errormsg(self->fLibHandle));
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("esif_ccb_library_get_func() %s completed.\n", iface_func_name);
+	rc = AppCreate(self, iface_func_ptr);
 	if (ESIF_OK != rc) {
-		esif_ccb_library_unload(appPtr->fLibHandle);
-		appPtr->fLibHandle = NULL;
+		ESIF_TRACE_DEBUG("AppCreate failed.\n");
+		goto exit;
+	}
+	self->appCreationDone = ESIF_TRUE;
+	ESIF_TRACE_DEBUG("AppCreate completed.\n");
+exit:
+	if ((ESIF_OK != rc) && (rc != ESIF_E_APP_ALREADY_STARTED)) {
+		esif_ccb_library_unload(self->fLibHandle);
+		self->fLibHandle = NULL;
 	}
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -744,33 +796,47 @@ static eEsifError EsifApp_RegisterParticipantsWithApp(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	EsifUpPtr upPtr = NULL;
-	UfPmIterator upIter = {0};
+	UfPmIteratorPtr upIterPtr = NULL;
 
 	ESIF_ASSERT(self != NULL);
 
-	rc = EsifUpPm_InitIterator(&upIter);
-	if (rc!= ESIF_OK) {
-		goto exit;
+	upIterPtr = &self->upIter;
+
+	if (!self->iteratorValid) {
+		rc = EsifUpPm_InitIterator(upIterPtr);
+		if (rc == ESIF_OK) {
+			/* Skip participant 0: ESIF treats this as a participant no one else does */
+			rc = EsifUpPm_GetNextUp(upIterPtr, &self->upPtr);
+		}
+		self->iteratorValid = ESIF_TRUE;
 	}
 
-	/* Skip participant 0: ESIF treats this as a participant no one else does */
-	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-	if (rc!= ESIF_OK) {
-		goto exit;
-	}
+	do {
+		if (g_stopEsifUfInit != ESIF_FALSE) {
+			ESIF_TRACE_API_INFO("Pausing participant registration with app\n");
+			rc = ESIF_I_INIT_PAUSED;
+			goto exit;
+		}
 
-	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-	while (ESIF_OK == rc) {
-		rc = EsifAppCreateParticipant(self, upPtr);
-		if (ESIF_OK != rc) {
+		rc = EsifUpPm_GetNextUp(upIterPtr, &self->upPtr);
+		if (rc != ESIF_OK) {
 			break;
 		}
-		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-	}
+
+		ESIF_TRACE_API_INFO("Creating participant in app\n");
+		rc = EsifAppCreateParticipant(self, self->upPtr);
+		ESIF_TRACE_API_INFO("Participant creation in app complete (rc = %d)\n", rc);
+	} while (ESIF_OK == rc);
+
 exit:
-	EsifUp_PutRef(upPtr);	
+	if (rc != ESIF_I_INIT_PAUSED) {
+		EsifUp_PutRef(self->upPtr);
+		self->upPtr = NULL;
+		self->partRegDone = ESIF_TRUE;
+		self->iteratorValid = ESIF_FALSE;
+	}
 	if (ESIF_E_ITERATION_DONE == rc) {
+		ESIF_TRACE_DEBUG("EsifApp_RegisterParticipantsWithApp completed.\n");
 		rc = ESIF_OK;
 	} 
 	ESIF_TRACE_INFO("Register participants with App, status = %s\n", esif_rc_str(rc));
@@ -782,6 +848,22 @@ eEsifError EsifAppStop(EsifAppPtr appPtr)
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_ASSERT(appPtr != NULL);
+
+	/* Send APP_UNLOADED event directly to the App using the App Interface on this
+	 * thread instead of using EventMgr Queue so that the App (or ABAT) can perform
+	 * any pre-shutdown tasks synchronously before any Participants are destroyed.
+	 */
+	if (NULL != appPtr->fInterface.fAppEventFuncPtr) {
+		esif_guid_t guid = APP_UNLOADING;
+		EsifData dataGuid = { ESIF_DATA_GUID, &guid, sizeof(guid), sizeof(guid) };
+
+		rc = appPtr->fInterface.fAppEventFuncPtr(
+			appPtr->fHandle,
+			NULL,
+			NULL,
+			NULL,
+			&dataGuid);
+	}
 
 	rc = EsifApp_DestroyParticipants(appPtr);
 	ESIF_TRACE_DEBUG("EsifUpManagerDestroyParticipantsInApp completed.\n");
@@ -806,16 +888,15 @@ static eEsifError EsifApp_DestroyParticipants(EsifAppPtr self)
 	ESIF_ASSERT(self != NULL);
 
 	rc = EsifUpPm_InitIterator(&upIter);
-	if (rc != ESIF_OK) {
-		goto exit;
+	if (rc == ESIF_OK) {
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	}
 
-	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	while (ESIF_OK == rc) {
 		EsifAppDestroyParticipant(self, upPtr);
 		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	}
-exit:
+
 	EsifUp_PutRef(upPtr);	
 	ESIF_TRACE_INFO("Destroy participants in App\n");
 	return ESIF_OK;
@@ -1475,18 +1556,6 @@ static ESIF_INLINE EventCategory EsifApp_CategorizeEvent(
 	}
 	return category;
 }
-
-
-eEsifError EsifAppInit()
-{
-	return ESIF_OK;
-}
-
-
-void EsifAppExit()
-{
-}
-
 
 /*****************************************************************************/
 /*****************************************************************************/

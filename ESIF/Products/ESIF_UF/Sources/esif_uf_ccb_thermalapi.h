@@ -38,6 +38,9 @@
 #define POWER_REPORT_THERMAL_EVENT_STR            "PowerReportThermalEvent"
 #define POWER_REPORT_LIMITS_EVENT_STR             "PowerReportLimitsEvent"
 
+extern Bool g_thermalApiPolicyStarted;
+extern Bool g_thermalApiMonitorStarted;
+extern Bool g_thermalApiMitigationStarted;
 //
 // _THERMAL_EVENT and PowerReportThermalEvent have been defined in WinBlue/Win8.1 WDK
 //
@@ -95,11 +98,21 @@ typedef DWORD(WINAPI * PFNPOWERREPORTTHERMALEVENT)(
 //
 extern esif_lib_t g_thermalApiLib;
 extern atomic_t g_thermalApiLibRefCount;					/* Reference count */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 char *EsifShellCmdThermalApi(EsifShellCmdPtr shell);
+eEsifError EsifThermalApi_Init(void);
+void EsifThermalApi_Exit(void);
 
 //Utility Functions
 eEsifError ThermalApi_LoadLibrary(void);
 eEsifError ThermalApi_UnloadLibrary(void);
+
+void ThermalApi_ParticipantCreate(EsifUpPtr upPtr);
+void ThermalApi_ParticipantDestroy(UInt8 participantId);
 
 void ThermalApi_ReportThermalEvent(
 	UInt32 EventFlag,
@@ -107,8 +120,14 @@ void ThermalApi_ReportThermalEvent(
 	UInt32 tripPointTemperature
 	);
 
-#define esif_ccb_report_thermal_event \
-	ThermalApi_ReportThermalEvent
+#ifdef __cplusplus
+}
+#endif
+
+#define esif_ccb_report_thermal_event(EventFlag, temperature, tripPointTemperature) \
+	ThermalApi_ReportThermalEvent(EventFlag, temperature, tripPointTemperature) 
+#define EsifThermalApi_ParticipantCreate(upPtr) \
+	ThermalApi_ParticipantCreate(upPtr)
 
 #else  //NOT ESIF_ATTR_OS_WINDOWS
 
@@ -119,8 +138,22 @@ static ESIF_INLINE char *EsifShellCmdThermalApi(EsifShellCmdPtr shell)
 	return output;
 }
 
-#define esif_ccb_report_thermal_event \
-	ESIF_E_NOT_IMPLEMENTED
+// Implementation is in esif_uf_thermalapi_os_lin.c
+static ESIF_INLINE void EsifThermalApi_ParticipantCreate(EsifUpPtr upPtr)
+{
+	UNREFERENCED_PARAMETER(upPtr);
+}
+
+static ESIF_INLINE void esif_ccb_report_thermal_event(
+	UInt32 EventFlag,
+	UInt32 temperature,
+	UInt32 tripPointTemperature)
+{
+	UNREFERENCED_PARAMETER(EventFlag);
+	UNREFERENCED_PARAMETER(temperature);
+	UNREFERENCED_PARAMETER(tripPointTemperature);
+}
+
 #endif
 
 /*****************************************************************************/

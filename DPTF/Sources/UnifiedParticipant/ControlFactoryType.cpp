@@ -54,8 +54,6 @@ std::string ControlFactoryType::ToString(Type factoryType)
         return "Temperature";
     case ControlFactoryType::Utilization:
         return "Utilization";
-    case ControlFactoryType::HardwareDutyCycle:
-        return "HardwareDutyCycle";
     case ControlFactoryType::GetSpecificInfo:
         return "GetSpecificInfo";
     case ControlFactoryType::SetSpecificInfo:

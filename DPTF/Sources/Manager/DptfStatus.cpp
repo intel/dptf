@@ -22,19 +22,17 @@
 #include "Participant.h"
 #include "Policy.h"
 #include <fstream>
-#include "DptfManager.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
-#include "WorkItemQueueManager.h"
+#include "ParticipantManagerInterface.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "BinaryParse.h"
-#include "XmlGeneratorFactory.h"
 #include "XmlNode.h"
 #include "ParticipantStatusMap.h"
 #include "EsifDataString.h"
 
 static const Guid FormatId(0x3E, 0x58, 0x63, 0x46, 0xF8, 0xF7, 0x45, 0x4A, 0xA8, 0xF7, 0xDE, 0x7E, 0xC6, 0xF7, 0x61, 0xA8);
 
-DptfStatus::DptfStatus(DptfManager* dptfManager) :
+DptfStatus::DptfStatus(DptfManagerInterface* dptfManager) :
     m_dptfManager(dptfManager)
 {
     m_policyManager = m_dptfManager->getPolicyManager();
@@ -433,8 +431,4 @@ std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedParticipants()
 void DptfStatus::fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode)
 {
     *returnCode = FillDataPtrWithString(outputLocation, inputString);
-    if ((*returnCode != ESIF_OK) && (*returnCode != ESIF_E_NEED_LARGER_BUFFER))
-    {
-        throw dptf_exception("Failed to fill ESIF data pointer with string.");
-    }
 }

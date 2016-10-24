@@ -21,11 +21,11 @@
 using namespace StatusFormat;
 
 ThermalRelationshipTableEntry::ThermalRelationshipTableEntry(
-    const std::string& sourceDeviceAcpiScope,
-    const std::string& targetDeviceAcpiScope,
+    const std::string& sourceDeviceScope,
+    const std::string& targetDeviceScope,
     UInt32 thermalInfluence,
-    UInt32 thermalSamplingPeriod)
-    : RelationshipTableEntryBase(sourceDeviceAcpiScope, targetDeviceAcpiScope),
+    const TimeSpan& thermalSamplingPeriod)
+    : RelationshipTableEntryBase(sourceDeviceScope, targetDeviceScope),
     m_thermalInfluence(thermalInfluence),
     m_thermalSamplingPeriod(thermalSamplingPeriod)
 {
@@ -36,7 +36,7 @@ const UInt32& ThermalRelationshipTableEntry::thermalInfluence() const
     return m_thermalInfluence;
 }
 
-const UInt32& ThermalRelationshipTableEntry::thermalSamplingPeriod() const
+const TimeSpan& ThermalRelationshipTableEntry::thermalSamplingPeriod() const
 {
     return m_thermalSamplingPeriod;
 }
@@ -45,11 +45,11 @@ std::shared_ptr<XmlNode> ThermalRelationshipTableEntry::getXml()
 {
     auto entry = XmlNode::createWrapperElement("trt_entry");
     entry->addChild(XmlNode::createDataElement("target_index", friendlyValue(getTargetDeviceIndex())));
-    entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceAcpiScope()));
+    entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceScope()));
     entry->addChild(XmlNode::createDataElement("source_index", friendlyValue(getSourceDeviceIndex())));
-    entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceAcpiScope()));
+    entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceScope()));
     entry->addChild(XmlNode::createDataElement("influence", friendlyValue(m_thermalInfluence)));
-    entry->addChild(XmlNode::createDataElement("sampling_period", friendlyValue(m_thermalSamplingPeriod / 10)));
+    entry->addChild(XmlNode::createDataElement("sampling_period", m_thermalSamplingPeriod.toStringSeconds()));
     return entry;
 }
 

@@ -30,6 +30,11 @@ PowerStatus DomainPowerStatus_000::getPowerStatus(UIntN participantIndex, UIntN 
     throw not_implemented();
 }
 
+Power DomainPowerStatus_000::getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities)
+{
+    throw not_implemented();
+}
+
 void DomainPowerStatus_000::clearCachedData(void)
 {
     // Do nothing.  Not an error.
@@ -38,6 +43,11 @@ void DomainPowerStatus_000::clearCachedData(void)
 std::shared_ptr<XmlNode> DomainPowerStatus_000::getXml(UIntN domainIndex)
 {
     // Do nothing.  Not an error.
+    throw not_implemented();
+}
+
+void DomainPowerStatus_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
     throw not_implemented();
 }
 

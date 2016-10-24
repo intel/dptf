@@ -33,7 +33,7 @@ WIDomainMaxBatteryPowerChanged::~WIDomainMaxBatteryPowerChanged(void)
 
 void WIDomainMaxBatteryPowerChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainMaxBatteryPowerChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainMaxBatteryPowerChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainMaxBatteryPowerChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainMaxBatteryPowerChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainMaxBatteryPowerChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainMaxBatteryPowerChanged", i);
         }
     }
 }

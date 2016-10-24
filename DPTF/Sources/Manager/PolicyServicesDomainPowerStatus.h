@@ -29,4 +29,5 @@ public:
     PolicyServicesDomainPowerStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override final;
+    virtual Power getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities) override final;
 };

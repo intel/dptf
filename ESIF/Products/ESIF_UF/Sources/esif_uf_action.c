@@ -323,7 +323,6 @@ eEsifError EsifAct_GetRef(EsifActPtr self)
 	}
 
 	self->refCount++;
-	ESIF_TRACE_DEBUG("ref = %d\n", self->refCount);
 	esif_ccb_write_unlock(&self->objLock);
 exit:
 	return rc;
@@ -342,8 +341,6 @@ void EsifAct_PutRef(EsifActPtr self)
 		esif_ccb_write_lock(&self->objLock);
 
 		self->refCount--;
-
-		ESIF_TRACE_DEBUG("ref = %d\n", self->refCount);
 
 		if ((self->refCount == 0) && (self->markedForDelete)) {
 			needRelease = ESIF_TRUE;
@@ -456,8 +453,8 @@ static eEsifError ESIF_CALLCONV EsifAct_EventCallback(
 	}
 	rc = EsifActIface_SendIfaceEvent(&actPtr->iface, 
 		actPtr->actCtx,
-		upInstance,
 		fpcEventPtr->esif_event,
+		upInstance,
 		domainId,
 		eventDataPtr);
 exit:

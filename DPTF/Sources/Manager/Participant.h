@@ -26,11 +26,11 @@
 
 class XmlNode;
 
-class Participant
+class dptf_export Participant
 {
 public:
 
-    Participant(DptfManager* dptfManager);
+    Participant(DptfManagerInterface* dptfManager);
     ~Participant(void);
 
     void createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
@@ -76,8 +76,8 @@ public:
     void connectedStandbyExit(void);
     void suspend(void);
     void resume(void);
-    void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityId);
-    void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityId);
+    void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityBitMask);
+    void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityBitMask);
     void domainConfigTdpCapabilityChanged(void);
     void domainCoreControlCapabilityChanged(void);
     void domainDisplayControlCapabilityChanged(void);
@@ -131,9 +131,12 @@ public:
     // Display controls
     DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex);
     DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
+    UIntN getUserPreferredDisplayIndex(UIntN domainIndex);
+    Bool isUserPreferredIndexModified(UIntN domainIndex);
     DisplayControlSet getDisplayControlSet(UIntN domainIndex);
     void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
     void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
+    void setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
     // Performance controls
     PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN domainIndex);
@@ -142,6 +145,7 @@ public:
     PerformanceControlSet getPerformanceControlSet(UIntN domainIndex);
     void setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex);
     void setPerformanceControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
+    void setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
     // Pixel Clock Control
     void setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
@@ -157,15 +161,21 @@ public:
     Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
     void setPowerLimit(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
         const Power& powerLimit);
+    void setPowerLimitIgnoringCaps(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+        const Power& powerLimit);
     TimeSpan getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType);
     void setPowerLimitTimeWindow(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
+        const TimeSpan& timeWindow);
+    void setPowerLimitTimeWindowIgnoringCaps(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
         const TimeSpan& timeWindow);
     Percentage getPowerLimitDutyCycle(UIntN domainIndex, PowerControlType::Type controlType);
     void setPowerLimitDutyCycle(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
         const Percentage& dutyCycle);
+    void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
     // Power status
     PowerStatus getPowerStatus(UIntN domainIndex);
+    Power getAveragePower(UIntN domainIndex, const PowerControlDynamicCaps& capabilities);
 
     // Platform Power Controls
     Bool isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
@@ -210,28 +220,15 @@ public:
     // utilization
     UtilizationStatus getUtilizationStatus(UIntN domainIndex);
 
-    // hardware duty cycle
-    DptfBuffer getHardwareDutyCycleUtilizationSet(UIntN domainIndex);
-    Bool isEnabledByPlatform(UIntN domainIndex);
-    Bool isSupportedByPlatform(UIntN domainIndex);
-    Bool isEnabledByOperatingSystem(UIntN domainIndex);
-    Bool isSupportedByOperatingSystem(UIntN domainIndex);
-    Bool isHdcOobEnabled(UIntN domainIndex);
-    void setHdcOobEnable(UIntN domainIndex, const UInt8& hdcOobEnable);
-    void setHardwareDutyCycle(UIntN domainIndex, const Percentage& dutyCycle);
-    Percentage getHardwareDutyCycle(UIntN domainIndex);
-
     // Get specific info
-    std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(
-        const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo);
+    std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo( const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo);
 
     // Participant properties
-    ParticipantProperties getParticipantProperties(void);
-    DomainPropertiesSet getDomainPropertiesSet(void);
+    ParticipantProperties getParticipantProperties(void) const;
+    DomainPropertiesSet getDomainPropertiesSet(void) const;
 
     // Set specific info
     void setParticipantDeviceTemperatureIndication(const Temperature& temperature);
-    void setParticipantCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type);
     void setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue);
 
 private:
@@ -242,7 +239,7 @@ private:
 
     Bool m_participantCreated;
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     ParticipantInterface* m_theRealParticipant;
     ParticipantServicesInterface* m_participantServices;
 

@@ -27,20 +27,14 @@ public:
 
     DomainTemperature_002(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainTemperature_002(void);
+    virtual ~DomainTemperature_002(void);
 
     // DomainTemperatureInterface
     virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override;
-    virtual TemperatureThresholds getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
-        const TemperatureThresholds& temperatureThresholds) override;
     virtual DptfBuffer getCalibrationTable(UIntN participantIndex, UIntN domainIndex) override;
     virtual DptfBuffer getPollingTable(UIntN participantIndex, UIntN domainIndex) override;
     virtual Bool isVirtualTemperature(UIntN participantIndex, UIntN domainIndex) override;
     virtual void setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& temperature) override;
-
-    // ParticipantActivityLoggingInterface
-    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;
@@ -55,8 +49,6 @@ private:
     
     void createCalibrationTableBuffer(UIntN domainIndex);
     void createPollingTableBuffer(UIntN domainIndex);
-    Temperature getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber);
-    Temperature getHysteresis(UIntN domainIndex);
 
     Temperature m_lastSetTemperature;
     DptfBuffer m_pollingTableBuffer;

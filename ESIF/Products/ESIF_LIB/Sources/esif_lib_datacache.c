@@ -31,8 +31,10 @@
 // DataCache Class
 
 // private members
-static DataCacheEntryPtr DataCache_GetList (DataCachePtr self);
-static int DataCache_Search (DataCachePtr self, esif_string key);
+static DataCacheEntryPtr DataCache_GetList(DataCachePtr self);
+static int DataCache_Search(DataCachePtr self, esif_string key);
+static int DataCache_FindInsertionPoint(DataCachePtr self, esif_string key);
+static EsifDataPtr CloneCacheData(EsifDataPtr dataPtr);
 
 // constructor
 DataCachePtr DataCache_Create ()
@@ -46,13 +48,13 @@ DataCachePtr DataCache_Create ()
 void DataCache_Destroy (DataCachePtr self)
 {
 	UInt32 i;
+
+	if (NULL == self) {
+		return;
+	}
 	for (i = 0; i < self->size; i++) {
-		if (self->elements[i].key.buf_len) {
-			esif_ccb_free(self->elements[i].key.buf_ptr);
-		}
-		if (self->elements[i].value.buf_len) {
-			esif_ccb_free(self->elements[i].value.buf_ptr);
-		}
+		EsifData_dtor(&self->elements[i].key);
+		EsifData_dtor(&self->elements[i].value);
 	}
 	esif_ccb_free(self->elements);
 	WIPEPTR(self);
@@ -65,7 +67,13 @@ DataCacheEntryPtr DataCache_GetValue (
 	esif_string key
 	)
 {
-	int index = DataCache_Search(self, key);
+	int index = 0;
+
+	if (NULL == self) {
+		return NULL;
+	}
+	
+	index = DataCache_Search(self, key);
 	if (index == EOF) {
 		return NULL;
 	} else {
@@ -73,68 +81,93 @@ DataCacheEntryPtr DataCache_GetValue (
 	}
 }
 
-
-eEsifError DataCache_SetValue (
+//
+// Inserts a key value pair based on alphabetical position of the key.
+// Warning: The valuePtr parameter represent a "cache data" item, so a 0 buf_len
+// member indicates the buf_ptr represents a file offset; not whether the EsifData
+// items owns the associated buffer.
+// Notes: The pair is inserted even if a key with the same name already exists.
+// The cache array will be re-allocated to fit the new member and old members
+// will be copied down if needed to allow insertion
+//
+eEsifError DataCache_InsertValue(
 	DataCachePtr self,
 	esif_string key,
-	EsifData value,
+	EsifDataPtr valuePtr,
 	esif_flags_t flags
 	)
 {
-	// Do Insersion Sort using Binary Search on Sorted Array
-	int items = self->size, start = 0, end = items - 1, node = items / 2;
-	while (node < items && start <= end) {
-		int comp = esif_ccb_stricmp(key, (esif_string)self->elements[node].key.buf_ptr);
-		if (comp == 0) {
-			break;
-		} else if (comp > 0) {
-			start = node + 1;
-		} else {
-			end = node - 1;
-		}
-		node = (end - start) / 2 + start;
+	eEsifError rc = ESIF_OK;
+	DataCacheEntryPtr old_elements = NULL;
+	EsifData keydata;
+	EsifDataPtr valueClonePtr = NULL;
+	int node = 0;
+
+	if ((NULL == self) || (NULL == valuePtr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
 	}
 
-	if (node == EOF) {
-		node = 0;
+	valueClonePtr = CloneCacheData(valuePtr);
+	if (NULL == valueClonePtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
 	}
-	DataCacheEntryPtr old_elements = self->elements;
-	self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size + 1) * sizeof(self->elements[0]));
+
+	node = DataCache_FindInsertionPoint(self, key);
+
+	// Reallocate the elements to fit the new pair
+	old_elements = self->elements;
+	self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size + 1) * sizeof(*self->elements));
 	if (NULL == self->elements) {
 		self->elements = old_elements;
-		return ESIF_E_NO_MEMORY;
-	} else {
-		EsifData keydata;
-		EsifData_ctor(&keydata);
-		EsifData_Set(&keydata, ESIF_DATA_STRING, esif_ccb_strdup(key), ESIFAUTOLEN, ESIFAUTOLEN);
-		if (node < (int)self->size) {
-			memmove(&self->elements[node + 1], &self->elements[node], (self->size - node) * sizeof(*self->elements));
-		}
-		self->elements[node].key   = keydata;
-		self->elements[node].value = value;
-		self->elements[node].flags = flags;
-		self->size++;
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
 	}
-	return ESIF_OK;
+	
+	// Move old pairs down to fit the new pair
+	if (node < (int)self->size) {
+		memmove(&self->elements[node + 1], &self->elements[node], (self->size - node) * sizeof(*self->elements));
+	}
+
+	// Insert the new pair
+	EsifData_ctor(&keydata);
+	EsifData_Set(&keydata, ESIF_DATA_STRING, esif_ccb_strdup(key), ESIFAUTOLEN, ESIFAUTOLEN);
+	self->elements[node].key   = keydata;
+	self->elements[node].value = *valueClonePtr;
+	self->elements[node].flags = flags;
+	self->size++;
+exit:
+	if (rc == ESIF_OK) {
+		esif_ccb_free(valueClonePtr); // Free pointer but don't destroy as the element owns buffer now
+	} else {
+		EsifData_Destroy(valueClonePtr);
+	}
+	return rc;
 }
 
 
-eEsifError DataCache_Delete(
+eEsifError DataCache_DeleteValue(
 	DataCachePtr self,
 	esif_string key
 	)
 {
-	// Do Insertion Sort using Binary Search on Sorted Array
-	UInt32 node = DataCache_Search(self, key);
+	eEsifError rc = ESIF_OK;
+	UInt32 node = 0;
+
+	if (NULL == self) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	node = DataCache_Search(self, key);
 	if (node == EOF) {
-		return ESIF_E_NOT_FOUND;
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;
 	}
-	if (self->elements[node].key.buf_len) {
-		esif_ccb_free(self->elements[node].key.buf_ptr);
-	}
-	if (self->elements[node].value.buf_len) {
-		esif_ccb_free(self->elements[node].value.buf_ptr);
-	}
+	EsifData_dtor(&self->elements[node].key);
+	EsifData_dtor(&self->elements[node].value);
+
 	if (node < self->size - 1) {
 		memmove(&self->elements[node], &self->elements[node + 1], (self->size - node - 1) * sizeof(*self->elements));
 		esif_ccb_memset(&self->elements[self->size - 1], 0, sizeof(self->elements[0]));
@@ -142,17 +175,19 @@ eEsifError DataCache_Delete(
 
 	if (self->size > 1) {
 		DataCacheEntryPtr old_elements = self->elements;
-		self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size - 1) * sizeof(self->elements[0]));
+		self->elements = (DataCacheEntryPtr)esif_ccb_realloc(self->elements, (self->size - 1) * sizeof(*self->elements));
 		if (NULL == self->elements) {
 			self->elements = old_elements;
-			return ESIF_E_NO_MEMORY;
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
 		}
 	} else {
 		esif_ccb_free(self->elements);
 		self->elements = NULL;
 	}
 	self->size--;
-	return ESIF_OK;
+exit:
+	return rc;
 }
 
 
@@ -175,7 +210,11 @@ static int DataCache_Search (
 	)
 {
 	// Do Binary Search on Sorted Array
-	int items = self->size;
+	int items = 0;
+	
+	ESIF_ASSERT(self != NULL);
+
+	items = self->size;
 	int start = 0, end = items - 1, node = items / 2;
 	while (start <= end) {
 		int comp = esif_ccb_stricmp(key, (esif_string)(self->elements[node].key.buf_ptr));
@@ -189,4 +228,115 @@ static int DataCache_Search (
 		node = (end - start) / 2 + start;
 	}
 	return EOF;
+}
+
+
+//
+// Finds the insertion point for a new key/value pair based on insertion in an
+// alphabetized list of keys
+//
+static int DataCache_FindInsertionPoint (
+	DataCachePtr self,
+	esif_string key
+	)
+{
+	int items = 0;
+	int start = 0;
+	int end = 0;
+	int node = 0;
+
+	ESIF_ASSERT(self != NULL);
+
+	items = self->size;
+	start = 0;
+	end = items - 1;
+	node = items / 2;
+
+	// Do insersion sort using binary search on sorted array
+	while (start <= end) {
+		int comp = esif_ccb_stricmp(key, (esif_string)self->elements[node].key.buf_ptr);
+		if (comp == 0) {
+			break;
+		} else if (comp > 0) {
+			start = node + 1;
+		} else {
+			end = node - 1;
+		}
+		node = (end - start) / 2 + start;
+	}
+	return node;
+}
+
+
+DataCachePtr DataCache_Clone(
+	DataCachePtr self
+	)
+{
+	eEsifError rc = ESIF_OK;
+	DataCachePtr clonePtr = NULL;
+	UInt32 idx = 0;
+	DataCacheEntryPtr curElement = NULL;
+
+	if (NULL == self) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	clonePtr = DataCache_Create();
+	if (NULL == clonePtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	curElement = self->elements;
+	for (idx = 0; idx < self->size; idx++, curElement++) {
+		rc = DataCache_InsertValue(clonePtr,
+			curElement->key.buf_ptr,
+			&curElement->value,
+			curElement->flags);
+		if (rc != ESIF_OK) {
+			break;
+		}
+	}
+exit:
+	if (rc != ESIF_OK) {
+		DataCache_Destroy(clonePtr);
+		clonePtr = NULL;
+	}
+	return clonePtr;
+}
+
+
+EsifDataPtr CloneCacheData(
+	EsifDataPtr dataPtr
+	)
+{
+	EsifDataPtr clonePtr = NULL;
+
+	if (NULL == dataPtr) {
+		goto exit;
+	}
+
+	clonePtr = EsifData_Create();
+	if (NULL == clonePtr) {
+		goto exit;
+	}
+
+	*clonePtr = *dataPtr;
+
+	/* For cache data, a 0 buf_len means the buf_ptr is a file offset */
+	if ((NULL == dataPtr->buf_ptr) || (0 == dataPtr->buf_len)) {
+		goto exit;
+	}
+
+	clonePtr->buf_ptr = esif_ccb_malloc(esif_ccb_max(dataPtr->buf_len, dataPtr->data_len));
+	if (NULL == clonePtr->buf_ptr) {
+		EsifData_Destroy(clonePtr);
+		clonePtr = NULL;
+		goto exit;
+	}
+
+	esif_ccb_memcpy(clonePtr->buf_ptr, dataPtr->buf_ptr, dataPtr->data_len);
+exit:
+	return clonePtr;
 }

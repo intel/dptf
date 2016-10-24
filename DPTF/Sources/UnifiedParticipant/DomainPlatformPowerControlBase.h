@@ -35,6 +35,11 @@ public:
 
 protected:
 
-    Bool checkEnabled(PlatformPowerLimitType::Type limitType);
+    void updateEnabled(PlatformPowerLimitType::Type limitType);
     void setEnabled(PlatformPowerLimitType::Type limitType, Bool enable);
+    Bool isEnabled(PlatformPowerLimitType::Type limitType) const;
+
+    Bool m_pl1Enabled;
+    Bool m_pl2Enabled;
+    Bool m_pl3Enabled;
 };

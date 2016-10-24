@@ -20,7 +20,7 @@
 #include "CachedValue.h"
 #include "SensorOrientation.h"
 #include "CoolingMode.h"
-#include "SensorMotion.h"
+#include "OnOffToggle.h"
 #include "SensorSpatialOrientation.h"
 #include "OsPowerSource.h"
 #include "OsLidState.h"
@@ -37,7 +37,7 @@ public:
 
     CachedValue<SensorOrientation::Type> sensorOrientation;
     CachedValue<CoolingMode::Type> coolingMode;
-    CachedValue<SensorMotion::Type> sensorMotion;
+    CachedValue<OnOffToggle::Type> sensorMotion;
     CachedValue<std::string> foregroundApplication;
     CachedValue<SensorSpatialOrientation::Type> sensorSpatialOrientation;
     CachedValue<OsPowerSource::Type> powerSource;
@@ -46,5 +46,6 @@ public:
     CachedValue<OsPlatformType::Type> platformType;
     CachedValue<OsDockMode::Type> dockMode;
     CachedValue<OsPowerSchemePersonality::Type> powerSchemePersonality;
-    CachedValue<UIntN> mobileNotification; // We may need to break this down for each type of notification we receive
+    CachedValue<UIntN> emergencyCallModeState;
+    CachedValue<UIntN> screenState;
 };

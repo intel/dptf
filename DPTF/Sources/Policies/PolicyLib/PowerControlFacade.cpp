@@ -40,10 +40,13 @@ PowerControlFacade::~PowerControlFacade()
 
 void PowerControlFacade::initializeControlsIfNeeded()
 {
-    if (m_controlsHaveBeenInitialized == false)
+    if (supportsPowerControls())
     {
-        setControlsToMax();
-        m_controlsHaveBeenInitialized = true;
+        if (m_controlsHaveBeenInitialized == false)
+        {
+            setControlsToMax();
+            m_controlsHaveBeenInitialized = true;
+        }
     }
 }
 
@@ -57,9 +60,24 @@ Bool PowerControlFacade::supportsPowerStatus() const
     return m_domainProperties.implementsPowerStatusInterface();
 }
 
-PowerStatus PowerControlFacade::getCurrentPower()
+Power PowerControlFacade::getCurrentPower()
 {
-    return m_powerStatusProperty.getStatus();
+    return m_powerStatusProperty.getStatus().getCurrentPower();
+}
+
+Power PowerControlFacade::getAveragePower()
+{
+    throwIfControlNotSupported();
+    const auto& capsSet = getCapabilities();
+    if (capsSet.hasCapability(PowerControlType::PL1))
+    {
+        const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+        return m_powerStatusProperty.getAveragePower(caps);
+    }
+    else
+    {
+        return getCurrentPower();
+    }
 }
 
 const PowerControlDynamicCapsSet& PowerControlFacade::getCapabilities()
@@ -174,6 +192,18 @@ void PowerControlFacade::setValuesWithinCapabilities()
 {
     setPowerLimitsWithinCapabilities();
     setTimeWindowsWithinCapabilities();
+}
+
+void PowerControlFacade::lockCapabilities()
+{
+    throwIfControlNotSupported();
+    m_policyServices.domainPowerControl->setPowerCapsLock(m_participantIndex, m_domainIndex, true);
+}
+
+void PowerControlFacade::unlockCapabilities()
+{
+    throwIfControlNotSupported();
+    m_policyServices.domainPowerControl->setPowerCapsLock(m_participantIndex, m_domainIndex, false);
 }
 
 void PowerControlFacade::setPowerLimitsWithinCapabilities()

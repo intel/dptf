@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
-#include "SensorMotion.h"
+#include "OnOffToggle.h"
 #include "SensorOrientation.h"
 #include "SensorSpatialOrientation.h"
 #include "OsLidState.h"
@@ -28,6 +28,7 @@
 #include "OsPlatformType.h"
 #include "OsDockMode.h"
 #include "OsPowerSchemePersonality.h"
+#include "OsMobileNotificationType.h"
 
 class PlatformStateInterface
 {
@@ -37,7 +38,7 @@ public:
     {
     };
 
-    virtual SensorMotion::Type getMotion(void) const = 0;
+    virtual OnOffToggle::Type getMotion(void) const = 0;
     virtual SensorOrientation::Type getOrientation(void) const = 0;
     virtual SensorSpatialOrientation::Type getSpatialOrientation(void) const = 0;
     virtual OsLidState::Type getLidState(void) const = 0;
@@ -48,4 +49,5 @@ public:
     virtual OsPlatformType::Type getPlatformType(void) const = 0;
     virtual OsDockMode::Type getDockMode(void) const = 0;
     virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const = 0;
+    virtual UIntN getMobileNotification(OsMobileNotificationType::Type notificationType) const = 0;
 };

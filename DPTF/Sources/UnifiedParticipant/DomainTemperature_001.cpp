@@ -25,66 +25,29 @@ DomainTemperature_001::DomainTemperature_001(UIntN participantIndex, UIntN domai
 {
 }
 
+DomainTemperature_001::~DomainTemperature_001()
+{
+    clearCachedData();
+}
+
 TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
 {
     try
     {
-        Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureC(
+        Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
             esif_primitive_type::GET_TEMPERATURE, domainIndex);
         return TemperatureStatus(temperature);
     }
     catch (primitive_destination_unavailable)
     {
-        return TemperatureStatus(Temperature(0));
+        return TemperatureStatus(Temperature::minValidTemperature);
     }
     catch (dptf_exception& ex)
     {
         getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
 
         // TODO: Let the policies handle the exceptions themselves and don't return a value.
-        return TemperatureStatus(Temperature(0));
-    }
-}
-
-TemperatureThresholds DomainTemperature_001::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
-{
-    Temperature aux0 = getAuxTemperatureThreshold(domainIndex, 0);
-    Temperature aux1 = getAuxTemperatureThreshold(domainIndex, 1);
-    Temperature hysteresis = getHysteresis(domainIndex);
-    return TemperatureThresholds(aux0, aux1, hysteresis);
-}
-
-void DomainTemperature_001::setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
-    const TemperatureThresholds& temperatureThresholds)
-{
-    try
-    {
-        Temperature aux0(temperatureThresholds.getAux0());
-        if (aux0.isValid() == false)
-        {
-            aux0 = 5;
-        }
-        getParticipantServices()->primitiveExecuteSetAsTemperatureC(
-            esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux0, domainIndex, 0);
-    }
-    catch (...)
-    {
-        // eat any errors here
-    }
-
-    try
-    {
-        Temperature aux1(temperatureThresholds.getAux1());
-        if (aux1.isValid() == false)
-        {
-            aux1 = 199;
-        }
-        getParticipantServices()->primitiveExecuteSetAsTemperatureC(
-            esif_primitive_type::SET_TEMPERATURE_THRESHOLDS, aux1, domainIndex, 1);
-    }
-    catch (...)
-    {
-        // eat any errors here
+        return TemperatureStatus(Temperature::minValidTemperature);
     }
 }
 
@@ -111,59 +74,6 @@ void DomainTemperature_001::setVirtualTemperature(UIntN participantIndex, UIntN 
 
 void DomainTemperature_001::clearCachedData(void)
 {
-    // Do nothing.  We don't cache temperature related data.
-}
-
-Temperature DomainTemperature_001::getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber)
-{
-    try
-    {
-        return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
-            esif_primitive_type::GET_TEMPERATURE_THRESHOLDS, domainIndex, auxNumber);
-    }
-    catch (...)
-    {
-        return Temperature(0);
-    }
-}
-
-Temperature DomainTemperature_001::getHysteresis(UIntN domainIndex)
-{
-    try
-    {
-        return getParticipantServices()->primitiveExecuteGetAsTemperatureC(
-            esif_primitive_type::GET_TEMPERATURE_THRESHOLD_HYSTERESIS,
-            domainIndex);
-    }
-    catch (...)
-    {
-        return Temperature(0);
-    }
-}
-
-void DomainTemperature_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
-{
-    try
-    {
-        if (isActivityLoggingEnabled() == true)
-        {
-            TemperatureThresholds tempthreshold = getTemperatureThresholds(participantIndex, domainIndex);
-
-            EsifCapabilityData capability;
-            capability.type = Capability::TemperatureThreshold;
-            capability.size = sizeof(capability);
-            capability.data.temperatureControl.aux0 = tempthreshold.getAux0();
-            capability.data.temperatureControl.aux1 = tempthreshold.getAux1();
-            capability.data.temperatureControl.hysteresis = tempthreshold.getHysteresis();
-
-            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
-                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
-        }
-    }
-    catch (...)
-    {
-        // skip if there are any issue in sending log data
-    }
 }
 
 std::shared_ptr<XmlNode> DomainTemperature_001::getXml(UIntN domainIndex)
@@ -171,8 +81,8 @@ std::shared_ptr<XmlNode> DomainTemperature_001::getXml(UIntN domainIndex)
     auto root = XmlNode::createWrapperElement("temperature_control");
     root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
-    root->addChild(getTemperatureStatus(Constants::Invalid, domainIndex).getXml());
-    root->addChild(getTemperatureThresholds(Constants::Invalid, domainIndex).getXml());
+    root->addChild(getTemperatureStatus(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getTemperatureThresholds(getParticipantIndex(), domainIndex).getXml());
 
     return root;
 }

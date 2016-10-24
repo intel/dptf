@@ -74,3 +74,7 @@
 typedef u32 esif_flags_t;                   /* FLAGS        */
 typedef u8  esif_guid_t[ESIF_GUID_LEN];     /* GUID         */
 typedef u8  esif_ver_t;                     /* Version      */
+
+/* Temperature Thresholds */
+#define ESIF_SDK_MAX_AUX_TRIP 125	/* Celsius */
+#define ESIF_SDK_MIN_AUX_TRIP -136	/* Celsius */

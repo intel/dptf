@@ -37,6 +37,13 @@ public:
     // the following is not virtual
     UIntN getParticipantIndex(void) const;
     Participant* getParticipantPtr(void) const;
+    
+protected:
+
+    void writeParticipantWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
+    void writeParticipantWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex);
+    void writeParticipantWorkItemWarningMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex);
+    void writeParticipantWorkItemStartingInfoMessage() const;
 
 private:
 
@@ -46,24 +53,3 @@ private:
 
     const UIntN m_participantIndex;
 };
-
-#define WriteParticipantWorkItemStartingInfoMessage() \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item."); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantIndex(getParticipantIndex()); \
-    getEsifServices()->writeMessageInfo(message);
-
-#define WriteParticipantWorkItemErrorMessage_Function(functionName) \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantIndex(getParticipantIndex()); \
-    message.setExceptionCaught(functionName, ex.what()); \
-    getEsifServices()->writeMessageError(message);
-
-#define WriteParticipantWorkItemErrorMessage_Function_Policy(functionName, policyIndex) \
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item"); \
-    message.setFrameworkEvent(getFrameworkEventType()); \
-    message.setParticipantIndex(getParticipantIndex()); \
-    message.setExceptionCaught(functionName, ex.what()); \
-    message.setPolicyIndex(policyIndex); \
-    getEsifServices()->writeMessageError(message);

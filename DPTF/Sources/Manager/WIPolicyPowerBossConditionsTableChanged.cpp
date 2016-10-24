@@ -31,7 +31,7 @@ WIPolicyPowerBossConditionsTableChanged::~WIPolicyPowerBossConditionsTableChange
 
 void WIPolicyPowerBossConditionsTableChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -49,7 +49,7 @@ void WIPolicyPowerBossConditionsTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy(
+            writeWorkItemErrorMessagePolicy(ex, 
                 "Policy::executePolicyPowerBossConditionsTableChanged", i);
         }
     }

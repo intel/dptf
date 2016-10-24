@@ -108,6 +108,7 @@ struct esif_ccb_file_enum {
 #pragma pack(pop)
 
 typedef struct esif_ccb_file_enum *esif_ccb_file_enum_t;
+#define ESIF_INVALID_FILE_ENUM_HANDLE	NULL
 
 /* CCB File Abstraction */
 #pragma pack(push,1)
@@ -125,7 +126,7 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 	struct esif_ccb_file *file
 	)
 {
-	esif_ccb_file_enum_t find_handle = INVALID_HANDLE_VALUE;
+	esif_ccb_file_enum_t find_handle = ESIF_INVALID_FILE_ENUM_HANDLE;
 	char full_path[MAX_PATH] = {0};
 
 	struct dirent *ffd;
@@ -134,13 +135,13 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 
 	find_handle = (esif_ccb_file_enum_t)esif_ccb_malloc(sizeof(struct esif_ccb_file_enum));
 	if (NULL == find_handle) {
-		find_handle = INVALID_HANDLE_VALUE;
+		find_handle = ESIF_INVALID_FILE_ENUM_HANDLE;
 		goto exit;
 	}
 	find_handle->handle = opendir(full_path);
-	if (INVALID_HANDLE_VALUE == find_handle->handle) {
+	if (ESIF_INVALID_FILE_ENUM_HANDLE == find_handle->handle) {
 		esif_ccb_free(find_handle);
-		find_handle = INVALID_HANDLE_VALUE;
+		find_handle = ESIF_INVALID_FILE_ENUM_HANDLE;
 		goto exit;
 	}
 
@@ -155,7 +156,7 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 				// It is such a catastrophic failure that we will just disregard all previous matches, clean up and exit
 				find_handle->files = oldFiles;
 				esif_ccb_file_enum_close(find_handle);
-				find_handle = INVALID_HANDLE_VALUE;
+				find_handle = ESIF_INVALID_FILE_ENUM_HANDLE;
 				goto exit;
 			}
 			find_handle->files[find_handle->matches - 1] = esif_ccb_strdup(ffd->d_name);
@@ -174,7 +175,7 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 
 	closedir(find_handle->handle);
 	esif_ccb_free(find_handle);
-	find_handle = INVALID_HANDLE_VALUE; // no matches
+	find_handle = ESIF_INVALID_FILE_ENUM_HANDLE; // no matches
 
 exit:
 	return find_handle;

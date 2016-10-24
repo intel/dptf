@@ -33,7 +33,7 @@ WIDomainDisplayControlCapabilityChanged::~WIDomainDisplayControlCapabilityChange
 
 void WIDomainDisplayControlCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainDisplayControlCapabilityChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainDisplayControlCapabilityChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainDisplayControlCapabilityChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainDisplayControlCapabilityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainDisplayControlCapabilityChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainDisplayControlCapabilityChanged", i);
         }
     }
 }

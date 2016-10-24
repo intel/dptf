@@ -36,8 +36,6 @@ public:
     // ParticipantSetSpecificInfoInterface
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex,
         const Temperature& temperature) override;
-    virtual void setParticipantCoolingPolicy(UIntN participantIndex,
-        const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
     virtual void setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint, 
         const Temperature& tripValue) override;
 

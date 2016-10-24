@@ -33,7 +33,7 @@ WIPolicyForegroundApplicationChanged::~WIPolicyForegroundApplicationChanged(void
 
 void WIPolicyForegroundApplicationChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyForegroundApplicationChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyForegroundApplicationChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyForegroundApplicationChanged", i);
         }
     }
 }

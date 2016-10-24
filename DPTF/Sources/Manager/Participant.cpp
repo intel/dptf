@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #include "Participant.h"
-#include "DptfManager.h"
 #include "EsifServices.h"
 #include "EsifDataGuid.h"
 #include "EsifDataString.h"
@@ -25,7 +24,7 @@
 #include "esif_sdk_iface_app.h"
 #include "ManagerMessage.h"
 
-Participant::Participant(DptfManager* dptfManager) :
+Participant::Participant(DptfManagerInterface* dptfManager) :
     m_participantCreated(false),
     m_dptfManager(dptfManager),
     m_theRealParticipant(nullptr),
@@ -48,7 +47,6 @@ void Participant::createParticipant(UIntN participantIndex, const AppParticipant
     {
         throw dptf_exception("Participant::createParticipant() already executed.");
     }
-    m_participantCreated = true;
 
     m_theRealParticipant = CreateParticipantInstance();
     if (m_theRealParticipant == nullptr)
@@ -78,6 +76,7 @@ void Participant::createParticipant(UIntN participantIndex, const AppParticipant
             AcpiInfo(EsifDataString(&participantDataPtr->fAcpiDevice), EsifDataString(&participantDataPtr->fAcpiScope),
                 EsifDataString(&participantDataPtr->fAcpiUID), participantDataPtr->fAcpiType),
             m_participantServices);
+        m_participantCreated = true;
     }
     catch (...)
     {
@@ -86,6 +85,7 @@ void Participant::createParticipant(UIntN participantIndex, const AppParticipant
         m_participantIndex = Constants::Invalid;
         m_participantGuid = Guid();
         m_participantName = "";
+        m_participantCreated = false;
 
         throw;
     }
@@ -369,21 +369,21 @@ void Participant::resume(void)
     }
 }
 
-void Participant::activityLoggingEnabled(UInt32 domainIndex, UInt32 CapabilityId)
+void Participant::activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityBitMask)
 {
     if (isEventRegistered(ParticipantEvent::DptfParticipantActivityLoggingEnabled))
     {
         throwIfRealParticipantIsInvalid();
-        m_theRealParticipant->activityLoggingEnabled(domainIndex, CapabilityId);
+        m_theRealParticipant->activityLoggingEnabled(domainIndex, capabilityBitMask);
     }
 }
 
-void Participant::activityLoggingDisabled(UInt32 domainIndex, UInt32 CapabilityId)
+void Participant::activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityBitMask)
 {
     if (isEventRegistered(ParticipantEvent::DptfParticipantActivityLoggingDisabled))
     {
         throwIfRealParticipantIsInvalid();
-        m_theRealParticipant->activityLoggingDisabled(domainIndex, CapabilityId);
+        m_theRealParticipant->activityLoggingDisabled(domainIndex, capabilityBitMask);
     }
 }
 
@@ -712,6 +712,18 @@ DisplayControlStatus Participant::getDisplayControlStatus(UIntN domainIndex)
     return m_domain[domainIndex]->getDisplayControlStatus();
 }
 
+UIntN Participant::getUserPreferredDisplayIndex(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getUserPreferredDisplayIndex();
+}
+
+Bool Participant::isUserPreferredIndexModified(UIntN domainIndex)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->isUserPreferredIndexModified();
+}
+
 DisplayControlSet Participant::getDisplayControlSet(UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -729,6 +741,12 @@ void Participant::setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIn
 {
     throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setDisplayControlDynamicCaps(policyIndex, newCapabilities);
+}
+
+void Participant::setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setDisplayCapsLock(policyIndex, lock);
 }
 
 PerformanceControlStaticCaps Participant::getPerformanceControlStaticCaps(UIntN domainIndex)
@@ -766,6 +784,12 @@ void Participant::setPerformanceControlDynamicCaps(UIntN domainIndex, UIntN poli
 {
     throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setPerformanceControlDynamicCaps(policyIndex, newCapabilities);
+}
+
+void Participant::setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPerformanceCapsLock(policyIndex, lock);
 }
 
 void Participant::setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet)
@@ -817,6 +841,13 @@ void Participant::setPowerLimit(UIntN domainIndex, UIntN policyIndex, PowerContr
     m_domain[domainIndex]->setPowerLimit(policyIndex, controlType, powerLimit);
 }
 
+void Participant::setPowerLimitIgnoringCaps(UIntN domainIndex, UIntN policyIndex,
+    PowerControlType::Type controlType, const Power& powerLimit)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerLimitIgnoringCaps(policyIndex, controlType, powerLimit);
+}
+
 TimeSpan Participant::getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType)
 {
     throwIfDomainInvalid(domainIndex);
@@ -828,6 +859,13 @@ void Participant::setPowerLimitTimeWindow(UIntN domainIndex, UIntN policyIndex, 
 {
     throwIfDomainInvalid(domainIndex);
     m_domain[domainIndex]->setPowerLimitTimeWindow(policyIndex, controlType, timeWindow);
+}
+
+void Participant::setPowerLimitTimeWindowIgnoringCaps(UIntN domainIndex, UIntN policyIndex,
+    PowerControlType::Type controlType, const TimeSpan& timeWindow)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerLimitTimeWindowIgnoringCaps(policyIndex, controlType, timeWindow);
 }
 
 Percentage Participant::getPowerLimitDutyCycle(UIntN domainIndex, PowerControlType::Type controlType)
@@ -843,10 +881,22 @@ void Participant::setPowerLimitDutyCycle(UIntN domainIndex, UIntN policyIndex, P
     m_domain[domainIndex]->setPowerLimitDutyCycle(policyIndex, controlType, dutyCycle);
 }
 
+void Participant::setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock)
+{
+    throwIfDomainInvalid(domainIndex);
+    m_domain[domainIndex]->setPowerCapsLock(policyIndex, lock);
+}
+
 PowerStatus Participant::getPowerStatus(UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
     return m_domain[domainIndex]->getPowerStatus();
+}
+
+Power Participant::getAveragePower(UIntN domainIndex, const PowerControlDynamicCaps& capabilities)
+{
+    throwIfDomainInvalid(domainIndex);
+    return m_domain[domainIndex]->getAveragePower(capabilities);
 }
 
 Bool Participant::isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType)
@@ -999,60 +1049,6 @@ UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)
     return m_domain[domainIndex]->getUtilizationStatus();
 }
 
-DptfBuffer Participant::getHardwareDutyCycleUtilizationSet(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->getHardwareDutyCycleUtilizationSet();
-}
-
-Bool Participant::isEnabledByPlatform(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->isEnabledByPlatform();
-}
-
-Bool Participant::isSupportedByPlatform(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->isSupportedByPlatform();
-}
-
-Bool Participant::isEnabledByOperatingSystem(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->isEnabledByOperatingSystem();
-}
-
-Bool Participant::isSupportedByOperatingSystem(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->isSupportedByOperatingSystem();
-}
-
-Bool Participant::isHdcOobEnabled(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->isHdcOobEnabled();
-}
-
-void Participant::setHdcOobEnable(UIntN domainIndex, const UInt8& hdcOobEnable)
-{
-    throwIfDomainInvalid(domainIndex);
-    m_domain[domainIndex]->setHdcOobEnable(hdcOobEnable);
-}
-
-void Participant::setHardwareDutyCycle(UIntN domainIndex, const Percentage& dutyCycle)
-{
-    throwIfDomainInvalid(domainIndex);
-    m_domain[domainIndex]->setHardwareDutyCycle(dutyCycle);
-}
-
-Percentage Participant::getHardwareDutyCycle(UIntN domainIndex)
-{
-    throwIfDomainInvalid(domainIndex);
-    return m_domain[domainIndex]->getHardwareDutyCycle();
-}
-
 DptfBuffer Participant::getVirtualSensorCalibrationTable(UIntN domainIndex)
 {
     throwIfDomainInvalid(domainIndex);
@@ -1077,20 +1073,20 @@ void Participant::setVirtualTemperature(UIntN domainIndex, const Temperature& te
     m_domain[domainIndex]->setVirtualTemperature(temperature);
 }
 
-std::map<ParticipantSpecificInfoKey::Type, UIntN> Participant::getParticipantSpecificInfo(
+std::map<ParticipantSpecificInfoKey::Type, Temperature> Participant::getParticipantSpecificInfo(
     const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
     throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getParticipantSpecificInfo(m_participantIndex, requestedInfo);
 }
 
-ParticipantProperties Participant::getParticipantProperties(void)
+ParticipantProperties Participant::getParticipantProperties(void) const
 {
     throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getParticipantProperties(m_participantIndex);
 }
 
-DomainPropertiesSet Participant::getDomainPropertiesSet(void)
+DomainPropertiesSet Participant::getDomainPropertiesSet(void) const
 {
     throwIfRealParticipantIsInvalid();
     return m_theRealParticipant->getDomainPropertiesSet(m_participantIndex);
@@ -1100,12 +1096,6 @@ void Participant::setParticipantDeviceTemperatureIndication(const Temperature& t
 {
     throwIfRealParticipantIsInvalid();
     m_theRealParticipant->setParticipantDeviceTemperatureIndication(m_participantIndex, temperature);
-}
-
-void Participant::setParticipantCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
-{
-    throwIfRealParticipantIsInvalid();
-    m_theRealParticipant->setParticipantCoolingPolicy(m_participantIndex, coolingPreference, type);
 }
 
 void Participant::setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)

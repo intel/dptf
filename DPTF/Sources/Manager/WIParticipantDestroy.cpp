@@ -18,9 +18,9 @@
 
 #include "WIParticipantDestroy.h"
 #include "DptfManager.h"
-#include "WorkItemQueueManager.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "WorkItemMatchCriteria.h"
 #include "EsifServices.h"
 
@@ -35,7 +35,7 @@ WIParticipantDestroy::~WIParticipantDestroy(void)
 
 void WIParticipantDestroy::execute(void)
 {
-    WriteParticipantWorkItemStartingInfoMessage();
+    writeParticipantWorkItemStartingInfoMessage();
 
     // Call unbind participant for each policy before we actually destroy the participant.
 
@@ -55,7 +55,7 @@ void WIParticipantDestroy::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteParticipantWorkItemErrorMessage_Function_Policy("Policy::unbindParticipant", i);
+            writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::unbindParticipant", i);
         }
     }
 
@@ -69,7 +69,7 @@ void WIParticipantDestroy::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteParticipantWorkItemErrorMessage_Function("WorkItemQueueManager::removeIfMatches");
+        writeParticipantWorkItemErrorMessage(ex, "WorkItemQueueManager::removeIfMatches");
     }
 
     // Now let the participant manager destroy the participant
@@ -80,6 +80,6 @@ void WIParticipantDestroy::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteParticipantWorkItemErrorMessage_Function("ParticipantManager::destroyParticipant");
+        writeParticipantWorkItemErrorMessage(ex, "ParticipantManager::destroyParticipant");
     }
 }

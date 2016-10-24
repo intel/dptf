@@ -17,12 +17,32 @@
 ******************************************************************************/
 
 #include "ActiveControlStatus.h"
+#include "esif_sdk_fan.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
 
 ActiveControlStatus::ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed) :
     m_currentControlId(currentControlId), m_currentSpeed(currentSpeed)
 {
+}
+
+ActiveControlStatus ActiveControlStatus::createFromFst(const DptfBuffer& buffer)
+{
+    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+    struct EsifDataBinaryFstPackage* currentRow = reinterpret_cast<struct EsifDataBinaryFstPackage*>(data);
+
+    if (buffer.size() == 0)
+    {
+        throw dptf_exception("Received empty FST buffer.");
+    }
+    else if (buffer.size() != sizeof(EsifDataBinaryFstPackage))
+    {
+        throw dptf_exception("Expected binary data size mismatch. (FST)");
+    }
+
+    return ActiveControlStatus(
+        static_cast<UInt32>(currentRow->control.integer.value),
+        static_cast<UInt32>(currentRow->speed.integer.value));
 }
 
 UIntN ActiveControlStatus::getCurrentControlId(void) const

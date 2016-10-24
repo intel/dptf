@@ -28,7 +28,7 @@ class dptf_export PassiveTripPointsCachedProperty : public CachedProperty, Parti
 {
 public:
 
-    PassiveTripPointsCachedProperty(PolicyServicesInterfaceContainer policyServices, UIntN participantIndex);
+    PassiveTripPointsCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex);
     ~PassiveTripPointsCachedProperty();
 
     const SpecificInfo& getTripPoints();

@@ -17,12 +17,33 @@
 ******************************************************************************/
 
 #include "ActiveControlStaticCaps.h"
+#include "esif_sdk_fan.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
 
 ActiveControlStaticCaps::ActiveControlStaticCaps(Bool fineGrainedControl, Bool lowSpeedNotification, UIntN stepSize) :
     m_fineGrainedControl(fineGrainedControl), m_lowSpeedNotification(lowSpeedNotification), m_stepSize(stepSize)
 {
+}
+
+ActiveControlStaticCaps ActiveControlStaticCaps::createFromFif(const DptfBuffer& buffer)
+{
+    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+    struct EsifDataBinaryFifPackage* currentRow = reinterpret_cast<struct EsifDataBinaryFifPackage*>(data);
+
+    if (buffer.size() == 0)
+    {
+        throw dptf_exception("Received empty FIF buffer.");
+    }
+    else if (buffer.size() != sizeof(EsifDataBinaryFifPackage))
+    {
+        throw dptf_exception("Expected binary data size mismatch. (FIF)");
+    }
+
+    return ActiveControlStaticCaps(
+        (static_cast<UInt32>(currentRow->hasFineGrainControl.integer.value) != 0),
+        (static_cast<UInt32>(currentRow->supportsLowSpeedNotification.integer.value) != 0),
+        static_cast<UInt32>(currentRow->stepSize.integer.value));
 }
 
 Bool ActiveControlStaticCaps::supportsFineGrainedControl(void) const

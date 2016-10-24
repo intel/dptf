@@ -18,43 +18,38 @@
 
 #pragma once
 
-#include "Dptf.h"
-#include "WorkItem.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "WorkItemQueueThread.h"
 #include "ImmediateWorkItemQueue.h"
 #include "DeferredWorkItemQueue.h"
-#include "ImmediateWorkItem.h"
-#include "DeferredWorkItem.h"
 #include "EsifMutex.h"
 
-class DptfManager;
-
-class WorkItemQueueManager
+class WorkItemQueueManager : public WorkItemQueueManagerInterface
 {
 public:
 
-    WorkItemQueueManager(DptfManager* dptfManager);
+    WorkItemQueueManager(DptfManagerInterface* dptfManager);
     ~WorkItemQueueManager(void);
 
-    void enqueueImmediateWorkItemAndReturn(WorkItem* workItem);
-    void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority);
-    void enqueueImmediateWorkItemAndWait(WorkItem* workItem);
-    void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority);
-    void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution);
+    virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem) override;
+    virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority) override;
+    virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem) override;
+    virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority) override;
+    virtual void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution) override;
 
-    UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria);
-    Bool isWorkItemThread(void);
+    virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) override;
+    virtual Bool isWorkItemThread(void) override;
 
-    void disableAndEmptyAllQueues(void);
+    virtual void disableAndEmptyAllQueues(void) override;
 
-    std::shared_ptr<XmlNode> getStatusAsXml(void);
+    virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
 
 private:
 
     WorkItemQueueManager(const WorkItemQueueManager& rhs);
     WorkItemQueueManager& operator=(const WorkItemQueueManager& rhs);
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     Bool m_enqueueingEnabled;                                       // if TRUE, new work items will be added to the queues
     mutable EsifMutex m_mutex;
 

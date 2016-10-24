@@ -22,6 +22,7 @@ DomainRfProfileControl_001::DomainRfProfileControl_001(UIntN participantIndex, U
     ParticipantServicesInterface* participantServicesInterface) :
     DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
+    // TODO: does this need to capture or restore anything?
 }
 
 DomainRfProfileControl_001::~DomainRfProfileControl_001(void)

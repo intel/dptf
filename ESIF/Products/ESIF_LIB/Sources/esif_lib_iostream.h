@@ -25,6 +25,7 @@
 
 // errno values. See also: errno.h
 #define     EOK         0
+#define		IOSTREAM_MEMORY_STREAM_BLOCK_SIZE 512
 
 //////////////////////////////////////////////////////////////////////////////
 // IOStream Class
@@ -71,38 +72,38 @@ extern "C" {
 #endif
 
 // object management
-IOStreamPtr IOStream_Create ();
-IOStreamPtr IOStream_CreateAs (StreamType type);
-void IOStream_Destroy (IOStreamPtr self);
+IOStreamPtr IOStream_Create();
+void IOStream_Destroy(IOStreamPtr self);
 
 // methods
 // Open/Close File or Memory Block
-int IOStream_SetFile (IOStreamPtr self, StringPtr filename, StringPtr mode);
-int IOStream_SetMemory (IOStreamPtr self, BytePtr buffer, size_t size);
-int IOStream_OpenFile (IOStreamPtr self, StringPtr filename, StringPtr mode);
-int IOStream_OpenMemory (IOStreamPtr self, BytePtr buffer, size_t size);
-int IOStream_Open (IOStreamPtr self);	// fopen equivalent
-int IOStream_Close (IOStreamPtr self);	// fclose equivalent
+int IOStream_SetFile(IOStreamPtr self, StringPtr filename, StringPtr mode);
+int IOStream_SetMemory(IOStreamPtr self, BytePtr buffer, size_t size);
+int IOStream_OpenFile(IOStreamPtr self, StringPtr filename, StringPtr mode);
+int IOStream_Open(IOStreamPtr self);	// fopen equivalent
+int IOStream_Close(IOStreamPtr self);	// fclose equivalent
 
-// Clone a Memory Block from another Memory Block, a File, or a IOStream [dynamic, self-owned]
-int IOStream_OpenMemoryClone (IOStreamPtr self, BytePtr source, size_t size);
-int IOStream_OpenMemoryCloneFile (IOStreamPtr self, StringPtr filename);
-int IOStream_Clone (IOStreamPtr self, IOStreamPtr source, long offset, size_t length);
+// Clone another IOStream as a new memory IOStream [dynamic, self-owned]
+eEsifError IOStream_CloneAsMemoryStream(IOStreamPtr self, IOStreamPtr *clonePtr);
 
 // Stream I/O
-size_t IOStream_Read (IOStreamPtr self, void *dest_buffer, size_t bytes);		// fread equivalent
-size_t IOStream_Write (IOStreamPtr self, void *src_buffer, size_t bytes);		// fwrite equivalent
-StringPtr IOStream_GetLine (IOStreamPtr self, StringPtr dest_buffer, int bytes);	// fgets equivalent
-int IOStream_Seek (IOStreamPtr self, size_t offset, int origin);			// fseek equivalent
-size_t IOStream_GetOffset (IOStreamPtr self);									// ftell equivalent [fgetpos?]
+size_t IOStream_Read(IOStreamPtr self, void *dest_buffer, size_t bytes);		// fread equivalent
+size_t IOStream_ReadAt(IOStreamPtr self, void *dest_buffer, size_t bytes, size_t offset);
+size_t IOStream_Write(IOStreamPtr self, void *src_buffer, size_t bytes);		// fwrite equivalent
+// Note: Applicable to memory streams only
+size_t IOStream_WriteAt(IOStreamPtr self, void *src_buffer, size_t bytes, size_t offset);
+
+StringPtr IOStream_GetLine(IOStreamPtr self, StringPtr dest_buffer, int bytes);	// fgets equivalent
+int IOStream_Seek(IOStreamPtr self, size_t offset, int origin);			// fseek equivalent
+size_t IOStream_GetOffset(IOStreamPtr self);									// ftell equivalent [fgetpos?]
 
 // TODO:	fputs, fprintf, fscanf, fgetpos, fsetpos, fflush, fgetc, fputc
 
 // Member Access and Helper Functions
-StreamType IOStream_GetType (IOStreamPtr self);
-size_t IOStream_GetSize (IOStreamPtr self);
-BytePtr IOStream_GetMemoryBuffer (IOStreamPtr self);
-size_t IOStream_GetFileSize (StringPtr filename);	// static member
+StreamType IOStream_GetType(IOStreamPtr self);
+size_t IOStream_GetSize(IOStreamPtr self);
+BytePtr IOStream_GetMemoryBuffer(IOStreamPtr self);
+size_t IOStream_GetFileSize(StringPtr filename);	// static member
 
 #ifdef __cplusplus
 }

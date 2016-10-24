@@ -21,14 +21,14 @@
 #include "Dptf.h"
 #include "DptfManager.h"
 
-class SupportedPolicyList
+class dptf_export SupportedPolicyList
 {
 public:
 
-    SupportedPolicyList(DptfManager* dptfManager);
+    SupportedPolicyList(DptfManagerInterface* dptfManager);
 
     UIntN getCount(void) const;
-    const Guid& operator[](UIntN index) const;
+    Guid operator[](UIntN index) const;
     Bool isPolicyValid(const Guid& guid) const;
 
     // Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.
@@ -36,6 +36,6 @@ public:
 
 private:
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     std::vector<Guid> m_guid;
 };

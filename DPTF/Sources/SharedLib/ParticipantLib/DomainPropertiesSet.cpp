@@ -48,7 +48,7 @@ UIntN DomainPropertiesSet::getDomainCount(void) const
     return static_cast<UIntN>(m_domainProperties.size());
 }
 
-const DomainProperties& DomainPropertiesSet::operator[](UIntN index) const
+const DomainProperties DomainPropertiesSet::operator[](UIntN index) const
 {
     return m_domainProperties.at(index);
 }

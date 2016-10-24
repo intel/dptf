@@ -33,7 +33,7 @@ WIDomainPriorityChanged::~WIDomainPriorityChanged(void)
 
 void WIDomainPriorityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainPriorityChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPriorityChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainPriorityChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainPriorityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPriorityChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPriorityChanged", i);
         }
     }
 }

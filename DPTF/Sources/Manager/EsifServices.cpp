@@ -17,8 +17,7 @@
 ******************************************************************************/
 
 #include "EsifServices.h"
-#include "DptfManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "IndexContainer.h"
 #include "EsifData.h"
 #include "EsifDataPercentage.h"
@@ -215,7 +214,7 @@ void EsifServices::primitiveExecuteSetAsUInt64(esif_primitive_type primitive, UI
     throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
-Temperature EsifServices::primitiveExecuteGetAsTemperatureC(esif_primitive_type primitive,
+Temperature EsifServices::primitiveExecuteGetAsTemperatureTenthK(esif_primitive_type primitive,
     UIntN participantIndex, UIntN domainIndex, UInt8 instance)
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
@@ -246,7 +245,7 @@ Temperature EsifServices::primitiveExecuteGetAsTemperatureC(esif_primitive_type 
     return esifResult;
 }
 
-void EsifServices::primitiveExecuteSetAsTemperatureC(esif_primitive_type primitive, Temperature temperature,
+void EsifServices::primitiveExecuteSetAsTemperatureTenthK(esif_primitive_type primitive, Temperature temperature,
     UIntN participantIndex, UIntN domainIndex, UInt8 instance)
 {
     throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
@@ -638,6 +637,10 @@ void EsifServices::throwIfNotSuccessful(const std::string& fileName, UIntN lineN
     else if (returnCode == ESIF_E_PRIMITIVE_DST_UNAVAIL)
     {
         throw primitive_destination_unavailable(message);
+    }
+    else if (returnCode == ESIF_E_IO_OPEN_FAILED)
+    {
+        throw file_open_create_failure(message);
     }
 
     throw primitive_execution_failed(message);

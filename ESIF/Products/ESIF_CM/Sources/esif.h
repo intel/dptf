@@ -60,6 +60,9 @@
 
 /* Definitions not moved to esif_ccb.h or esif_sdk.h */
 
+/* Build option to enable simulation support */
+/* #define ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED */
+
 #ifdef ESIF_ATTR_OS_LINUX	/* All Linux-Derived OS */
 
 /*

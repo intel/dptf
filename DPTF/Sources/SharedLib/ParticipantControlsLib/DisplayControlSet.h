@@ -28,8 +28,9 @@ class DisplayControlSet final
 public:
 
     DisplayControlSet(const std::vector<DisplayControl>& displayControl);
+    static DisplayControlSet createFromBcl(const DptfBuffer& buffer);
     UIntN getCount(void) const;
-    const DisplayControl& operator[](UIntN index) const;
+    DisplayControl operator[](UIntN index) const;
     Bool operator==(const DisplayControlSet& rhs) const;
     Bool operator!=(const DisplayControlSet& rhs) const;
     UIntN getControlIndex(Percentage brightness);

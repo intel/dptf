@@ -47,6 +47,7 @@ public:
     virtual void unbindDomain(UIntN domainIndex) override;
     virtual std::shared_ptr<DomainProxyInterface> getDomain(UIntN domainIndex) override;
     virtual std::vector<UIntN> getDomainIndexes() override;
+    virtual Bool domainExists(UIntN domainIndex) override;
 
     // properties
     virtual UIntN getIndex() const override;
@@ -73,22 +74,18 @@ public:
     virtual void refreshVirtualSensorTables() override;
 
     // thresholds
-    virtual void setThresholdCrossed(const Temperature& temperature, UInt64 timestampInMs) override;
-    virtual UInt64 getTimeOfLastThresholdCrossed() const override;
+    virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) override;
+    virtual const TimeSpan& getTimeOfLastThresholdCrossed() const override;
     virtual Temperature getTemperatureOfLastThresholdCrossed() const override;
 
     // capabilities
-    virtual Bool hasSetDscpSupported() override;
-    virtual Bool hasSetScpSupported() override;
-    virtual Bool supportsDscp() override;
-    virtual Bool supportsScp() override;
-    virtual void setDscpSupport(Bool dscpSupported) override;
-    virtual void setScpSupport(Bool scpSupported) override;
-    virtual void setCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) override;
-    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() override;
     virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
 
 private:
+
+    // services
+    PolicyServicesInterfaceContainer m_policyServices;
+    std::shared_ptr<TimeInterface> m_time;
 
     // participant properties
     UIntN m_index;
@@ -109,15 +106,5 @@ private:
     Temperature m_previousUpperBound;
     Temperature m_lastIndicationTemperatureLowerBound;
     Temperature m_lastThresholdCrossedTemperature;
-    UInt64 m_timeOfLastThresholdCrossed;
-
-    // capabilities
-    Bool m_supportsDscp;
-    Bool m_supportsDscpValid;
-    Bool m_supportsScp;
-    Bool m_supportsScpValid;
-
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
-    std::shared_ptr<TimeInterface> m_time;
+    TimeSpan m_timeOfLastThresholdCrossed;
 };

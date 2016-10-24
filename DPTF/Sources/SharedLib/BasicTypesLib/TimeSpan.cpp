@@ -17,6 +17,8 @@
 ******************************************************************************/
 
 #include "TimeSpan.h"
+#include "../XmlLib/StatusFormat.h"
+using namespace StatusFormat;
 
 const UInt64 MicrosecondsPerMillisecond = 1000;
 const UInt64 MicrosecondsPerTenthSecond = 100000;
@@ -101,6 +103,12 @@ double TimeSpan::asMilliseconds() const
     return milliseconds;
 }
 
+UInt64 TimeSpan::asMillisecondsUInt() const
+{
+    throwIfInvalid();
+    return (UInt64)asMilliseconds();
+}
+
 Int64 TimeSpan::asMillisecondsInt() const
 {
     throwIfInvalid();
@@ -158,11 +166,21 @@ TimeSpan TimeSpan::operator+(const TimeSpan& rhs) const
     return TimeSpan::createFromMicroseconds(m_microseconds + rhs.m_microseconds);
 }
 
+TimeSpan TimeSpan::operator+=(const TimeSpan& rhs) const
+{
+    return *this + rhs;
+}
+
 TimeSpan TimeSpan::operator-(const TimeSpan& rhs) const
 {
     throwIfInvalid();
     rhs.throwIfInvalid();
     return TimeSpan::createFromMicroseconds(m_microseconds - rhs.m_microseconds);
+}
+
+TimeSpan TimeSpan::operator-=(const TimeSpan& rhs) const
+{
+    return *this - rhs;
 }
 
 TimeSpan TimeSpan::operator*(Int64 multiplier) const
@@ -205,6 +223,20 @@ Bool TimeSpan::operator>(const TimeSpan& rhs) const
     return m_microseconds > rhs.m_microseconds;
 }
 
+Bool TimeSpan::operator<=(const TimeSpan& rhs) const
+{
+    throwIfInvalid();
+    rhs.throwIfInvalid();
+    return m_microseconds <= rhs.m_microseconds;
+}
+
+Bool TimeSpan::operator>=(const TimeSpan& rhs) const
+{
+    throwIfInvalid();
+    rhs.throwIfInvalid();
+    return m_microseconds >= rhs.m_microseconds;
+}
+
 std::string TimeSpan::toStringMicroseconds() const
 {
     throwIfInvalid();
@@ -218,6 +250,14 @@ std::string TimeSpan::toStringMilliseconds() const
     throwIfInvalid();
     std::stringstream stream;
     stream << asMillisecondsInt();
+    return stream.str();
+}
+
+std::string TimeSpan::toStringSeconds() const
+{
+    throwIfInvalid();
+    std::stringstream stream;
+    stream << friendlyValueWithPrecision(asSeconds(),1);
     return stream.str();
 }
 

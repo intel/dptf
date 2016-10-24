@@ -34,10 +34,6 @@ typedef struct _t_EsifCnj {
 extern "C" {
 #endif
 
-/* Init / Exit */
-eEsifError EsifCnjInit(void);
-void EsifCnjExit(void);
-
 #ifdef __cplusplus
 }
 #endif

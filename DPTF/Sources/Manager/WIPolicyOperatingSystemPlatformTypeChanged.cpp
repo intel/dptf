@@ -33,7 +33,7 @@ WIPolicyOperatingSystemPlatformTypeChanged::~WIPolicyOperatingSystemPlatformType
 
 void WIPolicyOperatingSystemPlatformTypeChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyOperatingSystemPlatformTypeChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemPlatformTypeChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPlatformTypeChanged", i);
         }
     }
 }

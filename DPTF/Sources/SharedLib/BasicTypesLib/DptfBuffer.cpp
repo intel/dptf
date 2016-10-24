@@ -38,7 +38,7 @@ DptfBuffer DptfBuffer::fromExistingByteArray(UInt8* byteArray, UInt32 numberOfBy
     DptfBuffer buffer(numberOfBytes);
     for (UInt32 byteNumber = 0; byteNumber < numberOfBytes; byteNumber++)
     {
-        buffer.get(byteNumber) = byteArray[byteNumber];
+        buffer.set(byteNumber, byteArray[byteNumber]);
     }
     return buffer;
 }
@@ -61,7 +61,7 @@ UInt8* DptfBuffer::get(void) const
     return (UInt8*)m_buffer.data();
 }
 
-UInt8& DptfBuffer::get(UInt32 byteNumber)
+const UInt8 DptfBuffer::get(UInt32 byteNumber) const
 {
     if (byteNumber >= size())
     {
@@ -73,7 +73,7 @@ UInt8& DptfBuffer::get(UInt32 byteNumber)
     }
 }
 
-const UInt8& DptfBuffer::get(UInt32 byteNumber) const
+void DptfBuffer::set(UInt32 byteNumber, UInt8 byteValue)
 {
     if (byteNumber >= size())
     {
@@ -81,7 +81,7 @@ const UInt8& DptfBuffer::get(UInt32 byteNumber) const
     }
     else
     {
-        return m_buffer.at(byteNumber);
+        m_buffer.at(byteNumber) = byteValue;
     }
 }
 

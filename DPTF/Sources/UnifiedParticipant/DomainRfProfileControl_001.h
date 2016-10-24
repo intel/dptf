@@ -27,7 +27,7 @@ public:
 
     DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainRfProfileControl_001(void);
+    virtual ~DomainRfProfileControl_001(void);
 
     // DomainRfProfileControlInterface
     virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex,

@@ -37,11 +37,10 @@ public:
     virtual void forget(UIntN participantIndex) override;
     virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) override;
     virtual std::vector<UIntN> getAllTrackedIndexes() const override;
-    virtual void setPolicyServices(PolicyServicesInterfaceContainer policyServices) override;
+    virtual void setPolicyServices(const PolicyServicesInterfaceContainer &policyServices) override;
     virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
 
     virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
-    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() override;
 
     virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType);
 

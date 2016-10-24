@@ -34,7 +34,7 @@ WIDomainVirtualSensorPollingTableChanged::~WIDomainVirtualSensorPollingTableChan
 
 void WIDomainVirtualSensorPollingTableChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -42,7 +42,7 @@ void WIDomainVirtualSensorPollingTableChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainVirtualSensorPollingTableChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorPollingTableChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -61,7 +61,7 @@ void WIDomainVirtualSensorPollingTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainVirtualSensorPollingTableChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorPollingTableChanged", i);
         }
     }
 }

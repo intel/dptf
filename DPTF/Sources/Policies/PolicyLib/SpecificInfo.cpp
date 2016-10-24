@@ -21,15 +21,15 @@
 using namespace std;
 
 Bool compareTripPointsOnTemperature(
-    pair<ParticipantSpecificInfoKey::Type, UIntN> left,
-    pair<ParticipantSpecificInfoKey::Type, UIntN> right);
+    pair<ParticipantSpecificInfoKey::Type, Temperature> left,
+    pair<ParticipantSpecificInfoKey::Type, Temperature> right);
 Bool compareTripPointsOnKey(
-    pair<ParticipantSpecificInfoKey::Type, UIntN> left,
-    pair<ParticipantSpecificInfoKey::Type, UIntN> right);
+    pair<ParticipantSpecificInfoKey::Type, Temperature> left,
+    pair<ParticipantSpecificInfoKey::Type, Temperature> right);
 
 
-SpecificInfo::SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, UIntN> specificInfo)
-    : m_specificInfo(specificInfo),
+SpecificInfo::SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, Temperature> specificInfo) :
+    m_specificInfo(specificInfo),
     m_sortedTripPointsByValueValid(false),
     m_sortedTripPointsByKeyValid(false)
 {
@@ -39,7 +39,7 @@ SpecificInfo::~SpecificInfo(void)
 {
 }
 
-std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> SpecificInfo::getSortedByValue()
+std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByValue()
 {
     if (m_sortedTripPointsByValueValid == false)
     {
@@ -54,7 +54,7 @@ std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> SpecificInfo::ge
     return m_sortedTripPointsByValue;
 }
 
-std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> SpecificInfo::getSortedByKey()
+std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByKey()
 {
     if (m_sortedTripPointsByKeyValid == false)
     {
@@ -71,10 +71,11 @@ std::vector<std::pair<ParticipantSpecificInfoKey::Type, UIntN>> SpecificInfo::ge
 
 Bool SpecificInfo::hasItem(ParticipantSpecificInfoKey::Type key)
 {
-    return (m_specificInfo.find(key) != m_specificInfo.end());
+    return (m_specificInfo.find(key) != m_specificInfo.end() &&
+        m_specificInfo.find(key)->second != Temperature(Constants::MaxUInt32));
 }
 
-UIntN SpecificInfo::getItem(ParticipantSpecificInfoKey::Type key)
+Temperature SpecificInfo::getItem(ParticipantSpecificInfoKey::Type key)
 {
     auto item = m_specificInfo.find(key);
     if (item != m_specificInfo.end())
@@ -90,6 +91,33 @@ UIntN SpecificInfo::getItem(ParticipantSpecificInfoKey::Type key)
     }
 }
 
+Bool SpecificInfo::operator==(SpecificInfo& rhs)
+{
+    auto rhsTrips = rhs.getSortedByKey();
+    auto trips = this->getSortedByKey();
+    if (trips.size() != rhsTrips.size())
+    {
+        return false;
+    }
+    else
+    {
+        for (UIntN index = 0; index < rhsTrips.size(); index++)
+        {
+            if (trips[index].first != rhsTrips[index].first || trips[index].second != rhsTrips[index].second)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+Bool SpecificInfo::operator!=(SpecificInfo& rhs)
+{
+    return !(*this == rhs);
+}
+
 std::shared_ptr<XmlNode> SpecificInfo::getXml() const
 {
     auto wrapper = XmlNode::createWrapperElement("specific_info");
@@ -97,22 +125,22 @@ std::shared_ptr<XmlNode> SpecificInfo::getXml() const
     {
         auto node = XmlNode::createDataElement(
             ParticipantSpecificInfoKey::ToString((ParticipantSpecificInfoKey::Type)tp->first),
-            StlOverride::to_string(tp->second));
+            tp->second.toString());
         wrapper->addChild(node);
     }
     return wrapper;
 }
 
 Bool compareTripPointsOnTemperature(
-    pair<ParticipantSpecificInfoKey::Type, UIntN> left,
-    pair<ParticipantSpecificInfoKey::Type, UIntN> right)
+    pair<ParticipantSpecificInfoKey::Type, Temperature> left,
+    pair<ParticipantSpecificInfoKey::Type, Temperature> right)
 {
     return (left.second < right.second);
 }
 
 Bool compareTripPointsOnKey(
-    pair<ParticipantSpecificInfoKey::Type, UIntN> left,
-    pair<ParticipantSpecificInfoKey::Type, UIntN> right)
+    pair<ParticipantSpecificInfoKey::Type, Temperature> left,
+    pair<ParticipantSpecificInfoKey::Type, Temperature> right)
 {
     return (left.first < right.first);
 }

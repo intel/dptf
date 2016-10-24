@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesParticipantProperties.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesParticipantProperties::PolicyServicesParticipantProperties(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :
@@ -25,13 +25,13 @@ PolicyServicesParticipantProperties::PolicyServicesParticipantProperties(DptfMan
 {
 }
 
-ParticipantProperties PolicyServicesParticipantProperties::getParticipantProperties(UIntN participantIndex)
+ParticipantProperties PolicyServicesParticipantProperties::getParticipantProperties(UIntN participantIndex) const
 {
     throwIfNotWorkItemThread();
     return getParticipantManager()->getParticipantPtr(participantIndex)->getParticipantProperties();
 }
 
-DomainPropertiesSet PolicyServicesParticipantProperties::getDomainPropertiesSet(UIntN participantIndex)
+DomainPropertiesSet PolicyServicesParticipantProperties::getDomainPropertiesSet(UIntN participantIndex) const
 {
     throwIfNotWorkItemThread();
     return getParticipantManager()->getParticipantPtr(participantIndex)->getDomainPropertiesSet();

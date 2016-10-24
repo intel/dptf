@@ -24,30 +24,16 @@ ParticipantSetSpecificInfo_001::ParticipantSetSpecificInfo_001(UIntN participant
 {
 }
 
+ParticipantSetSpecificInfo_001::~ParticipantSetSpecificInfo_001()
+{
+
+}
+
 void ParticipantSetSpecificInfo_001::setParticipantDeviceTemperatureIndication(UIntN participantIndex,
     const Temperature& temperature)
 {
-    getParticipantServices()->primitiveExecuteSetAsTemperatureC(
+    getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(
         esif_primitive_type::SET_DEVICE_TEMPERATURE_INDICATION, temperature);
-}
-
-void ParticipantSetSpecificInfo_001::setParticipantCoolingPolicy(UIntN participantIndex,
-    const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
-{
-    if (type == CoolingPreferenceType::_SCP)
-    {
-        getParticipantServices()->primitiveExecuteSet(esif_primitive_type::SET_COOLING_POLICY,
-            ESIF_DATA_STRUCTURE, coolingPreference.get(), coolingPreference.size(), coolingPreference.size());
-    }
-    else if (type == CoolingPreferenceType::DSCP)
-    {
-        getParticipantServices()->primitiveExecuteSet(esif_primitive_type::SET_DPTF_COOLING_POLICY,
-            ESIF_DATA_STRUCTURE, coolingPreference.get(), coolingPreference.size(), coolingPreference.size());
-    }
-    else
-    {
-        throw dptf_exception("Received unexpected CoolingPreferenceType.");
-    }
 }
 
 void ParticipantSetSpecificInfo_001::setParticipantSpecificInfo(UIntN participantIndex, 
@@ -93,8 +79,8 @@ void ParticipantSetSpecificInfo_001::setParticipantSpecificInfo(UIntN participan
         break;
     }
 
-    return getParticipantServices()->primitiveExecuteSetAsTemperatureC(primitiveType, tripValue,
-        Constants::Esif::NoDomain, static_cast<UInt8>(instance));
+    return getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(primitiveType, tripValue,
+        Constants::Esif::NoDomain, static_cast<UInt8>(Constants::Esif::NoPersistInstanceOffset + instance));
 }
 
 void ParticipantSetSpecificInfo_001::clearCachedData(void)

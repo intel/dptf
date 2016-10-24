@@ -143,11 +143,6 @@ Bool DomainProperties::implementsUtilizationInterface(void) const
     return isInterfaceImplemented(m_domainFunctionalityVersions.utilizationVersion);
 }
 
-Bool DomainProperties::implementsHardwareDutyCycleControlInterface(void) const
-{
-    return isInterfaceImplemented(m_domainFunctionalityVersions.hardwareDutyCycleVersion);
-}
-
 std::shared_ptr<XmlNode> DomainProperties::getXml() const
 {
     auto properties = XmlNode::createWrapperElement("domain_properties");
@@ -163,4 +158,20 @@ std::shared_ptr<XmlNode> DomainProperties::getXml() const
 Bool DomainProperties::isInterfaceImplemented(UInt8 version) const
 {
     return (version != 0);
+}
+
+Bool DomainProperties::operator==(const DomainProperties& domain)
+{
+    return ((m_guid == domain.m_guid)
+        && (m_domainIndex == domain.m_domainIndex)
+        && (m_enabled == domain.m_enabled)
+        && (m_domainType == domain.m_domainType)
+        && (m_name == domain.m_name)
+        && (m_description == domain.m_description)
+        && (m_domainFunctionalityVersions == domain.m_domainFunctionalityVersions));
+}
+
+Bool DomainProperties::operator!=(const DomainProperties& domain)
+{
+    return !(*this == domain);
 }

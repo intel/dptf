@@ -19,7 +19,6 @@
 #include "PolicyBase.h"
 #include "DptfTime.h"
 #include "ParticipantTracker.h"
-#include "OsMobileNotificationType.h"
 using namespace std;
 
 PolicyBase::PolicyBase(void)
@@ -35,7 +34,7 @@ PolicyBase::~PolicyBase(void)
 }
 
 // If a policy chooses not to load itself, it should throw out of its onCreate() function.
-void PolicyBase::create(Bool enabled, PolicyServicesInterfaceContainer policyServices, UIntN policyIndex)
+void PolicyBase::create(Bool enabled, const PolicyServicesInterfaceContainer &policyServices, UIntN policyIndex)
 {
     m_enabled = enabled;
     m_policyServices = policyServices;
@@ -364,12 +363,36 @@ void PolicyBase::adaptivePerformanceConditionsTableChanged(void)
     onAdaptivePerformanceConditionsTableChanged();
 }
 
+void PolicyBase::adaptivePerformanceParticipantConditionTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    m_policyServices.messageLogging->writeMessageInfo(
+        PolicyMessage(FLF, getName() + ": Adaptive Performance Participant Condition Table changed."));
+    onAdaptivePerformanceParticipantConditionTableChanged();
+}
+
 void PolicyBase::adaptivePerformanceActionsTableChanged(void)
 {
     throwIfPolicyIsDisabled();
     m_policyServices.messageLogging->writeMessageInfo(
         PolicyMessage(FLF, getName() + ": Adaptive Performance Actions Table changed."));
     onAdaptivePerformanceActionsTableChanged();
+}
+
+void PolicyBase::pidAlgorithmTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    m_policyServices.messageLogging->writeMessageInfo(
+        PolicyMessage(FLF, getName() + ": PID Algorithm Table changed."));
+    onPidAlgorithmTableChanged();
+}
+
+void PolicyBase::activeControlPointRelationshipTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    m_policyServices.messageLogging->writeMessageInfo(
+        PolicyMessage(FLF, getName() + ": Active Control Point Relationship Table changed."));
+    onActiveControlPointRelationshipTableChanged();
 }
 
 void PolicyBase::connectedStandbyEntry(void)
@@ -444,22 +467,6 @@ void PolicyBase::policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 p
     onPolicyInitiatedCallback(policyDefinedEventCode, param1, param2);
 }
 
-void PolicyBase::operatingSystemLpmModeChanged(UIntN lpmMode)
-{
-    throwIfPolicyIsDisabled();
-    m_policyServices.messageLogging->writeMessageInfo(
-        PolicyMessage(FLF, getName() + ": OS LPM mode changed to " + StlOverride::to_string(lpmMode) + "."));
-    onOperatingSystemLpmModeChanged(lpmMode);
-}
-
-void PolicyBase::platformLpmModeChanged()
-{
-    throwIfPolicyIsDisabled();
-    m_policyServices.messageLogging->writeMessageInfo(
-        PolicyMessage(FLF, getName() + ": PLatform LPM mode changed."));
-    onPlatformLpmModeChanged();
-}
-
 void PolicyBase::operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
 {
     throwIfPolicyIsDisabled();
@@ -467,14 +474,6 @@ void PolicyBase::operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
         PolicyMessage(FLF, getName() + ": Config TDP Level Changed to index "
         + StlOverride::to_string(configTdpLevel) + "."));
     onOperatingSystemConfigTdpLevelChanged(configTdpLevel);
-}
-
-void PolicyBase::operatingSystemHdcStatusChanged(OsHdcStatus::Type status)
-{
-    throwIfPolicyIsDisabled();
-    m_policyServices.messageLogging->writeMessageInfo(
-        PolicyMessage(FLF, getName() + ": OS HDC Status Changed to " + OsHdcStatus::ToString(status) + "."));
-    onOperatingSystemHdcStatusChanged(status);
 }
 
 void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
@@ -528,47 +527,23 @@ void PolicyBase::operatingSystemDockModeChanged(OsDockMode::Type dockMode)
     onOperatingSystemDockModeChanged(dockMode);
 }
 
-void PolicyBase::operatingSystemMobileNotification(UIntN mobileNotification)
-{
-    throwIfPolicyIsDisabled();
-    
-    OsMobileNotificationType::Type notificationType =
-        (OsMobileNotificationType::Type)(((UInt32)mobileNotification & 0xFFFF0000) >> 16);
-    UInt32 notificationValue = (UInt32)mobileNotification & 0xFFFF;
-
-    if (notificationType == OsMobileNotificationType::EmergencyCallMode)
-    {
-        m_policyServices.messageLogging->writeMessageInfo(
-            PolicyMessage(FLF, getName() + ": OS Emergency Call Mode changed to " +
-            StlOverride::to_string(notificationValue) + "."));
-        onOperatingSystemEmergencyCallModeChanged(notificationValue);
-    }
-    else
-    {
-        m_policyServices.messageLogging->writeMessageInfo(
-            PolicyMessage(FLF, getName() + ": OS Mobile Notification for " +
-            OsMobileNotificationType::ToString(notificationType) + " changed to " +
-            StlOverride::to_string(notificationValue) + "."));
-        onOperatingSystemMobileNotification(notificationType, notificationValue);
-    }
-}
-
-void PolicyBase::coolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit)
+void PolicyBase::operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState)
 {
     throwIfPolicyIsDisabled();
     m_policyServices.messageLogging->writeMessageInfo(
-        PolicyMessage(FLF, getName() + ": Cooling mode power limit changed to "
-        + CoolingModePowerLimit::toString(powerLimit) + "."));
-    onCoolingModePowerLimitChanged(powerLimit);
+        PolicyMessage(FLF, getName() + ": OS Emergency Call Mode State changed to " + 
+        OnOffToggle::toString(emergencyCallModeState) + "."));
+    onOperatingSystemEmergencyCallModeChanged(emergencyCallModeState);
 }
 
-void PolicyBase::coolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit)
+void PolicyBase::operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
 {
     throwIfPolicyIsDisabled();
     m_policyServices.messageLogging->writeMessageInfo(
-        PolicyMessage(FLF, getName() + ": Cooling mode acoustic limit changed to "
-        + CoolingModeAcousticLimit::toString(acousticLimit) + "."));
-    onCoolingModeAcousticLimitChanged(acousticLimit);
+        PolicyMessage(FLF, getName() + ": OS Mobile Notification for " +
+        OsMobileNotificationType::ToString(notificationType) + " changed to " +
+        StlOverride::to_string(value) + "."));
+    onOperatingSystemMobileNotification(notificationType, value);
 }
 
 void PolicyBase::coolingModePolicyChanged(CoolingMode::Type coolingMode)
@@ -604,12 +579,12 @@ void PolicyBase::sensorSpatialOrientationChanged(SensorSpatialOrientation::Type 
     onSensorSpatialOrientationChanged(sensorSpatialOrientation);
 }
 
-void PolicyBase::sensorMotionChanged(SensorMotion::Type sensorMotion)
+void PolicyBase::sensorMotionChanged(OnOffToggle::Type sensorMotion)
 {
     throwIfPolicyIsDisabled();
     m_policyServices.messageLogging->writeMessageInfo(
         PolicyMessage(FLF, getName() + ": Sensor motion state changed to "
-        + SensorMotion::toString(sensorMotion) + "."));
+        + OnOffToggle::toString(sensorMotion) + "."));
     onSensorMotionChanged(sensorMotion);
 }
 
@@ -619,14 +594,6 @@ void PolicyBase::oemVariablesChanged(void)
     m_policyServices.messageLogging->writeMessageInfo(
         PolicyMessage(FLF, getName() + ": OEM variable(s) changed."));
     onOemVariablesChanged();
-}
-
-void PolicyBase::powerDeviceRelationshipTableChanged(void)
-{
-    throwIfPolicyIsDisabled();
-    m_policyServices.messageLogging->writeMessageInfo(
-        PolicyMessage(FLF, getName() + ": Power Device Relationship Table Changed."));
-    onPowerDeviceRelationshipTableChanged();
 }
 
 void PolicyBase::powerBossConditionsTableChanged(void)
@@ -643,6 +610,22 @@ void PolicyBase::powerBossActionsTableChanged(void)
     m_policyServices.messageLogging->writeMessageInfo(
         PolicyMessage(FLF, getName() + ": Power Boss Actions Table changed."));
     onPowerBossActionsTableChanged();
+}
+
+void PolicyBase::powerBossMathTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    m_policyServices.messageLogging->writeMessageInfo(
+        PolicyMessage(FLF, getName() + ": Power Boss Math Table changed."));
+    onPowerBossMathTableChanged();
+}
+
+void PolicyBase::emergencyCallModeTableChanged(void)
+{
+    throwIfPolicyIsDisabled();
+    m_policyServices.messageLogging->writeMessageInfo(
+        PolicyMessage(FLF, getName() + ": Emergency Call Mode Table changed."));
+    onEmergencyCallModeTableChanged();
 }
 
 void PolicyBase::overrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
@@ -793,6 +776,11 @@ void PolicyBase::onAdaptivePerformanceConditionsTableChanged(void)
     throw not_implemented();
 }
 
+void PolicyBase::onAdaptivePerformanceParticipantConditionTableChanged(void)
+{
+    throw not_implemented();
+}
+
 void PolicyBase::onAdaptivePerformanceActionsTableChanged(void)
 {
     throw not_implemented();
@@ -828,22 +816,7 @@ void PolicyBase::onPolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64
     throw not_implemented();
 }
 
-void PolicyBase::onOperatingSystemLpmModeChanged(UIntN lpmMode)
-{
-    throw not_implemented();
-}
-
-void PolicyBase::onPlatformLpmModeChanged()
-{
-    throw not_implemented();
-}
-
 void PolicyBase::onOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
-{
-    throw not_implemented();
-}
-
-void PolicyBase::onOperatingSystemHdcStatusChanged(OsHdcStatus::Type status)
 {
     throw not_implemented();
 }
@@ -878,22 +851,12 @@ void PolicyBase::onOperatingSystemDockModeChanged(OsDockMode::Type dockMode)
     throw not_implemented();
 }
 
-void PolicyBase::onOperatingSystemEmergencyCallModeChanged(UIntN emergencyCallMode)
+void PolicyBase::onOperatingSystemEmergencyCallModeChanged(OnOffToggle::Type emergencyCallMode)
 {
     throw not_implemented();
 }
 
 void PolicyBase::onOperatingSystemMobileNotification(UIntN mobileNotificationType, UIntN value)
-{
-    throw not_implemented();
-}
-
-void PolicyBase::onCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit)
-{
-    throw not_implemented();
-}
-
-void PolicyBase::onCoolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit)
 {
     throw not_implemented();
 }
@@ -918,17 +881,12 @@ void PolicyBase::onSensorSpatialOrientationChanged(SensorSpatialOrientation::Typ
     throw not_implemented();
 }
 
-void PolicyBase::onSensorMotionChanged(SensorMotion::Type sensorMotion)
+void PolicyBase::onSensorMotionChanged(OnOffToggle::Type sensorMotion)
 {
     throw not_implemented();
 }
 
 void PolicyBase::onOemVariablesChanged(void)
-{
-    throw not_implemented();
-}
-
-void PolicyBase::onPowerDeviceRelationshipTableChanged(void)
 {
     throw not_implemented();
 }
@@ -942,6 +900,27 @@ void PolicyBase::onPowerBossActionsTableChanged(void)
 {
     throw not_implemented();
 }
+
+void PolicyBase::onPowerBossMathTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onEmergencyCallModeTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onPidAlgorithmTableChanged(void)
+{
+    throw not_implemented();
+}
+
+void PolicyBase::onActiveControlPointRelationshipTableChanged(void)
+{
+    throw not_implemented();
+}
+
 
 void PolicyBase::onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
 {

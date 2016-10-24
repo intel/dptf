@@ -28,7 +28,7 @@ class dptf_export ParticipantPropertiesCachedProperty : public CachedProperty, P
 {
 public:
 
-    ParticipantPropertiesCachedProperty(PolicyServicesInterfaceContainer policyServices, UIntN participantIndex);
+    ParticipantPropertiesCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex);
     ~ParticipantPropertiesCachedProperty();
 
     const ParticipantProperties& getParticipantProperties();

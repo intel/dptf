@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainPowerStatus.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPowerStatus::PolicyServicesDomainPowerStatus(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :
@@ -29,4 +29,11 @@ PowerStatus PolicyServicesDomainPowerStatus::getPowerStatus(UIntN participantInd
 {
     throwIfNotWorkItemThread();
     return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerStatus(domainIndex);
+}
+
+Power PolicyServicesDomainPowerStatus::getAveragePower(UIntN participantIndex, UIntN domainIndex,
+    const PowerControlDynamicCaps& capabilities)
+{
+    throwIfNotWorkItemThread();
+    return getParticipantManager()->getParticipantPtr(participantIndex)->getAveragePower(domainIndex, capabilities);
 }

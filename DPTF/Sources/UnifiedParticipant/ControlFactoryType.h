@@ -39,7 +39,6 @@ namespace ControlFactoryType
         RfProfileStatus,
         Temperature,
         Utilization,
-        HardwareDutyCycle,
         GetSpecificInfo,
         SetSpecificInfo,
         PlatformPower,

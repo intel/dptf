@@ -360,205 +360,6 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=06-5B-45-B9-49-79-C6-40-AB-F2-36-3A-70-C8-70-6C -->
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:template match="/lpm_policy_status">
-
-<table border="1">
-  <tr bgcolor="#00AEEF">
-    <td>LPM Mode Boss</td>
-    <td align='right'>
-        <xsl:value-of select="lpm_mode_boss" />
-    </td>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <td>LPM Mode</td>
-    <td align='right'>
-      <xsl:value-of select="lpm_mode" />
-    </td>
-  </tr>
-  <xsl:if test="lpm_mode='App Specific'">
-  <tr bgcolor="#00AEEF">
-    <td>Foreground App Name</td>
-    <td align='right'>
-      <xsl:value-of select="foreground_app_name" />
-    </td>
-  </tr>
-  </xsl:if>
-  <xsl:if test="lpm_mode_boss='OS Controlled' and lpm_mode='Standard'">
-  <tr bgcolor="#00AEEF">
-    <td>LPMSet Index</td>
-    <td align='right'>
-      <xsl:value-of select="lpmset_index" />
-    </td>
-  </tr>
-  </xsl:if>
-</table>
-
-<br></br>
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="10">
-    <th colspan="10">LPM Current Entries</th>
-  </tr>
-  <tr colspan="10">
-    <td bgcolor="#00AEEF">Version</td>
-    <td align='right' colspan="7">
-      <xsl:value-of select="lpm_table/version" />
-    </td>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>Target ACPI scope</th>
-    <th>Target Index</th>
-    <th>Domain Index</th>
-    <th>Domain Type</th>
-    <th>Control Knob</th>
-    <th>Control Value</th>
-    <th>Applied Control</th>
-    <th>Applied Control Units</th>
-  </tr>
-  <xsl:for-each select="lpm_table/lpm_entries/lpm_entry">
-    <tr>
-      <td>
-        <xsl:value-of select="target_acpi_scope"/>
-      </td>
-      <td>
-        <xsl:value-of select="target_index"/>
-      </td>
-      <td>
-          <xsl:value-of select="domain_index"/>
-      </td>
-      <td align='right'>
-          <xsl:value-of select="domain_type"/>
-      </td>
-      <td align='right'>
-        <xsl:value-of select="control_knob"/>
-      </td>
-      <td align='right'>
-        <xsl:value-of select="control_value"/>
-      </td>
-      <td align='right'>
-          <xsl:value-of select="applied_control"/>
-      </td>
-      <td align='right'>
-          <xsl:value-of select="applied_control_units"/>
-      </td>
-    </tr>
-  </xsl:for-each>
-</table>
-
-<br></br>
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="10">
-    <th colspan="10">LPM Standard Configuration Entries</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>Target ACPI scope</th>
-    <th>Target Index</th>
-    <th>Domain Index</th>
-    <th>Domain Type</th>
-    <th>Control Knob</th>
-    <th>Control Value</th>
-  </tr>
-  <xsl:for-each select="lpm_std_config/lpm_entry">
-    <tr>
-      <td>
-        <xsl:value-of select="target_acpi_scope"/>
-      </td>
-      <td>
-        <xsl:value-of select="target_index"/>
-      </td>
-      <td>
-          <xsl:value-of select="domain_index"/>
-      </td>
-      <td align='right'>
-          <xsl:value-of select="domain_type"/>
-      </td>
-      <td align='right'>
-        <xsl:value-of select="control_knob"/>
-      </td>
-      <td align='right'>
-        <xsl:value-of select="control_value"/>
-      </td>
-    </tr>
-  </xsl:for-each>
-</table>
-
-<br></br>
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="10">
-    <th colspan="10">LPM Sets</th>
-  </tr>
-  <xsl:for-each select="lpm_sets/lpmset_entry">
-    <tr colspan="10">
-      <td bgcolor="#00AEEF">LpmSet Index</td>
-      <td align='right' colspan="7">
-        <xsl:value-of select="lpmset_index" />
-      </td>
-    </tr>
-    <tr bgcolor="#00AEEF">
-      <th>Target ACPI scope</th>
-      <th>Target Index</th>
-      <th>Domain Index</th>
-      <th>Domain Type</th>
-      <th>Control Knob</th>
-      <th>Control Value</th>
-    </tr>
-    <xsl:for-each select="lpm_entries/lpm_entry">
-      <tr>
-        <td>
-          <xsl:value-of select="target_acpi_scope"/>
-        </td>
-        <td>
-          <xsl:value-of select="target_index"/>
-        </td>
-        <td>
-            <xsl:value-of select="domain_index"/>
-        </td>
-        <td align='right'>
-            <xsl:value-of select="domain_type"/>
-        </td>
-        <td align='right'>
-          <xsl:value-of select="control_knob"/>
-        </td>
-        <td align='right'>
-          <xsl:value-of select="control_value"/>
-        </td>
-      </tr>
-    </xsl:for-each>
-  </xsl:for-each>
-</table>
-
-<br></br>
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="10">
-    <th colspan="10">LPM App Specific Entries</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-      <th>LpmSet Index</th>
-      <th>App Names</th>
-  </tr>
-  <xsl:for-each select="lpm_app_entries/lpm_app_entry">
-    <tr>
-      <td align='right'>
-        <xsl:value-of select="lpmset_index" />
-      </td>
-      <td align='right'>
-        <xsl:value-of select="app_names" />
-      </td>
-    </tr>
-  </xsl:for-each>
-</table>
-
-</xsl:template>
-</xsl:stylesheet>
-<!-- end xsl -->
-
-<!-- begin xsl -->
-<?xml version="1.0" encoding="ISO-8859-1"?>
 <!-- format_id=D6-41-A4-42-6A-AE-2B-46-A8-4B-4A-8C-E7-90-27-D3 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/passive_policy_status">
@@ -737,8 +538,8 @@
     <div>
         <div>
             <table border="1">
-              <tr bgcolor="#00AEEF" colspan="13">
-                <th colspan="13">Targets</th>
+              <tr bgcolor="#00AEEF" colspan="12">
+                <th colspan="12">Targets</th>
               </tr>
               <tr bgcolor="#00AEEF">
                 <th align='left' style='max-width:80px; min-width:80px;'>Target</th>
@@ -752,7 +553,6 @@
                 <th align='left' style='max-width:80px; min-width:80px;'>Domain</th>
                 <th align='left' style='max-width:220px; min-width:220px;'>Control Knob</th>
                 <th align='right' style='max-width:90px; min-width:90px;'>Requested Value</th>
-                <th align='right' style='max-width:90px; min-width:90px;'>Granted Value</th>
                 <th align='right' style='max-width:90px; min-width:90px;'>Preferred State</th>
               </tr>
               <xsl:for-each select="court_status/targets/target">
@@ -774,7 +574,6 @@
                             (<xsl:value-of select="client_status/source_domain_knob/domain_index"/>)</td>
                           <td style='max-width:220px; min-width:220px;'><xsl:value-of select="client_status/source_domain_knob/control_type"/></td>
                           <td align='right' style='max-width:90px; min-width:90px;'><xsl:value-of select="client_status/last_set_preferred_state"/></td>
-                          <td align='right' style='max-width:90px; min-width:90px;'><xsl:value-of select="client_status/granted_value"/></td>
                           <td align='right' style='max-width:90px; min-width:90px;'><xsl:value-of select="targetted_preferred_state"/></td>
                         </tr>
                       </xsl:for-each>
@@ -789,16 +588,17 @@
         
         <div style="width: 1188px">
             <table border="1" style="float: right;">
-                <tr bgcolor="#00AEEF" colspan="6">
-                    <th colspan="6">Sources</th>
+                <tr bgcolor="#00AEEF" colspan="7">
+                    <th colspan="7">Sources</th>
                 </tr>
                 <tr bgcolor="#00AEEF">
                     <th align='left' style='max-width:80px; min-width:80px;'>Source</th>
                     <th align='left' style='max-width:80px; min-width:80px;'>Domain</th>
                     <th align='left' style='max-width:220px; min-width:220px;'>Control Type</th>
-                    <th align='right' style='max-width:90px; min-width:90px;'>Max</th>
-                    <th align='right' style='max-width:90px; min-width:90px;'>Value</th>
-                    <th align='right' style='max-width:90px; min-width:90px;'>Min</th>
+                    <th align='center' style='max-width:90px; min-width:90px;'>Max</th>
+                    <th align='center' style='max-width:90px; min-width:90px;'>Requested Value</th>
+                    <th align='center' style='max-width:90px; min-width:90px;'>Min</th>
+                    <th align='center' style='max-width:90px; min-width:90px;'>Granted Value</th>
                 </tr>
                 <xsl:for-each select="court_status/clients/client">
                     <tr>
@@ -811,24 +611,36 @@
                         <td align='left'>
                             <xsl:value-of select="source_domain_knob/control_type"/>
                         </td>
-                        <td align='right'>
+                        <td align='center'>
                             <xsl:value-of select="max"/>
                         </td>
                         <xsl:choose>
                             <xsl:when test="val!=max">
-                                <td align='right' bgcolor="#FFFF99">
+                                <td align='center' bgcolor="#FFFF99">
                                     <xsl:value-of select="val"/>
                                 </td>
                             </xsl:when>
                             <xsl:otherwise>
-                                <td align='right'>
+                                <td align='center'>
                                     <xsl:value-of select="val"/>
                                 </td>
                             </xsl:otherwise>
                         </xsl:choose>
-                        <td align='right'>
+                        <td align='center'>
                             <xsl:value-of select="min"/>
                         </td>
+                        <xsl:choose>
+                          <xsl:when test="granted_value!=max">
+                            <td align='center' bgcolor="#FFFF99">
+                              <xsl:value-of select="granted_value"/>
+                            </td>
+                          </xsl:when>
+                          <xsl:otherwise>
+                            <td align='center'>
+                              <xsl:value-of select="granted_value"/>
+                            </td>
+                          </xsl:otherwise>
+                        </xsl:choose>
                     </tr>
                 </xsl:for-each>
             </table>
@@ -1025,76 +837,6 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=B7-F1-CA-16-38-DD-ED-40-B1-C1-1B-8A-19-13-D5-31 -->
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:template match="/cooling_mode_policy_status">
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="3">
-    <th colspan="3">Cooling Mode Activity</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>Property</th>
-    <th>Current Value</th>
-    <th># Times Changed</th>
-  </tr>
-  <xsl:for-each select="cooling_mode_activity/property">
-  <tr>
-    <td align='left'><xsl:value-of select="name"/></td>
-    <td align='left'><xsl:value-of select="status"/></td>
-    <td align='right'><xsl:value-of select="num_changes"/></td>
-  </tr>
-  </xsl:for-each>
-</table>
-    
-<br></br>
-    
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="2">
-    <th colspan="2">Workload Hint Configuration</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>Workload Hint Value</th>
-    <th>Application Names</th>
-  </tr>
-  <xsl:for-each select="workload_hint_configuration/workload_group">
-  <tr>
-    <td align='left'><xsl:value-of select="id"/></td>
-    <td align='right'>
-        <xsl:for-each select="applications/application">
-            <xsl:value-of select="current()"/><br/>
-        </xsl:for-each>
-    </td>
-  </tr>
-  </xsl:for-each>
-</table>
-    
-<br></br>
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="3">
-    <th colspan="3">Participant SCP/DSCP Support</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>Participant</th>
-    <th>Supports DSCP</th>
-    <th>Supports SCP</th>
-  </tr>
-  <xsl:for-each select="scp_dscp_support/participant">
-  <tr>
-    <td align='left'><xsl:value-of select="name"/> (<xsl:value-of select="index"/>)</td>
-    <td align='left'><xsl:value-of select="supports_dscp"/></td>
-    <td align='left'><xsl:value-of select="supports_scp"/></td>
-  </tr>
-  </xsl:for-each>
-</table>
-    
-</xsl:template>
-</xsl:stylesheet>
-<!-- end xsl -->
-
-<!-- begin xsl -->
-<?xml version="1.0" encoding="ISO-8859-1"?>
 <!-- format_id=49-18-CE-C4-3A-24-F3-49-B8-D5-F9-70-02-F3-8E-6A -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/act_policy_status">
@@ -1245,51 +987,14 @@
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/adaptive_performance_policy_status">
 
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="40">
-    <th colspan="40">Adaptive Performance Conditions Table (APCT)</th>
+  <div style="float:left;">
+  <table border="1" style="width:100%">
+  <tr bgcolor="#00AEEF" colspan="5">
+    <th colspan="5">Adaptive Performance Conditions Table (APCT)</th>
   </tr>
   <tr bgcolor="#00AEEF">
-    <th bgcolor="#CCFFCC">Action</th>
-    <th bgcolor="#FFB2FF">Cond0</th>
-    <th bgcolor="#FFB2FF">Comp0</th>
-    <th bgcolor="#FFB2FF">Arg0</th>
-    <th bgcolor="#FFB2FF">Op0</th>
-    <th bgcolor="#FFFFB2">Cond1</th>
-    <th bgcolor="#FFFFB2">Comp1</th>
-    <th bgcolor="#FFFFB2">Arg1</th>
-    <th bgcolor="#FFFFB2">Op1</th>
-    <th bgcolor="#FFB2FF">Cond2</th>
-    <th bgcolor="#FFB2FF">Comp2</th>
-    <th bgcolor="#FFB2FF">Arg2</th>
-    <th bgcolor="#FFB2FF">Op2</th>
-    <th bgcolor="#FFFFB2">Cond3</th>
-    <th bgcolor="#FFFFB2">Comp3</th>
-    <th bgcolor="#FFFFB2">Arg3</th>
-    <th bgcolor="#FFFFB2">Op3</th>
-    <th bgcolor="#FFB2FF">Cond4</th>
-    <th bgcolor="#FFB2FF">Comp4</th>
-    <th bgcolor="#FFB2FF">Arg4</th>
-    <th bgcolor="#FFB2FF">Op4</th>
-    <th bgcolor="#FFFFB2">Cond5</th>
-    <th bgcolor="#FFFFB2">Comp5</th>
-    <th bgcolor="#FFFFB2">Arg5</th>
-    <th bgcolor="#FFFFB2">Op5</th>
-    <th bgcolor="#FFB2FF">Cond6</th>
-    <th bgcolor="#FFB2FF">Comp6</th>
-    <th bgcolor="#FFB2FF">Arg6</th>
-    <th bgcolor="#FFB2FF">Op6</th>
-    <th bgcolor="#FFFFB2">Cond7</th>
-    <th bgcolor="#FFFFB2">Comp7</th>
-    <th bgcolor="#FFFFB2">Arg7</th>
-    <th bgcolor="#FFFFB2">Op7</th>
-    <th bgcolor="#FFB2FF">Cond8</th>
-    <th bgcolor="#FFB2FF">Comp8</th>
-    <th bgcolor="#FFB2FF">Arg8</th>
-    <th bgcolor="#FFB2FF">Op8</th>
-    <th bgcolor="#FFFFB2">Cond9</th>
-    <th bgcolor="#FFFFB2">Comp9</th>
-    <th bgcolor="#FFFFB2">Arg9</th>
+    <th>Action</th>
+    <th>Minterm</th>
   </tr>
   <xsl:for-each select="conditions_table/conditions_table_entry">
     <xsl:variable name="current_action">
@@ -1306,26 +1011,32 @@
         </xsl:for-each>
       </td>
       <xsl:choose>
-        <xsl:when test="logical_operation">
-          <xsl:for-each select="logical_operation">
-            <xsl:choose>
-                <xsl:when test="minterm/result!='false'">
-                  <td align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/condition"/></td>
-                  <td align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/comparison"/></td>
-                  <td align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/argument"/></td>
-                </xsl:when>
-                <xsl:otherwise>
-                  <td align='center'><xsl:value-of select="minterm/condition"/></td>
-                  <td align='center'><xsl:value-of select="minterm/comparison"/></td>
-                  <td align='center'><xsl:value-of select="minterm/argument"/></td>
-                </xsl:otherwise>
-              </xsl:choose>
-            <td align='center'><xsl:value-of select="operator"/></td>
-          </xsl:for-each>
+        <xsl:when test="count(logical_operation) &gt; 0">
+          <td colspan="4">
+            <table id="vertical_sub_table" colspan="4" style="width:100%">
+              <xsl:for-each select="logical_operation">
+                <tr>
+                  <xsl:choose>
+                      <xsl:when test="minterm/result!='false'">
+                        <td id="cond" style="border:thin solid;width:40%" align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/condition"/></td>
+                        <td id="comp" style="border:thin solid;width:10%" align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/comparison"/></td>
+                        <td id="arg" style="border:thin solid;width:40%" align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/argument"/></td>
+                      </xsl:when>
+                      <xsl:otherwise>
+                        <td id="cond" style="border:thin solid;width:40%" align='center'><xsl:value-of select="minterm/condition"/></td>
+                        <td id="comp" style="border:thin solid;width:10%" align='center'><xsl:value-of select="minterm/comparison"/></td>
+                        <td id="arg" style="border:thin solid;width:40%" align='center'><xsl:value-of select="minterm/argument"/></td>
+                      </xsl:otherwise>
+                    </xsl:choose>
+                  <td id="op" style="border:thin solid;width:10%" align='right'><xsl:value-of select="operator"/></td>
+                </tr>
+              </xsl:for-each>
+            </table>
+          </td>
         </xsl:when>
         <xsl:otherwise>
           <xsl:choose>
-            <xsl:when test="/adaptive_performance_policy_status/active_action!=action_id">
+            <xsl:when test="../../active_action!=action_id">
               <td align='center' colspan='4'>No Op: Take Default Action</td>
             </xsl:when>
             <xsl:otherwise>
@@ -1336,48 +1047,161 @@
       </xsl:choose>
     </tr>
   </xsl:for-each>
-</table>
-
+  </table>
   <br></br>
+  </div>
 
-  <table border="1">
-    <tr bgcolor="#00AEEF" colspan="5">
-      <th colspan="5">Adaptive Performance Actions Table (APAT)</th>
+  <div style="float:right;">
+    <table border="1" style="width:100%">
+      <tr bgcolor="#00AEEF" colspan="4">
+        <th colspan="4">Adaptive Performance Participant Condition Table (APPC)</th>
+      </tr>
+      <tr bgcolor="#00AEEF">
+        <th>Condition ID</th>
+        <th>Condition Name</th>
+        <th>Device Scope</th>
+        <th>Domain</th>
+      </tr>
+      <xsl:for-each select="appc/appc_entry">
+        <tr>
+          <td align='left'>
+            <xsl:value-of select="condition_id"/>
+          </td>
+          <td align='left'>
+            <xsl:value-of select="condition_name"/>
+          </td>
+          <td align='left'>
+            <xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)
+          </td>
+          <td align='left'>
+            <xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)
+          </td>
+        </tr>
+      </xsl:for-each>
+    </table>
+    <br></br>
+  </div>
+
+  <!-- Needed to re-align the following divs from the left of screen-->
+  <div style="clear:both;"></div>
+
+  <div style ="float:right;">
+    <table border="1" style="width:100%">
+      <tr bgcolor="#00AEEF" colspan="2">
+        <th colspan="2">Workload Hint Configuration</th>
+      </tr>
+      <tr bgcolor="#00AEEF">
+        <th>Workload Hint Value</th>
+        <th>Application Names</th>
+      </tr>
+      <xsl:for-each select="workload_hint_configuration/workload_group">
+        <tr>
+          <td align='left'>
+            <xsl:value-of select="id"/>
+          </td>
+          <td align='right'>
+            <xsl:for-each select="applications/application">
+              <xsl:value-of select="current()"/>
+              <br/>
+            </xsl:for-each>
+          </td>
+        </tr>
+      </xsl:for-each>
+    </table>
+    <br></br>
+  </div>
+
+  <div style="float:left;">
+  <table border="1" style="width:100%">
+    <tr bgcolor="#00AEEF" colspan="6">
+      <th colspan="6">Adaptive Performance Actions Table (APAT)</th>
     </tr>
     <tr bgcolor="#00AEEF">
-      <th bgcolor="#FFB2FF">Action Set</th>
-      <th bgcolor="#FFB2FF">Participant Scope</th>
-      <th bgcolor="#FFB2FF">Domain</th>
-      <th bgcolor="#FFB2FF">Code</th>
-      <th bgcolor="#FFB2FF">Argument</th>
+      <th>Action ID</th>
+      <th>Action Set</th>
+      <th>Participant Scope</th>
+      <th>Domain</th>
+      <th>Code</th>
+      <th>Argument</th>
     </tr>
     <xsl:for-each select="actions_table/actions_table_entry">
       <xsl:choose>
         <xsl:when test="/adaptive_performance_policy_status/active_action!=action_id">
           <tr>
+            <td align='left'><xsl:value-of select="action_id"/></td>
             <td align='left'><xsl:value-of select="action_set"/></td>
             <td align='left'><xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)</td>
             <td align='left'><xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)</td>
             <td align='left'><xsl:value-of select="code"/></td>
-            <td align='left'><xsl:value-of select="argument"/></td>
+            <xsl:choose>
+                <xsl:when test="argument=4294967295">
+                    <td align='left'>Disabled</td>
+                </xsl:when>
+                <xsl:otherwise>
+                    <td align='left'><xsl:value-of select="argument"/></td>
+                </xsl:otherwise>
+            </xsl:choose>
           </tr>
         </xsl:when>
         <xsl:otherwise>
           <tr>
+            <td align='left' bgcolor="#FFFF99"><xsl:value-of select="action_id"/></td>
             <td align='left' bgcolor="#FFFF99"><xsl:value-of select="action_set"/></td>
             <td align='left' bgcolor="#FFFF99"><xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)</td>
             <td align='left' bgcolor="#FFFF99"><xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)</td>
             <td align='left' bgcolor="#FFFF99"><xsl:value-of select="code"/></td>
-            <td align='left' bgcolor="#FFFF99"><xsl:value-of select="argument"/></td>
+            <xsl:choose>
+              <xsl:when test="argument=4294967295">
+                  <td align='left' bgcolor="#FFFF99">Disabled</td>
+              </xsl:when>
+              <xsl:otherwise>
+                <td align='left' bgcolor="#FFFF99"><xsl:value-of select="argument"/></td>
+              </xsl:otherwise>
+            </xsl:choose>
           </tr>
         </xsl:otherwise>
       </xsl:choose>      
     </xsl:for-each>
   </table>
-
 <br></br>
+  </div>
 
-<table border="1" style="width:48%;float:left;">
+  <!-- Needed to re-align the following divs from the left of screen-->
+  <div style="clear:both;"></div>
+
+  <div style="float:right;">
+    <table border="1" style="width:100%">
+      <tr bgcolor="#00AEEF" colspan="4">
+        <th colspan="4">Requested Values</th>
+      </tr>
+      <tr bgcolor="#00AEEF">
+        <th>Participant Scope</th>
+        <th>Domain</th>
+        <th>Code</th>
+        <th>Value</th>
+      </tr>
+      <xsl:for-each select="request_directory/request">
+        <tr>
+          <td align='left'>
+            <xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)
+          </td>
+          <td align='left'>
+            <xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)
+          </td>
+          <td align='left'>
+            <xsl:value-of select="code"/>
+          </td>
+          <td align='left'>
+            <xsl:value-of select="argument"/>
+          </td>
+        </tr>
+      </xsl:for-each>
+    </table>
+    <br></br>
+  </div>
+
+  <div style="float:left;">
+<table border="1">
   <tr bgcolor="#00AEEF" colspan="4">
     <th colspan="4">Conditions</th>
   </tr>
@@ -1420,85 +1244,11 @@
     </xsl:choose>
   </xsl:for-each>
 </table>
-
-<table border="1" style="width:48%;float:right;">
-  <tr bgcolor="#00AEEF" colspan="2">
-    <th colspan="2">Workload Hint Configuration</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>Workload Hint Value</th>
-    <th>Application Names</th>
-  </tr>
-  <xsl:for-each select="workload_hint_configuration/workload_group">
-    <tr>
-      <td align='left'>
-        <xsl:value-of select="id"/>
-      </td>
-      <td align='right'>
-        <xsl:for-each select="applications/application">
-          <xsl:value-of select="current()"/>
-          <br/>
-        </xsl:for-each>
-      </td>
-    </tr>
-  </xsl:for-each>
-</table>  
-
-</xsl:template>
-</xsl:stylesheet>
-<!-- end xsl -->
-
-<!-- begin xsl -->
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=CD-8C-56-64-97-65-FC-4B-B9-D6-9D-33-85-40-13-CE -->
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:template match="/dbpt_policy_status">
-
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="1">
-    <th colspan="1">State of Charge</th>
-  </tr>
-  <tr>
-   <td><xsl:value-of select="state_of_charge"/></td>
-  </tr>
- </table>
- 
- <br></br>
- 
-<table border="1">
-  <tr bgcolor="#00AEEF" colspan="6">
-    <th colspan="6">PDRT Table</th>
-  </tr>
-  <tr bgcolor="#00AEEF">
-    <th>State Of Charge</th>
-    <th>Target</th>
-    <th>Domain</th>
-    <th>Control Knob</th>
-  </tr>
-  <xsl:for-each select="pdrt/pdrt_entry">
-  <tr>
-    <td align='right'><xsl:value-of select="state_of_charge"/></td>
-    <td><xsl:value-of select="target_acpi_scope"/> (<xsl:value-of select="target_index"/>)</td>
-    <td><xsl:value-of select="domain_index"/> (<xsl:value-of select="domain_type"/>)</td>
-    <td>
-      <table border="1">
-        <tr bgcolor="#00AEEF" colspan="2">
-          <th>Type</th>
-          <th>Value</th>        
-        </tr>
-        <xsl:for-each select="pdrt_control_knob">
-          <tr>
-            <td align='right'><xsl:value-of select="control_knob"/></td>
-            <td align='right'><xsl:value-of select="control_value"/></td>          
-          </tr>
-        </xsl:for-each>           
-      </table>
-    </td>
-  </tr>
-  </xsl:for-each>
-</table>
-
 <br></br>
+  </div>
+
+  <!-- Needed to re-align the following divs from the left of screen-->
+  <div style="clear:both;"></div>
 
 </xsl:template>
 </xsl:stylesheet>
@@ -1509,156 +1259,226 @@
 <!-- format_id=A7-22-D7-6E-40-92-A5-48-B4-79-31-EE-F7-23-D7-CF -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:template match="/virtual_sensor_policy_status">
-    <table border="1">
-      <xsl:for-each select="virtual_sensor_directory/virtual_sensor_control">
+    <xsl:for-each select="virtual_sensor_directory/virtual_sensor_control">
+      <xsl:variable name="part_name">
+        <xsl:value-of select="participant_name"/>
+      </xsl:variable>
+       <xsl:variable name="current_poll">
+      <xsl:value-of select="participant_callback/current_polling_period"/>
+    </xsl:variable>
+      <div class='{$part_name}'>
         <h2>
           <xsl:value-of select="participant_name" /> - <xsl:value-of select="participant_description" />
         </h2>
-        <tr>
-          <!-- Virtual Sensor details-->          
-          <table border="1">
-            <tr bgcolor="#00AEEF" colspan="2"><th colspan="2">Participant Properties</th></tr>
-            <tr>
-              <td>Participant Index</td>
-              <td><xsl:value-of select="participant_index" /></td>
-            </tr>
-            <tr>
-              <td>Domain Index</td>
-              <td><xsl:value-of select="domain_index" /></td>
-            </tr>
-            <tr>
-              <td>Device Scope</td>
-              <td><xsl:value-of select="device_scope" /></td>
-            </tr>
-            <tr>
-              <td>Last Calculated Temperature</td>
-              <xsl:choose>
-                <xsl:when test="last_calculated_temperature &gt;= 255">
-                  <td style="color:red">
-                      <xsl:value-of select="last_calculated_temperature" />
-                  </td>
-                </xsl:when>
-                <xsl:otherwise>
-                  <td>
-                    <xsl:value-of select="last_calculated_temperature" />
-                  </td>
-                </xsl:otherwise>
-              </xsl:choose>
-            </tr>
-            <tr>
-              <td>Last Set Temperature (C)</td>
-              <xsl:choose>
-                <xsl:when test="last_set_temperature &gt;= 255">
-                  <td style="color:red">
-                    <xsl:value-of select="last_set_temperature" />
-                  </td>
-                </xsl:when>
-                <xsl:otherwise>
-                  <td>
-                    <xsl:value-of select="last_set_temperature" />
-                  </td>
-                </xsl:otherwise>
-              </xsl:choose>
-            </tr>
-            <tr>
-              <td>Time to next poll (s)</td>
-              <td>
-                <xsl:value-of select="participant_callback/time_until_expires" />
-              </td>
-            </tr>
-          </table>
-          <br></br>
-          <!-- End Virtual Sensor details-->
-        </tr>
-        <tr>
-          <!-- Virtual Sensor Targets -->
-          <table border="1">
-            <tr bgcolor="#00AEEF" colspan="6">
-              <th colspan="6">Targets</th>
-            </tr>
-            <tr bgcolor="#00AEEF">
-              <th>Type</th>
-              <th>Target</th>
-              <th>Target Index</th>
-              <th>Domain Type</th>
-              <th>Domain Index</th>
-              <th>Current Value</th>
-            </tr>
-            <xsl:for-each select="targets/virtual_sensor_target">
-              <tr>
-                <td align="left"><xsl:value-of select="target_type"/></td>
-                <td align="left"><xsl:value-of select="target_scope"/></td>
-                <td align="right"><xsl:value-of select="target_index"/></td>
-                <td align="right"><xsl:value-of select="domain_type"/></td>
-                <td align="right"><xsl:value-of select="domain_index"/></td>
-                <td align="right"><xsl:value-of select="current_value"/></td>
+        <table border="1">
+          <tr>
+            <!-- Virtual Sensor details-->
+            <table border="1">
+              <tr bgcolor="#00AEEF" colspan="2">
+                <th colspan="2">Participant Properties</th>
               </tr>
-            </xsl:for-each>
-          </table>
-          <br></br>
-          <!-- End Virtual Sensor Targets -->
-        </tr>
-        <tr>
-          <!-- Virtual Sensor Tables -->
-          <table>
-            <tr>
-              <td colspan="8" align="left" valign="top">
-                <table border="1">
-                  <tr bgcolor="#00AEEF" colspan="8">
-                    <th colspan="8">Virtual Sensor Calibration Table</th>
-                  </tr>
-                  <tr bgcolor="#00AEEF">
-                    <th>Target</th>
-                    <th>Domain Type</th>
-                    <th>Coefficient Type</th>
-                    <th>Coefficient</th>
-                    <th>Operation</th>
-                    <th>Alpha</th>
-                    <th>Last Calculated Average</th>
-                    <th>Trigger Point</th>
-                  </tr>
-                  <xsl:for-each select="vsct/vsct_entry">
-                    <tr>
-                      <td align="left">
-                        <xsl:value-of select="target_device_scope"/> (<xsl:value-of select="target_index"/>)
-                      </td>
-                      <td align="left"><xsl:value-of select="target_domain"/></td>
-                      <td align="left"><xsl:value-of select="coefficient_type"/></td>
-                      <td align="right"><xsl:value-of select="calibration_setting/coefficient"/></td>
-                      <td align="center"><xsl:value-of select="calibration_setting/operation_type"/></td>
-                      <td align="right"><xsl:value-of select="calibration_setting/alpha"/></td>
-                      <td align="right"><xsl:value-of select="calibration_setting/last_calculated_average"/></td>
-                      <td align="right"><xsl:value-of select="trigger_point"/></td>
+              <tr>
+                <td>Participant Index</td>
+                <td>
+                  <xsl:value-of select="participant_index" />
+                </td>
+              </tr>
+              <tr>
+                <td>Domain Index</td>
+                <td>
+                  <xsl:value-of select="domain_index" />
+                </td>
+              </tr>
+              <tr>
+                <td>Device Scope</td>
+                <td>
+                  <xsl:value-of select="device_scope" />
+                </td>
+              </tr>
+              <tr>
+                <td>Last Calculated Temperature</td>
+                <xsl:choose>
+                  <xsl:when test="last_calculated_temperature &gt;= 100">
+                    <td style="color:red">
+                      <xsl:value-of select="last_calculated_temperature" />
+                    </td>
+                  </xsl:when>
+                  <xsl:when test="last_calculated_temperature &lt;= 0">
+                    <td style="color:blue">
+                      <xsl:value-of select="last_calculated_temperature" />
+                    </td>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <td>
+                      <xsl:value-of select="last_calculated_temperature" />
+                    </td>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </tr>
+              <tr>
+                <td>Last Set Temperature (C)</td>
+                <xsl:choose>
+                  <xsl:when test="last_set_temperature &gt;= 100">
+                    <td style="color:red">
+                      <xsl:value-of select="last_set_temperature" />
+                    </td>
+                  </xsl:when>
+                  <xsl:when test="last_set_temperature &lt;= 0">
+                    <td style="color:blue">
+                      <xsl:value-of select="last_set_temperature" />
+                    </td>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <td>
+                      <xsl:value-of select="last_set_temperature" />
+                    </td>
+                  </xsl:otherwise>
+                </xsl:choose>
+              </tr>
+              <tr>
+                <td>Time to next poll (s)</td>
+                <td>
+                  <xsl:value-of select="participant_callback/time_until_expires" />
+                </td>
+              </tr>
+              <tr>
+                <td>Current Poll Period</td>
+                <td>
+                  <xsl:value-of select="participant_callback/current_polling_period" />
+                </td>
+              </tr>
+            </table>
+            <br></br>
+            <!-- End Virtual Sensor details-->
+          </tr>
+          <tr>
+            <!-- Virtual Sensor Targets -->
+            <table border="1">
+              <tr bgcolor="#00AEEF" colspan="6">
+                <th colspan="6">Targets</th>
+              </tr>
+              <tr bgcolor="#00AEEF">
+                <th>Type</th>
+                <th>Target</th>
+                <th>Target Index</th>
+                <th>Domain Type</th>
+                <th>Domain Index</th>
+                <th>Current Value</th>
+              </tr>
+              <xsl:for-each select="targets/virtual_sensor_target">
+                <tr>
+                  <td align="left">
+                    <xsl:value-of select="target_type"/>
+                  </td>
+                  <td align="left">
+                    <xsl:value-of select="target_scope"/>
+                  </td>
+                  <td align="right">
+                    <xsl:value-of select="target_index"/>
+                  </td>
+                  <td align="right">
+                    <xsl:value-of select="domain_type"/>
+                  </td>
+                  <td align="right">
+                    <xsl:value-of select="domain_index"/>
+                  </td>
+                  <td align="right">
+                    <xsl:value-of select="current_value"/>
+                  </td>
+                </tr>
+              </xsl:for-each>
+            </table>
+            <br></br>
+            <!-- End Virtual Sensor Targets -->
+          </tr>
+          <tr>
+            <!-- Virtual Sensor Tables -->
+            <table>
+              <tr>
+                <td colspan="8" align="left" valign="top">
+                  <table border="1">
+                    <tr bgcolor="#00AEEF" colspan="8">
+                      <th colspan="8">Virtual Sensor Calibration Table</th>
                     </tr>
-                  </xsl:for-each>
-                </table>
-              </td>
-              <td width="5"></td>
-              <td colspan="2" align="right" valign="top">
-                <table border="1">
-                  <tr bgcolor="#00AEEF" colspan="2">
-                    <th colspan="2">Virtual Sensor Polling Table</th>
-                  </tr>
-                  <tr bgcolor="#00AEEF">
-                    <th>Virtual Temperature</th>
-                    <th>Polling Period (ms)</th>
-                  </tr>
-                  <xsl:for-each select="vspt/vspt_entry">
-                    <tr>
-                      <td align="right"><xsl:value-of select="virtual_temperature"/></td>
-                      <td align="right"><xsl:value-of select="polling_period"/></td>
+                    <tr bgcolor="#00AEEF">
+                      <th>Target</th>
+                      <th>Domain Type</th>
+                      <th>Coefficient Type</th>
+                      <th>Coefficient</th>
+                      <th>Operation</th>
+                      <th>Alpha</th>
+                      <th>Last Calculated Average</th>
+                      <th>Trigger Point</th>
                     </tr>
-                  </xsl:for-each>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <br></br>
-          <!-- End Virtual Sensor Tables -->
-        </tr>
-      </xsl:for-each>
-    </table>
-
+                    <xsl:for-each select="vsct/vsct_entry">
+                      <tr>
+                        <td align="left">
+                          <xsl:value-of select="target_device_scope"/> (<xsl:value-of select="target_index"/>)
+                        </td>
+                        <td align="left">
+                          <xsl:value-of select="target_domain"/>
+                        </td>
+                        <td align="left">
+                          <xsl:value-of select="coefficient_type"/>
+                        </td>
+                        <td align="right">
+                          <xsl:value-of select="calibration_setting/coefficient"/>
+                        </td>
+                        <td align="center">
+                          <xsl:value-of select="calibration_setting/operation_type"/>
+                        </td>
+                        <td align="right">
+                          <xsl:value-of select="calibration_setting/alpha"/>
+                        </td>
+                        <td align="right">
+                          <xsl:value-of select="calibration_setting/last_calculated_average"/>
+                        </td>
+                        <td align="right">
+                          <xsl:value-of select="trigger_point"/>
+                        </td>
+                      </tr>
+                    </xsl:for-each>
+                  </table>
+                </td>
+                <td width="5"></td>
+                <td colspan="2" align="right" valign="top">
+                  <table border="1">
+                    <tr bgcolor="#00AEEF" colspan="2">
+                      <th colspan="2">Virtual Sensor Polling Table</th>
+                    </tr>
+                    <tr bgcolor="#00AEEF">
+                      <th>Virtual Temperature</th>
+                      <th>Polling Period (s)</th>
+                    </tr>
+                    <xsl:for-each select="vspt/vspt_entry">
+                      <tr>
+                        <td align="right">
+                          <xsl:value-of select="virtual_temperature"/>
+                        </td>
+                        <xsl:choose>
+                <xsl:when test="polling_period=$current_poll">
+                  <td align="right" bgcolor="#FFFF99">
+                    <xsl:value-of select="polling_period"/>
+                            </td>
+                </xsl:when>
+                <xsl:otherwise>
+                  <td align="right">
+                              <xsl:value-of select="polling_period"/>
+                            </td>
+                </xsl:otherwise>
+            </xsl:choose>
+                      </tr>
+                    </xsl:for-each>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            <br></br>
+            <!-- End Virtual Sensor Tables -->
+          </tr>
+        </table>
+      </div>
+    </xsl:for-each>
     <br></br>
 
   </xsl:template>
@@ -1671,11 +1491,12 @@
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="/participant">
 
-<h2><xsl:value-of select="participant_properties/name" /> - <xsl:value-of select="participant_properties/description" /></h2>
-
 <table border="1">
   <tr bgcolor="#00AEEF" colspan="2">
     <th colspan="2">Participant Properties</th>
+  </tr>
+  <tr bgcolor="#00AEEF" colspan="2">
+    <th colspan="2"><xsl:value-of select="participant_properties/name" /> - <xsl:value-of select="participant_properties/description" /></th>
   </tr>
   <tr>
     <td>Bus Type</td>
@@ -1894,16 +1715,18 @@
   <!-- END : Performance Control -->
 
   <!-- Power Status -->
-  <xsl:if test="domain_controls/power_status">
+  <xsl:if test="domain_controls/power_status_set">
     <table border="1">
       <tr bgcolor="#00AEEF" colspan="7">
         <th colspan="7">Power Status</th>
       </tr>
       <tr bgcolor="#00AEEF">
-        <th>Power</th>
+        <th>Current Power</th>
+        <th>Last Power Used by Passive Policy</th>
       </tr>
       <tr>
-        <td align='right'><xsl:value-of select="domain_controls/power_status/power" /></td>
+        <td align='right'><xsl:value-of select="domain_controls/power_status_set/power_status/power" /></td>
+        <td align='right'><xsl:value-of select="domain_controls/power_status_set/average_power_set/average_power/value" /></td>
       </tr>
     </table>
     <br></br>
@@ -2312,243 +2135,16 @@
 
 <!-- begin xsl -->
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!-- format_id=BF-BA-84-BE-D4-C4-3D-40-B4-95-31-28-FD-44-DA-C1 -->
-<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
-<xsl:template match="/hdc_policy_status">
-
-    <table border="1">
-        <tr bgcolor="#00AEEF" colspan="1">
-            <th colspan="1">Operating System HDC Status</th>
-        </tr>
-
-        <xsl:choose>
-            <xsl:when test="os_hdc_status/status='Enabled'">
-                <tr bgcolor="lime">
-                    <th colspan="1">
-                        <xsl:value-of select="os_hdc_status/status"/>
-                    </th>
-                </tr>
-            </xsl:when>
-            <xsl:when test="os_hdc_status/status='Disabled'">
-                <tr bgcolor="lightgray">
-                    <th colspan="1">
-                        <xsl:value-of select="os_hdc_status/status"/>
-                    </th>
-                </tr>
-            </xsl:when>
-            <xsl:otherwise>
-                <tr bgcolor="white">
-                    <th colspan="1">
-                        <xsl:value-of select="os_hdc_status/status"/>
-                    </th>
-                </tr>
-            </xsl:otherwise>
-        </xsl:choose>
-    </table>
-    
-    <br></br>
-    
-    <table border="1">
-        <tr bgcolor="#00AEEF" colspan="9">
-            <th colspan="10">HDC Control List</th>
-        </tr>
-        <tr bgcolor="#00AEEF">
-            <th>Participant</th>
-            <th>Domain</th>
-            <th>Cycle Num</th>
-            <th>Last Utilization Saturated</th>
-            <th>Last Set Duty Cycle (%)</th>
-            <th>HDC Supported</th>
-            <th>HWP Supported</th>
-            <th>Graphics % Active</th>
-            <th>CPU Package % Active</th>
-            <th>CPU LP % Active</th>
-        </tr>
-        <xsl:for-each select="hdc_control_list/hdc_control">
-            <tr>
-                <td>
-                    <xsl:value-of select="domain/participant_properties/name" /> (<xsl:value-of select="domain/participant_index" />)
-                </td>
-                <td>
-                    <xsl:value-of select="domain/domain_properties/name" /> (<xsl:value-of select="domain/domain_index" />)
-                </td>
-                <td>
-                    <xsl:value-of select="cycle_num" />
-                </td>
-                <td>
-                    <xsl:value-of select="last_util_saturated" />
-                </td>
-                <td>
-                    <xsl:value-of select="last_set_duty_cycle" />
-                </td>
-                <td>
-                    <xsl:value-of select="supported_by_platform" />
-                </td>
-                <td>
-                    <xsl:value-of select="supported_by_operating_system" />
-                </td>
-                <td>
-                    <xsl:value-of select="hardware_duty_cycle_utilization_set/graphics_utilization" />
-                </td>
-                <td>
-                    <xsl:value-of select="hardware_duty_cycle_utilization_set/processor_package_utilization" />
-                </td>
-                <td>
-                    <xsl:for-each select="hardware_duty_cycle_utilization_set/processor_core_utilization/core_utilization">
-                        LP[<xsl:value-of select="id" />] = <xsl:value-of select="utilization" /><br></br>
-                    </xsl:for-each>
-                </td>
-            </tr>
-        </xsl:for-each>
-    </table>
-
-    <br></br>
-
-    <table border="1">
-        <tr bgcolor="#00AEEF" colspan="2">
-            <th colspan="2">Periodic Timer</th>
-        </tr>
-        <tr bgcolor="#00AEEF">
-            <th>Name</th>
-            <th>Value</th>
-        </tr>
-        <tr>
-            <td>Timer Started</td>
-            <td>
-                <xsl:value-of select="periodic_timer/timer_started" />
-            </td>
-        </tr>
-        <tr>
-            <td>Timer Period (ms)</td>
-            <td>
-                <xsl:value-of select="periodic_timer/timer_period" />
-            </td>
-        </tr>
-        <tr>
-            <td>Registered Objects</td>
-            <td>
-                <xsl:for-each select="periodic_timer/registered_objects/registered_object">
-                    <xsl:value-of select="hdc_control/domain/participant_properties/name" /> (<xsl:value-of select="hdc_control/domain/participant_index" />) - <xsl:value-of select="hdc_control/domain/domain_properties/name" /> (<xsl:value-of select="hdc_control/domain/domain_index" />)<br></br>
-                </xsl:for-each>
-            </td>
-        </tr>
-    </table>
-  
-  <br></br>
-
-  <table border="1">
-      <tr bgcolor="#00AEEF" colspan="2">
-          <th colspan="2">HDC Control Configurable Parameters</th>
-      </tr>
-      <tr bgcolor="#00AEEF">
-          <th>Name</th>
-          <th>Value</th>
-      </tr>
-      <tr>
-          <td>SemiActive Workload Utilization Threshold (%)</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/semi_active_workload_utilization_threshold" />
-          </td>
-      </tr>
-      <tr>
-          <td>Unaligned Workload Detection Multiplier</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/unaligned_workload_detection_multiplier" />
-          </td>
-      </tr>
-      <tr>
-          <td>Unaligned Workload Detection Threshold</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/unaligned_workload_detection_threshold" />
-          </td>
-      </tr>
-      <tr>
-          <td>DutyCycle GuardBand (%)</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/duty_cycle_guard_band" />
-          </td>
-      </tr>
-      <tr>
-          <td>Max num cycles</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/max_num_cycles" />
-          </td>
-      </tr>
-      <tr>
-          <td>Max duty cycle %</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/max_duty_cycle" />
-          </td>
-      </tr>
-      <tr>
-          <td>HWP override</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/hwp_override" />
-          </td>
-      </tr>
-      <tr>
-          <td>HDC OOB override</td>
-          <td>
-              <xsl:value-of select="hdc_configuration_params/hdc_oob_override" />
-          </td>
-      </tr>
-  </table>
-
-</xsl:template>
-</xsl:stylesheet>
-<!-- end xsl -->
-
-
-<!-- begin xsl -->
-<?xml version="1.0" encoding="ISO-8859-1"?>
 <!-- format_id=14-50-A3-F5-09-C2-A4-46-99-3A-EB-56-DE-75-30-A1 -->
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:template match="/power_boss_policy_status">
       <table border="1">
-        <tr bgcolor="#00AEEF" colspan="40">
-          <th colspan="40">Power Boss Conditions Table (PBCT)</th>
+        <tr bgcolor="#00AEEF" colspan="5">
+          <th colspan="5">Power Boss Conditions Table (PBCT)</th>
         </tr>
         <tr bgcolor="#00AEEF">
-          <th bgcolor="#CCFFCC">Action</th>
-          <th bgcolor="#FFB2FF">Cond0</th>
-          <th bgcolor="#FFB2FF">Comp0</th>
-          <th bgcolor="#FFB2FF">Arg0</th>
-          <th bgcolor="#FFB2FF">Op0</th>
-          <th bgcolor="#FFFFB2">Cond1</th>
-          <th bgcolor="#FFFFB2">Comp1</th>
-          <th bgcolor="#FFFFB2">Arg1</th>
-          <th bgcolor="#FFFFB2">Op1</th>
-          <th bgcolor="#FFB2FF">Cond2</th>
-          <th bgcolor="#FFB2FF">Comp2</th>
-          <th bgcolor="#FFB2FF">Arg2</th>
-          <th bgcolor="#FFB2FF">Op2</th>
-          <th bgcolor="#FFFFB2">Cond3</th>
-          <th bgcolor="#FFFFB2">Comp3</th>
-          <th bgcolor="#FFFFB2">Arg3</th>
-          <th bgcolor="#FFFFB2">Op3</th>
-          <th bgcolor="#FFB2FF">Cond4</th>
-          <th bgcolor="#FFB2FF">Comp4</th>
-          <th bgcolor="#FFB2FF">Arg4</th>
-          <th bgcolor="#FFB2FF">Op4</th>
-          <th bgcolor="#FFFFB2">Cond5</th>
-          <th bgcolor="#FFFFB2">Comp5</th>
-          <th bgcolor="#FFFFB2">Arg5</th>
-          <th bgcolor="#FFFFB2">Op5</th>
-          <th bgcolor="#FFB2FF">Cond6</th>
-          <th bgcolor="#FFB2FF">Comp6</th>
-          <th bgcolor="#FFB2FF">Arg6</th>
-          <th bgcolor="#FFB2FF">Op6</th>
-          <th bgcolor="#FFFFB2">Cond7</th>
-          <th bgcolor="#FFFFB2">Comp7</th>
-          <th bgcolor="#FFFFB2">Arg7</th>
-          <th bgcolor="#FFFFB2">Op7</th>
-          <th bgcolor="#FFB2FF">Cond8</th>
-          <th bgcolor="#FFB2FF">Comp8</th>
-          <th bgcolor="#FFB2FF">Arg8</th>
-          <th bgcolor="#FFB2FF">Op8</th>
-          <th bgcolor="#FFFFB2">Cond9</th>
-          <th bgcolor="#FFFFB2">Comp9</th>
-          <th bgcolor="#FFFFB2">Arg9</th>
+          <th>Action</th>
+          <th>Minterm</th>
         </tr>
         <xsl:for-each select="conditions_table/conditions_table_entry">
           <xsl:variable name="current_action">
@@ -2565,40 +2161,32 @@
               </xsl:for-each>
             </td>
             <xsl:choose>
-              <xsl:when test="logical_operation">
+              <xsl:when test="count(logical_operation) &gt; 0">
+                <td colspan="4">
+                  <table id="vertical_sub_table" colspan="4" style="width:100%">
                 <xsl:for-each select="logical_operation">
+                  <tr>
                   <xsl:choose>
                     <xsl:when test="minterm/result!='false'">
-                      <td align='center' bgcolor="#FFFF99">
-                        <xsl:value-of select="minterm/condition"/>
-                      </td>
-                      <td align='center' bgcolor="#FFFF99">
-                        <xsl:value-of select="minterm/comparison"/>
-                      </td>
-                      <td align='center' bgcolor="#FFFF99">
-                        <xsl:value-of select="minterm/argument"/>
-                      </td>
+                      <td id="cond" style="border:thin solid;width:40%" align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/condition"/></td>
+                      <td id="comp" style="border:thin solid;width:10%" align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/comparison"/></td>
+                      <td id="arg" style="border:thin solid;width:40%" align='center' bgcolor="#FFFF99"><xsl:value-of select="minterm/argument"/></td>
                     </xsl:when>
                     <xsl:otherwise>
-                      <td align='center'>
-                        <xsl:value-of select="minterm/condition"/>
-                      </td>
-                      <td align='center'>
-                        <xsl:value-of select="minterm/comparison"/>
-                      </td>
-                      <td align='center'>
-                        <xsl:value-of select="minterm/argument"/>
-                      </td>
+                      <td id="cond" style="border:thin solid;width:40%" align='center'><xsl:value-of select="minterm/condition"/></td>
+                      <td id="comp" style="border:thin solid;width:10%" align='center'><xsl:value-of select="minterm/comparison"/></td>
+                      <td id="arg" style="border:thin solid;width:40%" align='center'><xsl:value-of select="minterm/argument"/></td>
                     </xsl:otherwise>
                   </xsl:choose>
-                  <td align='center'>
-                    <xsl:value-of select="operator"/>
-                  </td>
+                  <td id="op" style="border:thin solid;width:10%" align='right'><xsl:value-of select="operator"/></td>
+                  </tr>
                 </xsl:for-each>
+                  </table>
+                </td>
               </xsl:when>
               <xsl:otherwise>
                 <xsl:choose>
-                  <xsl:when test="/power_boss_policy_status/active_action!=action_id">
+                  <xsl:when test="../../active_action!=action_id">
                     <td align='center' colspan='4'>No Op: Take Default Action</td>
                   </xsl:when>
                   <xsl:otherwise>
@@ -2612,22 +2200,25 @@
       </table>
       
       <br></br>
-      
-      <table border="1">
-        <tr bgcolor="#00AEEF" colspan="5">
-          <th colspan="5">Power Boss Actions Table (PBAT)</th>
+
+      <div style="float:left;">
+        <table border="1" style="width:100%">
+        <tr bgcolor="#00AEEF" colspan="6">
+          <th colspan="6">Power Boss Actions Table (PBAT)</th>
         </tr>
         <tr bgcolor="#00AEEF">
-          <th bgcolor="#FFB2FF">Action Set</th>
-          <th bgcolor="#FFB2FF">Participant Scope</th>
-          <th bgcolor="#FFB2FF">Domain</th>
-          <th bgcolor="#FFB2FF">Code</th>
-          <th bgcolor="#FFB2FF">Argument</th>
+          <th>Action ID</th>
+          <th>Action Set</th>
+          <th>Participant Scope</th>
+          <th>Domain</th>
+          <th>Code</th>
+          <th>Argument</th>
         </tr>
         <xsl:for-each select="actions_table/actions_table_entry">
           <xsl:choose>
             <xsl:when test="/power_boss_policy_status/active_action!=action_id">
               <tr>
+                <td align='left'><xsl:value-of select="action_id"/></td>
                 <td align='left'><xsl:value-of select="action_set"/></td>
                 <td align='left'><xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)</td>
                 <td align='left'><xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)</td>
@@ -2637,6 +2228,7 @@
             </xsl:when>
             <xsl:otherwise>
               <tr>
+                <td align='left' bgcolor="#FFFF99"><xsl:value-of select="action_id"/></td>
                 <td align='left' bgcolor="#FFFF99"><xsl:value-of select="action_set"/></td>
                 <td align='left' bgcolor="#FFFF99"><xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)</td>
                 <td align='left' bgcolor="#FFFF99"><xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)</td>
@@ -2646,11 +2238,197 @@
             </xsl:otherwise>
           </xsl:choose>
         </xsl:for-each>
+      </table>      
+      <br></br>
+      </div>
+
+      <div style="float:right;">
+        <table border="1" style="width:100%">
+          <tr bgcolor="#00AEEF" colspan="4">
+            <th colspan="4">Requested Values</th>
+          </tr>
+          <tr bgcolor="#00AEEF">
+            <th>Participant Scope</th>
+            <th>Domain</th>
+            <th>Code</th>
+            <th>Value</th>
+          </tr>
+          <xsl:for-each select="request_directory/request">
+            <tr>
+              <td align='left'>
+                <xsl:value-of select="participant_scope"/> (<xsl:value-of select="participant_index"/>)
+              </td>
+              <td align='left'>
+                <xsl:value-of select="domain"/> (<xsl:value-of select="domain_index"/>)
+              </td>
+              <td align='left'>
+                <xsl:value-of select="code"/>
+              </td>
+              <td align='left'>
+                <xsl:value-of select="argument"/>
+              </td>
+            </tr>
+          </xsl:for-each>
+        </table>
+        <br></br>
+      </div>
+
+
+      <!-- Needed to re-align the following divs from the left of screen-->
+      <div style="clear:both;"></div>
+
+      <table border="1">
+        <tr bgcolor="#00AEEF" colspan="25">
+          <th colspan="25">Power Boss Math Table (PBMT)</th>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">VARIABLE</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="variable"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">M_PAC1</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="m_pac1"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">M_PAC2</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="m_pac2"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">THS_PSOC1</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="ths_psoc1"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">M_PSOC1</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="m_psoc1"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">C_PSOC1</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="c_psoc1"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">M_PSOC2</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="m_psoc2"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">C_PSOC2</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="c_psoc2"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">H_BAT1</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="h_bat1"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">H_BAT2</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="h_bat2"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">M_ROP</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="m_rop"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">H_ROP</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="h_rop"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">H_CPU</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="h_cpu"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">M_PL</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="m_pl"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">C_PL</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="c_pl"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">PL_MAX</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="pl_max"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">SEL_ARTG</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="sel_artg"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">SEL_PMAX</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="sel_pmax"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">SEL_PBSS</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="sel_pbss"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">SEL_MINMAX</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="sel_minmax"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">PROP</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="prop"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">APXX_PAC1</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="apxx_pac1"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">APXX_PAC2</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="apxx_pac2"/></td>
+          </xsl:for-each>
+        </tr>
+        <tr>
+          <th bgcolor="#00AEEF">ARTG</th>
+          <xsl:for-each select="pbmt/pbmt_entry">
+            <td align='left'><xsl:value-of select="artg"/></td>
+          </xsl:for-each>
+        </tr>
       </table>
-      
       <br></br>
 
-      <table border="1" style="width:48%;float:left;">
+        <table border="1">
         <tr bgcolor="#00AEEF" colspan="4">
           <th colspan="4">Conditions</th>
         </tr>
@@ -2705,9 +2483,11 @@
 
     <table border="1">
       <tr bgcolor="#00AEEF">
-        <td>Emergency Call in Progress</td>
-        <td align='right'>
-          <xsl:value-of select="emergency_status" />
+        <th align='left'>Emergency Call in Progress</th>
+      </tr>
+      <tr>
+        <td align='left'>
+          <xsl:value-of select="emergency_status"/>
         </td>
       </tr>
     </table>
@@ -2715,12 +2495,15 @@
     <br></br>
     
     <table border="1">
+      <tr bgcolor="#00AEEF" colspan="5">
+        <th colspan="5">Emergency Call Mode Table (ECMT)</th>
+      </tr>
       <tr bgcolor="#00AEEF">
         <th align='left'>Device Scope</th>
         <th align='left'>Domain</th>
         <th align='left'>Control Knob</th>
-        <th align='right'>Min Value</th>
-        <th align='right'>Max Value</th>
+        <th align='right'>Min Value (reserved)</th>
+        <th align='right'>Max Value (reserved)</th>
       </tr>
       <xsl:for-each select="ecmt/ecmt_entry">
         <tr>
@@ -2734,14 +2517,355 @@
             <xsl:value-of select="control_knob"/>
           </td>
           <td align='right'>
-            <xsl:value-of select="min_value (reserved)"/>
+            <xsl:value-of select="min_value"/>
           </td>
           <td align='right'>
-            <xsl:value-of select="max_value (reserved)"/>
+            <xsl:value-of select="max_value"/>
           </td>
         </tr>
       </xsl:for-each>
     </table>
   </xsl:template>
+</xsl:stylesheet>
+<!-- end xsl -->
+
+<!-- begin xsl -->
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- format_id=14-6E-49-42-1B-BC-E8-46-A7-98-CA-91-54-64-42-6F -->
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:template match="/pid_policy_status">
+
+    <div>
+      <div>
+      <table border="1">
+        <tr bgcolor="#00AEEF" colspan="10">
+          <th colspan="10">Targets</th>
+        </tr>
+        <tr bgcolor="#00AEEF">
+          <th align='center' style='max-width:80px; min-width:80px;'>Target</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Monitored</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Resume Time</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Aux0</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Current Temp</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Aux1</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Source</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Domain</th>
+          <th align='center' style='max-width:220px; min-width:220px;'>Control Knob</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Requested Value</th>
+        </tr>
+        <xsl:for-each select="target_directory/target">
+          <tr>
+            <td><xsl:value-of select="target_name"/> (<xsl:value-of select="target_index"/>)</td>
+            <td align='center'><xsl:value-of select="is_monitored"/></td>
+            <td align='center'><xsl:value-of select="participant_callback/time_until_expires"/></td>
+            <td align='center'><xsl:value-of select="temperature_thresholds/aux0"/></td>
+            <td align='center'><xsl:value-of select="current_temperature"/></td>
+            <td align='center'><xsl:value-of select="temperature_thresholds/aux1"/></td>
+            <td colspan='4'>
+              <table border="1">
+                <xsl:for-each select="requests/request">
+                  <tr>
+                    <td align='center' style='max-width:80px; min-width:80px;'><xsl:value-of select="source_name"/>(<xsl:value-of select="source_index"/>)</td>
+                    <td align='center' style='max-width:80px; min-width:80px;'><xsl:value-of select="domain_name"/>(<xsl:value-of select="domain_index"/>)</td>
+                    <td align='center' style='max-width:220px; min-width:220px;'><xsl:value-of select="control_knob"/></td>
+                    <td align='center' style='max-width:80px; min-width:80px;'><xsl:value-of select="requested_value"/></td>
+                  </tr>
+                </xsl:for-each>
+              </table>
+            </td>
+          </tr>
+        </xsl:for-each>
+      </table>
+    </div>
+
+    <br></br>
+    
+    <div style="width: 1188px">
+      <table border="1" style="float: right;">
+        <tr bgcolor="#00AEEF" colspan="8">
+          <th colspan="8">Sources</th>
+        </tr>
+        <tr bgcolor="#00AEEF">
+          <th align='center'>Source</th>
+          <th align='center'>Source Domain</th>
+          <th align='center'>Is Being Controlled</th>
+          <th align='center'>Resume Time</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Max</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Requested Value</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Min</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Granted Value</th>
+        </tr>
+        <xsl:for-each select="source_directory/source_control">
+          <tr>
+            <td><xsl:value-of select="source_name"/> (<xsl:value-of select="source_index"/>)</td>
+            <td><xsl:value-of select="domain_name"/> (<xsl:value-of select="domain_index"/>)</td>
+            <td align='center'><xsl:value-of select="is_being_controlled"/></td>
+            <td align='center'><xsl:value-of select="participant_callback/time_until_expires"/></td>
+            <td align='center'><xsl:value-of select="max"/></td>
+            <xsl:choose>
+              <xsl:when test="val!=max">
+                <td align='center' bgcolor="#FFFF99"><xsl:value-of select="val"/></td>
+              </xsl:when>
+              <xsl:otherwise>
+                <td align='center'><xsl:value-of select="val"/></td>
+              </xsl:otherwise>
+            </xsl:choose>
+            <td align='center'><xsl:value-of select="min"/></td>
+            <xsl:choose>
+              <xsl:when test="granted!=max">
+                <td align='center' bgcolor="#FFFF99"><xsl:value-of select="granted"/></td>
+              </xsl:when>
+              <xsl:otherwise>
+                <td align='center'><xsl:value-of select="granted"/></td>
+              </xsl:otherwise>
+            </xsl:choose>
+          </tr>
+        </xsl:for-each>
+      </table>
+
+      <table border="1" style="float: left;">
+        <tr bgcolor="#00AEEF" colspan="3">
+          <th colspan="3">Trip Point Statistics</th>
+        </tr>
+        <tr bgcolor="#00AEEF">
+          <th align='center' style='max-width:80px; min-width:80px;'>Target</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Time</th>
+          <th align='center' style='max-width:80px; min-width:80px;'>Temp</th>
+        </tr>
+        <xsl:for-each select="trip_point_statistics/participant_trip_point_statistics">
+          <xsl:if test="supports_trip_points='true'">
+            <tr>
+              <td>
+                <xsl:value-of select="participant_name"/> (<xsl:value-of select="participant_index"/>)
+              </td>
+              <td align='center'>
+                <xsl:value-of select="time_since_last_trip"/>
+              </td>
+              <td align='center'>
+                <xsl:value-of select="temperature_of_last_trip"/>
+              </td>
+            </tr>
+          </xsl:if>
+        </xsl:for-each>
+      </table>
+    </div>
+
+    <div style="clear: both;"></div>
+    <br></br>
+
+    <div>
+    <table border="1">
+      <tr bgcolor="#00AEEF" colspan="9">
+        <th colspan="9">PID Algorithm Table (PIDA)</th>
+      </tr>
+      <tr bgcolor="#00AEEF">
+        <th align='center'>Source</th>
+        <th align='center'>Source Domain</th>
+        <th align='center'>Control Knob</th>
+        <th align='center'>Target</th>
+        <th align='center' width='60px'>Target Temperature</th>
+        <th align='center' width='60px'>Deadband</th>
+        <th align='center' width='60px'>Sample Period (s)</th>
+        <th align='center' width='60px'>Kp</th>
+        <th align='center' width='60px'>Ki</th>
+        <!-- Kd and Trip Point Temp are now hidden until features are enabled -->
+      </tr>
+      <xsl:for-each select="pida/pida_entry">
+        <tr>
+          <td align='left'>
+            <xsl:value-of select="source_device_scope"/> (<xsl:value-of select="source_index"/>)
+          </td>
+          <td align='left'>
+            <xsl:value-of select="source_domain"/> (<xsl:value-of select="source_domain_index"/>)
+          </td>
+          <td align='left'>
+            <xsl:value-of select="control_knob"/>
+          </td>
+          <td align='left'>
+            <xsl:value-of select="target_device_scope"/> (<xsl:value-of select="target_index"/>)
+          </td>
+          <td align='center'>
+            <xsl:value-of select="target_temperature"/>
+          </td>
+          <td align='center'>
+            <xsl:value-of select="deadband"/>
+          </td>
+          <td align='center'>
+            <xsl:value-of select="sampling_period"/>
+          </td>
+          <td align='center'>
+            <xsl:value-of select="kp"/>
+          </td>
+          <td align='center'>
+            <xsl:value-of select="ki"/>
+          </td>
+        </tr>
+      </xsl:for-each>
+    </table>
+    </div>
+  </div>
+    
+  </xsl:template>
+</xsl:stylesheet>
+<!-- end xsl -->
+
+<!-- begin xsl -->
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- format_id=B6-FA-56-0E-FC-BD-8C-4E-82-46-40-EC-FD-4D-74-EA -->
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:template match="/active_policy2_status">
+
+   <div>
+    <table border="1">
+      <tr bgcolor="#00AEEF" colspan="7">
+        <th colspan="7">Active Control Point Relationship Table (ACPR) (<xsl:value-of select="acpr/control_mode"/>)</th>
+      </tr>
+      <tr bgcolor="#00AEEF">
+        <th align='left'>Target</th>
+        <th align='left'>Source</th>
+        <th align='left'>Control Type</th>
+        <th align='center' width='135px'>Trip Point</th>
+        <th align='center' width='100px'>Control Point</th>
+        <th align='center' width='100px'>Control Increment</th>
+        <th align='center'>Sample Period (s)</th>
+      </tr>
+      <xsl:for-each select="acpr/acpr_entry">
+        <tr>
+          <td align='left'><xsl:value-of select="target_device_scope"/> (<xsl:value-of select="target_index"/>)</td>
+          <td align='left'><xsl:value-of select="source_device_scope"/> (<xsl:value-of select="source_index"/>)</td>
+          <td align='left'><xsl:value-of select="control_type"/></td>
+          <td colspan="4">
+            <table colspan="4" style="width:100%">
+              <xsl:for-each select="acpr_control_entry">
+                <tr>
+                  <td style="border: thin solid" align='center' width='133px'><xsl:value-of select="trip_point"/></td>
+                  <td style="border: thin solid" align='center' width='100px'><xsl:value-of select="control_point"/></td>
+                  <td style="border: thin solid" align='center' width='100px'><xsl:value-of select="control_increment"/></td>
+                  <td style="border: thin solid" align='center'><xsl:value-of select="sampling_period"/></td>
+               </tr>
+             </xsl:for-each>
+           </table>
+         </td>
+       </tr>
+     </xsl:for-each>
+   </table>
+  </div>
+
+<br></br>
+
+     <div>
+      <table border="1">
+       <tr bgcolor="#00AEEF" colspan="10">
+         <th colspan="10">Targets</th>
+       </tr>
+       <tr bgcolor="#00AEEF">
+        <th align='left' style='max-width:80px; min-width:80px;'>Target</th>
+        <th align='left' style='max-width:80px; min-width:80px;'>Monitored</th>
+        <th align='right' style='max-width:80px; min-width:80px;'>Resume Time</th>
+        <th align='right' style='max-width:80px; min-width:80px;'>Aux0</th>
+        <th align='right' style='max-width:80px; min-width:80px;'>Current Temp</th>
+        <th align='right' style='max-width:80px; min-width:80px;'>Aux1</th>
+	<th align='right' style='max-width:80px; min-width:80px;'>Hysteresis</th>
+        <th align='center' style='max-width:80px; min-width:80px;'>Source</th>
+        <th align='center' style='max-width:220px; min-width:220px;'>Control Knob</th>
+        <th align='center' style='max-width:80px; min-width:80px;'>Requested Value</th>
+      </tr>
+      <xsl:for-each select="target_directory/target">
+        <tr>
+          <td><xsl:value-of select="target_name"/> (<xsl:value-of select="target_index"/>)</td>
+          <td><xsl:value-of select="is_monitored"/></td>
+          <td><xsl:value-of select="participant_callback/time_until_expires"/></td>
+          <td align='right'><xsl:value-of select="temperature_thresholds/aux0"/></td>
+          <td align='right'><xsl:value-of select="current_temperature"/></td>
+          <td align='right'><xsl:value-of select="temperature_thresholds/aux1"/></td>
+	  <td align='right'><xsl:value-of select="temperature_thresholds/hysteresis"/></td>
+	  <td colspan='3'>
+            <table border="1">
+               <xsl:for-each select="requests/request">
+                  <tr>
+                    <td align='center' style='max-width:80px; min-width:80px;'><xsl:value-of select="source_name"/>(<xsl:value-of select="source_index"/>)</td>
+                    <td align='center' style='max-width:220px; min-width:220px;'><xsl:value-of select="control_knob"/></td>
+                    <td align='center' style='max-width:80px; min-width:80px;'><xsl:value-of select="requested_value"/></td>
+                  </tr>
+               </xsl:for-each>
+           </table>
+          </td>
+        </tr>
+      </xsl:for-each>
+     </table>
+    </div>
+
+<br></br>
+
+<div style="width:60%">
+<table border="1" style="float: right;">
+        <tr bgcolor="#00AEEF" colspan="7">
+          <th colspan="7">Sources</th>
+        </tr>
+        <tr bgcolor="#00AEEF">
+          <th align='center'>Source</th>
+          <th align='center'>Is Being Controlled</th>
+          <th align='center'>Resume Time</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Max</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Requested Value</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Min</th>
+          <th align='center' style='max-width:90px; min-width:90px;'>Granted Value</th>
+        </tr>
+        <xsl:for-each select="source_directory/source">
+          <tr>
+            <td><xsl:value-of select="source_name"/> (<xsl:value-of select="source_index"/>)</td>
+            <td align='center'><xsl:value-of select="is_being_controlled"/></td>
+            <td align='center'><xsl:value-of select="participant_callback/time_until_expires"/></td>
+            <td align='center'><xsl:value-of select="max"/></td>
+            <xsl:choose>
+              <xsl:when test="val!=max">
+                <td align='center' bgcolor="#FFFF99"><xsl:value-of select="val"/></td>
+              </xsl:when>
+              <xsl:otherwise>
+                <td align='center'><xsl:value-of select="val"/></td>
+              </xsl:otherwise>
+            </xsl:choose>
+            <td align='center'><xsl:value-of select="min"/></td>
+	    <xsl:choose>
+              <xsl:when test="granted!=max">
+                <td align='center' bgcolor="#FFFF99"><xsl:value-of select="granted"/></td>
+              </xsl:when>
+              <xsl:otherwise>
+                <td align='center'><xsl:value-of select="granted"/></td>
+              </xsl:otherwise>
+           </xsl:choose>
+          </tr>
+        </xsl:for-each>
+      </table>
+
+<br></br>
+
+    <table border="1">
+      <tr bgcolor="#00AEEF" colspan="3">
+        <th colspan="3">Trip Point Statistics</th>
+      </tr>
+      <tr bgcolor="#00AEEF">
+        <th align='left' style='max-width:80px; min-width:80px;'>Target</th>
+        <th align='right' style='max-width:80px; min-width:80px;'>Time</th>
+        <th align='right' style='max-width:80px; min-width:80px;'>Temp</th>
+      </tr>
+      <xsl:for-each select="trip_point_statistics/participant_trip_point_statistics">
+        <xsl:if test="supports_trip_points='true'">
+          <tr>
+            <td>
+              <xsl:value-of select="participant_name"/> (<xsl:value-of select="participant_index"/>)
+            </td>
+            <td align='right'>
+              <xsl:value-of select="time_since_last_trip"/>
+            </td>
+            <td align='right'>
+              <xsl:value-of select="temperature_of_last_trip"/>
+            </td>
+          </tr>
+        </xsl:if>
+      </xsl:for-each>
+    </table>
+   </div>
+ </xsl:template>
 </xsl:stylesheet>
 <!-- end xsl -->

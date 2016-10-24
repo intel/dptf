@@ -34,7 +34,7 @@ WIDomainTemperatureThresholdCrossed::~WIDomainTemperatureThresholdCrossed(void)
 
 void WIDomainTemperatureThresholdCrossed::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -42,7 +42,7 @@ void WIDomainTemperatureThresholdCrossed::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainTemperatureThresholdCrossed");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainTemperatureThresholdCrossed");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -61,7 +61,7 @@ void WIDomainTemperatureThresholdCrossed::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainTemperatureThresholdCrossed", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainTemperatureThresholdCrossed", i);
         }
     }
 }

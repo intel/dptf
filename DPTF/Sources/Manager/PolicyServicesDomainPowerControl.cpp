@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainPowerControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPowerControl::PolicyServicesDomainPowerControl(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :
@@ -64,7 +64,15 @@ void PolicyServicesDomainPowerControl::setPowerLimit(UIntN participantIndex, UIn
         getPolicyIndex(), controlType, powerLimit);
 }
 
-TimeSpan PolicyServicesDomainPowerControl::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
+void PolicyServicesDomainPowerControl::setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
+    PowerControlType::Type controlType, const Power& powerLimit)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitIgnoringCaps(domainIndex,
+        getPolicyIndex(), controlType, powerLimit);
+}
+
+TimeSpan PolicyServicesDomainPowerControl::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
     PowerControlType::Type controlType)
 {
     throwIfNotWorkItemThread();
@@ -80,7 +88,15 @@ void PolicyServicesDomainPowerControl::setPowerLimitTimeWindow(UIntN participant
         getPolicyIndex(), controlType, timeWindow);
 }
 
-Percentage PolicyServicesDomainPowerControl::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
+void PolicyServicesDomainPowerControl::setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
+    PowerControlType::Type controlType, const TimeSpan& timeWindow)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitTimeWindowIgnoringCaps(domainIndex,
+        getPolicyIndex(), controlType, timeWindow);
+}
+
+Percentage PolicyServicesDomainPowerControl::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
     PowerControlType::Type controlType)
 {
     throwIfNotWorkItemThread();
@@ -94,4 +110,10 @@ void PolicyServicesDomainPowerControl::setPowerLimitDutyCycle(UIntN participantI
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitDutyCycle(domainIndex,
         getPolicyIndex(), controlType, dutyCycle);
+}
+
+void PolicyServicesDomainPowerControl::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerCapsLock(domainIndex, getPolicyIndex(), lock);
 }

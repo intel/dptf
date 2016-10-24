@@ -28,7 +28,7 @@ class dptf_export CriticalTripPointsCachedProperty : public CachedProperty, Part
 {
 public:
 
-    CriticalTripPointsCachedProperty(PolicyServicesInterfaceContainer policyServices, UIntN participantIndex);
+    CriticalTripPointsCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex);
     ~CriticalTripPointsCachedProperty();
 
     const SpecificInfo& getTripPoints();

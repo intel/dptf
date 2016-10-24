@@ -167,7 +167,7 @@ void DeferredWorkItemQueue::setTimer(void)
     else
     {
         DeferredWorkItem* firstWorkItem = m_queue.front();
-        EsifTime firstWorkItemTime = firstWorkItem->getDeferredProcessingTime();
+        auto firstWorkItemTime = firstWorkItem->getDeferredProcessingTime();
 
         m_timer.startTimer(firstWorkItemTime);
     }
@@ -179,7 +179,7 @@ DeferredWorkItem* DeferredWorkItemQueue::getFirstReadyWorkItemFromQueue(void)
 
     if (m_queue.empty() == false)
     {
-        EsifTime currentTime;
+        auto currentTime = EsifTime().getTimeStamp();
         firstReadyWorkItem = m_queue.front();
 
         if (firstReadyWorkItem->getDeferredProcessingTime() <= currentTime)

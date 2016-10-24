@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainCoreControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainCoreControl::PolicyServicesDomainCoreControl(DptfManagerInterface* dptfManager, UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)

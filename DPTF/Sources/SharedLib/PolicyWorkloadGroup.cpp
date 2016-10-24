@@ -46,10 +46,17 @@ std::shared_ptr<XmlNode> PolicyWorkloadGroup::getXml() const
     workloadGroup->addChild(XmlNode::createDataElement("id", m_hint));
     auto applications = XmlNode::createWrapperElement("applications");
     for (auto application = m_applications.begin(); application != m_applications.end(); application++)
-    {
-        applications->addChild(XmlNode::createDataElement("application", *application));
-    }
+        {
+            try
+            {
+                applications->addChild(XmlNode::createDataElement("application", *application));
+            }
+            catch (...)
+            {
+                // Skip if unable to print application name
+            }
+        }
+
     workloadGroup->addChild(applications);
     return workloadGroup;
 }
-

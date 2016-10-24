@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "ConfigTdpControlSet.h"
+#include "EsifDataBinaryTdplPackage.h"
 #include "XmlNode.h"
 
 ConfigTdpControlSet::ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl) :
@@ -24,12 +25,55 @@ ConfigTdpControlSet::ConfigTdpControlSet(const std::vector<ConfigTdpControl>& co
 {
 }
 
+ConfigTdpControlSet ConfigTdpControlSet::createFromTdpl(const DptfBuffer& buffer)
+{
+    std::vector<ConfigTdpControl> controls;
+    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+    struct EsifDataBinaryTdplPackage* currentRow = reinterpret_cast<struct EsifDataBinaryTdplPackage*>(data);
+
+    if (buffer.size() == 0)
+    {
+        throw dptf_exception("Received empty TDPL buffer.");
+    }
+
+    UIntN rows = buffer.size() / sizeof(EsifDataBinaryTdplPackage);
+
+    if (buffer.size() % sizeof(EsifDataBinaryTdplPackage))
+    {
+        throw dptf_exception("Expected binary data size mismatch. (TDPL)");
+    }
+
+    for (UIntN i = 0; i < rows; i++)
+    {
+        ConfigTdpControl temp(
+            static_cast<UInt32>(currentRow->tdpControl.integer.value),
+            static_cast<UInt32>(currentRow->frequencyControl.integer.value),
+            static_cast<UInt32>(currentRow->tdpPower.integer.value),
+            static_cast<UInt32>(currentRow->frequency.integer.value));
+
+        controls.push_back(temp);
+
+        data += sizeof(struct EsifDataBinaryTdplPackage);
+        currentRow = reinterpret_cast<struct EsifDataBinaryTdplPackage*>(data);
+    }
+
+    return ConfigTdpControlSet(controls);
+}
+
 UIntN ConfigTdpControlSet::getCount(void) const
 {
     return static_cast<UIntN>(m_configTdpControl.size());
 }
 
-const ConfigTdpControl& ConfigTdpControlSet::operator[](UIntN index) const
+void ConfigTdpControlSet::removeLastControl(void)
+{
+    while (m_configTdpControl.size() > 1)
+    {
+        m_configTdpControl.pop_back();
+    }
+}
+
+ConfigTdpControl ConfigTdpControlSet::operator[](UIntN index) const
 {
     return m_configTdpControl.at(index);
 }

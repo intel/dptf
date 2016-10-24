@@ -42,7 +42,7 @@ void PowerControlKnob::limit(UIntN target)
         try
         {
             getPolicyServices().messageLogging->writeMessageDebug(
-                PolicyMessage(FLF, "Calculating request to limit power controls.", 
+                PolicyMessage(FLF, "Calculating request to limit power controls.",
                 getParticipantIndex(), getDomainIndex()));
 
             const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
@@ -54,10 +54,9 @@ void PowerControlKnob::limit(UIntN target)
             if (targetRequest >= pl1Capabilities.getMaxPowerLimit())
             {
                 // limit one step from current power
-                const PowerStatus& currentPowerStatus = m_powerControl->getCurrentPower();
-                Power currentPower = currentPowerStatus.getCurrentPower();
+                Power currentPower = m_powerControl->getAveragePower();
                 getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-                    FLF, "Current power is " + currentPower.toString() + ".", 
+                    FLF, "Current power is " + currentPower.toString() + ".",
                     getParticipantIndex(), getDomainIndex()));
                 nextPowerLimit = calculateNextLowerPowerLimit(
                     currentPower, minimumPowerLimit, stepSize, targetRequest);
@@ -90,7 +89,7 @@ void PowerControlKnob::unlimit(UIntN target)
         try
         {
             getPolicyServices().messageLogging->writeMessageDebug(
-                PolicyMessage(FLF, "Calculating request to unlimit power controls.", 
+                PolicyMessage(FLF, "Calculating request to unlimit power controls.",
                 getParticipantIndex(), getDomainIndex()));
 
             const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
@@ -188,7 +187,7 @@ Bool PowerControlKnob::commitSetting()
         if (m_powerControl->supportsPowerControls())
         {
             // find lowest power limit in request
-            Power lowestPowerLimit = snapToCapabilitiesBounds(findLowestPowerLimitRequest(m_requests));
+            Power lowestPowerLimit = snapToCapabilitiesBounds(findLowestPowerLimitRequest());
 
             // set new power status
             Power currentPowerLimit = m_powerControl->getPowerLimitPL1();
@@ -232,7 +231,7 @@ void PowerControlKnob::adjustRequestsToCapabilities()
     }
 }
 
-Power PowerControlKnob::findLowestPowerLimitRequest(const std::map<UIntN, Power>& m_requests)
+Power PowerControlKnob::findLowestPowerLimitRequest()
 {
     if (m_requests.size() == 0)
     {

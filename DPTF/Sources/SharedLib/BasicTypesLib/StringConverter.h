@@ -28,6 +28,7 @@ public:
     static UInt32 toUInt32(const std::string& input);
     static UInt64 toUInt64(const std::string& input);
     static Int32 toInt32(const std::string& input);
+    static double toDouble(const std::string& input);
     static std::string toUpper(const std::string& input);
     static std::string toLower(const std::string& input);
     static std::string trimWhitespace(const std::string& input);

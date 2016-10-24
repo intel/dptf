@@ -20,7 +20,10 @@
 
 DomainPlatformPowerControlBase::DomainPlatformPowerControlBase(UIntN participantIndex, UIntN domainIndex,
     ParticipantServicesInterface* participantServicesInterface)
-    : ControlBase(participantIndex, domainIndex, participantServicesInterface)
+    : ControlBase(participantIndex, domainIndex, participantServicesInterface),
+    m_pl1Enabled(false),
+    m_pl2Enabled(false),
+    m_pl3Enabled(false)
 {
 
 }
@@ -30,17 +33,31 @@ DomainPlatformPowerControlBase::~DomainPlatformPowerControlBase()
 
 }
 
-Bool DomainPlatformPowerControlBase::checkEnabled(PlatformPowerLimitType::Type limitType)
+void DomainPlatformPowerControlBase::updateEnabled(PlatformPowerLimitType::Type limitType)
 {
     try
     {
         UInt32 plEnabled = getParticipantServices()->primitiveExecuteGetAsUInt32(
             GET_PLATFORM_POWER_LIMIT_ENABLE, getDomainIndex(), (UInt8)limitType);
-        return plEnabled > 0 ? true : false;
+        Bool enabled = plEnabled > 0 ? true : false;
+
+        switch (limitType)
+        {
+        case PlatformPowerLimitType::PSysPL1:
+            m_pl1Enabled = enabled;
+            break;
+        case PlatformPowerLimitType::PSysPL2:
+            m_pl2Enabled = enabled;
+            break;
+        case PlatformPowerLimitType::PSysPL3:
+            m_pl3Enabled = enabled;
+            break;
+        default:
+            break;
+        }
     }
     catch (...)
     {
-        return false;
     }
 }
 
@@ -54,5 +71,20 @@ void DomainPlatformPowerControlBase::setEnabled(PlatformPowerLimitType::Type lim
     catch (...)
     {
 
+    }
+}
+
+Bool DomainPlatformPowerControlBase::isEnabled(PlatformPowerLimitType::Type limitType) const
+{
+    switch (limitType)
+    {
+    case PlatformPowerLimitType::PSysPL1:
+        return m_pl1Enabled;
+    case PlatformPowerLimitType::PSysPL2:
+        return m_pl2Enabled;
+    case PlatformPowerLimitType::PSysPL3:
+        return m_pl3Enabled;
+    default:
+        return false;
     }
 }

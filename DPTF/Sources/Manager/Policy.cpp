@@ -43,14 +43,13 @@
 #include "PolicyServicesPolicyEventRegistration.h"
 #include "PolicyServicesPolicyInitiatedCallback.h"
 #include "PolicyServicesMessageLogging.h"
-#include "PolicyServicesDomainHardwareDutyCycleControl.h"
 #include "PolicyWorkloadHintConfiguration.h"
 #include "PolicyServicesDomainPlatformPowerControl.h"
 #include "PolicyServicesDomainPlatformPowerStatus.h"
 #include "PolicyServicesPlatformState.h"
 #include "esif_ccb_string.h"
 
-Policy::Policy(DptfManager* dptfManager) : m_dptfManager(dptfManager), m_theRealPolicy(nullptr),
+Policy::Policy(DptfManagerInterface* dptfManager) : m_dptfManager(dptfManager), m_theRealPolicy(nullptr),
 m_theRealPolicyCreated(false), m_policyIndex(Constants::Invalid), m_isPolicyLoggingEnabled(false), m_esifLibrary(nullptr),
     m_createPolicyInstanceFuncPtr(nullptr), m_destroyPolicyInstanceFuncPtr(nullptr)
 {
@@ -346,27 +345,11 @@ void Policy::executePolicyActiveRelationshipTableChanged(void)
     }
 }
 
-void Policy::executePolicyCoolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit)
-{
-    if (isEventRegistered(PolicyEvent::PolicyCoolingModeAcousticLimitChanged))
-    {
-        m_theRealPolicy->coolingModeAcousticLimitChanged(acousticLimit);
-    }
-}
-
 void Policy::executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode)
 {
     if (isEventRegistered(PolicyEvent::PolicyCoolingModePolicyChanged))
     {
         m_theRealPolicy->coolingModePolicyChanged(coolingMode);
-    }
-}
-
-void Policy::executePolicyCoolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit)
-{
-    if (isEventRegistered(PolicyEvent::PolicyCoolingModePowerLimitChanged))
-    {
-        m_theRealPolicy->coolingModePowerLimitChanged(powerLimit);
     }
 }
 
@@ -388,22 +371,6 @@ void Policy::executePolicyOperatingSystemConfigTdpLevelChanged(UIntN configTdpLe
     if (isEventRegistered(PolicyEvent::PolicyOperatingSystemConfigTdpLevelChanged))
     {
         m_theRealPolicy->operatingSystemConfigTdpLevelChanged(configTdpLevel);
-    }
-}
-
-void Policy::executePolicyOperatingSystemLpmModeChanged(UIntN lpmMode)
-{
-    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemLpmModeChanged))
-    {
-        m_theRealPolicy->operatingSystemLpmModeChanged(lpmMode);
-    }
-}
-
-void Policy::executePolicyOperatingSystemHdcStatusChanged(OsHdcStatus::Type status)
-{
-    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemHdcStatusChanged))
-    {
-        m_theRealPolicy->operatingSystemHdcStatusChanged(status);
     }
 }
 
@@ -447,11 +414,19 @@ void Policy::executePolicyOperatingSystemDockModeChanged(OsDockMode::Type dockMo
     }
 }
 
-void Policy::executePolicyOperatingSystemMobileNotification(UIntN mobileNotification)
+void Policy::executePolicyOperatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState)
 {
     if (isEventRegistered(PolicyEvent::PolicyOperatingSystemMobileNotification))
     {
-        m_theRealPolicy->operatingSystemMobileNotification(mobileNotification);
+        m_theRealPolicy->operatingSystemEmergencyCallModeStateChanged(emergencyCallModeState);
+    }
+}
+
+void Policy::executePolicyOperatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
+{
+    if (isEventRegistered(PolicyEvent::PolicyOperatingSystemMobileNotification))
+    {
+        m_theRealPolicy->operatingSystemMobileNotification(notificationType, value);
     }
 }
 
@@ -463,14 +438,6 @@ void Policy::executePolicyPassiveTableChanged(void)
     }
 }
 
-void Policy::executePolicyPlatformLpmModeChanged()
-{
-    if (isEventRegistered(PolicyEvent::PolicyPlatformLpmModeChanged))
-    {
-        m_theRealPolicy->platformLpmModeChanged();
-    }
-}
-
 void Policy::executePolicySensorOrientationChanged(SensorOrientation::Type sensorOrientation)
 {
     if (isEventRegistered(PolicyEvent::PolicySensorOrientationChanged))
@@ -479,7 +446,7 @@ void Policy::executePolicySensorOrientationChanged(SensorOrientation::Type senso
     }
 }
 
-void Policy::executePolicySensorMotionChanged(SensorMotion::Type sensorMotion)
+void Policy::executePolicySensorMotionChanged(OnOffToggle::Type sensorMotion)
 {
     if (isEventRegistered(PolicyEvent::PolicySensorMotionChanged))
     {
@@ -511,6 +478,14 @@ void Policy::executePolicyAdaptivePerformanceConditionsTableChanged(void)
     }
 }
 
+void Policy::executePolicyAdaptivePerformanceParticipantConditionTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged))
+    {
+        m_theRealPolicy->adaptivePerformanceParticipantConditionTableChanged();
+    }
+}
+
 void Policy::executePolicyAdaptivePerformanceActionsTableChanged(void)
 {
     if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged))
@@ -527,14 +502,6 @@ void Policy::executePolicyOemVariablesChanged(void)
     }
 }
 
-void Policy::executePolicyPowerDeviceRelationshipTableChanged(void)
-{
-    if (isEventRegistered(PolicyEvent::PolicyPowerDeviceRelationshipTableChanged))
-    {
-        m_theRealPolicy->powerDeviceRelationshipTableChanged();
-    }
-}
-
 void Policy::executePolicyPowerBossConditionsTableChanged(void)
 {
     if (isEventRegistered(PolicyEvent::PolicyPowerBossConditionsTableChanged))
@@ -548,6 +515,14 @@ void Policy::executePolicyPowerBossActionsTableChanged(void)
     if (isEventRegistered(PolicyEvent::PolicyPowerBossActionsTableChanged))
     {
         m_theRealPolicy->powerBossActionsTableChanged();
+    }
+}
+
+void Policy::executePolicyPowerBossMathTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyPowerBossMathTableChanged))
+    {
+        m_theRealPolicy->powerBossMathTableChanged();
     }
 }
 
@@ -568,6 +543,30 @@ void Policy::executePolicyActivityLoggingEnabled(void)
 void Policy::executePolicyActivityLoggingDisabled(void)
 {
     disablePolicyLogging();    
+}
+
+void Policy::executePolicyEmergencyCallModeTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyEmergencyCallModeTableChanged))
+    {
+        m_theRealPolicy->emergencyCallModeTableChanged();
+    }
+}
+
+void Policy::executePolicyPidAlgorithmTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyPidAlgorithmTableChanged))
+    {
+        m_theRealPolicy->pidAlgorithmTableChanged();
+    }
+}
+
+void Policy::executePolicyActiveControlPointRelationshipTableChanged(void)
+{
+    if (isEventRegistered(PolicyEvent::PolicyActiveControlPointRelationshipTableChanged))
+    {
+        m_theRealPolicy->activeControlPointRelationshipTableChanged();
+    }
 }
 
 void Policy::sendPolicyLogDataIfEnabled(void)
@@ -627,7 +626,6 @@ void Policy::createPolicyServices(void)
     m_policyServices.domainRfProfileStatus = new PolicyServicesDomainRfProfileStatus(m_dptfManager, m_policyIndex);
     m_policyServices.domainTemperature = new PolicyServicesDomainTemperature(m_dptfManager, m_policyIndex);
     m_policyServices.domainUtilization = new PolicyServicesDomainUtilization(m_dptfManager, m_policyIndex);
-    m_policyServices.domainHardwareDutyCycleControl = new PolicyServicesDomainHardwareDutyCycleControl(m_dptfManager, m_policyIndex);
     m_policyServices.participantGetSpecificInfo = new PolicyServicesParticipantGetSpecificInfo(m_dptfManager, m_policyIndex);
     m_policyServices.participantProperties = new PolicyServicesParticipantProperties(m_dptfManager, m_policyIndex);
     m_policyServices.participantSetSpecificInfo = new PolicyServicesParticipantSetSpecificInfo(m_dptfManager, m_policyIndex);
@@ -659,7 +657,6 @@ void Policy::destroyPolicyServices(void)
     DELETE_MEMORY_TC(m_policyServices.domainRfProfileStatus);
     DELETE_MEMORY_TC(m_policyServices.domainTemperature);
     DELETE_MEMORY_TC(m_policyServices.domainUtilization);
-    DELETE_MEMORY_TC(m_policyServices.domainHardwareDutyCycleControl);
     DELETE_MEMORY_TC(m_policyServices.participantGetSpecificInfo);
     DELETE_MEMORY_TC(m_policyServices.participantProperties);
     DELETE_MEMORY_TC(m_policyServices.participantSetSpecificInfo);

@@ -33,7 +33,7 @@ WIDomainDisplayStatusChanged::~WIDomainDisplayStatusChanged(void)
 
 void WIDomainDisplayStatusChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainDisplayStatusChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainDisplayStatusChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainDisplayStatusChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainDisplayStatusChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainDisplayStatusChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainDisplayStatusChanged", i);
         }
     }
 }

@@ -34,7 +34,7 @@ WIDomainCreate::~WIDomainCreate(void)
 
 void WIDomainCreate::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     Bool domainCreated = false;
 
@@ -45,7 +45,7 @@ void WIDomainCreate::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::createDomain");
+        writeDomainWorkItemErrorMessage(ex, "Participant::createDomain");
     }
 
     *m_domainCreated = domainCreated;
@@ -72,7 +72,7 @@ void WIDomainCreate::execute(void)
             }
             catch (std::exception& ex)
             {
-                WriteDomainWorkItemErrorMessage_Function_Policy("Policy::bindDomain", i);
+                writeDomainWorkItemErrorMessagePolicy(ex, "Policy::bindDomain", i);
             }
         }
     }

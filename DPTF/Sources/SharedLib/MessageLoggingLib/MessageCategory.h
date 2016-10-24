@@ -36,10 +36,7 @@ namespace MessageCategory
         Policy,
         PolicyActive,
         PolicyConfigTdp,
-        PolicyCoolingMode,
         PolicyCritical,
-        PolicyDbpt,
-        PolicyLpm,
         PolicyPassive,
 
         // Participant categories

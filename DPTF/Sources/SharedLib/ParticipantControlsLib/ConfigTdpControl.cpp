@@ -20,27 +20,27 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-ConfigTdpControl::ConfigTdpControl(UInt64 controlId, UInt64 tarRatio, UInt64 tdpPower, UInt64 tdpFrequency) :
+ConfigTdpControl::ConfigTdpControl(UInt32 controlId, UInt32 tarRatio, UInt32 tdpPower, UInt32 tdpFrequency) :
     m_controlId(controlId), m_tdpRatio(tarRatio), m_tdpPower(tdpPower), m_tdpFrequency(tdpFrequency)
 {
 }
 
-UInt64 ConfigTdpControl::getControlId(void) const
+UInt32 ConfigTdpControl::getControlId(void) const
 {
     return m_controlId;
 }
 
-UInt64 ConfigTdpControl::getTdpRatio(void) const
+UInt32 ConfigTdpControl::getTdpRatio(void) const
 {
     return m_tdpRatio;
 }
 
-UInt64 ConfigTdpControl::getTdpPower(void) const
+UInt32 ConfigTdpControl::getTdpPower(void) const
 {
     return m_tdpPower;
 }
 
-UInt64 ConfigTdpControl::getTdpFrequency(void) const
+UInt32 ConfigTdpControl::getTdpFrequency(void) const
 {
     return m_tdpFrequency;
 }

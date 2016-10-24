@@ -35,7 +35,6 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void) :
     pixelClockStatusVersion(0),
     rfProfileControlVersion(0),
     rfProfileStatusVersion(0),
-    hardwareDutyCycleVersion(0),
     platformPowerControlVersion(0),
     platformPowerStatusVersion(0)
 {
@@ -58,7 +57,32 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
     pixelClockStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS];
     rfProfileControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL];
     rfProfileStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS];
-    hardwareDutyCycleVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_HDC_CONTROL];
     platformPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PSYS_CONTROL];
     platformPowerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS];
+}
+
+Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions & domainFunctionality)
+{
+    return ((activeControlVersion == domainFunctionality.activeControlVersion)
+        && (configTdpControlVersion == domainFunctionality.configTdpControlVersion)
+        && (coreControlVersion == domainFunctionality.coreControlVersion)
+        && (displayControlVersion == domainFunctionality.displayControlVersion)
+        && (domainPriorityVersion == domainFunctionality.domainPriorityVersion)
+        && (performanceControlVersion == domainFunctionality.performanceControlVersion)
+        && (powerControlVersion == domainFunctionality.powerControlVersion)
+        && (powerStatusVersion == domainFunctionality.powerStatusVersion)
+        && (temperatureVersion == domainFunctionality.temperatureVersion)
+        && (temperatureThresholdVersion == domainFunctionality.temperatureThresholdVersion)
+        && (utilizationVersion == domainFunctionality.utilizationVersion)
+        && (pixelClockControlVersion == domainFunctionality.pixelClockControlVersion)
+        && (pixelClockStatusVersion == domainFunctionality.pixelClockStatusVersion)
+        && (rfProfileControlVersion == domainFunctionality.rfProfileControlVersion)
+        && (rfProfileStatusVersion == domainFunctionality.rfProfileStatusVersion)
+        && (platformPowerControlVersion == domainFunctionality.platformPowerControlVersion)
+        && (platformPowerStatusVersion == domainFunctionality.platformPowerStatusVersion));
+}
+
+Bool DomainFunctionalityVersions::operator!=(const DomainFunctionalityVersions & domainFunctionality)
+{
+    return !(*this == domainFunctionality);
 }

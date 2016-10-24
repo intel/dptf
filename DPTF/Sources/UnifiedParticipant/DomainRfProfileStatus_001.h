@@ -31,7 +31,7 @@ public:
 
     DomainRfProfileStatus_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainRfProfileStatus_001(void);
+    virtual ~DomainRfProfileStatus_001(void);
 
     // DomainRfProfileStatusInterface
     virtual RfProfileData getRfProfileData(UIntN participantIndex, UIntN domainIndex) override;

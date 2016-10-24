@@ -41,7 +41,7 @@ void TargetCheckLaterAction::execute()
         // schedule a callback as soon as possible
         getPolicyServices().messageLogging->writeMessageDebug(
             PolicyMessage(FLF, "Attempting to schedule callback for target participant.", getTarget()));
-        UInt64 time = getTime()->getCurrentTimeInMilliseconds();
+        auto time = getTime()->getCurrentTime();
         getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
     }
     catch (...)

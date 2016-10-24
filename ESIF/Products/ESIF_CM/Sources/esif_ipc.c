@@ -198,7 +198,7 @@ void esif_ipc_exit(
 
 /* IPC Connect */
 esif_handle_t esif_ipc_connect(
-	esif_string session_id
+	char *session_id
 	)
 {
 	ESIF_TRACE_DEBUG("IPC session_id = %s\n", session_id);
@@ -211,7 +211,7 @@ void esif_ipc_disconnect(
 	esif_handle_t handle
 	)
 {
-	ESIF_TRACE_DEBUG("IPC handle = %d\n", handle);
+	ESIF_TRACE_DEBUG("IPC handle = %lld\n", esif_ccb_handle2lld(handle));
 	esif_os_ipc_disconnect(handle);
 }
 
@@ -222,7 +222,7 @@ enum esif_rc esif_ipc_execute(
 	struct esif_ipc *ipc_ptr
 	)
 {
-	ESIF_TRACE_DEBUG("Handle = %d, IPC = %p\n", handle, ipc_ptr);
+	ESIF_TRACE_DEBUG("Handle = %lld, IPC = %p\n", esif_ccb_handle2lld(handle), ipc_ptr);
 	return esif_os_ipc_execute(handle, ipc_ptr);
 }
 

@@ -31,7 +31,7 @@ WIPolicyPassiveTableChanged::~WIPolicyPassiveTableChanged(void)
 
 void WIPolicyPassiveTableChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -49,7 +49,7 @@ void WIPolicyPassiveTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyPassiveTableChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyPassiveTableChanged", i);
         }
     }
 }

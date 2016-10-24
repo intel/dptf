@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "WIParticipantCreate.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "Participant.h"
 #include "PolicyManager.h"
 #include "EsifServices.h"
@@ -36,7 +36,7 @@ WIParticipantCreate::~WIParticipantCreate(void)
 
 void WIParticipantCreate::execute(void)
 {
-    WriteParticipantWorkItemStartingInfoMessage();
+    writeParticipantWorkItemStartingInfoMessage();
 
     Bool participantCreated = false;
 
@@ -47,7 +47,7 @@ void WIParticipantCreate::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteParticipantWorkItemErrorMessage_Function("ParticipantManager::createParticipant");
+        writeParticipantWorkItemErrorMessage(ex, "ParticipantManager::createParticipant");
     }
 
     *m_participantCreated = participantCreated;
@@ -74,7 +74,7 @@ void WIParticipantCreate::execute(void)
             }
             catch (std::exception& ex)
             {
-                WriteParticipantWorkItemErrorMessage_Function_Policy("Policy::bindParticipant", i);
+                writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::bindParticipant", i);
             }
         }
     }

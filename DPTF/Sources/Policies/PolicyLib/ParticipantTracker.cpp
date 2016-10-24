@@ -18,7 +18,6 @@
 
 #include "ParticipantTracker.h"
 #include "DptfTime.h"
-#include "StatusFormat.h"
 using namespace std;
 
 ParticipantTracker::ParticipantTracker()
@@ -69,7 +68,7 @@ vector<UIntN> ParticipantTracker::getAllTrackedIndexes() const
     return allTrackedItems;
 }
 
-void ParticipantTracker::setPolicyServices(PolicyServicesInterfaceContainer policyServices)
+void ParticipantTracker::setPolicyServices(const PolicyServicesInterfaceContainer &policyServices)
 {
     m_policyServices = policyServices;
 }
@@ -80,16 +79,6 @@ std::shared_ptr<XmlNode> ParticipantTracker::getXmlForTripPointStatistics()
     for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
     {
         allStatus->addChild(item->second.getXmlForTripPointStatistics());
-    }
-    return allStatus;
-}
-
-std::shared_ptr<XmlNode> ParticipantTracker::getXmlForScpDscpSupport()
-{
-    auto allStatus = XmlNode::createWrapperElement("scp_dscp_support");
-    for (auto item = m_trackedParticipants.begin(); item != m_trackedParticipants.end(); item++)
-    {
-        allStatus->addChild(item->second.getXmlForScpDscpSupport());
     }
     return allStatus;
 }

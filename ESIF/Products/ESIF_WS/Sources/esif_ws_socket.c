@@ -17,8 +17,12 @@
 ******************************************************************************/
 #define ESIF_TRACE_ID ESIF_TRACEMODULE_WEBSERVER
 
-#include <ctype.h>
+#include "esif_ccb_memory.h"
+#include "esif_ccb_string.h"
+#include "esif_ws_algo.h"
 #include "esif_ws_socket.h"
+
+#include <ctype.h>
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -30,7 +34,6 @@
 #endif
 
 extern Bool g_ws_restricted;
-#define MAX_ORIGIN	MAX_PATH
 
 /*
  *******************************************************************************
@@ -38,6 +41,30 @@ extern Bool g_ws_restricted;
  *******************************************************************************
  */
 
+#define WS_PROT_KEY_SIZE_MAX 1000
+#define WS_FRAME_SIZE_TYPE_1	125 /* For payloads <= 125 bytes*/
+#define WS_FRAME_SIZE_TYPE_2	126 /* For payload up to 64K - 1 in size */
+#define WS_FRAME_SIZE_TYPE_3	127 /* For payloads > 64K - 1*/
+
+#define WS_FRAME_SIZE_TYPE_1_MAX_PAYLOAD	125		/* Maximum payload size for a Type 1 frame size */
+#define WS_FRAME_SIZE_TYPE_2_MAX_PAYLOAD	0xFFFF	/* Maximum payload size for a Type 2 frame size */
+
+#define MAXIMUM_SIZE 0x7F
+
+#define HOST_FIELD                      "Host: "
+#define ORIGIN_FIELD                    "Origin: "
+#define WEB_SOCK_PROT_FIELD             "Sec-WebSocket-Protocol: "
+#define WEB_SOCK_KEY_FIELD              "Sec-WebSocket-Key: "
+#define WEB_SOCK_VERSION_FIELD          "Sec-WebSocket-Version: "
+
+#define CONNECTION_FIELD                "Connection: "
+#define UPGRADE_FIELD                   "upgrade"
+#define ALT_UPGRADE_FIELD               "Upgrade: "
+#define WEB_SOCK_FIELD                  "websocket"
+#define VERSION_FIELD                   "13"
+#define KEY                             "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+#define MAX_ORIGIN	MAX_PATH
 
 static void esif_ws_socket_convert_to_lower_case(char *string);
 
@@ -89,12 +116,12 @@ FrameType esif_ws_socket_get_initial_frame_type(
 {
 	unsigned char is_upgraded       = 0;
 	unsigned char has_subprotocol   = 0;
+	unsigned char connection_upgrade = 0;
 	char *beg_resource     = NULL;
 	char *end_resource     = NULL;
 	char version[2]={0};
 	char *connection_field = NULL;
 	char *web_socket_field = NULL;
-	eEsifError rc = ESIF_OK;
 
 	#define MAX_SIZE 1000
 
@@ -114,7 +141,9 @@ FrameType esif_ws_socket_get_initial_frame_type(
 		return ERROR_FRAME;
 	}
 
-	beg_resource++;
+	while (*beg_resource == ' ') {
+		beg_resource++;
+	}
 
 	end_resource = strchr(beg_resource, ' ');
 	if (!end_resource) {
@@ -146,32 +175,32 @@ FrameType esif_ws_socket_get_initial_frame_type(
 
 	memset(version, 0, sizeof(version));
 
-	while (beg_input_frame < end_input_frame && beg_input_frame[0] != '\r' && beg_input_frame[1] != '\n') {
+	while ((beg_input_frame < end_input_frame) && (beg_input_frame[0] != '\r') && (beg_input_frame[1] != '\n')) {
 		if (memcmp(beg_input_frame, HOST_FIELD, esif_ccb_strlen(HOST_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(HOST_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->hostField);
 			protPtr->hostField  = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->hostField)
-				rc = ESIF_E_NO_MEMORY;
+				return ERROR_FRAME;
 		} else if (memcmp(beg_input_frame, ORIGIN_FIELD, esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame  += esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->originField);
 			protPtr->originField = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->originField)
-				rc = ESIF_E_NO_MEMORY;
+				return ERROR_FRAME;
 		} else if (memcmp(beg_input_frame, WEB_SOCK_PROT_FIELD, esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->web_socket_field);
 			protPtr->web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
-			has_subprotocol = 1;
 			if (NULL == protPtr->web_socket_field)
-				rc = ESIF_E_NO_MEMORY;
+				return ERROR_FRAME;
+			has_subprotocol = 1;
 		} else if (memcmp(beg_input_frame, WEB_SOCK_KEY_FIELD, esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->keyField);
 			protPtr->keyField   = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->keyField)
-				rc = ESIF_E_NO_MEMORY;
+				return ERROR_FRAME;
 		} else if (memcmp(beg_input_frame, WEB_SOCK_VERSION_FIELD, esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE);
 			esif_ws_socket_copy_line(beg_input_frame, version);
@@ -179,32 +208,28 @@ FrameType esif_ws_socket_get_initial_frame_type(
 			beg_input_frame += esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE);
 			connection_field = NULL;
 			connection_field = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == connection_field) {
-				rc = ESIF_E_NO_MEMORY;
-			}
-			else {
+			if (NULL != connection_field) {
 				esif_ws_socket_convert_to_lower_case(connection_field);
 				if (strstr(connection_field, UPGRADE_FIELD) != NULL) {
-					;	
+					connection_upgrade = 1;
 				}
 				esif_ccb_free(connection_field);
 				connection_field = NULL;
 			}
-		} else if (memcmp(beg_input_frame, ALT_UPGRADE_FIELD, esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE)) == 0) {
+		}
+		else if (memcmp(beg_input_frame, ALT_UPGRADE_FIELD, esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE);
 			web_socket_field = NULL;
 			web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == web_socket_field) {
-				rc = ESIF_E_NO_MEMORY;
+			if (NULL == web_socket_field)
+				return ERROR_FRAME;
+
+			esif_ws_socket_convert_to_lower_case(web_socket_field);
+			if (memcmp(web_socket_field, WEB_SOCK_FIELD, esif_ccb_strlen(WEB_SOCK_FIELD, MAX_SIZE)) == 0) {
+				is_upgraded = 1;
 			}
-			else {
-				esif_ws_socket_convert_to_lower_case(web_socket_field);
-				if (memcmp(web_socket_field, WEB_SOCK_FIELD, esif_ccb_strlen(WEB_SOCK_FIELD, MAX_SIZE)) == 0) {
-					is_upgraded = 1;
-				}
-				esif_ccb_free(web_socket_field);
-				web_socket_field = NULL;
-			}
+			esif_ccb_free(web_socket_field);
+			web_socket_field = NULL;
 		}
 
 		beg_input_frame = strstr(beg_input_frame, "\r\n") + 2;
@@ -214,11 +239,30 @@ FrameType esif_ws_socket_get_initial_frame_type(
 		}
 	}	/* End of while loop */
 
-	/* Verify WebSocket Origin:
-	 * 1. Host: and Origin: must be an exact match (minus http prefix) unless Non-Restricted mode and Origin: in whitelist
+
+	/* Must have the host field always */
+	if (!protPtr->hostField) {
+		return ERROR_FRAME;
+	}
+
+	/* Websocket Upgrades must include the "Connection: Uprade", "Origin:", and "Sec-WebSocket-Key:" fields
+	 * They must also include either a "Sec-WebSocket-Protocol:" or "Sec-WebSocket-Version: 13"
+	 */
+	if (is_upgraded) {
+		if (!protPtr->originField || !connection_upgrade || !protPtr->keyField) {
+			return ERROR_FRAME;
+		}
+		if (!has_subprotocol && memcmp(version, VERSION_FIELD, esif_ccb_strlen(VERSION_FIELD, 3)) != 0) {
+			return ERROR_FRAME;
+		}
+	}
+
+	/*
+	 * Verify WebSocket Origin:
+	 * 1. Host: and Origin: must be an exact match (minus http prefix) unless Origin: in whitelist
 	 * 2. Host: and Origin: must be "127.0.0.1:port" or "localhost:port" for Restricted Mode
 	 */
-	if (rc == ESIF_OK && protPtr->hostField && protPtr->originField) {
+	if (is_upgraded) {
 		char *origin_whitelist[] = { "null", "file://", NULL }; // Origin: values sent by browsers when loading html via file instead of url
 		char *origin_prefixes[] = { "http://", NULL }; // Origin: prefixes allowed for Restrcited and Non-Restricted modes
 		char *origin = protPtr->originField;
@@ -226,8 +270,9 @@ FrameType esif_ws_socket_get_initial_frame_type(
 		Bool prefix_valid = ESIF_FALSE;
 		int  item = 0;
 
-		// Origin: exact matches in Whitelist allowed in Non-Restricted mode only
-		for (item = 0; !g_ws_restricted && !origin_valid && origin_whitelist[item] != NULL; item++) {
+		// Origin: exact matches in Whitelist allowed in BOTH Restricted and Non-Restricted modes
+		// This is necessary so index.html can be loaded from filesystem to validate Web Server functionality in both modes
+		for (item = 0; !origin_valid && origin_whitelist[item] != NULL; item++) {
 			if (esif_ccb_stricmp(origin, origin_whitelist[item]) == 0) {
 				origin_valid = ESIF_TRUE;
 			}
@@ -242,30 +287,27 @@ FrameType esif_ws_socket_get_initial_frame_type(
 			}
 		}
 
-		// Origin: and Host: must be exact match in Restricted mode or if Origin has a valid prefix
-		// Only "127.0.0.1:port" or "localhost:port" are valid Origins in Restricted mode
+		// Origin: and Host: must be an exact match except for Whitelisted Origins
+		// Only "127.0.0.1:port" "localhost:port" are valid Origins in Restricted mode except for Whitelisted Origins
 		if (!origin_valid && prefix_valid && esif_ccb_stricmp(protPtr->hostField, origin) == 0) {
 			if ((!g_ws_restricted) ||
 				((esif_ccb_strlen(origin, MAX_ORIGIN) >= 9) &&
-				 (esif_ccb_strnicmp(origin, "127.0.0.1", 9) == 0 || esif_ccb_strnicmp(origin, "localhost", 9) == 0) &&
-				 (origin[9] == ':'))) {
+				(esif_ccb_strnicmp(origin, "127.0.0.1", 9) == 0 || esif_ccb_strnicmp(origin, "localhost", 9) == 0) &&
+				(origin[9] == ':'))) {
 				origin_valid = ESIF_TRUE;
 			}
 		}
+
+		// Return error if neither Whitelisted Origin nor a matching Host: and Origin: is present
 		if (!origin_valid) {
-			rc = ESIF_E_NOT_SUPPORTED;
+			return ERROR_FRAME;
 		}
 	}
 
-	if (rc != ESIF_OK || !protPtr->hostField) {
-		protPtr->frameType = ERROR_FRAME;
-	} else if (!protPtr->keyField) {
-		protPtr->frameType = HTTP_FRAME;
-	} else if (!is_upgraded || has_subprotocol || memcmp(version, VERSION_FIELD, esif_ccb_strlen(VERSION_FIELD, 3)) == 0) {
-		protPtr->frameType = OPENING_FRAME;
-	}
-
-	return protPtr->frameType;
+	if (!is_upgraded) {
+		return HTTP_FRAME;
+	} 
+	return OPENING_FRAME;
 }
 
 
@@ -277,7 +319,7 @@ eEsifError esif_ws_socket_build_protocol_change_response(
 	)
 {
 	int num_bytes=0;
-	char shaHash[20]={0};
+	esif_sha1_t sha_digest;
 	char *response_key = NULL;
 	eEsifError rc = ESIF_OK;
 
@@ -291,9 +333,10 @@ eEsifError esif_ws_socket_build_protocol_change_response(
 	esif_ccb_memcpy(response_key, protPtr->keyField, esif_ccb_strlen(protPtr->keyField, WS_PROT_KEY_SIZE_MAX));
 	esif_ccb_memcpy(&(response_key[esif_ccb_strlen(protPtr->keyField, WS_PROT_KEY_SIZE_MAX)]), KEY, esif_ccb_strlen(KEY, WS_PROT_KEY_SIZE_MAX));
 
-	memset(shaHash, 0, sizeof(shaHash));
-	esif_ws_algo_hash_sha_algo(shaHash, response_key, length * 8);
-	esif_ws_algo_encode_base64_value(response_key, shaHash, 20);
+	esif_sha1_init(&sha_digest);
+	esif_sha1_update(&sha_digest, (UInt8 *)response_key, length);
+	esif_sha1_finish(&sha_digest);
+	esif_base64_encode(response_key, length, sha_digest.hash, sizeof(sha_digest.hash));
 
 	num_bytes = esif_ccb_sprintf(outgoingFrameBufferSize, (char*)outgoingFrame,
 		"HTTP/1.1 101 Switching Protocols\r\n"

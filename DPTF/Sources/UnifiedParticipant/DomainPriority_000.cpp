@@ -42,7 +42,6 @@ void DomainPriority_000::clearCachedData(void)
 
 std::shared_ptr<XmlNode> DomainPriority_000::getXml(UIntN domainIndex)
 {
-    // Do nothing.  Not an error.
     throw not_implemented();
 }
 

@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "PowerStatus.h"
+#include "PowerControlDynamicCaps.h"
 
 class DomainPowerStatusInterface
 {
@@ -30,4 +31,5 @@ public:
     };
 
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual Power getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities) = 0;
 };

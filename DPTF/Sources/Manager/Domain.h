@@ -24,13 +24,11 @@
 #include "Arbitrator.h"
 #include "PlatformPowerLimitType.h"
 
-class DptfManager;
-
 class Domain
 {
 public:
 
-    Domain(DptfManager* dptfManager);
+    Domain(DptfManagerInterface* dptfManager);
     ~Domain(void);
 
     void createDomain(UIntN participantIndex, UIntN domainIndex, ParticipantInterface* participantInterface,
@@ -78,10 +76,13 @@ public:
 
     // Display controls
     DisplayControlDynamicCaps getDisplayControlDynamicCaps(void);
+    UIntN getUserPreferredDisplayIndex(void);
+    Bool isUserPreferredIndexModified(void);
     DisplayControlStatus getDisplayControlStatus(void);
     DisplayControlSet getDisplayControlSet(void);
     void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex);
     void setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
+    void setDisplayCapsLock(UIntN policyIndex, Bool lock);
 
     // Performance controls
     PerformanceControlStaticCaps getPerformanceControlStaticCaps(void);
@@ -90,6 +91,7 @@ public:
     PerformanceControlSet getPerformanceControlSet(void);
     void setPerformanceControl(UIntN policyIndex, UIntN performanceControlIndex);
     void setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
+    void setPerformanceCapsLock(UIntN policyIndex, Bool lock);
 
     // Pixel Clock Control
     void setPixelClockControl(UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
@@ -105,15 +107,21 @@ public:
     Power getPowerLimit(PowerControlType::Type controlType);
     void setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType,
         const Power& powerLimit);
+    void setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType,
+        const Power& powerLimit);
     TimeSpan getPowerLimitTimeWindow(PowerControlType::Type controlType);
     void setPowerLimitTimeWindow(UIntN policyIndex, PowerControlType::Type controlType,
+        const TimeSpan& timeWindow);
+    void setPowerLimitTimeWindowIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType,
         const TimeSpan& timeWindow);
     Percentage getPowerLimitDutyCycle(PowerControlType::Type controlType);
     void setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type controlType,
         const Percentage& dutyCycle);
+    void setPowerCapsLock(UIntN policyIndex, Bool lock);
 
     // Power status
     PowerStatus getPowerStatus(void);
+    Power getAveragePower(const PowerControlDynamicCaps& capabilities);
 
     // Platform Power Controls
     Bool isPlatformPowerLimitEnabled(PlatformPowerLimitType::Type limitType);
@@ -158,17 +166,6 @@ public:
     // utilization
     UtilizationStatus getUtilizationStatus(void);
 
-    // Hardware Duty Cycle
-    DptfBuffer getHardwareDutyCycleUtilizationSet(void);
-    Bool isEnabledByPlatform(void);
-    Bool isSupportedByPlatform(void);
-    Bool isEnabledByOperatingSystem(void);
-    Bool isSupportedByOperatingSystem(void);
-    Bool isHdcOobEnabled(void);
-    void setHdcOobEnable(const UInt8& hdcOobEnable);
-    void setHardwareDutyCycle(const Percentage& dutyCycle);
-    Percentage getHardwareDutyCycle(void);
-
 private:
 
     // hide the copy constructor and assignment operator.
@@ -177,7 +174,7 @@ private:
 
     Bool m_domainCreated;
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
     ParticipantInterface* m_theRealParticipant;
 
     UIntN m_participantIndex;
@@ -275,15 +272,6 @@ private:
     // utilization
     UtilizationStatus* m_utilizationStatus;
 
-    // Hardware Duty Cycle
-    DptfBuffer m_hardwareDutyCycleUtilizationSet;
-    Percentage* m_hardwareDutyCycle;
-    Bool* m_isEnabledByPlatform;
-    Bool* m_isSupportedByPlatform;
-    Bool* m_isEnabledByOperatingSystem;
-    Bool* m_isSupportedByOperatingSystem;
-    Bool* m_isHdcOobEnabled;
-
     void clearDomainCachedDataActiveControl();
     void clearDomainCachedDataConfigTdpControl();
     void clearDomainCachedDataCoreControl();
@@ -299,7 +287,5 @@ private:
     void clearDomainCachedDataRfProfileStatus();
     void clearDomainCachedDataTemperature();
     void clearDomainCachedDataUtilizationStatus();
-    void clearDomainCachedDataHardwareDutyCycle();
-    void clearDomainCachedDataHdcOobEnable();
     void clearDomainCachedDataPlatformPowerStatus();
 };

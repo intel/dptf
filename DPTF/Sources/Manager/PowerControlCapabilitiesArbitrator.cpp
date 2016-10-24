@@ -38,6 +38,14 @@ Bool PowerControlCapabilitiesArbitrator::arbitrate(
     return (prevArbitratedCaps != nextArbitratedCaps);
 }
 
+Bool PowerControlCapabilitiesArbitrator::arbitrateLockRequests(UIntN policyIndex, Bool lock)
+{
+    Bool previousLock = getArbitratedLock();
+    updatePolicyLockRequest(lock, policyIndex);
+    Bool newLock = getArbitratedLock();
+    return (previousLock != newLock);
+}
+
 void PowerControlCapabilitiesArbitrator::updatePolicyRequest(
     const PowerControlDynamicCapsSet &capSet, UIntN policyIndex)
 {
@@ -53,6 +61,11 @@ void PowerControlCapabilitiesArbitrator::updatePolicyRequest(
     }
 }
 
+void PowerControlCapabilitiesArbitrator::updatePolicyLockRequest(Bool lock, UIntN policyIndex)
+{
+    m_requestedLocks[policyIndex] = lock;
+}
+
 PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::getArbitratedPowerControlCapabilities() const
 {
     std::vector<PowerControlDynamicCaps> allCaps;
@@ -61,9 +74,19 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::getArbitratedPowe
     {
         Power maxPowerLimit = getLowestMaxPowerLimit(*controlType);
         Power minPowerLimit = getHighestMinPowerLimit(*controlType);
+        if (maxPowerLimit < minPowerLimit)
+        {
+            minPowerLimit = maxPowerLimit;
+        }
+
         Power stepSize = getHighestPowerLimitStep(*controlType);
         TimeSpan maxTimeWindow = getLowestMaxTimeWindow(*controlType);
         TimeSpan minTimeWindow = getHighestMinTimeWindow(*controlType);
+        if (maxTimeWindow < minTimeWindow)
+        {
+            minTimeWindow = maxTimeWindow;
+        }
+
         PowerControlDynamicCaps caps(*controlType,
             minPowerLimit, maxPowerLimit, stepSize,
             minTimeWindow, maxTimeWindow,
@@ -73,6 +96,19 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::getArbitratedPowe
     return PowerControlDynamicCapsSet(allCaps);
 }
 
+Bool PowerControlCapabilitiesArbitrator::getArbitratedLock() const
+{
+    for (auto lockRequest = m_requestedLocks.begin(); lockRequest != m_requestedLocks.end(); lockRequest++)
+    {
+        if (lockRequest->second == true)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void PowerControlCapabilitiesArbitrator::removeRequestsForPolicy(UIntN policyIndex)
 {
     m_requestedMaxPowerLimit.erase(policyIndex);
@@ -80,6 +116,7 @@ void PowerControlCapabilitiesArbitrator::removeRequestsForPolicy(UIntN policyInd
     m_requestedPowerLimitStep.erase(policyIndex);
     m_requestedMaxTimeWindow.erase(policyIndex);
     m_requestedMinTimeWindow.erase(policyIndex);
+    m_requestedLocks.erase(policyIndex);
 }
 
 Power PowerControlCapabilitiesArbitrator::getLowestMaxPowerLimit(PowerControlType::Type controlType) const

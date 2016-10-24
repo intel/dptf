@@ -32,7 +32,7 @@
 #define MAX_SYSFS_STRING 4 * 1024
 #define MAX_SYSFS_PATH 256
 #define MAX_FMT_STR_LEN 15 // "%<Int32>s"
-#define THERMAL_ZONE_NAME_LEN 13
+#define MAX_ZONE_NAME_LEN 56
 #define HID_LEN 8
 #define DPTF_PARTICIPANT_PREFIX "INT340"
 #define ACPI_DPTF "INT3400:00"
@@ -49,10 +49,13 @@ static int sysfsGetString(char *path, char *filename, char *str, size_t buf_len)
 static int sysfsGetU64(char *path, char *filename, u64 *p_u64);
 static int sysfsSetU64(char *path, char *filename, u64 val);
 static int sysfsSetString(char *path, char *filename, char *val);
+static void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
 static int scanPCI(void);
 static int scanPlat(void);
 static int scanThermal(void);
-static eEsifError newParticipantCreate (
+static Bool match_thermal_zone(const char *matchToName, char *participant_path);
+static enum esif_rc get_participant_name_alias(const char *ACPI_name, char *ACPI_alias);
+static eEsifError newParticipantCreate(
 	UInt8 version,
 	esif_guid_t classGuid,
 	enum esif_participant_enum enumerator,
@@ -76,7 +79,7 @@ enum zoneType {
 struct thermalZone {
 	int zoneId;
 	enum zoneType zoneType;
-	char acpiCode[THERMAL_ZONE_NAME_LEN];
+	char acpiCode[MAX_ZONE_NAME_LEN];
 	char thermalPath[MAX_SYSFS_PATH];
 };
 
@@ -186,7 +189,16 @@ void SysfsRegisterParticipants ()
 	scanThermal();
 	scanPCI();
 	scanPlat();
-	
+
+#ifdef ESIF_ATTR_OS_ANDROID
+	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3406")) {
+		SysfsRegisterCustomParticipant("INT3406", "TDSP", (UInt32)ESIF_DOMAIN_TYPE_INVALID);
+	}
+	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3408")) {
+		SysfsRegisterCustomParticipant("INT3408", "WWAN", (UInt32)ESIF_DOMAIN_TYPE_WWAN);
+	}
+#endif
+
 	ESIF_TRACE_EXIT_INFO();
 }
 
@@ -309,7 +321,9 @@ static int scanPlat(void)
 {
 	DIR *dir;
 	struct dirent **namelist;
+	struct dirent **participantNamelist;
 	int n;
+	int p;
 	int prefix_len = esif_ccb_strlen(DPTF_PARTICIPANT_PREFIX,ESIF_NAME_LEN);
 	char *dptf_prefix = DPTF_PARTICIPANT_PREFIX;
 	int i;
@@ -352,18 +366,37 @@ static int scanPlat(void)
 			if (sysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
 				int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
 				char *ACPI_name = participant_scope + (scope_len - 4);
-				int thermal_counter = 0;
+				char *ACPI_alias = NULL;
 				
-				/* map to thermal zone */
-				for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
-					struct thermalZone tz = (struct thermalZone)thermalZones[thermal_counter];
-					if (esif_ccb_strcmp(tz.acpiCode, ACPI_name)==0) {
-						esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s", tz.thermalPath);
-						break;
-					}
+				ACPI_alias = esif_ccb_malloc(MAX_ZONE_NAME_LEN);
+				if (ACPI_alias == NULL) {
+					//no memory
+					goto exit_participant; 
 				}
 				
+				/* map to thermal zone */
+				get_participant_name_alias(ACPI_name, ACPI_alias);	
+				if (match_thermal_zone(ACPI_alias, participant_path) == ESIF_FALSE) {
+					//retry without alias, best effort
+					if (match_thermal_zone(ACPI_name, participant_path) == ESIF_FALSE) {
+					/* Optimize Device Path */
+						p = scandir(participant_path, &participantNamelist, 0, alphasort);
+						if (p < 0) {
+						//no scan
+						}
+						else {
+							while (p--) {
+								if (esif_ccb_strcmp(participantNamelist[p]->d_name, "thermal_cooling")==0) {
+								esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s/%s", SYSFS_PLATFORM, namelist[n]->d_name, participantNamelist[p]->d_name);
+								break;
+								}
+							}
+						}	
+					}
+				}
+
 				newParticipantCreate(ESIF_PARTICIPANT_VERSION,classGuid,ESIF_PARTICIPANT_ENUM_SYSFS,0x0,ACPI_name,ACPI_name,"N/A",hid,participant_path,participant_scope,participant_scope,acpiUID,ptype);
+				esif_ccb_free(ACPI_alias);
 			}
 			
 		
@@ -398,7 +431,7 @@ static int scanThermal(void)
 		while (n--) {
 			enum zoneType zt = THERM;
 			char target_path[MAX_SYSFS_PATH] = { 0 };
-			char acpi_name[THERMAL_ZONE_NAME_LEN] = { 0 };
+			char acpi_name[MAX_ZONE_NAME_LEN] = { 0 };
 			char *zone_indicator = NULL;
 
 			/* find out if cooling device or thermal zone (or invalid) */
@@ -419,7 +452,7 @@ static int scanThermal(void)
 				struct thermalZone tz = { 0 };
 				tz.zoneId = 0;
 				tz.zoneType = zt;
-				esif_ccb_sprintf(THERMAL_ZONE_NAME_LEN,tz.acpiCode,"%s",acpi_name);
+				esif_ccb_sprintf(MAX_ZONE_NAME_LEN,tz.acpiCode,"%s",acpi_name);
 				esif_ccb_sprintf(MAX_SYSFS_PATH,tz.thermalPath,"%s",target_path);
 				thermalZones[thermal_counter] = tz;
 				thermal_counter++;
@@ -435,4 +468,50 @@ exit_zone:
 	g_zone_count = thermal_counter;
 	
 	return 0;
+}
+
+static Bool match_thermal_zone(const char *matchToName, char *participant_path)
+{
+	int thermal_counter = 0;
+	Bool thermalZoneFound = ESIF_FALSE;
+	
+	for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
+		struct thermalZone tz = (struct thermalZone)thermalZones[thermal_counter];
+		if (esif_ccb_strcmp(tz.acpiCode, matchToName)==0) {
+			thermalZoneFound = ESIF_TRUE;
+			esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s", tz.thermalPath);
+			break;
+		}
+	}
+	
+	return thermalZoneFound;
+}
+
+static enum esif_rc get_participant_name_alias(const char *ACPI_name, char *ACPI_alias)
+{
+	enum esif_rc rc = ESIF_OK;
+	struct { const char *name; const char *alias; } participant_aliases[] = {
+#ifdef ESIF_ATTR_OS_ANDROID
+		{ "TCHG", "bq25890-charger" },
+#endif
+		{ NULL, NULL }
+	};
+	int j = 0;
+
+	if (ACPI_name == NULL || ACPI_alias == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	// Lookup Participant Name Alias in list and return it if found otherwise use name
+	for (j = 0; participant_aliases[j].name != NULL && participant_aliases[j].alias != NULL; j++) {
+		if (esif_ccb_strcmp(ACPI_name, participant_aliases[j].name) == 0) {
+			esif_ccb_memcpy(ACPI_alias, participant_aliases[j].alias, MAX_ZONE_NAME_LEN);
+			goto exit;
+		}
+	}
+	esif_ccb_memcpy(ACPI_alias, ACPI_name, MAX_ZONE_NAME_LEN);
+
+exit:
+	return rc;
 }

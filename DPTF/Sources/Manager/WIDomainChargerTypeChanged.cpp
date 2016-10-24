@@ -33,7 +33,7 @@ WIDomainChargerTypeChanged::~WIDomainChargerTypeChanged(void)
 
 void WIDomainChargerTypeChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainChargerTypeChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainChargerTypeChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainChargerTypeChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainChargerTypeChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainChargerTypeChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainChargerTypeChanged", i);
         }
     }
 }

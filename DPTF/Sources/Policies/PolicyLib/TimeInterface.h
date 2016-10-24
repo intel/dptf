@@ -20,11 +20,11 @@
 
 #include "Dptf.h"
 
-// provides an interface for objects to return the current time in milliseconds.  this is primarily useful for being
+// provides an interface for objects to return the current time.  this is primarily useful for being
 // able to exercise the same code paths in testing as in production.
 class dptf_export TimeInterface
 {
 public:
 
-    virtual UInt64 getCurrentTimeInMilliseconds(void) = 0;
+    virtual TimeSpan getCurrentTime(void) = 0;
 };

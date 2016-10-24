@@ -22,8 +22,8 @@
 #include "DptfManagerInterface.h"
 class PolicyManager;
 class Policy;
-class ParticipantManager;
-class WorkItemQueueManager;
+class ParticipantManagerInterface;
+class WorkItemQueueManagerInterface;
 class EsifServices;
 
 class PolicyServices
@@ -36,8 +36,8 @@ public:
     UIntN getPolicyIndex(void) const;
     PolicyManager* getPolicyManager(void) const;
     Policy* getPolicy(void) const;
-    ParticipantManager* getParticipantManager(void) const;
-    WorkItemQueueManager* getWorkItemQueueManager(void) const;
+    ParticipantManagerInterface* getParticipantManager(void) const;
+    WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const;
     EsifServices* getEsifServices(void) const;
     void throwIfNotWorkItemThread(void) const;
 
@@ -47,7 +47,7 @@ private:
     UIntN m_policyIndex;
     PolicyManager* m_policyManager;
     Policy* m_policy;
-    ParticipantManager* m_participantManager;
-    WorkItemQueueManager* m_workItemQueueManager;
+    ParticipantManagerInterface* m_participantManager;
+    WorkItemQueueManagerInterface* m_workItemQueueManager;
     EsifServices* m_esifServices;
 };

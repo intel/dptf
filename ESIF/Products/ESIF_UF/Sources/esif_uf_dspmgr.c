@@ -169,12 +169,25 @@ static eEsifError insert_primitive(
 	EsifFpcPrimitive *primitivePtr
 	)
 {
+	EsifFpcActionPtr actionPtr = NULL;
+	unsigned int i = 0;
+
 	if (NULL == dspPtr) {
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 	if (NULL == primitivePtr) {
 		return ESIF_E_NULL_PRIMITIVE;
 	} 
+
+	/* Update the DSP metadata with the types of actions contained in the DSP */
+	actionPtr = (EsifFpcActionPtr)(primitivePtr + 1);
+	for (i = 0; i < primitivePtr->num_actions; i++, actionPtr++) {
+		if (actionPtr->type < (sizeof(dspPtr->contained_actions)/sizeof(*dspPtr->contained_actions)) &&
+			actionPtr->type >= 0) {
+			dspPtr->contained_actions[actionPtr->type] = 1;
+		}
+	}
+
 	return esif_ht_add_item(dspPtr->ht_ptr, /* Hash Table  */
 		(UInt8 *)&primitivePtr->tuple,	/* Key */
 		sizeof(primitivePtr->tuple),/* Size Of Key */
@@ -670,6 +683,9 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	if (esif_ccb_strstr(&path[0], ".edp")) {
 		/* EDP - Only Read The FPC Part */
 		edpSize = (UInt32)IOStream_GetSize(ioPtr);
+		if (!edpSize) {
+			goto exit;
+		}
 		numFpcBytesRead = IOStream_Read(ioPtr, &edp_dir, sizeof(edp_dir));
 		if (!esif_verify_edp(&edp_dir, numFpcBytesRead)) {
 			ESIF_TRACE_ERROR("Invalid EDP Header: Signature=%4.4s Version=%d\n", (char *)&edp_dir.signature, edp_dir.version);
@@ -789,7 +805,6 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 		}
 	}
 
-
 	/* If No Available Slots Return */
 	if (i >= MAX_DSP_MANAGER_ENTRY) {
 		esif_ccb_write_unlock(&g_dm.lock);
@@ -809,7 +824,7 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 
 	esif_ccb_write_unlock(&g_dm.lock);
 	rc = ESIF_OK;
-	ESIF_TRACE_INFO("Create entry in dsp manager sucessfully for %s\n", file_ptr->filename);
+	ESIF_TRACE_INFO("Create entry in dsp manager successfully for %s\n", file_ptr->filename);
 
 exit:
 	IOStream_Destroy(ioPtr);
@@ -828,10 +843,9 @@ static eEsifError esif_dsp_file_scan()
 {
 	eEsifError rc = ESIF_OK;
 	struct esif_ccb_file *ffdPtr = NULL;
-	esif_ccb_file_enum_t findHandle = INVALID_HANDLE_VALUE;
+	esif_ccb_file_enum_t findHandle = ESIF_INVALID_FILE_ENUM_HANDLE;
 	char path[MAX_PATH]    = {0};
 	char pattern[MAX_PATH] = {0};
-	int files = 0;
 	StringPtr namesp = ESIF_DSP_NAMESPACE;
 	DataVaultPtr DB  = DataBank_GetNameSpace(g_DataBankMgr, namesp);
 
@@ -853,7 +867,6 @@ static eEsifError esif_dsp_file_scan()
 					if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
 						esif_ccb_free(ffdPtr);
 					}
-					files++;
 				}
 				EsifData_Set(key, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 				EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
@@ -883,7 +896,7 @@ static eEsifError esif_dsp_file_scan()
 	}
 
 	findHandle = esif_ccb_file_enum_first(path, pattern, ffdPtr);
-	if (INVALID_HANDLE_VALUE == findHandle) {
+	if (ESIF_INVALID_FILE_ENUM_HANDLE == findHandle) {
 		rc = ESIF_E_UNSPECIFIED;
 		goto exit;
 	}
@@ -896,7 +909,6 @@ static eEsifError esif_dsp_file_scan()
 				esif_ccb_free(ffdPtr);
 			}
 			ffdPtr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffdPtr));
-			files++;
 		}
 	} while (esif_ccb_file_enum_next(findHandle, pattern, ffdPtr));
 	esif_ccb_file_enum_close(findHandle);
@@ -914,7 +926,7 @@ static eEsifError esif_dsp_table_build()
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_TRACE_INFO("Build DSP Table");
-	esif_dsp_file_scan();
+	rc = esif_dsp_file_scan();
 	return rc;
 }
 
@@ -1124,25 +1136,24 @@ enum dspSelectorWeight weight
 	return score;
 }
 
-eEsifError EsifDspMgrInit()
+eEsifError EsifDspMgrInit(void)
 {
+	eEsifError rc = ESIF_OK;
 	ESIF_TRACE_ENTRY_INFO();
 
 	esif_ccb_lock_init(&g_dm.lock);
 
-	esif_dsp_table_build();
-	EsifDspInit();
+	rc = esif_dsp_table_build();
 
-	ESIF_TRACE_EXIT_INFO();
-	return ESIF_OK;
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
 }
 
 
-void EsifDspMgrExit()
+void EsifDspMgrExit(void)
 {
 	ESIF_TRACE_ENTRY_INFO();
 
-	EsifDspExit();
 	esif_dsp_table_destroy();
 	esif_ccb_lock_uninit(&g_dm.lock);
 

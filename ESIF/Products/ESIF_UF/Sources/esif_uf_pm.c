@@ -25,7 +25,7 @@
 #include "esif_dsp.h"		/* Device Support Package */
 #include "esif_uf_eventmgr.h"
 #include "esif_participant.h"
-
+#include "esif_uf_ccb_thermalapi.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -94,6 +94,9 @@ void EsifUp_PollParticipant(
 	EsifUpPtr self
 	);
 
+eEsifError EsifUp_ReevaluateParticipantCaps(
+	EsifUpPtr self
+);
 
 /*
  * ===========================================================================
@@ -112,6 +115,10 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	UInt8 upInstance,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	);
+
+static eEsifError EsifUpPm_ActionChangeHandler(
 	EsifDataPtr eventDataPtr
 	);
 
@@ -271,7 +278,7 @@ eEsifError EsifUpPm_RegisterParticipant(
 	EsifUp_DspReadyInit(upPtr);
 
 	/* Now offer this participant to each running application */
-	rc = EsifAppMgrCreateParticipantInAllApps(upPtr);
+	rc = EsifAppMgr_CreateParticipantInAllApps(upPtr);
 
 exit:
 	if (isUppMgrLocked == ESIF_TRUE) {
@@ -322,17 +329,17 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 		creationDataPtr = (struct esif_ipc_event_data_create_participant *) eventDataPtr->buf_ptr;
 
 		if (EsifUpPm_DoesAvailableParticipantExistByName(creationDataPtr->name)) {
-			ESIF_TRACE_WARN("Participant %s has already existed in UF\n", creationDataPtr->name);
+			ESIF_TRACE_WARN("Participant %s already exists in UF\n", creationDataPtr->name);
 			goto exit;
 		}
 
 		rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, creationDataPtr, &newInstance);
 		if (ESIF_OK != rc) {
-			ESIF_TRACE_ERROR("Fail to add participant %s in participant manager\n", creationDataPtr->name);
+			ESIF_TRACE_ERROR("Failed to add participant %s to participant manager\n", creationDataPtr->name);
 			goto exit;
 		}
 
-		ESIF_TRACE_DEBUG("\nCreate new UF participant: %s, instance = %d\n", creationDataPtr->name, newInstance);
+		ESIF_TRACE_INFO("\nCreate new UF participant: %s, instance = %d\n", creationDataPtr->name, newInstance);
 		break;
 
 	case ESIF_EVENT_PARTICIPANT_SUSPEND:
@@ -354,6 +361,11 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 			rc = EsifUpPm_UnregisterParticipant(eParticipantOriginLF, upInstance);
 		break;
 
+	case ESIF_EVENT_ACTION_LOADED:
+	case ESIF_EVENT_ACTION_UNLOADED:
+		EsifUpPm_ActionChangeHandler(eventDataPtr);
+		break;
+
 	default:
 		break;
 	}
@@ -361,6 +373,56 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 exit:
 	return rc;
 }
+
+static eEsifError EsifUpPm_ActionChangeHandler(
+	EsifDataPtr eventDataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt8 i = 0;
+	EsifUpPtr upPtr = NULL;
+	EsifDspPtr dspPtr = NULL;
+	UInt32 actionType = 0;
+
+	if ((NULL == eventDataPtr) ||
+		(NULL == eventDataPtr->buf_ptr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if ((eventDataPtr->buf_len < sizeof(actionType)) ||
+		(eventDataPtr->data_len < sizeof(actionType))) {
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	actionType = *((UInt32 *)eventDataPtr->buf_ptr);
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+
+		upPtr = EsifUpPm_GetAvailableParticipantByInstance(i);
+		if (NULL == upPtr) {
+			continue;
+		}
+
+		/* Check if the action type is used by the participant or not */
+		dspPtr = EsifUp_GetDsp(upPtr);
+		if (dspPtr == NULL) {
+			EsifUp_PutRef(upPtr);
+			continue;
+		}
+
+		if ((actionType < (sizeof(dspPtr->contained_actions)/sizeof(*dspPtr->contained_actions))) &&
+			(dspPtr->contained_actions[actionType] != 0)) {
+			EsifUp_ReevaluateParticipantCaps(upPtr);
+		}
+
+		EsifUp_PutRef(upPtr);
+	}
+exit:
+	return rc;
+}
+
 
 eEsifError EsifUFPollStart(int pollInterval)
 {
@@ -451,7 +513,7 @@ eEsifError EsifUpPm_UnregisterParticipant(
 	esif_ccb_write_unlock(&g_uppMgr.fLock);
 
 	if (NULL != upPtr) {
-		rc = EsifAppMgrDestroyParticipantInAllApps(upPtr);
+		rc = EsifAppMgr_DestroyParticipantInAllApps(upPtr);
 	}
 
 	ESIF_TRACE_INFO("Unregistered participant, instant id = %d\n", upInstance);
@@ -504,7 +566,7 @@ eEsifError EsifUpPm_ResumeParticipant(
 
 	if (NULL != upPtr) {
 		EsifUp_ResumeParticipant(upPtr);
-		rc = EsifAppMgrCreateParticipantInAllApps(upPtr);
+		rc = EsifAppMgr_CreateParticipantInAllApps(upPtr);
 	}
 
 	ESIF_TRACE_INFO("Reregistered participant, instant id = %d\n", upInstance);
@@ -857,7 +919,9 @@ eEsifError EsifUpPm_Init(void)
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
-	
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_LOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
@@ -872,6 +936,8 @@ void EsifUpPm_Exit(void)
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_LOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 
 	/* Clean up resources */
 	EsifUpPm_DestroyParticipants();

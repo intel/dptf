@@ -22,7 +22,7 @@
 DeferredWorkItem::DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution) :
     m_workItem(workItem)
 {
-    m_deferredProcessingTime = EsifTime() + timeUntilExecution.asMillisecondsInt();
+    m_deferredProcessingTime = EsifTime().getTimeStamp() + timeUntilExecution;
 }
 
 DeferredWorkItem::~DeferredWorkItem(void)
@@ -40,7 +40,7 @@ FrameworkEvent::Type DeferredWorkItem::getFrameworkEventType(void) const
     return m_workItem->getFrameworkEventType();
 }
 
-EsifTime DeferredWorkItem::getWorkItemCreationTime(void) const
+const TimeSpan& DeferredWorkItem::getWorkItemCreationTime(void) const
 {
     return m_workItem->getWorkItemCreationTime();
 }
@@ -50,7 +50,7 @@ void DeferredWorkItem::setWorkItemExecutionStartTime(void)
     m_workItem->setWorkItemExecutionStartTime();
 }
 
-EsifTime DeferredWorkItem::getWorkItemExecutionStartTime(void) const
+const TimeSpan& DeferredWorkItem::getWorkItemExecutionStartTime(void) const
 {
     return m_workItem->getWorkItemExecutionStartTime();
 }
@@ -80,7 +80,7 @@ WorkItemInterface* DeferredWorkItem::getWorkItem(void) const
     return m_workItem;
 }
 
-EsifTime DeferredWorkItem::getDeferredProcessingTime(void) const
+const TimeSpan& DeferredWorkItem::getDeferredProcessingTime(void) const
 {
     return m_deferredProcessingTime;
 }

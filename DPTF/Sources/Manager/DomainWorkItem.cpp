@@ -18,6 +18,7 @@
 
 #include "DomainWorkItem.h"
 #include "Participant.h"
+#include "EsifServices.h"
 
 DomainWorkItem::DomainWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType,
     UIntN participantIndex, UIntN domainIndex) :
@@ -44,4 +45,39 @@ std::string DomainWorkItem::toXml(void) const
 UIntN DomainWorkItem::getDomainIndex(void) const
 {
     return m_domainIndex;
+}
+
+void DomainWorkItem::writeDomainWorkItemErrorMessage(const std::exception & ex, const std::string & functionName) const
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+    message.setExceptionCaught(functionName, ex.what());
+    getEsifServices()->writeMessageError(message);
+}
+
+void DomainWorkItem::writeDomainWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex) const
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+    message.setExceptionCaught(functionName, ex.what());
+    message.setPolicyIndex(policyIndex);
+    getEsifServices()->writeMessageError(message);
+}
+
+void DomainWorkItem::writeDomainWorkItemErrorMessage(const std::string& errorMessage) const
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, errorMessage);
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+    getEsifServices()->writeMessageError(message);
+}
+
+void DomainWorkItem::writeDomainWorkItemStartingInfoMessage() const
+{
+    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item.");
+    message.setFrameworkEvent(getFrameworkEventType());
+    message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+    getEsifServices()->writeMessageInfo(message);
 }

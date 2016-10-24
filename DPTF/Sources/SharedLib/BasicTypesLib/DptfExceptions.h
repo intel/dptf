@@ -52,6 +52,13 @@ public:
     memory_allocation_failure(const std::string& description);
 };
 
+class file_open_create_failure : public dptf_exception
+{
+public:
+
+    file_open_create_failure(const std::string& description);
+};
+
 class buffer_too_small : public dptf_exception
 {
 public:

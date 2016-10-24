@@ -32,7 +32,7 @@
 
 static eEsifError ActionConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
-	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifPrimitiveTuple tuple,
 	const EsifDataPtr requestPtr
 	);
 
@@ -109,12 +109,6 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	ESIF_ASSERT(NULL != requestPtr);
 	ESIF_ASSERT(NULL != requestPtr->buf_ptr);
 
-	/* 255 To delete temperature based key */
-	if (ESIF_DATA_TEMPERATURE == requestPtr->type &&
-		255 == *(UInt32 *)requestPtr->buf_ptr) {
-		flags |= ESIF_SERVICE_CONFIG_DELETE;
-	}
-
 	/* Optional 3rd Parameter = Config Flags */
 	if (fpcActionPtr->param_valid[2]) {
 		nparams++;
@@ -160,7 +154,7 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	}
 
 	if (ESIF_OK == rc) {
-		ActionConfigSignalChangeEvents(upPtr, primitivePtr, requestPtr);
+		ActionConfigSignalChangeEvents(upPtr, primitivePtr->tuple, requestPtr);
 	}
 exit:
 	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
@@ -172,19 +166,21 @@ exit:
 
 static eEsifError ActionConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
-	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifPrimitiveTuple tuple,
 	const EsifDataPtr requestPtr
 	)
 {
 	eEsifError rc    = ESIF_OK;
 	eEsifEventType targetEvent = 0;
 	char domainStr[8] = "";
+	esif_temp_t hysteresis_val = 0;
+	esif_temp_t *hysteresis_ptr = NULL;
+	esif_time_t polling_val = 0;
+	esif_time_t *polling_ptr = NULL;
 
 	ESIF_ASSERT(upPtr != NULL);
-	ESIF_ASSERT(primitivePtr != NULL);
-	ESIF_ASSERT(requestPtr != NULL);
 
-	switch (primitivePtr->tuple.id) {
+	switch (tuple.id) {
 	case SET_TRIP_POINT_ACTIVE:
 	case SET_TRIP_POINT_CRITICAL:
 	case SET_TRIP_POINT_HOT:
@@ -202,10 +198,13 @@ static eEsifError ActionConfigSignalChangeEvents(
 		targetEvent = ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED;
 		break;
 	case SET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE:
-		targetEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_CONDITIONS_CHANGED;
+		targetEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED;
 		break;
 	case SET_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE:
-		targetEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_ACTIONS_CHANGED;
+		targetEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED;
+		break;
+	case SET_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE:
+		targetEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED;
 		break;
 	case SET_VIRTUAL_SENSOR_CALIB_TABLE:
 		targetEvent = ESIF_EVENT_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED;
@@ -226,31 +225,38 @@ static eEsifError ActionConfigSignalChangeEvents(
 		break;
 	case SET_TEMPERATURE_THRESHOLD_HYSTERESIS:
 		targetEvent = ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED;
-		if (requestPtr->buf_ptr == NULL) {
-			rc = ESIF_E_PARAMETER_IS_NULL;
-			goto exit;
+		if (requestPtr != NULL) {
+			if (requestPtr->buf_ptr == NULL) {
+				rc = ESIF_E_PARAMETER_IS_NULL;
+				goto exit;
+			}
+			hysteresis_val = *(esif_temp_t *)requestPtr->buf_ptr;
+			hysteresis_ptr = &hysteresis_val;
+
+			esif_primitive_domain_str(tuple.domain, domainStr, sizeof(domainStr));
+			ESIF_TRACE_DEBUG("Hysteresis changed for domain:%s\n", domainStr);
+			EsifUp_UpdateHysteresis(upPtr, tuple.domain, hysteresis_ptr);
 		}
-		esif_primitive_domain_str(primitivePtr->tuple.domain, domainStr, sizeof(domainStr));
-		ESIF_TRACE_DEBUG("Hysteresis changed for domain:%s\n", domainStr);
-		EsifUp_UpdateHysteresis(upPtr, primitivePtr->tuple.domain, *(esif_temp_t *) requestPtr->buf_ptr);
 		break;
 	case SET_PARTICIPANT_SAMPLE_PERIOD:
 		targetEvent = 0;
-		if (requestPtr->buf_ptr == NULL) {
-			rc = ESIF_E_PARAMETER_IS_NULL;
-			goto exit;
+		if (requestPtr != NULL) {
+			if (requestPtr->buf_ptr == NULL) {
+				rc = ESIF_E_PARAMETER_IS_NULL;
+				goto exit;
+			}
+			polling_val = *(esif_time_t *)requestPtr->buf_ptr;
+			polling_ptr = &polling_val;
+
+			esif_primitive_domain_str(tuple.domain, domainStr, sizeof(domainStr));
+			ESIF_TRACE_DEBUG("Participant sample period changed for domain:%s\n", domainStr);
+			EsifUp_UpdatePolling(upPtr, tuple.domain, polling_ptr);
 		}
-		esif_primitive_domain_str(primitivePtr->tuple.domain, domainStr, sizeof(domainStr));
-		ESIF_TRACE_DEBUG("Participant sample period changed for domain:%s\n", domainStr);
-		EsifUp_UpdatePolling(upPtr, primitivePtr->tuple.domain, *(UInt32 *) requestPtr->buf_ptr);
 		break;
 	case SET_DISPLAY_BRIGHTNESS_LEVELS:
 	case SET_DISPLAY_CAPABILITY:
 	case SET_DISPLAY_DEPTH_LIMIT:
 		targetEvent = ESIF_EVENT_DOMAIN_DISPLAY_CAPABILITY_CHANGED;
-		break;
-	case SET_PDR_TABLE:
-		targetEvent = ESIF_EVENT_POWER_DEVICE_RELATIONSHIP_CHANGED;
 		break;
 	case SET_POWER_BOSS_CONDITIONS_TABLE:
 		targetEvent = ESIF_EVENT_POWER_BOSS_CONDITIONS_TABLE_CHANGED;
@@ -258,12 +264,24 @@ static eEsifError ActionConfigSignalChangeEvents(
 	case SET_POWER_BOSS_ACTIONS_TABLE:
 		targetEvent = ESIF_EVENT_POWER_BOSS_ACTIONS_TABLE_CHANGED;
 		break;
+	case SET_POWER_BOSS_MATH_TABLE:
+		targetEvent = ESIF_EVENT_POWER_BOSS_MATH_TABLE_CHANGED;
+		break;
+	case SET_EMERGENCY_CALL_MODE_TABLE:
+		targetEvent = ESIF_EVENT_EMERGENCY_CALL_MODE_TABLE_CHANGED;
+		break;
+	case SET_PID_ALGORITHM_TABLE:
+		targetEvent = ESIF_EVENT_PID_ALGORITHM_TABLE_CHANGED;
+		break;
+	case SET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE:
+		targetEvent = ESIF_EVENT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED;
+		break;
 	default:
 		targetEvent = 0;
 		break;
 	}
 	if (targetEvent > 0) {
-		EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), primitivePtr->tuple.domain, targetEvent, NULL);
+		EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), tuple.domain, targetEvent, NULL);
 	}	
 exit:
 	return rc;
@@ -290,7 +308,7 @@ static EsifActIfaceStatic g_config = {
 	ActionConfigSet
 };
 
-enum esif_rc EsifActConfigInit()
+eEsifError EsifActConfigInit()
 {
 	EsifActMgr_RegisterAction((EsifActIfacePtr)&g_config);
 	ESIF_TRACE_EXIT_INFO();
@@ -304,6 +322,17 @@ void EsifActConfigExit()
 	ESIF_TRACE_EXIT_INFO();
 }
 
+eEsifError EsifActConfigSignalChangeEvents(
+	EsifUpPtr upPtr,
+	const EsifPrimitiveTuple tuple,
+	const EsifDataPtr requestPtr)
+{
+	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
+	if (upPtr != NULL) {
+		rc = ActionConfigSignalChangeEvents(upPtr, tuple, requestPtr);
+	}
+	return rc;
+}
 
 /*****************************************************************************/
 /*****************************************************************************/

@@ -27,7 +27,7 @@ class PolicyServicesPlatformState final : public PolicyServices, public Platform
 public:
 
     PolicyServicesPlatformState(DptfManagerInterface* dptfManager, UIntN policyIndex);
-    virtual SensorMotion::Type getMotion(void) const override;
+    virtual OnOffToggle::Type getMotion(void) const override;
     virtual SensorOrientation::Type getOrientation(void) const override;
     virtual SensorSpatialOrientation::Type getSpatialOrientation(void) const override;
     virtual OsLidState::Type getLidState(void) const override;
@@ -38,4 +38,5 @@ public:
     virtual OsPlatformType::Type getPlatformType(void) const override;
     virtual OsDockMode::Type getDockMode(void) const override;
     virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const override;
+    virtual UIntN getMobileNotification(OsMobileNotificationType::Type notificationType) const override;
 };

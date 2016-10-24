@@ -22,17 +22,24 @@
 #include "DomainPowerControlInterface.h"
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
-#include "ConfigTdpDataSyncInterface.h"
 #include "ParticipantActivityLoggingInterface.h"
 
 class DomainPowerControlBase : public ControlBase, public DomainPowerControlInterface, public ParticipantActivityLoggingInterface
 {
-
     friend class PowerControlState;
+
 public:
     DomainPowerControlBase(UIntN participantIndex, UIntN domainIndex,
         ParticipantServicesInterface* participantServicesInterface);
     virtual ~DomainPowerControlBase();
-    Bool checkEnabled(PowerControlType::Type controlType);
+
+protected:
+    void updateEnabled(PowerControlType::Type controlType);
     void setEnabled(PowerControlType::Type controlType, Bool enable);
+    Bool isEnabled(PowerControlType::Type controlType) const;
+
+    Bool m_pl1Enabled;
+    Bool m_pl2Enabled;
+    Bool m_pl3Enabled;
+    Bool m_pl4Enabled;
 };

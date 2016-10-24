@@ -93,13 +93,13 @@ public:
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
 
-    Temperature primitiveExecuteGetAsTemperatureC(
+    Temperature primitiveExecuteGetAsTemperatureTenthK(
         esif_primitive_type primitive,
         UIntN participantIndex = Constants::Esif::NoParticipant,
         UIntN domainIndex = Constants::Esif::NoDomain,
         UInt8 instance = Constants::Esif::NoInstance);
 
-    void primitiveExecuteSetAsTemperatureC(
+    void primitiveExecuteSetAsTemperatureTenthK(
         esif_primitive_type primitive,
         Temperature temperature,
         UIntN participantIndex = Constants::Esif::NoParticipant,

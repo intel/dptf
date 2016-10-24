@@ -34,7 +34,7 @@ WIDomainConfigTdpCapabilityChanged::~WIDomainConfigTdpCapabilityChanged(void)
 
 void WIDomainConfigTdpCapabilityChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -42,7 +42,7 @@ void WIDomainConfigTdpCapabilityChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainConfigTdpCapabilityChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainConfigTdpCapabilityChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -61,7 +61,7 @@ void WIDomainConfigTdpCapabilityChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainConfigTdpCapabilityChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainConfigTdpCapabilityChanged", i);
         }
     }
 }

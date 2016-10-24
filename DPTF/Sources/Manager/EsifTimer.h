@@ -33,11 +33,11 @@ public:
     EsifTimer(esif_ccb_timer_cb callbackFunction, void* contextPtr = nullptr);
     ~EsifTimer(void);
 
-    void startTimer(EsifTime expirationTime);
+    void startTimer(const TimeSpan& expirationTime);
     void cancelTimer(void);
 
     Bool isExpirationTimeValid(void) const;
-    EsifTime getExpirationTime(void) const;
+    const TimeSpan& getExpirationTime(void) const;
 
 private:
 
@@ -50,11 +50,11 @@ private:
 
     Bool m_timerInitialized;
     esif_ccb_timer_t m_timer;
-    EsifTime m_expirationTime;
+    TimeSpan m_expirationTime;
 
     void esifTimerInit(void);
     void esifTimerKill(void);
-    void esifTimerSet(EsifTime expirationTime);
+    void esifTimerSet(const TimeSpan& expirationTime);
 
-    UInt64 calculateMilliSecondsUntilTimerExpires(EsifTime expirationTime);
+    UInt64 calculateMilliSecondsUntilTimerExpires(const TimeSpan& expirationTime);
 };

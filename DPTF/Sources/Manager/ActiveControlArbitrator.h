@@ -20,8 +20,6 @@
 
 #include "Dptf.h"
 
-class DptfManager;
-
 //
 // Arbitration Rule:
 //
@@ -31,11 +29,11 @@ class DptfManager;
 // 3) for control index the lowest index (which is highest fan speed) wins
 //
 
-class ActiveControlArbitrator
+class dptf_export ActiveControlArbitrator
 {
 public:
 
-    ActiveControlArbitrator(DptfManager* dptfManager);
+    ActiveControlArbitrator();
     ~ActiveControlArbitrator(void);
 
     // arbitrate() returns true if the arbitrated value has changed
@@ -49,15 +47,12 @@ public:
 
 private:
 
-    // hide the copy constructor and assignment operator.
+    // hide the copy constructor.
     ActiveControlArbitrator(const ActiveControlArbitrator& rhs);
-    ActiveControlArbitrator& operator=(const ActiveControlArbitrator& rhs);
-
-    DptfManager* m_dptfManager;
 
     Percentage m_arbitratedFanSpeedPercentage;
-    std::vector<Percentage> m_requestedfanSpeedPercentage;
+    std::map<UIntN, Percentage> m_requestedfanSpeedPercentage;
 
     UIntN m_arbitratedActiveControlIndex;
-    std::vector<UIntN> m_requestedActiveControlIndex;
+    std::map<UIntN, UIntN> m_requestedActiveControlIndex;
 };

@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainUtilization.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainUtilization::PolicyServicesDomainUtilization(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :

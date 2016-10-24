@@ -18,6 +18,7 @@
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_LOGGINGMGR
 
 #include "esif_uf_loggingmgr.h"
+#include "esif_temp.h"
 
 UInt32 g_statusCapability[] = {
 	ESIF_CAPABILITY_TYPE_TEMP_STATUS,
@@ -176,6 +177,8 @@ static void EsifLogMgr_DestroyScheduleTimer(EsifLoggingManagerPtr self);
 static void EsifLogMgr_ScheduledStartThread(const void *contextPtr);
 static void EsifLogMgr_DestroyParticipantLogData(EsifLoggingManagerPtr self, Bool destroyFlag);
 static void EsifLogMgr_DestroyEntry(EsifParticipantLogDataNodePtr curEntryPtr);
+static void EsifLogMgr_DestroyArgv(EsifLoggingManagerPtr self);
+
 //
 // PUBLIC INTERFACE---------------------------------------------------------------------
 //
@@ -336,9 +339,6 @@ void EsifLogMgr_ParticipantCreate(
 			nodePtr = nodePtr->next_ptr;
 		}
 		esif_ccb_write_unlock(&self->participantLogData.listLock);
-
-		//Update the header log to print the header info for this change
-		self->isLogHeader = ESIF_TRUE;
 	}
 }
 
@@ -386,8 +386,6 @@ void EsifLogMgr_Resume(EsifLoggingManagerPtr self)
 	if ((self->isLogSuspended == ESIF_TRUE) &&
 		(self->isInitialized == ESIF_TRUE) &&
 		EsifLogMgr_IsDataAvailableForLogging(self)) {
-		
-		self->isLogSuspended = ESIF_FALSE;
 
 		esif_ccb_write_lock(&self->participantLogData.listLock);
 		/*
@@ -407,6 +405,8 @@ void EsifLogMgr_Resume(EsifLoggingManagerPtr self)
 		}
 		esif_ccb_write_unlock(&self->participantLogData.listLock);
 		EsifLogMgr_ParticipantLogStart(self);
+
+		self->isLogSuspended = ESIF_FALSE;
 	}
 }
 
@@ -416,6 +416,7 @@ void EsifLogMgr_ParticipantDestroy(
 	)
 {
 	EsifLinkListNodePtr nodePtr = NULL;
+	EsifLinkListNodePtr nextNodePtr = NULL;
 	EsifParticipantLogDataNodePtr curEntryPtr = NULL;
 
 	ESIF_ASSERT(self != NULL);
@@ -423,23 +424,21 @@ void EsifLogMgr_ParticipantDestroy(
 	if ((self->isInitialized == ESIF_TRUE) &&
 		EsifLogMgr_IsDataAvailableForLogging(self)) {
 		/*
-		 * Loop through the complete list and send the enable event for the participantId
+		 * Loop through the complete list and send the disable event for the participantId
 		 */
 		esif_ccb_write_lock(&self->participantLogData.listLock);
 		nodePtr = self->participantLogData.list->head_ptr;
 		while (nodePtr != NULL) {
+			nextNodePtr = nodePtr->next_ptr;
 			curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
 			if ((curEntryPtr != NULL) &&
 				(curEntryPtr->participantId == participantId)) {
 				EsifLogMgr_DestroyEntry(curEntryPtr);
 				esif_link_list_node_remove(self->participantLogData.list, nodePtr);
 			}
-			nodePtr = nodePtr->next_ptr;
+			nodePtr = nextNodePtr;
 		}
 		esif_ccb_write_unlock(&self->participantLogData.listLock);
-
-		//Update the header log to print the header info for this change
-		self->isLogHeader = ESIF_TRUE;
 	}
 }
 
@@ -463,7 +462,7 @@ eEsifError EsifLogMgr_ParseCmdParticipantLog(
 	argv = shell->argv;
 	output = shell->outbuf;
 
-	if (argc <= PARTICITPANTLOG_CMD_INDEX) {
+	if (argc < (PARTICITPANTLOG_CMD_INDEX + 1)) {
 		EsifLogMgr_PrintLogStatus(self, output, OUT_BUF_LEN);
 		goto exit;
 	}
@@ -503,7 +502,6 @@ eEsifError EsifLogMgr_ParseCmdStart(
 	int argc = 0;
 	char **argv = NULL;
 	char *output = NULL;
-	UInt32 i = PARTICITPANTLOG_SUB_CMD_INDEX;
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(shell != NULL);
@@ -523,7 +521,7 @@ eEsifError EsifLogMgr_ParseCmdStart(
 	//Cleanup any active logging context here
 	EsifLogMgr_CleanupLoggingContext(self);
 
-	rc = EsifLogMgr_GetInputParameters(self, shell, i);
+	rc = EsifLogMgr_GetInputParameters(self, shell, PARTICITPANTLOG_SUB_CMD_INDEX);
 	if (rc != ESIF_OK) {
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Error invalid input arguments. See help for command usage\n");		
 		goto exit;
@@ -774,7 +772,8 @@ static eEsifError EsifLogMgr_ParseCmdSchedule(
 	}
 	else {
 		//Delay is specified as input
-		self->logScheduler.delay = (UInt32)esif_atoi(argv[i]);
+		int delay = esif_atoi(argv[i]);
+		self->logScheduler.delay = (delay < 0) ? 0 : (UInt32) delay;
 		if (self->logScheduler.delay < MIN_LOG_INTERVAL) {
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Input interval value is less than minimum supported value %d ms \n", MIN_LOG_INTERVAL);
 			rc = ESIF_E_NOT_SUPPORTED;
@@ -820,69 +819,84 @@ static eEsifError EsifLogMgr_GetInputParameters(
 	ESIF_ASSERT(shell != NULL);
 	ESIF_ASSERT(shell->outbuf != NULL);
 
+	/* We should not get here unless we have at least command */
+	ESIF_ASSERT(shell->argc >= (PARTICITPANTLOG_CMD_INDEX + 1));
+
+	/* We should should have at least as many arguments as the specified index requires */
+	ESIF_ASSERT((UInt32)shell->argc >= i);
+
 	argc = shell->argc;
 	argv = shell->argv;
 	output = shell->outbuf;
 
 	self->argc = 0;
-	// Default if no sub command is specified, or all is specified
-	// start logging for all data for all available participants
-	if (((UInt32)argc <= i) ||
-		(esif_ccb_stricmp(argv[i], "all") == 0)) {
+
+	/*
+	 * If there is no subcommand or subcommand is "all", set up for all
+	 */
+	if (((UInt32)argc < (i + 1)) || (((UInt32)argc == (i + 1)) && ((esif_ccb_stricmp(argv[i], "all") == 0)))) {
+
+		self->argv = esif_ccb_malloc(sizeof(*self->argv));
+		if (NULL == self->argv) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
 		self->argv[self->argc] = esif_ccb_strdup("all");
 		if (self->argv[self->argc] == NULL) {
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
 		self->argc++;
+		goto exit;
 	}
-	else {
-		// if subcommand is anything other than all and argument count is only 3
-		if ((i == ((UInt32)argc - 1) ||
-			argc >= MAX_COMMAND_ARGUMENTS)) {
-			ESIF_TRACE_ERROR("Error:Invalid input command.");
-			rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+
+	/*
+	 * Fail if the argument set doesn't contain full triplets
+	 */
+	if (((argc - i) % START_CMD_TRIPLET ) != 0) {
+		ESIF_TRACE_ERROR("Error:Invalid input command.");
+		rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		goto exit;
+	}
+
+	self->argv = esif_ccb_malloc(sizeof(*self->argv) * (argc - i));
+	if (NULL == self->argv) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	for (; i < ((UInt32)argc - 1);) {
+		//Participant Id
+		self->argv[self->argc] = esif_ccb_strdup(argv[i]);
+		if (self->argv[self->argc] == NULL) {
+			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
-		else {
-			for (; i < ((UInt32)argc - 1);) {
+		self->argc++;
+		i++;
 
-				if ((UInt32)argc < (i + START_CMD_TRIPLET)) {
-					ESIF_TRACE_ERROR("Error:Invalid input command.");
-					rc = ESIF_E_INVALID_ARGUMENT_COUNT;
-					goto exit;
-				}
-
-				//Participant Id
-				self->argv[self->argc] = esif_ccb_strdup(argv[i]);
-				if (self->argv[self->argc] == NULL) {
-					rc = ESIF_E_NO_MEMORY;
-					goto exit;
-				}
-				self->argc++;
-				i++;
-
-				//Domain Id
-				self->argv[self->argc] = esif_ccb_strdup(argv[i]);
-				if (self->argv[self->argc] == NULL) {
-					rc = ESIF_E_NO_MEMORY;
-					goto exit;
-				}
-				self->argc++;
-				i++;
-
-				//Capability Mask
-				self->argv[self->argc] = esif_ccb_strdup(argv[i]);
-				if (self->argv[self->argc] == NULL) {
-					rc = ESIF_E_NO_MEMORY;
-					goto exit;
-				}
-				self->argc++;
-				i++;
-			}
+		//Domain Id
+		self->argv[self->argc] = esif_ccb_strdup(argv[i]);
+		if (self->argv[self->argc] == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
 		}
+		self->argc++;
+		i++;
+
+		//Capability Mask
+		self->argv[self->argc] = esif_ccb_strdup(argv[i]);
+		if (self->argv[self->argc] == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+		self->argc++;
+		i++;
 	}
 exit:
+	if (rc != ESIF_OK) {
+		EsifLogMgr_DestroyArgv(self);
+	}
 	return rc;
 }
 
@@ -963,15 +977,36 @@ exit:
 		self->commandInfo = NULL;
 		self->commandInfoCount = 0;
 	}
-	for (i = 0; i < (UInt32)self->argc; i++) {
+	EsifLogMgr_DestroyArgv(self);
+	return rc;
+}
+
+
+static void EsifLogMgr_DestroyArgv(
+	EsifLoggingManagerPtr self
+	)
+{
+	UInt32 i = 0;
+
+	ESIF_ASSERT(self != NULL);
+
+	if (NULL == self->argv) {
+		goto exit;
+	}
+
+	for (i = 0; i < self->argc; i++) {
 		if (self->argv[i] != NULL) {
 			esif_ccb_free(self->argv[i]);
 			self->argv[i] = NULL;
 		}
 	}
+exit:
+	esif_ccb_free(self->argv);
+	self->argv = NULL;
 	self->argc = 0;
-	return rc;
+	return;
 }
+
 
 static eEsifError EsifLogMgr_EnableLoggingFromCommandInfo(EsifLoggingManagerPtr self)
 {
@@ -1111,10 +1146,6 @@ static eEsifError ESIF_CALLCONV EsifLogMgr_EventCallback(
 			goto exit;
 		}
 		
-		//Update the header flag for any new addition of capability Data
-		if (capabilityEntryPtr->state == ESIF_DATA_CREATED) {
-			self->isLogHeader = ESIF_TRUE;
-		}
 		EsifLogMgr_UpdateCapabilityData(capabilityEntryPtr, capabilityDataPtr);
 
 		esif_ccb_write_unlock(&self->participantLogData.listLock);
@@ -1166,7 +1197,6 @@ exit:
 
 static void EsifLogMgr_CleanupLoggingContext(EsifLoggingManagerPtr self)
 {
-	int i = 0;
 	ESIF_ASSERT(self != NULL);
 
 	// Remove the old timer if any
@@ -1186,13 +1216,7 @@ static void EsifLogMgr_CleanupLoggingContext(EsifLoggingManagerPtr self)
 	EsifLogFile_Close(ESIF_LOG_PARTICIPANT);
 
 	//Free the input argv
-	for (i = 0; i < self->argc; i++) {
-		if (self->argv[i] != NULL) {
-			esif_ccb_free(self->argv[i]);
-			self->argv[i] = NULL;
-		}
-	}
-	self->argc = 0;
+	EsifLogMgr_DestroyArgv(self);
 
 	if (self->commandInfo != NULL) {
 		esif_ccb_free(self->commandInfo);
@@ -1213,7 +1237,9 @@ void EsifLogMgr_ParticipantLogStart(EsifLoggingManagerPtr self)
 	if (self->isLogStarted == ESIF_FALSE) {
 		self->isLogStarted = ESIF_TRUE;
 		self->isLogStopped = ESIF_FALSE;
-		self->isLogHeader = ESIF_TRUE;
+		if (self->isLogSuspended == ESIF_FALSE) {
+			self->isLogHeader = ESIF_TRUE;
+		}
 		esif_ccb_event_init(&self->pollingThread.pollStopEvent);
 		esif_ccb_thread_create(&self->pollingThread.thread, EsifLogMgr_ParticipantLogWorkerThread, self);
 	}
@@ -1246,12 +1272,10 @@ static eEsifError EsifLogMgr_AddAllParticipants(EsifLoggingManagerPtr self)
 	ESIF_ASSERT(self != NULL);
 
 	rc = EsifUpPm_InitIterator(&upIter);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_ERROR("EsifUpPm_InitIterator() failed with status : %s (%d)", esif_rc_str(rc), rc);
-		goto exit;
+	if (rc == ESIF_OK) {
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	}
-
-	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	
 	while (ESIF_OK == rc) {
 		if (EsifUp_GetInstance(upPtr) != ESIF_INSTANCE_LF) {
 			//Add participant only if participant id is not 0 as 
@@ -1344,9 +1368,6 @@ static eEsifError EsifLogMgr_AddDomain(
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
-
-	//MASK out the status capability bits
-	capabilityMask = capabilityMask & CONTROL_CAPABIILTY_MASK;
 
 	EsifLogMgr_SendParticipantLogEvent(
 		ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
@@ -2007,7 +2028,7 @@ static void EsifLogMgr_ParticipantLogFire(
 					if (printTimeInfo != ESIF_FALSE) {
 						esif_ccb_system_time(&msec);
 						if (esif_ccb_localtime(&time, &now) == 0) {
-							esif_ccb_sprintf(dataLength, self->logData, "%04d-%02d-%02d,%02d:%02d:%02d,%llu,",
+							esif_ccb_sprintf(dataLength, self->logData, " %04d-%02d-%02d, %02d:%02d:%02d, %llu,",
 								time.tm_year + TIME_BASE_YEAR, time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec, msec);
 						}
 						printTimeInfo = ESIF_FALSE;
@@ -2017,10 +2038,12 @@ static void EsifLogMgr_ParticipantLogFire(
 					 */
 					EsifDomainIdToIndex((UInt16)curEntryPtr->domainId, &domainIndex);
 					if (currentParticipantId != curEntryPtr->participantId) {
-						EsifUpPtr upPtr = EsifUpPm_GetAvailableParticipantByInstance((UInt8)curEntryPtr->participantId);
+						upPtr = EsifUpPm_GetAvailableParticipantByInstance((UInt8)curEntryPtr->participantId);
 						if (upPtr != NULL) {
 							esif_ccb_sprintf_concat(dataLength, self->logData, " %d, %s, %d,", curEntryPtr->participantId, EsifUp_GetName(upPtr), domainIndex);
 							EsifUp_PutRef(upPtr);
+						} else {
+							esif_ccb_sprintf_concat(dataLength, self->logData, " %d, UNAVAIL, %d,", curEntryPtr->participantId, domainIndex);
 						}
 					}
 					else if ((currentParticipantId == curEntryPtr->participantId) &&
@@ -2094,7 +2117,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 			if ((capabilityPtr->data.powerControl.powerDataSet[powerType].isEnabled != ESIF_FALSE) &&
 				(capabilityPtr->data.powerControl.powerDataSet[powerType].powerType <= MAX_POWER_CONTROL_TYPE)) {
 				esif_ccb_sprintf_concat(dataLength, logString, " PL%d Limit(mW), PL%d LowerLimit(mW), PL%d UpperLimit(mW), Stepsize(mW),"
-					"Minimum TimeWindow(ms), Maximum TimeWindow(ms), Minimum DutyCycle, Maximum DutyCycle,",
+					" Minimum TimeWindow(ms), Maximum TimeWindow(ms), Minimum DutyCycle, Maximum DutyCycle,",
 					capabilityPtr->data.powerControl.powerDataSet[powerType].powerType,
 					capabilityPtr->data.powerControl.powerDataSet[powerType].powerType,
 					capabilityPtr->data.powerControl.powerDataSet[powerType].powerType
@@ -2104,10 +2127,14 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_POWER_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Power(mW),",participantName,domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Current Power(mW), %s_D%d_Current Power Sent To Filter(mW),"
+			" %s_D%d_Power Calculated By Filter(mW),",
+			participantName, domainId,
+			participantName,domainId,
+			participantName, domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%dTemperature(C),", participantName,domainId);
+		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Temperature(C),", participantName,domainId);
 		break;
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Utilization,",participantName,domainId);
@@ -2142,9 +2169,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		break;
 	case ESIF_CAPABILITY_TYPE_XMITPOWER_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " Transmit Power Control,");
-		break;
-	case ESIF_CAPABILITY_TYPE_HDC_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Hdc Duty Cycle, Hdc Status,");
 		break;
 	case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " Limit Type, Power Limit, Duty Cycle, Time Window,");
@@ -2197,7 +2221,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			);
 		break;
 	case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, "%llu, %llu, %llu, %llu,",
+		esif_ccb_sprintf_concat(dataLength, logString, " %llu, %llu, %llu, %llu,",
 			capabilityPtr->data.configTdpControl.controlId,
 			capabilityPtr->data.configTdpControl.tdpFrequency,
 			capabilityPtr->data.configTdpControl.tdpPower,
@@ -2252,15 +2276,20 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_POWER_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.powerStatus.power
+		esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u,",
+			capabilityPtr->data.powerStatus.currentPower,
+			capabilityPtr->data.powerStatus.powerFilterData.currentPowerSentToFilter,
+			capabilityPtr->data.powerStatus.powerFilterData.powerCalculatedByFilter
 			);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.temperatureStatus.temperature
-			);
+	{
+		int temp = (int)capabilityPtr->data.temperatureStatus.temperature;
+		esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&temp);
+
+		esif_ccb_sprintf_concat(dataLength, logString, " %.1f,", temp / 10.0);
 		break;
+	}
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
 			capabilityPtr->data.utilizationStatus.utilization
@@ -2282,12 +2311,22 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u,",
-			capabilityPtr->data.temperatureControl.aux0,
-			capabilityPtr->data.temperatureControl.aux1,
-			capabilityPtr->data.temperatureControl.hysteresis
+	{
+		int tempAux0 = (int)capabilityPtr->data.temperatureThresholdControl.aux0;
+		int tempAux1 = (int)capabilityPtr->data.temperatureThresholdControl.aux1;
+		int tempHyst = (int)capabilityPtr->data.temperatureThresholdControl.hysteresis;
+
+		esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&tempAux0);
+		esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&tempAux1);
+		esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, (esif_temp_t *)&tempHyst);
+
+		esif_ccb_sprintf_concat(dataLength, logString, " %.1f, %.1f, %.1f,",
+			tempAux0 / 10.0,
+			tempAux1 / 10.0,
+			tempHyst / 10.0
 			);
 		break;
+	}
 	case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
 		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
 			capabilityPtr->data.rfProfileStatus.rfProfileFrequency
@@ -2306,12 +2345,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 	case ESIF_CAPABILITY_TYPE_XMITPOWER_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
 			capabilityPtr->data.xmitPowerControl.xmitPowerControl
-			);
-		break;
-	case ESIF_CAPABILITY_TYPE_HDC_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u, %u,",
-			capabilityPtr->data.HdcControl.hdcDutyCycle,
-			capabilityPtr->data.HdcControl.hdcStatus
 			);
 		break;
 	case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
@@ -2358,7 +2391,7 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			ESIF_TRACE_INFO("Error while executing GET_RAPL_POWER primitive for participant %d domain : %d", dataNodePtr->participantId, dataNodePtr->domainId);
 			power = 0;
 		}
-		dataNodePtr->capabilityData.data.powerStatus.power = power;
+		dataNodePtr->capabilityData.data.powerStatus.currentPower = power;
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
@@ -2457,7 +2490,6 @@ exit:
 static eEsifError EsifLogMgr_Uninit(EsifLoggingManagerPtr self)
 {
 	eEsifError rc = ESIF_OK;
-	int i = 0;
 
 	if (self == NULL || self->isInitialized == ESIF_FALSE) {
 		//Manager is not initialized. just exit
@@ -2471,13 +2503,7 @@ static eEsifError EsifLogMgr_Uninit(EsifLoggingManagerPtr self)
 	}
 
 	//Free the input argv
-	for (i = 0; i < self->argc; i++) {
-		if (self->argv[i] != NULL) {
-			esif_ccb_free(self->argv[i]);
-			self->argv[i] = NULL;
-		}
-	}
-	self->argc = 0;
+	EsifLogMgr_DestroyArgv(self);
 
 	if (self->commandInfo != NULL) {
 		esif_ccb_free(self->commandInfo);

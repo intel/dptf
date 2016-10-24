@@ -18,39 +18,22 @@
 
 #include "Temperature.h"
 #include <cmath>
-
-const double Temperature::celsiusToKelvinDifference = 273.15;
+#include "../XmlLib/StatusFormat.h"
+using namespace StatusFormat;
 
 Temperature::Temperature(void)
     : m_valid(false), m_temperature(0)
 {
 }
 
-Temperature::Temperature(UInt32 temperatureInCelsius)
-    : m_valid(true), m_temperature(temperatureInCelsius)
+Temperature::Temperature(UInt32 temperatureInTenthKelvin)
+    : m_valid(true), m_temperature(temperatureInTenthKelvin)
 {
-    if (temperatureInCelsius > maxValidTemperature && temperatureInCelsius != Constants::MaxUInt32)
+    if ((temperatureInTenthKelvin > maxValidTemperature || temperatureInTenthKelvin < minValidTemperature) && 
+        temperatureInTenthKelvin != Constants::MaxUInt32)
     {
         throw temperature_out_of_range("Temperature out of valid range");
     }
-}
-
-Temperature Temperature::createTemperatureFromTenthKelvin(UInt32 temperatureInTenthKelvin)
-{
-    auto temperatureInKelvin = (double)temperatureInTenthKelvin / 10.0;
-    if (temperatureInKelvin < celsiusToKelvinDifference)
-    {
-        throw temperature_out_of_range("Temperature is in the negative range");
-    }
-
-    UInt32 temperatureInCelsius = UInt32(round(temperatureInKelvin - celsiusToKelvinDifference));
-
-    if (temperatureInCelsius > maxValidTemperature)
-    {
-        throw temperature_out_of_range("Temperature out of valid range");
-    }
-
-    return Temperature(temperatureInCelsius);
 }
 
 Temperature Temperature::createInvalid()
@@ -110,6 +93,20 @@ Bool Temperature::operator<=(const Temperature& rhs) const
     return (this->m_temperature <= rhs.m_temperature);
 }
 
+Temperature Temperature::operator+(const Temperature& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return Temperature(this->m_temperature + rhs.m_temperature - CELSIUS_TO_TENTH_KELVIN);
+}
+
+Temperature Temperature::operator-(const Temperature& rhs) const
+{
+    throwIfInvalid(*this);
+    throwIfInvalid(rhs);
+    return Temperature(CELSIUS_TO_TENTH_KELVIN + this->m_temperature - rhs.m_temperature);
+}
+
 std::ostream& operator<<(std::ostream& os, const Temperature& temperature)
 {
     os << temperature.toString();
@@ -129,9 +126,10 @@ Bool Temperature::isValid() const
 
 std::string Temperature::toString() const
 {
-    if (isValid())
+    if (isValid() && m_temperature != Constants::MaxUInt32 &&
+        m_temperature != minValidTemperature && m_temperature != maxValidTemperature)
     {
-        return StlOverride::to_string(m_temperature); // TODO: adjust for when we get 10th degrees C
+        return friendlyValueWithPrecision(getTemperatureInCelsius(), 1);
     }
     else
     {
@@ -143,11 +141,39 @@ void Temperature::throwIfInvalid(const Temperature& temperature) const
 {
     if (temperature.isValid() == false)
     {
-        throw dptf_exception("Temperature is not valid.");
+        throw temperature_out_of_range("Temperature is not valid.");
     }
 }
 
-UInt32 Temperature::toTenthKelvin() const
+Temperature Temperature::fromCelsius(double temperatureInCelsius)
 {
-    return UInt32(round(((double)m_temperature + celsiusToKelvinDifference) * 10.0));
+    UInt32 temperatureInTenthKelvin = UInt32(round(temperatureInCelsius * 10.0 + CELSIUS_TO_TENTH_KELVIN));
+    return Temperature(temperatureInTenthKelvin);
+}
+
+double Temperature::getTemperatureInCelsius() const
+{
+    double temperatureInTenthCelsius = (double)m_temperature - (double)CELSIUS_TO_TENTH_KELVIN;
+    double temperatureInCelsius = (double)temperatureInTenthCelsius / 10.0;
+    return temperatureInCelsius;
+}
+
+Temperature Temperature::snapWithinAllowableTripPointRange(Temperature aux)
+{
+    if ((UInt32)aux != Constants::MaxUInt32)
+    {
+        Temperature minAux = fromCelsius(ESIF_SDK_MIN_AUX_TRIP);
+        if (aux.isValid() && aux < minAux)
+        {
+            aux = minAux;
+        }
+
+        Temperature maxAux = fromCelsius(ESIF_SDK_MAX_AUX_TRIP);
+        if (aux.isValid() && aux > maxAux)
+        {
+            aux = maxAux;
+        }
+    }
+
+    return aux;
 }

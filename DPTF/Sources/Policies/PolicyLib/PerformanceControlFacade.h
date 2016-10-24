@@ -43,6 +43,8 @@ public:
     virtual void setControl(UIntN performanceControlIndex) override;
     virtual void setControlsToMax() override;
     virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) override;
+    virtual void lockCapabilities() override;
+    virtual void unlockCapabilities() override;
 
     // properties
     virtual void refreshCapabilities() override;

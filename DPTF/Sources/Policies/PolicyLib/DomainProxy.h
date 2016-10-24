@@ -33,7 +33,6 @@
 #include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
 #include "PixelClockControlFacade.h"
-#include "HardwareDutyCycleControlFacadeInterface.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -71,7 +70,7 @@ public:
     virtual void initializeControls() override;
     virtual void setControlsToMax() override;
     virtual std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() override;
-    virtual ActiveCoolingControl& getActiveCoolingControl() override;
+    virtual std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() override;
     virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
     virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
     virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() override;
@@ -80,7 +79,6 @@ public:
     virtual ConfigTdpControlFacade& getConfigTdpControl() override;
     virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
     virtual PixelClockControlFacade& getPixelClockControl() const override;
-    virtual std::shared_ptr<HardwareDutyCycleControlFacadeInterface> getHardwareDutyCycleControl() const override;
 
     // status
     virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
@@ -97,7 +95,7 @@ protected:
     ParticipantProperties m_participantProperties;
 
     // control facades
-    ActiveCoolingControl m_activeCoolingControl;
+    std::shared_ptr<ActiveCoolingControlFacadeInterface> m_activeCoolingControl;
     std::shared_ptr<TemperatureControlFacadeInterface> m_temperatureControl;
     std::shared_ptr<PerformanceControlFacade> m_performanceControl;
     std::shared_ptr<PowerControlFacade> m_powerControl;
@@ -107,7 +105,6 @@ protected:
     std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
     std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
     std::shared_ptr<PixelClockControlFacade> m_pixelClockControl;
-    std::shared_ptr<HardwareDutyCycleControlFacadeInterface> m_hardwareDutyCycleControl;
 
     // services
     PolicyServicesInterfaceContainer m_policyServices;

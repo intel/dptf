@@ -20,18 +20,18 @@
 
 #include "Dptf.h"
 #include "WorkItem.h"
-#include "SensorMotion.h"
+#include "OnOffToggle.h"
 
 class WIPolicySensorMotionChanged : public WorkItem
 {
 public:
 
-    WIPolicySensorMotionChanged(DptfManagerInterface* dptfManager, SensorMotion::Type sensorMotion);
+    WIPolicySensorMotionChanged(DptfManagerInterface* dptfManager, OnOffToggle::Type sensorMotion);
     virtual ~WIPolicySensorMotionChanged(void);
 
     virtual void execute(void) override final;
 
 private:
 
-    const SensorMotion::Type m_sensorMotion;
+    const OnOffToggle::Type m_sensorMotion;
 };

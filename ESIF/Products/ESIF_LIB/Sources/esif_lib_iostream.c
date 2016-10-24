@@ -34,7 +34,7 @@
 #endif
 
 // constructor
-static ESIF_INLINE void IOStream_ctor (IOStreamPtr self)
+static ESIF_INLINE void IOStream_ctor(IOStreamPtr self)
 {
 	if (self) {
 		WIPEPTR(self);
@@ -44,7 +44,7 @@ static ESIF_INLINE void IOStream_ctor (IOStreamPtr self)
 
 
 // destructor
-static ESIF_INLINE void IOStream_dtor (IOStreamPtr self)
+static ESIF_INLINE void IOStream_dtor(IOStreamPtr self)
 {
 	if (self) {
 		IOStream_Close(self);
@@ -55,9 +55,7 @@ static ESIF_INLINE void IOStream_dtor (IOStreamPtr self)
 			break;
 
 		case StreamMemory:
-			if (self->memory.buf_len) {
-				esif_ccb_free(self->memory.buffer);
-			}
+			esif_ccb_free(self->memory.buffer);
 			break;
 		}
 		WIPEPTR(self);
@@ -66,7 +64,7 @@ static ESIF_INLINE void IOStream_dtor (IOStreamPtr self)
 
 
 // new operator
-IOStreamPtr IOStream_Create ()
+IOStreamPtr IOStream_Create()
 {
 	IOStreamPtr self = (IOStreamPtr)esif_ccb_malloc(sizeof(*self));
 	IOStream_ctor(self);
@@ -74,20 +72,8 @@ IOStreamPtr IOStream_Create ()
 }
 
 
-// new operator
-IOStreamPtr IOStream_CreateAs (StreamType type)
-{
-	IOStreamPtr self = (IOStreamPtr)esif_ccb_malloc(sizeof(*self));
-	if (self) {
-		IOStream_ctor(self);
-		self->type = type;
-	}
-	return self;
-}
-
-
 // delete operator
-void IOStream_Destroy (IOStreamPtr self)
+void IOStream_Destroy(IOStreamPtr self)
 {
 	if (self) {
 		IOStream_dtor(self);
@@ -99,76 +85,97 @@ void IOStream_Destroy (IOStreamPtr self)
 // methods
 
 // Set IOStream to use a file (but don't open)
-int IOStream_SetFile (
+int IOStream_SetFile(
 	IOStreamPtr self,
 	StringPtr filename,
 	StringPtr mode
 	)
 {
-	ESIF_ASSERT(self);
-	IOStream_dtor(self);
-	self->type = StreamFile;
-	self->file.name = esif_ccb_strdup(filename);
-	if (mode) {
-		self->file.mode = esif_ccb_strdup(mode);
+	StringPtr filenameCopyPtr = NULL;
+	StringPtr modeCopyPtr = NULL;
+	
+	if (NULL == self) {
+		return EINVAL;
 	}
+
+	//
+	// Get a copy of the items before destroying the stream, as they may be
+	// from the stream we are destroying below...
+	//
+	filenameCopyPtr = esif_ccb_strdup(filename);
+	modeCopyPtr = esif_ccb_strdup(mode);
+
+	IOStream_dtor(self);
+
+	self->type = StreamFile;
+	self->file.name = filenameCopyPtr;
+	self->file.mode = modeCopyPtr;
+
 	return self->file.name ? EOK : ENOMEM;
 }
 
 
 // Set IOStream to use a Memory Buffer (but don't access)
-int IOStream_SetMemory (
+int IOStream_SetMemory(
 	IOStreamPtr self,
 	BytePtr buffer,
 	size_t size
 	)
 {
-	ESIF_ASSERT(self);
+	size_t bufSize = 0;
+
+	if (NULL == self) {
+		return EINVAL;
+	}
+
+	// Clear everything when setting new contents
 	IOStream_dtor(self);
+
 	self->type = StreamMemory;
-	self->memory.buffer   = buffer;
+	bufSize = ((size / IOSTREAM_MEMORY_STREAM_BLOCK_SIZE) + 1) * IOSTREAM_MEMORY_STREAM_BLOCK_SIZE;
+	self->memory.buffer = esif_ccb_malloc(bufSize);
+	if (NULL == self->memory.buffer) {
+		goto exit;
+	}
+	if (buffer != NULL) {
+		esif_ccb_memcpy(self->memory.buffer, buffer, size);
+	}
+	self->memory.buf_len  = bufSize;
 	self->memory.data_len = size;
-	self->memory.buf_len  = 0;
 	self->memory.offset   = 0;
+exit:
 	return self->memory.buffer ? EOK : ENOMEM;
 }
 
 
 // Set IOStream to use a File and open it
-int IOStream_OpenFile (
+int IOStream_OpenFile(
 	IOStreamPtr self,
 	StringPtr filename,
 	StringPtr mode
 	)
 {
+	int rc = EOK;
+
 	if (IOStream_SetFile(self, filename, mode) == EOK) {
-		return IOStream_Open(self);
+		rc = IOStream_Open(self);
 	} else {
-		return ENOMEM;
+		rc = ENOMEM;
 	}
-}
-
-
-// Set IOStream to use a Memory Buffer and open it
-int IOStream_OpenMemory (
-	IOStreamPtr self,
-	BytePtr buffer,
-	size_t size
-	)
-{
-	if (IOStream_SetMemory(self, buffer, size) == EOK) {
-		return IOStream_Open(self);
-	} else {
-		return ENOMEM;
-	}
+	return rc;
 }
 
 
 // Open the IOStream (File or Memory)
-int IOStream_Open (IOStreamPtr self)
+int IOStream_Open(IOStreamPtr self)
 {
 	int rc = EPERM;
 	StringPtr mode = "rb";	// Default File Open Mode
+
+	if (NULL == self) {
+		rc = EINVAL;
+		goto exit;
+	}
 
 	IOStream_Close(self);
 	switch (self->type) {
@@ -180,26 +187,36 @@ int IOStream_Open (IOStreamPtr self)
 		break;
 
 	case StreamMemory:
-		// TODO: set data_len to 0 if write mode
 		if (self->memory.buffer) {
+			self->memory.offset = 0;
 			rc = EOK;
 		}
 
 	default:
 		break;
 	}
+exit:
 	return rc;
 }
 
 
 // Close the IOStream. Leave File & Memory Buffer data intact so it can be Re-Opened
-int IOStream_Close (IOStreamPtr self)
+int IOStream_Close(IOStreamPtr self)
 {
 	int rc = EPERM;
+
+	if (NULL == self) {
+		rc = EINVAL;
+		goto exit;
+	}
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
 			esif_ccb_fclose(self->file.handle);
+
+			esif_ccb_free(self->file.mode);
+			self->file.mode = NULL;
+
 			self->file.handle = 0;
 		}
 		break;
@@ -211,91 +228,85 @@ int IOStream_Close (IOStreamPtr self)
 	default:
 		break;
 	}
+exit:
 	return rc;
 }
 
 
-// Create a new Memory Buffer IOStream, copying the contents from the given Memory Buffer
-int IOStream_OpenMemoryClone (
+// Create a new Memory Buffer IOStream, copying the contents from the given stream
+eEsifError IOStream_CloneAsMemoryStream(
 	IOStreamPtr self,
-	BytePtr source,
-	size_t size
+	IOStreamPtr *clonePtr
 	)
 {
-	ESIF_ASSERT(self);
-	IOStream_Close(self);
-	self->memory.buffer = (BytePtr)esif_ccb_malloc(size);
-	if (self->memory.buffer != NULL) {
-		self->type = StreamMemory;
-		esif_ccb_memcpy(self->memory.buffer, source, size);
-		self->memory.data_len = size;
-		self->memory.buf_len  = size;
-		self->memory.offset   = 0;
-		return EOK;
+	eEsifError rc = ESIF_OK;
+	BytePtr bufPtr = NULL;
+	IOStreamPtr newStreamPtr = NULL;
+	size_t size = 0;
+	size_t bytesRead = 0;
+
+	if ((NULL == self) || (NULL == clonePtr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
 	}
-	return ENOMEM;
-}
 
+	size = IOStream_GetSize(self);
 
-// Create a new Memory Buffer IOStream, copying the contents from the given File
-int IOStream_OpenMemoryCloneFile (
-	IOStreamPtr self,
-	StringPtr filename
-	)
-{
-	int rc = EPERM;
-	IOStreamPtr source = 0;
-	size_t bytes = 0;
-	size_t bytesread   = 0;
-
-	ESIF_ASSERT(self);
-	IOStream_Close(self);
-	source = (IOStreamPtr)IOStream_Create();
-	bytes  = IOStream_GetFileSize(filename) + 1;// Include Hidden Null Terminator
-	if (source && bytes > 0 && ((rc = IOStream_OpenFile(source, filename, "rb")) == EOK)) {
-		self->memory.buffer = (BytePtr)esif_ccb_malloc(bytes);
-		if (self->memory.buffer != NULL) {
-			self->type = StreamMemory;
-			self->memory.data_len = bytes-1;
-			self->memory.buf_len  = bytes-1;
-			self->memory.offset   = 0;
-			bytesread = IOStream_Read(source, self->memory.buffer, bytes);
-			self->memory.buffer[bytesread] = 0;	// Null Terminate
-			rc = EOK;
-		}
-		IOStream_Close(source);
+	//
+	// Create the memory buffer for the memory IOStream
+	// Note: +1 to allow for null terminator (In original code, not sure why)
+	//
+	bufPtr = (BytePtr)esif_ccb_malloc(size);
+	if (NULL == bufPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
 	}
-	IOStream_Destroy(source);
+
+	newStreamPtr = (IOStreamPtr)IOStream_Create();
+	if (NULL == newStreamPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	if (IOStream_SetMemory(newStreamPtr, bufPtr, size) != 0) {
+		rc = ESIF_E_IO_ERROR;
+		goto exit;
+	}
+
+	if (IOStream_Open(self) != EOK) {
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;
+	}
+	bytesRead = IOStream_Read(self, newStreamPtr->memory.buffer, size);
+	IOStream_Close(self);
+
+	if (bytesRead != size) {
+		rc = ESIF_E_IO_ERROR;
+		goto exit;
+	}
+	*clonePtr = newStreamPtr;
+exit:
+	esif_ccb_free(bufPtr);
+	if (rc != ESIF_OK) {
+		IOStream_Destroy(newStreamPtr);
+	}
 	return rc;
-}
-
-
-// Clone a IOStream (Memory or File) into another, with optional offset and length
-int IOStream_Clone (
-	IOStreamPtr self,
-	IOStreamPtr source,
-	long offset,
-	size_t length
-	)
-{
-	// TODO
-	UNREFERENCED_PARAMETER(self);
-	UNREFERENCED_PARAMETER(source);
-	UNREFERENCED_PARAMETER(offset);
-	UNREFERENCED_PARAMETER(length);
-	return EPERM;
 }
 
 
 // Read an open IOStream into a given Memory Buffer
-size_t IOStream_Read (
+size_t IOStream_Read(
 	IOStreamPtr self,
 	void *dest_buffer,
 	size_t bytes
 	)
 {
 	size_t rc = 0;
-	ESIF_ASSERT(self && dest_buffer);
+
+	if ((NULL == self) || (NULL == dest_buffer)) {
+		goto exit;
+	}
+
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -305,6 +316,14 @@ size_t IOStream_Read (
 
 	case StreamMemory:
 		if (self->memory.buffer) {
+			//
+			// We allow setting the offset before memory grows during writes, but
+			// that means you can try to read from an offset that is not within
+			// the data region...
+			//
+			if (self->memory.offset > self->memory.data_len) {
+				break;
+			}
 			bytes = esif_ccb_min(bytes, self->memory.data_len - self->memory.offset);
 			esif_ccb_memcpy(dest_buffer, self->memory.buffer + self->memory.offset, bytes);
 			self->memory.offset += bytes;
@@ -315,19 +334,88 @@ size_t IOStream_Read (
 	default:
 		break;
 	}
+exit:
 	return rc;
 }
 
 
+// Reads from a stream at the specified position/offset into the supplied buffer
+size_t IOStream_ReadAt(
+	IOStreamPtr self,
+	void *dest_buffer,
+	size_t bytes,
+	size_t offset
+	)
+{
+	size_t bytesRead = 0;
+
+	// Open DB File or Memory Block
+	if ((NULL == self) || (NULL == dest_buffer)) {
+		goto exit;
+	}
+
+	// Seek and Read Buffer
+	if (IOStream_Seek(self, (long)offset, SEEK_SET) != 0) {
+		goto exit;
+	}
+	
+	bytesRead = IOStream_Read(self, dest_buffer, bytes);
+exit:
+	return bytesRead;
+}
+
+
+//
+// Writes to a stream at the specified position/offset from the supplied buffer
+// Note: Applicable to memory streams only
+//
+size_t IOStream_WriteAt(
+	IOStreamPtr self,
+	void *src_buffer,
+	size_t bytes,
+	size_t offset
+	)
+{
+	size_t bytesWritten = 0;
+
+	// Open DB File or Memory Block
+	if ((NULL == self) || (NULL == src_buffer)) {
+		goto exit;
+	}
+
+	ESIF_ASSERT(self->type == StreamMemory);
+
+	if(self->type != StreamMemory) {
+		goto exit;
+	}
+
+	// Seek and write Buffer
+	if (IOStream_Seek(self, (long)offset, SEEK_SET) != 0) {
+		goto exit;
+	}
+	
+	bytesWritten = IOStream_Write(self, src_buffer, bytes);
+exit:
+	return bytesWritten;
+}
+
+
 // Write a Memory Buffer to an open IOStream
-size_t IOStream_Write (
+size_t IOStream_Write(
 	IOStreamPtr self,
 	void *src_buffer,
 	size_t bytes
 	)
 {
 	size_t rc = 0;
-	ESIF_ASSERT(self && src_buffer);
+	size_t reqSize = 0;
+	size_t newSize = 0;
+	BytePtr newBuffer = NULL;
+
+	if ((NULL == self) || (NULL == src_buffer)) {
+		goto exit;
+	}
+
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -336,25 +424,50 @@ size_t IOStream_Write (
 		break;
 
 	case StreamMemory:
-		// TODO
+		if (NULL == self->memory.buffer) {
+			break;
+		}
+		//
+		// We will grow the memory buffer as needed for writes
+		//
+		reqSize = self->memory.offset + bytes;
+		if (self->memory.buf_len < reqSize) {
+			newSize = ((reqSize / IOSTREAM_MEMORY_STREAM_BLOCK_SIZE) + 1) * IOSTREAM_MEMORY_STREAM_BLOCK_SIZE;
+
+			newBuffer = esif_ccb_realloc(self->memory.buffer, newSize);
+			if (NULL == newBuffer) {
+				break;
+			}
+			self->memory.buffer = newBuffer;
+			self->memory.buf_len = newSize;
+		}
+		esif_ccb_memcpy(self->memory.buffer + self->memory.offset, src_buffer, bytes);
+		self->memory.offset += bytes;
+		self->memory.data_len = (self->memory.offset > self->memory.data_len) ? self->memory.offset : self->memory.data_len;
+		rc = bytes;
 		break;
 
 	default:
 		break;
 	}
+exit:
 	return rc;
 }
 
 
 // Read a line from a IOStream
-StringPtr IOStream_GetLine (
+StringPtr IOStream_GetLine(
 	IOStreamPtr self,
 	StringPtr dest_buffer,
 	int bytes
 	)
 {
 	StringPtr result = 0;
-	ESIF_ASSERT(self);
+
+	if (NULL == self) {
+		goto exit;
+	}
+
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -386,19 +499,25 @@ StringPtr IOStream_GetLine (
 		errno = EBADF;
 		break;
 	}
+exit:
 	return result;
 }
 
 
 // Seek to the given offset in the open IOStream, based on origin starting point
-int IOStream_Seek (
+int IOStream_Seek(
 	IOStreamPtr self,
 	size_t offset,
 	int origin
 	)
 {
 	int rc = EBADF;
-	ESIF_ASSERT(self);
+
+	if (NULL == self) {
+		rc = EINVAL;
+		goto exit;
+	}
+
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
@@ -413,45 +532,44 @@ int IOStream_Seek (
 	case StreamMemory:
 		if (self->memory.buffer) {
 			size_t newoffset = 0;
+
+			//
+			// As we grow the memory buffer as needed for writes, we allow the
+			// offset to be specified outside of the data region
+			//
 			switch (origin) {
 			case SEEK_SET:
 				newoffset = offset;
 				break;
 
 			case SEEK_CUR:
-				if (self->memory.offset + offset > self->memory.data_len) {
-					rc = EFAULT;
-				} else {
-					newoffset = self->memory.offset + offset;
-				}
+				newoffset = self->memory.offset + offset;
 				break;
 
 			case SEEK_END:
-				if ((size_t)offset > self->memory.data_len) {
-					rc = EFAULT;
-				} else {
-					newoffset = self->memory.offset - offset;
-				}
+				newoffset = self->memory.data_len - offset;
 				break;
 			}
-			if (rc != EFAULT) {
-				self->memory.offset = newoffset;
-				rc = EOK;
-			}
+			self->memory.offset = newoffset;
+			rc = EOK;
 		}
 		break;
 
 	default:
 		break;
 	}
+exit:
 	return rc;
 }
 
 
 // Get the current offset (from start) of the open IOStream
-size_t IOStream_GetOffset (IOStreamPtr self)
+size_t IOStream_GetOffset(IOStreamPtr self)
 {
-	ESIF_ASSERT(self);
+	if (NULL == self) {
+		goto exit;
+	}
+
 	switch (self->type) {
 	case StreamFile:
 		return esif_ccb_ftell(self->file.handle);
@@ -466,12 +584,13 @@ size_t IOStream_GetOffset (IOStreamPtr self)
 	default:
 		break;
 	}
+exit:
 	return 0;
 }
 
 
 // Return the IOStream type
-StreamType IOStream_GetType (IOStreamPtr self)
+StreamType IOStream_GetType(IOStreamPtr self)
 {
 	ESIF_ASSERT(self);
 	return self->type;
@@ -479,16 +598,17 @@ StreamType IOStream_GetType (IOStreamPtr self)
 
 
 // Get the current size of the open IOStream
-size_t IOStream_GetSize (IOStreamPtr self)
+size_t IOStream_GetSize(IOStreamPtr self)
 {
-	long offset = 0;
 	size_t size = 0;
+
+	if (NULL == self) {
+		goto exit;
+	}
+
 	switch (self->type) {
 	case StreamFile:
-		offset = esif_ccb_ftell(self->file.handle);
-		esif_ccb_fseek(self->file.handle, 0, SEEK_END);
-		size   = ftell(self->file.handle);
-		esif_ccb_fseek(self->file.handle, offset, SEEK_SET);
+		size = IOStream_GetFileSize(self->file.name);
 		break;
 
 	case StreamMemory:
@@ -498,30 +618,30 @@ size_t IOStream_GetSize (IOStreamPtr self)
 	default:
 		break;
 	}
+exit:
 	return size;
 }
 
 
 // Return the Memory Buffer address of a Memory Buffer IOStream (or NULL if not StreamMemory)
-BytePtr IOStream_GetMemoryBuffer (IOStreamPtr self)
+BytePtr IOStream_GetMemoryBuffer(IOStreamPtr self)
 {
-	ESIF_ASSERT(self);
+	if (NULL == self) {
+		return NULL;
+	}
 	switch (self->type) {
 	case StreamMemory:
 		return self->memory.buffer;
-
 		break;
-
 	default:
-		return 0;
-
+		return NULL;
 		break;
 	}
 }
 
 
 // Helper Function: Get the size of the given File
-size_t IOStream_GetFileSize (StringPtr filename)
+size_t IOStream_GetFileSize(StringPtr filename)
 {
 	int rc = EPERM;
 	struct stat st;

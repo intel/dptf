@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainPerformanceControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPerformanceControl::PolicyServicesDomainPerformanceControl(
     DptfManagerInterface* dptfManager, UIntN policyIndex) :
@@ -67,4 +67,11 @@ void PolicyServicesDomainPerformanceControl::setPerformanceControlDynamicCaps(
     throwIfNotWorkItemThread();
     getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceControlDynamicCaps(
         domainIndex, getPolicyIndex(), newCapabilities);
+}
+
+void PolicyServicesDomainPerformanceControl::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+{
+    throwIfNotWorkItemThread();
+    getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceCapsLock(
+        domainIndex, getPolicyIndex(), lock);
 }

@@ -179,6 +179,74 @@ exit:
 }
 
 
+eEsifError EsifPrimitiveGetDataType(
+	const UInt8 participantId,
+	const UInt32 primitiveId,
+	const EsifString domain_str,
+	const UInt8 instance,
+	enum esif_primitive_opcode opcode,
+	enum esif_data_type *typePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifDspPtr dspPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+	EsifFpcPrimitivePtr primitivePtr = NULL;
+	EsifPrimitiveTuple tuple = { 0 };
+	UInt16 domain = domain_str_to_short(domain_str);
+
+	if (NULL == typePtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
+	if (NULL == upPtr) {
+		rc = ESIF_E_INVALID_PARTICIPANT_ID;
+		goto exit;
+	}
+
+	dspPtr = EsifUp_GetDsp(upPtr);
+	if (NULL == dspPtr) {
+		rc = ESIF_E_NEED_DSP;
+		goto exit;
+	}
+
+	tuple.id = (u16)primitiveId;
+	tuple.domain = domain;
+	tuple.instance = instance;
+
+	primitivePtr = dspPtr->get_primitive(dspPtr, &tuple);
+	if (NULL == primitivePtr) {
+		rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
+		goto exit;
+	}
+
+	if (opcode != (enum esif_primitive_opcode)primitivePtr->operation) {
+		rc = ESIF_E_INVALID_REQUEST_TYPE;
+		goto exit;
+	}
+
+	switch(primitivePtr->operation) {
+	case ESIF_PRIMITIVE_OP_GET:
+		*typePtr = primitivePtr->result_type;
+		break;
+	case ESIF_PRIMITIVE_OP_SET:
+		*typePtr = primitivePtr->request_type;
+		break;
+	default:
+		rc = ESIF_E_NOT_FOUND;
+		goto exit;
+		break;
+	}
+exit:
+	if (upPtr != NULL) {
+		EsifUp_PutRef(upPtr);
+	}
+	return rc;
+}
+
+
 Bool EsifPrimitiveVerifyOpcode(
 	const UInt8 participantId,
 	const UInt32 primitiveId,

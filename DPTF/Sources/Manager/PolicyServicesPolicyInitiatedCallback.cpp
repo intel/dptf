@@ -18,7 +18,7 @@
 
 #include "PolicyServicesPolicyInitiatedCallback.h"
 #include "WIPolicyInitiatedCallback.h"
-#include "WorkItemQueueManager.h"
+#include "WorkItemQueueManagerInterface.h"
 
 PolicyServicesPolicyInitiatedCallback::PolicyServicesPolicyInitiatedCallback(
     DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)

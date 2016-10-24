@@ -21,35 +21,29 @@
 #include "Dptf.h"
 #include "CoreControlStatus.h"
 
-class DptfManager;
-
 //
 // Arbitration Rule:
 //
 // Lowest number of active logical processors wins
 //
 
-class CoreControlArbitrator
+class dptf_export CoreControlArbitrator
 {
 public:
 
-    CoreControlArbitrator(DptfManager* dptfManager);
+    CoreControlArbitrator(void);
     ~CoreControlArbitrator(void);
 
     // arbitrate() returns true if the arbitrated value has changed
     Bool arbitrate(UIntN policyIndex, const CoreControlStatus& coreControlStatus);
-
     CoreControlStatus getArbitratedCoreControlStatus(void) const;
     void clearPolicyCachedData(UIntN policyIndex);
 
 private:
 
-    // hide the copy constructor and assignment operator.
+    // hide the copy constructor
     CoreControlArbitrator(const CoreControlArbitrator& rhs);
-    CoreControlArbitrator& operator=(const CoreControlArbitrator& rhs);
 
-    DptfManager* m_dptfManager;
-
-    CoreControlStatus m_arbitratedCoreControlStatus;
-    std::vector<CoreControlStatus*> m_requestedCoreControlStatus;
+    UIntN m_arbitratedActiveCoreCount;
+    std::map<UIntN, UIntN> m_requestedActiveCoreCount;
 };

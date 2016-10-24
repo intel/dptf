@@ -21,6 +21,7 @@
 #include "esif_ws_http.h"
 #include "esif_ws_server.h"
 #include "esif_ccb_atomic.h"
+#include "esif_ccb_lock.h"
 #include "esif_uf_shell.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -35,17 +36,22 @@
 #define MESSAGE_SUCCESS 0
 #define MESSAGE_ERROR 1
 
-
-/* Max number of Client connections. This cannot exceed FD_SETSIZE (Default: Windows=64, Linux=1024) */
+/* Max number of Client connections. This cannot exceed FD_SETSIZE-1 (Default: Windows=64, Linux=1024) */
 #define MAX_CLIENTS		10
 
-#if (MAX_CLIENTS > FD_SETSIZE)
+#if (MAX_CLIENTS > (FD_SETSIZE - 1))
 # undef  MAX_CLIENTS
-# define MAX_CLIENTS	FD_SETSIZE
+# define MAX_CLIENTS	(FD_SETSIZE - 1)
 #endif
-#define MAX_SOCKETS		MAX_CLIENTS
+#define MAX_SOCKETS		(MAX_CLIENTS + 1)
 
 #define	MIN_REST_OUT_PADDING	15	/* space for "%u:" */
+
+/* for cleaning data that may be written to the socket */
+#define ASCII_CHAR_LBOUND 32
+#define ASCII_CHAR_UBOUND 127
+#define ASCII_LINE_FEED 10
+#define ASCII_CARRIAGE_RETURN 13
 
 /*
  *******************************************************************************
@@ -63,10 +69,12 @@ extern int g_shell_enabled;
 #define WEBSOCKET_DEFAULT_PORT		"8888"		// Public Port
 #define WEBSOCKET_RESTRICTED_IPADDR	"127.0.0.1"	// Localhost Only
 #define WEBSOCKET_RESTRICTED_PORT	"888"		// System Port
+#define WEBSOCKET_FRAME_SIZE_DEFAULT (sizeof(WsSocketFrame) + sizeof(EsifCapability))
 
 static char *esif_ws_server_get_rest_response(size_t *msgLenPtr);
 static char *esif_ws_server_get_rest_buffer(void);
 static void esif_ws_server_initialize_clients(void);
+static int esif_ws_broadcast_frame(const u8 *framePtr, size_t frameSize);
 
 static int esif_ws_server_create_inet_addr(
 	void *addrPtr,
@@ -104,8 +112,17 @@ static eEsifError esif_ws_client_process_active_client(
 	size_t messageLength
 	);
 
+static Bool charIsLineFeed(
+	int asciiChar
+);
+
+static void strip_extended_ascii(
+	char * str
+);
+
 static void esif_ws_protocol_initialize(ProtocolPtr protPtr);
 
+static esif_ccb_mutex_t g_ws_lock;      /* lock ws global variables. Move all these to a struct */
 static ClientRecordPtr g_clients = NULL; /* dynamically allocated array of MAX_CLIENTS */
 static char *g_ws_http_buffer = NULL; /* dynamically allocated buffer of size OUT_BUF_LEN */
 static u32  g_ws_http_buffer_len = 0; /* current allocated size of g_ws_http_buffer */
@@ -113,6 +130,8 @@ static char *g_rest_out = NULL;
 
 static atomic_t g_ws_quit = 0;
 atomic_t g_ws_threads = 0;
+static u8 *g_ws_broadcast_frame = NULL; /* Global buffer used for Websocket broadcasts. Grows dynamically */
+static size_t g_ws_broadcast_frame_len = 0;
 
 /*
  *******************************************************************************
@@ -152,6 +171,10 @@ int esif_ws_init(void)
 
 	atomic_inc(&g_ws_threads);
 	atomic_set(&g_ws_quit, 0);
+
+	esif_ccb_mutex_init(&g_ws_lock);
+	esif_ccb_mutex_lock(&g_ws_lock);
+
 
 	CMD_OUT("starting %sweb server [IP %s port %s]...\n", (g_ws_restricted ? "restricted " : ""), ipaddr, portPtr);
 
@@ -220,7 +243,8 @@ int esif_ws_init(void)
 				setsize++;
 			}
 		}
-		/* If we have nothing functional in te FD set to check; break */
+
+		/* If we have nothing functional in the FD set to check; break */
 		if (maxfd == 0) {
 			break;
 		}
@@ -231,8 +255,10 @@ int esif_ws_init(void)
 		tv.tv_sec  = 2;
 		tv.tv_usec = 50000;
 
-		/* Check our FD set for sockets ready to be accepted (listener) or read (others already accepted) */
+		/* Wait for activity on listener or client sockets for up to maximum timeout period */
+		esif_ccb_mutex_unlock(&g_ws_lock);
 		selRetVal  = select(maxfd, &workingSet, NULL, NULL, &tv);
+		esif_ccb_mutex_lock(&g_ws_lock);
 
 		if (selRetVal == SOCKET_ERROR) {
 			break;
@@ -316,11 +342,16 @@ exit:
 	}
 	esif_ccb_free(g_rest_out);
 	esif_ccb_free(g_ws_http_buffer);
+	esif_ccb_free(g_ws_broadcast_frame);
 	g_rest_out = NULL;
 	g_ws_http_buffer = NULL;
 	g_ws_http_buffer_len = 0;
+	g_ws_broadcast_frame = NULL;
+	g_ws_broadcast_frame_len = 0;
 	esif_ccb_socket_exit();
 	atomic_dec(&g_ws_threads);
+	esif_ccb_mutex_unlock(&g_ws_lock);
+	esif_ccb_mutex_uninit(&g_ws_lock);
 	return 0;
 }
 
@@ -363,7 +394,7 @@ char *esif_ws_server_get_rest_response(size_t *msgLenPtr)
 		goto exit;
 	}
 
-	msgLen = esif_ccb_strlen((char *)msgPtr, WS_BUFFER_LENGTH);
+	msgLen = esif_ccb_strlen((char *)msgPtr, g_ws_http_buffer_len);
 	if (msgLen == 0) {
 		goto exit;
 	}
@@ -385,7 +416,11 @@ void esif_ws_server_execute_rest_cmd(
 		return;
 
 	command_buf = strchr(dataPtr, ':');
-	if (NULL != command_buf) {
+	if (NULL == command_buf) {
+		esif_ccb_free(g_rest_out);
+		g_rest_out = esif_ccb_strdup("0:ERROR");
+	}
+	else {
 		u32 msg_id = atoi(dataPtr);
 		*command_buf = 0;
 		command_buf++;
@@ -401,9 +436,24 @@ void esif_ws_server_execute_rest_cmd(
 				static char *blacklist[] = { "shell", "web", "exit", "quit", NULL };
 				Bool blocked = ESIF_FALSE;
 				int j = 0;
+				const char *skip_cmds[] = { "format text && ", "format xml && ", NULL };
+				char *shell_cmd = command_buf;
+
+				// Skip any commands in the skip_cmds list in before checking the shell command against the blacklist/whitelist
+				while (skip_cmds[j]) {
+					size_t cmd_len = esif_ccb_strlen(skip_cmds[j], MAX_PATH);
+					if (esif_ccb_strnicmp(shell_cmd, skip_cmds[j], cmd_len) == 0) {
+						shell_cmd += cmd_len;
+						j = 0;
+						continue;
+					}
+					j++;
+				}
+
+				// Verify the shell command against Whitelist and Blacklist
 				if (g_ws_restricted) {
 					for (j = 0; whitelist[j] != NULL; j++) {
-						if (esif_ccb_strnicmp(command_buf, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
+						if (esif_ccb_strnicmp(shell_cmd, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
 							break;
 						}
 					}
@@ -413,7 +463,7 @@ void esif_ws_server_execute_rest_cmd(
 				}
 				else {
 					for (j = 0; blacklist[j] != NULL; j++) {
-						if (esif_ccb_strnicmp(command_buf, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
+						if (esif_ccb_strnicmp(shell_cmd, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
 							blocked = ESIF_TRUE;
 							break;
 						}
@@ -436,8 +486,9 @@ void esif_ws_server_execute_rest_cmd(
 		// Lock Shell so we can capture output before another thread executes another command
 		esif_uf_shell_lock();
 		if (!atomic_read(&g_ws_quit)) {
-			EsifString cmd_results = esif_shell_exec_command(command_buf, dataSize, ESIF_TRUE);
+			EsifString cmd_results = esif_shell_exec_command(command_buf, dataSize, ESIF_TRUE, ESIF_FALSE);
 			if (NULL != cmd_results) {
+				strip_extended_ascii(cmd_results);
 				size_t out_len = esif_ccb_strlen(cmd_results, OUT_BUF_LEN) + MIN_REST_OUT_PADDING;
 				esif_ccb_free(g_rest_out);
 				g_rest_out = (EsifString) esif_ccb_malloc(out_len);
@@ -445,6 +496,10 @@ void esif_ws_server_execute_rest_cmd(
 					esif_ccb_sprintf(out_len, g_rest_out, "%u:%s", msg_id, cmd_results);
 				}
 				esif_ws_buffer_resize(WS_BUFFER_LENGTH);
+			}
+			else {
+				esif_ccb_free(g_rest_out);
+				g_rest_out = esif_ccb_strdup("0:");
 			}
 		}
 		esif_uf_shell_unlock();
@@ -544,6 +599,41 @@ static int esif_ws_client_write_to_socket(
 	return EXIT_SUCCESS;
 }
 
+static int esif_ws_broadcast_frame(
+	const u8 *framePtr,
+	size_t frameSize
+	)
+{
+	ssize_t ret = 0;
+	int rc = EXIT_SUCCESS;
+	int index = 0;
+
+	if (NULL == g_clients) {
+		rc = EXIT_FAILURE;
+		goto exit;
+	}
+
+	for (index = 0; index < MAX_CLIENTS; index++) {
+		ClientRecordPtr clientPtr = &g_clients[index];
+
+		if (clientPtr->socket == INVALID_SOCKET || clientPtr->socket == g_listen || clientPtr->state != STATE_NORMAL) {
+			continue;
+		}
+
+		ret = send(clientPtr->socket, (char*)framePtr, (int)frameSize, ESIF_WS_SEND_FLAGS);
+
+		if (ret == -1 || ret != (ssize_t)frameSize) {
+			esif_ccb_socket_close(clientPtr->socket);
+			clientPtr->socket = INVALID_SOCKET;
+			ESIF_TRACE_DEBUG("Error writing to socket: %s", (ret == -1 ? "Error in sending packets\n" : "Incomplete data\n"));
+			rc = EXIT_FAILURE;
+		}
+	}
+
+exit:
+	return rc;
+}
+
 
 /*
  * This function processes requests for either websocket connections or
@@ -554,10 +644,10 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 	eEsifError result = ESIF_OK;
 	ssize_t messageLength  = 0;
 
-	esif_ccb_memset(g_ws_http_buffer, 0, WS_BUFFER_LENGTH);
+	esif_ccb_memset(g_ws_http_buffer, 0, g_ws_http_buffer_len);
 
 	/*Pull the next message from the client socket */
-	messageLength = recv(clientPtr->socket, (char*)g_ws_http_buffer, WS_BUFFER_LENGTH, 0);
+	messageLength = recv(clientPtr->socket, (char*)g_ws_http_buffer, g_ws_http_buffer_len, 0);
 	if (messageLength == 0 || messageLength == SOCKET_ERROR) {
 		ESIF_TRACE_DEBUG("no messages received from the socket\n");
 		result =  ESIF_E_WS_DISC;
@@ -567,10 +657,10 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 
 	switch (clientPtr->state) {
 	case STATE_OPENING:
-		result = esif_ws_client_open_client(clientPtr, (char *)g_ws_http_buffer, WS_BUFFER_LENGTH, (size_t)messageLength);
+		result = esif_ws_client_open_client(clientPtr, (char *)g_ws_http_buffer, g_ws_http_buffer_len, (size_t)messageLength);
 		break;
 	case STATE_NORMAL:
-		result = esif_ws_client_process_active_client(clientPtr, (char *)g_ws_http_buffer, WS_BUFFER_LENGTH, (size_t)messageLength);
+		result = esif_ws_client_process_active_client(clientPtr, (char *)g_ws_http_buffer, g_ws_http_buffer_len, (size_t)messageLength);
 		break;
 	default:
 		result = ESIF_E_WS_DISC;
@@ -616,8 +706,9 @@ static eEsifError esif_ws_client_open_client(
 		 */
 		frameSize = esif_ccb_sprintf(bufferSize,
 			(char*)bufferPtr,
-			"HTTP/1.1 400 Bad Request\r\n"
-			"Content-Type: text/html\r\n\r\n"
+			"HTTP/1.1 400 Bad Request" CRLF
+			"Content-Type: text/html" CRLF
+			CRLF
 			"<html>"
 			"<head></head>"
 			"  <body>"
@@ -647,12 +738,32 @@ static eEsifError esif_ws_client_open_client(
 	}
 
 	if (HTTP_FRAME == frameType) {
-		result = esif_ws_http_process_reqs(clientPtr, g_ws_http_buffer, messageLength);
+		result = esif_ws_http_process_reqs(clientPtr, g_ws_http_buffer, g_ws_http_buffer_len, messageLength);
 	}
 exit:
 	return result;
 }
 
+static Bool charIsLineFeed(int asciiChar)
+{
+	return (asciiChar == ASCII_LINE_FEED || asciiChar == ASCII_CARRIAGE_RETURN);
+}
+
+static void strip_extended_ascii(char *bufferToClean)
+{
+	unsigned char *sourceStringPtr = (unsigned char *)(void*)bufferToClean;
+	unsigned char *resultStringPtr = sourceStringPtr;
+
+	ESIF_ASSERT(bufferToClean != NULL);
+
+	while (*sourceStringPtr != '\0') {
+		if (((int)*sourceStringPtr >= ASCII_CHAR_LBOUND && (int)*sourceStringPtr <= ASCII_CHAR_UBOUND) || charIsLineFeed((int)*sourceStringPtr)) {
+			*(resultStringPtr++) = *sourceStringPtr;
+		}
+		sourceStringPtr++;
+	}
+	*resultStringPtr = '\0';
+}
 
 /*
  * This function processes requests for clients already opened.
@@ -756,6 +867,7 @@ static eEsifError esif_ws_client_process_active_client(
 
 			/* Get message to send*/
 			restRespPtr = esif_ws_server_get_rest_response(&restRespSize);
+			
 			if (restRespPtr != NULL) {
 				esif_ws_socket_build_payload(restRespPtr, restRespSize, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, TEXT_FRAME);
 
@@ -852,4 +964,57 @@ u32 esif_ws_buffer_resize(u32 size)
 		}
 	}
 	return g_ws_http_buffer_len;
+}
+
+eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
+{
+	eEsifError rc = ESIF_OK;
+	size_t frameSize = 0; /* max frame size. will be updated when payload built */
+	
+	if (NULL == bufferPtr) {
+		return ESIF_E_PARAMETER_IS_NULL;
+	}
+
+	if ((atomic_read(&g_ws_threads) < 1) ||
+		(atomic_read(&g_ws_quit) == 1)) { /* Either web server is not running, or is shutting down */
+		return ESIF_E_IFACE_DISABLED;
+	}
+
+	if (g_ws_restricted) { /* Support event broadcasting only in non-restricted mode */
+		return ESIF_E_IFACE_DISABLED;
+	}
+
+	/* Lock WebServer so we can access clients & buffers since we are on a different thread */
+	esif_ccb_mutex_lock(&g_ws_lock);
+
+	/* Compute maximum frame size and grow global broadcast frame buffer if necessary */
+	frameSize = bufferSize + sizeof(WsSocketFrame);
+	if (frameSize > g_ws_broadcast_frame_len) {
+		u8 *new_buffer = NULL;
+		frameSize = esif_ccb_max(frameSize, WEBSOCKET_FRAME_SIZE_DEFAULT);
+		new_buffer = (u8 *)esif_ccb_realloc(g_ws_broadcast_frame, frameSize);
+		if (new_buffer == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+		g_ws_broadcast_frame = new_buffer;
+		g_ws_broadcast_frame_len = frameSize;
+	}
+
+	esif_ws_socket_build_payload((char *) bufferPtr,
+		bufferSize,
+		(WsSocketFramePtr)g_ws_broadcast_frame,
+		g_ws_broadcast_frame_len,
+		&frameSize,
+		BINARY_FRAME
+	);
+
+	if (frameSize == 0 || esif_ws_broadcast_frame(g_ws_broadcast_frame, frameSize) != EXIT_SUCCESS) {
+		ESIF_TRACE_ERROR("Failed to broadcast DPTF event to websocket clients");
+		rc = ESIF_E_UNSPECIFIED;
+	}
+
+exit:
+	esif_ccb_mutex_unlock(&g_ws_lock);
+	return rc;
 }

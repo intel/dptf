@@ -33,7 +33,7 @@ WIDomainPlatformRestOfPowerChanged::~WIDomainPlatformRestOfPowerChanged(void)
 
 void WIDomainPlatformRestOfPowerChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainPlatformRestOfPowerChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPlatformRestOfPowerChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainPlatformRestOfPowerChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainPlatformRestOfPowerChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPlatformRestOfPowerChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPlatformRestOfPowerChanged", i);
         }
     }
 }

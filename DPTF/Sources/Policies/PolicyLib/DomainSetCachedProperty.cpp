@@ -19,7 +19,7 @@
 #include "DomainSetCachedProperty.h"
 using namespace std;
 
-DomainSetCachedProperty::DomainSetCachedProperty(PolicyServicesInterfaceContainer policyServices, UIntN participantIndex)
+DomainSetCachedProperty::DomainSetCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex)
     : CachedProperty(), ParticipantProperty(participantIndex, policyServices),
     m_domainProperties(vector<DomainProperties>())
 {

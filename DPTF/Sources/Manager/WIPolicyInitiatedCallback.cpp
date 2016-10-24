@@ -34,7 +34,7 @@ WIPolicyInitiatedCallback::~WIPolicyInitiatedCallback(void)
 
 void WIPolicyInitiatedCallback::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     try
     {
@@ -43,7 +43,7 @@ void WIPolicyInitiatedCallback::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyInitiatedCallback", m_policyIndex);
+        writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyInitiatedCallback", m_policyIndex);
     }
 }
 

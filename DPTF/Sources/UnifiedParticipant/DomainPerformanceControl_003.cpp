@@ -22,179 +22,222 @@
 DomainPerformanceControl_003::DomainPerformanceControl_003(UIntN participantIndex, UIntN domainIndex,
     ParticipantServicesInterface* participantServicesInterface) :
     DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface),
-    m_performanceControlSet(nullptr),
-    m_performanceControlDynamicCaps(nullptr),
-    m_performanceControlStaticCaps(nullptr),
-    m_currentPerformanceControlIndex(Constants::Invalid)
+    m_capabilitiesLocked(false)
 {
-    
+    clearCachedData();
+    capture();
 }
 
 DomainPerformanceControl_003::~DomainPerformanceControl_003(void)
 {
-    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
-    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
-    DELETE_MEMORY_TC(m_performanceControlSet);
+    restore();
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_003::getPerformanceControlStaticCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    return *m_performanceControlStaticCaps; // This is hard-coded to FALSE in 7.0
+    if (m_performanceControlStaticCaps.isInvalid())
+    {
+        m_performanceControlStaticCaps.set(createPerformanceControlStaticCaps());
+    }
+    return m_performanceControlStaticCaps.get();
 }
 
 PerformanceControlDynamicCaps DomainPerformanceControl_003::getPerformanceControlDynamicCaps(UIntN participantIndex,
     UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    return *m_performanceControlDynamicCaps;
+    if (m_performanceControlDynamicCaps.isInvalid())
+    {
+        m_performanceControlDynamicCaps.set(createPerformanceControlDynamicCaps(domainIndex));
+    }
+    return m_performanceControlDynamicCaps.get();
 }
 
 PerformanceControlStatus DomainPerformanceControl_003::getPerformanceControlStatus(UIntN participantIndex,
     UIntN domainIndex)
 {
-    if (m_currentPerformanceControlIndex == Constants::Invalid)
+    if (m_performanceControlStatus.isInvalid())
     {
-        throw dptf_exception("No performance control has been set.  No status available.");
+        m_performanceControlStatus.set(PerformanceControlStatus(Constants::Invalid));
     }
-    return PerformanceControlStatus(m_currentPerformanceControlIndex);
+    return m_performanceControlStatus.get();
 }
 
 PerformanceControlSet DomainPerformanceControl_003::getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    return *m_performanceControlSet;
+    if (m_performanceControlSet.isInvalid())
+    {
+        m_performanceControlSet.set(createPerformanceControlSet(domainIndex));
+    }
+    return m_performanceControlSet.get();
 }
 
 void DomainPerformanceControl_003::setPerformanceControl(UIntN participantIndex, UIntN domainIndex,
     UIntN performanceControlIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-    verifyPerformanceControlIndex(performanceControlIndex);
+    throwIfPerformanceControlIndexIsOutOfBounds(participantIndex, performanceControlIndex);
     getParticipantServices()->primitiveExecuteSetAsUInt32(
-        esif_primitive_type::SET_PERF_PRESENT_CAPABILITY, // SET_PERF_SUPPORT_STATE
+        esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
         performanceControlIndex,
         domainIndex);
-    m_currentPerformanceControlIndex = performanceControlIndex;
+
+    // Refresh the status
+    m_performanceControlStatus.set(PerformanceControlStatus(performanceControlIndex));
 }
 
 void DomainPerformanceControl_003::setPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
     PerformanceControlDynamicCaps newCapabilities)
 {
-    throw not_implemented();
+    auto upperLimitIndex = newCapabilities.getCurrentUpperLimitIndex();
+    auto lowerLimitIndex = newCapabilities.getCurrentLowerLimitIndex();
+
+    if (upperLimitIndex == Constants::Invalid && lowerLimitIndex == Constants::Invalid)
+    {
+        if (m_capabilitiesLocked == false)
+        {
+            m_performanceControlDynamicCaps.invalidate();
+        }
+
+        return;
+    }
+
+    auto size = getPerformanceControlSet(participantIndex, domainIndex).getCount();
+    if (upperLimitIndex >= size)
+    {
+        throw dptf_exception("Upper Limit index is out of control set bounds.");
+    }
+    else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
+    {
+        lowerLimitIndex = size - 1;
+        getParticipantServices()->writeMessageWarning(
+            ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
+    }
+
+    m_performanceControlDynamicCaps.invalidate();
+    m_performanceControlDynamicCaps.set(PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex));
 }
 
-UIntN DomainPerformanceControl_003::getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex)
+void DomainPerformanceControl_003::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
-    return m_currentPerformanceControlIndex;
+    m_capabilitiesLocked = lock;
 }
 
-PerformanceControlDynamicCaps DomainPerformanceControl_003::getDynamicCapability(UIntN ParticipantIndex, UIntN domainIndex)
+UIntN DomainPerformanceControl_003::getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex)
 {
-    return *m_performanceControlDynamicCaps;
-}
-
-void DomainPerformanceControl_003::intializeControlStructuresIfRequired(UIntN ParticipantIndex, UIntN domainIndex)
-{
-    checkAndCreateControlStructures(domainIndex);
+    return getPerformanceControlStatus(participantIndex, domainIndex).getCurrentControlSetIndex();
 }
 
 void DomainPerformanceControl_003::clearCachedData(void)
 {
-    DELETE_MEMORY_TC(m_performanceControlDynamicCaps);
-    DELETE_MEMORY_TC(m_performanceControlStaticCaps);
-    DELETE_MEMORY_TC(m_performanceControlSet);
-}
-
-void DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex)
-{
-    if (m_performanceControlSet == nullptr)
+    if (m_capabilitiesLocked == false)
     {
-        // Build GFX performance table
-        DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
-            esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
-        m_performanceControlSet = new PerformanceControlSet(
-            PerformanceControlSet::createFromProcessorGfxPstates(buffer));
-        if (m_performanceControlSet->getCount() == 0)
-        {
-            throw dptf_exception("GFX P-state set is empty. Impossible if we support performance controls.");
-        }
-    }
-}
-
-void DomainPerformanceControl_003::createPerformanceControlDynamicCaps(UIntN domainIndex)
-{
-    if (m_performanceControlSet == nullptr)
-    {
-        createPerformanceControlSet(domainIndex);
+        m_performanceControlDynamicCaps.invalidate();
     }
 
-    m_performanceControlDynamicCaps = new PerformanceControlDynamicCaps(m_performanceControlSet->getCount() - 1, 0);
+    m_performanceControlStaticCaps.invalidate();
+    m_performanceControlSet.invalidate();
+    m_performanceControlStatus.invalidate();
 }
 
-void DomainPerformanceControl_003::verifyPerformanceControlIndex(UIntN performanceControlIndex)
+PerformanceControlSet DomainPerformanceControl_003::createPerformanceControlSet(UIntN domainIndex)
 {
-    if (performanceControlIndex >= m_performanceControlSet->getCount())
+    // Build GFX performance table
+    DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_PERF_SUPPORT_STATES, ESIF_DATA_BINARY, domainIndex);
+    auto controlSet = PerformanceControlSet(PerformanceControlSet::createFromProcessorGfxPstates(buffer));
+    if (controlSet.getCount() == 0)
+    {
+        throw dptf_exception("GFX P-state set is empty. Impossible if we support performance controls.");
+    }
+
+    return controlSet;
+}
+
+PerformanceControlDynamicCaps DomainPerformanceControl_003::createPerformanceControlDynamicCaps(UIntN domainIndex)
+{
+    auto controlSetSize = getPerformanceControlSet(getParticipantIndex(), domainIndex).getCount();
+    return PerformanceControlDynamicCaps(controlSetSize - 1, 0);
+}
+
+void DomainPerformanceControl_003::throwIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex)
+{
+    auto controlSetSize = getPerformanceControlSet(getParticipantIndex(), domainIndex).getCount();
+    if (performanceControlIndex >= controlSetSize)
     {
         std::stringstream infoMessage;
 
         infoMessage << "Control index out of control set bounds." << std::endl
                     << "Desired Index : " << performanceControlIndex << std::endl
-                    << "PerformanceControlSet size :" << m_performanceControlSet->getCount() << std::endl;
+                    << "PerformanceControlSet size :" << controlSetSize << std::endl;
 
         throw dptf_exception(infoMessage.str());
     }
 
-    if (performanceControlIndex < m_performanceControlDynamicCaps->getCurrentUpperLimitIndex() ||
-        performanceControlIndex > m_performanceControlDynamicCaps->getCurrentLowerLimitIndex())
+    auto caps = getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex);
+    if (performanceControlIndex < caps.getCurrentUpperLimitIndex() ||
+        performanceControlIndex > caps.getCurrentLowerLimitIndex())
     {
         std::stringstream infoMessage;
 
         infoMessage << "Got a performance control index that was outside the allowable range." << std::endl
                     << "Desired Index : " << performanceControlIndex << std::endl
-                    << "Upper Limit Index : " << m_performanceControlDynamicCaps->getCurrentUpperLimitIndex() << std::endl
-                    << "Lower Limit Index : " << m_performanceControlDynamicCaps->getCurrentLowerLimitIndex() << std::endl;
+                    << "Upper Limit Index : " << caps.getCurrentUpperLimitIndex() << std::endl
+                    << "Lower Limit Index : " << caps.getCurrentLowerLimitIndex() << std::endl;
 
         throw dptf_exception(infoMessage.str());
     }
 }
 
-void DomainPerformanceControl_003::checkAndCreateControlStructures(UIntN domainIndex)
+PerformanceControlStaticCaps DomainPerformanceControl_003::createPerformanceControlStaticCaps(void)
 {
-    if (m_performanceControlSet == nullptr)
-    {
-        createPerformanceControlSet(domainIndex);
-    }
-
-    if (m_performanceControlDynamicCaps == nullptr)
-    {
-        createPerformanceControlDynamicCaps(domainIndex);
-    }
-
-    if (m_performanceControlStaticCaps == nullptr)
-    {
-        createPerformanceControlStaticCaps();
-    }
-}
-
-void DomainPerformanceControl_003::createPerformanceControlStaticCaps()
-{
-    m_performanceControlStaticCaps = new PerformanceControlStaticCaps(false);
+    return PerformanceControlStaticCaps(false); // This is hard-coded to FALSE in 7.0
 }
 
 std::shared_ptr<XmlNode> DomainPerformanceControl_003::getXml(UIntN domainIndex)
 {
-    checkAndCreateControlStructures(domainIndex);
-
     auto root = XmlNode::createWrapperElement("performance_control");
-    root->addChild(PerformanceControlStatus(m_currentPerformanceControlIndex).getXml());
-    root->addChild(m_performanceControlDynamicCaps->getXml());
-    root->addChild(m_performanceControlStaticCaps->getXml());
-    root->addChild(m_performanceControlSet->getXml());
+    root->addChild(getPerformanceControlStatus(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getPerformanceControlStaticCaps(getParticipantIndex(), domainIndex).getXml());
+    root->addChild(getPerformanceControlSet(getParticipantIndex(), domainIndex).getXml());
     root->addChild(XmlNode::createDataElement("control_knob_version", "003"));
 
     return root;
+}
+
+void DomainPerformanceControl_003::capture(void)
+{
+    try
+    {
+        m_initialStatus.set(getPerformanceControlDynamicCaps(getParticipantIndex(), getDomainIndex()));
+    }
+    catch (dptf_exception& e)
+    {
+        m_initialStatus.invalidate();
+        std::string warningMsg = e.what();
+        getParticipantServices()->writeMessageWarning(ParticipantMessage(
+            FLF, "Failed to get the initial graphics performance control dynamic capabilities. " + warningMsg));
+    }
+}
+
+void DomainPerformanceControl_003::restore(void)
+{
+    if (m_initialStatus.isValid())
+    {
+        try
+        {
+            getParticipantServices()->primitiveExecuteSetAsUInt32(
+                esif_primitive_type::SET_PERF_PRESENT_CAPABILITY,
+                m_initialStatus.get().getCurrentUpperLimitIndex(),
+                getDomainIndex());
+        }
+        catch (...)
+        {
+            // best effort
+            getParticipantServices()->writeMessageDebug(ParticipantMessage(
+                FLF, "Failed to restore the initial performance control status. "));
+        }
+    }
 }
 
 void DomainPerformanceControl_003::updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,

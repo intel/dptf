@@ -17,14 +17,13 @@
 ******************************************************************************/
 
 #include "ParticipantManager.h"
-#include "WorkItemQueueManager.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "WIParticipantDestroy.h"
-#include "DptfManager.h"
 #include "Utility.h"
 #include "EsifServices.h"
-#include "DptfStatus.h"
+#include "DptfStatusInterface.h"
 
-ParticipantManager::ParticipantManager(DptfManager* dptfManager) : m_dptfManager(dptfManager)
+ParticipantManager::ParticipantManager(DptfManagerInterface* dptfManager) : m_dptfManager(dptfManager)
 {
 }
 
@@ -70,7 +69,17 @@ void ParticipantManager::createParticipant(UIntN participantIndex, const AppPart
     // When this completes the actual participant will be instantiated and the functionality will
     // be available through the interface function pointers.
     m_dptfManager->getDptfStatus()->clearCache();
-    m_participant[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
+
+    try
+    {
+        m_participant[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
+    }
+    catch(...)
+    {
+        DELETE_MEMORY_TC(m_participant[participantIndex]);
+        m_participant[participantIndex] = nullptr;
+        throw dptf_exception("Failed to create participant at index " + StlOverride::to_string(participantIndex));
+    }
 }
 
 void ParticipantManager::destroyAllParticipants(void)
@@ -121,7 +130,7 @@ UIntN ParticipantManager::getParticipantListCount(void) const
     return static_cast<UIntN>(m_participant.size());
 }
 
-Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex)
+Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex) const
 {
     if ((participantIndex >= m_participant.size()) ||
         (m_participant[participantIndex] == nullptr))

@@ -55,9 +55,18 @@ eEsifError EsifExecutePrimitive(
 Bool EsifPrimitiveVerifyOpcode(
 	const UInt8 participantId,
 	const UInt32 primitiveId,
-	const EsifString qualifier,
+	const EsifString domain_str,
 	const UInt8 instance,
 	enum esif_primitive_opcode opcode
+	);
+
+eEsifError EsifPrimitiveGetDataType(
+	const UInt8 participantId,
+	const UInt32 primitiveId,
+	const EsifString domain_str,
+	const UInt8 instance,
+	enum esif_primitive_opcode opcode,
+	enum esif_data_type *typePtr
 	);
 
 void EsifUfDumpPrimitive(

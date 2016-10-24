@@ -41,9 +41,12 @@ public:
 
 protected:
 
+    virtual void capture(void);
+    virtual void restore(void);
     UIntN getParticipantIndex() const;
     UIntN getDomainIndex() const;
     ParticipantServicesInterface* getParticipantServices() const;
+    DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const;
 
 private:
 
@@ -51,4 +54,5 @@ private:
     UIntN m_domainIndex;
     ParticipantServicesInterface* m_participantServices;
     Bool m_activityLoggingEnabled;
+    UInt16 createTupleDomain() const;
 };

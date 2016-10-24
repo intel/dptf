@@ -18,9 +18,9 @@
 
 #include "PolicyServices.h"
 #include "EsifServices.h"
-#include "WorkItemQueueManager.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 
 PolicyServices::PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex) :
@@ -53,12 +53,12 @@ Policy* PolicyServices::getPolicy(void) const
     return m_policy;
 }
 
-ParticipantManager* PolicyServices::getParticipantManager(void) const
+ParticipantManagerInterface* PolicyServices::getParticipantManager(void) const
 {
     return m_participantManager;
 }
 
-WorkItemQueueManager* PolicyServices::getWorkItemQueueManager(void) const
+WorkItemQueueManagerInterface* PolicyServices::getWorkItemQueueManager(void) const
 {
     return m_workItemQueueManager;
 }

@@ -58,7 +58,7 @@
  * Error Return Codes
  */
 
-enum esif_rc {
+typedef enum esif_rc {
 	ESIF_OK = 0,				/* Success */
 
 	/*
@@ -71,6 +71,7 @@ enum esif_rc {
 	ESIF_I_ACPI_OBJECT_NOT_PRESENT, /* Optional Object Such As _STR */
 	ESIF_I_AGAIN,	     /* Come Back And Try Again Later */
 	ESIF_I_MSR_AFFINITY, /* Not All MSR Affinities Operaional/Supported */
+	ESIF_I_INIT_PAUSED,				/* Init paused - for later completion */
 
 	/*
 	 **********************************************************************
@@ -111,6 +112,7 @@ enum esif_rc {
 	ESIF_E_XFORM_NOT_AVAILABLE,           /* Xform Is Unavailable */
 	ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS,    /* Request data invalid */
 	ESIF_E_ACTION_ALREADY_STARTED,	/* Action already available */
+	ESIF_E_APP_ALREADY_STARTED,	/* App already available */
 
 	/* Buffer */
 	ESIF_E_NEED_LARGER_BUFFER = 1300, /* Response Data Size Will Contain
@@ -215,10 +217,13 @@ enum esif_rc {
 	ESIF_E_INVALID_DOMAIN_ID,
 	ESIF_E_INVALID_CAPABILITY_MASK,
 
-};
+	/* The following block is reserved for ABAT-specific error codes */
+	ESIF_E_ABAT_ERRORS_RSVD = 3700,
+
+} esif_error_t;
 
 /* Convert Return Code To A String */
-static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
+static ESIF_INLINE char *esif_error_str(esif_error_t type)
 {
 	switch (type) {
 	ESIF_CASE_ENUM(ESIF_OK);
@@ -227,6 +232,7 @@ static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
 	ESIF_CASE_ENUM(ESIF_I_ACPI_OBJECT_NOT_PRESENT);
 	ESIF_CASE_ENUM(ESIF_I_AGAIN);
 	ESIF_CASE_ENUM(ESIF_I_MSR_AFFINITY);
+	ESIF_CASE_ENUM(ESIF_I_INIT_PAUSED);
 
 	ESIF_CASE_ENUM(ESIF_E_NOT_IMPLEMENTED);
 	ESIF_CASE_ENUM(ESIF_E_NO_LOWER_FRAMEWORK);
@@ -256,7 +262,8 @@ static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
 	ESIF_CASE_ENUM(ESIF_E_XFORM_NOT_AVAILABLE);
 	ESIF_CASE_ENUM(ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS);
 	ESIF_CASE_ENUM(ESIF_E_ACTION_ALREADY_STARTED);
-	
+	ESIF_CASE_ENUM(ESIF_E_APP_ALREADY_STARTED);
+
 	
 	ESIF_CASE_ENUM(ESIF_E_NEED_LARGER_BUFFER);
 	ESIF_CASE_ENUM(ESIF_E_NEED_BINARY_BUFFER);
@@ -336,10 +343,13 @@ static ESIF_INLINE char *esif_rc_str(enum esif_rc type)
 	ESIF_CASE_ENUM(ESIF_E_INVALID_PARTICIPANT_ID);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_DOMAIN_ID);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_CAPABILITY_MASK);
+	ESIF_CASE_ENUM(ESIF_E_ABAT_ERRORS_RSVD);
 
 	}
 	return ESIF_NOT_AVAILABLE;
 }
+
+#define esif_rc_str(type) esif_error_str(type)
 
 #ifdef ESIF_ATTR_USER
 typedef enum esif_rc eEsifError;

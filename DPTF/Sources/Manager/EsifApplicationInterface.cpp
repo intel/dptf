@@ -20,10 +20,9 @@
 #include "DptfVer.h"
 #include "esif_sdk_iface_app.h"
 #include "esif_sdk_iface_esif.h"
-#include "DptfManager.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
-#include "WorkItemQueueManager.h"
+#include "ParticipantManagerInterface.h"
+#include "WorkItemQueueManagerInterface.h"
 #include "WIAll.h"
 #include "EsifDataString.h"
 #include "EsifServices.h"
@@ -56,11 +55,11 @@
     return ESIF_E_UNSPECIFIED; \
 }
 
-#define RETURN_ERROR_IF_DPTF_SHUTTING_DOWN \
+#define RETURN_WARNING_IF_DPTF_SHUTTING_DOWN \
     if (dptfManager->isDptfShuttingDown() == true) \
 { \
     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function call from ESIF ignored.  DPTF manager is shutting down."); \
-    dptfManager->getEsifServices()->writeMessageError(message); \
+    dptfManager->getEsifServices()->writeMessageWarning(message); \
     return ESIF_E_UNSPECIFIED; \
 }
 
@@ -79,7 +78,7 @@ extern "C"
 
     static eEsifError GetDptfDescription(EsifDataPtr dataPtr)
     {
-        return FillDataPtrWithString(dataPtr, "DPTF application description");
+        return FillDataPtrWithString(dataPtr, "DPTF Manager");
     }
 
     static eEsifError GetDptfGuid(EsifDataPtr appGuidPtr)
@@ -109,7 +108,7 @@ extern "C"
 
     static eEsifError DptfAllocateHandle(void** appHandleLocation)
     {
-        DptfManager* dptfManager = nullptr;
+        DptfManagerInterface* dptfManager = nullptr;
 
         try
         {
@@ -169,7 +168,7 @@ extern "C"
                 // context of a work item and will only take place on the work item thread.
                 Bool enabled = (appInitialState == eAppState::eAppStateEnabled);
                 std::string dptfHomeDirectoryPath = EsifDataString(&appData->fPathHome);
-                DptfManager* dptfManager = (DptfManager*)appHandle;
+                DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
                 dptfManager->createDptfManager(esifHandle, esifInterfacePtr, dptfHomeDirectoryPath,
                     currentLogVerbosityLevel, enabled);
 
@@ -192,10 +191,10 @@ extern "C"
 
     static eEsifError DptfDestroy(void* appHandle)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         ManagerMessage message = ManagerMessage(dptfManager, FLF, "Function execution beginning.");
         dptfManager->getEsifServices()->writeMessageInfo(message);
@@ -233,7 +232,7 @@ extern "C"
         //
 
 
-        //DptfManager* dptfManager = (DptfManager*)appHandle;
+        //DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         //RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         //RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
         //RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
@@ -255,10 +254,10 @@ extern "C"
 
     static eEsifError DptfResume(void* appHandle)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         eEsifError rc = ESIF_OK;
 
@@ -277,7 +276,7 @@ extern "C"
 
     static eEsifError GetDptfBanner(const void* appHandle, EsifDataPtr dataPtr)
     {
-        return FillDataPtrWithString(dataPtr, "DPTF application banner");
+        return FillDataPtrWithString(dataPtr, "DPTF Manager Loaded");
     }
 
     static eEsifError GetDptfPrompt(const void* appHandle, EsifDataPtr dataPtr)
@@ -302,10 +301,10 @@ extern "C"
 
         if (requestedOperation == GET_SUPPORTED_POLICIES)
         {
-            DptfManager* dptfManager = (DptfManager*)appHandle;
+            DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
             RETURN_ERROR_IF_CONTEXT_DATA_NULL;
             RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-            RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+            RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
             try
             {
@@ -330,10 +329,10 @@ extern "C"
     static eEsifError GetDptfStatus(const void* appHandle, const eAppStatusCommand command,
         const UInt32 appStatusIn, EsifDataPtr appStatusOut)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         eEsifError rc = ESIF_E_UNSPECIFIED;
 
@@ -351,10 +350,10 @@ extern "C"
 
     static eEsifError ParticipantAllocateHandle(const void* appHandle, void** participantHandleLocation)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         eEsifError rc = ESIF_E_UNSPECIFIED;
         UIntN newParticipantIndex = Constants::Esif::NoParticipant;
@@ -387,10 +386,10 @@ extern "C"
     static eEsifError ParticipantCreate(const void* appHandle, const void* participantHandle,
         const AppParticipantDataPtr participantDataPtr, const eParticipantState particiapntInitialState)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         Bool participantCreated = false;
 
@@ -413,10 +412,10 @@ extern "C"
 
     eEsifError ParticipantDestroy(const void* appHandle, const void* participantHandle)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         eEsifError rc = ESIF_OK;
 
@@ -444,10 +443,10 @@ extern "C"
     static eEsifError DomainAllocateHandle(const void* appHandle, const void* participantHandle,
         void** domainHandleLocation)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         eEsifError rc = ESIF_E_UNSPECIFIED;
         UIntN newDomainIndex = Constants::Esif::NoDomain;
@@ -482,10 +481,10 @@ extern "C"
     static eEsifError DomainCreate(const void* appHandle, const void* participantHandle, const void* domainHandle,
         const AppDomainDataPtr domainDataPtr, const eDomainState domainInitialState)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         Bool domainCreated = false;
 
@@ -509,10 +508,10 @@ extern "C"
 
     static eEsifError DomainDestroy(const void* appHandle, const void* participantHandle, const void* domainHandle)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         eEsifError rc = ESIF_OK;
 
@@ -541,10 +540,10 @@ extern "C"
     static eEsifError DptfEvent(const void* appHandle, const void* participantHandle, const void* domainHandle,
         const EsifDataPtr esifEventDataPtr, const EsifDataPtr eventGuid)
     {
-        DptfManager* dptfManager = (DptfManager*)appHandle;
+        DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
         RETURN_ERROR_IF_CONTEXT_DATA_NULL;
         RETURN_ERROR_IF_WORK_ITEM_QUEUE_MANAGER_NOT_CREATED;
-        RETURN_ERROR_IF_DPTF_SHUTTING_DOWN;
+        RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
         Guid guid = Guid::createInvalid();
         FrameworkEvent::Type frameworkEvent = FrameworkEvent::Max;
@@ -701,17 +700,9 @@ extern "C"
             case FrameworkEvent::PolicyActiveRelationshipTableChanged:
                 wi = new WIPolicyActiveRelationshipTableChanged(dptfManager);
                 break;
-            case FrameworkEvent::PolicyCoolingModeAcousticLimitChanged:
-                uint32param = EsifDataUInt32(esifEventDataPtr);
-                wi = new WIPolicyCoolingModeAcousticLimitChanged(dptfManager, (CoolingModeAcousticLimit::Type)uint32param);
-                break;
             case FrameworkEvent::PolicyCoolingModePolicyChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 wi = new WIPolicyCoolingModePolicyChanged(dptfManager, (CoolingMode::Type)uint32param);
-                break;
-            case FrameworkEvent::PolicyCoolingModePowerLimitChanged:
-                uint32param = EsifDataUInt32(esifEventDataPtr);
-                wi = new WIPolicyCoolingModePowerLimitChanged(dptfManager, (CoolingModePowerLimit::Type)uint32param);
                 break;
             case FrameworkEvent::PolicyForegroundApplicationChanged:
                 wi = new WIPolicyForegroundApplicationChanged(dptfManager, EsifDataString(esifEventDataPtr));
@@ -719,14 +710,6 @@ extern "C"
             case FrameworkEvent::PolicyOperatingSystemConfigTdpLevelChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 wi = new WIPolicyOperatingSystemConfigTdpLevelChanged(dptfManager, uint32param);
-                break;
-            case FrameworkEvent::PolicyOperatingSystemLpmModeChanged:
-                uint32param = EsifDataUInt32(esifEventDataPtr);
-                wi = new WIPolicyOperatingSystemLpmModeChanged(dptfManager, uint32param);
-                break;
-            case FrameworkEvent::PolicyOperatingSystemHdcStatusChanged:
-                uint32param = EsifDataUInt32(esifEventDataPtr);
-                wi = new WIPolicyOperatingSystemHdcStatusChanged(dptfManager, (OsHdcStatus::Type)uint32param);
                 break;
             case FrameworkEvent::PolicyOperatingSystemPowerSourceChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -755,16 +738,13 @@ extern "C"
             case FrameworkEvent::PolicyPassiveTableChanged:
                 wi = new WIPolicyPassiveTableChanged(dptfManager);
                 break;
-            case FrameworkEvent::PolicyPlatformLpmModeChanged:
-                wi = new WIPolicyPlatformLpmModeChanged(dptfManager);
-                break;
             case FrameworkEvent::PolicySensorOrientationChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
                 wi = new WIPolicySensorOrientationChanged(dptfManager, (SensorOrientation::Type)uint32param);
                 break;
             case FrameworkEvent::PolicySensorMotionChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
-                wi = new WIPolicySensorMotionChanged(dptfManager, (SensorMotion::Type)uint32param);
+                wi = new WIPolicySensorMotionChanged(dptfManager, (OnOffToggle::Type)uint32param);
                 break;
             case FrameworkEvent::PolicySensorSpatialOrientationChanged:
                 uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -776,20 +756,23 @@ extern "C"
             case FrameworkEvent::PolicyAdaptivePerformanceConditionsTableChanged:
                 wi = new WIPolicyAdaptivePerformanceConditionsTableChanged(dptfManager);
                 break;
+            case FrameworkEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged:
+                wi = new WIPolicyAdaptivePerformanceParticipantConditionTableChanged(dptfManager);
+                break;
             case FrameworkEvent::PolicyAdaptivePerformanceActionsTableChanged:
                 wi = new WIPolicyAdaptivePerformanceActionsTableChanged(dptfManager);
                 break;
             case FrameworkEvent::PolicyOemVariablesChanged:
                 wi = new WIPolicyOemVariablesChanged(dptfManager);
                 break;
-            case FrameworkEvent::PolicyPowerDeviceRelationshipTableChanged:
-                wi = new WIPolicyPowerDeviceRelationshipTableChanged(dptfManager);
-                break;
             case FrameworkEvent::PolicyPowerBossConditionsTableChanged:
                 wi = new WIPolicyPowerBossConditionsTableChanged(dptfManager);
                 break;
             case FrameworkEvent::PolicyPowerBossActionsTableChanged:
                 wi = new WIPolicyPowerBossActionsTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyPowerBossMathTableChanged:
+                wi = new WIPolicyPowerBossMathTableChanged(dptfManager);
                 break;
             case FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged:
             {
@@ -798,6 +781,17 @@ extern "C"
                 wi = new WIPolicyOperatingSystemPowerSchemePersonalityChanged(dptfManager, (OsPowerSchemePersonality::Type)uint32param);
                 break;
             }
+            case FrameworkEvent::PolicyEmergencyCallModeTableChanged:
+                wi = new WIPolicyEmergencyCallModeTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyPidAlgorithmTableChanged:
+                wi = new WIPolicyPidAlgorithmTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::PolicyActiveControlPointRelationshipTableChanged:
+                wi = new WIPolicyActiveControlPointRelationshipTableChanged(dptfManager);
+                break;
+            case FrameworkEvent::DptfAppUnloading:
+                break;
             default:
                 {
                     ManagerMessage message = ManagerMessage(dptfManager, FLF, "Received unexpected event");

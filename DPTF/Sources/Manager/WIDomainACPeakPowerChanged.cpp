@@ -33,7 +33,7 @@ WIDomainACPeakPowerChanged::~WIDomainACPeakPowerChanged(void)
 
 void WIDomainACPeakPowerChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainACPeakPowerChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainACPeakPowerChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainACPeakPowerChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainACPeakPowerChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainACPeakPowerChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainACPeakPowerChanged", i);
         }
     }
 }

@@ -17,13 +17,12 @@
 ******************************************************************************/
 
 #include "WorkItemQueueManager.h"
-#include "DptfManager.h"
 #include "EsifServices.h"
 #include "EsifMutexHelper.h"
 #include "EsifThreadId.h"
 #include "XmlNode.h"
 
-WorkItemQueueManager::WorkItemQueueManager(DptfManager* dptfManager) :
+WorkItemQueueManager::WorkItemQueueManager(DptfManagerInterface* dptfManager) :
     m_dptfManager(dptfManager),
     m_enqueueingEnabled(true),
     m_workItemStatistics(nullptr),

@@ -31,7 +31,6 @@
 #include "DomainRfProfileStatusFactory.h"
 #include "DomainTemperatureFactory.h"
 #include "DomainUtilizationFactory.h"
-#include "DomainHardwareDutyCycleControlFactory.h"
 #include "ParticipantGetSpecificInfoFactory.h"
 #include "ParticipantSetSpecificInfoFactory.h"
 #include "DomainPlatformPowerControlFactory.h"
@@ -109,8 +108,6 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
         return shared_ptr<ControlFactoryInterface>(new DomainTemperatureFactory());
     case ControlFactoryType::Utilization:
         return shared_ptr<ControlFactoryInterface>(new DomainUtilizationFactory());
-    case ControlFactoryType::HardwareDutyCycle:
-        return shared_ptr<ControlFactoryInterface>(new DomainHardwareDutyCycleControlFactory());
     case ControlFactoryType::GetSpecificInfo:
         return shared_ptr<ControlFactoryInterface>(new ParticipantGetSpecificInfoFactory());
     case ControlFactoryType::SetSpecificInfo:

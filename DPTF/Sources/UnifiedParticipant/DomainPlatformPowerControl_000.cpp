@@ -35,7 +35,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerControl_000::getXml(UIntN domainInde
     throw not_implemented();
 }
 
-Bool DomainPlatformPowerControl_000::isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
+Bool DomainPlatformPowerControl_000::isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex,
     PlatformPowerLimitType::Type limitType)
 {
     throw not_implemented();

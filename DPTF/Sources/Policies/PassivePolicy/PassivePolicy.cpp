@@ -165,11 +165,11 @@ void PassivePolicy::onBindParticipant(UIntN participantIndex)
 
 void PassivePolicy::onUnbindParticipant(UIntN participantIndex)
 {
+    removeAllRequestsForTarget(participantIndex);
     m_trt->disassociateParticipant(participantIndex);
     m_callbackScheduler->removeParticipantFromSchedule(participantIndex);
     m_callbackScheduler->setTrt(m_trt);
     m_targetMonitor.stopMonitoring(participantIndex);
-    removeAllRequestsForTarget(participantIndex);
     getParticipantTracker()->forget(participantIndex);
 }
 
@@ -211,9 +211,17 @@ void PassivePolicy::onParticipantSpecificInfoChanged(UIntN participantIndex)
     if (participantIsTargetDevice(participantIndex))
     {
         auto participant = getParticipantTracker()->getParticipant(participantIndex);
+        auto oldTrips = participant->getPassiveTripPointProperty().getTripPoints();
+        auto oldHysteresis = participant->getTemperatureThresholds().getHysteresis();
+
         participant->getPassiveTripPointProperty().refresh();
         participant->refreshHysteresis();
-        if (participant->getDomainPropertiesSet().getDomainCount() > 0)
+
+        auto newTrips = participant->getPassiveTripPointProperty().getTripPoints();
+        auto newHysteresis = participant->getTemperatureThresholds().getHysteresis();
+
+        if ((oldTrips != newTrips || oldHysteresis != newHysteresis) && 
+            (participant->getDomainPropertiesSet().getDomainCount() > 0))
         {
             takePossibleThermalActionForTarget(participantIndex);
         }
@@ -230,7 +238,7 @@ void PassivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
             if (participant->getDomainPropertiesSet().getDomainCount() > 0)
             {
                 auto currentTemperature = participant->getFirstDomainTemperature();
-                participant->setThresholdCrossed(currentTemperature, getTime()->getCurrentTimeInMilliseconds());
+                participant->setThresholdCrossed(currentTemperature, getTime()->getCurrentTime());
                 takePossibleThermalActionForTarget(participantIndex, currentTemperature);
             }
         }
@@ -426,35 +434,35 @@ TargetActionBase* PassivePolicy::determineAction(UIntN target)
         auto currentTemperature = participant->getFirstDomainTemperature();
         auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
         auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
-        if (currentTemperature > Temperature(psv))
+        if (currentTemperature > psv)
         {
             return new TargetLimitAction(
-                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler,
                 m_targetMonitor, target);
         }
-        else if ((currentTemperature < Temperature(psv)) && (m_targetMonitor.isMonitoring(target)))
+        else if ((currentTemperature < psv) && (m_targetMonitor.isMonitoring(target)))
         {
             return new TargetUnlimitAction(
-                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler,
                 m_targetMonitor, target);
         }
-        else if (currentTemperature == Temperature(psv))
+        else if (currentTemperature == psv)
         {
             return new TargetCheckLaterAction(
-                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler,
                 m_targetMonitor, target);
         }
         else
         {
             return new TargetNoAction(
-                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+                getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler,
                 m_targetMonitor, target);
         }
     }
     else
     {
         return new TargetNoAction(
-            getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler, 
+            getPolicyServices(), getTime(), getParticipantTracker(), m_trt, m_callbackScheduler,
             m_targetMonitor, target);
     }
 }
@@ -490,7 +498,7 @@ void PassivePolicy::setParticipantTemperatureThresholdNotification(
     participant->setTemperatureThresholds(lowerBoundTemperature, upperBoundTemperature);
 }
 
-void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, UIntN currentTemperature)
+void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, Temperature currentTemperature)
 {
     auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
     if (passiveTripPoints.hasItem(ParticipantSpecificInfoKey::NTT))

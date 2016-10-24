@@ -27,7 +27,7 @@ public:
 
     DomainPixelClockStatus_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
-    ~DomainPixelClockStatus_001(void);
+    virtual ~DomainPixelClockStatus_001(void);
 
     // DomainPixelClockStatusInterface
     virtual PixelClockCapabilities getPixelClockCapabilities(UIntN participantIndex, UIntN domainIndex) override;

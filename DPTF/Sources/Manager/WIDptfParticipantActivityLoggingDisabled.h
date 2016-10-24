@@ -30,5 +30,5 @@ public:
 
     virtual void execute(void) override final;
 private:
-    const UInt32 m_capabilityId;
+    const UInt32 m_capabilityBitMask;
 };

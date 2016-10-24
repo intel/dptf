@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "ManagerMessage.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "Participant.h"
 #include "PolicyManager.h"
 #include "Policy.h"

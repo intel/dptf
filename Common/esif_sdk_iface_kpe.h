@@ -60,7 +60,7 @@
 #include "esif_sdk_event_type.h"
 #include "esif_ccb_rc.h"
 
-#define ESIF_DRIVER_VERSION 1 /* KPE interface version */
+#define ESIF_DRIVER_VERSION 2 /* KPE interface version */
 
 #pragma pack(push, 1)
 

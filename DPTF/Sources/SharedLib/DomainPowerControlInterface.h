@@ -38,10 +38,14 @@ public:
         PowerControlType::Type controlType) = 0;
     virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex,
         PowerControlType::Type controlType, const Power& powerLimit) = 0;
+    virtual void setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const Power& powerLimit) = 0;
 
     virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
         PowerControlType::Type controlType) = 0;
     virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
+        PowerControlType::Type controlType, const TimeSpan& timeWindow) = 0;
+    virtual void setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
         PowerControlType::Type controlType, const TimeSpan& timeWindow) = 0;
 
     virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
@@ -52,4 +56,5 @@ public:
     virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex) = 0;
     virtual void setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, 
         PowerControlDynamicCapsSet capsSet) = 0;
+    virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) = 0;
 };

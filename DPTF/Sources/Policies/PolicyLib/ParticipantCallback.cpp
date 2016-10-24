@@ -20,12 +20,12 @@
 using namespace std;
 
 ParticipantCallback::ParticipantCallback()
-    : m_timeStamp(Constants::Invalid),
+    : m_timeStamp(TimeSpan::createInvalid()),
     m_callbackHandle(Constants::Invalid)
 {
 }
 
-ParticipantCallback::ParticipantCallback(const TimeSpan& callbackTime, UInt64 timeStamp, UInt64 callbackHandle)
+ParticipantCallback::ParticipantCallback(const TimeSpan& callbackTime, const TimeSpan& timeStamp, UInt64 callbackHandle)
     : m_timeDelta(callbackTime),
     m_timeStamp(timeStamp),
     m_callbackHandle(callbackHandle)
@@ -41,7 +41,7 @@ const TimeSpan& ParticipantCallback::getTimeDelta() const
     return m_timeDelta;
 }
 
-UInt64 ParticipantCallback::getTimeStamp() const
+const TimeSpan& ParticipantCallback::getTimeStamp() const
 {
     return m_timeStamp;
 }

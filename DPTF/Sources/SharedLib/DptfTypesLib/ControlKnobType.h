@@ -34,7 +34,7 @@ namespace ControlKnobType
         DbptControlIccMax = 0x00030000, // Current Limit in mA
         CoreControlLpo = 0x00040000, // Number of logical processors/exec units to be offlined
         DisplayControlBrightness = 0x00050000, // Display brightness in percentage units
-        ActiveCoolingControlFanSpeed = 0x00060000, // Target fan speed in rpm
+        PercentageFanControl = 0x00060000, // Target fan speed in rpm
         ConfigTdpControlTurboState = 0x00070000, // Turbo state enabled (0)/disabled (1)
         TauControlPl1 = 0x00080000, // PL1 Tau in ms
         TauControlPl2 = 0x00080001, // PL2 Tau in ms
@@ -43,7 +43,8 @@ namespace ControlKnobType
         PerformanceControlPerfIndex = 0x000A0000, // Performance Target Index reported by PPSS or _PSS
         PSysPowerControlPl1 = 0x000B0000, // PSys PL1 in mW
         PSysPowerControlPl2 = 0x000B0001, // PSys PL2 in mW
-        PSysPowerControlPl3 = 0x000B0002 // PSys PL3 in mW
+        PSysPowerControlPl3 = 0x000B0002, // PSys PL3 in mW
+        RPMFanControl = 0x000C0000 // RPM fan Control in Integer
     };
 
     std::string ToString(ControlKnobType::Type type);

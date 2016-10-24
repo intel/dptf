@@ -73,6 +73,8 @@
 #define KPE_TRACE_MSG(fmt, ...) (0)
 #endif
 
+#define PNP_INTERFACE_VERSION_KPE	2
+
 /*
  * The following GUID is used to register for PnP notification for when the
  * DPTF driver arrives/leaves:

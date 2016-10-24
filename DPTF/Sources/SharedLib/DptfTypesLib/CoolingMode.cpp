@@ -24,12 +24,12 @@ namespace CoolingMode
     {
         switch (coolingModeType)
         {
-            case ActiveCooling:
-                return "Active Cooling";
-            case PassiveCooling:
-                return "Passive Cooling";
-            default:
-                throw dptf_exception("CoolingMode::Type is invalid");
+        case ActiveCooling:
+            return "Active";
+        case PassiveCooling:
+            return "Passive";
+        default:
+            throw dptf_exception("CoolingMode::Type is invalid");
         }
     }
 }

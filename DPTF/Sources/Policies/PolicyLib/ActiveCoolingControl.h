@@ -23,10 +23,12 @@
 #include "DomainProperties.h"
 #include "ActiveControlStaticCapsCachedProperty.h"
 #include "XmlNode.h"
+#include "ActiveCoolingControlFacadeInterface.h"
 
 // TODO: rename as a Facade
 // this class provides an easy-to-use interface and arbitration for fan speed requests
-class dptf_export ActiveCoolingControl
+
+class dptf_export ActiveCoolingControl : public ActiveCoolingControlFacadeInterface
 {
 public:
 
@@ -39,16 +41,22 @@ public:
     ~ActiveCoolingControl(void);
 
     // control capabilities
-    Bool supportsActiveCoolingControls();
-    Bool supportsFineGrainControl();
+    virtual Bool supportsActiveCoolingControls() override;
+    virtual Bool supportsFineGrainControl() override;
 
     // fan speed requests
-    void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed);
-    void requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex);
-    void forceFanOff(void);
-    
+    virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) override;
+    virtual void requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex) override;
+    virtual void forceFanOff(void) override;
+    virtual void setControl(Percentage activeCoolingControlFanSpeed) override;
+
+    //properties
+    virtual const ActiveControlStaticCaps& getCapabilities() override;
+    virtual void refreshCapabilities() override;
+    virtual ActiveControlStatus getStatus() override;
+
     // status
-    std::shared_ptr<XmlNode> getXml();
+    virtual std::shared_ptr<XmlNode> getXml() override;
 
     static const UIntN FanOffIndex = 10;
 

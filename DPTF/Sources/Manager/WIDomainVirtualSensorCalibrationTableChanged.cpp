@@ -34,7 +34,7 @@ WIDomainVirtualSensorCalibrationTableChanged::~WIDomainVirtualSensorCalibrationT
 
 void WIDomainVirtualSensorCalibrationTableChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -42,7 +42,7 @@ void WIDomainVirtualSensorCalibrationTableChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainVirtualSensorCalibrationTableChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorCalibrationTableChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -61,7 +61,7 @@ void WIDomainVirtualSensorCalibrationTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainVirtualSensorCalibrationTableChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorCalibrationTableChanged", i);
         }
     }
 }

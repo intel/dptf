@@ -98,10 +98,6 @@ void DomainControlList::makeAllControls()
         makeControl<DomainUtilizationBase>(ControlFactoryType::Utilization,
         m_domainFunctionalityVersions.utilizationVersion)));
     m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
-        ControlFactoryType::HardwareDutyCycle,
-        makeControl<DomainHardwareDutyCycleControlBase>(ControlFactoryType::HardwareDutyCycle,
-        m_domainFunctionalityVersions.hardwareDutyCycleVersion)));
-    m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
         ControlFactoryType::PlatformPower,
         makeControl<DomainPlatformPowerControlBase>(ControlFactoryType::PlatformPower,
         m_domainFunctionalityVersions.platformPowerControlVersion)));
@@ -251,10 +247,4 @@ std::shared_ptr<DomainUtilizationBase> DomainControlList::getUtilizationControl(
 {
     return dynamic_pointer_cast<DomainUtilizationBase>(
         m_controlList.at(ControlFactoryType::Utilization));
-}
-
-std::shared_ptr<DomainHardwareDutyCycleControlBase> DomainControlList::getHardareDutyCycleControl(void)
-{
-    return dynamic_pointer_cast<DomainHardwareDutyCycleControlBase>(
-        m_controlList.at(ControlFactoryType::HardwareDutyCycle));
 }

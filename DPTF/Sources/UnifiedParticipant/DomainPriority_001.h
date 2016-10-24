@@ -27,6 +27,7 @@ public:
 
     DomainPriority_001(UIntN participantIndex, UIntN domainIndex, 
         ParticipantServicesInterface* participantServicesInterface);
+    virtual ~DomainPriority_001();
 
     // DomainPriorityInterface
     virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override;

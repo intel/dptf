@@ -33,7 +33,6 @@
 #include "DomainRfProfileStatusInterface.h"
 #include "DomainTemperatureInterface.h"
 #include "DomainUtilizationInterface.h"
-#include "DomainHardwareDutyCycleControlInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
 #include "ParticipantSetSpecificInfoInterface.h"
@@ -69,7 +68,6 @@ struct PolicyServicesInterfaceContainer
     DomainRfProfileStatusInterface* domainRfProfileStatus;
     DomainTemperatureInterface* domainTemperature;
     DomainUtilizationInterface* domainUtilization;
-    DomainHardwareDutyCycleControlInterface* domainHardwareDutyCycleControl;
     ParticipantGetSpecificInfoInterface* participantGetSpecificInfo;
     ParticipantPropertiesInterface* participantProperties;
     ParticipantSetSpecificInfoInterface* participantSetSpecificInfo;

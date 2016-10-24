@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainConfigTdpControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainConfigTdpControl::PolicyServicesDomainConfigTdpControl(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :

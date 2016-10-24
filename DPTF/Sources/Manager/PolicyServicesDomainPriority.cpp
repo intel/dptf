@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainPriority.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPriority::PolicyServicesDomainPriority(DptfManagerInterface* dptfManager, UIntN policyIndex) :
     PolicyServices(dptfManager, policyIndex)

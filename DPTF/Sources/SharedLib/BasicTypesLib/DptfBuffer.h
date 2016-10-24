@@ -33,8 +33,8 @@ public:
     static DptfBuffer fromExistingByteVector(std::vector<UInt8> byteVector);
     void allocate(UInt32 sizeInBytes);
     UInt8* get(void) const;
-    UInt8& get(UInt32 byteNumber);
-    const UInt8& get(UInt32 byteNumber) const;
+    const UInt8 get(UInt32 byteNumber) const;
+    void set(UInt32 byteNumber, UInt8 byteValue);
     UInt32 size(void) const;
     void trim(UInt32 sizeInBytes);
     void put(UInt32 offset, UInt8* data, UInt32 length);

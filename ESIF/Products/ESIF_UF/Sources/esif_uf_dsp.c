@@ -178,20 +178,6 @@ exit:
 	return rc;
 }
 
-eEsifError EsifDspInit()
-{
-	eEsifError rc = ESIF_OK;
-	ESIF_TRACE_INFO("Init Device Support Package (DSP)");
-	return rc;
-}
-
-
-void EsifDspExit()
-{
-	ESIF_TRACE_INFO("Exit Device Support Package (DSP)");
-}
-
-
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/

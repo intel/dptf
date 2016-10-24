@@ -33,7 +33,7 @@ WIPolicyOperatingSystemDockModeChanged::~WIPolicyOperatingSystemDockModeChanged(
 
 void WIPolicyOperatingSystemDockModeChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicyOperatingSystemDockModeChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyOperatingSystemDockModeChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemDockModeChanged", i);
         }
     }
 }

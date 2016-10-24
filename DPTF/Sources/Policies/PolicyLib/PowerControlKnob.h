@@ -52,7 +52,7 @@ private:
 
     Power calculateNextLowerPowerLimit(
         Power currentPower, Power minimumPowerLimit, Power stepSize, Power currentPowerLimit);
-    Power findLowestPowerLimitRequest(const std::map<UIntN, Power>& m_requests);
+    Power findLowestPowerLimitRequest();
     Power getTargetRequest(UIntN target);
     UIntN snapToCapabilitiesBounds(Power powerLimit);
 

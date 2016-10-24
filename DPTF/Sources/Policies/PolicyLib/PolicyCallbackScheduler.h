@@ -33,20 +33,26 @@ public:
     virtual ~PolicyCallbackScheduler();
 
     virtual void suspend(UIntN participantIndex, const TimeSpan& time) override;
-    virtual void suspend(UIntN participantIndex, UInt64 fromTime, const TimeSpan& suspendTime) override;
+    virtual void suspend(UIntN participantIndex, const TimeSpan& fromTime, const TimeSpan& suspendTime) override;
+    virtual void suspend(ParticipantRole::Type participantRole, UIntN participantIndex, const TimeSpan& time) override;
     virtual void cancelCallback(UIntN participantIndex) override;
-    virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, UInt64 beginTime, UInt64 endTime) const override;
+    virtual void cancelCallback(ParticipantRole::Type participantRole, UIntN participantIndex) override;
+    virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, const TimeSpan& beginTime, const TimeSpan& endTime) const override;
     virtual void acknowledgeCallback(UIntN participantIndex) override;
+    virtual void acknowledgeCallback(ParticipantRole::Type participantRole, UIntN participantIndex) override;
     virtual void setTimeObject(std::shared_ptr<TimeInterface> time) override;
     virtual std::shared_ptr<XmlNode> getStatus() override;
     virtual std::shared_ptr<XmlNode> getStatusForParticipant(UIntN participantIndex) override;
+    virtual std::shared_ptr<XmlNode> getStatusForParticipant(ParticipantRole::Type participantRole, UIntN participantIndex) override;
 
 private:
 
     PolicyServicesInterfaceContainer m_policyServices;
     std::shared_ptr<TimeInterface> m_time;
-    std::map<UIntN, ParticipantCallback> m_schedule;
+    std::map<std::pair<ParticipantRole::Type, UIntN>, ParticipantCallback> m_schedule;
 
-    UInt64 getCurrentTime();
-    void scheduleCallback(UIntN participantIndex, UInt64 currentTime, const TimeSpan& pollTime);
+    TimeSpan getCurrentTime() const;
+    void scheduleCallback(UIntN participantIndex, const TimeSpan& currentTime, const TimeSpan& pollTime);
+    void scheduleCallback(ParticipantRole::Type participantRole, UIntN participantIndex,
+        const TimeSpan& currentTime, const TimeSpan& pollTime);
 };

@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "TemperatureThresholds.h"
 #include "ManagerMessage.h"
+#include "DptfManagerInterface.h"
 
 class DptfManager;
 
@@ -31,11 +32,11 @@ class DptfManager;
 // for aux 1, we choose the temperature that is >= to the actual temperature.
 //
 
-class TemperatureThresholdArbitrator
+class dptf_export TemperatureThresholdArbitrator
 {
 public:
 
-    TemperatureThresholdArbitrator(DptfManager* dptfManager);
+    TemperatureThresholdArbitrator(DptfManagerInterface* dptfManager);
     ~TemperatureThresholdArbitrator(void);
 
     // arbitrate() returns true if the arbitrated value has changed
@@ -46,16 +47,14 @@ public:
 
 private:
 
-    // hide the copy constructor and assignment operator.
+    // hide the copy constructor.
     TemperatureThresholdArbitrator(const TemperatureThresholdArbitrator& rhs);
-    TemperatureThresholdArbitrator& operator=(const TemperatureThresholdArbitrator& rhs);
 
-    DptfManager* m_dptfManager;
+    DptfManagerInterface* m_dptfManager;
 
     Temperature m_lastKnownParticipantTemperature;
-    TemperatureThresholds m_arbitratedTemperatureThresholds;
-
-    std::vector<TemperatureThresholds*> m_requestedTemperatureThresholds;
+    TemperatureThresholds m_arbitratedTemperatureThresholds;    
+    std::map<UIntN, TemperatureThresholds> m_requestedTemperatureThresholds;
 
     void throwIfTemperatureThresholdsInvalid(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds,
         const Temperature& currentTemperature);

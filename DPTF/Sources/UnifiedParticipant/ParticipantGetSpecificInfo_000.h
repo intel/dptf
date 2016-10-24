@@ -34,8 +34,8 @@ public:
         ParticipantServicesInterface* participantServicesInterface);
 
     // ParticipantGetSpecificInfoInterface
-    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(UIntN participantIndex,
-        const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
+    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+        UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
 
     // ComponentExtendedInterface
     virtual void clearCachedData(void) override;

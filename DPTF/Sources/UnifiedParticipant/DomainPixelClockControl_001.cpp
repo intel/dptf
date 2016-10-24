@@ -26,6 +26,7 @@ DomainPixelClockControl_001::DomainPixelClockControl_001(UIntN participantIndex,
 
 DomainPixelClockControl_001::~DomainPixelClockControl_001(void)
 {
+    // TODO: does this need to restore any initial state?
 }
 
 void DomainPixelClockControl_001::setPixelClockControl(UIntN participantIndex, UIntN domainIndex,
@@ -57,7 +58,7 @@ void DomainPixelClockControl_001::sendActivityLoggingDataIfEnabled(UIntN partici
         if (isActivityLoggingEnabled() == true)
         {
             EsifCapabilityData capability;
-            capability.type = Capability::PixelClockControl;
+            capability.type = ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL;
             capability.size = sizeof(capability);
 
             getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,

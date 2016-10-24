@@ -33,7 +33,7 @@ WIDomainAdapterPowerRatingChanged::~WIDomainAdapterPowerRatingChanged(void)
 
 void WIDomainAdapterPowerRatingChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainAdapterPowerRatingChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainAdapterPowerRatingChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainAdapterPowerRatingChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainAdapterPowerRatingChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainAdapterPowerRatingChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainAdapterPowerRatingChanged", i);
         }
     }
 }

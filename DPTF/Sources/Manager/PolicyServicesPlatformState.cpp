@@ -24,7 +24,7 @@ PolicyServicesPlatformState::PolicyServicesPlatformState(DptfManagerInterface* d
 
 }
 
-SensorMotion::Type PolicyServicesPlatformState::getMotion(void) const
+OnOffToggle::Type PolicyServicesPlatformState::getMotion(void) const
 {
     return getDptfManager()->getEventCache()->sensorMotion.get();
 }
@@ -77,4 +77,20 @@ OsDockMode::Type PolicyServicesPlatformState::getDockMode(void) const
 OsPowerSchemePersonality::Type PolicyServicesPlatformState::getPowerSchemePersonality(void) const
 {
     return getDptfManager()->getEventCache()->powerSchemePersonality.get();
+}
+
+UIntN PolicyServicesPlatformState::getMobileNotification(OsMobileNotificationType::Type notificationType) const
+{
+    switch (notificationType)
+    {
+    case OsMobileNotificationType::EmergencyCallMode:
+        return getDptfManager()->getEventCache()->emergencyCallModeState.get();
+
+    case OsMobileNotificationType::ScreenState:
+        return getDptfManager()->getEventCache()->screenState.get();
+        
+    default:
+        throw dptf_exception("No cached values for requested OS Mobile Notification Type "
+            + OsMobileNotificationType::ToString(notificationType));
+    }
 }

@@ -40,6 +40,7 @@ public:
     virtual void unbindDomain(UIntN domainIndex) = 0;
     virtual std::shared_ptr<DomainProxyInterface> getDomain(UIntN domainIndex) = 0;
     virtual std::vector<UIntN> getDomainIndexes() = 0;
+    virtual Bool domainExists(UIntN domainIndex) = 0;
 
     // properties
     virtual UIntN getIndex() const = 0;
@@ -55,16 +56,9 @@ public:
     virtual void refreshHysteresis() = 0;
     virtual void refreshVirtualSensorTables() = 0;
     virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) = 0;
-    virtual void setThresholdCrossed(const Temperature& temperature, UInt64 timestampInMs) = 0;
-    virtual UInt64 getTimeOfLastThresholdCrossed() const = 0;
+    virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) = 0;
+    virtual const TimeSpan& getTimeOfLastThresholdCrossed() const = 0;
     virtual Temperature getTemperatureOfLastThresholdCrossed() const = 0;
-    virtual Bool hasSetDscpSupported() = 0;
-    virtual Bool hasSetScpSupported() = 0;
-    virtual Bool supportsDscp() = 0;
-    virtual Bool supportsScp() = 0;
-    virtual void setDscpSupport(Bool scpSupported) = 0;
-    virtual void setScpSupport(Bool dscpSupported) = 0;
-    virtual void setCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type) = 0;
 
     virtual CriticalTripPointsCachedProperty& getCriticalTripPointProperty() = 0;
     virtual ActiveTripPointsCachedProperty& getActiveTripPointProperty() = 0;
@@ -73,7 +67,6 @@ public:
     virtual std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() = 0;
     virtual std::shared_ptr<XmlNode> getXmlForActiveTripPoints() = 0;
     virtual std::shared_ptr<XmlNode> getXmlForPassiveTripPoints() = 0;
-    virtual std::shared_ptr<XmlNode> getXmlForScpDscpSupport() = 0;
     virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() = 0;
 
 

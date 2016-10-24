@@ -1,4 +1,4 @@
-/******************************************************************************
+/*****************************************************************************
 ** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -18,6 +18,7 @@
 #define ESIF_TRACE_ID ESIF_TRACEMODULE_WEBSERVER
 
 #include "esif_ws_algo.h"
+#include "esif_ccb_memory.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -28,43 +29,23 @@
 #include "win\banned.h"
 #endif
 
-
-/*
- *******************************************************************************
- ** EXTERN
- *******************************************************************************
- */
-
-
 /*
  *******************************************************************************
  ** PRIVATE
  *******************************************************************************
  */
 
-static const char g_esif_ws_algo_asciivalue_of_six_bits[] = {
-	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-	'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-	'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-	'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-	'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-	'w', 'x', 'y', 'z', '0', '1', '2', '3',
-	'4', '5', '6', '7', '8', '9', '+', '/'
-};
+#define SHA1_HASH_BITS	(SHA1_HASH_BYTES * 8)
+#define SHA1_BLOCK_BITS	(SHA1_BLOCK_BYTES * 8)
+#define SHA1_FOURBITMASK 0x0000000f
 
-static UInt32 esif_ws_algo_circular_left_shift (UInt32, UInt8);
+static UInt32 sha1_circular_left_shift(UInt32 shift_num, UInt8 value);
+static UInt32 sha1_byteswap_uint32(UInt32 byte_to_swap);
+static void sha1_add_block(esif_sha1_t *self, UInt8 *block);
+static void sha1_add_last_block(esif_sha1_t *self, UInt8 *block, UInt16 bits);
+static void sha1_compute_hash(esif_sha1_t *self);
 
-static UInt32 esif_ws_algo_byteswap_unsigned_long (UInt32);
-
-static UInt32 esif_ws_algo_func0to19 (UInt32, UInt32, UInt32);
-
-static UInt32 esif_ws_algo_func40to59 (UInt32, UInt32, UInt32);
-
-static UInt32 esif_ws_algo_func20to39_or_60to79 (UInt32, UInt32, UInt32);
-
-
-static UInt32 esif_ws_algo_circular_left_shift (
+static UInt32 sha1_circular_left_shift(
 	UInt32 shitf_num,
 	UInt8 value
 	)
@@ -73,125 +54,72 @@ static UInt32 esif_ws_algo_circular_left_shift (
 }
 
 
-static UInt32 esif_ws_algo_byteswap_unsigned_long (UInt32 byte_to_swap)
+static UInt32 sha1_byteswap_uint32(UInt32 byte_to_swap)
 {
 	return ((byte_to_swap) << 24) | ((byte_to_swap) >> 24) | (((byte_to_swap) & 0x0000ff00) << 8) | (((byte_to_swap) & 0x00ff0000) >> 8);
 }
 
 
-static UInt32 esif_ws_algo_func0to19 (
-	UInt32 second_hash_val,
-	UInt32 third_hash_val,
-	UInt32 fourth_hash_val
-	)
+static void sha1_add_block(
+	esif_sha1_t *self,
+	UInt8 *block
+)
 {
-	return (second_hash_val & third_hash_val) ^ ((~second_hash_val) & fourth_hash_val);
-}
-
-
-static UInt32 esif_ws_algo_func40to59 (
-	UInt32 second_hash_val,
-	UInt32 third_hash_val,
-	UInt32 fourth_hash_val
-	)
-{
-	return (second_hash_val & third_hash_val) ^ (second_hash_val & fourth_hash_val) ^ (third_hash_val & fourth_hash_val);
-}
-
-
-static UInt32 esif_ws_algo_func20to39_or_60to79 (
-	UInt32 second_hash_val,
-	UInt32 third_hash_val,
-	UInt32 fourth_hash_val
-	)
-{
-	return (second_hash_val ^ third_hash_val) ^ fourth_hash_val;
-}
-
-
-/*
- *******************************************************************************
- ** PUBLIC INTERFACE
- *******************************************************************************
- */
-
-void esif_ws_algo_sha_context_init (shaCtx *state)
-{
-	state->hash_values_array[0] = 0x67452301;
-
-	state->hash_values_array[1] = 0xefcdab89;
-
-	state->hash_values_array[2] = 0x98badcfe;
-
-	state->hash_values_array[3] = 0x10325476;
-
-	state->hash_values_array[4] = 0xc3d2e1f0;
-
-	state->length = 0;
-}
-
-
-#define MASK 0x0000000f
-
-typedef UInt32 (*esif_ws_algo_func_ptr)(UInt32 x, UInt32 y, UInt32 z);
-
-void esif_ws_algo_add_block_to_sha (
-	shaCtx *state,
-	const void *block
-	)
-{
-	UInt32 chunk_of_initial_values[5]={0};
-	UInt32 array_of_16_words[16]={0};
-	UInt32 temp_value1=0;
-	UInt32 temp_value2=0;
-	UInt8 index=0;
-	UInt8 thiry_two_bit_word_index=0;
-	UInt8 kvalues_index=0;
-	UInt8 twenty_value_processed_flag=0;
-
-	esif_ws_algo_func_ptr algo_func_ptr_array[] = {
-		esif_ws_algo_func0to19,
-		esif_ws_algo_func20to39_or_60to79,
-		esif_ws_algo_func40to59,
-		esif_ws_algo_func20to39_or_60to79
+	UInt32 chunk_of_initial_values[5] = { 0 };
+	UInt32 array_of_16_words[16] = { 0 };
+	UInt32 temp_value1 = 0;
+	UInt32 temp_kvalue = 0;
+	UInt8 index = 0;
+	UInt8 word_index = 0;
+	UInt8 kvalues_index = 0;
+	UInt8 twenty_value_processed_flag = 0;
+	UInt32 array_of_kvalues[4] = {
+		0x5a827999,
+		0x6ed9eba1,
+		0x8f1bbcdc,
+		0xca62c1d6
 	};
 
-
-	UInt32 array_of_kvalues[4] = {FUNC0_TO_19_KVALUE, FUNC20_TO_39_KVALUE, FUNC40_TO_59_KVALUE, FUNC60_TO_79_KVALUE};
-
-
 	for (index = 0; index < 16; ++index)
+		array_of_16_words[index] = sha1_byteswap_uint32(((UInt32*)block)[index]);
 
-		array_of_16_words[index] = esif_ws_algo_byteswap_unsigned_long(((UInt32*)block)[index]);
-
-
-	esif_ccb_memcpy(chunk_of_initial_values, state->hash_values_array, 5 * sizeof(UInt32));
+	esif_ccb_memcpy(chunk_of_initial_values, self->digest_values, 5 * sizeof(UInt32));
 
 	for (kvalues_index = 0, twenty_value_processed_flag = 0, index = 0; index <= 79; ++index) {
-		thiry_two_bit_word_index = index & MASK;
+		word_index = index & SHA1_FOURBITMASK;
 
 		if (index >= 16) {
-			array_of_16_words[thiry_two_bit_word_index] = esif_ws_algo_circular_left_shift(array_of_16_words[(thiry_two_bit_word_index + 13) & MASK] ^
-																						   array_of_16_words[(thiry_two_bit_word_index + 8) & MASK] ^
-																						   array_of_16_words[(thiry_two_bit_word_index + 2) & MASK] ^
-																						   array_of_16_words[thiry_two_bit_word_index],
-																						   1);
+			array_of_16_words[word_index] = sha1_circular_left_shift(array_of_16_words[(word_index + 13) & SHA1_FOURBITMASK] ^
+				array_of_16_words[(word_index + 8) & SHA1_FOURBITMASK] ^
+				array_of_16_words[(word_index + 2) & SHA1_FOURBITMASK] ^
+				array_of_16_words[word_index],
+				1);
 		}
 
+		switch (kvalues_index) {
+		case 0:
+			temp_kvalue = (chunk_of_initial_values[1] & chunk_of_initial_values[2]) ^ ((~chunk_of_initial_values[1]) & chunk_of_initial_values[3]);
+			break;
+		case 1:
+		case 3:
+			temp_kvalue = (chunk_of_initial_values[1] ^ chunk_of_initial_values[2]) ^ chunk_of_initial_values[3];
+			break;
+		case 2:
+			temp_kvalue = (chunk_of_initial_values[1] & chunk_of_initial_values[2]) ^ (chunk_of_initial_values[1] & chunk_of_initial_values[3]) ^ (chunk_of_initial_values[2] & chunk_of_initial_values[3]);
+			break;
+		}
 
 		temp_value1 =
-			esif_ws_algo_circular_left_shift(chunk_of_initial_values[0],
-											 5) +
-			(temp_value2 = algo_func_ptr_array[kvalues_index](chunk_of_initial_values[1], chunk_of_initial_values[2], chunk_of_initial_values[3])) +
+			sha1_circular_left_shift(chunk_of_initial_values[0], 5) +
+			temp_kvalue +
 			chunk_of_initial_values[4] +
 			array_of_kvalues[kvalues_index] +
-			array_of_16_words[thiry_two_bit_word_index];
+			array_of_16_words[word_index];
 
-		memmove(&(chunk_of_initial_values[1]), &(chunk_of_initial_values[0]), 4 * sizeof(UInt32));
+		esif_ccb_memmove(&(chunk_of_initial_values[1]), &(chunk_of_initial_values[0]), 4 * sizeof(UInt32));
 
 		chunk_of_initial_values[0] = temp_value1;
-
-		chunk_of_initial_values[2] = esif_ws_algo_circular_left_shift(chunk_of_initial_values[2], 30);
+		chunk_of_initial_values[2] = sha1_circular_left_shift(chunk_of_initial_values[2], 30);
 
 		twenty_value_processed_flag++;
 
@@ -201,162 +129,172 @@ void esif_ws_algo_add_block_to_sha (
 		}
 	}
 
-
 	for (index = 0; index < 5; ++index)
-		state->hash_values_array[index] += chunk_of_initial_values[index];
+		self->digest_values[index] += chunk_of_initial_values[index];
 
-	state->length += 512;
+	self->digest_bits += SHA1_BLOCK_BITS;
 }
 
 
-void esif_ws_algo_add_last_block_to_sha (
-	shaCtx *state,
-	const void *block,
-	UInt16 length
-	)
+static void sha1_add_last_block(
+	esif_sha1_t *self,
+	UInt8 *block,
+	UInt16 bits
+)
 {
-	UInt8 i=0;
-	UInt8 lb[SHA1_BLOCK_BYTES]={0};
+	UInt8 i = 0;
+	UInt8 lb[SHA1_BLOCK_BYTES] = { 0 };
 
-	while (length >= NUM_BITS_BLOCK) {
-		esif_ws_algo_add_block_to_sha(state, block);
-
-		length -= NUM_BITS_BLOCK;
-
-		block   = (UInt8*)block + SHA1_BLOCK_BYTES;
+	while (bits >= SHA1_BLOCK_BITS) {
+		sha1_add_block(self, block);
+		bits -= SHA1_BLOCK_BITS;
+		block = (UInt8*)block + SHA1_BLOCK_BYTES;
 	}
 
-	state->length += length;
-
+	self->digest_bits += bits;
 	esif_ccb_memset(lb, 0, SHA1_BLOCK_BYTES);
+	esif_ccb_memcpy(lb, block, (bits + 7) >> 3);
 
-	esif_ccb_memcpy(lb, block, (length + 7) >> 3);
+	lb[bits >> 3] |= 0x80 >> (bits & 0x07);
 
-
-	lb[length >> 3] |= 0x80 >> (length & 0x07);
-
-	if (length > 512 - 64 - 1) {
-		esif_ws_algo_add_block_to_sha(state, lb);
-
-		state->length -= 512;
-
+	if (bits > SHA1_BLOCK_BITS - 64 - 1) {
+		sha1_add_block(self, lb);
+		self->digest_bits -= SHA1_BLOCK_BITS;
 		esif_ccb_memset(lb, 0, SHA1_BLOCK_BYTES);
 	}
 
-
 	for (i = 0; i < 8; ++i)
+		lb[56 + i] = ((UInt8*)&(self->digest_bits))[7 - i];
 
-		lb[56 + i] = ((UInt8*)&(state->length))[7 - i];
-
-	esif_ws_algo_add_block_to_sha(state, lb);
+	sha1_add_block(self, lb);
+	self->digest_bits -= SHA1_BLOCK_BITS;
 }
 
-
-void esif_ws_algo_hash_sha_context (
-	void *dest,
-	shaCtx *state
-	)
+static void sha1_compute_hash(esif_sha1_t *self)
 {
-	UInt8 i=0;
-
+	int i = 0;
 	for (i = 0; i < 5; ++i)
-		((UInt32*)dest)[i] = esif_ws_algo_byteswap_unsigned_long(state->hash_values_array[i]);
-
+		((UInt32*)(self->hash))[i] = sha1_byteswap_uint32(self->digest_values[i]);
 }
 
+/*
+ *******************************************************************************
+ ** PUBLIC INTERFACE
+ *******************************************************************************
+ */
 
-void esif_ws_algo_hash_sha_algo (
-	void *destination,
-	const void *message,
-	UInt32 length
-	)
+// Initialize a SHA1 digest
+void esif_sha1_init(esif_sha1_t *self)
 {
-	shaCtx sha_ctx ={0};
-
-	esif_ws_algo_sha_context_init(&sha_ctx);
-
-	while (length & (~0x0001ff)) {
-		esif_ws_algo_add_block_to_sha(&sha_ctx, message);
-
-		message = (UInt8*)message + NUM_BITS_BLOCK / 8;
-
-		length -= NUM_BITS_BLOCK;
+	if (self) {
+		esif_ccb_memset(self, 0, sizeof(*self));
+		self->digest_values[0] = 0x67452301;
+		self->digest_values[1] = 0xefcdab89;
+		self->digest_values[2] = 0x98badcfe;
+		self->digest_values[3] = 0x10325476;
+		self->digest_values[4] = 0xc3d2e1f0;
+		self->digest_bits = 0;
 	}
-
-	esif_ws_algo_add_last_block_to_sha(&sha_ctx, message, (UInt16/* JDH*/)length);
-
-	esif_ws_algo_hash_sha_context(destination, &sha_ctx);
 }
 
+// Update SHA1 digest with arbitrary-sized data buffer
+void esif_sha1_update(esif_sha1_t *self, const void *source, size_t bytes)
+{
+	if (self && source && bytes > 0) {
+		const UInt8 *data = (const UInt8 *)source;
+		while (self->blockbytes + bytes >= sizeof(self->block)) {
+			esif_ccb_memcpy(self->block + self->blockbytes, data, sizeof(self->block) - self->blockbytes);
+			sha1_add_block(self, self->block);
 
-void esif_ws_algo_encode_base64_value (
+			data += sizeof(self->block) - self->blockbytes;
+			bytes -= sizeof(self->block) - self->blockbytes;
+			self->blockbytes = 0;
+		}
+		if (bytes > 0) {
+			esif_ccb_memcpy(self->block + self->blockbytes, data, bytes);
+			self->blockbytes += (UInt16)bytes;
+		}
+	}
+}
+
+// Finalize SHA1 digest and compute hash
+void esif_sha1_finish(esif_sha1_t *self)
+{
+	if (self) {
+		sha1_add_last_block(self, self->block, self->blockbytes * 8);
+		sha1_compute_hash(self);
+
+		esif_ccb_memset(self->block, 0, sizeof(self->block));
+		esif_ccb_memset(self->digest_values, 0, sizeof(self->digest_values));
+		self->blockbytes = 0;
+	}
+}
+
+// Base64 Encode a Binary buffer into a Destination string
+char *esif_base64_encode(
 	char *destination,
+	size_t dest_bytes,
 	const void *source,
-	UInt16 length
-	)
+	size_t src_bytes)
 {
-	UInt16 i=0, j=0;
+	static const char base64_asciimap[] = {
+		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+		'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+		'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+		'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
+		'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+		'w', 'x', 'y', 'z', '0', '1', '2', '3',
+		'4', '5', '6', '7', '8', '9', '+', '/'
+	};
+	char *result = NULL;
+	size_t i = 0, j = 0;
+	UInt8 block_of_bytes[4] = { 0 };
+	const UInt8 *data = (const UInt8 *)source;
 
-	UInt8 block_of_bytes[4]={0};
+	if (dest_bytes >= (((src_bytes + 2) / 3) * 4) + 1) {
 
-	for (i = 0; i < length / 3; ++i) {
-		block_of_bytes[0] = (((UInt8*)source)[i * 3 + 0]) >> 2;
+		for (i = 0; i < src_bytes / 3; ++i) {
+			block_of_bytes[0] = data[i * 3 + 0] >> 2;
+			block_of_bytes[1] = ((data[i * 3 + 0] << 4) | (data[i * 3 + 1] >> 4)) & 0x3F;
+			block_of_bytes[2] = ((data[i * 3 + 1] << 2) | (data[i * 3 + 2] >> 6)) & 0x3F;
+			block_of_bytes[3] = data[i * 3 + 2] & 0x3F;
 
-		block_of_bytes[1] = (((((UInt8*)source)[i * 3 + 0]) << 4) | ((((UInt8*)source)[i * 3 + 1]) >> 4)) & 0x3F;
+			for (j = 0; j < 4; ++j)
+				*destination++ = base64_asciimap[block_of_bytes[j]];
+		}
 
-		block_of_bytes[2] = (((((UInt8*)source)[i * 3 + 1]) << 2) | ((((UInt8*)source)[i * 3 + 2]) >> 6)) & 0x3F;
+		switch (src_bytes % 3) {
+		case 0:
+			break;
 
-		block_of_bytes[3] = (((UInt8*)source)[i * 3 + 2]) & 0x3F;
+		case 1:
+			block_of_bytes[0] = data[i * 3 + 0] >> 2;
+			block_of_bytes[1] = (data[i * 3 + 0] << 4) & 0x3F;
 
-		for (j = 0; j < 4; ++j)
+			*destination++ = base64_asciimap[block_of_bytes[0]];
+			*destination++ = base64_asciimap[block_of_bytes[1]];
+			*destination++ = '=';
+			*destination++ = '=';
+			break;
 
-			*destination++ = g_esif_ws_algo_asciivalue_of_six_bits[block_of_bytes[j]];
+		case 2:
+			block_of_bytes[0] = data[i * 3 + 0] >> 2;
+			block_of_bytes[1] = ((data[i * 3 + 0] << 4) | (data[i * 3 + 1] >> 4)) & 0x3F;
+			block_of_bytes[2] = (data[i * 3 + 1] << 2) & 0x3F;
+
+			*destination++ = base64_asciimap[block_of_bytes[0]];
+			*destination++ = base64_asciimap[block_of_bytes[1]];
+			*destination++ = base64_asciimap[block_of_bytes[2]];
+			*destination++ = '=';
+			break;
+
+		default:
+			break;
+		}
+
+		*destination = '\0';
+		result = destination;
 	}
-
-	switch (length % 3) {
-	case 0:
-		break;
-
-	case 1:
-		block_of_bytes[0] = (((UInt8*)source)[i * 3 + 0]) >> 2;
-
-		block_of_bytes[1] = ((((UInt8*)source)[i * 3 + 0]) << 4) & 0x3F;
-
-
-		*destination++ = g_esif_ws_algo_asciivalue_of_six_bits[block_of_bytes[0]];
-
-
-		*destination++ = g_esif_ws_algo_asciivalue_of_six_bits[block_of_bytes[1]];
-
-		*destination++ = '=';
-
-		*destination++ = '=';
-		break;
-
-	case 2:
-		block_of_bytes[0] = (((UInt8*)source)[i * 3 + 0]) >> 2;
-
-		block_of_bytes[1] = (((((UInt8*)source)[i * 3 + 0]) << 4) | ((((UInt8*)source)[i * 3 + 1]) >> 4)) & 0x3F;
-
-		block_of_bytes[2] = ((((UInt8*)source)[i * 3 + 1]) << 2) & 0x3F;
-
-
-		*destination++ = g_esif_ws_algo_asciivalue_of_six_bits[block_of_bytes[0]];
-
-
-		*destination++ = g_esif_ws_algo_asciivalue_of_six_bits[block_of_bytes[1]];
-
-
-		*destination++ = g_esif_ws_algo_asciivalue_of_six_bits[block_of_bytes[2]];
-
-		*destination++ = '=';
-		break;
-
-	default:
-		break;
-	}
-
-	*destination = '\0';
+	return result;
 }
-
-

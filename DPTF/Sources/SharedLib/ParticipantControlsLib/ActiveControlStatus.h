@@ -29,6 +29,7 @@ class ActiveControlStatus final
 public:
 
     ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed);
+    static ActiveControlStatus createFromFst(const DptfBuffer& buffer);
     UIntN getCurrentControlId(void) const;
     UIntN getCurrentSpeed(void) const;
     Bool operator==(const ActiveControlStatus rhs) const;

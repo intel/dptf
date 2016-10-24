@@ -47,8 +47,12 @@ EsifAppPtr GetAppFromHandle(const void *handle);
 /* Send event by domain type to all applications */
 eEsifError EsifAppsEventByDomainType(enum esif_domain_type domainType, eEsifEventType eventType, EsifDataPtr eventData);
 
-eEsifError EsifAppMgrDestroyParticipantInAllApps(const EsifUpPtr upPtr);
-eEsifError EsifAppMgrCreateParticipantInAllApps(const EsifUpPtr upPtr);
+eEsifError EsifAppMgr_DestroyParticipantInAllApps(const EsifUpPtr upPtr);
+eEsifError EsifAppMgr_CreateParticipantInAllApps(const EsifUpPtr upPtr);
+
+/* Start/Stop Apps using AppMgr */
+eEsifError EsifAppMgr_AppStart(const EsifString appName);
+eEsifError EsifAppMgr_AppStop(const EsifString appName);
 
 /* Init / Exit */
 eEsifError EsifAppMgrInit(void);

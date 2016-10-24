@@ -17,6 +17,7 @@
 ******************************************************************************/
 #define _ESIFDATA_CLASS
 #include "esif_lib_esifdata.h"
+#include "esif_temp.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -37,6 +38,7 @@
 #define MAXDISPLAY_STRING   256
 #define MAXDISPLAY_BINARY   (MAXDISPLAY_STRING / 2 - 2)
 
+#define ISHEX(str)  (esif_ccb_strnicmp((str), "0x", 2) == 0 ? ESIF_TRUE : ESIF_FALSE)
 #define IFHEX(str, hex, dec)    (esif_ccb_strnicmp((str), "0x", 2) == 0 ? (hex) : (dec))
 
 // EsifData Class
@@ -238,6 +240,54 @@ void EsifData_Set (
 		self->buf_len  = (buf_len == ESIFAUTOLEN ?  bytes : buf_len);
 		self->data_len = (data_len == ESIFAUTOLEN ? bytes : data_len);
 	}
+}
+
+//
+// Clones an EsifData object
+// Notes:  If the data object has a buffer owned elsewhere, buf_len == 0, the
+// cloned data object shall contain a buffer large enough to contain the
+// associated data (data_len) and the buf_len member shall contain the same
+// value, so as to indicate this new structure is not owned elsewhere
+//
+EsifDataPtr EsifData_Clone(
+	EsifDataPtr self
+	)
+{
+	EsifDataPtr clonePtr = NULL;
+	u32 buf_len = 0; 
+
+	if (NULL == self) {
+		goto exit;
+	}
+	
+	clonePtr = EsifData_Create();
+	if (NULL == clonePtr) {
+		goto exit;
+	}
+
+	*clonePtr = *self;
+	clonePtr->buf_ptr = NULL;
+
+	if (NULL == self->buf_ptr) {
+		goto exit;
+	}
+
+	buf_len = esif_ccb_max(self->buf_len, self->data_len);
+	if (0 == buf_len) {
+		goto exit;
+	}
+	clonePtr->buf_len = buf_len;
+
+	clonePtr->buf_ptr = esif_ccb_malloc(buf_len);
+	if (NULL == clonePtr->buf_ptr) {
+		EsifData_Destroy(clonePtr);
+		clonePtr = NULL;
+		goto exit;
+	}
+
+	esif_ccb_memcpy(clonePtr->buf_ptr, self->buf_ptr, self->data_len);
+exit:
+	return clonePtr;
 }
 
 
@@ -634,7 +684,6 @@ eEsifError EsifData_FromString (
 			break;
 
 		case ESIF_DATA_UINT32:
-		case ESIF_DATA_TEMPERATURE:
 		case ESIF_DATA_POWER:
 		case ESIF_DATA_TIME:
 		case ESIF_DATA_PERCENT:
@@ -642,6 +691,26 @@ eEsifError EsifData_FromString (
 			*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
 			break;
 
+		/*
+		 * Temp input in floating point Celsius with 1 decimal point precision,
+		 * but stored in 10ths K
+		 */
+		case ESIF_DATA_TEMPERATURE:
+		{
+			if (ISHEX(str)) {
+				esif_ccb_sscanf(str, "%x", &u32data);
+				u32data *= 10;
+			} else {
+				float temp = 0.0;
+				esif_ccb_sscanf(str,"%f", &temp);
+				temp *= 10.0;
+				u32data = (UInt32)temp;
+			}
+			esif_convert_temp(ESIF_TEMP_DECIC, NORMALIZE_TEMP_TYPE, &u32data);
+
+			*STATIC_CAST(UInt32*, buffer) = (UInt32)u32data;
+			break;
+		}
 		case ESIF_DATA_INT64:
 			esif_ccb_sscanf(str, IFHEX(str, "%llx", "%lld"), &u64data);
 			*STATIC_CAST(Int64*, buffer) = (UInt64)u64data;

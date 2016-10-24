@@ -21,7 +21,8 @@
 #include "esif_sdk_data_misc.h"
 
 PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData(
-    DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
+    DptfManagerInterface* dptfManager, UIntN policyIndex) 
+    : PolicyServices(dptfManager, policyIndex), m_defaultSamplePeriod(TimeSpan::createInvalid())
 {
 }
 
@@ -51,6 +52,19 @@ DptfBuffer PolicyServicesPlatformConfigurationData::readConfigurationBinary(cons
     return getEsifServices()->readConfigurationBinary(key);
 }
 
+TimeSpan PolicyServicesPlatformConfigurationData::getMinimumAllowableSamplePeriod(void)
+{
+    throwIfNotWorkItemThread();
+    
+    if(m_defaultSamplePeriod.isInvalid())
+    {
+        m_defaultSamplePeriod = getEsifServices()->primitiveExecuteGetAsTimeInMilliseconds(
+            esif_primitive_type::GET_MINIMUM_SAMPLE_PERIOD);
+    }
+
+    return m_defaultSamplePeriod;
+}
+
 DptfBuffer PolicyServicesPlatformConfigurationData::getActiveRelationshipTable(void)
 {
     throwIfNotWorkItemThread();
@@ -65,7 +79,7 @@ void PolicyServicesPlatformConfigurationData::setActiveRelationshipTable(DptfBuf
 
     getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_ACTIVE_RELATIONSHIP_TABLE,
         esif_data_type::ESIF_DATA_BINARY, data.get(), data.size(), data.size(),
-        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersist);
+        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersistInstance);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getThermalRelationshipTable(void)
@@ -90,7 +104,7 @@ void PolicyServicesPlatformConfigurationData::setPassiveTable(DptfBuffer data)
 
     getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_PASSIVE_RELATIONSHIP_TABLE,
         esif_data_type::ESIF_DATA_BINARY, data.get(), data.size(), data.size(),
-        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersist);
+        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersistInstance);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceConditionsTable(void)
@@ -101,27 +115,20 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceCondit
         esif_primitive_type::GET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE, ESIF_DATA_BINARY);
 }
 
+DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceParticipantConditionTable(void)
+{
+    throwIfNotWorkItemThread();
+
+    return getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE, ESIF_DATA_BINARY);
+}
+
 DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceActionsTable(void)
 {
     throwIfNotWorkItemThread();
 
     return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE, ESIF_DATA_BINARY);
-}
-
-UInt32 PolicyServicesPlatformConfigurationData::getLpmMode(void)
-{
-    throwIfNotWorkItemThread();
-
-    return getEsifServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_CURRENT_LOW_POWER_MODE);
-}
-
-DptfBuffer PolicyServicesPlatformConfigurationData::getLpmTable(void)
-{
-    throwIfNotWorkItemThread();
-
-    return getEsifServices()->primitiveExecuteGet(
-            esif_primitive_type::GET_LPM_TABLE, ESIF_DATA_BINARY);
 }
 
 SensorOrientation::Type PolicyServicesPlatformConfigurationData::getSensorOrientation(void)
@@ -139,7 +146,7 @@ SensorOrientation::Type PolicyServicesPlatformConfigurationData::getSensorOrient
     //return static_cast<SensorOrientation::Type>(primitiveValue);
 }
 
-SensorMotion::Type PolicyServicesPlatformConfigurationData::getSensorMotion(void)  
+OnOffToggle::Type PolicyServicesPlatformConfigurationData::getSensorMotion(void)  
 {
     throw not_implemented();
 
@@ -219,7 +226,6 @@ void PolicyServicesPlatformConfigurationData::writePlatformSettingValue(
 }
 
 const Guid DptfDppeGroup(0x48, 0xdf, 0x9d, 0x60, 0x4f, 0x68, 0x11, 0xdc, 0x83, 0x14, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66);
-const Guid DptfDppeHdc(0xe6, 0x90, 0x29, 0x42, 0xb0, 0xcf, 0x41, 0xf2, 0x92, 0x25, 0x20, 0x83, 0x94, 0x90, 0xeb, 0x8c);
 void PolicyServicesPlatformConfigurationData::clearPlatformSettings(
     PlatformSettingType::Type platformSettingType)
 {
@@ -233,88 +239,11 @@ void PolicyServicesPlatformConfigurationData::clearPlatformSettings(
                 esif_data_type::ESIF_DATA_VOID, nullptr, 0, 0);
             break;
         }
-        case PlatformSettingType::HardwareDutyCycle:
-        {
-            esif_data_complex_guid_pair guidPair;
-            DptfDppeGroup.copyToBuffer(guidPair.guid1);
-            DptfDppeHdc.copyToBuffer(guidPair.guid2);
-            getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_SYSTEM_POWER_SETTING_REMOVE,
-                esif_data_type::ESIF_DATA_STRUCTURE, &guidPair, sizeof(guidPair), sizeof(guidPair));
-            break;
-        }
         default:
         {
             throw dptf_exception("Invalid platform setting type referenced in call to clear platform settings.");
         }
     }
-}
-
-void PolicyServicesPlatformConfigurationData::enablePlatformSettings(
-    PlatformSettingType::Type platformSettingType)
-{
-    throwIfNotWorkItemThread();
-
-    switch (platformSettingType)
-    {
-        case PlatformSettingType::HardwareDutyCycle:
-        {
-            esif_data_complex_guid_pair guidPair;
-            DptfDppeGroup.copyToBuffer(guidPair.guid1);
-            DptfDppeHdc.copyToBuffer(guidPair.guid2);
-            getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_SYSTEM_POWER_SETTING_ENABLE,
-                esif_data_type::ESIF_DATA_STRUCTURE, &guidPair, sizeof(guidPair), sizeof(guidPair));
-            break;
-        }
-        default:
-        {
-            throw dptf_exception("Invalid platform setting type referenced in call to enable platform settings.");
-        }
-    }
-}
-
-void PolicyServicesPlatformConfigurationData::disablePlatformSettings(
-    PlatformSettingType::Type platformSettingType)
-{
-    throwIfNotWorkItemThread();
-
-    switch (platformSettingType)
-    {
-        case PlatformSettingType::HardwareDutyCycle:
-        {
-            esif_data_complex_guid_pair guidPair;
-            DptfDppeGroup.copyToBuffer(guidPair.guid1);
-            DptfDppeHdc.copyToBuffer(guidPair.guid2);
-            getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_SYSTEM_POWER_SETTING_DISABLE,
-                esif_data_type::ESIF_DATA_STRUCTURE, &guidPair, sizeof(guidPair), sizeof(guidPair));
-            break;
-        }
-        default:
-        {
-            throw dptf_exception("Invalid platform setting type referenced in call to disable platform settings.");
-        }
-    }
-}
-
-void PolicyServicesPlatformConfigurationData::setDptfCoolingPolicy(
-    const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
-{
-    if (type == CoolingPreferenceType::DSCP)
-    {
-        getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_DPTF_COOLING_POLICY,
-            ESIF_DATA_STRUCTURE, coolingPreference.get(), coolingPreference.size(), coolingPreference.size());
-    }
-    else
-    {
-        throw dptf_exception("Received unexpected CoolingPreferenceType.");
-    }
-}
-
-DptfBuffer PolicyServicesPlatformConfigurationData::getPowerDeviceRelationshipTable(void)  
-{
-    throwIfNotWorkItemThread();
-
-    return getEsifServices()->primitiveExecuteGet(
-        esif_primitive_type::GET_PDR_TABLE, ESIF_DATA_BINARY);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPowerBossConditionsTable(void)
@@ -339,4 +268,28 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getEmergencyCallModeTable(vo
 
     return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_EMERGENCY_CALL_MODE_TABLE, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getPidAlgorithmTable(void)
+{
+    throwIfNotWorkItemThread();
+
+    return getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_PID_ALGORITHM_TABLE, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getPowerBossMathTable(void)
+{
+    throwIfNotWorkItemThread();
+
+    return getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_POWER_BOSS_MATH_TABLE, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getActiveControlPointRelationshipTable(void)
+{
+    throwIfNotWorkItemThread();
+
+    return getEsifServices()->primitiveExecuteGet(
+        esif_primitive_type::GET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
 }

@@ -28,14 +28,13 @@ class dptf_export ThermalRelationshipTable final : public RelationshipTableBase
 public:
 
     ThermalRelationshipTable(void);
-    ThermalRelationshipTable(const std::vector<ThermalRelationshipTableEntry>& entries);
+    ThermalRelationshipTable(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
     virtual ~ThermalRelationshipTable();
 
     static ThermalRelationshipTable createTrtFromDptfBuffer(const DptfBuffer& buffer);
     DptfBuffer toTrtBinary(void) const;
-    virtual UIntN getNumberOfEntries(void) const override;
 
-    std::vector<ThermalRelationshipTableEntry> getEntriesForTarget(UIntN targetIndex);
+    std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> getEntriesForTarget(UIntN targetIndex);
     TimeSpan getMinimumActiveSamplePeriodForSource(UIntN sourceIndex, std::set<UIntN> activeTargets);
     TimeSpan getShortestSamplePeriodForTarget(UIntN target);
     TimeSpan getSampleTimeForRelationship(UIntN target, UIntN source) const;
@@ -43,14 +42,9 @@ public:
     std::shared_ptr<XmlNode> getXml();
     Bool operator==(const ThermalRelationshipTable& trt) const;
     Bool operator!=(const ThermalRelationshipTable& trt) const;
-
-protected:
-
-    virtual RelationshipTableEntryBase* getEntry(UIntN index) const override;
     
 private:
 
-    std::vector<ThermalRelationshipTableEntry> m_entries;
     static UIntN countTrtRows(UInt32 size, UInt8* data);
     static void throwIfOutOfRange(IntN bytesRemaining);
 };

@@ -25,12 +25,14 @@
 #include "FrameworkEventCreationInterface.h"
 #include "ParticipantMessage.h"
 #include "DptfEventInterface.h"
+#include "UserPreferredCacheInterface.h"
 
 class ParticipantServicesInterface :
     public MessageLoggingInterface,
     public EsifPrimitiveInterface,
     public ParticipantEventRegistrationInterface,
     public FrameworkEventCreationInterface,
-    public DptfEventInterface
+    public DptfEventInterface,
+	public UserPreferredCacheInterface
 {
 };

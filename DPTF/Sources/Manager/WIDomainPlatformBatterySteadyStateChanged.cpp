@@ -33,7 +33,7 @@ WIDomainPlatformBatterySteadyStateChanged::~WIDomainPlatformBatterySteadyStateCh
 
 void WIDomainPlatformBatterySteadyStateChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -41,7 +41,7 @@ void WIDomainPlatformBatterySteadyStateChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainPlatformBatterySteadyStateChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainPlatformBatterySteadyStateChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -60,7 +60,7 @@ void WIDomainPlatformBatterySteadyStateChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainPlatformBatterySteadyStateChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPlatformBatterySteadyStateChanged", i);
         }
     }
 }

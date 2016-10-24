@@ -34,7 +34,7 @@ WIDomainRadioConnectionStatusChanged::~WIDomainRadioConnectionStatusChanged(void
 
 void WIDomainRadioConnectionStatusChanged::execute(void)
 {
-    WriteDomainWorkItemStartingInfoMessage();
+    writeDomainWorkItemStartingInfoMessage();
 
     try
     {
@@ -42,7 +42,7 @@ void WIDomainRadioConnectionStatusChanged::execute(void)
     }
     catch (std::exception& ex)
     {
-        WriteDomainWorkItemErrorMessage_Function("Participant::domainRadioConnectionStatusChanged");
+        writeDomainWorkItemErrorMessage(ex, "Participant::domainRadioConnectionStatusChanged");
     }
 
     PolicyManager* policyManager = getPolicyManager();
@@ -61,7 +61,7 @@ void WIDomainRadioConnectionStatusChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteDomainWorkItemErrorMessage_Function_Policy("Policy::executeDomainRadioConnectionStatusChanged", i);
+            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainRadioConnectionStatusChanged", i);
         }
     }
 }

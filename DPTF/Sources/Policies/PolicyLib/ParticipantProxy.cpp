@@ -22,7 +22,8 @@ using namespace std;
 using namespace StatusFormat;
 
 ParticipantProxy::ParticipantProxy()
-    : m_index(Constants::Invalid),
+    : m_policyServices(),
+    m_index(Constants::Invalid),
     m_participantProperties(m_policyServices, Constants::Invalid),
     m_criticalTripPointProperty(m_policyServices, Constants::Invalid),
     m_activeTripPointProperty(m_policyServices, Constants::Invalid),
@@ -32,11 +33,7 @@ ParticipantProxy::ParticipantProxy()
     m_previousUpperBound(Temperature::createInvalid()),
     m_lastIndicationTemperatureLowerBound(Temperature::createInvalid()),
     m_lastThresholdCrossedTemperature(Temperature::createInvalid()),
-    m_timeOfLastThresholdCrossed(0),
-    m_supportsDscp(false),
-    m_supportsDscpValid(false),
-    m_supportsScp(false),
-    m_supportsScpValid(false)
+    m_timeOfLastThresholdCrossed(TimeSpan::createInvalid())
 {
 }
 
@@ -44,7 +41,9 @@ ParticipantProxy::ParticipantProxy(
     UIntN participantIndex,
     const PolicyServicesInterfaceContainer& policyServices,
     std::shared_ptr<TimeInterface> time)
-    : m_index(participantIndex),
+    : m_policyServices(policyServices),
+    m_time(time),
+    m_index(participantIndex),
     m_participantProperties(policyServices, participantIndex),
     m_criticalTripPointProperty(policyServices, participantIndex),
     m_activeTripPointProperty(policyServices, participantIndex),
@@ -54,13 +53,7 @@ ParticipantProxy::ParticipantProxy(
     m_previousUpperBound(Temperature::createInvalid()),
     m_lastIndicationTemperatureLowerBound(Temperature::createInvalid()),
     m_lastThresholdCrossedTemperature(Temperature::createInvalid()),
-    m_timeOfLastThresholdCrossed(0),
-    m_supportsDscp(false),
-    m_supportsDscpValid(false),
-    m_supportsScp(false),
-    m_supportsScpValid(false),
-    m_policyServices(policyServices),
-    m_time(time)
+    m_timeOfLastThresholdCrossed(TimeSpan::createInvalid())
 {
     m_participantProperties.refresh();
 }
@@ -102,6 +95,11 @@ ActiveTripPointsCachedProperty& ParticipantProxy::getActiveTripPointProperty()
 PassiveTripPointsCachedProperty& ParticipantProxy::getPassiveTripPointProperty()
 {
     return m_passiveTripPointProperty;
+}
+
+Bool ParticipantProxy::domainExists(UIntN domainIndex)
+{
+    return (m_domains.find(domainIndex) != m_domains.end());
 }
 
 std::vector<UIntN> ParticipantProxy::getDomainIndexes()
@@ -210,15 +208,15 @@ void ParticipantProxy::notifyPlatformOfDeviceTemperature(const Temperature& curr
     }
 }
 
-void ParticipantProxy::setThresholdCrossed(const Temperature& temperature, UInt64 timestampInMs)
+void ParticipantProxy::setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp)
 {
     m_lastThresholdCrossedTemperature = temperature;
-    m_timeOfLastThresholdCrossed = timestampInMs;
+    m_timeOfLastThresholdCrossed = timestamp;
     m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF,
         "Temperature threshold crossed for participant with temperature " + temperature.toString() + ".", getIndex()));
 }
 
-UInt64 ParticipantProxy::getTimeOfLastThresholdCrossed() const
+const TimeSpan& ParticipantProxy::getTimeOfLastThresholdCrossed() const
 {
     return m_timeOfLastThresholdCrossed;
 }
@@ -295,17 +293,6 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForPassiveTripPoints()
     return participant;
 }
 
-std::shared_ptr<XmlNode> ParticipantProxy::getXmlForScpDscpSupport()
-{
-    auto participant = XmlNode::createWrapperElement("participant");
-    participant->addChild(XmlNode::createDataElement("index", StlOverride::to_string(m_index)));
-    std::string name = m_participantProperties.getParticipantProperties().getName();
-    participant->addChild(XmlNode::createDataElement("name", name));
-    participant->addChild(XmlNode::createDataElement("supports_scp", supportsScp() ? "true" : "false"));
-    participant->addChild(XmlNode::createDataElement("supports_dscp", supportsDscp() ? "true" : "false"));
-    return participant;
-}
-
 std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 {
     auto stats = XmlNode::createWrapperElement("participant_trip_point_statistics");
@@ -325,16 +312,14 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
             XmlNode::createDataElement("supports_trip_points", friendlyValue(false)));
     }
 
-    if (m_timeOfLastThresholdCrossed == 0)
+    if (m_timeOfLastThresholdCrossed.isInvalid() || m_timeOfLastThresholdCrossed.asMillisecondsInt() == 0)
     {
         stats->addChild(XmlNode::createDataElement("time_since_last_trip", "X"));
     }
     else
     {
-        double timeSinceLastTrip(0.0);
-        timeSinceLastTrip = (double)m_time->getCurrentTimeInMilliseconds() - (double)m_timeOfLastThresholdCrossed;
-        timeSinceLastTrip = (double)timeSinceLastTrip / (double)1000;
-        stats->addChild(XmlNode::createDataElement("time_since_last_trip", friendlyValue(timeSinceLastTrip)));
+        auto timeSinceLastTrip = m_time->getCurrentTime() - m_timeOfLastThresholdCrossed;
+        stats->addChild(XmlNode::createDataElement("time_since_last_trip", timeSinceLastTrip.toStringSeconds()));
     }
 
     stats->addChild(
@@ -409,41 +394,4 @@ void ParticipantProxy::refreshVirtualSensorTables()
             domain->second->getTemperatureControl()->refreshVirtualSensorTables();
         }
     }
-}
-
-Bool ParticipantProxy::hasSetDscpSupported()
-{
-    return m_supportsDscpValid;
-}
-
-Bool ParticipantProxy::hasSetScpSupported()
-{
-    return m_supportsScpValid;
-}
-
-Bool ParticipantProxy::supportsDscp()
-{
-    return m_supportsDscp;
-}
-
-Bool ParticipantProxy::supportsScp()
-{
-    return m_supportsScp;
-}
-
-void ParticipantProxy::setDscpSupport(Bool dscpSupported)
-{
-    m_supportsDscp = dscpSupported;
-    m_supportsDscpValid = true;
-}
-
-void ParticipantProxy::setScpSupport(Bool scpSupported)
-{
-    m_supportsScp = scpSupported;
-    m_supportsScpValid = true;
-}
-
-void ParticipantProxy::setCoolingPolicy(const DptfBuffer& coolingPreference, CoolingPreferenceType::Type type)
-{
-    m_policyServices.participantSetSpecificInfo->setParticipantCoolingPolicy(m_index, coolingPreference, type);
 }

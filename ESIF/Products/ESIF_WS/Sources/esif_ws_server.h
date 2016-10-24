@@ -28,7 +28,6 @@
 #define ESIF_WS_SEND_FLAGS 0
 #endif
 
-
 #pragma pack(push, 1)
 
 typedef enum SocketState_e {
@@ -51,5 +50,6 @@ void esif_ws_exit(esif_thread_t *threadPtr);
 void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 port, Bool restricted);
 void esif_ws_client_close_client(ClientRecordPtr clientPtr);
 u32  esif_ws_buffer_resize(u32 size);
+eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize);
 
 #endif /* ESIF_WS_SERVER_H */

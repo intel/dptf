@@ -47,6 +47,11 @@ memory_allocation_failure::memory_allocation_failure(const std::string& descript
 {
 }
 
+file_open_create_failure::file_open_create_failure(const std::string& description) :
+    dptf_exception(description)
+{
+}
+
 buffer_too_small::buffer_too_small(const std::string& description) :
     dptf_exception(description)
 {

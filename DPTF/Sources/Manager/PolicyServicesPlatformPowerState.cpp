@@ -22,13 +22,12 @@
 
 void* ThreadSleep(void* self);
 void* ThreadHibernate(void* self);
-
-// MagicToken is defined in the ESIF HLD for use when calling sleep/hibernate/showdown.
-static const UInt32 MagicToken = 0x12345678;
+void* ThreadShutdown(void* self);
 
 PolicyServicesPlatformPowerState::PolicyServicesPlatformPowerState(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+    PolicyServices(dptfManager, policyIndex),
+    m_thermalEvent()
 {
 
 }
@@ -67,9 +66,9 @@ void PolicyServicesPlatformPowerState::shutDown(const Temperature& currentTemper
 {
     throwIfNotWorkItemThread();
 
+    esif_thread_t threadId;
     setThermalEvent(currentTemperature, tripPointTemperature);
-    getEsifServices()->primitiveExecuteSet(SET_SYSTEM_SHUTDOWN, ESIF_DATA_STRUCTURE,
-        getThermalEventPtr(), sizeof(esif_data_complex_thermal_event), sizeof(esif_data_complex_thermal_event));
+    esif_ccb_thread_create(&threadId, ThreadShutdown, this);
 }
 
 void* ThreadSleep(void* self)
@@ -79,11 +78,11 @@ void* ThreadSleep(void* self)
         try
         {
             PolicyServicesPlatformPowerState* me = (PolicyServicesPlatformPowerState*)self;
-            me->getEsifServices()->primitiveExecuteSetAsUInt32(SET_SYSTEM_SLEEP, MagicToken);
+            me->getEsifServices()->primitiveExecuteSetAsUInt32(SET_SYSTEM_SLEEP, 1);
         }
         catch (...)
         {
-        	// do nothing on error
+            // do nothing on error
         }
     }
     return nullptr;
@@ -97,6 +96,24 @@ void* ThreadHibernate(void* self)
         {
             PolicyServicesPlatformPowerState* me = (PolicyServicesPlatformPowerState*)self;
             me->getEsifServices()->primitiveExecuteSet(SET_SYSTEM_HIBERNATE, ESIF_DATA_STRUCTURE,
+                me->getThermalEventPtr(), sizeof(esif_data_complex_thermal_event), sizeof(esif_data_complex_thermal_event));
+        }
+        catch (...)
+        {
+            // do nothing on error
+        }
+    }
+    return nullptr;
+}
+
+void* ThreadShutdown(void* self)
+{
+    if (self != nullptr)
+    {
+        try
+        {
+            PolicyServicesPlatformPowerState* me = (PolicyServicesPlatformPowerState*)self;
+            me->getEsifServices()->primitiveExecuteSet(SET_SYSTEM_SHUTDOWN, ESIF_DATA_STRUCTURE,
                 me->getThermalEventPtr(), sizeof(esif_data_complex_thermal_event), sizeof(esif_data_complex_thermal_event));
         }
         catch (...)

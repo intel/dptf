@@ -20,7 +20,7 @@
 #include "EsifTime.h"
 using namespace std;
 
-UInt64 DptfTime::getCurrentTimeInMilliseconds(void)
+TimeSpan DptfTime::getCurrentTime(void)
 {
-    return EsifTime().getTimeStampInMilliSec();
+    return EsifTime().getTimeStamp();
 }

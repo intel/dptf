@@ -20,28 +20,8 @@
 
 #include "Dptf.h"
 #include "ParticipantServicesInterface.h"
-#include "ControlBase.h"
 #include "DomainType.h"
-#include "ConfigTdpDataSyncInterface.h"
 #include "DomainFunctionalityVersions.h"
-#include "DomainActiveControlFactory.h"
-#include "DomainConfigTdpControlFactory.h"
-#include "DomainCoreControlFactory.h"
-#include "DomainDisplayControlFactory.h"
-#include "DomainPerformanceControlFactory.h"
-#include "DomainPixelClockControlFactory.h"
-#include "DomainPixelClockStatusFactory.h"
-#include "DomainPowerControlFactory.h"
-#include "DomainPowerStatusFactory.h"
-#include "DomainPriorityFactory.h"
-#include "DomainRfProfileControlFactory.h"
-#include "DomainRfProfileStatusFactory.h"
-#include "ParticipantGetSpecificInfoFactory.h"
-#include "ParticipantSetSpecificInfoFactory.h"
-#include "DomainHardwareDutyCycleControlFactory.h"
-#include "DomainTemperatureFactory.h"
-#include "DomainUtilizationFactory.h"
-#include "DomainHardwareDutyCycleControlBase.h"
 #include "DomainActiveControlBase.h"
 #include "DomainConfigTdpControlBase.h"
 #include "DomainCoreControlBase.h"
@@ -99,7 +79,6 @@ public:
     std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
     std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
     std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
-    std::shared_ptr<DomainHardwareDutyCycleControlBase> getHardareDutyCycleControl(void);
 
 private:
 

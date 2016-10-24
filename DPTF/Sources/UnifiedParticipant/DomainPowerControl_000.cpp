@@ -56,12 +56,22 @@ void DomainPowerControl_000::setPowerLimit(UIntN participantIndex, UIntN domainI
     throw not_implemented();
 }
 
+void DomainPowerControl_000::setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const Power& powerLimit)
+{
+    throw not_implemented();
+}
+
 TimeSpan DomainPowerControl_000::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
 {
     throw not_implemented();
 }
 
 void DomainPowerControl_000::setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow)
+{
+    throw not_implemented();
+}
+
+void DomainPowerControl_000::setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow)
 {
     throw not_implemented();
 }
@@ -77,6 +87,11 @@ void DomainPowerControl_000::setPowerLimitDutyCycle(UIntN participantIndex, UInt
 }
 
 void DomainPowerControl_000::setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, PowerControlDynamicCapsSet capsSet)
+{
+    throw not_implemented();
+}
+
+void DomainPowerControl_000::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
     throw not_implemented();
 }

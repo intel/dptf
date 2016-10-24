@@ -22,6 +22,7 @@
 #include "esif_uf_ipc.h"	/* IPC                       */
 #include "esif_uf_actmgr.h"	/* Action Manager            */
 #include "esif_uf_xform.h"
+#include "esif_sdk_iface_upe.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -140,6 +141,17 @@ void EsifUp_DestroyParticipant(
 	EsifUpPtr self
 );
 
+#ifdef ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED
+
+static eEsifError EsifUp_SimulationExecutePrimitive(
+	EsifUpPtr self,
+	EsifPrimitiveTuplePtr tuplePtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+);
+#endif
+
+
 
 /*
  * FUNCTION DEFINITIONS
@@ -174,22 +186,66 @@ exit:
 }
 
 
-eEsifError EsifUp_UpdatePolling(
-	EsifUpPtr self,
-	UInt16 domainValue,
-	UInt32 period
+eEsifError EsifUp_ReevaluateParticipantCaps(
+	EsifUpPtr self
 	)
 {
 	eEsifError rc = ESIF_OK;
+	UInt32 domainIndex = 0;
+	EsifUpDomainPtr upDomainPtr = NULL;
+	EsifPrimitiveTuple tuple = {SET_PARTICIPANT_CAPABILITIES_EVAL, 0, 255};
+	UInt32 dummyData = 0;
+	EsifData request = {ESIF_DATA_UINT32, &dummyData, sizeof(dummyData), sizeof(dummyData)};
+
+	if (NULL == self) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	for (domainIndex = 0; domainIndex < self->domainCount; domainIndex++) {
+		upDomainPtr = EsifUp_GetDomainById(self, self->domains[domainIndex].domain);
+		if (upDomainPtr) {
+			tuple.domain = upDomainPtr->domain;
+			EsifUp_ExecutePrimitive(self, &tuple, &request, NULL);
+		}
+	}
+	rc = ESIF_OK; /* Domain loop above best-effort */
+exit:
+	return rc;
+}
+
+
+eEsifError EsifUp_UpdatePolling(
+	EsifUpPtr self,
+	UInt16 domainValue,
+	esif_time_t *period_ptr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	esif_time_t period_val = 0;
 	EsifPrimitiveTuple behaviorTuple = {SET_PARTICIPANT_SAMPLE_BEHAVIOR, domainValue, 255};
-	EsifData periodData = {ESIF_DATA_TIME, &period, sizeof(period), 0};
+	EsifData periodData = {ESIF_DATA_TIME, &period_val, sizeof(period_val), 0};
 	
 	if (self == NULL) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Updating polling period for %s:0x%04X to %d\n", EsifUp_GetName(self), domainValue, period);
+	// Use period if value provided otherwise call GET primitive and assign result to period_val
+	if (period_ptr != NULL) {
+		period_val = *period_ptr;
+	}
+	else {
+		EsifPrimitiveTuple getTuple = { GET_PARTICIPANT_SAMPLE_PERIOD, domainValue, 255 };
+		struct esif_data voidRequest = { ESIF_DATA_VOID, NULL, 0, 0 };
+
+		rc = EsifUp_ExecutePrimitive(self, &getTuple, &voidRequest, &periodData);
+		if (rc == ESIF_OK) {
+			period_val = *(esif_temp_t *)periodData.buf_ptr;
+		}
+	}
+
+	ESIF_TRACE_DEBUG("Updating polling period for %s:0x%04X to %d\n", EsifUp_GetName(self), domainValue, period_val);
 	rc = EsifUp_ExecutePrimitive(self, &behaviorTuple, &periodData, NULL);
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_WARN("Failed to set polling period for %s:0x%04X\n", EsifUp_GetName(self), domainValue);
@@ -202,22 +258,39 @@ exit:
 eEsifError EsifUp_UpdateHysteresis(
 	EsifUpPtr self,
 	UInt16 domainValue,
-	esif_temp_t hysteresis_val
+	esif_temp_t *hysteresis_ptr
 	)
 {
 	eEsifError rc = ESIF_OK;
+	esif_temp_t hysteresis_val = 0;
 	EsifPrimitiveTuple hystTuple = {SET_PARTICIPANT_HYSTERESIS_BEHAVIOR, domainValue, 255};
-	struct esif_data hystData = {ESIF_DATA_TIME, &hysteresis_val, sizeof(hysteresis_val), 0};
+	struct esif_data hystData = {ESIF_DATA_TEMPERATURE, &hysteresis_val, sizeof(hysteresis_val), 0};
 	
 	if (self == NULL) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("Updating hysteresis for %s:0x%04X to %d\n", EsifUp_GetName(self), domainValue, hysteresis_val);
-	rc = EsifUp_ExecutePrimitive(self, &hystTuple, &hystData, NULL);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_INFO("Failed to set hysteresis for %s:0x%04X\n", EsifUp_GetName(self), domainValue);
+	// Use hysteresis if value provided otherwise call GET primitive and assign result to hysteresis_val
+	if (hysteresis_ptr != NULL) {
+		hysteresis_val = *hysteresis_ptr;
+	}
+	else {
+		EsifPrimitiveTuple getTuple = { GET_TEMPERATURE_THRESHOLD_HYSTERESIS, domainValue, 255 };
+		struct esif_data voidRequest = { ESIF_DATA_VOID, NULL, 0, 0 };
+		
+		rc = EsifUp_ExecutePrimitive(self, &getTuple, &voidRequest, &hystData);
+		if (rc == ESIF_OK) {
+			hysteresis_val = *(esif_temp_t *)hystData.buf_ptr;
+		}
+	}
+
+	if (rc == ESIF_OK) {
+		ESIF_TRACE_DEBUG("Updating hysteresis for %s:0x%04X to %d\n", EsifUp_GetName(self), domainValue, hysteresis_val);
+		rc = EsifUp_ExecutePrimitive(self, &hystTuple, &hystData, NULL);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to set hysteresis for %s:0x%04X\n", EsifUp_GetName(self), domainValue);
+		}
 	}
 
 exit:
@@ -916,9 +989,6 @@ eEsifError EsifUp_GetRef(
 	}
 
 	self->refCount++;
-
-	ESIF_TRACE_DEBUG("ref = %d\n", self->refCount);
-
 exit:
 	if (isLocked) {
 		esif_ccb_write_unlock(&self->objLock);
@@ -938,8 +1008,6 @@ void EsifUp_PutRef(
 
 		self->refCount--;
 
-		ESIF_TRACE_DEBUG("ref = %d\n", self->refCount);
-
 		if ((self->refCount == 0) && (self->markedForDelete)) {
 			needRelease = ESIF_TRUE;
 		}
@@ -955,9 +1023,9 @@ void EsifUp_PutRef(
 
 /*
  * Execute Primitive
- * NOTE: This version should only be called by functions within the
- * participant /domain while Participant Mangager or participant locks are
- * already or from within the participant when executing in a
+ * NOTE: This version may be called by functions within the
+ * participant/domain while Participant Mangager or participant locks are
+ * already owned or from within the participant when executing in a
  * known/guaranteed state.  EsifExecutePrimitive should be called when executing
  * outside the context of the participant.
  */
@@ -1085,6 +1153,17 @@ eEsifError EsifUp_ExecutePrimitive(
 				responsePtr->buf_len);
 		}
 	}
+
+#ifdef ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED
+	/*
+	 * Let the simulator handle all primitives first.
+	 * If successful, don't do normal processing.
+	 */
+	rc = EsifUp_SimulationExecutePrimitive(self, tuplePtr, requestPtr, responsePtr);
+	if (ESIF_OK == rc) {
+		goto exit;
+	}
+#endif
 
 	/*
 	 * Execute each action in the primitive until one succeeds
@@ -1502,7 +1581,7 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 
 	ipcPtr = esif_ipc_alloc_primitive(&ipcPrimPtr, (responsePtr->buf_len + requestPtr->buf_len));
 	if (NULL == ipcPtr || NULL == ipcPrimPtr) {
-		ESIF_TRACE_ERROR("Fail to allocate EsifIpc/EsifIpcPrimitive for IPC privimitive execution\n");
+		ESIF_TRACE_ERROR("Fail to allocate EsifIpc/EsifIpcPrimitive for IPC primitive execution\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
@@ -1595,7 +1674,7 @@ static eEsifError EsifUp_ExecuteLfSetAction(
 
 	ipcPtr = esif_ipc_alloc_primitive(&ipcPrimPtr, requestPtr->buf_len);
 	if (NULL == ipcPtr || NULL == ipcPrimPtr) {
-		ESIF_TRACE_ERROR("Fail to allocate EsifIpc/EsifIpcPrimitive for IPC privimitive execution\n");
+		ESIF_TRACE_ERROR("Fail to allocate EsifIpc/EsifIpcPrimitive for IPC primitive execution\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
@@ -1669,6 +1748,62 @@ EsifString EsifUp_CreateTokenReplacedParamString(
 exit:
 	return replacedStr;
 }
+
+
+#ifdef ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED
+
+/* Let the simulator handle all primitives first.  If successful, don't do normal processing */
+static eEsifError EsifUp_SimulationExecutePrimitive(
+	EsifUpPtr self,
+	EsifPrimitiveTuplePtr tuplePtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpPtr ietmPtr = NULL;
+	EsifDspPtr dspPtr = NULL;
+	EsifPrimitiveTuple simTuple = {SET_EXECUTE_SIMULATION, '0D', 255};
+	EsifFpcPrimitivePtr primitivePtr = NULL;
+	EsifFpcActionPtr fpcActionPtr = NULL;
+	EsifSimRequest simRequestData = {*((EsifSimTuplePtr)tuplePtr), requestPtr};
+	EsifData simRequest = {ESIF_DATA_STRUCTURE, &simRequestData, sizeof(simRequestData), sizeof(simRequestData)};
+
+	ESIF_ASSERT(self != NULL);
+	ESIF_ASSERT(tuplePtr != NULL);
+
+	ietmPtr = EsifUpPm_GetAvailableParticipantByInstance(0);
+	if (NULL == ietmPtr) {
+		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
+		goto exit;
+	}
+
+	dspPtr = EsifUp_GetDsp(ietmPtr);
+	if (NULL == dspPtr) {
+		rc = ESIF_E_NEED_DSP;
+		goto exit;
+	}
+
+	primitivePtr = dspPtr->get_primitive(dspPtr, &simTuple);
+	if (NULL == primitivePtr) {
+		rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
+		goto exit;
+	}
+
+	fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, 0);
+	if (NULL == fpcActionPtr) {
+		rc = ESIF_E_PRIMITIVE_NO_ACTION_SUCCESSFUL;
+		goto exit;
+	}
+
+	rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, 0, &simRequest, responsePtr);
+exit:
+	EsifUp_PutRef(ietmPtr);
+	return rc;
+}
+
+#endif
+
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/

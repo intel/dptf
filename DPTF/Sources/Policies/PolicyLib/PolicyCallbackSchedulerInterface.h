@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "TimeInterface.h"
 #include "XmlNode.h"
+#include "ParticipantRole.h"
 
 class dptf_export PolicyCallbackSchedulerInterface
 {
@@ -28,11 +29,15 @@ public:
 
     virtual ~PolicyCallbackSchedulerInterface()  {};
     virtual void suspend(UIntN participantIndex, const TimeSpan& time) = 0;
-    virtual void suspend(UIntN participantIndex, UInt64 fromTime, const TimeSpan& suspendTime) = 0;
+    virtual void suspend(UIntN participantIndex, const TimeSpan& fromTime, const TimeSpan& suspendTime) = 0;
+    virtual void suspend(ParticipantRole::Type participantRole, UIntN participantIndex, const TimeSpan& time) = 0;
     virtual void cancelCallback(UIntN participantIndex) = 0;
-    virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, UInt64 beginTime, UInt64 endTime) const = 0;
+    virtual void cancelCallback(ParticipantRole::Type participantRole, UIntN participantIndex) = 0;
+    virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, const TimeSpan& beginTime, const TimeSpan& endTime) const = 0;
     virtual void acknowledgeCallback(UIntN participantIndex) = 0;
+    virtual void acknowledgeCallback(ParticipantRole::Type participantRole, UIntN participantIndex) = 0;
     virtual void setTimeObject(std::shared_ptr<TimeInterface> time) = 0;
     virtual std::shared_ptr<XmlNode> getStatus() = 0;
     virtual std::shared_ptr<XmlNode> getStatusForParticipant(UIntN participantIndex) = 0;
+    virtual std::shared_ptr<XmlNode> getStatusForParticipant(ParticipantRole::Type participantRole, UIntN participantIndex) = 0;
 };

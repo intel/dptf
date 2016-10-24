@@ -23,11 +23,11 @@
 using namespace StatusFormat;
 
 ActiveRelationshipTableEntry::ActiveRelationshipTableEntry(
-    const std::string& sourceDeviceAcpiScope,
-    const std::string& targetDeviceAcpiScope,
+    const std::string& sourceDeviceScope,
+    const std::string& targetDeviceScope,
     UInt32 weight,
     const std::vector<UInt32>& acEntries)
-    : RelationshipTableEntryBase(sourceDeviceAcpiScope, targetDeviceAcpiScope),
+    : RelationshipTableEntryBase(sourceDeviceScope, targetDeviceScope),
     m_weight(weight),
     m_acEntries(acEntries)
 {
@@ -55,9 +55,9 @@ std::shared_ptr<XmlNode> ActiveRelationshipTableEntry::getXml()
 {
     auto entry = XmlNode::createWrapperElement("art_entry");
     entry->addChild(XmlNode::createDataElement("target_index", friendlyValue(getTargetDeviceIndex())));
-    entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceAcpiScope()));
+    entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceScope()));
     entry->addChild(XmlNode::createDataElement("source_index", friendlyValue(getSourceDeviceIndex())));
-    entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceAcpiScope()));
+    entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceScope()));
     entry->addChild(XmlNode::createDataElement("weight", friendlyValue(m_weight)));
     for (UIntN acNum = ParticipantSpecificInfoKey::AC0; acNum <= ParticipantSpecificInfoKey::AC9; acNum++)
     {

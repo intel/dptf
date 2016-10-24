@@ -19,8 +19,7 @@
 #include "ActiveControlArbitrator.h"
 #include "Utility.h"
 
-ActiveControlArbitrator::ActiveControlArbitrator(DptfManager* dptfManager) :
-    m_dptfManager(dptfManager),
+ActiveControlArbitrator::ActiveControlArbitrator() :
     m_arbitratedFanSpeedPercentage(Percentage::createInvalid()),
     m_arbitratedActiveControlIndex(Constants::Invalid)
 {
@@ -35,19 +34,18 @@ Bool ActiveControlArbitrator::arbitrate(UIntN policyIndex, const Percentage& fan
     Bool arbitratedValueChanged = false;
     Percentage maxRequestedFanSpeedPercentage = Percentage::createInvalid();
 
-    increaseVectorSizeIfNeeded(m_requestedfanSpeedPercentage, policyIndex, maxRequestedFanSpeedPercentage);
     m_requestedfanSpeedPercentage[policyIndex] = fanSpeed;
 
     //
-    // loop through the array and find the max requested fan speed percentage
+    // loop through and find the max requested fan speed percentage
     //
-    for (UIntN i = 0; i < m_requestedfanSpeedPercentage.size(); i++)
+    for (auto policyRequest = m_requestedfanSpeedPercentage.begin(); policyRequest != m_requestedfanSpeedPercentage.end(); policyRequest++)
     {
-        if ((m_requestedfanSpeedPercentage[i].isValid()) &&
+        if ((policyRequest->second.isValid()) &&
             ((maxRequestedFanSpeedPercentage.isValid() == false) ||
-             (m_requestedfanSpeedPercentage[i] > maxRequestedFanSpeedPercentage)))
+             (policyRequest->second > maxRequestedFanSpeedPercentage)))
         {
-            maxRequestedFanSpeedPercentage = m_requestedfanSpeedPercentage[i];
+            maxRequestedFanSpeedPercentage = policyRequest->second;
         }
     }
 
@@ -68,19 +66,18 @@ Bool ActiveControlArbitrator::arbitrate(UIntN policyIndex, UIntN activeControlIn
     Bool arbitratedValueChanged = false;
     UIntN minRequestedActiveControlIndex = Constants::Invalid;
 
-    increaseVectorSizeIfNeeded(m_requestedActiveControlIndex, policyIndex, Constants::Invalid);
     m_requestedActiveControlIndex[policyIndex] = activeControlIndex;
 
     //
-    // loop through the array and find the min requested active control index
+    // loop through and find the min requested active control index
     //
-    for (UIntN i = 0; i < m_requestedActiveControlIndex.size(); i++)
+    for (auto policyRequest = m_requestedActiveControlIndex.begin(); policyRequest != m_requestedActiveControlIndex.end(); policyRequest++)
     {
-        if ((m_requestedActiveControlIndex[i] != Constants::Invalid) &&
+        if ((policyRequest->second != Constants::Invalid) &&
             ((minRequestedActiveControlIndex == Constants::Invalid) ||
-             (m_requestedActiveControlIndex[i] < minRequestedActiveControlIndex)))
+             (policyRequest->second < minRequestedActiveControlIndex)))
         {
-            minRequestedActiveControlIndex = m_requestedActiveControlIndex[i];
+            minRequestedActiveControlIndex = policyRequest->second;
         }
     }
 
@@ -108,13 +105,17 @@ UIntN ActiveControlArbitrator::getArbitratedActiveControlIndex(void) const
 
 void ActiveControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if (policyIndex < m_requestedfanSpeedPercentage.size())
+    auto fanSpeedRequest = m_requestedfanSpeedPercentage.find(policyIndex);
+    if (fanSpeedRequest != m_requestedfanSpeedPercentage.end())
     {
         m_requestedfanSpeedPercentage[policyIndex] = Percentage::createInvalid();
+        arbitrate(policyIndex, Percentage::createInvalid());
     }
 
-    if (policyIndex < m_requestedActiveControlIndex.size())
+    auto activeIndexRequest = m_requestedActiveControlIndex.find(policyIndex);
+    if (activeIndexRequest != m_requestedActiveControlIndex.end())
     {
         m_requestedActiveControlIndex[policyIndex] = Constants::Invalid;
+        arbitrate(policyIndex, Constants::Invalid);
     }
 }

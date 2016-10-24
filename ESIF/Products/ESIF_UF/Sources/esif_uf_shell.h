@@ -33,10 +33,12 @@ extern "C" {
 #endif
 
 eEsifError esif_uf_shell_init(void);
+eEsifError esif_uf_shell_banner_init(void);
 void esif_uf_shell_exit(void);
+void esif_uf_shell_stop(void);
 
-void esif_uf_shell_lock(void);
-void esif_uf_shell_unlock(void);
+void esif_uf_shell_lock();
+void esif_uf_shell_unlock();
 
 char *esif_shell_resize(size_t buf_len);
 

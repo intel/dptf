@@ -31,7 +31,7 @@ WIPolicyActiveRelationshipTableChanged::~WIPolicyActiveRelationshipTableChanged(
 
 void WIPolicyActiveRelationshipTableChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -49,7 +49,7 @@ void WIPolicyActiveRelationshipTableChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyActiveRelationshipTableChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyActiveRelationshipTableChanged", i);
         }
     }
 }

@@ -19,61 +19,41 @@
 #include "CoreControlArbitrator.h"
 #include "Utility.h"
 
-CoreControlArbitrator::CoreControlArbitrator(DptfManager* dptfManager) :
-    m_dptfManager(dptfManager),
-    m_arbitratedCoreControlStatus(Constants::Invalid)
+CoreControlArbitrator::CoreControlArbitrator() :
+    m_arbitratedActiveCoreCount(Constants::Invalid)
 {
 }
 
 CoreControlArbitrator::~CoreControlArbitrator(void)
 {
-    for (UIntN i = 0; i < m_requestedCoreControlStatus.size(); i++)
-    {
-        DELETE_MEMORY_TC(m_requestedCoreControlStatus[i]);
-    }
 }
 
 Bool CoreControlArbitrator::arbitrate(UIntN policyIndex, const CoreControlStatus& coreControlStatus)
 {
     Bool arbitratedValueChanged = false;
-    CoreControlStatus arbitratedCoreControlStatus(Constants::Invalid);
-
-    increaseVectorSizeIfNeeded(m_requestedCoreControlStatus, policyIndex);
+    UIntN artibratedCoreCount = Constants::Invalid;
 
     // save the CoreControlStatus at the correct location for this policy
-    if (m_requestedCoreControlStatus[policyIndex] == nullptr)
-    {
-        m_requestedCoreControlStatus[policyIndex] = new CoreControlStatus(coreControlStatus);
-    }
-    else
-    {
-        *(m_requestedCoreControlStatus[policyIndex]) = coreControlStatus;
-    }
+    m_requestedActiveCoreCount[policyIndex] = coreControlStatus.getNumActiveLogicalProcessors();
 
     // loop through and find the request for the least number of active logical processors
-    for (UIntN i = 0; i < m_requestedCoreControlStatus.size(); i++)
+    for (auto policyRequest = m_requestedActiveCoreCount.begin(); policyRequest != m_requestedActiveCoreCount.end(); policyRequest++)
     {
-        CoreControlStatus* currentCoreControlStatus = m_requestedCoreControlStatus[i];
+        UIntN currentActiveCoreCount = policyRequest->second;
 
-        if (currentCoreControlStatus != nullptr)
+        if ((currentActiveCoreCount != Constants::Invalid) &&
+            ((artibratedCoreCount == Constants::Invalid) ||
+                (currentActiveCoreCount < artibratedCoreCount)))
         {
-            UIntN currentNumActiveLogicalProcessors = currentCoreControlStatus->getNumActiveLogicalProcessors();
-            UIntN arbitratedNumActiveLogicalProcessors = arbitratedCoreControlStatus.getNumActiveLogicalProcessors();
-
-            if ((currentNumActiveLogicalProcessors != Constants::Invalid) &&
-                ((arbitratedNumActiveLogicalProcessors == Constants::Invalid) ||
-                 (currentNumActiveLogicalProcessors < arbitratedNumActiveLogicalProcessors)))
-            {
-                arbitratedCoreControlStatus = *currentCoreControlStatus;
-            }
+            artibratedCoreCount = currentActiveCoreCount;
         }
     }
 
     // check to see if the CoreControlStatus is changing.
-    if (arbitratedCoreControlStatus != m_arbitratedCoreControlStatus)
+    if (artibratedCoreCount != m_arbitratedActiveCoreCount)
     {
         arbitratedValueChanged = true;
-        m_arbitratedCoreControlStatus = arbitratedCoreControlStatus;
+        m_arbitratedActiveCoreCount = artibratedCoreCount;
     }
 
     return arbitratedValueChanged;
@@ -81,13 +61,15 @@ Bool CoreControlArbitrator::arbitrate(UIntN policyIndex, const CoreControlStatus
 
 CoreControlStatus CoreControlArbitrator::getArbitratedCoreControlStatus(void) const
 {
-    return m_arbitratedCoreControlStatus;
+    return CoreControlStatus(m_arbitratedActiveCoreCount);
 }
 
 void CoreControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if (policyIndex < m_requestedCoreControlStatus.size())
+    auto policyRequest = m_requestedActiveCoreCount.find(policyIndex);
+    if (policyRequest != m_requestedActiveCoreCount.end())
     {
-        DELETE_MEMORY_TC(m_requestedCoreControlStatus[policyIndex]);
+        m_requestedActiveCoreCount[policyIndex] = Constants::Invalid;
+        arbitrate(policyIndex, Constants::Invalid);
     }
 }

@@ -35,7 +35,8 @@ typedef struct s_extType {
  */
 
 void esif_ws_http_copy_server_root(char*);
-eEsifError esif_ws_http_process_reqs(ClientRecordPtr , void *, ssize_t);
+eEsifError esif_ws_http_process_reqs(ClientRecordPtr , void *, ssize_t, ssize_t);
 
+#define CRLF	"\r\n"
 
 #endif /* ESIF_WS_HTTP_H*/

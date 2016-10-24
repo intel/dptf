@@ -20,14 +20,11 @@
 
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
-#include "CoolingModeAcousticLimit.h"
-#include "CoolingModePowerLimit.h"
 #include "CoolingMode.h"
 #include "SensorOrientation.h"
-#include "SensorMotion.h"
+#include "OnOffToggle.h"
 #include "SensorSpatialOrientation.h"
 #include "RadioConnectionStatus.h"
-#include "OsHdcStatus.h"
 #include "OsPowerSource.h"
 #include "OsLidState.h"
 #include "OsPlatformType.h"
@@ -48,7 +45,7 @@ public:
     //
     virtual void create(
         Bool enabled,
-        PolicyServicesInterfaceContainer policyServicesInterfaceContainer,
+        const PolicyServicesInterfaceContainer &policyServicesInterfaceContainer,
         UIntN policyIndex) = 0;
 
     //
@@ -133,33 +130,33 @@ public:
 
     // Policy Event Handlers
     virtual void activeRelationshipTableChanged(void) = 0;
-    virtual void coolingModeAcousticLimitChanged(CoolingModeAcousticLimit::Type acousticLimit) = 0;
     virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
-    virtual void coolingModePowerLimitChanged(CoolingModePowerLimit::Type powerLimit) = 0;
     virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
     virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) = 0;
     virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) = 0;
-    virtual void operatingSystemLpmModeChanged(UIntN lpmMode) = 0;
-    virtual void operatingSystemHdcStatusChanged(OsHdcStatus::Type status) = 0;
     virtual void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
     virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
     virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) = 0;
     virtual void operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersonality) = 0;
     virtual void operatingSystemPlatformTypeChanged(OsPlatformType::Type osPlatformType) = 0;
     virtual void operatingSystemDockModeChanged(OsDockMode::Type osDockMode) = 0;
-    virtual void operatingSystemMobileNotification(UIntN mobileNotification) = 0;
+    virtual void operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState) = 0;
+    virtual void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value) = 0;
     virtual void passiveTableChanged(void) = 0;
-    virtual void platformLpmModeChanged(void) = 0;
     virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
-    virtual void sensorMotionChanged(SensorMotion::Type sensorMotion) = 0;
+    virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) = 0;
     virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
     virtual void thermalRelationshipTableChanged(void) = 0;
     virtual void adaptivePerformanceConditionsTableChanged(void) = 0;
+    virtual void adaptivePerformanceParticipantConditionTableChanged(void) = 0;
     virtual void adaptivePerformanceActionsTableChanged(void) = 0;
     virtual void oemVariablesChanged(void) = 0;
-    virtual void powerDeviceRelationshipTableChanged(void) = 0;
     virtual void powerBossConditionsTableChanged(void) = 0;
     virtual void powerBossActionsTableChanged(void) = 0;
+    virtual void powerBossMathTableChanged(void) = 0;
+    virtual void emergencyCallModeTableChanged(void) = 0;
+    virtual void pidAlgorithmTableChanged(void) = 0;
+    virtual void activeControlPointRelationshipTableChanged(void) = 0;
 };
 
 //

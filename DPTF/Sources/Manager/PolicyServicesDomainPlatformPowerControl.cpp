@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesDomainPlatformPowerControl.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPlatformPowerControl::PolicyServicesDomainPlatformPowerControl(
     DptfManagerInterface* dptfManager, UIntN policyIndex)

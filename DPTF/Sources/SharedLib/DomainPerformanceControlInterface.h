@@ -39,4 +39,5 @@ public:
     virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) = 0;
     virtual void setPerformanceControlDynamicCaps(
         UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) = 0;
+    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) = 0;
 };

@@ -37,7 +37,7 @@ public:
     UIntN getCount(void) const;
     void append(const PerformanceControlSet& controlSet, UIntN fromIndex);
     std::shared_ptr<XmlNode> getXml(void);
-    const PerformanceControl& operator[](UIntN index) const;
+    PerformanceControl operator[](UIntN index) const;
     Bool operator==(const PerformanceControlSet& rhs) const;
     Bool operator!=(const PerformanceControlSet& rhs) const;
 

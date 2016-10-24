@@ -30,6 +30,7 @@ public:
     CoreControlLpoPreference(Bool lpoEnabled, UIntN lpoStartPState, Percentage lpoStepSize,
         CoreControlOffliningMode::Type lpoPowerControlOffliningMode,
         CoreControlOffliningMode::Type lpoPerformanceControlOffliningMode);
+    static CoreControlLpoPreference createFromClpo(const DptfBuffer& buffer);
     Bool isLpoEnabled(void) const;
     UIntN getStartPState(void) const;
     Percentage getStepSize(void) const;

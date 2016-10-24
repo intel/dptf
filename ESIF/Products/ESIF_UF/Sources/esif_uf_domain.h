@@ -21,13 +21,8 @@
 #include "esif_sdk.h"
 #include "esif_uf_fpc.h"
 #include "esif_event.h"
+#include "esif_domain.h"
 
-#define ESIF_DOMAIN_MAX 10
-#define ESIF_DOMAIN_TEMP_INVALID 0xffffffff
-#define ESIF_DOMAIN_TEMP_MAX 125	/* Celcius */
-#define ESIF_DOMAIN_TEMP_AUX0_DEF 5	/* Celcius */
-#define ESIF_DOMAIN_TEMP_MIN 1
-#define ESIF_DOMAIN_POLL_DISABLE 0xffffffff
 #define ESIF_DOMAIN_STATE_INVALID 0xffffffff
 
 #define UP_DOMAIN_ITERATOR_MARKER 'UPDM'
@@ -132,6 +127,12 @@ eEsifError EsifUpDomain_DspReadyInit(
 eEsifError EsifDomainIdToIndex(
 	UInt16 domain,
 	UInt8 *indexPtr
+	);
+
+eEsifError EsifUpDomain_EnableCaps(
+	EsifUpDomainPtr self,
+	unsigned int capabilityFlags,
+	unsigned char *capabilityMask
 	);
 
 void EsifUpDomain_StopTempPoll(

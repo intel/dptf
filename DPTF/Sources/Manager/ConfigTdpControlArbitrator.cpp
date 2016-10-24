@@ -19,8 +19,7 @@
 #include "ConfigTdpControlArbitrator.h"
 #include "Utility.h"
 
-ConfigTdpControlArbitrator::ConfigTdpControlArbitrator(DptfManager* dptfManager) :
-    m_dptfManager(dptfManager),
+ConfigTdpControlArbitrator::ConfigTdpControlArbitrator() :
     m_arbitratedConfigTdpControlIndex(Constants::Invalid)
 {
 }
@@ -34,19 +33,18 @@ Bool ConfigTdpControlArbitrator::arbitrate(UIntN policyIndex, UIntN configTdpCon
     Bool arbitratedValueChanged = false;
     UIntN maxRequestedConfigTdpControlIndex = Constants::Invalid;
 
-    increaseVectorSizeIfNeeded(m_requestedConfigTdpControlIndex, policyIndex, Constants::Invalid);
     m_requestedConfigTdpControlIndex[policyIndex] = configTdpControlIndex;
 
     //
-    // loop through the array and find the lowest config tdp level requested (this is the max index)
+    // loop through and find the lowest config tdp level requested (this is the max index)
     //
-    for (UIntN i = 0; i < m_requestedConfigTdpControlIndex.size(); i++)
+    for (auto policyRequest = m_requestedConfigTdpControlIndex.begin(); policyRequest != m_requestedConfigTdpControlIndex.end(); policyRequest++)
     {
-        if ((m_requestedConfigTdpControlIndex[i] != Constants::Invalid) &&
+        if ((policyRequest->second != Constants::Invalid) &&
             ((maxRequestedConfigTdpControlIndex == Constants::Invalid) ||
-             (m_requestedConfigTdpControlIndex[i] > maxRequestedConfigTdpControlIndex)))
+            (policyRequest->second > maxRequestedConfigTdpControlIndex)))
         {
-            maxRequestedConfigTdpControlIndex = m_requestedConfigTdpControlIndex[i];
+            maxRequestedConfigTdpControlIndex = policyRequest->second;
         }
     }
 
@@ -69,8 +67,10 @@ UIntN ConfigTdpControlArbitrator::getArbitratedConfigTdpControlIndex(void) const
 
 void ConfigTdpControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    if (policyIndex < m_requestedConfigTdpControlIndex.size())
+    auto policyRequest = m_requestedConfigTdpControlIndex.find(policyIndex);
+    if (policyRequest != m_requestedConfigTdpControlIndex.end())
     {
         m_requestedConfigTdpControlIndex[policyIndex] = Constants::Invalid;
+        arbitrate(policyIndex, Constants::Invalid);
     }
 }

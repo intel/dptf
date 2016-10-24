@@ -21,7 +21,7 @@
 #include "EsifServices.h"
 
 WIPolicySensorMotionChanged::WIPolicySensorMotionChanged(DptfManagerInterface* dptfManager,
-    SensorMotion::Type sensorMotion) :
+    OnOffToggle::Type sensorMotion) :
     WorkItem(dptfManager, FrameworkEvent::PolicySensorMotionChanged),
     m_sensorMotion(sensorMotion)
 {
@@ -33,7 +33,7 @@ WIPolicySensorMotionChanged::~WIPolicySensorMotionChanged(void)
 
 void WIPolicySensorMotionChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicySensorMotionChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicySensorMotionChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySensorMotionChanged", i);
         }
     }
 }

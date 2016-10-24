@@ -19,28 +19,45 @@
 #pragma once
 
 #include "Dptf.h"
+#include "RelationshipTableEntryInterface.h"
 
-class dptf_export RelationshipTableEntryBase
+class dptf_export RelationshipTableEntryBase : public RelationshipTableEntryInterface
 {
 public:
 
-    RelationshipTableEntryBase(const std::string& sourceDeviceAcpiScope, const std::string& targetDeviceAcpiScope);
-    RelationshipTableEntryBase(const std::string& targetDeviceAcpiScope);
+    RelationshipTableEntryBase(const std::string& sourceDeviceScope, DomainType::Type sourceDomainType,
+        const std::string& targetDeviceScope, DomainType::Type targetDomainType);
+    RelationshipTableEntryBase(const std::string& participantScope, DomainType::Type domainType);
+    RelationshipTableEntryBase(const std::string& sourceDeviceScope, const std::string& targetDeviceScope);
+    RelationshipTableEntryBase(const std::string& participantScope);
     virtual ~RelationshipTableEntryBase();
 
-    const std::string& getSourceDeviceAcpiScope() const;
-    UIntN getSourceDeviceIndex() const;
-    Bool sourceDeviceIndexValid(void) const;
-    const std::string& getTargetDeviceAcpiScope() const;
-    UIntN getTargetDeviceIndex() const;
-    Bool targetDeviceIndexValid(void) const;
-    void associateParticipant(std::string deviceAcpiScope, UIntN deviceIndex);
-    void disassociateParticipant(UIntN deviceIndex);
-    Bool operator==(const RelationshipTableEntryBase& baseEntry) const;
+    virtual const std::string& getSourceDeviceScope() const override;
+    virtual UIntN getSourceDeviceIndex() const override;
+    virtual Bool sourceDeviceIndexValid(void) const override;
+    virtual Bool sourceDomainIndexValid(void) const override;
+    virtual UIntN getSourceDomainIndex() const override;
+    virtual DomainType::Type getSourceDomainType() const override;
+    virtual const std::string& getTargetDeviceScope() const override;
+    virtual UIntN getTargetDeviceIndex() const override;
+    virtual Bool targetDeviceIndexValid(void) const override;
+    virtual Bool targetDomainIndexValid(void) const override;
+    virtual UIntN getTargetDomainIndex() const override;
+    virtual DomainType::Type getTargetDomainType() const override;
+    virtual void associateParticipant(std::string participantScope, UIntN participantIndex) override;
+    virtual void disassociateParticipant(UIntN participantIndex) override;
+    virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
+    virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;
+    virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) override;
+    virtual Bool operator==(const RelationshipTableEntryInterface& baseEntry) const override;
 private:
 
-    std::string m_sourceDeviceAcpiScope;
+    std::string m_sourceDeviceScope;
     UIntN m_sourceDeviceIndex;
-    std::string m_targetDeviceAcpiScope;
+    DomainType::Type m_sourceDomainType;
+    UIntN m_sourceDomainIndex;
+    std::string m_targetDeviceScope;
     UIntN m_targetDeviceIndex;
+    DomainType::Type m_targetDomainType;
+    UIntN m_targetDomainIndex;
 };

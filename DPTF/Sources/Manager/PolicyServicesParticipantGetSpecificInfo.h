@@ -28,6 +28,6 @@ public:
 
     PolicyServicesParticipantGetSpecificInfo(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    virtual std::map<ParticipantSpecificInfoKey::Type, UIntN> getParticipantSpecificInfo(UIntN participantIndex,
-        const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override final;
+    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> 
+        getParticipantSpecificInfo(UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override final;
 };

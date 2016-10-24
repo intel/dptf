@@ -174,7 +174,7 @@ Bool CoreControlKnob::commitSetting()
                 getPolicyServices().messageLogging->writeMessageDebug(
                     PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
 
-                m_coreControl->setControl(CoreControlStatus(nextActiveCores));
+                m_coreControl->setActiveCoreControl(CoreControlStatus(nextActiveCores));
 
                 stringstream messageAfter;
                 messageAfter << "Changed active core limit to " << nextActiveCores << ".";
@@ -212,7 +212,7 @@ UIntN CoreControlKnob::findLowestActiveCoresRequest() const
 {
     if (m_requests.size() == 0)
     {
-        return m_coreControl->getStatus().getNumActiveLogicalProcessors();
+    return m_coreControl->getStatus().getNumActiveLogicalProcessors();
     }
     else
     {

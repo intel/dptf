@@ -18,7 +18,7 @@
 
 #include "WIDptfPolicyActivityLoggingEnabled.h"
 #include "PolicyManager.h"
-#include "ParticipantManager.h"
+#include "ParticipantManagerInterface.h"
 #include "EsifServices.h"
 
 WIDptfPolicyActivityLoggingEnabled::WIDptfPolicyActivityLoggingEnabled(DptfManagerInterface* dptfManager) :
@@ -33,7 +33,7 @@ WIDptfPolicyActivityLoggingEnabled::~WIDptfPolicyActivityLoggingEnabled(void)
 void WIDptfPolicyActivityLoggingEnabled::execute(void)
 {
 
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     // notify all policies
 
@@ -53,7 +53,7 @@ void WIDptfPolicyActivityLoggingEnabled::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicyActivityLoggingEnabled", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyActivityLoggingEnabled", i);
         }
     }
 }

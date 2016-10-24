@@ -38,6 +38,12 @@ EsifDataPtr EsifData_Create ();					// new operator [dynamic, caller-owned]
 void EsifData_Destroy (EsifDataPtr self);	// delete operator
 size_t EsifData_Sizeof ();					// sizeof() operator
 
+// Notes:  If the data object has a buffer owned elsewhere, buf_len == 0, the
+// cloned data object shall contain a buffer large enough to contain the
+// associated data (data_len) and the buf_len member shall contain the same
+// value, so as to indicate this new structure is not owned elsewhere
+EsifDataPtr EsifData_Clone(EsifDataPtr srcPtr); 
+
 // additional constructors
 EsifDataPtr EsifData_CreateAs (EsifDataType type, void *buf_ptr, u32 buf_len, u32 data_len);// new operator [dynamic, caller-owned]
 
@@ -55,6 +61,7 @@ UInt32 EsifData_AsUInt32 (EsifDataPtr self);	// Convert to UInt32  [cast, non-dy
 
 char*EsifData_ToString (EsifDataPtr self);	// Convert to string  [dynamic, caller-owned]
 eEsifError EsifData_FromString (EsifDataPtr self, char *str, EsifDataType type);// Convert from null-terminated string [dynamic, self-owned]
+
 
 #ifdef __cplusplus
 }

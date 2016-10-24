@@ -15,12 +15,17 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_ACTION
+
 #include "esif_uf.h"			/* Upper Framework */
 #include "esif_uf_actmgr.h"		/* Action Manager */
+#include "esif_uf_appmgr.h"		/* Application Manager */
 #include "esif_uf_domain.h"
 #include "esif_uf_primitive.h"
 #include "esif_uf_cfgmgr.h"
 #include "esif_lib_databank.h"
+#include "esif_temp.h"
 
 // !!!
 // TODO: Once we move to the DOMAIN MGR some of the interfaces in this file might change!!!
@@ -57,7 +62,7 @@ static eEsifError EsifGetActionDelegateVirtualTemperature(
 	EsifDataPtr responsePtr
 	);
 
-static eEsifError EsifGetActionDelegateGddv(
+static eEsifError EsifGetActionDelegateCnfg(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
@@ -72,6 +77,19 @@ static eEsifError EsifSetActionDelegatePat0(
 	const EsifDataPtr requestPtr);
 
 static eEsifError EsifSetActionDelegatePat1(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr);
+
+static eEsifError EsifSetActionDelegateRset(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr);
+
+static eEsifError EsifSetActionDelegateAppc(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr,
+	const EsifFpcActionPtr fpcActionPtr);
+
+static eEsifError EsifSetActionDelegateEvaluateParticipantCaps(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr);
 
@@ -147,8 +165,8 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = EsifGetActionDelegateTemp(domainPtr, requestPtr, responsePtr);
 		break;
 
-	case 'VDDG': /* GDDV */
-		rc = EsifGetActionDelegateGddv(domainPtr, requestPtr, responsePtr);
+	case 'GFNC': /* CNFG */
+		rc = EsifGetActionDelegateCnfg(domainPtr, requestPtr, responsePtr);
 		break;
 
 	case 'PMTV': /* VTMP */
@@ -282,6 +300,21 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_MOBILE_NOTIFICATION);
 		break;
 
+	case 'TESR':    /* RSET: Reset Override */
+		ESIF_TRACE_INFO("Reset Override request received\n");
+		rc = EsifSetActionDelegateRset(domainPtr, requestPtr);
+		break;
+
+	case 'LAVE':    /* EVAL: Re-evaluate participant capabilities */
+		ESIF_TRACE_INFO("Re-evaluate participant capabilities request received\n");
+		rc = EsifSetActionDelegateEvaluateParticipantCaps(domainPtr, requestPtr);
+		break;
+
+	case 'CPPA':    /* APPC: Application Control  */
+		ESIF_TRACE_INFO("Application Control\n");
+		rc = EsifSetActionDelegateAppc(domainPtr, requestPtr, fpcActionPtr);
+		break;
+
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
@@ -324,7 +357,7 @@ static eEsifError EsifSetActionDelegateSphb(
 
 	rc = EsifUpDomain_SetTempHysteresis(domainPtr, tempHysteresis);
 
-	ESIF_TRACE_DEBUG("Setting Hysterisis = %d\n", tempHysteresis);
+	ESIF_TRACE_DEBUG("Set Hysteresis = %d\n", esif_temp_abs_to_rel(tempHysteresis));
 
 exit:
 	return rc;
@@ -390,6 +423,249 @@ exit:
 	return rc;
 }
 
+static eEsifError EsifSetActionDelegateRset(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr)
+{
+	eEsifError rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+	EsifPrimitiveTupleParameter parameters = { 0 };
+	EsifPrimitiveTuple tuple = { 0 };
+	Bool signal_event = ESIF_FALSE;
+	char domain_str[8] = { 0 };
+	int j = 0;
+
+	ESIF_ASSERT(domainPtr != NULL);
+	ESIF_ASSERT(requestPtr != NULL);
+	
+	if (requestPtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	if (requestPtr->data_len != sizeof(parameters)) {
+		rc = ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS;
+		goto exit;
+	}
+	
+	// Convert BINARY Parameters to Primitive Tuple
+	esif_ccb_memcpy(&parameters, requestPtr->buf_ptr, sizeof(parameters));
+	
+	ESIF_TRACE_DEBUG("CONFIG RESET: { %s (%hd), %s, %hd }\n",
+		esif_primitive_str(parameters.id.integer.value),
+		(u16)parameters.id.integer.value,
+		esif_primitive_domain_str((u16)parameters.domain.integer.value, domain_str, sizeof(domain_str)),
+		(u16)parameters.instance.integer.value
+		);
+
+	// Look up Primitive Tuple in the DSP and verify it is a valid SET primtive
+	EsifDspPtr dspPtr = EsifUp_GetDsp(domainPtr->upPtr);
+	if (dspPtr == NULL) {
+		rc = ESIF_E_NEED_DSP;
+		goto exit;
+	}
+	tuple.id = (u16) parameters.id.integer.value;
+	tuple.domain = (u16) parameters.domain.integer.value;
+	tuple.instance = (u16) parameters.instance.integer.value;
+	EsifFpcPrimitivePtr primitivePtr = dspPtr->get_primitive(dspPtr, &tuple);
+	if (primitivePtr == NULL) {
+		rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
+		goto exit;
+	}
+	if (primitivePtr->operation != ESIF_PRIMITIVE_OP_SET) {
+		rc = ESIF_E_INVALID_REQUEST_TYPE;
+		goto exit;
+	}
+
+	// Find first CONFIG Action and Delete its Key from its DataVault
+	for (j = 0; j < (int)primitivePtr->num_actions; j++) {
+		EsifFpcActionPtr fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)j);
+		DataItemPtr paramDataVault = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)0);
+		DataItemPtr paramKeyName = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)1);
+		EsifString expandedKeyName = NULL;
+		if (fpcActionPtr->type != ESIF_ACTION_CONFIG) {
+			continue;
+		}
+		if (paramDataVault == NULL || paramKeyName == NULL || paramDataVault->data_type != ESIF_DSP_PARAMETER_TYPE_STRING || paramKeyName->data_type != ESIF_DSP_PARAMETER_TYPE_STRING) {
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			goto exit;
+		}
+		
+		// Replace "%nm%" tokens in the key name or make a copy of the key name for static keys
+		expandedKeyName = EsifUp_CreateTokenReplacedParamString(domainPtr->upPtr, primitivePtr, (StringPtr)paramKeyName->data);
+		if (expandedKeyName == NULL) {
+			expandedKeyName = esif_ccb_strdup((StringPtr)paramKeyName->data);
+			if (expandedKeyName == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+				goto exit;
+			}
+		}
+
+		// Valid SET CONFIG Primitive found with valid DV/Key Name; Delete the associated Key from the DataVault
+		EsifDataPtr data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, (StringPtr)paramDataVault->data, 0, ESIFAUTOLEN);
+		EsifDataPtr data_key    = EsifData_CreateAs(ESIF_DATA_STRING, expandedKeyName, 0, ESIFAUTOLEN);
+
+		// Do not signal an Event if Key does not exist in DataVault
+		if (DataBank_KeyExists(g_DataBankMgr, (StringPtr)paramDataVault->data, expandedKeyName) == ESIF_FALSE) {
+			rc = ESIF_OK;
+		}
+		else if (data_nspace == NULL || data_key == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+		}
+		else {
+			// Delete Existing Key from DataVault
+			rc = EsifConfigDelete(data_nspace, data_key);
+			if (rc == ESIF_OK) {
+				signal_event = ESIF_TRUE;
+			}
+
+			ESIF_TRACE_DEBUG("CONFIG RESET: config delete @%s %s [rc=%s (%d)]\n",
+				(StringPtr)data_nspace->buf_ptr,
+				(StringPtr)data_key->buf_ptr,
+				esif_rc_str(rc),
+				rc
+				);
+		}
+
+		// Signal any Event(s) associated with this SET Primitive
+		if (signal_event) {
+			EsifActConfigSignalChangeEvents(domainPtr->upPtr, tuple, NULL);
+		}
+
+		EsifData_Destroy(data_nspace);
+		EsifData_Destroy(data_key);
+		esif_ccb_free(expandedKeyName);
+		break;
+	}
+	if (j >= (int)primitivePtr->num_actions) {
+		rc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
+	}
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifSetActionDelegateAppc(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr,
+	const EsifFpcActionPtr fpcActionPtr)
+{
+	eEsifError rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+	EsifData p2 = { 0 };
+	EsifString appName = NULL;
+	UInt32 opcode = 0;
+
+	UNREFERENCED_PARAMETER(domainPtr);
+
+	ESIF_ASSERT(NULL != domainPtr);
+	ESIF_ASSERT(NULL != requestPtr);
+	ESIF_ASSERT(NULL != requestPtr);
+
+	// Action Parameter 2 is App Control Opcode ('STRT','STOP', etc)
+	// Primitive requestPtr is App Name ("dptf", ...)
+	rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 1, &p2);
+	if ((ESIF_OK != rc) || (NULL == p2.buf_ptr)) {
+		rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		goto exit;
+	}
+	if ((p2.type == ESIF_DATA_UINT32) && (p2.data_len == sizeof(UInt32))) {
+		opcode = *(UInt32 *)p2.buf_ptr;
+	}
+
+	if ((requestPtr->type == ESIF_DATA_STRING) && (NULL != requestPtr->buf_ptr)) {
+		appName = (EsifString)requestPtr->buf_ptr;
+
+		switch (opcode) {
+		case 'TRTS': // STRT: Start App
+			rc = EsifAppMgr_AppStart(appName);
+			break;
+		case 'POTS': // STOP: Stop App
+			rc = EsifAppMgr_AppStop(appName);
+			break;
+		default:
+			rc = ESIF_E_INVALID_REQUEST_TYPE;
+			break;
+		}
+	}
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifSetActionDelegateEvaluateParticipantCaps(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifDspPtr dspPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+	eEsifError iterRc = ESIF_OK;
+	EsifFpcDomainIterator dspDomainiterator = { 0 };
+	UInt8 currentDomainIndex = 0;
+	UInt16 targetDomain = 0;
+	EsifFpcDomainPtr fpcDomainPtr = NULL;
+	
+	ESIF_ASSERT(domainPtr != NULL);
+	ESIF_ASSERT(domainPtr->upPtr != NULL);
+
+	UNREFERENCED_PARAMETER(requestPtr);
+	
+	targetDomain = domainPtr->domain;
+
+	upPtr = domainPtr->upPtr; 
+	dspPtr = EsifUp_GetDsp(upPtr);
+
+	if (NULL == dspPtr) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
+
+	if ((NULL == dspPtr->init_fpc_iterator) ||
+		(NULL == dspPtr->get_next_fpc_domain)) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
+
+	iterRc = dspPtr->init_fpc_iterator(dspPtr, &dspDomainiterator);
+	if (ESIF_OK != iterRc) {
+		goto exit;
+	}
+
+	iterRc = dspPtr->get_next_fpc_domain(dspPtr, &dspDomainiterator, &fpcDomainPtr);
+	while (ESIF_OK == iterRc) {
+		if (NULL == fpcDomainPtr) {
+			iterRc = dspPtr->get_next_fpc_domain(dspPtr, &dspDomainiterator, &fpcDomainPtr);
+			currentDomainIndex++;
+			continue;
+		}
+		
+		if ((UInt16) fpcDomainPtr->descriptor.domain == targetDomain) {
+			/* Reset capabilities on the domain */
+			EsifUpDomain_EnableCaps(domainPtr, fpcDomainPtr->capability_for_domain.capability_flags, fpcDomainPtr->capability_for_domain.capability_mask);
+		}
+		
+		iterRc = dspPtr->get_next_fpc_domain(dspPtr, &dspDomainiterator, &fpcDomainPtr);
+		currentDomainIndex++;
+	}
+
+	/* Perform capability detection */
+	rc = EsifUpDomain_DspReadyInit(domainPtr);
+	if (ESIF_OK != rc) {
+		goto exit;
+	}
+
+	/*
+	 * Remove and re-add participant from app to re-establish capabilities and
+	 * start polling temperature if necessary
+	 */
+	rc = EsifAppMgr_DestroyParticipantInAllApps(upPtr);
+	if (ESIF_OK == rc) {
+		rc = EsifAppMgr_CreateParticipantInAllApps(upPtr);
+	}
+
+exit:
+	return rc;
+}
+
 static eEsifError EsifGetActionDelegateGtt0(
 	const EsifUpDomainPtr domainPtr,
 	EsifDataPtr responsePtr)
@@ -448,25 +724,53 @@ exit:
 	return rc;
 }
 
-static eEsifError EsifGetActionDelegateGddv(
+static eEsifError EsifGetActionDelegateCnfg(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	)
 {
+	extern int g_shell_enabled; // ESIF Shell Enabled Flag
+	extern Bool g_ws_restricted;// Web Server Restricted Mode Flag
 	eEsifError rc = ESIF_OK;
-	EsifPrimitiveTuple surrogateTuple = {GET_DPTF_CONFIGURATION_SUR, 0, 255};
-	EsifData surrogateData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+	EsifPrimitiveTuple dcfgTuple = { GET_CONFIG_ACCESS_CONTROL_SUR, 0, 255 };
+	EsifPrimitiveTuple gddvTuple = { GET_CONFIG_DATAVAULT_SUR, 0, 255 };
+	EsifData dcfgData = { ESIF_DATA_UINT32, NULL, ESIF_DATA_ALLOCATE, 0 };
+	EsifData gddvData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
 
 	ESIF_ASSERT(NULL != domainPtr);
 	ESIF_ASSERT(NULL != requestPtr);
 
 	UNREFERENCED_PARAMETER(responsePtr); // Not currently used by DPTF
 
-	surrogateTuple.domain = domainPtr->domain;
-	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &surrogateTuple, requestPtr, &surrogateData);
+	dcfgTuple.domain = domainPtr->domain;
+	gddvTuple.domain = domainPtr->domain;
+
+	// Execute DCFG to read Access Control List Bitmask from BIOS, if it exists
+	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &dcfgTuple, requestPtr, &dcfgData);
+	if (rc == ESIF_OK && dcfgData.buf_ptr != NULL && dcfgData.buf_len >= sizeof(UInt32)) {
+		DCfgOptions newmask = { .asU32 = *(UInt32 *)dcfgData.buf_ptr };
+		DCfg_Set(newmask);
+
+		ESIF_TRACE_INFO("DCFG Loaded: 0x%08X\n", newmask.asU32);
+
+		// Disable ESIF Shell if Access Control forbids it
+		if (DCfg_Get().opt.ShellAccessControl) {
+			g_shell_enabled = 0;
+		}
+
+		// Stop Web Server (if Started) if Restricted or Generic Access Control forbids it
+		if (EsifWebIsStarted() && 
+			((!g_ws_restricted && DCfg_Get().opt.GenericUIAccessControl)|| 
+			 (g_ws_restricted && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
+			EsifWebStop();
+		}
+	}
+
+	// Execute GDDV to read DataVault from BIOS, if it exists
+	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &gddvTuple, requestPtr, &gddvData);
 	if (rc != ESIF_OK) {
-		// Always Return OK to DPTF if no ESIF_LF or GDDV object in BIOS
+		// Always Return OK if no ESIF_LF or GDDV object in BIOS
 		if (rc == ESIF_E_NO_LOWER_FRAMEWORK || rc == ESIF_E_ACPI_OBJECT_NOT_FOUND) {
 			rc = ESIF_OK;
 		}
@@ -488,14 +792,14 @@ static eEsifError EsifGetActionDelegateGddv(
 			// This is in place to resolve a static code analysis issue.
 			// This should never happen if EsifUp_ExecutePrimitive is successful above.
 			//
-			if (NULL == surrogateData.buf_ptr) {
+			if (NULL == gddvData.buf_ptr) {
 				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
 				ESIF_TRACE_DEBUG("No data returned for BIOS datavault.\n");
 				goto exit;
 			}
 
-			skipbytes = (memcmp(surrogateData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
-			buffer = esif_ccb_malloc(surrogateData.data_len);
+			skipbytes = (memcmp(gddvData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
+			buffer = esif_ccb_malloc(gddvData.data_len);
 			if (NULL == buffer) {
 				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
 				ESIF_TRACE_DEBUG("Unable to allocate memory\n");
@@ -503,8 +807,8 @@ static eEsifError EsifGetActionDelegateGddv(
 				goto exit;
 			}
 
-			esif_ccb_memcpy(buffer, (u8*)surrogateData.buf_ptr + skipbytes, surrogateData.data_len - skipbytes);
-			IOStream_SetMemory(DB->stream, buffer, surrogateData.data_len - skipbytes);
+			esif_ccb_memcpy(buffer, (u8*)gddvData.buf_ptr + skipbytes, gddvData.data_len - skipbytes);
+			IOStream_SetMemory(DB->stream, buffer, gddvData.data_len - skipbytes);
 
 			if ((rc = DataVault_ReadVault(DB)) != ESIF_OK) {
 				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
@@ -520,7 +824,6 @@ static eEsifError EsifGetActionDelegateGddv(
 				esif_string targetdv = g_DataVaultDefault;
 
 				DB->flags |= (ESIF_SERVICE_CONFIG_READONLY);
-				ESIF_TRACE_DEBUG("DV Opened: %s\n", dv_name);
 
 				// Merge Contents into Default DataVault
 				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, dv_name, 0, ESIFAUTOLEN);
@@ -532,6 +835,13 @@ static eEsifError EsifGetActionDelegateGddv(
 				else {
 					rc = EsifConfigCopy(data_nspace, data_targetdv, data_key, options, ESIF_FALSE, NULL);
 				}
+
+				ESIF_TRACE_INFO("GDDV Loaded: %d bytes, %d keys => %s.dv [%s]\n",
+					(int)IOStream_GetSize(DB->stream),
+					DataCache_GetCount(DB->cache),
+					targetdv,
+					esif_rc_str(rc));
+
 				EsifData_Destroy(data_nspace);
 				EsifData_Destroy(data_key);
 				EsifData_Destroy(data_targetdv);
@@ -541,7 +851,8 @@ static eEsifError EsifGetActionDelegateGddv(
 		}
 	}
 exit:
-	esif_ccb_free(surrogateData.buf_ptr);
+	esif_ccb_free(dcfgData.buf_ptr);
+	esif_ccb_free(gddvData.buf_ptr);
 	return rc;
 }
 

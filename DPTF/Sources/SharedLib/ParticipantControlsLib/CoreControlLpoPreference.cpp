@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "CoreControlLpoPreference.h"
+#include "EsifDataBinaryClpoPackage.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
@@ -27,6 +28,30 @@ CoreControlLpoPreference::CoreControlLpoPreference(Bool lpoEnabled, UIntN lpoSta
     m_powerControlOffliningMode(lpoPowerControlOffliningMode),
     m_performanceControlOffliningMode(lpoPerformanceControlOffliningMode)
 {
+}
+
+CoreControlLpoPreference CoreControlLpoPreference::createFromClpo(const DptfBuffer& buffer)
+{
+    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+    data += sizeof(esif_data_variant); //Ignore revision field
+    struct EsifDataBinaryClpoPackage* currentRow = reinterpret_cast<struct EsifDataBinaryClpoPackage*>(data);
+
+    if (buffer.size() == 0)
+    {
+        throw dptf_exception("Received empty TDPL buffer.");
+    }
+
+    if ((buffer.size() - sizeof(esif_data_variant)) % sizeof(EsifDataBinaryClpoPackage))
+    {
+        throw dptf_exception("Expected binary data size mismatch. (CLPO)");
+    }
+
+    return CoreControlLpoPreference(
+        (currentRow->lpoEnable.integer.value != 0),
+        static_cast<UIntN>(currentRow->startPstateIndex.integer.value),
+        Percentage(static_cast<UIntN>(currentRow->stepSize.integer.value) / 100.0),
+        static_cast<CoreControlOffliningMode::Type>(currentRow->powerControlSetting.integer.value),
+        static_cast<CoreControlOffliningMode::Type>(currentRow->performanceControlSetting.integer.value));
 }
 
 Bool CoreControlLpoPreference::isLpoEnabled(void) const

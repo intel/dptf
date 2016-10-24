@@ -126,10 +126,15 @@ UInt64 Percentage::toCentiPercent() const
 
 std::string Percentage::toString() const
 {
+    return toStringWithPrecision(2);
+}
+
+std::string Percentage::toStringWithPrecision(UInt32 precision) const
+{
     if (isValid())
     {
         std::stringstream stream;
-        stream << std::setprecision(2) << std::fixed << (m_percentage * 100);
+        stream << std::setprecision(precision) << std::fixed << (m_percentage * 100);
         return stream.str();
     }
     else

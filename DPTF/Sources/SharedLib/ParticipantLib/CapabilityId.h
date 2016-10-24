@@ -19,37 +19,12 @@
 #pragma once
 
 #include "Dptf.h"
+#include "esif_sdk_capability_type.h"
 #include "esif_sdk_logging_data.h"
 
 // This is the list of capabilities that participant can support.
 namespace Capability
 {
-    enum Type
-    {
-        ActiveControl = 0,
-        CtdpControl = 1,
-        CoreControl = 2,
-        DisplayControl = 3,
-        DomainPriority = 4,
-        PerformanceControl = 5,
-        PowerControl = 6,
-        PowerStatus = 7,
-        TemperatureStatus = 8,
-        UtilizationStatus = 9,
-        PixelClockStatus = 10,
-        PixelClockControl = 11,
-        PlatformPowerStatus = 12,
-        TemperatureThreshold = 13,
-        RfProfileStatus = 14,
-        RfProfileControl = 15,
-        NetworkControl = 16,
-        TransmitPowerControl = 17,
-        CurrentControl = 18,
-        HdcControl = 19,
-        PSysControl = 20,
-        Max
-    };
-
-    UInt32 ToCapabilityId(Capability::Type capabilityType);
+    UInt32 ToCapabilityId(eEsifCapabilityType capabilityType);
     esif_data getEsifDataFromCapabilityData(EsifCapabilityData* capability);
 }

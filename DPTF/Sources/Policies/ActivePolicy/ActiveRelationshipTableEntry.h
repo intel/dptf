@@ -27,8 +27,8 @@ class dptf_export ActiveRelationshipTableEntry : public RelationshipTableEntryBa
 public:
 
     ActiveRelationshipTableEntry(
-        const std::string& sourceDeviceAcpiScope,
-        const std::string& targetDeviceAcpiScope,
+        const std::string& sourceDeviceScope,
+        const std::string& targetDeviceScope,
         UInt32 weight,
         const std::vector<UInt32>& acEntries);
     ~ActiveRelationshipTableEntry();

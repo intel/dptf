@@ -33,7 +33,7 @@ WIPolicySensorSpatialOrientationChanged::~WIPolicySensorSpatialOrientationChange
 
 void WIPolicySensorSpatialOrientationChanged::execute(void)
 {
-    WriteWorkItemStartingInfoMessage();
+    writeWorkItemStartingInfoMessage();
 
     PolicyManager* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
@@ -52,7 +52,7 @@ void WIPolicySensorSpatialOrientationChanged::execute(void)
         }
         catch (std::exception& ex)
         {
-            WriteWorkItemErrorMessage_Function_Policy("Policy::executePolicySensorSpatialOrientationChanged", i);
+            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySensorSpatialOrientationChanged", i);
         }
     }
 }

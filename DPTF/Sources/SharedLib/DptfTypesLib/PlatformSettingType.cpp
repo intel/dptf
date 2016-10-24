@@ -26,8 +26,6 @@ namespace PlatformSettingType
         {
             case PlatformSettingType::ConfigTdp:
                 return "Config TDP";
-            case PlatformSettingType::HardwareDutyCycle:
-                return "Hardware Duty Cycle";
             default:
                 throw dptf_exception("PlatformSettingType::Type is invalid.");
         }

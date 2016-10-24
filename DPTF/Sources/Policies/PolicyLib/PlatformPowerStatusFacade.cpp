@@ -32,6 +32,8 @@ PlatformPowerStatusFacade::PlatformPowerStatusFacade(
     m_maxBatteryPower(Power::createInvalid()),
     m_platformRestOfPower(Power::createInvalid()),
     m_adapterPowerRating(Power::createInvalid()),
+    m_platformPowerSource(),
+    m_chargerType(),
     m_acPeakPower(Power::createInvalid()),
     m_acPeakTimeWindow(TimeSpan::createInvalid()),
     m_batterySteadyState(Power::createInvalid())

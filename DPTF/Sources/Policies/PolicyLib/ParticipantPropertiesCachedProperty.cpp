@@ -21,7 +21,7 @@ using namespace std;
 
 static const Guid DummyGuid;
 
-ParticipantPropertiesCachedProperty::ParticipantPropertiesCachedProperty(PolicyServicesInterfaceContainer policyServices,
+ParticipantPropertiesCachedProperty::ParticipantPropertiesCachedProperty(const PolicyServicesInterfaceContainer &policyServices,
     UIntN participantIndex)
     : CachedProperty(), ParticipantProperty(participantIndex, policyServices),
     m_participantProperties(DummyGuid, "", "", BusType::None, PciInfo(), AcpiInfo())
