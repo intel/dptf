@@ -15,6 +15,8 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_ACTION
+
 #include "esif_uf.h"			/* Upper Framework */
 #include "esif_uf_actmgr.h"		/* Action Manager */
 #include "esif_uf_ccb_system.h"	/* System Commands */
@@ -113,7 +115,9 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 
 	/* Well known/Special Commands magic is used to avoid accidental calls*/
 	if (!strcmp("SYSTEM_SLEEP", command)) {
-		ESIF_TRACE_INFO("SYSTEM_SLEEP command received - system suspend...\n");
+		ESIF_DOTRACE_ALWAYS(ESIF_TRACEMASK_CURRENT,
+				ESIF_TRACELEVEL_INFO,
+				"SYSTEM_SLEEP command received - system suspend...\n");
 		esif_ccb_suspend();
 
 	} else if (!strcmp("SYSTEM_SHUTDOWN", command)) {
@@ -129,7 +133,9 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 			tripPointTemperature = eventDataPtr->tripPointTemperature;
 		}
 		
-		ESIF_TRACE_INFO("SYSTEM_SHUTDOWN command received - temperature = %d, trip point = %d\n", temperature, tripPointTemperature);
+		ESIF_DOTRACE_ALWAYS(ESIF_TRACEMASK_CURRENT,
+				ESIF_TRACELEVEL_INFO,
+				"SYSTEM_SHUTDOWN command received - temperature = %d, trip point = %d\n", temperature, tripPointTemperature);
 		esif_ccb_shutdown(temperature,tripPointTemperature);
 
 	} else if (!strcmp("SYSTEM_HIBERNATE", command)) {
@@ -145,11 +151,15 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 			tripPointTemperature = eventDataPtr->tripPointTemperature;
 		}
 
-		ESIF_TRACE_INFO("SYSTEM_HIBERNATE command received - system hibernate...\n");
+		ESIF_DOTRACE_ALWAYS(ESIF_TRACEMASK_CURRENT,
+				ESIF_TRACELEVEL_INFO,
+				"SYSTEM_HIBERNATE command received - system hibernate...\n");
 		esif_ccb_hibernate(temperature,tripPointTemperature);
 
 	} else if (!strcmp("SYSTEM_REBOOT", command)) {
-		ESIF_TRACE_INFO("SYSTEM_REBOOT command received - system reboot...\n");
+		ESIF_DOTRACE_ALWAYS(ESIF_TRACEMASK_CURRENT,
+				ESIF_TRACELEVEL_INFO,
+				"SYSTEM_REBOOT command received - system reboot...\n");
 		esif_ccb_reboot();
 
 	} else if (!strcmp("SYSTEM_REM_PWRSETTING", command)) {
