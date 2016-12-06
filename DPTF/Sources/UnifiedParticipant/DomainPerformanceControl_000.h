@@ -30,7 +30,7 @@ class DomainPerformanceControl_000 : public DomainPerformanceControlBase
 public:
 
     DomainPerformanceControl_000(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainPerformanceControlInterface
     virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(

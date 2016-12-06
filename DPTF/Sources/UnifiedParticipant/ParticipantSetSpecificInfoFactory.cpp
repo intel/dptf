@@ -21,7 +21,7 @@
 #include "ParticipantSetSpecificInfo_001.h"
 
 ControlBase* ParticipantSetSpecificInfoFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

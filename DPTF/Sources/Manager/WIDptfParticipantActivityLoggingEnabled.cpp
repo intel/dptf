@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDptfParticipantActivityLoggingEnabled.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfParticipantActivityLoggingEnabled::WIDptfParticipantActivityLoggingEnabled(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex, UInt32 capabilityBitMask) :

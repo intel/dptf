@@ -15,6 +15,8 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_DATAVAULT
+
 #define _DATACACHE_CLASS
 #include "esif_lib_datacache.h"
 

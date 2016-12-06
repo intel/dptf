@@ -38,7 +38,7 @@ namespace OsMobileNotificationType
         case OsMobileNotificationType::ScreenState:
             return "ScreenState";
         default:
-            return "X";
+            return Constants::InvalidString;
         }
     }
 

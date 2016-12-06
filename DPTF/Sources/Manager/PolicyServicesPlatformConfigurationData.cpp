@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesPlatformConfigurationData.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "esif_sdk_data_misc.h"
 
 PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData(
@@ -88,6 +88,15 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getThermalRelationshipTable(
 
     return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_THERMAL_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
+}
+
+void PolicyServicesPlatformConfigurationData::setThermalRelationshipTable(DptfBuffer data)
+{
+    throwIfNotWorkItemThread();
+
+    getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_THERMAL_RELATIONSHIP_TABLE,
+        esif_data_type::ESIF_DATA_BINARY, data.get(), data.size(), data.size(),
+        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersistInstance);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPassiveTable(void)
@@ -276,6 +285,15 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPidAlgorithmTable(void)
 
     return getEsifServices()->primitiveExecuteGet(
         esif_primitive_type::GET_PID_ALGORITHM_TABLE, ESIF_DATA_BINARY);
+}
+
+void PolicyServicesPlatformConfigurationData::setPidAlgorithmTable(DptfBuffer data)
+{
+    throwIfNotWorkItemThread();
+
+    getEsifServices()->primitiveExecuteSet(esif_primitive_type::SET_PID_ALGORITHM_TABLE,
+        esif_data_type::ESIF_DATA_BINARY, data.get(), data.size(), data.size(),
+        Constants::Esif::NoParticipant, Constants::Esif::NoDomain, Constants::Esif::NoPersistInstance);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPowerBossMathTable(void)

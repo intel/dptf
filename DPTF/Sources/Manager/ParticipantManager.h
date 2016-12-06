@@ -20,21 +20,21 @@
 
 #include "ParticipantManagerInterface.h"
 
-class ParticipantManager : public ParticipantManagerInterface
+class dptf_export ParticipantManager : public ParticipantManagerInterface
 {
 public:
 
     ParticipantManager(DptfManagerInterface* dptfManager);
     ~ParticipantManager(void);
 
-    virtual void allocateParticipant(UIntN* newParticipantIndex) override;
+    virtual UIntN allocateNextParticipantIndex(void) override;
     virtual void createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
         Bool participantEnabled) override;
 
     virtual void destroyAllParticipants(void) override;
     virtual void destroyParticipant(UIntN participantIndex) override;
 
-    virtual UIntN getParticipantListCount(void) const override;
+    virtual std::set<UIntN> getParticipantIndexes(void) const override;
     virtual Participant* getParticipantPtr(UIntN participantIndex) const override;
 
     // This will clear the cached data stored within all participants *within* the framework.  It will not ask the
@@ -50,5 +50,5 @@ private:
     ParticipantManager& operator=(const ParticipantManager& rhs);
 
     DptfManagerInterface* m_dptfManager;
-    std::vector<Participant*> m_participant;
+    std::map<UIntN, std::shared_ptr<Participant>> m_participants;
 };

@@ -40,9 +40,6 @@ public:
 
 private:
 
-    // hide the copy constructor.
-    DisplayControlArbitrator(const DisplayControlArbitrator& rhs);
-
     UIntN m_arbitratedDisplayControlIndex;
     std::map<UIntN, UIntN> m_requestedDisplayControlIndex;
 };

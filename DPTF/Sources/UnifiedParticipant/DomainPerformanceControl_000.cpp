@@ -19,7 +19,7 @@
 #include "DomainPerformanceControl_000.h"
 
 DomainPerformanceControl_000::DomainPerformanceControl_000(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

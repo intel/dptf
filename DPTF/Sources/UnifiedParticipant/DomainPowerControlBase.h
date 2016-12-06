@@ -30,7 +30,7 @@ class DomainPowerControlBase : public ControlBase, public DomainPowerControlInte
 
 public:
     DomainPowerControlBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPowerControlBase();
 
 protected:

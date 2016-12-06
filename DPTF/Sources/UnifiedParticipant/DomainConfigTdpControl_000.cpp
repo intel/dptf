@@ -19,7 +19,7 @@
 #include "DomainConfigTdpControl_000.h"
 
 DomainConfigTdpControl_000::DomainConfigTdpControl_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainConfigTdpControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

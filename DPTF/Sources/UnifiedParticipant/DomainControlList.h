@@ -69,7 +69,7 @@ public:
     DomainControlList(UIntN participantIndex, UIntN domainIndex,
         DomainFunctionalityVersions domainFunctionalityVersions,
         const ControlFactoryList& controlFactoryList,
-        ParticipantServicesInterface* participantServices);
+        std::shared_ptr<ParticipantServicesInterface> participantServices);
     ~DomainControlList(void);
 
     std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
@@ -102,7 +102,7 @@ private:
     const UIntN m_domainIndex;
     DomainFunctionalityVersions m_domainFunctionalityVersions;
     const ControlFactoryList m_controlFactoryList;
-    ParticipantServicesInterface* m_participantServices;
+    std::shared_ptr<ParticipantServicesInterface> m_participantServices;
     std::map<ControlFactoryType::Type, std::shared_ptr<ControlBase>> m_controlList;
 
     void makeAllControls();

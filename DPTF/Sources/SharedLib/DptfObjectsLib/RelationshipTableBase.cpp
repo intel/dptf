@@ -136,3 +136,29 @@ std::vector<UIntN> RelationshipTableBase::findTableRowsWithParticipantIndex(UInt
     }
     return rows;
 }
+
+std::set<UIntN> RelationshipTableBase::getAllTargetIndexes() const
+{
+    std::set<UIntN> targetIndexes;
+    for (auto entry = m_entries.begin(); entry < m_entries.end(); ++entry)
+    {
+        if ((*entry)->targetDeviceIndexValid())
+        {
+            targetIndexes.insert((*entry)->getTargetDeviceIndex());
+        }
+    }
+    return targetIndexes;
+}
+
+std::set<UIntN> RelationshipTableBase::getAllSourceIndexes() const
+{
+    std::set<UIntN> sourceIndexes;
+    for (auto entry = m_entries.begin(); entry < m_entries.end(); ++entry)
+    {
+        if ((*entry)->sourceDeviceIndexValid())
+        {
+            sourceIndexes.insert((*entry)->getSourceDeviceIndex());
+        }
+    }
+    return sourceIndexes;
+}

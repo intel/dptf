@@ -21,7 +21,7 @@
 #include "DomainPlatformPowerStatus_001.h"
 
 ControlBase* DomainPlatformPowerStatusFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

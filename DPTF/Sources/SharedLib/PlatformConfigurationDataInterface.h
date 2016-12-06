@@ -48,6 +48,7 @@ public:
     virtual DptfBuffer getActiveRelationshipTable(void) = 0;
     virtual void setActiveRelationshipTable(DptfBuffer data) = 0;
     virtual DptfBuffer getThermalRelationshipTable(void) = 0;
+    virtual void setThermalRelationshipTable(DptfBuffer data) = 0;
     virtual DptfBuffer getPassiveTable(void) = 0;
     virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) = 0;
     virtual DptfBuffer getAdaptivePerformanceParticipantConditionTable(void) = 0;
@@ -62,5 +63,6 @@ public:
     virtual DptfBuffer getPowerBossMathTable(void) = 0;
     virtual DptfBuffer getEmergencyCallModeTable(void) = 0;
     virtual DptfBuffer getPidAlgorithmTable(void) = 0;
+    virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
     virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;
 };

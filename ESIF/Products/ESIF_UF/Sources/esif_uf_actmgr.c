@@ -101,6 +101,18 @@ static void EsifActMgr_LLEntryDestroyCallback(
 	void *dataPtr
 	);
 
+static Bool EsifActMgr_IsActionUsedByParticipants(
+	enum esif_action_type type
+);
+
+static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
+	void *contextPtr,
+	UInt8 participantId,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	);
+
 /*
  * FUNCTION DEFINITIONS
  */
@@ -146,8 +158,8 @@ exit:
 /*
  * Used to iterate through the static and currently loaded actions.
  * First call EsifActMgr_InitIterator to initialize the iterator.
- * Next, call EsifActMgr_GetNexAction using the iterator.  Repeat until
- * EsifActMgr_GetNexAction fails. (The call will release the reference of the
+ * Next, call EsifActMgr_GetNextAction using the iterator.  Repeat until
+ * EsifActMgr_GetNextAction fails. (The call will release the reference of the
  * participant from the previous call.)  If you stop iteration part way through
  * all actions, the caller is responsible for releasing the reference on
  * the last action returned.  Iteration is complete when ESIF_E_ITERATOR_DONE
@@ -172,7 +184,7 @@ exit:
 
 
 /* See EsifActMgr_InitIterator for usage */
-eEsifError EsifActMgr_GetNexAction(
+eEsifError EsifActMgr_GetNextAction(
 	ActMgrIteratorPtr iteratorPtr,
 	EsifActPtr *actPtr
 	)
@@ -346,7 +358,7 @@ eEsifError EsifActMgr_UnregisterAction(
 
 	nodePtr = EsifActMgr_GetNodeFromEntry_Locked(entryPtr);
 	esif_link_list_node_remove(g_actMgr.actions, nodePtr);
-	g_actMgr.numActions++;
+	g_actMgr.numActions--;
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
 	EsifActMgr_DestroyEntry(entryPtr);
@@ -391,6 +403,7 @@ static eEsifError EsifActMgr_LoadDelayLoadAction(
 	struct esif_link_list_node *nextNodePtr = NULL;
 	EsifActMgrEntryPtr entryPtr = NULL;
 	enum esif_action_type possType = 0;
+	EsifString libName = NULL;
 
 	UNREFERENCED_PARAMETER(type);
 
@@ -430,22 +443,21 @@ static eEsifError EsifActMgr_LoadDelayLoadAction(
 		}
 
 		/*
-		 * If the library supports the action, load the action and remove the
-		 * entry from the possible action list
+		 * If the library supports the action, load the action
 		 */
 		if (entryPtr->type == type) {
-			esif_link_list_node_remove(g_actMgr.possibleActions, curNodePtr);
+			libName = esif_ccb_strdup(entryPtr->libName);
 			esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
-			rc = EsifActMgr_StartUpe(entryPtr->libName);
+			rc = EsifActMgr_StartUpe(libName);
 
-			EsifActMgr_DestroyEntry(entryPtr);
 			goto exit;
 		}
 	}
 lockExit:
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 exit:
+	esif_ccb_free(libName);
 	return rc;
 }
 
@@ -586,6 +598,7 @@ eEsifError EsifActMgr_StartUpe(
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
+
 	entryPtr->libName = (esif_string)esif_ccb_strdup(upeName);
 
 	rc = EsifActMgr_LoadAction(entryPtr, &getIfacePtr);
@@ -650,6 +663,84 @@ exit:
 		EsifActMgr_DestroyEntry(entryPtr);
 	}
 	return rc;
+}
+
+
+static eEsifError EsifActMgr_StopUnusedUpes()
+{
+	eEsifError rc = ESIF_OK;
+	EsifActMgrEntryPtr curEntryPtr = NULL;
+	struct esif_link_list_node *curNodePtr = NULL;
+	enum esif_action_type type = 0;
+	EsifData eventData = { ESIF_DATA_UINT32, &type, sizeof(type), sizeof(type) };
+
+	if (g_actMgr.actions == NULL) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	do {
+		esif_ccb_write_lock(&g_actMgr.mgrLock);
+		curNodePtr = g_actMgr.actions->head_ptr;
+
+		while (curNodePtr != NULL) {
+			curEntryPtr = (EsifActMgrEntryPtr)curNodePtr->data_ptr;
+			//
+			// If this is a UPE and not used by the current participants, unload it and remark it for dynamic loading
+			//
+			if (curEntryPtr && EsifAct_IsPlugin(curEntryPtr->actPtr) && !EsifActMgr_IsActionUsedByParticipants(curEntryPtr->type)) {
+				ESIF_TRACE_DEBUG("Stopping Action: %s\n", curEntryPtr->libName);
+
+				esif_link_list_node_remove(g_actMgr.actions, curNodePtr);
+				g_actMgr.numActions--;
+				break;
+			}
+			curNodePtr = curNodePtr->next_ptr;
+		}
+
+		esif_ccb_write_unlock(&g_actMgr.mgrLock);
+
+		if (curNodePtr != NULL) {
+			type = curEntryPtr->type;
+			EsifActMgr_RegisterDelayedLoadAction(curEntryPtr->type);
+			EsifActMgr_DestroyEntry(curEntryPtr);
+			EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_UNLOADED, &eventData);
+		}
+	} while (curNodePtr != NULL);
+exit:
+	return rc;
+}
+
+
+// NOTE:  This function assumes the action IS used...
+static Bool EsifActMgr_IsActionUsedByParticipants(
+	enum esif_action_type type
+)
+{
+	Bool isUsed = ESIF_TRUE;
+	eEsifError rc = ESIF_OK;
+	UfPmIterator upIter = { 0 };
+	EsifUpPtr upPtr = NULL;
+
+	rc = EsifUpPm_InitIterator(&upIter);
+
+	//
+	// Determine if ANY participant has this action type in their DSP
+	//
+	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	while (ESIF_OK == rc) {
+		isUsed = EsifUp_IsActionInDsp(upPtr, type);
+		if (isUsed) {
+			break;
+		}
+		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	}
+	if (ESIF_E_ITERATION_DONE == rc) {
+		isUsed = ESIF_FALSE;
+	}
+
+	EsifUp_PutRef(upPtr);
+	return isUsed;
 }
 
 
@@ -802,7 +893,10 @@ static eEsifError EsifActMgr_AddEntry(
 
 	esif_ccb_write_lock(&g_actMgr.mgrLock);
 
-	rc =  esif_link_list_add_at_back(g_actMgr.actions, (void *)entryPtr);
+	//
+	// We add at front so that UPE's to minimize the O^2 loop in EsifActMgr_StopUnusedUpes
+	//
+	rc = esif_link_list_add_at_front(g_actMgr.actions, (void *)entryPtr);
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
@@ -931,6 +1025,12 @@ eEsifError EsifActMgrInit()
 		goto exit;
 	}
 
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		NULL);
+
 	/* Action manager must be initialized before this call */
 	EsifActMgr_InitActions();
 exit:
@@ -942,6 +1042,12 @@ exit:
 void EsifActMgrExit()
 {
 	ESIF_TRACE_ENTRY_INFO();
+
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE,
+		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_DOMAIN_D0,
+		EsifActMgr_EventCallback,
+		NULL);
 
 	/* Call before destroying action manager */
 	EsifActMgr_UninitActions();
@@ -959,6 +1065,38 @@ void EsifActMgrExit()
 	esif_ccb_lock_uninit(&g_actMgr.mgrLock);
 
 	ESIF_TRACE_EXIT_INFO();
+}
+
+
+static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
+	void *contextPtr,
+	UInt8 participantId,
+	UInt16 domainId,
+	EsifFpcEventPtr fpcEventPtr,
+	EsifDataPtr eventDataPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(participantId);
+	UNREFERENCED_PARAMETER(domainId);
+	UNREFERENCED_PARAMETER(eventDataPtr);
+
+	if (NULL == fpcEventPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	switch (fpcEventPtr->esif_event) {
+	case ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE:
+		EsifActMgr_StopUnusedUpes();
+		break;
+	default:
+		break;
+	}
+exit:
+	return rc;
 }
 
 

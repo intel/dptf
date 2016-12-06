@@ -148,7 +148,7 @@ string PassivePolicy::getStatusAsXml(void) const
     status->addChild(m_trt->getXml());
     PassiveControlStatus controlStatus(m_trt, getParticipantTracker());
     status->addChild(controlStatus.getXml());
-    status->addChild(getParticipantTracker()->getXmlForTripPointStatistics());
+    status->addChild(getXmlForTripPointStatistics(m_trt->getAllTargetIndexes()));
     status->addChild(m_callbackScheduler->getXml());
     status->addChild(XmlNode::createDataElement("utilization_threshold", m_utilizationBiasThreshold.getCurrentUtilization().toString()));
     root->addChild(status);
@@ -433,7 +433,7 @@ TargetActionBase* PassivePolicy::determineAction(UIntN target)
     {
         auto currentTemperature = participant->getFirstDomainTemperature();
         auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
-        auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+        auto psv = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV);
         if (currentTemperature > psv)
         {
             return new TargetLimitAction(
@@ -472,16 +472,16 @@ void PassivePolicy::setParticipantTemperatureThresholdNotification(
     Temperature currentTemperature)
 {
     auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
-    Temperature psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+    Temperature psv = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV);
     Temperature lowerBoundTemperature(Temperature::createInvalid());
     Temperature upperBoundTemperature = psv;
     if (currentTemperature >= psv)
     {
-        if (passiveTripPoints.hasItem(ParticipantSpecificInfoKey::NTT))
+        if (passiveTripPoints.hasKey(ParticipantSpecificInfoKey::NTT))
         {
             // lower bound is psv + some multiple of ntt
             // upper bound is lower bound + ntt
-            auto ntt = passiveTripPoints.getItem(ParticipantSpecificInfoKey::NTT);
+            auto ntt = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::NTT);
             lowerBoundTemperature = psv;
             while ((lowerBoundTemperature + ntt) <= currentTemperature)
             {
@@ -501,10 +501,10 @@ void PassivePolicy::setParticipantTemperatureThresholdNotification(
 void PassivePolicy::notifyPlatformOfDeviceTemperature(ParticipantProxyInterface* participant, Temperature currentTemperature)
 {
     auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
-    if (passiveTripPoints.hasItem(ParticipantSpecificInfoKey::NTT))
+    if (passiveTripPoints.hasKey(ParticipantSpecificInfoKey::NTT))
     {
-        auto ntt = passiveTripPoints.getItem(ParticipantSpecificInfoKey::NTT);
-        auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+        auto ntt = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::NTT);
+        auto psv = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV);
         if (currentTemperature >= (psv + ntt))
         {
             participant->notifyPlatformOfDeviceTemperature(currentTemperature);

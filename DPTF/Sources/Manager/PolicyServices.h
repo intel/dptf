@@ -20,11 +20,11 @@
 
 #include "Dptf.h"
 #include "DptfManagerInterface.h"
-class PolicyManager;
+class PolicyManagerInterface;
 class Policy;
 class ParticipantManagerInterface;
 class WorkItemQueueManagerInterface;
-class EsifServices;
+class EsifServicesInterface;
 
 class PolicyServices
 {
@@ -34,20 +34,20 @@ public:
 
     DptfManagerInterface* getDptfManager(void) const;
     UIntN getPolicyIndex(void) const;
-    PolicyManager* getPolicyManager(void) const;
+    PolicyManagerInterface* getPolicyManager(void) const;
     Policy* getPolicy(void) const;
     ParticipantManagerInterface* getParticipantManager(void) const;
     WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const;
-    EsifServices* getEsifServices(void) const;
+    EsifServicesInterface* getEsifServices(void) const;
     void throwIfNotWorkItemThread(void) const;
 
 private:
 
     DptfManagerInterface* m_dptfManager;
     UIntN m_policyIndex;
-    PolicyManager* m_policyManager;
+    PolicyManagerInterface* m_policyManager;
     Policy* m_policy;
     ParticipantManagerInterface* m_participantManager;
     WorkItemQueueManagerInterface* m_workItemQueueManager;
-    EsifServices* m_esifServices;
+    EsifServicesInterface* m_esifServices;
 };

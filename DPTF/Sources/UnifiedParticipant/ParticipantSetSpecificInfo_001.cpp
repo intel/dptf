@@ -19,7 +19,7 @@
 #include "ParticipantSetSpecificInfo_001.h"
 
 ParticipantSetSpecificInfo_001::ParticipantSetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     ParticipantSetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
@@ -73,6 +73,10 @@ void ParticipantSetSpecificInfo_001::setParticipantSpecificInfo(UIntN participan
         break;
     case ParticipantSpecificInfoKey::AC9:
         instance = 9;
+        break;
+    case ParticipantSpecificInfoKey::PSV:
+        instance = 54;
+        primitiveType = esif_primitive_type::SET_TRIP_POINT_PASSIVE;
         break;
     default:
         throw dptf_exception("Received unexpected Specific Info Key: " + StlOverride::to_string(tripPoint));

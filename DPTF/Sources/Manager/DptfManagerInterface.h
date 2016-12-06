@@ -26,9 +26,9 @@
 #include "EventCache.h"
 #include "UserPreferredCache.h"
 
-class EsifServices;
+class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
-class PolicyManager;
+class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DptfStatusInterface;
 
@@ -41,11 +41,11 @@ public:
     virtual Bool isDptfManagerCreated(void) const = 0;
     virtual Bool isDptfShuttingDown(void) const = 0;
     virtual Bool isWorkItemQueueManagerCreated(void) const = 0;
-    virtual EsifServices* getEsifServices(void) const = 0;
+    virtual EsifServicesInterface* getEsifServices(void) const = 0;
     virtual std::shared_ptr<EventCache> getEventCache(void) const = 0;
     virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const = 0;
     virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const = 0;
-    virtual PolicyManager* getPolicyManager(void) const = 0;
+    virtual PolicyManagerInterface* getPolicyManager(void) const = 0;
     virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
     virtual DptfStatusInterface* getDptfStatus(void) = 0;
     virtual IndexContainerInterface* getIndexContainer(void) const = 0;

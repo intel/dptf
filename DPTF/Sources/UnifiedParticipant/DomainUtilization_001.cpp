@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainUtilization_001::DomainUtilization_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainUtilizationBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }

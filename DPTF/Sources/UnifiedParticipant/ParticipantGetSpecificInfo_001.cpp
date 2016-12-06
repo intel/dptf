@@ -28,7 +28,7 @@ public:
 };
 
 ParticipantGetSpecificInfo_001::ParticipantGetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
     clearCachedData();
@@ -178,7 +178,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
     }
     else
     {
-        root->addChild(XmlNode::createDataElement("crt", StatusFormat::friendlyValue(Constants::Invalid)));
+        root->addChild(XmlNode::createDataElement("crt", Constants::InvalidString));
     }
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::Hot)) != tripPoints.end())
@@ -187,7 +187,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
     }
     else
     {
-        root->addChild(XmlNode::createDataElement("hot", StatusFormat::friendlyValue(Constants::Invalid)));
+        root->addChild(XmlNode::createDataElement("hot", Constants::InvalidString));
     }
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::Warm)) != tripPoints.end())
@@ -196,7 +196,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
     }
     else
     {
-        root->addChild(XmlNode::createDataElement("wrm", StatusFormat::friendlyValue(Constants::Invalid)));
+        root->addChild(XmlNode::createDataElement("wrm", Constants::InvalidString));
     }
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::PSV)) != tripPoints.end())
@@ -205,7 +205,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
     }
     else
     {
-        root->addChild(XmlNode::createDataElement("psv", StatusFormat::friendlyValue(Constants::Invalid)));
+        root->addChild(XmlNode::createDataElement("psv", Constants::InvalidString));
     }
 
     if ((tripPoint = tripPoints.find(ParticipantSpecificInfoKey::NTT)) != tripPoints.end())
@@ -214,7 +214,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
     }
     else
     {
-        root->addChild(XmlNode::createDataElement("ntt", StatusFormat::friendlyValue(Constants::Invalid)));
+        root->addChild(XmlNode::createDataElement("ntt", Constants::InvalidString));
     }
 
     std::vector<std::stringstream> tripAc;
@@ -230,7 +230,7 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
         }
         else
         {
-            root->addChild(XmlNode::createDataElement(acx.str(), StatusFormat::friendlyValue(Constants::Invalid)));
+            root->addChild(XmlNode::createDataElement(acx.str(), Constants::InvalidString));
         }
     }
 

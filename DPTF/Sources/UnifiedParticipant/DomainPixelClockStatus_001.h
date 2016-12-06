@@ -26,7 +26,7 @@ class DomainPixelClockStatus_001 : public DomainPixelClockStatusBase
 public:
 
     DomainPixelClockStatus_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPixelClockStatus_001(void);
 
     // DomainPixelClockStatusInterface

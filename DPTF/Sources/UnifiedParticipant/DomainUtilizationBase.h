@@ -28,6 +28,6 @@ class DomainUtilizationBase : public ControlBase, public DomainUtilizationInterf
 public:
 
     DomainUtilizationBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainUtilizationBase();
 };

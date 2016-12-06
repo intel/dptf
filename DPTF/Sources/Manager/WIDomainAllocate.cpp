@@ -18,7 +18,7 @@
 
 #include "WIDomainAllocate.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDomainAllocate::WIDomainAllocate(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN* newDomainIndex) :
     ParticipantWorkItem(dptfManager, FrameworkEvent::Type::DomainAllocate, participantIndex),
@@ -36,11 +36,11 @@ void WIDomainAllocate::execute(void)
 
     try
     {
-        getParticipantPtr()->allocateDomain(m_newDomainIndex);
+        *m_newDomainIndex = getParticipantPtr()->allocateNextDomainIndex();
     }
     catch (std::exception& ex)
     {
         *m_newDomainIndex = Constants::Esif::NoDomain;
-        writeParticipantWorkItemErrorMessage(ex, "Participant::allocateDomain");
+        writeParticipantWorkItemErrorMessage(ex, "Participant::allocateNextDomainIndex");
     }
 }

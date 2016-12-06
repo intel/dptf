@@ -19,7 +19,7 @@
 #include "DomainPowerControlBase.h"
 
 DomainPowerControlBase::DomainPowerControlBase(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : ControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_pl1Enabled(false),
     m_pl2Enabled(false),

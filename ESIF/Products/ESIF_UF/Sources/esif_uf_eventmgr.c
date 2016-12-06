@@ -148,7 +148,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
-	
+
 exit:
 	if (rc != ESIF_OK) {
 		esif_ccb_free(queueEventPtr);
@@ -283,6 +283,7 @@ static eEsifError EsifEventMgr_ProcessEvent(
 			 * if the reference count is 0
 			 */
 			esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+
 			nextNodePtr = nodePtr->next_ptr;
 
 			refCount = atomic_dec(&entryPtr->refCount);
@@ -876,10 +877,7 @@ void EsifEventMgr_Exit(void)
 
 	/* Destroy the event thread */
 
-	/* Release and destroy the event thread, then destroy the queue */
-	g_EsifEventMgr.eventQueueExitFlag = ESIF_TRUE;
-	esif_queue_signal_event(g_EsifEventMgr.eventQueuePtr);
-	esif_ccb_thread_join(&g_EsifEventMgr.eventQueueThread);
+	/* Event thread should already be destroyed in the disable func. Destroy the queue */
 	esif_queue_destroy(g_EsifEventMgr.eventQueuePtr, EsifEventMgr_QueueDestroyCallback);
 	g_EsifEventMgr.eventQueuePtr = NULL;
 
@@ -891,6 +889,18 @@ void EsifEventMgr_Exit(void)
 	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 
 	esif_ccb_lock_uninit(&g_EsifEventMgr.listLock);
+
+	ESIF_TRACE_EXIT_INFO();
+}
+
+void EsifEventMgr_Disable(void)
+{
+	ESIF_TRACE_ENTRY_INFO();
+
+	/* Release and destroy the event thread */
+	g_EsifEventMgr.eventQueueExitFlag = ESIF_TRUE;
+	esif_queue_signal_event(g_EsifEventMgr.eventQueuePtr);
+	esif_ccb_thread_join(&g_EsifEventMgr.eventQueueThread);
 
 	ESIF_TRACE_EXIT_INFO();
 }

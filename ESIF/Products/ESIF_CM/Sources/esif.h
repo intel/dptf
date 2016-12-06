@@ -76,9 +76,6 @@
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 
-/* Build option to enable coalescable timers in Windows */
-#define ESIF_FEAT_OPT_USE_COALESCABLE_TIMERS
-
 /* Build option to enable thermal interrupt support for Windows*/
 #define ESIF_FEAT_OPT_THERMAL_INTERRUPTS_ENABLED
 

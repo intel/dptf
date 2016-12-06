@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDptfConnectedStandbyExit.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfConnectedStandbyExit::WIDptfConnectedStandbyExit(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::DptfConnectedStandbyExit)
@@ -36,14 +36,14 @@ void WIDptfConnectedStandbyExit::execute(void)
 
     // let all participants know that we are exiting connected standby
 
-	auto participantManager = getParticipantManager();
-    UIntN participantListCount = participantManager->getParticipantListCount();
+    auto participantManager = getParticipantManager();
+    auto participantIndexList = participantManager->getParticipantIndexes();
 
-    for (UIntN i = 0; i < participantListCount; i++)
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* participant = participantManager->getParticipantPtr(i);
+            Participant* participant = participantManager->getParticipantPtr(*i);
             participant->connectedStandbyExit();
         }
         catch (participant_index_invalid ex)
@@ -52,13 +52,13 @@ void WIDptfConnectedStandbyExit::execute(void)
         }
         catch (std::exception& ex)
         {
-            writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyExit", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyExit", *i);
         }
     }
 
     // let all policies know that we are exiting connected standby
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

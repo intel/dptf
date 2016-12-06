@@ -69,7 +69,7 @@ public:
     virtual void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound) override;
     virtual TemperatureThresholds getTemperatureThresholds() override;
     virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) override;
-    std::shared_ptr<XmlNode> getXmlForTripPointStatistics();
+    virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
     virtual void refreshHysteresis() override;
     virtual void refreshVirtualSensorTables() override;
 

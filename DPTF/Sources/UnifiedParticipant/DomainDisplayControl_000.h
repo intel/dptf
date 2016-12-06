@@ -31,7 +31,7 @@ class DomainDisplayControl_000 : public DomainDisplayControlBase
 public:
 
     DomainDisplayControl_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
     virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;

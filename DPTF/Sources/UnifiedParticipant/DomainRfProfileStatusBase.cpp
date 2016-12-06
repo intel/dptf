@@ -19,7 +19,7 @@
 #include "DomainRfProfileStatusBase.h"
 
 DomainRfProfileStatusBase::DomainRfProfileStatusBase(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : ControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
 

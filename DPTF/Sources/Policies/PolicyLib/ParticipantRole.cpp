@@ -28,6 +28,6 @@ std::string ParticipantRole::ToString(ParticipantRole::Type role)
         return "Source";
     case ParticipantRole::NA:
     default:
-        return "X";
+        return Constants::InvalidString;
     }
 }

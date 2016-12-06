@@ -27,12 +27,16 @@ Bool compareTripPointsOnKey(
     pair<ParticipantSpecificInfoKey::Type, Temperature> left,
     pair<ParticipantSpecificInfoKey::Type, Temperature> right);
 
+SpecificInfo::SpecificInfo()
+{
+
+}
 
 SpecificInfo::SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, Temperature> specificInfo) :
-    m_specificInfo(specificInfo),
-    m_sortedTripPointsByValueValid(false),
-    m_sortedTripPointsByKeyValid(false)
+    m_specificInfo(specificInfo)
 {
+    sortInfoByKey();
+    sortInfoByValue();
 }
 
 SpecificInfo::~SpecificInfo(void)
@@ -41,41 +45,21 @@ SpecificInfo::~SpecificInfo(void)
 
 std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByValue()
 {
-    if (m_sortedTripPointsByValueValid == false)
-    {
-        m_sortedTripPointsByValue.clear();
-        m_sortedTripPointsByValue.insert(
-            m_sortedTripPointsByValue.end(),
-            m_specificInfo.begin(),
-            m_specificInfo.end());
-        sort(m_sortedTripPointsByValue.begin(), m_sortedTripPointsByValue.end(), compareTripPointsOnTemperature);
-        m_sortedTripPointsByValueValid = true;
-    }
     return m_sortedTripPointsByValue;
 }
 
 std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificInfo::getSortedByKey()
 {
-    if (m_sortedTripPointsByKeyValid == false)
-    {
-        m_sortedTripPointsByKey.clear();
-        m_sortedTripPointsByKey.insert(
-            m_sortedTripPointsByKey.end(),
-            m_specificInfo.begin(),
-            m_specificInfo.end());
-        sort(m_sortedTripPointsByKey.begin(), m_sortedTripPointsByKey.end(), compareTripPointsOnKey);
-        m_sortedTripPointsByKeyValid = true;
-    }
     return m_sortedTripPointsByKey;
 }
 
-Bool SpecificInfo::hasItem(ParticipantSpecificInfoKey::Type key)
+Bool SpecificInfo::hasKey(ParticipantSpecificInfoKey::Type key)
 {
     return (m_specificInfo.find(key) != m_specificInfo.end() &&
         m_specificInfo.find(key)->second != Temperature(Constants::MaxUInt32));
 }
 
-Temperature SpecificInfo::getItem(ParticipantSpecificInfoKey::Type key)
+Temperature SpecificInfo::getTemperature(ParticipantSpecificInfoKey::Type key)
 {
     auto item = m_specificInfo.find(key);
     if (item != m_specificInfo.end())
@@ -93,24 +77,7 @@ Temperature SpecificInfo::getItem(ParticipantSpecificInfoKey::Type key)
 
 Bool SpecificInfo::operator==(SpecificInfo& rhs)
 {
-    auto rhsTrips = rhs.getSortedByKey();
-    auto trips = this->getSortedByKey();
-    if (trips.size() != rhsTrips.size())
-    {
-        return false;
-    }
-    else
-    {
-        for (UIntN index = 0; index < rhsTrips.size(); index++)
-        {
-            if (trips[index].first != rhsTrips[index].first || trips[index].second != rhsTrips[index].second)
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
+    return rhs.m_specificInfo == this->m_specificInfo;
 }
 
 Bool SpecificInfo::operator!=(SpecificInfo& rhs)
@@ -129,6 +96,24 @@ std::shared_ptr<XmlNode> SpecificInfo::getXml() const
         wrapper->addChild(node);
     }
     return wrapper;
+}
+
+void SpecificInfo::sortInfoByValue()
+{
+    m_sortedTripPointsByValue.insert(
+        m_sortedTripPointsByValue.end(),
+        m_specificInfo.begin(),
+        m_specificInfo.end());
+    sort(m_sortedTripPointsByValue.begin(), m_sortedTripPointsByValue.end(), compareTripPointsOnTemperature);
+}
+
+void SpecificInfo::sortInfoByKey()
+{
+    m_sortedTripPointsByKey.insert(
+        m_sortedTripPointsByKey.end(),
+        m_specificInfo.begin(),
+        m_specificInfo.end());
+    sort(m_sortedTripPointsByKey.begin(), m_sortedTripPointsByKey.end(), compareTripPointsOnKey);
 }
 
 Bool compareTripPointsOnTemperature(

@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_DATAVAULT
 
 #include "esif_uf.h"		/* Upper Framework */
 

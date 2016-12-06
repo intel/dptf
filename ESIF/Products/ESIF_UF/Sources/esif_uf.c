@@ -784,8 +784,8 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{EsifActMgrInit,					EsifActMgrExit,						ESIF_INIT_FLAG_NONE},
 	{EsifUpPm_Init,						EsifUpPm_Exit,						ESIF_INIT_FLAG_NONE},
 	{esif_uf_os_init,					esif_uf_os_exit,					ESIF_INIT_FLAG_NONE},
-	{EsifAppMgrInit,					EsifAppMgrExit,						ESIF_INIT_FLAG_NONE},
 	{EsifCnjMgrInit,					EsifCnjMgrExit,						ESIF_INIT_FLAG_NONE},
+	{EsifAppMgrInit,					EsifAppMgrExit,						ESIF_INIT_FLAG_NONE},
 	{esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE},
 	// Next NULL init items may or may not be running and are only started once ESIF is fully initialized
 	{NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE},
@@ -795,6 +795,8 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_NONE},
 	{esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER},
 	{esif_uf_shell_banner_init,			NULL,								ESIF_INIT_FLAG_NONE},
+	// If shutting down, event processing is disabled
+	{NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_NONE},
 };
 
 //

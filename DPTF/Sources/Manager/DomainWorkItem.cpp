@@ -18,7 +18,7 @@
 
 #include "DomainWorkItem.h"
 #include "Participant.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 DomainWorkItem::DomainWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType,
     UIntN participantIndex, UIntN domainIndex) :

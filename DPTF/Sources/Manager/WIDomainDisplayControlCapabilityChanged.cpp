@@ -18,8 +18,8 @@
 
 #include "WIDomainDisplayControlCapabilityChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainDisplayControlCapabilityChanged::WIDomainDisplayControlCapabilityChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
@@ -44,7 +44,7 @@ void WIDomainDisplayControlCapabilityChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainDisplayControlCapabilityChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

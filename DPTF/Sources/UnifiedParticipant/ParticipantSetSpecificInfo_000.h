@@ -31,7 +31,7 @@ class ParticipantSetSpecificInfo_000 : public ParticipantSetSpecificInfoBase
 public:
 
     ParticipantSetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // ParticipantSetSpecificInfoInterface
     virtual void setParticipantDeviceTemperatureIndication(UIntN participantIndex,

@@ -111,8 +111,8 @@ void PassiveDomainControlStatus::addPstateStatus(std::shared_ptr<DomainProxyInte
         m_controlStatus.push_back(
             ControlStatus(
                 "P-States",
-                upperLimitIndex,
                 lowerLimitIndex,
+                upperLimitIndex,
                 (currentIndex != Constants::Invalid) ? std::min(lowerLimitIndex, currentIndex) : Constants::Invalid));
     }
     else
@@ -149,8 +149,8 @@ void PassiveDomainControlStatus::addTstateStatus(std::shared_ptr<DomainProxyInte
             m_controlStatus.push_back(
                 ControlStatus(
                 "T-States",
-                maxUnlimitedIndex,
                 maxLimitedIndex,
+                maxUnlimitedIndex,
                 currentIndex));
         }
         catch (...)
@@ -177,8 +177,8 @@ void PassiveDomainControlStatus::addPowerStatus(std::shared_ptr<DomainProxyInter
         try
         {
             auto capability = powerControl->getCapabilities().getCapability(PowerControlType::PL1);
-            max = capability.getMinPowerLimit();
-            min = capability.getMaxPowerLimit();
+            min = capability.getMinPowerLimit();
+            max = capability.getMaxPowerLimit();
         }
         catch (...)
         {
@@ -234,7 +234,7 @@ void PassiveDomainControlStatus::addDisplayStatus(std::shared_ptr<DomainProxyInt
 
         // add the control status to the list
         m_controlStatus.push_back(
-            ControlStatus("Display", maxUnlimitedIndex, maxLimitedIndex, currentLimitIndex));
+            ControlStatus("Display", maxLimitedIndex, maxUnlimitedIndex, currentLimitIndex));
     }
     else
     {
@@ -281,7 +281,7 @@ void PassiveDomainControlStatus::addCoreStatus(std::shared_ptr<DomainProxyInterf
 
         // add control status to the list
         m_controlStatus.push_back(
-            ControlStatus("Core", maxProcessors, minProcessors, currentProcessors));
+            ControlStatus("Core", minProcessors, maxProcessors, currentProcessors));
     }
     else
     {

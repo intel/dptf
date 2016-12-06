@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyPidAlgorithmTableChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyPidAlgorithmTableChanged::WIPolicyPidAlgorithmTableChanged(DptfManagerInterface* dptfManager) :
 	WorkItem(dptfManager, FrameworkEvent::PolicyPidAlgorithmTableChanged)
@@ -33,7 +33,7 @@ void WIPolicyPidAlgorithmTableChanged::execute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
-	PolicyManager* policyManager = getPolicyManager();
+	auto policyManager = getPolicyManager();
 	UIntN policyListCount = policyManager->getPolicyListCount();
 
 	for (UIntN i = 0; i < policyListCount; i++)

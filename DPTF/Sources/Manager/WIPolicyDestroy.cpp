@@ -18,9 +18,9 @@
 
 #include "WIPolicyDestroy.h"
 #include "DptfManager.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyDestroy::WIPolicyDestroy(DptfManagerInterface* dptfManager, UIntN policyIndex) :
     WorkItem(dptfManager, FrameworkEvent::PolicyDestroy), m_policyIndex(policyIndex)
@@ -50,13 +50,13 @@ void WIPolicyDestroy::execute(void)
     // is stored for this policy
 
     auto participantManager = getParticipantManager();
-    UIntN participantListCount = participantManager->getParticipantListCount();
+    auto participantIndexList = participantManager->getParticipantIndexes();
 
-    for (UIntN i = 0; i < participantListCount; i++)
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* participant = participantManager->getParticipantPtr(i);
+            Participant* participant = participantManager->getParticipantPtr(*i);
             participant->clearArbitrationDataForPolicy(m_policyIndex);
         }
         catch (participant_index_invalid ex)
@@ -65,7 +65,7 @@ void WIPolicyDestroy::execute(void)
         }
         catch (std::exception& ex)
         {
-            writeWorkItemErrorMessageParticipant(ex, "Participant::clearArbitrationDataForPolicy", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::clearArbitrationDataForPolicy", *i);
         }
     }
 }

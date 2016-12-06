@@ -19,7 +19,7 @@
 #include "ParticipantGetSpecificInfoBase.h"
 
 ParticipantGetSpecificInfoBase::ParticipantGetSpecificInfoBase(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : ControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
 

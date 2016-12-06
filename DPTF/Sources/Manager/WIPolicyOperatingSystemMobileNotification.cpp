@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyOperatingSystemMobileNotification.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 #include "OsMobileNotificationType.h"
 
 WIPolicyOperatingSystemMobileNotification::WIPolicyOperatingSystemMobileNotification(
@@ -36,7 +36,7 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

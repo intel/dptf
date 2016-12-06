@@ -22,7 +22,7 @@
 // Generic Participant Performance Controls
 
 DomainPerformanceControl_001::DomainPerformanceControl_001(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_capabilitiesLocked(false)
 {

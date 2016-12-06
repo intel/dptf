@@ -28,6 +28,6 @@ class ParticipantSetSpecificInfoBase : public ControlBase, public ParticipantSet
 public:
 
     ParticipantSetSpecificInfoBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~ParticipantSetSpecificInfoBase();
 };

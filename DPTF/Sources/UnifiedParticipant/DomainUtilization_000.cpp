@@ -19,7 +19,7 @@
 #include "DomainUtilization_000.h"
 
 DomainUtilization_000::DomainUtilization_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainUtilizationBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

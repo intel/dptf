@@ -22,7 +22,9 @@
 #include "esif.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-typedef size_t ssize_t;
+#include <basetsd.h>
+
+typedef SSIZE_T ssize_t;
 typedef int socklen_t;
 typedef SOCKET esif_ccb_socket_t;
 

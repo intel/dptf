@@ -19,7 +19,7 @@
 #include "DomainRfProfileControl_000.h"
 
 DomainRfProfileControl_000::DomainRfProfileControl_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

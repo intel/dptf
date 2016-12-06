@@ -41,9 +41,6 @@ public:
 
 private:
 
-    // hide the copy constructor
-    CoreControlArbitrator(const CoreControlArbitrator& rhs);
-
     UIntN m_arbitratedActiveCoreCount;
     std::map<UIntN, UIntN> m_requestedActiveCoreCount;
 };

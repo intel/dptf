@@ -28,5 +28,5 @@ public:
 
     virtual ~ControlFactoryInterface() {};
     virtual ControlBase* make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-        ParticipantServicesInterface* participantServicesInterface) = 0;
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) = 0;
 };

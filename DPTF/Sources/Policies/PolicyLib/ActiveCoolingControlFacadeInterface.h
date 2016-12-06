@@ -35,6 +35,8 @@ public:
     virtual const ActiveControlStaticCaps& getCapabilities() = 0;
     virtual void refreshCapabilities() = 0;
     virtual ActiveControlStatus getStatus() = 0;
+    virtual UIntN getSmallestNonZeroFanSpeed() = 0;
+    virtual Bool hasValidActiveControlSet() = 0;
 
     //status
     virtual std::shared_ptr<XmlNode> getXml() = 0;

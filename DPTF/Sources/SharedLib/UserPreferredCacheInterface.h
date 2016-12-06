@@ -26,14 +26,14 @@ class UserPreferredCacheInterface
 {
 public:
 
-	virtual ~UserPreferredCacheInterface()
-	{
-	};
+    virtual ~UserPreferredCacheInterface()
+    {
+    };
 
-	// Display Cache
+    // Display Cache
 
-	virtual UIntN getUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void setUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex, UIntN userPreferredIndex) = 0;
-	virtual void invalidateUserPreferredDisplayCache(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual Bool isUserPreferredDisplayCacheValid(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual UIntN getUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual void setUserPreferredDisplayCacheValue(UIntN participantIndex, UIntN domainIndex, UIntN userPreferredIndex) = 0;
+    virtual void invalidateUserPreferredDisplayCache(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual Bool isUserPreferredDisplayCacheValid(UIntN participantIndex, UIntN domainIndex) = 0;
 };

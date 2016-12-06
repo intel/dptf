@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "DptfManager.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "Policy.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "PolicyServicesDomainActiveControl.h"
@@ -106,6 +106,7 @@ void Policy::createPolicy(const std::string& policyFileName, UIntN newPolicyInde
     m_theRealPolicyCreated = true;
     m_policyName = m_theRealPolicy->getName();
     m_theRealPolicy->create(true, m_policyServices, newPolicyIndex);
+	sendPolicyLogDataIfLoggingEnabled(true);
 }
 
 void Policy::destroyPolicy()
@@ -114,7 +115,7 @@ void Policy::destroyPolicy()
     {
         if ((m_theRealPolicy != nullptr) && (m_theRealPolicyCreated == true))
         {
-            sendPolicyLogDataIfEnabled();
+            sendPolicyLogDataIfLoggingEnabled(false);
             m_theRealPolicy->destroy();
         }
     }
@@ -537,7 +538,7 @@ void Policy::executePolicyOperatingSystemPowerSchemePersonalityChanged(OsPowerSc
 void Policy::executePolicyActivityLoggingEnabled(void)
 {
     enablePolicyLogging();
-    sendPolicyLogDataIfEnabled();
+    sendPolicyLogDataIfLoggingEnabled(true);
 }
 
 void Policy::executePolicyActivityLoggingDisabled(void)
@@ -569,7 +570,7 @@ void Policy::executePolicyActiveControlPointRelationshipTableChanged(void)
     }
 }
 
-void Policy::sendPolicyLogDataIfEnabled(void)
+void Policy::sendPolicyLogDataIfLoggingEnabled(Bool loaded)
 {
     try
     {
@@ -577,6 +578,7 @@ void Policy::sendPolicyLogDataIfEnabled(void)
         {
             EsifPolicyLogData policyData;
             policyData.policyIndex = m_policyIndex;
+			policyData.loaded = loaded;
             m_guid.copyToBuffer(policyData.policyGuid);
             esif_ccb_strncpy(policyData.policyName, m_policyName.c_str(), sizeof(policyData.policyName));
             esif_ccb_strncpy(policyData.policyFileName, m_policyFileName.c_str(), sizeof(policyData.policyFileName));

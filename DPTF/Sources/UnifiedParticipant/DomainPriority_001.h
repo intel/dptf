@@ -26,7 +26,7 @@ class DomainPriority_001 : public DomainPriorityBase
 public:
 
     DomainPriority_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPriority_001();
 
     // DomainPriorityInterface

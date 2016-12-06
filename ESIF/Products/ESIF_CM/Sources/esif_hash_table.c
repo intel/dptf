@@ -50,6 +50,9 @@
 ** POSSIBILITY OF SUCH DAMAGE.
 **
 *******************************************************************************/
+#ifdef ESIF_ATTR_USER
+# define ESIF_TRACE_ID	ESIF_TRACEMODULE_UF
+#endif
 
 #include "esif_hash_table.h"
 

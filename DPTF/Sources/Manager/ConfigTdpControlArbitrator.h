@@ -41,9 +41,6 @@ public:
 
 private:
 
-    // hide the copy constructor.
-    ConfigTdpControlArbitrator(const ConfigTdpControlArbitrator& rhs);
-
     UIntN m_arbitratedConfigTdpControlIndex;
     std::map<UIntN, UIntN> m_requestedConfigTdpControlIndex;
 };

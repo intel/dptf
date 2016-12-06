@@ -18,8 +18,8 @@
 
 #include "WIDomainRadioConnectionStatusChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainRadioConnectionStatusChanged::WIDomainRadioConnectionStatusChanged(DptfManagerInterface* dptfManager,
     UIntN participantIndex, UIntN domainIndex, RadioConnectionStatus::Type radioConnectionStatus) :
@@ -45,7 +45,7 @@ void WIDomainRadioConnectionStatusChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainRadioConnectionStatusChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

@@ -54,7 +54,7 @@ Bool PassiveTripPointsCachedProperty::supportsProperty(void)
 {
     // must contain psv, ntt is optional
     auto passiveTripPoints = getTripPoints();
-    return passiveTripPoints.hasItem(ParticipantSpecificInfoKey::PSV);
+    return passiveTripPoints.hasKey(ParticipantSpecificInfoKey::PSV);
 }
 
 std::shared_ptr<XmlNode> PassiveTripPointsCachedProperty::getXml()

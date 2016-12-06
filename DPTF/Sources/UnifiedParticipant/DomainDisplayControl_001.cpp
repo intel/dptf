@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainDisplayControl_001::DomainDisplayControl_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_userPreferredIndex(Constants::Invalid),
     m_lastSetDisplayBrightness(Constants::Invalid),
@@ -59,14 +59,21 @@ UIntN DomainDisplayControl_001::getUserPreferredDisplayIndex(UIntN participantIn
 {
     if ((getParticipantServices()->isUserPreferredDisplayCacheValid(participantIndex, domainIndex)) == true)
     {
+        getParticipantServices()->writeMessageDebug(ParticipantMessage(
+            FLF, "Attempting to get the user preferred index from the display cache."));
         m_userPreferredIndex = getParticipantServices()->getUserPreferredDisplayCacheValue(participantIndex, domainIndex);
+
+        getParticipantServices()->writeMessageDebug(ParticipantMessage(
+            FLF, "Retrieved the user preferred index of " + StlOverride::to_string(m_userPreferredIndex) + " ."));
         getParticipantServices()->invalidateUserPreferredDisplayCache(participantIndex, domainIndex);
     }
     else
     {
         auto currentStatus = getDisplayControlStatus(participantIndex, domainIndex);
         auto currentIndex = currentStatus.getBrightnessLimitIndex();
-        if (m_userPreferredIndex == Constants::Invalid || currentIndex != m_lastSetDisplayBrightness)
+
+        if (m_userPreferredIndex == Constants::Invalid || 
+            (m_lastSetDisplayBrightness != Constants::Invalid && currentIndex != m_lastSetDisplayBrightness))
         {
             m_userPreferredIndex = currentIndex;
             m_isUserPreferredIndexModified = true;
@@ -100,12 +107,12 @@ void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN d
     auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
     Percentage newBrightness = displaySet[indexToset].getBrightness();
 
+    m_lastSetDisplayBrightness = indexToset;
+
     getParticipantServices()->primitiveExecuteSetAsPercentage(
         esif_primitive_type::SET_DISPLAY_BRIGHTNESS,
         newBrightness,
         domainIndex);
-
-    m_lastSetDisplayBrightness = indexToset;
 }
 
 UIntN DomainDisplayControl_001::getAllowableDisplayBrightnessIndex(UIntN participantIndex,
@@ -267,6 +274,10 @@ void DomainDisplayControl_001::restore(void)
                 m_userPreferredIndex = upperLimitIndex;
             }
             Percentage newBrightness = displaySet[m_userPreferredIndex].getBrightness();
+
+            getParticipantServices()->writeMessageDebug(ParticipantMessage(
+                FLF, "Saved the user preferred index of " + StlOverride::to_string(m_userPreferredIndex) + 
+                ". Attempting to set the brightness to the user preferred value ."));
 
             getParticipantServices()->primitiveExecuteSetAsPercentage(
                 esif_primitive_type::SET_DISPLAY_BRIGHTNESS,

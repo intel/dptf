@@ -23,9 +23,9 @@
 #include "EventCache.h"
 #include "UserPreferredCache.h"
 
-class EsifServices;
+class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
-class PolicyManager;
+class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DptfStatusInterface;
 
@@ -51,11 +51,11 @@ public:
     virtual Bool isDptfShuttingDown(void) const override;
     virtual Bool isWorkItemQueueManagerCreated(void) const override;
 
-    virtual EsifServices* getEsifServices(void) const override;
+    virtual EsifServicesInterface* getEsifServices(void) const override;
     virtual std::shared_ptr<EventCache> getEventCache(void) const override;
     virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const override;
     virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const override;
-    virtual PolicyManager* getPolicyManager(void) const override;
+    virtual PolicyManagerInterface* getPolicyManager(void) const override;
     virtual ParticipantManagerInterface* getParticipantManager(void) const override;
     virtual DptfStatusInterface* getDptfStatus(void) override;
     virtual IndexContainerInterface* getIndexContainer(void) const override;
@@ -84,14 +84,14 @@ private:
 
     // EsifServices is the only way to make calls back to ESIF.
     EsifAppServicesInterface* m_esifAppServices;
-    EsifServices* m_esifServices;
+    EsifServicesInterface* m_esifServices;
 
     // All work item threads, enqueueing, dequeuing, and work item dispatch is handled by the WorkItemQueueManager.
     WorkItemQueueManagerInterface* m_workItemQueueManager;
 
     // Manages all of the polices and events that are registered for each policy.  When PolicyManager is instantiated
     // each policy is also created.
-    PolicyManager* m_policyManager;
+    PolicyManagerInterface* m_policyManager;
 
     // Manages all of the participants.  When ParticipantManager is first created there are no participants.  When
     // ESIF calls AppParticipantCreate() and AppDomainCreate() the participants will get created and the policies

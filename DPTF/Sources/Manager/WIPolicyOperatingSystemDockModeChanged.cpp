@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyOperatingSystemDockModeChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemDockModeChanged::WIPolicyOperatingSystemDockModeChanged(
     DptfManagerInterface* dptfManager, OsDockMode::Type dockMode) :
@@ -35,7 +35,7 @@ void WIPolicyOperatingSystemDockModeChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

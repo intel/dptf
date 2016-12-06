@@ -38,6 +38,8 @@ public:
     virtual Bool isParticipantSourceDevice(UIntN participantIndex) const override;
     virtual Bool isParticipantTargetDevice(UIntN participantIndex) const override;
     virtual UIntN getNumberOfEntries(void) const override;
+    virtual std::set<UIntN> getAllTargetIndexes() const override;
+    virtual std::set<UIntN> getAllSourceIndexes() const override;
 
 protected:
 

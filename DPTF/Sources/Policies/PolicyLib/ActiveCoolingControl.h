@@ -54,6 +54,8 @@ public:
     virtual const ActiveControlStaticCaps& getCapabilities() override;
     virtual void refreshCapabilities() override;
     virtual ActiveControlStatus getStatus() override;
+    virtual UIntN getSmallestNonZeroFanSpeed() override;
+    virtual Bool hasValidActiveControlSet() override;
 
     // status
     virtual std::shared_ptr<XmlNode> getXml() override;

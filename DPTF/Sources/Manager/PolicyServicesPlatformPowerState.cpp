@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesPlatformPowerState.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "esif_ccb_thread.h"
 
 void* ThreadSleep(void* self);

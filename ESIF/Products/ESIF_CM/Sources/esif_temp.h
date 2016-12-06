@@ -129,11 +129,20 @@ static ESIF_INLINE esif_string esif_temperature_type_desc(
  * Select Temperature Unit To Normalize Temperatures To.
  */
 
+/* Convert In Between Kelvin and Celsius */
+#define DPTF_KELVIN_BASE 2732
+
 /* DPTF Wants Everything In 1/10's Degree K */
 #define NORMALIZE_TEMP_TYPE ESIF_TEMP_DECIK
 
-/* Convert In Between Kelvin and Celsius */
-#define DPTF_KELVIN_BASE 2732
+/* Normalize Temp Adjustment based on NORMALIZE_TEMP_TYPE:
+ * ESIF_TEMP_K      = (DPTF_KELVIN_BASE / 10)
+ * ESIF_TEMP_DECIK  = (DPTF_KELVIN_BASE)
+ * ESIF_TEMP_CENTIK = (DPTF_KELVIN_BASE * 10)
+ * ESIF_TEMP_MILLIK = (DPTF_KELVIN_BASE * 100)
+ * Absolute         = (0)
+ */
+#define NORMALIZE_TEMP_ADJUSTMENT	(DPTF_KELVIN_BASE)
 
 /* Normalize Values Functions: Add 5, 50 or 500 To Make It Round Up */
 static ESIF_INLINE esif_temp_t esif_temp_mc2c(
@@ -337,25 +346,8 @@ static ESIF_INLINE esif_temp_t esif_temp_rel_to_abs(
 {
 	esif_temp_t abs_temp = rel_temp;
 
-	switch (NORMALIZE_TEMP_TYPE) {
+	abs_temp = rel_temp + NORMALIZE_TEMP_ADJUSTMENT;
 
-	case ESIF_TEMP_K:
-		abs_temp = rel_temp + (DPTF_KELVIN_BASE / 10);
-		break;
-	case ESIF_TEMP_DECIK:
-		abs_temp = rel_temp + (DPTF_KELVIN_BASE);
-		break;
-	case ESIF_TEMP_CENTIK:
-		abs_temp = rel_temp + (DPTF_KELVIN_BASE * 10);
-		break;
-	case ESIF_TEMP_MILLIK:
-		abs_temp = rel_temp + (DPTF_KELVIN_BASE * 100);
-		break;
-
-	/* For celsius, relative == absolute */
-	default:
-		break;
-	}
 	return abs_temp;
 }
 
@@ -370,25 +362,7 @@ static ESIF_INLINE esif_temp_t esif_temp_abs_to_rel(
 {
 	esif_temp_t rel_temp = abs_temp;
 
-	switch (NORMALIZE_TEMP_TYPE) {
-
-	case ESIF_TEMP_K:
-		rel_temp = abs_temp - (DPTF_KELVIN_BASE / 10);
-		break;
-	case ESIF_TEMP_DECIK:
-		rel_temp = abs_temp - (DPTF_KELVIN_BASE);
-		break;
-	case ESIF_TEMP_CENTIK:
-		rel_temp = abs_temp - (DPTF_KELVIN_BASE * 10);
-		break;
-	case ESIF_TEMP_MILLIK:
-		rel_temp = abs_temp - (DPTF_KELVIN_BASE * 100);
-		break;
-
-	/* For celsius, relative == absolute */
-	default:
-		break;
-	}
+	rel_temp = abs_temp - NORMALIZE_TEMP_ADJUSTMENT;
 
 	/* no negative relative temps are allowed */
 	if (((int)rel_temp) < 0) {

@@ -21,7 +21,7 @@
 #include "esif_ccb.h"
 
 DomainPowerStatus_001::DomainPowerStatus_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPowerStatusBase(participantIndex, domainIndex, participantServicesInterface),
     m_lastPowerSentToFilter(Power::createInvalid()),
     m_domainPowerFilter(participantIndex, domainIndex, participantServicesInterface)

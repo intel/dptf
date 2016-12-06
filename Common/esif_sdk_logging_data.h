@@ -62,6 +62,7 @@
 /* Policy Data */
 typedef struct _t_EsifPolicyLogData_s {
 	UInt32 policyIndex;
+	UInt8 loaded;
 	char policyName[MAX_PATH];
 	char policyFileName[MAX_PATH];
 	esif_guid_t policyGuid;

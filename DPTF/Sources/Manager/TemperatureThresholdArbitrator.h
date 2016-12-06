@@ -47,9 +47,6 @@ public:
 
 private:
 
-    // hide the copy constructor.
-    TemperatureThresholdArbitrator(const TemperatureThresholdArbitrator& rhs);
-
     DptfManagerInterface* m_dptfManager;
 
     Temperature m_lastKnownParticipantTemperature;

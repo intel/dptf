@@ -19,7 +19,7 @@
 #include "DomainRfProfileStatus_000.h"
 
 DomainRfProfileStatus_000::DomainRfProfileStatus_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

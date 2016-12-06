@@ -23,7 +23,7 @@
 //
 
 DomainRfProfileStatus_001::DomainRfProfileStatus_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }

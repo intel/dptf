@@ -47,9 +47,6 @@ public:
 
 private:
 
-    // hide the copy constructor.
-    ActiveControlArbitrator(const ActiveControlArbitrator& rhs);
-
     Percentage m_arbitratedFanSpeedPercentage;
     std::map<UIntN, Percentage> m_requestedfanSpeedPercentage;
 

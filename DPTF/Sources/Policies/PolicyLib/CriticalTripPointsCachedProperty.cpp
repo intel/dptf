@@ -55,9 +55,9 @@ Bool CriticalTripPointsCachedProperty::supportsProperty(void)
 {
     // make sure the critical trip points contain at least one of {warm, hot, critical}
     auto criticalTripPoints = getTripPoints();
-    return (criticalTripPoints.hasItem(ParticipantSpecificInfoKey::Warm)
-        || criticalTripPoints.hasItem(ParticipantSpecificInfoKey::Hot)
-        || criticalTripPoints.hasItem(ParticipantSpecificInfoKey::Critical));
+    return (criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Warm)
+        || criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Hot)
+        || criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Critical));
 }
 
 std::shared_ptr<XmlNode> CriticalTripPointsCachedProperty::getXml()

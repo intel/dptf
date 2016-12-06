@@ -19,7 +19,7 @@
 #include "DomainRfProfileControl_001.h"
 
 DomainRfProfileControl_001::DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // TODO: does this need to capture or restore anything?

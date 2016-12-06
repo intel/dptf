@@ -26,7 +26,7 @@
 
 class DptfManager;
 
-class Policy final
+class dptf_export Policy final
 {
 public:
 
@@ -134,7 +134,7 @@ private:
     Bool isPolicyLoggingEnabled();
     void enablePolicyLogging(void);
     void disablePolicyLogging(void);
-    void sendPolicyLogDataIfEnabled(void);
+    void sendPolicyLogDataIfLoggingEnabled(Bool loaded);
 
     // The name of the policy.
     std::string m_policyName;

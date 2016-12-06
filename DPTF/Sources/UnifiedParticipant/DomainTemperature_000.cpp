@@ -19,7 +19,7 @@
 #include "DomainTemperature_000.h"
 
 DomainTemperature_000::DomainTemperature_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

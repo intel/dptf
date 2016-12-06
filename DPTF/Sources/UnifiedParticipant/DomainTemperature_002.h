@@ -26,7 +26,7 @@ class DomainTemperature_002 : public DomainTemperatureBase
 public:
 
     DomainTemperature_002(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainTemperature_002(void);
 
     // DomainTemperatureInterface

@@ -881,23 +881,17 @@ eEsifError EsifAppStop(EsifAppPtr appPtr)
 
 static eEsifError EsifApp_DestroyParticipants(EsifAppPtr self)
 {
-	eEsifError rc = ESIF_OK;
-	UfPmIterator upIter = {0};
-	EsifUpPtr upPtr = NULL;
+	AppParticipantDataMapPtr participantDataMapPtr = NULL;
+	int i = 0;
 
 	ESIF_ASSERT(self != NULL);
 
-	rc = EsifUpPm_InitIterator(&upIter);
-	if (rc == ESIF_OK) {
-		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-	}
+	participantDataMapPtr = self->fParticipantData;
 
-	while (ESIF_OK == rc) {
-		EsifAppDestroyParticipant(self, upPtr);
-		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	for (i = 0; i < (sizeof(self->fParticipantData) / sizeof(*self->fParticipantData)); i++, participantDataMapPtr++)
+	{
+		EsifAppDestroyParticipant(self, participantDataMapPtr->fUpPtr);
 	}
-
-	EsifUp_PutRef(upPtr);	
 	ESIF_TRACE_INFO("Destroy participants in App\n");
 	return ESIF_OK;
 }

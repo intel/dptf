@@ -38,6 +38,9 @@
 #define MAXDISPLAY_STRING   256
 #define MAXDISPLAY_BINARY   (MAXDISPLAY_STRING / 2 - 2)
 
+#define MIN_TEMPERATURE		(-273.15)	// Min Supported Temperature in Celsius (Absolute Zero)
+#define MAX_TEMPERATURE		(9999)		// Max Supported Temperature in Celsius
+
 #define ISHEX(str)  (esif_ccb_strnicmp((str), "0x", 2) == 0 ? ESIF_TRUE : ESIF_FALSE)
 #define IFHEX(str, hex, dec)    (esif_ccb_strnicmp((str), "0x", 2) == 0 ? (hex) : (dec))
 
@@ -642,6 +645,7 @@ eEsifError EsifData_FromString (
 	// Allocate Memory and Convert Data
 	if (alloc == 0) {
 		EsifData_Set(self, type, ptrdata, 0, 0);
+		rc = ESIF_OK;
 	}
 	else {
 		EsifData_Set(self, type, esif_ccb_malloc(alloc), alloc, alloc);
@@ -698,11 +702,15 @@ eEsifError EsifData_FromString (
 		case ESIF_DATA_TEMPERATURE:
 		{
 			if (ISHEX(str)) {
-				esif_ccb_sscanf(str, "%x", &u32data);
-				u32data *= 10;
-			} else {
-				float temp = 0.0;
-				esif_ccb_sscanf(str,"%f", &temp);
+				u32 temp = 0;
+				esif_ccb_sscanf(str, "%x", &temp);
+				temp = (temp > MAX_TEMPERATURE ? MAX_TEMPERATURE : temp);
+				u32data = temp * 10;
+			}
+			else {
+				double temp = 0.0;
+				esif_ccb_sscanf(str,"%lf", &temp);
+				temp = (temp < MIN_TEMPERATURE ? MIN_TEMPERATURE : temp > MAX_TEMPERATURE ? MAX_TEMPERATURE : temp);
 				temp *= 10.0;
 				u32data = (UInt32)temp;
 			}

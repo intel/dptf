@@ -18,8 +18,8 @@
 
 #include "WIDomainCreate.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainCreate::WIDomainCreate(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex,
     const AppDomainDataPtr domainDataPtr, Bool domainEnabled, Bool* domainCreated) :
@@ -56,7 +56,7 @@ void WIDomainCreate::execute(void)
         // Iterate through the list of policies and let them know about the new domain
         //
 
-        PolicyManager* policyManager = getPolicyManager();
+        auto policyManager = getPolicyManager();
         UIntN policyListCount = policyManager->getPolicyListCount();
 
         for (UIntN i = 0; i < policyListCount; i++)

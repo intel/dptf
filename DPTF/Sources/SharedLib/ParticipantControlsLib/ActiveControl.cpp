@@ -65,6 +65,11 @@ Bool ActiveControl::operator!=(const ActiveControl& rhs) const
     return !(*this == rhs);
 }
 
+Bool ActiveControl::operator<(const ActiveControl& rhs) const
+{
+    return (m_controlId < rhs.getControlId());
+}
+
 std::shared_ptr<XmlNode> ActiveControl::getXml(void)
 {
     auto root = XmlNode::createWrapperElement("active_control");

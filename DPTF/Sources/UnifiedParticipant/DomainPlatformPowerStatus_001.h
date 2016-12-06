@@ -26,7 +26,7 @@ class DomainPlatformPowerStatus_001 : public DomainPlatformPowerStatusBase
 public:
 
     DomainPlatformPowerStatus_001(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPlatformPowerStatus_001(void);
 
     // DomainPlatformPowerStatusInterface

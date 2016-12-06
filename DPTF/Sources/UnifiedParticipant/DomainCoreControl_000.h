@@ -31,7 +31,7 @@ class DomainCoreControl_000 : public DomainCoreControlBase
 public:
 
     DomainCoreControl_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainCoreControlInterface
     virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;

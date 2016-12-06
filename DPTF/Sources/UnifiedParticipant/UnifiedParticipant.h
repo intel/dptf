@@ -42,7 +42,7 @@ public:
     virtual void createParticipant(const Guid& guid, UIntN participantIndex, Bool enabled,
         const std::string& name, const std::string& description, BusType::Type busType,
         const PciInfo& pciInfo, const AcpiInfo& acpiInfo,
-        ParticipantServicesInterface* participantServicesInterface) override;
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) override;
     virtual void destroyParticipant(void) override;
     virtual void enableParticipant(void) override;
     virtual void disableParticipant(void) override;
@@ -265,12 +265,12 @@ private:
     BusType::Type m_busType;
     PciInfo m_pciInfo;
     AcpiInfo m_acpiInfo;
-    ParticipantServicesInterface* m_participantServicesInterface;
+    std::shared_ptr<ParticipantServicesInterface> m_participantServicesInterface;
 
-    ParticipantGetSpecificInfoBase* m_getSpecificInfo;
-    ParticipantSetSpecificInfoBase* m_setSpecificInfo;
+    std::shared_ptr<ParticipantGetSpecificInfoBase> m_getSpecificInfo;
+    std::shared_ptr<ParticipantSetSpecificInfoBase> m_setSpecificInfo;
 
-    std::vector<UnifiedDomain*> m_domains;
+    std::map<UIntN, std::shared_ptr<UnifiedDomain>> m_domains;
 
     ControlFactoryList m_classFactories;
 
@@ -279,7 +279,7 @@ private:
     void clearAllCachedData(void);
     void destroyAllDomains(void);
     void throwIfDomainIndexLocationInvalid(UIntN domainIndex);
-    void insertDomainAtIndexLocation(UnifiedDomain* domain, UIntN domainIndex);
+    void insertDomainAtIndexLocation(std::shared_ptr<UnifiedDomain> domain, UIntN domainIndex);
 
     Bool m_configTdpEventsRegistered;
     Bool m_coreControlEventsRegistered;
@@ -303,5 +303,7 @@ private:
     ConfigTdpControlSet getFirstConfigTdpControlSet(void);
 
     //Activity Logging Utility functions
+    void enableActivityLoggingForDomain(UInt32 domainIndex, UInt32 capabilityBitMask);
+    void disableActivityLoggingForDomain(UInt32 domainIndex, UInt32 capabilityBitMask);
     void sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eEsifCapabilityType capability);
 };

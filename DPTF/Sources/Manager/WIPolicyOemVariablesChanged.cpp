@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyOemVariablesChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyOemVariablesChanged::WIPolicyOemVariablesChanged(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::PolicyOemVariablesChanged)
@@ -33,7 +33,7 @@ void WIPolicyOemVariablesChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

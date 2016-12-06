@@ -18,8 +18,8 @@
 
 #include "WIParticipantSpecificInfoChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIParticipantSpecificInfoChanged::WIParticipantSpecificInfoChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex) :
@@ -44,7 +44,7 @@ void WIParticipantSpecificInfoChanged::execute(void)
         writeParticipantWorkItemErrorMessage(ex, "Participant::participantSpecificInfoChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

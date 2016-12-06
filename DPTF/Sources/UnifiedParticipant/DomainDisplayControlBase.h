@@ -29,6 +29,6 @@ class DomainDisplayControlBase : public ControlBase, public DomainDisplayControl
 public:
 
     DomainDisplayControlBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainDisplayControlBase();
 };

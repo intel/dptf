@@ -45,7 +45,7 @@ typedef struct DataItem_s {
 
 typedef struct EsifAct_s {
 	enum esif_action_type type; /* Quick access to the type defined by the interface */
-	esif_context_t actCtx; /* Context for the action associated with a specific participant */
+	esif_context_t actCtx; /* Action context (returned from the action during creation) */
 
 	Bool isPlugin;
 	Bool createCalled;

@@ -41,18 +41,17 @@ public:
     void disableParticipant(void);
     Bool isParticipantEnabled(void);
 
-    void allocateDomain(UIntN* newDomainIndex);
+    UIntN allocateNextDomainIndex(void);
     void createDomain(UIntN domainIndex, const AppDomainDataPtr domainDataPtr, Bool domainEnabled);
     void destroyAllDomains(void);
     void destroyDomain(UIntN domainIndex);
 
-    Bool isDomainValid(UIntN domainIndex);
+    Bool isDomainValid(UIntN domainIndex) const;
     void enableDomain(UIntN domainIndex);
     void disableDomain(UIntN domainIndex);
     Bool isDomainEnabled(UIntN domainIndex);
 
     UIntN getDomainCount(void) const;
-    UIntN getDomainIndex(Domain* domainPtr);
 
     // This will clear the cached data stored within the participant and associated domains within the framework.
     // It will not ask the actual participant to clear any of its data.
@@ -241,7 +240,7 @@ private:
 
     DptfManagerInterface* m_dptfManager;
     ParticipantInterface* m_theRealParticipant;
-    ParticipantServicesInterface* m_participantServices;
+    std::shared_ptr<ParticipantServicesInterface> m_participantServices;
 
     UIntN m_participantIndex;
     Guid m_participantGuid;
@@ -250,7 +249,7 @@ private:
     // track the events that will be forwarded to the participant
     std::bitset<ParticipantEvent::Max> m_registeredEvents;
 
-    std::vector<Domain*> m_domain;
+    std::map<UIntN, std::shared_ptr<Domain>> m_domains;
 
     void throwIfDomainInvalid(UIntN domainIndex) const;
     void throwIfRealParticipantIsInvalid() const;

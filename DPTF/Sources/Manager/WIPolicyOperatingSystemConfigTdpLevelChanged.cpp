@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyOperatingSystemConfigTdpLevelChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemConfigTdpLevelChanged::WIPolicyOperatingSystemConfigTdpLevelChanged(
     DptfManagerInterface* dptfManager, UIntN configTdpLevel) :
@@ -35,7 +35,7 @@ void WIPolicyOperatingSystemConfigTdpLevelChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

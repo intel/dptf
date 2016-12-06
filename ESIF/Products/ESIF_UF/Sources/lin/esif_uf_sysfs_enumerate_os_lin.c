@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
 
 #include "esif_uf.h"
 #include "esif_pm.h"
@@ -44,6 +45,7 @@
 
 static int g_zone_count = 0;
 const char *CPU_location[NUM_CPU_LOCATIONS] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1"};
+static Bool gSocParticipantFound = ESIF_FALSE;
 
 static int sysfsGetString(char *path, char *filename, char *str, size_t buf_len);
 static int sysfsGetU64(char *path, char *filename, u64 *p_u64);
@@ -161,6 +163,33 @@ static int sysfsSetString(char *path, char *filename, char *val)
 	return 0;
 }
 
+static void createSocParticipantFromX86PkgTemp()
+{
+	int i = 0; 
+	esif_guid_t classGuid = ESIF_PARTICIPANT_CPU_CLASS_GUID;
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		if (CDEV == thermalZones[i].zoneType) continue;
+		if (esif_ccb_stricmp(thermalZones[i].acpiCode, "x86_pkg_temp")) continue;
+
+		newParticipantCreate(ESIF_PARTICIPANT_VERSION,
+			classGuid,
+			ESIF_PARTICIPANT_ENUM_SYSFS,
+			0x0,
+			"TCPU",
+			ESIF_PARTICIPANT_CPU_DESC,
+			"N/A",
+			SYSFS_PROCESSOR_HID,
+			thermalZones[i].thermalPath,
+			"\\_SB_.TCPU",
+			"\\_SB_.TCPU",
+			NULL,
+			ESIF_PARTICIPANT_INVALID_TYPE);
+		gSocParticipantFound = ESIF_TRUE;
+		break;
+	}
+}
+
 void SysfsRegisterParticipants ()
 {
 	EsifParticipantIface sysPart;
@@ -189,6 +218,11 @@ void SysfsRegisterParticipants ()
 	scanThermal();
 	scanPCI();
 	scanPlat();
+
+	if (!gSocParticipantFound) {
+		// Check if x86_pkg_temp driver is available, and if yes, use x86_pkg_temp as SoC participant
+		createSocParticipantFromX86PkgTemp();
+	}
 
 #ifdef ESIF_ATTR_OS_ANDROID
 	if (!EsifUpPm_DoesAvailableParticipantExistByHID("INT3406")) {
@@ -304,6 +338,7 @@ static int scanPCI(void)
 					/* map to thermal zone (try pkg thermal zone first)*/
 				
 					newParticipantCreate(ESIF_PARTICIPANT_VERSION,classGuid,ESIF_PARTICIPANT_ENUM_SYSFS,0x0,ACPI_name,ESIF_PARTICIPANT_CPU_DESC,"N/A",SYSFS_PROCESSOR_HID,participant_path,participant_scope,participant_scope,acpiUID,ptype);
+					gSocParticipantFound = ESIF_TRUE;
 					}
 				}
 			}

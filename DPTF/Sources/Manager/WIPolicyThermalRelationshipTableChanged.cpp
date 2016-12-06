@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyThermalRelationshipTableChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyThermalRelationshipTableChanged::WIPolicyThermalRelationshipTableChanged(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::PolicyThermalRelationshipTableChanged)
@@ -33,7 +33,7 @@ void WIPolicyThermalRelationshipTableChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

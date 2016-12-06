@@ -208,7 +208,7 @@ void CriticalPolicy::takePowerActionBasedOnThermalState(ParticipantProxyInterfac
     Temperature crossedTripPointTemperature = Temperature::createInvalid();
     if (tripPointCrossed != ParticipantSpecificInfoKey::None)
     {
-        crossedTripPointTemperature = tripPoints.getItem(tripPointCrossed);
+        crossedTripPointTemperature = tripPoints.getTemperature(tripPointCrossed);
     }
     takePowerAction(currentTemperature, tripPointCrossed, crossedTripPointTemperature);
 }

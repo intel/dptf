@@ -18,8 +18,8 @@
 
 #include "WIDomainACPeakTimeWindowChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainACPeakTimeWindowChanged::WIDomainACPeakTimeWindowChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
@@ -44,7 +44,7 @@ void WIDomainACPeakTimeWindowChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainACPeakTimeWindowChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    PolicyManagerInterface* policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

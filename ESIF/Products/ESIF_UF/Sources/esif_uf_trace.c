@@ -133,8 +133,7 @@ int EsifUfTraceMessageArgs(
 	esif_ccb_system_time(&msec);
 
 	// Build Trace Module Name(s) List [NAME or NAME1|NAME2|...]
-	while (module >>= 1) {
-		moduleid++;
+	while (module) {
 		if (module & 0x1) {
 			const char *this_module = EsifTraceModule_ToString(moduleid);
 			char *old_name = module_name;
@@ -148,6 +147,10 @@ int EsifUfTraceMessageArgs(
 				esif_ccb_strcat(module_name, "><", module_len);
 			}
 			esif_ccb_strcat(module_name, this_module, module_len);
+		}
+		module >>= 1;
+		if (module) {
+			moduleid++;
 		}
 	}
 	if (module_name == NULL)

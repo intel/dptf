@@ -88,6 +88,7 @@ typedef enum esif_action_type {
 	ESIF_ACTION_NVME = 63,
 	ESIF_ACTION_OSTF = 68,
 	ESIF_ACTION_PERC = 61,
+	ESIF_ACTION_PHIDGET = 69,
 	ESIF_ACTION_PSM = 44,
 	ESIF_ACTION_RFPWIFI = 43,
 	ESIF_ACTION_RFPWWAN = 41,
@@ -99,7 +100,7 @@ typedef enum esif_action_type {
 } esif_action_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_OSTF
+#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_PHIDGET
 
 static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 {
@@ -132,6 +133,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_NVME);
 	ESIF_CASE_ENUM(ESIF_ACTION_OSTF);
 	ESIF_CASE_ENUM(ESIF_ACTION_PERC);
+	ESIF_CASE_ENUM(ESIF_ACTION_PHIDGET);
 	ESIF_CASE_ENUM(ESIF_ACTION_PSM);
 	ESIF_CASE_ENUM(ESIF_ACTION_RFPWIFI);
 	ESIF_CASE_ENUM(ESIF_ACTION_RFPWWAN);
@@ -143,6 +145,69 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	}
 	return ESIF_NOT_AVAILABLE;
 }
+
+
+#ifdef ESIF_ATTR_USER
+#ifdef esif_ccb_stricmp
+static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name)
+{
+	int j;
+	struct esif_action_type_map_t {
+		esif_action_type_t type;
+		esif_string name;
+	}
+	esif_action_type_map[] = {
+		ESIF_MAP_ENUM(ESIF_ACTION_ACPI),
+		ESIF_MAP_ENUM(ESIF_ACTION_ACPIDECIC),
+		ESIF_MAP_ENUM(ESIF_ACTION_ACPILPAT),
+		ESIF_MAP_ENUM(ESIF_ACTION_CODE),
+		ESIF_MAP_ENUM(ESIF_ACTION_CONFIG),
+		ESIF_MAP_ENUM(ESIF_ACTION_CONST),
+		ESIF_MAP_ENUM(ESIF_ACTION_DDIGFXDISP),
+		ESIF_MAP_ENUM(ESIF_ACTION_DDIGFXPERF),
+		ESIF_MAP_ENUM(ESIF_ACTION_DELEGATE),
+		ESIF_MAP_ENUM(ESIF_ACTION_DPPEBRT),
+		ESIF_MAP_ENUM(ESIF_ACTION_DPTFWWAN),
+		ESIF_MAP_ENUM(ESIF_ACTION_GFXESC),
+		ESIF_MAP_ENUM(ESIF_ACTION_IOSF),
+		ESIF_MAP_ENUM(ESIF_ACTION_JAVA),
+		ESIF_MAP_ENUM(ESIF_ACTION_KDELEGATE),
+		ESIF_MAP_ENUM(ESIF_ACTION_KIOCTL),
+		ESIF_MAP_ENUM(ESIF_ACTION_KODE),
+		ESIF_MAP_ENUM(ESIF_ACTION_KONST),
+		ESIF_MAP_ENUM(ESIF_ACTION_LAL),
+		ESIF_MAP_ENUM(ESIF_ACTION_MMIO),
+		ESIF_MAP_ENUM(ESIF_ACTION_MMIODIV2),
+		ESIF_MAP_ENUM(ESIF_ACTION_MMIOTJMAX),
+		ESIF_MAP_ENUM(ESIF_ACTION_MMIOTJMAXROUNDDOWN),
+		ESIF_MAP_ENUM(ESIF_ACTION_MMIOTJMAXROUNDUP),
+		ESIF_MAP_ENUM(ESIF_ACTION_MSR),
+		ESIF_MAP_ENUM(ESIF_ACTION_NVME),
+		ESIF_MAP_ENUM(ESIF_ACTION_OSTF),
+		ESIF_MAP_ENUM(ESIF_ACTION_PERC),
+		ESIF_MAP_ENUM(ESIF_ACTION_PHIDGET),
+		ESIF_MAP_ENUM(ESIF_ACTION_PSM),
+		ESIF_MAP_ENUM(ESIF_ACTION_RFPWIFI),
+		ESIF_MAP_ENUM(ESIF_ACTION_RFPWWAN),
+		ESIF_MAP_ENUM(ESIF_ACTION_SIM),
+		ESIF_MAP_ENUM(ESIF_ACTION_SYSFS),
+		ESIF_MAP_ENUM(ESIF_ACTION_SYSTEM),
+		ESIF_MAP_ENUM(ESIF_ACTION_USBFAN),
+		ESIF_MAP_ENUM(ESIF_ACTION_VIRTUAL),
+	};
+
+	/* Match ESIF_ACTION_TYPENAME or TYPENAME */
+	for (j = 0; j < ESIF_ARRAY_LEN(esif_action_type_map); j++) {
+		if (esif_ccb_stricmp(esif_action_type_map[j].name, name) == 0)
+			return esif_action_type_map[j].type;
+		if (esif_ccb_stricmp(esif_action_type_map[j].name+12, name) == 0)
+			return esif_action_type_map[j].type;
+	}
+	return (esif_action_type_t)0;
+}
+#endif
+#endif
+
 
 /*
  * Action MSR Hint Declarations

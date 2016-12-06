@@ -23,7 +23,7 @@ using namespace std;
 DomainControlList::DomainControlList(UIntN participantIndex, UIntN domainIndex,
     DomainFunctionalityVersions domainFunctionalityVersions,
     const ControlFactoryList& controlFactoryList,
-    ParticipantServicesInterface* participantServices) :
+    std::shared_ptr<ParticipantServicesInterface> participantServices) :
     m_participantIndex(participantIndex),
     m_domainIndex(domainIndex),
     m_domainFunctionalityVersions(domainFunctionalityVersions),

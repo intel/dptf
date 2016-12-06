@@ -18,8 +18,8 @@
 
 #include "WIDomainChargerTypeChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainChargerTypeChanged::WIDomainChargerTypeChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
@@ -44,7 +44,7 @@ void WIDomainChargerTypeChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainChargerTypeChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

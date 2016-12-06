@@ -345,7 +345,7 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	case ESIF_EVENT_PARTICIPANT_SUSPEND:
 		if (upInstance != ESIF_INSTANCE_LF) {
 			ESIF_TRACE_INFO("Suspending Participant: %d\n", upInstance);
-			rc = EsifUpPm_UnregisterParticipant(eParticipantOriginLF, upInstance);
+			rc = EsifUpPm_SuspendParticipant(upInstance);
 		}
 		break;
 
@@ -381,7 +381,6 @@ static eEsifError EsifUpPm_ActionChangeHandler(
 	eEsifError rc = ESIF_OK;
 	UInt8 i = 0;
 	EsifUpPtr upPtr = NULL;
-	EsifDspPtr dspPtr = NULL;
 	UInt32 actionType = 0;
 
 	if ((NULL == eventDataPtr) ||
@@ -405,15 +404,7 @@ static eEsifError EsifUpPm_ActionChangeHandler(
 			continue;
 		}
 
-		/* Check if the action type is used by the participant or not */
-		dspPtr = EsifUp_GetDsp(upPtr);
-		if (dspPtr == NULL) {
-			EsifUp_PutRef(upPtr);
-			continue;
-		}
-
-		if ((actionType < (sizeof(dspPtr->contained_actions)/sizeof(*dspPtr->contained_actions))) &&
-			(dspPtr->contained_actions[actionType] != 0)) {
+		if(EsifUp_IsActionInDsp(upPtr, actionType)) {
 			EsifUp_ReevaluateParticipantCaps(upPtr);
 		}
 
@@ -484,39 +475,19 @@ eEsifError EsifUpPm_UnregisterParticipant(
 	)
 {
 	eEsifError rc    = ESIF_OK;
-	EsifUpManagerEntryPtr entryPtr = NULL;
-	EsifUpPtr upPtr = NULL;
 
 	UNREFERENCED_PARAMETER(origin);
 
-	if (upInstance >= MAX_PARTICIPANT_ENTRY) {
-		ESIF_TRACE_ERROR("Instance id %d is out of range\n", upInstance);
-		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+	rc = EsifUpPm_SuspendParticipant(upInstance);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_ERROR("EsifUpPm_SuspendParticipant failed for participant id %d\n", upInstance);
 		goto exit;
 	}
 
-	esif_ccb_write_lock(&g_uppMgr.fLock);
-
-	entryPtr = &g_uppMgr.fEntries[upInstance];
-	upPtr = entryPtr->fUpPtr;
-	if ((NULL != upPtr) && (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED)) {
-
-		EsifUp_SuspendParticipant(upPtr);
-
-		entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_REMOVED;
-		g_uppMgr.fEntryCount--;
-
-	} else {
-		upPtr = NULL;
-	}
-
-	esif_ccb_write_unlock(&g_uppMgr.fLock);
-
-	if (NULL != upPtr) {
-		rc = EsifAppMgr_DestroyParticipantInAllApps(upPtr);
-	}
+	EsifEventMgr_SignalEvent(upInstance, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE, NULL);
 
 	ESIF_TRACE_INFO("Unregistered participant, instant id = %d\n", upInstance);
+
 exit:
 	return rc;
 }
@@ -577,6 +548,47 @@ exit:
 	return rc;
 }
 
+/* Suspend Upper Participant Instance */
+eEsifError EsifUpPm_SuspendParticipant(
+	const UInt8 upInstance
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpManagerEntryPtr entryPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+
+	if (upInstance >= MAX_PARTICIPANT_ENTRY) {
+		ESIF_TRACE_ERROR("Instance id %d is out of range\n", upInstance);
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	esif_ccb_write_lock(&g_uppMgr.fLock);
+
+	entryPtr = &g_uppMgr.fEntries[upInstance];
+	upPtr = entryPtr->fUpPtr;
+	if ((NULL != upPtr) && (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED)) {
+
+		EsifUp_SuspendParticipant(upPtr);
+
+		entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_REMOVED;
+		g_uppMgr.fEntryCount--;
+
+	}
+	else {
+		upPtr = NULL;
+	}
+
+	esif_ccb_write_unlock(&g_uppMgr.fLock);
+
+	if (NULL != upPtr) {
+		rc = EsifAppMgr_DestroyParticipantInAllApps(upPtr);
+	}
+
+	ESIF_TRACE_INFO("Suspended participant, instant id = %d\n", upInstance);
+exit:
+	return rc;
+}
 
 /*
  * Get By Instance From ID

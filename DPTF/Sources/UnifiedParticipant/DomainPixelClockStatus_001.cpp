@@ -19,7 +19,7 @@
 #include "DomainPixelClockStatus_001.h"
 
 DomainPixelClockStatus_001::DomainPixelClockStatus_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPixelClockStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // TODO: capture if needed

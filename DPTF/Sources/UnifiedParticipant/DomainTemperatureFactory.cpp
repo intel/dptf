@@ -22,7 +22,7 @@
 #include "DomainTemperature_002.h"
 
 ControlBase* DomainTemperatureFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

@@ -31,7 +31,7 @@ class DomainTemperature_000 : public DomainTemperatureBase
 public:
 
     DomainTemperature_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainTemperatureInterface
     virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override;

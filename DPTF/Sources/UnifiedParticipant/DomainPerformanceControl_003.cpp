@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainPerformanceControl_003::DomainPerformanceControl_003(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_capabilitiesLocked(false)
 {

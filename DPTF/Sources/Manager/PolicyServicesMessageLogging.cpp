@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesMessageLogging.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "ManagerMessage.h"
 
 PolicyServicesMessageLogging::PolicyServicesMessageLogging(DptfManagerInterface* dptfManager, UIntN policyIndex) :

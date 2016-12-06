@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDomainVirtualSensorRecalcChanged.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "Participant.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDomainVirtualSensorRecalcChanged::WIDomainVirtualSensorRecalcChanged(DptfManagerInterface* dptfManager, 
     UIntN participantIndex, UIntN domainIndex) :
@@ -45,7 +45,7 @@ void WIDomainVirtualSensorRecalcChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorRecalcChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

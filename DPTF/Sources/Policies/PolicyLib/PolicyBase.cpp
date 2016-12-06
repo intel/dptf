@@ -1002,3 +1002,16 @@ void PolicyBase::releaseControlofOsc(Bool shouldReleaseControl)
         }
     }
 }
+
+std::shared_ptr<XmlNode> PolicyBase::getXmlForTripPointStatistics(std::set<UIntN> targetIndexes) const
+{
+    auto status = XmlNode::createWrapperElement("trip_point_statistics");
+
+    for (auto targetIndex = targetIndexes.begin(); targetIndex != targetIndexes.end(); ++targetIndex)
+    {
+        auto participant = getParticipantTracker()->getParticipant(*targetIndex);
+        status->addChild(participant->getXmlForTripPointStatistics());
+    }
+
+    return status;
+}

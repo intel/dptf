@@ -19,8 +19,8 @@
 #include "WIParticipantCreate.h"
 #include "ParticipantManagerInterface.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIParticipantCreate::WIParticipantCreate(DptfManagerInterface* dptfManager, UIntN participantIndex,
     const AppParticipantDataPtr participantDataPtr, Bool participantEnabled, Bool* participantCreated) :
@@ -58,7 +58,7 @@ void WIParticipantCreate::execute(void)
         // Iterate through the list of policies and let them know about the new participant
         //
 
-        PolicyManager* policyManager = getPolicyManager();
+        auto policyManager = getPolicyManager();
         UIntN policyListCount = policyManager->getPolicyListCount();
 
         for (UIntN i = 0; i < policyListCount; i++)

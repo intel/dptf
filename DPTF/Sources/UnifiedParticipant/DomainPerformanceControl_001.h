@@ -29,7 +29,7 @@ class DomainPerformanceControl_001 : public DomainPerformanceControlBase
 public:
 
     DomainPerformanceControl_001(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPerformanceControl_001(void);
 
     // DomainPerformanceControlInterface

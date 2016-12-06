@@ -31,7 +31,7 @@ class DomainPixelClockControl_000 : public DomainPixelClockControlBase
 public:
 
     DomainPixelClockControl_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainPixelClockControlInterface
     virtual void setPixelClockControl(UIntN participantIndex, UIntN domainIndex,

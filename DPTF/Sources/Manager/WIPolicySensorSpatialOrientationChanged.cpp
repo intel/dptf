@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicySensorSpatialOrientationChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicySensorSpatialOrientationChanged::WIPolicySensorSpatialOrientationChanged(DptfManagerInterface* dptfManager,
     SensorSpatialOrientation::Type sensorSpatialOrientation) :
@@ -35,7 +35,7 @@ void WIPolicySensorSpatialOrientationChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

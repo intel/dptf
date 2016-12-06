@@ -18,7 +18,7 @@
 
 #include "ParticipantWorkItem.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 ParticipantWorkItem::ParticipantWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType,
     UIntN participantIndex) : WorkItem(dptfManager, frameworkEventType), m_participantIndex(participantIndex)

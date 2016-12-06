@@ -22,7 +22,7 @@
 #include "Participant.h"
 #include "Policy.h"
 #include <fstream>
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
 #include "WorkItemQueueManagerInterface.h"
 #include "BinaryParse.h"
@@ -210,7 +210,7 @@ std::string DptfStatus::getFrameworkGroup()
 {
     auto modules = XmlNode::createWrapperElement("modules");
 
-    // DPPM Status
+    // Manager Status
 
     auto module = XmlNode::createWrapperElement("module");
     modules->addChild(module);
@@ -218,7 +218,7 @@ std::string DptfStatus::getFrameworkGroup()
     auto moduleId = XmlNode::createDataElement("id", StlOverride::to_string(0));
     module->addChild(moduleId);
 
-    auto moduleName = XmlNode::createDataElement("name", "DPPM Status");
+    auto moduleName = XmlNode::createDataElement("name", "Manager Status");
     module->addChild(moduleName);
 
 #ifdef INCLUDE_WORK_ITEM_STATISTICS
@@ -289,15 +289,15 @@ std::string DptfStatus::getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCo
 
 std::string DptfStatus::getXmlForParticipant(UInt32 mappedIndex, eEsifError* returnCode)
 {
-    UIntN participantCount = m_participantManager->getParticipantListCount();
+    auto participantIndexList = m_participantManager->getParticipantIndexes();
     UIntN totalDomainCount = 0;
 
     // Total # of participants + domains for error checking
-    for (UIntN i = 0; i < participantCount; i++)
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* participant = m_participantManager->getParticipantPtr(i);
+            Participant* participant = m_participantManager->getParticipantPtr(*i);
             totalDomainCount += participant->getDomainCount();
         }
         catch (...)
@@ -411,13 +411,13 @@ std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedParticipants()
 {
     auto participantsRoot = XmlNode::createWrapperElement("participants");
 
-    UIntN participantCount = m_participantManager->getParticipantListCount();
-    for (UIntN i = 0; i < participantCount; i++)
+    auto participantIndexList = m_participantManager->getParticipantIndexes();
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* p = m_participantManager->getParticipantPtr(i);
-            participantsRoot->addChild(p->getXml(Constants::Invalid));
+            Participant* participant = m_participantManager->getParticipantPtr(*i);
+            participantsRoot->addChild(participant->getXml(Constants::Invalid));
         }
         catch (...)
         {

@@ -41,9 +41,6 @@ public:
 
 private:
 
-    // hide the copy constructor.
-    PerformanceControlArbitrator(const PerformanceControlArbitrator& rhs);
-
     UIntN m_arbitratedPerformanceControlIndex;
     std::map<UIntN, UIntN> m_requestedPerformanceControlIndex;
 };

@@ -19,7 +19,7 @@
 #include "PolicyServicesDomainTemperature.h"
 #include "ParticipantManagerInterface.h"
 #include "ManagerMessage.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 PolicyServicesDomainTemperature::PolicyServicesDomainTemperature(DptfManagerInterface* dptfManager, 
     UIntN policyIndex) :

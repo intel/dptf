@@ -134,7 +134,7 @@ Bool DptfManager::isWorkItemQueueManagerCreated(void) const
     return m_workItemQueueManagerCreated;
 }
 
-EsifServices* DptfManager::getEsifServices(void) const
+EsifServicesInterface* DptfManager::getEsifServices(void) const
 {
     return m_esifServices;
 }
@@ -144,7 +144,7 @@ WorkItemQueueManagerInterface* DptfManager::getWorkItemQueueManager(void) const
     return m_workItemQueueManager;
 }
 
-PolicyManager* DptfManager::getPolicyManager(void) const
+PolicyManagerInterface* DptfManager::getPolicyManager(void) const
 {
     return m_policyManager;
 }

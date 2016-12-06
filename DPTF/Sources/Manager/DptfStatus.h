@@ -40,7 +40,7 @@ public:
 private:
 
     DptfManagerInterface* m_dptfManager;
-    PolicyManager* m_policyManager;
+    PolicyManagerInterface* m_policyManager;
     ParticipantManagerInterface* m_participantManager;
     ParticipantStatusMap* m_participantStatusMap;
 

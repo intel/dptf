@@ -22,7 +22,7 @@
 using namespace StatusFormat;
 
 DomainPowerControl_001::DomainPowerControl_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPowerControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_initialState(this), // the power control state needs the control to capture and restore
     m_capabilitiesLocked(false)

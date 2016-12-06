@@ -18,10 +18,10 @@
 
 #include "WorkItem.h"
 #include "DptfManager.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
 #include "UniqueIdGenerator.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WorkItem::WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType) :
     m_dptfManager(dptfManager),
@@ -50,7 +50,7 @@ DptfManagerInterface* WorkItem::getDptfManager(void) const
     return m_dptfManager;
 }
 
-PolicyManager* WorkItem::getPolicyManager(void) const
+PolicyManagerInterface* WorkItem::getPolicyManager(void) const
 {
     return m_policyManager;
 }
@@ -60,7 +60,7 @@ ParticipantManagerInterface* WorkItem::getParticipantManager(void) const
     return m_participantManager;
 }
 
-EsifServices* WorkItem::getEsifServices(void) const
+EsifServicesInterface* WorkItem::getEsifServices(void) const
 {
     return m_esifServices;
 }

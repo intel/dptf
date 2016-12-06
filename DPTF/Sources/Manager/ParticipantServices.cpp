@@ -21,7 +21,7 @@
 #include "WorkItemQueueManagerInterface.h"
 #include "WIDomainPerformanceControlCapabilityChanged.h"
 #include "WIDomainPowerControlCapabilityChanged.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "ManagerMessage.h"
 
 ParticipantServices::ParticipantServices(DptfManagerInterface* dptfManager, UIntN participantIndex) :

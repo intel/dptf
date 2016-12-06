@@ -30,6 +30,7 @@ public:
     ActiveControlSet(const std::vector<ActiveControl>& activeControl);
     static ActiveControlSet createFromFps(const DptfBuffer& buffer);
     UIntN getCount(void) const;
+    UIntN getSmallestNonZeroFanSpeed(void);
     ActiveControl operator[](UIntN index) const;
     Bool operator==(const ActiveControlSet& rhs) const;
     Bool operator!=(const ActiveControlSet& rhs) const;

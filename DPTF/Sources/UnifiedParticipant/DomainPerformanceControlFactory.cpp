@@ -23,7 +23,7 @@
 #include "DomainPerformanceControl_003.h"
 
 ControlBase* DomainPerformanceControlFactory::make(UIntN participant, UIntN domain, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

@@ -28,6 +28,6 @@ class DomainRfProfileControlBase : public ControlBase, public DomainRfProfileCon
 public:
 
     DomainRfProfileControlBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainRfProfileControlBase();
 };

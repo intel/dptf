@@ -27,7 +27,7 @@ class DomainActiveControl_001 : public DomainActiveControlBase
 public:
 
     DomainActiveControl_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainActiveControl_001(void);
 
     // DomainActiveControlInterface

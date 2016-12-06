@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainPriority_001::DomainPriority_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
     clearCachedData();

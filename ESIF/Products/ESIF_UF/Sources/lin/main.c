@@ -29,6 +29,7 @@
 #include "esif_pm.h"
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_ccb_system.h"
 
 #define COPYRIGHT_NOTICE "Copyright (c) 2013-2016 Intel Corporation All Rights Reserved"
 
@@ -81,7 +82,7 @@ struct instancelock {
 	int  lockfd;    /* lock file descriptor */
 };
 static struct instancelock g_instance = {"esif_ufd.pid"};
-static char *device_path = "/devices/virtual/thermal/thermal_zone";
+static char device_path[] = "/devices/virtual/thermal/thermal_zone";
 
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
@@ -245,25 +246,28 @@ static int kbhit (void)
 
 static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
 {
+	static const char name_eq[] = "NAME=";
+	static const char temp_eq[] = "TEMP=";
+	static const char event_eq[] = "EVENT=";
 	int i = 0;
 
 	*temp = -1;
 	*event = -1;
 
 	while (i < len) {
-		if (strlen(buffer + i) > strlen("NAME=")
-				&& !strncmp(buffer + i, "NAME=", strlen("NAME="))) {
-				*zone_name = buffer + i + strlen("NAME=");
+		if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(name_eq, sizeof(name_eq))
+				&& esif_ccb_strncmp(buffer + i, name_eq, esif_ccb_strlen(name_eq, sizeof(name_eq))) == 0) {
+				*zone_name = buffer + i + esif_ccb_strlen(name_eq, sizeof(name_eq));
 		}
-		else if (strlen(buffer + i) > strlen("TEMP=")
-				&& !strncmp(buffer + i, "TEMP=", strlen("TEMP="))) {
-				*temp= atoi(buffer + i + strlen("TEMP="));
+		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(temp_eq, sizeof(temp_eq))
+				&& esif_ccb_strncmp(buffer + i, temp_eq, esif_ccb_strlen(temp_eq, sizeof(temp_eq))) == 0) {
+				*temp= atoi(buffer + i + esif_ccb_strlen(temp_eq, sizeof(temp_eq)));
 		}
-		else if (strlen(buffer + i) > strlen("EVENT=")
-				&& !strncmp(buffer + i, "EVENT=", strlen("EVENT="))) {
-				*event= atoi(buffer + i + strlen("EVENT="));
+		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(event_eq, sizeof(event_eq))
+				&& esif_ccb_strncmp(buffer + i, event_eq, esif_ccb_strlen(event_eq, sizeof(event_eq))) == 0) {
+				*event= atoi(buffer + i + esif_ccb_strlen(event_eq, sizeof(event_eq)));
 		}
-		i += strlen(buffer + i) + 1;
+		i += esif_ccb_strlen(buffer + i, len - i) + 1;
 	}
 
 	if (*temp != -1 && *event != -1)
@@ -275,8 +279,8 @@ static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp,
 static int check_for_uevent(int fd) {
 	int i = 0, j;
 	int len;
-	const char *dev_path = "DEVPATH=";
-	unsigned int dev_path_len = strlen(dev_path);
+	const char dev_path[] = "DEVPATH=";
+	unsigned int dev_path_len = sizeof(dev_path) - 1;
 	char buffer[MAX_PAYLOAD + 1];
 	char thermal_path[MAX_PAYLOAD + 1];
 	char *buf_ptr;
@@ -285,6 +289,9 @@ static int check_for_uevent(int fd) {
 	int event;
 
 	len = recv(fd, buffer, sizeof(buffer), 0);
+	if (len <= 0) {
+		return 0;
+	}
 
 	while (i < len) {
 
@@ -292,15 +299,14 @@ static int check_for_uevent(int fd) {
 		if (!buf_ptr)
 			break;
 
-		if (strlen(buf_ptr) > dev_path_len
-				&& !strncmp(buf_ptr, dev_path, dev_path_len)) {
+		if (esif_ccb_strlen(buf_ptr, sizeof(dev_path)) > dev_path_len
+				&& esif_ccb_strncmp(buf_ptr, dev_path, dev_path_len) == 0) {
 
-			if (!strncmp(buf_ptr + dev_path_len, device_path,
-				strlen(device_path))) {
+			if (esif_ccb_strncmp(buf_ptr + dev_path_len, device_path, sizeof(device_path) - 1) == 0) {
 				char *parsed = NULL;
 				char *ctx = NULL;
 
-				strncpy(thermal_path, buf_ptr + dev_path_len, MAX_PAYLOAD);
+				esif_ccb_strncpy(thermal_path, buf_ptr + dev_path_len, MAX_PAYLOAD);
 				parsed = esif_ccb_strtok(thermal_path, "/", &ctx);
 				while (parsed != NULL) {
 					esif_ccb_strcpy(g_udev_target,parsed,MAX_PAYLOAD);
@@ -332,7 +338,7 @@ static int check_for_uevent(int fd) {
 				return 1;
 			}
 		}
-		i += strlen(buffer + i) + 1;
+		i += esif_ccb_strlen(buffer + i, len - i) + 1;
 	}
 
 	return 0;
@@ -411,7 +417,7 @@ int instance_lock()
 		return ESIF_FALSE;
 	}
 	esif_ccb_sprintf(sizeof(pid_buffer), pid_buffer, "%d\n", getpid());
-	rc = write(g_instance.lockfd, pid_buffer, strlen(pid_buffer));
+	rc = write(g_instance.lockfd, pid_buffer, esif_ccb_strlen(pid_buffer, sizeof(pid_buffer)));
 	return ESIF_TRUE;
 }
 
@@ -971,6 +977,7 @@ int main (int argc, char **argv)
 	char command[MAX_LINE + 1] = {0};
 	int quit_after_command = ESIF_FALSE;
 #if defined(ESIF_ATTR_DAEMON)
+	int terminate_daemon = ESIF_FALSE;
 	int start_as_server = ESIF_FALSE;
 	int start_with_pipe = ESIF_FALSE;
 	int start_with_log = ESIF_FALSE;
@@ -988,7 +995,7 @@ int main (int argc, char **argv)
 
 	optind = 1;	// Rest To 1 Restart Vector Scan
 
-	while ((c = getopt(argc, argv, "d:f:c:b:r:i:xhq?snzpl")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:c:b:r:i:xhq?tsnzpl")) != -1) {
 		switch (c) {
 		case 'd':
 			g_dst = (u8)esif_atoi(optarg);
@@ -1026,6 +1033,10 @@ int main (int argc, char **argv)
 
 #if defined (ESIF_ATTR_DAEMON)
 
+		case 't':
+			terminate_daemon = ESIF_TRUE;
+			break;
+
 		case 's':
 			start_as_server = ESIF_TRUE;
 			break;
@@ -1061,7 +1072,8 @@ int main (int argc, char **argv)
 			"-r [*msec]          Set IPC Retry Timeout in msec\n"
 			"-i [*msec]          Set IPC Retry Interval in msec\n"
 #if defined (ESIF_ATTR_DAEMON)
-			"-s                  Run As Server\n"
+			"-t or 'reload'      Terminate and Reload Daemon or Server\n"
+			"-s or 'server'      Run As Server [Interactive]\n"
 			"-z                  Run As Daemon in Background [Default]\n"
 			"-n                  Run As Daemon in Foreground\n"
 			"-p                  Use Pipe For Input\n"
@@ -1076,7 +1088,30 @@ int main (int argc, char **argv)
 		}
 	}
 
+	// For compatibility with Windows command line options
+	while (optind < argc) {
+#if defined(ESIF_ATTR_DAEMON)
+		if (esif_ccb_stricmp(argv[optind], "server") == 0) {
+			start_as_server = ESIF_TRUE;
+		}
+		if (esif_ccb_stricmp(argv[optind], "reload") == 0) {
+			terminate_daemon = ESIF_TRUE;
+		}
+#endif
+		optind++;
+	}
+
 #if defined (ESIF_ATTR_DAEMON)
+	// Gracefully Terminate all esif_ufd processes (including this process)
+	// This will automatically reload esif_ufd if configured in /etc/init/dptf.conf [enabled for Chrome & Android]
+	if (terminate_daemon) {
+		printf("Reloading esif_ufd daemon...\n");
+		sigterm_enable();
+		esif_ccb_system("killall esif_ufd");
+		exit(0);
+	}
+
+	// Start as Server or Daemon
 	if (start_as_server) {
 		run_as_server(fp, command, quit_after_command);
 	} else {

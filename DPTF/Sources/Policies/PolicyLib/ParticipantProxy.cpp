@@ -314,7 +314,7 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 
     if (m_timeOfLastThresholdCrossed.isInvalid() || m_timeOfLastThresholdCrossed.asMillisecondsInt() == 0)
     {
-        stats->addChild(XmlNode::createDataElement("time_since_last_trip", "X"));
+        stats->addChild(XmlNode::createDataElement("time_since_last_trip", Constants::InvalidString));
     }
     else
     {

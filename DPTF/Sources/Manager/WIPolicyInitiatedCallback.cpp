@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyInitiatedCallback.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyInitiatedCallback::WIPolicyInitiatedCallback(DptfManagerInterface* dptfManager, UIntN policyIndex,
     UInt64 policyDefinedEventCode, UInt64 param1, void* param2) :

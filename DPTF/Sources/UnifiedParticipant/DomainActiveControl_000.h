@@ -31,7 +31,7 @@ class DomainActiveControl_000 : public DomainActiveControlBase
 public:
 
     DomainActiveControl_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainActiveControlInterface
     virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;

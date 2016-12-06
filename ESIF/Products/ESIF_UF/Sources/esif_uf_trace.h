@@ -121,7 +121,6 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_DEFAULT)		/* Generic Module - Use Default Trace Settings*/ \
 	ENUM(ESIF_TRACEMODULE_DPTF)			/* DPTF Loadable App */ \
 	\
-	ENUM(ESIF_TRACEMODULE_CCB)			/* CCB Modules mixed with Kernel Tracing */ \
 	ENUM(ESIF_TRACEMODULE_SHELL)		/* ESIF Shell */ \
 	ENUM(ESIF_TRACEMODULE_UF)			/* UF Main */ \
 	\
@@ -135,15 +134,14 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_PARTICIPANT)	/* Upper Participants */ \
 	ENUM(ESIF_TRACEMODULE_PRIMITIVE)	/* Primitives */ \
 	ENUM(ESIF_TRACEMODULE_SERVICE)		/* Services */ \
-	ENUM(ESIF_TRACEMODULE_TEST)			/* Tests */ \
 	\
 	ENUM(ESIF_TRACEMODULE_DATAVAULT)	/* DataVaults/DataCache/DataBank */ \
-	ENUM(ESIF_TRACEMODULE_EQL)			/* EQL Parser/IString/EsifData */ \
 	ENUM(ESIF_TRACEMODULE_WEBSERVER)	/* Web Socket Server */ \
 	\
 	ENUM(ESIF_TRACEMODULE_WINDOWS)		/* Windows General */ \
 	ENUM(ESIF_TRACEMODULE_ACTWIRELESS)	/* Windows ACT Wireless */ \
 	ENUM(ESIF_TRACEMODULE_UMDF)			/* Windows UMDF */ \
+	ENUM(ESIF_TRACEMODULE_THERMALAPI)	/* Windows Thermal Framework API */ \
 	\
 	ENUM(ESIF_TRACEMODULE_LINUX)		/* Linux General */ \
 	\

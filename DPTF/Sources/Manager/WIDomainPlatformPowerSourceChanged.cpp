@@ -18,8 +18,8 @@
 
 #include "WIDomainPlatformPowerSourceChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainPlatformPowerSourceChanged::WIDomainPlatformPowerSourceChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
@@ -47,7 +47,7 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainPlatformPowerSourceChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

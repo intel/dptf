@@ -27,7 +27,7 @@ class ParticipantGetSpecificInfo_001 : public ParticipantGetSpecificInfoBase
 public:
 
     ParticipantGetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~ParticipantGetSpecificInfo_001();
 
     // ParticipantGetSpecificInfoInterface

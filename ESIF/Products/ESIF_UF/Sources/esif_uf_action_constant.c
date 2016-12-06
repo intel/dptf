@@ -15,6 +15,8 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_ACTION
+
 #include "esif_uf.h"			/* Upper Framework */
 #include "esif_uf_actmgr.h"		/* Action Manager */
 

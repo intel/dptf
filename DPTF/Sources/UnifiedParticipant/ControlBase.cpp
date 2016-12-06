@@ -19,7 +19,7 @@
 #include "ControlBase.h"
 #include "esif_sdk_data_misc.h"
 
-ControlBase::ControlBase(UIntN participantIndex, UIntN domainIndex, ParticipantServicesInterface* participantServices)
+ControlBase::ControlBase(UIntN participantIndex, UIntN domainIndex, std::shared_ptr<ParticipantServicesInterface> participantServices)
     : m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_participantServices(participantServices),
     m_activityLoggingEnabled(false)
 {
@@ -66,7 +66,7 @@ void ControlBase::disableActivityLogging(void)
     m_activityLoggingEnabled = false;
 }
 
-ParticipantServicesInterface* ControlBase::getParticipantServices() const
+std::shared_ptr<ParticipantServicesInterface> ControlBase::getParticipantServices() const
 {
     return m_participantServices;
 }

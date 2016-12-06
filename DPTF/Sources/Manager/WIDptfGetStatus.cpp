@@ -18,7 +18,7 @@
 
 #include "WIDptfGetStatus.h"
 #include "DptfStatusInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfGetStatus::WIDptfGetStatus(DptfManagerInterface* dptfManager, const eAppStatusCommand command,
     const UInt32 appStatusIn, EsifDataPtr appStatusOut, eEsifError* returnCode) :

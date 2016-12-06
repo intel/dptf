@@ -21,7 +21,7 @@
 #include "DomainCoreControl_001.h"
 
 ControlBase* DomainCoreControlFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

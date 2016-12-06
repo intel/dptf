@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainActiveControl_001::DomainActiveControl_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainActiveControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     clearCachedData();

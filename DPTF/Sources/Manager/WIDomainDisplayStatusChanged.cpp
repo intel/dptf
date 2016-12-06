@@ -18,8 +18,8 @@
 
 #include "WIDomainDisplayStatusChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainDisplayStatusChanged::WIDomainDisplayStatusChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
@@ -44,7 +44,7 @@ void WIDomainDisplayStatusChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainDisplayStatusChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

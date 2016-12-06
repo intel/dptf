@@ -20,6 +20,9 @@
 #include "esif_uf_loggingmgr.h"
 #include "esif_temp.h"
 
+// Bounds checking
+#define MAX_SCHEDULER_MS	(24 * 60 * 60 * 1000)	// 24 hours; cannot exceed 2^31-1 (~24 days)
+
 UInt32 g_statusCapability[] = {
 	ESIF_CAPABILITY_TYPE_TEMP_STATUS,
 	ESIF_CAPABILITY_TYPE_POWER_STATUS,
@@ -767,13 +770,13 @@ static eEsifError EsifLogMgr_ParseCmdSchedule(
 	if ((UInt32)argc <= i) {
 		// No Delay specified
 		// Set by default to 5000ms
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "No Interval specified .Setting to default polling interval : %d ms\n", DEFAULT_SCHEDULE_DELAY_INTERVAL);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "No Interval specified .Setting to default delay interval : %d ms\n", DEFAULT_SCHEDULE_DELAY_INTERVAL);
 		self->logScheduler.delay = DEFAULT_SCHEDULE_DELAY_INTERVAL;
 	}
 	else {
-		//Delay is specified as input
+		// Delay is specified as input
 		int delay = esif_atoi(argv[i]);
-		self->logScheduler.delay = (delay < 0) ? 0 : (UInt32) delay;
+		self->logScheduler.delay = (delay < 0) ? 0 : (delay > MAX_SCHEDULER_MS) ? MAX_SCHEDULER_MS : (UInt32) delay;
 		if (self->logScheduler.delay < MIN_LOG_INTERVAL) {
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Input interval value is less than minimum supported value %d ms \n", MIN_LOG_INTERVAL);
 			rc = ESIF_E_NOT_SUPPORTED;
@@ -1483,7 +1486,7 @@ static eEsifError EsifLogMgr_AddCapability(
 	rc = EsifLogMgr_AddParticipantDataListEntry(self, newEntryPtr);
 
 exit:
-	if (rc != ESIF_OK) {
+	if ((rc != ESIF_OK) && (newEntryPtr != NULL)) {
 		esif_ccb_lock_uninit(&newEntryPtr->capabilityDataLock);
 		esif_ccb_free(newEntryPtr);
 	}

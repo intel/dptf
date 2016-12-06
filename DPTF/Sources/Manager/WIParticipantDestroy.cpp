@@ -19,10 +19,10 @@
 #include "WIParticipantDestroy.h"
 #include "DptfManager.h"
 #include "WorkItemQueueManagerInterface.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
 #include "WorkItemMatchCriteria.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIParticipantDestroy::WIParticipantDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex) :
     ParticipantWorkItem(dptfManager, FrameworkEvent::ParticipantDestroy, participantIndex)
@@ -39,7 +39,7 @@ void WIParticipantDestroy::execute(void)
 
     // Call unbind participant for each policy before we actually destroy the participant.
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

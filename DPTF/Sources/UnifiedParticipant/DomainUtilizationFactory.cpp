@@ -21,7 +21,7 @@
 #include "DomainUtilization_001.h"
 
 ControlBase* DomainUtilizationFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

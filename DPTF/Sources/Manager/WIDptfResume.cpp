@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDptfResume.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfResume::WIDptfResume(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::DptfResume)
@@ -39,14 +39,14 @@ void WIDptfResume::execute(void)
 
     // notify all participants
 
-	auto participantManager = getParticipantManager();
-    UIntN participantListCount = participantManager->getParticipantListCount();
+    auto participantManager = getParticipantManager();
+    auto participantIndexList = participantManager->getParticipantIndexes();
 
-    for (UIntN i = 0; i < participantListCount; i++)
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* participant = participantManager->getParticipantPtr(i);
+            Participant* participant = participantManager->getParticipantPtr(*i);
             participant->resume();
         }
         catch (participant_index_invalid ex)
@@ -55,13 +55,13 @@ void WIDptfResume::execute(void)
         }
         catch (std::exception& ex)
         {
-            writeWorkItemErrorMessageParticipant(ex, "Participant::resume", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::resume", *i);
         }
     }
 
     // notify all policies
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

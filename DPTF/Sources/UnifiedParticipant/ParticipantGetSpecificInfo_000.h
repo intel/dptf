@@ -31,7 +31,7 @@ class ParticipantGetSpecificInfo_000 : public ParticipantGetSpecificInfoBase
 public:
 
     ParticipantGetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // ParticipantGetSpecificInfoInterface
     virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(

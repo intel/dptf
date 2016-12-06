@@ -46,6 +46,7 @@ public:
     virtual DptfBuffer getActiveRelationshipTable(void) override final;
     virtual void setActiveRelationshipTable(DptfBuffer data) override final;
     virtual DptfBuffer getThermalRelationshipTable(void) override final;
+    virtual void setThermalRelationshipTable(DptfBuffer data) override final;
     virtual DptfBuffer getPassiveTable(void) override final;
     virtual void setPassiveTable(DptfBuffer data) override final;
     virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) override final;
@@ -60,6 +61,7 @@ public:
     virtual DptfBuffer getPowerBossMathTable(void) override final;
     virtual DptfBuffer getEmergencyCallModeTable(void) override final;
     virtual DptfBuffer getPidAlgorithmTable(void) override final;
+    virtual void setPidAlgorithmTable(DptfBuffer data) override final;
     virtual DptfBuffer getActiveControlPointRelationshipTable(void) override final;
 
 private:

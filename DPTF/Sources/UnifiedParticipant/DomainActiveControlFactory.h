@@ -26,5 +26,5 @@ class DomainActiveControlFactory : public ControlFactoryInterface
 public:
 
     virtual ControlBase* make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-        ParticipantServicesInterface* participantServicesInterface) override;
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) override;
 };

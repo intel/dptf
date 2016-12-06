@@ -27,7 +27,7 @@ class ControlBase
 {
 public:
 
-    ControlBase(UIntN participantIndex, UIntN domainIndex, ParticipantServicesInterface* participantServices);
+    ControlBase(UIntN participantIndex, UIntN domainIndex, std::shared_ptr<ParticipantServicesInterface> participantServices);
     virtual ~ControlBase();
 
     // ComponentExtendedInterface
@@ -45,14 +45,14 @@ protected:
     virtual void restore(void);
     UIntN getParticipantIndex() const;
     UIntN getDomainIndex() const;
-    ParticipantServicesInterface* getParticipantServices() const;
+    std::shared_ptr<ParticipantServicesInterface> getParticipantServices() const;
     DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const;
 
 private:
 
     UIntN m_participantIndex;
     UIntN m_domainIndex;
-    ParticipantServicesInterface* m_participantServices;
+    std::shared_ptr<ParticipantServicesInterface> m_participantServices;
     Bool m_activityLoggingEnabled;
     UInt16 createTupleDomain() const;
 };

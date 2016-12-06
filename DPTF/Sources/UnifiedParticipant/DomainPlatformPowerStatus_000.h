@@ -31,7 +31,7 @@ class DomainPlatformPowerStatus_000 : public DomainPlatformPowerStatusBase
 public:
 
     DomainPlatformPowerStatus_000(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainPlatformPowerStatusInterface
     virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;

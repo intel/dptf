@@ -29,6 +29,6 @@ class DomainRfProfileStatusBase : public ControlBase, public DomainRfProfileStat
 public:
 
     DomainRfProfileStatusBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainRfProfileStatusBase();
 };

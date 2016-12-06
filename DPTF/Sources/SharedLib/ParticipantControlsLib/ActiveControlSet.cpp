@@ -19,6 +19,7 @@
 #include "ActiveControlSet.h"
 #include "esif_sdk_fan.h"
 #include "XmlNode.h"
+#include <algorithm>
 
 ActiveControlSet::ActiveControlSet(const std::vector<ActiveControl>& activeControl) :
     m_activeControl(activeControl)
@@ -92,4 +93,26 @@ std::shared_ptr<XmlNode> ActiveControlSet::getXml(void)
     }
 
     return root;
+}
+
+UIntN ActiveControlSet::getSmallestNonZeroFanSpeed(void)
+{
+    if (m_activeControl.empty())
+    {
+        throw dptf_exception("Cannot get smallest non zero fan speed.  Active control set is empty.");
+    }
+    else
+    {
+        std::sort(m_activeControl.begin(), m_activeControl.end());
+        auto j = 0;
+        for (UIntN i = 0; i < m_activeControl.size(); i++)
+        {
+            if (m_activeControl.at(i).getControlId() != 0)
+            {
+                j = i;
+                break;
+            }
+        }
+        return m_activeControl.at(j).getControlId();
+    }  
 }

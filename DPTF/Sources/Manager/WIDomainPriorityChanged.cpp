@@ -18,8 +18,8 @@
 
 #include "WIDomainPriorityChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainPriorityChanged::WIDomainPriorityChanged(
     DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
@@ -44,7 +44,7 @@ void WIDomainPriorityChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainPriorityChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

@@ -143,19 +143,19 @@ std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(Partic
             }
             else
             {
-                status->addChild(XmlNode::createDataElement("time_until_expires", "X"));
+                status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
                 status->addChild(
-                    XmlNode::createDataElement("current_polling_period", "X"));
+                    XmlNode::createDataElement("current_polling_period", Constants::InvalidString));
             }
         }
         else
         {
-            status->addChild(XmlNode::createDataElement("time_until_expires", "X"));
+            status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
         }
     }
     catch (dptf_exception)
     {
-        status->addChild(XmlNode::createDataElement("time_until_expires", "X"));
+        status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
     }
 
     return status;

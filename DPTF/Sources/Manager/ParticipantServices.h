@@ -25,7 +25,7 @@
 class ParticipantManagerInterface;
 class Participant;
 class WorkItemQueueManagerInterface;
-class EsifServices;
+class EsifServicesInterface;
 
 // When a participant is created it receives this interface as a parameter.  These are the functions provided
 // by the DPTF framework.  In many cases we pass through directly to ESIF.
@@ -180,7 +180,7 @@ private:
     ParticipantManagerInterface* m_participantManager;
     Participant* m_participant;
     WorkItemQueueManagerInterface* m_workItemQueueManager;
-    EsifServices* m_esifServices;
+    EsifServicesInterface* m_esifServices;
     UIntN m_participantIndex;
 
     void throwIfNotWorkItemThread(void);

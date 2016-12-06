@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "PolicyServicesPolicyEventRegistration.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 
 PolicyServicesPolicyEventRegistration::PolicyServicesPolicyEventRegistration(
     DptfManagerInterface* dptfManager, UIntN policyIndex) :

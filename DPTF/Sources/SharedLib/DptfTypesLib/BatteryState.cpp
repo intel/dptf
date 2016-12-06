@@ -33,7 +33,7 @@ namespace BatteryState
         case BatteryState::ChargingCritical:
             return "Charging Critical";
         default:
-            return "X";
+            return Constants::InvalidString;
         }
     }
 }

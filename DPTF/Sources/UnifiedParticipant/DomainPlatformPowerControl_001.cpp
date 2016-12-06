@@ -23,7 +23,7 @@ using namespace StatusFormat;
 using namespace std;
 
 DomainPlatformPowerControl_001::DomainPlatformPowerControl_001(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPlatformPowerControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_initialState(this)    // the platform power control state needs the control to capture and restore
 {

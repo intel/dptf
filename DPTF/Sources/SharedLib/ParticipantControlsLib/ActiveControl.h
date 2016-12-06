@@ -34,6 +34,7 @@ public:
     UIntN getPower(void) const;
     Bool operator==(const ActiveControl& rhs) const;
     Bool operator!=(const ActiveControl& rhs) const;
+    Bool operator<(const ActiveControl& rhs) const;
     std::shared_ptr<XmlNode> getXml(void);
 
 private:

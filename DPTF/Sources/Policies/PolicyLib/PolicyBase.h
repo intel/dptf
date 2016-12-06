@@ -180,6 +180,9 @@ public:
     // allows overriding the default time object with a different one
     void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);
 
+    // trip point statistics
+    std::shared_ptr<XmlNode> getXmlForTripPointStatistics(std::set<UIntN> targetIndexes) const;
+
 protected:
 
     // policy state access for subclasses

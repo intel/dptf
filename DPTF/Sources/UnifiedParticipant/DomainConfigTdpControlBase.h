@@ -29,6 +29,6 @@ class DomainConfigTdpControlBase : public ControlBase, public DomainConfigTdpCon
 public:
 
     DomainConfigTdpControlBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainConfigTdpControlBase();
 };

@@ -19,7 +19,7 @@
 #include "DomainDisplayControl_000.h"
 
 DomainDisplayControl_000::DomainDisplayControl_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

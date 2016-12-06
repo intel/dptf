@@ -29,6 +29,6 @@ class DomainPixelClockControlBase : public ControlBase, public DomainPixelClockC
 public:
 
     DomainPixelClockControlBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPixelClockControlBase();
 };

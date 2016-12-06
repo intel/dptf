@@ -18,8 +18,8 @@
 
 #include "WIDomainDestroy.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIDomainDestroy::WIDomainDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
     DomainWorkItem(dptfManager, FrameworkEvent::DomainDestroy, participantIndex, domainIndex)
@@ -40,7 +40,7 @@ void WIDomainDestroy::execute(void)
     }
     else
     {
-        PolicyManager* policyManager = getPolicyManager();
+        auto policyManager = getPolicyManager();
         UIntN policyListCount = policyManager->getPolicyListCount();
 
         // Let each policy know that the domain is going away

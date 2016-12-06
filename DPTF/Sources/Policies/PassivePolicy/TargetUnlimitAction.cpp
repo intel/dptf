@@ -76,7 +76,7 @@ void TargetUnlimitAction::execute()
             auto hysteresis = participant->getTemperatureThresholds().getHysteresis();
             auto currentTemperature = participant->getFirstDomainTemperature();
             auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
-            auto psv = passiveTripPoints.getItem(ParticipantSpecificInfoKey::PSV);
+            auto psv = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV);
 
             // if temperature is between psv and (psv - hysteresis) then schedule another callback, otherwise stop
             // monitoring the target as there is nothing else to unlimit.

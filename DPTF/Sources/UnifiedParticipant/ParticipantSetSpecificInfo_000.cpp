@@ -19,7 +19,7 @@
 #include "ParticipantSetSpecificInfo_000.h"
 
 ParticipantSetSpecificInfo_000::ParticipantSetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : ParticipantSetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

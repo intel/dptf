@@ -22,7 +22,7 @@
 #include "StatusFormat.h"
 
 DomainPowerFilter::DomainPowerFilter(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServices)
+    std::shared_ptr<ParticipantServicesInterface> participantServices)
     : m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_participantServices(participantServices)
 {
 }

@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyAdaptivePerformanceConditionsTableChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyAdaptivePerformanceConditionsTableChanged::WIPolicyAdaptivePerformanceConditionsTableChanged(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::PolicyAdaptivePerformanceConditionsTableChanged)
@@ -33,7 +33,7 @@ void WIPolicyAdaptivePerformanceConditionsTableChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

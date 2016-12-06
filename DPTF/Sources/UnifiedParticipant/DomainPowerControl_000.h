@@ -31,7 +31,7 @@ class DomainPowerControl_000 : public DomainPowerControlBase
 public:
 
     DomainPowerControl_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainPowerControlInterface
     virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 

@@ -236,6 +236,7 @@ eEsifError EsifUpPm_UnregisterParticipant(
 	const UInt8 upInstance
 	);
 
+eEsifError EsifUpPm_SuspendParticipant(const UInt8 upInstance);
 eEsifError EsifUpPm_ResumeParticipant(const UInt8 upInstance);
 
 /*

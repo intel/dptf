@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_DATAVAULT
 
 #define _DATABANK_CLASS
 #define _DATACACHE_CLASS
@@ -874,6 +875,7 @@ eEsifError DataVault_GetValue(
 		UInt32 data_len = keypair->value.data_len;
 		void *buf_ptr   = keypair->value.buf_ptr;
 		UInt32 buf_len  = 0;
+		Bool buf_alloc = ESIF_FALSE;
 
 		// File Redirect?
 		if (keypair->flags & ESIF_SERVICE_CONFIG_FILELINK) {
@@ -893,6 +895,7 @@ eEsifError DataVault_GetValue(
 				data_len++;
 			}
 			buf_len = data_len;
+			buf_alloc = ESIF_TRUE;
 		}
 
 		// Match Found. Verify Data Type matches unless AUTO
@@ -923,6 +926,9 @@ eEsifError DataVault_GetValue(
 				value->buf_len = esif_ccb_max(1, data_len);
 				value->buf_ptr = esif_ccb_malloc(value->buf_len);
 				if (!value->buf_ptr) {
+					if (buf_alloc) {
+						esif_ccb_free(buf_ptr);
+					}
 					return ESIF_E_NO_MEMORY;
 				}
 			}
@@ -931,7 +937,9 @@ eEsifError DataVault_GetValue(
 			if ((keypair->flags & ESIF_SERVICE_CONFIG_NOCACHE) && keypair->value.buf_len == 0) {
 				size_t offset = (size_t)keypair->value.buf_ptr;
 				if (DataVault_GetFromSource(self, (esif_string)value->buf_ptr, data_len, offset) != ESIF_OK) {
-					data_len = 0;
+					if (buf_alloc) {
+						esif_ccb_free(buf_ptr);
+					}
 					return ESIF_E_NOT_FOUND;
 				}
 				// Unscramble Data?
@@ -954,7 +962,7 @@ eEsifError DataVault_GetValue(
 		}
 
 		// Destroy Dynamically copied data, such as FILELINK contents
-		if (buf_len) {
+		if (buf_alloc) {
 			esif_ccb_free(buf_ptr);
 		}
 	}

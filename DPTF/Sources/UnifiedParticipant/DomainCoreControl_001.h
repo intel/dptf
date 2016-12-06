@@ -31,7 +31,7 @@ class DomainCoreControl_001 : public DomainCoreControlBase
 public:
 
     DomainCoreControl_001(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainCoreControl_001(void);
 
     // DomainCoreControlInterface

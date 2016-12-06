@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDptfConnectedStandbyEntry.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfConnectedStandbyEntry::WIDptfConnectedStandbyEntry(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::DptfConnectedStandbyEntry)
@@ -36,7 +36,7 @@ void WIDptfConnectedStandbyEntry::execute(void)
 
     // First let all policies know that we are entering connected standby
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)
@@ -59,13 +59,13 @@ void WIDptfConnectedStandbyEntry::execute(void)
     // Now let all participants know
 
     auto participantManager = getParticipantManager();
-    UIntN participantListCount = participantManager->getParticipantListCount();
+    auto participantIndexList = participantManager->getParticipantIndexes();
 
-    for (UIntN i = 0; i < participantListCount; i++)
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* participant = participantManager->getParticipantPtr(i);
+            Participant* participant = participantManager->getParticipantPtr(*i);
             participant->connectedStandbyEntry();
         }
         catch (participant_index_invalid ex)
@@ -74,7 +74,7 @@ void WIDptfConnectedStandbyEntry::execute(void)
         }
         catch (std::exception& ex)
         {
-            writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyEntry", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyEntry", *i);
         }
     }
 }

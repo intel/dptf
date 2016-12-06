@@ -87,6 +87,11 @@ domain_not_enabled::domain_not_enabled()
 {
 }
 
+domain_control_nullptr::domain_control_nullptr() :
+    dptf_exception("The Domain Control is Null.")
+{
+}
+
 policy_index_invalid::policy_index_invalid()
     : dptf_exception("The policy index is not valid.")
 {

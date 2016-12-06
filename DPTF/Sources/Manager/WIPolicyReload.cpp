@@ -19,8 +19,8 @@
 #include "WIPolicyReload.h"
 #include "ParticipantManagerInterface.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyReload::WIPolicyReload(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::ParticipantDestroy)
@@ -38,14 +38,14 @@ void WIPolicyReload::execute(void)
     // Iterate through the list of policies and unbind all participant and domains from them
     
     DptfManagerInterface* dptfManager = getDptfManager();
-    PolicyManager* policyManager = getPolicyManager();
-    UIntN participantCount = getParticipantManager()->getParticipantListCount();
+    auto policyManager = getPolicyManager();
+    auto participantIndexList = getParticipantManager()->getParticipantIndexes();
 
     // Unbind every participant and domain from every policy
-    for (UIntN participantIndex = 0; participantIndex < participantCount; participantIndex++)
+    for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
     {
-            dptfManager->unbindDomainsFromPolicies(participantIndex);
-            dptfManager->unbindParticipantFromPolicies(participantIndex);
+        dptfManager->unbindDomainsFromPolicies(*participantIndex);
+        dptfManager->unbindParticipantFromPolicies(*participantIndex);
     }
 
     // No try-catch here because destroyAllPolicies' calling tree catches all exceptions.
@@ -61,9 +61,9 @@ void WIPolicyReload::execute(void)
     }
 
     // Bind every participant and domain to every policy
-    for (UIntN participantIndex = 0; participantIndex < participantCount; participantIndex++)
+    for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
     {
-            dptfManager->bindParticipantToPolicies(participantIndex);
-            dptfManager->bindDomainsToPolicies(participantIndex);
+        dptfManager->bindParticipantToPolicies(*participantIndex);
+        dptfManager->bindDomainsToPolicies(*participantIndex);
     }
 }

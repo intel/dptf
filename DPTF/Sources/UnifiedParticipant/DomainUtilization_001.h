@@ -26,7 +26,7 @@ class DomainUtilization_001 : public DomainUtilizationBase
 public:
 
     DomainUtilization_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainUtilization_001();
 
     // DomainUtilizationInterface

@@ -27,7 +27,7 @@ class DomainPlatformPowerControl_001 : public DomainPlatformPowerControlBase
 public:
 
     DomainPlatformPowerControl_001(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPlatformPowerControl_001(void);
 
     // DomainPlatformPowerControlInterface

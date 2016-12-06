@@ -62,6 +62,8 @@ private:
     SourceAvailability m_sourceAvailability;
     std::shared_ptr<ThermalRelationshipTable> m_trt;
     TargetMonitor* m_targetMonitor;
+    MessageLoggingInterface* m_logger;
     std::shared_ptr<PolicyCallbackSchedulerInterface> m_targetScheduler;
+    TimeSpan m_minSampleTime;
     std::map<TargetSourceRelationship, TimeSpan> m_requestSchedule;
 };

@@ -19,7 +19,7 @@
 #include "DomainPlatformPowerControl_000.h"
 
 DomainPlatformPowerControl_000::DomainPlatformPowerControl_000(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainPlatformPowerControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

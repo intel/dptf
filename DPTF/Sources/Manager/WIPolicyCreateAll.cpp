@@ -18,8 +18,8 @@
 
 #include "WIPolicyCreateAll.h"
 #include "DptfManager.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 #include "EsifFileEnumerator.h"
 
 WIPolicyCreateAll::WIPolicyCreateAll(DptfManagerInterface* dptfManager, const std::string dptfPolicyDirectoryPath) :

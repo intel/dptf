@@ -22,7 +22,7 @@
 static const UInt8 MaxNumberOfConfigTdpControls = 3;
 
 DomainConfigTdpControl_001::DomainConfigTdpControl_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainConfigTdpControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_configTdpLevelsAvailable(0),
     m_currentConfigTdpControlId(Constants::Invalid),

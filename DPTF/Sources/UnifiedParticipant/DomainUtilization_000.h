@@ -31,7 +31,7 @@ class DomainUtilization_000 : public DomainUtilizationBase
 public:
 
     DomainUtilization_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainUtilizationInterface
     virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;

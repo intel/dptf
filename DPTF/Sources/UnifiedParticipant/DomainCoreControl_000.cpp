@@ -19,7 +19,7 @@
 #include "DomainCoreControl_000.h"
 
 DomainCoreControl_000::DomainCoreControl_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

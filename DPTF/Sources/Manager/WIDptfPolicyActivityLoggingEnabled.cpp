@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDptfPolicyActivityLoggingEnabled.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfPolicyActivityLoggingEnabled::WIDptfPolicyActivityLoggingEnabled(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::DptfPolicyActivityLoggingEnabled)
@@ -37,7 +37,7 @@ void WIDptfPolicyActivityLoggingEnabled::execute(void)
 
     // notify all policies
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

@@ -19,7 +19,7 @@
 #include "DomainPlatformPowerStatus_000.h"
 
 DomainPlatformPowerStatus_000::DomainPlatformPowerStatus_000(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

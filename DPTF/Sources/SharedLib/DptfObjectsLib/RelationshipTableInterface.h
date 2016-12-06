@@ -24,14 +24,16 @@
 class dptf_export RelationshipTableInterface
 {
 public:
-	
-	virtual ~RelationshipTableInterface() {};
-	virtual void associateParticipant(std::string participantScope, UIntN participantIndex) = 0;
-	virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) = 0;
-	virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) = 0;
-	virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void disassociateParticipant(UIntN participantIndex) = 0;
-	virtual UIntN getNumberOfEntries(void) const = 0;
-	virtual Bool isParticipantSourceDevice(UIntN participantIndex) const = 0;
-	virtual Bool isParticipantTargetDevice(UIntN participantIndex) const = 0;
+    
+    virtual ~RelationshipTableInterface() {};
+    virtual void associateParticipant(std::string participantScope, UIntN participantIndex) = 0;
+    virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) = 0;
+    virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) = 0;
+    virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) = 0;
+    virtual void disassociateParticipant(UIntN participantIndex) = 0;
+    virtual UIntN getNumberOfEntries(void) const = 0;
+    virtual Bool isParticipantSourceDevice(UIntN participantIndex) const = 0;
+    virtual Bool isParticipantTargetDevice(UIntN participantIndex) const = 0;
+    virtual std::set<UIntN> getAllTargetIndexes() const = 0;
+    virtual std::set<UIntN> getAllSourceIndexes() const = 0;
 };

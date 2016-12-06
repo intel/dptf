@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainTemperature_001::DomainTemperature_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }

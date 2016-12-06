@@ -18,11 +18,9 @@
 
 #pragma once
 
-#include "Dptf.h"
-#include "Policy.h"
-#include "SupportedPolicyList.h"
+#include "PolicyManagerInterface.h"
 
-class PolicyManager
+class dptf_export PolicyManager : public PolicyManagerInterface
 {
 public:
 
@@ -30,27 +28,27 @@ public:
     ~PolicyManager(void);
 
     // Create policies
-    void createAllPolicies(const std::string& dptfHomeDirectoryPath);
-    void createPolicy(const std::string& policyFileName);
+    virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) override;
+    virtual void createPolicy(const std::string& policyFileName) override;
 
     // ReCreate Policies
-    void reloadAllPolicies(const std::string& dptfHomeDirectoryPath);
+    virtual void reloadAllPolicies(const std::string& dptfHomeDirectoryPath) override;
 
     // Destroy policies
-    void destroyAllPolicies(void);
-    void destroyPolicy(UIntN policyIndex);
+    virtual void destroyAllPolicies(void) override;
+    virtual void destroyPolicy(UIntN policyIndex) override;
 
     // Allows the work items to iterate through the list of policies.
-    UIntN getPolicyListCount(void) const;
-    Policy* getPolicyPtr(UIntN policyIndex);
+    virtual UIntN getPolicyListCount(void) const override;
+    virtual Policy* getPolicyPtr(UIntN policyIndex) override;
 
     // Policy manager handles registering and unregistering events since more than one policy can
     // register or unregister, and we don't want one policy to unregister the event while another
     // still needs it.
-    void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent);
-    void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent);
+    virtual void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
+    virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
 
-    std::shared_ptr<XmlNode> getStatusAsXml(void);
+    virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
 
 private:
 
@@ -59,7 +57,7 @@ private:
     PolicyManager& operator=(const PolicyManager& rhs);
 
     DptfManagerInterface* m_dptfManager;
-    std::vector<Policy*> m_policy;
+    std::map<UIntN, std::shared_ptr<Policy>> m_policies;
     SupportedPolicyList m_supportedPolicyList;
 
     // tracks the overall events registered by one or more policies

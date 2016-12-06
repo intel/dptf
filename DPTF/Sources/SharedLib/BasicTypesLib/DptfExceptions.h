@@ -108,6 +108,13 @@ public:
     domain_not_enabled();
 };
 
+class domain_control_nullptr : public dptf_exception
+{
+public:
+
+    domain_control_nullptr();
+};
+
 class policy_index_invalid : public dptf_exception
 {
 public:
@@ -139,6 +146,7 @@ public:
 class primitive_not_found_in_dsp : public dptf_exception
 {
 public:
+
     primitive_not_found_in_dsp(const std::string& description);
 };
 

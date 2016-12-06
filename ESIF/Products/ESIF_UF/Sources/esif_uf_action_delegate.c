@@ -110,6 +110,12 @@ static eEsifError EsifSetActionDelegateToSignalForegroundAppChanged(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr);
 
+static eEsifError EsifSetActionDelegateSsap(
+	EsifUpPtr upPtr,
+	EsifDataPtr requestPtr
+	);
+
+
 /*
 ** Handle ESIF Action Request
 */
@@ -313,6 +319,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 	case 'CPPA':    /* APPC: Application Control  */
 		ESIF_TRACE_INFO("Application Control\n");
 		rc = EsifSetActionDelegateAppc(domainPtr, requestPtr, fpcActionPtr);
+		break;
+
+	case 'PASS':	/* SSAP: Specific Action Primitive execution */
+		rc = EsifSetActionDelegateSsap(upPtr, requestPtr);
 		break;
 
 	default:
@@ -953,6 +963,42 @@ static eEsifError EsifSetActionDelegateToSignalForegroundAppChanged(
 exit:
 	return rc;
 }
+
+/* Non-public function used by EsifSetActionDelegateSsap */
+eEsifError EsifUp_ExecuteSpecificActionPrimitive(
+	EsifUpPtr self,
+	EsifPrimitiveTuplePtr tuplePtr,
+	const EsifPrimitiveActionSelectorPtr selectorPtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+);
+
+
+static eEsifError EsifSetActionDelegateSsap(
+	EsifUpPtr upPtr,
+	EsifDataPtr requestPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifSpecificActionRequestPtr sarPtr = NULL;
+
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if ((NULL == requestPtr->buf_ptr) || (requestPtr->buf_len < sizeof(*sarPtr))) {
+		rc = ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	sarPtr = (EsifSpecificActionRequestPtr)requestPtr->buf_ptr;
+
+	rc = EsifUp_ExecuteSpecificActionPrimitive(upPtr, &sarPtr->tuple, &sarPtr->selector, sarPtr->req_ptr, sarPtr->rsp_ptr);
+	if (ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP == rc) {
+		rc = ESIF_E_PRIMITIVE_SUR_NOT_FOUND_IN_DSP;
+	}
+exit:
+	return rc;
+}
+
 
 /*
  *******************************************************************************

@@ -19,7 +19,7 @@
 #include "TemperatureThresholdArbitrator.h"
 #include "ManagerMessage.h"
 #include "DptfManager.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "Utility.h"
 
 TemperatureThresholdArbitrator::TemperatureThresholdArbitrator(DptfManagerInterface* dptfManager) :

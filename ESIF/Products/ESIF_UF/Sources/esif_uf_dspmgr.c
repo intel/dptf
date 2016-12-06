@@ -171,6 +171,7 @@ static eEsifError insert_primitive(
 {
 	EsifFpcActionPtr actionPtr = NULL;
 	unsigned int i = 0;
+	int remainingSize;
 
 	if (NULL == dspPtr) {
 		return ESIF_E_PARAMETER_IS_NULL;
@@ -179,13 +180,22 @@ static eEsifError insert_primitive(
 		return ESIF_E_NULL_PRIMITIVE;
 	} 
 
+	remainingSize = (int)primitivePtr->size;
+	remainingSize -= sizeof(*primitivePtr);
+
 	/* Update the DSP metadata with the types of actions contained in the DSP */
 	actionPtr = (EsifFpcActionPtr)(primitivePtr + 1);
-	for (i = 0; i < primitivePtr->num_actions; i++, actionPtr++) {
+	for (i = 0; i < primitivePtr->num_actions; i++) {
+		if (remainingSize < sizeof(*actionPtr)) {
+			break;
+		}
+		remainingSize -= actionPtr->size;
+
 		if (actionPtr->type < (sizeof(dspPtr->contained_actions)/sizeof(*dspPtr->contained_actions)) &&
 			actionPtr->type >= 0) {
 			dspPtr->contained_actions[actionPtr->type] = 1;
 		}
+		actionPtr = (EsifFpcActionPtr)((char*)actionPtr + actionPtr->size);
 	}
 
 	return esif_ht_add_item(dspPtr->ht_ptr, /* Hash Table  */

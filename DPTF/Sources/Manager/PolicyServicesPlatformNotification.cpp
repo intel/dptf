@@ -18,7 +18,7 @@
 
 #include "PolicyServicesPlatformNotification.h"
 #include "Policy.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "esif_ccb_memory.h"
 #include "esif_sdk_data_type.h"
 #include "esif_sdk_data_misc.h"

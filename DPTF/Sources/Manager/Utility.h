@@ -42,6 +42,18 @@ UIntN getFirstNonNullIndex(T& someStlContainer)
 }
 
 template <typename T>
+UIntN getFirstAvailableIndex(T& someStlContainer)
+{
+    auto index = 0;
+    while (someStlContainer.find(index) != someStlContainer.end())
+    {
+        ++index;
+    }
+
+    return index;
+}
+
+template <typename T>
 void increaseVectorSizeIfNeeded(T& someStlContainer, UIntN maxVectorIndex)
 {
     // make sure there are enough rows in the vector

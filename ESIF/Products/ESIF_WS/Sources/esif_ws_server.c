@@ -283,6 +283,7 @@ int esif_ws_init(void)
 				if (g_clients[index].socket == INVALID_SOCKET) {
 					esif_ws_client_initialize_client(&g_clients[index]);
 					g_clients[index].socket = client_socket;
+					client_socket = INVALID_SOCKET;
 					break;
 				}
 				sockets++;
@@ -294,6 +295,10 @@ int esif_ws_init(void)
 				esif_ccb_socket_close(client_socket);
 				client_socket = INVALID_SOCKET;
 				continue;
+			}
+			if (client_socket != INVALID_SOCKET) {
+				esif_ccb_socket_close(client_socket);
+				client_socket = INVALID_SOCKET;
 			}
 		}
 

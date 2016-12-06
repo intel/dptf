@@ -30,7 +30,7 @@ class DomainRfProfileStatus_001 : public DomainRfProfileStatusBase
 public:
 
     DomainRfProfileStatus_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainRfProfileStatus_001(void);
 
     // DomainRfProfileStatusInterface

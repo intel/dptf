@@ -47,7 +47,7 @@ public:
     UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, 
         Bool domainEnabled, DomainType::Type domainType, std::string domainName,
         std::string domainDescription, DomainFunctionalityVersions domainFunctionalityVersions,
-        const ControlFactoryList& classFactories, ParticipantServicesInterface* participantServicesInterface);
+        const ControlFactoryList& classFactories, std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     ~UnifiedDomain(void);
 
     Guid getGuid(void);
@@ -94,7 +94,7 @@ private:
     std::string m_name;
     std::string m_description;
     DomainFunctionalityVersions m_domainFunctionalityVersions;
-    ParticipantServicesInterface* m_participantServicesInterface;
+    std::shared_ptr<ParticipantServicesInterface> m_participantServicesInterface;
     std::shared_ptr<DomainControlList> m_domainControls;
 
     void throwIfDomainNotEnabled(void);

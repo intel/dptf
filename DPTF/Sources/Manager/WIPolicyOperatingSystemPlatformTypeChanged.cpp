@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyOperatingSystemPlatformTypeChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemPlatformTypeChanged::WIPolicyOperatingSystemPlatformTypeChanged(
     DptfManagerInterface* dptfManager, OsPlatformType::Type platformType) :
@@ -35,7 +35,7 @@ void WIPolicyOperatingSystemPlatformTypeChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

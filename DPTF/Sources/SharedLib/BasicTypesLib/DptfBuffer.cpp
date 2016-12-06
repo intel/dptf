@@ -129,3 +129,9 @@ void DptfBuffer::put(UInt32 offset, UInt8* data, UInt32 length)
         m_buffer[pos] = data[pos - offset];
     }
 }
+
+void DptfBuffer::append(const DptfBuffer& otherBuffer)
+{
+    auto currentSize = (UInt32)m_buffer.size();
+    put(currentSize, otherBuffer.get(), otherBuffer.size());
+}

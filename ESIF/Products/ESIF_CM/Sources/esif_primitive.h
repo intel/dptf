@@ -91,9 +91,27 @@ struct esif_lp_primitive {
 	u8  action_count;	/* Number Of Actions For This Primitive */
 };
 
+#define ESIF_PRIM_ACT_SEL_FLAG_EXCLUDE		1
+#define ESIF_PRIM_ACT_SEL_FLAG_INDEX_VALID	2
+#define ESIF_PRIM_ACT_SEL_FLAG_TYPE_VALID	4
+
+struct esif_primitive_action_selector {
+	esif_flags_t flags;
+	u8 index;
+	esif_action_type_t type;
+};
+
+struct esif_specific_action_request {
+	struct esif_primitive_tuple tuple;
+	struct esif_primitive_action_selector selector;
+	struct esif_data *req_ptr;
+	struct esif_data *rsp_ptr;
+};
+
 #ifdef ESIF_ATTR_USER
-typedef struct esif_primitive_tuple EsifPrimitiveTuple, *EsifPrimitiveTuplePtr,
-	**EsifPrimitiveTuplePtrLoction;
+typedef struct esif_primitive_tuple EsifPrimitiveTuple, *EsifPrimitiveTuplePtr;
+typedef struct esif_primitive_action_selector EsifPrimitiveActionSelector, *EsifPrimitiveActionSelectorPtr;
+typedef struct esif_specific_action_request EsifSpecificActionRequest, *EsifSpecificActionRequestPtr;
 #endif
 
 

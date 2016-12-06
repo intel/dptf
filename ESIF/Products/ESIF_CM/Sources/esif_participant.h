@@ -464,6 +464,11 @@ EsifString EsifUp_CreateTokenReplacedParamString(
 	const EsifString paramStr
 	);
 
+Bool EsifUp_IsActionInDsp(
+	EsifUpPtr self,
+	enum esif_action_type actionType
+	);
+
 #ifdef __cplusplus
 }
 #endif

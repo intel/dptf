@@ -68,6 +68,5 @@ public:
     virtual std::shared_ptr<XmlNode> getXmlForActiveTripPoints() = 0;
     virtual std::shared_ptr<XmlNode> getXmlForPassiveTripPoints() = 0;
     virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() = 0;
-
-
+    virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() = 0;
 };

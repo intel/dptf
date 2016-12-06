@@ -19,7 +19,7 @@
 #include "DomainPriority_000.h"
 
 DomainPriority_000::DomainPriority_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDomainTemperatureThresholdCrossed.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "Participant.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDomainTemperatureThresholdCrossed::WIDomainTemperatureThresholdCrossed(DptfManagerInterface* dptfManager,
     UIntN participantIndex, UIntN domainIndex) :
@@ -45,7 +45,7 @@ void WIDomainTemperatureThresholdCrossed::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainTemperatureThresholdCrossed");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

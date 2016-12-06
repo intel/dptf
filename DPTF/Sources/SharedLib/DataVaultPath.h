@@ -41,6 +41,8 @@ namespace DataVaultPath
         {
             static const std::string Psvt = DataVaultPathBasePaths::TablesRoot + "/psvt/";
             static const std::string Art = DataVaultPathBasePaths::TablesRoot + "/_art/";
+            static const std::string Trt = DataVaultPathBasePaths::TablesRoot + "/_trt/";
+            static const std::string Pida = DataVaultPathBasePaths::TablesRoot + "/pida/";
         };
     };
 };

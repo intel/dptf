@@ -670,30 +670,25 @@ eEsifError EsifUp_CreateParticipant(
 	EsifUpPtr *upPtr
 	)
 {
-	eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
 
-	if ((NULL == upPtr) || (NULL == metadataPtr)) {
-		rc = ESIF_E_PARAMETER_IS_NULL;
-		goto exit;
-	}
-
-	switch (origin) {
-	case eParticipantOriginLF:
-		rc = EsifUp_CreateParticipantByLpEventData((struct esif_ipc_event_data_create_participant *)metadataPtr, upInstance, upPtr);
-		break;
-
-	case eParticipantOriginUF:
-		rc = EsifUp_CreateParticipantByUpInterface((EsifParticipantIfacePtr)metadataPtr, upInstance, upPtr);
-		break;
-
-	default:
-		ESIF_TRACE_ERROR("Unknown origin is specified\n");
+	if ((NULL != upPtr) && (NULL != metadataPtr)) {
 		*upPtr = NULL;
 		rc = ESIF_E_UNSPECIFIED;
-		break;
-	}
 
-exit:
+		switch (origin) {
+		case eParticipantOriginLF:
+			rc = EsifUp_CreateParticipantByLpEventData((struct esif_ipc_event_data_create_participant *)metadataPtr, upInstance, upPtr);
+			break;
+
+		case eParticipantOriginUF:
+			rc = EsifUp_CreateParticipantByUpInterface((EsifParticipantIfacePtr)metadataPtr, upInstance, upPtr);
+			break;
+
+		default:
+			break;
+		}
+	}
 	return rc;
 }
 
@@ -740,29 +735,24 @@ eEsifError EsifUp_ReInitializeParticipant(
 	const void *metadataPtr
 	)
 {
-	eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
 
-	if ((NULL == self) || (NULL == metadataPtr)) {
-		rc = ESIF_E_PARAMETER_IS_NULL;
-		goto exit;
-	}
-
-	switch (origin) {
-	case eParticipantOriginLF:
-		rc = EsifUp_ReInitializeParticipantByLpEventData(self, (struct esif_ipc_event_data_create_participant *)metadataPtr);
-		break;
-
-	case eParticipantOriginUF:
-		rc = EsifUp_ReInitializeParticipantByUpInterface(self, (EsifParticipantIfacePtr)metadataPtr);
-		break;
-
-	default:
-		ESIF_TRACE_ERROR("Unknown origin is specified\n");
+	if ((NULL != self) && (NULL != metadataPtr)) {
 		rc = ESIF_E_UNSPECIFIED;
-		break;
-	}
 
-exit:
+		switch (origin) {
+		case eParticipantOriginLF:
+			rc = EsifUp_ReInitializeParticipantByLpEventData(self, (struct esif_ipc_event_data_create_participant *)metadataPtr);
+			break;
+
+		case eParticipantOriginUF:
+			rc = EsifUp_ReInitializeParticipantByUpInterface(self, (EsifParticipantIfacePtr)metadataPtr);
+			break;
+
+		default:
+			break;
+		}
+	}
 	return rc;
 }
 
@@ -1021,17 +1011,16 @@ void EsifUp_PutRef(
 	}
 }
 
+
 /*
- * Execute Primitive
- * NOTE: This version may be called by functions within the
- * participant/domain while Participant Mangager or participant locks are
- * already owned or from within the participant when executing in a
- * known/guaranteed state.  EsifExecutePrimitive should be called when executing
- * outside the context of the participant.
- */
-eEsifError EsifUp_ExecutePrimitive(
+* Execute Primitive using a specific action
+* NOTE: This version should be considered private and not be used under normal
+* circumstances.  (See EsifUp_ExecutePrimitive instead.)
+*/
+eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 	EsifUpPtr self,
 	EsifPrimitiveTuplePtr tuplePtr,
+	const EsifPrimitiveActionSelectorPtr selectorPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	)
@@ -1042,8 +1031,13 @@ eEsifError EsifUp_ExecutePrimitive(
 	EsifFpcActionPtr fpcActionPtr = NULL;
 	UInt16 kernAct;
 	UInt32 i;
-	UInt32 reqAuto  = ESIF_FALSE;
+	UInt32 reqAuto = ESIF_FALSE;
 	UInt32 rspAuto = ESIF_FALSE;
+	Bool tryAll = ESIF_FALSE;
+	Bool isTargetAction = ESIF_FALSE;
+	Bool excludeAction = ESIF_FALSE;
+	Bool typeValid = ESIF_FALSE;
+	Bool indexValid = ESIF_FALSE;
 
 	if (NULL == self) {
 		ESIF_TRACE_ERROR("Participant pointer is NULL\n");
@@ -1053,6 +1047,12 @@ eEsifError EsifUp_ExecutePrimitive(
 
 	if (NULL == tuplePtr) {
 		ESIF_TRACE_ERROR("Tuple pointer is NULL\n");
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (NULL == selectorPtr) {
+		ESIF_TRACE_ERROR("Action selector is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -1077,7 +1077,7 @@ eEsifError EsifUp_ExecutePrimitive(
 		ESIF_TRACE_ERROR("DSP is not found for participant %d\n", EsifUp_GetInstance(self));
 		rc = ESIF_E_NEED_DSP;
 		goto exit;
-	}	
+	}
 
 	if (dspPtr->type == NULL) {
 		rc = ESIF_E_NEED_DSP;
@@ -1166,8 +1166,15 @@ eEsifError EsifUp_ExecutePrimitive(
 #endif
 
 	/*
-	 * Execute each action in the primitive until one succeeds
+	 * Execute the primitive actions dependent upon the action selector.
+	 * (Normal execution is to try all actions until one succeeds.)
 	 */
+	tryAll = !(selectorPtr->flags & ~ESIF_PRIM_ACT_SEL_FLAG_EXCLUDE);
+	excludeAction = selectorPtr->flags & ESIF_PRIM_ACT_SEL_FLAG_EXCLUDE;
+	typeValid = selectorPtr->flags & ESIF_PRIM_ACT_SEL_FLAG_TYPE_VALID;
+	indexValid = selectorPtr->flags & ESIF_PRIM_ACT_SEL_FLAG_INDEX_VALID;
+
+	rc = ESIF_E_PRIMITIVE_NO_ACTION_AVAIL;
 	for (kernAct = 0, i = 0; i < (int)primitivePtr->num_actions; i++) {
 		fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
 
@@ -1177,39 +1184,50 @@ eEsifError EsifUp_ExecutePrimitive(
 			goto exit;
 		}
 
-		rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, kernAct, requestPtr, responsePtr);
-		if (ESIF_OK == rc ) {
-			break;
-		}
-		
-		/*
-		 * When Default Buffer Size Is Too Small, Retry Once Using Response Data Size.
-		 * This Only Applies To ESIF_DATA_AUTO.
-		 */
-		if (ESIF_E_NEED_LARGER_BUFFER == rc) {
-			/*
-			 * If autosizing is not enabled, break after the first action that
-			 * requires a larger buffer.
-			 */
-			if (ESIF_FALSE == rspAuto) {
+		isTargetAction =
+			(typeValid  && (selectorPtr->type == fpcActionPtr->type)) ||
+			(indexValid  && (selectorPtr->index == i));
+
+		if (tryAll || (isTargetAction && !excludeAction) || (!isTargetAction && excludeAction)) {
+
+			rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, kernAct, requestPtr, responsePtr);
+			if (ESIF_OK == rc) {
 				break;
 			}
-			ESIF_TRACE_DEBUG("Auto re-malloc: original %u new buffer size %u byte\n",
-				responsePtr->buf_len,
-				responsePtr->data_len);
+			/*
+			* When Default Buffer Size Is Too Small, Retry Once Using Response Data Size.
+			* This Only Applies To ESIF_DATA_AUTO.
+			*/
+			if (ESIF_E_NEED_LARGER_BUFFER == rc) {
+				/*
+				* If autosizing is not enabled, break after the first action that
+				* requires a larger buffer.
+				*/
+				if (ESIF_FALSE == rspAuto) {
+					break;
+				}
+				ESIF_TRACE_DEBUG("Auto re-malloc: original %u new buffer size %u byte\n",
+					responsePtr->buf_len,
+					responsePtr->data_len);
 
-			esif_ccb_free(responsePtr->buf_ptr);
+				esif_ccb_free(responsePtr->buf_ptr);
 
-			responsePtr->buf_ptr = esif_ccb_malloc(responsePtr->data_len);
-			responsePtr->buf_len = responsePtr->data_len;
+				responsePtr->buf_ptr = esif_ccb_malloc(responsePtr->data_len);
+				responsePtr->buf_len = responsePtr->data_len;
 
-			if (NULL == responsePtr->buf_ptr) {
-				ESIF_TRACE_ERROR("Fail to allocate response buffer\n");
-				rc = ESIF_E_NO_MEMORY;
-				goto exit;
+				if (NULL == responsePtr->buf_ptr) {
+					ESIF_TRACE_ERROR("Fail to allocate response buffer\n");
+					rc = ESIF_E_NO_MEMORY;
+					goto exit;
+				}
+				rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, kernAct, requestPtr, responsePtr);
+				if (ESIF_OK == rc) {
+					break;
+				}
 			}
-			rc = EsifUp_ExecuteAction(self, primitivePtr, fpcActionPtr, kernAct, requestPtr, responsePtr);
-			if (ESIF_OK == rc ) {
+
+			/* Action failed; determine if next action is tried*/
+			if (indexValid && (selectorPtr->index == i)) {
 				break;
 			}
 		}
@@ -1222,6 +1240,26 @@ eEsifError EsifUp_ExecutePrimitive(
 exit:
 	ESIF_TRACE_DEBUG("Primitive result = %s\n", esif_rc_str(rc));
 	return rc;
+}
+
+
+/*
+ * Execute Primitive
+ * NOTE: This version may be called by functions within the
+ * participant/domain while Participant Mangager or participant locks are
+ * already owned or from within the participant when executing in a
+ * known/guaranteed state.  EsifExecutePrimitive should be called when executing
+ * outside the context of the participant.
+ */
+eEsifError EsifUp_ExecutePrimitive(
+	EsifUpPtr self,
+	EsifPrimitiveTuplePtr tuplePtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	EsifPrimitiveActionSelector actionSelector = {0};
+	return EsifUp_ExecuteSpecificActionPrimitive(self, tuplePtr, &actionSelector, requestPtr, responsePtr);
 }
 
 
@@ -1718,6 +1756,34 @@ exit:
 	return rc;
 }
 #endif
+
+
+Bool EsifUp_IsActionInDsp(
+	EsifUpPtr self,
+	enum esif_action_type actionType
+	)
+{
+	Bool isPresent = ESIF_FALSE;
+	EsifDspPtr dspPtr = NULL;
+
+	if (NULL == self) {
+		goto exit;
+	}
+
+	/* Check if the action type is used by the participant or not */
+	dspPtr = EsifUp_GetDsp(self);
+	if (NULL == dspPtr) {
+		goto exit;
+	}
+
+	if ((actionType < (sizeof(dspPtr->contained_actions) / sizeof(*dspPtr->contained_actions))) &&
+		(dspPtr->contained_actions[actionType] != 0)) {
+		isPresent = ESIF_TRUE;
+	}
+exit:
+	return isPresent;
+}
+
 
 /*
  * WARNING:  The allocated strings returned must be released by the caller 

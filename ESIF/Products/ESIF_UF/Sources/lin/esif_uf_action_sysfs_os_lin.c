@@ -34,7 +34,7 @@
 #define MAX_PARAM_STRING (MAX_SEARCH_STRING + MAX_SEARCH_STRING + 1)
 #define MAX_IDX_HOLDER 10
 #define MAX_NODE_IDX 15
-#define MAX_SYSFS_STRING 4 * 1024
+#define MAX_SYSFS_STRING (4 * 1024)
 #define MAX_SYSFS_PATH 256
 #define ERROR_VALUE 255
 #define MAX_ESIF_TABLES 2
@@ -47,6 +47,8 @@
 #define MAX_ACX_ENTRIES 10
 #define MAX_SYSFS_PSTATES 0x7FFFFFFFFFFFFFFE
 #define MAX_SYSFS_PERF_STATES 0x7FFFFFFFFFFFFFFE
+#define MIN_HYSTERESIS_MILLIC 1000
+#define MAX_HYSTERESIS_MILLIC 10000
 #define EPSILON_CONVERT_PERC 0.00001 // For rounding out errors in floating point calculations
 #define INVALID_64BIT_UINTEGER 0xFFFFFFFFFFFFFFFFU
 
@@ -58,6 +60,9 @@
 #define ART_COUNT _IOR(ACPI_THERMAL_IOR_TYPE, 4, u64)
 #define GET_TRT	_IOR(ACPI_THERMAL_IOR_TYPE, 5, u64)
 #define GET_ART	_IOR(ACPI_THERMAL_IOR_TYPE, 6, u64)
+
+#define MIN_INT64	((Int64) 0x8000000000000000)
+#define MAX_INT64	((Int64) 0x7FFFFFFFFFFFFFFF)
 
 #define ACPI_DPTF		"INT3400:00"
 #define ACPI_CPU		"INT3401:00"
@@ -181,7 +186,6 @@ static int get_key_value_pair_from_str(const char *str, char *key, char *value);
 static enum esif_rc get_thermal_rel_str(enum esif_thermal_rel_type type, char *table_str);
 static void get_full_scope_str(char *orig, char *new);
 static void replace_cpu_id(char *str);
-static u64 GetPowerLimit0MaxUw(void);
 static u64 GetCpuFreqPdl(void);
 static void GetNumberOfCpuCores();
 static enum esif_rc get_supported_policies(char *table_str, int idspNum, char *sysfs_str);
@@ -204,6 +208,7 @@ static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 static eEsifError ResetThermalZonePolicyToDefault();
 static eEsifError SetThermalZonePolicy();
 static eEsifError SetIntelPState(u64 val);
+static eEsifError ValidateOutput(char *devicePathPtr, char *nodeName, u64 val);
 
 #ifdef ESIF_ATTR_OS_ANDROID
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
@@ -248,8 +253,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	int target_item_count = 0;
 	enum esif_sysfs_param calc_type = 0;
 	u64 pdl_val = 0;
-	u64 pl1max_val = 0;
-	u64 cur_power_limit = 0;
 	int min_idx = 0;
 	int candidate_found = 0;
 	char srchnm[MAX_SEARCH_STRING] = { 0 };
@@ -380,6 +383,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				goto exit;
 			}
 			if (sysfs_get_int64(devicePathPtr, cur_node_name, &sysval) > 0 && sysval > 0) {
+				if (ESIF_OK != ValidateOutput(devicePathPtr, cur_node_name, sysval))
+					continue;
+
 				candidate_found = 1;
 				if (SetActionContext(&key, devicePathPtr, cur_node_name)) {
 					ESIF_TRACE_WARN("Fail to save context for participant %d, primitive %d, domain %d, instance %d\n",
@@ -540,21 +546,12 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				*(u32 *) responsePtr->buf_ptr = (u32) pdl_val;
 				break;
 			case ESIF_SYSFS_GET_SOC_PL1: /* power limit */
-				/* should return the lessor between PL1 max and current power limit*/
-
-				pl1max_val = GetPowerLimit0MaxUw();
-				if (0 == pl1max_val) {
-					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					goto exit;
-				}
-
 				if (sysfs_get_int64("/sys/class/powercap/intel-rapl:0", "constraint_0_power_limit_uw", &sysval) < 1) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
 				}
-				cur_power_limit = (sysval < pl1max_val) ? sysval : pl1max_val;
 
-				*(u32 *) responsePtr->buf_ptr = (u32) cur_power_limit;
+				*(u32 *) responsePtr->buf_ptr = (u32) sysval;
 				break;
 			case ESIF_SYSFS_GET_SOC_TEMP: /* Package or Graphics Core GET_TEMPERATURE */
 				domain_idx0 = esif_atoi(parm1);
@@ -796,8 +793,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 	int node_idx = 0;
 	int candidate_found = 0;
 	int max_node_idx = MAX_NODE_IDX;
-	double target_perc = 0.0;
-	u64 turbo_perc = 0;
 	u64 sysval = 0;
 	u64 pdl_val = 0;
 	EsifUpDataPtr metaPtr = NULL;
@@ -869,17 +864,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 		break;
 	case ESIF_SYSFS_ALT_PATH:
 		sysval = (u64)*(u32 *)requestPtr->buf_ptr;
-		if (0 == esif_ccb_strcmp(parm2, "constraint_0_power_limit_uw")) {
-			// Primitve SET_RAPL_POWER_LIMIT, need to check PL1 upper limit before set
-			// Note that in Linux drivers the name "power limit 0" is used to denote PL1
-			u64 powerLimit0Max = GetPowerLimit0MaxUw();
-			if (0 == powerLimit0Max) {
-				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-				goto exit;
-			}
-			sysval = (sysval < powerLimit0Max) ? sysval : powerLimit0Max;
-		}
-
 		if (sysfs_set_int64(parm1, parm2, sysval) < 0) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
@@ -994,7 +978,7 @@ static eEsifError SetIntelPState(u64 sysval)
 	u64 turbo_perc = 0;
 	eEsifError rc = ESIF_OK;
 	
-	if ((sysfs_get_int64(SYSFS_PSTATE_PATH, "num_pstates", &pdl_val) < 1) && (sysval >= pdl_val)) {
+	if ((sysfs_get_int64(SYSFS_PSTATE_PATH, "num_pstates", &pdl_val) < 1) || (sysval >= pdl_val)) {
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		goto exit;
 	}
@@ -1042,31 +1026,6 @@ static void replace_cpu_id(char *str)
 		esif_ccb_stricmp(str, "B0DB") == 0) {    // Cherry TraiL
 		esif_ccb_strcpy(str, "TCPU", 5);
 	}
-}
-
-static u64 GetPowerLimit0MaxUw(void)
-{
-	int cpu_loc_counter = 0;
-	char fullPath[MAX_SYSFS_PATH] = { 0 };
-	u64 sysVal = 0;
-
-	// Try Atom PCI first
-	while (CPU_location[cpu_loc_counter] != NULL) {
-		esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s/power_limits", SYSFS_PCI, CPU_location[cpu_loc_counter]);
-	if (sysfs_get_int64(fullPath, "power_limit_0_max_uw", &sysVal) > 0)
-		goto exit;
-		cpu_loc_counter++;
-	}
-	// Next try Core PCI
-
-	// Finally try Atom ACPI
-	esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s/power_limits", SYSFS_PLATFORM, ACPI_CPU);
-	if (sysfs_get_int64(fullPath, "power_limit_0_max_uw", &sysVal) > 0)
-		goto exit;
-
-	sysVal = 0;	// 0 indicates "not found"
-exit:
-	return sysVal;
 }
 
 static u64 GetCpuFreqPdl(void)
@@ -1146,7 +1105,7 @@ static int replace_str(char *str, char *orig, char *new, char *rpl_buff, int rpl
 	rpl_buff[(p - str) + 1] = '\0';
 
 	/* add the replace str, then continue with the original buffer val */
-	esif_ccb_sprintf_concat(rpl_buff_len, rpl_buff, "%s%s", new, p + strlen(orig));
+	esif_ccb_sprintf_concat(rpl_buff_len, rpl_buff, "%s%s", new, p + esif_ccb_strlen(orig, MAX_SYSFS_PATH));
 
 exit:
 	return rc;
@@ -1229,7 +1188,6 @@ exit:
 	return rc;
 }
 
-
 static int sysfs_get_int64(const char *path, const char *filename, Int64 *p64)
 {
 	FILE *fd = NULL;
@@ -1244,6 +1202,10 @@ static int sysfs_get_int64(const char *path, const char *filename, Int64 *p64)
 	esif_ccb_fclose(fd);
 
 exit:
+	// Klocwork bounds check. Should depend on context
+	if (rc > 0 && (*p64 < MIN_INT64 || *p64 > MAX_INT64)) {
+		rc = 0;
+	}
 	return rc;
 }
 
@@ -2029,6 +1991,22 @@ exit:
 	return rc;
 }
 
+static eEsifError ValidateOutput(char *devicePathPtr, char *nodeName, u64 val)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (NULL != esif_ccb_strstr(nodeName, "hyst")) {
+		// Output is hysteresis in milli degree C
+		if ((val < MIN_HYSTERESIS_MILLIC) || (val > MAX_HYSTERESIS_MILLIC)) {
+			ESIF_TRACE_ERROR("Read invalid hysteresis value from %s/%s, discard...\n",
+					devicePathPtr, nodeName);
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		}
+	}
+
+	return rc;
+}
+
 /*
  *******************************************************************************
  * Register ACTION with ESIF
@@ -2080,7 +2058,6 @@ static eEsifError ResetThermalZonePolicy()
 	DIR *dir;
 	struct dirent **namelist;
 	int n;
-	int i = 0;
 	char cur_node_name[MAX_SYSFS_PATH] = { 0 };
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
 	eEsifError rc = ESIF_E_UNSPECIFIED;

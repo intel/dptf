@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyPowerBossMathTableChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyPowerBossMathTableChanged::WIPolicyPowerBossMathTableChanged(DptfManagerInterface* dptfManager) :
 WorkItem(dptfManager, FrameworkEvent::PolicyPowerBossMathTableChanged)
@@ -33,7 +33,7 @@ void WIPolicyPowerBossMathTableChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

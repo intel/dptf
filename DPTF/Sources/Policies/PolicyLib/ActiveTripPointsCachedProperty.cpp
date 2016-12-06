@@ -66,7 +66,7 @@ Bool ActiveTripPointsCachedProperty::supportsProperty(void)
          key <= ParticipantSpecificInfoKey::AC9;
          key++)
     {
-        if (activeTripPoints.hasItem((ParticipantSpecificInfoKey::Type)key))
+        if (activeTripPoints.hasKey((ParticipantSpecificInfoKey::Type)key))
         {
             return true;
         }

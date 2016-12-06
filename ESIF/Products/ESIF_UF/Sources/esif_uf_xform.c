@@ -48,10 +48,8 @@ enum esif_rc EsifUfXformTemp(
 	EsifDspPtr dspPtr = NULL;
 	enum esif_temperature_type tempInType  = tempType;
 	enum esif_temperature_type tempOutType = tempType;
-	esif_temp_t tempIn;
+	esif_temp_t tempIn = {0};
 	esif_temp_t tempOut;
-
-	UNREFERENCED_PARAMETER(tempIn);
 
 	if ((tempPtr == NULL) || (upPtr == NULL)) {
 		ESIF_TRACE_ERROR("The temperature or dsp pointer is NULL\n");

@@ -24,7 +24,7 @@ using namespace std;
 UnifiedDomain::UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, 
     Bool domainEnabled, DomainType::Type domainType, std::string domainName,
     std::string domainDescription, DomainFunctionalityVersions domainFunctionalityVersions,
-    const ControlFactoryList& classFactories, ParticipantServicesInterface* participantServicesInterface) : m_guid(guid),
+    const ControlFactoryList& classFactories, std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) : m_guid(guid),
     m_participantIndex(participantIndex), m_domainIndex(domainIndex), m_enabled(domainEnabled),
     m_domainType(domainType), m_name(domainName), m_description(domainDescription),
     m_domainFunctionalityVersions(domainFunctionalityVersions),
@@ -98,97 +98,177 @@ void UnifiedDomain::clearAllCachedData(void)
 std::shared_ptr<DomainActiveControlBase> UnifiedDomain::getActiveControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getActiveControl();
+    std::shared_ptr<DomainActiveControlBase> ptr = m_domainControls->getActiveControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainConfigTdpControlBase> UnifiedDomain::getConfigTdpControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getConfigTdpControl();
+    std::shared_ptr<DomainConfigTdpControlBase> ptr = m_domainControls->getConfigTdpControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainCoreControlBase> UnifiedDomain::getCoreControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getCoreControl();
+    std::shared_ptr<DomainCoreControlBase> ptr = m_domainControls->getCoreControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainDisplayControlBase> UnifiedDomain::getDisplayControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getDisplayControl();
+    std::shared_ptr<DomainDisplayControlBase> ptr = m_domainControls->getDisplayControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPerformanceControlBase> UnifiedDomain::getPerformanceControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPerformanceControl();
+    std::shared_ptr<DomainPerformanceControlBase> ptr = m_domainControls->getPerformanceControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPixelClockControlBase> UnifiedDomain::getPixelClockControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPixelClockControl();
+    std::shared_ptr<DomainPixelClockControlBase> ptr = m_domainControls->getPixelClockControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPixelClockStatusBase> UnifiedDomain::getPixelClockStatusControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPixelClockStatusControl();
+    std::shared_ptr<DomainPixelClockStatusBase> ptr = m_domainControls->getPixelClockStatusControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPowerControlBase> UnifiedDomain::getPowerControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPowerControl();
+    std::shared_ptr<DomainPowerControlBase> ptr = m_domainControls->getPowerControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPowerStatusBase> UnifiedDomain::getPowerStatusControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPowerStatusControl();
+    std::shared_ptr<DomainPowerStatusBase> ptr = m_domainControls->getPowerStatusControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPlatformPowerControlBase> UnifiedDomain::getPlatformPowerControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPlatformPowerControl();
+    std::shared_ptr<DomainPlatformPowerControlBase> ptr = m_domainControls->getPlatformPowerControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPlatformPowerStatusBase> UnifiedDomain::getPlatformPowerStatusControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getPlatformPowerStatusControl();
+    std::shared_ptr<DomainPlatformPowerStatusBase> ptr = m_domainControls->getPlatformPowerStatusControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainPriorityBase> UnifiedDomain::getDomainPriorityControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getDomainPriorityControl();
+    std::shared_ptr<DomainPriorityBase> ptr = m_domainControls->getDomainPriorityControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainRfProfileControlBase> UnifiedDomain::getRfProfileControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getRfProfileControl();
+    std::shared_ptr<DomainRfProfileControlBase> ptr = m_domainControls->getRfProfileControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainRfProfileStatusBase> UnifiedDomain::getRfProfileStatusControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getRfProfileStatusControl();
+    std::shared_ptr<DomainRfProfileStatusBase> ptr = m_domainControls->getRfProfileStatusControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainTemperatureBase> UnifiedDomain::getTemperatureControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getTemperatureControl();
+    std::shared_ptr<DomainTemperatureBase> ptr = m_domainControls->getTemperatureControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 std::shared_ptr<DomainUtilizationBase> UnifiedDomain::getUtilizationControl(void)
 {
     throwIfDomainNotEnabled();
-    return m_domainControls->getUtilizationControl();
+    std::shared_ptr<DomainUtilizationBase> ptr = m_domainControls->getUtilizationControl();
+    if (!ptr)
+    {
+        throw domain_control_nullptr();
+    }
+    return ptr;
 }
 
 void UnifiedDomain::throwIfDomainNotEnabled(void)

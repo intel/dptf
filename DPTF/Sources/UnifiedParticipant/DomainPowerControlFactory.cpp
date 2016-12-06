@@ -21,7 +21,7 @@
 #include "DomainPowerControl_001.h"
 
 ControlBase* DomainPowerControlFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
     switch (version)
     {

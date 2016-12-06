@@ -22,9 +22,10 @@
 #include "WIPolicyCreateAll.h"
 #include "WIPolicyDestroy.h"
 #include "EsifFileEnumerator.h"
-#include "EsifServices.h"
-#include "Utility.h"
+#include "EsifServicesInterface.h"
 #include "StatusFormat.h"
+#include "MapOps.h"
+#include "Utility.h"
 
 using namespace StatusFormat;
 
@@ -68,25 +69,17 @@ void PolicyManager::createAllPolicies(const std::string& dptfPolicyDirectoryPath
 void PolicyManager::createPolicy(const std::string& policyFileName)
 {
     UIntN firstAvailableIndex = Constants::Invalid;
-    Policy* policy = nullptr;
 
     try
     {
-        policy = new Policy(m_dptfManager);
-        firstAvailableIndex = getFirstNonNullIndex(m_policy);
-        m_policy[firstAvailableIndex] = policy;
-    }
-    catch (...)
-    {
-        DELETE_MEMORY_TC(policy);
-        throw;
-    }
 
-    try
-    {
+        auto indexesInUse = MapOps<UIntN, std::shared_ptr<Policy>>::getKeys(m_policies);
+        firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
+        m_policies[firstAvailableIndex] = std::make_shared<Policy>(m_dptfManager);
+
         // Create the policy.  This will end up calling the functions in the .dll/.so and will throw an
         // exception if it doesn't find a valid policy to load.
-        policy->createPolicy(policyFileName, firstAvailableIndex, m_supportedPolicyList);
+        m_policies[firstAvailableIndex]->createPolicy(policyFileName, firstAvailableIndex, m_supportedPolicyList);
 
         ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Policy has been created.");
         message.setPolicyIndex(firstAvailableIndex);
@@ -107,20 +100,21 @@ void PolicyManager::createPolicy(const std::string& policyFileName)
 
 void PolicyManager::destroyAllPolicies(void)
 {
-    for (UIntN i = 0; i < m_policy.size(); i++)
+    auto policyIndexes = MapOps<UIntN, std::shared_ptr<Policy>>::getKeys(m_policies);
+    for(auto index = policyIndexes.begin(); index != policyIndexes.end(); ++index)
     {
-        if (m_policy[i] != nullptr)
+        if (m_policies[*index] != nullptr)
         {
             try
             {
                 // Queue up a work item and wait for the return.
-                WorkItem* workItem = new WIPolicyDestroy(m_dptfManager, i);
+                WorkItem* workItem = new WIPolicyDestroy(m_dptfManager, *index);
                 m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
             }
             catch (...)
             {
                 ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIPolicyDestroy.");
-                message.addMessage("Policy Index", i);
+                message.addMessage("Policy Index", *index);
                 m_dptfManager->getEsifServices()->writeMessageError(message);
             }
         }
@@ -129,12 +123,12 @@ void PolicyManager::destroyAllPolicies(void)
 
 void PolicyManager::destroyPolicy(UIntN policyIndex)
 {
-    if ((policyIndex < m_policy.size()) &&
-        (m_policy[policyIndex] != nullptr))
+    auto matchedPolicy = m_policies.find(policyIndex);
+    if ((matchedPolicy != m_policies.end()) && (matchedPolicy->second != nullptr))
     {
         try
         {
-            m_policy[policyIndex]->destroyPolicy();
+            matchedPolicy->second->destroyPolicy();
         }
         catch (...)
         {
@@ -143,24 +137,24 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
             m_dptfManager->getEsifServices()->writeMessageError(message);
         }
 
-        DELETE_MEMORY_TC(m_policy[policyIndex]);
+        m_policies.erase(matchedPolicy);
     }
 }
 
 UIntN PolicyManager::getPolicyListCount(void) const
 {
-    return static_cast<UIntN>(m_policy.size());
+    return static_cast<UIntN>(m_policies.size());
 }
 
 Policy* PolicyManager::getPolicyPtr(UIntN policyIndex)
 {
-    if ((policyIndex >= m_policy.size()) ||
-        (m_policy[policyIndex] == nullptr))
+    auto matchedPolicy = m_policies.find(policyIndex);
+    if ((matchedPolicy == m_policies.end()) || (matchedPolicy->second == nullptr))
     {
         throw policy_index_invalid();
     }
 
-    return m_policy[policyIndex];
+    return matchedPolicy->second.get();
 }
 
 void PolicyManager::registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent)
@@ -198,18 +192,19 @@ std::shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
     auto status = XmlNode::createWrapperElement("policy_manager");
     status->addChild(getEventsInXml());
 
-    auto policyCount = getPolicyListCount();
-    for (UIntN index = 0; index < policyCount; index++)
+    for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
     {
         try
         {
-            auto policy = getPolicyPtr(index);
-            std::string name = policy->getName();
-            auto policyStatus = XmlNode::createWrapperElement("policy_status");
-            auto policyName = XmlNode::createDataElement("policy_name", name);
-            policyStatus->addChild(policyName);
-            policyStatus->addChild(getEventsXmlForPolicy(index));
-            status->addChild(policyStatus);
+            if (policy->second != nullptr)
+            {
+                std::string name = policy->second->getName();
+                auto policyStatus = XmlNode::createWrapperElement("policy_status");
+                auto policyName = XmlNode::createDataElement("policy_name", name);
+                policyStatus->addChild(policyName);
+                policyStatus->addChild(getEventsXmlForPolicy(policy->first));
+                status->addChild(policyStatus);
+            }
         }
         catch (...)
         {
@@ -223,9 +218,9 @@ Bool PolicyManager::isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent)
 {
     Bool policyRegistered = false;
 
-    for (UIntN i = 0; i < m_policy.size(); i++)
+    for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
     {
-        if ((m_policy[i] != nullptr) && (m_policy[i]->isEventRegistered(policyEvent) == true))
+        if ((policy->second != nullptr) && (policy->second->isEventRegistered(policyEvent) == true))
         {
             policyRegistered = true;
             break;
@@ -239,9 +234,9 @@ UIntN PolicyManager::getPolicyCount(void)
 {
     UIntN policyCount = 0;
 
-    for (UIntN i = 0; i < m_policy.size(); i++)
+    for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
     {
-        if (m_policy[i] != nullptr)
+        if (policy->second != nullptr)
         {
             policyCount++;
         }

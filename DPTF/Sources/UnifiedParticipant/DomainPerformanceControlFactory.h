@@ -26,5 +26,5 @@ class DomainPerformanceControlFactory : public ControlFactoryInterface
 public:
 
     virtual ControlBase* make(UIntN participant, UIntN domain, UIntN version,
-        ParticipantServicesInterface* participantServicesInterface) override;
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) override;
 };

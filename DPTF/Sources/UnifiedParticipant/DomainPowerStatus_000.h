@@ -31,7 +31,7 @@ class DomainPowerStatus_000 : public DomainPowerStatusBase
 public:
 
     DomainPowerStatus_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainPowerStatusInterface
     virtual PowerStatus getPowerStatus(UIntN participantIndex, UIntN domainIndex) override;

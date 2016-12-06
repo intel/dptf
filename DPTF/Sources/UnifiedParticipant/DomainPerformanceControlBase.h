@@ -31,7 +31,7 @@ class DomainPerformanceControlBase : public ControlBase, public DomainPerformanc
 public:
 
     DomainPerformanceControlBase(UIntN participantIndex, UIntN domainIndex,
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainPerformanceControlBase();
 
     // ParticipantActivityLoggingInterface

@@ -19,7 +19,7 @@
 #include "DomainPixelClockControl_000.h"
 
 DomainPixelClockControl_000::DomainPixelClockControl_000(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface)
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
     : DomainPixelClockControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
     // Do nothing.  Not an error.

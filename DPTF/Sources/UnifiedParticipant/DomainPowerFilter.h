@@ -26,7 +26,7 @@ class DomainPowerFilter
 {
 public:
 
-    DomainPowerFilter(UIntN participantIndex, UIntN domainIndex, ParticipantServicesInterface* participantServices);
+    DomainPowerFilter(UIntN participantIndex, UIntN domainIndex, std::shared_ptr<ParticipantServicesInterface> participantServices);
     virtual ~DomainPowerFilter();
 
     Power getAveragePower(const PowerControlDynamicCaps& capabilities, Power currentPower);
@@ -64,5 +64,5 @@ private:
 
     UIntN m_participantIndex;
     UIntN m_domainIndex;
-    ParticipantServicesInterface* m_participantServices;
+    std::shared_ptr<ParticipantServicesInterface> m_participantServices;
 };

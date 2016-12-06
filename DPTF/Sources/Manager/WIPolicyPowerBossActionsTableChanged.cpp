@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyPowerBossActionsTableChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyPowerBossActionsTableChanged::WIPolicyPowerBossActionsTableChanged(DptfManagerInterface* dptfManager) :
 WorkItem(dptfManager, FrameworkEvent::PolicyPowerBossActionsTableChanged)
@@ -33,7 +33,7 @@ void WIPolicyPowerBossActionsTableChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

@@ -23,11 +23,13 @@ using namespace std;
 CallbackScheduler::CallbackScheduler(
     const PolicyServicesInterfaceContainer& policyServices,
     std::shared_ptr<ThermalRelationshipTable> trt,
-    TargetMonitor* targetMonitor, 
+    TargetMonitor* targetMonitor,
     std::shared_ptr<TimeInterface> time)
-    : m_sourceAvailability(policyServices, time), m_trt(trt), m_targetMonitor(targetMonitor)
+    : m_sourceAvailability(policyServices, time), m_trt(trt), m_targetMonitor(targetMonitor),
+    m_logger(policyServices.messageLogging)
 {
     m_targetScheduler.reset(new PolicyCallbackScheduler(policyServices, time));
+    m_minSampleTime = policyServices.platformConfigurationData->getMinimumAllowableSamplePeriod();
 }
 
 CallbackScheduler::~CallbackScheduler()
@@ -58,6 +60,14 @@ void CallbackScheduler::markBusyForRequests(UIntN target, UIntN source, const Ti
 void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, const TimeSpan& time)
 {
     TimeSpan sampleTime = m_trt->getSampleTimeForRelationship(target, source);
+    if (sampleTime.isInvalid() || (m_minSampleTime.isValid() && sampleTime.isValid() && (sampleTime < m_minSampleTime)))
+    {
+        sampleTime = m_minSampleTime;
+        m_logger->writeMessageDebug(PolicyMessage(
+            FLF, "Sample time requested is below min for target #" +
+            StlOverride::to_string(target) + ". Setting sample time to" + m_minSampleTime.toStringSeconds() + "s."));
+    }
+
     if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
     {
         m_targetScheduler->cancelCallback(target);
@@ -68,6 +78,14 @@ void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN sou
 void CallbackScheduler::ensureCallbackByShortestSamplePeriod(UIntN target, const TimeSpan& time)
 {
     TimeSpan sampleTime = m_trt->getShortestSamplePeriodForTarget(target);
+    if (sampleTime.isInvalid() || (m_minSampleTime.isValid() && sampleTime.isValid() && (sampleTime < m_minSampleTime)))
+    {
+        sampleTime = m_minSampleTime;
+        m_logger->writeMessageDebug(PolicyMessage(
+            FLF, "Sample time requested is below min for target #" +
+            StlOverride::to_string(target) + ". Setting sample time to" + m_minSampleTime.toStringSeconds() + "s."));
+    }
+
     if (sampleTime.isValid() && m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
     {
         m_targetScheduler->cancelCallback(target);

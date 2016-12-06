@@ -209,3 +209,19 @@ ActiveControlStatus ActiveCoolingControl::getStatus()
         throw dptf_exception("Domain does not support the display control interface.");
     }
 }
+
+UIntN ActiveCoolingControl::getSmallestNonZeroFanSpeed()
+{
+    return m_policyServices.domainActiveControl->getActiveControlSet(m_participantIndex, m_domainIndex).getSmallestNonZeroFanSpeed();
+}
+
+Bool ActiveCoolingControl::hasValidActiveControlSet()
+{
+    // active control set is empty or has only one entry of value 0
+    if (((m_policyServices.domainActiveControl->getActiveControlSet(m_participantIndex, m_domainIndex).getCount()) == 0) ||
+        ((m_policyServices.domainActiveControl->getActiveControlSet(m_participantIndex, m_domainIndex).getSmallestNonZeroFanSpeed()) == 0))
+    {
+        return false;
+    }
+    return true;
+}

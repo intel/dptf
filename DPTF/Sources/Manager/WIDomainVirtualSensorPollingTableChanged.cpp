@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDomainVirtualSensorPollingTableChanged.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "Participant.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDomainVirtualSensorPollingTableChanged::WIDomainVirtualSensorPollingTableChanged(DptfManagerInterface* dptfManager,
     UIntN participantIndex, UIntN domainIndex) :
@@ -45,7 +45,7 @@ void WIDomainVirtualSensorPollingTableChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorPollingTableChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

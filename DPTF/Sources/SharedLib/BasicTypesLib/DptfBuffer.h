@@ -38,6 +38,7 @@ public:
     UInt32 size(void) const;
     void trim(UInt32 sizeInBytes);
     void put(UInt32 offset, UInt8* data, UInt32 length);
+    void append(const DptfBuffer& otherBuffer);
 
     Bool operator==(const DptfBuffer& rhs) const;
 

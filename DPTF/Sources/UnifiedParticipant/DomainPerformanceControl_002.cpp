@@ -22,7 +22,7 @@
 // Processor Participant (CPU Domain) Performance Controls
 
 DomainPerformanceControl_002::DomainPerformanceControl_002(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface),
     m_tdpFrequencyLimitControlIndex(0),
     m_capabilitiesLocked(false)

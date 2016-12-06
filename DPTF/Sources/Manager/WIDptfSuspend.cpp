@@ -17,9 +17,9 @@
 ******************************************************************************/
 
 #include "WIDptfSuspend.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIDptfSuspend::WIDptfSuspend(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::DptfSuspend)
@@ -39,7 +39,7 @@ void WIDptfSuspend::execute(void)
 
     // notify all policies
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)
@@ -62,13 +62,13 @@ void WIDptfSuspend::execute(void)
     // notify all participants
 
     auto participantManager = getParticipantManager();
-    UIntN participantListCount = participantManager->getParticipantListCount();
+    auto participantIndexList = participantManager->getParticipantIndexes();
 
-    for (UIntN i = 0; i < participantListCount; i++)
+    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
     {
         try
         {
-            Participant* participant = participantManager->getParticipantPtr(i);
+            Participant* participant = participantManager->getParticipantPtr(*i);
             participant->suspend();
         }
         catch (participant_index_invalid ex)
@@ -77,7 +77,7 @@ void WIDptfSuspend::execute(void)
         }
         catch (std::exception& ex)
         {
-            writeWorkItemErrorMessageParticipant(ex, "Participant::suspend", i);
+            writeWorkItemErrorMessageParticipant(ex, "Participant::suspend", *i);
         }
     }
 }

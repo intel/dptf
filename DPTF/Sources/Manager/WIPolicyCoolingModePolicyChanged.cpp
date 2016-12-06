@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyCoolingModePolicyChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyCoolingModePolicyChanged::WIPolicyCoolingModePolicyChanged(DptfManagerInterface* dptfManager,
     CoolingMode::Type coolingMode) :
@@ -35,7 +35,7 @@ void WIPolicyCoolingModePolicyChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

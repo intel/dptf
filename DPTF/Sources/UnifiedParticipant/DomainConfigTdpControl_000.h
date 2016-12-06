@@ -31,7 +31,7 @@ class DomainConfigTdpControl_000 : public DomainConfigTdpControlBase
 public:
 
     DomainConfigTdpControl_000(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
     // DomainConfigTdpControlInterface
     virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;

@@ -26,7 +26,7 @@ class DomainRfProfileControl_001 : public DomainRfProfileControlBase
 public:
 
     DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
-        ParticipantServicesInterface* participantServicesInterface);
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
     virtual ~DomainRfProfileControl_001(void);
 
     // DomainRfProfileControlInterface

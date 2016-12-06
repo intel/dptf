@@ -20,7 +20,7 @@
 #include "XmlNode.h"
 
 DomainPlatformPowerStatus_001::DomainPlatformPowerStatus_001(UIntN participantIndex, UIntN domainIndex,
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface),
     m_platformPowerSource(),
     m_chargerType()

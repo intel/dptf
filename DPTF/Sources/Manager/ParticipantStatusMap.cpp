@@ -75,18 +75,18 @@ std::string ParticipantStatusMap::getGroupsString()
 
 void ParticipantStatusMap::buildParticipantDomainsList()
 {
-    UIntN participantCount = m_participantManager->getParticipantListCount();
-    for (UIntN participantIndex = 0; participantIndex < participantCount; participantIndex++)
+    auto participantIndexList = m_participantManager->getParticipantIndexes();
+    for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
     {
         try
         {
-            Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
+            Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
             UIntN domainCount = participant->getDomainCount();
 
             for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
             {
                 m_participantDomainsList.push_back(
-                    std::make_pair(participantIndex, domainIndex));
+                    std::make_pair(*participantIndex, domainIndex));
             }
         }
         catch (...)
@@ -113,7 +113,7 @@ std::shared_ptr<XmlNode> ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
     }
     catch (...)
     {
-    	// Participant not available
+        // Participant not available
         return XmlNode::createRoot();
     }
 }

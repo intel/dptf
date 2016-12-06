@@ -94,6 +94,8 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define MAX_ARGV            32
 #define MAX_REPEAT			0x7ffffffe
 #define MAX_REPEAT_DELAY	0x7ffffffe
+#define MAX_START_ID		0x7ffffffe
+#define MAX_SLEEP_MS		(0x7fffffff / 1000) // ~35min; Required for OS Abstraction
 
 /* Friends */
 extern EsifAppMgr g_appMgr;
@@ -915,7 +917,7 @@ static char *esif_shell_cmd_actionsu(EsifShellCmdPtr shell)
 		if (g_format == FORMAT_XML) {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "<result>\n");
 
-			iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+			iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 			while (ESIF_OK == iterRc) {
 				if (curActPtr != NULL) {
 					char *type_ptr = "dynamic";
@@ -934,7 +936,7 @@ static char *esif_shell_cmd_actionsu(EsifShellCmdPtr shell)
 									 EsifAct_GetName(curActPtr),
 									 type_ptr);
 				}
-				iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+				iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 			}
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
 			goto exit;
@@ -946,7 +948,7 @@ static char *esif_shell_cmd_actionsu(EsifShellCmdPtr shell)
 						 "-- ------------ ----------------------------------- ------- -------\n"
 						 );
 
-		iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+		iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 		while (ESIF_OK == iterRc) {
 			if (curActPtr != NULL) {
 				char *type_ptr = "dynamic";
@@ -961,7 +963,7 @@ static char *esif_shell_cmd_actionsu(EsifShellCmdPtr shell)
 								 type_ptr,
 								 EsifAct_GetVersion(curActPtr));
 			}
-			iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+			iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 		}
 	}
 exit:
@@ -1006,7 +1008,7 @@ static char *esif_shell_cmd_upes(EsifShellCmdPtr shell)
 		if (g_format == FORMAT_XML) {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "<result>\n");
 
-			iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+			iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 			while (ESIF_OK == iterRc) {
 				if ((curActPtr != NULL) && EsifAct_IsPlugin(curActPtr)) {
 
@@ -1024,7 +1026,7 @@ static char *esif_shell_cmd_upes(EsifShellCmdPtr shell)
 									 EsifAct_GetDesc(curActPtr),
 									 EsifAct_GetVersion(curActPtr));
 				}
-				iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+				iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 			}
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
 			goto exit;
@@ -1036,7 +1038,7 @@ static char *esif_shell_cmd_upes(EsifShellCmdPtr shell)
 						 "-- ------------ ----------------------------------- -------\n"
 						 );
 
-		iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+		iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 		while (ESIF_OK == iterRc) {
 				if ((curActPtr != NULL) && EsifAct_IsPlugin(curActPtr)) {
 				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-35s %7u\n",
@@ -1045,7 +1047,7 @@ static char *esif_shell_cmd_upes(EsifShellCmdPtr shell)
 								 EsifAct_GetDesc(curActPtr),
 								 EsifAct_GetVersion(curActPtr));
 			}
-			iterRc = EsifActMgr_GetNexAction(&actIter, &curActPtr);
+			iterRc = EsifActMgr_GetNextAction(&actIter, &curActPtr);
 		}
 	}
 exit:
@@ -1667,6 +1669,82 @@ exit:
 	return output;
 }
 
+//
+//  WARNING:  Caller is responsible for releasing returned pointer
+//
+static struct esif_data *EsifCreateSpecificActionRequest(
+	const UInt32 primitiveId,
+	const EsifString domainStr,
+	const UInt8 instance,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr,
+	EsifPrimitiveActionSelectorPtr actSelPtr
+	)
+{
+	struct esif_data *reqPtr = NULL;
+	EsifSpecificActionRequestPtr sarPtr = NULL;
+	EsifPrimitiveTuplePtr tuplePtr = NULL;
+	UInt16 domain = domain_str_to_short(domainStr);
+
+	reqPtr = (struct esif_data *)esif_ccb_malloc(sizeof(*reqPtr) + sizeof(*sarPtr));
+	if (NULL == reqPtr) {
+		goto exit;
+	}
+	sarPtr = (EsifSpecificActionRequestPtr)(reqPtr + 1);
+	tuplePtr = &sarPtr->tuple;
+
+	reqPtr->type = ESIF_DATA_STRUCTURE;
+	reqPtr->buf_ptr = sarPtr;
+	reqPtr->buf_len = sizeof(*sarPtr);
+	reqPtr->data_len = sizeof(*sarPtr);
+
+	sarPtr->req_ptr = requestPtr;
+	sarPtr->rsp_ptr = responsePtr;
+
+	tuplePtr->id = (u16)primitiveId;
+	tuplePtr->domain = domain;
+	tuplePtr->instance = instance;
+
+	esif_ccb_memcpy(&sarPtr->selector, actSelPtr, sizeof(sarPtr->selector));
+exit:
+	return reqPtr;
+}
+
+
+eEsifError EsifParseSpecificActionArg(
+	char *argPtr,
+	EsifPrimitiveActionSelectorPtr actSelectorPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	u32 index = 0;
+	esif_action_type_t actType = 0;
+
+	ESIF_ASSERT(argPtr != NULL);
+	ESIF_ASSERT(argPtr != NULL);
+
+	if (*argPtr == '~') {
+		argPtr++;
+		actSelectorPtr->flags |= ESIF_PRIM_ACT_SEL_FLAG_EXCLUDE;
+	}
+	if (isdigit(*argPtr)) {
+		index = (esif_action_type_t)esif_atoi(argPtr);
+		actSelectorPtr->index = (u8)index;
+		actSelectorPtr->flags |= ESIF_PRIM_ACT_SEL_FLAG_INDEX_VALID;
+	}
+	else {
+		actType = esif_action_type_str2enum(argPtr);
+		if ((esif_action_type_t)0 == actType) {
+			rc = ESIF_E_UNSPECIFIED;
+			goto exit;
+		}
+		actSelectorPtr->type = actType;
+		actSelectorPtr->flags |= ESIF_PRIM_ACT_SEL_FLAG_TYPE_VALID;
+	}
+exit:
+	return rc;
+}
+
 
 // Get Primitive
 static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
@@ -1686,14 +1764,16 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 	u8 *data_ptr  = NULL;
 	u16 qualifier = EVENT_MGR_DOMAIN_D0;
 
+	struct esif_data response = {ESIF_DATA_VOID, NULL, 0};
 	struct esif_data request = {ESIF_DATA_VOID, NULL, 0};
-	struct esif_data response;
 
 	char *suffix = "";
 	enum esif_data_type type = ESIF_DATA_VOID;
 	u32 buf_size = 0;
 	int dump     = 0;
-	u32 add_data;
+	
+	struct esif_data *sarPtr = NULL;
+	EsifPrimitiveActionSelector actSelector = {0};
 
 	if (argc <= opt) {
 		output = NULL;
@@ -1762,15 +1842,6 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		instance = (u8)esif_atoi(argv[opt++]);
 	}
 
-	// Optional, Additional Argument, Integer Only For Now
-	if (opt < argc && isdigit(argv[opt][0])) {
-		add_data        = esif_atoi(argv[opt++]);
-
-		request.type    = ESIF_DATA_UINT32;
-		request.buf_len = sizeof(add_data);
-		request.buf_ptr = (void *)&add_data;
-	}
-
 	// For File Dump
 	if (2 == dump) {
 		char *filename = 0;
@@ -1780,6 +1851,20 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		}
 		filename = argv[opt++];
 		esif_build_path(full_path, sizeof(full_path), ESIF_PATHTYPE_BIN, filename, ".bin");
+	}
+
+	// Optional - Action selector
+	if (opt < argc) {
+		//
+		// Check for a '-' so deprecated options aren't seen as action selectors
+		//
+		if (*argv[opt] != '-') {
+			rc = EsifParseSpecificActionArg(argv[opt++], &actSelector);
+			if (rc != ESIF_OK) {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Action option invalid\n");
+				goto exit;
+			}
+		}
 	}
 
 	// Setup Response
@@ -1811,13 +1896,25 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
+	sarPtr = EsifCreateSpecificActionRequest(
+		id,
+		qualifier_str,
+		instance,
+		&request,
+		&response,
+		&actSelector);
+	if (NULL == sarPtr) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed to create specific action request\n");
+		goto exit;
+	}
+
 	rc = EsifExecutePrimitive(
-			(u8)g_dst,
-			id,
-			qualifier_str,
-			instance,
-			&request,
-			&response);
+		(u8)g_dst,
+		SET_SPECIFIC_ACTION_PRIMITIVE,
+		"D0",
+		255,
+		sarPtr,
+		NULL);
 
 	data_ptr = (u8 *)response.buf_ptr;
 
@@ -1844,12 +1941,25 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 						 esif_rc_str(rc), rc);
 
 		goto exit;
+	} else if (ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP == rc) {
+
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Required primitive %s %03u.D0.255 not found in DSP\n",
+			esif_primitive_str((enum esif_primitive_type)SET_SPECIFIC_ACTION_PRIMITIVE), SET_SPECIFIC_ACTION_PRIMITIVE);
+		goto exit;
 	} else if (ESIF_OK != rc) {
 		//
 		// PRIMITIVE Error Code
 		//
+		if (ESIF_E_PRIMITIVE_SUR_NOT_FOUND_IN_DSP == rc) {
+			rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
+		}
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " error code = %s(%d)\n", esif_rc_str(rc), rc);
 		g_errorlevel = -(rc);
+		goto exit;
+	}
+	
+	if (NULL == response.buf_ptr) {
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "NULL buffer returned\n");
 		goto exit;
 	}
 
@@ -2015,6 +2125,7 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 	}
 
 exit:
+	esif_ccb_free(sarPtr);
 	esif_ccb_free(data_ptr);
 	return output;
 }
@@ -3941,7 +4052,9 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	EsifDataPtr dataPtr = NULL;
 	struct esif_data request = {ESIF_DATA_VOID, NULL, 0};
 	struct esif_data response = {ESIF_DATA_VOID, NULL, 0};
-	
+	struct esif_data *sarPtr = NULL;
+	EsifPrimitiveActionSelector actSelector = { 0 };
+
 	if (argc < 5) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
@@ -3984,24 +4097,29 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	}
 
 	rc = EsifData_FromString(dataPtr, argv[opt++], primitiveDataType);
-	if (rc != ESIF_OK || dataPtr->buf_ptr == NULL) {
+	if (rc != ESIF_OK) {
 		goto exit;
+	}
+	if (primitiveDataType != ESIF_DATA_VOID) {
+		if (NULL == dataPtr->buf_ptr) {
+			goto exit;
+		}
+		/*
+		 * We make a copy of the data for the request because the data can get
+		 * transformed which will result in nonsense values being displayed after
+		 * the primitive is executed
+		 */
+		request.buf_len = dataPtr->buf_len;
+		request.data_len = dataPtr->data_len;
+		request.type = dataPtr->type;
+		request.buf_ptr = esif_ccb_malloc(request.buf_len);
+		if (NULL == request.buf_ptr) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+		esif_ccb_memcpy(request.buf_ptr, dataPtr->buf_ptr, request.buf_len);
 	}
 
-	/*
-	 * We make a copy of the data for the request because the data can get
-	 * transformed which will result in nonsense values being displayed after
-	 * the primitive is executed
-	 */
-	request.buf_len = dataPtr->buf_len;
-	request.data_len = dataPtr->data_len;
-	request.type = dataPtr->type;
-	request.buf_ptr = esif_ccb_malloc(request.buf_len);
-	if (NULL == request.buf_ptr) {
-		rc = ESIF_E_NO_MEMORY;
-		goto exit;
-	}
-	esif_ccb_memcpy(request.buf_ptr, dataPtr->buf_ptr, request.buf_len);
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s ", esif_primitive_str((enum esif_primitive_type)id));
 
@@ -4017,13 +4135,34 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
+	// Optional - Action selector
+	if (opt < argc) {
+		rc = EsifParseSpecificActionArg(argv[opt++], &actSelector);
+		if (rc != ESIF_OK) {
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Action option invalid\n");
+			goto exit;
+		}
+	}
+
+	sarPtr = EsifCreateSpecificActionRequest(
+		id,
+		qualifier_str,
+		instance,
+		&request,
+		&response,
+		&actSelector);
+	if (NULL == sarPtr) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed to create specific action request\n");
+		goto exit;
+	}
+
 	rc = EsifExecutePrimitive(
-			(u8)g_dst,
-			id,
-			qualifier_str,
-			instance,
-			&request,
-			&response);
+		(u8)g_dst,
+		SET_SPECIFIC_ACTION_PRIMITIVE,
+		"D0",
+		255,
+		sarPtr,
+		NULL);
 	if (ESIF_OK != rc) {
 		g_errorlevel = 6;
 		goto exit;
@@ -4089,10 +4228,17 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	}
 
 exit:
-	if (rc != ESIF_OK) {
+	if (ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP == rc) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Required primitive %s %03u.D0.255 not found in DSP\n",
+			esif_primitive_str((enum esif_primitive_type)SET_SPECIFIC_ACTION_PRIMITIVE), SET_SPECIFIC_ACTION_PRIMITIVE);
+	} else if (rc != ESIF_OK) {
+		if (ESIF_E_PRIMITIVE_SUR_NOT_FOUND_IN_DSP == rc) {
+			rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
+		}
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Error code = %s(%d)\n",
 			esif_rc_str(rc), rc);
 	}
+	esif_ccb_free(sarPtr);
 	esif_ccb_free(request.buf_ptr);
 	EsifData_Destroy(dataPtr);
 	return output;
@@ -4357,12 +4503,13 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 			time_t now=0;
 			char timestamp[MAX_CTIME_LEN]={0};
 
-			time(&now);
-			esif_ccb_ctime(timestamp, sizeof(timestamp), &now);
-			timestamp[20] = 0; // truncate year
-			esif_ccb_sprintf(msglen, timestamp_msg, "%s%s", timestamp+4, msg);
-			esif_ccb_sprintf(sizeof(newCmd), newCmd, "log write trace %s", timestamp_msg);
-			esif_ccb_free(timestamp_msg);
+			if (timestamp_msg) {
+				time(&now);
+				esif_ccb_ctime(timestamp, sizeof(timestamp), &now);
+				esif_ccb_sprintf(msglen, timestamp_msg, "\"%.16s%s\"", timestamp + 4, msg);
+				esif_ccb_sprintf(sizeof(newCmd), newCmd, "log write trace %s", timestamp_msg);
+				esif_ccb_free(timestamp_msg);
+			}
 			return parse_cmd(newCmd, ESIF_FALSE, ESIF_FALSE);
 		}
 		// trace log open <file> [append]
@@ -4554,6 +4701,9 @@ static char *esif_shell_cmd_test(EsifShellCmdPtr shell)
 		start_id = 0;
 	} else {
 		start_id = esif_atoi(buf);
+		if (start_id > MAX_START_ID) {
+			return NULL;
+		}
 		stop_id  = start_id + 1;
 	}
 
@@ -4954,6 +5104,7 @@ static char *esif_shell_cmd_info(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argv);
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	UNREFERENCED_PARAMETER(rc);
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF_UF GMIN Build Version = %s\n", ESIF_UF_VERSION);
 #else
 	const u32 data_len = sizeof(struct esif_command_get_kernel_info);
@@ -6041,257 +6192,259 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI Copyright (c) 2013-2016 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
-										  "Key:  <>-Required parameters\n"
-										  "      []-Optional parameters\n"
-										  "       |-Choice of parameters\n"
-										  "     ...-Repeated parameters\n"
-										  "\n"
-										  "GENERAL COMMANDS:\n"
-										  "help                                     Displays this text\n"
-										  "quit or exit                             Leave\n"
-										  "format <xml|text>                        Command Output Format (Default=text)\n"
-										  "info                                     Get Kernel Version\n"
-										  "about                                    List ESIF Information\n"
-										  "rem                                      Comment/Remark - ignored\n"
-										  "repeat <count>                           Repeat Next Command N Times\n"
-										  "repeat_delay <delay>                     Repeat Delay In ms\n"
-										  "echo [?] [parameter...]                  Echos Parameters - if ? is used, each\n"
-										  "                                         parameter is on a separate line\n"
-										  "memstats [reset]                         Show/Reset Memory Statistics\n"
-										  "autoexec [command] [...]                 Execute Default Startup Script\n"
-										  "\n"
-										  "TEST SCRIPT COMMANDS:\n"
-										  "load    <filename> [load parameters...]  Load and Execute Command File\n"
-										  "loadtst <filename> [load parameters...]  Like 'load' but uses DSP DV for file\n"
-										  "cat     <filename> [load parameters...]  Display Command File\n"
-										  "proof   <filename> [load parameters...]  Prove Command File Replace Tokens\n"
-										  "Load parameters replace tokens ($1...$9) in file. $dst$ replaced by file path\n"
-										  "Use 'proof' to check parameter replacements\n"
-										  "\n"
-										  "test <id | all>                          Test By ID or ALL Will Run All Tests\n"
-										  "soe  <on|off>                            Stop On Error\n"
-										  "seterrorlevel                            Set / Reset Error Level\n"
-										  "geterrorlevel                            Get Current Error level\n"
-										  "timerstart                               Start Interval Timer\n"
-										  "timerstop                                Stop Interval Timer\n"
-										  "sleep <ms>                               Sleep for the specified number of ms\n"
-										  "\n"
-										  "UI COMMANDS:\n"
-										  "ui getxslt   [appname]                   Return XSLT Formatting information\n"
-										  "ui getgroups [appname]                   Get List Of Groups of Left Hand Tabs\n"
-										  "ui getmodulesingroup <appname> <groupId> Get A List Of Modules For The Group\n"
-										  "ui getmoduledata <appname> <groupId> <moduleId>\n"
-										  "                                         Get Data For The App/Group/Module\n"
-										  "\n"
-										  "DSP COMMANDS:\n"
-										  "dsps                                     List all loaded DSPs\n"
-										  "dspquery [name [vendorid [deviceid [enum [ptype [hid [uid]]]]]]] Query for matching DSP\n"
-										  "infocpc <filename> [pattern]             Get Dst CPC Information\n"
-										  "infofpc <filename> [pattern]             Get Dst FPC Information\n"
-										  "\n"
-										  "PARTICIPANT COMMANDS:\n"
-										  "participants                             List Active Participants\n"
-										  "participantsk                            List Kernel Participants\n"
-										  "participant  <id>                        Get Participant Information\n"
-										  "participantk <id>                        Get Kernel Participant Information\n"
-										  "dst  <id>                                Set Target Participant By ID\n"
-										  "dstn <name>                              Set Target Participant By Name\n"
-										  "domains                                  List Active Domains For Participant\n"
-										  "\n"
-										  "PRIMITIVE EXECUTION API:\n"
-										  "getp <id> [qualifier] [instance] [test]  Execute Get Primitive With Automatic\n"
-										  "                                         Return Type and Size\n"
-										  "'test' options:\n"
-										  "     -l <value>  This is the lower bounds of the testing range\n"
-										  "     -u <value>  This is the upper bounds of the testing range\n"
-										  "     -b <value>  This is used for primitives that will point to a binary \n"
-										  "                 object for a return type. The value specified is the\n"
-										  "                 expected maximum size of the binary.\n"
-// " -f          This specifies that the test value should be\n"
-// "             obtained from a file, rather than a DSP.\n"
-// " -s <value>  This is used to seed primitives with a value. It can \n"
-// "             also be used to write values to files (by using the -f\n"
-// "             argument in conjunction with -s)\n"
-// " -d <dir>    This is used to specifiy an export when using a binary.\n"
-										  "getp_u32 <id> [qualifier] [instance] [test] Execute U32 Get Primitive\n"
-										  "getp_t   <id> [qualifier] [instance] [test] Like getp But Converts Temperature\n"
-										  "getp_pw  <id> [qualifier] [instance]        Like getp But Converts Power To mW\n"
-										  "getp_s   <id> [qualifier] [instance]        Like getp But Return STRING\n"
-										  "getp_b   <id> [qualifier] [instance]        Like getp But Return BINARY DATA\n"
-										  "getp_bd  <id> [qualifier] [instance]        Like getp But Dumps Hex BINARY DATA\n"
-										  "getp_bs  <id> [qualifier] [instance] [file] Like getp_b But Dumps To File\n"
-										  "getp_bt  <id> [qualifier] [instance]        Like getp_bs But Dumps As Table\n"
-										  "getf_b   <file>                             Like getp_b But Reads From File\n"
-										  "getf_bd  <file>                             Like getp_bd But Reads From File\n"
-										  "\n"
-										  "setp    <id> <qualifier> <instance> <data>  Execute Set Primitive\n"
-										  "setp_t  <id> <qualifier> <instance> <temp>  Execute Set as Temperature (C)\n"
-										  "setp_pw <id> <qualifier> <instance> <power> Execute Set as Power (mW)\n"
-										  "set_osc <id> <capablities>                  Execute ACPI _OSC Command For\n"
-										  "                                            Listed GUIDs Below:\n"
-										  "         Active Policy 0 = {0xd6,0x41,0xa4,0x42,0x6a,0xae,0x2b,0x46,\n"
-										  "                            0xa8,0x4b,0x4a,0x8c,0xe7,0x90,0x27,0xd3}\n"
-										  "         Fail Case     1 = {0xde,0xad,0xbe,0xef,0xde,0xad,0xbe,0xef,\n"
-										  "                            0xde,0xad,0xbe,0xef,0xde,0xad,0xbe,0xef}\n"
-										  "                                            Capabilities per APCI Spec\n"
-										  "setb <buffer_size>                          Set Binary Buffer Size\n"
-										  "\n"
-										  "rstp <id> [qualifier] [instance]            Resets/clears an override\n"
-										  "\n"
-										  "getb                                        Get Binary Buffer Size\n"
-										  "\n"
-										  "idsp [add | delete <uuid>]                  Display, add or remove a UUID from\n"
-										  "                                            the IDSP in override.dv\n"
-										  "\n"
-										  "CONFIG API:\n"
-										  "config list                              List Open DataVaults\n"
-										  "config open   [@datavault]               Open and Load DataVault\n"
-										  "config close  [@datavault]               Close DataVault\n"
-										  "config drop   [@datavault]               Drop Closed DataVault\n"
-										  "config get    [@datavault] <key>         Get DataVault Key (or wildcard)\n"
-										  "config set    [@datavault] <key> <value> [ESIF_DATA_TYPE] [option ...]\n"
-										  "                                         Set DataVault Key/Value/Type\n"
-										  "config keys   [@datavault] <key>         Enumerate matching Key(s) or wildcard\n"
-										  "config delete [@datavault] <key>         Delete DataVault Key (or '*')\n"
-										  "config exec   [@datavault] <key>         Execute Script in DataVault Key\n"
-										  "config copy   [@datavault] <key> [...] [@targetdv] [option ...]\n"
-										  "                                         Copy (and Replace) keys(s) to another DV\n"
-										  "config merge  [@datavault] <key> [...] [@targetdv] [option ...]\n"
-										  "                                         Merge (No Replace) keys(s) to another DV\n"
-										  "config export [@datavault] <key> [...] [@targetdv] [bios|dv]\n"
-										  "                                         Export DV keys to BIOS or DV File Format\n"
-										  "\n"
-										  "EVENT API:\n"
-										  "event    <eventType> [participant] [domain]   Send User Mode Event\n" 
-										  "eventkpe <eventType> <index> [u32 data]       Send Kernel Event to KPE\n"
-										  "                                              index - Index of the KPE based on\n"
-										  "                                              the order of driversk (0-based)\n"
-										  "\n"
-#ifndef ESIF_FEAT_OPT_ACTION_SYSFS
-										  "IPC API:\n"
-										  "ipcauto                                  Auto Connect/Retry\n"
-										  "ipccon                                   Force IPC Connect\n"
-										  "ipcdis                                   Force IPC Disconnection\n"
-										  "\n"
-#endif
-										  "APPLICATION MANAGEMENT:\n"
-										  "apps                                     List all ESIF hosted Applications\n"
-										  "appstart   <application>                 Start an ESIF Application\n"
-										  "appstop    <application>                 Stop an ESIF Application\n"
-										  "appselect  <application>                 Select a running Application To Manage\n"
-										  "appstatus  <application>                 App Status\n"
-										  "appenable  <application>                 App Enable\n"
-										  "appabout   <application>                 App About\n"
-										  "\n"
-										  "ACTION MANAGEMENT:\n"
-										  "actions                                  List all DSP Actions\n"
-										  "actionsk                                 Get Kernel DSP Action Information\n"
-										  "actionsu                                 Get User-Mode DSP Action Information\n"
-										  "actionstart <action>                     Start a Loadable DSP Action\n"
-										  "actionstop  <action>                     Stop a Loadable DSP Action\n"
-										  "driversk                                 List Kernel Participant Extensions\n"
-										  "driverk <id>                             Get Kernel Participant Extension Info\n"
-										  "upes                                     List User-mode Participant Extensions\n"
-										  "\n"
-										  "CONJURE MANAGEMENT:\n"
-										  "conjures                                 List loaded ESIF Conjure Libraries\n"
-										  "conjure   <library name>                 Load Upper Framework Conjure Library\n"
-										  "unconjure <library name>                 Unload Upper Framework Conjure Library\n"
-										  "\n"
-										  "USER-MODE PARTICIPANT DATA LOGGING:\n"
-										  "participantlog "PARTICIPANTLOG_CMD_START_STR" [all |[PID DID capMask]...]\n"
-										  "                                        Starts data logging for that particular\n"
-										  "                                        participant ID,domain and capability ID\n"
-										  "                                        combination\n"
-										  "                                        all     - Starts data logging for all\n"
-										  "                                                  the available participants\n"
-										  "                                        PID     - Participant ID (e.g 1,2)|\n"
-										  "                                                  Participant Name(e.g TCHG,\n"
-										  "                                                  TCPU)\n"
-										  "                                        DID     - Domain ID(e.g D0,D1)|all\n"
-										  "                                                  (for all domains)\n"
-										  "                                        capMask - capability Mask(e.g 0x2100)|\n"
-										  "                                                  all(for all capabilities)\n"
-										  "                                        If no arguments are specified for start\n"
-										  "                                        command, by default logging will start\n"
-										  "                                        for all the available participants\n"
-										  "                                        Capability Mask Details:\n"
-										  );
+		"Key:  <>-Required parameters\n"
+		"      []-Optional parameters\n"
+		"       |-Choice of parameters\n"
+		"     ...-Repeated parameters\n"
+		"\n"
+		"GENERAL COMMANDS:\n"
+		"help                                     Displays this text\n"
+		"quit or exit                             Leave\n"
+		"format <xml|text>                        Command Output Format (Default=text)\n"
+		"info                                     Get Kernel Version\n"
+		"about                                    List ESIF Information\n"
+		"rem                                      Comment/Remark - ignored\n"
+		"repeat <count>                           Repeat Next Command N Times\n"
+		"repeat_delay <delay>                     Repeat Delay In ms\n"
+		"echo [?] [parameter...]                  Echos Parameters - if ? is used, each\n"
+		"                                         parameter is on a separate line\n"
+		"memstats [reset]                         Show/Reset Memory Statistics\n"
+		"autoexec [command] [...]                 Execute Default Startup Script\n"
+		"\n"
+		"TEST SCRIPT COMMANDS:\n"
+		"load    <filename> [load parameters...]  Load and Execute Command File\n"
+		"loadtst <filename> [load parameters...]  Like 'load' but uses DSP DV for file\n"
+		"cat     <filename> [load parameters...]  Display Command File\n"
+		"proof   <filename> [load parameters...]  Prove Command File Replace Tokens\n"
+		"Load parameters replace tokens ($1...$9) in file. $dst$ replaced by file path\n"
+		"Use 'proof' to check parameter replacements\n"
+		"\n"
+		"test <id | all>                          Test By ID or ALL Will Run All Tests\n"
+		"soe  <on|off>                            Stop On Error\n"
+		"seterrorlevel                            Set / Reset Error Level\n"
+		"geterrorlevel                            Get Current Error level\n"
+		"timerstart                               Start Interval Timer\n"
+		"timerstop                                Stop Interval Timer\n"
+		"sleep <ms>                               Sleep for the specified number of ms\n"
+		"\n"
+		"UI COMMANDS:\n"
+		"ui getxslt   [appname]                   Return XSLT Formatting information\n"
+		"ui getgroups [appname]                   Get List Of Groups of Left Hand Tabs\n"
+		"ui getmodulesingroup <appname> <groupId> Get A List Of Modules For The Group\n"
+		"ui getmoduledata <appname> <groupId> <moduleId>\n"
+		"                                         Get Data For The App/Group/Module\n"
+		"\n"
+		"DSP COMMANDS:\n"
+		"dsps                                     List all loaded DSPs\n"
+		"dspquery [name [vendorid [deviceid [enum [ptype [hid [uid]]]]]]] Query for matching DSP\n"
+		"infocpc <filename> [pattern]             Get Dst CPC Information\n"
+		"infofpc <filename> [pattern]             Get Dst FPC Information\n"
+		"\n"
+		"PARTICIPANT COMMANDS:\n"
+		"participants                             List Active Participants\n"
+		"participantsk                            List Kernel Participants\n"
+		"participant  <id>                        Get Participant Information\n"
+		"participantk <id>                        Get Kernel Participant Information\n"
+		"dst  <id>                                Set Target Participant By ID\n"
+		"dstn <name>                              Set Target Participant By Name\n"
+		"domains                                  List Active Domains For Participant\n"
+		"\n"
+		"PRIMITIVE EXECUTION API:\n"
+		"getp <id> [qualifier] [instance] [[~]act_name | [~]act_index]\n"
+		"                                         Execute 'GET' Primitive With Automatic\n"
+		"                                         Return Type and Size\n"
+		"  Where: act_name = Name of Action Type to Use\n"
+		"         act_index = Index of the Action to Use\n"
+		"         ~ = If Present, Indicates to Exclude that Action/Name\n"
+		"         (Default is to try all actions for a primitive until one succeeds)\n"
+		"  Note: Action Selector Options not shown in variants below, but may be used\n"
+		"\n"
+		"getp_u32 <id> [qualifier] [instance]        Execute U32 Get Primitive\n"
+		"getp_t   <id> [qualifier] [instance]        Like getp But Converts Temperature\n"
+		"getp_pw  <id> [qualifier] [instance]        Like getp But Converts Power To mW\n"
+		"getp_s   <id> [qualifier] [instance]        Like getp But Return STRING\n"
+		"getp_b   <id> [qualifier] [instance]        Like getp But Return BINARY DATA\n"
+		"getp_bd  <id> [qualifier] [instance]        Like getp But Dumps Hex BINARY DATA\n"
+		"getp_bs  <id> [qualifier] [instance] [file] Like getp_b But Dumps To File\n"
+		"getp_bt  <id> [qualifier] [instance]        Like getp_bs But Dumps As Table\n"
+		"getf_b   <file>                             Like getp_b But Reads From File\n"
+		"getf_bd  <file>                             Like getp_bd But Reads From File\n"
+		"\n"
+		"setp    <id> <qualifier> <instance> <data> [[~]act_name | [~]act_index]\n"
+		"                                         Execute 'SET' Primitive\n"
+		"  Where: act_name = Name of Action Type to Use\n"
+		"         act_index = Index of the Action to Use\n"
+		"         ~ = If Present, Indicates to Exclude that Action/Name\n"
+		"         (Default is to try all actions for a primitive until on succeeds)\n"
+		"  Note: Action Selector Options not shown in variants below, but may be used\n"
+		"\n"
+		"setp_t  <id> <qualifier> <instance> <temp>  Execute Set as Temperature (C)\n"
+		"setp_pw <id> <qualifier> <instance> <power> Execute Set as Power (mW)\n"
+		"set_osc <id> <capablities>                  Execute ACPI _OSC Command For\n"
+		"                                            Listed GUIDs Below:\n"
+		"         Active Policy 0 = {0xd6,0x41,0xa4,0x42,0x6a,0xae,0x2b,0x46,\n"
+		"                            0xa8,0x4b,0x4a,0x8c,0xe7,0x90,0x27,0xd3}\n"
+		"         Fail Case     1 = {0xde,0xad,0xbe,0xef,0xde,0xad,0xbe,0xef,\n"
+		"                            0xde,0xad,0xbe,0xef,0xde,0xad,0xbe,0xef}\n"
+		"                                            Capabilities per APCI Spec\n"
+		"setb <buffer_size>                          Set Binary Buffer Size\n"
+		"\n"
+		"rstp <id> [qualifier] [instance]            Resets/clears an override\n"
+		"\n"
+		"getb                                        Get Binary Buffer Size\n"
+		"\n"
+		"idsp [add | delete <uuid>]                  Display, add or remove a UUID from\n"
+		"                                            the IDSP in override.dv\n"
+		"\n"
+		"CONFIG API:\n"
+		"config list                              List Open DataVaults\n"
+		"config open   [@datavault]               Open and Load DataVault\n"
+		"config close  [@datavault]               Close DataVault\n"
+		"config drop   [@datavault]               Drop Closed DataVault\n"
+		"config get    [@datavault] <key>         Get DataVault Key (or wildcard)\n"
+		"config set    [@datavault] <key> <value> [ESIF_DATA_TYPE] [option ...]\n"
+		"                                         Set DataVault Key/Value/Type\n"
+		"config keys   [@datavault] <key>         Enumerate matching Key(s) or wildcard\n"
+		"config delete [@datavault] <key>         Delete DataVault Key (or '*')\n"
+		"config exec   [@datavault] <key>         Execute Script in DataVault Key\n"
+		"config copy   [@datavault] <key> [...] [@targetdv] [option ...]\n"
+		"                                         Copy (and Replace) keys(s) to another DV\n"
+		"config merge  [@datavault] <key> [...] [@targetdv] [option ...]\n"
+		"                                         Merge (No Replace) keys(s) to another DV\n"
+		"config export [@datavault] <key> [...] [@targetdv] [bios|dv]\n"
+		"                                         Export DV keys to BIOS or DV File Format\n"
+		"\n"
+		"EVENT API:\n"
+		"event    <eventType> [participant] [domain]   Send User Mode Event\n" 
+		"eventkpe <eventType> <index> [u32 data]       Send Kernel Event to KPE\n"
+		"                                              index - Index of the KPE based on\n"
+		"                                              the order of driversk (0-based)\n"
+		"\n"
+	#ifndef ESIF_FEAT_OPT_ACTION_SYSFS
+		"IPC API:\n"
+		"ipcauto                                  Auto Connect/Retry\n"
+		"ipccon                                   Force IPC Connect\n"
+		"ipcdis                                   Force IPC Disconnection\n"
+		"\n"
+	#endif
+		"APPLICATION MANAGEMENT:\n"
+		"apps                                     List all ESIF hosted Applications\n"
+		"appstart   <application>                 Start an ESIF Application\n"
+		"appstop    <application>                 Stop an ESIF Application\n"
+		"appselect  <application>                 Select a running Application To Manage\n"
+		"appstatus  <application>                 App Status\n"
+		"appenable  <application>                 App Enable\n"
+		"appabout   <application>                 App About\n"
+		"\n"
+		"ACTION MANAGEMENT:\n"
+		"actions                                  List all DSP Actions\n"
+		"actionsk                                 Get Kernel DSP Action Information\n"
+		"actionsu                                 Get User-Mode DSP Action Information\n"
+		"actionstart <action>                     Start a Loadable DSP Action\n"
+		"actionstop  <action>                     Stop a Loadable DSP Action\n"
+		"driversk                                 List Kernel Participant Extensions\n"
+		"driverk <id>                             Get Kernel Participant Extension Info\n"
+		"upes                                     List User-mode Participant Extensions\n"
+		"\n"
+		"CONJURE MANAGEMENT:\n"
+		"conjures                                 List loaded ESIF Conjure Libraries\n"
+		"conjure   <library name>                 Load Upper Framework Conjure Library\n"
+		"unconjure <library name>                 Unload Upper Framework Conjure Library\n"
+		"\n"
+		"USER-MODE PARTICIPANT DATA LOGGING:\n"
+		"participantlog "PARTICIPANTLOG_CMD_START_STR" [all |[PID DID capMask]...]\n"
+		"                                        Starts data logging for that particular\n"
+		"                                        participant ID,domain and capability ID\n"
+		"                                        combination\n"
+		"                                        all     - Starts data logging for all\n"
+		"                                                  the available participants\n"
+		"                                        PID     - Participant ID (e.g 1,2)|\n"
+		"                                                  Participant Name(e.g TCHG,\n"
+		"                                                  TCPU)\n"
+		"                                        DID     - Domain ID(e.g D0,D1)|all\n"
+		"                                                  (for all domains)\n"
+		"                                        capMask - capability Mask(e.g 0x2100)|\n"
+		"                                                  all(for all capabilities)\n"
+		"                                        If no arguments are specified for start\n"
+		"                                        command, by default logging will start\n"
+		"                                        for all the available participants\n"
+		"                                        Capability Mask Details:\n"
+		);
 	for (capabilityid = 0; capabilityid < MAX_CAPABILITY_MASK; capabilityid++) {
 		if (!esif_ccb_stricmp(esif_capability_type_str(capabilityid), ESIF_NOT_AVAILABLE)) {
 			break;
 		}
 		else if (esif_ccb_strlen(esif_capability_type_str(capabilityid), MAX_PATH) > sizeof("ESIF_CAPABILITY_TYPE")) {
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-										  "                                        0x%08X -  %s\n",
-										  (1 << capabilityid),
-										  esif_capability_type_str(capabilityid) + sizeof("ESIF_CAPABILITY_TYPE")
-										  );
+		"                                        0x%08X -  %s\n",
+			(1 << capabilityid),
+			esif_capability_type_str(capabilityid) + sizeof("ESIF_CAPABILITY_TYPE")
+			);
 		}
 	}
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-										  "participantlog "PARTICIPANTLOG_CMD_SCHEDULE_STR" [delay] [all |[PID DID capMask]...]\n"
-										  "                                        Start a delayed logging thread ms\n"
-										  "                                        from now.\n"
-										  "                                        delay - Time interval in ms.Defaults is\n"
-										  "                                                5s (5000ms)\n"
-										  "                                        Other arguments list descriptions are\n"
-										  "                                        same as the start command.\n"
-										  "participantlog "PARTICIPANTLOG_CMD_INTERVAL_STR" [time]            Sets the polling interval for logging\n"
-										  "                                        to time specified in ms.\n"
-										  "                                        Default is 2s(2000ms)\n"
-										  "participantlog "PARTICIPANTLOG_CMD_ROUTE_STR" [target ...] [filename]\n"
-										  "                                        Logs the participant data log to the\n"
-										  "                                        specified target.The target can be any\n"
-										  "                                        of the following\n"
-										  "                                        (CONSOLE,EVENTVIEWER,DEBUGGER,FILE,ALL)\n"
-										  "                                        Default target is FILE\n"
-										  "                                        If all is specified as target, then\n"
-										  "                                        log target is set for all the available\n"
-										  "                                        targets\n"
-										  "                                        Filename is optional and will be\n"
-										  "                                        considered only if file is specified\n"
-										  "                                        as target and filename should be the\n"
-										  "                                        following argument immediately after\n"
-										  "                                        it.If no filename is specified, By\n"
-										  "                                        default a new file will be created\n"
-										  "                                        based on time stamp\n"
-										  "                                        e.g,\n"
-										  "                                        participant_log_2015-11-24-142412.csv\n"
-										  "                                        If no arguments are specified for route\n"
-										  "                                        command, by default route will be set\n"
-										  "                                        for file and new file will be created\n"
-										  "participantlog "PARTICIPANTLOG_CMD_STOP_STR"                     Stops participant data logging if\n"
-										  "                                        started already\n"
-										  "\n"										  
-										  "USER-MODE TRACE LOGGING:\n"
-										  "trace                             Show User Mode Trace Settings\n"
-										  "trace level  [level]              View or Set Global Trace Level\n"
-										  "trace module <level> <module ...> Set Trace Module Bitmask (ALL, NONE, Name)\n"
-										  "trace route  <level> <route ...>  Set Trace Routing Bitmask (CON, EVT, DBG, LOG)\n"
-										  "trace log open <filename>         Open Trace Log File\n"
-										  "trace log close                   Close Trace Log File\n"
-										  "timestamp <on|off>                Show Execution Timestamps in IPC Trace Data\n"
-										  "\n"
-										  "log                               Display Open Log Files\n"
-										  "log list                          Display Open Log Files\n"
-										  "log <filename>                    Log To File If Debug On It Will Tee Output\n"
-										  "log open  [type] <filename>       Open Log File (types: shell(dflt) trace ui)\n"
-										  "log write [type] <\"Log Msg\">      Write 'Log Msg' to Log File\n"
-										  "log close [type]                  Close Log File\n"
-										  "log scan  [pattern]               Display Log Files Match Pattern (dflt=*.log)\n"
-										  "nolog                             Stop Logging To File\n"
-										  "\n"
-										  "KERNEL-MODE TRACE LOGGING:\n"
-										  "debugshow                      Show Debug Status\n"
-										  "debugset <modules>             Set Kernel Modules To Debug\n"
-										  "debuglvl <module> <cat_mask>   Set Kernel Debug Category Mask For Module\n"
-										  "debuglvl <tracelevel>          Set Kernel Trace Level (0..4 Default=ERROR(0))\n"
-										  "Where <modules> is a hex bit-mask of modules (e.g. 0xfc)\n"
-										  "      <module> is a module number\n"
-										  "      <cat_mask> is a hex bit-mask of the module debugging categories to enable\n"
-										  "\n\n"
-										  );
+		"participantlog "PARTICIPANTLOG_CMD_SCHEDULE_STR" [delay] [all |[PID DID capMask]...]\n"
+		"                                        Start a delayed logging thread ms\n"
+		"                                        from now.\n"
+		"                                        delay - Time interval in ms.Defaults is\n"
+		"                                                5s (5000ms)\n"
+		"                                        Other arguments list descriptions are\n"
+		"                                        same as the start command.\n"
+		"participantlog "PARTICIPANTLOG_CMD_INTERVAL_STR" [time]            Sets the polling interval for logging\n"
+		"                                        to time specified in ms.\n"
+		"                                        Default is 2s(2000ms)\n"
+		"participantlog "PARTICIPANTLOG_CMD_ROUTE_STR" [target ...] [filename]\n"
+		"                                        Logs the participant data log to the\n"
+		"                                        specified target.The target can be any\n"
+		"                                        of the following\n"
+		"                                        (CONSOLE,EVENTVIEWER,DEBUGGER,FILE,ALL)\n"
+		"                                        Default target is FILE\n"
+		"                                        If all is specified as target, then\n"
+		"                                        log target is set for all the available\n"
+		"                                        targets\n"
+		"                                        Filename is optional and will be\n"
+		"                                        considered only if file is specified\n"
+		"                                        as target and filename should be the\n"
+		"                                        following argument immediately after\n"
+		"                                        it.If no filename is specified, By\n"
+		"                                        default a new file will be created\n"
+		"                                        based on time stamp\n"
+		"                                        e.g,\n"
+		"                                        participant_log_2015-11-24-142412.csv\n"
+		"                                        If no arguments are specified for route\n"
+		"                                        command, by default route will be set\n"
+		"                                        for file and new file will be created\n"
+		"participantlog "PARTICIPANTLOG_CMD_STOP_STR"                     Stops participant data logging if\n"
+		"                                        started already\n"
+		"\n"										  
+		"USER-MODE TRACE LOGGING:\n"
+		"trace                             Show User Mode Trace Settings\n"
+		"trace level  [level]              View or Set Global Trace Level\n"
+		"trace module <level> <module ...> Set Trace Module Bitmask (ALL, NONE, Name)\n"
+		"trace route  <level> <route ...>  Set Trace Routing Bitmask (CON, EVT, DBG, LOG)\n"
+		"trace log open <filename>         Open Trace Log File\n"
+		"trace log close                   Close Trace Log File\n"
+		"timestamp <on|off>                Show Execution Timestamps in IPC Trace Data\n"
+		"\n"
+		"log                               Display Open Log Files\n"
+		"log list                          Display Open Log Files\n"
+		"log <filename>                    Log To File If Debug On It Will Tee Output\n"
+		"log open  [type] <filename>       Open Log File (types: shell(dflt) trace ui)\n"
+		"log write [type] <\"Log Msg\">      Write 'Log Msg' to Log File\n"
+		"log close [type]                  Close Log File\n"
+		"log scan  [pattern]               Display Log Files Match Pattern (dflt=*.log)\n"
+		"nolog                             Stop Logging To File\n"
+		"\n"
+		"KERNEL-MODE TRACE LOGGING:\n"
+		"debugshow                      Show Debug Status\n"
+		"debugset <modules>             Set Kernel Modules To Debug\n"
+		"debuglvl <module> <cat_mask>   Set Kernel Debug Category Mask For Module\n"
+		"debuglvl <tracelevel>          Set Kernel Trace Level (0..4 Default=ERROR(0))\n"
+		"Where <modules> is a hex bit-mask of modules (e.g. 0xfc)\n"
+		"      <module> is a module number\n"
+		"      <cat_mask> is a hex bit-mask of the module debugging categories to enable\n"
+		"\n\n"
+		);
 	return output;
 }
 
@@ -7312,6 +7465,7 @@ static char *esif_shell_cmd_sleep(EsifShellCmdPtr shell)
 	   // sleep <ms>
 	   if (argc > 1) {
 			  UInt32 ms = esif_atoi(argv[1]);
+			  ms = (ms > MAX_SLEEP_MS ? MAX_SLEEP_MS : ms);
 			  esif_ccb_sleep_msec(ms);
 	   }
 	   return output;
@@ -7329,7 +7483,7 @@ static void esif_shell_exec_cmdshell(char *line)
 // Helper for esif_shell_cmd_idsp
 typedef struct IdspEntry_s {
 	union esif_data_variant variant;
-	char uuid[ESIF_GUID_LEN];
+	esif_guid_t uuid;
 } IdspEntry, *IdspEntryPtr;
 
 
@@ -7340,14 +7494,17 @@ static char *concat_uuid_list(
 	int numEntries
 	)
 {
-	char uuidStr[ESIF_GUID_PRINT_SIZE] = {0};
+	u8 mangledUuid[ESIF_GUID_LEN] = { 0 };
+	char uuidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
 	int i = 0;
 
 	ESIF_ASSERT(outputPtr != NULL);
 	ESIF_ASSERT(entryPtr != NULL);
 
 	for (i = 0; i < numEntries; i++) {
-		esif_guid_print((esif_guid_t *)(entryPtr->uuid), uuidStr);
+		esif_ccb_memcpy(&mangledUuid, (u8 *)entryPtr->uuid, ESIF_GUID_LEN);
+		esif_guid_mangle(&mangledUuid);
+		esif_guid_print((esif_guid_t *)(mangledUuid), uuidStr);
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, outputPtr, "%s\n", uuidStr);
 
 		entryPtr++;
@@ -7359,7 +7516,7 @@ static char *concat_uuid_list(
 
 // Helper for esif_shell_cmd_idsp
 static IdspEntryPtr find_uuid_in_idsp_entries(
-	char *uuidPtr,
+	esif_guid_t *uuidPtr,
 	IdspEntryPtr entryPtr,
 	int numEntries
 	)
@@ -7370,7 +7527,7 @@ static IdspEntryPtr find_uuid_in_idsp_entries(
 	ESIF_ASSERT(entryPtr != NULL);
 
 	for (i = 0; i < numEntries; i++) {
-		if (memcmp(entryPtr->uuid, uuidPtr, ESIF_GUID_LEN) == 0) {
+		if (memcmp(entryPtr->uuid, (char *)uuidPtr, ESIF_GUID_LEN) == 0) {
 			goto exit;
 		}
 		entryPtr++;
@@ -7390,14 +7547,17 @@ static char *esif_shell_cmd_idsp(EsifShellCmdPtr shell)
 	char *subcmd = NULL;
 	int  opt = 1;
 	char* uuidStr = NULL;
-	char uuidBuffer[ESIF_GUID_LEN] = {0};
+	esif_guid_t uuidBuffer = {0};
+	esif_guid_t nullUuid = {0};
 	UInt16 guidShorts[32] = {0};
 	char notAllowed = '\0';
 	int uuidFieldsRead = 0;
 	EsifDataPtr reqPtr = NULL;
 	EsifDataPtr rspPtr = NULL;
-	int numEntries = 0;
+	UInt32 numEntries = 0;
+	UInt32 newEntryIndex = 0;
 	IdspEntryPtr matchingEntryPtr = NULL;
+	IdspEntryPtr nullEntryPtr = NULL;
 	IdspEntryPtr endPtr = NULL;
 	IdspEntryPtr curEntryPtr = NULL;
 	IdspEntryPtr nextEntryPtr = NULL;
@@ -7467,9 +7627,14 @@ static char *esif_shell_cmd_idsp(EsifShellCmdPtr shell)
 		&guidShorts[4], &guidShorts[5], &guidShorts[6], &guidShorts[7],
 		&guidShorts[8], &guidShorts[9], &guidShorts[10], &guidShorts[11],
 		&guidShorts[12], &guidShorts[13], &guidShorts[14], &guidShorts[15]);
-	esif_copy_shorts_to_bytes((UInt8 *)uuidBuffer, guidShorts, ESIF_GUID_LEN);
+	esif_copy_shorts_to_bytes((UInt8 *)&uuidBuffer, guidShorts, ESIF_GUID_LEN);
 
-	matchingEntryPtr = find_uuid_in_idsp_entries(uuidBuffer, (IdspEntryPtr)rspPtr->buf_ptr, numEntries);
+	//
+	// Put into mangled format, same as format from BIOS and how it is stored in override
+	//
+	esif_guid_mangle(&uuidBuffer);
+
+	matchingEntryPtr = find_uuid_in_idsp_entries(&uuidBuffer, (IdspEntryPtr)rspPtr->buf_ptr, numEntries);
 
 	// idsp add UUID
 	if (esif_ccb_stricmp(subcmd, "add") == 0) {
@@ -7478,7 +7643,17 @@ static char *esif_shell_cmd_idsp(EsifShellCmdPtr shell)
 			goto exit;
 		}
 
-		newIdspSize = rspPtr->data_len + sizeof(*newIdspPtr);
+		// See if there is a NULL entry we can replace
+		nullEntryPtr = find_uuid_in_idsp_entries(&nullUuid, (IdspEntryPtr)rspPtr->buf_ptr, numEntries);
+
+		newIdspSize = rspPtr->data_len;
+		newEntryIndex = numEntries;
+		if (NULL == nullEntryPtr) {
+			newIdspSize += sizeof(*newIdspPtr);
+		} else {
+			newEntryIndex = (UInt32)(nullEntryPtr - ((IdspEntryPtr)rspPtr->buf_ptr));
+		}
+
 		newIdspPtr = (IdspEntryPtr)esif_ccb_malloc(newIdspSize);
 		if (newIdspPtr == NULL) {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "Error: Unable to write new IDSP\n");
@@ -7488,8 +7663,8 @@ static char *esif_shell_cmd_idsp(EsifShellCmdPtr shell)
 		// Copy the current UUIDs to the new IDSP buffer
 		esif_ccb_memcpy((char *)newIdspPtr, rspPtr->buf_ptr, rspPtr->data_len);
 
-		// Set up the new entry at the end of the new IDSP buffer
-		curEntryPtr = newIdspPtr + numEntries;
+		// Set up the new entry at the end or replace the first "null" entry
+		curEntryPtr = newIdspPtr + newEntryIndex;
 		curEntryPtr->variant.type = ESIF_DATA_BINARY;
 		curEntryPtr->variant.string.length = ESIF_GUID_LEN;
 		curEntryPtr->variant.string.reserved = 0;

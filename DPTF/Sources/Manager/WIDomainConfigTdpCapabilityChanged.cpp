@@ -18,8 +18,8 @@
 
 #include "WIDomainConfigTdpCapabilityChanged.h"
 #include "Participant.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 
 WIDomainConfigTdpCapabilityChanged::WIDomainConfigTdpCapabilityChanged(
@@ -45,7 +45,7 @@ void WIDomainConfigTdpCapabilityChanged::execute(void)
         writeDomainWorkItemErrorMessage(ex, "Participant::domainConfigTdpCapabilityChanged");
     }
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

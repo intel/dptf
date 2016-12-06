@@ -16,4 +16,25 @@
 **
 ******************************************************************************/
 
-#include "Utility.h"
+#pragma once
+#include "Dptf.h"
+
+template <typename K, typename V>
+class MapOps 
+{
+public:
+
+    static std::set<K> getKeys(std::map<K,V> aMap);
+    
+};
+
+template <typename K, typename V>
+std::set<K> MapOps<K, V>::getKeys(std::map<K, V> aMap)
+{
+    std::set<K> keys;
+    for (auto aPair = aMap.begin(); aPair != aMap.end(); ++aPair)
+    {
+        keys.insert(aPair->first);
+    }
+    return keys;
+}

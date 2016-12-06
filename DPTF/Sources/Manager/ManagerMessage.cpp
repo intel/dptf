@@ -19,7 +19,7 @@
 #include "ManagerMessage.h"
 #include "ParticipantManagerInterface.h"
 #include "Participant.h"
-#include "PolicyManager.h"
+#include "PolicyManagerInterface.h"
 #include "Policy.h"
 #include "FrameworkEvent.h"
 

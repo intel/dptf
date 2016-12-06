@@ -15,6 +15,7 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
 
 #define ESIF_TRACE_DEBUG_DISABLED
 #include "esif.h"

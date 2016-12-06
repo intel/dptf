@@ -162,7 +162,7 @@ static time_t esif_ws_http_time_local(char *str)
 				break;
 			}
 		}
-		if (timestamp.tm_year >= 1900)
+		if (timestamp.tm_year >= 1900 && timestamp.tm_year < 3000)
 			timestamp.tm_year -= 1900;
 
 		// Compute local GMT offset to convert GMT time to local time

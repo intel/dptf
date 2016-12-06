@@ -25,9 +25,9 @@
 #include "EsifTime.h"
 #include "DptfManagerInterface.h"
 
-class PolicyManager;
+class PolicyManagerInterface;
 class ParticipantManagerInterface;
-class EsifServices;
+class EsifServicesInterface;
 
 class WorkItem : public WorkItemInterface
 {
@@ -39,9 +39,9 @@ public:
     virtual ~WorkItem(void);
 
     DptfManagerInterface* getDptfManager(void) const;
-    PolicyManager* getPolicyManager(void) const;
-	ParticipantManagerInterface* getParticipantManager(void) const;
-    EsifServices* getEsifServices(void) const;
+    PolicyManagerInterface* getPolicyManager(void) const;
+    ParticipantManagerInterface* getParticipantManager(void) const;
+    EsifServicesInterface* getEsifServices(void) const;
 
     // the following are implemented in the WorkItem class and *cannot* be overridden
     virtual UInt64 getUniqueId(void) const override final;
@@ -71,9 +71,9 @@ private:
     WorkItem& operator=(const WorkItem& rhs);
 
     DptfManagerInterface* m_dptfManager;
-    PolicyManager* m_policyManager;
-	ParticipantManagerInterface* m_participantManager;
-    EsifServices* m_esifServices;
+    PolicyManagerInterface* m_policyManager;
+    ParticipantManagerInterface* m_participantManager;
+    EsifServicesInterface* m_esifServices;
 
     const UInt64 m_uniqueId;
     const FrameworkEvent::Type m_frameworkEventType;

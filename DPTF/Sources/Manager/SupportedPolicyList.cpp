@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "SupportedPolicyList.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "esif_ccb_memory.h"
 #include "esif_sdk_primitive_type.h"
 #include "esif_sdk_data.h"

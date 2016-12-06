@@ -18,7 +18,7 @@
 
 #include "WIParticipantAllocate.h"
 #include "ParticipantManagerInterface.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 
 WIParticipantAllocate::WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex) :
     WorkItem(dptfManager, FrameworkEvent::ParticipantAllocate),
@@ -36,11 +36,11 @@ void WIParticipantAllocate::execute(void)
 
     try
     {
-        getParticipantManager()->allocateParticipant(m_newParticipantIndex);
+        *m_newParticipantIndex = getParticipantManager()->allocateNextParticipantIndex();
     }
     catch (std::exception& ex)
     {
         *m_newParticipantIndex = Constants::Esif::NoParticipant;
-        writeWorkItemErrorMessage(ex, "ParticipantManager::allocateParticipant");
+        writeWorkItemErrorMessage(ex, "ParticipantManager::allocateNextParticipantIndex");
     }
 }

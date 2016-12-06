@@ -73,7 +73,7 @@ public:
     virtual void createParticipant(const Guid& guid, UIntN participantIndex, Bool enabled,
         const std::string& name, const std::string& description, BusType::Type busType,
         const PciInfo& pciInfo, const AcpiInfo& acpiInfo,
-        ParticipantServicesInterface* participantServicesInterface) = 0;
+        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) = 0;
     virtual void destroyParticipant(void) = 0;
     virtual void enableParticipant(void) = 0;
     virtual void disableParticipant(void) = 0;

@@ -127,7 +127,6 @@ typedef struct EsifEventMgr_s {
 	Bool eventQueueExitFlag;
 
 	esif_thread_t eventQueueThread;
-
 }EsifEventMgr, *EsifEventMgrPtr;
 
 typedef struct EsifEventQueueItem_s {
@@ -144,6 +143,7 @@ extern "C" {
 
 eEsifError EsifEventMgr_Init(void);
 void EsifEventMgr_Exit(void);
+void EsifEventMgr_Disable(void);
 
 eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByGuid(
 	esif_guid_t *guidPtr,

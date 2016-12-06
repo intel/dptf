@@ -19,7 +19,7 @@
 #include "DomainPixelClockControl_001.h"
 
 DomainPixelClockControl_001::DomainPixelClockControl_001(UIntN participantIndex, UIntN domainIndex, 
-    ParticipantServicesInterface* participantServicesInterface) :
+    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
     DomainPixelClockControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }

@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyActiveRelationshipTableChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyActiveRelationshipTableChanged::WIPolicyActiveRelationshipTableChanged(DptfManagerInterface* dptfManager) :
     WorkItem(dptfManager, FrameworkEvent::PolicyActiveRelationshipTableChanged)
@@ -33,7 +33,7 @@ void WIPolicyActiveRelationshipTableChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

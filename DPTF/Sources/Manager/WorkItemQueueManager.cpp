@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "WorkItemQueueManager.h"
-#include "EsifServices.h"
+#include "EsifServicesInterface.h"
 #include "EsifMutexHelper.h"
 #include "EsifThreadId.h"
 #include "XmlNode.h"

@@ -17,8 +17,8 @@
 ******************************************************************************/
 
 #include "WIPolicyOperatingSystemPowerSourceChanged.h"
-#include "PolicyManager.h"
-#include "EsifServices.h"
+#include "PolicyManagerInterface.h"
+#include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemPowerSourceChanged::WIPolicyOperatingSystemPowerSourceChanged(
     DptfManagerInterface* dptfManager, OsPowerSource::Type powerSource) :
@@ -35,7 +35,7 @@ void WIPolicyOperatingSystemPowerSourceChanged::execute(void)
 {
     writeWorkItemStartingInfoMessage();
 
-    PolicyManager* policyManager = getPolicyManager();
+    auto policyManager = getPolicyManager();
     UIntN policyListCount = policyManager->getPolicyListCount();
 
     for (UIntN i = 0; i < policyListCount; i++)

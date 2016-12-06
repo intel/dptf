@@ -74,8 +74,8 @@ EsifActPtr EsifActMgr_GetAction(
 /*
  * Used to iterate through the static and currently loaded actions.
  * First call EsifActMgr_InitIterator to initialize the iterator.
- * Next, call EsifActMgr_GetNexAction using the iterator.  Repeat until
- * EsifActMgr_GetNexAction fails. (The call will release the reference of the
+ * Next, call EsifActMgr_GetNextAction using the iterator.  Repeat until
+ * EsifActMgr_GetNextAction fails. (The call will release the reference of the
  * participant from the previous call.)  If you stop iteration part way through
  * all actions, the caller is responsible for releasing the reference on
  * the last action returned.  Iteration is complete when ESIF_E_ITERATOR_DONE
@@ -86,7 +86,7 @@ eEsifError EsifActMgr_InitIterator(
 	);
 
 /* See EsifActMgr_InitIterator for usage */
-eEsifError EsifActMgr_GetNexAction(
+eEsifError EsifActMgr_GetNextAction(
 	ActMgrIteratorPtr iteratorPtr,
 	EsifActPtr *upPtr
 	);
