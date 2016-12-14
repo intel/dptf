@@ -1035,7 +1035,7 @@ static u64 GetCpuFreqPdl(void)
 	char *next_token;
 	const char delimiter[2] = " ";
 	u64 pdl_val = -1;
-	if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/cpufreq", "scaling_available_frequencies", sysvalstring) > -1) {
+	if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/cpufreq", "scaling_available_frequencies", sysvalstring) > 0) {
 		token = esif_ccb_strtok(sysvalstring,delimiter,&next_token);
 		while ((token != NULL) && (isdigit(*token))) {
 			token = esif_ccb_strtok(NULL,delimiter,&next_token);
@@ -1051,7 +1051,7 @@ static void GetNumberOfCpuCores()
 	char *token;
 	char *next_token;
 	const char delimiter[2] = "-";
-	if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/topology", "core_siblings_list", sysvalstring) > -1) {
+	if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/topology", "core_siblings_list", sysvalstring) > 0) {
 		token = esif_ccb_strtok(sysvalstring,delimiter,&next_token);
 		while ((token != NULL) && (isdigit(*token))) {
 			number_of_cores = esif_atoi(token);
@@ -1341,40 +1341,39 @@ static enum esif_rc get_proc_perf_support_states(char *table_str)
 	const char s[2] = " ";
 	int counter = 0;
 	
-	if (sysfs_get_string(SYSFS_PSTATE_PATH, "num_pstates", sysvalstring) > -1) {
+	if (sysfs_get_string(SYSFS_PSTATE_PATH, "num_pstates", sysvalstring) > -1) { // Intel P State driver is loaded
 		if ((sysfs_get_int64("/sys/devices/system/cpu/intel_pstate/", "num_pstates", &pdl_val) < 1) || (pdl_val > MAX_SYSFS_PSTATES)) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
 		}
+		/* Sysfs returns total states - we want the max state, so subtract one */
+		if (pdl_val != 0) {
+			pdl_val -= 1;
+		}
+		for (pcounter = 0;pcounter <= pdl_val;pcounter++) {
+			esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d,%llu,%llu,%llu,%llu,%llu!",pcounter,placeholder_val,placeholder_val,placeholder_val,placeholder_val,placeholder_val);
+		}
 	}
-	else {
+	else { // CPU Frequency Governor is loaded
 		pdl_val = GetCpuFreqPdl();
-		cpufreq = (int*)esif_ccb_malloc(sizeof(int) * pdl_val);
+		cpufreq = (int*)esif_ccb_malloc(sizeof(int) * (pdl_val + 1));
 		if (cpufreq == NULL) {
 			ESIF_TRACE_ERROR("Unable to allocate cpufreq\n");
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
 
-		if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/cpufreq", "scaling_available_frequencies", sysvalstring) > -1) {
+		if (sysfs_get_string_multiline("/sys/devices/system/cpu/cpu0/cpufreq", "scaling_available_frequencies", sysvalstring) > 0) {
 			token = esif_ccb_strtok(sysvalstring,s,&next_token);
 			while ((token != NULL) && (isdigit(*token))) {
 				cpufreq[counter] = esif_atoi(token);
-				esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d,%llu,%llu,%llu,%llu,%llu!",(cpufreq	[counter]/1000),placeholder_val,placeholder_val,placeholder_val,placeholder_val,placeholder_val);
+				esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d,%llu,%llu,%llu,%llu,%llu!",(cpufreq[counter]/1000),placeholder_val,placeholder_val,placeholder_val,placeholder_val,placeholder_val);
 				token = esif_ccb_strtok(NULL,s,&next_token);
 				counter++;	
 			}
+		} else {
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		}
-		goto exit;			
-	}
-	/* Sysfs returns total states - we want the max state, so subtract one */
-	if (pdl_val != 0) {
-		pdl_val -= 1;
-	}
-
-	esif_ccb_sprintf(BINARY_TABLE_SIZE, table_str, "%d,%llu,%llu,%llu,%llu,%llu!",pcounter,placeholder_val,placeholder_val,placeholder_val,placeholder_val,placeholder_val);
-	for (pcounter = 1;pcounter <= pdl_val;pcounter++) {
-		esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d,%llu,%llu,%llu,%llu,%llu!",pcounter,placeholder_val,placeholder_val,placeholder_val,placeholder_val,placeholder_val);
 	}
 
 exit:
