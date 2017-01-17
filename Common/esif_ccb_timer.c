@@ -63,12 +63,11 @@
 /*
  * STRUCTURE DECLARATIONS
  */
-#pragma pack(push, 1)
 
 struct esif_timer_manager {
+	esif_ccb_lock_t mgr_lock;
 	u8 enabled;	/* Indicates the manager lock is initialized */
 	u8 marked_for_delete; /* Indicates no additional timers may be created */
-	esif_ccb_lock_t mgr_lock;
 	struct esif_link_list *timer_list_ptr; /* List of initialized timers */
 };
 
@@ -90,8 +89,6 @@ struct esif_tmrm_item {
 	/* List threads waiting for the timer callback to complete */
 	struct esif_link_list *destroy_list_ptr;
 };
-
-#pragma pack(pop)
 
 
 /*
