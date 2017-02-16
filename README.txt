@@ -1,18 +1,18 @@
-Intel (R) Dynamic Platform and Thermal Framework (Intel (R) DPTF) 
-for Chromium OS - 8.x Release 
+Intel (R) Dynamic Platform and Thermal Framework (Intel (R) DPTF)
+for Chromium OS - 8.x Release
 
 README
 
 -------------------------------------------------------------------------------
 
 This document describes how to build and integrate DPTF to Chromimum OS. Please
-note that DPTF is already fully integrated to "rambi" and "strago" derived 
-overlays by default if you build from the upstream code from chromium.org.
+note that DPTF is already fully integrated to most Intel based board overlays
+by default if you build from the upstream code from chromium.org.
 On overlays where DPTF is not enabled by default, you can use this guide and
 follow the necessary steps to build and enable it.
 
 This document assumes that the user has already set up the Chromium OS SDK on
-their development machine. Otherwise, please refer to Google's "Chromium OS 
+their development machine. Otherwise, please refer to Google's "Chromium OS
 Developer Guide" available at:
 
 	http://www.chromium.org/chromium-os/developer-guide
@@ -26,7 +26,7 @@ Step 1 - Enter the Chromium OS SDK chroot environment by running the command:
 	sudo <chromimumos root>/chromite/bin/cros_sdk
 
 Step 2 - Check the kernel version of the overlay of interest. Currently DPTF
-only supports 3.10 and 3.18 kernel on chromium.org. You must use either one 
+only supports 3.10 and 3.18 kernel on chromium.org. You must use either one
 in order to proceed further.
 
 Step 3 - The following kernel config flags must be enabled/disabled in order
@@ -49,24 +49,24 @@ CONFIG_INTEL_DPTF_CPU=m	# Set only if overlay has a PCI CPU Reporting device
 CONFIG_INTEL_DPTF_PCH=m	# Set only if overlay has a PCI PCH Reporting device
 CONFIG_IOSF_MBI=y
 
-Step 4 - Check if the overlay of interest has DPTF enabled or not. Edit the 
+Step 4 - Check if the overlay of interest has DPTF enabled or not. Edit the
 src/overlays/overlay-${BOARD}/make.conf and add this line if DPTF is not enabled
 yet on this overlay:
 
 USE="${USE} dptf"
 
-Step 5 - Check if CMake has been installed on host Portage, and if not, run 
+Step 5 - Check if CMake has been installed on host Portage, and if not, run
 this command to install:
 
 	sudo emerge cmake
 
 Step 6 - Manually run emerge-${BOARD} to build and merge DPTF to target. Please
-note that by default, the cross compiler disables C++ exception handling. You 
+note that by default, the cross compiler disables C++ exception handling. You
 will have to pass the CXXFLAGS that enables C++ exception handling to ebuild:
 
 	CXXFLAGS='-fexceptions' emerge-${BOARD} virtual/dptf
 
-Step 7 - Build the target image and you should see DPTF integrated to the 
+Step 7 - Build the target image and you should see DPTF integrated to the
 target image after the build is done. To build the target image, under the
 src/scripts directory, run:
 
@@ -84,10 +84,9 @@ Emerge of DPTF will install the following components to the target file system:
 /usr/lib64/DptfPolicyCritical.so	# DPTF Critical Policy shared object
 /usr/lib64/DptfPolicyPassive.so		# DPTF Passive Policy shared object
 /usr/lib64/DptfPolicyActive.so	# (optional), DPTF Active Policy shared object
-/usr/share/dptf/combined.xsl	# Various DPTF tables in XML format
 
 Please note that if your overlay runs 3.10 kernel, you will also see the
-following additional kernel modules installed under 
+following additional kernel modules installed under
 /lib/modules/$(uname -r)/kernel/drivers/platform/x66/intel_dptf/
 
 esif_lf_driver.ko	# ESIF (Eco-System Independent Framework) driver
@@ -124,7 +123,7 @@ Requirement: DPTF requires corresponding ACPI support in BIOS. Not all
 Intel based platforms support DPTF in BIOS. Please contact your BIOS vendor
 to see if DPTF is enabled in your system.
 
-The 8.x version of DPTF also requires 4.0-rc7 kernel or later in order to 
+The 8.x version of DPTF also requires 4.0-rc7 kernel or later in order to
 run properly. To compile the DPTF source code, you need GCC version 4.8 or
 later.
 
@@ -142,9 +141,9 @@ and run the command:
 
 	cmake ..
 
-This command will invoke cmake and generate all the GNU make files for each 
-sub-modules of DPTF user space libraries. By default this command will 
-generate the make files for 64-bit release version. If you want to build a 
+This command will invoke cmake and generate all the GNU make files for each
+sub-modules of DPTF user space libraries. By default this command will
+generate the make files for 64-bit release version. If you want to build a
 different flavor, please examine the <DPTF root>/DPTF/Linux/CMakeLists.txt
 to find out what environment variables that you may need to pass to cmake.
 
@@ -152,7 +151,7 @@ Step 4 - Run make to build all DPTF shared libraries.
 
 	make -j`nproc`
 
-The generated shared libraries will be located under 
+The generated shared libraries will be located under
 <DPTF root>/Products/DPTF/Linux/build/x64 directory. Users can disregard
 the static .a libraries as these static libraries are only used to build the
 shared library. Here is the break down of the generated shared libraries that
@@ -164,11 +163,12 @@ are needed to run DPTF on Linux:
 	* DptfPolicyPassive.so
 
 Step 5 - Copy the above shared libraries and other DPTF configuration files
-to proper locations on your system:
+to proper locations on your system (assuming that you are running on a 64-bit
+system, otherwise replace "64" below with "32" if you are building and
+running on 32-bit Linux).
 
-	sudo mkdir -p /usr/share/dptf/bin
-	sudo cp Dptf*.so /usr/share/dptf/bin
-	sudo cp <DPTF root>/DPTF/Sources/combined.xsl /usr/share/dptf/bin
+	sudo mkdir -p /usr/share/dptf/ufx64
+	sudo cp Dptf*.so /usr/share/dptf/ufx64
 	sudo mkdir -p /etc/dptf
 	sudo cp <DPTF root>/ESIF/Packages/DSP/dsp.dv /etc/dptf
 
@@ -178,9 +178,9 @@ the DPTF policies that you have built in Step 3. After the build is complete,
 you will find the esif_ufd executable generated under the same directory.
 
 Please note that the default make target is a 64-bit release version. If you
-want to build a different flavor, please examine the Makefile under this 
+want to build a different flavor, please examine the Makefile under this
 directory to find out what environment variable you want to pass to Gnu make.
-Please do not alter the default settings for OS, OPT_GMIN and OPT_DBUS 
+Please do not alter the default settings for OS, OPT_GMIN and OPT_DBUS
 environment variables - they are for Chromium OS builds only, and for Linux
 builds, please use the default values.
 
@@ -223,11 +223,7 @@ To restart the DPTF service, type:
 -------------------------------------------------------------------------------
 KNOWN ISSUES / LIMITATIONS
 -------------------------------------------------------------------------------
-* Testing has only been performed on Intel BayTrail-M and Braswell based
-Chromebook platforms and the 4th generation Intel® Core ™ processor based
-development platforms using the UEFI BIOS.
-
 * Compilation warnings will be noticed during the build for overlays that run
-3.10 kernel. No warnings should be observed though for overlays that are based
-on 3.18 kernel.
+3.10 kernel. No warnings should be observed for overlays that are based on 3.18
+kernel or above.
 

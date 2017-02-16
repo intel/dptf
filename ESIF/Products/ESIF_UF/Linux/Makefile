@@ -77,6 +77,8 @@ endif
 else
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
+	# Use GNU89 standrd so that we can call qsort_r()
+	CPPFLAGS += -std=gnu89
 
 	# make PLAT=<x64|x86>
 	ifeq ($(PLAT), x64)
