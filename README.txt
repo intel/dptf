@@ -144,7 +144,7 @@ If you want the DPTF service to start automatically upon system boot, assuming
 that you are using upstart init system (which is the case for both Chromium OS
 and Ubuntu), you can simply copy the dptf.conf script to /etc/init:
 
-	sudo cp <DPTF root>/Packages/Installers/chrome/dptf.conf /etc/init/
+	sudo cp <DPTF root>/ESIF/Packages/Installers/chrome/dptf.conf /etc/init/
 
 On next system reboot, DPTF service (esif_ufd) will execute automatically. To
 manually stop the running DPTF service, type:
