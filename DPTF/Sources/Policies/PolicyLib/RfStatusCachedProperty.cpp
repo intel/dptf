@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,12 @@
 using namespace std;
 
 RfStatusCachedProperty::RfStatusCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_profileData(0, 0, 0, RfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0))
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
 {
 }
 
@@ -35,39 +35,39 @@ RfStatusCachedProperty::~RfStatusCachedProperty()
 
 Bool RfStatusCachedProperty::implementsRfStatusInterface(void)
 {
-    return getDomainProperties().implementsRfProfileStatusInterface();
+	return getDomainProperties().implementsRfProfileStatusInterface();
 }
 
-RfProfileData RfStatusCachedProperty::getProfileData(void)
+RfProfileDataSet RfStatusCachedProperty::getRadioProfile(void)
 {
-    if (implementsRfStatusInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_profileData;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the radio frequency status interface.");
-    }
+	if (implementsRfStatusInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_profileData;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the radio frequency status interface.");
+	}
 }
 
 Bool RfStatusCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsRfStatusInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsRfStatusInterface();
 }
 
 void RfStatusCachedProperty::refreshData(void)
 {
-    if (implementsRfStatusInterface())
-    {
-        m_profileData = getPolicyServices().domainRfProfileStatus->getRfProfileData(
-            getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsRfStatusInterface())
+	{
+		m_profileData =
+			getPolicyServices().domainRfProfileStatus->getRfProfileDataSet(getParticipantIndex(), getDomainIndex());
+	}
 }

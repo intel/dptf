@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -63,6 +63,10 @@
 #define POWER_STATES_OFFSET 2048
 #define POWER_STATES_MULTIPLIER_OFFSET 3
 #define POWER_STATES_SIZE 32
+#define SATA_NUM_EFFECTIVE_STATES 3
+#define SATA_PERF_HIGH 236
+#define SATA_PERF_MEDIUM 128
+#define SATA_PERF_LOW 1
 
 #define NVME_STORPORT_DRIVER 0xE000
 #define NVME_PT_TIMEOUT 40
@@ -91,6 +95,11 @@
 #define ATA_MIN_POWER_STATE 1
 #define MAX_ATA_SMART_ATTRIBUTES 30
 #define SETFEATURES_EN_APM 0x05
+
+#define NUMBER_PPSS_FIELDS 8
+#define POWER_FIELD_INDEX 5
+#define UNIT_FIELD_INDEX 7
+#define INDEX_TO_COUNT_OFFSET 1
 
 #pragma pack(push, 1)
 

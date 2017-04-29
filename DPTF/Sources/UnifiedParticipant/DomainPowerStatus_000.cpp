@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,40 +18,45 @@
 
 #include "DomainPowerStatus_000.h"
 
-DomainPowerStatus_000::DomainPowerStatus_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
+DomainPowerStatus_000::DomainPowerStatus_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 PowerStatus DomainPowerStatus_000::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-Power DomainPowerStatus_000::getAveragePower(UIntN participantIndex, UIntN domainIndex, const PowerControlDynamicCaps& capabilities)
+Power DomainPowerStatus_000::getAveragePower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const PowerControlDynamicCaps& capabilities)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainPowerStatus_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainPowerStatus_000::getXml(UIntN domainIndex)
 {
-    // Do nothing.  Not an error.
-    throw not_implemented();
+	// Do nothing.  Not an error.
+	throw not_implemented();
 }
 
 void DomainPowerStatus_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainPowerStatus_000::getName(void)
 {
-    return "Power Status (Version 0)";
+	return "Power Status (Version 0)";
 }

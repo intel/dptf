@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,19 +23,17 @@
 class AcpiInfo final
 {
 public:
+	AcpiInfo(void);
+	AcpiInfo(const std::string& acpiDevice, const std::string& acpiScope, std::string acpiUid, UInt32 acpiType);
 
-    AcpiInfo(void);
-    AcpiInfo(const std::string& acpiDevice, const std::string& acpiScope, std::string acpiUid, UInt32 acpiType);
-
-    std::string getAcpiDevice(void) const;
-    std::string getAcpiScope(void) const;
-    std::string getAcpiUid(void) const;
-    UInt32 getAcpiType(void) const;
+	std::string getAcpiDevice(void) const;
+	std::string getAcpiScope(void) const;
+	std::string getAcpiUid(void) const;
+	UInt32 getAcpiType(void) const;
 
 private:
-
-    std::string m_acpiDevice;
-    std::string m_acpiScope;
-    std::string m_acpiUid;
-    UInt32 m_acpiType;
+	std::string m_acpiDevice;
+	std::string m_acpiScope;
+	std::string m_acpiUid;
+	UInt32 m_acpiType;
 };

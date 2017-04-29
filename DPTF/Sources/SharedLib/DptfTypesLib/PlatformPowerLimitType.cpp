@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,15 +20,15 @@
 
 std::string PlatformPowerLimitType::ToString(Type limitType)
 {
-    switch (limitType)
-    {
-    case PSysPL1:
-        return "PSys PL1";
-    case PSysPL2:
-        return "PSys PL2";
-    case PSysPL3:
-        return "PSys PL3";
-    default:
-        throw dptf_exception("Invalid platform power limit type requested for ToString");
-    }
+	switch (limitType)
+	{
+	case PSysPL1:
+		return "PSys PL1";
+	case PSysPL2:
+		return "PSys PL2";
+	case PSysPL3:
+		return "PSys PL3";
+	default:
+		throw dptf_exception("Invalid platform power limit type requested for ToString");
+	}
 }

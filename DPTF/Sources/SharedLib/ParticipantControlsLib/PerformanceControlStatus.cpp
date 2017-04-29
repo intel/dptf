@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,21 +20,21 @@
 #include "StatusFormat.h"
 #include "XmlNode.h"
 
-PerformanceControlStatus::PerformanceControlStatus(UIntN currentControlSetIndex) :
-    m_currentControlSetIndex(currentControlSetIndex)
+PerformanceControlStatus::PerformanceControlStatus(UIntN currentControlSetIndex)
+	: m_currentControlSetIndex(currentControlSetIndex)
 {
 }
 
 UIntN PerformanceControlStatus::getCurrentControlSetIndex(void) const
 {
-    return m_currentControlSetIndex;
+	return m_currentControlSetIndex;
 }
 
 std::shared_ptr<XmlNode> PerformanceControlStatus::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("performance_control_status");
+	auto root = XmlNode::createWrapperElement("performance_control_status");
 
-    root->addChild(XmlNode::createDataElement("current_index", StatusFormat::friendlyValue(m_currentControlSetIndex)));
+	root->addChild(XmlNode::createDataElement("current_index", StatusFormat::friendlyValue(m_currentControlSetIndex)));
 
-    return root;
+	return root;
 }

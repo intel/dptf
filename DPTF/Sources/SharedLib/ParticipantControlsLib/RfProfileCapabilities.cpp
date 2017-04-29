@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,51 +18,53 @@
 
 #include "RfProfileCapabilities.h"
 
-RfProfileCapabilities::RfProfileCapabilities(Frequency defaultCenterFrequency, Percentage leftClipPercent,
-    Percentage rightClipPercent, Frequency frequencyAdjustResolution) :
-    m_defaultCenterFrequency(defaultCenterFrequency),
-    m_leftClipPercent(leftClipPercent),
-    m_rightClipPercent(rightClipPercent),
-    m_frequencyAdjustResolution(frequencyAdjustResolution)
+RfProfileCapabilities::RfProfileCapabilities(
+	Frequency defaultCenterFrequency,
+	Percentage leftClipPercent,
+	Percentage rightClipPercent,
+	Frequency frequencyAdjustResolution)
+	: m_defaultCenterFrequency(defaultCenterFrequency)
+	, m_leftClipPercent(leftClipPercent)
+	, m_rightClipPercent(rightClipPercent)
+	, m_frequencyAdjustResolution(frequencyAdjustResolution)
 {
 }
 
 Frequency RfProfileCapabilities::getDefaultCenterFrequency(void) const
 {
-    return m_defaultCenterFrequency;
+	return m_defaultCenterFrequency;
 }
 
 Percentage RfProfileCapabilities::getLeftClipPercent(void) const
 {
-    return m_leftClipPercent;
+	return m_leftClipPercent;
 }
 
 Percentage RfProfileCapabilities::getRightClipPercent(void) const
 {
-    return m_rightClipPercent;
+	return m_rightClipPercent;
 }
 
 Frequency RfProfileCapabilities::getFrequencyAdjustResolution(void) const
 {
-    return m_frequencyAdjustResolution;
+	return m_frequencyAdjustResolution;
 }
 
 Bool RfProfileCapabilities::operator==(const RfProfileCapabilities& rhs) const
 {
-    return
-        ((m_defaultCenterFrequency == rhs.m_defaultCenterFrequency) &&
-         (m_leftClipPercent == rhs.m_leftClipPercent) &&
-         (m_rightClipPercent == rhs.m_rightClipPercent) &&
-         (m_frequencyAdjustResolution == rhs.m_frequencyAdjustResolution));
+	return (
+		(m_defaultCenterFrequency == rhs.m_defaultCenterFrequency) && (m_leftClipPercent == rhs.m_leftClipPercent)
+		&& (m_rightClipPercent == rhs.m_rightClipPercent)
+		&& (m_frequencyAdjustResolution == rhs.m_frequencyAdjustResolution));
 }
 
 Bool RfProfileCapabilities::operator!=(const RfProfileCapabilities& rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 std::shared_ptr<XmlNode> RfProfileCapabilities::getXml(void)
 {
-    // FIXME
-    throw implement_me();
+	// FIXME
+	throw implement_me();
 }

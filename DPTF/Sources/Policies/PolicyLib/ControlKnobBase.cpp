@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,10 +20,12 @@
 using namespace std;
 
 ControlKnobBase::ControlKnobBase(
-    const PolicyServicesInterfaceContainer& policyServices, UIntN participantIndex, UIntN domainIndex)
-    : m_policyServices(policyServices),
-    m_participantIndex(participantIndex),
-    m_domainIndex(domainIndex)
+	const PolicyServicesInterfaceContainer& policyServices,
+	UIntN participantIndex,
+	UIntN domainIndex)
+	: m_policyServices(policyServices)
+	, m_participantIndex(participantIndex)
+	, m_domainIndex(domainIndex)
 {
 }
 
@@ -33,15 +35,15 @@ ControlKnobBase::~ControlKnobBase(void)
 
 UIntN ControlKnobBase::getParticipantIndex() const
 {
-    return m_participantIndex;
+	return m_participantIndex;
 }
 
 UIntN ControlKnobBase::getDomainIndex() const
 {
-    return m_domainIndex;
+	return m_domainIndex;
 }
 
 PolicyServicesInterfaceContainer ControlKnobBase::getPolicyServices() const
 {
-    return m_policyServices;
+	return m_policyServices;
 }

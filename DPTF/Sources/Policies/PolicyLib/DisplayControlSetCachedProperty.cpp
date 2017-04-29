@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 DisplayControlSetCachedProperty::DisplayControlSetCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_displayControlSet(std::vector<DisplayControl>())
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_displayControlSet(std::vector<DisplayControl>())
 {
 }
 
@@ -35,31 +36,31 @@ DisplayControlSetCachedProperty::~DisplayControlSetCachedProperty(void)
 
 void DisplayControlSetCachedProperty::refreshData(void)
 {
-    m_displayControlSet =
-        getPolicyServices().domainDisplayControl->getDisplayControlSet(getParticipantIndex(), getDomainIndex());
+	m_displayControlSet =
+		getPolicyServices().domainDisplayControl->getDisplayControlSet(getParticipantIndex(), getDomainIndex());
 }
 
 const DisplayControlSet& DisplayControlSetCachedProperty::getControls()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_displayControlSet;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_displayControlSet;
 }
 
 Bool DisplayControlSetCachedProperty::supportsProperty(void)
 {
-    if (getDomainProperties().implementsDisplayControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return (m_displayControlSet.getCount() > 0);
-    }
-    else
-    {
-        return false;
-    }
+	if (getDomainProperties().implementsDisplayControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return (m_displayControlSet.getCount() > 0);
+	}
+	else
+	{
+		return false;
+	}
 }

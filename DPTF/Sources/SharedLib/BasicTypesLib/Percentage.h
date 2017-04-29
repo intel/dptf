@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,33 +23,31 @@
 class Percentage final
 {
 public:
+	Percentage(void); // Initialized to invalid by default
+	Percentage(double percentage); // Passing in 0.99 results in 99%
+	static Percentage createInvalid();
+	static Percentage fromWholeNumber(UIntN wholeNumber);
+	static Percentage fromCentiPercent(UInt64 centiPercent);
 
-    Percentage(void); // Initialized to invalid by default
-    Percentage(double percentage); // Passing in 0.99 results in 99%
-    static Percentage createInvalid();
-    static Percentage fromWholeNumber(UIntN wholeNumber);
-    static Percentage fromCentiPercent(UInt64 centiPercent);
-    
-    Bool operator==(const Percentage& rhs) const;
-    Bool operator!=(const Percentage& rhs) const;
-    Bool operator>(const Percentage& rhs) const;
-    Bool operator>=(const Percentage& rhs) const;
-    Bool operator<(const Percentage& rhs) const;
-    Bool operator<=(const Percentage& rhs) const;
-    friend std::ostream& operator<<(std::ostream& os, const Percentage& percentage);
-    operator double(void) const;
+	Bool operator==(const Percentage& rhs) const;
+	Bool operator!=(const Percentage& rhs) const;
+	Bool operator>(const Percentage& rhs) const;
+	Bool operator>=(const Percentage& rhs) const;
+	Bool operator<(const Percentage& rhs) const;
+	Bool operator<=(const Percentage& rhs) const;
+	friend std::ostream& operator<<(std::ostream& os, const Percentage& percentage);
+	operator double(void) const;
 
-    Bool isValid() const;
-    UIntN toWholeNumber() const;
-    UInt64 toCentiPercent() const;
-    std::string toString() const;
-    std::string toStringWithPrecision(UInt32 precision) const;
+	Bool isValid() const;
+	UIntN toWholeNumber() const;
+	UInt64 toCentiPercent() const;
+	std::string toString() const;
+	std::string toStringWithPrecision(UInt32 precision) const;
 
 private:
+	Bool m_valid;
+	double m_percentage;
 
-    Bool m_valid;
-    double m_percentage;
-
-    Percentage(UInt64 percentage); // Make sure someone doesn't try to instantiate this class with a whole number.
-    void throwIfInvalid(const Percentage& percentage) const;
+	Percentage(UInt64 percentage); // Make sure someone doesn't try to instantiate this class with a whole number.
+	void throwIfInvalid(const Percentage& percentage) const;
 };

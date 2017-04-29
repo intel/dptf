@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,57 +20,57 @@
 #include "EsifServicesInterface.h"
 #include "ManagerMessage.h"
 
-PolicyServicesMessageLogging::PolicyServicesMessageLogging(DptfManagerInterface* dptfManager, UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesMessageLogging::PolicyServicesMessageLogging(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 void PolicyServicesMessageLogging::writeMessageFatal(const DptfMessage& message)
 {
-    throwIfNotWorkItemThread();
+	throwIfNotWorkItemThread();
 
-    ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
-    updatedMessage.setPolicyIndex(getPolicyIndex());
+	ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
+	updatedMessage.setPolicyIndex(getPolicyIndex());
 
-    getEsifServices()->writeMessageFatal(updatedMessage);
+	getEsifServices()->writeMessageFatal(updatedMessage);
 }
 
 void PolicyServicesMessageLogging::writeMessageError(const DptfMessage& message)
 {
-    throwIfNotWorkItemThread();
+	throwIfNotWorkItemThread();
 
-    ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
-    updatedMessage.setPolicyIndex(getPolicyIndex());
+	ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
+	updatedMessage.setPolicyIndex(getPolicyIndex());
 
-    getEsifServices()->writeMessageError(updatedMessage);
+	getEsifServices()->writeMessageError(updatedMessage);
 }
 
 void PolicyServicesMessageLogging::writeMessageWarning(const DptfMessage& message)
 {
-    throwIfNotWorkItemThread();
+	throwIfNotWorkItemThread();
 
-    ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
-    updatedMessage.setPolicyIndex(getPolicyIndex());
+	ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
+	updatedMessage.setPolicyIndex(getPolicyIndex());
 
-    getEsifServices()->writeMessageWarning(updatedMessage);
+	getEsifServices()->writeMessageWarning(updatedMessage);
 }
 
 void PolicyServicesMessageLogging::writeMessageInfo(const DptfMessage& message)
 {
-    throwIfNotWorkItemThread();
+	throwIfNotWorkItemThread();
 
-    ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
-    updatedMessage.setPolicyIndex(getPolicyIndex());
+	ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
+	updatedMessage.setPolicyIndex(getPolicyIndex());
 
-    getEsifServices()->writeMessageInfo(updatedMessage);
+	getEsifServices()->writeMessageInfo(updatedMessage);
 }
 
 void PolicyServicesMessageLogging::writeMessageDebug(const DptfMessage& message)
 {
-    throwIfNotWorkItemThread();
+	throwIfNotWorkItemThread();
 
-    ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
-    updatedMessage.setPolicyIndex(getPolicyIndex());
+	ManagerMessage updatedMessage = ManagerMessage(getDptfManager(), message);
+	updatedMessage.setPolicyIndex(getPolicyIndex());
 
-    getEsifServices()->writeMessageDebug(updatedMessage);
+	getEsifServices()->writeMessageDebug(updatedMessage);
 }

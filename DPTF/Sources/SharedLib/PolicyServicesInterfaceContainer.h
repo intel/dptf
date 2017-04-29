@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,18 +20,19 @@
 
 #include "Dptf.h"
 #include "DomainActiveControlInterface.h"
+#include "DomainActivityStatusInterface.h"
 #include "DomainConfigTdpControlInterface.h"
 #include "DomainCoreControlInterface.h"
 #include "DomainDisplayControlInterface.h"
+#include "DomainPeakPowerControlInterface.h"
 #include "DomainPerformanceControlInterface.h"
-#include "DomainPixelClockControlInterface.h"
-#include "DomainPixelClockStatusInterface.h"
 #include "DomainPowerControlInterface.h"
 #include "DomainPowerStatusInterface.h"
 #include "DomainPriorityInterface.h"
 #include "DomainRfProfileControlInterface.h"
 #include "DomainRfProfileStatusInterface.h"
 #include "DomainTemperatureInterface.h"
+#include "DomainTccOffsetControlInterface.h"
 #include "DomainUtilizationInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
@@ -50,33 +51,34 @@
 
 struct PolicyServicesInterfaceContainer
 {
-    PolicyServicesInterfaceContainer(void);
+	PolicyServicesInterfaceContainer(void);
 
-    DomainActiveControlInterface* domainActiveControl;
-    DomainConfigTdpControlInterface* domainConfigTdpControl;
-    DomainCoreControlInterface* domainCoreControl;
-    DomainDisplayControlInterface* domainDisplayControl;
-    DomainPerformanceControlInterface* domainPerformanceControl;
-    DomainPixelClockControlInterface* domainPixelClockControl;
-    DomainPixelClockStatusInterface* domainPixelClockStatus;
-    DomainPowerControlInterface* domainPowerControl;
-    DomainPowerStatusInterface* domainPowerStatus;
-    DomainPlatformPowerControlInterface* domainPlatformPowerControl;
-    DomainPlatformPowerStatusInterface* domainPlatformPowerStatus;
-    DomainPriorityInterface* domainPriority;
-    DomainRfProfileControlInterface* domainRfProfileControl;
-    DomainRfProfileStatusInterface* domainRfProfileStatus;
-    DomainTemperatureInterface* domainTemperature;
-    DomainUtilizationInterface* domainUtilization;
-    ParticipantGetSpecificInfoInterface* participantGetSpecificInfo;
-    ParticipantPropertiesInterface* participantProperties;
-    ParticipantSetSpecificInfoInterface* participantSetSpecificInfo;
-    PlatformConfigurationDataInterface* platformConfigurationData;
-    PlatformNotificationInterface* platformNotification;
-    PlatformPowerStateInterface* platformPowerState;
-    PolicyEventRegistrationInterface* policyEventRegistration;
-    PolicyInitiatedCallbackInterface* policyInitiatedCallback;
-    MessageLoggingInterface* messageLogging;
-    PolicyWorkloadHintConfigurationInterface* workloadHintConfiguration;
-    PlatformStateInterface* platformState;
+	DomainActiveControlInterface* domainActiveControl;
+	DomainActivityStatusInterface* domainActivityStatus;
+	DomainConfigTdpControlInterface* domainConfigTdpControl;
+	DomainCoreControlInterface* domainCoreControl;
+	DomainDisplayControlInterface* domainDisplayControl;
+	DomainPeakPowerControlInterface* domainPeakPowerControl;
+	DomainPerformanceControlInterface* domainPerformanceControl;
+	DomainPowerControlInterface* domainPowerControl;
+	DomainPowerStatusInterface* domainPowerStatus;
+	DomainPlatformPowerControlInterface* domainPlatformPowerControl;
+	DomainPlatformPowerStatusInterface* domainPlatformPowerStatus;
+	DomainPriorityInterface* domainPriority;
+	DomainRfProfileControlInterface* domainRfProfileControl;
+	DomainRfProfileStatusInterface* domainRfProfileStatus;
+	DomainTccOffsetControlInterface* domainTccOffsetControl;
+	DomainTemperatureInterface* domainTemperature;
+	DomainUtilizationInterface* domainUtilization;
+	ParticipantGetSpecificInfoInterface* participantGetSpecificInfo;
+	ParticipantPropertiesInterface* participantProperties;
+	ParticipantSetSpecificInfoInterface* participantSetSpecificInfo;
+	PlatformConfigurationDataInterface* platformConfigurationData;
+	PlatformNotificationInterface* platformNotification;
+	PlatformPowerStateInterface* platformPowerState;
+	PolicyEventRegistrationInterface* policyEventRegistration;
+	PolicyInitiatedCallbackInterface* policyInitiatedCallback;
+	MessageLoggingInterface* messageLogging;
+	PolicyWorkloadHintConfigurationInterface* workloadHintConfiguration;
+	PlatformStateInterface* platformState;
 };

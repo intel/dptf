@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,22 +24,20 @@
 class EsifDataUInt32 final
 {
 public:
+	EsifDataUInt32(void);
+	EsifDataUInt32(UInt32 data);
+	EsifDataUInt32(const EsifDataPtr esifDataPtr);
 
-    EsifDataUInt32(void);
-    EsifDataUInt32(UInt32 data);
-    EsifDataUInt32(const EsifDataPtr esifDataPtr);
-
-    operator EsifDataPtr(void);
-    operator UInt32(void) const;
+	operator EsifDataPtr(void);
+	operator UInt32(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataUInt32(const EsifDataUInt32& rhs);
+	EsifDataUInt32& operator=(const EsifDataUInt32& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataUInt32(const EsifDataUInt32& rhs);
-    EsifDataUInt32& operator=(const EsifDataUInt32& rhs);
+	UInt32 m_esifDataValue;
+	EsifData m_esifData;
 
-    UInt32 m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(UInt32 data);
+	void initialize(UInt32 data);
 };

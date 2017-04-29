@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,19 +26,17 @@ class XmlNode;
 class ConfigTdpControlSet final
 {
 public:
+	ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
+	static ConfigTdpControlSet createFromTdpl(const DptfBuffer& buffer);
+	UIntN getCount(void) const;
+	void removeLastControl(void);
+	ConfigTdpControl operator[](UIntN index) const;
+	Bool operator==(const ConfigTdpControlSet& rhs) const;
+	Bool operator!=(const ConfigTdpControlSet& rhs) const;
+	std::vector<std::string> getAsNameList() const;
 
-    ConfigTdpControlSet(const std::vector<ConfigTdpControl>& configTdpControl);
-    static ConfigTdpControlSet createFromTdpl(const DptfBuffer& buffer);
-    UIntN getCount(void) const;
-    void removeLastControl(void);
-    ConfigTdpControl operator[](UIntN index) const;
-    Bool operator==(const ConfigTdpControlSet& rhs) const;
-    Bool operator!=(const ConfigTdpControlSet& rhs) const;
-    std::vector<std::string> getAsNameList() const;
-
-    std::shared_ptr<XmlNode> getXml(void);
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    std::vector<ConfigTdpControl> m_configTdpControl;
+	std::vector<ConfigTdpControl> m_configTdpControl;
 };

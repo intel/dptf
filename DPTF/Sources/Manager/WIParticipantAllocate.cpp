@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,9 +20,9 @@
 #include "ParticipantManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIParticipantAllocate::WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex) :
-    WorkItem(dptfManager, FrameworkEvent::ParticipantAllocate),
-    m_newParticipantIndex(newParticipantIndex)
+WIParticipantAllocate::WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex)
+	: WorkItem(dptfManager, FrameworkEvent::ParticipantAllocate)
+	, m_newParticipantIndex(newParticipantIndex)
 {
 }
 
@@ -32,15 +32,15 @@ WIParticipantAllocate::~WIParticipantAllocate(void)
 
 void WIParticipantAllocate::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    try
-    {
-        *m_newParticipantIndex = getParticipantManager()->allocateNextParticipantIndex();
-    }
-    catch (std::exception& ex)
-    {
-        *m_newParticipantIndex = Constants::Esif::NoParticipant;
-        writeWorkItemErrorMessage(ex, "ParticipantManager::allocateNextParticipantIndex");
-    }
+	try
+	{
+		*m_newParticipantIndex = getParticipantManager()->allocateNextParticipantIndex();
+	}
+	catch (std::exception& ex)
+	{
+		*m_newParticipantIndex = Constants::Esif::NoParticipant;
+		writeWorkItemErrorMessage(ex, "ParticipantManager::allocateNextParticipantIndex");
+	}
 }

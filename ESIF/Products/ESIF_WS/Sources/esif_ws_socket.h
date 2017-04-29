@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,11 +38,17 @@ typedef enum FrameType_e {
 	PING_FRAME			= 0x09,
 	PONG_FRAME			= 0x0A,
 
-	EMPTY_FRAME			= 0xF0,
-	ERROR_FRAME			= 0xF1,
-	INCOMPLETE_FRAME	= 0xF2,
-	OPENING_FRAME		= 0xF3,
-	HTTP_FRAME			= 0xFF
+	/* Pseudo Frame Types used internally. Per RFC6455:
+	 * %x3-7 are reserved for further non-control frames
+	 * %xB-F are reserved for futher control frames
+	 */
+	ERROR_FRAME			= 0xF3,
+	INCOMPLETE_FRAME	= 0xF4,
+	OPENING_FRAME		= 0xF5,
+	HTTP_FRAME			= 0xF6,
+	FRAGMENT_FRAME		= 0xF7,
+
+	EMPTY_FRAME			= 0xFF,
 } FrameType, *FrameTypePtr;
 
 #pragma pack(push, 1)

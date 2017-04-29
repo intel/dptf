@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,51 +25,71 @@
 class DomainPlatformPowerControl_001 : public DomainPlatformPowerControlBase
 {
 public:
+	DomainPlatformPowerControl_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPlatformPowerControl_001(void);
 
-    DomainPlatformPowerControl_001(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPlatformPowerControl_001(void);
+	// DomainPlatformPowerControlInterface
+	virtual Bool isPlatformPowerLimitEnabled(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType) override;
+	virtual Power getPlatformPowerLimit(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType) override;
+	virtual void setPlatformPowerLimit(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType,
+		const Power& powerLimit) override;
+	virtual TimeSpan getPlatformPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType) override;
+	virtual void setPlatformPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType,
+		const TimeSpan& timeWindow) override;
+	virtual Percentage getPlatformPowerLimitDutyCycle(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType) override;
+	virtual void setPlatformPowerLimitDutyCycle(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PlatformPowerLimitType::Type limitType,
+		const Percentage& dutyCycle) override;
 
-    // DomainPlatformPowerControlInterface
-    virtual Bool isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType) override;
-    virtual Power getPlatformPowerLimit(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType) override;
-    virtual void setPlatformPowerLimit(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType, const Power& powerLimit) override;
-    virtual TimeSpan getPlatformPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType) override;
-    virtual void setPlatformPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow) override;
-    virtual Percentage getPlatformPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType) override;
-    virtual void setPlatformPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
-        PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ParticipantActivityLoggingInterface
+	void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 protected:
-    virtual void capture(void) override;
-    virtual void restore(void) override;
+	virtual void capture(void) override;
+	virtual void restore(void) override;
 
 private:
+	DomainPlatformPowerControl_001(const DomainPlatformPowerControl_001& rhs);
+	DomainPlatformPowerControl_001& operator=(const DomainPlatformPowerControl_001& rhs);
 
-    DomainPlatformPowerControl_001(const DomainPlatformPowerControl_001& rhs);
-    DomainPlatformPowerControl_001& operator=(const DomainPlatformPowerControl_001& rhs);
+	void throwIfLimitNotEnabled(PlatformPowerLimitType::Type limitType);
+	void throwIfTypeInvalidForPowerLimit(PlatformPowerLimitType::Type limitType);
+	void throwIfTypeInvalidForTimeWindow(PlatformPowerLimitType::Type limitType);
+	void throwIfTypeInvalidForDutyCycle(PlatformPowerLimitType::Type limitType);
 
-    void throwIfLimitNotEnabled(PlatformPowerLimitType::Type limitType);
-    void throwIfTypeInvalidForPowerLimit(PlatformPowerLimitType::Type limitType);
-    void throwIfTypeInvalidForTimeWindow(PlatformPowerLimitType::Type limitType);
-    void throwIfTypeInvalidForDutyCycle(PlatformPowerLimitType::Type limitType);
+	std::shared_ptr<XmlNode> createStatusNode(PlatformPowerLimitType::Type limitType);
+	std::string createStatusStringForEnabled(PlatformPowerLimitType::Type limitType);
+	std::string createStatusStringForLimitValue(PlatformPowerLimitType::Type limitType);
+	std::string createStatusStringForTimeWindow(PlatformPowerLimitType::Type limitType);
+	std::string createStatusStringForDutyCycle(PlatformPowerLimitType::Type limitType);
 
-    std::shared_ptr<XmlNode> createStatusNode(PlatformPowerLimitType::Type limitType);
-    std::string createStatusStringForEnabled(PlatformPowerLimitType::Type limitType);
-    std::string createStatusStringForLimitValue(PlatformPowerLimitType::Type limitType);
-    std::string createStatusStringForTimeWindow(PlatformPowerLimitType::Type limitType);
-    std::string createStatusStringForDutyCycle(PlatformPowerLimitType::Type limitType);
-
-    PlatformPowerControlState m_initialState;
+	PlatformPowerControlState m_initialState;
 };

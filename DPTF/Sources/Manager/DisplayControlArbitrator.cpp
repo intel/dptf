@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 #include "DisplayControlArbitrator.h"
 #include "Utility.h"
 
-DisplayControlArbitrator::DisplayControlArbitrator() :
-    m_arbitratedDisplayControlIndex(Constants::Invalid)
+DisplayControlArbitrator::DisplayControlArbitrator()
+	: m_arbitratedDisplayControlIndex(Constants::Invalid)
 {
 }
 
@@ -28,49 +28,55 @@ DisplayControlArbitrator::~DisplayControlArbitrator(void)
 {
 }
 
-Bool DisplayControlArbitrator::arbitrate(UIntN policyIndex, UIntN displayControlIndex)
+void DisplayControlArbitrator::commitPolicyRequest(UIntN policyIndex, UIntN displayControlIndex)
 {
-    Bool arbitratedValueChanged = false;
-    UIntN maxRequestedDisplayControlIndex = Constants::Invalid;
+	m_requestedDisplayControlIndex[policyIndex] = displayControlIndex;
+	UIntN maxRequestedDisplayControlIndex = getMaxRequestedDisplayControlIndex(m_requestedDisplayControlIndex);
+	m_arbitratedDisplayControlIndex = maxRequestedDisplayControlIndex;
+}
 
-    m_requestedDisplayControlIndex[policyIndex] = displayControlIndex;
+Bool DisplayControlArbitrator::hasArbitratedDisplayControlIndex(void) const
+{
+	if (m_arbitratedDisplayControlIndex != Constants::Invalid)
+	{
+		return true;
+	}
+	return false;
+}
 
-    //
-    // loop through and find the max requested display control index
-    //
-    for (auto request = m_requestedDisplayControlIndex.begin(); request != m_requestedDisplayControlIndex.end(); request++)
-    {
-        if ((request->second != Constants::Invalid) &&
-            ((maxRequestedDisplayControlIndex == Constants::Invalid) ||
-             (request->second > maxRequestedDisplayControlIndex)))
-        {
-            maxRequestedDisplayControlIndex = request->second;
-        }
-    }
-
-    //
-    // check to see if the display control index is changing.
-    //
-    if (maxRequestedDisplayControlIndex != m_arbitratedDisplayControlIndex)
-    {
-        arbitratedValueChanged = true;
-        m_arbitratedDisplayControlIndex = maxRequestedDisplayControlIndex;
-    }
-
-    return arbitratedValueChanged;
+UIntN DisplayControlArbitrator::arbitrate(UIntN policyIndex, UIntN displayControlIndex)
+{
+	auto tempPolicyRequests = m_requestedDisplayControlIndex;
+	tempPolicyRequests[policyIndex] = displayControlIndex;
+	UIntN maxRequestedDisplayControlIndex = getMaxRequestedDisplayControlIndex(tempPolicyRequests);
+	return maxRequestedDisplayControlIndex;
 }
 
 UIntN DisplayControlArbitrator::getArbitratedDisplayControlIndex(void) const
 {
-    return m_arbitratedDisplayControlIndex;
+	return m_arbitratedDisplayControlIndex;
 }
 
 void DisplayControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    auto policyRequest = m_requestedDisplayControlIndex.find(policyIndex);
-    if (policyRequest != m_requestedDisplayControlIndex.end())
-    {
-        m_requestedDisplayControlIndex[policyIndex] = Constants::Invalid;
-        arbitrate(policyIndex, Constants::Invalid);
-    }
+	auto policyRequest = m_requestedDisplayControlIndex.find(policyIndex);
+	if (policyRequest != m_requestedDisplayControlIndex.end())
+	{
+		m_requestedDisplayControlIndex[policyIndex] = Constants::Invalid;
+		commitPolicyRequest(policyIndex, Constants::Invalid);
+	}
+}
+
+UIntN DisplayControlArbitrator::getMaxRequestedDisplayControlIndex(std::map<UIntN, UIntN>& requests)
+{
+	UIntN maxRequestedDisplayControlIndex = Constants::Invalid;
+	for (auto request = requests.begin(); request != requests.end(); ++request)
+	{
+		if ((request->second != Constants::Invalid) && ((maxRequestedDisplayControlIndex == Constants::Invalid)
+														|| (request->second > maxRequestedDisplayControlIndex)))
+		{
+			maxRequestedDisplayControlIndex = request->second;
+		}
+	}
+	return maxRequestedDisplayControlIndex;
 }

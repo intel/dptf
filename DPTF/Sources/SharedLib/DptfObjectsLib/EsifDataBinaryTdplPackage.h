@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,10 +23,10 @@
 
 struct EsifDataBinaryTdplPackage
 {
-    union esif_data_variant tdpPower;           //ULONG - Thermal design power point in mW
-    union esif_data_variant frequency;          //ULONG - CPU operating frequency for this TDP point
-    union esif_data_variant tdpControl;         //ULONG - TDP point value to program in MMIO for this CTDP point
-    union esif_data_variant frequencyControl;   //ULONG - Context value that participant uses to limit P-states to
-                                                // CPU turbo ratio to program in MMIO for this CTDP point
-    union esif_data_variant reserved;           //ULONG - Unspecified
+	union esif_data_variant tdpPower; // ULONG - Thermal design power point in mW
+	union esif_data_variant frequency; // ULONG - CPU operating frequency for this TDP point
+	union esif_data_variant tdpControl; // ULONG - TDP point value to program in MMIO for this CTDP point
+	union esif_data_variant frequencyControl; // ULONG - Context value that participant uses to limit P-states to
+	// CPU turbo ratio to program in MMIO for this CTDP point
+	union esif_data_variant reserved; // ULONG - Unspecified
 };

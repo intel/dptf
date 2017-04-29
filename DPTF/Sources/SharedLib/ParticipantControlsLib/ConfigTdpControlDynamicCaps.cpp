@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,39 +20,42 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-ConfigTdpControlDynamicCaps::ConfigTdpControlDynamicCaps(UIntN currentLowerLimitIndex, UIntN currentUpperLimitIndex) :
-    m_currentLowerLimitIndex(currentLowerLimitIndex), m_currentUpperLimitIndex(currentUpperLimitIndex)
+ConfigTdpControlDynamicCaps::ConfigTdpControlDynamicCaps(UIntN currentLowerLimitIndex, UIntN currentUpperLimitIndex)
+	: m_currentLowerLimitIndex(currentLowerLimitIndex)
+	, m_currentUpperLimitIndex(currentUpperLimitIndex)
 {
 }
 
 UIntN ConfigTdpControlDynamicCaps::getCurrentLowerLimitIndex(void) const
 {
-    return m_currentLowerLimitIndex;
+	return m_currentLowerLimitIndex;
 }
 
 UIntN ConfigTdpControlDynamicCaps::getCurrentUpperLimitIndex(void) const
 {
-    return m_currentUpperLimitIndex;
+	return m_currentUpperLimitIndex;
 }
 
 Bool ConfigTdpControlDynamicCaps::operator==(const ConfigTdpControlDynamicCaps& rhs) const
 {
-    return
-        (m_currentLowerLimitIndex == rhs.m_currentLowerLimitIndex &&
-         m_currentUpperLimitIndex == rhs.m_currentUpperLimitIndex);
+	return (
+		m_currentLowerLimitIndex == rhs.m_currentLowerLimitIndex
+		&& m_currentUpperLimitIndex == rhs.m_currentUpperLimitIndex);
 }
 
 Bool ConfigTdpControlDynamicCaps::operator!=(const ConfigTdpControlDynamicCaps& rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 std::shared_ptr<XmlNode> ConfigTdpControlDynamicCaps::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("config_tdp_control_dynamic_caps");
+	auto root = XmlNode::createWrapperElement("config_tdp_control_dynamic_caps");
 
-    root->addChild(XmlNode::createDataElement("upper_limit_index", StatusFormat::friendlyValue(m_currentUpperLimitIndex)));
-    root->addChild(XmlNode::createDataElement("lower_limit_index", StatusFormat::friendlyValue(m_currentLowerLimitIndex)));
+	root->addChild(
+		XmlNode::createDataElement("upper_limit_index", StatusFormat::friendlyValue(m_currentUpperLimitIndex)));
+	root->addChild(
+		XmlNode::createDataElement("lower_limit_index", StatusFormat::friendlyValue(m_currentLowerLimitIndex)));
 
-    return root;
+	return root;
 }

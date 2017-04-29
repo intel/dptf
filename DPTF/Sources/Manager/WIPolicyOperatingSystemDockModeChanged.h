@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,13 +25,11 @@
 class WIPolicyOperatingSystemDockModeChanged : public WorkItem
 {
 public:
+	WIPolicyOperatingSystemDockModeChanged(DptfManagerInterface* dptfManager, OsDockMode::Type dockMode);
+	virtual ~WIPolicyOperatingSystemDockModeChanged(void);
 
-    WIPolicyOperatingSystemDockModeChanged(DptfManagerInterface* dptfManager, OsDockMode::Type dockMode);
-    virtual ~WIPolicyOperatingSystemDockModeChanged(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 
 private:
-
-    const OsDockMode::Type m_dockMode;
+	const OsDockMode::Type m_dockMode;
 };

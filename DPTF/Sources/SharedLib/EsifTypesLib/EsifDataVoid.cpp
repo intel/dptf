@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,13 @@
 
 EsifDataVoid::EsifDataVoid(void)
 {
-    m_esifData.type = esif_data_type::ESIF_DATA_VOID;
-    m_esifData.buf_ptr = nullptr;
-    m_esifData.buf_len = 0;
-    m_esifData.data_len = 0;
+	m_esifData.type = esif_data_type::ESIF_DATA_VOID;
+	m_esifData.buf_ptr = nullptr;
+	m_esifData.buf_len = 0;
+	m_esifData.data_len = 0;
 }
 
 EsifDataVoid::operator EsifDataPtr(void)
 {
-    return &m_esifData;
+	return &m_esifData;
 }

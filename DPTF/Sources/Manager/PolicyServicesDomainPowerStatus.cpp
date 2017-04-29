@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,21 +19,31 @@
 #include "PolicyServicesDomainPowerStatus.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainPowerStatus::PolicyServicesDomainPowerStatus(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainPowerStatus::PolicyServicesDomainPowerStatus(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 PowerStatus PolicyServicesDomainPowerStatus::getPowerStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerStatus(domainIndex);
 }
 
-Power PolicyServicesDomainPowerStatus::getAveragePower(UIntN participantIndex, UIntN domainIndex,
-    const PowerControlDynamicCaps& capabilities)
+Power PolicyServicesDomainPowerStatus::getAveragePower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const PowerControlDynamicCaps& capabilities)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getAveragePower(domainIndex, capabilities);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getAveragePower(domainIndex, capabilities);
+}
+
+void PolicyServicesDomainPowerStatus::setCalculatedAveragePower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Power powerValue)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->setCalculatedAveragePower(domainIndex, powerValue);
 }

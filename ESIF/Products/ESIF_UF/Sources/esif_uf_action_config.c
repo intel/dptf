@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -219,7 +219,7 @@ static eEsifError ActionConfigSignalChangeEvents(
 		break;
 	case SET_PROC_PERF_PSTATE_DEPTH_LIMIT:
 	case SET_PERF_PSTATE_DEPTH_LIMIT:
-	case SET_PERF_SUPPORT_STATE:
+	case SET_PERF_SUPPORT_STATES:
 		targetEvent = ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED;
 		break;
 	case SET_TEMPERATURE:
@@ -277,6 +277,42 @@ static eEsifError ActionConfigSignalChangeEvents(
 		break;
 	case SET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE:
 		targetEvent = ESIF_EVENT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED;
+		break;
+	case SET_POWER_SHARING_ALGORITHM_TABLE:
+		targetEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED;
+		break;
+	case SET_SUPPORTED_POLICIES:
+		targetEvent = ESIF_EVENT_SUPPORTED_POLICIES_CHANGED;
+		break;
+	case SET_ACUR:
+		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
+		break;
+	case SET_AVOL:
+		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
+		break;
+	case SET_ADAPTER_POWER_RATING:
+		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
+		break;
+	case SET_AP01:
+		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
+		break;
+	case SET_AP02:
+		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
+		break;
+	case SET_AP10:
+		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
+		break;
+	case SET_PLATFORM_BATTERY_STEADY_STATE:
+		targetEvent = ESIF_EVENT_PLATFORM_BATTERY_STEADY_STATE_CHANGED;
+		break;
+	case SET_PLATFORM_MAX_BATTERY_POWER:
+		targetEvent = ESIF_EVENT_MAX_BATTERY_POWER_CHANGED;
+		break;
+	case SET_PLATFORM_REST_OF_POWER:
+		targetEvent = ESIF_EVENT_PLATFORM_REST_OF_POWER_CHANGED;
+		break;
+	case SET_OEM_VARS:
+		targetEvent = ESIF_EVENT_OEM_VARS_CHANGED;
 		break;
 	default:
 		targetEvent = 0;

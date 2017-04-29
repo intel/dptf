@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,12 @@
 class PolicyServicesDomainActiveControl final : public PolicyServices, public DomainActiveControlInterface
 {
 public:
+	PolicyServicesDomainActiveControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServicesDomainActiveControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override final;
-    virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override final;
+	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
+		override final;
+	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override final;
+	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override final;
 };

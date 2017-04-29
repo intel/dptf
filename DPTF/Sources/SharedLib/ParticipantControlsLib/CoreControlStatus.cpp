@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,31 +20,32 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-CoreControlStatus::CoreControlStatus(UIntN numActiveLogicalProcessors) :
-    m_numActiveLogicalProcessors(numActiveLogicalProcessors)
+CoreControlStatus::CoreControlStatus(UIntN numActiveLogicalProcessors)
+	: m_numActiveLogicalProcessors(numActiveLogicalProcessors)
 {
 }
 
 UIntN CoreControlStatus::getNumActiveLogicalProcessors(void) const
 {
-    return m_numActiveLogicalProcessors;
+	return m_numActiveLogicalProcessors;
 }
 
 Bool CoreControlStatus::operator==(const CoreControlStatus& rhs) const
 {
-    return (m_numActiveLogicalProcessors == rhs.m_numActiveLogicalProcessors);
+	return (m_numActiveLogicalProcessors == rhs.m_numActiveLogicalProcessors);
 }
 
 Bool CoreControlStatus::operator!=(const CoreControlStatus& rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 std::shared_ptr<XmlNode> CoreControlStatus::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("core_control_status");
+	auto root = XmlNode::createWrapperElement("core_control_status");
 
-    root->addChild(XmlNode::createDataElement("active_logical_processors", StatusFormat::friendlyValue(m_numActiveLogicalProcessors)));
+	root->addChild(XmlNode::createDataElement(
+		"active_logical_processors", StatusFormat::friendlyValue(m_numActiveLogicalProcessors)));
 
-    return root;
+	return root;
 }

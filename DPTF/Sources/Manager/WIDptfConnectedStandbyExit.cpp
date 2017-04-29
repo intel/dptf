@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 #include "ParticipantManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIDptfConnectedStandbyExit::WIDptfConnectedStandbyExit(DptfManagerInterface* dptfManager) :
-    WorkItem(dptfManager, FrameworkEvent::DptfConnectedStandbyExit)
+WIDptfConnectedStandbyExit::WIDptfConnectedStandbyExit(DptfManagerInterface* dptfManager)
+	: WorkItem(dptfManager, FrameworkEvent::DptfConnectedStandbyExit)
 {
 }
 
@@ -32,49 +32,49 @@ WIDptfConnectedStandbyExit::~WIDptfConnectedStandbyExit(void)
 
 void WIDptfConnectedStandbyExit::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    // let all participants know that we are exiting connected standby
+	// let all participants know that we are exiting connected standby
 
-    auto participantManager = getParticipantManager();
-    auto participantIndexList = participantManager->getParticipantIndexes();
+	auto participantManager = getParticipantManager();
+	auto participantIndexList = participantManager->getParticipantIndexes();
 
-    for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
-    {
-        try
-        {
-            Participant* participant = participantManager->getParticipantPtr(*i);
-            participant->connectedStandbyExit();
-        }
-        catch (participant_index_invalid ex)
-        {
-            // do nothing.  No item in the participant list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyExit", *i);
-        }
-    }
+	for (auto i = participantIndexList.begin(); i != participantIndexList.end(); ++i)
+	{
+		try
+		{
+			Participant* participant = participantManager->getParticipantPtr(*i);
+			participant->connectedStandbyExit();
+		}
+		catch (participant_index_invalid ex)
+		{
+			// do nothing.  No item in the participant list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeWorkItemErrorMessageParticipant(ex, "Participant::connectedStandbyExit", *i);
+		}
+	}
 
-    // let all policies know that we are exiting connected standby
+	// let all policies know that we are exiting connected standby
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeConnectedStandbyExit();
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeWorkItemErrorMessagePolicy(ex, "Policy::executeConnectedStandbyExit", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executeConnectedStandbyExit();
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executeConnectedStandbyExit", i);
+		}
+	}
 }

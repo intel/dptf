@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,39 +31,35 @@
 class dptf_export CallbackScheduler
 {
 public:
+	CallbackScheduler(
+		const PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<ThermalRelationshipTable> trt,
+		std::shared_ptr<TimeInterface> time);
+	~CallbackScheduler();
 
-    CallbackScheduler(
-        const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<ThermalRelationshipTable> trt,
-        TargetMonitor* targetMonitor,
-        std::shared_ptr<TimeInterface> time);
-    ~CallbackScheduler();
+	Bool isFreeForRequests(UIntN target, UIntN source, const TimeSpan& time) const;
+	void markBusyForRequests(UIntN target, UIntN source, const TimeSpan& time);
+	void ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, const TimeSpan& time);
+	Bool isFreeForCommits(UIntN source, const TimeSpan& time) const;
+	void ensureCallbackByShortestSamplePeriod(UIntN target, const TimeSpan& time);
+	void acknowledgeCallback(UIntN target);
 
-    Bool isFreeForRequests(UIntN target, UIntN source, const TimeSpan& time) const;
-    void markBusyForRequests(UIntN target, UIntN source, const TimeSpan& time);
-    void ensureCallbackByNextSamplePeriod(UIntN target, UIntN source, const TimeSpan& time);
-    Bool isFreeForCommits(UIntN source, const TimeSpan& time) const;
-    void ensureCallbackByShortestSamplePeriod(UIntN target, const TimeSpan& time);
-    void acknowledgeCallback(UIntN target);
+	// participant availability
+	void removeParticipantFromSchedule(UIntN participant);
+	void markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, const TimeSpan& time);
 
-    // participant availability
-    void removeParticipantFromSchedule(UIntN participant);
-    void markSourceAsBusy(UIntN source, const TargetMonitor& targetMonitor, const TimeSpan& time);
+	// updates service objects
+	void setTrt(std::shared_ptr<ThermalRelationshipTable> trt);
+	void setTimeObject(std::shared_ptr<TimeInterface> time);
 
-    // updates service objects
-    void setTrt(std::shared_ptr<ThermalRelationshipTable> trt);
-    void setTimeObject(std::shared_ptr<TimeInterface> time);
+	// status
+	std::shared_ptr<XmlNode> getXml() const;
 
-    // status
-    std::shared_ptr<XmlNode> getXml() const;
-    
 private:
-
-    SourceAvailability m_sourceAvailability;
-    std::shared_ptr<ThermalRelationshipTable> m_trt;
-    TargetMonitor* m_targetMonitor;
-    MessageLoggingInterface* m_logger;
-    std::shared_ptr<PolicyCallbackSchedulerInterface> m_targetScheduler;
-    TimeSpan m_minSampleTime;
-    std::map<TargetSourceRelationship, TimeSpan> m_requestSchedule;
+	SourceAvailability m_sourceAvailability;
+	std::shared_ptr<ThermalRelationshipTable> m_trt;
+	MessageLoggingInterface* m_logger;
+	std::shared_ptr<PolicyCallbackSchedulerInterface> m_targetScheduler;
+	TimeSpan m_minSampleTime;
+	std::map<TargetSourceRelationship, TimeSpan> m_requestSchedule;
 };

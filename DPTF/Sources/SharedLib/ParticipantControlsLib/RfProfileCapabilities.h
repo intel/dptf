@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,29 +26,30 @@ class XmlNode;
 class RfProfileCapabilities final
 {
 public:
+	RfProfileCapabilities(
+		Frequency defaultCenterFrequency,
+		Percentage leftClipPercent,
+		Percentage rightClipPercent,
+		Frequency frequencyAdjustResolution);
 
-    RfProfileCapabilities(Frequency defaultCenterFrequency, Percentage leftClipPercent, Percentage rightClipPercent,
-        Frequency frequencyAdjustResolution);
+	Frequency getDefaultCenterFrequency(void) const;
+	Percentage getLeftClipPercent(void) const;
+	Percentage getRightClipPercent(void) const;
+	Frequency getFrequencyAdjustResolution(void) const;
 
-    Frequency getDefaultCenterFrequency(void) const;
-    Percentage getLeftClipPercent(void) const;
-    Percentage getRightClipPercent(void) const;
-    Frequency getFrequencyAdjustResolution(void) const;
-
-    Bool operator==(const RfProfileCapabilities& rhs) const;
-    Bool operator!=(const RfProfileCapabilities& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	Bool operator==(const RfProfileCapabilities& rhs) const;
+	Bool operator!=(const RfProfileCapabilities& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
+	Frequency m_defaultCenterFrequency;
+	Percentage m_leftClipPercent;
+	Percentage m_rightClipPercent;
+	Frequency m_frequencyAdjustResolution;
 
-    Frequency m_defaultCenterFrequency;
-    Percentage m_leftClipPercent;
-    Percentage m_rightClipPercent;
-    Frequency m_frequencyAdjustResolution;
-
-    // Reserved Items not used today
-    //RfProfileType::Type m_leftShape;
-    //RfProfileType::Type m_rightShape;
-    //UInt64 m_leftNotch;
-    //UInt64 m_rightNotch;
+	// Reserved Items not used today
+	// RfProfileType::Type m_leftShape;
+	// RfProfileType::Type m_rightShape;
+	// UInt64 m_leftNotch;
+	// UInt64 m_rightNotch;
 };

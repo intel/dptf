@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,90 +18,190 @@
 
 #include "DomainPowerControl_000.h"
 
-
-DomainPowerControl_000::DomainPowerControl_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainPowerControlBase(participantIndex, domainIndex, participantServicesInterface)
+DomainPowerControl_000::DomainPowerControl_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainPowerControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
-PowerControlDynamicCapsSet DomainPowerControl_000::getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
+PowerControlDynamicCapsSet DomainPowerControl_000::getPowerControlDynamicCapsSet(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainPowerControl_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainPowerControl_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-Bool DomainPowerControl_000::isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+Bool DomainPowerControl_000::isPowerLimitEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-Power DomainPowerControl_000::getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+Power DomainPowerControl_000::getPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainPowerControl_000::setPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const Power& powerLimit)
+void DomainPowerControl_000::setPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainPowerControl_000::setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const Power& powerLimit)
+void DomainPowerControl_000::setPowerLimitIgnoringCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-TimeSpan DomainPowerControl_000::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+TimeSpan DomainPowerControl_000::getPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainPowerControl_000::setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow)
+void DomainPowerControl_000::setPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainPowerControl_000::setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow)
+void DomainPowerControl_000::setPowerLimitTimeWindowIgnoringCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-Percentage DomainPowerControl_000::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+Percentage DomainPowerControl_000::getPowerLimitDutyCycle(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainPowerControl_000::setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType, const Percentage& dutyCycle)
+void DomainPowerControl_000::setPowerLimitDutyCycle(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Percentage& dutyCycle)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainPowerControl_000::setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, PowerControlDynamicCapsSet capsSet)
+void DomainPowerControl_000::setPowerControlDynamicCapsSet(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlDynamicCapsSet capsSet)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainPowerControl_000::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
-    throw not_implemented();
+	throw not_implemented();
+}
+
+Bool DomainPowerControl_000::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)
+{
+	return false;
+}
+
+double DomainPowerControl_000::getPidKpTerm(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+double DomainPowerControl_000::getPidKiTerm(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+TimeSpan DomainPowerControl_000::getTau(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+TimeSpan DomainPowerControl_000::getFastPollTime(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+TimeSpan DomainPowerControl_000::getSlowPollTime(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainPowerControl_000::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainPowerControl_000::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+double DomainPowerControl_000::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainPowerControl_000::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Power DomainPowerControl_000::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Power DomainPowerControl_000::getInstantaneousPower(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throw not_implemented();
 }
 
 void DomainPowerControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainPowerControl_000::getName(void)
 {
-    return "Power Control (Version 0)";
+	return "Power Control (Version 0)";
 }

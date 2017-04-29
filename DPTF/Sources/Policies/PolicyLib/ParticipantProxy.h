@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,77 +34,75 @@
 class dptf_export ParticipantProxy : public ParticipantProxyInterface
 {
 public:
+	ParticipantProxy();
+	ParticipantProxy(
+		UIntN participantIndex,
+		const PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<TimeInterface> time);
+	~ParticipantProxy();
 
-    ParticipantProxy();
-    ParticipantProxy(
-        UIntN participantIndex,
-        const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<TimeInterface> time);
-    ~ParticipantProxy();
+	// domain access
+	virtual void bindDomain(std::shared_ptr<DomainProxyInterface> domain) override;
+	virtual void unbindDomain(UIntN domainIndex) override;
+	virtual std::shared_ptr<DomainProxyInterface> getDomain(UIntN domainIndex) override;
+	virtual std::vector<UIntN> getDomainIndexes() override;
+	virtual Bool domainExists(UIntN domainIndex) override;
 
-    // domain access
-    virtual void bindDomain(std::shared_ptr<DomainProxyInterface> domain) override;
-    virtual void unbindDomain(UIntN domainIndex) override;
-    virtual std::shared_ptr<DomainProxyInterface> getDomain(UIntN domainIndex) override;
-    virtual std::vector<UIntN> getDomainIndexes() override;
-    virtual Bool domainExists(UIntN domainIndex) override;
+	// properties
+	virtual UIntN getIndex() const override;
+	virtual void refreshDomainProperties() override;
+	virtual const DomainPropertiesSet& getDomainPropertiesSet() override;
+	virtual const ParticipantProperties& getParticipantProperties() override;
 
-    // properties
-    virtual UIntN getIndex() const override;
-    virtual void refreshDomainProperties() override;
-    virtual const DomainPropertiesSet& getDomainPropertiesSet() override;
-    virtual const ParticipantProperties& getParticipantProperties() override;
+	// trip point sets
+	virtual CriticalTripPointsCachedProperty& getCriticalTripPointProperty() override;
+	virtual ActiveTripPointsCachedProperty& getActiveTripPointProperty() override;
+	virtual PassiveTripPointsCachedProperty& getPassiveTripPointProperty() override;
+	virtual std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() override;
+	virtual std::shared_ptr<XmlNode> getXmlForActiveTripPoints() override;
+	virtual std::shared_ptr<XmlNode> getXmlForPassiveTripPoints() override;
 
-    // trip point sets
-    virtual CriticalTripPointsCachedProperty& getCriticalTripPointProperty() override;
-    virtual ActiveTripPointsCachedProperty& getActiveTripPointProperty() override;
-    virtual PassiveTripPointsCachedProperty& getPassiveTripPointProperty() override;
-    virtual std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() override;
-    virtual std::shared_ptr<XmlNode> getXmlForActiveTripPoints() override;
-    virtual std::shared_ptr<XmlNode> getXmlForPassiveTripPoints() override;
+	// temperatures
+	virtual Bool supportsTemperatureInterface() override;
+	virtual Temperature getFirstDomainTemperature() override;
+	virtual void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound) override;
+	virtual TemperatureThresholds getTemperatureThresholds() override;
+	virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) override;
+	virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
+	virtual void refreshHysteresis() override;
+	virtual void refreshVirtualSensorTables() override;
 
-    // temperatures
-    virtual Bool supportsTemperatureInterface()  override;
-    virtual Temperature getFirstDomainTemperature() override;
-    virtual void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound) override;
-    virtual TemperatureThresholds getTemperatureThresholds() override;
-    virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) override;
-    virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
-    virtual void refreshHysteresis() override;
-    virtual void refreshVirtualSensorTables() override;
+	// thresholds
+	virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) override;
+	virtual const TimeSpan& getTimeOfLastThresholdCrossed() const override;
+	virtual Temperature getTemperatureOfLastThresholdCrossed() const override;
 
-    // thresholds
-    virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) override;
-    virtual const TimeSpan& getTimeOfLastThresholdCrossed() const override;
-    virtual Temperature getTemperatureOfLastThresholdCrossed() const override;
-
-    // capabilities
-    virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
+	// capabilities
+	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
+	std::shared_ptr<TimeInterface> m_time;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
-    std::shared_ptr<TimeInterface> m_time;
+	// participant properties
+	UIntN m_index;
+	ParticipantPropertiesCachedProperty m_participantProperties;
+	CriticalTripPointsCachedProperty m_criticalTripPointProperty;
+	ActiveTripPointsCachedProperty m_activeTripPointProperty;
+	PassiveTripPointsCachedProperty m_passiveTripPointProperty;
 
-    // participant properties
-    UIntN m_index;
-    ParticipantPropertiesCachedProperty m_participantProperties;
-    CriticalTripPointsCachedProperty m_criticalTripPointProperty;
-    ActiveTripPointsCachedProperty m_activeTripPointProperty;
-    PassiveTripPointsCachedProperty m_passiveTripPointProperty;
+	// domain properties
+	DomainSetCachedProperty m_domainSetProperty;
+	std::map<UIntN, std::shared_ptr<DomainProxyInterface>> m_domains;
 
-    // domain properties
-    DomainSetCachedProperty m_domainSetProperty;
-    std::map<UIntN, std::shared_ptr<DomainProxyInterface>> m_domains;
+	// Temperatures
+	Temperature getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy);
+	TemperatureThresholds getTemperatureThresholdsForStatus();
 
-    // Temperatures
-    Temperature getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy);
-    TemperatureThresholds getTemperatureThresholdsForStatus();
-
-    Temperature m_previousLowerBound;
-    Temperature m_previousUpperBound;
-    Temperature m_lastIndicationTemperatureLowerBound;
-    Temperature m_lastThresholdCrossedTemperature;
-    TimeSpan m_timeOfLastThresholdCrossed;
+	Temperature m_previousLowerBound;
+	Temperature m_previousUpperBound;
+	Temperature m_lastIndicationTemperatureLowerBound;
+	Temperature m_lastThresholdCrossedTemperature;
+	TimeSpan m_timeOfLastThresholdCrossed;
 };

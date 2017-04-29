@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,34 +26,33 @@
 class dptf_export TargetUnlimitAction : public TargetActionBase
 {
 public:
+	TargetUnlimitAction(
+		PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<TimeInterface> time,
+		std::shared_ptr<ParticipantTrackerInterface> participantTracker,
+		std::shared_ptr<ThermalRelationshipTable> trt,
+		std::shared_ptr<CallbackScheduler> callbackScheduler,
+		TargetMonitor& targetMonitor,
+		UIntN target);
+	virtual ~TargetUnlimitAction();
 
-    TargetUnlimitAction(
-        PolicyServicesInterfaceContainer& policyServices, 
-        std::shared_ptr<TimeInterface> time,
-        std::shared_ptr<ParticipantTrackerInterface> participantTracker,
-        std::shared_ptr<ThermalRelationshipTable> trt,
-        std::shared_ptr<CallbackScheduler> callbackScheduler,
-        TargetMonitor& targetMonitor,
-        UIntN target);
-    virtual ~TargetUnlimitAction();
+	virtual void execute() override;
 
-    virtual void execute() override;
-    
 private:
-    
-    // source filtering
-    std::vector<UIntN> chooseSourcesToUnlimitForTarget(UIntN target);
-    std::vector< std::shared_ptr<ThermalRelationshipTableEntry>> getEntriesWithControlsToUnlimit(
-        UIntN target, const std::vector< std::shared_ptr<ThermalRelationshipTableEntry>>& sourcesForTarget);
+	// source filtering
+	std::vector<UIntN> chooseSourcesToUnlimitForTarget(UIntN target);
+	std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> getEntriesWithControlsToUnlimit(
+		UIntN target,
+		const std::vector<std::shared_ptr<ThermalRelationshipTableEntry>>& sourcesForTarget);
 
-    // domain filtering
-    std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxyInterface* participant, UIntN target);
-    std::vector<UIntN> chooseDomainsToUnlimitForSource(UIntN target, UIntN source);
-    UIntN getDomainWithLowestTemperature(UIntN source, std::vector<UIntN> domainsWithControlKnobsToTurn);
-    std::vector<UIntN> getDomainsWithLowestPriority(UIntN source, std::vector<UIntN> domains);
+	// domain filtering
+	std::vector<UIntN> getDomainsWithControlKnobsToUnlimit(ParticipantProxyInterface* participant, UIntN target);
+	std::vector<UIntN> chooseDomainsToUnlimitForSource(UIntN target, UIntN source);
+	UIntN getDomainWithLowestTemperature(UIntN source, std::vector<UIntN> domainsWithControlKnobsToTurn);
+	std::vector<UIntN> getDomainsWithLowestPriority(UIntN source, std::vector<UIntN> domains);
 
-    // domain unlimiting
-    void requestUnlimit(UIntN source, UIntN domain, UIntN target);
-    void commitUnlimit(UIntN source, const TimeSpan& time);
-    void removeAllRequestsForTarget(UIntN target);
+	// domain unlimiting
+	void requestUnlimit(UIntN source, UIntN domain, UIntN target);
+	void commitUnlimit(UIntN source, const TimeSpan& time);
+	void removeAllRequestsForTarget(UIntN target);
 };

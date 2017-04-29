@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,13 +25,11 @@
 class WIPolicyOperatingSystemPlatformTypeChanged : public WorkItem
 {
 public:
+	WIPolicyOperatingSystemPlatformTypeChanged(DptfManagerInterface* dptfManager, OsPlatformType::Type platformType);
+	virtual ~WIPolicyOperatingSystemPlatformTypeChanged(void);
 
-    WIPolicyOperatingSystemPlatformTypeChanged(DptfManagerInterface* dptfManager, OsPlatformType::Type platformType);
-    virtual ~WIPolicyOperatingSystemPlatformTypeChanged(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 
 private:
-
-    const OsPlatformType::Type m_platformType;
+	const OsPlatformType::Type m_platformType;
 };

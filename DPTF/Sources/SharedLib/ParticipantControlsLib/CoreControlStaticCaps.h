@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,10 @@ class XmlNode;
 class CoreControlStaticCaps final
 {
 public:
-
-    CoreControlStaticCaps(UIntN totalLogicalProcessors);
-    UIntN getTotalLogicalProcessors(void) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	CoreControlStaticCaps(UIntN totalLogicalProcessors);
+	UIntN getTotalLogicalProcessors(void) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UIntN m_totalLogicalProcessors;                                 // Total number of logical processors available
+	UIntN m_totalLogicalProcessors; // Total number of logical processors available
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,11 +22,11 @@
 
 namespace OsLidState
 {
-    enum Type
-    {
-        Closed = 0,
-        Open = 1
-    };
+	enum Type
+	{
+		Closed = 0,
+		Open = 1
+	};
 
-    std::string toString(OsLidState::Type osLidState);
+	std::string toString(OsLidState::Type osLidState);
 }

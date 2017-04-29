@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,31 +29,29 @@
 class DeferredWorkItem : public WorkItemInterface
 {
 public:
+	DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution);
+	virtual ~DeferredWorkItem(void);
 
-    DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution);
-    virtual ~DeferredWorkItem(void);
+	// implement WorkItemInterface
+	virtual UInt64 getUniqueId(void) const override;
+	virtual FrameworkEvent::Type getFrameworkEventType(void) const override;
+	virtual const TimeSpan& getWorkItemCreationTime(void) const override;
+	virtual void setWorkItemExecutionStartTime(void) override;
+	virtual const TimeSpan& getWorkItemExecutionStartTime(void) const override;
+	virtual void signalAtCompletion(EsifSemaphore* semaphore) override;
+	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
+	virtual std::string toXml(void) const override;
+	virtual void execute(void) override;
 
-    // implement WorkItemInterface
-    virtual UInt64 getUniqueId(void) const override;
-    virtual FrameworkEvent::Type getFrameworkEventType(void) const override;
-    virtual const TimeSpan& getWorkItemCreationTime(void) const override;
-    virtual void setWorkItemExecutionStartTime(void) override;
-    virtual const TimeSpan& getWorkItemExecutionStartTime(void) const override;
-    virtual void signalAtCompletion(EsifSemaphore* semaphore) override;
-    virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
-    virtual std::string toXml(void) const override;
-    virtual void execute(void) override;
-
-    // implement added functionality
-    WorkItemInterface* getWorkItem(void) const;
-    const TimeSpan& getDeferredProcessingTime(void) const;
+	// implement added functionality
+	WorkItemInterface* getWorkItem(void) const;
+	const TimeSpan& getDeferredProcessingTime(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	DeferredWorkItem(const DeferredWorkItem&);
+	DeferredWorkItem& operator=(const DeferredWorkItem&);
 
-    // hide the copy constructor and assignment operator.
-    DeferredWorkItem(const DeferredWorkItem&);
-    DeferredWorkItem& operator=(const DeferredWorkItem&);
-
-    WorkItemInterface* m_workItem;
-    TimeSpan m_deferredProcessingTime;
+	WorkItemInterface* m_workItem;
+	TimeSpan m_deferredProcessingTime;
 };

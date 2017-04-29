@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,70 +27,78 @@
 class DomainPerformanceControl_002 : public DomainPerformanceControlBase
 {
 public:
+	DomainPerformanceControl_002(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPerformanceControl_002(void);
 
-    DomainPerformanceControl_002(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPerformanceControl_002(void);
+	// DomainPerformanceControlInterface
+	virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
+		override;
+	virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+		override;
+	virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
+		override;
+	virtual void setPerformanceControlDynamicCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PerformanceControlDynamicCaps newCapabilities) override;
+	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
-    // DomainPerformanceControlInterface
-    virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlStatus getPerformanceControlStatus(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlSet getPerformanceControlSet(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setPerformanceControl(
-        UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override;
-    virtual void setPerformanceControlDynamicCaps(
-        UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override;
-    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
-    
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
-    // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
-        ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
+	// ConfigTdpDataSyncInterface
+	virtual void updateBasedOnConfigTdpInformation(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ConfigTdpControlSet configTdpControlSet,
+		ConfigTdpControlStatus configTdpControlStatus) override;
 
 protected:
-    virtual void capture(void) override;
-    virtual void restore(void) override;
-    virtual UIntN getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void capture(void) override;
+	virtual void restore(void) override;
+	virtual UIntN getCurrentPerformanceControlIndex(UIntN participantIndex, UIntN domainIndex) override;
 
 private:
+	// hide the copy constructor and = operator
+	DomainPerformanceControl_002(const DomainPerformanceControl_002& rhs);
+	DomainPerformanceControl_002& operator=(const DomainPerformanceControl_002& rhs);
 
-    // hide the copy constructor and = operator
-    DomainPerformanceControl_002(const DomainPerformanceControl_002& rhs);
-    DomainPerformanceControl_002& operator=(const DomainPerformanceControl_002& rhs);
+	PerformanceControlSet createCombinedPerformanceControlSet(UIntN domainIndex);
+	PerformanceControlDynamicCaps createPerformanceControlDynamicCaps(UIntN domainIndex);
+	void createPerformanceControlStatus(void);
+	void arbitratePerformanceStateLimits(
+		UIntN domainIndex,
+		UIntN pStateUpperLimitIndex,
+		UIntN pStateLowerLimitIndex,
+		UIntN tStateUpperLimitIndex,
+		UIntN tStateLowerLimitIndex,
+		UIntN& performanceUpperLimitIndex,
+		UIntN& performanceLowerLimitIndex);
+	void calculateThrottlingStateLimits(UIntN& tStateUpperLimitIndex, UIntN& tStateLowerLimitIndex, UIntN domainIndex);
+	void calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex);
+	void throwIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);
+	PerformanceControlStaticCaps createPerformanceControlStaticCaps(void);
+	PerformanceControlSet createPerformanceStateSet(UIntN domainIndex);
+	PerformanceControlSet getPerformanceStateSet(UIntN domainIndex);
+	PerformanceControlSet getThrottlingStateSet(UIntN domainIndex);
+	PerformanceControlSet createThrottlingStateSet(UIntN domainIndex);
+	Bool isFirstTstateDeleted(UIntN domainIndex);
 
-    PerformanceControlSet createCombinedPerformanceControlSet(UIntN domainIndex);
-    PerformanceControlDynamicCaps createPerformanceControlDynamicCaps(UIntN domainIndex);
-    void createPerformanceControlStatus(void);
-    void arbitratePerformanceStateLimits(UIntN domainIndex, UIntN pStateUpperLimitIndex, UIntN pStateLowerLimitIndex,
-        UIntN tStateUpperLimitIndex, UIntN tStateLowerLimitIndex,
-        UIntN& performanceUpperLimitIndex, UIntN& performanceLowerLimitIndex);
-    void calculateThrottlingStateLimits(UIntN& tStateUpperLimitIndex, UIntN& tStateLowerLimitIndex, UIntN domainIndex);
-    void calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex);
-    void throwIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);
-    PerformanceControlStaticCaps createPerformanceControlStaticCaps(void);
-    PerformanceControlSet createPerformanceStateSet(UIntN domainIndex);
-    PerformanceControlSet getPerformanceStateSet(UIntN domainIndex);
-    PerformanceControlSet getThrottlingStateSet(UIntN domainIndex);
-    PerformanceControlSet createThrottlingStateSet(UIntN domainIndex);
-    Bool isFirstTstateDeleted(UIntN domainIndex);
-
-    CachedValue<PerformanceControlStaticCaps> m_performanceControlStaticCaps;
-    CachedValue<PerformanceControlDynamicCaps> m_performanceControlDynamicCaps;
-    CachedValue<PerformanceControlSet> m_performanceControlSet;
-    CachedValue<PerformanceControlStatus> m_performanceControlStatus;
-    CachedValue<PerformanceControlSet> m_performanceStateSet; // P-states
-    CachedValue<PerformanceControlSet> m_throttlingStateSet; // T-states
-    UIntN m_tdpFrequencyLimitControlIndex;
-    CachedValue<Bool> m_isFirstTstateDeleted;
-    CachedValue<PerformanceControlDynamicCaps> m_initialStatus;
-    Bool m_capabilitiesLocked;
+	CachedValue<PerformanceControlStaticCaps> m_performanceControlStaticCaps;
+	CachedValue<PerformanceControlDynamicCaps> m_performanceControlDynamicCaps;
+	CachedValue<PerformanceControlSet> m_performanceControlSet;
+	CachedValue<PerformanceControlStatus> m_performanceControlStatus;
+	CachedValue<PerformanceControlSet> m_performanceStateSet; // P-states
+	CachedValue<PerformanceControlSet> m_throttlingStateSet; // T-states
+	UIntN m_tdpFrequencyLimitControlIndex;
+	CachedValue<Bool> m_isFirstTstateDeleted;
+	CachedValue<PerformanceControlDynamicCaps> m_initialStatus;
+	Bool m_capabilitiesLocked;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,11 +24,14 @@
 #include "ParticipantServicesInterface.h"
 #include "ParticipantActivityLoggingInterface.h"
 
-class DomainPriorityBase : public ControlBase, public DomainPriorityInterface, public ParticipantActivityLoggingInterface
+class DomainPriorityBase : public ControlBase,
+						   public DomainPriorityInterface,
+						   public ParticipantActivityLoggingInterface
 {
 public:
-
-    DomainPriorityBase(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPriorityBase();
+	DomainPriorityBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPriorityBase();
 };

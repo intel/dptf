@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -65,9 +65,9 @@
  */
 
 struct esif_timer_manager {
-	esif_ccb_lock_t mgr_lock;
 	u8 enabled;	/* Indicates the manager lock is initialized */
 	u8 marked_for_delete; /* Indicates no additional timers may be created */
+	esif_ccb_lock_t mgr_lock;
 	struct esif_link_list *timer_list_ptr; /* List of initialized timers */
 };
 
@@ -141,7 +141,7 @@ static enum esif_rc esif_ccb_tmrm_get_next_handle(
 	esif_ccb_timer_handle_t *handle_ptr
 	);
 	
-static enum esif_rc esif_ccb_tmrm_get_next_cb_handle_wlock(
+static void esif_ccb_tmrm_get_next_cb_handle_wlock(
 	esif_ccb_timer_handle_t *handle_ptr
 	);
 	
@@ -355,9 +355,7 @@ enum esif_rc esif_ccb_timer_set_msec(
 		goto lock_exit;
 	}
 
-	rc = esif_ccb_tmrm_get_next_cb_handle_wlock(&timer_cb_handle);
-	if (rc != ESIF_OK)
-		goto exit;
+	esif_ccb_tmrm_get_next_cb_handle_wlock(&timer_cb_handle);
 	tmrm_item_ptr->timer_cb_handle = timer_cb_handle;
 
 	timer_obj_ptr = tmrm_item_ptr->timer_obj_ptr;
@@ -365,8 +363,11 @@ enum esif_rc esif_ccb_timer_set_msec(
 		timeout,
 		timer_cb_handle);
 
-	if (!tmrm_item_ptr->is_in_cb)
+	if (!tmrm_item_ptr->is_in_cb) {
 		rc = esif_ccb_timer_obj_set_pending_timeout(timer_obj_ptr);
+	} else {
+		rc = ESIF_OK;
+	}
 lock_exit:
 	esif_ccb_write_unlock(&g_tmrm.mgr_lock);
 exit:
@@ -592,7 +593,7 @@ exit:
 }
 
 
-static enum esif_rc esif_ccb_tmrm_get_next_cb_handle_wlock(
+static void esif_ccb_tmrm_get_next_cb_handle_wlock(
 	esif_ccb_timer_handle_t *handle_ptr
 	)
 {
@@ -601,7 +602,6 @@ static enum esif_rc esif_ccb_tmrm_get_next_cb_handle_wlock(
 		g_next_timer_cb_handle++;
 
 	*handle_ptr = (esif_ccb_timer_handle_t)(size_t)g_next_timer_cb_handle;
-	return ESIF_OK;
 }
 
 
@@ -758,7 +758,7 @@ static void esif_ccb_timer_obj_destroy(
 {
 	/*
 	 * The destruction function may have to deal with 'partial' objects, so
-	 * it and all called sub-functions should d0 full NULL checks.
+	 * it and all called sub-functions should do full NULL checks.
 	 */
 	if (NULL == self)
 		return;

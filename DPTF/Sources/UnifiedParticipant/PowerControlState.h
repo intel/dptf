@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,40 +26,38 @@
 class PowerControlState
 {
 public:
+	PowerControlState(DomainPowerControlBase* control);
+	~PowerControlState();
 
-    PowerControlState(DomainPowerControlBase* control);
-    ~PowerControlState();
-
-    void capture();
-    void restore();
-    std::shared_ptr<XmlNode> toXml() const;
+	void capture();
+	void restore();
+	std::shared_ptr<XmlNode> toXml() const;
 
 private:
+	void captureEnables();
+	void captureLimit(PowerControlType::Type controlType, CachedValue<Power>& limit);
+	void captureTimeWindow(PowerControlType::Type controlType, CachedValue<TimeSpan>& timeWindow);
+	void captureDutyCycle(PowerControlType::Type controlType, CachedValue<Percentage>& dutyCycle);
 
-    void captureEnables();
-    void captureLimit(PowerControlType::Type controlType, CachedValue<Power>& limit);
-    void captureTimeWindow(PowerControlType::Type controlType, CachedValue<TimeSpan>& timeWindow);
-    void captureDutyCycle(PowerControlType::Type controlType, CachedValue<Percentage>& dutyCycle);
+	void restoreEnables();
+	void restoreLimit(PowerControlType::Type controlType, const CachedValue<Power>& limit);
+	void restoreTimeWindow(PowerControlType::Type controlType, const CachedValue<TimeSpan>& timeWindow);
+	void restoreDutyCycle(PowerControlType::Type controlType, const CachedValue<Percentage>& dutyCycle);
 
-    void restoreEnables();
-    void restoreLimit(PowerControlType::Type controlType, const CachedValue<Power>& limit);
-    void restoreTimeWindow(PowerControlType::Type controlType, const CachedValue<TimeSpan>& timeWindow);
-    void restoreDutyCycle(PowerControlType::Type controlType, const CachedValue<Percentage>& dutyCycle);
-    
-    DomainPowerControlBase* m_control;
+	DomainPowerControlBase* m_control;
 
-    CachedValue<Bool> m_pl1Enabled;
-    CachedValue<Bool> m_pl2Enabled;
-    CachedValue<Bool> m_pl3Enabled;
-    CachedValue<Bool> m_pl4Enabled;
+	CachedValue<Bool> m_pl1Enabled;
+	CachedValue<Bool> m_pl2Enabled;
+	CachedValue<Bool> m_pl3Enabled;
+	CachedValue<Bool> m_pl4Enabled;
 
-    CachedValue<Power> m_pl1Limit;
-    CachedValue<Power> m_pl2Limit;
-    CachedValue<Power> m_pl3Limit;
-    CachedValue<Power> m_pl4Limit;
+	CachedValue<Power> m_pl1Limit;
+	CachedValue<Power> m_pl2Limit;
+	CachedValue<Power> m_pl3Limit;
+	CachedValue<Power> m_pl4Limit;
 
-    CachedValue<TimeSpan> m_pl1TimeWindow;
-    CachedValue<TimeSpan> m_pl3TimeWindow;
+	CachedValue<TimeSpan> m_pl1TimeWindow;
+	CachedValue<TimeSpan> m_pl3TimeWindow;
 
-    CachedValue<Percentage> m_pl3DutyCycle;
+	CachedValue<Percentage> m_pl3DutyCycle;
 };

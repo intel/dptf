@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,16 +24,16 @@
 class dptf_export RelationshipTableInterface
 {
 public:
-    
-    virtual ~RelationshipTableInterface() {};
-    virtual void associateParticipant(std::string participantScope, UIntN participantIndex) = 0;
-    virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) = 0;
-    virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) = 0;
-    virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual void disassociateParticipant(UIntN participantIndex) = 0;
-    virtual UIntN getNumberOfEntries(void) const = 0;
-    virtual Bool isParticipantSourceDevice(UIntN participantIndex) const = 0;
-    virtual Bool isParticipantTargetDevice(UIntN participantIndex) const = 0;
-    virtual std::set<UIntN> getAllTargetIndexes() const = 0;
-    virtual std::set<UIntN> getAllSourceIndexes() const = 0;
+	virtual ~RelationshipTableInterface(){};
+
+	virtual void associateParticipant(std::string participantScope, UIntN participantIndex) = 0;
+	virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) = 0;
+	virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) = 0;
+	virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void disassociateParticipant(UIntN participantIndex) = 0;
+	virtual UIntN getNumberOfEntries(void) const = 0;
+	virtual Bool isParticipantSourceDevice(UIntN participantIndex) const = 0;
+	virtual Bool isParticipantTargetDevice(UIntN participantIndex) const = 0;
+	virtual std::set<UIntN> getAllTargetIndexes() const = 0;
+	virtual std::set<UIntN> getAllSourceIndexes() const = 0;
 };

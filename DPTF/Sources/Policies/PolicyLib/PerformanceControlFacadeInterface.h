@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,24 +27,22 @@
 class dptf_export PerformanceControlFacadeInterface
 {
 public:
+	virtual ~PerformanceControlFacadeInterface(){};
 
-    virtual ~PerformanceControlFacadeInterface() {};
+	// controls
+	virtual Bool supportsPerformanceControls() = 0;
+	virtual void initializeControlsIfNeeded() = 0;
+	virtual void setControlsToMax() = 0;
+	virtual void setControl(UIntN performanceControlIndex) = 0;
+	virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) = 0;
+	virtual void lockCapabilities() = 0;
+	virtual void unlockCapabilities() = 0;
 
-    // controls
-    virtual Bool supportsPerformanceControls() = 0;
-    virtual void initializeControlsIfNeeded() = 0;
-    virtual void setControlsToMax() = 0;
-    virtual void setControl(UIntN performanceControlIndex) = 0;
-    virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) = 0;
-    virtual void lockCapabilities() = 0;
-    virtual void unlockCapabilities() = 0;
-
-    // properties
-    virtual void refreshCapabilities() = 0;
-    virtual void refreshControls() = 0;
-    virtual PerformanceControlStatus getStatus() const = 0;
-    virtual PerformanceControlStatus getLiveStatus() const = 0;
-    virtual const PerformanceControlSet& getControls() = 0;
-    virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() = 0;
-
+	// properties
+	virtual void refreshCapabilities() = 0;
+	virtual void refreshControls() = 0;
+	virtual PerformanceControlStatus getStatus() const = 0;
+	virtual PerformanceControlStatus getLiveStatus() const = 0;
+	virtual const PerformanceControlSet& getControls() = 0;
+	virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,76 +21,67 @@
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
 
-template <typename T>
-class dptf_export CachedValue
+template <typename T> class dptf_export CachedValue
 {
 public:
+	CachedValue();
+	CachedValue(const T& value);
+	~CachedValue();
 
-    CachedValue();
-    CachedValue(const T& value);
-    ~CachedValue();
-
-    Bool isValid() const;
-    Bool isInvalid() const;
-    const T& get() const;
-    void set(const T& value);
-    void invalidate();
+	Bool isValid() const;
+	Bool isInvalid() const;
+	const T& get() const;
+	void set(const T& value);
+	void invalidate();
 
 private:
-
-    Bool m_valid;
-    std::shared_ptr<T> m_value;
+	Bool m_valid;
+	std::shared_ptr<T> m_value;
 };
 
 template <typename T>
 CachedValue<T>::CachedValue()
-    : m_valid(false)
+	: m_valid(false)
 {
 }
 
 template <typename T>
 CachedValue<T>::CachedValue(const T& value)
-    : m_valid(true)
+	: m_valid(true)
 {
-    m_value = std::make_shared<T>(value);
+	m_value = std::make_shared<T>(value);
 }
 
-template <typename T>
-CachedValue<T>::~CachedValue()
+template <typename T> CachedValue<T>::~CachedValue()
 {
 }
 
-template <typename T>
-void CachedValue<T>::invalidate()
+template <typename T> void CachedValue<T>::invalidate()
 {
-    m_valid = false;
+	m_valid = false;
 }
 
-template <typename T>
-void CachedValue<T>::set(const T& value)
+template <typename T> void CachedValue<T>::set(const T& value)
 {
-    m_value = std::make_shared<T>(value);
-    m_valid = true;
+	m_value = std::make_shared<T>(value);
+	m_valid = true;
 }
 
-template <typename T>
-const T& CachedValue<T>::get() const
+template <typename T> const T& CachedValue<T>::get() const
 {
-    if (isInvalid())
-    {
-        throw dptf_exception("Cached value is not valid.");
-    }
-    return *m_value;
+	if (isInvalid())
+	{
+		throw dptf_exception("Cached value is not valid.");
+	}
+	return *m_value;
 }
 
-template <typename T>
-Bool CachedValue<T>::isValid() const
+template <typename T> Bool CachedValue<T>::isValid() const
 {
-    return m_valid;
+	return m_valid;
 }
 
-template <typename T>
-Bool CachedValue<T>::isInvalid() const
+template <typename T> Bool CachedValue<T>::isInvalid() const
 {
-    return !m_valid;
+	return !m_valid;
 }

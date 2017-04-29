@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,20 +27,18 @@
 class EsifThread
 {
 public:
+	// creates the thread
+	EsifThread(work_func_t function, void* contextPtr);
 
-    // creates the thread
-    EsifThread(work_func_t function, void* contextPtr);
-
-    // destroys the thread
-    ~EsifThread(void);
+	// destroys the thread
+	~EsifThread(void);
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifThread(const EsifThread& rhs);
+	EsifThread& operator=(const EsifThread& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifThread(const EsifThread& rhs);
-    EsifThread& operator=(const EsifThread& rhs);
-
-    work_func_t m_function;
-    void* m_argument;
-    esif_thread_t m_thread;
+	work_func_t m_function;
+	void* m_argument;
+	esif_thread_t m_thread;
 };

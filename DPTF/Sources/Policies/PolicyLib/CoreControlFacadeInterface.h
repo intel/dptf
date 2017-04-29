@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,21 +26,20 @@
 class dptf_export CoreControlFacadeInterface
 {
 public:
+	virtual ~CoreControlFacadeInterface(){};
 
-    virtual ~CoreControlFacadeInterface() {};
+	// controls
+	virtual Bool supportsCoreControls() = 0;
+	virtual void initializeControlsIfNeeded() = 0;
+	virtual void setControlsToMax() = 0;
+	virtual void setActiveCoreControl(CoreControlStatus coreControl) = 0;
 
-    // controls
-    virtual Bool supportsCoreControls() = 0;
-    virtual void initializeControlsIfNeeded() = 0;
-    virtual void setControlsToMax() = 0;
-    virtual void setActiveCoreControl(CoreControlStatus coreControl) = 0;
-
-    // properties
-    virtual CoreControlStatus getStatus() = 0;
-    virtual CoreControlDynamicCaps getDynamicCapabilities() = 0;
-    virtual CoreControlStaticCaps getStaticCapabilities() = 0;
-    virtual CoreControlLpoPreference getPreferences() = 0;
-    virtual void refreshCapabilities() = 0;
-    virtual void refreshPreferences() = 0;
-    virtual void setValueWithinCapabilities() = 0;
+	// properties
+	virtual CoreControlStatus getStatus() = 0;
+	virtual CoreControlDynamicCaps getDynamicCapabilities() = 0;
+	virtual CoreControlStaticCaps getStaticCapabilities() = 0;
+	virtual CoreControlLpoPreference getPreferences() = 0;
+	virtual void refreshCapabilities() = 0;
+	virtual void refreshPreferences() = 0;
+	virtual void setValueWithinCapabilities() = 0;
 };

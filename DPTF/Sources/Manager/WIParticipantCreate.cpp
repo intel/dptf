@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,11 +22,16 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIParticipantCreate::WIParticipantCreate(DptfManagerInterface* dptfManager, UIntN participantIndex,
-    const AppParticipantDataPtr participantDataPtr, Bool participantEnabled, Bool* participantCreated) :
-    ParticipantWorkItem(dptfManager, FrameworkEvent::ParticipantCreate, participantIndex),
-    m_participantDataPtr(participantDataPtr), m_participantEnabled(participantEnabled),
-    m_participantCreated(participantCreated)
+WIParticipantCreate::WIParticipantCreate(
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex,
+	const AppParticipantDataPtr participantDataPtr,
+	Bool participantEnabled,
+	Bool* participantCreated)
+	: ParticipantWorkItem(dptfManager, FrameworkEvent::ParticipantCreate, participantIndex)
+	, m_participantDataPtr(participantDataPtr)
+	, m_participantEnabled(participantEnabled)
+	, m_participantCreated(participantCreated)
 {
 }
 
@@ -36,46 +41,46 @@ WIParticipantCreate::~WIParticipantCreate(void)
 
 void WIParticipantCreate::execute(void)
 {
-    writeParticipantWorkItemStartingInfoMessage();
+	writeParticipantWorkItemStartingInfoMessage();
 
-    Bool participantCreated = false;
+	Bool participantCreated = false;
 
-    try
-    {
-        getParticipantManager()->createParticipant(getParticipantIndex(), m_participantDataPtr, m_participantEnabled);
-        participantCreated = true;
-    }
-    catch (std::exception& ex)
-    {
-        writeParticipantWorkItemErrorMessage(ex, "ParticipantManager::createParticipant");
-    }
+	try
+	{
+		getParticipantManager()->createParticipant(getParticipantIndex(), m_participantDataPtr, m_participantEnabled);
+		participantCreated = true;
+	}
+	catch (std::exception& ex)
+	{
+		writeParticipantWorkItemErrorMessage(ex, "ParticipantManager::createParticipant");
+	}
 
-    *m_participantCreated = participantCreated;
+	*m_participantCreated = participantCreated;
 
-    if (participantCreated == true)
-    {
-        //
-        // Iterate through the list of policies and let them know about the new participant
-        //
+	if (participantCreated == true)
+	{
+		//
+		// Iterate through the list of policies and let them know about the new participant
+		//
 
-        auto policyManager = getPolicyManager();
-        UIntN policyListCount = policyManager->getPolicyListCount();
+		auto policyManager = getPolicyManager();
+		UIntN policyListCount = policyManager->getPolicyListCount();
 
-        for (UIntN i = 0; i < policyListCount; i++)
-        {
-            try
-            {
-                Policy* policy = policyManager->getPolicyPtr(i);
-                policy->bindParticipant(getParticipantIndex());
-            }
-            catch (policy_index_invalid ex)
-            {
-                // do nothing.  No item in the policy list at this index.
-            }
-            catch (std::exception& ex)
-            {
-                writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::bindParticipant", i);
-            }
-        }
-    }
+		for (UIntN i = 0; i < policyListCount; i++)
+		{
+			try
+			{
+				Policy* policy = policyManager->getPolicyPtr(i);
+				policy->bindParticipant(getParticipantIndex());
+			}
+			catch (policy_index_invalid ex)
+			{
+				// do nothing.  No item in the policy list at this index.
+			}
+			catch (std::exception& ex)
+			{
+				writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::bindParticipant", i);
+			}
+		}
+	}
 }

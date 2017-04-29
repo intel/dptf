@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,16 +22,15 @@ using namespace std;
 using namespace StatusFormat;
 
 RadioFrequencyControlFacade::RadioFrequencyControlFacade(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : m_policyServices(policyServices),
-    m_participantIndex(participantIndex),
-    m_domainIndex(domainIndex),
-    m_domainProperties(domainProperties),
-    m_rfProfileData(participantIndex, domainIndex, domainProperties, policyServices),
-    m_controlsHaveBeenInitialized(false)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: m_policyServices(policyServices)
+	, m_participantIndex(participantIndex)
+	, m_domainIndex(domainIndex)
+	, m_domainProperties(domainProperties)
+	, m_rfProfileData(participantIndex, domainIndex, domainProperties, policyServices)
 {
 }
 
@@ -41,64 +40,64 @@ RadioFrequencyControlFacade::~RadioFrequencyControlFacade()
 
 Bool RadioFrequencyControlFacade::supportsRfControls()
 {
-    return m_domainProperties.implementsRfProfileControlInterface();
+	return m_domainProperties.implementsRfProfileControlInterface();
 }
 
 Bool RadioFrequencyControlFacade::supportsStatus()
 {
-    return m_domainProperties.implementsRfProfileStatusInterface();
+	return m_domainProperties.implementsRfProfileStatusInterface();
 }
 
-RfProfileData RadioFrequencyControlFacade::getProfileData()
+RfProfileDataSet RadioFrequencyControlFacade::getRadioProfile()
 {
-    throwIfStatusNotSupported();
-    return m_rfProfileData.getProfileData();
+	throwIfStatusNotSupported();
+	return m_rfProfileData.getRadioProfile();
 }
 
 void RadioFrequencyControlFacade::invalidateProfileData()
 {
-    throwIfStatusNotSupported();
-    m_rfProfileData.invalidate();
+	throwIfStatusNotSupported();
+	m_rfProfileData.invalidate();
 }
 
 void RadioFrequencyControlFacade::setOperatingFrequency(Frequency frequency)
 {
-    throwIfControlNotSupported();
-    m_lastSetFrequency = frequency;
-    m_policyServices.domainRfProfileControl->setRfProfileCenterFrequency(m_participantIndex, m_domainIndex, frequency);
+	throwIfControlNotSupported();
+	m_lastSetFrequency = frequency;
+	m_policyServices.domainRfProfileControl->setRfProfileCenterFrequency(m_participantIndex, m_domainIndex, frequency);
 }
 
 std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 {
-    auto control = XmlNode::createWrapperElement("radio_frequency_control");
-    control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
-    control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
-    control->addChild(XmlNode::createDataElement("last_set_frequency", m_lastSetFrequency.toString()));
-    if (supportsStatus())
-    {
-        try
-        {
-            control->addChild(getProfileData().getXml());
-        }
-        catch (...)
-        {        	
-        }
-    }
-    return control;
+	auto control = XmlNode::createWrapperElement("radio_frequency_control");
+	control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
+	control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
+	control->addChild(XmlNode::createDataElement("last_set_frequency", m_lastSetFrequency.toString()));
+	if (supportsStatus())
+	{
+		try
+		{
+			control->addChild(getRadioProfile().getXml());
+		}
+		catch (...)
+		{
+		}
+	}
+	return control;
 }
 
 void RadioFrequencyControlFacade::throwIfStatusNotSupported()
 {
-    if (supportsStatus() == false)
-    {
-        throw dptf_exception("Radio frequency status is not supported.");
-    }
+	if (supportsStatus() == false)
+	{
+		throw dptf_exception("Radio frequency status is not supported.");
+	}
 }
 
 void RadioFrequencyControlFacade::throwIfControlNotSupported()
 {
-    if (supportsRfControls() == false)
-    {
-        throw dptf_exception("Radio frequency control is not supported.");
-    }
+	if (supportsRfControls() == false)
+	{
+		throw dptf_exception("Radio frequency control is not supported.");
+	}
 }

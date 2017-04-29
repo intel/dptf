@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,21 +25,19 @@ class XmlNode;
 class ConfigTdpControl final
 {
 public:
-
-    ConfigTdpControl(UInt32 controlId, UInt32 tarRatio, UInt32 tdpPower, UInt32 tdpFrequency);
-    UInt32 getControlId(void) const;
-    UInt32 getTdpRatio(void) const;
-    UInt32 getTdpPower(void) const;
-    UInt32 getTdpFrequency(void) const;
-    Bool operator==(const ConfigTdpControl& rhs) const;
-    Bool operator!=(const ConfigTdpControl& rhs) const;
-    std::string getNameListString() const;
-    std::shared_ptr<XmlNode> getXml(void);
+	ConfigTdpControl(UInt32 controlId, UInt32 tarRatio, UInt32 tdpPower, UInt32 tdpFrequency);
+	UInt32 getControlId(void) const;
+	UInt32 getTdpRatio(void) const;
+	UInt32 getTdpPower(void) const;
+	UInt32 getTdpFrequency(void) const;
+	Bool operator==(const ConfigTdpControl& rhs) const;
+	Bool operator!=(const ConfigTdpControl& rhs) const;
+	std::string getNameListString() const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UInt32 m_controlId; // Unique identifier for this control
-    UInt32 m_tdpRatio; // Unique control value used to calculate the TAR (Turbo Activation Ratio)
-    UInt32 m_tdpPower; // Tdp Power consumed by this ConfigTDP level; unit: mW
-    UInt32 m_tdpFrequency; // IA Tdp frequency for this ConfigTDP level; unit: MHZ
+	UInt32 m_controlId; // Unique identifier for this control
+	UInt32 m_tdpRatio; // Unique control value used to calculate the TAR (Turbo Activation Ratio)
+	UInt32 m_tdpPower; // Tdp Power consumed by this ConfigTDP level; unit: mW
+	UInt32 m_tdpFrequency; // IA Tdp frequency for this ConfigTDP level; unit: MHZ
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,32 +19,39 @@
 #include "AcpiInfo.h"
 #include "BinaryParse.h" // TODO: Remove this eventually when we move the ACPI scope normalization
 
-AcpiInfo::AcpiInfo(void) : m_acpiDevice(std::string()), m_acpiScope(std::string()), m_acpiUid("0"), m_acpiType(0)
+AcpiInfo::AcpiInfo(void)
+	: m_acpiDevice(std::string())
+	, m_acpiScope(std::string())
+	, m_acpiUid("0")
+	, m_acpiType(0)
 {
 }
 
-AcpiInfo::AcpiInfo(const std::string& acpiDevice, const std::string& acpiScope, std::string acpiUid, UInt32 acpiType) :
-    m_acpiDevice(acpiDevice), m_acpiScope(acpiScope), m_acpiUid(acpiUid), m_acpiType(acpiType)
+AcpiInfo::AcpiInfo(const std::string& acpiDevice, const std::string& acpiScope, std::string acpiUid, UInt32 acpiType)
+	: m_acpiDevice(acpiDevice)
+	, m_acpiScope(acpiScope)
+	, m_acpiUid(acpiUid)
+	, m_acpiType(acpiType)
 {
-    m_acpiScope = BinaryParse::normalizeAcpiScope(m_acpiScope);
+	m_acpiScope = BinaryParse::normalizeAcpiScope(m_acpiScope);
 }
 
 std::string AcpiInfo::getAcpiDevice(void) const
 {
-    return m_acpiDevice;
+	return m_acpiDevice;
 }
 
 std::string AcpiInfo::getAcpiScope(void) const
 {
-    return m_acpiScope;
+	return m_acpiScope;
 }
 
 std::string AcpiInfo::getAcpiUid(void) const
 {
-    return m_acpiUid;
+	return m_acpiUid;
 }
 
 UInt32 AcpiInfo::getAcpiType(void) const
 {
-    return m_acpiType;
+	return m_acpiType;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,24 +28,21 @@
 class dptf_export ConfigTdpControlCapabilitiesCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	ConfigTdpControlCapabilitiesCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~ConfigTdpControlCapabilitiesCachedProperty();
 
-    ConfigTdpControlCapabilitiesCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~ConfigTdpControlCapabilitiesCachedProperty();
-
-    const ConfigTdpControlDynamicCaps& getDynamicCaps();
-    virtual Bool supportsProperty() override;
+	const ConfigTdpControlDynamicCaps& getDynamicCaps();
+	virtual Bool supportsProperty() override;
 
 protected:
+	virtual void refreshData() override;
 
-    virtual void refreshData() override;
-
-    Bool implementsConfigTdpControlInterface();
+	Bool implementsConfigTdpControlInterface();
 
 private:
-
-    ConfigTdpControlDynamicCaps m_configTdpControlDynamicCaps;
+	ConfigTdpControlDynamicCaps m_configTdpControlDynamicCaps;
 };

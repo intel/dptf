@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -36,11 +36,12 @@ ESIF_WS_SOURCES := $(ESIF_SOURCES)/ESIF_WS/Sources
 ESIF_LIB_SOURCES := $(ESIF_SOURCES)/ESIF_LIB/Sources
 ESIF_SDK_SOURCES := $(ESIF_SOURCES)/../../Common
 
-LDLIBS := -lpthread -ldl -lrt -lreadline
+LDLIBS := -lpthread -ldl -lrt -lreadline -lm
 
 CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(ESIF_SDK_SOURCES)
 CPPFLAGS += -DESIF_ATTR_USER 
 CPPFLAGS += -DESIF_ATTR_DAEMON
+CPPFLAGS += -DESIF_FEAT_OPT_COMPRESS
 
 CFLAGS  += -Wno-multichar
 CFLAGS  += -Werror
@@ -71,6 +72,8 @@ $(error For Android build please use Android.mk in ESIF_UF/Androidx86/jni direct
 else ifeq ($(OS), Chrome)
 	CPPFLAGS += -DESIF_ATTR_OS_CHROME
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
+	# Use GNU89 standrd so that the code compiles with Clang
+	CPPFLAGS += -std=gnu89
 ifeq ($(OPT_GMIN), 1)
 	OPT_DBUS = 1
 endif
@@ -120,8 +123,9 @@ $(info ++++ )
 
 # OS Specific
 OBJ := $(ESIF_UF_SOURCES)/lin/main.o
-OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_ipc_os_lin.o
 OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_action_sysfs_os_lin.o
+OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_ipc_os_lin.o
+OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_sensor_manager_os_lin.o
 OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_sysfs_enumerate_os_lin.o
 
 # Common Source 
@@ -134,6 +138,7 @@ OBJ += $(ESIF_SDK_SOURCES)/esif_link_list.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_ccb_timer.o
 
 OBJ += $(ESIF_UF_SOURCES)/esif_uf.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_accelerometer.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_action.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_action_config.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_action_constant.o
@@ -144,12 +149,12 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_app.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_appmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_cnjmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_conjure.o
-OBJ += $(ESIF_UF_SOURCES)/esif_uf_control_action_broadcast.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_domain.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_dsp.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_dspmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_event.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_eventmgr.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_event_broadcast.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_ipc.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_loggingmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_pm.o
@@ -163,6 +168,7 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_xform.o
 
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_databank.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datacache.o
+OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datarepo.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datavault.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdata.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_iostream.o

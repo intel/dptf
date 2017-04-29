@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,10 +24,10 @@ XmlGenerator_000::XmlGenerator_000()
 
 void XmlGenerator_000::addNode(XmlNode* node)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string XmlGenerator_000::toString(void)
 {
-    throw not_implemented();
+	throw not_implemented();
 }

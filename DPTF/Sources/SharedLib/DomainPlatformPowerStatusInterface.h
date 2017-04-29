@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,17 +25,19 @@
 class DomainPlatformPowerStatusInterface
 {
 public:
+	virtual ~DomainPlatformPowerStatusInterface(){};
 
-    virtual ~DomainPlatformPowerStatusInterface() {};
-
-    virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Power getACPeakPower(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual TimeSpan getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getACNominalVoltage(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getACOperationalCurrent(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
 };

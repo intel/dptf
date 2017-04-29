@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -793,6 +793,12 @@ eEsifError EsifUpDomain_SetTempThresh(
 	*/
 	if (self->tempPollPeriod != 0) {
 		if (self->tempPollInitialized == ESIF_TRUE) {
+			/*
+			 Reset the poll type for cases where poll type 
+			 was previously set to "unsupported" prior to the action 
+			 being loaded or the device being available
+			 */
+			self->tempPollType = ESIF_POLL_DOMAIN;
 			rc = esif_ccb_timer_set_msec(&self->tempPollTimer,
 				self->tempPollPeriod);
 		}
@@ -850,6 +856,13 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 				self->domainName,
 				temp);
 		}
+
+		ESIF_TRACE_DEBUG("Polling temperature for participant: %s, domain: %s. Temperature is: %d. \n",
+			self->participantName,
+			self->domainName,
+			temp
+		);
+
 		self->tempLastTempValid = ESIF_FALSE;
 		goto exit;
 	}
@@ -1090,7 +1103,7 @@ static eEsifError EsifUpDomain_StartStatePollPriv(
 		goto exit;
 	}
 
-	if (!self->statePollInitialized == ESIF_TRUE) {
+	if (self->statePollInitialized != ESIF_TRUE) {
 
 		ESIF_TRACE_DEBUG(
 			"%s %s: Starting perf state polling\n",
@@ -1121,11 +1134,10 @@ static Bool EsifUpDomain_IsTempOutOfThresholds(
 {
 	ESIF_ASSERT(self != NULL);
 
-	return (((self->tempAux0 != ESIF_DOMAIN_TEMP_INVALID) &&
-		(temp <= self->tempAux0WHyst)) ||
-		((self->tempAux1 != ESIF_DOMAIN_TEMP_INVALID) &&
-		(temp >= self->tempAux1)) &&
-		(temp != ESIF_DOMAIN_TEMP_INVALID));
+	return ((temp != ESIF_DOMAIN_TEMP_INVALID) &&
+			( ((self->tempAux0 != ESIF_DOMAIN_TEMP_INVALID) && (temp <= self->tempAux0WHyst)) ||
+			  ((self->tempAux1 != ESIF_DOMAIN_TEMP_INVALID) && (temp >= self->tempAux1))
+			));
 }
 
 static Bool EsifUpDomain_AnyTempThresholdValid(

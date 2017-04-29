@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -91,6 +91,14 @@ void EsifUp_UnRegisterParticipantForPolling(
 	);
 
 void EsifUp_PollParticipant(
+	EsifUpPtr self
+	);
+
+eEsifError EsifUp_StartParticipantSlowPoll(
+	EsifUpPtr self
+	);
+
+eEsifError EsifUp_StopParticipantSlowPoll(
 	EsifUpPtr self
 	);
 
@@ -363,7 +371,14 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 
 	case ESIF_EVENT_ACTION_LOADED:
 	case ESIF_EVENT_ACTION_UNLOADED:
-		EsifUpPm_ActionChangeHandler(eventDataPtr);
+			EsifUpPm_ActionChangeHandler(eventDataPtr);
+		break;
+
+	case ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY:
+			EsifUpPm_StartAllParticipantsSlowPoll();
+		break;
+	case ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT:
+			EsifUpPm_StopAllParticipantsSlowPoll();
 		break;
 
 	default:
@@ -489,6 +504,62 @@ eEsifError EsifUpPm_UnregisterParticipant(
 	ESIF_TRACE_INFO("Unregistered participant, instant id = %d\n", upInstance);
 
 exit:
+	return rc;
+}
+
+/* Set all polling participants' sample period value explicitely*/
+eEsifError EsifUpPm_StartAllParticipantsSlowPoll()
+{
+	EsifUpPtr upPtr = NULL;
+	UfPmIterator upIter = { 0 };
+	eEsifError rc = ESIF_OK;
+	eEsifError iteratorRc = ESIF_OK;
+
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc == ESIF_OK) {
+		iteratorRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+		while (ESIF_OK == iteratorRc) {
+			if (NULL == upPtr) {
+				iteratorRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+				continue;
+			}
+			
+			EsifUp_StartParticipantSlowPoll(upPtr);
+
+			iteratorRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+		}
+
+		EsifUp_PutRef(upPtr);
+	}
+
+	return rc;
+}
+
+/* Reset all polling participants' sample period back to their _TSP value */
+eEsifError EsifUpPm_StopAllParticipantsSlowPoll()
+{
+	EsifUpPtr upPtr = NULL;
+	UfPmIterator upIter = { 0 };
+	eEsifError rc = ESIF_OK;
+	eEsifError iteratorRc = ESIF_OK;
+
+	rc = EsifUpPm_InitIterator(&upIter);
+	if (rc == ESIF_OK) {
+		iteratorRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+		while (ESIF_OK == iteratorRc) {
+			if (NULL == upPtr) {
+				iteratorRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+				continue;
+			}
+
+			EsifUp_StopParticipantSlowPoll(upPtr);
+
+			iteratorRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+		}
+
+		EsifUp_PutRef(upPtr);
+	}
+
 	return rc;
 }
 
@@ -933,6 +1004,8 @@ eEsifError EsifUpPm_Init(void)
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_LOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -950,6 +1023,8 @@ void EsifUpPm_Exit(void)
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_LOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 
 	/* Clean up resources */
 	EsifUpPm_DestroyParticipants();

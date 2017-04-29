@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,30 +26,26 @@
 class dptf_export SourceAvailability
 {
 public:
+	SourceAvailability(const PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time);
+	~SourceAvailability();
 
-    SourceAvailability(
-        const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<TimeInterface> time);
-    ~SourceAvailability();
+	void setSourceAsBusy(UIntN source, const TimeSpan& time);
+	Bool isBusy(UIntN source, const TimeSpan& time) const;
 
-    void setSourceAsBusy(UIntN source, const TimeSpan& time);
-    Bool isBusy(UIntN source, const TimeSpan& time) const;
+	// source availability
+	void remove(UIntN source);
 
-    // source availability
-    void remove(UIntN source);
+	// update services
+	void setTime(std::shared_ptr<TimeInterface> time);
 
-    // update services
-    void setTime(std::shared_ptr<TimeInterface> time);
+	// status
+	std::shared_ptr<XmlNode> getXml() const;
 
-    // status
-    std::shared_ptr<XmlNode> getXml() const;
-    
 private:
+	// services
+	std::shared_ptr<TimeInterface> m_time;
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    std::shared_ptr<TimeInterface> m_time;
-    PolicyServicesInterfaceContainer m_policyServices;
-
-    // source availaiblity
-    std::map<UIntN, TimeSpan> m_schedule;
+	// source availaiblity
+	std::map<UIntN, TimeSpan> m_schedule;
 };

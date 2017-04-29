@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,17 +18,18 @@
 
 #include "EsifThread.h"
 
-EsifThread::EsifThread(work_func_t function, void* argument) :
-    m_function(function), m_argument(argument)
+EsifThread::EsifThread(work_func_t function, void* argument)
+	: m_function(function)
+	, m_argument(argument)
 {
-    eEsifError rc = esif_ccb_thread_create(&m_thread, m_function, m_argument);
-    if (rc != ESIF_OK)
-    {
-        throw dptf_exception("esif_ccb_thread_create() failed.");
-    }
+	eEsifError rc = esif_ccb_thread_create(&m_thread, m_function, m_argument);
+	if (rc != ESIF_OK)
+	{
+		throw dptf_exception("esif_ccb_thread_create() failed.");
+	}
 }
 
 EsifThread::~EsifThread()
 {
-    esif_ccb_thread_join(&m_thread);
+	esif_ccb_thread_join(&m_thread);
 }

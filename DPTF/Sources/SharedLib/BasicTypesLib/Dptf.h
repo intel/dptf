@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,7 +27,6 @@
 #include "Power.h"
 #include "Temperature.h"
 #include "Constants.h"
-#include "StlOverride.h"
 #include "DptfBuffer.h"
 #include "TimeSpan.h"
 #include <bitset>
@@ -43,15 +42,32 @@
 #include <memory>
 #include <iomanip>
 
-#define DELETE_MEMORY_TC(cd) try{if (cd != nullptr) {delete cd; cd = nullptr;}} catch (...) {cd = nullptr;}
-#define DELETE_MEMORY(cd) if (cd != nullptr) {delete cd; cd = nullptr;}
+#define DELETE_MEMORY_TC(cd)                                                                                           \
+	try                                                                                                                \
+	{                                                                                                                  \
+		if (cd != nullptr)                                                                                             \
+		{                                                                                                              \
+			delete cd;                                                                                                 \
+			cd = nullptr;                                                                                              \
+		}                                                                                                              \
+	}                                                                                                                  \
+	catch (...)                                                                                                        \
+	{                                                                                                                  \
+		cd = nullptr;                                                                                                  \
+	}
+#define DELETE_MEMORY(cd)                                                                                              \
+	if (cd != nullptr)                                                                                                 \
+	{                                                                                                                  \
+		delete cd;                                                                                                     \
+		cd = nullptr;                                                                                                  \
+	}
 
 //
 // FIXME:  these pragma's are temporary while stubbing the header files and source files.
 //         and should be removed once we fill in the code.
 //
 #ifdef ESIF_ATTR_OS_WINDOWS
-#pragma warning(disable:4100)                                       // unreferenced formal parameter
-#pragma warning(disable:4702)                                       // unreachable code
-#pragma warning(disable:4251)                                       // needs to have dll-interface to be used by clients of class
+#pragma warning(disable : 4100) // unreferenced formal parameter
+#pragma warning(disable : 4702) // unreachable code
+#pragma warning(disable : 4251) // needs to have dll-interface to be used by clients of class
 #endif

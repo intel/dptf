@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,18 +25,20 @@
 class dptf_export ParticipantManagerInterface
 {
 public:
-    virtual ~ParticipantManagerInterface() {};
+	virtual ~ParticipantManagerInterface(){};
 
-    virtual UIntN allocateNextParticipantIndex(void) = 0;
-    virtual void createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
-        Bool participantEnabled) = 0;
+	virtual UIntN allocateNextParticipantIndex(void) = 0;
+	virtual void createParticipant(
+		UIntN participantIndex,
+		const AppParticipantDataPtr participantDataPtr,
+		Bool participantEnabled) = 0;
 
-    virtual void destroyAllParticipants(void) = 0;
-    virtual void destroyParticipant(UIntN participantIndex) = 0;
+	virtual void destroyAllParticipants(void) = 0;
+	virtual void destroyParticipant(UIntN participantIndex) = 0;
 
-    virtual std::set<UIntN> getParticipantIndexes(void) const = 0;
-    virtual Participant* getParticipantPtr(UIntN participantIndex) const = 0;
-    virtual void clearAllParticipantCachedData() = 0;
+	virtual std::set<UIntN> getParticipantIndexes(void) const = 0;
+	virtual Participant* getParticipantPtr(UIntN participantIndex) const = 0;
+	virtual void clearAllParticipantCachedData() = 0;
 
-    virtual std::string GetStatusAsXml(void) = 0;
+	virtual std::string GetStatusAsXml(void) = 0;
 };

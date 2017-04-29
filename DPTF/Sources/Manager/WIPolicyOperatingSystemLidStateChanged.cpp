@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,9 +21,10 @@
 #include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemLidStateChanged::WIPolicyOperatingSystemLidStateChanged(
-    DptfManagerInterface* dptfManager, OsLidState::Type lidState) :
-    WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemLidStateChanged),
-    m_lidState(lidState)
+	DptfManagerInterface* dptfManager,
+	OsLidState::Type lidState)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemLidStateChanged)
+	, m_lidState(lidState)
 {
 }
 
@@ -33,26 +34,26 @@ WIPolicyOperatingSystemLidStateChanged::~WIPolicyOperatingSystemLidStateChanged(
 
 void WIPolicyOperatingSystemLidStateChanged::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            getDptfManager()->getEventCache()->lidState.set(m_lidState);
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executePolicyOperatingSystemLidStateChanged(m_lidState);
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemLidStateChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			getDptfManager()->getEventCache()->lidState.set(m_lidState);
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executePolicyOperatingSystemLidStateChanged(m_lidState);
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemLidStateChanged", i);
+		}
+	}
 }

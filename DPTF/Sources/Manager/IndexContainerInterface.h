@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,13 +22,14 @@
 
 typedef struct _IndexStruct
 {
-    UIntN index;
+	UIntN index;
 } IndexStruct, *IndexStructPtr;
 
 class IndexContainerInterface
 {
 public:
-    virtual ~IndexContainerInterface() {};
-    virtual IndexStructPtr getIndexPtr(UIntN index) = 0;
-    virtual UIntN getIndex(IndexStructPtr indexStructPtr) = 0;
+	virtual ~IndexContainerInterface(){};
+
+	virtual IndexStructPtr getIndexPtr(UIntN index) = 0;
+	virtual UIntN getIndex(IndexStructPtr indexStructPtr) = 0;
 };

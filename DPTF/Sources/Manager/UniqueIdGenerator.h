@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,20 +26,18 @@
 class UniqueIdGenerator
 {
 public:
+	static UniqueIdGenerator* instance(void);
+	static void destroy(void);
 
-    static UniqueIdGenerator* instance(void);
-    static void destroy(void);
-
-    UInt64 getNextId(void);
+	UInt64 getNextId(void);
 
 private:
+	UniqueIdGenerator(void);
+	~UniqueIdGenerator(void);
+	UniqueIdGenerator(const UniqueIdGenerator& rhs);
+	UniqueIdGenerator& operator=(const UniqueIdGenerator& rhs);
+	static UniqueIdGenerator* uniqueIdGenerator;
 
-    UniqueIdGenerator(void);
-    ~UniqueIdGenerator(void);
-    UniqueIdGenerator(const UniqueIdGenerator& rhs);
-    UniqueIdGenerator& operator=(const UniqueIdGenerator& rhs);
-    static UniqueIdGenerator* uniqueIdGenerator;
-
-    EsifMutex m_mutex;
-    UInt64 m_nextId;
+	EsifMutex m_mutex;
+	UInt64 m_nextId;
 };

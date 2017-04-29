@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,8 +24,8 @@
 #include "WorkItemMatchCriteria.h"
 #include "EsifServicesInterface.h"
 
-WIParticipantDestroy::WIParticipantDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex) :
-    ParticipantWorkItem(dptfManager, FrameworkEvent::ParticipantDestroy, participantIndex)
+WIParticipantDestroy::WIParticipantDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex)
+	: ParticipantWorkItem(dptfManager, FrameworkEvent::ParticipantDestroy, participantIndex)
 {
 }
 
@@ -35,51 +35,51 @@ WIParticipantDestroy::~WIParticipantDestroy(void)
 
 void WIParticipantDestroy::execute(void)
 {
-    writeParticipantWorkItemStartingInfoMessage();
+	writeParticipantWorkItemStartingInfoMessage();
 
-    // Call unbind participant for each policy before we actually destroy the participant.
+	// Call unbind participant for each policy before we actually destroy the participant.
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->unbindParticipant(getParticipantIndex());
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::unbindParticipant", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->unbindParticipant(getParticipantIndex());
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::unbindParticipant", i);
+		}
+	}
 
-    // Remove any work items from the queues that were submitted for this participant
+	// Remove any work items from the queues that were submitted for this participant
 
-    try
-    {
-        WorkItemMatchCriteria workItemMatchCriteria;
-        workItemMatchCriteria.addParticipantIndexToMatchList(getParticipantIndex());
-        getDptfManager()->getWorkItemQueueManager()->removeIfMatches(workItemMatchCriteria);
-    }
-    catch (std::exception& ex)
-    {
-        writeParticipantWorkItemErrorMessage(ex, "WorkItemQueueManager::removeIfMatches");
-    }
+	try
+	{
+		WorkItemMatchCriteria workItemMatchCriteria;
+		workItemMatchCriteria.addParticipantIndexToMatchList(getParticipantIndex());
+		getDptfManager()->getWorkItemQueueManager()->removeIfMatches(workItemMatchCriteria);
+	}
+	catch (std::exception& ex)
+	{
+		writeParticipantWorkItemErrorMessage(ex, "WorkItemQueueManager::removeIfMatches");
+	}
 
-    // Now let the participant manager destroy the participant
+	// Now let the participant manager destroy the participant
 
-    try
-    {
-        getParticipantManager()->destroyParticipant(getParticipantIndex());
-    }
-    catch (std::exception& ex)
-    {
-        writeParticipantWorkItemErrorMessage(ex, "ParticipantManager::destroyParticipant");
-    }
+	try
+	{
+		getParticipantManager()->destroyParticipant(getParticipantIndex());
+	}
+	catch (std::exception& ex)
+	{
+		writeParticipantWorkItemErrorMessage(ex, "ParticipantManager::destroyParticipant");
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,18 +20,18 @@
 
 namespace OsPowerSource
 {
-    std::string toString(OsPowerSource::Type osPowerSource)
-    {
-        switch (osPowerSource)
-        {
-        case AC:
-            return "AC";
-        case DC:
-            return "DC";
-        case ShortTermDC:
-            return "Short Term DC";
-        default:
-            throw dptf_exception("OsPowerSource::Type is invalid");
-        }
-    }
+	std::string toString(OsPowerSource::Type osPowerSource)
+	{
+		switch (osPowerSource)
+		{
+		case AC:
+			return "AC";
+		case DC:
+			return "DC";
+		case ShortTermDC:
+			return "Short Term DC";
+		default:
+			throw dptf_exception("OsPowerSource::Type is invalid");
+		}
+	}
 }

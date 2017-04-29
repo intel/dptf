@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,10 +40,14 @@
 #include "WIDomainAdapterPowerRatingChanged.h"
 #include "WIDomainChargerTypeChanged.h"
 #include "WIDomainPlatformRestOfPowerChanged.h"
-#include "WIDomainACPeakPowerChanged.h"
-#include "WIDomainACPeakTimeWindowChanged.h"
 #include "WIDomainMaxBatteryPowerChanged.h"
 #include "WIDomainPlatformBatterySteadyStateChanged.h"
+#include "WIDomainACNominalVoltageChanged.h"
+#include "WIDomainACOperationalCurrentChanged.h"
+#include "WIDomainAC1msPercentageOverloadChanged.h"
+#include "WIDomainAC2msPercentageOverloadChanged.h"
+#include "WIDomainAC10msPercentageOverloadChanged.h"
+#include "WIDomainEnergyThresholdCrossed.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
 #include "WIDptfResume.h"
@@ -87,3 +91,5 @@
 #include "WIPolicyEmergencyCallModeTableChanged.h"
 #include "WIPolicyPidAlgorithmTableChanged.h"
 #include "WIPolicyActiveControlPointRelationshipTableChanged.h"
+#include "WIPolicyPowerShareAlgorithmTableChanged.h"
+#include "WIPowerLimitChanged.h"

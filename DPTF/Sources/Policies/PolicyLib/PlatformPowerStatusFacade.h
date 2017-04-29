@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,43 +27,47 @@
 class dptf_export PlatformPowerStatusFacade : public PlatformPowerStatusFacadeInterface
 {
 public:
+	PlatformPowerStatusFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~PlatformPowerStatusFacade(void);
 
-    PlatformPowerStatusFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~PlatformPowerStatusFacade(void);
+	virtual Power getMaxBatteryPower(void) override;
+	virtual Power getPlatformRestOfPower(void) override;
+	virtual Power getAdapterPowerRating(void) override;
+	virtual DptfBuffer getBatteryStatus(void) override;
+	virtual DptfBuffer getBatteryInformation(void) override;
+	virtual PlatformPowerSource::Type getPlatformPowerSource(void) override;
+	virtual ChargerType::Type getChargerType(void) override;
+	virtual Power getPlatformBatterySteadyState(void) override;
+	virtual UInt32 getACNominalVoltage(void) override;
+	virtual UInt32 getACOperationalCurrent(void) override;
+	virtual Percentage getAC1msPercentageOverload(void) override;
+	virtual Percentage getAC2msPercentageOverload(void) override;
+	virtual Percentage getAC10msPercentageOverload(void) override;
 
-    virtual Power getMaxBatteryPower(void) override;
-    virtual Power getPlatformRestOfPower(void) override;
-    virtual Power getAdapterPowerRating(void) override;
-    virtual DptfBuffer getBatteryStatus(void) override;
-    virtual DptfBuffer getBatteryInformation(void) override;
-    virtual PlatformPowerSource::Type getPlatformPowerSource(void) override;
-    virtual ChargerType::Type getChargerType(void) override;
-    virtual Power getACPeakPower(void) override;
-    virtual TimeSpan getACPeakTimeWindow(void) override;
-    virtual Power getPlatformBatterySteadyState(void) override;
-
-    std::shared_ptr<XmlNode> getXml() const;
+	std::shared_ptr<XmlNode> getXml() const;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
-    
-    // control properties
-    DomainProperties m_domainProperties;
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
+	// control properties
+	DomainProperties m_domainProperties;
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
 
-    Power m_maxBatteryPower;
-    Power m_platformRestOfPower;
-    Power m_adapterPowerRating;
-    PlatformPowerSource::Type m_platformPowerSource;
-    ChargerType::Type m_chargerType;
-    Power m_acPeakPower;
-    TimeSpan m_acPeakTimeWindow;
-    Power m_batterySteadyState;
+	Power m_maxBatteryPower;
+	Power m_platformRestOfPower;
+	Power m_adapterPowerRating;
+	PlatformPowerSource::Type m_platformPowerSource;
+	ChargerType::Type m_chargerType;
+	Power m_batterySteadyState;
+	UInt32 m_acNominalVoltage;
+	UInt32 m_acOperationalCurrent;
+	Percentage m_ac1msPercentageOverload;
+	Percentage m_ac2msPercentageOverload;
+	Percentage m_ac10msPercentageOverload;
 };

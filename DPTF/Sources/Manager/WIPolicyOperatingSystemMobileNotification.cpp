@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,9 +22,10 @@
 #include "OsMobileNotificationType.h"
 
 WIPolicyOperatingSystemMobileNotification::WIPolicyOperatingSystemMobileNotification(
-    DptfManagerInterface* dptfManager, UIntN mobileNotification) :
-    WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemMobileNotification),
-    m_mobileNotification(mobileNotification)
+	DptfManagerInterface* dptfManager,
+	UIntN mobileNotification)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemMobileNotification)
+	, m_mobileNotification(mobileNotification)
 {
 }
 
@@ -34,49 +35,49 @@ WIPolicyOperatingSystemMobileNotification::~WIPolicyOperatingSystemMobileNotific
 
 void WIPolicyOperatingSystemMobileNotification::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        std::string functionName = "";
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		std::string functionName = "";
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
 
-            OsMobileNotificationType::Type notificationType =
-                (OsMobileNotificationType::Type)(((UInt32)m_mobileNotification & 0xFFFF0000) >> 16);
-            UInt32 notificationValue = (UInt32)m_mobileNotification & 0xFFFF;
+			OsMobileNotificationType::Type notificationType =
+				(OsMobileNotificationType::Type)(((UInt32)m_mobileNotification & 0xFFFF0000) >> 16);
+			UInt32 notificationValue = (UInt32)m_mobileNotification & 0xFFFF;
 
-            switch (notificationType)
-            {
-            case OsMobileNotificationType::EmergencyCallMode:
-                getDptfManager()->getEventCache()->emergencyCallModeState.set(notificationValue);
-                functionName = "Policy::executePolicyOperatingSystemEmergencyCallModeStateChanged";
-                policy->executePolicyOperatingSystemEmergencyCallModeStateChanged((OnOffToggle::Type)notificationValue);
-                break;
+			switch (notificationType)
+			{
+			case OsMobileNotificationType::EmergencyCallMode:
+				getDptfManager()->getEventCache()->emergencyCallModeState.set(notificationValue);
+				functionName = "Policy::executePolicyOperatingSystemEmergencyCallModeStateChanged";
+				policy->executePolicyOperatingSystemEmergencyCallModeStateChanged((OnOffToggle::Type)notificationValue);
+				break;
 
-            case OsMobileNotificationType::ScreenState:
-                getDptfManager()->getEventCache()->screenState.set(notificationValue);
-                functionName = "Policy::executePolicyOperatingSystemMobileNotification";
-                policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
-                break;
+			case OsMobileNotificationType::ScreenState:
+				getDptfManager()->getEventCache()->screenState.set(notificationValue);
+				functionName = "Policy::executePolicyOperatingSystemMobileNotification";
+				policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
+				break;
 
-            default:
-                functionName = "Policy::executePolicyOperatingSystemMobileNotification";
-                policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
-                break;
-            }
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeWorkItemErrorMessagePolicy(ex, functionName, i);
-        }
-    }
+			default:
+				functionName = "Policy::executePolicyOperatingSystemMobileNotification";
+				policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
+				break;
+			}
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeWorkItemErrorMessagePolicy(ex, functionName, i);
+		}
+	}
 }

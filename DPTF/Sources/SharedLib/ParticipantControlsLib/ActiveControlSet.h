@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,17 +26,15 @@ class XmlNode;
 class ActiveControlSet final
 {
 public:
-
-    ActiveControlSet(const std::vector<ActiveControl>& activeControl);
-    static ActiveControlSet createFromFps(const DptfBuffer& buffer);
-    UIntN getCount(void) const;
-    UIntN getSmallestNonZeroFanSpeed(void);
-    ActiveControl operator[](UIntN index) const;
-    Bool operator==(const ActiveControlSet& rhs) const;
-    Bool operator!=(const ActiveControlSet& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	ActiveControlSet(const std::vector<ActiveControl>& activeControl);
+	static ActiveControlSet createFromFps(const DptfBuffer& buffer);
+	UIntN getCount(void) const;
+	UIntN getSmallestNonZeroFanSpeed(void);
+	ActiveControl operator[](UIntN index) const;
+	Bool operator==(const ActiveControlSet& rhs) const;
+	Bool operator!=(const ActiveControlSet& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    std::vector<ActiveControl> m_activeControl;
+	std::vector<ActiveControl> m_activeControl;
 };

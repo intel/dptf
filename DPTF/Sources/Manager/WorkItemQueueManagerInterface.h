@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,18 +24,18 @@
 class WorkItemQueueManagerInterface
 {
 public:
-    virtual ~WorkItemQueueManagerInterface() {};
+	virtual ~WorkItemQueueManagerInterface(){};
 
-    virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem) = 0;
-    virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority) = 0;
-    virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem) = 0;
-    virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority) = 0;
-    virtual void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution) = 0;
+	virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem) = 0;
+	virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority) = 0;
+	virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem) = 0;
+	virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority) = 0;
+	virtual void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution) = 0;
 
-    virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) = 0;
-    virtual Bool isWorkItemThread(void) = 0;
+	virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) = 0;
+	virtual Bool isWorkItemThread(void) = 0;
 
-    virtual void disableAndEmptyAllQueues(void) = 0;
+	virtual void disableAndEmptyAllQueues(void) = 0;
 
-    virtual std::shared_ptr<XmlNode> getStatusAsXml(void) = 0;
+	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) = 0;
 };

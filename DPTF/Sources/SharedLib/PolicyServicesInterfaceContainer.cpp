@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,33 +18,34 @@
 
 #include "PolicyServicesInterfaceContainer.h"
 
-PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void) :
-    domainActiveControl(nullptr),
-    domainConfigTdpControl(nullptr),
-    domainCoreControl(nullptr),
-    domainDisplayControl(nullptr),
-    domainPerformanceControl(nullptr),
-    domainPixelClockControl(nullptr),
-    domainPixelClockStatus(nullptr),
-    domainPowerControl(nullptr),
-    domainPowerStatus(nullptr),
-    domainPlatformPowerControl(nullptr),
-    domainPlatformPowerStatus(nullptr),
-    domainPriority(nullptr),
-    domainRfProfileControl(nullptr),
-    domainRfProfileStatus(nullptr),
-    domainTemperature(nullptr),
-    domainUtilization(nullptr),
-    participantGetSpecificInfo(nullptr),
-    participantProperties(nullptr),
-    participantSetSpecificInfo(nullptr),
-    platformConfigurationData(nullptr),
-    platformNotification(nullptr),
-    platformPowerState(nullptr),
-    policyEventRegistration(nullptr),
-    policyInitiatedCallback(nullptr),
-    messageLogging(nullptr),
-    workloadHintConfiguration(nullptr),
-    platformState(nullptr)
+PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void)
+	: domainActiveControl(nullptr)
+	, domainActivityStatus(nullptr)
+	, domainConfigTdpControl(nullptr)
+	, domainCoreControl(nullptr)
+	, domainDisplayControl(nullptr)
+	, domainPeakPowerControl(nullptr)
+	, domainPerformanceControl(nullptr)
+	, domainPowerControl(nullptr)
+	, domainPowerStatus(nullptr)
+	, domainPlatformPowerControl(nullptr)
+	, domainPlatformPowerStatus(nullptr)
+	, domainPriority(nullptr)
+	, domainRfProfileControl(nullptr)
+	, domainRfProfileStatus(nullptr)
+	, domainTccOffsetControl(nullptr)
+	, domainTemperature(nullptr)
+	, domainUtilization(nullptr)
+	, participantGetSpecificInfo(nullptr)
+	, participantProperties(nullptr)
+	, participantSetSpecificInfo(nullptr)
+	, platformConfigurationData(nullptr)
+	, platformNotification(nullptr)
+	, platformPowerState(nullptr)
+	, policyEventRegistration(nullptr)
+	, policyInitiatedCallback(nullptr)
+	, messageLogging(nullptr)
+	, workloadHintConfiguration(nullptr)
+	, platformState(nullptr)
 {
 }

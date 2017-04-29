@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,134 +23,163 @@
 #include "UniqueIdGenerator.h"
 #include "EsifServicesInterface.h"
 
-WorkItem::WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType) :
-    m_dptfManager(dptfManager),
-    m_policyManager(dptfManager->getPolicyManager()),
-    m_participantManager(dptfManager->getParticipantManager()),
-    m_esifServices(dptfManager->getEsifServices()),
-    m_uniqueId(UniqueIdGenerator::instance()->getNextId()),
-    m_frameworkEventType(frameworkEventType),
-    m_workItemCreationTime(EsifTime().getTimeStamp()),
-    m_workItemExecutionStartTime(TimeSpan::createFromMilliseconds(0)),
-    m_completionSemaphore(nullptr)
+WorkItem::WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType)
+	: m_dptfManager(dptfManager)
+	, m_policyManager(dptfManager->getPolicyManager())
+	, m_participantManager(dptfManager->getParticipantManager())
+	, m_esifServices(dptfManager->getEsifServices())
+	, m_uniqueId(UniqueIdGenerator::instance()->getNextId())
+	, m_frameworkEventType(frameworkEventType)
+	, m_workItemCreationTime(EsifTime().getTimeStamp())
+	, m_workItemExecutionStartTime(TimeSpan::createFromMilliseconds(0))
+	, m_completionSemaphore(nullptr)
 {
 }
 
 WorkItem::~WorkItem(void)
 {
-    // if needed, signal the completion event
-    if (m_completionSemaphore != nullptr)
-    {
-        m_completionSemaphore->signal();
-    }
+	// if needed, signal the completion event
+	if (m_completionSemaphore != nullptr)
+	{
+		m_completionSemaphore->signal();
+	}
 }
 
 DptfManagerInterface* WorkItem::getDptfManager(void) const
 {
-    return m_dptfManager;
+	return m_dptfManager;
 }
 
 PolicyManagerInterface* WorkItem::getPolicyManager(void) const
 {
-    return m_policyManager;
+	return m_policyManager;
 }
 
 ParticipantManagerInterface* WorkItem::getParticipantManager(void) const
 {
-    return m_participantManager;
+	return m_participantManager;
 }
 
 EsifServicesInterface* WorkItem::getEsifServices(void) const
 {
-    return m_esifServices;
+	return m_esifServices;
 }
 
 UInt64 WorkItem::getUniqueId(void) const
 {
-    return m_uniqueId;
+	return m_uniqueId;
 }
 
 FrameworkEvent::Type WorkItem::getFrameworkEventType(void) const
 {
-    return m_frameworkEventType;
+	return m_frameworkEventType;
 }
 
 const TimeSpan& WorkItem::getWorkItemCreationTime(void) const
 {
-    return m_workItemCreationTime;
+	return m_workItemCreationTime;
 }
 
 void WorkItem::setWorkItemExecutionStartTime(void)
 {
-    m_workItemExecutionStartTime = EsifTime().getTimeStamp();
+	m_workItemExecutionStartTime = EsifTime().getTimeStamp();
 }
 
 const TimeSpan& WorkItem::getWorkItemExecutionStartTime(void) const
 {
-    return m_workItemExecutionStartTime;
+	return m_workItemExecutionStartTime;
 }
 
 void WorkItem::signalAtCompletion(EsifSemaphore* semaphore)
 {
-    m_completionSemaphore = semaphore;
+	m_completionSemaphore = semaphore;
 }
 
 Bool WorkItem::matches(const WorkItemMatchCriteria& matchCriteria) const
 {
-    return matchCriteria.testAgainstMatchList(getFrameworkEventType(), getUniqueId());
+	return matchCriteria.testAgainstMatchList(getFrameworkEventType(), getUniqueId());
 }
 
 std::string WorkItem::toXml(void) const
 {
-    throw implement_me();
+	throw implement_me();
 }
 
 void WorkItem::writeWorkItemStartingInfoMessage() const
 {
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item.");
-    message.setFrameworkEvent(getFrameworkEventType());
-    getEsifServices()->writeMessageInfo(message);
+	ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item.");
+	message.setFrameworkEvent(getFrameworkEventType());
+	getEsifServices()->writeMessageInfo(message);
 }
 
 void WorkItem::writeWorkItemWarningMessage(const std::exception& ex, const std::string& functionName) const
 {
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-    message.setFrameworkEvent(getFrameworkEventType());
-    message.setExceptionCaught(functionName, ex.what());
-    getEsifServices()->writeMessageWarning(message);
+	ManagerMessage message =
+		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+	message.setFrameworkEvent(getFrameworkEventType());
+	message.setExceptionCaught(functionName, ex.what());
+	getEsifServices()->writeMessageWarning(message);
+}
+
+void WorkItem::writeWorkItemWarningMessage(
+	const std::exception& ex,
+	const std::string& functionName,
+	const std::string& messageKey,
+	const std::string& messageValue) const
+{
+	ManagerMessage message =
+		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+	message.setFrameworkEvent(getFrameworkEventType());
+	message.setExceptionCaught(functionName, ex.what());
+	message.addMessage(messageKey, messageValue);
+	getEsifServices()->writeMessageWarning(message);
 }
 
 void WorkItem::writeWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const
 {
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-    message.setFrameworkEvent(getFrameworkEventType());
-    message.setExceptionCaught(functionName, ex.what());
-    getEsifServices()->writeMessageError(message);
+	ManagerMessage message =
+		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+	message.setFrameworkEvent(getFrameworkEventType());
+	message.setExceptionCaught(functionName, ex.what());
+	getEsifServices()->writeMessageError(message);
 }
 
-void WorkItem::writeWorkItemErrorMessage(const std::exception& ex, const std::string& functionName, const std::string& messageKey, const std::string& messageValue) const
+void WorkItem::writeWorkItemErrorMessage(
+	const std::exception& ex,
+	const std::string& functionName,
+	const std::string& messageKey,
+	const std::string& messageValue) const
 {
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-    message.setFrameworkEvent(getFrameworkEventType());
-    message.setExceptionCaught(functionName, ex.what());
-    message.addMessage(messageKey, messageValue);
-    getEsifServices()->writeMessageError(message);
+	ManagerMessage message =
+		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+	message.setFrameworkEvent(getFrameworkEventType());
+	message.setExceptionCaught(functionName, ex.what());
+	message.addMessage(messageKey, messageValue);
+	getEsifServices()->writeMessageError(message);
 }
 
-void WorkItem::writeWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex) const
+void WorkItem::writeWorkItemErrorMessagePolicy(
+	const std::exception& ex,
+	const std::string& functionName,
+	UIntN policyIndex) const
 {
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-    message.setFrameworkEvent(getFrameworkEventType());
-    message.setExceptionCaught(functionName, ex.what());
-    message.setPolicyIndex(policyIndex);
-    getEsifServices()->writeMessageError(message);
+	ManagerMessage message =
+		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+	message.setFrameworkEvent(getFrameworkEventType());
+	message.setExceptionCaught(functionName, ex.what());
+	message.setPolicyIndex(policyIndex);
+	getEsifServices()->writeMessageError(message);
 }
 
-void WorkItem::writeWorkItemErrorMessageParticipant(const std::exception& ex, const std::string& functionName, UIntN participantIndex) const
+void WorkItem::writeWorkItemErrorMessageParticipant(
+	const std::exception& ex,
+	const std::string& functionName,
+	UIntN participantIndex) const
 {
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-    message.setFrameworkEvent(getFrameworkEventType());
-    message.setExceptionCaught(functionName, ex.what());
-    message.setParticipantIndex(participantIndex);
-    getEsifServices()->writeMessageError(message);
+	ManagerMessage message =
+		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
+	message.setFrameworkEvent(getFrameworkEventType());
+	message.setExceptionCaught(functionName, ex.what());
+	message.setParticipantIndex(participantIndex);
+	getEsifServices()->writeMessageError(message);
 }

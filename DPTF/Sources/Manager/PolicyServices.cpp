@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,56 +22,56 @@
 #include "PolicyManagerInterface.h"
 #include "ParticipantManagerInterface.h"
 
-
-PolicyServices::PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex) :
-    m_dptfManager(dptfManager), m_policyIndex(policyIndex)
+PolicyServices::PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: m_dptfManager(dptfManager)
+	, m_policyIndex(policyIndex)
 {
-    m_policyManager = m_dptfManager->getPolicyManager();
-    m_policy = m_policyManager->getPolicyPtr(m_policyIndex);
-    m_participantManager = m_dptfManager->getParticipantManager();
-    m_workItemQueueManager = m_dptfManager->getWorkItemQueueManager();
-    m_esifServices = m_dptfManager->getEsifServices();
+	m_policyManager = m_dptfManager->getPolicyManager();
+	m_policy = m_policyManager->getPolicyPtr(m_policyIndex);
+	m_participantManager = m_dptfManager->getParticipantManager();
+	m_workItemQueueManager = m_dptfManager->getWorkItemQueueManager();
+	m_esifServices = m_dptfManager->getEsifServices();
 }
 
 DptfManagerInterface* PolicyServices::getDptfManager(void) const
 {
-    return m_dptfManager;
+	return m_dptfManager;
 }
 
 UIntN PolicyServices::getPolicyIndex(void) const
 {
-    return m_policyIndex;
+	return m_policyIndex;
 }
 
 PolicyManagerInterface* PolicyServices::getPolicyManager(void) const
 {
-    return m_policyManager;
+	return m_policyManager;
 }
 
 Policy* PolicyServices::getPolicy(void) const
 {
-    return m_policy;
+	return m_policy;
 }
 
 ParticipantManagerInterface* PolicyServices::getParticipantManager(void) const
 {
-    return m_participantManager;
+	return m_participantManager;
 }
 
 WorkItemQueueManagerInterface* PolicyServices::getWorkItemQueueManager(void) const
 {
-    return m_workItemQueueManager;
+	return m_workItemQueueManager;
 }
 
 EsifServicesInterface* PolicyServices::getEsifServices(void) const
 {
-    return m_esifServices;
+	return m_esifServices;
 }
 
 void PolicyServices::throwIfNotWorkItemThread(void) const
 {
-    if (m_workItemQueueManager->isWorkItemThread() == false)
-    {
-        throw dptf_exception("Policy Services functionality called from an unknown thread.");
-    }
+	if (m_workItemQueueManager->isWorkItemThread() == false)
+	{
+		throw dptf_exception("Policy Services functionality called from an unknown thread.");
+	}
 }

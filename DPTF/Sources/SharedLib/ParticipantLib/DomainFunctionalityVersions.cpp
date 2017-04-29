@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,70 +19,74 @@
 #include "DomainFunctionalityVersions.h"
 #include "esif_sdk_capability_type.h"
 
-DomainFunctionalityVersions::DomainFunctionalityVersions(void) :
-    activeControlVersion(0),
-    configTdpControlVersion(0),
-    coreControlVersion(0),
-    displayControlVersion(0),
-    domainPriorityVersion(0),
-    performanceControlVersion(0),
-    powerControlVersion(0),
-    powerStatusVersion(0),
-    temperatureVersion(0),
-    temperatureThresholdVersion(0),
-    utilizationVersion(0),
-    pixelClockControlVersion(0),
-    pixelClockStatusVersion(0),
-    rfProfileControlVersion(0),
-    rfProfileStatusVersion(0),
-    platformPowerControlVersion(0),
-    platformPowerStatusVersion(0)
+DomainFunctionalityVersions::DomainFunctionalityVersions(void)
+	: activeControlVersion(0)
+	, configTdpControlVersion(0)
+	, coreControlVersion(0)
+	, displayControlVersion(0)
+	, domainPriorityVersion(0)
+	, performanceControlVersion(0)
+	, powerControlVersion(0)
+	, powerStatusVersion(0)
+	, temperatureVersion(0)
+	, temperatureThresholdVersion(0)
+	, utilizationVersion(0)
+	, rfProfileControlVersion(0)
+	, rfProfileStatusVersion(0)
+	, platformPowerControlVersion(0)
+	, platformPowerStatusVersion(0)
+	, activityStatusVersion(0)
+	, peakPowerControlVersion(0)
+	, tccOffsetControlVersion(0)
 {
 }
 
 DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[])
 {
-    activeControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL];
-    configTdpControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CTDP_CONTROL];
-    coreControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CORE_CONTROL];
-    displayControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL];
-    domainPriorityVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY];
-    performanceControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PERF_CONTROL];
-    powerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_CONTROL];
-    powerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_STATUS];
-    temperatureVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TEMP_STATUS];
-    temperatureThresholdVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD];
-    utilizationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_UTIL_STATUS];
-    pixelClockControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL];
-    pixelClockStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS];
-    rfProfileControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL];
-    rfProfileStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS];
-    platformPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PSYS_CONTROL];
-    platformPowerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS];
+	activeControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL];
+	configTdpControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CTDP_CONTROL];
+	coreControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CORE_CONTROL];
+	displayControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL];
+	domainPriorityVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY];
+	performanceControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PERF_CONTROL];
+	powerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_CONTROL];
+	powerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_STATUS];
+	temperatureVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TEMP_STATUS];
+	temperatureThresholdVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD];
+	utilizationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_UTIL_STATUS];
+	rfProfileControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL];
+	rfProfileStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS];
+	platformPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PSYS_CONTROL];
+	platformPowerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS];
+	activityStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS];
+	peakPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL];
+	tccOffsetControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TCC_CONTROL];
 }
 
-Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions & domainFunctionality)
+Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& domainFunctionality)
 {
-    return ((activeControlVersion == domainFunctionality.activeControlVersion)
-        && (configTdpControlVersion == domainFunctionality.configTdpControlVersion)
-        && (coreControlVersion == domainFunctionality.coreControlVersion)
-        && (displayControlVersion == domainFunctionality.displayControlVersion)
-        && (domainPriorityVersion == domainFunctionality.domainPriorityVersion)
-        && (performanceControlVersion == domainFunctionality.performanceControlVersion)
-        && (powerControlVersion == domainFunctionality.powerControlVersion)
-        && (powerStatusVersion == domainFunctionality.powerStatusVersion)
-        && (temperatureVersion == domainFunctionality.temperatureVersion)
-        && (temperatureThresholdVersion == domainFunctionality.temperatureThresholdVersion)
-        && (utilizationVersion == domainFunctionality.utilizationVersion)
-        && (pixelClockControlVersion == domainFunctionality.pixelClockControlVersion)
-        && (pixelClockStatusVersion == domainFunctionality.pixelClockStatusVersion)
-        && (rfProfileControlVersion == domainFunctionality.rfProfileControlVersion)
-        && (rfProfileStatusVersion == domainFunctionality.rfProfileStatusVersion)
-        && (platformPowerControlVersion == domainFunctionality.platformPowerControlVersion)
-        && (platformPowerStatusVersion == domainFunctionality.platformPowerStatusVersion));
+	return (
+		(activeControlVersion == domainFunctionality.activeControlVersion)
+		&& (configTdpControlVersion == domainFunctionality.configTdpControlVersion)
+		&& (coreControlVersion == domainFunctionality.coreControlVersion)
+		&& (displayControlVersion == domainFunctionality.displayControlVersion)
+		&& (domainPriorityVersion == domainFunctionality.domainPriorityVersion)
+		&& (performanceControlVersion == domainFunctionality.performanceControlVersion)
+		&& (powerControlVersion == domainFunctionality.powerControlVersion)
+		&& (powerStatusVersion == domainFunctionality.powerStatusVersion)
+		&& (temperatureVersion == domainFunctionality.temperatureVersion)
+		&& (temperatureThresholdVersion == domainFunctionality.temperatureThresholdVersion)
+		&& (utilizationVersion == domainFunctionality.utilizationVersion)
+		&& (rfProfileControlVersion == domainFunctionality.rfProfileControlVersion)
+		&& (rfProfileStatusVersion == domainFunctionality.rfProfileStatusVersion)
+		&& (platformPowerControlVersion == domainFunctionality.platformPowerControlVersion)
+		&& (platformPowerStatusVersion == domainFunctionality.platformPowerStatusVersion)
+		&& (activityStatusVersion == domainFunctionality.activityStatusVersion)
+		&& (peakPowerControlVersion == domainFunctionality.peakPowerControlVersion)
+		&& (tccOffsetControlVersion == domainFunctionality.tccOffsetControlVersion));
 }
 
-Bool DomainFunctionalityVersions::operator!=(const DomainFunctionalityVersions & domainFunctionality)
+Bool DomainFunctionalityVersions::operator!=(const DomainFunctionalityVersions& domainFunctionality)
 {
-    return !(*this == domainFunctionality);
+	return !(*this == domainFunctionality);
 }

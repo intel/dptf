@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,18 +20,18 @@
 
 namespace OsPlatformType
 {
-    std::string toString(OsPlatformType::Type osPlatformType)
-    {
-        switch (osPlatformType)
-        {
-        case InvalidPlatformType:
-            return "Invalid";
-        case Clamshell:
-            return "Clamshell";
-        case Tablet:
-            return "Tablet";
-        default:
-            throw dptf_exception("OsPlatformType::Type is invalid");
-        }
-    }
+	std::string toString(OsPlatformType::Type osPlatformType)
+	{
+		switch (osPlatformType)
+		{
+		case InvalidPlatformType:
+			return "Invalid";
+		case Clamshell:
+			return "Clamshell";
+		case Tablet:
+			return "Tablet";
+		default:
+			throw dptf_exception("OsPlatformType::Type is invalid");
+		}
+	}
 }

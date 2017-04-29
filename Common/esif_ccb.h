@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -72,13 +72,13 @@
 #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
 #endif
 
-#define ESIF_ATTR_OS	"Windows"		/* OS Is Windows */
-#define ESIF_INLINE	__inline		/* Inline Function Directive */
-#define ESIF_FUNC	__FUNCTION__		/* Current Function Name */
-#define ESIF_CALLCONV	__cdecl			/* SDK Calling Convention */
-#define ESIF_PATH_SEP	"\\"			/* Path Separator String */
-#define ESIF_EXPORT	__declspec(dllexport)	/* Used for Exported Symbols */
-#define ESIF_INVALID_HANDLE INVALID_HANDLE_VALUE
+#define ESIF_ATTR_OS		"Windows"				/* OS Is Windows */
+#define ESIF_INLINE			__inline				/* Inline Function Directive */
+#define ESIF_FUNC			__FUNCTION__			/* Current Function Name */
+#define ESIF_CALLCONV		__cdecl					/* SDK Calling Convention */
+#define ESIF_PATH_SEP		"\\"					/* Path Separator String */
+#define ESIF_EXPORT			__declspec(dllexport)	/* Used for Exported Symbols */
+#define ESIF_INVALID_HANDLE	INVALID_HANDLE_VALUE
 
 typedef	char *esif_string;		/* NULL-teriminated ANSI string */
 typedef HANDLE esif_handle_t;	/* opaque Handle (not a pointer) */
@@ -129,6 +129,13 @@ typedef unsigned short u16;	/* A WORD  */
 typedef unsigned int u32;	/* A DWORD */
 typedef unsigned long long u64;	/* A QWORD */
 
+#ifdef ESIF_ATTR_USER
+/* Byte Ordering Utilities (Winsock2.h) */
+#define esif_ccb_htons(val)		htons(val)
+#define esif_ccb_htonl(val)		htonl(val)
+#define esif_ccb_htonll(val)	htonll(val)
+#endif
+
 #endif /* WINDOWS */
 
 #ifdef ESIF_ATTR_OS_CHROME
@@ -156,14 +163,14 @@ typedef unsigned long long u64;	/* A QWORD */
 #endif
 
 #ifndef ESIF_ATTR_OS
-#define ESIF_ATTR_OS	"Linux"			/* OS Is Generic Linux */
+#define ESIF_ATTR_OS		"Linux"			/* OS Is Generic Linux */
 #endif
-#define ESIF_INLINE	inline			/* Inline Function Directive */
-#define ESIF_FUNC	__func__		/* Current Function Name */
-#define ESIF_CALLCONV				/* Func Calling Convention */
-#define ESIF_PATH_SEP	"/"			/* Path Separator String */
-#define ESIF_EXPORT				/* Used for Exported Symbols */
-#define ESIF_INVALID_HANDLE (-1)		/* Invalid Handle */
+#define ESIF_INLINE			inline		/* Inline Function Directive */
+#define ESIF_FUNC			__func__	/* Current Function Name */
+#define ESIF_CALLCONV					/* Func Calling Convention */
+#define ESIF_PATH_SEP		"/"			/* Path Separator String */
+#define ESIF_EXPORT			__attribute__((visibility("default")))	/* Used for Exported Symbols */
+#define ESIF_INVALID_HANDLE	(-1)		/* Invalid Handle */
 
 #ifdef ESIF_ATTR_KERNEL
 #define esif_string char *	/* opaque: use #define instead of typedef */
@@ -192,7 +199,7 @@ typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 # define ESIF_ASSERT(x)
 #endif
 
-#define UNREFERENCED_PARAMETER(x) (x) /* Avoid Unused Variable Klocwork errors */
+#define UNREFERENCED_PARAMETER(x) (void)(x) /* Avoid Unused Variable Klocwork errors */
 
 /* Sleep Interface */
 #define esif_ccb_sleep(sec)		sleep(sec)
@@ -218,12 +225,26 @@ typedef unsigned long long u64;
 /* Used for constant expressions, such as do...while(0) loops */
 #define ESIF_CONSTEXPR(expr)  (expr)
 
+#ifdef ESIF_ATTR_USER
+/* Byte Ordering Utilities */
+#include <arpa/inet.h> /* htonl */
+#define esif_ccb_htons(val)		htons(val)
+#define esif_ccb_htonl(val)		htonl(val)
+
+static ESIF_INLINE u64 esif_ccb_htonll(u64 value)
+{
+	u32 hi = htonl((u32)(value >> 32));
+	u32 lo = htonl((u32)value);
+	return (((u64)lo) << 32) | hi;
+}
+#endif
+
 #endif /* LINUX */
 
 /*
  * OS Agnostic
  */
-#if defined(ESIF_ATTR_USER)
+#if defined(ESIF_ATTR_USER) && !defined(ESIF_ATTR_NO_TYPES)
 typedef u8   		UInt8;	/* A CCB BYTE  */
 typedef char 		Int8;
 typedef u16  		UInt16;	/* A CCB WORD  */

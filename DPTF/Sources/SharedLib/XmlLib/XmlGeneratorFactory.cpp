@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,18 +22,18 @@
 
 XmlGeneratorInterface* XmlGeneratorFactory::createXmlGeneratorObject(UIntN version)
 {
-    switch (version)
-    {
-        case 0:
-            return new XmlGenerator_000();
-            break;
-        case 1: // RapidXML
-            return new XmlGenerator_001();
-            break;
-        default:
-            std::stringstream message;
-            message << "Received request for XmlGenerator version that isn't defined: " << version;
-            throw dptf_exception(message.str());
-            break;
-    }
+	switch (version)
+	{
+	case 0:
+		return new XmlGenerator_000();
+		break;
+	case 1: // RapidXML
+		return new XmlGenerator_001();
+		break;
+	default:
+		std::stringstream message;
+		message << "Received request for XmlGenerator version that isn't defined: " << version;
+		throw dptf_exception(message.str());
+		break;
+	}
 }

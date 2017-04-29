@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -61,6 +61,53 @@
 #include "esif_ccb_rc.h"
 
 #define ESIF_DRIVER_VERSION 2 /* KPE interface version */
+
+/*
+* The below section defines the method opcodes for each of the KPE's that
+* are supported. Further details can be found in the KPE interface document
+*/
+
+/*
+* PSM KPE (Power Sharing Manager KPE for wireless)
+* Refer to Appendix A.1 of the KPE interface doc
+*/
+/* GET */
+#define ESIF_KPE_METHOD_PSM_GET_TEMP						'PMT_' /* _TMP */
+#define ESIF_KPE_METHOD_PSM_GET_TEMP_HYST					'HSTG' /* GTSH */
+#define ESIF_KPE_METHOD_PSM_GET_PART_POWER_CONTROL_CAPS		'CCPP' /* PPCC */
+#define ESIF_KPE_METHOD_PSM_GET_CURRENT_POWER				'0PRG' /* GRP0 */
+#define ESIF_KPE_METHOD_PSM_GET_POWER_LIMIT					'0LPG' /* GPL0 */
+
+/* SET */
+#define ESIF_KPE_METHOD_PSM_SET_LOWER_TEMP_THRESHOLD		'0TAP' /* PAT0 */
+#define ESIF_KPE_METHOD_PSM_SET_UPPER_TEMP_THRESHOLD		'1TAP' /* PAT1 */
+#define ESIF_KPE_METHOD_PSM_SET_POWER_LIMIT					'0LPS' /* SPL0 */
+
+/*
+* DGFX KPE (Discrete GFX KPE)
+* Refer to Appendix A.2 of the KPE interface doc
+*/
+/* GET */
+#define ESIF_KPE_METHOD_DGFX_GET_TEMP						'PMT_' /* _TMP */
+#define ESIF_KPE_METHOD_DGFX_GET_POWER_LIMIT				'0LPG' /* GPL0 */
+#define ESIF_KPE_METHOD_DGFX_GET_ENERGY						'0CEG' /* GEC0 */
+#define ESIF_KPE_METHOD_DGFX_GET_ENERGY_UNIT				'0UEG' /* GEU0 */
+#define ESIF_KPE_METHOD_DGFX_GET_ACTIVITY_COUNTER			'CAGG' /* GGAC */
+#define ESIF_KPE_METHOD_DGFX_GET_TIMESTAMP_COUNTER			'CSTG' /* GTSC */
+#define ESIF_KPE_METHOD_DGFX_GET_INSTANTANEOUS_POWER		'0PIG' /* GIP0 */
+
+/* SET */
+#define ESIF_KPE_METHOD_DGFX_SET_POWER_LIMIT				'0LPS' /* SPL0 */
+#define ESIF_KPE_METHOD_DGFX_SET_ENERGY_THRESHOLD			'0TES' /* SET0 */
+#define ESIF_KPE_METHOD_DGFX_SET_ENERGY_THRESH_INT_DISABLE	'0IED' /* DEI0 */
+
+/* GET/SET */
+#define ESIF_KPE_METHOD_DGFX_PEAK_POWER_AC					'0APP' /* PPA0 */
+#define ESIF_KPE_METHOD_DGFX_PEAK_POWER_LIMIT_AC_SMALL		'1APP' /* PPA1 */
+#define ESIF_KPE_METHOD_DGFX_PEAK_POWER_LIMIT_BATTERY		'0BPP' /* PPB0 */
+#define ESIF_KPE_METHOD_DGFX_MAX_PERF_STATE_AC				'0APD' /* DPA0 */
+#define ESIF_KPE_METHOD_DGFX_MAX_PERF_STATE_AC_SMALL		'1APD' /* DPA1 */
+#define ESIF_KPE_METHOD_DGFX_MAX_PERF_STATE_BATTERY			'0BPD' /* DPB0 */
 
 #pragma pack(push, 1)
 

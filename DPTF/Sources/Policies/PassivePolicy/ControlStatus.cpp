@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,16 +22,19 @@ using namespace std;
 using namespace StatusFormat;
 
 ControlStatus::ControlStatus(const std::string& name, UIntN min, UIntN max, UIntN current)
-    : m_name(name), m_min(min), m_max(max), m_current(current)
+	: m_name(name)
+	, m_min(min)
+	, m_max(max)
+	, m_current(current)
 {
 }
 
 std::shared_ptr<XmlNode> ControlStatus::getXml()
 {
-    auto control = XmlNode::createWrapperElement("control");
-    control->addChild(XmlNode::createDataElement("name", m_name));
-    control->addChild(XmlNode::createDataElement("min", friendlyValue(m_min)));
-    control->addChild(XmlNode::createDataElement("max", friendlyValue(m_max)));
-    control->addChild(XmlNode::createDataElement("current", friendlyValue(m_current)));
-    return control;
+	auto control = XmlNode::createWrapperElement("control");
+	control->addChild(XmlNode::createDataElement("name", m_name));
+	control->addChild(XmlNode::createDataElement("min", friendlyValue(m_min)));
+	control->addChild(XmlNode::createDataElement("max", friendlyValue(m_max)));
+	control->addChild(XmlNode::createDataElement("current", friendlyValue(m_current)));
+	return control;
 }

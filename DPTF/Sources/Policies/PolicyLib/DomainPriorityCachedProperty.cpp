@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 DomainPriorityCachedProperty::DomainPriorityCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_domainPriority(0)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_domainPriority(0)
 {
 }
 
@@ -35,19 +36,19 @@ DomainPriorityCachedProperty::~DomainPriorityCachedProperty(void)
 
 void DomainPriorityCachedProperty::refreshData(void)
 {
-    m_domainPriority = getPolicyServices().domainPriority->getDomainPriority(getParticipantIndex(), getDomainIndex());
+	m_domainPriority = getPolicyServices().domainPriority->getDomainPriority(getParticipantIndex(), getDomainIndex());
 }
 
 const DomainPriority& DomainPriorityCachedProperty::getDomainPriority()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_domainPriority;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_domainPriority;
 }
 
 Bool DomainPriorityCachedProperty::supportsProperty(void)
 {
-    return (getDomainPriority().getCurrentPriority() != Constants::Invalid);
+	return (getDomainPriority().getCurrentPriority() != Constants::Invalid);
 }

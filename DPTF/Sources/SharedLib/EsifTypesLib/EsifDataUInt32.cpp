@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,60 +20,60 @@
 
 EsifDataUInt32::EsifDataUInt32(void)
 {
-    initialize(0);
+	initialize(0);
 }
 
 EsifDataUInt32::EsifDataUInt32(UInt32 data)
 {
-    initialize(data);
+	initialize(data);
 }
 
 EsifDataUInt32::EsifDataUInt32(const EsifDataPtr esifDataPtr)
 {
-    if (esifDataPtr == nullptr)
-    {
-        throw dptf_exception("EsifDataPtr is null.");
-    }
+	if (esifDataPtr == nullptr)
+	{
+		throw dptf_exception("EsifDataPtr is null.");
+	}
 
-    if (esifDataPtr->type != ESIF_DATA_UINT32)
-    {
-        throw dptf_exception("Received unexpected esifDataPtr->type.");
-    }
+	if (esifDataPtr->type != ESIF_DATA_UINT32)
+	{
+		throw dptf_exception("Received unexpected esifDataPtr->type.");
+	}
 
-    if (esifDataPtr->buf_ptr == nullptr)
-    {
-        throw dptf_exception("esifData->buf_ptr is null.");
-    }
+	if (esifDataPtr->buf_ptr == nullptr)
+	{
+		throw dptf_exception("esifData->buf_ptr is null.");
+	}
 
-    if (esifDataPtr->buf_len < sizeof(UInt32))
-    {
-        throw dptf_exception("esifData->buf_len too small.");
-    }
+	if (esifDataPtr->buf_len < sizeof(UInt32))
+	{
+		throw dptf_exception("esifData->buf_len too small.");
+	}
 
-    if (esifDataPtr->data_len < sizeof(UInt32))
-    {
-        throw dptf_exception("esifData->data_len too small.");
-    }
+	if (esifDataPtr->data_len < sizeof(UInt32))
+	{
+		throw dptf_exception("esifData->data_len too small.");
+	}
 
-    initialize(*((UInt32*)esifDataPtr->buf_ptr));
+	initialize(*((UInt32*)esifDataPtr->buf_ptr));
 }
 
 EsifDataUInt32::operator EsifDataPtr(void)
 {
-    return &m_esifData;
+	return &m_esifData;
 }
 
 EsifDataUInt32::operator UInt32(void) const
 {
-    return m_esifDataValue;
+	return m_esifDataValue;
 }
 
 void EsifDataUInt32::initialize(UInt32 data)
 {
-    m_esifDataValue = data;
+	m_esifDataValue = data;
 
-    m_esifData.type = esif_data_type::ESIF_DATA_UINT32;
-    m_esifData.buf_ptr = &m_esifDataValue;
-    m_esifData.buf_len = sizeof(m_esifDataValue);
-    m_esifData.data_len = sizeof(m_esifDataValue);
+	m_esifData.type = esif_data_type::ESIF_DATA_UINT32;
+	m_esifData.buf_ptr = &m_esifDataValue;
+	m_esifData.buf_len = sizeof(m_esifDataValue);
+	m_esifData.data_len = sizeof(m_esifDataValue);
 }

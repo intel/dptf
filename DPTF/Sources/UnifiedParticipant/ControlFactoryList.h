@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,14 +27,12 @@
 class ControlFactoryList
 {
 public:
+	ControlFactoryList(void);
+	~ControlFactoryList(void);
 
-    ControlFactoryList(void);
-    ~ControlFactoryList(void);
-
-    std::shared_ptr<ControlFactoryInterface> getFactory(ControlFactoryType::Type factoryType) const;
+	std::shared_ptr<ControlFactoryInterface> getFactory(ControlFactoryType::Type factoryType) const;
 
 private:
-
-    std::map<ControlFactoryType::Type, std::shared_ptr<ControlFactoryInterface>> m_factories;
-    std::shared_ptr<ControlFactoryInterface> makeFactory(ControlFactoryType::Type factoryType);
+	std::map<ControlFactoryType::Type, std::shared_ptr<ControlFactoryInterface>> m_factories;
+	std::shared_ptr<ControlFactoryInterface> makeFactory(ControlFactoryType::Type factoryType);
 };

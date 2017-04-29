@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 #pragma once
 
-//FIXME:  why do we return the control id and set based on control id instead of using index?
+// FIXME:  why do we return the control id and set based on control id instead of using index?
 
 #include "Dptf.h"
 
@@ -27,17 +27,15 @@ class XmlNode;
 class ActiveControlStatus final
 {
 public:
-
-    ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed);
-    static ActiveControlStatus createFromFst(const DptfBuffer& buffer);
-    UIntN getCurrentControlId(void) const;
-    UIntN getCurrentSpeed(void) const;
-    Bool operator==(const ActiveControlStatus rhs) const;
-    Bool operator!=(const ActiveControlStatus rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed);
+	static ActiveControlStatus createFromFst(const DptfBuffer& buffer);
+	UIntN getCurrentControlId(void) const;
+	UIntN getCurrentSpeed(void) const;
+	Bool operator==(const ActiveControlStatus rhs) const;
+	Bool operator!=(const ActiveControlStatus rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UIntN m_currentControlId;
-    UIntN m_currentSpeed;                                           // Current real time speed of the fan - not necessarily the expected speed
+	UIntN m_currentControlId;
+	UIntN m_currentSpeed; // Current real time speed of the fan - not necessarily the expected speed
 };

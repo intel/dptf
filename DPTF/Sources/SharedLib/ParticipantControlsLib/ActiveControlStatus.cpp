@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,58 +21,58 @@
 #include "StatusFormat.h"
 #include "XmlNode.h"
 
-ActiveControlStatus::ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed) :
-    m_currentControlId(currentControlId), m_currentSpeed(currentSpeed)
+ActiveControlStatus::ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed)
+	: m_currentControlId(currentControlId)
+	, m_currentSpeed(currentSpeed)
 {
 }
 
 ActiveControlStatus ActiveControlStatus::createFromFst(const DptfBuffer& buffer)
 {
-    UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
-    struct EsifDataBinaryFstPackage* currentRow = reinterpret_cast<struct EsifDataBinaryFstPackage*>(data);
+	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
+	struct EsifDataBinaryFstPackage* currentRow = reinterpret_cast<struct EsifDataBinaryFstPackage*>(data);
 
-    if (buffer.size() == 0)
-    {
-        throw dptf_exception("Received empty FST buffer.");
-    }
-    else if (buffer.size() != sizeof(EsifDataBinaryFstPackage))
-    {
-        throw dptf_exception("Expected binary data size mismatch. (FST)");
-    }
+	if (buffer.size() == 0)
+	{
+		throw dptf_exception("Received empty FST buffer.");
+	}
+	else if (buffer.size() != sizeof(EsifDataBinaryFstPackage))
+	{
+		throw dptf_exception("Expected binary data size mismatch. (FST)");
+	}
 
-    return ActiveControlStatus(
-        static_cast<UInt32>(currentRow->control.integer.value),
-        static_cast<UInt32>(currentRow->speed.integer.value));
+	return ActiveControlStatus(
+		static_cast<UInt32>(currentRow->control.integer.value), static_cast<UInt32>(currentRow->speed.integer.value));
 }
 
 UIntN ActiveControlStatus::getCurrentControlId(void) const
 {
-    return m_currentControlId;
+	return m_currentControlId;
 }
 
 UIntN ActiveControlStatus::getCurrentSpeed(void) const
 {
-    return m_currentSpeed;
+	return m_currentSpeed;
 }
 
 Bool ActiveControlStatus::operator==(const ActiveControlStatus rhs) const
 {
-    return
-        ((this->getCurrentControlId() == rhs.getCurrentControlId()) &&
-         (this->getCurrentSpeed() == rhs.getCurrentSpeed()));
+	return (
+		(this->getCurrentControlId() == rhs.getCurrentControlId())
+		&& (this->getCurrentSpeed() == rhs.getCurrentSpeed()));
 }
 
 Bool ActiveControlStatus::operator!=(const ActiveControlStatus rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 std::shared_ptr<XmlNode> ActiveControlStatus::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("active_control_status");
+	auto root = XmlNode::createWrapperElement("active_control_status");
 
-    root->addChild(XmlNode::createDataElement("current_control_id", StatusFormat::friendlyValue(m_currentControlId)));
-    root->addChild(XmlNode::createDataElement("current_speed", StatusFormat::friendlyValue(m_currentSpeed)));
+	root->addChild(XmlNode::createDataElement("current_control_id", StatusFormat::friendlyValue(m_currentControlId)));
+	root->addChild(XmlNode::createDataElement("current_speed", StatusFormat::friendlyValue(m_currentSpeed)));
 
-    return root;
+	return root;
 }

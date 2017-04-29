@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,14 +19,13 @@
 #include "PolicyServicesDomainUtilization.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainUtilization::PolicyServicesDomainUtilization(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainUtilization::PolicyServicesDomainUtilization(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 UtilizationStatus PolicyServicesDomainUtilization::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getUtilizationStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getUtilizationStatus(domainIndex);
 }

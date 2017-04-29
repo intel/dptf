@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,14 +22,14 @@
 
 namespace PowerControlType
 {
-    enum Type
-    {
-        PL1,
-        PL2,
-        PL3,
-        PL4,
-        max
-    };
+	enum Type
+	{
+		PL1,
+		PL2,
+		PL3,
+		PL4,
+		max
+	};
 
-    std::string ToString(PowerControlType::Type type);
+	std::string ToString(PowerControlType::Type type);
 }

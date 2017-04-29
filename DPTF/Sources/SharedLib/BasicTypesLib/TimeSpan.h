@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,55 +19,53 @@
 #pragma once
 #include "Dptf.h"
 
-class TimeSpan 
+class TimeSpan
 {
 public:
+	TimeSpan();
+	~TimeSpan();
 
-    TimeSpan();
-    ~TimeSpan();
+	static TimeSpan createInvalid();
+	static TimeSpan createFromMicroseconds(Int64 microseconds);
+	static TimeSpan createFromMilliseconds(Int64 milliseconds);
+	static TimeSpan createFromTenthSeconds(Int64 tenthSeconds);
+	static TimeSpan createFromSeconds(Int64 seconds);
+	static TimeSpan createFromMinutes(Int64 minutes);
+	static TimeSpan createFromHours(Int64 hours);
 
-    static TimeSpan createInvalid();
-    static TimeSpan createFromMicroseconds(Int64 microseconds);
-    static TimeSpan createFromMilliseconds(Int64 milliseconds);
-    static TimeSpan createFromTenthSeconds(Int64 tenthSeconds);
-    static TimeSpan createFromSeconds(Int64 seconds);
-    static TimeSpan createFromMinutes(Int64 minutes);
-    static TimeSpan createFromHours(Int64 hours);
+	Int64 asMicroseconds() const;
+	double asMilliseconds() const;
+	UInt64 asMillisecondsUInt() const;
+	Int64 asMillisecondsInt() const;
+	Int64 asTenthSecondsInt() const;
+	double asTenthSeconds() const;
+	double asSeconds() const;
+	double asMinutes() const;
+	double asHours() const;
 
-    Int64 asMicroseconds() const;
-    double asMilliseconds() const;
-    UInt64 asMillisecondsUInt() const;
-    Int64 asMillisecondsInt() const;
-    Int64 asTenthSecondsInt() const;
-    double asTenthSeconds() const;
-    double asSeconds() const;
-    double asMinutes() const;
-    double asHours() const;
+	Bool isValid() const;
+	Bool isInvalid() const;
 
-    Bool isValid() const;
-    Bool isInvalid() const;
+	TimeSpan operator+(const TimeSpan& rhs) const;
+	TimeSpan operator+=(const TimeSpan& rhs) const;
+	TimeSpan operator-(const TimeSpan& rhs) const;
+	TimeSpan operator-=(const TimeSpan& rhs) const;
+	TimeSpan operator*(Int64 multiplier) const;
+	TimeSpan operator/(Int64 divider) const;
+	Bool operator==(const TimeSpan& rhs) const;
+	Bool operator!=(const TimeSpan& rhs) const;
+	Bool operator<(const TimeSpan& rhs) const;
+	Bool operator>(const TimeSpan& rhs) const;
+	Bool operator<=(const TimeSpan& rhs) const;
+	Bool operator>=(const TimeSpan& rhs) const;
 
-    TimeSpan operator+(const TimeSpan& rhs) const;
-    TimeSpan operator+=(const TimeSpan& rhs) const;
-    TimeSpan operator-(const TimeSpan& rhs) const;
-    TimeSpan operator-=(const TimeSpan& rhs) const;
-    TimeSpan operator*(Int64 multiplier) const;
-    TimeSpan operator/(Int64 divider) const;
-    Bool operator==(const TimeSpan& rhs) const;
-    Bool operator!=(const TimeSpan& rhs) const;
-    Bool operator<(const TimeSpan& rhs) const;
-    Bool operator>(const TimeSpan& rhs) const;
-    Bool operator<=(const TimeSpan& rhs) const;
-    Bool operator>=(const TimeSpan& rhs) const;
-
-    std::string toStringMicroseconds() const;
-    std::string toStringMilliseconds() const;
-    std::string toStringSeconds() const;
+	std::string toStringMicroseconds() const;
+	std::string toStringMilliseconds() const;
+	std::string toStringSeconds() const;
 
 private:
+	Bool m_valid;
+	Int64 m_microseconds;
 
-    Bool m_valid;
-    Int64 m_microseconds;
-
-    void throwIfInvalid() const;
+	void throwIfInvalid() const;
 };

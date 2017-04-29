@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,25 +28,23 @@
 class dptf_export ParticipantTracker : public ParticipantTrackerInterface
 {
 public:
+	ParticipantTracker();
+	~ParticipantTracker();
 
-    ParticipantTracker();
-    ~ParticipantTracker();
+	virtual void remember(UIntN participantIndex) override;
+	virtual Bool remembers(UIntN participantIndex) override;
+	virtual void forget(UIntN participantIndex) override;
+	virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) override;
+	virtual std::vector<UIntN> getAllTrackedIndexes() const override;
+	virtual void setPolicyServices(const PolicyServicesInterfaceContainer& policyServices) override;
+	virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
 
-    virtual void remember(UIntN participantIndex) override;
-    virtual Bool remembers(UIntN participantIndex) override;
-    virtual void forget(UIntN participantIndex) override;
-    virtual ParticipantProxyInterface* getParticipant(UIntN participantIndex) override;
-    virtual std::vector<UIntN> getAllTrackedIndexes() const override;
-    virtual void setPolicyServices(const PolicyServicesInterfaceContainer &policyServices) override;
-    virtual void setTimeServiceObject(std::shared_ptr<TimeInterface> time) override;
+	virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
 
-    virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
-
-    virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType);
+	virtual std::shared_ptr<DomainProxyInterface> findDomain(DomainType::Type domainType) override;
 
 protected:
-
-    std::map<UIntN, ParticipantProxy> m_trackedParticipants;
-    PolicyServicesInterfaceContainer m_policyServices;
-    std::shared_ptr<TimeInterface> m_time;
+	std::map<UIntN, ParticipantProxy> m_trackedParticipants;
+	PolicyServicesInterfaceContainer m_policyServices;
+	std::shared_ptr<TimeInterface> m_time;
 };

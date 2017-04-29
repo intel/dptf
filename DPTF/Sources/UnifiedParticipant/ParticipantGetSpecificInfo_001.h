@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,28 +25,29 @@ class PrimitiveAndInstance;
 class ParticipantGetSpecificInfo_001 : public ParticipantGetSpecificInfoBase
 {
 public:
+	ParticipantGetSpecificInfo_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~ParticipantGetSpecificInfo_001();
 
-    ParticipantGetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~ParticipantGetSpecificInfo_001();
+	// ParticipantGetSpecificInfoInterface
+	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+		UIntN participantIndex,
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
 
-    // ParticipantGetSpecificInfoInterface
-    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> 
-        getParticipantSpecificInfo(UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
+	// hide the copy constructor and = operator
+	ParticipantGetSpecificInfo_001(const ParticipantGetSpecificInfo_001& rhs);
+	ParticipantGetSpecificInfo_001& operator=(const ParticipantGetSpecificInfo_001& rhs);
 
-    // hide the copy constructor and = operator
-    ParticipantGetSpecificInfo_001(const ParticipantGetSpecificInfo_001& rhs);
-    ParticipantGetSpecificInfo_001& operator=(const ParticipantGetSpecificInfo_001& rhs);
+	std::map<ParticipantSpecificInfoKey::Type, Temperature> m_cachedData;
 
-    std::map<ParticipantSpecificInfoKey::Type, Temperature> m_cachedData;
-
-    Temperature readSpecificInfo(PrimitiveAndInstance primitiveAndInstance);
-    PrimitiveAndInstance getPrimitiveAndInstanceForSpecificInfoKey(ParticipantSpecificInfoKey::Type request);
+	Temperature readSpecificInfo(PrimitiveAndInstance primitiveAndInstance);
+	PrimitiveAndInstance getPrimitiveAndInstanceForSpecificInfoKey(ParticipantSpecificInfoKey::Type request);
 };

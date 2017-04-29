@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,19 +32,17 @@
 class EsifMutexHelper final
 {
 public:
+	EsifMutexHelper(EsifMutex* esifMutex);
+	~EsifMutexHelper(void);
 
-    EsifMutexHelper(EsifMutex* esifMutex);
-    ~EsifMutexHelper(void);
-
-    void lock(void);
-    void unlock(void);
+	void lock(void);
+	void unlock(void);
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifMutexHelper(const EsifMutexHelper& rhs);
+	EsifMutexHelper& operator=(const EsifMutexHelper& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifMutexHelper(const EsifMutexHelper& rhs);
-    EsifMutexHelper& operator=(const EsifMutexHelper& rhs);
-
-    EsifMutex* m_esifMutex;
-    Bool m_mutexLocked;
+	EsifMutex* m_esifMutex;
+	Bool m_mutexLocked;
 };

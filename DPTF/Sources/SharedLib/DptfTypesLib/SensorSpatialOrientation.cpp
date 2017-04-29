@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,20 +20,20 @@
 
 namespace SensorSpatialOrientation
 {
-    std::string toString(SensorSpatialOrientation::Type sensorSpatialOrientation)
-    {
-        switch (sensorSpatialOrientation)
-        {
-            case FlatUp:
-                return "Flat Up";
-            case FlatDown:
-                return "Flat Down";
-            case Upright:
-                return "Upright";
-            case UprightInverted:
-                return "Upright Inverted";
-            default:
-                throw dptf_exception("SensorSpatialOrientation::Type is invalid");
-        }
-    }
+	std::string toString(SensorSpatialOrientation::Type sensorSpatialOrientation)
+	{
+		switch (sensorSpatialOrientation)
+		{
+		case FlatUp:
+			return "Flat Up";
+		case FlatDown:
+			return "Flat Down";
+		case Upright:
+			return "Upright";
+		case UprightInverted:
+			return "Upright Inverted";
+		default:
+			throw dptf_exception("SensorSpatialOrientation::Type is invalid");
+		}
+	}
 }

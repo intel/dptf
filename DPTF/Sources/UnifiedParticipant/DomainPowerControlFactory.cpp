@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,22 +19,25 @@
 #include "DomainPowerControlFactory.h"
 #include "DomainPowerControl_000.h"
 #include "DomainPowerControl_001.h"
+#include "DomainPowerControl_002.h"
 
-ControlBase* DomainPowerControlFactory::make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+ControlBase* DomainPowerControlFactory::make(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UIntN version,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
-    switch (version)
-    {
-        case 0:
-            return new DomainPowerControl_000(participantIndex, domainIndex, participantServicesInterface);
-            break;
-        case 1:
-            return new DomainPowerControl_001(participantIndex, domainIndex, participantServicesInterface);
-            break;
-        default:
-            std::stringstream message;
-            message << "Received request for DomainPowerControl version that isn't defined: " << version;
-            throw dptf_exception(message.str());
-            break;
-    }
+	switch (version)
+	{
+	case 0:
+		return new DomainPowerControl_000(participantIndex, domainIndex, participantServicesInterface);
+	case 1:
+		return new DomainPowerControl_001(participantIndex, domainIndex, participantServicesInterface);
+	case 2:
+		return new DomainPowerControl_002(participantIndex, domainIndex, participantServicesInterface);
+	default:
+		std::stringstream message;
+		message << "Received request for DomainPowerControl version that isn't defined: " << version;
+		throw dptf_exception(message.str());
+	}
 }

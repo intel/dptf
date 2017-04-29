@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,9 +23,10 @@ using namespace std;
 using namespace StatusFormat;
 
 SourceAvailability::SourceAvailability(
-    const PolicyServicesInterfaceContainer& policyServices,
-    std::shared_ptr<TimeInterface> time)
-    : m_time(time), m_policyServices(policyServices)
+	const PolicyServicesInterfaceContainer& policyServices,
+	std::shared_ptr<TimeInterface> time)
+	: m_time(time)
+	, m_policyServices(policyServices)
 {
 }
 
@@ -35,54 +36,54 @@ SourceAvailability::~SourceAvailability()
 
 void SourceAvailability::setSourceAsBusy(UIntN source, const TimeSpan& time)
 {
-    m_schedule[source] = time;
+	m_schedule[source] = time;
 }
 
 void SourceAvailability::remove(UIntN source)
 {
-    auto item = m_schedule.find(source);
-    if (item != m_schedule.end())
-    {
-        m_schedule.erase(item);
-    }
+	auto item = m_schedule.find(source);
+	if (item != m_schedule.end())
+	{
+		m_schedule.erase(item);
+	}
 }
 
 std::shared_ptr<XmlNode> SourceAvailability::getXml() const
 {
-    auto currentTime = m_time->getCurrentTime();
-    auto status = XmlNode::createWrapperElement("source_availability");
-    for (auto source = m_schedule.begin(); source != m_schedule.end(); source++)
-    {
-        auto activeSource = XmlNode::createWrapperElement("activity");
-        activeSource->addChild(XmlNode::createDataElement("source", friendlyValue(source->first)));
-        auto timeTilAvailable = source->second - currentTime;
-        activeSource->addChild(XmlNode::createDataElement("time_until_available", timeTilAvailable.toStringSeconds()));
-        status->addChild(activeSource);
-    }
-    return status;
+	auto currentTime = m_time->getCurrentTime();
+	auto status = XmlNode::createWrapperElement("source_availability");
+	for (auto source = m_schedule.begin(); source != m_schedule.end(); source++)
+	{
+		auto activeSource = XmlNode::createWrapperElement("activity");
+		activeSource->addChild(XmlNode::createDataElement("source", friendlyValue(source->first)));
+		auto timeTilAvailable = source->second - currentTime;
+		activeSource->addChild(XmlNode::createDataElement("time_until_available", timeTilAvailable.toStringSeconds()));
+		status->addChild(activeSource);
+	}
+	return status;
 }
 
 void SourceAvailability::setTime(std::shared_ptr<TimeInterface> time)
 {
-    m_time = time;
+	m_time = time;
 }
 
 Bool SourceAvailability::isBusy(UIntN source, const TimeSpan& time) const
 {
-    auto sourceSchedule = m_schedule.find(source);
-    if (sourceSchedule == m_schedule.end())
-    {
-        return false;
-    }
-    else
-    {
-        if (time < sourceSchedule->second)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
+	auto sourceSchedule = m_schedule.find(source);
+	if (sourceSchedule == m_schedule.end())
+	{
+		return false;
+	}
+	else
+	{
+		if (time < sourceSchedule->second)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 }

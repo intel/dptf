@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -71,6 +71,8 @@
 #define ESIF_ACPI_DEVICE_INT340A	"INT340A"
 #define ESIF_ACPI_DEVICE_INT340B	"INT340B"
 #define ESIF_ACPI_DEVICE_INT340C	"INT340C"
+#define ESIF_ACPI_DEVICE_INT340D	"INT340D"
+#define ESIF_ACPI_DEVICE_INT3530	"INT3530"
 
 static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 {
@@ -103,6 +105,10 @@ static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 		"DPTF Participant for Intel(R) RealSense(TM) 3D Camera"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT340C,
 		"DPTF Thunderbolt Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INT340D,
+		"DPTF Discrete Graphics Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INT3530,
+		"DPTF MultiChip Package"),
 	};
 	int j;
 	for (j = 0; j < ESIF_ARRAY_LEN(esif_acpi_device_map); j++) {
@@ -131,6 +137,8 @@ const struct acpi_device_id esif_acpi_ids[] = {
 	{ ESIF_ACPI_DEVICE_INT340A, 0 },
 	{ ESIF_ACPI_DEVICE_INT340B, 0 },
 	{ ESIF_ACPI_DEVICE_INT340C, 0 },
+	{ ESIF_ACPI_DEVICE_INT340D, 0 },
+	{ ESIF_ACPI_DEVICE_INT3530, 0 },
 	{ "", 0 },
 };
 

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -155,10 +155,13 @@ typedef enum esif_event_type {
 	ESIF_EVENT_APP_UNLOADING = 82,
 	ESIF_EVENT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED = 83,
 	ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE = 84,
+	ESIF_EVENT_SUPPORTED_POLICIES_CHANGED = 85,
+	ESIF_EVENT_DOMAIN_ENERGY_THRESHOLD_CROSSED = 91,
+	ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED = 92,
 } esif_event_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_EVENT_ENUM_VALUE  ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE
+#define MAX_ESIF_EVENT_ENUM_VALUE  ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED
 
 /* Event Type String */
 static ESIF_INLINE char *esif_event_type_str(esif_event_type_t type)
@@ -238,6 +241,9 @@ static ESIF_INLINE char *esif_event_type_str(esif_event_type_t type)
 	ESIF_CASE_ENUM(ESIF_EVENT_APP_UNLOADING);
 	ESIF_CASE_ENUM(ESIF_EVENT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED);
 	ESIF_CASE_ENUM(ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE);
+	ESIF_CASE_ENUM(ESIF_EVENT_SUPPORTED_POLICIES_CHANGED);
+	ESIF_CASE_ENUM(ESIF_EVENT_DOMAIN_ENERGY_THRESHOLD_CROSSED);
+	ESIF_CASE_ENUM(ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED);
 	}
 	return ESIF_NOT_AVAILABLE;
 }

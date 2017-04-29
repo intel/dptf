@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -82,16 +82,21 @@ typedef enum esif_domain_type {
 	ESIF_DOMAIN_TYPE_INFRARED = 19,
 	ESIF_DOMAIN_TYPE_VIRTUAL = 21,
 	ESIF_DOMAIN_TYPE_AMBIENT = 22,
+	ESIF_DOMAIN_TYPE_CAM2D = 27,
+	ESIF_DOMAIN_TYPE_NVME = 29,
 	ESIF_DOMAIN_TYPE_DSX = 30,
 	ESIF_DOMAIN_TYPE_RFEM = 32,
 	ESIF_DOMAIN_TYPE_M2CNV = 33,
 	ESIF_DOMAIN_TYPE_SOCCNV = 34,
 	ESIF_DOMAIN_TYPE_IVCAM = 35,
+	ESIF_DOMAIN_TYPE_DGFXCORE = 36,
+	ESIF_DOMAIN_TYPE_DGFXMEM = 37,
+	ESIF_DOMAIN_TYPE_DGFXMCP = 38,
 	ESIF_DOMAIN_TYPE_ALL = 255,
 } esif_domain_type_t;
 
 /* Max Enum Value for Iteration purposes (Excluding ALL) */
-#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_IVCAM
+#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_DGFXMCP
 
 static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 {
@@ -118,11 +123,16 @@ static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_INFRARED);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_VIRTUAL);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_AMBIENT);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_CAM2D);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_NVME);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DSX);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_RFEM);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_M2CNV);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_SOCCNV);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_IVCAM);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DGFXCORE);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DGFXMEM);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DGFXMCP);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_ALL);
 	}
 	return ESIF_NOT_AVAILABLE;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,46 +21,45 @@
 #include "TemperatureControlFacadeInterface.h"
 #include "CachedValue.h"
 
-// this facade class provides a simpler interface on top of temperature controls as well as combines all of the 
+// this facade class provides a simpler interface on top of temperature controls as well as combines all of the
 // virtual temperature control properties into a single class.  These properties also have the ability to be cached.
 class dptf_export TemperatureControlFacade : public TemperatureControlFacadeInterface
 {
 public:
+	TemperatureControlFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~TemperatureControlFacade();
 
-    TemperatureControlFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~TemperatureControlFacade();
-
-    virtual Temperature getCurrentTemperature() override;
-    virtual TemperatureThresholds getTemperatureNotificationThresholds() override;
-    virtual void setTemperatureNotificationThresholds(const Temperature& lowerBound, const Temperature& upperBound) override;
-    virtual Bool supportsTemperatureControls() override;
-    virtual Bool supportsTemperatureThresholds() override;
-    virtual Bool isVirtualTemperatureControl() override;
-    virtual DptfBuffer getCalibrationTable() override;
-    virtual DptfBuffer getPollingTable() override;
-    virtual void setVirtualTemperature(const Temperature& temperature) override;
-    virtual void refreshHysteresis() override;
-    virtual void refreshVirtualSensorTables() override;
+	virtual Temperature getCurrentTemperature() override;
+	virtual TemperatureThresholds getTemperatureNotificationThresholds() override;
+	virtual void setTemperatureNotificationThresholds(const Temperature& lowerBound, const Temperature& upperBound)
+		override;
+	virtual Bool supportsTemperatureControls() override;
+	virtual Bool supportsTemperatureThresholds() override;
+	virtual Bool isVirtualTemperatureControl() override;
+	virtual DptfBuffer getCalibrationTable() override;
+	virtual DptfBuffer getPollingTable() override;
+	virtual void setVirtualTemperature(const Temperature& temperature) override;
+	virtual void refreshHysteresis() override;
+	virtual void refreshVirtualSensorTables() override;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
-    
-    // control properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
+	// control properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 
-    // cached values
-    CachedValue<TemperatureThresholds> m_temperatureThresholds;
-    CachedValue<Bool> m_isVirtualSensor;
-    CachedValue<DptfBuffer> m_calibrationTable;
-    CachedValue<DptfBuffer> m_pollingTable;
+	// cached values
+	CachedValue<TemperatureThresholds> m_temperatureThresholds;
+	CachedValue<Bool> m_isVirtualSensor;
+	CachedValue<DptfBuffer> m_calibrationTable;
+	CachedValue<DptfBuffer> m_pollingTable;
 
-    Temperature getHysteresis();
+	Temperature getHysteresis();
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,15 +20,15 @@
 using namespace std;
 
 ParticipantCallback::ParticipantCallback()
-    : m_timeStamp(TimeSpan::createInvalid()),
-    m_callbackHandle(Constants::Invalid)
+	: m_timeStamp(TimeSpan::createInvalid())
+	, m_callbackHandle(Constants::Invalid)
 {
 }
 
 ParticipantCallback::ParticipantCallback(const TimeSpan& callbackTime, const TimeSpan& timeStamp, UInt64 callbackHandle)
-    : m_timeDelta(callbackTime),
-    m_timeStamp(timeStamp),
-    m_callbackHandle(callbackHandle)
+	: m_timeDelta(callbackTime)
+	, m_timeStamp(timeStamp)
+	, m_callbackHandle(callbackHandle)
 {
 }
 
@@ -38,15 +38,15 @@ ParticipantCallback::~ParticipantCallback()
 
 const TimeSpan& ParticipantCallback::getTimeDelta() const
 {
-    return m_timeDelta;
+	return m_timeDelta;
 }
 
 const TimeSpan& ParticipantCallback::getTimeStamp() const
 {
-    return m_timeStamp;
+	return m_timeStamp;
 }
 
 UInt64 ParticipantCallback::getCallbackHandle() const
 {
-    return m_callbackHandle;
+	return m_callbackHandle;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,41 +29,43 @@ class ParticipantStatusMap;
 class DptfStatus : public DptfStatusInterface
 {
 public:
+	DptfStatus(DptfManagerInterface* dptfManager);
+	~DptfStatus();
 
-    DptfStatus(DptfManagerInterface* dptfManager);
-    ~DptfStatus();
-
-    virtual void getStatus(const eAppStatusCommand command, const UInt32 appStatusIn,
-        EsifDataPtr appStatusOut, eEsifError* returnCode) override;
-    virtual void clearCache() override;
+	virtual void getStatus(
+		const eAppStatusCommand command,
+		const UInt32 appStatusIn,
+		EsifDataPtr appStatusOut,
+		eEsifError* returnCode) override;
+	virtual void clearCache() override;
 
 private:
+	DptfManagerInterface* m_dptfManager;
+	PolicyManagerInterface* m_policyManager;
+	ParticipantManagerInterface* m_participantManager;
+	ParticipantStatusMap* m_participantStatusMap;
 
-    DptfManagerInterface* m_dptfManager;
-    PolicyManagerInterface* m_policyManager;
-    ParticipantManagerInterface* m_participantManager;
-    ParticipantStatusMap* m_participantStatusMap;
+	std::string getFileContent(std::string fileName);
+	std::string getXsltContent(eEsifError* returnCode);
+	std::string getGroupsXml(eEsifError* returnCode);
+	std::string getModulesInGroup(const UInt32 appStatusIn, eEsifError* returnCode);
+	std::string getPoliciesGroup();
+	std::string getParticipantsGroup();
+	std::string getFrameworkGroup();
+	std::string getModuleData(const UInt32 appStatusIn, eEsifError* returnCode);
+	std::string getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCode);
+	std::string getXmlForParticipant(UInt32 mappedIndex, eEsifError* returnCode);
+	std::string getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode);
+	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedPolicies();
+	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedParticipants();
 
-    std::string getFileContent(std::string fileName);
-    std::string getXsltContent(eEsifError* returnCode);
-    std::string getGroupsXml(eEsifError* returnCode);
-    std::string getModulesInGroup(const UInt32 appStatusIn, eEsifError* returnCode);
-    std::string getPoliciesGroup();
-    std::string getParticipantsGroup();
-    std::string getFrameworkGroup();
-    std::string getModuleData(const UInt32 appStatusIn, eEsifError* returnCode);
-    std::string getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCode);
-    std::string getXmlForParticipant(UInt32 mappedIndex, eEsifError* returnCode);
-    std::string getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode);
-    std::shared_ptr<XmlNode> getXmlForFrameworkLoadedPolicies();
-    std::shared_ptr<XmlNode> getXmlForFrameworkLoadedParticipants();
+	void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
 
-    void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
+	// KW error resolution
+	DptfStatus(const DptfStatus&);
 
-    // KW error resolution
-    DptfStatus(const DptfStatus&);
-    DptfStatus& operator=(const DptfStatus&)
-    {
-        return *this;
-    }
+	DptfStatus& operator=(const DptfStatus&)
+	{
+		return *this;
+	}
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,32 +19,32 @@
 #include "DptfMessage.h"
 #include "DptfVer.h"
 
-DptfMessage::DptfMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName) :
-    m_dptfVersion(VERSION_STR),
-    m_dptfBuildDate(__DATE__),
-    m_dptfBuildTime(__TIME__),
-    m_fileName(fileName),
-    m_executingFunctionName(executingFunctionName),
-    m_frameworkEventValid(false),
-    m_frameworkEvent(),
-    m_participantIndex(Constants::Invalid),
-    m_domainIndex(Constants::Invalid),
-    m_policyIndex(Constants::Invalid),
-    m_esifPrimitiveValid(false),
-    m_esifPrimitive(),
-    m_esifPrimitiveInstance(Constants::Esif::NoInstance),
-    m_esifEventGuidValid(false),
-    m_esifErrorCodeValid(false),
-    m_esifErrorCode(ESIF_E_UNSPECIFIED)
+DptfMessage::DptfMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName)
+	: m_dptfVersion(VERSION_STR)
+	, m_dptfBuildDate(__DATE__)
+	, m_dptfBuildTime(__TIME__)
+	, m_fileName(fileName)
+	, m_executingFunctionName(executingFunctionName)
+	, m_frameworkEventValid(false)
+	, m_frameworkEvent()
+	, m_participantIndex(Constants::Invalid)
+	, m_domainIndex(Constants::Invalid)
+	, m_policyIndex(Constants::Invalid)
+	, m_esifPrimitiveValid(false)
+	, m_esifPrimitive()
+	, m_esifPrimitiveInstance(Constants::Esif::NoInstance)
+	, m_esifEventGuidValid(false)
+	, m_esifErrorCodeValid(false)
+	, m_esifErrorCode(ESIF_E_UNSPECIFIED)
 {
-    try
-    {
-        m_lineNumber = StlOverride::to_string(lineNumber);
-    }
-    catch (...)
-    {
-        m_lineNumber = "Unknown";
-    }
+	try
+	{
+		m_lineNumber = std::to_string(lineNumber);
+	}
+	catch (...)
+	{
+		m_lineNumber = "Unknown";
+	}
 }
 
 DptfMessage::~DptfMessage(void)
@@ -53,50 +53,50 @@ DptfMessage::~DptfMessage(void)
 
 void DptfMessage::addMessage(const std::string& message)
 {
-    try
-    {
-        m_messageKeyValuePair.push_back(MessageKeyValuePair("Message", message));
-    }
-    catch (...)
-    {
-    }
+	try
+	{
+		m_messageKeyValuePair.push_back(MessageKeyValuePair("Message", message));
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfMessage::addMessage(const std::string& messageKey, const std::string& messageValue)
 {
-    try
-    {
-        m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, messageValue));
-    }
-    catch (...)
-    {
-    }
+	try
+	{
+		m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, messageValue));
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfMessage::addMessage(const std::string& messageKey, UInt64 messageValue)
 {
-    try
-    {
-        m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, StlOverride::to_string(messageValue)));
-    }
-    catch (...)
-    {
-    }
+	try
+	{
+		m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, std::to_string(messageValue)));
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfMessage::addMessage(const std::string& messageKey, Temperature messageValue)
 {
-    try
-    {
-        m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, messageValue.toString()));
-    }
-    catch (...)
-    {
-    }
+	try
+	{
+		m_messageKeyValuePair.push_back(MessageKeyValuePair(messageKey, messageValue.toString()));
+	}
+	catch (...)
+	{
+	}
 }
 
 void DptfMessage::setExceptionCaught(const std::string& exceptionFunctionName, const std::string& exceptionText)
 {
-    m_exceptionFunctionName = exceptionFunctionName;
-    m_exceptionText = exceptionText;
+	m_exceptionFunctionName = exceptionFunctionName;
+	m_exceptionText = exceptionText;
 }

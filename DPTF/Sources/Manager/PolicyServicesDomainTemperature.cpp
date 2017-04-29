@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,64 +21,72 @@
 #include "ManagerMessage.h"
 #include "EsifServicesInterface.h"
 
-PolicyServicesDomainTemperature::PolicyServicesDomainTemperature(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainTemperature::PolicyServicesDomainTemperature(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 TemperatureStatus PolicyServicesDomainTemperature::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getTemperatureStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getTemperatureStatus(domainIndex);
 }
 
 TemperatureThresholds PolicyServicesDomainTemperature::getTemperatureThresholds(
-    UIntN participantIndex, UIntN domainIndex)
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getTemperatureThresholds(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getTemperatureThresholds(domainIndex);
 }
 
-void PolicyServicesDomainTemperature::setTemperatureThresholds(UIntN participantIndex,
-    UIntN domainIndex, const TemperatureThresholds& temperatureThresholds)
+void PolicyServicesDomainTemperature::setTemperatureThresholds(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const TemperatureThresholds& temperatureThresholds)
 {
-    throwIfNotWorkItemThread();
+	throwIfNotWorkItemThread();
 
 #ifdef ONLY_LOG_TEMPERATURE_THRESHOLDS
-    // Added to help debug issue with missing temperature threshold events
-    ManagerMessage message = ManagerMessage(getDptfManager(), FLF,
-        "Policy is calling PolicyServicesDomainTemperature::setTemperatureThresholds().");
-    message.addMessage("Aux0", temperatureThresholds.getAux0());
-    message.addMessage("Aux1", temperatureThresholds.getAux1());
-    message.setParticipantAndDomainIndex(participantIndex, domainIndex);
-    message.setPolicyIndex(getPolicyIndex());
-    getDptfManager()->getEsifServices()->writeMessageDebug(message, MessageCategory::TemperatureThresholds);
+	// Added to help debug issue with missing temperature threshold events
+	ManagerMessage message = ManagerMessage(
+		getDptfManager(), FLF, "Policy is calling PolicyServicesDomainTemperature::setTemperatureThresholds().");
+	message.addMessage("Aux0", temperatureThresholds.getAux0());
+	message.addMessage("Aux1", temperatureThresholds.getAux1());
+	message.setParticipantAndDomainIndex(participantIndex, domainIndex);
+	message.setPolicyIndex(getPolicyIndex());
+	getDptfManager()->getEsifServices()->writeMessageDebug(message, MessageCategory::TemperatureThresholds);
 #endif
-    getParticipantManager()->getParticipantPtr(participantIndex)->setTemperatureThresholds(
-        domainIndex, getPolicyIndex(), temperatureThresholds);
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setTemperatureThresholds(domainIndex, getPolicyIndex(), temperatureThresholds);
 }
 
 DptfBuffer PolicyServicesDomainTemperature::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getVirtualSensorCalibrationTable(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getVirtualSensorCalibrationTable(domainIndex);
 }
 
 DptfBuffer PolicyServicesDomainTemperature::getPollingTable(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getVirtualSensorPollingTable(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getVirtualSensorPollingTable(domainIndex);
 }
 
 Bool PolicyServicesDomainTemperature::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->isVirtualTemperature(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->isVirtualTemperature(domainIndex);
 }
 
-void PolicyServicesDomainTemperature::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& temperature)
+void PolicyServicesDomainTemperature::setVirtualTemperature(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Temperature& temperature)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->setVirtualTemperature(domainIndex, temperature);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setVirtualTemperature(domainIndex, temperature);
 }

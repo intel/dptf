@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -180,6 +180,32 @@ void esif_ccb_tmrm_callback(
 }
 #endif
 
+/* 
+ * Timer build options to enable use of different timer types in Windows
+ * Normally, these options should be specified in the project settings in
+ * order to allow different options depending on need for a given binary.
+ */
+#if defined(ESIF_ATTR_OS_WINDOWS)
+
+ /*
+  * Build option to enable use of the WDF timers in Windows
+  * If not enabled, legacy kernel timers are used in kernel mode and
+  * and the specified user timer type is used in user mode.
+  * (See user section below.)
+  */
+ /* #define ESIF_FEAT_OPT_WDFTIMER - Enable in project settings */
+
+#if defined(ESIF_ATTR_USER)
+
+/* Build option to enable use of the "waitable" timers in Windows */
+/* #define ESIF_FEAT_OPT_WAITABLE_TIMERS - Enable in project settings */
+
+#if defined(ESIF_FEAT_OPT_WAITABLE_TIMERS)
+#undef ESIF_FEAT_OPT_WDFTIMER
+#endif
+
+#endif /* ESIF_ATTR_USER */
+#endif /* ESIF_ATTR_OS_WINDOWS */
 
 /*
  * Bring in OS-specific implementation code

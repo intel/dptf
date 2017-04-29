@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,13 +17,9 @@
 ******************************************************************************/
 #define ESIF_TRACE_ID ESIF_TRACEMODULE_SHELL
 
-#include "esif_uf_version.h"
-
-const char *g_esif_shell_version = ESIF_UF_VERSION;
-
-extern char *g_esif_etf_version;
-
-char g_esif_kernel_version[64] = "NA";
+// Friend classes
+#define _DATABANK_CLASS
+#define _DATACACHE_CLASS
 
 /* ESIF */
 #include "esif_uf.h"		/* Upper Framework */
@@ -51,10 +47,9 @@ char g_esif_kernel_version[64] = "NA";
 // SDK
 #include "esif_sdk_capability_type.h" /* For Capability Id Description*/
 
-// friend classes
-#define _DATABANK_CLASS
-
+#include "esif_lib_datacache.h"
 #include "esif_lib_databank.h"
+#include "esif_lib_datarepo.h"
 
 #include "esif_dsp.h"
 #include "esif_uf_fpc.h"
@@ -62,6 +57,10 @@ char g_esif_kernel_version[64] = "NA";
 #include "esif_uf_app.h"
 #include "esif_uf_tableobject.h"
 #include "esif_sdk_iface_esif.h"
+
+const char *g_esif_shell_version = ESIF_UF_VERSION;
+extern char *g_esif_etf_version;
+char g_esif_kernel_version[64] = "NA";
 
 extern struct esif_uf_dm g_dm;
 
@@ -96,6 +95,11 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define MAX_REPEAT_DELAY	0x7ffffffe
 #define MAX_START_ID		0x7ffffffe
 #define MAX_SLEEP_MS		(0x7fffffff / 1000) // ~35min; Required for OS Abstraction
+#define MAX_STRINGLEN		0x7ffffffe
+
+/* Participant Creation Defaults */
+#define DEFAULT_PARTICIPANT_VERSION 1
+#define DEFAULT_PARTICIPANT_FLAGS 0X0
 
 /* Friends */
 extern EsifAppMgr g_appMgr;
@@ -126,6 +130,7 @@ extern int g_timestamp;		// Timestamp on / off?
 char g_os[64];
 
 int g_soe = 1;
+static const char *g_shellStartScript = NULL;
 
 // Global Shell lock to limit parse_cmd to one thread at a time
 static esif_ccb_mutex_t g_shellLock;
@@ -142,14 +147,48 @@ struct esif_data_binary_bst_package {
 	union esif_data_variant battery_present_voltage;
 };
 
-
-
 // For use with ltrim()
 #define PREFIX_ALGORITHM_TYPE	20	// ESIF_ALGORITHM_TYPE_
 #define PREFIX_ACTION_TYPE		12	// ESIF_ACTION_
 #define PREFIX_DATA_TYPE		10	// ESIF_DATA_
 #define PREFIX_EVENT_GROUP		17	// ESIF_EVENT_GROUP_
 #define PREFIX_EVENT_TYPE		11	// ESIF_EVENT_
+#define PREFIX_PARTICIPANT_ENUM 22	// ESIF_PARTICIPANT_ENUM_
+
+#pragma pack(push, 1)
+
+// String Type for displaying DataVault Header/Item Flags as char mask ("S--FNRXP")
+typedef struct {
+	char mask[8 + 1];	// "--------"
+} config_flags_str_t;
+
+// Convert DataVault Header or Item Flags to a readable mask string ("SC-FNRXP")
+static config_flags_str_t config_flags_str(esif_flags_t flags)
+{
+	// Define bits and relative position in mask string right-to-left
+	struct { esif_flags_t bit; char code; } bitmasks[] = {
+		{ ESIF_SERVICE_CONFIG_PERSIST,		'P' },
+		{ ESIF_SERVICE_CONFIG_SCRAMBLE,		'X' },
+		{ ESIF_SERVICE_CONFIG_READONLY,		'R' },
+		{ ESIF_SERVICE_CONFIG_NOCACHE,		'N' },
+		{ ESIF_SERVICE_CONFIG_FILELINK,		'F' },
+		{ 0,								'-' },
+		{ ESIF_SERVICE_CONFIG_COMPRESSED,	'C' },
+		{ ESIF_SERVICE_CONFIG_STATIC,		'S' },
+		{ 0, 0 }
+	};
+	config_flags_str_t flagstr = { 0 };
+	int j = 0;
+
+	// Build string char mask if flag is set
+	esif_ccb_memset(&flagstr, '-', sizeof(flagstr) - 1);
+	for (j = 0; j < sizeof(flagstr) - 1 && bitmasks[j].code; j++) {
+		if (FLAGS_TEST(flags, bitmasks[j].bit)) {
+			flagstr.mask[sizeof(flagstr.mask) - 2 - j] = bitmasks[j].code;
+		}
+	}
+	return flagstr;
+}
 
 static UInt32 count_cmd_args(const char *command);
 
@@ -377,6 +416,22 @@ char *esif_str_replace(
 	return result;
 }
 
+// Filenames that contain Relative Paths like .. are prohibited
+static Bool shell_isprohibited(const StringPtr name)
+{
+	return (esif_ccb_strstr(name, "..") != NULL);
+}
+
+// Transate ESIF_PARTICIPANT_ENUM_TYPENAME to TYPENAME with special translation
+static esif_string esif_participant_enum_shortname(esif_participant_enum_t enumerator)
+{
+	esif_string name = ltrim(esif_participant_enum_str(enumerator), PREFIX_PARTICIPANT_ENUM);
+	if (esif_ccb_stricmp(name, "CONJURE") == 0) {
+		name = "CNJR";
+	}
+	return name;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // INITIALIZE
 ///////////////////////////////////////////////////////////////////////////////
@@ -438,6 +493,14 @@ char *esif_shell_resize(size_t buf_len)
 	return g_outbuf;
 }
 
+void esif_shell_set_start_script(const char *script)
+{
+	g_shellStartScript = script;
+}
+const char *esif_shell_get_start_script(void)
+{
+	return g_shellStartScript;
+}
 eEsifError esif_uf_shell_banner_init(void)
 {
 	eEsifError rc = ESIF_OK;
@@ -1072,7 +1135,7 @@ static char *esif_shell_cmd_apps_append_events(
 	for (i = 0; i <= ESIF_EVENT_EMERGENCY_CALL_MODE_TABLE_CHANGED; i ++) {
 		eventNamePtr = esif_event_type_str(i);
 		if (EsifEventMgr_IsEventRegistered(i, key, participantId, domainId)) {
-			esif_ccb_sprintf_concat(bufferSize, outputPtr, "    %s\n", eventNamePtr);
+			esif_ccb_sprintf_concat(bufferSize, outputPtr, "        %s\n", eventNamePtr);
 		}
 	}
 	return outputPtr;
@@ -1121,18 +1184,28 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  System Registered Events:\n");
 		esif_shell_cmd_apps_append_events(appHandle, 0, EVENT_MGR_DOMAIN_D0, output, OUT_BUF_LEN);
 
-		/* Now temproary dump particiapnt events here */
+		/* Now dump participant data here */
 		for (j = 0; j < MAX_PARTICIPANT_ENTRY; j++) {
 			u8 k = 0;
 			if (a_app_ptr->fParticipantData[j].fAppParticipantHandle == NULL) {
 				continue;
 			}
 
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  [%d] %s: Handle(%p)\n",
+				EsifUp_GetInstance(a_app_ptr->fParticipantData[j].fUpPtr),
+				EsifUp_GetName(a_app_ptr->fParticipantData[j].fUpPtr),
+				a_app_ptr->fParticipantData[j].fAppParticipantHandle);
+
+
 			for (k = 0; k < MAX_DOMAIN_ENTRY; k++) {
 				if (a_app_ptr->fParticipantData[j].fDomainData[k].fAppDomainHandle == NULL) {
 					continue;
 				}
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  %s D%d Registered Events:\n", EsifUp_GetName(a_app_ptr->fParticipantData[j].fUpPtr), k);
+
+				
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    D%d: Handle(%p)\n", k, a_app_ptr->fParticipantData[j].fDomainData[k].fAppDomainHandle);
+
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "      Registered Events:\n");
 				esif_shell_cmd_apps_append_events(appHandle, j, domain_str_to_short(a_app_ptr->fParticipantData[j].fDomainData[k].fQualifier), output, OUT_BUF_LEN);
 			}
 		}
@@ -1330,7 +1403,7 @@ static char *esif_shell_cmd_autoexec(EsifShellCmdPtr shell)
 	while (optarg < argc) {
 		parse_cmd(argv[optarg++], ESIF_FALSE, ESIF_TRUE);
 	}
-	if ((g_DataVaultStartScript != NULL) && ((command = esif_ccb_strdup(g_DataVaultStartScript)) != NULL)) {
+	if ((esif_shell_get_start_script() != NULL) && ((command = esif_ccb_strdup(esif_shell_get_start_script())) != NULL)) {
 		parse_cmd(command, ESIF_FALSE, ESIF_TRUE);
 		esif_ccb_free(command);
 	}
@@ -1507,12 +1580,25 @@ char *esif_shell_cmd_dst(EsifShellCmdPtr shell)
 	int argc     = shell->argc;
 	char **argv  = shell->argv;
 	char *output = shell->outbuf;
+	u8 participantDst = 0;
+
 	if (argc < 2) {
 		return NULL;
 	}
 
-	g_dst = (u8)esif_atoi(argv[1]);
+	participantDst = (u8)esif_atoi(argv[1]);
+	if (participantDst > MAX_PARTICIPANT_ENTRY) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Destination participant must be between 0 and %d. \n", MAX_PARTICIPANT_ENTRY);
+		goto exit;
+	}
+	else {
+		g_dst = participantDst;
+	}
+
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "destination participant = %d selected\n", g_dst);
+
+exit:
+
 	return output;
 }
 
@@ -2220,9 +2306,9 @@ static char *esif_shell_cmd_infofpc(EsifShellCmdPtr shell)
 
 	if (!esif_ccb_file_exists(edp_full_path) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		esif_ccb_strcpy(edp_full_path, edp_name, PATH_STR_LEN);
-		IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
+		IOStream_SetMemory(io_ptr, StoreReadOnly, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
-		IOStream_SetFile(io_ptr, edp_full_path, (char *)FILE_READ);
+		IOStream_SetFile(io_ptr, StoreReadOnly, edp_full_path, (char *)FILE_READ);
 	}
 
 	if (IOStream_Open(io_ptr) == 0) {
@@ -2682,9 +2768,9 @@ static char *esif_shell_cmd_infocpc(EsifShellCmdPtr shell)
 
 	if (!esif_ccb_file_exists(edp_full_path) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		esif_ccb_strcpy(edp_full_path, edp_name, PATH_STR_LEN);
-		IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
+		IOStream_SetMemory(io_ptr, StoreReadOnly, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
-		IOStream_SetFile(io_ptr, edp_full_path, (char *)FILE_READ);
+		IOStream_SetFile(io_ptr, StoreReadOnly, edp_full_path, (char *)FILE_READ);
 	}
 	if (IOStream_Open(io_ptr) == 0) {
 		struct edp_dir edp_dir;
@@ -3080,7 +3166,7 @@ static char *esif_shell_cmd_load(EsifShellCmdPtr shell)
 		EsifDataPtr value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 		if (nameSpace != NULL && key != NULL && value != NULL && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 			esif_ccb_strcpy(load_full_path, filename, PATH_STR_LEN);
-			IOStream_SetMemory(io_ptr, (BytePtr)value->buf_ptr, value->data_len);
+			IOStream_SetMemory(io_ptr, StoreReadOnly, (BytePtr)value->buf_ptr, value->data_len);
 		}
 		EsifData_Destroy(nameSpace);
 		EsifData_Destroy(key);
@@ -3088,7 +3174,7 @@ static char *esif_shell_cmd_load(EsifShellCmdPtr shell)
 	}
 	if (IOStream_GetType(io_ptr) == StreamNull) {
 		esif_ccb_sprintf_concat(PATH_STR_LEN, load_full_path, "%s%s", ESIF_PATH_SEP, filename);
-		IOStream_SetFile(io_ptr, load_full_path, "r");
+		IOStream_SetFile(io_ptr, StoreReadOnly, load_full_path, "r");
 	}
 	if (IOStream_Open(io_ptr) == EOK) {
 		int run = 1;
@@ -3467,6 +3553,63 @@ exit:
 	return output;
 }
 
+static char *esif_shell_cmd_add_participant(EsifShellCmdPtr shell)
+{ 
+	int argc = shell->argc;
+	char **argv = shell->argv;
+	char *output = shell->outbuf;
+
+	EsifParticipantIface newParticipantData;
+	esif_guid_t newParticipantClassGuid = ESIF_PARTICIPANT_CONJURE_CLASS_GUID;
+	enum esif_participant_enum enumerator = ESIF_PARTICIPANT_ENUM_CONJURE;
+	char newParticipantName[ESIF_NAME_LEN] = { 0 };
+	char newParticipantDesc[ESIF_DESC_LEN] = { 0 };
+	char newParticipantDriverName[ESIF_NAME_LEN] = "N/A";
+	char newParticipantDeviceName[ESIF_NAME_LEN] = { 0 }; //HID
+	char newParticipantDevicePath[ESIF_PATH_LEN] = "N/A";
+	char newParticipantObjectId[ESIF_SCOPE_LEN] = { 0 };  //scope
+	const eEsifParticipantOrigin origin = eParticipantOriginUF;
+	UInt32 newParticipantAcpiType = 0;
+	UInt8 newInstance = ESIF_INSTANCE_INVALID;
+	int guidElementCounter = 0;
+
+	if (argc < 5) {
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "Too few parameters. Expecting 4 (name, desc, HID, ptype) received %d.", argc - 1);
+		goto exit;
+	}
+
+	newParticipantAcpiType = esif_atoi(argv[4]);
+	
+	esif_ccb_strcpy(newParticipantName, argv[1], ESIF_NAME_LEN);
+	esif_ccb_strcpy(newParticipantDesc, argv[2], ESIF_DESC_LEN);
+	esif_ccb_strcpy(newParticipantDeviceName, argv[3], ESIF_NAME_LEN); //HID
+	esif_ccb_sprintf(ESIF_SCOPE_LEN, newParticipantObjectId, "\\_UP_.%s", newParticipantName);
+
+	for (guidElementCounter = 0; guidElementCounter < ESIF_GUID_LEN; guidElementCounter++) {
+		newParticipantData.class_guid[guidElementCounter] = *(newParticipantClassGuid + guidElementCounter);
+	}
+
+	newParticipantData.version = DEFAULT_PARTICIPANT_VERSION;
+	newParticipantData.enumerator = enumerator;
+	newParticipantData.flags = DEFAULT_PARTICIPANT_FLAGS;
+	newParticipantData.send_event = NULL;
+	newParticipantData.recv_event = NULL;
+	newParticipantData.acpi_type = newParticipantAcpiType;
+	esif_ccb_strncpy(newParticipantData.name, newParticipantName, ESIF_NAME_LEN);
+	esif_ccb_strncpy(newParticipantData.desc, newParticipantDesc, ESIF_DESC_LEN);
+	esif_ccb_strncpy(newParticipantData.object_id, newParticipantObjectId, ESIF_SCOPE_LEN);
+	esif_ccb_strncpy(newParticipantData.device_path, newParticipantDevicePath, ESIF_PATH_LEN);
+	esif_ccb_strncpy(newParticipantData.driver_name, newParticipantDriverName, ESIF_NAME_LEN);
+	esif_ccb_strncpy(newParticipantData.device_name, newParticipantDeviceName, ESIF_NAME_LEN);
+
+	EsifUpPm_RegisterParticipant(origin, &newParticipantData, &newInstance);
+
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "Participant %s created.", newParticipantName);
+
+exit:
+	return output;
+}
+
 // Participant
 static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 {
@@ -3635,14 +3778,6 @@ static char *esif_shell_cmd_participantk(EsifShellCmdPtr shell)
 
 			if (data_ptr->capability & ESIF_CAPABILITY_UTIL_STATUS) {
 				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "UTIL_STATUS\t\t\tReports Device Utilization\n");
-			}
-
-			if (data_ptr->capability & ESIF_CAPABILITY_PIXELCLOCK_CONTROL) {
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "PIXELCLOCK_CONTROL\t\t\tHas Pixel Clock Control\n");
-			}
-
-			if (data_ptr->capability & ESIF_CAPABILITY_PIXELCLOCK_STATUS) {
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "PIXELCLOCK_STATUS\t\t\tHas Pixel Clock Status\n");
 			}
 
 			if (data_ptr->capability & ESIF_CAPABILITY_RFPROFILE_STATUS) {
@@ -4001,7 +4136,6 @@ static char *esif_shell_cmd_rem(EsifShellCmdPtr shell)
 	return output;
 }
 
-
 // Set Buffer
 static char *esif_shell_cmd_setb(EsifShellCmdPtr shell)
 {
@@ -4087,6 +4221,9 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 			ESIF_PRIMITIVE_OP_SET,
 			&primitiveDataType);
 	if (rc != ESIF_OK) {
+		if (ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP == rc) {
+			rc = ESIF_E_PRIMITIVE_SUR_NOT_FOUND_IN_DSP;
+		}
 		goto exit;
 	}
 
@@ -4222,8 +4359,14 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 			(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, (*(Int32 *) dataPtr->buf_ptr) / 10.0, desc);
 		break;
 	default:
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = 0x%08x %u %s\n", esif_primitive_str(
-			(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, *(UInt32 *) dataPtr->buf_ptr, *(UInt32 *) dataPtr->buf_ptr, desc);
+		if (esif_data_type_sizeof(dataPtr->type) == sizeof(UInt32) && dataPtr->buf_ptr != NULL) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = 0x%08x %u %s\n", esif_primitive_str(
+				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, *(UInt32 *)dataPtr->buf_ptr, *(UInt32 *)dataPtr->buf_ptr, desc);
+		}
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = N/A %s\n", esif_primitive_str(
+				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, desc);
+		}
 		break;
 	}
 
@@ -4431,6 +4574,8 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 	char **argv  = shell->argv;
 	char *output = shell->outbuf;
 	char newCmd[MAX_LINE] = {0};
+	char *shellbuf = NULL;
+	size_t shellbuf_len = 0;
 
 	// trace <level>
 	// trace level <level>
@@ -4540,44 +4685,99 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 	//////////////////
 
 	// trace
-	if (argc > 0) {
+	if (g_format == FORMAT_XML)
+	{
+		char *targetStr = "NA";
+		char *currentTraceLevelStr = "NA";
+		esif_shell_sprintf(&shellbuf_len, &shellbuf, "<result>\n");
 		int j;
-		CMD_OUT("\nLevel\tLabel\tModules    Routes Targets\n");
-		CMD_OUT("-----\t-----\t---------- ------ --------------------------------------------\n");
-		for (j=0; j <= g_traceLevel_max; j++) {
-			int k;
-			CMD_OUT("%s %d\t%s\t0x%08X 0x%02X   ", (g_traceLevel==j ? "*" : " "), g_traceinfo[j].level,
-					g_traceinfo[j].label, g_traceinfo[j].modules, g_traceinfo[j].routes);
+		for (j = 0; j <= g_traceLevel_max; j++) {
+			if (g_traceLevel == j)
+			{
+				currentTraceLevelStr = (char *)"*";
+			}
+			else
+			{
+				currentTraceLevelStr = (char *)" ";
+			}
+
 			if (g_traceinfo[j].routes) {
 				if (g_traceinfo[j].routes & ESIF_TRACEROUTE_CONSOLE) {
-					CMD_OUT("CON ");
+					targetStr = (char *)"CON";
 				}
 				if (g_traceinfo[j].routes & ESIF_TRACEROUTE_EVENTLOG) {
-					CMD_OUT("EVT ");
+					targetStr = (char *)"EVT";
 				}
 				if (g_traceinfo[j].routes & ESIF_TRACEROUTE_DEBUGGER) {
-					CMD_OUT("DBG ");
+					targetStr = (char *)"DBG";
 				}
 				if (g_traceinfo[j].routes & ESIF_TRACEROUTE_LOGFILE) {
-					CMD_OUT("LOG%s ", (EsifLogFile_IsOpen(ESIF_LOG_TRACE) ? "" : "(?)"));
+					targetStr = (char *)"LOG";
 				}
 			}
-			CMD_OUT("<< ");
-			if (g_traceinfo[j].modules == ESIF_TRACEMASK_ALL)
-				CMD_OUT("*");
-			else {
-				for (k=0; k < ESIF_TRACEMASK_MAX; k++) {
-					if (g_traceinfo[j].modules & ((esif_tracemask_t)1 << k)) {
-						const char *modstr = EsifTraceModule_ToString((enum esif_tracemodule)k);
-						if (modstr != NULL)
-							CMD_OUT("%s ", modstr);
+			esif_shell_sprintf_concat(&shellbuf_len, &shellbuf,
+				"    <Level>%d</Level>\n"
+				"    <Label>%s %s</Label>\n"
+				"    <Modules>0x%08X</Modules>\n"
+				"    <Routes>0x%02X</Routes>\n"
+				"    <Targets>%s</Targets>\n",
+				g_traceinfo[j].level,
+				currentTraceLevelStr,
+				g_traceinfo[j].label,
+				g_traceinfo[j].modules,
+				g_traceinfo[j].routes,
+				targetStr);
+		}
+		esif_shell_sprintf_concat(&shellbuf_len, &shellbuf, "</result>\n");
+	}
+	else
+	{
+		if (argc > 0) {
+			int j;
+			CMD_OUT("\nLevel\tLabel\tModules    Routes Targets\n");
+			CMD_OUT("-----\t-----\t---------- ------ --------------------------------------------\n");
+			for (j = 0; j <= g_traceLevel_max; j++) {
+				int k;
+				CMD_OUT("%s %d\t%s\t0x%08X 0x%02X   ", (g_traceLevel == j ? "*" : " "), g_traceinfo[j].level,
+					g_traceinfo[j].label, g_traceinfo[j].modules, g_traceinfo[j].routes);
+				if (g_traceinfo[j].routes) {
+					if (g_traceinfo[j].routes & ESIF_TRACEROUTE_CONSOLE) {
+						CMD_OUT("CON ");
+					}
+					if (g_traceinfo[j].routes & ESIF_TRACEROUTE_EVENTLOG) {
+						CMD_OUT("EVT ");
+					}
+					if (g_traceinfo[j].routes & ESIF_TRACEROUTE_DEBUGGER) {
+						CMD_OUT("DBG ");
+					}
+					if (g_traceinfo[j].routes & ESIF_TRACEROUTE_LOGFILE) {
+						CMD_OUT("LOG%s ", (EsifLogFile_IsOpen(ESIF_LOG_TRACE) ? "" : "(?)"));
 					}
 				}
+				CMD_OUT("<< ");
+				if (g_traceinfo[j].modules == ESIF_TRACEMASK_ALL)
+					CMD_OUT("*");
+				else {
+					for (k = 0; k < ESIF_TRACEMASK_MAX; k++) {
+						if (g_traceinfo[j].modules & ((esif_tracemask_t)1 << k)) {
+							const char *modstr = EsifTraceModule_ToString((enum esif_tracemodule)k);
+							if (modstr != NULL)
+								CMD_OUT("%s ", modstr);
+						}
+					}
+				}
+				CMD_OUT("\n");
 			}
 			CMD_OUT("\n");
 		}
-		CMD_OUT("\n");
 	}
+
+	if (shellbuf != NULL) {
+		output = shell->outbuf = esif_shell_resize(shellbuf_len);
+		esif_ccb_strcpy(output, shellbuf, OUT_BUF_LEN);
+		esif_ccb_free(shellbuf);
+	}
+
 	return output;
 }
 
@@ -4887,7 +5087,7 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "\n"
 						 "ESIF - Eco-System Independent Framework\n"
-						 "Copyright (c) 2013-2016 Intel Corporation All Rights Reserved\n"
+						 "Copyright (c) 2013-2017 Intel Corporation All Rights Reserved\n"
 						 "\n"
 						 "esif_uf - ESIF Upper Framework (UF) R3\n"
 						 "Version:  %s\n"
@@ -5236,7 +5436,7 @@ static char *esif_shell_cmd_participantsk(EsifShellCmdPtr shell)
 
 	for (i = 0; i < count; i++) {
 		char *enumStr  = (char *)"NA";
-		char *state_str = esif_lp_state_str((enum esif_pm_participant_state)data_ptr->participant_info[i].state);
+		char *state_str = esif_lp_state_str((enum esif_lp_state)data_ptr->participant_info[i].state);
 
 		switch (data_ptr->participant_info[i].bus_enum) {
 		case 0:
@@ -5398,23 +5598,7 @@ static char *esif_shell_cmd_participants(EsifShellCmdPtr shell)
 				esif_ccb_strcpy(desc, metaPtr->fDesc, 12);
 			}
 
-			switch (metaPtr->fEnumerator) {
-			case ESIF_PARTICIPANT_ENUM_ACPI:
-				enumStr = (char *)"ACPI";
-				break;
-
-			case ESIF_PARTICIPANT_ENUM_PCI:
-				enumStr = (char *)"PCI";
-				break;
-
-			case ESIF_PARTICIPANT_ENUM_PLAT:
-				enumStr = (char *)"PLAT";
-				break;
-
-			case ESIF_PARTICIPANT_ENUM_CONJURE:
-				enumStr = (char *)"CNJR";
-				break;
-			}
+			enumStr = esif_participant_enum_shortname(metaPtr->fEnumerator);
 
 			participantId = EsifUp_GetInstance(upPtr);
 
@@ -5604,23 +5788,7 @@ domain_exit:
 			esif_ccb_strcpy(desc, metaPtr->fDesc, 12);
 		}
 
-		switch (metaPtr->fEnumerator) {
-		case ESIF_PARTICIPANT_ENUM_ACPI:
-			enumStr = (char *)"ACPI";
-			break;
-
-		case ESIF_PARTICIPANT_ENUM_PCI:
-			enumStr = (char *)"PCI";
-			break;
-
-		case ESIF_PARTICIPANT_ENUM_PLAT:
-			enumStr = (char *)"PLAT";
-			break;
-
-		case ESIF_PARTICIPANT_ENUM_CONJURE:
-			enumStr = (char *)"CNJR";
-			break;
-		}
+		enumStr = esif_participant_enum_shortname(metaPtr->fEnumerator);
 
 		participantId = EsifUp_GetInstance(upPtr);
 
@@ -6190,7 +6358,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI Copyright (c) 2013-2016 Intel Corporation All Rights Reserved\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI Copyright (c) 2013-2017 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
 		"Key:  <>-Required parameters\n"
 		"      []-Optional parameters\n"
@@ -6245,6 +6413,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"participantsk                            List Kernel Participants\n"
 		"participant  <id>                        Get Participant Information\n"
 		"participantk <id>                        Get Kernel Participant Information\n"
+		"addpart <4-char name, desc, HID, ptype>  Add a new upper framework participant \n"
 		"dst  <id>                                Set Target Participant By ID\n"
 		"dstn <name>                              Set Target Participant By Name\n"
 		"domains                                  List Active Domains For Participant\n"
@@ -6297,22 +6466,30 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"                                            the IDSP in override.dv\n"
 		"\n"
 		"CONFIG API:\n"
-		"config list                              List Open DataVaults\n"
-		"config open   [@datavault]               Open and Load DataVault\n"
-		"config close  [@datavault]               Close DataVault\n"
-		"config drop   [@datavault]               Drop Closed DataVault\n"
-		"config get    [@datavault] <key>         Get DataVault Key (or wildcard)\n"
-		"config set    [@datavault] <key> <value> [ESIF_DATA_TYPE] [option ...]\n"
-		"                                         Set DataVault Key/Value/Type\n"
-		"config keys   [@datavault] <key>         Enumerate matching Key(s) or wildcard\n"
-		"config delete [@datavault] <key>         Delete DataVault Key (or '*')\n"
-		"config exec   [@datavault] <key>         Execute Script in DataVault Key\n"
-		"config copy   [@datavault] <key> [...] [@targetdv] [option ...]\n"
-		"                                         Copy (and Replace) keys(s) to another DV\n"
-		"config merge  [@datavault] <key> [...] [@targetdv] [option ...]\n"
-		"                                         Merge (No Replace) keys(s) to another DV\n"
-		"config export [@datavault] <key> [...] [@targetdv] [bios|dv]\n"
-		"                                         Export DV keys to BIOS or DV File Format\n"
+		"config [list]                               List Open DataVaults\n"
+		"config repo   [pattern] [...]               List Matchine Data Repository Files\n"
+		"config open   <@datavault|repo.ext>         Open and Load a DataVault or Repository\n"
+		"config close  <@datavault> [...]            Close DataVault(s)\n"
+		"config drop   <@datavault|repo.ext> [...]   Drop Closed DataVault\n"
+		"config get    [@datavault] [<keyspec>]      Get DataVault Key (or wildcard)\n"
+		"config set    [@datavault] <key> <value> [type] [option ...]\n"
+		"                                            Set DataVault Key/Value/Type\n"
+		"config keys   [@datavault] [<keyspec>]      Enumerate matching Key(s) or wildcard\n"
+		"config delete [@datavault] <keyspec>        Delete DataVault Key (or '*')\n"
+		"config exec   [@datavault] <key>            Execute Script in DataVault Key\n"
+		"config copy   [@datavault] <keyspec> [...] [@targetdv] [option ...]\n"
+		"                                            Copy (and Replace) keys(s) to another DV\n"
+		"config merge  [@datavault] <keyspec> [...] [@targetdv] [option ...]\n"
+		"                                            Merge (No Replace) keys(s) to another DV\n"
+		"config export [@datavault] <keyspec> [...] [@targetdv] [asl|dv|dvx|repo] [<comment>]\n"
+		"                                            Export DV keys to ASL or DV File\n"
+		"config payload <@datavault> <file> [<class>] [compress]\n"
+		"                                            Manually load a file into a DataVault Payload\n"
+		"config rename  <oldname.ext> <newname.ext>  Rename a DataVault Repository File (Rename)\n"
+		"config replace <oldname.ext> <newname.ext>  Rename a DataVault Repository File (Replace)\n"
+		"config concat <target.ext> <file.ext> [...] Concatenate DataVault Repository Files\n"
+		"config asl    <source.ext> <target.asl>     Convert a DataVault Repository to hex ASL format\n"
+		"config doc    <@datavault> <file.csv> [label] [append] Export a DV summary to file.csv\n"
 		"\n"
 		"EVENT API:\n"
 		"event    <eventType> [participant] [domain]   Send User Mode Event\n" 
@@ -6392,7 +6569,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"                                        same as the start command.\n"
 		"participantlog "PARTICIPANTLOG_CMD_INTERVAL_STR" [time]            Sets the polling interval for logging\n"
 		"                                        to time specified in ms.\n"
-		"                                        Default is 2s(2000ms)\n"
+		"                                        Default is 1s(1000ms)\n"
 		"participantlog "PARTICIPANTLOG_CMD_ROUTE_STR" [target ...] [filename]\n"
 		"                                        Logs the participant data log to the\n"
 		"                                        specified target.The target can be any\n"
@@ -6604,14 +6781,15 @@ static char *esif_shell_cmd_web(EsifShellCmdPtr shell)
 	return output;
 }
 
-
 static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 {
 	int argc     = shell->argc;
 	char **argv  = shell->argv;
 	char *output = shell->outbuf;
 	char *subcmd = NULL;
-	char *namesp = g_DataVaultDefault;
+	char *namesp = DataBank_GetDefault();
+	Bool explicit_namesp = ESIF_FALSE;
+	int  explicit_opt = 0;
 	int  opt = 1;
 	eEsifError   rc = ESIF_OK;
 	EsifDataPtr  data_nspace= NULL;
@@ -6624,28 +6802,76 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		subcmd = argv[opt++];
 	}
 
-	// Get Optional DataVault parameter
+	// Get Optional DataVault Parameter
 	// config <subcmd> [@datavault] ...
-	if (argc > 2 && argv[2][0]=='@') {
-		namesp = &argv[opt++][1];
+	if (argc > 2) {
+		if (argv[2][0] == '@') {
+			explicit_namesp = ESIF_TRUE;
+			explicit_opt = opt;
+			namesp = &argv[opt++][1];
+		}
 	}
-	
+
 	// config [list]
 	if (argc < 2 || esif_ccb_stricmp(subcmd, "list")==0) {
-		int j=0;
-		CMD_OUT("\n  Name             Keys\n  ---------------- -----\n");
-		for (j = 0; j < ESIF_MAX_NAME_SPACES; j++) {
-			if (g_DataBankMgr->elements[j] && g_DataBankMgr->elements[j]->name[0]) {
-				esif_string isdefault = (esif_ccb_stricmp(g_DataBankMgr->elements[j]->name, g_DataVaultDefault)==0 ? "*" : "");
-				CMD_OUT("%-2s%-16s %d\n", isdefault, g_DataBankMgr->elements[j]->name, DataCache_GetCount (g_DataBankMgr->elements[j]->cache));
+		DataBankPtr DbMgr = DataBank_GetMgr();
+		UInt32 j=0;
+		CMD_OUT("\nName             SegmentID        Keys  Version Flags    Store       Size Hash                                     Comment\n"
+				  "---------------- ---------------- ----- ------- -------- ------ --------- ---------------------------------------- --------------------------------\n");
+
+		esif_ccb_read_lock(&DbMgr->lock);
+		for (j = 0; j < DbMgr->size; j++) {
+			if (DbMgr->elements && DbMgr->elements[j] && DbMgr->elements[j]->name[0]) {
+				char version_str[MAX_PATH];
+				DataVaultPtr DB = DbMgr->elements[j];
+				UInt32 hashAsU32[5] = { 0 };
+
+				esif_ccb_read_lock(&DB->lock);
+				esif_string isdefault = (esif_ccb_stricmp(DB->name, DataBank_GetDefault()) == 0 ? "+" : "");
+				esif_string container = (DB->dataclass == ESIFDV_PAYLOAD_CLASS_REPO ? "Repo" : IOStream_GetType(DB->stream) == StreamMemory ? (IOStream_GetStore(DB->stream) == StoreStatic ? "Static" : "Memory") : IOStream_GetType(DB->stream) == StreamFile ? "File" : "Cache");
+
+				esif_ccb_sprintf(sizeof(version_str), version_str, "%d.%d.%d",
+					ESIFHDR_GET_MAJOR(DB->version),
+					ESIFHDR_GET_MINOR(DB->version),
+					ESIFHDR_GET_REVISION(DB->version));
+
+				// Display SHA1 for all Header versions, even though v1 does not persist SHA1
+				esif_ccb_memcpy(hashAsU32, DB->digest.hash, esif_ccb_min(sizeof(hashAsU32), sizeof(DB->digest.hash)));
+
+				config_flags_str_t flagstr = config_flags_str(DB->flags);
+				CMD_OUT("%-16s %-16s%-1s%5d %-8s%s %-6s%10u %08X%08X%08X%08X%08X %s\n",
+					DB->name,
+					(DB->segmentid[0] ? DB->segmentid : DB->name),
+					isdefault,
+					DataCache_GetCount(DB->cache),
+					version_str,
+					(StringPtr)&flagstr,
+					container,
+					(UInt32)(DB->digest.digest_bits / 8),
+					esif_ccb_htonl(hashAsU32[0]),
+					esif_ccb_htonl(hashAsU32[1]),
+					esif_ccb_htonl(hashAsU32[2]),
+					esif_ccb_htonl(hashAsU32[3]),
+					esif_ccb_htonl(hashAsU32[4]),
+					DB->comment
+					);
+				esif_ccb_read_unlock(&DB->lock);
 			}
 		}
+		esif_ccb_read_unlock(&DbMgr->lock);
+
 		CMD_OUT("\n");
 	}
-	// config get [@datavault] <keyspec> [type]
-	else if (argc > opt && esif_ccb_stricmp(subcmd, "get")==0) {
-		char *keyspec = argv[opt++];
+	// config get [@datavault] [<keyspec>] [type]
+	else if (esif_ccb_stricmp(subcmd, "get")==0) {
+		char *keyspec = (argc > opt ? argv[opt++] : "*");
 		char *type = (argc > opt ? argv[opt++] : NULL);
+		char *maxlen = (argc > opt ? argv[opt++] : NULL);
+		if (type != NULL && maxlen == NULL && (isdigit(*type) || *type == '-')) {
+			maxlen = type;
+			type = NULL;
+		}
+		UInt32 max_string = (maxlen ? esif_atoi(maxlen) : 0);
 
 		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
 		data_key    = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
@@ -6656,45 +6882,72 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		// Enumerate matching keys if keyspec contains "*" or "?" [unless STRING output type specified]
 		if (esif_ccb_strpbrk(keyspec, "*?") != NULL && esif_ccb_stricmp((type ? type : ""), "STRING") != 0) {
 			EsifConfigFindContext context = NULL;
-			int item = 0;
+			Bool display_hash = ESIF_FALSE;
 
+			if (type && esif_ccb_strnicmp(type, "SHA1", 3) == 0) {
+				display_hash = ESIF_TRUE;
+				max_string = (SHA1_HASH_BYTES * 2) + 1;
+			}
 			if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
+				CMD_OUT("\nType          Length Flags    Key                                      %s\n"
+					"----------- -------- -------- ---------------------------------------- ----------------------------------------%s\n",
+					(display_hash ? "Hash": "Value"),
+					(display_hash ? "" : "------------------------")
+				);
 				do {
 					esif_flags_t flags = 0;
 					if ((rc = EsifConfigGetItem(data_nspace, data_key, data_value, &flags)) == ESIF_OK) {
-						char *valuestr = EsifData_ToString(data_value);
-						item++;
-						CMD_DEBUG("\n"
-							"item    = %d\n"
-							"type    = %s\n"
-							"length  = %d\n"
-							"key     = \"%s\"\n"
-							"value   = %s%s%s\n",
-							item,
-							esif_data_type_str(data_value->type),
-							data_value->data_len,
-							(char*)data_key->buf_ptr,
-							(data_value->type == ESIF_DATA_STRING ? "\"" : ""), (valuestr ? valuestr : ""), (data_value->type == ESIF_DATA_STRING ? "\"" : "")
-							);
+						char *valuestr = NULL;
+						size_t valuelen = 0;
+						size_t j = 0;
+						if (display_hash) {
+							valuelen = (SHA1_HASH_BYTES * 2) + 1;
+							valuestr = esif_ccb_malloc(valuelen);
+							if (valuestr && data_value->buf_ptr) {
+								UInt32 hashAsU32[5] = { 0 };
+								esif_sha1_t digest = { 0 };
+								esif_sha1_init(&digest);
+								esif_sha1_update(&digest, data_value->buf_ptr, data_value->data_len);
+								esif_sha1_finish(&digest);
+								esif_ccb_memcpy(hashAsU32, digest.hash, esif_ccb_min(sizeof(hashAsU32), sizeof(digest.hash)));
+								esif_ccb_sprintf(valuelen, valuestr, "%08X%08X%08X%08X%08X",
+									esif_ccb_htonl(hashAsU32[0]),
+									esif_ccb_htonl(hashAsU32[1]),
+									esif_ccb_htonl(hashAsU32[2]),
+									esif_ccb_htonl(hashAsU32[3]),
+									esif_ccb_htonl(hashAsU32[4]));
+							}
+						}
+						else {
+							valuestr = EsifData_ToStringMax(data_value, (max_string ? max_string : 64));
+							valuelen = esif_ccb_strlen(valuestr, MAX_STRINGLEN) + 1;
+							for (j = 0; valuestr && j < valuelen && valuestr[j]; j++) {
+								if (valuestr[j] == '\r' && valuestr[j + 1] == '\n') {
+									esif_ccb_memmove(&valuestr[j], &valuestr[j + 1], esif_ccb_strlen(&valuestr[j + 1], valuelen - j) + 1);
+									valuelen--;
+								}
+								if (valuestr[j] == '\n')
+									valuestr[j] = '|';
+							}
+						}
 
-#ifdef ESIF_ATTR_DEBUG
-						CMD_DEBUG(
-							"flags   = 0x%08X\n"
-							"buf_ptr = %p %s\n"
-							"buf_len = %d\n"
-							"data_len= %d\n",
-							flags,
-							data_value->buf_ptr,
-							((flags & ESIF_SERVICE_CONFIG_FILELINK) ? (esif_string)data_value->buf_ptr : ""),
-							data_value->buf_len,
-							data_value->data_len
+						config_flags_str_t flagstr = config_flags_str(flags);
+						CMD_DEBUG("%-11s %8d %-8.8s %-40.40s %.*s\n"
+							,
+							ltrim(esif_data_type_str(data_value->type), PREFIX_DATA_TYPE),
+							data_value->data_len,
+							(StringPtr)&flagstr,
+							(char*)data_key->buf_ptr,
+							(valuelen - 1),
+							(valuestr ? valuestr : "")
 							);
-#endif
 						esif_ccb_free(valuestr);
 					}
 					EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
 					EsifData_Set(data_value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
 				} while ((rc = EsifConfigFindNext(data_nspace, data_key, NULL, &context)) == ESIF_OK);
+
+				CMD_OUT("\n");
 
 				EsifConfigFindClose(&context);
 				if (rc == ESIF_E_ITERATION_DONE)
@@ -6705,8 +6958,9 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		else {
 			if ((rc = EsifConfigGet(data_nspace, data_key, data_value)) == ESIF_OK) {
 				// Convert ESIF Data Type to viewable String
-				char *keyvalue = EsifData_ToString(data_value);
+				char *keyvalue = EsifData_ToStringMax(data_value, max_string);
 				if (keyvalue) {
+					output = shell->outbuf = esif_shell_resize(esif_ccb_strlen(keyvalue, MAX_STRINGLEN) + 1);
 					esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", keyvalue);
 					esif_ccb_free(keyvalue);
 				}
@@ -6734,6 +6988,13 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			EsifDataType newtype = esif_data_type_str2enum(argv[opt]);
 			if (newtype != ESIF_DATA_VOID || esif_ccb_stricmp(argv[opt], "VOID") == 0) {
 				opt++;
+				data_type = newtype;
+			}
+		}
+		// Use existing data type if key already exists when [type] not specified
+		else {
+			EsifDataType newtype = DataBank_KeyType(namesp, keyname);
+			if (newtype != (EsifDataType)0) {
 				data_type = newtype;
 			}
 		}
@@ -6774,9 +7035,9 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		// Results
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
 	}
-	// config keys [@datavault] <keyspec>
-	else if (argc > opt && esif_ccb_stricmp(subcmd, "keys") == 0) {
-		char *keyspec = argv[opt++];
+	// config keys [@datavault] [<keyspec>]
+	else if (esif_ccb_stricmp(subcmd, "keys") == 0) {
+		char *keyspec = (argc > opt ? argv[opt++] : "*");
 		EsifConfigFindContext context = NULL;
 
 		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
@@ -6801,7 +7062,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 	}
 	// config copy  [@datavault] <keyspec> [...] @targetdv [option ...]
 	// config merge [@datavault] <keyspec> [...] @targetdv [option ...]
-	else if (argc > opt + 1 && (esif_ccb_stricmp(subcmd, "copy") == 0) || (esif_ccb_stricmp(subcmd, "merge") == 0)){
+	else if (argc > opt + 1 && ((esif_ccb_stricmp(subcmd, "copy") == 0) || (esif_ccb_stricmp(subcmd, "merge") == 0))) {
 		char *keyspecs = esif_ccb_strdup(argv[opt++]);
 		char *targetdv = NULL;
 		esif_flags_t options = ESIF_SERVICE_CONFIG_PERSIST;
@@ -6858,7 +7119,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 	// config delete [@datavault] <keyspec>
 	else if (argc > opt && esif_ccb_stricmp(subcmd, "delete")==0) {
 		char *keyspec = argv[opt++];
-		DataVaultPtr DB = DataBank_GetNameSpace(g_DataBankMgr, namesp);
+		DataVaultPtr DB = DataBank_GetDataVault(namesp);
 		UInt32 keycount = 0;
 
 		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
@@ -6900,25 +7161,21 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
 		}
 	}
-
-	// config export [@datavault] <keyspec> [...] [@targetdv] [bios|dv|both]
+	// config export [@datavault] <keyspec> [...] [@targetdv] [asl|dv|dvx|repo] [comment] [targetname]
 	else if (argc > opt && esif_ccb_stricmp(subcmd, "export") == 0) {
-		char *outformat = "bios";
+		char *outformat = "asl";
 		char *keyspecs = esif_ccb_strdup(argv[opt++]);
 		char *targetdv = "BiosDataVault";
-		char *targetext = ".asl";
-		char *docext = ".csv";
-		char dv_file[MAX_PATH] = { 0 };
-		char export_file[MAX_PATH] = { 0 };
-		char doc_file[MAX_PATH] = { 0 };
-		FILE *fpin = NULL;
-		FILE *fpout = NULL;
+		char *targetname = targetdv;
+		char *targetrepo = NULL;
+		char *comment = NULL;
+		char targetdvtemp[ESIFDV_NAME_LEN + 1] = { 0 };
 		UInt32 keycount = 0;
 
 		rc = ESIF_OK;
 
-		// Step 1: Export <keyspec> [...] to temporary targetdv.dv (Default = "BiosDataVault.dv")
-		while ((keyspecs != NULL) && (argc > opt) && (*argv[opt] != '@')) {
+		// Export <keyspec> [...] to temporary targetdv.dv
+		while ((rc == ESIF_OK) && (keyspecs != NULL) && (argc > opt) && (*argv[opt] != '@')) {
 			size_t keylen = esif_ccb_strlen(keyspecs, OUT_BUF_LEN) + esif_ccb_strlen(argv[opt], OUT_BUF_LEN) + 2;
 			char *new_keyspecs = (char *)esif_ccb_realloc(keyspecs, keylen);
 			if (new_keyspecs == NULL) {
@@ -6929,148 +7186,151 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			keyspecs = new_keyspecs;
 			esif_ccb_sprintf_concat(keylen, keyspecs, "\t%s", argv[opt++]);
 		}
+
 		if (keyspecs == NULL) {
 			rc = ESIF_E_NO_MEMORY;
 		}
+		// @targetdv [asl|dv|dvx|repo] [<comment>] [targetname]
 		else if ((argc > opt) && (*argv[opt] == '@')) {
 			targetdv = &argv[opt++][1];
+
+			// [asl|dv|dvx|repo]
 			if (argc > opt) {
 				outformat = argv[opt++];
 			}
-		}
-
-		// Create Parameters
-		if (namesp && keyspecs && targetdv) {
-			data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
-			data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspecs, 0, ESIFAUTOLEN);
-			data_targetdv = EsifData_CreateAs(ESIF_DATA_STRING, targetdv, 0, ESIFAUTOLEN);
-		}
-		if (data_nspace == NULL || data_key == NULL || data_targetdv == NULL) {
-			rc = ESIF_E_NO_MEMORY;
-		}
-
-		// Copy Data to targetdv.dv and Close targetdv.dv, unless targetdv.dv already exists
-		if (rc == ESIF_OK) {
-			DataVaultPtr DB = DataBank_GetNameSpace(g_DataBankMgr, targetdv);
-			if (DB != NULL) {
-				rc = ESIF_E_IO_OPEN_FAILED;
+			// [<comment>]
+			if (argc > opt) {
+				comment = argv[opt++];
 			}
-			else {
+			// [targetname]
+			if (argc > opt) {
+				targetname = argv[opt++];
+			}
+		}
+
+		// Validate Filenames
+		if (shell_isprohibited(targetdv) || shell_isprohibited(targetname)) {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+		else {
+			// If exporting to an Embedded Repo, replace "@targetdv" with "@$$datavault" and embed in "targetdv.dvx"
+			if (esif_ccb_stricmp(outformat, "repo") == 0) {
+				esif_ccb_sprintf(sizeof(targetdvtemp), targetdvtemp, "%s%s", ESIFDV_TEMP_PREFIX, namesp);
+				targetrepo = targetdv;
+				targetdv = targetdvtemp;
+			}
+
+			// Create Parameters
+			if (namesp && keyspecs && targetdv) {
+				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+				data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspecs, 0, ESIFAUTOLEN);
+				data_targetdv = EsifData_CreateAs(ESIF_DATA_STRING, targetdv, 0, ESIFAUTOLEN);
+			}
+			if (data_nspace == NULL || data_key == NULL || data_targetdv == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+		}
+
+		// Step 1: Copy Data to targetdv.dv and Close targetdv.dv, unless targetdv.dv already exists and is non-empty
+		if (rc == ESIF_OK) {
+			DataVaultPtr DB = DataBank_GetDataVault(targetdv);
+			if (DB != NULL) {
+				if (DB->cache->size == 0) {
+					DB = NULL;
+				}
+				else {
+					rc = ESIF_E_IO_OPEN_FAILED;
+				}
+			}
+			if (DB == NULL) {
 				rc = EsifConfigCopy(data_nspace, data_targetdv, data_key, ESIF_SERVICE_CONFIG_PERSIST, ESIF_TRUE, &keycount);
-				if ((DB = DataBank_GetNameSpace(g_DataBankMgr, targetdv)) != NULL) {
-					if (esif_ccb_stricmp(outformat, "bios") == 0) {
-						DataBank_CloseNameSpace(g_DataBankMgr, targetdv);
+				if ((DB = DataBank_GetDataVault(targetdv)) != NULL) {
+					// Set DV 2.0 Metadata and segmentid in targetdv to the source segmentid
+					esif_ccb_write_lock(&DB->lock);
+					esif_ccb_strncpy(DB->segmentid, namesp, sizeof(DB->segmentid));
+					if (ESIFHDR_GET_MAJOR(DB->version) < 2) {
+						DB->version = ESIFHDR_VERSION(2, 0, 0);
 					}
+					if (DB->comment[0] == 0) {
+						if (comment != NULL) {
+							esif_ccb_strcpy(DB->comment, comment, sizeof(DB->comment));
+				
+						}
+						else {
+							DataVault_SetDefaultComment(DB);
+						}
+					}
+					esif_ccb_write_unlock(&DB->lock);
+
+					rc = EsifConfigSet(data_targetdv, NULL, 0, NULL);
 				}
 			}
 		}
 		esif_ccb_free(keyspecs);
 
-		// Step 2: Convert targetdv.dv to targetdv.asl and targetdv.csv and delete targetdv.dv (default="BiosDataVault.asl")
-		if (rc == ESIF_OK && keycount > 0 && esif_ccb_stricmp(outformat, "dv") != 0) {
-			char dvfilename[MAX_PATH] = { 0 };
-			esif_ccb_strcpy(dvfilename, targetdv, sizeof(dvfilename));
-			esif_ccb_strlwr(dvfilename, sizeof(dvfilename)); // .dv files are always lowercase
-			esif_build_path(dv_file, sizeof(dv_file), ESIF_PATHTYPE_DV, dvfilename, ESIFDV_FILEEXT);
-			esif_build_path(export_file, sizeof(export_file), ESIF_PATHTYPE_LOG, targetdv, targetext);
-			esif_build_path(doc_file, sizeof(doc_file), ESIF_PATHTYPE_LOG, targetdv, docext);
+		// Optional Step 2: Convert targetdv.dv to targetdv.asl and targetdv.csv and delete targetdv.dv
+		if (rc == ESIF_OK && keycount > 0) {
+			Bool isRest = g_isRest;
+			char cmdline[MAX_LINE] = { 0 };
 
-			
-			// Export targetdv.dv to targetdv.csv
-			if ((fpout = esif_ccb_fopen(doc_file, "w", NULL)) != NULL) {
-				DataVaultPtr DB = NULL;
-				EsifConfigFindContext context = NULL;
-				int item = 0;
-				esif_string keyspec = "*";
-
-				if ((DB = DataBank_OpenNameSpace(g_DataBankMgr, targetdv)) != NULL) {
-					IOStream_SetFile(DB->stream, dv_file, "rb");
-					rc = DataVault_ReadVault(DB);
+			// asl = Export to ASL File for compiling into BIOS and CSV for Documentation
+			if (esif_ccb_stricmp(outformat, "asl") == 0) {
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config close @%s", targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config doc @%s %s.csv", targetdv, targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config asl %s.dv %s.asl", targetdv, targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config replace %s.dv %s.bin", targetdv, targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+			}
+			// dv  = Single-Segment DataVault Repository (Copy into Cache)
+			else if (esif_ccb_stricmp(outformat, "dv") == 0) {
+				// Leave existing targetdv.dv in place and do nothing
+			}
+			// dvx = Single-Segment DataVault Repository (Merge into Cache)
+			else if (esif_ccb_stricmp(outformat, "dvx") == 0) {
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config close @%s", targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config replace %s%s %s%s", targetdv, ESIFDV_FILEEXT, targetdv, ESIFDV_REPOEXT);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+			}
+			// repo = Single-Segment Repository with Single-Segment DV Repo Embedded as a REPO Payload
+			else if (esif_ccb_stricmp(outformat, "repo") == 0 && targetrepo != NULL) {
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config open @%s", targetrepo);
+				if (comment) {
+					esif_ccb_sprintf_concat(sizeof(cmdline), cmdline, " \"%s\"", comment);
 				}
-
-				EsifData_Destroy(data_nspace);
-				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, dvfilename, 0, ESIFAUTOLEN);
-				EsifData_Destroy(data_key);
-				data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
-				data_value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
-				if (rc != ESIF_OK || data_nspace == NULL || data_key == NULL || data_value == NULL) {
-					esif_ccb_fclose(fpout);
-					goto exit;
-				}
-
-				esif_ccb_fprintf(fpout, "GDDV\n");
-				if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
-					do {
-						esif_flags_t flags = 0;
-						if ((rc = EsifConfigGetItem(data_nspace, data_key, data_value, &flags)) == ESIF_OK) {
-							char *valuestr = EsifData_ToString(data_value);
-							item++;
-							esif_ccb_fprintf(fpout, 
-								"%s,%s,%u,%s\n",
-								(char*)data_key->buf_ptr,
-								ltrim(esif_data_type_str(data_value->type), PREFIX_DATA_TYPE),
-								data_value->data_len,
-								(valuestr ? valuestr : "")
-								);
-							esif_ccb_free(valuestr);
-						}
-						EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
-						EsifData_Set(data_value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
-					} while ((rc = EsifConfigFindNext(data_nspace, data_key, NULL, &context)) == ESIF_OK);
-
-					EsifConfigFindClose(&context);
-					if (rc == ESIF_E_ITERATION_DONE)
-						rc = ESIF_OK;
-				}
-				esif_ccb_fprintf(fpout, "\n");
-				esif_ccb_fclose(fpout);
-				fpout = NULL;
-				DataBank_CloseNameSpace(g_DataBankMgr, targetdv);
-			}
-			else {
-				rc = ESIF_E_IO_ERROR;
-			}
-
-			// Export targetdv.dv to targetdv.asl
-			if ((rc == ESIF_OK) && ((fpin = esif_ccb_fopen(dv_file, "rb", NULL)) != NULL) && ((fpout = esif_ccb_fopen(export_file, "wb", NULL)) != NULL)) {
-				u8 buffer[1024] = { 0 };
-				size_t bytes = 0;
-				size_t total_bytes = 0;
-				while ((bytes = esif_ccb_fread(buffer, sizeof(buffer), sizeof(char), sizeof(buffer), fpin)) > 0) {
-					size_t j;
-					for (j = 0; j < bytes; j++) {
-						fprintf(fpout, "%s%s0x%02X",
-							(total_bytes > 0 ? "," : ""),
-							(total_bytes > 0 && total_bytes % 16 == 0 ? "\r\n" : ""),
-							(unsigned int)buffer[j]);
-						total_bytes++;
-					}
-				}
-			}
-			else if (rc == ESIF_OK) {
-				rc = ESIF_E_IO_ERROR;
-			}
-			if (fpin) {
-				esif_ccb_fclose(fpin);
-			}
-			if (fpout) {
-				esif_ccb_fclose(fpout);
-			}
-			
-			// Delete temporary targetdv.dv if BIOS output format [default]
-			if (esif_ccb_stricmp(outformat, "bios") == 0) {
-				esif_ccb_unlink(dv_file);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config close @%s", targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config payload @%s %s.dv REPO compress", targetrepo, targetdv);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config close @%s", targetrepo);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config asl %s.dvx %s.asl", targetrepo, targetname);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config doc @%s %s.csv", targetdv, targetname);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config drop %s.dv %s.bin", targetdv, targetrepo);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config replace %s.dvx %s.bin", targetrepo, targetrepo);
+				parse_cmd(cmdline, isRest, ESIF_TRUE);
 			}
 		}
 
 		if (rc == ESIF_OK) {
-			if (esif_ccb_stricmp(outformat, "dv") == 0) {
-				esif_ccb_sprintf(sizeof(export_file), export_file, "@%s", targetdv);
-			}
 			if (keycount == 0) {
 				esif_ccb_sprintf(OUT_BUF_LEN, output, "No Keys Found to Export\n");
 			}
 			else {
+				char export_file[MAX_PATH] = { 0 };
+				if (esif_ccb_strnicmp(outformat, "dv", 2) == 0) {
+					esif_build_path(export_file, sizeof(export_file), ESIF_PATHTYPE_DV, targetdv, (esif_ccb_stricmp(outformat, "dv") == 0 ? ESIFDV_FILEEXT : ESIFDV_REPOEXT));
+				}
+				else {
+					esif_build_path(export_file, sizeof(export_file), ESIF_PATHTYPE_LOG, targetname, ".asl");
+				}
 				esif_ccb_sprintf(OUT_BUF_LEN, output, "%d keys exported to %s\n", keycount, export_file);
 			}
 		}
@@ -7078,96 +7338,541 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
 		}
 	}
-	// config scan [pattern]
-	else if (esif_ccb_stricmp(subcmd, "scan")==0) {
+	// config asl <source.ext> <dest.asl>
+	else if (esif_ccb_stricmp(subcmd, "asl") == 0 && argc + 1 > opt) {
+		char source_path[MAX_PATH] = { 0 };
+		char dest_path[MAX_PATH] = { 0 };
+		FILE *fpin = NULL;
+		FILE *fpout = NULL;
+		StringPtr source_file = argv[opt++];
+		StringPtr dest_file = argv[opt++];
+
+		// source = DV folder unless specified, dest = LOG folder always
+		if (esif_ccb_strchr(source_file, *ESIF_PATH_SEP) != NULL) {
+			esif_ccb_strcpy(source_path, source_file, sizeof(source_path));
+		}
+		else {
+			esif_build_path(source_path, sizeof(source_path), ESIF_PATHTYPE_DV, source_file, NULL);
+		}
+		esif_build_path(dest_path, sizeof(dest_path), ESIF_PATHTYPE_LOG, dest_file, NULL);
+
+		// Validate Filenames
+		if (shell_isprohibited(source_file) || shell_isprohibited(dest_file)) {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+		// Export <source-file> to <target-file>, converting to hex
+		else if (((fpin = esif_ccb_fopen(source_path, "rb", NULL)) != NULL) && ((fpout = esif_ccb_fopen(dest_path, "wb", NULL)) != NULL)) {
+			size_t buf_len = (4 * 1024);
+			BytePtr buffer = esif_ccb_malloc(buf_len);
+			size_t bytes_read = 0;
+			size_t total_bytes = 0;
+
+			while (buffer && (bytes_read = esif_ccb_fread(buffer, buf_len, sizeof(char), buf_len, fpin)) > 0) {
+				size_t j;
+				for (j = 0; j < bytes_read; j++) {
+					fprintf(fpout, "%s%s0x%02X",
+						(total_bytes > 0 ? "," : ""),
+						(total_bytes > 0 && total_bytes % 16 == 0 ? "\r\n" : ""),
+						(unsigned int)buffer[j]);
+					total_bytes++;
+				}
+			}
+			esif_ccb_free(buffer);
+			if (total_bytes > 0 && bytes_read == 0) {
+				rc = ESIF_OK;
+			}
+		}
+		else {
+			rc = ESIF_E_IO_OPEN_FAILED;
+		}
+
+		if (fpin) {
+			esif_ccb_fclose(fpin);
+		}
+		if (fpout) {
+			esif_ccb_fclose(fpout);
+		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config doc <@datavault> <file.csv> [label] [append]
+	else if (esif_ccb_strnicmp(subcmd, "doc", 3) == 0 && argc > opt) {
+		char dv_path[MAX_PATH] = { 0 };
+		char doc_path[MAX_PATH] = { 0 };
+		FILE *fpout = NULL;
+		StringPtr doc_file = argv[opt++];
+		StringPtr label = "GDDV";
+		StringPtr open_mode = "w";
+		DataVaultPtr DB = NULL;
+		EsifConfigFindContext context = NULL;
+		int item = 0;
+		esif_string keyspec = "*";
+
+		// [label]
+		if (argc > opt) {
+			label = argv[opt++];
+		}
+		// [append]
+		if (argc > opt) {
+			if (esif_ccb_stricmp(argv[opt++], "append") == 0) {
+				open_mode = "a";
+			}
+		}
+		esif_build_path(dv_path, sizeof(dv_path), ESIF_PATHTYPE_DV, namesp, ESIFDV_FILEEXT);
+		esif_build_path(doc_path, sizeof(doc_path), ESIF_PATHTYPE_LOG, doc_file, NULL);
+
+		// Validate Filenames
+		if (shell_isprohibited(doc_file)) {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+
+		// Can only export Closed Datavaults
+		if ((rc == ESIF_OK) && (DB = DataBank_GetDataVault(namesp)) != NULL) {
+			rc = ESIF_E_IO_ALREADY_EXISTS;
+			DB = NULL;
+		}
+		if (rc == ESIF_OK) {
+			rc = DataBank_ImportDataVault(namesp);
+			DB = DataBank_GetDataVault(namesp);
+		}
+		if ((rc == ESIF_OK) && (fpout = esif_ccb_fopen(doc_path, open_mode, NULL)) == NULL) {
+			rc = ESIF_E_IO_OPEN_FAILED;
+		}
+
+		EsifData_Destroy(data_nspace);
+		EsifData_Destroy(data_key);
+		EsifData_Destroy(data_value);
+		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+		data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+		data_value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+			
+		// Export @datavault to file.csv
+		if (rc == ESIF_OK && data_nspace != NULL && data_key != NULL && data_value != NULL) {
+			esif_ccb_fprintf(fpout, "%s\n", label);
+			if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
+				do {
+					esif_flags_t flags = 0;
+					if ((rc = EsifConfigGetItem(data_nspace, data_key, data_value, &flags)) == ESIF_OK) {
+						char *valuestr = EsifData_ToString(data_value);
+						item++;
+						esif_ccb_fprintf(fpout,
+							"%s,%s,%u,%s\n",
+							(char*)data_key->buf_ptr,
+							ltrim(esif_data_type_str(data_value->type), PREFIX_DATA_TYPE),
+							data_value->data_len,
+							(valuestr ? valuestr : "")
+						);
+						esif_ccb_free(valuestr);
+					}
+					EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+					EsifData_Set(data_value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+				} while ((rc = EsifConfigFindNext(data_nspace, data_key, NULL, &context)) == ESIF_OK);
+
+				EsifConfigFindClose(&context);
+				if (rc == ESIF_E_ITERATION_DONE)
+					rc = ESIF_OK;
+			}
+			esif_ccb_fprintf(fpout, "\n");
+		}
+		if (fpout) {
+			esif_ccb_fclose(fpout);
+			fpout = NULL;
+		}
+		if (DB) {
+			DataBank_CloseDataVault(namesp);
+		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config version [@datavault] [<major>[.<minor>[.<revision>]]]
+	else if (esif_ccb_stricmp(subcmd, "version") == 0 && argc > opt) {
+		StringPtr version = argv[opt++];
+		StringPtr dot = NULL;
+		UInt32 major = esif_atoi(version);
+		UInt32 minor = ((dot = esif_ccb_strchr(version, '.')) != NULL ? esif_atoi(++dot) : 0);
+		UInt32 revision = (dot && (dot = esif_ccb_strchr(dot, '.')) != NULL ? esif_atoi(++dot) : 0);
+
+		DataVaultPtr DB = DataBank_GetDataVault(namesp);
+		if (DB != NULL) {
+			if (major > 0) {
+				esif_ccb_write_lock(&DB->lock);
+				DB->version = ESIFHDR_VERSION(major, minor, revision);
+				esif_ccb_write_unlock(&DB->lock);
+				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+				rc = EsifConfigSet(data_nspace, NULL, 0, NULL);
+			}
+		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config comment [@datavault] [<comment>]
+	else if (esif_ccb_stricmp(subcmd, "comment") == 0 && argc > opt) {
+		DataVaultPtr DB = DataBank_GetDataVault(namesp);
+		if (DB != NULL) {
+			esif_ccb_write_lock(&DB->lock);
+			esif_ccb_strncpy(DB->comment, argv[opt++], sizeof(DB->comment));
+			esif_ccb_write_unlock(&DB->lock);
+			data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+			rc = EsifConfigSet(data_nspace, NULL, 0, NULL);
+		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config segmentid [@datavault] <segmentid>
+	else if (esif_ccb_stricmp(subcmd, "id") == 0 || esif_ccb_strnicmp(subcmd, "segmentid", 7) == 0) {
+		DataVaultPtr DB = DataBank_GetDataVault(namesp);
+		if (DB != NULL) {
+			if (argc > opt) {
+				esif_ccb_write_lock(&DB->lock);
+				esif_ccb_strncpy(DB->segmentid, argv[opt++], sizeof(DB->segmentid));
+				esif_ccb_write_unlock(&DB->lock);
+				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+				rc = EsifConfigSet(data_nspace, NULL, 0, NULL);
+			}
+		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config write <@datavault>
+	else if (esif_ccb_stricmp(subcmd, "write") == 0 && explicit_namesp) {
+		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+		rc = EsifConfigSet(data_nspace, NULL, 0, NULL);
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config payload <@datavault> [<payload-file>] [<payload-class>] [compress]
+	else if (esif_ccb_stricmp(subcmd, "payload") == 0 && explicit_namesp) {
+		Bool compress_payload = ESIF_FALSE;
+
+		// [<payload-file>] [<payload-class] [compress]
+		if (argc > opt) {
+			StringPtr payload_file = argv[opt++];
+			UInt32 payload_class = ESIFDV_PAYLOAD_CLASS_REPO;
+			IOStreamPtr repo_stream = IOStream_Create();
+
+			// [<payload-class>] = ('KEYS', 'REPO', etc)
+			if (argc > opt) {
+				char classname[sizeof(UInt32) + 1] = { 0 };
+				esif_ccb_strcpy(classname, argv[opt++], sizeof(classname));
+				esif_ccb_strupr(classname, sizeof(classname));
+				payload_class = *((UInt32 *)classname);
+			}
+
+			// [compress]
+			if (argc > opt && esif_ccb_strnicmp(argv[opt], "compress", 4) == 0) {
+				compress_payload = ESIF_TRUE;
+				opt++;
+			}
+
+			if (repo_stream == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else {
+				// [<payload-file>] = { <<file.ext | file.ext | /path/name/file.ext }
+				char repopath[MAX_PATH] = { 0 };
+				if (esif_ccb_strncmp(payload_file, "<<", 2) == 0) {
+					payload_file += 2;
+				}
+				if (esif_ccb_strchr(payload_file, *ESIF_PATH_SEP) != NULL) {
+					esif_ccb_strcpy(repopath, payload_file, sizeof(repopath));
+				}
+				else {
+					esif_build_path(repopath, sizeof(repopath), ESIF_PATHTYPE_DV, payload_file, NULL);
+				}
+
+				// Create a File Stream that can be Copied to a DataVault Payload
+				if (IOStream_SetFile(repo_stream, StoreReadOnly, repopath, "rb") != EOK) {
+					rc = ESIF_E_NO_MEMORY;
+				}
+				else {
+					DataVaultPtr DB = DataBank_OpenDataVault(namesp);
+					if (DB == NULL) {
+						rc = ESIF_E_NO_MEMORY;
+					}
+					else {
+						rc = DataVault_SetPayload(DB, payload_class, repo_stream, compress_payload);
+					}
+				}
+			}
+			IOStream_Destroy(repo_stream);
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+		}
+		// No <payload-file> = Flush Persisted Key/Value Pairs as KEYS Payload
+		else {
+			data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+			rc = EsifConfigSet(data_nspace, NULL, 0, NULL);
+		}
+
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+
+	// config repo [pattern] [...]
+	else if (esif_ccb_strnicmp(subcmd, "repo", 4) == 0 || esif_ccb_stricmp(subcmd, "scan") == 0) {
 		esif_ccb_file_enum_t find_handle = ESIF_INVALID_FILE_ENUM_HANDLE;
 		struct esif_ccb_file ffd = {0};
 		char file_path[MAX_PATH] = {0};
-		char *log_pattern = "*.dv";
+		char full_name[MAX_PATH] = {0};
+		char *default_patterns[] = { "*.dv", "*.dvx" };
+		char **patterns_argv = default_patterns;
+		int patterns_argc = sizeof(default_patterns) / sizeof(default_patterns[0]);
+		int patterns_opt = 0;
 
-		if (argc > 2) {
-			log_pattern = argv[2];
+		if (argc > opt) {
+			patterns_argv = &argv[opt];
+			patterns_argc = argc - opt;
+			patterns_opt = 0;
 		}
 		esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_DV, NULL, NULL);
 
-		if ((find_handle = esif_ccb_file_enum_first(file_path, log_pattern, &ffd)) != ESIF_INVALID_FILE_ENUM_HANDLE) {
-			do {
-				if (esif_ccb_strcmp(ffd.filename, ".")==0 || esif_ccb_strcmp(ffd.filename, "..")==0 || esif_ccb_strchr(ffd.filename, '.')==NULL) {
-					continue; // Ignore . and .. and files w/o extensions
-				}
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", ffd.filename);
-			} while (esif_ccb_file_enum_next(find_handle, log_pattern, &ffd));
-			esif_ccb_file_enum_close(find_handle);
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "\n%s",
+			"Repo Name                  Size Last Update\n"
+			"-------------------- ---------- ------------------------\n");
+
+		while (patterns_argc > patterns_opt) {
+			char *this_pattern = patterns_argv[patterns_opt++];
+
+			// Validate Filenames
+			if (shell_isprohibited(this_pattern)) {
+				rc = ESIF_E_IO_INVALID_NAME;
+			}
+			else if ((find_handle = esif_ccb_file_enum_first(file_path, this_pattern, &ffd)) != ESIF_INVALID_FILE_ENUM_HANDLE) {
+				do {
+					if (esif_ccb_strcmp(ffd.filename, ".") == 0 || esif_ccb_strcmp(ffd.filename, "..") == 0) {
+						continue; // Ignore . and ..
+					}
+
+					// Get and Display File Details
+					struct stat file_stat = { 0 };
+					esif_build_path(full_name, sizeof(full_name), ESIF_PATHTYPE_DV, ffd.filename, NULL);
+					esif_ccb_stat(full_name, &file_stat);
+
+					char timestamp[MAX_CTIME_LEN] = { 0 };
+					esif_ccb_ctime(timestamp, sizeof(timestamp), &file_stat.st_mtime);
+
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						"%-20s %10llu %.24s\n",
+						ffd.filename,
+						(UInt64)file_stat.st_size,
+						timestamp);
+
+				} while (esif_ccb_file_enum_next(find_handle, this_pattern, &ffd));
+				esif_ccb_file_enum_close(find_handle);
+			}
+		}
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s", "\n");
+
+		if (rc != ESIF_OK) {
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
 		}
 	}
-	// config open @datavault
-	else if (esif_ccb_stricmp(subcmd, "open")==0) {
-		if (DataBank_GetNameSpace(g_DataBankMgr, namesp) != NULL) {
-			rc = ESIF_E_READONLY;
-		}
-		else {
-			DataVaultPtr DB = DataBank_OpenNameSpace(g_DataBankMgr, namesp);
-			if (DB == NULL) {
-				rc = ESIF_E_NOT_FOUND;
+	// config open <@datavault [comment] | reponame.ext>
+	else if (esif_ccb_stricmp(subcmd, "open") == 0) {
+		StringPtr reponame = NULL;
+
+		// config open <reponame.ext>
+		if (argc > opt && !explicit_namesp) {
+			// Create a Repo Object for the given filename and Load it into DataVault Cache(s)
+			reponame = argv[opt++];
+
+			// Validate Filenames
+			if (shell_isprohibited(reponame)) {
+				rc = ESIF_E_IO_INVALID_NAME;
 			}
 			else {
-				char datavault[MAX_PATH]={0};
-				esif_build_path(datavault, sizeof(datavault), ESIF_PATHTYPE_DV, DB->name, ESIFDV_FILEEXT);
-				IOStream_SetFile(DB->stream, datavault, "rb");
-				if ((rc = DataVault_ReadVault(DB)) != ESIF_OK) {
-					DataBank_CloseNameSpace(g_DataBankMgr, namesp);
+				DataRepoPtr repo = DataRepo_CreateAs(StreamFile, StoreReadWrite, reponame);
+				if (repo == NULL) {
+					rc = ESIF_E_NOT_FOUND;
+				}
+				else {
+					ESIF_TRACE_INFO("Loading REPO %s\n", reponame);
+					rc = DataRepo_LoadSegments(repo);
+					DataRepo_Destroy(repo);
+				}
+			}
+		}
+		
+		// config open <@datavault> [comment]
+		if (explicit_namesp) {
+			DataVaultPtr DB = DataBank_GetDataVault(namesp);
+			if (DB != NULL) {
+				rc = ESIF_E_IO_ALREADY_EXISTS;
+			}
+			else {
+				StringPtr comment = (argc > opt ? argv[opt++] : NULL);
+				rc = DataBank_ImportDataVault(namesp);
+				DB = DataBank_GetDataVault(namesp);
+
+				if (rc == ESIF_OK && DB != NULL && comment != NULL) {
+					esif_ccb_write_lock(&DB->lock);
+					esif_ccb_strcpy(DB->comment, comment, sizeof(DB->comment));
+					esif_ccb_write_unlock(&DB->lock);
+				}
+			}
+		}
+		
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	}
+	// config close <@datavault> [...]
+	else if (esif_ccb_stricmp(subcmd, "close")==0 && explicit_namesp) {
+		int closed = 0;
+		DataVaultPtr DB = NULL;
+		
+		rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		opt = explicit_opt;
+		while (argc > opt) {
+			StringPtr dvname = argv[opt++];
+			if (dvname[0] == '@') {
+				dvname++;
+				DB = DataBank_GetDataVault(dvname);
+				if (DB == NULL) {
+					rc = ESIF_E_NOT_FOUND;
+				}
+				else if (DB->flags & ESIF_SERVICE_CONFIG_STATIC) {
+					rc = ESIF_E_NOT_SUPPORTED;
+				}
+				else {
+					DataBank_CloseDataVault(dvname);
+					rc = ESIF_OK;
+					closed++;
 				}
 			}
 		}
 
-		// Results
-		if (rc != ESIF_OK) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
-		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s (%d closed)\n", esif_rc_str(rc), closed);
 	}
-	// config close @datavault
-	else if (esif_ccb_stricmp(subcmd, "close")==0) {
-		DataVaultPtr DB = DataBank_GetNameSpace(g_DataBankMgr, namesp);
-		if (DB == NULL) {
-			rc = ESIF_E_NOT_SUPPORTED;
-		}
-		else if (DB->flags & ESIF_SERVICE_CONFIG_STATIC) {
-			rc = ESIF_E_NOT_SUPPORTED;
-		}
-		else {
-			DataBank_CloseNameSpace(g_DataBankMgr, namesp);
+	// config drop <@datavault | repo.ext> [...]
+	else if (esif_ccb_stricmp(subcmd, "drop")==0) {
+		int dropped = 0;
+
+		rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		if (explicit_namesp) {
+			opt = explicit_opt;
 		}
 
-		if (rc != ESIF_OK) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+		while (argc > opt) {
+			char fullpath[MAX_PATH] = { 0 };
+			StringPtr argname = argv[opt++];
+			StringPtr dvname = NULL;
+			if (argname[0] == '@') {
+				dvname = argname + 1;
+				esif_build_path(fullpath, sizeof(fullpath), ESIF_PATHTYPE_DV, dvname, ESIFDV_FILEEXT);
+			}
+			else if (shell_isprohibited(argname)) {
+				rc = ESIF_E_IO_INVALID_NAME;
+			}
+			else {
+				esif_build_path(fullpath, sizeof(fullpath), ESIF_PATHTYPE_DV, argname, NULL);
+			}
+
+			if (fullpath[0]) {
+				if (dvname && DataBank_GetDataVault(dvname) != NULL) {
+					rc = ESIF_E_NOT_SUPPORTED;
+				}
+				else if (esif_ccb_unlink(fullpath) != 0) {
+					rc = ESIF_E_NOT_FOUND;
+				}
+				else {
+					rc = ESIF_OK;
+					dropped++;
+				}
+			}
 		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s (%d dropped)\n", esif_rc_str(rc), dropped);
 	}
-	// config drop @datavault
-	else if (esif_ccb_stricmp(subcmd, "drop")==0) {
-		if (DataBank_GetNameSpace(g_DataBankMgr, namesp) != NULL) {
-			rc = ESIF_E_NOT_SUPPORTED;
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+	// config concat <target.ext> <file1.ext> [...]
+	else if (esif_ccb_stricmp(subcmd, "concat") == 0 && !explicit_namesp && argc + 1 > opt) {
+		char target_path[MAX_PATH] = { 0 };
+		char source_path[MAX_PATH] = { 0 };
+		StringPtr target_name = argv[opt++];
+		StringPtr source_name = NULL;
+		FILE *targetfp = NULL;
+		FILE *sourcefp = NULL;
+		size_t buf_len = (4 * 1024);
+		BytePtr buffer = NULL;
+		size_t bytes_read = 0;
+		size_t total_bytes = 0;
+		int filecount = 0;
+		int errnum = 0;
+
+		// Open target file first, then copy every other file to it
+		esif_build_path(target_path, sizeof(target_path), ESIF_PATHTYPE_DV, target_name, NULL);
+		if (*target_name == '.') {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+		else if ((targetfp = esif_ccb_fopen(target_path, "wb", &errnum)) == NULL) {
+			rc = ESIF_E_IO_OPEN_FAILED;
 		}
 		else {
-			int ignore = 0;
-			char datavault[MAX_PATH]={0};
-			esif_build_path(datavault, MAX_PATH, ESIF_PATHTYPE_DV, namesp, ESIFDV_FILEEXT);
-			ignore = esif_ccb_unlink(datavault);
+			if ((buffer = esif_ccb_malloc(buf_len)) == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			// <file1.ext> [...]
+			while ((rc == ESIF_OK) && (argc > opt)) {
+				source_name = argv[opt++];
+				esif_build_path(source_path, sizeof(source_path), ESIF_PATHTYPE_DV, source_name, NULL);
+
+				// Validate Filenames
+				if (shell_isprohibited(source_name)) {
+					rc = ESIF_E_IO_INVALID_NAME;
+					break;
+				}
+				else if ((sourcefp = esif_ccb_fopen(source_path, "rb", &errnum)) == NULL) {
+					rc = ESIF_E_IO_OPEN_FAILED;
+					break;
+				}
+				while ((bytes_read = esif_ccb_fread(buffer, buf_len, sizeof(Byte), buf_len, sourcefp)) > 0) {
+					if (esif_ccb_fwrite(buffer, sizeof(Byte), bytes_read, targetfp) < bytes_read) {
+						rc = ESIF_E_IO_ERROR;
+						break;
+					}
+					total_bytes += bytes_read;
+					filecount++;
+				}
+				esif_ccb_fclose(sourcefp);
+			}
+
+			esif_ccb_free(buffer);
+			esif_ccb_fclose(targetfp);
+			if (rc != ESIF_OK) {
+				IGNORE_RESULT(esif_ccb_unlink(target_path));
+			}
 		}
+
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s [%d] (%d files, %llu total bytes)\n", esif_rc_str(rc), errnum, filecount, (UInt64)total_bytes);
 	}
-	// config select @datavault
-	else if (esif_ccb_stricmp(subcmd, "select")==0) {
-		if (DataBank_GetNameSpace(g_DataBankMgr, namesp) == NULL) {
+	// config rename <oldname.ext> <newname.ext>
+	else if ((esif_ccb_stricmp(subcmd, "rename") == 0 || esif_ccb_stricmp(subcmd, "replace") == 0) && !explicit_namesp && argc + 1 > opt) {
+		char oldpath[MAX_PATH] = { 0 };
+		char newpath[MAX_PATH] = { 0 };
+		StringPtr oldfile = argv[opt++];
+		StringPtr newfile = argv[opt++];
+		Bool replaceTarget = (esif_ccb_stricmp(subcmd, "replace") == 0);
+		int errnum = 0;
+
+		// Validate Filenames
+		if (shell_isprohibited(oldfile) || shell_isprohibited(newfile)) {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+		else {
+			esif_build_path(oldpath, sizeof(oldpath), ESIF_PATHTYPE_DV, oldfile, NULL);
+			esif_build_path(newpath, sizeof(newpath), ESIF_PATHTYPE_DV, newfile, NULL);
+
+			if (replaceTarget && esif_ccb_file_exists(newpath)) {
+				if (esif_ccb_unlink(newpath) != EOK) {
+					errnum = errno;
+					rc = ESIF_E_IO_DELETE_FAILED;
+				}
+			}
+			if (rc == ESIF_OK && esif_ccb_rename(oldpath, newpath) != 0) {
+				errnum = errno;
+				rc = (errnum == ENOENT ? ESIF_E_NOT_FOUND : errnum == EEXIST ? ESIF_E_IO_ALREADY_EXISTS : ESIF_E_IO_ERROR);
+			}
+		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s [%d]\n", esif_rc_str(rc), errnum);
+	}
+	// config select <@datavault>
+	else if (esif_ccb_stricmp(subcmd, "select") == 0 && explicit_namesp) {
+		if (DataBank_GetDataVault(namesp) == NULL) {
 			rc = ESIF_E_NOT_FOUND;
 		}
 		else {
-			esif_ccb_strcpy(g_DataVaultDefault, namesp, sizeof(g_DataVaultDefault));
+			DataBank_SetDefault(namesp);
 		}
-
-		// Results
-		if (rc != ESIF_OK) {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
-		}
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
 	}
 
 exit:
@@ -8129,6 +8834,7 @@ static EsifShellMap ShellCommands[] = {
 	{"actionstart",          fnArgv, (VoidFunc)esif_shell_cmd_actionstart         },
 	{"actionstop",           fnArgv, (VoidFunc)esif_shell_cmd_actionstop          },
 	{"actionsu",             fnArgv, (VoidFunc)esif_shell_cmd_actionsu            },
+	{"addpart",              fnArgv, (VoidFunc)esif_shell_cmd_add_participant     },
 	{"apps",                 fnArgv, (VoidFunc)esif_shell_cmd_apps                },
 	{"appselect",            fnArgv, (VoidFunc)esif_shell_cmd_appselect           },// Global Command
 	{"appstart",             fnArgv, (VoidFunc)esif_shell_cmd_appstart            },
@@ -8149,6 +8855,7 @@ static EsifShellMap ShellCommands[] = {
 	{"dsps",                 fnArgv, (VoidFunc)esif_shell_cmd_dsps                },
 	{"dst",                  fnArgv, (VoidFunc)esif_shell_cmd_dst                 },
 	{"dstn",                 fnArgv, (VoidFunc)esif_shell_cmd_dstn                },
+	{"dv",                   fnArgv, (VoidFunc)esif_shell_cmd_config              },
 	{"echo",                 fnArgv, (VoidFunc)esif_shell_cmd_echo                },
 	{"event",                fnArgv, (VoidFunc)esif_shell_cmd_event               },
 	{"eventkpe",             fnArgv, (VoidFunc)esif_shell_cmd_eventkpe            },
@@ -8242,13 +8949,13 @@ static char *esif_shell_exec_dispatch(
 	// Do a Binary Search
 	cmd = esif_ccb_strdup(line);
 	if (NULL == cmd) {
-		esif_ccb_sprintf(OUT_BUF_LEN, rcStr, "esif_ccb_strdup failed.\n");
+		ESIF_TRACE_DEBUG("esif_ccb_strdup failed.\n");
 		goto exit;
 	}
 
 	temp_cmd = esif_ccb_strtok(cmd, ESIF_SHELL_STRTOK_SEP, &local_context);
 	if (NULL == temp_cmd) {
-		esif_ccb_sprintf(OUT_BUF_LEN, rcStr, "esif_ccb_strtok failed.\n");
+		ESIF_TRACE_DEBUG("esif_ccb_strtok failed.\n");
 		goto exit;
 	}
 
@@ -8309,6 +9016,7 @@ enum esif_rc esif_shell_execute(const char *command)
 	enum esif_rc rc = ESIF_OK;
 	char *cmdCpy = NULL;
 	char *pTemp = NULL;
+	char previous = 0;
 	int count = 0;
 
 	ESIF_ASSERT(command != NULL);
@@ -8331,7 +9039,8 @@ enum esif_rc esif_shell_execute(const char *command)
 
 	pTemp = cmdCpy;
 	while (*pTemp != '\0') {
-		if (*pTemp == '\r' || *pTemp == '\n' || *pTemp == '#') {
+		if (*pTemp == '\r' || *pTemp == '\n' || (*pTemp == '#' && (previous == 0 || esif_ccb_strchr(" \t\r\n", previous) != NULL))) {
+			previous = *pTemp;
 			*pTemp = '\0';
 			break;
 		}

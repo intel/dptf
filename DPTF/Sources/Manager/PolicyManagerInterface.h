@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 class dptf_export PolicyManagerInterface
 {
 public:
-	virtual ~PolicyManagerInterface() {};
+	virtual ~PolicyManagerInterface(){};
 
 	virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) = 0;
 	virtual void createPolicy(const std::string& policyFileName) = 0;

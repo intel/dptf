@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,52 +19,54 @@
 #include "EsifFileEnumerator.h"
 #include "esif_ccb_memory.h"
 
-EsifFileEnumerator::EsifFileEnumerator(std::string path, std::string pattern) : m_path(path), m_pattern(pattern),
-    m_fileHandle(ESIF_INVALID_FILE_ENUM_HANDLE)
+EsifFileEnumerator::EsifFileEnumerator(std::string path, std::string pattern)
+	: m_path(path)
+	, m_pattern(pattern)
+	, m_fileHandle(ESIF_INVALID_FILE_ENUM_HANDLE)
 {
-    esif_ccb_memset(m_file.filename, 0, MAX_PATH);
+	esif_ccb_memset(m_file.filename, 0, MAX_PATH);
 }
 
 EsifFileEnumerator::~EsifFileEnumerator(void)
 {
-    if (m_fileHandle != ESIF_INVALID_FILE_ENUM_HANDLE)
-    {
-        esif_ccb_file_enum_close(m_fileHandle);
-    }
+	if (m_fileHandle != ESIF_INVALID_FILE_ENUM_HANDLE)
+	{
+		esif_ccb_file_enum_close(m_fileHandle);
+	}
 }
 
 std::string EsifFileEnumerator::getFirstFile(void)
 {
-    esif_string path = const_cast<esif_string>(m_path.c_str());
-    esif_string pattern = const_cast<esif_string>(m_pattern.c_str());
+	esif_string path = const_cast<esif_string>(m_path.c_str());
+	esif_string pattern = const_cast<esif_string>(m_pattern.c_str());
 
-    m_fileHandle = esif_ccb_file_enum_first(path, pattern, &m_file);
+	m_fileHandle = esif_ccb_file_enum_first(path, pattern, &m_file);
 
-    if (m_fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
-    {
-        throw dptf_exception("Error while trying to find first file.");
-    }
+	if (m_fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
+	{
+		throw dptf_exception("Error while trying to find first file.");
+	}
 
-    return std::string(m_file.filename);
+	return std::string(m_file.filename);
 }
 
 std::string EsifFileEnumerator::getNextFile(void)
 {
-    if (m_fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
-    {
-        throw dptf_exception("File handle not initialized.");
-    }
+	if (m_fileHandle == ESIF_INVALID_FILE_ENUM_HANDLE)
+	{
+		throw dptf_exception("File handle not initialized.");
+	}
 
-    esif_string pattern = const_cast<esif_string>(m_pattern.c_str());
+	esif_string pattern = const_cast<esif_string>(m_pattern.c_str());
 
-    esif_ccb_file* rc = esif_ccb_file_enum_next(m_fileHandle, pattern, &m_file);
+	esif_ccb_file* rc = esif_ccb_file_enum_next(m_fileHandle, pattern, &m_file);
 
-    if (rc == nullptr)
-    {
-        return std::string();
-    }
-    else
-    {
-        return std::string(m_file.filename);
-    }
+	if (rc == nullptr)
+	{
+		return std::string();
+	}
+	else
+	{
+		return std::string(m_file.filename);
+	}
 }

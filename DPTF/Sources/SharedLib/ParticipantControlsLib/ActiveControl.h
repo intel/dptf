@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,23 +25,21 @@ class XmlNode;
 class ActiveControl final
 {
 public:
-
-    ActiveControl(UIntN controlId, UIntN tripPoint, UIntN speed, UIntN noiseLevel, UIntN power);
-    UIntN getControlId(void) const;
-    UIntN getTripPoint(void) const;
-    UIntN getSpeed(void) const;
-    UIntN getNoiseLevel(void) const;
-    UIntN getPower(void) const;
-    Bool operator==(const ActiveControl& rhs) const;
-    Bool operator!=(const ActiveControl& rhs) const;
-    Bool operator<(const ActiveControl& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	ActiveControl(UIntN controlId, UIntN tripPoint, UIntN speed, UIntN noiseLevel, UIntN power);
+	UIntN getControlId(void) const;
+	UIntN getTripPoint(void) const;
+	UIntN getSpeed(void) const;
+	UIntN getNoiseLevel(void) const;
+	UIntN getPower(void) const;
+	Bool operator==(const ActiveControl& rhs) const;
+	Bool operator!=(const ActiveControl& rhs) const;
+	Bool operator<(const ActiveControl& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UIntN m_controlId;
-    UIntN m_tripPoint;
-    UIntN m_speed;
-    UIntN m_noiseLevel;
-    UIntN m_power;
+	UIntN m_controlId;
+	UIntN m_tripPoint;
+	UIntN m_speed;
+	UIntN m_noiseLevel;
+	UIntN m_power;
 };

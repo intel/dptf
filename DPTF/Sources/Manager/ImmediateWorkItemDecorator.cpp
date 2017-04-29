@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,27 +18,28 @@
 
 #include "ImmediateWorkItemDecorator.h"
 
-ImmediateWorkItemDecorator::ImmediateWorkItemDecorator(WorkItemInterface* workItem, UIntN priority) :
-    m_workItem(workItem), m_priority(priority)
+ImmediateWorkItemDecorator::ImmediateWorkItemDecorator(WorkItemInterface* workItem, UIntN priority)
+	: m_workItem(workItem)
+	, m_priority(priority)
 {
 }
 
 ImmediateWorkItemDecorator::~ImmediateWorkItemDecorator(void)
 {
-    delete m_workItem;
+	delete m_workItem;
 }
 
 UInt64 ImmediateWorkItemDecorator::getUniqueId(void) const
 {
-    return m_workItem->getUniqueId();
+	return m_workItem->getUniqueId();
 }
 
 void ImmediateWorkItemDecorator::execute(void)
 {
-    return m_workItem->execute();
+	return m_workItem->execute();
 }
 
 UIntN ImmediateWorkItemDecorator::getPriority(void) const
 {
-    return m_priority;
+	return m_priority;
 }

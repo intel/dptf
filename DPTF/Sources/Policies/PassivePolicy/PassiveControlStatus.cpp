@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,27 +20,27 @@
 using namespace std;
 
 PassiveControlStatus::PassiveControlStatus(
-    std::shared_ptr<ThermalRelationshipTable> trt,
-    std::shared_ptr<ParticipantTrackerInterface> trackedParticipants)
+	std::shared_ptr<ThermalRelationshipTable> trt,
+	std::shared_ptr<ParticipantTrackerInterface> trackedParticipants)
 {
-    vector<UIntN> trackedParticipantIndicies = trackedParticipants->getAllTrackedIndexes();
-    for (auto participant = trackedParticipantIndicies.begin();
-         participant != trackedParticipantIndicies.end();
-         participant++)
-    {
-        if (trt->isParticipantSourceDevice(*participant))
-        {
-            m_participantStatus.push_back(PassiveParticipantControlStatus(trackedParticipants->getParticipant(*participant)));
-        }
-    }
+	vector<UIntN> trackedParticipantIndicies = trackedParticipants->getAllTrackedIndexes();
+	for (auto participant = trackedParticipantIndicies.begin(); participant != trackedParticipantIndicies.end();
+		 participant++)
+	{
+		if (trt->isParticipantSourceDevice(*participant))
+		{
+			m_participantStatus.push_back(
+				PassiveParticipantControlStatus(trackedParticipants->getParticipant(*participant)));
+		}
+	}
 }
 
 std::shared_ptr<XmlNode> PassiveControlStatus::getXml()
 {
-    auto controlStatus = XmlNode::createWrapperElement("passive_control_status");
-    for (auto status = m_participantStatus.begin(); status != m_participantStatus.end(); status++)
-    {
-        controlStatus->addChild(status->getXml());
-    }
-    return controlStatus;
+	auto controlStatus = XmlNode::createWrapperElement("passive_control_status");
+	for (auto status = m_participantStatus.begin(); status != m_participantStatus.end(); status++)
+	{
+		controlStatus->addChild(status->getXml());
+	}
+	return controlStatus;
 }

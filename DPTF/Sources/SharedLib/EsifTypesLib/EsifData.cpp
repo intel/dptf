@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,35 +18,39 @@
 
 #include "EsifData.h"
 
-EsifDataContainer::EsifDataContainer(esif_data_type esifDataType, void* bufferPtr, UInt32 bufferLength, UInt32 dataLength)
+EsifDataContainer::EsifDataContainer(
+	esif_data_type esifDataType,
+	void* bufferPtr,
+	UInt32 bufferLength,
+	UInt32 dataLength)
 {
-    m_esifData.type = esifDataType;
-    m_esifData.buf_ptr = bufferPtr;
-    m_esifData.buf_len = bufferLength;
-    m_esifData.data_len = dataLength;
+	m_esifData.type = esifDataType;
+	m_esifData.buf_ptr = bufferPtr;
+	m_esifData.buf_len = bufferLength;
+	m_esifData.data_len = dataLength;
 }
 
 esif_data_type EsifDataContainer::getEsifDataType(void) const
 {
-    return m_esifData.type;
+	return m_esifData.type;
 }
 
 void* EsifDataContainer::getBufferPtr(void) const
 {
-    return m_esifData.buf_ptr;
+	return m_esifData.buf_ptr;
 }
 
 UInt32 EsifDataContainer::getBufferLength(void) const
 {
-    return m_esifData.buf_len;
+	return m_esifData.buf_len;
 }
 
 UInt32 EsifDataContainer::getDataLength(void) const
 {
-    return m_esifData.data_len;
+	return m_esifData.data_len;
 }
 
 EsifDataContainer::operator EsifDataPtr(void)
 {
-    return &m_esifData;
+	return &m_esifData;
 }

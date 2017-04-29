@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,101 +19,204 @@
 #include "PolicyServicesDomainPowerControl.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainPowerControl::PolicyServicesDomainPowerControl(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainPowerControl::PolicyServicesDomainPowerControl(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 PowerControlDynamicCapsSet PolicyServicesDomainPowerControl::getPowerControlDynamicCapsSet(
-    UIntN participantIndex, UIntN domainIndex)
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerControlDynamicCapsSet(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerControlDynamicCapsSet(domainIndex);
 }
 
-void PolicyServicesDomainPowerControl::setPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex, 
-    PowerControlDynamicCapsSet capsSet)
+void PolicyServicesDomainPowerControl::setPowerControlDynamicCapsSet(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlDynamicCapsSet capsSet)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerControlDynamicCapsSet(domainIndex,
-        getPolicyIndex(), capsSet);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerControlDynamicCapsSet(domainIndex, getPolicyIndex(), capsSet);
 }
 
-Bool PolicyServicesDomainPowerControl::isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
-    PowerControlType::Type controlType)
+Bool PolicyServicesDomainPowerControl::isPowerLimitEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->isPowerLimitEnabled(domainIndex,
-        controlType);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->isPowerLimitEnabled(domainIndex, controlType);
 }
 
-Power PolicyServicesDomainPowerControl::getPowerLimit(UIntN participantIndex, UIntN domainIndex, 
-    PowerControlType::Type controlType)
+Power PolicyServicesDomainPowerControl::getPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimit(domainIndex,
-        controlType);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimit(domainIndex, controlType);
 }
 
-void PolicyServicesDomainPowerControl::setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
-    PowerControlType::Type controlType, const Power& powerLimit)
+void PolicyServicesDomainPowerControl::setPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimit(domainIndex,
-        getPolicyIndex(), controlType, powerLimit);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimit(domainIndex, getPolicyIndex(), controlType, powerLimit);
 }
 
-void PolicyServicesDomainPowerControl::setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
-    PowerControlType::Type controlType, const Power& powerLimit)
+void PolicyServicesDomainPowerControl::setPowerLimitIgnoringCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Power& powerLimit)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitIgnoringCaps(domainIndex,
-        getPolicyIndex(), controlType, powerLimit);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitIgnoringCaps(domainIndex, getPolicyIndex(), controlType, powerLimit);
 }
 
-TimeSpan PolicyServicesDomainPowerControl::getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
-    PowerControlType::Type controlType)
+TimeSpan PolicyServicesDomainPowerControl::getPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimitTimeWindow(domainIndex,
-        controlType);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->getPowerLimitTimeWindow(domainIndex, controlType);
 }
 
-void PolicyServicesDomainPowerControl::setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
-    PowerControlType::Type controlType, const TimeSpan& timeWindow)
+void PolicyServicesDomainPowerControl::setPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitTimeWindow(domainIndex,
-        getPolicyIndex(), controlType, timeWindow);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitTimeWindow(domainIndex, getPolicyIndex(), controlType, timeWindow);
 }
 
-void PolicyServicesDomainPowerControl::setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
-    PowerControlType::Type controlType, const TimeSpan& timeWindow)
+void PolicyServicesDomainPowerControl::setPowerLimitTimeWindowIgnoringCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const TimeSpan& timeWindow)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitTimeWindowIgnoringCaps(domainIndex,
-        getPolicyIndex(), controlType, timeWindow);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitTimeWindowIgnoringCaps(domainIndex, getPolicyIndex(), controlType, timeWindow);
 }
 
-Percentage PolicyServicesDomainPowerControl::getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
-    PowerControlType::Type controlType)
+Percentage PolicyServicesDomainPowerControl::getPowerLimitDutyCycle(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimitDutyCycle(domainIndex,
-        controlType);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->getPowerLimitDutyCycle(domainIndex, controlType);
 }
 
-void PolicyServicesDomainPowerControl::setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
-    PowerControlType::Type controlType, const Percentage& dutyCycle)
+void PolicyServicesDomainPowerControl::setPowerLimitDutyCycle(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	const Percentage& dutyCycle)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerLimitDutyCycle(domainIndex,
-        getPolicyIndex(), controlType, dutyCycle);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerLimitDutyCycle(domainIndex, getPolicyIndex(), controlType, dutyCycle);
 }
 
 void PolicyServicesDomainPowerControl::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPowerCapsLock(domainIndex, getPolicyIndex(), lock);
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->setPowerCapsLock(domainIndex, getPolicyIndex(), lock);
+}
+
+Bool PolicyServicesDomainPowerControl::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->isPowerShareControl(domainIndex);
+}
+
+double PolicyServicesDomainPowerControl::getPidKpTerm(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPidKpTerm(domainIndex);
+}
+
+double PolicyServicesDomainPowerControl::getPidKiTerm(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPidKiTerm(domainIndex);
+}
+
+TimeSpan PolicyServicesDomainPowerControl::getTau(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getTau(domainIndex);
+}
+
+TimeSpan PolicyServicesDomainPowerControl::getFastPollTime(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getFastPollTime(domainIndex);
+}
+
+TimeSpan PolicyServicesDomainPowerControl::getSlowPollTime(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSlowPollTime(domainIndex);
+}
+
+UInt32 PolicyServicesDomainPowerControl::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getWeightedSlowPollAvgConstant(domainIndex);
+}
+
+UInt32 PolicyServicesDomainPowerControl::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyCounter(domainIndex);
+}
+
+double PolicyServicesDomainPowerControl::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyUnit(domainIndex);
+}
+
+UInt32 PolicyServicesDomainPowerControl::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyCounterWidth(domainIndex);
+}
+
+Power PolicyServicesDomainPowerControl::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSlowPollPowerThreshold(domainIndex);
+}
+
+Power PolicyServicesDomainPowerControl::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getInstantaneousPower(domainIndex);
 }

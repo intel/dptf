@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,15 +24,13 @@
 class ParticipantGetSpecificInfoInterface
 {
 public:
+	virtual ~ParticipantGetSpecificInfoInterface(){};
 
-    virtual ~ParticipantGetSpecificInfoInterface()
-    {
-    };
-
-    // This function is used to request policy specific information from a participant.
-    // For the input parameters, pass in the destination participant index and a vector containing
-    // all keys of interest.  The participant will return a map containing each key and associated
-    // value.
-    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> 
-        getParticipantSpecificInfo(UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) = 0;
+	// This function is used to request policy specific information from a participant.
+	// For the input parameters, pass in the destination participant index and a vector containing
+	// all keys of interest.  The participant will return a map containing each key and associated
+	// value.
+	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+		UIntN participantIndex,
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) = 0;
 };

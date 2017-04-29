@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,25 +29,28 @@
 class DomainDisplayControl_000 : public DomainDisplayControlBase
 {
 public:
+	DomainDisplayControl_000(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
-    DomainDisplayControl_000(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	virtual void setDisplayControlDynamicCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		DisplayControlDynamicCaps newCapabilities) override;
+	virtual void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
-    virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-    virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-    virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
-    virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
-    virtual void setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex,
-        DisplayControlDynamicCaps newCapabilities) override;
-    virtual void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	// ParticipantActivityLoggingInterface
+	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
-    // ParticipantActivityLoggingInterface
-    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 };

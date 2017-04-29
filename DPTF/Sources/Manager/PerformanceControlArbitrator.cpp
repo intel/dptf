@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 #include "PerformanceControlArbitrator.h"
 #include "Utility.h"
 
-PerformanceControlArbitrator::PerformanceControlArbitrator() :
-    m_arbitratedPerformanceControlIndex(Constants::Invalid)
+PerformanceControlArbitrator::PerformanceControlArbitrator()
+	: m_arbitratedPerformanceControlIndex(Constants::Invalid)
 {
 }
 
@@ -28,49 +28,56 @@ PerformanceControlArbitrator::~PerformanceControlArbitrator(void)
 {
 }
 
-Bool PerformanceControlArbitrator::arbitrate(UIntN policyIndex, UIntN performanceControlIndex)
+void PerformanceControlArbitrator::commitPolicyRequest(UIntN policyIndex, UIntN performanceControlIndex)
 {
-    Bool arbitratedValueChanged = false;
-    UIntN maxRequestedPerformanceControlIndex = Constants::Invalid;
+	m_requestedPerformanceControlIndex[policyIndex] = performanceControlIndex;
+	UIntN maxRequestedPerformanceControlIndex =
+		getMaxRequestedPerformanceControlIndex(m_requestedPerformanceControlIndex);
+	m_arbitratedPerformanceControlIndex = maxRequestedPerformanceControlIndex;
+}
 
-    m_requestedPerformanceControlIndex[policyIndex] = performanceControlIndex;
+Bool PerformanceControlArbitrator::hasArbitratedPerformanceControlIndex(void) const
+{
+	if (m_arbitratedPerformanceControlIndex != Constants::Invalid)
+	{
+		return true;
+	}
+	return false;
+}
 
-    //
-    // loop through and find the max requested performance control index (which is the lowest p-state performance)
-    //
-    for (auto request = m_requestedPerformanceControlIndex.begin(); request != m_requestedPerformanceControlIndex.end(); request++)
-    {
-        if ((request->second != Constants::Invalid) &&
-            ((maxRequestedPerformanceControlIndex == Constants::Invalid) ||
-             (request->second > maxRequestedPerformanceControlIndex)))
-        {
-            maxRequestedPerformanceControlIndex = request->second;
-        }
-    }
-
-    //
-    // check to see if the performance control index is changing.
-    //
-    if (maxRequestedPerformanceControlIndex != m_arbitratedPerformanceControlIndex)
-    {
-        arbitratedValueChanged = true;
-        m_arbitratedPerformanceControlIndex = maxRequestedPerformanceControlIndex;
-    }
-
-    return arbitratedValueChanged;
+UIntN PerformanceControlArbitrator::arbitrate(UIntN policyIndex, UIntN performanceControlIndex)
+{
+	auto tempPolicyRequests = m_requestedPerformanceControlIndex;
+	tempPolicyRequests[policyIndex] = performanceControlIndex;
+	UIntN maxRequestedPerformanceControlIndex = getMaxRequestedPerformanceControlIndex(tempPolicyRequests);
+	return maxRequestedPerformanceControlIndex;
 }
 
 UIntN PerformanceControlArbitrator::getArbitratedPerformanceControlIndex(void) const
 {
-    return m_arbitratedPerformanceControlIndex;
+	return m_arbitratedPerformanceControlIndex;
 }
 
 void PerformanceControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    auto policyRequest = m_requestedPerformanceControlIndex.find(policyIndex);
-    if (policyRequest != m_requestedPerformanceControlIndex.end())
-    {
-        m_requestedPerformanceControlIndex[policyIndex] = Constants::Invalid;
-        arbitrate(policyIndex, Constants::Invalid);
-    }
+	auto policyRequest = m_requestedPerformanceControlIndex.find(policyIndex);
+	if (policyRequest != m_requestedPerformanceControlIndex.end())
+	{
+		m_requestedPerformanceControlIndex[policyIndex] = Constants::Invalid;
+		commitPolicyRequest(policyIndex, Constants::Invalid);
+	}
+}
+
+UIntN PerformanceControlArbitrator::getMaxRequestedPerformanceControlIndex(std::map<UIntN, UIntN>& requests)
+{
+	UIntN maxRequestedPerformanceControlIndex = Constants::Invalid;
+	for (auto request = requests.begin(); request != requests.end(); ++request)
+	{
+		if ((request->second != Constants::Invalid) && ((maxRequestedPerformanceControlIndex == Constants::Invalid)
+														|| (request->second > maxRequestedPerformanceControlIndex)))
+		{
+			maxRequestedPerformanceControlIndex = request->second;
+		}
+	}
+	return maxRequestedPerformanceControlIndex;
 }

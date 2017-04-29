@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 DisplayControlCapabilitiesCachedProperty::DisplayControlCapabilitiesCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_displayControlDynamicCaps(Constants::Invalid, Constants::Invalid)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_displayControlDynamicCaps(Constants::Invalid, Constants::Invalid)
 {
 }
 
@@ -35,40 +36,39 @@ DisplayControlCapabilitiesCachedProperty::~DisplayControlCapabilitiesCachedPrope
 
 Bool DisplayControlCapabilitiesCachedProperty::implementsDisplayControlInterface(void)
 {
-    return getDomainProperties().implementsDisplayControlInterface();
+	return getDomainProperties().implementsDisplayControlInterface();
 }
 
 const DisplayControlDynamicCaps& DisplayControlCapabilitiesCachedProperty::getCapabilities(void)
 {
-    if (implementsDisplayControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_displayControlDynamicCaps;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the display control interface.");
-    }
+	if (implementsDisplayControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_displayControlDynamicCaps;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the display control interface.");
+	}
 }
 
 Bool DisplayControlCapabilitiesCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsDisplayControlInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsDisplayControlInterface();
 }
 
 void DisplayControlCapabilitiesCachedProperty::refreshData(void)
 {
-    if (implementsDisplayControlInterface())
-    {
-        m_displayControlDynamicCaps =
-            getPolicyServices().domainDisplayControl->getDisplayControlDynamicCaps(
-                getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsDisplayControlInterface())
+	{
+		m_displayControlDynamicCaps = getPolicyServices().domainDisplayControl->getDisplayControlDynamicCaps(
+			getParticipantIndex(), getDomainIndex());
+	}
 }

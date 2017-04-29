@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,9 +19,12 @@
 #include "DomainSetCachedProperty.h"
 using namespace std;
 
-DomainSetCachedProperty::DomainSetCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex)
-    : CachedProperty(), ParticipantProperty(participantIndex, policyServices),
-    m_domainProperties(vector<DomainProperties>())
+DomainSetCachedProperty::DomainSetCachedProperty(
+	const PolicyServicesInterfaceContainer& policyServices,
+	UIntN participantIndex)
+	: CachedProperty()
+	, ParticipantProperty(participantIndex, policyServices)
+	, m_domainProperties(vector<DomainProperties>())
 {
 }
 
@@ -31,33 +34,33 @@ DomainSetCachedProperty::~DomainSetCachedProperty(void)
 
 void DomainSetCachedProperty::refreshData(void)
 {
-    m_domainProperties = getPolicyServices().participantProperties->getDomainPropertiesSet(getParticipantIndex());
+	m_domainProperties = getPolicyServices().participantProperties->getDomainPropertiesSet(getParticipantIndex());
 }
 
 const DomainPropertiesSet& DomainSetCachedProperty::getDomainPropertiesSet()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_domainProperties;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_domainProperties;
 }
 
 Bool DomainSetCachedProperty::supportsProperty(void)
 {
-    return (getDomainPropertiesSet().getDomainCount() > 0);
+	return (getDomainPropertiesSet().getDomainCount() > 0);
 }
 
 DomainProperties DomainSetCachedProperty::getDomainProperties(UIntN domainIndex)
 {
-    const DomainPropertiesSet& set = getDomainPropertiesSet();
-    for (UIntN setIndex = 0; setIndex < set.getDomainCount(); setIndex++)
-    {
-        if (set[setIndex].getDomainIndex() == domainIndex)
-        {
-            return set[setIndex];
-        }
-    }
+	const DomainPropertiesSet& set = getDomainPropertiesSet();
+	for (UIntN setIndex = 0; setIndex < set.getDomainCount(); setIndex++)
+	{
+		if (set[setIndex].getDomainIndex() == domainIndex)
+		{
+			return set[setIndex];
+		}
+	}
 
-    throw dptf_exception("Domain " + StlOverride::to_string(domainIndex) + " not in domain set for participant.");
+	throw dptf_exception("Domain " + std::to_string(domainIndex) + " not in domain set for participant.");
 }

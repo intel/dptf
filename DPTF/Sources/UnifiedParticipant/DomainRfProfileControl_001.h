@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,25 +24,26 @@
 class DomainRfProfileControl_001 : public DomainRfProfileControlBase
 {
 public:
+	DomainRfProfileControl_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainRfProfileControl_001(void);
 
-    DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainRfProfileControl_001(void);
+	// DomainRfProfileControlInterface
+	virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setRfProfileCenterFrequency(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const Frequency& centerFrequency) override;
 
-    // DomainRfProfileControlInterface
-    virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex,
-        UIntN domainIndex) override;
-    virtual void setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex,
-        const Frequency& centerFrequency) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 private:
-
-    // hide the copy constructor and = operator
-    DomainRfProfileControl_001(const DomainRfProfileControl_001& rhs);
-    DomainRfProfileControl_001& operator=(const DomainRfProfileControl_001& rhs);
+	// hide the copy constructor and = operator
+	DomainRfProfileControl_001(const DomainRfProfileControl_001& rhs);
+	DomainRfProfileControl_001& operator=(const DomainRfProfileControl_001& rhs);
 };

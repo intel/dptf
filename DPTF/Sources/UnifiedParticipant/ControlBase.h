@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,33 +26,33 @@ class XmlNode;
 class ControlBase
 {
 public:
+	ControlBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServices);
+	virtual ~ControlBase();
 
-    ControlBase(UIntN participantIndex, UIntN domainIndex, std::shared_ptr<ParticipantServicesInterface> participantServices);
-    virtual ~ControlBase();
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) = 0;
+	virtual std::string getName(void) = 0;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) = 0;
 
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) = 0;
-    virtual std::string getName(void) = 0;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) = 0;
-
-    Bool isActivityLoggingEnabled(void);
-    void enableActivityLogging(void);
-    void disableActivityLogging(void);
+	Bool isActivityLoggingEnabled(void);
+	void enableActivityLogging(void);
+	void disableActivityLogging(void);
 
 protected:
-
-    virtual void capture(void);
-    virtual void restore(void);
-    UIntN getParticipantIndex() const;
-    UIntN getDomainIndex() const;
-    std::shared_ptr<ParticipantServicesInterface> getParticipantServices() const;
-    DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const;
+	virtual void capture(void);
+	virtual void restore(void);
+	UIntN getParticipantIndex() const;
+	UIntN getDomainIndex() const;
+	std::shared_ptr<ParticipantServicesInterface> getParticipantServices() const;
+	DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const;
 
 private:
-
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    std::shared_ptr<ParticipantServicesInterface> m_participantServices;
-    Bool m_activityLoggingEnabled;
-    UInt16 createTupleDomain() const;
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	std::shared_ptr<ParticipantServicesInterface> m_participantServices;
+	Bool m_activityLoggingEnabled;
+	UInt16 createTupleDomain() const;
 };

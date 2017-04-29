@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,18 @@
 using namespace std;
 
 CoreControlPreferencesCachedProperty::CoreControlPreferencesCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_preferences(false, Constants::Invalid, Percentage::createInvalid(),
-        CoreControlOffliningMode::None, CoreControlOffliningMode::None)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_preferences(
+		  false,
+		  Constants::Invalid,
+		  Percentage::createInvalid(),
+		  CoreControlOffliningMode::None,
+		  CoreControlOffliningMode::None)
 {
 }
 
@@ -36,39 +41,39 @@ CoreControlPreferencesCachedProperty::~CoreControlPreferencesCachedProperty()
 
 Bool CoreControlPreferencesCachedProperty::implementsCoreControlInterface(void)
 {
-    return getDomainProperties().implementsCoreControlInterface();
+	return getDomainProperties().implementsCoreControlInterface();
 }
 
 CoreControlLpoPreference CoreControlPreferencesCachedProperty::getPreferences(void)
 {
-    if (implementsCoreControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_preferences;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the core control interface.");
-    }
+	if (implementsCoreControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_preferences;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the core control interface.");
+	}
 }
 
 Bool CoreControlPreferencesCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsCoreControlInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsCoreControlInterface();
 }
 
 void CoreControlPreferencesCachedProperty::refreshData(void)
 {
-    if (implementsCoreControlInterface())
-    {
-        m_preferences =
-            getPolicyServices().domainCoreControl->getCoreControlLpoPreference(getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsCoreControlInterface())
+	{
+		m_preferences =
+			getPolicyServices().domainCoreControl->getCoreControlLpoPreference(getParticipantIndex(), getDomainIndex());
+	}
 }

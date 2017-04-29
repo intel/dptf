@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,55 +19,64 @@
 #include "ParticipantProperties.h"
 #include "XmlNode.h"
 
-ParticipantProperties::ParticipantProperties(const Guid& guid, const std::string& name,
-    const std::string& description, BusType::Type busType, const PciInfo& pciInfo,
-    const AcpiInfo& acpiInfo) : m_guid(guid), m_name(name), m_description(description),
-    m_busType(busType), m_pciInfo(pciInfo), m_acpiInfo(acpiInfo)
+ParticipantProperties::ParticipantProperties(
+	const Guid& guid,
+	const std::string& name,
+	const std::string& description,
+	BusType::Type busType,
+	const PciInfo& pciInfo,
+	const AcpiInfo& acpiInfo)
+	: m_guid(guid)
+	, m_name(name)
+	, m_description(description)
+	, m_busType(busType)
+	, m_pciInfo(pciInfo)
+	, m_acpiInfo(acpiInfo)
 {
 }
 
 Guid ParticipantProperties::getGuid(void) const
 {
-    return m_guid;
+	return m_guid;
 }
 
 std::string ParticipantProperties::getName(void) const
 {
-    return m_name;
+	return m_name;
 }
 
 std::string ParticipantProperties::getDescription(void) const
 {
-    return m_description;
+	return m_description;
 }
 
 BusType::Type ParticipantProperties::getBusType(void) const
 {
-    return m_busType;
+	return m_busType;
 }
 
 PciInfo ParticipantProperties::getPciInfo(void) const
 {
-    return m_pciInfo;
+	return m_pciInfo;
 }
 
 AcpiInfo ParticipantProperties::getAcpiInfo(void) const
 {
-    return m_acpiInfo;
+	return m_acpiInfo;
 }
 
 std::shared_ptr<XmlNode> ParticipantProperties::getXml(void) const
 {
-    auto root = XmlNode::createWrapperElement("participant_properties");
+	auto root = XmlNode::createWrapperElement("participant_properties");
 
-    root->addChild(XmlNode::createDataElement("name", m_name));
-    root->addChild(XmlNode::createDataElement("description", m_description));
-    //root->addChild(XmlNode::createDataElement("guid", m_guid.toString()));
-    root->addChild(XmlNode::createDataElement("bus_type", BusType::ToString(m_busType)));
-    // TODO : Fix PCI and ACPI info
-    //root->addChild(XmlNode::createDataElement("pci_info", m_pciInfo));
-    root->addChild(XmlNode::createDataElement("acpi_device", m_acpiInfo.getAcpiDevice()));
-    root->addChild(XmlNode::createDataElement("acpi_scope", m_acpiInfo.getAcpiScope()));
+	root->addChild(XmlNode::createDataElement("name", m_name));
+	root->addChild(XmlNode::createDataElement("description", m_description));
+	// root->addChild(XmlNode::createDataElement("guid", m_guid.toString()));
+	root->addChild(XmlNode::createDataElement("bus_type", BusType::ToString(m_busType)));
+	// TODO : Fix PCI and ACPI info
+	// root->addChild(XmlNode::createDataElement("pci_info", m_pciInfo));
+	root->addChild(XmlNode::createDataElement("acpi_device", m_acpiInfo.getAcpiDevice()));
+	root->addChild(XmlNode::createDataElement("acpi_scope", m_acpiInfo.getAcpiScope()));
 
-    return root;
+	return root;
 }

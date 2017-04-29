@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,14 +24,13 @@
 class WIPolicyForegroundApplicationChanged : public WorkItem
 {
 public:
+	WIPolicyForegroundApplicationChanged(
+		DptfManagerInterface* dptfManager,
+		const std::string& foregroundApplicationName);
+	virtual ~WIPolicyForegroundApplicationChanged(void);
 
-    WIPolicyForegroundApplicationChanged(DptfManagerInterface* dptfManager, 
-        const std::string& foregroundApplicationName);
-    virtual ~WIPolicyForegroundApplicationChanged(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 
 private:
-
-    const std::string m_foregroundApplicationName;
+	const std::string m_foregroundApplicationName;
 };

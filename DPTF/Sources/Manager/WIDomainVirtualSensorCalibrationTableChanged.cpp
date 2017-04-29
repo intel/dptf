@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,10 +21,15 @@
 #include "Participant.h"
 #include "EsifServicesInterface.h"
 
-WIDomainVirtualSensorCalibrationTableChanged::WIDomainVirtualSensorCalibrationTableChanged(DptfManagerInterface* dptfManager,
-    UIntN participantIndex, UIntN domainIndex) :
-    DomainWorkItem(dptfManager, FrameworkEvent::DomainVirtualSensorCalibrationTableChanged,
-    participantIndex, domainIndex)
+WIDomainVirtualSensorCalibrationTableChanged::WIDomainVirtualSensorCalibrationTableChanged(
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex,
+	UIntN domainIndex)
+	: DomainWorkItem(
+		  dptfManager,
+		  FrameworkEvent::DomainVirtualSensorCalibrationTableChanged,
+		  participantIndex,
+		  domainIndex)
 {
 }
 
@@ -34,34 +39,34 @@ WIDomainVirtualSensorCalibrationTableChanged::~WIDomainVirtualSensorCalibrationT
 
 void WIDomainVirtualSensorCalibrationTableChanged::execute(void)
 {
-    writeDomainWorkItemStartingInfoMessage();
+	writeDomainWorkItemStartingInfoMessage();
 
-    try
-    {
-        getParticipantPtr()->domainVirtualSensorCalibrationTableChanged();
-    }
-    catch (std::exception& ex)
-    {
-        writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorCalibrationTableChanged");
-    }
+	try
+	{
+		getParticipantPtr()->domainVirtualSensorCalibrationTableChanged();
+	}
+	catch (std::exception& ex)
+	{
+		writeDomainWorkItemErrorMessage(ex, "Participant::domainVirtualSensorCalibrationTableChanged");
+	}
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeDomainVirtualSensorCalibrationTableChanged(getParticipantIndex());
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorCalibrationTableChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executeDomainVirtualSensorCalibrationTableChanged(getParticipantIndex());
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorCalibrationTableChanged", i);
+		}
+	}
 }

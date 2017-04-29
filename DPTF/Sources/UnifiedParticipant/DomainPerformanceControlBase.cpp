@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,45 +18,55 @@
 
 #include "DomainPerformanceControlBase.h"
 
-DomainPerformanceControlBase::DomainPerformanceControlBase(UIntN participantIndex, UIntN domainIndex,
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : ControlBase(participantIndex, domainIndex, participantServicesInterface)
+DomainPerformanceControlBase::DomainPerformanceControlBase(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: ControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-
 }
 
 DomainPerformanceControlBase::~DomainPerformanceControlBase()
 {
-
 }
 
 void DomainPerformanceControlBase::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    try
-    {
-        if (isActivityLoggingEnabled() == true)
-        {
-            UInt32 performanceControlIndex = getCurrentPerformanceControlIndex(participantIndex, domainIndex);
+	try
+	{
+		if (isActivityLoggingEnabled() == true)
+		{
+			UInt32 performanceControlIndex = getCurrentPerformanceControlIndex(participantIndex, domainIndex);
 
-            if (performanceControlIndex == Constants::Invalid)
-            {
-                performanceControlIndex = 0;
-            }
-            EsifCapabilityData capability;
-            capability.type = ESIF_CAPABILITY_TYPE_PERF_CONTROL;
-            capability.size = sizeof(capability);
-            capability.data.performanceControl.pStateLimit = performanceControlIndex;
-            capability.data.performanceControl.lowerLimit = 
-                getPerformanceControlDynamicCaps(participantIndex, domainIndex).getCurrentLowerLimitIndex();
-            capability.data.performanceControl.upperLimit = 
-                getPerformanceControlDynamicCaps(participantIndex, domainIndex).getCurrentUpperLimitIndex();
+			if (performanceControlIndex == Constants::Invalid)
+			{
+				performanceControlIndex = 0;
+			}
+			EsifCapabilityData capability;
+			capability.type = ESIF_CAPABILITY_TYPE_PERF_CONTROL;
+			capability.size = sizeof(capability);
+			capability.data.performanceControl.pStateLimit = performanceControlIndex;
+			capability.data.performanceControl.lowerLimit =
+				getPerformanceControlDynamicCaps(participantIndex, domainIndex).getCurrentLowerLimitIndex();
+			capability.data.performanceControl.upperLimit =
+				getPerformanceControlDynamicCaps(participantIndex, domainIndex).getCurrentUpperLimitIndex();
 
-            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
-                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
-        }
-    }
-    catch (...)
-    {
-        // skip if there are any issue in sending log data
-    }
+			getParticipantServices()->sendDptfEvent(
+				ParticipantEvent::DptfParticipantControlAction,
+				domainIndex,
+				Capability::getEsifDataFromCapabilityData(&capability));
+
+			std::stringstream message;
+			message << "Published activity for participant " << getParticipantIndex() << ", "
+					<< "domain " << getName() << " "
+					<< "("
+					<< "Performance Control"
+					<< ")";
+			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+		}
+	}
+	catch (...)
+	{
+		// skip if there are any issue in sending log data
+	}
 }

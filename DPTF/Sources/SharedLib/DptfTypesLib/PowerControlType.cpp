@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,20 +20,20 @@
 
 namespace PowerControlType
 {
-    std::string ToString(PowerControlType::Type type)
-    {
-        switch (type)
-        {
-            case PowerControlType::PL1:
-                return "PL1";
-            case PowerControlType::PL2:
-                return "PL2";
-            case PowerControlType::PL3:
-                return "PL3";
-            case PowerControlType::PL4:
-                return "PL4";
-            default:
-                throw dptf_exception("Power Control Type is invalid.");
-        }
-    }
+	std::string ToString(PowerControlType::Type type)
+	{
+		switch (type)
+		{
+		case PowerControlType::PL1:
+			return "PL1";
+		case PowerControlType::PL2:
+			return "PL2";
+		case PowerControlType::PL3:
+			return "PL3";
+		case PowerControlType::PL4:
+			return "PL4";
+		default:
+			throw dptf_exception("Power Control Type is invalid.");
+		}
+	}
 }

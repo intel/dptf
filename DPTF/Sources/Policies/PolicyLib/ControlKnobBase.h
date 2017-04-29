@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,32 +26,26 @@
 class dptf_export ControlKnobBase
 {
 public:
+	ControlKnobBase(const PolicyServicesInterfaceContainer& policyServices, UIntN participantIndex, UIntN domainIndex);
+	~ControlKnobBase(void);
 
-    ControlKnobBase(
-        const PolicyServicesInterfaceContainer& policyServices,
-        UIntN participantIndex,
-        UIntN domainIndex);
-    ~ControlKnobBase(void);
-
-    virtual void limit(UIntN target) = 0;
-    virtual void unlimit(UIntN target) = 0;
-    virtual Bool canLimit(UIntN target) = 0;
-    virtual Bool canUnlimit(UIntN target) = 0;
-    virtual Bool commitSetting() = 0;
-    virtual void clearRequestForTarget(UIntN target) = 0;
-    virtual void clearAllRequests() = 0;
-    virtual void adjustRequestsToCapabilities() = 0;
+	virtual void limit(UIntN target) = 0;
+	virtual void unlimit(UIntN target) = 0;
+	virtual Bool canLimit(UIntN target) = 0;
+	virtual Bool canUnlimit(UIntN target) = 0;
+	virtual Bool commitSetting() = 0;
+	virtual void clearRequestForTarget(UIntN target) = 0;
+	virtual void clearAllRequests() = 0;
+	virtual void adjustRequestsToCapabilities() = 0;
 
 protected:
-
-    // accessors for subclasses
-    PolicyServicesInterfaceContainer getPolicyServices() const;
-    UIntN getParticipantIndex() const;
-    UIntN getDomainIndex() const;
+	// accessors for subclasses
+	PolicyServicesInterfaceContainer getPolicyServices() const;
+	UIntN getParticipantIndex() const;
+	UIntN getDomainIndex() const;
 
 private:
-
-    PolicyServicesInterfaceContainer m_policyServices;
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
+	PolicyServicesInterfaceContainer m_policyServices;
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
 };

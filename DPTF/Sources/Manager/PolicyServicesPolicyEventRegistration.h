@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,9 +25,8 @@
 class PolicyServicesPolicyEventRegistration final : public PolicyServices, public PolicyEventRegistrationInterface
 {
 public:
+	PolicyServicesPolicyEventRegistration(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServicesPolicyEventRegistration(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    virtual void registerEvent(PolicyEvent::Type policyEvent) override final;
-    virtual void unregisterEvent(PolicyEvent::Type policyEvent) override final;
+	virtual void registerEvent(PolicyEvent::Type policyEvent) override final;
+	virtual void unregisterEvent(PolicyEvent::Type policyEvent) override final;
 };

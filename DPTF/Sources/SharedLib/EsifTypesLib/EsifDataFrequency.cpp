@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,30 +20,30 @@
 
 EsifDataFrequency::EsifDataFrequency(void)
 {
-    initialize(0);
+	initialize(0);
 }
 
 EsifDataFrequency::EsifDataFrequency(const Frequency& data)
 {
-    initialize(data);
+	initialize(data);
 }
 
 EsifDataFrequency::operator EsifDataPtr(void)
 {
-    return &m_esifData;
+	return &m_esifData;
 }
 
 EsifDataFrequency::operator Frequency(void) const
 {
-    return Frequency(m_esifDataValue);
+	return Frequency(m_esifDataValue);
 }
 
 void EsifDataFrequency::initialize(UInt64 data)
 {
-    m_esifDataValue = data;
+	m_esifDataValue = data;
 
-    m_esifData.type = esif_data_type::ESIF_DATA_FREQUENCY;
-    m_esifData.buf_ptr = &m_esifDataValue;
-    m_esifData.buf_len = sizeof(m_esifDataValue);
-    m_esifData.data_len = sizeof(m_esifDataValue);
+	m_esifData.type = esif_data_type::ESIF_DATA_FREQUENCY;
+	m_esifData.buf_ptr = &m_esifDataValue;
+	m_esifData.buf_len = sizeof(m_esifDataValue);
+	m_esifData.data_len = sizeof(m_esifDataValue);
 }

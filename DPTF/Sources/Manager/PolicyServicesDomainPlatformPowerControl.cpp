@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,64 +20,81 @@
 #include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPlatformPowerControl::PolicyServicesDomainPlatformPowerControl(
-    DptfManagerInterface* dptfManager, UIntN policyIndex)
-    : PolicyServices(dptfManager, policyIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
-
 }
 
-Bool PolicyServicesDomainPlatformPowerControl::isPlatformPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
-    PlatformPowerLimitType::Type limitType)
+Bool PolicyServicesDomainPlatformPowerControl::isPlatformPowerLimitEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->isPlatformPowerLimitEnabled(domainIndex, limitType);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->isPlatformPowerLimitEnabled(domainIndex, limitType);
 }
 
-Power PolicyServicesDomainPlatformPowerControl::getPlatformPowerLimit(UIntN participantIndex, UIntN domainIndex,
-    PlatformPowerLimitType::Type limitType)
+Power PolicyServicesDomainPlatformPowerControl::getPlatformPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformPowerLimit(domainIndex, limitType);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getPlatformPowerLimit(domainIndex, limitType);
 }
 
-void PolicyServicesDomainPlatformPowerControl::setPlatformPowerLimit(UIntN participantIndex, UIntN domainIndex,
-    PlatformPowerLimitType::Type limitType, const Power& powerLimit)
+void PolicyServicesDomainPlatformPowerControl::setPlatformPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType,
+	const Power& powerLimit)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    participant->setPlatformPowerLimit(domainIndex, limitType, powerLimit);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	participant->setPlatformPowerLimit(domainIndex, getPolicyIndex(), limitType, powerLimit);
 }
 
-TimeSpan PolicyServicesDomainPlatformPowerControl::getPlatformPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
-    PlatformPowerLimitType::Type limitType)
+TimeSpan PolicyServicesDomainPlatformPowerControl::getPlatformPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformPowerLimitTimeWindow(domainIndex, limitType);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getPlatformPowerLimitTimeWindow(domainIndex, limitType);
 }
 
-void PolicyServicesDomainPlatformPowerControl::setPlatformPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex,
-    PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow)
+void PolicyServicesDomainPlatformPowerControl::setPlatformPowerLimitTimeWindow(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType,
+	const TimeSpan& timeWindow)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    participant->setPlatformPowerLimitTimeWindow(domainIndex, limitType, timeWindow);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	participant->setPlatformPowerLimitTimeWindow(domainIndex, getPolicyIndex(), limitType, timeWindow);
 }
 
-Percentage PolicyServicesDomainPlatformPowerControl::getPlatformPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
-    PlatformPowerLimitType::Type limitType)
+Percentage PolicyServicesDomainPlatformPowerControl::getPlatformPowerLimitDutyCycle(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformPowerLimitDutyCycle(domainIndex, limitType);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getPlatformPowerLimitDutyCycle(domainIndex, limitType);
 }
 
-void PolicyServicesDomainPlatformPowerControl::setPlatformPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex,
-    PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle)
+void PolicyServicesDomainPlatformPowerControl::setPlatformPowerLimitDutyCycle(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PlatformPowerLimitType::Type limitType,
+	const Percentage& dutyCycle)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    participant->setPlatformPowerLimitDutyCycle(domainIndex, limitType, dutyCycle);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	participant->setPlatformPowerLimitDutyCycle(domainIndex, getPolicyIndex(), limitType, dutyCycle);
 }

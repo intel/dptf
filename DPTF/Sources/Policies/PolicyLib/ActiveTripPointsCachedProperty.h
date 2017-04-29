@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,20 +27,17 @@
 class dptf_export ActiveTripPointsCachedProperty : public CachedProperty, ParticipantProperty
 {
 public:
+	ActiveTripPointsCachedProperty(const PolicyServicesInterfaceContainer& policyServices, UIntN participantIndex);
+	~ActiveTripPointsCachedProperty();
 
-    ActiveTripPointsCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex);
-    ~ActiveTripPointsCachedProperty();
+	const SpecificInfo& getTripPoints();
+	virtual Bool supportsProperty() override;
 
-    const SpecificInfo& getTripPoints();
-    virtual Bool supportsProperty() override;
-
-    std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getXml();
 
 protected:
-
-    virtual void refreshData() override;
+	virtual void refreshData() override;
 
 private:
-
-    SpecificInfo m_activeTripPoints;
+	SpecificInfo m_activeTripPoints;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,37 +19,44 @@
 #include "PolicyServicesDomainConfigTdpControl.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainConfigTdpControl::PolicyServicesDomainConfigTdpControl(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainConfigTdpControl::PolicyServicesDomainConfigTdpControl(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-ConfigTdpControlDynamicCaps PolicyServicesDomainConfigTdpControl::getConfigTdpControlDynamicCaps(UIntN participantIndex,
-    UIntN domainIndex)
+ConfigTdpControlDynamicCaps PolicyServicesDomainConfigTdpControl::getConfigTdpControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getConfigTdpControlDynamicCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getConfigTdpControlDynamicCaps(domainIndex);
 }
 
-ConfigTdpControlStatus PolicyServicesDomainConfigTdpControl::getConfigTdpControlStatus(UIntN participantIndex,
-    UIntN domainIndex)
+ConfigTdpControlStatus PolicyServicesDomainConfigTdpControl::getConfigTdpControlStatus(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getConfigTdpControlStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getConfigTdpControlStatus(domainIndex);
 }
 
-ConfigTdpControlSet PolicyServicesDomainConfigTdpControl::getConfigTdpControlSet(UIntN participantIndex,
-    UIntN domainIndex)
+ConfigTdpControlSet PolicyServicesDomainConfigTdpControl::getConfigTdpControlSet(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getConfigTdpControlSet(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getConfigTdpControlSet(domainIndex);
 }
 
-void PolicyServicesDomainConfigTdpControl::setConfigTdpControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN controlIndex)
+void PolicyServicesDomainConfigTdpControl::setConfigTdpControl(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UIntN controlIndex)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setConfigTdpControl(domainIndex,
-        getPolicyIndex(), controlIndex);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setConfigTdpControl(domainIndex, getPolicyIndex(), controlIndex);
 }

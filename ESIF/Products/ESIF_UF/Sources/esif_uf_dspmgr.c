@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -192,7 +192,7 @@ static eEsifError insert_primitive(
 		remainingSize -= actionPtr->size;
 
 		if (actionPtr->type < (sizeof(dspPtr->contained_actions)/sizeof(*dspPtr->contained_actions)) &&
-			actionPtr->type >= 0) {
+			(int)actionPtr->type >= 0) {
 			dspPtr->contained_actions[actionPtr->type] = 1;
 		}
 		actionPtr = (EsifFpcActionPtr)((char*)actionPtr + actionPtr->size);
@@ -678,9 +678,9 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 	esif_build_path(path, sizeof(path), ESIF_PATHTYPE_DSP, file_ptr->filename, NULL);
 	if (!esif_ccb_file_exists(path) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		esif_ccb_strcpy(path, file_ptr->filename, MAX_PATH);
-		IOStream_SetMemory(ioPtr, (BytePtr)value->buf_ptr, value->data_len);
+		IOStream_SetMemory(ioPtr, StoreReadOnly, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
-		IOStream_SetFile(ioPtr, path, "rb");
+		IOStream_SetFile(ioPtr, StoreReadOnly, path, "rb");
 	}
 	ESIF_TRACE_DEBUG("Fullpath: %s", path);
 
@@ -857,7 +857,7 @@ static eEsifError esif_dsp_file_scan()
 	char path[MAX_PATH]    = {0};
 	char pattern[MAX_PATH] = {0};
 	StringPtr namesp = ESIF_DSP_NAMESPACE;
-	DataVaultPtr DB  = DataBank_GetNameSpace(g_DataBankMgr, namesp);
+	DataVaultPtr DB = DataBank_GetDataVault(namesp);
 
 	// 1. Load all EDP's in the DSP Configuration Namespace, if any exist
 	if (DB) {
@@ -990,6 +990,9 @@ static struct dsp_map_s dsp_mapping[] = {
 		{"WPKG",	"dpf_wpkg"},
 		{"VTS1",	"dpf_virt"},
 		{"VTS2",	"dpf_virt"},
+		{"DGFXMCP",	"dpf_mcp"},
+		{"DGFXCORE", "dpf_dgcr"},
+		{"DGFXMEM",	"dpf_dgmm"},
 		{NULL,		"dpf_fgen"},
 };
 

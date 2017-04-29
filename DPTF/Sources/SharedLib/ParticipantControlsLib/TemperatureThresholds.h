@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,19 +25,17 @@ class XmlNode;
 class TemperatureThresholds final
 {
 public:
-
-    TemperatureThresholds(void);
-    TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis);
-    static TemperatureThresholds createInvalid();
-    Temperature getAux0(void) const;
-    Temperature getAux1(void) const;
-    Temperature getHysteresis(void) const;
-    std::shared_ptr<XmlNode> getXml(void);
-    Bool operator==(const TemperatureThresholds& thresholds) const;
+	TemperatureThresholds(void);
+	TemperatureThresholds(Temperature aux0, Temperature aux1, Temperature hysteresis);
+	static TemperatureThresholds createInvalid();
+	Temperature getAux0(void) const;
+	Temperature getAux1(void) const;
+	Temperature getHysteresis(void) const;
+	std::shared_ptr<XmlNode> getXml(void);
+	Bool operator==(const TemperatureThresholds& thresholds) const;
 
 private:
-
-    Temperature m_aux0;                                             // lower bound in Tenth Kelvin
-    Temperature m_aux1;                                             // upper bound in Tenth Kelvin
-    Temperature m_hysteresis;                                       // In Tenth Kelvin
+	Temperature m_aux0; // lower bound in Tenth Kelvin
+	Temperature m_aux1; // upper bound in Tenth Kelvin
+	Temperature m_hysteresis; // In Tenth Kelvin
 };

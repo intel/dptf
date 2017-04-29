@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,18 +29,20 @@
 class DomainRfProfileControl_000 : public DomainRfProfileControlBase
 {
 public:
+	DomainRfProfileControl_000(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
-    DomainRfProfileControl_000(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	// DomainRfProfileControlInterface
+	virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setRfProfileCenterFrequency(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const Frequency& centerFrequency) override;
 
-    // DomainRfProfileControlInterface
-    virtual RfProfileCapabilities getRfProfileCapabilities(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setRfProfileCenterFrequency(
-        UIntN participantIndex, UIntN domainIndex, const Frequency& centerFrequency) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,25 +29,23 @@ class EsifServicesInterface;
 class PolicyServices
 {
 public:
+	PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServices(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    DptfManagerInterface* getDptfManager(void) const;
-    UIntN getPolicyIndex(void) const;
-    PolicyManagerInterface* getPolicyManager(void) const;
-    Policy* getPolicy(void) const;
-    ParticipantManagerInterface* getParticipantManager(void) const;
-    WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const;
-    EsifServicesInterface* getEsifServices(void) const;
-    void throwIfNotWorkItemThread(void) const;
+	DptfManagerInterface* getDptfManager(void) const;
+	UIntN getPolicyIndex(void) const;
+	PolicyManagerInterface* getPolicyManager(void) const;
+	Policy* getPolicy(void) const;
+	ParticipantManagerInterface* getParticipantManager(void) const;
+	WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const;
+	EsifServicesInterface* getEsifServices(void) const;
+	void throwIfNotWorkItemThread(void) const;
 
 private:
-
-    DptfManagerInterface* m_dptfManager;
-    UIntN m_policyIndex;
-    PolicyManagerInterface* m_policyManager;
-    Policy* m_policy;
-    ParticipantManagerInterface* m_participantManager;
-    WorkItemQueueManagerInterface* m_workItemQueueManager;
-    EsifServicesInterface* m_esifServices;
+	DptfManagerInterface* m_dptfManager;
+	UIntN m_policyIndex;
+	PolicyManagerInterface* m_policyManager;
+	Policy* m_policy;
+	ParticipantManagerInterface* m_participantManager;
+	WorkItemQueueManagerInterface* m_workItemQueueManager;
+	EsifServicesInterface* m_esifServices;
 };

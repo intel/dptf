@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,77 +20,107 @@
 #include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPlatformPowerStatus::PolicyServicesDomainPlatformPowerStatus(
-    DptfManagerInterface* dptfManager, UIntN policyIndex)
-    : PolicyServices(dptfManager, policyIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 Power PolicyServicesDomainPlatformPowerStatus::getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getMaxBatteryPower(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getMaxBatteryPower(domainIndex);
 }
 
 Power PolicyServicesDomainPlatformPowerStatus::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformRestOfPower(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getPlatformRestOfPower(domainIndex);
 }
 
 Power PolicyServicesDomainPlatformPowerStatus::getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getAdapterPowerRating(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getAdapterPowerRating(domainIndex);
 }
 
 DptfBuffer PolicyServicesDomainPlatformPowerStatus::getBatteryStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getBatteryStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getBatteryStatus(domainIndex);
 }
 
 DptfBuffer PolicyServicesDomainPlatformPowerStatus::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getBatteryInformation(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getBatteryInformation(domainIndex);
 }
 
-PlatformPowerSource::Type PolicyServicesDomainPlatformPowerStatus::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
+PlatformPowerSource::Type PolicyServicesDomainPlatformPowerStatus::getPlatformPowerSource(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformPowerSource(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getPlatformPowerSource(domainIndex);
 }
 
 ChargerType::Type PolicyServicesDomainPlatformPowerStatus::getChargerType(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getChargerType(domainIndex);
-}
-
-Power PolicyServicesDomainPlatformPowerStatus::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getACPeakPower(domainIndex);
-}
-
-TimeSpan PolicyServicesDomainPlatformPowerStatus::getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex)
-{
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getACPeakTimeWindow(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getChargerType(domainIndex);
 }
 
 Power PolicyServicesDomainPlatformPowerStatus::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
-    return participant->getPlatformBatterySteadyState(domainIndex);
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getPlatformBatterySteadyState(domainIndex);
+}
+
+UInt32 PolicyServicesDomainPlatformPowerStatus::getACNominalVoltage(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getACNominalVoltage(domainIndex);
+}
+
+UInt32 PolicyServicesDomainPlatformPowerStatus::getACOperationalCurrent(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getACOperationalCurrent(domainIndex);
+}
+
+Percentage PolicyServicesDomainPlatformPowerStatus::getAC1msPercentageOverload(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getAC1msPercentageOverload(domainIndex);
+}
+
+Percentage PolicyServicesDomainPlatformPowerStatus::getAC2msPercentageOverload(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getAC2msPercentageOverload(domainIndex);
+}
+
+Percentage PolicyServicesDomainPlatformPowerStatus::getAC10msPercentageOverload(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	auto participant = getParticipantManager()->getParticipantPtr(participantIndex);
+	return participant->getAC10msPercentageOverload(domainIndex);
 }

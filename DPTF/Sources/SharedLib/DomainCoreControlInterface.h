@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,14 +27,14 @@
 class DomainCoreControlInterface
 {
 public:
+	virtual ~DomainCoreControlInterface(){};
 
-    virtual ~DomainCoreControlInterface()
-    {
-    };
-
-    virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual void setActiveCoreControl(UIntN participantIndex, UIntN domainIndex, const CoreControlStatus& coreControlStatus) = 0;
+	virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setActiveCoreControl(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const CoreControlStatus& coreControlStatus) = 0;
 };

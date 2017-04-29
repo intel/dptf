@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,17 +26,15 @@
 class dptf_export TargetCheckLaterAction : public TargetActionBase
 {
 public:
+	TargetCheckLaterAction(
+		PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<TimeInterface> time,
+		std::shared_ptr<ParticipantTrackerInterface> participantTracker,
+		std::shared_ptr<ThermalRelationshipTable> trt,
+		std::shared_ptr<CallbackScheduler> callbackScheduler,
+		TargetMonitor& targetMonitor,
+		UIntN target);
+	virtual ~TargetCheckLaterAction();
 
-    TargetCheckLaterAction(
-        PolicyServicesInterfaceContainer& policyServices, 
-        std::shared_ptr<TimeInterface> time,
-        std::shared_ptr<ParticipantTrackerInterface> participantTracker,
-        std::shared_ptr<ThermalRelationshipTable> trt,
-        std::shared_ptr<CallbackScheduler> callbackScheduler,
-        TargetMonitor& targetMonitor,
-        UIntN target);
-    virtual ~TargetCheckLaterAction();
-
-    virtual void execute() override;
-
+	virtual void execute() override;
 };

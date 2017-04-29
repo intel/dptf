@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,45 +20,47 @@
 
 std::string ControlFactoryType::ToString(Type factoryType)
 {
-    switch (factoryType)
-    {
-    case ControlFactoryType::Active:
-        return "Active";
-    case ControlFactoryType::ConfigTdp:
-        return "ConfigTdp";
-    case ControlFactoryType::Core:
-        return "Core";
-    case ControlFactoryType::Display:
-        return "Display";
-    case ControlFactoryType::Performance:
-        return "Performance";
-    case ControlFactoryType::PixelClockControl:
-        return "PixelClockControl";
-    case ControlFactoryType::PixelClockStatus:
-        return "PixelClockStatus";
-    case ControlFactoryType::PlatformPower:
-        return "PlatformPower";
-    case ControlFactoryType::PlatformPowerStatus:
-        return "PlatformPowerStatus";
-    case ControlFactoryType::PowerControl:
-        return "PowerControl";
-    case ControlFactoryType::PowerStatus:
-        return "PowerStatus";
-    case ControlFactoryType::Priority:
-        return "Priority";
-    case ControlFactoryType::RfProfileControl:
-        return "RfProfileControl";
-    case ControlFactoryType::RfProfileStatus:
-        return "RfProfileStatus";
-    case ControlFactoryType::Temperature:
-        return "Temperature";
-    case ControlFactoryType::Utilization:
-        return "Utilization";
-    case ControlFactoryType::GetSpecificInfo:
-        return "GetSpecificInfo";
-    case ControlFactoryType::SetSpecificInfo:
-        return "SetSpecificInfo";
-    default:
-        throw dptf_exception("Invalid control factory type.");
-    }
+	switch (factoryType)
+	{
+	case ControlFactoryType::Active:
+		return "Active";
+	case ControlFactoryType::ConfigTdp:
+		return "ConfigTdp";
+	case ControlFactoryType::Core:
+		return "Core";
+	case ControlFactoryType::Display:
+		return "Display";
+	case ControlFactoryType::Performance:
+		return "Performance";
+	case ControlFactoryType::PlatformPower:
+		return "PlatformPower";
+	case ControlFactoryType::PlatformPowerStatus:
+		return "PlatformPowerStatus";
+	case ControlFactoryType::PowerControl:
+		return "PowerControl";
+	case ControlFactoryType::PowerStatus:
+		return "PowerStatus";
+	case ControlFactoryType::Priority:
+		return "Priority";
+	case ControlFactoryType::RfProfileControl:
+		return "RfProfileControl";
+	case ControlFactoryType::RfProfileStatus:
+		return "RfProfileStatus";
+	case ControlFactoryType::Temperature:
+		return "Temperature";
+	case ControlFactoryType::Utilization:
+		return "Utilization";
+	case ControlFactoryType::GetSpecificInfo:
+		return "GetSpecificInfo";
+	case ControlFactoryType::SetSpecificInfo:
+		return "SetSpecificInfo";
+	case ControlFactoryType::ActivityStatus:
+		return "ActivityStatus";
+	case ControlFactoryType::PeakPowerControl:
+		return "PeakPowerControl";
+	case ControlFactoryType::TccOffsetControl:
+		return "TccOffsetControl";
+	default:
+		throw dptf_exception("Invalid control factory type.");
+	}
 }

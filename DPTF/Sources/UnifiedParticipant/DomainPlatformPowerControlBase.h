@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,24 +22,27 @@
 #include "DomainPlatformPowerControlInterface.h"
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
+#include "ParticipantActivityLoggingInterface.h"
 
-class DomainPlatformPowerControlBase : public ControlBase, public DomainPlatformPowerControlInterface
+class DomainPlatformPowerControlBase : public ControlBase,
+									   public DomainPlatformPowerControlInterface,
+									   public ParticipantActivityLoggingInterface
 {
-    friend class PlatformPowerControlState;
+	friend class PlatformPowerControlState;
 
 public:
-
-    DomainPlatformPowerControlBase(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPlatformPowerControlBase();
+	DomainPlatformPowerControlBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPlatformPowerControlBase();
 
 protected:
+	void updateEnabled(PlatformPowerLimitType::Type limitType);
+	void setEnabled(PlatformPowerLimitType::Type limitType, Bool enable);
+	Bool isEnabled(PlatformPowerLimitType::Type limitType) const;
 
-    void updateEnabled(PlatformPowerLimitType::Type limitType);
-    void setEnabled(PlatformPowerLimitType::Type limitType, Bool enable);
-    Bool isEnabled(PlatformPowerLimitType::Type limitType) const;
-
-    Bool m_pl1Enabled;
-    Bool m_pl2Enabled;
-    Bool m_pl3Enabled;
+	Bool m_pl1Enabled;
+	Bool m_pl2Enabled;
+	Bool m_pl3Enabled;
 };

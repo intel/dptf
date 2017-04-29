@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,57 +34,78 @@
 //  lowest time window can be from another policy
 //
 
-
 class dptf_export PowerControlArbitrator
 {
 public:
+	PowerControlArbitrator();
+	~PowerControlArbitrator();
 
-    PowerControlArbitrator();
-    ~PowerControlArbitrator();
+	void commitPolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
+	void commitPolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
+	void commitPolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
-    Bool arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
-    Bool arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
-    Power getArbitratedPowerLimit(PowerControlType::Type controlType) const;
-    TimeSpan getArbitratedTimeWindow(PowerControlType::Type controlType) const;
-    Percentage getArbitratedDutyCycle(PowerControlType::Type controlType) const;
-    void removeRequestsForPolicy(UIntN policyIndex);
+	Bool hasArbitratedPowerLimit(PowerControlType::Type controlType) const;
+	Bool hasArbitratedTimeWindow(PowerControlType::Type controlType) const;
+	Bool hasArbitratedDutyCycle(PowerControlType::Type controlType) const;
+
+	Power getArbitratedPowerLimit(PowerControlType::Type controlType) const;
+	TimeSpan getArbitratedTimeWindow(PowerControlType::Type controlType) const;
+	Percentage getArbitratedDutyCycle(PowerControlType::Type controlType) const;
+
+	Power arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
+	TimeSpan arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
+	Percentage arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
+
+	void removeRequestsForPolicy(UIntN policyIndex);
 
 private:
+	std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedPowerLimits;
+	std::map<PowerControlType::Type, Power> m_arbitratedPowerLimit;
+	std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>> m_requestedTimeWindows;
+	std::map<PowerControlType::Type, TimeSpan> m_arbitratedTimeWindow;
+	std::map<UIntN, std::map<PowerControlType::Type, Percentage>> m_requestedDutyCycles;
+	std::map<PowerControlType::Type, Percentage> m_arbitratedDutyCycle;
 
-    std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedPowerLimits;
-    std::map<PowerControlType::Type, Power> m_arbitratedPowerLimit;
-    std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>> m_requestedTimeWindows;
-    std::map<PowerControlType::Type, TimeSpan> m_arbitratedTimeWindow;
-    std::map<UIntN, std::map<PowerControlType::Type, Percentage>> m_requestedDutyCycles;
-    std::map<PowerControlType::Type, Percentage> m_arbitratedDutyCycle;
+	Power getLowestRequest(
+		PowerControlType::Type controlType,
+		const std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerLimits);
+	TimeSpan getLowestRequest(
+		PowerControlType::Type controlType,
+		const std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& timeWindows);
+	Percentage getLowestRequest(
+		PowerControlType::Type controlType,
+		const std::map<UIntN, std::map<PowerControlType::Type, Percentage>>& dutyCycles);
+	void setArbitratedRequest(PowerControlType::Type controlType, const Power& lowestRequest);
+	void setArbitratedRequest(PowerControlType::Type controlType, const TimeSpan& lowestRequest);
+	void setArbitratedRequest(PowerControlType::Type controlType, const Percentage& lowestRequest);
+	void updatePolicyRequest(
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit,
+		std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerLimits);
+	void updatePolicyRequest(
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow,
+		std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& timeWindows);
+	void updatePolicyRequest(
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Percentage& dutyCycle,
+		std::map<UIntN, std::map<PowerControlType::Type, Percentage>>& dutyCycles);
 
-    Power getLowestRequest(PowerControlType::Type controlType, 
-        const std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerLimits);
-    TimeSpan getLowestRequest(PowerControlType::Type controlType, 
-        const std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& timeWindows);
-    Percentage getLowestRequest(PowerControlType::Type controlType, 
-        const std::map<UIntN, std::map<PowerControlType::Type, Percentage>>& dutyCycles);
-    Bool setArbitratedRequest(PowerControlType::Type controlType, const Power& lowestRequest);
-    Bool setArbitratedRequest(PowerControlType::Type controlType, const TimeSpan& lowestRequest);
-    Bool setArbitratedRequest(PowerControlType::Type controlType, const Percentage& lowestRequest);
-    void updatePolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
-    void updatePolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const TimeSpan& timeWindow);
-    void updatePolicyRequest(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
+	void removePowerLimitRequest(UIntN policyIndex);
+	void removeTimeWindowRequest(UIntN policyIndex);
+	void removeDutyCycleRequest(UIntN policyIndex);
 
-    void removePowerLimitRequest(UIntN policyIndex);
-    void removeTimeWindowRequest(UIntN policyIndex);
-    void removeDutyCycleRequest(UIntN policyIndex);
-    
-    std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
-        const std::map<PowerControlType::Type, Power>& controlRequests);
-    std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
-        const std::map<PowerControlType::Type, TimeSpan>& controlRequests);
-    std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
-        const std::map<PowerControlType::Type, Percentage>& controlRequests);
+	std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
+		const std::map<PowerControlType::Type, Power>& controlRequests);
+	std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
+		const std::map<PowerControlType::Type, TimeSpan>& controlRequests);
+	std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
+		const std::map<PowerControlType::Type, Percentage>& controlRequests);
 
-    void setArbitratedPowerLimitForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
-    void setArbitratedTimeWindowsForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
-    void setArbitratedDutyCyclesForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
+	void setArbitratedPowerLimitForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
+	void setArbitratedTimeWindowsForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
+	void setArbitratedDutyCyclesForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
 };

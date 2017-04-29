@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,21 +20,22 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-CoreControlStaticCaps::CoreControlStaticCaps(UIntN totalLogicalProcessors) :
-    m_totalLogicalProcessors(totalLogicalProcessors)
+CoreControlStaticCaps::CoreControlStaticCaps(UIntN totalLogicalProcessors)
+	: m_totalLogicalProcessors(totalLogicalProcessors)
 {
 }
 
 UIntN CoreControlStaticCaps::getTotalLogicalProcessors(void) const
 {
-    return m_totalLogicalProcessors;
+	return m_totalLogicalProcessors;
 }
 
 std::shared_ptr<XmlNode> CoreControlStaticCaps::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("core_control_static_caps");
+	auto root = XmlNode::createWrapperElement("core_control_static_caps");
 
-    root->addChild(XmlNode::createDataElement("total_logical_processors", StatusFormat::friendlyValue(m_totalLogicalProcessors)));
+	root->addChild(
+		XmlNode::createDataElement("total_logical_processors", StatusFormat::friendlyValue(m_totalLogicalProcessors)));
 
-    return root;
+	return root;
 }

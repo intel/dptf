@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,7 @@
 #include "esif.h"
 
 // Aliases
-typedef u8 Byte;
+typedef unsigned char Byte, *BytePtr, **BytePtrLocation;
 
 #define STATIC_CAST(type, value)    ((type)(value))
 
@@ -44,10 +44,11 @@ typedef u8 Byte;
 #define ARRAYITEM(class, array, idx)    (class##Ptr)((unsigned char*)(array) + ((class##_Sizeof()) * (idx)))
 
 // Bit Flags Macros
-#define FLAGS_SET(flags, mask)      ((flags) |= (mask))
-#define FLAGS_CLEAR(flags, mask)    ((flags) &= ~(mask))
-#define FLAGS_TEST(flags, mask)     ((flags) & (mask))
-#define FLAGS_TESTALL(flags, mask)  (((flags) & (mask)) == (mask))
+#define FLAGS_SET(flags, mask)			((flags) |= (mask))				// Set flags for all bits in mask
+#define FLAGS_CLEAR(flags, mask)		((flags) &= ~(mask))			// Clear flags for all bits in mask
+#define FLAGS_TEST(flags, mask)			((flags) & (mask))				// Test flags for any bits in mask 
+#define FLAGS_TESTALL(flags, mask)		(((flags) & (mask)) == (mask))	// Test flags for all bits in mask
+#define FLAGS_TESTVALID(flags, mask)	(((flags) & (mask)) == (flags))	// Test flags contains only valid bits in mask
 
 // Limits
 #define MAXAUTOLEN      65536		// Max length of strings when creating with ESIFAUTOLEN

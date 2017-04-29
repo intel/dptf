@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,11 +25,11 @@
 class DomainRfProfileControlInterface
 {
 public:
+	virtual ~DomainRfProfileControlInterface(){};
 
-    virtual ~DomainRfProfileControlInterface()
-    {
-    };
-
-    virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual void setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex, const Frequency& centerFrequency) = 0;
+	virtual RfProfileCapabilities getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setRfProfileCenterFrequency(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const Frequency& centerFrequency) = 0;
 };

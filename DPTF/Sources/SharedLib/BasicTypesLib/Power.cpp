@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,136 +21,148 @@
 static const UInt32 MaxValidPower = 10000000; // 10,000 watts
 
 Power::Power(void)
-    : m_valid(false), m_power(0)
+	: m_valid(false)
+	, m_power(0)
 {
 }
 
 Power::Power(UInt32 power)
-    : m_valid(true), m_power(power)
+	: m_valid(true)
+	, m_power(power)
 {
-    if (power > MaxValidPower)
-    {
-        m_valid = false;
-        throw dptf_exception("Power value " + StlOverride::to_string(power) + " out of valid range.");
-    }
+	if (power > MaxValidPower)
+	{
+		m_valid = false;
+		throw dptf_exception("Power value " + std::to_string(power) + " out of valid range.");
+	}
 }
 
 Power Power::createInvalid()
 {
-    return Power();
+	return Power();
 }
 
 Power Power::createFromMilliwatts(UInt32 milliwatts)
 {
-    if (milliwatts > MaxValidPower)
-    {
-        throw dptf_exception("Power value " + StlOverride::to_string(milliwatts) + " out of valid range.");
-    }
-    Power power;
-    power.m_power = milliwatts;
-    power.m_valid = true;
-    return power;
+	if (milliwatts > MaxValidPower)
+	{
+		throw dptf_exception("Power value " + std::to_string(milliwatts) + " out of valid range.");
+	}
+	Power power;
+	power.m_power = milliwatts;
+	power.m_valid = true;
+	return power;
 }
 
 Bool Power::operator==(const Power& rhs) const
 {
-    // Do not throw an exception if power is not valid.
+	// Do not throw an exception if power is not valid.
 
-    if (this->isValid() == true && rhs.isValid() == true)
-    {
-        return (this->m_power == rhs.m_power);
-    }
-    else if (this->isValid() == false && rhs.isValid() == false)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+	if (this->isValid() == true && rhs.isValid() == true)
+	{
+		return (this->m_power == rhs.m_power);
+	}
+	else if (this->isValid() == false && rhs.isValid() == false)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 Bool Power::operator!=(const Power& rhs) const
 {
-    // Do not throw an exception if power is not valid.
-    return !(*this == rhs);
+	// Do not throw an exception if power is not valid.
+	return !(*this == rhs);
 }
 
 Bool Power::operator>(const Power& rhs) const
 {
-    throwIfInvalid(*this);
-    throwIfInvalid(rhs);
-    return (this->m_power > rhs.m_power);
+	throwIfInvalid(*this);
+	throwIfInvalid(rhs);
+	return (this->m_power > rhs.m_power);
 }
 
 Bool Power::operator>=(const Power& rhs) const
 {
-    throwIfInvalid(*this);
-    throwIfInvalid(rhs);
-    return (this->m_power >= rhs.m_power);
+	throwIfInvalid(*this);
+	throwIfInvalid(rhs);
+	return (this->m_power >= rhs.m_power);
 }
 
 Bool Power::operator<(const Power& rhs) const
 {
-    throwIfInvalid(*this);
-    throwIfInvalid(rhs);
-    return (this->m_power < rhs.m_power);
+	throwIfInvalid(*this);
+	throwIfInvalid(rhs);
+	return (this->m_power < rhs.m_power);
 }
 
 Bool Power::operator<=(const Power& rhs) const
 {
-    throwIfInvalid(*this);
-    throwIfInvalid(rhs);
-    return (this->m_power <= rhs.m_power);
+	throwIfInvalid(*this);
+	throwIfInvalid(rhs);
+	return (this->m_power <= rhs.m_power);
 }
 
 Power Power::operator+(const Power& rhs) const
 {
-    throwIfInvalid(*this);
-    throwIfInvalid(rhs);
-    return Power(this->m_power + rhs.m_power);
+	throwIfInvalid(*this);
+	throwIfInvalid(rhs);
+	return Power(this->m_power + rhs.m_power);
 }
 
 Power Power::operator-(const Power& rhs) const
 {
-    throwIfInvalid(*this);
-    throwIfInvalid(rhs);
+	throwIfInvalid(*this);
+	throwIfInvalid(rhs);
 
-    if (rhs.m_power > this->m_power)
-    {
-        throw dptf_exception("Invalid power subtraction requested.  Right side is greater than left side.");
-    }
-    else
-    {
-        return Power(this->m_power - rhs.m_power);
-    }
+	if (rhs.m_power > this->m_power)
+	{
+		throw dptf_exception("Invalid power subtraction requested.  Right side is greater than left side.");
+	}
+	else
+	{
+		return Power(this->m_power - rhs.m_power);
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const Power& power)
 {
-    os << power.toString();
-    return os;
+	os << power.toString();
+	return os;
 }
 
 Power::operator UInt32(void) const
 {
-    return m_power;
+	return m_power;
 }
 
 Bool Power::isValid() const
 {
-    return m_valid;
+	return m_valid;
 }
 
 std::string Power::toString() const
 {
-    return StlOverride::to_string(m_power);
+	if (isValid())
+	{
+		return std::to_string(m_power);
+	}
+
+	return Constants::InvalidString;
 }
 
 void Power::throwIfInvalid(const Power& power) const
 {
-    if (power.isValid() == false)
-    {
-        throw dptf_exception("Power is invalid.");
-    }
+	if (power.isValid() == false)
+	{
+		throw dptf_exception("Power is invalid.");
+	}
+}
+
+Int32 Power::toInt32() const
+{
+	return Int32(m_power);
 }

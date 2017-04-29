@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 PerformanceControlSetCachedProperty::PerformanceControlSetCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_performanceControlSet(std::vector<PerformanceControl>())
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_performanceControlSet(std::vector<PerformanceControl>())
 {
 }
 
@@ -35,31 +36,31 @@ PerformanceControlSetCachedProperty::~PerformanceControlSetCachedProperty(void)
 
 void PerformanceControlSetCachedProperty::refreshData(void)
 {
-    m_performanceControlSet =
-        getPolicyServices().domainPerformanceControl->getPerformanceControlSet(getParticipantIndex(), getDomainIndex());
+	m_performanceControlSet =
+		getPolicyServices().domainPerformanceControl->getPerformanceControlSet(getParticipantIndex(), getDomainIndex());
 }
 
 const PerformanceControlSet& PerformanceControlSetCachedProperty::getPerformanceControlSet()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_performanceControlSet;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_performanceControlSet;
 }
 
 Bool PerformanceControlSetCachedProperty::supportsProperty(void)
 {
-    if (getDomainProperties().implementsPerformanceControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return (m_performanceControlSet.getCount() > 0);
-    }
-    else
-    {
-        return false;
-    }
+	if (getDomainProperties().implementsPerformanceControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return (m_performanceControlSet.getCount() > 0);
+	}
+	else
+	{
+		return false;
+	}
 }

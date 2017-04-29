@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,11 +24,14 @@
 #include "ParticipantServicesInterface.h"
 #include "ParticipantActivityLoggingInterface.h"
 
-class DomainDisplayControlBase : public ControlBase, public DomainDisplayControlInterface, public ParticipantActivityLoggingInterface
+class DomainDisplayControlBase : public ControlBase,
+								 public DomainDisplayControlInterface,
+								 public ParticipantActivityLoggingInterface
 {
 public:
-
-    DomainDisplayControlBase(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainDisplayControlBase();
+	DomainDisplayControlBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainDisplayControlBase();
 };

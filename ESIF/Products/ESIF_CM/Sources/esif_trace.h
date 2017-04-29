@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -64,8 +64,13 @@
  * The following enumeration specifies the index of a given LF module into
  * an array of debug masks for each modue type.  Each LF C file should
  * contain a ESIF_DEBUG_MODULE item defined as one of the enum items.
+ *
  * Note: The Kernel-Mode Debug Modules definitions are available in User Mode
  * so that the kernel-mode debug level can be decoded in user-mode.
+ *
+ * Note:  These values are tied to Windows ETW manifest files.
+ * Any changes here must be reflected in the manifest files
+ * and the associated WIKI page.
  */
 enum esif_debug_mod {
 	ESIF_DEBUG_MOD_API_TRACE       = 0,  /* OS Trace of Entry/Exit	*/

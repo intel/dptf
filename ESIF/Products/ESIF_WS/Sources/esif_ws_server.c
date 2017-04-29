@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,6 +52,40 @@
 #define ASCII_CHAR_UBOUND 127
 #define ASCII_LINE_FEED 10
 #define ASCII_CARRIAGE_RETURN 13
+
+/* Notes on Buffering Incoming Client Messages in ClientRecord buffers:
+ *
+ * recv() may or may not return a complete websocket frame, depending on whether all
+ * of the buffered network data is available yet or not. If the frame is only partially
+ * available (or if it is larger than the http buffer), we will read in as much as is
+ * available and attempt to process it. If it is determined to be an Incomplete Frame
+ * while being processed then its contents are buffered in the current connection's Frame
+ * Buffer [ClientRecord.frame_buffer]. Each subsequent recv will append to that buffer
+ * (growing it if necessary to a max size) until the complete Frame (defined by payload-size
+ * in the header) is received. A complete frame must be received before it can be processed.
+ *
+ * Even after a complete websocket frame is available (payload-size bytes received),
+ * the message may be broken up into multiple frames. These must be processed since
+ * it is up to the client whether or not to break a message up into multiple frames.
+ * The first frame is identified when a non-control frame type (TEXT, BINARY) is received
+ * with FIN=0. Subsequent frames are identified by a CONTINUATION frame type up to
+ * and including the last frame for the message, which is identified by FIN=1. When
+ * a complete frame is received with FIN=0, its contents are buffered in the current
+ * connection's Fragment Buffer [ClientRecord.frag_buffer]. Each subsequent frame will
+ * append to that buffer (growing it if necessary to a max size) until the last frame
+ * for the message has been received (defined by FIN=1). All message fragments must
+ * be received and combined before it can be processed.
+ *
+ * Fragmented Frames must appear in sequence and all fragments must be sent before any
+ * new non-control messages (TEXT, BINARY) can be received, whether fragmented or not.
+ * However, control frames (PING, PONG, CLOSE) may be received between message fragments.
+ * This is supported by this implementation and control frames are handled as expected.
+ *
+ * Both the Frame Buffer and Fragment Buffer may or may not exist simultaneously or even
+ * at all; after a buffer is combined with the last data received, the buffer is destroyed
+ * (unless more recv's or fragments are necessary)
+ */
+#define MAX_WEBSOCKET_BUFFER	(8*1024*1024)	/* Max size of any single inbound websocket message (all combined fragments) */
 
 /*
  *******************************************************************************
@@ -526,7 +560,7 @@ static int esif_ws_server_create_inet_addr(
 	struct sockaddr_in *sockaddr_inPtr = (struct sockaddr_in*)addrPtr;
 	struct servent *serventPtr = NULL;
 
-	char *endStr;
+	char *endStr = NULL;
 	long longVal;
 
 	if (!hostPtr) {
@@ -570,7 +604,7 @@ static int esif_ws_server_create_inet_addr(
 			return -2;
 		}
 
-		sockaddr_inPtr->sin_port = htons((short)longVal);
+		sockaddr_inPtr->sin_port = esif_ccb_htons((short)longVal);
 	} else {
 		serventPtr = getservbyname(portPtr, protPtr);
 		if (!serventPtr) {
@@ -648,11 +682,16 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 {
 	eEsifError result = ESIF_OK;
 	ssize_t messageLength  = 0;
+	char *frameBuffer = NULL;
+	char *messageBuffer = g_ws_http_buffer;
+	size_t messageBufferLen = g_ws_http_buffer_len;
 
-	esif_ccb_memset(g_ws_http_buffer, 0, g_ws_http_buffer_len);
+	esif_ccb_memset(messageBuffer, 0, messageBufferLen);
 
-	/*Pull the next message from the client socket */
-	messageLength = recv(clientPtr->socket, (char*)g_ws_http_buffer, g_ws_http_buffer_len, 0);
+	/* Read the next partial or complete message fragment from the client socket.
+	 * See "Notes on Buffering Incoming Client Messages" above for implementation details
+	 */
+	messageLength = recv(clientPtr->socket, messageBuffer, (int)messageBufferLen, 0);
 	if (messageLength == 0 || messageLength == SOCKET_ERROR) {
 		ESIF_TRACE_DEBUG("no messages received from the socket\n");
 		result =  ESIF_E_WS_DISC;
@@ -660,12 +699,31 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 	}
 	ESIF_TRACE_DEBUG("%d bytes received\n", (int)messageLength);
 
+	/* Combine this partial frame with the current connection's Frame Buffer, if any*/
+	if (clientPtr->frame_buffer != NULL && clientPtr->frame_buf_len > 0) {
+		size_t total_buffer_len = clientPtr->frame_buf_len + messageLength;
+		if (total_buffer_len <= MAX_WEBSOCKET_BUFFER) {
+			frameBuffer = esif_ccb_realloc(clientPtr->frame_buffer, total_buffer_len);
+		}
+		if (frameBuffer == NULL) {
+			result = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+		ESIF_TRACE_DEBUG("WS Frame Unbuffering: buflen=%zd msglen=%zd total=%zd http=%d\n", clientPtr->frame_buf_len, messageLength, total_buffer_len, g_ws_http_buffer_len);
+		esif_ccb_memcpy(frameBuffer + clientPtr->frame_buf_len, messageBuffer, messageLength);
+		messageBuffer = frameBuffer;
+		messageBufferLen = total_buffer_len;
+		messageLength = total_buffer_len;
+		clientPtr->frame_buffer = NULL;
+		clientPtr->frame_buf_len = 0;
+	}
+
 	switch (clientPtr->state) {
 	case STATE_OPENING:
-		result = esif_ws_client_open_client(clientPtr, (char *)g_ws_http_buffer, g_ws_http_buffer_len, (size_t)messageLength);
+		result = esif_ws_client_open_client(clientPtr, messageBuffer, messageBufferLen, (size_t)messageLength);
 		break;
 	case STATE_NORMAL:
-		result = esif_ws_client_process_active_client(clientPtr, (char *)g_ws_http_buffer, g_ws_http_buffer_len, (size_t)messageLength);
+		result = esif_ws_client_process_active_client(clientPtr, messageBuffer, messageBufferLen, (size_t)messageLength);
 		break;
 	default:
 		result = ESIF_E_WS_DISC;
@@ -673,6 +731,7 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 	}
 
 exit:
+	esif_ccb_free(frameBuffer);
 	return result;
 }
 
@@ -799,8 +858,56 @@ static eEsifError esif_ws_client_process_active_client(
 			bytesRemaining = 0;
 		}
 
-		frameType = esif_ws_socket_get_subsequent_frame_type((WsSocketFramePtr)bufferPtr, messageLength, &data, &dataSize, &bytesRemaining);
+		WsSocketFramePtr framePtr = (WsSocketFramePtr)bufferPtr;
+		frameType = esif_ws_socket_get_subsequent_frame_type(framePtr, messageLength, &data, &dataSize, &bytesRemaining);
 		ESIF_TRACE_DEBUG("FrameType: %d\n", frameType);
+
+		/* Append this partial frame to the current connection's Frame Buffer, if any */
+		if (frameType == INCOMPLETE_FRAME) {
+			size_t oldSize = clientPtr->frame_buf_len;
+			size_t newSize = oldSize + messageLength;
+			u8 *newBuffer = NULL;
+			if (newSize <= MAX_WEBSOCKET_BUFFER) {
+				newBuffer = esif_ccb_realloc(clientPtr->frame_buffer, newSize);
+			}
+			if (newBuffer == NULL) {
+				result = ESIF_E_NO_MEMORY;
+				goto exit;
+			}
+			ESIF_TRACE_DEBUG("WS Frame Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, messageLength, newSize);
+			esif_ccb_memcpy(newBuffer + oldSize, bufferPtr, messageLength);
+			clientPtr->frame_buffer = newBuffer;
+			clientPtr->frame_buf_len = newSize;
+			goto exit;
+		}
+
+		/* Append this message fragment to the current connection's Fragment Buffer, if any */
+		if (frameType == FRAGMENT_FRAME) {
+			size_t oldSize = clientPtr->frag_buf_len;
+			size_t newSize = oldSize + dataSize;
+			u8 *newBuffer = NULL;
+			if (newSize <= MAX_WEBSOCKET_BUFFER) {
+				newBuffer = esif_ccb_realloc(clientPtr->frag_buffer, newSize);
+			}
+			if (newBuffer == NULL) {
+				result = ESIF_E_NO_MEMORY;
+				goto exit;
+			}
+			ESIF_TRACE_DEBUG("WS Fragment Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, dataSize, newSize);
+			esif_ccb_memcpy(newBuffer + oldSize, data, dataSize);
+			clientPtr->frag_buffer = newBuffer;
+			clientPtr->frag_buf_len = newSize;
+
+			/* Multi-Fragment messages put real opcode in 1st Fragment only; All others are Continuation Frames, including FIN */
+			if (framePtr->header.s.opcode != CONTINUATION_FRAME) {
+				clientPtr->frag_type = framePtr->header.s.opcode;
+			}
+		}
+		
+		/* Use First Fragment's Frame Type if FIN is set on (final) CONTINUATION frame */
+		if (frameType == CONTINUATION_FRAME && framePtr->header.s.fin == 1) {
+			frameType = clientPtr->frag_type;
+		}
 
 		/* Save remaining frames for reparsing if more than one frame received */
 		if (bytesRemaining > 0) {
@@ -818,13 +925,9 @@ static eEsifError esif_ws_client_process_active_client(
 			bufferRemaining = NULL;
 		}
 
-		/*Now, if the frame type is an incomplete type or if it is an error type of frame */
-		if ((INCOMPLETE_FRAME == frameType) ||  (ERROR_FRAME == frameType)) {
-			if (INCOMPLETE_FRAME == frameType) {
-				ESIF_TRACE_DEBUG("Incomplete frame received; closing socket\n");
-			} else {
-				ESIF_TRACE_DEBUG("Improper format for frame; closing socket\n");
-			}
+		/* Close Connection on Error */
+		if (ERROR_FRAME == frameType) {
+			ESIF_TRACE_DEBUG("Invalid Frame; Closing socket: Type=%02hX FIN=%hd Len=%hd Mask=%hd\n", framePtr->header.s.opcode, framePtr->header.s.fin, framePtr->header.s.payLen, framePtr->header.s.maskFlag);
 
 			/*
 			 * If the socket is not in its opening state while its frame type is in error or is incomplete
@@ -841,6 +944,7 @@ static eEsifError esif_ws_client_process_active_client(
 
 		}
 
+		/* Close Connection on Closing Frame */
 		if (CLOSING_FRAME == frameType) {
 			ESIF_TRACE_DEBUG("Close frame received; closing socket\n");
 			esif_ws_socket_build_payload(NULL, 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, CLOSING_FRAME);
@@ -850,19 +954,41 @@ static eEsifError esif_ws_client_process_active_client(
 			goto exit;
 		}
 
+		/* Binary Frames currently unsupported - Discard and Ignore */
+		if (BINARY_FRAME == frameType) {
+			esif_ccb_free(clientPtr->frag_buffer);
+			clientPtr->frag_buffer = NULL;
+			clientPtr->frag_buf_len = 0;
+			clientPtr->frag_type = EMPTY_FRAME;
+		}
+
+		/* Process Text Frames and send to REST API */
 		if (TEXT_FRAME == frameType) {
 
-			/* Use a copy of the frame text to send to the rest API */
-			textStrPtr = (char*)esif_ccb_malloc(dataSize + 1);
+			/* Use a copy of the frame text to send to the rest API, including any prior fragments */
+			size_t prior_fragments_len = clientPtr->frag_buf_len;
+			size_t total_message_len = prior_fragments_len + dataSize;
+			if (total_message_len < MAX_WEBSOCKET_BUFFER) {
+				textStrPtr = (char*)esif_ccb_malloc(total_message_len + 1);
+			}
 			if (NULL == textStrPtr) {
 				result = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
-			esif_ccb_memcpy(textStrPtr, data, dataSize);
-			textStrPtr[dataSize] = 0;
+			/* Combine the final fragment with the current connection's Fragment Buffer, if any */
+			if (prior_fragments_len > 0 && clientPtr->frag_buffer != NULL) {
+				ESIF_TRACE_DEBUG("WS Fragment Unbuffering: buflen=%zd msglen=%zd total=%zd\n", prior_fragments_len, dataSize, total_message_len);
+				esif_ccb_memcpy(textStrPtr, clientPtr->frag_buffer, prior_fragments_len);
+				esif_ccb_free(clientPtr->frag_buffer);
+				clientPtr->frag_buffer = NULL;
+				clientPtr->frag_buf_len = 0;
+				clientPtr->frag_type = EMPTY_FRAME;
+			}
+			esif_ccb_memcpy(textStrPtr + prior_fragments_len, data, dataSize);
+			textStrPtr[total_message_len] = 0;
 
 			esif_ws_server_execute_rest_cmd((const char*)textStrPtr,
-				esif_ccb_strlen((const char*)textStrPtr, bufferSize));
+				esif_ccb_strlen((const char*)textStrPtr, total_message_len + 1));
 
 			// Reset Output Buffer since REST cmd may have grown it
 			if (bufferSize != g_ws_http_buffer_len) {
@@ -886,11 +1012,19 @@ static eEsifError esif_ws_client_process_active_client(
 			textStrPtr = NULL;
 		}
 
-		/* Handle unsolicited PONG (keepalive) messages from Internet Explorer 10 */
+		/* Respond to PING Frames with PONG Frame containing Ping's Data */
+		if (PING_FRAME == frameType) {
+			esif_ws_socket_build_payload(data, dataSize, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, PONG_FRAME);
+			esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize);
+		}
+
+		/* Handle unsolicited PONG (keepalive) messages from Internet Explorer 10 (Not required per RFC 6455 but allowed) */
 		if (PONG_FRAME == frameType) {
 			esif_ws_socket_build_payload("", 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, TEXT_FRAME);
 			esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize);
 		}
+
+		/* Ignore CONTINUATION Frames; They will be processed when a FIN is received for the last Frame */
 
 	} while (bytesRemaining != 0);
 exit:
@@ -925,6 +1059,15 @@ void esif_ws_client_initialize_client(ClientRecordPtr clientPtr)
 		esif_ccb_socket_close(clientPtr->socket);
 	}
 	clientPtr->socket = INVALID_SOCKET;
+
+	esif_ccb_free(clientPtr->frame_buffer);
+	clientPtr->frame_buffer = NULL;
+	clientPtr->frame_buf_len = 0;
+
+	esif_ccb_free(clientPtr->frag_buffer);
+	clientPtr->frag_buffer = NULL;
+	clientPtr->frag_buf_len = 0;
+	clientPtr->frag_type = EMPTY_FRAME;
 }
 
 
@@ -941,6 +1084,14 @@ void esif_ws_client_close_client(ClientRecordPtr clientPtr)
 		esif_ccb_socket_close(clientPtr->socket);
 		clientPtr->socket = INVALID_SOCKET;
 	}
+	esif_ccb_free(clientPtr->frame_buffer);
+	clientPtr->frame_buffer = NULL;
+	clientPtr->frame_buf_len = 0;
+
+	esif_ccb_free(clientPtr->frag_buffer);
+	clientPtr->frag_buffer = NULL;
+	clientPtr->frag_buf_len = 0;
+	clientPtr->frag_type = EMPTY_FRAME;
 }
 
 

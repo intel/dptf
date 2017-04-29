@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,13 +27,10 @@
 class DomainConfigTdpControlInterface
 {
 public:
+	virtual ~DomainConfigTdpControlInterface(){};
 
-    virtual ~DomainConfigTdpControlInterface()
-    {
-    };
-
-    virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) = 0;
+	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) = 0;
 };

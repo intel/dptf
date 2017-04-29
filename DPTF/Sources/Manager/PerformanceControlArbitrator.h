@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,18 +29,18 @@
 class dptf_export PerformanceControlArbitrator
 {
 public:
+	PerformanceControlArbitrator();
+	~PerformanceControlArbitrator(void);
 
-    PerformanceControlArbitrator();
-    ~PerformanceControlArbitrator(void);
+	void commitPolicyRequest(UIntN policyIndex, UIntN performanceControlIndex);
+	Bool hasArbitratedPerformanceControlIndex(void) const;
+	UIntN arbitrate(UIntN policyIndex, UIntN performanceControlIndex);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, UIntN performanceControlIndex);
-
-    UIntN getArbitratedPerformanceControlIndex(void) const;
-    void clearPolicyCachedData(UIntN policyIndex);
+	UIntN getArbitratedPerformanceControlIndex(void) const;
+	void clearPolicyCachedData(UIntN policyIndex);
 
 private:
-
-    UIntN m_arbitratedPerformanceControlIndex;
-    std::map<UIntN, UIntN> m_requestedPerformanceControlIndex;
+	UIntN m_arbitratedPerformanceControlIndex;
+	std::map<UIntN, UIntN> m_requestedPerformanceControlIndex;
+	UIntN getMaxRequestedPerformanceControlIndex(std::map<UIntN, UIntN>& requests);
 };

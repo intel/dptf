@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -70,7 +70,8 @@
 #define ESIF_SERVICE_CONFIG_READONLY    0x00000004	/* Data is Read-Only */
 #define ESIF_SERVICE_CONFIG_NOCACHE     0x00000008	/* Data is not cached in memory (except key) */
 #define ESIF_SERVICE_CONFIG_FILELINK    0x00000010	/* Data is a link to an external file */
-#define ESIF_SERVICE_CONFIG_DELETE      0x40000000	/* Delete from memory and disk */
+#define ESIF_SERVICE_CONFIG_DELETE      0x00010000	/* Delete from memory and disk */
+#define ESIF_SERVICE_CONFIG_COMPRESSED  0x40000000	/* Payload is Compressed */
 #define ESIF_SERVICE_CONFIG_STATIC      0x80000000	/* Statically Linked Repository */
 
 /*

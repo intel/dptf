@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,13 @@
 using namespace std;
 
 PowerControlCapabilitiesCachedProperty::PowerControlCapabilitiesCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_powerControlDynamicCapsSet(std::vector<PowerControlDynamicCaps>())
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_powerControlDynamicCapsSet(std::vector<PowerControlDynamicCaps>())
 {
 }
 
@@ -36,40 +37,39 @@ PowerControlCapabilitiesCachedProperty::~PowerControlCapabilitiesCachedProperty(
 
 Bool PowerControlCapabilitiesCachedProperty::implementsPowerControlInterface(void)
 {
-    return getDomainProperties().implementsPowerControlInterface();
+	return getDomainProperties().implementsPowerControlInterface();
 }
 
 const PowerControlDynamicCapsSet& PowerControlCapabilitiesCachedProperty::getDynamicCapsSet(void)
 {
-    if (implementsPowerControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_powerControlDynamicCapsSet;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the power control interface.");
-    }
+	if (implementsPowerControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_powerControlDynamicCapsSet;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the power control interface.");
+	}
 }
 
 Bool PowerControlCapabilitiesCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsPowerControlInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsPowerControlInterface();
 }
 
 void PowerControlCapabilitiesCachedProperty::refreshData(void)
 {
-    if (implementsPowerControlInterface())
-    {
-        m_powerControlDynamicCapsSet =
-            getPolicyServices().domainPowerControl->getPowerControlDynamicCapsSet(
-                getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsPowerControlInterface())
+	{
+		m_powerControlDynamicCapsSet = getPolicyServices().domainPowerControl->getPowerControlDynamicCapsSet(
+			getParticipantIndex(), getDomainIndex());
+	}
 }

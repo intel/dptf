@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,9 +25,12 @@
 class DptfStatusInterface
 {
 public:
-	virtual ~DptfStatusInterface() {};
+	virtual ~DptfStatusInterface(){};
 
-	virtual void getStatus(const eAppStatusCommand command, const UInt32 appStatusIn,
-		EsifDataPtr appStatusOut, eEsifError* returnCode) = 0;
+	virtual void getStatus(
+		const eAppStatusCommand command,
+		const UInt32 appStatusIn,
+		EsifDataPtr appStatusOut,
+		eEsifError* returnCode) = 0;
 	virtual void clearCache() = 0;
 };

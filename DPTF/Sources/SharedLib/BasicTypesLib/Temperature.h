@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,34 +24,32 @@
 class Temperature final
 {
 public:
+	Temperature(void); // Initialized to invalid by default
+	Temperature(UInt32 temperatureInTenthKelvin);
+	static Temperature createInvalid();
+	static Temperature fromCelsius(double temperatureInCelsius);
+	static const UInt32 maxValidTemperature = 4732; // 200C
+	static const UInt32 minValidTemperature = 1372; // -136C
+	static Temperature snapWithinAllowableTripPointRange(Temperature aux);
 
-    Temperature(void); // Initialized to invalid by default
-    Temperature(UInt32 temperatureInTenthKelvin);
-    static Temperature createInvalid();
-    static Temperature fromCelsius(double temperatureInCelsius);
-    static const UInt32 maxValidTemperature = 4732; // 200C
-    static const UInt32 minValidTemperature = 1372; // -136C
-    static Temperature snapWithinAllowableTripPointRange(Temperature aux);
+	Bool operator==(const Temperature& rhs) const;
+	Bool operator!=(const Temperature& rhs) const;
+	Bool operator>(const Temperature& rhs) const;
+	Bool operator>=(const Temperature& rhs) const;
+	Bool operator<(const Temperature& rhs) const;
+	Bool operator<=(const Temperature& rhs) const;
+	Temperature operator+(const Temperature& rhs) const;
+	Temperature operator-(const Temperature& rhs) const;
+	friend std::ostream& operator<<(std::ostream& os, const Temperature& temperature);
+	operator UInt32(void) const;
 
-    Bool operator==(const Temperature& rhs) const;
-    Bool operator!=(const Temperature& rhs) const;
-    Bool operator>(const Temperature& rhs) const;
-    Bool operator>=(const Temperature& rhs) const;
-    Bool operator<(const Temperature& rhs) const;
-    Bool operator<=(const Temperature& rhs) const;
-    Temperature operator+(const Temperature& rhs) const;
-    Temperature operator-(const Temperature& rhs) const;
-    friend std::ostream& operator<<(std::ostream& os, const Temperature& temperature);
-    operator UInt32(void) const;
-
-    Bool isValid() const;
-    std::string toString() const;
-    double getTemperatureInCelsius() const;
+	Bool isValid() const;
+	std::string toString() const;
+	double getTemperatureInCelsius() const;
 
 private:
+	Bool m_valid;
+	UInt32 m_temperature;
 
-    Bool m_valid;
-    UInt32 m_temperature;
-
-    void throwIfInvalid(const Temperature& temperature) const;
+	void throwIfInvalid(const Temperature& temperature) const;
 };

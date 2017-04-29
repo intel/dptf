@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,8 +60,13 @@ Int32 EsifData_AsInt32 (EsifDataPtr self);		// Convert to Int32   [cast, non-dyn
 UInt32 EsifData_AsUInt32 (EsifDataPtr self);	// Convert to UInt32  [cast, non-dynamic, no conversion]
 
 char*EsifData_ToString (EsifDataPtr self);	// Convert to string  [dynamic, caller-owned]
-eEsifError EsifData_FromString (EsifDataPtr self, char *str, EsifDataType type);// Convert from null-terminated string [dynamic, self-owned]
+char*EsifData_ToStringMax (EsifDataPtr self, UInt32 max_length);	// Convert to string  [dynamic, caller-owned], specified length
+esif_error_t EsifData_FromString (EsifDataPtr self, char *str, EsifDataType type);// Convert from null-terminated string [dynamic, self-owned]
 
+// Compression methods
+Bool EsifData_IsCompressed(EsifDataPtr self);
+esif_error_t EsifData_Compress(EsifDataPtr self);
+esif_error_t EsifData_Decompress(EsifDataPtr self);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@
 #include "esif_pm.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_ccb_thermalapi.h"
-#include "esif_uf_control_action_broadcast.h"
+#include "esif_uf_event_broadcast.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -69,11 +69,6 @@ static eEsifError ESIF_CALLCONV EsifApp_EventCallback(
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr
-	);
-
-static AppDomainDataMapPtr EsifApp_GetDomainDataMapByHandle(
-	const AppParticipantDataMapPtr upMapPtr,
-	const void *domainHandle
 	);
 
 static AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromInstance(
@@ -594,7 +589,7 @@ eEsifError EsifAppCreateParticipant(
 	EsifThermalApi_ParticipantCreate(upPtr);
 
 	/* Enable control action event broadcast for this participant (currently limited to WebSocket IPC) */
-	EsifControlActionBroadcastEnableParticipant(upPtr);
+	EsifEventBroadcast_ControlActionEnableParticipant(upPtr);
 
 exit:
 	if (participant_data_ptr) {
@@ -734,6 +729,10 @@ eEsifError EsifAppStart(EsifAppPtr appPtr)
 	if ((!appPtr->partRegDone) && ((ESIF_OK == rc) || (ESIF_E_APP_ALREADY_STARTED == rc))) {
 		EsifApp_RegisterParticipantsWithApp(appPtr);
 	}
+
+	// Enable policy logging broadcasting before loading app
+	EsifEventBroadcast_PolicyLoggingEnable(ESIF_TRUE);
+
 exit:
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -848,6 +847,9 @@ eEsifError EsifAppStop(EsifAppPtr appPtr)
 {
 	eEsifError rc = ESIF_OK;
 	ESIF_ASSERT(appPtr != NULL);
+
+	// Disable policy logging broadcasting
+	EsifEventBroadcast_PolicyLoggingEnable(ESIF_FALSE);
 
 	/* Send APP_UNLOADED event directly to the App using the App Interface on this
 	 * thread instead of using EventMgr Queue so that the App (or ABAT) can perform
@@ -1171,7 +1173,7 @@ eEsifError EsifApp_RegisterEvent(
 			goto exit;
 		}
 
-		domainPtr = EsifApp_GetDomainDataMapByHandle(upMapPtr, domainHandle);
+		domainPtr = EsifApp_GetDomainDataMapFromHandle(upMapPtr, domainHandle);
 		if (NULL == domainPtr) {
 			ESIF_TRACE_ERROR("The app domain data was not found from domain handle\n");
 			rc = ESIF_E_INVALID_HANDLE;
@@ -1299,7 +1301,7 @@ eEsifError EsifApp_UnregisterEvent(
 			goto exit;
 		}
 
-		domainPtr = EsifApp_GetDomainDataMapByHandle(upMapPtr, domainHandle);
+		domainPtr = EsifApp_GetDomainDataMapFromHandle(upMapPtr, domainHandle);
 		if (NULL == domainPtr) {
 			ESIF_TRACE_ERROR("The app domain data was not found from domain handle\n");
 			rc = ESIF_E_INVALID_HANDLE;
@@ -1454,7 +1456,7 @@ eEsifError EsifApp_ReceiveEvent(
 			goto exit;
 		}
 
-		domainPtr = EsifApp_GetDomainDataMapByHandle(upMapPtr, domainHandle);
+		domainPtr = EsifApp_GetDomainDataMapFromHandle(upMapPtr, domainHandle);
 		if (NULL == domainPtr) {
 			ESIF_TRACE_ERROR("The app domain data was not found from domain handle\n");
 			rc = ESIF_E_INVALID_HANDLE;
@@ -1512,7 +1514,7 @@ AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromHandle(
 }
 
 
-static AppDomainDataMapPtr EsifApp_GetDomainDataMapByHandle(
+AppDomainDataMapPtr EsifApp_GetDomainDataMapFromHandle(
 	const AppParticipantDataMapPtr upMapPtr,
 	const void *domainHandle
 	)

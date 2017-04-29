@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,7 +32,8 @@
 #include "CoreControlFacade.h"
 #include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
-#include "PixelClockControlFacade.h"
+#include "PeakPowerControlFacade.h"
+#include "TccOffsetControlFacade.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -47,65 +48,65 @@
 class dptf_export DomainProxy : public DomainProxyInterface
 {
 public:
+	DomainProxy();
+	DomainProxy(
+		UIntN domainIndex,
+		ParticipantProxyInterface* participant,
+		const PolicyServicesInterfaceContainer& policyServices);
+	virtual ~DomainProxy();
 
-    DomainProxy();
-    DomainProxy(
-        UIntN domainIndex,
-        ParticipantProxyInterface* participant,
-        const PolicyServicesInterfaceContainer& policyServices);
-    virtual ~DomainProxy();
+	// domain properties
+	UIntN getParticipantIndex() const override;
+	UIntN getDomainIndex() const override;
+	const DomainProperties& getDomainProperties() const override;
+	const ParticipantProperties& getParticipantProperties() const override;
+	DomainPriorityCachedProperty& getDomainPriorityProperty() override;
+	UtilizationStatus getUtilizationStatus() override;
 
-    // domain properties
-    UIntN getParticipantIndex() const override;
-    UIntN getDomainIndex() const override;
-    const DomainProperties& getDomainProperties() const override;
-    const ParticipantProperties& getParticipantProperties() const override;
-    DomainPriorityCachedProperty& getDomainPriorityProperty() override;
-    UtilizationStatus getUtilizationStatus() override;
+	// domain actions
+	void clearTemperatureThresholds() override;
 
-    // domain actions
-    void clearTemperatureThresholds() override;
+	// control facades
+	virtual void initializeControls() override;
+	virtual void setControlsToMax() override;
+	virtual std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() override;
+	virtual std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() override;
+	virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
+	virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
+	virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() override;
+	virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
+	virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
+	virtual ConfigTdpControlFacade& getConfigTdpControl() override;
+	virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
+	virtual std::shared_ptr<PeakPowerControlFacadeInterface> getPeakPowerControl() override;
+	virtual std::shared_ptr<TccOffsetControlFacadeInterface> getTccOffsetControl() override;
 
-    // control facades
-    virtual void initializeControls() override;
-    virtual void setControlsToMax() override;
-    virtual std::shared_ptr<TemperatureControlFacadeInterface> getTemperatureControl() override;
-    virtual std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() override;
-    virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
-    virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
-    virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() override;
-    virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
-    virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
-    virtual ConfigTdpControlFacade& getConfigTdpControl() override;
-    virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
-    virtual PixelClockControlFacade& getPixelClockControl() const override;
+	// status
+	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
+	virtual std::shared_ptr<XmlNode> getXml() const override;
 
-    // status
-    virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
-    virtual std::shared_ptr<XmlNode> getXml() const override;
-    
 protected:
+	// domain properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	ParticipantProxyInterface* m_participant;
+	DomainPriorityCachedProperty m_domainPriorityProperty;
+	DomainProperties m_domainProperties;
+	ParticipantProperties m_participantProperties;
 
-    // domain properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    ParticipantProxyInterface* m_participant;
-    DomainPriorityCachedProperty m_domainPriorityProperty;
-    DomainProperties m_domainProperties;
-    ParticipantProperties m_participantProperties;
+	// control facades
+	std::shared_ptr<ActiveCoolingControlFacadeInterface> m_activeCoolingControl;
+	std::shared_ptr<TemperatureControlFacadeInterface> m_temperatureControl;
+	std::shared_ptr<PerformanceControlFacade> m_performanceControl;
+	std::shared_ptr<PowerControlFacade> m_powerControl;
+	std::shared_ptr<PlatformPowerControlFacade> m_platformPowerControl;
+	std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
+	std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
+	std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
+	std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
+	std::shared_ptr<PeakPowerControlFacade> m_peakPowerControl;
+	std::shared_ptr<TccOffsetControlFacade> m_tccOffsetControl;
 
-    // control facades
-    std::shared_ptr<ActiveCoolingControlFacadeInterface> m_activeCoolingControl;
-    std::shared_ptr<TemperatureControlFacadeInterface> m_temperatureControl;
-    std::shared_ptr<PerformanceControlFacade> m_performanceControl;
-    std::shared_ptr<PowerControlFacade> m_powerControl;
-    std::shared_ptr<PlatformPowerControlFacade> m_platformPowerControl;
-    std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
-    std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
-    std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
-    std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
-    std::shared_ptr<PixelClockControlFacade> m_pixelClockControl;
-
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 };

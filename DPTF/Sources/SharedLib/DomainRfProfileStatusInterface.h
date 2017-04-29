@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,15 +19,12 @@
 #pragma once
 
 #include "Dptf.h"
-#include "RfProfileData.h"
+#include "RfProfileDataSet.h"
 
 class DomainRfProfileStatusInterface
 {
 public:
+	virtual ~DomainRfProfileStatusInterface(){};
 
-    virtual ~DomainRfProfileStatusInterface()
-    {
-    };
-
-    virtual RfProfileData getRfProfileData(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) = 0;
 };

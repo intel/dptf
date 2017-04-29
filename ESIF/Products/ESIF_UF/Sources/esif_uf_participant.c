@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,8 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
+
+#define CONNECTED_STANDBY_POLLING_RATE_DEFAULT 0xFFFE
 
 /*
  * Need to move to header POC.  Also don't forget to free returned
@@ -471,7 +473,109 @@ void EsifUp_PollParticipant(EsifUpPtr self)
 	}
 }
 
+eEsifError EsifUp_StartParticipantSlowPoll(EsifUpPtr self)
+{
+	eEsifError rc = ESIF_OK;
+	eEsifError iteratorRc = ESIF_OK;
+	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	UInt32 slowPollRate = CONNECTED_STANDBY_POLLING_RATE_DEFAULT;
+	EsifPrimitiveTuple behaviorTuple = { SET_PARTICIPANT_SAMPLE_BEHAVIOR, 0, 255 };
+	EsifData behaviorRequest = { ESIF_DATA_UINT32, &slowPollRate, sizeof(slowPollRate), sizeof(slowPollRate) };
+	esif_time_t samplePeriod = 0;
+	EsifData samplePeriodResponse = { ESIF_DATA_TIME, &samplePeriod, sizeof(samplePeriod), 0 };
+	EsifPrimitiveTuple samplePeriodTuple = { GET_PARTICIPANT_SAMPLE_PERIOD, 0, 255 };
 
+	if (NULL == self) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		goto exit;
+
+	iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == iteratorRc) {
+		if (NULL == domainPtr) {
+			iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
+		}
+
+		samplePeriodTuple.domain = domainPtr->domain;
+		rc = EsifUp_ExecutePrimitive(self, &samplePeriodTuple, NULL, &samplePeriodResponse);
+		if (ESIF_OK != rc) {
+			iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
+		}
+	
+		if (samplePeriod > 0) { //only affect polling participants
+			ESIF_TRACE_DEBUG("Setting longer polling period (%d) for participant: %s due to connected standby entry. \n", slowPollRate, domainPtr->participantName);
+			behaviorTuple.domain = domainPtr->domain;
+			rc = EsifUp_ExecutePrimitive(self, &behaviorTuple, &behaviorRequest, NULL);
+		}
+		iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (iteratorRc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(self);
+	}
+
+
+exit:
+	return rc;
+}
+
+eEsifError EsifUp_StopParticipantSlowPoll(EsifUpPtr self)
+{
+	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	eEsifError rc = ESIF_OK;
+	eEsifError iteratorRc = ESIF_OK;
+	esif_time_t samplePeriod = 0;
+	EsifData samplePeriodResponse = { ESIF_DATA_TIME, &samplePeriod, sizeof(samplePeriod), 0 };
+	EsifPrimitiveTuple samplePeriodTuple = { GET_PARTICIPANT_SAMPLE_PERIOD, 0, 255 };
+
+
+	if (NULL == self) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	
+	iteratorRc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != iteratorRc) {
+		rc = iteratorRc;
+		goto exit;
+	}
+
+	iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == iteratorRc) {
+		if (NULL == domainPtr) {
+			iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
+		}
+
+		samplePeriodTuple.domain = domainPtr->domain;
+		rc = EsifUp_ExecutePrimitive(self, &samplePeriodTuple, NULL, &samplePeriodResponse);
+		if (ESIF_OK != rc) {
+			iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
+		}
+		
+		if (samplePeriod > 0) { //only affect polling participants
+			ESIF_TRACE_DEBUG("Resetting polling rate for participant: %s due to connected standby exit. \n", domainPtr->participantName);
+			rc = EsifUpDomain_InitTempPoll(domainPtr);
+		}
+		iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (iteratorRc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(self);
+	}
+
+exit:
+	return rc;
+}
 
 static eEsifError EsifUp_CreateParticipantByLpEventData(
 	struct esif_ipc_event_data_create_participant *lpCreateDataPtr,

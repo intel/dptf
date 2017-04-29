@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,14 +19,15 @@
 #include "PolicyServicesDomainRfProfileStatus.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainRfProfileStatus::PolicyServicesDomainRfProfileStatus(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainRfProfileStatus::PolicyServicesDomainRfProfileStatus(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-RfProfileData PolicyServicesDomainRfProfileStatus::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
+RfProfileDataSet PolicyServicesDomainRfProfileStatus::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getRfProfileData(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRfProfileDataSet(domainIndex);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,30 +25,34 @@
 #include "ParticipantActivityLoggingInterface.h"
 #include <CachedValue.h>
 
-class DomainTemperatureBase : public ControlBase, public DomainTemperatureInterface, public ParticipantActivityLoggingInterface
+class DomainTemperatureBase : public ControlBase,
+							  public DomainTemperatureInterface,
+							  public ParticipantActivityLoggingInterface
 {
 public:
+	DomainTemperatureBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainTemperatureBase();
 
-    DomainTemperatureBase(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainTemperatureBase();
+	// DomainTemperatureInterface
+	virtual TemperatureThresholds getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setTemperatureThresholds(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const TemperatureThresholds& temperatureThresholds) override;
 
-    // DomainTemperatureInterface
-    virtual TemperatureThresholds getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setTemperatureThresholds(UIntN participantIndex, UIntN domainIndex,
-        const TemperatureThresholds& temperatureThresholds) override;
-
-    // ParticipantActivityLoggingInterface
-    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	// ParticipantActivityLoggingInterface
+	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 private:
-
-    Temperature getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber);
-    Temperature getHysteresis(UIntN domainIndex) const;
-    void setAux0(Temperature &aux0, UIntN domainIndex);
-    void setAux1(Temperature &aux1, UIntN domainIndex);
+	Temperature getAuxTemperatureThreshold(UIntN domainIndex, UInt8 auxNumber);
+	Temperature getHysteresis(UIntN domainIndex) const;
+	void setAux0(Temperature& aux0, UIntN domainIndex);
+	void setAux1(Temperature& aux1, UIntN domainIndex);
 
 protected:
-    CachedValue<Temperature> m_lastSetAux0;
-    CachedValue<Temperature> m_lastSetAux1;
+	CachedValue<Temperature> m_lastSetAux0;
+	CachedValue<Temperature> m_lastSetAux1;
 };

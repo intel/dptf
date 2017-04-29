@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,13 +27,11 @@
 class EsifThreadId
 {
 public:
-
-    EsifThreadId(void);
-    esif_thread_t getThreadId(void) const;
-    Bool operator==(const EsifThreadId& rhs) const;
-    Bool operator!=(const EsifThreadId& rhs) const;
+	EsifThreadId(void);
+	esif_thread_id_t getThreadId(void) const;
+	Bool operator==(const EsifThreadId& rhs) const;
+	Bool operator!=(const EsifThreadId& rhs) const;
 
 private:
-
-    esif_thread_t m_threadId;
+	esif_thread_id_t m_threadId;
 };

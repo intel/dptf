@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,16 +19,17 @@
 #include "TemperatureStatus.h"
 #include "XmlNode.h"
 
-TemperatureStatus::TemperatureStatus(Temperature currentTemperature) : m_currentTemperature(currentTemperature)
-{
-};
+TemperatureStatus::TemperatureStatus(Temperature currentTemperature)
+	: m_currentTemperature(currentTemperature){};
 
 Temperature TemperatureStatus::getCurrentTemperature(void) const
 {
-    return m_currentTemperature;
+	return m_currentTemperature;
 }
 
 std::shared_ptr<XmlNode> TemperatureStatus::getXml(void)
 {
-    return XmlNode::createDataElement("temperature_status", getCurrentTemperature().toString());
+	std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("temperature_status");
+	root->addChild(XmlNode::createDataElement("temperature_status", getCurrentTemperature().toString()));
+	return root;
 }

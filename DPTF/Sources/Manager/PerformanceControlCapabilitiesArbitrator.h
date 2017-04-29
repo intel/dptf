@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,25 +24,29 @@
 class dptf_export PerformanceControlCapabilitiesArbitrator
 {
 public:
+	PerformanceControlCapabilitiesArbitrator();
+	~PerformanceControlCapabilitiesArbitrator();
 
-    PerformanceControlCapabilitiesArbitrator();
-    ~PerformanceControlCapabilitiesArbitrator();
+	void commitPolicyRequest(UIntN policyIndex, const PerformanceControlDynamicCaps& caps);
+	Bool hasArbitratedPerformanceControlCapabilities() const;
+	PerformanceControlDynamicCaps arbitrate(UIntN policyIndex, const PerformanceControlDynamicCaps& caps);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, const PerformanceControlDynamicCaps& caps);
-    Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
-    PerformanceControlDynamicCaps getArbitratedPerformanceControlCapabilities() const;
-    Bool getArbitratedLock() const;
-    void removeRequestsForPolicy(UIntN policyIndex);
+	Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
+	PerformanceControlDynamicCaps getArbitratedPerformanceControlCapabilities();
+	Bool getArbitratedLock() const;
+	void removeRequestsForPolicy(UIntN policyIndex);
 
 private:
+	std::map<UIntN, UIntN> m_requestedUpperPState;
+	std::map<UIntN, UIntN> m_requestedLowerPState;
+	std::map<UIntN, Bool> m_requestedLocks;
 
-    std::map<UIntN, UIntN> m_requestedUpperPState;
-    std::map<UIntN, UIntN> m_requestedLowerPState;
-    std::map<UIntN, Bool> m_requestedLocks;
-
-    void updatePolicyRequest(const PerformanceControlDynamicCaps &caps, UIntN policyIndex);
-    void updatePolicyLockRequest(Bool lock, UIntN policyIndex);
-    UIntN getBiggestUpperPStateIndex() const;
-    UIntN getSmallestLowerPStateIndex() const;
+	void updatePolicyRequest(
+		const PerformanceControlDynamicCaps& caps,
+		UIntN policyIndex,
+		std::map<UIntN, UIntN>& upperRequests,
+		std::map<UIntN, UIntN>& lowerRequests);
+	void updatePolicyLockRequest(Bool lock, UIntN policyIndex);
+	UIntN getBiggestUpperPStateIndex(std::map<UIntN, UIntN>& upperRequests) const;
+	UIntN getSmallestLowerPStateIndex(std::map<UIntN, UIntN>& lowerRequests) const;
 };

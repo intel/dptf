@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,15 @@
 class ParticipantMessage : public DptfMessage
 {
 public:
+	ParticipantMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName);
+	ParticipantMessage(
+		const std::string& fileName,
+		UIntN lineNumber,
+		const std::string& executingFunctionName,
+		const std::string& message,
+		UIntN domainIndex = Constants::Invalid);
+	virtual ~ParticipantMessage(void);
 
-    ParticipantMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName);
-    ParticipantMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName,
-        const std::string& message, UIntN domainIndex = Constants::Invalid);
-    virtual ~ParticipantMessage(void);
-
-    void setDomainIndex(UIntN domainIndex);
-    void setEsifPrimitive(esif_primitive_type primitive, UInt32 instance);
+	void setDomainIndex(UIntN domainIndex);
+	void setEsifPrimitive(esif_primitive_type primitive, UInt32 instance);
 };

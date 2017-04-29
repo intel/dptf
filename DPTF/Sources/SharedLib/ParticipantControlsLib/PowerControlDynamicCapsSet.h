@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,27 +27,24 @@ class XmlNode;
 class PowerControlDynamicCapsSet
 {
 public:
+	PowerControlDynamicCapsSet();
+	PowerControlDynamicCapsSet(const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps);
+	~PowerControlDynamicCapsSet();
 
-    PowerControlDynamicCapsSet();
-    PowerControlDynamicCapsSet(const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps);
-    ~PowerControlDynamicCapsSet();
+	static PowerControlDynamicCapsSet createFromPpcc(const DptfBuffer& buffer);
+	Bool isEmpty() const;
+	Bool hasCapability(PowerControlType::Type controlType) const;
+	const PowerControlDynamicCaps& getCapability(PowerControlType::Type controlType) const;
+	void setCapability(const PowerControlDynamicCaps& capability);
+	std::set<PowerControlType::Type> getControlTypes() const;
+	Power snapToCapability(PowerControlType::Type controlType, Power powerValue) const;
+	TimeSpan snapToCapability(PowerControlType::Type controlType, TimeSpan timeValue) const;
+	DptfBuffer toPpccBinary() const;
+	std::shared_ptr<XmlNode> getXml(void) const;
 
-    static PowerControlDynamicCapsSet createFromPpcc(const DptfBuffer& buffer);
-    Bool isEmpty() const;
-    Bool hasCapability(PowerControlType::Type controlType) const;
-    const PowerControlDynamicCaps& getCapability(PowerControlType::Type controlType) const;
-    void setCapability(const PowerControlDynamicCaps& capability);
-    std::set<PowerControlType::Type> getControlTypes() const;
-    Power snapToCapability(PowerControlType::Type controlType, Power powerValue) const;
-    TimeSpan snapToCapability(PowerControlType::Type controlType, TimeSpan timeValue) const;
-    DptfBuffer toPpccBinary() const;
-    std::shared_ptr<XmlNode> getXml(void) const;
-
-    Bool operator==(const PowerControlDynamicCapsSet& rhs) const;
-    Bool operator!=(const PowerControlDynamicCapsSet& rhs) const;
+	Bool operator==(const PowerControlDynamicCapsSet& rhs) const;
+	Bool operator!=(const PowerControlDynamicCapsSet& rhs) const;
 
 private:
-
-    std::map<PowerControlType::Type, PowerControlDynamicCaps> m_capabilities;
-
+	std::map<PowerControlType::Type, PowerControlDynamicCaps> m_capabilities;
 };

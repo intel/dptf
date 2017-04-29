@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,11 +18,13 @@
 
 #include "DomainRfProfileControl_001.h"
 
-DomainRfProfileControl_001::DomainRfProfileControl_001(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
-    DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
+DomainRfProfileControl_001::DomainRfProfileControl_001(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // TODO: does this need to capture or restore anything?
+	// TODO: does this need to capture or restore anything?
 }
 
 DomainRfProfileControl_001::~DomainRfProfileControl_001(void)
@@ -31,43 +33,46 @@ DomainRfProfileControl_001::~DomainRfProfileControl_001(void)
 
 RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
-    Frequency defaultCenterFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
-        esif_primitive_type::GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY, domainIndex);
+	Frequency defaultCenterFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+		esif_primitive_type::GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY, domainIndex);
 
-    Percentage leftClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
-        esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_LEFT, domainIndex);
+	Percentage leftClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
+		esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_LEFT, domainIndex);
 
-    Percentage rightClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
-        esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_RIGHT, domainIndex);
+	Percentage rightClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
+		esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_RIGHT, domainIndex);
 
-    Frequency frequencyAdjustResolution = getParticipantServices()->primitiveExecuteGetAsFrequency(
-        esif_primitive_type::GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION, domainIndex);
+	Frequency frequencyAdjustResolution = getParticipantServices()->primitiveExecuteGetAsFrequency(
+		esif_primitive_type::GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION, domainIndex);
 
-    RfProfileCapabilities rfProfileCapabilities(defaultCenterFrequency, leftClipPercent, rightClipPercent,
-        frequencyAdjustResolution);
+	RfProfileCapabilities rfProfileCapabilities(
+		defaultCenterFrequency, leftClipPercent, rightClipPercent, frequencyAdjustResolution);
 
-    return rfProfileCapabilities;
+	return rfProfileCapabilities;
 }
 
-void DomainRfProfileControl_001::setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex,
-    const Frequency& centerFrequency)
+void DomainRfProfileControl_001::setRfProfileCenterFrequency(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Frequency& centerFrequency)
 {
-    getParticipantServices()->primitiveExecuteSetAsFrequency(
-        esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY, centerFrequency, domainIndex, Constants::Esif::NoInstance);
+	getParticipantServices()->primitiveExecuteSetAsFrequency(
+		esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY, centerFrequency, domainIndex, Constants::Esif::NoInstance);
 }
 
 void DomainRfProfileControl_001::clearCachedData(void)
 {
-    // FIXME: do we clear the cache for this control?
+	// FIXME: do we clear the cache for this control?
 }
 
 std::shared_ptr<XmlNode> DomainRfProfileControl_001::getXml(UIntN domainIndex)
 {
-    // FIXME
-    throw implement_me();
+	auto root = XmlNode::createWrapperElement("rfprofile_control");
+	root->addChild(XmlNode::createDataElement("control_name", getName()));
+	return root;
 }
 
 std::string DomainRfProfileControl_001::getName(void)
 {
-    return "RF Profile Control (Version 1)";
+	return "RF Profile Control";
 }

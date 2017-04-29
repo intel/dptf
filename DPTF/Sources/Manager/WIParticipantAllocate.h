@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,13 +25,11 @@
 class WIParticipantAllocate : public WorkItem
 {
 public:
+	WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex);
+	virtual ~WIParticipantAllocate(void);
 
-    WIParticipantAllocate(DptfManagerInterface* dptfManager, UIntN* newParticipantIndex);
-    virtual ~WIParticipantAllocate(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 
 private:
-
-    UIntN* m_newParticipantIndex;
+	UIntN* m_newParticipantIndex;
 };

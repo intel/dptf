@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,123 +24,127 @@
 #include "MapOps.h"
 #include "Utility.h"
 
-ParticipantManager::ParticipantManager(DptfManagerInterface* dptfManager) : m_dptfManager(dptfManager)
+ParticipantManager::ParticipantManager(DptfManagerInterface* dptfManager)
+	: m_dptfManager(dptfManager)
 {
 }
 
 ParticipantManager::~ParticipantManager(void)
 {
-    destroyAllParticipants();
+	destroyAllParticipants();
 }
 
 UIntN ParticipantManager::allocateNextParticipantIndex()
 {
-    UIntN firstAvailableIndex = Constants::Invalid;
+	UIntN firstAvailableIndex = Constants::Invalid;
 
-    auto indexesInUse = MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
-    firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
+	auto indexesInUse = MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
+	firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
 
-    return firstAvailableIndex;
+	return firstAvailableIndex;
 }
 
-void ParticipantManager::createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
-    Bool participantEnabled)
+void ParticipantManager::createParticipant(
+	UIntN participantIndex,
+	const AppParticipantDataPtr participantDataPtr,
+	Bool participantEnabled)
 {
-    if (participantIndex == Constants::Invalid || participantIndex == Constants::Esif::NoParticipant)
-    {
-        throw dptf_exception("Participant index is invalid.");
-    }
+	if (participantIndex == Constants::Invalid || participantIndex == Constants::Esif::NoParticipant)
+	{
+		throw dptf_exception("Participant index is invalid.");
+	}
 
-    try
-    {
-        // create an instance of the participant class and save at the first available index.
-        // When this completes the actual participant will be instantiated and the functionality will
-        // be available through the interface function pointers.
-        m_dptfManager->getDptfStatus()->clearCache();
-        m_participants[participantIndex] = std::make_shared<Participant>(m_dptfManager);
-        m_participants[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
-    }
-    catch (...)
-    {
-        throw dptf_exception("Failed to create participant at index " + StlOverride::to_string(participantIndex));
-    }
+	try
+	{
+		// create an instance of the participant class and save at the first available index.
+		// When this completes the actual participant will be instantiated and the functionality will
+		// be available through the interface function pointers.
+		m_dptfManager->getDptfStatus()->clearCache();
+		m_participants[participantIndex] = std::make_shared<Participant>(m_dptfManager);
+		m_participants[participantIndex]->createParticipant(participantIndex, participantDataPtr, participantEnabled);
+	}
+	catch (...)
+	{
+		throw dptf_exception("Failed to create participant at index " + std::to_string(participantIndex));
+	}
 }
 
 void ParticipantManager::destroyAllParticipants(void)
 {
-    auto participantIndexes = MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
-    for (auto index = participantIndexes.begin(); index != participantIndexes.end(); ++index)
-    {
-        try
-        {
-            // Queue up a work item and wait for the return.
-            m_dptfManager->getDptfStatus()->clearCache();
-            WorkItem* workItem = new WIParticipantDestroy(m_dptfManager, *index);
-            m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
-        }
-        catch (...)
-        {
-            ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIParticipantDestroy.");
-            message.addMessage("Participant Index", *index);
-            m_dptfManager->getEsifServices()->writeMessageError(message);
-        }
-    }
+	auto participantIndexes = MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
+	for (auto index = participantIndexes.begin(); index != participantIndexes.end(); ++index)
+	{
+		try
+		{
+			// Queue up a work item and wait for the return.
+			m_dptfManager->getDptfStatus()->clearCache();
+			WorkItem* workItem = new WIParticipantDestroy(m_dptfManager, *index);
+			m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
+		}
+		catch (...)
+		{
+			ManagerMessage message =
+				ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIParticipantDestroy.");
+			message.addMessage("Participant Index", *index);
+			m_dptfManager->getEsifServices()->writeMessageError(message);
+		}
+	}
 }
 
 void ParticipantManager::destroyParticipant(UIntN participantIndex)
 {
-    auto requestedParticipant = m_participants.find(participantIndex);
-    if (requestedParticipant != m_participants.end())
-    {
-        if (requestedParticipant->second != nullptr)
-        {
-            try
-            {
-                m_dptfManager->getDptfStatus()->clearCache();
-                requestedParticipant->second->destroyParticipant();
-            }
-            catch (...)
-            {
-                ManagerMessage message = ManagerMessage(m_dptfManager, FLF, "Failed while trying to destroy participant.");
-                message.addMessage("Participant Index", participantIndex);
-                m_dptfManager->getEsifServices()->writeMessageError(message);
-            }
-        }
+	auto requestedParticipant = m_participants.find(participantIndex);
+	if (requestedParticipant != m_participants.end())
+	{
+		if (requestedParticipant->second != nullptr)
+		{
+			try
+			{
+				m_dptfManager->getDptfStatus()->clearCache();
+				requestedParticipant->second->destroyParticipant();
+			}
+			catch (...)
+			{
+				ManagerMessage message =
+					ManagerMessage(m_dptfManager, FLF, "Failed while trying to destroy participant.");
+				message.addMessage("Participant Index", participantIndex);
+				m_dptfManager->getEsifServices()->writeMessageError(message);
+			}
+		}
 
-        m_participants.erase(requestedParticipant);
-    }
+		m_participants.erase(requestedParticipant);
+	}
 }
 
 std::set<UIntN> ParticipantManager::getParticipantIndexes(void) const
 {
-    return MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
+	return MapOps<UIntN, std::shared_ptr<Participant>>::getKeys(m_participants);
 }
 
 Participant* ParticipantManager::getParticipantPtr(UIntN participantIndex) const
 {
-    auto requestedParticipant = m_participants.find(participantIndex);
-    if ((requestedParticipant == m_participants.end()) ||
-        (requestedParticipant->second == nullptr))
-    {
-        throw participant_index_invalid();
-    }
+	auto requestedParticipant = m_participants.find(participantIndex);
+	if ((requestedParticipant == m_participants.end()) || (requestedParticipant->second == nullptr))
+	{
+		throw participant_index_invalid();
+	}
 
-    return requestedParticipant->second.get();
+	return requestedParticipant->second.get();
 }
 
 void ParticipantManager::clearAllParticipantCachedData()
 {
-    m_dptfManager->getDptfStatus()->clearCache();
-    for (auto p = m_participants.begin(); p != m_participants.end(); p++)
-    {
-        if (p->second != nullptr)
-        {
-            p->second->clearParticipantCachedData();
-        }
-    }
+	m_dptfManager->getDptfStatus()->clearCache();
+	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
+	{
+		if (p->second != nullptr)
+		{
+			p->second->clearParticipantCachedData();
+		}
+	}
 }
 
 std::string ParticipantManager::GetStatusAsXml(void)
 {
-    throw implement_me();
+	throw implement_me();
 }

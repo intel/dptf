@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,6 +54,7 @@
 #pragma once
 
 #include "esif_ccb.h"
+#include "esif_ccb_memory.h"
 
 #if defined(ESIF_ATTR_KERNEL)
 
@@ -90,3 +91,23 @@ static ESIF_INLINE int esif_ccb_strmatch(char *string, char *pattern)
 	}
 	return ESIF_TRUE;
 }
+
+/* Copy up to dest_len bytes from src string to dst, padding with zeros.
+ * Note: Behaves like strncpy() - dest is NOT null terminated if strlen(src) >= dest_len
+ * Use for copying non-null terminated string buffers to/from null terminated strings
+ */
+static ESIF_INLINE void *esif_ccb_strmemcpy(
+	char *dest,
+	size_t dest_len,
+	const char *src,
+	size_t src_len
+)
+{
+	size_t bytes = esif_ccb_min(dest_len, esif_ccb_strlen(src, src_len));
+	if (bytes > 0)
+		esif_ccb_memcpy(dest, src, bytes);
+	if (bytes < dest_len)
+		esif_ccb_memset(dest + bytes, 0, dest_len - bytes);
+	return dest;
+}
+

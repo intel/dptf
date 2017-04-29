@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,8 +20,9 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIPolicyActiveControlPointRelationshipTableChanged::WIPolicyActiveControlPointRelationshipTableChanged(DptfManagerInterface* dptfManager) :
-	WorkItem(dptfManager, FrameworkEvent::PolicyActiveControlPointRelationshipTableChanged)
+WIPolicyActiveControlPointRelationshipTableChanged::WIPolicyActiveControlPointRelationshipTableChanged(
+	DptfManagerInterface* dptfManager)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyActiveControlPointRelationshipTableChanged)
 {
 }
 
@@ -46,7 +47,7 @@ void WIPolicyActiveControlPointRelationshipTableChanged::execute(void)
 		catch (policy_index_invalid ex)
 		{
 			// do nothing.  No item in the policy list at this index.
-		} 
+		}
 		catch (std::exception& ex)
 		{
 			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyActiveControlPointRelationshipTableChanged", i);

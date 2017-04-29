@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,24 +24,23 @@
 class DeferredWorkItemDecorator : public WorkItemInterface
 {
 public:
+	DeferredWorkItemDecorator(WorkItemInterface* workItem);
+	~DeferredWorkItemDecorator(void);
 
-    DeferredWorkItemDecorator(WorkItemInterface* workItem);
-    ~DeferredWorkItemDecorator(void);
+	// implement WorkItemInterface
+	UInt64 getUniqueId(void) const;
+	void execute(void);
 
-    // implement WorkItemInterface
-    UInt64 getUniqueId(void) const;
-    void execute(void);
-
-    // implement decorated functionality
-    UInt64 getTicksForDeferredProcessing(void) const;
+	// implement decorated functionality
+	UInt64 getTicksForDeferredProcessing(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.  implement later if needed.
+	DeferredWorkItemDecorator(const DeferredWorkItemDecorator&);
+	DeferredWorkItemDecorator& operator=(const DeferredWorkItemDecorator&);
 
-    // hide the copy constructor and assignment operator.  implement later if needed.
-    DeferredWorkItemDecorator(const DeferredWorkItemDecorator&);
-    DeferredWorkItemDecorator& operator=(const DeferredWorkItemDecorator&);
+	WorkItemInterface* m_workItem;
 
-    WorkItemInterface* m_workItem;
-
-    //    LARGE_INTEGER                           m_ticksForDeferredProcessing;   // this should be set if queue processing is deferred until a specific time, or 0 if immediate (in 100's of nanoseconds)
+	//    LARGE_INTEGER                           m_ticksForDeferredProcessing;   // this should be set if queue
+	//    processing is deferred until a specific time, or 0 if immediate (in 100's of nanoseconds)
 };

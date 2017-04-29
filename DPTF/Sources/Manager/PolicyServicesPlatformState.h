@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,18 +25,17 @@
 class PolicyServicesPlatformState final : public PolicyServices, public PlatformStateInterface
 {
 public:
-
-    PolicyServicesPlatformState(DptfManagerInterface* dptfManager, UIntN policyIndex);
-    virtual OnOffToggle::Type getMotion(void) const override;
-    virtual SensorOrientation::Type getOrientation(void) const override;
-    virtual SensorSpatialOrientation::Type getSpatialOrientation(void) const override;
-    virtual OsLidState::Type getLidState(void) const override;
-    virtual OsPowerSource::Type getPowerSource(void) const override;
-    virtual const std::string& getForegroundApplicationName(void) const override;
-    virtual CoolingMode::Type getCoolingMode(void) const override;
-    virtual UIntN getBatteryPercentage(void) const override;
-    virtual OsPlatformType::Type getPlatformType(void) const override;
-    virtual OsDockMode::Type getDockMode(void) const override;
-    virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const override;
-    virtual UIntN getMobileNotification(OsMobileNotificationType::Type notificationType) const override;
+	PolicyServicesPlatformState(DptfManagerInterface* dptfManager, UIntN policyIndex);
+	virtual OnOffToggle::Type getMotion(void) const override;
+	virtual SensorOrientation::Type getOrientation(void) const override;
+	virtual SensorSpatialOrientation::Type getSpatialOrientation(void) const override;
+	virtual OsLidState::Type getLidState(void) const override;
+	virtual OsPowerSource::Type getPowerSource(void) const override;
+	virtual const std::string& getForegroundApplicationName(void) const override;
+	virtual CoolingMode::Type getCoolingMode(void) const override;
+	virtual UIntN getBatteryPercentage(void) const override;
+	virtual OsPlatformType::Type getPlatformType(void) const override;
+	virtual OsDockMode::Type getDockMode(void) const override;
+	virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const override;
+	virtual UIntN getMobileNotification(OsMobileNotificationType::Type notificationType) const override;
 };

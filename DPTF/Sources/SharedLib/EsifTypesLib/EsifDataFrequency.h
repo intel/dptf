@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,21 +24,19 @@
 class EsifDataFrequency final
 {
 public:
+	EsifDataFrequency(void);
+	EsifDataFrequency(const Frequency& data);
 
-    EsifDataFrequency(void);
-    EsifDataFrequency(const Frequency& data);
-
-    operator EsifDataPtr(void);
-    operator Frequency(void) const;
+	operator EsifDataPtr(void);
+	operator Frequency(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataFrequency(const EsifDataFrequency& rhs);
+	EsifDataFrequency& operator=(const EsifDataFrequency& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataFrequency(const EsifDataFrequency& rhs);
-    EsifDataFrequency& operator=(const EsifDataFrequency& rhs);
+	UInt64 m_esifDataValue;
+	EsifData m_esifData;
 
-    UInt64 m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(UInt64 data);
+	void initialize(UInt64 data);
 };

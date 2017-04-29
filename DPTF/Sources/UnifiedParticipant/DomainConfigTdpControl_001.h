@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,47 +25,51 @@
 class DomainConfigTdpControl_001 : public DomainConfigTdpControlBase
 {
 public:
+	DomainConfigTdpControl_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainConfigTdpControl_001(void);
 
-    DomainConfigTdpControl_001(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainConfigTdpControl_001(void);
+	// DomainConfigTdpControlInterface
+	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+		override;
+	virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex) override;
 
-    // DomainConfigTdpControlInterface
-    virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-    virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-    virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex) override;
+	// ParticipantActivityLoggingInterface
+	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
-    // ParticipantActivityLoggingInterface
-    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-    virtual void capture(void) override;
-    virtual void restore(void) override;
+	virtual void capture(void) override;
+	virtual void restore(void) override;
 
 private:
+	// hide the copy constructor and = operator
+	DomainConfigTdpControl_001(const DomainConfigTdpControl_001& rhs);
+	DomainConfigTdpControl_001& operator=(const DomainConfigTdpControl_001& rhs);
 
-    // hide the copy constructor and = operator
-    DomainConfigTdpControl_001(const DomainConfigTdpControl_001& rhs);
-    DomainConfigTdpControl_001& operator=(const DomainConfigTdpControl_001& rhs);
+	void checkHWConfigTdpSupport(UIntN domainIndex);
+	Bool isLockBitSet(UIntN domainIndex);
+	UIntN getLevelCount(UIntN domainIndex);
+	ConfigTdpControlSet createConfigTdpControlSet(UIntN domainIndex);
+	ConfigTdpControlDynamicCaps createConfigTdpControlDynamicCaps(UIntN domainIndex);
+	void throwIfConfigTdpControlIndexIsOutOfBounds(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		UIntN configTdpControlIndex);
 
-    void checkHWConfigTdpSupport(UIntN domainIndex);
-    Bool isLockBitSet(UIntN domainIndex);
-    UIntN getLevelCount(UIntN domainIndex);
-    ConfigTdpControlSet createConfigTdpControlSet(UIntN domainIndex);
-    ConfigTdpControlDynamicCaps createConfigTdpControlDynamicCaps(UIntN domainIndex);
-    void throwIfConfigTdpControlIndexIsOutOfBounds(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex);
-
-    CachedValue<ConfigTdpControlDynamicCaps> m_configTdpControlDynamicCaps;
-    CachedValue<ConfigTdpControlSet> m_configTdpControlSet;
-    CachedValue<ConfigTdpControlStatus> m_configTdpControlStatus;
-    UInt32 m_configTdpLevelsAvailable;
-    UInt32 m_currentConfigTdpControlId;
-    Bool m_configTdpLock;
-    CachedValue<ConfigTdpControlStatus> m_initialStatus;
+	CachedValue<ConfigTdpControlDynamicCaps> m_configTdpControlDynamicCaps;
+	CachedValue<ConfigTdpControlSet> m_configTdpControlSet;
+	CachedValue<ConfigTdpControlStatus> m_configTdpControlStatus;
+	UInt32 m_configTdpLevelsAvailable;
+	UInt32 m_currentConfigTdpControlId;
+	Bool m_configTdpLock;
+	CachedValue<ConfigTdpControlStatus> m_initialStatus;
 };

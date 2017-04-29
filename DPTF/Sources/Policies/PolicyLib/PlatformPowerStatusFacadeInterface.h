@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,17 +28,19 @@
 class dptf_export PlatformPowerStatusFacadeInterface
 {
 public:
+	virtual ~PlatformPowerStatusFacadeInterface(){};
 
-    virtual ~PlatformPowerStatusFacadeInterface() {};
-
-    virtual Power getMaxBatteryPower(void) = 0;
-    virtual Power getPlatformRestOfPower(void) = 0;
-    virtual Power getAdapterPowerRating(void) = 0;
-    virtual DptfBuffer getBatteryStatus(void) = 0;
-    virtual DptfBuffer getBatteryInformation(void) = 0;
-    virtual PlatformPowerSource::Type getPlatformPowerSource(void) = 0;
-    virtual ChargerType::Type getChargerType(void) = 0;
-    virtual Power getACPeakPower(void) = 0;
-    virtual TimeSpan getACPeakTimeWindow(void) = 0;
-    virtual Power getPlatformBatterySteadyState(void) = 0;
+	virtual Power getMaxBatteryPower(void) = 0;
+	virtual Power getPlatformRestOfPower(void) = 0;
+	virtual Power getAdapterPowerRating(void) = 0;
+	virtual DptfBuffer getBatteryStatus(void) = 0;
+	virtual DptfBuffer getBatteryInformation(void) = 0;
+	virtual PlatformPowerSource::Type getPlatformPowerSource(void) = 0;
+	virtual ChargerType::Type getChargerType(void) = 0;
+	virtual Power getPlatformBatterySteadyState(void) = 0;
+	virtual UInt32 getACNominalVoltage(void) = 0;
+	virtual UInt32 getACOperationalCurrent(void) = 0;
+	virtual Percentage getAC1msPercentageOverload(void) = 0;
+	virtual Percentage getAC2msPercentageOverload(void) = 0;
+	virtual Percentage getAC10msPercentageOverload(void) = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,10 +21,11 @@
 #include "Participant.h"
 #include "EsifServicesInterface.h"
 
-WIDomainTemperatureThresholdCrossed::WIDomainTemperatureThresholdCrossed(DptfManagerInterface* dptfManager,
-    UIntN participantIndex, UIntN domainIndex) :
-    DomainWorkItem(dptfManager, FrameworkEvent::DomainTemperatureThresholdCrossed,
-        participantIndex, domainIndex)
+WIDomainTemperatureThresholdCrossed::WIDomainTemperatureThresholdCrossed(
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex,
+	UIntN domainIndex)
+	: DomainWorkItem(dptfManager, FrameworkEvent::DomainTemperatureThresholdCrossed, participantIndex, domainIndex)
 {
 }
 
@@ -34,34 +35,34 @@ WIDomainTemperatureThresholdCrossed::~WIDomainTemperatureThresholdCrossed(void)
 
 void WIDomainTemperatureThresholdCrossed::execute(void)
 {
-    writeDomainWorkItemStartingInfoMessage();
+	writeDomainWorkItemStartingInfoMessage();
 
-    try
-    {
-        getParticipantPtr()->domainTemperatureThresholdCrossed();
-    }
-    catch (std::exception& ex)
-    {
-        writeDomainWorkItemErrorMessage(ex, "Participant::domainTemperatureThresholdCrossed");
-    }
+	try
+	{
+		getParticipantPtr()->domainTemperatureThresholdCrossed();
+	}
+	catch (std::exception& ex)
+	{
+		writeDomainWorkItemErrorMessage(ex, "Participant::domainTemperatureThresholdCrossed");
+	}
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeDomainTemperatureThresholdCrossed(getParticipantIndex());
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainTemperatureThresholdCrossed", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executeDomainTemperatureThresholdCrossed(getParticipantIndex());
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainTemperatureThresholdCrossed", i);
+		}
+	}
 }

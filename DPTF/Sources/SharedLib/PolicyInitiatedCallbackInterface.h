@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,14 +23,16 @@
 class PolicyInitiatedCallbackInterface
 {
 public:
+	virtual ~PolicyInitiatedCallbackInterface(){};
 
-    virtual ~PolicyInitiatedCallbackInterface()
-    {
-    };
-
-    virtual UInt64 createPolicyInitiatedImmediateCallback(UInt64 policyDefinedEventCode, UInt64 param1,
-        void* param2) = 0;
-    virtual UInt64 createPolicyInitiatedDeferredCallback(UInt64 policyDefinedEventCode, UInt64 param1,
-        void* param2, const TimeSpan& timeDelta) = 0;
-    virtual Bool removePolicyInitiatedCallback(UInt64 callbackHandle) = 0;
+	virtual UInt64 createPolicyInitiatedImmediateCallback(
+		UInt64 policyDefinedEventCode,
+		UInt64 param1,
+		void* param2) = 0;
+	virtual UInt64 createPolicyInitiatedDeferredCallback(
+		UInt64 policyDefinedEventCode,
+		UInt64 param1,
+		void* param2,
+		const TimeSpan& timeDelta) = 0;
+	virtual Bool removePolicyInitiatedCallback(UInt64 callbackHandle) = 0;
 };

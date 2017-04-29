@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,15 +25,13 @@ class XmlNode;
 class DisplayControl final
 {
 public:
-
-    DisplayControl(Percentage brightness);
-    Percentage getBrightness(void) const;
-    Bool operator==(const DisplayControl& rhs) const;
-    Bool operator!=(const DisplayControl& rhs) const;
-    Bool operator<(const DisplayControl& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	DisplayControl(Percentage brightness);
+	Percentage getBrightness(void) const;
+	Bool operator==(const DisplayControl& rhs) const;
+	Bool operator!=(const DisplayControl& rhs) const;
+	Bool operator<(const DisplayControl& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    Percentage m_brightness;                                        // Display brightness in %
+	Percentage m_brightness; // Display brightness in %
 };

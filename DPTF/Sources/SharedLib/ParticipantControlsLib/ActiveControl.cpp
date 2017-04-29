@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,65 +20,68 @@
 #include "StatusFormat.h"
 #include "XmlNode.h"
 
-ActiveControl::ActiveControl(UIntN controlId, UIntN tripPoint, UIntN speed, UIntN noiseLevel, UIntN power) :
-    m_controlId(controlId), m_tripPoint(tripPoint), m_speed(speed), m_noiseLevel(noiseLevel), m_power(power)
+ActiveControl::ActiveControl(UIntN controlId, UIntN tripPoint, UIntN speed, UIntN noiseLevel, UIntN power)
+	: m_controlId(controlId)
+	, m_tripPoint(tripPoint)
+	, m_speed(speed)
+	, m_noiseLevel(noiseLevel)
+	, m_power(power)
 {
 }
 
 UIntN ActiveControl::getControlId(void) const
 {
-    return m_controlId;
+	return m_controlId;
 }
 
 UIntN ActiveControl::getTripPoint(void) const
 {
-    return m_tripPoint;
+	return m_tripPoint;
 }
 
 UIntN ActiveControl::getSpeed(void) const
 {
-    return m_speed;
+	return m_speed;
 }
 
 UIntN ActiveControl::getNoiseLevel(void) const
 {
-    return m_noiseLevel;
+	return m_noiseLevel;
 }
 
 UIntN ActiveControl::getPower(void) const
 {
-    return m_power;
+	return m_power;
 }
 
 Bool ActiveControl::operator==(const ActiveControl& rhs) const
 {
-    return
-        ((this->getControlId() == rhs.getControlId()) &&
-         (this->getTripPoint() == rhs.getTripPoint()) &&
-         (this->getSpeed() == rhs.getSpeed()) &&
-         (this->getNoiseLevel() == rhs.getNoiseLevel()) &&
-         (this->getPower() == rhs.getPower()));
+	return (
+		(this->getControlId() == rhs.getControlId()) && (this->getTripPoint() == rhs.getTripPoint())
+		&& (this->getSpeed() == rhs.getSpeed())
+		&& (this->getNoiseLevel() == rhs.getNoiseLevel())
+		&& (this->getPower() == rhs.getPower()));
 }
 
 Bool ActiveControl::operator!=(const ActiveControl& rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 Bool ActiveControl::operator<(const ActiveControl& rhs) const
 {
-    return (m_controlId < rhs.getControlId());
+	return (m_controlId < rhs.getControlId());
 }
 
 std::shared_ptr<XmlNode> ActiveControl::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("active_control");
+	auto root = XmlNode::createWrapperElement("active_control");
 
-    root->addChild(XmlNode::createDataElement("control_id", StatusFormat::friendlyValue(m_controlId)));
-    root->addChild(XmlNode::createDataElement("trip_point", StatusFormat::friendlyValue(m_tripPoint)));
-    root->addChild(XmlNode::createDataElement("speed", StatusFormat::friendlyValue(m_speed)));
-    root->addChild(XmlNode::createDataElement("noise_level", StatusFormat::friendlyValue(m_noiseLevel)));
-    root->addChild(XmlNode::createDataElement("power", StatusFormat::friendlyValue(m_power)));
+	root->addChild(XmlNode::createDataElement("control_id", StatusFormat::friendlyValue(m_controlId)));
+	root->addChild(XmlNode::createDataElement("trip_point", StatusFormat::friendlyValue(m_tripPoint)));
+	root->addChild(XmlNode::createDataElement("speed", StatusFormat::friendlyValue(m_speed)));
+	root->addChild(XmlNode::createDataElement("noise_level", StatusFormat::friendlyValue(m_noiseLevel)));
+	root->addChild(XmlNode::createDataElement("power", StatusFormat::friendlyValue(m_power)));
 
-    return root;
+	return root;
 }

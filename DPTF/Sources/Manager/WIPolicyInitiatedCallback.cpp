@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,11 +20,17 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIPolicyInitiatedCallback::WIPolicyInitiatedCallback(DptfManagerInterface* dptfManager, UIntN policyIndex,
-    UInt64 policyDefinedEventCode, UInt64 param1, void* param2) :
-    WorkItem(dptfManager, FrameworkEvent::PolicyInitiatedCallback),
-    m_policyIndex(policyIndex), m_policyDefinedEventCode(policyDefinedEventCode),
-    m_param1(param1), m_param2(param2)
+WIPolicyInitiatedCallback::WIPolicyInitiatedCallback(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex,
+	UInt64 policyDefinedEventCode,
+	UInt64 param1,
+	void* param2)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyInitiatedCallback)
+	, m_policyIndex(policyIndex)
+	, m_policyDefinedEventCode(policyDefinedEventCode)
+	, m_param1(param1)
+	, m_param2(param2)
 {
 }
 
@@ -34,21 +40,21 @@ WIPolicyInitiatedCallback::~WIPolicyInitiatedCallback(void)
 
 void WIPolicyInitiatedCallback::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    try
-    {
-        Policy* policy = getPolicyManager()->getPolicyPtr(m_policyIndex);
-        policy->executePolicyInitiatedCallback(m_policyDefinedEventCode, m_param1, m_param2);
-    }
-    catch (std::exception& ex)
-    {
-        writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyInitiatedCallback", m_policyIndex);
-    }
+	try
+	{
+		Policy* policy = getPolicyManager()->getPolicyPtr(m_policyIndex);
+		policy->executePolicyInitiatedCallback(m_policyDefinedEventCode, m_param1, m_param2);
+	}
+	catch (std::exception& ex)
+	{
+		writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyInitiatedCallback", m_policyIndex);
+	}
 }
 
 Bool WIPolicyInitiatedCallback::matches(const WorkItemMatchCriteria& matchCriteria) const
 {
-    return matchCriteria.testAgainstMatchList(getFrameworkEventType(), getUniqueId(),
-        Constants::Invalid, Constants::Invalid, m_policyIndex);
+	return matchCriteria.testAgainstMatchList(
+		getFrameworkEventType(), getUniqueId(), Constants::Invalid, Constants::Invalid, m_policyIndex);
 }

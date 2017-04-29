@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,7 +24,9 @@
 class DomainPriorityFactory : public ControlFactoryInterface
 {
 public:
-
-    virtual ControlBase* make(UIntN participantIndex, UIntN domainIndex, UIntN version, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) override;
+	virtual ControlBase* make(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		UIntN version,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) override;
 };

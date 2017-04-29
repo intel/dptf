@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,127 +27,109 @@
 class dptf_exception : public std::logic_error
 {
 public:
-
-    dptf_exception(const std::string& description) throw();
-    virtual ~dptf_exception() throw();
-    virtual const char* what() const throw();
-    std::string getDescription() const;
+	dptf_exception(const std::string& description) throw();
+	virtual ~dptf_exception() throw();
+	virtual const char* what() const throw();
+	std::string getDescription() const;
 
 protected:
-
-    std::string m_description;
+	std::string m_description;
 };
 
 class temperature_out_of_range : public dptf_exception
 {
 public:
-
-    temperature_out_of_range(const std::string& description);
+	temperature_out_of_range(const std::string& description);
 };
 
 class memory_allocation_failure : public dptf_exception
 {
 public:
-
-    memory_allocation_failure(const std::string& description);
+	memory_allocation_failure(const std::string& description);
 };
 
 class file_open_create_failure : public dptf_exception
 {
 public:
-
-    file_open_create_failure(const std::string& description);
+	file_open_create_failure(const std::string& description);
 };
 
 class buffer_too_small : public dptf_exception
 {
 public:
-
-    buffer_too_small(const std::string& description);
+	buffer_too_small(const std::string& description);
 };
 
 class primitive_execution_failed : public dptf_exception
 {
 public:
-
-    primitive_execution_failed(const std::string& description);
+	primitive_execution_failed(const std::string& description);
 };
 
 class primitive_try_again : public dptf_exception
 {
 public:
-
-    primitive_try_again(const std::string& description);
+	primitive_try_again(const std::string& description);
 };
 
 class primitive_destination_unavailable : public dptf_exception
 {
 public:
-
-    primitive_destination_unavailable(const std::string& description);
+	primitive_destination_unavailable(const std::string& description);
 };
 
 class not_implemented : public dptf_exception
 {
 public:
-
-    not_implemented();
+	not_implemented();
 };
 
 class participant_not_enabled : public dptf_exception
 {
 public:
-
-    participant_not_enabled();
+	participant_not_enabled();
 };
 
 class domain_not_enabled : public dptf_exception
 {
 public:
-
-    domain_not_enabled();
+	domain_not_enabled();
 };
 
 class domain_control_nullptr : public dptf_exception
 {
 public:
-
-    domain_control_nullptr();
+	domain_control_nullptr();
 };
 
 class policy_index_invalid : public dptf_exception
 {
 public:
-
-    policy_index_invalid();
+	policy_index_invalid();
 };
 
 class policy_not_in_idsp_list : public dptf_exception
 {
 public:
-
-    policy_not_in_idsp_list();
+	policy_not_in_idsp_list();
 };
 
 class participant_index_invalid : public dptf_exception
 {
 public:
-
-    participant_index_invalid();
+	participant_index_invalid();
 };
 
 class duplicate_work_item : public dptf_exception
 {
 public:
-
-    duplicate_work_item(const std::string& description);
+	duplicate_work_item(const std::string& description);
 };
 
 class primitive_not_found_in_dsp : public dptf_exception
 {
 public:
-
-    primitive_not_found_in_dsp(const std::string& description);
+	primitive_not_found_in_dsp(const std::string& description);
 };
 
 // FIXME: implement_me is in place until we implement the function.  we should
@@ -155,6 +137,5 @@ public:
 class implement_me : public dptf_exception
 {
 public:
-
-    implement_me();
+	implement_me();
 };

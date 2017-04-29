@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,234 +23,301 @@
 #include "ParticipantInterface.h"
 #include "ParticipantServices.h"
 #include "PlatformPowerLimitType.h"
-
+#include "RfProfileDataSet.h"
 class XmlNode;
 
 class dptf_export Participant
 {
 public:
+	Participant(DptfManagerInterface* dptfManager);
+	~Participant(void);
 
-    Participant(DptfManagerInterface* dptfManager);
-    ~Participant(void);
+	void createParticipant(
+		UIntN participantIndex,
+		const AppParticipantDataPtr participantDataPtr,
+		Bool participantEnabled);
+	void destroyParticipant(void);
 
-    void createParticipant(UIntN participantIndex, const AppParticipantDataPtr participantDataPtr,
-        Bool participantEnabled);
-    void destroyParticipant(void);
+	void enableParticipant(void);
+	void disableParticipant(void);
+	Bool isParticipantEnabled(void);
 
-    void enableParticipant(void);
-    void disableParticipant(void);
-    Bool isParticipantEnabled(void);
+	UIntN allocateNextDomainIndex(void);
+	void createDomain(UIntN domainIndex, const AppDomainDataPtr domainDataPtr, Bool domainEnabled);
+	void destroyAllDomains(void);
+	void destroyDomain(UIntN domainIndex);
 
-    UIntN allocateNextDomainIndex(void);
-    void createDomain(UIntN domainIndex, const AppDomainDataPtr domainDataPtr, Bool domainEnabled);
-    void destroyAllDomains(void);
-    void destroyDomain(UIntN domainIndex);
+	Bool isDomainValid(UIntN domainIndex) const;
+	void enableDomain(UIntN domainIndex);
+	void disableDomain(UIntN domainIndex);
+	Bool isDomainEnabled(UIntN domainIndex);
 
-    Bool isDomainValid(UIntN domainIndex) const;
-    void enableDomain(UIntN domainIndex);
-    void disableDomain(UIntN domainIndex);
-    Bool isDomainEnabled(UIntN domainIndex);
+	UIntN getDomainCount(void) const;
 
-    UIntN getDomainCount(void) const;
+	// This will clear the cached data stored within the participant and associated domains within the framework.
+	// It will not ask the actual participant to clear any of its data.
+	void clearParticipantCachedData(void);
 
-    // This will clear the cached data stored within the participant and associated domains within the framework.
-    // It will not ask the actual participant to clear any of its data.
-    void clearParticipantCachedData(void);
+	void clearArbitrationDataForPolicy(UIntN policyIndex);
 
-    void clearArbitrationDataForPolicy(UIntN policyIndex);
+	void registerEvent(ParticipantEvent::Type participantEvent);
+	void unregisterEvent(ParticipantEvent::Type participantEvent);
+	Bool isEventRegistered(ParticipantEvent::Type participantEvent);
 
-    void registerEvent(ParticipantEvent::Type participantEvent);
-    void unregisterEvent(ParticipantEvent::Type participantEvent);
-    Bool isEventRegistered(ParticipantEvent::Type participantEvent);
+	std::string getParticipantName(void) const;
+	std::string getDomainName(UIntN domainIndex);
+	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
+	std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
 
-    std::string getParticipantName(void) const;
-    std::string getDomainName(UIntN domainIndex);
-    std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
-    std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
+	//
+	// Event handlers
+	//
+	void connectedStandbyEntry(void);
+	void connectedStandbyExit(void);
+	void suspend(void);
+	void resume(void);
+	void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityBitMask);
+	void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityBitMask);
+	void domainConfigTdpCapabilityChanged(void);
+	void domainCoreControlCapabilityChanged(void);
+	void domainDisplayControlCapabilityChanged(void);
+	void domainDisplayStatusChanged(void);
+	void domainPerformanceControlCapabilityChanged(void);
+	void domainPerformanceControlsChanged(void);
+	void domainPowerControlCapabilityChanged(void);
+	void domainPriorityChanged(void);
+	void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus);
+	void domainRfProfileChanged(void);
+	void domainTemperatureThresholdCrossed(void);
+	void participantSpecificInfoChanged(void);
+	void domainVirtualSensorCalibrationTableChanged(void);
+	void domainVirtualSensorPollingTableChanged(void);
+	void domainVirtualSensorRecalcChanged(void);
+	void domainBatteryStatusChanged(void);
+	void domainBatteryInformationChanged(void);
+	void domainPlatformPowerSourceChanged(void);
+	void domainAdapterPowerRatingChanged(void);
+	void domainChargerTypeChanged(void);
+	void domainPlatformRestOfPowerChanged(void);
+	void domainMaxBatteryPowerChanged(void);
+	void domainPlatformBatterySteadyStateChanged(void);
+	void domainACNominalVoltageChanged(void);
+	void domainACOperationalCurrentChanged(void);
+	void domainAC1msPercentageOverloadChanged(void);
+	void domainAC2msPercentageOverloadChanged(void);
+	void domainAC10msPercentageOverloadChanged(void);
+	void domainEnergyThresholdCrossed(void);
 
-    //
-    // Event handlers
-    //
-    void connectedStandbyEntry(void);
-    void connectedStandbyExit(void);
-    void suspend(void);
-    void resume(void);
-    void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityBitMask);
-    void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityBitMask);
-    void domainConfigTdpCapabilityChanged(void);
-    void domainCoreControlCapabilityChanged(void);
-    void domainDisplayControlCapabilityChanged(void);
-    void domainDisplayStatusChanged(void);
-    void domainPerformanceControlCapabilityChanged(void);
-    void domainPerformanceControlsChanged(void);
-    void domainPowerControlCapabilityChanged(void);
-    void domainPriorityChanged(void);
-    void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus);
-    void domainRfProfileChanged(void);
-    void domainTemperatureThresholdCrossed(void);
-    void participantSpecificInfoChanged(void);
-    void domainVirtualSensorCalibrationTableChanged(void);
-    void domainVirtualSensorPollingTableChanged(void);
-    void domainVirtualSensorRecalcChanged(void);
-    void domainBatteryStatusChanged(void);
-    void domainBatteryInformationChanged(void);
-    void domainPlatformPowerSourceChanged(void);
-    void domainAdapterPowerRatingChanged(void);
-    void domainChargerTypeChanged(void);
-    void domainPlatformRestOfPowerChanged(void);
-    void domainACPeakPowerChanged(void);
-    void domainACPeakTimeWindowChanged(void);
-    void domainMaxBatteryPowerChanged(void);
-    void domainPlatformBatterySteadyStateChanged(void);
+	//
+	// The following set of functions implement the ParticipantInterface related functionality
+	//
 
-    //
-    // The following set of functions implement the ParticipantInterface related functionality
-    //
+	// Active Controls
+	ActiveControlStaticCaps getActiveControlStaticCaps(UIntN domainIndex);
+	ActiveControlStatus getActiveControlStatus(UIntN domainIndex);
+	ActiveControlSet getActiveControlSet(UIntN domainIndex);
+	void setActiveControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex);
+	void setActiveControl(UIntN domainIndex, UIntN policyIndex, const Percentage& fanSpeed);
 
-    // Active Controls
-    ActiveControlStaticCaps getActiveControlStaticCaps(UIntN domainIndex);
-    ActiveControlStatus getActiveControlStatus(UIntN domainIndex);
-    ActiveControlSet getActiveControlSet(UIntN domainIndex);
-    void setActiveControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex);
-    void setActiveControl(UIntN domainIndex, UIntN policyIndex, const Percentage& fanSpeed);
+	// Activity Status
+	UInt32 getEnergyThreshold(UIntN domainIndex);
+	void setEnergyThreshold(UIntN domainIndex, UInt32 energyThreshold);
+	Temperature getPowerShareTemperatureThreshold(UIntN domainIndex);
+	Percentage getUtilizationThreshold(UIntN domainIndex);
+	Percentage getResidencyUtilization(UIntN domainIndex);
+	void setEnergyThresholdInterruptFlag(UIntN domainIndex, UInt32 energyThresholdInterruptFlag);
 
-    // ConfigTdp controls
-    ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN domainIndex);
-    ConfigTdpControlStatus getConfigTdpControlStatus(UIntN domainIndex);
-    ConfigTdpControlSet getConfigTdpControlSet(UIntN domainIndex);
-    void setConfigTdpControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex);
+	// ConfigTdp controls
+	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN domainIndex);
+	ConfigTdpControlStatus getConfigTdpControlStatus(UIntN domainIndex);
+	ConfigTdpControlSet getConfigTdpControlSet(UIntN domainIndex);
+	void setConfigTdpControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex);
 
-    // Core controls
-    CoreControlStaticCaps getCoreControlStaticCaps(UIntN domainIndex);
-    CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN domainIndex);
-    CoreControlLpoPreference getCoreControlLpoPreference(UIntN domainIndex);
-    CoreControlStatus getCoreControlStatus(UIntN domainIndex);
-    void setActiveCoreControl(UIntN domainIndex, UIntN policyIndex, const CoreControlStatus& coreControlStatus);
+	// Core controls
+	CoreControlStaticCaps getCoreControlStaticCaps(UIntN domainIndex);
+	CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN domainIndex);
+	CoreControlLpoPreference getCoreControlLpoPreference(UIntN domainIndex);
+	CoreControlStatus getCoreControlStatus(UIntN domainIndex);
+	void setActiveCoreControl(UIntN domainIndex, UIntN policyIndex, const CoreControlStatus& coreControlStatus);
 
-    // Display controls
-    DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex);
-    DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
-    UIntN getUserPreferredDisplayIndex(UIntN domainIndex);
-    Bool isUserPreferredIndexModified(UIntN domainIndex);
-    DisplayControlSet getDisplayControlSet(UIntN domainIndex);
-    void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
-    void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
-    void setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
+	// Display controls
+	DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex);
+	DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
+	UIntN getUserPreferredDisplayIndex(UIntN domainIndex);
+	Bool isUserPreferredIndexModified(UIntN domainIndex);
+	DisplayControlSet getDisplayControlSet(UIntN domainIndex);
+	void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
+	void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
+	void setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
-    // Performance controls
-    PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN domainIndex);
-    PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN domainIndex);
-    PerformanceControlStatus getPerformanceControlStatus(UIntN domainIndex);
-    PerformanceControlSet getPerformanceControlSet(UIntN domainIndex);
-    void setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex);
-    void setPerformanceControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, PerformanceControlDynamicCaps newCapabilities);
-    void setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
+	// Peak Power controls
+	Power getACPeakPower(UIntN domainIndex);
+	void setACPeakPower(UIntN domainIndex, UIntN policyIndex, const Power& acPeakPower);
+	Power getDCPeakPower(UIntN domainIndex);
+	void setDCPeakPower(UIntN domainIndex, UIntN policyIndex, const Power& dcPeakPower);
 
-    // Pixel Clock Control
-    void setPixelClockControl(UIntN domainIndex, UIntN policyIndex, const PixelClockDataSet& pixelClockDataSet);
+	// Performance controls
+	PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN domainIndex);
+	PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN domainIndex);
+	PerformanceControlStatus getPerformanceControlStatus(UIntN domainIndex);
+	PerformanceControlSet getPerformanceControlSet(UIntN domainIndex);
+	void setPerformanceControl(UIntN domainIndex, UIntN policyIndex, UIntN performanceControlIndex);
+	void setPerformanceControlDynamicCaps(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PerformanceControlDynamicCaps newCapabilities);
+	void setPerformanceCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
-    // Pixel Clock Status
-    PixelClockCapabilities getPixelClockCapabilities(UIntN domainIndex);
-    PixelClockDataSet getPixelClockDataSet(UIntN domainIndex);
+	// Power controls
+	PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex);
+	void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
+	Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
+	Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
+	void setPowerLimit(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit);
+	void setPowerLimitIgnoringCaps(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit);
+	TimeSpan getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType);
+	void setPowerLimitTimeWindow(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow);
+	void setPowerLimitTimeWindowIgnoringCaps(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow);
+	Percentage getPowerLimitDutyCycle(UIntN domainIndex, PowerControlType::Type controlType);
+	void setPowerLimitDutyCycle(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PowerControlType::Type controlType,
+		const Percentage& dutyCycle);
+	void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
+	Bool isPowerShareControl(UIntN domainIndex);
+	double getPidKpTerm(UIntN domainIndex);
+	double getPidKiTerm(UIntN domainIndex);
+	TimeSpan getTau(UIntN domainIndex);
+	TimeSpan getFastPollTime(UIntN domainIndex);
+	TimeSpan getSlowPollTime(UIntN domainIndex);
+	UInt32 getWeightedSlowPollAvgConstant(UIntN domainIndex);
+	UInt32 getRaplEnergyCounter(UIntN domainIndex);
+	double getRaplEnergyUnit(UIntN domainIndex);
+	UInt32 getRaplEnergyCounterWidth(UIntN domainIndex);
+	Power getSlowPollPowerThreshold(UIntN domainIndex);
+	Power getInstantaneousPower(UIntN domainIndex);
 
-    // Power controls
-    PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN domainIndex);
-    void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
-    Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
-    Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
-    void setPowerLimit(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
-        const Power& powerLimit);
-    void setPowerLimitIgnoringCaps(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
-        const Power& powerLimit);
-    TimeSpan getPowerLimitTimeWindow(UIntN domainIndex, PowerControlType::Type controlType);
-    void setPowerLimitTimeWindow(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
-        const TimeSpan& timeWindow);
-    void setPowerLimitTimeWindowIgnoringCaps(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
-        const TimeSpan& timeWindow);
-    Percentage getPowerLimitDutyCycle(UIntN domainIndex, PowerControlType::Type controlType);
-    void setPowerLimitDutyCycle(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType,
-        const Percentage& dutyCycle);
-    void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
+	// Power status
+	PowerStatus getPowerStatus(UIntN domainIndex);
+	Power getAveragePower(UIntN domainIndex, const PowerControlDynamicCaps& capabilities);
+	void setCalculatedAveragePower(UIntN domainIndex, Power powerValue);
 
-    // Power status
-    PowerStatus getPowerStatus(UIntN domainIndex);
-    Power getAveragePower(UIntN domainIndex, const PowerControlDynamicCaps& capabilities);
+	// Platform Power Controls
+	Bool isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+	Power getPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+	void setPlatformPowerLimit(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PlatformPowerLimitType::Type limitType,
+		const Power& powerLimit);
+	TimeSpan getPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+	void setPlatformPowerLimitTimeWindow(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PlatformPowerLimitType::Type limitType,
+		const TimeSpan& timeWindow);
+	Percentage getPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
+	void setPlatformPowerLimitDutyCycle(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		PlatformPowerLimitType::Type limitType,
+		const Percentage& dutyCycle);
 
-    // Platform Power Controls
-    Bool isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-    Power getPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-    void setPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const Power& powerLimit);
-    TimeSpan getPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-    void setPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow);
-    Percentage getPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-    void setPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle);
+	// Platform Power Status
+	Power getMaxBatteryPower(UIntN domainIndex);
+	Power getPlatformRestOfPower(UIntN domainIndex);
+	Power getAdapterPowerRating(UIntN domainIndex);
+	DptfBuffer getBatteryStatus(UIntN domainIndex);
+	DptfBuffer getBatteryInformation(UIntN domainIndex);
+	PlatformPowerSource::Type getPlatformPowerSource(UIntN domainIndex);
+	ChargerType::Type getChargerType(UIntN domainIndex);
+	Power getPlatformBatterySteadyState(UIntN domainIndex);
+	UInt32 getACNominalVoltage(UIntN domainIndex);
+	UInt32 getACOperationalCurrent(UIntN domainIndex);
+	Percentage getAC1msPercentageOverload(UIntN domainIndex);
+	Percentage getAC2msPercentageOverload(UIntN domainIndex);
+	Percentage getAC10msPercentageOverload(UIntN domainIndex);
 
-    // Platform Power Status
-    Power getMaxBatteryPower(UIntN domainIndex);
-    Power getPlatformRestOfPower(UIntN domainIndex);
-    Power getAdapterPowerRating(UIntN domainIndex);
-    DptfBuffer getBatteryStatus(UIntN domainIndex);
-    DptfBuffer getBatteryInformation(UIntN domainIndex);
-    PlatformPowerSource::Type getPlatformPowerSource(UIntN domainIndex);
-    ChargerType::Type getChargerType(UIntN domainIndex);
-    Power getACPeakPower(UIntN domainIndex);
-    TimeSpan getACPeakTimeWindow(UIntN domainIndex);
-    Power getPlatformBatterySteadyState(UIntN domainIndex);
+	// priority
+	DomainPriority getDomainPriority(UIntN domainIndex);
 
-    // priority
-    DomainPriority getDomainPriority(UIntN domainIndex);
+	// RF Profile Control
+	RfProfileCapabilities getRfProfileCapabilities(UIntN domainIndex);
+	void setRfProfileCenterFrequency(UIntN domainIndex, UIntN policyIndex, const Frequency& centerFrequency);
 
-    // RF Profile Control
-    RfProfileCapabilities getRfProfileCapabilities(UIntN domainIndex);
-    void setRfProfileCenterFrequency(UIntN domainIndex, UIntN policyIndex, const Frequency& centerFrequency);
+	// RF Profile Status
+	RfProfileDataSet getRfProfileDataSet(UIntN domainIndex);
 
-    // RF Profile Status
-    RfProfileData getRfProfileData(UIntN domainIndex);
+	// TCC Offset Control
+	Temperature getTccOffsetTemperature(UIntN domainIndex);
+	void setTccOffsetTemperature(UIntN domainIndex, UIntN policyIndex, const Temperature& tccOffset);
+	Temperature getMaxTccOffsetTemperature(UIntN domainIndex);
+	Temperature getMinTccOffsetTemperature(UIntN domainIndex);
 
-    // temperature
-    TemperatureStatus getTemperatureStatus(UIntN domainIndex);
-    TemperatureThresholds getTemperatureThresholds(UIntN domainIndex);
-    void setTemperatureThresholds(UIntN domainIndex, UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
-    DptfBuffer getVirtualSensorCalibrationTable(UIntN domainIndex);
-    DptfBuffer getVirtualSensorPollingTable(UIntN domainIndex);
-    Bool isVirtualTemperature(UIntN domainIndex);
-    void setVirtualTemperature(UIntN domainIndex, const Temperature& temperature);
+	// temperature
+	TemperatureStatus getTemperatureStatus(UIntN domainIndex);
+	TemperatureThresholds getTemperatureThresholds(UIntN domainIndex);
+	void setTemperatureThresholds(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		const TemperatureThresholds& temperatureThresholds);
+	DptfBuffer getVirtualSensorCalibrationTable(UIntN domainIndex);
+	DptfBuffer getVirtualSensorPollingTable(UIntN domainIndex);
+	Bool isVirtualTemperature(UIntN domainIndex);
+	void setVirtualTemperature(UIntN domainIndex, const Temperature& temperature);
 
-    // utilization
-    UtilizationStatus getUtilizationStatus(UIntN domainIndex);
+	// utilization
+	UtilizationStatus getUtilizationStatus(UIntN domainIndex);
 
-    // Get specific info
-    std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo( const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo);
+	// Get specific info
+	std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo);
 
-    // Participant properties
-    ParticipantProperties getParticipantProperties(void) const;
-    DomainPropertiesSet getDomainPropertiesSet(void) const;
+	// Participant properties
+	ParticipantProperties getParticipantProperties(void) const;
+	DomainPropertiesSet getDomainPropertiesSet(void) const;
 
-    // Set specific info
-    void setParticipantDeviceTemperatureIndication(const Temperature& temperature);
-    void setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue);
+	// Set specific info
+	void setParticipantDeviceTemperatureIndication(const Temperature& temperature);
+	void setParticipantSpecificInfo(ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue);
 
 private:
+	// hide the copy constructor and assignment operator.
+	Participant(const Participant& rhs);
+	Participant& operator=(const Participant& rhs);
 
-    // hide the copy constructor and assignment operator.
-    Participant(const Participant& rhs);
-    Participant& operator=(const Participant& rhs);
+	Bool m_participantCreated;
 
-    Bool m_participantCreated;
+	DptfManagerInterface* m_dptfManager;
+	ParticipantInterface* m_theRealParticipant;
+	std::shared_ptr<ParticipantServicesInterface> m_participantServices;
 
-    DptfManagerInterface* m_dptfManager;
-    ParticipantInterface* m_theRealParticipant;
-    std::shared_ptr<ParticipantServicesInterface> m_participantServices;
+	UIntN m_participantIndex;
+	Guid m_participantGuid;
+	std::string m_participantName;
 
-    UIntN m_participantIndex;
-    Guid m_participantGuid;
-    std::string m_participantName;
+	// track the events that will be forwarded to the participant
+	std::bitset<ParticipantEvent::Max> m_registeredEvents;
 
-    // track the events that will be forwarded to the participant
-    std::bitset<ParticipantEvent::Max> m_registeredEvents;
+	std::map<UIntN, std::shared_ptr<Domain>> m_domains;
 
-    std::map<UIntN, std::shared_ptr<Domain>> m_domains;
-
-    void throwIfDomainInvalid(UIntN domainIndex) const;
-    void throwIfRealParticipantIsInvalid() const;
+	void throwIfDomainInvalid(UIntN domainIndex) const;
+	void throwIfRealParticipantIsInvalid() const;
 };

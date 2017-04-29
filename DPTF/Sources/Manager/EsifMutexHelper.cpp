@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,26 +18,28 @@
 
 #include "EsifMutexHelper.h"
 
-EsifMutexHelper::EsifMutexHelper(EsifMutex* esifMutex) : m_esifMutex(esifMutex), m_mutexLocked(false)
+EsifMutexHelper::EsifMutexHelper(EsifMutex* esifMutex)
+	: m_esifMutex(esifMutex)
+	, m_mutexLocked(false)
 {
 }
 
 EsifMutexHelper::~EsifMutexHelper(void)
 {
-    if (m_mutexLocked == true)
-    {
-        unlock();
-    }
+	if (m_mutexLocked == true)
+	{
+		unlock();
+	}
 }
 
 void EsifMutexHelper::lock(void)
 {
-    m_esifMutex->lock();
-    m_mutexLocked = true;
+	m_esifMutex->lock();
+	m_mutexLocked = true;
 }
 
 void EsifMutexHelper::unlock(void)
 {
-    m_esifMutex->unlock();
-    m_mutexLocked = false;
+	m_esifMutex->unlock();
+	m_mutexLocked = false;
 }

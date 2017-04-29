@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,12 +27,11 @@
 #endif
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-#include "win\messages.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void report_event_to_event_log(WORD eventCategory, WORD eventType, char *pFormat, ...);
+void report_event_to_event_log(int eventType, char *pFormat, ...);
 
 #ifdef __cplusplus
 }

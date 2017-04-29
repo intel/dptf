@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,86 +18,93 @@
 
 #include "ParticipantSetSpecificInfo_001.h"
 
-ParticipantSetSpecificInfo_001::ParticipantSetSpecificInfo_001(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
-    ParticipantSetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
+ParticipantSetSpecificInfo_001::ParticipantSetSpecificInfo_001(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: ParticipantSetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
 ParticipantSetSpecificInfo_001::~ParticipantSetSpecificInfo_001()
 {
-
 }
 
-void ParticipantSetSpecificInfo_001::setParticipantDeviceTemperatureIndication(UIntN participantIndex,
-    const Temperature& temperature)
+void ParticipantSetSpecificInfo_001::setParticipantDeviceTemperatureIndication(
+	UIntN participantIndex,
+	const Temperature& temperature)
 {
-    getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(
-        esif_primitive_type::SET_DEVICE_TEMPERATURE_INDICATION, temperature);
+	getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(
+		esif_primitive_type::SET_DEVICE_TEMPERATURE_INDICATION, temperature);
 }
 
-void ParticipantSetSpecificInfo_001::setParticipantSpecificInfo(UIntN participantIndex, 
-    ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)
+void ParticipantSetSpecificInfo_001::setParticipantSpecificInfo(
+	UIntN participantIndex,
+	ParticipantSpecificInfoKey::Type tripPoint,
+	const Temperature& tripValue)
 {
-    esif_primitive_type primitiveType = esif_primitive_type::SET_TRIP_POINT_ACTIVE;
-    UInt32 instance;
+	esif_primitive_type primitiveType = esif_primitive_type::SET_TRIP_POINT_ACTIVE;
+	UInt32 instance;
 
-    switch (tripPoint)
-    {
-    case ParticipantSpecificInfoKey::AC0:
-        instance = 0;
-        break;
-    case ParticipantSpecificInfoKey::AC1:
-        instance = 1;
-        break;
-    case ParticipantSpecificInfoKey::AC2:
-        instance = 2;
-        break;
-    case ParticipantSpecificInfoKey::AC3:
-        instance = 3;
-        break;
-    case ParticipantSpecificInfoKey::AC4:
-        instance = 4;
-        break;
-    case ParticipantSpecificInfoKey::AC5:
-        instance = 5;
-        break;
-    case ParticipantSpecificInfoKey::AC6:
-        instance = 6;
-        break;
-    case ParticipantSpecificInfoKey::AC7:
-        instance = 7;
-        break;
-    case ParticipantSpecificInfoKey::AC8:
-        instance = 8;
-        break;
-    case ParticipantSpecificInfoKey::AC9:
-        instance = 9;
-        break;
-    case ParticipantSpecificInfoKey::PSV:
-        instance = 54;
-        primitiveType = esif_primitive_type::SET_TRIP_POINT_PASSIVE;
-        break;
-    default:
-        throw dptf_exception("Received unexpected Specific Info Key: " + StlOverride::to_string(tripPoint));
-        break;
-    }
+	switch (tripPoint)
+	{
+	case ParticipantSpecificInfoKey::AC0:
+		instance = 0;
+		break;
+	case ParticipantSpecificInfoKey::AC1:
+		instance = 1;
+		break;
+	case ParticipantSpecificInfoKey::AC2:
+		instance = 2;
+		break;
+	case ParticipantSpecificInfoKey::AC3:
+		instance = 3;
+		break;
+	case ParticipantSpecificInfoKey::AC4:
+		instance = 4;
+		break;
+	case ParticipantSpecificInfoKey::AC5:
+		instance = 5;
+		break;
+	case ParticipantSpecificInfoKey::AC6:
+		instance = 6;
+		break;
+	case ParticipantSpecificInfoKey::AC7:
+		instance = 7;
+		break;
+	case ParticipantSpecificInfoKey::AC8:
+		instance = 8;
+		break;
+	case ParticipantSpecificInfoKey::AC9:
+		instance = 9;
+		break;
+	case ParticipantSpecificInfoKey::PSV:
+		instance = 54;
+		primitiveType = esif_primitive_type::SET_TRIP_POINT_PASSIVE;
+		break;
+	default:
+		throw dptf_exception("Received unexpected Specific Info Key: " + std::to_string(tripPoint));
+		break;
+	}
 
-    return getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(primitiveType, tripValue,
-        Constants::Esif::NoDomain, static_cast<UInt8>(Constants::Esif::NoPersistInstanceOffset + instance));
+	return getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(
+		primitiveType,
+		tripValue,
+		Constants::Esif::NoDomain,
+		static_cast<UInt8>(Constants::Esif::NoPersistInstanceOffset + instance));
 }
 
 void ParticipantSetSpecificInfo_001::clearCachedData(void)
 {
-    // Do nothing.  We don't cache ParticipantSetSpecificInfo related data.
+	// Do nothing.  We don't cache ParticipantSetSpecificInfo related data.
 }
 
 std::shared_ptr<XmlNode> ParticipantSetSpecificInfo_001::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string ParticipantSetSpecificInfo_001::getName(void)
 {
-    return "Set Specific Info Control (Version 1)";
+	return "Set Specific Info Control";
 }

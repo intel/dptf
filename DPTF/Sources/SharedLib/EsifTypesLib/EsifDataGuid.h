@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,26 +24,24 @@
 class EsifDataGuid final
 {
 public:
+	static const UIntN GuidSize = 16;
 
-    static const UIntN GuidSize = 16;
+	EsifDataGuid(void);
+	EsifDataGuid(const Guid& data);
+	EsifDataGuid(const esif_guid_t& esifGuid);
+	EsifDataGuid(const EsifDataPtr esifDataPtr);
 
-    EsifDataGuid(void);
-    EsifDataGuid(const Guid& data);
-    EsifDataGuid(const esif_guid_t& esifGuid);
-    EsifDataGuid(const EsifDataPtr esifDataPtr);
-
-    operator EsifData(void);
-    operator EsifDataPtr(void);
-    operator Guid(void) const;
+	operator EsifData(void);
+	operator EsifDataPtr(void);
+	operator Guid(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataGuid(const EsifDataGuid& rhs);
+	EsifDataGuid& operator=(const EsifDataGuid& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataGuid(const EsifDataGuid& rhs);
-    EsifDataGuid& operator=(const EsifDataGuid& rhs);
+	UInt8 m_guid[GuidSize];
+	EsifData m_esifData;
 
-    UInt8 m_guid[GuidSize];
-    EsifData m_esifData;
-
-    void initialize(const UInt8 guid[GuidSize]);
+	void initialize(const UInt8 guid[GuidSize]);
 };

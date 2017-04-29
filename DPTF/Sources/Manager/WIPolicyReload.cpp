@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,8 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIPolicyReload::WIPolicyReload(DptfManagerInterface* dptfManager) :
-    WorkItem(dptfManager, FrameworkEvent::ParticipantDestroy)
+WIPolicyReload::WIPolicyReload(DptfManagerInterface* dptfManager)
+	: WorkItem(dptfManager, FrameworkEvent::ParticipantDestroy)
 {
 }
 
@@ -33,37 +33,39 @@ WIPolicyReload::~WIPolicyReload(void)
 
 void WIPolicyReload::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    // Iterate through the list of policies and unbind all participant and domains from them
-    
-    DptfManagerInterface* dptfManager = getDptfManager();
-    auto policyManager = getPolicyManager();
-    auto participantIndexList = getParticipantManager()->getParticipantIndexes();
+	// Iterate through the list of policies and unbind all participant and domains from them
 
-    // Unbind every participant and domain from every policy
-    for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
-    {
-        dptfManager->unbindDomainsFromPolicies(*participantIndex);
-        dptfManager->unbindParticipantFromPolicies(*participantIndex);
-    }
+	DptfManagerInterface* dptfManager = getDptfManager();
+	auto policyManager = getPolicyManager();
+	auto participantIndexList = getParticipantManager()->getParticipantIndexes();
 
-    // No try-catch here because destroyAllPolicies' calling tree catches all exceptions.
-    policyManager->destroyAllPolicies();
+	// Unbind every participant and domain from every policy
+	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
+		 ++participantIndex)
+	{
+		dptfManager->unbindDomainsFromPolicies(*participantIndex);
+		dptfManager->unbindParticipantFromPolicies(*participantIndex);
+	}
 
-    try
-    {
-        policyManager->reloadAllPolicies(dptfManager->getDptfPolicyDirectoryPath());
-    }
-    catch (dptf_exception ex)
-    {
-        writeWorkItemErrorMessage(ex, "policyManager::reloadAllPolicies");
-    }
+	// No try-catch here because destroyAllPolicies' calling tree catches all exceptions.
+	policyManager->destroyAllPolicies();
 
-    // Bind every participant and domain to every policy
-    for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
-    {
-        dptfManager->bindParticipantToPolicies(*participantIndex);
-        dptfManager->bindDomainsToPolicies(*participantIndex);
-    }
+	try
+	{
+		policyManager->reloadAllPolicies(dptfManager->getDptfPolicyDirectoryPath());
+	}
+	catch (dptf_exception ex)
+	{
+		writeWorkItemErrorMessage(ex, "policyManager::reloadAllPolicies");
+	}
+
+	// Bind every participant and domain to every policy
+	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
+		 ++participantIndex)
+	{
+		dptfManager->bindParticipantToPolicies(*participantIndex);
+		dptfManager->bindDomainsToPolicies(*participantIndex);
+	}
 }

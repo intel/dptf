@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,29 +18,31 @@
 
 #include "DomainUtilization_000.h"
 
-DomainUtilization_000::DomainUtilization_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainUtilizationBase(participantIndex, domainIndex, participantServicesInterface)
+DomainUtilization_000::DomainUtilization_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainUtilizationBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 UtilizationStatus DomainUtilization_000::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainUtilization_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainUtilization_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainUtilization_000::getName(void)
 {
-    return "Utilization Status (Version 0)";
+	return "Utilization Status (Version 0)";
 }

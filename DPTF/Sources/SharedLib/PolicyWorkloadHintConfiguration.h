@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,23 +24,21 @@
 class dptf_export PolicyWorkloadHintConfiguration : public PolicyWorkloadHintConfigurationInterface
 {
 public:
+	PolicyWorkloadHintConfiguration(PlatformConfigurationDataInterface* platformConfigurationData);
+	~PolicyWorkloadHintConfiguration();
 
-    PolicyWorkloadHintConfiguration(PlatformConfigurationDataInterface* platformConfigurationData);
-    ~PolicyWorkloadHintConfiguration();
+	void add(const PolicyWorkloadGroup& workloadGroup);
+	UInt32 getHintForApplication(const std::string& application);
 
-    void add(const PolicyWorkloadGroup& workloadGroup);
-    UInt32 getHintForApplication(const std::string& application);
-
-    std::shared_ptr<XmlNode> getXml() const;
+	std::shared_ptr<XmlNode> getXml() const;
 
 private:
+	std::vector<PolicyWorkloadGroup> m_workloadGroups;
+	std::map<std::string, UInt32> m_workloadLookupTable;
+	PlatformConfigurationDataInterface* m_platformConfigData;
 
-    std::vector<PolicyWorkloadGroup> m_workloadGroups;
-    std::map<std::string, UInt32> m_workloadLookupTable;
-    PlatformConfigurationDataInterface* m_platformConfigData;
-
-    void generateWorkloadTable();
-    std::string readWorkloadHintsConfigurationValue();
-    std::string readWorkloadHintConfigurationValues(const std::string& key);
-    void updateWorkloadTable();
+	void generateWorkloadTable();
+	std::string readWorkloadHintsConfigurationValue();
+	std::string readWorkloadHintConfigurationValues(const std::string& key);
+	void updateWorkloadTable();
 };

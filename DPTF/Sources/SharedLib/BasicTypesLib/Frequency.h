@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,30 +25,28 @@
 class Frequency final
 {
 public:
+	Frequency(void); // Initialized to invalid by default
+	Frequency(UInt64 frequency);
+	static Frequency createInvalid();
 
-    Frequency(void); // Initialized to invalid by default
-    Frequency(UInt64 frequency);
-    static Frequency createInvalid();
+	Bool operator==(const Frequency& rhs) const;
+	Bool operator!=(const Frequency& rhs) const;
+	Bool operator>(const Frequency& rhs) const;
+	Bool operator>=(const Frequency& rhs) const;
+	Bool operator<(const Frequency& rhs) const;
+	Bool operator<=(const Frequency& rhs) const;
+	Frequency operator+(const Frequency& rhs) const;
+	Frequency operator-(const Frequency& rhs) const;
+	Frequency operator*(const Frequency& rhs) const;
+	friend std::ostream& operator<<(std::ostream& os, const Frequency& frequency);
+	operator UInt64(void) const;
 
-    Bool operator==(const Frequency& rhs) const;
-    Bool operator!=(const Frequency& rhs) const;
-    Bool operator>(const Frequency& rhs) const;
-    Bool operator>=(const Frequency& rhs) const;
-    Bool operator<(const Frequency& rhs) const;
-    Bool operator<=(const Frequency& rhs) const;
-    Frequency operator+(const Frequency& rhs) const;
-    Frequency operator-(const Frequency& rhs) const;
-    Frequency operator*(const Frequency& rhs) const;
-    friend std::ostream& operator<<(std::ostream& os, const Frequency& frequency);
-    operator UInt64(void) const;
-
-    Bool isValid() const;
-    std::string toString() const;
+	Bool isValid() const;
+	std::string toString() const;
 
 private:
+	Bool m_valid;
+	UInt64 m_frequency; // Units:  Hz
 
-    Bool m_valid;
-    UInt64 m_frequency;                                             // Units:  Hz
-
-    void throwIfInvalid(const Frequency& frequency) const;
+	void throwIfInvalid(const Frequency& frequency) const;
 };

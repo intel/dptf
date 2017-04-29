@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,21 +20,21 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-ConfigTdpControlStatus::ConfigTdpControlStatus(UIntN currentControlIndex) :
-    m_currentControlIndex(currentControlIndex)
+ConfigTdpControlStatus::ConfigTdpControlStatus(UIntN currentControlIndex)
+	: m_currentControlIndex(currentControlIndex)
 {
 }
 
 UIntN ConfigTdpControlStatus::getCurrentControlIndex(void) const
 {
-    return m_currentControlIndex;
+	return m_currentControlIndex;
 }
 
 std::shared_ptr<XmlNode> ConfigTdpControlStatus::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("config_tdp_control_status");
+	auto root = XmlNode::createWrapperElement("config_tdp_control_status");
 
-    root->addChild(XmlNode::createDataElement("control_index", StatusFormat::friendlyValue(m_currentControlIndex)));
+	root->addChild(XmlNode::createDataElement("control_index", StatusFormat::friendlyValue(m_currentControlIndex)));
 
-    return root;
+	return root;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,63 +20,62 @@
 
 UInt64 BinaryParse::extractBits(UInt16 startBit, UInt16 stopBit, UInt64 data)
 {
-    if (startBit < stopBit)
-    {
-        throw dptf_exception("The start bit must be greater than the stop bit.");
-    }
+	if (startBit < stopBit)
+	{
+		throw dptf_exception("The start bit must be greater than the stop bit.");
+	}
 
-    UInt64 bitCount = (startBit - stopBit) + 1;
-    UInt64 mask = (1 << bitCount) - 1;
+	UInt64 bitCount = (startBit - stopBit) + 1;
+	UInt64 mask = (1 << bitCount) - 1;
 
-    return (data >> stopBit) & mask;
+	return (data >> stopBit) & mask;
 }
 
 // TODO : Values come in from ESIF as u64's and the majority of the time I cast them to UIntN...
 
-
 std::string BinaryParse::normalizeAcpiScope(const std::string& acpiScope)
 {
-    std::stringstream normalizedAcpiScope;
-    UIntN charsSinceLastDot(0);
-    for (UIntN pos = 0; pos < acpiScope.size(); pos++)
-    {
-        if (acpiScope[pos] == '\\')
-        {
-            normalizedAcpiScope << acpiScope[pos];
-            charsSinceLastDot = 0;
-        }
-        else if (acpiScope[pos] == '.')
-        {
-            IntN underscoresToAdd = 4 - charsSinceLastDot;
-            while (underscoresToAdd > 0)
-            {
-                normalizedAcpiScope << '_';
-                underscoresToAdd--;
-            }
-            normalizedAcpiScope << acpiScope[pos];
-            charsSinceLastDot = 0;
-        }
-        else if (acpiScope[pos] == '\0')
-        {
-            charsSinceLastDot++;
-            continue;
-        }
-        else
-        {
-            normalizedAcpiScope << acpiScope[pos];
-            charsSinceLastDot++;
-        }
-    }
+	std::stringstream normalizedAcpiScope;
+	UIntN charsSinceLastDot(0);
+	for (UIntN pos = 0; pos < acpiScope.size(); pos++)
+	{
+		if (acpiScope[pos] == '\\')
+		{
+			normalizedAcpiScope << acpiScope[pos];
+			charsSinceLastDot = 0;
+		}
+		else if (acpiScope[pos] == '.')
+		{
+			IntN underscoresToAdd = 4 - charsSinceLastDot;
+			while (underscoresToAdd > 0)
+			{
+				normalizedAcpiScope << '_';
+				underscoresToAdd--;
+			}
+			normalizedAcpiScope << acpiScope[pos];
+			charsSinceLastDot = 0;
+		}
+		else if (acpiScope[pos] == '\0')
+		{
+			charsSinceLastDot++;
+			continue;
+		}
+		else
+		{
+			normalizedAcpiScope << acpiScope[pos];
+			charsSinceLastDot++;
+		}
+	}
 
-    if (acpiScope.size() > 0)
-    {
-        IntN underscoresToAdd = 4 - charsSinceLastDot;
-        while (underscoresToAdd > 0)
-        {
-            normalizedAcpiScope << '_';
-            underscoresToAdd--;
-        }
-    }
+	if (acpiScope.size() > 0)
+	{
+		IntN underscoresToAdd = 4 - charsSinceLastDot;
+		while (underscoresToAdd > 0)
+		{
+			normalizedAcpiScope << '_';
+			underscoresToAdd--;
+		}
+	}
 
-    return normalizedAcpiScope.str();
+	return normalizedAcpiScope.str();
 }

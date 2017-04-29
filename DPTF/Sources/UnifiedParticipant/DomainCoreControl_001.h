@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,45 +29,47 @@
 class DomainCoreControl_001 : public DomainCoreControlBase
 {
 public:
+	DomainCoreControl_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainCoreControl_001(void);
 
-    DomainCoreControl_001(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainCoreControl_001(void);
+	// DomainCoreControlInterface
+	virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) override;
+	virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setActiveCoreControl(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const CoreControlStatus& coreControlStatus) override;
 
-    // DomainCoreControlInterface
-    virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
-    virtual CoreControlDynamicCaps getCoreControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-    virtual CoreControlLpoPreference getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex) override;
-    virtual CoreControlStatus getCoreControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setActiveCoreControl(UIntN participantIndex, UIntN domainIndex, 
-        const CoreControlStatus& coreControlStatus) override;
+	// ParticipantActivityLoggingInterface
+	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
-    // ParticipantActivityLoggingInterface
-    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-    virtual void restore(void) override;
+	virtual void restore(void) override;
 
 private:
+	// hide the copy constructor and = operator
+	DomainCoreControl_001(const DomainCoreControl_001& rhs);
+	DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs);
 
-    // hide the copy constructor and = operator
-    DomainCoreControl_001(const DomainCoreControl_001& rhs);
-    DomainCoreControl_001& operator=(const DomainCoreControl_001& rhs);
+	// Functions
+	CoreControlStaticCaps createCoreControlStaticCaps(UIntN domainIndex);
+	CoreControlDynamicCaps createCoreControlDynamicCaps(UIntN domainIndex);
+	CoreControlLpoPreference createCoreControlLpoPreference(UIntN domainIndex);
+	void verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus);
 
-    // Functions
-    CoreControlStaticCaps createCoreControlStaticCaps(UIntN domainIndex);
-    CoreControlDynamicCaps createCoreControlDynamicCaps(UIntN domainIndex);
-    CoreControlLpoPreference createCoreControlLpoPreference(UIntN domainIndex);
-    void verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus);
-
-    // Vars (external)
-    CachedValue<CoreControlStaticCaps> m_coreControlStaticCaps;
-    CachedValue<CoreControlDynamicCaps> m_coreControlDynamicCaps;
-    CachedValue<CoreControlLpoPreference> m_coreControlLpoPreference;
-    CachedValue<CoreControlStatus> m_coreControlStatus;
+	// Vars (external)
+	CachedValue<CoreControlStaticCaps> m_coreControlStaticCaps;
+	CachedValue<CoreControlDynamicCaps> m_coreControlDynamicCaps;
+	CachedValue<CoreControlLpoPreference> m_coreControlLpoPreference;
+	CachedValue<CoreControlStatus> m_coreControlStatus;
 };

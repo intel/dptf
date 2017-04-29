@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,18 +23,19 @@
 #include "DomainType.h"
 #include "DomainFunctionalityVersions.h"
 #include "DomainActiveControlBase.h"
+#include "DomainActivityStatusBase.h"
 #include "DomainConfigTdpControlBase.h"
 #include "DomainCoreControlBase.h"
 #include "DomainDisplayControlBase.h"
+#include "DomainPeakPowerControlBase.h"
 #include "DomainPerformanceControlBase.h"
-#include "DomainPixelClockControlBase.h"
-#include "DomainPixelClockStatusBase.h"
 #include "DomainPowerControlBase.h"
 #include "DomainPowerStatusBase.h"
 #include "DomainPriorityBase.h"
 #include "DomainRfProfileControlBase.h"
 #include "DomainRfProfileStatusBase.h"
 #include "DomainTemperatureBase.h"
+#include "DomainTccOffsetControlBase.h"
 #include "DomainUtilizationBase.h"
 #include "ControlFactoryList.h"
 #include "DomainControlList.h"
@@ -43,59 +44,65 @@
 class UnifiedDomain
 {
 public:
+	UnifiedDomain(
+		const Guid& guid,
+		UIntN participantIndex,
+		UIntN domainIndex,
+		Bool domainEnabled,
+		DomainType::Type domainType,
+		std::string domainName,
+		std::string domainDescription,
+		DomainFunctionalityVersions domainFunctionalityVersions,
+		const ControlFactoryList& classFactories,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	~UnifiedDomain(void);
 
-    UnifiedDomain(const Guid& guid, UIntN participantIndex, UIntN domainIndex, 
-        Bool domainEnabled, DomainType::Type domainType, std::string domainName,
-        std::string domainDescription, DomainFunctionalityVersions domainFunctionalityVersions,
-        const ControlFactoryList& classFactories, std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    ~UnifiedDomain(void);
+	Guid getGuid(void);
+	Bool isEnabled(void);
+	void enable(void);
+	void disable(void);
 
-    Guid getGuid(void);
-    Bool isEnabled(void);
-    void enable(void);
-    void disable(void);
+	DomainType::Type getDomainType(void);
+	std::string getName(void);
+	std::string getDescription(void);
+	DomainFunctionalityVersions getDomainFunctionalityVersions(void);
+	std::shared_ptr<XmlNode> getXml();
 
-    DomainType::Type getDomainType(void);
-    std::string getName(void);
-    std::string getDescription(void);
-    DomainFunctionalityVersions getDomainFunctionalityVersions(void);
-    std::shared_ptr<XmlNode> getXml();
+	void clearAllCachedData(void);
 
-    void clearAllCachedData(void);
-
-    std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
-    std::shared_ptr<DomainConfigTdpControlBase> getConfigTdpControl(void);
-    std::shared_ptr<DomainCoreControlBase> getCoreControl(void);
-    std::shared_ptr<DomainDisplayControlBase> getDisplayControl(void);
-    std::shared_ptr<DomainPerformanceControlBase> getPerformanceControl(void);
-    std::shared_ptr<DomainPixelClockControlBase> getPixelClockControl(void);
-    std::shared_ptr<DomainPixelClockStatusBase> getPixelClockStatusControl(void);
-    std::shared_ptr<DomainPowerControlBase> getPowerControl(void);
-    std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
-    std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
-    std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
-    std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
-    std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);
-    std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
-    std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
-    std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
+	std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
+	std::shared_ptr<DomainActivityStatusBase> getActivityStatusControl(void);
+	std::shared_ptr<DomainConfigTdpControlBase> getConfigTdpControl(void);
+	std::shared_ptr<DomainCoreControlBase> getCoreControl(void);
+	std::shared_ptr<DomainDisplayControlBase> getDisplayControl(void);
+	std::shared_ptr<DomainPeakPowerControlBase> getPeakPowerControl(void);
+	std::shared_ptr<DomainPerformanceControlBase> getPerformanceControl(void);
+	std::shared_ptr<DomainPowerControlBase> getPowerControl(void);
+	std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
+	std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
+	std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
+	std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
+	std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);
+	std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
+	std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
+	std::shared_ptr<DomainTccOffsetControlBase> getTccOffsetControl(void);
+	std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
 
 private:
+	// hide the copy constructor and = operator
+	UnifiedDomain(const UnifiedDomain& rhs);
+	UnifiedDomain& operator=(const UnifiedDomain& rhs);
 
-    // hide the copy constructor and = operator
-    UnifiedDomain(const UnifiedDomain& rhs);
-    UnifiedDomain& operator=(const UnifiedDomain& rhs);
+	Guid m_guid;
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	Bool m_enabled;
+	DomainType::Type m_domainType;
+	std::string m_name;
+	std::string m_description;
+	DomainFunctionalityVersions m_domainFunctionalityVersions;
+	std::shared_ptr<ParticipantServicesInterface> m_participantServicesInterface;
+	std::shared_ptr<DomainControlList> m_domainControls;
 
-    Guid m_guid;
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    Bool m_enabled;
-    DomainType::Type m_domainType;
-    std::string m_name;
-    std::string m_description;
-    DomainFunctionalityVersions m_domainFunctionalityVersions;
-    std::shared_ptr<ParticipantServicesInterface> m_participantServicesInterface;
-    std::shared_ptr<DomainControlList> m_domainControls;
-
-    void throwIfDomainNotEnabled(void);
+	void throwIfDomainNotEnabled(void);
 };

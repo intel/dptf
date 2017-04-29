@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -129,6 +129,20 @@ struct esif_table_hdr {
 		ESIF_ELEMENT(.buf_ptr) ESIF_DATA_ALLOCATE, \
 		ESIF_ELEMENT(.buf_len) 0 \
 	}
+
+#define OFFSET_OF(type, member) ((ULONG)(size_t)&(((type*)0)->member))
+
+#define ESIF_DATA_STRING_ASSIGN(obj, buf, buf_size)             \
+	obj.type     = ESIF_DATA_STRING;                                \
+	obj.buf_ptr  = buf;                                          \
+	obj.buf_len  = buf_size;                                     \
+	obj.data_len = (u32)(esif_ccb_strlen(buf, buf_size) + 1);
+
+#define ESIF_DATA_UINT32_ASSIGN(obj, buf, buf_size)             \
+	obj.type     = ESIF_DATA_UINT32;                                \
+	obj.buf_ptr  = buf;                                          \
+	obj.buf_len  = buf_size;                                     \
+	obj.data_len = sizeof(UInt32);
 
 /* BINARY Primitive Tuple Parameter for passing from DPTF to a DSP Action */
 #pragma pack(push, 1)

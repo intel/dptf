@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,40 +27,38 @@ class XmlNode;
 // Stores the statistics for a single work item type.
 struct WorkItemTypeExecutionStatistics
 {
-    UInt64 totalExecuted;
+	UInt64 totalExecuted;
 
-    TimeSpan totalQueueTime;
-    TimeSpan minQueueTime;
-    TimeSpan maxQueueTime;
+	TimeSpan totalQueueTime;
+	TimeSpan minQueueTime;
+	TimeSpan maxQueueTime;
 
-    TimeSpan totalExecutionTime;
-    TimeSpan minExecutionTime;
-    TimeSpan maxExecutionTime;
+	TimeSpan totalExecutionTime;
+	TimeSpan minExecutionTime;
+	TimeSpan maxExecutionTime;
 };
 
 class WorkItemStatistics
 {
 public:
+	WorkItemStatistics(void);
+	~WorkItemStatistics(void);
 
-    WorkItemStatistics(void);
-    ~WorkItemStatistics(void);
+	void incrementImmediateTotals(WorkItemInterface* workItem);
+	void incrementDeferredTotals(WorkItemInterface* workItem);
 
-    void incrementImmediateTotals(WorkItemInterface* workItem);
-    void incrementDeferredTotals(WorkItemInterface* workItem);
-
-    std::shared_ptr<XmlNode> getXml(void);
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
+	UInt64 m_totalDeferredWorkItemsExecuted;
+	UInt64 m_totalImmediateWorkItemsExecuted;
 
-    UInt64 m_totalDeferredWorkItemsExecuted;
-    UInt64 m_totalImmediateWorkItemsExecuted;
+	// Contains one row for each work item type.
+	WorkItemTypeExecutionStatistics m_immediateWorkItemStatistics[FrameworkEvent::Max];
 
-    // Contains one row for each work item type.
-    WorkItemTypeExecutionStatistics m_immediateWorkItemStatistics[FrameworkEvent::Max];
-
-    // This is here to prevent the UI work items (WIDptfGetStatus) from skewing the statistics
-    TimeSpan m_lastDptfGetStatusWorkItemCreationTime;
-    TimeSpan m_lastDptfGetStatusWorkItemExecutionStartTime;
-    TimeSpan m_lastDptfGetStatusWorkItemCompletionTime;
-    TimeSpan m_lastDptfGetStatusWorkItemExecutionTime;
+	// This is here to prevent the UI work items (WIDptfGetStatus) from skewing the statistics
+	TimeSpan m_lastDptfGetStatusWorkItemCreationTime;
+	TimeSpan m_lastDptfGetStatusWorkItemExecutionStartTime;
+	TimeSpan m_lastDptfGetStatusWorkItemCompletionTime;
+	TimeSpan m_lastDptfGetStatusWorkItemExecutionTime;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,32 +27,30 @@
 class ImmediateWorkItemQueue : public WorkItemQueueInterface
 {
 public:
+	ImmediateWorkItemQueue(EsifSemaphore* workItemQueueSemaphore);
+	virtual ~ImmediateWorkItemQueue(void);
 
-    ImmediateWorkItemQueue(EsifSemaphore* workItemQueueSemaphore);
-    virtual ~ImmediateWorkItemQueue(void);
+	void enqueue(ImmediateWorkItem* newWorkItem);
+	ImmediateWorkItem* dequeue(void);
 
-    void enqueue(ImmediateWorkItem* newWorkItem);
-    ImmediateWorkItem* dequeue(void);
-
-    // implement WorkItemQueueInterface
-    virtual void makeEmtpy(void) override final;
-    virtual UInt64 getCount(void) const override final;
-    virtual UInt64 getMaxCount(void) const override final;
-    virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) override final;
-    virtual std::shared_ptr<XmlNode> getXml(void) const override final;
+	// implement WorkItemQueueInterface
+	virtual void makeEmtpy(void) override final;
+	virtual UInt64 getCount(void) const override final;
+	virtual UInt64 getMaxCount(void) const override final;
+	virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) override final;
+	virtual std::shared_ptr<XmlNode> getXml(void) const override final;
 
 private:
+	// hide the copy constructor and assignment operator.
+	ImmediateWorkItemQueue(const ImmediateWorkItemQueue& rhs);
+	ImmediateWorkItemQueue& operator=(const ImmediateWorkItemQueue& rhs);
 
-    // hide the copy constructor and assignment operator.
-    ImmediateWorkItemQueue(const ImmediateWorkItemQueue& rhs);
-    ImmediateWorkItemQueue& operator=(const ImmediateWorkItemQueue& rhs);
+	std::list<ImmediateWorkItem*> m_queue;
+	UInt64 m_maxCount; // stores the maximum number of items in the queue at any one time
+	mutable EsifMutex m_mutex;
+	EsifSemaphore* m_workItemQueueSemaphore;
 
-    std::list<ImmediateWorkItem*> m_queue;
-    UInt64 m_maxCount;                                              // stores the maximum number of items in the queue at any one time
-    mutable EsifMutex m_mutex;
-    EsifSemaphore* m_workItemQueueSemaphore;
-
-    void throwIfDuplicateThermalThresholdCrossedEvent(ImmediateWorkItem* newWorkItem);
-    void insertSortedByPriority(ImmediateWorkItem* newWorkItem);
-    void updateMaxCount(void);
+	void throwIfDuplicateThermalThresholdCrossedEvent(ImmediateWorkItem* newWorkItem);
+	void insertSortedByPriority(ImmediateWorkItem* newWorkItem);
+	void updateMaxCount(void);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,10 +21,17 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIDomainRadioConnectionStatusChanged::WIDomainRadioConnectionStatusChanged(DptfManagerInterface* dptfManager,
-    UIntN participantIndex, UIntN domainIndex, RadioConnectionStatus::Type radioConnectionStatus) :
-    DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainRadioConnectionStatusChanged, participantIndex, domainIndex),
-    m_radioConnectionStatus(radioConnectionStatus)
+WIDomainRadioConnectionStatusChanged::WIDomainRadioConnectionStatusChanged(
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex,
+	UIntN domainIndex,
+	RadioConnectionStatus::Type radioConnectionStatus)
+	: DomainWorkItem(
+		  dptfManager,
+		  FrameworkEvent::Type::DomainRadioConnectionStatusChanged,
+		  participantIndex,
+		  domainIndex)
+	, m_radioConnectionStatus(radioConnectionStatus)
 {
 }
 
@@ -34,34 +41,34 @@ WIDomainRadioConnectionStatusChanged::~WIDomainRadioConnectionStatusChanged(void
 
 void WIDomainRadioConnectionStatusChanged::execute(void)
 {
-    writeDomainWorkItemStartingInfoMessage();
+	writeDomainWorkItemStartingInfoMessage();
 
-    try
-    {
-        getParticipantPtr()->domainRadioConnectionStatusChanged(m_radioConnectionStatus);
-    }
-    catch (std::exception& ex)
-    {
-        writeDomainWorkItemErrorMessage(ex, "Participant::domainRadioConnectionStatusChanged");
-    }
+	try
+	{
+		getParticipantPtr()->domainRadioConnectionStatusChanged(m_radioConnectionStatus);
+	}
+	catch (std::exception& ex)
+	{
+		writeDomainWorkItemErrorMessage(ex, "Participant::domainRadioConnectionStatusChanged");
+	}
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeDomainRadioConnectionStatusChanged(getParticipantIndex(), m_radioConnectionStatus);
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainRadioConnectionStatusChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executeDomainRadioConnectionStatusChanged(getParticipantIndex(), m_radioConnectionStatus);
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainRadioConnectionStatusChanged", i);
+		}
+	}
 }

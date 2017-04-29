@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,74 +18,98 @@
 
 #include "DomainPlatformPowerStatus_000.h"
 
-DomainPlatformPowerStatus_000::DomainPlatformPowerStatus_000(UIntN participantIndex, UIntN domainIndex,
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
+DomainPlatformPowerStatus_000::DomainPlatformPowerStatus_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 Power DomainPlatformPowerStatus_000::getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 Power DomainPlatformPowerStatus_000::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 Power DomainPlatformPowerStatus_000::getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 DptfBuffer DomainPlatformPowerStatus_000::getBatteryStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 DptfBuffer DomainPlatformPowerStatus_000::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-PlatformPowerSource::Type DomainPlatformPowerStatus_000::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
+PlatformPowerSource::Type DomainPlatformPowerStatus_000::getPlatformPowerSource(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 ChargerType::Type DomainPlatformPowerStatus_000::getChargerType(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
-}
-
-Power DomainPlatformPowerStatus_000::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
-}
-
-TimeSpan DomainPlatformPowerStatus_000::getACPeakTimeWindow(UIntN participantIndex, UIntN domainIndex)
-{
-    throw not_implemented();
+	throw not_implemented();
 }
 
 Power DomainPlatformPowerStatus_000::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
+}
+
+UInt32 DomainPlatformPowerStatus_000::getACNominalVoltage(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainPlatformPowerStatus_000::getACOperationalCurrent(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Percentage DomainPlatformPowerStatus_000::getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Percentage DomainPlatformPowerStatus_000::getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Percentage DomainPlatformPowerStatus_000::getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainPlatformPowerStatus_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
 }
 
 void DomainPlatformPowerStatus_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainPlatformPowerStatus_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainPlatformPowerStatus_000::getName(void)
 {
-    return "Platform Power Status (Version 0)";
+	return "Platform Power Status (Version 0)";
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,9 +22,16 @@
 #include "EsifServicesInterface.h"
 
 WIDptfParticipantActivityLoggingDisabled::WIDptfParticipantActivityLoggingDisabled(
-    DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex, UInt32 capabilityBitMask) :
-    DomainWorkItem(dptfManager, FrameworkEvent::Type::DptfParticipantActivityLoggingDisabled, participantIndex, domainIndex),
-    m_capabilityBitMask(capabilityBitMask)
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 capabilityBitMask)
+	: DomainWorkItem(
+		  dptfManager,
+		  FrameworkEvent::Type::DptfParticipantActivityLoggingDisabled,
+		  participantIndex,
+		  domainIndex)
+	, m_capabilityBitMask(capabilityBitMask)
 {
 }
 
@@ -34,14 +41,14 @@ WIDptfParticipantActivityLoggingDisabled::~WIDptfParticipantActivityLoggingDisab
 
 void WIDptfParticipantActivityLoggingDisabled::execute(void)
 {
-    writeDomainWorkItemStartingInfoMessage();
+	writeDomainWorkItemStartingInfoMessage();
 
-    try
-    {
-        getParticipantPtr()->activityLoggingDisabled(getDomainIndex(), m_capabilityBitMask);
-    }
-    catch (std::exception& ex)
-    {
-        writeDomainWorkItemErrorMessage(ex, "Participant::activityLoggingDisabled");
-    }
+	try
+	{
+		getParticipantPtr()->activityLoggingDisabled(getDomainIndex(), m_capabilityBitMask);
+	}
+	catch (std::exception& ex)
+	{
+		writeDomainWorkItemErrorMessage(ex, "Participant::activityLoggingDisabled");
+	}
 }

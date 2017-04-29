@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,15 +26,13 @@
 class dptf_export ControlStatus
 {
 public:
+	ControlStatus(const std::string& name, UIntN min, UIntN max, UIntN current);
 
-    ControlStatus(const std::string& name, UIntN min, UIntN max, UIntN current);
-
-    std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getXml();
 
 private:
-
-    std::string m_name;
-    UIntN m_min;
-    UIntN m_max;
-    UIntN m_current;
+	std::string m_name;
+	UIntN m_min;
+	UIntN m_max;
+	UIntN m_current;
 };

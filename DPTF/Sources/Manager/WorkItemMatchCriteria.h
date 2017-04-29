@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,35 +24,36 @@
 class WorkItemMatchCriteria
 {
 public:
+	WorkItemMatchCriteria(void);
 
-    WorkItemMatchCriteria(void);
+	void addFrameworkEventTypeToMatchList(FrameworkEvent::Type frameworkEventType);
+	void addUniqueIdToMatchList(UInt64 uniqueId);
+	void addParticipantIndexToMatchList(UIntN participantIndex);
+	void addDomainIndexToMatchList(UIntN domainIndex);
+	void addPolicyIndexToMatchList(UIntN policyIndex);
 
-    void addFrameworkEventTypeToMatchList(FrameworkEvent::Type frameworkEventType);
-    void addUniqueIdToMatchList(UInt64 uniqueId);
-    void addParticipantIndexToMatchList(UIntN participantIndex);
-    void addDomainIndexToMatchList(UIntN domainIndex);
-    void addPolicyIndexToMatchList(UIntN policyIndex);
-
-    Bool testAgainstMatchList(FrameworkEvent::Type frameworkEventType, UInt64 uniqueId,
-        UIntN participantIndex = Constants::Invalid, UIntN domainIndex = Constants::Invalid,
-        UIntN policyIndex = Constants::Invalid) const;
+	Bool testAgainstMatchList(
+		FrameworkEvent::Type frameworkEventType,
+		UInt64 uniqueId,
+		UIntN participantIndex = Constants::Invalid,
+		UIntN domainIndex = Constants::Invalid,
+		UIntN policyIndex = Constants::Invalid) const;
 
 private:
+	Bool m_matchCriteriaAdded;
 
-    Bool m_matchCriteriaAdded;
+	Bool m_testFrameworkEventType;
+	FrameworkEvent::Type m_frameworkEventType;
 
-    Bool m_testFrameworkEventType;
-    FrameworkEvent::Type m_frameworkEventType;
+	Bool m_testUniqueId;
+	UInt64 m_uniqueId;
 
-    Bool m_testUniqueId;
-    UInt64 m_uniqueId;
+	Bool m_testParticipantIndex;
+	UIntN m_participantIndex;
 
-    Bool m_testParticipantIndex;
-    UIntN m_participantIndex;
+	Bool m_testDomainIndex;
+	UIntN m_domainIndex;
 
-    Bool m_testDomainIndex;
-    UIntN m_domainIndex;
-
-    Bool m_testPolicyIndex;
-    UIntN m_policyIndex;
+	Bool m_testPolicyIndex;
+	UIntN m_policyIndex;
 };

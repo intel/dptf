@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,25 +24,29 @@
 class dptf_export DisplayControlCapabilitiesArbitrator
 {
 public:
+	DisplayControlCapabilitiesArbitrator();
+	~DisplayControlCapabilitiesArbitrator();
 
-    DisplayControlCapabilitiesArbitrator();
-    ~DisplayControlCapabilitiesArbitrator();
+	void commitPolicyRequest(UIntN policyIndex, const DisplayControlDynamicCaps& caps);
+	Bool hasArbitratedDisplayCapabilities() const;
+	DisplayControlDynamicCaps arbitrate(UIntN policyIndex, const DisplayControlDynamicCaps& caps);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, const DisplayControlDynamicCaps& caps);
-    Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
-    DisplayControlDynamicCaps getArbitratedDisplayControlCapabilities() const;
-    Bool getArbitratedLock() const;
-    void removeRequestsForPolicy(UIntN policyIndex);
+	Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
+	DisplayControlDynamicCaps getArbitratedDisplayControlCapabilities();
+	Bool getArbitratedLock() const;
+	void removeRequestsForPolicy(UIntN policyIndex);
 
 private:
+	std::map<UIntN, UIntN> m_requestedMaxDisplayIndex;
+	std::map<UIntN, UIntN> m_requestedMinDisplayIndex;
+	std::map<UIntN, Bool> m_requestedLocks;
 
-    std::map<UIntN, UIntN> m_requestedMaxDisplayIndex;
-    std::map<UIntN, UIntN> m_requestedMinDisplayIndex;
-    std::map<UIntN, Bool> m_requestedLocks;
-
-    void updatePolicyRequest(const DisplayControlDynamicCaps &caps, UIntN policyIndex);
-    void updatePolicyLockRequest(Bool lock, UIntN policyIndex);
-    UIntN getLowestMaxDisplayIndex() const;
-    UIntN getHighestMinDisplayIndex() const;
+	void updatePolicyRequest(
+		const DisplayControlDynamicCaps& caps,
+		UIntN policyIndex,
+		std::map<UIntN, UIntN>& minRequests,
+		std::map<UIntN, UIntN>& maxRequests);
+	void updatePolicyLockRequest(Bool lock, UIntN policyIndex);
+	UIntN getLowestMaxDisplayIndex(std::map<UIntN, UIntN>& maxRequests) const;
+	UIntN getHighestMinDisplayIndex(std::map<UIntN, UIntN>& minRequests) const;
 };

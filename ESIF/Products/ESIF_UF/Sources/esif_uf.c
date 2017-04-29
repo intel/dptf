@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -504,7 +504,7 @@ enum esif_rc sync_lf_participants()
 		struct esif_ipc_event_data_create_participant participantData;
 		EsifData esifParticipantData = {ESIF_DATA_STRUCTURE, &participantData, sizeof(participantData), sizeof(participantData)};
 
-		rc = get_participant_data(&participantData, i);
+		rc = get_participant_data(&participantData, (UInt8)data_ptr->participant_info[i].id);
 		if (ESIF_OK != rc) {
 			rc = ESIF_OK; /* Ignore RC for get_participant_data */
 			continue;
@@ -792,7 +792,7 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE},
 	{NULL,								esif_uf_shell_stop,					ESIF_INIT_FLAG_NONE},
 	{NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE},
-	{esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_NONE},
+	{esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_IGNORE_ERROR},
 	{esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER},
 	{esif_uf_shell_banner_init,			NULL,								ESIF_INIT_FLAG_NONE},
 	// If shutting down, event processing is disabled
@@ -996,11 +996,11 @@ static eEsifError esif_uf_exec_startup_script(void)
 		esif_ccb_strcpy(command, "load start", sizeof(command));
 	}
 	// Use startup script in startup.dv datavault, if it exists
-	else if (DataBank_KeyExists(g_DataBankMgr, "startup", "start")) {
+	else if (DataBank_KeyExists("startup", "start")) {
 		esif_ccb_strcpy(command, "config exec @startup start", sizeof(command));
 	}
 	// Use startup script in Default datavault, if it exists
-	else if (DataBank_KeyExists(g_DataBankMgr, g_DataVaultDefault, "start")) {
+	else if (DataBank_KeyExists(DataBank_GetDefault(), "start")) {
 		esif_ccb_strcpy(command, "config exec start", sizeof(command));
 	}
 	// Otherwise Use default startup script, if any

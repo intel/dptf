@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,16 +26,14 @@ class ParticipantManagerInterface;
 class ParticipantStatusMap
 {
 public:
+	ParticipantStatusMap(ParticipantManagerInterface* participantManager);
 
-    ParticipantStatusMap(ParticipantManagerInterface* participantManager);
-
-    std::string getGroupsString();
-    std::shared_ptr<XmlNode> getStatusAsXml(UIntN mappedIndex);
-    void clearCachedData();
+	std::string getGroupsString();
+	std::shared_ptr<XmlNode> getStatusAsXml(UIntN mappedIndex);
+	void clearCachedData();
 
 private:
-
-    ParticipantManagerInterface* m_participantManager;
-    std::vector<std::pair<UIntN, UIntN>> m_participantDomainsList;
-    void buildParticipantDomainsList();
+	ParticipantManagerInterface* m_participantManager;
+	std::vector<std::pair<UIntN, UIntN>> m_participantDomainsList;
+	void buildParticipantDomainsList();
 };

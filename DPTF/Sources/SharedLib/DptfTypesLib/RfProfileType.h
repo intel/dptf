@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,11 +22,11 @@
 
 namespace RfProfileType
 {
-    enum Type
-    {
-        Na,
-        Box
-    };
+	enum Type
+	{
+		Na,
+		Box
+	};
 
-    std::string ToString(RfProfileType::Type type);
+	std::string ToString(RfProfileType::Type type);
 }

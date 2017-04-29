@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,131 +20,135 @@
 #include "EsifMutexHelper.h"
 #include "XmlNode.h"
 
-DeferredWorkItemQueue::DeferredWorkItemQueue(EsifSemaphore* workItemQueueSemaphore) :
-    m_maxCount(0), m_workItemQueueSemaphore(workItemQueueSemaphore), m_timer(TimerCallback, this)
+DeferredWorkItemQueue::DeferredWorkItemQueue(EsifSemaphore* workItemQueueSemaphore, ImmediateWorkItemQueue* immediateWorkItemQueue)
+	: m_maxCount(0)
+	, m_workItemQueueSemaphore(workItemQueueSemaphore)
+	, m_immediateQueue(immediateWorkItemQueue)
+	, m_timer(TimerCallback, this)
 {
 }
 
 DeferredWorkItemQueue::~DeferredWorkItemQueue(void)
 {
-    // makeEmpty is a public function and it will lock the mutex
-    makeEmtpy();
+	// makeEmpty is a public function and it will lock the mutex
+	makeEmtpy();
 }
 
 void DeferredWorkItemQueue::enqueue(DeferredWorkItem* newWorkItem)
 {
-    // FIMXE:  during round 2, need to add statistics logging
+	// FIMXE:  during round 2, need to add statistics logging
 
-    // Insert into the queue sorted based on time stamp.  The timer must be set to expire
-    // when the first item in the queue is ready to process.
+	// Insert into the queue sorted based on time stamp.  The timer must be set to expire
+	// when the first item in the queue is ready to process.
 
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    insertSortedByDeferredProcessingTime(newWorkItem);
-    updateMaxCount();
-    setTimer();
+	insertSortedByDeferredProcessingTime(newWorkItem);
+	updateMaxCount();
+	setTimer();
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 }
 
 DeferredWorkItem* DeferredWorkItemQueue::dequeue(void)
 {
-    // Returns the first item in the queue if it the work item time is >= the current time.
+	// Returns the first item in the queue if it the work item time is >= the current time.
 
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    DeferredWorkItem* firstReadyWorkItem = getFirstReadyWorkItemFromQueue();
-    setTimer();
+	DeferredWorkItem* firstReadyWorkItem = getFirstReadyWorkItemFromQueue();
+	setTimer();
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 
-    return firstReadyWorkItem;
+	return firstReadyWorkItem;
 }
 
 void DeferredWorkItemQueue::makeEmtpy(void)
 {
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    m_timer.cancelTimer();
+	m_timer.cancelTimer();
 
-    while (m_queue.empty() == false)
-    {
-        DeferredWorkItem* currentWorkItem = m_queue.front();
-        delete currentWorkItem;
-        m_queue.pop_front();
-    }
+	while (m_queue.empty() == false)
+	{
+		DeferredWorkItem* currentWorkItem = m_queue.front();
+		delete currentWorkItem;
+		m_queue.pop_front();
+	}
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 }
 
 UInt64 DeferredWorkItemQueue::getCount(void) const
 {
-    UInt64 count;
-    EsifMutexHelper esifMutexHelper(&m_mutex);
+	UInt64 count;
+	EsifMutexHelper esifMutexHelper(&m_mutex);
 
-    esifMutexHelper.lock();
-    count = m_queue.size();
-    esifMutexHelper.unlock();
+	esifMutexHelper.lock();
+	count = m_queue.size();
+	esifMutexHelper.unlock();
 
-    return count;
+	return count;
 }
 
 UInt64 DeferredWorkItemQueue::getMaxCount(void) const
 {
-    UInt64 maxCount;
-    EsifMutexHelper esifMutexHelper(&m_mutex);
+	UInt64 maxCount;
+	EsifMutexHelper esifMutexHelper(&m_mutex);
 
-    esifMutexHelper.lock();
-    maxCount = m_maxCount;
-    esifMutexHelper.unlock();
+	esifMutexHelper.lock();
+	maxCount = m_maxCount;
+	esifMutexHelper.unlock();
 
-    return maxCount;
+	return maxCount;
 }
 
 UIntN DeferredWorkItemQueue::removeIfMatches(const WorkItemMatchCriteria& matchCriteria)
 {
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    UIntN numRemoved = 0;
+	UIntN numRemoved = 0;
 
-    auto it = m_queue.begin();
-    while (it != m_queue.end())
-    {
-        if ((*it)->matches(matchCriteria) == true)
-        {
-            DELETE_MEMORY_TC(*it);
-            it = m_queue.erase(it);
-            numRemoved++;
-        }
-        else
-        {
-            it++;
-        }
-    }
+	auto it = m_queue.begin();
+	while (it != m_queue.end())
+	{
+		if ((*it)->matches(matchCriteria) == true)
+		{
+			DELETE_MEMORY_TC(*it);
+			it = m_queue.erase(it);
+			numRemoved++;
+		}
+		else
+		{
+			it++;
+		}
+	}
 
-    setTimer();
+	setTimer();
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 
-    return numRemoved;
+	return numRemoved;
 }
 
 std::shared_ptr<XmlNode> DeferredWorkItemQueue::getXml(void) const
 {
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    auto deferredQueueStastics = XmlNode::createWrapperElement("deferred_queue_statistics");
-    deferredQueueStastics->addChild(XmlNode::createDataElement("current_count", StlOverride::to_string(m_queue.size())));
-    deferredQueueStastics->addChild(XmlNode::createDataElement("max_count", StlOverride::to_string(m_maxCount)));
+	auto deferredQueueStastics = XmlNode::createWrapperElement("deferred_queue_statistics");
+	deferredQueueStastics->addChild(
+		XmlNode::createDataElement("current_count", std::to_string(m_queue.size())));
+	deferredQueueStastics->addChild(XmlNode::createDataElement("max_count", std::to_string(m_maxCount)));
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 
-    return deferredQueueStastics;
+	return deferredQueueStastics;
 }
 
 //
@@ -154,72 +158,64 @@ std::shared_ptr<XmlNode> DeferredWorkItemQueue::getXml(void) const
 
 void DeferredWorkItemQueue::setTimer(void)
 {
-    // Set the timer to expire when the first item in the queue is ready to process
+	// Set the timer to expire when the first item in the queue is ready to process
 
-    if (m_queue.empty() == true)
-    {
-        // the timer shouldn't be running.  cancel it if needed.
-        if (m_timer.isExpirationTimeValid() == true)
-        {
-            m_timer.cancelTimer();
-        }
-    }
-    else
-    {
-        DeferredWorkItem* firstWorkItem = m_queue.front();
-        auto firstWorkItemTime = firstWorkItem->getDeferredProcessingTime();
+	if (m_queue.empty() == false)
+	{
+		DeferredWorkItem* firstWorkItem = m_queue.front();
+		auto firstWorkItemTime = firstWorkItem->getDeferredProcessingTime();
 
-        m_timer.startTimer(firstWorkItemTime);
-    }
+		m_timer.startTimer(firstWorkItemTime);
+	}
 }
 
 DeferredWorkItem* DeferredWorkItemQueue::getFirstReadyWorkItemFromQueue(void)
 {
-    DeferredWorkItem* firstReadyWorkItem = nullptr;
+	DeferredWorkItem* firstReadyWorkItem = nullptr;
 
-    if (m_queue.empty() == false)
-    {
-        auto currentTime = EsifTime().getTimeStamp();
-        firstReadyWorkItem = m_queue.front();
+	if (m_queue.empty() == false)
+	{
+		auto currentTime = EsifTime().getTimeStamp();
+		firstReadyWorkItem = m_queue.front();
 
-        if (firstReadyWorkItem->getDeferredProcessingTime() <= currentTime)
-        {
-            m_queue.pop_front();
-        }
-        else
-        {
-            firstReadyWorkItem = nullptr;
-        }
-    }
+		if (firstReadyWorkItem->getDeferredProcessingTime() <= currentTime)
+		{
+			m_queue.pop_front();
+		}
+		else
+		{
+			firstReadyWorkItem = nullptr;
+		}
+	}
 
-    return firstReadyWorkItem;
+	return firstReadyWorkItem;
 }
 
 void DeferredWorkItemQueue::insertSortedByDeferredProcessingTime(DeferredWorkItem* newWorkItem)
 {
-    auto it = m_queue.begin();
-    for (; it != m_queue.end(); it++)
-    {
-        DeferredWorkItem* currentWorkItem = *it;
-        if (currentWorkItem->getDeferredProcessingTime() > newWorkItem->getDeferredProcessingTime())
-        {
-            m_queue.insert(it, newWorkItem);
-            break;
-        }
-    }
+	auto it = m_queue.begin();
+	for (; it != m_queue.end(); it++)
+	{
+		DeferredWorkItem* currentWorkItem = *it;
+		if (currentWorkItem->getDeferredProcessingTime() > newWorkItem->getDeferredProcessingTime())
+		{
+			m_queue.insert(it, newWorkItem);
+			break;
+		}
+	}
 
-    if (it == m_queue.end())
-    {
-        m_queue.push_back(newWorkItem);
-    }
+	if (it == m_queue.end())
+	{
+		m_queue.push_back(newWorkItem);
+	}
 }
 
 void DeferredWorkItemQueue::updateMaxCount()
 {
-    if (m_queue.size() > m_maxCount)
-    {
-        m_maxCount = m_queue.size();
-    }
+	if (m_queue.size() > m_maxCount)
+	{
+		m_maxCount = m_queue.size();
+	}
 }
 
 //
@@ -227,14 +223,43 @@ void DeferredWorkItemQueue::updateMaxCount()
 // work item thread will check the queue for work items that are ready to process.
 // The timer starts again when the work item thread dequeues the first work item.
 
-void DeferredWorkItemQueue::timerCallback(void) const
+void DeferredWorkItemQueue::timerCallback(void)
 {
-    // The WorkItemQueueManager is not locked while this executes.  So, do nothing but signal the semaphore.
-    m_workItemQueueSemaphore->signal();
+	// The WorkItemQueueManager is not locked while this executes.
+	// Move the ready items to the immediate queue and signal the semaphore.
+
+	DeferredWorkItem* readyWorkItem = dequeue();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
+
+	while (readyWorkItem != nullptr)
+	{
+		try
+		{
+			ImmediateWorkItem* immediateWorkItem = new ImmediateWorkItem(readyWorkItem, 0);
+
+			try
+			{
+				m_immediateQueue->enqueue(immediateWorkItem);
+			}
+			catch (...)
+			{
+				DELETE_MEMORY_TC(immediateWorkItem);
+				throw;
+			}
+		}
+		catch (...)
+		{
+		}
+		readyWorkItem = dequeue();
+	}
+
+	esifMutexHelper.unlock();
+	m_workItemQueueSemaphore->signal();
 }
 
 void TimerCallback(void* context_ptr)
 {
-    const DeferredWorkItemQueue* deferredWorkItemQueue = static_cast<const DeferredWorkItemQueue*>(context_ptr);
-    deferredWorkItemQueue->timerCallback();
+	DeferredWorkItemQueue* deferredWorkItemQueue = static_cast<DeferredWorkItemQueue*>(context_ptr);
+	deferredWorkItemQueue->timerCallback();
 }

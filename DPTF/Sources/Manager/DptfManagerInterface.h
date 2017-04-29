@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,25 +35,30 @@ class DptfStatusInterface;
 class DptfManagerInterface
 {
 public:
-    virtual ~DptfManagerInterface() {};
-    virtual void createDptfManager(const void* esifHandle, EsifInterfacePtr esifInterfacePtr,
-        const std::string& dptfHomeDirectoryPath, eLogType currentLogVerbosityLevel, Bool dptfEnabled) = 0;
-    virtual Bool isDptfManagerCreated(void) const = 0;
-    virtual Bool isDptfShuttingDown(void) const = 0;
-    virtual Bool isWorkItemQueueManagerCreated(void) const = 0;
-    virtual EsifServicesInterface* getEsifServices(void) const = 0;
-    virtual std::shared_ptr<EventCache> getEventCache(void) const = 0;
-    virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const = 0;
-    virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const = 0;
-    virtual PolicyManagerInterface* getPolicyManager(void) const = 0;
-    virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
-    virtual DptfStatusInterface* getDptfStatus(void) = 0;
-    virtual IndexContainerInterface* getIndexContainer(void) const = 0;
-    virtual std::string getDptfHomeDirectoryPath(void) const = 0;
-    virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
-    virtual Bool isDptfPolicyLoadNameOnly(void) const = 0;
-    virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
-    virtual void unbindDomainsFromPolicies(UIntN participantIndex) const = 0;
-    virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;
-    virtual void unbindParticipantFromPolicies(UIntN participantIndex) const = 0;
+	virtual ~DptfManagerInterface(){};
+
+	virtual void createDptfManager(
+		const void* esifHandle,
+		EsifInterfacePtr esifInterfacePtr,
+		const std::string& dptfHomeDirectoryPath,
+		eLogType currentLogVerbosityLevel,
+		Bool dptfEnabled) = 0;
+	virtual Bool isDptfManagerCreated(void) const = 0;
+	virtual Bool isDptfShuttingDown(void) const = 0;
+	virtual Bool isWorkItemQueueManagerCreated(void) const = 0;
+	virtual EsifServicesInterface* getEsifServices(void) const = 0;
+	virtual std::shared_ptr<EventCache> getEventCache(void) const = 0;
+	virtual std::shared_ptr<UserPreferredCache> getUserPreferredCache(void) const = 0;
+	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const = 0;
+	virtual PolicyManagerInterface* getPolicyManager(void) const = 0;
+	virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
+	virtual DptfStatusInterface* getDptfStatus(void) = 0;
+	virtual IndexContainerInterface* getIndexContainer(void) const = 0;
+	virtual std::string getDptfHomeDirectoryPath(void) const = 0;
+	virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
+	virtual Bool isDptfPolicyLoadNameOnly(void) const = 0;
+	virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
+	virtual void unbindDomainsFromPolicies(UIntN participantIndex) const = 0;
+	virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;
+	virtual void unbindParticipantFromPolicies(UIntN participantIndex) const = 0;
 };

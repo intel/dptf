@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,20 +25,14 @@
 ///////////////////////////////////////////////////
 // DataBank Class
 
-#define ESIF_MAX_NAME_SPACES        10
-
 struct DataBank_s;
 typedef struct DataBank_s DataBank, *DataBankPtr, **DataBankPtrLocation;
 
 #ifdef _DATABANK_CLASS
 struct DataBank_s {
-	UInt32     size;
-	// TODO: Change to a dynamically-sized data structure
-	DataVault  *elements[ESIF_MAX_NAME_SPACES];
-	esif_ccb_lock_t lock;
-
-	// State information to allow pausing initialization
-	Bool staticVaultsLoaded;
+	esif_ccb_lock_t	lock;		// Read/Write Lock
+	UInt32			size;		// Number of DataVaults in elements array
+	DataVaultPtr	*elements;	// Array of DataVaults, sorted by name	
 };
 
 #endif
@@ -47,17 +41,19 @@ struct DataBank_s {
 extern "C" {
 #endif
 
-extern DataBankPtr g_DataBankMgr;		// Global Instance, Dynamically Allocated
-extern char g_DataVaultDefault[ESIF_NAME_LEN]; // Global Default DataVault Namespace
-extern char *g_DataVaultStartScript;    // Optional Startup Script, if none specified in Default DataVault or cmd/start script
+// singleton methods
+DataBankPtr DataBank_GetMgr(void);
+DataVaultPtr DataBank_GetDataVault(StringPtr nameSpace);
+DataVaultPtr DataBank_OpenDataVault(StringPtr nameSpace);
+esif_error_t DataBank_ImportDataVault(StringPtr nameSpace);
+void DataBank_CloseDataVault(StringPtr nameSpace);
+Bool DataBank_KeyExists(StringPtr nameSpace, StringPtr keyName);
+esif_data_type_t DataBank_KeyType(StringPtr nameSpace, StringPtr keyName);
+void DataBank_SetDefault(const StringPtr nameSpace);
+const StringPtr DataBank_GetDefault();
 
-// methods
-DataVaultPtr DataBank_GetNameSpace(DataBankPtr self, StringPtr nameSpace);
-DataVaultPtr DataBank_OpenNameSpace(DataBankPtr self, esif_string nameSpace); /* Creates new if not present */
-void DataBank_CloseNameSpace(DataBankPtr self, esif_string nameSpace);
-int DataBank_KeyExists(DataBankPtr self, StringPtr nameSpace, StringPtr keyName);
-
-eEsifError EsifCfgMgrInit(void);
+// Legacy Public API Functions
+esif_error_t EsifCfgMgrInit(void);
 void EsifCfgMgrExit(void);
 
 #ifdef __cplusplus

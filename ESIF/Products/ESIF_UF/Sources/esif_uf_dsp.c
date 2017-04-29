@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -99,9 +99,9 @@ enum esif_rc esif_send_dsp(
 	// Look for EDP file on disk first then DataVault (static or file)
 	if (!esif_ccb_file_exists(filename) && EsifConfigGet(nameSpace, key, value) == ESIF_OK) {
 		filename = edpName;
-		IOStream_SetMemory(ioPtr, (BytePtr)value->buf_ptr, value->data_len);
+		IOStream_SetMemory(ioPtr, StoreStatic, (BytePtr)value->buf_ptr, value->data_len);
 	} else {
-		IOStream_SetFile(ioPtr, filename, (char *)"rb");
+		IOStream_SetFile(ioPtr, StoreStatic, filename, (char *)"rb");
 	}
 
 	/* FIND CPC within EDP file */
@@ -110,7 +110,7 @@ enum esif_rc esif_send_dsp(
 		rc = ESIF_E_IO_OPEN_FAILED;
 		goto exit;
 	}
-	bytesRead  = IOStream_Read(ioPtr, &edpDir, sizeof(struct edp_dir));
+	bytesRead = IOStream_Read(ioPtr, &edpDir, sizeof(struct edp_dir));
 	if (!esif_verify_edp(&edpDir, bytesRead)) {
 		ESIF_TRACE_ERROR("Invalid EDP Header: Signature=%4.4s Version=%d\n", (char *)&edpDir.signature, edpDir.version);
 		rc = ESIF_E_NOT_SUPPORTED;

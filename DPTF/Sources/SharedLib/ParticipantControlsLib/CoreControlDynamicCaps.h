@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,16 +25,14 @@ class XmlNode;
 class CoreControlDynamicCaps final
 {
 public:
-
-    CoreControlDynamicCaps(UIntN minActiveCores, UIntN maxActiveCores);
-    UIntN getMinActiveCores(void) const;
-    UIntN getMaxActiveCores(void) const;
-    Bool operator==(const CoreControlDynamicCaps& rhs) const;
-    Bool operator!=(const CoreControlDynamicCaps& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	CoreControlDynamicCaps(UIntN minActiveCores, UIntN maxActiveCores);
+	UIntN getMinActiveCores(void) const;
+	UIntN getMaxActiveCores(void) const;
+	Bool operator==(const CoreControlDynamicCaps& rhs) const;
+	Bool operator!=(const CoreControlDynamicCaps& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UIntN m_minActiveCores;                                         // Minimum Number of cores that must be always active
-    UIntN m_maxActiveCores;                                         // Maximum Cores/Execution Units currently available to control
+	UIntN m_minActiveCores; // Minimum Number of cores that must be always active
+	UIntN m_maxActiveCores; // Maximum Cores/Execution Units currently available to control
 };

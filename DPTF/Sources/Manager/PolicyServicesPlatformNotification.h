@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,16 +25,14 @@
 class PolicyServicesPlatformNotification final : public PolicyServices, public PlatformNotificationInterface
 {
 public:
+	PolicyServicesPlatformNotification(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServicesPlatformNotification(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    virtual void notifyPlatformPolicyTakeControl(void) override final;
-    virtual void notifyPlatformPolicyReleaseControl(void) override final;
+	virtual void notifyPlatformPolicyTakeControl(void) override final;
+	virtual void notifyPlatformPolicyReleaseControl(void) override final;
 
 private:
+	static const UInt32 OscActionTakeControl = 1;
+	static const UInt32 OscActionReleaseControl = 0;
 
-    static const UInt32 OscActionTakeControl = 1;
-    static const UInt32 OscActionReleaseControl = 0;
-
-    void executeOsc(const Guid& guid, UInt32 oscCapabilities);
+	void executeOsc(const Guid& guid, UInt32 oscCapabilities);
 };

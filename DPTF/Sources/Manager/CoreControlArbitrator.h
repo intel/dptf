@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,17 +30,18 @@
 class dptf_export CoreControlArbitrator
 {
 public:
+	CoreControlArbitrator(void);
+	~CoreControlArbitrator(void);
 
-    CoreControlArbitrator(void);
-    ~CoreControlArbitrator(void);
+	void commitPolicyRequest(UIntN policyIndex, const CoreControlStatus& coreControlStatus);
+	Bool hasArbitratedCoreCount(void) const;
+	CoreControlStatus arbitrate(UIntN policyIndex, const CoreControlStatus& coreControlStatus);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, const CoreControlStatus& coreControlStatus);
-    CoreControlStatus getArbitratedCoreControlStatus(void) const;
-    void clearPolicyCachedData(UIntN policyIndex);
+	CoreControlStatus getArbitratedCoreControlStatus(void) const;
+	void clearPolicyCachedData(UIntN policyIndex);
 
 private:
-
-    UIntN m_arbitratedActiveCoreCount;
-    std::map<UIntN, UIntN> m_requestedActiveCoreCount;
+	UIntN m_arbitratedActiveCoreCount;
+	std::map<UIntN, UIntN> m_requestedActiveCoreCount;
+	UIntN getMinActiveCoreCount(std::map<UIntN, UIntN>& requests);
 };

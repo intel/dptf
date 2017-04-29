@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,56 +17,75 @@
 ******************************************************************************/
 
 #include "RfProfileData.h"
+#include "StatusFormat.h"
+#include "EsifDataBinaryRfProfileDataPackage.h"
 
-RfProfileData::RfProfileData(Frequency centerFrequency, Frequency leftFrequencySpread,
-    Frequency rightFrequencySpread, RfProfileSupplementalData supplementalData) :
-    m_centerFrequency(centerFrequency),
-    m_leftFrequencySpread(leftFrequencySpread),
-    m_rightFrequencySpread(rightFrequencySpread),
-    m_supplementalData(supplementalData)
+RfProfileData::RfProfileData(
+	Frequency centerFrequency,
+	Frequency leftFrequencySpread,
+	Frequency rightFrequencySpread,
+	RfProfileSupplementalData supplementalData)
+	: m_centerFrequency(centerFrequency)
+	, m_leftFrequencySpread(leftFrequencySpread)
+	, m_rightFrequencySpread(rightFrequencySpread)
+	, m_supplementalData(supplementalData)
 {
 }
 
 Frequency RfProfileData::getCenterFrequency(void) const
 {
-    return m_centerFrequency;
+	return m_centerFrequency;
 }
 
 Frequency RfProfileData::getLeftFrequencySpread(void) const
 {
-    return m_leftFrequencySpread;
+	return m_leftFrequencySpread;
 }
 
 Frequency RfProfileData::getRightFrequencySpread(void) const
 {
-    return m_rightFrequencySpread;
+	return m_rightFrequencySpread;
+}
+
+Frequency RfProfileData::getLeftFrequency(void) const
+{
+	return (m_centerFrequency - m_leftFrequencySpread);
+}
+
+Frequency RfProfileData::getRightFrequency(void) const
+{
+	return (m_centerFrequency + m_rightFrequencySpread);
+}
+
+Frequency RfProfileData::getBandFrequencySpread(void) const
+{
+	return (getRightFrequency() - getLeftFrequency());
 }
 
 RfProfileSupplementalData RfProfileData::getSupplementalData(void) const
 {
-    return m_supplementalData;
+	return m_supplementalData;
 }
 
 Bool RfProfileData::operator==(const RfProfileData& rhs) const
 {
-    return
-        ((m_centerFrequency == rhs.m_centerFrequency) &&
-         (m_leftFrequencySpread == rhs.m_leftFrequencySpread) &&
-         (m_rightFrequencySpread == rhs.m_rightFrequencySpread) &&
-         (m_supplementalData == rhs.m_supplementalData));
+	return (
+		(m_centerFrequency == rhs.m_centerFrequency) && (m_leftFrequencySpread == rhs.m_leftFrequencySpread)
+		&& (m_rightFrequencySpread == rhs.m_rightFrequencySpread)
+		&& (m_supplementalData == rhs.m_supplementalData));
 }
 
 Bool RfProfileData::operator!=(const RfProfileData& rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 std::shared_ptr<XmlNode> RfProfileData::getXml(void) const
 {
-    auto profileData = XmlNode::createWrapperElement("radio_frequency_profile_data");
-    profileData->addChild(XmlNode::createDataElement("center_frequency", m_centerFrequency.toString()));
-    profileData->addChild(XmlNode::createDataElement("left_frequency_spread", m_leftFrequencySpread.toString()));
-    profileData->addChild(XmlNode::createDataElement("right_frequency_spread", m_rightFrequencySpread.toString()));
-    profileData->addChild(m_supplementalData.getXml());
-    return profileData;
+	auto profileData = XmlNode::createWrapperElement("radio_frequency_profile_data");
+	profileData->addChild(XmlNode::createDataElement("center_frequency", m_centerFrequency.toString()));
+	profileData->addChild(XmlNode::createDataElement("left_frequency_spread", m_leftFrequencySpread.toString()));
+	profileData->addChild(XmlNode::createDataElement("right_frequency_spread", m_rightFrequencySpread.toString()));
+	profileData->addChild(m_supplementalData.getXml());
+	return profileData;
 }

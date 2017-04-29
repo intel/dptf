@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -144,27 +144,6 @@ eEsifError ESIF_CALLCONV EsifSvcConfigSet(
 }
 
 
-
-/* Lookup domain data for a handle */
-static AppDomainDataMapPtr find_domain_data_from_handle(
-	const AppParticipantDataMapPtr participantPtr,
-	const void *domainHandle
-	)
-{
-	UInt8 i = 0;
-	AppDomainDataMapPtr domain_data_map_ptr = NULL;
-
-	for (i = 0; i < MAX_DOMAIN_ENTRY; i++) {
-		if (participantPtr->fDomainData[i].fAppDomainHandle == domainHandle) {
-			domain_data_map_ptr = &participantPtr->fDomainData[i];
-			break;
-		}
-	}
-
-	return domain_data_map_ptr;
-}
-
-
 /* Provide execute action for ESIF primitive */
 eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 	const void *esifHandle,
@@ -238,7 +217,7 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 		domain_id     = 0;
 		qualifier_str = "D0";
 	} else {
-		domain_data_map_ptr = find_domain_data_from_handle(participant_data_map_ptr, domainHandle);
+		domain_data_map_ptr = EsifApp_GetDomainDataMapFromHandle(participant_data_map_ptr, domainHandle);
 		if (NULL == domain_data_map_ptr) {
 			ESIF_TRACE_WARN("The domain data was not found from domain handle\n");
 			rc = ESIF_E_INVALID_HANDLE;

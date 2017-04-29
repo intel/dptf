@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,42 +23,45 @@
 
 namespace DomainType
 {
-    enum Type
-    {
-        Invalid,
-        Processor,
-        Graphics,
-        Memory,
-        Temperature,
-        Fan,
-        Chipset,
-        Ethernet,
-        Wireless,
-        Storage,        // AHCI
-        MultiFunction,
-        Display,
-        Charger,        // BatteryCharger
-        Battery,
-        Audio,
-        Other,
-        WWan,
-        WGig,           // Deprecated
-        Power,
-        Thermistor,
-        Infrared,
-        WirelessRfem,   // Deprecated
-        Virtual,
-        Ambient,
-        DSx,
-        Rfem,
-        M2Cnv,
-        SocCnv,
-        IVCam,
-        All,
-        Max
-    };
+	enum Type
+	{
+		Invalid,
+		Processor,
+		Graphics,
+		Memory,
+		Temperature,
+		Fan,
+		Chipset,
+		Ethernet,
+		Wireless,
+		Storage, // AHCI
+		MultiFunction,
+		Display,
+		Charger, // BatteryCharger
+		Battery,
+		Audio,
+		Other,
+		WWan,
+		WGig, // Deprecated
+		Power,
+		Thermistor,
+		Infrared,
+		WirelessRfem, // Deprecated
+		Virtual,
+		Ambient,
+		DSx,
+		Rfem,
+		M2Cnv,
+		SocCnv,
+		IVCam,
+		DgfxCore,
+		DgfxMem,
+		DgfxMcp,
+		All,
+		Max
+	};
 
-    std::string ToString(DomainType::Type type);
+	std::string ToString(DomainType::Type type);
 }
 
 DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType);

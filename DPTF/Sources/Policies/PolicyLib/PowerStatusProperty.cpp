@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,11 +20,11 @@
 using namespace std;
 
 PowerStatusProperty::PowerStatusProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
 {
 }
 
@@ -34,36 +34,35 @@ PowerStatusProperty::~PowerStatusProperty()
 
 Bool PowerStatusProperty::implementsPowerStatusInterface(void)
 {
-    return getDomainProperties().implementsPowerStatusInterface();
+	return getDomainProperties().implementsPowerStatusInterface();
 }
 
 PowerStatus PowerStatusProperty::getStatus()
 {
-    if (implementsPowerStatusInterface())
-    {
-        return getPolicyServices().domainPowerStatus->getPowerStatus(
-            getParticipantIndex(), getDomainIndex());
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the power status interface.");
-    }
+	if (implementsPowerStatusInterface())
+	{
+		return getPolicyServices().domainPowerStatus->getPowerStatus(getParticipantIndex(), getDomainIndex());
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the power status interface.");
+	}
 }
 
 Power PowerStatusProperty::getAveragePower(const PowerControlDynamicCaps& capabilities)
 {
-    if (implementsPowerStatusInterface())
-    {
-        return getPolicyServices().domainPowerStatus->getAveragePower(
-            getParticipantIndex(), getDomainIndex(), capabilities);
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the power status interface.");
-    }
+	if (implementsPowerStatusInterface())
+	{
+		return getPolicyServices().domainPowerStatus->getAveragePower(
+			getParticipantIndex(), getDomainIndex(), capabilities);
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the power status interface.");
+	}
 }
 
 Bool PowerStatusProperty::supportsProperty(void)
 {
-    return implementsPowerStatusInterface();
+	return implementsPowerStatusInterface();
 }

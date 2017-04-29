@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,9 +20,9 @@
 #include "ParticipantManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIDomainAllocate::WIDomainAllocate(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN* newDomainIndex) :
-    ParticipantWorkItem(dptfManager, FrameworkEvent::Type::DomainAllocate, participantIndex),
-    m_newDomainIndex(newDomainIndex)
+WIDomainAllocate::WIDomainAllocate(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN* newDomainIndex)
+	: ParticipantWorkItem(dptfManager, FrameworkEvent::Type::DomainAllocate, participantIndex)
+	, m_newDomainIndex(newDomainIndex)
 {
 }
 
@@ -32,15 +32,15 @@ WIDomainAllocate::~WIDomainAllocate(void)
 
 void WIDomainAllocate::execute(void)
 {
-    writeParticipantWorkItemStartingInfoMessage();
+	writeParticipantWorkItemStartingInfoMessage();
 
-    try
-    {
-        *m_newDomainIndex = getParticipantPtr()->allocateNextDomainIndex();
-    }
-    catch (std::exception& ex)
-    {
-        *m_newDomainIndex = Constants::Esif::NoDomain;
-        writeParticipantWorkItemErrorMessage(ex, "Participant::allocateNextDomainIndex");
-    }
+	try
+	{
+		*m_newDomainIndex = getParticipantPtr()->allocateNextDomainIndex();
+	}
+	catch (std::exception& ex)
+	{
+		*m_newDomainIndex = Constants::Esif::NoDomain;
+		writeParticipantWorkItemErrorMessage(ex, "Participant::allocateNextDomainIndex");
+	}
 }

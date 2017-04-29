@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,62 +19,73 @@
 #include "PolicyServicesDomainDisplayControl.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainDisplayControl::PolicyServicesDomainDisplayControl(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainDisplayControl::PolicyServicesDomainDisplayControl(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-DisplayControlDynamicCaps PolicyServicesDomainDisplayControl::getDisplayControlDynamicCaps(UIntN participantIndex,
-    UIntN domainIndex)
+DisplayControlDynamicCaps PolicyServicesDomainDisplayControl::getDisplayControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlDynamicCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlDynamicCaps(domainIndex);
 }
 
-DisplayControlStatus PolicyServicesDomainDisplayControl::getDisplayControlStatus(UIntN participantIndex,
-    UIntN domainIndex)
+DisplayControlStatus PolicyServicesDomainDisplayControl::getDisplayControlStatus(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlStatus(domainIndex);
 }
 
 UIntN PolicyServicesDomainDisplayControl::getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getUserPreferredDisplayIndex(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getUserPreferredDisplayIndex(domainIndex);
 }
 
 Bool PolicyServicesDomainDisplayControl::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->isUserPreferredIndexModified(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->isUserPreferredIndexModified(domainIndex);
 }
 
 DisplayControlSet PolicyServicesDomainDisplayControl::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlSet(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDisplayControlSet(domainIndex);
 }
 
-void PolicyServicesDomainDisplayControl::setDisplayControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN displayControlIndex)
+void PolicyServicesDomainDisplayControl::setDisplayControl(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UIntN displayControlIndex)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setDisplayControl(domainIndex,
-        getPolicyIndex(), displayControlIndex);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setDisplayControl(domainIndex, getPolicyIndex(), displayControlIndex);
 }
 
-void PolicyServicesDomainDisplayControl::setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, 
-    DisplayControlDynamicCaps newCapabilities)
+void PolicyServicesDomainDisplayControl::setDisplayControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DisplayControlDynamicCaps newCapabilities)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setDisplayControlDynamicCaps(domainIndex,
-        getPolicyIndex(), newCapabilities);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setDisplayControlDynamicCaps(domainIndex, getPolicyIndex(), newCapabilities);
 }
 
 void PolicyServicesDomainDisplayControl::setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setDisplayCapsLock(domainIndex, getPolicyIndex(), lock);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setDisplayCapsLock(domainIndex, getPolicyIndex(), lock);
 }

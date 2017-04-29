@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,13 +22,13 @@
 
 namespace SensorSpatialOrientation
 {
-    enum Type
-    {
-        FlatUp = 0,
-        FlatDown = 180,
-        Upright = 90,
-        UprightInverted = 270
-    };
+	enum Type
+	{
+		FlatUp = 0,
+		FlatDown = 180,
+		Upright = 90,
+		UprightInverted = 270
+	};
 
-    std::string toString(SensorSpatialOrientation::Type sensorSpatialOrientationType);
+	std::string toString(SensorSpatialOrientation::Type sensorSpatialOrientationType);
 }

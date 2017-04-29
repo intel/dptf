@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,20 +20,20 @@
 
 namespace PlatformPowerSource
 {
-    std::string ToString(PlatformPowerSource::Type type)
-    {
-        switch (type)
-        {
-        case PlatformPowerSource::AC:
-            return "AC";
-        case PlatformPowerSource::DC:
-            return "DC";
-        case PlatformPowerSource::USB:
-            return "USB";
-        case PlatformPowerSource::WC:
-            return "Wireless";
-        default:
-            throw dptf_exception("PlatformPowerSource::Type is invalid.");
-        }
-    }
+	std::string ToString(PlatformPowerSource::Type type)
+	{
+		switch (type)
+		{
+		case PlatformPowerSource::AC:
+			return "AC";
+		case PlatformPowerSource::DC:
+			return "DC";
+		case PlatformPowerSource::USB:
+			return "USB";
+		case PlatformPowerSource::WC:
+			return "Wireless";
+		default:
+			throw dptf_exception("PlatformPowerSource::Type is invalid.");
+		}
+	}
 }

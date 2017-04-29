@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,20 +20,20 @@
 
 EsifMutex::EsifMutex(void)
 {
-    esif_ccb_mutex_init(&m_mutex);
+	esif_ccb_mutex_init(&m_mutex);
 }
 
 EsifMutex::~EsifMutex(void)
 {
-    esif_ccb_mutex_uninit(&m_mutex);
+	esif_ccb_mutex_uninit(&m_mutex);
 }
 
 void EsifMutex::lock(void)
 {
-    esif_ccb_mutex_lock(&m_mutex);
+	esif_ccb_mutex_lock(&m_mutex);
 }
 
 void EsifMutex::unlock(void)
 {
-    esif_ccb_mutex_unlock(&m_mutex);
+	esif_ccb_mutex_unlock(&m_mutex);
 }

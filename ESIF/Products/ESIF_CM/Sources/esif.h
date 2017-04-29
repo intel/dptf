@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -84,6 +84,9 @@
 
 /* Build option to enable PERC support in Windows */
 #define ESIF_FEAT_OPT_PERC_SUPPORT_ENABLED
+
+/* Build option to enable HID support in Windows Kernel code */
+/*#define ESIF_FEAT_OPT_KHID_SUPPORT_ENABLED*/
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,42 +24,45 @@ class XmlNode;
 
 namespace PerformanceControlType
 {
-    enum Type
-    {
-        Unknown,
-        PerformanceState,
-        ThrottleState
-    };
+	enum Type
+	{
+		Unknown,
+		PerformanceState,
+		ThrottleState
+	};
 }
 
 class PerformanceControl final
 {
 public:
+	PerformanceControl(
+		UIntN controlId,
+		PerformanceControlType::Type performanceControlType,
+		UIntN tdpPower,
+		Percentage performancePercentage,
+		UIntN transitionLatency,
+		UIntN controlAbsoluteValue,
+		std::string valueUnits);
+	static PerformanceControl createInvalid();
 
-    PerformanceControl(UIntN controlId, PerformanceControlType::Type performanceControlType, UIntN tdpPower,
-        Percentage performancePercentage, UIntN transitionLatency, UIntN controlAbsoluteValue,
-        std::string valueUnits);
-    static PerformanceControl createInvalid();
-
-    UIntN getControlId(void) const;
-    PerformanceControlType::Type getPerformanceControlType(void) const;
-    UIntN getTdpPower(void) const;
-    Percentage getPerformancePercentage(void) const;
-    UIntN getTransitionLatency(void) const;
-    UIntN getControlAbsoluteValue(void) const;
-    std::string getValueUnits(void) const;
-    Bool operator==(const PerformanceControl& rhs) const;
-    Bool operator!=(const PerformanceControl& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
-    std::string PerformanceControlTypeToString(PerformanceControlType::Type type);
+	UIntN getControlId(void) const;
+	PerformanceControlType::Type getPerformanceControlType(void) const;
+	UIntN getTdpPower(void) const;
+	Percentage getPerformancePercentage(void) const;
+	UIntN getTransitionLatency(void) const;
+	UIntN getControlAbsoluteValue(void) const;
+	std::string getValueUnits(void) const;
+	Bool operator==(const PerformanceControl& rhs) const;
+	Bool operator!=(const PerformanceControl& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
+	std::string PerformanceControlTypeToString(PerformanceControlType::Type type);
 
 private:
-
-    UIntN m_controlId;
-    PerformanceControlType::Type m_performanceControlType;
-    UIntN m_tdpPower;                                               // TDP Power consumed by this P/T State
-    Percentage m_performancePercentage;
-    UIntN m_transitionLatency;                                      // How long does it take to realize the new performance limit
-    UIntN m_controlAbsoluteValue;                                   // if CPU or graphics, controlAbsoluteValue contains the frequency and
-    std::string m_valueUnits;                                       // valueUnits is set to "MHz"
+	UIntN m_controlId;
+	PerformanceControlType::Type m_performanceControlType;
+	UIntN m_tdpPower; // TDP Power consumed by this P/T State
+	Percentage m_performancePercentage;
+	UIntN m_transitionLatency; // How long does it take to realize the new performance limit
+	UIntN m_controlAbsoluteValue; // if CPU or graphics, controlAbsoluteValue contains the frequency and
+	std::string m_valueUnits; // valueUnits is set to "MHz"
 };

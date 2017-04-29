@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,17 +21,20 @@
 #include "StatusFormat.h"
 using namespace StatusFormat;
 
-UtilizationStatus::UtilizationStatus(Percentage currentUtilization) :
-    m_currentUtilization(currentUtilization)
+UtilizationStatus::UtilizationStatus(Percentage currentUtilization)
+	: m_currentUtilization(currentUtilization)
 {
 }
 
 Percentage UtilizationStatus::getCurrentUtilization(void) const
 {
-    return m_currentUtilization;
+	return m_currentUtilization;
 }
 
 std::shared_ptr<XmlNode> UtilizationStatus::getXml(std::string tag)
 {
-    return XmlNode::createDataElement(tag, m_currentUtilization.toString());
+	std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("util_status");
+	root->addChild(XmlNode::createDataElement(tag, m_currentUtilization.toString()));
+	root->addChild(XmlNode::createDataElement("control_name", "Utilization Status"));
+	return root;
 }

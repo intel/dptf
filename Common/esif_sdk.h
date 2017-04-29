@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -78,3 +78,10 @@ typedef u8  esif_ver_t;                     /* Version      */
 /* Temperature Thresholds */
 #define ESIF_SDK_MAX_AUX_TRIP 125	/* Celsius */
 #define ESIF_SDK_MIN_AUX_TRIP -136	/* Celsius */
+
+/* Construct/Extract Version Header Major.Minor.Revision Number as a UInt32 */
+#define ESIFHDR_VERSION(major, minor, revision)	((UInt32)((((major) & 0xFF) << 24) | (((minor) & 0xFF) << 16) | ((revision) & 0xFFFF)))
+#define ESIFHDR_GET_MAJOR(version)				((UInt32)(((version) >> 24) & 0xFF))
+#define ESIFHDR_GET_MINOR(version)				((UInt32)(((version) >> 16) & 0xFF))
+#define ESIFHDR_GET_REVISION(version)			((UInt32)((version) & 0xFFFF))
+

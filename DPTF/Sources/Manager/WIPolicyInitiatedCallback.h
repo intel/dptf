@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,18 +24,20 @@
 class WIPolicyInitiatedCallback : public WorkItem
 {
 public:
+	WIPolicyInitiatedCallback(
+		DptfManagerInterface* dptfManager,
+		UIntN policyIndex,
+		UInt64 policyDefinedEventCode,
+		UInt64 param1,
+		void* param2);
+	virtual ~WIPolicyInitiatedCallback(void);
 
-    WIPolicyInitiatedCallback(DptfManagerInterface* dptfManager, UIntN policyIndex, UInt64 policyDefinedEventCode,
-        UInt64 param1, void* param2);
-    virtual ~WIPolicyInitiatedCallback(void);
-
-    virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
-    virtual void execute(void) override final;
+	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
+	virtual void execute(void) override final;
 
 private:
-
-    const UIntN m_policyIndex;
-    const UInt64 m_policyDefinedEventCode;
-    const UInt64 m_param1;
-    void* m_param2;
+	const UIntN m_policyIndex;
+	const UInt64 m_policyDefinedEventCode;
+	const UInt64 m_param1;
+	void* m_param2;
 };

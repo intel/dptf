@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 ConfigTdpControlCapabilitiesCachedProperty::ConfigTdpControlCapabilitiesCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_configTdpControlDynamicCaps(Constants::Invalid, Constants::Invalid)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_configTdpControlDynamicCaps(Constants::Invalid, Constants::Invalid)
 {
 }
 
@@ -35,40 +36,39 @@ ConfigTdpControlCapabilitiesCachedProperty::~ConfigTdpControlCapabilitiesCachedP
 
 Bool ConfigTdpControlCapabilitiesCachedProperty::implementsConfigTdpControlInterface(void)
 {
-    return getDomainProperties().implementsConfigTdpControlInterface();
+	return getDomainProperties().implementsConfigTdpControlInterface();
 }
 
 const ConfigTdpControlDynamicCaps& ConfigTdpControlCapabilitiesCachedProperty::getDynamicCaps(void)
 {
-    if (implementsConfigTdpControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_configTdpControlDynamicCaps;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the ConfigTDP control interface.");
-    }
+	if (implementsConfigTdpControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_configTdpControlDynamicCaps;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the ConfigTDP control interface.");
+	}
 }
 
 Bool ConfigTdpControlCapabilitiesCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsConfigTdpControlInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsConfigTdpControlInterface();
 }
 
 void ConfigTdpControlCapabilitiesCachedProperty::refreshData(void)
 {
-    if (implementsConfigTdpControlInterface())
-    {
-        m_configTdpControlDynamicCaps =
-            getPolicyServices().domainConfigTdpControl->getConfigTdpControlDynamicCaps(
-                getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsConfigTdpControlInterface())
+	{
+		m_configTdpControlDynamicCaps = getPolicyServices().domainConfigTdpControl->getConfigTdpControlDynamicCaps(
+			getParticipantIndex(), getDomainIndex());
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,10 @@ class XmlNode;
 class PerformanceControlStatus final
 {
 public:
-
-    PerformanceControlStatus(UIntN currentControlSetIndex);
-    UIntN getCurrentControlSetIndex(void) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	PerformanceControlStatus(UIntN currentControlSetIndex);
+	UIntN getCurrentControlSetIndex(void) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UIntN m_currentControlSetIndex;
+	UIntN m_currentControlSetIndex;
 };

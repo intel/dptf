@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,44 +27,42 @@
 class WorkItemQueueManager : public WorkItemQueueManagerInterface
 {
 public:
+	WorkItemQueueManager(DptfManagerInterface* dptfManager);
+	~WorkItemQueueManager(void);
 
-    WorkItemQueueManager(DptfManagerInterface* dptfManager);
-    ~WorkItemQueueManager(void);
+	virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem) override;
+	virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority) override;
+	virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem) override;
+	virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority) override;
+	virtual void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution) override;
 
-    virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem) override;
-    virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority) override;
-    virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem) override;
-    virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority) override;
-    virtual void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution) override;
+	virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) override;
+	virtual Bool isWorkItemThread(void) override;
 
-    virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) override;
-    virtual Bool isWorkItemThread(void) override;
+	virtual void disableAndEmptyAllQueues(void) override;
 
-    virtual void disableAndEmptyAllQueues(void) override;
-
-    virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
+	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
 
 private:
+	WorkItemQueueManager(const WorkItemQueueManager& rhs);
+	WorkItemQueueManager& operator=(const WorkItemQueueManager& rhs);
 
-    WorkItemQueueManager(const WorkItemQueueManager& rhs);
-    WorkItemQueueManager& operator=(const WorkItemQueueManager& rhs);
+	DptfManagerInterface* m_dptfManager;
+	Bool m_enqueueingEnabled; // if TRUE, new work items will be added to the queues
+	mutable EsifMutex m_mutex;
 
-    DptfManagerInterface* m_dptfManager;
-    Bool m_enqueueingEnabled;                                       // if TRUE, new work items will be added to the queues
-    mutable EsifMutex m_mutex;
+	WorkItemStatistics* m_workItemStatistics;
+	ImmediateWorkItemQueue* m_immediateQueue;
+	DeferredWorkItemQueue* m_deferredQueue;
+	WorkItemQueueThread* m_workItemQueueThread;
 
-    WorkItemStatistics* m_workItemStatistics;
-    ImmediateWorkItemQueue* m_immediateQueue;
-    DeferredWorkItemQueue* m_deferredQueue;
-    WorkItemQueueThread* m_workItemQueueThread;
+	// - The following semaphore is signaled when:
+	//    * an item is placed in the immediate or deferred queue
+	//    * the system is shutting down and the thread needs to exit
+	// - The work item queue thread will block waiting on this semaphore.
+	// - It is created by the WorkItemQueueManager and passed in to the queues and thread as a parameter.
+	EsifSemaphore* m_workItemQueueSemaphore;
 
-    // - The following semaphore is signaled when:
-    //    * an item is placed in the immediate or deferred queue
-    //    * the system is shutting down and the thread needs to exit
-    // - The work item queue thread will block waiting on this semaphore.
-    // - It is created by the WorkItemQueueManager and passed in to the queues and thread as a parameter.
-    EsifSemaphore* m_workItemQueueSemaphore;
-
-    void deleteAllObjects(void);
-    Bool canEnqueueImmediateWorkItem(WorkItem* workItem) const;
+	void deleteAllObjects(void);
+	Bool canEnqueueImmediateWorkItem(WorkItem* workItem) const;
 };

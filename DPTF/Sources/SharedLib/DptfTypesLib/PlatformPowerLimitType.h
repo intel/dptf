@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,13 +21,13 @@
 
 namespace PlatformPowerLimitType
 {
-    enum Type
-    {
-        PSysPL1,
-        PSysPL2,
-        PSysPL3,
-        MAX
-    };
+	enum Type
+	{
+		PSysPL1,
+		PSysPL2,
+		PSysPL3,
+		MAX
+	};
 
-    std::string ToString(PlatformPowerLimitType::Type limitType);
+	std::string ToString(PlatformPowerLimitType::Type limitType);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -978,6 +978,42 @@ static void EsifEventMgr_LLEntryDestroyCallback(
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 }
 
+
+eEsifError HandlePackagedEvent(
+	EsifEventParamsPtr eventParamsPtr,
+	size_t dataLen
+	)
+{
+	eEsifError rc = ESIF_OK;
+	struct esif_data esifDataPacket = { ESIF_DATA_VOID };
+	UInt8 *dataPtr = NULL;
+
+	if (NULL == eventParamsPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (dataLen < sizeof(*eventParamsPtr)) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	if (dataLen < (sizeof(*eventParamsPtr) + eventParamsPtr->dataLen)) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+
+	dataPtr = (UInt8 *)(eventParamsPtr + 1);
+
+	esifDataPacket.buf_ptr = dataPtr;
+	esifDataPacket.type = eventParamsPtr->dataType;
+	esifDataPacket.buf_len = eventParamsPtr->dataLen;
+	esifDataPacket.data_len = eventParamsPtr->dataLen;
+
+	EsifEventMgr_SignalEvent(eventParamsPtr->participantId, eventParamsPtr->domainId, eventParamsPtr->eventType, &esifDataPacket);
+exit:
+	return rc;
+}
 
 /*****************************************************************************/
 /*****************************************************************************/

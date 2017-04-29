@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,16 +25,14 @@ class XmlNode;
 class ConfigTdpControlDynamicCaps final
 {
 public:
-
-    ConfigTdpControlDynamicCaps(UIntN currentLowerLimitIndex, UIntN currentUpperLimitIndex);
-    UIntN getCurrentLowerLimitIndex(void) const;
-    UIntN getCurrentUpperLimitIndex(void) const;
-    Bool operator==(const ConfigTdpControlDynamicCaps& rhs) const;
-    Bool operator!=(const ConfigTdpControlDynamicCaps& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	ConfigTdpControlDynamicCaps(UIntN currentLowerLimitIndex, UIntN currentUpperLimitIndex);
+	UIntN getCurrentLowerLimitIndex(void) const;
+	UIntN getCurrentUpperLimitIndex(void) const;
+	Bool operator==(const ConfigTdpControlDynamicCaps& rhs) const;
+	Bool operator!=(const ConfigTdpControlDynamicCaps& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    UIntN m_currentLowerLimitIndex;                                 // Index of ConfigTdpControl representing current allowed lower limit
-    UIntN m_currentUpperLimitIndex;                                 // Index of ConfigTdpControl representing current allowed upper limit
+	UIntN m_currentLowerLimitIndex; // Index of ConfigTdpControl representing current allowed lower limit
+	UIntN m_currentUpperLimitIndex; // Index of ConfigTdpControl representing current allowed upper limit
 };

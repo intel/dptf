@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,11 @@ typedef struct ClientRecord_s {
 	esif_ccb_socket_t socket;
 	SocketState state;
 	Protocol prot;
+	u8 *frame_buffer;
+	size_t frame_buf_len;
+	u8 *frag_buffer;
+	size_t frag_buf_len;
+	FrameType frag_type;
 } ClientRecord, *ClientRecordPtr;
 
 #pragma pack(pop)

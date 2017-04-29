@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,34 +18,39 @@
 
 #include "DomainRfProfileControl_000.h"
 
-DomainRfProfileControl_000::DomainRfProfileControl_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
+DomainRfProfileControl_000::DomainRfProfileControl_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainRfProfileControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 RfProfileCapabilities DomainRfProfileControl_000::getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainRfProfileControl_000::setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex, const Frequency& centerFrequency)
+void DomainRfProfileControl_000::setRfProfileCenterFrequency(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Frequency& centerFrequency)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainRfProfileControl_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainRfProfileControl_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainRfProfileControl_000::getName(void)
 {
-    return "RF Profile Control (Version 0)";
+	return "RF Profile Control (Version 0)";
 }

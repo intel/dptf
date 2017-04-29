@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,24 +28,21 @@
 class dptf_export PerformanceControlStatusCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	PerformanceControlStatusCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~PerformanceControlStatusCachedProperty();
 
-    PerformanceControlStatusCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~PerformanceControlStatusCachedProperty();
-
-    const PerformanceControlStatus& getStatus();
-    virtual Bool supportsProperty() override;
+	const PerformanceControlStatus& getStatus();
+	virtual Bool supportsProperty() override;
 
 protected:
+	virtual void refreshData() override;
 
-    virtual void refreshData() override;
-
-    Bool implementsPerformanceControlInterface();
+	Bool implementsPerformanceControlInterface();
 
 private:
-
-    PerformanceControlStatus m_performanceControlStatus;
+	PerformanceControlStatus m_performanceControlStatus;
 };

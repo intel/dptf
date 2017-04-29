@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,24 +28,21 @@
 class dptf_export CoreControlPreferencesCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	CoreControlPreferencesCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~CoreControlPreferencesCachedProperty();
 
-    CoreControlPreferencesCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~CoreControlPreferencesCachedProperty();
-
-    CoreControlLpoPreference getPreferences();
-    virtual Bool supportsProperty() override;
+	CoreControlLpoPreference getPreferences();
+	virtual Bool supportsProperty() override;
 
 protected:
+	virtual void refreshData() override;
 
-    virtual void refreshData() override;
-
-    Bool implementsCoreControlInterface();
+	Bool implementsCoreControlInterface();
 
 private:
-
-    CoreControlLpoPreference m_preferences;
+	CoreControlLpoPreference m_preferences;
 };

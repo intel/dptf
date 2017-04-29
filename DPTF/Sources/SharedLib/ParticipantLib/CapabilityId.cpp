@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,43 +19,43 @@
 #include "Dptf.h"
 #include "CapabilityId.h"
 
-#define CASE(eventType) \
-    case eventType: return ((UInt32)(0x1 << eventType));
+#define CASE(eventType)                                                                                                \
+	case eventType:                                                                                                    \
+		return ((UInt32)(0x1 << eventType));
 
 namespace Capability
 {
-    UInt32 ToCapabilityId(eEsifCapabilityType capabilityType)
-    {
-        switch (capabilityType)
-        {
-        CASE(ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_CTDP_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_CORE_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY)
-        CASE(ESIF_CAPABILITY_TYPE_PERF_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_POWER_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_POWER_STATUS)
-        CASE(ESIF_CAPABILITY_TYPE_TEMP_STATUS)
-        CASE(ESIF_CAPABILITY_TYPE_UTIL_STATUS)
-        CASE(ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS)
-        CASE(ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS)
-        CASE(ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD)
-        CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS)
-        CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_NETWORK_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_XMITPOWER_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_CURRENT_CONTROL)
-        CASE(ESIF_CAPABILITY_TYPE_PSYS_CONTROL)
-        default:
-            throw dptf_exception("Capability::Type is invalid.");
-        }
-    }
+	UInt32 ToCapabilityId(eEsifCapabilityType capabilityType)
+	{
+		switch (capabilityType)
+		{
+			CASE(ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_CTDP_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_CORE_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY)
+				CASE(ESIF_CAPABILITY_TYPE_PERF_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_POWER_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_POWER_STATUS)
+				CASE(ESIF_CAPABILITY_TYPE_TEMP_STATUS)
+				CASE(ESIF_CAPABILITY_TYPE_UTIL_STATUS)
+				CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS)
+				CASE(ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD)
+				CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS)
+				CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_CURRENT_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_PSYS_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL)
+				CASE(ESIF_CAPABILITY_TYPE_TCC_CONTROL)
+		default:
+			throw dptf_exception("Capability::Type is invalid.");
+		}
+	}
 
-    esif_data getEsifDataFromCapabilityData(EsifCapabilityData* capability)
-    {
-        esif_data eventData = { esif_data_type::ESIF_DATA_STRUCTURE, capability, sizeof(*capability), sizeof(*capability) };
-        return eventData;
-    }
+	esif_data getEsifDataFromCapabilityData(EsifCapabilityData* capability)
+	{
+		esif_data eventData = {
+			esif_data_type::ESIF_DATA_STRUCTURE, capability, sizeof(*capability), sizeof(*capability) };
+		return eventData;
+	}
 }

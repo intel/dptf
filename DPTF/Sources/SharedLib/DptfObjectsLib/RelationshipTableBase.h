@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,26 +25,24 @@
 class dptf_export RelationshipTableBase : public RelationshipTableInterface
 {
 public:
+	RelationshipTableBase();
+	RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
+	virtual ~RelationshipTableBase();
 
-    RelationshipTableBase();
-    RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
-    virtual ~RelationshipTableBase();
-
-    virtual void associateParticipant(std::string participantScope, UIntN participantIndex) override;
-    virtual void disassociateParticipant(UIntN participantIndex) override;
-    virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
-    virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;
-    virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) override;
-    virtual Bool isParticipantSourceDevice(UIntN participantIndex) const override;
-    virtual Bool isParticipantTargetDevice(UIntN participantIndex) const override;
-    virtual UIntN getNumberOfEntries(void) const override;
-    virtual std::set<UIntN> getAllTargetIndexes() const override;
-    virtual std::set<UIntN> getAllSourceIndexes() const override;
+	virtual void associateParticipant(std::string participantScope, UIntN participantIndex) override;
+	virtual void disassociateParticipant(UIntN participantIndex) override;
+	virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
+	virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;
+	virtual void disassociateDomain(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Bool isParticipantSourceDevice(UIntN participantIndex) const override;
+	virtual Bool isParticipantTargetDevice(UIntN participantIndex) const override;
+	virtual UIntN getNumberOfEntries(void) const override;
+	virtual std::set<UIntN> getAllTargetIndexes() const override;
+	virtual std::set<UIntN> getAllSourceIndexes() const override;
 
 protected:
+	std::vector<UIntN> findTableRowsWithParticipantScope(std::string participantScope) const;
+	std::vector<UIntN> findTableRowsWithParticipantIndex(UIntN participantIndex) const;
 
-    std::vector<UIntN> findTableRowsWithParticipantScope(std::string participantScope) const;
-    std::vector<UIntN> findTableRowsWithParticipantIndex(UIntN participantIndex) const;
-
-    std::vector<std::shared_ptr<RelationshipTableEntryBase>> m_entries;
+	std::vector<std::shared_ptr<RelationshipTableEntryBase>> m_entries;
 };

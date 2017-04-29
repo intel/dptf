@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,34 +28,32 @@
 class dptf_export CoreControlKnob : public ControlKnobBase
 {
 public:
+	CoreControlKnob(
+		const PolicyServicesInterfaceContainer& policyServices,
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<CoreControlFacadeInterface> coreControl,
+		std::shared_ptr<PerformanceControlKnob> performanceControlKnob);
+	~CoreControlKnob(void);
 
-    CoreControlKnob(
-        const PolicyServicesInterfaceContainer& policyServices,
-        UIntN participantIndex,
-        UIntN domainIndex,
-        std::shared_ptr<CoreControlFacadeInterface> coreControl,
-        std::shared_ptr<PerformanceControlKnob> performanceControlKnob);
-    ~CoreControlKnob(void);
+	virtual void limit(UIntN target) override;
+	virtual void unlimit(UIntN target) override;
+	virtual Bool canLimit(UIntN target) override;
+	virtual Bool canUnlimit(UIntN target) override;
+	virtual Bool commitSetting() override;
+	virtual void clearRequestForTarget(UIntN target) override;
+	virtual void clearAllRequests() override;
+	virtual void adjustRequestsToCapabilities() override;
 
-    virtual void limit(UIntN target) override;
-    virtual void unlimit(UIntN target) override;
-    virtual Bool canLimit(UIntN target) override;
-    virtual Bool canUnlimit(UIntN target) override;
-    virtual Bool commitSetting() override;
-    virtual void clearRequestForTarget(UIntN target) override;
-    virtual void clearAllRequests() override;
-    virtual void adjustRequestsToCapabilities() override;
-
-    std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getXml();
 
 private:
+	std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
+	std::shared_ptr<PerformanceControlKnob> m_performanceControlKnob;
+	std::map<UIntN, UIntN> m_requests;
 
-    std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
-    std::shared_ptr<PerformanceControlKnob> m_performanceControlKnob;
-    std::map<UIntN, UIntN> m_requests;
-
-    UIntN calculateStepAmount(Percentage stepSize, UIntN totalAvailableCores);
-    UIntN findLowestActiveCoresRequest() const;
-    UIntN getTargetRequest(UIntN target);
-    UIntN snapToCapabilitiesBounds(UIntN numActiveCores);
+	UIntN calculateStepAmount(Percentage stepSize, UIntN totalAvailableCores);
+	UIntN findLowestActiveCoresRequest() const;
+	UIntN getTargetRequest(UIntN target);
+	UIntN snapToCapabilitiesBounds(UIntN numActiveCores);
 };

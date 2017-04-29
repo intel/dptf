@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,73 +25,75 @@ XmlGenerator_001::XmlGenerator_001()
 
 XmlGenerator_001::XmlGenerator_001(XmlNode* node)
 {
-    addNode(node);
+	addNode(node);
 }
 
 void XmlGenerator_001::addNode(XmlNode* node)
 {
-    if (node->getNodeType() != NodeType::Root)
-    {
-        RapidXml::xml_node<>* root = allocateRapidXmlNode(node);
-        m_doc.append_node(root);
+	if (node->getNodeType() != NodeType::Root)
+	{
+		RapidXml::xml_node<>* root = allocateRapidXmlNode(node);
+		m_doc.append_node(root);
 
-        auto children = node->getChildren();
+		auto children = node->getChildren();
 
-        for (UIntN i = 0; i < children.size(); i++)
-        {
-            RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
-            root->append_node(currentChild);
-            addChildren(children[i].get(), currentChild);
-        }
-    }
-    else
-    {
-        // Add children (and children of children, etc.)
-        auto children = node->getChildren();
+		for (UIntN i = 0; i < children.size(); i++)
+		{
+			RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
+			root->append_node(currentChild);
+			addChildren(children[i].get(), currentChild);
+		}
+	}
+	else
+	{
+		// Add children (and children of children, etc.)
+		auto children = node->getChildren();
 
-        for (UIntN i = 0; i < children.size(); i++)
-        {
-            RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
-            m_doc.append_node(currentChild);
-            addChildren(children[i].get(), currentChild);
-        }
-    }
+		for (UIntN i = 0; i < children.size(); i++)
+		{
+			RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
+			m_doc.append_node(currentChild);
+			addChildren(children[i].get(), currentChild);
+		}
+	}
 }
 
 std::string XmlGenerator_001::toString(void)
 {
-    std::string s;
-    RapidXml::print(std::back_inserter(s), m_doc, 0);
-    return s;
+	std::string s;
+	RapidXml::print(std::back_inserter(s), m_doc, 0);
+	return s;
 }
 
 void XmlGenerator_001::addChildren(XmlNode* node, RapidXml::xml_node<>* tempNode)
 {
-    // Add children (and children of children, etc.)
-    auto children = node->getChildren();
+	// Add children (and children of children, etc.)
+	auto children = node->getChildren();
 
-    for (UIntN i = 0; i < children.size(); i++)
-    {
-        RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
-        tempNode->append_node(currentChild);
+	for (UIntN i = 0; i < children.size(); i++)
+	{
+		RapidXml::xml_node<>* currentChild = allocateRapidXmlNode(children[i].get());
+		tempNode->append_node(currentChild);
 
-        addChildren(children[i].get(), currentChild);
-    }
+		addChildren(children[i].get(), currentChild);
+	}
 }
 
 RapidXml::xml_node<>* XmlGenerator_001::allocateRapidXmlNode(XmlNode* node)
 {
-    switch (node->getNodeType())
-    {
-        case NodeType::Type::Comment:
-            return m_doc.allocate_node(RapidXml::node_comment,
-                m_doc.allocate_string(node->getXmlTag().c_str()),
-                m_doc.allocate_string(node->getData().c_str()));
-        case NodeType::Element:
-            return m_doc.allocate_node(RapidXml::node_element,
-                m_doc.allocate_string(node->getXmlTag().c_str()),
-                m_doc.allocate_string(node->getData().c_str()));
-        default:
-            throw dptf_exception("Bad node type.");
-    }
+	switch (node->getNodeType())
+	{
+	case NodeType::Type::Comment:
+		return m_doc.allocate_node(
+			RapidXml::node_comment,
+			m_doc.allocate_string(node->getXmlTag().c_str()),
+			m_doc.allocate_string(node->getData().c_str()));
+	case NodeType::Element:
+		return m_doc.allocate_node(
+			RapidXml::node_element,
+			m_doc.allocate_string(node->getXmlTag().c_str()),
+			m_doc.allocate_string(node->getData().c_str()));
+	default:
+		throw dptf_exception("Bad node type.");
+	}
 }

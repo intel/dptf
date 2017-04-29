@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,14 @@
 using namespace std;
 
 PerformanceControlCapabilitiesCachedProperty::PerformanceControlCapabilitiesCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_performanceControlDynamicCaps(Constants::Invalid, Constants::Invalid),
-    m_performanceControlStaticCaps(false)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_performanceControlDynamicCaps(Constants::Invalid, Constants::Invalid)
+	, m_performanceControlStaticCaps(false)
 {
 }
 
@@ -36,43 +37,42 @@ PerformanceControlCapabilitiesCachedProperty::~PerformanceControlCapabilitiesCac
 
 Bool PerformanceControlCapabilitiesCachedProperty::implementsPerformanceControlInterface(void)
 {
-    return getDomainProperties().implementsPerformanceControlInterface();
+	return getDomainProperties().implementsPerformanceControlInterface();
 }
 
 const PerformanceControlDynamicCaps& PerformanceControlCapabilitiesCachedProperty::getDynamicCaps(void)
 {
-    if (implementsPerformanceControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_performanceControlDynamicCaps;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the performance control interface.");
-    }
+	if (implementsPerformanceControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_performanceControlDynamicCaps;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the performance control interface.");
+	}
 }
 
 Bool PerformanceControlCapabilitiesCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsPerformanceControlInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsPerformanceControlInterface();
 }
 
 void PerformanceControlCapabilitiesCachedProperty::refreshData(void)
 {
-    if (implementsPerformanceControlInterface())
-    {
-        m_performanceControlStaticCaps =
-            getPolicyServices().domainPerformanceControl->getPerformanceControlStaticCaps(
-                getParticipantIndex(), getDomainIndex());
-        m_performanceControlDynamicCaps =
-            getPolicyServices().domainPerformanceControl->getPerformanceControlDynamicCaps(
-                getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsPerformanceControlInterface())
+	{
+		m_performanceControlStaticCaps = getPolicyServices().domainPerformanceControl->getPerformanceControlStaticCaps(
+			getParticipantIndex(), getDomainIndex());
+		m_performanceControlDynamicCaps =
+			getPolicyServices().domainPerformanceControl->getPerformanceControlDynamicCaps(
+				getParticipantIndex(), getDomainIndex());
+	}
 }

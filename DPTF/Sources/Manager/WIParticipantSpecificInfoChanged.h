@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,9 +24,8 @@
 class WIParticipantSpecificInfoChanged : public ParticipantWorkItem
 {
 public:
+	WIParticipantSpecificInfoChanged(DptfManagerInterface* dptfManager, UIntN participantIndex);
+	virtual ~WIParticipantSpecificInfoChanged(void);
 
-    WIParticipantSpecificInfoChanged(DptfManagerInterface* dptfManager, UIntN participantIndex);
-    virtual ~WIParticipantSpecificInfoChanged(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 };

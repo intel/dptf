@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,78 +19,78 @@
 #include "PolicyServicesPlatformState.h"
 
 PolicyServicesPlatformState::PolicyServicesPlatformState(DptfManagerInterface* dptfManager, UIntN policyIndex)
-    : PolicyServices(dptfManager, policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
-
 }
 
 OnOffToggle::Type PolicyServicesPlatformState::getMotion(void) const
 {
-    return getDptfManager()->getEventCache()->sensorMotion.get();
+	return getDptfManager()->getEventCache()->sensorMotion.get();
 }
 
 SensorOrientation::Type PolicyServicesPlatformState::getOrientation(void) const
 {
-    return getDptfManager()->getEventCache()->sensorOrientation.get();
+	return getDptfManager()->getEventCache()->sensorOrientation.get();
 }
 
 SensorSpatialOrientation::Type PolicyServicesPlatformState::getSpatialOrientation(void) const
 {
-    return getDptfManager()->getEventCache()->sensorSpatialOrientation.get();
+	return getDptfManager()->getEventCache()->sensorSpatialOrientation.get();
 }
 
 OsLidState::Type PolicyServicesPlatformState::getLidState(void) const
 {
-    return getDptfManager()->getEventCache()->lidState.get();
+	return getDptfManager()->getEventCache()->lidState.get();
 }
 
 OsPowerSource::Type PolicyServicesPlatformState::getPowerSource(void) const
 {
-    return getDptfManager()->getEventCache()->powerSource.get();
+	return getDptfManager()->getEventCache()->powerSource.get();
 }
 
 const std::string& PolicyServicesPlatformState::getForegroundApplicationName(void) const
 {
-    return getDptfManager()->getEventCache()->foregroundApplication.get();
+	return getDptfManager()->getEventCache()->foregroundApplication.get();
 }
 
 CoolingMode::Type PolicyServicesPlatformState::getCoolingMode(void) const
 {
-    return getDptfManager()->getEventCache()->coolingMode.get();
+	return getDptfManager()->getEventCache()->coolingMode.get();
 }
 
 UIntN PolicyServicesPlatformState::getBatteryPercentage(void) const
 {
-    return getDptfManager()->getEventCache()->batteryPercentage.get();
+	return getDptfManager()->getEventCache()->batteryPercentage.get();
 }
 
 OsPlatformType::Type PolicyServicesPlatformState::getPlatformType(void) const
 {
-    return getDptfManager()->getEventCache()->platformType.get();
+	return getDptfManager()->getEventCache()->platformType.get();
 }
 
 OsDockMode::Type PolicyServicesPlatformState::getDockMode(void) const
 {
-    return getDptfManager()->getEventCache()->dockMode.get();
+	return getDptfManager()->getEventCache()->dockMode.get();
 }
 
 OsPowerSchemePersonality::Type PolicyServicesPlatformState::getPowerSchemePersonality(void) const
 {
-    return getDptfManager()->getEventCache()->powerSchemePersonality.get();
+	return getDptfManager()->getEventCache()->powerSchemePersonality.get();
 }
 
 UIntN PolicyServicesPlatformState::getMobileNotification(OsMobileNotificationType::Type notificationType) const
 {
-    switch (notificationType)
-    {
-    case OsMobileNotificationType::EmergencyCallMode:
-        return getDptfManager()->getEventCache()->emergencyCallModeState.get();
+	switch (notificationType)
+	{
+	case OsMobileNotificationType::EmergencyCallMode:
+		return getDptfManager()->getEventCache()->emergencyCallModeState.get();
 
-    case OsMobileNotificationType::ScreenState:
-        return getDptfManager()->getEventCache()->screenState.get();
-        
-    default:
-        throw dptf_exception("No cached values for requested OS Mobile Notification Type "
-            + OsMobileNotificationType::ToString(notificationType));
-    }
+	case OsMobileNotificationType::ScreenState:
+		return getDptfManager()->getEventCache()->screenState.get();
+
+	default:
+		throw dptf_exception(
+			"No cached values for requested OS Mobile Notification Type "
+			+ OsMobileNotificationType::ToString(notificationType));
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,22 +28,19 @@
 class dptf_export ConfigTdpControlStatusCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	ConfigTdpControlStatusCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~ConfigTdpControlStatusCachedProperty();
 
-    ConfigTdpControlStatusCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~ConfigTdpControlStatusCachedProperty();
-
-    const ConfigTdpControlStatus& getStatus();
-    virtual Bool supportsProperty() override;
+	const ConfigTdpControlStatus& getStatus();
+	virtual Bool supportsProperty() override;
 
 protected:
-
-    virtual void refreshData() override;
+	virtual void refreshData() override;
 
 private:
-
-    ConfigTdpControlStatus m_configTdpControlStatus;
+	ConfigTdpControlStatus m_configTdpControlStatus;
 };

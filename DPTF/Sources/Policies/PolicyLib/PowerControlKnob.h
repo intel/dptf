@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,34 +26,34 @@
 class dptf_export PowerControlKnob : public ControlKnobBase
 {
 public:
+	PowerControlKnob(
+		const PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<PowerControlFacadeInterface> powerControl,
+		UIntN participantIndex,
+		UIntN domainIndex);
+	~PowerControlKnob(void);
 
-    PowerControlKnob(
-        const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<PowerControlFacadeInterface> powerControl,
-        UIntN participantIndex,
-        UIntN domainIndex);
-    ~PowerControlKnob(void);
+	virtual void limit(UIntN target) override;
+	virtual void unlimit(UIntN target) override;
+	virtual Bool canLimit(UIntN target) override;
+	virtual Bool canUnlimit(UIntN target) override;
+	virtual Bool commitSetting() override;
+	virtual void clearRequestForTarget(UIntN target) override;
+	virtual void clearAllRequests() override;
+	virtual void adjustRequestsToCapabilities() override;
 
-    virtual void limit(UIntN target) override;
-    virtual void unlimit(UIntN target) override;
-    virtual Bool canLimit(UIntN target) override;
-    virtual Bool canUnlimit(UIntN target) override;
-    virtual Bool commitSetting() override;
-    virtual void clearRequestForTarget(UIntN target) override;
-    virtual void clearAllRequests() override;
-    virtual void adjustRequestsToCapabilities() override;
-
-    std::shared_ptr<XmlNode> getXml() const;
+	std::shared_ptr<XmlNode> getXml() const;
 
 private:
+	std::shared_ptr<PowerControlFacadeInterface> m_powerControl;
+	std::map<UIntN, Power> m_requests;
 
-    std::shared_ptr<PowerControlFacadeInterface> m_powerControl;
-    std::map<UIntN, Power> m_requests;
-
-    Power calculateNextLowerPowerLimit(
-        Power currentPower, Power minimumPowerLimit, Power stepSize, Power currentPowerLimit);
-    Power findLowestPowerLimitRequest();
-    Power getTargetRequest(UIntN target);
-    UIntN snapToCapabilitiesBounds(Power powerLimit);
-
+	Power calculateNextLowerPowerLimit(
+		Power currentPower,
+		Power minimumPowerLimit,
+		Power stepSize,
+		Power currentPowerLimit);
+	Power findLowestPowerLimitRequest();
+	Power getTargetRequest(UIntN target);
+	UIntN snapToCapabilitiesBounds(Power powerLimit);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,12 +22,16 @@
 #include "DomainPlatformPowerStatusInterface.h"
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
+#include "ParticipantActivityLoggingInterface.h"
 
-class DomainPlatformPowerStatusBase : public ControlBase, public DomainPlatformPowerStatusInterface
+class DomainPlatformPowerStatusBase : public ControlBase,
+									  public DomainPlatformPowerStatusInterface,
+									  public ParticipantActivityLoggingInterface
 {
 public:
-
-    DomainPlatformPowerStatusBase(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPlatformPowerStatusBase();
+	DomainPlatformPowerStatusBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPlatformPowerStatusBase();
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,18 +18,24 @@
 
 #include "ParticipantMessage.h"
 
-ParticipantMessage::ParticipantMessage(const std::string& fileName, UIntN lineNumber,
-    const std::string& executingFunctionName) :
-    DptfMessage(fileName, lineNumber, executingFunctionName)
+ParticipantMessage::ParticipantMessage(
+	const std::string& fileName,
+	UIntN lineNumber,
+	const std::string& executingFunctionName)
+	: DptfMessage(fileName, lineNumber, executingFunctionName)
 {
 }
 
-ParticipantMessage::ParticipantMessage(const std::string& fileName, UIntN lineNumber,
-    const std::string& executingFunctionName, const std::string& message, UIntN domainIndex) :
-    DptfMessage(fileName, lineNumber, executingFunctionName)
+ParticipantMessage::ParticipantMessage(
+	const std::string& fileName,
+	UIntN lineNumber,
+	const std::string& executingFunctionName,
+	const std::string& message,
+	UIntN domainIndex)
+	: DptfMessage(fileName, lineNumber, executingFunctionName)
 {
-    addMessage("Message", message);
-    m_domainIndex = domainIndex;
+	addMessage("Message", message);
+	m_domainIndex = domainIndex;
 }
 
 ParticipantMessage::~ParticipantMessage(void)
@@ -38,12 +44,12 @@ ParticipantMessage::~ParticipantMessage(void)
 
 void ParticipantMessage::setDomainIndex(UIntN domainIndex)
 {
-    m_domainIndex = domainIndex;
+	m_domainIndex = domainIndex;
 }
 
 void ParticipantMessage::setEsifPrimitive(esif_primitive_type primitive, UInt32 instance)
 {
-    m_esifPrimitiveValid = true;
-    m_esifPrimitive = primitive;
-    m_esifPrimitiveInstance = instance;
+	m_esifPrimitiveValid = true;
+	m_esifPrimitive = primitive;
+	m_esifPrimitiveInstance = instance;
 }

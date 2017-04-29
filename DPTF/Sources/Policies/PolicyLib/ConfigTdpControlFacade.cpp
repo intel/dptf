@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,18 +22,18 @@ using namespace std;
 using namespace StatusFormat;
 
 ConfigTdpControlFacade::ConfigTdpControlFacade(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : m_policyServices(policyServices),
-    m_participantIndex(participantIndex),
-    m_domainIndex(domainIndex),
-    m_domainProperties(domainProperties),
-    m_controlsHaveBeenInitialized(false),
-    m_configTdpCapabilities(participantIndex, domainIndex, domainProperties, policyServices),
-    m_configTdpStatus(participantIndex, domainIndex, domainProperties, policyServices),
-    m_configTdpControlSet(participantIndex, domainIndex, domainProperties, policyServices)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: m_policyServices(policyServices)
+	, m_participantIndex(participantIndex)
+	, m_domainIndex(domainIndex)
+	, m_domainProperties(domainProperties)
+	, m_controlsHaveBeenInitialized(false)
+	, m_configTdpCapabilities(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_configTdpStatus(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_configTdpControlSet(participantIndex, domainIndex, domainProperties, policyServices)
 {
 }
 
@@ -43,105 +43,110 @@ ConfigTdpControlFacade::~ConfigTdpControlFacade()
 
 void ConfigTdpControlFacade::setControl(UIntN configTdpControlIndex)
 {
-    if (supportsConfigTdpControls())
-    {
-        const ConfigTdpControlDynamicCaps& capabilities = m_configTdpCapabilities.getDynamicCaps();
-        UIntN arbitratedConfigTdpIndex;
-        if ((configTdpControlIndex >= capabilities.getCurrentUpperLimitIndex()) && 
-            (configTdpControlIndex <= capabilities.getCurrentLowerLimitIndex()))
-        {
-            arbitratedConfigTdpIndex = configTdpControlIndex;
-        }
-        else if (configTdpControlIndex < capabilities.getCurrentUpperLimitIndex())
-        {
-            arbitratedConfigTdpIndex = capabilities.getCurrentUpperLimitIndex();
-        }
-        else if (configTdpControlIndex > capabilities.getCurrentLowerLimitIndex())
-        {
-            arbitratedConfigTdpIndex = capabilities.getCurrentLowerLimitIndex();
-        }
-        else
-        {
-            arbitratedConfigTdpIndex = capabilities.getCurrentUpperLimitIndex();
-        }
+	if (supportsConfigTdpControls())
+	{
+		const ConfigTdpControlDynamicCaps& capabilities = m_configTdpCapabilities.getDynamicCaps();
+		UIntN arbitratedConfigTdpIndex;
+		if ((configTdpControlIndex >= capabilities.getCurrentUpperLimitIndex())
+			&& (configTdpControlIndex <= capabilities.getCurrentLowerLimitIndex()))
+		{
+			arbitratedConfigTdpIndex = configTdpControlIndex;
+		}
+		else if (configTdpControlIndex < capabilities.getCurrentUpperLimitIndex())
+		{
+			arbitratedConfigTdpIndex = capabilities.getCurrentUpperLimitIndex();
+		}
+		else if (configTdpControlIndex > capabilities.getCurrentLowerLimitIndex())
+		{
+			arbitratedConfigTdpIndex = capabilities.getCurrentLowerLimitIndex();
+		}
+		else
+		{
+			arbitratedConfigTdpIndex = capabilities.getCurrentUpperLimitIndex();
+		}
 
-        m_policyServices.domainConfigTdpControl->setConfigTdpControl(
-            m_participantIndex, m_domainIndex, arbitratedConfigTdpIndex);
-        m_configTdpStatus.invalidate();
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the ConfigTDP control interface.");
-    }
+		m_policyServices.domainConfigTdpControl->setConfigTdpControl(
+			m_participantIndex, m_domainIndex, arbitratedConfigTdpIndex);
+		m_configTdpStatus.invalidate();
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the ConfigTDP control interface.");
+	}
 }
 
 void ConfigTdpControlFacade::refreshCapabilities()
 {
-    m_configTdpCapabilities.refresh();
+	m_configTdpCapabilities.refresh();
 }
 
 void ConfigTdpControlFacade::initializeControlsIfNeeded()
 {
-    if (supportsConfigTdpControls() && (m_controlsHaveBeenInitialized == false))
-    {
-        ConfigTdpControlDynamicCaps caps = getCapabilities();
-        setControl(caps.getCurrentUpperLimitIndex());
-        m_controlsHaveBeenInitialized = true;
-    }
+	if (supportsConfigTdpControls() && (m_controlsHaveBeenInitialized == false))
+	{
+		ConfigTdpControlDynamicCaps caps = getCapabilities();
+		setControl(caps.getCurrentUpperLimitIndex());
+		m_controlsHaveBeenInitialized = true;
+	}
 }
 
 Bool ConfigTdpControlFacade::supportsConfigTdpControls()
 {
-    return m_domainProperties.implementsConfigTdpControlInterface();
+	return m_domainProperties.implementsConfigTdpControlInterface();
 }
 
 ConfigTdpControlDynamicCaps ConfigTdpControlFacade::getCapabilities()
 {
-    return m_configTdpCapabilities.getDynamicCaps();
+	return m_configTdpCapabilities.getDynamicCaps();
 }
 
 ConfigTdpControlStatus ConfigTdpControlFacade::getStatus()
 {
-    return m_configTdpStatus.getStatus();
+	return m_configTdpStatus.getStatus();
 }
 
 ConfigTdpControlSet ConfigTdpControlFacade::getControlSet()
 {
-    return m_configTdpControlSet.getControlSet();
+	return m_configTdpControlSet.getControlSet();
 }
 
 std::shared_ptr<XmlNode> ConfigTdpControlFacade::getXml()
 {
-    auto status = XmlNode::createWrapperElement("control_config_tdp_level");
-    if (supportsConfigTdpControls())
-    {
-        try
-        {
-            status->addChild(getStatus().getXml());
-        }
-        catch (...)
-        {
-            status->addChild(ConfigTdpControlStatus(Constants::Invalid).getXml());
-        }
-        
-        try
-        {
-            status->addChild(getCapabilities().getXml());
-        }
-        catch (...)
-        {
-            status->addChild(ConfigTdpControlDynamicCaps(Constants::Invalid, Constants::Invalid).getXml());
-        }
+	auto status = XmlNode::createWrapperElement("control_config_tdp_level");
+	if (supportsConfigTdpControls())
+	{
+		try
+		{
+			status->addChild(getStatus().getXml());
+		}
+		catch (...)
+		{
+			status->addChild(ConfigTdpControlStatus(Constants::Invalid).getXml());
+		}
 
-        try
-        {
-            status->addChild(getControlSet().getXml());
-        }
-        catch (...)
-        {
-            status->addChild(ConfigTdpControlSet(vector<ConfigTdpControl>(1, 
-                ConfigTdpControl(Constants::Invalid, Constants::Invalid, Constants::Invalid, Constants::Invalid))).getXml());
-        }
-    }
-    return status;
+		try
+		{
+			status->addChild(getCapabilities().getXml());
+		}
+		catch (...)
+		{
+			status->addChild(ConfigTdpControlDynamicCaps(Constants::Invalid, Constants::Invalid).getXml());
+		}
+
+		try
+		{
+			status->addChild(getControlSet().getXml());
+		}
+		catch (...)
+		{
+			status->addChild(
+				ConfigTdpControlSet(
+					vector<ConfigTdpControl>(
+						1,
+						ConfigTdpControl(
+							Constants::Invalid, Constants::Invalid, Constants::Invalid, Constants::Invalid)))
+					.getXml());
+		}
+	}
+	return status;
 }

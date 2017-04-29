@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIDomainDestroy::WIDomainDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
-    DomainWorkItem(dptfManager, FrameworkEvent::DomainDestroy, participantIndex, domainIndex)
+WIDomainDestroy::WIDomainDestroy(DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex)
+	: DomainWorkItem(dptfManager, FrameworkEvent::DomainDestroy, participantIndex, domainIndex)
 {
 }
 
@@ -32,45 +32,45 @@ WIDomainDestroy::~WIDomainDestroy(void)
 
 void WIDomainDestroy::execute(void)
 {
-    writeDomainWorkItemStartingInfoMessage();
+	writeDomainWorkItemStartingInfoMessage();
 
-    if (getParticipantPtr()->isDomainValid(getDomainIndex()) == false)
-    {
-        writeDomainWorkItemErrorMessage("Received request to remove a domain that is invalid.");
-    }
-    else
-    {
-        auto policyManager = getPolicyManager();
-        UIntN policyListCount = policyManager->getPolicyListCount();
+	if (getParticipantPtr()->isDomainValid(getDomainIndex()) == false)
+	{
+		writeDomainWorkItemErrorMessage("Received request to remove a domain that is invalid.");
+	}
+	else
+	{
+		auto policyManager = getPolicyManager();
+		UIntN policyListCount = policyManager->getPolicyListCount();
 
-        // Let each policy know that the domain is going away
+		// Let each policy know that the domain is going away
 
-        for (UIntN i = 0; i < policyListCount; i++)
-        {
-            try
-            {
-                Policy* policy = policyManager->getPolicyPtr(i);
-                policy->unbindDomain(getParticipantIndex(), getDomainIndex());
-            }
-            catch (policy_index_invalid ex)
-            {
-                // do nothing.  No item in the policy list at this index.
-            }
-            catch (std::exception& ex)
-            {
-                writeDomainWorkItemErrorMessagePolicy(ex, "Policy::unbindDomain", i);
-            }
-        }
+		for (UIntN i = 0; i < policyListCount; i++)
+		{
+			try
+			{
+				Policy* policy = policyManager->getPolicyPtr(i);
+				policy->unbindDomain(getParticipantIndex(), getDomainIndex());
+			}
+			catch (policy_index_invalid ex)
+			{
+				// do nothing.  No item in the policy list at this index.
+			}
+			catch (std::exception& ex)
+			{
+				writeDomainWorkItemErrorMessagePolicy(ex, "Policy::unbindDomain", i);
+			}
+		}
 
-        // Let the participant know to remove the domain
+		// Let the participant know to remove the domain
 
-        try
-        {
-            getParticipantPtr()->destroyDomain(getDomainIndex());
-        }
-        catch (std::exception& ex)
-        {
-            writeDomainWorkItemErrorMessage(ex, "Participant::destroyDomain");
-        }
-    }
+		try
+		{
+			getParticipantPtr()->destroyDomain(getDomainIndex());
+		}
+		catch (std::exception& ex)
+		{
+			writeDomainWorkItemErrorMessage(ex, "Participant::destroyDomain");
+		}
+	}
 }

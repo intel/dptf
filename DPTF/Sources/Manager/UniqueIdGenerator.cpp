@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,8 @@
 
 UniqueIdGenerator* UniqueIdGenerator::uniqueIdGenerator = NULL;
 
-UniqueIdGenerator::UniqueIdGenerator(void) : m_nextId(0)
+UniqueIdGenerator::UniqueIdGenerator(void)
+	: m_nextId(0)
 {
 }
 
@@ -30,25 +31,25 @@ UniqueIdGenerator::~UniqueIdGenerator(void)
 
 UniqueIdGenerator* UniqueIdGenerator::instance(void)
 {
-    if (uniqueIdGenerator == NULL)
-    {
-        uniqueIdGenerator = new UniqueIdGenerator();
-    }
-    return uniqueIdGenerator;
+	if (uniqueIdGenerator == NULL)
+	{
+		uniqueIdGenerator = new UniqueIdGenerator();
+	}
+	return uniqueIdGenerator;
 }
 
 void UniqueIdGenerator::destroy(void)
 {
-    DELETE_MEMORY_TC(uniqueIdGenerator);
+	DELETE_MEMORY_TC(uniqueIdGenerator);
 }
 
 UInt64 UniqueIdGenerator::getNextId(void)
 {
-    UInt64 id;
+	UInt64 id;
 
-    m_mutex.lock();
-    id = m_nextId++;
-    m_mutex.unlock();
+	m_mutex.lock();
+	id = m_nextId++;
+	m_mutex.unlock();
 
-    return id;
+	return id;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,24 +21,21 @@
 #include "Dptf.h"
 #include "PolicyServicesInterfaceContainer.h"
 
-// base class for properties that desire caching.  maintains cache validity and provides a common interface for 
+// base class for properties that desire caching.  maintains cache validity and provides a common interface for
 // refreshing the data.
 class dptf_export CachedProperty
 {
 public:
+	CachedProperty();
+	~CachedProperty();
 
-    CachedProperty();
-    ~CachedProperty();
-
-    void refresh();
-    void invalidate();
+	void refresh();
+	void invalidate();
 
 protected:
-
-    Bool isCacheValid();
-    virtual void refreshData() = 0;
+	Bool isCacheValid();
+	virtual void refreshData() = 0;
 
 private:
-
-    Bool m_cacheIsValid;
+	Bool m_cacheIsValid;
 };

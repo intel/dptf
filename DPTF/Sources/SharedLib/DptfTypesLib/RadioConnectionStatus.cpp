@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,16 +20,16 @@
 
 namespace RadioConnectionStatus
 {
-    std::string ToString(RadioConnectionStatus::Type type)
-    {
-        switch (type)
-        {
-            case RadioConnectionStatus::NotConnected:
-                return "Radio Not Connected";
-            case RadioConnectionStatus::Connected:
-                return "Radio Connected";
-            default:
-                throw dptf_exception("RadioConnectionStatus::Type is invalid.");
-        }
-    }
+	std::string ToString(RadioConnectionStatus::Type type)
+	{
+		switch (type)
+		{
+		case RadioConnectionStatus::NotConnected:
+			return "Radio Not Connected";
+		case RadioConnectionStatus::Connected:
+			return "Radio Connected";
+		default:
+			throw dptf_exception("RadioConnectionStatus::Type is invalid.");
+		}
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,30 +26,36 @@ class Participant;
 class ParticipantWorkItem : public WorkItem
 {
 public:
+	ParticipantWorkItem(
+		DptfManagerInterface* dptfManager,
+		FrameworkEvent::Type frameworkEventType,
+		UIntN participantIndex);
+	virtual ~ParticipantWorkItem(void);
 
-    ParticipantWorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType, UIntN participantIndex);
-    virtual ~ParticipantWorkItem(void);
+	// the following are implemented in the ParticipantWorkItem class and *can* be overridden
+	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
+	virtual std::string toXml(void) const override;
 
-    // the following are implemented in the ParticipantWorkItem class and *can* be overridden
-    virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
-    virtual std::string toXml(void) const override;
+	// the following is not virtual
+	UIntN getParticipantIndex(void) const;
+	Participant* getParticipantPtr(void) const;
 
-    // the following is not virtual
-    UIntN getParticipantIndex(void) const;
-    Participant* getParticipantPtr(void) const;
-    
 protected:
-
-    void writeParticipantWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
-    void writeParticipantWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex);
-    void writeParticipantWorkItemWarningMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex);
-    void writeParticipantWorkItemStartingInfoMessage() const;
+	void writeParticipantWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
+	void writeParticipantWorkItemErrorMessagePolicy(
+		const std::exception& ex,
+		const std::string& functionName,
+		UIntN policyIndex);
+	void writeParticipantWorkItemWarningMessagePolicy(
+		const std::exception& ex,
+		const std::string& functionName,
+		UIntN policyIndex);
+	void writeParticipantWorkItemStartingInfoMessage() const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	ParticipantWorkItem(const ParticipantWorkItem& rhs);
+	ParticipantWorkItem& operator=(const ParticipantWorkItem& rhs);
 
-    // hide the copy constructor and assignment operator.
-    ParticipantWorkItem(const ParticipantWorkItem& rhs);
-    ParticipantWorkItem& operator=(const ParticipantWorkItem& rhs);
-
-    const UIntN m_participantIndex;
+	const UIntN m_participantIndex;
 };

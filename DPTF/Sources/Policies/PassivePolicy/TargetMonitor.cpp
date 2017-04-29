@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,32 +31,32 @@ TargetMonitor::~TargetMonitor()
 
 void TargetMonitor::startMonitoring(UIntN target)
 {
-    m_targetsMonitored.insert(target);
+	m_targetsMonitored.insert(target);
 }
 
 void TargetMonitor::stopMonitoring(UIntN target)
 {
-    if (isMonitoring(target))
-    {
-        m_targetsMonitored.erase(target);
-    }
+	if (isMonitoring(target))
+	{
+		m_targetsMonitored.erase(target);
+	}
 }
 
 Bool TargetMonitor::isMonitoring(UIntN target)
 {
-    return (m_targetsMonitored.find(target) != m_targetsMonitored.end());
+	return (m_targetsMonitored.find(target) != m_targetsMonitored.end());
 }
 
 std::set<UIntN> TargetMonitor::getMonitoredTargets() const
 {
-    return m_targetsMonitored;
+	return m_targetsMonitored;
 }
 
 void TargetMonitor::stopMonitoringAll()
 {
-    auto targetsCopy = m_targetsMonitored;
-    for (auto target = targetsCopy.begin(); target != targetsCopy.end(); target++)
-    {
-        stopMonitoring(*target);
-    }
+	auto targetsCopy = m_targetsMonitored;
+	for (auto target = targetsCopy.begin(); target != targetsCopy.end(); target++)
+	{
+		stopMonitoring(*target);
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,21 +24,19 @@
 class EsifDataPower final
 {
 public:
+	EsifDataPower(void);
+	EsifDataPower(const Power& data);
 
-    EsifDataPower(void);
-    EsifDataPower(const Power& data);
-
-    operator EsifDataPtr(void);
-    operator Power(void) const;
+	operator EsifDataPtr(void);
+	operator Power(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataPower(const EsifDataPower& rhs);
+	EsifDataPower& operator=(const EsifDataPower& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataPower(const EsifDataPower& rhs);
-    EsifDataPower& operator=(const EsifDataPower& rhs);
+	UInt32 m_esifDataValue;
+	EsifData m_esifData;
 
-    UInt32 m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(UInt32 data);
+	void initialize(UInt32 data);
 };

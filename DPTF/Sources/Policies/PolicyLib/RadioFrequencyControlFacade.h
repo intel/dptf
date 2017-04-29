@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,47 +23,45 @@
 #include "DomainProperties.h"
 #include "XmlNode.h"
 #include "RfStatusCachedProperty.h"
+#include "RfProfileDataSet.h"
 
 // this facade class provides a simpler interface on top of Radio Frequency controls as well as combines all of the
-// Radio Frequency control properties and capabilities into a single class.  these properties also have the ability to 
+// Radio Frequency control properties and capabilities into a single class.  these properties also have the ability to
 // be cached.
 class dptf_export RadioFrequencyControlFacade
 {
 public:
+	RadioFrequencyControlFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~RadioFrequencyControlFacade();
 
-    RadioFrequencyControlFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~RadioFrequencyControlFacade();
+	// controls
+	Bool supportsRfControls();
+	void setOperatingFrequency(Frequency frequency);
 
-    // controls
-    Bool supportsRfControls();
-    void setOperatingFrequency(Frequency frequency);
+	// status
+	Bool supportsStatus();
+	RfProfileDataSet getRadioProfile();
+	void invalidateProfileData();
 
-    // status
-    Bool supportsStatus();
-    RfProfileData getProfileData();
-    void invalidateProfileData();
-
-    // properties
-    std::shared_ptr<XmlNode> getXml();
+	// properties
+	std::shared_ptr<XmlNode> getXml();
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
+	// domain properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 
-    // domain properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
-
-    // control properties
-    RfStatusCachedProperty m_rfProfileData;
-    Frequency m_lastSetFrequency;
-    Bool m_controlsHaveBeenInitialized;
-    void throwIfControlNotSupported();
-    void throwIfStatusNotSupported();
+	// control properties
+	RfStatusCachedProperty m_rfProfileData;
+	Frequency m_lastSetFrequency;
+	void throwIfControlNotSupported();
+	void throwIfStatusNotSupported();
 };

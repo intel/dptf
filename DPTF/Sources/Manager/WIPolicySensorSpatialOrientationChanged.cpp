@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,10 +20,11 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIPolicySensorSpatialOrientationChanged::WIPolicySensorSpatialOrientationChanged(DptfManagerInterface* dptfManager,
-    SensorSpatialOrientation::Type sensorSpatialOrientation) :
-    WorkItem(dptfManager, FrameworkEvent::PolicySensorSpatialOrientationChanged),
-    m_sensorSpatialOrientation(sensorSpatialOrientation)
+WIPolicySensorSpatialOrientationChanged::WIPolicySensorSpatialOrientationChanged(
+	DptfManagerInterface* dptfManager,
+	SensorSpatialOrientation::Type sensorSpatialOrientation)
+	: WorkItem(dptfManager, FrameworkEvent::PolicySensorSpatialOrientationChanged)
+	, m_sensorSpatialOrientation(sensorSpatialOrientation)
 {
 }
 
@@ -33,26 +34,26 @@ WIPolicySensorSpatialOrientationChanged::~WIPolicySensorSpatialOrientationChange
 
 void WIPolicySensorSpatialOrientationChanged::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            getDptfManager()->getEventCache()->sensorSpatialOrientation.set(m_sensorSpatialOrientation);
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executePolicySensorSpatialOrientationChanged(m_sensorSpatialOrientation);
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySensorSpatialOrientationChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			getDptfManager()->getEventCache()->sensorSpatialOrientation.set(m_sensorSpatialOrientation);
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executePolicySensorSpatialOrientationChanged(m_sensorSpatialOrientation);
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySensorSpatialOrientationChanged", i);
+		}
+	}
 }

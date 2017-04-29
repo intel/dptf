@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,24 +28,27 @@ class XmlNode;
 class ParticipantProperties final
 {
 public:
+	ParticipantProperties(
+		const Guid& guid,
+		const std::string& name,
+		const std::string& description,
+		BusType::Type busType,
+		const PciInfo& pciInfo,
+		const AcpiInfo& acpiInfo);
 
-    ParticipantProperties(const Guid& guid, const std::string& name, const std::string& description,
-        BusType::Type busType, const PciInfo& pciInfo, const AcpiInfo& acpiInfo);
-
-    Guid getGuid(void) const;
-    std::string getName(void) const;
-    std::string getDescription(void) const;
-    BusType::Type getBusType(void) const;
-    PciInfo getPciInfo(void) const;
-    AcpiInfo getAcpiInfo(void) const;
-    std::shared_ptr<XmlNode> getXml(void) const;
+	Guid getGuid(void) const;
+	std::string getName(void) const;
+	std::string getDescription(void) const;
+	BusType::Type getBusType(void) const;
+	PciInfo getPciInfo(void) const;
+	AcpiInfo getAcpiInfo(void) const;
+	std::shared_ptr<XmlNode> getXml(void) const;
 
 private:
-
-    Guid m_guid;
-    std::string m_name;
-    std::string m_description;
-    BusType::Type m_busType;
-    PciInfo m_pciInfo;
-    AcpiInfo m_acpiInfo;
+	Guid m_guid;
+	std::string m_name;
+	std::string m_description;
+	BusType::Type m_busType;
+	PciInfo m_pciInfo;
+	AcpiInfo m_acpiInfo;
 };

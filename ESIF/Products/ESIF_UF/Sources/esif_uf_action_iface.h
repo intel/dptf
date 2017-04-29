@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,14 +23,12 @@
 #include "esif_sdk_iface.h"
 #include "esif_sdk_iface_upe.h"
 #include "esif_dsp.h"
-
+#include "esif_participant.h"
 
 #define ESIF_ACTION_VERSION_DEFAULT 1
 #define ESIF_ACTION_VERSION_INVALID ((UInt16)-1)
 #define ESIF_ACTION_FLAGS_DEFAULT 0
 
-
-typedef struct _t_EsifUp *EsifUpPtr;
 
 typedef eEsifError(ESIF_CALLCONV *ActGetFunctionStatic)(
 	esif_context_t actCtx,
@@ -71,11 +69,12 @@ typedef struct EsifActIfaceStatic_s {
 } EsifActIfaceStatic, *EsifActIfaceStaticPtr;
 
 
+// EsifActIfacePtr typedef is in esif_sdk_iface_upe.h for clang compliance
 typedef union EsifActIface_u {
 	EsifIfaceHdr hdr;
 	EsifActIfaceStatic ifaceStatic;
 	EsifActIfaceUpeV1 actIfaceV1; /* Use with loadable actions */
-} EsifActIface, *EsifActIfacePtr;
+} EsifActIface;
 
 
 #pragma pack(pop)

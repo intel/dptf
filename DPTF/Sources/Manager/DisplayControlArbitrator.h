@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,17 +29,18 @@
 class dptf_export DisplayControlArbitrator
 {
 public:
+	DisplayControlArbitrator();
+	~DisplayControlArbitrator(void);
 
-    DisplayControlArbitrator();
-    ~DisplayControlArbitrator(void);
+	void commitPolicyRequest(UIntN policyIndex, UIntN displayControlIndex);
+	Bool hasArbitratedDisplayControlIndex(void) const;
+	UIntN arbitrate(UIntN policyIndex, UIntN displayControlIndex);
 
-    // arbitrate() returns true if arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, UIntN displayControlIndex);
-    UIntN getArbitratedDisplayControlIndex(void) const;
-    void clearPolicyCachedData(UIntN policyIndex);
+	UIntN getArbitratedDisplayControlIndex(void) const;
+	void clearPolicyCachedData(UIntN policyIndex);
 
 private:
-
-    UIntN m_arbitratedDisplayControlIndex;
-    std::map<UIntN, UIntN> m_requestedDisplayControlIndex;
+	UIntN m_arbitratedDisplayControlIndex;
+	std::map<UIntN, UIntN> m_requestedDisplayControlIndex;
+	UIntN getMaxRequestedDisplayControlIndex(std::map<UIntN, UIntN>& requests);
 };

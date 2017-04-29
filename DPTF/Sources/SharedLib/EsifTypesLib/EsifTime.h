@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,30 +23,28 @@
 class EsifTime final
 {
 public:
+	// Creates a new instance of EsifTime initialized to the current time.
+	EsifTime(void);
 
-    // Creates a new instance of EsifTime initialized to the current time.
-    EsifTime(void);
+	// Creates a new instance of EsifTime based on the number of milliseconds passed in.
+	EsifTime(UInt64 numMilliSeconds);
 
-    // Creates a new instance of EsifTime based on the number of milliseconds passed in.
-    EsifTime(UInt64 numMilliSeconds);
+	// sets the internal structure to the current time.
+	void refresh(void);
 
-    // sets the internal structure to the current time.
-    void refresh(void);
+	// returns the internal time stamp
+	const TimeSpan& getTimeStamp(void) const;
 
-    // returns the internal time stamp
-    const TimeSpan& getTimeStamp(void) const;
-
-    Bool operator==(const EsifTime& rhs) const;
-    Bool operator!=(const EsifTime& rhs) const;
-    Bool operator>(const EsifTime& rhs) const;
-    Bool operator>=(const EsifTime& rhs) const;
-    Bool operator<(const EsifTime& rhs) const;
-    Bool operator<=(const EsifTime& rhs) const;
-    TimeSpan operator-(const EsifTime& rhs) const;
+	Bool operator==(const EsifTime& rhs) const;
+	Bool operator!=(const EsifTime& rhs) const;
+	Bool operator>(const EsifTime& rhs) const;
+	Bool operator>=(const EsifTime& rhs) const;
+	Bool operator<(const EsifTime& rhs) const;
+	Bool operator<=(const EsifTime& rhs) const;
+	TimeSpan operator-(const EsifTime& rhs) const;
 
 private:
+	TimeSpan m_timeStamp; // stores time stamp for fixed point in time
 
-    TimeSpan m_timeStamp;            // stores time stamp for fixed point in time
-
-    TimeSpan getCurrentTime(void);
+	TimeSpan getCurrentTime(void);
 };

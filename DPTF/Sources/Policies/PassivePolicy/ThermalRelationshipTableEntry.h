@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,22 +25,20 @@
 class dptf_export ThermalRelationshipTableEntry : public RelationshipTableEntryBase
 {
 public:
+	ThermalRelationshipTableEntry(
+		const std::string& sourceDeviceScope,
+		const std::string& targetDeviceScope,
+		UInt32 thermalInfluence,
+		const TimeSpan& thermalSamplingPeriod);
 
-    ThermalRelationshipTableEntry(
-        const std::string& sourceDeviceScope,
-        const std::string& targetDeviceScope,
-        UInt32 thermalInfluence,
-        const TimeSpan& thermalSamplingPeriod);
+	const UInt32& thermalInfluence() const;
+	const TimeSpan& thermalSamplingPeriod() const;
 
-    const UInt32& thermalInfluence() const;
-    const TimeSpan& thermalSamplingPeriod() const;
-
-    std::shared_ptr<XmlNode> getXml();
-    Bool isSameAs(const ThermalRelationshipTableEntry& trtEntry) const;
-    Bool operator==(const ThermalRelationshipTableEntry& trtEntry) const;
+	std::shared_ptr<XmlNode> getXml();
+	Bool isSameAs(const ThermalRelationshipTableEntry& trtEntry) const;
+	Bool operator==(const ThermalRelationshipTableEntry& trtEntry) const;
 
 private:
-
-    UInt32 m_thermalInfluence;
-    TimeSpan m_thermalSamplingPeriod;
+	UInt32 m_thermalInfluence;
+	TimeSpan m_thermalSamplingPeriod;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,14 +25,13 @@
 class WIPolicySensorSpatialOrientationChanged : public WorkItem
 {
 public:
+	WIPolicySensorSpatialOrientationChanged(
+		DptfManagerInterface* dptfManager,
+		SensorSpatialOrientation::Type sensorSpatialOrientation);
+	virtual ~WIPolicySensorSpatialOrientationChanged(void);
 
-    WIPolicySensorSpatialOrientationChanged(DptfManagerInterface* dptfManager,
-        SensorSpatialOrientation::Type sensorSpatialOrientation);
-    virtual ~WIPolicySensorSpatialOrientationChanged(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 
 private:
-
-    const SensorSpatialOrientation::Type m_sensorSpatialOrientation;
+	const SensorSpatialOrientation::Type m_sensorSpatialOrientation;
 };

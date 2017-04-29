@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,9 +20,12 @@
 #include "XmlCommon.h"
 using namespace std;
 
-ActiveTripPointsCachedProperty::ActiveTripPointsCachedProperty(const PolicyServicesInterfaceContainer &policyServices, UIntN participantIndex)
-    : CachedProperty(), ParticipantProperty(participantIndex, policyServices),
-    m_activeTripPoints(map<ParticipantSpecificInfoKey::Type, Temperature>())
+ActiveTripPointsCachedProperty::ActiveTripPointsCachedProperty(
+	const PolicyServicesInterfaceContainer& policyServices,
+	UIntN participantIndex)
+	: CachedProperty()
+	, ParticipantProperty(participantIndex, policyServices)
+	, m_activeTripPoints(map<ParticipantSpecificInfoKey::Type, Temperature>())
 {
 }
 
@@ -32,50 +35,46 @@ ActiveTripPointsCachedProperty::~ActiveTripPointsCachedProperty(void)
 
 void ActiveTripPointsCachedProperty::refreshData(void)
 {
-    vector<ParticipantSpecificInfoKey::Type> specificInfoList;
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC0);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC1);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC2);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC3);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC4);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC5);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC6);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC7);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC8);
-    specificInfoList.push_back(ParticipantSpecificInfoKey::AC9);
-    m_activeTripPoints =
-        SpecificInfo(getPolicyServices().participantGetSpecificInfo->getParticipantSpecificInfo(
-            getParticipantIndex(),
-            specificInfoList));
+	vector<ParticipantSpecificInfoKey::Type> specificInfoList;
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC0);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC1);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC2);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC3);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC4);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC5);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC6);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC7);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC8);
+	specificInfoList.push_back(ParticipantSpecificInfoKey::AC9);
+	m_activeTripPoints = SpecificInfo(getPolicyServices().participantGetSpecificInfo->getParticipantSpecificInfo(
+		getParticipantIndex(), specificInfoList));
 }
 
 const SpecificInfo& ActiveTripPointsCachedProperty::getTripPoints()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_activeTripPoints;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_activeTripPoints;
 }
 
 Bool ActiveTripPointsCachedProperty::supportsProperty(void)
 {
-    // make sure the active trip points contain at least one of {AC0-AC9}
-    auto activeTripPoints = getTripPoints();
-    for (Int32 key = ParticipantSpecificInfoKey::AC0;
-         key <= ParticipantSpecificInfoKey::AC9;
-         key++)
-    {
-        if (activeTripPoints.hasKey((ParticipantSpecificInfoKey::Type)key))
-        {
-            return true;
-        }
-    }
+	// make sure the active trip points contain at least one of {AC0-AC9}
+	auto activeTripPoints = getTripPoints();
+	for (Int32 key = ParticipantSpecificInfoKey::AC0; key <= ParticipantSpecificInfoKey::AC9; key++)
+	{
+		if (activeTripPoints.hasKey((ParticipantSpecificInfoKey::Type)key))
+		{
+			return true;
+		}
+	}
 
-    return false;
+	return false;
 }
 
 std::shared_ptr<XmlNode> ActiveTripPointsCachedProperty::getXml()
 {
-    return getTripPoints().getXml();
+	return getTripPoints().getXml();
 }

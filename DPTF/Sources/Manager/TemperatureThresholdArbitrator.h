@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,28 +35,31 @@ class DptfManager;
 class dptf_export TemperatureThresholdArbitrator
 {
 public:
+	TemperatureThresholdArbitrator(DptfManagerInterface* dptfManager);
+	~TemperatureThresholdArbitrator(void);
 
-    TemperatureThresholdArbitrator(DptfManagerInterface* dptfManager);
-    ~TemperatureThresholdArbitrator(void);
+	// arbitrate() returns true if the arbitrated value has changed
+	Bool arbitrate(
+		UIntN policyIndex,
+		const TemperatureThresholds& temperatureThresholds,
+		const Temperature& currentTemperature);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds, const Temperature& currentTemperature);
-
-    TemperatureThresholds getArbitratedTemperatureThresholds(void) const;
-    void clearPolicyCachedData(UIntN policyIndex);
+	TemperatureThresholds getArbitratedTemperatureThresholds(void) const;
+	void clearPolicyCachedData(UIntN policyIndex);
 
 private:
+	DptfManagerInterface* m_dptfManager;
 
-    DptfManagerInterface* m_dptfManager;
+	Temperature m_lastKnownParticipantTemperature;
+	TemperatureThresholds m_arbitratedTemperatureThresholds;
+	std::map<UIntN, TemperatureThresholds> m_requestedTemperatureThresholds;
 
-    Temperature m_lastKnownParticipantTemperature;
-    TemperatureThresholds m_arbitratedTemperatureThresholds;    
-    std::map<UIntN, TemperatureThresholds> m_requestedTemperatureThresholds;
+	void throwIfTemperatureThresholdsInvalid(
+		UIntN policyIndex,
+		const TemperatureThresholds& temperatureThresholds,
+		const Temperature& currentTemperature);
+	void updateTemperatureDataForPolicy(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
+	Bool findNewTemperatureThresholds(const Temperature& currentTemperature);
 
-    void throwIfTemperatureThresholdsInvalid(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds,
-        const Temperature& currentTemperature);
-    void updateTemperatureDataForPolicy(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
-    Bool findNewTemperatureThresholds(const Temperature& currentTemperature);
-
-    void addArbitrationDataToMessage(ManagerMessage& message, const std::string& title);
+	void addArbitrationDataToMessage(ManagerMessage& message, const std::string& title);
 };

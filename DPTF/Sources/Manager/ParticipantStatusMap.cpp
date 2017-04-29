@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,100 +20,100 @@
 #include "ParticipantManagerInterface.h"
 #include "XmlNode.h"
 
-ParticipantStatusMap::ParticipantStatusMap(ParticipantManagerInterface* participantManager) :
-    m_participantManager(participantManager)
+ParticipantStatusMap::ParticipantStatusMap(ParticipantManagerInterface* participantManager)
+	: m_participantManager(participantManager)
 {
 }
 
 void ParticipantStatusMap::clearCachedData()
 {
-    m_participantDomainsList.clear();
+	m_participantDomainsList.clear();
 }
 
 std::string ParticipantStatusMap::getGroupsString()
 {
-    if (m_participantDomainsList.size() == 0)
-    {
-        buildParticipantDomainsList();
-    }
+	if (m_participantDomainsList.size() == 0)
+	{
+		buildParticipantDomainsList();
+	}
 
-    auto modules = XmlNode::createWrapperElement("modules");
+	auto modules = XmlNode::createWrapperElement("modules");
 
-    for (UIntN i = 0; i < m_participantDomainsList.size(); i++)
-    {
-        try
-        {
-            Participant* participant = m_participantManager->getParticipantPtr(m_participantDomainsList[i].first);
+	for (UIntN i = 0; i < m_participantDomainsList.size(); i++)
+	{
+		try
+		{
+			Participant* participant = m_participantManager->getParticipantPtr(m_participantDomainsList[i].first);
 
-            std::stringstream name;
-            name << participant->getParticipantName();
+			std::stringstream name;
+			name << participant->getParticipantName();
 
-            if (participant->getDomainCount() > 1)
-            {
-                name << '(' << m_participantDomainsList[i].second << ')';
-            }
+			if (participant->getDomainCount() > 1)
+			{
+				name << '(' << m_participantDomainsList[i].second << ')';
+			}
 
-            auto module = XmlNode::createWrapperElement("module");
-            modules->addChild(module);
+			auto module = XmlNode::createWrapperElement("module");
+			modules->addChild(module);
 
-            auto participantId = XmlNode::createDataElement("id", StlOverride::to_string(i));
-            module->addChild(participantId);
+			auto participantId = XmlNode::createDataElement("id", std::to_string(i));
+			module->addChild(participantId);
 
-            auto participantName = XmlNode::createDataElement("name", name.str());
-            module->addChild(participantName);
-        }
-        catch (dptf_exception)
-        {
-            // Participant Not available.
-        }
-    }
+			auto participantName = XmlNode::createDataElement("name", name.str());
+			module->addChild(participantName);
+		}
+		catch (dptf_exception)
+		{
+			// Participant Not available.
+		}
+	}
 
-    std::string s = modules->toString();
+	std::string s = modules->toString();
 
-    return s;
+	return s;
 }
 
 void ParticipantStatusMap::buildParticipantDomainsList()
 {
-    auto participantIndexList = m_participantManager->getParticipantIndexes();
-    for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
-    {
-        try
-        {
-            Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
-            UIntN domainCount = participant->getDomainCount();
+	auto participantIndexList = m_participantManager->getParticipantIndexes();
+	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
+		 ++participantIndex)
+	{
+		try
+		{
+			Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
+			UIntN domainCount = participant->getDomainCount();
 
-            for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
-            {
-                m_participantDomainsList.push_back(
-                    std::make_pair(*participantIndex, domainIndex));
-            }
-        }
-        catch (...)
-        {
-            // participant not available, don't add it to the list
-        }
-    }
+			for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
+			{
+				m_participantDomainsList.push_back(std::make_pair(*participantIndex, domainIndex));
+			}
+		}
+		catch (...)
+		{
+			// participant not available, don't add it to the list
+		}
+	}
 }
 
 std::shared_ptr<XmlNode> ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
 {
-    try
-    {
-        if (m_participantDomainsList.size() == 0)
-        {
-            buildParticipantDomainsList();
-        }
+	try
+	{
+		if (m_participantDomainsList.size() == 0)
+		{
+			buildParticipantDomainsList();
+		}
 
-        UIntN participantIndex = m_participantDomainsList[mappedIndex].first;
-        UIntN domainIndex = m_participantDomainsList[mappedIndex].second;
+		UIntN participantIndex = m_participantDomainsList[mappedIndex].first;
+		UIntN domainIndex = m_participantDomainsList[mappedIndex].second;
 
-        Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
-        return participant->getStatusAsXml(domainIndex);
-    }
-    catch (...)
-    {
-        // Participant not available
-        return XmlNode::createRoot();
-    }
+		Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
+		return participant->getStatusAsXml(domainIndex);
+	}
+	catch (...)
+	{
+		// Participant not available
+		return XmlNode::createRoot();
+	}
 }

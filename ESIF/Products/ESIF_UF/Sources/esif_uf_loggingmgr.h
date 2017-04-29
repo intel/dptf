@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,8 +28,8 @@
 
 #define MAX_LOG_DATA	(24 * 1024)
 
-#define DEFAULT_LOG_INTERVAL            2000      /* in ms*/
-#define MIN_LOG_INTERVAL                1500      /* in ms*/
+#define DEFAULT_LOG_INTERVAL            1000      /* in ms*/
+#define MIN_LOG_INTERVAL                250      /* in ms*/
 #define MIN_LOG_INTERVAL_ADJUSTED       1         /* minimum granularity for Log interval*/
 #define PARTICITPANTLOG_CMD_INDEX       1         /* command index in input parameters*/
 #define PARTICITPANTLOG_SUB_CMD_INDEX   2         /* sub command index in input parameters*/

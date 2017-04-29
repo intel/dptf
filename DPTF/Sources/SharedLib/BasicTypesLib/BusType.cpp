@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,43 +20,43 @@
 
 namespace BusType
 {
-    std::string ToString(BusType::Type type)
-    {
-        switch (type)
-        {
-            case BusType::Acpi:
-                return "ACPI";
-            case BusType::Pci:
-                return "PCI";
-            case BusType::Plat:
-                return "Platform";
-            case BusType::Conjure:
-                return "Conjure";
-            case BusType::Sysfs:
-                return "Sysfs";
-            case BusType::None:
-                return "None";
-            default:
-                throw dptf_exception("BusType::Type is invalid.");
-        }
-    }
+	std::string ToString(BusType::Type type)
+	{
+		switch (type)
+		{
+		case BusType::Acpi:
+			return "ACPI";
+		case BusType::Pci:
+			return "PCI";
+		case BusType::Plat:
+			return "Platform";
+		case BusType::Conjure:
+			return "Conjure";
+		case BusType::Sysfs:
+			return "Sysfs";
+		case BusType::None:
+			return "None";
+		default:
+			throw dptf_exception("BusType::Type is invalid.");
+		}
+	}
 }
 
 BusType::Type EsifParticipantEnumToBusType(esif_participant_enum esifParticipantEnum)
 {
-    switch (esifParticipantEnum)
-    {
-        case ESIF_PARTICIPANT_ENUM_ACPI:
-            return BusType::Type::Acpi;
-        case ESIF_PARTICIPANT_ENUM_PCI:
-            return BusType::Type::Pci;
-        case ESIF_PARTICIPANT_ENUM_PLAT:
-            return BusType::Type::Plat;
-        case ESIF_PARTICIPANT_ENUM_CONJURE:
-            return BusType::Type::Conjure;
-        case ESIF_PARTICIPANT_ENUM_SYSFS:
-            return BusType::Type::Sysfs;
-        default:
-            throw dptf_exception("Received unexpected esif_participant_enum.");
-    }
+	switch (esifParticipantEnum)
+	{
+	case ESIF_PARTICIPANT_ENUM_ACPI:
+		return BusType::Type::Acpi;
+	case ESIF_PARTICIPANT_ENUM_PCI:
+		return BusType::Type::Pci;
+	case ESIF_PARTICIPANT_ENUM_PLAT:
+		return BusType::Type::Plat;
+	case ESIF_PARTICIPANT_ENUM_CONJURE:
+		return BusType::Type::Conjure;
+	case ESIF_PARTICIPANT_ENUM_SYSFS:
+		return BusType::Type::Sysfs;
+	default:
+		throw dptf_exception("Received unexpected esif_participant_enum.");
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,19 +20,20 @@
 #include "PolicyManagerInterface.h"
 
 PolicyServicesPolicyEventRegistration::PolicyServicesPolicyEventRegistration(
-    DptfManagerInterface* dptfManager, UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 void PolicyServicesPolicyEventRegistration::registerEvent(PolicyEvent::Type policyEvent)
 {
-    throwIfNotWorkItemThread();
-    getPolicyManager()->registerEvent(getPolicyIndex(), policyEvent);
+	throwIfNotWorkItemThread();
+	getPolicyManager()->registerEvent(getPolicyIndex(), policyEvent);
 }
 
 void PolicyServicesPolicyEventRegistration::unregisterEvent(PolicyEvent::Type policyEvent)
 {
-    throwIfNotWorkItemThread();
-    getPolicyManager()->unregisterEvent(getPolicyIndex(), policyEvent);
+	throwIfNotWorkItemThread();
+	getPolicyManager()->unregisterEvent(getPolicyIndex(), policyEvent);
 }

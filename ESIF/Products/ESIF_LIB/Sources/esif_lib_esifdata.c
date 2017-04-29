@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #include "esif_lib_esifdata.h"
 #include "esif_temp.h"
 
+#include "esif_sdk_iface_compress.h"
+
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
@@ -35,14 +37,17 @@
 #define MAXSTR_INT16        7
 #define MAXSTR_INT32        12
 #define MAXSTR_INT64        22
-#define MAXDISPLAY_STRING   256
-#define MAXDISPLAY_BINARY   (MAXDISPLAY_STRING / 2 - 2)
+#define MAXSTR_DEFAULT      256
+#define MAXSTR_MINVALUE     4
+#define MAXSTR_MAXVALUE     0x7ffffffe
 
 #define MIN_TEMPERATURE		(-273.15)	// Min Supported Temperature in Celsius (Absolute Zero)
 #define MAX_TEMPERATURE		(9999)		// Max Supported Temperature in Celsius
 
 #define ISHEX(str)  (esif_ccb_strnicmp((str), "0x", 2) == 0 ? ESIF_TRUE : ESIF_FALSE)
 #define IFHEX(str, hex, dec)    (esif_ccb_strnicmp((str), "0x", 2) == 0 ? (hex) : (dec))
+
+#define MAX_COMPRESSED_DATA	0x7FFFFFFE	// Max supported Compressed and Decompressed EsifData size (not necessarily Compression Library max size)
 
 // EsifData Class
 
@@ -96,11 +101,6 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 {
 	size_t size = 0;
 	switch (self->type) {
-	case (EsifDataType)0:	// NA
-	case ESIF_DATA_VOID:
-		size = 0;
-		break;
-
 	case ESIF_DATA_BIT:
 	case ESIF_DATA_INT8:
 	case ESIF_DATA_UINT8:
@@ -163,8 +163,12 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 	case ESIF_DATA_DSP:
 	case ESIF_DATA_STRUCTURE:
 	case ESIF_DATA_XML:
-	default:
 		size = self->data_len;	// Or 0xFFFFFFFF?
+		break;
+
+	case ESIF_DATA_VOID:
+	default:
+		size = 0;
 		break;
 	}
 	return size;
@@ -320,9 +324,17 @@ UInt32 EsifData_AsUInt32 (EsifDataPtr self)
 	return *STATIC_CAST(UInt32*, self->buf_ptr);
 }
 
+// ToString operator [dynamic, caller-owned]
+char *EsifData_ToString(EsifDataPtr self)
+{
+	return EsifData_ToStringMax(self, MAXSTR_DEFAULT);
+}
 
 // ToString operator [dynamic, caller-owned]
-char *EsifData_ToString (EsifDataPtr self)
+char *EsifData_ToStringMax(
+	EsifDataPtr self,
+	UInt32 max_length
+)
 {
 	char *result   = 0;
 	UInt32 alloc   = 0;
@@ -331,6 +343,8 @@ char *EsifData_ToString (EsifDataPtr self)
 	Byte *ptrdata  = 0;
 	UInt32 ptrlen  = 0;
 	UInt32 idx     = 0;
+	UInt32 max_string = (max_length == 0 ? MAXSTR_DEFAULT : esif_ccb_max(MAXSTR_MINVALUE, esif_ccb_min(MAXSTR_MAXVALUE, max_length)));
+	UInt32 max_binary = (max_string / 2 - 2);
 
 	if (self == NULL || self->buf_ptr == NULL || self->data_len == 0) {
 		return NULL;
@@ -369,7 +383,8 @@ char *EsifData_ToString (EsifDataPtr self)
 		break;
 
 	case ESIF_DATA_STRING:
-		alloc   = esif_ccb_min(self->data_len, MAXDISPLAY_STRING + 1);
+	case ESIF_DATA_XML:
+		alloc   = esif_ccb_min(self->data_len, max_string) + 1;
 		ptrdata = (Byte*)self->buf_ptr;
 		ptrlen  = self->data_len;
 		break;
@@ -380,25 +395,9 @@ char *EsifData_ToString (EsifDataPtr self)
 	   ptrlen  = 0;
 	   break;
 
-	/* TODO:
-	   case ESIF_DATA_BLOB:
-	   case ESIF_DATA_DSP:
-	   case ESIF_DATA_ENUM:
-	   case ESIF_DATA_GUID:
-	   case ESIF_DATA_HANDLE:
-	   case ESIF_DATA_INSTANCE:
-	   case ESIF_DATA_IPV4:
-	   case ESIF_DATA_IPV6:
-	   case ESIF_DATA_POINTER:
-	   case ESIF_DATA_QUALIFIER:
-	   case ESIF_DATA_REGISTER:
-	   case ESIF_DATA_STRUCTURE:
-	   case ESIF_DATA_TABLE:
-	   case ESIF_DATA_UNICODE:
-	 */
 	case ESIF_DATA_BINARY:
 	default:
-		alloc   = 2 + (2 * esif_ccb_min(self->data_len, MAXDISPLAY_BINARY)) + 2 + 1;
+		alloc   = 2 + (2 * esif_ccb_min(self->data_len, max_binary)) + 2 + 1;
 		ptrdata = (Byte*)self->buf_ptr;
 		ptrlen  = self->data_len;
 		break;
@@ -466,36 +465,21 @@ char *EsifData_ToString (EsifDataPtr self)
 			break;
 
 		case ESIF_DATA_STRING:
-			if (ptrlen <= MAXDISPLAY_STRING + 1) {
+		case ESIF_DATA_XML:
+			if (ptrlen < max_string + 1) {
 				esif_ccb_memcpy(result, ptrdata, ptrlen);
 			} else {
-				esif_ccb_memcpy(result, ptrdata, MAXDISPLAY_STRING - 3);
-				esif_ccb_memcpy(result + MAXDISPLAY_STRING - 3, "...", 4);
+				esif_ccb_memcpy(result, ptrdata, max_string - 2);
+				esif_ccb_memcpy(result + max_string - 2, "..", 3);
 			}
 			break;
 
-		/* TODO:
-		   case ESIF_DATA_BLOB:
-		   case ESIF_DATA_DSP:
-		   case ESIF_DATA_ENUM:
-		   case ESIF_DATA_GUID:
-		   case ESIF_DATA_HANDLE:
-		   case ESIF_DATA_INSTANCE:
-		   case ESIF_DATA_IPV4:
-		   case ESIF_DATA_IPV6:
-		   case ESIF_DATA_POINTER:
-		   case ESIF_DATA_QUALIFIER:
-		   case ESIF_DATA_REGISTER:
-		   case ESIF_DATA_STRUCTURE:
-		   case ESIF_DATA_TABLE:
-		   case ESIF_DATA_UNICODE:
-		 */
 		case ESIF_DATA_BINARY:
 		default:
 			esif_ccb_strcpy(result, "0x", alloc);
-			for (idx = 0; idx < ptrlen && idx < MAXDISPLAY_BINARY; idx++)
+			for (idx = 0; idx < ptrlen && idx < max_binary; idx++)
 				esif_ccb_sprintf(alloc - 2 - (idx * 2), result + 2 + (2 * idx), "%02X", ptrdata[idx]);
-			if (ptrlen > MAXDISPLAY_BINARY) {
+			if (ptrlen > max_binary) {
 				esif_ccb_strcat(result, "..", alloc);
 			}
 			break;
@@ -506,13 +490,13 @@ char *EsifData_ToString (EsifDataPtr self)
 
 
 // FromString operator
-eEsifError EsifData_FromString (
+esif_error_t EsifData_FromString (
 	EsifDataPtr self,
 	char *str,
-	EsifDataType type	/* , int maxlen=-1 */
+	EsifDataType type
 	)
 {
-	eEsifError rc  = ESIF_E_UNSPECIFIED;
+	esif_error_t rc  = ESIF_E_UNSPECIFIED;
 	UInt32 alloc   = 0;
 	UInt32 u32data = 0;
 	UInt64 u64data = 0;
@@ -602,6 +586,7 @@ eEsifError EsifData_FromString (
 		break;
 
 	case ESIF_DATA_STRING:
+	case ESIF_DATA_XML:
 		alloc   = (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) + 1;
 		ptrdata = (Byte*)str;
 		ptrlen  = alloc;
@@ -613,22 +598,6 @@ eEsifError EsifData_FromString (
 	   ptrlen  = 0;
 	   break;
 
-	/* TODO:
-	   case ESIF_DATA_BLOB:
-	   case ESIF_DATA_DSP:
-	   case ESIF_DATA_ENUM:
-	   case ESIF_DATA_GUID:
-	   case ESIF_DATA_HANDLE:
-	   case ESIF_DATA_INSTANCE:
-	   case ESIF_DATA_IPV4:
-	   case ESIF_DATA_IPV6:
-	   case ESIF_DATA_POINTER:
-	   case ESIF_DATA_QUALIFIER:
-	   case ESIF_DATA_REGISTER:
-	   case ESIF_DATA_STRUCTURE:
-	   case ESIF_DATA_TABLE:
-	   case ESIF_DATA_UNICODE:
-	 */
 	case ESIF_DATA_BINARY:
 	default:
 		ptrdata = (Byte*)str;
@@ -731,25 +700,10 @@ eEsifError EsifData_FromString (
 			break;
 
 		case ESIF_DATA_STRING:
+		case ESIF_DATA_XML:
 			esif_ccb_memcpy(buffer, ptrdata, ptrlen);
 			break;
 
-		/* TODO:
-		   case ESIF_DATA_BLOB:
-		   case ESIF_DATA_DSP:
-		   case ESIF_DATA_ENUM:
-		   case ESIF_DATA_GUID:
-		   case ESIF_DATA_HANDLE:
-		   case ESIF_DATA_INSTANCE:
-		   case ESIF_DATA_IPV4:
-		   case ESIF_DATA_IPV6:
-		   case ESIF_DATA_POINTER:
-		   case ESIF_DATA_QUALIFIER:
-		   case ESIF_DATA_REGISTER:
-		   case ESIF_DATA_STRUCTURE:
-		   case ESIF_DATA_TABLE:
-		   case ESIF_DATA_UNICODE:
-		 */
 		case ESIF_DATA_BINARY:
 		default:
 			// TODO: Convert "0xABCD"
@@ -775,3 +729,283 @@ eEsifError EsifData_FromString (
 exit:
 	return rc;
 }
+
+// Include Compression Support?
+#if defined(ESIF_FEAT_OPT_COMPRESS)
+
+/* Return True if the given data buffer appears to be compressed (without loading compression library) */
+Bool EsifData_IsCompressed(EsifDataPtr self)
+{
+	Bool rc = ESIF_FALSE;
+	if (self) {
+		rc = (Bool)EsifCmp_IsCompressed(self->buf_ptr, self->data_len);
+	}
+	return rc;
+}
+
+/* Compress an EsifData buffer and return updated buffer and size to caller if successful.
+ * ESIF Compression Library is dynamically loaded and used to compress data unless the data appears to
+ * already be compressed. buf_ptr is replaced if successfully compressed, otherwise it is unchanged.
+ * If the original buf_ptr passed in is not dynamically allocated, buf_len MUST be 0 (but not data_len).
+ * The Compression Library is unloaded after compression is complete.
+ *
+ * Note that the compression library is optional for Compression (i.e. returns OK if the loadable
+ * libary is not found), but mandatory for Decompression. This allows the caller to use the original
+ * uncompressed data the compression library is not installed on the OS image.
+ *
+ * Returns ESIF_OK if data is already compressed, or if library loaded and data successfully compressed,
+ * or if loadable library was not found.
+ */
+esif_error_t EsifData_Compress(EsifDataPtr self)
+{
+	esif_error_t rc = (self ? ESIF_OK : ESIF_E_PARAMETER_IS_NULL);
+	int esifCmp_result = 0;
+	BytePtr expandedData = NULL;
+	size_t expandedSize = 0;
+	BytePtr compressedData = NULL;
+	size_t compressedSize = 0;
+
+	// Load Compression Library and Compress data if it is not already compressed
+	if (rc == ESIF_OK && EsifCmp_IsCompressed(self->buf_ptr, self->data_len) == ESIF_FALSE) {
+		char esifCmpLibPath[MAX_PATH] = { 0 };
+		EsifDecompressFuncPtr fnCompress = NULL;
+
+		expandedData = self->buf_ptr;
+		expandedSize = self->data_len;
+
+		esif_build_path(esifCmpLibPath, sizeof(esifCmpLibPath), ESIF_PATHTYPE_DLL, ESIFCMP_LIBRARY, ESIF_LIB_EXT);
+		esif_lib_t esifCmpLib = esif_ccb_library_load(esifCmpLibPath);
+
+		if (esifCmpLib == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+		}
+		else if (esifCmpLib->handle == NULL) {
+			rc = esif_ccb_library_error(esifCmpLib);
+			
+			// Compression Library is optional for compression; required for decompression
+			// If loadable library does not exist, return OK with original buffer
+			if (rc == ESIF_E_NOT_FOUND) {
+				rc = ESIF_OK;
+			}
+		}
+		else if ((fnCompress = (EsifCompressFuncPtr)esif_ccb_library_get_func(esifCmpLib, ESIFCMP_COMPRESSOR)) == NULL) {
+			rc = ESIF_E_IFACE_NOT_SUPPORTED;
+		}
+		else {
+			// 1. Get Estimated Compressed Buffer Size
+			esifCmp_result = (*fnCompress)(
+				NULL,
+				&compressedSize,
+				expandedData,
+				expandedSize
+				);
+
+			// 2. Allocate Buffer and Compress
+			if (esifCmp_result != 0) {
+				rc = ESIF_E_COMPRESSION_ERROR;
+			}
+			else if (compressedSize > MAX_COMPRESSED_DATA) {
+				rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			}
+			else if (compressedSize > 0) {
+				compressedData = (BytePtr)esif_ccb_malloc(compressedSize);
+
+				if (compressedData == NULL) {
+					rc = ESIF_E_NO_MEMORY;
+				}
+				else {
+					int retries = 3;			// Retry this many times
+					double growpct = 1.25;		// Grow by this much each retry (3 x 125% = 200%)
+					size_t compressedBufLen = compressedSize;
+
+					/* Unlike decompression, calling Compressor with a NULL dest only computes an ESTIMATED buffer size.
+					 * In the event that the computed compression buffer is too small to hold the compressed data,
+					 * keep retrying compression with a larger buffer until it succeeds or until retries are exceeded.
+					 * This is rare and usually only happens when compressing compressed data, but handle anyway.
+					 */
+					do {
+						if (esifCmp_result == ESIFCMP_ERROR_OUTPUT_EOF) {
+							compressedBufLen = (size_t)(compressedBufLen * growpct);
+							BytePtr newBuffer = (BytePtr)esif_ccb_realloc(compressedData, compressedBufLen);
+							if (newBuffer == NULL) {
+								rc = ESIF_E_NO_MEMORY;
+								break;
+							}
+							compressedData = newBuffer;
+							compressedSize = compressedBufLen;
+						}
+
+						esifCmp_result = (*fnCompress)(
+							compressedData,
+							&compressedSize,
+							expandedData,
+							expandedSize
+							);
+					} while (esifCmp_result == ESIFCMP_ERROR_OUTPUT_EOF && retries-- > 0);
+
+					if (esifCmp_result != 0) {
+						rc = ESIF_E_COMPRESSION_ERROR;
+					}
+					// Shrink compressed buffer down to actual compressed size
+					else if (rc == ESIF_OK && compressedSize < compressedBufLen) {
+						BytePtr newBuffer = (BytePtr)esif_ccb_realloc(compressedData, compressedSize);
+						if (newBuffer == NULL) {
+							rc = ESIF_E_NO_MEMORY;
+						}
+						compressedData = newBuffer;
+					}
+						
+					if (rc == ESIF_OK) {
+						ESIF_TRACE_INFO("EsifCmp Compressed: %u => %zd bytes\n", expandedSize, compressedSize);
+
+						EsifData_Set(self,
+							self->type,
+							compressedData,
+							(u32)compressedSize,
+							(u32)compressedSize);
+
+						compressedData = NULL; // Now owned by self
+					}
+				}
+				esif_ccb_free(compressedData);
+			}
+		}
+
+		// Unload Library
+		esif_ccb_library_unload(esifCmpLib);
+	}
+
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_ERROR("EsifCmp Compress Error: %s (%d) [result=%d, original=%zd, compressed=%zd]\n",
+			esif_rc_str(rc), rc, esifCmp_result, expandedSize, compressedSize);
+	}
+	return rc;
+}
+
+/* Decompress an EsifData buffer and return updated buffer and size to caller if successful.
+ * ESIF Compression Library is dynamically loaded and used to decompress data unless the data appears to
+ * already be uncompressed. buf_ptr is replaced if successfully decompressed, otherwise it is unchanged.
+ * If the original buf_ptr passed in is not dynamically allocated, buf_len MUST be 0 (but not data_len).
+ * The Compression Library is unloaded after decompression is complete.
+ *
+ * Note that the compression library is mandatory for Decompression (if the data appears to be compressed)
+ * and an error is returned if it is not found or otherwise cannot be loaded.
+ *
+ * Returns ESIF_OK if data is already uncompressed, or if library loaded and data successfully decompressed.
+ */
+esif_error_t EsifData_Decompress(EsifDataPtr self)
+{
+	esif_error_t rc = (self ? ESIF_OK : ESIF_E_PARAMETER_IS_NULL);
+	int esifCmp_result = 0;
+	BytePtr compressedData = NULL;
+	size_t compressedSize = 0;
+	BytePtr expandedData = NULL;
+	size_t expandedSize = 0;
+
+	// Load Compression Library and Decompress data if it is compressed
+	if (rc == ESIF_OK && EsifCmp_IsCompressed(self->buf_ptr, self->data_len) == ESIF_TRUE) {
+		char esifCmpLibPath[MAX_PATH] = { 0 };
+		EsifDecompressFuncPtr fnDecompress = NULL;
+
+		compressedData = self->buf_ptr;
+		compressedSize = self->data_len;
+
+		esif_build_path(esifCmpLibPath, sizeof(esifCmpLibPath), ESIF_PATHTYPE_DLL, ESIFCMP_LIBRARY, ESIF_LIB_EXT);
+		esif_lib_t esifCmpLib = esif_ccb_library_load(esifCmpLibPath);
+
+		if (esifCmpLib == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+		}
+		else if (esifCmpLib->handle == NULL) {
+			rc = esif_ccb_library_error(esifCmpLib);
+		}
+		else if ((fnDecompress = (EsifDecompressFuncPtr)esif_ccb_library_get_func(esifCmpLib, ESIFCMP_DECOMPRESSOR)) == NULL) {
+			rc = ESIF_E_IFACE_NOT_SUPPORTED;
+		}
+		else {
+			// 1. Get Actual Decompressed Buffer Size
+			esifCmp_result = (*fnDecompress)(
+				NULL,
+				&expandedSize,
+				compressedData,
+				compressedSize
+				);
+
+			// 2. Allocate Buffer and Decompress
+			if (esifCmp_result != 0) {
+				rc = ESIF_E_COMPRESSION_ERROR;
+			}
+			else if (expandedSize > MAX_COMPRESSED_DATA) {
+				rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			}
+			else if (expandedSize > 0) {
+				expandedData = (BytePtr)esif_ccb_malloc(expandedSize);
+
+				if (expandedData == NULL) {
+					rc = ESIF_E_NO_MEMORY;
+				}
+				else {
+					esifCmp_result = (*fnDecompress)(
+						expandedData,
+						&expandedSize,
+						compressedData,
+						compressedSize
+						);
+
+					if (esifCmp_result != 0) {
+						rc = ESIF_E_COMPRESSION_ERROR;
+					}
+					else {
+						ESIF_TRACE_INFO("EsifCmp Decompressed: %u => %zd bytes\n", compressedSize, expandedSize);
+
+						EsifData_Set(self,
+							self->type,
+							expandedData,
+							(u32)expandedSize,
+							(u32)expandedSize);
+
+						expandedData = NULL; // Now owned by self
+						rc = ESIF_OK;
+					}
+				}
+				esif_ccb_free(expandedData);
+			}
+		}
+
+		// Unload Library
+		esif_ccb_library_unload(esifCmpLib);
+	}
+
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_ERROR("EsifCmp Decompress Error: %s (%d) [result=%d, compressed=%zd, expanded=%zd]\n",
+			esif_rc_str(rc), rc, esifCmp_result, compressedSize, expandedSize);
+	}
+	return rc;
+}
+
+#else // No Compression Support
+
+Bool EsifData_IsCompressed(EsifDataPtr self)
+{
+	Bool rc = ESIF_FALSE;
+	if (self) {
+		rc = (Bool)EsifCmp_IsCompressed(self->buf_ptr, self->data_len);
+	}
+	return rc;
+}
+
+esif_error_t EsifData_Compress(EsifDataPtr self)
+{
+	return (self && self->buf_ptr ? ESIF_OK : ESIF_E_PARAMETER_IS_NULL);
+}
+
+esif_error_t EsifData_Decompress(EsifDataPtr self)
+{
+	esif_error_t rc = (self && self->buf_ptr ? ESIF_OK : ESIF_E_PARAMETER_IS_NULL);
+	if (EsifData_IsCompressed(self)) {
+		rc = ESIF_E_NOT_IMPLEMENTED;
+	}
+	return rc;
+}
+
+#endif

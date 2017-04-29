@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,23 +27,28 @@ class XmlNode;
 class RfProfileData final
 {
 public:
+	RfProfileData(
+		Frequency centerFrequency,
+		Frequency leftFrequencySpread,
+		Frequency rightFrequencySpread,
+		RfProfileSupplementalData supplementalData);
 
-    RfProfileData(Frequency centerFrequency, Frequency leftFrequencySpread,
-        Frequency rightFrequencySpread, RfProfileSupplementalData supplementalData);
+	Frequency getCenterFrequency(void) const;
+	Frequency getLeftFrequencySpread(void) const;
+	Frequency getRightFrequencySpread(void) const;
+	Frequency getLeftFrequency(void) const;
+	Frequency getRightFrequency(void) const;
+	Frequency getBandFrequencySpread(void) const;
+	RfProfileSupplementalData getSupplementalData(void) const;
 
-    Frequency getCenterFrequency(void) const;
-    Frequency getLeftFrequencySpread(void) const;
-    Frequency getRightFrequencySpread(void) const;
-    RfProfileSupplementalData getSupplementalData(void) const;
-
-    Bool operator==(const RfProfileData& rhs) const;
-    Bool operator!=(const RfProfileData& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void) const;
+	Bool operator==(const RfProfileData& rhs) const;
+	Bool operator!=(const RfProfileData& rhs) const;
+	// Bool operator<(const RfProfileData& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void) const;
 
 private:
-
-    Frequency m_centerFrequency;
-    Frequency m_leftFrequencySpread;
-    Frequency m_rightFrequencySpread;
-    RfProfileSupplementalData m_supplementalData;
+	Frequency m_centerFrequency;
+	Frequency m_leftFrequencySpread;
+	Frequency m_rightFrequencySpread;
+	RfProfileSupplementalData m_supplementalData;
 };

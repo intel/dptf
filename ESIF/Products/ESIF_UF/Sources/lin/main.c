@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,8 +30,10 @@
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_ccb_system.h"
+#include "esif_uf_event_broadcast.h"
+#include "esif_uf_sensor_manager_os_lin.h"
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2016 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2017 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #ifdef ESIF_ATTR_OS_ANDROID
@@ -162,7 +164,6 @@ extern int g_repeat_delay;
 extern int g_soe;
 extern int g_shell_enabled;
 extern int g_cmdshell_enabled;
-extern char *g_DataVaultStartScript;
 
 /* Worker Thread in esif_uf */
 Bool g_start_event_thread = ESIF_TRUE;
@@ -789,7 +790,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	** Start The Daemon
 	*/
 	g_cmdshell_enabled = 0;
-	g_DataVaultStartScript = ESIF_STARTUP_SCRIPT_DAEMON_MODE;
+	esif_shell_set_start_script(ESIF_STARTUP_SCRIPT_DAEMON_MODE);
 	esif_uf_init();
 	ipc_resync();
 	if (g_start_event_thread) {
@@ -895,7 +896,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	}
 	sigterm_enable();
 
-	g_DataVaultStartScript = ESIF_STARTUP_SCRIPT_SERVER_MODE;
+	esif_shell_set_start_script(ESIF_STARTUP_SCRIPT_SERVER_MODE);
 	esif_uf_init();
 	ipc_resync();
 	if (g_start_event_thread) {
@@ -1175,6 +1176,10 @@ int main (int argc, char **argv)
 
 eEsifError esif_uf_os_init ()
 {
+	/* Start sensor manager thread */
+	EsifEventBroadcast_MotionSensorEnable(ESIF_TRUE);
+	EsifSensorMgr_Init();
+
 	return ESIF_OK;
 }
 
@@ -1183,6 +1188,10 @@ void esif_uf_os_exit ()
 {
 	/* Stop uevent listener */
 	esif_udev_stop();
+
+	/* Stop sensor manager thread */
+	EsifEventBroadcast_MotionSensorEnable(ESIF_FALSE);
+	EsifSensorMgr_Exit();
 }
 
 /*****************************************************************************/

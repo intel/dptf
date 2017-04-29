@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,10 +23,10 @@
 
 struct EsifDataBinaryTssPackage
 {
-    union esif_data_variant performancePercentage;  // ULONG - Percent of core CPU operating frequency (1-100)
-    union esif_data_variant power;                  // ULONG - Power dissipation in mW
-    union esif_data_variant latency;                // ULONG - Transition latency in microseconds
-    union esif_data_variant control;                // Context value for platform firmware to initiate performance state transition
-    union esif_data_variant status;                 // ULONG - Comparison value to use with PERF_STATUS register to ensure
-                                                    //  t-state transition was successful.
+	union esif_data_variant performancePercentage; // ULONG - Percent of core CPU operating frequency (1-100)
+	union esif_data_variant power; // ULONG - Power dissipation in mW
+	union esif_data_variant latency; // ULONG - Transition latency in microseconds
+	union esif_data_variant control; // Context value for platform firmware to initiate performance state transition
+	union esif_data_variant status; // ULONG - Comparison value to use with PERF_STATUS register to ensure
+	//  t-state transition was successful.
 };

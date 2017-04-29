@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,17 +26,15 @@ class XmlNode;
 class DisplayControlSet final
 {
 public:
-
-    DisplayControlSet(const std::vector<DisplayControl>& displayControl);
-    static DisplayControlSet createFromBcl(const DptfBuffer& buffer);
-    UIntN getCount(void) const;
-    DisplayControl operator[](UIntN index) const;
-    Bool operator==(const DisplayControlSet& rhs) const;
-    Bool operator!=(const DisplayControlSet& rhs) const;
-    UIntN getControlIndex(Percentage brightness);
-    std::shared_ptr<XmlNode> getXml(void);
+	DisplayControlSet(const std::vector<DisplayControl>& displayControl);
+	static DisplayControlSet createFromBcl(const DptfBuffer& buffer);
+	UIntN getCount(void) const;
+	DisplayControl operator[](UIntN index) const;
+	Bool operator==(const DisplayControlSet& rhs) const;
+	Bool operator!=(const DisplayControlSet& rhs) const;
+	UIntN getControlIndex(Percentage brightness);
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    std::vector<DisplayControl> m_displayControl;
+	std::vector<DisplayControl> m_displayControl;
 };

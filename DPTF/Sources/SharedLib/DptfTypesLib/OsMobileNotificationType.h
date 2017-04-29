@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,15 +22,15 @@
 
 namespace OsMobileNotificationType
 {
-    enum Type
-    {
-        EmergencyCallMode = 0,
-        AirplaneMode = 1,
-        ServiceState = 2,
-        ActionRequestShutdown = 3,
-        ConnectivityState = 4,
-        ScreenState = 6
-    };
+	enum Type
+	{
+		EmergencyCallMode = 0,
+		AirplaneMode = 1,
+		ServiceState = 2,
+		ActionRequestShutdown = 3,
+		ConnectivityState = 4,
+		ScreenState = 6
+	};
 
-    std::string ToString(OsMobileNotificationType::Type type);
+	std::string ToString(OsMobileNotificationType::Type type);
 }

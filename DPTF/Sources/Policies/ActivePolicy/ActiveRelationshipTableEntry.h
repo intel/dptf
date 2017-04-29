@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,23 +25,21 @@
 class dptf_export ActiveRelationshipTableEntry : public RelationshipTableEntryBase
 {
 public:
+	ActiveRelationshipTableEntry(
+		const std::string& sourceDeviceScope,
+		const std::string& targetDeviceScope,
+		UInt32 weight,
+		const std::vector<UInt32>& acEntries);
+	~ActiveRelationshipTableEntry();
 
-    ActiveRelationshipTableEntry(
-        const std::string& sourceDeviceScope,
-        const std::string& targetDeviceScope,
-        UInt32 weight,
-        const std::vector<UInt32>& acEntries);
-    ~ActiveRelationshipTableEntry();
+	const UInt32& ac(UIntN acLevel) const;
+	UInt32 getWeight() const;
 
-    const UInt32& ac(UIntN acLevel) const;
-    UInt32 getWeight() const;
-
-    std::shared_ptr<XmlNode> getXml();
-    Bool isSameAs(const ActiveRelationshipTableEntry& artEntry) const;
-    Bool operator==(const ActiveRelationshipTableEntry& artEntry) const;
+	std::shared_ptr<XmlNode> getXml();
+	Bool isSameAs(const ActiveRelationshipTableEntry& artEntry) const;
+	Bool operator==(const ActiveRelationshipTableEntry& artEntry) const;
 
 private:
-
-    UInt32 m_weight;
-    std::vector<UInt32> m_acEntries;
+	UInt32 m_weight;
+	std::vector<UInt32> m_acEntries;
 };

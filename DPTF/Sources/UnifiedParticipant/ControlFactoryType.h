@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,29 +22,30 @@
 
 namespace ControlFactoryType
 {
-    enum Type
-    {
-        FIRST,
-        Active = FIRST,
-        ConfigTdp,
-        Core,
-        Display,
-        Performance,
-        PixelClockControl,
-        PixelClockStatus,
-        PowerControl,
-        PowerStatus,
-        Priority,
-        RfProfileControl,
-        RfProfileStatus,
-        Temperature,
-        Utilization,
-        GetSpecificInfo,
-        SetSpecificInfo,
-        PlatformPower,
-        PlatformPowerStatus,
-        MAX
-    };
+	enum Type
+	{
+		FIRST,
+		Active = FIRST,
+		ConfigTdp,
+		Core,
+		Display,
+		Performance,
+		PowerControl,
+		PowerStatus,
+		Priority,
+		RfProfileControl,
+		RfProfileStatus,
+		Temperature,
+		Utilization,
+		GetSpecificInfo,
+		SetSpecificInfo,
+		PlatformPower,
+		PlatformPowerStatus,
+		ActivityStatus,
+		PeakPowerControl,
+		TccOffsetControl,
+		MAX
+	};
 
-    std::string ToString(Type factoryType);
+	std::string ToString(Type factoryType);
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,16 +29,18 @@
 class ParticipantGetSpecificInfo_000 : public ParticipantGetSpecificInfoBase
 {
 public:
+	ParticipantGetSpecificInfo_000(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
-    ParticipantGetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	// ParticipantGetSpecificInfoInterface
+	virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
+		UIntN participantIndex,
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
 
-    // ParticipantGetSpecificInfoInterface
-    virtual std::map<ParticipantSpecificInfoKey::Type, Temperature> getParticipantSpecificInfo(
-        UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo) override;
-
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 };

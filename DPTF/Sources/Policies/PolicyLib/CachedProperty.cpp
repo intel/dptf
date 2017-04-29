@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 using namespace std;
 
 CachedProperty::CachedProperty()
-    : m_cacheIsValid(false)
+	: m_cacheIsValid(false)
 {
 }
 
@@ -30,16 +30,16 @@ CachedProperty::~CachedProperty(void)
 
 Bool CachedProperty::isCacheValid(void)
 {
-    return m_cacheIsValid;
+	return m_cacheIsValid;
 }
 
 void CachedProperty::refresh(void)
 {
-    refreshData();
-    m_cacheIsValid = true;
+	refreshData();
+	m_cacheIsValid = true;
 }
 
 void CachedProperty::invalidate(void)
 {
-    m_cacheIsValid = false;
+	m_cacheIsValid = false;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,54 +19,48 @@
 #pragma once
 #include "Dptf.h"
 
-template <typename T>
-class SetOps 
+template <typename T> class SetOps
 {
 public:
-
-    static Bool hasValue(const std::set<T>& aSet, T value);
-    static std::set<T> getMissingFromLeft(const std::set<T>& left, const std::set<T>& right);
-    static std::set<T> subset(const std::set<T>& keep, const std::set<T>& remove);
-    static std::set<T> unionSet(const std::set<T>& leftSet, const std::set<T>& rightSet);
+	static Bool hasValue(const std::set<T>& aSet, T value);
+	static std::set<T> getMissingFromLeft(const std::set<T>& left, const std::set<T>& right);
+	static std::set<T> subset(const std::set<T>& keep, const std::set<T>& remove);
+	static std::set<T> unionSet(const std::set<T>& leftSet, const std::set<T>& rightSet);
 };
 
-template <typename T>
-std::set<T> SetOps<T>::unionSet(const std::set<T>& leftSet, const std::set<T>& rightSet)
+template <typename T> std::set<T> SetOps<T>::unionSet(const std::set<T>& leftSet, const std::set<T>& rightSet)
 {
-    std::set<T> newSet;
-    newSet.insert(leftSet.begin(), leftSet.end());
-    newSet.insert(rightSet.begin(), rightSet.end());
-    return newSet;
+	std::set<T> newSet;
+	newSet.insert(leftSet.begin(), leftSet.end());
+	newSet.insert(rightSet.begin(), rightSet.end());
+	return newSet;
 }
 
-template <typename T>
-Bool SetOps<T>::hasValue(const std::set<T>& aSet, T value)
+template <typename T> Bool SetOps<T>::hasValue(const std::set<T>& aSet, T value)
 {
-    return (aSet.find(value) != aSet.end());
+	return (aSet.find(value) != aSet.end());
 }
 
-template <typename T>
-std::set<T> SetOps<T>::getMissingFromLeft(const std::set<T>& left, const std::set<T>& right)
+template <typename T> std::set<T> SetOps<T>::getMissingFromLeft(const std::set<T>& left, const std::set<T>& right)
 {
-    std::set<T> result;
-    for (auto value = right.begin(); value != right.end(); ++value)
-    {
-        if (!(SetOps<T>::hasValue(left, *value)))
-        {
-            result.insert(*value);
-        }
-    }
+	std::set<T> result;
+	for (auto value = right.begin(); value != right.end(); ++value)
+	{
+		if (!(SetOps<T>::hasValue(left, *value)))
+		{
+			result.insert(*value);
+		}
+	}
 
-    return result;
+	return result;
 }
 
-template <typename T>
-std::set<T> SetOps<T>::subset(const std::set<T>& keep, const std::set<T>& remove)
+template <typename T> std::set<T> SetOps<T>::subset(const std::set<T>& keep, const std::set<T>& remove)
 {
-    std::set<T> theSubset = keep;
-    for (auto value = remove.begin(); value != remove.end(); ++value)
-    {
-        theSubset.erase(*value);
-    }
-    return theSubset;
+	std::set<T> theSubset = keep;
+	for (auto value = remove.begin(); value != remove.end(); ++value)
+	{
+		theSubset.erase(*value);
+	}
+	return theSubset;
 }

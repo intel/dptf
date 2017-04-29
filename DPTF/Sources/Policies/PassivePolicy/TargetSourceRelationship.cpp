@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,32 +21,33 @@
 using namespace std;
 
 TargetSourceRelationship::TargetSourceRelationship(UIntN newTarget, UIntN newSource)
-    : target(newTarget), source(newSource), m_valid(true)
+	: target(newTarget)
+	, source(newSource)
+	, m_valid(true)
 {
-
 }
 
 Bool TargetSourceRelationship::operator<(const TargetSourceRelationship& rhs) const
 {
-    throwIfNotValid();
-    if (target < rhs.target)
-    {
-        return true;
-    }
-    else if (target == rhs.target)
-    {
-        return (source < rhs.source);
-    }
-    else
-    {
-        return false;
-    }
+	throwIfNotValid();
+	if (target < rhs.target)
+	{
+		return true;
+	}
+	else if (target == rhs.target)
+	{
+		return (source < rhs.source);
+	}
+	else
+	{
+		return false;
+	}
 }
 
 void TargetSourceRelationship::throwIfNotValid() const
 {
-    if (m_valid == false)
-    {
-        throw dptf_exception("Invalid target-source relationship.");
-    }
+	if (m_valid == false)
+	{
+		throw dptf_exception("Invalid target-source relationship.");
+	}
 }

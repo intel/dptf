@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,8 +25,6 @@
 // Primitive Objects
 // ZString Class = Null Terminated ASCII String
 typedef char*ZString;
-
-typedef unsigned char Byte, *BytePtr;
 
 #define ISTRING_NOIGNORECASE    0			// Case-Sensitive Compare or Search/Replace
 #define ISTRING_IGNORECASE      1			// Case-Insensitive Compare or Search/Replace

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,11 +25,8 @@ class XmlNode;
 class XmlGeneratorInterface
 {
 public:
+	virtual ~XmlGeneratorInterface(){};
 
-    virtual ~XmlGeneratorInterface()
-    {
-    };
-
-    virtual void addNode(XmlNode* node) = 0;
-    virtual std::string toString(void) = 0;
+	virtual void addNode(XmlNode* node) = 0;
+	virtual std::string toString(void) = 0;
 };

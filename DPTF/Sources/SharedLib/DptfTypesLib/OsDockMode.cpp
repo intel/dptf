@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,18 +20,18 @@
 
 namespace OsDockMode
 {
-    std::string toString(OsDockMode::Type osDockMode)
-    {
-        switch (osDockMode)
-        {
-        case InvalidDockMode:
-            return "Invalid";
-        case Docked:
-            return "Docked";
-        case Undocked:
-            return "Undocked";
-        default:
-            throw dptf_exception("OsDockMode::Type is invalid");
-        }
-    }
+	std::string toString(OsDockMode::Type osDockMode)
+	{
+		switch (osDockMode)
+		{
+		case InvalidDockMode:
+			return "Invalid";
+		case Docked:
+			return "Docked";
+		case Undocked:
+			return "Undocked";
+		default:
+			throw dptf_exception("OsDockMode::Type is invalid");
+		}
+	}
 }

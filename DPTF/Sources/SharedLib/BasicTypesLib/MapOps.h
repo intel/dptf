@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,22 +19,18 @@
 #pragma once
 #include "Dptf.h"
 
-template <typename K, typename V>
-class MapOps 
+template <typename K, typename V> class MapOps
 {
 public:
-
-    static std::set<K> getKeys(std::map<K,V> aMap);
-    
+	static std::set<K> getKeys(std::map<K, V> aMap);
 };
 
-template <typename K, typename V>
-std::set<K> MapOps<K, V>::getKeys(std::map<K, V> aMap)
+template <typename K, typename V> std::set<K> MapOps<K, V>::getKeys(std::map<K, V> aMap)
 {
-    std::set<K> keys;
-    for (auto aPair = aMap.begin(); aPair != aMap.end(); ++aPair)
-    {
-        keys.insert(aPair->first);
-    }
-    return keys;
+	std::set<K> keys;
+	for (auto aPair = aMap.begin(); aPair != aMap.end(); ++aPair)
+	{
+		keys.insert(aPair->first);
+	}
+	return keys;
 }

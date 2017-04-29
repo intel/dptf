@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,27 +26,30 @@ class XmlNode;
 class RfProfileSupplementalData final
 {
 public:
+	RfProfileSupplementalData(
+		UInt32 channelNumber,
+		UInt32 noisePower,
+		UInt32 signalToNoiseRatio,
+		UInt32 rssi,
+		RadioConnectionStatus::Type radioConnectionStatus,
+		UInt32 bitError);
 
-    RfProfileSupplementalData(UInt32 channelNumber, UInt32 noisePower, UInt32 signalToNoiseRatio, UInt32 rssi,
-        RadioConnectionStatus::Type radioConnectionStatus, UInt32 bitError);
+	UInt32 getChannelNumber(void) const;
+	UInt32 getNoisePower(void) const;
+	UInt32 getSignalToNoiseRatio(void) const;
+	UInt32 getRssi(void) const;
+	RadioConnectionStatus::Type getRadioConnectionStatus(void) const;
+	UInt32 getBitError(void) const;
 
-    UInt32 getChannelNumber(void) const;
-    UInt32 getNoisePower(void) const;
-    UInt32 getSignalToNoiseRatio(void) const;
-    UInt32 getRssi(void) const;
-    RadioConnectionStatus::Type getRadioConnectionStatus(void) const;
-    UInt32 getBitError(void) const;
-
-    Bool operator==(const RfProfileSupplementalData& rhs) const;
-    Bool operator!=(const RfProfileSupplementalData& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void) const;
+	Bool operator==(const RfProfileSupplementalData& rhs) const;
+	Bool operator!=(const RfProfileSupplementalData& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void) const;
 
 private:
-
-    UInt32 m_channelNumber;
-    UInt32 m_noisePower;
-    UInt32 m_signalToNoiseRatio;
-    UInt32 m_rssi;
-    RadioConnectionStatus::Type m_radioConnectionStatus;
-    UInt32 m_bitError;
+	UInt32 m_channelNumber;
+	UInt32 m_noisePower;
+	UInt32 m_signalToNoiseRatio;
+	UInt32 m_rssi;
+	RadioConnectionStatus::Type m_radioConnectionStatus;
+	UInt32 m_bitError;
 };

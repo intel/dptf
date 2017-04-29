@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,50 +24,48 @@
 class PlatformPowerControlState
 {
 public:
+	PlatformPowerControlState(DomainPlatformPowerControlBase* control);
+	~PlatformPowerControlState();
 
-    PlatformPowerControlState(DomainPlatformPowerControlBase* control);
-    ~PlatformPowerControlState();
-
-    void capture();
-    void restore();
+	void capture();
+	void restore();
 
 private:
+	void captureEnables();
+	void captureLimit(PlatformPowerLimitType::Type limitType, Power& limit, Bool& limitValid);
+	void captureTimeWindow(PlatformPowerLimitType::Type limitType, TimeSpan& timeWindow, Bool& timeWindowValid);
+	void captureDutyCycle(PlatformPowerLimitType::Type limitType, Percentage& dutyCycle, Bool& dutyCycleValid);
 
-    void captureEnables();
-    void captureLimit(
-        PlatformPowerLimitType::Type limitType, Power& limit, Bool& limitValid);
-    void captureTimeWindow(
-        PlatformPowerLimitType::Type limitType, TimeSpan& timeWindow, Bool& timeWindowValid);
-    void captureDutyCycle(
-        PlatformPowerLimitType::Type limitType, Percentage& dutyCycle, Bool& dutyCycleValid);
+	void restoreEnables();
+	void restoreLimit(PlatformPowerLimitType::Type limitType, const Power& limit, const Bool& limitValid);
+	void restoreTimeWindow(
+		PlatformPowerLimitType::Type limitType,
+		const TimeSpan& timeWindow,
+		const Bool& timeWindowValid);
+	void restoreDutyCycle(
+		PlatformPowerLimitType::Type limitType,
+		const Percentage& dutyCycle,
+		const Bool& dutyCycleValid);
 
-    void restoreEnables();
-    void restoreLimit(
-        PlatformPowerLimitType::Type limitType, const Power& limit, const Bool& limitValid);
-    void restoreTimeWindow(
-        PlatformPowerLimitType::Type limitType, const TimeSpan& timeWindow, const Bool& timeWindowValid);
-    void restoreDutyCycle(
-        PlatformPowerLimitType::Type limitType, const Percentage& dutyCycle, const Bool& dutyCycleValid);
-    
-    DomainPlatformPowerControlBase* m_control;
+	DomainPlatformPowerControlBase* m_control;
 
-    Bool m_pl1Enabled;
-    Bool m_pl2Enabled;
-    Bool m_pl3Enabled;
-    Bool m_enablesValid;
+	Bool m_pl1Enabled;
+	Bool m_pl2Enabled;
+	Bool m_pl3Enabled;
+	Bool m_enablesValid;
 
-    Power m_pl1Limit;
-    Power m_pl2Limit;
-    Power m_pl3Limit;
-    Bool m_pl1LimitValid;
-    Bool m_pl2LimitValid;
-    Bool m_pl3LimitValid;
+	Power m_pl1Limit;
+	Power m_pl2Limit;
+	Power m_pl3Limit;
+	Bool m_pl1LimitValid;
+	Bool m_pl2LimitValid;
+	Bool m_pl3LimitValid;
 
-    TimeSpan m_pl1TimeWindow;
-    TimeSpan m_pl3TimeWindow;
-    Bool m_pl1TimeWindowValid;
-    Bool m_pl3TimeWindowValid;
+	TimeSpan m_pl1TimeWindow;
+	TimeSpan m_pl3TimeWindow;
+	Bool m_pl1TimeWindowValid;
+	Bool m_pl3TimeWindowValid;
 
-    Percentage m_pl3DutyCycle;
-    Bool m_pl3DutyCycleValid;
+	Percentage m_pl3DutyCycle;
+	Bool m_pl3DutyCycleValid;
 };

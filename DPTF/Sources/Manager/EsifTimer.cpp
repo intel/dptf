@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,84 +20,86 @@
 #define ESIF_CCB_TIMER_MAIN
 #include "EsifTimer.h"
 
-EsifTimer::EsifTimer(esif_ccb_timer_cb callbackFunction, void* contextPtr) :
-    m_callbackFunction(callbackFunction), m_contextPtr(contextPtr), m_timerInitialized(false),
-    m_expirationTime(TimeSpan::createFromSeconds(0))
+EsifTimer::EsifTimer(esif_ccb_timer_cb callbackFunction, void* contextPtr)
+	: m_callbackFunction(callbackFunction)
+	, m_contextPtr(contextPtr)
+	, m_timerInitialized(false)
+	, m_expirationTime(TimeSpan::createFromSeconds(0))
 {
-    esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
+	esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
 }
 
 EsifTimer::~EsifTimer(void)
 {
-    esifTimerKill();
+	esifTimerKill();
 }
 
 void EsifTimer::startTimer(const TimeSpan& expirationTime)
 {
-    esifTimerSet(expirationTime);
+	esifTimerSet(expirationTime);
 }
 
 void EsifTimer::cancelTimer(void)
 {
-    esifTimerKill();
+	esifTimerKill();
 }
 
 Bool EsifTimer::isExpirationTimeValid(void) const
 {
-    return (m_expirationTime.asMillisecondsInt() != 0);
+	return (m_expirationTime.asMillisecondsInt() != 0);
 }
 
 const TimeSpan& EsifTimer::getExpirationTime(void) const
 {
-    return m_expirationTime;
+	return m_expirationTime;
 }
 
 void EsifTimer::esifTimerInit()
 {
-    if (m_timerInitialized == false)
-    {
-        eEsifError rc = esif_ccb_timer_init(&m_timer, m_callbackFunction, m_contextPtr);
-        if (rc != ESIF_OK)
-        {
-            esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
-            throw dptf_exception("Failed to initialize timer.");
-        }
+	if (m_timerInitialized == false)
+	{
+		eEsifError rc = esif_ccb_timer_init(&m_timer, m_callbackFunction, m_contextPtr);
+		if (rc != ESIF_OK)
+		{
+			esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
+			throw dptf_exception("Failed to initialize timer.");
+		}
 
-        m_timerInitialized = true;
-    }
+		m_timerInitialized = true;
+	}
 }
 
 void EsifTimer::esifTimerKill()
 {
-    if (m_timerInitialized == true)
-    {
-        // Do not check the return code or throw an exception.  ESIF is responsible for
-        // killing the timer and we can't do anything if this fails.
-        esif_ccb_timer_kill_w_wait(&m_timer);
+	if (m_timerInitialized == true)
+	{
+		// Do not check the return code or throw an exception.  ESIF is responsible for
+		// killing the timer and we can't do anything if this fails.
+		esif_ccb_timer_kill_w_wait(&m_timer);
 
-        esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
-        m_timerInitialized = false;
-        m_expirationTime = TimeSpan::createFromMilliseconds(0);
-    }
+		esif_ccb_memset(&m_timer, 0, sizeof(esif_ccb_timer_t));
+		m_timerInitialized = false;
+		m_expirationTime = TimeSpan::createFromMilliseconds(0);
+	}
 }
 
 void EsifTimer::esifTimerSet(const TimeSpan& expirationTime)
 {
-    esifTimerKill();
-    esifTimerInit();
+	esifTimerInit();
 
-    eEsifError rc = esif_ccb_timer_set_msec(&m_timer, calculateMilliSecondsUntilTimerExpires(expirationTime));
-    if (rc != ESIF_OK)
-    {
-        throw dptf_exception("Failed to start timer.");
-    }
+	eEsifError rc = esif_ccb_timer_set_msec(&m_timer, calculateMilliSecondsUntilTimerExpires(expirationTime));
+	if (rc != ESIF_OK)
+	{
+		throw dptf_exception("Failed to start timer.");
+	}
 
-    m_expirationTime = expirationTime;
+	m_expirationTime = expirationTime;
 }
 
 UInt64 EsifTimer::calculateMilliSecondsUntilTimerExpires(const TimeSpan& expirationTime)
 {
-    auto currentTime = EsifTime().getTimeStamp();
-    auto numMilliSeconds = (expirationTime > currentTime) ? (expirationTime - currentTime) : TimeSpan::createFromMilliseconds(1);
-    return numMilliSeconds.asMillisecondsUInt();
+	auto currentTime = EsifTime().getTimeStamp();
+	auto numMilliSeconds =
+		(expirationTime > currentTime) ? (expirationTime - currentTime) : TimeSpan::createFromMilliseconds(1);
+	return numMilliSeconds.asMillisecondsUInt();
 }

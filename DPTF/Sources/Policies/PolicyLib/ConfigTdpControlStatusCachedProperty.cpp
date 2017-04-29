@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 ConfigTdpControlStatusCachedProperty::ConfigTdpControlStatusCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_configTdpControlStatus(Constants::Invalid)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_configTdpControlStatus(Constants::Invalid)
 {
 }
 
@@ -35,27 +36,27 @@ ConfigTdpControlStatusCachedProperty::~ConfigTdpControlStatusCachedProperty()
 
 const ConfigTdpControlStatus& ConfigTdpControlStatusCachedProperty::getStatus()
 {
-    if (supportsProperty())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_configTdpControlStatus;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the ConfigTDP control interface.");
-    }
+	if (supportsProperty())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_configTdpControlStatus;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the ConfigTDP control interface.");
+	}
 }
 
 Bool ConfigTdpControlStatusCachedProperty::supportsProperty()
 {
-    return getDomainProperties().implementsConfigTdpControlInterface();
+	return getDomainProperties().implementsConfigTdpControlInterface();
 }
 
 void ConfigTdpControlStatusCachedProperty::refreshData()
 {
-    m_configTdpControlStatus = getPolicyServices().domainConfigTdpControl->getConfigTdpControlStatus(
-        getParticipantIndex(), getDomainIndex());
+	m_configTdpControlStatus =
+		getPolicyServices().domainConfigTdpControl->getConfigTdpControlStatus(getParticipantIndex(), getDomainIndex());
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,49 +24,54 @@
 // to run a profiler and see.
 //
 
-#define CASE(eventType) \
-    case eventType: return FrameworkEvent::eventType;
+#define CASE(eventType)                                                                                                \
+	case eventType:                                                                                                    \
+		return FrameworkEvent::eventType;
 
 namespace ParticipantEvent
 {
-    FrameworkEvent::Type ToFrameworkEvent(ParticipantEvent::Type participantEventType)
-    {
-        switch (participantEventType)
-        {
-            CASE(DptfConnectedStandbyEntry)
-            CASE(DptfConnectedStandbyExit)
-            CASE(DptfSuspend)
-            CASE(DptfResume)
-            CASE(ParticipantSpecificInfoChanged)
-            CASE(DomainConfigTdpCapabilityChanged)
-            CASE(DomainCoreControlCapabilityChanged)
-            CASE(DomainDisplayControlCapabilityChanged)
-            CASE(DomainDisplayStatusChanged)
-            CASE(DomainPerformanceControlCapabilityChanged)
-            CASE(DomainPerformanceControlsChanged)
-            CASE(DomainPowerControlCapabilityChanged)
-            CASE(DomainPriorityChanged)
-            CASE(DomainRadioConnectionStatusChanged)
-            CASE(DomainRfProfileChanged)
-            CASE(DomainTemperatureThresholdCrossed)
-            CASE(DomainVirtualSensorCalibrationTableChanged)
-            CASE(DomainVirtualSensorPollingTableChanged)
-            CASE(DomainVirtualSensorRecalcChanged)
-            CASE(DomainBatteryStatusChanged)
-            CASE(DomainBatteryInformationChanged)
-            CASE(DomainPlatformPowerSourceChanged)
-            CASE(DomainAdapterPowerRatingChanged)
-            CASE(DomainChargerTypeChanged)
-            CASE(DomainPlatformRestOfPowerChanged)
-            CASE(DomainACPeakPowerChanged)
-            CASE(DomainACPeakTimeWindowChanged)
-            CASE(DomainMaxBatteryPowerChanged)
-            CASE(DomainPlatformBatterySteadyStateChanged)
-            CASE(DptfParticipantActivityLoggingEnabled)
-            CASE(DptfParticipantActivityLoggingDisabled)
-            CASE(DptfParticipantControlAction)
-            default:
-                throw dptf_exception("ParticipantEvent::Type is invalid.");
-        }
-    }
+	FrameworkEvent::Type ToFrameworkEvent(ParticipantEvent::Type participantEventType)
+	{
+		switch (participantEventType)
+		{
+			CASE(DptfConnectedStandbyEntry)
+			CASE(DptfConnectedStandbyExit)
+			CASE(DptfSuspend)
+			CASE(DptfResume)
+			CASE(ParticipantSpecificInfoChanged)
+			CASE(DomainConfigTdpCapabilityChanged)
+			CASE(DomainCoreControlCapabilityChanged)
+			CASE(DomainDisplayControlCapabilityChanged)
+			CASE(DomainDisplayStatusChanged)
+			CASE(DomainPerformanceControlCapabilityChanged)
+			CASE(DomainPerformanceControlsChanged)
+			CASE(DomainPowerControlCapabilityChanged)
+			CASE(DomainPriorityChanged)
+			CASE(DomainRadioConnectionStatusChanged)
+			CASE(DomainRfProfileChanged)
+			CASE(DomainTemperatureThresholdCrossed)
+			CASE(DomainVirtualSensorCalibrationTableChanged)
+			CASE(DomainVirtualSensorPollingTableChanged)
+			CASE(DomainVirtualSensorRecalcChanged)
+			CASE(DomainBatteryStatusChanged)
+			CASE(DomainBatteryInformationChanged)
+			CASE(DomainPlatformPowerSourceChanged)
+			CASE(DomainAdapterPowerRatingChanged)
+			CASE(DomainChargerTypeChanged)
+			CASE(DomainPlatformRestOfPowerChanged)
+			CASE(DomainMaxBatteryPowerChanged)
+			CASE(DomainPlatformBatterySteadyStateChanged)
+			CASE(DomainACNominalVoltageChanged)
+			CASE(DomainACOperationalCurrentChanged)
+			CASE(DomainAC1msPercentageOverloadChanged)
+			CASE(DomainAC2msPercentageOverloadChanged)
+			CASE(DomainAC10msPercentageOverloadChanged)
+			CASE(DomainEnergyThresholdCrossed)
+			CASE(DptfParticipantActivityLoggingEnabled)
+			CASE(DptfParticipantActivityLoggingDisabled)
+			CASE(DptfParticipantControlAction)
+		default:
+			throw dptf_exception("ParticipantEvent::Type is invalid.");
+		}
+	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,9 +26,8 @@
 class dptf_export ParticipantActiveControlInterface
 {
 public:
-
-    virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
-    virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlId) = 0;
+	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlId) = 0;
 };

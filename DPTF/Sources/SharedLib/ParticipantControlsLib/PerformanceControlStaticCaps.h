@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,14 +25,12 @@ class XmlNode;
 class PerformanceControlStaticCaps final
 {
 public:
-
-    PerformanceControlStaticCaps(Bool dynamicPerformanceControlStates);
-    Bool supportsDynamicPerformanceControlStates(void) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	PerformanceControlStaticCaps(Bool dynamicPerformanceControlStates);
+	Bool supportsDynamicPerformanceControlStates(void) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    // PD:  Talked w/ Vasu 5/1/2013 to see if this can be removed as it hasn't been used in DPTF 6.0
-    //      or DPTF 7.0.  He said it might be used in DPTF 8.0 so we should keep it.
-    Bool m_dynamicPerformanceControlStates;                         // if TRUE, the PerformanceControlSet can change dynamically.
+	// PD:  Talked w/ Vasu 5/1/2013 to see if this can be removed as it hasn't been used in DPTF 6.0
+	//      or DPTF 7.0.  He said it might be used in DPTF 8.0 so we should keep it.
+	Bool m_dynamicPerformanceControlStates; // if TRUE, the PerformanceControlSet can change dynamically.
 };

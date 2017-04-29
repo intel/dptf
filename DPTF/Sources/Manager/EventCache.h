@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,21 +31,20 @@
 class EventCache
 {
 public:
+	EventCache();
+	~EventCache();
 
-    EventCache();
-    ~EventCache();
-
-    CachedValue<SensorOrientation::Type> sensorOrientation;
-    CachedValue<CoolingMode::Type> coolingMode;
-    CachedValue<OnOffToggle::Type> sensorMotion;
-    CachedValue<std::string> foregroundApplication;
-    CachedValue<SensorSpatialOrientation::Type> sensorSpatialOrientation;
-    CachedValue<OsPowerSource::Type> powerSource;
-    CachedValue<OsLidState::Type> lidState;
-    CachedValue<UIntN> batteryPercentage;
-    CachedValue<OsPlatformType::Type> platformType;
-    CachedValue<OsDockMode::Type> dockMode;
-    CachedValue<OsPowerSchemePersonality::Type> powerSchemePersonality;
-    CachedValue<UIntN> emergencyCallModeState;
-    CachedValue<UIntN> screenState;
+	CachedValue<SensorOrientation::Type> sensorOrientation;
+	CachedValue<CoolingMode::Type> coolingMode;
+	CachedValue<OnOffToggle::Type> sensorMotion;
+	CachedValue<std::string> foregroundApplication;
+	CachedValue<SensorSpatialOrientation::Type> sensorSpatialOrientation;
+	CachedValue<OsPowerSource::Type> powerSource;
+	CachedValue<OsLidState::Type> lidState;
+	CachedValue<UIntN> batteryPercentage;
+	CachedValue<OsPlatformType::Type> platformType;
+	CachedValue<OsDockMode::Type> dockMode;
+	CachedValue<OsPowerSchemePersonality::Type> powerSchemePersonality;
+	CachedValue<UIntN> emergencyCallModeState;
+	CachedValue<UIntN> screenState;
 };

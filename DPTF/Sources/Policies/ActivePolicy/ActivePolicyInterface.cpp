@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,30 +17,31 @@
 ******************************************************************************/
 
 #include "ActivePolicy.h"
+#include "Ver.h"
+#include "AppVersion.h"
 
 // This file is nearly identical between each policy.  We could use a macro in its place.  However, for easier
 // debugging, the code is being left as-is.  At a later date it would be fine to convert to a macro.
-
-extern "C"
+extern "C" {
+dptf_export UInt64 GetAppVersion(void)
 {
-    dptf_export PolicyInterface* CreatePolicyInstance(void)
-    {
-        PolicyInterface* policyInterface = nullptr;
+	return AppVersion(VER_MAJOR, VER_MINOR, VER_HOTFIX, VER_BUILD).toUInt64();
+}
 
-        try
-        {
-            policyInterface = new ActivePolicy();
-        }
-        catch (...)
-        {
-            policyInterface = nullptr;
-        }
+dptf_export PolicyInterface* CreatePolicyInstance(void)
+{
+	try
+	{
+		return new ActivePolicy();
+	}
+	catch (...)
+	{
+		return nullptr;
+	}
+}
 
-        return policyInterface;
-    }
-
-    dptf_export void DestroyPolicyInstance(PolicyInterface* policyInterface)
-    {
-        DELETE_MEMORY_TC(policyInterface);
-    }
+dptf_export void DestroyPolicyInstance(PolicyInterface* policy)
+{
+	DELETE_MEMORY_TC(policy);
+}
 }

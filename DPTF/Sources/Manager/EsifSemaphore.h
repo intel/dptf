@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,18 +24,16 @@
 class EsifSemaphore
 {
 public:
+	EsifSemaphore(void);
+	~EsifSemaphore(void);
 
-    EsifSemaphore(void);
-    ~EsifSemaphore(void);
-
-    void wait(void);
-    void signal(void);
+	void wait(void);
+	void signal(void);
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifSemaphore(const EsifSemaphore& rhs);
+	EsifSemaphore& operator=(const EsifSemaphore& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifSemaphore(const EsifSemaphore& rhs);
-    EsifSemaphore& operator=(const EsifSemaphore& rhs);
-
-    esif_ccb_sem_t m_semaphore;
+	esif_ccb_sem_t m_semaphore;
 };

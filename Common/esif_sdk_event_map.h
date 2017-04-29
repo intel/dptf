@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -150,6 +150,8 @@ static ESIF_INLINE Bool esif_event_map(
 		  ESIF_EVENT_DEVICE_ORIENTATION_CHANGED },
 		{ DISPLAY_ORIENTATION_CHANGED,
 		  ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED },
+		{ DOMAIN_ENERGY_THRESHOLD_CROSSED,
+		  ESIF_EVENT_DOMAIN_ENERGY_THRESHOLD_CROSSED },
 		{ DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED,
 		  ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED },
 		{ DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
@@ -206,12 +208,16 @@ static ESIF_INLINE Bool esif_event_map(
 		  ESIF_EVENT_POWER_BOSS_CONDITIONS_TABLE_CHANGED },
 		{ POWER_BOSS_MATH_TABLE_CHANGED,
 		  ESIF_EVENT_POWER_BOSS_MATH_TABLE_CHANGED },
+		{ POWER_SHARING_ALGORITHM_TABLE_CHANGED,
+		  ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED },
 		{ POWER_SOURCE_CHANGED,
 		  ESIF_EVENT_POWER_SOURCE_CHANGED },
 		{ RF_CONNECTION_STATUS_CHANGED,
 		  ESIF_EVENT_RF_CONNECTION_STATUS_CHANGED },
 		{ RF_PROFILE_CHANGED,
 		  ESIF_EVENT_RF_PROFILE_CHANGED },
+		{ SUPPORTED_POLICIES_CHANGED,
+		  ESIF_EVENT_SUPPORTED_POLICIES_CHANGED },
 		{ SYSTEM_COOLING_POLICY_CHANGED,
 		  ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED },
 		{ VIRTUAL_SENSOR_CALIB_TABLE_CHANGED,

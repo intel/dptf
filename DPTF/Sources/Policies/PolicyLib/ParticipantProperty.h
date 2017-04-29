@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,19 +25,16 @@
 class dptf_export ParticipantProperty
 {
 public:
+	ParticipantProperty(UIntN participantIndex, const PolicyServicesInterfaceContainer& policyServices);
+	~ParticipantProperty();
 
-    ParticipantProperty(UIntN participantIndex, const PolicyServicesInterfaceContainer& policyServices);
-    ~ParticipantProperty();
-
-    virtual Bool supportsProperty() = 0;
+	virtual Bool supportsProperty() = 0;
 
 protected:
-
-    PolicyServicesInterfaceContainer getPolicyServices();
-    UIntN getParticipantIndex();
+	PolicyServicesInterfaceContainer getPolicyServices();
+	UIntN getParticipantIndex();
 
 private:
-    
-    UIntN m_participantIndex;
-    PolicyServicesInterfaceContainer m_policyServices;
+	UIntN m_participantIndex;
+	PolicyServicesInterfaceContainer m_policyServices;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,11 +25,11 @@
 class PolicyServicesDomainConfigTdpControl final : public PolicyServices, public DomainConfigTdpControlInterface
 {
 public:
+	PolicyServicesDomainConfigTdpControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServicesDomainConfigTdpControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override final;
+	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+		override final;
+	virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override final;
 };

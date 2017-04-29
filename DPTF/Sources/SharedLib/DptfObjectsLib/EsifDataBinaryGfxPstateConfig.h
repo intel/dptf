@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,5 +25,6 @@ const UIntN GFX_PSTATE_TRANSITION_LATENCY = 100000; // In microseconds (10^-6); 
 
 struct EsifDataBinaryGfxPstateConfig
 {
-    union esif_data_variant maxRenderFrequency;     // ULONG - Gfx driver should not set the render frequency higher than this
+	union esif_data_variant
+		maxRenderFrequency; // ULONG - Gfx driver should not set the render frequency higher than this
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include "esif_uf_primitive.h"
 #include "esif_uf_cfgmgr.h"
 #include "esif_lib_databank.h"
+#include "esif_lib_datarepo.h"
 #include "esif_temp.h"
 
 // !!!
@@ -514,7 +515,7 @@ static eEsifError EsifSetActionDelegateRset(
 		EsifDataPtr data_key    = EsifData_CreateAs(ESIF_DATA_STRING, expandedKeyName, 0, ESIFAUTOLEN);
 
 		// Do not signal an Event if Key does not exist in DataVault
-		if (DataBank_KeyExists(g_DataBankMgr, (StringPtr)paramDataVault->data, expandedKeyName) == ESIF_FALSE) {
+		if (DataBank_KeyExists((StringPtr)paramDataVault->data, expandedKeyName) == ESIF_FALSE) {
 			rc = ESIF_OK;
 		}
 		else if (data_nspace == NULL || data_key == NULL) {
@@ -786,81 +787,37 @@ static eEsifError EsifGetActionDelegateCnfg(
 		}
 	}
 	else {
-		char *dv_name = "__merge"; // Temporary DV Name
-		DataVaultPtr DB = DataBank_GetNameSpace(g_DataBankMgr, dv_name);
-		if (DB != NULL) {
-			DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
+		DataRepoPtr repo = DataRepo_CreateAs(StreamNull, StoreReadOnly, DataBank_GetDefault());
+		if (repo == NULL) {
+			rc = ESIF_E_NO_MEMORY;
 		}
-		DB = DataBank_OpenNameSpace(g_DataBankMgr, dv_name);
-
-		// Load Datavault into temporary namespace. DV may or may not be preceded by a variant
-		if (DB) {
-			u32 skipbytes = 0;
-			void *buffer = NULL;
-
-			//
-			// This is in place to resolve a static code analysis issue.
-			// This should never happen if EsifUp_ExecutePrimitive is successful above.
-			//
-			if (NULL == gddvData.buf_ptr) {
-				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-				ESIF_TRACE_DEBUG("No data returned for BIOS datavault.\n");
-				goto exit;
-			}
-
-			skipbytes = (memcmp(gddvData.buf_ptr, "\xE5\x1F", 2) == 0 ? 0 : sizeof(union esif_data_variant));
-			buffer = esif_ccb_malloc(gddvData.data_len);
-			if (NULL == buffer) {
-				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-				ESIF_TRACE_DEBUG("Unable to allocate memory\n");
+		else if (NULL == gddvData.buf_ptr || gddvData.data_len <= (u32)sizeof(union esif_data_variant)) {
+			ESIF_TRACE_ERROR("Invalid GDDV Object [length=%u]\n", gddvData.data_len);
+			rc = ESIF_E_NOT_SUPPORTED;
+		}
+		else {
+			// Support GDDV Objects that start with either DV Signature or esif_data_variant header
+			u32 skipbytes = (DataVault_IsValidSignature(*(UInt16 *)gddvData.buf_ptr) || EsifData_IsCompressed(&gddvData) ? 0 : sizeof(union esif_data_variant));
+			BytePtr gddvBufPtr = (BytePtr)gddvData.buf_ptr + skipbytes;
+			u32 gddvBufLen = gddvData.data_len - skipbytes;
+			EsifDataPtr gddvBuffer = EsifData_CreateAs(ESIF_DATA_BLOB, gddvBufPtr, 0, gddvBufLen);
+			
+			// Entire GDDV object can be compressed, including DV header
+			if (gddvBuffer == NULL) {
 				rc = ESIF_E_NO_MEMORY;
-				goto exit;
+			}
+			else if (EsifData_IsCompressed(gddvBuffer)) {
+				rc = EsifData_Decompress(gddvBuffer);
 			}
 
-			esif_ccb_memcpy(buffer, (u8*)gddvData.buf_ptr + skipbytes, gddvData.data_len - skipbytes);
-			IOStream_SetMemory(DB->stream, buffer, gddvData.data_len - skipbytes);
-
-			if ((rc = DataVault_ReadVault(DB)) != ESIF_OK) {
-				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-				ESIF_TRACE_DEBUG("Unable to Open DataVault: %s\n", esif_rc_str(rc));
-				rc = ESIF_OK;
+			if (rc == ESIF_OK && IOStream_SetMemory(repo->stream, StoreReadOnly, gddvBuffer->buf_ptr, gddvBuffer->data_len) == EOK) {
+				rc = DataRepo_LoadSegments(repo);
 			}
-			else {
-				EsifDataPtr data_nspace = NULL;
-				EsifDataPtr data_key = NULL;
-				EsifDataPtr data_targetdv = NULL;
-				esif_flags_t options = 0; // NOPERSIST
-				esif_string keyspec = "*"; // Merge All Keys
-				esif_string targetdv = g_DataVaultDefault;
-
-				DB->flags |= (ESIF_SERVICE_CONFIG_READONLY);
-
-				// Merge Contents into Default DataVault
-				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, dv_name, 0, ESIFAUTOLEN);
-				data_targetdv = EsifData_CreateAs(ESIF_DATA_STRING, targetdv, 0, ESIFAUTOLEN);
-				data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
-				if (data_nspace == NULL || data_key == NULL || data_targetdv == NULL) {
-					rc = ESIF_E_NO_MEMORY;
-				}
-				else {
-					rc = EsifConfigCopy(data_nspace, data_targetdv, data_key, options, ESIF_FALSE, NULL);
-				}
-
-				ESIF_TRACE_INFO("GDDV Loaded: %d bytes, %d keys => %s.dv [%s]\n",
-					(int)IOStream_GetSize(DB->stream),
-					DataCache_GetCount(DB->cache),
-					targetdv,
-					esif_rc_str(rc));
-
-				EsifData_Destroy(data_nspace);
-				EsifData_Destroy(data_key);
-				EsifData_Destroy(data_targetdv);
-				DataBank_CloseNameSpace(g_DataBankMgr, dv_name);
-			}
-			esif_ccb_free(buffer);
+			EsifData_Destroy(gddvBuffer);
 		}
+		DataRepo_Destroy(repo);
 	}
-exit:
+
 	esif_ccb_free(dcfgData.buf_ptr);
 	esif_ccb_free(gddvData.buf_ptr);
 	return rc;

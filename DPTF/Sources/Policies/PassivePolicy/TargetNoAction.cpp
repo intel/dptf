@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,10 +20,14 @@
 using namespace std;
 
 TargetNoAction::TargetNoAction(
-    PolicyServicesInterfaceContainer& policyServices, std::shared_ptr<TimeInterface> time,
-    std::shared_ptr<ParticipantTrackerInterface> participantTracker, std::shared_ptr<ThermalRelationshipTable> trt,
-    std::shared_ptr<CallbackScheduler> callbackScheduler, TargetMonitor& targetMonitor, UIntN target)
-    : TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
+	PolicyServicesInterfaceContainer& policyServices,
+	std::shared_ptr<TimeInterface> time,
+	std::shared_ptr<ParticipantTrackerInterface> participantTracker,
+	std::shared_ptr<ThermalRelationshipTable> trt,
+	std::shared_ptr<CallbackScheduler> callbackScheduler,
+	TargetMonitor& targetMonitor,
+	UIntN target)
+	: TargetActionBase(policyServices, time, participantTracker, trt, callbackScheduler, targetMonitor, target)
 {
 }
 
@@ -33,5 +37,5 @@ TargetNoAction::~TargetNoAction()
 
 void TargetNoAction::execute()
 {
-    getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Nothing to do for target.", getTarget()));
+	getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Nothing to do for target.", getTarget()));
 }

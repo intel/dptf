@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,17 +22,15 @@
 #include "ParticipantProxyInterface.h"
 #include "PassiveDomainControlStatus.h"
 
-// contains the control status information for a given participant 
+// contains the control status information for a given participant
 class dptf_export PassiveParticipantControlStatus
 {
 public:
-
-    PassiveParticipantControlStatus(ParticipantProxyInterface* participant);
-    std::shared_ptr<XmlNode> getXml();
+	PassiveParticipantControlStatus(ParticipantProxyInterface* participant);
+	std::shared_ptr<XmlNode> getXml();
 
 private:
-
-    UIntN m_participantIndex;
-    std::string m_name;
-    std::vector<PassiveDomainControlStatus> m_domainStatus;
+	UIntN m_participantIndex;
+	std::string m_name;
+	std::vector<PassiveDomainControlStatus> m_domainStatus;
 };

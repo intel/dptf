@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,10 @@ class XmlNode;
 class UtilizationStatus final
 {
 public:
-
-    UtilizationStatus(Percentage currentUtilization);
-    Percentage getCurrentUtilization(void) const;
-    std::shared_ptr<XmlNode> getXml(std::string tag);
+	UtilizationStatus(Percentage currentUtilization);
+	Percentage getCurrentUtilization(void) const;
+	std::shared_ptr<XmlNode> getXml(std::string tag);
 
 private:
-
-    Percentage m_currentUtilization;                                // in %
+	Percentage m_currentUtilization; // in %
 };

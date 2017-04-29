@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,14 +22,14 @@
 
 namespace SensorOrientation
 {
-    enum Type
-    {
-        Landscape = 0,
-        Portrait = 1,
-        LandscapeInverted = 2,
-        PortraitInverted = 3,
-        Indeterminate = 4
-    };
+	enum Type
+	{
+		Landscape = 0,
+		Portrait = 1,
+		LandscapeInverted = 2,
+		PortraitInverted = 3,
+		Indeterminate = 4
+	};
 
-    std::string toString(SensorOrientation::Type sensorOrientationType);
+	std::string toString(SensorOrientation::Type sensorOrientationType);
 }

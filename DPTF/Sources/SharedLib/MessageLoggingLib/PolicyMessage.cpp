@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,18 +18,23 @@
 
 #include "PolicyMessage.h"
 
-PolicyMessage::PolicyMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName) :
-    DptfMessage(fileName, lineNumber, executingFunctionName)
+PolicyMessage::PolicyMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName)
+	: DptfMessage(fileName, lineNumber, executingFunctionName)
 {
 }
 
-PolicyMessage::PolicyMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName,
-    const std::string& message, UIntN participantIndex, UIntN domainIndex) :
-    DptfMessage(fileName, lineNumber, executingFunctionName)
+PolicyMessage::PolicyMessage(
+	const std::string& fileName,
+	UIntN lineNumber,
+	const std::string& executingFunctionName,
+	const std::string& message,
+	UIntN participantIndex,
+	UIntN domainIndex)
+	: DptfMessage(fileName, lineNumber, executingFunctionName)
 {
-    addMessage("Message", message);
-    m_participantIndex = participantIndex;
-    m_domainIndex = domainIndex;
+	addMessage("Message", message);
+	m_participantIndex = participantIndex;
+	m_domainIndex = domainIndex;
 }
 
 PolicyMessage::~PolicyMessage(void)
@@ -38,11 +43,11 @@ PolicyMessage::~PolicyMessage(void)
 
 void PolicyMessage::setParticipantIndex(UIntN participantIndex)
 {
-    m_participantIndex = participantIndex;
+	m_participantIndex = participantIndex;
 }
 
 void PolicyMessage::setParticipantAndDomainIndex(UIntN participantIndex, UIntN domainIndex)
 {
-    m_participantIndex = participantIndex;
-    m_domainIndex = domainIndex;
+	m_participantIndex = participantIndex;
+	m_domainIndex = domainIndex;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,65 +20,61 @@
 
 #include "Dptf.h"
 
-template <typename T>
-UIntN getFirstNonNullIndex(T& someStlContainer)
+template <typename T> UIntN getFirstNonNullIndex(T& someStlContainer)
 {
-    UIntN index = 0;
+	UIntN index = 0;
 
-    for (index = 0; index < someStlContainer.size(); index++)
-    {
-        if (someStlContainer[index] == nullptr)
-        {
-            break;
-        }
-    }
+	for (index = 0; index < someStlContainer.size(); index++)
+	{
+		if (someStlContainer[index] == nullptr)
+		{
+			break;
+		}
+	}
 
-    if (index == someStlContainer.size())
-    {
-        someStlContainer.push_back(nullptr);
-    }
+	if (index == someStlContainer.size())
+	{
+		someStlContainer.push_back(nullptr);
+	}
 
-    return index;
+	return index;
 }
 
-template <typename T>
-UIntN getFirstAvailableIndex(T& someStlContainer)
+template <typename T> UIntN getFirstAvailableIndex(T& someStlContainer)
 {
-    auto index = 0;
-    while (someStlContainer.find(index) != someStlContainer.end())
-    {
-        ++index;
-    }
+	auto index = 0;
+	while (someStlContainer.find(index) != someStlContainer.end())
+	{
+		++index;
+	}
 
-    return index;
+	return index;
 }
 
-template <typename T>
-void increaseVectorSizeIfNeeded(T& someStlContainer, UIntN maxVectorIndex)
+template <typename T> void increaseVectorSizeIfNeeded(T& someStlContainer, UIntN maxVectorIndex)
 {
-    // make sure there are enough rows in the vector
-    while (maxVectorIndex >= someStlContainer.size())
-    {
-        someStlContainer.push_back(nullptr);
-    }
+	// make sure there are enough rows in the vector
+	while (maxVectorIndex >= someStlContainer.size())
+	{
+		someStlContainer.push_back(nullptr);
+	}
 }
 
-template <typename T>
-void increaseVectorSizeIfNeeded(T& someStlContainer, UIntN maxVectorIndex, UIntN defaultValue)
+template <typename T> void increaseVectorSizeIfNeeded(T& someStlContainer, UIntN maxVectorIndex, UIntN defaultValue)
 {
-    // make sure there are enough rows in the vector
-    while (maxVectorIndex >= someStlContainer.size())
-    {
-        someStlContainer.push_back(defaultValue);
-    }
+	// make sure there are enough rows in the vector
+	while (maxVectorIndex >= someStlContainer.size())
+	{
+		someStlContainer.push_back(defaultValue);
+	}
 }
 
 template <typename containerType, typename parameterType>
 void increaseVectorSizeIfNeeded(containerType& someStlContainer, UIntN maxVectorIndex, parameterType& defaultValue)
 {
-    // make sure there are enough rows in the vector
-    while (maxVectorIndex >= someStlContainer.size())
-    {
-        someStlContainer.push_back(defaultValue);
-    }
+	// make sure there are enough rows in the vector
+	while (maxVectorIndex >= someStlContainer.size())
+	{
+		someStlContainer.push_back(defaultValue);
+	}
 }

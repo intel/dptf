@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,49 +22,47 @@
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
 
-// this facade class provides a simpler interface on top of core controls as well as combines all of the core control 
+// this facade class provides a simpler interface on top of core controls as well as combines all of the core control
 // properties and capabilities into a single class.  these properties also have the ability to be cached.
 class dptf_export CoreControlFacade : public CoreControlFacadeInterface
 {
 public:
+	CoreControlFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~CoreControlFacade();
 
-    CoreControlFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~CoreControlFacade();
+	// controls
+	virtual Bool supportsCoreControls() override;
+	virtual void initializeControlsIfNeeded() override;
+	virtual void setControlsToMax() override;
+	virtual void setActiveCoreControl(CoreControlStatus coreControl) override;
 
-    // controls
-    virtual Bool supportsCoreControls() override;
-    virtual void initializeControlsIfNeeded() override;
-    virtual void setControlsToMax() override;
-    virtual void setActiveCoreControl(CoreControlStatus coreControl) override;
-
-    // properties
-    virtual CoreControlStatus getStatus() override;
-    virtual CoreControlDynamicCaps getDynamicCapabilities() override;
-    virtual CoreControlStaticCaps getStaticCapabilities() override;
-    virtual CoreControlLpoPreference getPreferences() override;
-    virtual void refreshCapabilities() override;
-    virtual void refreshPreferences() override;
-    virtual void setValueWithinCapabilities() override;
+	// properties
+	virtual CoreControlStatus getStatus() override;
+	virtual CoreControlDynamicCaps getDynamicCapabilities() override;
+	virtual CoreControlStaticCaps getStaticCapabilities() override;
+	virtual CoreControlLpoPreference getPreferences() override;
+	virtual void refreshCapabilities() override;
+	virtual void refreshPreferences() override;
+	virtual void setValueWithinCapabilities() override;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
+	// domain properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 
-    // domain properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
+	// core control properties
+	CoreControlCapabilitiesCachedProperty m_capabilities;
+	CoreControlPreferencesCachedProperty m_preferences;
+	Bool m_controlsHaveBeenInitialized;
+	CoreControlStatus m_lastSetCoreControlStatus;
 
-    // core control properties
-    CoreControlCapabilitiesCachedProperty m_capabilities;
-    CoreControlPreferencesCachedProperty m_preferences;
-    Bool m_controlsHaveBeenInitialized;
-    CoreControlStatus m_lastSetCoreControlStatus;
-
-    void throwIfControlNotSupported();
+	void throwIfControlNotSupported();
 };

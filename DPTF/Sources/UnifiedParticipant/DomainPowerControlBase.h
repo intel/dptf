@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,22 +24,26 @@
 #include "ParticipantServicesInterface.h"
 #include "ParticipantActivityLoggingInterface.h"
 
-class DomainPowerControlBase : public ControlBase, public DomainPowerControlInterface, public ParticipantActivityLoggingInterface
+class DomainPowerControlBase : public ControlBase,
+							   public DomainPowerControlInterface,
+							   public ParticipantActivityLoggingInterface
 {
-    friend class PowerControlState;
+	friend class PowerControlState;
 
 public:
-    DomainPowerControlBase(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPowerControlBase();
+	DomainPowerControlBase(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPowerControlBase();
 
 protected:
-    void updateEnabled(PowerControlType::Type controlType);
-    void setEnabled(PowerControlType::Type controlType, Bool enable);
-    Bool isEnabled(PowerControlType::Type controlType) const;
+	void updateEnabled(PowerControlType::Type controlType);
+	void setEnabled(PowerControlType::Type controlType, Bool enable);
+	Bool isEnabled(PowerControlType::Type controlType) const;
 
-    Bool m_pl1Enabled;
-    Bool m_pl2Enabled;
-    Bool m_pl3Enabled;
-    Bool m_pl4Enabled;
+	Bool m_pl1Enabled;
+	Bool m_pl2Enabled;
+	Bool m_pl3Enabled;
+	Bool m_pl4Enabled;
 };

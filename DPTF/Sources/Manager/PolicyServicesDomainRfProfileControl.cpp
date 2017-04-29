@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,23 +19,28 @@
 #include "PolicyServicesDomainRfProfileControl.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainRfProfileControl::PolicyServicesDomainRfProfileControl(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainRfProfileControl::PolicyServicesDomainRfProfileControl(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-RfProfileCapabilities PolicyServicesDomainRfProfileControl::getRfProfileCapabilities(UIntN participantIndex,
-    UIntN domainIndex)
+RfProfileCapabilities PolicyServicesDomainRfProfileControl::getRfProfileCapabilities(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getRfProfileCapabilities(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRfProfileCapabilities(domainIndex);
 }
 
-void PolicyServicesDomainRfProfileControl::setRfProfileCenterFrequency(UIntN participantIndex, UIntN domainIndex,
-    const Frequency& centerFrequency)
+void PolicyServicesDomainRfProfileControl::setRfProfileCenterFrequency(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Frequency& centerFrequency)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setRfProfileCenterFrequency(domainIndex,
-        getPolicyIndex(), centerFrequency);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setRfProfileCenterFrequency(domainIndex, getPolicyIndex(), centerFrequency);
 }

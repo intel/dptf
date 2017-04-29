@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,83 +23,83 @@
 
 IndexContainer::IndexContainer(UIntN initialCount)
 {
-    for (UIntN i = 0; i < initialCount; i++)
-    {
-        getIndexPtr(i);
-    }
+	for (UIntN i = 0; i < initialCount; i++)
+	{
+		getIndexPtr(i);
+	}
 }
 
 IndexContainer::~IndexContainer(void)
 {
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    for (UIntN i = 0; i < m_vectorIndexStructPtr.size(); i++)
-    {
-        DELETE_MEMORY_TC(m_vectorIndexStructPtr[i]);
-    }
+	for (UIntN i = 0; i < m_vectorIndexStructPtr.size(); i++)
+	{
+		DELETE_MEMORY_TC(m_vectorIndexStructPtr[i]);
+	}
 
-    m_vectorIndexStructPtr.clear();
+	m_vectorIndexStructPtr.clear();
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 }
 
 IndexStructPtr IndexContainer::getIndexPtr(UIntN index)
 {
-    IndexStructPtr indexPtr = nullptr;
-    UInt64 currentVectorSize = m_vectorIndexStructPtr.size();
+	IndexStructPtr indexPtr = nullptr;
+	UInt64 currentVectorSize = m_vectorIndexStructPtr.size();
 
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    if ((index == Constants::Esif::NoParticipant) || // or Constants::Esif::NoDomain
-        (index == Constants::Invalid) ||
-        (index > currentVectorSize))
-    {
-        indexPtr = nullptr;
-    }
-    else if (index < currentVectorSize)
-    {
-        indexPtr = m_vectorIndexStructPtr[index];
-    }
-    else if (index == currentVectorSize)
-    {
-        IndexStructPtr indexStructPtr = new IndexStruct;
-        indexStructPtr->index = index;
-        m_vectorIndexStructPtr.push_back(indexStructPtr);
-        indexPtr = m_vectorIndexStructPtr[index];
-    }
+	if ((index == Constants::Esif::NoParticipant) || // or Constants::Esif::NoDomain
+		(index == Constants::Invalid)
+		|| (index > currentVectorSize))
+	{
+		indexPtr = nullptr;
+	}
+	else if (index < currentVectorSize)
+	{
+		indexPtr = m_vectorIndexStructPtr[index];
+	}
+	else if (index == currentVectorSize)
+	{
+		IndexStructPtr indexStructPtr = new IndexStruct;
+		indexStructPtr->index = index;
+		m_vectorIndexStructPtr.push_back(indexStructPtr);
+		indexPtr = m_vectorIndexStructPtr[index];
+	}
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 
-    return indexPtr;
+	return indexPtr;
 }
 
 UIntN IndexContainer::getIndex(IndexStructPtr indexStructPtr)
 {
-    //FIXME:  consider using a hash table.  However, the number of items in the vector will be short as it will
-    //        be the number of participants loaded.  It may not be worth the conversion.  Should run
-    //        performance tests before changing.
+	// FIXME:  consider using a hash table.  However, the number of items in the vector will be short as it will
+	//        be the number of participants loaded.  It may not be worth the conversion.  Should run
+	//        performance tests before changing.
 
-    UIntN index = Constants::Invalid;
+	UIntN index = Constants::Invalid;
 
-    EsifMutexHelper esifMutexHelper(&m_mutex);
-    esifMutexHelper.lock();
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
 
-    if (indexStructPtr != nullptr)
-    {
-        UInt64 currentVectorSize = m_vectorIndexStructPtr.size();
-        for (UIntN i = 0; i < currentVectorSize; i++)
-        {
-            if (m_vectorIndexStructPtr[i] == indexStructPtr)
-            {
-                index = i;
-                break;
-            }
-        }
-    }
+	if (indexStructPtr != nullptr)
+	{
+		UInt64 currentVectorSize = m_vectorIndexStructPtr.size();
+		for (UIntN i = 0; i < currentVectorSize; i++)
+		{
+			if (m_vectorIndexStructPtr[i] == indexStructPtr)
+			{
+				index = i;
+				break;
+			}
+		}
+	}
 
-    esifMutexHelper.unlock();
+	esifMutexHelper.unlock();
 
-    return index;
+	return index;
 }

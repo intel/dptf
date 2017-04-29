@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -691,4 +691,31 @@
 #define PARTICIPANT_UNREGISTER_COMPLETE { \
 	0x24, 0xB5, 0xB6, 0x70, 0xDB, 0x60, 0x4F, 0x5C, \
 	0xA9, 0x82, 0x0F, 0xD8, 0xD3, 0x57, 0xF4, 0xCF }
+
+/*
+ * Event Name:  SUPPORTED_POLICIES_CHANGED
+ * Event GUID:  03F14BB4-F921-455B-A8F4-E01E95A3A119
+ * Event Desc:  DPTF Supported Policies (IDSP) Changed
+ */
+#define SUPPORTED_POLICIES_CHANGED { \
+	0x03, 0xF1, 0x4B, 0xB4, 0xF9, 0x21, 0x45, 0x5B, \
+	0xA8, 0xF4, 0xE0, 0x1E, 0x95, 0xA3, 0xA1, 0x19 }
+
+/*
+ * Event Name:  DOMAIN_ENERGY_THRESHOLD_CROSSED
+ * Event GUID:  87235DE6-3A1C-4433-A6F5-B687EC3F572B
+ * Event Desc:  Domain Energy Threshold Crossed
+ */
+#define DOMAIN_ENERGY_THRESHOLD_CROSSED { \
+	0x87, 0x23, 0x5D, 0xE6, 0x3A, 0x1C, 0x44, 0x33, \
+	0xA6, 0xF5, 0xB6, 0x87, 0xEC, 0x3F, 0x57, 0x2B }
+
+/*
+ * Event Name:  POWER_SHARING_ALGORITHM_TABLE_CHANGED
+ * Event GUID:  E030167D-5404-491D-BD88-DFD821FC7D38
+ * Event Desc:  Power Sharing Algorithm Table Changed
+ */
+#define POWER_SHARING_ALGORITHM_TABLE_CHANGED { \
+	0xE0, 0x30, 0x16, 0x7D, 0x54, 0x04, 0x49, 0x1D, \
+	0xBD, 0x88, 0xDF, 0xD8, 0x21, 0xFC, 0x7D, 0x38 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,14 +17,17 @@
 ******************************************************************************/
 
 #include "DomainRfProfileStatus_002.h"
+#include "EsifDataBinaryRfProfileDataPackage.h"
 
 //
 // version 002 is for wireless
 //
 
-DomainRfProfileStatus_002::DomainRfProfileStatus_002(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
-    DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
+DomainRfProfileStatus_002::DomainRfProfileStatus_002(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -32,82 +35,85 @@ DomainRfProfileStatus_002::~DomainRfProfileStatus_002(void)
 {
 }
 
-RfProfileData DomainRfProfileStatus_002::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
+RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-    // FIXME:  can any of this be cached?  If so how do we know when the data changes?
 
-    //
-    // If any of these primitive calls fail we allow the exception to throw back to the requesting policy.
-    //
+	// DptfBuffer buffer; // TODO: Add primitive to get RfProfileDataSet
+	// auto rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
 
-    Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
-        esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
+	std::vector<RfProfileData> rfProfileDataSet;
+	Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+		esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
 
-    Frequency leftFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
-        esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_LEFT, domainIndex);
+	Frequency leftFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
+		esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_LEFT, domainIndex);
 
-    Frequency rightFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
-        esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT, domainIndex);
+	Frequency rightFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
+		esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT, domainIndex);
 
-    UInt32 channelNumber = getParticipantServices()->primitiveExecuteGetAsUInt32(
-        esif_primitive_type::GET_RFPROFILE_CHANNEL_NUMBER, domainIndex);
+	UInt32 channelNumber = getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RFPROFILE_CHANNEL_NUMBER, domainIndex);
 
-    UInt32 noisePower = getParticipantServices()->primitiveExecuteGetAsUInt32(
-        esif_primitive_type::GET_RFPROFILE_NOISE_POWER, domainIndex);
+	UInt32 noisePower = getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RFPROFILE_NOISE_POWER, domainIndex);
 
-    UInt32 signalToNoiseRatio = getParticipantServices()->primitiveExecuteGetAsUInt32(
-        esif_primitive_type::GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO, domainIndex);
+	UInt32 signalToNoiseRatio = getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO, domainIndex);
 
-    UInt32 rssi = getParticipantServices()->primitiveExecuteGetAsUInt32(
-        esif_primitive_type::GET_RFPROFILE_RSSI, domainIndex);
+	UInt32 rssi =
+		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_RFPROFILE_RSSI, domainIndex);
 
-    UInt32 uint32Value = getParticipantServices()->primitiveExecuteGetAsUInt32(
-        esif_primitive_type::GET_RFPROFILE_CONNECTION_STATUS, domainIndex);
-    RadioConnectionStatus::Type radioConnectionStatus = static_cast<RadioConnectionStatus::Type>(uint32Value);
+	UInt32 uint32Value = getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RFPROFILE_CONNECTION_STATUS, domainIndex);
+	RadioConnectionStatus::Type radioConnectionStatus = static_cast<RadioConnectionStatus::Type>(uint32Value);
 
-    UInt32 bitError = getParticipantServices()->primitiveExecuteGetAsUInt32(
-        esif_primitive_type::GET_RFPROFILE_BIT_ERROR, domainIndex);
+	UInt32 bitError = getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_RFPROFILE_BIT_ERROR, domainIndex);
 
-    RfProfileSupplementalData rfProfileSupplementalData(channelNumber, noisePower, signalToNoiseRatio, rssi,
-        radioConnectionStatus, bitError);
+	RfProfileSupplementalData rfProfileSupplementalData(
+		channelNumber, noisePower, signalToNoiseRatio, rssi, radioConnectionStatus, bitError);
 
-    RfProfileData rfProfileData(centerFrequency, leftFrequencySpread, rightFrequencySpread, rfProfileSupplementalData);
+	RfProfileData rfProfileData(centerFrequency, leftFrequencySpread, rightFrequencySpread, rfProfileSupplementalData);
+	rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 
-    return rfProfileData;
+	return RfProfileDataSet(rfProfileDataSet);
 }
 
 void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    try
-    {
-        if (isActivityLoggingEnabled() == true)
-        {
-            EsifCapabilityData capability;
-            capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
-            capability.size = sizeof(capability);
+	try
+	{
+		if (isActivityLoggingEnabled() == true)
+		{
+			EsifCapabilityData capability;
+			capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
+			capability.size = sizeof(capability);
 
-            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
-                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
-        }
-    }
-    catch (...)
-    {
-        // skip if there are any issue in sending log data
-    }
+			getParticipantServices()->sendDptfEvent(
+				ParticipantEvent::DptfParticipantControlAction,
+				domainIndex,
+				Capability::getEsifDataFromCapabilityData(&capability));
+		}
+	}
+	catch (...)
+	{
+		// skip if there are any issue in sending log data
+	}
 }
 
 void DomainRfProfileStatus_002::clearCachedData(void)
 {
-    // FIXME: do we clear the cache for this control?
+	// FIXME: do we clear the cache for this control?
 }
 
 std::shared_ptr<XmlNode> DomainRfProfileStatus_002::getXml(UIntN domainIndex)
 {
-    // FIXME
-    throw implement_me();
+	auto root = XmlNode::createWrapperElement("rfprofile_status");
+	root->addChild(XmlNode::createDataElement("control_name", getName()));
+	return root;
 }
 
 std::string DomainRfProfileStatus_002::getName(void)
 {
-    return "RF Profile Status (Version 2)";
+	return "Wireless RF Profile Status";
 }

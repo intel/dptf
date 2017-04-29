@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,22 +28,20 @@
 class dptf_export ActiveRelationshipTable final : public RelationshipTableBase
 {
 public:
+	ActiveRelationshipTable();
+	ActiveRelationshipTable(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
+	virtual ~ActiveRelationshipTable();
 
-    ActiveRelationshipTable();
-    ActiveRelationshipTable(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
-    virtual ~ActiveRelationshipTable();
-
-    static ActiveRelationshipTable createArtFromDptfBuffer(const DptfBuffer& buffer);
-    DptfBuffer toArtBinary() const;
-    std::vector<UIntN> getAllSources(void) const;
-    std::vector<UIntN> getAllTargets(void) const;
-    std::vector<std::shared_ptr<ActiveRelationshipTableEntry>> getEntriesForTarget(UIntN target);
-    std::vector<std::shared_ptr<ActiveRelationshipTableEntry>> getEntriesForSource(UIntN source);
-    std::shared_ptr<XmlNode> getXml();
-    Bool operator==(const ActiveRelationshipTable& art) const;
+	static ActiveRelationshipTable createArtFromDptfBuffer(const DptfBuffer& buffer);
+	DptfBuffer toArtBinary() const;
+	std::vector<UIntN> getAllSources(void) const;
+	std::vector<UIntN> getAllTargets(void) const;
+	std::vector<std::shared_ptr<ActiveRelationshipTableEntry>> getEntriesForTarget(UIntN target);
+	std::vector<std::shared_ptr<ActiveRelationshipTableEntry>> getEntriesForSource(UIntN source);
+	std::shared_ptr<XmlNode> getXml();
+	Bool operator==(const ActiveRelationshipTable& art) const;
 
 private:
-
-    static UIntN countArtRows(UInt32 size, UInt8* data);
-    static void throwIfOutOfRange(IntN bytesRemaining);
+	static UIntN countArtRows(UInt32 size, UInt8* data);
+	static void throwIfOutOfRange(IntN bytesRemaining);
 };

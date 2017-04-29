@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,20 +19,21 @@
 #include "PolicyServicesParticipantProperties.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesParticipantProperties::PolicyServicesParticipantProperties(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesParticipantProperties::PolicyServicesParticipantProperties(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 ParticipantProperties PolicyServicesParticipantProperties::getParticipantProperties(UIntN participantIndex) const
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getParticipantProperties();
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getParticipantProperties();
 }
 
 DomainPropertiesSet PolicyServicesParticipantProperties::getDomainPropertiesSet(UIntN participantIndex) const
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getDomainPropertiesSet();
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDomainPropertiesSet();
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,29 +23,26 @@
 #include "DomainProperties.h"
 #include "CachedProperty.h"
 #include "DomainProperty.h"
-#include "RfProfileData.h"
+#include "RfProfileDataSet.h"
 
 class dptf_export RfStatusCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	RfStatusCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~RfStatusCachedProperty();
 
-    RfStatusCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~RfStatusCachedProperty();
-
-    RfProfileData getProfileData();
-    virtual Bool supportsProperty() override;
+	RfProfileDataSet getRadioProfile();
+	virtual Bool supportsProperty() override;
 
 protected:
+	virtual void refreshData() override;
 
-    virtual void refreshData() override;
-
-    Bool implementsRfStatusInterface();
+	Bool implementsRfStatusInterface();
 
 private:
-
-    RfProfileData m_profileData;
+	RfProfileDataSet m_profileData;
 };

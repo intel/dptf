@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,18 +23,16 @@
 class dptf_export ParticipantCallback
 {
 public:
+	ParticipantCallback();
+	ParticipantCallback(const TimeSpan& callbackTime, const TimeSpan& timeStamp, UInt64 callbackHandle);
+	virtual ~ParticipantCallback();
 
-    ParticipantCallback();
-    ParticipantCallback(const TimeSpan& callbackTime, const TimeSpan& timeStamp, UInt64 callbackHandle);
-    virtual ~ParticipantCallback();
-
-    const TimeSpan& getTimeDelta() const;
-    const TimeSpan& getTimeStamp() const;
-    UInt64 getCallbackHandle() const;
+	const TimeSpan& getTimeDelta() const;
+	const TimeSpan& getTimeStamp() const;
+	UInt64 getCallbackHandle() const;
 
 private:
-
-    TimeSpan m_timeDelta;
-    TimeSpan m_timeStamp;
-    UInt64 m_callbackHandle;
+	TimeSpan m_timeDelta;
+	TimeSpan m_timeStamp;
+	UInt64 m_callbackHandle;
 };

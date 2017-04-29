@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,29 +24,30 @@
 class ImmediateWorkItemDecorator : public WorkItemInterface
 {
 public:
+	ImmediateWorkItemDecorator(WorkItemInterface* workItem, UIntN priority);
+	~ImmediateWorkItemDecorator(void);
 
-    ImmediateWorkItemDecorator(WorkItemInterface* workItem, UIntN priority);
-    ~ImmediateWorkItemDecorator(void);
+	// implement WorkItemInterface
+	UInt64 getUniqueId(void) const;
+	void execute(void);
 
-    // implement WorkItemInterface
-    UInt64 getUniqueId(void) const;
-    void execute(void);
-
-    // implement decorated functionality
-    UIntN getPriority(void) const;
+	// implement decorated functionality
+	UIntN getPriority(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.  implement later if needed.
+	ImmediateWorkItemDecorator(const ImmediateWorkItemDecorator&);
+	ImmediateWorkItemDecorator& operator=(const ImmediateWorkItemDecorator&);
 
-    // hide the copy constructor and assignment operator.  implement later if needed.
-    ImmediateWorkItemDecorator(const ImmediateWorkItemDecorator&);
-    ImmediateWorkItemDecorator& operator=(const ImmediateWorkItemDecorator&);
+	WorkItemInterface* m_workItem;
+	const UIntN m_priority;
 
-    WorkItemInterface* m_workItem;
-    const UIntN m_priority;
-
-    // for the immediate queue we track how long the work item stayed in the queue
-    //
-    //    LARGE_INTEGER                           m_ticksAtWorkItemCreation;      // the number of ticks when the work item was created (from KeQuerySystemTime(), in 100's of nanoseconds)
-    //    BOOL                                    m_signalEventAtCompletion;      // If the creator of the work item would like to know when it has been completed,
-    //    PRKEVENT                                m_completionEvent;              // set SignalEventAtCompletion = TRUE and fill in the pCompletionEvent;
+	// for the immediate queue we track how long the work item stayed in the queue
+	//
+	//    LARGE_INTEGER                           m_ticksAtWorkItemCreation;      // the number of ticks when the work
+	//    item was created (from KeQuerySystemTime(), in 100's of nanoseconds)
+	//    BOOL                                    m_signalEventAtCompletion;      // If the creator of the work item
+	//    would like to know when it has been completed,
+	//    PRKEVENT                                m_completionEvent;              // set SignalEventAtCompletion = TRUE
+	//    and fill in the pCompletionEvent;
 };

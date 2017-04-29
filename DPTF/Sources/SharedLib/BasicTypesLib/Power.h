@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,30 +26,29 @@
 class Power final
 {
 public:
+	Power(void);
+	Power(UInt32 power);
+	static Power createInvalid();
+	static Power createFromMilliwatts(UInt32 milliwatts);
 
-    Power(void);
-    Power(UInt32 power);
-    static Power createInvalid();
-    static Power createFromMilliwatts(UInt32 milliwatts);
+	Bool operator==(const Power& rhs) const;
+	Bool operator!=(const Power& rhs) const;
+	Bool operator>(const Power& rhs) const;
+	Bool operator>=(const Power& rhs) const;
+	Bool operator<(const Power& rhs) const;
+	Bool operator<=(const Power& rhs) const;
+	Power operator+(const Power& rhs) const;
+	Power operator-(const Power& rhs) const;
+	friend std::ostream& operator<<(std::ostream& os, const Power& power);
+	operator UInt32(void) const;
 
-    Bool operator==(const Power& rhs) const;
-    Bool operator!=(const Power& rhs) const;
-    Bool operator>(const Power& rhs) const;
-    Bool operator>=(const Power& rhs) const;
-    Bool operator<(const Power& rhs) const;
-    Bool operator<=(const Power& rhs) const;
-    Power operator+(const Power& rhs) const;
-    Power operator-(const Power& rhs) const;
-    friend std::ostream& operator<<(std::ostream& os, const Power& power);
-    operator UInt32(void) const;
-
-    Bool isValid() const;
-    std::string toString() const;
+	Bool isValid() const;
+	std::string toString() const;
+	Int32 toInt32() const;
 
 private:
+	Bool m_valid;
+	UInt32 m_power;
 
-    Bool m_valid;
-    UInt32 m_power;
-
-    void throwIfInvalid(const Power& power) const;
+	void throwIfInvalid(const Power& power) const;
 };

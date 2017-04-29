@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,18 +26,18 @@
 class dptf_export DomainProperty : public ParticipantProperty
 {
 public:
-
-    DomainProperty(UIntN participantIndex, UIntN domainIndex, 
-        const DomainProperties& domainProperties, const PolicyServicesInterfaceContainer& policyServices);
-    ~DomainProperty();
+	DomainProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~DomainProperty();
 
 protected:
-
-    UIntN getDomainIndex();
-    DomainProperties getDomainProperties();
+	UIntN getDomainIndex();
+	DomainProperties getDomainProperties();
 
 private:
-    
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 };

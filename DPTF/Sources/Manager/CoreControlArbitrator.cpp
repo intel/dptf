@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 #include "CoreControlArbitrator.h"
 #include "Utility.h"
 
-CoreControlArbitrator::CoreControlArbitrator() :
-    m_arbitratedActiveCoreCount(Constants::Invalid)
+CoreControlArbitrator::CoreControlArbitrator()
+	: m_arbitratedActiveCoreCount(Constants::Invalid)
 {
 }
 
@@ -28,48 +28,58 @@ CoreControlArbitrator::~CoreControlArbitrator(void)
 {
 }
 
-Bool CoreControlArbitrator::arbitrate(UIntN policyIndex, const CoreControlStatus& coreControlStatus)
+void CoreControlArbitrator::commitPolicyRequest(UIntN policyIndex, const CoreControlStatus& coreControlStatus)
 {
-    Bool arbitratedValueChanged = false;
-    UIntN artibratedCoreCount = Constants::Invalid;
+	// save the CoreControlStatus at the correct location for this policy
+	m_requestedActiveCoreCount[policyIndex] = coreControlStatus.getNumActiveLogicalProcessors();
+	UIntN minActiveCoreCount = getMinActiveCoreCount(m_requestedActiveCoreCount);
+	m_arbitratedActiveCoreCount = minActiveCoreCount;
+}
 
-    // save the CoreControlStatus at the correct location for this policy
-    m_requestedActiveCoreCount[policyIndex] = coreControlStatus.getNumActiveLogicalProcessors();
+Bool CoreControlArbitrator::hasArbitratedCoreCount(void) const
+{
+	if (m_arbitratedActiveCoreCount != Constants::Invalid)
+	{
+		return true;
+	}
+	return false;
+}
 
-    // loop through and find the request for the least number of active logical processors
-    for (auto policyRequest = m_requestedActiveCoreCount.begin(); policyRequest != m_requestedActiveCoreCount.end(); policyRequest++)
-    {
-        UIntN currentActiveCoreCount = policyRequest->second;
-
-        if ((currentActiveCoreCount != Constants::Invalid) &&
-            ((artibratedCoreCount == Constants::Invalid) ||
-                (currentActiveCoreCount < artibratedCoreCount)))
-        {
-            artibratedCoreCount = currentActiveCoreCount;
-        }
-    }
-
-    // check to see if the CoreControlStatus is changing.
-    if (artibratedCoreCount != m_arbitratedActiveCoreCount)
-    {
-        arbitratedValueChanged = true;
-        m_arbitratedActiveCoreCount = artibratedCoreCount;
-    }
-
-    return arbitratedValueChanged;
+CoreControlStatus CoreControlArbitrator::arbitrate(UIntN policyIndex, const CoreControlStatus& coreControlStatus)
+{
+	auto tempPolicyRequests = m_requestedActiveCoreCount;
+	tempPolicyRequests[policyIndex] = coreControlStatus.getNumActiveLogicalProcessors();
+	UIntN minActiveCoreCount = getMinActiveCoreCount(tempPolicyRequests);
+	return CoreControlStatus(minActiveCoreCount);
 }
 
 CoreControlStatus CoreControlArbitrator::getArbitratedCoreControlStatus(void) const
 {
-    return CoreControlStatus(m_arbitratedActiveCoreCount);
+	return CoreControlStatus(m_arbitratedActiveCoreCount);
 }
 
 void CoreControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
-    auto policyRequest = m_requestedActiveCoreCount.find(policyIndex);
-    if (policyRequest != m_requestedActiveCoreCount.end())
-    {
-        m_requestedActiveCoreCount[policyIndex] = Constants::Invalid;
-        arbitrate(policyIndex, Constants::Invalid);
-    }
+	auto policyRequest = m_requestedActiveCoreCount.find(policyIndex);
+	if (policyRequest != m_requestedActiveCoreCount.end())
+	{
+		m_requestedActiveCoreCount[policyIndex] = Constants::Invalid;
+		commitPolicyRequest(policyIndex, Constants::Invalid);
+	}
+}
+
+UIntN CoreControlArbitrator::getMinActiveCoreCount(std::map<UIntN, UIntN>& requests)
+{
+	UIntN minActiveCoreCount = Constants::Invalid;
+	for (auto policyRequest = requests.begin(); policyRequest != requests.end(); ++policyRequest)
+	{
+		UIntN currentActiveCoreCount = policyRequest->second;
+
+		if ((currentActiveCoreCount != Constants::Invalid)
+			&& ((minActiveCoreCount == Constants::Invalid) || (currentActiveCoreCount < minActiveCoreCount)))
+		{
+			minActiveCoreCount = currentActiveCoreCount;
+		}
+	}
+	return minActiveCoreCount;
 }

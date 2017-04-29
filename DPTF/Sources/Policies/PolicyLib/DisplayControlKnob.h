@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,32 +26,30 @@
 class dptf_export DisplayControlKnob : public ControlKnobBase
 {
 public:
+	DisplayControlKnob(
+		const PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<DisplayControlFacadeInterface> displayControl,
+		UIntN participantIndex,
+		UIntN domainIndex);
+	~DisplayControlKnob(void);
 
-    DisplayControlKnob(
-        const PolicyServicesInterfaceContainer& policyServices,
-        std::shared_ptr<DisplayControlFacadeInterface> displayControl,
-        UIntN participantIndex,
-        UIntN domainIndex);
-    ~DisplayControlKnob(void);
+	virtual void limit(UIntN target) override;
+	virtual void unlimit(UIntN target) override;
+	virtual Bool canLimit(UIntN target) override;
+	virtual Bool canUnlimit(UIntN target) override;
+	virtual Bool commitSetting() override;
+	virtual void clearRequestForTarget(UIntN target) override;
+	virtual void clearAllRequests() override;
+	virtual void adjustRequestsToCapabilities() override;
 
-    virtual void limit(UIntN target) override;
-    virtual void unlimit(UIntN target) override;
-    virtual Bool canLimit(UIntN target) override;
-    virtual Bool canUnlimit(UIntN target) override;
-    virtual Bool commitSetting() override;
-    virtual void clearRequestForTarget(UIntN target) override;
-    virtual void clearAllRequests() override;
-    virtual void adjustRequestsToCapabilities() override;
+	std::shared_ptr<XmlNode> getXml();
 
-    std::shared_ptr<XmlNode> getXml();
-    
 private:
+	std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
+	std::map<UIntN, UIntN> m_requests;
+	Bool m_hasBeenLimited; // only unlimit if the control has been limited in the past due to thermal condition
 
-    std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
-    std::map<UIntN, UIntN> m_requests;
-    Bool m_hasBeenLimited; // only unlimit if the control has been limited in the past due to thermal condition
-
-    UIntN findHighestDisplayIndexRequest() const;
-    UIntN getTargetRequest(UIntN target) const;
-    UIntN calculateNextIndex(UIntN target);
+	UIntN findHighestDisplayIndexRequest() const;
+	UIntN getTargetRequest(UIntN target) const;
+	UIntN calculateNextIndex(UIntN target);
 };

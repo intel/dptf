@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,41 +22,41 @@ using namespace std;
 
 vector<string> StringParser::split(string input, char delimiter)
 {
-    vector<string> strings;
+	vector<string> strings;
 
-    try
-    {
-        std::stringstream stream(input);
-        std::string substring;
+	try
+	{
+		std::stringstream stream(input);
+		std::string substring;
 
-        while (stream.eof() == false)
-        {
-            getline(stream, substring, delimiter);
-            // remove /0's from string
-            substring.erase(std::remove(substring.begin(), substring.end(), '\0'), substring.end());
+		while (stream.eof() == false)
+		{
+			getline(stream, substring, delimiter);
+			// remove /0's from string
+			substring.erase(std::remove(substring.begin(), substring.end(), '\0'), substring.end());
 
-            if (substring.size() > 0)
-            {
-                strings.push_back(substring);
-            }
-        }
-    }
-    catch (...)
-    {
-        // swallow any errors   
-    }
+			if (substring.size() > 0)
+			{
+				strings.push_back(substring);
+			}
+		}
+	}
+	catch (...)
+	{
+		// swallow any errors
+	}
 
-    return strings;
+	return strings;
 }
 
 std::string StringParser::removeString(std::string input, std::string substring)
 {
-    std::size_t foundPosition = input.find(substring);
+	std::size_t foundPosition = input.find(substring);
 
-    if (foundPosition != std::string::npos)
-    {
-        input.erase(foundPosition, substring.length());
-    }
+	if (foundPosition != std::string::npos)
+	{
+		input.erase(foundPosition, substring.length());
+	}
 
-    return input;
+	return input;
 }

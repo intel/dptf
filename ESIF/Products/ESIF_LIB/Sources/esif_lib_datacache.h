@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,10 +25,6 @@
 
 ///////////////////////////////////////////////////////
 // DataCacheEntry Class
-
-// TODO: DEPRECATE
-#define ESIFDV_DATA_CAT_UNSPECIFIED 0
-#define ESIFDV_DATA_CAT_MAX	1
 
 struct DataCacheEntry_s;
 typedef struct DataCacheEntry_s DataCacheEntry, *DataCacheEntryPtr, **DataCacheEntryPtrLocation;
@@ -79,9 +75,8 @@ eEsifError DataCache_InsertValue(DataCachePtr self, esif_string key, EsifDataPtr
 eEsifError DataCache_DeleteValue(DataCachePtr self, esif_string key);
 UInt32 DataCache_GetCount(DataCachePtr self);
 
-DataCachePtr DataCache_Clone(
-	DataCachePtr self
-	);
+DataCachePtr DataCache_CloneOffsets(DataCachePtr self);
+eEsifError DataCache_RestoreOffsets(DataCachePtr self, DataCachePtr backup);
 
 #ifdef __cplusplus
 }

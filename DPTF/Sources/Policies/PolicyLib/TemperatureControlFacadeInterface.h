@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,18 +26,17 @@
 class dptf_export TemperatureControlFacadeInterface
 {
 public:
+	virtual ~TemperatureControlFacadeInterface(){};
 
-    virtual ~TemperatureControlFacadeInterface() {};
-
-    virtual Temperature getCurrentTemperature() = 0;
-    virtual TemperatureThresholds getTemperatureNotificationThresholds() = 0;
-    virtual void setTemperatureNotificationThresholds(const Temperature& lowerBound, const Temperature& upperBound) = 0;
-    virtual Bool supportsTemperatureControls() = 0;
-    virtual Bool supportsTemperatureThresholds() = 0;
-    virtual Bool isVirtualTemperatureControl() = 0;
-    virtual DptfBuffer getCalibrationTable() = 0;
-    virtual DptfBuffer getPollingTable() = 0;
-    virtual void setVirtualTemperature(const Temperature& temperature) = 0;
-    virtual void refreshHysteresis() = 0;
-    virtual void refreshVirtualSensorTables() = 0;
+	virtual Temperature getCurrentTemperature() = 0;
+	virtual TemperatureThresholds getTemperatureNotificationThresholds() = 0;
+	virtual void setTemperatureNotificationThresholds(const Temperature& lowerBound, const Temperature& upperBound) = 0;
+	virtual Bool supportsTemperatureControls() = 0;
+	virtual Bool supportsTemperatureThresholds() = 0;
+	virtual Bool isVirtualTemperatureControl() = 0;
+	virtual DptfBuffer getCalibrationTable() = 0;
+	virtual DptfBuffer getPollingTable() = 0;
+	virtual void setVirtualTemperature(const Temperature& temperature) = 0;
+	virtual void refreshHysteresis() = 0;
+	virtual void refreshVirtualSensorTables() = 0;
 };

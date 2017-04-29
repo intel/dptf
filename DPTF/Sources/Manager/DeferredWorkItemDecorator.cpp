@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,22 +18,23 @@
 
 #include "DeferredWorkItemDecorator.h"
 
-DeferredWorkItemDecorator::DeferredWorkItemDecorator(WorkItemInterface* workItem) : m_workItem(workItem)
+DeferredWorkItemDecorator::DeferredWorkItemDecorator(WorkItemInterface* workItem)
+	: m_workItem(workItem)
 {
-    throw implement_me();
+	throw implement_me();
 }
 
 DeferredWorkItemDecorator::~DeferredWorkItemDecorator(void)
 {
-    delete m_workItem;
+	delete m_workItem;
 }
 
 UInt64 DeferredWorkItemDecorator::getUniqueId(void) const
 {
-    return m_workItem->getUniqueId();
+	return m_workItem->getUniqueId();
 }
 
 void DeferredWorkItemDecorator::execute(void)
 {
-    return m_workItem->execute();
+	return m_workItem->execute();
 }

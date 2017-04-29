@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,45 +21,47 @@
 using namespace StatusFormat;
 
 ThermalRelationshipTableEntry::ThermalRelationshipTableEntry(
-    const std::string& sourceDeviceScope,
-    const std::string& targetDeviceScope,
-    UInt32 thermalInfluence,
-    const TimeSpan& thermalSamplingPeriod)
-    : RelationshipTableEntryBase(sourceDeviceScope, targetDeviceScope),
-    m_thermalInfluence(thermalInfluence),
-    m_thermalSamplingPeriod(thermalSamplingPeriod)
+	const std::string& sourceDeviceScope,
+	const std::string& targetDeviceScope,
+	UInt32 thermalInfluence,
+	const TimeSpan& thermalSamplingPeriod)
+	: RelationshipTableEntryBase(sourceDeviceScope, targetDeviceScope)
+	, m_thermalInfluence(thermalInfluence)
+	, m_thermalSamplingPeriod(thermalSamplingPeriod)
 {
 }
 
 const UInt32& ThermalRelationshipTableEntry::thermalInfluence() const
 {
-    return m_thermalInfluence;
+	return m_thermalInfluence;
 }
 
 const TimeSpan& ThermalRelationshipTableEntry::thermalSamplingPeriod() const
 {
-    return m_thermalSamplingPeriod;
+	return m_thermalSamplingPeriod;
 }
 
 std::shared_ptr<XmlNode> ThermalRelationshipTableEntry::getXml()
 {
-    auto entry = XmlNode::createWrapperElement("trt_entry");
-    entry->addChild(XmlNode::createDataElement("target_index", friendlyValue(getTargetDeviceIndex())));
-    entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceScope()));
-    entry->addChild(XmlNode::createDataElement("source_index", friendlyValue(getSourceDeviceIndex())));
-    entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceScope()));
-    entry->addChild(XmlNode::createDataElement("influence", friendlyValue(m_thermalInfluence)));
-    entry->addChild(XmlNode::createDataElement("sampling_period", m_thermalSamplingPeriod.toStringSeconds()));
-    return entry;
+	auto entry = XmlNode::createWrapperElement("trt_entry");
+	entry->addChild(XmlNode::createDataElement("target_index", friendlyValue(getTargetDeviceIndex())));
+	entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceScope()));
+	entry->addChild(XmlNode::createDataElement("source_index", friendlyValue(getSourceDeviceIndex())));
+	entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceScope()));
+	entry->addChild(XmlNode::createDataElement("influence", friendlyValue(m_thermalInfluence)));
+	entry->addChild(XmlNode::createDataElement("sampling_period", m_thermalSamplingPeriod.toStringSeconds()));
+	return entry;
 }
 
 Bool ThermalRelationshipTableEntry::isSameAs(const ThermalRelationshipTableEntry& trtEntry) const
 {
-    return ((RelationshipTableEntryBase)*this) == ((RelationshipTableEntryBase)trtEntry);
+	return ((RelationshipTableEntryBase) * this) == ((RelationshipTableEntryBase)trtEntry);
 }
 
 Bool ThermalRelationshipTableEntry::operator==(const ThermalRelationshipTableEntry& trtEntry) const
 {
-    return ((m_thermalInfluence == trtEntry.m_thermalInfluence) && (m_thermalSamplingPeriod == trtEntry.m_thermalSamplingPeriod)
-        && ((RelationshipTableEntryBase)*this) == ((RelationshipTableEntryBase)trtEntry));
+	return (
+		(m_thermalInfluence == trtEntry.m_thermalInfluence)
+		&& (m_thermalSamplingPeriod == trtEntry.m_thermalSamplingPeriod)
+		&& ((RelationshipTableEntryBase) * this) == ((RelationshipTableEntryBase)trtEntry));
 }

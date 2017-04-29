@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,14 +22,14 @@
 
 namespace OsPowerSchemePersonality
 {
-    enum Type
-    {
-        HighPerformance = 0,
-        PowerSaver = 1,
-        Balanced = 2,
-        Invalid = 3,
-    };
+	enum Type
+	{
+		HighPerformance = 0,
+		PowerSaver = 1,
+		Balanced = 2,
+		Invalid = 3,
+	};
 
-    std::string toString(OsPowerSchemePersonality::Type osPowerSchemePersonality);
-    OsPowerSchemePersonality::Type toType(Guid OsPowerSchemePersonality);
+	std::string toString(OsPowerSchemePersonality::Type osPowerSchemePersonality);
+	OsPowerSchemePersonality::Type toType(Guid OsPowerSchemePersonality);
 }

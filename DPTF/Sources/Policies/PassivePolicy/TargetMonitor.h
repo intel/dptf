@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,17 +25,15 @@
 class dptf_export TargetMonitor
 {
 public:
+	TargetMonitor();
+	~TargetMonitor();
 
-    TargetMonitor();
-    ~TargetMonitor();
-
-    void startMonitoring(UIntN target);
-    void stopMonitoring(UIntN target);
-    Bool isMonitoring(UIntN target);
-    std::set<UIntN> getMonitoredTargets() const;
-    void stopMonitoringAll();
+	void startMonitoring(UIntN target);
+	void stopMonitoring(UIntN target);
+	Bool isMonitoring(UIntN target);
+	std::set<UIntN> getMonitoredTargets() const;
+	void stopMonitoringAll();
 
 private:
-
-    std::set<UIntN> m_targetsMonitored;
+	std::set<UIntN> m_targetsMonitored;
 };

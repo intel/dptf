@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,17 +23,17 @@
 
 namespace BusType
 {
-    enum Type
-    {
-        Acpi,
-        Pci,
-        Plat,
-        Conjure,
-        Sysfs,
-        None
-    };
+	enum Type
+	{
+		Acpi,
+		Pci,
+		Plat,
+		Conjure,
+		Sysfs,
+		None
+	};
 
-    std::string ToString(BusType::Type type);
+	std::string ToString(BusType::Type type);
 }
 
 BusType::Type EsifParticipantEnumToBusType(esif_participant_enum esifParticipantEnum);

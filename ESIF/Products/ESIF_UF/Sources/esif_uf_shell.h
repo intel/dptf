@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,6 +41,9 @@ void esif_uf_shell_lock();
 void esif_uf_shell_unlock();
 
 char *esif_shell_resize(size_t buf_len);
+
+void esif_shell_set_start_script(const char *script);
+const char *esif_shell_get_start_script(void);
 
 EsifString esif_cmd_info(EsifString output);
 

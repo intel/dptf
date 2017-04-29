@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,74 +27,74 @@ static const UIntN GuidSize = 16;
 #pragma pack(push, 1)
 typedef struct _AcpiEsifGuid
 {
-    union esif_data_variant esifDataVariant;
-    UInt8 uuid[GuidSize];
+	union esif_data_variant esifDataVariant;
+	UInt8 uuid[GuidSize];
 } AcpiEsifGuid;
 #pragma pack(pop)
 
-SupportedPolicyList::SupportedPolicyList(DptfManagerInterface* dptfManager) :
-    m_dptfManager(dptfManager)
+SupportedPolicyList::SupportedPolicyList(DptfManagerInterface* dptfManager)
+	: m_dptfManager(dptfManager)
 {
-    update();
+	update();
 }
 
 UIntN SupportedPolicyList::getCount(void) const
 {
-    return static_cast<UIntN>(m_guid.size());
+	return static_cast<UIntN>(m_guid.size());
 }
 
 Guid SupportedPolicyList::operator[](UIntN index) const
 {
-    return m_guid.at(index);
+	return m_guid.at(index);
 }
 
 Bool SupportedPolicyList::isPolicyValid(const Guid& guid) const
 {
 #ifdef DISABLE_VALID_POLICY_CHECK
 
-    return true;
+	return true;
 
 #else
 
-    Bool supported = false;
+	Bool supported = false;
 
-    for (auto it = m_guid.begin(); it != m_guid.end(); it++)
-    {
-        if (*it == guid)
-        {
-            supported = true;
-            break;
-        }
-    }
+	for (auto it = m_guid.begin(); it != m_guid.end(); it++)
+	{
+		if (*it == guid)
+		{
+			supported = true;
+			break;
+		}
+	}
 
-    return supported;
+	return supported;
 
 #endif
 }
 
 void SupportedPolicyList::update(void)
 {
-    m_guid.clear();
+	m_guid.clear();
 
-    DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
-        esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
+	DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
+		esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
 
-    if ((buffer.size() % sizeof(AcpiEsifGuid)) != 0)
-    {
-        std::stringstream message;
-        message << "Received invalid data length [" << buffer.size() << "] from primitive call: GET_SUPPORTED_POLICIES";
-        throw dptf_exception(message.str());
-    }
+	if ((buffer.size() % sizeof(AcpiEsifGuid)) != 0)
+	{
+		std::stringstream message;
+		message << "Received invalid data length [" << buffer.size() << "] from primitive call: GET_SUPPORTED_POLICIES";
+		throw dptf_exception(message.str());
+	}
 
-    UInt32 guidCount = buffer.size() / sizeof(AcpiEsifGuid);
-    AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(buffer.get());
+	UInt32 guidCount = buffer.size() / sizeof(AcpiEsifGuid);
+	AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(buffer.get());
 
-    for (UInt32 i = 0; i < guidCount; i++)
-    {
-        UInt8 guidByteArray[GuidSize] = {0};
-        esif_ccb_memcpy(guidByteArray, &acpiEsifGuid[i].uuid, GuidSize);
-        Guid guid(guidByteArray);
-        m_dptfManager->getEsifServices()->writeMessageInfo("Supported GUID: " + guid.toString());
-        m_guid.push_back(guid);
-    }
+	for (UInt32 i = 0; i < guidCount; i++)
+	{
+		UInt8 guidByteArray[GuidSize] = {0};
+		esif_ccb_memcpy(guidByteArray, &acpiEsifGuid[i].uuid, GuidSize);
+		Guid guid(guidByteArray);
+		m_dptfManager->getEsifServices()->writeMessageInfo("Supported GUID: " + guid.toString());
+		m_guid.push_back(guid);
+	}
 }

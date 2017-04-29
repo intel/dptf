@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,14 +18,14 @@
 
 #include "DomainRfProfileStatusBase.h"
 
-DomainRfProfileStatusBase::DomainRfProfileStatusBase(UIntN participantIndex, UIntN domainIndex,
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : ControlBase(participantIndex, domainIndex, participantServicesInterface)
+DomainRfProfileStatusBase::DomainRfProfileStatusBase(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: ControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-
 }
 
 DomainRfProfileStatusBase::~DomainRfProfileStatusBase()
 {
-
 }

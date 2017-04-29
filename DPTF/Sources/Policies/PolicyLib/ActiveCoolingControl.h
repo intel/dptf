@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,56 +31,54 @@
 class dptf_export ActiveCoolingControl : public ActiveCoolingControlFacadeInterface
 {
 public:
+	ActiveCoolingControl(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const ParticipantProperties& participantProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~ActiveCoolingControl(void);
 
-    ActiveCoolingControl(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const ParticipantProperties& participantProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~ActiveCoolingControl(void);
+	// control capabilities
+	virtual Bool supportsActiveCoolingControls() override;
+	virtual Bool supportsFineGrainControl() override;
 
-    // control capabilities
-    virtual Bool supportsActiveCoolingControls() override;
-    virtual Bool supportsFineGrainControl() override;
+	// fan speed requests
+	virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) override;
+	virtual void requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex) override;
+	virtual void forceFanOff(void) override;
+	virtual void setControl(Percentage activeCoolingControlFanSpeed) override;
 
-    // fan speed requests
-    virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) override;
-    virtual void requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex) override;
-    virtual void forceFanOff(void) override;
-    virtual void setControl(Percentage activeCoolingControlFanSpeed) override;
+	// properties
+	virtual const ActiveControlStaticCaps& getCapabilities() override;
+	virtual void refreshCapabilities() override;
+	virtual ActiveControlStatus getStatus() override;
+	virtual UIntN getSmallestNonZeroFanSpeed() override;
+	virtual Bool hasValidActiveControlSet() override;
 
-    //properties
-    virtual const ActiveControlStaticCaps& getCapabilities() override;
-    virtual void refreshCapabilities() override;
-    virtual ActiveControlStatus getStatus() override;
-    virtual UIntN getSmallestNonZeroFanSpeed() override;
-    virtual Bool hasValidActiveControlSet() override;
+	// status
+	virtual std::shared_ptr<XmlNode> getXml() override;
 
-    // status
-    virtual std::shared_ptr<XmlNode> getXml() override;
-
-    static const UIntN FanOffIndex = 10;
+	static const UIntN FanOffIndex = 10;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
-    
-    // control properties
-    DomainProperties m_domainProperties;
-    ParticipantProperties m_participantProperties;
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    ActiveControlStaticCapsCachedProperty m_staticCaps;
+	// control properties
+	DomainProperties m_domainProperties;
+	ParticipantProperties m_participantProperties;
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	ActiveControlStaticCapsCachedProperty m_staticCaps;
 
-    // fan speed request arbitration
-    std::map<UIntN, Percentage> m_fanSpeedRequestTable;
-    std::map<UIntN, UIntN> m_activeControlRequestTable;
-    Percentage m_lastFanSpeedRequest;
-    UIntN m_lastFanSpeedRequestIndex;
-    void updateFanSpeedRequestTable(UIntN requestorIndex, const Percentage& fanSpeed);
-    Percentage chooseHighestFanSpeedRequest();
-    void updateActiveControlRequestTable(UIntN requestorIndex, UIntN activeControlIndex);
-    UIntN chooseHighestActiveControlIndex();
+	// fan speed request arbitration
+	std::map<UIntN, Percentage> m_fanSpeedRequestTable;
+	std::map<UIntN, UIntN> m_activeControlRequestTable;
+	Percentage m_lastFanSpeedRequest;
+	UIntN m_lastFanSpeedRequestIndex;
+	void updateFanSpeedRequestTable(UIntN requestorIndex, const Percentage& fanSpeed);
+	Percentage chooseHighestFanSpeedRequest();
+	void updateActiveControlRequestTable(UIntN requestorIndex, UIntN activeControlIndex);
+	UIntN chooseHighestActiveControlIndex();
 };

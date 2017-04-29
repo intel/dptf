@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,57 +19,61 @@
 #include "DomainTemperature_001.h"
 #include "XmlNode.h"
 
-DomainTemperature_001::DomainTemperature_001(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
-    DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
+DomainTemperature_001::DomainTemperature_001(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
 DomainTemperature_001::~DomainTemperature_001()
 {
-    clearCachedData();
+	clearCachedData();
 }
 
 TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    try
-    {
-        Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
-            esif_primitive_type::GET_TEMPERATURE, domainIndex);
-        return TemperatureStatus(temperature);
-    }
-    catch (primitive_destination_unavailable)
-    {
-        return TemperatureStatus(Temperature::minValidTemperature);
-    }
-    catch (dptf_exception& ex)
-    {
-        getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
+	try
+	{
+		Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
+			esif_primitive_type::GET_TEMPERATURE, domainIndex);
+		return TemperatureStatus(temperature);
+	}
+	catch (primitive_destination_unavailable)
+	{
+		return TemperatureStatus(Temperature::minValidTemperature);
+	}
+	catch (dptf_exception& ex)
+	{
+		getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
 
-        // TODO: Let the policies handle the exceptions themselves and don't return a value.
-        return TemperatureStatus(Temperature::minValidTemperature);
-    }
+		// TODO: Let the policies handle the exceptions themselves and don't return a value.
+		return TemperatureStatus(Temperature::minValidTemperature);
+	}
 }
 
 DptfBuffer DomainTemperature_001::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 DptfBuffer DomainTemperature_001::getPollingTable(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 Bool DomainTemperature_001::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
 {
-    return false;
+	return false;
 }
 
-void DomainTemperature_001::setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, 
-    const Temperature& temperature)
+void DomainTemperature_001::setVirtualTemperature(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Temperature& temperature)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainTemperature_001::clearCachedData(void)
@@ -78,16 +82,16 @@ void DomainTemperature_001::clearCachedData(void)
 
 std::shared_ptr<XmlNode> DomainTemperature_001::getXml(UIntN domainIndex)
 {
-    auto root = XmlNode::createWrapperElement("temperature_control");
-    root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
+	auto root = XmlNode::createWrapperElement("temperature_control");
+	root->addChild(XmlNode::createDataElement("control_name", getName()));
+	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
+	root->addChild(getTemperatureStatus(getParticipantIndex(), domainIndex).getXml());
+	root->addChild(getTemperatureThresholds(getParticipantIndex(), domainIndex).getXml());
 
-    root->addChild(getTemperatureStatus(getParticipantIndex(), domainIndex).getXml());
-    root->addChild(getTemperatureThresholds(getParticipantIndex(), domainIndex).getXml());
-
-    return root;
+	return root;
 }
 
 std::string DomainTemperature_001::getName(void)
 {
-    return "Temperature Control (Version 1)";
+	return "Temperature Control";
 }

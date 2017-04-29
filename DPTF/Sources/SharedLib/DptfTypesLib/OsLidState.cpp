@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,16 +20,16 @@
 
 namespace OsLidState
 {
-    std::string toString(OsLidState::Type osLidState)
-    {
-        switch (osLidState)
-        {
-        case Closed:
-            return "Closed";
-        case Open:
-            return "Open";
-        default:
-            throw dptf_exception("OsLidState::Type is invalid");
-        }
-    }
+	std::string toString(OsLidState::Type osLidState)
+	{
+		switch (osLidState)
+		{
+		case Closed:
+			return "Closed";
+		case Open:
+			return "Open";
+		default:
+			throw dptf_exception("OsLidState::Type is invalid");
+		}
+	}
 }

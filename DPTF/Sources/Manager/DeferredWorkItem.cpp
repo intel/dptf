@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,68 +19,68 @@
 #include "DeferredWorkItem.h"
 #include "WorkItem.h"
 
-DeferredWorkItem::DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution) :
-    m_workItem(workItem)
+DeferredWorkItem::DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution)
+	: m_workItem(workItem)
 {
-    m_deferredProcessingTime = EsifTime().getTimeStamp() + timeUntilExecution;
+	m_deferredProcessingTime = EsifTime().getTimeStamp() + timeUntilExecution;
 }
 
 DeferredWorkItem::~DeferredWorkItem(void)
 {
-    DELETE_MEMORY_TC(m_workItem);
+	DELETE_MEMORY_TC(m_workItem);
 }
 
 UInt64 DeferredWorkItem::getUniqueId(void) const
 {
-    return m_workItem->getUniqueId();
+	return m_workItem->getUniqueId();
 }
 
 FrameworkEvent::Type DeferredWorkItem::getFrameworkEventType(void) const
 {
-    return m_workItem->getFrameworkEventType();
+	return m_workItem->getFrameworkEventType();
 }
 
 const TimeSpan& DeferredWorkItem::getWorkItemCreationTime(void) const
 {
-    return m_workItem->getWorkItemCreationTime();
+	return m_workItem->getWorkItemCreationTime();
 }
 
 void DeferredWorkItem::setWorkItemExecutionStartTime(void)
 {
-    m_workItem->setWorkItemExecutionStartTime();
+	m_workItem->setWorkItemExecutionStartTime();
 }
 
 const TimeSpan& DeferredWorkItem::getWorkItemExecutionStartTime(void) const
 {
-    return m_workItem->getWorkItemExecutionStartTime();
+	return m_workItem->getWorkItemExecutionStartTime();
 }
 
 void DeferredWorkItem::signalAtCompletion(EsifSemaphore* semaphore)
 {
-    return m_workItem->signalAtCompletion(semaphore);
+	return m_workItem->signalAtCompletion(semaphore);
 }
 
 Bool DeferredWorkItem::matches(const WorkItemMatchCriteria& matchCriteria) const
 {
-    return m_workItem->matches(matchCriteria);
+	return m_workItem->matches(matchCriteria);
 }
 
 std::string DeferredWorkItem::toXml(void) const
 {
-    return m_workItem->toXml();
+	return m_workItem->toXml();
 }
 
 void DeferredWorkItem::execute(void)
 {
-    m_workItem->execute();
+	m_workItem->execute();
 }
 
 WorkItemInterface* DeferredWorkItem::getWorkItem(void) const
 {
-    return m_workItem;
+	return m_workItem;
 }
 
 const TimeSpan& DeferredWorkItem::getDeferredProcessingTime(void) const
 {
-    return m_deferredProcessingTime;
+	return m_deferredProcessingTime;
 }

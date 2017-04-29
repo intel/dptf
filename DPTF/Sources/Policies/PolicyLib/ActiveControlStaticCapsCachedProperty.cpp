@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,13 @@
 using namespace std;
 
 ActiveControlStaticCapsCachedProperty::ActiveControlStaticCapsCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties, 
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(),
-    DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_capabilities(false, false, 0)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_capabilities(false, false, 0)
 {
 }
 
@@ -36,20 +36,20 @@ ActiveControlStaticCapsCachedProperty::~ActiveControlStaticCapsCachedProperty(vo
 
 void ActiveControlStaticCapsCachedProperty::refreshData(void)
 {
-    m_capabilities = getPolicyServices().domainActiveControl->getActiveControlStaticCaps(
-        getParticipantIndex(), getDomainIndex());
+	m_capabilities =
+		getPolicyServices().domainActiveControl->getActiveControlStaticCaps(getParticipantIndex(), getDomainIndex());
 }
 
 Bool ActiveControlStaticCapsCachedProperty::supportsProperty(void)
 {
-    return getDomainProperties().implementsActiveControlInterface();
+	return getDomainProperties().implementsActiveControlInterface();
 }
 
 const ActiveControlStaticCaps& ActiveControlStaticCapsCachedProperty::getCapabilities()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_capabilities;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_capabilities;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,26 +22,26 @@
 
 namespace ParticipantSpecificInfoKey
 {
-    enum Type
-    {
-        None,
-        Warm,
-        Hot,
-        Critical,
-        AC0,
-        AC1,
-        AC2,
-        AC3,
-        AC4,
-        AC5,
-        AC6,
-        AC7,
-        AC8,
-        AC9,
-        PSV,
-        NTT,
-        MaxSize
-    };
+	enum Type
+	{
+		None,
+		Warm,
+		Hot,
+		Critical,
+		AC0,
+		AC1,
+		AC2,
+		AC3,
+		AC4,
+		AC5,
+		AC6,
+		AC7,
+		AC8,
+		AC9,
+		PSV,
+		NTT,
+		MaxSize
+	};
 
-    std::string ToString(ParticipantSpecificInfoKey::Type participantSpecificInfoKeyType);
+	std::string ToString(ParticipantSpecificInfoKey::Type participantSpecificInfoKeyType);
 }

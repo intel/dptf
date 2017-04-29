@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,35 +22,36 @@
 
 struct DomainFunctionalityVersions final
 {
-    // By default all of the UInt8's will be set to 0
-    DomainFunctionalityVersions(void);
+	// By default all of the UInt8's will be set to 0
+	DomainFunctionalityVersions(void);
 
-    // Initialize based on array of capabilities received from ESIF
-    DomainFunctionalityVersions(UInt8 capabilityBytes[]);
+	// Initialize based on array of capabilities received from ESIF
+	DomainFunctionalityVersions(UInt8 capabilityBytes[]);
 
-    // If the Uint8 contains 0, that means the domain doesn't implement the interface.
-    // For anything > 0, this is the version number of the implementation it chooses.
-    // The version will be used by the class factory to instantiate the correct object.
-    // Since all of this is provided by ESIF, a domain can mix and match the different
-    // capabilities and the participant is constructed at run time based on the DSP.
-    UInt8 activeControlVersion;
-    UInt8 configTdpControlVersion;
-    UInt8 coreControlVersion;
-    UInt8 displayControlVersion;
-    UInt8 domainPriorityVersion;
-    UInt8 performanceControlVersion;
-    UInt8 powerControlVersion;
-    UInt8 powerStatusVersion;
-    UInt8 temperatureVersion;
-    UInt8 temperatureThresholdVersion;
-    UInt8 utilizationVersion;
-    UInt8 pixelClockControlVersion;
-    UInt8 pixelClockStatusVersion;
-    UInt8 rfProfileControlVersion;
-    UInt8 rfProfileStatusVersion;
-    UInt8 platformPowerControlVersion;
-    UInt8 platformPowerStatusVersion;
+	// If the Uint8 contains 0, that means the domain doesn't implement the interface.
+	// For anything > 0, this is the version number of the implementation it chooses.
+	// The version will be used by the class factory to instantiate the correct object.
+	// Since all of this is provided by ESIF, a domain can mix and match the different
+	// capabilities and the participant is constructed at run time based on the DSP.
+	UInt8 activeControlVersion;
+	UInt8 configTdpControlVersion;
+	UInt8 coreControlVersion;
+	UInt8 displayControlVersion;
+	UInt8 domainPriorityVersion;
+	UInt8 performanceControlVersion;
+	UInt8 powerControlVersion;
+	UInt8 powerStatusVersion;
+	UInt8 temperatureVersion;
+	UInt8 temperatureThresholdVersion;
+	UInt8 utilizationVersion;
+	UInt8 rfProfileControlVersion;
+	UInt8 rfProfileStatusVersion;
+	UInt8 platformPowerControlVersion;
+	UInt8 platformPowerStatusVersion;
+	UInt8 activityStatusVersion;
+	UInt8 peakPowerControlVersion;
+	UInt8 tccOffsetControlVersion;
 
-    Bool operator==(const DomainFunctionalityVersions& domainFunctionality);
-    Bool operator!=(const DomainFunctionalityVersions& domainFunctionality);
+	Bool operator==(const DomainFunctionalityVersions& domainFunctionality);
+	Bool operator!=(const DomainFunctionalityVersions& domainFunctionality);
 };

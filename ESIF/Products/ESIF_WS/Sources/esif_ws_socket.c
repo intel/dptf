@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -93,15 +93,6 @@ static UInt8 *esif_ws_socket_get_mask(
 
 static UInt8 esif_ws_socket_is_mask_enabled(const WsSocketFramePtr framePtr);
 
-
-#ifdef ESIF_ATTR_OS_LINUX
-static ESIF_INLINE UInt64 htonll(UInt64 value)
-{
-	UInt32 hi = htonl((UInt32)(value >> 32));
-	UInt32 lo = htonl((UInt32)value);
-	return (((UInt64) lo) << 32) | hi;
-}
-#endif
 
 /*
  *******************************************************************************
@@ -385,13 +376,13 @@ void esif_ws_socket_build_payload(
 		frameDataPtr = framePtr->u.T1_NoMask.data;
 
 	} else if (dataLength <= WS_FRAME_SIZE_TYPE_2_MAX_PAYLOAD) {
-		UInt16 payLoadLength = htons((UInt16)dataLength);
+		UInt16 payLoadLength = esif_ccb_htons((UInt16)dataLength);
 		framePtr->header.s.payLen = WS_FRAME_SIZE_TYPE_2;
 		framePtr->u.T2_NoMask.extPayLen = payLoadLength;
 		frameDataPtr = framePtr->u.T2_NoMask.data;
 
 	} else {
-		UInt64 payLoadLength = htonll((UInt64)dataLength);
+		UInt64 payLoadLength = esif_ccb_htonll((UInt64)dataLength);
 		framePtr->header.s.payLen = WS_FRAME_SIZE_TYPE_3;
 		framePtr->u.T3_NoMask.extPayLen = payLoadLength;
 		frameDataPtr = framePtr->u.T3_NoMask.data;
@@ -431,22 +422,19 @@ FrameType esif_ws_socket_get_subsequent_frame_type(
 		return ERROR_FRAME;
 	}
 
-	if (framePtr->header.s.fin != 1) {
-		return ERROR_FRAME;
-	}
-
 	if (!esif_ws_socket_is_mask_enabled(framePtr)) {
 		return ERROR_FRAME;
 	}
 
 	mode = (UInt8)framePtr->header.s.opcode;
-	if (mode == TEXT_FRAME || mode == BINARY_FRAME || mode == CLOSING_FRAME || mode == PING_FRAME || mode == PONG_FRAME) {
+	if (mode == TEXT_FRAME || mode == BINARY_FRAME || mode == CLOSING_FRAME || mode == PING_FRAME || mode == PONG_FRAME || mode == CONTINUATION_FRAME) {
 		frameType = (FrameType)mode;
 
 		payloadLength = esif_ws_socket_get_payload_size(framePtr, incomingFrameLen, &frameType);
 		if (payloadLength <= 0) {
 			return frameType;
 		}
+		ESIF_TRACE_DEBUG("WS Receive Frame: Type=%02X Payload=%zd Received=%zd Hdr=%zd\n", frameType, payloadLength, incomingFrameLen, hdrLen);
 
 		if (payloadLength > (incomingFrameLen - hdrLen)) {
 			return INCOMPLETE_FRAME;
@@ -467,6 +455,10 @@ FrameType esif_ws_socket_get_subsequent_frame_type(
 
 		for (i = 0; i < *dataLength; i++) {
 			(*dataPtr)[i] = (*dataPtr)[i] ^ maskingKey[i % 4];
+		}
+
+		if (framePtr->header.s.fin == 0) {
+			return FRAGMENT_FRAME;
 		}
 		return frameType;
 	}
@@ -534,7 +526,7 @@ static size_t esif_ws_socket_get_payload_size (
 	payLen = framePtr->header.s.payLen;
 
 	if (payLen == WS_FRAME_SIZE_TYPE_2) {
-		payLen = (size_t) htons(framePtr->u.T2.extPayLen);
+		payLen = (size_t) esif_ccb_htons(framePtr->u.T2.extPayLen);
 
 	} else if (payLen == WS_FRAME_SIZE_TYPE_3) {
 		if (((u8)framePtr->u.T3.extPayLen) > MAXIMUM_SIZE) {
@@ -542,7 +534,7 @@ static size_t esif_ws_socket_get_payload_size (
 			return 0;
 		}
 
-		payLen = (size_t) htonll(framePtr->u.T3.extPayLen);
+		payLen = (size_t) esif_ccb_htonll(framePtr->u.T3.extPayLen);
 	}
 
 	return payLen;

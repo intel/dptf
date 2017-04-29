@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,33 +20,34 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 
-DisplayControl::DisplayControl(Percentage brightness) : m_brightness(brightness)
+DisplayControl::DisplayControl(Percentage brightness)
+	: m_brightness(brightness)
 {
 }
 
 Percentage DisplayControl::getBrightness(void) const
 {
-    return m_brightness;
+	return m_brightness;
 }
 
 Bool DisplayControl::operator==(const DisplayControl& rhs) const
 {
-    return (this->getBrightness() == rhs.getBrightness());
+	return (this->getBrightness() == rhs.getBrightness());
 }
 
 Bool DisplayControl::operator!=(const DisplayControl& rhs) const
 {
-    return !(*this == rhs);
+	return !(*this == rhs);
 }
 
 Bool DisplayControl::operator<(const DisplayControl& rhs) const
 {
-    return (m_brightness < rhs.m_brightness);
+	return (m_brightness < rhs.m_brightness);
 }
 
 std::shared_ptr<XmlNode> DisplayControl::getXml(void)
 {
-    auto root = XmlNode::createWrapperElement("display_control");
-    root->addChild(XmlNode::createDataElement("brightness", m_brightness.toString()));
-    return root;
+	auto root = XmlNode::createWrapperElement("display_control");
+	root->addChild(XmlNode::createDataElement("brightness", m_brightness.toString()));
+	return root;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,22 +25,20 @@
 class Indent
 {
 public:
+	Indent();
+	Indent(UIntN length, UIntN stepSize);
 
-    Indent();
-    Indent(UIntN length, UIntN stepSize);
+	friend std::ostream& operator<<(std::ostream& out, const Indent& indent);
 
-    friend std::ostream& operator<<(std::ostream& out, const Indent& indent);
+	Indent& operator++(); // prefix
+	Indent operator++(int); // postfix
+	Indent& operator--(); // prefix
+	Indent operator--(int); // postfix
 
-    Indent& operator++(); // prefix
-    Indent operator++(int); // postfix
-    Indent& operator--(); // prefix
-    Indent operator--(int); // postfix
-
-    UIntN length() const;
-    std::string emit() const;
+	UIntN length() const;
+	std::string emit() const;
 
 private:
-
-    UIntN m_length;
-    UIntN m_stepSize;
+	UIntN m_length;
+	UIntN m_stepSize;
 };

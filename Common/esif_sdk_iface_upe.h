@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -61,7 +61,7 @@ typedef enum EsifActIfaceVer_e {
 
 #define ACTION_UPE_IFACE_VERSION ESIF_ACT_IFACE_VER_V1
 
-
+/* Forward declaration for use by UPE */
 typedef union EsifActIface_u  *EsifActIfacePtr;
 
 
@@ -250,7 +250,6 @@ typedef struct EsifSimRequest_s {
 extern "C" {
 #endif
 
-/*
 /*
  * Entry function this symbol must be available when the app.so/dll modules is
  * loaded.  For Unix/Linux nothing special is required for widnows you must

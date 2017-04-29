@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,21 +24,19 @@
 class EsifFileEnumerator
 {
 public:
+	EsifFileEnumerator(std::string path, std::string pattern);
+	~EsifFileEnumerator(void);
 
-    EsifFileEnumerator(std::string path, std::string pattern);
-    ~EsifFileEnumerator(void);
-
-    std::string getFirstFile(void);
-    std::string getNextFile(void);
+	std::string getFirstFile(void);
+	std::string getNextFile(void);
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifFileEnumerator(const EsifFileEnumerator& rhs);
+	EsifFileEnumerator& operator=(const EsifFileEnumerator& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifFileEnumerator(const EsifFileEnumerator& rhs);
-    EsifFileEnumerator& operator=(const EsifFileEnumerator& rhs);
-
-    std::string m_path;
-    std::string m_pattern;
-    esif_ccb_file_enum_t m_fileHandle;
-    esif_ccb_file m_file;
+	std::string m_path;
+	std::string m_pattern;
+	esif_ccb_file_enum_t m_fileHandle;
+	esif_ccb_file m_file;
 };

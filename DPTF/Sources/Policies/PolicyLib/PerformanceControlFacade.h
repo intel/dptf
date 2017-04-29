@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,51 +22,48 @@
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
 
-
 // this facade class provides a simpler interface on top of performance controls as well as combines all of the
-// performance control properties and capabilities into a single class.  these properties also have the ability to be 
+// performance control properties and capabilities into a single class.  these properties also have the ability to be
 // cached.
 class dptf_export PerformanceControlFacade : public PerformanceControlFacadeInterface
 {
 public:
+	PerformanceControlFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	virtual ~PerformanceControlFacade();
 
-    PerformanceControlFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    virtual ~PerformanceControlFacade();
+	// controls
+	virtual Bool supportsPerformanceControls() override;
+	virtual void initializeControlsIfNeeded() override;
+	virtual void setControl(UIntN performanceControlIndex) override;
+	virtual void setControlsToMax() override;
+	virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) override;
+	virtual void lockCapabilities() override;
+	virtual void unlockCapabilities() override;
 
-    // controls
-    virtual Bool supportsPerformanceControls() override;
-    virtual void initializeControlsIfNeeded() override;
-    virtual void setControl(UIntN performanceControlIndex) override;
-    virtual void setControlsToMax() override;
-    virtual void setPerformanceControlDynamicCaps(PerformanceControlDynamicCaps newCapabilities) override;
-    virtual void lockCapabilities() override;
-    virtual void unlockCapabilities() override;
-
-    // properties
-    virtual void refreshCapabilities() override;
-    virtual void refreshControls() override;
-    virtual PerformanceControlStatus getStatus() const override;
-    virtual PerformanceControlStatus getLiveStatus() const override;
-    virtual const PerformanceControlSet& getControls() override;
-    virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() override;
+	// properties
+	virtual void refreshCapabilities() override;
+	virtual void refreshControls() override;
+	virtual PerformanceControlStatus getStatus() const override;
+	virtual PerformanceControlStatus getLiveStatus() const override;
+	virtual const PerformanceControlSet& getControls() override;
+	virtual const PerformanceControlDynamicCaps& getDynamicCapabilities() override;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
+	// domain properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 
-    // domain properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
-
-    // control properties
-    PerformanceControlSetCachedProperty m_performanceControlSetProperty;
-    PerformanceControlCapabilitiesCachedProperty m_performanceControlCapabilitiesProperty;
-    Bool m_controlsHaveBeenInitialized;
-    UIntN m_lastIssuedPerformanceControlIndex;
+	// control properties
+	PerformanceControlSetCachedProperty m_performanceControlSetProperty;
+	PerformanceControlCapabilitiesCachedProperty m_performanceControlCapabilitiesProperty;
+	Bool m_controlsHaveBeenInitialized;
+	UIntN m_lastIssuedPerformanceControlIndex;
 };

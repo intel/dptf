@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,9 +21,10 @@
 #include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemBatteryPercentageChanged::WIPolicyOperatingSystemBatteryPercentageChanged(
-    DptfManagerInterface* dptfManager, UIntN batteryPercentage) :
-    WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemBatteryPercentageChanged),
-    m_batteryPercentage(batteryPercentage)
+	DptfManagerInterface* dptfManager,
+	UIntN batteryPercentage)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemBatteryPercentageChanged)
+	, m_batteryPercentage(batteryPercentage)
 {
 }
 
@@ -33,26 +34,26 @@ WIPolicyOperatingSystemBatteryPercentageChanged::~WIPolicyOperatingSystemBattery
 
 void WIPolicyOperatingSystemBatteryPercentageChanged::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            getDptfManager()->getEventCache()->batteryPercentage.set(m_batteryPercentage);
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executePolicyOperatingSystemBatteryPercentageChanged(m_batteryPercentage);
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemBatteryPercentageChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			getDptfManager()->getEventCache()->batteryPercentage.set(m_batteryPercentage);
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executePolicyOperatingSystemBatteryPercentageChanged(m_batteryPercentage);
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemBatteryPercentageChanged", i);
+		}
+	}
 }

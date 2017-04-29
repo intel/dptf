@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,10 +20,13 @@
 using namespace std;
 
 DomainProperty::DomainProperty(
-    UIntN participantIndex, UIntN domainIndex, 
-    const DomainProperties& domainProperties, const PolicyServicesInterfaceContainer& policyServices)
-    : ParticipantProperty(participantIndex, policyServices), 
-    m_domainIndex(domainIndex), m_domainProperties(domainProperties)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: ParticipantProperty(participantIndex, policyServices)
+	, m_domainIndex(domainIndex)
+	, m_domainProperties(domainProperties)
 {
 }
 
@@ -33,10 +36,10 @@ DomainProperty::~DomainProperty(void)
 
 UIntN DomainProperty::getDomainIndex()
 {
-    return m_domainIndex;
+	return m_domainIndex;
 }
 
 DomainProperties DomainProperty::getDomainProperties()
 {
-    return m_domainProperties;
+	return m_domainProperties;
 }

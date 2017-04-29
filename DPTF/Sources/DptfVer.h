@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,13 @@
 
 #include "Ver.h" /* DPTF/ESIF Version in Common folder */
 
-#define ARG_TOSTR(arg)	#arg
-#define VER_TOSTR(arg)	ARG_TOSTR(arg)
+#define ARG_TOSTR(arg) #arg
+#define VER_TOSTR(arg) ARG_TOSTR(arg)
 
-#define VER_MAJOR_STR   VER_TOSTR(VER_MAJOR)
-#define VER_MINOR_STR   VER_TOSTR(VER_MINOR)
-#define VER_HOTFIX_STR  VER_TOSTR(VER_HOTFIX)
-#define VER_BUILD_STR   VER_TOSTR(VER_BUILD)
+#define VER_MAJOR_STR VER_TOSTR(VER_MAJOR)
+#define VER_MINOR_STR VER_TOSTR(VER_MINOR)
+#define VER_HOTFIX_STR VER_TOSTR(VER_HOTFIX)
+#define VER_BUILD_STR VER_TOSTR(VER_BUILD)
 
 #ifdef DBG
 #define VER_DEBUG_TAG " (DBG)"
@@ -35,6 +35,8 @@
 #endif
 
 #define VER_SEPARATOR_STR "."
-#define VERSION_STR VER_MAJOR_STR VER_SEPARATOR_STR VER_MINOR_STR VER_SEPARATOR_STR VER_HOTFIX_STR VER_SEPARATOR_STR VER_BUILD_STR VER_DEBUG_TAG
+#define VERSION_STR                                                                                                    \
+	VER_MAJOR_STR VER_SEPARATOR_STR VER_MINOR_STR VER_SEPARATOR_STR VER_HOTFIX_STR VER_SEPARATOR_STR VER_BUILD_STR     \
+		VER_DEBUG_TAG
 
-#define COPYRIGHT_STR "Copyright (c) 2013-2016 Intel Corporation All Rights Reserved \0"
+#define COPYRIGHT_STR "Copyright (c) 2013-2017 Intel Corporation All Rights Reserved \0"

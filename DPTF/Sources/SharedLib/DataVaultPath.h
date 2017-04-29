@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,27 +22,28 @@
 
 namespace DataVaultPathBasePaths
 {
-    static const std::string SharedRoot = "/shared";
-    static const std::string TablesRoot = SharedRoot + "/tables";
-    static const std::string ValuesRoot = SharedRoot + "/values";
-    static const std::string ExportRoot = SharedRoot + "/export";
+	static const std::string SharedRoot = "/shared";
+	static const std::string TablesRoot = SharedRoot + "/tables";
+	static const std::string ValuesRoot = SharedRoot + "/values";
+	static const std::string ExportRoot = SharedRoot + "/export";
 }
 
 namespace DataVaultPath
 {
-    namespace Shared
-    {
-        namespace Export
-        {
-            static const std::string WorkloadHints = DataVaultPathBasePaths::ExportRoot + "/workload_hints/";
-        };
+	namespace Shared
+	{
+		namespace Export
+		{
+			static const std::string WorkloadHints = DataVaultPathBasePaths::ExportRoot + "/workload_hints/";
+		};
 
-        namespace Tables
-        {
-            static const std::string Psvt = DataVaultPathBasePaths::TablesRoot + "/psvt/";
-            static const std::string Art = DataVaultPathBasePaths::TablesRoot + "/_art/";
-            static const std::string Trt = DataVaultPathBasePaths::TablesRoot + "/_trt/";
-            static const std::string Pida = DataVaultPathBasePaths::TablesRoot + "/pida/";
-        };
-    };
+		namespace Tables
+		{
+			static const std::string Psvt = DataVaultPathBasePaths::TablesRoot + "/psvt/";
+			static const std::string Art = DataVaultPathBasePaths::TablesRoot + "/_art/";
+			static const std::string Trt = DataVaultPathBasePaths::TablesRoot + "/_trt/";
+			static const std::string Pida = DataVaultPathBasePaths::TablesRoot + "/pida/";
+			static const std::string Psha = DataVaultPathBasePaths::TablesRoot + "/psha/";
+		};
+	};
 };

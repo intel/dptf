@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,54 +26,52 @@
 class dptf_export PassiveDomainProxy : public DomainProxy
 {
 public:
+	PassiveDomainProxy();
+	PassiveDomainProxy(
+		UIntN domainIndex,
+		ParticipantProxyInterface* participant,
+		const PolicyServicesInterfaceContainer& policyServices);
+	virtual ~PassiveDomainProxy();
 
-    PassiveDomainProxy();
-    PassiveDomainProxy(
-        UIntN domainIndex,
-        ParticipantProxyInterface* participant,
-        const PolicyServicesInterfaceContainer& policyServices);
-    virtual ~PassiveDomainProxy();
+	// passive controls
+	void requestLimit(UIntN target);
+	void requestUnlimit(UIntN target);
+	Bool canLimit(UIntN target);
+	Bool canUnlimit(UIntN target);
+	Bool commitLimits();
+	void setArbitratedPowerLimit();
+	void setArbitratedPerformanceLimit();
+	void setArbitratedCoreLimit();
+	void adjustPowerRequests();
+	void adjustPerformanceRequests();
+	void adjustCoreRequests();
+	void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
+	void clearAllRequestsForTarget(UIntN target);
+	void clearAllPerformanceControlRequests();
+	void clearAllPowerControlRequests();
+	void clearAllCoreControlRequests();
+	void clearAllDisplayControlRequests();
+	void clearAllControlKnobRequests();
+	std::shared_ptr<XmlNode> getXmlForPassiveControlKnobs();
 
-    // passive controls
-    void requestLimit(UIntN target);
-    void requestUnlimit(UIntN target);
-    Bool canLimit(UIntN target);
-    Bool canUnlimit(UIntN target);
-    Bool commitLimits();
-    void setArbitratedPowerLimit();
-    void setArbitratedPerformanceLimit();
-    void setArbitratedCoreLimit();
-    void adjustPowerRequests();
-    void adjustPerformanceRequests();
-    void adjustCoreRequests();
-    void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
-    void clearAllRequestsForTarget(UIntN target);
-    void clearAllPerformanceControlRequests();
-    void clearAllPowerControlRequests();
-    void clearAllCoreControlRequests();
-    void clearAllDisplayControlRequests();
-    void clearAllControlKnobRequests();
-    std::shared_ptr<XmlNode> getXmlForPassiveControlKnobs();
-    
 private:
+	// control knobs
+	std::shared_ptr<PerformanceControlKnob> m_pstateControlKnob;
+	std::shared_ptr<PerformanceControlKnob> m_tstateControlKnob;
+	std::shared_ptr<PowerControlKnob> m_powerControlKnob;
+	std::shared_ptr<DisplayControlKnob> m_displayControlKnob;
+	std::shared_ptr<CoreControlKnob> m_coreControlKnob;
+	std::shared_ptr<std::map<UIntN, UIntN>> m_perfControlRequests;
 
-    // control knobs
-    std::shared_ptr<PerformanceControlKnob> m_pstateControlKnob;
-    std::shared_ptr<PerformanceControlKnob> m_tstateControlKnob;
-    std::shared_ptr<PowerControlKnob> m_powerControlKnob;
-    std::shared_ptr<DisplayControlKnob> m_displayControlKnob;
-    std::shared_ptr<CoreControlKnob> m_coreControlKnob;
-    std::shared_ptr<std::map<UIntN, UIntN>> m_perfControlRequests;
-
-    // limiting/unlimiting helper functions
-    Bool requestLimitPowerAndShouldContinue(UIntN target);
-    Bool requestLimitPstatesWithCoresAndShouldContinue(UIntN target);
-    Bool requestLimitCoresAndShouldContinue(UIntN target);
-    Bool requestLimitTstatesAndContinue(UIntN target);
-    Bool requestLimitDisplayAndContinue(UIntN target);
-    Bool requestUnlimitDisplayAndContinue(UIntN target);
-    Bool requestUnlimitTstatesAndContinue(UIntN target);
-    Bool requestUnlimitCoresWithPstatesAndShouldContinue(UIntN target);
-    Bool requestUnlimitPstatesAndShouldContinue(UIntN target);
-    Bool requestUnlimitPowerAndShouldContinue(UIntN target);
+	// limiting/unlimiting helper functions
+	Bool requestLimitPowerAndShouldContinue(UIntN target);
+	Bool requestLimitPstatesWithCoresAndShouldContinue(UIntN target);
+	Bool requestLimitCoresAndShouldContinue(UIntN target);
+	Bool requestLimitTstatesAndContinue(UIntN target);
+	Bool requestLimitDisplayAndContinue(UIntN target);
+	Bool requestUnlimitDisplayAndContinue(UIntN target);
+	Bool requestUnlimitTstatesAndContinue(UIntN target);
+	Bool requestUnlimitCoresWithPstatesAndShouldContinue(UIntN target);
+	Bool requestUnlimitPstatesAndShouldContinue(UIntN target);
+	Bool requestUnlimitPowerAndShouldContinue(UIntN target);
 };

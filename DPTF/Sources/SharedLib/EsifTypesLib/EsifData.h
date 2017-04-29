@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,21 +24,19 @@
 class EsifDataContainer final
 {
 public:
+	EsifDataContainer(esif_data_type esifDataType, void* bufferPtr, UInt32 bufferLength, UInt32 dataLength);
 
-    EsifDataContainer(esif_data_type esifDataType, void* bufferPtr, UInt32 bufferLength, UInt32 dataLength);
+	esif_data_type getEsifDataType(void) const;
+	void* getBufferPtr(void) const;
+	UInt32 getBufferLength(void) const;
+	UInt32 getDataLength(void) const;
 
-    esif_data_type getEsifDataType(void) const;
-    void* getBufferPtr(void) const;
-    UInt32 getBufferLength(void) const;
-    UInt32 getDataLength(void) const;
-
-    operator EsifDataPtr(void);
+	operator EsifDataPtr(void);
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataContainer(const EsifDataContainer& rhs);
+	EsifDataContainer& operator=(const EsifDataContainer& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataContainer(const EsifDataContainer& rhs);
-    EsifDataContainer& operator=(const EsifDataContainer& rhs);
-
-    EsifData m_esifData;
+	EsifData m_esifData;
 };

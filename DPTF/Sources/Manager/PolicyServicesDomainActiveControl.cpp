@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,44 +19,48 @@
 #include "PolicyServicesDomainActiveControl.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainActiveControl::PolicyServicesDomainActiveControl(DptfManagerInterface* dptfManager, 
-    UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainActiveControl::PolicyServicesDomainActiveControl(
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-ActiveControlStaticCaps PolicyServicesDomainActiveControl::getActiveControlStaticCaps(UIntN participantIndex,
-    UIntN domainIndex)
+ActiveControlStaticCaps PolicyServicesDomainActiveControl::getActiveControlStaticCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlStaticCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlStaticCaps(domainIndex);
 }
 
-ActiveControlStatus PolicyServicesDomainActiveControl::getActiveControlStatus(UIntN participantIndex,
-    UIntN domainIndex)
+ActiveControlStatus PolicyServicesDomainActiveControl::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlStatus(domainIndex);
 }
 
 ActiveControlSet PolicyServicesDomainActiveControl::getActiveControlSet(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlSet(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlSet(domainIndex);
 }
 
-void PolicyServicesDomainActiveControl::setActiveControl(UIntN participantIndex, UIntN domainIndex,
-    UIntN controlIndex)
+void PolicyServicesDomainActiveControl::setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setActiveControl(domainIndex,
-        getPolicyIndex(), controlIndex);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setActiveControl(domainIndex, getPolicyIndex(), controlIndex);
 }
 
-void PolicyServicesDomainActiveControl::setActiveControl(UIntN participantIndex, UIntN domainIndex,
-    const Percentage& fanSpeed)
+void PolicyServicesDomainActiveControl::setActiveControl(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Percentage& fanSpeed)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setActiveControl(domainIndex,
-        getPolicyIndex(), fanSpeed);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setActiveControl(domainIndex, getPolicyIndex(), fanSpeed);
 }

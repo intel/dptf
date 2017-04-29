@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,35 +28,40 @@
 class DomainPerformanceControl_000 : public DomainPerformanceControlBase
 {
 public:
+	DomainPerformanceControl_000(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
-    DomainPerformanceControl_000(UIntN participantIndex, UIntN domainIndex,
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	// DomainPerformanceControlInterface
+	virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
+		override;
+	virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+		override;
+	virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
+		override;
+	virtual void setPerformanceControlDynamicCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PerformanceControlDynamicCaps newCapabilities) override;
+	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
-    // DomainPerformanceControlInterface
-    virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-    virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, 
-        UIntN performanceControlIndex) override;
-    virtual void setPerformanceControlDynamicCaps(
-        UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override;
-    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
-    
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
-    virtual void capture(void) override;
-    virtual void restore(void) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	virtual void capture(void) override;
+	virtual void restore(void) override;
 
-    // ConfigTdpDataSyncInterface
-    virtual void updateBasedOnConfigTdpInformation(UIntN participantIndex, UIntN domainIndex,
-        ConfigTdpControlSet configTdpControlSet, ConfigTdpControlStatus configTdpControlStatus);
+	// ConfigTdpDataSyncInterface
+	virtual void updateBasedOnConfigTdpInformation(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ConfigTdpControlSet configTdpControlSet,
+		ConfigTdpControlStatus configTdpControlStatus) override;
 
 protected:
-    virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;
-
+	virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;
 };

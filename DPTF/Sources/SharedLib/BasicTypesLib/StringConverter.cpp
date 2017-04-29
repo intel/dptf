@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,81 +23,81 @@ using namespace std;
 
 UInt32 StringConverter::toUInt32(const std::string& input)
 {
-    UInt32 integer(0);
-    istringstream stream(input);
-    stream >> integer;
-    if (stream.fail())
-    {
-        throw dptf_exception("Failed to convert string \"" + input + "\" to UInt32 value.");
-    }
-    return integer;
+	UInt32 integer(0);
+	istringstream stream(input);
+	stream >> integer;
+	if (stream.fail())
+	{
+		throw dptf_exception("Failed to convert string \"" + input + "\" to UInt32 value.");
+	}
+	return integer;
 }
 
 UInt64 StringConverter::toUInt64(const std::string& input)
 {
-    UInt64 integer(0);
-    istringstream stream(input);
-    stream >> integer;
-    if (stream.fail())
-    {
-        throw dptf_exception("Failed to convert string \"" + input + "\" to UInt64 value.");
-    }
-    return integer;
+	UInt64 integer(0);
+	istringstream stream(input);
+	stream >> integer;
+	if (stream.fail())
+	{
+		throw dptf_exception("Failed to convert string \"" + input + "\" to UInt64 value.");
+	}
+	return integer;
 }
 
 std::string StringConverter::toUpper(const std::string& input)
 {
-    std::string upperCaseString;
-    
-    for (auto i = input.begin(); i != input.end(); i++)
-    {
-        upperCaseString += (char) toupper(*i);
-    }
+	std::string upperCaseString;
 
-    return upperCaseString;
+	for (auto i = input.begin(); i != input.end(); i++)
+	{
+		upperCaseString += (char)toupper(*i);
+	}
+
+	return upperCaseString;
 }
 
 std::string StringConverter::toLower(const std::string& input)
 {
-    std::string lowerCaseString;
+	std::string lowerCaseString;
 
-    for (auto i = input.begin(); i != input.end(); i++)
-    {
-        lowerCaseString += (char)tolower(*i);
-    }
+	for (auto i = input.begin(); i != input.end(); i++)
+	{
+		lowerCaseString += (char)tolower(*i);
+	}
 
-    return lowerCaseString;
+	return lowerCaseString;
 }
 
 std::string StringConverter::trimWhitespace(const std::string& input)
 {
-    std::string delimiters = " \f\n\r\t\v";
-    std::string trimmedString = input;
-    trimmedString.erase(0, trimmedString.find_first_not_of(delimiters));
-    trimmedString.erase(trimmedString.find_last_not_of(delimiters) + 1);
-    return trimmedString;
+	std::string delimiters = " \f\n\r\t\v";
+	std::string trimmedString = input;
+	trimmedString.erase(0, trimmedString.find_first_not_of(delimiters));
+	trimmedString.erase(trimmedString.find_last_not_of(delimiters) + 1);
+	return trimmedString;
 }
 
 Int32 StringConverter::toInt32(const std::string& input)
 {
-    Int32 integer(0);
-    istringstream stream(input);
-    stream >> integer;
-    if (stream.fail())
-    {
-        throw dptf_exception("Failed to convert string \"" + input + "\" to Int32 value.");
-    }
-    return integer;
+	Int32 integer(0);
+	istringstream stream(input);
+	stream >> integer;
+	if (stream.fail())
+	{
+		throw dptf_exception("Failed to convert string \"" + input + "\" to Int32 value.");
+	}
+	return integer;
 }
 
 double StringConverter::toDouble(const std::string& input)
 {
-    double value(0);
-    istringstream stream(input);
-    stream >> value;
-    if (stream.fail())
-    {
-        throw dptf_exception("Failed to convert string \"" + input + "\" to double value.");
-    }
-    return value;
+	double value(0);
+	istringstream stream(input);
+	stream >> value;
+	if (stream.fail())
+	{
+		throw dptf_exception("Failed to convert string \"" + input + "\" to double value.");
+	}
+	return value;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,10 @@
 #include "EsifServicesInterface.h"
 
 WIDomainDisplayStatusChanged::WIDomainDisplayStatusChanged(
-    DptfManagerInterface* dptfManager, UIntN participantIndex, UIntN domainIndex) :
-    DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainDisplayStatusChanged, participantIndex, domainIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex,
+	UIntN domainIndex)
+	: DomainWorkItem(dptfManager, FrameworkEvent::Type::DomainDisplayStatusChanged, participantIndex, domainIndex)
 {
 }
 
@@ -33,34 +35,34 @@ WIDomainDisplayStatusChanged::~WIDomainDisplayStatusChanged(void)
 
 void WIDomainDisplayStatusChanged::execute(void)
 {
-    writeDomainWorkItemStartingInfoMessage();
+	writeDomainWorkItemStartingInfoMessage();
 
-    try
-    {
-        getParticipantPtr()->domainDisplayStatusChanged();
-    }
-    catch (std::exception& ex)
-    {
-        writeDomainWorkItemErrorMessage(ex, "Participant::domainDisplayStatusChanged");
-    }
+	try
+	{
+		getParticipantPtr()->domainDisplayStatusChanged();
+	}
+	catch (std::exception& ex)
+	{
+		writeDomainWorkItemErrorMessage(ex, "Participant::domainDisplayStatusChanged");
+	}
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeDomainDisplayStatusChanged(getParticipantIndex());
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (std::exception& ex)
-        {
-            writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainDisplayStatusChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executeDomainDisplayStatusChanged(getParticipantIndex());
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (std::exception& ex)
+		{
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainDisplayStatusChanged", i);
+		}
+	}
 }

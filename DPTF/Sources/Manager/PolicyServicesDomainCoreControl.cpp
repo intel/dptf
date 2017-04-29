@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,42 +19,48 @@
 #include "PolicyServicesDomainCoreControl.h"
 #include "ParticipantManagerInterface.h"
 
-PolicyServicesDomainCoreControl::PolicyServicesDomainCoreControl(DptfManagerInterface* dptfManager, UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+PolicyServicesDomainCoreControl::PolicyServicesDomainCoreControl(DptfManagerInterface* dptfManager, UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-CoreControlStaticCaps PolicyServicesDomainCoreControl::getCoreControlStaticCaps(UIntN participantIndex,
-    UIntN domainIndex)
+CoreControlStaticCaps PolicyServicesDomainCoreControl::getCoreControlStaticCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlStaticCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlStaticCaps(domainIndex);
 }
 
-CoreControlDynamicCaps PolicyServicesDomainCoreControl::getCoreControlDynamicCaps(UIntN participantIndex,
-    UIntN domainIndex)
+CoreControlDynamicCaps PolicyServicesDomainCoreControl::getCoreControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlDynamicCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlDynamicCaps(domainIndex);
 }
 
-CoreControlLpoPreference PolicyServicesDomainCoreControl::getCoreControlLpoPreference(UIntN participantIndex,
-    UIntN domainIndex)
+CoreControlLpoPreference PolicyServicesDomainCoreControl::getCoreControlLpoPreference(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlLpoPreference(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlLpoPreference(domainIndex);
 }
 
 CoreControlStatus PolicyServicesDomainCoreControl::getCoreControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreControlStatus(domainIndex);
 }
 
-void PolicyServicesDomainCoreControl::setActiveCoreControl(UIntN participantIndex, UIntN domainIndex,
-    const CoreControlStatus& coreControlStatus)
+void PolicyServicesDomainCoreControl::setActiveCoreControl(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const CoreControlStatus& coreControlStatus)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setActiveCoreControl(domainIndex,
-        getPolicyIndex(), coreControlStatus);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setActiveCoreControl(domainIndex, getPolicyIndex(), coreControlStatus);
 }

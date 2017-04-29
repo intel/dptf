@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,8 @@
 // 2) Add this code to the DptfManger constructor:
 //    DEBUG_MEMORY_LEAK_INIT();
 //
-// 3) In rapidxml.hpp (Misc\ThirdParty\RapidXML), put the following at the beginning of the file after the include guard:
+// 3) In rapidxml.hpp (Misc\ThirdParty\RapidXML), put the following at the beginning of the file after the include
+// guard:
 //    #undef new
 //
 // 4) Compile in debug mode.  This is debug only.
@@ -43,10 +44,10 @@
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
-#define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#define DEBUG_NEW new (_NORMAL_BLOCK, __FILE__, __LINE__)
 #define new DEBUG_NEW
 
-#define DEBUG_MEMORY_LEAK_INIT()    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF )
+#define DEBUG_MEMORY_LEAK_INIT() _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
 #else
 #define DEBUG_MEMORY_LEAK_INIT()
 #endif

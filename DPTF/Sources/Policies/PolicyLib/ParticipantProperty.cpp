@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,10 +19,9 @@
 #include "ParticipantProperty.h"
 using namespace std;
 
-ParticipantProperty::ParticipantProperty(
-    UIntN participantIndex, const PolicyServicesInterfaceContainer& policyServices)
-    : m_participantIndex(participantIndex), 
-    m_policyServices(policyServices)
+ParticipantProperty::ParticipantProperty(UIntN participantIndex, const PolicyServicesInterfaceContainer& policyServices)
+	: m_participantIndex(participantIndex)
+	, m_policyServices(policyServices)
 {
 }
 
@@ -32,10 +31,10 @@ ParticipantProperty::~ParticipantProperty(void)
 
 PolicyServicesInterfaceContainer ParticipantProperty::getPolicyServices(void)
 {
-    return m_policyServices;
+	return m_policyServices;
 }
 
 UIntN ParticipantProperty::getParticipantIndex()
 {
-    return m_participantIndex;
+	return m_participantIndex;
 }

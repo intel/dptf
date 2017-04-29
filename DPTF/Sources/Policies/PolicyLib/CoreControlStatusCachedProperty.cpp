@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,12 +20,13 @@
 using namespace std;
 
 CoreControlStatusCachedProperty::CoreControlStatusCachedProperty(
-    UIntN participantIndex,
-    UIntN domainIndex,
-    const DomainProperties& domainProperties,
-    const PolicyServicesInterfaceContainer& policyServices)
-    : CachedProperty(), DomainProperty(participantIndex, domainIndex, domainProperties, policyServices),
-    m_status(Constants::Invalid)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const DomainProperties& domainProperties,
+	const PolicyServicesInterfaceContainer& policyServices)
+	: CachedProperty()
+	, DomainProperty(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_status(Constants::Invalid)
 {
 }
 
@@ -35,39 +36,38 @@ CoreControlStatusCachedProperty::~CoreControlStatusCachedProperty()
 
 Bool CoreControlStatusCachedProperty::implementsCoreControlInterface(void)
 {
-    return getDomainProperties().implementsCoreControlInterface();
+	return getDomainProperties().implementsCoreControlInterface();
 }
 
 const CoreControlStatus& CoreControlStatusCachedProperty::getStatus(void)
 {
-    if (implementsCoreControlInterface())
-    {
-        if (isCacheValid() == false)
-        {
-            refresh();
-        }
-        return m_status;
-    }
-    else
-    {
-        throw dptf_exception("Domain does not support the core control interface.");
-    }
+	if (implementsCoreControlInterface())
+	{
+		if (isCacheValid() == false)
+		{
+			refresh();
+		}
+		return m_status;
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the core control interface.");
+	}
 }
 
 Bool CoreControlStatusCachedProperty::supportsProperty(void)
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return implementsCoreControlInterface();
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return implementsCoreControlInterface();
 }
 
 void CoreControlStatusCachedProperty::refreshData(void)
 {
-    if (implementsCoreControlInterface())
-    {
-        m_status =
-            getPolicyServices().domainCoreControl->getCoreControlStatus(getParticipantIndex(), getDomainIndex());
-    }
+	if (implementsCoreControlInterface())
+	{
+		m_status = getPolicyServices().domainCoreControl->getCoreControlStatus(getParticipantIndex(), getDomainIndex());
+	}
 }

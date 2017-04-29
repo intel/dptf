@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,11 +25,8 @@
 class ParticipantPropertiesInterface
 {
 public:
+	virtual ~ParticipantPropertiesInterface(){};
 
-    virtual ~ParticipantPropertiesInterface()
-    {
-    };
-
-    virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) const = 0;
-    virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) const = 0;
+	virtual ParticipantProperties getParticipantProperties(UIntN participantIndex) const = 0;
+	virtual DomainPropertiesSet getDomainPropertiesSet(UIntN participantIndex) const = 0;
 };

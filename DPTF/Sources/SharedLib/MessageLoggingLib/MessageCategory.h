@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,31 +22,31 @@
 
 namespace MessageCategory
 {
-    enum Type
-    {
-        Default,
+	enum Type
+	{
+		Default,
 
-        // Manager categories
-        ParticipantManager,
-        PolicyManager,
-        WorkItemQueueManager,
-        WorkItem,
+		// Manager categories
+		ParticipantManager,
+		PolicyManager,
+		WorkItemQueueManager,
+		WorkItem,
 
-        // Policy categories
-        Policy,
-        PolicyActive,
-        PolicyConfigTdp,
-        PolicyCritical,
-        PolicyPassive,
+		// Policy categories
+		Policy,
+		PolicyActive,
+		PolicyConfigTdp,
+		PolicyCritical,
+		PolicyPassive,
 
-        // Participant categories
-        Participant,
+		// Participant categories
+		Participant,
 
-        // ESIF Interfaces
-        EsifApplicationInterface,
-        EsifServicesInterface,
+		// ESIF Interfaces
+		EsifApplicationInterface,
+		EsifServicesInterface,
 
-        // Misc
-        TemperatureThresholds
-    };
+		// Misc
+		TemperatureThresholds
+	};
 }

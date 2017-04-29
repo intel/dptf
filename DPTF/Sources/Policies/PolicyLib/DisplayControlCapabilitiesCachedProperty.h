@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,24 +28,21 @@
 class dptf_export DisplayControlCapabilitiesCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	DisplayControlCapabilitiesCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~DisplayControlCapabilitiesCachedProperty();
 
-    DisplayControlCapabilitiesCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~DisplayControlCapabilitiesCachedProperty();
-
-    const DisplayControlDynamicCaps& getCapabilities();
-    virtual Bool supportsProperty() override;
+	const DisplayControlDynamicCaps& getCapabilities();
+	virtual Bool supportsProperty() override;
 
 protected:
+	virtual void refreshData() override;
 
-    virtual void refreshData() override;
-
-    Bool implementsDisplayControlInterface();
+	Bool implementsDisplayControlInterface();
 
 private:
-
-    DisplayControlDynamicCaps m_displayControlDynamicCaps;
+	DisplayControlDynamicCaps m_displayControlDynamicCaps;
 };

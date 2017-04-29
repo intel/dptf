@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,18 +24,16 @@
 class dptf_export SupportedPolicyList
 {
 public:
+	SupportedPolicyList(DptfManagerInterface* dptfManager);
 
-    SupportedPolicyList(DptfManagerInterface* dptfManager);
+	UIntN getCount(void) const;
+	Guid operator[](UIntN index) const;
+	Bool isPolicyValid(const Guid& guid) const;
 
-    UIntN getCount(void) const;
-    Guid operator[](UIntN index) const;
-    Bool isPolicyValid(const Guid& guid) const;
-
-    // Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.
-    void update(void);
+	// Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.
+	void update(void);
 
 private:
-
-    DptfManagerInterface* m_dptfManager;
-    std::vector<Guid> m_guid;
+	DptfManagerInterface* m_dptfManager;
+	std::vector<Guid> m_guid;
 };

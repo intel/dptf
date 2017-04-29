@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -115,11 +115,10 @@ typedef enum esif_rc {
 	ESIF_E_APP_ALREADY_STARTED,	/* App already available */
 
 	/* Buffer */
-	ESIF_E_NEED_LARGER_BUFFER = 1300, /* Response Data Size Will Contain
-						 Needed Buf_Size */
+	ESIF_E_NEED_LARGER_BUFFER = 1300, /* Response Data Size Will Contain Needed Buf_Size */
 	ESIF_E_NEED_BINARY_BUFFER, /* Action Response Data Must Be Binary */
-	ESIF_E_REQ_SIZE_TYPE_MISTMATCH, /* The req data buffer is too small for
-					   specified type */
+	ESIF_E_REQ_SIZE_TYPE_MISTMATCH, /* The req data buffer is too small for specified type */
+	ESIF_E_COMPRESSION_ERROR, /* Error Compressing or Decompressing Data */
 
 	/* Callback */
 	ESIF_E_CALLBACK_IS_NULL = 1400, /* Callback Function Pointer Is NULL */
@@ -193,6 +192,9 @@ typedef enum esif_rc {
 	ESIF_E_IO_ERROR,	/* File I/O Error */
 	ESIF_E_IO_OPEN_FAILED,	/* File Open/Create Failed */
 	ESIF_E_IO_DELETE_FAILED,/* File Delete Failed */
+	ESIF_E_IO_HASH_FAILED, /* Payload SHA1 Hash Failed */
+	ESIF_E_IO_INVALID_NAME, /* Invalid Object or Filename */
+	ESIF_E_IO_ALREADY_EXISTS, /* Object Already Exists or Opened */
 
 	/* Web Server */
 	ESIF_E_WS_DISC = 3100, /* WS client disconnected */
@@ -269,6 +271,7 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_NEED_LARGER_BUFFER);
 	ESIF_CASE_ENUM(ESIF_E_NEED_BINARY_BUFFER);
 	ESIF_CASE_ENUM(ESIF_E_REQ_SIZE_TYPE_MISTMATCH);
+	ESIF_CASE_ENUM(ESIF_E_COMPRESSION_ERROR);
 
 	ESIF_CASE_ENUM(ESIF_E_CALLBACK_IS_NULL);
 
@@ -326,6 +329,9 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_IO_ERROR);
 	ESIF_CASE_ENUM(ESIF_E_IO_OPEN_FAILED);
 	ESIF_CASE_ENUM(ESIF_E_IO_DELETE_FAILED);
+	ESIF_CASE_ENUM(ESIF_E_IO_HASH_FAILED);
+	ESIF_CASE_ENUM(ESIF_E_IO_INVALID_NAME);
+	ESIF_CASE_ENUM(ESIF_E_IO_ALREADY_EXISTS);
 
 	ESIF_CASE_ENUM(ESIF_E_WS_DISC);
 
@@ -345,6 +351,7 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_INVALID_PARTICIPANT_ID);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_DOMAIN_ID);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_CAPABILITY_MASK);
+
 	ESIF_CASE_ENUM(ESIF_E_ABAT_ERRORS_RSVD);
 
 	}

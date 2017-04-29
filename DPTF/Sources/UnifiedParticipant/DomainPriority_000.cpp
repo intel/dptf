@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,34 +18,36 @@
 
 #include "DomainPriority_000.h"
 
-DomainPriority_000::DomainPriority_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
+DomainPriority_000::DomainPriority_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 DomainPriority DomainPriority_000::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
 {
-    return DomainPriority(0);
+	return DomainPriority(0);
 }
 
 void DomainPriority_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainPriority_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainPriority_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainPriority_000::getName(void)
 {
-    return "Domain Priority (Version 0)";
+	return "Domain Priority (Version 0)";
 }

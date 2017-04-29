@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,21 +24,19 @@
 class EsifDataTemperature final
 {
 public:
+	EsifDataTemperature(void);
+	EsifDataTemperature(const Temperature& temperature);
 
-    EsifDataTemperature(void);
-    EsifDataTemperature(const Temperature & temperature);
-
-    operator EsifDataPtr(void);
-    operator Temperature(void) const;
+	operator EsifDataPtr(void);
+	operator Temperature(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataTemperature(const EsifDataTemperature& rhs);
+	EsifDataTemperature& operator=(const EsifDataTemperature& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataTemperature(const EsifDataTemperature & rhs);
-    EsifDataTemperature& operator=(const EsifDataTemperature& rhs);
+	UInt32 m_esifDataValue;
+	EsifData m_esifData;
 
-    UInt32 m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(UInt32 data);
+	void initialize(UInt32 data);
 };

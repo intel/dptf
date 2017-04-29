@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -178,7 +178,7 @@ static eEsifError EsifLogMgr_EnableLoggingFromCommandInfo(EsifLoggingManagerPtr 
 static eEsifError EsifLogMgr_IntializeScheduleTimer(EsifLoggingManagerPtr self);
 static void EsifLogMgr_DestroyScheduleTimer(EsifLoggingManagerPtr self);
 static void EsifLogMgr_ScheduledStartThread(const void *contextPtr);
-static void EsifLogMgr_DestroyParticipantLogData(EsifLoggingManagerPtr self, Bool destroyFlag);
+static void EsifLogMgr_DestroyParticipantLogData(EsifLoggingManagerPtr self);
 static void EsifLogMgr_DestroyEntry(EsifParticipantLogDataNodePtr curEntryPtr);
 static void EsifLogMgr_DestroyArgv(EsifLoggingManagerPtr self);
 
@@ -725,15 +725,14 @@ eEsifError EsifLogMgr_ParseCmdInterval(
 
 	if ((UInt32)argc <= i) {
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "No Interval specified .Setting to default polling interval : %d ms\n", DEFAULT_LOG_INTERVAL);
-		rc = ESIF_E_NOT_SUPPORTED;
-		goto exit;
-	}
-
-	interval = (UInt16)esif_atoi(argv[i]);
-	if ((Int16)interval < MIN_LOG_INTERVAL) {
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Input interval value is less than minimum supported value %d ms \n", MIN_LOG_INTERVAL);
-		rc = ESIF_E_NOT_SUPPORTED;
-		goto exit;
+		interval = DEFAULT_LOG_INTERVAL;
+	} else {
+		interval = (UInt16)esif_atoi(argv[i]);
+		if ((Int16)interval < MIN_LOG_INTERVAL) {
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Input interval value is less than minimum supported value %d ms \n", MIN_LOG_INTERVAL);
+			rc = ESIF_E_NOT_SUPPORTED;
+			goto exit;
+		}
 	}
 
 	self->pollingThread.interval = interval;
@@ -1226,9 +1225,7 @@ static void EsifLogMgr_CleanupLoggingContext(EsifLoggingManagerPtr self)
 		self->commandInfo = NULL;
 		self->commandInfoCount = 0;
 	}
-	// Remove the complete participant log data list nodes
-	// No need to delete the list structure here for stop
-	EsifLogMgr_DestroyParticipantLogData(self, ESIF_FALSE);
+	EsifLogMgr_DestroyParticipantLogData(self);
 
 	return;
 }
@@ -2142,14 +2139,9 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Utilization,",participantName,domainId);
 		break;
-	case ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " Pixel Clock Status,");
-		break;
-	case ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Pixel Clock Control,");
-		break;
 	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " Platform Power Status,");
+		esif_ccb_sprintf_concat(dataLength, logString, " PMAX(mW), PBSS(mW), PROP(mW), ARTG(mW), CTYP, PSRC, AVOL(mV), ACUR(mA),"
+			" AP01(%%), AP02(%%), AP10(%%),");
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
 		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_Aux0(C), %s_D%d_Aux1(C), %s_D%d_Hysteresis(C),", 
@@ -2167,14 +2159,19 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " RF Profile Frequency Control,");
 		break;
-	case ESIF_CAPABILITY_TYPE_NETWORK_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Network Control,");
-		break;
-	case ESIF_CAPABILITY_TYPE_XMITPOWER_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Transmit Power Control,");
-		break;
 	case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " Limit Type, Power Limit, Duty Cycle, Time Window,");
+	{
+		UInt32 psysType = 0;
+		for (psysType = 0; psysType < MAX_PSYS_CONTROL_TYPE; psysType++) {
+			if (capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType <= MAX_PSYS_CONTROL_TYPE) {
+				esif_ccb_sprintf_concat(dataLength, logString, " Psys PL%d Power Limit (mW), Psys PL%d Duty Cycle, Psys PL%d Time Window (ms),",
+					capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType,
+					capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType,
+					capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType
+					);
+			}
+		}
+	}
 		break;
 	}
 
@@ -2298,19 +2295,19 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			capabilityPtr->data.utilizationStatus.utilization
 			);
 		break;
-	case ESIF_CAPABILITY_TYPE_PIXELCLOCK_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.pixelClockStatus.pixelClockStatus
-			);
-		break;
-	case ESIF_CAPABILITY_TYPE_PIXELCLOCK_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.pixelClockControl.pixelClockControl
-			);
-		break;
 	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.platformPowerStatus.platformPowerStatus
+		esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u, %u, %u, %u, %u, %u, %u, %u,",
+			capabilityPtr->data.platformPowerStatus.maxBatteryPower,
+			capabilityPtr->data.platformPowerStatus.steadyStateBatteryPower,
+			capabilityPtr->data.platformPowerStatus.platformRestOfPower,
+			capabilityPtr->data.platformPowerStatus.adapterPowerRating,
+			capabilityPtr->data.platformPowerStatus.chargerType,
+			capabilityPtr->data.platformPowerStatus.platformPowerSource,
+			capabilityPtr->data.platformPowerStatus.acNominalVoltage,
+			capabilityPtr->data.platformPowerStatus.acOperationalCurrent,
+			capabilityPtr->data.platformPowerStatus.ac1msOverload,
+			capabilityPtr->data.platformPowerStatus.ac2msOverload,
+			capabilityPtr->data.platformPowerStatus.ac10msOverload
 			);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
@@ -2340,24 +2337,21 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			capabilityPtr->data.rfProfileControl.rfProfileFrequency
 			);
 		break;
-	case ESIF_CAPABILITY_TYPE_NETWORK_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.networkControl.networkControl
-			);
-		break;
-	case ESIF_CAPABILITY_TYPE_XMITPOWER_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-			capabilityPtr->data.xmitPowerControl.xmitPowerControl
-			);
-		break;
 	case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u,",
-			capabilityPtr->data.psysControl.powerLimitType,
-			capabilityPtr->data.psysControl.powerLimit,
-			capabilityPtr->data.psysControl.PowerLimitDutyCycle,
-			capabilityPtr->data.psysControl.PowerLimitTimeWindow
-			);
+	{
+		UInt32 psysType = 0;
+		for (psysType = 0; psysType < MAX_PSYS_CONTROL_TYPE; psysType++)
+		{
+			if (capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType <= MAX_PSYS_CONTROL_TYPE) {
+				esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, ",
+					capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimit,
+					capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitDutyCycle,
+					capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitTimeWindow
+				);
+			}
+		}
 		break;
+	}
 	}
 
 	return rc;
@@ -2423,7 +2417,6 @@ static void EsifLogMgr_DataLogWrite(
 	...
 	)
 {
-	eEsifError rc = ESIF_OK;
 	va_list args;
 
 	ESIF_ASSERT(self != NULL);
@@ -2439,14 +2432,16 @@ static void EsifLogMgr_DataLogWrite(
 
 	if ((self->listenersMask & ESIF_LISTENER_CONSOLE_MASK) > 0) {
 		va_start(args, logstring);
-		rc += EsifConsole_WriteConsole(logstring, args);
+		EsifConsole_WriteConsole(logstring, args);
 		va_end(args);
 	}
+
 	if ((self->listenersMask & ESIF_LISTENER_LOGFILE_MASK) > 0) {
 		va_start(args, logstring);
-		rc += EsifLogFile_WriteArgsAppend(ESIF_LOG_PARTICIPANT, " ", logstring, args);
+		EsifLogFile_WriteArgsAppend(ESIF_LOG_PARTICIPANT, " ", logstring, args);
 		va_end(args);
 	}
+
 	if ((self->listenersMask & ESIF_LISTENER_DEBUGGER_MASK) > 0) {
 		size_t  msglen = 0;
 		char *buffer = 0;
@@ -2459,13 +2454,14 @@ static void EsifLogMgr_DataLogWrite(
 
 		if (NULL != buffer) {
 			va_start(args, logstring);
-			rc += esif_ccb_vsprintf(msglen, buffer, logstring, args);
+			esif_ccb_vsprintf(msglen, buffer, logstring, args);
 			va_end(args);
 
 			EsifLogMgr_LogToDebugger(buffer);
 			esif_ccb_free(buffer);
 		}
 	}
+
 	if ((self->listenersMask & ESIF_LISTENER_EVENTLOG_MASK) > 0) {
 		size_t  msglen = 0;
 		char *buffer = 0;
@@ -2478,7 +2474,7 @@ static void EsifLogMgr_DataLogWrite(
 
 		if (NULL != buffer) {
 			va_start(args, logstring);
-			rc += esif_ccb_vsprintf(msglen, buffer, logstring, args);
+			esif_ccb_vsprintf(msglen, buffer, logstring, args);
 			va_end(args);
 
 			EsifLogMgr_LogToEvent(buffer);
@@ -2546,27 +2542,24 @@ static eEsifError EsifLogMgr_Uninit(EsifLoggingManagerPtr self)
 		EsifLogMgr_EventCallback,
 		self);
 
-	EsifLogMgr_DestroyParticipantLogData(self, ESIF_TRUE);
+	EsifLogMgr_DestroyParticipantLogData(self);
 
+	esif_link_list_destroy(self->participantLogData.list);
+	self->participantLogData.list = NULL;
+
+	esif_ccb_lock_uninit(&self->participantLogData.listLock);
+	self->isInitialized = ESIF_FALSE;
 exit:
-	if ((self != NULL) &&
-		(self->isInitialized != ESIF_FALSE)) {
-		esif_ccb_lock_uninit(&self->participantLogData.listLock);
-		self->isInitialized = ESIF_FALSE;
-	}
 	return rc;
 }
 
 static void EsifLogMgr_DestroyParticipantLogData(
-	EsifLoggingManagerPtr self,
-	Bool destroyFlag
+	EsifLoggingManagerPtr self
 	)
 {
 	ESIF_ASSERT(self != NULL);
 
-	if ((NULL == self->participantLogData.list) ||
-		(NULL == self->participantLogData.list->head_ptr)) {
-		ESIF_TRACE_INFO("List is NULL");
+	if (NULL == self->participantLogData.list) {
 		goto exit;
 	}
 	
@@ -2574,11 +2567,6 @@ static void EsifLogMgr_DestroyParticipantLogData(
 	//Delete and Free the nodes in the list
 	esif_link_list_free_data(self->participantLogData.list, (link_list_data_destroy_func)EsifLogMgr_DestroyEntry);		
 
-	if (destroyFlag != ESIF_FALSE) {
-		//Destroy the list structure if this flag is set to true
-		esif_ccb_free(self->participantLogData.list);
-		self->participantLogData.list = NULL;
-	}
 	esif_ccb_write_unlock(&self->participantLogData.listLock);
 exit:
 	return;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,69 +18,76 @@
 
 #include "DomainDisplayControl_000.h"
 
-DomainDisplayControl_000::DomainDisplayControl_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
+DomainDisplayControl_000::DomainDisplayControl_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
-DisplayControlDynamicCaps DomainDisplayControl_000::getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+DisplayControlDynamicCaps DomainDisplayControl_000::getDisplayControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 DisplayControlStatus DomainDisplayControl_000::getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 UIntN DomainDisplayControl_000::getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 Bool DomainDisplayControl_000::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 DisplayControlSet DomainDisplayControl_000::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainDisplayControl_000::setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
-void DomainDisplayControl_000::setDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex, DisplayControlDynamicCaps newCapabilities)
+void DomainDisplayControl_000::setDisplayControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DisplayControlDynamicCaps newCapabilities)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainDisplayControl_000::setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainDisplayControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainDisplayControl_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainDisplayControl_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainDisplayControl_000::getName(void)
 {
-    return "Display Control (Version 0)";
+	return "Display Control (Version 0)";
 }

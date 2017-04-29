@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,37 +30,36 @@ class ParticipantManagerInterface;
 class WorkItemQueueThread
 {
 public:
+	WorkItemQueueThread(
+		DptfManagerInterface* dptfManager,
+		ImmediateWorkItemQueue* immediateQueue,
+		DeferredWorkItemQueue* deferredQueue,
+		EsifSemaphore* workItemQueueSemaphore,
+		WorkItemStatistics* workItemStatistics);
+	~WorkItemQueueThread(void);
 
-    WorkItemQueueThread(DptfManagerInterface* dptfManager, ImmediateWorkItemQueue* immediateQueue,
-        DeferredWorkItemQueue* deferredQueue, EsifSemaphore* workItemQueueSemaphore,
-        WorkItemStatistics* workItemStatistics);
-    ~WorkItemQueueThread(void);
-
-    EsifThreadId getWorkItemQueueThreadId(void) const;
-    std::string toXml(void) const;
+	EsifThreadId getWorkItemQueueThreadId(void) const;
+	std::string toXml(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	WorkItemQueueThread(const WorkItemQueueThread& rhs);
+	WorkItemQueueThread& operator=(const WorkItemQueueThread& rhs);
 
-    // hide the copy constructor and assignment operator.
-    WorkItemQueueThread(const WorkItemQueueThread& rhs);
-    WorkItemQueueThread& operator=(const WorkItemQueueThread& rhs);
-
-    DptfManagerInterface* m_dptfManager;
+	DptfManagerInterface* m_dptfManager;
 	ParticipantManagerInterface* m_participantManager;
-    Bool m_destroyThread;
-    ImmediateWorkItemQueue* m_immediateQueue;
-    DeferredWorkItemQueue* m_deferredQueue;
-    EsifSemaphore* m_workItemQueueSemaphore;
-    EsifThread* m_workItemQueueThreadHandle;
-    EsifThreadId* m_workItemQueueThreadId;
-    EsifSemaphore* m_workItemQueueThreadExitSemaphore;
-    WorkItemStatistics* m_workItemStatistics;
+	Bool m_destroyThread;
+	ImmediateWorkItemQueue* m_immediateQueue;
+	DeferredWorkItemQueue* m_deferredQueue;
+	EsifSemaphore* m_workItemQueueSemaphore;
+	EsifThread* m_workItemQueueThreadHandle;
+	EsifThreadId* m_workItemQueueThreadId;
+	EsifSemaphore* m_workItemQueueThreadExitSemaphore;
+	WorkItemStatistics* m_workItemStatistics;
 
-    friend void* ThreadStart(void* contextPtr);
-    void executeThread(void);
-
-    void processImmediateQueue(void);
-    void processDeferredQueue(void);
+	friend void* ThreadStart(void* contextPtr);
+	void executeThread(void);
+	void processImmediateQueue(void);
 };
 
 void* ThreadStart(void* contextPtr);

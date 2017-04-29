@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -230,7 +230,6 @@ int EsifUfTraceMessageArgs(
 		char *buffer=0;
 		char *replaced=0;
 		int  offset=0;
-		WORD eventType;
 
 		appname  = "";
 		fmtInfo  = "%sESIF(%s) TYPE: %s MODULE: %s TIME %llu ms\n\n";
@@ -257,27 +256,13 @@ int EsifUfTraceMessageArgs(
 			if (rc && buffer[rc-1]=='\n')
 				buffer[--rc] = 0;
 
-			switch (g_traceinfo[level].level) {
-			case ESIF_TRACELEVEL_FATAL:
-			case ESIF_TRACELEVEL_ERROR:
-				eventType = EVENTLOG_ERROR_TYPE;
-				break;
-			case ESIF_TRACELEVEL_WARN:
-				eventType = EVENTLOG_WARNING_TYPE;
-				break;
-			case ESIF_TRACELEVEL_INFO:
-			case ESIF_TRACELEVEL_DEBUG:
-			default:
-				eventType = EVENTLOG_INFORMATION_TYPE;
-				break;
-			}
 			// Escape any "%" in message before writing to EventLog
 			if ((replaced = esif_str_replace(buffer, "%", "%%")) != NULL) {
 				esif_ccb_free(buffer);
 				buffer = replaced;
 				replaced = NULL;
 			}
-			report_event_to_event_log(CATEGORY_GENERAL, eventType, buffer);
+			report_event_to_event_log(g_traceinfo[level].level, buffer);
 			esif_ccb_free(buffer);
 			esif_ccb_free(alt_module_name);
 		}

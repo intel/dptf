@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,30 +26,28 @@
 class dptf_export PassiveDomainControlStatus
 {
 public:
-
-    PassiveDomainControlStatus(std::shared_ptr<DomainProxyInterface> domain);
-    std::shared_ptr<XmlNode> getXml();
+	PassiveDomainControlStatus(std::shared_ptr<DomainProxyInterface> domain);
+	std::shared_ptr<XmlNode> getXml();
 
 private:
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	std::string m_domainName;
+	std::vector<ControlStatus> m_controlStatus;
+	Temperature m_domainTemperature;
+	DomainPriority m_domainPriority;
+	UtilizationStatus m_domainUtilization;
 
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    std::string m_domainName;
-    std::vector<ControlStatus> m_controlStatus;
-    Temperature m_domainTemperature;
-    DomainPriority m_domainPriority;
-    UtilizationStatus m_domainUtilization;
+	void aquireDomainStatus(std::shared_ptr<DomainProxyInterface> domain);
+	void addPowerStatus(std::shared_ptr<DomainProxyInterface> domain);
+	void addPstateStatus(std::shared_ptr<DomainProxyInterface> domain);
+	void addTstateStatus(std::shared_ptr<DomainProxyInterface> domain);
+	void addDisplayStatus(std::shared_ptr<DomainProxyInterface> domain);
+	void addCoreStatus(std::shared_ptr<DomainProxyInterface> domain);
 
-    void aquireDomainStatus(std::shared_ptr<DomainProxyInterface> domain);
-    void addPowerStatus(std::shared_ptr<DomainProxyInterface> domain);
-    void addPstateStatus(std::shared_ptr<DomainProxyInterface> domain);
-    void addTstateStatus(std::shared_ptr<DomainProxyInterface> domain);
-    void addDisplayStatus(std::shared_ptr<DomainProxyInterface> domain);
-    void addCoreStatus(std::shared_ptr<DomainProxyInterface> domain);
-
-    UIntN indexOfFirstControlWithType(const PerformanceControlSet& controlSet, PerformanceControlType::Type type) const;
-    PerformanceControlSet filterControlSet(
-        const PerformanceControlSet& controlSet, 
-        PerformanceControlDynamicCaps dynamicCapabilities, 
-        PerformanceControlType::Type type) const;
+	UIntN indexOfFirstControlWithType(const PerformanceControlSet& controlSet, PerformanceControlType::Type type) const;
+	PerformanceControlSet filterControlSet(
+		const PerformanceControlSet& controlSet,
+		PerformanceControlDynamicCaps dynamicCapabilities,
+		PerformanceControlType::Type type) const;
 };

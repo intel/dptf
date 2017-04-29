@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,23 +26,21 @@ class XmlNode;
 class PerformanceControlSet final
 {
 public:
+	PerformanceControlSet();
+	PerformanceControlSet(const std::vector<PerformanceControl>& performanceControl);
+	static PerformanceControlSet createFromGenericPpss(const DptfBuffer& buffer);
+	static PerformanceControlSet createFromProcessorPss(const DptfBuffer& buffer);
+	static PerformanceControlSet createFromProcessorTss(PerformanceControl pN, const DptfBuffer& buffer);
+	static PerformanceControlSet createFromProcessorGfxPstates(const DptfBuffer& buffer);
 
-    PerformanceControlSet();
-    PerformanceControlSet(const std::vector<PerformanceControl>& performanceControl);
-    static PerformanceControlSet createFromGenericPpss(const DptfBuffer& buffer);
-    static PerformanceControlSet createFromProcessorPss(const DptfBuffer& buffer);
-    static PerformanceControlSet createFromProcessorTss(PerformanceControl pN, const DptfBuffer& buffer);
-    static PerformanceControlSet createFromProcessorGfxPstates(const DptfBuffer& buffer);
-
-    UIntN getCount(void) const;
-    void append(const PerformanceControlSet& controlSet, UIntN fromIndex);
-    std::shared_ptr<XmlNode> getXml(void);
-    PerformanceControl operator[](UIntN index) const;
-    Bool operator==(const PerformanceControlSet& rhs) const;
-    Bool operator!=(const PerformanceControlSet& rhs) const;
+	UIntN getCount(void) const;
+	void append(const PerformanceControlSet& controlSet, UIntN fromIndex);
+	std::shared_ptr<XmlNode> getXml(void);
+	PerformanceControl operator[](UIntN index) const;
+	Bool operator==(const PerformanceControlSet& rhs) const;
+	Bool operator!=(const PerformanceControlSet& rhs) const;
 
 private:
-
-    std::vector<PerformanceControl> m_performanceControl;
-    static UIntN countPpssRows(UInt32 size, UInt8* data);
+	std::vector<PerformanceControl> m_performanceControl;
+	static UIntN countPpssRows(UInt32 size, UInt8* data);
 };

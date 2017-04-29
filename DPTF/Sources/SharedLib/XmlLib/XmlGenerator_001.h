@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,17 +30,15 @@
 class XmlGenerator_001 final : public XmlGeneratorInterface
 {
 public:
+	XmlGenerator_001();
+	XmlGenerator_001(XmlNode* node);
 
-    XmlGenerator_001();
-    XmlGenerator_001(XmlNode* node);
-
-    // XmlGeneratorInterface
-    virtual void addNode(XmlNode* node) override final;
-    virtual std::string toString(void) override final;
+	// XmlGeneratorInterface
+	virtual void addNode(XmlNode* node) override final;
+	virtual std::string toString(void) override final;
 
 private:
-
-    void addChildren(XmlNode* node, RapidXml::xml_node<>* tempNode);
-    RapidXml::xml_node<>* allocateRapidXmlNode(XmlNode* node);
-    RapidXml::xml_document<> m_doc;
+	void addChildren(XmlNode* node, RapidXml::xml_node<>* tempNode);
+	RapidXml::xml_node<>* allocateRapidXmlNode(XmlNode* node);
+	RapidXml::xml_document<> m_doc;
 };

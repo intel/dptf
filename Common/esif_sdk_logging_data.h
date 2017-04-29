@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -110,7 +110,7 @@ typedef struct _t_EsifPerformanceControl {
 
 #define MAX_POWER_CONTROL_TYPE 4
 
-typedef struct _t_EsifPowerData {	
+typedef struct _t_EsifPowerData {
 	UInt32 powerType;
 	UInt32 isEnabled;
 	UInt32 powerLimit;
@@ -149,22 +149,30 @@ typedef struct _t_EsifUtilizationStatus {
 	UInt32 utilization;
 } EsifUtilizationStatus, *EsifUtilizationStatusPtr;
 
-/* Pixel Clock Status Data */
-typedef struct _t_EsifPixelClockStatus {
-	//Place Holder
-	UInt32 pixelClockStatus;
-} EsifPixelClockStatus, *EsifPixelClockStatusPtr;
+/* Peak Power Control Data */
+typedef struct _t_EsifPeakPowerControl {
+	UInt32 acPeakPower;
+	UInt32 dcPeakPower;
+} EsifPeakPowerControl, *EsifPeakPowerControlPtr;
 
-/* Pixel Clock Control Data */
-typedef struct _t_EsifPixelClockControl {
-	//Place Holder
-	UInt32 pixelClockControl;
-} EsifPixelClockControl, *EsifPixelClockControlPtr;
+/* TCC Offset Control Data */
+typedef struct _t_EsifTccOffsetStatus {
+	UInt32 tccOffset;
+} EsifTccOffsetStatus, *EsifOffsetStatusPtr;
 
 /* Platform Power Status Data */
-typedef struct _t_EsifPlatformPowerStatus{
-	//Place Holder
-	UInt32 platformPowerStatus;
+typedef struct _t_EsifPlatformPowerStatus {
+	UInt32 maxBatteryPower;
+	UInt32 steadyStateBatteryPower;
+	UInt32 platformRestOfPower;
+	UInt32 adapterPowerRating;
+	UInt32 chargerType;
+	UInt32 platformPowerSource;
+	UInt32 acNominalVoltage;
+	UInt32 acOperationalCurrent;
+	UInt32 ac1msOverload;
+	UInt32 ac2msOverload;
+	UInt32 ac10msOverload;
 } EsifPlatformPowerStatus, *EsifPlatformPowerStatusPtr;
 
 /* Temperature Control Data */
@@ -184,17 +192,17 @@ typedef struct _t_EsifRfProfileControl {
 	UInt32 rfProfileFrequency;
 } EsifRfProfileControl, *EsifRfProfileControlPtr;
 
-/* Network Control Data */
-typedef struct _t_EsifNetworkControl {
+/* Reserved16 Data */
+typedef struct _t_EsifReserved16 {
 	//Place Holder
-	UInt32 networkControl;
-} EsifNetworkControl, *EsifNetworkControlPtr;
+	UInt32 reserved16;
+} EsifReserved16, *EsifReserved16Ptr;
 
-/* XmitPower Control Data */
-typedef struct _t_EsifXmitPowerControl {
+/* Reserved17 Data */
+typedef struct _t_EsifReserved17 {
 	//Place Holder
-	UInt32 xmitPowerControl;
-} EsifXmitPowerControl, *EsifXmitPowerControlPtr;
+	UInt32 reserved17;
+} EsifReserved17, *EsifReserved17Ptr;
 
 /* Current Control Data */
 typedef struct _t_EsifCurrentControl {
@@ -203,11 +211,18 @@ typedef struct _t_EsifCurrentControl {
 } EsifCurrentControl, *EsifCurrentControlPtr;
 
 /* Psys Control Data */
-typedef struct _t_EsifPSysControl {
+typedef struct _t_EsifPSysControlData {
 	UInt32 powerLimitType;
 	UInt32 powerLimit;
 	UInt32 PowerLimitTimeWindow;
 	UInt32 PowerLimitDutyCycle;
+} EsifPSysControlData, *EsifPSysControlDataPtr;
+
+#define MAX_PSYS_CONTROL_TYPE 3
+
+/* Psys Control */
+typedef struct _t_EsifPSysControl {
+	EsifPSysControlData powerDataSet[MAX_PSYS_CONTROL_TYPE];
 } EsifPSysControl, *EsifPSysControlPtr;
 
 typedef union _t_EsifCapability {
@@ -221,14 +236,14 @@ typedef union _t_EsifCapability {
 	EsifPowerStatus powerStatus;
 	EsifTemperatureStatus temperatureStatus;
 	EsifUtilizationStatus utilizationStatus;
-	EsifPixelClockStatus pixelClockStatus;
-	EsifPixelClockControl pixelClockControl;
+	EsifPeakPowerControl peakPowerControl;
+	EsifTccOffsetStatus tccOffsetStatus;
 	EsifPlatformPowerStatus platformPowerStatus;
 	EsifTemperatureThresholdControl temperatureThresholdControl;
 	EsifRfProfileStatus rfProfileStatus;
 	EsifRfProfileControl rfProfileControl;
-	EsifNetworkControl networkControl;
-	EsifXmitPowerControl xmitPowerControl;
+	EsifReserved16 reserved16;
+	EsifReserved17 reserved17;
 	EsifPSysControl psysControl;
 } EsifCapability, *EsifCapabilityPtr;
 
@@ -238,6 +253,39 @@ typedef struct _t_EsifCapabilityData {
 	UInt32 size;
 	EsifCapability data;
 } EsifCapabilityData, *EsifCapabilityDataPtr;
+
+/*
+  EsifEventMsg is the data structure for passing event data among processes either locally or remotely
+  An EsifMsgHdr type precedes this data structure which shall be sent first by the server, or parsed
+  by the client prior to processing the event data.
+*/
+
+#define ESIF_EVENT_REVISION 1
+
+// Event data structure V1
+typedef struct EsifEventMsgV1_s {
+	UInt32 revision;
+	UInt32 type;
+	union {
+		EsifPolicyLogData policyLogData;
+		EsifCapabilityData capabilityData;
+		UInt32 dispOrientationData;
+		UInt32 platOrientationData;
+		UInt32 platTypeData;
+		UInt32 motionStateData;
+	} data;
+} EsifEventMsgV1, *EsifEventMsgV1Ptr;
+
+/*
+  Event data structure for all revisions (existing and future)
+  The revision field is always going to be the first field and
+  is used to distinguish among various versions
+*/
+typedef union EsifEventMsg_u {
+	UInt32 revision;
+	EsifEventMsgV1 v1;
+} EsifEventMsg, *EsifEventMsgPtr;
+
 #pragma pack(pop)
 
 #endif /* ESIF_ATTR_USER */

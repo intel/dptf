@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,79 +20,80 @@
 
 UserPreferredCache::UserPreferredCache()
 {
-
 }
 
 UserPreferredCache::~UserPreferredCache()
 {
-
 }
 
 UIntN UserPreferredCache::getUserPreferredDisplayCacheValue(std::string participantScope, DomainType::Type domainType)
 {
-    std::pair<std::string, DomainType::Type> participantScopeDomainType;
-    participantScopeDomainType.first = participantScope;
-    participantScopeDomainType.second = domainType;
+	std::pair<std::string, DomainType::Type> participantScopeDomainType;
+	participantScopeDomainType.first = participantScope;
+	participantScopeDomainType.second = domainType;
 
-    auto userPreferredDisplayValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
-    if (userPreferredDisplayValue != m_userPreferredDisplayCacheMap.end())
-    {
-        return m_userPreferredDisplayCacheMap[participantScopeDomainType].get();
-    }
+	auto userPreferredDisplayValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
+	if (userPreferredDisplayValue != m_userPreferredDisplayCacheMap.end())
+	{
+		return m_userPreferredDisplayCacheMap[participantScopeDomainType].get();
+	}
 
-    throw dptf_exception("User Preferred Display Cache Value not found in map");
+	throw dptf_exception("User Preferred Display Cache Value not found in map");
 }
 
-void UserPreferredCache::setUserPreferredDisplayCacheValue(std::string participantScope, DomainType::Type domainType, UIntN userPreferredDisplayIndex)
+void UserPreferredCache::setUserPreferredDisplayCacheValue(
+	std::string participantScope,
+	DomainType::Type domainType,
+	UIntN userPreferredDisplayIndex)
 {
-    CachedValue<UIntN> userPreferredCacheValue;
-    std::pair<std::string, DomainType::Type> participantScopeDomainType;
-    participantScopeDomainType.first = participantScope;
-    participantScopeDomainType.second = domainType;
- 
-    auto userPreferredDisplayValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
-    if (userPreferredDisplayValue != m_userPreferredDisplayCacheMap.end())
-    {
-        m_userPreferredDisplayCacheMap[participantScopeDomainType].set(userPreferredDisplayIndex);
-    }
-    else
-    {
-        userPreferredCacheValue.set(userPreferredDisplayIndex);
-        m_userPreferredDisplayCacheMap.insert(std::make_pair(participantScopeDomainType, userPreferredCacheValue));
-    }
+	CachedValue<UIntN> userPreferredCacheValue;
+	std::pair<std::string, DomainType::Type> participantScopeDomainType;
+	participantScopeDomainType.first = participantScope;
+	participantScopeDomainType.second = domainType;
+
+	auto userPreferredDisplayValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
+	if (userPreferredDisplayValue != m_userPreferredDisplayCacheMap.end())
+	{
+		m_userPreferredDisplayCacheMap[participantScopeDomainType].set(userPreferredDisplayIndex);
+	}
+	else
+	{
+		userPreferredCacheValue.set(userPreferredDisplayIndex);
+		m_userPreferredDisplayCacheMap.insert(std::make_pair(participantScopeDomainType, userPreferredCacheValue));
+	}
 }
 
 void UserPreferredCache::invalidateUserPreferredDisplayCache(std::string participantScope, DomainType::Type domainType)
 {
-    std::pair<std::string, DomainType::Type> participantScopeDomainType;
-    participantScopeDomainType.first = participantScope;
-    participantScopeDomainType.second = domainType;
+	std::pair<std::string, DomainType::Type> participantScopeDomainType;
+	participantScopeDomainType.first = participantScope;
+	participantScopeDomainType.second = domainType;
 
-    auto userPreferredDisplayCacheValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
-    if (userPreferredDisplayCacheValue != m_userPreferredDisplayCacheMap.end())
-    {
-        m_userPreferredDisplayCacheMap[participantScopeDomainType].invalidate();
-    }
-    else
-    {
-        throw dptf_exception("User Preferred Display Cache Value not found in map");
-    }
+	auto userPreferredDisplayCacheValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
+	if (userPreferredDisplayCacheValue != m_userPreferredDisplayCacheMap.end())
+	{
+		m_userPreferredDisplayCacheMap[participantScopeDomainType].invalidate();
+	}
+	else
+	{
+		throw dptf_exception("User Preferred Display Cache Value not found in map");
+	}
 }
 
 Bool UserPreferredCache::isUserPreferredDisplayCacheValid(std::string participantScope, DomainType::Type domainType)
 {
-    std::pair<std::string, DomainType::Type> participantScopeDomainType;
-    participantScopeDomainType.first = participantScope;
-    participantScopeDomainType.second = domainType;
+	std::pair<std::string, DomainType::Type> participantScopeDomainType;
+	participantScopeDomainType.first = participantScope;
+	participantScopeDomainType.second = domainType;
 
-    auto userPreferredDisplayCacheValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
+	auto userPreferredDisplayCacheValue = m_userPreferredDisplayCacheMap.find(participantScopeDomainType);
 
-    if (userPreferredDisplayCacheValue != m_userPreferredDisplayCacheMap.end())
-    {
-        return m_userPreferredDisplayCacheMap[participantScopeDomainType].isValid();
-    }	
-    else
-    {
-        return false;
-    }
+	if (userPreferredDisplayCacheValue != m_userPreferredDisplayCacheMap.end())
+	{
+		return m_userPreferredDisplayCacheMap[participantScopeDomainType].isValid();
+	}
+	else
+	{
+		return false;
+	}
 }

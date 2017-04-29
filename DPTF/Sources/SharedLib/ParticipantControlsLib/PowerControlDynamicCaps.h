@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,47 +29,50 @@ class XmlNode;
 class PowerControlDynamicCaps
 {
 public:
+	PowerControlDynamicCaps();
+	PowerControlDynamicCaps(
+		PowerControlType::Type powerControlType,
+		Power minPowerLimit,
+		Power maxPowerLimit,
+		Power powerStepSize,
+		TimeSpan minTimeWindow,
+		TimeSpan maxTimeWindow,
+		Percentage minDutyCycle,
+		Percentage maxDutyCycle);
+	~PowerControlDynamicCaps();
 
-    PowerControlDynamicCaps();
-    PowerControlDynamicCaps(PowerControlType::Type powerControlType, 
-        Power minPowerLimit, Power maxPowerLimit, Power powerStepSize, 
-        TimeSpan minTimeWindow, TimeSpan maxTimeWindow, 
-        Percentage minDutyCycle, Percentage maxDutyCycle);
-    ~PowerControlDynamicCaps();
+	PowerControlType::Type getPowerControlType(void) const;
 
-    PowerControlType::Type getPowerControlType(void) const;
+	Power getMinPowerLimit(void) const;
+	Power getMaxPowerLimit(void) const;
+	Power getPowerStepSize(void) const;
+	void setMinPowerLimit(Power minPower);
+	void setMaxPowerLimit(Power maxPower);
+	void setPowerStepSize(Power stepSize);
 
-    Power getMinPowerLimit(void) const;
-    Power getMaxPowerLimit(void) const;
-    Power getPowerStepSize(void) const;
-    void setMinPowerLimit(Power minPower);
-    void setMaxPowerLimit(Power maxPower);
-    void setPowerStepSize(Power stepSize);
+	TimeSpan getMinTimeWindow(void) const;
+	TimeSpan getMaxTimeWindow(void) const;
 
-    TimeSpan getMinTimeWindow(void) const;
-    TimeSpan getMaxTimeWindow(void) const;
+	Percentage getMinDutyCycle(void) const; // TODO: remove as this is not even in the PPCC
+	Percentage getMaxDutyCycle(void) const;
 
-    Percentage getMinDutyCycle(void) const; // TODO: remove as this is not even in the PPCC
-    Percentage getMaxDutyCycle(void) const;
+	Bool operator==(const PowerControlDynamicCaps& rhs) const;
+	Bool operator!=(const PowerControlDynamicCaps& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void) const;
 
-    Bool operator==(const PowerControlDynamicCaps& rhs) const;
-    Bool operator!=(const PowerControlDynamicCaps& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void) const;
-    
 private:
+	Bool m_valid;
+	PowerControlType::Type m_powerControlType;
 
-    Bool m_valid;
-    PowerControlType::Type m_powerControlType;
+	Power m_minPowerLimit; // in mW
+	Power m_maxPowerLimit; // in mW
+	Power m_powerStepSize; // in mW.
 
-    Power m_minPowerLimit; // in mW
-    Power m_maxPowerLimit; // in mW
-    Power m_powerStepSize; // in mW.
+	TimeSpan m_minTimeWindow; // in ms
+	TimeSpan m_maxTimeWindow; // in ms. Min = Max if time window is not programmable.
 
-    TimeSpan m_minTimeWindow; // in ms
-    TimeSpan m_maxTimeWindow; // in ms. Min = Max if time window is not programmable.
+	Percentage m_minDutyCycle; // percentage
+	Percentage m_maxDutyCycle; // percentage
 
-    Percentage m_minDutyCycle; // percentage
-    Percentage m_maxDutyCycle; // percentage
-
-    void throwIfNotValid() const;
+	void throwIfNotValid() const;
 };

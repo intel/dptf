@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,8 +33,8 @@
 //
 typedef struct _PolicyWorkItem
 {
-    unsigned long eventCode;
-    unsigned long param1;
-    void* param2;
-    unsigned long participantIndex;
+	unsigned long eventCode;
+	unsigned long param1;
+	void* param2;
+	unsigned long participantIndex;
 } PolicyWorkItem;

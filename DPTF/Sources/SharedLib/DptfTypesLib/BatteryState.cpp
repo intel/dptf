@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,20 +20,22 @@
 
 namespace BatteryState
 {
-    std::string ToString(BatteryState::State state)
-    {
-        switch (state)
-        {
-        case BatteryState::Discharging:
-            return "Discharging";
-        case BatteryState::Charging:
-            return "Charging";
-        case BatteryState::DischargingCritical:
-            return "Discharging Critical";
-        case BatteryState::ChargingCritical:
-            return "Charging Critical";
-        default:
-            return Constants::InvalidString;
-        }
-    }
+	std::string ToString(BatteryState::State state)
+	{
+		switch (state)
+		{
+		case BatteryState::NotCharging:
+			return "Not Charging";
+		case BatteryState::Discharging:
+			return "Discharging";
+		case BatteryState::Charging:
+			return "Charging";
+		case BatteryState::DischargingCritical:
+			return "Discharging Critical";
+		case BatteryState::ChargingCritical:
+			return "Charging Critical";
+		default:
+			return Constants::InvalidString;
+		}
+	}
 }

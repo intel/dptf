@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,18 +27,15 @@
 class WorkItemInterface
 {
 public:
+	virtual ~WorkItemInterface(){};
 
-    virtual ~WorkItemInterface()
-    {
-    };
-
-    virtual UInt64 getUniqueId(void) const = 0;
-    virtual FrameworkEvent::Type getFrameworkEventType(void) const = 0;
-    virtual const TimeSpan& getWorkItemCreationTime(void) const = 0;
-    virtual void setWorkItemExecutionStartTime(void) = 0;
-    virtual const TimeSpan& getWorkItemExecutionStartTime(void) const = 0;
-    virtual void signalAtCompletion(EsifSemaphore* semaphore) = 0;
-    virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const = 0;
-    virtual std::string toXml(void) const = 0;
-    virtual void execute(void) = 0;
+	virtual UInt64 getUniqueId(void) const = 0;
+	virtual FrameworkEvent::Type getFrameworkEventType(void) const = 0;
+	virtual const TimeSpan& getWorkItemCreationTime(void) const = 0;
+	virtual void setWorkItemExecutionStartTime(void) = 0;
+	virtual const TimeSpan& getWorkItemExecutionStartTime(void) const = 0;
+	virtual void signalAtCompletion(EsifSemaphore* semaphore) = 0;
+	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const = 0;
+	virtual std::string toXml(void) const = 0;
+	virtual void execute(void) = 0;
 };

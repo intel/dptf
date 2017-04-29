@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,9 +21,20 @@
 #if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <pthread.h>
-typedef pthread_t esif_thread_t; /* opaque */
+typedef pthread_t esif_thread_t;	/* Non-Unique Thread Handle */
+typedef pthread_t esif_thread_id_t; /* Unique Thread ID */
 
-#define esif_ccb_thread_id_current() pthread_self() /* Get Current Thread ID */
+/* Get current unique Thread ID (NOT Thread Handle) */
+static ESIF_INLINE esif_thread_id_t esif_ccb_thread_id_current()
+{
+	return pthread_self(); /* Thread Handle == Thread ID for Linux */
+}
+
+/* Convert a non-unique Thread Handle to a unique Thread ID */
+static ESIF_INLINE esif_thread_id_t esif_ccb_thread_id(esif_thread_t *threadPtr)
+{
+	return *threadPtr; /* Thread Handle == Thread ID for Linux */
+}
 
 static ESIF_INLINE enum esif_rc esif_ccb_thread_create(
 	esif_thread_t *thread_ptr,

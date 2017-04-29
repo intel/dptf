@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,17 @@
 #include "ParticipantManagerInterface.h"
 
 PolicyServicesParticipantGetSpecificInfo::PolicyServicesParticipantGetSpecificInfo(
-    DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
-std::map<ParticipantSpecificInfoKey::Type, Temperature> PolicyServicesParticipantGetSpecificInfo::getParticipantSpecificInfo(
-    UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
+std::map<ParticipantSpecificInfoKey::Type, Temperature> PolicyServicesParticipantGetSpecificInfo::
+	getParticipantSpecificInfo(
+		UIntN participantIndex,
+		const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getParticipantSpecificInfo(requestedInfo);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getParticipantSpecificInfo(requestedInfo);
 }

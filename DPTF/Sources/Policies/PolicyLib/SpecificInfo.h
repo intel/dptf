@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,27 +26,25 @@
 class dptf_export SpecificInfo
 {
 public:
-
 	SpecificInfo();
-    SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, Temperature> specificInfo);
-    ~SpecificInfo(void);
+	SpecificInfo(std::map<ParticipantSpecificInfoKey::Type, Temperature> specificInfo);
+	~SpecificInfo(void);
 
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> getSortedByValue();
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> getSortedByKey();
+	std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> getSortedByValue();
+	std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> getSortedByKey();
 
-    Bool hasKey(ParticipantSpecificInfoKey::Type key);
-    Temperature getTemperature(ParticipantSpecificInfoKey::Type key);
-    std::shared_ptr<XmlNode> getXml() const;
+	Bool hasKey(ParticipantSpecificInfoKey::Type key);
+	Temperature getTemperature(ParticipantSpecificInfoKey::Type key);
+	std::shared_ptr<XmlNode> getXml() const;
 
-    Bool operator==(SpecificInfo& rhs);
-    Bool operator!=(SpecificInfo& rhs);
+	Bool operator==(SpecificInfo& rhs);
+	Bool operator!=(SpecificInfo& rhs);
 
 private:
+	std::map<ParticipantSpecificInfoKey::Type, Temperature> m_specificInfo;
+	std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> m_sortedTripPointsByValue;
+	std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> m_sortedTripPointsByKey;
 
-    std::map<ParticipantSpecificInfoKey::Type, Temperature> m_specificInfo;
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> m_sortedTripPointsByValue;
-    std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> m_sortedTripPointsByKey;
-
-    void sortInfoByValue();
-    void sortInfoByKey();
+	void sortInfoByValue();
+	void sortInfoByKey();
 };

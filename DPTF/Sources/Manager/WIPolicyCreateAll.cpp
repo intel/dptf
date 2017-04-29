@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,9 +22,9 @@
 #include "EsifServicesInterface.h"
 #include "EsifFileEnumerator.h"
 
-WIPolicyCreateAll::WIPolicyCreateAll(DptfManagerInterface* dptfManager, const std::string dptfPolicyDirectoryPath) :
-WorkItem(dptfManager, FrameworkEvent::PolicyCreate), 
-m_policyDirectoryPath(dptfPolicyDirectoryPath)
+WIPolicyCreateAll::WIPolicyCreateAll(DptfManagerInterface* dptfManager, const std::string dptfPolicyDirectoryPath)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyCreate)
+	, m_policyDirectoryPath(dptfPolicyDirectoryPath)
 {
 }
 
@@ -34,45 +34,45 @@ WIPolicyCreateAll::~WIPolicyCreateAll(void)
 
 void WIPolicyCreateAll::execute(void)
 {
-    writeWorkItemStartingInfoMessage();
+	writeWorkItemStartingInfoMessage();
 
-    try
-    {
-        EsifFileEnumerator fileEnumerator(m_policyDirectoryPath, "DptfPolicy*" ESIF_LIB_EXT);
-        std::string policyFileName = fileEnumerator.getFirstFile();
+	try
+	{
+		EsifFileEnumerator fileEnumerator(m_policyDirectoryPath, "DptfPolicy*" ESIF_LIB_EXT);
+		std::string policyFileName = fileEnumerator.getFirstFile();
 
-        while (policyFileName.length() > 0)
-        {
-            try
-            {
-                std::string policyFilePath = m_policyDirectoryPath + policyFileName;
-                if (getDptfManager()->isDptfPolicyLoadNameOnly())
-                {
-                    policyFilePath.erase(0, m_policyDirectoryPath.length());
-                }
+		while (policyFileName.length() > 0)
+		{
+			try
+			{
+				std::string policyFilePath = m_policyDirectoryPath + policyFileName;
+				if (getDptfManager()->isDptfPolicyLoadNameOnly())
+				{
+					policyFilePath.erase(0, m_policyDirectoryPath.length());
+				}
 
-                getDptfManager()->getPolicyManager()->createPolicy(policyFilePath);
-            }
-            catch (std::exception& ex)
-            {
-                writeWorkItemErrorMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
-            }
-            catch (...)
-            {
-                dptf_exception ex("Unknown exception type caught when attempting to create a policy.");
-                writeWorkItemErrorMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
-            }
+				getDptfManager()->getPolicyManager()->createPolicy(policyFilePath);
+			}
+			catch (std::exception& ex)
+			{
+				writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+			}
+			catch (...)
+			{
+				dptf_exception ex("Unknown exception type caught when attempting to create a policy.");
+				writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+			}
 
-            policyFileName = fileEnumerator.getNextFile();
-        }
-    }
-    catch (std::exception& ex)
-    {
-        writeWorkItemErrorMessage(ex, "PolicyManager::createAllPolicies");
-    }
-    catch (...)
-    {
-        dptf_exception ex("Unknown exception type caught when attempting to create all policies.");
-        writeWorkItemErrorMessage(ex, "PolicyManager::createAllPolicies");
-    }
+			policyFileName = fileEnumerator.getNextFile();
+		}
+	}
+	catch (std::exception& ex)
+	{
+		writeWorkItemErrorMessage(ex, "PolicyManager::createAllPolicies");
+	}
+	catch (...)
+	{
+		dptf_exception ex("Unknown exception type caught when attempting to create all policies.");
+		writeWorkItemErrorMessage(ex, "PolicyManager::createAllPolicies");
+	}
 }

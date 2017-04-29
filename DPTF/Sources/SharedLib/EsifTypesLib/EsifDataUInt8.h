@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,22 +24,20 @@
 class EsifDataUInt8 final
 {
 public:
+	EsifDataUInt8(void);
+	EsifDataUInt8(UInt8 data);
+	EsifDataUInt8(const EsifDataPtr esifDataPtr);
 
-    EsifDataUInt8(void);
-    EsifDataUInt8(UInt8 data);
-    EsifDataUInt8(const EsifDataPtr esifDataPtr);
-
-    operator EsifDataPtr(void);
-    operator UInt8(void) const;
+	operator EsifDataPtr(void);
+	operator UInt8(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataUInt8(const EsifDataUInt8& rhs);
+	EsifDataUInt8& operator=(const EsifDataUInt8& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataUInt8(const EsifDataUInt8& rhs);
-    EsifDataUInt8& operator=(const EsifDataUInt8& rhs);
+	UInt8 m_esifDataValue;
+	EsifData m_esifData;
 
-    UInt8 m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(UInt8 data);
+	void initialize(UInt8 data);
 };

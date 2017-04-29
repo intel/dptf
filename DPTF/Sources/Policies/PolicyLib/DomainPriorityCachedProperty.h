@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,22 +28,19 @@
 class dptf_export DomainPriorityCachedProperty : public CachedProperty, DomainProperty
 {
 public:
+	DomainPriorityCachedProperty(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~DomainPriorityCachedProperty(void);
 
-    DomainPriorityCachedProperty(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~DomainPriorityCachedProperty(void);
-
-    const DomainPriority& getDomainPriority();
-    virtual Bool supportsProperty() override;
+	const DomainPriority& getDomainPriority();
+	virtual Bool supportsProperty() override;
 
 protected:
-
-    virtual void refreshData() override;
+	virtual void refreshData() override;
 
 private:
-
-    DomainPriority m_domainPriority;
+	DomainPriority m_domainPriority;
 };

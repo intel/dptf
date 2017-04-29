@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,17 +25,19 @@
 class WIDptfGetStatus : public WorkItem
 {
 public:
+	WIDptfGetStatus(
+		DptfManagerInterface* dptfManager,
+		const eAppStatusCommand command,
+		const UInt32 appStatusIn,
+		EsifDataPtr appStatusOut,
+		eEsifError* returnCode);
+	virtual ~WIDptfGetStatus(void);
 
-    WIDptfGetStatus(DptfManagerInterface* dptfManager, const eAppStatusCommand command,
-        const UInt32 appStatusIn, EsifDataPtr appStatusOut, eEsifError* returnCode);
-    virtual ~WIDptfGetStatus(void);
-
-    virtual void execute(void) override final;
+	virtual void execute(void) override final;
 
 private:
-
-    const eAppStatusCommand m_command;
-    const UInt32 m_appStatusIn;
-    EsifDataPtr m_appStatusOut;
-    eEsifError* m_returnCode;
+	const eAppStatusCommand m_command;
+	const UInt32 m_appStatusIn;
+	EsifDataPtr m_appStatusOut;
+	eEsifError* m_returnCode;
 };

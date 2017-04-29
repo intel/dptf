@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,30 +22,31 @@
 
 namespace ControlKnobType
 {
-    enum Type
-    {
-        Invalid = 0,
-        PowerControlPl1 = 0x00010000, // PL1 in mW
-        PowerControlPl2 = 0x00010001, // PL2 in mW
-        PowerControlPl3 = 0x00010002, // PL3 in mW
-        PowerControlPl4 = 0x00010003, // PL4 in mW
-        PerformanceControlPerfFrequency = 0x00020000, // Performance Target Freq(in % units. Indicates % from Max Turbo)
-        PerformanceControlThrottleFrequency = 0x00020001, // Throttle Target Freq (Indicates % from LFM/MFM for IA domain only)
-        DbptControlIccMax = 0x00030000, // Current Limit in mA
-        CoreControlLpo = 0x00040000, // Number of logical processors/exec units to be offlined
-        DisplayControlBrightness = 0x00050000, // Display brightness in percentage units
-        PercentageFanControl = 0x00060000, // Target fan speed in rpm
-        ConfigTdpControlTurboState = 0x00070000, // Turbo state enabled (0)/disabled (1)
-        TauControlPl1 = 0x00080000, // PL1 Tau in ms
-        TauControlPl2 = 0x00080001, // PL2 Tau in ms
-        TauControlPl3 = 0x00080002, // PL3 Tau in ms
-        DataThroughput = 0x00090000, // Desired data throughput in kbps
-        PerformanceControlPerfIndex = 0x000A0000, // Performance Target Index reported by PPSS or _PSS
-        PSysPowerControlPl1 = 0x000B0000, // PSys PL1 in mW
-        PSysPowerControlPl2 = 0x000B0001, // PSys PL2 in mW
-        PSysPowerControlPl3 = 0x000B0002, // PSys PL3 in mW
-        RPMFanControl = 0x000C0000 // RPM fan Control in Integer
-    };
+	enum Type
+	{
+		Invalid = 0,
+		PowerControlPl1 = 0x00010000, // PL1 in mW
+		PowerControlPl2 = 0x00010001, // PL2 in mW
+		PowerControlPl3 = 0x00010002, // PL3 in mW
+		PowerControlPl4 = 0x00010003, // PL4 in mW
+		PerformanceControlPerfFrequency = 0x00020000, // Performance Target Freq(in % units. Indicates % from Max Turbo)
+		PerformanceControlThrottleFrequency =
+			0x00020001, // Throttle Target Freq (Indicates % from LFM/MFM for IA domain only)
+		DbptControlIccMax = 0x00030000, // Current Limit in mA
+		CoreControlLpo = 0x00040000, // Number of logical processors/exec units to be offlined
+		DisplayControlBrightness = 0x00050000, // Display brightness in percentage units
+		PercentageFanControl = 0x00060000, // Target fan speed in rpm
+		ConfigTdpControlTurboState = 0x00070000, // Turbo state enabled (0)/disabled (1)
+		TauControlPl1 = 0x00080000, // PL1 Tau in ms
+		TauControlPl2 = 0x00080001, // PL2 Tau in ms
+		TauControlPl3 = 0x00080002, // PL3 Tau in ms
+		DataThroughput = 0x00090000, // Desired data throughput in kbps
+		PerformanceControlPerfIndex = 0x000A0000, // Performance Target Index reported by PPSS or _PSS
+		PSysPowerControlPl1 = 0x000B0000, // PSys PL1 in mW
+		PSysPowerControlPl2 = 0x000B0001, // PSys PL2 in mW
+		PSysPowerControlPl3 = 0x000B0002, // PSys PL3 in mW
+		RPMFanControl = 0x000C0000 // RPM fan Control in Integer
+	};
 
-    std::string ToString(ControlKnobType::Type type);
+	std::string ToString(ControlKnobType::Type type);
 }

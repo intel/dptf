@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,13 +24,16 @@
 class PolicyMessage : public DptfMessage
 {
 public:
+	PolicyMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName);
+	PolicyMessage(
+		const std::string& fileName,
+		UIntN lineNumber,
+		const std::string& executingFunctionName,
+		const std::string& message,
+		UIntN participantIndex = Constants::Invalid,
+		UIntN domainIndex = Constants::Invalid);
+	virtual ~PolicyMessage(void);
 
-    PolicyMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName);
-    PolicyMessage(const std::string& fileName, UIntN lineNumber, const std::string& executingFunctionName,
-        const std::string& message, UIntN participantIndex = Constants::Invalid,
-        UIntN domainIndex = Constants::Invalid);
-    virtual ~PolicyMessage(void);
-
-    void setParticipantIndex(UIntN participantIndex);
-    void setParticipantAndDomainIndex(UIntN participantIndex, UIntN domainIndex);
+	void setParticipantIndex(UIntN participantIndex);
+	void setParticipantAndDomainIndex(UIntN participantIndex, UIntN domainIndex);
 };

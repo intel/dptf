@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,42 +23,40 @@
 class dptf_export DisplayControlFacade : public DisplayControlFacadeInterface
 {
 public:
+	DisplayControlFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~DisplayControlFacade();
 
-    DisplayControlFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~DisplayControlFacade();
+	// controls
+	virtual Bool supportsDisplayControls() override;
+	virtual void setControl(UIntN displayControlIndex) override;
+	virtual void setDisplayControlDynamicCaps(DisplayControlDynamicCaps newCapabilities) override;
+	virtual void lockCapabilities() override;
+	virtual void unlockCapabilities() override;
 
-    // controls
-    virtual Bool supportsDisplayControls() override;
-    virtual void setControl(UIntN displayControlIndex) override;
-    virtual void setDisplayControlDynamicCaps(DisplayControlDynamicCaps newCapabilities) override;
-    virtual void lockCapabilities() override;
-    virtual void unlockCapabilities() override;
-
-    // properties
-    virtual void refreshCapabilities() override;
-    virtual void invalidateControlSet() override;
-    virtual DisplayControlStatus getStatus() override;
-    virtual UIntN getUserPreferredDisplayIndex() override;
-    virtual Bool isUserPreferredIndexModified() override;
-    virtual const DisplayControlSet& getControls() override;
-    virtual const DisplayControlDynamicCaps& getCapabilities() override;
-    virtual void setValueWithinCapabilities() override;
+	// properties
+	virtual void refreshCapabilities() override;
+	virtual void invalidateControlSet() override;
+	virtual DisplayControlStatus getStatus() override;
+	virtual UIntN getUserPreferredDisplayIndex() override;
+	virtual Bool isUserPreferredIndexModified() override;
+	virtual const DisplayControlSet& getControls() override;
+	virtual const DisplayControlDynamicCaps& getCapabilities() override;
+	virtual void setValueWithinCapabilities() override;
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
+	// domain properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 
-    // domain properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
-    
-    // display control properties
-    DisplayControlSetCachedProperty m_displayControlSetProperty;
-    DisplayControlCapabilitiesCachedProperty m_displayControlCapabilitiesProperty;
+	// display control properties
+	DisplayControlSetCachedProperty m_displayControlSetProperty;
+	DisplayControlCapabilitiesCachedProperty m_displayControlCapabilitiesProperty;
 };

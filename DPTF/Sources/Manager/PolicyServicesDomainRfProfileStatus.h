@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,12 @@
 #include "Dptf.h"
 #include "PolicyServices.h"
 #include "DomainRfProfileStatusInterface.h"
+#include "RfProfileDataSet.h"
 
 class PolicyServicesDomainRfProfileStatus final : public PolicyServices, public DomainRfProfileStatusInterface
 {
 public:
+	PolicyServicesDomainRfProfileStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServicesDomainRfProfileStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    virtual RfProfileData getRfProfileData(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) override final;
 };

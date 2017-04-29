@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,9 +22,11 @@
 // version 001 is for fivr
 //
 
-DomainRfProfileStatus_001::DomainRfProfileStatus_001(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) :
-    DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
+DomainRfProfileStatus_001::DomainRfProfileStatus_001(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
 }
 
@@ -32,52 +34,58 @@ DomainRfProfileStatus_001::~DomainRfProfileStatus_001(void)
 {
 }
 
-RfProfileData DomainRfProfileStatus_001::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
+RfProfileDataSet DomainRfProfileStatus_001::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-    // FIXME:  can this be cached?  If so how do we know when the data changes?
 
-    // if center frequency isn't available the error will get thrown back to the policy
+	// DptfBuffer buffer; // TODO: Add primitive to get RfProfileDataSet
+	// auto rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
 
-    Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
-        esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
+	std::vector<RfProfileData> rfProfileDataSet;
+	Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+		esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
 
-    RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
-    RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
+	RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
+	RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
+	rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 
-    return rfProfileData;
+	return RfProfileDataSet(rfProfileDataSet);
 }
 
 void DomainRfProfileStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    try
-    {
-        if (isActivityLoggingEnabled() == true) {
-            EsifCapabilityData capability;
-            capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
-            capability.size = sizeof(capability);
+	try
+	{
+		if (isActivityLoggingEnabled() == true)
+		{
+			EsifCapabilityData capability;
+			capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
+			capability.size = sizeof(capability);
 
-            getParticipantServices()->sendDptfEvent(ParticipantEvent::DptfParticipantControlAction,
-                domainIndex, Capability::getEsifDataFromCapabilityData(&capability));
-        }
-    }
-    catch (...)
-    {
-        // skip if there are any issue in sending log data
-    }
+			getParticipantServices()->sendDptfEvent(
+				ParticipantEvent::DptfParticipantControlAction,
+				domainIndex,
+				Capability::getEsifDataFromCapabilityData(&capability));
+		}
+	}
+	catch (...)
+	{
+		// skip if there are any issue in sending log data
+	}
 }
 
 void DomainRfProfileStatus_001::clearCachedData(void)
 {
-    // For now nothing is cached
+	// For now nothing is cached
 }
 
 std::shared_ptr<XmlNode> DomainRfProfileStatus_001::getXml(UIntN domainIndex)
 {
-    // FIXME
-    throw implement_me();
+	auto root = XmlNode::createWrapperElement("rfprofile_status");
+	root->addChild(XmlNode::createDataElement("control_name", getName()));
+	return root;
 }
 
 std::string DomainRfProfileStatus_001::getName(void)
 {
-    return "RF Profile Status (Version 1)";
+	return "FIVR RF Profile Status";
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,6 @@
 // This is the list of capabilities that participant can support.
 namespace Capability
 {
-    UInt32 ToCapabilityId(eEsifCapabilityType capabilityType);
-    esif_data getEsifDataFromCapabilityData(EsifCapabilityData* capability);
+	UInt32 ToCapabilityId(eEsifCapabilityType capabilityType);
+	esif_data getEsifDataFromCapabilityData(EsifCapabilityData* capability);
 }

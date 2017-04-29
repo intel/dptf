@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,9 @@
 #include "EsifServicesInterface.h"
 
 WIParticipantSpecificInfoChanged::WIParticipantSpecificInfoChanged(
-    DptfManagerInterface* dptfManager, UIntN participantIndex) :
-    ParticipantWorkItem(dptfManager, FrameworkEvent::Type::ParticipantSpecificInfoChanged, participantIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN participantIndex)
+	: ParticipantWorkItem(dptfManager, FrameworkEvent::Type::ParticipantSpecificInfoChanged, participantIndex)
 {
 }
 
@@ -33,38 +34,38 @@ WIParticipantSpecificInfoChanged::~WIParticipantSpecificInfoChanged(void)
 
 void WIParticipantSpecificInfoChanged::execute(void)
 {
-    writeParticipantWorkItemStartingInfoMessage();
+	writeParticipantWorkItemStartingInfoMessage();
 
-    try
-    {
-        getParticipantPtr()->participantSpecificInfoChanged();
-    }
-    catch (std::exception& ex)
-    {
-        writeParticipantWorkItemErrorMessage(ex, "Participant::participantSpecificInfoChanged");
-    }
+	try
+	{
+		getParticipantPtr()->participantSpecificInfoChanged();
+	}
+	catch (std::exception& ex)
+	{
+		writeParticipantWorkItemErrorMessage(ex, "Participant::participantSpecificInfoChanged");
+	}
 
-    auto policyManager = getPolicyManager();
-    UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyManager = getPolicyManager();
+	UIntN policyListCount = policyManager->getPolicyListCount();
 
-    for (UIntN i = 0; i < policyListCount; i++)
-    {
-        try
-        {
-            Policy* policy = policyManager->getPolicyPtr(i);
-            policy->executeParticipantSpecificInfoChanged(getParticipantIndex());
-        }
-        catch (policy_index_invalid ex)
-        {
-            // do nothing.  No item in the policy list at this index.
-        }
-        catch (temperature_out_of_range ex)
-        {
-            writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
-        }
-        catch (std::exception& ex)
-        {
-            writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
-        }
-    }
+	for (UIntN i = 0; i < policyListCount; i++)
+	{
+		try
+		{
+			Policy* policy = policyManager->getPolicyPtr(i);
+			policy->executeParticipantSpecificInfoChanged(getParticipantIndex());
+		}
+		catch (policy_index_invalid ex)
+		{
+			// do nothing.  No item in the policy list at this index.
+		}
+		catch (temperature_out_of_range ex)
+		{
+			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
+		}
+		catch (std::exception& ex)
+		{
+			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
+		}
+	}
 }

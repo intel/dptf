@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,24 +32,29 @@
 class dptf_export ActiveControlArbitrator
 {
 public:
+	ActiveControlArbitrator();
+	~ActiveControlArbitrator(void);
 
-    ActiveControlArbitrator();
-    ~ActiveControlArbitrator(void);
+	void commitPolicyRequest(UIntN policyIndex, const Percentage& fanSpeed);
+	void commitPolicyRequest(UIntN policyIndex, UIntN activeControlIndex);
 
-    // arbitrate() returns true if the arbitrated value has changed
-    Bool arbitrate(UIntN policyIndex, const Percentage& fanSpeed);
-    Bool arbitrate(UIntN policyIndex, UIntN activeControlIndex);
+	Bool hasArbitratedFanSpeedPercentage(void) const;
+	Bool hasArbitratedActiveControlIndex(void) const;
 
-    Percentage getArbitratedFanSpeedPercentage(void) const;
-    UIntN getArbitratedActiveControlIndex(void) const;
+	Percentage getArbitratedFanSpeedPercentage(void) const;
+	UIntN getArbitratedActiveControlIndex(void) const;
 
-    void clearPolicyCachedData(UIntN policyIndex);
+	Percentage arbitrate(UIntN policyIndex, const Percentage& fanSpeed);
+	UIntN arbitrate(UIntN policyIndex, UIntN activeControlIndex);
+
+	void clearPolicyCachedData(UIntN policyIndex);
 
 private:
+	Percentage m_arbitratedFanSpeedPercentage;
+	std::map<UIntN, Percentage> m_requestedfanSpeedPercentage;
+	Percentage getMaxRequestedFanSpeedPercentage(std::map<UIntN, Percentage>& requests);
 
-    Percentage m_arbitratedFanSpeedPercentage;
-    std::map<UIntN, Percentage> m_requestedfanSpeedPercentage;
-
-    UIntN m_arbitratedActiveControlIndex;
-    std::map<UIntN, UIntN> m_requestedActiveControlIndex;
+	UIntN m_arbitratedActiveControlIndex;
+	std::map<UIntN, UIntN> m_requestedActiveControlIndex;
+	UIntN getMinRequestedActiveControlIndex(std::map<UIntN, UIntN>& requests);
 };

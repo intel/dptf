@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,7 +34,9 @@ static ESIF_INLINE void esif_ccb_qsort(
 	)
 {
 	UNREFERENCED_PARAMETER(ctx);
-	qsort(base, num, size, compar);
+	if (base && num > 0) {
+		qsort(base, num, size, compar);
+	}
 }
 
 // qsort() callback to case-insenstive sort an array of null-terminated ANSI strings
@@ -57,7 +59,18 @@ static ESIF_INLINE int ESIF_CALLCONV esif_ccb_qsort_strcmp(
 
 #else /* Chrome and all other Linux-derived OS */
 
-#define esif_ccb_qsort(bas, num, siz, fn, ctx)	qsort_r(bas, num, siz, fn, ctx)
+static ESIF_INLINE void esif_ccb_qsort(
+	void *base,
+	size_t num,
+	size_t size,
+	int (*compar)(const void *, const void *, void *),
+	void *ctx
+	)
+{
+	if (base && num > 0) {
+		qsort_r(base, num, size, compar, ctx);
+	}
+}
 
 // qsort() callback to case-insenstive sort an array of null-terminated ANSI strings
 static ESIF_INLINE int ESIF_CALLCONV esif_ccb_qsort_stricmp(

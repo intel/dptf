@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,74 +26,107 @@
 class DomainPowerControl_001 : public DomainPowerControlBase
 {
 public:
+	DomainPowerControl_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainPowerControl_001(void);
 
-    DomainPowerControl_001(UIntN participantIndex, UIntN domainIndex, 
-        std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
-    virtual ~DomainPowerControl_001(void);
+	// DomainPowerControlInterface
+	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+		override;
+	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual void setPowerLimit(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit) override;
+	virtual void setPowerLimitIgnoringCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Power& powerLimit) override;
+	virtual TimeSpan getPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
+	virtual void setPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow) override;
+	virtual void setPowerLimitTimeWindowIgnoringCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const TimeSpan& timeWindow) override;
+	virtual Percentage getPowerLimitDutyCycle(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
+	virtual void setPowerLimitDutyCycle(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		const Percentage& dutyCycle) override;
 
-    // DomainPowerControlInterface
-    virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType) override;
-    virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType) override;
-    virtual void setPowerLimit(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType, const Power& powerLimit) override;
-    virtual void setPowerLimitIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
-        PowerControlType::Type controlType, const Power& powerLimit) override;
-    virtual TimeSpan getPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType) override;
-    virtual void setPowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
-    virtual void setPowerLimitTimeWindowIgnoringCaps(UIntN participantIndex, UIntN domainIndex,
-        PowerControlType::Type controlType, const TimeSpan& timeWindow) override;
-    virtual Percentage getPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType) override;
-    virtual void setPowerLimitDutyCycle(UIntN participantIndex, UIntN domainIndex, 
-        PowerControlType::Type controlType, const Percentage& dutyCycle) override;
+	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
+		override;
+	virtual void setPowerControlDynamicCapsSet(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlDynamicCapsSet capsSet) override;
+	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
-    virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(
-        UIntN participantIndex, UIntN domainIndex) override;
-    virtual void setPowerControlDynamicCapsSet(
-        UIntN participantIndex, UIntN domainIndex, PowerControlDynamicCapsSet capsSet) override;
-    virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override;
+	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override;
+	virtual double getPidKiTerm(UIntN participantIndex, UIntN domainIndex) override;
+	virtual TimeSpan getTau(UIntN participantIndex, UIntN domainIndex) override;
+	virtual TimeSpan getFastPollTime(UIntN participantIndex, UIntN domainIndex) override;
+	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
+	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
 
-    // ParticipantActivityLoggingInterface
-    virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	// ParticipantActivityLoggingInterface
+	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
-    // ComponentExtendedInterface
-    virtual void clearCachedData(void) override;
-    virtual std::string getName(void) override;
-    virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+	// ComponentExtendedInterface
+	virtual void clearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
-    virtual void capture(void) override;
-    virtual void restore(void) override;
+	virtual void capture(void) override;
+	virtual void restore(void) override;
 
 private:
+	// Don't allow this class to be copied
+	DomainPowerControl_001(const DomainPowerControl_001& rhs);
+	DomainPowerControl_001& operator=(const DomainPowerControl_001& rhs);
 
-    // Don't allow this class to be copied
-    DomainPowerControl_001(const DomainPowerControl_001& rhs);
-    DomainPowerControl_001& operator=(const DomainPowerControl_001& rhs);
+	PowerControlDynamicCapsSet getDynamicCapabilities();
+	void setAndUpdateEnabled(PowerControlType::Type controlType);
 
-    PowerControlDynamicCapsSet getDynamicCapabilities();
-    void setAndUpdateEnabled(PowerControlType::Type controlType);
+	void throwIfLimitNotEnabled(PowerControlType::Type controlType);
+	void throwIfTypeInvalidForPowerLimit(PowerControlType::Type controlType);
+	void throwIfTypeInvalidForTimeWindow(PowerControlType::Type controlType);
+	void throwIfTypeInvalidForDutyCycle(PowerControlType::Type controlType);
+	void throwIfPowerLimitIsOutsideCapabilityRange(PowerControlType::Type controlType, const Power& powerLimit);
+	void throwIfTimeWindowIsOutsideCapabilityRange(PowerControlType::Type controlType, const TimeSpan& timeWindow);
+	void throwIfDutyCycleIsOutsideCapabilityRange(const Percentage& dutyCycle);
+	void throwIfDynamicCapabilitiesAreWrong(const PowerControlDynamicCapsSet& capabilities);
 
-    void throwIfLimitNotEnabled(PowerControlType::Type controlType);
-    void throwIfTypeInvalidForPowerLimit(PowerControlType::Type controlType);
-    void throwIfTypeInvalidForTimeWindow(PowerControlType::Type controlType);
-    void throwIfTypeInvalidForDutyCycle(PowerControlType::Type controlType);
-    void throwIfPowerLimitIsOutsideCapabilityRange(PowerControlType::Type controlType, const Power& powerLimit);
-    void throwIfTimeWindowIsOutsideCapabilityRange(PowerControlType::Type controlType, const TimeSpan& timeWindow);
-    void throwIfDutyCycleIsOutsideCapabilityRange(const Percentage& dutyCycle);
-    void throwIfDynamicCapabilitiesAreWrong(const PowerControlDynamicCapsSet& capabilities);
+	std::shared_ptr<XmlNode> createStatusNode(PowerControlType::Type controlType);
+	std::string createStatusStringForEnabled(PowerControlType::Type controlType);
+	std::string createStatusStringForLimitValue(PowerControlType::Type controlType);
+	std::string createStatusStringForTimeWindow(PowerControlType::Type controlType);
+	std::string createStatusStringForDutyCycle(PowerControlType::Type controlType);
 
-    std::shared_ptr<XmlNode> createStatusNode(PowerControlType::Type controlType);
-    std::string createStatusStringForEnabled(PowerControlType::Type controlType);
-    std::string createStatusStringForLimitValue(PowerControlType::Type controlType);
-    std::string createStatusStringForTimeWindow(PowerControlType::Type controlType);
-    std::string createStatusStringForDutyCycle(PowerControlType::Type controlType);
-
-    CachedValue<PowerControlDynamicCapsSet> m_powerControlDynamicCaps;
-    PowerControlState m_initialState;
-    Bool m_capabilitiesLocked;
+	CachedValue<PowerControlDynamicCapsSet> m_powerControlDynamicCaps;
+	PowerControlState m_initialState;
+	Bool m_capabilitiesLocked;
 };

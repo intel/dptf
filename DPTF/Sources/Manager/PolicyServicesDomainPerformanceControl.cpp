@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,58 +20,73 @@
 #include "ParticipantManagerInterface.h"
 
 PolicyServicesDomainPerformanceControl::PolicyServicesDomainPerformanceControl(
-    DptfManagerInterface* dptfManager, UIntN policyIndex) :
-    PolicyServices(dptfManager, policyIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 PerformanceControlStaticCaps PolicyServicesDomainPerformanceControl::getPerformanceControlStaticCaps(
-    UIntN participantIndex, UIntN domainIndex)
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlStaticCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlStaticCaps(domainIndex);
 }
 
 PerformanceControlDynamicCaps PolicyServicesDomainPerformanceControl::getPerformanceControlDynamicCaps(
-    UIntN participantIndex, UIntN domainIndex)
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlDynamicCaps(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlDynamicCaps(domainIndex);
 }
 
 PerformanceControlStatus PolicyServicesDomainPerformanceControl::getPerformanceControlStatus(
-    UIntN participantIndex, UIntN domainIndex)
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlStatus(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlStatus(domainIndex);
 }
 
 PerformanceControlSet PolicyServicesDomainPerformanceControl::getPerformanceControlSet(
-    UIntN participantIndex, UIntN domainIndex)
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
-    throwIfNotWorkItemThread();
-    return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlSet(domainIndex);
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPerformanceControlSet(domainIndex);
 }
 
 void PolicyServicesDomainPerformanceControl::setPerformanceControl(
-    UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UIntN performanceControlIndex)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceControl(
-        domainIndex, getPolicyIndex(), performanceControlIndex);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPerformanceControl(domainIndex, getPolicyIndex(), performanceControlIndex);
 }
 
 void PolicyServicesDomainPerformanceControl::setPerformanceControlDynamicCaps(
-    UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities)
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PerformanceControlDynamicCaps newCapabilities)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceControlDynamicCaps(
-        domainIndex, getPolicyIndex(), newCapabilities);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPerformanceControlDynamicCaps(domainIndex, getPolicyIndex(), newCapabilities);
 }
 
-void PolicyServicesDomainPerformanceControl::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+void PolicyServicesDomainPerformanceControl::setPerformanceCapsLock(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Bool lock)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setPerformanceCapsLock(
-        domainIndex, getPolicyIndex(), lock);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPerformanceCapsLock(domainIndex, getPolicyIndex(), lock);
 }

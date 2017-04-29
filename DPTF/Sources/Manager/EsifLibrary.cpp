@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,82 +19,87 @@
 #include "EsifLibrary.h"
 #include "Dptf.h"
 
-EsifLibrary::EsifLibrary(void) :
-    m_fileName(""), m_libraryLoaded(false), m_library(nullptr)
+EsifLibrary::EsifLibrary(void)
+	: m_fileName("")
+	, m_libraryLoaded(false)
+	, m_library(nullptr)
 {
 }
 
-EsifLibrary::EsifLibrary(const std::string& fileName) :
-    m_fileName(fileName), m_libraryLoaded(false), m_library(nullptr)
+EsifLibrary::EsifLibrary(const std::string& fileName)
+	: m_fileName(fileName)
+	, m_libraryLoaded(false)
+	, m_library(nullptr)
 {
 }
 
 EsifLibrary::~EsifLibrary(void)
 {
-    if (m_libraryLoaded == true)
-    {
-        esif_ccb_library_unload(m_library);
-        m_library = nullptr;
-        m_libraryLoaded = false;
-    }
+	if (m_libraryLoaded == true)
+	{
+		esif_ccb_library_unload(m_library);
+		m_library = nullptr;
+		m_libraryLoaded = false;
+	}
 }
 
 void EsifLibrary::setFileName(const std::string& fileName)
 {
-    if (m_libraryLoaded == true)
-    {
-        throw dptf_exception("Attempted to set file name while library loaded.");
-    }
+	if (m_libraryLoaded == true)
+	{
+		throw dptf_exception("Attempted to set file name while library loaded.");
+	}
 
-    m_fileName = fileName;
+	m_fileName = fileName;
 }
 
 void EsifLibrary::load(void)
 {
-    if (m_libraryLoaded == false)
-    {
-        esif_string esifString = const_cast<esif_string>(m_fileName.c_str());
-        m_library = esif_ccb_library_load(esifString);
+	if (m_libraryLoaded == false)
+	{
+		esif_string esifString = const_cast<esif_string>(m_fileName.c_str());
+		m_library = esif_ccb_library_load(esifString);
 
-        if (m_library == nullptr || m_library->handle == nullptr)
-        {
-            std::stringstream message;
-            message << "Library failed to load: " << m_fileName << ": " << esif_ccb_library_errormsg(m_library);
-            esif_ccb_library_unload(m_library);
-            m_library = nullptr;
-            throw dptf_exception(message.str());
-        }
+		if (m_library == nullptr || m_library->handle == nullptr)
+		{
+			std::stringstream message;
+			message << "Library failed to load: " << m_fileName << ": " << esif_ccb_library_errormsg(m_library);
+			esif_ccb_library_unload(m_library);
+			m_library = nullptr;
+			throw dptf_exception(message.str());
+		}
 
-        m_libraryLoaded = true;
-    }
+		m_libraryLoaded = true;
+	}
 }
 
 void EsifLibrary::unload(void)
 {
-    if (m_libraryLoaded == true)
-    {
-        esif_ccb_library_unload(m_library);
-        m_library = nullptr;
-        m_libraryLoaded = false;
-    }
+	if (m_libraryLoaded == true)
+	{
+		esif_ccb_library_unload(m_library);
+		m_library = nullptr;
+		m_libraryLoaded = false;
+	}
 }
 
 void* EsifLibrary::getFunctionPtr(std::string functionName)
 {
-    if (m_libraryLoaded == false)
-    {
-        throw dptf_exception("Library not loaded.");
-    }
+	if (m_libraryLoaded == false)
+	{
+		throw dptf_exception("Library not loaded.");
+	}
 
-    esif_string esifString = const_cast<esif_string>(functionName.c_str());
+	esif_string esifString = const_cast<esif_string>(functionName.c_str());
 
-    void* funcPtr = esif_ccb_library_get_func(m_library, esifString);
-    if (funcPtr == nullptr)
-    {
-        std::stringstream message;
-        message << "Could not get pointer to function: " << functionName << ": " << esif_ccb_library_errormsg(m_library);
-        throw dptf_exception(message.str());
-    }
+	void* funcPtr = esif_ccb_library_get_func(m_library, esifString);
+	if (funcPtr == nullptr)
+	{
+		std::stringstream message;
+		message << "Could not get pointer to function: " << functionName << ": "
+				<< esif_ccb_library_errormsg(m_library);
+		throw dptf_exception(message.str());
+	}
 
-    return funcPtr;
+	return funcPtr;
 }

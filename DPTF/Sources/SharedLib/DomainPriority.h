@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,22 +25,20 @@ class XmlNode;
 class DomainPriority final
 {
 public:
-
-    DomainPriority();                                               // defaults priority to 0 (meaning low priority)
-    DomainPriority(UIntN currentPriority);
-    UIntN getCurrentPriority(void) const;
-    Bool operator==(const DomainPriority& rhs) const;
-    Bool operator!=(const DomainPriority& rhs) const;
-    Bool operator>(const DomainPriority& rhs) const;
-    Bool operator<(const DomainPriority& rhs) const;
-    std::shared_ptr<XmlNode> getXml(void);
+	DomainPriority(); // defaults priority to 0 (meaning low priority)
+	DomainPriority(UIntN currentPriority);
+	UIntN getCurrentPriority(void) const;
+	Bool operator==(const DomainPriority& rhs) const;
+	Bool operator!=(const DomainPriority& rhs) const;
+	Bool operator>(const DomainPriority& rhs) const;
+	Bool operator<(const DomainPriority& rhs) const;
+	std::shared_ptr<XmlNode> getXml(void);
 
 private:
-
-    // Stores the priority for the domain.  For a given participant with multiple domains, a higher
-    // number is a higher priority.  If two domains have the same priority, the behavior is undefined
-    // and the policy will act as it chooses.  As an example of its usage, the passive policy uses
-    // information to choose whether it limits the CPU first or Graphics first when a thermal
-    // condition occurs.
-    UIntN m_currentPriority;
+	// Stores the priority for the domain.  For a given participant with multiple domains, a higher
+	// number is a higher priority.  If two domains have the same priority, the behavior is undefined
+	// and the policy will act as it chooses.  As an example of its usage, the passive policy uses
+	// information to choose whether it limits the CPU first or Graphics first when a thermal
+	// condition occurs.
+	UIntN m_currentPriority;
 };

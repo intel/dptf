@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -269,15 +269,14 @@ static int DataCache_FindInsertionPoint (
 	return node;
 }
 
-
-DataCachePtr DataCache_Clone(
+// Make a clone of NOCACHE entries only so they can be restored in the event of I/O Failure
+DataCachePtr DataCache_CloneOffsets(
 	DataCachePtr self
 	)
 {
 	eEsifError rc = ESIF_OK;
 	DataCachePtr clonePtr = NULL;
 	UInt32 idx = 0;
-	DataCacheEntryPtr curElement = NULL;
 
 	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -290,14 +289,15 @@ DataCachePtr DataCache_Clone(
 		goto exit;
 	}
 
-	curElement = self->elements;
-	for (idx = 0; idx < self->size; idx++, curElement++) {
-		rc = DataCache_InsertValue(clonePtr,
-			curElement->key.buf_ptr,
-			&curElement->value,
-			curElement->flags);
-		if (rc != ESIF_OK) {
-			break;
+	for (idx = 0; idx < self->size; idx++) {
+		if (self->elements[idx].flags & ESIF_SERVICE_CONFIG_NOCACHE) {
+			rc = DataCache_InsertValue(clonePtr,
+				self->elements[idx].key.buf_ptr,
+				&self->elements[idx].value,
+				self->elements[idx].flags);
+			if (rc != ESIF_OK) {
+				break;
+			}
 		}
 	}
 exit:
@@ -308,6 +308,34 @@ exit:
 	return clonePtr;
 }
 
+// Restore NOCACHE offset pointers from a cloned backup after I/O Failure
+eEsifError DataCache_RestoreOffsets(
+	DataCachePtr self,
+	DataCachePtr clonePtr
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 idx = 0;
+
+	if (NULL == self || NULL == clonePtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+	}
+
+	if (rc == ESIF_OK) {
+		for (idx = 0; idx < clonePtr->size; idx++) {
+			int found = DataCache_Search(self, clonePtr->elements[idx].key.buf_ptr);
+			if (found != EOF && self->elements[found].flags & ESIF_SERVICE_CONFIG_NOCACHE) {
+				// Replace NOCACHE value with allocated value in cache so GETs always return updated value
+				self->elements[found].value.buf_ptr = clonePtr->elements[idx].value.buf_ptr;
+				self->elements[found].value.data_len = clonePtr->elements[idx].value.data_len;
+				self->elements[found].value.buf_len = clonePtr->elements[idx].value.buf_len;
+				esif_ccb_memset(&clonePtr->elements[idx].value, 0, sizeof(clonePtr->elements[idx].value));
+			}
+		}
+	}
+
+	return rc;
+}
 
 EsifDataPtr CloneCacheData(
 	EsifDataPtr dataPtr

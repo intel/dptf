@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,19 +20,27 @@
 #include "ParticipantManagerInterface.h"
 
 PolicyServicesParticipantSetSpecificInfo::PolicyServicesParticipantSetSpecificInfo(
-    DptfManagerInterface* dptfManager, UIntN policyIndex) : PolicyServices(dptfManager, policyIndex)
+	DptfManagerInterface* dptfManager,
+	UIntN policyIndex)
+	: PolicyServices(dptfManager, policyIndex)
 {
 }
 
 void PolicyServicesParticipantSetSpecificInfo::setParticipantDeviceTemperatureIndication(
-    UIntN participantIndex, const Temperature& temperature)
+	UIntN participantIndex,
+	const Temperature& temperature)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantDeviceTemperatureIndication(temperature);
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setParticipantDeviceTemperatureIndication(temperature);
 }
 
-void PolicyServicesParticipantSetSpecificInfo::setParticipantSpecificInfo(UIntN participantIndex, ParticipantSpecificInfoKey::Type tripPoint, const Temperature& tripValue)
+void PolicyServicesParticipantSetSpecificInfo::setParticipantSpecificInfo(
+	UIntN participantIndex,
+	ParticipantSpecificInfoKey::Type tripPoint,
+	const Temperature& tripValue)
 {
-    throwIfNotWorkItemThread();
-    getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantSpecificInfo(tripPoint, tripValue);
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->setParticipantSpecificInfo(tripPoint, tripValue);
 }

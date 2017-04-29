@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,61 +29,60 @@
 class dptf_export TargetActionBase
 {
 public:
+	TargetActionBase(
+		PolicyServicesInterfaceContainer& policyServices,
+		std::shared_ptr<TimeInterface> time,
+		std::shared_ptr<ParticipantTrackerInterface> participantTracker,
+		std::shared_ptr<ThermalRelationshipTable> trt,
+		std::shared_ptr<CallbackScheduler> callbackScheduler,
+		TargetMonitor& targetMonitor,
+		UIntN target);
+	virtual ~TargetActionBase();
 
-    TargetActionBase(
-        PolicyServicesInterfaceContainer& policyServices, 
-        std::shared_ptr<TimeInterface> time,
-        std::shared_ptr<ParticipantTrackerInterface> participantTracker,
-        std::shared_ptr<ThermalRelationshipTable> trt,
-        std::shared_ptr<CallbackScheduler> callbackScheduler,
-        TargetMonitor& targetMonitor,
-        UIntN target);
-    virtual ~TargetActionBase();
-
-    virtual void execute() = 0;
+	virtual void execute() = 0;
 
 protected:
+	// policy state access
+	PolicyServicesInterfaceContainer getPolicyServices() const;
+	std::shared_ptr<TimeInterface> getTime() const;
+	std::shared_ptr<ParticipantTrackerInterface> getParticipantTracker() const;
+	std::shared_ptr<ThermalRelationshipTable> getTrt() const;
+	std::shared_ptr<CallbackScheduler> getCallbackScheduler() const;
+	TargetMonitor& getTargetMonitor() const;
+	UIntN getTarget() const;
 
-    // policy state access
-    PolicyServicesInterfaceContainer getPolicyServices() const;
-    std::shared_ptr<TimeInterface> getTime() const;
-    std::shared_ptr<ParticipantTrackerInterface> getParticipantTracker() const;
-    std::shared_ptr<ThermalRelationshipTable> getTrt() const;
-    std::shared_ptr<CallbackScheduler> getCallbackScheduler() const;
-    TargetMonitor& getTargetMonitor() const;
-    UIntN getTarget() const;
+	// messaging
+	std::string constructMessageForSources(std::string actionName, UIntN target, const std::vector<UIntN>& sources);
+	std::string constructMessageForSourceDomains(
+		std::string actionName,
+		UIntN target,
+		UIntN source,
+		const std::vector<UIntN>& domains);
 
-    // messaging
-    std::string constructMessageForSources(
-        std::string actionName, UIntN target, const std::vector<UIntN>& sources);
-    std::string constructMessageForSourceDomains(
-        std::string actionName, UIntN target, UIntN source, const std::vector<UIntN>& domains);
+	// domain selection
+	std::vector<UIntN> getPackageDomains(UIntN source, const std::vector<UIntN>& domainsWithControlKnobsToTurn);
+	std::vector<UIntN> filterDomainList(const std::vector<UIntN>& domainList, const std::vector<UIntN>& filterList)
+		const;
+	std::vector<UIntN> getDomainsThatDoNotReportTemperature(UIntN source, std::vector<UIntN> domains);
 
-    // domain selection
-    std::vector<UIntN> getPackageDomains(UIntN source, const std::vector<UIntN>& domainsWithControlKnobsToTurn);
-    std::vector<UIntN> filterDomainList(
-        const std::vector<UIntN>& domainList, const std::vector<UIntN>& filterList) const;
-    std::vector<UIntN> getDomainsThatDoNotReportTemperature(UIntN source, std::vector<UIntN> domains);
-
-    // comparisons
-    static Bool compareTrtTableEntriesOnInfluence(
-        const  std::shared_ptr<ThermalRelationshipTableEntry>& left,
-        const  std::shared_ptr<ThermalRelationshipTableEntry>& right);
-    static Bool compareDomainsOnPriorityAndUtilization(
-        const std::tuple<UIntN, DomainPriority, UtilizationStatus>& left, 
-        const std::tuple<UIntN, DomainPriority, UtilizationStatus>& right);
+	// comparisons
+	static Bool compareTrtTableEntriesOnInfluence(
+		const std::shared_ptr<ThermalRelationshipTableEntry>& left,
+		const std::shared_ptr<ThermalRelationshipTableEntry>& right);
+	static Bool compareDomainsOnPriorityAndUtilization(
+		const std::tuple<UIntN, DomainPriority, UtilizationStatus>& left,
+		const std::tuple<UIntN, DomainPriority, UtilizationStatus>& right);
 
 private:
+	TargetActionBase(TargetActionBase& lhs);
+	TargetActionBase& operator=(TargetActionBase& lhs);
 
-    TargetActionBase(TargetActionBase& lhs);
-    TargetActionBase& operator=(TargetActionBase& lhs);
-
-    // action state
-    std::shared_ptr<TimeInterface> m_time;
-    PolicyServicesInterfaceContainer& m_policyServices;
-    std::shared_ptr<ParticipantTrackerInterface> m_participantTracker;
-    std::shared_ptr<ThermalRelationshipTable> m_trt;
-    std::shared_ptr<CallbackScheduler> m_callbackScheduler;
-    TargetMonitor& m_targetMonitor;
-    UIntN m_target;
+	// action state
+	std::shared_ptr<TimeInterface> m_time;
+	PolicyServicesInterfaceContainer& m_policyServices;
+	std::shared_ptr<ParticipantTrackerInterface> m_participantTracker;
+	std::shared_ptr<ThermalRelationshipTable> m_trt;
+	std::shared_ptr<CallbackScheduler> m_callbackScheduler;
+	TargetMonitor& m_targetMonitor;
+	UIntN m_target;
 };

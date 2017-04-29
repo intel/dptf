@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,25 +24,23 @@
 class EsifLibrary
 {
 public:
+	EsifLibrary(void);
+	EsifLibrary(const std::string& fileName);
+	~EsifLibrary(void);
 
-    EsifLibrary(void);
-    EsifLibrary(const std::string& fileName);
-    ~EsifLibrary(void);
+	void setFileName(const std::string& fileName);
 
-    void setFileName(const std::string& fileName);
+	void load(void);
+	void unload(void);
 
-    void load(void);
-    void unload(void);
-
-    void* getFunctionPtr(std::string functionName);
+	void* getFunctionPtr(std::string functionName);
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifLibrary(const EsifLibrary& rhs);
+	EsifLibrary& operator=(const EsifLibrary& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifLibrary(const EsifLibrary& rhs);
-    EsifLibrary& operator=(const EsifLibrary& rhs);
-
-    std::string m_fileName;
-    Bool m_libraryLoaded;
-    esif_lib_t m_library;
+	std::string m_fileName;
+	Bool m_libraryLoaded;
+	esif_lib_t m_library;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,46 +26,43 @@
 #include "XmlNode.h"
 #include "ConfigTdpControlSetCachedProperty.h"
 
-
 // this facade class provides a simpler interface on top of ConfigTDP controls as well as combines all of the
-// ConfigTDP control properties and capabilities into a single class.  these properties also have the ability to be 
+// ConfigTDP control properties and capabilities into a single class.  these properties also have the ability to be
 // cached.
 class dptf_export ConfigTdpControlFacade
 {
 public:
+	ConfigTdpControlFacade(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		const DomainProperties& domainProperties,
+		const PolicyServicesInterfaceContainer& policyServices);
+	~ConfigTdpControlFacade();
 
-    ConfigTdpControlFacade(
-        UIntN participantIndex,
-        UIntN domainIndex,
-        const DomainProperties& domainProperties,
-        const PolicyServicesInterfaceContainer& policyServices);
-    ~ConfigTdpControlFacade();
+	// controls
+	Bool supportsConfigTdpControls();
+	void initializeControlsIfNeeded();
+	void setControl(UIntN configTdpControlIndex);
+	ConfigTdpControlSet getControlSet();
 
-    // controls
-    Bool supportsConfigTdpControls();
-    void initializeControlsIfNeeded();
-    void setControl(UIntN configTdpControlIndex);
-    ConfigTdpControlSet getControlSet();
-
-    // properties
-    void refreshCapabilities();
-    ConfigTdpControlDynamicCaps getCapabilities();
-    ConfigTdpControlStatus getStatus();
-    std::shared_ptr<XmlNode> getXml();
+	// properties
+	void refreshCapabilities();
+	ConfigTdpControlDynamicCaps getCapabilities();
+	ConfigTdpControlStatus getStatus();
+	std::shared_ptr<XmlNode> getXml();
 
 private:
+	// services
+	PolicyServicesInterfaceContainer m_policyServices;
 
-    // services
-    PolicyServicesInterfaceContainer m_policyServices;
+	// domain properties
+	UIntN m_participantIndex;
+	UIntN m_domainIndex;
+	DomainProperties m_domainProperties;
 
-    // domain properties
-    UIntN m_participantIndex;
-    UIntN m_domainIndex;
-    DomainProperties m_domainProperties;
-
-    // control properties
-    Bool m_controlsHaveBeenInitialized;
-    ConfigTdpControlCapabilitiesCachedProperty m_configTdpCapabilities;
-    ConfigTdpControlStatusCachedProperty m_configTdpStatus;
-    ConfigTdpControlSetCachedProperty m_configTdpControlSet;
+	// control properties
+	Bool m_controlsHaveBeenInitialized;
+	ConfigTdpControlCapabilitiesCachedProperty m_configTdpCapabilities;
+	ConfigTdpControlStatusCachedProperty m_configTdpStatus;
+	ConfigTdpControlSetCachedProperty m_configTdpControlSet;
 };

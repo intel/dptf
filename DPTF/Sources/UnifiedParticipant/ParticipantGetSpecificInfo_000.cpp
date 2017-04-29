@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,30 +18,33 @@
 
 #include "ParticipantGetSpecificInfo_000.h"
 
-ParticipantGetSpecificInfo_000::ParticipantGetSpecificInfo_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
+ParticipantGetSpecificInfo_000::ParticipantGetSpecificInfo_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificInfo_000::getParticipantSpecificInfo(
-    UIntN participantIndex, const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
+	UIntN participantIndex,
+	const std::vector<ParticipantSpecificInfoKey::Type>& requestedInfo)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void ParticipantGetSpecificInfo_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string ParticipantGetSpecificInfo_000::getName(void)
 {
-    return "Get Specific Info Control (Version 0)";
+	return "Get Specific Info Control (Version 0)";
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,21 +25,18 @@
 class WorkItemQueueInterface
 {
 public:
+	virtual ~WorkItemQueueInterface(){};
 
-    virtual ~WorkItemQueueInterface()
-    {
-    };
+	// Remove each item in the queue and call its destructor.  The
+	// execute method will not get called.
+	virtual void makeEmtpy(void) = 0;
 
-    // Remove each item in the queue and call its destructor.  The
-    // execute method will not get called.
-    virtual void makeEmtpy(void) = 0;
+	// Returns the current number of items in the queue
+	virtual UInt64 getCount(void) const = 0;
 
-    // Returns the current number of items in the queue
-    virtual UInt64 getCount(void) const = 0;
+	// Returns the maximum number of items in the queue at any one time
+	virtual UInt64 getMaxCount(void) const = 0;
 
-    // Returns the maximum number of items in the queue at any one time
-    virtual UInt64 getMaxCount(void) const = 0;
-
-    virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) = 0;
-    virtual std::shared_ptr<XmlNode> getXml(void) const = 0;
+	virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) = 0;
+	virtual std::shared_ptr<XmlNode> getXml(void) const = 0;
 };

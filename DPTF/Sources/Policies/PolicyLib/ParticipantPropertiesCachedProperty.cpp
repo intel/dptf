@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,10 +21,12 @@ using namespace std;
 
 static const Guid DummyGuid;
 
-ParticipantPropertiesCachedProperty::ParticipantPropertiesCachedProperty(const PolicyServicesInterfaceContainer &policyServices,
-    UIntN participantIndex)
-    : CachedProperty(), ParticipantProperty(participantIndex, policyServices),
-    m_participantProperties(DummyGuid, "", "", BusType::None, PciInfo(), AcpiInfo())
+ParticipantPropertiesCachedProperty::ParticipantPropertiesCachedProperty(
+	const PolicyServicesInterfaceContainer& policyServices,
+	UIntN participantIndex)
+	: CachedProperty()
+	, ParticipantProperty(participantIndex, policyServices)
+	, m_participantProperties(DummyGuid, "", "", BusType::None, PciInfo(), AcpiInfo())
 {
 }
 
@@ -34,20 +36,20 @@ ParticipantPropertiesCachedProperty::~ParticipantPropertiesCachedProperty(void)
 
 void ParticipantPropertiesCachedProperty::refreshData(void)
 {
-    m_participantProperties = getPolicyServices().participantProperties->getParticipantProperties(
-        getParticipantIndex());
+	m_participantProperties =
+		getPolicyServices().participantProperties->getParticipantProperties(getParticipantIndex());
 }
 
 const ParticipantProperties& ParticipantPropertiesCachedProperty::getParticipantProperties()
 {
-    if (isCacheValid() == false)
-    {
-        refresh();
-    }
-    return m_participantProperties;
+	if (isCacheValid() == false)
+	{
+		refresh();
+	}
+	return m_participantProperties;
 }
 
 Bool ParticipantPropertiesCachedProperty::supportsProperty(void)
 {
-    return true;
+	return true;
 }

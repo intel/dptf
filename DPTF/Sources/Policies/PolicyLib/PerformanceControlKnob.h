@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,40 +28,38 @@
 class dptf_export PerformanceControlKnob : public ControlKnobBase
 {
 public:
+	PerformanceControlKnob(
+		const PolicyServicesInterfaceContainer& policyServices,
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<PerformanceControlFacadeInterface> performanceControl,
+		std::shared_ptr<std::map<UIntN, UIntN>> perfControlRequests,
+		PerformanceControlType::Type controlType);
+	~PerformanceControlKnob(void);
 
-    PerformanceControlKnob(
-        const PolicyServicesInterfaceContainer& policyServices,
-        UIntN participantIndex,
-        UIntN domainIndex,
-        std::shared_ptr<PerformanceControlFacadeInterface> performanceControl,
-        std::shared_ptr<std::map<UIntN, UIntN>> perfControlRequests, 
-        PerformanceControlType::Type controlType);
-    ~PerformanceControlKnob(void);
+	virtual void limit(UIntN target) override;
+	virtual void unlimit(UIntN target) override;
+	virtual Bool canLimit(UIntN target) override;
+	virtual Bool canUnlimit(UIntN target) override;
+	virtual Bool commitSetting() override;
+	virtual void clearRequestForTarget(UIntN target) override;
+	virtual void clearAllRequests() override;
+	virtual void adjustRequestsToCapabilities() override;
 
-    virtual void limit(UIntN target) override;
-    virtual void unlimit(UIntN target) override;
-    virtual Bool canLimit(UIntN target) override;
-    virtual Bool canUnlimit(UIntN target) override;
-    virtual Bool commitSetting() override;
-    virtual void clearRequestForTarget(UIntN target) override;
-    virtual void clearAllRequests() override;
-    virtual void adjustRequestsToCapabilities() override;
+	Bool supportsPerformanceControls() const;
+	UIntN getTargetRequest(UIntN target) const;
+	void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
 
-    Bool supportsPerformanceControls() const;
-    UIntN getTargetRequest(UIntN target) const;
-    void setTstateUtilizationThreshold(UtilizationStatus tstateUtilizationThreshold);
-
-    std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getXml();
 
 private:
+	std::shared_ptr<PerformanceControlFacadeInterface> m_performanceControl;
+	PerformanceControlType::Type m_controlType;
+	std::shared_ptr<std::map<UIntN, UIntN>> m_requests;
+	UtilizationStatus m_tstateUtilizationThreshold;
 
-    std::shared_ptr<PerformanceControlFacadeInterface> m_performanceControl;
-    PerformanceControlType::Type m_controlType;
-    std::shared_ptr<std::map<UIntN, UIntN>> m_requests;
-    UtilizationStatus m_tstateUtilizationThreshold;
-
-    std::string controlTypeToString(PerformanceControlType::Type controlType);
-    UIntN findHighestPerformanceIndexRequest() const;
-    Bool checkUtilizationIsLessThanThreshold() const;
-    UIntN snapToCapabilitiesBounds(UIntN controlIndex);
+	std::string controlTypeToString(PerformanceControlType::Type controlType);
+	UIntN findHighestPerformanceIndexRequest() const;
+	Bool checkUtilizationIsLessThanThreshold() const;
+	UIntN snapToCapabilitiesBounds(UIntN controlIndex);
 };

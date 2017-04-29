@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,34 +18,36 @@
 
 #include "DomainRfProfileStatus_000.h"
 
-DomainRfProfileStatus_000::DomainRfProfileStatus_000(UIntN participantIndex, UIntN domainIndex, 
-    std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-    : DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
+DomainRfProfileStatus_000::DomainRfProfileStatus_000(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+	: DomainRfProfileStatusBase(participantIndex, domainIndex, participantServicesInterface)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
-RfProfileData DomainRfProfileStatus_000::getRfProfileData(UIntN participantIndex, UIntN domainIndex)
+RfProfileDataSet DomainRfProfileStatus_000::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainRfProfileStatus_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 void DomainRfProfileStatus_000::clearCachedData(void)
 {
-    // Do nothing.  Not an error.
+	// Do nothing.  Not an error.
 }
 
 std::shared_ptr<XmlNode> DomainRfProfileStatus_000::getXml(UIntN domainIndex)
 {
-    throw not_implemented();
+	throw not_implemented();
 }
 
 std::string DomainRfProfileStatus_000::getName(void)
 {
-    return "RF Profile Status (Version 0)";
+	return "RF Profile Status (Version 0)";
 }

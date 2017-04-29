@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,20 +25,18 @@
 class IndexContainer : public IndexContainerInterface
 {
 public:
+	IndexContainer(UIntN initialCount);
+	~IndexContainer(void);
 
-    IndexContainer(UIntN initialCount);
-    ~IndexContainer(void);
-
-    virtual IndexStructPtr getIndexPtr(UIntN index) override;
-    virtual UIntN getIndex(IndexStructPtr indexStructPtr) override;
+	virtual IndexStructPtr getIndexPtr(UIntN index) override;
+	virtual UIntN getIndex(IndexStructPtr indexStructPtr) override;
 
 private:
+	// hide the copy constructor and assignment operator.
+	IndexContainer(const IndexContainer& rhs);
+	IndexContainer& operator=(const IndexContainer& rhs);
 
-    // hide the copy constructor and assignment operator.
-    IndexContainer(const IndexContainer& rhs);
-    IndexContainer& operator=(const IndexContainer& rhs);
+	EsifMutex m_mutex;
 
-    EsifMutex m_mutex;
-
-    std::vector<IndexStructPtr> m_vectorIndexStructPtr;
+	std::vector<IndexStructPtr> m_vectorIndexStructPtr;
 };

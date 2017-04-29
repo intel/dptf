@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,20 +25,20 @@
 class PolicyServicesDomainPerformanceControl final : public PolicyServices, public DomainPerformanceControlInterface
 {
 public:
+	PolicyServicesDomainPerformanceControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-    PolicyServicesDomainPerformanceControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
-
-    virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(
-        UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(
-        UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PerformanceControlStatus getPerformanceControlStatus(
-        UIntN participantIndex, UIntN domainIndex) override final;
-    virtual PerformanceControlSet getPerformanceControlSet(
-        UIntN participantIndex, UIntN domainIndex) override final;
-    virtual void setPerformanceControl(
-        UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex) override final;
-    virtual void setPerformanceControlDynamicCaps(
-        UIntN participantIndex, UIntN domainIndex, PerformanceControlDynamicCaps newCapabilities) override final;
-    virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override final;
+	virtual PerformanceControlStaticCaps getPerformanceControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
+		override final;
+	virtual PerformanceControlDynamicCaps getPerformanceControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+		override final;
+	virtual PerformanceControlStatus getPerformanceControlStatus(UIntN participantIndex, UIntN domainIndex)
+		override final;
+	virtual PerformanceControlSet getPerformanceControlSet(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void setPerformanceControl(UIntN participantIndex, UIntN domainIndex, UIntN performanceControlIndex)
+		override final;
+	virtual void setPerformanceControlDynamicCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PerformanceControlDynamicCaps newCapabilities) override final;
+	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override final;
 };

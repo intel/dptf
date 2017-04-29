@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,105 +27,131 @@ DisplayControlCapabilitiesArbitrator::~DisplayControlCapabilitiesArbitrator()
 {
 }
 
-Bool DisplayControlCapabilitiesArbitrator::arbitrate(UIntN policyIndex, const DisplayControlDynamicCaps& caps)
+void DisplayControlCapabilitiesArbitrator::commitPolicyRequest(UIntN policyIndex, const DisplayControlDynamicCaps& caps)
 {
-    auto prevArbitratedCaps = getArbitratedDisplayControlCapabilities();
-    updatePolicyRequest(caps, policyIndex);
-    auto nextArbitratedCaps = getArbitratedDisplayControlCapabilities();
-    return (prevArbitratedCaps != nextArbitratedCaps);
+	updatePolicyRequest(caps, policyIndex, m_requestedMinDisplayIndex, m_requestedMaxDisplayIndex);
+}
+
+Bool DisplayControlCapabilitiesArbitrator::hasArbitratedDisplayCapabilities() const
+{
+	if (m_requestedMinDisplayIndex.empty() && m_requestedMaxDisplayIndex.empty())
+	{
+		return false;
+	}
+	return true;
+}
+
+DisplayControlDynamicCaps DisplayControlCapabilitiesArbitrator::arbitrate(
+	UIntN policyIndex,
+	const DisplayControlDynamicCaps& caps)
+{
+	auto tempPolicyMinRequests = m_requestedMinDisplayIndex;
+	auto tempPolicyMaxRequests = m_requestedMaxDisplayIndex;
+	updatePolicyRequest(caps, policyIndex, tempPolicyMinRequests, tempPolicyMaxRequests);
+	auto minDisplayIndex = getHighestMinDisplayIndex(tempPolicyMinRequests);
+	auto maxDisplayIndex = getLowestMaxDisplayIndex(tempPolicyMaxRequests);
+	if (maxDisplayIndex > minDisplayIndex)
+	{
+		maxDisplayIndex = minDisplayIndex;
+	}
+	return DisplayControlDynamicCaps(maxDisplayIndex, minDisplayIndex);
 }
 
 Bool DisplayControlCapabilitiesArbitrator::arbitrateLockRequests(UIntN policyIndex, Bool lock)
 {
-    Bool previousLock = getArbitratedLock();
-    updatePolicyLockRequest(lock, policyIndex);
-    Bool newLock = getArbitratedLock();
-    return (previousLock != newLock);
+	Bool previousLock = getArbitratedLock();
+	updatePolicyLockRequest(lock, policyIndex);
+	Bool newLock = getArbitratedLock();
+	return (previousLock != newLock);
 }
 
-DisplayControlDynamicCaps DisplayControlCapabilitiesArbitrator::getArbitratedDisplayControlCapabilities() const
+DisplayControlDynamicCaps DisplayControlCapabilitiesArbitrator::getArbitratedDisplayControlCapabilities()
 {
-    auto minDisplayIndex = getHighestMinDisplayIndex();
-    auto maxDisplayIndex = getLowestMaxDisplayIndex();
-    if (maxDisplayIndex > minDisplayIndex)
-    {
-        maxDisplayIndex = minDisplayIndex;
-    }
-    return DisplayControlDynamicCaps(maxDisplayIndex, minDisplayIndex);
+	auto minDisplayIndex = getHighestMinDisplayIndex(m_requestedMinDisplayIndex);
+	auto maxDisplayIndex = getLowestMaxDisplayIndex(m_requestedMaxDisplayIndex);
+	if (maxDisplayIndex > minDisplayIndex)
+	{
+		maxDisplayIndex = minDisplayIndex;
+	}
+	return DisplayControlDynamicCaps(maxDisplayIndex, minDisplayIndex);
 }
 
 Bool DisplayControlCapabilitiesArbitrator::getArbitratedLock() const
 {
-    for (auto lockRequest = m_requestedLocks.begin(); lockRequest != m_requestedLocks.end(); lockRequest++)
-    {
-        if (lockRequest->second == true)
-        {
-            return true;
-        }
-    }
+	for (auto lockRequest = m_requestedLocks.begin(); lockRequest != m_requestedLocks.end(); lockRequest++)
+	{
+		if (lockRequest->second == true)
+		{
+			return true;
+		}
+	}
 
-    return false;
+	return false;
 }
 
 void DisplayControlCapabilitiesArbitrator::removeRequestsForPolicy(UIntN policyIndex)
 {
-    m_requestedMaxDisplayIndex.erase(policyIndex);
-    m_requestedMinDisplayIndex.erase(policyIndex);
-    m_requestedLocks.erase(policyIndex);
+	m_requestedMaxDisplayIndex.erase(policyIndex);
+	m_requestedMinDisplayIndex.erase(policyIndex);
+	m_requestedLocks.erase(policyIndex);
 }
 
-void DisplayControlCapabilitiesArbitrator::updatePolicyRequest(const DisplayControlDynamicCaps &caps, UIntN policyIndex)
+void DisplayControlCapabilitiesArbitrator::updatePolicyRequest(
+	const DisplayControlDynamicCaps& caps,
+	UIntN policyIndex,
+	std::map<UIntN, UIntN>& minRequests,
+	std::map<UIntN, UIntN>& maxRequests)
 {
-    auto newMax = caps.getCurrentUpperLimit();
-    auto newMin = caps.getCurrentLowerLimit();
+	auto newMax = caps.getCurrentUpperLimit();
+	auto newMin = caps.getCurrentLowerLimit();
 
-    if (newMax == Constants::Invalid && newMin == Constants::Invalid)
-    {
-        m_requestedMaxDisplayIndex.erase(policyIndex);
-        m_requestedMinDisplayIndex.erase(policyIndex);
-    }
-    else
-    {
-        m_requestedMaxDisplayIndex[policyIndex] = newMax;
-        m_requestedMinDisplayIndex[policyIndex] = newMin;
-    }
+	if (newMax == Constants::Invalid && newMin == Constants::Invalid)
+	{
+		maxRequests.erase(policyIndex);
+		minRequests.erase(policyIndex);
+	}
+	else
+	{
+		maxRequests[policyIndex] = newMax;
+		minRequests[policyIndex] = newMin;
+	}
 }
 
 void DisplayControlCapabilitiesArbitrator::updatePolicyLockRequest(Bool lock, UIntN policyIndex)
 {
-    m_requestedLocks[policyIndex] = lock;
+	m_requestedLocks[policyIndex] = lock;
 }
 
-UIntN DisplayControlCapabilitiesArbitrator::getLowestMaxDisplayIndex() const
+UIntN DisplayControlCapabilitiesArbitrator::getLowestMaxDisplayIndex(std::map<UIntN, UIntN>& maxRequests) const
 {
-    UIntN lowestMaxDisplayIndex = Constants::Invalid;
-    for (auto request = m_requestedMaxDisplayIndex.begin(); request != m_requestedMaxDisplayIndex.end(); request++)
-    {
-        if (lowestMaxDisplayIndex == Constants::Invalid)
-        {
-            lowestMaxDisplayIndex = request->second;
-        }
-        else
-        {
-            lowestMaxDisplayIndex = std::max(lowestMaxDisplayIndex, request->second);
-        }
-    }
-    return lowestMaxDisplayIndex;
+	UIntN lowestMaxDisplayIndex = Constants::Invalid;
+	for (auto request = maxRequests.begin(); request != maxRequests.end(); ++request)
+	{
+		if (lowestMaxDisplayIndex == Constants::Invalid)
+		{
+			lowestMaxDisplayIndex = request->second;
+		}
+		else
+		{
+			lowestMaxDisplayIndex = std::max(lowestMaxDisplayIndex, request->second);
+		}
+	}
+	return lowestMaxDisplayIndex;
 }
 
-UIntN DisplayControlCapabilitiesArbitrator::getHighestMinDisplayIndex() const
+UIntN DisplayControlCapabilitiesArbitrator::getHighestMinDisplayIndex(std::map<UIntN, UIntN>& minRequests) const
 {
-    UIntN highestMinDisplayIndex = Constants::Invalid;
-    for (auto request = m_requestedMinDisplayIndex.begin(); request != m_requestedMinDisplayIndex.end(); request++)
-    {
-        if (highestMinDisplayIndex == Constants::Invalid)
-        {
-            highestMinDisplayIndex = request->second;
-        }
-        else
-        {
-            highestMinDisplayIndex = std::min(highestMinDisplayIndex, request->second);
-        }
-    }
-    return highestMinDisplayIndex;
+	UIntN highestMinDisplayIndex = Constants::Invalid;
+	for (auto request = minRequests.begin(); request != minRequests.end(); ++request)
+	{
+		if (highestMinDisplayIndex == Constants::Invalid)
+		{
+			highestMinDisplayIndex = request->second;
+		}
+		else
+		{
+			highestMinDisplayIndex = std::min(highestMinDisplayIndex, request->second);
+		}
+	}
+	return highestMinDisplayIndex;
 }

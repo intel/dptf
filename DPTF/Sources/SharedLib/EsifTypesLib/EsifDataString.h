@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,30 +25,28 @@
 class EsifDataString final
 {
 public:
+	// create based on an STL string
+	EsifDataString(const std::string& data);
 
-    // create based on an STL string
-    EsifDataString(const std::string& data);
+	// create empty based on initialBufferSize
+	EsifDataString(UIntN initialBufferSize);
 
-    // create empty based on initialBufferSize
-    EsifDataString(UIntN initialBufferSize);
+	// create from esif data
+	EsifDataString(const EsifDataPtr esifDataPtr);
 
-    // create from esif data
-    EsifDataString(const EsifDataPtr esifDataPtr);
-
-    operator EsifData(void);
-    operator EsifDataPtr(void);
-    operator std::string(void) const;
+	operator EsifData(void);
+	operator EsifDataPtr(void);
+	operator std::string(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataString(const EsifDataString& rhs);
+	EsifDataString& operator=(const EsifDataString& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataString(const EsifDataString & rhs);
-    EsifDataString& operator=(const EsifDataString& rhs);
+	std::string m_esifDataValue;
+	EsifData m_esifData;
 
-    std::string m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(const std::string& data);
+	void initialize(const std::string& data);
 };
 
 eEsifError FillDataPtrWithString(EsifDataPtr dataPtr, std::string dataString);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,25 +24,23 @@
 class EsifDataPercentage final
 {
 public:
+	EsifDataPercentage(void);
+	EsifDataPercentage(const Percentage& data);
 
-    EsifDataPercentage(void);
-    EsifDataPercentage(const Percentage& data);
-
-    operator EsifDataPtr(void);
-    operator Percentage(void) const;
+	operator EsifDataPtr(void);
+	operator Percentage(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataPercentage(const EsifDataPercentage& rhs);
+	EsifDataPercentage& operator=(const EsifDataPercentage& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataPercentage(const EsifDataPercentage& rhs);
-    EsifDataPercentage& operator=(const EsifDataPercentage& rhs);
+	// 93% is stored as 9300
+	UInt32 m_esifDataValue;
+	EsifData m_esifData;
 
-    // 93% is stored as 9300
-    UInt32 m_esifDataValue;
-    EsifData m_esifData;
+	static const UInt32 m_conversionValue = 10000;
+	static const double m_roundingValue;
 
-    static const UInt32 m_conversionValue = 10000;
-    static const double m_roundingValue;
-
-    void initialize(UInt32 data);
+	void initialize(UInt32 data);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,21 +25,19 @@
 class EsifDataTime
 {
 public:
+	EsifDataTime(void);
+	EsifDataTime(const Int64 data);
 
-    EsifDataTime(void);
-    EsifDataTime(const Int64 data);
-
-    operator EsifDataPtr(void);
-    TimeSpan createTimeSpanFromMilliseconds(void) const;
+	operator EsifDataPtr(void);
+	TimeSpan createTimeSpanFromMilliseconds(void) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	EsifDataTime(const EsifDataTime& rhs);
+	EsifDataTime& operator=(const EsifDataTime& rhs);
 
-    // hide the copy constructor and assignment operator.
-    EsifDataTime(const EsifDataTime& rhs);
-    EsifDataTime& operator=(const EsifDataTime& rhs);
+	Int64 m_esifDataValue;
+	EsifData m_esifData;
 
-    Int64 m_esifDataValue;
-    EsifData m_esifData;
-
-    void initialize(Int64 data);
+	void initialize(Int64 data);
 };

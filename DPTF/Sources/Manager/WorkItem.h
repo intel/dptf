@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,55 +32,65 @@ class EsifServicesInterface;
 class WorkItem : public WorkItemInterface
 {
 public:
+	WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType);
 
-    WorkItem(DptfManagerInterface* dptfManager, FrameworkEvent::Type frameworkEventType);
+	// in the destructor we signal the semaphore if provided
+	virtual ~WorkItem(void);
 
-    // in the destructor we signal the semaphore if provided
-    virtual ~WorkItem(void);
+	DptfManagerInterface* getDptfManager(void) const;
+	PolicyManagerInterface* getPolicyManager(void) const;
+	ParticipantManagerInterface* getParticipantManager(void) const;
+	EsifServicesInterface* getEsifServices(void) const;
 
-    DptfManagerInterface* getDptfManager(void) const;
-    PolicyManagerInterface* getPolicyManager(void) const;
-    ParticipantManagerInterface* getParticipantManager(void) const;
-    EsifServicesInterface* getEsifServices(void) const;
+	// the following are implemented in the WorkItem class and *cannot* be overridden
+	virtual UInt64 getUniqueId(void) const override final;
+	virtual FrameworkEvent::Type getFrameworkEventType(void) const override final;
+	virtual const TimeSpan& getWorkItemCreationTime(void) const override final;
+	virtual void setWorkItemExecutionStartTime(void) override final;
+	virtual const TimeSpan& getWorkItemExecutionStartTime(void) const override final;
+	virtual void signalAtCompletion(EsifSemaphore* semaphore) override final;
 
-    // the following are implemented in the WorkItem class and *cannot* be overridden
-    virtual UInt64 getUniqueId(void) const override final;
-    virtual FrameworkEvent::Type getFrameworkEventType(void) const override final;
-    virtual const TimeSpan& getWorkItemCreationTime(void) const override final;
-    virtual void setWorkItemExecutionStartTime(void) override final;
-    virtual const TimeSpan& getWorkItemExecutionStartTime(void) const override final;
-    virtual void signalAtCompletion(EsifSemaphore* semaphore) override final;
-
-    // the following are implemented in the WorkItem class and *can* be overridden
-    virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
-    virtual std::string toXml(void) const override;
+	// the following are implemented in the WorkItem class and *can* be overridden
+	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
+	virtual std::string toXml(void) const override;
 
 protected:
-
-    void writeWorkItemStartingInfoMessage() const;
-    void writeWorkItemWarningMessage(const std::exception& ex, const std::string& functionName) const;
-    void writeWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
-    void writeWorkItemErrorMessage(const std::exception& ex, const std::string& functionName, const std::string& messageKey, const std::string& messageValue) const;
-    void writeWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex) const;
-    void writeWorkItemErrorMessageParticipant(const std::exception& ex, const std::string& functionName, UIntN participantIndex) const;
+	void writeWorkItemStartingInfoMessage() const;
+	void writeWorkItemWarningMessage(const std::exception& ex, const std::string& functionName) const;
+	void writeWorkItemWarningMessage(
+		const std::exception& ex,
+		const std::string& functionName,
+		const std::string& messageKey,
+		const std::string& messageValue) const;
+	void writeWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
+	void writeWorkItemErrorMessage(
+		const std::exception& ex,
+		const std::string& functionName,
+		const std::string& messageKey,
+		const std::string& messageValue) const;
+	void writeWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex)
+		const;
+	void writeWorkItemErrorMessageParticipant(
+		const std::exception& ex,
+		const std::string& functionName,
+		UIntN participantIndex) const;
 
 private:
+	// hide the copy constructor and assignment operator.
+	WorkItem(const WorkItem& rhs);
+	WorkItem& operator=(const WorkItem& rhs);
 
-    // hide the copy constructor and assignment operator.
-    WorkItem(const WorkItem& rhs);
-    WorkItem& operator=(const WorkItem& rhs);
+	DptfManagerInterface* m_dptfManager;
+	PolicyManagerInterface* m_policyManager;
+	ParticipantManagerInterface* m_participantManager;
+	EsifServicesInterface* m_esifServices;
 
-    DptfManagerInterface* m_dptfManager;
-    PolicyManagerInterface* m_policyManager;
-    ParticipantManagerInterface* m_participantManager;
-    EsifServicesInterface* m_esifServices;
+	const UInt64 m_uniqueId;
+	const FrameworkEvent::Type m_frameworkEventType;
+	TimeSpan m_workItemCreationTime;
+	TimeSpan m_workItemExecutionStartTime;
 
-    const UInt64 m_uniqueId;
-    const FrameworkEvent::Type m_frameworkEventType;
-    TimeSpan m_workItemCreationTime;
-    TimeSpan m_workItemExecutionStartTime;
-
-    // The creator of the work item may need to return synchronously to the caller.  In this case a semaphore
-    // is passed in to the work item and when the destructor is executed it will signal the semaphore.
-    EsifSemaphore* m_completionSemaphore;
+	// The creator of the work item may need to return synchronously to the caller.  In this case a semaphore
+	// is passed in to the work item and when the destructor is executed it will signal the semaphore.
+	EsifSemaphore* m_completionSemaphore;
 };
