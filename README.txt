@@ -91,7 +91,7 @@ Step 4 - Run make to build all DPTF shared libraries.
 	make -j`nproc`
 
 The generated shared libraries will be located under
-<DPTF root>/Products/DPTF/Linux/build/x64 directory. Users can disregard
+<DPTF root>/DPTF/Linux/build/x64/release directory. Users can disregard
 the static .a libraries as these static libraries are only used to build the
 shared library. Here is the break down of the generated shared libraries that
 are needed to run DPTF on Linux:
