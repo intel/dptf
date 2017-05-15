@@ -1,0 +1,4 @@
+*.o
+/DPTF/Linux/build
+!/DPTF/Linux/build/.ReadMe.txt
+/ESIF/Products/ESIF_UF/Linux/esif_ufd
