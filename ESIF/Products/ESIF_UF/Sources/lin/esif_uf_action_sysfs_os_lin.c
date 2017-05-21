@@ -682,11 +682,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		}
 		else if (esif_ccb_stricmp("idsp", parm1) == 0) {
 			int lineNum = sysfs_get_string_multiline("/sys/devices/platform/INT3400:00/uuids/", "available_uuids", sys_long_string_val);
-			int i;
 			FLAGS_CLEAR(tableObject.options, TABLEOPT_ALLOW_SELF_DEFINE);
-			for (i = 0; i < lineNum; i++) {
-				tableObject.fields[i].dataType = ESIF_DATA_BINARY;
-			}
 			rc = get_supported_policies(table_str, lineNum, sys_long_string_val);
 		}
 		else if (esif_ccb_stricmp("ppcc", parm1) == 0) {

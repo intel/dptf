@@ -1694,7 +1694,7 @@ eEsifError TableObject_LoadSchema(
 	}
 	else if (esif_ccb_stricmp(self->name, "idsp") == 0) {
 		static TableField idsp_fields [] = {
-				{ "uuid", "uuid", ESIF_DATA_UINT64 },
+				{ "uuid", "uuid", ESIF_DATA_BINARY },
 				{ 0 }
 		};
 		fieldlist = idsp_fields;
