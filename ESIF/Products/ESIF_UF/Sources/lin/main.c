@@ -53,6 +53,9 @@ static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
 static char *g_udev_target = NULL;
 
+/* Dedicated thread to handle SIGRTMIN timer signals */
+static esif_thread_t g_sigrtmin_thread;
+
 #define MAX_PAYLOAD 1024 /* max message size*/
 
 static struct sockaddr_nl sock_addr_src, sock_addr_dest;
@@ -376,6 +379,52 @@ static void sigusr1_enable()
 	struct sigaction action={0};
 	action.sa_handler = sigusr1_handler;
 	sigaction(SIGUSR1, &action, NULL);
+}
+
+static void sigrtmin_block(void)
+{
+	/* Block SIGRTMIN; other threads created from the main thread
+	 * will inherit a copy of the signal mask.
+	 */
+	sigset_t set = {0};
+	sigemptyset(&set);
+	sigaddset(&set, SIGRTMIN);
+	if (pthread_sigmask(SIG_BLOCK, &set, NULL)) {
+		ESIF_TRACE_ERROR("Fail to block SIGRTMIN\n");
+	}
+}
+
+static void *sigrtmin_worker_thread(void *ptr)
+{
+	sigset_t set = {0};
+	siginfo_t info = {0};
+	struct esif_tmrm_cb_obj *cb_object_ptr = NULL;
+
+	UNREFERENCED_PARAMETER(ptr);
+	sigemptyset(&set);
+	sigaddset(&set, SIGRTMIN);
+
+	while (1) { /* This thread will be canceled/killed after esif_uf_exit() */
+		if (-1 == sigwaitinfo(&set, &info)) { /* sigwaitinfo is a cancellation point */
+			ESIF_TRACE_ERROR("sigwaitinfo failed\n");
+			continue;
+		}
+
+		if (SIGRTMIN != info.si_signo) {
+			ESIF_TRACE_ERROR("Received signal is not SIGRTMIN, ignore\n");
+			continue;
+		}
+
+		cb_object_ptr = (struct esif_tmrm_cb_obj *) info.si_value.sival_ptr;
+		if (cb_object_ptr && cb_object_ptr->func) {
+			cb_object_ptr->func(cb_object_ptr->cb_handle);
+			cb_object_ptr->func = NULL;
+			esif_ccb_free(cb_object_ptr);
+		} else {
+			ESIF_TRACE_ERROR("Invalid timer callback object: (obj=%p, func=%p)\n",
+				cb_object_ptr, (cb_object_ptr ? cb_object_ptr->func : NULL));
+		}
+	}
 }
 
 #if !defined(ESIF_ATTR_INSTANCE_LOCK)
@@ -748,7 +797,10 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 			exit(EXIT_SUCCESS);
 	}
 
-	/* 3. Call setsid (if background daemon) */
+	/* 3. Block SIGRTMIN (will re-enable it in a dedicated thread) */
+	sigrtmin_block();
+
+	/* 4. Call setsid (if background daemon) */
 	if (start_in_background && -1 == setsid()) {
 		printf("ESIF_UFD: setsid failed. Error #%d\n", errno);
 		return ESIF_FALSE;
@@ -760,13 +812,13 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	}
 	sigterm_enable();
 
-	/* 4. Change to known directory.  Performed in main */
-	/* 5. Close all file descriptors incuding stdin, stdout, stderr */
+	/* 5. Change to known directory.  Performed in main */
+	/* 6. Close all file descriptors incuding stdin, stdout, stderr */
 	close(STDIN_FILENO); /* stdin */
 	close(STDOUT_FILENO); /* stdout */
 	close(STDERR_FILENO); /* stderr */
 
-	/* 6. Open file descriptors 0, 1, and 2 and redirect */
+	/* 7. Open file descriptors 0, 1, and 2 and redirect */
 	/* stdin */
 	if (ESIF_TRUE == start_with_log) {
 		unlink(cmd_out);
@@ -795,6 +847,9 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	if (g_start_event_thread) {
 		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Daemon");
 	}
+
+	/* Start the thread that handles SIGRTMIN */
+	esif_ccb_thread_create(&g_sigrtmin_thread, sigrtmin_worker_thread, NULL);
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	/* uevent listener */
@@ -893,6 +948,7 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	if (!instance_lock()) {
 		return ESIF_FALSE;
 	}
+	sigrtmin_block(); /* Block SIGRTMIN (will re-enable it in a dedicated thread) */
 	sigterm_enable();
 
 	g_DataVaultStartScript = ESIF_STARTUP_SCRIPT_SERVER_MODE;
@@ -902,6 +958,9 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		esif_ccb_thread_create(&g_thread, esif_event_worker_thread, "Server");
 		esif_ccb_sleep_msec(10);
 	}
+
+	/* Start the thread that handles SIGRTMIN */
+	esif_ccb_thread_create(&g_sigrtmin_thread, sigrtmin_worker_thread, NULL);
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	/* uevent listener */
@@ -1166,6 +1225,18 @@ int main (int argc, char **argv)
 
 	/* Exit ESIF */
 	esif_uf_exit();
+
+	/* Stop and join the SIGRTMIN worker thread.
+	 * All ESIF timers should have been canceled
+	 * after esif_uf_exit() call, so it is safe
+	 * to terminate the g_sigrtmin_thread now.
+	 */
+#ifdef ESIF_ATTR_OS_ANDROID
+	pthread_kill(g_sigrtmin_thread, SIGRTMIN);
+#else
+	pthread_cancel(g_sigrtmin_thread);
+#endif
+	esif_ccb_thread_join(&g_sigrtmin_thread);
 
 	/* Release Instance Lock and exit*/
 	instance_unlock();
