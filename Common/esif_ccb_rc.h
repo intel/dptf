@@ -198,6 +198,8 @@ typedef enum esif_rc {
 
 	/* Web Server */
 	ESIF_E_WS_DISC = 3100, /* WS client disconnected */
+	ESIF_E_WS_INIT_FAILED, /* WS initialization failed */
+	ESIF_E_WS_ALREADY_STARTED, /* WS already started */
 
 	/* Time Conversion */
 	ESIF_E_UNSUPPORTED_REQUEST_TIME_TYPE = 3200,
@@ -334,6 +336,8 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_IO_ALREADY_EXISTS);
 
 	ESIF_CASE_ENUM(ESIF_E_WS_DISC);
+	ESIF_CASE_ENUM(ESIF_E_WS_INIT_FAILED);
+	ESIF_CASE_ENUM(ESIF_E_WS_ALREADY_STARTED);
 
 	ESIF_CASE_ENUM(ESIF_E_UNSUPPORTED_REQUEST_TIME_TYPE);
 	ESIF_CASE_ENUM(ESIF_E_UNSUPPORTED_RESULT_TIME_TYPE);

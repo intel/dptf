@@ -57,8 +57,33 @@
  * C/C++ OS-Agnostic Universal Implementation of the cpuid intrinsic.
  */
 
+/*
+ * Various CPUID Leaf's
+ */
 #define ESIF_CPUID_LEAF_CPU_INFO 0x0
+#define ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE 0x1
 #define ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO 0x15
+
+/*
+ * Various CPU Family models
+ */
+// TBD: Merge the list from the windows file here eventually.
+#define CPUID_FAMILY_MODEL_MASK     0x0FFF0FF0		// 27:20-xFam, 19:16-xMod, 11:8-Fam, 7:4-Mod
+#define CPUID_FAMILY_MODEL_SNB      0x000206A0		// Sandy Bridge
+#define CPUID_FAMILY_MODEL_IVB      0x000306A0		// Ivy Bridge
+#define CPUID_FAMILY_MODEL_HSW      0x000306C0		// Haswell
+#define CPUID_FAMILY_MODEL_CHT      0x000406C0		// CherryTrail-T/Braswell/Cherry View (Platform)
+#define CPUID_FAMILY_MODEL_BSW      0x000406C0		// CherryTrail-T/Braswell/Cherry View (Platform)
+#define CPUID_FAMILY_MODEL_BDW      0x000306D0		// Broadwell
+#define CPUID_FAMILY_MODEL_SKL      0x000406E0		// Sky Lake
+#define CPUID_FAMILY_MODEL_CVT      0x00030650		// Clover Trail
+#define CPUID_FAMILY_MODEL_HSW_ULT  0x00040650		// Haswell ULT
+#define CPUID_FAMILY_MODEL_CRW      0x00040660		// Crystal Well
+#define CPUID_FAMILY_MODEL_BYT      0x00030670		// BayTrail-T/BayTrail-CR/Valley View
+#define CPUID_FAMILY_MODEL_BXT      0x000506C0		// Broxton-A0/A1 / Broxton-E0 / Broxton-P
+#define CPUID_FAMILY_MODEL_GLK      0x000706A0		// Gemini Lake (BXT follow-on)
+#define CPUID_FAMILY_MODEL_CNL_ULT  0x00060660		// Cannon Lake U/Y
+#define CPUID_FAMILY_MODEL_CNL_H    0x00060670		// Cannon Lake H
 
 #pragma pack(push, 1)
 

@@ -28,13 +28,11 @@ class RfProfileCapabilities final
 public:
 	RfProfileCapabilities(
 		Frequency defaultCenterFrequency,
-		Percentage leftClipPercent,
-		Percentage rightClipPercent,
+		Frequency centerFrequency,
 		Frequency frequencyAdjustResolution);
 
 	Frequency getDefaultCenterFrequency(void) const;
-	Percentage getLeftClipPercent(void) const;
-	Percentage getRightClipPercent(void) const;
+	Frequency getCenterFrequency(void) const;
 	Frequency getFrequencyAdjustResolution(void) const;
 
 	Bool operator==(const RfProfileCapabilities& rhs) const;
@@ -43,13 +41,6 @@ public:
 
 private:
 	Frequency m_defaultCenterFrequency;
-	Percentage m_leftClipPercent;
-	Percentage m_rightClipPercent;
+	Frequency m_centerFrequency;
 	Frequency m_frequencyAdjustResolution;
-
-	// Reserved Items not used today
-	// RfProfileType::Type m_leftShape;
-	// RfProfileType::Type m_rightShape;
-	// UInt64 m_leftNotch;
-	// UInt64 m_rightNotch;
 };

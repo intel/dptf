@@ -50,6 +50,7 @@ public:
 	void clearDomainCachedData(void);
 
 	void clearArbitrationDataForPolicy(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 	//
 	// The following set of functions pass the call through to the actual domain.  They
@@ -70,7 +71,7 @@ public:
 	Temperature getPowerShareTemperatureThreshold();
 	Percentage getUtilizationThreshold();
 	Percentage getResidencyUtilization();
-	void setEnergyThresholdInterruptFlag(UInt32 energyThresholdInterruptFlag);
+	void setEnergyThresholdInterruptDisable();
 
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(void);
@@ -129,10 +130,10 @@ public:
 	Bool isPowerShareControl();
 	double getPidKpTerm();
 	double getPidKiTerm();
-	TimeSpan getTau();
+	TimeSpan getAlpha();
 	TimeSpan getFastPollTime();
 	TimeSpan getSlowPollTime();
-	UInt32 getWeightedSlowPollAvgConstant();
+	TimeSpan getWeightedSlowPollAvgConstant();
 	UInt32 getRaplEnergyCounter();
 	double getRaplEnergyUnit();
 	UInt32 getRaplEnergyCounterWidth();
@@ -173,6 +174,7 @@ public:
 	Percentage getAC1msPercentageOverload(void);
 	Percentage getAC2msPercentageOverload(void);
 	Percentage getAC10msPercentageOverload(void);
+	void notifyForProchotDeassertion(void);
 
 	// priority
 	DomainPriority getDomainPriority(void);

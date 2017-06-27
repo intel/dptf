@@ -114,6 +114,7 @@ public:
 	virtual void onActiveControlPointRelationshipTableChanged(void);
 	virtual void onPowerShareAlgorithmTableChanged(void);
 	virtual void onPowerLimitChanged(void);
+	virtual void onWorkloadHintConfigurationChanged(void);
 
 	// Implementation of the Policy Interface
 	virtual void create(Bool enabled, const PolicyServicesInterfaceContainer& policyServices, UIntN policyIndex)
@@ -193,6 +194,7 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) override final;
 	virtual void powerShareAlgorithmTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
+	virtual void workloadHintConfigurationChanged(void) override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);

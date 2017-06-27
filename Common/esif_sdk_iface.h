@@ -77,7 +77,8 @@ typedef enum _t_eIfaceType {
 	eIfaceTypeAction,
 	eIfaceTypeParticipant,
 	eIfaceTypeConjure,
-	eIfaceTypeConjureService
+	eIfaceTypeConjureService,
+	eIfaceTypeWeb,
 } eIfaceType;
 
 /* Header structure common to all ESIF interfaces */

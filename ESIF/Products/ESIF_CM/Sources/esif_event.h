@@ -61,7 +61,6 @@
 #define ESIF_LF_EVENT_QUEUE_SIZE 10240
 #define ESIF_LF_EVENT_QUEUE_TIMEOUT 1000000 /* Second */
 
-
 #ifdef ESIF_ATTR_USER
 typedef enum esif_event_type eEsifEventType;
 #endif

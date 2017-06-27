@@ -205,6 +205,7 @@ void FrameworkEventInfo::initializeEvents()
 		PolicyActiveControlPointRelationshipTableChanged, 0, ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTableChanged, 0, POWER_SHARING_ALGORITHM_TABLE_CHANGED);
 	INIT_EVENT(PowerLimitChanged, 0);
+	INIT_EVENT_WITH_GUID(PolicyWorkloadHintConfigurationChanged, 0, WORKLOAD_HINT_CONFIGURATION_CHANGED);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);

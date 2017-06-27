@@ -69,10 +69,20 @@ void RadioFrequencyControlFacade::setOperatingFrequency(Frequency frequency)
 
 std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 {
+	Frequency centerFrequency(0);
+	try
+	{
+		centerFrequency = m_policyServices.domainRfProfileControl->getRfProfileCapabilities(m_participantIndex, m_domainIndex).getCenterFrequency();
+	}
+	catch (...)
+	{
+		m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF, "Failed to get center frequency"));
+	}
 	auto control = XmlNode::createWrapperElement("radio_frequency_control");
 	control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
 	control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
-	control->addChild(XmlNode::createDataElement("last_set_frequency", m_lastSetFrequency.toString()));
+	control->addChild(XmlNode::createDataElement("requested_frequency", m_lastSetFrequency.toString()));
+	control->addChild(XmlNode::createDataElement("set_frequency", centerFrequency.toString()));
 	if (supportsStatus())
 	{
 		try

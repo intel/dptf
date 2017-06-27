@@ -20,8 +20,6 @@
 
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_sdk_message.h"
-#include "esif_ws_socket.h"
-#include "esif_ws_server.h"
 #include "esif_uf_fpc.h"
 #include "esif_uf_domain.h"
 #include "esif_participant.h"

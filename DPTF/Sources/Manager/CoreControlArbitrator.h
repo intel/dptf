@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "CoreControlStatus.h"
+#include <XmlNode.h>
 
 //
 // Arbitration Rule:
@@ -39,6 +40,7 @@ public:
 
 	CoreControlStatus getArbitratedCoreControlStatus(void) const;
 	void clearPolicyCachedData(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	UIntN m_arbitratedActiveCoreCount;

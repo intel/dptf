@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <unistd.h>
 
 #include "esif_uf.h"
 #include "esif_uf_appmgr.h"
@@ -55,14 +56,28 @@ static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
 static char *g_udev_target = NULL;
 
+/* Dedicated thread pool to handle SIGRTMIN timer signals */
+static esif_thread_t *g_sigrtmin_thread_pool;
+static Bool g_os_quit = ESIF_FALSE; /* global flag to supress KW flagging as while(1) alternative */
+
+/* Number of threads in thread pool: default to 1, but will
+ * change to the actual number of processore cores if there
+ * is support to the _SC_NPROCESSORS_ONLN system configuration
+ * at run time. This value can also be overriden by command
+ * line argument for experimental purposes.
+ */
+static long g_nproc = 1;
+
+#define MAX_TIMER_THREADS_AUTO 16 /* max number of timer work threads allowed from auto-detection */
+#define MAX_TIMER_THREADS_CLI 256 /* max number of timer work threads allowed from command line */
 #define MAX_PAYLOAD 1024 /* max message size*/
+#define MAX_AUTO_REPOS 4 /* max Repos that can be loaded with -m option */
 
 static struct sockaddr_nl sock_addr_src, sock_addr_dest;
 static struct nlmsghdr *netlink_msg = NULL;
 static struct iovec msg_buf;
 static int sock_fd;
 static struct msghdr msg;
-
 
 /* Friend */
 extern EsifAppMgr g_appMgr;
@@ -164,6 +179,7 @@ extern int g_repeat_delay;
 extern int g_soe;
 extern int g_shell_enabled;
 extern int g_cmdshell_enabled;
+extern char **g_autorepos;
 
 /* Worker Thread in esif_uf */
 Bool g_start_event_thread = ESIF_TRUE;
@@ -377,6 +393,118 @@ static void sigusr1_enable()
 	struct sigaction action={0};
 	action.sa_handler = sigusr1_handler;
 	sigaction(SIGUSR1, &action, NULL);
+}
+
+static void sigrtmin_block(void)
+{
+	/* Block SIGRTMIN; other threads created from the main thread
+	 * will inherit a copy of the signal mask.
+	 */
+	sigset_t set = {0};
+	sigemptyset(&set);
+	sigaddset(&set, SIGRTMIN);
+	if (pthread_sigmask(SIG_BLOCK, &set, NULL)) {
+		ESIF_TRACE_ERROR("Fail to block SIGRTMIN\n");
+	}
+}
+
+static void *sigrtmin_worker_thread(void *ptr)
+{
+	sigset_t set = {0};
+	siginfo_t info = {0};
+	struct esif_tmrm_cb_obj *cb_object_ptr = NULL;
+
+	UNREFERENCED_PARAMETER(ptr);
+	sigemptyset(&set);
+	sigaddset(&set, SIGRTMIN);
+
+	while (!g_os_quit) { /* This thread will be canceled/killed after esif_uf_exit() */
+		if (-1 == sigwaitinfo(&set, &info)) { /* sigwaitinfo is a cancellation point */
+			/* When there are multiple worker threads waiting for the same signal,
+			 * only one thread will get the signal and its associated info structure,
+			 * and the rest will get an errno of EINTR. In this case, simply continue
+			 * the loop and wait again.
+			 */
+			continue;
+		}
+
+		if (SIGRTMIN != info.si_signo) {
+			ESIF_TRACE_ERROR("Received signal is not SIGRTMIN, ignore\n");
+			continue;
+		}
+
+		cb_object_ptr = (struct esif_tmrm_cb_obj *) info.si_value.sival_ptr;
+		if (cb_object_ptr && cb_object_ptr->func) {
+			cb_object_ptr->func(cb_object_ptr->cb_handle);
+			cb_object_ptr->func = NULL;
+			/* Use native free function instead of esif_ccb_free(). For explanation,
+			 * please see the comments under esif_ccb_timer_obj_enable_timer() in
+			 * file esif_ccb_timer_lin_user.h.
+			 */
+			free(cb_object_ptr);
+		} else {
+			ESIF_TRACE_ERROR("Invalid timer callback object: (obj=%p, func=%p)\n",
+				cb_object_ptr, (cb_object_ptr ? cb_object_ptr->func : NULL));
+		}
+	}
+
+	return NULL;
+}
+
+static long get_nproc(long old, long new, long max)
+{
+	if (new > 0) {
+		return (new > max) ? max : new;
+	} else {
+		return old;
+	}
+}
+
+static enum esif_rc create_timer_thread_pool(void)
+{
+	int i = 0;
+	enum esif_rc rc = ESIF_OK;
+
+	/* Use native malloc instead of esif_ccb_malloc
+	 * because the poll will be freed after esif_uf_exit().
+	 */
+	g_sigrtmin_thread_pool = (esif_thread_t *) malloc(g_nproc * sizeof(esif_thread_t));
+	if (g_sigrtmin_thread_pool) {
+		pthread_attr_t attr;
+
+		for (i = 0; i < g_nproc; ++i) {
+			pthread_attr_init(&attr);
+			pthread_create(&g_sigrtmin_thread_pool[i], &attr, sigrtmin_worker_thread, NULL);
+			pthread_attr_destroy(&attr);
+		}
+	} else {
+		rc = ESIF_E_NO_MEMORY;
+	}
+
+	return rc;
+}
+
+static void release_timer_thread_pool(void)
+{
+	int i = 0;
+
+	if (g_sigrtmin_thread_pool) {
+		/* All ESIF timers should have been canceled
+		 * after esif_uf_exit() call, so it is safe
+		 * to terminate the g_sigrtmin_thread_pool now.
+		 */
+		for (i = 0; i < g_nproc; ++i) {
+#ifdef ESIF_ATTR_OS_ANDROID
+			pthread_kill(g_sigrtmin_thread_pool[i], SIGRTMIN);
+#else
+			pthread_cancel(g_sigrtmin_thread_pool[i]);
+#endif
+		}
+		for (i = 0; i < g_nproc; ++i) {
+			pthread_join(g_sigrtmin_thread_pool[i], NULL);
+		}
+		free(g_sigrtmin_thread_pool);
+	}
 }
 
 #if !defined(ESIF_ATTR_INSTANCE_LOCK)
@@ -761,13 +889,20 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 	}
 	sigterm_enable();
 
-	/* 4. Change to known directory.  Performed in main */
-	/* 5. Close all file descriptors incuding stdin, stdout, stderr */
+	/* 4. Block SIGRTMIN (will re-enable it in dedicated thread pool) */
+	sigrtmin_block();
+	/* Start the thread pool that handles SIGRTMIN */
+	if (ESIF_OK != create_timer_thread_pool()) {
+		return ESIF_FALSE;
+	}
+
+	/* 5. Change to known directory.  Performed in main */
+	/* 6. Close all file descriptors incuding stdin, stdout, stderr */
 	close(STDIN_FILENO); /* stdin */
 	close(STDOUT_FILENO); /* stdout */
 	close(STDERR_FILENO); /* stderr */
 
-	/* 6. Open file descriptors 0, 1, and 2 and redirect */
+	/* 7. Open file descriptors 0, 1, and 2 and redirect */
 	/* stdin */
 	if (ESIF_TRUE == start_with_log) {
 		unlink(cmd_out);
@@ -894,8 +1029,13 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 	if (!instance_lock()) {
 		return ESIF_FALSE;
 	}
+	sigrtmin_block(); /* Block SIGRTMIN (will re-enable it in dedicated thread pool) */
+	/* Start the thread pool that handles SIGRTMIN */
+	if (ESIF_OK != create_timer_thread_pool()) {
+		CMD_OUT("Cannot create timer thread pool, exiting\n");
+		return ESIF_FALSE;
+	}
 	sigterm_enable();
-
 	esif_shell_set_start_script(ESIF_STARTUP_SCRIPT_SERVER_MODE);
 	esif_uf_init();
 	ipc_resync();
@@ -976,6 +1116,8 @@ int main (int argc, char **argv)
 	int c = 0;
 	FILE *fp = NULL;
 	char command[MAX_LINE + 1] = {0};
+	char *repolist[MAX_AUTO_REPOS + 1] = {0};
+	int repolistlen = 0;
 	int quit_after_command = ESIF_FALSE;
 #if defined(ESIF_ATTR_DAEMON)
 	int terminate_daemon = ESIF_FALSE;
@@ -994,9 +1136,16 @@ int main (int argc, char **argv)
 	g_start_event_thread = ESIF_FALSE;
 #endif
 
+	/* Find number of online CPU cores if the feature is available,
+	 * and then assign it to a global which we will use later to
+	 * create the equivalent number of timer worker threads to
+	 * serve timer expiration events most efficiently.
+	 */
+	g_nproc = get_nproc(g_nproc, sysconf(_SC_NPROCESSORS_ONLN), MAX_TIMER_THREADS_AUTO);
+
 	optind = 1;	// Rest To 1 Restart Vector Scan
 
-	while ((c = getopt(argc, argv, "d:f:c:b:r:i:xhq?tsnzpl")) != -1) {
+	while ((c = getopt(argc, argv, "d:f:c:b:r:i:g:a:xqtsnzplhv?")) != -1) {
 		switch (c) {
 		case 'd':
 			g_dst = (u8)esif_atoi(optarg);
@@ -1032,6 +1181,17 @@ int main (int argc, char **argv)
 			g_ipc_retry_msec = esif_atoi(optarg);
 			break;
 
+		case 'g':
+			g_nproc = get_nproc(g_nproc, esif_atoi(optarg), MAX_TIMER_THREADS_CLI);
+			break;
+
+		case 'a':
+			if (repolistlen < MAX_AUTO_REPOS) {
+				repolist[repolistlen++] = optarg;
+			}
+			g_autorepos = repolist;
+			break;
+
 #if defined (ESIF_ATTR_DAEMON)
 
 		case 't':
@@ -1060,9 +1220,10 @@ int main (int argc, char **argv)
 #endif
 
 		case 'h':
+		case 'v':
 		case '?':
 			CMD_DEBUG(
-			"ESIF Eco-System Independent Framework Shell\n"
+			"ESIF Eco-System Independent Framework, Version " ESIF_UF_VERSION "\n"
 			COPYRIGHT_NOTICE "\n"
 			"-d [*id]            Set Destination\n"
 			"-f [*filename]      Load Filename\n"
@@ -1072,6 +1233,8 @@ int main (int argc, char **argv)
 			"-b [*size]          Set Binary Buffer Size\n"
 			"-r [*msec]          Set IPC Retry Timeout in msec\n"
 			"-i [*msec]          Set IPC Retry Interval in msec\n"
+			"-g [*pool size]     Set Number of Threads to Handle Timer Functions\n"
+			"-a [*filename]      Automatically Load Data Repository File on Startup\n"
 #if defined (ESIF_ATTR_DAEMON)
 			"-t or 'reload'      Terminate and Reload Daemon or Server\n"
 			"-s or 'server'      Run As Server [Interactive]\n"
@@ -1080,7 +1243,7 @@ int main (int argc, char **argv)
 			"-p                  Use Pipe For Input\n"
 			"-l                  Use Log For Output\n"
 #endif
-			"-h or -?            This Help\n\n");
+			"-h or -v or -?      Display This Help\n\n");
 			exit(0);
 			break;
 
@@ -1168,6 +1331,10 @@ int main (int argc, char **argv)
 	/* Exit ESIF */
 	esif_uf_exit();
 
+	/* Stop and join the SIGRTMIN worker thread */
+	g_os_quit = ESIF_TRUE;
+	release_timer_thread_pool();
+
 	/* Release Instance Lock and exit*/
 	instance_unlock();
 	esif_main_exit();
@@ -1188,6 +1355,9 @@ void esif_uf_os_exit ()
 {
 	/* Stop uevent listener */
 	esif_udev_stop();
+
+	/* If uevent listener thread is canceled, the netlink_msg may not be freed yet */
+	esif_ccb_free(netlink_msg);
 
 	/* Stop sensor manager thread */
 	EsifEventBroadcast_MotionSensorEnable(ESIF_FALSE);

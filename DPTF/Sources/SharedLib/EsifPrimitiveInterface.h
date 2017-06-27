@@ -27,7 +27,7 @@
 class EsifPrimitiveInterface
 {
 public:
-	virtual ~EsifPrimitiveInterface(){};
+	virtual ~EsifPrimitiveInterface() {};
 
 	virtual UInt8 primitiveExecuteGetAsUInt8(
 		esif_primitive_type primitive,

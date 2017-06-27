@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "DomainPlatformPowerStatusBase.h"
+#include "CachedValue.h"
 
 class DomainPlatformPowerStatus_001 : public DomainPlatformPowerStatusBase
 {
@@ -44,6 +45,7 @@ public:
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
@@ -63,6 +65,7 @@ private:
 	Power m_adapterRating; // ARTG in mW
 	Power m_platformRestOfPower; // PROP in mW
 	PlatformPowerSource::Type m_platformPowerSource; // PSRC
+	CachedValue<UInt32> m_psrcSequence;
 	ChargerType::Type m_chargerType; // CTYP
 	Power m_batterySteadyState; // PBSS in mW
 	UInt32 m_acNominalVoltage; // AVOL in mV

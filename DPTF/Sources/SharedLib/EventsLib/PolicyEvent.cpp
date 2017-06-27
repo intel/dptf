@@ -101,6 +101,7 @@ namespace PolicyEvent
 			CASE(PolicyActiveControlPointRelationshipTableChanged)
 			CASE(PolicyPowerShareAlgorithmTableChanged)
 			CASE(PowerLimitChanged)
+			CASE(PolicyWorkloadHintConfigurationChanged)
 		default:
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -135,7 +136,8 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPidAlgorithmTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyActiveControlPointRelationshipTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTableChanged));
+			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged));
 	}
 
 	std::string toString(Type type)
@@ -272,6 +274,8 @@ namespace PolicyEvent
 			return "PolicyPowerShareAlgorithmTableChanged";
 		case PolicyEvent::PowerLimitChanged:
 			return "PowerLimitChanged";
+		case PolicyEvent::PolicyWorkloadHintConfigurationChanged:
+			return "PolicyWorkloadHintConfigurationChanged";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

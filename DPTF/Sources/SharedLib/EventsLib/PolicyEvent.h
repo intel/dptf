@@ -93,6 +93,7 @@ namespace PolicyEvent
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
+		PolicyWorkloadHintConfigurationChanged,
 		Max
 	};
 

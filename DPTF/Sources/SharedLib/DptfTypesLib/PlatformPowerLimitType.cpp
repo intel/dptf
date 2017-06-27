@@ -32,3 +32,18 @@ std::string PlatformPowerLimitType::ToString(Type limitType)
 		throw dptf_exception("Invalid platform power limit type requested for ToString");
 	}
 }
+
+std::string PlatformPowerLimitType::ToXmlString(Type limitType)
+{
+	switch (limitType)
+	{
+	case PSysPL1:
+		return "PSys_PL1";
+	case PSysPL2:
+		return "PSys_PL2";
+	case PSysPL3:
+		return "PSys_PL3";
+	default:
+		throw dptf_exception("Invalid platform power limit type requested for ToXmlString");
+	}
+}

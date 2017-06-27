@@ -728,9 +728,12 @@ static eEsifError EsifEventMgr_EnableEvent(
 		rc = esif_register_sensors(entryPtr->fpcEvent.esif_event);
 		break;
 
+	case ESIF_EVENT_GROUP_CODE:
+		rc = esif_enable_code_event(entryPtr->fpcEvent.esif_event);
+		break;
+
 	case ESIF_EVENT_GROUP_DPTF:
 	case ESIF_EVENT_GROUP_ACPI:
-	case ESIF_EVENT_GROUP_CODE:
 	default:
 		break;
 	}
@@ -766,9 +769,12 @@ static eEsifError EsifEventMgr_DisableEvent(
 		rc = esif_unregister_sensors(entryPtr->fpcEvent.esif_event);
 		break;
 
+	case ESIF_EVENT_GROUP_CODE:
+		rc = esif_disable_code_event(entryPtr->fpcEvent.esif_event);
+		break;
+
 	case ESIF_EVENT_GROUP_DPTF:
 	case ESIF_EVENT_GROUP_ACPI:
-	case ESIF_EVENT_GROUP_CODE:
 	case ESIF_EVENT_GROUP_SYSTEM_METRICS:
 	default:
 		break;

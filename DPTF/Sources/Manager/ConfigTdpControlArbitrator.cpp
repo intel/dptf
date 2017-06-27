@@ -18,6 +18,7 @@
 
 #include "ConfigTdpControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 ConfigTdpControlArbitrator::ConfigTdpControlArbitrator()
 	: m_arbitratedConfigTdpControlIndex(Constants::Invalid)
@@ -65,6 +66,19 @@ void ConfigTdpControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 		m_requestedConfigTdpControlIndex[policyIndex] = Constants::Invalid;
 		commitPolicyRequest(policyIndex, Constants::Invalid);
 	}
+}
+
+std::shared_ptr<XmlNode> ConfigTdpControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("ctdp_control_arbitrator_status");
+	auto cTdpIndex = Constants::Invalid;
+	auto policyRequest = m_requestedConfigTdpControlIndex.find(policyIndex);
+	if (policyRequest != m_requestedConfigTdpControlIndex.end())
+	{
+		cTdpIndex = policyRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("ctdp_index", StatusFormat::friendlyValue(cTdpIndex)));
+	return requestRoot;
 }
 
 UIntN ConfigTdpControlArbitrator::getMaxRequestedIndex(std::map<UIntN, UIntN>& requests)

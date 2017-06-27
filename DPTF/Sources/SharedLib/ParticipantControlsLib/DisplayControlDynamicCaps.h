@@ -31,6 +31,8 @@ public:
 	Bool operator==(const DisplayControlDynamicCaps& rhs) const;
 	Bool operator!=(const DisplayControlDynamicCaps& rhs) const;
 	std::shared_ptr<XmlNode> getXml(void);
+	void setCurrentUpperLimit(UIntN upperLimit);
+	void setCurrentLowerLimit(UIntN lowerLimit);
 
 private:
 	UIntN m_currentUpperLimit; // Index of DisplayControl representing current allowed upper limit

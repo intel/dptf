@@ -175,10 +175,6 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_iostream.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
 
 OBJ += $(ESIF_WS_SOURCES)/esif_ws_algo.o
-OBJ += $(ESIF_WS_SOURCES)/esif_ws_http.o
-OBJ += $(ESIF_WS_SOURCES)/esif_ws_server.o
-OBJ += $(ESIF_WS_SOURCES)/esif_ws_socket.o
-
 
 ###############################################################################
 # BUILD 

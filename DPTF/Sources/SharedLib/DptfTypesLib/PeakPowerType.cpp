@@ -30,3 +30,16 @@ std::string PeakPowerType::ToString(Type peakPowerType)
 		throw dptf_exception("Invalid peak power type requested for ToString");
 	}
 }
+
+std::string PeakPowerType::ToXmlString(Type peakPowerType)
+{
+	switch (peakPowerType)
+	{
+	case ACPeakPower:
+		return "AC_Peak_Power";
+	case DCPeakPower:
+		return "DC_Peak_Power";
+	default:
+		throw dptf_exception("Invalid peak power type requested for ToXmlString");
+	}
+}

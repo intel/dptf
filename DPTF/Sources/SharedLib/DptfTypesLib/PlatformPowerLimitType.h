@@ -30,4 +30,5 @@ namespace PlatformPowerLimitType
 	};
 
 	std::string ToString(PlatformPowerLimitType::Type limitType);
+	std::string ToXmlString(PlatformPowerLimitType::Type limitType);
 }

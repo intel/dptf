@@ -55,3 +55,13 @@ std::shared_ptr<XmlNode> DisplayControlDynamicCaps::getXml(void)
 
 	return root;
 }
+
+void DisplayControlDynamicCaps::setCurrentUpperLimit(UIntN upperLimit)
+{
+	m_currentUpperLimit = upperLimit;
+}
+
+void DisplayControlDynamicCaps::setCurrentLowerLimit(UIntN lowerLimit)
+{
+	m_currentLowerLimit = lowerLimit;
+}

@@ -18,6 +18,7 @@
 
 #include "PerformanceControlCapabilitiesArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 PerformanceControlCapabilitiesArbitrator::PerformanceControlCapabilitiesArbitrator()
 {
@@ -96,6 +97,34 @@ void PerformanceControlCapabilitiesArbitrator::removeRequestsForPolicy(UIntN pol
 	m_requestedUpperPState.erase(policyIndex);
 	m_requestedLowerPState.erase(policyIndex);
 	m_requestedLocks.erase(policyIndex);
+}
+
+std::shared_ptr<XmlNode> PerformanceControlCapabilitiesArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("performance_control_capabilities_arbitrator_status");
+	PerformanceControlDynamicCaps caps = PerformanceControlDynamicCaps(Constants::Invalid, Constants::Invalid);
+	auto policyRequest = m_requestedUpperPState.find(policyIndex);
+	if (policyRequest != m_requestedUpperPState.end())
+	{
+		caps.setCurrentUpperLimitIndex(policyRequest->second);
+	}
+
+	policyRequest = m_requestedLowerPState.find(policyIndex);
+	if (policyRequest != m_requestedLowerPState.end())
+	{
+		caps.setCurrentLowerLimitIndex(policyRequest->second);
+	}
+	requestRoot->addChild(caps.getXml());
+
+	auto policyLockRequest = m_requestedLocks.find(policyIndex);
+	Bool lockRequested = false;
+	if (policyLockRequest != m_requestedLocks.end())
+	{
+		lockRequested = policyLockRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("requested_lock", StatusFormat::friendlyValue(lockRequested)));
+
+	return requestRoot;
 }
 
 void PerformanceControlCapabilitiesArbitrator::updatePolicyRequest(

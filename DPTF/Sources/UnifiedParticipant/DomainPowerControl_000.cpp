@@ -149,7 +149,7 @@ double DomainPowerControl_000::getPidKiTerm(UIntN participantIndex, UIntN domain
 	throw not_implemented();
 }
 
-TimeSpan DomainPowerControl_000::getTau(UIntN participantIndex, UIntN domainIndex)
+TimeSpan DomainPowerControl_000::getAlpha(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
@@ -164,7 +164,7 @@ TimeSpan DomainPowerControl_000::getSlowPollTime(UIntN participantIndex, UIntN d
 	throw not_implemented();
 }
 
-UInt32 DomainPowerControl_000::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+TimeSpan DomainPowerControl_000::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
@@ -189,9 +189,7 @@ Power DomainPowerControl_000::getSlowPollPowerThreshold(UIntN participantIndex, 
 	throw not_implemented();
 }
 
-Power DomainPowerControl_000::getInstantaneousPower(
-	UIntN participantIndex,
-	UIntN domainIndex)
+Power DomainPowerControl_000::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }

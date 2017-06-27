@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
+#include <XmlNode.h>
 
 //
 // Arbitration Rule:
@@ -48,6 +49,7 @@ public:
 	UIntN arbitrate(UIntN policyIndex, UIntN activeControlIndex);
 
 	void clearPolicyCachedData(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	Percentage m_arbitratedFanSpeedPercentage;

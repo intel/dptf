@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #include "DomainRfProfileStatus_002.h"
-#include "EsifDataBinaryRfProfileDataPackage.h"
 
 //
 // version 002 is for wireless
@@ -37,46 +36,19 @@ DomainRfProfileStatus_002::~DomainRfProfileStatus_002(void)
 
 RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-
-	// DptfBuffer buffer; // TODO: Add primitive to get RfProfileDataSet
-	// auto rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
-
-	std::vector<RfProfileData> rfProfileDataSet;
-	Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
-		esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
-
-	Frequency leftFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
-		esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_LEFT, domainIndex);
-
-	Frequency rightFrequencySpread = getParticipantServices()->primitiveExecuteGetAsFrequency(
-		esif_primitive_type::GET_RFPROFILE_FREQUENCY_SPREAD_RIGHT, domainIndex);
-
-	UInt32 channelNumber = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RFPROFILE_CHANNEL_NUMBER, domainIndex);
-
-	UInt32 noisePower = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RFPROFILE_NOISE_POWER, domainIndex);
-
-	UInt32 signalToNoiseRatio = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RFPROFILE_SIGNAL_TO_NOISE_RATIO, domainIndex);
-
-	UInt32 rssi =
-		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_RFPROFILE_RSSI, domainIndex);
-
-	UInt32 uint32Value = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RFPROFILE_CONNECTION_STATUS, domainIndex);
-	RadioConnectionStatus::Type radioConnectionStatus = static_cast<RadioConnectionStatus::Type>(uint32Value);
-
-	UInt32 bitError = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RFPROFILE_BIT_ERROR, domainIndex);
-
-	RfProfileSupplementalData rfProfileSupplementalData(
-		channelNumber, noisePower, signalToNoiseRatio, rssi, radioConnectionStatus, bitError);
-
-	RfProfileData rfProfileData(centerFrequency, leftFrequencySpread, rightFrequencySpread, rfProfileSupplementalData);
-	rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
-
-	return RfProfileDataSet(rfProfileDataSet);
+	RfProfileDataSet rfProfileDataSet;
+	try 
+	{
+		DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_RF_CHANNEL_INFO, ESIF_DATA_BINARY, domainIndex);
+		rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get Rf Channel Info. "));
+	}
+	return rfProfileDataSet;
 }
 
 void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

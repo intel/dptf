@@ -39,10 +39,9 @@ public:
 	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setEnergyThresholdInterruptFlag(
+	virtual void setEnergyThresholdInterruptDisable(
 		UIntN participantIndex,
-		UIntN domainIndex,
-		UInt32 energyThresholdInterruptFlag) override;
+		UIntN domainIndex) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

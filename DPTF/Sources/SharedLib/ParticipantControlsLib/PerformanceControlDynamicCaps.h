@@ -31,6 +31,8 @@ public:
 	Bool operator==(const PerformanceControlDynamicCaps& rhs) const;
 	Bool operator!=(const PerformanceControlDynamicCaps& rhs) const;
 	std::shared_ptr<XmlNode> getXml(void);
+	void setCurrentLowerLimitIndex(UIntN lowerLimit);
+	void setCurrentUpperLimitIndex(UIntN upperLimit);
 
 private:
 	UIntN m_currentLowerLimitIndex; // Index of PerformanceControl representing current allowed lower limit

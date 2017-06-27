@@ -52,6 +52,23 @@ Upon system boot, you should be able to observe the esif_ufd process that has
 been launched by upstart.
 
 -------------------------------------------------------------------------------
+SELECTIVELY LOAD DPTF CONFIGURATION FILES FROM FILE SYSTEM
+-------------------------------------------------------------------------------
+DPTF relies on a predefined set of thermal tables and parameters to operate
+properly. Normally this set of data is derived from the thermal tuning process
+for each specific platform, and is stored in the platform BIOS (CoreBoot in the
+case of Chrome/Chromium OS). Starting with the 8.4.10100 build, system
+integrators now also have the option to point to the data file that is stored
+in the file system instead. To use this feature, modify the DPTF service init
+file /etc/init/dptf.conf, at the very last line, instead of just plainly
+invoking esif_ufd, add the following command line argument:
+
+exec esif_ufd -a <full path to the DPTF config data vault file>
+
+The tools to generate DPTF config data vault files are supplied to Chromebook
+OEMs separately and are not available to end users.
+
+-------------------------------------------------------------------------------
 MANUALLY INSTALL DPTF ON UBUNTU LINUX
 -------------------------------------------------------------------------------
 Even though DPTF is not yet officially supported on Linux, users who wish to
@@ -140,9 +157,11 @@ This command will show the active DPTF process ID.
 -------------------------------------------------------------------------------
 INSTALL DPTF SERVICE INIT SCRIPT
 -------------------------------------------------------------------------------
+For Ubuntu 14.10 and earlier:
 If you want the DPTF service to start automatically upon system boot, assuming
-that you are using upstart init system (which is the case for both Chromium OS
-and Ubuntu), you can simply copy the dptf.conf script to /etc/init:
+that you are using upstart init system (which is the default init system on
+Ubuntu 14.10 and earlier, and on Chrome OS), you can simply copy the dptf.conf
+script to /etc/init:
 
 	sudo cp <DPTF root>/ESIF/Packages/Installers/chrome/dptf.conf /etc/init/
 
@@ -158,6 +177,25 @@ To start a stopped service, type:
 To restart the DPTF service, type:
 
 	sudo initctl restart dptf
+
+For Ubuntu 15.04 and later:
+Starting with Ubuntu 15.04 the default init system has switched to systemd.
+If this is the system that you use, then to auto start DPTF service, copy
+the dptf.service script to /lib/systemd/system:
+
+	sudo cp <DPTF root>/ESIF/Packages/Installers/linux/dptf.service \
+	/lib/systemd/system
+
+You will then need to enable the DPTF service to auto load upon startup:
+
+	sudo systemctl enabel dptf.service
+
+DPTF(esif_ufd) service will automatically start the next time the system
+boots. You can also manually start and stop DPTF service anytime by doing:
+
+	systemctl start dptf.service   # To start the service
+	systemctl stop dptf.service    # To stop the service
+	systemctl restart dptf.service # To restart the service
 
 -------------------------------------------------------------------------------
 KNOWN ISSUES / LIMITATIONS

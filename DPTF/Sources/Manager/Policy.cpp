@@ -623,6 +623,14 @@ void Policy::executePowerLimitChanged(void)
 	}
 }
 
+void Policy::executePolicyWorkloadHintConfigurationChanged(void)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWorkloadHintConfigurationChanged))
+	{
+		m_theRealPolicy->workloadHintConfigurationChanged();
+	}
+}
+
 void Policy::sendPolicyLogDataIfLoggingEnabled(Bool loaded)
 {
 	try

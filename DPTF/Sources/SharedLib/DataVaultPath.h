@@ -35,6 +35,7 @@ namespace DataVaultPath
 		namespace Export
 		{
 			static const std::string WorkloadHints = DataVaultPathBasePaths::ExportRoot + "/workload_hints/";
+			static const std::string DoNotRebalanceUnusedPidBudget = DataVaultPathBasePaths::ExportRoot + "/do_not_rebalance_unused_pid_budget/";
 		};
 
 		namespace Tables

@@ -243,11 +243,17 @@ int esif_pathlist_count(void);
 eEsifError esif_uf_os_init(void);
 void esif_uf_os_exit(void);
 
-// Web
-extern eEsifError EsifWebStart();
+// TODO - Legacy Interfaces; Will be removed later
+extern eEsifError EsifWebLoad(void);
+extern void EsifWebUnload(void);
+extern eEsifError EsifWebStart(void);
 extern void EsifWebStop(void);
-extern int EsifWebIsStarted();
+extern int EsifWebIsStarted(void);
+extern Bool EsifWebIsRestricted(void);
+extern const char *EsifWebVersion(void);
 extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted);
+extern void EsifWebSetTraceLevel(int level);
+extern eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize);
 
 #ifdef __cplusplus
 }

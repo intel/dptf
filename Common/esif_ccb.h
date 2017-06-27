@@ -80,6 +80,8 @@
 #define ESIF_EXPORT			__declspec(dllexport)	/* Used for Exported Symbols */
 #define ESIF_INVALID_HANDLE	INVALID_HANDLE_VALUE
 
+#define esif_ccb_isfullpath(fname)	(fname[0] == '\\' || (isalpha(fname[0]) && fname[1] == ':'))
+
 typedef	char *esif_string;		/* NULL-teriminated ANSI string */
 typedef HANDLE esif_handle_t;	/* opaque Handle (not a pointer) */
 typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
@@ -171,6 +173,8 @@ typedef unsigned long long u64;	/* A QWORD */
 #define ESIF_PATH_SEP		"/"			/* Path Separator String */
 #define ESIF_EXPORT			__attribute__((visibility("default")))	/* Used for Exported Symbols */
 #define ESIF_INVALID_HANDLE	(-1)		/* Invalid Handle */
+
+#define esif_ccb_isfullpath(fname)	(fname[0] == '/')
 
 #ifdef ESIF_ATTR_KERNEL
 #define esif_string char *	/* opaque: use #define instead of typedef */

@@ -21,6 +21,16 @@
 #include "Dptf.h"
 #include "esif_sdk_data.h"
 
+// AOSP 7.0 header files have major() and minor() defined as macros
+// Undefine these macros to avoid compilation errors
+#ifdef major
+#undef major
+#endif
+
+#ifdef minor
+#undef minor
+#endif
+
 class AppVersion
 {
 public:

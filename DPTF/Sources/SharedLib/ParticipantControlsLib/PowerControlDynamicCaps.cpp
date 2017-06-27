@@ -59,19 +59,16 @@ PowerControlType::Type PowerControlDynamicCaps::getPowerControlType(void) const
 
 Power PowerControlDynamicCaps::getMinPowerLimit(void) const
 {
-	throwIfNotValid();
 	return m_minPowerLimit;
 }
 
 Power PowerControlDynamicCaps::getMaxPowerLimit(void) const
 {
-	throwIfNotValid();
 	return m_maxPowerLimit;
 }
 
 Power PowerControlDynamicCaps::getPowerStepSize(void) const
 {
-	throwIfNotValid();
 	return m_powerStepSize;
 }
 
@@ -90,27 +87,33 @@ void PowerControlDynamicCaps::setPowerStepSize(Power stepSize)
 	m_powerStepSize = stepSize;
 }
 
+void PowerControlDynamicCaps::setMinTimeWindow(TimeSpan minTimeWindow)
+{
+	m_minTimeWindow = minTimeWindow;
+}
+
+void PowerControlDynamicCaps::setMaxTimeWindow(TimeSpan maxTimeWindow)
+{
+	m_maxTimeWindow = maxTimeWindow;
+}
+
 TimeSpan PowerControlDynamicCaps::getMinTimeWindow(void) const
 {
-	throwIfNotValid();
 	return m_minTimeWindow;
 }
 
 TimeSpan PowerControlDynamicCaps::getMaxTimeWindow(void) const
 {
-	throwIfNotValid();
 	return m_maxTimeWindow;
 }
 
 Percentage PowerControlDynamicCaps::getMinDutyCycle(void) const
 {
-	throwIfNotValid();
 	return m_minDutyCycle;
 }
 
 Percentage PowerControlDynamicCaps::getMaxDutyCycle(void) const
 {
-	throwIfNotValid();
 	return m_maxDutyCycle;
 }
 

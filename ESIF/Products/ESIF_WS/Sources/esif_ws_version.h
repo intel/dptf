@@ -18,18 +18,9 @@
 
 #pragma once
 
-#include "Dptf.h"
-#include "esif_sdk_data.h"
+#include "Ver.h"
 
-struct EsifDataBinaryRfProfileDataPackage
-{
-	union esif_data_variant centerFrequency; // Frequency - centerFrequency
-	union esif_data_variant leftFrequencySpread; // Frequency - leftFrequencySpread
-	union esif_data_variant rightFrequencySpread; // Frequency - rightFrequencySpread
-	union esif_data_variant channelNumber; // ULONG - channelNumber
-	union esif_data_variant noisePower; // ULONG - noisePower
-	union esif_data_variant signalToNoiseRatio; // ULONG - signalToNoiseRatio
-	union esif_data_variant rssi; // ULONG - rssi
-	union esif_data_variant uint32Value; // ULONG - Connection Status
-	union esif_data_variant bitError; // ULONG - bitError
-};
+#define STR(arg) #arg
+#define EXPAND_TOSTR(arg) STR(arg)
+
+#define ESIF_WS_VERSION EXPAND_TOSTR(VER_MAJOR.VER_MINOR.VER_HOTFIX.VER_BUILD)

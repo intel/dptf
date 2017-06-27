@@ -29,6 +29,7 @@ public:
 
 	operator EsifDataPtr(void);
 	operator Power(void) const;
+	operator UInt32(void) const;
 
 private:
 	// hide the copy constructor and assignment operator.

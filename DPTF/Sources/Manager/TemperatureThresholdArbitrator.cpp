@@ -21,6 +21,7 @@
 #include "DptfManager.h"
 #include "EsifServicesInterface.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 TemperatureThresholdArbitrator::TemperatureThresholdArbitrator(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
@@ -77,6 +78,19 @@ void TemperatureThresholdArbitrator::clearPolicyCachedData(UIntN policyIndex)
 		policyRequest->second = TemperatureThresholds::createInvalid();
 		arbitrate(policyIndex, TemperatureThresholds::createInvalid(), Temperature::createInvalid());
 	}
+}
+
+std::shared_ptr<XmlNode> TemperatureThresholdArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("temperature_thresholds_arbitrator_status");
+	auto temperatureThresholds = TemperatureThresholds::createInvalid();
+	auto policyRequest = m_requestedTemperatureThresholds.find(policyIndex);
+	if (policyRequest != m_requestedTemperatureThresholds.end())
+	{
+		temperatureThresholds = policyRequest->second;
+	}
+	requestRoot->addChild(temperatureThresholds.getXml());
+	return requestRoot;
 }
 
 void TemperatureThresholdArbitrator::throwIfTemperatureThresholdsInvalid(

@@ -105,9 +105,16 @@ esif_error_t DataRepo_SetType(
 			case StreamFile:
 				if (name) {
 					char fullpath[MAX_PATH] = { 0 };
-					StringPtr ext = (esif_ccb_strchr(name, '.') ? NULL : ESIFDV_FILEEXT);
 
-					esif_build_path(fullpath, sizeof(fullpath), ESIF_PATHTYPE_DV, name, ext);
+					// Use Full path if specified, otherwise use DV path
+					if (esif_ccb_isfullpath(name)) {
+						esif_ccb_strcpy(fullpath, name, sizeof(fullpath));
+					}
+					else {
+						StringPtr ext = (esif_ccb_strchr(name, '.') ? NULL : ESIFDV_FILEEXT);
+						esif_build_path(fullpath, sizeof(fullpath), ESIF_PATHTYPE_DV, name, ext);
+					}
+
 					if (IOStream_SetFile(self->stream, store, fullpath, "rb") != EOK) {
 						IOStream_dtor(self->stream);
 					}

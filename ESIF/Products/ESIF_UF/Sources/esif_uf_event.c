@@ -21,9 +21,10 @@
 #include "esif_uf_ipc.h"
 #include "esif_uf_primitive.h"
 #include "esif_uf_eventmgr.h"
-#include "esif_uf_ccb_sock.h"
+#include "esif_ccb_socket.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
+#include <synchapi.h>
 //
 // The Windows banned-API check header must be included after all other headers, or issues can be identified
 // against Windows SDK/DDK included headers which we have no control over.
@@ -33,10 +34,32 @@
 #endif
 
 void EsifEvent_GetAndSignalIpcEvent();
+static eEsifError EsifEvent_InitEventWorkerThread();
+static void EsifEvent_CleanupEventWorkerThread();
 
 extern int g_quit;
-extern int g_disconnectClient;
 extern esif_handle_t g_ipc_handle;
+int g_eventThreadExit = 0;
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+
+BOOL SendIpcIoctl(
+	DWORD ioControlCode,
+	LPVOID inBufferPtr,
+	DWORD inBufferSize,
+	LPVOID outBufferPtr,
+	DWORD outBufferSize,
+	LPDWORD bytesReturnedPtr
+	);
+
+static eEsifError EsifEvent_InitEventObjects();
+static eEsifError EsifEvent_StartEventIpc();
+static eEsifError EsifEvent_HandleLfExit();
+
+HANDLE g_hEventDoorbell = NULL;
+HANDLE g_hEventLfExit = NULL;
+
+#endif
 
 
 // Dispatch An Event
@@ -181,8 +204,13 @@ exit:
 void *esif_event_worker_thread(void *ptr)
 {
 	int rc = 0;
+	eEsifError esifStatus = ESIF_OK;
 	fd_set rfds = {0};
 	struct timeval tv = {0};
+#ifdef ESIF_ATTR_OS_WINDOWS
+	DWORD waitStatus = 0;
+	HANDLE waitHandles[2] = { 0 };
+#endif
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	UNREFERENCED_PARAMETER(rc);
@@ -193,45 +221,200 @@ void *esif_event_worker_thread(void *ptr)
 	ESIF_TRACE_ENTRY_INFO();
 	CMD_OUT("Start ESIF Event Thread\n");
 
+	g_eventThreadExit = 0;
+
+	esifStatus = EsifEvent_InitEventWorkerThread();
+	if (ESIF_OK == esifStatus) {
+
+		// Run Until Told To Quit
+		while (!g_quit && !g_eventThreadExit) {
+	#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+			esif_ccb_sleep_msec(250);
+	#else /* !ESIF_FEAT_OPT_ACTION_SYSFS */
+
+			if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+				break;
+			}
+			if (rc > 0) {
+				EsifEvent_GetAndSignalIpcEvent();
+			}
+			FD_ZERO(&rfds);
+			FD_SET((esif_ccb_socket_t)g_ipc_handle, &rfds);
+			tv.tv_sec  = 0;
+			tv.tv_usec = 50000;	/* 50 msec */
+
+	#ifdef ESIF_ATTR_OS_LINUX
+			rc = select(g_ipc_handle + 1, &rfds, NULL, NULL, &tv);
+	#endif
+		
+	#ifdef ESIF_ATTR_OS_WINDOWS
+
+			waitHandles[0] = g_hEventDoorbell;
+			waitHandles[1] = g_hEventLfExit;
+				
+			waitStatus = WaitForMultipleObjects(sizeof(waitHandles) / sizeof(*waitHandles), waitHandles, FALSE, INFINITE);
+			if (waitStatus == (WAIT_OBJECT_0 + 1)) {
+				esifStatus = EsifEvent_HandleLfExit();
+				if (esifStatus != ESIF_OK) {
+					break;
+				}
+			} else {
+				ResetEvent(g_hEventDoorbell);				
+			}
+			rc = 1;
+	#endif
+		
+	#endif /* !ESIF_FEAT_OPT_ACTION_SYSFS */
+		}
+	}
+
+	EsifEvent_CleanupEventWorkerThread();
+
+	ESIF_TRACE_EXIT_INFO();
+	return 0;
+}
+
+
+void EsifEvent_StopEventWorkerThread()
+{
+	g_eventThreadExit = 1;
+#ifdef ESIF_ATTR_OS_WINDOWS
+	if (g_hEventDoorbell != NULL) {
+		SetEvent(g_hEventDoorbell);
+	}
+#endif
+}
+
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+
+static eEsifError EsifEvent_InitEventWorkerThread()
+{
+	eEsifError rc = ESIF_OK;
+
+	rc = EsifEvent_InitEventObjects();
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	rc = EsifEvent_StartEventIpc();
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+exit:
+	return rc;
+}
+
+
+static eEsifError EsifEvent_InitEventObjects()
+{
+	eEsifError rc = ESIF_OK;
+
+	g_hEventDoorbell = CreateEventW(NULL, TRUE, FALSE, NULL);
+	if (NULL == g_hEventDoorbell) {
+		ESIF_TRACE_ERROR("Unable to create event doorbell\n");
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+	ResetEvent(g_hEventDoorbell);
+
+	g_hEventLfExit = CreateEventW(NULL, TRUE, FALSE, NULL);
+	if (NULL == g_hEventLfExit) {
+		ESIF_TRACE_ERROR("Unable to create LF exit event\n");
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+	ResetEvent(g_hEventLfExit);
+exit:
+	if (rc != ESIF_OK) {
+		if (g_hEventDoorbell != NULL) {
+			CloseHandle(g_hEventDoorbell);
+			g_hEventDoorbell = NULL;
+		}
+		if (g_hEventLfExit != NULL) {
+			CloseHandle(g_hEventLfExit);
+			g_hEventLfExit = NULL;
+		}
+	}
+	return rc;
+}
+
+
+static eEsifError EsifEvent_StartEventIpc()
+{
+	eEsifError rc = ESIF_OK;
+	EsifIpcEventEnable eventEnableStruct = {g_hEventDoorbell, g_hEventLfExit};
+
 	// Connect To Kernel IPC with infinite timeout
 	ipc_autoconnect(0);
 
-	// Run Until Told To Quit
-	while (!g_quit) {
-#ifdef ESIF_FEAT_OPT_ACTION_SYSFS
-		esif_ccb_sleep_msec(250);
-#else
-		if (g_ipc_handle == ESIF_INVALID_HANDLE) {
-			break;
-		}
-		if (rc > 0) {
-			EsifEvent_GetAndSignalIpcEvent();
-		}
-		FD_ZERO(&rfds);
-		FD_SET((esif_ccb_socket_t)g_ipc_handle, &rfds);
-		tv.tv_sec  = 0;
-		tv.tv_usec = 50000;	/* 50 msec */
+	//
+	// If we can't notify of events
+	//
+	if (!SendIpcIoctl(ESIF_IOCTL_ENABLE_EVENT_DOORBELL,
+		&eventEnableStruct, sizeof(eventEnableStruct),
+		NULL, 0,
+		NULL)) {
+		ESIF_TRACE_ERROR("Unable to enable event doorbell\n");
+		rc = ESIF_E_UNSPECIFIED;
+		goto exit;
+	}
+exit:
+	return rc;
+}
 
-#ifdef ESIF_ATTR_OS_LINUX
-		rc = select(g_ipc_handle + 1, &rfds, NULL, NULL, &tv);
-#endif
-		
-#ifdef ESIF_ATTR_OS_WINDOWS
-		// Windows does not support select/poll so we simulate here
-		esif_ccb_sleep_msec(50);
-		rc = 1;
-#endif
-		
-#endif
+
+static void EsifEvent_CleanupEventWorkerThread()
+{
+	if (g_hEventDoorbell != NULL) {
+		CloseHandle(g_hEventDoorbell);
+		g_hEventDoorbell = NULL;
+	}
+
+	if (g_hEventLfExit != NULL) {
+		CloseHandle(g_hEventLfExit);
+		g_hEventLfExit = NULL;
 	}
 
 	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
 		ipc_disconnect();
 	}
-
-	ESIF_TRACE_EXIT_INFO();
-	return 0;
 }
+
+
+static eEsifError EsifEvent_HandleLfExit()
+{
+	eEsifError rc = ESIF_OK;
+
+	EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_LF_UNLOADED, NULL);
+
+	ResetEvent(g_hEventLfExit);
+	ipc_disconnect();
+	rc = EsifEvent_StartEventIpc();
+
+	return rc;
+}
+
+
+#else /* !ESIF_ATTR_OS_WINDOWS */
+
+static eEsifError EsifEvent_InitEventWorkerThread()
+{
+	// Connect To Kernel IPC with infinite timeout
+	ipc_autoconnect(0);
+
+	return ESIF_OK;
+}
+
+
+static void EsifEvent_CleanupEventWorkerThread()
+{
+	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+		ipc_disconnect();
+	}
+}
+
+#endif /* !ESIF_ATTR_OS_WINDOWS */
 
 /*****************************************************************************/
 /*****************************************************************************/

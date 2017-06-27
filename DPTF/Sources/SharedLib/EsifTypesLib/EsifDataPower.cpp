@@ -38,6 +38,11 @@ EsifDataPower::operator Power(void) const
 	return Power(m_esifDataValue);
 }
 
+EsifDataPower::operator UInt32(void) const
+{
+	return m_esifDataValue;
+}
+
 void EsifDataPower::initialize(UInt32 data)
 {
 	m_esifDataValue = data;

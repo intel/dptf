@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "TimeSpan.h"
 #include "PlatformPowerLimitType.h"
+#include <XmlNode.h>
 
 //
 // Arbitration Rule:
@@ -57,6 +58,7 @@ public:
 	Percentage arbitrate(UIntN policyIndex, PlatformPowerLimitType::Type controlType, const Percentage& dutyCycle);
 
 	void removeRequestsForPolicy(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	std::map<UIntN, std::map<PlatformPowerLimitType::Type, Power>> m_requestedPlatformPowerLimits;

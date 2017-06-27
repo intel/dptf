@@ -93,3 +93,4 @@
 #include "WIPolicyActiveControlPointRelationshipTableChanged.h"
 #include "WIPolicyPowerShareAlgorithmTableChanged.h"
 #include "WIPowerLimitChanged.h"
+#include "WIPolicyWorkloadHintConfigurationChanged.h"

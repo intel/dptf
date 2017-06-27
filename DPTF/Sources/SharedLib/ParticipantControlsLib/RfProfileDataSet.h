@@ -31,7 +31,6 @@ public:
 	RfProfileDataSet();
 	RfProfileDataSet(const std::vector<RfProfileData>& rfProfileData);
 	static RfProfileDataSet createRfProfileDataFromDptfBuffer(const DptfBuffer& buffer);
-	DptfBuffer toRfProfileDataBinary() const;
 	std::vector<RfProfileData> getRfProfileData() const;
 	Bool operator==(const RfProfileDataSet& rhs) const;
 	std::shared_ptr<XmlNode> getXml();

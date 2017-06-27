@@ -18,6 +18,7 @@
 
 #include "PowerControlCapabilitiesArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 PowerControlCapabilitiesArbitrator::PowerControlCapabilitiesArbitrator()
 {
@@ -47,9 +48,10 @@ Bool PowerControlCapabilitiesArbitrator::hasArbitratedPowerControlCapabilities()
 
 PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::arbitrate(
 	UIntN policyIndex,
-	const PowerControlDynamicCapsSet& capSet)
+	const PowerControlDynamicCapsSet& requestedCapSet,
+	const PowerControlDynamicCapsSet& currentCapSet)
 {
-	auto newControlTypes = capSet.getControlTypes();
+	auto newControlTypes = requestedCapSet.getControlTypes();
 	auto tempRequestedMaxPowerLimit = m_requestedMaxPowerLimit;
 	auto tempRequestedMinPowerLimit = m_requestedMinPowerLimit;
 	auto tempRequestedPowerLimitStep = m_requestedPowerLimitStep;
@@ -57,7 +59,7 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::arbitrate(
 	auto tempRequestedMinTimeWindow = m_requestedMinTimeWindow;
 	for (auto controlType = newControlTypes.begin(); controlType != newControlTypes.end(); ++controlType)
 	{
-		auto capability = capSet.getCapability(*controlType);
+		auto capability = requestedCapSet.getCapability(*controlType);
 		tempRequestedMaxPowerLimit[policyIndex][*controlType] = capability.getMaxPowerLimit();
 		tempRequestedMinPowerLimit[policyIndex][*controlType] = capability.getMinPowerLimit();
 		tempRequestedPowerLimitStep[policyIndex][*controlType] = capability.getPowerStepSize();
@@ -65,25 +67,88 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::arbitrate(
 		tempRequestedMinTimeWindow[policyIndex][*controlType] = capability.getMinTimeWindow();
 	}
 
-	std::vector<PowerControlDynamicCaps> allCaps;
-	auto controlTypes = getControlTypes(
+	auto arbitratedCapabilities = createNewArbitratedCapabilitites(
 		tempRequestedMaxPowerLimit,
 		tempRequestedMinPowerLimit,
 		tempRequestedPowerLimitStep,
 		tempRequestedMaxTimeWindow,
-		tempRequestedMinTimeWindow);
+		tempRequestedMinTimeWindow,
+		currentCapSet);
+	return arbitratedCapabilities;
+}
+
+PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitratedCapabilitites(
+	std::map<UIntN, std::map<PowerControlType::Type, Power>>& maxPowerRequests,
+	std::map<UIntN, std::map<PowerControlType::Type, Power>>& minPowerRequests,
+	std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerStepRequests,
+	std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& maxTimeRequests,
+	std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& minTimeRequests,
+	const PowerControlDynamicCapsSet& currentCapSet)
+{
+	std::vector<PowerControlDynamicCaps> allCaps;
+	auto controlTypes = getControlTypes(
+		maxPowerRequests,
+		minPowerRequests,
+		powerStepRequests,
+		maxTimeRequests,
+		minTimeRequests);
 	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
 	{
-		Power maxPowerLimit = getLowestMaxPowerLimit(*controlType, tempRequestedMaxPowerLimit);
-		Power minPowerLimit = getHighestMinPowerLimit(*controlType, tempRequestedMinPowerLimit);
+		auto currentPowerMax = Power::createInvalid();
+		auto currentPowerMin = Power::createInvalid();
+		auto currentPowerStep = Power::createInvalid();
+		auto currentTimeMax = TimeSpan::createInvalid();
+		auto currentTimeMin = TimeSpan::createInvalid();
+
+		try
+		{
+			auto currentCapability = currentCapSet.getCapability(*controlType);
+			currentPowerMax = currentCapability.getMaxPowerLimit();
+			currentPowerMin = currentCapability.getMinPowerLimit();
+			currentPowerStep = currentCapability.getPowerStepSize();
+			currentTimeMax = currentCapability.getMaxTimeWindow();
+			currentTimeMin = currentCapability.getMinTimeWindow();
+		}
+		catch (dptf_exception)
+		{
+			// there is no current capability control
+		}
+
+		Power maxPowerLimit = getLowestMaxPowerLimit(*controlType, maxPowerRequests);
+		if (!maxPowerLimit.isValid() && currentPowerMax.isValid())
+		{
+			maxPowerLimit = currentPowerMax;
+		}
+
+		Power minPowerLimit = getHighestMinPowerLimit(*controlType, minPowerRequests);
+		if (!minPowerLimit.isValid() && currentPowerMin.isValid())
+		{
+			minPowerLimit = currentPowerMin;
+		}
+
 		if (maxPowerLimit < minPowerLimit)
 		{
 			minPowerLimit = maxPowerLimit;
 		}
 
-		Power stepSize = getHighestPowerLimitStep(*controlType, tempRequestedPowerLimitStep);
-		TimeSpan maxTimeWindow = getLowestMaxTimeWindow(*controlType, tempRequestedMaxTimeWindow);
-		TimeSpan minTimeWindow = getHighestMinTimeWindow(*controlType, tempRequestedMinTimeWindow);
+		Power stepSize = getHighestPowerLimitStep(*controlType, powerStepRequests);
+		if (!stepSize.isValid() && currentPowerStep.isValid())
+		{
+			stepSize = currentPowerStep;
+		}
+
+		TimeSpan maxTimeWindow = getLowestMaxTimeWindow(*controlType, maxTimeRequests);
+		if (!maxTimeWindow.isValid() && currentTimeMax.isValid())
+		{
+			maxTimeWindow = currentTimeMax;
+		}
+
+		TimeSpan minTimeWindow = getHighestMinTimeWindow(*controlType, minTimeRequests);
+		if (!minTimeWindow.isValid() && currentTimeMin.isValid())
+		{
+			minTimeWindow = currentTimeMin;
+		}
+
 		if (maxTimeWindow < minTimeWindow)
 		{
 			minTimeWindow = maxTimeWindow;
@@ -132,49 +197,22 @@ void PowerControlCapabilitiesArbitrator::updatePolicyLockRequest(Bool lock, UInt
 	m_requestedLocks[policyIndex] = lock;
 }
 
-PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::getArbitratedPowerControlCapabilities()
+PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::getArbitratedPowerControlCapabilities(
+	const PowerControlDynamicCapsSet& currentCapSet)
 {
-	std::vector<PowerControlDynamicCaps> allCaps;
-	auto controlTypes = getControlTypes(
+	auto arbitratedCapabilities = createNewArbitratedCapabilitites(
 		m_requestedMaxPowerLimit,
 		m_requestedMinPowerLimit,
 		m_requestedPowerLimitStep,
 		m_requestedMaxTimeWindow,
-		m_requestedMinTimeWindow);
-	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
-	{
-		Power maxPowerLimit = getLowestMaxPowerLimit(*controlType, m_requestedMaxPowerLimit);
-		Power minPowerLimit = getHighestMinPowerLimit(*controlType, m_requestedMinPowerLimit);
-		if (maxPowerLimit < minPowerLimit)
-		{
-			minPowerLimit = maxPowerLimit;
-		}
-
-		Power stepSize = getHighestPowerLimitStep(*controlType, m_requestedPowerLimitStep);
-		TimeSpan maxTimeWindow = getLowestMaxTimeWindow(*controlType, m_requestedMaxTimeWindow);
-		TimeSpan minTimeWindow = getHighestMinTimeWindow(*controlType, m_requestedMinTimeWindow);
-		if (maxTimeWindow < minTimeWindow)
-		{
-			minTimeWindow = maxTimeWindow;
-		}
-
-		PowerControlDynamicCaps caps(
-			*controlType,
-			minPowerLimit,
-			maxPowerLimit,
-			stepSize,
-			minTimeWindow,
-			maxTimeWindow,
-			Percentage(0.0),
-			Percentage(0.0));
-		allCaps.push_back(caps);
-	}
-	return PowerControlDynamicCapsSet(allCaps);
+		m_requestedMinTimeWindow,
+		currentCapSet);
+	return arbitratedCapabilities;
 }
 
 Bool PowerControlCapabilitiesArbitrator::getArbitratedLock() const
 {
-	for (auto lockRequest = m_requestedLocks.begin(); lockRequest != m_requestedLocks.end(); lockRequest++)
+	for (auto lockRequest = m_requestedLocks.begin(); lockRequest != m_requestedLocks.end(); ++lockRequest)
 	{
 		if (lockRequest->second == true)
 		{
@@ -195,6 +233,95 @@ void PowerControlCapabilitiesArbitrator::removeRequestsForPolicy(UIntN policyInd
 	m_requestedLocks.erase(policyIndex);
 }
 
+std::shared_ptr<XmlNode> PowerControlCapabilitiesArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("power_control_capabilities_arbitrator_status");
+	auto tempRequestedMaxPowerLimit = m_requestedMaxPowerLimit;
+	auto tempRequestedMinPowerLimit = m_requestedMinPowerLimit;
+	auto tempRequestedPowerLimitStep = m_requestedPowerLimitStep;
+	auto tempRequestedMaxTimeWindow = m_requestedMaxTimeWindow;
+	auto tempRequestedMinTimeWindow = m_requestedMinTimeWindow;
+	auto controlTypes = getControlTypes(
+		tempRequestedMaxPowerLimit,
+		tempRequestedMinPowerLimit,
+		tempRequestedPowerLimitStep,
+		tempRequestedMaxTimeWindow,
+		tempRequestedMinTimeWindow);
+
+	auto ppcc = PowerControlDynamicCapsSet();
+	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
+	{
+		PowerControlDynamicCaps caps = PowerControlDynamicCaps(
+			*controlType,
+			Power::createInvalid(),
+			Power::createInvalid(),
+			Power::createInvalid(),
+			TimeSpan::createInvalid(),
+			TimeSpan::createInvalid(),
+			Percentage::createInvalid(),
+			Percentage::createInvalid());
+		auto policyPowerRequest = m_requestedMaxPowerLimit.find(policyIndex);
+		if (policyPowerRequest != m_requestedMaxPowerLimit.end())
+		{
+			auto policyMaxPower = policyPowerRequest->second.find(*controlType);
+			if (policyMaxPower != policyPowerRequest->second.end())
+			{
+				caps.setMaxPowerLimit(policyMaxPower->second);
+			}
+		}
+
+		policyPowerRequest = m_requestedMinPowerLimit.find(policyIndex);
+		if (policyPowerRequest != m_requestedMinPowerLimit.end())
+		{
+			auto policyMinPower = policyPowerRequest->second.find(*controlType);
+			if (policyMinPower != policyPowerRequest->second.end())
+			{
+				caps.setMinPowerLimit(policyMinPower->second);
+			}
+		}
+
+		policyPowerRequest = m_requestedPowerLimitStep.find(policyIndex);
+		if (policyPowerRequest != m_requestedPowerLimitStep.end())
+		{
+			auto policyStep = policyPowerRequest->second.find(*controlType);
+			if (policyStep != policyPowerRequest->second.end())
+			{
+				caps.setPowerStepSize(policyStep->second);
+			}
+		}
+
+		auto policyTimeRequest = m_requestedMaxTimeWindow.find(policyIndex);
+		if (policyTimeRequest != m_requestedMaxTimeWindow.end())
+		{
+			auto policyMaxTime = policyTimeRequest->second.find(*controlType);
+			if (policyMaxTime != policyTimeRequest->second.end())
+			{
+				caps.setMaxTimeWindow(policyMaxTime->second);
+			}
+		}
+
+		policyTimeRequest = m_requestedMinTimeWindow.find(policyIndex);
+		if (policyTimeRequest != m_requestedMinTimeWindow.end())
+		{
+			auto policyMinTime = policyTimeRequest->second.find(*controlType);
+			if (policyMinTime != policyTimeRequest->second.end())
+			{
+				caps.setMinTimeWindow(policyMinTime->second);
+			}
+		}
+		requestRoot->addChild(caps.getXml());
+	}
+
+	auto policyLockRequest = m_requestedLocks.find(policyIndex);
+	Bool lockRequested = false;
+	if (policyLockRequest != m_requestedLocks.end())
+	{
+		lockRequested = policyLockRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("requested_lock", StatusFormat::friendlyValue(lockRequested)));
+	return requestRoot;
+}
+
 Power PowerControlCapabilitiesArbitrator::getLowestMaxPowerLimit(
 	PowerControlType::Type controlType,
 	std::map<UIntN, std::map<PowerControlType::Type, Power>>& requests) const
@@ -209,7 +336,7 @@ Power PowerControlCapabilitiesArbitrator::getLowestMaxPowerLimit(
 			{
 				lowestMaxPower = request->second;
 			}
-			else
+			else if (request->second.isValid())
 			{
 				lowestMaxPower = std::min(lowestMaxPower, request->second);
 			}
@@ -232,7 +359,7 @@ Power PowerControlCapabilitiesArbitrator::getHighestMinPowerLimit(
 			{
 				highestMinPower = request->second;
 			}
-			else
+			else if (request->second.isValid())
 			{
 				highestMinPower = std::max(highestMinPower, request->second);
 			}
@@ -255,7 +382,7 @@ Power PowerControlCapabilitiesArbitrator::getHighestPowerLimitStep(
 			{
 				highestStepPower = request->second;
 			}
-			else
+			else if (request->second.isValid())
 			{
 				highestStepPower = std::max(highestStepPower, request->second);
 			}
@@ -278,7 +405,7 @@ TimeSpan PowerControlCapabilitiesArbitrator::getLowestMaxTimeWindow(
 			{
 				lowestMaxTimeWindow = request->second;
 			}
-			else
+			else if (request->second.isValid())
 			{
 				lowestMaxTimeWindow = std::min(lowestMaxTimeWindow, request->second);
 			}
@@ -301,7 +428,7 @@ TimeSpan PowerControlCapabilitiesArbitrator::getHighestMinTimeWindow(
 			{
 				highestMinTimeWindow = request->second;
 			}
-			else
+			else if (request->second.isValid())
 			{
 				highestMinTimeWindow = std::max(highestMinTimeWindow, request->second);
 			}

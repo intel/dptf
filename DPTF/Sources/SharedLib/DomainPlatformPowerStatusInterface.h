@@ -25,7 +25,7 @@
 class DomainPlatformPowerStatusInterface
 {
 public:
-	virtual ~DomainPlatformPowerStatusInterface(){};
+	virtual ~DomainPlatformPowerStatusInterface() {};
 
 	virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) = 0;
@@ -40,4 +40,5 @@ public:
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex) = 0;
 };

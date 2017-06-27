@@ -159,7 +159,7 @@ DptfBuffer PowerControlDynamicCapsSet::toPpccBinary() const
 	revision.integer.value = 2;
 
 	vector<EsifDataBinaryPpccPackage> packages;
-	for (auto cap = m_capabilities.begin(); cap != m_capabilities.end(); cap++)
+	for (auto cap = m_capabilities.begin(); cap != m_capabilities.end(); ++cap)
 	{
 		EsifDataBinaryPpccPackage package;
 		package.powerLimitIndex.integer.type = esif_data_type::ESIF_DATA_UINT64;

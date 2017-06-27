@@ -38,7 +38,7 @@
 class dptf_export EsifServicesInterface
 {
 public:
-	virtual ~EsifServicesInterface(void){};
+	virtual ~EsifServicesInterface(void) {};
 
 	virtual eLogType getCurrentLogVerbosityLevel(void) const = 0;
 	virtual void setCurrentLogVerbosityLevel(eLogType currentLogVerbosityLevel) = 0;

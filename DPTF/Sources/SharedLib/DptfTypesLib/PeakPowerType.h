@@ -29,4 +29,5 @@ namespace PeakPowerType
 	};
 
 	std::string ToString(PeakPowerType::Type peakPowerType);
+	std::string ToXmlString(PeakPowerType::Type peakPowerType);
 }

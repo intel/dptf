@@ -41,6 +41,7 @@ public:
 	~Arbitrator(void);
 
 	void clearPolicyCachedData(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 	ActiveControlArbitrator* getActiveControlArbitrator(void) const;
 	ConfigTdpControlArbitrator* getConfigTdpControlArbitrator(void) const;

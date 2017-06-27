@@ -190,6 +190,14 @@ void Domain::clearArbitrationDataForPolicy(UIntN policyIndex)
 	m_arbitrator->clearPolicyCachedData(policyIndex);
 }
 
+std::shared_ptr<XmlNode> Domain::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto domainRoot = XmlNode::createWrapperElement("arbitrator_domain_status");
+	domainRoot->addChild(XmlNode::createDataElement("domain_name", getDomainName()));
+	domainRoot->addChild(m_arbitrator->getArbitrationXmlForPolicy(policyIndex));
+	return domainRoot;
+}
+
 //
 // The following macro (FILL_CACHE_AND_RETURN) is in place to remove this code many times:
 //
@@ -307,10 +315,10 @@ Percentage Domain::getResidencyUtilization()
 	return m_theRealParticipant->getResidencyUtilization(m_participantIndex, m_domainIndex);
 }
 
-void Domain::setEnergyThresholdInterruptFlag(UInt32 energyThresholdInterruptFlag)
+void Domain::setEnergyThresholdInterruptDisable()
 {
-	m_theRealParticipant->setEnergyThresholdInterruptFlag(
-		m_participantIndex, m_domainIndex, energyThresholdInterruptFlag);
+	m_theRealParticipant->setEnergyThresholdInterruptDisable(
+		m_participantIndex, m_domainIndex);
 }
 
 ConfigTdpControlDynamicCaps Domain::getConfigTdpControlDynamicCaps(void)
@@ -648,13 +656,14 @@ void Domain::setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynami
 {
 	PowerControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPowerControlCapabilitiesArbitrator();
 	Bool shouldSetPowerControlCapabilities = false;
+	auto currentCaps = getPowerControlDynamicCapsSet();
 	PowerControlDynamicCapsSet newCaps;
 
 	if (arbitrator->hasArbitratedPowerControlCapabilities())
 	{
-		auto currentCaps = arbitrator->getArbitratedPowerControlCapabilities();
-		newCaps = arbitrator->arbitrate(policyIndex, capsSet);
-		if (currentCaps != newCaps)
+		auto oldCaps = arbitrator->getArbitratedPowerControlCapabilities(currentCaps);
+		newCaps = arbitrator->arbitrate(policyIndex, capsSet, currentCaps);
+		if (oldCaps != newCaps)
 		{
 			shouldSetPowerControlCapabilities = true;
 		}
@@ -662,7 +671,7 @@ void Domain::setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynami
 	else
 	{
 		shouldSetPowerControlCapabilities = true;
-		newCaps = arbitrator->arbitrate(policyIndex, capsSet);
+		newCaps = arbitrator->arbitrate(policyIndex, capsSet, currentCaps);
 	}
 
 	if (shouldSetPowerControlCapabilities)
@@ -842,9 +851,9 @@ double Domain::getPidKiTerm()
 	return m_theRealParticipant->getPidKiTerm(m_participantIndex, m_domainIndex);
 }
 
-TimeSpan Domain::getTau()
+TimeSpan Domain::getAlpha()
 {
-	return m_theRealParticipant->getTau(m_participantIndex, m_domainIndex);
+	return m_theRealParticipant->getAlpha(m_participantIndex, m_domainIndex);
 }
 
 TimeSpan Domain::getFastPollTime()
@@ -857,7 +866,7 @@ TimeSpan Domain::getSlowPollTime()
 	return m_theRealParticipant->getSlowPollTime(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getWeightedSlowPollAvgConstant()
+TimeSpan Domain::getWeightedSlowPollAvgConstant()
 {
 	return m_theRealParticipant->getWeightedSlowPollAvgConstant(m_participantIndex, m_domainIndex);
 }
@@ -1113,6 +1122,11 @@ Percentage Domain::getAC2msPercentageOverload(void)
 Percentage Domain::getAC10msPercentageOverload(void)
 {
 	FILL_CACHE_AND_RETURN(m_ac10msPercentageOverload, Percentage, getAC10msPercentageOverload);
+}
+
+void Domain::notifyForProchotDeassertion(void)
+{
+	m_theRealParticipant->notifyForProchotDeassertion(m_participantIndex, m_domainIndex);
 }
 
 DomainPriority Domain::getDomainPriority(void)

@@ -124,10 +124,9 @@ public:
 	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setEnergyThresholdInterruptFlag(
+	virtual void setEnergyThresholdInterruptDisable(
 		UIntN participantIndex,
-		UIntN domainIndex,
-		UInt32 energyThresholdInterruptFlag) override;
+		UIntN domainIndex) override;
 
 	// Config TDP Controls
 	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
@@ -222,10 +221,10 @@ public:
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getPidKiTerm(UIntN participantIndex, UIntN domainIndex) override;
-	virtual TimeSpan getTau(UIntN participantIndex, UIntN domainIndex) override;
+	virtual TimeSpan getAlpha(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getFastPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
+	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
@@ -295,6 +294,7 @@ public:
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex) override;
 
 	// Domain Priority
 	virtual DomainPriority getDomainPriority(UIntN participantIndex, UIntN domainIndex) override;

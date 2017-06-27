@@ -19,8 +19,6 @@
 #ifndef ESIF_WS_HTTP_H
 #define ESIF_WS_HTTP_H
 
-#include "esif.h"
-#include "esif_uf_ccb_sock.h"
 #include "esif_ws_server.h"
 
 typedef struct s_extType {

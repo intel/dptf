@@ -61,3 +61,13 @@ std::shared_ptr<XmlNode> PerformanceControlDynamicCaps::getXml(void)
 
 	return root;
 }
+
+void PerformanceControlDynamicCaps::setCurrentLowerLimitIndex(UIntN lowerLimit)
+{
+	m_currentLowerLimitIndex = lowerLimit;
+}
+
+void PerformanceControlDynamicCaps::setCurrentUpperLimitIndex(UIntN upperLimit)
+{
+	m_currentUpperLimitIndex = upperLimit;
+}

@@ -68,6 +68,7 @@ public:
 	std::string getDomainName(UIntN domainIndex);
 	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
 	std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 	//
 	// Event handlers
@@ -125,7 +126,7 @@ public:
 	Temperature getPowerShareTemperatureThreshold(UIntN domainIndex);
 	Percentage getUtilizationThreshold(UIntN domainIndex);
 	Percentage getResidencyUtilization(UIntN domainIndex);
-	void setEnergyThresholdInterruptFlag(UIntN domainIndex, UInt32 energyThresholdInterruptFlag);
+	void setEnergyThresholdInterruptDisable(UIntN domainIndex);
 
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN domainIndex);
@@ -204,10 +205,10 @@ public:
 	Bool isPowerShareControl(UIntN domainIndex);
 	double getPidKpTerm(UIntN domainIndex);
 	double getPidKiTerm(UIntN domainIndex);
-	TimeSpan getTau(UIntN domainIndex);
+	TimeSpan getAlpha(UIntN domainIndex);
 	TimeSpan getFastPollTime(UIntN domainIndex);
 	TimeSpan getSlowPollTime(UIntN domainIndex);
-	UInt32 getWeightedSlowPollAvgConstant(UIntN domainIndex);
+	TimeSpan getWeightedSlowPollAvgConstant(UIntN domainIndex);
 	UInt32 getRaplEnergyCounter(UIntN domainIndex);
 	double getRaplEnergyUnit(UIntN domainIndex);
 	UInt32 getRaplEnergyCounterWidth(UIntN domainIndex);
@@ -254,6 +255,7 @@ public:
 	Percentage getAC1msPercentageOverload(UIntN domainIndex);
 	Percentage getAC2msPercentageOverload(UIntN domainIndex);
 	Percentage getAC10msPercentageOverload(UIntN domainIndex);
+	void notifyForProchotDeassertion(UIntN domainIndex);
 
 	// priority
 	DomainPriority getDomainPriority(UIntN domainIndex);

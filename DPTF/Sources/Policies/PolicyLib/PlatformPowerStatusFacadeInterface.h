@@ -28,7 +28,7 @@
 class dptf_export PlatformPowerStatusFacadeInterface
 {
 public:
-	virtual ~PlatformPowerStatusFacadeInterface(){};
+	virtual ~PlatformPowerStatusFacadeInterface() {};
 
 	virtual Power getMaxBatteryPower(void) = 0;
 	virtual Power getPlatformRestOfPower(void) = 0;
@@ -43,4 +43,5 @@ public:
 	virtual Percentage getAC1msPercentageOverload(void) = 0;
 	virtual Percentage getAC2msPercentageOverload(void) = 0;
 	virtual Percentage getAC10msPercentageOverload(void) = 0;
+	virtual void notifyForProchotDeassertion(void) = 0;
 };

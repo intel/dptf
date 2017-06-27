@@ -18,6 +18,7 @@
 
 #include "PowerControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 PowerControlArbitrator::PowerControlArbitrator()
 {
@@ -428,10 +429,64 @@ void PowerControlArbitrator::removeDutyCycleRequest(UIntN policyIndex)
 	}
 }
 
+std::shared_ptr<XmlNode> PowerControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("power_control_arbitrator_status");
+	auto policyPowerLimitRequests = m_requestedPowerLimits.find(policyIndex);
+	if (policyPowerLimitRequests != m_requestedPowerLimits.end())
+	{
+		auto powerLimits = policyPowerLimitRequests->second;
+		for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; ++controlType)
+		{
+			auto powerLimit = Power::createInvalid();
+			auto controlRequest = powerLimits.find((PowerControlType::Type)controlType);
+			if (controlRequest != powerLimits.end())
+			{
+				powerLimit = controlRequest->second;
+			}
+			requestRoot->addChild(XmlNode::createDataElement("power_limit_"+ PowerControlType::ToString((PowerControlType::Type)controlType), powerLimit.toString()));
+		}
+	}
+
+	auto policyTimeWindowRequests = m_requestedTimeWindows.find(policyIndex);
+	if (policyTimeWindowRequests != m_requestedTimeWindows.end())
+	{
+		auto timeWindows = policyTimeWindowRequests->second;
+		for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; ++controlType)
+		{
+			auto timeWindow = TimeSpan::createInvalid();
+			auto controlRequest = timeWindows.find((PowerControlType::Type)controlType);
+			if (controlRequest != timeWindows.end())
+			{
+				timeWindow = controlRequest->second;
+			}
+			requestRoot->addChild(XmlNode::createDataElement("time_window_" + PowerControlType::ToString((PowerControlType::Type)controlType), timeWindow.toStringMilliseconds()));
+		}
+	}
+
+	auto policyDutyCycleRequests = m_requestedDutyCycles.find(policyIndex);
+	if (policyDutyCycleRequests != m_requestedDutyCycles.end())
+	{
+		auto dutyCycles = policyDutyCycleRequests->second;
+		for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; ++controlType)
+		{
+			auto dutyCycle = Percentage::createInvalid();
+			auto controlRequest = dutyCycles.find((PowerControlType::Type)controlType);
+			if (controlRequest != dutyCycles.end())
+			{
+				dutyCycle = controlRequest->second;
+			}
+			requestRoot->addChild(XmlNode::createDataElement("duty_cycle_" + PowerControlType::ToString((PowerControlType::Type)controlType), dutyCycle.toString()));
+		}
+	}
+
+	return requestRoot;
+}
+
 void PowerControlArbitrator::setArbitratedPowerLimitForControlTypes(
 	const std::vector<PowerControlType::Type>& controlTypes)
 {
-	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); controlType++)
+	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
 	{
 		try
 		{
@@ -447,7 +502,7 @@ void PowerControlArbitrator::setArbitratedPowerLimitForControlTypes(
 void PowerControlArbitrator::setArbitratedTimeWindowsForControlTypes(
 	const std::vector<PowerControlType::Type>& controlTypes)
 {
-	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); controlType++)
+	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
 	{
 		try
 		{
@@ -463,7 +518,7 @@ void PowerControlArbitrator::setArbitratedTimeWindowsForControlTypes(
 void PowerControlArbitrator::setArbitratedDutyCyclesForControlTypes(
 	const std::vector<PowerControlType::Type>& controlTypes)
 {
-	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); controlType++)
+	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
 	{
 		try
 		{
@@ -477,10 +532,10 @@ void PowerControlArbitrator::setArbitratedDutyCyclesForControlTypes(
 }
 
 std::vector<PowerControlType::Type> PowerControlArbitrator::findControlTypesSetForPolicy(
-	const std::map<PowerControlType::Type, Power>& controlRequests)
+	const std::map<PowerControlType::Type, Power>& controlRequests) const
 {
 	std::vector<PowerControlType::Type> controlTypes;
-	for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; controlType++)
+	for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; ++controlType)
 	{
 		auto controlRequest = controlRequests.find((PowerControlType::Type)controlType);
 		if (controlRequest != controlRequests.end())
@@ -492,10 +547,10 @@ std::vector<PowerControlType::Type> PowerControlArbitrator::findControlTypesSetF
 }
 
 std::vector<PowerControlType::Type> PowerControlArbitrator::findControlTypesSetForPolicy(
-	const std::map<PowerControlType::Type, TimeSpan>& controlRequests)
+	const std::map<PowerControlType::Type, TimeSpan>& controlRequests) const
 {
 	std::vector<PowerControlType::Type> controlTypes;
-	for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; controlType++)
+	for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; ++controlType)
 	{
 		auto controlRequest = controlRequests.find((PowerControlType::Type)controlType);
 		if (controlRequest != controlRequests.end())
@@ -507,10 +562,10 @@ std::vector<PowerControlType::Type> PowerControlArbitrator::findControlTypesSetF
 }
 
 std::vector<PowerControlType::Type> PowerControlArbitrator::findControlTypesSetForPolicy(
-	const std::map<PowerControlType::Type, Percentage>& controlRequests)
+	const std::map<PowerControlType::Type, Percentage>& controlRequests) const
 {
 	std::vector<PowerControlType::Type> controlTypes;
-	for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; controlType++)
+	for (UIntN controlType = 0; controlType < (UIntN)PowerControlType::max; ++controlType)
 	{
 		auto controlRequest = controlRequests.find((PowerControlType::Type)controlType);
 		if (controlRequest != controlRequests.end())

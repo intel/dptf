@@ -17,9 +17,17 @@
 ******************************************************************************/
 
 #include "DomainPlatformPowerStatus_001.h"
+#include "BinaryParse.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
 using namespace StatusFormat;
+
+static const UInt16 PsrcSequenceStartBit = 7;
+static const UInt16 PsrcSequenceStopBit = 4;
+static const UInt16 PsrcValueStartBit = 3;
+static const UInt16 PsrcValueStopBit = 0;
+
+static const UInt32 AssertProchot = 0x80000000;
 
 DomainPlatformPowerStatus_001::DomainPlatformPowerStatus_001(
 	UIntN participantIndex,
@@ -73,9 +81,10 @@ PlatformPowerSource::Type DomainPlatformPowerStatus_001::getPlatformPowerSource(
 	UIntN participantIndex,
 	UIntN domainIndex)
 {
-	auto powerSource = getParticipantServices()->primitiveExecuteGetAsUInt32(
+	auto psrcValue = getParticipantServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_PLATFORM_POWER_SOURCE, domainIndex);
-	m_platformPowerSource = PlatformPowerSource::Type(powerSource);
+	m_psrcSequence.set(static_cast<UInt32>(BinaryParse::extractBits(PsrcSequenceStartBit, PsrcSequenceStopBit, psrcValue)));
+	m_platformPowerSource = PlatformPowerSource::Type(static_cast<UInt32>(BinaryParse::extractBits(PsrcValueStartBit, PsrcValueStopBit, psrcValue)));
 	return m_platformPowerSource;
 }
 
@@ -127,6 +136,28 @@ Percentage DomainPlatformPowerStatus_001::getAC10msPercentageOverload(UIntN part
 	m_ac10msPercentageOverload =
 		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP10, domainIndex);
 	return m_ac10msPercentageOverload;
+}
+
+void DomainPlatformPowerStatus_001::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
+{
+	UInt32 prochotAssertionRequest = 0;
+	try
+	{
+		if (m_psrcSequence.isValid())
+		{
+			prochotAssertionRequest |= m_psrcSequence.get();
+		}
+
+		prochotAssertionRequest |= AssertProchot;
+		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, "Setting PBOK: " + friendlyValue(prochotAssertionRequest)));
+		getParticipantServices()->primitiveExecuteSetAsUInt32(esif_primitive_type::SET_PBOK, prochotAssertionRequest, domainIndex);
+	}
+	catch (const std::exception& ex)
+	{
+		std::stringstream message;
+		message << "Failed to set PBOK: " << ex.what();
+		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
+	}
 }
 
 void DomainPlatformPowerStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
@@ -287,10 +318,10 @@ void DomainPlatformPowerStatus_001::sendActivityLoggingDataIfEnabled(UIntN parti
 
 			std::stringstream message;
 			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Platform Power Status"
-					<< ")";
+				<< "domain " << getName() << " "
+				<< "("
+				<< "Platform Power Status"
+				<< ")";
 			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
 		}
 	}

@@ -153,4 +153,15 @@ typedef struct esif_primitive_tuple_parameter {
 } EsifPrimitiveTupleParameter;
 #pragma pack(pop)
 
+struct esif_data_rfprofile
+{
+	union esif_data_variant centerFrequency; // Frequency - centerFrequency
+	union esif_data_variant frequencySpread; // Frequency - frequencySpread
+	union esif_data_variant channelNumber; // ULONG - channelNumber
+	union esif_data_variant noisePower; // ULONG - noisePower
+	union esif_data_variant signalToNoiseRatio; // ULONG - signalToNoiseRatio
+	union esif_data_variant rssi; // ULONG - rssi
+	union esif_data_variant uint32Value; // ULONG - Connection Status
+	union esif_data_variant bitError; // ULONG - bitError
+};
 #endif /* ESIF_ATTR_USER */

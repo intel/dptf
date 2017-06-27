@@ -742,7 +742,7 @@ static eEsifError EsifGetActionDelegateCnfg(
 	)
 {
 	extern int g_shell_enabled; // ESIF Shell Enabled Flag
-	extern Bool g_ws_restricted;// Web Server Restricted Mode Flag
+	Bool restrictedMode = EsifWebIsRestricted();// Web Server Restricted Mode Flag
 	eEsifError rc = ESIF_OK;
 	EsifPrimitiveTuple dcfgTuple = { GET_CONFIG_ACCESS_CONTROL_SUR, 0, 255 };
 	EsifPrimitiveTuple gddvTuple = { GET_CONFIG_DATAVAULT_SUR, 0, 255 };
@@ -772,8 +772,8 @@ static eEsifError EsifGetActionDelegateCnfg(
 
 		// Stop Web Server (if Started) if Restricted or Generic Access Control forbids it
 		if (EsifWebIsStarted() && 
-			((!g_ws_restricted && DCfg_Get().opt.GenericUIAccessControl)|| 
-			 (g_ws_restricted && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
+			((!restrictedMode && DCfg_Get().opt.GenericUIAccessControl)|| 
+			 (restrictedMode && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
 			EsifWebStop();
 		}
 	}

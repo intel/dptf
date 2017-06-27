@@ -1264,14 +1264,13 @@ Percentage UnifiedParticipant::getResidencyUtilization(UIntN participantIndex, U
 	return m_domains[domainIndex]->getActivityStatusControl()->getResidencyUtilization(participantIndex, domainIndex);
 }
 
-void UnifiedParticipant::setEnergyThresholdInterruptFlag(
+void UnifiedParticipant::setEnergyThresholdInterruptDisable(
 	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 energyThresholdInterruptFlag)
+	UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getActivityStatusControl()->setEnergyThresholdInterruptFlag(
-		participantIndex, domainIndex, energyThresholdInterruptFlag);
+	m_domains[domainIndex]->getActivityStatusControl()->setEnergyThresholdInterruptDisable(
+		participantIndex, domainIndex);
 }
 
 ConfigTdpControlDynamicCaps UnifiedParticipant::getConfigTdpControlDynamicCaps(
@@ -1684,6 +1683,13 @@ Percentage UnifiedParticipant::getAC10msPercentageOverload(UIntN participantInde
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getAC10msPercentageOverload(
+		participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPlatformPowerStatusControl()->notifyForProchotDeassertion(
 		participantIndex, domainIndex);
 }
 
@@ -2103,10 +2109,10 @@ double UnifiedParticipant::getPidKiTerm(UIntN participantIndex, UIntN domainInde
 	return m_domains[domainIndex]->getPowerControl()->getPidKiTerm(participantIndex, domainIndex);
 }
 
-TimeSpan UnifiedParticipant::getTau(UIntN participantIndex, UIntN domainIndex)
+TimeSpan UnifiedParticipant::getAlpha(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControl()->getTau(participantIndex, domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->getAlpha(participantIndex, domainIndex);
 }
 
 TimeSpan UnifiedParticipant::getFastPollTime(UIntN participantIndex, UIntN domainIndex)
@@ -2121,7 +2127,7 @@ TimeSpan UnifiedParticipant::getSlowPollTime(UIntN participantIndex, UIntN domai
 	return m_domains[domainIndex]->getPowerControl()->getSlowPollTime(participantIndex, domainIndex);
 }
 
-UInt32 UnifiedParticipant::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+TimeSpan UnifiedParticipant::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getPowerControl()->getWeightedSlowPollAvgConstant(participantIndex, domainIndex);

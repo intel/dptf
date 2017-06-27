@@ -27,10 +27,10 @@ public:
 	PolicyWorkloadHintConfiguration(PlatformConfigurationDataInterface* platformConfigurationData);
 	~PolicyWorkloadHintConfiguration();
 
-	void add(const PolicyWorkloadGroup& workloadGroup);
-	UInt32 getHintForApplication(const std::string& application);
-
-	std::shared_ptr<XmlNode> getXml() const;
+	virtual void add(const PolicyWorkloadGroup& workloadGroup) override;
+	virtual UInt32 getHintForApplication(const std::string& application) override;
+	virtual std::shared_ptr<XmlNode> getXml() const override;
+	virtual void reloadConfiguration() override;
 
 private:
 	std::vector<PolicyWorkloadGroup> m_workloadGroups;

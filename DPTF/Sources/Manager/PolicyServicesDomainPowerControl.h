@@ -73,10 +73,10 @@ public:
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getPidKiTerm(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual TimeSpan getTau(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual TimeSpan getAlpha(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual TimeSpan getFastPollTime(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual UInt32 getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;

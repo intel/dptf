@@ -69,6 +69,12 @@ std::shared_ptr<XmlNode> PolicyWorkloadHintConfiguration::getXml() const
 	return config;
 }
 
+void PolicyWorkloadHintConfiguration::reloadConfiguration()
+{
+	m_workloadGroups.clear();
+	generateWorkloadTable();
+}
+
 void PolicyWorkloadHintConfiguration::updateWorkloadTable()
 {
 	m_workloadLookupTable.clear();

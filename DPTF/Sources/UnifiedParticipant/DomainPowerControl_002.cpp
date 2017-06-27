@@ -142,7 +142,7 @@ double DomainPowerControl_002::getPidKiTerm(UIntN participantIndex, UIntN domain
 	return ((double)(pidKiTerm / 10.0));
 }
 
-TimeSpan DomainPowerControl_002::getTau(UIntN participantIndex, UIntN domainIndex)
+TimeSpan DomainPowerControl_002::getAlpha(UIntN participantIndex, UIntN domainIndex)
 {
 	return getParticipantServices()->primitiveExecuteGetAsTimeInMilliseconds(
 		esif_primitive_type::GET_PID_TIME_AVERAGE_CONSTANT, domainIndex, Constants::Esif::NoInstance);
@@ -160,9 +160,9 @@ TimeSpan DomainPowerControl_002::getSlowPollTime(UIntN participantIndex, UIntN d
 		esif_primitive_type::GET_SLOW_POLL_TIME, domainIndex, Constants::Esif::NoInstance);
 }
 
-UInt32 DomainPowerControl_002::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+TimeSpan DomainPowerControl_002::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
 {
-	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+	return getParticipantServices()->primitiveExecuteGetAsTimeInMilliseconds(
 		esif_primitive_type::GET_WEIGHTED_SLOWPOLL_CONSTANT, domainIndex, Constants::Esif::NoInstance);
 }
 
@@ -187,9 +187,7 @@ Power DomainPowerControl_002::getSlowPollPowerThreshold(UIntN participantIndex, 
 		esif_primitive_type::GET_SLOWPOLL_POWER_THRESHOLD, domainIndex, Constants::Esif::NoInstance);
 }
 
-Power DomainPowerControl_002::getInstantaneousPower(
-	UIntN participantIndex,
-	UIntN domainIndex)
+Power DomainPowerControl_002::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
 {
 	throw dptf_exception("Instantaneous Power is not supported by " + getName() + ".");
 }

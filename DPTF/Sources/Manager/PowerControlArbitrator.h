@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "TimeSpan.h"
 #include "PowerControlType.h"
+#include <XmlNode.h>
 
 //
 // Arbitration Rule:
@@ -57,6 +58,7 @@ public:
 	Percentage arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
 
 	void removeRequestsForPolicy(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedPowerLimits;
@@ -99,11 +101,11 @@ private:
 	void removeDutyCycleRequest(UIntN policyIndex);
 
 	std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
-		const std::map<PowerControlType::Type, Power>& controlRequests);
+		const std::map<PowerControlType::Type, Power>& controlRequests) const;
 	std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
-		const std::map<PowerControlType::Type, TimeSpan>& controlRequests);
+		const std::map<PowerControlType::Type, TimeSpan>& controlRequests) const;
 	std::vector<PowerControlType::Type> findControlTypesSetForPolicy(
-		const std::map<PowerControlType::Type, Percentage>& controlRequests);
+		const std::map<PowerControlType::Type, Percentage>& controlRequests) const;
 
 	void setArbitratedPowerLimitForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
 	void setArbitratedTimeWindowsForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);

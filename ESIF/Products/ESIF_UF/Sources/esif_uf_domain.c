@@ -857,16 +857,15 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 				temp);
 		}
 
-		ESIF_TRACE_DEBUG("Polling temperature for participant: %s, domain: %s. Temperature is: %d. \n",
-			self->participantName,
-			self->domainName,
-			temp
-		);
-
 		self->tempLastTempValid = ESIF_FALSE;
 		goto exit;
 	}
 	
+	ESIF_TRACE_DEBUG("Polling temperature for participant: %s, domain: %s. Temperature is: %d. \n",
+		self->participantName,
+		self->domainName,
+		temp);
+
 	self->tempLastTempValid = ESIF_TRUE;
 	
 	if (EsifUpDomain_IsTempOutOfThresholds(self, temp)) {

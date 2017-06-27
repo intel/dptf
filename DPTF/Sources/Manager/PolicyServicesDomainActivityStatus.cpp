@@ -61,13 +61,12 @@ Percentage PolicyServicesDomainActivityStatus::getResidencyUtilization(UIntN par
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getResidencyUtilization(domainIndex);
 }
 
-void PolicyServicesDomainActivityStatus::setEnergyThresholdInterruptFlag(
+void PolicyServicesDomainActivityStatus::setEnergyThresholdInterruptDisable(
 	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 energyThresholdInterruptFlag)
+	UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
-		->setEnergyThresholdInterruptFlag(domainIndex, energyThresholdInterruptFlag);
+		->setEnergyThresholdInterruptDisable(domainIndex);
 }

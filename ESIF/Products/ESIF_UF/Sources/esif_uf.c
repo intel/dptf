@@ -40,11 +40,31 @@
 #include "esif_event.h"		/* Events */
 #include "esif_ipc.h"		/* IPC */
 #include "esif_uf_ipc.h"	/* IPC */
-#include "esif_ws_server.h"	/* Web Server */
 
 #include "esif_lib_databank.h"
 #include "esif_ccb_timer.h"
 #include "esif_uf_ccb_imp_spec.h"
+
+#ifdef ESIF_ATTR_WEBSOCKET
+#include "esif_sdk_iface_ws.h"
+
+typedef struct EsifWebMgr_s {
+	esif_lib_t			fLibHandle;					// Loadable Library handle (.dll, .so)
+	EsifWsInterface		fInterface;					// WebServer Interface API
+	esif_ccb_mutex_t	fLock;						// Web Server Lock
+} EsifWebMgr, *EsifWebMgrPtr;
+
+static EsifWebMgr g_WebMgr;
+
+extern int EsifUfTraceMessageArgs(
+	esif_tracemask_t module,
+	int level,
+	const char *func,
+	const char *file,
+	int line,
+	const char *msg,
+	va_list arglist);
+#endif
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 #include <share.h>
@@ -73,8 +93,6 @@ esif_ccb_event_t g_esifUfInitEvent = { 0 };
 /* ESIF Memory Pool */
 struct esif_ccb_mempool *g_mempool[ESIF_MEMPOOL_TYPE_MAX] = {0};
 esif_ccb_lock_t g_mempool_lock;
-
-static esif_thread_t g_webthread;  //web worker thread
 
 #ifdef ESIF_ATTR_MEMTRACE
 struct memtrace_s g_memtrace;
@@ -712,45 +730,312 @@ esif_string esif_build_path(
 // WebSocket Server Implemented?
 #ifdef ESIF_ATTR_WEBSOCKET
 
-static void *ESIF_CALLCONV esif_web_worker_thread(void *ptr)
-{
-	UNREFERENCED_PARAMETER(ptr);
+// ESIF_WS -> ESIF_UF Interface Callback Functions
 
-	ESIF_TRACE_ENTRY_INFO();
-	esif_ws_init();
-	ESIF_TRACE_EXIT_INFO();
-	return 0;
+static void ESIF_CALLCONV EsifWsLock(void)
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	esif_ccb_mutex_lock(&self->fLock);
+}
+
+static void ESIF_CALLCONV EsifWsUnlock(void)
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	esif_ccb_mutex_unlock(&self->fLock);
+}
+
+static Bool ESIF_CALLCONV EsifWsShellEnabled(void)
+{
+	extern int g_shell_enabled;
+	return (Bool)g_shell_enabled;
+}
+
+static void ESIF_CALLCONV EsifWsShellLock(void)
+{
+	esif_uf_shell_lock();
+}
+
+static void ESIF_CALLCONV EsifWsShellUnlock(void)
+{
+	esif_uf_shell_unlock();
+}
+
+static char *ESIF_CALLCONV EsifWsShellExec(char *cmd, size_t data_len)
+{
+	return esif_shell_exec_command(cmd, data_len, ESIF_TRUE, ESIF_FALSE);
+}
+
+static size_t ESIF_CALLCONV EsifWsShellBufLen(void)
+{
+	return (size_t)g_outbuf_len;
+}
+
+static int ESIF_CALLCONV EsifWsTraceMessage(
+	int level,
+	const char *func,
+	const char *file,
+	int line,
+	const char *msg,
+	va_list arglist)
+{
+	return EsifUfTraceMessageArgs(
+		ESIF_TRACEMASK(ESIF_TRACEMODULE_WEBSERVER),
+		level,
+		func,
+		file,
+		line,
+		msg,
+		arglist);
+}
+
+static int ESIF_CALLCONV EsifWsConsoleMessage(
+	const char *msg,
+	va_list args)
+{
+	int rc = 0;
+	if (msg) {
+		va_list argcopy;
+		va_copy(argcopy, args);
+		rc = EsifConsole_WriteConsole(msg, argcopy);
+		va_end(argcopy);
+	}
+	if (msg && g_EsifLogFile[ESIF_LOG_SHELL].handle != NULL) {
+		va_list argcopy;
+		va_copy(argcopy, args);
+		rc = EsifConsole_WriteLogFile(msg, argcopy);
+		va_end(argcopy);
+	}
+	return rc;
+}
+
+// ESIF_UF -> ESIF_WS Interface Helper Functions
+
+eEsifError EsifWebLoad()
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	eEsifError rc = ESIF_OK;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	// Load Library if necessary
+	if (self->fLibHandle == NULL) {
+		char libPath[MAX_PATH] = { 0 };
+		esif_string ifaceFuncName = WS_GET_INTERFACE_FUNCTION;
+		GetWsIfaceFuncPtr ifaceFuncPtr = NULL;
+
+		CMD_OUT("Loading web server plugin...\n");
+
+		esif_build_path(libPath, sizeof(libPath), ESIF_PATHTYPE_DLL, WS_LIBRARY_NAME, ESIF_LIB_EXT);
+		self->fLibHandle = esif_ccb_library_load(libPath);
+
+		if (NULL == self->fLibHandle || NULL == self->fLibHandle->handle) {
+			rc = esif_ccb_library_error(self->fLibHandle);
+			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(self->fLibHandle));
+		}
+		else {
+			// Load Web Interface
+			ifaceFuncPtr = (GetWsIfaceFuncPtr)esif_ccb_library_get_func(self->fLibHandle, ifaceFuncName);
+			if (NULL == ifaceFuncPtr) {
+				rc = esif_ccb_library_error(self->fLibHandle);
+				ESIF_TRACE_ERROR("esif_ccb_library_get_func() %s failed [%s (%d)]: %s\n", ifaceFuncName, esif_rc_str(rc), rc, esif_ccb_library_errormsg(self->fLibHandle));
+			}
+			else {
+				// Fill in ESIF side of Interface
+				self->fInterface.hdr.fIfaceType = eIfaceTypeWeb;
+				self->fInterface.hdr.fIfaceSize = sizeof(self->fInterface);
+				self->fInterface.hdr.fIfaceVersion = WS_IFACE_VERSION;
+
+				atomic_set(&self->fInterface.traceLevel, (atomic_basetype)g_traceLevel);
+				esif_build_path(self->fInterface.docRoot, sizeof(self->fInterface.docRoot), ESIF_PATHTYPE_UI, NULL, NULL);
+				esif_build_path(self->fInterface.logRoot, sizeof(self->fInterface.logRoot), ESIF_PATHTYPE_LOG, NULL, NULL);
+
+				self->fInterface.tEsifWsLockFuncPtr = EsifWsLock;
+				self->fInterface.tEsifWsUnlockFuncPtr = EsifWsUnlock;
+				self->fInterface.tEsifWsShellEnabledFuncPtr = EsifWsShellEnabled;
+				self->fInterface.tEsifWsShellLockFuncPtr = EsifWsShellLock;
+				self->fInterface.tEsifWsShellUnlockFuncPtr = EsifWsShellUnlock;
+				self->fInterface.tEsifWsShellExecFuncPtr = EsifWsShellExec;
+				self->fInterface.tEsifWsShellBufLenFuncPtr = EsifWsShellBufLen;
+				self->fInterface.tEsifWsTraceMessageFuncPtr = EsifWsTraceMessage;
+				self->fInterface.tEsifWsConsoleMessageFuncPtr = EsifWsConsoleMessage;
+
+				rc = ifaceFuncPtr(&self->fInterface);
+			}
+		}
+		
+		// Initialize Web Server
+		if (rc == ESIF_OK && self->fInterface.fEsifWsInitFuncPtr) {
+			rc = self->fInterface.fEsifWsInitFuncPtr();
+		}
+	}
+	esif_ccb_mutex_unlock(&self->fLock);
+
+	// Unload Library on Failure
+	if (rc != ESIF_OK && self->fLibHandle) {
+		CMD_OUT("%s (%d)\n", esif_rc_str(rc), rc);
+		EsifWebUnload();
+	}
+	return rc;
+}
+
+void EsifWebUnload()
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+
+	// Stop Web Server if necessary
+	EsifWebStop();
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	// Uninitialize Library only if it is Loaded
+	if (self->fInterface.fEsifWsExitFuncPtr) {
+		self->fInterface.fEsifWsExitFuncPtr();
+	}
+
+	// Unload Library only if it is loaded
+	if (self->fLibHandle) {
+		if (self->fLibHandle->handle) {
+			CMD_OUT("Unloading web server plugin...\n");
+		}
+		esif_ccb_library_unload(self->fLibHandle);
+	}
+	self->fLibHandle = NULL;
+	esif_ccb_memset(&self->fInterface, 0, sizeof(self->fInterface));
+
+	esif_ccb_mutex_unlock(&self->fLock);
+}
+
+eEsifError EsifWebInit()
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	eEsifError rc = ESIF_OK;
+	esif_ccb_mutex_init(&self->fLock);
+	esif_ccb_memset(&self->fInterface, 0, sizeof(self->fInterface));
+	return rc;
+}
+
+void EsifWebExit()
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	EsifWebUnload();
+	esif_ccb_mutex_uninit(&self->fLock);
 }
 
 eEsifError EsifWebStart()
 {
-	
-	if (!EsifWebIsStarted()) {
-		esif_ccb_thread_create(&g_webthread, esif_web_worker_thread, NULL);
+	EsifWebMgrPtr self = &g_WebMgr;
+	eEsifError rc = ESIF_OK;
+
+	if (EsifWebIsStarted()) {
+		return ESIF_E_WS_ALREADY_STARTED;
 	}
-	return ESIF_OK;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	// Load Library if necessary
+	if (self->fLibHandle == NULL) {
+		rc = EsifWebLoad();
+	}
+
+	// Start Web Server
+	if (rc == ESIF_OK && self->fInterface.fEsifWsStartFuncPtr) {
+		rc = self->fInterface.fEsifWsStartFuncPtr();
+	}
+	esif_ccb_mutex_unlock(&self->fLock);
+	return rc;
 }
 
 void EsifWebStop()
 {
+	EsifWebMgrPtr self = &g_WebMgr;
+
+	// Stop Web Server
 	if (EsifWebIsStarted()) {
-		esif_ws_exit(&g_webthread);
+		CMD_OUT("Stopping web server...\n");
+		if (self->fInterface.fEsifWsStopFuncPtr) {
+			self->fInterface.fEsifWsStopFuncPtr();
+		}
+		CMD_OUT("Web server stopped\n");
 	}
 }
 
 int EsifWebIsStarted()
 {
-	extern atomic_t g_ws_threads;
-	return (atomic_read(&g_ws_threads) > 0);
+	int rc = ESIF_FALSE;
+	EsifWebMgrPtr self = &g_WebMgr;
+	if (self->fInterface.fEsifWsIsStartedFuncPtr) {
+		rc = (int)self->fInterface.fEsifWsIsStartedFuncPtr();
+	}
+	return rc;
+}
+
+Bool EsifWebIsRestricted(void)
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	return self->fInterface.isRestricted;
+}
+
+const char *EsifWebVersion(void)
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	return self->fInterface.wsVersion;
 }
 
 void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
 {
-	esif_ws_server_set_ipaddr_port(ipaddr, port, restricted);
+	EsifWebMgrPtr self = &g_WebMgr;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	esif_ccb_strcpy(self->fInterface.ipAddr, (ipaddr ? ipaddr : ""), sizeof(self->fInterface.ipAddr));
+	self->fInterface.port = port;
+	self->fInterface.isRestricted = restricted;
+
+	esif_ccb_mutex_unlock(&self->fLock);
+}
+
+void EsifWebSetTraceLevel(int level)
+{
+	EsifWebMgrPtr self = &g_WebMgr;
+	if (self) {
+		if (level < ESIF_TRACELEVEL_FATAL || level > ESIF_TRACELEVEL_DEBUG || (g_traceinfo[level].modules & ESIF_TRACEMASK(ESIF_TRACEMODULE_WEBSERVER)) == 0) {
+			level = (-1);
+		}
+		atomic_set(&self->fInterface.traceLevel, (atomic_basetype)level);
+	}
+}
+
+eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
+{
+	eEsifError rc = ESIF_E_CALLBACK_IS_NULL;
+	EsifWebMgrPtr self = &g_WebMgr;
+
+	// Broadcast Buffer to Active Subscribers
+	// Do not take a lock here; Lock is taken only if there are active subscribers
+	// This prevents blocking of Event thread(s) by long-running UI commands
+	// This also requires that the WS Library not be automatically unloaded when stopped
+	if (self->fInterface.fEsifWsBroadcastFuncPtr) {
+		rc = self->fInterface.fEsifWsBroadcastFuncPtr(bufferPtr, bufferSize);
+	}
+	return rc;
 }
 
 #else
 
+eEsifError EsifWebLoad()
+{
+	return ESIF_E_NOT_IMPLEMENTED;
+}
+void EsifWebUnload()
+{
+}
+eEsifError EsifWebInit()
+{
+	return ESIF_OK;
+}
+void EsifWebExit()
+{
+}
 eEsifError EsifWebStart()
 {
 	return ESIF_E_NOT_IMPLEMENTED;
@@ -762,11 +1047,25 @@ int EsifWebIsStarted()
 {
 	return 0;
 }
+Bool EsifWebIsRestricted(void)
+{
+	return ESIF_FALSE;
+}
 void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
 {
 	UNREFERENCED_PARAMETER(ipaddr);
 	UNREFERENCED_PARAMETER(port);
 	UNREFERENCED_PARAMETER(restricted);
+}
+void EsifWebSetTraceLevel(int level)
+{
+	UNREFERENCED_PARAMETER(level);
+}
+eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
+{
+	UNREFERENCED_PARAMETER(bufferPtr);
+	UNREFERENCED_PARAMETER(bufferSize);
+	return ESIF_E_NOT_IMPLEMENTED;
 }
 #endif
 
@@ -791,12 +1090,13 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE},
 	{NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE},
 	{NULL,								esif_uf_shell_stop,					ESIF_INIT_FLAG_NONE},
-	{NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE},
+	{EsifWebInit,						EsifWebExit,						ESIF_INIT_FLAG_NONE},
 	{esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_IGNORE_ERROR},
 	{esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER},
 	{esif_uf_shell_banner_init,			NULL,								ESIF_INIT_FLAG_NONE},
 	// If shutting down, event processing is disabled
 	{NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_NONE},
+	{NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE},
 };
 
 //

@@ -79,11 +79,18 @@
 #endif
 
 #ifdef ESIF_ATTR_OS_WINDOWS
+
+#ifdef ESIF_ATTR_USER
+#include <winioctl.h>
+#endif
+
 #define ESIF_IPC_CODE(x) CTL_CODE(FILE_DEVICE_NETWORK, x, METHOD_BUFFERED, FILE_ANY_ACCESS)
-#define ESIF_IOCTL_IPC_NOOP		ESIF_IPC_CODE(0)
-#define ESIF_IOCTL_IPC			ESIF_IPC_CODE(1)
-#define ESIF_IOCTL_IPC_IPC_SUSPEND      ESIF_IPC_CODE(2)
-#define ESIF_IOCTL_IPC_IPC_RESUME	ESIF_IPC_CODE(3)
+#define ESIF_IOCTL_IPC_NOOP			ESIF_IPC_CODE(0)
+#define ESIF_IOCTL_IPC				ESIF_IPC_CODE(1)
+#define ESIF_IOCTL_IPC_IPC_SUSPEND      	ESIF_IPC_CODE(2)
+#define ESIF_IOCTL_IPC_IPC_RESUME		ESIF_IPC_CODE(3)
+#define ESIF_IOCTL_ENABLE_EVENT_DOORBELL	ESIF_IPC_CODE(4)
+
 #endif
 
 /* IPC Types May There Be Few */
@@ -116,9 +123,19 @@ struct esif_ipc {
 	/* Data Is Here ... */
 };
 
+#if defined(ESIF_ATTR_OS_WINDOWS)
+struct esif_ipc_event_enable {
+	HANDLE eventDoorbell;
+	HANDLE eventLfExit;
+};
+#endif
+
 #pragma pack(pop)
 
 #ifdef ESIF_ATTR_USER
+#if defined(ESIF_ATTR_OS_WINDOWS)
+typedef struct esif_ipc_event_enable EsifIpcEventEnable, *EsifIpcEventEnablePtr;
+#endif
 typedef struct esif_ipc EsifIpc, *EsifIpcPtr, **EsifIpcPtrLocation;
 #endif
 

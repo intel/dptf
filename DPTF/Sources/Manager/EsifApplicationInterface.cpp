@@ -883,6 +883,9 @@ static eEsifError DptfEvent(
 		case FrameworkEvent::PolicyPowerShareAlgorithmTableChanged:
 			wi = new WIPolicyPowerShareAlgorithmTableChanged(dptfManager);
 			break;
+		case FrameworkEvent::PolicyWorkloadHintConfigurationChanged:
+			wi = new WIPolicyWorkloadHintConfigurationChanged(dptfManager);
+			break;
 		case FrameworkEvent::DptfAppUnloading:
 			break;
 		case FrameworkEvent::DptfSupportedPoliciesChanged:

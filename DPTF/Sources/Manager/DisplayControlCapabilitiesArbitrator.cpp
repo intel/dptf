@@ -18,6 +18,7 @@
 
 #include "DisplayControlCapabilitiesArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 DisplayControlCapabilitiesArbitrator::DisplayControlCapabilitiesArbitrator()
 {
@@ -94,6 +95,34 @@ void DisplayControlCapabilitiesArbitrator::removeRequestsForPolicy(UIntN policyI
 	m_requestedMaxDisplayIndex.erase(policyIndex);
 	m_requestedMinDisplayIndex.erase(policyIndex);
 	m_requestedLocks.erase(policyIndex);
+}
+
+std::shared_ptr<XmlNode> DisplayControlCapabilitiesArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("display_control_capabilities_arbitrator_status");
+	DisplayControlDynamicCaps caps = DisplayControlDynamicCaps(Constants::Invalid, Constants::Invalid);
+	auto policyRequest = m_requestedMaxDisplayIndex.find(policyIndex);
+	if (policyRequest != m_requestedMaxDisplayIndex.end())
+	{
+		caps.setCurrentUpperLimit(policyRequest->second);
+	}
+
+	policyRequest = m_requestedMinDisplayIndex.find(policyIndex);
+	if (policyRequest != m_requestedMinDisplayIndex.end())
+	{
+		caps.setCurrentLowerLimit(policyRequest->second);
+	}
+	requestRoot->addChild(caps.getXml());
+
+	auto policyLockRequest = m_requestedLocks.find(policyIndex);
+	Bool lockRequested = false;
+	if (policyLockRequest != m_requestedLocks.end())
+	{
+		lockRequested = policyLockRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("requested_lock", StatusFormat::friendlyValue(lockRequested)));
+
+	return requestRoot;
 }
 
 void DisplayControlCapabilitiesArbitrator::updatePolicyRequest(

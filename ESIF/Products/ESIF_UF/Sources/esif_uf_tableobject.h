@@ -58,6 +58,7 @@ typedef struct TableObject_s {
 	char *dataMember;
 	char *dataXML;
 	char *dataText;
+	size_t dataTextLen;
 	u8 *binaryData;
 	UInt32 binaryDataSize;
 	UInt32 getPrimitive;
@@ -84,7 +85,7 @@ struct esif_data_binary_fst_package {
 
 void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML);
 void TableField_Destroy(TableField *dataField);
-void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, char *dataSource, char *dataMember, char *dataText, int participantId, enum tableMode mode);
+void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, char *dataSource, char *dataMember, char *dataText, size_t dataTextLen, int participantId, enum tableMode mode);
 void TableObject_Destroy(TableObject *self);
 eEsifError TableObject_LoadData(TableObject *self);
 eEsifError TableObject_LoadSchema(TableObject *self);

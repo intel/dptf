@@ -33,20 +33,44 @@ DomainRfProfileControl_001::~DomainRfProfileControl_001(void)
 
 RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN participantIndex, UIntN domainIndex)
 {
-	Frequency defaultCenterFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
-		esif_primitive_type::GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY, domainIndex);
 
-	Percentage leftClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
-		esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_LEFT, domainIndex);
+	Frequency defaultCenterFrequency(0);
+	Frequency centerFrequency(0);
+	Frequency frequencyAdjustResolution(0);
 
-	Percentage rightClipPercent = getParticipantServices()->primitiveExecuteGetAsPercentage(
-		esif_primitive_type::GET_RFPROFILE_CLIP_PERCENT_RIGHT, domainIndex);
-
-	Frequency frequencyAdjustResolution = getParticipantServices()->primitiveExecuteGetAsFrequency(
-		esif_primitive_type::GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION, domainIndex);
+	try
+	{
+		defaultCenterFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_DEFAULT_CENTER_FREQUENCY, domainIndex);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get default center frequency. "));
+	}
+	try
+	{
+		centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get center frequency. "));
+	}
+	try
+	{
+		frequencyAdjustResolution = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION, domainIndex);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get frequency adjust resolution. "));
+	}
 
 	RfProfileCapabilities rfProfileCapabilities(
-		defaultCenterFrequency, leftClipPercent, rightClipPercent, frequencyAdjustResolution);
+		defaultCenterFrequency, centerFrequency, frequencyAdjustResolution);
 
 	return rfProfileCapabilities;
 }

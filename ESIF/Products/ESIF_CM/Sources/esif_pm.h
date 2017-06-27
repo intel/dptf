@@ -79,6 +79,8 @@ enum esif_pm_participant_state {
 	ESIF_PM_PARTICIPANT_STATE_AVAILABLE = 0,
 	/* Removed participant */
 	ESIF_PM_PARTICIPANT_STATE_REMOVED,
+	/* Participant created but requires LF DSP after LF removal */
+	ESIF_PM_PARTICIPANT_STATE_LF_REMOVED,
 	/* Created Lower Participant Instance */
 	ESIF_PM_PARTICIPANT_STATE_CREATED,
 };
@@ -90,6 +92,7 @@ static ESIF_INLINE esif_string esif_pm_participant_state_str(
 	switch (state) {
 	ESIF_CASE(ESIF_PM_PARTICIPANT_STATE_AVAILABLE, "AVAILABLE");
 	ESIF_CASE(ESIF_PM_PARTICIPANT_STATE_REMOVED, "REMOVED");
+	ESIF_CASE(ESIF_PM_PARTICIPANT_STATE_LF_REMOVED, "LF_REMOVED");
 	ESIF_CASE(ESIF_PM_PARTICIPANT_STATE_CREATED, "CREATED");
 	}
 	return ESIF_NOT_AVAILABLE;

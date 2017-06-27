@@ -98,8 +98,6 @@
 #define ESIFDV_PAYLOAD_CLASS_KEYS	'SYEK'		// "KEYS" = DataVault 2.0 Key/Value Pair List
 #define ESIFDV_PAYLOAD_CLASS_REPO	'OPER'		// "REPO" = Data Repository (1 or more DataVaults)
 
-#pragma pack(push, 1)
-
 // DataVault = Named Cache of Key/Value pairs (both persisted and nonpersisted data)
 // DataVaults are internal objects associated with a shared Named Cache and are multi-threaded.
 // DataVaults can be populated from Data Repositories (DataRepo Segments), Primitives, and Shell Commands
@@ -113,10 +111,8 @@ typedef struct DataVault_s {
 	DataCachePtr			cache;							// Key/Value Pair Cache (Persisted and Non-persisted)
 	IOStreamPtr				stream;							// Primary Stream (Cached Key/Values) ["name.dv"]
 	UInt32					dataclass;						// Payload Data Class (KEYS, REPO, ...)
-	esif_sha1_t				digest;							// SHA1 Hash used to verify Payload
+	esif_sha256_t			digest;							// SHA-256 Hash used to verify Payload
 } DataVault, *DataVaultPtr;
-
-#pragma pack(pop)
 
 #ifdef __cplusplus
 extern "C" {

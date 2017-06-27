@@ -20,12 +20,10 @@
 
 RfProfileCapabilities::RfProfileCapabilities(
 	Frequency defaultCenterFrequency,
-	Percentage leftClipPercent,
-	Percentage rightClipPercent,
+	Frequency centerFrequency,
 	Frequency frequencyAdjustResolution)
 	: m_defaultCenterFrequency(defaultCenterFrequency)
-	, m_leftClipPercent(leftClipPercent)
-	, m_rightClipPercent(rightClipPercent)
+	, m_centerFrequency(centerFrequency)
 	, m_frequencyAdjustResolution(frequencyAdjustResolution)
 {
 }
@@ -35,14 +33,9 @@ Frequency RfProfileCapabilities::getDefaultCenterFrequency(void) const
 	return m_defaultCenterFrequency;
 }
 
-Percentage RfProfileCapabilities::getLeftClipPercent(void) const
+Frequency RfProfileCapabilities::getCenterFrequency(void) const
 {
-	return m_leftClipPercent;
-}
-
-Percentage RfProfileCapabilities::getRightClipPercent(void) const
-{
-	return m_rightClipPercent;
+	return m_centerFrequency;
 }
 
 Frequency RfProfileCapabilities::getFrequencyAdjustResolution(void) const
@@ -53,8 +46,7 @@ Frequency RfProfileCapabilities::getFrequencyAdjustResolution(void) const
 Bool RfProfileCapabilities::operator==(const RfProfileCapabilities& rhs) const
 {
 	return (
-		(m_defaultCenterFrequency == rhs.m_defaultCenterFrequency) && (m_leftClipPercent == rhs.m_leftClipPercent)
-		&& (m_rightClipPercent == rhs.m_rightClipPercent)
+		(m_defaultCenterFrequency == rhs.m_defaultCenterFrequency) && (m_centerFrequency == rhs.m_centerFrequency)
 		&& (m_frequencyAdjustResolution == rhs.m_frequencyAdjustResolution));
 }
 

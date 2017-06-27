@@ -102,18 +102,14 @@ Percentage DomainActivityStatus_001::getResidencyUtilization(UIntN participantIn
 		esif_primitive_type::GET_PARTICIPANT_RESIDENCY_UTILIZATION, domainIndex);
 }
 
-void DomainActivityStatus_001::setEnergyThresholdInterruptFlag(
+void DomainActivityStatus_001::setEnergyThresholdInterruptDisable(
 	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 energyThresholdInterruptFlag)
+	UIntN domainIndex)
 {
 	try
 	{
-		if (energyThresholdInterruptFlag == 0)
-		{
-			getParticipantServices()->primitiveExecuteSetAsUInt32(
-				esif_primitive_type::SET_ENERGY_THRESHOLD_INT_DISABLE, energyThresholdInterruptFlag, domainIndex);
-		}
+		getParticipantServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_ENERGY_THRESHOLD_INT_DISABLE, esif_data_type::ESIF_DATA_VOID, nullptr, 0, 0, domainIndex, Constants::Esif::NoInstance);
 	}
 	catch (primitive_not_found_in_dsp)
 	{

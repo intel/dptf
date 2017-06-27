@@ -177,6 +177,14 @@ Percentage PlatformPowerStatusFacade::getAC10msPercentageOverload(void)
 	return m_ac10msPercentageOverload;
 }
 
+void PlatformPowerStatusFacade::notifyForProchotDeassertion(void)
+{
+	if (m_domainProperties.implementsPlatformPowerStatusInterface())
+	{
+		m_policyServices.domainPlatformPowerStatus->notifyForProchotDeassertion(m_participantIndex, m_domainIndex);
+	}
+}
+
 std::shared_ptr<XmlNode> PlatformPowerStatusFacade::getXml() const
 {
 	auto control = XmlNode::createWrapperElement("platform_power_status");

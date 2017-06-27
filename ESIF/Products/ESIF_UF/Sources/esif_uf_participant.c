@@ -33,7 +33,7 @@
 #include "win\banned.h"
 #endif
 
-#define CONNECTED_STANDBY_POLLING_RATE_DEFAULT 0xFFFE
+#define CONNECTED_STANDBY_POLLING_RATE_DEFAULT 0xFFFFFFFE
 
 /*
  * Need to move to header POC.  Also don't forget to free returned

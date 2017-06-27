@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "PerformanceControlDynamicCaps.h"
+#include <XmlNode.h>
 
 class dptf_export PerformanceControlCapabilitiesArbitrator
 {
@@ -35,6 +36,7 @@ public:
 	PerformanceControlDynamicCaps getArbitratedPerformanceControlCapabilities();
 	Bool getArbitratedLock() const;
 	void removeRequestsForPolicy(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	std::map<UIntN, UIntN> m_requestedUpperPState;

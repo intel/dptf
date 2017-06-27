@@ -102,7 +102,7 @@ typedef struct DataVaultHeaderV2_s {
 	UInt32  flags;							// Global Payload Flags v2
 	char	segmentid[ESIFDV_NAME_LEN];		// Optional DV SegmentID [Cache Name] (not null terminated)
 	char	comment[ESIFDV_DESC_LEN];	    // Optional DV Comment (not null terminated)
-	UInt8	payload_hash[SHA1_HASH_BYTES];	// SHA1 Hash of Payload
+	UInt8	payload_hash[SHA256_HASH_BYTES];// SHA-256 Hash of Payload
 	UInt32	payload_size;					// Payload Size
 	UInt32	payload_class;					// Payload Class (default=KEYS)
 } DataVaultHeaderV2, *DataVaultHeaderV2Ptr;
@@ -306,12 +306,12 @@ static esif_error_t DataVault_RepoFlush(
 		goto exit;
 	}
 
-	esif_sha1_init(&self->digest);
+	esif_sha256_init(&self->digest);
 
 	//
 	// Build the Initial DV Header and Write it
 	// Use all-zeros for DV 2.0 Payload Hash and Size and Update them after writing the Payload
-	// An all-zeros Hash is invalid since SHA1 Hash for an empty payload is DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+	// An all-zeros Hash is invalid since SHA256 Hash for an empty payload is E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 	// 
 	UInt32 major_version = ESIFHDR_GET_MAJOR(self->version);
 	StringPtr segmentid = (self->segmentid[0] ? self->segmentid : self->name);
@@ -388,7 +388,7 @@ static esif_error_t DataVault_RepoFlush(
 			goto exit;
 		}
 
-		// Copy Payload Stream contents to DataVault and add to SHA1 Hash
+		// Copy Payload Stream contents to DataVault and add to SHA256 Hash
 		while ((rc == ESIF_OK) && ((bytes_read = IOStream_Read(payload, buffer, buf_len)) > 0)) {
 			if (compressPayload) {
 				EsifData payload_buffer = { ESIF_DATA_BLOB, buffer, (u32)buf_len, (u32)buf_len };
@@ -438,7 +438,7 @@ static esif_error_t DataVault_RepoFlush(
 	}
 
 
-	esif_sha1_finish(&self->digest);
+	esif_sha256_finish(&self->digest);
 
 	// Rewind and Update the DV 2.0 Header with computed Payload Hash and Size
 	if (major_version == 2) {
@@ -480,7 +480,7 @@ exit:
 	return rc;
 }
 
-// Write a buffer to the payload and add it to the SHA1 digest
+// Write a buffer to the payload and add it to the SHA256 digest
 static esif_error_t DataVault_WriteBuffer(
 	DataVaultPtr self,
 	IOStreamPtr stream,
@@ -490,11 +490,11 @@ static esif_error_t DataVault_WriteBuffer(
 	if (IOStream_Write(stream, bufPtr, bytes) != bytes) {
 		return ESIF_E_IO_ERROR;
 	}
-	esif_sha1_update(&self->digest, bufPtr, bytes);
+	esif_sha256_update(&self->digest, bufPtr, bytes);
 	return ESIF_OK;
 }
 
-// Write a single Key/Value Pair to the DataVault Payload and add it to the SHA1 Digest
+// Write a single Key/Value Pair to the DataVault Payload and add it to the SHA256 Digest
 static esif_error_t DataVault_WriteKeyValuePair(
 	DataVaultPtr self,
 	IOStreamPtr stream,
@@ -520,7 +520,7 @@ static esif_error_t DataVault_WriteKeyValuePair(
 			rc = ESIF_E_IO_ERROR;
 			goto exit;
 		}
-		esif_sha1_update(&self->digest, &itemSignature, sizeof(itemSignature));
+		esif_sha256_update(&self->digest, &itemSignature, sizeof(itemSignature));
 	}
 
 	// Write Flags: <flags>
@@ -528,33 +528,33 @@ static esif_error_t DataVault_WriteKeyValuePair(
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &keyPair->flags, sizeof(keyPair->flags));
+	esif_sha256_update(&self->digest, &keyPair->flags, sizeof(keyPair->flags));
 
 	// Write Key: <len><value...>
 	if (IOStream_Write(stream, &keyPair->key.data_len, sizeof(keyPair->key.data_len)) != sizeof(keyPair->key.data_len)) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &keyPair->key.data_len, sizeof(keyPair->key.data_len));
+	esif_sha256_update(&self->digest, &keyPair->key.data_len, sizeof(keyPair->key.data_len));
 
 	if (IOStream_Write(stream, keyPair->key.buf_ptr, keyPair->key.data_len) != keyPair->key.data_len) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, keyPair->key.buf_ptr, keyPair->key.data_len);
+	esif_sha256_update(&self->digest, keyPair->key.buf_ptr, keyPair->key.data_len);
 
 	// Write Value: <type><len><value...>
 	if (IOStream_Write(stream, &keyPair->value.type, sizeof(keyPair->value.type)) != sizeof(keyPair->value.type)) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &keyPair->value.type, sizeof(keyPair->value.type));
+	esif_sha256_update(&self->digest, &keyPair->value.type, sizeof(keyPair->value.type));
 
 	if (IOStream_Write(stream, &keyPair->value.data_len, sizeof(keyPair->value.data_len)) != sizeof(keyPair->value.data_len)) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &keyPair->value.data_len, sizeof(keyPair->value.data_len));
+	esif_sha256_update(&self->digest, &keyPair->value.data_len, sizeof(keyPair->value.data_len));
 
 	// Read NOCACHE Entries from disk file
 	if (FLAGS_TEST(keyPair->flags, ESIF_SERVICE_CONFIG_NOCACHE) && self->stream->type != StreamNull) {
@@ -602,12 +602,12 @@ static esif_error_t DataVault_WriteKeyValuePair(
 	if (buffer) {
 		if (IOStream_Write(stream, buffer, buffer_len) != buffer_len)
 			rc = ESIF_E_IO_ERROR;
-		esif_sha1_update(&self->digest, buffer, buffer_len);
+		esif_sha256_update(&self->digest, buffer, buffer_len);
 	}
 	else {
 		if (IOStream_Write(stream, keyPair->value.buf_ptr, keyPair->value.data_len) != keyPair->value.data_len)
 			rc = ESIF_E_IO_ERROR;
-		esif_sha1_update(&self->digest, keyPair->value.buf_ptr, keyPair->value.data_len);
+		esif_sha256_update(&self->digest, keyPair->value.buf_ptr, keyPair->value.data_len);
 	}
 
 exit:
@@ -634,7 +634,7 @@ static Bool DataVault_IsSegmentMatch(
 	return rc;
 }
 
-// Validate SHA1 Hash with the one in the Header
+// Validate SHA256 Hash with the one in the Header
 // This function is called twice: First to validate Hash before loading Payload, Second to log an error after loading Payload
 static esif_error_t DataVault_ValidateHash(
 	DataVaultPtr self,
@@ -646,24 +646,18 @@ static esif_error_t DataVault_ValidateHash(
 	if (self && header) {
 		rc = ESIF_OK;
 
-		// NOTE: SHA1 Hash of empty payload (0 bytes) = DA39A3EE5E6B4B0D3255BFEF95601890AFD80709
+		// NOTE: SHA256 Hash of empty payload (0 bytes) = E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
 		if (ESIFHDR_GET_MAJOR(header->common.version) == 2) {
+			char expected_hashstr[SHA256_STRING_BYTES] = { 0 };
+			char actual_hashstr[SHA256_STRING_BYTES] = { 0 };
 			if ((memcmp(header->v2.payload_hash, self->digest.hash, sizeof(header->v2.payload_hash)) != 0) || (header->v2.payload_size != (UInt32)(self->digest.digest_bits / 8))) {
 				ESIF_TRACE_ERROR("Invalid DV Payload Hash (%s)\n"
-					"  Expected = 0x%08X%08X%08X%08X%08X (%d bytes)\n"
-					"  Actual   = 0x%08X%08X%08X%08X%08X (%d bytes)\n",
+					"  Expected = %s (%d bytes)\n"
+					"  Actual   = %s (%d bytes)\n",
 					self->name,
-					esif_ccb_htonl(((UInt32*)header->v2.payload_hash)[0]),
-					esif_ccb_htonl(((UInt32*)header->v2.payload_hash)[1]),
-					esif_ccb_htonl(((UInt32*)header->v2.payload_hash)[2]),
-					esif_ccb_htonl(((UInt32*)header->v2.payload_hash)[3]),
-					esif_ccb_htonl(((UInt32*)header->v2.payload_hash)[4]),
+					esif_sha_tostring(header->v2.payload_hash, sizeof(header->v2.payload_hash), expected_hashstr, sizeof(expected_hashstr)),
 					header->v2.payload_size,
-					esif_ccb_htonl(((UInt32*)self->digest.hash)[0]),
-					esif_ccb_htonl(((UInt32*)self->digest.hash)[1]),
-					esif_ccb_htonl(((UInt32*)self->digest.hash)[2]),
-					esif_ccb_htonl(((UInt32*)self->digest.hash)[3]),
-					esif_ccb_htonl(((UInt32*)self->digest.hash)[4]),
+					esif_sha256_tostring(&self->digest, actual_hashstr, sizeof(actual_hashstr)),
 					(UInt32)(self->digest.digest_bits / 8)
 				);
 				rc = ESIF_E_IO_HASH_FAILED;
@@ -721,7 +715,7 @@ static esif_error_t DataVault_ValidatePayload(
 			}
 		}
 
-		// Verify SHA1 Hash before processing Payload
+		// Verify SHA256 Hash before processing Payload
 		if (rc == ESIF_OK && major_version == 2) {
 			size_t offset = IOStream_GetOffset(repo->stream);
 			size_t buffer_size = ESIFDV_IO_BUFFER_SIZE;
@@ -729,15 +723,15 @@ static esif_error_t DataVault_ValidatePayload(
 			size_t bytes_read = 0;
 			unsigned char *buffer = esif_ccb_malloc(buffer_size);
 
-			esif_sha1_init(&self->digest);
+			esif_sha256_init(&self->digest);
 
 			if (buffer == NULL) {
 				rc = ESIF_E_NO_MEMORY;
 			}
 			else {
-				// Read raw Payload data to compute SHA1 Hash
+				// Read raw Payload data to compute SHA256 Hash
 				while ((bytes_to_read > 0) && ((bytes_read = IOStream_Read(repo->stream, buffer, esif_ccb_min(bytes_to_read, buffer_size))) > 0)) {
-					esif_sha1_update(&self->digest, buffer, bytes_read);
+					esif_sha256_update(&self->digest, buffer, bytes_read);
 					bytes_to_read -= bytes_read;
 					total_bytes += bytes_read;
 				}
@@ -747,9 +741,9 @@ static esif_error_t DataVault_ValidatePayload(
 					rc = ESIF_E_IO_ERROR;
 				}
 			}
-			esif_sha1_finish(&self->digest);
+			esif_sha256_finish(&self->digest);
 
-			// Verify SHA1 Hash and Payload Size
+			// Verify SHA256 Hash and Payload Size
 			if (rc == ESIF_OK) {
 				rc = DataVault_ValidateHash(self, header);
 			}
@@ -775,7 +769,7 @@ static esif_error_t DataVault_ReadSegment(
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	DataVaultHeader segmentHeader = { 0 };
-	esif_sha1_t currentDigest = { 0 };
+	esif_sha256_t currentDigest = { 0 };
 	Bool restoreDigest = ESIF_TRUE;
 
 	if (repo && repo->stream) {
@@ -812,7 +806,7 @@ static esif_error_t DataVault_ReadSegment(
 			return ESIF_E_NOT_SUPPORTED;
 		}
 
-		// Validate Payload Class and SHA1 Hash before loading into Cache
+		// Validate Payload Class and SHA256 Hash before loading into Cache
 		esif_ccb_memcpy(&currentDigest, &self->digest, sizeof(currentDigest));
 		rc = DataVault_ValidatePayload(self, repo, header);
 
@@ -954,7 +948,7 @@ static esif_error_t DataVault_ReadPayload(
 		EsifData key = { ESIF_DATA_STRING };
 		EsifData value = { ESIF_DATA_VOID };
 
-		esif_sha1_init(&self->digest);
+		esif_sha256_init(&self->digest);
 
 		// Read Key/Value Pair Payload into DataVault Cache
 		while (rc == ESIF_OK) {
@@ -1000,9 +994,9 @@ static esif_error_t DataVault_ReadPayload(
 			EsifData_dtor(&value);
 		}
 
-		// Re-Validate SHA1 Hash after loading Payload
+		// Re-Validate SHA256 Hash after loading Payload
 		// TODO: Cannot undo Cache changes if this fails unless DataVault Transaction support is added
-		esif_sha1_finish(&self->digest);
+		esif_sha256_finish(&self->digest);
 		if (rc == ESIF_OK && !FLAGS_TEST(payload_flags, ESIF_SERVICE_CONFIG_COMPRESSED)) {
 			rc = DataVault_ValidateHash(self, header);
 		}
@@ -1139,7 +1133,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 			rc = ESIF_E_IO_ERROR;
 			goto exit;
 		}
-		esif_sha1_update(&self->digest, &thisSignature, sizeof(thisSignature));
+		esif_sha256_update(&self->digest, &thisSignature, sizeof(thisSignature));
 	}
 
 	// Read Item Flags
@@ -1164,7 +1158,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 	}
 	FLAGS_CLEAR(*flagsPtr, ESIFDV_IGNORED_ITEM_FLAGS);
 	FLAGS_CLEAR(*flagsPtr, bannedFlags);
-	esif_sha1_update(&self->digest, flagsPtr, sizeof(*flagsPtr));
+	esif_sha256_update(&self->digest, flagsPtr, sizeof(*flagsPtr));
 
 	// Read key length
 	keyPtr->type = ESIF_DATA_STRING;
@@ -1172,7 +1166,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &keyPtr->data_len, sizeof(keyPtr->data_len));
+	esif_sha256_update(&self->digest, &keyPtr->data_len, sizeof(keyPtr->data_len));
 
 	// Read Key after bounds check
 	if (keyPtr->data_len > ESIFDV_MAX_KEYLEN || keyPtr->data_len <= 1) {
@@ -1208,21 +1202,21 @@ static esif_error_t DataVault_ReadKeyValuePair(
 		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, keyPtr->buf_ptr, keyPtr->data_len);
+	esif_sha256_update(&self->digest, keyPtr->buf_ptr, keyPtr->data_len);
 
 	// Read Value Data Type
 	if (IOStream_Read(stream, &valuePtr->type, sizeof(valuePtr->type)) != sizeof(valuePtr->type)) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &valuePtr->type, sizeof(valuePtr->type));
+	esif_sha256_update(&self->digest, &valuePtr->type, sizeof(valuePtr->type));
 
 	// Read Value Length
 	if (IOStream_Read(stream, &valuePtr->data_len, sizeof(valuePtr->data_len)) != sizeof(valuePtr->data_len)) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
-	esif_sha1_update(&self->digest, &valuePtr->data_len, sizeof(valuePtr->data_len));
+	esif_sha256_update(&self->digest, &valuePtr->data_len, sizeof(valuePtr->data_len));
 
 	// Read Value after bounds check
 	if (valuePtr->data_len > ESIFDV_MAX_DATALEN) {
@@ -1244,7 +1238,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 			goto exit;
 		}
 		while ((bytes_to_read > 0) && ((bytes_read = IOStream_Read(stream, buffer, esif_ccb_min(bytes_to_read, buffer_size))) > 0)) {
-			esif_sha1_update(&self->digest, buffer, bytes_read);
+			esif_sha256_update(&self->digest, buffer, bytes_read);
 			bytes_to_read -= bytes_read;
 		}
 		esif_ccb_free(buffer);
@@ -1261,7 +1255,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 				rc = ESIF_E_IO_ERROR;
 				goto exit;
 			}
-			esif_sha1_update(&self->digest, valuePtr->buf_ptr, valuePtr->data_len);
+			esif_sha256_update(&self->digest, valuePtr->buf_ptr, valuePtr->data_len);
 		} 
 		else {
 			valuePtr->buf_len = esif_ccb_max(1, valuePtr->data_len); // dynamic
@@ -1275,7 +1269,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 					rc = ESIF_E_IO_ERROR;
 					goto exit;
 				}
-				esif_sha1_update(&self->digest, valuePtr->buf_ptr, valuePtr->data_len);
+				esif_sha256_update(&self->digest, valuePtr->buf_ptr, valuePtr->data_len);
 			}
 		}
 			

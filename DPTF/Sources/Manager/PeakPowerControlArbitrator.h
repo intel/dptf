@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "PeakPowerType.h"
+#include <XmlNode.h>
 
 //
 // Arbitration Rule:
@@ -39,6 +40,7 @@ public:
 
 	Power getArbitratedPeakPower(PeakPowerType::Type peakPowerType) const;
 	void clearPolicyCachedData(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	std::map<UIntN, std::map<PeakPowerType::Type, Power>> m_requestedPeakPower;

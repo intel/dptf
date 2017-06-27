@@ -57,7 +57,7 @@ void Participant::createParticipant(
 	{
 		std::stringstream message;
 		message << "Failed to create participant instance for participant: "
-				<< EsifDataString(&participantDataPtr->fName);
+			<< EsifDataString(&participantDataPtr->fName);
 		throw dptf_exception(message.str());
 	}
 
@@ -323,6 +323,21 @@ std::shared_ptr<XmlNode> Participant::getStatusAsXml(UIntN domainIndex) const
 {
 	throwIfRealParticipantIsInvalid();
 	return m_theRealParticipant->getStatusAsXml(domainIndex);
+}
+
+std::shared_ptr<XmlNode> Participant::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto participantRoot = XmlNode::createWrapperElement("participant_status");
+	participantRoot->addChild(XmlNode::createDataElement("participant_name", m_theRealParticipant->getName()));
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			participantRoot->addChild(domain->second->getArbitrationXmlForPolicy(policyIndex));
+		}
+	}
+
+	return participantRoot;
 }
 
 //
@@ -707,10 +722,10 @@ Percentage Participant::getResidencyUtilization(UIntN domainIndex)
 	return m_domains[domainIndex]->getResidencyUtilization();
 }
 
-void Participant::setEnergyThresholdInterruptFlag(UIntN domainIndex, UInt32 energyThresholdInterruptFlag)
+void Participant::setEnergyThresholdInterruptDisable(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->setEnergyThresholdInterruptFlag(energyThresholdInterruptFlag);
+	return m_domains[domainIndex]->setEnergyThresholdInterruptDisable();
 }
 
 ConfigTdpControlDynamicCaps Participant::getConfigTdpControlDynamicCaps(UIntN domainIndex)
@@ -1000,10 +1015,10 @@ double Participant::getPidKiTerm(UIntN domainIndex)
 	return m_domains[domainIndex]->getPidKiTerm();
 }
 
-TimeSpan Participant::getTau(UIntN domainIndex)
+TimeSpan Participant::getAlpha(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTau();
+	return m_domains[domainIndex]->getAlpha();
 }
 
 TimeSpan Participant::getFastPollTime(UIntN domainIndex)
@@ -1018,7 +1033,7 @@ TimeSpan Participant::getSlowPollTime(UIntN domainIndex)
 	return m_domains[domainIndex]->getSlowPollTime();
 }
 
-UInt32 Participant::getWeightedSlowPollAvgConstant(UIntN domainIndex)
+TimeSpan Participant::getWeightedSlowPollAvgConstant(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getWeightedSlowPollAvgConstant();
@@ -1202,6 +1217,12 @@ Percentage Participant::getAC10msPercentageOverload(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getAC10msPercentageOverload();
+}
+
+void Participant::notifyForProchotDeassertion(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->notifyForProchotDeassertion();
 }
 
 DomainPriority Participant::getDomainPriority(UIntN domainIndex)

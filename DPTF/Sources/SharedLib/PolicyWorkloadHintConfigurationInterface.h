@@ -29,8 +29,8 @@ public:
 
 	virtual void add(const PolicyWorkloadGroup& workloadGroup) = 0;
 	virtual UInt32 getHintForApplication(const std::string& application) = 0;
-
 	virtual std::shared_ptr<XmlNode> getXml() const = 0;
+	virtual void reloadConfiguration() = 0;
 
 	static const UInt32 DefaultWorkloadHint = 0;
 };

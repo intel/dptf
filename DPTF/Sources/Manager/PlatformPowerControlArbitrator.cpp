@@ -384,6 +384,60 @@ void PlatformPowerControlArbitrator::removeRequestsForPolicy(UIntN policyIndex)
 	removeDutyCycleRequest(policyIndex);
 }
 
+std::shared_ptr<XmlNode> PlatformPowerControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("platform_power_control_arbitrator_status");
+	auto policyPowerLimitRequests = m_requestedPlatformPowerLimits.find(policyIndex);
+	if (policyPowerLimitRequests != m_requestedPlatformPowerLimits.end())
+	{
+		auto powerLimits = policyPowerLimitRequests->second;
+		for (UIntN controlType = 0; controlType < (UIntN)PlatformPowerLimitType::MAX; ++controlType)
+		{
+			auto powerLimit = Power::createInvalid();
+			auto controlRequest = powerLimits.find((PlatformPowerLimitType::Type)controlType);
+			if (controlRequest != powerLimits.end())
+			{
+				powerLimit = controlRequest->second;
+			}
+			requestRoot->addChild(XmlNode::createDataElement("power_limit_" + PlatformPowerLimitType::ToXmlString((PlatformPowerLimitType::Type)controlType), powerLimit.toString()));
+		}
+	}
+
+	auto policyTimeWindowRequests = m_requestedTimeWindows.find(policyIndex);
+	if (policyTimeWindowRequests != m_requestedTimeWindows.end())
+	{
+		auto timeWindows = policyTimeWindowRequests->second;
+		for (UIntN controlType = 0; controlType < (UIntN)PlatformPowerLimitType::MAX; ++controlType)
+		{
+			auto timeWindow = TimeSpan::createInvalid();
+			auto controlRequest = timeWindows.find((PlatformPowerLimitType::Type)controlType);
+			if (controlRequest != timeWindows.end())
+			{
+				timeWindow = controlRequest->second;
+			}
+			requestRoot->addChild(XmlNode::createDataElement("time_window_" + PlatformPowerLimitType::ToXmlString((PlatformPowerLimitType::Type)controlType), timeWindow.toStringMilliseconds()));
+		}
+	}
+
+	auto policyDutyCycleRequests = m_requestedDutyCycles.find(policyIndex);
+	if (policyDutyCycleRequests != m_requestedDutyCycles.end())
+	{
+		auto dutyCycles = policyDutyCycleRequests->second;
+		for (UIntN controlType = 0; controlType < (UIntN)PlatformPowerLimitType::MAX; ++controlType)
+		{
+			auto dutyCycle = Percentage::createInvalid();
+			auto controlRequest = dutyCycles.find((PlatformPowerLimitType::Type)controlType);
+			if (controlRequest != dutyCycles.end())
+			{
+				dutyCycle = controlRequest->second;
+			}
+			requestRoot->addChild(XmlNode::createDataElement("duty_cycle_" + PlatformPowerLimitType::ToXmlString((PlatformPowerLimitType::Type)controlType), dutyCycle.toString()));
+		}
+	}
+
+	return requestRoot;
+}
+
 void PlatformPowerControlArbitrator::removePlatformPowerLimitRequest(UIntN policyIndex)
 {
 	auto policyRequests = m_requestedPlatformPowerLimits.find(policyIndex);

@@ -58,11 +58,14 @@ g_StaticDataVaults[] = {
 	{0}
 };
 
+// Optional NULL-terminated array of Data Repositories to load on startup
+char **g_autorepos = NULL;
+
 // Singleton DataBank (NameSpace) Manager
 static DataBankPtr g_DBMgr = NULL;
 
 // Default DataVault Namespace
-char g_DBMgr_DefaultDV[ESIF_NAME_LEN] = "dptf";
+static char g_DBMgr_DefaultDV[ESIF_NAME_LEN] = "dptf";
 
 static DataBankPtr DataBank_Create();
 static void DataBank_Destroy(DataBankPtr self);
@@ -74,6 +77,7 @@ static DataVaultPtr DataBank_GetDataVault_Locked(
 
 static esif_error_t DataBank_LoadStaticRepos(DataBankPtr self);
 static esif_error_t DataBank_LoadFileRepos(DataBankPtr self);
+static esif_error_t DataBank_LoadSpecifiedRepos(DataBankPtr self);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // DataBank class
@@ -361,6 +365,9 @@ static esif_error_t DataBank_LoadDataVaults()
 
 	rc = DataBank_LoadStaticRepos(self);
 	if (ESIF_OK == rc) {
+		rc = DataBank_LoadSpecifiedRepos(self);
+	}
+	if (ESIF_OK == rc) {
 		rc = DataBank_LoadFileRepos(self);
 	}
 	return rc;
@@ -462,6 +469,49 @@ static esif_error_t DataBank_LoadFileRepos(DataBankPtr self)
 
 			} while (esif_ccb_file_enum_next(find_handle, file_pattern, &ffd));
 			esif_ccb_file_enum_close(find_handle);
+		}
+	}
+exit:
+	return rc;
+}
+
+// Automatically Load all *.dv and *.dvx files in the current folder into the DataBank
+static esif_error_t DataBank_LoadSpecifiedRepos(DataBankPtr self)
+{
+	esif_error_t rc = ESIF_OK;
+	int j = 0;
+
+	UNREFERENCED_PARAMETER(self);
+
+	// Manually load all Repos in the optional Repo List
+	for (j = 0; g_autorepos != NULL && g_autorepos[j] != NULL; j++) {
+
+		// Check for init pause
+		if (g_stopEsifUfInit != ESIF_FALSE) {
+			ESIF_TRACE_API_INFO("Pausing DV loading\n");
+			rc = ESIF_I_INIT_PAUSED;
+			goto exit;
+		}
+
+		// Create a Repo Object and Load it into DataVault Cache(s)
+		DataRepoPtr repo = DataRepo_CreateAs(
+			StreamFile,
+			StoreReadOnly,
+			g_autorepos[j]);
+
+		if (repo) {
+			ESIF_TRACE_API_INFO("Loading File REPO %s\n", g_autorepos[j]);
+			rc = DataRepo_LoadSegments(repo);
+
+			if (rc != ESIF_OK) {
+				ESIF_TRACE_ERROR("REPO Load Failed [%s (%d)]: %s\n",
+					esif_rc_str(rc),
+					rc,
+					g_autorepos[j]);
+				CMD_OUT("ERROR: Unable to load REPO: %s\n", g_autorepos[j]);
+				rc = ESIF_OK;
+			}
+			DataRepo_Destroy(repo);
 		}
 	}
 exit:

@@ -599,9 +599,9 @@ double DomainPowerControl_001::getPidKiTerm(UIntN participantIndex, UIntN domain
 	throw dptf_exception("Pid Ki Term is not supported by " + getName() + ".");
 }
 
-TimeSpan DomainPowerControl_001::getTau(UIntN participantIndex, UIntN domainIndex)
+TimeSpan DomainPowerControl_001::getAlpha(UIntN participantIndex, UIntN domainIndex)
 {
-	throw dptf_exception("Tau is not supported by " + getName() + ".");
+	throw dptf_exception("Alpha is not supported by " + getName() + ".");
 }
 
 TimeSpan DomainPowerControl_001::getFastPollTime(UIntN participantIndex, UIntN domainIndex)
@@ -614,7 +614,7 @@ TimeSpan DomainPowerControl_001::getSlowPollTime(UIntN participantIndex, UIntN d
 	throw dptf_exception("Slow Poll Time is not supported by " + getName() + ".");
 }
 
-UInt32 DomainPowerControl_001::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+TimeSpan DomainPowerControl_001::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
 {
 	throw dptf_exception("Weighted Slow Poll Averaging Constant is not supported by " + getName() + ".");
 }
@@ -643,9 +643,7 @@ Power DomainPowerControl_001::getSlowPollPowerThreshold(UIntN participantIndex, 
 	throw dptf_exception("Get Slow Poll Power Threshold is not supported by " + getName() + ".");
 }
 
-Power DomainPowerControl_001::getInstantaneousPower(
-	UIntN participantIndex,
-	UIntN domainIndex)
+Power DomainPowerControl_001::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
 {
 	auto instantaneousPower = Power::createInvalid();
 	try

@@ -40,4 +40,5 @@ public:
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex) override;
 };

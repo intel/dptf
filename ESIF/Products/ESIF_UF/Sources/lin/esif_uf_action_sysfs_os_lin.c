@@ -667,7 +667,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		esif_ccb_memset(table_str, 0, BINARY_TABLE_SIZE);
 		/*	domain str and participant id are not relevant in this
 			case since we use device paths */
-		TableObject_Construct(&tableObject, parm1, "D0", NULL, NULL, NULL, 0, GET);
+		TableObject_Construct(&tableObject, parm1, "D0", NULL, NULL, NULL, 0, 0, GET);
 		rc = TableObject_LoadAttributes(&tableObject); /* properties such as table type (binary/virtual/datavault) and revision */
 		if (rc != ESIF_OK) {
 			TableObject_Destroy(&tableObject);
@@ -687,11 +687,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		}
 		else if (esif_ccb_stricmp("idsp", parm1) == 0) {
 			int lineNum = sysfs_get_string_multiline("/sys/devices/platform/INT3400:00/uuids/", "available_uuids", sys_long_string_val);
-			int i;
 			FLAGS_CLEAR(tableObject.options, TABLEOPT_ALLOW_SELF_DEFINE);
-			for (i = 0; i < lineNum; i++) {
-				tableObject.fields[i].dataType = ESIF_DATA_BINARY;
-			}
 			rc = get_supported_policies(table_str, lineNum, sys_long_string_val);
 		}
 		else if (esif_ccb_stricmp("ppcc", parm1) == 0) {
@@ -1424,7 +1420,7 @@ static enum esif_rc get_rapl_power_control_capabilities(
 	int guid_different = 0;
 	int guid_element_counter = 0;
 	char cur_path[MAX_SYSFS_PATH] = { 0 };
-	char revision[] = "2";
+	char revision[] = "02";
 	char path[MAX_SYSFS_PATH] = { 0 };
 	char node[MAX_SYSFS_PATH] = { 0 };
 
@@ -1535,7 +1531,7 @@ static enum esif_rc get_rapl_power_control_capabilities(
 	time2Min = (time2Min > 0) ? time2Min / 100 : 0;
 	time2Max = (time2Max > 0) ? time2Max / 100 : 0;
 	step2 = (step2 > 0) ? step2 / 1000 : 0;
-	esif_ccb_sprintf(BINARY_TABLE_SIZE, table_str, "%s,0,%llu,%llu,%llu,%llu,%llu,1,%llu,%llu,%llu,%llu,%llu",revision,pl1Min,pl1Max,time1Min,time1Max,step1,pl2Min,pl2Max,time2Min,time2Max,step2);
+	esif_ccb_sprintf(BINARY_TABLE_SIZE, table_str, "%s:0,%llu,%llu,%llu,%llu,%llu!1,%llu,%llu,%llu,%llu,%llu",revision,pl1Min,pl1Max,time1Min,time1Max,step1,pl2Min,pl2Max,time2Min,time2Max,step2);
 	rc = ESIF_OK;
 
 exit:

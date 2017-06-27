@@ -18,7 +18,6 @@
 
 #include "RfProfileData.h"
 #include "StatusFormat.h"
-#include "EsifDataBinaryRfProfileDataPackage.h"
 
 RfProfileData::RfProfileData(
 	Frequency centerFrequency,

@@ -116,6 +116,7 @@ namespace FrameworkEvent
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
+		PolicyWorkloadHintConfigurationChanged,
 
 		// App Events
 		DptfAppLoaded,

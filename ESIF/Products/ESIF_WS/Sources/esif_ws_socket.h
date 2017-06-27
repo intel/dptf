@@ -25,7 +25,44 @@
 
 #include "esif_ccb.h"
 #include "esif_ccb_rc.h"
-#include "esif_uf_ccb_sock.h"
+#include "esif_ccb_socket.h"
+#include "esif_sdk_iface_ws.h"
+
+// ESIF_UF <-> ESIF_WS Interface Helpers
+void EsifWsLock(void);
+void EsifWsUnlock(void);
+const char *EsifWsDocRoot(void);
+const char *EsifWsLogRoot(void);
+Bool EsifWsShellEnabled(void);
+void EsifWsShellLock(void);
+void EsifWsShellUnlock(void);
+char *EsifWsShellExec(char *cmd, size_t data_len);
+size_t EsifWsShellBufLen(void);
+int EsifWsTraceLevel(void);
+int EsifWsTraceMessageEx(int level, const char *func, const char *file, int line, const char *msg, ...);
+int EsifWsConsoleMessageEx(const char *msg, ...);
+
+typedef enum esif_ws_tracelevel {
+	TRACELEVEL_NONE = -1,
+	TRACELEVEL_FATAL = 0,
+	TRACELEVEL_ERROR = 1,
+	TRACELEVEL_WARNING = 2,
+	TRACELEVEL_INFO = 3,
+	TRACELEVEL_DEBUG = 4,
+} esif_ws_tracelevel_t;
+
+#define WS_DOTRACE_IFACTIVE(level, msg, ...) \
+	do { \
+		if (EsifWsTraceLevel() >= level) { \
+			EsifWsTraceMessageEx(level, ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
+		} \
+	} while ESIF_CONSTEXPR(ESIF_FALSE)
+
+#define WS_TRACE_FATAL(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_FATAL, msg, ##__VA_ARGS__)
+#define WS_TRACE_ERROR(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_ERROR, msg, ##__VA_ARGS__)
+#define WS_TRACE_WARNING(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_WARNING, msg, ##__VA_ARGS__)
+#define WS_TRACE_INFO(msg, ...)		WS_DOTRACE_IFACTIVE(TRACELEVEL_INFO, msg, ##__VA_ARGS__)
+#define WS_TRACE_DEBUG(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_DEBUG, msg, ##__VA_ARGS__)
 
 #define WS_HEADER_BUF_LEN	128		/* Buffer size for Websocket Header in REST responses */
 #define WS_BUFFER_LENGTH (OUT_BUF_LEN + WS_HEADER_BUF_LEN)
@@ -51,6 +88,11 @@ typedef enum FrameType_e {
 	EMPTY_FRAME			= 0xFF,
 } FrameType, *FrameTypePtr;
 
+typedef enum FinType_e {
+	FRAME_FRAGMENT = 0,
+	FRAME_FINAL = 1
+} FinType, *FinTypePtr;
+
 #pragma pack(push, 1)
 
 typedef struct Protocol_s {
@@ -59,6 +101,7 @@ typedef struct Protocol_s {
 	char  *keyField;
 	char  *webpage;
 	char  *web_socket_field;
+	char  *user_agent;
 	FrameType frameType;
 } Protocol, *ProtocolPtr;
 
@@ -126,7 +169,7 @@ typedef struct WsSocketFrame_s {
 FrameType esif_ws_socket_get_initial_frame_type(
 	const char *framePtr,
 	size_t incomingFrameLen,
-	Protocol *prot
+	ProtocolPtr prot
 	);
 
 eEsifError esif_ws_socket_build_protocol_change_response(
@@ -142,7 +185,8 @@ void esif_ws_socket_build_payload(
 	WsSocketFramePtr framePtr,
 	size_t bufferSize,
 	size_t *outgoingFrameSizePtr,
-	FrameType frameType
+	FrameType frameType,
+	FinType finType
 	);
 
 FrameType esif_ws_socket_get_subsequent_frame_type(

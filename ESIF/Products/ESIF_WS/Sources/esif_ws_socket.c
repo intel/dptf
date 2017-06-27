@@ -15,14 +15,11 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#define ESIF_TRACE_ID ESIF_TRACEMODULE_WEBSERVER
 
 #include "esif_ccb_memory.h"
 #include "esif_ccb_string.h"
 #include "esif_ws_algo.h"
 #include "esif_ws_socket.h"
-
-#include <ctype.h>
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -57,6 +54,7 @@ extern Bool g_ws_restricted;
 #define WEB_SOCK_KEY_FIELD              "Sec-WebSocket-Key: "
 #define WEB_SOCK_VERSION_FIELD          "Sec-WebSocket-Version: "
 
+#define USER_AGENT_FIELD                "User-Agent: "
 #define CONNECTION_FIELD                "Connection: "
 #define UPGRADE_FIELD                   "upgrade"
 #define ALT_UPGRADE_FIELD               "Upgrade: "
@@ -173,29 +171,34 @@ FrameType esif_ws_socket_get_initial_frame_type(
 			protPtr->hostField  = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->hostField)
 				return ERROR_FRAME;
-		} else if (memcmp(beg_input_frame, ORIGIN_FIELD, esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE)) == 0) {
+		}
+		else if (memcmp(beg_input_frame, ORIGIN_FIELD, esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame  += esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->originField);
 			protPtr->originField = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->originField)
 				return ERROR_FRAME;
-		} else if (memcmp(beg_input_frame, WEB_SOCK_PROT_FIELD, esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE)) == 0) {
+		}
+		else if (memcmp(beg_input_frame, WEB_SOCK_PROT_FIELD, esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->web_socket_field);
 			protPtr->web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->web_socket_field)
 				return ERROR_FRAME;
 			has_subprotocol = 1;
-		} else if (memcmp(beg_input_frame, WEB_SOCK_KEY_FIELD, esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE)) == 0) {
+		}
+		else if (memcmp(beg_input_frame, WEB_SOCK_KEY_FIELD, esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE);
 			esif_ccb_free(protPtr->keyField);
 			protPtr->keyField   = esif_ws_socket_get_field_value(beg_input_frame);
 			if (NULL == protPtr->keyField)
 				return ERROR_FRAME;
-		} else if (memcmp(beg_input_frame, WEB_SOCK_VERSION_FIELD, esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE)) == 0) {
+		}
+		else if (memcmp(beg_input_frame, WEB_SOCK_VERSION_FIELD, esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE);
 			esif_ws_socket_copy_line(beg_input_frame, version);
-		} else if (memcmp(beg_input_frame, CONNECTION_FIELD, esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE)) == 0) {
+		}
+		else if (memcmp(beg_input_frame, CONNECTION_FIELD, esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE)) == 0) {
 			beg_input_frame += esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE);
 			connection_field = NULL;
 			connection_field = esif_ws_socket_get_field_value(beg_input_frame);
@@ -222,7 +225,13 @@ FrameType esif_ws_socket_get_initial_frame_type(
 			esif_ccb_free(web_socket_field);
 			web_socket_field = NULL;
 		}
-
+		else if (memcmp(beg_input_frame, USER_AGENT_FIELD, esif_ccb_strlen(USER_AGENT_FIELD, MAX_SIZE)) == 0) {
+			beg_input_frame += esif_ccb_strlen(USER_AGENT_FIELD, MAX_SIZE);
+			esif_ccb_free(protPtr->user_agent);
+			protPtr->user_agent = esif_ws_socket_get_field_value(beg_input_frame);
+			if (NULL == protPtr->user_agent)
+				return ERROR_FRAME;
+		}
 		beg_input_frame = strstr(beg_input_frame, "\r\n") + 2;
 
 		if (!beg_input_frame) {
@@ -254,12 +263,14 @@ FrameType esif_ws_socket_get_initial_frame_type(
 	 * 2. Host: and Origin: must be "127.0.0.1:port" or "localhost:port" for Restricted Mode
 	 */
 	if (is_upgraded) {
-		char *origin_whitelist[] = { "null", "file://", NULL }; // Origin: values sent by browsers when loading html via file instead of url
+		char *origin_wsclient = (g_ws_restricted ? NULL : "chrome-extension://pfdhoblngboilpfeibdedpjgfnlcodoo");
+		char *origin_whitelist[] = { "null", "file://", NULL, NULL }; // Origin: values sent by browsers when loading html via file instead of url
 		char *origin_prefixes[] = { "http://", NULL }; // Origin: prefixes allowed for Restrcited and Non-Restricted modes
 		char *origin = protPtr->originField;
 		Bool origin_valid = ESIF_FALSE;
 		Bool prefix_valid = ESIF_FALSE;
 		int  item = 0;
+		origin_whitelist[2] = origin_wsclient;
 
 		// Origin: exact matches in Whitelist allowed in BOTH Restricted and Non-Restricted modes
 		// This is necessary so index.html can be loaded from filesystem to validate Web Server functionality in both modes
@@ -349,7 +360,8 @@ void esif_ws_socket_build_payload(
 	WsSocketFramePtr framePtr,
 	size_t bufferSize,
 	size_t *outgoingFrameSizePtr,
-	FrameType frameType
+	FrameType frameType,
+	FinType finType
 	)
 {
 	size_t hdrLen = 0;
@@ -366,7 +378,7 @@ void esif_ws_socket_build_payload(
 	framePtr->header.asU16 = 0;
 
 	/* Set the FIN flag */
-	framePtr->header.s.fin = 1;
+	framePtr->header.s.fin = finType;
 
 	/* Set the frame type */
 	framePtr->header.s.opcode = frameType;
@@ -434,7 +446,7 @@ FrameType esif_ws_socket_get_subsequent_frame_type(
 		if (payloadLength <= 0) {
 			return frameType;
 		}
-		ESIF_TRACE_DEBUG("WS Receive Frame: Type=%02X Payload=%zd Received=%zd Hdr=%zd\n", frameType, payloadLength, incomingFrameLen, hdrLen);
+		WS_TRACE_DEBUG("WS Receive Frame: Type=%02X Payload=%zd Received=%zd Hdr=%zd\n", frameType, payloadLength, incomingFrameLen, hdrLen);
 
 		if (payloadLength > (incomingFrameLen - hdrLen)) {
 			return INCOMPLETE_FRAME;

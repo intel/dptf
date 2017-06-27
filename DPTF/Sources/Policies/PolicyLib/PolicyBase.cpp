@@ -435,6 +435,14 @@ void PolicyBase::powerShareAlgorithmTableChanged(void)
 	onPowerShareAlgorithmTableChanged();
 }
 
+void PolicyBase::workloadHintConfigurationChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	m_policyServices.messageLogging->writeMessageInfo(
+		PolicyMessage(FLF, getName() + ": Workload Hint Configuration changed."));
+	onWorkloadHintConfigurationChanged();
+}
+
 void PolicyBase::connectedStandbyEntry(void)
 {
 	throwIfPolicyIsDisabled();
@@ -990,6 +998,11 @@ void PolicyBase::onActiveControlPointRelationshipTableChanged(void)
 }
 
 void PolicyBase::onPowerShareAlgorithmTableChanged(void)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWorkloadHintConfigurationChanged(void)
 {
 	throw not_implemented();
 }

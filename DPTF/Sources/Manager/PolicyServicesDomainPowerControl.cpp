@@ -167,10 +167,10 @@ double PolicyServicesDomainPowerControl::getPidKiTerm(UIntN participantIndex, UI
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getPidKiTerm(domainIndex);
 }
 
-TimeSpan PolicyServicesDomainPowerControl::getTau(UIntN participantIndex, UIntN domainIndex)
+TimeSpan PolicyServicesDomainPowerControl::getAlpha(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getTau(domainIndex);
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getAlpha(domainIndex);
 }
 
 TimeSpan PolicyServicesDomainPowerControl::getFastPollTime(UIntN participantIndex, UIntN domainIndex)
@@ -185,7 +185,7 @@ TimeSpan PolicyServicesDomainPowerControl::getSlowPollTime(UIntN participantInde
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getSlowPollTime(domainIndex);
 }
 
-UInt32 PolicyServicesDomainPowerControl::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
+TimeSpan PolicyServicesDomainPowerControl::getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getWeightedSlowPollAvgConstant(domainIndex);

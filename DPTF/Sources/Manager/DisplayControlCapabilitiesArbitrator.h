@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "DisplayControlDynamicCaps.h"
+#include <XmlNode.h>
 
 class dptf_export DisplayControlCapabilitiesArbitrator
 {
@@ -35,6 +36,7 @@ public:
 	DisplayControlDynamicCaps getArbitratedDisplayControlCapabilities();
 	Bool getArbitratedLock() const;
 	void removeRequestsForPolicy(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	std::map<UIntN, UIntN> m_requestedMaxDisplayIndex;

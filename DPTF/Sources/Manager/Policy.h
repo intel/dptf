@@ -121,6 +121,7 @@ public:
 	void executePolicyActiveControlPointRelationshipTableChanged(void);
 	void executePolicyPowerShareAlgorithmTableChanged(void);
 	void executePowerLimitChanged(void);
+	void executePolicyWorkloadHintConfigurationChanged(void);
 
 private:
 	// hide the copy constructor and assignment operator.

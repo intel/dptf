@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
+#include <XmlNode.h>
 
 //
 // Arbitration Rule:
@@ -38,6 +39,7 @@ public:
 
 	UIntN getArbitratedDisplayControlIndex(void) const;
 	void clearPolicyCachedData(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	UIntN m_arbitratedDisplayControlIndex;

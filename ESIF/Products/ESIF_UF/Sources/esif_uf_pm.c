@@ -106,6 +106,8 @@ eEsifError EsifUp_ReevaluateParticipantCaps(
 	EsifUpPtr self
 );
 
+static void EsifUpPm_SuspendLfParticipants();
+
 /*
  * ===========================================================================
  * PRIVATE
@@ -206,7 +208,7 @@ eEsifError EsifUpPm_RegisterParticipant(
 		esif_ccb_write_lock(&g_uppMgr.fLock);
 		isUppMgrLocked = ESIF_TRUE;
 
-		if (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_REMOVED) {
+		if (entryPtr->fState > ESIF_PM_PARTICIPANT_STATE_LF_REMOVED) {
 			goto exit;
 		}
 
@@ -336,11 +338,6 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 
 		creationDataPtr = (struct esif_ipc_event_data_create_participant *) eventDataPtr->buf_ptr;
 
-		if (EsifUpPm_DoesAvailableParticipantExistByName(creationDataPtr->name)) {
-			ESIF_TRACE_WARN("Participant %s already exists in UF\n", creationDataPtr->name);
-			goto exit;
-		}
-
 		rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, creationDataPtr, &newInstance);
 		if (ESIF_OK != rc) {
 			ESIF_TRACE_ERROR("Failed to add participant %s to participant manager\n", creationDataPtr->name);
@@ -367,6 +364,10 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 	case ESIF_EVENT_PARTICIPANT_UNREGISTER: 
 			ESIF_TRACE_INFO("Unregistering Participant: %d\n", upInstance);
 			rc = EsifUpPm_UnregisterParticipant(eParticipantOriginLF, upInstance);
+		break;
+
+	case ESIF_EVENT_LF_UNLOADED:
+		EsifUpPm_SuspendLfParticipants();
 		break;
 
 	case ESIF_EVENT_ACTION_LOADED:
@@ -660,6 +661,31 @@ eEsifError EsifUpPm_SuspendParticipant(
 exit:
 	return rc;
 }
+
+
+static void EsifUpPm_SuspendLfParticipants()
+{
+	EsifUpManagerEntryPtr entryPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+	UInt8 i = 0;
+
+	esif_ccb_write_lock(&g_uppMgr.fLock);
+
+	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
+		entryPtr = &g_uppMgr.fEntries[i];
+		upPtr = entryPtr->fUpPtr;
+		if (upPtr && (eParticipantOriginLF == upPtr->fOrigin)) {
+			EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL);
+		}
+		if (ESIF_INSTANCE_LF  == i) {
+			entryPtr->fState = ESIF_PM_PARTICIPANT_STATE_LF_REMOVED;
+		}
+	}
+
+	esif_ccb_write_unlock(&g_uppMgr.fLock);
+	return;
+}
+
 
 /*
  * Get By Instance From ID
@@ -1006,6 +1032,7 @@ eEsifError EsifUpPm_Init(void)
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -1025,6 +1052,7 @@ void EsifUpPm_Exit(void)
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, NULL);
 
 	/* Clean up resources */
 	EsifUpPm_DestroyParticipants();

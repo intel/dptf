@@ -49,6 +49,8 @@ public:
 	void setMinPowerLimit(Power minPower);
 	void setMaxPowerLimit(Power maxPower);
 	void setPowerStepSize(Power stepSize);
+	void setMinTimeWindow(TimeSpan minTimeWindow);
+	void setMaxTimeWindow(TimeSpan maxTimeWindow);
 
 	TimeSpan getMinTimeWindow(void) const;
 	TimeSpan getMaxTimeWindow(void) const;

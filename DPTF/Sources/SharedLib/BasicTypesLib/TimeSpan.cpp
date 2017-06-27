@@ -196,8 +196,6 @@ TimeSpan TimeSpan::operator/(Int64 divider) const
 
 Bool TimeSpan::operator==(const TimeSpan& rhs) const
 {
-	throwIfInvalid();
-	rhs.throwIfInvalid();
 	return m_microseconds == rhs.m_microseconds;
 }
 

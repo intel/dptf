@@ -52,10 +52,9 @@ Percentage DomainActivityStatus_000::getResidencyUtilization(UIntN participantIn
 	throw not_implemented();
 }
 
-void DomainActivityStatus_000::setEnergyThresholdInterruptFlag(
+void DomainActivityStatus_000::setEnergyThresholdInterruptDisable(
 	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 energyThresholdInterruptFlag)
+	UIntN domainIndex)
 {
 	throw not_implemented();
 }

@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "PowerControlDynamicCapsSet.h"
+#include <XmlNode.h>
 
 class dptf_export PowerControlCapabilitiesArbitrator
 {
@@ -29,12 +30,16 @@ public:
 
 	void commitPolicyRequest(UIntN policyIndex, const PowerControlDynamicCapsSet& capSet);
 	Bool hasArbitratedPowerControlCapabilities() const;
-	PowerControlDynamicCapsSet arbitrate(UIntN policyIndex, const PowerControlDynamicCapsSet& capSet);
+	PowerControlDynamicCapsSet arbitrate(
+		UIntN policyIndex,
+		const PowerControlDynamicCapsSet& requestedCapSet,
+		const PowerControlDynamicCapsSet& currentCapSet);
 
 	Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
-	PowerControlDynamicCapsSet getArbitratedPowerControlCapabilities();
+	PowerControlDynamicCapsSet getArbitratedPowerControlCapabilities(const PowerControlDynamicCapsSet& currentCapSet);
 	Bool getArbitratedLock() const;
 	void removeRequestsForPolicy(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedMaxPowerLimit;
@@ -67,4 +72,12 @@ private:
 		std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerStepRequests,
 		std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& maxTimeRequests,
 		std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& minTimeRequests) const;
+
+	PowerControlDynamicCapsSet createNewArbitratedCapabilitites(
+		std::map<UIntN, std::map<PowerControlType::Type, Power>>& maxPowerRequests,
+		std::map<UIntN, std::map<PowerControlType::Type, Power>>& minPowerRequests,
+		std::map<UIntN, std::map<PowerControlType::Type, Power>>& powerStepRequests,
+		std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& maxTimeRequests,
+		std::map<UIntN, std::map<PowerControlType::Type, TimeSpan>>& minTimeRequests,
+		const PowerControlDynamicCapsSet& currentCapSet);
 };

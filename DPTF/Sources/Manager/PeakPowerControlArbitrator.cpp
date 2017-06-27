@@ -18,6 +18,7 @@
 
 #include "PeakPowerControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 PeakPowerControlArbitrator::PeakPowerControlArbitrator(void)
 {
@@ -88,6 +89,24 @@ void PeakPowerControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 			m_arbitratedPeakPower.clear();
 		}
 	}
+}
+
+std::shared_ptr<XmlNode> PeakPowerControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("peak_power_control_arbitrator_status");
+	std::map<PeakPowerType::Type, Power> peakPowers;
+	auto policyRequest = m_requestedPeakPower.find(policyIndex);
+	if (policyRequest != m_requestedPeakPower.end())
+	{
+		peakPowers = policyRequest->second;
+	}
+
+	for (auto peakPower = peakPowers.begin(); peakPower != peakPowers.end(); ++peakPower)
+	{
+		requestRoot->addChild(XmlNode::createDataElement("peak_power_" + PeakPowerType::ToXmlString((PeakPowerType::Type)peakPower->first), peakPower->second.toString()));
+	}
+
+	return requestRoot;
 }
 
 Power PeakPowerControlArbitrator::getLowestRequest(

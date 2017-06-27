@@ -1,0 +1,10 @@
+[Unit]
+description=Intel(R) Dynamic Platform and Thermal Framework daemon
+
+[Service]
+Type=forking
+Restart=always
+ExecStart=/usr/bin/esif_ufd
+
+[Install]
+WantedBy=sysinit.target

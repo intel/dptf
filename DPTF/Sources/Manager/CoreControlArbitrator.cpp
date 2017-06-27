@@ -18,6 +18,7 @@
 
 #include "CoreControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 CoreControlArbitrator::CoreControlArbitrator()
 	: m_arbitratedActiveCoreCount(Constants::Invalid)
@@ -66,6 +67,19 @@ void CoreControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 		m_requestedActiveCoreCount[policyIndex] = Constants::Invalid;
 		commitPolicyRequest(policyIndex, Constants::Invalid);
 	}
+}
+
+std::shared_ptr<XmlNode> CoreControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("core_control_arbitrator_status");
+	auto activeCoreCount = Constants::Invalid;
+	auto policyRequest = m_requestedActiveCoreCount.find(policyIndex);
+	if (policyRequest != m_requestedActiveCoreCount.end())
+	{
+		activeCoreCount = policyRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("active_core_count", StatusFormat::friendlyValue(activeCoreCount)));
+	return requestRoot;
 }
 
 UIntN CoreControlArbitrator::getMinActiveCoreCount(std::map<UIntN, UIntN>& requests)

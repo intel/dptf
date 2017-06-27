@@ -58,6 +58,7 @@ private:
 	std::string getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode);
 	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedPolicies();
 	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedParticipants();
+	std::shared_ptr<XmlNode> getArbitratorXmlForLoadedParticipants();
 
 	void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
 

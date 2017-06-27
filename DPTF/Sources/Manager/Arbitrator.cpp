@@ -69,6 +69,25 @@ void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
 	m_peakPowerControlArbitrator->clearPolicyCachedData(policyIndex);
 }
 
+std::shared_ptr<XmlNode> Arbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	// call each arbitrator class to get the xml for the specified policy
+	auto domainRoot = XmlNode::createWrapperElement("arbitrators_status");
+	domainRoot->addChild(m_activeControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_configTdpControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_coreControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_displayControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_performanceControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_powerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_temperatureThresholdArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_powerControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_displayControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_performanceControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_platformPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_peakPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+	return domainRoot;
+}
+
 ActiveControlArbitrator* Arbitrator::getActiveControlArbitrator(void) const
 {
 	return m_activeControlArbitrator;

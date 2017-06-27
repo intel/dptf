@@ -84,27 +84,32 @@
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 
-#define register_for_power_notification(guid_ptr) (ESIF_E_ACTION_NOT_IMPLEMENTED)
-#define unregister_power_notification(guid_ptr) (ESIF_E_ACTION_NOT_IMPLEMENTED)
+#define register_for_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
+#define unregister_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
 // Linux system events are not GUID based, just return OK in this case to support all events
 #define register_for_system_metrics_notification(guid_ptr) (ESIF_OK)
 
 #else
 
-#define register_for_power_notification(guid_ptr) (ESIF_E_ACTION_NOT_IMPLEMENTED)
-#define unregister_power_notification(guid_ptr) (ESIF_E_ACTION_NOT_IMPLEMENTED)
+#define register_for_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
+#define unregister_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
-#define register_for_system_metrics_notification(guid_ptr) (ESIF_E_ACTION_NOT_IMPLEMENTED)
+#define register_for_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
 
-#if defined(ESIF_ATTR_OS_WINDOWS) && !defined(ESIF_ATTR_UWP)
+#if defined(ESIF_ATTR_OS_WINDOWS)
 #include "win\cem_csensormanager.h"
 #include "win\dppe.h"
+#include "win\support_app.h"
+
 
 #define esif_register_sensors(eventType) esif_register_sensors_win(eventType)
 #define esif_unregister_sensors(eventType) esif_unregister_sensors_win(eventType)
+
+#define esif_enable_code_event(eventType) enable_code_event_win(eventType)
+#define esif_disable_code_event(eventType) disable_code_event_win(eventType)
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 #include "lin/esif_uf_sensor_manager_os_lin.h"
@@ -112,9 +117,9 @@
 #define esif_register_sensors(eventType) esif_register_sensor_lin(eventType)
 #define esif_unregister_sensors(eventType) esif_unregister_sensor_lin(eventType)
 
-#else
-#define esif_register_sensors(eventType) (ESIF_E_ACTION_NOT_IMPLEMENTED)
-#define esif_unregister_sensors(eventType) (ESIF_E_ACTION_NOT_IMPLEMENTED)
+#define esif_enable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
+#define esif_disable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
+
 #endif
 
 typedef eEsifError (ESIF_CALLCONV * EVENT_OBSERVER_CALLBACK)(

@@ -765,7 +765,7 @@ void EsifServices::writeMessage(
 	}
 
 #endif
-}
+	}
 
 void EsifServices::throwIfNotSuccessful(
 	const std::string& fileName,

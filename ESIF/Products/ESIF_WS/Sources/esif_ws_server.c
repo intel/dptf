@@ -15,14 +15,19 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#define ESIF_TRACE_ID ESIF_TRACEMODULE_WEBSERVER
-#include <ctype.h>
+
+#include "esif_ccb.h"
+#include "esif_ccb_atomic.h"
+#include "esif_ccb_lock.h"
+#include "esif_ccb_string.h"
+
 #include "esif_ws_socket.h"
 #include "esif_ws_http.h"
 #include "esif_ws_server.h"
-#include "esif_ccb_atomic.h"
-#include "esif_ccb_lock.h"
-#include "esif_uf_shell.h"
+
+#include <stdlib.h>
+
+#define OUT_BUF_LEN		((u32)EsifWsShellBufLen())
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -46,6 +51,8 @@
 #define MAX_SOCKETS		(MAX_CLIENTS + 1)
 
 #define	MIN_REST_OUT_PADDING	15	/* space for "%u:" */
+
+#define MAX_SOCKET_TIMEOUT		2	/* Socket activity timeout waiting on blocking select() */
 
 /* for cleaning data that may be written to the socket */
 #define ASCII_CHAR_LBOUND 32
@@ -86,13 +93,13 @@
  * (unless more recv's or fragments are necessary)
  */
 #define MAX_WEBSOCKET_BUFFER	(8*1024*1024)	/* Max size of any single inbound websocket message (all combined fragments) */
+#define MAX_WEBSOCKET_SENDBUF	(1*1024*1024)	/* Max size of outbound websocket send buffer (multiple messages) */
 
 /*
  *******************************************************************************
  ** EXTERN
  *******************************************************************************
  */
-extern int g_shell_enabled;
 
 /*
  *******************************************************************************
@@ -103,10 +110,12 @@ extern int g_shell_enabled;
 #define WEBSOCKET_DEFAULT_PORT		"8888"		// Public Port
 #define WEBSOCKET_RESTRICTED_IPADDR	"127.0.0.1"	// Localhost Only
 #define WEBSOCKET_RESTRICTED_PORT	"888"		// System Port
-#define WEBSOCKET_FRAME_SIZE_DEFAULT (sizeof(WsSocketFrame) + sizeof(EsifCapability))
+
+#define WEBSOCKET_MINIMUM_BROADCAST_FRAME	256			// Must be sizeof(EsifCapability) [160] or greater
+#define WEBSOCKET_MAXIMUM_FRAGMENT_SIZE		(64*1024)	// Max Fragment Size for Multi-Fragment TEXT Frames REST API Responses
+#define WEBSOCKET_FRAME_SIZE_DEFAULT (sizeof(WsSocketFrame) + WEBSOCKET_MINIMUM_BROADCAST_FRAME)
 
 static char *esif_ws_server_get_rest_response(size_t *msgLenPtr);
-static char *esif_ws_server_get_rest_buffer(void);
 static void esif_ws_server_initialize_clients(void);
 static int esif_ws_broadcast_frame(const u8 *framePtr, size_t frameSize);
 
@@ -125,12 +134,6 @@ void esif_ws_server_execute_rest_cmd(
 
 static void esif_ws_client_initialize_client(ClientRecordPtr);
 static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr);
-
-static int esif_ws_client_write_to_socket(
-	ClientRecordPtr clientPtr,
-	const char *bufferPtr,
-	size_t bufferSize
-	);
 
 static eEsifError esif_ws_client_open_client(
 	ClientRecordPtr clientPtr,
@@ -156,16 +159,20 @@ static void strip_extended_ascii(
 
 static void esif_ws_protocol_initialize(ProtocolPtr protPtr);
 
-static esif_ccb_mutex_t g_ws_lock;      /* lock ws global variables. Move all these to a struct */
 static ClientRecordPtr g_clients = NULL; /* dynamically allocated array of MAX_CLIENTS */
 static char *g_ws_http_buffer = NULL; /* dynamically allocated buffer of size OUT_BUF_LEN */
 static u32  g_ws_http_buffer_len = 0; /* current allocated size of g_ws_http_buffer */
 static char *g_rest_out = NULL;
 
-static atomic_t g_ws_quit = 0;
 atomic_t g_ws_threads = 0;
+static atomic_t g_ws_quit = 0;
+static atomic_t g_ws_subscribers = 0;
 static u8 *g_ws_broadcast_frame = NULL; /* Global buffer used for Websocket broadcasts. Grows dynamically */
 static size_t g_ws_broadcast_frame_len = 0;
+
+static esif_thread_t g_webthread;  /* web worker thread */
+
+static esif_ccb_socket_t g_listen = INVALID_SOCKET;
 
 /*
  *******************************************************************************
@@ -177,9 +184,26 @@ char g_ws_ipaddr[MAX_IPADDR]= WEBSOCKET_DEFAULT_IPADDR;
 char g_ws_port[MAX_IPADDR] =  WEBSOCKET_DEFAULT_PORT;
 Bool g_ws_restricted = ESIF_FALSE;
 
-esif_ccb_socket_t g_listen = INVALID_SOCKET;
+eEsifError esif_ws_init(void)
+{
+	eEsifError rc = ESIF_OK;
+	int ret = 0;
+	atomic_set(&g_ws_threads, 0);
+	atomic_set(&g_ws_quit, 0);
+	atomic_set(&g_ws_subscribers, 0);
+	if ((ret = esif_ccb_socket_init()) != 0) {
+		WS_TRACE_ERROR("Socket Init Failure (%d)\n", ret);
+		rc = ESIF_E_WS_INIT_FAILED;
+	}
+	return rc;
+}
 
-int esif_ws_init(void)
+void esif_ws_exit(void)
+{
+	esif_ccb_socket_exit();
+}
+
+static int esif_ws_server_main(void)
 {
 	int index=0;
 	int retVal=0;
@@ -201,24 +225,23 @@ int esif_ws_init(void)
 	int setsize = 0;
 
 	struct timeval tv={0}; 	/* Timeout value */
-	fd_set workingSet = {0};
+	fd_set readFDs = { 0 };
+	fd_set writeFDs = { 0 };
+	fd_set exceptFDs = { 0 };
 
 	atomic_inc(&g_ws_threads);
 	atomic_set(&g_ws_quit, 0);
+	atomic_set(&g_ws_subscribers, 0);
 
-	esif_ccb_mutex_init(&g_ws_lock);
-	esif_ccb_mutex_lock(&g_ws_lock);
+	EsifWsLock();
 
-
-	CMD_OUT("starting %sweb server [IP %s port %s]...\n", (g_ws_restricted ? "restricted " : ""), ipaddr, portPtr);
-
-	esif_ccb_socket_init();
+	EsifWsConsoleMessageEx("starting %sweb server [IP %s port %s]...\n", (g_ws_restricted ? "restricted " : ""), ipaddr, portPtr);
 
 	// Allocate pool of Client Records and HTTP input buffer
 	esif_ws_server_initialize_clients();
 	esif_ws_buffer_resize(WS_BUFFER_LENGTH);
 	if (NULL == g_clients || NULL == g_ws_http_buffer) {
-		ESIF_TRACE_DEBUG("Out of memory");
+		WS_TRACE_DEBUG("Out of memory");
 		goto exit;
 	}
 
@@ -226,31 +249,31 @@ int esif_ws_init(void)
 
 	retVal   = esif_ws_server_create_inet_addr(&addrSrvr, &len_inet, ipaddr, portPtr, (char*)"top");
 	if (retVal < 0) {
-		ESIF_TRACE_DEBUG("Invalid server address/port number");
+		WS_TRACE_DEBUG("Invalid server address/port number");
 		goto exit;
 	}
 
 	g_listen = socket(PF_INET, SOCK_STREAM, 0);
 	if (g_listen == SOCKET_ERROR) {
-		ESIF_TRACE_DEBUG("open socket error, error #%d", errno);
+		WS_TRACE_DEBUG("open socket error, error #%d", esif_ccb_socket_error());
 		goto exit;
 	}
 
-	retVal = setsockopt(g_listen, SOL_SOCKET, SO_REUSEADDR, (char*)&option, sizeof(option));
+	retVal = setsockopt(g_listen, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (const char *)&option, sizeof(option));
 	if (retVal < 0) {
-		ESIF_TRACE_DEBUG("setsockopt failed, error #%d", errno);
+		WS_TRACE_ERROR("setsockopt error #%d", esif_ccb_socket_error());
 		goto exit;
 	}
 
 	retVal = bind(g_listen, (struct sockaddr*)&addrSrvr, len_inet);
 	if (retVal < 0) {
-		ESIF_TRACE_DEBUG("bind system call failed, error #%d", errno);
+		WS_TRACE_ERROR("Cannot bind Listener to IP %s Port %s - error #%d", ipaddr, portPtr, esif_ccb_socket_error());
 		goto exit;
 	}
 
 	retVal = listen(g_listen, MAX_CLIENTS);
 	if (retVal < 0) {
-		ESIF_TRACE_DEBUG("listen system call failed, error #%d", errno);
+		WS_TRACE_DEBUG("listen system call failed, error #%d", esif_ccb_socket_error());
 		goto exit;
 	}
 
@@ -262,19 +285,28 @@ int esif_ws_init(void)
 		setsize = 0;
 
 		/* Clear the FD set we will check after each iteration */
-		FD_ZERO(&workingSet);
+		FD_ZERO(&readFDs);
+		FD_ZERO(&writeFDs);
+		FD_ZERO(&exceptFDs);
 
 		/* Add our listner to the FD set to check */
-		FD_SET((u_int)g_listen, &workingSet);
+		FD_SET((u_int)g_listen, &readFDs);
 		maxfd = (int)g_listen + 1;
 		setsize++;
+		FD_SET((u_int)g_listen, &exceptFDs);
 
 		/* Add our current clients to the FD set to check */
 		for (index = 0; index < MAX_CLIENTS && setsize < MAX_SOCKETS; index++) {
 			if (g_clients[index].socket != INVALID_SOCKET) {
-				FD_SET((u_int)g_clients[index].socket, &workingSet);
+				FD_SET((u_int)g_clients[index].socket, &readFDs);
+				FD_SET((u_int)g_clients[index].socket, &exceptFDs);
 				maxfd = esif_ccb_max(maxfd, (int)g_clients[index].socket + 1);
 				setsize++;
+
+				/* Wait for socket to become writable if pending send buffer */
+				if (g_clients[index].send_buffer) {
+					FD_SET((u_int)g_clients[index].socket, &writeFDs);
+				}
 			}
 		}
 
@@ -286,29 +318,33 @@ int esif_ws_init(void)
 		/*
 		 *  timeout of N + 0.05 secs
 		 */
-		tv.tv_sec  = 2;
+		tv.tv_sec  = MAX_SOCKET_TIMEOUT;
 		tv.tv_usec = 50000;
 
 		/* Wait for activity on listener or client sockets for up to maximum timeout period */
-		esif_ccb_mutex_unlock(&g_ws_lock);
-		selRetVal  = select(maxfd, &workingSet, NULL, NULL, &tv);
-		esif_ccb_mutex_lock(&g_ws_lock);
+		EsifWsUnlock();
+		selRetVal  = select(maxfd, &readFDs, &writeFDs, &exceptFDs, &tv);
+		EsifWsLock();
 
+		/* Exit loop if select error or server stopping; continue loop if inactivity timeout */
 		if (selRetVal == SOCKET_ERROR) {
+			WS_TRACE_ERROR("SELECT Error (%d)\n", selRetVal);
+			break;
+		} else if (atomic_read(&g_ws_quit)) {
 			break;
 		} else if (!selRetVal) {
 			continue;
 		}
 
 		/* Accept any new connections on the listening socket */
-		if (FD_ISSET(g_listen, &workingSet)) {
+		if (FD_ISSET(g_listen, &readFDs)) {
 			int sockets = 1;
 			len_inet = sizeof addrClient;
 
-			client_socket = (int)accept(g_listen, (struct sockaddr*)&addrClient, &len_inet);
+			client_socket = accept(g_listen, (struct sockaddr*)&addrClient, &len_inet);
 
 			if (client_socket == SOCKET_ERROR) {
-				ESIF_TRACE_DEBUG("accept(2)");
+				WS_TRACE_DEBUG("accept(2)");
 				goto exit;
 			}
 
@@ -325,7 +361,7 @@ int esif_ws_init(void)
 
 			/* If all clients are in use, close the new client */
 			if (index >= MAX_CLIENTS || sockets >= MAX_SOCKETS) {
-				ESIF_TRACE_DEBUG("Connection Limit Exceeded (%d)", MAX_CLIENTS);
+				WS_TRACE_DEBUG("Connection Limit Exceeded (%d)", MAX_CLIENTS);
 				esif_ccb_socket_close(client_socket);
 				client_socket = INVALID_SOCKET;
 				continue;
@@ -342,26 +378,42 @@ int esif_ws_init(void)
 			if (client_socket == INVALID_SOCKET || client_socket == g_listen) {
 				continue;
 			}
+			clientPtr = &g_clients[index];
 
+			/* Close sockets with exceptions */
+			if (FD_ISSET(client_socket, &exceptFDs)) {
+				esif_ws_client_initialize_client(clientPtr); /* reset */
+				FD_CLR(client_socket, &exceptFDs);
+				WS_TRACE_DEBUG("Closing EXCEPT Socket %d\n", client_socket);
+				continue;
+			}
 			/* Process client if it is in the set of active file descriptors */
-			if (FD_ISSET(client_socket, &workingSet)) {
-				ESIF_TRACE_DEBUG("Client %d connected\n", client_socket);
+			if (FD_ISSET(client_socket, &readFDs)) {
+				WS_TRACE_DEBUG("Client %d connected\n", client_socket);
 
 				/******************** Process the client request ********************/
-				clientPtr = &g_clients[index];
 				req_results = esif_ws_client_process_request(clientPtr);
 
 				if (req_results == ESIF_E_WS_DISC) {
-					ESIF_TRACE_DEBUG("Client %d disconnected\n", client_socket);
+					WS_TRACE_DEBUG("Client %d disconnected\n", client_socket);
 					esif_ws_client_initialize_client(clientPtr); /* reset */
 				}
 				else if (req_results == ESIF_E_NO_MEMORY) {
-					ESIF_TRACE_DEBUG("Out of memory\n");
+					WS_TRACE_DEBUG("Out of memory\n");
 					esif_ws_client_initialize_client(clientPtr); /* reset */
 				}
 
 				/* Clear everything after use */
 				esif_ws_protocol_initialize(&clientPtr->prot);
+				FD_CLR(client_socket, &readFDs);
+			}
+			/* Flush send buffer when socket becomes writable */
+			if (FD_ISSET(client_socket, &writeFDs)) {
+				size_t sendBufLen = clientPtr->send_buf_len;
+				UNREFERENCED_PARAMETER(sendBufLen);
+				esif_ws_client_write_to_socket(clientPtr, NULL, 0);
+				WS_TRACE_DEBUG("WS SEND Unbuffering (%d): before=%zd after=%zd\n", (int)client_socket, sendBufLen, clientPtr->send_buf_len);
+				FD_CLR(client_socket, &writeFDs);
 			}
 		}
 	}
@@ -387,30 +439,50 @@ exit:
 	g_ws_http_buffer_len = 0;
 	g_ws_broadcast_frame = NULL;
 	g_ws_broadcast_frame_len = 0;
-	esif_ccb_socket_exit();
 	atomic_dec(&g_ws_threads);
-	esif_ccb_mutex_unlock(&g_ws_lock);
-	esif_ccb_mutex_uninit(&g_ws_lock);
+	EsifWsUnlock();
+	return 0;
+}
+
+static void *ESIF_CALLCONV esif_web_worker_thread(void *ptr)
+{
+	UNREFERENCED_PARAMETER(ptr);
+
+	WS_TRACE_INFO("Entering Function...");
+	esif_ws_server_main();
+	WS_TRACE_INFO("Exiting Function...");
 	return 0;
 }
 
 /* stop web server and wait for worker threads to exit */
-void esif_ws_exit(esif_thread_t *threadPtr)
+eEsifError esif_ws_start(void)
 {
-	CMD_OUT("stopping web server...\n");
-	atomic_set(&g_ws_quit, 1);
-	esif_ccb_thread_join(threadPtr);  /* join to close child thread, clean up handle */
-	// Wait for worker thread to finish
-	while (atomic_read(&g_ws_threads) > 0) {
-		esif_ccb_sleep(1);
+	eEsifError rc = ESIF_E_WS_ALREADY_STARTED;
+	if (atomic_read(&g_ws_threads) == 0) {
+		rc = esif_ccb_thread_create(&g_webthread, esif_web_worker_thread, NULL);
 	}
-	atomic_set(&g_ws_quit, 0);
-	CMD_OUT("web server stopped\n");
+	return rc;
 }
 
-void esif_ws_server_set_ipaddr_port(const char *ipaddr, u32 portPtr, Bool restricted)
+/* stop web server and wait for worker threads to exit */
+void esif_ws_stop(void)
 {
-	if (ipaddr == NULL) {
+	if (atomic_read(&g_ws_threads) > 0) {
+		atomic_set(&g_ws_quit, 1);
+
+		// Shutdown Listener socket to cancel any blocking select()
+		esif_ccb_socket_shutdown(g_listen);
+
+		// Wait for worker thread to exit
+		esif_ccb_thread_join(&g_webthread);
+
+		atomic_set(&g_ws_quit, 0);
+	}
+}
+
+void esif_ws_server_set_options(const char *ipaddr, u32 portPtr, Bool restricted)
+{
+	if (ipaddr == NULL || *ipaddr == 0) {
 		ipaddr = (restricted ? WEBSOCKET_RESTRICTED_IPADDR : WEBSOCKET_DEFAULT_IPADDR);
 	}
 	if (portPtr == 0) {
@@ -427,7 +499,7 @@ char *esif_ws_server_get_rest_response(size_t *msgLenPtr)
 	char *msgPtr = g_rest_out;
 	size_t msgLen = 0;
 
-	ESIF_TRACE_DEBUG("Message Received: %s \n", msgPtr);
+	WS_TRACE_DEBUG("Message Received: %s \n", msgPtr);
 
 	if (msgPtr == NULL) {
 		goto exit;
@@ -467,7 +539,7 @@ void esif_ws_server_execute_rest_cmd(
 		// Ad-Hoc UI Shell commands begin with "0:", so verify ESIF shell is enabled and command is valid
 		if (msg_id == 0 || g_ws_restricted) {
 			char *response = NULL;
-			if (msg_id == 0 && !g_shell_enabled) {
+			if (msg_id == 0 && !EsifWsShellEnabled()) {
 				response = "Shell Disabled";
 			}
 			else {
@@ -523,14 +595,14 @@ void esif_ws_server_execute_rest_cmd(
 		}
 
 		// Lock Shell so we can capture output before another thread executes another command
-		esif_uf_shell_lock();
+		EsifWsShellLock();
 		if (!atomic_read(&g_ws_quit)) {
-			EsifString cmd_results = esif_shell_exec_command(command_buf, dataSize, ESIF_TRUE, ESIF_FALSE);
+			esif_string cmd_results = EsifWsShellExec(command_buf, dataSize);
 			if (NULL != cmd_results) {
 				strip_extended_ascii(cmd_results);
 				size_t out_len = esif_ccb_strlen(cmd_results, OUT_BUF_LEN) + MIN_REST_OUT_PADDING;
 				esif_ccb_free(g_rest_out);
-				g_rest_out = (EsifString) esif_ccb_malloc(out_len);
+				g_rest_out = (esif_string) esif_ccb_malloc(out_len);
 				if (g_rest_out && out_len >= MIN_REST_OUT_PADDING) {
 					esif_ccb_sprintf(out_len, g_rest_out, "%u:%s", msg_id, cmd_results);
 				}
@@ -541,7 +613,7 @@ void esif_ws_server_execute_rest_cmd(
 				g_rest_out = esif_ccb_strdup("0:");
 			}
 		}
-		esif_uf_shell_unlock();
+		EsifWsShellUnlock();
 	}
 
 exit:
@@ -619,23 +691,73 @@ static int esif_ws_server_create_inet_addr(
 	return 0;
 }
 
-
-static int esif_ws_client_write_to_socket(
+int esif_ws_client_write_to_socket(
 	ClientRecordPtr clientPtr,
 	const char *bufferPtr,
 	size_t bufferSize
 	)
 {
-	ssize_t ret=0;
+	int result = EXIT_SUCCESS;
+	ssize_t ret = 0;
 
-	ret = send(clientPtr->socket, (char*)bufferPtr, (int)bufferSize, ESIF_WS_SEND_FLAGS);
-	if (ret == -1 || ret != (ssize_t)bufferSize) {
+	// Do Non-Blocking Send of any data already in send buffer first
+	if (clientPtr->send_buffer != NULL && clientPtr->send_buf_len > 0) {
+		ret = send(clientPtr->socket, (const char *)clientPtr->send_buffer, (int)clientPtr->send_buf_len, ESIF_WS_SEND_FLAGS);
+
+		// Destroy send buffer if Complete send, otherwise remove sent data before appending new data
+		if (ret == (int)clientPtr->send_buf_len) {
+			esif_ccb_free(clientPtr->send_buffer);
+			clientPtr->send_buffer = NULL;
+			clientPtr->send_buf_len = 0;
+			ret = 0;
+		}
+		else if (ret > 0) {
+			esif_ccb_memmove(clientPtr->send_buffer, clientPtr->send_buffer + ret, clientPtr->send_buf_len - ret);
+			clientPtr->send_buf_len -= ret;
+			ret = 0;
+		}
+	}
+
+	// Do Non-Blocking send if send buffer is clear
+	if (clientPtr->send_buffer == NULL && bufferPtr != NULL && bufferSize > 0) {
+		ret = send(clientPtr->socket, (char*)bufferPtr, (int)bufferSize, ESIF_WS_SEND_FLAGS);
+	}
+	
+	// Close Socket on Failure; EWOULDBLOCK is not a failure it is expected if the operation would block
+	if (ret == SOCKET_ERROR) {
+		if (esif_ccb_socket_error() == ESIF_SOCKERR_EWOULDBLOCK) {
+			ret = 0;
+		}
+		else {
+			result = EXIT_FAILURE;
+		}
+	}
+	// Append any unsent data to send buffer
+	if (result == EXIT_SUCCESS && ret != (ssize_t)bufferSize) {
+		size_t newBufLen = clientPtr->send_buf_len + bufferSize - ret;
+		u8 *newBuffer = NULL;
+		if (newBufLen <= MAX_WEBSOCKET_SENDBUF) {
+			newBuffer = esif_ccb_realloc(clientPtr->send_buffer, newBufLen);
+		}
+		if (newBuffer == NULL) {
+			result = EXIT_FAILURE;
+		}
+		else {
+			esif_ccb_memmove(newBuffer + clientPtr->send_buf_len, bufferPtr + ret, bufferSize - ret);
+			clientPtr->send_buffer = newBuffer;
+			clientPtr->send_buf_len = newBufLen;
+		}
+		WS_TRACE_DEBUG("WS SEND Buffering (%d): buffer=%zd sent=%d error=%d send_buf=%zd\n", (int)clientPtr->socket, bufferSize, ret, esif_ccb_socket_error(), clientPtr->send_buf_len);
+	}
+
+	// Close Socket on Error
+	if (result != EXIT_SUCCESS) {
+		WS_TRACE_DEBUG("WS SEND Failure (%d): buffer=%zd sent=%d error=%d send_buf=%zd [%zd total]\n", (int)clientPtr->socket, bufferSize, ret, esif_ccb_socket_error(), clientPtr->send_buf_len, clientPtr->send_buf_len + bufferSize);
 		esif_ccb_socket_close(clientPtr->socket);
 		clientPtr->socket = INVALID_SOCKET;
-		ESIF_TRACE_DEBUG("Error writing to socket: %s", (ret == -1 ? "Error in sending packets\n" : "Incomplete data\n"));
 		return EXIT_FAILURE;
 	}
-	return EXIT_SUCCESS;
+	return result;
 }
 
 static int esif_ws_broadcast_frame(
@@ -643,7 +765,6 @@ static int esif_ws_broadcast_frame(
 	size_t frameSize
 	)
 {
-	ssize_t ret = 0;
 	int rc = EXIT_SUCCESS;
 	int index = 0;
 
@@ -652,21 +773,15 @@ static int esif_ws_broadcast_frame(
 		goto exit;
 	}
 
+	// Broadcast frame to all active subscribers in a Non-Blocking send
 	for (index = 0; index < MAX_CLIENTS; index++) {
 		ClientRecordPtr clientPtr = &g_clients[index];
 
-		if (clientPtr->socket == INVALID_SOCKET || clientPtr->socket == g_listen || clientPtr->state != STATE_NORMAL) {
+		if (clientPtr->is_subscriber == ESIF_FALSE || clientPtr->socket == INVALID_SOCKET || clientPtr->socket == g_listen || clientPtr->state != STATE_NORMAL) {
 			continue;
 		}
-
-		ret = send(clientPtr->socket, (char*)framePtr, (int)frameSize, ESIF_WS_SEND_FLAGS);
-
-		if (ret == -1 || ret != (ssize_t)frameSize) {
-			esif_ccb_socket_close(clientPtr->socket);
-			clientPtr->socket = INVALID_SOCKET;
-			ESIF_TRACE_DEBUG("Error writing to socket: %s", (ret == -1 ? "Error in sending packets\n" : "Incomplete data\n"));
-			rc = EXIT_FAILURE;
-		}
+		WS_TRACE_DEBUG("WS SEND Broadcast (%d): bytes=%zd send_buf=%zd\n", (int)clientPtr->socket, frameSize, clientPtr->send_buf_len);
+		esif_ws_client_write_to_socket(clientPtr, (const char*)framePtr, frameSize);
 	}
 
 exit:
@@ -693,11 +808,13 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 	 */
 	messageLength = recv(clientPtr->socket, messageBuffer, (int)messageBufferLen, 0);
 	if (messageLength == 0 || messageLength == SOCKET_ERROR) {
-		ESIF_TRACE_DEBUG("no messages received from the socket\n");
-		result =  ESIF_E_WS_DISC;
+		if (esif_ccb_socket_error() != ESIF_SOCKERR_EWOULDBLOCK) {
+			WS_TRACE_DEBUG("no messages received from the socket\n");
+			result = ESIF_E_WS_DISC;
+		}
 		goto exit;
 	}
-	ESIF_TRACE_DEBUG("%d bytes received\n", (int)messageLength);
+	WS_TRACE_DEBUG("%d bytes received\n", (int)messageLength);
 
 	/* Combine this partial frame with the current connection's Frame Buffer, if any*/
 	if (clientPtr->frame_buffer != NULL && clientPtr->frame_buf_len > 0) {
@@ -709,7 +826,7 @@ static eEsifError esif_ws_client_process_request(ClientRecordPtr clientPtr)
 			result = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
-		ESIF_TRACE_DEBUG("WS Frame Unbuffering: buflen=%zd msglen=%zd total=%zd http=%d\n", clientPtr->frame_buf_len, messageLength, total_buffer_len, g_ws_http_buffer_len);
+		WS_TRACE_DEBUG("WS Frame Unbuffering: buflen=%zd msglen=%zd total=%zd http=%d\n", clientPtr->frame_buf_len, messageLength, total_buffer_len, g_ws_http_buffer_len);
 		esif_ccb_memcpy(frameBuffer + clientPtr->frame_buf_len, messageBuffer, messageLength);
 		messageBuffer = frameBuffer;
 		messageBufferLen = total_buffer_len;
@@ -753,15 +870,15 @@ static eEsifError esif_ws_client_open_client(
 	ESIF_ASSERT(clientPtr->state == STATE_OPENING);
 	ESIF_ASSERT(messageLength > 0);
 
-	ESIF_TRACE_DEBUG("Socket in its opening state\n");
+	WS_TRACE_DEBUG("Socket in its opening state\n");
 	/*Determine the initial frame type:  http frame type or websocket frame type */
 	frameType = esif_ws_socket_get_initial_frame_type(bufferPtr, messageLength, &clientPtr->prot);
 
 	if ((INCOMPLETE_FRAME == frameType) ||  (ERROR_FRAME == frameType)) {
 		if (INCOMPLETE_FRAME == frameType) {
-			ESIF_TRACE_DEBUG("Incomplete frame received\n");
+			WS_TRACE_DEBUG("Incomplete frame received\n");
 		} else {
-			ESIF_TRACE_DEBUG("Improper format for frame\n");
+			WS_TRACE_DEBUG("Improper format for frame\n");
 		}
 
 		/*
@@ -787,7 +904,7 @@ static eEsifError esif_ws_client_open_client(
 
 	if (OPENING_FRAME == frameType) {
 		if (esif_ws_socket_build_protocol_change_response(&clientPtr->prot, bufferPtr, bufferSize, &frameSize) != 0)	{
-			ESIF_TRACE_DEBUG("Unable to build response header\n");
+			WS_TRACE_DEBUG("Unable to build response header\n");
 			result =   ESIF_E_WS_DISC;
 			goto exit;
 		}
@@ -796,6 +913,17 @@ static eEsifError esif_ws_client_open_client(
 			result =   ESIF_E_WS_DISC;
 			goto exit;
 		}
+
+		/* Only broadcast to clients with sample User-Agent (ControlActionMonitor)
+		 * This is necessary to prevent event broadcasts to UI and TAT clients until websocket
+		 * clients are able to subscribe to specific events.
+		 */
+		if (clientPtr->prot.user_agent && esif_ccb_strcmp(clientPtr->prot.user_agent, "DptfMonitor/1.0") == 0) {
+			clientPtr->is_subscriber = ESIF_TRUE;
+			atomic_inc(&g_ws_subscribers);
+		}
+		unsigned long opt = 1;
+		esif_ccb_socket_ioctl(clientPtr->socket, FIONBIO, &opt);
 
 		/**************************** This is a now a websocket connection ****************************/
 		clientPtr->state = STATE_NORMAL;
@@ -860,7 +988,7 @@ static eEsifError esif_ws_client_process_active_client(
 
 		WsSocketFramePtr framePtr = (WsSocketFramePtr)bufferPtr;
 		frameType = esif_ws_socket_get_subsequent_frame_type(framePtr, messageLength, &data, &dataSize, &bytesRemaining);
-		ESIF_TRACE_DEBUG("FrameType: %d\n", frameType);
+		WS_TRACE_DEBUG("FrameType: %d\n", frameType);
 
 		/* Append this partial frame to the current connection's Frame Buffer, if any */
 		if (frameType == INCOMPLETE_FRAME) {
@@ -874,7 +1002,7 @@ static eEsifError esif_ws_client_process_active_client(
 				result = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
-			ESIF_TRACE_DEBUG("WS Frame Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, messageLength, newSize);
+			WS_TRACE_DEBUG("WS Frame Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, messageLength, newSize);
 			esif_ccb_memcpy(newBuffer + oldSize, bufferPtr, messageLength);
 			clientPtr->frame_buffer = newBuffer;
 			clientPtr->frame_buf_len = newSize;
@@ -893,7 +1021,7 @@ static eEsifError esif_ws_client_process_active_client(
 				result = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
-			ESIF_TRACE_DEBUG("WS Fragment Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, dataSize, newSize);
+			WS_TRACE_DEBUG("WS Fragment Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, dataSize, newSize);
 			esif_ccb_memcpy(newBuffer + oldSize, data, dataSize);
 			clientPtr->frag_buffer = newBuffer;
 			clientPtr->frag_buf_len = newSize;
@@ -927,13 +1055,13 @@ static eEsifError esif_ws_client_process_active_client(
 
 		/* Close Connection on Error */
 		if (ERROR_FRAME == frameType) {
-			ESIF_TRACE_DEBUG("Invalid Frame; Closing socket: Type=%02hX FIN=%hd Len=%hd Mask=%hd\n", framePtr->header.s.opcode, framePtr->header.s.fin, framePtr->header.s.payLen, framePtr->header.s.maskFlag);
+			WS_TRACE_DEBUG("Invalid Frame; Closing socket: Type=%02hX FIN=%hd Len=%hd Mask=%hd\n", framePtr->header.s.opcode, framePtr->header.s.fin, framePtr->header.s.payLen, framePtr->header.s.maskFlag);
 
 			/*
 			 * If the socket is not in its opening state while its frame type is in error or is incomplete
 			 * setup to store the payload to send to the client
 			 */
-			esif_ws_socket_build_payload(NULL, 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, CLOSING_FRAME);
+			esif_ws_socket_build_payload(NULL, 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, CLOSING_FRAME, FRAME_FINAL);
 			esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize);
 
 			/*
@@ -946,8 +1074,8 @@ static eEsifError esif_ws_client_process_active_client(
 
 		/* Close Connection on Closing Frame */
 		if (CLOSING_FRAME == frameType) {
-			ESIF_TRACE_DEBUG("Close frame received; closing socket\n");
-			esif_ws_socket_build_payload(NULL, 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, CLOSING_FRAME);
+			WS_TRACE_DEBUG("Close frame received; closing socket\n");
+			esif_ws_socket_build_payload(NULL, 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, CLOSING_FRAME, FRAME_FINAL);
 			esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize);
 
 			result =   ESIF_E_WS_DISC;
@@ -977,7 +1105,7 @@ static eEsifError esif_ws_client_process_active_client(
 			}
 			/* Combine the final fragment with the current connection's Fragment Buffer, if any */
 			if (prior_fragments_len > 0 && clientPtr->frag_buffer != NULL) {
-				ESIF_TRACE_DEBUG("WS Fragment Unbuffering: buflen=%zd msglen=%zd total=%zd\n", prior_fragments_len, dataSize, total_message_len);
+				WS_TRACE_DEBUG("WS Fragment Unbuffering: buflen=%zd msglen=%zd total=%zd\n", prior_fragments_len, dataSize, total_message_len);
 				esif_ccb_memcpy(textStrPtr, clientPtr->frag_buffer, prior_fragments_len);
 				esif_ccb_free(clientPtr->frag_buffer);
 				clientPtr->frag_buffer = NULL;
@@ -1000,11 +1128,27 @@ static eEsifError esif_ws_client_process_active_client(
 			restRespPtr = esif_ws_server_get_rest_response(&restRespSize);
 			
 			if (restRespPtr != NULL) {
-				esif_ws_socket_build_payload(restRespPtr, restRespSize, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, TEXT_FRAME);
+				size_t bytes_sent = 0;
 
-				if (esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize) == EXIT_FAILURE) {
-					result =  ESIF_E_WS_DISC;
-					goto exit;
+				// Break up large Websocket Messages into Multiple Fragments
+				while (bytes_sent < restRespSize) {
+					size_t fragment_size = esif_ccb_min(restRespSize - bytes_sent, WEBSOCKET_MAXIMUM_FRAGMENT_SIZE);
+					FrameType thisFrameType = (bytes_sent > 0 ? CONTINUATION_FRAME : TEXT_FRAME);
+					FinType finType = (fragment_size < restRespSize - bytes_sent ? FRAME_FRAGMENT : FRAME_FINAL);
+
+					esif_ws_socket_build_payload(
+						restRespPtr + bytes_sent,
+						fragment_size, 
+						(WsSocketFramePtr)bufferPtr, 
+						bufferSize, &frameSize, 
+						thisFrameType, 
+						finType);
+
+					if (esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize) == EXIT_FAILURE) {
+						result = ESIF_E_WS_DISC;
+						goto exit;
+					}
+					bytes_sent += fragment_size;
 				}
 			}
 
@@ -1014,13 +1158,13 @@ static eEsifError esif_ws_client_process_active_client(
 
 		/* Respond to PING Frames with PONG Frame containing Ping's Data */
 		if (PING_FRAME == frameType) {
-			esif_ws_socket_build_payload(data, dataSize, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, PONG_FRAME);
+			esif_ws_socket_build_payload(data, dataSize, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, PONG_FRAME, FRAME_FINAL);
 			esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize);
 		}
 
 		/* Handle unsolicited PONG (keepalive) messages from Internet Explorer 10 (Not required per RFC 6455 but allowed) */
 		if (PONG_FRAME == frameType) {
-			esif_ws_socket_build_payload("", 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, TEXT_FRAME);
+			esif_ws_socket_build_payload("", 0, (WsSocketFramePtr)bufferPtr, bufferSize, &frameSize, TEXT_FRAME, FRAME_FINAL);
 			esif_ws_client_write_to_socket(clientPtr, bufferPtr, frameSize);
 		}
 
@@ -1057,8 +1201,15 @@ void esif_ws_client_initialize_client(ClientRecordPtr clientPtr)
 	esif_ws_protocol_initialize(&clientPtr->prot);
 	if (clientPtr->socket != INVALID_SOCKET) {
 		esif_ccb_socket_close(clientPtr->socket);
+		if (clientPtr->is_subscriber) {
+			atomic_dec(&g_ws_subscribers);
+		}
 	}
 	clientPtr->socket = INVALID_SOCKET;
+
+	esif_ccb_free(clientPtr->send_buffer);
+	clientPtr->send_buffer = NULL;
+	clientPtr->send_buf_len = 0;
 
 	esif_ccb_free(clientPtr->frame_buffer);
 	clientPtr->frame_buffer = NULL;
@@ -1068,30 +1219,14 @@ void esif_ws_client_initialize_client(ClientRecordPtr clientPtr)
 	clientPtr->frag_buffer = NULL;
 	clientPtr->frag_buf_len = 0;
 	clientPtr->frag_type = EMPTY_FRAME;
+
+	clientPtr->is_subscriber = ESIF_FALSE;
 }
 
 
 void esif_ws_client_close_client(ClientRecordPtr clientPtr)
 {
-	if (NULL == clientPtr) {
-		return;
-	}
-
-	esif_ws_protocol_initialize(&clientPtr->prot);
-	clientPtr->state = STATE_OPENING;
-
-	if (clientPtr->socket != INVALID_SOCKET) {
-		esif_ccb_socket_close(clientPtr->socket);
-		clientPtr->socket = INVALID_SOCKET;
-	}
-	esif_ccb_free(clientPtr->frame_buffer);
-	clientPtr->frame_buffer = NULL;
-	clientPtr->frame_buf_len = 0;
-
-	esif_ccb_free(clientPtr->frag_buffer);
-	clientPtr->frag_buffer = NULL;
-	clientPtr->frag_buf_len = 0;
-	clientPtr->frag_type = EMPTY_FRAME;
+	esif_ws_client_initialize_client(clientPtr);
 }
 
 
@@ -1102,11 +1237,13 @@ void esif_ws_protocol_initialize(ProtocolPtr protPtr)
 	esif_ccb_free(protPtr->webpage);
 	esif_ccb_free(protPtr->keyField);
 	esif_ccb_free(protPtr->web_socket_field);
+	esif_ccb_free(protPtr->user_agent);
 	protPtr->hostField   = NULL;
 	protPtr->originField = NULL;
 	protPtr->webpage     = NULL;
 	protPtr->keyField    = NULL;
 	protPtr->web_socket_field = NULL;
+	protPtr->user_agent = NULL;
 	protPtr->frameType = EMPTY_FRAME;
 }
 
@@ -1122,7 +1259,7 @@ u32 esif_ws_buffer_resize(u32 size)
 	return g_ws_http_buffer_len;
 }
 
-eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
+eEsifError esif_ws_broadcast(const u8 *bufferPtr, size_t bufferSize)
 {
 	eEsifError rc = ESIF_OK;
 	size_t frameSize = 0; /* max frame size. will be updated when payload built */
@@ -1131,17 +1268,28 @@ eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
 		return ESIF_E_PARAMETER_IS_NULL;
 	}
 
-	if ((atomic_read(&g_ws_threads) < 1) ||
-		(atomic_read(&g_ws_quit) == 1)) { /* Either web server is not running, or is shutting down */
+	/* Exit if web server is not running or is shutting down */
+	if ((atomic_read(&g_ws_threads) < 1) ||	(atomic_read(&g_ws_quit) == 1)) {
 		return ESIF_E_IFACE_DISABLED;
 	}
 
-	if (g_ws_restricted) { /* Support event broadcasting only in non-restricted mode */
+	/* Support event broadcasting only in non-restricted mode */
+	if (g_ws_restricted) {
 		return ESIF_E_IFACE_DISABLED;
+	}
+
+	/* Exit if no active subscribers */
+	if (atomic_read(&g_ws_subscribers) < 1) {
+		return ESIF_OK;
 	}
 
 	/* Lock WebServer so we can access clients & buffers since we are on a different thread */
-	esif_ccb_mutex_lock(&g_ws_lock);
+	EsifWsLock();
+
+	/* Quit if Web Server stopped since we requested lock */
+	if (atomic_read(&g_ws_threads) < 1) {
+		goto exit;
+	}
 
 	/* Compute maximum frame size and grow global broadcast frame buffer if necessary */
 	frameSize = bufferSize + sizeof(WsSocketFrame);
@@ -1162,15 +1310,16 @@ eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
 		(WsSocketFramePtr)g_ws_broadcast_frame,
 		g_ws_broadcast_frame_len,
 		&frameSize,
-		BINARY_FRAME
+		BINARY_FRAME,
+		FRAME_FINAL
 	);
 
 	if (frameSize == 0 || esif_ws_broadcast_frame(g_ws_broadcast_frame, frameSize) != EXIT_SUCCESS) {
-		ESIF_TRACE_ERROR("Failed to broadcast DPTF event to websocket clients");
+		WS_TRACE_ERROR("Failed to broadcast DPTF event to websocket clients");
 		rc = ESIF_E_UNSPECIFIED;
 	}
 
 exit:
-	esif_ccb_mutex_unlock(&g_ws_lock);
+	EsifWsUnlock();
 	return rc;
 }

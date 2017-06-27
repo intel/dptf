@@ -75,15 +75,25 @@ Power PowerControlFacade::getAveragePower()
 {
 	throwIfControlNotSupported();
 	const auto& capsSet = getCapabilities();
-	if (capsSet.hasCapability(PowerControlType::PL1))
+	if (capsSet.hasCapability(PowerControlType::PL1) && supportsPowerStatus())
 	{
 		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
 		return m_powerStatusProperty.getAveragePower(caps);
 	}
-	else
+	
+	if (!capsSet.hasCapability(PowerControlType::PL1) && supportsPowerStatus())
 	{
 		return getCurrentPower();
 	}
+	
+	if (capsSet.hasCapability(PowerControlType::PL1) && !supportsPowerStatus())
+	{
+		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+		return caps.getMaxPowerLimit();
+	}
+
+	throw dptf_exception(
+		"Cannot perform power status action because power status in not supported on the domain.");
 }
 
 const PowerControlDynamicCapsSet& PowerControlFacade::getCapabilities()
@@ -98,10 +108,26 @@ void PowerControlFacade::refreshCapabilities()
 
 void PowerControlFacade::setCapability(const PowerControlDynamicCaps& capability)
 {
-	auto capabilitiesSet = getCapabilities();
-	capabilitiesSet.setCapability(capability);
+	auto currentCapabilitiesSet = getCapabilities();
+	auto controlTypes = currentCapabilitiesSet.getControlTypes();
+	PowerControlDynamicCapsSet newCapabilitiesSet;
+	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
+	{
+		PowerControlDynamicCaps capabilitiesToSet = PowerControlDynamicCaps(
+			*controlType,
+			Power::createInvalid(),
+			Power::createInvalid(),
+			Power::createInvalid(),
+			TimeSpan::createInvalid(),
+			TimeSpan::createInvalid(),
+			Percentage::createInvalid(),
+			Percentage::createInvalid());
+		newCapabilitiesSet.setCapability(capabilitiesToSet);
+	}
+
+	newCapabilitiesSet.setCapability(capability);
 	m_policyServices.domainPowerControl->setPowerControlDynamicCapsSet(
-		m_participantIndex, m_domainIndex, capabilitiesSet);
+		m_participantIndex, m_domainIndex, newCapabilitiesSet);
 	m_powerControlCapabilitiesProperty.invalidate();
 }
 

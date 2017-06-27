@@ -140,6 +140,8 @@ static esif_ccb_event_t g_shellStopEvent = { 0 };
 static char *g_outbuf = NULL;				// Dynamically created and can grow
 UInt32 g_outbuf_len = OUT_BUF_LEN_DEFAULT;	// Current (or Default) Size of ESIF Shell Output Buffer
 
+size_t g_cmdlen = 0;
+
 struct esif_data_binary_bst_package {
 	union esif_data_variant battery_state;
 	union esif_data_variant battery_present_rate;
@@ -1907,10 +1909,10 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		type     = ESIF_DATA_BINARY;
 		buf_size = g_binary_buf_size;
 		dump     = 1;
-	} else if (esif_ccb_stricmp(argv[0], "getp_bs") == 0) {
+	} else if ((esif_ccb_stricmp(argv[0], "getp_bf") == 0) || (esif_ccb_stricmp(argv[0], "getp_bs") == 0)) {
 		suffix   = &argv[0][4];
-		type     = ESIF_DATA_BINARY;
-		buf_size = g_binary_buf_size;
+		type = ESIF_DATA_AUTO;
+		buf_size = ESIF_DATA_ALLOCATE;
 		dump     = 2;
 	}
 
@@ -1936,7 +1938,8 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			goto exit;
 		}
 		filename = argv[opt++];
-		esif_build_path(full_path, sizeof(full_path), ESIF_PATHTYPE_BIN, filename, ".bin");
+		char *extension = (esif_ccb_strchr(filename, '.') == NULL ? ".bin" : NULL);
+		esif_build_path(full_path, sizeof(full_path), ESIF_PATHTYPE_BIN, filename, extension);
 	}
 
 	// Optional - Action selector
@@ -2054,7 +2057,9 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 	//
 
 	/* Assign Respond Data Type Description */
-	type = response.type;
+	if (dump != 2) {
+		type = response.type;
+	}
 	switch (type) {
 	case ESIF_DATA_UINT32:
 	case ESIF_DATA_UINT64:
@@ -2189,7 +2194,8 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 			dump_binary_data(byte_ptr, response.data_len);
 			break;
 		case 2:
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " Binary Data To File: %s (%u of %u):\n",
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " %s Data To File: %s (%u of %u):\n",
+							 ltrim(esif_data_type_str(response.type), PREFIX_DATA_TYPE),
 							 full_path,
 							 response.data_len,
 							 response.buf_len);
@@ -4184,6 +4190,7 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	char *suffix        = "";
 	enum esif_data_type primitiveDataType = ESIF_DATA_AUTO;
 	EsifDataPtr dataPtr = NULL;
+	char *dataStr = NULL;
 	struct esif_data request = {ESIF_DATA_VOID, NULL, 0};
 	struct esif_data response = {ESIF_DATA_VOID, NULL, 0};
 	struct esif_data *sarPtr = NULL;
@@ -4200,6 +4207,8 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	} else if (esif_ccb_stricmp(argv[0], "setp_t") == 0) {
 		suffix = &argv[0][4];
 	} else if (esif_ccb_stricmp(argv[0], "setp_pw") == 0) {
+		suffix = &argv[0][4];
+	} else if (esif_ccb_stricmp(argv[0], "setp_bf") == 0 || esif_ccb_stricmp(argv[0], "setp_bs") == 0) {
 		suffix = &argv[0][4];
 	}
 
@@ -4233,7 +4242,42 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
-	rc = EsifData_FromString(dataPtr, argv[opt++], primitiveDataType);
+	/* Read from a File in BIN directory for setp_bf */
+	dataStr = argv[opt++];
+	if (esif_ccb_strnicmp(suffix, "_b", 2) == 0) {
+		char full_path[MAX_PATH] = { 0 };
+		char *filename = dataStr;
+		char *extension = (esif_ccb_strchr(filename, '.') == NULL ? ".bin" : NULL);
+		int errnum = 0;
+		FILE *fp = NULL;
+
+		esif_build_path(full_path, sizeof(full_path), ESIF_PATHTYPE_BIN, filename, extension);
+		if ((fp = esif_ccb_fopen(full_path, FILE_READ, &errnum)) == NULL) {
+			rc = ESIF_E_NOT_FOUND;
+		}
+		else {
+			struct stat file_stat = { 0 };
+			esif_ccb_stat(full_path, &file_stat);
+			dataPtr->buf_ptr = esif_ccb_malloc(file_stat.st_size);
+			if (dataPtr->buf_ptr == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else if (file_stat.st_size < 1 || esif_ccb_fread(dataPtr->buf_ptr, file_stat.st_size, 1, file_stat.st_size, fp) != (size_t)file_stat.st_size) {
+				rc = ESIF_E_IO_ERROR;
+			}
+			else {
+				dataPtr->type = primitiveDataType;
+				dataPtr->buf_len = file_stat.st_size;
+				dataPtr->data_len = file_stat.st_size;
+				rc = ESIF_OK;
+			}
+			esif_ccb_fclose(fp);
+		}
+	}
+	else {
+		rc = EsifData_FromString(dataPtr, dataStr, primitiveDataType);
+	}
+
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
@@ -4353,19 +4397,25 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 			(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, (char *) dataPtr->buf_ptr, desc);
 		break;
 	case ESIF_DATA_TEMPERATURE:
-		esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, dataPtr->buf_ptr);
+		if (dataPtr->buf_len >= sizeof(esif_temp_t)) {
+			esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, dataPtr->buf_ptr);
 
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = %.1f %s\n", esif_primitive_str(
-			(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, (*(Int32 *) dataPtr->buf_ptr) / 10.0, desc);
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = %.1f %s\n", esif_primitive_str(
+				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, (*(Int32 *) dataPtr->buf_ptr) / 10.0, desc);
+		}	
 		break;
 	default:
 		if (esif_data_type_sizeof(dataPtr->type) == sizeof(UInt32) && dataPtr->buf_ptr != NULL) {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = 0x%08x %u %s\n", esif_primitive_str(
 				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, *(UInt32 *)dataPtr->buf_ptr, *(UInt32 *)dataPtr->buf_ptr, desc);
 		}
+		else if (esif_data_type_sizeof(dataPtr->type) == sizeof(UInt64) && dataPtr->buf_ptr != NULL) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = 0x%016llx %llu %s\n", esif_primitive_str(
+				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, *(UInt64 *)dataPtr->buf_ptr, *(UInt64 *)dataPtr->buf_ptr, desc);
+		}
 		else {
-			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = N/A %s\n", esif_primitive_str(
-				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, desc);
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s setp%s(%03u,%s,%03d) value = N/A %s Data (%u bytes)\n", esif_primitive_str(
+				(enum esif_primitive_type)id), suffix, id, qualifier_str, instance, ltrim(esif_data_type_str(dataPtr->type), PREFIX_DATA_TYPE), dataPtr->data_len);
 		}
 		break;
 	}
@@ -4591,6 +4641,7 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 		g_traceLevel = esif_ccb_min(g_traceLevel_max, level);
 		verbosity = (UInt32)g_traceLevel;
 		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_LOG_VERBOSITY_CHANGED, &verbosity_data);
+		EsifWebSetTraceLevel(g_traceLevel);
 		CMD_OUT("\ntrace level %d\n", g_traceLevel);
 	}
 	// trace module <level> <bitmask>
@@ -4606,6 +4657,8 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 		}
 		else
 			g_traceinfo[level].modules = bitmask;
+
+		EsifWebSetTraceLevel(g_traceLevel);
 	}
 	// trace route <level> <bitmask>
 	// trace route <level> [<route> ...]
@@ -5146,7 +5199,7 @@ static char *esif_shell_cmd_exit(EsifShellCmdPtr shell)
 	g_quit = ESIF_TRUE;
 #endif
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "exit\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "Exiting...\n");
 	return output;
 }
 
@@ -5164,6 +5217,7 @@ static char *esif_shell_cmd_tableobject(EsifShellCmdPtr shell)
 	char *targetData = NULL;
 	char *dataSource = NULL;
 	char *dataMember = NULL;
+	size_t targetDataLen = 0;
 	TableObject tableObject = {0};
 	EsifDataPtr namespacePtr = NULL;
 	EsifDataPtr pathPtr = NULL;
@@ -5202,10 +5256,11 @@ static char *esif_shell_cmd_tableobject(EsifShellCmdPtr shell)
 			goto exit;
 		}
 		targetData = argv[opt++];
+		targetDataLen = esif_ccb_strlen(targetData, g_cmdlen);
 		mode = SET;
 	}
 	
-	TableObject_Construct(&tableObject, targetTable, targetDomain, dataSource, dataMember, targetData, targetParticipantId, mode);
+	TableObject_Construct(&tableObject, targetTable, targetDomain, dataSource, dataMember, targetData, targetDataLen, targetParticipantId, mode);
 	
 	rc = TableObject_LoadAttributes(&tableObject); /* properties such as table type (binary/virtual/datavault) */
 	rc = TableObject_LoadData(&tableObject); /* determines the version, and in the case of GET will apply binary data */
@@ -6112,6 +6167,7 @@ static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 					NULL,
 					NULL,
 					NULL,
+					0,
 					participantId,
 					GET);
 				rc = TableObject_LoadSchema(&tableObject);
@@ -6434,8 +6490,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"getp_s   <id> [qualifier] [instance]        Like getp But Return STRING\n"
 		"getp_b   <id> [qualifier] [instance]        Like getp But Return BINARY DATA\n"
 		"getp_bd  <id> [qualifier] [instance]        Like getp But Dumps Hex BINARY DATA\n"
-		"getp_bs  <id> [qualifier] [instance] [file] Like getp_b But Dumps To File\n"
-		"getp_bt  <id> [qualifier] [instance]        Like getp_bs But Dumps As Table\n"
+		"getp_bf  <id> [qualifier] [instance] [file] Like getp_b But Dumps To File\n"
 		"getf_b   <file>                             Like getp_b But Reads From File\n"
 		"getf_bd  <file>                             Like getp_bd But Reads From File\n"
 		"\n"
@@ -6449,6 +6504,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"\n"
 		"setp_t  <id> <qualifier> <instance> <temp>  Execute Set as Temperature (C)\n"
 		"setp_pw <id> <qualifier> <instance> <power> Execute Set as Power (mW)\n"
+		"setp_bf <id> <qualifier> <instance> <file>  Same as setp except Read from File\n"
 		"set_osc <id> <capablities>                  Execute ACPI _OSC Command For\n"
 		"                                            Listed GUIDs Below:\n"
 		"         Active Policy 0 = {0xd6,0x41,0xa4,0x42,0x6a,0xae,0x2b,0x46,\n"
@@ -6476,6 +6532,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"                                            Set DataVault Key/Value/Type\n"
 		"config keys   [@datavault] [<keyspec>]      Enumerate matching Key(s) or wildcard\n"
 		"config delete [@datavault] <keyspec>        Delete DataVault Key (or '*')\n"
+		"config save   [@datavault] <key> <file>     Save a Key's binary value to a File\n"
 		"config exec   [@datavault] <key>            Execute Script in DataVault Key\n"
 		"config copy   [@datavault] <keyspec> [...] [@targetdv] [option ...]\n"
 		"                                            Copy (and Replace) keys(s) to another DV\n"
@@ -6722,7 +6779,8 @@ static char *esif_shell_cmd_web(EsifShellCmdPtr shell)
 
 	// web [status]
 	if (argc < 2 || esif_ccb_stricmp(argv[1], "status")==0) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "web server %s\n", (EsifWebIsStarted() ? "started" : "stopped"));
+		const char *version = EsifWebVersion();
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "web server %s%s%s\n", (EsifWebIsStarted() ? "started" : "stopped"), (*version ? " : Version " : ""), version);
 	}
 	// web start [restricted] [ip.addr] [port]
 	else if (esif_ccb_stricmp(argv[1], "start")==0) {
@@ -6778,6 +6836,14 @@ static char *esif_shell_cmd_web(EsifShellCmdPtr shell)
 			CMD_OUT("web server not started\n");
 		}
 	}
+	// web load
+	else if (esif_ccb_stricmp(argv[1], "load") == 0) {
+		EsifWebLoad();
+	}
+	// web unload
+	else if (esif_ccb_stricmp(argv[1], "unload") == 0) {
+		EsifWebUnload();
+	}
 	return output;
 }
 
@@ -6816,15 +6882,15 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 	if (argc < 2 || esif_ccb_stricmp(subcmd, "list")==0) {
 		DataBankPtr DbMgr = DataBank_GetMgr();
 		UInt32 j=0;
-		CMD_OUT("\nName             SegmentID        Keys  Version Flags    Store       Size Hash                                     Comment\n"
-				  "---------------- ---------------- ----- ------- -------- ------ --------- ---------------------------------------- --------------------------------\n");
+		CMD_OUT("\nName             SegmentID        Keys  Version Flags    Store       Size Hash                                                             Comment\n"
+				  "---------------- ---------------- ----- ------- -------- ------ --------- ---------------------------------------------------------------- --------------------------------\n");
 
 		esif_ccb_read_lock(&DbMgr->lock);
 		for (j = 0; j < DbMgr->size; j++) {
 			if (DbMgr->elements && DbMgr->elements[j] && DbMgr->elements[j]->name[0]) {
 				char version_str[MAX_PATH];
 				DataVaultPtr DB = DbMgr->elements[j];
-				UInt32 hashAsU32[5] = { 0 };
+				char hashstr[(sizeof(DB->digest.hash) * 2) + 1] = { 0 };
 
 				esif_ccb_read_lock(&DB->lock);
 				esif_string isdefault = (esif_ccb_stricmp(DB->name, DataBank_GetDefault()) == 0 ? "+" : "");
@@ -6835,11 +6901,8 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 					ESIFHDR_GET_MINOR(DB->version),
 					ESIFHDR_GET_REVISION(DB->version));
 
-				// Display SHA1 for all Header versions, even though v1 does not persist SHA1
-				esif_ccb_memcpy(hashAsU32, DB->digest.hash, esif_ccb_min(sizeof(hashAsU32), sizeof(DB->digest.hash)));
-
 				config_flags_str_t flagstr = config_flags_str(DB->flags);
-				CMD_OUT("%-16s %-16s%-1s%5d %-8s%s %-6s%10u %08X%08X%08X%08X%08X %s\n",
+				CMD_OUT("%-16s %-16s%-1s%5d %-8s%s %-6s%10u %s %s\n",
 					DB->name,
 					(DB->segmentid[0] ? DB->segmentid : DB->name),
 					isdefault,
@@ -6848,11 +6911,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 					(StringPtr)&flagstr,
 					container,
 					(UInt32)(DB->digest.digest_bits / 8),
-					esif_ccb_htonl(hashAsU32[0]),
-					esif_ccb_htonl(hashAsU32[1]),
-					esif_ccb_htonl(hashAsU32[2]),
-					esif_ccb_htonl(hashAsU32[3]),
-					esif_ccb_htonl(hashAsU32[4]),
+					esif_sha256_tostring(&DB->digest, hashstr, sizeof(hashstr)),
 					DB->comment
 					);
 				esif_ccb_read_unlock(&DB->lock);
@@ -6884,15 +6943,14 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			EsifConfigFindContext context = NULL;
 			Bool display_hash = ESIF_FALSE;
 
-			if (type && esif_ccb_strnicmp(type, "SHA1", 3) == 0) {
+			if (type && esif_ccb_strnicmp(type, "SHA", 3) == 0) {
 				display_hash = ESIF_TRUE;
-				max_string = (SHA1_HASH_BYTES * 2) + 1;
+				max_string = SHA256_STRING_BYTES;
 			}
 			if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
 				CMD_OUT("\nType          Length Flags    Key                                      %s\n"
-					"----------- -------- -------- ---------------------------------------- ----------------------------------------%s\n",
-					(display_hash ? "Hash": "Value"),
-					(display_hash ? "" : "------------------------")
+					"----------- -------- -------- ---------------------------------------- ----------------------------------------------------------------\n",
+					(display_hash ? "Hash": "Value")
 				);
 				do {
 					esif_flags_t flags = 0;
@@ -6901,21 +6959,23 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 						size_t valuelen = 0;
 						size_t j = 0;
 						if (display_hash) {
-							valuelen = (SHA1_HASH_BYTES * 2) + 1;
+							valuelen = SHA256_STRING_BYTES;
 							valuestr = esif_ccb_malloc(valuelen);
 							if (valuestr && data_value->buf_ptr) {
-								UInt32 hashAsU32[5] = { 0 };
-								esif_sha1_t digest = { 0 };
-								esif_sha1_init(&digest);
-								esif_sha1_update(&digest, data_value->buf_ptr, data_value->data_len);
-								esif_sha1_finish(&digest);
-								esif_ccb_memcpy(hashAsU32, digest.hash, esif_ccb_min(sizeof(hashAsU32), sizeof(digest.hash)));
-								esif_ccb_sprintf(valuelen, valuestr, "%08X%08X%08X%08X%08X",
-									esif_ccb_htonl(hashAsU32[0]),
-									esif_ccb_htonl(hashAsU32[1]),
-									esif_ccb_htonl(hashAsU32[2]),
-									esif_ccb_htonl(hashAsU32[3]),
-									esif_ccb_htonl(hashAsU32[4]));
+								if (type && esif_ccb_stricmp(type, "SHA1") == 0) {
+									esif_sha1_t digest = { 0 };
+									esif_sha1_init(&digest);
+									esif_sha1_update(&digest, data_value->buf_ptr, data_value->data_len);
+									esif_sha1_finish(&digest);
+									esif_sha1_tostring(&digest, valuestr, valuelen);
+								}
+								else {
+									esif_sha256_t digest = { 0 };
+									esif_sha256_init(&digest);
+									esif_sha256_update(&digest, data_value->buf_ptr, data_value->data_len);
+									esif_sha256_finish(&digest);
+									esif_sha256_tostring(&digest, valuestr, valuelen);
+								}
 							}
 						}
 						else {
@@ -7144,6 +7204,46 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
 		}
 	}
+	// config save [@datavault] <key> <file>
+	else if (argc > opt + 1 && esif_ccb_stricmp(subcmd, "save") == 0) {
+		char *keyname = argv[opt++];
+		char *fname = argv[opt++];
+
+		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
+		data_key = EsifData_CreateAs(ESIF_DATA_STRING, keyname, 0, ESIFAUTOLEN);
+		data_value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		if (data_nspace == NULL || data_key == NULL || data_value == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+		}
+		else if (shell_isprohibited(fname)) {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+
+		// Save Key Value (if found) to file in bin directory
+		if (rc == ESIF_OK && ((rc = EsifConfigGet(data_nspace, data_key, data_value)) == ESIF_OK) && data_value->buf_ptr != NULL) {
+			char export_file[MAX_PATH] = { 0 };
+			int errnum = 0;
+			FILE *fp = NULL;
+
+			esif_build_path(export_file, sizeof(export_file), ESIF_PATHTYPE_BIN, fname, NULL);
+			fp = esif_ccb_fopen(export_file, "wb", &errnum);
+			if (fp == NULL) {
+				rc = ESIF_E_IO_OPEN_FAILED;
+			}
+			else {
+				if (esif_ccb_fwrite(data_value->buf_ptr, 1, data_value->data_len, fp) != data_value->data_len) {
+					rc = ESIF_E_IO_ERROR;
+				}
+				else {
+					esif_ccb_sprintf(OUT_BUF_LEN, output, "%u bytes saved to %s\n", data_value->data_len, export_file);
+				}
+				esif_ccb_fclose(fp);
+			}
+		}
+		if (rc != ESIF_OK) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
+		}
+	}
 	// config exec [@datavault] <key>
 	else if (argc > opt && esif_ccb_stricmp(subcmd, "exec")==0) {
 		char *keyname = argv[opt++];
@@ -7339,7 +7439,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		}
 	}
 	// config asl <source.ext> <dest.asl>
-	else if (esif_ccb_stricmp(subcmd, "asl") == 0 && argc + 1 > opt) {
+	else if (esif_ccb_stricmp(subcmd, "asl") == 0 && argc > opt + 1) {
 		char source_path[MAX_PATH] = { 0 };
 		char dest_path[MAX_PATH] = { 0 };
 		FILE *fpin = NULL;
@@ -7774,7 +7874,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s (%d dropped)\n", esif_rc_str(rc), dropped);
 	}
 	// config concat <target.ext> <file1.ext> [...]
-	else if (esif_ccb_stricmp(subcmd, "concat") == 0 && !explicit_namesp && argc + 1 > opt) {
+	else if (esif_ccb_stricmp(subcmd, "concat") == 0 && !explicit_namesp && argc > opt + 1) {
 		char target_path[MAX_PATH] = { 0 };
 		char source_path[MAX_PATH] = { 0 };
 		StringPtr target_name = argv[opt++];
@@ -7835,7 +7935,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "%s [%d] (%d files, %llu total bytes)\n", esif_rc_str(rc), errnum, filecount, (UInt64)total_bytes);
 	}
 	// config rename <oldname.ext> <newname.ext>
-	else if ((esif_ccb_stricmp(subcmd, "rename") == 0 || esif_ccb_stricmp(subcmd, "replace") == 0) && !explicit_namesp && argc + 1 > opt) {
+	else if ((esif_ccb_stricmp(subcmd, "rename") == 0 || esif_ccb_stricmp(subcmd, "replace") == 0) && !explicit_namesp && argc > opt + 1) {
 		char oldpath[MAX_PATH] = { 0 };
 		char newpath[MAX_PATH] = { 0 };
 		StringPtr oldfile = argv[opt++];
@@ -8629,6 +8729,7 @@ char *esif_shell_exec_command(
 	}
 
 	cmdlen = esif_ccb_strlen(lineCpy, buf_len);
+	g_cmdlen = cmdlen;
 	do {
 
 		esif_ccb_free(temp_line);
@@ -8868,8 +8969,8 @@ static EsifShellMap ShellCommands[] = {
 	{"getp",                 fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst)"
 	{"getp_b",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as binary"
 	{"getp_bd",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
+	{"getp_bf",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"getp_bs",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
-	{"getp_bt",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"getp_pw",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as power"
 	{"getp_s",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as string"
 	{"getp_t",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as temperature"
@@ -8910,6 +9011,8 @@ static EsifShellMap ShellCommands[] = {
 	{"setb",                 fnArgv, (VoidFunc)esif_shell_cmd_setb                },
 	{"seterrorlevel",        fnArgv, (VoidFunc)esif_shell_cmd_seterrorlevel       },
 	{"setp",                 fnArgv, (VoidFunc)esif_shell_cmd_setp                },
+	{"setp_bf",              fnArgv, (VoidFunc)esif_shell_cmd_setp                },
+	{"setp_bs",              fnArgv, (VoidFunc)esif_shell_cmd_setp                },
 	{"setp_pw",              fnArgv, (VoidFunc)esif_shell_cmd_setp                },
 	{"setp_t",               fnArgv, (VoidFunc)esif_shell_cmd_setp                },
 	{"shell",                fnArgv, (VoidFunc)esif_shell_cmd_shell               },

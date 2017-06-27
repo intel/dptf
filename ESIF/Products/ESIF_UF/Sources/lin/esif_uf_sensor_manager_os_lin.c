@@ -36,7 +36,7 @@
 #define IIO_STR_LEN 24
 #define ESIF_IIO_SAMPLE_PERIOD 5 // In seconds
 #define MAX_GFORCE (9.8 * 2) // All Chromebooks accel have default -2G to 2G range
-#define MOTION_CHANGE_THRESHOLD 0.002 // Normalize threshold to declare motion state change
+#define MOTION_CHANGE_THRESHOLD 0.007 // Normalize threshold to declare motion state change
 
 typedef enum SensorType_e {
 	SENSOR_TYPE_ACCEL,
@@ -105,7 +105,7 @@ static Sensor *gAccelLid;
 static AccelerometerData gCurAccelData;
 static PlatformOrientation gCurPlatOrientation = ORIENTATION_PLAT_MAX;
 static DisplayOrientation gCurDispOrientation = ORIENTATION_DISP_MAX;
-static PlatformType gCurPlatType = PLATFORM_TYPE_INVALID;
+static Bool gInMotion = ESIF_TRUE;
 
 // The SIGUSR1 handler below is the alternative
 // solution for Android where the pthread_cancel()
@@ -397,6 +397,7 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 	EsifData evtData = { 0 };
 	float delta = 0;
 	AccelerometerData data = { 0 };
+	UInt32 newMotionState = ESIF_FALSE;
 
 	ESIF_ASSERT(sensorPtr != NULL);
 
@@ -405,9 +406,13 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 			(data.yVal - gCurAccelData.yVal) * (data.yVal - gCurAccelData.yVal) +
 			(data.zVal - gCurAccelData.zVal) * (data.zVal - gCurAccelData.zVal));
 	if (delta > MOTION_CHANGE_THRESHOLD) {
-		UInt32 motionState = ESIF_TRUE; // Event data for ESIF_EVENT_MOTION_CHANGED is always ESIF_TRUE
-		ESIF_DATA_UINT32_ASSIGN(evtData, &motionState, sizeof(UInt32));
+		newMotionState = ESIF_TRUE;
+	}
+
+	if (newMotionState != gInMotion) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &newMotionState, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_MOTION_CHANGED, &evtData);
+		gInMotion = newMotionState;
 	}
 	gCurAccelData = data;
 }
@@ -415,7 +420,7 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 static void CheckPlatTypeChange(SensorPtr baseSensorPtr, SensorPtr lidSensorPtr)
 {
 	EsifData evtData = { 0 };
-	PlatformType newPlatType = PLATFORM_TYPE_INVALID;
+	PlatformType platType = PLATFORM_TYPE_INVALID;
 	AccelerometerData baseData = { 0 };
 	AccelerometerData lidData = { 0 };
 
@@ -425,13 +430,15 @@ static void CheckPlatTypeChange(SensorPtr baseSensorPtr, SensorPtr lidSensorPtr)
 	baseData = NormalizeAccelRawData(baseSensorPtr);
 	lidData = NormalizeAccelRawData(lidSensorPtr);
 
-	EsifAccelerometer_GetPlatformType(&baseData, &lidData, &newPlatType);
-	if (newPlatType != gCurPlatType) {
-		UInt32 data = (UInt32) newPlatType;
-		ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
-		gCurPlatType = newPlatType;
-	}
+	EsifAccelerometer_GetPlatformType(&baseData, &lidData, &platType);
+	/* ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED is currently a Windows system 
+	 * metrics event which is not handled by Linux, because of this 
+	 * we cannot send a gratuitous event on sensor registration. As a workaround
+	 * we always send this event to DPTF regardless if its value has changed, 
+	 * and this will make the DPTF UI happy.
+	 */
+	ESIF_DATA_UINT32_ASSIGN(evtData, &platType, sizeof(UInt32));
+	EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
 }
 
 static void *EsifIio_Poll(void *ptr)
@@ -521,15 +528,40 @@ void EsifSensorMgr_Exit()
  */
 eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 {
-	eEsifError rc = ESIF_E_NOT_IMPLEMENTED;
+	eEsifError rc = ESIF_OK;
+	EsifData evtData = { 0 };
+	UInt32 data = 0;
 
+	/* Send gratuitous events when DPTF registers for 
+	 * sensor events, if we do support such events.
+	 * This is to make the DPTF UI happy, otherwise
+	 * the UI will show that the corresponding event
+	 * is not supported.
+	 */
 	switch (eventType) {
+   	case ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED:
+		data = ORIENTATION_DISP_LANDSCAPE;
+		if (gAccelLid) {
+			ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
+			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
+		}
+		break;
 	case ESIF_EVENT_DEVICE_ORIENTATION_CHANGED:
-	case ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED:
+		data = ORIENTATION_PLAT_FLAT_UP;
+		if (gAccelLid) {
+			ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
+			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
+		}
+		break;
 	case ESIF_EVENT_MOTION_CHANGED:
-		rc = ESIF_OK;
+		data = ESIF_TRUE; // In-Motion On
+		if (gAccelLid || gAccelBase) {
+			ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
+			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
+		}
 		break;
 	default:
+		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
 	}
 

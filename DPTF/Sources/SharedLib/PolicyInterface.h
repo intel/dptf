@@ -162,6 +162,7 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) = 0;
 	virtual void powerShareAlgorithmTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
+	virtual void workloadHintConfigurationChanged(void) = 0;
 };
 
 //

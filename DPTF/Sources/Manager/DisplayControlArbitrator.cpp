@@ -18,6 +18,7 @@
 
 #include "DisplayControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 DisplayControlArbitrator::DisplayControlArbitrator()
 	: m_arbitratedDisplayControlIndex(Constants::Invalid)
@@ -65,6 +66,19 @@ void DisplayControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 		m_requestedDisplayControlIndex[policyIndex] = Constants::Invalid;
 		commitPolicyRequest(policyIndex, Constants::Invalid);
 	}
+}
+
+std::shared_ptr<XmlNode> DisplayControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("display_control_arbitrator_status");
+	auto displayIndex = Constants::Invalid;
+	auto policyRequest = m_requestedDisplayControlIndex.find(policyIndex);
+	if (policyRequest != m_requestedDisplayControlIndex.end())
+	{
+		displayIndex = policyRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("display_index", StatusFormat::friendlyValue(displayIndex)));
+	return requestRoot;
 }
 
 UIntN DisplayControlArbitrator::getMaxRequestedDisplayControlIndex(std::map<UIntN, UIntN>& requests)

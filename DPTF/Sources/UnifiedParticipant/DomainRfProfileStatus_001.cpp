@@ -36,18 +36,20 @@ DomainRfProfileStatus_001::~DomainRfProfileStatus_001(void)
 
 RfProfileDataSet DomainRfProfileStatus_001::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-
-	// DptfBuffer buffer; // TODO: Add primitive to get RfProfileDataSet
-	// auto rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
-
 	std::vector<RfProfileData> rfProfileDataSet;
-	Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
-		esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
-
-	RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
-	RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
-	rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
-
+	try 
+	{
+		Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
+		RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
+		RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
+		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to update RF Channel Info. "));
+	}
 	return RfProfileDataSet(rfProfileDataSet);
 }
 

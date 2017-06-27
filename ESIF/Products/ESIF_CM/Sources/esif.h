@@ -88,6 +88,9 @@
 /* Build option to enable HID support in Windows Kernel code */
 /*#define ESIF_FEAT_OPT_KHID_SUPPORT_ENABLED*/
 
+/* Build option to provide UF support in the Windows service application */
+/*#define ESIF_FEAT_OPT_SERVICE_AS_UF*/
+
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
 #ifdef ESIF_ATTR_KERNEL

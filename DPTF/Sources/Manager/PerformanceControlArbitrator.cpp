@@ -18,6 +18,7 @@
 
 #include "PerformanceControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 PerformanceControlArbitrator::PerformanceControlArbitrator()
 	: m_arbitratedPerformanceControlIndex(Constants::Invalid)
@@ -66,6 +67,19 @@ void PerformanceControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 		m_requestedPerformanceControlIndex[policyIndex] = Constants::Invalid;
 		commitPolicyRequest(policyIndex, Constants::Invalid);
 	}
+}
+
+std::shared_ptr<XmlNode> PerformanceControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("performance_control_arbitrator_status");
+	auto performanceIndex = Constants::Invalid;
+	auto policyRequest = m_requestedPerformanceControlIndex.find(policyIndex);
+	if (policyRequest != m_requestedPerformanceControlIndex.end())
+	{
+		performanceIndex = policyRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("performance_index", StatusFormat::friendlyValue(performanceIndex)));
+	return requestRoot;
 }
 
 UIntN PerformanceControlArbitrator::getMaxRequestedPerformanceControlIndex(std::map<UIntN, UIntN>& requests)

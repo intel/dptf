@@ -29,7 +29,7 @@
 */
 
 /* Safe strcpy that always null terminates target and truncates src if necessary */
-static ESIF_INLINE void esif_ccb_strcpy(
+static ESIF_INLINE char *esif_ccb_strcpy(
 	char *dst,
 	const char *src,
 	size_t siz
@@ -39,10 +39,11 @@ static ESIF_INLINE void esif_ccb_strcpy(
 		strncpy(dst, src, siz);
 		dst[siz - 1] = 0;
 	}
+	return dst;
 }
 
 /* Safe strcat that always null terminates target and truncates src if necessary */
-static ESIF_INLINE void esif_ccb_strcat(
+static ESIF_INLINE char *esif_ccb_strcat(
 	char *dst,
 	const char *src,
 	size_t siz
@@ -51,6 +52,7 @@ static ESIF_INLINE void esif_ccb_strcat(
 	if (siz) {
 		strncat(dst, src, siz - strnlen(dst, siz) - 1);
 	}
+	return dst;
 }
 
 #define esif_ccb_sprintf(siz, str, fmt, ...)	snprintf(str, siz, fmt, ##__VA_ARGS__)
@@ -73,23 +75,21 @@ static ESIF_INLINE void esif_ccb_strcat(
 #define esif_ccb_vsscanf(str, fmt, args)	vsscanf(str, fmt, args)
 #define esif_ccb_sscanf(str, fmt, ...)		sscanf(str, fmt, ##__VA_ARGS__)
 #define esif_ccb_strtok(str, sep, ctxt)		strtok_r(str, sep, ctxt)
-#define esif_ccb_strcmp(s1, s2)			strcmp(s1, s2)
-#define esif_ccb_stricmp(s1, s2)		strcasecmp(s1, s2)
+#define esif_ccb_strcmp(s1, s2)				strcmp(s1, s2)
+#define esif_ccb_stricmp(s1, s2)			strcasecmp(s1, s2)
 #define esif_ccb_strncmp(s1, s2, count)		strncmp(s1, s2, count)
 #define esif_ccb_strnicmp(s1, s2, cnt)		strncasecmp(s1, s2, cnt)
-#define esif_ccb_strstr(str, sub)		strstr(str, sub)
-#define esif_ccb_strchr(str, chr)		strchr(str, chr)
-#define esif_ccb_strrchr(str, chr)		strrchr(str, chr)
+#define esif_ccb_strstr(str, sub)			strstr(str, sub)
+#define esif_ccb_strchr(str, chr)			strchr(str, chr)
+#define esif_ccb_strrchr(str, chr)			strrchr(str, chr)
 
 /* Use Memtrace Overrides or Standard Functions? */
 #ifdef ESIF_ATTR_MEMTRACE
 #include "esif_ccb_memtrace.h"
 #else
 
-/* Linux _strupr_s() equlivalent */
-static ESIF_INLINE char *esif_ccb_strdup(
-	const char *str
-	)
+/* Linux Safe strdup() */
+static ESIF_INLINE char *esif_ccb_strdup(const char *str)
 {
 	char *newStr = NULL;
 	if(str) {
@@ -100,24 +100,26 @@ static ESIF_INLINE char *esif_ccb_strdup(
 #endif
 
 /* Linux _strupr_s() equlivalent */
-static ESIF_INLINE void esif_ccb_strupr(
+static ESIF_INLINE char *esif_ccb_strupr(
 	char *s,
 	size_t count
 	)
 {
 	for (; *s && count; s++, count--)
 		*s = toupper(*s);
+	return s;
 }
 
 
 /* Linux _strlwr_s() equlivalent */
-static ESIF_INLINE void esif_ccb_strlwr(
+static ESIF_INLINE char *esif_ccb_strlwr(
 	char *s,
 	size_t count
 	)
 {
 	for (; s && *s && count; s++, count--)
 		*s = tolower(*s);
+	return s;
 }
 
 
@@ -154,7 +156,7 @@ static ESIF_INLINE int esif_ccb_sprintf_concat(
 }
 
 /* Safe strncpy that avoids buffer overruns, always null-terminates target, and pads nulls to end of buffer */
-static ESIF_INLINE void esif_ccb_strncpy(
+static ESIF_INLINE char *esif_ccb_strncpy(
 	char *dst,
 	const char *src,
 	size_t siz)
@@ -163,6 +165,7 @@ static ESIF_INLINE void esif_ccb_strncpy(
 	esif_ccb_strcpy(dst, src, siz);
 	if (len < siz)
 		memset(dst + len, 0, siz - len);
+	return dst;
 }
 
 #endif /* LINUX USER */

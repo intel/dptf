@@ -18,6 +18,7 @@
 
 #include "ActiveControlArbitrator.h"
 #include "Utility.h"
+#include <StatusFormat.h>
 
 ActiveControlArbitrator::ActiveControlArbitrator()
 	: m_arbitratedFanSpeedPercentage(Percentage::createInvalid())
@@ -102,6 +103,27 @@ void ActiveControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 		m_requestedActiveControlIndex[policyIndex] = Constants::Invalid;
 		commitPolicyRequest(policyIndex, Constants::Invalid);
 	}
+}
+
+std::shared_ptr<XmlNode> ActiveControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+{
+	auto requestRoot = XmlNode::createWrapperElement("active_control_arbitrator_status");
+	auto fanSpeedRequest = m_requestedfanSpeedPercentage.find(policyIndex);
+	auto percentageRequest = Percentage::createInvalid();
+	if (fanSpeedRequest != m_requestedfanSpeedPercentage.end())
+	{
+		percentageRequest = fanSpeedRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("fan_speed_percentage", percentageRequest.toString()));
+
+	auto activeIndexRequest = m_requestedActiveControlIndex.find(policyIndex);
+	auto indexRequest = Constants::Invalid;
+	if (activeIndexRequest != m_requestedActiveControlIndex.end())
+	{
+		indexRequest = activeIndexRequest->second;
+	}
+	requestRoot->addChild(XmlNode::createDataElement("active_index", StatusFormat::friendlyValue(indexRequest)));
+	return requestRoot;
 }
 
 Percentage ActiveControlArbitrator::getMaxRequestedFanSpeedPercentage(std::map<UIntN, Percentage>& requests)

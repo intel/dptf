@@ -46,6 +46,7 @@ public:
 
 	TemperatureThresholds getArbitratedTemperatureThresholds(void) const;
 	void clearPolicyCachedData(UIntN policyIndex);
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 private:
 	DptfManagerInterface* m_dptfManager;

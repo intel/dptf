@@ -69,6 +69,8 @@
 #define ESIF_LIBPATH_LEN	128	/* Maximum Lib Path Length    */
 #define ESIF_ACPI_UID_LEN	64	/* Maximum ACPI UID Length  */
 #define ESIF_ACPI_NAME_LEN	5	/* Maximum ACPI Device Name Length */
+#define ESIF_IPADDR_LEN		20	/* Maximum IP Address Length */
+#define ESIF_VERSION_LEN	20	/* Maximum Version String Length */
 
 /* Opaque Types */
 typedef u32 esif_flags_t;                   /* FLAGS        */

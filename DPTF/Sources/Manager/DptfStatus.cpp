@@ -29,24 +29,10 @@
 #include "XmlNode.h"
 #include "ParticipantStatusMap.h"
 #include "EsifDataString.h"
+#include <StatusFormat.h>
 
-static const Guid FormatId(
-	0x3E,
-	0x58,
-	0x63,
-	0x46,
-	0xF8,
-	0xF7,
-	0x45,
-	0x4A,
-	0xA8,
-	0xF7,
-	0xDE,
-	0x7E,
-	0xC6,
-	0xF7,
-	0x61,
-	0xA8);
+static const Guid ManagerStatusFormatId(0x3E, 0x58, 0x63, 0x46, 0xF8, 0xF7, 0x45, 0x4A, 0xA8, 0xF7, 0xDE, 0x7E, 0xC6, 0xF7, 0x61, 0xA8);
+static const Guid ArbitratorStatusFormatId(0xAC, 0x0A, 0x0E, 0x91, 0x09, 0xA8, 0x69, 0x4E, 0x87, 0x5F, 0xE9, 0x49, 0xF7, 0x97, 0x53, 0xA0);
 
 DptfStatus::DptfStatus(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
@@ -68,6 +54,17 @@ namespace GroupType
 		Policies = 0,
 		Participants = 1,
 		Framework = 2
+	};
+}
+
+namespace ManagerModuleType
+{
+	enum Type
+	{
+		Manager = 0,
+		Events = 1,
+		Arbitrator = 2,
+		Statistics = 3
 	};
 }
 
@@ -233,7 +230,7 @@ std::string DptfStatus::getFrameworkGroup()
 	auto module = XmlNode::createWrapperElement("module");
 	modules->addChild(module);
 
-	auto moduleId = XmlNode::createDataElement("id", std::to_string(0));
+	auto moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Manager));
 	module->addChild(moduleId);
 
 	auto moduleName = XmlNode::createDataElement("name", "Manager Status");
@@ -244,10 +241,21 @@ std::string DptfStatus::getFrameworkGroup()
 	module = XmlNode::createWrapperElement("module");
 	modules->addChild(module);
 
-	moduleId = XmlNode::createDataElement("id", std::to_string(1));
+	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Events));
 	module->addChild(moduleId);
 
 	moduleName = XmlNode::createDataElement("name", "Event Status");
+	module->addChild(moduleName);
+
+	// Arbitrator Status
+
+	module = XmlNode::createWrapperElement("module");
+	modules->addChild(module);
+
+	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Arbitrator));
+	module->addChild(moduleId);
+
+	moduleName = XmlNode::createDataElement("name", "Arbitrator Status");
 	module->addChild(moduleName);
 
 #ifdef INCLUDE_WORK_ITEM_STATISTICS
@@ -257,7 +265,7 @@ std::string DptfStatus::getFrameworkGroup()
 	module = XmlNode::createWrapperElement("module");
 	modules->addChild(module);
 
-	moduleId = XmlNode::createDataElement("id", std::to_string(2));
+	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Statistics));
 	module->addChild(moduleId);
 
 	moduleName = XmlNode::createDataElement("name", "Work Item Statistics");
@@ -362,10 +370,10 @@ std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* retur
 
 	switch (moduleIndex)
 	{
-	case 0:
+	case ManagerModuleType::Manager:
 	{
 		frameworkRoot = XmlNode::createRoot();
-		auto formatId = XmlNode::createComment("format_id=" + FormatId.toString());
+		auto formatId = XmlNode::createComment("format_id=" + ManagerStatusFormatId.toString());
 		frameworkRoot->addChild(formatId);
 
 		auto dppmRoot = XmlNode::createWrapperElement("manager_status");
@@ -380,13 +388,19 @@ std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* retur
 		*returnCode = ESIF_OK;
 		break;
 	}
-	case 1:
+	case ManagerModuleType::Events:
 	{
 		frameworkRoot = m_policyManager->getStatusAsXml();
 		*returnCode = ESIF_OK;
 		break;
 	}
-	case 2:
+	case ManagerModuleType::Arbitrator:
+	{
+		frameworkRoot = getArbitratorXmlForLoadedParticipants();
+		*returnCode = ESIF_OK;
+		break;
+	}
+	case ManagerModuleType::Statistics:
 	{
 		frameworkRoot = m_dptfManager->getWorkItemQueueManager()->getStatusAsXml();
 		*returnCode = ESIF_OK;
@@ -463,4 +477,63 @@ std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedParticipants()
 void DptfStatus::fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode)
 {
 	*returnCode = FillDataPtrWithString(outputLocation, inputString);
+}
+
+std::shared_ptr<XmlNode> DptfStatus::getArbitratorXmlForLoadedParticipants()
+{
+	auto root = XmlNode::createRoot();
+	root->addChild(XmlNode::createComment("format_id=" + ArbitratorStatusFormatId.toString()));
+
+	auto arbitratorRoot = XmlNode::createWrapperElement("arbitrator_status");
+	auto participantIndexList = m_participantManager->getParticipantIndexes();
+	auto numberOfUniqueDomains = 0;
+	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
+	{
+		try
+		{
+			Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
+			numberOfUniqueDomains = numberOfUniqueDomains + participant->getDomainCount();
+		}
+		catch (...)
+		{
+			// Participant not available
+		}
+	}
+
+	arbitratorRoot->addChild(XmlNode::createDataElement("number_of_domains", StatusFormat::friendlyValue(numberOfUniqueDomains)));
+
+	UIntN policyCount = m_policyManager->getPolicyListCount();
+	for (UIntN policyIndex = 0; policyIndex < policyCount; policyIndex++)
+	{
+		try
+		{
+			Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+			std::string name = policy->getName();
+			auto policyRoot = XmlNode::createWrapperElement("policy");
+			auto policyName = XmlNode::createDataElement("policy_name", name);
+			policyRoot->addChild(policyName);
+
+			for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
+			{
+				try
+				{
+					Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
+					policyRoot->addChild(participant->getArbitrationXmlForPolicy(policyIndex));
+				}
+				catch (...)
+				{
+					// Participant not available
+				}
+			}
+
+			arbitratorRoot->addChild(policyRoot);
+		}
+		catch (...)
+		{
+			// Policy not available, do not add.
+		}
+	}
+
+	root->addChild(arbitratorRoot);
+	return root;
 }

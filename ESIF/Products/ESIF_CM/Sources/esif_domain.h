@@ -59,6 +59,12 @@
 #define ESIF_DOMAIN_HYST_DEF 0		/* Celsius */
 #define ESIF_DOMAIN_POLL_DISABLE 0xffffffff
 
+/* C - Offset below TjMax which interrupts are set to when nearing TjMax */
+#define ESIF_DOMAIN_INTR_TEMP_TJMAX_OFFSET 1	
+/* C - Offset below TjMax used to switch between polling and interrupt modes */
+/* Must be larger than ESIF_DOMAIN_INTR_TEMP_TJMAX_OFFSET */
+#define ESIF_DOMAIN_HYST_TJMAX_DEF 3
+
 /******************************************************************************/
 /******************************************************************************/
 /******************************************************************************/

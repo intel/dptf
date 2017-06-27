@@ -30,8 +30,7 @@ public:
 	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void setEnergyThresholdInterruptFlag(
+	virtual void setEnergyThresholdInterruptDisable(
 		UIntN participantIndex,
-		UIntN domainIndex,
-		UInt32 energyThresholdInterruptFlag) = 0;
+		UIntN domainIndex) = 0;
 };
