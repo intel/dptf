@@ -20,8 +20,7 @@
 #include "esif_uf.h"
 #include "esif_lib_datacache.h"
 #include "esif_lib_iostream.h"
-
-#include "esif_ws_algo.h" // SHA1 Hash
+#include "esif_sdk_sha.h"
 
 /*
  * Data Vault 2.0 Repository Overview:
@@ -36,7 +35,7 @@
  * A "DataRepo" or Repository is a Container (File, Memory, or GDDV object) that can
  * contain multiple Data Segments, each of which consists of a Header and a Payload.
  * The Header contains the DataVault name that the Segment is associated with, along
- * with other metadata, such as a Description, Payload Size, Class, and SHA1 Hash.
+ * with other metadata, such as a Description, Payload Size, Class, and SHA256 Hash.
  * The Payload can contain different classes of data, such a list of Key/Value Pairs
  * [KEYS] or another Repo [REPO], and potentially other class types in the future.
  *
@@ -47,11 +46,11 @@
  *
  *    2. Multi-Segment Repo: Contains two or more Header/Payload Data Segments
  *       concatenated together. Each Segment contains the DataVault name it will be
- *       loaded into, along with a Description, Size, Class, and SHA1 Hash.
+ *       loaded into, along with a Description, Size, Class, and SHA256 Hash.
  *
  *    3. Embedded Repo: Contains a Header/Payload where the Payload Class is REPO,
  *       which indicates that the Payload is another Repo (Singleton or Multi-Segment),
- *       and the SHA1 hash is for the entire Payload.
+ *       and the SHA256 hash is for the entire Payload.
  *
  * Notes:
  *    A. DV 1.0 format Repos are supported for backwards compatibility (Read/Write)
@@ -81,13 +80,15 @@
  *       Repos, including the optional GDDV object in BIOS.
  *    J. Any type of Repo may be loaded into the optional GDDV object in BIOS,
  *       but for DV 2.0, it will usually be an Embedded Repo so that any Data Segment(s)
- *       contained in the Repo can be compressed and the SHA1 hash will be computed
+ *       contained in the Repo can be compressed and the SHA256 hash will be computed
  *       for all segment(s) in the Payload.
  */
 
 // DV Global Definitions
 #define ESIFDV_FILEEXT              ".dv"		// DataVault File Extension [DV name = name.dv]
 #define ESIFDV_REPOEXT              ".dvx"		// Data Repo Extension [repo.dvx]
+#define ESIFDV_TEMPEXT              ".tmp"		// Temp Repo File Extension [name.dv.tmp or repo.dvx.tmp]
+#define ESIFDV_ROLLBACKEXT          ".temp"		// Rollback File Extension [name.dv.temp or repo.dvx.temp]
 #define ESIFDV_TEMP_PREFIX          "$$"		// Temp DV Name Prefix [i.e., $$name.dv]
 #define ESIFDV_EXPORT_PREFIX        "$"			// Exported Repository DV Name Prefix [i.e., $name.dv]
 #define ESIFDV_NAME_LEN				32			// Max DataVault Name (Cache Name) Length (not including NUL)

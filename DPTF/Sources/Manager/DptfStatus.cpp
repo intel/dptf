@@ -186,20 +186,20 @@ std::string DptfStatus::getPoliciesGroup()
 {
 	auto modules = XmlNode::createWrapperElement("modules");
 
-	UIntN policyCount = m_policyManager->getPolicyListCount();
-	for (UIntN policyIndex = 0; policyIndex < policyCount; policyIndex++)
+	auto policyIndexes = m_policyManager->getPolicyIndexes();
+	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 	{
 		try
 		{
 			// Get the policy variables before adding nodes.  This forces
 			// exceptions to be thrown first.
-			Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 			std::string name = policy->getName();
 
 			auto module = XmlNode::createWrapperElement("module");
 			modules->addChild(module);
 
-			auto policyId = XmlNode::createDataElement("id", std::to_string(policyIndex));
+			auto policyId = XmlNode::createDataElement("id", std::to_string(*policyIndex));
 			module->addChild(policyId);
 
 			auto policyName = XmlNode::createDataElement("name", name);
@@ -225,15 +225,15 @@ std::string DptfStatus::getFrameworkGroup()
 {
 	auto modules = XmlNode::createWrapperElement("modules");
 
-	// Manager Status
+	// Arbitrator Status
 
 	auto module = XmlNode::createWrapperElement("module");
 	modules->addChild(module);
 
-	auto moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Manager));
+	auto moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Arbitrator));
 	module->addChild(moduleId);
 
-	auto moduleName = XmlNode::createDataElement("name", "Manager Status");
+	auto moduleName = XmlNode::createDataElement("name", "Arbitrator Status");
 	module->addChild(moduleName);
 
 	// Event Status
@@ -247,15 +247,15 @@ std::string DptfStatus::getFrameworkGroup()
 	moduleName = XmlNode::createDataElement("name", "Event Status");
 	module->addChild(moduleName);
 
-	// Arbitrator Status
+	// Manager Status
 
 	module = XmlNode::createWrapperElement("module");
 	modules->addChild(module);
 
-	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Arbitrator));
+	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Manager));
 	module->addChild(moduleId);
 
-	moduleName = XmlNode::createDataElement("name", "Arbitrator Status");
+	moduleName = XmlNode::createDataElement("name", "Manager Status");
 	module->addChild(moduleName);
 
 #ifdef INCLUDE_WORK_ITEM_STATISTICS
@@ -305,17 +305,15 @@ std::string DptfStatus::getModuleData(const UInt32 appStatusIn, eEsifError* retu
 
 std::string DptfStatus::getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCode)
 {
-	UIntN policyCount = m_policyManager->getPolicyListCount();
-	if (policyIndex >= policyCount)
-	{
-		*returnCode = ESIF_E_UNSPECIFIED;
-		throw dptf_exception("Invalid policy status requested.");
-	}
-
 	try
 	{
 		Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
 		return policy->getStatusAsXml();
+	}
+	catch (policy_index_invalid)
+	{
+		*returnCode = ESIF_E_UNSPECIFIED;
+		throw dptf_exception("Invalid policy status requested.");
 	}
 	catch (...)
 	{
@@ -424,19 +422,19 @@ std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedPolicies()
 {
 	auto policiesRoot = XmlNode::createWrapperElement("policies");
 
-	UIntN policyCount = m_policyManager->getPolicyListCount();
-	policiesRoot->addChild(XmlNode::createDataElement("policy_count", std::to_string(policyCount)));
+	auto policyIndexes = m_policyManager->getPolicyIndexes();
+	policiesRoot->addChild(XmlNode::createDataElement("policy_count", std::to_string(policyIndexes.size())));
 
-	for (UIntN i = 0; i < policyCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = m_policyManager->getPolicyPtr(i);
+			Policy* policy = m_policyManager->getPolicyPtr(*i);
 			std::string name = policy->getName();
 
 			auto policyRoot = XmlNode::createWrapperElement("policy");
 
-			auto policyIndex = XmlNode::createDataElement("policy_index", std::to_string(i));
+			auto policyIndex = XmlNode::createDataElement("policy_index", std::to_string(*i));
 			policyRoot->addChild(policyIndex);
 
 			auto policyName = XmlNode::createDataElement("policy_name", name);
@@ -502,12 +500,12 @@ std::shared_ptr<XmlNode> DptfStatus::getArbitratorXmlForLoadedParticipants()
 
 	arbitratorRoot->addChild(XmlNode::createDataElement("number_of_domains", StatusFormat::friendlyValue(numberOfUniqueDomains)));
 
-	UIntN policyCount = m_policyManager->getPolicyListCount();
-	for (UIntN policyIndex = 0; policyIndex < policyCount; policyIndex++)
+	auto policyIndexes = m_policyManager->getPolicyIndexes();
+	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 	{
 		try
 		{
-			Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 			std::string name = policy->getName();
 			auto policyRoot = XmlNode::createWrapperElement("policy");
 			auto policyName = XmlNode::createDataElement("policy_name", name);
@@ -518,7 +516,7 @@ std::shared_ptr<XmlNode> DptfStatus::getArbitratorXmlForLoadedParticipants()
 				try
 				{
 					Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
-					policyRoot->addChild(participant->getArbitrationXmlForPolicy(policyIndex));
+					policyRoot->addChild(participant->getArbitrationXmlForPolicy(*policyIndex));
 				}
 				catch (...)
 				{

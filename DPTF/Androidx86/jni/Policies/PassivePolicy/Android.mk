@@ -48,13 +48,6 @@ LOCAL_C_INCLUDES := \
 	$(DPTF_INC)/Policies/PassivePolicy \
 	$(DPTF_INC)/ThirdParty
 
-LOCAL_SHARED_LIBRARIES := \
-	libnativehelper \
-	libcutils \
-	libutils \
-	liblog \
-	libdl
-
 LOCAL_CFLAGS += -std=c++11 -fexceptions -frtti -Wall -fPIC \
 	-DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER \
 	-Wno-error=non-virtual-dtor

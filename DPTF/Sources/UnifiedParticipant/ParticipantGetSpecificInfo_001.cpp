@@ -47,21 +47,26 @@ std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificIn
 	std::map<ParticipantSpecificInfoKey::Type, Temperature> results;
 	for (auto request = requestedInfo.cbegin(); request != requestedInfo.cend(); request++)
 	{
+		auto tripPointTemperature = Temperature(Constants::MaxUInt32);
 		try
 		{
 			auto result = m_cachedData.find(*request);
-			if (result == m_cachedData.end())
+			if (result != m_cachedData.end())
 			{
-				m_cachedData[*request] = readSpecificInfo(getPrimitiveAndInstanceForSpecificInfoKey(*request));
-				result = m_cachedData.find(*request);
+				tripPointTemperature = result->second;
 			}
-			results[*request] = result->second;
+			else
+			{
+				tripPointTemperature = readSpecificInfo(getPrimitiveAndInstanceForSpecificInfoKey(*request));
+				m_cachedData[*request] = tripPointTemperature;
+			}
 		}
 		catch (...)
 		{
 			// if the primitive isn't available in the cache we receive an exception
-			results[*request] = Temperature(Constants::MaxUInt32);
 		}
+
+		results[*request] = tripPointTemperature;
 	}
 
 	return results;
@@ -220,7 +225,6 @@ std::shared_ptr<XmlNode> ParticipantGetSpecificInfo_001::getXml(UIntN domainInde
 		root->addChild(XmlNode::createDataElement("ntt", Constants::InvalidString));
 	}
 
-	std::vector<std::stringstream> tripAc;
 	UIntN count = 0;
 	for (IntN ac = ParticipantSpecificInfoKey::AC0; ac <= ParticipantSpecificInfoKey::AC9; ac++)
 	{

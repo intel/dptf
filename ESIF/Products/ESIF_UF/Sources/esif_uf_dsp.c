@@ -27,7 +27,9 @@
 #include "esif_lib_esifdata.h"
 
 // Limits
-#define MAX_EDP_SIZE    0x7fffffff
+#define MAX_EDP_SIZE    0x7ffffffe
+#define MAX_CPC_OFFSET  0x7ffffffd
+#define MAX_FPC_OFFSET  0x7ffffffd
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -116,14 +118,18 @@ enum esif_rc esif_send_dsp(
 		rc = ESIF_E_NOT_SUPPORTED;
 		goto exit;
 	}
-	edpSize = edpDir.fpc_offset - edpDir.cpc_offset;
-	IOStream_Seek(ioPtr, edpDir.cpc_offset, SEEK_SET);
-
+	if (edpDir.cpc_offset > MAX_CPC_OFFSET || edpDir.fpc_offset > MAX_FPC_OFFSET || edpDir.cpc_offset > edpDir.fpc_offset) {
+		edpSize = MAX_EDP_SIZE + 1;
+	}
+	else {
+		edpSize = edpDir.fpc_offset - edpDir.cpc_offset;
+	}
 	if (edpSize > MAX_EDP_SIZE) {
-		ESIF_TRACE_ERROR("The edp size %d is larger than maximum edp size\n", edpSize);
-		rc = -ESIF_E_UNSPECIFIED;
+		ESIF_TRACE_ERROR("Invalid EDP Offsets: fpc_offset=%u cpc_offset=%u edpSize=%d\n", edpDir.fpc_offset, edpDir.cpc_offset, edpSize);
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		goto exit;
 	}
+	IOStream_Seek(ioPtr, edpDir.cpc_offset, SEEK_SET);
 
 	cmdSize = edpSize + sizeof(*dspCommandPtr);
 

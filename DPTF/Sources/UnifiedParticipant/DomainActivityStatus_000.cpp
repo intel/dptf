@@ -27,34 +27,12 @@ DomainActivityStatus_000::DomainActivityStatus_000(
 	// Do nothing.  Not an error.
 }
 
-UInt32 DomainActivityStatus_000::getEnergyThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
-void DomainActivityStatus_000::setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold)
-{
-	throw not_implemented();
-}
-
-Temperature DomainActivityStatus_000::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
 Percentage DomainActivityStatus_000::getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
 
 Percentage DomainActivityStatus_000::getResidencyUtilization(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
-void DomainActivityStatus_000::setEnergyThresholdInterruptDisable(
-	UIntN participantIndex,
-	UIntN domainIndex)
 {
 	throw not_implemented();
 }

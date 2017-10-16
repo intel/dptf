@@ -32,17 +32,17 @@ ActiveControlStaticCaps DomainActiveControl_000::getActiveControlStaticCaps(UInt
 	throw not_implemented();
 }
 
+ActiveControlDynamicCaps DomainActiveControl_000::getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 ActiveControlStatus DomainActiveControl_000::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
 
 ActiveControlSet DomainActiveControl_000::getActiveControlSet(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
-void DomainActiveControl_000::setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex)
 {
 	throw not_implemented();
 }

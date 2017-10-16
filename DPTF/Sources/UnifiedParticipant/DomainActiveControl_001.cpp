@@ -44,6 +44,16 @@ ActiveControlStaticCaps DomainActiveControl_001::getActiveControlStaticCaps(UInt
 	return m_activeControlStaticCaps.get();
 }
 
+ActiveControlDynamicCaps DomainActiveControl_001::getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+{
+	if (m_activeControlDynamicCaps.isInvalid())
+	{
+		m_activeControlDynamicCaps.set(createActiveControlDynamicCaps(domainIndex));
+	}
+
+	return m_activeControlDynamicCaps.get();
+}
+
 ActiveControlStatus DomainActiveControl_001::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	m_activeControlStatus.set(createActiveControlStatus(domainIndex));
@@ -61,25 +71,17 @@ ActiveControlSet DomainActiveControl_001::getActiveControlSet(UIntN participantI
 	return m_activeControlSet.get();
 }
 
-void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex)
-{
-	throwIfFineGrainedControlIsSupported(participantIndex, domainIndex);
-	throwIfControlIndexIsInvalid(participantIndex, domainIndex, controlIndex);
-
-	getParticipantServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_FAN_LEVEL,
-		(getActiveControlSet(participantIndex, domainIndex))[controlIndex].getControlId(),
-		domainIndex);
-}
-
 void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed)
 {
 	throwIfFineGrainedControlIsNotSupported(participantIndex, domainIndex);
 
 	// FIXME: For now SET_FAN_LEVEL doesn't follow the normal rule for percentages.  For this we pass in a whole number
 	// which would be 90 for 90%.  This is an exception and should be corrected in the future.
-	UInt32 convertedFanSpeedPercentage = static_cast<UInt32>(fanSpeed * 100);
-
+	if (fanSpeed.isValid() == false)
+	{
+		throw dptf_exception("Fan speed percentage is not valid.");
+	}
+	UInt32 convertedFanSpeedPercentage = fanSpeed.toWholeNumber();
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_FAN_LEVEL, convertedFanSpeedPercentage, domainIndex);
 }
@@ -132,6 +134,7 @@ void DomainActiveControl_001::clearCachedData(void)
 {
 	m_activeControlSet.invalidate();
 	m_activeControlStaticCaps.invalidate();
+	m_activeControlDynamicCaps.invalidate();
 	m_activeControlStatus.invalidate();
 }
 
@@ -141,6 +144,7 @@ std::shared_ptr<XmlNode> DomainActiveControl_001::getXml(UIntN domainIndex)
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(getActiveControlStatus(getParticipantIndex(), domainIndex).getXml());
 	root->addChild(getActiveControlStaticCaps(getParticipantIndex(), domainIndex).getXml());
+	root->addChild(getActiveControlDynamicCaps(getParticipantIndex(), domainIndex).getXml());
 	root->addChild(getActiveControlSet(getParticipantIndex(), domainIndex).getXml());
 	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
@@ -187,6 +191,22 @@ ActiveControlStaticCaps DomainActiveControl_001::createActiveControlStaticCaps(U
 	return ActiveControlStaticCaps::createFromFif(buffer);
 }
 
+ActiveControlDynamicCaps DomainActiveControl_001::createActiveControlDynamicCaps(UIntN domainIndex)
+{
+	try
+	{
+		DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_FAN_CAPABILITIES, ESIF_DATA_BINARY, domainIndex);
+		return ActiveControlDynamicCaps::createFromFcdc(buffer);
+	}
+	catch (...)
+	{
+		Percentage minSpeed = Percentage::fromWholeNumber(0);
+		Percentage maxSpeed = Percentage::fromWholeNumber(100);
+		return ActiveControlDynamicCaps(minSpeed, maxSpeed);
+	}
+}
+
 ActiveControlStatus DomainActiveControl_001::createActiveControlStatus(UIntN domainIndex)
 {
 	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
@@ -201,34 +221,11 @@ ActiveControlSet DomainActiveControl_001::createActiveControlSet(UIntN domainInd
 	return ActiveControlSet::createFromFps(buffer);
 }
 
-void DomainActiveControl_001::throwIfFineGrainedControlIsSupported(UIntN participantIndex, UIntN domainIndex)
-{
-	if (getActiveControlStaticCaps(participantIndex, domainIndex).supportsFineGrainedControl())
-	{
-		throw dptf_exception(
-			"Wrong function called.  Since fine grain control is supported, use the \
-										 setActiveControl function that take a Percentage as an argument.");
-	}
-}
-
-void DomainActiveControl_001::throwIfControlIndexIsInvalid(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	UIntN controlIndex)
-{
-	if (controlIndex >= getActiveControlSet(participantIndex, domainIndex).getCount())
-	{
-		throw dptf_exception("The desired control index is out of bounds.");
-	}
-}
-
 void DomainActiveControl_001::throwIfFineGrainedControlIsNotSupported(UIntN participantIndex, UIntN domainIndex)
 {
 	if (getActiveControlStaticCaps(participantIndex, domainIndex).supportsFineGrainedControl() == false)
 	{
-		throw dptf_exception(
-			"Wrong function called.  Since fine grain control is not supported, use the \
-										setActiveControl function that take a control index as an argument.");
+		throw dptf_exception("Fine grain control is not supported.");
 	}
 }
 

@@ -33,8 +33,8 @@ ActiveCoolingControl::ActiveCoolingControl(
 	, m_participantIndex(participantIndex)
 	, m_domainIndex(domainIndex)
 	, m_staticCaps(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_dynamicCaps(participantIndex, domainIndex, domainProperties, policyServices)
 	, m_lastFanSpeedRequest(Percentage::createInvalid())
-	, m_lastFanSpeedRequestIndex(Constants::Invalid)
 {
 }
 
@@ -60,27 +60,12 @@ void ActiveCoolingControl::requestFanSpeedPercentage(UIntN requestorIndex, const
 {
 	if (supportsFineGrainControl())
 	{
-		updateFanSpeedRequestTable(requestorIndex, fanSpeed);
+		updateFanSpeedRequestTable(requestorIndex, snapToCapabilitiesBounds(fanSpeed));
 		Percentage highestFanSpeed = chooseHighestFanSpeedRequest();
 		if ((m_lastFanSpeedRequest.isValid() == false) || (highestFanSpeed != m_lastFanSpeedRequest))
 		{
 			m_policyServices.domainActiveControl->setActiveControl(m_participantIndex, m_domainIndex, highestFanSpeed);
 			m_lastFanSpeedRequest = highestFanSpeed;
-		}
-	}
-}
-
-void ActiveCoolingControl::requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex)
-{
-	if (supportsActiveCoolingControls() && (supportsFineGrainControl() == false))
-	{
-		updateActiveControlRequestTable(requestorIndex, activeControlIndex);
-		UIntN highestActiveControlIndex = chooseHighestActiveControlIndex();
-		if (highestActiveControlIndex != m_lastFanSpeedRequestIndex)
-		{
-			m_policyServices.domainActiveControl->setActiveControl(
-				m_participantIndex, m_domainIndex, highestActiveControlIndex);
-			m_lastFanSpeedRequestIndex = highestActiveControlIndex;
 		}
 	}
 }
@@ -99,7 +84,7 @@ void ActiveCoolingControl::updateFanSpeedRequestTable(UIntN requestorIndex, cons
 
 Percentage ActiveCoolingControl::chooseHighestFanSpeedRequest()
 {
-	Percentage highestFanSpeed(0.0);
+	Percentage highestFanSpeed = getDynamicCapabilities().getMinFanSpeed();
 	for (auto request = m_fanSpeedRequestTable.begin(); request != m_fanSpeedRequestTable.end(); request++)
 	{
 		if (request->second > highestFanSpeed)
@@ -110,46 +95,13 @@ Percentage ActiveCoolingControl::chooseHighestFanSpeedRequest()
 	return highestFanSpeed;
 }
 
-void ActiveCoolingControl::updateActiveControlRequestTable(UIntN requestorIndex, UIntN activeControlIndex)
-{
-	if (m_activeControlRequestTable.count(requestorIndex))
-	{
-		m_activeControlRequestTable.at(requestorIndex) = activeControlIndex;
-	}
-	else
-	{
-		m_activeControlRequestTable.insert(pair<UIntN, UIntN>(requestorIndex, activeControlIndex));
-	}
-}
-
-UIntN ActiveCoolingControl::chooseHighestActiveControlIndex()
-{
-	UIntN highestActiveControlIndex = ActiveCoolingControl::FanOffIndex;
-	for (auto request = m_activeControlRequestTable.begin(); request != m_activeControlRequestTable.end(); request++)
-	{
-		if (request->second < highestActiveControlIndex)
-		{
-			highestActiveControlIndex = request->second;
-		}
-	}
-	return highestActiveControlIndex;
-}
-
 void ActiveCoolingControl::forceFanOff(void)
 {
-	if (supportsActiveCoolingControls())
+	if (supportsActiveCoolingControls() && supportsFineGrainControl())
 	{
-		if (supportsFineGrainControl())
-		{
-			m_policyServices.domainActiveControl->setActiveControl(m_participantIndex, m_domainIndex, Percentage(0.0));
-			m_lastFanSpeedRequest = Percentage(0.0);
-		}
-		else
-		{
-			m_policyServices.domainActiveControl->setActiveControl(
-				m_participantIndex, m_domainIndex, ActiveCoolingControl::FanOffIndex);
-			m_lastFanSpeedRequestIndex = ActiveCoolingControl::FanOffIndex;
-		}
+		Percentage minFanSpeed = getDynamicCapabilities().getMinFanSpeed();
+		m_policyServices.domainActiveControl->setActiveControl(m_participantIndex, m_domainIndex, minFanSpeed);
+		m_lastFanSpeedRequest = minFanSpeed;
 	}
 }
 
@@ -162,10 +114,6 @@ std::shared_ptr<XmlNode> ActiveCoolingControl::getXml()
 	if (supportsFineGrainControl())
 	{
 		status->addChild(XmlNode::createDataElement("speed", chooseHighestFanSpeedRequest().toString()));
-	}
-	else
-	{
-		status->addChild(XmlNode::createDataElement("speed", friendlyValue(chooseHighestActiveControlIndex())));
 	}
 	status->addChild(XmlNode::createDataElement("fine_grain", friendlyValue(supportsFineGrainControl())));
 	return status;
@@ -187,11 +135,17 @@ void ActiveCoolingControl::setControl(Percentage activeCoolingControlFanSpeed)
 void ActiveCoolingControl::refreshCapabilities()
 {
 	m_staticCaps.refresh();
+	m_dynamicCaps.refresh();
 }
 
 const ActiveControlStaticCaps& ActiveCoolingControl::getCapabilities()
 {
 	return m_staticCaps.getCapabilities();
+}
+
+const ActiveControlDynamicCaps& ActiveCoolingControl::getDynamicCapabilities()
+{
+	return m_dynamicCaps.getCapabilities();
 }
 
 ActiveControlStatus ActiveCoolingControl::getStatus()
@@ -216,9 +170,7 @@ Bool ActiveCoolingControl::hasValidActiveControlSet()
 {
 	// active control set is empty or has only one entry of value 0
 	if (((m_policyServices.domainActiveControl->getActiveControlSet(m_participantIndex, m_domainIndex).getCount()) == 0)
-		|| ((m_policyServices.domainActiveControl->getActiveControlSet(m_participantIndex, m_domainIndex)
-				 .getSmallestNonZeroFanSpeed())
-			== 0))
+		|| (getSmallestNonZeroFanSpeed() == 0))
 	{
 		return false;
 	}

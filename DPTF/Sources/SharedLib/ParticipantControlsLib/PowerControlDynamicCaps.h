@@ -43,6 +43,7 @@ public:
 
 	PowerControlType::Type getPowerControlType(void) const;
 
+	Bool arePowerLimitCapsValid(void) const;
 	Power getMinPowerLimit(void) const;
 	Power getMaxPowerLimit(void) const;
 	Power getPowerStepSize(void) const;
@@ -52,9 +53,11 @@ public:
 	void setMinTimeWindow(TimeSpan minTimeWindow);
 	void setMaxTimeWindow(TimeSpan maxTimeWindow);
 
+	Bool areTimeWindowCapsValid(void) const;
 	TimeSpan getMinTimeWindow(void) const;
 	TimeSpan getMaxTimeWindow(void) const;
 
+	Bool areDutyCycleCapsValid(void) const;
 	Percentage getMinDutyCycle(void) const; // TODO: remove as this is not even in the PPCC
 	Percentage getMaxDutyCycle(void) const;
 

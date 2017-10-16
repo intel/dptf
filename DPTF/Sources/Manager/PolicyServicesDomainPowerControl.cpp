@@ -61,6 +61,15 @@ Power PolicyServicesDomainPowerControl::getPowerLimit(
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimit(domainIndex, controlType);
 }
 
+Power PolicyServicesDomainPowerControl::getPowerLimitWithoutCache(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimitWithoutCache(domainIndex, controlType);
+}
+
 void PolicyServicesDomainPowerControl::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -191,32 +200,8 @@ TimeSpan PolicyServicesDomainPowerControl::getWeightedSlowPollAvgConstant(UIntN 
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getWeightedSlowPollAvgConstant(domainIndex);
 }
 
-UInt32 PolicyServicesDomainPowerControl::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyCounter(domainIndex);
-}
-
-double PolicyServicesDomainPowerControl::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyUnit(domainIndex);
-}
-
-UInt32 PolicyServicesDomainPowerControl::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyCounterWidth(domainIndex);
-}
-
 Power PolicyServicesDomainPowerControl::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getSlowPollPowerThreshold(domainIndex);
-}
-
-Power PolicyServicesDomainPowerControl::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getInstantaneousPower(domainIndex);
 }

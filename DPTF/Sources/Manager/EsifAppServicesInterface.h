@@ -82,4 +82,11 @@ public:
 		const void* domainHandle,
 		const EsifDataPtr eventData,
 		const EsifDataPtr eventGuid) = 0;
+
+	virtual eEsifError sendCommand(
+		const void* esifHandle,
+		const void* appHandle,
+		const UInt32 argc,
+		const EsifDataPtr argv,
+		EsifDataPtr response) = 0;
 };

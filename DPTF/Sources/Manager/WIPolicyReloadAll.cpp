@@ -16,22 +16,22 @@
 **
 ******************************************************************************/
 
-#include "WIPolicyReload.h"
+#include "WIPolicyReloadAll.h"
 #include "ParticipantManagerInterface.h"
 #include "Participant.h"
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIPolicyReload::WIPolicyReload(DptfManagerInterface* dptfManager)
-	: WorkItem(dptfManager, FrameworkEvent::ParticipantDestroy)
+WIPolicyReloadAll::WIPolicyReloadAll(DptfManagerInterface* dptfManager)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyCreate)
 {
 }
 
-WIPolicyReload::~WIPolicyReload(void)
+WIPolicyReloadAll::~WIPolicyReloadAll(void)
 {
 }
 
-void WIPolicyReload::execute(void)
+void WIPolicyReloadAll::execute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -43,7 +43,7 @@ void WIPolicyReload::execute(void)
 
 	// Unbind every participant and domain from every policy
 	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
-		 ++participantIndex)
+		++participantIndex)
 	{
 		dptfManager->unbindDomainsFromPolicies(*participantIndex);
 		dptfManager->unbindParticipantFromPolicies(*participantIndex);
@@ -54,7 +54,8 @@ void WIPolicyReload::execute(void)
 
 	try
 	{
-		policyManager->reloadAllPolicies(dptfManager->getDptfPolicyDirectoryPath());
+		policyManager->getSupportedPolicyList()->update();
+		policyManager->createAllPolicies(dptfManager->getDptfPolicyDirectoryPath());
 	}
 	catch (dptf_exception ex)
 	{
@@ -63,7 +64,7 @@ void WIPolicyReload::execute(void)
 
 	// Bind every participant and domain to every policy
 	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
-		 ++participantIndex)
+		++participantIndex)
 	{
 		dptfManager->bindParticipantToPolicies(*participantIndex);
 		dptfManager->bindDomainsToPolicies(*participantIndex);

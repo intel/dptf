@@ -45,6 +45,11 @@ static Bool EsifUpDomain_IsTempOutOfThresholds(
 	UInt32 temp
 	);
 
+static Bool EsifUpDomain_TempIsInThresholds(
+	EsifUpDomainPtr self,
+	UInt32 temp
+	);
+
 static Bool EsifUpDomain_AnyTempThresholdValid(
 	EsifUpDomainPtr self
 	);
@@ -102,10 +107,6 @@ static Bool EsifUpDomain_IsHwpEnabled(
 	);
 
 static eEsifError EsifUpDomain_CTDPDetectInit(
-	EsifUpDomainPtr self
-	);
-
-static eEsifError EsifUpDomain_PlatPowerDetectInit(
 	EsifUpDomainPtr self
 	);
 
@@ -202,9 +203,6 @@ eEsifError EsifUpDomain_DspReadyInit(
 	}
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
 		rc = EsifUpDomain_PsysDetectInit(self);
-	}
-	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
-		rc = EsifUpDomain_PlatPowerDetectInit(self);
 	}
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
 		rc = EsifUpDomain_CTDPDetectInit(self);
@@ -381,26 +379,6 @@ static eEsifError EsifUpDomain_PowerControlDetectInit(
 	}
 
 	esif_ccb_free(powerCapsData.buf_ptr);
-	return rc;
-}
-
-static eEsifError EsifUpDomain_PlatPowerDetectInit(
-	EsifUpDomainPtr self
-	)
-{
-	eEsifError rc = ESIF_OK;
-	UInt32 powerValue = 0;
-	EsifPrimitiveTuple powerTuple = { GET_PLATFORM_POWER_SOURCE, 0, 255 };
-	EsifData powerData = { ESIF_DATA_POWER, &powerValue, sizeof(powerValue), 0 };
-
-	ESIF_ASSERT(self != NULL);
-
-	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS, &powerTuple, &powerData);
-	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS);
-		rc = ESIF_E_NOT_SUPPORTED;
-	}
-
 	return rc;
 }
 
@@ -701,7 +679,6 @@ static eEsifError EsifUpDomain_SetTempThreshWLock(
 		auxTuple.domain = self->domain;
 		rc = EsifUp_ExecutePrimitive(self->upPtr, &auxTuple, &auxData, NULL);
 	}
-
 exit:
 	return rc;
 }
@@ -808,8 +785,6 @@ eEsifError EsifUpDomain_SetTempThresh(
 		
 		goto lockExit;
 	}
-
-
 lockExit:
 	esif_ccb_write_unlock(&self->tempLock);
 exit:
@@ -841,6 +816,7 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 	UInt32 temp = ESIF_DOMAIN_TEMP_INVALID;
 	EsifPrimitiveTuple tempTuple = {GET_TEMPERATURE, 0, 255};
 	struct esif_data tempResponse = { ESIF_DATA_TEMPERATURE, &temp, sizeof(temp), 0 };
+	esif_temp_t tempInvalidValue = ESIF_DOMAIN_TEMP_INVALID_VALUE;
 
 	tempTuple.domain = self->domain;
 	rc = EsifUp_ExecutePrimitive(self->upPtr, &tempTuple, NULL, &tempResponse);
@@ -867,9 +843,26 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 		temp);
 
 	self->tempLastTempValid = ESIF_TRUE;
+
+	/*
+	* If we see a value of 255, we consider it invalid and do not send an event.
+	* We also extend the polling period in such a case (in code elsewhere.)
+	*/
+	esif_convert_temp(ESIF_TEMP_C, NORMALIZE_TEMP_TYPE, &tempInvalidValue);
+	self->tempInvalidValueDetected = (tempInvalidValue == temp) ? ESIF_TRUE : ESIF_FALSE;
+
+	if (self->tempNotifySent && EsifUpDomain_TempIsInThresholds(self, temp)) {
+		self->tempNotifySent = ESIF_FALSE;
+	}
 	
-	if (EsifUpDomain_IsTempOutOfThresholds(self, temp)) {
+	if (EsifUpDomain_IsTempOutOfThresholds(self, temp) &&
+		!self->tempNotifySent &&
+		!self->tempInvalidValueDetected) {
+
+		self->tempNotifySent = ESIF_TRUE;
+
 		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
+
 		ESIF_TRACE_DEBUG("THRESHOLD CROSSED EVENT!!! Participant: %s, Domain: %s, Temperature: %d, Aux0: %d, Aux0WHyst: %d, Aux1: %d, Hyst: %d \n",
 			self->participantName,
 			self->domainName,
@@ -879,7 +872,6 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 			self->tempAux1,
 			esif_temp_abs_to_rel(self->tempHysteresis));
 	}
-
 exit:
 	return rc;
 }
@@ -945,6 +937,7 @@ static void EsifUpDomain_PollTemp(
 	EsifUpDomainPtr self = (EsifUpDomainPtr) ctx;
 	EsifDspPtr dspPtr = NULL;
 	EsifUpPtr upPtr = NULL;
+	UInt32 pollPeriod = 0;
 	
 	if (self == NULL) {
 		goto exit;
@@ -977,11 +970,11 @@ static void EsifUpDomain_PollTemp(
 		goto exit;
 	}
 
-
 	if (self->tempPollPeriod > 0 && EsifUpDomain_AnyTempThresholdValid(self)) {
 		if (self->tempPollInitialized == ESIF_TRUE) {
+			pollPeriod = (self->tempInvalidValueDetected && (self->tempPollPeriod < ESIF_DOMAIN_TEMP_INVALID_POLL_PERIOD)) ? self->tempPollPeriod : self->tempPollPeriod;
 			rc = esif_ccb_timer_set_msec(&self->tempPollTimer,
-				self->tempPollPeriod);
+				pollPeriod);
 		}
 		else {
 			rc = EsifUpDomain_StartTempPollPriv(self);
@@ -1124,6 +1117,17 @@ exit:
 		ESIF_TRACE_ERROR("Error with setting uf poll timer: %s(%d)\n", esif_rc_str(rc), rc);
 	}
 	return rc;
+}
+
+static Bool EsifUpDomain_TempIsInThresholds(
+	EsifUpDomainPtr self,
+	UInt32 temp
+	)
+{
+	ESIF_ASSERT(self != NULL);
+
+	return  ((self->tempAux0 == ESIF_DOMAIN_TEMP_INVALID) || (temp >= self->tempAux0)) &&
+		((self->tempAux1 == ESIF_DOMAIN_TEMP_INVALID) || (temp < self->tempAux1));
 }
 
 static Bool EsifUpDomain_IsTempOutOfThresholds(

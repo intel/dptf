@@ -45,6 +45,11 @@ void DomainTemperature_000::setTemperatureThresholds(
 	throw not_implemented();
 }
 
+Temperature DomainTemperature_000::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 DptfBuffer DomainTemperature_000::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();

@@ -41,7 +41,7 @@ RfProfileDataSet DomainRfProfileStatus_001::getRfProfileDataSet(UIntN participan
 	{
 		Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
 			esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
-		RfProfileSupplementalData rfProfileSupplementalData(0, 0, 0, 0, RadioConnectionStatus::NotConnected, 0);
+		RfProfileSupplementalData rfProfileSupplementalData(0, 0, RadioConnectionStatus::NotConnected);
 		RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
 		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 	}

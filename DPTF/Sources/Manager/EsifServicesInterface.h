@@ -221,4 +221,9 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		EsifData eventData) = 0;
+
+	virtual eEsifError sendCommand(
+		UInt32 argc,
+		EsifDataPtr argv,
+		EsifDataPtr response) = 0;
 };

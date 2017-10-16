@@ -72,6 +72,7 @@ static long g_nproc = 1;
 #define MAX_TIMER_THREADS_CLI 256 /* max number of timer work threads allowed from command line */
 #define MAX_PAYLOAD 1024 /* max message size*/
 #define MAX_AUTO_REPOS 4 /* max Repos that can be loaded with -m option */
+#define EVENT_INTERVAL_THRESHOLD 100 /* in ms, the threshold we process successive THERMAL_TABLE_CHANGED events */
 
 static struct sockaddr_nl sock_addr_src, sock_addr_dest;
 static struct nlmsghdr *netlink_msg = NULL;
@@ -120,18 +121,18 @@ static char device_path[] = "/devices/virtual/thermal/thermal_zone";
 static const esif_string ESIF_PATHLIST =
 #if defined(ESIF_ATTR_OS_ANDROID)
 	// Android
-	"HOME=/etc/dptf\n"
+	"HOME=/vendor/etc/dptf\n"
 	"TEMP=/data/misc/dptf/tmp\n"
-	"DV=/etc/dptf/dv\n"
+	"DV=/vendor/etc/dptf/dv\n"
 	"LOG=/data/misc/dptf/log\n"
-	"BIN=/etc/dptf/bin\n"
+	"BIN=/vendor/etc/dptf/bin\n"
 	"LOCK=/data/misc/dptf/lock\n"
-	"EXE=#/system/vendor/bin\n"
-	"DLL=#/system/vendor/lib" ARCHBITS "\n"
-	"DPTF=/etc/dptf/bin\n"
-	"DSP=/etc/dptf/dsp\n"
-	"CMD=/etc/dptf/cmd\n"
-	"UI=/etc/dptf/ui\n"
+	"EXE=#/vendor/bin\n"
+	"DLL=#/vendor/lib" ARCHBITS "\n"
+	"DPTF=/vendor/etc/dptf/bin\n"
+	"DSP=/vendor/etc/dptf/dsp\n"
+	"CMD=/vendor/etc/dptf/cmd\n"
+	"UI=/vendor/etc/dptf/ui\n"
 #elif defined(ESIF_ATTR_OS_CHROME)
 	// Chromium
 	"HOME=/usr/share/dptf\n"
@@ -199,6 +200,10 @@ enum thermal_notify_event {
 	THERMAL_EVENT_TEMP_SAMPLE, /* New Temperature sample */
 	THERMAL_EVENT_TRIP_VIOLATED, /* TRIP Point violation */
 	THERMAL_EVENT_TRIP_CHANGED, /* TRIP Point temperature changed */
+	THERMAL_DEVICE_DOWN, /* Thermal device is down */
+	THERMAL_DEVICE_UP, /* Thermal device is up after a down event */
+	THERMAL_DEVICE_POWER_CAPABILITY_CHANGED, /* power capability changed */
+	THERMAL_TABLE_CHANGED, /* Thermal table(s) changed */
 };
 
 /* Attempt IPC Connect and Sync for specified time if no IPC connection */
@@ -261,6 +266,17 @@ static int kbhit (void)
 	return 0;
 }
 
+static Int64 time_elapsed_in_ms(struct timeval *old, struct timeval *now)
+{
+	Int64 elapsed = 0;
+	if (old && now) {
+		elapsed = (now->tv_sec - old->tv_sec) * 1000;
+		elapsed += (now->tv_usec - old->tv_usec) / 1000;
+	}
+
+	return elapsed;
+}
+
 static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
 {
 	static const char name_eq[] = "NAME=";
@@ -304,6 +320,9 @@ static int check_for_uevent(int fd) {
 	char *zone_name;
 	int temp;
 	int event;
+	static struct timeval last_event_time = {0};
+	struct timeval cur_event_time = {0};
+	Int64 interval = 0;
 
 	len = recv(fd, buffer, sizeof(buffer), 0);
 	if (len <= 0) {
@@ -348,6 +367,25 @@ static int check_for_uevent(int fd) {
 					ESIF_TRACE_INFO("THERMAL_EVENT_TRIP_CHANGED\n");
 					for (j = 0; j < MAX_PARTICIPANT_ENTRY; j++)
 						EsifEventMgr_SignalEvent(j, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
+					break;
+				case THERMAL_TABLE_CHANGED:
+					ESIF_TRACE_INFO("THERMAL_TABLE_CHANGED\n");
+					gettimeofday(&cur_event_time, NULL);
+					/*
+					 * Some old BIOS has a bug that any reset to fan speed will generate a new THERMAL_TABLE_CHANGED 
+					 * notification, and this will cause an infinite loop if the corresponding ACTIVE_RELATIONSHIP_CHANGED
+					 * event is blindly sent to DPTF, as DPTF will always reset fan speed upon receiving such an event.
+					 * To break from the loop, we send thermal table changed event only if the time elaspsed between two 
+					 * successive events exceeds a certain threshold.
+					 */
+					interval = time_elapsed_in_ms(&last_event_time, &cur_event_time);
+					if (interval > EVENT_INTERVAL_THRESHOLD) {
+						EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED, NULL);
+						EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED, NULL);
+					} else {
+						ESIF_TRACE_DEBUG("Recevied spurious THERMAL_TABLE_CHANGED event\n");
+					}
+					last_event_time = cur_event_time;
 					break;
 				default:
 					break;
@@ -835,7 +873,6 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 {
 	char *ptr = NULL;
 	char line[MAX_LINE + 1] = {0};
-	char line2[MAX_LINE + 1] = {0};
 	char cmd_in[MAX_PATH] = {0};
 	char cmd_out[MAX_PATH] = {0};
 	int  stdinfd = -1;
@@ -1013,7 +1050,6 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 {
 	char *ptr = NULL;
 	char line[MAX_LINE + 1]  = {0};
-	char line2[MAX_LINE + 1] = {0};
 
 	/* Prompt */
 	#define PROMPT_LEN 64

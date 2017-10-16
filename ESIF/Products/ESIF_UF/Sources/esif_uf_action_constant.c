@@ -71,6 +71,27 @@ exit:
 	return rc;
 }
 
+static eEsifError ESIF_CALLCONV ActionConstSet(
+	esif_context_t actCtx,
+	EsifUpPtr upPtr,
+	const EsifFpcPrimitivePtr primitivePtr,
+	const EsifFpcActionPtr fpcActionPtr,
+	EsifDataPtr requestPtr
+)
+{
+	eEsifError rc = ESIF_OK;
+
+	UNREFERENCED_PARAMETER(actCtx);
+	UNREFERENCED_PARAMETER(upPtr);
+	UNREFERENCED_PARAMETER(primitivePtr);
+	UNREFERENCED_PARAMETER(fpcActionPtr);
+	UNREFERENCED_PARAMETER(requestPtr);
+
+	//this is a way to force a success on a set
+	
+	return rc;
+}
+
 
 /*
  *******************************************************************************
@@ -89,7 +110,7 @@ static EsifActIfaceStatic g_const = {
 	NULL,
 	NULL,
 	ActionConstGet,
-	NULL
+	ActionConstSet
 };
 
 enum esif_rc EsifActConstInit()

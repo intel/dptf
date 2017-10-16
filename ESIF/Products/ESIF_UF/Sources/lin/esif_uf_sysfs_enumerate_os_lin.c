@@ -35,6 +35,7 @@
 #define MAX_FMT_STR_LEN 15 // "%<Int32>s"
 #define MAX_ZONE_NAME_LEN 56
 #define HID_LEN 8
+#define ACPI_DEVICE_NAME_LEN 4
 #define DPTF_PARTICIPANT_PREFIX "INT340"
 #define ACPI_DPTF "INT3400:00"
 #define SYSFS_DPTF_HID "INT3400"
@@ -225,7 +226,6 @@ void SysfsRegisterParticipants ()
 	char *spType = "IETM";
 	char *spDevicePath = "NA";
 	char *spDevice = SYSFS_DPTF_HID;
-	const char acpiUID[ESIF_ACPI_UID_LEN] = { 0 };
 	const esif_guid_t classGuid = ESIF_PARTICIPANT_PLAT_CLASS_GUID;
 
 	sysPart.version = ESIF_PARTICIPANT_VERSION;
@@ -282,6 +282,8 @@ void SysfsRegisterParticipants ()
 			"\\_SB_.WWAN",
 			ESIF_DOMAIN_TYPE_WWAN);
 	}
+#else
+	UNREFERENCED_PARAMETER(classGuid);
 #endif
 }
 
@@ -338,7 +340,6 @@ static int scanPCI(void)
 	char participant_path[MAX_SYSFS_PATH] = { 0 };
 	char firmware_path[MAX_SYSFS_PATH] = { 0 };
 	char participant_scope[ESIF_SCOPE_LEN] = { 0 };
-	char  acpiUID[ESIF_ACPI_UID_LEN] = { 0 };
 	UInt32 ptype = ESIF_PARTICIPANT_INVALID_TYPE;
 	esif_guid_t classGuid = ESIF_PARTICIPANT_CPU_CLASS_GUID;
 
@@ -362,7 +363,10 @@ static int scanPCI(void)
 
 					if (sysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
 						int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
-						char *ACPI_name = participant_scope + (scope_len - 4);
+						if (scope_len < ACPI_DEVICE_NAME_LEN) {
+							continue;
+						}
+						char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
 						/* map to thermal zone (try pkg thermal zone first)*/
 						for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
 							struct thermalZone tz = (struct thermalZone)thermalZones[thermal_counter];
@@ -416,7 +420,6 @@ static int scanPlat(void)
 	char firmware_path[MAX_SYSFS_PATH] = { 0 };
 	char participant_scope[ESIF_SCOPE_LEN] = { 0 };
 	char hid[HID_LEN] = { 0 };
-	char  acpiUID[ESIF_ACPI_UID_LEN] = { 0 };
 	UInt32 ptype = ESIF_PARTICIPANT_INVALID_TYPE;
 	esif_guid_t classGuid = ESIF_PARTICIPANT_PLAT_CLASS_GUID;
 
@@ -450,7 +453,10 @@ static int scanPlat(void)
 
 			if (sysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
 				int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
-				char *ACPI_name = participant_scope + (scope_len - 4);
+				if (scope_len < ACPI_DEVICE_NAME_LEN) {
+					continue;
+				}
+				char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
 				char *ACPI_alias = NULL;
 
 				ACPI_alias = esif_ccb_malloc(MAX_ZONE_NAME_LEN);
@@ -605,11 +611,11 @@ static enum esif_rc get_participant_name_alias(const char *ACPI_name, char *ACPI
 	// Lookup Participant Name Alias in list and return it if found otherwise use name
 	for (j = 0; participant_aliases[j].name != NULL && participant_aliases[j].alias != NULL; j++) {
 		if (esif_ccb_strcmp(ACPI_name, participant_aliases[j].name) == 0) {
-			esif_ccb_memcpy(ACPI_alias, participant_aliases[j].alias, MAX_ZONE_NAME_LEN);
+			esif_ccb_strncpy(ACPI_alias, participant_aliases[j].alias, MAX_ZONE_NAME_LEN);
 			goto exit;
 		}
 	}
-	esif_ccb_memcpy(ACPI_alias, ACPI_name, MAX_ZONE_NAME_LEN);
+	esif_ccb_strncpy(ACPI_alias, ACPI_name, MAX_ZONE_NAME_LEN);
 
 exit:
 	return rc;

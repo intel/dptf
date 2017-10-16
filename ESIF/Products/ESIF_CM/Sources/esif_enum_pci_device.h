@@ -72,6 +72,7 @@ typedef enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_CHV = 0x22dc,
 	ESIF_PCI_DEVICE_ID_CNL = 0x5a03,
 	ESIF_PCI_DEVICE_ID_LPT = 0x8c24,
+	ESIF_PCI_DEVICE_ID_LKF = 0x9820,
 	ESIF_PCI_DEVICE_ID_LPT_LP = 0x9c24,
 	ESIF_PCI_DEVICE_ID_WCP = 0x9ca4,
 } esif_pci_device_id_t;
@@ -103,6 +104,8 @@ static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 		"DPTF Participant for 7th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT,
 		"Lynx Point(DPTF PCH)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_LKF,
+		"LakeField SOC(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT_LP,
 		"Lynx Point Low Power(DPTF PCH)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_WCP,
@@ -156,6 +159,7 @@ const struct pci_device_id esif_pci_cpu_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_SKL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CNL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CHV) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LKF) },
 	{ 0 }
 };
 

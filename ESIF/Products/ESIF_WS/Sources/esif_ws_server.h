@@ -16,53 +16,159 @@
 **
 ******************************************************************************/
 
-#ifndef ESIF_WS_SERVER_H
-#define ESIF_WS_SERVER_H
+#pragma once
 
-#include "esif_ccb_atomic.h"
+#include "esif_sdk.h"
+#include "esif_ccb_lock.h"
+#include "esif_ccb_socket.h"
 #include "esif_ccb_thread.h"
-#include "esif_ws_socket.h"
 
-#ifdef MSG_NOSIGNAL
-#define ESIF_WS_SEND_FLAGS (MSG_NOSIGNAL|MSG_DONTWAIT)
-#else
-#define ESIF_WS_SEND_FLAGS 0
+// Server Types
+typedef enum ServerType_s {
+	ServerNormal = 0,		// Normal Web Server (Any IP, Any Port, Any REST Command)
+	ServerRestricted = 1	// Restricted Web Server (127.0.0.1 only, Port < 1000, WhiteListed REST Commands only)
+} ServerType;
+
+// Client Types
+typedef enum ClientType_e {
+	ClientClosed = 0,		// Closed Connection
+	ClientHttp,				// HTTP Client
+	ClientWebsocket,		// Websocket Client
+} ClientType;
+
+// WebSocket Frame Type
+typedef enum FrameType_e {
+	FRAME_NULL = 0xFF,
+	FRAME_CONTINUATION = 0x00,
+	FRAME_TEXT = 0x01,
+	FRAME_BINARY = 0x02,
+	FRAME_CLOSING = 0x08,
+	FRAME_PING = 0x09,
+	FRAME_PONG = 0x0A,
+} FrameType, *FrameTypePtr;
+
+// WebSocket FIN Flag Types
+typedef enum FinType_e {
+	FIN_FRAGMENT = 0,
+	FIN_FINAL = 1
+} FinType, *FinTypePtr;
+
+// TCP Doorbell Object
+#define DOORBELL_SOCKETS	2	// Pair of Sockets used to signal blocked select()
+#define DOORBELL_RINGER		0	// Ringer   = Socket 0 [recv]
+#define DOORBELL_BUTTON		1	// Doorbell = Socket 1 [send]
+
+typedef struct TcpDoorbell_s {
+	esif_ccb_socket_t	sockets[DOORBELL_SOCKETS];	// Paired TCP Sockets used to signal blocked select()
+} TcpDoorbell, *TcpDoorbellPtr;
+
+// Web Server Listener Object
+typedef struct WebListener_s {
+	ServerType			mode;					// Server Type
+	esif_ccb_socket_t	socket;					// Listener Socket or INVALID_SOCKET
+	char				ipAddr[ESIF_IPADDR_LEN];// Listener IP Address
+	short				port;					// Listner Port
+} WebListener, *WebListenerPtr;
+
+// Web Server Client Object
+typedef struct WebClient_s {
+	ClientType			type;			// Client Type (Closed, Http, Websocket)
+	esif_ccb_socket_t	socket;			// Client Socket Handle or INVALID_SOCKET
+	ServerType			mode;			// Server Type (Admin, Restricted)
+	u8					*sendBuf;		// TCP/IP Send Buffer
+	size_t				sendBufLen;		// TCP/IP Send Buffer Length
+	u8					*recvBuf;		// TCP/IP Receive Buffer (Partial HTTP Request or Websocket Frame)
+	size_t				recvBufLen;		// TCP/IP Receive Buffer Length
+	
+	int					httpStatus;		// HTTP Status Code
+	char				*httpBuf;		// HTTP Request Buffer
+	char				**httpRequest;	// HTTP Request Headers Array (NULL-terminated)
+	
+	FrameType			msgType;		// Websocket Message Type
+	u8					*fragBuf;		// Websocket Multi-Fragment Buffer
+	size_t				fragBufLen;		// Websocket Multi-Fragment Buffer Length
+	Bool				isSubscriber;	// Websocket Event Broadcast Subscriber?
+} WebClient, *WebClientPtr;
+
+#define WS_MAX_LISTENERS	2	// Number of Standard and Restricted Mode Web Servers
+#define WS_MAX_CLIENTS		10	// 5 simultaneous UI websocket clients
+
+// Max Active Sockets (per WebServer) cannot exceed FD_SETSIZE (Default: Windows=64, Linux=1024)
+#if ((WS_MAX_LISTENERS + WS_MAX_CLIENTS + 1) > FD_SETSIZE)
+# undef  WS_MAX_CLIENTS
+# define WS_MAX_CLIENTS	(FD_SETSIZE - WS_MAX_LISTENERS - 1)
 #endif
+#define WS_MAX_SOCKETS	(WS_MAX_LISTENERS + WS_MAX_CLIENTS + 1)
 
-#pragma pack(push, 1)
+#define CRLF	"\r\n"
 
-typedef enum SocketState_e {
-	STATE_OPENING,
-	STATE_NORMAL
-}SocketState, *SocketStatePtr;
+// Event Broadcast Queue
+typedef struct esif_link_list MessageQueue, *MessageQueuePtr;
 
-typedef struct ClientRecord_s {
-	esif_ccb_socket_t socket;
-	SocketState state;
-	Protocol prot;
-	u8 *send_buffer;
-	size_t send_buf_len;
-	u8 *frame_buffer;
-	size_t frame_buf_len;
-	u8 *frag_buffer;
-	size_t frag_buf_len;
-	FrameType frag_type;
-	Bool is_subscriber;
-} ClientRecord, *ClientRecordPtr;
+// Web Server Object (One per Worker Thread)
+typedef struct WebServer_s {
+	esif_ccb_lock_t		lock;						// Thread Lock
 
-#pragma pack(pop)
+	TcpDoorbell			doorbell;					// Doorbell Intra-Process Signal object
+	WebListener			listeners[WS_MAX_LISTENERS];// Web Server Listener Socket(s)
+	WebClient			clients[WS_MAX_CLIENTS];	// Web Clients
 
-// Public Interface
-eEsifError esif_ws_init(void);
-void esif_ws_exit(void);
-eEsifError esif_ws_start(void);
-void esif_ws_stop(void);
-void esif_ws_server_set_options(const char *ipaddr, u32 port, Bool restricted);
-eEsifError esif_ws_broadcast(const u8 *bufferPtr, size_t bufferSize);
+	esif_thread_t		mainThread;					// Web Server Main Worker Thread
+	atomic_t			isActive;					// Web Server Active Flag
+	atomic_t			activeThreads;				// Active Thread Count
 
-// Private
-void esif_ws_client_close_client(ClientRecordPtr clientPtr);
-u32  esif_ws_buffer_resize(u32 size);
-int esif_ws_client_write_to_socket(ClientRecordPtr clientPtr, const char *bufferPtr, size_t bufferSize);
+	atomic_t			subscribers;				// Active Event Subscribers
+	u8					*netBuf;					// Network Send/Receive Buffer
+	size_t				netBufLen;					// Network Send/Receive Buffer Length
 
-#endif /* ESIF_WS_SERVER_H */
+	MessageQueuePtr		msgQueue;					// Message Broadcast Queue
+} WebServer, *WebServerPtr;
+
+extern WebServerPtr g_WebServer;
+
+// Public Interfaces
+esif_error_t WebPlugin_Init(void);
+void WebPlugin_Exit(void);
+
+esif_error_t WebServer_Start(WebServerPtr self);
+void WebServer_Stop(WebServerPtr self);
+Bool WebServer_IsStarted(WebServerPtr self);
+esif_error_t WebServer_Config(WebServerPtr self, u8 instance, char *ipAddr, short port, ServerType mode);
+esif_error_t WebServer_Broadcast(WebServerPtr self, const void *buffer, size_t buf_len);
+
+esif_error_t WebClient_Write(WebClientPtr self, void *buffer, size_t buf_len);
+void WebClient_Close(WebClientPtr self);
+
+// Trace Messaging
+typedef enum esif_ws_tracelevel {
+	TRACELEVEL_NONE = -1,
+	TRACELEVEL_FATAL = 0,
+	TRACELEVEL_ERROR = 1,
+	TRACELEVEL_WARNING = 2,
+	TRACELEVEL_INFO = 3,
+	TRACELEVEL_DEBUG = 4,
+} esif_ws_tracelevel_t;
+
+#define WS_DOTRACE_IFACTIVE(level, msg, ...) \
+	do { \
+		if (EsifWsTraceLevel() >= level) { \
+			EsifWsTraceMessageEx(level, ESIF_FUNC, __FILE__, __LINE__, msg, ##__VA_ARGS__); \
+		} \
+	} while ESIF_CONSTEXPR(ESIF_FALSE)
+
+#define WS_TRACE_FATAL(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_FATAL, msg, ##__VA_ARGS__)
+#define WS_TRACE_ERROR(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_ERROR, msg, ##__VA_ARGS__)
+#define WS_TRACE_WARNING(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_WARNING, msg, ##__VA_ARGS__)
+#define WS_TRACE_INFO(msg, ...)		WS_DOTRACE_IFACTIVE(TRACELEVEL_INFO, msg, ##__VA_ARGS__)
+#define WS_TRACE_DEBUG(msg, ...)	WS_DOTRACE_IFACTIVE(TRACELEVEL_DEBUG, msg, ##__VA_ARGS__)
+
+// ESIF_UF <-> ESIF_WS Interface Helpers
+void EsifWsLock(void);
+void EsifWsUnlock(void);
+const char *EsifWsDocRoot(void);
+const char *EsifWsLogRoot(void);
+Bool EsifWsShellEnabled(void);
+char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len);
+int EsifWsTraceLevel(void);
+int EsifWsTraceMessageEx(int level, const char *func, const char *file, int line, const char *msg, ...);
+int EsifWsConsoleMessageEx(const char *msg, ...);

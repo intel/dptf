@@ -38,14 +38,14 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		std::string functionName = "";
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 
 			OsMobileNotificationType::Type notificationType =
 				(OsMobileNotificationType::Type)(((UInt32)m_mobileNotification & 0xFFFF0000) >> 16);
@@ -77,7 +77,7 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, functionName, i);
+			writeWorkItemErrorMessagePolicy(ex, functionName, *i);
 		}
 	}
 }

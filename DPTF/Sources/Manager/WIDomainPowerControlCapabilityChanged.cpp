@@ -26,10 +26,10 @@ WIDomainPowerControlCapabilityChanged::WIDomainPowerControlCapabilityChanged(
 	UIntN participantIndex,
 	UIntN domainIndex)
 	: DomainWorkItem(
-		  dptfManager,
-		  FrameworkEvent::Type::DomainPowerControlCapabilityChanged,
-		  participantIndex,
-		  domainIndex)
+		dptfManager,
+		FrameworkEvent::Type::DomainPowerControlCapabilityChanged,
+		participantIndex,
+		domainIndex)
 {
 }
 
@@ -51,13 +51,13 @@ void WIDomainPowerControlCapabilityChanged::execute(void)
 	}
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainPowerControlCapabilityChanged(getParticipantIndex());
 		}
 		catch (policy_index_invalid ex)
@@ -66,7 +66,7 @@ void WIDomainPowerControlCapabilityChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPowerControlCapabilityChanged", i);
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPowerControlCapabilityChanged", *i);
 		}
 	}
 }

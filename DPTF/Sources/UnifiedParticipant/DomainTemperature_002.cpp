@@ -60,6 +60,11 @@ TemperatureStatus DomainTemperature_002::getTemperatureStatus(UIntN participantI
 	}
 }
 
+Temperature DomainTemperature_002::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throw dptf_exception("Get Power Share Temperature Threshold is not supported by " + getName() + ".");
+}
+
 DptfBuffer DomainTemperature_002::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
 {
 	if (m_calibrationTableBuffer.size() == 0)
@@ -119,12 +124,28 @@ std::shared_ptr<XmlNode> DomainTemperature_002::getXml(UIntN domainIndex)
 
 void DomainTemperature_002::createCalibrationTableBuffer(UIntN domainIndex)
 {
-	m_calibrationTableBuffer = getParticipantServices()->primitiveExecuteGet(
-		esif_primitive_type::GET_VIRTUAL_SENSOR_CALIB_TABLE, ESIF_DATA_BINARY, domainIndex);
+	try
+	{
+		m_calibrationTableBuffer = getParticipantServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_VIRTUAL_SENSOR_CALIB_TABLE, ESIF_DATA_BINARY, domainIndex);
+	}
+	catch (dptf_exception& ex)
+	{
+		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.what()));
+		m_calibrationTableBuffer = DptfBuffer();
+	}
 }
 
 void DomainTemperature_002::createPollingTableBuffer(UIntN domainIndex)
 {
-	m_pollingTableBuffer = getParticipantServices()->primitiveExecuteGet(
-		esif_primitive_type::GET_VIRTUAL_SENSOR_POLLING_TABLE, ESIF_DATA_BINARY, domainIndex);
+	try
+	{
+		m_pollingTableBuffer = getParticipantServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_VIRTUAL_SENSOR_POLLING_TABLE, ESIF_DATA_BINARY, domainIndex);
+	}
+	catch (dptf_exception& ex)
+	{
+		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.what()));
+		m_pollingTableBuffer = DptfBuffer();
+	}
 }

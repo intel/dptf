@@ -104,6 +104,7 @@ typedef struct EsifLogFile_s {
 	esif_string		name;		// Log Name
 	esif_string		filename;	// Log file name
 	FILE			*handle;	// Log file handle or NULL if not open
+	Bool			autoflush;	// Automatically Flush File after every EsifLogFile_Write? (off by default)
 } EsifLogFile;
 
 static EsifLogFile g_EsifLogFile[MAX_ESIFLOG] = {0};
@@ -228,6 +229,14 @@ int EsifLogFile_IsOpen(EsifLogType type)
 	return rc;
 }
 
+int EsifLogFile_AutoFlush(EsifLogType type, Bool option)
+{
+	esif_ccb_read_lock(&g_EsifLogFile[type].lock);
+	g_EsifLogFile[type].autoflush = option;
+	esif_ccb_read_unlock(&g_EsifLogFile[type].lock);
+	return 0;
+}
+
 int EsifLogFile_Write(EsifLogType type, const char *fmt, ...)
 {
 	int rc = 0;
@@ -267,7 +276,9 @@ int EsifLogFile_WriteArgsAppend(EsifLogType type, const char *append, const char
 				rc += appendlen;
 			}
 			rc = (int)esif_ccb_fwrite(buffer, sizeof(char), rc, g_EsifLogFile[type].handle);
-			fflush(g_EsifLogFile[type].handle);
+			if (g_EsifLogFile[type].autoflush) {
+				fflush(g_EsifLogFile[type].handle);
+			}
 			esif_ccb_free(buffer);
 		}
 	}
@@ -519,15 +530,22 @@ enum esif_rc sync_lf_participants()
 	count    = data_ptr->count;
 
 	for (i = 0; i < count; i++) {
+		UInt8 upInstance = 0;
 		struct esif_ipc_event_data_create_participant participantData;
-		EsifData esifParticipantData = {ESIF_DATA_STRUCTURE, &participantData, sizeof(participantData), sizeof(participantData)};
 
 		rc = get_participant_data(&participantData, (UInt8)data_ptr->participant_info[i].id);
 		if (ESIF_OK != rc) {
 			rc = ESIF_OK; /* Ignore RC for get_participant_data */
 			continue;
 		}
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_CREATE, &esifParticipantData);
+
+		rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, &participantData, &upInstance);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_ERROR("Failed to add participant %s to participant manager\n", participantData.name);
+			continue;
+		}
+
+		ESIF_TRACE_INFO("\nCreated new UF participant: %s, instance = %d\n", participantData.name, upInstance);
 	}
 exit:
 	ESIF_TRACE_INFO("rc = %s(%u)", esif_rc_str(rc), rc);
@@ -750,24 +768,26 @@ static Bool ESIF_CALLCONV EsifWsShellEnabled(void)
 	return (Bool)g_shell_enabled;
 }
 
-static void ESIF_CALLCONV EsifWsShellLock(void)
+// Execute a Shell Command and return a buffer allocated by EsifWebAlloc or NULL
+static char *ESIF_CALLCONV EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len)
 {
-	esif_uf_shell_lock();
-}
+	char *result = NULL;
+	if (cmd && cmd_len > 0) {
+		esif_uf_shell_lock();
+		char *reply = esif_shell_exec_command(cmd, cmd_len, ESIF_TRUE, ESIF_FALSE);
+		if (reply) {
+			size_t reply_len = esif_ccb_strlen(reply, WS_MAX_REST_RESPONSE);
+			size_t result_len = prefix_len + reply_len + 1;
+			result = EsifWebAlloc(result_len);
 
-static void ESIF_CALLCONV EsifWsShellUnlock(void)
-{
-	esif_uf_shell_unlock();
-}
-
-static char *ESIF_CALLCONV EsifWsShellExec(char *cmd, size_t data_len)
-{
-	return esif_shell_exec_command(cmd, data_len, ESIF_TRUE, ESIF_FALSE);
-}
-
-static size_t ESIF_CALLCONV EsifWsShellBufLen(void)
-{
-	return (size_t)g_outbuf_len;
+			if (result) {
+				esif_ccb_strncpy(result, (prefix ? prefix : ""), prefix_len + 1);
+				esif_ccb_strcat(result, reply, result_len);
+			}
+		}
+		esif_uf_shell_unlock();
+	}
+	return result;
 }
 
 static int ESIF_CALLCONV EsifWsTraceMessage(
@@ -852,10 +872,7 @@ eEsifError EsifWebLoad()
 				self->fInterface.tEsifWsLockFuncPtr = EsifWsLock;
 				self->fInterface.tEsifWsUnlockFuncPtr = EsifWsUnlock;
 				self->fInterface.tEsifWsShellEnabledFuncPtr = EsifWsShellEnabled;
-				self->fInterface.tEsifWsShellLockFuncPtr = EsifWsShellLock;
-				self->fInterface.tEsifWsShellUnlockFuncPtr = EsifWsShellUnlock;
 				self->fInterface.tEsifWsShellExecFuncPtr = EsifWsShellExec;
-				self->fInterface.tEsifWsShellBufLenFuncPtr = EsifWsShellBufLen;
 				self->fInterface.tEsifWsTraceMessageFuncPtr = EsifWsTraceMessage;
 				self->fInterface.tEsifWsConsoleMessageFuncPtr = EsifWsConsoleMessage;
 
@@ -951,6 +968,7 @@ void EsifWebStop()
 
 	// Stop Web Server
 	if (EsifWebIsStarted()) {
+		// Do not take lock since this call blocks until WS Main thread exits
 		CMD_OUT("Stopping web server...\n");
 		if (self->fInterface.fEsifWsStopFuncPtr) {
 			self->fInterface.fEsifWsStopFuncPtr();
@@ -963,16 +981,48 @@ int EsifWebIsStarted()
 {
 	int rc = ESIF_FALSE;
 	EsifWebMgrPtr self = &g_WebMgr;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
 	if (self->fInterface.fEsifWsIsStartedFuncPtr) {
 		rc = (int)self->fInterface.fEsifWsIsStartedFuncPtr();
 	}
+	esif_ccb_mutex_unlock(&self->fLock);
 	return rc;
 }
 
-Bool EsifWebIsRestricted(void)
+void *EsifWebAlloc(size_t buf_len)
+{
+	void *rc = NULL;
+	EsifWebMgrPtr self = &g_WebMgr;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	if (self->fInterface.fEsifWsAllocFuncPtr) {
+		rc = self->fInterface.fEsifWsAllocFuncPtr(buf_len);
+	}
+	esif_ccb_mutex_unlock(&self->fLock);
+	return rc;
+}
+
+Bool EsifWebIsServerMode(Bool restricted)
 {
 	EsifWebMgrPtr self = &g_WebMgr;
-	return self->fInterface.isRestricted;
+	Bool result = ESIF_FALSE;
+	int j = 0;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	for (j = 0; j < WS_LISTENERS && !result; j++) {
+		if (restricted && self->fInterface.isRestricted[j]) {
+			result = ESIF_TRUE;
+		}
+		else if (!restricted && !self->fInterface.isRestricted[j] && (self->fInterface.ipAddr[j][0] || self->fInterface.port[j] || j == 0)) {
+			result = ESIF_TRUE;
+		}
+	}
+	esif_ccb_mutex_unlock(&self->fLock);
+	return result;
 }
 
 const char *EsifWebVersion(void)
@@ -981,16 +1031,40 @@ const char *EsifWebVersion(void)
 	return self->fInterface.wsVersion;
 }
 
-void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
+Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, Bool *restricted_ptr)
+{
+	Bool rc = ESIF_FALSE;
+	EsifWebMgrPtr self = &g_WebMgr;
+
+	esif_ccb_mutex_lock(&self->fLock);
+
+	if (instance < WS_LISTENERS && ipaddr_ptr && port_ptr && restricted_ptr) {
+		*ipaddr_ptr = self->fInterface.ipAddr[instance];
+		*port_ptr = self->fInterface.port[instance];
+		*restricted_ptr = self->fInterface.isRestricted[instance];
+		rc = ESIF_TRUE;
+	}
+	esif_ccb_mutex_unlock(&self->fLock);
+	return rc;
+}
+
+void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, Bool restricted)
 {
 	EsifWebMgrPtr self = &g_WebMgr;
 
 	esif_ccb_mutex_lock(&self->fLock);
 
-	esif_ccb_strcpy(self->fInterface.ipAddr, (ipaddr ? ipaddr : ""), sizeof(self->fInterface.ipAddr));
-	self->fInterface.port = port;
-	self->fInterface.isRestricted = restricted;
-
+	if (instance == ESIF_WS_INSTANCE_ALL) {
+		esif_ccb_memset(&self->fInterface.ipAddr, 0, sizeof(self->fInterface.ipAddr));
+		esif_ccb_memset(&self->fInterface.port, 0, sizeof(self->fInterface.port));
+		esif_ccb_memset(&self->fInterface.isRestricted, 0, sizeof(self->fInterface.isRestricted));
+		instance = 0;
+	}
+	if (instance < WS_LISTENERS) {
+		esif_ccb_strcpy(self->fInterface.ipAddr[instance], (ipaddr ? ipaddr : ""), sizeof(self->fInterface.ipAddr[instance]));
+		self->fInterface.port[instance] = port;
+		self->fInterface.isRestricted[instance] = restricted;
+	}
 	esif_ccb_mutex_unlock(&self->fLock);
 }
 
@@ -1005,19 +1079,25 @@ void EsifWebSetTraceLevel(int level)
 	}
 }
 
-eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
+eEsifError EsifWebBroadcast(const u8 *buffer, size_t buf_len)
 {
 	eEsifError rc = ESIF_E_CALLBACK_IS_NULL;
 	EsifWebMgrPtr self = &g_WebMgr;
 
-	// Broadcast Buffer to Active Subscribers
-	// Do not take a lock here; Lock is taken only if there are active subscribers
-	// This prevents blocking of Event thread(s) by long-running UI commands
-	// This also requires that the WS Library not be automatically unloaded when stopped
+	esif_ccb_mutex_lock(&self->fLock);
+
+	// Broadcast Buffer to Active Subscribers after locking WS Interface to prevent Start/Stop/Load/Unload
 	if (self->fInterface.fEsifWsBroadcastFuncPtr) {
-		rc = self->fInterface.fEsifWsBroadcastFuncPtr(bufferPtr, bufferSize);
+		rc = self->fInterface.fEsifWsBroadcastFuncPtr(buffer, buf_len);
 	}
+	esif_ccb_mutex_unlock(&self->fLock);
 	return rc;
+}
+
+// Deprectated
+eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
+{
+	return EsifWebBroadcast(bufferPtr, bufferSize);
 }
 
 #else
@@ -1061,11 +1141,15 @@ void EsifWebSetTraceLevel(int level)
 {
 	UNREFERENCED_PARAMETER(level);
 }
+eEsifError EsifWebBroadcast(void *buffer, size_t buf_len)
+{
+	UNREFERENCED_PARAMETER(buffer);
+	UNREFERENCED_PARAMETER(buf_len);
+	return ESIF_E_NOT_IMPLEMENTED;
+}
 eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
 {
-	UNREFERENCED_PARAMETER(bufferPtr);
-	UNREFERENCED_PARAMETER(bufferSize);
-	return ESIF_E_NOT_IMPLEMENTED;
+	return EsifWebBroadcast((void *)bufferPtr, bufferSize);
 }
 #endif
 

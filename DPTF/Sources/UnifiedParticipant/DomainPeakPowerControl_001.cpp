@@ -96,6 +96,19 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 				message << "Failed to get DC Peak Power: " << ex.what();
 				getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
 			}
+
+			getParticipantServices()->sendDptfEvent(
+				ParticipantEvent::DptfParticipantControlAction,
+				domainIndex,
+				Capability::getEsifDataFromCapabilityData(&capability));
+
+			std::stringstream message;
+			message << "Published activity for participant " << getParticipantIndex() << ", "
+				<< "domain " << getName() << " "
+				<< "("
+				<< "Peak Power Control"
+				<< ")";
+			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
 		}
 	}
 	catch (...)

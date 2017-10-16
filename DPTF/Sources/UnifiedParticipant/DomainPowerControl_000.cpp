@@ -60,6 +60,14 @@ Power DomainPowerControl_000::getPowerLimit(
 	throw not_implemented();
 }
 
+Power DomainPowerControl_000::getPowerLimitWithoutCache(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	throw not_implemented();
+}
+
 void DomainPowerControl_000::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -169,27 +177,7 @@ TimeSpan DomainPowerControl_000::getWeightedSlowPollAvgConstant(UIntN participan
 	throw not_implemented();
 }
 
-UInt32 DomainPowerControl_000::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
-double DomainPowerControl_000::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
-UInt32 DomainPowerControl_000::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
 Power DomainPowerControl_000::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-
-Power DomainPowerControl_000::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }

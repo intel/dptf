@@ -18,7 +18,6 @@
 
 #include "PolicyServicesPlatformPowerState.h"
 #include "EsifServicesInterface.h"
-#include "esif_ccb_thread.h"
 
 void* ThreadSleep(void* self);
 void* ThreadHibernate(void* self);
@@ -27,7 +26,13 @@ void* ThreadShutdown(void* self);
 PolicyServicesPlatformPowerState::PolicyServicesPlatformPowerState(DptfManagerInterface* dptfManager, UIntN policyIndex)
 	: PolicyServices(dptfManager, policyIndex)
 	, m_thermalEvent()
+	, m_thread()
 {
+}
+
+PolicyServicesPlatformPowerState::~PolicyServicesPlatformPowerState()
+{
+	esif_ccb_thread_join(&m_thread);
 }
 
 esif_data_complex_thermal_event* PolicyServicesPlatformPowerState::getThermalEventPtr(void)
@@ -47,8 +52,12 @@ void PolicyServicesPlatformPowerState::sleep(void)
 {
 	throwIfNotWorkItemThread();
 
-	esif_thread_t threadId;
-	esif_ccb_thread_create(&threadId, ThreadSleep, this);
+	esif_ccb_thread_join(&m_thread);
+	eEsifError rc = esif_ccb_thread_create(&m_thread, ThreadSleep, this);
+	if (rc != ESIF_OK)
+	{
+		getEsifServices()->writeMessageError("Failed to request sleep", MessageCategory::EsifServicesInterface);
+	}
 }
 
 void PolicyServicesPlatformPowerState::hibernate(
@@ -57,9 +66,13 @@ void PolicyServicesPlatformPowerState::hibernate(
 {
 	throwIfNotWorkItemThread();
 
-	esif_thread_t threadId;
 	setThermalEvent(currentTemperature, tripPointTemperature);
-	esif_ccb_thread_create(&threadId, ThreadHibernate, this);
+	esif_ccb_thread_join(&m_thread);
+	eEsifError rc = esif_ccb_thread_create(&m_thread, ThreadHibernate, this);
+	if (rc != ESIF_OK)
+	{
+		getEsifServices()->writeMessageError("Failed to request hibernate", MessageCategory::EsifServicesInterface);
+	}
 }
 
 void PolicyServicesPlatformPowerState::shutDown(
@@ -68,9 +81,13 @@ void PolicyServicesPlatformPowerState::shutDown(
 {
 	throwIfNotWorkItemThread();
 
-	esif_thread_t threadId;
 	setThermalEvent(currentTemperature, tripPointTemperature);
-	esif_ccb_thread_create(&threadId, ThreadShutdown, this);
+	esif_ccb_thread_join(&m_thread);
+	eEsifError rc = esif_ccb_thread_create(&m_thread, ThreadShutdown, this);
+	if (rc != ESIF_OK)
+	{
+		getEsifServices()->writeMessageError("Failed to request shutdown", MessageCategory::EsifServicesInterface);
+	}
 }
 
 void* ThreadSleep(void* self)

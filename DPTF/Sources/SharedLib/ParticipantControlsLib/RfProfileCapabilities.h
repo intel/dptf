@@ -29,11 +29,17 @@ public:
 	RfProfileCapabilities(
 		Frequency defaultCenterFrequency,
 		Frequency centerFrequency,
-		Frequency frequencyAdjustResolution);
+		Frequency frequencyAdjustResolution,
+		Frequency minFrequency,
+		Frequency maxFrequency,
+		Percentage ssc);
 
 	Frequency getDefaultCenterFrequency(void) const;
 	Frequency getCenterFrequency(void) const;
 	Frequency getFrequencyAdjustResolution(void) const;
+	Frequency getMinFrequency(void) const;
+	Frequency getMaxFrequency(void) const;
+	Percentage getSsc(void) const;
 
 	Bool operator==(const RfProfileCapabilities& rhs) const;
 	Bool operator!=(const RfProfileCapabilities& rhs) const;
@@ -43,4 +49,7 @@ private:
 	Frequency m_defaultCenterFrequency;
 	Frequency m_centerFrequency;
 	Frequency m_frequencyAdjustResolution;
+	Frequency m_minFrequency;
+	Frequency m_maxFrequency;
+	Percentage m_ssc;
 };

@@ -93,6 +93,11 @@ Bool DomainProperties::implementsDisplayControlInterface(void) const
 	return isInterfaceImplemented(m_domainFunctionalityVersions.displayControlVersion);
 }
 
+Bool DomainProperties::implementsEnergyControlInterface(void) const
+{
+	return isInterfaceImplemented(m_domainFunctionalityVersions.energyControlVersion);
+}
+
 Bool DomainProperties::implementsPeakPowerControlInterface(void) const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.peakPowerControlVersion);

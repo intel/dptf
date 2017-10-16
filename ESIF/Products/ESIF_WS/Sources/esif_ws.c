@@ -18,11 +18,12 @@
 
 #include <stdarg.h>
 #include "esif_ccb_string.h"
+
 #include "esif_sdk_iface_ws.h"
 #include "esif_ws_server.h"
 #include "esif_ws_version.h"
 
-#ifdef _WIN32
+#ifdef ESIF_ATTR_OS_WINDOWS
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 
@@ -42,37 +43,56 @@ static EsifWsInterfacePtr g_ifaceWs = NULL;
 
 static esif_error_t ESIF_CALLCONV EsifWsInit(void)
 {
-	return esif_ws_init();
+	return WebPlugin_Init();
 }
 
 static esif_error_t ESIF_CALLCONV EsifWsExit(void)
 {
-	esif_ws_exit();
+	WebPlugin_Exit();
 	return ESIF_OK;
 }
 
 static esif_error_t ESIF_CALLCONV EsifWsStart(void)
 {
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	EsifWsInterfacePtr self = g_ifaceWs;
-	esif_ws_server_set_options(self->ipAddr, self->port, self->isRestricted);
-	return esif_ws_start();
+	WebServerPtr server = g_WebServer;
+	if (server) {
+		u8 instance = 0;
+		for (instance = 0; instance < WS_LISTENERS && instance < WS_MAX_LISTENERS; instance++) {
+			if (instance == 0 || self->ipAddr[instance][0] || self->port[instance] || self->isRestricted[instance]) {
+				rc = WebServer_Config(server, instance, self->ipAddr[instance], (short)self->port[instance], (self->isRestricted[instance] ? ServerRestricted : ServerNormal));
+			}
+			else {
+				WebServer_Config(server, instance, NULL, 0, ServerNormal);
+			}
+		}
+		if (rc == ESIF_OK) {
+			rc = WebServer_Start(server);
+		}
+	}
+	return rc;
 }
 
 static esif_error_t ESIF_CALLCONV EsifWsStop(void)
 {
-	esif_ws_stop();
+	WebServer_Stop(g_WebServer);
 	return ESIF_OK;
 }
 
-static esif_error_t EsifWsBroadcast(const u8 *buffer, size_t buf_len)
+static esif_error_t ESIF_CALLCONV EsifWsBroadcast(const u8 *buffer, size_t buf_len)
 {
-	return esif_ws_broadcast(buffer, buf_len);
+	return WebServer_Broadcast(g_WebServer, buffer, buf_len);
 }
 
-static Bool EsifWsIsStarted(void)
+static Bool ESIF_CALLCONV EsifWsIsStarted(void)
 {
-	extern atomic_t g_ws_threads;
-	return (atomic_read(&g_ws_threads) > 0);
+	return WebServer_IsStarted(g_WebServer);
+}
+
+static void * ESIF_CALLCONV EsifWsAlloc(size_t buf_len)
+{
+	return esif_ccb_malloc(buf_len);
 }
 
 // ESIF_WS -> ESIF_UF Interface Helper Functions
@@ -81,7 +101,7 @@ const char *EsifWsDocRoot(void)
 {
 	EsifWsInterfacePtr self = g_ifaceWs;
 	const char *result = NULL;
-	if (self) {
+	if (self && self->docRoot[0]) {
 		result = self->docRoot;
 	}
 	return result;
@@ -91,7 +111,7 @@ const char *EsifWsLogRoot(void)
 {
 	EsifWsInterfacePtr self = g_ifaceWs;
 	const char *result = NULL;
-	if (self) {
+	if (self && self->logRoot[0]) {
 		result = self->logRoot;
 	}
 	return result;
@@ -123,38 +143,12 @@ Bool EsifWsShellEnabled(void)
 	return rc;
 }
 
-void EsifWsShellLock(void)
-{
-	EsifWsInterfacePtr self = g_ifaceWs;
-	if (self && self->tEsifWsShellLockFuncPtr) {
-		self->tEsifWsShellLockFuncPtr();
-	}
-}
-
-void EsifWsShellUnlock(void)
-{
-	EsifWsInterfacePtr self = g_ifaceWs;
-	if (self && self->tEsifWsShellUnlockFuncPtr) {
-		self->tEsifWsShellUnlockFuncPtr();
-	}
-}
-
-char *EsifWsShellExec(char *cmd, size_t data_len)
+char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len)
 {
 	EsifWsInterfacePtr self = g_ifaceWs;
 	char *result = NULL;
 	if (self && self->tEsifWsShellExecFuncPtr) {
-		result = self->tEsifWsShellExecFuncPtr(cmd, data_len);
-	}
-	return result;
-}
-
-size_t EsifWsShellBufLen(void)
-{
-	EsifWsInterfacePtr self = g_ifaceWs;
-	size_t result = 0;
-	if (self && self->tEsifWsShellBufLenFuncPtr) {
-		result = self->tEsifWsShellBufLenFuncPtr();
+		result = self->tEsifWsShellExecFuncPtr(cmd, cmd_len, prefix, prefix_len);
 	}
 	return result;
 }
@@ -224,6 +218,7 @@ ESIF_EXPORT esif_error_t ESIF_CALLCONV GetWsInterface(EsifWsInterfacePtr ifacePt
 			ifacePtr->fEsifWsStopFuncPtr = EsifWsStop;
 			ifacePtr->fEsifWsBroadcastFuncPtr = EsifWsBroadcast;
 			ifacePtr->fEsifWsIsStartedFuncPtr = EsifWsIsStarted;
+			ifacePtr->fEsifWsAllocFuncPtr = EsifWsAlloc;
 			g_ifaceWs = ifacePtr;
 			rc = ESIF_OK;
 		}

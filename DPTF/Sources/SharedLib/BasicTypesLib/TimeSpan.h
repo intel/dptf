@@ -61,7 +61,7 @@ public:
 
 	std::string toStringMicroseconds() const;
 	std::string toStringMilliseconds() const;
-	std::string toStringSeconds() const;
+	std::string toStringSeconds(UInt32 precision = 1) const;
 
 private:
 	Bool m_valid;

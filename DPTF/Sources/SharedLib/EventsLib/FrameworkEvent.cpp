@@ -165,7 +165,7 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DomainAC1msPercentageOverloadChanged, 0, DUMMY_GUID);
 	INIT_EVENT_WITH_GUID(DomainAC2msPercentageOverloadChanged, 0, DUMMY_GUID);
 	INIT_EVENT_WITH_GUID(DomainAC10msPercentageOverloadChanged, 0, DUMMY_GUID);
-	INIT_EVENT_WITH_GUID(DomainEnergyThresholdCrossed, 0, DOMAIN_ENERGY_THRESHOLD_CROSSED);
+	INIT_EVENT_WITH_GUID(DomainEnergyThresholdCrossed, 0, ENERGY_THRESHOLD_CROSSED);
 
 	// Policy events
 	INIT_EVENT(PolicyCreate, 31);
@@ -210,6 +210,7 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloading, 0, APP_UNLOADING);
+	INIT_EVENT_WITH_GUID(DptfAppAliveRequest, 0, ALIVE_REQUEST);
 }
 
 void FrameworkEventInfo::initializeEvent(

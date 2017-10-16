@@ -83,7 +83,7 @@ PowerControlDynamicCapsSet DomainPowerControl_001::getDynamicCapabilities()
 	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES, ESIF_DATA_BINARY, getDomainIndex());
 	auto dynamicCapsSetFromControl = PowerControlDynamicCapsSet::createFromPpcc(buffer);
-	throwIfDynamicCapabilitiesAreWrong(dynamicCapsSetFromControl);
+	throwIfDynamicCapabilitiesAreEmpty(dynamicCapsSetFromControl);
 	return dynamicCapsSetFromControl;
 }
 
@@ -104,6 +104,14 @@ Power DomainPowerControl_001::getPowerLimit(
 	throwIfTypeInvalidForPowerLimit(controlType);
 	return getParticipantServices()->primitiveExecuteGetAsPower(
 		esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, (UInt8)controlType);
+}
+
+Power DomainPowerControl_001::getPowerLimitWithoutCache(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	throw dptf_exception("Get Power Limit Without Cache is not supported by " + getName() + ".");
 }
 
 void DomainPowerControl_001::setPowerLimit(
@@ -191,7 +199,7 @@ void DomainPowerControl_001::setPowerLimitDutyCycle(
 	setAndUpdateEnabled(controlType);
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForDutyCycle(controlType);
-	throwIfDutyCycleIsOutsideCapabilityRange(dutyCycle);
+	throwIfDutyCycleIsOutsideCapabilityRange(controlType, dutyCycle);
 	getParticipantServices()->primitiveExecuteSetAsPercentage(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, (UInt8)controlType);
 }
@@ -239,7 +247,7 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 			{
 				capability.data.powerControl.powerDataSet[powerType].isEnabled =
 					(UInt32)isEnabled((PowerControlType::Type)powerType);
-				if (capability.data.powerControl.powerDataSet[powerType].isEnabled == (UInt32) true)
+				if (capability.data.powerControl.powerDataSet[powerType].isEnabled == (UInt32)true)
 				{
 					capability.data.powerControl.powerDataSet[powerType].powerType =
 						(PowerControlType::Type)powerType + 1;
@@ -284,10 +292,10 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 
 			std::stringstream message;
 			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Power Control"
-					<< ")";
+				<< "domain " << getName() << " "
+				<< "("
+				<< "Power Control"
+				<< ")";
 			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
 		}
 	}
@@ -513,35 +521,11 @@ void DomainPowerControl_001::throwIfTypeInvalidForDutyCycle(PowerControlType::Ty
 	}
 }
 
-void DomainPowerControl_001::throwIfDynamicCapabilitiesAreWrong(const PowerControlDynamicCapsSet& capabilities)
+void DomainPowerControl_001::throwIfDynamicCapabilitiesAreEmpty(const PowerControlDynamicCapsSet& capabilities)
 {
 	if (capabilities.isEmpty())
 	{
 		throw dptf_exception("Dynamic caps set is empty.  Impossible if we support power controls.");
-	}
-
-	auto controlTypes = capabilities.getControlTypes();
-	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); controlType++)
-	{
-		auto capability = capabilities.getCapability(*controlType);
-		std::string controlTypeString = PowerControlType::ToString(capability.getPowerControlType());
-		if (capability.getMaxPowerLimit() < capability.getMinPowerLimit())
-		{
-			std::string errorMessage = controlTypeString + " has bad power limit capabilities: max < min.";
-			throw dptf_exception(errorMessage);
-		}
-
-		if (capability.getMaxTimeWindow() < capability.getMinTimeWindow())
-		{
-			std::string errorMessage = controlTypeString + " has bad time window capabilities: max < min.";
-			throw dptf_exception(errorMessage);
-		}
-
-		if (capability.getMaxDutyCycle() < capability.getMinDutyCycle())
-		{
-			std::string errorMessage = controlTypeString + " has bad duty cycle capabilities: max < min.";
-			throw dptf_exception(errorMessage);
-		}
 	}
 }
 
@@ -552,6 +536,10 @@ void DomainPowerControl_001::throwIfPowerLimitIsOutsideCapabilityRange(
 	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
 	if (capabilities.hasCapability(controlType))
 	{
+		if (capabilities.getCapability(controlType).arePowerLimitCapsValid() == false)
+		{
+			throw dptf_exception("Power limit capabilities are out of order. Cannot set power limit.");
+		}
 		if (powerLimit > capabilities.getCapability(controlType).getMaxPowerLimit())
 		{
 			throw dptf_exception("Power limit is higher than maximum capability.");
@@ -570,6 +558,10 @@ void DomainPowerControl_001::throwIfTimeWindowIsOutsideCapabilityRange(
 	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
 	if (capabilities.hasCapability(controlType))
 	{
+		if (capabilities.getCapability(controlType).areTimeWindowCapsValid() == false)
+		{
+			throw dptf_exception("Time Window capabilities are out of order. Cannot set time window.");
+		}
 		if (timeWindow > capabilities.getCapability(controlType).getMaxTimeWindow())
 		{
 			throw dptf_exception("Time Window is higher than maximum capability.");
@@ -581,8 +573,13 @@ void DomainPowerControl_001::throwIfTimeWindowIsOutsideCapabilityRange(
 	}
 }
 
-void DomainPowerControl_001::throwIfDutyCycleIsOutsideCapabilityRange(const Percentage& dutyCycle)
+void DomainPowerControl_001::throwIfDutyCycleIsOutsideCapabilityRange(PowerControlType::Type controlType, const Percentage& dutyCycle)
 {
+	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
+	if (capabilities.hasCapability(controlType) && capabilities.getCapability(controlType).areDutyCycleCapsValid() == false)
+	{
+		throw dptf_exception("Duty Cycle capabilities are out of order. Cannot set duty cycle.");
+	}
 	if (dutyCycle > Percentage(1.0))
 	{
 		throw dptf_exception("Duty Cycle is higher than maximum capability.");
@@ -619,47 +616,7 @@ TimeSpan DomainPowerControl_001::getWeightedSlowPollAvgConstant(UIntN participan
 	throw dptf_exception("Weighted Slow Poll Averaging Constant is not supported by " + getName() + ".");
 }
 
-UInt32 DomainPowerControl_001::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
-{
-	return getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RAPL_ENERGY, domainIndex, Constants::Esif::NoInstance);
-}
-
-double DomainPowerControl_001::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
-{
-	auto raplEnergyUnit = getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RAPL_ENERGY_UNIT, domainIndex, Constants::Esif::NoInstance);
-	return (1 / pow(2, raplEnergyUnit));
-}
-
-UInt32 DomainPowerControl_001::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
-{
-	return getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_RAPL_ENERGY_COUNTER_WIDTH, domainIndex, Constants::Esif::NoInstance);
-}
-
 Power DomainPowerControl_001::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	throw dptf_exception("Get Slow Poll Power Threshold is not supported by " + getName() + ".");
-}
-
-Power DomainPowerControl_001::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
-{
-	auto instantaneousPower = Power::createInvalid();
-	try
-	{
-		instantaneousPower = getParticipantServices()->primitiveExecuteGetAsPower(
-			esif_primitive_type::GET_INSTANTANEOUS_POWER, domainIndex);
-	}
-	catch (primitive_not_found_in_dsp)
-	{
-		getParticipantServices()->writeMessageInfo(
-			ParticipantMessage(FLF, "Participant does not support the get instantaneous power primitive"));
-	}
-	catch (...)
-	{
-		getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, "Failed to get instantaneous power"));
-	}
-
-	return instantaneousPower;
 }

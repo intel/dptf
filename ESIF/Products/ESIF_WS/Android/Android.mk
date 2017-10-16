@@ -23,7 +23,9 @@
 LOCAL_PATH := $(call my-dir)/../..
 
 include $(CLEAR_VARS)
-LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER -Wno-error=sequence-point
+LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER -Wno-error=sequence-point \
+	-Wno-missing-field-initializers -Wno-unused-parameter -Wno-sign-compare -Wno-missing-braces \
+	-Wno-unknown-pragmas
 LOCAL_MODULE    := esif_ws
 LOCAL_MODULE_OWNER := intel
 LOCAL_PROPRIETARY_MODULE := true
@@ -33,7 +35,6 @@ LOCAL_SHARED_LIBRARIES := libdl liblog libcutils
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/ESIF_WS/Sources $(LOCAL_PATH)/../../Common
 
 LOCAL_SRC_FILES := ESIF_WS/Sources/esif_ws.c
-LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_algo.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_http.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_server.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_socket.c

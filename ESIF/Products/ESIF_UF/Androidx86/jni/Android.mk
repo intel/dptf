@@ -1,4 +1,20 @@
 ################################################################################
+## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+##
+## The source code, information and material ("Material") contained herein is
+## owned by Intel Corporation or its suppliers or licensors, and title to such
+## Material remains with Intel Corporation or its suppliers or licensors. The
+## Material contains proprietary information of Intel or its suppliers and
+## licensors. The Material is protected by worldwide copyright laws and treaty
+## provisions. No part of the Material may be used, copied, reproduced,
+## modified, published, uploaded, posted, transmitted, distributed or disclosed
+## in any way without Intel's prior express written permission. No license
+## under any patent, copyright or other intellectual property rights in the
+## Material is granted to or conferred upon you, either expressly, by
+## implication, inducement, estoppel or otherwise. Any license under such
+## intellectual property rights must be express and approved by Intel in
+## writing.
+##
 ## Copyright (C) 2006 The Android Open Source Project
 ## 
 ## Unless otherwise agreed by Intel in writing, you may not remove or alter
@@ -29,12 +45,16 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := dsp.dv
 LOCAL_MODULE_OWNER := intel
 LOCAL_MODULE_CLASS := ETC
-LOCAL_MODULE_PATH := $(TARGET_OUT)/etc/dptf/dv
+LOCAL_MODULE_RELATIVE_PATH := dptf/dv
 LOCAL_SRC_FILES := $(DSP_SRC)/dsp.dv
+LOCAL_PROPRIETARY_MODULE := true
 include $(BUILD_PREBUILT)
 
 include $(CLEAR_VARS)
-LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_FEAT_OPT_ACTION_SYSFS -DESIF_ATTR_DAEMON -DESIF_ATTR_USER -DESIF_FEAT_OPT_COMPRESS -Wno-multichar -Wno-error=sequence-point
+LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_FEAT_OPT_ACTION_SYSFS -DESIF_ATTR_DAEMON -DESIF_ATTR_USER -Wno-multichar -Wno-error=sequence-point \
+	-Wno-sign-compare -Wno-missing-field-initializers -Wno-unused-parameter -Wno-missing-braces -Wno-ignored-qualifiers -Wno-unknown-pragmas -Wno-typedef-redefinition \
+	-Wno-enum-conversion -Wno-switch -Wno-sizeof-pointer-memaccess -Wno-logical-op-parentheses -Wno-comment -Wno-tautological-compare -Wno-logical-not-parentheses -w
+
 LOCAL_MODULE    := esif_ufd
 LOCAL_MODULE_OWNER := intel
 LOCAL_PROPRIETARY_MODULE := true
@@ -92,7 +112,5 @@ LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_datavault.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_esifdata.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_iostream.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_istring.c
-
-LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_algo.c
 
 include $(BUILD_EXECUTABLE)

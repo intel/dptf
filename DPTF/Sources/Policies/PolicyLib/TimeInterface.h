@@ -26,4 +26,5 @@ class dptf_export TimeInterface
 {
 public:
 	virtual TimeSpan getCurrentTime(void) = 0;
+	virtual ~TimeInterface() {}
 };

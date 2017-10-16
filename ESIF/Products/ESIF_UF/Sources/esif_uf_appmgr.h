@@ -53,6 +53,8 @@ eEsifError EsifAppMgr_CreateParticipantInAllApps(const EsifUpPtr upPtr);
 /* Start/Stop Apps using AppMgr */
 eEsifError EsifAppMgr_AppStart(const EsifString appName);
 eEsifError EsifAppMgr_AppStop(const EsifString appName);
+eEsifError EsifAppMgr_AppRestart(const EsifString appName);
+eEsifError EsifAppMgr_AppRestartAll(void);
 
 /* Init / Exit */
 eEsifError EsifAppMgrInit(void);

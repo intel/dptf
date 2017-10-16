@@ -65,12 +65,14 @@ public:
 
 	virtual std::string getDptfHomeDirectoryPath(void) const override;
 	virtual std::string getDptfPolicyDirectoryPath(void) const override;
+	virtual std::string getDptfReportDirectoryPath(void) const override;
 	virtual Bool isDptfPolicyLoadNameOnly(void) const override;
 
 	void bindDomainsToPolicies(UIntN participantIndex) const override;
 	void unbindDomainsFromPolicies(UIntN participantIndex) const override;
 	void bindParticipantToPolicies(UIntN participantIndex) const override;
 	void unbindParticipantFromPolicies(UIntN participantIndex) const override;
+	void bindAllParticipantsToPolicy(UIntN policyIndex) const override;
 
 private:
 	// hide the copy constructor and assignment operator.
@@ -110,6 +112,7 @@ private:
 
 	std::string m_dptfHomeDirectoryPath;
 	std::string m_dptfPolicyDirectoryPath;
+	std::string m_dptfReportDirectoryPath;
 	Bool m_dptfPolicyLoadNameOnly;
 
 	void shutDown(void);

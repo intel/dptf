@@ -271,9 +271,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	int temp_val0 = 0;
 	int temp_val1 = 0;
 	int pathAccessReturn = 0;
-	char cur_path[MAX_SYSFS_PATH] = { 0 };
-	char pcipath[] = "/sys/bus/pci/devices";
-	char pcinode[] = "0000:00:%id%.0";
 	char table_str[BINARY_TABLE_SIZE];
 	TableObject tableObject = {0};
 	struct sysfsActionHashKey key = {0};
@@ -786,9 +783,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 	char srchnm[MAX_SEARCH_STRING] = { 0 };
 	char srchval[MAX_SEARCH_STRING] = { 0 };
 	enum esif_sysfs_param calc_type = 0;
-	char sys_long_string_val[MAX_SYSFS_STRING];
 	char cur_node_name[MAX_SYSFS_PATH] = { 0 };
-	char alt_node_name[MAX_SYSFS_PATH] = { 0 };
 	char idx_holder[MAX_IDX_HOLDER] = { 0 };
 	char sysvalstring[MAX_SYSFS_PATH] = { 0 };
 	int node_idx = 0;
@@ -1294,7 +1289,7 @@ static enum esif_rc get_supported_policies(char *table_str, int idspNum, char *s
 		char scanguid_fmt[MAX_FMT_STR_LEN] = { 0 };
 		esif_ccb_sprintf(sizeof(scanguid_fmt), scanguid_fmt, "%%%ds", (int)sizeof(guidStr) - 1);
 		esif_ccb_sscanf(scanPtr, scanguid_fmt, SCANFBUF(guidStr, sizeof(guidStr)));
-		esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "16,%s!", guidStr);
+		esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%s!", guidStr);
 		while (*(scanPtr++) != '\n');
 		while (*scanPtr == '\n') scanPtr++; // Move to the beginning of the next string
 	}

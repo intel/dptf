@@ -16,25 +16,9 @@
 **
 ******************************************************************************/
 
-#ifndef ESIF_WS_HTTP_H
-#define ESIF_WS_HTTP_H
+#pragma once
 
 #include "esif_ws_server.h"
 
-typedef struct s_extType {
-	char  *fileExtension;
-	char  *fileType;
-} extType;
-
-/*
- *******************************************************************************
- ** PUBLIC INTERFACE
- *******************************************************************************
- */
-
-void esif_ws_http_copy_server_root(char*);
-eEsifError esif_ws_http_process_reqs(ClientRecordPtr , void *, ssize_t, ssize_t);
-
-#define CRLF	"\r\n"
-
-#endif /* ESIF_WS_HTTP_H*/
+// HTTP Server Public Interface
+esif_error_t WebServer_HttpRequest(WebServerPtr self, WebClientPtr client, u8 *buffer, size_t buf_len);

@@ -57,6 +57,7 @@ namespace DomainType
 		DgfxCore,
 		DgfxMem,
 		DgfxMcp,
+		Cam2D,
 		All,
 		Max
 	};

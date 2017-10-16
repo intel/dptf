@@ -73,6 +73,12 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(const void *esifHandle,
 								  const void *domainHandle,
 								  const EsifDataPtr eventData,
 								  const EsifDataPtr eventGuid);
+
+eEsifError ESIF_CALLCONV EsifSvcCommandReceive(const void *esifHandle,
+								  const void *appHandle,
+								  const UInt32 argc,
+								  const EsifDataPtr argv,
+								  EsifDataPtr response);
 #ifdef __cplusplus
 }
 #endif

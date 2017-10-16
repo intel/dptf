@@ -26,29 +26,6 @@ PolicyServicesDomainActivityStatus::PolicyServicesDomainActivityStatus(
 {
 }
 
-UInt32 PolicyServicesDomainActivityStatus::getEnergyThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getEnergyThreshold(domainIndex);
-}
-
-void PolicyServicesDomainActivityStatus::setEnergyThreshold(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	UInt32 energyThreshold)
-{
-	throwIfNotWorkItemThread();
-	getParticipantManager()->getParticipantPtr(participantIndex)->setEnergyThreshold(domainIndex, energyThreshold);
-}
-
-Temperature PolicyServicesDomainActivityStatus::getPowerShareTemperatureThreshold(
-	UIntN participantIndex,
-	UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerShareTemperatureThreshold(domainIndex);
-}
-
 Percentage PolicyServicesDomainActivityStatus::getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
@@ -59,14 +36,4 @@ Percentage PolicyServicesDomainActivityStatus::getResidencyUtilization(UIntN par
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getResidencyUtilization(domainIndex);
-}
-
-void PolicyServicesDomainActivityStatus::setEnergyThresholdInterruptDisable(
-	UIntN participantIndex,
-	UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-	getParticipantManager()
-		->getParticipantPtr(participantIndex)
-		->setEnergyThresholdInterruptDisable(domainIndex);
 }

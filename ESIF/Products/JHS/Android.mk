@@ -33,13 +33,10 @@ LOCAL_SRC_FILES := $(filter-out $(SRC_PATH)/jhs/JhsModem.java, $(LOCAL_SRC_FILES
 endif
 
 LOCAL_PACKAGE_NAME := jhs
-
+LOCAL_PROPRIETARY_MODULE := true
 LOCAL_CERTIFICATE := platform
-
-LOCAL_PRIVILEGED_MODULE := true
 
 LOCAL_PROGUARD_ENABLED := disabled
 
 include $(BUILD_PACKAGE)
-
 include $(call all-makefiles-under, $(LOCAL_PATH))

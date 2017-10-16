@@ -27,10 +27,10 @@ WIDomainRadioConnectionStatusChanged::WIDomainRadioConnectionStatusChanged(
 	UIntN domainIndex,
 	RadioConnectionStatus::Type radioConnectionStatus)
 	: DomainWorkItem(
-		  dptfManager,
-		  FrameworkEvent::Type::DomainRadioConnectionStatusChanged,
-		  participantIndex,
-		  domainIndex)
+		dptfManager,
+		FrameworkEvent::Type::DomainRadioConnectionStatusChanged,
+		participantIndex,
+		domainIndex)
 	, m_radioConnectionStatus(radioConnectionStatus)
 {
 }
@@ -53,13 +53,13 @@ void WIDomainRadioConnectionStatusChanged::execute(void)
 	}
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainRadioConnectionStatusChanged(getParticipantIndex(), m_radioConnectionStatus);
 		}
 		catch (policy_index_invalid ex)
@@ -68,7 +68,7 @@ void WIDomainRadioConnectionStatusChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainRadioConnectionStatusChanged", i);
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainRadioConnectionStatusChanged", *i);
 		}
 	}
 }

@@ -22,6 +22,7 @@
 
 #include <semaphore.h>
 #include <pthread.h>
+#include <errno.h>
 
 /* Semphore */
 typedef sem_t esif_ccb_sem_t;
@@ -29,15 +30,35 @@ typedef sem_t esif_ccb_sem_t;
 #define esif_ccb_sem_uninit(semPtr) sem_destroy(semPtr)
 #define esif_ccb_sem_up(semPtr) sem_post(semPtr)
 #define esif_ccb_sem_down(semPtr) sem_wait(semPtr)
-/* Defined only for the queue code to build, but not actually used */
-static ESIF_INLINE int esif_ccb_sem_try_down (
+
+/*
+ * Returns ESIF_OK on success, ESIF_E_TIMEOUT if the timer expired, else
+ * ESIF_E_UNSPECIFIED.
+ */
+static ESIF_INLINE enum esif_rc esif_ccb_sem_try_down (
 	esif_ccb_sem_t *sem_ptr,
-	u32 us_timeout
+	u32 ms_timeout
 	)
 {
-	UNREFERENCED_PARAMETER(sem_ptr);
-	UNREFERENCED_PARAMETER(us_timeout);
-	return 0;
+	enum esif_rc rc = ESIF_OK;
+	int api_status = 0;
+	struct timespec timeout = {0};
+
+	if (0 == clock_gettime(CLOCK_REALTIME, &timeout)) {
+		timeout.tv_nsec += ms_timeout * 1000000;
+		if (timeout.tv_nsec >= 1000000000) {
+			timeout.tv_sec += 1;
+			timeout.tv_nsec -= 1000000000;
+		}
+		api_status = sem_timedwait(sem_ptr, &timeout);
+		if (-1 == api_status) {
+			if (ETIMEDOUT == errno)
+				rc = ESIF_E_TIMEOUT;
+			else
+				rc = ESIF_E_UNSPECIFIED;
+		}
+	}
+	return rc;
 }
 
 /* Conditional Variable */

@@ -25,12 +25,6 @@ class DomainActivityStatusInterface
 public:
 	virtual ~DomainActivityStatusInterface(){};
 
-	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) = 0;
-	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void setEnergyThresholdInterruptDisable(
-		UIntN participantIndex,
-		UIntN domainIndex) = 0;
 };

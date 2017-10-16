@@ -31,6 +31,7 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) = 0;
 
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) = 0;
+	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) = 0;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -81,9 +82,5 @@ public:
 	virtual TimeSpan getFastPollTime(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) = 0;
 };

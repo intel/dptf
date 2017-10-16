@@ -46,14 +46,41 @@ Bool PerformanceControlCapabilitiesArbitrator::hasArbitratedPerformanceControlCa
 
 PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::arbitrate(
 	UIntN policyIndex,
-	const PerformanceControlDynamicCaps& caps)
+	const PerformanceControlDynamicCaps& requestedCaps,
+	const PerformanceControlDynamicCaps& currentCaps)
 {
 	auto tempPolicyUpperRequests = m_requestedUpperPState;
 	auto tempPolicyLowerRequests = m_requestedLowerPState;
-	updatePolicyRequest(caps, policyIndex, tempPolicyUpperRequests, tempPolicyLowerRequests);
-	auto lowerPStateIndex = getSmallestLowerPStateIndex(tempPolicyLowerRequests);
-	auto upperPStateIndex = getBiggestUpperPStateIndex(tempPolicyUpperRequests);
-	if (upperPStateIndex > lowerPStateIndex)
+	updatePolicyRequest(requestedCaps, policyIndex, tempPolicyUpperRequests, tempPolicyLowerRequests);
+
+	auto arbitratedCapabilities = createNewArbitratedCapabilities(
+		tempPolicyUpperRequests,
+		tempPolicyLowerRequests,
+		currentCaps);
+	return arbitratedCapabilities;
+}
+
+PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::createNewArbitratedCapabilities(
+	std::map<UIntN, UIntN>& upperRequests,
+	std::map<UIntN, UIntN>& lowerRequests,
+	const PerformanceControlDynamicCaps& currentCaps)
+{
+	auto currentUpperIndex = currentCaps.getCurrentUpperLimitIndex();
+	auto currentLowerIndex = currentCaps.getCurrentLowerLimitIndex();
+
+	auto lowerPStateIndex = getSmallestLowerPStateIndex(lowerRequests);
+	if (lowerPStateIndex == Constants::Invalid && currentLowerIndex != Constants::Invalid)
+	{
+		lowerPStateIndex = currentLowerIndex;
+	}
+
+	auto upperPStateIndex = getBiggestUpperPStateIndex(upperRequests);
+	if (upperPStateIndex == Constants::Invalid && currentUpperIndex != Constants::Invalid)
+	{
+		upperPStateIndex = currentUpperIndex;
+	}
+
+	if (upperPStateIndex != Constants::Invalid && lowerPStateIndex != Constants::Invalid && upperPStateIndex > lowerPStateIndex)
 	{
 		upperPStateIndex = lowerPStateIndex;
 	}
@@ -68,15 +95,14 @@ Bool PerformanceControlCapabilitiesArbitrator::arbitrateLockRequests(UIntN polic
 	return (previousLock != newLock);
 }
 
-PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::getArbitratedPerformanceControlCapabilities()
+PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::getArbitratedPerformanceControlCapabilities(
+	const PerformanceControlDynamicCaps& currentCaps)
 {
-	auto lowerPStateIndex = getSmallestLowerPStateIndex(m_requestedLowerPState);
-	auto upperPStateIndex = getBiggestUpperPStateIndex(m_requestedUpperPState);
-	if (upperPStateIndex > lowerPStateIndex)
-	{
-		upperPStateIndex = lowerPStateIndex;
-	}
-	return PerformanceControlDynamicCaps(lowerPStateIndex, upperPStateIndex);
+	auto arbitratedCapabilities = createNewArbitratedCapabilities(
+		m_requestedUpperPState,
+		m_requestedLowerPState,
+		currentCaps);
+	return arbitratedCapabilities;
 }
 
 Bool PerformanceControlCapabilitiesArbitrator::getArbitratedLock() const
@@ -162,7 +188,7 @@ UIntN PerformanceControlCapabilitiesArbitrator::getBiggestUpperPStateIndex(std::
 		{
 			biggestMaxPerfIndex = request->second;
 		}
-		else
+		else if (request->second != Constants::Invalid)
 		{
 			biggestMaxPerfIndex = std::max(biggestMaxPerfIndex, request->second);
 		}
@@ -179,7 +205,7 @@ UIntN PerformanceControlCapabilitiesArbitrator::getSmallestLowerPStateIndex(std:
 		{
 			smallestLowPerfIndex = request->second;
 		}
-		else
+		else if (request->second != Constants::Invalid)
 		{
 			smallestLowPerfIndex = std::min(smallestLowPerfIndex, request->second);
 		}

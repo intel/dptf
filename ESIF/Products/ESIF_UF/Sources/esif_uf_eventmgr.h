@@ -72,7 +72,7 @@
 
 #define ESIF_UF_EVENT_QUEUE_SIZE 0xFFFFFFFF
 #define ESIF_UF_EVENT_QUEUE_NAME "UfQueue"
-#define ESIF_UF_EVENT_QUEUE_TIMEOUT 0 /* No timeout */
+#define ESIF_UF_EVENT_QUEUE_TIMEOUT ESIF_QUEUE_TIMEOUT_INFINITE /* No timeout */
 
 #if defined(ESIF_ATTR_OS_WINDOWS)
 #include "win\dppe.h"
@@ -87,8 +87,8 @@
 #define register_for_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 #define unregister_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
-// Linux system events are not GUID based, just return OK in this case to support all events
-#define register_for_system_metrics_notification(guid_ptr) (ESIF_OK)
+// Linux system only supports docking/undocking event for now
+#define register_for_system_metrics_notification(guid_ptr) register_for_system_metric_notification_lin(guid_ptr)
 
 #else
 
@@ -149,7 +149,7 @@ typedef struct EsifEventMgr_s {
 	EsifLinkListPtr garbageList;
 
 	EsifQueuePtr eventQueuePtr;
-	esif_ccb_sem_t eventQueueDoorbell;
+
 	Bool eventQueueExitFlag;
 
 	esif_thread_t eventQueueThread;

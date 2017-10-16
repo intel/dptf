@@ -40,7 +40,8 @@ TemperatureThresholdArbitrator::~TemperatureThresholdArbitrator(void)
 Bool TemperatureThresholdArbitrator::arbitrate(
 	UIntN policyIndex,
 	const TemperatureThresholds& temperatureThresholds,
-	const Temperature& currentTemperature)
+	const Temperature& currentTemperature,
+	const Temperature hysteresis)
 {
 #ifdef ONLY_LOG_TEMPERATURE_THRESHOLDS
 	ManagerMessage message =
@@ -53,7 +54,7 @@ Bool TemperatureThresholdArbitrator::arbitrate(
 	addArbitrationDataToMessage(message, "Arbitration data before applying update");
 #endif
 
-	throwIfTemperatureThresholdsInvalid(policyIndex, temperatureThresholds, currentTemperature);
+	throwIfTemperatureThresholdsInvalid(policyIndex, temperatureThresholds, currentTemperature, hysteresis);
 	updateTemperatureDataForPolicy(policyIndex, temperatureThresholds);
 	Bool result = findNewTemperatureThresholds(currentTemperature);
 
@@ -76,7 +77,7 @@ void TemperatureThresholdArbitrator::clearPolicyCachedData(UIntN policyIndex)
 	if (policyRequest != m_requestedTemperatureThresholds.end())
 	{
 		policyRequest->second = TemperatureThresholds::createInvalid();
-		arbitrate(policyIndex, TemperatureThresholds::createInvalid(), Temperature::createInvalid());
+		arbitrate(policyIndex, TemperatureThresholds::createInvalid(), Temperature::createInvalid(), Temperature::createInvalid());
 	}
 }
 
@@ -96,18 +97,20 @@ std::shared_ptr<XmlNode> TemperatureThresholdArbitrator::getArbitrationXmlForPol
 void TemperatureThresholdArbitrator::throwIfTemperatureThresholdsInvalid(
 	UIntN policyIndex,
 	const TemperatureThresholds& temperatureThresholds,
-	const Temperature& currentTemperature)
+	const Temperature& currentTemperature,
+	const Temperature hysteresis)
 {
 	Temperature aux0 = temperatureThresholds.getAux0();
 	Temperature aux1 = temperatureThresholds.getAux1();
 
-	if ((aux0.isValid() == true && aux0 > currentTemperature) || (aux1.isValid() == true && aux1 < currentTemperature))
+	if ((aux0.isValid() == true && aux0 - hysteresis > currentTemperature) || (aux1.isValid() == true && aux1 < currentTemperature))
 	{
 		ManagerMessage message =
 			ManagerMessage(m_dptfManager, FLF, "Received invalid temperature thresholds from policy.");
 		message.setPolicyIndex(policyIndex);
 		message.addMessage("Current Temperature", currentTemperature);
 		message.addMessage("Requested Aux0/Aux1", aux0.toString() + "/" + aux1.toString());
+		message.addMessage("Current Hysteresis", hysteresis.toString());
 		m_dptfManager->getEsifServices()->writeMessageError(message, MessageCategory::TemperatureThresholds);
 		throw dptf_exception(message);
 	}

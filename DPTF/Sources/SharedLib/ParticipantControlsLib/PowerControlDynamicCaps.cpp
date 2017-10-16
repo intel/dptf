@@ -20,6 +20,8 @@
 #include "StatusFormat.h"
 #include "XmlNode.h"
 
+using namespace StatusFormat;
+
 PowerControlDynamicCaps::PowerControlDynamicCaps(
 	PowerControlType::Type powerControlType,
 	Power minPowerLimit,
@@ -55,6 +57,18 @@ PowerControlType::Type PowerControlDynamicCaps::getPowerControlType(void) const
 {
 	throwIfNotValid();
 	return m_powerControlType;
+}
+
+Bool PowerControlDynamicCaps::arePowerLimitCapsValid(void) const
+{
+	try
+	{
+		return m_minPowerLimit <= m_maxPowerLimit;
+	}
+	catch (...)
+	{
+		return false;
+	}
 }
 
 Power PowerControlDynamicCaps::getMinPowerLimit(void) const
@@ -97,6 +111,18 @@ void PowerControlDynamicCaps::setMaxTimeWindow(TimeSpan maxTimeWindow)
 	m_maxTimeWindow = maxTimeWindow;
 }
 
+Bool PowerControlDynamicCaps::areTimeWindowCapsValid(void) const
+{
+	try
+	{
+		return m_minTimeWindow <= m_maxTimeWindow;
+	}
+	catch (...)
+	{
+		return false;
+	}
+}
+
 TimeSpan PowerControlDynamicCaps::getMinTimeWindow(void) const
 {
 	return m_minTimeWindow;
@@ -105,6 +131,18 @@ TimeSpan PowerControlDynamicCaps::getMinTimeWindow(void) const
 TimeSpan PowerControlDynamicCaps::getMaxTimeWindow(void) const
 {
 	return m_maxTimeWindow;
+}
+
+Bool PowerControlDynamicCaps::areDutyCycleCapsValid(void) const
+{
+	try
+	{
+		return m_minDutyCycle <= m_maxDutyCycle;
+	}
+	catch (...)
+	{
+		return false;
+	}
 }
 
 Percentage PowerControlDynamicCaps::getMinDutyCycle(void) const
@@ -121,12 +159,9 @@ Bool PowerControlDynamicCaps::operator==(const PowerControlDynamicCaps& rhs) con
 {
 	return (
 		m_valid == rhs.m_valid && m_powerControlType == rhs.m_powerControlType && m_minPowerLimit == rhs.m_minPowerLimit
-		&& m_maxPowerLimit == rhs.m_maxPowerLimit
-		&& m_powerStepSize == rhs.m_powerStepSize
-		&& m_minTimeWindow == rhs.m_minTimeWindow
-		&& m_maxTimeWindow == rhs.m_maxTimeWindow
-		&& m_minDutyCycle == rhs.m_minDutyCycle
-		&& m_maxDutyCycle == rhs.m_maxDutyCycle);
+		&& m_maxPowerLimit == rhs.m_maxPowerLimit && m_powerStepSize == rhs.m_powerStepSize
+		&& m_minTimeWindow == rhs.m_minTimeWindow && m_maxTimeWindow == rhs.m_maxTimeWindow
+		&& m_minDutyCycle == rhs.m_minDutyCycle && m_maxDutyCycle == rhs.m_maxDutyCycle);
 }
 
 Bool PowerControlDynamicCaps::operator!=(const PowerControlDynamicCaps& rhs) const
@@ -139,9 +174,11 @@ std::shared_ptr<XmlNode> PowerControlDynamicCaps::getXml(void) const
 	throwIfNotValid();
 	auto root = XmlNode::createWrapperElement("power_control_dynamic_caps");
 	root->addChild(XmlNode::createDataElement("control_type", PowerControlType::ToString(m_powerControlType)));
+	root->addChild(XmlNode::createDataElement("power_limit_caps_valid", friendlyValue(arePowerLimitCapsValid())));
 	root->addChild(XmlNode::createDataElement("max_power_limit", m_maxPowerLimit.toString()));
 	root->addChild(XmlNode::createDataElement("min_power_limit", m_minPowerLimit.toString()));
 	root->addChild(XmlNode::createDataElement("power_step_size", m_powerStepSize.toString()));
+	root->addChild(XmlNode::createDataElement("time_window_caps_valid", friendlyValue(areTimeWindowCapsValid())));
 	root->addChild(XmlNode::createDataElement("max_time_window", m_maxTimeWindow.toStringMilliseconds()));
 	root->addChild(XmlNode::createDataElement("min_time_window", m_minTimeWindow.toStringMilliseconds()));
 	return root;

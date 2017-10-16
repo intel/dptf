@@ -62,6 +62,14 @@ void PolicyServicesDomainTemperature::setTemperatureThresholds(
 		->setTemperatureThresholds(domainIndex, getPolicyIndex(), temperatureThresholds);
 }
 
+Temperature PolicyServicesDomainTemperature::getPowerShareTemperatureThreshold(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerShareTemperatureThreshold(domainIndex);
+}
+
 DptfBuffer PolicyServicesDomainTemperature::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();

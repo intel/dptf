@@ -90,6 +90,7 @@
 #define ESIF_IOCTL_IPC_IPC_SUSPEND      	ESIF_IPC_CODE(2)
 #define ESIF_IOCTL_IPC_IPC_RESUME		ESIF_IPC_CODE(3)
 #define ESIF_IOCTL_ENABLE_EVENT_DOORBELL	ESIF_IPC_CODE(4)
+#define ESIF_IOCTL_IETM_ACPI_ACCESS_INFO	ESIF_IPC_CODE(5)
 
 #endif
 
@@ -128,6 +129,14 @@ struct esif_ipc_event_enable {
 	HANDLE eventDoorbell;
 	HANDLE eventLfExit;
 };
+
+struct esif_ipc_ietm_access_info {
+	size_t size;
+	size_t pdoNameOffset;
+	size_t pathOffset;
+	// PDO name and path data begins here...
+};
+
 #endif
 
 #pragma pack(pop)
@@ -135,6 +144,7 @@ struct esif_ipc_event_enable {
 #ifdef ESIF_ATTR_USER
 #if defined(ESIF_ATTR_OS_WINDOWS)
 typedef struct esif_ipc_event_enable EsifIpcEventEnable, *EsifIpcEventEnablePtr;
+typedef struct esif_ipc_ietm_access_info EsifIpcIetmAccessInfo, *EsifIpcIetmAccessInfoPtr;
 #endif
 typedef struct esif_ipc EsifIpc, *EsifIpcPtr, **EsifIpcPtrLocation;
 #endif

@@ -71,6 +71,8 @@ int g_traceLevel_max = ESIF_TRACELEVEL_MAX;
 
 #define DETAILED_TRACELEVEL	ESIF_TRACELEVEL_FATAL /* All Trace Levels */
 
+#define TRACE_MESSAGE_PADDING	(21+12+1)	// Room for %d and %lld
+
 const struct EsifTraceModuleList_s {
 	enum esif_tracemodule	id;
 	const char				*str;
@@ -180,6 +182,9 @@ int EsifUfTraceMessageArgs(
 	}
 
 	if (g_traceinfo[level].routes & ESIF_TRACEROUTE_LOGFILE && EsifLogFile_IsOpen(ESIF_LOG_TRACE)) {
+		size_t  msglen = 0;
+		char *buffer = 0;
+		size_t  offset = 0;
 		time_t now=0;
 		char timestamp[MAX_CTIME_LEN]={0};
 
@@ -187,13 +192,28 @@ int EsifUfTraceMessageArgs(
 		esif_ccb_ctime(timestamp, sizeof(timestamp), &now);
 		timestamp[20] = 0; // truncate year
 
-		if (detailed_message)
-			rc = EsifLogFile_Write(ESIF_LOG_TRACE, fmtDetail, timestamp + 4, g_traceinfo[level].label, module_name, func, file, line, msec);
-		else
-			rc =  EsifLogFile_Write(ESIF_LOG_TRACE, fmtInfo, timestamp+4, g_traceinfo[level].label, module_name, msec);
 		va_copy(args, arglist);
-		rc += EsifLogFile_WriteArgsAppend(ESIF_LOG_TRACE, "\n", msg, args);
+		msglen = esif_ccb_vscprintf(msg, args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(timestamp, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + TRACE_MESSAGE_PADDING;
 		va_end(args);
+		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
+		buffer = (char *)esif_ccb_malloc(msglen);
+
+		if (NULL != buffer) {
+			if (detailed_message)
+				rc = esif_ccb_sprintf(msglen, buffer, fmtDetail, timestamp + 4, g_traceinfo[level].label, module_name, func, file, line, msec);
+			else
+				rc = esif_ccb_sprintf(msglen, buffer, fmtInfo, timestamp + 4, g_traceinfo[level].label, module_name, msec);
+
+			offset = rc;
+			va_copy(args, arglist);
+			rc += esif_ccb_vsprintf(msglen - offset, buffer + offset, msg, args);
+			va_end(args);
+			if (rc && buffer[rc - 1] != '\n')
+				esif_ccb_strcat(buffer, "\n", msglen);
+
+			rc = EsifLogFile_Write(ESIF_LOG_TRACE, "%s", buffer);
+			esif_ccb_free(buffer);
+		}
 	}
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -203,7 +223,7 @@ int EsifUfTraceMessageArgs(
 		int  offset=0;
 
 		va_copy(args, arglist);
-		msglen = esif_ccb_vscprintf(msg, args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(appname, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + 22;
+		msglen = esif_ccb_vscprintf(msg, args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(appname, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + TRACE_MESSAGE_PADDING;
 		va_end(args);
 		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
 		buffer = (char *)esif_ccb_malloc(msglen);
@@ -236,7 +256,7 @@ int EsifUfTraceMessageArgs(
 		fmtDetail= "%sESIF(%s) TYPE: %s MODULE: %s FUNC: %s FILE: %s LINE: %d TIME: %llu ms\n\n";
 
 		va_copy(args, arglist);
-		msglen = esif_ccb_vscprintf(msg,args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(appname, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + 32;
+		msglen = esif_ccb_vscprintf(msg,args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(appname, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + sizeof(ESIF_UF_VERSION) + TRACE_MESSAGE_PADDING;
 		va_end(args);
 		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
 		buffer = (char *)esif_ccb_malloc(msglen);
@@ -279,7 +299,7 @@ int EsifUfTraceMessageArgs(
 		fmtInfo  = "%s:[<%s>]<%llu ms>: ";
 
 		va_copy(args, arglist);
-		msglen = esif_ccb_vscprintf(msg,args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + 22;
+		msglen = esif_ccb_vscprintf(msg,args) + esif_ccb_strlen(g_traceinfo[level].label, MAX_PATH) + esif_ccb_strlen(func, MAX_PATH) + esif_ccb_strlen(file, MAX_PATH) + esif_ccb_strlen(module_name, MAX_PATH) + TRACE_MESSAGE_PADDING;
 		va_end(args);
 		msglen += (detailed_message ? esif_ccb_strlen(fmtDetail, MAX_PATH) : esif_ccb_strlen(fmtInfo, MAX_PATH));
 		buffer = (char *)esif_ccb_malloc(msglen);

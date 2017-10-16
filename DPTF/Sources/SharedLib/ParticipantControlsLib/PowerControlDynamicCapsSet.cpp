@@ -48,14 +48,14 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 
 	if (buffer.size() == 0)
 	{
-		throw dptf_exception("Received empty PPSS buffer.");
+		throw dptf_exception("Received empty PPCC buffer.");
 	}
 
 	UIntN rows = (buffer.size() - sizeof(esif_data_variant)) / sizeof(EsifDataBinaryPpccPackage);
 
 	if ((buffer.size() - sizeof(esif_data_variant)) % sizeof(EsifDataBinaryPpccPackage))
 	{
-		throw dptf_exception("Expected binary data size mismatch. (PPSS)");
+		throw dptf_exception("Expected binary data size mismatch. (PPCC)");
 	}
 
 	for (UIntN i = 0; i < rows; i++)

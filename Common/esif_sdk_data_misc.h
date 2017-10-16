@@ -96,6 +96,12 @@ struct esif_table_hdr {
 
 #pragma pack(pop)
 
+#define OFFSET_OF(type, member) ((ULONG)(size_t)&(((type*)0)->member))
+
+#define SIZE_OF(type, member) (sizeof(((type*)0)->member))
+
+#define OFFSET_PTR(ptr, offset, type) ((type)(((char *)(ptr)) + (offset)))
+
 #ifdef ESIF_ATTR_USER
 
 /*
@@ -130,8 +136,6 @@ struct esif_table_hdr {
 		ESIF_ELEMENT(.buf_len) 0 \
 	}
 
-#define OFFSET_OF(type, member) ((ULONG)(size_t)&(((type*)0)->member))
-
 #define ESIF_DATA_STRING_ASSIGN(obj, buf, buf_size)             \
 	obj.type     = ESIF_DATA_STRING;                                \
 	obj.buf_ptr  = buf;                                          \
@@ -157,11 +161,8 @@ struct esif_data_rfprofile
 {
 	union esif_data_variant centerFrequency; // Frequency - centerFrequency
 	union esif_data_variant frequencySpread; // Frequency - frequencySpread
-	union esif_data_variant channelNumber; // ULONG - channelNumber
 	union esif_data_variant noisePower; // ULONG - noisePower
-	union esif_data_variant signalToNoiseRatio; // ULONG - signalToNoiseRatio
 	union esif_data_variant rssi; // ULONG - rssi
-	union esif_data_variant uint32Value; // ULONG - Connection Status
-	union esif_data_variant bitError; // ULONG - bitError
+	union esif_data_variant connectStatus; // ULONG - Connection Status
 };
 #endif /* ESIF_ATTR_USER */

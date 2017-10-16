@@ -98,6 +98,11 @@ policy_index_invalid::policy_index_invalid()
 {
 }
 
+policy_already_exists::policy_already_exists()
+	: dptf_exception("The policy instance already exists.")
+{
+}
+
 policy_not_in_idsp_list::policy_not_in_idsp_list()
 	: dptf_exception("The policy is not in the IDSP list.")
 {
@@ -119,6 +124,11 @@ implement_me::implement_me()
 }
 
 primitive_not_found_in_dsp::primitive_not_found_in_dsp(const std::string& description)
+	: dptf_exception(description)
+{
+}
+
+acpi_object_not_found::acpi_object_not_found(const std::string& description)
 	: dptf_exception(description)
 {
 }

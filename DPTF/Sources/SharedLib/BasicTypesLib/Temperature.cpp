@@ -128,8 +128,7 @@ Bool Temperature::isValid() const
 
 std::string Temperature::toString() const
 {
-	if (isValid() && m_temperature != Constants::MaxUInt32 && m_temperature != minValidTemperature
-		&& m_temperature != maxValidTemperature)
+	if (isValid() && m_temperature != Constants::MaxUInt32)
 	{
 		return friendlyValueWithPrecision(getTemperatureInCelsius(), 1);
 	}

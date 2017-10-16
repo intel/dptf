@@ -58,7 +58,9 @@
 #include "esif_sdk_iface.h"
 #include "esif_sdk_data.h"
 
-#define APP_INTERFACE_VERSION 1
+#define APP_INTERFACE_VERSION_1 1 /* Initial Version */
+#define APP_INTERFACE_VERSION_2 2 /* New prototype for fAppCommandFuncPtr */
+#define APP_INTERFACE_VERSION   APP_INTERFACE_VERSION_2
 #define APP_PARTICIPANT_VERSION 1
 #define APP_DOMAIN_VERSION 1
 
@@ -209,11 +211,11 @@ typedef eEsifError (ESIF_CALLCONV *AppGetPromptFunction)(
 	);
 
 /* CLI Command */
-typedef eEsifError (ESIF_CALLCONV *AppCommandFunction)(
+typedef eEsifError(ESIF_CALLCONV *AppCommandFunction)(
 	const void *appHandle,	  /* Allocated handle for application */
-	const EsifDataPtr request,/* CLI command requested e.g. help, participants etc. */
-	EsifDataPtr response,     /* CLI response must be ESIF_DATA_STRING today */
-	esif_string appParseContext/* TODO: Fix this very ugly work around */
+	const UInt32 argc,        /* command arguments count (1 or more) */
+	EsifDataPtr  argv,        /* array of command arguments must be ESIF_DATA_STRING today */
+	EsifDataPtr response      /* response must be ESIF_DATA_STRING today */
 	);
 
 /* Set State */
@@ -368,7 +370,7 @@ struct _t_AppInterface {
 	AppSuspendFunction     fAppSuspendFuncPtr;
 	AppResumeFunction      fAppResumeFuncPtr;
 
-	AppCommandFunction     fAppCommandFuncPtr;
+	AppCommandFunction     fAppCommandFuncPtr; /* Version 2: New Prototype*/
 	AppGetAboutFunction    fAppGetAboutFuncPtr;
 	AppGetBannerFunction   fAppGetBannerFuncPtr;
 	AppGetDescriptionFunction fAppGetDescriptionFuncPtr;

@@ -76,6 +76,7 @@
 #define CPUID_FAMILY_MODEL_BSW      0x000406C0		// CherryTrail-T/Braswell/Cherry View (Platform)
 #define CPUID_FAMILY_MODEL_BDW      0x000306D0		// Broadwell
 #define CPUID_FAMILY_MODEL_SKL      0x000406E0		// Sky Lake
+#define CPUID_FAMILY_MODEL_KBL      0x000806E0		// Kaby Lake
 #define CPUID_FAMILY_MODEL_CVT      0x00030650		// Clover Trail
 #define CPUID_FAMILY_MODEL_HSW_ULT  0x00040650		// Haswell ULT
 #define CPUID_FAMILY_MODEL_CRW      0x00040660		// Crystal Well

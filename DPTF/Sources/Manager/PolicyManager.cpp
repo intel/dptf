@@ -31,19 +31,13 @@ using namespace StatusFormat;
 
 PolicyManager::PolicyManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
-	, m_supportedPolicyList(dptfManager)
+	, m_supportedPolicyList(std::make_shared<SupportedPolicyList>(dptfManager))
 {
 }
 
 PolicyManager::~PolicyManager(void)
 {
 	destroyAllPolicies();
-}
-
-void PolicyManager::reloadAllPolicies(const std::string& dptfPolicyDirectoryPath)
-{
-	m_supportedPolicyList.update();
-	createAllPolicies(dptfPolicyDirectoryPath);
 }
 
 void PolicyManager::createAllPolicies(const std::string& dptfPolicyDirectoryPath)
@@ -60,19 +54,17 @@ void PolicyManager::createAllPolicies(const std::string& dptfPolicyDirectoryPath
 			ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIPolicyCreateAll.");
 		m_dptfManager->getEsifServices()->writeMessageError(message);
 	}
-
-	if (getPolicyCount() == 0)
-	{
-		throw dptf_exception("DPTF was not able to load any policies.");
-	}
 }
 
-void PolicyManager::createPolicy(const std::string& policyFileName)
+UIntN PolicyManager::createPolicy(const std::string& policyFileName)
 {
 	UIntN firstAvailableIndex = Constants::Invalid;
 
 	try
 	{
+		// First check if we have an instance of the policy already
+		throwIfPolicyAlreadyExists(policyFileName);
+
 		auto indexesInUse = MapOps<UIntN, std::shared_ptr<Policy>>::getKeys(m_policies);
 		firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
 		m_policies[firstAvailableIndex] = std::make_shared<Policy>(m_dptfManager);
@@ -90,12 +82,15 @@ void PolicyManager::createPolicy(const std::string& policyFileName)
 	catch (policy_not_in_idsp_list ex)
 	{
 		destroyPolicy(firstAvailableIndex);
+		firstAvailableIndex = Constants::Invalid;
 	}
 	catch (...)
 	{
 		destroyPolicy(firstAvailableIndex);
 		throw;
 	}
+
+	return firstAvailableIndex;
 }
 
 void PolicyManager::destroyAllPolicies(void)
@@ -142,9 +137,14 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
 	}
 }
 
-UIntN PolicyManager::getPolicyListCount(void) const
+std::set<UIntN> PolicyManager::getPolicyIndexes(void) const
 {
-	return static_cast<UIntN>(m_policies.size());
+	return MapOps<UIntN, std::shared_ptr<Policy>>::getKeys(m_policies);
+}
+
+std::shared_ptr<SupportedPolicyList> PolicyManager::getSupportedPolicyList(void) const
+{
+	return m_supportedPolicyList;
 }
 
 Policy* PolicyManager::getPolicyPtr(UIntN policyIndex)
@@ -216,6 +216,28 @@ std::shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
 	}
 	root->addChild(eventStatus);
 	return root;
+}
+
+std::shared_ptr<XmlNode> PolicyManager::getDiagnosticsAsXml(void)
+{
+	auto root = XmlNode::createRoot();
+	return root;
+}
+
+void PolicyManager::throwIfPolicyAlreadyExists(std::string policyFileName)
+{
+	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	{
+		if (policy->second->getPolicyFileName() == policyFileName)
+		{
+			ManagerMessage debugMessage = ManagerMessage(m_dptfManager, FLF, "Policy instance already exists.");
+			debugMessage.setPolicyIndex(policy->first);
+			debugMessage.addMessage("Policy Index", policy->first);
+			debugMessage.addMessage("Policy File Name", policyFileName);
+			m_dptfManager->getEsifServices()->writeMessageDebug(debugMessage);
+			throw policy_already_exists();
+		}
+	}
 }
 
 Bool PolicyManager::isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent)

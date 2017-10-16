@@ -44,6 +44,7 @@ public:
 	virtual Guid getGuid(void) const override;
 	virtual std::string getName(void) const override;
 	virtual std::string getStatusAsXml(void) const override;
+	virtual std::string getDiagnosticsAsXml(void) const override;
 
 	virtual void onBindParticipant(UIntN participantIndex) override;
 	virtual void onUnbindParticipant(UIntN participantIndex) override;
@@ -78,10 +79,6 @@ private:
 
 	// selecting a fan speed
 	Percentage selectFanSpeed(
-		std::shared_ptr<ActiveRelationshipTableEntry> entry,
-		SpecificInfo& tripPoints,
-		const Temperature& temperature);
-	UIntN selectActiveControlIndex(
 		std::shared_ptr<ActiveRelationshipTableEntry> entry,
 		SpecificInfo& tripPoints,
 		const Temperature& temperature);

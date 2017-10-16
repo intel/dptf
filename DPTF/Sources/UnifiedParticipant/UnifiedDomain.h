@@ -27,6 +27,7 @@
 #include "DomainConfigTdpControlBase.h"
 #include "DomainCoreControlBase.h"
 #include "DomainDisplayControlBase.h"
+#include "DomainEnergyControlBase.h"
 #include "DomainPeakPowerControlBase.h"
 #include "DomainPerformanceControlBase.h"
 #include "DomainPowerControlBase.h"
@@ -75,6 +76,7 @@ public:
 	std::shared_ptr<DomainConfigTdpControlBase> getConfigTdpControl(void);
 	std::shared_ptr<DomainCoreControlBase> getCoreControl(void);
 	std::shared_ptr<DomainDisplayControlBase> getDisplayControl(void);
+	std::shared_ptr<DomainEnergyControlBase> getEnergyControl(void);
 	std::shared_ptr<DomainPeakPowerControlBase> getPeakPowerControl(void);
 	std::shared_ptr<DomainPerformanceControlBase> getPerformanceControl(void);
 	std::shared_ptr<DomainPowerControlBase> getPowerControl(void);

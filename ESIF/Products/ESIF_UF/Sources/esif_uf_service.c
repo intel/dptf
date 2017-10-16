@@ -95,7 +95,7 @@ eEsifError ESIF_CALLCONV EsifSvcConfigSet(
 	const EsifDataPtr nameSpacePtr,
 	const EsifDataPtr elementPathPtr,
 	const EsifDataPtr elementValuePtr,
-	const UInt32 elementFlags
+	const EsifFlags elementFlags
 	)
 {
 	if (NULL == esifHandle) {
@@ -389,6 +389,20 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 	)
 {
 	return EsifApp_ReceiveEvent(esifHandle, appHandle, participantHandle, domainHandle, eventDataPtr, eventGuidPtr);
+}
+
+
+/*
+** Provide interface for App to send Shell Command to ESIF
+*/
+eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
+	const void *esifHandle,
+	const void *appHandle,
+	const UInt32 argc,
+	const EsifDataPtr argv,
+	EsifDataPtr response)
+{
+	return EsifApp_ReceiveCommand(esifHandle, appHandle, argc, argv, response);
 }
 
 eEsifError EsifSvcInit()

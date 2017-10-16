@@ -61,6 +61,7 @@ public:
 	virtual DptfBuffer getPidAlgorithmTable(void) = 0;
 	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;
+	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getPowerShareAlgorithmTable(void) = 0;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) = 0;
 };

@@ -16,615 +16,687 @@
 **
 ******************************************************************************/
 
-#include "esif_ccb_memory.h"
+#include <stdlib.h>
 #include "esif_ccb_string.h"
-#include "esif_ws_algo.h"
+
+#include "esif_ws_server.h"
 #include "esif_ws_socket.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
-//
-// The Windows banned-API check header must be included after all other headers, or issues can be identified
-// against Windows SDK/DDK included headers which we have no control over.
-//
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
 
-extern Bool g_ws_restricted;
+// WebSocket Frame Header consists of:
+// 1. UInt16 header bits
+// 2. Optional UInt16 or UInt64 Extended Payload, if hdr.payloadSize=126 or 127
+// 3. Optional UInt32 Mask Key, if hdr.maskFlag=1
+//
+#pragma warning(disable:4214)
+#pragma pack(push, 1)
+typedef union WsFrameHeader_u {
 
-/*
- *******************************************************************************
- ** PRIVATE
- *******************************************************************************
- */
+	struct {
+		UInt16 frameType : 4;	// 3:0  - Websocket Frame Type
+		UInt16 reserved : 3;	// 7:4  - Reserved
+		UInt16 fin : 1;			// 8    - Final Fragment Flag
+		UInt16 payloadSize : 7;	// 14:9 - Payload Size: 0-125=hdr.payloadSize, 126=T2.payloadSize, 127=Use T3.payloadSize
+		UInt16 maskFlag : 1;	// 15   - Mask Flag: Mandatory for Client to Server, Optional for Server to Client
+	} hdr;
 
-#define WS_PROT_KEY_SIZE_MAX 1000
-#define WS_FRAME_SIZE_TYPE_1	125 /* For payloads <= 125 bytes*/
-#define WS_FRAME_SIZE_TYPE_2	126 /* For payload up to 64K - 1 in size */
-#define WS_FRAME_SIZE_TYPE_3	127 /* For payloads > 64K - 1*/
+	struct {				// If hdr.payloadSize <= 125
+		UInt16 header;		// Header Bits
+	} T1;
 
-#define WS_FRAME_SIZE_TYPE_1_MAX_PAYLOAD	125		/* Maximum payload size for a Type 1 frame size */
-#define WS_FRAME_SIZE_TYPE_2_MAX_PAYLOAD	0xFFFF	/* Maximum payload size for a Type 2 frame size */
+	struct {				// If hdr.payloadSize <= 125
+		UInt16 header;		// Header Bits
+		UInt32 maskKey;		// If hdr.maskFlag=1
+	} T1_WithMask;
 
-#define MAXIMUM_SIZE 0x7F
+	struct {
+		UInt16 header;		// Header Bits
+		UInt16 payloadSize;	// If hdr.payloadSize=126 [Big-Endian]
+	} T2;
 
-#define HOST_FIELD                      "Host: "
-#define ORIGIN_FIELD                    "Origin: "
-#define WEB_SOCK_PROT_FIELD             "Sec-WebSocket-Protocol: "
-#define WEB_SOCK_KEY_FIELD              "Sec-WebSocket-Key: "
-#define WEB_SOCK_VERSION_FIELD          "Sec-WebSocket-Version: "
+	struct {
+		UInt16 header;		// Header Bits
+		UInt16 payloadSize;	// If hdr.payloadSize=126 [Big-Endian]
+		UInt32 maskKey;		// If hdr.maskFlag=1
+	} T2_WithMask;
 
-#define USER_AGENT_FIELD                "User-Agent: "
-#define CONNECTION_FIELD                "Connection: "
-#define UPGRADE_FIELD                   "upgrade"
-#define ALT_UPGRADE_FIELD               "Upgrade: "
-#define WEB_SOCK_FIELD                  "websocket"
-#define VERSION_FIELD                   "13"
-#define KEY                             "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+	struct {
+		UInt16 header;		// Header Bits
+		UInt64 payloadSize;	// If hdr.payloadSize=127 [Big-Endian]
+	} T3;
 
-#define MAX_ORIGIN	MAX_PATH
+	struct {
+		UInt16 header;		// Header Bits
+		UInt64 payloadSize;	// If hdr.payloadSize=127 [Big-Endian]
+		UInt32 maskKey;		// If hdr.maskFlag=1
+	} T3_WithMask;
 
-static void esif_ws_socket_convert_to_lower_case(char *string);
+} WsFrameHeader, *WsFrameHeaderPtr;
+#pragma pack(pop)
 
-static void esif_ws_socket_copy_line (
-	const char *source,
-	char *destination
-	);
+// Normalized WebSocket Frame
+typedef struct WsFrame_s {
+	FrameType		frameType;		// Frame Type (or First Frame Type if Multi-Fragment message)
+	WsFrameHeader	header;			// Binary Websocket Header
+	size_t			headerSize;		// Binary Websocket Header Size
+	u8 *			payload;		// Binary Payload
+	size_t			payloadSize;	// Binary Payload Size
+	size_t			frameSize;		// Total Frame Size (headerSize + payloadSize)
+} WsFrame, *WsFramePtr;
 
-static char *esif_ws_socket_get_field_value(const char *source);
+#define WSFRAME_HEADER_TYPE1		125	// hdr.payloadSize <= 125
+#define WSFRAME_HEADER_TYPE2		126	// hdr.payloadSize = 126, T2.payloadSize = UInt16 [Big-Endian]
+#define WSFRAME_HEADER_TYPE3		127	// hdr.payloadSize = 127, T3.payloadSize = UInt64 [Big-Endian]
 
-static size_t esif_ws_socket_get_payload_size (
-	const WsSocketFramePtr framePtr,
-	size_t incomingFrameLen,
-	FrameTypePtr frameTypePtr 
-	);
+#define WSFRAME_HEADER_TYPE1_MAX	125			// header Type1 max length
+#define WSFRAME_HEADER_TYPE2_MAX	0xFFFF		// header Type2 max length
+#define WSFRAME_HEADER_TYPE3_MAX	0x7FFFFFFE	// header Type3 max length
 
-static size_t esif_ws_socket_get_header_len(
-	const WsSocketFramePtr framePtr,
-	size_t frameLen
-	);
+#define MAX_WEBSOCKET_BUFFER		(8*1024*1024)	// Max size of any single inbound websocket message (all combined fragments)
+#define MAX_WEBSOCKET_SENDBUF		(1*1024*1024)	// Max size of outbound websocket send buffer (multiple messages)
+#define MAX_WEBSOCKET_FRAGMENT_SIZE	(64*1024)		// Max WebSocket Fragment Size for Multi-Fragment TEXT Frames REST API Responses
+#define MAX_WEBSOCKET_MSGID_LEN		15				// Max WebSocket MessageId Length (space for "%u:" output)
+#define MAX_WEBSOCKET_RESPONSE_LEN	0x7FFFFFFE		// Max WebSocket Response Length
+#define DEF_WEBSOCKET_RESPONSE_LEN	256				// Default WebSocket REST API Response Buffer
 
-static UInt8 *esif_ws_socket_get_mask(
-	const WsSocketFramePtr framePtr,
-	size_t frameLen
-	);
-
-static UInt8 esif_ws_socket_is_mask_enabled(const WsSocketFramePtr framePtr);
-
-
-/*
- *******************************************************************************
- ** PUBLIC
- *******************************************************************************
- */
-FrameType esif_ws_socket_get_initial_frame_type(
-	const char *framePtr,
-	size_t incomingFrameLen,
-	ProtocolPtr protPtr
-	)
+// Compute Websocket Header Size based on Payload Size or 0 if invalid payload_size
+static size_t WebSocket_HeaderSize(size_t payload_size, Bool mask_flag)
 {
-	unsigned char is_upgraded       = 0;
-	unsigned char has_subprotocol   = 0;
-	unsigned char connection_upgrade = 0;
-	char *beg_resource     = NULL;
-	char *end_resource     = NULL;
-	char version[2]={0};
-	char *connection_field = NULL;
-	char *web_socket_field = NULL;
+	size_t header_size = 0;
+	WsFrameHeader header = { 0 };
 
-	#define MAX_SIZE 1000
-
-	const char *beg_input_frame = (const char*)framePtr;
-	const char *end_input_frame = (const char*)framePtr + incomingFrameLen;
-
-	if (!strstr((const char*)framePtr, "\r\n\r\n")) {
-		return INCOMPLETE_FRAME;
+	if (payload_size < WSFRAME_HEADER_TYPE1_MAX) {
+		header_size = sizeof(header.T1);
+	}
+	else if (payload_size < WSFRAME_HEADER_TYPE2_MAX) {
+		header_size = sizeof(header.T2);
+	}
+	else if (payload_size < WSFRAME_HEADER_TYPE3_MAX) {
+		header_size = sizeof(header.T3);
 	}
 
-	if (memcmp(framePtr, ("GET "), 4) != 0) {
-		return ERROR_FRAME;
+	if (mask_flag) {
+		header_size += sizeof(header.T1_WithMask.maskKey);
 	}
-
-	beg_resource = strchr((const char*)framePtr, ' ');
-	if (!beg_resource) {
-		return ERROR_FRAME;
-	}
-
-	while (*beg_resource == ' ') {
-		beg_resource++;
-	}
-
-	end_resource = strchr(beg_resource, ' ');
-	if (!end_resource) {
-		return ERROR_FRAME;
-	}
-
-	if (protPtr->webpage) {
-		esif_ccb_free(protPtr->webpage);
-		protPtr->webpage = NULL;
-	}
-
-	size_t buf_len = end_resource - beg_resource + 1;
-	protPtr->webpage = (char*)esif_ccb_malloc(buf_len);
-	if (NULL == protPtr->webpage) {
-		return ERROR_FRAME;
-	}
-
-	// Use dynamic format width specifier to avoid scanf buffer overflow
-	char request_fmt[MAX_PATH] = { 0 };
-	esif_ccb_sprintf(sizeof(request_fmt), request_fmt, "GET %%%ds HTTP/1.1\r\n", (int)buf_len - 1);
-	if (esif_ccb_sscanf(beg_input_frame, request_fmt, SCANFBUF(protPtr->webpage, (UInt32)(buf_len))) != 1) {
-		return ERROR_FRAME;
-	}
-
-	beg_input_frame = strstr(beg_input_frame, "\r\n") + 2;
-	if (!beg_input_frame) {
-		return ERROR_FRAME;
-	}
-
-	memset(version, 0, sizeof(version));
-
-	while ((beg_input_frame < end_input_frame) && (beg_input_frame[0] != '\r') && (beg_input_frame[1] != '\n')) {
-		if (memcmp(beg_input_frame, HOST_FIELD, esif_ccb_strlen(HOST_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(HOST_FIELD, MAX_SIZE);
-			esif_ccb_free(protPtr->hostField);
-			protPtr->hostField  = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == protPtr->hostField)
-				return ERROR_FRAME;
-		}
-		else if (memcmp(beg_input_frame, ORIGIN_FIELD, esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame  += esif_ccb_strlen(ORIGIN_FIELD, MAX_SIZE);
-			esif_ccb_free(protPtr->originField);
-			protPtr->originField = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == protPtr->originField)
-				return ERROR_FRAME;
-		}
-		else if (memcmp(beg_input_frame, WEB_SOCK_PROT_FIELD, esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(WEB_SOCK_PROT_FIELD, MAX_SIZE);
-			esif_ccb_free(protPtr->web_socket_field);
-			protPtr->web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == protPtr->web_socket_field)
-				return ERROR_FRAME;
-			has_subprotocol = 1;
-		}
-		else if (memcmp(beg_input_frame, WEB_SOCK_KEY_FIELD, esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(WEB_SOCK_KEY_FIELD, MAX_SIZE);
-			esif_ccb_free(protPtr->keyField);
-			protPtr->keyField   = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == protPtr->keyField)
-				return ERROR_FRAME;
-		}
-		else if (memcmp(beg_input_frame, WEB_SOCK_VERSION_FIELD, esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(WEB_SOCK_VERSION_FIELD, MAX_SIZE);
-			esif_ws_socket_copy_line(beg_input_frame, version);
-		}
-		else if (memcmp(beg_input_frame, CONNECTION_FIELD, esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(CONNECTION_FIELD, MAX_SIZE);
-			connection_field = NULL;
-			connection_field = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL != connection_field) {
-				esif_ws_socket_convert_to_lower_case(connection_field);
-				if (strstr(connection_field, UPGRADE_FIELD) != NULL) {
-					connection_upgrade = 1;
-				}
-				esif_ccb_free(connection_field);
-				connection_field = NULL;
-			}
-		}
-		else if (memcmp(beg_input_frame, ALT_UPGRADE_FIELD, esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(ALT_UPGRADE_FIELD, MAX_SIZE);
-			web_socket_field = NULL;
-			web_socket_field = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == web_socket_field)
-				return ERROR_FRAME;
-
-			esif_ws_socket_convert_to_lower_case(web_socket_field);
-			if (memcmp(web_socket_field, WEB_SOCK_FIELD, esif_ccb_strlen(WEB_SOCK_FIELD, MAX_SIZE)) == 0) {
-				is_upgraded = 1;
-			}
-			esif_ccb_free(web_socket_field);
-			web_socket_field = NULL;
-		}
-		else if (memcmp(beg_input_frame, USER_AGENT_FIELD, esif_ccb_strlen(USER_AGENT_FIELD, MAX_SIZE)) == 0) {
-			beg_input_frame += esif_ccb_strlen(USER_AGENT_FIELD, MAX_SIZE);
-			esif_ccb_free(protPtr->user_agent);
-			protPtr->user_agent = esif_ws_socket_get_field_value(beg_input_frame);
-			if (NULL == protPtr->user_agent)
-				return ERROR_FRAME;
-		}
-		beg_input_frame = strstr(beg_input_frame, "\r\n") + 2;
-
-		if (!beg_input_frame) {
-			return ERROR_FRAME;
-		}
-	}	/* End of while loop */
-
-
-	/* Must have the host field always */
-	if (!protPtr->hostField) {
-		return ERROR_FRAME;
-	}
-
-	/* Websocket Upgrades must include the "Connection: Uprade", "Origin:", and "Sec-WebSocket-Key:" fields
-	 * They must also include either a "Sec-WebSocket-Protocol:" or "Sec-WebSocket-Version: 13"
-	 */
-	if (is_upgraded) {
-		if (!protPtr->originField || !connection_upgrade || !protPtr->keyField) {
-			return ERROR_FRAME;
-		}
-		if (!has_subprotocol && memcmp(version, VERSION_FIELD, esif_ccb_strlen(VERSION_FIELD, 3)) != 0) {
-			return ERROR_FRAME;
-		}
-	}
-
-	/*
-	 * Verify WebSocket Origin:
-	 * 1. Host: and Origin: must be an exact match (minus http prefix) unless Origin: in whitelist
-	 * 2. Host: and Origin: must be "127.0.0.1:port" or "localhost:port" for Restricted Mode
-	 */
-	if (is_upgraded) {
-		char *origin_wsclient = (g_ws_restricted ? NULL : "chrome-extension://pfdhoblngboilpfeibdedpjgfnlcodoo");
-		char *origin_whitelist[] = { "null", "file://", NULL, NULL }; // Origin: values sent by browsers when loading html via file instead of url
-		char *origin_prefixes[] = { "http://", NULL }; // Origin: prefixes allowed for Restrcited and Non-Restricted modes
-		char *origin = protPtr->originField;
-		Bool origin_valid = ESIF_FALSE;
-		Bool prefix_valid = ESIF_FALSE;
-		int  item = 0;
-		origin_whitelist[2] = origin_wsclient;
-
-		// Origin: exact matches in Whitelist allowed in BOTH Restricted and Non-Restricted modes
-		// This is necessary so index.html can be loaded from filesystem to validate Web Server functionality in both modes
-		for (item = 0; !origin_valid && origin_whitelist[item] != NULL; item++) {
-			if (esif_ccb_stricmp(origin, origin_whitelist[item]) == 0) {
-				origin_valid = ESIF_TRUE;
-			}
-		}
-
-		// Origin: prefixes in Prefix List allowed in Restricted and Non-Restricted modes
-		for (item = 0; !origin_valid && !prefix_valid && origin_prefixes[item] != NULL; item++) {
-			size_t item_len = esif_ccb_strlen(origin_prefixes[item], MAX_ORIGIN);
-			if (esif_ccb_strncmp(origin, origin_prefixes[item], item_len) == 0) {
-				origin += item_len;
-				prefix_valid = ESIF_TRUE;
-			}
-		}
-
-		// Origin: and Host: must be an exact match except for Whitelisted Origins
-		// Only "127.0.0.1:port" "localhost:port" are valid Origins in Restricted mode except for Whitelisted Origins
-		if (!origin_valid && prefix_valid && esif_ccb_stricmp(protPtr->hostField, origin) == 0) {
-			if ((!g_ws_restricted) ||
-				((esif_ccb_strlen(origin, MAX_ORIGIN) >= 9) &&
-				(esif_ccb_strnicmp(origin, "127.0.0.1", 9) == 0 || esif_ccb_strnicmp(origin, "localhost", 9) == 0) &&
-				(origin[9] == ':'))) {
-				origin_valid = ESIF_TRUE;
-			}
-		}
-
-		// Return error if neither Whitelisted Origin nor a matching Host: and Origin: is present
-		if (!origin_valid) {
-			return ERROR_FRAME;
-		}
-	}
-
-	if (!is_upgraded) {
-		return HTTP_FRAME;
-	} 
-	return OPENING_FRAME;
+	return header_size;
 }
 
-
-eEsifError esif_ws_socket_build_protocol_change_response(
-	const ProtocolPtr protPtr,
-	char *outgoingFrame,
-	size_t outgoingFrameBufferSize,
-	size_t *outgoingFrameSizePtr
-	)
+// Get Frame Data from Websocket Request
+static esif_error_t Websocket_GetFrame(
+	WsFramePtr frame,
+	u8 *buffer,
+	size_t buf_len)
 {
-	int num_bytes=0;
-	esif_sha1_t sha_digest;
-	char *response_key = NULL;
-	eEsifError rc = ESIF_OK;
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	WsFrameHeaderPtr header = (WsFrameHeaderPtr)buffer;
 
-	UInt32 length = (UInt32)esif_ccb_strlen(protPtr->keyField, WS_PROT_KEY_SIZE_MAX) + (UInt32)esif_ccb_strlen(KEY, WS_PROT_KEY_SIZE_MAX);
-	response_key = (char*)esif_ccb_malloc(length + 1);
+	if (frame && buffer) {
+		size_t header_size = sizeof(header->T1);
+		size_t payload_size = 0;
+		UInt32 mask_key = 0;
+		size_t j = 0;
 
-	if (NULL == response_key) {
-		return ESIF_E_NO_MEMORY;
+		esif_ccb_memset(frame, 0, sizeof(*frame));
+
+		// Incomplete Header
+		if (buf_len < sizeof(header->hdr)) {
+			buf_len = 0;
+		}
+		// PayloadSize 0..125 in hdr.payloadSize
+		else if (header->hdr.payloadSize <= WSFRAME_HEADER_TYPE1) {
+			if (header->hdr.maskFlag) {
+				header_size = sizeof(header->T1_WithMask);
+			}
+
+			if (buf_len >= header_size) {
+				payload_size = (size_t)header->hdr.payloadSize;
+				if (header->hdr.maskFlag) {
+					mask_key = header->T1_WithMask.maskKey;
+				}
+			}
+		}
+		// PayloadSize is UInt16 in T2.payloadSize
+		else if (header->hdr.payloadSize == WSFRAME_HEADER_TYPE2) {
+			if (header->hdr.maskFlag) {
+				header_size = sizeof(header->T2_WithMask);
+			}
+			else {
+				header_size = sizeof(header->T2);
+			}
+
+			if (buf_len >= header_size) {
+				payload_size = (size_t)esif_ccb_htons(header->T2.payloadSize);
+				if (header->hdr.maskFlag) {
+					mask_key = header->T2_WithMask.maskKey;
+				}
+			}
+		}
+		// PayloadSize is UInt64 in T3.payloadSize
+		else  if (header->hdr.payloadSize == WSFRAME_HEADER_TYPE3) {
+			if (header->hdr.maskFlag) {
+				header_size = sizeof(header->T3_WithMask);
+			}
+			else {
+				header_size = sizeof(header->T3);
+			}
+
+			if (buf_len >= header_size) {
+				payload_size = (size_t)esif_ccb_htonll(header->T3.payloadSize);
+				if (header->hdr.maskFlag) {
+					mask_key = header->T3_WithMask.maskKey;
+				}
+			}
+		}
+
+		// Verify Full Header and Payload
+		if (buf_len < header_size + payload_size) {
+			rc = ESIF_E_WS_INCOMPLETE;
+		}
+		else if (header_size > sizeof(frame->header)) {
+			rc = ESIF_E_REQ_SIZE_TYPE_MISTMATCH;
+		}
+		else {
+			frame->frameType = header->hdr.frameType;
+			esif_ccb_memcpy(&frame->header, header, header_size);
+			frame->headerSize = header_size;
+			frame->payload = buffer + header_size;
+			frame->payloadSize = payload_size;
+			frame->frameSize = header_size + payload_size;
+
+			// Unmask Data
+			if (frame->header.hdr.maskFlag) {
+				for (j = 0; j < frame->payloadSize; j++) {
+					frame->payload[j] = frame->payload[j] ^ ((UInt8 *)&mask_key)[j % 4];
+				}
+			}
+			rc = ESIF_OK;
+		}
 	}
-
-	esif_ccb_memcpy(response_key, protPtr->keyField, esif_ccb_strlen(protPtr->keyField, WS_PROT_KEY_SIZE_MAX));
-	esif_ccb_memcpy(&(response_key[esif_ccb_strlen(protPtr->keyField, WS_PROT_KEY_SIZE_MAX)]), KEY, esif_ccb_strlen(KEY, WS_PROT_KEY_SIZE_MAX));
-
-	esif_sha1_init(&sha_digest);
-	esif_sha1_update(&sha_digest, (UInt8 *)response_key, length);
-	esif_sha1_finish(&sha_digest);
-	esif_base64_encode(response_key, length, sha_digest.hash, sizeof(sha_digest.hash));
-
-	num_bytes = esif_ccb_sprintf(outgoingFrameBufferSize, (char*)outgoingFrame,
-		"HTTP/1.1 101 Switching Protocols\r\n"
-		"Upgrade: websocket\r\n"
-		"Connection: Upgrade\r\n"
-		"Sec-WebSocket-Accept: %s\r\n\r\n",
-		response_key);
-
-	*outgoingFrameSizePtr = num_bytes;
-
-	esif_ccb_free(response_key);
 	return rc;
 }
 
-
-void esif_ws_socket_build_payload(
-	const char *data,
-	size_t dataLength,
-	WsSocketFramePtr framePtr,
-	size_t bufferSize,
-	size_t *outgoingFrameSizePtr,
-	FrameType frameType,
-	FinType finType
-	)
+// Build a WebSocket Frame using the given output buffer
+static esif_error_t WebSocket_BuildFrame(
+	WsFramePtr frame,		// Normalized WebSocket Frame
+	void *out_buf,			// Frame Output Buffer (Header+Payload)
+	size_t out_buf_len,		// Frame Output Buffer Length
+	void *data_buf,			// Frame Payload Data
+	size_t data_len,		// Frame Payload Data Length
+	FrameType frameType,	// Frame Type
+	FinType finType			// FIN Type
+)
 {
-	size_t hdrLen = 0;
-	char *frameDataPtr = NULL;
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (frame && (out_buf || out_buf_len == 0) && (data_buf || data_len == 0)) {
+		size_t header_size = 0;
+		esif_ccb_memset(frame, 0, sizeof(*frame));
 
-	if (dataLength > 0) {
-		ESIF_ASSERT(data);
-	}
+		rc = ESIF_OK;
+		frame->frameType = frameType;
+		frame->header.hdr.frameType = frameType;
+		frame->header.hdr.fin = finType;
 
-	ESIF_ASSERT(framePtr != NULL);
-	ESIF_ASSERT(outgoingFrameSizePtr != NULL);
-
-	*outgoingFrameSizePtr  = 0;
-	framePtr->header.asU16 = 0;
-
-	/* Set the FIN flag */
-	framePtr->header.s.fin = finType;
-
-	/* Set the frame type */
-	framePtr->header.s.opcode = frameType;
-
-	if (dataLength <= WS_FRAME_SIZE_TYPE_1_MAX_PAYLOAD) {
-		framePtr->header.s.payLen = (UInt8)dataLength;
-		frameDataPtr = framePtr->u.T1_NoMask.data;
-
-	} else if (dataLength <= WS_FRAME_SIZE_TYPE_2_MAX_PAYLOAD) {
-		UInt16 payLoadLength = esif_ccb_htons((UInt16)dataLength);
-		framePtr->header.s.payLen = WS_FRAME_SIZE_TYPE_2;
-		framePtr->u.T2_NoMask.extPayLen = payLoadLength;
-		frameDataPtr = framePtr->u.T2_NoMask.data;
-
-	} else {
-		UInt64 payLoadLength = esif_ccb_htonll((UInt64)dataLength);
-		framePtr->header.s.payLen = WS_FRAME_SIZE_TYPE_3;
-		framePtr->u.T3_NoMask.extPayLen = payLoadLength;
-		frameDataPtr = framePtr->u.T3_NoMask.data;
-	}
-
-	hdrLen = esif_ws_socket_get_header_len(framePtr, bufferSize);
-	if ((dataLength + hdrLen) <= bufferSize) {
-		esif_ccb_memcpy(frameDataPtr, data, dataLength);
-		*outgoingFrameSizePtr = hdrLen + dataLength;
-	}
-}
-
-
-FrameType esif_ws_socket_get_subsequent_frame_type(
-	WsSocketFramePtr framePtr,
-	size_t incomingFrameLen,
-	char **dataPtr,
-	size_t *dataLength,
-	size_t *bytesRemaining
-	)
-{
-	size_t hdrLen = 0;
-	size_t payloadLength = 0;
-	UInt8 mode = 0;
-	FrameType frameType = INCOMPLETE_FRAME;
-	UInt8 *maskingKey = NULL;
-	size_t i=0;
-
-	*bytesRemaining = 0;
-
-	hdrLen = esif_ws_socket_get_header_len(framePtr, incomingFrameLen);
-	if (0 == hdrLen) {
-		return INCOMPLETE_FRAME;
-	}
-
-	if (framePtr->header.s.rsvd1 != 0) {
-		return ERROR_FRAME;
-	}
-
-	if (!esif_ws_socket_is_mask_enabled(framePtr)) {
-		return ERROR_FRAME;
-	}
-
-	mode = (UInt8)framePtr->header.s.opcode;
-	if (mode == TEXT_FRAME || mode == BINARY_FRAME || mode == CLOSING_FRAME || mode == PING_FRAME || mode == PONG_FRAME || mode == CONTINUATION_FRAME) {
-		frameType = (FrameType)mode;
-
-		payloadLength = esif_ws_socket_get_payload_size(framePtr, incomingFrameLen, &frameType);
-		if (payloadLength <= 0) {
-			return frameType;
+		if (data_len <= WSFRAME_HEADER_TYPE1_MAX) {
+			header_size = sizeof(frame->header.T1);
+			frame->header.hdr.payloadSize = (UInt8)data_len;
 		}
-		WS_TRACE_DEBUG("WS Receive Frame: Type=%02X Payload=%zd Received=%zd Hdr=%zd\n", frameType, payloadLength, incomingFrameLen, hdrLen);
-
-		if (payloadLength > (incomingFrameLen - hdrLen)) {
-			return INCOMPLETE_FRAME;
+		else if (data_len <= WSFRAME_HEADER_TYPE2_MAX) {
+			header_size = sizeof(frame->header.T2);
+			frame->header.hdr.payloadSize = WSFRAME_HEADER_TYPE2;
+			frame->header.T2.payloadSize = esif_ccb_htons((UInt16)data_len);
+		}
+		else if (data_len <= WSFRAME_HEADER_TYPE3_MAX) {
+			header_size = sizeof(frame->header.T3);
+			frame->header.hdr.payloadSize = WSFRAME_HEADER_TYPE3;
+			frame->header.T3.payloadSize = esif_ccb_htonll((UInt64)data_len);
+		}
+		else {
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		}
 
-		if (payloadLength < (incomingFrameLen - hdrLen)) {
-			*bytesRemaining = incomingFrameLen - hdrLen - payloadLength;
+		if (rc == ESIF_OK) {
+			if (out_buf && header_size + data_len > out_buf_len) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+			}
+			else if (out_buf) {
+				esif_ccb_memcpy(out_buf, &frame->header, header_size);
+				frame->headerSize = header_size;
+				frame->payloadSize = data_len;
+				frame->frameSize = header_size + data_len;
+				if (data_buf && data_len > 0) {
+					esif_ccb_memcpy((u8 *)out_buf + header_size, data_buf, data_len);
+					frame->payload = (u8 *)out_buf + header_size;
+				}
+			}
 		}
+	}
+	return rc;
+}
 
-		maskingKey  = esif_ws_socket_get_mask(framePtr, incomingFrameLen);
-		if (NULL == maskingKey) {
-			ESIF_ASSERT(ESIF_FALSE); /* Should never happen, all should have been checked by here */
-			return ERROR_FRAME;
+// Execute a requesdt against the REST API
+esif_error_t WebServer_WebSocketExecRestCmd(
+	WebServerPtr self,
+	WebClientPtr client,
+	char *request,
+	size_t request_len,
+	char **response_ptr,
+	size_t *response_len_ptr)
+{
+	int rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (request && response_ptr && response_len_ptr) {
+		UInt32 msg_id = (UInt32)atoi(request);
+		char *shell_cmd = esif_ccb_strchr(request, ':');
+		char response_buf[MAX_WEBSOCKET_MSGID_LEN + DEF_WEBSOCKET_RESPONSE_LEN] = { 0 };
+		char *response = NULL;
+		char *errmsg = "ERROR";
+		
+		*response_ptr = NULL;
+		*response_len_ptr = 0;
+
+		// REST Responses always begin with given message ID
+		esif_ccb_sprintf(sizeof(response_buf), response_buf, "%u:", msg_id);
+		
+		if (shell_cmd > request) {
+
+			// Copy shell command to beginning of request buffer to guarantee NULL-terminated shell_cmd
+			size_t shell_cmd_len = request_len - (size_t)(shell_cmd - request);
+			esif_ccb_memmove(request, shell_cmd + 1, shell_cmd_len - 1);
+			shell_cmd = request;
+			shell_cmd[shell_cmd_len - 1] = '\0';
+			shell_cmd[shell_cmd_len] = '\0';
+			errmsg = NULL;
+
+			// Ad-Hoc UI Shell commands begin with "0:" so verify ESIF Shell is enabled and command is valid
+			if (msg_id == 0 || client->mode == ServerRestricted) {
+				if (msg_id == 0 && !EsifWsShellEnabled()) {
+					errmsg = "Shell Disabled";
+				}
+				else {
+					static char *whitelist[] = { "status", "participants", NULL };
+					static char *blacklist[] = { "shell", "web", "exit", "quit", NULL };
+					const char *skip_cmds[] = { "format text && ", "format xml && ", NULL };
+					Bool blocked = ESIF_FALSE;
+					char *rest_cmd = shell_cmd;
+					size_t rest_cmd_len = shell_cmd_len;
+					int j = 0;
+
+					// Skip any commands in the skip_cmds list in before checking the shell command against the blacklist/whitelist
+					while (skip_cmds[j]) {
+						size_t cmd_len = esif_ccb_strlen(skip_cmds[j], MAX_PATH);
+						if (cmd_len < rest_cmd_len && esif_ccb_strnicmp(rest_cmd, skip_cmds[j], cmd_len) == 0) {
+							rest_cmd += cmd_len;
+							rest_cmd_len -= cmd_len;
+							j = 0;
+							continue;
+						}
+						j++;
+					}
+
+					// Verify the shell command against Whitelist and Blacklist
+					if (client->mode == ServerRestricted) {
+						for (j = 0; whitelist[j] != NULL; j++) {
+							if (esif_ccb_strnicmp(rest_cmd, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
+								break;
+							}
+						}
+						if (whitelist[j] == NULL) {
+							blocked = ESIF_TRUE;
+						}
+					}
+					else {
+						for (j = 0; blacklist[j] != NULL; j++) {
+							if (esif_ccb_strnicmp(rest_cmd, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
+								blocked = ESIF_TRUE;
+								break;
+							}
+						}
+					}
+					if (blocked) {
+						errmsg = "Unsupported Command";
+					}
+				}
+			}
+
+			// Exit if shell or command unavailable
+			if (errmsg) {
+				esif_ccb_strcat(response_buf, errmsg, sizeof(response_buf));
+				shell_cmd = NULL;
+			}
+
+			// Execute Shell Command against REST API
+			if (shell_cmd) {
+				if (atomic_read(&self->isActive)) {
+					response = EsifWsShellExec(shell_cmd, shell_cmd_len + 1, response_buf, esif_ccb_strlen(response_buf, sizeof(response_buf)));
+					if (response) {
+						// Strip Non-ASCII characters from REST API results
+						unsigned char *source = (unsigned char *)response;
+						unsigned char *target = source;
+						while (*source) {
+							if (esif_ccb_strpbrk((char *)source, "\r\n\t") != NULL || (*source >= ' ' && *source <= '~')) {
+								*target++ = *source;
+							}
+							source++;
+						}
+						*target = '\0';
+					}
+				}
+			}
+		
+			// Send REST API Response or Error message
+			if ((response == NULL) && ((response = esif_ccb_strdup(response_buf)) == NULL)) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else {
+				size_t response_len = esif_ccb_strlen(response, MAX_WEBSOCKET_RESPONSE_LEN);
+				*response_ptr = response;
+				*response_len_ptr = response_len;
+				rc = ESIF_OK;
+			}
 		}
+	}
+	return rc;
+}
 
-		*dataPtr = (char *)(maskingKey + sizeof(framePtr->u.T1.maskKey));
-		*dataLength = payloadLength;
+// Process a Websocket Request and send a Response
+esif_error_t WebServer_WebsocketResponse(
+	WebServerPtr self,
+	WebClientPtr client, 
+	WsFramePtr request)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (self && client && request) {
+		WsFrame outFrame = { 0 };
 
-		for (i = 0; i < *dataLength; i++) {
-			(*dataPtr)[i] = (*dataPtr)[i] ^ maskingKey[i % 4];
+		switch (request->frameType) {
+
+		case FRAME_CONTINUATION:
+			// Ignore Continuation Frames; They will be processed when a FIN is received on the final Frame
+			rc = ESIF_OK;
+			break;
+
+		case FRAME_TEXT:
+		{	// Process Text Frames and send to REST API
+			char *response = NULL;
+			size_t response_len = 0;
+
+			// Use a copy of the frame text to send to the rest API, including any prior fragments
+			char *total_message = NULL;
+			size_t prior_fragments_len = client->fragBufLen;
+			size_t total_message_len = prior_fragments_len + request->payloadSize;
+			if (total_message_len < MAX_WEBSOCKET_BUFFER) {
+				total_message = (char*)esif_ccb_malloc(total_message_len + 1);
+			}
+			if (NULL == total_message) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else {
+				// Combine the final fragment with the current connection's Fragment Buffer, if any
+				if (prior_fragments_len > 0 && client->fragBuf != NULL) {
+					WS_TRACE_DEBUG("WS Fragment Unbuffering: buflen=%zd msglen=%zd total=%zd\n", prior_fragments_len, request->payloadSize, total_message_len);
+					esif_ccb_memcpy(total_message, client->fragBuf, prior_fragments_len);
+					esif_ccb_free(client->fragBuf);
+					client->fragBuf = NULL;
+					client->fragBufLen = 0;
+					client->msgType = FRAME_NULL;
+				}
+				esif_ccb_memcpy(total_message + prior_fragments_len, request->payload, request->payloadSize);
+				total_message[total_message_len] = 0;
+			}
+
+			// Execute Command against REST API
+			rc = WebServer_WebSocketExecRestCmd(
+				self,
+				client,
+				total_message,
+				total_message_len,
+				&response,
+				&response_len);
+
+			// Send REST API Response
+			if (rc == ESIF_OK) {
+				size_t bytes_sent = 0;
+
+				// Break up large Websocket Messages into Multiple Fragments
+				while (rc == ESIF_OK && bytes_sent < response_len) {
+					size_t header_size = WebSocket_HeaderSize(response_len - bytes_sent, ESIF_FALSE);
+					size_t max_payload = (self->netBufLen <= header_size ? 0 : self->netBufLen - header_size);
+					size_t fragment_size = esif_ccb_min(response_len - bytes_sent, max_payload);
+					FrameType frame_type = (bytes_sent > 0 ? FRAME_CONTINUATION : FRAME_TEXT);
+					FinType fin_type = (fragment_size < response_len - bytes_sent ? FIN_FRAGMENT : FIN_FINAL);
+
+					if (fragment_size < 1) {
+						rc = ESIF_E_NEED_LARGER_BUFFER;
+					}
+					else {
+						rc = WebSocket_BuildFrame(
+							&outFrame,
+							self->netBuf, self->netBufLen,
+							response + bytes_sent, fragment_size,
+							frame_type,
+							fin_type);
+					}
+
+					if (rc == ESIF_OK) {
+						rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);
+					}
+					bytes_sent += fragment_size;
+				}
+			}
+			esif_ccb_free(total_message);
+			esif_ccb_free(response);
+			break;
 		}
+		case FRAME_BINARY:
+			// Binary Frames currently unsupported; Discard Request and Ignored
+			esif_ccb_free(client->fragBuf);
+			client->fragBuf = NULL;
+			client->fragBufLen = 0;
+			client->msgType = FRAME_NULL;
+			rc = ESIF_OK;
+			break;
 
-		if (framePtr->header.s.fin == 0) {
-			return FRAGMENT_FRAME;
+		case FRAME_CLOSING:
+			// Send Closing Frame to Client and Disconnect
+			rc = WebSocket_BuildFrame(
+				&outFrame,
+				self->netBuf, self->netBufLen,
+				NULL, 0,
+				FRAME_CLOSING,
+				FIN_FINAL);
+
+			if (rc == ESIF_OK) {
+				rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);
+			}
+			if (rc == ESIF_OK) {
+				rc = ESIF_E_WS_DISC;
+			}
+			break;
+
+		case FRAME_PING:
+			// Respond to PING Frames with PONG Frame containing Ping's Data
+			rc = WebSocket_BuildFrame(
+				&outFrame,
+				self->netBuf, self->netBufLen,
+				request->payload, request->payloadSize,
+				FRAME_PONG,
+				FIN_FINAL);
+
+			if (rc == ESIF_OK) {
+				rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);
+			}
+			break;
+
+		case FRAME_PONG:
+			// Handle unsolicited PONG (keepalive) messages from Internet Explorer 10 (Not required per RFC 6455 but allowed)
+			rc = WebSocket_BuildFrame(
+				&outFrame,
+				self->netBuf, self->netBufLen,
+				NULL, 0,
+				FRAME_TEXT,
+				FIN_FINAL);
+
+			if (rc == ESIF_OK) {
+				rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);
+			}
+			break;
+		default:
+			break;
 		}
-		return frameType;
 	}
-	return ERROR_FRAME;
+	return rc;
 }
 
-
-static void esif_ws_socket_convert_to_lower_case(char *string)
+// Process a WebSocket Request, if a complete Message is available
+esif_error_t WebServer_WebsocketRequest(
+	WebServerPtr self,
+	WebClientPtr client,
+	u8 *buffer,
+	size_t buf_len)
 {
-	int i=0;
-	for (i = 0; string[i]; i++)
-		string[i] = (char)tolower(string[i]);
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (self && client && buffer && buf_len > 0) {
+		size_t bytesRemaining = 0;
+		char *bufferRemaining = NULL;
+
+		do {
+			WsFrame request = { 0 };
+
+			// If more frames remaining, copy them into buffer and reparse
+			if (bufferRemaining != NULL && bytesRemaining > 0) {
+				esif_ccb_memcpy(buffer, bufferRemaining, bytesRemaining);
+				buf_len = bytesRemaining;
+				bytesRemaining = 0;
+			}
+			
+			// Parse WebSocket Header into a Request Frame
+			rc = Websocket_GetFrame(&request, buffer, buf_len);
+
+			if (rc == ESIF_OK && buf_len > request.frameSize) {
+				bytesRemaining = buf_len - request.frameSize;
+			}
+
+			// Append this partial frame to the current connection's Receive Buffer, if any
+			if (rc == ESIF_E_WS_INCOMPLETE) {
+				size_t oldSize = client->recvBufLen;
+				size_t newSize = oldSize + buf_len;
+				u8 *newBuffer = NULL;
+				if (newSize <= MAX_WEBSOCKET_BUFFER) {
+					newBuffer = esif_ccb_realloc(client->recvBuf, newSize);
+				}
+				if (newBuffer == NULL) {
+					rc = ESIF_E_NO_MEMORY;
+				}
+				else {
+					WS_TRACE_DEBUG("WS Frame Buffering: oldlen=%zd reqlen=%zd total=%zd\n", oldSize, buf_len, newSize);
+					esif_ccb_memcpy(newBuffer + oldSize, buffer, buf_len);
+					client->recvBuf = newBuffer;
+					client->recvBufLen = newSize;
+				}
+				break;
+			}
+
+			// Append this message fragment to the current connection's Fragment Buffer, if any
+			if (rc == ESIF_OK && request.header.hdr.fin == FIN_FRAGMENT) {
+				size_t oldSize = client->fragBufLen;
+				size_t newSize = oldSize + request.payloadSize;
+				u8 *newBuffer = NULL;
+				if (newSize <= MAX_WEBSOCKET_BUFFER) {
+					newBuffer = esif_ccb_realloc(client->fragBuf, newSize);
+				}
+				if (newBuffer == NULL) {
+					rc = ESIF_E_NO_MEMORY;
+				}
+				else {
+					WS_TRACE_DEBUG("WS Fragment Buffering: buflen=%zd msglen=%zd total=%zd\n", oldSize, request.payloadSize, newSize);
+					esif_ccb_memcpy(newBuffer + oldSize, request.payload, request.payloadSize);
+					client->fragBuf = newBuffer;
+					client->fragBufLen = newSize;
+				}
+				// Multi-Fragment messages put real opcode in 1st Fragment only; All others are Continuation Frames, including FIN
+				if (request.frameType != FRAME_CONTINUATION) {
+					client->msgType = request.frameType;
+				}
+			}
+
+			// Use First Fragment's Frame Type if FIN is set on (final) CONTINUATION frame
+			if (request.frameType == FRAME_CONTINUATION && request.header.hdr.fin == FIN_FINAL) {
+				request.frameType = client->msgType;
+			}
+
+			// Save remaining frames for reparsing if more than one frame received
+			if (bytesRemaining > 0) {
+				if (bufferRemaining == NULL) {
+					bufferRemaining = (char *)esif_ccb_malloc(bytesRemaining);
+					if (NULL == bufferRemaining) {
+						rc = ESIF_E_NO_MEMORY;
+					}
+				}
+				if (bufferRemaining) {
+					esif_ccb_memcpy(bufferRemaining, request.payload + request.payloadSize, bytesRemaining);
+				}
+			}
+
+			// Close Connection on Error
+			if (rc != ESIF_OK) {
+				WS_TRACE_DEBUG("Invalid Frame; Closing socket: rc=%s (%d) Type=%02hX FIN=%hd Len=%hd (%zd) Mask=%hd\n", esif_rc_str(rc), rc, request.header.hdr.frameType, request.header.hdr.fin, request.header.hdr.payloadSize, request.payloadSize, request.header.hdr.maskFlag);
+
+				// Send Closing Frame to Client
+				WsFrame outFrame = { 0 };
+				rc = WebSocket_BuildFrame(
+					&outFrame,
+					self->netBuf, self->netBufLen,
+					NULL, 0,
+					FRAME_CLOSING,
+					FIN_FINAL);
+
+				if (rc == ESIF_OK) {
+					rc = WebClient_Write(client, self->netBuf, outFrame.payloadSize);
+				}
+				if (rc == ESIF_OK) {
+					rc = ESIF_E_WS_DISC;
+				}
+				break;
+			}
+
+			// Process a Complete Websocket Single or Multi-Fragment Message
+			if (rc == ESIF_OK) {
+				rc = WebServer_WebsocketResponse(self, client, &request);
+			}
+
+		} while (bytesRemaining > 0);
+
+		esif_ccb_free(bufferRemaining);
+	}
+	return rc;
 }
 
-
-static void esif_ws_socket_copy_line (
-	const char *source,
-	char *destination
-	)
+// Broadcast a buffer to an Active WebSocket connection
+esif_error_t WebServer_WebsocketBroadcast(
+	WebServerPtr self,
+	WebClientPtr client,
+	u8 *buffer,
+	size_t buf_len)
 {
-	u32 newLength = (u32)((char*)strstr(source, "\r\n") - source);
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (self && client && buffer && buf_len > 0) {
+		WsFrame outFrame = { 0 };
 
-	esif_ccb_memcpy(destination, source, newLength);
-}
+		rc = WebSocket_BuildFrame(
+			&outFrame,
+			self->netBuf, self->netBufLen,
+			buffer, buf_len,
+			FRAME_BINARY,
+			FIN_FINAL);
 
-
-static char *esif_ws_socket_get_field_value(const char *source)
-{
-	char *destination   = NULL;
-	u32 adjusted_length = (u32)(strstr(source, "\r\n") - source);
-	destination = (char*)esif_ccb_malloc(adjusted_length + 1);
-
-	if (destination == NULL) {
-		return destination;
-	}
-
-	esif_ccb_memcpy(destination, source, adjusted_length);
-	destination[adjusted_length] = 0;
-
-	/* trim trailing blanks */
-	while (adjusted_length > 0 && destination[adjusted_length - 1] == ' ') {
-		destination[--adjusted_length] = 0;
-	}
-
-	return destination;
-}
-
-
-static size_t esif_ws_socket_get_payload_size (
-	const WsSocketFramePtr framePtr,
-	size_t incomingFrameLen,
-	FrameTypePtr frameTypePtr 
-	)
-{
-	size_t payLen = 0;
-	size_t hdrLen = 0;
-
-	hdrLen = esif_ws_socket_get_header_len(framePtr, incomingFrameLen);
-	if (0 == hdrLen) {
-		*frameTypePtr  = INCOMPLETE_FRAME;
-		return 0;
-	}
-
-	/* Get the base payload type/length */
-	payLen = framePtr->header.s.payLen;
-
-	if (payLen == WS_FRAME_SIZE_TYPE_2) {
-		payLen = (size_t) esif_ccb_htons(framePtr->u.T2.extPayLen);
-
-	} else if (payLen == WS_FRAME_SIZE_TYPE_3) {
-		if (((u8)framePtr->u.T3.extPayLen) > MAXIMUM_SIZE) {
-			*frameTypePtr  = ERROR_FRAME;
-			return 0;
+		if (rc == ESIF_OK) {
+			rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);
 		}
-
-		payLen = (size_t) esif_ccb_htonll(framePtr->u.T3.extPayLen);
 	}
-
-	return payLen;
+	return rc;
 }
-
-
-/* Returns 0 if an invalid header detected */
-static size_t esif_ws_socket_get_header_len(
-	const WsSocketFramePtr framePtr,
-	size_t frameLen
-	)
-{
-	size_t hdrLen = 0;
-
-	ESIF_ASSERT(framePtr != NULL);
-
-	if (frameLen < sizeof(framePtr->header)) {
-		goto exit;
-	}
-
-	hdrLen += sizeof(framePtr->header);
-
-	/* Check if we have mask bits present or not */
-	if (esif_ws_socket_is_mask_enabled(framePtr)) {
-		hdrLen += sizeof(framePtr->u.T1.maskKey);
-	}
-
-	if (WS_FRAME_SIZE_TYPE_2 == framePtr->header.s.payLen) {
-		hdrLen += sizeof(framePtr->u.T2_NoMask.extPayLen);
-	} else if (WS_FRAME_SIZE_TYPE_3 == framePtr->header.s.payLen) {
-		hdrLen += sizeof(framePtr->u.T3_NoMask.extPayLen);
-	}
-
-	if (frameLen < hdrLen) {
-		hdrLen = 0;
-	}
-exit:
-	return hdrLen;
-}
-
-
-/* Returns NULL if header error detected or not enabled */
-static UInt8 *esif_ws_socket_get_mask(
-	const WsSocketFramePtr framePtr,
-	size_t frameLen
-	)
-{
-	UInt8 *maskPtr = NULL;
-
-	ESIF_ASSERT(framePtr != NULL);
-
-	if (frameLen < sizeof(framePtr->header)) {
-		goto exit;
-	}
-
-	/* Check if we have mask bits present or not */
-	if (!esif_ws_socket_is_mask_enabled(framePtr)) {
-		goto exit;
-	}
-
-	if (WS_FRAME_SIZE_TYPE_2 == framePtr->header.s.payLen) {
-		maskPtr = (UInt8 *)&framePtr->u.T2.maskKey;
-	} else if (WS_FRAME_SIZE_TYPE_3 == framePtr->header.s.payLen) {
-		maskPtr = (UInt8 *)&framePtr->u.T3.maskKey;
-	} else {
-		maskPtr = (UInt8 *)&framePtr->u.T1.maskKey;
-	}
-
-exit:
-	return maskPtr;
-}
-
-
-static UInt8 esif_ws_socket_is_mask_enabled(
-	const WsSocketFramePtr framePtr
-	)
-{
-	return (UInt8)framePtr->header.s.maskFlag;
-}
-
-

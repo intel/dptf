@@ -122,7 +122,18 @@ void DomainPerformanceControl_003::setPerformanceControlDynamicCaps(
 			ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
 	}
 
+	auto previousCapabilities = getPerformanceControlDynamicCaps(getParticipantIndex(), getDomainIndex());
 	m_performanceControlDynamicCaps.invalidate();
+
+	if (lowerLimitIndex == Constants::Invalid)
+	{
+		lowerLimitIndex = previousCapabilities.getCurrentLowerLimitIndex();
+	}
+	else if (upperLimitIndex == Constants::Invalid)
+	{
+		upperLimitIndex = previousCapabilities.getCurrentUpperLimitIndex();
+	}
+
 	m_performanceControlDynamicCaps.set(PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex));
 }
 
@@ -177,8 +188,8 @@ void DomainPerformanceControl_003::throwIfPerformanceControlIndexIsOutOfBounds(
 		std::stringstream infoMessage;
 
 		infoMessage << "Control index out of control set bounds." << std::endl
-					<< "Desired Index : " << performanceControlIndex << std::endl
-					<< "PerformanceControlSet size :" << controlSetSize << std::endl;
+			<< "Desired Index : " << performanceControlIndex << std::endl
+			<< "PerformanceControlSet size :" << controlSetSize << std::endl;
 
 		throw dptf_exception(infoMessage.str());
 	}
@@ -190,9 +201,9 @@ void DomainPerformanceControl_003::throwIfPerformanceControlIndexIsOutOfBounds(
 		std::stringstream infoMessage;
 
 		infoMessage << "Got a performance control index that was outside the allowable range." << std::endl
-					<< "Desired Index : " << performanceControlIndex << std::endl
-					<< "Upper Limit Index : " << caps.getCurrentUpperLimitIndex() << std::endl
-					<< "Lower Limit Index : " << caps.getCurrentLowerLimitIndex() << std::endl;
+			<< "Desired Index : " << performanceControlIndex << std::endl
+			<< "Upper Limit Index : " << caps.getCurrentUpperLimitIndex() << std::endl
+			<< "Lower Limit Index : " << caps.getCurrentLowerLimitIndex() << std::endl;
 
 		throw dptf_exception(infoMessage.str());
 	}

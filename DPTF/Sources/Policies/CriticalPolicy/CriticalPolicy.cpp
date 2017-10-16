@@ -114,6 +114,16 @@ string CriticalPolicy::getStatusAsXml(void) const
 	return statusString;
 }
 
+string CriticalPolicy::getDiagnosticsAsXml(void) const
+{
+	auto status = XmlNode::createWrapperElement("critical_policy_diagnostics");
+	status->addChild(getXmlForCriticalTripPoints());
+	auto root = XmlNode::createRoot();
+	root->addChild(status);
+	string statusString = root->toString();
+	return statusString;
+}
+
 void CriticalPolicy::onBindParticipant(UIntN participantIndex)
 {
 	getParticipantTracker()->remember(participantIndex);

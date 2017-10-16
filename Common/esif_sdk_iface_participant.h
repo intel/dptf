@@ -61,14 +61,21 @@
 /* Participant Interface Versions:
  * 2 - Added "whitelist" pointers (used by LF only)
  */
-#define ESIF_PARTICIPANT_VERSION 2
+#define ESIF_PARTICIPANT_VERSION 3
 #define ESIF_PARTICIPANT_INVALID_TYPE ((u32)ESIF_DOMAIN_TYPE_INVALID)
 #define ESIF_INSTANCE_INVALID	255
 
 #ifdef ESIF_ATTR_KERNEL
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#include <acpiioct.h>	/* ACPI  */
+typedef WDFIOTARGET acpi_handle;
+#endif
+
 /* Flags */
 #define ESIF_FLAG_DPTFZ 0x1	/* Participant Is Actually A DPTF Zone */
+#define ESIF_FLAG_EXTERN_DPTFZ 0x2	/* Participant Is Actually A DPTF Zone exposed by an external driver */
+#define ESIF_FLAG_ACCESS_ACPI_VIA_HAL 0x4	/* Participant is using the ACPI HAL target with absolute paths */
 
 #define MSR_WHITELIST_TERMINATOR 0
 #define MMIO_WHITELIST_TERMINATOR 0

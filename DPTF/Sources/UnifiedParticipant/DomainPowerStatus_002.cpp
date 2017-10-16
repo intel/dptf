@@ -43,14 +43,17 @@ Power DomainPowerStatus_002::getAveragePower(
 	UIntN domainIndex,
 	const PowerControlDynamicCaps& capabilities)
 {
+	if (m_lastCalculatedPower.isValid() == false)
+	{
+		return capabilities.getMaxPowerLimit();
+	}
+
 	return m_lastCalculatedPower;
 }
 
 void DomainPowerStatus_002::setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue)
 {
 	m_lastCalculatedPower = powerValue;
-	getParticipantServices()->primitiveExecuteSetAsPower(
-		esif_primitive_type::SET_RAPL_POWER, powerValue, domainIndex, Constants::Esif::NoInstance);
 }
 
 void DomainPowerStatus_002::clearCachedData(void)

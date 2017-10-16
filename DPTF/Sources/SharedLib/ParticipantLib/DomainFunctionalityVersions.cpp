@@ -25,6 +25,7 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 	, coreControlVersion(0)
 	, displayControlVersion(0)
 	, domainPriorityVersion(0)
+	, energyControlVersion(0)
 	, performanceControlVersion(0)
 	, powerControlVersion(0)
 	, powerStatusVersion(0)
@@ -48,6 +49,7 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
 	coreControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CORE_CONTROL];
 	displayControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL];
 	domainPriorityVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY];
+	energyControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ENERGY_CONTROL];
 	performanceControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PERF_CONTROL];
 	powerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_CONTROL];
 	powerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_POWER_STATUS];
@@ -71,6 +73,7 @@ Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& 
 		&& (coreControlVersion == domainFunctionality.coreControlVersion)
 		&& (displayControlVersion == domainFunctionality.displayControlVersion)
 		&& (domainPriorityVersion == domainFunctionality.domainPriorityVersion)
+		&& (energyControlVersion == domainFunctionality.energyControlVersion)
 		&& (performanceControlVersion == domainFunctionality.performanceControlVersion)
 		&& (powerControlVersion == domainFunctionality.powerControlVersion)
 		&& (powerStatusVersion == domainFunctionality.powerStatusVersion)

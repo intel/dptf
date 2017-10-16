@@ -262,7 +262,7 @@ std::string TimeSpan::toStringMilliseconds() const
 	return stream.str();
 }
 
-std::string TimeSpan::toStringSeconds() const
+std::string TimeSpan::toStringSeconds(UInt32 precision) const
 {
 	std::stringstream stream;
 	if (isInvalid())
@@ -271,7 +271,7 @@ std::string TimeSpan::toStringSeconds() const
 	}
 	else
 	{
-		stream << friendlyValueWithPrecision(asSeconds(), 1);
+		stream << friendlyValueWithPrecision(asSeconds(), precision);
 	}
 	return stream.str();
 }

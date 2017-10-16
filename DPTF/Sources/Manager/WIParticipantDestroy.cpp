@@ -40,13 +40,13 @@ void WIParticipantDestroy::execute(void)
 	// Call unbind participant for each policy before we actually destroy the participant.
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->unbindParticipant(getParticipantIndex());
 		}
 		catch (policy_index_invalid ex)
@@ -55,7 +55,7 @@ void WIParticipantDestroy::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::unbindParticipant", i);
+			writeParticipantWorkItemErrorMessagePolicy(ex, "Policy::unbindParticipant", *i);
 		}
 	}
 

@@ -122,6 +122,7 @@ namespace FrameworkEvent
 		DptfAppLoaded,
 		DptfAppUnloaded,
 		DptfAppUnloading,
+		DptfAppAliveRequest,
 
 		Max
 	};

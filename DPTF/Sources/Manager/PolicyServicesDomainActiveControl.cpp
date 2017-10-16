@@ -34,6 +34,14 @@ ActiveControlStaticCaps PolicyServicesDomainActiveControl::getActiveControlStati
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlStaticCaps(domainIndex);
 }
 
+ActiveControlDynamicCaps PolicyServicesDomainActiveControl::getActiveControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlDynamicCaps(domainIndex);
+}
+
 ActiveControlStatus PolicyServicesDomainActiveControl::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
@@ -44,14 +52,6 @@ ActiveControlSet PolicyServicesDomainActiveControl::getActiveControlSet(UIntN pa
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getActiveControlSet(domainIndex);
-}
-
-void PolicyServicesDomainActiveControl::setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex)
-{
-	throwIfNotWorkItemThread();
-	getParticipantManager()
-		->getParticipantPtr(participantIndex)
-		->setActiveControl(domainIndex, getPolicyIndex(), controlIndex);
 }
 
 void PolicyServicesDomainActiveControl::setActiveControl(

@@ -765,7 +765,7 @@ void EsifServices::writeMessage(
 	}
 
 #endif
-	}
+}
 
 void EsifServices::throwIfNotSuccessful(
 	const std::string& fileName,
@@ -827,24 +827,26 @@ void EsifServices::throwIfNotSuccessful(
 		writeMessageWarning(message);
 	}
 
-	if (returnCode == ESIF_I_AGAIN)
+	switch (returnCode)
 	{
+	case ESIF_I_AGAIN:
 		throw primitive_try_again(message);
-	}
-	else if (returnCode == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
-	{
-		throw primitive_not_found_in_dsp(message);
-	}
-	else if (returnCode == ESIF_E_PRIMITIVE_DST_UNAVAIL)
-	{
-		throw primitive_destination_unavailable(message);
-	}
-	else if (returnCode == ESIF_E_IO_OPEN_FAILED)
-	{
-		throw file_open_create_failure(message);
-	}
 
-	throw primitive_execution_failed(message);
+	case ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP:
+		throw primitive_not_found_in_dsp(message);
+
+	case ESIF_E_PRIMITIVE_DST_UNAVAIL:
+		throw primitive_destination_unavailable(message);
+
+	case ESIF_E_IO_OPEN_FAILED:
+		throw file_open_create_failure(message);
+
+	case ESIF_E_ACPI_OBJECT_NOT_FOUND:
+		throw acpi_object_not_found(message);
+
+	default:
+		throw primitive_execution_failed(message);
+	}
 }
 
 void EsifServices::throwIfNotSuccessful(
@@ -921,4 +923,17 @@ void EsifServices::sendDptfEvent(
 		message.setEsifErrorCode(rc);
 		writeMessageWarning(message);
 	}
+}
+
+eEsifError EsifServices::sendCommand(
+	UInt32 argc,
+	EsifDataPtr argv,
+	EsifDataPtr response)
+{
+	return m_appServices->sendCommand(
+		m_esifHandle,
+		m_dptfManager,
+		argc,
+		argv,
+		response);
 }

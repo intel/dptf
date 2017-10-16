@@ -258,6 +258,12 @@ std::shared_ptr<XmlNode> WorkItemQueueManager::getStatusAsXml(void)
 	return root;
 }
 
+std::shared_ptr<XmlNode> WorkItemQueueManager::getDiagnosticsAsXml(void)
+{
+	auto root = XmlNode::createRoot();
+	return root;
+}
+
 Bool WorkItemQueueManager::canEnqueueImmediateWorkItem(WorkItem* workItem) const
 {
 	return (

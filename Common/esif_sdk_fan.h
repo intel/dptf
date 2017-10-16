@@ -82,4 +82,11 @@ struct EsifDataBinaryFstPackage //Has revision as first param
     union esif_data_variant speed;                          // ULONG - The active cooling trip point number corresponding with this performance state.
 };
 
+struct EsifDataBinaryFcdcPackage //Has revision as first param
+{	
+	union esif_data_variant revision;
+	union esif_data_variant minspeed;						 // ULONG - The value used to set the min fan speed percentage
+	union esif_data_variant maxspeed;                        // ULONG - The value used to set the max fan speed percentage
+};
+
 #pragma pack(pop)

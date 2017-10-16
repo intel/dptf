@@ -47,6 +47,7 @@ public:
 	Bool implementsConfigTdpControlInterface(void) const;
 	Bool implementsCoreControlInterface(void) const;
 	Bool implementsDisplayControlInterface(void) const;
+	Bool implementsEnergyControlInterface(void) const;
 	Bool implementsPeakPowerControlInterface(void) const;
 	Bool implementsPerformanceControlInterface(void) const;
 	Bool implementsPowerControlInterface(void) const;

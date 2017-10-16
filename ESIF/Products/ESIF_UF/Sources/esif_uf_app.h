@@ -108,6 +108,14 @@ eEsifError EsifApp_ReceiveEvent(
 	const EsifDataPtr eventGuidPtr
 	);
 
+eEsifError EsifApp_ReceiveCommand(
+	const void *esifHandle,
+	const void *appHandle,
+	const UInt32 argc,
+	const EsifDataPtr argv,
+	EsifDataPtr response
+	);
+
 AppParticipantDataMapPtr EsifApp_GetParticipantDataMapFromHandle(
 	const EsifAppPtr appPtr,
 	const void *participantHandle

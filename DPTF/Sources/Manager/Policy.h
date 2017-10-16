@@ -35,7 +35,7 @@ public:
 	void createPolicy(
 		const std::string& policyFileName,
 		UIntN newPolicyIndex,
-		const SupportedPolicyList& supportedPolicyList);
+		std::shared_ptr<SupportedPolicyList> supportedPolicyList);
 	void destroyPolicy(void);
 
 	Guid getGuid(void);
@@ -49,7 +49,9 @@ public:
 	void disable(void);
 
 	std::string getName(void) const;
+	std::string getPolicyFileName(void) const;
 	std::string getStatusAsXml(void) const;
+	std::string getDiagnosticsAsXml(void) const;
 
 	// Event handlers
 

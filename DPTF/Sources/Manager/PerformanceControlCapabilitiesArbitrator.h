@@ -30,10 +30,11 @@ public:
 
 	void commitPolicyRequest(UIntN policyIndex, const PerformanceControlDynamicCaps& caps);
 	Bool hasArbitratedPerformanceControlCapabilities() const;
-	PerformanceControlDynamicCaps arbitrate(UIntN policyIndex, const PerformanceControlDynamicCaps& caps);
+	PerformanceControlDynamicCaps arbitrate(UIntN policyIndex, const PerformanceControlDynamicCaps& requestedCaps,
+		const PerformanceControlDynamicCaps& currentCaps);
 
 	Bool arbitrateLockRequests(UIntN policyIndex, Bool lock);
-	PerformanceControlDynamicCaps getArbitratedPerformanceControlCapabilities();
+	PerformanceControlDynamicCaps getArbitratedPerformanceControlCapabilities(const PerformanceControlDynamicCaps& currentCaps);
 	Bool getArbitratedLock() const;
 	void removeRequestsForPolicy(UIntN policyIndex);
 	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
@@ -51,4 +52,8 @@ private:
 	void updatePolicyLockRequest(Bool lock, UIntN policyIndex);
 	UIntN getBiggestUpperPStateIndex(std::map<UIntN, UIntN>& upperRequests) const;
 	UIntN getSmallestLowerPStateIndex(std::map<UIntN, UIntN>& lowerRequests) const;
+	PerformanceControlDynamicCaps createNewArbitratedCapabilities(
+		std::map<UIntN, UIntN>& upperRequests,
+		std::map<UIntN, UIntN>& lowerRequests,
+		const PerformanceControlDynamicCaps& currentCaps);
 };

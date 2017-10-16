@@ -68,6 +68,7 @@ public:
 	std::string getDomainName(UIntN domainIndex);
 	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
 	std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
+	std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN domainIndex) const;
 	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
 
 	//
@@ -115,18 +116,14 @@ public:
 
 	// Active Controls
 	ActiveControlStaticCaps getActiveControlStaticCaps(UIntN domainIndex);
+	ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN domainIndex);
 	ActiveControlStatus getActiveControlStatus(UIntN domainIndex);
 	ActiveControlSet getActiveControlSet(UIntN domainIndex);
-	void setActiveControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex);
 	void setActiveControl(UIntN domainIndex, UIntN policyIndex, const Percentage& fanSpeed);
 
 	// Activity Status
-	UInt32 getEnergyThreshold(UIntN domainIndex);
-	void setEnergyThreshold(UIntN domainIndex, UInt32 energyThreshold);
-	Temperature getPowerShareTemperatureThreshold(UIntN domainIndex);
 	Percentage getUtilizationThreshold(UIntN domainIndex);
 	Percentage getResidencyUtilization(UIntN domainIndex);
-	void setEnergyThresholdInterruptDisable(UIntN domainIndex);
 
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN domainIndex);
@@ -151,6 +148,15 @@ public:
 	void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 	void setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
+	// Energy Controls
+	UInt32 getRaplEnergyCounter(UIntN domainIndex);
+	double getRaplEnergyUnit(UIntN domainIndex);
+	UInt32 getRaplEnergyCounterWidth(UIntN domainIndex);
+	Power getInstantaneousPower(UIntN domainIndex);
+	UInt32 getEnergyThreshold(UIntN domainIndex);
+	void setEnergyThreshold(UIntN domainIndex, UInt32 energyThreshold);
+	void setEnergyThresholdInterruptDisable(UIntN domainIndex);
+
 	// Peak Power controls
 	Power getACPeakPower(UIntN domainIndex);
 	void setACPeakPower(UIntN domainIndex, UIntN policyIndex, const Power& acPeakPower);
@@ -174,6 +180,7 @@ public:
 	void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
 	Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
 	Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
+	Power getPowerLimitWithoutCache(UIntN domainIndex, PowerControlType::Type controlType);
 	void setPowerLimit(
 		UIntN domainIndex,
 		UIntN policyIndex,
@@ -209,11 +216,7 @@ public:
 	TimeSpan getFastPollTime(UIntN domainIndex);
 	TimeSpan getSlowPollTime(UIntN domainIndex);
 	TimeSpan getWeightedSlowPollAvgConstant(UIntN domainIndex);
-	UInt32 getRaplEnergyCounter(UIntN domainIndex);
-	double getRaplEnergyUnit(UIntN domainIndex);
-	UInt32 getRaplEnergyCounterWidth(UIntN domainIndex);
 	Power getSlowPollPowerThreshold(UIntN domainIndex);
-	Power getInstantaneousPower(UIntN domainIndex);
 
 	// Power status
 	PowerStatus getPowerStatus(UIntN domainIndex);
@@ -280,6 +283,7 @@ public:
 		UIntN domainIndex,
 		UIntN policyIndex,
 		const TemperatureThresholds& temperatureThresholds);
+	Temperature getPowerShareTemperatureThreshold(UIntN domainIndex);
 	DptfBuffer getVirtualSensorCalibrationTable(UIntN domainIndex);
 	DptfBuffer getVirtualSensorPollingTable(UIntN domainIndex);
 	Bool isVirtualTemperature(UIntN domainIndex);

@@ -50,19 +50,16 @@ RfProfileDataSet RfProfileDataSet::createRfProfileDataFromDptfBuffer(const DptfB
 	{
 		auto centerFrequency = Frequency(static_cast<UInt64>(currentRow->centerFrequency.integer.value));
 		auto frequencySpread = Frequency(static_cast<UInt64>(currentRow->frequencySpread.integer.value));
-		auto channelNumber = static_cast<UInt32>(currentRow->channelNumber.integer.value);
 		auto noisePower = static_cast<UInt32>(currentRow->noisePower.integer.value);
-		auto signalToNoiseRatio = static_cast<UInt32>(currentRow->signalToNoiseRatio.integer.value);
 		auto rssi = static_cast<UInt32>(currentRow->rssi.integer.value);
-		auto uint32Value = static_cast<UInt32>(currentRow->uint32Value.integer.value);
-		auto bitError = static_cast<UInt32>(currentRow->bitError.integer.value);
-		if (RadioConnectionStatus::Connected == uint32Value)
+		auto connectStatus = static_cast<UInt32>(currentRow->connectStatus.integer.value);
+		if (RadioConnectionStatus::Connected == connectStatus)
 		{
 			connectionStatus = RadioConnectionStatus::Connected;
 		}
 
 		RfProfileSupplementalData rfProfileSupplementalData(
-			channelNumber, noisePower, signalToNoiseRatio, rssi, connectionStatus, bitError);
+			noisePower, rssi, connectionStatus);
 		RfProfileData rfProfileData(
 			centerFrequency, frequencySpread / 2, frequencySpread / 2, rfProfileSupplementalData);
 

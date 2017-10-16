@@ -42,6 +42,7 @@ public:
 	virtual void disableAndEmptyAllQueues(void) override;
 
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
+	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(void) override;
 
 private:
 	WorkItemQueueManager(const WorkItemQueueManager& rhs);

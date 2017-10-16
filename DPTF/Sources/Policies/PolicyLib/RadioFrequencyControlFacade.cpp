@@ -70,9 +70,17 @@ void RadioFrequencyControlFacade::setOperatingFrequency(Frequency frequency)
 std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 {
 	Frequency centerFrequency(0);
+	Frequency minFrequency(0);
+	Frequency maxFrequency(0);
+	Percentage ssc(0.0);
+
 	try
 	{
-		centerFrequency = m_policyServices.domainRfProfileControl->getRfProfileCapabilities(m_participantIndex, m_domainIndex).getCenterFrequency();
+		auto rfProfileCaps = m_policyServices.domainRfProfileControl->getRfProfileCapabilities(m_participantIndex, m_domainIndex);
+		centerFrequency = rfProfileCaps.getCenterFrequency();
+		minFrequency = rfProfileCaps.getMinFrequency();
+		maxFrequency = rfProfileCaps.getMaxFrequency();
+		ssc = rfProfileCaps.getSsc();
 	}
 	catch (...)
 	{
@@ -81,8 +89,11 @@ std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 	auto control = XmlNode::createWrapperElement("radio_frequency_control");
 	control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
 	control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
+	control->addChild(XmlNode::createDataElement("min_frequency", minFrequency.toString()));
 	control->addChild(XmlNode::createDataElement("requested_frequency", m_lastSetFrequency.toString()));
 	control->addChild(XmlNode::createDataElement("set_frequency", centerFrequency.toString()));
+	control->addChild(XmlNode::createDataElement("max_frequency", maxFrequency.toString()));
+	control->addChild(XmlNode::createDataElement("ssc", ssc.toString()));
 	if (supportsStatus())
 	{
 		try

@@ -22,6 +22,7 @@
 #include "PolicyServicesInterfaceContainer.h"
 #include "DomainProperties.h"
 #include "ActiveControlStaticCapsCachedProperty.h"
+#include "ActiveControlDynamicCapsCachedProperty.h"
 #include "XmlNode.h"
 #include "ActiveCoolingControlFacadeInterface.h"
 
@@ -45,12 +46,12 @@ public:
 
 	// fan speed requests
 	virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) override;
-	virtual void requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex) override;
 	virtual void forceFanOff(void) override;
 	virtual void setControl(Percentage activeCoolingControlFanSpeed) override;
 
 	// properties
 	virtual const ActiveControlStaticCaps& getCapabilities() override;
+	virtual const ActiveControlDynamicCaps& getDynamicCapabilities() override;
 	virtual void refreshCapabilities() override;
 	virtual ActiveControlStatus getStatus() override;
 	virtual UIntN getSmallestNonZeroFanSpeed() override;
@@ -71,14 +72,11 @@ private:
 	UIntN m_participantIndex;
 	UIntN m_domainIndex;
 	ActiveControlStaticCapsCachedProperty m_staticCaps;
+	ActiveControlDynamicCapsCachedProperty m_dynamicCaps;
 
 	// fan speed request arbitration
 	std::map<UIntN, Percentage> m_fanSpeedRequestTable;
-	std::map<UIntN, UIntN> m_activeControlRequestTable;
 	Percentage m_lastFanSpeedRequest;
-	UIntN m_lastFanSpeedRequestIndex;
 	void updateFanSpeedRequestTable(UIntN requestorIndex, const Percentage& fanSpeed);
 	Percentage chooseHighestFanSpeedRequest();
-	void updateActiveControlRequestTable(UIntN requestorIndex, UIntN activeControlIndex);
-	UIntN chooseHighestActiveControlIndex();
 };

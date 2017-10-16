@@ -54,8 +54,15 @@ const SpecificInfo& PassiveTripPointsCachedProperty::getTripPoints()
 Bool PassiveTripPointsCachedProperty::supportsProperty(void)
 {
 	// must contain psv, ntt is optional
-	auto passiveTripPoints = getTripPoints();
-	return passiveTripPoints.hasKey(ParticipantSpecificInfoKey::PSV);
+	try
+	{
+		auto passiveTripPoints = getTripPoints();
+		return passiveTripPoints.hasKey(ParticipantSpecificInfoKey::PSV);
+	}
+	catch (dptf_exception)
+	{
+		return false;
+	}
 }
 
 std::shared_ptr<XmlNode> PassiveTripPointsCachedProperty::getXml()

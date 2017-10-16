@@ -22,6 +22,7 @@
 #include "DomainConfigTdpControlFactory.h"
 #include "DomainCoreControlFactory.h"
 #include "DomainDisplayControlFactory.h"
+#include "DomainEnergyControlFactory.h"
 #include "DomainPerformanceControlFactory.h"
 #include "DomainPowerControlFactory.h"
 #include "DomainPowerStatusFactory.h"
@@ -86,6 +87,8 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
 		return shared_ptr<ControlFactoryInterface>(new DomainCoreControlFactory());
 	case ControlFactoryType::Display:
 		return shared_ptr<ControlFactoryInterface>(new DomainDisplayControlFactory());
+	case ControlFactoryType::EnergyControl:
+		return shared_ptr<ControlFactoryInterface>(new DomainEnergyControlFactory());
 	case ControlFactoryType::PeakPowerControl:
 		return shared_ptr<ControlFactoryInterface>(new DomainPeakPowerControlFactory());
 	case ControlFactoryType::Performance:

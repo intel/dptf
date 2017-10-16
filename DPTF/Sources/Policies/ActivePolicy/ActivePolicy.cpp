@@ -119,6 +119,11 @@ string ActivePolicy::getStatusAsXml(void) const
 	return statusString;
 }
 
+string ActivePolicy::getDiagnosticsAsXml(void) const
+{
+	return "Active Policy Diagnostics Not Yet Implemented\n";
+}
+
 void ActivePolicy::onBindParticipant(UIntN participantIndex)
 {
 	getParticipantTracker()->remember(participantIndex);
@@ -313,13 +318,6 @@ void ActivePolicy::requestFanSpeedChange(
 				PolicyMessage(FLF, "Requesting fan speed of " + fanSpeed.toString() + "."));
 			coolingControl->requestFanSpeedPercentage(entry->getTargetDeviceIndex(), fanSpeed);
 		}
-		else
-		{
-			UIntN activeControlIndex = selectActiveControlIndex(entry, tripPoints, currentTemperature);
-			getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-				FLF, "Requesting fan speed index of " + std::to_string(activeControlIndex) + "."));
-			coolingControl->requestActiveControlIndex(entry->getTargetDeviceIndex(), activeControlIndex);
-		}
 	}
 }
 
@@ -337,10 +335,6 @@ void ActivePolicy::requestFanTurnedOff(std::shared_ptr<ActiveRelationshipTableEn
 		if (coolingControl->supportsFineGrainControl())
 		{
 			coolingControl->requestFanSpeedPercentage(entry->getTargetDeviceIndex(), Percentage(0.0));
-		}
-		else
-		{
-			coolingControl->requestActiveControlIndex(entry->getTargetDeviceIndex(), ActiveCoolingControl::FanOffIndex);
 		}
 	}
 }
@@ -463,23 +457,6 @@ Percentage ActivePolicy::selectFanSpeed(
 		fanSpeed = 0.0;
 	}
 	return fanSpeed;
-}
-
-UIntN ActivePolicy::selectActiveControlIndex(
-	std::shared_ptr<ActiveRelationshipTableEntry> entry,
-	SpecificInfo& tripPoints,
-	const Temperature& temperature)
-{
-	UIntN crossedTripPointIndex = findTripPointCrossed(tripPoints, temperature);
-	if (crossedTripPointIndex != Constants::Invalid)
-	{
-		return crossedTripPointIndex;
-	}
-	else
-	{
-		// pick control with highest index
-		return (ActiveCoolingControl::FanOffIndex);
-	}
 }
 
 UIntN ActivePolicy::findTripPointCrossed(SpecificInfo& tripPoints, const Temperature& temperature)

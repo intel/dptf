@@ -93,25 +93,28 @@ static eEsifError EsifApp_CreateApp(
 static eEsifError EsifApp_DestroyParticipants(EsifAppPtr self);
 
 /* Data For Interface Marshaling */
-static AppDataPtr CreateAppData(esif_string pathBuf)
+static AppDataPtr CreateAppData(esif_string pathBuf, size_t bufLen)
 {
 	AppDataPtr app_data_ptr = NULL;
+	char policyLoadPath[ESIF_PATH_LEN] = { 0 }; // empty if path starts with "#"
 	char policyPath[ESIF_PATH_LEN] = { 0 };
+	char logPath[ESIF_PATH_LEN] = { 0 };
 
 	if (NULL == pathBuf) {
 		ESIF_TRACE_ERROR("Path buffer is NULL\n");
 		goto exit;
 	}
 
-	/* Build path(s) for DPTF: "HomeDir" or "HomeDir|[#]PolicyDir" */
-	esif_build_path(pathBuf, ESIF_PATH_LEN, ESIF_PATHTYPE_DPTF, NULL, NULL);
+	// Build path(s) for DPTF: "HomeDir" or "HomeDir|[#]PolicyDir|LogDir"
+	esif_build_path(policyLoadPath, sizeof(policyLoadPath), ESIF_PATHTYPE_DLL, "", NULL);
 	esif_build_path(policyPath, sizeof(policyPath), ESIF_PATHTYPE_DLL, NULL, NULL);
-	if (esif_ccb_strcmp(pathBuf, policyPath) != 0) {
-		char policyDummyPath[ESIF_PATH_LEN] = { 0 }; /* empty if path starts with "#" */
-		esif_build_path(policyDummyPath, sizeof(policyDummyPath), ESIF_PATHTYPE_DLL, "", NULL);
-		esif_ccb_sprintf_concat(ESIF_PATH_LEN, pathBuf, "|%s%s", (policyDummyPath[0] ? "" : "#"), policyPath);
-	}
-	ESIF_TRACE_DEBUG("pathBuf=%s\n\n", (esif_string)pathBuf);
+	esif_build_path(logPath, sizeof(logPath), ESIF_PATHTYPE_LOG, NULL, NULL);
+
+	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_DPTF, NULL, NULL);
+	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s%s", (policyLoadPath[0] ? "" : "#"), policyPath);
+	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s", logPath);
+
+	ESIF_TRACE_DEBUG("pathBuf=%s\n", (esif_string)pathBuf);
 
 	app_data_ptr = (AppDataPtr)esif_ccb_malloc(sizeof(AppData));
 	if (NULL == app_data_ptr) {
@@ -120,8 +123,8 @@ static AppDataPtr CreateAppData(esif_string pathBuf)
 	}
 
 	app_data_ptr->fPathHome.buf_ptr  = (void *)pathBuf;
-	app_data_ptr->fPathHome.buf_len  = ESIF_PATH_LEN;
-	app_data_ptr->fPathHome.data_len = (UInt32)esif_ccb_strlen(pathBuf, ESIF_PATH_LEN);
+	app_data_ptr->fPathHome.buf_len  = (UInt32)bufLen;
+	app_data_ptr->fPathHome.data_len = (UInt32)esif_ccb_strlen(pathBuf, bufLen) + 1;
 	app_data_ptr->fPathHome.type     = ESIF_DATA_STRING;
 	app_data_ptr->fLogLevel          = (eLogType) g_traceLevel;
 
@@ -143,7 +146,7 @@ static eEsifError AppCreate(
 {
 	eEsifError rc = ESIF_OK;
 	AppDataPtr app_data_ptr = NULL;
-	char path_buf[ESIF_PATH_LEN];
+	char path_buf[ESIF_PATH_LEN * 3] = { 0 };
 
 	char name[ESIF_NAME_LEN];
 	ESIF_DATA(data_name, ESIF_DATA_STRING, name, ESIF_NAME_LEN);
@@ -178,8 +181,11 @@ static eEsifError AppCreate(
 	app_service_iface.fRegisterEventFuncPtr   = EsifSvcEventRegister;
 	app_service_iface.fUnregisterEventFuncPtr = EsifSvcEventUnregister;
 
-	//For Version 2
+	/* Version 2 */
 	app_service_iface.fSendEventFuncPtr       = EsifSvcEventReceive;
+
+	/* Version 3 */
+	app_service_iface.fSendCommandFuncPtr     = EsifSvcCommandReceive;
 
 	/* GetApplicationInterface Handleshake send ESIF receive APP Interface */
 	rc = ifaceFuncPtr(&appPtr->fInterface);
@@ -250,7 +256,7 @@ static eEsifError AppCreate(
 		goto exit;
 	}
 
-	app_data_ptr = CreateAppData(path_buf);
+	app_data_ptr = CreateAppData(path_buf, sizeof(path_buf));
 	if (NULL == app_data_ptr) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
@@ -1324,7 +1330,7 @@ exit:
 	return rc;
 }
 
-/* Receives the events from DPTF -> ESIF */
+/* Receives the events from App -> ESIF */
 eEsifError EsifApp_ReceiveEvent(
 	const void *esifHandle,
 	const void *appHandle,
@@ -1491,6 +1497,69 @@ eEsifError EsifApp_ReceiveEvent(
 	}
 		
 exit:
+	return rc;
+}
+
+/* Receives Shell Commands from App -> ESIF */
+eEsifError EsifApp_ReceiveCommand(
+	const void *esifHandle,
+	const void *appHandle,
+	const UInt32 argc,
+	const EsifDataPtr argv,
+	EsifDataPtr response
+	)
+{
+	eEsifError rc = ESIF_E_NOT_IMPLEMENTED;
+	int shell_argc = 0;
+	char **shell_argv = NULL;
+
+	UNREFERENCED_PARAMETER(esifHandle);
+	UNREFERENCED_PARAMETER(appHandle);
+
+	esif_uf_shell_lock();
+
+	g_outbuf[0] = '\0';
+
+	if (argc > 0 && argv != NULL && response != NULL) {
+		UInt32 j = 0;
+		shell_argc = 0;
+		shell_argv = esif_ccb_malloc((size_t)argc * sizeof(char *));
+
+		if (shell_argv == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+			goto exit;
+		}
+
+		// If argv[0] is a singleton string, parse it as a command line otherwise execute argc/argv
+		if (argc == 1 && argv[0].type == ESIF_DATA_STRING && esif_ccb_strchr((char *)argv[0].buf_ptr, ' ') != NULL) {
+			parse_cmd((char *)argv[0].buf_ptr, ESIF_FALSE, ESIF_FALSE);
+			rc = ESIF_OK;
+		}
+		else {
+			for (j = 0; j < argc; j++) {
+				if (argv[j].buf_ptr != NULL && argv[j].type == ESIF_DATA_STRING) {
+					shell_argv[shell_argc++] = (char *)argv[j].buf_ptr;
+				}
+			}
+			rc = esif_shell_dispatch(shell_argc, shell_argv, &g_outbuf);
+		}
+
+		// Copy output to response unless buffer is too small
+		if (rc == ESIF_OK) {
+			UInt32 response_len = (UInt32)esif_ccb_strlen(g_outbuf, g_outbuf_len) + 1;
+			if (response_len > response->buf_len) {
+				response->data_len = response_len;
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+			}
+			else {
+				esif_ccb_strcpy((char *)response->buf_ptr, g_outbuf, response->buf_len);
+			}
+		}
+	}
+
+exit:
+	esif_uf_shell_unlock();
+	esif_ccb_free(shell_argv);
 	return rc;
 }
 

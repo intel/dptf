@@ -18,6 +18,7 @@
 
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <linux/netlink.h>
 #include <termios.h>
 #include <errno.h>
@@ -103,9 +104,10 @@ static Sensor *gAccelLid;
 
 // Global variables keeping track of current x/y/z vectors and platform/display orientation/platform type
 static AccelerometerData gCurAccelData;
-static PlatformOrientation gCurPlatOrientation = ORIENTATION_PLAT_MAX;
-static DisplayOrientation gCurDispOrientation = ORIENTATION_DISP_MAX;
-static Bool gInMotion = ESIF_TRUE;
+static PlatformOrientation gPlatOrientation = ORIENTATION_PLAT_MAX;
+static DisplayOrientation gDispOrientation = ORIENTATION_DISP_MAX;
+static Motion gInMotion = MOTION_MAX;
+static DockMode gDockMode = DOCK_MODE_INVALID;
 
 // The SIGUSR1 handler below is the alternative
 // solution for Android where the pthread_cancel()
@@ -373,22 +375,22 @@ static void CheckDispPlatOrientation(SensorPtr sensorPtr)
 	EsifAccelerometer_GetOrientations(
 			gInclinMinMaxConfig,
 			&data,
-			gCurDispOrientation,
-			gCurPlatOrientation,
+			gDispOrientation,
+			gPlatOrientation,
 			&newPlatOrientation,
 			&newDispOrientation);
 
-	if (newDispOrientation != gCurDispOrientation) {
+	if (newDispOrientation != gDispOrientation) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &newDispOrientation, sizeof(DisplayOrientation));
 		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, &evtData);
+		gDispOrientation = newDispOrientation;
 	}
-	gCurDispOrientation = newDispOrientation;
 
-	if (newPlatOrientation != gCurPlatOrientation) {
+	if (newPlatOrientation != gPlatOrientation) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &newPlatOrientation, sizeof(PlatformOrientation));
 		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, &evtData);
+		gPlatOrientation = newPlatOrientation;
 	}
-	gCurPlatOrientation = newPlatOrientation;
 }
 
 
@@ -397,7 +399,7 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 	EsifData evtData = { 0 };
 	float delta = 0;
 	AccelerometerData data = { 0 };
-	UInt32 newMotionState = ESIF_FALSE;
+	Motion newMotionState = MOTION_OFF;
 
 	ESIF_ASSERT(sensorPtr != NULL);
 
@@ -406,7 +408,7 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 			(data.yVal - gCurAccelData.yVal) * (data.yVal - gCurAccelData.yVal) +
 			(data.zVal - gCurAccelData.zVal) * (data.zVal - gCurAccelData.zVal));
 	if (delta > MOTION_CHANGE_THRESHOLD) {
-		newMotionState = ESIF_TRUE;
+		newMotionState = MOTION_ON;
 	}
 
 	if (newMotionState != gInMotion) {
@@ -439,6 +441,31 @@ static void CheckPlatTypeChange(SensorPtr baseSensorPtr, SensorPtr lidSensorPtr)
 	 */
 	ESIF_DATA_UINT32_ASSIGN(evtData, &platType, sizeof(UInt32));
 	EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
+}
+
+static void CheckDockModeChange(void)
+{
+	DockMode dockMode = DOCK_MODE_INVALID;
+	DIR* dir = opendir("/dev/input/by-id");
+	EsifData evtData = { 0 };
+
+	/* TODO:
+	 * On Chromebooks the above directory will be created when system is docked.
+	 * Need to check if this works for other Linux derived systems.
+	 * Currently only enable docking/undocking detection for Chrome OS.
+	 */
+	if (dir) {
+		dockMode = DOCK_MODE_DOCKED;
+		closedir(dir);
+	} else {
+		dockMode = DOCK_MODE_UNDOCKED;
+	}
+
+	if (dockMode != gDockMode) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &dockMode, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
+		gDockMode = dockMode;
+	}
 }
 
 static void *EsifIio_Poll(void *ptr)
@@ -475,6 +502,11 @@ static void *EsifIio_Poll(void *ptr)
 		if (gAccelBase && gAccelLid) {
 			CheckPlatTypeChange(gAccelBase, gAccelLid);
 		};
+
+		// Dock mode change - only for Chrome OS
+#ifdef ESIF_ATTR_OS_CHROME
+		CheckDockModeChange();
+#endif
 
 		esif_ccb_sleep(ESIF_IIO_SAMPLE_PERIOD);
 	}
@@ -530,7 +562,6 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 {
 	eEsifError rc = ESIF_OK;
 	EsifData evtData = { 0 };
-	UInt32 data = 0;
 
 	/* Send gratuitous events when DPTF registers for 
 	 * sensor events, if we do support such events.
@@ -540,23 +571,20 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 	 */
 	switch (eventType) {
    	case ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED:
-		data = ORIENTATION_DISP_LANDSCAPE;
 		if (gAccelLid) {
-			ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
+			ESIF_DATA_UINT32_ASSIGN(evtData, &gDispOrientation, sizeof(UInt32));
 			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
 		}
 		break;
 	case ESIF_EVENT_DEVICE_ORIENTATION_CHANGED:
-		data = ORIENTATION_PLAT_FLAT_UP;
 		if (gAccelLid) {
-			ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
+			ESIF_DATA_UINT32_ASSIGN(evtData, &gPlatOrientation, sizeof(UInt32));
 			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
 		}
 		break;
 	case ESIF_EVENT_MOTION_CHANGED:
-		data = ESIF_TRUE; // In-Motion On
 		if (gAccelLid || gAccelBase) {
-			ESIF_DATA_UINT32_ASSIGN(evtData, &data, sizeof(UInt32));
+			ESIF_DATA_UINT32_ASSIGN(evtData, &gInMotion, sizeof(UInt32));
 			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
 		}
 		break;
@@ -575,5 +603,29 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 eEsifError esif_unregister_sensor_lin(eEsifEventType eventType)
 {
 	return ESIF_OK;
+}
+
+// The only supported system metrics notification is docking/undocking for Chrome OS
+eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
+{
+	const esif_guid_t guidDockMode = { 0x30, 0x8d, 0x0c, 0xc9, 0xba, 0x5b, 0x40, 0x0a, 0x99, 0x0a, 0xed, 0x27, 0x29, 0x29, 0xb6, 0xb6};
+	eEsifError rc = ESIF_OK;
+	EsifData evtData = { 0 };
+
+	if (NULL == guid) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+#ifdef ESIF_ATTR_OS_CHROME
+	// Send gratuitous event for docking/undokcing registration
+	if (0 == memcmp(guid, guidDockMode, ESIF_GUID_LEN)) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &gDockMode, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
+	}
+#endif
+
+exit:
+	return rc;
 }
 

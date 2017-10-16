@@ -24,6 +24,7 @@ ParticipantSetSpecificInfo_001::ParticipantSetSpecificInfo_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: ParticipantSetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
+	resetAllTripPoints();
 }
 
 ParticipantSetSpecificInfo_001::~ParticipantSetSpecificInfo_001()
@@ -107,4 +108,57 @@ std::shared_ptr<XmlNode> ParticipantSetSpecificInfo_001::getXml(UIntN domainInde
 std::string ParticipantSetSpecificInfo_001::getName(void)
 {
 	return "Set Specific Info Control";
+}
+
+void ParticipantSetSpecificInfo_001::resetAllTripPoints(void)
+{
+	resetPassiveTripPoint();
+	UInt8 count = 0;
+	for (IntN ac = ParticipantSpecificInfoKey::AC0; ac <= ParticipantSpecificInfoKey::AC9; ac++)
+	{
+		resetActiveTripPoint(count);
+		count++;
+	}
+}
+
+void ParticipantSetSpecificInfo_001::resetPassiveTripPoint(void)
+{
+	try
+	{
+		DptfBuffer tripPointBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_TRIP_POINT_PASSIVE, Constants::Esif::NoPersistInstance);
+		getParticipantServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tripPointBuffer.get(),
+			tripPointBuffer.size(),
+			tripPointBuffer.size(),
+			0,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void ParticipantSetSpecificInfo_001::resetActiveTripPoint(UInt8 instance)
+{
+	try
+	{
+		DptfBuffer tripPointBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_TRIP_POINT_ACTIVE, Constants::Esif::NoPersistInstanceOffset + instance);
+		getParticipantServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tripPointBuffer.get(),
+			tripPointBuffer.size(),
+			tripPointBuffer.size(),
+			0,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
 }

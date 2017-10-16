@@ -824,33 +824,37 @@ esif_error_t EsifData_Compress(EsifDataPtr self)
 					 * This is rare and usually only happens when compressing compressed data, but handle anyway.
 					 */
 					do {
+						rc = ESIF_OK;
 						if (esifCmp_result == ESIFCMP_ERROR_OUTPUT_EOF) {
+							rc = ESIF_E_NO_MEMORY;
 							compressedBufLen = (size_t)(compressedBufLen * growpct);
 							BytePtr newBuffer = (BytePtr)esif_ccb_realloc(compressedData, compressedBufLen);
-							if (newBuffer == NULL) {
-								rc = ESIF_E_NO_MEMORY;
-								break;
+							if (newBuffer != NULL) {
+								rc = ESIF_OK;
+								compressedData = newBuffer;
+								compressedSize = compressedBufLen;
 							}
-							compressedData = newBuffer;
-							compressedSize = compressedBufLen;
 						}
 
-						esifCmp_result = (*fnCompress)(
-							compressedData,
-							&compressedSize,
-							expandedData,
-							expandedSize
-							);
-					} while (esifCmp_result == ESIFCMP_ERROR_OUTPUT_EOF && retries-- > 0);
+						if (rc == ESIF_OK) {
+							esifCmp_result = (*fnCompress)(
+								compressedData,
+								&compressedSize,
+								expandedData,
+								expandedSize
+								);
+						}
+					} while (rc == ESIF_OK && esifCmp_result == ESIFCMP_ERROR_OUTPUT_EOF && retries-- > 0);
 
 					if (esifCmp_result != 0) {
 						rc = ESIF_E_COMPRESSION_ERROR;
 					}
 					// Shrink compressed buffer down to actual compressed size
 					else if (rc == ESIF_OK && compressedSize < compressedBufLen) {
+						rc = ESIF_E_NO_MEMORY;
 						BytePtr newBuffer = (BytePtr)esif_ccb_realloc(compressedData, compressedSize);
-						if (newBuffer == NULL) {
-							rc = ESIF_E_NO_MEMORY;
+						if (newBuffer != NULL) {
+							rc = ESIF_OK;
 						}
 						compressedData = newBuffer;
 					}

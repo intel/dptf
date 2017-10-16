@@ -75,7 +75,11 @@ static ESIF_INLINE enum esif_rc esif_ccb_thread_join (
 {
 	enum esif_rc rc = ESIF_OK;
 
-	pthread_join(*thread_ptr, NULL);
+	if (thread_ptr && esif_ccb_thread_id(thread_ptr)) {
+		pthread_join(*thread_ptr, NULL);
+	} else {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+	}
 
 	THREAD_DEBUG(
 		"joined thread = %p rc=%s(%d)\n",

@@ -62,14 +62,12 @@ void DptfManager::createDptfManager(
 	try
 	{
 		// Parse DPTF Home Path. Possible formats:
-		//   homepath           = Location of both XSL Files and Policy Libraries; specify full path when loading
-		//   Libraries
-		//   homepath|libpath   = (1) Location of XSL Files (2) Location of Policy Libraries [use full path when loading
-		//   Libraries]
-		//   homepath|#libpath  = (1) Location of XSL Files (2) Location of Policy Libraries [DO NOT use full path when
-		//   loading Libraries]
+		//   homepath = Location of XSL Files, Policy Libraries, and Reports [use full lib path when loading libraries]
+		//   homepath|[#]libpath|logpath = (1) Location of XSL Files (2) Location of Policy Libraries (3) Report / Log
+		//   File Path [do not use full lib if "#" prefix]
 		std::string homePath = dptfHomeDirectoryPath;
 		std::string policyPath = dptfHomeDirectoryPath;
+		std::string reportPath = dptfHomeDirectoryPath;
 		std::vector<std::string> dptfPaths = StringParser::split(dptfHomeDirectoryPath, '|');
 		EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 
@@ -82,6 +80,10 @@ void DptfManager::createDptfManager(
 				policyPath.erase(0, 1);
 				m_dptfPolicyLoadNameOnly = true;
 			}
+			if (dptfPaths.size() > 2)
+			{
+				reportPath = dptfPaths[2];
+			}
 		}
 		if (homePath.back() != *ESIF_PATH_SEP)
 		{
@@ -91,8 +93,13 @@ void DptfManager::createDptfManager(
 		{
 			policyPath += ESIF_PATH_SEP;
 		}
+		if (reportPath.back() != *ESIF_PATH_SEP)
+		{
+			reportPath += ESIF_PATH_SEP;
+		}
 		m_dptfHomeDirectoryPath = homePath;
 		m_dptfPolicyDirectoryPath = policyPath;
+		m_dptfReportDirectoryPath = reportPath;
 		m_dptfEnabled = dptfEnabled;
 
 		m_eventCache = std::make_shared<EventCache>();
@@ -191,6 +198,11 @@ std::string DptfManager::getDptfHomeDirectoryPath(void) const
 std::string DptfManager::getDptfPolicyDirectoryPath(void) const
 {
 	return m_dptfPolicyDirectoryPath;
+}
+
+std::string DptfManager::getDptfReportDirectoryPath(void) const
+{
+	return m_dptfReportDirectoryPath;
 }
 
 Bool DptfManager::isDptfPolicyLoadNameOnly(void) const
@@ -365,7 +377,7 @@ void DptfManager::registerDptfFrameworkEvents(void)
 	{
 	}
 
-	if (m_esifAppServices->getInterfaceVersion() == ESIF_INTERFACE_VERSION_2)
+	if (m_esifAppServices->getInterfaceVersion() >= ESIF_INTERFACE_VERSION_2)
 	{
 		try
 		{
@@ -394,6 +406,17 @@ void DptfManager::registerDptfFrameworkEvents(void)
 		try
 		{
 			m_esifServices->registerEvent(FrameworkEvent::DptfPolicyActivityLoggingDisabled);
+		}
+		catch (...)
+		{
+		}
+	}
+
+	if (m_esifAppServices->getInterfaceVersion() >= ESIF_INTERFACE_VERSION_3)
+	{
+		try
+		{
+			m_esifServices->registerEvent(FrameworkEvent::DptfAppAliveRequest);
 		}
 		catch (...)
 		{
@@ -435,7 +458,7 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
 	{
 	}
 
-	if (m_esifAppServices->getInterfaceVersion() == ESIF_INTERFACE_VERSION_2)
+	if (m_esifAppServices->getInterfaceVersion() >= ESIF_INTERFACE_VERSION_2)
 	{
 		try
 		{
@@ -469,6 +492,17 @@ void DptfManager::unregisterDptfFrameworkEvents(void)
 		{
 		}
 	}
+
+	if (m_esifAppServices->getInterfaceVersion() >= ESIF_INTERFACE_VERSION_3)
+	{
+		try
+		{
+			m_esifServices->unregisterEvent(FrameworkEvent::DptfAppAliveRequest);
+		}
+		catch (...)
+		{
+		}
+	}
 }
 
 std::shared_ptr<EventCache> DptfManager::getEventCache(void) const
@@ -487,11 +521,12 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 
 	for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 	{
-		for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+		auto policyIndexes = m_policyManager->getPolicyIndexes();
+		for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 		{
 			try
 			{
-				Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+				Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 				policy->bindDomain(participantIndex, domainIndex);
 			}
 			catch (dptf_exception ex)
@@ -500,7 +535,7 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 					this, FLF, "DPTF was not able to bind domain to policies: " + ex.getDescription() + ".");
 				message.addMessage("Participant Index", participantIndex);
 				message.addMessage("Domain Index", domainIndex);
-				message.addMessage("Policy Index", policyIndex);
+				message.addMessage("Policy Index", *policyIndex);
 				getEsifServices()->writeMessageWarning(message);
 			}
 			catch (...)
@@ -508,7 +543,7 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 				ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::bindDomainsToPolicies Failed.");
 				message.addMessage("Participant Index", participantIndex);
 				message.addMessage("Domain Index", domainIndex);
-				message.addMessage("Policy Index", policyIndex);
+				message.addMessage("Policy Index", *policyIndex);
 				getEsifServices()->writeMessageWarning(message);
 			}
 		}
@@ -521,11 +556,12 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 
 	for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
 	{
-		for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+		auto policyIndexes = m_policyManager->getPolicyIndexes();
+		for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 		{
 			try
 			{
-				Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+				Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 				policy->unbindDomain(participantIndex, domainIndex);
 			}
 			catch (dptf_exception ex)
@@ -534,7 +570,7 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 					this, FLF, "DPTF was not able to unbind domain from policies: " + ex.getDescription() + ".");
 				message.addMessage("Participant Index", participantIndex);
 				message.addMessage("Domain Index", domainIndex);
-				message.addMessage("Policy Index", policyIndex);
+				message.addMessage("Policy Index", *policyIndex);
 				getEsifServices()->writeMessageWarning(message);
 			}
 			catch (...)
@@ -542,7 +578,7 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 				ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::unbindDomainsFromPolicies Failed.");
 				message.addMessage("Participant Index", participantIndex);
 				message.addMessage("Domain Index", domainIndex);
-				message.addMessage("Policy Index", policyIndex);
+				message.addMessage("Policy Index", *policyIndex);
 				getEsifServices()->writeMessageWarning(message);
 			}
 		}
@@ -551,11 +587,12 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 
 void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 {
-	for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+	auto policyIndexes = m_policyManager->getPolicyIndexes();
+	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 	{
 		try
 		{
-			Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 			policy->bindParticipant(participantIndex);
 		}
 		catch (dptf_exception ex)
@@ -563,14 +600,14 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 			ManagerMessage message = ManagerMessage(
 				this, FLF, "DPTF was not able to bind participant to policies: " + ex.getDescription() + ".");
 			message.addMessage("Participant Index", participantIndex);
-			message.addMessage("Policy Index", policyIndex);
+			message.addMessage("Policy Index", *policyIndex);
 			getEsifServices()->writeMessageWarning(message);
 		}
 		catch (...)
 		{
 			ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::bindParticipantToPolicies Failed.");
 			message.addMessage("Participant Index", participantIndex);
-			message.addMessage("Policy Index", policyIndex);
+			message.addMessage("Policy Index", *policyIndex);
 			getEsifServices()->writeMessageWarning(message);
 		}
 	}
@@ -578,11 +615,12 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 
 void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 {
-	for (UIntN policyIndex = 0; policyIndex < m_policyManager->getPolicyListCount(); policyIndex++)
+	auto policyIndexes = m_policyManager->getPolicyIndexes();
+	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 	{
 		try
 		{
-			Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 			policy->unbindParticipant(participantIndex);
 		}
 		catch (dptf_exception ex)
@@ -590,13 +628,49 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 			ManagerMessage message = ManagerMessage(
 				this, FLF, "DPTF was not able to unbind participant from policies: " + ex.getDescription() + ".");
 			message.addMessage("Participant Index", participantIndex);
-			message.addMessage("Policy Index", policyIndex);
+			message.addMessage("Policy Index", *policyIndex);
 			getEsifServices()->writeMessageWarning(message);
 		}
 		catch (...)
 		{
 			ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::unbindParticipantFromPolicies Failed.");
 			message.addMessage("Participant Index", participantIndex);
+			message.addMessage("Policy Index", *policyIndex);
+			getEsifServices()->writeMessageWarning(message);
+		}
+	}
+}
+
+void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
+{
+	Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+	auto participantIndexes = m_participantManager->getParticipantIndexes();
+	for (auto participantIndex = participantIndexes.begin(); participantIndex != participantIndexes.end();
+		 ++participantIndex)
+	{
+		try
+		{
+			policy->bindParticipant(*participantIndex);
+
+			UIntN domainCount = m_participantManager->getParticipantPtr(*participantIndex)->getDomainCount();
+
+			for (UIntN domainIndex = 0; domainIndex < domainCount; domainIndex++)
+			{
+				policy->bindDomain(*participantIndex, domainIndex);
+			}
+		}
+		catch (dptf_exception ex)
+		{
+			ManagerMessage message = ManagerMessage(
+				this, FLF, "DPTF was not able to bind participant and domains to policy: " + ex.getDescription() + ".");
+			message.addMessage("Participant Index", *participantIndex);
+			message.addMessage("Policy Index", policyIndex);
+			getEsifServices()->writeMessageWarning(message);
+		}
+		catch (...)
+		{
+			ManagerMessage message = ManagerMessage(this, FLF, "DptfManager::bindAllParticipantsToPolicy Failed.");
+			message.addMessage("Participant Index", *participantIndex);
 			message.addMessage("Policy Index", policyIndex);
 			getEsifServices()->writeMessageWarning(message);
 		}

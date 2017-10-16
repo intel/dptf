@@ -54,6 +54,7 @@
 #pragma once
 
 #include "esif_ccb.h"
+#include "esif_ccb_rc.h"
 
 #if defined(ESIF_ATTR_KERNEL)
 
@@ -73,11 +74,13 @@
 #endif /* USER */
 
 #include "esif_ccb_lock.h"
+
 typedef struct esif_ccb_event_s
 {
 	esif_ccb_lock_t state_lock;
 	u8 signaled;
 	u32 waiters;
+	u32 sig_count;
 	esif_ccb_sem_t sem_obj;
 } esif_ccb_event_t;
 
@@ -153,6 +156,7 @@ static ESIF_INLINE void esif_ccb_event_set(esif_ccb_event_t *event_ptr)
 	esif_ccb_write_lock(&event_ptr->state_lock);
 
 	event_ptr->signaled  = ESIF_TRUE;
+	event_ptr->sig_count++;
 
 	while(event_ptr->waiters) {
 		esif_ccb_sem_up(&event_ptr->sem_obj);
@@ -191,3 +195,59 @@ static ESIF_INLINE void esif_ccb_event_release_waiters(esif_ccb_event_t *event_p
 
 	esif_ccb_write_unlock(&event_ptr->state_lock);
 }
+
+
+/*
+ * Returns ESIF_OK on success, ESIF_E_TIMEOUT if the timer expired, else
+ * ESIF_E_UNSPECIFIED.
+ */
+static ESIF_INLINE enum esif_rc esif_ccb_event_try_wait(
+	esif_ccb_event_t *event_ptr,
+	u32 ms_timeout
+	)
+{
+	enum esif_rc rc = ESIF_OK;
+	u32 sig_count = 0;
+
+	esif_ccb_write_lock(&event_ptr->state_lock);
+
+	if (event_ptr->signaled) {
+		esif_ccb_write_unlock(&event_ptr->state_lock);
+		goto exit;
+	}
+	
+	sig_count = event_ptr->sig_count;
+	event_ptr->waiters++;
+	esif_ccb_write_unlock(&event_ptr->state_lock);
+
+	rc = esif_ccb_sem_try_down(&event_ptr->sem_obj, ms_timeout);
+
+	esif_ccb_write_lock(&event_ptr->state_lock);
+
+	/*
+	* If the event was not signaled, we need to decrement the waiters;
+	* however, the event may have been signaled between the time we try and the
+	* time we get the lock.  So, to protect against this condition we use
+	* a signal counter which will change if the event was signaled.
+	*/
+	if (sig_count == event_ptr->sig_count) {
+		event_ptr->waiters--;
+
+	/*
+	 * If the event was signaled between the time the try completed and we got
+	 * the lock, then the semaphore count will have been increased when the
+	 * waiters were released.  To resolve this issue, we have to wait on the
+	 * semaphore again, which will fall through as it has been signaled.
+	 */
+	} else {
+		if (rc != ESIF_OK) {
+			esif_ccb_sem_down(&event_ptr->sem_obj);
+		}
+	}
+
+	esif_ccb_write_unlock(&event_ptr->state_lock);
+exit:
+	return rc;
+}
+
+

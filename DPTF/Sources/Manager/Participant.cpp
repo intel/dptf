@@ -325,12 +325,20 @@ std::shared_ptr<XmlNode> Participant::getStatusAsXml(UIntN domainIndex) const
 	return m_theRealParticipant->getStatusAsXml(domainIndex);
 }
 
+std::shared_ptr<XmlNode> Participant::getDiagnosticsAsXml(UIntN domainIndex) const
+{
+	throwIfRealParticipantIsInvalid();
+	return m_theRealParticipant->getDiagnosticsAsXml(domainIndex);
+}
+
 std::shared_ptr<XmlNode> Participant::getArbitrationXmlForPolicy(UIntN policyIndex) const
 {
 	auto participantRoot = XmlNode::createWrapperElement("participant_status");
 	participantRoot->addChild(XmlNode::createDataElement("participant_name", m_theRealParticipant->getName()));
+	
 	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
 	{
+		throwIfDomainInvalid(domain->first);
 		if (domain->second != nullptr)
 		{
 			participantRoot->addChild(domain->second->getArbitrationXmlForPolicy(policyIndex));
@@ -668,6 +676,12 @@ ActiveControlStaticCaps Participant::getActiveControlStaticCaps(UIntN domainInde
 	return m_domains[domainIndex]->getActiveControlStaticCaps();
 }
 
+ActiveControlDynamicCaps Participant::getActiveControlDynamicCaps(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActiveControlDynamicCaps();
+}
+
 ActiveControlStatus Participant::getActiveControlStatus(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -680,34 +694,10 @@ ActiveControlSet Participant::getActiveControlSet(UIntN domainIndex)
 	return m_domains[domainIndex]->getActiveControlSet();
 }
 
-void Participant::setActiveControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->setActiveControl(policyIndex, controlIndex);
-}
-
 void Participant::setActiveControl(UIntN domainIndex, UIntN policyIndex, const Percentage& fanSpeed)
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setActiveControl(policyIndex, fanSpeed);
-}
-
-UInt32 Participant::getEnergyThreshold(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getEnergyThreshold();
-}
-
-void Participant::setEnergyThreshold(UIntN domainIndex, UInt32 energyThreshold)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->setEnergyThreshold(energyThreshold);
-}
-
-Temperature Participant::getPowerShareTemperatureThreshold(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerShareTemperatureThreshold();
 }
 
 Percentage Participant::getUtilizationThreshold(UIntN domainIndex)
@@ -720,12 +710,6 @@ Percentage Participant::getResidencyUtilization(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getResidencyUtilization();
-}
-
-void Participant::setEnergyThresholdInterruptDisable(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->setEnergyThresholdInterruptDisable();
 }
 
 ConfigTdpControlDynamicCaps Participant::getConfigTdpControlDynamicCaps(UIntN domainIndex)
@@ -833,6 +817,48 @@ void Participant::setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool 
 	m_domains[domainIndex]->setDisplayCapsLock(policyIndex, lock);
 }
 
+UInt32 Participant::getRaplEnergyCounter(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRaplEnergyCounter();
+}
+
+double Participant::getRaplEnergyUnit(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRaplEnergyUnit();
+}
+
+UInt32 Participant::getRaplEnergyCounterWidth(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRaplEnergyCounterWidth();
+}
+
+Power Participant::getInstantaneousPower(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getInstantaneousPower();
+}
+
+UInt32 Participant::getEnergyThreshold(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyThreshold();
+}
+
+void Participant::setEnergyThreshold(UIntN domainIndex, UInt32 energyThreshold)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->setEnergyThreshold(energyThreshold);
+}
+
+void Participant::setEnergyThresholdInterruptDisable(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->setEnergyThresholdInterruptDisable();
+}
+
 Power Participant::getACPeakPower(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -927,6 +953,12 @@ Power Participant::getPowerLimit(UIntN domainIndex, PowerControlType::Type contr
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getPowerLimit(controlType);
+}
+
+Power Participant::getPowerLimitWithoutCache(UIntN domainIndex, PowerControlType::Type controlType)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerLimitWithoutCache(controlType);
 }
 
 void Participant::setPowerLimit(
@@ -1039,34 +1071,10 @@ TimeSpan Participant::getWeightedSlowPollAvgConstant(UIntN domainIndex)
 	return m_domains[domainIndex]->getWeightedSlowPollAvgConstant();
 }
 
-UInt32 Participant::getRaplEnergyCounter(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getRaplEnergyCounter();
-}
-
-double Participant::getRaplEnergyUnit(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getRaplEnergyUnit();
-}
-
-UInt32 Participant::getRaplEnergyCounterWidth(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getRaplEnergyCounterWidth();
-}
-
 Power Participant::getSlowPollPowerThreshold(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getSlowPollPowerThreshold();
-}
-
-Power Participant::getInstantaneousPower(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getInstantaneousPower();
 }
 
 PowerStatus Participant::getPowerStatus(UIntN domainIndex)
@@ -1292,6 +1300,12 @@ void Participant::setTemperatureThresholds(
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setTemperatureThresholds(policyIndex, temperatureThresholds);
+}
+
+Temperature Participant::getPowerShareTemperatureThreshold(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerShareTemperatureThreshold();
 }
 
 UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)

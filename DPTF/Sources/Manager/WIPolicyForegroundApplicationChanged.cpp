@@ -37,14 +37,14 @@ void WIPolicyForegroundApplicationChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
 			getDptfManager()->getEventCache()->foregroundApplication.set(m_foregroundApplicationName);
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyForegroundApplicationChanged(m_foregroundApplicationName);
 		}
 		catch (policy_index_invalid ex)
@@ -53,7 +53,7 @@ void WIPolicyForegroundApplicationChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyForegroundApplicationChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyForegroundApplicationChanged", *i);
 		}
 	}
 }

@@ -36,8 +36,9 @@ struct DomainFunctionalityVersions final
 	UInt8 activeControlVersion;
 	UInt8 configTdpControlVersion;
 	UInt8 coreControlVersion;
-	UInt8 displayControlVersion;
+	UInt8 displayControlVersion; 
 	UInt8 domainPriorityVersion;
+	UInt8 energyControlVersion;
 	UInt8 performanceControlVersion;
 	UInt8 powerControlVersion;
 	UInt8 powerStatusVersion;

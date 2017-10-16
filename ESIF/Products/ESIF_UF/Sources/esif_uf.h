@@ -73,6 +73,7 @@ typedef enum eEsifLogType {
 extern int EsifLogFile_Open(EsifLogType type, const char *filename, int append);
 extern int EsifLogFile_Close(EsifLogType type);
 extern int EsifLogFile_IsOpen(EsifLogType type);
+extern int EsifLogFile_AutoFlush(EsifLogType type, Bool option);
 extern int EsifLogFile_Write(EsifLogType type, const char *fmt, ...);
 extern int EsifLogFile_WriteArgs(EsifLogType type, const char *fmt, va_list args);
 extern int EsifLogFile_WriteArgsAppend(EsifLogType type, const char *append, const char *fmt, va_list args);
@@ -100,6 +101,7 @@ extern int EsifConsole_WriteLogFile(const char *format, va_list args);
 // Write to optional shell log only
 #define CMD_LOGFILE(format, ...)	EsifConsole_WriteTo(CMD_WRITETO_LOGFILE, format, ##__VA_ARGS__)
 
+extern  char  *g_outbuf;					// Dynamically created and can grow
 extern  UInt32 g_outbuf_len;				// Current (or Default) Size of ESIF Shell Output Buffer
 #define OUT_BUF_LEN			g_outbuf_len	// Alias for backwards compatibility
 #define OUT_BUF_LEN_DEFAULT	(64 * 1024)		// Default size for ESIF Shell Output Buffer
@@ -243,16 +245,22 @@ int esif_pathlist_count(void);
 eEsifError esif_uf_os_init(void);
 void esif_uf_os_exit(void);
 
-// TODO - Legacy Interfaces; Will be removed later
 extern eEsifError EsifWebLoad(void);
 extern void EsifWebUnload(void);
 extern eEsifError EsifWebStart(void);
 extern void EsifWebStop(void);
 extern int EsifWebIsStarted(void);
-extern Bool EsifWebIsRestricted(void);
+extern void *EsifWebAlloc(size_t buf_len);
+extern Bool EsifWebIsServerMode(Bool restricted);
 extern const char *EsifWebVersion(void);
-extern void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted);
+extern Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, Bool *restricted_ptr);
+extern void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, Bool restricted);
 extern void EsifWebSetTraceLevel(int level);
+extern eEsifError EsifWebBroadcast(const u8 *buffer, size_t buf_len);
+
+#define ESIF_WS_INSTANCE_ALL	255	// All WebServer Listener Instances
+
+// TODO - Legacy Interfaces; Will be removed later
 extern eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize);
 
 #ifdef __cplusplus

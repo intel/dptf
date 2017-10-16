@@ -37,14 +37,14 @@ void WIPolicyOperatingSystemLidStateChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
 			getDptfManager()->getEventCache()->lidState.set(m_lidState);
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemLidStateChanged(m_lidState);
 		}
 		catch (policy_index_invalid ex)
@@ -53,7 +53,7 @@ void WIPolicyOperatingSystemLidStateChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemLidStateChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemLidStateChanged", *i);
 		}
 	}
 }

@@ -37,14 +37,14 @@ void WIPolicyCoolingModePolicyChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
 			getDptfManager()->getEventCache()->coolingMode.set(m_coolingMode);
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyCoolingModePolicyChanged(m_coolingMode);
 		}
 		catch (policy_index_invalid ex)
@@ -53,7 +53,7 @@ void WIPolicyCoolingModePolicyChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyCoolingModePolicyChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyCoolingModePolicyChanged", *i);
 		}
 	}
 }

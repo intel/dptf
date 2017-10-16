@@ -62,13 +62,19 @@ const SpecificInfo& ActiveTripPointsCachedProperty::getTripPoints()
 Bool ActiveTripPointsCachedProperty::supportsProperty(void)
 {
 	// make sure the active trip points contain at least one of {AC0-AC9}
-	auto activeTripPoints = getTripPoints();
-	for (Int32 key = ParticipantSpecificInfoKey::AC0; key <= ParticipantSpecificInfoKey::AC9; key++)
+	try
 	{
-		if (activeTripPoints.hasKey((ParticipantSpecificInfoKey::Type)key))
+		auto activeTripPoints = getTripPoints();
+		for (Int32 key = ParticipantSpecificInfoKey::AC0; key <= ParticipantSpecificInfoKey::AC9; key++)
 		{
-			return true;
+			if (activeTripPoints.hasKey((ParticipantSpecificInfoKey::Type)key))
+			{
+				return true;
+			}
 		}
+	}
+	catch (dptf_exception)
+	{
 	}
 
 	return false;

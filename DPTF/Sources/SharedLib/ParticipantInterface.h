@@ -25,6 +25,7 @@
 #include "DomainConfigTdpControlInterface.h"
 #include "DomainCoreControlInterface.h"
 #include "DomainDisplayControlInterface.h"
+#include "DomainEnergyControlInterface.h"
 #include "DomainPeakPowerControlInterface.h"
 #include "DomainPerformanceControlInterface.h"
 #include "DomainPowerControlInterface.h"
@@ -48,6 +49,7 @@ class ParticipantInterface : public DomainActiveControlInterface,
 							 public DomainConfigTdpControlInterface,
 							 public DomainCoreControlInterface,
 							 public DomainDisplayControlInterface,
+							 public DomainEnergyControlInterface,
 							 public DomainPeakPowerControlInterface,
 							 public DomainPerformanceControlInterface,
 							 public DomainPowerControlInterface,
@@ -102,6 +104,7 @@ public:
 	virtual std::string getName(void) const = 0;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const = 0;
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const = 0;
+	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN domainIndex) const = 0;
 
 	// Event handlers
 	virtual void connectedStandbyEntry(void) = 0;

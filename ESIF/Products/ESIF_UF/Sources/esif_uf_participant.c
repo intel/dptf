@@ -480,17 +480,31 @@ eEsifError EsifUp_StartParticipantSlowPoll(EsifUpPtr self)
 	EsifUpDomainPtr domainPtr = NULL;
 	UpDomainIterator udIter = { 0 };
 	UInt32 slowPollRate = CONNECTED_STANDBY_POLLING_RATE_DEFAULT;
-	EsifPrimitiveTuple behaviorTuple = { SET_PARTICIPANT_SAMPLE_BEHAVIOR, 0, 255 };
+	EsifPrimitiveTuple behaviorTuple = { SET_PARTICIPANT_SAMPLE_BEHAVIOR, ESIF_PRIMITIVE_DOMAIN_D0, 255 };
 	EsifData behaviorRequest = { ESIF_DATA_UINT32, &slowPollRate, sizeof(slowPollRate), sizeof(slowPollRate) };
 	esif_time_t samplePeriod = 0;
 	EsifData samplePeriodResponse = { ESIF_DATA_TIME, &samplePeriod, sizeof(samplePeriod), 0 };
-	EsifPrimitiveTuple samplePeriodTuple = { GET_PARTICIPANT_SAMPLE_PERIOD, 0, 255 };
+	EsifPrimitiveTuple samplePeriodTuple = { GET_PARTICIPANT_SAMPLE_PERIOD, ESIF_PRIMITIVE_DOMAIN_D0, 255 };
+	esif_time_t standbySamplePeriod = 0;
+	EsifPrimitiveTuple standbySamplePeriodTuple = { GET_STANDBY_TEMPERATURE_SAMPLE_PERIOD, ESIF_PRIMITIVE_DOMAIN_D0, 255 };
+	EsifData standbySamplePeriodResponse = { ESIF_DATA_TIME, &standbySamplePeriod, sizeof(standbySamplePeriod), 0 };
+	EsifUpPtr ietmPtr = NULL;
 
 	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
-	
+
+	ietmPtr = EsifUpPm_GetAvailableParticipantByInstance(ESIF_INSTANCE_LF); // IETM Participant
+	if (NULL != ietmPtr) {
+		// Get overridden connected standby sample period if available
+		rc = EsifUp_ExecutePrimitive(ietmPtr, &standbySamplePeriodTuple, NULL, &standbySamplePeriodResponse);
+		if (rc == ESIF_OK) {
+			slowPollRate = standbySamplePeriod;
+		}
+	}
+	EsifUp_PutRef(ietmPtr);
+
 	rc = EsifUpDomain_InitIterator(&udIter, self);
 	if (ESIF_OK != rc)
 		goto exit;

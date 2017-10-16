@@ -70,7 +70,7 @@ typedef enum esif_rc {
 	ESIF_I_ACPI_TRIP_POINT_NOT_PRESENT = 100,
 	ESIF_I_ACPI_OBJECT_NOT_PRESENT, /* Optional Object Such As _STR */
 	ESIF_I_AGAIN,	     /* Come Back And Try Again Later */
-	ESIF_I_MSR_AFFINITY, /* Not All MSR Affinities Operaional/Supported */
+	ESIF_I_MSR_AFFINITY, /* Not All MSR Affinities Operational/Supported */
 	ESIF_I_INIT_PAUSED,				/* Init paused - for later completion */
 
 	/*
@@ -169,14 +169,14 @@ typedef enum esif_rc {
 	ESIF_E_PRIMITIVE_NO_ACTION_AVAIL,/* No actions defined for the primitive */
 	ESIF_E_PRIMITIVE_SUR_NOT_FOUND_IN_DSP,/* Primitive Surrogate Not In Current DSP */
 
-	/* Temperatue Conversion */
+	/* Temperature Conversion */
 	ESIF_E_UNSUPPORTED_REQUEST_TEMP_TYPE = 2500,
 	ESIF_E_UNSUPPORTED_RESULT_TEMP_TYPE,
 	/* TIMER */
 	ESIF_E_TIMEOUT = 2600,	/* Timeout*/
 
 	/* TABLE */
-	ESIF_E_NOT_TABLE = 2700, /* TABLE Header type */
+	ESIF_E_NOT_TABLE = 2700,    /* TABLE Header type */
 
 	/* Power Conversion */
 	ESIF_E_UNSUPPORTED_REQUEST_POWER_TYPE = 2800,
@@ -199,7 +199,13 @@ typedef enum esif_rc {
 	/* Web Server */
 	ESIF_E_WS_DISC = 3100, /* WS client disconnected */
 	ESIF_E_WS_INIT_FAILED, /* WS initialization failed */
+	ESIF_E_WS_SOCKET_ERROR, /* WS socket error */
+	ESIF_E_WS_SERVER_ERROR, /* WS server error */
+	ESIF_E_WS_INVALID_ADDR, /* WS invalid IP Address or Port */
 	ESIF_E_WS_ALREADY_STARTED, /* WS already started */
+	ESIF_E_WS_INCOMPLETE, /* WS incomplete request */
+	ESIF_E_WS_INVALID_REQUEST, /* WS invalid request */
+	ESIF_E_WS_UNAUTHORIZED, /* WS restricted resource, access denied */
 
 	/* Time Conversion */
 	ESIF_E_UNSUPPORTED_REQUEST_TIME_TYPE = 3200,
@@ -221,6 +227,7 @@ typedef enum esif_rc {
 	ESIF_E_INVALID_PARTICIPANT_ID,
 	ESIF_E_INVALID_DOMAIN_ID,
 	ESIF_E_INVALID_CAPABILITY_MASK,
+	
 
 	/* The following block is reserved for ABAT-specific error codes */
 	ESIF_E_ABAT_ERRORS_RSVD = 3700,
@@ -337,7 +344,13 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 
 	ESIF_CASE_ENUM(ESIF_E_WS_DISC);
 	ESIF_CASE_ENUM(ESIF_E_WS_INIT_FAILED);
+	ESIF_CASE_ENUM(ESIF_E_WS_SOCKET_ERROR);
+	ESIF_CASE_ENUM(ESIF_E_WS_SERVER_ERROR);
+	ESIF_CASE_ENUM(ESIF_E_WS_INVALID_ADDR);
 	ESIF_CASE_ENUM(ESIF_E_WS_ALREADY_STARTED);
+	ESIF_CASE_ENUM(ESIF_E_WS_INCOMPLETE);
+	ESIF_CASE_ENUM(ESIF_E_WS_INVALID_REQUEST);
+	ESIF_CASE_ENUM(ESIF_E_WS_UNAUTHORIZED);
 
 	ESIF_CASE_ENUM(ESIF_E_UNSUPPORTED_REQUEST_TIME_TYPE);
 	ESIF_CASE_ENUM(ESIF_E_UNSUPPORTED_RESULT_TIME_TYPE);

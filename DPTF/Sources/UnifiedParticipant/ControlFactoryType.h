@@ -44,6 +44,7 @@ namespace ControlFactoryType
 		ActivityStatus,
 		PeakPowerControl,
 		TccOffsetControl,
+		EnergyControl,
 		MAX
 	};
 

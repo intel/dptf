@@ -20,6 +20,7 @@
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_uf_appmgr.h"	/* Application Manager */
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_primitive.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -169,6 +170,18 @@ static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
 		goto exit;
 	}
 
+	switch (fpcEventPtr->esif_event) {
+	case ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED:
+	{
+		EsifData responseData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+		rc = EsifExecutePrimitive(ESIF_INSTANCE_LF, GET_CONFIG, "D0", 255, NULL, &responseData);
+		esif_ccb_free(responseData.buf_ptr);
+	}
+		break;
+	default:
+		break;
+	}
+
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
 		appPtr = &g_appMgr.fEntries[i];
 		if (NULL == appPtr->fHandle) {
@@ -257,13 +270,11 @@ exit:
 	return rc;
 }
 
-eEsifError EsifAppMgr_AppStart(const EsifString appName)
+static eEsifError EsifAppMgr_AppStart_WLock(const EsifString appName)
 {
 	eEsifError rc = ESIF_E_UNSPECIFIED;
 	EsifAppPtr a_app_ptr = NULL;
 	int j = 0;
-
-	esif_ccb_write_lock(&g_appMgr.fLock);
 
 	// Check whether the App is already started
 	a_app_ptr = g_appMgr.GetAppFromName(&g_appMgr, appName);
@@ -294,16 +305,13 @@ eEsifError EsifAppMgr_AppStart(const EsifString appName)
 		g_appMgr.fEntryCount--;
 	 }
 exit:
-	esif_ccb_write_unlock(&g_appMgr.fLock);
 	return rc;
 }
 
-eEsifError EsifAppMgr_AppStop(const EsifString appName)
+static eEsifError EsifAppMgr_AppStop_WLock(const EsifString appName)
 {
 	eEsifError rc = ESIF_E_UNSPECIFIED;
 	EsifAppPtr a_app_ptr = NULL;
-
-	esif_ccb_write_lock(&g_appMgr.fLock);
 
 	a_app_ptr = g_appMgr.GetAppFromName(&g_appMgr, appName);
 	if (NULL == a_app_ptr) {
@@ -318,6 +326,74 @@ eEsifError EsifAppMgr_AppStop(const EsifString appName)
 	}
 
 exit:
+	return rc;
+}
+
+static eEsifError EsifAppMgr_AppRestart_WLock(const EsifString appName)
+{
+	eEsifError rc = EsifAppMgr_AppStop_WLock(appName);
+	if (rc == ESIF_OK) {
+		rc = EsifAppMgr_AppStart_WLock(appName);
+	}
+	return rc;
+}
+
+eEsifError EsifAppMgr_AppStart(const EsifString appName)
+{
+	eEsifError rc = ESIF_OK;
+	esif_ccb_write_lock(&g_appMgr.fLock);
+	rc = EsifAppMgr_AppStart_WLock(appName);
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+	return rc;
+}
+
+eEsifError EsifAppMgr_AppStop(const EsifString appName)
+{
+	eEsifError rc = ESIF_OK;
+	esif_ccb_write_lock(&g_appMgr.fLock);
+	rc = EsifAppMgr_AppStop_WLock(appName);
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+	return rc;
+}
+
+eEsifError EsifAppMgr_AppRestart(const EsifString appName)
+{
+	eEsifError rc = ESIF_OK;
+	esif_ccb_write_lock(&g_appMgr.fLock);
+	rc = EsifAppMgr_AppRestart_WLock(appName);
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+	return rc;
+}
+
+eEsifError EsifAppMgr_AppRestartAll()
+{
+	eEsifError rc = ESIF_OK;
+	EsifString loadedApps[ESIF_MAX_APPS] = { 0 };
+	int appCount = 0;
+	int j = 0;
+
+	esif_ccb_write_lock(&g_appMgr.fLock);
+
+	for (j = 0; j < ESIF_MAX_APPS; j++) {
+		if (NULL != g_appMgr.fEntries[j].fLibNamePtr) {
+			loadedApps[appCount] = esif_ccb_strdup(g_appMgr.fEntries[j].fLibNamePtr);
+			if (loadedApps[appCount] == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+				break;
+			}
+			appCount++;
+		}
+	}
+
+	for (j = 0; j < appCount; j++) {
+		ESIF_TRACE_INFO("Restarting App %s ...", loadedApps[j]);
+		rc = EsifAppMgr_AppRestart_WLock(loadedApps[j]);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_ERROR("Error Restarting App %s - %s (%d) ...", loadedApps[j], esif_rc_str(rc), rc);
+		}
+		esif_ccb_free(loadedApps[j]);
+	}
+
 	esif_ccb_write_unlock(&g_appMgr.fLock);
 	return rc;
 }
@@ -335,6 +411,7 @@ eEsifError EsifAppMgrInit()
 
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);		
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -350,6 +427,7 @@ void EsifAppMgrExit()
 
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
 
 	ESIF_TRACE_DEBUG("Exit Action Manager (APPMGR)");
 

@@ -36,6 +36,7 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
 		override;
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -85,11 +86,7 @@ public:
 	virtual TimeSpan getFastPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
-	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
@@ -117,8 +114,8 @@ private:
 	void throwIfTypeInvalidForDutyCycle(PowerControlType::Type controlType);
 	void throwIfPowerLimitIsOutsideCapabilityRange(PowerControlType::Type controlType, const Power& powerLimit);
 	void throwIfTimeWindowIsOutsideCapabilityRange(PowerControlType::Type controlType, const TimeSpan& timeWindow);
-	void throwIfDutyCycleIsOutsideCapabilityRange(const Percentage& dutyCycle);
-	void throwIfDynamicCapabilitiesAreWrong(const PowerControlDynamicCapsSet& capabilities);
+	void throwIfDutyCycleIsOutsideCapabilityRange(PowerControlType::Type controlType, const Percentage& dutyCycle);
+	void throwIfDynamicCapabilitiesAreEmpty(const PowerControlDynamicCapsSet& capabilities);
 
 	std::shared_ptr<XmlNode> createStatusNode(PowerControlType::Type controlType);
 	std::string createStatusStringForEnabled(PowerControlType::Type controlType);

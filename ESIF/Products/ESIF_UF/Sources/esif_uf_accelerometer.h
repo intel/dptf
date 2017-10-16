@@ -90,6 +90,13 @@ typedef struct InclinometerMinMaxConfig_s
 
 // We set these enums in angles so that we can pass it
 // to DPTF as is
+typedef enum Motion_e {
+	MOTION_OFF = 0,
+	MOTION_ON = 1,
+
+	MOTION_MAX
+} Motion, *MotionPtr;
+
 typedef enum PlatformOrientation_e {
 	ORIENTATION_PLAT_FLAT_UP = 0,
 	ORIENTATION_PLAT_FLAT_DOWN = 180,
@@ -116,6 +123,18 @@ typedef enum PlatformType_e {
 	PLATFORM_TYPE_TENT = 3
 } PlatformType, *PlatformTypePtr;
 
+/* TODO:
+ * The following dock mode definition is the only common DPPE event supported
+ * by both Windows and Linux that is not related to accelerometers. Once we
+ * have more such common non-accelerometer related DPPE defined, we shall
+ * bundle and move these definitions to a dedicated common DPPE header file.
+ */
+typedef enum e_DockMode {
+	DOCK_MODE_INVALID = 0,
+	DOCK_MODE_UNDOCKED = 1,
+	DOCK_MODE_DOCKED = 2,
+} DockMode, *DockModePtr;
+
 static ESIF_INLINE char* GetPlatOrientationStr(PlatformOrientation platOrientation)
 {
 	char* str = "Undefined orientation";
@@ -125,7 +144,7 @@ static ESIF_INLINE char* GetPlatOrientationStr(PlatformOrientation platOrientati
 		ESIF_CASE_ENUM(ORIENTATION_PLAT_FLAT_DOWN);
 		ESIF_CASE_ENUM(ORIENTATION_PLAT_UPRIGHT);
 		ESIF_CASE_ENUM(ORIENTATION_PLAT_UPRIGHT_INVERTED);
-		default: break;
+	default: break;
 	}
 
 	return str;
@@ -141,7 +160,7 @@ static ESIF_INLINE char* GetDispOrientationStr(DisplayOrientation dispOrientatio
 		ESIF_CASE_ENUM(ORIENTATION_DISP_LANDSCAPE);
 		ESIF_CASE_ENUM(ORIENTATION_DISP_LANDSCAPE_INVERTED);
 		ESIF_CASE_ENUM(ORIENTATION_DISP_INDETERMINATE);
-		default: break;
+	default: break;
 	}
 
 	return str;
@@ -155,7 +174,7 @@ static ESIF_INLINE char* GetPlatTypeStr(PlatformType platType)
 		ESIF_CASE_ENUM(PLATFORM_TYPE_CLAMSHELL);
 		ESIF_CASE_ENUM(PLATFORM_TYPE_TABLET);
 		ESIF_CASE_ENUM(PLATFORM_TYPE_TENT);
-		default: break;
+	default: break;
 	}
 
 	return str;
@@ -165,53 +184,53 @@ static ESIF_INLINE char* GetPlatTypeStr(PlatformType platType)
 #ifdef __cplusplus
 extern "C" {
 #endif
-PlatformOrientation ESIF_CALLCONV EsifAccelerometer_GetPlatOrientationFromPitch(
-	float pitchDegrees,
-	InclinometerMinMaxConfig inclinMinMaxConfig,
-	PlatformOrientation curPlatOrientation);
+	PlatformOrientation ESIF_CALLCONV EsifAccelerometer_GetPlatOrientationFromPitch(
+		float pitchDegrees,
+		InclinometerMinMaxConfig inclinMinMaxConfig,
+		PlatformOrientation curPlatOrientation);
 
-PlatformOrientation ESIF_CALLCONV EsifAccelerometer_GetPlatOrientationFromRoll(
-	float rollDegrees,
-	InclinometerMinMaxConfig inclinMinMaxConfig,
-	PlatformOrientation xPlatOrientation, 
-	PlatformOrientation curPlatOrientation);
+	PlatformOrientation ESIF_CALLCONV EsifAccelerometer_GetPlatOrientationFromRoll(
+		float rollDegrees,
+		InclinometerMinMaxConfig inclinMinMaxConfig,
+		PlatformOrientation xPlatOrientation,
+		PlatformOrientation curPlatOrientation);
 
-DisplayOrientation ESIF_CALLCONV EsifAccelerometer_GetDisplayOrientation(
-	float pitchDegrees,
-	float rollDegrees, 
-	InclinometerMinMaxConfig inclinMinMaxConfig,
-	DisplayOrientation curDispOrientation);
+	DisplayOrientation ESIF_CALLCONV EsifAccelerometer_GetDisplayOrientation(
+		float pitchDegrees,
+		float rollDegrees,
+		InclinometerMinMaxConfig inclinMinMaxConfig,
+		DisplayOrientation curDispOrientation);
 
-Bool ESIF_CALLCONV EsifAccelerometer_IsUpright(PlatformOrientation platOrientation);
+	Bool ESIF_CALLCONV EsifAccelerometer_IsUpright(PlatformOrientation platOrientation);
 
-Bool ESIF_CALLCONV EsifAccelerometer_IsFlat(PlatformOrientation platOrientation);
+	Bool ESIF_CALLCONV EsifAccelerometer_IsFlat(PlatformOrientation platOrientation);
 
-void ESIF_CALLCONV EsifAccelerometer_CalculatePitchAndRoll(
-	AccelerometerDataPtr accelerometerDataPtr, 
-	float *pitchDegrees, 
-	float *rollDegrees);
+	void ESIF_CALLCONV EsifAccelerometer_CalculatePitchAndRoll(
+		AccelerometerDataPtr accelerometerDataPtr,
+		float *pitchDegrees,
+		float *rollDegrees);
 
-void ESIF_CALLCONV EsifAccelerometer_GetOrientations(
-	InclinometerMinMaxConfig inclinMinMaxConfig,
-	AccelerometerDataPtr accelerometerDataPtr, 
-	DisplayOrientation curDispOrientation, 
-	PlatformOrientation curPlatOrientation, 
-	PlatformOrientationPtr platOrientationPtr,
-	DisplayOrientationPtr dispOrientationPtr);
+	void ESIF_CALLCONV EsifAccelerometer_GetOrientations(
+		InclinometerMinMaxConfig inclinMinMaxConfig,
+		AccelerometerDataPtr accelerometerDataPtr,
+		DisplayOrientation curDispOrientation,
+		PlatformOrientation curPlatOrientation,
+		PlatformOrientationPtr platOrientationPtr,
+		DisplayOrientationPtr dispOrientationPtr);
 
-eEsifError ESIF_CALLCONV EsifAccelerometer_ReadSensorAngleValueFromDV(
-	EsifDataPtr nameSpace, 
-	EsifDataPtr key, 
-	float *dvValue);
+	eEsifError ESIF_CALLCONV EsifAccelerometer_ReadSensorAngleValueFromDV(
+		EsifDataPtr nameSpace,
+		EsifDataPtr key,
+		float *dvValue);
 
-void ESIF_CALLCONV EsifAccelerometer_validateAngleRanges(InclinometerMinMaxConfigPtr inclinMinMaxConfigPtr);
+	void ESIF_CALLCONV EsifAccelerometer_validateAngleRanges(InclinometerMinMaxConfigPtr inclinMinMaxConfigPtr);
 
-void ESIF_CALLCONV EsifAccelerometer_GetAngleValues(InclinometerMinMaxConfigPtr inclinMinMaxConfigPtr);
+	void ESIF_CALLCONV EsifAccelerometer_GetAngleValues(InclinometerMinMaxConfigPtr inclinMinMaxConfigPtr);
 
-void ESIF_CALLCONV EsifAccelerometer_GetPlatformType(
-	AccelerometerDataPtr accelBasePtr,
-	AccelerometerDataPtr accelLidPtr,
-	PlatformTypePtr platTypePtr);
+	void ESIF_CALLCONV EsifAccelerometer_GetPlatformType(
+		AccelerometerDataPtr accelBasePtr,
+		AccelerometerDataPtr accelLidPtr,
+		PlatformTypePtr platTypePtr);
 
 #ifdef __cplusplus
 }

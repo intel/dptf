@@ -51,6 +51,30 @@ TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantI
 		// TODO: Let the policies handle the exceptions themselves and don't return a value.
 		return TemperatureStatus(Temperature::minValidTemperature);
 	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageWarning(
+			ParticipantMessage(FLF, "Something went wrong when getting temperature"));
+		return TemperatureStatus(Temperature::minValidTemperature);
+	}
+}
+
+Temperature DomainTemperature_001::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	auto powerShareTemperatureThreshold = Temperature::createInvalid();
+
+	try
+	{
+		powerShareTemperatureThreshold = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
+			esif_primitive_type::GET_POWER_SHARE_TEMPERATURE_THRESHOLD, domainIndex);
+	}
+	catch (primitive_not_found_in_dsp)
+	{
+		getParticipantServices()->writeMessageInfo(ParticipantMessage(
+			FLF, "Participant does not support the get power share temperature threshold primitive"));
+	}
+
+	return powerShareTemperatureThreshold;
 }
 
 DptfBuffer DomainTemperature_001::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)

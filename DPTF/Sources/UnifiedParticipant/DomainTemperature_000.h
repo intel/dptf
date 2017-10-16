@@ -41,6 +41,7 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const TemperatureThresholds& temperatureThresholds) override;
+	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getCalibrationTable(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getPollingTable(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isVirtualTemperature(UIntN participantIndex, UIntN domainIndex) override;

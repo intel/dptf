@@ -24,6 +24,7 @@
 #include "DomainConfigTdpControlInterface.h"
 #include "DomainCoreControlInterface.h"
 #include "DomainDisplayControlInterface.h"
+#include "DomainEnergyControlInterface.h"
 #include "DomainPeakPowerControlInterface.h"
 #include "DomainPerformanceControlInterface.h"
 #include "DomainPowerControlInterface.h"
@@ -58,6 +59,7 @@ struct PolicyServicesInterfaceContainer
 	DomainConfigTdpControlInterface* domainConfigTdpControl;
 	DomainCoreControlInterface* domainCoreControl;
 	DomainDisplayControlInterface* domainDisplayControl;
+	DomainEnergyControlInterface* domainEnergyControl;
 	DomainPeakPowerControlInterface* domainPeakPowerControl;
 	DomainPerformanceControlInterface* domainPerformanceControl;
 	DomainPowerControlInterface* domainPowerControl;

@@ -31,11 +31,11 @@ typedef int esif_ccb_socket_t;
 #define SOCKET_ERROR (-1)
 
 #define ESIF_SOCKERR_EWOULDBLOCK	EWOULDBLOCK	// Operation would block
-
-// Use to avoid TIME_WAIT timeouts on dead listeners before a new listener can reuse a port
-#ifndef SO_EXCLUSIVEADDRUSE
-#define SO_EXCLUSIVEADDRUSE	SO_REUSEADDR
-#endif
+#define ESIF_PF_LOCAL				PF_LOCAL
+#define ESIF_SHUT_RD				SHUT_RD
+#define ESIF_SHUT_WR				SHUT_WR
+#define ESIF_SHUT_RDWR				SHUT_RDWR
+#define ESIF_SO_EXCLUSIVEADDRUSE	SO_REUSEADDR
 
 static int ESIF_INLINE esif_ccb_socket_init(void)
 {
@@ -58,12 +58,13 @@ static int ESIF_INLINE esif_ccb_socket_close(esif_ccb_socket_t socket)
 }
 
 // Call shutdown from another thread to signal a waiting select() to exit
-// For Linux, we signal select() by stopping all I/O on the socket
-static int ESIF_INLINE esif_ccb_socket_shutdown(esif_ccb_socket_t socket)
+static int ESIF_INLINE esif_ccb_socket_shutdown(esif_ccb_socket_t socket, int how)
 {
-	return shutdown(socket, SHUT_RDWR);
+	return shutdown(socket, how);
 }
 
-#define esif_ccb_socket_ioctl(socket, cmd, argp)	(0)
+#define esif_ccb_socket_ioctl(socket, cmd, argp)	do { if (argp) UNREFERENCED_PARAMETER(*argp); } while (0)
+
+#define esif_ccb_socketpair(af, typ, prot, sock)	socketpair(af, typ, prot, sock)
 
 #endif /* LINUX USER */

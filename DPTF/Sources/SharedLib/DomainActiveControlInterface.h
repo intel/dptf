@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "ActiveControlStaticCaps.h"
+#include "ActiveControlDynamicCaps.h"
 #include "ActiveControlStatus.h"
 #include "ActiveControlSet.h"
 
@@ -29,8 +30,8 @@ public:
 	virtual ~DomainActiveControlInterface(){};
 
 	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) = 0;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) = 0;
 };

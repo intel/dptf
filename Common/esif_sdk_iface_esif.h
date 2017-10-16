@@ -57,9 +57,10 @@
 
 #include "esif_sdk_iface.h"
 
-#define ESIF_INTERFACE_VERSION_1 1
-#define ESIF_INTERFACE_VERSION_2 2
-#define ESIF_INTERFACE_VERSION ESIF_INTERFACE_VERSION_2
+#define ESIF_INTERFACE_VERSION_1 1 /* Initial Release */
+#define ESIF_INTERFACE_VERSION_2 2 /* Added fSendEventFuncPtr */
+#define ESIF_INTERFACE_VERSION_3 3 /* Added fSendCommandFuncPtr*/
+#define ESIF_INTERFACE_VERSION ESIF_INTERFACE_VERSION_3
 
 /*
  * INTERFACE Flags
@@ -155,6 +156,15 @@ typedef eEsifError(ESIF_CALLCONV *AppSendEventFunction)(
 	const EsifDataPtr eventData,	/* Data included with the event if any MAY Be NULL */
 	const EsifDataPtr eventGuid	/* Event GUID */
 	);
+
+/* CLI Command   Application -> ESIF */
+typedef eEsifError(ESIF_CALLCONV *AppSendCommandFunction)(
+	const void *esifHandle,   /* ESIF provided context handle */
+	const void *appHandle,	  /* Allocated handle for application */
+	const UInt32 argc,        /* command arguments count (1 or more) */
+	const EsifDataPtr  argv,        /* array of command arguments must be ESIF_DATA_STRING today */
+	EsifDataPtr response      /* response must be ESIF_DATA_STRING today */
+	);
 /*
  * ESIF Service Interface ESIF <-- APPLICATION
  * Forward declared and typedef in esif_uf_iface.h
@@ -182,6 +192,9 @@ struct _t_EsifInterface {
 
 	/* Version 2 */
 	AppSendEventFunction fSendEventFuncPtr;
+
+	/* Version 3 */
+	AppSendCommandFunction fSendCommandFuncPtr;
 };
 
 #pragma pack(pop)

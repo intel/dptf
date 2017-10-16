@@ -24,6 +24,9 @@
 #include "esif_domain.h"
 
 #define ESIF_DOMAIN_STATE_INVALID 0xffffffff
+#define ESIF_DOMAIN_TEMP_INVALID_VALUE 0xFF /* Celsius */
+#define ESIF_DOMAIN_TEMP_INVALID_POLL_PERIOD 5000 /* ms */
+
 
 #define UP_DOMAIN_ITERATOR_MARKER 'UPDM'
 
@@ -78,10 +81,14 @@ typedef struct EsifUpDomain_s {
 										 * is suspended.
 										 */
 	UInt8 tempLastTempValid;			/*
-										 * Used to determine when threshold crossed events should be sent if
-										 * the device is no longer providing valid temperatures (so DPTF can
-										 * unthrottle for example if unable to read device temp)
-										 */
+										* Used to determine when threshold crossed events should be sent if
+										* the device is no longer providing valid temperatures (so DPTF can
+										* unthrottle for example if unable to read device temp)
+										*/
+	UInt8 tempInvalidValueDetected;		/*
+										* Indicates a value of 0xFF was received and we should adjust polling to
+										* a longer interval
+										*/
 	UInt64 lastPower;					/* rapl energy (prior to conversion) */
 	esif_ccb_time_t lastPowerTime;		/* time of last power sample in microseconds */
 	EsifDomainPollTypeId powerPollType;	/* Single threaded, multi threaded, or none */

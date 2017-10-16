@@ -30,6 +30,8 @@ std::string ControlFactoryType::ToString(Type factoryType)
 		return "Core";
 	case ControlFactoryType::Display:
 		return "Display";
+	case ControlFactoryType::EnergyControl:
+		return "EnergyControl";
 	case ControlFactoryType::Performance:
 		return "Performance";
 	case ControlFactoryType::PlatformPower:

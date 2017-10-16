@@ -25,21 +25,21 @@
 class dptf_export PolicyManagerInterface
 {
 public:
-	virtual ~PolicyManagerInterface(){};
+	virtual ~PolicyManagerInterface() {};
 
 	virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) = 0;
-	virtual void createPolicy(const std::string& policyFileName) = 0;
-
-	virtual void reloadAllPolicies(const std::string& dptfHomeDirectoryPath) = 0;
+	virtual UIntN createPolicy(const std::string& policyFileName) = 0;
 
 	virtual void destroyAllPolicies(void) = 0;
 	virtual void destroyPolicy(UIntN policyIndex) = 0;
 
-	virtual UIntN getPolicyListCount(void) const = 0;
+	virtual std::set<UIntN> getPolicyIndexes(void) const = 0;
+	virtual std::shared_ptr<SupportedPolicyList> getSupportedPolicyList(void) const = 0;
 	virtual Policy* getPolicyPtr(UIntN policyIndex) = 0;
 
 	virtual void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) = 0;
 	virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) = 0;
 
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) = 0;
+	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(void) = 0;
 };

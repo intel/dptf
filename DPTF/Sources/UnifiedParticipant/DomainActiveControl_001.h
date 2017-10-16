@@ -33,9 +33,9 @@ public:
 
 	// DomainActiveControlInterface
 	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
 	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
 
 	// ParticipantActivityLoggingInterface
@@ -58,13 +58,13 @@ private:
 	// Functions
 	ActiveControlSet createActiveControlSet(UIntN domainIndex);
 	ActiveControlStaticCaps createActiveControlStaticCaps(UIntN domainIndex);
+	ActiveControlDynamicCaps createActiveControlDynamicCaps(UIntN domainIndex);
 	ActiveControlStatus createActiveControlStatus(UIntN domainIndex);
-	void throwIfFineGrainedControlIsSupported(UIntN participantIndex, UIntN domainIndex);
-	void throwIfControlIndexIsInvalid(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex);
 	void throwIfFineGrainedControlIsNotSupported(UIntN participantIndex, UIntN domainIndex);
 
 	// Vars
 	CachedValue<ActiveControlStaticCaps> m_activeControlStaticCaps;
+	CachedValue<ActiveControlDynamicCaps> m_activeControlDynamicCaps;
 	CachedValue<ActiveControlStatus> m_activeControlStatus;
 	CachedValue<ActiveControlSet> m_activeControlSet;
 	CachedValue<ActiveControlStatus> m_initialStatus;

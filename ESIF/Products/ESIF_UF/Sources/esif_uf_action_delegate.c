@@ -65,6 +65,7 @@ static eEsifError EsifGetActionDelegateVirtualTemperature(
 
 static eEsifError EsifGetActionDelegateCnfg(
 	const EsifUpDomainPtr domainPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	);
@@ -85,7 +86,7 @@ static eEsifError EsifSetActionDelegateRset(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr);
 
-static eEsifError EsifSetActionDelegateAppc(
+static eEsifError EsifSetActionDelegateActl(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr,
 	const EsifFpcActionPtr fpcActionPtr);
@@ -173,7 +174,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		break;
 
 	case 'GFNC': /* CNFG */
-		rc = EsifGetActionDelegateCnfg(domainPtr, requestPtr, responsePtr);
+		rc = EsifGetActionDelegateCnfg(domainPtr, fpcActionPtr, requestPtr, responsePtr);
 		break;
 
 	case 'PMTV': /* VTMP */
@@ -317,9 +318,9 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateEvaluateParticipantCaps(domainPtr, requestPtr);
 		break;
 
-	case 'CPPA':    /* APPC: Application Control  */
+	case 'LTCA':    /* ACTL: Application Control  */
 		ESIF_TRACE_INFO("Application Control\n");
-		rc = EsifSetActionDelegateAppc(domainPtr, requestPtr, fpcActionPtr);
+		rc = EsifSetActionDelegateActl(domainPtr, requestPtr, fpcActionPtr);
 		break;
 
 	case 'PASS':	/* SSAP: Specific Action Primitive execution */
@@ -554,7 +555,7 @@ exit:
 	return rc;
 }
 
-static eEsifError EsifSetActionDelegateAppc(
+static eEsifError EsifSetActionDelegateActl(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr,
 	const EsifFpcActionPtr fpcActionPtr)
@@ -737,22 +738,35 @@ exit:
 
 static eEsifError EsifGetActionDelegateCnfg(
 	const EsifUpDomainPtr domainPtr,
+	const EsifFpcActionPtr fpcActionPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	)
 {
+	static esif_ccb_spinlock_t spinlock = ATOMIC_INIT(0); // Static: No init/uninit necessary
+	static DCfgOptions lastDcfg = { .asU32 = 0 };
+	static UInt8 lastGddvHash[SHA256_HASH_BYTES] = { 0 };
+	static eEsifError lastGddvError = ESIF_E_NO_LOWER_FRAMEWORK;
 	extern int g_shell_enabled; // ESIF Shell Enabled Flag
-	Bool restrictedMode = EsifWebIsRestricted();// Web Server Restricted Mode Flag
 	eEsifError rc = ESIF_OK;
 	EsifPrimitiveTuple dcfgTuple = { GET_CONFIG_ACCESS_CONTROL_SUR, 0, 255 };
 	EsifPrimitiveTuple gddvTuple = { GET_CONFIG_DATAVAULT_SUR, 0, 255 };
 	EsifData dcfgData = { ESIF_DATA_UINT32, NULL, ESIF_DATA_ALLOCATE, 0 };
 	EsifData gddvData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+	EsifData p2 = { 0 };
+	UInt32 opcode = 0;
+	Bool reloadApp = ESIF_FALSE;
 
 	ESIF_ASSERT(NULL != domainPtr);
 	ESIF_ASSERT(NULL != requestPtr);
 
 	UNREFERENCED_PARAMETER(responsePtr); // Not currently used by DPTF
+
+	// Get Optional Parameter 2
+	rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 1, &p2);
+	if ((ESIF_OK == rc) && (NULL != p2.buf_ptr) && (p2.buf_len == sizeof(opcode))) {
+		opcode = *((UInt32 *)p2.buf_ptr);
+	}
 
 	dcfgTuple.domain = domainPtr->domain;
 	gddvTuple.domain = domainPtr->domain;
@@ -772,17 +786,35 @@ static eEsifError EsifGetActionDelegateCnfg(
 
 		// Stop Web Server (if Started) if Restricted or Generic Access Control forbids it
 		if (EsifWebIsStarted() && 
-			((!restrictedMode && DCfg_Get().opt.GenericUIAccessControl)|| 
-			 (restrictedMode && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
+			((EsifWebIsServerMode(ESIF_FALSE) && DCfg_Get().opt.GenericUIAccessControl)|| 
+			 (EsifWebIsServerMode(ESIF_TRUE) && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
 			EsifWebStop();
 		}
+
+		// Check if Configuration Changed by comparing to last DCFG value
+		esif_ccb_spinlock_lock(&spinlock);
+		if (lastDcfg.asU32 != newmask.asU32) {
+			lastDcfg.asU32 = newmask.asU32;
+			reloadApp = ESIF_TRUE;
+		}
+		esif_ccb_spinlock_unlock(&spinlock);
 	}
 
 	// Execute GDDV to read DataVault from BIOS, if it exists
 	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &gddvTuple, requestPtr, &gddvData);
 	if (rc != ESIF_OK) {
-		// Always Return OK if no ESIF_LF or GDDV object in BIOS
-		if (rc == ESIF_E_NO_LOWER_FRAMEWORK || rc == ESIF_E_ACPI_OBJECT_NOT_FOUND) {
+		// Always Return OK if no ESIF_LF, no GDDV object in BIOS, or IETM Participant not yet loaded
+		if (rc == ESIF_E_NO_LOWER_FRAMEWORK ||		// No LF Loaded or Linux-based OS
+			rc == ESIF_E_NO_ACPI_SUPPORT ||			// LF Loaded, No IETM Participant yet
+			rc == ESIF_E_ACPI_OBJECT_NOT_FOUND) {	// LF Loaded, IETM Participant Loaded, no GDDV object
+			
+			// Check if IETM participant created by comparing to previous error
+			esif_ccb_spinlock_lock(&spinlock);
+			if (rc == ESIF_E_ACPI_OBJECT_NOT_FOUND && rc != lastGddvError) {
+				reloadApp = ESIF_TRUE;
+			}
+			lastGddvError = rc;
+			esif_ccb_spinlock_unlock(&spinlock);
 			rc = ESIF_OK;
 		}
 	}
@@ -801,7 +833,7 @@ static eEsifError EsifGetActionDelegateCnfg(
 			BytePtr gddvBufPtr = (BytePtr)gddvData.buf_ptr + skipbytes;
 			u32 gddvBufLen = gddvData.data_len - skipbytes;
 			EsifDataPtr gddvBuffer = EsifData_CreateAs(ESIF_DATA_BLOB, gddvBufPtr, 0, gddvBufLen);
-			
+
 			// Entire GDDV object can be compressed, including DV header
 			if (gddvBuffer == NULL) {
 				rc = ESIF_E_NO_MEMORY;
@@ -813,9 +845,29 @@ static eEsifError EsifGetActionDelegateCnfg(
 			if (rc == ESIF_OK && IOStream_SetMemory(repo->stream, StoreReadOnly, gddvBuffer->buf_ptr, gddvBuffer->data_len) == EOK) {
 				rc = DataRepo_LoadSegments(repo);
 			}
+
+			// Check if configuration changed by comparing to last GDDV Hash
+			if (rc == ESIF_OK) {
+				esif_sha256_t gddvHash = { 0 };
+				esif_sha256_init(&gddvHash);
+				esif_sha256_update(&gddvHash, gddvBuffer->buf_ptr, gddvBuffer->data_len);
+				esif_sha256_finish(&gddvHash);
+
+				esif_ccb_spinlock_lock(&spinlock);
+				if (memcmp(lastGddvHash, gddvHash.hash, sizeof(lastGddvHash)) != 0) {
+					esif_ccb_memcpy(lastGddvHash, gddvHash.hash, sizeof(lastGddvHash));
+					reloadApp = ESIF_TRUE;
+				}
+				esif_ccb_spinlock_unlock(&spinlock);
+			}
 			EsifData_Destroy(gddvBuffer);
 		}
 		DataRepo_Destroy(repo);
+	}
+
+	// Reload all Apps if DCFG or GDDV Configuration changed and DSP Action Parameter 2 = 'REST'
+	if (rc == ESIF_OK && reloadApp == ESIF_TRUE && opcode == 'TSER') {
+		rc = EsifAppMgr_AppRestartAll();
 	}
 
 	esif_ccb_free(dcfgData.buf_ptr);

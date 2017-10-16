@@ -48,7 +48,7 @@ Guid SupportedPolicyList::operator[](UIntN index) const
 	return m_guid.at(index);
 }
 
-Bool SupportedPolicyList::isPolicyValid(const Guid& guid) const
+Bool SupportedPolicyList::isPolicySupported(const Guid& guid) const
 {
 #ifdef DISABLE_VALID_POLICY_CHECK
 
@@ -74,27 +74,64 @@ Bool SupportedPolicyList::isPolicyValid(const Guid& guid) const
 
 void SupportedPolicyList::update(void)
 {
-	m_guid.clear();
-
-	DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
-		esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
-
-	if ((buffer.size() % sizeof(AcpiEsifGuid)) != 0)
+	try
 	{
-		std::stringstream message;
-		message << "Received invalid data length [" << buffer.size() << "] from primitive call: GET_SUPPORTED_POLICIES";
-		throw dptf_exception(message.str());
+		DptfBuffer buffer = m_dptfManager->getEsifServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_SUPPORTED_POLICIES, ESIF_DATA_BINARY);
+		if (isBufferValid(buffer))
+		{
+			m_guid = parseBufferForPolicyGuids(buffer);
+		}
+		else
+		{
+			std::stringstream message;
+			message << "Received invalid data length [" << buffer.size()
+				<< "] from primitive call: GET_SUPPORTED_POLICIES";
+			throw dptf_exception(message.str());
+		}
+	}
+	catch (const std::exception& ex)
+	{
+		m_dptfManager->getEsifServices()->writeMessageWarning(ex.what());
 	}
 
+	postMessageWithSupportedGuids();
+}
+
+Bool SupportedPolicyList::isBufferValid(const DptfBuffer& buffer) const
+{
+	return ((buffer.size() % sizeof(AcpiEsifGuid)) == 0);
+}
+
+std::vector<Guid> SupportedPolicyList::parseBufferForPolicyGuids(const DptfBuffer& buffer)
+{
 	UInt32 guidCount = buffer.size() / sizeof(AcpiEsifGuid);
 	AcpiEsifGuid* acpiEsifGuid = reinterpret_cast<AcpiEsifGuid*>(buffer.get());
 
+	std::vector<Guid> guids;
 	for (UInt32 i = 0; i < guidCount; i++)
 	{
-		UInt8 guidByteArray[GuidSize] = {0};
+		UInt8 guidByteArray[GuidSize] = { 0 };
 		esif_ccb_memcpy(guidByteArray, &acpiEsifGuid[i].uuid, GuidSize);
-		Guid guid(guidByteArray);
-		m_dptfManager->getEsifServices()->writeMessageInfo("Supported GUID: " + guid.toString());
-		m_guid.push_back(guid);
+		guids.push_back(Guid(guidByteArray));
 	}
+	return guids;
+}
+
+void SupportedPolicyList::postMessageWithSupportedGuids() const
+{
+	std::stringstream message;
+	if (m_guid.size() > 0)
+	{
+		for (auto g = m_guid.begin(); g != m_guid.end(); ++g)
+		{
+			message << "Supported GUID: " << g->toString() << "\n";
+		}
+	}
+	else
+	{
+		message << "No supported GUIDs found";
+	}
+
+	m_dptfManager->getEsifServices()->writeMessageInfo(message.str());
 }

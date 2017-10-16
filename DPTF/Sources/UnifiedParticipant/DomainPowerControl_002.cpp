@@ -103,10 +103,40 @@ Power DomainPowerControl_002::getPowerLimit(
 	throwIfTypeInvalidForPowerLimit(controlType);
 	if (m_pl1Limit.isInvalid())
 	{
-		m_pl1Limit.set(getParticipantServices()->primitiveExecuteGetAsPower(
-			esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, (UInt8)controlType));
+		try
+		{
+			m_pl1Limit.set(getParticipantServices()->primitiveExecuteGetAsPower(
+				esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, (UInt8)controlType));
+		}
+		catch (...)
+		{
+			m_pl1Limit.set(getPowerControlDynamicCapsSet(participantIndex, domainIndex)
+				.getCapability(PowerControlType::PL1)
+				.getMaxPowerLimit());
+		}
 	}
 	return m_pl1Limit.get();
+}
+
+Power DomainPowerControl_002::getPowerLimitWithoutCache(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	auto pl1PowerLimit = Power::createInvalid();
+	try
+	{
+		pl1PowerLimit = getParticipantServices()->primitiveExecuteGetAsPower(
+			esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, (UInt8)controlType);
+	}
+	catch (...)
+	{
+		pl1PowerLimit = getPowerControlDynamicCapsSet(participantIndex, domainIndex)
+			.getCapability(PowerControlType::PL1)
+			.getMaxPowerLimit();
+	}
+
+	return pl1PowerLimit;
 }
 
 void DomainPowerControl_002::setPowerLimit(
@@ -166,30 +196,10 @@ TimeSpan DomainPowerControl_002::getWeightedSlowPollAvgConstant(UIntN participan
 		esif_primitive_type::GET_WEIGHTED_SLOWPOLL_CONSTANT, domainIndex, Constants::Esif::NoInstance);
 }
 
-UInt32 DomainPowerControl_002::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
-{
-	throw dptf_exception("Rapl Energy is not supported by " + getName() + ".");
-}
-
-double DomainPowerControl_002::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
-{
-	throw dptf_exception("Rapl Energy Unit is not supported by " + getName() + ".");
-}
-
-UInt32 DomainPowerControl_002::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
-{
-	throw dptf_exception("Rapl Energy Counter Width is not supported by " + getName() + ".");
-}
-
 Power DomainPowerControl_002::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	return getParticipantServices()->primitiveExecuteGetAsPower(
 		esif_primitive_type::GET_SLOWPOLL_POWER_THRESHOLD, domainIndex, Constants::Esif::NoInstance);
-}
-
-Power DomainPowerControl_002::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
-{
-	throw dptf_exception("Instantaneous Power is not supported by " + getName() + ".");
 }
 
 void DomainPowerControl_002::setPowerLimitIgnoringCaps(

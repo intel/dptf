@@ -22,7 +22,6 @@
 
 ActiveControlArbitrator::ActiveControlArbitrator()
 	: m_arbitratedFanSpeedPercentage(Percentage::createInvalid())
-	, m_arbitratedActiveControlIndex(Constants::Invalid)
 {
 }
 
@@ -37,25 +36,9 @@ void ActiveControlArbitrator::commitPolicyRequest(UIntN policyIndex, const Perce
 	m_arbitratedFanSpeedPercentage = maxRequestedFanSpeedPercentage;
 }
 
-void ActiveControlArbitrator::commitPolicyRequest(UIntN policyIndex, UIntN activeControlIndex)
-{
-	m_requestedActiveControlIndex[policyIndex] = activeControlIndex;
-	UIntN minRequestedActiveControlIndex = getMinRequestedActiveControlIndex(m_requestedActiveControlIndex);
-	m_arbitratedActiveControlIndex = minRequestedActiveControlIndex;
-}
-
 Bool ActiveControlArbitrator::hasArbitratedFanSpeedPercentage(void) const
 {
 	if (m_arbitratedFanSpeedPercentage != Percentage::createInvalid())
-	{
-		return true;
-	}
-	return false;
-}
-
-Bool ActiveControlArbitrator::hasArbitratedActiveControlIndex(void) const
-{
-	if (m_arbitratedActiveControlIndex != Constants::Invalid)
 	{
 		return true;
 	}
@@ -67,25 +50,12 @@ Percentage ActiveControlArbitrator::getArbitratedFanSpeedPercentage(void) const
 	return m_arbitratedFanSpeedPercentage;
 }
 
-UIntN ActiveControlArbitrator::getArbitratedActiveControlIndex(void) const
-{
-	return m_arbitratedActiveControlIndex;
-}
-
 Percentage ActiveControlArbitrator::arbitrate(UIntN policyIndex, const Percentage& fanSpeed)
 {
 	auto tempPolicyRequests = m_requestedfanSpeedPercentage;
 	tempPolicyRequests[policyIndex] = fanSpeed;
 	Percentage maxRequestedFanSpeedPercentage = getMaxRequestedFanSpeedPercentage(tempPolicyRequests);
 	return maxRequestedFanSpeedPercentage;
-}
-
-UIntN ActiveControlArbitrator::arbitrate(UIntN policyIndex, UIntN activeControlIndex)
-{
-	auto tempPolicyRequests = m_requestedActiveControlIndex;
-	tempPolicyRequests[policyIndex] = activeControlIndex;
-	UIntN minRequestedActiveControlIndex = getMinRequestedActiveControlIndex(tempPolicyRequests);
-	return minRequestedActiveControlIndex;
 }
 
 void ActiveControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
@@ -95,13 +65,6 @@ void ActiveControlArbitrator::clearPolicyCachedData(UIntN policyIndex)
 	{
 		m_requestedfanSpeedPercentage[policyIndex] = Percentage::createInvalid();
 		commitPolicyRequest(policyIndex, Percentage::createInvalid());
-	}
-
-	auto activeIndexRequest = m_requestedActiveControlIndex.find(policyIndex);
-	if (activeIndexRequest != m_requestedActiveControlIndex.end())
-	{
-		m_requestedActiveControlIndex[policyIndex] = Constants::Invalid;
-		commitPolicyRequest(policyIndex, Constants::Invalid);
 	}
 }
 
@@ -115,14 +78,6 @@ std::shared_ptr<XmlNode> ActiveControlArbitrator::getArbitrationXmlForPolicy(UIn
 		percentageRequest = fanSpeedRequest->second;
 	}
 	requestRoot->addChild(XmlNode::createDataElement("fan_speed_percentage", percentageRequest.toString()));
-
-	auto activeIndexRequest = m_requestedActiveControlIndex.find(policyIndex);
-	auto indexRequest = Constants::Invalid;
-	if (activeIndexRequest != m_requestedActiveControlIndex.end())
-	{
-		indexRequest = activeIndexRequest->second;
-	}
-	requestRoot->addChild(XmlNode::createDataElement("active_index", StatusFormat::friendlyValue(indexRequest)));
 	return requestRoot;
 }
 
@@ -140,21 +95,4 @@ Percentage ActiveControlArbitrator::getMaxRequestedFanSpeedPercentage(std::map<U
 	}
 
 	return maxRequestedFanSpeedPercentage;
-}
-
-UIntN ActiveControlArbitrator::getMinRequestedActiveControlIndex(std::map<UIntN, UIntN>& requests)
-{
-	UIntN minRequestedActiveControlIndex = Constants::Invalid;
-
-	for (auto policyRequest = requests.begin(); policyRequest != requests.end(); ++policyRequest)
-	{
-		if ((policyRequest->second != Constants::Invalid)
-			&& ((minRequestedActiveControlIndex == Constants::Invalid)
-				|| (policyRequest->second < minRequestedActiveControlIndex)))
-		{
-			minRequestedActiveControlIndex = policyRequest->second;
-		}
-	}
-
-	return minRequestedActiveControlIndex;
 }

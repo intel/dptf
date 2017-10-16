@@ -43,6 +43,7 @@ public:
 	virtual Guid getGuid() const override = 0;
 	virtual std::string getName() const override = 0;
 	virtual std::string getStatusAsXml(void) const override = 0;
+	virtual std::string getDiagnosticsAsXml(void) const override = 0;
 	virtual Bool autoNotifyPlatformOscOnCreateDestroy() const = 0;
 	virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const = 0;
 	virtual Bool autoNotifyPlatformOscOnEnableDisable() const = 0;

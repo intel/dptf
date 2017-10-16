@@ -73,6 +73,7 @@ public:
 	virtual std::string getName() const override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const override;
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const override;
+	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN domainIndex) const override;
 
 	// Event handlers
 	virtual void connectedStandbyEntry(void) override;
@@ -113,20 +114,14 @@ public:
 
 	// Active Controls
 	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
 	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
 
 	// Activity Status
-	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) override;
-	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setEnergyThresholdInterruptDisable(
-		UIntN participantIndex,
-		UIntN domainIndex) override;
 
 	// Config TDP Controls
 	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
@@ -158,6 +153,17 @@ public:
 		DisplayControlDynamicCaps newCapabilities) override;
 	virtual void setDisplayCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
+	// Energy Controls
+	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
+	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) override;
+	virtual void setEnergyThresholdInterruptDisable(
+		UIntN participantIndex,
+		UIntN domainIndex) override;
+
 	// Peak Power Controls
 	virtual Power getACPeakPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setACPeakPower(UIntN participantIndex, UIntN domainIndex, const Power& acPeakPower) override;
@@ -183,6 +189,7 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
 		override;
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -225,11 +232,7 @@ public:
 	virtual TimeSpan getFastPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
-	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
-	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
 
 	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 		override;
@@ -323,6 +326,7 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const TemperatureThresholds& temperatureThresholds) override;
+	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getCalibrationTable(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getPollingTable(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isVirtualTemperature(UIntN participantIndex, UIntN domainIndex) override;

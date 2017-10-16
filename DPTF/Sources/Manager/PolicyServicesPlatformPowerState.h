@@ -22,11 +22,13 @@
 #include "PolicyServices.h"
 #include "PlatformPowerStateInterface.h"
 #include "esif_sdk_data_misc.h"
+#include "esif_ccb_thread.h"
 
 class PolicyServicesPlatformPowerState final : public PolicyServices, public PlatformPowerStateInterface
 {
 public:
 	PolicyServicesPlatformPowerState(DptfManagerInterface* dptfManager, UIntN policyIndex);
+	virtual ~PolicyServicesPlatformPowerState();
 	esif_data_complex_thermal_event* getThermalEventPtr(void);
 	void setThermalEvent(const Temperature currentTemperature, const Temperature tripPointTemperature);
 
@@ -38,4 +40,5 @@ public:
 
 private:
 	esif_data_complex_thermal_event m_thermalEvent;
+	esif_thread_t m_thread;
 };

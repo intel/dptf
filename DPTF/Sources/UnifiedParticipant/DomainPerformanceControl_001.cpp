@@ -131,14 +131,23 @@ void DomainPerformanceControl_001::setPerformanceControlDynamicCaps(
 
 	m_performanceControlDynamicCaps.invalidate();
 
-	getParticipantServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_PERF_PSTATE_DEPTH_LIMIT,
-		lowerLimitIndex,
-		domainIndex,
-		Constants::Esif::NoPersistInstance);
+	if (lowerLimitIndex != Constants::Invalid)
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PERF_PSTATE_DEPTH_LIMIT,
+			lowerLimitIndex,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
 
-	// TODO: allow DPTF to change the MAX limit
-	getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, "Currently DPTF cannot change the MAX limit."));
+	if (upperLimitIndex != Constants::Invalid)
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PARTICIPANT_MAX_PERF_STATE,
+			upperLimitIndex,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
 }
 
 void DomainPerformanceControl_001::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
@@ -169,6 +178,17 @@ void DomainPerformanceControl_001::clearCachedData(void)
 				depthLimitBuffer.get(),
 				depthLimitBuffer.size(),
 				depthLimitBuffer.size(),
+				0,
+				Constants::Esif::NoInstance);
+
+			DptfBuffer upperLimitBuffer = createResetPrimitiveTupleBinary(
+				esif_primitive_type::SET_PARTICIPANT_MAX_PERF_STATE, Constants::Esif::NoPersistInstance);
+			getParticipantServices()->primitiveExecuteSet(
+				esif_primitive_type::SET_CONFIG_RESET,
+				ESIF_DATA_BINARY,
+				upperLimitBuffer.get(),
+				upperLimitBuffer.size(),
+				upperLimitBuffer.size(),
 				0,
 				Constants::Esif::NoInstance);
 		}
@@ -272,16 +292,19 @@ PerformanceControlDynamicCaps DomainPerformanceControl_001::createPerformanceCon
 		upperLimitIndex = 0;
 	}
 
-	if (upperLimitIndex >= controlSetSize || lowerLimitIndex >= controlSetSize)
+	if (upperLimitIndex >= controlSetSize)
 	{
-		throw dptf_exception("Retrieved control index out of control set bounds.");
+		upperLimitIndex = controlSetSize - 1;
+		lowerLimitIndex = upperLimitIndex;
+		getParticipantServices()->writeMessageWarning(
+			ParticipantMessage(FLF, "Retrieved upper limit control index out of control set bounds., ignoring upper limit."));
 	}
 
-	if (upperLimitIndex > lowerLimitIndex)
+	if (lowerLimitIndex >= controlSetSize || upperLimitIndex > lowerLimitIndex)
 	{
 		lowerLimitIndex = controlSetSize - 1;
 		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
+			ParticipantMessage(FLF, "Performance state limit indexes are mismatched, ignoring lower limit."));
 	}
 
 	return PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex);

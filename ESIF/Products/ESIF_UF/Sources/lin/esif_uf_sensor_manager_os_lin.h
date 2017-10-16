@@ -28,6 +28,7 @@ void EsifSensorMgr_Exit();
 
 eEsifError esif_register_sensor_lin(eEsifEventType eventType);
 eEsifError esif_unregister_sensor_lin(eEsifEventType eventType);
+eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid);
 
 #ifdef __cplusplus
 }

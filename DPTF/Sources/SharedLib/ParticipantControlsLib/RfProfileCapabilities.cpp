@@ -21,10 +21,16 @@
 RfProfileCapabilities::RfProfileCapabilities(
 	Frequency defaultCenterFrequency,
 	Frequency centerFrequency,
-	Frequency frequencyAdjustResolution)
+	Frequency frequencyAdjustResolution,
+	Frequency minFrequency,
+	Frequency maxFrequency,
+	Percentage ssc)
 	: m_defaultCenterFrequency(defaultCenterFrequency)
 	, m_centerFrequency(centerFrequency)
 	, m_frequencyAdjustResolution(frequencyAdjustResolution)
+	, m_minFrequency(minFrequency)
+	, m_maxFrequency(maxFrequency)
+	, m_ssc(ssc)
 {
 }
 
@@ -43,11 +49,27 @@ Frequency RfProfileCapabilities::getFrequencyAdjustResolution(void) const
 	return m_frequencyAdjustResolution;
 }
 
+Frequency RfProfileCapabilities::getMinFrequency(void) const
+{
+	return m_minFrequency;
+}
+
+Frequency RfProfileCapabilities::getMaxFrequency(void) const
+{
+	return m_maxFrequency;
+}
+
+Percentage RfProfileCapabilities::getSsc(void) const
+{
+	return m_ssc;
+}
+
 Bool RfProfileCapabilities::operator==(const RfProfileCapabilities& rhs) const
 {
 	return (
 		(m_defaultCenterFrequency == rhs.m_defaultCenterFrequency) && (m_centerFrequency == rhs.m_centerFrequency)
-		&& (m_frequencyAdjustResolution == rhs.m_frequencyAdjustResolution));
+		&& (m_frequencyAdjustResolution == rhs.m_frequencyAdjustResolution) && (m_minFrequency == rhs.m_minFrequency) 
+		&& (m_maxFrequency == rhs.m_maxFrequency) && (m_ssc == rhs.m_ssc));
 }
 
 Bool RfProfileCapabilities::operator!=(const RfProfileCapabilities& rhs) const

@@ -29,8 +29,9 @@ public:
 
 	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 		override final;
+	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+		override final;
 	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override final;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override final;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override final;
 };

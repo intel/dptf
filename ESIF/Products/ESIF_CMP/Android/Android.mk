@@ -23,7 +23,8 @@
 LOCAL_PATH := $(call my-dir)/../..
 
 include $(CLEAR_VARS)
-LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER -DESIF_ATTR_NO_TYPES -D_7ZIP_ST -Wno-error=sequence-point
+LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER -DESIF_ATTR_NO_TYPES -D_7ZIP_ST -Wno-error=sequence-point \
+	-Wno-missing-braces -Wno-missing-field-initializers
 LOCAL_MODULE    := esif_cmp
 LOCAL_MODULE_OWNER := intel
 LOCAL_PROPRIETARY_MODULE := true

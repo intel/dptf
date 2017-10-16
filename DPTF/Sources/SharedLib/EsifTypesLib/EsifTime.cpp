@@ -21,17 +21,14 @@
 
 EsifTime::EsifTime(void)
 {
-	m_timeStamp = getCurrentTime();
-}
-
-EsifTime::EsifTime(UInt64 numMilliSeconds)
-	: m_timeStamp(TimeSpan::createFromMilliseconds(numMilliSeconds))
-{
+	refresh();
 }
 
 void EsifTime::refresh(void)
 {
 	m_timeStamp = getCurrentTime();
+	time_t now = time(NULL);
+	esif_ccb_localtime(&m_localTime, &now);
 }
 
 const TimeSpan& EsifTime::getTimeStamp(void) const
@@ -77,6 +74,11 @@ TimeSpan EsifTime::operator-(const EsifTime& rhs) const
 	}
 
 	return m_timeStamp - rhs.getTimeStamp();
+}
+
+tm EsifTime::getLocalTime(void)
+{
+	return m_localTime;
 }
 
 TimeSpan EsifTime::getCurrentTime(void)

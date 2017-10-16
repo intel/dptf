@@ -26,14 +26,13 @@ public:
 	// Creates a new instance of EsifTime initialized to the current time.
 	EsifTime(void);
 
-	// Creates a new instance of EsifTime based on the number of milliseconds passed in.
-	EsifTime(UInt64 numMilliSeconds);
-
 	// sets the internal structure to the current time.
 	void refresh(void);
 
 	// returns the internal time stamp
 	const TimeSpan& getTimeStamp(void) const;
+
+	tm getLocalTime(void);
 
 	Bool operator==(const EsifTime& rhs) const;
 	Bool operator!=(const EsifTime& rhs) const;
@@ -45,6 +44,7 @@ public:
 
 private:
 	TimeSpan m_timeStamp; // stores time stamp for fixed point in time
+	tm m_localTime;
 
 	TimeSpan getCurrentTime(void);
 };

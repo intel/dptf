@@ -36,9 +36,9 @@ public:
 
 	// DomainActiveControlInterface
 	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
 	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
 
 	// ParticipantActivityLoggingInterface

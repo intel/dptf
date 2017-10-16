@@ -75,4 +75,23 @@
 #include "esif_ccb_memory_lin_user.h"
 #endif
 
+// Find a substring in a non-NULL terminated string buffer
+static ESIF_INLINE char *esif_ccb_memstr(
+	const char *buffer, // Non-NULL-Terminated String Buffer
+	size_t buf_len,		// Buffer Length
+	const char *sub,	// Non-NULL-Terminated Substring Buffer
+	size_t sub_len		// Substring Length
+)
+{
+	size_t j = 0;
+	if (buffer && sub && buf_len >= sub_len) {
+		for (j = 0; j <= buf_len - sub_len; j++) {
+			if (memcmp(&buffer[j], sub, sub_len) == 0) {
+				return (char *)&buffer[j];
+			}
+		}
+	}
+	return NULL;
+}
+
 #endif /* USER */

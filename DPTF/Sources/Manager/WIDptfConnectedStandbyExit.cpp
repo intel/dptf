@@ -59,13 +59,13 @@ void WIDptfConnectedStandbyExit::execute(void)
 	// let all policies know that we are exiting connected standby
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeConnectedStandbyExit();
 		}
 		catch (policy_index_invalid ex)
@@ -74,7 +74,7 @@ void WIDptfConnectedStandbyExit::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executeConnectedStandbyExit", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executeConnectedStandbyExit", *i);
 		}
 	}
 }

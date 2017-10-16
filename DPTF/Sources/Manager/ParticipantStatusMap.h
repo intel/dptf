@@ -30,6 +30,7 @@ public:
 
 	std::string getGroupsString();
 	std::shared_ptr<XmlNode> getStatusAsXml(UIntN mappedIndex);
+	std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN mappedIndex);
 	void clearCachedData();
 
 private:

@@ -85,11 +85,15 @@
 /* Build option to enable PERC support in Windows */
 #define ESIF_FEAT_OPT_PERC_SUPPORT_ENABLED
 
-/* Build option to enable HID support in Windows Kernel code */
-/*#define ESIF_FEAT_OPT_KHID_SUPPORT_ENABLED*/
-
 /* Build option to provide UF support in the Windows service application */
 /*#define ESIF_FEAT_OPT_SERVICE_AS_UF*/
+
+/* Build option to create the LF driver as a filter driver loaded against the CPU device in Windows */
+/*#define ESIF_FEAT_OPT_LF_IS_FILTER*/
+
+/* Build option to create the LF driver in a configuration which is not in the INT3400 stack */
+/*#define ESIF_FEAT_OPT_BIOS_LITE_LF*/
+
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 

@@ -135,7 +135,7 @@ std::string Guid::toString() const
 	}
 
 	std::string guidText = guidTextStream.str();
-	std::transform(guidText.begin(), guidText.end(), guidText.begin(), ::toupper);
+	std::transform(guidText.begin(), guidText.end(), guidText.begin(), [](int c) -> char { return (char)::toupper(c); } );
 	return guidText;
 }
 

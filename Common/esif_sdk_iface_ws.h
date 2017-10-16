@@ -26,16 +26,15 @@
 
 #define WS_LIBRARY_NAME				"esif_ws"			// Name of Loadable Library (.dll or .so)
 #define WS_GET_INTERFACE_FUNCTION	"GetWsInterface"	// Interface Function Exported from Loadable Library
-#define WS_IFACE_VERSION			1					// Interface Version
+#define WS_IFACE_VERSION			2					// Interface Version
+#define WS_MAX_REST_RESPONSE		0x7FFFFFFE			// Max REST API Response Length
+#define WS_LISTENERS				2					// Max Number of Listener Ports
 
 // Interface Function Prototypes (WS -> ESIF) [Filled by ESIF]
 typedef void	(ESIF_CALLCONV *EsifWsLockFunc)(void);
 typedef void	(ESIF_CALLCONV *EsifWsUnlockFunc)(void);
 typedef Bool	(ESIF_CALLCONV *EsifWsShellEnabledFunc)(void);
-typedef void	(ESIF_CALLCONV *EsifWsShellLockFunc)(void);
-typedef void	(ESIF_CALLCONV *EsifWsShellUnlockFunc)(void);
-typedef char *	(ESIF_CALLCONV *EsifWsShellExecFunc)(char *cmd, size_t data_len);
-typedef size_t  (ESIF_CALLCONV *EsifWsShellBufLenFunc)(void);
+typedef char *	(ESIF_CALLCONV *EsifWsShellExecFunc)(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len);
 typedef int     (ESIF_CALLCONV *EsifWsTraceMessageFunc)(int level, const char *func, const char *file, int line, const char *msg, va_list arglist);
 typedef int     (ESIF_CALLCONV *EsifWsConsoleMessageFunc)(const char *msg, va_list args);
 
@@ -46,6 +45,7 @@ typedef esif_error_t (ESIF_CALLCONV *EsifWsStartFunc)(void);
 typedef esif_error_t (ESIF_CALLCONV *EsifWsStopFunc)(void);
 typedef esif_error_t (ESIF_CALLCONV *EsifWsBroadcastFunc)(const u8 *buffer, size_t buf_len);
 typedef Bool		 (ESIF_CALLCONV *EsifWsIsStartedFunc)(void);
+typedef void *       (ESIF_CALLCONV *EsifWsAllocFunc)(size_t buf_len);
 
 #pragma pack(push, 1)
 
@@ -57,17 +57,15 @@ typedef struct EsifWsInterface_s {
 	atomic_t					traceLevel;					// Current ESIF Trace Level
 	char						docRoot[MAX_PATH];			// HTTP Document Root
 	char						logRoot[MAX_PATH];			// Log Files Root
-	char						ipAddr[ESIF_IPADDR_LEN];	// Server IP Address
-	u32							port;						// Server Port Number
-	Bool						isRestricted;				// Server Restricted Mode?
+	char						ipAddr[WS_LISTENERS][ESIF_IPADDR_LEN];	// Server IP Address
+	u32							port[WS_LISTENERS];						// Server Port Number
+	Bool						isRestricted[WS_LISTENERS];				// Server Restricted Mode?
 
 	EsifWsLockFunc				tEsifWsLockFuncPtr;
 	EsifWsUnlockFunc			tEsifWsUnlockFuncPtr;
+	EsifWsAllocFunc				tEsifWsAllocFuncPtr;
 	EsifWsShellEnabledFunc		tEsifWsShellEnabledFuncPtr;
-	EsifWsShellLockFunc			tEsifWsShellLockFuncPtr;
-	EsifWsShellUnlockFunc		tEsifWsShellUnlockFuncPtr;
 	EsifWsShellExecFunc			tEsifWsShellExecFuncPtr;
-	EsifWsShellBufLenFunc		tEsifWsShellBufLenFuncPtr;
 	EsifWsTraceMessageFunc		tEsifWsTraceMessageFuncPtr;
 	EsifWsConsoleMessageFunc	tEsifWsConsoleMessageFuncPtr;
 
@@ -80,6 +78,7 @@ typedef struct EsifWsInterface_s {
 	EsifWsStopFunc				fEsifWsStopFuncPtr;
 	EsifWsBroadcastFunc			fEsifWsBroadcastFuncPtr;
 	EsifWsIsStartedFunc			fEsifWsIsStartedFuncPtr;
+	EsifWsAllocFunc				fEsifWsAllocFuncPtr;
 
 } EsifWsInterface, *EsifWsInterfacePtr;
 

@@ -538,6 +538,12 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getStatusAsXml(UIntN domainIndex) c
 	return participantRoot;
 }
 
+std::shared_ptr<XmlNode> UnifiedParticipant::getDiagnosticsAsXml(UIntN domainIndex) const
+{
+	auto participantRoot = XmlNode::createRoot();
+	return participantRoot;
+}
+
 void UnifiedParticipant::connectedStandbyEntry(void)
 {
 	// FIXME:  Not sure if the participant needs to do anything here.  If we do, we will probably have different
@@ -637,6 +643,13 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
+				case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
+					if (domainFunctionality.energyControlVersion > 0)
+					{
+						matchedDomain->second->getEnergyControl()->enableActivityLogging();
+						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
+					}
+					break;
 				case ESIF_CAPABILITY_TYPE_PERF_CONTROL:
 					if (domainFunctionality.performanceControlVersion > 0)
 					{
@@ -686,13 +699,6 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
-				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-					if (domainFunctionality.platformPowerStatusVersion > 0)
-					{
-						matchedDomain->second->getPlatformPowerStatusControl()->enableActivityLogging();
-						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
-					}
-					break;
 				case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 					if (domainFunctionality.peakPowerControlVersion > 0)
 					{
@@ -707,11 +713,13 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
-				case ESIF_CAPABILITY_TYPE_TEMP_STATUS: // duplicated by temp threshold capability
+				case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
+				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
+				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+					// ESIF handles participant logging for these capabilities
 					break;
 				case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
 				case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
-				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 				default:
 					// To do for other capabilities as part of data logging
 					break;
@@ -751,6 +759,9 @@ void UnifiedParticipant::disableActivityLoggingForDomain(UInt32 domainIndex, UIn
 				case ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL:
 					matchedDomain->second->getDisplayControl()->disableActivityLogging();
 					break;
+				case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
+					matchedDomain->second->getEnergyControl()->disableActivityLogging();
+					break;
 				case ESIF_CAPABILITY_TYPE_PERF_CONTROL:
 					matchedDomain->second->getPerformanceControl()->disableActivityLogging();
 					break;
@@ -769,20 +780,19 @@ void UnifiedParticipant::disableActivityLoggingForDomain(UInt32 domainIndex, UIn
 				case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
 					matchedDomain->second->getPlatformPowerControl()->disableActivityLogging();
 					break;
-				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-					matchedDomain->second->getPlatformPowerStatusControl()->disableActivityLogging();
-					break;
 				case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 					matchedDomain->second->getPeakPowerControl()->disableActivityLogging();
 					break;
 				case ESIF_CAPABILITY_TYPE_TCC_CONTROL:
 					matchedDomain->second->getTccOffsetControl()->disableActivityLogging();
 					break;
-				case ESIF_CAPABILITY_TYPE_TEMP_STATUS: // duplicated by temp threshold capability
+				case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
+				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
+				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+					// ESIF handles participant logging for these capabilities
 					break;
 				case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
 				case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
-				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 				default:
 					// To do for other capabilities as part of data logging
 					break;
@@ -806,6 +816,9 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 		break;
 	case ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL:
 		m_domains[domainIndex]->getDisplayControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
+		break;
+	case ESIF_CAPABILITY_TYPE_ENERGY_CONTROL:
+		m_domains[domainIndex]->getEnergyControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
 		break;
 	case ESIF_CAPABILITY_TYPE_PERF_CONTROL:
 		m_domains[domainIndex]->getPerformanceControl()->sendActivityLoggingDataIfEnabled(
@@ -834,10 +847,6 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 		m_domains[domainIndex]->getPlatformPowerControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
-	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
-		m_domains[domainIndex]->getPlatformPowerStatusControl()->sendActivityLoggingDataIfEnabled(
-			m_participantIndex, domainIndex);
-		break;
 	case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 		m_domains[domainIndex]->getPeakPowerControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
@@ -846,11 +855,13 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 		m_domains[domainIndex]->getTccOffsetControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
-	case ESIF_CAPABILITY_TYPE_TEMP_STATUS: // duplicated by temp threshold capability
+	case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
+	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
+	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+		// ESIF handles participant logging for these capabilities
 		break;
 	case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
 	case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
-	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 	default:
 		break;
 	}
@@ -1203,6 +1214,12 @@ ActiveControlStaticCaps UnifiedParticipant::getActiveControlStaticCaps(UIntN par
 	return m_domains[domainIndex]->getActiveControl()->getActiveControlStaticCaps(participantIndex, domainIndex);
 }
 
+ActiveControlDynamicCaps UnifiedParticipant::getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActiveControl()->getActiveControlDynamicCaps(participantIndex, domainIndex);
+}
+
 ActiveControlStatus UnifiedParticipant::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1215,41 +1232,12 @@ ActiveControlSet UnifiedParticipant::getActiveControlSet(UIntN participantIndex,
 	return m_domains[domainIndex]->getActiveControl()->getActiveControlSet(participantIndex, domainIndex);
 }
 
-void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getActiveControl()->setActiveControl(participantIndex, domainIndex, controlIndex);
-
-	// Do not send activity log if we control fans through control index
-	// The logging code understands fan speed in percentage only
-}
-
 void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed)
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getActiveControl()->setActiveControl(participantIndex, domainIndex, fanSpeed);
 
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL);
-}
-
-UInt32 UnifiedParticipant::getEnergyThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActivityStatusControl()->getEnergyThreshold(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getActivityStatusControl()->setEnergyThreshold(
-		participantIndex, domainIndex, energyThreshold);
-}
-
-Temperature UnifiedParticipant::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActivityStatusControl()->getPowerShareTemperatureThreshold(
-		participantIndex, domainIndex);
 }
 
 Percentage UnifiedParticipant::getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex)
@@ -1262,15 +1250,6 @@ Percentage UnifiedParticipant::getResidencyUtilization(UIntN participantIndex, U
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getActivityStatusControl()->getResidencyUtilization(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setEnergyThresholdInterruptDisable(
-	UIntN participantIndex,
-	UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getActivityStatusControl()->setEnergyThresholdInterruptDisable(
-		participantIndex, domainIndex);
 }
 
 ConfigTdpControlDynamicCaps UnifiedParticipant::getConfigTdpControlDynamicCaps(
@@ -1400,6 +1379,50 @@ void UnifiedParticipant::setDisplayCapsLock(UIntN participantIndex, UIntN domain
 	m_domains[domainIndex]->getDisplayControl()->setDisplayCapsLock(participantIndex, domainIndex, lock);
 }
 
+UInt32 UnifiedParticipant::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyControl()->getRaplEnergyCounter(participantIndex, domainIndex);
+}
+
+double UnifiedParticipant::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyControl()->getRaplEnergyUnit(participantIndex, domainIndex);
+}
+
+UInt32 UnifiedParticipant::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyControl()->getRaplEnergyCounterWidth(participantIndex, domainIndex);
+}
+
+Power UnifiedParticipant::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyControl()->getInstantaneousPower(participantIndex, domainIndex);
+}
+
+UInt32 UnifiedParticipant::getEnergyThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyControl()->getEnergyThreshold(participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getEnergyControl()->setEnergyThreshold(
+		participantIndex, domainIndex, energyThreshold);
+}
+
+void UnifiedParticipant::setEnergyThresholdInterruptDisable(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getEnergyControl()->setEnergyThresholdInterruptDisable(
+		participantIndex, domainIndex);
+}
+
 Power UnifiedParticipant::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1409,7 +1432,8 @@ Power UnifiedParticipant::getACPeakPower(UIntN participantIndex, UIntN domainInd
 void UnifiedParticipant::setACPeakPower(UIntN participantIndex, UIntN domainIndex, const Power& acPeakPower)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPeakPowerControl()->setACPeakPower(participantIndex, domainIndex, acPeakPower);
+	m_domains[domainIndex]->getPeakPowerControl()->setACPeakPower(participantIndex, domainIndex, acPeakPower);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL);
 }
 
 Power UnifiedParticipant::getDCPeakPower(UIntN participantIndex, UIntN domainIndex)
@@ -1421,7 +1445,8 @@ Power UnifiedParticipant::getDCPeakPower(UIntN participantIndex, UIntN domainInd
 void UnifiedParticipant::setDCPeakPower(UIntN participantIndex, UIntN domainIndex, const Power& dcPeakPower)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPeakPowerControl()->setDCPeakPower(participantIndex, domainIndex, dcPeakPower);
+	m_domains[domainIndex]->getPeakPowerControl()->setDCPeakPower(participantIndex, domainIndex, dcPeakPower);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL);
 }
 
 PerformanceControlStaticCaps UnifiedParticipant::getPerformanceControlStaticCaps(
@@ -1773,6 +1798,13 @@ void UnifiedParticipant::setTemperatureThresholds(
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD);
 }
 
+Temperature UnifiedParticipant::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getTemperatureControl()->getPowerShareTemperatureThreshold(
+		participantIndex, domainIndex);
+}
+
 UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1815,6 +1847,10 @@ std::map<ParticipantSpecificInfoKey::Type, Temperature> UnifiedParticipant::getP
 	{
 		specInfoMap = m_getSpecificInfo->getParticipantSpecificInfo(participantIndex, requestedInfo);
 	}
+	else
+	{
+		throw dptf_exception("Specific info have not been initialized yet.");
+	}
 
 	return specInfoMap;
 }
@@ -1841,6 +1877,10 @@ DomainPropertiesSet UnifiedParticipant::getDomainPropertiesSet(UIntN participant
 				domain->second->getDescription(),
 				domain->second->getDomainFunctionalityVersions());
 			domainPropertiesSet.push_back(domainProperties);
+		}
+		else
+		{
+			throw dptf_exception("Domain index is invalid.");
 		}
 	}
 
@@ -2004,6 +2044,12 @@ Power UnifiedParticipant::getPowerLimit(UIntN participantIndex, UIntN domainInde
 	return m_domains[domainIndex]->getPowerControl()->getPowerLimit(participantIndex, domainIndex, controlType);
 }
 
+Power UnifiedParticipant::getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->getPowerLimitWithoutCache(participantIndex, domainIndex, controlType);
+}
+
 void UnifiedParticipant::setPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -2133,32 +2179,8 @@ TimeSpan UnifiedParticipant::getWeightedSlowPollAvgConstant(UIntN participantInd
 	return m_domains[domainIndex]->getPowerControl()->getWeightedSlowPollAvgConstant(participantIndex, domainIndex);
 }
 
-UInt32 UnifiedParticipant::getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControl()->getRaplEnergyCounter(participantIndex, domainIndex);
-}
-
-double UnifiedParticipant::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControl()->getRaplEnergyUnit(participantIndex, domainIndex);
-}
-
-UInt32 UnifiedParticipant::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControl()->getRaplEnergyCounterWidth(participantIndex, domainIndex);
-}
-
 Power UnifiedParticipant::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getPowerControl()->getSlowPollPowerThreshold(participantIndex, domainIndex);
-}
-
-Power UnifiedParticipant::getInstantaneousPower(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControl()->getInstantaneousPower(participantIndex, domainIndex);
 }

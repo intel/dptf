@@ -120,3 +120,15 @@ eEsifError EsifAppServices::sendEvent(
 	return m_esifInterface.fSendEventFuncPtr(
 		esifHandle, appHandle, participantHandle, domainHandle, eventData, eventGuid);
 }
+
+eEsifError EsifAppServices::sendCommand(
+	const void* esifHandle,
+	const void* appHandle,
+	const UInt32 argc,
+	const EsifDataPtr argv,
+	EsifDataPtr response)
+{
+	return m_esifInterface.fSendCommandFuncPtr(
+		esifHandle, appHandle, argc, argv, response
+	);
+}

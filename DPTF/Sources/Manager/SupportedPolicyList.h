@@ -28,12 +28,13 @@ public:
 
 	UIntN getCount(void) const;
 	Guid operator[](UIntN index) const;
-	Bool isPolicyValid(const Guid& guid) const;
-
-	// Uses GET_SUPPORTED_POLICIES primitive to build a list of policy guids that should be loaded.
+	Bool isPolicySupported(const Guid& guid) const;
 	void update(void);
 
 private:
 	DptfManagerInterface* m_dptfManager;
 	std::vector<Guid> m_guid;
+	Bool isBufferValid(const DptfBuffer& buffer) const;
+	std::vector<Guid> parseBufferForPolicyGuids(const DptfBuffer& buffer);
+	void postMessageWithSupportedGuids() const;
 };

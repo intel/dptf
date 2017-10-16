@@ -53,13 +53,13 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
 	}
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 
 			// FIXME:
 			// As requested by DPTF architecture, the event for power source changed
@@ -83,7 +83,7 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPlatformPowerSourceChanged", i);
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainPlatformPowerSourceChanged", *i);
 		}
 	}
 }

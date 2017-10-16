@@ -105,7 +105,7 @@
 struct esif_queue_instance *esif_queue_create(
 	u32 depth,
 	char *name_ptr,
-	u32 us_timeout
+	u32 ms_timeout
 	)
 {
 	enum esif_rc rc = ESIF_E_NO_MEMORY;
@@ -118,9 +118,9 @@ struct esif_queue_instance *esif_queue_create(
 		goto exit;
 
 	esif_ccb_lock_init(&queue_ptr->lock);
-	esif_ccb_sem_init(&queue_ptr->semaphore);
+	esif_ccb_event_init(&queue_ptr->event);
 	queue_ptr->max_size   = depth;
-	queue_ptr->us_timeout = us_timeout;
+	queue_ptr->ms_timeout = ms_timeout;
 
 	esif_ccb_strcpy(queue_ptr->queue_name,
 		name_ptr,
@@ -170,7 +170,7 @@ void esif_queue_destroy(
 		data_ptr = esif_queue_dequeue(self);
 	}
 
-	esif_ccb_sem_uninit(&self->semaphore);
+	esif_ccb_event_uninit(&self->event);
 	esif_ccb_lock_uninit(&self->lock);
 
 	ESIF_TRACE_DYN_Q("%s Destroy Queue %p\n",
@@ -216,7 +216,7 @@ enum esif_rc esif_queue_enqueue(
 		data_ptr);
 
 	/* Wakeup */
-	esif_ccb_sem_up(&self->semaphore);
+	esif_ccb_event_set(&self->event);
 
 	rc = ESIF_OK;
 lock_exit:
@@ -293,6 +293,10 @@ void *esif_queue_dequeue(struct esif_queue_instance *self)
 	esif_link_list_node_remove(self->queue_list_ptr, node_ptr);
 
 	self->current_size--;
+
+	if (!self->current_size) {
+		esif_ccb_event_reset(&self->event);
+	}
 lock_exit:
 	esif_ccb_write_unlock(&self->lock);
 
@@ -314,16 +318,15 @@ void *esif_queue_pull(struct esif_queue_instance *self)
 	if (NULL == self)
 		goto exit;
 
-	ESIF_TRACE_DYN_SEM("Semaphore timeout %d us\n", self->us_timeout);
+	ESIF_TRACE_DYN_SEM("Queue timeout %d ms\n", self->ms_timeout);
 
-	/*  Wait Forever */
-	if (0 == self->us_timeout) {
-		esif_ccb_sem_down(&self->semaphore);
-
-	/* Wait For N Usecs and If No Queue Entry Availabe Return False */
-	} else if (esif_ccb_sem_try_down(&self->semaphore,
-					 self->us_timeout) != 0) {
-		goto exit;
+	/*
+	 * If no timeout, wait forever; else, wait the specified time for an event.
+	 */
+	if (ESIF_QUEUE_TIMEOUT_INFINITE == self->ms_timeout) {
+		esif_ccb_event_wait(&self->event);
+	} else {
+		esif_ccb_event_try_wait(&self->event, self->ms_timeout);
 	}
 
 	data_ptr = esif_queue_dequeue(self);
@@ -355,7 +358,7 @@ u32 esif_queue_size(struct esif_queue_instance *self)
 void esif_queue_signal_event(struct esif_queue_instance *self)
 {
 	if (self != NULL)
-		esif_ccb_sem_up(&self->semaphore);
+		esif_ccb_event_set(&self->event);
 }
 
 

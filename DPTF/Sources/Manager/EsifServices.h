@@ -211,6 +211,11 @@ public:
 		UIntN domainIndex,
 		EsifData eventData) override;
 
+	virtual eEsifError sendCommand(
+		UInt32 argc,
+		EsifDataPtr argv,
+		EsifDataPtr response) override;
+
 private:
 	// hide the copy constructor and assignment operator.
 	EsifServices(const EsifServices& rhs);

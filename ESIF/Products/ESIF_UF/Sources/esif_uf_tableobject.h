@@ -42,6 +42,7 @@ typedef struct TableField_s {
 	UInt32 getPrimitive;
 	UInt32 setPrimitive;
 	UInt8 instance;
+	UInt32 capabilityType;
 	char *dataVaultKey;
 	int  notForXML;
 } TableField;
@@ -64,6 +65,7 @@ typedef struct TableObject_s {
 	UInt32 getPrimitive;
 	UInt32 setPrimitive;
 	eEsifEventType changeEvent;
+	UInt32 capabilityType;
 	char *dataVaultCategory;
 	TableField *fields;
 	int dynamicColumnCount;
@@ -83,7 +85,7 @@ struct esif_data_binary_fst_package {
 #define TABLEOPT_ALLOW_SELF_DEFINE		0x00000002	// Allow Self-Define
 #define TABLEOPT_CONTAINS_MODE          0x00000004  // Contains Mode
 
-void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML);
+void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML, int capabilityType);
 void TableField_Destroy(TableField *dataField);
 void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, char *dataSource, char *dataMember, char *dataText, size_t dataTextLen, int participantId, enum tableMode mode);
 void TableObject_Destroy(TableObject *self);

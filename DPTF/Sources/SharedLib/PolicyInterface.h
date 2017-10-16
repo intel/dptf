@@ -90,6 +90,7 @@ public:
 	virtual Guid getGuid(void) const = 0;
 	virtual std::string getName(void) const = 0;
 	virtual std::string getStatusAsXml(void) const = 0;
+	virtual std::string getDiagnosticsAsXml(void) const = 0;
 
 	// DPTF Event handlers
 	virtual void connectedStandbyEntry(void) = 0;

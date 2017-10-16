@@ -89,8 +89,7 @@ $(info ++++ )
 # ESIF_WS 
 ###############################################################################
 
-OBJ := $(SOURCES)/esif_ws_algo.o
-OBJ += $(SOURCES)/esif_ws_http.o
+OBJ := $(SOURCES)/esif_ws_http.o
 OBJ += $(SOURCES)/esif_ws_server.o
 OBJ += $(SOURCES)/esif_ws_socket.o
 OBJ += $(SOURCES)/esif_ws.o

@@ -17,16 +17,14 @@
 ******************************************************************************/
 
 #pragma once
-#include "Dptf.h"
+#include "CommandHandler.h"
+#include "Commands.h"
+using namespace std;
 
-namespace ParticipantRole
+class dptf_export CommandDispatch
 {
-	enum Type
-	{
-		NA = 0,
-		Target,
-		Source
-	};
-
-	dptf_export std::string ToString(ParticipantRole::Type role);
-}
+public:
+	CommandDispatch();
+	pair<esif_error_t, string> dispatchCommand(string appcmd, UInt32 argc, EsifDataPtr argv, DptfManagerInterface *dptfManager);
+	~CommandDispatch();
+};

@@ -15,10 +15,12 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
 #include <stdarg.h>
 #include <ctype.h>
 
 #define _ISTRING_CLASS
+#include "esif_ccb_string.h"
 #include "esif_lib_istring.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS

@@ -60,18 +60,14 @@ public:
 
 	// Active Controls
 	ActiveControlStaticCaps getActiveControlStaticCaps(void);
+	ActiveControlDynamicCaps getActiveControlDynamicCaps(void);
 	ActiveControlStatus getActiveControlStatus(void);
 	ActiveControlSet getActiveControlSet(void);
-	void setActiveControl(UIntN policyIndex, UIntN controlIndex);
 	void setActiveControl(UIntN policyIndex, const Percentage& fanSpeed);
 
 	// Activity Status
-	UInt32 getEnergyThreshold();
-	void setEnergyThreshold(UInt32 energyThreshold);
-	Temperature getPowerShareTemperatureThreshold();
 	Percentage getUtilizationThreshold();
 	Percentage getResidencyUtilization();
-	void setEnergyThresholdInterruptDisable();
 
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(void);
@@ -96,6 +92,15 @@ public:
 	void setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 	void setDisplayCapsLock(UIntN policyIndex, Bool lock);
 
+	//Energy Controls
+	UInt32 getRaplEnergyCounter();
+	double getRaplEnergyUnit();
+	UInt32 getRaplEnergyCounterWidth();
+	Power getInstantaneousPower();
+	UInt32 getEnergyThreshold();
+	void setEnergyThreshold(UInt32 energyThreshold);
+	void setEnergyThresholdInterruptDisable();
+
 	// Peak Power Controls
 	Power getACPeakPower(void);
 	void setACPeakPower(UIntN policyIndex, const Power& acPeakPower);
@@ -116,6 +121,7 @@ public:
 	void setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
 	Bool isPowerLimitEnabled(PowerControlType::Type controlType);
 	Power getPowerLimit(PowerControlType::Type controlType);
+	Power getPowerLimitWithoutCache(PowerControlType::Type controlType);
 	void setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	void setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	TimeSpan getPowerLimitTimeWindow(PowerControlType::Type controlType);
@@ -134,11 +140,7 @@ public:
 	TimeSpan getFastPollTime();
 	TimeSpan getSlowPollTime();
 	TimeSpan getWeightedSlowPollAvgConstant();
-	UInt32 getRaplEnergyCounter();
-	double getRaplEnergyUnit();
-	UInt32 getRaplEnergyCounterWidth();
 	Power getSlowPollPowerThreshold();
-	Power getInstantaneousPower();
 
 	// Power status
 	PowerStatus getPowerStatus(void);
@@ -196,6 +198,7 @@ public:
 	TemperatureStatus getTemperatureStatus(void);
 	TemperatureThresholds getTemperatureThresholds(void);
 	void setTemperatureThresholds(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
+	Temperature getPowerShareTemperatureThreshold();
 	DptfBuffer getVirtualSensorCalibrationTable(void);
 	DptfBuffer getVirtualSensorPollingTable(void);
 	Bool isVirtualTemperature(void);
@@ -230,6 +233,7 @@ private:
 
 	// Active Controls
 	ActiveControlStaticCaps* m_activeControlStaticCaps;
+	ActiveControlDynamicCaps* m_activeControlDynamicCaps;
 	ActiveControlStatus* m_activeControlStatus;
 	ActiveControlSet* m_activeControlSet;
 

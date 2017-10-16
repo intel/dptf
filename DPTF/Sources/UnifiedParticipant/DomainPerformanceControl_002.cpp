@@ -137,8 +137,10 @@ void DomainPerformanceControl_002::setPerformanceControlDynamicCaps(
 	auto throttlingStateSet = getThrottlingStateSet(domainIndex);
 	auto performanceStateSet = getPerformanceStateSet(domainIndex);
 
-	auto pstateLowerLimit = 0;
-	auto tstateLowerLimit = 0;
+	auto pstateUpperLimit = upperLimitIndex;
+	auto tstateUpperLimit = Constants::Invalid;
+	auto pstateLowerLimit = lowerLimitIndex;
+	auto tstateLowerLimit = Constants::Invalid;
 
 	if (upperLimitIndex != Constants::Invalid && lowerLimitIndex != Constants::Invalid)
 	{
@@ -146,46 +148,80 @@ void DomainPerformanceControl_002::setPerformanceControlDynamicCaps(
 		auto tstateSetSize = throttlingStateSet.getCount();
 		auto combinedSet = getPerformanceControlSet(participantIndex, domainIndex);
 		auto combinedSetSize = combinedSet.getCount();
+
 		if (upperLimitIndex >= combinedSetSize)
 		{
 			throw dptf_exception("Upper Limit index is out of control set bounds.");
 		}
-		else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= combinedSetSize)
+		else if (upperLimitIndex < pstateSetSize)
 		{
+			pstateUpperLimit = upperLimitIndex;
+			tstateUpperLimit = (tstateSetSize > 0) ? 0 : Constants::Invalid;
+		}
+		else
+		{
+			pstateUpperLimit = pstateSetSize - 1;
+			tstateUpperLimit = (tstateSetSize > 0) ? (isFirstTstateDeleted(domainIndex) ? upperLimitIndex - pstateSetSize + 1 : upperLimitIndex - pstateSetSize) : Constants::Invalid;
+		}
+
+		if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= combinedSetSize)
+		{
+			// If requested lower limit is out of bounds or upper limit is higher than lower limit (shouldn't happen when arbitrating)
+			// Set _PDL and _TDL to the bottom index of their sets
 			pstateLowerLimit = pstateSetSize - 1;
-			tstateLowerLimit = tstateSetSize - 1;
+			tstateLowerLimit = (tstateSetSize > 0) ? tstateSetSize - 1 : Constants::Invalid;
 			getParticipantServices()->writeMessageWarning(
 				ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
 		}
-		else if (lowerLimitIndex > pstateSetSize - 1)
+		else if (lowerLimitIndex < pstateSetSize)
+		{
+			pstateLowerLimit = lowerLimitIndex;
+			tstateLowerLimit = (tstateSetSize > 0) ? 0 : Constants::Invalid;
+		}
+		else
 		{
 			pstateLowerLimit = pstateSetSize - 1;
-			if (isFirstTstateDeleted(domainIndex))
-			{
-				tstateLowerLimit = combinedSetSize - tstateSetSize;
-			}
-			else
-			{
-				tstateLowerLimit = combinedSetSize - tstateSetSize - 1;
-			}
+			tstateLowerLimit = (tstateSetSize > 0) ? (isFirstTstateDeleted(domainIndex) ? lowerLimitIndex - pstateSetSize + 1 : lowerLimitIndex - pstateSetSize) : Constants::Invalid;
 		}
 	}
 
 	m_performanceControlDynamicCaps.invalidate();
 
-	getParticipantServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_PROC_PERF_PSTATE_DEPTH_LIMIT,
-		pstateLowerLimit,
-		domainIndex,
-		Constants::Esif::NoPersistInstance);
-	getParticipantServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_PROC_PERF_TSTATE_DEPTH_LIMIT,
-		tstateLowerLimit,
-		domainIndex,
-		Constants::Esif::NoPersistInstance);
+	if (pstateLowerLimit != Constants::Invalid)
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PROC_PERF_PSTATE_DEPTH_LIMIT,
+			pstateLowerLimit,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
 
-	// TODO: allow DPTF to change the MAX limit
-	getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, "Currently DPTF cannot change the MAX limit."));
+	if (tstateLowerLimit != Constants::Invalid)
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PROC_PERF_TSTATE_DEPTH_LIMIT,
+			tstateLowerLimit,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
+
+	if (pstateUpperLimit != Constants::Invalid)
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PARTICIPANT_MAX_PERF_STATE,
+			pstateUpperLimit,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
+
+	if (tstateUpperLimit != Constants::Invalid)
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PROC_MAX_THROTTLE_STATE,
+			tstateUpperLimit,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
 }
 
 void DomainPerformanceControl_002::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
@@ -232,6 +268,28 @@ void DomainPerformanceControl_002::clearCachedData(void)
 				depthLimitBuffer.size(),
 				0,
 				Constants::Esif::NoInstance);
+
+			DptfBuffer upperLimitBuffer = createResetPrimitiveTupleBinary(
+				esif_primitive_type::SET_PARTICIPANT_MAX_PERF_STATE, Constants::Esif::NoPersistInstance);
+			getParticipantServices()->primitiveExecuteSet(
+				esif_primitive_type::SET_CONFIG_RESET,
+				ESIF_DATA_BINARY,
+				upperLimitBuffer.get(),
+				upperLimitBuffer.size(),
+				upperLimitBuffer.size(),
+				0,
+				Constants::Esif::NoInstance);
+
+			upperLimitBuffer = createResetPrimitiveTupleBinary(
+				esif_primitive_type::SET_PROC_MAX_THROTTLE_STATE, Constants::Esif::NoPersistInstance);
+			getParticipantServices()->primitiveExecuteSet(
+				esif_primitive_type::SET_CONFIG_RESET,
+				ESIF_DATA_BINARY,
+				upperLimitBuffer.get(),
+				upperLimitBuffer.size(),
+				upperLimitBuffer.size(),
+				0,
+				Constants::Esif::NoInstance);
 		}
 		catch (...)
 		{
@@ -267,17 +325,17 @@ PerformanceControlDynamicCaps DomainPerformanceControl_002::createPerformanceCon
 
 	// Arbitrate dynamic caps
 	// Upper Limit
-	UIntN performanceUpperLimitIndex = Constants::Invalid;
-	UIntN performanceLowerLimitIndex = Constants::Invalid;
+	UIntN overallUpperLimitIndex = Constants::Invalid;
+	UIntN overallLowerLimitIndex = Constants::Invalid;
 	arbitratePerformanceStateLimits(
 		domainIndex,
 		pStateUpperLimitIndex,
 		pStateLowerLimitIndex,
 		tStateUpperLimitIndex,
 		tStateLowerLimitIndex,
-		performanceUpperLimitIndex,
-		performanceLowerLimitIndex);
-	return PerformanceControlDynamicCaps(performanceLowerLimitIndex, performanceUpperLimitIndex);
+		overallUpperLimitIndex,
+		overallLowerLimitIndex);
+	return PerformanceControlDynamicCaps(overallLowerLimitIndex, overallUpperLimitIndex);
 }
 
 void DomainPerformanceControl_002::calculatePerformanceStateLimits(
@@ -307,20 +365,17 @@ void DomainPerformanceControl_002::calculatePerformanceStateLimits(
 
 	if (pStateUpperLimitIndex >= performanceStateSetSize)
 	{
-		throw dptf_exception("Retrieved upper P-state index limit is out of control set bounds. (P-States)");
+		pStateUpperLimitIndex = 0;
+		getParticipantServices()->writeMessageWarning(
+			ParticipantMessage(FLF, "Retrieved upper P-state index limit is out of control set bounds, ignoring upper index limit."));
 	}
 
-	if (pStateLowerLimitIndex >= performanceStateSetSize)
-	{
-		throw dptf_exception("Retrieved lower P-state index limit is out of control set bounds. (P-States)");
-	}
-
-	if (pStateUpperLimitIndex > pStateLowerLimitIndex)
+	if (pStateLowerLimitIndex >= performanceStateSetSize || pStateUpperLimitIndex > pStateLowerLimitIndex)
 	{
 		// If the limits are bad, ignore the lower limit.  Don't fail this control.
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
 		pStateLowerLimitIndex = static_cast<UIntN>(performanceStateSetSize - 1);
+		getParticipantServices()->writeMessageWarning(
+			ParticipantMessage(FLF, "P-state limit indexes are mismatched, ignoring lower index limit."));
 	}
 }
 
@@ -354,27 +409,19 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(
 		tStateLowerLimitIndex = static_cast<UIntN>(throttlingStateSetSize - 1);
 	}
 
-	if (isFirstTstateDeleted(domainIndex) && tStateLowerLimitIndex != 0)
-	{
-		tStateLowerLimitIndex--;
-	}
-
 	if (tStateUpperLimitIndex >= throttlingStateSetSize)
 	{
-		throw dptf_exception("Retrieved upper T-state index limit out of control set bounds. (T-States)");
+		tStateUpperLimitIndex = 0;
+		getParticipantServices()->writeMessageWarning(
+			ParticipantMessage(FLF, "Retrieved upper T-state index limit is out of control set bounds, ignoring upper index limit."));
 	}
 
-	if (tStateLowerLimitIndex >= throttlingStateSetSize)
-	{
-		throw dptf_exception("Retrieved lower T-state index limit is out of control set bounds. (T-States)");
-	}
-
-	if (tStateUpperLimitIndex > tStateLowerLimitIndex)
+	if (tStateLowerLimitIndex >= throttlingStateSetSize || tStateUpperLimitIndex > tStateLowerLimitIndex)
 	{
 		// If the limits are bad, ignore the lower limit.  Don't fail this control.
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
 		tStateLowerLimitIndex = static_cast<UIntN>(throttlingStateSetSize - 1);
+		getParticipantServices()->writeMessageWarning(
+			ParticipantMessage(FLF, "T-state limit indexes are mismatched, ignoring lower index limit."));
 	}
 }
 
@@ -384,64 +431,30 @@ void DomainPerformanceControl_002::arbitratePerformanceStateLimits(
 	UIntN pStateLowerLimitIndex,
 	UIntN tStateUpperLimitIndex,
 	UIntN tStateLowerLimitIndex,
-	UIntN& performanceUpperLimitIndex,
-	UIntN& performanceLowerLimitIndex)
+	UIntN& overallUpperLimitIndex,
+	UIntN& overallLowerLimitIndex)
 {
 	auto performanceStateSetSize = getPerformanceStateSet(domainIndex).getCount();
 	auto throttlingStateSetSize = getThrottlingStateSet(domainIndex).getCount();
 
-	if (pStateUpperLimitIndex == (performanceStateSetSize - 1)
-		&& pStateLowerLimitIndex == (performanceStateSetSize - 1))
+	overallUpperLimitIndex = pStateUpperLimitIndex;
+	if ((pStateUpperLimitIndex >= performanceStateSetSize - 1 || tStateUpperLimitIndex != 0) && throttlingStateSetSize > 0) // If _PPC is P(n) or _TPC is non-zero, ignore P-States
 	{
-		if (throttlingStateSetSize > 0)
-		{
-			performanceUpperLimitIndex = static_cast<UIntN>(performanceStateSetSize + tStateUpperLimitIndex);
-		}
-		else
-		{
-			performanceUpperLimitIndex = pStateUpperLimitIndex;
-		}
+		overallUpperLimitIndex = isFirstTstateDeleted(domainIndex) ? performanceStateSetSize + tStateUpperLimitIndex - 1 : performanceStateSetSize + tStateUpperLimitIndex;
 	}
-	else
-	{
-		// Ignore PPC/PDL if TPC is non-zero, ignore P-states
-		if (tStateUpperLimitIndex != 0)
-		{
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "P-states are being ignored because of the T-State upper dynamic cap."));
-			performanceUpperLimitIndex = static_cast<UIntN>(performanceStateSetSize + tStateUpperLimitIndex);
-		}
-		performanceUpperLimitIndex = pStateUpperLimitIndex;
-	}
-	performanceUpperLimitIndex = std::max(performanceUpperLimitIndex, m_tdpFrequencyLimitControlIndex);
-	getParticipantServices()->writeMessageDebug(ParticipantMessage(
-		FLF, "Performance upper limit index is: " + std::to_string(performanceUpperLimitIndex)));
 
-	//  Lower Limit
-	if (pStateLowerLimitIndex == (performanceStateSetSize - 1))
-	{
-		// Lower P is P(n)
-		if (throttlingStateSetSize == 0)
-		{
-			performanceLowerLimitIndex = pStateLowerLimitIndex;
-		}
-		else
-		{
-			performanceLowerLimitIndex = static_cast<UIntN>(performanceStateSetSize + tStateLowerLimitIndex);
-		}
-	}
-	else
-	{
-		// Lower P is NOT P(n), ignore T-states
-		performanceLowerLimitIndex = pStateLowerLimitIndex;
-		if (throttlingStateSetSize > 0)
-		{
-			getParticipantServices()->writeMessageWarning(
-				ParticipantMessage(FLF, "T-states are being ignored because of the P-State lower dynamic cap."));
-		}
-	}
+	overallUpperLimitIndex = std::max(overallUpperLimitIndex, m_tdpFrequencyLimitControlIndex);
 	getParticipantServices()->writeMessageDebug(ParticipantMessage(
-		FLF, "Performance lower limit index is: " + std::to_string(performanceLowerLimitIndex)));
+		FLF, "Performance upper limit index is: " + std::to_string(overallUpperLimitIndex)));
+
+	overallLowerLimitIndex = pStateLowerLimitIndex;
+	if (pStateLowerLimitIndex >= performanceStateSetSize - 1 && throttlingStateSetSize > 0) // _PDL is P(n)
+	{
+		overallLowerLimitIndex = isFirstTstateDeleted(domainIndex) ? performanceStateSetSize + tStateLowerLimitIndex - 1 : performanceStateSetSize + tStateLowerLimitIndex;
+	}
+
+	getParticipantServices()->writeMessageDebug(ParticipantMessage(
+		FLF, "Performance lower limit index is: " + std::to_string(overallLowerLimitIndex)));
 }
 
 PerformanceControlSet DomainPerformanceControl_002::createPerformanceStateSet(UIntN domainIndex)
@@ -506,16 +519,16 @@ Bool DomainPerformanceControl_002::isFirstTstateDeleted(UIntN domainIndex)
 		if (performanceStateSet.getCount() > 0)
 		{
 			throttlingStateSet = getThrottlingStateSet(domainIndex);
-		}
 
-		// Removing the first Tstate if the last Pstate and first Tstate are same.
-		if (performanceStateSet.getCount() > 0 && throttlingStateSet.getCount() > 0)
-		{
-			auto lastPstateIndex = performanceStateSet.getCount() - 1;
-			if (performanceStateSet[lastPstateIndex].getControlAbsoluteValue()
-				== throttlingStateSet[0].getControlAbsoluteValue())
+			// Removing the first Tstate if the last Pstate and first Tstate are same.
+			if (throttlingStateSet.getCount() > 0)
 			{
-				m_isFirstTstateDeleted.set(true);
+				auto lastPstateIndex = performanceStateSet.getCount() - 1;
+				if (performanceStateSet[lastPstateIndex].getControlAbsoluteValue()
+					== throttlingStateSet[0].getControlAbsoluteValue())
+				{
+					m_isFirstTstateDeleted.set(true);
+				}
 			}
 		}
 	}

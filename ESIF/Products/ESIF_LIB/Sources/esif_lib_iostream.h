@@ -19,6 +19,7 @@
 #define _IOSTREAM_H_
 
 #include <stdio.h>
+#include <errno.h>
 
 #include "esif_lib.h"
 #include "esif_lib_istringlist.h"

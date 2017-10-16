@@ -16,18 +16,21 @@
 **
 ******************************************************************************/
 
-#include "ParticipantRole.h"
+#pragma once
 
-std::string ParticipantRole::ToString(ParticipantRole::Type role)
+#include "Dptf.h"
+
+class DomainEnergyControlInterface
 {
-	switch (role)
-	{
-	case ParticipantRole::Target:
-		return "Target";
-	case ParticipantRole::Source:
-		return "Source";
-	case ParticipantRole::NA:
-	default:
-		return Constants::InvalidString;
-	}
-}
+public:
+	virtual ~DomainEnergyControlInterface() {};
+	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) = 0;
+	virtual void setEnergyThresholdInterruptDisable(
+		UIntN participantIndex,
+		UIntN domainIndex) = 0;
+};

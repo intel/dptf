@@ -158,6 +158,11 @@ string PassivePolicy::getStatusAsXml(void) const
 	return statusString;
 }
 
+string PassivePolicy::getDiagnosticsAsXml(void) const
+{
+	return "Passive Policy Diagnostics Not Yet Implemented\n";
+}
+
 void PassivePolicy::onBindParticipant(UIntN participantIndex)
 {
 	getParticipantTracker()->remember(participantIndex);
@@ -253,7 +258,7 @@ void PassivePolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 
 void PassivePolicy::onDomainPowerControlCapabilityChanged(UIntN participantIndex)
 {
-	if (participantIsSourceDevice(participantIndex))
+	if (getParticipantTracker()->remembers(participantIndex))
 	{
 		auto participant = getParticipantTracker()->getParticipant(participantIndex);
 		auto domainIndexes = participant->getDomainIndexes();
@@ -279,7 +284,7 @@ void PassivePolicy::onDomainPowerControlCapabilityChanged(UIntN participantIndex
 
 void PassivePolicy::onDomainPerformanceControlCapabilityChanged(UIntN participantIndex)
 {
-	if (participantIsSourceDevice(participantIndex))
+	if (getParticipantTracker()->remembers(participantIndex))
 	{
 		auto participant = getParticipantTracker()->getParticipant(participantIndex);
 		auto domainIndexes = participant->getDomainIndexes();
@@ -305,7 +310,7 @@ void PassivePolicy::onDomainPerformanceControlCapabilityChanged(UIntN participan
 
 void PassivePolicy::onDomainPerformanceControlsChanged(UIntN participantIndex)
 {
-	if (participantIsSourceDevice(participantIndex))
+	if (getParticipantTracker()->remembers(participantIndex))
 	{
 		auto participant = getParticipantTracker()->getParticipant(participantIndex);
 		auto domainIndexes = participant->getDomainIndexes();
@@ -329,7 +334,7 @@ void PassivePolicy::onDomainPerformanceControlsChanged(UIntN participantIndex)
 
 void PassivePolicy::onDomainCoreControlCapabilityChanged(UIntN participantIndex)
 {
-	if (participantIsSourceDevice(participantIndex))
+	if (getParticipantTracker()->remembers(participantIndex))
 	{
 		auto participant = getParticipantTracker()->getParticipant(participantIndex);
 		auto domainIndexes = participant->getDomainIndexes();
@@ -355,7 +360,7 @@ void PassivePolicy::onDomainCoreControlCapabilityChanged(UIntN participantIndex)
 
 void PassivePolicy::onDomainDisplayControlCapabilityChanged(UIntN participantIndex)
 {
-	if (participantIsSourceDevice(participantIndex))
+	if (getParticipantTracker()->remembers(participantIndex))
 	{
 		auto participant = getParticipantTracker()->getParticipant(participantIndex);
 		auto domainIndexes = participant->getDomainIndexes();
@@ -380,7 +385,7 @@ void PassivePolicy::onDomainDisplayControlCapabilityChanged(UIntN participantInd
 
 void PassivePolicy::onDomainPriorityChanged(UIntN participantIndex)
 {
-	if (participantIsSourceDevice(participantIndex))
+	if (getParticipantTracker()->remembers(participantIndex))
 	{
 		auto participant = getParticipantTracker()->getParticipant(participantIndex);
 		auto domainIndexes = participant->getDomainIndexes();

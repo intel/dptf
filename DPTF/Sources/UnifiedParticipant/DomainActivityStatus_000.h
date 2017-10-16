@@ -34,14 +34,8 @@ public:
 		UIntN domainIndex,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
-	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) override;
-	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setEnergyThresholdInterruptDisable(
-		UIntN participantIndex,
-		UIntN domainIndex) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

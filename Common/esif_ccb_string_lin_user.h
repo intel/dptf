@@ -55,8 +55,16 @@ static ESIF_INLINE char *esif_ccb_strcat(
 	return dst;
 }
 
+/* Safe strlen that only checks within given buffer length and allows NULL strings */
+static ESIF_INLINE size_t esif_ccb_strlen(
+	const char *str,
+	size_t siz
+	)
+{
+	return (str ? strnlen(str, siz) : 0);
+}
+
 #define esif_ccb_sprintf(siz, str, fmt, ...)	snprintf(str, siz, fmt, ##__VA_ARGS__)
-#define esif_ccb_strlen(str, siz)		strnlen(str, siz)
 #define esif_ccb_strpbrk(str, set)		strpbrk(str, set)
 #define esif_ccb_strcspn(str, set)		strcspn(str, set)
 

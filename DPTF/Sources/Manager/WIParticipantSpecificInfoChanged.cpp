@@ -46,13 +46,13 @@ void WIParticipantSpecificInfoChanged::execute(void)
 	}
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeParticipantSpecificInfoChanged(getParticipantIndex());
 		}
 		catch (policy_index_invalid ex)
@@ -61,11 +61,11 @@ void WIParticipantSpecificInfoChanged::execute(void)
 		}
 		catch (temperature_out_of_range ex)
 		{
-			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
+			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", *i);
 		}
 		catch (std::exception& ex)
 		{
-			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", i);
+			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", *i);
 		}
 	}
 }

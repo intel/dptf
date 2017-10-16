@@ -47,13 +47,13 @@ void WIDomainVirtualSensorPollingTableChanged::execute(void)
 	}
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainVirtualSensorPollingTableChanged(getParticipantIndex());
 		}
 		catch (policy_index_invalid ex)
@@ -62,7 +62,7 @@ void WIDomainVirtualSensorPollingTableChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorPollingTableChanged", i);
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainVirtualSensorPollingTableChanged", *i);
 		}
 	}
 }

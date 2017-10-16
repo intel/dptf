@@ -40,8 +40,8 @@
 #endif
 
 // Limits
-#define MAX_EDP_SIZE    0x7fffffff
-#define MAX_FPC_SIZE    0x7ffffffe
+#define MAX_EDP_SIZE    0x7ffffffe
+#define MAX_FPC_SIZE    0x7ffffffd
 
 #define MIN_VIABLE_DSP_WEIGHT 1
 
@@ -701,11 +701,11 @@ static eEsifError esif_dsp_entry_create(struct esif_ccb_file *file_ptr)
 			ESIF_TRACE_ERROR("Invalid EDP Header: Signature=%4.4s Version=%d\n", (char *)&edp_dir.signature, edp_dir.version);
 			goto exit;
 		}
-		fpcSize = edpSize - edp_dir.fpc_offset;
-		if (edpSize > MAX_EDP_SIZE || fpcSize > MAX_FPC_SIZE) {
+		if (edpSize > MAX_EDP_SIZE || edp_dir.fpc_offset > MAX_FPC_SIZE || edp_dir.fpc_offset > edpSize) {
 			ESIF_TRACE_ERROR("The edp or fpc file size is larger than maximum\n");
 			goto exit;
 		}
+		fpcSize = edpSize - edp_dir.fpc_offset;
 		IOStream_Seek(ioPtr, edp_dir.fpc_offset, SEEK_SET);
 		ESIF_TRACE_DEBUG("File found (%s) size %u, FPC size %u from offset %u", path, edpSize, fpcSize, edp_dir.fpc_offset);
 	} else {

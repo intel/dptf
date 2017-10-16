@@ -59,6 +59,10 @@ void DomainControlList::makeAllControls()
 		makeControl<DomainDisplayControlBase>(
 			ControlFactoryType::Display, m_domainFunctionalityVersions.displayControlVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
+		ControlFactoryType::EnergyControl,
+		makeControl<DomainEnergyControlBase>(
+			ControlFactoryType::EnergyControl, m_domainFunctionalityVersions.energyControlVersion)));
+	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::PeakPowerControl,
 		makeControl<DomainPeakPowerControlBase>(
 			ControlFactoryType::PeakPowerControl, m_domainFunctionalityVersions.peakPowerControlVersion)));
@@ -179,6 +183,11 @@ std::shared_ptr<DomainCoreControlBase> DomainControlList::getCoreControl(void)
 std::shared_ptr<DomainDisplayControlBase> DomainControlList::getDisplayControl(void)
 {
 	return dynamic_pointer_cast<DomainDisplayControlBase>(m_controlList.at(ControlFactoryType::Display));
+}
+
+std::shared_ptr<DomainEnergyControlBase> DomainControlList::getEnergyControl(void)
+{
+	return dynamic_pointer_cast<DomainEnergyControlBase>(m_controlList.at(ControlFactoryType::EnergyControl));
 }
 
 std::shared_ptr<DomainPeakPowerControlBase> DomainControlList::getPeakPowerControl(void)

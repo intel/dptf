@@ -25,6 +25,7 @@
 #include "PolicyServicesDomainConfigTdpControl.h"
 #include "PolicyServicesDomainCoreControl.h"
 #include "PolicyServicesDomainDisplayControl.h"
+#include "PolicyServicesDomainEnergyControl.h"
 #include "PolicyServicesDomainPeakPowerControl.h"
 #include "PolicyServicesDomainPerformanceControl.h"
 #include "PolicyServicesDomainPowerControl.h"
@@ -72,7 +73,7 @@ Policy::~Policy(void)
 void Policy::createPolicy(
 	const std::string& policyFileName,
 	UIntN newPolicyIndex,
-	const SupportedPolicyList& supportedPolicyList)
+	std::shared_ptr<SupportedPolicyList> supportedPolicyList)
 {
 	// If an exception is thrown while trying to create the policy, the PolicyManager will
 	// delete the Policy instance and remove the policy completely.
@@ -98,7 +99,7 @@ void Policy::createPolicy(
 	{
 		std::stringstream message;
 		message << m_policyFileName << ": Policy application version, " << policyAppVersion.toString()
-				<< ", does not match the manager app version of " << managerAppVersion.toString() << ".";
+			<< ", does not match the manager app version of " << managerAppVersion.toString() << ".";
 		throw dptf_exception(message.str());
 	}
 
@@ -116,12 +117,12 @@ void Policy::createPolicy(
 
 	m_guid = m_theRealPolicy->getGuid();
 
-	Bool policySupported = supportedPolicyList.isPolicyValid(m_guid);
+	Bool policySupported = supportedPolicyList->isPolicySupported(m_guid);
 	if (policySupported == false)
 	{
 		std::stringstream message;
 		message << "Policy [" << m_policyFileName << "] will not be loaded.  GUID not in supported policy list ["
-				<< m_guid << "]";
+			<< m_guid << "]";
 		m_dptfManager->getEsifServices()->writeMessageWarning(message.str());
 		throw policy_not_in_idsp_list();
 	}
@@ -205,9 +206,19 @@ std::string Policy::getName(void) const
 	return m_policyName;
 }
 
+std::string Policy::getPolicyFileName(void) const
+{
+	return m_policyFileName;
+}
+
 std::string Policy::getStatusAsXml(void) const
 {
 	return m_theRealPolicy->getStatusAsXml();
+}
+
+std::string Policy::getDiagnosticsAsXml(void) const
+{
+	return m_theRealPolicy->getDiagnosticsAsXml();
 }
 
 void Policy::executeConnectedStandbyEntry(void)
@@ -645,7 +656,7 @@ void Policy::sendPolicyLogDataIfLoggingEnabled(Bool loaded)
 			esif_ccb_strncpy(policyData.policyFileName, m_policyFileName.c_str(), sizeof(policyData.policyFileName));
 
 			esif_data esifEventData = {
-				esif_data_type::ESIF_DATA_STRUCTURE, &policyData, sizeof(policyData), sizeof(policyData)};
+				esif_data_type::ESIF_DATA_STRUCTURE, &policyData, sizeof(policyData), sizeof(policyData) };
 
 			m_dptfManager->getEsifServices()->sendDptfEvent(
 				PolicyEvent::ToFrameworkEvent(PolicyEvent::DptfPolicyLoadedUnloadedEvent),
@@ -681,6 +692,7 @@ void Policy::createPolicyServices(void)
 	m_policyServices.domainConfigTdpControl = new PolicyServicesDomainConfigTdpControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainCoreControl = new PolicyServicesDomainCoreControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainDisplayControl = new PolicyServicesDomainDisplayControl(m_dptfManager, m_policyIndex);
+	m_policyServices.domainEnergyControl = new PolicyServicesDomainEnergyControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainPeakPowerControl = new PolicyServicesDomainPeakPowerControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainPerformanceControl =
 		new PolicyServicesDomainPerformanceControl(m_dptfManager, m_policyIndex);
@@ -720,6 +732,8 @@ void Policy::destroyPolicyServices(void)
 	DELETE_MEMORY_TC(m_policyServices.domainConfigTdpControl);
 	DELETE_MEMORY_TC(m_policyServices.domainCoreControl);
 	DELETE_MEMORY_TC(m_policyServices.domainDisplayControl);
+	DELETE_MEMORY_TC(m_policyServices.domainEnergyControl);
+	DELETE_MEMORY_TC(m_policyServices.domainPeakPowerControl);
 	DELETE_MEMORY_TC(m_policyServices.domainPerformanceControl);
 	DELETE_MEMORY_TC(m_policyServices.domainPowerControl);
 	DELETE_MEMORY_TC(m_policyServices.domainPowerStatus);
@@ -728,6 +742,7 @@ void Policy::destroyPolicyServices(void)
 	DELETE_MEMORY_TC(m_policyServices.domainPriority);
 	DELETE_MEMORY_TC(m_policyServices.domainRfProfileControl);
 	DELETE_MEMORY_TC(m_policyServices.domainRfProfileStatus);
+	DELETE_MEMORY_TC(m_policyServices.domainTccOffsetControl);
 	DELETE_MEMORY_TC(m_policyServices.domainTemperature);
 	DELETE_MEMORY_TC(m_policyServices.domainUtilization);
 	DELETE_MEMORY_TC(m_policyServices.participantGetSpecificInfo);

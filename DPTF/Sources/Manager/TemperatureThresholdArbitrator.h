@@ -42,7 +42,8 @@ public:
 	Bool arbitrate(
 		UIntN policyIndex,
 		const TemperatureThresholds& temperatureThresholds,
-		const Temperature& currentTemperature);
+		const Temperature& currentTemperature,
+		const Temperature hysteresis);
 
 	TemperatureThresholds getArbitratedTemperatureThresholds(void) const;
 	void clearPolicyCachedData(UIntN policyIndex);
@@ -58,7 +59,8 @@ private:
 	void throwIfTemperatureThresholdsInvalid(
 		UIntN policyIndex,
 		const TemperatureThresholds& temperatureThresholds,
-		const Temperature& currentTemperature);
+		const Temperature& currentTemperature,
+		const Temperature hysteresis);
 	void updateTemperatureDataForPolicy(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
 	Bool findNewTemperatureThresholds(const Temperature& currentTemperature);
 

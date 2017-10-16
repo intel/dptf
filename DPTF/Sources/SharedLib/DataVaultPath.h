@@ -45,6 +45,7 @@ namespace DataVaultPath
 			static const std::string Trt = DataVaultPathBasePaths::TablesRoot + "/_trt/";
 			static const std::string Pida = DataVaultPathBasePaths::TablesRoot + "/pida/";
 			static const std::string Psha = DataVaultPathBasePaths::TablesRoot + "/psha/";
+			static const std::string Acpr = DataVaultPathBasePaths::TablesRoot + "/acpr/";
 		};
 	};
 };

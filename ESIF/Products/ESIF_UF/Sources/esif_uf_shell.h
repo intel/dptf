@@ -40,12 +40,21 @@ void esif_uf_shell_stop(void);
 void esif_uf_shell_lock();
 void esif_uf_shell_unlock();
 
+eEsifError esif_shell_dispatch(int argc, char **argv, char **output_ptr);
+eEsifError esif_shell_dispatch_cmd(const char *line, char **output_ptr);
+
 char *esif_shell_resize(size_t buf_len);
 
 void esif_shell_set_start_script(const char *script);
 const char *esif_shell_get_start_script(void);
 
-EsifString esif_cmd_info(EsifString output);
+char *esif_shell_strtok(
+	char *str,
+	char *seps,
+	char **context
+);
+
+char *esif_cmd_info(char *output);
 
 #ifdef __cplusplus
 }

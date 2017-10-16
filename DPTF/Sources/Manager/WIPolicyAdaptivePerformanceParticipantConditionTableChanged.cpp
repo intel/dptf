@@ -36,13 +36,13 @@ void WIPolicyAdaptivePerformanceParticipantConditionTableChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyAdaptivePerformanceParticipantConditionTableChanged();
 		}
 		catch (policy_index_invalid ex)
@@ -52,7 +52,7 @@ void WIPolicyAdaptivePerformanceParticipantConditionTableChanged::execute(void)
 		catch (std::exception& ex)
 		{
 			writeWorkItemErrorMessagePolicy(
-				ex, "Policy::executePolicyAdaptivePerformanceParticipantConditionTableChanged", i);
+				ex, "Policy::executePolicyAdaptivePerformanceParticipantConditionTableChanged", *i);
 		}
 	}
 }

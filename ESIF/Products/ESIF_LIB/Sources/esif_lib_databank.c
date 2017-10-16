@@ -75,6 +75,7 @@ static DataVaultPtr DataBank_GetDataVault_Locked(
 	UInt32 *indexPtr
 );
 
+static esif_error_t DataBank_RollbackRepos(DataBankPtr self);
 static esif_error_t DataBank_LoadStaticRepos(DataBankPtr self);
 static esif_error_t DataBank_LoadFileRepos(DataBankPtr self);
 static esif_error_t DataBank_LoadSpecifiedRepos(DataBankPtr self);
@@ -363,13 +364,86 @@ static esif_error_t DataBank_LoadDataVaults()
 
 	ESIF_ASSERT(self);
 
-	rc = DataBank_LoadStaticRepos(self);
+	rc = DataBank_RollbackRepos(self);
+	if (rc == ESIF_OK) {
+		rc = DataBank_LoadStaticRepos(self);
+	}
 	if (ESIF_OK == rc) {
 		rc = DataBank_LoadSpecifiedRepos(self);
 	}
 	if (ESIF_OK == rc) {
 		rc = DataBank_LoadFileRepos(self);
 	}
+	return rc;
+}
+
+// Rollback all Uncommitted *.tmp files in the current folder
+static esif_error_t DataBank_RollbackRepos(DataBankPtr self)
+{
+	esif_error_t rc = ESIF_OK;
+	esif_ccb_file_enum_t find_handle = ESIF_INVALID_FILE_ENUM_HANDLE;
+	char *extensions[] = {
+		ESIFDV_FILEEXT ESIFDV_TEMPEXT,
+		ESIFDV_FILEEXT ESIFDV_ROLLBACKEXT,
+		ESIFDV_REPOEXT ESIFDV_TEMPEXT,
+		ESIFDV_REPOEXT ESIFDV_ROLLBACKEXT };
+	char file_path[MAX_PATH] = { 0 };
+	char file_pattern[MAX_PATH] = { 0 };
+	int extid = 0;
+	int err = 0;
+
+	UNREFERENCED_PARAMETER(self);
+	UNREFERENCED_PARAMETER(err);
+
+	// Create DataVault Directory if it doesn't exit
+	esif_build_path(file_path, sizeof(file_path), ESIF_PATHTYPE_DV, NULL, NULL);
+	esif_ccb_makepath(file_path);
+
+	// Find all matching *.dv.tmp and *.dvx.tmp files and Rollback
+	for (extid = 0; extid < sizeof(extensions) / sizeof(extensions[0]); extid++) {
+		struct esif_ccb_file ffd = { 0 };
+
+		esif_ccb_sprintf(MAX_PATH, file_pattern, "*%s", extensions[extid]);
+		find_handle = esif_ccb_file_enum_first(file_path, file_pattern, &ffd);
+
+		if (ESIF_INVALID_FILE_ENUM_HANDLE != find_handle) {
+			do {
+				char temp_pathname[MAX_PATH] = { 0 };
+				char repo_pathname[MAX_PATH] = { 0 };
+				char *ext = NULL;
+				char *tempext = NULL;
+
+				// Check for init pause
+				if (g_stopEsifUfInit != ESIF_FALSE) {
+					esif_ccb_file_enum_close(find_handle);
+					ESIF_TRACE_API_INFO("Pausing DV loading\n");
+					rc = ESIF_I_INIT_PAUSED;
+					goto exit;
+				}
+
+				esif_build_path(temp_pathname, sizeof(temp_pathname), ESIF_PATHTYPE_DV, ffd.filename, NULL);
+				esif_ccb_strcpy(repo_pathname, temp_pathname, sizeof(repo_pathname));
+				
+				if (((ext = esif_ccb_strrchr(repo_pathname, '.')) != NULL) && ((tempext = esif_ccb_strrchr(ffd.filename, '.')) != NULL)) {
+					*ext = '\0';
+
+					// Recover all .temp files if .dv/.dvx file does not exist
+					if (esif_ccb_stricmp(tempext, ESIFDV_ROLLBACKEXT) == 0 && !esif_ccb_file_exists(repo_pathname)) {
+						err = esif_ccb_rename(temp_pathname, repo_pathname);
+						ESIF_TRACE_API_INFO("Recover Temp REPO %s (result=%d)\n", ffd.filename, err);
+					}
+					// Rollback all .tmp files (or .temp where .dv/.dvx exists)
+					else {
+						err = esif_ccb_unlink(temp_pathname);
+						ESIF_TRACE_API_INFO("Rollback Temp REPO %s (result=%d)\n", ffd.filename, err);
+					}
+				}
+			} while (esif_ccb_file_enum_next(find_handle, file_pattern, &ffd));
+			esif_ccb_file_enum_close(find_handle);
+		}
+	}
+
+exit:
 	return rc;
 }
 

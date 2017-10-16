@@ -27,7 +27,7 @@ class dptf_export ControlKnobBase
 {
 public:
 	ControlKnobBase(const PolicyServicesInterfaceContainer& policyServices, UIntN participantIndex, UIntN domainIndex);
-	~ControlKnobBase(void);
+	virtual ~ControlKnobBase(void);
 
 	virtual void limit(UIntN target) = 0;
 	virtual void unlimit(UIntN target) = 0;

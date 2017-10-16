@@ -34,13 +34,13 @@ void WIPolicyWorkloadHintConfigurationChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyWorkloadHintConfigurationChanged();
 		}
 		catch (policy_index_invalid ex)
@@ -49,7 +49,7 @@ void WIPolicyWorkloadHintConfigurationChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyWorkloadHintConfigurationChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyWorkloadHintConfigurationChanged", *i);
 		}
 	}
 }

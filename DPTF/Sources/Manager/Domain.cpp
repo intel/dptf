@@ -33,6 +33,7 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_domainFunctionalityVersions(DomainFunctionalityVersions())
 	, m_arbitrator(nullptr)
 	, m_activeControlStaticCaps(nullptr)
+	, m_activeControlDynamicCaps(nullptr)
 	, m_activeControlStatus(nullptr)
 	, m_activeControlSet(nullptr)
 	, m_configTdpControlDynamicCaps(nullptr)
@@ -222,6 +223,11 @@ ActiveControlStaticCaps Domain::getActiveControlStaticCaps(void)
 	FILL_CACHE_AND_RETURN(m_activeControlStaticCaps, ActiveControlStaticCaps, getActiveControlStaticCaps);
 }
 
+ActiveControlDynamicCaps Domain::getActiveControlDynamicCaps(void)
+{
+	FILL_CACHE_AND_RETURN(m_activeControlDynamicCaps, ActiveControlDynamicCaps, getActiveControlDynamicCaps);
+}
+
 ActiveControlStatus Domain::getActiveControlStatus(void)
 {
 	FILL_CACHE_AND_RETURN(m_activeControlStatus, ActiveControlStatus, getActiveControlStatus);
@@ -230,35 +236,6 @@ ActiveControlStatus Domain::getActiveControlStatus(void)
 ActiveControlSet Domain::getActiveControlSet(void)
 {
 	FILL_CACHE_AND_RETURN(m_activeControlSet, ActiveControlSet, getActiveControlSet);
-}
-
-void Domain::setActiveControl(UIntN policyIndex, UIntN controlIndex)
-{
-	ActiveControlArbitrator* activeControlArbitrator = m_arbitrator->getActiveControlArbitrator();
-	Bool shouldSetActiveControlIndex = false;
-	UIntN newControlIndex;
-
-	if (activeControlArbitrator->hasArbitratedActiveControlIndex())
-	{
-		auto currentControlIndex = activeControlArbitrator->getArbitratedActiveControlIndex();
-		newControlIndex = activeControlArbitrator->arbitrate(policyIndex, controlIndex);
-		if (currentControlIndex != newControlIndex)
-		{
-			shouldSetActiveControlIndex = true;
-		}
-	}
-	else
-	{
-		shouldSetActiveControlIndex = true;
-		newControlIndex = activeControlArbitrator->arbitrate(policyIndex, controlIndex);
-	}
-
-	if (shouldSetActiveControlIndex)
-	{
-		m_theRealParticipant->setActiveControl(m_participantIndex, m_domainIndex, newControlIndex);
-		clearDomainCachedDataActiveControl();
-	}
-	activeControlArbitrator->commitPolicyRequest(policyIndex, controlIndex);
 }
 
 void Domain::setActiveControl(UIntN policyIndex, const Percentage& fanSpeed)
@@ -290,21 +267,6 @@ void Domain::setActiveControl(UIntN policyIndex, const Percentage& fanSpeed)
 	activeControlArbitrator->commitPolicyRequest(policyIndex, fanSpeed);
 }
 
-UInt32 Domain::getEnergyThreshold()
-{
-	return m_theRealParticipant->getEnergyThreshold(m_participantIndex, m_domainIndex);
-}
-
-void Domain::setEnergyThreshold(UInt32 energyThreshold)
-{
-	m_theRealParticipant->setEnergyThreshold(m_participantIndex, m_domainIndex, energyThreshold);
-}
-
-Temperature Domain::getPowerShareTemperatureThreshold()
-{
-	return m_theRealParticipant->getPowerShareTemperatureThreshold(m_participantIndex, m_domainIndex);
-}
-
 Percentage Domain::getUtilizationThreshold()
 {
 	return m_theRealParticipant->getUtilizationThreshold(m_participantIndex, m_domainIndex);
@@ -313,12 +275,6 @@ Percentage Domain::getUtilizationThreshold()
 Percentage Domain::getResidencyUtilization()
 {
 	return m_theRealParticipant->getResidencyUtilization(m_participantIndex, m_domainIndex);
-}
-
-void Domain::setEnergyThresholdInterruptDisable()
-{
-	m_theRealParticipant->setEnergyThresholdInterruptDisable(
-		m_participantIndex, m_domainIndex);
 }
 
 ConfigTdpControlDynamicCaps Domain::getConfigTdpControlDynamicCaps(void)
@@ -490,6 +446,42 @@ void Domain::setDisplayCapsLock(UIntN policyIndex, Bool lock)
 	}
 }
 
+UInt32 Domain::getRaplEnergyCounter()
+{
+	return m_theRealParticipant->getRaplEnergyCounter(m_participantIndex, m_domainIndex);
+}
+
+double Domain::getRaplEnergyUnit()
+{
+	return m_theRealParticipant->getRaplEnergyUnit(m_participantIndex, m_domainIndex);
+}
+
+UInt32 Domain::getRaplEnergyCounterWidth()
+{
+	return m_theRealParticipant->getRaplEnergyCounterWidth(m_participantIndex, m_domainIndex);
+}
+
+Power Domain::getInstantaneousPower()
+{
+	return m_theRealParticipant->getInstantaneousPower(m_participantIndex, m_domainIndex);
+}
+
+UInt32 Domain::getEnergyThreshold()
+{
+	return m_theRealParticipant->getEnergyThreshold(m_participantIndex, m_domainIndex);
+}
+
+void Domain::setEnergyThreshold(UInt32 energyThreshold)
+{
+	m_theRealParticipant->setEnergyThreshold(m_participantIndex, m_domainIndex, energyThreshold);
+}
+
+void Domain::setEnergyThresholdInterruptDisable()
+{
+	m_theRealParticipant->setEnergyThresholdInterruptDisable(
+		m_participantIndex, m_domainIndex);
+}
+
 Power Domain::getACPeakPower(void)
 {
 	return m_theRealParticipant->getACPeakPower(m_participantIndex, m_domainIndex);
@@ -611,13 +603,14 @@ void Domain::setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceCont
 {
 	PerformanceControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPerformanceControlCapabilitiesArbitrator();
 	Bool shouldSetPerformanceCapabilities = false;
+	auto currentCaps = getPerformanceControlDynamicCaps();
 	PerformanceControlDynamicCaps newCaps(Constants::Invalid, Constants::Invalid);
 
 	if (arbitrator->hasArbitratedPerformanceControlCapabilities())
 	{
-		auto currentCaps = arbitrator->getArbitratedPerformanceControlCapabilities();
-		newCaps = arbitrator->arbitrate(policyIndex, newCapabilities);
-		if (currentCaps != newCaps)
+		auto oldCaps = arbitrator->getArbitratedPerformanceControlCapabilities(currentCaps);
+		newCaps = arbitrator->arbitrate(policyIndex, newCapabilities, currentCaps);
+		if (oldCaps != newCaps)
 		{
 			shouldSetPerformanceCapabilities = true;
 		}
@@ -625,7 +618,7 @@ void Domain::setPerformanceControlDynamicCaps(UIntN policyIndex, PerformanceCont
 	else
 	{
 		shouldSetPerformanceCapabilities = true;
-		newCaps = arbitrator->arbitrate(policyIndex, newCapabilities);
+		newCaps = arbitrator->arbitrate(policyIndex, newCapabilities, currentCaps);
 	}
 
 	if (shouldSetPerformanceCapabilities)
@@ -663,7 +656,7 @@ void Domain::setPowerControlDynamicCapsSet(UIntN policyIndex, PowerControlDynami
 	{
 		auto oldCaps = arbitrator->getArbitratedPowerControlCapabilities(currentCaps);
 		newCaps = arbitrator->arbitrate(policyIndex, capsSet, currentCaps);
-		if (oldCaps != newCaps)
+		if (oldCaps != newCaps || currentCaps != newCaps)
 		{
 			shouldSetPowerControlCapabilities = true;
 		}
@@ -701,6 +694,11 @@ Power Domain::getPowerLimit(PowerControlType::Type controlType)
 		m_powerLimit[controlType] = m_theRealParticipant->getPowerLimit(m_participantIndex, m_domainIndex, controlType);
 	}
 	return m_powerLimit.at(controlType);
+}
+
+Power Domain::getPowerLimitWithoutCache(PowerControlType::Type controlType)
+{
+	return m_theRealParticipant->getPowerLimitWithoutCache(m_participantIndex, m_domainIndex, controlType);
 }
 
 void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
@@ -871,29 +869,9 @@ TimeSpan Domain::getWeightedSlowPollAvgConstant()
 	return m_theRealParticipant->getWeightedSlowPollAvgConstant(m_participantIndex, m_domainIndex);
 }
 
-UInt32 Domain::getRaplEnergyCounter()
-{
-	return m_theRealParticipant->getRaplEnergyCounter(m_participantIndex, m_domainIndex);
-}
-
-double Domain::getRaplEnergyUnit()
-{
-	return m_theRealParticipant->getRaplEnergyUnit(m_participantIndex, m_domainIndex);
-}
-
-UInt32 Domain::getRaplEnergyCounterWidth()
-{
-	return m_theRealParticipant->getRaplEnergyCounterWidth(m_participantIndex, m_domainIndex);
-}
-
 Power Domain::getSlowPollPowerThreshold()
 {
 	return m_theRealParticipant->getSlowPollPowerThreshold(m_participantIndex, m_domainIndex);
-}
-
-Power Domain::getInstantaneousPower()
-{
-	return m_theRealParticipant->getInstantaneousPower(m_participantIndex, m_domainIndex);
 }
 
 PowerStatus Domain::getPowerStatus(void)
@@ -1188,7 +1166,7 @@ void Domain::setTemperatureThresholds(UIntN policyIndex, const TemperatureThresh
 	// The temperature has to be locked for the duration of the WIDomainTemperatureThresholdCrossed event.
 
 	m_arbitrator->getTemperatureThresholdArbitrator()->arbitrate(
-		policyIndex, temperatureThresholds, getTemperatureStatus().getCurrentTemperature());
+		policyIndex, temperatureThresholds, getTemperatureStatus().getCurrentTemperature(), getTemperatureThresholds().getHysteresis());
 	m_theRealParticipant->setTemperatureThresholds(
 		m_participantIndex,
 		m_domainIndex,
@@ -1197,6 +1175,11 @@ void Domain::setTemperatureThresholds(UIntN policyIndex, const TemperatureThresh
 	// DO NOT invalidate the temperature status (m_temperatureStatus)
 	// Only invalidate the temperature thresholds.
 	DELETE_MEMORY_TC(m_temperatureThresholds);
+}
+
+Temperature Domain::getPowerShareTemperatureThreshold()
+{
+	return m_theRealParticipant->getPowerShareTemperatureThreshold(m_participantIndex, m_domainIndex);
 }
 
 UtilizationStatus Domain::getUtilizationStatus(void)
@@ -1237,6 +1220,7 @@ void Domain::setVirtualTemperature(const Temperature& temperature)
 void Domain::clearDomainCachedDataActiveControl()
 {
 	DELETE_MEMORY_TC(m_activeControlStaticCaps);
+	DELETE_MEMORY_TC(m_activeControlDynamicCaps);
 	DELETE_MEMORY_TC(m_activeControlStatus);
 	DELETE_MEMORY_TC(m_activeControlSet);
 }

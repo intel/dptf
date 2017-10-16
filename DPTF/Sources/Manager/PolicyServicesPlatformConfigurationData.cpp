@@ -26,6 +26,7 @@ PolicyServicesPlatformConfigurationData::PolicyServicesPlatformConfigurationData
 	: PolicyServices(dptfManager, policyIndex)
 	, m_defaultSamplePeriod(TimeSpan::createInvalid())
 {
+	resetAllTables();
 }
 
 UInt32 PolicyServicesPlatformConfigurationData::readConfigurationUInt32(const std::string& key)
@@ -312,6 +313,21 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getActiveControlPointRelatio
 		esif_primitive_type::GET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE, ESIF_DATA_BINARY);
 }
 
+void PolicyServicesPlatformConfigurationData::setActiveControlPointRelationshipTable(DptfBuffer data)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSet(
+		esif_primitive_type::SET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE,
+		esif_data_type::ESIF_DATA_BINARY,
+		data.get(),
+		data.size(),
+		data.size(),
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+}
+
 DptfBuffer PolicyServicesPlatformConfigurationData::getPowerShareAlgorithmTable()
 {
 	throwIfNotWorkItemThread();
@@ -333,4 +349,178 @@ void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable(DptfBu
 		Constants::Esif::NoParticipant,
 		Constants::Esif::NoDomain,
 		Constants::Esif::NoPersistInstance);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::createResetPrimitiveTupleBinary(
+	esif_primitive_type primitive,
+	UInt8 instance) const
+{
+	esif_primitive_tuple_parameter tuple;
+	tuple.id.integer.type = esif_data_type::ESIF_DATA_UINT16;
+	tuple.id.integer.value = primitive;
+	tuple.domain.integer.type = esif_data_type::ESIF_DATA_UINT16;
+	UInt16 domainIndex = createTupleDomain();
+	tuple.domain.integer.value = domainIndex;
+	tuple.instance.integer.type = esif_data_type::ESIF_DATA_UINT16;
+	tuple.instance.integer.value = instance;
+
+	UInt32 sizeOfTuple = (UInt32)sizeof(tuple);
+	DptfBuffer buffer(sizeOfTuple);
+	buffer.put(0, (UInt8*)&tuple, sizeOfTuple);
+	return buffer;
+}
+
+UInt16 PolicyServicesPlatformConfigurationData::createTupleDomain() const
+{
+	UInt16 tupleDomain;
+	tupleDomain = (('0' + (UInt8)0) << 8) + 'D';
+	return tupleDomain;
+}
+
+void PolicyServicesPlatformConfigurationData::resetActiveRelationshipTable(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_ACTIVE_RELATIONSHIP_TABLE, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::resetThermalRelationshipTable(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_THERMAL_RELATIONSHIP_TABLE, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::resetPassiveTable(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_PASSIVE_RELATIONSHIP_TABLE, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::resetPidAlgorithmTable(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_PID_ALGORITHM_TABLE, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::resetActiveControlPointRelationshipTable(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::resetPowerShareAlgorithmTable(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_POWER_SHARING_ALGORITHM_TABLE, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::resetAllTables(void)
+{
+	resetActiveRelationshipTable();
+	resetThermalRelationshipTable();
+	resetPassiveTable();
+	resetPidAlgorithmTable();
+	resetActiveControlPointRelationshipTable();
+	resetPowerShareAlgorithmTable();
 }

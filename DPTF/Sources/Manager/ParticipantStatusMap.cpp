@@ -117,3 +117,25 @@ std::shared_ptr<XmlNode> ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
 		return XmlNode::createRoot();
 	}
 }
+
+std::shared_ptr<XmlNode> ParticipantStatusMap::getDiagnosticsAsXml(UIntN mappedIndex)
+{
+	try
+	{
+		if (m_participantDomainsList.size() == 0)
+		{
+			buildParticipantDomainsList();
+		}
+
+		UIntN participantIndex = m_participantDomainsList[mappedIndex].first;
+		UIntN domainIndex = m_participantDomainsList[mappedIndex].second;
+
+		Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
+		return participant->getDiagnosticsAsXml(domainIndex);
+	}
+	catch (...)
+	{
+		// Participant not available
+		return XmlNode::createRoot();
+	}
+}

@@ -26,10 +26,10 @@ WIDomainCoreControlCapabilityChanged::WIDomainCoreControlCapabilityChanged(
 	UIntN participantIndex,
 	UIntN domainIndex)
 	: DomainWorkItem(
-		  dptfManager,
-		  FrameworkEvent::Type::DomainCoreControlCapabilityChanged,
-		  participantIndex,
-		  domainIndex)
+		dptfManager,
+		FrameworkEvent::Type::DomainCoreControlCapabilityChanged,
+		participantIndex,
+		domainIndex)
 {
 }
 
@@ -51,13 +51,13 @@ void WIDomainCoreControlCapabilityChanged::execute(void)
 	}
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainCoreControlCapabilityChanged(getParticipantIndex());
 		}
 		catch (policy_index_invalid ex)
@@ -66,7 +66,7 @@ void WIDomainCoreControlCapabilityChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainCoreControlCapabilityChanged", i);
+			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainCoreControlCapabilityChanged", *i);
 		}
 	}
 }

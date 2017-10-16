@@ -108,6 +108,12 @@ public:
 	policy_index_invalid();
 };
 
+class policy_already_exists : public dptf_exception
+{
+public:
+	policy_already_exists();
+};
+
 class policy_not_in_idsp_list : public dptf_exception
 {
 public:
@@ -130,6 +136,12 @@ class primitive_not_found_in_dsp : public dptf_exception
 {
 public:
 	primitive_not_found_in_dsp(const std::string& description);
+};
+
+class acpi_object_not_found : public dptf_exception
+{
+public:
+	acpi_object_not_found(const std::string& description);
 };
 
 // FIXME: implement_me is in place until we implement the function.  we should

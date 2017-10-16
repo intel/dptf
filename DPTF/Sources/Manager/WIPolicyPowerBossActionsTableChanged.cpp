@@ -34,13 +34,13 @@ void WIPolicyPowerBossActionsTableChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyPowerBossActionsTableChanged();
 		}
 		catch (policy_index_invalid ex)
@@ -49,7 +49,7 @@ void WIPolicyPowerBossActionsTableChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyPowerBossActionsTableChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyPowerBossActionsTableChanged", *i);
 		}
 	}
 }

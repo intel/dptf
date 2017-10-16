@@ -1,4 +1,20 @@
 ################################################################################
+## Copyright (c) 2013-2016 Intel Corporation All Rights Reserved
+##
+## The source code, information and material ("Material") contained herein is
+## owned by Intel Corporation or its suppliers or licensors, and title to such
+## Material remains with Intel Corporation or its suppliers or licensors. The
+## Material contains proprietary information of Intel or its suppliers and
+## licensors. The Material is protected by worldwide copyright laws and treaty
+## provisions. No part of the Material may be used, copied, reproduced,
+## modified, published, uploaded, posted, transmitted, distributed or disclosed
+## in any way without Intel's prior express written permission. No license
+## under any patent, copyright or other intellectual property rights in the
+## Material is granted to or conferred upon you, either expressly, by
+## implication, inducement, estoppel or otherwise. Any license under such
+## intellectual property rights must be express and approved by Intel in
+## writing.
+##
 ## Copyright (C) 2006 The Android Open Source Project
 ##
 ## Unless otherwise agreed by Intel in writing, you may not remove or alter
@@ -26,11 +42,9 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libc++_shared.so
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
-ifeq ($(BOARD_USE_64BIT_USERSPACE),true)
 # 64b-specific C++ STL libraries:
-LOCAL_SRC_FILES := x86_64/libc++_shared.so
-else
+LOCAL_SRC_FILES_64 := x86_64/libc++_shared.so
 # 32b-specific C++ STL libraries:
-LOCAL_SRC_FILES := x86/libc++_shared.so
-endif
+LOCAL_SRC_FILES_32 := x86/libc++_shared.so
+LOCAL_MULTILIB := both
 include $(BUILD_PREBUILT)

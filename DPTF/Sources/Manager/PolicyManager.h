@@ -28,17 +28,15 @@ public:
 
 	// Create policies
 	virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) override;
-	virtual void createPolicy(const std::string& policyFileName) override;
-
-	// ReCreate Policies
-	virtual void reloadAllPolicies(const std::string& dptfHomeDirectoryPath) override;
+	virtual UIntN createPolicy(const std::string& policyFileName) override;
 
 	// Destroy policies
 	virtual void destroyAllPolicies(void) override;
 	virtual void destroyPolicy(UIntN policyIndex) override;
 
 	// Allows the work items to iterate through the list of policies.
-	virtual UIntN getPolicyListCount(void) const override;
+	virtual std::set<UIntN> getPolicyIndexes(void) const override;
+	virtual std::shared_ptr<SupportedPolicyList> getSupportedPolicyList(void) const override;
 	virtual Policy* getPolicyPtr(UIntN policyIndex) override;
 
 	// Policy manager handles registering and unregistering events since more than one policy can
@@ -48,7 +46,8 @@ public:
 	virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
 
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
-
+	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(void) override;
+	
 private:
 	// hide the copy constructor and assignment operator.
 	PolicyManager(const PolicyManager& rhs);
@@ -56,11 +55,12 @@ private:
 
 	DptfManagerInterface* m_dptfManager;
 	std::map<UIntN, std::shared_ptr<Policy>> m_policies;
-	SupportedPolicyList m_supportedPolicyList;
+	std::shared_ptr<SupportedPolicyList> m_supportedPolicyList;
 
 	// tracks the overall events registered by one or more policies
 	std::bitset<PolicyEvent::Max> m_registeredEvents;
 
+	void throwIfPolicyAlreadyExists(std::string policyFileName);
 	Bool isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent);
 	UIntN getPolicyCount(void);
 	std::shared_ptr<XmlNode> getEventsXmlForPolicy(UIntN policyIndex);

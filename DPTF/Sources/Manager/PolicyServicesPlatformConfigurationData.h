@@ -59,9 +59,20 @@ public:
 	virtual DptfBuffer getPidAlgorithmTable(void) override final;
 	virtual void setPidAlgorithmTable(DptfBuffer data) override final;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) override final;
+	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) override final;
 
 private:
 	TimeSpan m_defaultSamplePeriod;
+	DptfBuffer createResetPrimitiveTupleBinary(esif_primitive_type primitive, UInt8 instance) const;
+	UInt16 createTupleDomain() const;
+
+	void resetAllTables(void);
+	void resetActiveRelationshipTable(void);
+	void resetThermalRelationshipTable(void);
+	void resetPassiveTable(void);
+	void resetPidAlgorithmTable(void);
+	void resetActiveControlPointRelationshipTable(void);
+	void resetPowerShareAlgorithmTable(void);
 };

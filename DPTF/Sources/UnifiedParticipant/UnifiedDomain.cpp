@@ -292,6 +292,17 @@ std::shared_ptr<DomainUtilizationBase> UnifiedDomain::getUtilizationControl(void
 	return ptr;
 }
 
+std::shared_ptr<DomainEnergyControlBase> UnifiedDomain::getEnergyControl(void)
+{
+	throwIfDomainNotEnabled();
+	std::shared_ptr<DomainEnergyControlBase> ptr = m_domainControls->getEnergyControl();
+	if (!ptr)
+	{
+		throw domain_control_nullptr();
+	}
+	return ptr;
+}
+
 void UnifiedDomain::throwIfDomainNotEnabled(void)
 {
 	if (m_enabled == false)

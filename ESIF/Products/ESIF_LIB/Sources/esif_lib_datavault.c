@@ -33,8 +33,6 @@
 #include "esif_lib_datarepo.h"
 #include "esif_lib_databank.h"
 
-#include "esif_ws_algo.h"
-
 #include <time.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -47,6 +45,8 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
+
+#include "esif_sdk_sha.c"	// Compile SHA code into this module
 
 // DataVault File and Data Signatures
 #define ESIFDV_HEADER_SIGNATURE			0x1FE5	// [E5 1F] = DataVault Header Signature
@@ -280,6 +280,7 @@ static esif_error_t DataVault_RepoFlush(
 	size_t rewind_pos = 0;
 	BytePtr buffer = NULL;
 	Bool payload_compressed = ESIF_FALSE;
+	Bool flush_changes = ESIF_TRUE;
 
 	// Cannot flush Static or ReadOnly Repos
 	if (FLAGS_TEST(self->flags, ESIF_SERVICE_CONFIG_STATIC|ESIF_SERVICE_CONFIG_READONLY) ||
@@ -339,13 +340,13 @@ static esif_error_t DataVault_RepoFlush(
 		goto exit;
 	}
 
-	// Write all output to a temporary file so that DV is not corrupted in the event of I/O failure
+	// Write all output to a .tmp file so that DV is not corrupted in the event of I/O failure
 	tempStream = IOStream_Create();
 	if (tempStream == NULL) {
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
-	esif_ccb_sprintf(sizeof(tempName), tempName, "%s.tmp", self->stream->file.name);
+	esif_ccb_sprintf(sizeof(tempName), tempName, "%s%s", self->stream->file.name, ESIFDV_TEMPEXT);
 
 	// Open stream and write the incomplete Header, saving the current file position for Rewind
 	if (IOStream_OpenFile(tempStream, StoreReadWrite, tempName, "wb") != EOK) {
@@ -458,6 +459,22 @@ static esif_error_t DataVault_RepoFlush(
 			rc = ESIF_E_IO_ERROR;
 			goto exit;
 		}
+
+		// Do not replace existing file if the headers (and payload hash/size) are exactly the same
+		IOStreamPtr currentDV = IOStream_Create();
+		if (rc == ESIF_OK && currentDV != NULL) {
+			if (IOStream_OpenFile(currentDV, StoreReadOnly, self->stream->file.name, "rb") == 0) {
+				DataVaultHeader currentHeader = { 0 };
+				if (header.v2.headersize <= sizeof(currentHeader) && IOStream_Read(currentDV, &currentHeader, header.v2.headersize) == header.v2.headersize) {
+					if (memcmp(&header, &currentHeader, sizeof(header)) == 0) {
+						flush_changes = ESIF_FALSE;
+					}
+				}
+				IOStream_Close(currentDV);
+			}
+		}
+		IOStream_Destroy(currentDV);
+		
 	}
 
 exit:
@@ -465,16 +482,22 @@ exit:
 	esif_ccb_free(buffer);
 
 	// Replace existing File if successful
-	if (rc == ESIF_OK) {
-		if (esif_ccb_file_exists(self->stream->file.name) && esif_ccb_unlink(self->stream->file.name) != EOK) {
-			IGNORE_RESULT(esif_ccb_unlink(tempName));
-			rc = ESIF_E_IO_DELETE_FAILED;
-		}
-		if (rc == ESIF_OK) {
-			IGNORE_RESULT(esif_ccb_rename(tempName, self->stream->file.name));
+	if (rc == ESIF_OK && flush_changes) {
+		char rollbackName[MAX_PATH] = { 0 };
+		esif_ccb_sprintf(sizeof(rollbackName), rollbackName, "%s%s", self->stream->file.name, ESIFDV_ROLLBACKEXT);
+
+		// Rename file.dv.tmp -> file.dv.temp -> file.dv to avoid race condition and recover during startup
+		if (esif_ccb_rename(tempName, rollbackName) == 0) {
+			if (esif_ccb_file_exists(self->stream->file.name) && esif_ccb_unlink(self->stream->file.name) != EOK) {
+				IGNORE_RESULT(esif_ccb_unlink(rollbackName));
+				rc = ESIF_E_IO_DELETE_FAILED;
+			}
+			if (rc == ESIF_OK) {
+				IGNORE_RESULT(esif_ccb_rename(rollbackName, self->stream->file.name));
+			}
 		}
 	}
-	else {
+	if (esif_ccb_file_exists(tempName)) {
 		IGNORE_RESULT(esif_ccb_unlink(tempName));
 	}
 	return rc;
@@ -655,7 +678,7 @@ static esif_error_t DataVault_ValidateHash(
 					"  Expected = %s (%d bytes)\n"
 					"  Actual   = %s (%d bytes)\n",
 					self->name,
-					esif_sha_tostring(header->v2.payload_hash, sizeof(header->v2.payload_hash), expected_hashstr, sizeof(expected_hashstr)),
+					esif_hash_tostring(header->v2.payload_hash, sizeof(header->v2.payload_hash), expected_hashstr, sizeof(expected_hashstr)),
 					header->v2.payload_size,
 					esif_sha256_tostring(&self->digest, actual_hashstr, sizeof(actual_hashstr)),
 					(UInt32)(self->digest.digest_bits / 8)
@@ -1109,7 +1132,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 		UInt16 thisSignature = 0;
 
 		// Do not read past Payload Size, if defined
-		size_t bytes_read = ((size_t)(self->digest.digest_bits / 8)) + ((size_t)(self->digest.blockbytes));
+		size_t bytes_read = ((size_t)(self->digest.digest_bits / 8)) + ((size_t)(self->digest.blockused));
 		if (!FLAGS_TEST(self->flags, ESIF_SERVICE_CONFIG_COMPRESSED) && bytes_read >= header->v2.payload_size) {
 			rc = ESIF_E_ITERATION_DONE;
 			goto exit;

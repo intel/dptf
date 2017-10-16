@@ -47,4 +47,8 @@ private:
 	// hide the copy constructor and = operator
 	ParticipantSetSpecificInfo_001(const ParticipantSetSpecificInfo_001& rhs);
 	ParticipantSetSpecificInfo_001& operator=(const ParticipantSetSpecificInfo_001& rhs);
+
+	void resetAllTripPoints(void);
+	void resetPassiveTripPoint(void);
+	void resetActiveTripPoint(UInt8 instance);
 };

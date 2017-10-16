@@ -32,6 +32,7 @@ public:
 
 	// properties
 	virtual const ActiveControlStaticCaps& getCapabilities() = 0;
+	virtual const ActiveControlDynamicCaps& getDynamicCapabilities() = 0;
 	virtual void refreshCapabilities() = 0;
 	virtual ActiveControlStatus getStatus() = 0;
 	virtual UIntN getSmallestNonZeroFanSpeed() = 0;
@@ -42,8 +43,22 @@ public:
 
 	// fan speed requests
 	virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) = 0;
-	virtual void requestActiveControlIndex(UIntN requestorIndex, UIntN activeControlIndex) = 0;
 	virtual void forceFanOff(void) = 0;
-
 	virtual void setControl(Percentage activeCoolingControlFanSpeed) = 0;
+
+	Percentage snapToCapabilitiesBounds(Percentage fanSpeed)
+	{
+		Percentage minFanSpeed = getDynamicCapabilities().getMinFanSpeed();
+		Percentage maxFanSpeed = getDynamicCapabilities().getMaxFanSpeed();
+
+		if (fanSpeed < minFanSpeed)
+		{
+			fanSpeed = minFanSpeed;
+		}
+		else if (fanSpeed > maxFanSpeed)
+		{
+			fanSpeed = maxFanSpeed;
+		}
+		return fanSpeed;
+	}
 };

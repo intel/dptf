@@ -36,7 +36,7 @@ PolicyCallbackScheduler::~PolicyCallbackScheduler()
 
 void PolicyCallbackScheduler::suspend(UIntN participantIndex, const TimeSpan& time)
 {
-	suspend(ParticipantRole::NA, participantIndex, time);
+	suspend(EventCode::NA, participantIndex, time);
 }
 
 void PolicyCallbackScheduler::suspend(UIntN participantIndex, const TimeSpan& fromTime, const TimeSpan& suspendTime)
@@ -45,22 +45,26 @@ void PolicyCallbackScheduler::suspend(UIntN participantIndex, const TimeSpan& fr
 	scheduleCallback(participantIndex, fromTime, suspendTime);
 }
 
-void PolicyCallbackScheduler::suspend(
-	ParticipantRole::Type participantRole,
-	UIntN participantIndex,
-	const TimeSpan& time)
+void PolicyCallbackScheduler::suspend(EventCode::Type participantRole, UIntN participantIndex, const TimeSpan& time)
 {
 	auto currentTime = getCurrentTime();
 	cancelCallback(participantRole, participantIndex);
 	scheduleCallback(participantRole, participantIndex, currentTime, time);
 }
 
-void PolicyCallbackScheduler::cancelCallback(UIntN participantIndex)
+void PolicyCallbackScheduler::setTimerForObject(void* object, const TimeSpan& time)
 {
-	cancelCallback(ParticipantRole::NA, participantIndex);
+	auto currentTime = getCurrentTime();
+	cancelTimerForObject(object);
+	scheduleTimerCallback(object, currentTime, time);
 }
 
-void PolicyCallbackScheduler::cancelCallback(ParticipantRole::Type participantRole, UIntN participantIndex)
+void PolicyCallbackScheduler::cancelCallback(UIntN participantIndex)
+{
+	cancelCallback(EventCode::NA, participantIndex);
+}
+
+void PolicyCallbackScheduler::cancelCallback(EventCode::Type participantRole, UIntN participantIndex)
 {
 	auto row = m_schedule.find(std::make_pair(participantRole, participantIndex));
 	if (row != m_schedule.end())
@@ -70,12 +74,22 @@ void PolicyCallbackScheduler::cancelCallback(ParticipantRole::Type participantRo
 	}
 }
 
+void PolicyCallbackScheduler::cancelTimerForObject(void* object)
+{
+	auto row = m_timers.find((UInt64)object);
+	if (row != m_timers.end())
+	{
+		m_policyServices.policyInitiatedCallback->removePolicyInitiatedCallback(row->second.getCallbackHandle());
+		acknowledgeCallback(object);
+	}
+}
+
 Bool PolicyCallbackScheduler::hasCallbackWithinTimeRange(
 	UIntN target,
 	const TimeSpan& beginTime,
 	const TimeSpan& endTime) const
 {
-	auto row = m_schedule.find(std::make_pair(ParticipantRole::NA, target));
+	auto row = m_schedule.find(std::make_pair(EventCode::NA, target));
 	if (row == m_schedule.end())
 	{
 		return false;
@@ -94,12 +108,17 @@ Bool PolicyCallbackScheduler::hasCallbackWithinTimeRange(
 
 void PolicyCallbackScheduler::acknowledgeCallback(UIntN participantIndex)
 {
-	acknowledgeCallback(ParticipantRole::NA, participantIndex);
+	acknowledgeCallback(EventCode::NA, participantIndex);
 }
 
-void PolicyCallbackScheduler::acknowledgeCallback(ParticipantRole::Type participantRole, UIntN participantIndex)
+void PolicyCallbackScheduler::acknowledgeCallback(EventCode::Type participantRole, UIntN participantIndex)
 {
 	m_schedule.erase(std::make_pair(participantRole, participantIndex));
+}
+
+void PolicyCallbackScheduler::acknowledgeCallback(void* object)
+{
+	m_timers.erase((UInt64)object);
 }
 
 void PolicyCallbackScheduler::setTimeObject(std::shared_ptr<TimeInterface> time)
@@ -112,7 +131,7 @@ std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatus()
 	auto status = XmlNode::createWrapperElement("policy_callback_scheduler");
 	for (auto participant = m_schedule.begin(); participant != m_schedule.end(); ++participant)
 	{
-		status->addChild(getStatusForParticipant(ParticipantRole::NA, participant->first.second));
+		status->addChild(getStatusForParticipant(EventCode::NA, participant->first.second));
 	}
 
 	return status;
@@ -120,11 +139,11 @@ std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatus()
 
 std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(UIntN participantIndex)
 {
-	return getStatusForParticipant(ParticipantRole::NA, participantIndex);
+	return getStatusForParticipant(EventCode::NA, participantIndex);
 }
 
 std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(
-	ParticipantRole::Type participantRole,
+	EventCode::Type participantRole,
 	UIntN participantIndex)
 {
 	auto status = XmlNode::createWrapperElement("participant_callback");
@@ -132,7 +151,7 @@ std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(
 	try
 	{
 		status->addChild(XmlNode::createDataElement("participant_index", friendlyValue(participantIndex)));
-		status->addChild(XmlNode::createDataElement("participant_role", ParticipantRole::ToString(participantRole)));
+		status->addChild(XmlNode::createDataElement("participant_role", EventCode::ToString(participantRole)));
 
 		auto scheduledCallback = m_schedule.find(std::make_pair(participantRole, participantIndex));
 		if (scheduledCallback != m_schedule.end())
@@ -166,6 +185,41 @@ std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(
 	return status;
 }
 
+std::shared_ptr<XmlNode> PolicyCallbackScheduler::getTimerStatusForObject(void* object)
+{
+	auto status = XmlNode::createWrapperElement("timer_status");
+
+	try
+	{
+		auto scheduledCallback = m_timers.find((UInt64)object);
+		if (scheduledCallback != m_timers.end())
+		{
+			auto expireTime = scheduledCallback->second.getTimeStamp() + scheduledCallback->second.getTimeDelta();
+			auto currentTime = getCurrentTime();
+			if (expireTime >= currentTime)
+			{
+				auto expireTimeDiffFromNow = expireTime - currentTime;
+				status->addChild(
+					XmlNode::createDataElement("time_until_expires", expireTimeDiffFromNow.toStringSeconds()));
+			}
+			else
+			{
+				status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
+			}
+		}
+		else
+		{
+			status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
+		}
+	}
+	catch (dptf_exception)
+	{
+		status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
+	}
+
+	return status;
+}
+
 TimeSpan PolicyCallbackScheduler::getCurrentTime() const
 {
 	return m_time->getCurrentTime();
@@ -176,11 +230,11 @@ void PolicyCallbackScheduler::scheduleCallback(
 	const TimeSpan& currentTime,
 	const TimeSpan& pollTime)
 {
-	scheduleCallback(ParticipantRole::NA, participantIndex, currentTime, pollTime);
+	scheduleCallback(EventCode::NA, participantIndex, currentTime, pollTime);
 }
 
 void PolicyCallbackScheduler::scheduleCallback(
-	ParticipantRole::Type participantRole,
+	EventCode::Type participantRole,
 	UIntN participantIndex,
 	const TimeSpan& currentTime,
 	const TimeSpan& pollTime)
@@ -193,9 +247,18 @@ void PolicyCallbackScheduler::scheduleCallback(
 	m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(
 		FLF,
 		"Scheduled a callback in " + pollTime.toStringMilliseconds() + " ms" + " for participant "
-			+ std::to_string(participantIndex)
-			+ " with event code = "
-			+ std::to_string(participantRole)
-			+ ".",
+			+ std::to_string(participantIndex) + " with event code = " + std::to_string(participantRole) + ".",
 		participantIndex));
+}
+
+void PolicyCallbackScheduler::scheduleTimerCallback(void* object, const TimeSpan& currentTime, const TimeSpan& pollTime)
+{
+	UInt64 callbackHandle = m_policyServices.policyInitiatedCallback->createPolicyInitiatedDeferredCallback(
+		EventCode::Timer, Constants::Invalid, object, pollTime);
+	m_timers[(UInt64)object] = ParticipantCallback(pollTime, currentTime, callbackHandle);
+
+	m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(
+		FLF,
+		"Scheduled a callback in " + pollTime.toStringMilliseconds()
+			+ " ms with event code = " + std::to_string(EventCode::Timer) + "."));
 }

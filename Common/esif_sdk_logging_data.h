@@ -101,6 +101,12 @@ typedef struct _t_EsifDomainPriority {
 	UInt32 priority;
 } EsifDomainPriority, *EsifDomainPriorityPtr;
 
+/* Energy Control Data */
+typedef struct _t_EsifEnergyControl {
+	UInt32 energyCounter;
+	UInt32 instantaneousPower; 
+} EsifEnergyControl, *EsifEnergyControlPtr;
+
 /* Performance Control Data */
 typedef struct _t_EsifPerformanceControl {
 	UInt32 pStateLimit;
@@ -192,24 +198,6 @@ typedef struct _t_EsifRfProfileControl {
 	UInt32 rfProfileFrequency;
 } EsifRfProfileControl, *EsifRfProfileControlPtr;
 
-/* Reserved16 Data */
-typedef struct _t_EsifReserved16 {
-	//Place Holder
-	UInt32 reserved16;
-} EsifReserved16, *EsifReserved16Ptr;
-
-/* Reserved17 Data */
-typedef struct _t_EsifReserved17 {
-	//Place Holder
-	UInt32 reserved17;
-} EsifReserved17, *EsifReserved17Ptr;
-
-/* Current Control Data */
-typedef struct _t_EsifCurrentControl {
-	//Place Holder
-	UInt32 currentControl;
-} EsifCurrentControl, *EsifCurrentControlPtr;
-
 /* Psys Control Data */
 typedef struct _t_EsifPSysControlData {
 	UInt32 powerLimitType;
@@ -231,6 +219,7 @@ typedef union _t_EsifCapability {
 	EsifCoreControl coreControl;
 	EsifDisplayControl displayControl;
 	EsifDomainPriority domainPriority;
+	EsifEnergyControl energyControl;
 	EsifPerformanceControl performanceControl;
 	EsifPowerControl powerControl;
 	EsifPowerStatus powerStatus;
@@ -242,8 +231,6 @@ typedef union _t_EsifCapability {
 	EsifTemperatureThresholdControl temperatureThresholdControl;
 	EsifRfProfileStatus rfProfileStatus;
 	EsifRfProfileControl rfProfileControl;
-	EsifReserved16 reserved16;
-	EsifReserved17 reserved17;
 	EsifPSysControl psysControl;
 } EsifCapability, *EsifCapabilityPtr;
 

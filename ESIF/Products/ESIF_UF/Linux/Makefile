@@ -32,13 +32,12 @@ endif
 ESIF_SOURCES := ../..
 ESIF_UF_SOURCES := $(ESIF_SOURCES)/ESIF_UF/Sources
 ESIF_CM_SOURCES := $(ESIF_SOURCES)/ESIF_CM/Sources
-ESIF_WS_SOURCES := $(ESIF_SOURCES)/ESIF_WS/Sources
 ESIF_LIB_SOURCES := $(ESIF_SOURCES)/ESIF_LIB/Sources
 ESIF_SDK_SOURCES := $(ESIF_SOURCES)/../../Common
 
 LDLIBS := -lpthread -ldl -lrt -lreadline -lm
 
-CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_WS_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(ESIF_SDK_SOURCES)
+CPPFLAGS += -I$(ESIF_UF_SOURCES) -I$(ESIF_CM_SOURCES) -I$(ESIF_LIB_SOURCES) -I$(ESIF_SDK_SOURCES)
 CPPFLAGS += -DESIF_ATTR_USER 
 CPPFLAGS += -DESIF_ATTR_DAEMON
 CPPFLAGS += -DESIF_FEAT_OPT_COMPRESS
@@ -173,8 +172,6 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datavault.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdata.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_iostream.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
-
-OBJ += $(ESIF_WS_SOURCES)/esif_ws_algo.o
 
 ###############################################################################
 # BUILD 

@@ -50,6 +50,7 @@ namespace DomainType
 														{DgfxCore, "DgfxCore"},
 														{DgfxMem, "DgfxMem"},
 														{DgfxMcp, "DgfxMcp"},
+														{Cam2D, "Cam2D"},
 														{All, "All"},
 														{Invalid, Constants::NotAvailableString}};
 
@@ -123,6 +124,8 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::SocCnv;
 	case ESIF_DOMAIN_TYPE_IVCAM:
 		return DomainType::IVCam;
+	case ESIF_DOMAIN_TYPE_CAM2D:
+		return DomainType::Cam2D;
 	case ESIF_DOMAIN_TYPE_DGFXCORE:
 		return DomainType::DgfxCore;
 	case ESIF_DOMAIN_TYPE_DGFXMEM:
@@ -196,6 +199,8 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_SOCCNV;
 	case DomainType::IVCam:
 		return ESIF_DOMAIN_TYPE_IVCAM;
+	case DomainType::Cam2D:
+		return ESIF_DOMAIN_TYPE_CAM2D;
 	case DomainType::DgfxCore:
 		return ESIF_DOMAIN_TYPE_DGFXCORE;
 	case DomainType::DgfxMem:

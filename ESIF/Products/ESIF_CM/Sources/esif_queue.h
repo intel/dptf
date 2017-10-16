@@ -60,15 +60,15 @@
 #include "esif_ccb_lock.h"
 
 #define ESIF_QUEUE_NAME_LEN 32
-
+#define ESIF_QUEUE_TIMEOUT_INFINITE 0
 
 /* Queue Instance */
 struct esif_queue_instance {
-	u32  us_timeout;	/* Timeout in Microseconds */
+	u32  ms_timeout;	/* Timeout in milliseconds */
 	u32  max_size;		/* Maximum allowable queue size in items */
 	u32  current_size;	/* Current queeue size in items */
 	esif_ccb_lock_t lock;	/* Lock */
-	esif_ccb_sem_t semaphore;	/* Allow blocking if queue is empty */
+	esif_ccb_event_t event;	/* Allow blocking if queue is empty */
 	struct esif_link_list	*queue_list_ptr;
 	char queue_name[ESIF_QUEUE_NAME_LEN];		/* Queue Name */
 };

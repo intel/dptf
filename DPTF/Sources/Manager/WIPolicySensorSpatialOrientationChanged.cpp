@@ -37,14 +37,14 @@ void WIPolicySensorSpatialOrientationChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
 			getDptfManager()->getEventCache()->sensorSpatialOrientation.set(m_sensorSpatialOrientation);
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicySensorSpatialOrientationChanged(m_sensorSpatialOrientation);
 		}
 		catch (policy_index_invalid ex)
@@ -53,7 +53,7 @@ void WIPolicySensorSpatialOrientationChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySensorSpatialOrientationChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySensorSpatialOrientationChanged", *i);
 		}
 	}
 }

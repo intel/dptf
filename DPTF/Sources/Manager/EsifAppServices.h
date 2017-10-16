@@ -85,6 +85,13 @@ public:
 		const EsifDataPtr eventData,
 		const EsifDataPtr eventGuid) override;
 
+	virtual eEsifError sendCommand(
+		const void* esifHandle,
+		const void* appHandle,
+		const UInt32 argc,
+		const EsifDataPtr argv,
+		EsifDataPtr response) override;
+
 private:
 	EsifInterface m_esifInterface;
 };

@@ -37,14 +37,14 @@ void WIPolicyOperatingSystemPlatformTypeChanged::execute(void)
 	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
-	UIntN policyListCount = policyManager->getPolicyListCount();
+	auto policyIndexes = policyManager->getPolicyIndexes();
 
-	for (UIntN i = 0; i < policyListCount; i++)
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
 			getDptfManager()->getEventCache()->platformType.set(m_platformType);
-			Policy* policy = policyManager->getPolicyPtr(i);
+			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemPlatformTypeChanged(m_platformType);
 		}
 		catch (policy_index_invalid ex)
@@ -53,7 +53,7 @@ void WIPolicyOperatingSystemPlatformTypeChanged::execute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPlatformTypeChanged", i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPlatformTypeChanged", *i);
 		}
 	}
 }

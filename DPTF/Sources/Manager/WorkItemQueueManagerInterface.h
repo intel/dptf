@@ -38,4 +38,5 @@ public:
 	virtual void disableAndEmptyAllQueues(void) = 0;
 
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) = 0;
+	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(void) = 0;
 };

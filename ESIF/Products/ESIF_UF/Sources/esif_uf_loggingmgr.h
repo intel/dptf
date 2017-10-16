@@ -127,6 +127,7 @@ typedef struct EsifParticipantLogDataNode_s {
 	EsifParticipantLogDataState state;  /*Node State */
 	UInt32 participantId;	            /*Unique Participant Id*/
 	UInt32 domainId;			        /*Unique Domain Id*/
+	UInt32 isPresent;					
 	EsifCapabilityData capabilityData;  /* structure to store the capability data*/
 	esif_ccb_lock_t capabilityDataLock; /* semaphore to protect the capability structure for synchronization*/	
 }EsifParticipantLogDataNode, *EsifParticipantLogDataNodePtr;

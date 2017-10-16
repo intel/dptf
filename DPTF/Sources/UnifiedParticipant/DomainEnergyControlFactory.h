@@ -19,14 +19,14 @@
 #pragma once
 
 #include "Dptf.h"
-#include "ParticipantWorkItem.h"
-#include "esif_sdk_iface_app.h"
+#include "ControlFactoryInterface.h"
 
-class WIPolicyReload : public WorkItem
+class DomainEnergyControlFactory : public ControlFactoryInterface
 {
 public:
-	WIPolicyReload(DptfManagerInterface* dptfManager);
-	virtual ~WIPolicyReload(void);
-
-	virtual void execute(void) override final;
+	virtual ControlBase* make(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		UIntN version,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface) override;
 };

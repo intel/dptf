@@ -37,6 +37,9 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	Frequency defaultCenterFrequency(0);
 	Frequency centerFrequency(0);
 	Frequency frequencyAdjustResolution(0);
+	Frequency minFrequency(0);
+	Frequency maxFrequency(0);
+	Percentage ssc(0.0);
 
 	try
 	{
@@ -68,9 +71,37 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 		getParticipantServices()->writeMessageDebug(
 			ParticipantMessage(FLF, "Failed to get frequency adjust resolution. "));
 	}
-
+	try
+	{
+		minFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_MIN_FREQUENCY, domainIndex);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get min frequency. "));
+	}
+	try
+	{
+		maxFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
+			esif_primitive_type::GET_RFPROFILE_MAX_FREQUENCY, domainIndex);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get max frequency. "));
+	}
+	try
+	{
+		ssc = getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_RFPROFILE_SSC, domainIndex);
+	}
+	catch (...)
+	{
+		getParticipantServices()->writeMessageDebug(
+			ParticipantMessage(FLF, "Failed to get ssc. "));
+	}
 	RfProfileCapabilities rfProfileCapabilities(
-		defaultCenterFrequency, centerFrequency, frequencyAdjustResolution);
+		defaultCenterFrequency, centerFrequency, frequencyAdjustResolution, minFrequency, maxFrequency, ssc);
 
 	return rfProfileCapabilities;
 }

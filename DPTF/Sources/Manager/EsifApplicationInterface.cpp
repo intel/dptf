@@ -28,6 +28,13 @@
 #include "EsifServicesInterface.h"
 #include "EsifDataGuid.h"
 #include "EsifDataUInt32.h"
+#include "CommandHandler.h"
+#include "Commands.h"
+#include "CommandDispatch.h"
+#include "Diag.h"
+#include <iostream>
+
+using namespace std;
 
 //
 // Macros must be used to reduce the code and still allow writing out the file name, line number, and function name
@@ -36,7 +43,7 @@
 #define RETURN_ERROR_IF_CONTEXT_DATA_NULL                                                                              \
 	if (dptfManager == nullptr)                                                                                        \
 	\
-{                                                                                                               \
+{                                                                                                                 \
 		return ESIF_E_PARAMETER_IS_NULL;                                                                               \
 	\
 }
@@ -44,7 +51,7 @@
 #define RETURN_ERROR_IF_WORK_ITEM_QUEUE_MANAGER_NOT_CREATED                                                            \
 	if (dptfManager->isWorkItemQueueManagerCreated() == false)                                                         \
 	\
-{                                                                                                               \
+{                                                                                                                 \
 		ManagerMessage message = ManagerMessage(                                                                       \
 			dptfManager, FLF, "Function call from ESIF ignored.  DPTF work item queue has not been created.");         \
 		dptfManager->getEsifServices()->writeMessageError(message);                                                    \
@@ -55,7 +62,7 @@
 #define RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED                                                                       \
 	if (dptfManager->isDptfManagerCreated() == false)                                                                  \
 	\
-{                                                                                                               \
+{                                                                                                                 \
 		ManagerMessage message = ManagerMessage(                                                                       \
 			dptfManager, FLF, "Function call from ESIF ignored.  DPTF manager creation is not complete.");             \
 		dptfManager->getEsifServices()->writeMessageError(message);                                                    \
@@ -66,13 +73,15 @@
 #define RETURN_WARNING_IF_DPTF_SHUTTING_DOWN                                                                           \
 	if (dptfManager->isDptfShuttingDown() == true)                                                                     \
 	\
-{                                                                                                               \
+{                                                                                                                 \
 		ManagerMessage message =                                                                                       \
 			ManagerMessage(dptfManager, FLF, "Function call from ESIF ignored.  DPTF manager is shutting down.");      \
 		dptfManager->getEsifServices()->writeMessageWarning(message);                                                  \
 		return ESIF_E_UNSPECIFIED;                                                                                     \
 	\
 }
+
+CommandDispatch* dispatch;
 
 static const Guid DptfAppGuid(
 	0x8f,
@@ -165,18 +174,18 @@ static eEsifError DptfCreate(
 	// is return an error.
 	if (esifInterfacePtr == nullptr || esifInterfacePtr->fIfaceType != eIfaceTypeEsifService
 		|| ((esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION_1)
-			&& (esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION_2))
+			&& (esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION_2)
+			&& (esifInterfacePtr->fIfaceVersion != ESIF_INTERFACE_VERSION_3))
 		|| esifInterfacePtr->fIfaceSize != (UInt16)sizeof(EsifInterface)
-		|| esifInterfacePtr->fGetConfigFuncPtr == nullptr
-		|| esifInterfacePtr->fSetConfigFuncPtr == nullptr
-		|| esifInterfacePtr->fPrimitiveFuncPtr == nullptr
-		|| esifInterfacePtr->fWriteLogFuncPtr == nullptr
-		|| esifInterfacePtr->fRegisterEventFuncPtr == nullptr
-		|| esifInterfacePtr->fUnregisterEventFuncPtr == nullptr
-		|| ((esifInterfacePtr->fIfaceVersion == ESIF_INTERFACE_VERSION_2)
+		|| esifInterfacePtr->fGetConfigFuncPtr == nullptr || esifInterfacePtr->fSetConfigFuncPtr == nullptr
+		|| esifInterfacePtr->fPrimitiveFuncPtr == nullptr || esifInterfacePtr->fWriteLogFuncPtr == nullptr
+		|| esifInterfacePtr->fRegisterEventFuncPtr == nullptr || esifInterfacePtr->fUnregisterEventFuncPtr == nullptr
+		|| (((esifInterfacePtr->fIfaceVersion == ESIF_INTERFACE_VERSION_2)
+			 || (esifInterfacePtr->fIfaceVersion == ESIF_INTERFACE_VERSION_3))
 			&& (esifInterfacePtr->fSendEventFuncPtr == nullptr))
-		|| appHandle == nullptr
-		|| appData == nullptr)
+		|| ((esifInterfacePtr->fIfaceVersion == ESIF_INTERFACE_VERSION_3)
+			&& (esifInterfacePtr->fSendCommandFuncPtr == nullptr))
+		|| appHandle == nullptr || appData == nullptr)
 	{
 		rc = ESIF_E_UNSPECIFIED;
 	}
@@ -205,6 +214,8 @@ static eEsifError DptfCreate(
 			DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
 			dptfManager->createDptfManager(
 				esifHandle, esifInterfacePtr, dptfHomeDirectoryPath, currentLogVerbosityLevel, enabled);
+
+			dispatch = new CommandDispatch();
 
 			if (eLogType::eLogTypeInfo <= currentLogVerbosityLevel)
 			{
@@ -248,6 +259,7 @@ static eEsifError DptfDestroy(void* appHandle)
 	try
 	{
 		DELETE_MEMORY(dptfManager);
+		DELETE_MEMORY(dispatch);
 	}
 	catch (...)
 	{
@@ -330,40 +342,33 @@ static eEsifError GetDptfPrompt(const void* appHandle, EsifDataPtr dataPtr)
 
 static eEsifError DptfCommand(
 	const void* appHandle,
-	const EsifDataPtr request,
-	const EsifDataPtr response,
-	esif_string appParseContext)
+	const UInt32 argc,
+	const EsifDataPtr argv,
+	const EsifDataPtr response)
 {
-	// Until now (19 Dec 2014), this function was unused by ESIF and no usage was in the POR. In fact the
-	// comment here was to remove the function. The Automation,
-	// (LiveTest ABAT) has found a use for it, but only one so far, to initiate a policy reload for testing purposes.
-	// There exists no messaging standardized communication language, protocol or syntax for use on entry here.
-	// In the absence of that, the test will use this function for one thing only, and will therefore us ony 2 entry
-	// parameters. The apphandle, and the request->buf_ptr. The code will look for a GET_SUPPORTED_POLICIES primitive
-	// in the request pointer, and on receiveing it will initiate a policy reload.
-	// TODO - If more usages are needed later, we  address standardization.
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	pair<esif_error_t, string> result;
 
-	esif_primitive_type requestedOperation = *(esif_primitive_type*)request->buf_ptr;
+	// argv is an array of EsifData objects of length argc (1 or greater)
+	// Current implementation assumes an array of STRING types but future versions could support other types
+	// First argument is DPTF command and remaining arguments, if any, are parameters to that DPTF Command
 
-	if (requestedOperation == GET_SUPPORTED_POLICIES)
+	// <appcmd> [arg] [...]
+	if (argc >= 1 && argv != NULL && response != NULL && argv[0].type == ESIF_DATA_STRING)
 	{
 		DptfManagerInterface* dptfManager = (DptfManagerInterface*)appHandle;
 		RETURN_ERROR_IF_CONTEXT_DATA_NULL;
 		RETURN_ERROR_IF_DPTF_MANAGER_NOT_CREATED;
 		RETURN_WARNING_IF_DPTF_SHUTTING_DOWN;
 
-		try
-		{
-			WorkItem* workItem = new WIPolicyReload(dptfManager);
-			dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
-		}
-		catch (...)
-		{
-			return ESIF_E_UNSPECIFIED;
-		}
+		size_t optarg = 0;
+		std::string appcmd = (const char*)argv[optarg++].buf_ptr;
+		rc = ESIF_OK;
+		response->type = ESIF_DATA_STRING;
+		result = dispatch->dispatchCommand(appcmd, argc, argv, dptfManager);
+		FillDataPtrWithString(response, result.second);
 	}
-
-	return ESIF_OK;
+	return rc;
 }
 
 static eEsifError SetDptfState(const void* appHandle, const eAppState appState)
@@ -671,8 +676,9 @@ static eEsifError DptfEvent(
 
 		switch (frameworkEvent)
 		{
-		// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high priority.
-		//        Should these return synchronously?  If so they don't belong here.
+			// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high
+			// priority.
+			//        Should these return synchronously?  If so they don't belong here.
 		case FrameworkEvent::DptfConnectedStandbyEntry:
 			wi = new WIDptfConnectedStandbyEntry(dptfManager);
 			break;
@@ -889,8 +895,11 @@ static eEsifError DptfEvent(
 		case FrameworkEvent::DptfAppUnloading:
 			break;
 		case FrameworkEvent::DptfSupportedPoliciesChanged:
-			wi = new WIPolicyReload(dptfManager);
+			wi = new WIPolicySupportedListChanged(dptfManager);
 			waitForEventToProcess = true;
+			break;
+		case FrameworkEvent::DptfAppAliveRequest:
+			wi = new WIApplicationAliveRequest(dptfManager);
 			break;
 		default:
 		{

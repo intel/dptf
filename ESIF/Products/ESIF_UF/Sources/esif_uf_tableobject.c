@@ -23,12 +23,14 @@
 #include "esif_uf_cfgmgr.h"	/* Config Manager */
 #include "esif_uf_eventmgr.h" /* Event Manager */
 #include "esif_uf_primitive.h" /* Execute Primitive */
+#include "esif_uf_shell.h"  
 
 #define _DATABANK_CLASS
 #include "esif_lib_databank.h"
 #include "esif_dsp.h"
 #include "esif_uf_tableobject.h"
 #include "esif_temp.h"
+#include "esif_uf_ccb_system.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -47,12 +49,14 @@
 #define REVISION_INDICATOR_LENGTH 2
 #define MODE_INDICATOR_LENGTH 2
 #define ACPI_NAME_TARGET_SIZE 4
+#define MIN_BUFFER_LENGTH 1
 #define MARKED 1
 #define UNMARKED 0
 #define ESIF_DATA_PREFIX_SIZE 10
 #define ESIF_NO_PERSIST_INSTANCE 254
 #define ESIF_NO_INSTANCE 255
 #define ESIF_NO_PERSIST_OFFSET 200
+#define ESIF_CAPABILITY_NO_RESTRICTION 0x7fffffff
 
 #pragma pack(push, 1)
 struct esif_data_binary_bst_package {
@@ -108,15 +112,17 @@ typedef struct TableColumnDynamic_s {
 static TableRowDynamic *getRow(int rowIdx, struct esif_link_list *TablePtr);
 static TableRowDynamic *createRow(int rowIdx, struct esif_link_list *TablePtr);
 static TableColumnDynamic *createColumn(int columnIdx, struct esif_link_list *RowColumnPtr);
-static eEsifError outputDataKeyTable(struct esif_link_list *TablePtr, char *output);
+static eEsifError outputDataKeyTable(struct esif_link_list *TablePtr, char *output, size_t output_len);
 static eEsifError freeTableColumnData(struct esif_link_list *TablePtr);
+static Bool isDomainCapable(UInt8 participantIndex, char* domainQualifier, UInt32 capabilityToTest);
 
 void TableField_Construct(
 	TableField *self,
 	char *name,
 	char *label,
 	EsifDataType dataType,
-	int notForXML
+	int notForXML,
+	int capabilityType
 	)
 {
 	esif_ccb_memset(self, 0, sizeof(*self));
@@ -124,6 +130,7 @@ void TableField_Construct(
 	self->label = label;
 	self->dataType = dataType;
 	self->notForXML = notForXML;
+	self->capabilityType = capabilityType;
 }
 
 void TableField_ConstructAs(
@@ -132,6 +139,7 @@ void TableField_ConstructAs(
 	char *label,
 	EsifDataType dataType,
 	int notForXML,
+	int capabilityType,
 	int getPrimitive,
 	int setPrimitive,
 	UInt8 instance,
@@ -143,6 +151,7 @@ void TableField_ConstructAs(
 	self->label = label;
 	self->dataType = dataType;
 	self->notForXML = notForXML;
+	self->capabilityType = capabilityType;
 	self->getPrimitive = getPrimitive;
 	self->setPrimitive = setPrimitive;
 	self->instance = instance;
@@ -202,6 +211,7 @@ eEsifError TableObject_Save(TableObject *self)
 	EsifDataPtr data_value = NULL;
 	EsifDataPtr data_key = NULL;
 	esif_flags_t options = ESIF_SERVICE_CONFIG_PERSIST | ESIF_SERVICE_CONFIG_NOCACHE;
+	u32 buf_len = MIN_BUFFER_LENGTH;
 
 	textInput = self->dataText;
 	numFields = self->numFields;
@@ -217,12 +227,15 @@ eEsifError TableObject_Save(TableObject *self)
 		if (self->binaryDataSize > MAX_TABLEOBJECT_BINARY) {
 			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		}
-		else if (self->binaryDataSize) {
-			struct esif_data request = { ESIF_DATA_BINARY, self->binaryData, self->binaryDataSize, self->binaryDataSize };
+		else {
+			if (self->binaryDataSize) {
+				buf_len = self->binaryDataSize;
+			}
+			struct esif_data request = { ESIF_DATA_BINARY, self->binaryData, buf_len, self->binaryDataSize };
 			struct esif_data response = { ESIF_DATA_VOID, NULL, 0, 0 };
 
 			if (self->dataSource) {  //our alternate datasource is the datavault
-				u8 *targetData = esif_ccb_malloc(self->binaryDataSize);
+				u8 *targetData = esif_ccb_malloc(buf_len);
 
 				data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, self->dataSource, 0, ESIFAUTOLEN);
 				data_path = EsifData_CreateAs(ESIF_DATA_STRING, self->dataMember, 0, ESIFAUTOLEN);
@@ -242,9 +255,6 @@ eEsifError TableObject_Save(TableObject *self)
 				TableObject_ResetConfig(self, self->setPrimitive, ESIF_NO_PERSIST_INSTANCE);
 				rc = EsifExecutePrimitive((UInt8)self->participantId, self->setPrimitive, self->domainQualifier, ESIF_NO_INSTANCE, &request, &response);
 			}
-		}
-		else {
-			rc = ESIF_E_UNSPECIFIED;
 		}
 	}
 	/* These are virtual tables, which are collections of potentially unrelated primitives, grouped
@@ -279,7 +289,7 @@ eEsifError TableObject_Save(TableObject *self)
 			i = -1;
 			rowCounter++;
 			size_t tableRowLen = esif_ccb_strlen(tableRow, self->dataTextLen);
-			tableCol = esif_ccb_strtok(tableRow, colDelims, &colTok);
+			tableCol = esif_shell_strtok(tableRow, colDelims, &colTok);  //use shell strtok to support quotes for columns
 			while (tableCol != NULL) {
 				size_t colValueLen = esif_ccb_strlen(tableCol, tableRowLen) + 1;
 				stringHolder = (char *)esif_ccb_malloc(colValueLen);
@@ -391,7 +401,7 @@ eEsifError TableObject_Save(TableObject *self)
 				stringHolder = NULL;
 
 				// Get next column
-				tableCol = esif_ccb_strtok(NULL, colDelims, &colTok);
+				tableCol = esif_shell_strtok(NULL, colDelims, &colTok);  //use shell strtok to support quotes for columns 
 			}
 			// Get next row
 			tableRow = esif_ccb_strtok(NULL, rowDelims, &rowTok);
@@ -479,14 +489,15 @@ eEsifError TableObject_LoadData(
 			self->binaryDataSize = responsePtr->buf_len;
 		}
 		else {
-			tmp_buf = (u8 *) esif_ccb_malloc(OUT_BUF_LEN);
+			size_t output_len = OUT_BUF_LEN;
+			tmp_buf = (u8 *) esif_ccb_malloc(output_len);
 			if ((NULL == tmp_buf)) {
 				rc = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
 			responsePtr->type = self->dataType;
 			responsePtr->buf_ptr = tmp_buf;
-			responsePtr->buf_len = OUT_BUF_LEN;
+			responsePtr->buf_len = (u32)output_len;
 			if (!self->binaryData){
 				rc = EsifExecutePrimitive((UInt8)self->participantId, self->getPrimitive, self->domainQualifier, ESIF_NO_INSTANCE, &request, responsePtr);
 				if (ESIF_OK != rc) {
@@ -528,15 +539,19 @@ eEsifError TableObject_LoadXML(
 	int totalRows = 0;
 	Bool dataFound = ESIF_FALSE;
 	EsifDataType targetType;
-	char *output = esif_ccb_malloc(OUT_BUF_LEN);
+	size_t output_len = OUT_BUF_LEN;
+	char *output = esif_ccb_malloc(output_len);
 	union esif_data_variant *obj;
 	int remain_bytes = 0;
 	char *strFieldValue = NULL;
 	u32 int32FieldValue = 0;
 	u64 int64FieldValue = 0;
+	char *guidFieldValue = NULL; 
+	char guid_str[ESIF_GUID_PRINT_SIZE];
+	esif_guid_t mangledGuid = { 0 };
 	eEsifError rc = ESIF_OK;
 	eEsifError primitiveOK = ESIF_OK;  /* for use with virtual tables, nonfatal errors */
-	u8 *tmp_buf = (u8 *) esif_ccb_malloc(OUT_BUF_LEN);
+	u8 *tmp_buf = (u8 *) esif_ccb_malloc(output_len);
 	UInt32 defaultNumber = 0;
 	EsifDataType objDataType = self->dataType;
 	struct esif_data request = { ESIF_DATA_VOID, NULL, 0, 0 };
@@ -546,6 +561,7 @@ eEsifError TableObject_LoadXML(
 	Bool cursorState = UNMARKED;
 	struct esif_link_list *TableDataListPtr = NULL;
 	struct esif_link_list_node *curr_ptr = NULL;
+	Bool capabilityEnabled = ESIF_TRUE;
 	
 	TableDataListPtr = esif_link_list_create();
 
@@ -560,7 +576,7 @@ eEsifError TableObject_LoadXML(
 	if (objDataType == ESIF_DATA_BINARY) {
 		response.type = objDataType;
 		response.buf_ptr = tmp_buf;
-		response.buf_len = OUT_BUF_LEN;
+		response.buf_len = (u32)output_len;
 		if (!self->binaryData){  //Now requires pre-population from LoadData
 			rc = ESIF_E_PARAMETER_IS_NULL;
 			goto exit;
@@ -628,7 +644,7 @@ eEsifError TableObject_LoadXML(
 
 		/* loop through the fields that were provided by _LoadSchema */
 		while (remain_bytes >= sizeof(*obj)) {
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <trtRow>\n");
+			esif_ccb_sprintf_concat(output_len, output, "  <trtRow>\n");
 			for (i = 0; (remain_bytes >= sizeof(*obj) && (i < self->numFields || self->dynamicColumnCount == 1)); i++) {
 				TableDataPiece *newData = NULL;
 				struct esif_link_list_node *nodePtr = NULL;
@@ -686,6 +702,21 @@ eEsifError TableObject_LoadXML(
 					ESIF_TRACE_DEBUG("Determined field value: %lld \n", int64FieldValue);
 					esif_ccb_sprintf(sizeof(newData->dataPiece), newData->dataPiece, "%lld", int64FieldValue);
 					break;
+				case ESIF_DATA_BINARY:
+					if (obj->type != ESIF_DATA_BINARY) {
+						ESIF_TRACE_DEBUG("While loading field: %s into table: %s, field datatype mismatch detected (expecting BINARY). \n", self->fields[i].name, self->name);
+						rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+						goto exit;
+					}
+					guidFieldValue = (char *) ((u8 *)obj + sizeof(*obj));
+					remain_bytes -= obj->string.length;
+					obj = (union esif_data_variant *)((u8 *)obj + (sizeof(*obj) + obj->string.length));
+					esif_ccb_memcpy(&mangledGuid, (esif_guid_t *)guidFieldValue, ESIF_GUID_LEN);
+					esif_guid_mangle(&mangledGuid);
+					esif_guid_print((esif_guid_t *)&mangledGuid, guid_str);
+					ESIF_TRACE_DEBUG("Determined field value: %s \n", guid_str);
+					esif_ccb_sprintf(sizeof(newData->dataPiece), newData->dataPiece, "%s", guid_str);
+					break;
 				default:
 					ESIF_TRACE_DEBUG("Field type in schema for table %s is not handled \n", self->name);
 					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
@@ -702,13 +733,13 @@ eEsifError TableObject_LoadXML(
 			}
 		}
 		curr_ptr = TableDataListPtr->head_ptr;
-		esif_ccb_strcpy(output, "<result>\n", OUT_BUF_LEN);
+		esif_ccb_strcpy(output, "<result>\n", output_len);
 		if (FLAGS_TEST(self->options, TABLEOPT_CONTAINS_REVISION)) {
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "<revision>\n");
+			esif_ccb_sprintf_concat(output_len, output, "<revision>\n");
 		}
 		else if (curr_ptr != NULL) {
 			totalRows++;
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "<row>\n");
+			esif_ccb_sprintf_concat(output_len, output, "<row>\n");
 		}
 		i = 0;
 		while (curr_ptr != NULL) {
@@ -759,34 +790,34 @@ eEsifError TableObject_LoadXML(
 				if (esif_ccb_strcmp(tdp->dataPiece, "")) {
 					if (tdp->newRow) {
 						totalRows++;
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</row>\n<row>\n");
+						esif_ccb_sprintf_concat(output_len, output, "</row>\n<row>\n");
 					}
 					if (tdp->isRevision) {
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    %s\n", tdp->dataPiece);
+						esif_ccb_sprintf_concat(output_len, output, "    %s\n", tdp->dataPiece);
 						if (!FLAGS_TEST(self->options, TABLEOPT_CONTAINS_MODE) && dataFound) {
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</revision>\n<row>\n");
+							esif_ccb_sprintf_concat(output_len, output, "</revision>\n<row>\n");
 						}
 						else if (!FLAGS_TEST(self->options, TABLEOPT_CONTAINS_MODE))
 						{
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</revision>\n");
+							esif_ccb_sprintf_concat(output_len, output, "</revision>\n");
 						}
 						else {
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</revision>\n<mode>\n");
+							esif_ccb_sprintf_concat(output_len, output, "</revision>\n<mode>\n");
 						}
 					}
 					else if (tdp->isMode) {
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    %s\n", tdp->dataPiece);
+						esif_ccb_sprintf_concat(output_len, output, "    %s\n", tdp->dataPiece);
 						if (dataFound)
 						{
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</mode>\n<row>\n");
+							esif_ccb_sprintf_concat(output_len, output, "</mode>\n<row>\n");
 						}
 						else
 						{
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</mode>\n");
+							esif_ccb_sprintf_concat(output_len, output, "</mode>\n");
 						}
 					}
 					else {
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%s</%s>\n", tdp->fieldTag, tdp->dataPiece, tdp->fieldTag);
+						esif_ccb_sprintf_concat(output_len, output, "    <%s>%s</%s>\n", tdp->fieldTag, tdp->dataPiece, tdp->fieldTag);
 					}
 				}
 			}
@@ -796,9 +827,9 @@ eEsifError TableObject_LoadXML(
 		}
 
 		if (totalRows > 0 || dataFound) {
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</row>\n");
+			esif_ccb_sprintf_concat(output_len, output, "</row>\n");
 		}
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
+		esif_ccb_sprintf_concat(output_len, output, "</result>\n");
 	}
 	/* these are tables created out of datavault keys */
 	else if (objDataType == ESIF_DATA_STRING) {
@@ -901,168 +932,179 @@ eEsifError TableObject_LoadXML(
 
 		}
 
-		outputDataKeyTable(TableDataListPtr, output);
+		outputDataKeyTable(TableDataListPtr, output, output_len);
 		freeTableColumnData(TableDataListPtr);
 	}
 	/* these are virtual tables (collections of individual primitives, grouped together to form
 	a result set */
 	else {
-		esif_ccb_strcpy(output, "<result>\n", OUT_BUF_LEN);
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <tableRow>\n");
-		for (i = 0; i < self->numFields; i++) {
-			int32FieldValue = 0;
-			if (self->fields[i].getPrimitive > 0) {
-				response.type = self->fields[i].dataType;
-				switch (self->fields[i].dataType) {
-				case ESIF_DATA_STRING:
-					strFieldValue = "";
-					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%s</%s>\n", self->fields[i].name, strFieldValue, self->fields[i].name);
-					break;
-				case ESIF_DATA_UINT32:
-				case ESIF_DATA_POWER:
-				case ESIF_DATA_TIME:
-					response.buf_ptr = &defaultNumber;
-					response.buf_len = sizeof(defaultNumber);
-					primitiveOK = EsifExecutePrimitive((UInt8) self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
-					if (ESIF_OK == primitiveOK) {
-						int32FieldValue = *(UInt32 *) response.buf_ptr;
-					}
-					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%u</%s>\n", self->fields[i].name, int32FieldValue, self->fields[i].name);
-					break;
-				case ESIF_DATA_TEMPERATURE:
-					int32FieldValue = 0xFFFFFFFF;
-
-					response.buf_ptr = &defaultNumber;
-					response.buf_len = sizeof(defaultNumber);
-					primitiveOK = EsifExecutePrimitive((UInt8) self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
-					if (ESIF_OK != primitiveOK) {
+		esif_ccb_strcpy(output, "<result>\n", output_len);
+		esif_ccb_sprintf_concat(output_len, output, "  <tableRow>\n");
+		if (self->capabilityType != ESIF_CAPABILITY_NO_RESTRICTION) {
+			capabilityEnabled = isDomainCapable((UInt8)self->participantId, self->domainQualifier, self->capabilityType);
+		}
+			for (i = 0; i < self->numFields; i++) {
+				if (self->capabilityType == ESIF_CAPABILITY_NO_RESTRICTION && self->fields[i].capabilityType != ESIF_CAPABILITY_NO_RESTRICTION) {
+					capabilityEnabled = isDomainCapable((UInt8)self->participantId, self->domainQualifier, self->fields[i].capabilityType);
+				}
+				if (capabilityEnabled) {
+				int32FieldValue = 0;
+				if (self->fields[i].getPrimitive > 0) {
+					response.type = self->fields[i].dataType;
+					switch (self->fields[i].dataType) {
+					case ESIF_DATA_STRING:
+						strFieldValue = "";
+						esif_ccb_sprintf_concat(output_len, output, "    <%s>%s</%s>\n", self->fields[i].name, strFieldValue, self->fields[i].name);
 						break;
-					}
-					int32FieldValue = *(UInt32 *)response.buf_ptr;
-					switch(tempXformType){
-					case ESIF_TEMP_C:
-						esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, &int32FieldValue);
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%.1f</%s>\n",
-							self->fields[i].name,
-							(float)(int)int32FieldValue / 10.0,
-							self->fields[i].name);
+					case ESIF_DATA_UINT32:
+					case ESIF_DATA_POWER:
+					case ESIF_DATA_TIME:
+						response.buf_ptr = &defaultNumber;
+						response.buf_len = sizeof(defaultNumber);
+						primitiveOK = EsifExecutePrimitive((UInt8)self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
+						if (ESIF_OK == primitiveOK) {
+							int32FieldValue = *(UInt32 *)response.buf_ptr;
+						}
+						esif_ccb_sprintf_concat(output_len, output, "    <%s>%u</%s>\n", self->fields[i].name, int32FieldValue, self->fields[i].name);
 						break;
-					case ESIF_TEMP_K:
-						esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIK, &int32FieldValue);
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%.1f</%s>\n",
-							self->fields[i].name,
-							(float)(int)int32FieldValue / 10.0,
-							self->fields[i].name);
-						break;
-					default:
-						esif_convert_temp(NORMALIZE_TEMP_TYPE, tempXformType, &int32FieldValue);
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%u</%s>\n",
-							self->fields[i].name,
-							int32FieldValue,
-							self->fields[i].name);
-						break;
-					}
-					break;
-				case ESIF_DATA_STRUCTURE:
-					response.buf_ptr = NULL;
-					response.buf_len = ESIF_DATA_ALLOCATE;
-					response.type = ESIF_DATA_AUTO;
-					primitiveOK = EsifExecutePrimitive((UInt8) self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
-					if (ESIF_OK == primitiveOK && response.buf_ptr) {
-						struct esif_data_binary_fst_package *fst_ptr = (struct esif_data_binary_fst_package *)response.buf_ptr;
-						struct esif_data_binary_bst_package *bst_ptr = (struct esif_data_binary_bst_package *)response.buf_ptr;
+					case ESIF_DATA_TEMPERATURE:
+						int32FieldValue = 0xFFFFFFFF;
 
-						switch (self->fields[i].getPrimitive) {
-						case GET_FAN_STATUS:
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%u</%s>\n", self->fields[i].name, (u32) fst_ptr->speed.integer.value, self->fields[i].name);
-							break;
-						case GET_BATTERY_STATUS:
-							esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-								"    <batteryState>%u</batteryState>\n"
-								"    <batteryRate>%u</batteryRate>\n"
-								"    <batteryCapacity>%u</batteryCapacity>\n"
-								"    <batteryVoltage>%u</batteryVoltage>\n",
-								(u32) bst_ptr->battery_state.integer.value,
-								(u32) bst_ptr->battery_present_rate.integer.value,
-								(u32) bst_ptr->battery_remaining_capacity.integer.value,
-								(u32) bst_ptr->battery_present_voltage.integer.value);
-							break;
-						case GET_RAPL_POWER_CONTROL_CAPABILITIES:
-							remain_bytes = response.data_len;
-							union esif_data_variant *data_ptr = response.buf_ptr;
-							if (remain_bytes > sizeof(*data_ptr))
-							{
-								// skip revision
-								remain_bytes -= sizeof(*data_ptr);
-								data_ptr = (union esif_data_variant *)((u8 *)data_ptr + sizeof(*data_ptr));
-							}
-							
-							struct esif_data_binary_ppcc_package *ppcc_ptr = (struct esif_data_binary_ppcc_package *)(u8 *)data_ptr;
-							u32 ppccIndex = 0;
-							while (remain_bytes >= sizeof(struct esif_data_binary_ppcc_package))
-							{
-								ppccIndex = (u32)ppcc_ptr->pl_index.integer.value + 1;
-								esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-									"    <pl%uMin>%u</pl%uMin>\n"
-									"    <pl%uMax>%u</pl%uMax>\n"
-									"    <pl%uTimeWindowMin>%u</pl%uTimeWindowMin>\n"
-									"    <pl%uTimeWindowMax>%u</pl%uTimeWindowMax>\n"
-									"    <pl%uStepSize>%u</pl%uStepSize>\n",
-									ppccIndex,
-									(u32)ppcc_ptr->pl_min.integer.value,
-									ppccIndex,
-									ppccIndex,
-									(u32)ppcc_ptr->pl_max.integer.value,
-									ppccIndex,
-									ppccIndex,
-									(u32)ppcc_ptr->time_window_min.integer.value,
-									ppccIndex,
-									ppccIndex,
-									(u32)ppcc_ptr->time_window_max.integer.value,
-									ppccIndex,
-									ppccIndex,
-									(u32)ppcc_ptr->step_size.integer.value,
-									ppccIndex);
-
-								remain_bytes -= sizeof(struct esif_data_binary_ppcc_package);
-								ppcc_ptr = (struct esif_data_binary_ppcc_package *)((u8 *)ppcc_ptr + sizeof(*ppcc_ptr));
-							}
-							break;
-						case GET_OEM_VARS:
-							remain_bytes = response.data_len;
-							union esif_data_variant *odvp_ptr = response.buf_ptr;
-							u32 cnt = 0;
-							while (remain_bytes >= sizeof(*odvp_ptr))
-							{
-								if (odvp_ptr->type == ESIF_DATA_UINT64 || odvp_ptr->type == ESIF_DATA_UINT32)
-								{
-									esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-										"    <oem%u>%u</oem%u>\n",
-										cnt, odvp_ptr->integer.value, cnt);
-								}
-
-								++cnt;
-								remain_bytes -= sizeof(union esif_data_variant);
-								odvp_ptr = (union esif_data_variant *)((u8 *)odvp_ptr + sizeof(*odvp_ptr));
-							}
-							break;
-						default:
-							//do nothing
+						response.buf_ptr = &defaultNumber;
+						response.buf_len = sizeof(defaultNumber);
+						primitiveOK = EsifExecutePrimitive((UInt8)self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
+						if (ESIF_OK != primitiveOK) {
 							break;
 						}
+						int32FieldValue = *(UInt32 *)response.buf_ptr;
+						switch (tempXformType) {
+						case ESIF_TEMP_C:
+							esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIC, &int32FieldValue);
+							esif_ccb_sprintf_concat(output_len, output, "    <%s>%.1f</%s>\n",
+								self->fields[i].name,
+								(float)(int)int32FieldValue / 10.0,
+								self->fields[i].name);
+							break;
+						case ESIF_TEMP_K:
+							esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_DECIK, &int32FieldValue);
+							esif_ccb_sprintf_concat(output_len, output, "    <%s>%.1f</%s>\n",
+								self->fields[i].name,
+								(float)(int)int32FieldValue / 10.0,
+								self->fields[i].name);
+							break;
+						default:
+							esif_convert_temp(NORMALIZE_TEMP_TYPE, tempXformType, &int32FieldValue);
+							esif_ccb_sprintf_concat(output_len, output, "    <%s>%u</%s>\n",
+								self->fields[i].name,
+								int32FieldValue,
+								self->fields[i].name);
+							break;
+						}
+						break;
+					case ESIF_DATA_STRUCTURE:
+						response.buf_ptr = NULL;
+						response.buf_len = ESIF_DATA_ALLOCATE;
+						response.type = ESIF_DATA_AUTO;
+						primitiveOK = EsifExecutePrimitive((UInt8)self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
+						if (ESIF_OK == primitiveOK && response.buf_ptr) {
+							struct esif_data_binary_fst_package *fst_ptr = (struct esif_data_binary_fst_package *)response.buf_ptr;
+							struct esif_data_binary_bst_package *bst_ptr = (struct esif_data_binary_bst_package *)response.buf_ptr;
+
+							switch (self->fields[i].getPrimitive) {
+							case GET_FAN_STATUS:
+								esif_ccb_sprintf_concat(output_len, output, "    <%s>%u</%s>\n", self->fields[i].name, (u32)fst_ptr->speed.integer.value, self->fields[i].name);
+								break;
+							case GET_BATTERY_STATUS:
+								esif_ccb_sprintf_concat(output_len, output,
+									"    <batteryState>%u</batteryState>\n"
+									"    <batteryRate>%u</batteryRate>\n"
+									"    <batteryCapacity>%u</batteryCapacity>\n"
+									"    <batteryVoltage>%u</batteryVoltage>\n",
+									(u32)bst_ptr->battery_state.integer.value,
+									(u32)bst_ptr->battery_present_rate.integer.value,
+									(u32)bst_ptr->battery_remaining_capacity.integer.value,
+									(u32)bst_ptr->battery_present_voltage.integer.value);
+								break;
+							case GET_RAPL_POWER_CONTROL_CAPABILITIES:
+								remain_bytes = response.data_len;
+								union esif_data_variant *data_ptr = response.buf_ptr;
+								if (remain_bytes > sizeof(*data_ptr))
+								{
+									// skip revision
+									remain_bytes -= sizeof(*data_ptr);
+									data_ptr = (union esif_data_variant *)((u8 *)data_ptr + sizeof(*data_ptr));
+								}
+
+								struct esif_data_binary_ppcc_package *ppcc_ptr = (struct esif_data_binary_ppcc_package *)(u8 *)data_ptr;
+								u32 ppccIndex = 0;
+								while (remain_bytes >= sizeof(struct esif_data_binary_ppcc_package))
+								{
+									ppccIndex = (u32)ppcc_ptr->pl_index.integer.value + 1;
+									esif_ccb_sprintf_concat(output_len, output,
+										"    <pl%uMin>%u</pl%uMin>\n"
+										"    <pl%uMax>%u</pl%uMax>\n"
+										"    <pl%uTimeWindowMin>%u</pl%uTimeWindowMin>\n"
+										"    <pl%uTimeWindowMax>%u</pl%uTimeWindowMax>\n"
+										"    <pl%uStepSize>%u</pl%uStepSize>\n",
+										ppccIndex,
+										(u32)ppcc_ptr->pl_min.integer.value,
+										ppccIndex,
+										ppccIndex,
+										(u32)ppcc_ptr->pl_max.integer.value,
+										ppccIndex,
+										ppccIndex,
+										(u32)ppcc_ptr->time_window_min.integer.value,
+										ppccIndex,
+										ppccIndex,
+										(u32)ppcc_ptr->time_window_max.integer.value,
+										ppccIndex,
+										ppccIndex,
+										(u32)ppcc_ptr->step_size.integer.value,
+										ppccIndex);
+
+									remain_bytes -= sizeof(struct esif_data_binary_ppcc_package);
+									ppcc_ptr = (struct esif_data_binary_ppcc_package *)((u8 *)ppcc_ptr + sizeof(*ppcc_ptr));
+								}
+								break;
+							case GET_OEM_VARS:
+								remain_bytes = response.data_len;
+								union esif_data_variant *odvp_ptr = response.buf_ptr;
+								u32 cnt = 0;
+								while (remain_bytes >= sizeof(*odvp_ptr))
+								{
+									if (odvp_ptr->type == ESIF_DATA_UINT64 || odvp_ptr->type == ESIF_DATA_UINT32)
+									{
+										esif_ccb_sprintf_concat(output_len, output,
+											"    <oem%u>%u</oem%u>\n",
+											cnt, odvp_ptr->integer.value, cnt);
+									}
+
+									++cnt;
+									remain_bytes -= sizeof(union esif_data_variant);
+									odvp_ptr = (union esif_data_variant *)((u8 *)odvp_ptr + sizeof(*odvp_ptr));
+								}
+								break;
+							default:
+								//do nothing
+								break;
+							}
+						}
+						esif_ccb_free(response.buf_ptr);
+						break;
+					default:
+						ESIF_TRACE_DEBUG("Field type in schema for table %s is not handled \n", self->name);
+						rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+						goto exit;
+						break;
 					}
-					esif_ccb_free(response.buf_ptr);
-					break;
-				default:
-					ESIF_TRACE_DEBUG("Field type in schema for table %s is not handled \n", self->name);
-					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-					goto exit;
-					break;
 				}
 			}
+			else {
+				esif_ccb_sprintf_concat(output_len, output, "    <%s>X</%s>\n", self->fields[i].name, self->fields[i].name);
+			}
 		}
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  </tableRow>\n");
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
+		esif_ccb_sprintf_concat(output_len, output, "  </tableRow>\n");
+		esif_ccb_sprintf_concat(output_len, output, "</result>\n");
 	}
 	self->dataXML = esif_ccb_strdup(output);
 
@@ -1160,21 +1202,21 @@ exit:
 	return tableColumnPtr;
 }
 
-static eEsifError outputDataKeyTable(struct esif_link_list *TablePtr, char *output)
+static eEsifError outputDataKeyTable(struct esif_link_list *TablePtr, char *output, size_t output_len)
 {
 	eEsifError rc = ESIF_OK;
 	struct esif_link_list_node *currRowNodePtr = NULL;
 
 	currRowNodePtr = TablePtr->head_ptr;
 
-	esif_ccb_strcpy(output, "<result>\n", OUT_BUF_LEN);
+	esif_ccb_strcpy(output, "<result>\n", output_len);
 
 	while (currRowNodePtr != NULL) {
 		TableRowDynamic *currentRowPtr = (TableRowDynamic *)currRowNodePtr->data_ptr;
 		struct esif_link_list_node *currColumnNodePtr = NULL;
 
 		if (NULL != currentRowPtr && NULL != currentRowPtr->RowColumnsListPtr && NULL != currentRowPtr->RowColumnsListPtr->head_ptr) {
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  <tableRow>\n");
+			esif_ccb_sprintf_concat(output_len, output, "  <tableRow>\n");
 
 			currColumnNodePtr = currentRowPtr->RowColumnsListPtr->head_ptr;
 
@@ -1182,7 +1224,7 @@ static eEsifError outputDataKeyTable(struct esif_link_list *TablePtr, char *outp
 				TableColumnDynamic *currentColumnPtr = (TableColumnDynamic *)currColumnNodePtr->data_ptr;
 
 				if (NULL != currentColumnPtr) {
-					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "    <%s>%s</%s>\n", currentColumnPtr->columnName, currentColumnPtr->columnData, currentColumnPtr->columnName);
+					esif_ccb_sprintf_concat(output_len, output, "    <%s>%s</%s>\n", currentColumnPtr->columnName, currentColumnPtr->columnData, currentColumnPtr->columnName);
 				}
 
 				currColumnNodePtr = currColumnNodePtr->next_ptr;
@@ -1192,11 +1234,11 @@ static eEsifError outputDataKeyTable(struct esif_link_list *TablePtr, char *outp
 
 		currRowNodePtr = currRowNodePtr->next_ptr;
 
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  </tableRow>\n");
+		esif_ccb_sprintf_concat(output_len, output, "  </tableRow>\n");
 
 	}
 
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "</result>\n");
+	esif_ccb_sprintf_concat(output_len, output, "</result>\n");
 
 
 	return rc;
@@ -1224,6 +1266,27 @@ static eEsifError freeTableColumnData(struct esif_link_list *TablePtr)
 
 	return rc;
 
+}
+
+static Bool isDomainCapable(UInt8 participantIndex, char* domainQualifier, UInt32 capabilityToTest)
+{
+	Bool isCapable = ESIF_TRUE;
+	EsifUpPtr upPtr = NULL;
+	EsifUpDomainPtr domainPtr = NULL;
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantIndex);
+	if (NULL == upPtr) {
+		isCapable = ESIF_FALSE;
+		goto exit;
+	}
+	UInt16 domain = domain_str_to_short(domainQualifier);
+	domainPtr = EsifUp_GetDomainById(upPtr, domain);
+	if (domainPtr == NULL || !(domainPtr->capability_for_domain.capability_flags & capabilityToTest)) {
+		isCapable = ESIF_FALSE;
+	}
+
+exit:
+	EsifUp_PutRef(upPtr);
+	return isCapable;
 }
 
 eEsifError TableObject_Convert(
@@ -1379,11 +1442,7 @@ eEsifError TableObject_Convert(
 					binaryCounter += sizeof(colValueNumber);
 					break;
 				case ESIF_DATA_BINARY:
-					lengthNumber = esif_atoi(tableColValue);  // First field is length of binary data
-					if (lengthNumber > MAX_TABLEOBJECT_BINARY) {
-						rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-						goto exit;
-					}
+					lengthNumber = ESIF_GUID_LEN;
 					u32 reserved = 0;                      // Binary Type implies a 4-byte reserved field after length
 					totalBytesNeeded += sizeof(binaryType) + sizeof(lengthNumber) + sizeof(reserved) + lengthNumber;
 					new_tableMem = (u8*) esif_ccb_realloc(tableMem, totalBytesNeeded);
@@ -1399,24 +1458,19 @@ eEsifError TableObject_Convert(
 					binaryOutput += sizeof(lengthNumber);
 					esif_ccb_memcpy(binaryOutput, &reserved, sizeof(reserved));  // Reserved
 					binaryOutput += sizeof(reserved);
-					// Must get the next column here (the UUID) because it is part of a structure
-					tableCol = esif_ccb_strtok(NULL, colDelims, &colTok);
-					
-					if (tableCol) {
-						//
-						// "hhx" is not understood by Windows, so must first read into shorts and
-						// then copy to bytes to resolve static analysis issues.
-						//
-						esif_ccb_sscanf(tableCol, "%8x-%4hx-%4hx-%2hx%2hx-%2hx%2hx%2hx%2hx%2hx%2hx", 
-						&guid.data1, &guid.data2, &guid.data3, 
-						&guidShorts[0], &guidShorts[1], &guidShorts[2], &guidShorts[3],
-						&guidShorts[4], &guidShorts[5], &guidShorts[6], &guidShorts[7]);
-						esif_copy_shorts_to_bytes(guid.data4, guidShorts, 8);
-						esif_ccb_memcpy(binaryOutput, &guid, sizeof(guid));
-						binaryOutput += sizeof(guid);
-					}
-					binaryCounter = binaryOutput - tableMem;
 
+					//
+					// "hhx" is not understood by Windows, so must first read into shorts and
+					// then copy to bytes to resolve static analysis issues.
+					//
+					esif_ccb_sscanf(tableCol, "%8x-%4hx-%4hx-%2hx%2hx-%2hx%2hx%2hx%2hx%2hx%2hx", 
+					&guid.data1, &guid.data2, &guid.data3, 
+					&guidShorts[0], &guidShorts[1], &guidShorts[2], &guidShorts[3],
+					&guidShorts[4], &guidShorts[5], &guidShorts[6], &guidShorts[7]);
+					esif_copy_shorts_to_bytes(guid.data4, guidShorts, 8);
+					esif_ccb_memcpy(binaryOutput, &guid, sizeof(guid));
+					binaryOutput += sizeof(guid);
+					binaryCounter = binaryOutput - tableMem;
 					break;
 				default:
 					ESIF_TRACE_DEBUG("Field type in schema for table %s is not handled \n", self->name);
@@ -1439,16 +1493,18 @@ eEsifError TableObject_Convert(
 
 	if (totalBytesNeeded) {
 		self->binaryData = esif_ccb_malloc(totalBytesNeeded);
-		if (self->binaryData == NULL) {
-			rc = ESIF_E_NO_MEMORY;
-			goto exit;
-		}
-		esif_ccb_memcpy((u8 *) self->binaryData, tableMem, totalBytesNeeded);
-		self->binaryDataSize = totalBytesNeeded;
 	}
 	else {
-		rc = ESIF_E_UNSPECIFIED;
+		// Use default buffer length of 1 for empty buffer
+		self->binaryData = esif_ccb_malloc(MIN_BUFFER_LENGTH);
 	}
+
+	if (self->binaryData == NULL) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	esif_ccb_memcpy((u8 *)self->binaryData, tableMem, totalBytesNeeded);
+	self->binaryDataSize = totalBytesNeeded;
 
 exit:
 	esif_ccb_free(tableMem);
@@ -1489,6 +1545,8 @@ void TableObject_Construct(
 	self->participantId = participantId;
 
 	self->mode = mode;
+
+	self->capabilityType = ESIF_CAPABILITY_NO_RESTRICTION;
 }
 
 eEsifError TableObject_Delete(
@@ -1549,11 +1607,10 @@ eEsifError TableObject_Delete(
 				esif_ccb_strcpy(targetKey, self->fields[i].dataVaultKey, MAX_TABLEOBJECT_KEY_LEN);
 			}
 			else if (self->dataVaultCategory == NULL) {
-				esif_ccb_sprintf(MAX_TABLEOBJECT_KEY_LEN, targetKey,
-					"/participants/%s.%s/%.*s%s",
-					EsifUp_GetName(upPtr), self->domainQualifier,
-					(int) (ACPI_NAME_TARGET_SIZE - esif_ccb_min(esif_ccb_strlen(self->name, ACPI_NAME_TARGET_SIZE), ACPI_NAME_TARGET_SIZE)), "____",
-					self->fields[i].name);
+				if (self->fields[i].setPrimitive != 0) {
+					rc = TableObject_ResetConfig(self, self->fields[i].setPrimitive, ESIF_NO_INSTANCE);
+				}
+
 				if (self->setPrimitive != 0)
 				{
 					rc = TableObject_ResetConfig(self, self->setPrimitive, ESIF_NO_INSTANCE);
@@ -1632,6 +1689,9 @@ eEsifError TableObject_LoadAttributes(
 		goto exit;
 	}
 
+	// By default, set capabilityType to no restrictions
+	self->capabilityType = ESIF_CAPABILITY_NO_RESTRICTION;
+
 	/* replace with lookup */
 	if (esif_ccb_stricmp(self->name, "trt") == 0) {
 		self->dataType = ESIF_DATA_BINARY;
@@ -1654,6 +1714,7 @@ eEsifError TableObject_LoadAttributes(
 		self->getPrimitive = GET_DISPLAY_BRIGHTNESS_LEVELS;
 		self->setPrimitive = SET_DISPLAY_BRIGHTNESS_LEVELS;
 		self->changeEvent = ESIF_EVENT_DOMAIN_DISPLAY_CAPABILITY_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_DISPLAY_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "odvp") == 0) {
 		FLAGS_CLEAR(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1673,7 +1734,7 @@ eEsifError TableObject_LoadAttributes(
 	}
 	else if (esif_ccb_stricmp(self->name, "apct") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
-		FLAGS_SET(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE;
 		self->setPrimitive = SET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE;
@@ -1699,7 +1760,7 @@ eEsifError TableObject_LoadAttributes(
 	}
 	else if (esif_ccb_stricmp(self->name, "pbct") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
-		FLAGS_SET(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_POWER_BOSS_CONDITIONS_TABLE;
 		self->setPrimitive = SET_POWER_BOSS_CONDITIONS_TABLE;
@@ -1724,10 +1785,10 @@ eEsifError TableObject_LoadAttributes(
 	}
 	else if (esif_ccb_stricmp(self->name, "idsp") == 0) {
 		FLAGS_CLEAR(self->options, TABLEOPT_CONTAINS_REVISION);
-		FLAGS_SET(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_SUPPORTED_POLICIES;
-		self->setPrimitive = 0;
+		self->setPrimitive = SET_SUPPORTED_POLICIES;
 		self->changeEvent = ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "ppcc") == 0) {
@@ -1737,6 +1798,7 @@ eEsifError TableObject_LoadAttributes(
 		self->getPrimitive = GET_RAPL_POWER_CONTROL_CAPABILITIES;
 		self->setPrimitive = SET_RAPL_POWER_CONTROL_CAPABILITIES;
 		self->changeEvent = ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_POWER_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "vsct") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1744,7 +1806,8 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_VIRTUAL_SENSOR_CALIB_TABLE;
 		self->setPrimitive = SET_VIRTUAL_SENSOR_CALIB_TABLE;
-		self->changeEvent = ESIF_EVENT_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DOMAIN_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_TEMP_STATUS;
 	}
 	else if (esif_ccb_stricmp(self->name, "vspt") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1752,28 +1815,38 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_VIRTUAL_SENSOR_POLLING_TABLE;
 		self->setPrimitive = SET_VIRTUAL_SENSOR_POLLING_TABLE;
-		self->changeEvent = ESIF_EVENT_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DOMAIN_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_TEMP_STATUS;
 	}
-	else if (esif_ccb_stricmp(self->name, "ppss") == 0) {
+	else if ((esif_ccb_stricmp(self->name, "ppss") == 0) || (esif_ccb_stricmp(self->name, "gpss") == 0)) {
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_PERF_SUPPORT_STATES;
 		self->setPrimitive = SET_PERF_SUPPORT_STATES;
 		self->changeEvent = ESIF_EVENT_DOMAIN_PERF_CONTROL_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_PERF_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "pss") == 0) {
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_PROC_PERF_SUPPORT_STATES;
 		self->setPrimitive = SET_PROC_PERF_SUPPORT_STATES;
 		self->changeEvent = ESIF_EVENT_DOMAIN_PERF_CONTROL_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_PERF_CONTROL;
 	}
-	else if (esif_ccb_stricmp(self->name, "psv") == 0) {
+	else if (esif_ccb_stricmp(self->name, "trippoints") == 0) {
 		self->dataType = ESIF_DATA_UINT32;
 		self->getPrimitive = 0;  /* NA for virtual tables */
 		self->setPrimitive = 0;
 		self->changeEvent = ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED;
 		self->dataVaultCategory = esif_ccb_strdup("trippoint");
+		self->capabilityType = ESIF_CAPABILITY_TEMP_THRESHOLD;
 	}
 	else if (esif_ccb_stricmp(self->name, "status") == 0) {
+		self->dataType = ESIF_DATA_UINT32;
+		self->getPrimitive = 0;  /* NA for virtual tables */
+		self->setPrimitive = 0;
+		self->changeEvent = 0;
+	}
+	else if (esif_ccb_stricmp(self->name, "standby_poll") == 0) {
 		self->dataType = ESIF_DATA_UINT32;
 		self->getPrimitive = 0;  /* NA for virtual tables */
 		self->setPrimitive = 0;
@@ -1798,12 +1871,14 @@ eEsifError TableObject_LoadAttributes(
 		self->getPrimitive = GET_PROC_PERF_PSTATE_DEPTH_LIMIT;
 		self->setPrimitive = SET_PROC_PERF_PSTATE_DEPTH_LIMIT;
 		self->changeEvent = ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_PERF_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "ppdl") == 0) {
 		self->dataType = ESIF_DATA_UINT32;
 		self->getPrimitive = GET_PERF_PSTATE_DEPTH_LIMIT;
 		self->setPrimitive = SET_PERF_PSTATE_DEPTH_LIMIT;
 		self->changeEvent = ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_PERF_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "ecmt") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1832,11 +1907,29 @@ eEsifError TableObject_LoadAttributes(
 	}
 	else if (esif_ccb_stricmp(self->name, "psha") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
-		FLAGS_SET(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_POWER_SHARING_ALGORITHM_TABLE;
 		self->setPrimitive = SET_POWER_SHARING_ALGORITHM_TABLE;
 		self->changeEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED;
+	}
+	else if (esif_ccb_stricmp(self->name, "tdpl") == 0) {
+		FLAGS_CLEAR(self->options, TABLEOPT_CONTAINS_REVISION);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_PROC_CTDP_POINT_LIST;
+		self->setPrimitive = 0;
+		self->changeEvent = 0;
+		self->capabilityType = ESIF_CAPABILITY_CTDP_CONTROL;
+	}
+	else if (esif_ccb_stricmp(self->name, "fcdc") == 0) {
+		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_FAN_CAPABILITIES;
+		self->setPrimitive = SET_FAN_CAPABILITIES;
+		self->changeEvent = ESIF_EVENT_DOMAIN_FAN_CAPABILITIES_CHANGED;
+		self->capabilityType = ESIF_CAPABILITY_ACTIVE_CONTROL;
 	}
 	else {
 		rc = ESIF_E_NOT_IMPLEMENTED;
@@ -2101,7 +2194,14 @@ eEsifError TableObject_LoadSchema(
 				{ 0 }
 		};
 		fieldlist = ppss_fields;
-	}
+	} 
+	else if (esif_ccb_stricmp(self->name, "gpss") == 0) {
+		static TableField gpss_fields[] = {
+			{ "Performance", "Performance", ESIF_DATA_UINT64 },
+			{ 0 }
+		};
+		fieldlist = gpss_fields;
+	} 
 	else if (esif_ccb_stricmp(self->name, "pss") == 0) {
 		static TableField pss_fields [] = {
 				{ "ControlValue", "ControlValue", ESIF_DATA_UINT64 },
@@ -2114,7 +2214,7 @@ eEsifError TableObject_LoadSchema(
 		};
 		fieldlist = pss_fields;
 	}
-	else if (esif_ccb_stricmp(self->name, "psv") == 0) {
+	else if (esif_ccb_stricmp(self->name, "trippoints") == 0) {
 		static TableField psv_fields [] = {
 				{ "psv", "psv", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_PASSIVE, SET_TRIP_POINT_PASSIVE, ESIF_NO_INSTANCE },
 				{ "cr3", "cr3", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_WARM, SET_TRIP_POINT_WARM, ESIF_NO_INSTANCE },
@@ -2137,73 +2237,84 @@ eEsifError TableObject_LoadSchema(
 	}
 	else if (esif_ccb_stricmp(self->name, "status") == 0) {
 		static TableField status_fields [] = {
-				{ "temp", "temp", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE, SET_TEMPERATURE, ESIF_NO_INSTANCE },
-				{ "power", "power", ESIF_DATA_POWER, GET_RAPL_POWER, 0, ESIF_NO_INSTANCE },
-				{ "fanSpeed", "fanSpeed", ESIF_DATA_STRUCTURE, GET_FAN_STATUS, 0, ESIF_NO_INSTANCE },
-				{ "battery", "battery", ESIF_DATA_STRUCTURE, GET_BATTERY_STATUS, 0, ESIF_NO_INSTANCE },
-				{ "wrm", "wrm", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_WARM, SET_TRIP_POINT_WARM, ESIF_NO_INSTANCE },
-				{ "hot", "hot", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_HOT, SET_TRIP_POINT_HOT, ESIF_NO_INSTANCE },
-				{ "crt", "crt", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_CRITICAL, SET_TRIP_POINT_CRITICAL, ESIF_NO_INSTANCE },
-				{ "psv", "psv", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_PASSIVE, SET_TRIP_POINT_PASSIVE, ESIF_NO_INSTANCE },
-				{ "tempAux0", "tempAux0", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE_THRESHOLDS, SET_TEMPERATURE_THRESHOLDS, 0 },
-				{ "tempAux1", "tempAux1", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE_THRESHOLDS, SET_TEMPERATURE_THRESHOLDS, 1 },
-				{ "tempHyst", "tempHyst", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE_THRESHOLD_HYSTERESIS, SET_TEMPERATURE_THRESHOLD_HYSTERESIS, ESIF_NO_INSTANCE },
-				{ "ntt", "ntt", ESIF_DATA_TEMPERATURE, GET_NOTIFICATION_TEMP_THRESHOLD, 0, ESIF_NO_INSTANCE},
-				{ "ac0", "ac0", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 0 },
-				{ "ac1", "ac1", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 1 },
-				{ "ac2", "ac2", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 2 },
-				{ "ac3", "ac3", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 3 },
-				{ "ac4", "ac4", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 4 },
-				{ "ac5", "ac5", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 5 },
-				{ "ac6", "ac6", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 6 },
-				{ "ac7", "ac7", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 7 },
-				{ "ac8", "ac8", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 8 },
-				{ "ac9", "ac9", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 9 },
-				{ "activeCoreCount", "activeCoreCount", ESIF_DATA_UINT32, GET_PROC_LOGICAL_PROCESSOR_COUNT, 0, ESIF_NO_INSTANCE },
-				{ "pStateMax", "pStateMax", ESIF_DATA_UINT32, GET_PROC_PERF_PRESENT_CAPABILITY, SET_PERF_PRESENT_CAPABILITY, ESIF_NO_INSTANCE },
-				{ "ppcc", "ppcc", ESIF_DATA_STRUCTURE, GET_RAPL_POWER_CONTROL_CAPABILITIES, 0, ESIF_NO_INSTANCE },
-				{ "powerLimit1", "powerLimit1", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 0 },
-				{ "powerTimeWindow1", "powerTimeWindow1", ESIF_DATA_TIME, GET_RAPL_POWER_LIMIT_TIME_WINDOW, SET_RAPL_POWER_LIMIT_TIME_WINDOW, 0 },
-				{ "powerLimit2", "powerLimit2", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 1 },
-				{ "powerLimit3", "powerLimit3", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 2 },
-				{ "powerTimeWindow3", "powerTimeWindow3", ESIF_DATA_TIME, GET_RAPL_POWER_LIMIT_TIME_WINDOW, SET_RAPL_POWER_LIMIT_TIME_WINDOW, 2 },
-				{ "powerDutyCycle3", "powerDutyCycle3", ESIF_DATA_UINT32, GET_RAPL_POWER_LIMIT_DUTY_CYCLE, SET_RAPL_POWER_LIMIT_DUTY_CYCLE, 2 },
-				{ "powerLimit4", "powerLimit4", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 3 },
-				{ "platformPowerLimit1", "platformPowerLimit1", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 0 },
-				{ "platformPowerTimeWindow1", "platformPowerTimeWindow1", ESIF_DATA_TIME, GET_PLATFORM_POWER_LIMIT_TIME_WINDOW, SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, 0 },
-				{ "platformPowerLimit2", "platformPowerLimit2", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 1 },
-				{ "platformPowerLimit3", "platformPowerLimit3", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 2 },
-				{ "platformPowerTimeWindow3", "platformPowerTimeWindow3", ESIF_DATA_TIME, GET_PLATFORM_POWER_LIMIT_TIME_WINDOW, SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, 2 },
-				{ "platformPowerDutyCycle3", "platformPowerDutyCycle3", ESIF_DATA_UINT32, GET_PLATFORM_POWER_LIMIT_DUTY_CYCLE, SET_PLATFORM_POWER_LIMIT_DUTY_CYCLE, 2 },
-				{ "platformPowerLimit4", "platformPowerLimit4", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 3 },
-				{ "samplePeriod", "samplePeriod", ESIF_DATA_UINT32, GET_PARTICIPANT_SAMPLE_PERIOD, SET_PARTICIPANT_SAMPLE_PERIOD, ESIF_NO_INSTANCE },
-				{ "pmax", "pmax", ESIF_DATA_POWER, GET_PLATFORM_MAX_BATTERY_POWER, 0, ESIF_NO_INSTANCE },
-				{ "pbss", "pbss", ESIF_DATA_POWER, GET_PLATFORM_BATTERY_STEADY_STATE, 0, ESIF_NO_INSTANCE },
-				{ "prop", "prop", ESIF_DATA_POWER, GET_PLATFORM_REST_OF_POWER, 0, ESIF_NO_INSTANCE },
-				{ "artg", "artg", ESIF_DATA_POWER, GET_ADAPTER_POWER_RATING, 0, ESIF_NO_INSTANCE },
-				{ "ctyp", "ctyp", ESIF_DATA_UINT32, GET_CHARGER_TYPE, 0, ESIF_NO_INSTANCE },
-				{ "psrc", "psrc", ESIF_DATA_UINT32, GET_PLATFORM_POWER_SOURCE, 0, ESIF_NO_INSTANCE },
-				{ "avol", "avol", ESIF_DATA_UINT32, GET_AVOL, 0, ESIF_NO_INSTANCE },
-				{ "acur", "acur", ESIF_DATA_UINT32, GET_ACUR, 0, ESIF_NO_INSTANCE },
-				{ "ap01", "ap01", ESIF_DATA_UINT32, GET_AP01, 0, ESIF_NO_INSTANCE },
-				{ "ap02", "ap02", ESIF_DATA_UINT32, GET_AP02, 0, ESIF_NO_INSTANCE },
-				{ "ap10", "ap10", ESIF_DATA_UINT32, GET_AP10, 0, ESIF_NO_INSTANCE },
-				{ "odvp", "odvp", ESIF_DATA_STRUCTURE, GET_OEM_VARS, 0, ESIF_NO_INSTANCE },
+				{ "temp", "temp", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE, SET_TEMPERATURE, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_STATUS },
+				{ "power", "power", ESIF_DATA_POWER, GET_RAPL_POWER, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_STATUS },
+				{ "fanSpeed", "fanSpeed", ESIF_DATA_STRUCTURE, GET_FAN_STATUS, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ACTIVE_CONTROL },
+				{ "battery", "battery", ESIF_DATA_STRUCTURE, GET_BATTERY_STATUS, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "wrm", "wrm", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_WARM, SET_TRIP_POINT_WARM, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "hot", "hot", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_HOT, SET_TRIP_POINT_HOT, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "crt", "crt", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_CRITICAL, SET_TRIP_POINT_CRITICAL, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "psv", "psv", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_PASSIVE, SET_TRIP_POINT_PASSIVE, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "tempAux0", "tempAux0", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE_THRESHOLDS, SET_TEMPERATURE_THRESHOLDS, 0, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "tempAux1", "tempAux1", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE_THRESHOLDS, SET_TEMPERATURE_THRESHOLDS, 1, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "tempHyst", "tempHyst", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE_THRESHOLD_HYSTERESIS, SET_TEMPERATURE_THRESHOLD_HYSTERESIS, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ntt", "ntt", ESIF_DATA_TEMPERATURE, GET_NOTIFICATION_TEMP_THRESHOLD, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac0", "ac0", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 0, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac1", "ac1", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 1, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac2", "ac2", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 2, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac3", "ac3", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 3, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac4", "ac4", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 4, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac5", "ac5", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 5, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac6", "ac6", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 6, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac7", "ac7", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 7, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac8", "ac8", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 8, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "ac9", "ac9", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_ACTIVE, SET_TRIP_POINT_ACTIVE, 9, ESIF_CAPABILITY_TEMP_THRESHOLD },
+				{ "activeCoreCount", "activeCoreCount", ESIF_DATA_UINT32, GET_PROC_LOGICAL_PROCESSOR_COUNT, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_CORE_CONTROL },
+				{ "pStateMax", "pStateMax", ESIF_DATA_UINT32, GET_PROC_PERF_PRESENT_CAPABILITY, SET_PERF_PRESENT_CAPABILITY, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PERF_CONTROL },
+				{ "ppcc", "ppcc", ESIF_DATA_STRUCTURE, GET_RAPL_POWER_CONTROL_CAPABILITIES, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerLimit1", "powerLimit1", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 0, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerTimeWindow1", "powerTimeWindow1", ESIF_DATA_TIME, GET_RAPL_POWER_LIMIT_TIME_WINDOW, SET_RAPL_POWER_LIMIT_TIME_WINDOW, 0, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerLimit2", "powerLimit2", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 1, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerLimit3", "powerLimit3", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 2, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerTimeWindow3", "powerTimeWindow3", ESIF_DATA_TIME, GET_RAPL_POWER_LIMIT_TIME_WINDOW, SET_RAPL_POWER_LIMIT_TIME_WINDOW, 2, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerDutyCycle3", "powerDutyCycle3", ESIF_DATA_UINT32, GET_RAPL_POWER_LIMIT_DUTY_CYCLE, SET_RAPL_POWER_LIMIT_DUTY_CYCLE, 2, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerLimit4", "powerLimit4", ESIF_DATA_POWER, GET_RAPL_POWER_LIMIT, SET_RAPL_POWER_LIMIT, 3, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "platformPowerLimit1", "platformPowerLimit1", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 0, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "platformPowerTimeWindow1", "platformPowerTimeWindow1", ESIF_DATA_TIME, GET_PLATFORM_POWER_LIMIT_TIME_WINDOW, SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, 0, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "platformPowerLimit2", "platformPowerLimit2", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 1, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "platformPowerLimit3", "platformPowerLimit3", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 2, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "platformPowerTimeWindow3", "platformPowerTimeWindow3", ESIF_DATA_TIME, GET_PLATFORM_POWER_LIMIT_TIME_WINDOW, SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, 2, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "platformPowerDutyCycle3", "platformPowerDutyCycle3", ESIF_DATA_UINT32, GET_PLATFORM_POWER_LIMIT_DUTY_CYCLE, SET_PLATFORM_POWER_LIMIT_DUTY_CYCLE, 2, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "platformPowerLimit4", "platformPowerLimit4", ESIF_DATA_POWER, GET_PLATFORM_POWER_LIMIT, SET_PLATFORM_POWER_LIMIT, 3, ESIF_CAPABILITY_PSYS_CONTROL },
+				{ "samplePeriod", "samplePeriod", ESIF_DATA_UINT32, GET_PARTICIPANT_SAMPLE_PERIOD, SET_PARTICIPANT_SAMPLE_PERIOD, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_STATUS },
+				{ "pmax", "pmax", ESIF_DATA_POWER, GET_PLATFORM_MAX_BATTERY_POWER, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "pbss", "pbss", ESIF_DATA_POWER, GET_PLATFORM_BATTERY_STEADY_STATE, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "prop", "prop", ESIF_DATA_POWER, GET_PLATFORM_REST_OF_POWER, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "artg", "artg", ESIF_DATA_POWER, GET_ADAPTER_POWER_RATING, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "ctyp", "ctyp", ESIF_DATA_UINT32, GET_CHARGER_TYPE, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "psrc", "psrc", ESIF_DATA_UINT32, GET_PLATFORM_POWER_SOURCE, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "avol", "avol", ESIF_DATA_UINT32, GET_AVOL, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "acur", "acur", ESIF_DATA_UINT32, GET_ACUR, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "ap01", "ap01", ESIF_DATA_UINT32, GET_AP01, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "ap02", "ap02", ESIF_DATA_UINT32, GET_AP02, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "ap10", "ap10", ESIF_DATA_UINT32, GET_AP10, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PLAT_POWER_STATUS },
+				{ "odvp", "odvp", ESIF_DATA_STRUCTURE, GET_OEM_VARS, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_NO_RESTRICTION },
+				{ "energyCounter", "energyCounter", ESIF_DATA_UINT32, GET_RAPL_ENERGY, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ENERGY_CONTROL },
+				{ "instantaneousPower", "instantaneousPower", ESIF_DATA_POWER, GET_INSTANTANEOUS_POWER, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ENERGY_CONTROL },
+				{ "acPeakPower", "acPeakPower", ESIF_DATA_POWER, GET_AC_PEAK_POWER, SET_AC_PEAK_POWER, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PEAK_POWER_CONTROL },
+				{ "dcPeakPower", "dcPeakPower", ESIF_DATA_POWER, GET_DC_PEAK_POWER, SET_DC_PEAK_POWER, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PEAK_POWER_CONTROL },
 				{ 0 }
 		};
 		fieldlist = status_fields;
 	}
+	else if (esif_ccb_stricmp(self->name, "standby_poll") == 0) {
+		static TableField standby_poll_fields[] = {
+			{ "sample_period", "sample_period", ESIF_DATA_TIME, GET_STANDBY_TEMPERATURE_SAMPLE_PERIOD, SET_STANDBY_TEMPERATURE_SAMPLE_PERIOD, ESIF_NO_INSTANCE },
+			{ 0 }
+		};
+		fieldlist = standby_poll_fields;
+	}
 	else if (esif_ccb_stricmp(self->name, "workload") == 0) {
 		static TableField workload_fields [] = {
-				{ "workload", "workload", ESIF_DATA_STRING, 0, 0, ESIF_NO_INSTANCE, "/shared/export/workload_hints" },
+				{ "workload", "workload", ESIF_DATA_STRING, 0, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_NO_RESTRICTION, "/shared/export/workload_hints" },
 				{ 0 }
 		};
 		fieldlist = workload_fields;
 	}
 	else if (esif_ccb_stricmp(self->name, "participant_min") == 0) {
 		static TableField pmin_fields [] = {
-				{ "temp", "temp", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE, SET_TEMPERATURE, ESIF_NO_INSTANCE },
-				{ "power", "power", ESIF_DATA_POWER, GET_RAPL_POWER, 0, ESIF_NO_INSTANCE },
+				{ "temp", "temp", ESIF_DATA_TEMPERATURE, GET_TEMPERATURE, SET_TEMPERATURE, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_STATUS },
+				{ "power", "power", ESIF_DATA_POWER, GET_RAPL_POWER, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_STATUS },
 				{ 0 }
 		};
 		fieldlist = pmin_fields;
@@ -2290,6 +2401,25 @@ eEsifError TableObject_LoadSchema(
 		};
 		fieldlist = psha_fields;
 	}
+	else if (esif_ccb_stricmp(self->name, "tdpl") == 0) {
+		static TableField tdpl_fields[] = {
+			{ "tdpPower", "tdpPower", ESIF_DATA_UINT64 },
+			{ "frequency", "frequency", ESIF_DATA_UINT64 },
+			{ "tdpControl", "tdpControl", ESIF_DATA_UINT64 },
+			{ "frequencyControl", "frequencyControl", ESIF_DATA_UINT64 },
+			{ "reserved1", "reserved1", ESIF_DATA_UINT64 },
+			{ 0 }
+		};
+		fieldlist = tdpl_fields;
+	}
+	else if (esif_ccb_stricmp(self->name, "fcdc") == 0) {
+		static TableField fcdc_fields[] = {
+			{ "minFanPercentage", "minFanPercentage", ESIF_DATA_UINT64 },
+			{ "maxFanPercentage", "maxFanPercentage", ESIF_DATA_UINT64 },
+			{ 0 }
+		};
+		fieldlist = fcdc_fields;
+	}
 	else {
 		rc = ESIF_E_NOT_IMPLEMENTED;
 	}
@@ -2312,12 +2442,12 @@ eEsifError TableObject_LoadSchema(
 
 		if (self->dataType == ESIF_DATA_BINARY) {
 			for (k = 0; k < self->numFields; k++) {
-				TableField_Construct(&(self->fields[k]), fieldlist[k].name, fieldlist[k].label, fieldlist[k].dataType, fieldlist[k].notForXML);
+				TableField_Construct(&(self->fields[k]), fieldlist[k].name, fieldlist[k].label, fieldlist[k].dataType, fieldlist[k].notForXML, fieldlist[k].capabilityType);
 			}
 		}
 		else {   /* virtual tables */
 			for (k = 0; k < self->numFields; k++) {
-				TableField_ConstructAs(&(self->fields[k]), fieldlist[k].name, fieldlist[k].label, fieldlist[k].dataType, fieldlist[k].notForXML, fieldlist[k].getPrimitive, fieldlist[k].setPrimitive, fieldlist[k].instance, fieldlist[k].dataVaultKey);
+				TableField_ConstructAs(&(self->fields[k]), fieldlist[k].name, fieldlist[k].label, fieldlist[k].dataType, fieldlist[k].notForXML, fieldlist[k].capabilityType, fieldlist[k].getPrimitive, fieldlist[k].setPrimitive, fieldlist[k].instance, fieldlist[k].dataVaultKey);
 			}
 		}
 
