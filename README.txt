@@ -140,8 +140,23 @@ Please do not alter the default settings for OS, OPT_GMIN and OPT_DBUS
 environment variables - they are for Chromium OS builds only, and for Linux
 builds, please use the default values.
 
-Step 7 - Copy the DPTF executable to the proper location on your system:
+After the esif_ufd build is done, copy the executable to the proper location
+on your system (using /usr/bin as an example, but any system path should work):
 	sudo cp esif_ufd /usr/bin
+
+Step 7 - Install other ESIF shared libraries
+Additional ESIF libraries will be required to work with the newer format of
+DPTF data vault files. Run make under the following directories:
+    <DPTF root>/ESIF/Products/ESIF_CMP/Linux
+    <DPTF root>/ESIF/Products/ESIF_WS/Linux
+
+Copy the generated library files to /usr/share/dptf/ufx64
+
+    cp <DPTF root>/ESIF/Products/ESIF_CMP/Linux/esif_cmp.so \
+        /usr/share/dptf/ufx64
+
+    cp <DPTF root>/ESIF/Products/ESIF_WS/Linux/esif_ws.so \
+        /usr/share/dptf/ufx64
 
 Step 8 - Start DPTF. Simply run:
 	sudo /usr/bin/esif_ufd
