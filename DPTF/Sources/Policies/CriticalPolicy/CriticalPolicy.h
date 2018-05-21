@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2018 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,7 +60,7 @@ private:
 	Bool m_hibernateRequested;
 	Bool m_inEmergencyCallMode;
 
-	Bool participantHasDesiredProperties(ParticipantProxyInterface* newParticipant);
+	Bool participantHasDesiredProperties(ParticipantProxyInterface* newParticipant) const;
 	void takePowerActionBasedOnThermalState(ParticipantProxyInterface* participant);
 	void setParticipantTemperatureThresholdNotification(
 		Temperature currentTemperature,
@@ -75,7 +75,8 @@ private:
 	void takePowerAction(
 		const Temperature& currentTemperature,
 		ParticipantSpecificInfoKey::Type crossedTripPoint,
-		const Temperature& crossedTripPointTemperature);
+		const Temperature& crossedTripPointTemperature,
+		const std::string& participantName);
 	void reEvaluateAllParticipants();
 	ParticipantSpecificInfoKey::Type findTripPointCrossed(
 		const std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>>& tripPoints,

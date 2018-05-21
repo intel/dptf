@@ -106,7 +106,6 @@ typedef u8		esif_traceroute_t;
 #endif
 #define ESIF_TRACEMASK(module)	((esif_tracemask_t)1 << (module))
 
-#pragma pack(push,1)
 /* Trace Level Data */
 struct esif_tracelevel_s {
 	const char *		label;		// label, i.e. "ERROR"
@@ -114,7 +113,6 @@ struct esif_tracelevel_s {
 	esif_tracemask_t	modules;	// active module bitmask
 	esif_traceroute_t	routes;		// active routes bitmask
 };
-#pragma pack(pop)
 
 /* Enumerated TraceModule User Mode Values
  *

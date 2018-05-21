@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2018 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -103,12 +103,12 @@ string CriticalPolicy::getName(void) const
 
 string CriticalPolicy::getStatusAsXml(void) const
 {
+	auto root = XmlNode::createRoot();
 	auto format = XmlNode::createComment("format_id=" + getGuid().toString());
+	root->addChild(format);
 	auto status = XmlNode::createWrapperElement("critical_policy_status");
 	status->addChild(m_stats.getXml());
 	status->addChild(getXmlForCriticalTripPoints());
-	auto root = XmlNode::createRoot();
-	root->addChild(format);
 	root->addChild(status);
 	string statusString = root->toString();
 	return statusString;
@@ -216,13 +216,18 @@ void CriticalPolicy::takePowerActionBasedOnThermalState(ParticipantProxyInterfac
 	{
 		crossedTripPointTemperature = tripPoints.getTemperature(tripPointCrossed);
 	}
-	takePowerAction(currentTemperature, tripPointCrossed, crossedTripPointTemperature);
+	takePowerAction(
+		currentTemperature,
+		tripPointCrossed,
+		crossedTripPointTemperature,
+		participant->getParticipantProperties().getName());
 }
 
 void CriticalPolicy::takePowerAction(
 	const Temperature& currentTemperature,
 	ParticipantSpecificInfoKey::Type crossedTripPoint,
-	const Temperature& crossedTripPointTemperature)
+	const Temperature& crossedTripPointTemperature,
+	const std::string& participantName)
 {
 	if (m_inEmergencyCallMode)
 	{
@@ -254,14 +259,12 @@ void CriticalPolicy::takePowerAction(
 			getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
 				FLF,
 				string("Instructing system to hibernate. ") + string("Current temperature is ")
-					+ currentTemperature.toString()
-					+ string(". ")
-					+ string("Trip point temperature is ")
-					+ crossedTripPointTemperature.toString()
-					+ string(".")));
+					+ currentTemperature.toString() + string(". ") + string("Trip point temperature is ")
+					+ crossedTripPointTemperature.toString() + string(".")));
 			m_stats.hibernateSignalled();
 			m_hibernateRequested = true;
-			getPolicyServices().platformPowerState->hibernate(currentTemperature, crossedTripPointTemperature);
+			getPolicyServices().platformPowerState->hibernate(
+				currentTemperature, crossedTripPointTemperature);
 		}
 		else
 		{
@@ -273,13 +276,11 @@ void CriticalPolicy::takePowerAction(
 		getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
 			FLF,
 			string("Instructing system to shut down. ") + string("Current temperature is ")
-				+ currentTemperature.toString()
-				+ string(". ")
-				+ string("Trip point temperature is ")
-				+ crossedTripPointTemperature.toString()
-				+ string(".")));
+				+ currentTemperature.toString() + string(". ") + string("Trip point temperature is ")
+				+ crossedTripPointTemperature.toString() + string(".")));
 		m_stats.shutdownSignalled();
-		getPolicyServices().platformPowerState->shutDown(currentTemperature, crossedTripPointTemperature);
+		getPolicyServices().platformPowerState->shutDown(
+			currentTemperature, crossedTripPointTemperature);
 		break;
 	case ParticipantSpecificInfoKey::None:
 		getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "No power action needed."));
@@ -369,7 +370,7 @@ ParticipantSpecificInfoKey::Type CriticalPolicy::findTripPointCrossed(
 	return crossedTripPoint;
 }
 
-Bool CriticalPolicy::participantHasDesiredProperties(ParticipantProxyInterface* newParticipant)
+Bool CriticalPolicy::participantHasDesiredProperties(ParticipantProxyInterface* newParticipant) const
 {
 	return (
 		newParticipant->supportsTemperatureInterface()
@@ -383,18 +384,29 @@ std::shared_ptr<XmlNode> CriticalPolicy::getXmlForCriticalTripPoints() const
 	for (auto participantIndex = participantTndexes.begin(); participantIndex != participantTndexes.end();
 		 participantIndex++)
 	{
-		ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
-		if (participant->getCriticalTripPointProperty().supportsProperty())
+		try
 		{
-			try
+			ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(*participantIndex);
+			if (participantHasDesiredProperties(participant))
 			{
-				allStatus->addChild(participant->getXmlForCriticalTripPoints());
+				try
+				{
+					allStatus->addChild(participant->getXmlForCriticalTripPoints());
+				}
+				catch (dptf_exception)
+				{
+					getPolicyServices().messageLogging->writeMessageError(
+						PolicyMessage(FLF, "Failed to get critical trip point status for participant.", *participantIndex));
+				}
 			}
-			catch (dptf_exception)
-			{
-				getPolicyServices().messageLogging->writeMessageError(
-					PolicyMessage(FLF, "Failed to get critical trip point status for participant.", *participantIndex));
-			}
+		}
+		catch (const std::exception& ex)
+		{
+			getPolicyServices().messageLogging->writeMessageInfo(PolicyMessage(FLF, ex.what(), *participantIndex));
+		}
+		catch (...)
+		{
+			getPolicyServices().messageLogging->writeMessageInfo(PolicyMessage(FLF, "Failed to retrieve participant for critical policy status", *participantIndex));
 		}
 	}
 	return allStatus;

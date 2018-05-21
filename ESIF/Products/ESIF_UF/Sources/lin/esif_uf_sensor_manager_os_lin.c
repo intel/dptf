@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2018 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,14 @@
 ******************************************************************************/
 
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
+#include "esif_ccb.h"
+#include "esif_uf.h"
+#include "esif_uf_appmgr.h"
+#include "esif_pm.h"
+#include "esif_version.h"
+#include "esif_uf_eventmgr.h"
+#include "esif_uf_accelerometer.h"
+
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <linux/netlink.h>
@@ -26,13 +34,6 @@
 #include <sys/file.h>
 #include <math.h>
 #include <dirent.h>
-
-#include "esif_uf.h"
-#include "esif_uf_appmgr.h"
-#include "esif_pm.h"
-#include "esif_version.h"
-#include "esif_uf_eventmgr.h"
-#include "esif_uf_accelerometer.h"
 
 #define IIO_STR_LEN 24
 #define ESIF_IIO_SAMPLE_PERIOD 5 // In seconds
@@ -514,11 +515,7 @@ static void *EsifIio_Poll(void *ptr)
 	return NULL;
 }
 
-/**
- * Public Interface of ESIF Sensor Manager
- */
-
-void EsifSensorMgr_Init()
+static void StartEsifSensorMgr()
 {
 	if (!gEsifSensorMgrStarted) {
 		ESIF_TRACE_DEBUG("Starting ESIF Sensor Manager\n");
@@ -529,12 +526,9 @@ void EsifSensorMgr_Init()
 			ESIF_TRACE_DEBUG("ESIF Sensor Manager: could not find any sensor, abort\n");
 		}
 	}
-	else {
-		ESIF_TRACE_DEBUG("ESIF Sensor Manager thread is already started\n");
-	}
 }
 
-void EsifSensorMgr_Exit()
+static void StopEsifSensorMgr()
 {
 	if (gEsifSensorMgrStarted) {
 		ESIF_TRACE_DEBUG("Stopping ESIF Sensor Manager...\n");
@@ -549,6 +543,20 @@ void EsifSensorMgr_Exit()
 		esif_ccb_thread_join(&gEsifSensorMgrThread);
 		EsifSensorMgr_DeregisterSensors();
 	}
+}
+
+/**
+ * Public Interface of ESIF Sensor Manager
+ */
+
+void EsifSensorMgr_Init()
+{
+	// Nothing to do
+}
+
+void EsifSensorMgr_Exit()
+{
+	StopEsifSensorMgr();
 }
 
 /**
@@ -593,6 +601,11 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 		break;
 	}
 
+	if (ESIF_OK == rc) { // Upon successful registration
+		ESIF_TRACE_INFO("RegisterForSensorEvent: %s\n", esif_event_type_str(eventType));
+		StartEsifSensorMgr();
+	}
+
 	return rc;
 }
 
@@ -622,10 +635,11 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 	if (0 == memcmp(guid, guidDockMode, ESIF_GUID_LEN)) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &gDockMode, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
+		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_DOCK_MODE_CHANGED\n");
+		StartEsifSensorMgr();
 	}
 #endif
 
 exit:
 	return rc;
 }
-

@@ -1227,7 +1227,7 @@ static int sysfs_get_int64_direct(int fd, Int64 *p64)
 	lseek(fd, 0, SEEK_SET);
 	if (read(fd, buf, MAX_SYSFS_STRING) > 0) {
 		rc = esif_ccb_sscanf(buf, "%lld", p64);
-		if (ESIF_OK != rc) {
+		if (rc < 1) {
 			ESIF_TRACE_WARN("Failed to get file scan. Error code: %d .\n",rc);
 		}
 	}
