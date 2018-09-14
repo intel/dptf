@@ -49,7 +49,7 @@ TemperatureStatus DomainTemperature_002::getTemperatureStatus(UIntN participantI
 
 		return TemperatureStatus(temperature);
 	}
-	catch (primitive_destination_unavailable)
+	catch (primitive_destination_unavailable&)
 	{
 		return TemperatureStatus(Temperature::minValidTemperature);
 	}

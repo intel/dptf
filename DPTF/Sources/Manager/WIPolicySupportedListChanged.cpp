@@ -69,7 +69,7 @@ void WIPolicySupportedListChanged::execute(void)
 				// Bind every participant and domain to created policy
 				getDptfManager()->bindAllParticipantsToPolicy(policyIndex);
 			}
-			catch (policy_already_exists)
+			catch (policy_already_exists&)
 			{
 				// Ignore duplicate policy instance
 			}

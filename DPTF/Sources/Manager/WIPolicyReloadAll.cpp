@@ -57,7 +57,7 @@ void WIPolicyReloadAll::execute(void)
 		policyManager->getSupportedPolicyList()->update();
 		policyManager->createAllPolicies(dptfManager->getDptfPolicyDirectoryPath());
 	}
-	catch (dptf_exception ex)
+	catch (dptf_exception& ex)
 	{
 		writeWorkItemErrorMessage(ex, "policyManager::reloadAllPolicies");
 	}

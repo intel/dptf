@@ -471,7 +471,7 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 				participantRoot->addChild(m_getSpecificInfo->getXml(Constants::Invalid));
 			}
 		}
-		catch (not_implemented)
+		catch (not_implemented&)
 		{
 		}
 		catch (...)

@@ -59,7 +59,7 @@ Bool PassiveTripPointsCachedProperty::supportsProperty(void)
 		auto passiveTripPoints = getTripPoints();
 		return passiveTripPoints.hasKey(ParticipantSpecificInfoKey::PSV);
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 		return false;
 	}

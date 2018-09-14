@@ -134,11 +134,11 @@ std::shared_ptr<XmlNode> DomainControlList::getXml()
 		{
 			domain->addChild(control->second->getXml(m_domainIndex));
 		}
-		catch (not_implemented)
+		catch (not_implemented&)
 		{
 			// if not implemented, then eat the error.
 		}
-		catch (dptf_exception ex)
+		catch (dptf_exception& ex)
 		{
 			m_participantServices->writeMessageWarning(ParticipantMessage(
 				FLF, "Unable to get " + control->second->getName() + " control XML status: " + ex.getDescription()));

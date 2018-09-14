@@ -73,7 +73,7 @@ Bool ActiveTripPointsCachedProperty::supportsProperty(void)
 			}
 		}
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 	}
 

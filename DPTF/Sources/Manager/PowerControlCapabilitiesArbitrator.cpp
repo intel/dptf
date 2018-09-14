@@ -109,7 +109,7 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitrat
 			currentTimeMax = currentCapability.getMaxTimeWindow();
 			currentTimeMin = currentCapability.getMinTimeWindow();
 		}
-		catch (dptf_exception)
+		catch (dptf_exception&)
 		{
 			// there is no current capability control
 		}

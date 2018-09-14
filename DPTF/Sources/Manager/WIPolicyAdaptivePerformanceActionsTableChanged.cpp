@@ -44,7 +44,7 @@ void WIPolicyAdaptivePerformanceActionsTableChanged::execute(void)
 			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyAdaptivePerformanceActionsTableChanged();
 		}
-		catch (policy_index_invalid ex)
+		catch (policy_index_invalid& ex)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

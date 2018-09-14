@@ -61,7 +61,7 @@ Power DomainEnergyControl_001::getInstantaneousPower(UIntN participantIndex, UIn
 		instantaneousPower = getParticipantServices()->primitiveExecuteGetAsPower(
 			esif_primitive_type::GET_INSTANTANEOUS_POWER, domainIndex);
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		getParticipantServices()->writeMessageInfo(
 			ParticipantMessage(FLF, "Participant does not support the get instantaneous power primitive"));
@@ -83,7 +83,7 @@ UInt32 DomainEnergyControl_001::getEnergyThreshold(UIntN participantIndex, UIntN
 		energyThreshold = getParticipantServices()->primitiveExecuteGetAsUInt32(
 			esif_primitive_type::GET_PARTICIPANT_ENERGY_THRESHOLD, domainIndex);
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		getParticipantServices()->writeMessageInfo(
 			ParticipantMessage(FLF, "Participant does not support the get energy threshold primitive"));
@@ -103,7 +103,7 @@ void DomainEnergyControl_001::setEnergyThreshold(UIntN participantIndex, UIntN d
 		getParticipantServices()->primitiveExecuteSetAsUInt32(
 			esif_primitive_type::SET_ENERGY_THRESHOLD_COUNT, energyThreshold, domainIndex);
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		getParticipantServices()->writeMessageInfo(
 			ParticipantMessage(FLF, "Participant does not support the set energy threshold primitive"));
@@ -123,7 +123,7 @@ void DomainEnergyControl_001::setEnergyThresholdInterruptDisable(
 		getParticipantServices()->primitiveExecuteSet(
 			esif_primitive_type::SET_ENERGY_THRESHOLD_INT_DISABLE, esif_data_type::ESIF_DATA_VOID, nullptr, 0, 0, domainIndex, Constants::Esif::NoInstance);
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		getParticipantServices()->writeMessageInfo(ParticipantMessage(
 			FLF, "Participant does not support the set energy threshold interrupt enable primitive"));
@@ -150,7 +150,7 @@ void DomainEnergyControl_001::sendActivityLoggingDataIfEnabled(UIntN participant
 				capability.data.energyControl.energyCounter = getRaplEnergyCounter(participantIndex, domainIndex);
 				capability.data.energyControl.instantaneousPower = (UInt32)getInstantaneousPower(participantIndex, domainIndex);
 			}
-			catch (dptf_exception ex)
+			catch (dptf_exception& ex)
 			{
 				getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.getDescription()));
 				capability.data.energyControl.energyCounter = 0;

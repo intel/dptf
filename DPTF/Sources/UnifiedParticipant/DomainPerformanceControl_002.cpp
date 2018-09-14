@@ -357,7 +357,7 @@ void DomainPerformanceControl_002::calculatePerformanceStateLimits(
 		pStateLowerLimitIndex = getParticipantServices()->primitiveExecuteGetAsUInt32(
 			esif_primitive_type::GET_PROC_PERF_PSTATE_DEPTH_LIMIT, domainIndex);
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 		// _PDL wasn't supported. Default to P(n)
 		pStateLowerLimitIndex = static_cast<UIntN>(performanceStateSetSize - 1);
@@ -390,7 +390,7 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(
 		tStateUpperLimitIndex = getParticipantServices()->primitiveExecuteGetAsUInt32(
 			esif_primitive_type::GET_PROC_PERF_THROTTLE_PRESENT_CAPABILITY, domainIndex);
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 		getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, "Bad upper T-state limit."));
 		tStateUpperLimitIndex = 0;
@@ -403,7 +403,7 @@ void DomainPerformanceControl_002::calculateThrottlingStateLimits(
 		tStateLowerLimitIndex = getParticipantServices()->primitiveExecuteGetAsUInt32(
 			esif_primitive_type::GET_PROC_PERF_TSTATE_DEPTH_LIMIT, domainIndex);
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 		// Optional object.  Default value is T(n)
 		tStateLowerLimitIndex = static_cast<UIntN>(throttlingStateSetSize - 1);

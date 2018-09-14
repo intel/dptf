@@ -326,7 +326,7 @@ void DomainPlatformPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN part
 				Capability::getEsifDataFromCapabilityData(&capability));
 		}
 	}
-	catch (std::exception ex)
+	catch (std::exception& ex)
 	{
 		std::stringstream message2;
 		message2 << "Error capturing activity logging data for PSYS: " << ex.what();

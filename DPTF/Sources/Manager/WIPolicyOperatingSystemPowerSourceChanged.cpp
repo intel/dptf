@@ -47,7 +47,7 @@ void WIPolicyOperatingSystemPowerSourceChanged::execute(void)
 			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemPowerSourceChanged(m_powerSource);
 		}
-		catch (policy_index_invalid ex)
+		catch (policy_index_invalid& ex)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}
