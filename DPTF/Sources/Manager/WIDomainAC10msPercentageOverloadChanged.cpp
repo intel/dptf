@@ -60,7 +60,7 @@ void WIDomainAC10msPercentageOverloadChanged::execute(void)
 			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainAC10msPercentageOverloadChanged(getParticipantIndex());
 		}
-		catch (policy_index_invalid ex)
+		catch (policy_index_invalid& ex)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

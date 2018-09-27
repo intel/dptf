@@ -924,7 +924,7 @@ static eEsifError DptfEvent(
 			}
 		}
 	}
-	catch (duplicate_work_item ex)
+	catch (duplicate_work_item& ex)
 	{
 		ManagerMessage message =
 			ManagerMessage(dptfManager, FLF, "Discarding duplicate event.  Already in immediate queue.");

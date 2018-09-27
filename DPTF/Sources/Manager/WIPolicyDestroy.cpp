@@ -60,7 +60,7 @@ void WIPolicyDestroy::execute(void)
 			Participant* participant = participantManager->getParticipantPtr(*i);
 			participant->clearArbitrationDataForPolicy(m_policyIndex);
 		}
-		catch (participant_index_invalid ex)
+		catch (participant_index_invalid& ex)
 		{
 			// do nothing.  No item in the participant list at this index.
 		}

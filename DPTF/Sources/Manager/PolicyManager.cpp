@@ -79,7 +79,7 @@ UIntN PolicyManager::createPolicy(const std::string& policyFileName)
 		message.addMessage("Policy File Name", policyFileName);
 		m_dptfManager->getEsifServices()->writeMessageInfo(message);
 	}
-	catch (policy_not_in_idsp_list ex)
+	catch (policy_not_in_idsp_list& ex)
 	{
 		destroyPolicy(firstAvailableIndex);
 		firstAvailableIndex = Constants::Invalid;

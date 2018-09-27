@@ -49,7 +49,7 @@ void WIDptfSuspend::execute(void)
 			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeSuspend();
 		}
-		catch (policy_index_invalid ex)
+		catch (policy_index_invalid& ex)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}
@@ -71,7 +71,7 @@ void WIDptfSuspend::execute(void)
 			Participant* participant = participantManager->getParticipantPtr(*i);
 			participant->suspend();
 		}
-		catch (participant_index_invalid ex)
+		catch (participant_index_invalid& ex)
 		{
 			// do nothing.  No item in the participant list at this index.
 		}

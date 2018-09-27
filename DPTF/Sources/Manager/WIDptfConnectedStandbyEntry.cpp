@@ -46,7 +46,7 @@ void WIDptfConnectedStandbyEntry::execute(void)
 			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeConnectedStandbyEntry();
 		}
-		catch (policy_index_invalid ex)
+		catch (policy_index_invalid& ex)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}
@@ -68,7 +68,7 @@ void WIDptfConnectedStandbyEntry::execute(void)
 			Participant* participant = participantManager->getParticipantPtr(*i);
 			participant->connectedStandbyEntry();
 		}
-		catch (participant_index_invalid ex)
+		catch (participant_index_invalid& ex)
 		{
 			// do nothing.  No item in the participant list at this index.
 		}

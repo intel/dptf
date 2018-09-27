@@ -128,7 +128,7 @@ std::string DptfStatus::getXsltContent(eEsifError* returnCode)
 	{
 		return getFileContent(m_dptfManager->getDptfHomeDirectoryPath() + "combined.xsl");
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 		// Could not find file, try from Resources/
 		*returnCode = ESIF_E_UNSPECIFIED;
@@ -310,7 +310,7 @@ std::string DptfStatus::getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCo
 		Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
 		return policy->getStatusAsXml();
 	}
-	catch (policy_index_invalid)
+	catch (policy_index_invalid&)
 	{
 		*returnCode = ESIF_E_UNSPECIFIED;
 		throw dptf_exception("Invalid policy status requested.");

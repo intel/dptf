@@ -62,7 +62,7 @@ std::string ParticipantStatusMap::getGroupsString()
 			auto participantName = XmlNode::createDataElement("name", name.str());
 			module->addChild(participantName);
 		}
-		catch (dptf_exception)
+		catch (dptf_exception&)
 		{
 			// Participant Not available.
 		}

@@ -195,7 +195,7 @@ void ParticipantProxy::notifyPlatformOfDeviceTemperature(const Temperature& curr
 				getIndex(), currentTemperature);
 		}
 	}
-	catch (dptf_exception ex)
+	catch (dptf_exception& ex)
 	{
 		m_policyServices.messageLogging->writeMessageWarning(PolicyMessage(
 			FLF,

@@ -40,7 +40,7 @@ TemperatureStatus DomainTemperature_001::getTemperatureStatus(UIntN participantI
 			esif_primitive_type::GET_TEMPERATURE, domainIndex);
 		return TemperatureStatus(temperature);
 	}
-	catch (primitive_destination_unavailable)
+	catch (primitive_destination_unavailable&)
 	{
 		return TemperatureStatus(Temperature::minValidTemperature);
 	}
@@ -68,7 +68,7 @@ Temperature DomainTemperature_001::getPowerShareTemperatureThreshold(UIntN parti
 		powerShareTemperatureThreshold = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
 			esif_primitive_type::GET_POWER_SHARE_TEMPERATURE_THRESHOLD, domainIndex);
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		getParticipantServices()->writeMessageInfo(ParticipantMessage(
 			FLF, "Participant does not support the get power share temperature threshold primitive"));

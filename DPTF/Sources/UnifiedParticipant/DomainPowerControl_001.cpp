@@ -272,7 +272,7 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 						capability.data.powerControl.powerDataSet[powerType].maxDutyCycle =
 							powerControlCaps.getMaxDutyCycle().toWholeNumber();
 					}
-					catch (dptf_exception ex)
+					catch (dptf_exception& ex)
 					{
 						getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.getDescription()));
 						capability.data.powerControl.powerDataSet[powerType].lowerLimit = 0;
@@ -402,7 +402,7 @@ std::string DomainPowerControl_001::createStatusStringForLimitValue(PowerControl
 			return "DISABLED";
 		}
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		return "NOT SUPPORTED";
 	}
@@ -427,7 +427,7 @@ std::string DomainPowerControl_001::createStatusStringForTimeWindow(PowerControl
 			return "DISABLED";
 		}
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		return "NOT SUPPORTED";
 	}
@@ -451,7 +451,7 @@ std::string DomainPowerControl_001::createStatusStringForDutyCycle(PowerControlT
 			return "DISABLED";
 		}
 	}
-	catch (primitive_not_found_in_dsp)
+	catch (primitive_not_found_in_dsp&)
 	{
 		return "NOT SUPPORTED";
 	}

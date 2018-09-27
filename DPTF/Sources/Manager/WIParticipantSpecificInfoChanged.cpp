@@ -55,11 +55,11 @@ void WIParticipantSpecificInfoChanged::execute(void)
 			Policy* policy = policyManager->getPolicyPtr(*i);
 			policy->executeParticipantSpecificInfoChanged(getParticipantIndex());
 		}
-		catch (policy_index_invalid ex)
+		catch (policy_index_invalid& ex)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}
-		catch (temperature_out_of_range ex)
+		catch (temperature_out_of_range& ex)
 		{
 			writeParticipantWorkItemWarningMessagePolicy(ex, "Policy::executeParticipantSpecificInfoChanged", *i);
 		}

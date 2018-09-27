@@ -393,7 +393,7 @@ std::shared_ptr<XmlNode> CriticalPolicy::getXmlForCriticalTripPoints() const
 				{
 					allStatus->addChild(participant->getXmlForCriticalTripPoints());
 				}
-				catch (dptf_exception)
+				catch (dptf_exception&)
 				{
 					getPolicyServices().messageLogging->writeMessageError(
 						PolicyMessage(FLF, "Failed to get critical trip point status for participant.", *participantIndex));

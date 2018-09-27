@@ -60,7 +60,7 @@ Power DomainPowerStatus_001::getPower(UIntN domainIndex)
 	{
 		power = getParticipantServices()->primitiveExecuteGetAsPower(esif_primitive_type::GET_RAPL_POWER, domainIndex);
 	}
-	catch (primitive_try_again)
+	catch (primitive_try_again&)
 	{
 		power = getParticipantServices()->primitiveExecuteGetAsPower(esif_primitive_type::GET_RAPL_POWER, domainIndex);
 	}

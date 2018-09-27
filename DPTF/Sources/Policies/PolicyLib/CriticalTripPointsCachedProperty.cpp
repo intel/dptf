@@ -63,7 +63,7 @@ Bool CriticalTripPointsCachedProperty::supportsProperty(void)
 			|| criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Hot)
 			|| criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Critical));
 	}
-	catch (dptf_exception)
+	catch (dptf_exception&)
 	{
 		return false;
 	}

@@ -529,7 +529,7 @@ void DptfManager::bindDomainsToPolicies(UIntN participantIndex) const
 				Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 				policy->bindDomain(participantIndex, domainIndex);
 			}
-			catch (dptf_exception ex)
+			catch (dptf_exception& ex)
 			{
 				ManagerMessage message = ManagerMessage(
 					this, FLF, "DPTF was not able to bind domain to policies: " + ex.getDescription() + ".");
@@ -564,7 +564,7 @@ void DptfManager::unbindDomainsFromPolicies(UIntN participantIndex) const
 				Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 				policy->unbindDomain(participantIndex, domainIndex);
 			}
-			catch (dptf_exception ex)
+			catch (dptf_exception& ex)
 			{
 				ManagerMessage message = ManagerMessage(
 					this, FLF, "DPTF was not able to unbind domain from policies: " + ex.getDescription() + ".");
@@ -595,7 +595,7 @@ void DptfManager::bindParticipantToPolicies(UIntN participantIndex) const
 			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 			policy->bindParticipant(participantIndex);
 		}
-		catch (dptf_exception ex)
+		catch (dptf_exception& ex)
 		{
 			ManagerMessage message = ManagerMessage(
 				this, FLF, "DPTF was not able to bind participant to policies: " + ex.getDescription() + ".");
@@ -623,7 +623,7 @@ void DptfManager::unbindParticipantFromPolicies(UIntN participantIndex) const
 			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
 			policy->unbindParticipant(participantIndex);
 		}
-		catch (dptf_exception ex)
+		catch (dptf_exception& ex)
 		{
 			ManagerMessage message = ManagerMessage(
 				this, FLF, "DPTF was not able to unbind participant from policies: " + ex.getDescription() + ".");
@@ -659,7 +659,7 @@ void DptfManager::bindAllParticipantsToPolicy(UIntN policyIndex) const
 				policy->bindDomain(*participantIndex, domainIndex);
 			}
 		}
-		catch (dptf_exception ex)
+		catch (dptf_exception& ex)
 		{
 			ManagerMessage message = ManagerMessage(
 				this, FLF, "DPTF was not able to bind participant and domains to policy: " + ex.getDescription() + ".");
