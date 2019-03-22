@@ -90,7 +90,7 @@ Step 1 - Install CMake tool if you have not installed it on your Linux system:
 Step 2 - Install libreadline if you have not done so already on your Linux
 system:
 
-	sudo apt-get install libreadline6 libreadline6-dev
+	sudo apt-get install libreadline6-dev
 
 Step 3 - Go to the Linux subdirectory of DPTF (<DPTF root>/DPTF/Linux/build)
 and run the command:

@@ -31,7 +31,8 @@
 #define SYSFS_PLATFORM	"/sys/bus/platform/devices"
 
 #define MAX_SYSFS_STRING 4 * 1024
-#define MAX_SYSFS_PATH 256
+#define MAX_SYSFS_SUFFIX 26
+#define MAX_SYSFS_PATH (256 * 2 + MAX_SYSFS_SUFFIX)
 #define MAX_FMT_STR_LEN 15 // "%<Int32>s"
 #define MAX_ZONE_NAME_LEN 56
 #define HID_LEN 8

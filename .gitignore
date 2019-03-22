@@ -1,3 +1,4 @@
+*.so
 *.o
 /DPTF/Linux/build
 !/DPTF/Linux/build/.ReadMe.txt
