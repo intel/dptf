@@ -1,12 +1,12 @@
 ========================================================================
 esif_cmp - ESIF Compression Library
-Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 Portions Public Domain Igor Pavlov
 ========================================================================
 
 This project contains an OS-agnostic loadable library (esif_cmp.dll or esif_cmp.so)
 of the LZMA Compression algorithm based on Public Domain code included in
-LZMA_SDK v16.04 by Igor Pavlov which is available for download at these links:
+LZMA_SDK v18.01 by Igor Pavlov which is available for download at these links:
 
 http://www.7-zip.org/sdk.html
 https://sourceforge.net/projects/sevenzip/files/LZMA%20SDK/
@@ -31,7 +31,7 @@ Exported Loadable Library Functions are:
     a. EsifCompress
 	b. EsifDecompress
 
-2. All other modules are owned by the LZMA_SDK v16.04 implementation by
+2. All other modules are owned by the LZMA_SDK implementation by
 Igor Pavlov with the following changes made in order to conform with
 Intel SDL Requirements:
 

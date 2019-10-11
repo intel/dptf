@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -60,6 +60,9 @@
 
 #define ACPI_OSC_ARG_COUNT 4
 
+#define LOADABLE_ACTION_DEVICE_STRING_FIELD_LEN 255
+#define LOADABLE_ACTION_DEVICE_DATA_COUNT 10
+
 /*
  * OS and Kernel/User Agnostic
  */
@@ -70,6 +73,7 @@
 struct esif_data_complex_thermal_event {
 	u32 temperature;
 	u32 tripPointTemperature;
+	char participantName[ESIF_NAME_LEN];
 };
 
 /* Operating System Capabilities */
@@ -94,9 +98,38 @@ struct esif_table_hdr {
 	u16  cols;
 };
 
+struct esif_data_complex_usbc_power_limit {
+	u32 port; /* Port #: 1-8 (0 - Invalid) */
+	u32 power_limit; /* mW */
+};
+
+struct esif_cmd_data_thermal_mailbox {
+	u32 command : 8;
+	u32 reserved1 : 24;
+	u32 param1 : 8;
+	u32 reserved2 : 24;
+	u32 param2 : 14;
+	u32 reserved3 : 18;
+	u32 data : 32;
+};
+
+struct loadable_action_device_string_data {
+	char stringData[LOADABLE_ACTION_DEVICE_STRING_FIELD_LEN];
+};
+struct loadable_action_device {
+	char deviceName[LOADABLE_ACTION_DEVICE_STRING_FIELD_LEN];
+	char deviceDescription[LOADABLE_ACTION_DEVICE_STRING_FIELD_LEN];
+	struct loadable_action_device_string_data deviceStringData[LOADABLE_ACTION_DEVICE_DATA_COUNT];
+	u32 deviceNumericData[LOADABLE_ACTION_DEVICE_DATA_COUNT];
+};
+struct loadable_action_devices {
+	int numDevicesLoaded;
+	struct loadable_action_device deviceData[1]; //n number of loadable_action_device objects
+};
+
 #pragma pack(pop)
 
-#define OFFSET_OF(type, member) ((ULONG)(size_t)&(((type*)0)->member))
+#define OFFSET_OF(type, member) ((u32)(size_t)&(((type*)0)->member))
 
 #define SIZE_OF(type, member) (sizeof(((type*)0)->member))
 
@@ -165,4 +198,7 @@ struct esif_data_rfprofile
 	union esif_data_variant rssi; // ULONG - rssi
 	union esif_data_variant connectStatus; // ULONG - Connection Status
 };
+
+#define SOCWC_NUMBER_WORKLOAD_CLASSIFICATIONS	5
+
 #endif /* ESIF_ATTR_USER */

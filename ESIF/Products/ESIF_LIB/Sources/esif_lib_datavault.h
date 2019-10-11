@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -104,6 +104,7 @@
 // DataVaults can be populated from Data Repositories (DataRepo Segments), Primitives, and Shell Commands
 typedef struct DataVault_s {
 	esif_ccb_lock_t			lock;							// Thread Lock
+	atomic_t				refCount;						// Reference Count
 	UInt32					version;						// DataVault Version
 	esif_flags_t			flags;							// Global DataVault Bit Flags
 	char					name[ESIFDV_NAME_LEN+1];		// DataVault Name
@@ -121,16 +122,21 @@ extern "C" {
 
 // static methods
 Bool DataVault_IsValidSignature(UInt16 signature);
+esif_error_t DataVault_TranslatePath(const esif_string filename, esif_string fullpath, size_t fullpath_len);
 
 // object management
 DataVaultPtr DataVault_Create(char *name);
 void DataVault_Destroy(DataVaultPtr self);
+void DataVault_GetRef(DataVaultPtr self);
+void DataVault_PutRef(DataVaultPtr self);
 
 // class methods
+UInt32 DataVault_GetKeyCount(DataVaultPtr self);
+Bool DataVault_KeyExists(DataVaultPtr self, StringPtr keyName, esif_data_type_t *typePtr, esif_flags_t *flagsPtr);
 esif_error_t DataVault_SetValue(DataVaultPtr self, esif_string key, EsifDataPtr value, esif_flags_t flags);
 esif_error_t DataVault_SetPayload(DataVaultPtr self, UInt32 payload_class, IOStreamPtr payload, Bool compressPayload);
 void DataVault_SetDefaultComment(DataVaultPtr self);
-esif_error_t DataVault_ImportStream(DataVaultPtr self, IOStreamPtr stream);
+esif_error_t DataVault_ImportStream(DataVaultPtr self);
 
 #ifdef __cplusplus
 }

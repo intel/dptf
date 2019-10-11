@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,22 +57,6 @@
 #include "esif_primitive.h"
 #include "esif_dsp.h"
 
-#define POWER_DEBUG 14	/* Debug Module Level */
-
-#ifdef ESIF_ATTR_KERNEL
-#define ESIF_TRACE_DYN_POWER(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_ELF, POWER_DEBUG, format, ##__VA_ARGS__)
-#endif /* ESIF_ATTR_KERNEL */
-
-#ifdef ESIF_ATTR_USER
-
-/*
- * TODO:  User mode does not currently support this debug area.
- * Need to update when user mode unified debug infrastructre
- * is in place.
- */
-#define ESIF_TRACE_DYN_POWER NO_ESIF_DEBUG
-#endif /* ESIF_ATTR_USER */
 
 /* Power Unit Type */
 enum esif_power_unit_type {

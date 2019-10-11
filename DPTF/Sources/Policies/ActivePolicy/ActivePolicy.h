@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,6 +40,7 @@ public:
 	virtual Bool autoNotifyPlatformOscOnCreateDestroy() const override;
 	virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
 	virtual Bool autoNotifyPlatformOscOnEnableDisable() const override;
+	virtual Bool hasActiveControlCapability() const override;
 
 	virtual Guid getGuid(void) const override;
 	virtual std::string getName(void) const override;
@@ -54,12 +55,15 @@ public:
 	virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
 	virtual void onParticipantSpecificInfoChanged(UIntN participantIndex) override;
 	virtual void onActiveRelationshipTableChanged(void) override;
+	virtual void onDomainFanCapabilityChanged(UIntN participantIndex) override;
 
 private:
 	std::shared_ptr<ActiveRelationshipTable> m_art;
 
 	// cooling targets
-	void coolTargetParticipant(ParticipantProxyInterface* participant);
+	Temperature getCurrentTemperature(ParticipantProxyInterface* participant);
+	void updateTargetRequest(ParticipantProxyInterface* participant);
+	void updateThresholdsAndCoolTargetParticipant(ParticipantProxyInterface* participant);
 	void requestFanSpeedChangesForTarget(ParticipantProxyInterface* target, const Temperature& currentTemperature);
 	void requestFanSpeedChange(
 		std::shared_ptr<ActiveRelationshipTableEntry> entry,

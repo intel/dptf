@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "DomainWorkItem.h"
 #include "Participant.h"
 #include "EsifServicesInterface.h"
+#include "ManagerLogger.h"
 
 DomainWorkItem::DomainWorkItem(
 	DptfManagerInterface* dptfManager,
@@ -52,12 +53,14 @@ UIntN DomainWorkItem::getDomainIndex(void) const
 
 void DomainWorkItem::writeDomainWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const
 {
-	ManagerMessage message =
-		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
-	message.setExceptionCaught(functionName, ex.what());
-	getEsifServices()->writeMessageError(message);
+	MANAGER_LOG_MESSAGE_ERROR_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		return message;
+	});
 }
 
 void DomainWorkItem::writeDomainWorkItemErrorMessagePolicy(
@@ -65,27 +68,62 @@ void DomainWorkItem::writeDomainWorkItemErrorMessagePolicy(
 	const std::string& functionName,
 	UIntN policyIndex) const
 {
-	ManagerMessage message =
-		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
-	message.setExceptionCaught(functionName, ex.what());
-	message.setPolicyIndex(policyIndex);
-	getEsifServices()->writeMessageError(message);
+	MANAGER_LOG_MESSAGE_ERROR_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		message.setPolicyIndex(policyIndex);
+		return message;
+	});
+}
+
+void DomainWorkItem::writeDomainWorkItemWarningMessagePolicy(
+	const std::exception& ex,
+	const std::string& functionName,
+	UIntN policyIndex) const
+{
+	MANAGER_LOG_MESSAGE_WARNING_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		message.setPolicyIndex(policyIndex);
+		return message;
+	});
 }
 
 void DomainWorkItem::writeDomainWorkItemErrorMessage(const std::string& errorMessage) const
 {
-	ManagerMessage message = ManagerMessage(getDptfManager(), FLF, errorMessage);
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
-	getEsifServices()->writeMessageError(message);
+	MANAGER_LOG_MESSAGE_ERROR({
+		ManagerMessage message = ManagerMessage(getDptfManager(), _file, _line, _function, errorMessage);
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+		return message;
+	});
+}
+
+void DomainWorkItem::writeDomainWorkItemWarningMessage(const std::exception& ex, const std::string& functionName) const
+{
+	MANAGER_LOG_MESSAGE_WARNING_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		return message;
+	});
 }
 
 void DomainWorkItem::writeDomainWorkItemStartingInfoMessage() const
 {
-	ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item.");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
-	getEsifServices()->writeMessageInfo(message);
+	MANAGER_LOG_MESSAGE_INFO({
+		ManagerMessage message =
+			ManagerMessage(getDptfManager(), _file, _line, _function, "Starting execution of work item.");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantAndDomainIndex(getParticipantIndex(), getDomainIndex());
+		return message;
+	});
 }

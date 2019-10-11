@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 #include "PowerControlArbitrator.h"
 #include "Utility.h"
-#include <StatusFormat.h>
+#include "StatusFormat.h"
 
 PowerControlArbitrator::PowerControlArbitrator()
 {
@@ -58,6 +58,13 @@ void PowerControlArbitrator::commitPolicyRequest(
 	setArbitratedRequest(controlType, lowestRequest);
 }
 
+void PowerControlArbitrator::commitPolicyRequest(UIntN policyIndex, const Bool& socPowerFloorState)
+{
+	updatePolicyRequest(policyIndex, socPowerFloorState, m_requestedSocPowerFloorStates);
+	Bool lowestRequest = getLowestRequest(m_requestedSocPowerFloorStates);
+	setArbitratedRequest(lowestRequest);
+}
+
 Bool PowerControlArbitrator::hasArbitratedPowerLimit(PowerControlType::Type controlType) const
 {
 	auto controlRequests = m_arbitratedPowerLimit.find(controlType);
@@ -82,6 +89,15 @@ Bool PowerControlArbitrator::hasArbitratedDutyCycle(PowerControlType::Type contr
 {
 	auto controlRequests = m_arbitratedDutyCycle.find(controlType);
 	if (controlRequests != m_arbitratedDutyCycle.end())
+	{
+		return true;
+	}
+	return false;
+}
+
+Bool PowerControlArbitrator::hasArbitratedSocPowerFloorState() const
+{
+	if (m_arbitratedSocPowerFloorState.isValid())
 	{
 		return true;
 	}
@@ -136,6 +152,11 @@ void PowerControlArbitrator::setArbitratedRequest(PowerControlType::Type control
 	}
 }
 
+void PowerControlArbitrator::setArbitratedRequest(const Bool& lowestRequest)
+{
+	m_arbitratedSocPowerFloorState.set(lowestRequest);
+}
+
 void PowerControlArbitrator::updatePolicyRequest(
 	UIntN policyIndex,
 	PowerControlType::Type controlType,
@@ -176,6 +197,19 @@ void PowerControlArbitrator::updatePolicyRequest(
 		dutyCycles[policyIndex] = std::map<PowerControlType::Type, Percentage>();
 	}
 	dutyCycles[policyIndex][controlType] = dutyCycle;
+}
+
+void PowerControlArbitrator::updatePolicyRequest(
+	UIntN policyIndex,
+	const Bool& socPowerFloorState,
+	std::map<UIntN, Bool>& socPowerFloorStates)
+{
+	auto policyRequests = socPowerFloorStates.find(policyIndex);
+	if (policyRequests == socPowerFloorStates.end())
+	{
+		socPowerFloorStates[policyIndex] = Bool();
+	}
+	socPowerFloorStates[policyIndex] = socPowerFloorState;
 }
 
 Power PowerControlArbitrator::getLowestRequest(
@@ -295,6 +329,39 @@ Percentage PowerControlArbitrator::getLowestRequest(
 	}
 }
 
+Bool PowerControlArbitrator::getLowestRequest(const std::map<UIntN, Bool>& socPowerFloorStates)
+{
+	Bool lowestRequest = false;
+	Bool lowestRequestSet(false);
+	for (auto policy = socPowerFloorStates.begin(); policy != socPowerFloorStates.end(); policy++)
+	{
+		auto& socPowerFloorState = policy->second;
+		if (lowestRequestSet == false)
+		{
+			lowestRequestSet = true;
+			lowestRequest = socPowerFloorState;
+		}
+		else
+		{
+			if (lowestRequest == false && socPowerFloorState == true)
+			{
+				lowestRequest = socPowerFloorState;
+			}
+		}
+	}
+
+	if (lowestRequestSet == false)
+	{
+		throw dptf_exception(
+			"There were no soc power floor states requests to pick from when choosing the lowest for \
+							  arbitration.");
+	}
+	else
+	{
+		return lowestRequest;
+	}
+}
+
 Power PowerControlArbitrator::getArbitratedPowerLimit(PowerControlType::Type controlType) const
 {
 	auto controlPowerLimit = m_arbitratedPowerLimit.find(controlType);
@@ -338,6 +405,18 @@ Percentage PowerControlArbitrator::getArbitratedDutyCycle(PowerControlType::Type
 	}
 }
 
+Bool PowerControlArbitrator::getArbitratedSocPowerFloorState() const
+{
+	if (m_arbitratedSocPowerFloorState.isInvalid())
+	{
+		throw dptf_exception("No soc power floor state has been set.");
+	}
+	else
+	{
+		return m_arbitratedSocPowerFloorState.get();
+	}
+}
+
 Power PowerControlArbitrator::arbitrate(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
 {
 	auto tempPolicyRequests = m_requestedPowerLimits;
@@ -368,11 +447,20 @@ Percentage PowerControlArbitrator::arbitrate(
 	return lowestRequest;
 }
 
+Bool PowerControlArbitrator::arbitrate(UIntN policyIndex, const Bool& socPowerFloorState)
+{
+	auto tempPolicyRequests = m_requestedSocPowerFloorStates;
+	updatePolicyRequest(policyIndex, socPowerFloorState, tempPolicyRequests);
+	Bool lowestRequest = getLowestRequest(tempPolicyRequests);
+	return lowestRequest;
+}
+
 void PowerControlArbitrator::removeRequestsForPolicy(UIntN policyIndex)
 {
 	removePowerLimitRequest(policyIndex);
 	removeTimeWindowRequest(policyIndex);
 	removeDutyCycleRequest(policyIndex);
+	removeSocPowerFloorStateRequest(policyIndex);
 }
 
 void PowerControlArbitrator::removePowerLimitRequest(UIntN policyIndex)
@@ -429,6 +517,24 @@ void PowerControlArbitrator::removeDutyCycleRequest(UIntN policyIndex)
 	}
 }
 
+void PowerControlArbitrator::removeSocPowerFloorStateRequest(UIntN policyIndex)
+{
+	auto policyRequests = m_requestedSocPowerFloorStates.find(policyIndex);
+	if (policyRequests != m_requestedSocPowerFloorStates.end())
+	{
+		m_requestedSocPowerFloorStates.erase(policyRequests);
+		if (m_requestedSocPowerFloorStates.size() > 0)
+		{
+			Bool lowestRequest = getLowestRequest(m_requestedSocPowerFloorStates);
+			setArbitratedRequest(lowestRequest);
+		}
+		else
+		{
+			m_arbitratedSocPowerFloorState.invalidate();
+		}
+	}
+}
+
 std::shared_ptr<XmlNode> PowerControlArbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
 {
 	auto requestRoot = XmlNode::createWrapperElement("power_control_arbitrator_status");
@@ -444,7 +550,9 @@ std::shared_ptr<XmlNode> PowerControlArbitrator::getArbitrationXmlForPolicy(UInt
 			{
 				powerLimit = controlRequest->second;
 			}
-			requestRoot->addChild(XmlNode::createDataElement("power_limit_"+ PowerControlType::ToString((PowerControlType::Type)controlType), powerLimit.toString()));
+			requestRoot->addChild(XmlNode::createDataElement(
+				"power_limit_" + PowerControlType::ToString((PowerControlType::Type)controlType),
+				powerLimit.toString()));
 		}
 	}
 
@@ -460,7 +568,9 @@ std::shared_ptr<XmlNode> PowerControlArbitrator::getArbitrationXmlForPolicy(UInt
 			{
 				timeWindow = controlRequest->second;
 			}
-			requestRoot->addChild(XmlNode::createDataElement("time_window_" + PowerControlType::ToString((PowerControlType::Type)controlType), timeWindow.toStringMilliseconds()));
+			requestRoot->addChild(XmlNode::createDataElement(
+				"time_window_" + PowerControlType::ToString((PowerControlType::Type)controlType),
+				timeWindow.toStringMilliseconds()));
 		}
 	}
 
@@ -476,8 +586,17 @@ std::shared_ptr<XmlNode> PowerControlArbitrator::getArbitrationXmlForPolicy(UInt
 			{
 				dutyCycle = controlRequest->second;
 			}
-			requestRoot->addChild(XmlNode::createDataElement("duty_cycle_" + PowerControlType::ToString((PowerControlType::Type)controlType), dutyCycle.toString()));
+			requestRoot->addChild(XmlNode::createDataElement(
+				"duty_cycle_" + PowerControlType::ToString((PowerControlType::Type)controlType), dutyCycle.toString()));
 		}
+	}
+
+	auto policySocPowerFloorStateRequests = m_requestedSocPowerFloorStates.find(policyIndex);
+	if (policySocPowerFloorStateRequests != m_requestedSocPowerFloorStates.end())
+	{
+		auto socPowerFloorState = policySocPowerFloorStateRequests->second;
+		requestRoot->addChild(
+			XmlNode::createDataElement("soc_power_floor_state", StatusFormat::friendlyValue(socPowerFloorState)));
 	}
 
 	return requestRoot;
@@ -527,6 +646,19 @@ void PowerControlArbitrator::setArbitratedDutyCyclesForControlTypes(
 		}
 		catch (...)
 		{
+		}
+	}
+}
+
+void PowerControlArbitrator::removePowerLimitRequestForPolicy(UIntN policyIndex, PowerControlType::Type controlType)
+{
+	auto policyPowerLimitRequests = m_requestedPowerLimits.find(policyIndex);
+	if (policyPowerLimitRequests != m_requestedPowerLimits.end())
+	{
+		auto request = policyPowerLimitRequests->second.find(controlType);
+		if (request != policyPowerLimitRequests->second.end())
+		{
+			policyPowerLimitRequests->second.erase(request);
 		}
 	}
 }

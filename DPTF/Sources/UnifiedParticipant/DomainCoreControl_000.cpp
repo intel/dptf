@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,7 +60,7 @@ void DomainCoreControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIn
 	throw not_implemented();
 }
 
-void DomainCoreControl_000::clearCachedData(void)
+void DomainCoreControl_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }

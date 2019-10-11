@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 ******************************************************************************/
 
 #include "TargetCheckLaterAction.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 
 TargetCheckLaterAction::TargetCheckLaterAction(
@@ -43,14 +45,23 @@ void TargetCheckLaterAction::execute()
 		getTargetMonitor().startMonitoring(getTarget());
 
 		// schedule a callback as soon as possible
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, "Attempting to schedule callback for target participant.", getTarget()));
+		// TODO: want to pass in participant index
+		POLICY_LOG_MESSAGE_DEBUG({
+			std::stringstream message;
+			message << "Attempting to schedule callback for target participant."
+					<< " ParticipantIndex = " << getTarget();
+			return message.str();
+		});
 		auto time = getTime()->getCurrentTime();
 		getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
 	}
 	catch (...)
 	{
-		getPolicyServices().messageLogging->writeMessageWarning(
-			PolicyMessage(FLF, "Failed to schedule callback for target participant.", getTarget()));
+		POLICY_LOG_MESSAGE_WARNING({
+			std::stringstream message;
+			message << "Failed to schedule callback for target participant."
+					<< " ParticipantIndex = " << getTarget();
+			return message.str();
+		});
 	}
 }

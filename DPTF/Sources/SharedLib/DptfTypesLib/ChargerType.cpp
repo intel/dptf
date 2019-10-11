@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "ChargerType.h"
+#include "DptfBufferStream.h"
 
 namespace ChargerType
 {
@@ -34,4 +35,25 @@ namespace ChargerType
 			throw dptf_exception("ChargerType::Type is invalid.");
 		}
 	}
+
+	DptfBuffer toDptfBuffer(ChargerType::Type type)
+	{
+		DptfBuffer buffer;
+		buffer.append((UInt8*)&type, sizeof(type));
+		return buffer;
+	}
+
+	ChargerType::Type createFromDptfBuffer(const DptfBuffer& buffer)
+	{
+		if (buffer.size() != sizeof(ChargerType::Type))
+		{
+			throw dptf_exception("Buffer given to ChargerType class has invalid length.");
+		}
+
+		DptfBuffer bufferCopy = buffer;
+		DptfBufferStream stream(bufferCopy);
+		ChargerType::Type newRequest = (ChargerType::Type)stream.readNextUint32();
+		return newRequest;
+	}
+
 }

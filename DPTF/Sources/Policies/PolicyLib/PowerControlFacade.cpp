@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -80,20 +80,29 @@ Power PowerControlFacade::getAveragePower()
 		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
 		return m_powerStatusProperty.getAveragePower(caps);
 	}
-	
+
 	if (!capsSet.hasCapability(PowerControlType::PL1) && supportsPowerStatus())
 	{
 		return getCurrentPower();
 	}
-	
+
 	if (capsSet.hasCapability(PowerControlType::PL1) && !supportsPowerStatus())
 	{
 		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
 		return caps.getMaxPowerLimit();
 	}
 
-	throw dptf_exception(
-		"Cannot perform power status action because power status in not supported on the domain.");
+	throw dptf_exception("Cannot perform power status action because power status in not supported on the domain.");
+}
+
+Bool PowerControlFacade::isSocPowerFloorEnabled()
+{
+	return m_policyServices.domainPowerControl->isSocPowerFloorEnabled(m_participantIndex, m_domainIndex);
+}
+
+Bool PowerControlFacade::isSocPowerFloorSupported()
+{
+	return m_policyServices.domainPowerControl->isSocPowerFloorSupported(m_participantIndex, m_domainIndex);
 }
 
 const PowerControlDynamicCapsSet& PowerControlFacade::getCapabilities()
@@ -172,6 +181,12 @@ void PowerControlFacade::setPowerLimitPL1(const Power& powerLimit)
 	m_lastSetPowerLimit[PowerControlType::PL1] = powerLimit;
 }
 
+void PowerControlFacade::setSocPowerFloorState(Bool socPowerFloorState)
+{
+	throwIfControlNotSupported();
+	m_policyServices.domainPowerControl->setSocPowerFloorState(m_participantIndex, m_domainIndex, socPowerFloorState);
+}
+
 void PowerControlFacade::setPowerLimitPL2(const Power& powerLimit)
 {
 	throwIfControlNotSupported();
@@ -236,6 +251,12 @@ void PowerControlFacade::unlockCapabilities()
 {
 	throwIfControlNotSupported();
 	m_policyServices.domainPowerControl->setPowerCapsLock(m_participantIndex, m_domainIndex, false);
+}
+
+void PowerControlFacade::removePowerLimitPolicyRequest(PowerControlType::Type controlType)
+{
+	m_policyServices.domainPowerControl->removePowerLimitPolicyRequest(
+		m_participantIndex, m_domainIndex, controlType);
 }
 
 void PowerControlFacade::setPowerLimitsWithinCapabilities()

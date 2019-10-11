@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,10 +23,12 @@ RfProfileData::RfProfileData(
 	Frequency centerFrequency,
 	Frequency leftFrequencySpread,
 	Frequency rightFrequencySpread,
+	Frequency guardband,
 	RfProfileSupplementalData supplementalData)
 	: m_centerFrequency(centerFrequency)
 	, m_leftFrequencySpread(leftFrequencySpread)
 	, m_rightFrequencySpread(rightFrequencySpread)
+	, m_guardband(guardband)
 	, m_supplementalData(supplementalData)
 {
 }
@@ -61,6 +63,31 @@ Frequency RfProfileData::getBandFrequencySpread(void) const
 	return (getRightFrequency() - getLeftFrequency());
 }
 
+Frequency RfProfileData::getGuardband(void) const
+{
+	return m_guardband;
+}
+
+Frequency RfProfileData::getLeftFrequencySpreadWithGuardband(void) const
+{
+	return (m_leftFrequencySpread + m_guardband);
+}
+
+Frequency RfProfileData::getRightFrequencySpreadWithGuardband(void) const
+{
+	return (m_rightFrequencySpread + m_guardband);
+}
+
+Frequency RfProfileData::getLeftFrequencyWithGuardband(void) const
+{
+	return (m_centerFrequency - getLeftFrequencySpreadWithGuardband());
+}
+
+Frequency RfProfileData::getRightFrequencyWithGuardband(void) const
+{
+	return (m_centerFrequency + getRightFrequencySpreadWithGuardband());
+}
+
 RfProfileSupplementalData RfProfileData::getSupplementalData(void) const
 {
 	return m_supplementalData;
@@ -83,8 +110,10 @@ std::shared_ptr<XmlNode> RfProfileData::getXml(void) const
 {
 	auto profileData = XmlNode::createWrapperElement("radio_frequency_profile_data");
 	profileData->addChild(XmlNode::createDataElement("center_frequency", m_centerFrequency.toString()));
-	profileData->addChild(XmlNode::createDataElement("left_frequency_spread", m_leftFrequencySpread.toString()));
-	profileData->addChild(XmlNode::createDataElement("right_frequency_spread", m_rightFrequencySpread.toString()));
+	profileData->addChild(
+		XmlNode::createDataElement("left_frequency_spread", getLeftFrequencySpreadWithGuardband().toString()));
+	profileData->addChild(
+		XmlNode::createDataElement("right_frequency_spread", getRightFrequencySpreadWithGuardband().toString()));
 	profileData->addChild(m_supplementalData.getXml());
 	return profileData;
 }

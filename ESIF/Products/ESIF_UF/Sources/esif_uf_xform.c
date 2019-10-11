@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include "esif_uf_xform.h"
 #include "esif_participant.h"
+#include "esif_uf_trace.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -28,6 +29,31 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
+
+#define ESIF_TRACE_DYN_TEMP(format, ...) \
+	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
+		ESIF_TRACELEVEL_DEBUG, \
+		format, \
+		##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_DYN_POWER(format, ...) \
+	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
+		ESIF_TRACELEVEL_DEBUG, \
+		format, \
+		##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_DYN_TIME(format, ...) \
+	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
+		ESIF_TRACELEVEL_DEBUG, \
+		format, \
+		##__VA_ARGS__ \
+		)
+#define ESIF_TRACE_DYN_PERCENT(format, ...) \
+	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
+		ESIF_TRACELEVEL_DEBUG, \
+		format, \
+		##__VA_ARGS__ \
+		)
 
 /*
 ** ===========================================================================
@@ -165,12 +191,12 @@ enum esif_rc EsifUfXformTemp(
 	}
 
 	ESIF_TRACE_DYN_TEMP("IN  temp %u %s(%d)\n",
-		temp_in,
+		tempIn,
 		esif_temperature_type_desc(tempInType),
 		tempInType);
 
 	ESIF_TRACE_DYN_TEMP("OUT temp %u %s(%d)\n",
-		temp_out,
+		tempOut,
 		esif_temperature_type_desc(tempOutType),
 		tempOutType);
 
@@ -267,12 +293,12 @@ enum esif_rc EsifUfXformPower(
 	}
 
 	ESIF_TRACE_DYN_POWER("IN power %u %s(%d)\n",
-		power_in,
+		powerIn,
 		esif_power_unit_desc(powerInType),
 		powerInType);
 
 	ESIF_TRACE_DYN_POWER("OUT power %u %s(%d)\n",
-		power_out,
+		powerOut,
 		esif_power_unit_desc(powerOutType),
 		powerOutType);
 
@@ -367,12 +393,12 @@ enum esif_rc EsifUfXformTime(
 	}
 
 	ESIF_TRACE_DYN_TIME("IN  time %u %s(%d)\n",
-		time_in,
+		timeIn,
 		esif_time_type_desc(timeInType),
 		timeInType);
 
 	ESIF_TRACE_DYN_TIME("OUT time %u %s(%d)\n",
-		time_out,
+		timeOut,
 		esif_time_type_desc(timeOutType),
 		timeOutType);
 
@@ -481,7 +507,7 @@ enum esif_rc EsifUfXformPercent(
 	}
 
 	ESIF_TRACE_DYN_TEMP("IN percent %u %s(%d)\n",
-		*value_ptr,
+		*valuePtr,
 		esif_percent_type_desc(percentInType),
 		percentInType);
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -70,6 +70,9 @@ namespace FrameworkEvent
 		DomainVirtualSensorRecalcChanged,
 		DomainBatteryStatusChanged,
 		DomainBatteryInformationChanged,
+		DomainBatteryHighFrequencyImpedanceChanged,
+		DomainBatteryNoLoadVoltageChanged,
+		DomainMaxBatteryPeakCurrentChanged,
 		DomainPlatformPowerSourceChanged,
 		DomainAdapterPowerRatingChanged,
 		DomainChargerTypeChanged,
@@ -82,6 +85,8 @@ namespace FrameworkEvent
 		DomainAC2msPercentageOverloadChanged,
 		DomainAC10msPercentageOverloadChanged,
 		DomainEnergyThresholdCrossed,
+		DomainFanCapabilityChanged,
+		DomainSocWorkloadClassificationChanged,
 
 		// Policy events
 		PolicyCreate,
@@ -105,24 +110,33 @@ namespace FrameworkEvent
 		PolicyOperatingSystemPlatformTypeChanged,
 		PolicyOperatingSystemDockModeChanged,
 		PolicyOperatingSystemMobileNotification,
+		PolicyOperatingSystemMixedRealityModeChanged,
+		PolicyOperatingSystemPowerSchemePersonalityChanged,
+		PolicyOperatingSystemUserPresenceChanged,
+		PolicyOperatingSystemScreenStateChanged,
+		PolicyOperatingSystemBatteryCountChanged,
+		PolicyOperatingSystemPowerSliderChanged,
 		PolicyOemVariablesChanged,
 		PolicyPowerBossConditionsTableChanged,
 		PolicyPowerBossActionsTableChanged,
 		PolicyPowerBossMathTableChanged,
+		PolicyVoltageThresholdMathTableChanged,
 		DptfPolicyLoadedUnloadedEvent,
-		PolicyOperatingSystemPowerSchemePersonalityChanged,
 		PolicyEmergencyCallModeTableChanged,
 		PolicyPidAlgorithmTableChanged,
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
 		PolicyWorkloadHintConfigurationChanged,
+		PolicyOperatingSystemGameModeChanged,
+		PolicyPowerShareAlgorithmTable2Changed,
 
 		// App Events
 		DptfAppLoaded,
 		DptfAppUnloaded,
 		DptfAppUnloading,
 		DptfAppAliveRequest,
+		DptfCommand,
 
 		Max
 	};

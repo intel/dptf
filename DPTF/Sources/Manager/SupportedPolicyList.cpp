@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #include "esif_ccb_memory.h"
 #include "esif_sdk_primitive_type.h"
 #include "esif_sdk_data.h"
+#include "ManagerLogger.h"
+#include "ManagerMessage.h"
 
 static const UIntN GuidSize = 16;
 
@@ -44,6 +46,11 @@ UIntN SupportedPolicyList::getCount(void) const
 }
 
 Guid SupportedPolicyList::operator[](UIntN index) const
+{
+	return get(index);
+}
+
+Guid SupportedPolicyList::get(UIntN index) const
 {
 	return m_guid.at(index);
 }
@@ -84,6 +91,7 @@ void SupportedPolicyList::update(void)
 		}
 		else
 		{
+			m_guid.clear();
 			std::stringstream message;
 			message << "Received invalid data length [" << buffer.size()
 				<< "] from primitive call: GET_SUPPORTED_POLICIES";
@@ -92,7 +100,14 @@ void SupportedPolicyList::update(void)
 	}
 	catch (const std::exception& ex)
 	{
-		m_dptfManager->getEsifServices()->writeMessageWarning(ex.what());
+		MANAGER_LOG_MESSAGE_WARNING_EX({
+			std::stringstream message;
+			message << ex.what();
+			ManagerMessage warningMessage = ManagerMessage(m_dptfManager, _file, _line, _function, message.str());
+			return warningMessage;
+			});
+
+		m_guid.clear();
 	}
 
 	postMessageWithSupportedGuids();
@@ -120,18 +135,26 @@ std::vector<Guid> SupportedPolicyList::parseBufferForPolicyGuids(const DptfBuffe
 
 void SupportedPolicyList::postMessageWithSupportedGuids() const
 {
-	std::stringstream message;
-	if (m_guid.size() > 0)
-	{
-		for (auto g = m_guid.begin(); g != m_guid.end(); ++g)
+	MANAGER_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		if (m_guid.size() > 0)
 		{
-			message << "Supported GUID: " << g->toString() << "\n";
+			for (auto g = m_guid.begin(); g != m_guid.end(); ++g)
+			{
+				message << "Supported GUID: " << g->toString() << "\n";
+			}
 		}
-	}
-	else
-	{
-		message << "No supported GUIDs found";
-	}
+		else
+		{
+			message << "No supported GUIDs found";
+		}
+		ManagerMessage infoMessage = ManagerMessage(m_dptfManager, _file, _line, _function, message.str());
+		return infoMessage;
+		});
+}
 
-	m_dptfManager->getEsifServices()->writeMessageInfo(message.str());
+
+EsifServicesInterface* SupportedPolicyList::getEsifServices() const
+{
+	return m_dptfManager->getEsifServices();
 }

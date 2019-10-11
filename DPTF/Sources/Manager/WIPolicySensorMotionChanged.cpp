@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,7 +32,7 @@ WIPolicySensorMotionChanged::~WIPolicySensorMotionChanged(void)
 {
 }
 
-void WIPolicySensorMotionChanged::execute(void)
+void WIPolicySensorMotionChanged::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -44,10 +44,10 @@ void WIPolicySensorMotionChanged::execute(void)
 		try
 		{
 			getDptfManager()->getEventCache()->sensorMotion.set(m_sensorMotion);
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicySensorMotionChanged(m_sensorMotion);
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

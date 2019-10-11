@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -70,6 +70,11 @@ extern esif_ccb_lock_t g_mempool_lock;
 #ifdef ESIF_ATTR_KERNEL
 
 #include "esif_lf_trace.h"
+
+#define MPOOL_DEBUG 12
+
+#define MEMPOOL_DEBUG(format, ...) \
+	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_ELF, MPOOL_DEBUG, format, ##__VA_ARGS__)
 
 struct esif_ccb_mempool {
 #ifdef ESIF_ATTR_OS_LINUX
@@ -261,7 +266,7 @@ static ESIF_INLINE void esif_ccb_mempool_free(
 
 	MEMPOOL_DEBUG("MP Entry Freed(%d)=%p From Mempool %s\n",
 		pool_ptr->free_count,
-		mem_ptr, pool_ptr->name);
+		mem_ptr, pool_ptr->name_ptr);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
 exit:
@@ -275,6 +280,13 @@ exit:
 
 #include "esif.h"
 #include "esif_uf_trace.h"
+
+#define MEMPOOL_DEBUG(format, ...) \
+	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
+		ESIF_TRACELEVEL_DEBUG, \
+		format, \
+		##__VA_ARGS__ \
+		)
 
 #pragma pack(push,1)
 
@@ -409,8 +421,8 @@ static ESIF_INLINE void esif_ccb_mempool_free(
 {
 	struct esif_ccb_mempool *pool_ptr = NULL;
 
-	if (mem_ptr != NULL)
-		esif_ccb_free(mem_ptr);
+	if (NULL == mem_ptr)
+		goto exit;
 
 	if (pool_type >= ESIF_MEMPOOL_TYPE_MAX)
 		goto exit;
@@ -426,15 +438,15 @@ static ESIF_INLINE void esif_ccb_mempool_free(
 
 	pool_ptr->free_count++;
 
-	MEMPOOL_DEBUG("MP Entry Freed(%d)=%p From Mempool %s\n",
+	MEMPOOL_DEBUG("Freeing MP entry (%d)=%p From Mempool %s\n",
 		pool_ptr->free_count,
 		mem_ptr,
 		pool_ptr->name_ptr);
 
 	esif_ccb_write_unlock(&g_mempool_lock);
-
 exit:
-		;
+	esif_ccb_free(mem_ptr);
+	return;
 }
 
 

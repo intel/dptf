@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,7 +32,7 @@ WIPolicyOperatingSystemBatteryPercentageChanged::~WIPolicyOperatingSystemBattery
 {
 }
 
-void WIPolicyOperatingSystemBatteryPercentageChanged::execute(void)
+void WIPolicyOperatingSystemBatteryPercentageChanged::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -44,10 +44,10 @@ void WIPolicyOperatingSystemBatteryPercentageChanged::execute(void)
 		try
 		{
 			getDptfManager()->getEventCache()->batteryPercentage.set(m_batteryPercentage);
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executePolicyOperatingSystemBatteryPercentageChanged(m_batteryPercentage);
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

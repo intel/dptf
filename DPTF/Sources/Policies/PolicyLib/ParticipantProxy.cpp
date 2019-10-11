@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "ParticipantProxy.h"
 #include "StatusFormat.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 using namespace StatusFormat;
 
@@ -122,20 +124,9 @@ void ParticipantProxy::unbindDomain(UIntN domainIndex)
 	m_domains.erase(domainIndex);
 }
 
-void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound)
+const PolicyServicesInterfaceContainer& ParticipantProxy::getPolicyServices() const
 {
-	if (m_domains.find(0) != m_domains.end())
-	{
-		if (m_domains[0]->getTemperatureControl()->supportsTemperatureThresholds())
-		{
-			m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(
-				FLF, "Setting thresholds to " + lowerBound.toString() + ":" + upperBound.toString() + "."));
-			m_domains[0]->getTemperatureControl()->setTemperatureNotificationThresholds(lowerBound, upperBound);
-		}
-	}
-
-	m_previousLowerBound = lowerBound;
-	m_previousUpperBound = upperBound;
+	return m_policyServices;
 }
 
 Bool ParticipantProxy::supportsTemperatureInterface()
@@ -167,6 +158,26 @@ Temperature ParticipantProxy::getFirstDomainTemperature()
 	return participantTemperature;
 }
 
+void ParticipantProxy::setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound)
+{
+	if (m_domains.find(0) != m_domains.end())
+	{
+		if (m_domains[0]->getTemperatureControl()->supportsTemperatureThresholds())
+		{
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Setting thresholds to " << lowerBound.toString() << ":" << upperBound.toString()
+						<< " for participant " << std::to_string(getIndex());
+				return message.str();
+			});
+			m_domains[0]->getTemperatureControl()->setTemperatureNotificationThresholds(lowerBound, upperBound);
+		}
+	}
+
+	m_previousLowerBound = lowerBound;
+	m_previousUpperBound = upperBound;
+}
+
 TemperatureThresholds ParticipantProxy::getTemperatureThresholds()
 {
 	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
@@ -180,8 +191,15 @@ TemperatureThresholds ParticipantProxy::getTemperatureThresholds()
 			// swallow the error
 		}
 	}
-	throw dptf_exception(
-		"Failed to get temperature thresholds for participant " + std::to_string(getIndex()) + ".");
+	throw dptf_exception("Failed to get temperature thresholds for participant " + std::to_string(getIndex()) + ".");
+}
+
+void ParticipantProxy::refreshHysteresis()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+	{
+		domain->second->getTemperatureControl()->refreshHysteresis();
+	}
 }
 
 void ParticipantProxy::notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature)
@@ -197,15 +215,15 @@ void ParticipantProxy::notifyPlatformOfDeviceTemperature(const Temperature& curr
 	}
 	catch (dptf_exception& ex)
 	{
-		m_policyServices.messageLogging->writeMessageWarning(PolicyMessage(
-			FLF,
-			string("Set Device Temperature Indication failed with error \"") + string(ex.what()) + string("\"")
-				+ string(".")));
+		POLICY_LOG_MESSAGE_WARNING_EX({
+			std::stringstream message;
+			message << "Set Device Temperature Indication failed with error \"" << ex.what() << "\".";
+			return message.str();
+		});
 	}
 	catch (...)
 	{
-		m_policyServices.messageLogging->writeMessageWarning(
-			PolicyMessage(FLF, string("Set Device Temperature Indication failed.")));
+		POLICY_LOG_MESSAGE_WARNING({ return "Set Device Temperature Indication failed."; });
 	}
 }
 
@@ -213,10 +231,13 @@ void ParticipantProxy::setThresholdCrossed(const Temperature& temperature, const
 {
 	m_lastThresholdCrossedTemperature = temperature;
 	m_timeOfLastThresholdCrossed = timestamp;
-	m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(
-		FLF,
-		"Temperature threshold crossed for participant with temperature " + temperature.toString() + ".",
-		getIndex()));
+	// TODO: want to pass in participant index
+	POLICY_LOG_MESSAGE_DEBUG({
+		std::stringstream message;
+		message << "Temperature threshold crossed for participant with temperature " << temperature.toString() << "."
+				<< " ParticipantIndex = " + std::to_string(getIndex());
+		return message.str();
+	});
 }
 
 const TimeSpan& ParticipantProxy::getTimeOfLastThresholdCrossed() const
@@ -229,13 +250,24 @@ Temperature ParticipantProxy::getTemperatureOfLastThresholdCrossed() const
 	return m_lastThresholdCrossedTemperature;
 }
 
+Bool ParticipantProxy::supportsConfigTdpInterface()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
+	{
+		if (domain->second->getConfigTdpControl().supportsConfigTdpControls())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 std::shared_ptr<DomainProxyInterface> ParticipantProxy::getDomain(UIntN domainIndex)
 {
 	auto domainProxyInterfacePtr = m_domains.at(domainIndex);
 	if (!domainProxyInterfacePtr)
 	{
-		throw dptf_exception(
-			std::string("The domain at the given index is not valid: ") + std::to_string(domainIndex));
+		throw dptf_exception(std::string("The domain at the given index is not valid: ") + std::to_string(domainIndex));
 	}
 
 	return domainProxyInterfacePtr;
@@ -346,18 +378,11 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForConfigTdpLevel()
 
 Temperature ParticipantProxy::getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy)
 {
-	if (domainProxy->getTemperatureControl()->supportsTemperatureControls())
+	try
 	{
-		try
-		{
-			return domainProxy->getTemperatureControl()->getCurrentTemperature();
-		}
-		catch (...)
-		{
-			return Temperature::createInvalid();
-		}
+		return domainProxy->getTemperatureControl()->getCurrentTemperature();
 	}
-	else
+	catch (...)
 	{
 		return Temperature::createInvalid();
 	}
@@ -372,27 +397,5 @@ TemperatureThresholds ParticipantProxy::getTemperatureThresholdsForStatus()
 	catch (...)
 	{
 		return TemperatureThresholds::createInvalid();
-	}
-}
-
-void ParticipantProxy::refreshHysteresis()
-{
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
-	{
-		if (domain->second->getTemperatureControl()->supportsTemperatureThresholds())
-		{
-			domain->second->getTemperatureControl()->refreshHysteresis();
-		}
-	}
-}
-
-void ParticipantProxy::refreshVirtualSensorTables()
-{
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
-	{
-		if (domain->second->getTemperatureControl()->supportsTemperatureControls())
-		{
-			domain->second->getTemperatureControl()->refreshVirtualSensorTables();
-		}
 	}
 }

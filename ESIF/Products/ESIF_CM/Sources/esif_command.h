@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -96,6 +96,8 @@ enum esif_command_type {
 	ESIF_COMMAND_TYPE_GET_ACTIONS,
 	ESIF_COMMAND_TYPE_SEND_KPE_EVENT,
 	ESIF_COMMAND_TYPE_SEND_DSP,
+	ESIF_COMMAND_TYPE_PARTICIPANT_CREATE,
+	ESIF_COMMAND_TYPE_PARTICIPANT_DESTROY,
 };
 
 static ESIF_INLINE esif_string esif_command_type_str(
@@ -114,6 +116,8 @@ static ESIF_INLINE esif_string esif_command_type_str(
 	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_GET_ACTIONS);
 	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SEND_KPE_EVENT);
 	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_SEND_DSP);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_PARTICIPANT_CREATE);
+	ESIF_CASE_ENUM(ESIF_COMMAND_TYPE_PARTICIPANT_DESTROY);
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -267,8 +271,13 @@ struct esif_command_send_dsp {
 	/* Data Is Here ... */
 };
 
+struct esif_command_participant_create {
+	struct esif_ipc_event_data_create_participant creation_data;
+};
 
-
+struct esif_command_participant_destroy {
+	char name[ESIF_NAME_LEN];
+};
 
 #pragma pack(pop)
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,6 +27,8 @@
 #include "OsPlatformType.h"
 #include "OsDockMode.h"
 #include "OsPowerSchemePersonality.h"
+#include "OsUserPresence.h"
+#include "OsPowerSlider.h"
 
 class EventCache
 {
@@ -46,5 +48,10 @@ public:
 	CachedValue<OsDockMode::Type> dockMode;
 	CachedValue<OsPowerSchemePersonality::Type> powerSchemePersonality;
 	CachedValue<UIntN> emergencyCallModeState;
-	CachedValue<UIntN> screenState;
+	CachedValue<OnOffToggle::Type> screenState;
+	CachedValue<OnOffToggle::Type> mixedRealityMode;
+	CachedValue<OsUserPresence::Type> userPresence;
+	CachedValue<UIntN> batteryCount;
+	CachedValue<OsPowerSlider::Type> powerSlider;
+	CachedValue<OnOffToggle::Type> gameMode;
 };

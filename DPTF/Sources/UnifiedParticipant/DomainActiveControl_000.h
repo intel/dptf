@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,10 @@
 
 #include "Dptf.h"
 #include "DomainActiveControlBase.h"
+#include "ActiveControlStaticCaps.h"
+#include "ActiveControlDynamicCaps.h"
+#include "ActiveControlStatus.h"
+#include "ActiveControlSet.h"
 
 //
 // Implements the Null Object pattern.  In the case that the functionality isn't implemented, we use
@@ -34,18 +38,23 @@ public:
 		UIntN domainIndex,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 
-	// DomainActiveControlInterface
-	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
-
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
+	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+
+protected:
+	virtual DptfBuffer getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DptfBuffer getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
+	virtual void setActiveControlDynamicCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ActiveControlDynamicCaps newCapabilities) override;
+	virtual void setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 };

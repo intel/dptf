@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,12 +35,22 @@ static ESIF_INLINE char *esif_ccb_getenv(const char *name)
     return path;
 }
 
+static ESIF_INLINE void esif_ccb_envfree(char *name)
+{
+	if (name) {
+		free(name);
+	}
+}
+
+
 #elif defined(ESIF_ATTR_OS_LINUX)
 
 #include  <stdlib.h>
 
 // Get Environment variable
 #define esif_ccb_getenv(name)   getenv(name)
+
+#define esif_ccb_envfree(arg) ((void)(0))
 
 #endif /* LINUX */
 

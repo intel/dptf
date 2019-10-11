@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "EsifMutexHelper.h"
 #include "ParticipantWorkItem.h"
 #include "XmlNode.h"
+using namespace std;
 
 ImmediateWorkItemQueue::ImmediateWorkItemQueue(EsifSemaphore* workItemQueueSemaphore)
 	: m_maxCount(0)
@@ -33,7 +34,7 @@ ImmediateWorkItemQueue::~ImmediateWorkItemQueue(void)
 	makeEmtpy();
 }
 
-void ImmediateWorkItemQueue::enqueue(ImmediateWorkItem* newWorkItem)
+void ImmediateWorkItemQueue::enqueue(std::shared_ptr<ImmediateWorkItem> newWorkItem)
 {
 	EsifMutexHelper esifMutexHelper(&m_mutex);
 	esifMutexHelper.lock();
@@ -48,9 +49,9 @@ void ImmediateWorkItemQueue::enqueue(ImmediateWorkItem* newWorkItem)
 	esifMutexHelper.unlock();
 }
 
-ImmediateWorkItem* ImmediateWorkItemQueue::dequeue(void)
+std::shared_ptr<ImmediateWorkItem> ImmediateWorkItemQueue::dequeue(void)
 {
-	ImmediateWorkItem* firstItemInQueue = nullptr;
+	shared_ptr<ImmediateWorkItem> firstItemInQueue;
 
 	EsifMutexHelper esifMutexHelper(&m_mutex);
 	esifMutexHelper.lock();
@@ -73,8 +74,6 @@ void ImmediateWorkItemQueue::makeEmtpy(void)
 
 	while (m_queue.empty() == false)
 	{
-		ImmediateWorkItem* currentWorkItem = m_queue.front();
-		delete currentWorkItem;
 		m_queue.pop_front();
 	}
 
@@ -117,7 +116,7 @@ UIntN ImmediateWorkItemQueue::removeIfMatches(const WorkItemMatchCriteria& match
 	{
 		if ((*it)->matches(matchCriteria) == true)
 		{
-			DELETE_MEMORY_TC(*it);
+			(*it)->getWorkItem()->signal();
 			it = m_queue.erase(it);
 			numRemoved++;
 		}
@@ -138,8 +137,7 @@ std::shared_ptr<XmlNode> ImmediateWorkItemQueue::getXml(void) const
 	esifMutexHelper.lock();
 
 	auto immediateQueueStastics = XmlNode::createWrapperElement("immediate_queue_statistics");
-	immediateQueueStastics->addChild(
-		XmlNode::createDataElement("current_count", std::to_string(m_queue.size())));
+	immediateQueueStastics->addChild(XmlNode::createDataElement("current_count", std::to_string(m_queue.size())));
 	immediateQueueStastics->addChild(XmlNode::createDataElement("max_count", std::to_string(m_maxCount)));
 
 	esifMutexHelper.unlock();
@@ -152,15 +150,16 @@ std::shared_ptr<XmlNode> ImmediateWorkItemQueue::getXml(void) const
 // locking and unlocking.
 //
 
-void ImmediateWorkItemQueue::throwIfDuplicateThermalThresholdCrossedEvent(ImmediateWorkItem* newWorkItem)
+void ImmediateWorkItemQueue::throwIfDuplicateThermalThresholdCrossedEvent(
+	std::shared_ptr<ImmediateWorkItem> newWorkItem)
 {
 	// FIXME: need to update once domain support has been added.  In that case we should
 	// check the domain field as well.
 
 	if (newWorkItem->getFrameworkEventType() == FrameworkEvent::DomainTemperatureThresholdCrossed)
 	{
-		WorkItemInterface* workItem = newWorkItem->getWorkItem();
-		ParticipantWorkItem* participantWorkItem = static_cast<ParticipantWorkItem*>(workItem);
+		auto workItem = newWorkItem->getWorkItem();
+		auto participantWorkItem = static_pointer_cast<ParticipantWorkItem>(workItem);
 
 		WorkItemMatchCriteria matchCriteria;
 		matchCriteria.addFrameworkEventTypeToMatchList(participantWorkItem->getFrameworkEventType());
@@ -168,7 +167,7 @@ void ImmediateWorkItemQueue::throwIfDuplicateThermalThresholdCrossedEvent(Immedi
 
 		for (auto it = m_queue.begin(); it != m_queue.end(); it++)
 		{
-			ImmediateWorkItem* currentWorkItem = *it;
+			auto currentWorkItem = *it;
 			Bool foundDuplicate = currentWorkItem->matches(matchCriteria);
 			if (foundDuplicate == true)
 			{
@@ -179,7 +178,7 @@ void ImmediateWorkItemQueue::throwIfDuplicateThermalThresholdCrossedEvent(Immedi
 	}
 }
 
-void ImmediateWorkItemQueue::insertSortedByPriority(ImmediateWorkItem* newWorkItem)
+void ImmediateWorkItemQueue::insertSortedByPriority(std::shared_ptr<ImmediateWorkItem> newWorkItem)
 {
 	// To improve performance we check for the common cases first and skip the queue
 	// iteration when we can.
@@ -193,7 +192,7 @@ void ImmediateWorkItemQueue::insertSortedByPriority(ImmediateWorkItem* newWorkIt
 
 		for (; it != m_queue.end(); it++)
 		{
-			ImmediateWorkItem* currentWorkItem = *it;
+			auto currentWorkItem = *it;
 			if (newWorkItem->getPriority() > currentWorkItem->getPriority())
 			{
 				m_queue.insert(it, newWorkItem);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,9 +38,6 @@
 #define POWER_REPORT_THERMAL_EVENT_STR            "PowerReportThermalEvent"
 #define POWER_REPORT_LIMITS_EVENT_STR             "PowerReportLimitsEvent"
 
-extern Bool g_thermalApiPolicyStarted;
-extern Bool g_thermalApiMonitorStarted;
-extern Bool g_thermalApiMitigationStarted;
 //
 // _THERMAL_EVENT and PowerReportThermalEvent have been defined in WinBlue/Win8.1 WDK
 //
@@ -97,7 +94,6 @@ typedef DWORD(WINAPI * PFNPOWERREPORTTHERMALEVENT)(
 //	Externs
 //
 extern esif_lib_t g_thermalApiLib;
-extern atomic_t g_thermalApiLibRefCount;					/* Reference count */
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,23 +105,24 @@ void EsifThermalApi_Exit(void);
 
 //Utility Functions
 eEsifError ThermalApi_LoadLibrary(void);
-eEsifError ThermalApi_UnloadLibrary(void);
+eEsifError ThermalApi_ReleaseLibrary(void);
 
 void ThermalApi_ParticipantCreate(EsifUpPtr upPtr);
-void ThermalApi_ParticipantDestroy(UInt8 participantId);
+void ThermalApi_ParticipantDestroy(esif_handle_t participantId);
 
 void ThermalApi_ReportThermalEvent(
 	UInt32 EventFlag,
 	UInt32 temperature,
-	UInt32 tripPointTemperature
+	UInt32 tripPointTemperature,
+	EsifString namePtr
 	);
 
 #ifdef __cplusplus
 }
 #endif
 
-#define esif_ccb_report_thermal_event(EventFlag, temperature, tripPointTemperature) \
-	ThermalApi_ReportThermalEvent(EventFlag, temperature, tripPointTemperature) 
+#define esif_ccb_report_thermal_event(EventFlag, temperature, tripPointTemperature, participantName) \
+	ThermalApi_ReportThermalEvent(EventFlag, temperature, tripPointTemperature, participantName) 
 #define EsifThermalApi_ParticipantCreate(upPtr) \
 	ThermalApi_ParticipantCreate(upPtr)
 
@@ -147,11 +144,14 @@ static ESIF_INLINE void EsifThermalApi_ParticipantCreate(EsifUpPtr upPtr)
 static ESIF_INLINE void esif_ccb_report_thermal_event(
 	UInt32 EventFlag,
 	UInt32 temperature,
-	UInt32 tripPointTemperature)
+	UInt32 tripPointTemperature,
+	EsifString participantName
+	)
 {
 	UNREFERENCED_PARAMETER(EventFlag);
 	UNREFERENCED_PARAMETER(temperature);
 	UNREFERENCED_PARAMETER(tripPointTemperature);
+	UNREFERENCED_PARAMETER(participantName);
 }
 
 #endif

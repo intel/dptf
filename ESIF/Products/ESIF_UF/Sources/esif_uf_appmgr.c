@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,113 +31,332 @@
 #include "win\banned.h"
 #endif
 
-/* Friends */
-extern int g_dst;
+//
+// GENERAL DEFINITIONS
+//
+#define ESIF_UF_APPMGR_QUEUE_TIMEOUT ESIF_QUEUE_TIMEOUT_INFINITE /* No timeout */
+#define ESIF_UF_APPMGR_QUEUE_SIZE 0xFFFFFFFF
+#define ESIF_UF_APPMGR_QUEUE_NAME "UfAppMgrPartQueue"
+
+
+//
+// TYPE DECLARATIONS
+// 
+typedef struct EsifAppMgrPartQueueItem_s {
+	EsifUpPtr upPtr;
+	Bool isCreate;
+} EsifAppMgrPartQueueItem, *EsifAppMgrPartQueueItemPtr;
+
+
+//
+// GLOBAL DEFINITIONS
+// 
 EsifAppMgr g_appMgr = {0};
 
+//
+// FRIEND OBJECTS AND FUNCTIONS
+//
+extern esif_handle_t g_dst;
+extern char *g_dstName;
+
+eEsifError EsifApp_Create(
+	const EsifString appName,
+	EsifAppPtr *appPtr
+);
+
+void EsifApp_Destroy(
+	EsifAppPtr self
+);
+
+eEsifError EsifApp_GetRef(EsifAppPtr self);
+void EsifApp_PutRef(EsifAppPtr self);
+
+eEsifError EsifApp_Start(EsifAppPtr self);
+eEsifError EsifApp_Stop(EsifAppPtr self);
+
+eEsifError EsifApp_CreateParticipant(
+	const EsifAppPtr self,
+	const EsifUpPtr upPtr
+	);
+
+eEsifError EsifApp_DestroyParticipant(
+	const EsifAppPtr self,
+	const EsifUpPtr upPtr
+	);
+
+Bool EsifApp_IsAppName(
+	EsifAppPtr self,
+	const EsifString name
+);
+
+Bool EsifApp_IsAppHandle(
+	EsifAppPtr self,
+	const esif_handle_t handle
+);
+
+
+//
+// PRIVATE FUNCTION PROTOTYPES
+//
 static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr
 	);
 
+//
+// Takes an additional reference on the app which prevents the app from being
+// destroyed until all references are released.
+//
+static EsifAppPtr EsifAppMgr_GetAppN(
+	size_t index,
+	Bool isSvcRequest
+);
 
+static eEsifError EsifAppMgr_CreateEntry(
+	const EsifString appName,
+	EsifAppMgrEntryPtr *entryPtr
+);
+static void EsifAppMgr_DestroyEntry(EsifAppMgrEntryPtr entryPtr);
 
-EsifAppPtr GetAppFromHandle(const void *appHandle)
+static eEsifError EsifAppMgr_GetRefLocked(
+	EsifAppMgrEntryPtr entryPtr,
+	Bool isSvcRef
+);
+
+//
+// IMPLEMENTATION FUNCTIONS
+//
+
+//
+// WARNINGS:
+// 1. The caller is responsible for calling EsifAppMgr_PutRef on the returned
+// pointer when done using the app
+// 2. May only be called by the "service" functions for the app to
+// reference itself
+//
+EsifAppPtr EsifAppMgr_GetAppFromHandle(const esif_handle_t appHandle)
 {
+	EsifAppPtr appPtr = NULL;
 	u8 i = 0;
-	EsifAppPtr a_app_ptr = NULL;
+
+	if (ESIF_INVALID_HANDLE == appHandle) {
+		goto exit;
+	}
 
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		a_app_ptr = &g_appMgr.fEntries[i];
+		appPtr = EsifAppMgr_GetAppN(i, ESIF_TRUE);
 
-		if (NULL == a_app_ptr->fLibNamePtr) {
-			continue;
+		if (EsifApp_IsAppHandle(appPtr, appHandle)) {
+			break;
 		}
-
-		if (a_app_ptr->fHandle == appHandle) {
-			return a_app_ptr;
-		}
+		EsifAppMgr_PutRef(appPtr);
+		appPtr = NULL;
 	}
-	return NULL;
+exit:
+	return appPtr;
 }
 
 
-static EsifAppPtr GetAppFromName(
-	EsifAppMgr *THIS,
+//
+// WARNING:  The caller is responsible for calling EsifAppMgr_PutRef on the
+// returned pointer when done using the app
+//
+EsifAppPtr EsifAppMgr_GetAppFromName(
 	EsifString lib_name
 	)
 {
+	EsifAppPtr appPtr = NULL;
 	u8 i = 0;
-	EsifAppPtr a_app_ptr = NULL;
 
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		a_app_ptr = &THIS->fEntries[i];
+		appPtr = EsifAppMgr_GetAppN(i, ESIF_FALSE);
 
-		if (NULL == a_app_ptr->fLibNamePtr) {
-			continue;
+		if (EsifApp_IsAppName(appPtr, lib_name)) {
+			break;
 		}
-
-		if (!esif_ccb_stricmp(a_app_ptr->fLibNamePtr, lib_name)) {
-			return a_app_ptr;
-		}
+		EsifAppMgr_PutRef(appPtr);
+		appPtr = NULL;
 	}
-	return NULL;
+	return appPtr;
 }
 
 
-static eEsifError GetPrompt(
-	EsifAppMgr *THIS,
-	EsifDataPtr promptPtr
+//
+// Takes an additional reference on the app which prevents the app from being
+// destroyed until all references are released.
+//
+static EsifAppPtr EsifAppMgr_GetAppN(
+	size_t index,
+	Bool isSvcRequest
 	)
 {
-	enum esif_rc rc = ESIF_OK;
-	EsifAppPtr a_app_ptr = THIS->fSelectedAppPtr;
-	if (NULL == a_app_ptr) {
-		esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "esif(%u)->", g_dst);
-	} else {
-		ESIF_DATA(data_prompt, ESIF_DATA_STRING, promptPtr->buf_ptr, promptPtr->buf_len);
-		rc = a_app_ptr->fInterface.fAppGetPromptFuncPtr(a_app_ptr->fHandle, &data_prompt);
+	eEsifError rc = ESIF_OK;
+	EsifAppMgrEntryPtr entryPtr = NULL;
+	EsifAppPtr appPtr = NULL;
+
+	if (index < (sizeof(g_appMgr.fEntries) / sizeof(*g_appMgr.fEntries))) {
+		esif_ccb_write_lock(&g_appMgr.fLock);
+
+		entryPtr = g_appMgr.fEntries[index];
+		if (entryPtr) {
+			rc = EsifAppMgr_GetRefLocked(entryPtr, isSvcRequest);
+			if (ESIF_OK == rc) {
+				appPtr = entryPtr->appPtr;
+			}
+		}
+		esif_ccb_write_unlock(&g_appMgr.fLock);
 	}
+	return appPtr;
+}
+
+
+static eEsifError EsifAppMgr_GetRefLocked(
+	EsifAppMgrEntryPtr entryPtr,
+	Bool isSvcRequest
+	)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (NULL == entryPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (entryPtr->svcRefOnly  && !isSvcRequest) {
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	rc = EsifApp_GetRef(entryPtr->appPtr);
+exit:
 	return rc;
 }
 
 
-eEsifError EsifAppsEventByDomainType(
-	enum esif_domain_type domainType,
-	eEsifEventType eventType,
-	EsifDataPtr eventData
+/*
+* NOTE:  Must be called when done using any app pointer obtained from AppMgr
+* functions.
+*/
+void EsifAppMgr_PutRef(
+	EsifAppPtr appPtr
+	)
+{
+	EsifApp_PutRef(appPtr);
+}
+
+
+/*
+* Used to iterate through the available apps.
+* First call AppMgr_InitIterator to initialize the iterator.
+* Next, call AppMgr_GetNextApp using the iterator.  Repeat until
+* AppMgr_GetNextApp fails. The call will release the reference of the
+* app from the previous call.  If you stop iteration part way through
+* all apps, the caller is responsible for releasing the reference on
+* the last app returned.  Iteration is complete when ESIF_E_ITERATOR_DONE
+* is returned.
+*/
+eEsifError AppMgr_InitIterator(
+	AppMgrIteratorPtr iteratorPtr
 	)
 {
 	eEsifError rc = ESIF_OK;
-	u8 found = ESIF_FALSE;
-	UInt8 participantId = 0;
-	UfPmIterator upIter = {0};
-	EsifUpPtr upPtr = NULL;
-	EsifUpDataPtr metaPtr = NULL;
 
-	rc = EsifUpPm_InitIterator(&upIter);
-	if (rc == ESIF_OK) {
-		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+	if (NULL == iteratorPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
 	}
 
-	while (ESIF_OK == rc) {
-		metaPtr = EsifUp_GetMetadata(upPtr);
-		if ((metaPtr != NULL) && (metaPtr->fAcpiType == domainType)) {
-				participantId = EsifUp_GetInstance(upPtr);
-				found = ESIF_TRUE;
-				break;
+	esif_ccb_memset(iteratorPtr, 0, sizeof(*iteratorPtr));
+	iteratorPtr->marker = APPMGR_ITERATOR_MARKER;
+exit:
+	return rc;
+}
+
+
+/* See AppMgr_InitIterator for usage */
+eEsifError AppMgr_GetNextApp(
+	AppMgrIteratorPtr iteratorPtr,
+	EsifAppPtr *appPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifAppPtr nextAppPtr = NULL;
+	size_t i;
+
+	if ((NULL == appPtr) || (NULL == iteratorPtr)) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	/* Verify the iterator is initialized */
+	if ((iteratorPtr->marker != APPMGR_ITERATOR_MARKER) ||
+		(iteratorPtr->index >= ESIF_MAX_APPS)) {
+		ESIF_TRACE_WARN("Iterator invalid\n");
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	if (iteratorPtr->refTaken) {
+		iteratorPtr->index++;
+		EsifAppMgr_PutRef(iteratorPtr->appPtr);
+		iteratorPtr->appPtr = NULL;
+		iteratorPtr->refTaken = ESIF_FALSE;
+	}
+
+	for (i = iteratorPtr->index; i < ESIF_MAX_APPS; i++) {
+		nextAppPtr = EsifAppMgr_GetAppN(i, ESIF_FALSE);
+		if (nextAppPtr != NULL) {
+			iteratorPtr->index = i;
+			iteratorPtr->appPtr = nextAppPtr;
+			iteratorPtr->refTaken = ESIF_TRUE;
+			break;
 		}
-		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	}
 
-	EsifUp_PutRef(upPtr);
-	if (ESIF_FALSE == found) {
-		rc = ESIF_E_NOT_FOUND;
-	} else {
-		rc = EsifEventMgr_SignalEvent(participantId, EVENT_MGR_DOMAIN_NA, eventType, eventData);
+	*appPtr = nextAppPtr;
+
+	if (NULL == nextAppPtr) {
+		rc = ESIF_E_ITERATION_DONE;
+	}
+exit:
+	return rc;
+}
+
+
+eEsifError EsifAppMgr_GetPrompt(
+	EsifDataPtr promptPtr
+	)
+{
+	enum esif_rc rc = ESIF_OK;
+	EsifAppPtr appPtr = g_appMgr.fSelectedAppPtr;
+	EsifUpPtr upPtr = NULL;
+	esif_handle_t target = g_dst;
+
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(target);
+	if (NULL == upPtr) {
+		target = ESIF_HANDLE_PRIMARY_PARTICIPANT;
+		upPtr = EsifUpPm_GetAvailableParticipantByInstance(target);
+	}
+	if (upPtr != NULL) {
+		g_dst = target;
+		esif_ccb_free(g_dstName);
+		g_dstName = esif_ccb_strdup(EsifUp_GetName(upPtr));
+		EsifUp_PutRef(upPtr);
+	}
+
+	if (g_dstName != NULL) {
+		if (NULL == appPtr) {
+			esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "esif(%s)->", g_dstName);
+		}
+		else {
+			esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "%s(%s)->", appPtr->fAppNamePtr, g_dstName);
+		}
+	}
+	else {
+		esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "esif(UNK)->");
 	}
 	return rc;
 }
@@ -145,8 +364,8 @@ eEsifError EsifAppsEventByDomainType(
 
 /* Event handler for events targeted at ALL apps without app registration */
 static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr
@@ -156,7 +375,7 @@ static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
 	EsifAppPtr appPtr = NULL;
 	UInt8 i = 0;
 
-	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(domainId);
 	UNREFERENCED_PARAMETER(eventDataPtr);
 
@@ -166,7 +385,7 @@ static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
 	}
 
 	// Only handle at the app level
-	if (participantId != 0) {
+	if (!EsifUpPm_IsPrimaryParticipantId(participantId)) {
 		goto exit;
 	}
 
@@ -174,7 +393,7 @@ static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
 	case ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED:
 	{
 		EsifData responseData = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
-		rc = EsifExecutePrimitive(ESIF_INSTANCE_LF, GET_CONFIG, "D0", 255, NULL, &responseData);
+		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_CONFIG, "D0", 255, NULL, &responseData);
 		esif_ccb_free(responseData.buf_ptr);
 	}
 		break;
@@ -183,8 +402,10 @@ static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
 	}
 
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		appPtr = &g_appMgr.fEntries[i];
-		if (NULL == appPtr->fHandle) {
+		
+		appPtr = EsifAppMgr_GetAppN(i, ESIF_FALSE);
+
+		if (NULL == appPtr) {
 			continue;
 		}
 
@@ -192,24 +413,75 @@ static eEsifError ESIF_CALLCONV EsifAppMgr_EventCallback(
 		{
 		case ESIF_EVENT_PARTICIPANT_SUSPEND:
 			ESIF_TRACE_INFO("System suspend event received\n");
-			if (NULL != appPtr->fInterface.fAppSuspendFuncPtr) {
-				appPtr->fInterface.fAppSuspendFuncPtr(appPtr->fHandle);
-			}
+			EsifApp_SuspendApp(appPtr);
 			break;
 
 		case ESIF_EVENT_PARTICIPANT_RESUME:
 			ESIF_TRACE_INFO("System resume event received\n");
-			if (NULL != appPtr->fInterface.fAppResumeFuncPtr) {
-				appPtr->fInterface.fAppResumeFuncPtr(appPtr->fHandle);
-			}
+			EsifApp_ResumeApp(appPtr);
 			break;
 
 		default:
 			break;
 		}
+		EsifAppMgr_PutRef(appPtr);
+	}
+exit:
+	return rc;
+}
+
+
+/* Removes a participant from each running application */
+static eEsifError EsifAppMgr_EnquePartChange(
+	const EsifUpPtr upPtr,
+	Bool isCreate
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifAppMgrPartQueueItemPtr queueItemPtr = NULL;
+	Bool refTaken = ESIF_FALSE;
+
+	if (NULL == upPtr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
 	}
 
+	queueItemPtr = esif_ccb_malloc(sizeof(*queueItemPtr));
+	if (NULL == queueItemPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	/*
+	* Take a reference on the participant so that the pointer is valid when
+	* dequeued.  The reference must be released after it is dequeued and used.
+	*/
+	rc = EsifUp_GetRef(upPtr);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+	refTaken = ESIF_TRUE;
+
+	queueItemPtr->upPtr = upPtr;
+	queueItemPtr->isCreate = isCreate;
+
+	esif_ccb_write_lock(&g_appMgr.fLock);
+
+	if (NULL == g_appMgr.partQueuePtr) {
+		rc = ESIF_E_UNSPECIFIED;
+		goto lockExit;
+	}
+
+	rc = esif_queue_enqueue(g_appMgr.partQueuePtr, queueItemPtr);
+lockExit:
+	esif_ccb_write_unlock(&g_appMgr.fLock);
 exit:
+	if (rc != ESIF_OK) {
+		if (refTaken) {
+			EsifUp_PutRef(upPtr);
+		}
+		esif_ccb_free(queueItemPtr);
+	}
 	return rc;
 }
 
@@ -217,8 +489,15 @@ exit:
 /* Creates the participant in each running application */
 eEsifError EsifAppMgr_CreateParticipantInAllApps(const EsifUpPtr upPtr)
 {
+	return EsifAppMgr_EnquePartChange(upPtr, ESIF_TRUE);
+}
+
+
+/* Creates the participant in each running application */
+static eEsifError EsifAppMgr_CreateParticipantInAllAppsPriv(const EsifUpPtr upPtr)
+{
 	eEsifError rc = ESIF_OK;
-	EsifAppPtr app_ptr = NULL;
+	EsifAppPtr appPtr = NULL;
 	UInt8 i;
 
 	if (NULL == upPtr) {
@@ -228,15 +507,14 @@ eEsifError EsifAppMgr_CreateParticipantInAllApps(const EsifUpPtr upPtr)
 	}
 
 	/* Now offer this participant to each running application */
-	esif_ccb_read_lock(&g_appMgr.fLock);
-
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		app_ptr = &g_appMgr.fEntries[i];
-		if (NULL != app_ptr->fHandle) {
-			EsifAppCreateParticipant(app_ptr, upPtr);
+		appPtr = EsifAppMgr_GetAppN(i, ESIF_FALSE);
+
+		if ((appPtr != NULL) && !EsifUp_IsPrimaryParticipant(upPtr)) {
+			EsifApp_CreateParticipant(appPtr, upPtr);
 		}
+		EsifAppMgr_PutRef(appPtr);
 	}
-	esif_ccb_read_unlock(&g_appMgr.fLock);
 exit:
 	return rc;
 }
@@ -245,8 +523,15 @@ exit:
 /* Removes a participant from each running application */
 eEsifError EsifAppMgr_DestroyParticipantInAllApps(const EsifUpPtr upPtr)
 {
+	return EsifAppMgr_EnquePartChange(upPtr, ESIF_FALSE);
+}
+
+
+/* Removes a participant from each running application */
+static eEsifError EsifAppMgr_DestroyParticipantInAllAppsPriv(const EsifUpPtr upPtr)
+{
 	eEsifError rc = ESIF_OK;
-	EsifAppPtr app_ptr = NULL;
+	EsifAppPtr appPtr = NULL;
 	UInt8 i;
 
 	if (NULL == upPtr) {
@@ -255,115 +540,181 @@ eEsifError EsifAppMgr_DestroyParticipantInAllApps(const EsifUpPtr upPtr)
 		goto exit;
 	}
 
-	esif_ccb_read_lock(&g_appMgr.fLock);
-
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		app_ptr = &g_appMgr.fEntries[i];
+		appPtr = EsifAppMgr_GetAppN(i, ESIF_FALSE);
 
-		if (NULL != app_ptr->fHandle) {
-			EsifAppDestroyParticipant(app_ptr, upPtr);
-		}
+		EsifApp_DestroyParticipant(appPtr, upPtr);
+
+		EsifAppMgr_PutRef(appPtr);
 	}
-
-	esif_ccb_read_unlock(&g_appMgr.fLock);
 exit:
 	return rc;
 }
 
-static eEsifError EsifAppMgr_AppStart_WLock(const EsifString appName)
-{
-	eEsifError rc = ESIF_E_UNSPECIFIED;
-	EsifAppPtr a_app_ptr = NULL;
-	int j = 0;
-
-	// Check whether the App is already started
-	a_app_ptr = g_appMgr.GetAppFromName(&g_appMgr, appName);
-	if (NULL == a_app_ptr) {
-		// Find next available App slot or return error if Max Apps reached
-		for (j = 0; j < ESIF_MAX_APPS; j++) {
-			if (NULL == g_appMgr.fEntries[j].fLibNamePtr) {
-				break;
-			}
-		}
-		if (ESIF_MAX_APPS == j) {
-			rc = ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS;
-			goto exit;
-		}
-
-		a_app_ptr = &g_appMgr.fEntries[j];
-		a_app_ptr->fLibNamePtr = (esif_string)esif_ccb_strdup(appName);
-		g_appMgr.fEntryCount++;
-	}
-
-	rc = EsifAppStart(a_app_ptr);
-
-	 if ((rc != ESIF_OK) &&
-		 (rc != ESIF_E_APP_ALREADY_STARTED) &&
-		 (rc != ESIF_I_INIT_PAUSED)) {
-		esif_ccb_free(a_app_ptr->fLibNamePtr);
-		memset(a_app_ptr, 0, sizeof(*a_app_ptr));
-		g_appMgr.fEntryCount--;
-	 }
-exit:
-	return rc;
-}
-
-static eEsifError EsifAppMgr_AppStop_WLock(const EsifString appName)
-{
-	eEsifError rc = ESIF_E_UNSPECIFIED;
-	EsifAppPtr a_app_ptr = NULL;
-
-	a_app_ptr = g_appMgr.GetAppFromName(&g_appMgr, appName);
-	if (NULL == a_app_ptr) {
-		rc = ESIF_E_NOT_FOUND;
-		goto exit;
-	}
-
-	rc = EsifAppStop(a_app_ptr);
-
-	if (ESIF_OK == rc) {
-		g_appMgr.fEntryCount--;
-	}
-
-exit:
-	return rc;
-}
-
-static eEsifError EsifAppMgr_AppRestart_WLock(const EsifString appName)
-{
-	eEsifError rc = EsifAppMgr_AppStop_WLock(appName);
-	if (rc == ESIF_OK) {
-		rc = EsifAppMgr_AppStart_WLock(appName);
-	}
-	return rc;
-}
 
 eEsifError EsifAppMgr_AppStart(const EsifString appName)
 {
-	eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_E_UNSPECIFIED;
+	EsifAppMgrEntryPtr entryPtr = NULL;
+	EsifAppMgrEntryPtr newEntryPtr = NULL;
+	EsifAppPtr appPtr = NULL;
+	EsifAppPtr newAppPtr = NULL;
+	int j = 0;
+	int availableIndex = ESIF_MAX_APPS;
+
+	if (!g_appMgr.isInitialized) {  // Check if app creation is blocked
+		goto exit;
+	}
+
+	if (NULL == appName) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
 	esif_ccb_write_lock(&g_appMgr.fLock);
-	rc = EsifAppMgr_AppStart_WLock(appName);
+	g_appMgr.creationRefCount++;
+
+	/*
+	* Keep Entries sorted by name and Search for an available slot and verify an app with the same name is not already running
+	*/
+	for (j = 0; j < ESIF_MAX_APPS; j++) {
+		entryPtr = g_appMgr.fEntries[j];
+
+		if (NULL == entryPtr) {	
+			if (ESIF_MAX_APPS == availableIndex) {
+				availableIndex = j;
+			}
+			continue;
+		}
+		appPtr = entryPtr->appPtr;
+		if (EsifApp_IsAppName(appPtr, appName)) {
+			rc = EsifAppMgr_GetRefLocked(entryPtr, ESIF_FALSE);
+			if (ESIF_OK == rc) {
+				EsifAppMgr_PutRef(appPtr);
+				rc = ESIF_E_APP_ALREADY_STARTED;
+				goto lockExit;
+			}
+		}
+	}
+
+	if (availableIndex >= ESIF_MAX_APPS) {
+		rc = ESIF_E_MAXIMUM_CAPACITY_REACHED;
+		goto lockExit;
+	}
+
+	rc = EsifAppMgr_CreateEntry(appName, &newEntryPtr);
+	if (rc != ESIF_OK) {
+		goto lockExit;
+	}
+	ESIF_ASSERT(newEntryPtr != NULL);
+	newAppPtr = newEntryPtr->appPtr;
+
+	/*
+	* Take an extra reference on the app so that it can't be destroyed while
+	* creation completes
+	*/
+	rc = EsifApp_GetRef(newAppPtr);
+	if (rc != ESIF_OK) {
+		EsifAppMgr_DestroyEntry(newEntryPtr); // Can destroy with lock held; app not started yet
+		goto lockExit;
+	}
+
+	g_appMgr.fEntries[availableIndex] = newEntryPtr;
+	g_appMgr.fEntryCount++;
+
+	/* Start without locks held */
 	esif_ccb_write_unlock(&g_appMgr.fLock);
+
+	rc = EsifApp_Start(newAppPtr);
+
+	EsifAppMgr_PutRef(newAppPtr); /* Release our extra reference */
+
+	esif_ccb_write_lock(&g_appMgr.fLock);
+	if ((rc != ESIF_OK) &&
+	    (rc != ESIF_E_APP_ALREADY_STARTED) &&
+		(rc != ESIF_I_INIT_PAUSED)) {
+
+		/* If the app has NOT already been destroyed; destroy it */
+		if (g_appMgr.fEntries[availableIndex] == newEntryPtr) {
+			g_appMgr.fEntries[availableIndex] = NULL;
+			g_appMgr.fEntryCount--;
+			g_appMgr.creationRefCount--;
+			esif_ccb_write_unlock(&g_appMgr.fLock);
+			EsifAppMgr_DestroyEntry(newEntryPtr);
+			goto exit;
+		}
+	}
+lockExit:
+	g_appMgr.creationRefCount--;
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+	esif_queue_signal_event(g_appMgr.partQueuePtr);
+exit:
 	return rc;
 }
+
 
 eEsifError EsifAppMgr_AppStop(const EsifString appName)
 {
-	eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_E_UNSPECIFIED;
+	EsifAppMgrEntryPtr entryPtr = NULL;
+	EsifAppPtr appPtr = NULL;
+	u8 i = 0;
+
+	if (NULL == appName) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
 	esif_ccb_write_lock(&g_appMgr.fLock);
-	rc = EsifAppMgr_AppStop_WLock(appName);
+
+	for (i = 0; i < ESIF_MAX_APPS; i++) {
+		entryPtr = g_appMgr.fEntries[i];
+		if (entryPtr && !entryPtr->svcRefOnly && EsifApp_IsAppName(entryPtr->appPtr, appName)) {
+			entryPtr->svcRefOnly = ESIF_TRUE; // Force rejection of any other stop requests
+			appPtr = entryPtr->appPtr;
+			break;
+		}
+		entryPtr = NULL;
+	}
+	if (NULL == appPtr) {
+		rc = ESIF_E_NOT_FOUND;
+		esif_ccb_write_unlock(&g_appMgr.fLock); 
+		goto exit;
+	}
 	esif_ccb_write_unlock(&g_appMgr.fLock);
+
+	// If this is a Restartable App, Stop all Child Non-Restartable Apps with the same Libname
+	if (appPtr->isRestartable) {
+		esif_ccb_write_lock(&g_appMgr.fLock);
+		for (int j = 0; j < ESIF_MAX_APPS; j++) {
+			if (j != i && g_appMgr.fEntries[j]) {
+				EsifAppPtr childAppPtr = g_appMgr.fEntries[j]->appPtr;
+				if (childAppPtr && childAppPtr->isRestartable == ESIF_FALSE && esif_ccb_stricmp(childAppPtr->fLibNamePtr, entryPtr->appPtr->fLibNamePtr) == 0) {
+					char childAppName[ESIF_NAME_LEN] = { 0 };
+					esif_ccb_strcpy(childAppName, childAppPtr->fAppNamePtr, sizeof(childAppName));
+
+					esif_ccb_write_unlock(&g_appMgr.fLock);
+					EsifAppMgr_AppStop(childAppName);
+					esif_ccb_write_lock(&g_appMgr.fLock);
+				}
+			}
+		}
+		esif_ccb_write_unlock(&g_appMgr.fLock);
+	}
+
+	EsifApp_Stop(appPtr);
+
+	esif_ccb_write_lock(&g_appMgr.fLock);
+	g_appMgr.fEntries[i] = NULL;
+	g_appMgr.fEntryCount--;
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+
+	rc = ESIF_OK;
+exit:
+	EsifAppMgr_DestroyEntry(entryPtr);
 	return rc;
 }
 
-eEsifError EsifAppMgr_AppRestart(const EsifString appName)
-{
-	eEsifError rc = ESIF_OK;
-	esif_ccb_write_lock(&g_appMgr.fLock);
-	rc = EsifAppMgr_AppRestart_WLock(appName);
-	esif_ccb_write_unlock(&g_appMgr.fLock);
-	return rc;
-}
 
 eEsifError EsifAppMgr_AppRestartAll()
 {
@@ -375,8 +726,8 @@ eEsifError EsifAppMgr_AppRestartAll()
 	esif_ccb_write_lock(&g_appMgr.fLock);
 
 	for (j = 0; j < ESIF_MAX_APPS; j++) {
-		if (NULL != g_appMgr.fEntries[j].fLibNamePtr) {
-			loadedApps[appCount] = esif_ccb_strdup(g_appMgr.fEntries[j].fLibNamePtr);
+		if ((g_appMgr.fEntries[j] != NULL) && EsifApp_IsRestartable(g_appMgr.fEntries[j]->appPtr)) {
+			loadedApps[appCount] = EsifApp_CopyAppFullName(g_appMgr.fEntries[j]->appPtr);
 			if (loadedApps[appCount] == NULL) {
 				rc = ESIF_E_NO_MEMORY;
 				break;
@@ -384,21 +735,134 @@ eEsifError EsifAppMgr_AppRestartAll()
 			appCount++;
 		}
 	}
+	esif_ccb_write_unlock(&g_appMgr.fLock);
 
+	// Stop all Restartable Apps, which also stops all Non-Restartable Apps
+	for (j = 0; j < appCount; j++) {
+		ESIF_TRACE_INFO("Stopping App %s ...", loadedApps[j]);
+		rc = EsifAppMgr_AppStop(loadedApps[j]);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_ERROR("Error Stopping App %s - %s (%d) ...", loadedApps[j], esif_rc_str(rc), rc);
+		}
+	}
+
+	// Start all Restartable Apps, which does not start any Non-Restartable Apps
 	for (j = 0; j < appCount; j++) {
 		ESIF_TRACE_INFO("Restarting App %s ...", loadedApps[j]);
-		rc = EsifAppMgr_AppRestart_WLock(loadedApps[j]);
+		rc = EsifAppMgr_AppStart(loadedApps[j]);
 		if (rc != ESIF_OK) {
 			ESIF_TRACE_ERROR("Error Restarting App %s - %s (%d) ...", loadedApps[j], esif_rc_str(rc), rc);
 		}
 		esif_ccb_free(loadedApps[j]);
 	}
 
-	esif_ccb_write_unlock(&g_appMgr.fLock);
 	return rc;
 }
 
-eEsifError EsifAppMgrInit()
+
+static eEsifError EsifAppMgr_CreateEntry(
+	const EsifString appName,
+	EsifAppMgrEntryPtr *entryPtr
+)
+{
+	eEsifError rc = ESIF_OK;
+	EsifAppMgrEntryPtr newEntryPtr = NULL;
+
+	ESIF_ASSERT(entryPtr != NULL);
+
+	newEntryPtr = (EsifAppMgrEntryPtr)esif_ccb_malloc(sizeof(*newEntryPtr));
+	if (NULL == newEntryPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	rc = EsifApp_Create(appName, &newEntryPtr->appPtr);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	if (NULL == newEntryPtr->appPtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+
+	newEntryPtr->svcRefOnly = ESIF_FALSE;
+	*entryPtr = newEntryPtr;
+exit:
+	if (rc != ESIF_OK) {
+		EsifAppMgr_DestroyEntry(newEntryPtr);
+	}
+	return rc;
+}
+
+
+static void EsifAppMgr_DestroyEntry(
+	EsifAppMgrEntryPtr entryPtr
+	)
+{
+	if (NULL == entryPtr) {
+		goto exit;
+	}
+	EsifApp_Destroy(entryPtr->appPtr);
+exit:
+	esif_ccb_free(entryPtr);
+	return;
+}
+
+
+static void *ESIF_CALLCONV EsifAppMgr_PartQueueThread(void *ctxPtr)
+{
+	EsifAppMgrPartQueueItemPtr queueItemPtr = NULL;
+	Bool isProcessing = ESIF_FALSE;
+
+	UNREFERENCED_PARAMETER(ctxPtr);
+
+	while (!g_appMgr.partQueueExitFlag) {
+		queueItemPtr = esif_queue_pull(g_appMgr.partQueuePtr);
+
+		if (NULL == queueItemPtr) {
+			continue;
+		}
+
+		esif_ccb_write_lock(&g_appMgr.fLock);
+		isProcessing = (g_appMgr.creationRefCount != 0) ? ESIF_TRUE : ESIF_FALSE;
+		esif_ccb_write_unlock(&g_appMgr.fLock);
+
+		/*
+		* If and app is being created, re-queue the participant change until
+		* after it is done creating the app
+		*/
+		if (isProcessing) {
+			esif_queue_requeue(g_appMgr.partQueuePtr, queueItemPtr);
+			continue;
+		}
+
+		if (queueItemPtr->isCreate) {
+			EsifAppMgr_CreateParticipantInAllAppsPriv(queueItemPtr->upPtr);
+		}
+		else {
+			EsifAppMgr_DestroyParticipantInAllAppsPriv(queueItemPtr->upPtr);
+		}
+
+		EsifUp_PutRef(queueItemPtr->upPtr);
+		esif_ccb_free(queueItemPtr);
+	}
+	return 0;
+}
+
+
+static void EsifAppMgr_QueueDestroyCallback(void *ctxPtr)
+{
+	EsifAppMgrPartQueueItemPtr queueItemPtr = (EsifAppMgrPartQueueItemPtr)ctxPtr;
+
+	if (queueItemPtr != NULL) {
+		EsifUp_PutRef(queueItemPtr->upPtr);
+		esif_ccb_free(queueItemPtr);
+	}
+}
+
+
+eEsifError EsifAppMgr_Init(void)
 {
 	eEsifError rc = ESIF_OK;
 
@@ -406,51 +870,84 @@ eEsifError EsifAppMgrInit()
 
 	esif_ccb_lock_init(&g_appMgr.fLock);
 
-	g_appMgr.GetAppFromName = GetAppFromName;
-	g_appMgr.GetPrompt = GetPrompt;
+	g_appMgr.partQueuePtr = esif_queue_create(ESIF_UF_APPMGR_QUEUE_SIZE, ESIF_UF_APPMGR_QUEUE_NAME, ESIF_UF_APPMGR_QUEUE_TIMEOUT);
+	if (NULL == g_appMgr.partQueuePtr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
 
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);		
+	rc = esif_ccb_thread_create(&g_appMgr.partQueueThread, EsifAppMgr_PartQueueThread, NULL);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+exit:
+	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
+	return rc;
+}
+
+
+eEsifError EsifAppMgr_Start(void)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_TRACE_ENTRY_INFO();
+
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, 0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, 0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, 0);
+
+	g_appMgr.isInitialized = ESIF_TRUE;
 
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
 }
 
 
-void EsifAppMgrExit()
+void EsifAppMgr_Stop(void)
 {
 	u8 i = 0;
-	EsifAppPtr a_app_ptr = NULL;
+	EsifAppMgrEntryPtr entryPtr = NULL;
+	EsifQueuePtr partQueuePtr = NULL;
 
 	ESIF_TRACE_ENTRY_INFO();
 
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, NULL);
+	g_appMgr.isInitialized = ESIF_FALSE;  // Prevent creation of any new apps
 
-	ESIF_TRACE_DEBUG("Exit Action Manager (APPMGR)");
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_SUSPEND, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_RESUME, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PRIMARY_PARTICIPANT_ARRIVED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifAppMgr_EventCallback, 0);
 
-	esif_ccb_read_lock(&g_appMgr.fLock);
+	g_appMgr.partQueueExitFlag = ESIF_TRUE;
+	esif_queue_signal_event(g_appMgr.partQueuePtr);
+	esif_ccb_thread_join(&g_appMgr.partQueueThread);
+
+	esif_ccb_write_lock(&g_appMgr.fLock);
+	partQueuePtr = g_appMgr.partQueuePtr;
+	g_appMgr.partQueuePtr = NULL;
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+
+	esif_queue_destroy(partQueuePtr, EsifAppMgr_QueueDestroyCallback);
+
+	esif_ccb_write_lock(&g_appMgr.fLock);
+
 	for (i = 0; i < ESIF_MAX_APPS; i++) {
-		a_app_ptr = &g_appMgr.fEntries[i];
+		entryPtr = g_appMgr.fEntries[i];
 
-		/* Release any reference to participants taken when init was paused */
-		EsifUp_PutRef(a_app_ptr->upPtr);	
-		a_app_ptr->upPtr = NULL;
-		a_app_ptr->iteratorValid = ESIF_FALSE;
-
-		// Attempt to gracefully shutdown App before forcing library unload
-		if (a_app_ptr->fLibNamePtr != NULL) {
-			EsifAppStop(a_app_ptr);
-		}
-		if (a_app_ptr->fLibNamePtr != NULL) {
-			esif_ccb_library_unload(a_app_ptr->fLibHandle);
-			esif_ccb_free(a_app_ptr->fLibNamePtr);
-			esif_ccb_memset(a_app_ptr, 0, sizeof(*a_app_ptr));
+		if (entryPtr && entryPtr->appPtr && entryPtr->appPtr->fAppNamePtr) {
+			esif_ccb_write_unlock(&g_appMgr.fLock);
+			EsifAppMgr_AppStop(entryPtr->appPtr->fAppNamePtr);
+			esif_ccb_write_lock(&g_appMgr.fLock);
 		}
 	}
-	esif_ccb_read_unlock(&g_appMgr.fLock);
+	esif_ccb_write_unlock(&g_appMgr.fLock);
+
+	ESIF_TRACE_EXIT_INFO();
+}
+
+
+void EsifAppMgr_Exit(void)
+{
+	ESIF_TRACE_ENTRY_INFO();
 
 	esif_ccb_lock_uninit(&g_appMgr.fLock);
 

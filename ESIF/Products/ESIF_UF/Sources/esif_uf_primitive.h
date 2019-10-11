@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,7 +44,7 @@ extern "C" {
  * example within the "delegate" or "sysfs" actions.
  */
 eEsifError EsifExecutePrimitive(
-	const UInt8 participantId,
+	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const EsifString qualifier,
 	const UInt8 instance,
@@ -53,7 +53,7 @@ eEsifError EsifExecutePrimitive(
 	);
 
 Bool EsifPrimitiveVerifyOpcode(
-	const UInt8 participantId,
+	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const EsifString domain_str,
 	const UInt8 instance,
@@ -61,7 +61,7 @@ Bool EsifPrimitiveVerifyOpcode(
 	);
 
 eEsifError EsifPrimitiveGetDataType(
-	const UInt8 participantId,
+	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const EsifString domain_str,
 	const UInt8 instance,

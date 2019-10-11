@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,6 +35,11 @@ UInt64 BinaryParse::extractBits(UInt16 startBit, UInt16 stopBit, UInt64 data)
 
 std::string BinaryParse::normalizeAcpiScope(const std::string& acpiScope)
 {
+	if (acpiScope == Constants::InvalidString || acpiScope == Constants::NotAvailableString)
+	{
+		return acpiScope;
+	}
+
 	std::stringstream normalizedAcpiScope;
 	UIntN charsSinceLastDot(0);
 	for (UIntN pos = 0; pos < acpiScope.size(); pos++)
@@ -75,6 +80,11 @@ std::string BinaryParse::normalizeAcpiScope(const std::string& acpiScope)
 			normalizedAcpiScope << '_';
 			underscoresToAdd--;
 		}
+
+		auto fullScope = normalizedAcpiScope.str();
+		auto lastDotPos = fullScope.find_last_of('.');
+		auto name = fullScope.substr(lastDotPos + 1);
+		return name;
 	}
 
 	return normalizedAcpiScope.str();

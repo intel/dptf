@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -65,14 +65,12 @@ int timeval_subtract(
 }
 
 
-#define IPC_DEBUG	// ESIF_DEBUG
-
 #define SESSION_ID "ESIF"
 extern int g_quit;
 extern int g_disconnectClient;
 extern int g_timestamp;
 
-esif_handle_t g_ipc_handle = ESIF_INVALID_HANDLE;
+esif_os_handle_t g_ipc_handle = INVALID_HANDLE_VALUE;
 
 // String To Short
 u16 domain_str_to_short(char *two_character_string)
@@ -143,13 +141,13 @@ eEsifError ipc_connect()
 	ESIF_TRACE_ENTRY_INFO();
 
 	// Exit if IPC already connected
-	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 		return ESIF_OK;
 	}
 
 	// Connect to LF
 	g_ipc_handle = esif_ipc_connect((char *)SESSION_ID);
-	if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle == INVALID_HANDLE_VALUE) {
 		ESIF_TRACE_WARN("ESIF LF is not available\n");
 		rc = ESIF_E_NO_LOWER_FRAMEWORK;
 	}
@@ -191,7 +189,7 @@ eEsifError ipc_autoconnect(UInt32 max_retries)
 
 	ESIF_TRACE_ENTRY_INFO();
 
-	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 		return rc;
 	}
 
@@ -218,9 +216,9 @@ void ipc_disconnect()
 {
 	ESIF_TRACE_ENTRY_INFO();
 
-	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 		esif_ipc_disconnect(g_ipc_handle);
-		g_ipc_handle = ESIF_INVALID_HANDLE;
+		g_ipc_handle = INVALID_HANDLE_VALUE;
 		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Closed\n");
 	}
 
@@ -230,12 +228,11 @@ void ipc_disconnect()
 // Is IPC Connected?
 int ipc_isconnected()
 {
-	return (g_ipc_handle != ESIF_INVALID_HANDLE);
+	return (g_ipc_handle != INVALID_HANDLE_VALUE);
 }
 
 /* Declared and Handled By UF Shell */
 extern struct esif_uf_dm g_dm;
-extern int g_dst;
 
 // IPC Execute
 enum esif_rc ipc_execute(struct esif_ipc *ipc)
@@ -245,7 +242,7 @@ enum esif_rc ipc_execute(struct esif_ipc *ipc)
 	struct timeval finish = {0};
 	struct timeval result;
 
-	if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle == INVALID_HANDLE_VALUE) {
 		ESIF_TRACE_WARN("ESIF LF is not available\n");
 		rc = ESIF_E_NO_LOWER_FRAMEWORK;
 		goto exit;

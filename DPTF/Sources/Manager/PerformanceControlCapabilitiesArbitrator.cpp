@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,10 +53,8 @@ PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::arbitrat
 	auto tempPolicyLowerRequests = m_requestedLowerPState;
 	updatePolicyRequest(requestedCaps, policyIndex, tempPolicyUpperRequests, tempPolicyLowerRequests);
 
-	auto arbitratedCapabilities = createNewArbitratedCapabilities(
-		tempPolicyUpperRequests,
-		tempPolicyLowerRequests,
-		currentCaps);
+	auto arbitratedCapabilities =
+		createNewArbitratedCapabilities(tempPolicyUpperRequests, tempPolicyLowerRequests, currentCaps);
 	return arbitratedCapabilities;
 }
 
@@ -80,9 +78,10 @@ PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::createNe
 		upperPStateIndex = currentUpperIndex;
 	}
 
-	if (upperPStateIndex != Constants::Invalid && lowerPStateIndex != Constants::Invalid && upperPStateIndex > lowerPStateIndex)
+	if (upperPStateIndex != Constants::Invalid && lowerPStateIndex != Constants::Invalid
+		&& upperPStateIndex > lowerPStateIndex)
 	{
-		upperPStateIndex = lowerPStateIndex;
+		lowerPStateIndex = upperPStateIndex; // set both min and max to the most limited of the two values
 	}
 	return PerformanceControlDynamicCaps(lowerPStateIndex, upperPStateIndex);
 }
@@ -98,10 +97,8 @@ Bool PerformanceControlCapabilitiesArbitrator::arbitrateLockRequests(UIntN polic
 PerformanceControlDynamicCaps PerformanceControlCapabilitiesArbitrator::getArbitratedPerformanceControlCapabilities(
 	const PerformanceControlDynamicCaps& currentCaps)
 {
-	auto arbitratedCapabilities = createNewArbitratedCapabilities(
-		m_requestedUpperPState,
-		m_requestedLowerPState,
-		currentCaps);
+	auto arbitratedCapabilities =
+		createNewArbitratedCapabilities(m_requestedUpperPState, m_requestedLowerPState, currentCaps);
 	return arbitratedCapabilities;
 }
 

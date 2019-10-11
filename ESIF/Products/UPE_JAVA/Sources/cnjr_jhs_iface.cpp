@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -174,7 +174,7 @@ static eEsifError ConjureDestroy (void *cnjHandle)
 
 esif_handle_t RegisterParticipant(const EsifParticipantIfacePtr piPtr)
 {
-	esif_handle_t participantInstance = (esif_handle_t)ESIF_INSTANCE_INVALID;
+	esif_handle_t participantInstance = (esif_handle_t)ESIF_INVALID_HANDLE;
 
 	ESIF_TRACE(TRACE_LEVEL_INFORMATION, DBG_ESIF_CNJ_LIB, "%s\n", ESIF_FUNC);
 
@@ -183,11 +183,11 @@ esif_handle_t RegisterParticipant(const EsifParticipantIfacePtr piPtr)
 	return participantInstance;
 }
 
-eEsifError UnRegisterParticipant(const esif_handle_t participantHandle)
+eEsifError UnRegisterParticipant(const esif_handle_t participantId)
 {
 	ESIF_TRACE(TRACE_LEVEL_INFORMATION, DBG_ESIF_CNJ_LIB, "%s\n", ESIF_FUNC);
 
-	g_cnjService.fUnRegisterParticipantFuncPtr(participantHandle);
+	g_cnjService.fUnRegisterParticipantFuncPtr(participantId);
 
 	return ESIF_OK;
 }

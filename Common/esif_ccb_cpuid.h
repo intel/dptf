@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -58,11 +58,27 @@
  */
 
 /*
+ * Some common cpuid specific defines
+ */
+#define ESIF_CPUID_BRAND_MOD_LEN    2
+#define ESIF_CPUID_BRAND_STR_LEN    48
+
+#define ESIF_CPUID_BRAND_MOD_I3    "i3"
+#define ESIF_CPUID_BRAND_MOD_I5    "i5"
+#define ESIF_CPUID_BRAND_MOD_I7    "i7"
+#define ESIF_CPUID_BRAND_MOD_I9    "i9"
+#define ESIF_CPUID_BRAND_MOD_NA    "NA"
+
+/*
  * Various CPUID Leaf's
  */
 #define ESIF_CPUID_LEAF_CPU_INFO 0x0
 #define ESIF_CPUID_LEAF_PROCESSOR_SIGNATURE 0x1
 #define ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO 0x15
+#define ESIF_CPUID_LEAF_CPU_BRAND_STR_SUPPORT 0x80000000
+#define ESIF_CPUID_LEAF_CPU_BRAND_STR_PART1 0x80000002
+#define ESIF_CPUID_LEAF_CPU_BRAND_STR_PART2 0x80000003
+#define ESIF_CPUID_LEAF_CPU_BRAND_STR_PART3 0x80000004
 
 /*
  * Various CPU Family models
@@ -85,6 +101,8 @@
 #define CPUID_FAMILY_MODEL_GLK      0x000706A0		// Gemini Lake (BXT follow-on)
 #define CPUID_FAMILY_MODEL_CNL_ULT  0x00060660		// Cannon Lake U/Y
 #define CPUID_FAMILY_MODEL_CNL_H    0x00060670		// Cannon Lake H
+#define CPUID_FAMILY_MODEL_ICL      0x000706E0		// Ice Lake
+#define CPUID_FAMILY_MODEL_LKF      0x000806A0		// Lakefield
 
 #pragma pack(push, 1)
 

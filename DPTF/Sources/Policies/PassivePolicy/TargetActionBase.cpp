@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,13 +45,17 @@ TargetActionBase::~TargetActionBase()
 vector<UIntN> TargetActionBase::getPackageDomains(UIntN source, const vector<UIntN>& domainsWithControlKnobsToTurn)
 {
 	vector<UIntN> packageDomains;
-	for (auto domain = domainsWithControlKnobsToTurn.begin(); domain != domainsWithControlKnobsToTurn.end(); domain++)
+	if (getParticipantTracker()->remembers(source))
 	{
-		auto domainProxy = getParticipantTracker()->getParticipant(source)->getDomain(*domain);
-		DomainType::Type domainType = domainProxy->getDomainProperties().getDomainType();
-		if (domainType == DomainType::MultiFunction)
+		for (auto domain = domainsWithControlKnobsToTurn.begin(); domain != domainsWithControlKnobsToTurn.end();
+			 domain++)
 		{
-			packageDomains.push_back(*domain);
+			auto domainProxy = getParticipantTracker()->getParticipant(source)->getDomain(*domain);
+			DomainType::Type domainType = domainProxy->getDomainProperties().getDomainType();
+			if (domainType == DomainType::MultiFunction)
+			{
+				packageDomains.push_back(*domain);
+			}
 		}
 	}
 	return packageDomains;
@@ -86,13 +90,16 @@ std::vector<UIntN> TargetActionBase::filterDomainList(
 std::vector<UIntN> TargetActionBase::getDomainsThatDoNotReportTemperature(UIntN source, std::vector<UIntN> domains)
 {
 	vector<UIntN> domainsWithNoTemperature;
-	for (auto domain = domains.begin(); domain != domains.end(); domain++)
+	if (getParticipantTracker()->remembers(source))
 	{
-		auto sourceParticipant = getParticipantTracker()->getParticipant(source);
-		auto sourceDomain = sourceParticipant->getDomain(*domain);
-		if (!sourceDomain->getTemperatureControl()->supportsTemperatureControls())
+		for (auto domain = domains.begin(); domain != domains.end(); domain++)
 		{
-			domainsWithNoTemperature.push_back(*domain);
+			auto sourceParticipant = getParticipantTracker()->getParticipant(source);
+			auto sourceDomain = sourceParticipant->getDomain(*domain);
+			if (!sourceDomain->getTemperatureControl()->supportsTemperatureControls())
+			{
+				domainsWithNoTemperature.push_back(*domain);
+			}
 		}
 	}
 	return domainsWithNoTemperature;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -101,13 +101,9 @@ static void EsifActMgr_LLEntryDestroyCallback(
 	void *dataPtr
 	);
 
-static Bool EsifActMgr_IsActionUsedByParticipants(
-	enum esif_action_type type
-);
-
 static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr
@@ -654,7 +650,7 @@ eEsifError EsifActMgr_StartUpe(
 		goto exit;
 	}
 
-	EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_LOADED, &eventData);
+	EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_LOADED, &eventData);
 
 	ESIF_TRACE_DEBUG("Added action %s\n", upeName);
 exit:
@@ -688,7 +684,7 @@ static eEsifError EsifActMgr_StopUnusedUpes()
 			//
 			// If this is a UPE and not used by the current participants, unload it and remark it for dynamic loading
 			//
-			if (curEntryPtr && EsifAct_IsPlugin(curEntryPtr->actPtr) && !EsifActMgr_IsActionUsedByParticipants(curEntryPtr->type)) {
+			if (curEntryPtr && EsifAct_IsPlugin(curEntryPtr->actPtr) && !EsifUpPm_IsActionUsedByParticipants(curEntryPtr->type)) {
 				ESIF_TRACE_DEBUG("Stopping Action: %s\n", curEntryPtr->libName);
 
 				esif_link_list_node_remove(g_actMgr.actions, curNodePtr);
@@ -704,43 +700,11 @@ static eEsifError EsifActMgr_StopUnusedUpes()
 			type = curEntryPtr->type;
 			EsifActMgr_RegisterDelayedLoadAction(curEntryPtr->type);
 			EsifActMgr_DestroyEntry(curEntryPtr);
-			EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_UNLOADED, &eventData);
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_UNLOADED, &eventData);
 		}
 	} while (curNodePtr != NULL);
 exit:
 	return rc;
-}
-
-
-// NOTE:  This function assumes the action IS used...
-static Bool EsifActMgr_IsActionUsedByParticipants(
-	enum esif_action_type type
-)
-{
-	Bool isUsed = ESIF_TRUE;
-	eEsifError rc = ESIF_OK;
-	UfPmIterator upIter = { 0 };
-	EsifUpPtr upPtr = NULL;
-
-	rc = EsifUpPm_InitIterator(&upIter);
-
-	//
-	// Determine if ANY participant has this action type in their DSP
-	//
-	rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-	while (ESIF_OK == rc) {
-		isUsed = EsifUp_IsActionInDsp(upPtr, type);
-		if (isUsed) {
-			break;
-		}
-		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
-	}
-	if (ESIF_E_ITERATION_DONE == rc) {
-		isUsed = ESIF_FALSE;
-	}
-
-	EsifUp_PutRef(upPtr);
-	return isUsed;
 }
 
 
@@ -775,7 +739,7 @@ eEsifError EsifActMgr_StopUpe(EsifString upeName)
 	esif_ccb_write_unlock(&g_actMgr.mgrLock);
 
 	actType = entryPtr->type;
-	EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_UNLOADED, &eventData);
+	EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_ACTION_UNLOADED, &eventData);
 
 	EsifActMgr_DestroyEntry(entryPtr);
 
@@ -794,6 +758,7 @@ static eEsifError EsifActMgr_LoadAction(
 	GetIfaceFuncPtr ifaceFuncPtr = NULL;
 	EsifString ifaceFuncName = ACTION_UPE_GET_INTERFACE_FUNCTION;
 	char libPath[ESIF_LIBPATH_LEN];
+	char altLibPath[ESIF_LIBPATH_LEN] = { 0 };
 
 	ESIF_ASSERT(entryPtr != NULL);
 	ESIF_ASSERT(getIfacePtr != NULL);
@@ -803,10 +768,24 @@ static eEsifError EsifActMgr_LoadAction(
 	entryPtr->lib = esif_ccb_library_load(libPath);
 
 	if (NULL == entryPtr->lib || NULL == entryPtr->lib->handle) {
-		rc = esif_ccb_library_error(entryPtr->lib);
-		ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(entryPtr->lib));
-		goto exit;
+
+		// Try the alternate path for loadable libraries if different from normal path
+		esif_build_path(altLibPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL_ALT, entryPtr->libName, ESIF_LIB_EXT);
+		if (esif_ccb_strcmp(altLibPath, libPath) != 0) {
+			rc = esif_ccb_library_error(entryPtr->lib);
+			ESIF_TRACE_WARN("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(entryPtr->lib));
+
+			esif_ccb_library_unload(entryPtr->lib);
+			entryPtr->lib = NULL;
+			entryPtr->lib = esif_ccb_library_load(altLibPath);
+		}
+		if (NULL == entryPtr->lib || NULL == entryPtr->lib->handle) {
+			rc = esif_ccb_library_error(entryPtr->lib);
+			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(entryPtr->lib));
+			goto exit;
+		}
 	}
+
 	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);
 
 	ifaceFuncPtr = (GetIfaceFuncPtr)esif_ccb_library_get_func(entryPtr->lib, (EsifString)ifaceFuncName);
@@ -1029,7 +1008,7 @@ eEsifError EsifActMgrInit()
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
-		NULL);
+		0);
 
 	/* Action manager must be initialized before this call */
 	EsifActMgr_InitActions();
@@ -1047,7 +1026,7 @@ void EsifActMgrExit()
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifActMgr_EventCallback,
-		NULL);
+		0);
 
 	/* Call before destroying action manager */
 	EsifActMgr_UninitActions();
@@ -1069,8 +1048,8 @@ void EsifActMgrExit()
 
 
 static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr
@@ -1078,7 +1057,7 @@ static eEsifError ESIF_CALLCONV EsifActMgr_EventCallback(
 {
 	eEsifError rc = ESIF_OK;
 
-	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(participantId);
 	UNREFERENCED_PARAMETER(domainId);
 	UNREFERENCED_PARAMETER(eventDataPtr);
@@ -1120,6 +1099,10 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SIM);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_NVME);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_RFPWIFI);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_IOC);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_BATTERY);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SOCWC);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_HWPF);
 
 	EsifActConfigInit();
 	EsifActConstInit();

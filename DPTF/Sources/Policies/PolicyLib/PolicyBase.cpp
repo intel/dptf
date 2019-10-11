@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,15 +40,15 @@ void PolicyBase::create(Bool enabled, const PolicyServicesInterfaceContainer& po
 	m_policyServices = policyServices;
 	m_trackedParticipants->setPolicyServices(policyServices);
 	throwIfPolicyRequirementsNotMet();
-	takeControlOfOsc(m_enabled && autoNotifyPlatformOscOnCreateDestroy());
 
 	try
 	{
 		onCreate();
+		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), true);
 	}
 	catch (...)
 	{
-		releaseControlofOsc(m_enabled && autoNotifyPlatformOscOnCreateDestroy());
+		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), false);
 		m_enabled = false;
 		throw;
 	}
@@ -62,28 +62,27 @@ void PolicyBase::destroy(void)
 	}
 	catch (...)
 	{
-		releaseControlofOsc(autoNotifyPlatformOscOnCreateDestroy());
+		sendOscRequest(autoNotifyPlatformOscOnCreateDestroy(), false);
 		m_enabled = false;
 		throw;
 	}
 
-	releaseControlofOsc(autoNotifyPlatformOscOnCreateDestroy());
+	sendOscRequest(autoNotifyPlatformOscOnCreateDestroy(), false);
 	m_enabled = false;
 }
 
 void PolicyBase::enable(void)
 {
-	takeControlOfOsc(autoNotifyPlatformOscOnEnableDisable());
+	sendOscRequest(autoNotifyPlatformOscOnEnableDisable(), true);
 	try
 	{
-		m_policyServices.messageLogging->writeMessageInfo(
-			PolicyMessage(FLF, getName() + ": Policy enable event received."));
+		POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy enable event received."; });
 		onEnable();
 		m_enabled = true;
 	}
 	catch (...)
 	{
-		releaseControlofOsc(autoNotifyPlatformOscOnEnableDisable());
+		sendOscRequest(autoNotifyPlatformOscOnEnableDisable(), false);
 		throw;
 	}
 }
@@ -92,121 +91,182 @@ void PolicyBase::disable(void)
 {
 	try
 	{
-		m_policyServices.messageLogging->writeMessageInfo(
-			PolicyMessage(FLF, getName() + ": Policy disable event received."));
+		POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy disable event received."; });
 		onDisable();
 	}
 	catch (...)
 	{
-		releaseControlofOsc(autoNotifyPlatformOscOnEnableDisable());
+		sendOscRequest(autoNotifyPlatformOscOnEnableDisable(), false);
 		throw;
 	}
 
-	releaseControlofOsc(autoNotifyPlatformOscOnEnableDisable());
+	sendOscRequest(autoNotifyPlatformOscOnEnableDisable(), false);
 	m_enabled = false;
 }
 
 void PolicyBase::bindParticipant(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Binding participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Binding participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onBindParticipant(participantIndex);
 }
 
 void PolicyBase::unbindParticipant(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Unbinding participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Unbinding participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
+
 	onUnbindParticipant(participantIndex);
 }
 
 void PolicyBase::bindDomain(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Binding domain for participant.", participantIndex, domainIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Binding domain for participant. ParticipantIndex = " << participantIndex
+				<< ". DomainIndex=" << domainIndex;
+		return message.str();
+	});
 	onBindDomain(participantIndex, domainIndex);
 }
 
 void PolicyBase::unbindDomain(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Unbinding domain for participant.", participantIndex, domainIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Unbinding domain for participant. ParticipantIndex = " << participantIndex
+				<< ". DomainIndex =" << domainIndex;
+		return message.str();
+	});
 	onUnbindDomain(participantIndex, domainIndex);
 }
 
 void PolicyBase::domainTemperatureThresholdCrossed(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Temperature threshold crossed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Temperature threshold crossed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainTemperatureThresholdCrossed(participantIndex);
 }
 
 void PolicyBase::domainPowerControlCapabilityChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Power Control Capabilities Changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Power Control Capabilities Changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainPowerControlCapabilityChanged(participantIndex);
 }
 
 void PolicyBase::domainPerformanceControlCapabilityChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF, getName() + ": Performance Control Capabilities Changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Performance Control Capabilities Changed for participant. ParticipantIndex = "
+				<< participantIndex;
+		return message.str();
+	});
 	onDomainPerformanceControlCapabilityChanged(participantIndex);
 }
 
 void PolicyBase::domainPerformanceControlsChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Performance control set changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Performance control set changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainPerformanceControlsChanged(participantIndex);
 }
 
 void PolicyBase::domainCoreControlCapabilityChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Core control capabilities changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Core control capabilities changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainCoreControlCapabilityChanged(participantIndex);
 }
 
 void PolicyBase::domainConfigTdpCapabilityChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Config TDP Capabilities Changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Config TDP Capabilities Changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainConfigTdpCapabilityChanged(participantIndex);
 }
 
 void PolicyBase::domainPriorityChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Domain priority changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Domain priority changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainPriorityChanged(participantIndex);
 }
 
 void PolicyBase::domainDisplayControlCapabilityChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Display control capabilities changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Display control capabilities changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainDisplayControlCapabilityChanged(participantIndex);
 }
 
 void PolicyBase::domainDisplayStatusChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Display status changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Display status changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainDisplayStatusChanged(participantIndex);
 }
 
@@ -215,250 +275,367 @@ void PolicyBase::domainRadioConnectionStatusChanged(
 	RadioConnectionStatus::Type radioConnectionStatus)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF,
-		getName() + ": Radio Connection Status Changed to " + RadioConnectionStatus::ToString(radioConnectionStatus)
-			+ ".",
-		participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() + ": Radio Connection Status Changed to "
+				<< RadioConnectionStatus::ToString(radioConnectionStatus)
+				<< ". ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainRadioConnectionStatusChanged(participantIndex, radioConnectionStatus);
 }
 
 void PolicyBase::domainRfProfileChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": RF Profile Changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": RF Profile Changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainRfProfileChanged(participantIndex);
 }
 
 void PolicyBase::participantSpecificInfoChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Specific info changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Specific info changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onParticipantSpecificInfoChanged(participantIndex);
 }
 
 void PolicyBase::domainVirtualSensorCalibrationTableChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": VSCT changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": VSCT changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainVirtualSensorCalibrationTableChanged(participantIndex);
 }
 
 void PolicyBase::domainVirtualSensorPollingTableChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": VSPT changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": VSPT changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainVirtualSensorPollingTableChanged(participantIndex);
 }
 
 void PolicyBase::domainVirtualSensorRecalcChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Virtual Sensor recalculation requested for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Virtual Sensor recalculation requested for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainVirtualSensorRecalcChanged(participantIndex);
 }
 
 void PolicyBase::domainBatteryStatusChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Battery status changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Battery status changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainBatteryStatusChanged(participantIndex);
 }
 
 void PolicyBase::domainBatteryInformationChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Battery information changed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Battery information changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainBatteryInformationChanged(participantIndex);
+}
+
+void PolicyBase::domainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex)
+{
+	throwIfPolicyIsDisabled();
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Battery high frequency impedance changed for participant. ParticipantIndex = "
+				<< participantIndex;
+		return message.str();
+	});
+	onDomainBatteryHighFrequencyImpedanceChanged(participantIndex);
+}
+
+void PolicyBase::domainBatteryNoLoadVoltageChanged(UIntN participantIndex)
+{
+	throwIfPolicyIsDisabled();
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Battery no-load voltage changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
+	onDomainBatteryNoLoadVoltageChanged(participantIndex);
+}
+
+void PolicyBase::domainMaxBatteryPeakCurrentChanged(UIntN participantIndex)
+{
+	throwIfPolicyIsDisabled();
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Max battery peak current changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
+	onDomainMaxBatteryPeakCurrentChanged(participantIndex);
 }
 
 void PolicyBase::domainPlatformPowerSourceChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Platform power source changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Platform power source (PSRC) changed."; });
 	onDomainPlatformPowerSourceChanged(participantIndex);
 }
 
 void PolicyBase::domainAdapterPowerRatingChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Adapter power rating changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adapter power rating (ARTG) changed."; });
 	onDomainAdapterPowerRatingChanged(participantIndex);
 }
 
 void PolicyBase::domainChargerTypeChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": Charger type changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Charger type (CTYP) changed."; });
 	onDomainChargerTypeChanged(participantIndex);
 }
 
 void PolicyBase::domainPlatformRestOfPowerChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Platform rest of power changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Rest of Platform Power (PROP) changed."; });
 	onDomainPlatformRestOfPowerChanged(participantIndex);
 }
 
 void PolicyBase::domainMaxBatteryPowerChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": Max battery power changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Battery Max Peak Power (PMAX) changed."; });
 	onDomainMaxBatteryPowerChanged(participantIndex);
 }
 
 void PolicyBase::domainPlatformBatterySteadyStateChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Platform Battery Steady State changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Battery Sustained Peak Power (PBSS) changed."; });
 	onDomainPlatformBatterySteadyStateChanged(participantIndex);
 }
 
 void PolicyBase::domainACNominalVoltageChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": AC Nominal Voltage changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": AC Nominal Voltage (AVOL) changed."; });
 	onDomainACNominalVoltageChanged(participantIndex);
 }
 
 void PolicyBase::domainACOperationalCurrentChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": AC Operational Current changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": AC Operational Current (ACUR) changed."; });
 	onDomainACOperationalCurrentChanged(participantIndex);
 }
 
 void PolicyBase::domainAC1msPercentageOverloadChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": AC 1ms Percentage Overload changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": AC 1ms Percentage Overload (AP01) changed."; });
 	onDomainAC1msPercentageOverloadChanged(participantIndex);
 }
 
 void PolicyBase::domainAC2msPercentageOverloadChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": AC 2ms Percentage Overload changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": AC 2ms Percentage Overload (AP02) changed."; });
 	onDomainAC2msPercentageOverloadChanged(participantIndex);
 }
 
 void PolicyBase::domainAC10msPercentageOverloadChanged(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": AC 10ms Percentage Overload changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": AC 10ms Percentage Overload (AP10) changed."; });
 	onDomainAC10msPercentageOverloadChanged(participantIndex);
-}
-
-void PolicyBase::activeRelationshipTableChanged(void)
-{
-	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Active Relationship Table changed."));
-	onActiveRelationshipTableChanged();
 }
 
 void PolicyBase::domainEnergyThresholdCrossed(UIntN participantIndex)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Energy threshold crossed for participant.", participantIndex));
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Energy threshold crossed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
 	onDomainEnergyThresholdCrossed(participantIndex);
+}
+
+void PolicyBase::domainFanCapabilityChanged(UIntN participantIndex)
+{
+	throwIfPolicyIsDisabled();
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": Fan Capabilities changed for participant. ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
+	onDomainFanCapabilityChanged(participantIndex);
+}
+
+void PolicyBase::domainSocWorkloadClassificationChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	SocWorkloadClassification::Type socWorkloadClassification)
+{
+	throwIfPolicyIsDisabled();
+	// TODO: want to pass in participant index instead
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName()
+				<< ": Workload Classification changed for ParticipantIndex = " << participantIndex
+				<< " and DomainIndex = " << domainIndex;
+		return message.str();
+	});
+	onDomainSocWorkloadClassificationChanged(participantIndex, domainIndex, socWorkloadClassification);
+}
+
+void PolicyBase::activeRelationshipTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Active Relationship Table changed."; });
+	onActiveRelationshipTableChanged();
 }
 
 void PolicyBase::thermalRelationshipTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Thermal Relationship Table changed"));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Thermal Relationship Table changed"; });
 	onThermalRelationshipTableChanged();
 }
 
 void PolicyBase::adaptivePerformanceConditionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Adaptive Performance Conditions Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Conditions Table changed."; });
 	onAdaptivePerformanceConditionsTableChanged();
 }
 
 void PolicyBase::adaptivePerformanceParticipantConditionTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Adaptive Performance Participant Condition Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Participant Condition Table changed."; });
 	onAdaptivePerformanceParticipantConditionTableChanged();
 }
 
 void PolicyBase::adaptivePerformanceActionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Adaptive Performance Actions Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Actions Table changed."; });
+	Bool hasActiveControlCapabilityLastSet = hasActiveControlCapability();
+	Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
 	onAdaptivePerformanceActionsTableChanged();
+	updateOscRequestIfNeeded(hasActiveControlCapabilityLastSet, hasPassiveControlCapabilityLastSet);
 }
 
 void PolicyBase::pidAlgorithmTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": PID Algorithm Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": PID Algorithm Table changed."; });
+	Bool hasActiveControlCapabilityLastSet = hasActiveControlCapability();
+	Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
 	onPidAlgorithmTableChanged();
+	updateOscRequestIfNeeded(hasActiveControlCapabilityLastSet, hasPassiveControlCapabilityLastSet);
 }
 
 void PolicyBase::activeControlPointRelationshipTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Active Control Point Relationship Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Active Control Point Relationship Table changed."; });
 	onActiveControlPointRelationshipTableChanged();
 }
 
 void PolicyBase::powerShareAlgorithmTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Power Share Algorithm Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Share Algorithm Table changed."; });
 	onPowerShareAlgorithmTableChanged();
 }
 
 void PolicyBase::workloadHintConfigurationChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Workload Hint Configuration changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Workload Hint Configuration changed."; });
 	onWorkloadHintConfigurationChanged();
+}
+
+void PolicyBase::powerShareAlgorithmTable2Changed(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Share Algorithm Table 2 changed."; });
+	onPowerShareAlgorithmTable2Changed();
+}
+
+
+Bool PolicyBase::hasActiveControlCapability() const
+{
+	return false;
+}
+
+Bool PolicyBase::hasPassiveControlCapability() const
+{
+	return false;
+}
+
+Bool PolicyBase::hasCriticalShutdownCapability() const
+{
+	return false;
 }
 
 void PolicyBase::connectedStandbyEntry(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Connected standby entry event received."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Connected standby entry event received."; });
 	try
 	{
 		if (autoNotifyPlatformOscOnConnectedStandbyEntryExit())
 		{
-			takeControlOfOsc(autoNotifyPlatformOscOnConnectedStandbyEntryExit());
+			sendOscRequest(autoNotifyPlatformOscOnConnectedStandbyEntryExit(), true);
 		}
 		onConnectedStandbyEntry();
 	}
 	catch (...)
 	{
-		releaseControlofOsc(autoNotifyPlatformOscOnConnectedStandbyEntryExit());
+		sendOscRequest(autoNotifyPlatformOscOnConnectedStandbyEntryExit(), false);
 		throw;
 	}
 }
@@ -466,19 +643,18 @@ void PolicyBase::connectedStandbyEntry(void)
 void PolicyBase::connectedStandbyExit(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Connected standby exit event received."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Connected standby exit event received."; });
 	try
 	{
 		onConnectedStandbyExit();
 		if (autoNotifyPlatformOscOnConnectedStandbyEntryExit())
 		{
-			releaseControlofOsc(autoNotifyPlatformOscOnConnectedStandbyEntryExit());
+			sendOscRequest(autoNotifyPlatformOscOnConnectedStandbyEntryExit(), false);
 		}
 	}
 	catch (...)
 	{
-		releaseControlofOsc(autoNotifyPlatformOscOnConnectedStandbyEntryExit());
+		sendOscRequest(autoNotifyPlatformOscOnConnectedStandbyEntryExit(), false);
 		throw;
 	}
 }
@@ -486,193 +662,233 @@ void PolicyBase::connectedStandbyExit(void)
 void PolicyBase::suspend(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Policy suspend event received."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy suspend event received."; });
 	onSuspend();
 }
 
 void PolicyBase::resume(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Policy resume event received."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy resume event received."; });
 	onResume();
 }
 
 void PolicyBase::foregroundApplicationChanged(const std::string& foregroundApplicationName)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Foreground application changed to " + foregroundApplicationName + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Foreground application changed to " + foregroundApplicationName + "."; });
 	onForegroundApplicationChanged(foregroundApplicationName);
 }
 
 void PolicyBase::policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": Policy Initiated Callback."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy Initiated Callback."; });
 	onPolicyInitiatedCallback(policyDefinedEventCode, param1, param2);
 }
 
 void PolicyBase::operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF, getName() + ": Config TDP Level Changed to index " + std::to_string(configTdpLevel) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Config TDP Level Changed to index " + std::to_string(configTdpLevel) + "."; });
 	onOperatingSystemConfigTdpLevelChanged(configTdpLevel);
 }
 
 void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": OS Power Source changed to " + OsPowerSource::toString(powerSource) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Power Source changed to " + OsPowerSource::toString(powerSource) + "."; });
 	onOperatingSystemPowerSourceChanged(powerSource);
 }
 
 void PolicyBase::operatingSystemLidStateChanged(OsLidState::Type lidState)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": OS Lid state changed to " + OsLidState::toString(lidState) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Lid state changed to " + OsLidState::toString(lidState) + "."; });
 	onOperatingSystemLidStateChanged(lidState);
 }
 
 void PolicyBase::operatingSystemBatteryPercentageChanged(UIntN batteryPercentage)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF, getName() + ": OS battery percentage changed to " + std::to_string(batteryPercentage) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS battery percentage changed to " + std::to_string(batteryPercentage) + "."; });
 	onOperatingSystemBatteryPercentageChanged(batteryPercentage);
 }
 
 void PolicyBase::operatingSystemPowerSchemePersonalityChanged(OsPowerSchemePersonality::Type powerSchemePersosnality)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF,
-		getName() + ": OS Power Scheme Personality changed to "
-			+ OsPowerSchemePersonality::toString(powerSchemePersosnality)
-			+ "."));
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": OS Power Scheme Personality changed to "
+			   + OsPowerSchemePersonality::toString(powerSchemePersosnality) + ".";
+	});
 	onOperatingSystemPowerSchemePersonalityChanged(powerSchemePersosnality);
 }
 
 void PolicyBase::operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF, getName() + ": OS Platform Type changed to " + OsPlatformType::toString(platformType) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Platform Type changed to " + OsPlatformType::toString(platformType) + "."; });
 	onOperatingSystemPlatformTypeChanged(platformType);
 }
 
 void PolicyBase::operatingSystemDockModeChanged(OsDockMode::Type dockMode)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": OS Dock Mode changed to " + OsDockMode::toString(dockMode) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Dock Mode changed to " + OsDockMode::toString(dockMode) + "."; });
 	onOperatingSystemDockModeChanged(dockMode);
 }
 
 void PolicyBase::operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF,
-		getName() + ": OS Emergency Call Mode State changed to " + OnOffToggle::toString(emergencyCallModeState)
-			+ "."));
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": OS Emergency Call Mode State changed to " + OnOffToggle::toString(emergencyCallModeState)
+			   + ".";
+	});
 	onOperatingSystemEmergencyCallModeChanged(emergencyCallModeState);
 }
 
 void PolicyBase::operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF,
-		getName() + ": OS Mobile Notification for " + OsMobileNotificationType::ToString(notificationType)
-			+ " changed to "
-			+ std::to_string(value)
-			+ "."));
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": OS Mobile Notification for " + OsMobileNotificationType::ToString(notificationType)
+			   + " changed to " + std::to_string(value) + ".";
+	});
 	onOperatingSystemMobileNotification(notificationType, value);
+}
+
+void PolicyBase::operatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Mixed Reality mode changed to " + OnOffToggle::toString(mixedRealityMode) + "."; });
+	onOperatingSystemMixedRealityModeChanged(mixedRealityMode);
+}
+
+void PolicyBase::operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS User Presence changed to " + OsUserPresence::toString(userPresence) + "."; });
+	onOperatingSystemUserPresenceChanged(userPresence);
+}
+
+void PolicyBase::operatingSystemScreenStateChanged(OnOffToggle::Type screenState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Screen State changed to " + OnOffToggle::toString(screenState) + "."; });
+	onOperatingSystemScreenStateChanged(screenState);
+}
+
+void PolicyBase::operatingSystemBatteryCountChanged(UIntN batteryCount)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS battery count changed to " + std::to_string(batteryCount) + "."; });
+	onOperatingSystemBatteryCountChanged(batteryCount);
+}
+
+void PolicyBase::operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS power slider changed to " + OsPowerSlider::toString(powerSlider) + "."; });
+	onOperatingSystemPowerSliderChanged(powerSlider);
 }
 
 void PolicyBase::coolingModePolicyChanged(CoolingMode::Type coolingMode)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Cooling mode changed to " + CoolingMode::toString(coolingMode) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Cooling mode changed to " + CoolingMode::toString(coolingMode) + "."; });
 	onCoolingModePolicyChanged(coolingMode);
 }
 
 void PolicyBase::passiveTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": Passive Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Passive Table changed."; });
 	onPassiveTableChanged();
 }
 
 void PolicyBase::sensorOrientationChanged(SensorOrientation::Type sensorOrientation)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF, getName() + ": Sensor orientation changed to " + SensorOrientation::toString(sensorOrientation) + "."));
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Sensor orientation changed to " + SensorOrientation::toString(sensorOrientation) + ".";
+	});
 	onSensorOrientationChanged(sensorOrientation);
 }
 
 void PolicyBase::sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF,
-		getName() + ": Sensor spatial orientation changed to "
-			+ SensorSpatialOrientation::toString(sensorSpatialOrientation)
-			+ "."));
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Sensor spatial orientation changed to "
+			   + SensorSpatialOrientation::toString(sensorSpatialOrientation) + ".";
+	});
 	onSensorSpatialOrientationChanged(sensorSpatialOrientation);
 }
 
 void PolicyBase::sensorMotionChanged(OnOffToggle::Type sensorMotion)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(
-		FLF, getName() + ": Sensor motion state changed to " + OnOffToggle::toString(sensorMotion) + "."));
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Sensor motion state changed to " + OnOffToggle::toString(sensorMotion) + "."; });
 	onSensorMotionChanged(sensorMotion);
 }
 
 void PolicyBase::oemVariablesChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": OEM variable(s) changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": OEM variable(s) changed."; });
 	onOemVariablesChanged();
 }
 
 void PolicyBase::powerBossConditionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Power Boss Conditions Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Boss Conditions Table changed."; });
 	onPowerBossConditionsTableChanged();
 }
 
 void PolicyBase::powerBossActionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Power Boss Actions Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Boss Actions Table changed."; });
+	Bool hasPassiveControlCapabilityLastSet = hasPassiveControlCapability();
 	onPowerBossActionsTableChanged();
+	updateOscRequestIfNeeded(false, hasPassiveControlCapabilityLastSet);
 }
 
 void PolicyBase::powerBossMathTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Power Boss Math Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Boss Math Table changed."; });
 	onPowerBossMathTableChanged();
+}
+
+void PolicyBase::voltageThresholdMathTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Voltage Threshold Math Table changed."; });
+	onVoltageThresholdMathTableChanged();
 }
 
 void PolicyBase::emergencyCallModeTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(
-		PolicyMessage(FLF, getName() + ": Emergency Call Mode Table changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Emergency Call Mode Table changed."; });
 	onEmergencyCallModeTableChanged();
 }
 
@@ -686,7 +902,7 @@ void PolicyBase::overrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
 void PolicyBase::powerLimitChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	m_policyServices.messageLogging->writeMessageInfo(PolicyMessage(FLF, getName() + ": Power Limit Changed."));
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Limit Changed."; });
 	onPowerLimitChanged();
 }
 
@@ -777,6 +993,21 @@ void PolicyBase::onDomainBatteryInformationChanged(UIntN participantIndex)
 	throw not_implemented();
 }
 
+void PolicyBase::onDomainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainBatteryNoLoadVoltageChanged(UIntN participantIndex)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainMaxBatteryPeakCurrentChanged(UIntN participantIndex)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onDomainPlatformPowerSourceChanged(UIntN participantIndex)
 {
 	throw not_implemented();
@@ -833,6 +1064,19 @@ void PolicyBase::onDomainAC10msPercentageOverloadChanged(UIntN participantIndex)
 }
 
 void PolicyBase::onDomainEnergyThresholdCrossed(UIntN participantIndex)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainFanCapabilityChanged(UIntN participantIndex)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainSocWorkloadClassificationChanged(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	SocWorkloadClassification::Type socWorkloadClassification)
 {
 	throw not_implemented();
 }
@@ -927,12 +1171,36 @@ void PolicyBase::onOperatingSystemDockModeChanged(OsDockMode::Type dockMode)
 	throw not_implemented();
 }
 
+void PolicyBase::onOperatingSystemUserPresenceChanged(OsUserPresence::Type userPresence)
+{
+	throw not_implemented();
+}
+void PolicyBase::onOperatingSystemScreenStateChanged(OnOffToggle::Type screenState)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onOperatingSystemEmergencyCallModeChanged(OnOffToggle::Type emergencyCallMode)
 {
 	throw not_implemented();
 }
 
 void PolicyBase::onOperatingSystemMobileNotification(UIntN mobileNotificationType, UIntN value)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemBatteryCountChanged(UIntN batteryCount)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider)
 {
 	throw not_implemented();
 }
@@ -982,6 +1250,11 @@ void PolicyBase::onPowerBossMathTableChanged(void)
 	throw not_implemented();
 }
 
+void PolicyBase::onVoltageThresholdMathTableChanged(void)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onEmergencyCallModeTableChanged(void)
 {
 	throw not_implemented();
@@ -1003,6 +1276,11 @@ void PolicyBase::onPowerShareAlgorithmTableChanged(void)
 }
 
 void PolicyBase::onWorkloadHintConfigurationChanged(void)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onPowerShareAlgorithmTable2Changed(void)
 {
 	throw not_implemented();
 }
@@ -1034,12 +1312,11 @@ std::shared_ptr<TimeInterface>& PolicyBase::getTime() const
 
 void PolicyBase::throwIfPolicyRequirementsNotMet()
 {
-	if ((m_policyServices.platformNotification == nullptr) || (m_policyServices.platformConfigurationData == nullptr))
+	if (m_policyServices.platformConfigurationData == nullptr)
 	{
 		throw dptf_exception(
 			"Policy Services does not have an implementation \
-							  for platformConfigurationData or platformNotification \
-							  interfaces.");
+							  for platformConfigurationData interface.");
 	}
 }
 
@@ -1051,45 +1328,59 @@ void PolicyBase::throwIfPolicyIsDisabled()
 	}
 }
 
-void PolicyBase::takeControlOfOsc(Bool shouldTakeControl)
+void PolicyBase::sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled)
 {
-	if (shouldTakeControl)
+	if (shouldSendOscRequest)
 	{
 		try
 		{
-			m_policyServices.platformNotification->notifyPlatformPolicyTakeControl();
+			UInt32 oscInputCapabilitiesDWord = POLICY_DISABLED;
+
+			if (isPolicyEnabled)
+			{
+				oscInputCapabilitiesDWord = POLICY_ENABLED;
+				if (hasActiveControlCapability())
+				{
+					oscInputCapabilitiesDWord = oscInputCapabilitiesDWord | ACTIVE_CONTROL_SUPPORTED;
+				}
+				if (hasPassiveControlCapability())
+				{
+					oscInputCapabilitiesDWord = oscInputCapabilitiesDWord | PASSIVE_CONTROL_SUPPORTED;
+				}
+				if (hasCriticalShutdownCapability())
+				{
+					oscInputCapabilitiesDWord = oscInputCapabilitiesDWord | CRITICAL_SHUTDOWN_SUPPORTED;
+				}
+			}
+
+			DptfRequest request(DptfRequestType::PlatformNotificationSetOsc);
+			request.setDataFromUInt32(oscInputCapabilitiesDWord);
+			auto result = m_policyServices.serviceRequest->submitRequest(request);
+			result.throwIfFailure();
+			POLICY_LOG_MESSAGE_INFO({ return getName() + ": " + result.getMessage(); });
 		}
 		catch (std::exception& ex)
 		{
-			m_policyServices.messageLogging->writeMessageError(
-				PolicyMessage(FLF, getName() + ": Failed to acquire OSC: " + string(ex.what())));
+			POLICY_LOG_MESSAGE_WARNING_EX({ return getName() + ": Failed to set _OSC: " + string(ex.what()); });
 		}
 		catch (...)
 		{
-			m_policyServices.messageLogging->writeMessageError(
-				PolicyMessage(FLF, getName() + ": Failed to acquire OSC."));
+			POLICY_LOG_MESSAGE_WARNING({ return getName() + ": Failed to set _OSC."; });
 		}
 	}
 }
 
-void PolicyBase::releaseControlofOsc(Bool shouldReleaseControl)
+void PolicyBase::updateOscRequestIfNeeded(
+	Bool hasActiveControlCapabilityLastSet,
+	Bool hasPassiveControlCapabilityLastSet,
+	Bool hasCriticalShutdownCapabilityLastSet)
 {
-	if (shouldReleaseControl)
+
+	if (hasActiveControlCapabilityLastSet != hasActiveControlCapability()
+		|| hasPassiveControlCapabilityLastSet != hasPassiveControlCapability()
+		|| hasCriticalShutdownCapabilityLastSet != hasCriticalShutdownCapability())
 	{
-		try
-		{
-			m_policyServices.platformNotification->notifyPlatformPolicyReleaseControl();
-		}
-		catch (std::exception& ex)
-		{
-			m_policyServices.messageLogging->writeMessageError(
-				PolicyMessage(FLF, getName() + ": Failed to release OSC: " + string(ex.what())));
-		}
-		catch (...)
-		{
-			m_policyServices.messageLogging->writeMessageError(
-				PolicyMessage(FLF, getName() + ": Failed to release OSC."));
-		}
+		sendOscRequest(m_enabled && autoNotifyPlatformOscOnCreateDestroy(), true);
 	}
 }
 
@@ -1107,4 +1398,17 @@ std::shared_ptr<XmlNode> PolicyBase::getXmlForTripPointStatistics(std::set<UIntN
 	}
 
 	return status;
+}
+
+void PolicyBase::operatingSystemGameModeChanged(OnOffToggle::Type gameMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS game mode changed to " + OnOffToggle::toString(gameMode) + "."; });
+	onOperatingSystemGameModeChanged(gameMode);
+}
+
+void PolicyBase::onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode)
+{
+	throw not_implemented();
 }

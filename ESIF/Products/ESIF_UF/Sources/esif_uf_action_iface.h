@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -73,7 +73,7 @@ typedef struct EsifActIfaceStatic_s {
 typedef union EsifActIface_u {
 	EsifIfaceHdr hdr;
 	EsifActIfaceStatic ifaceStatic;
-	EsifActIfaceUpeV1 actIfaceV1; /* Use with loadable actions */
+	EsifActIfaceUpeV4 actIfaceV4; /* Use with loadable actions */
 } EsifActIface;
 
 

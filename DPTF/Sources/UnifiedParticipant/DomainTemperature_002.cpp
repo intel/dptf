@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,33 +17,36 @@
 ******************************************************************************/
 
 #include "DomainTemperature_002.h"
-#include "XmlNode.h"
 
 DomainTemperature_002::DomainTemperature_002(
 	UIntN participantIndex,
 	UIntN domainIndex,
+	Bool areTemperatureThresholdsSupported,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-	: DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
-	, m_lastSetTemperature(Temperature::createInvalid())
+	: DomainTemperatureBase(
+		participantIndex,
+		domainIndex,
+		areTemperatureThresholdsSupported,
+		participantServicesInterface)
 {
+	setTemperatureToDefaultValue();
 }
 
 DomainTemperature_002::~DomainTemperature_002(void)
 {
-	clearCachedData();
 }
 
-TemperatureStatus DomainTemperature_002::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
+TemperatureStatus DomainTemperature_002::getTemperatureStatus()
 {
 	try
 	{
 		Temperature temperature = getParticipantServices()->primitiveExecuteGetAsTemperatureTenthK(
-			esif_primitive_type::GET_TEMPERATURE, domainIndex);
+			esif_primitive_type::GET_TEMPERATURE, getDomainIndex());
 
 		if (!temperature.isValid())
 		{
-			getParticipantServices()->writeMessageWarning(
-				ParticipantMessage(FLF, "Last set temperature for virtual sensor is invalid."));
+			PARTICIPANT_LOG_MESSAGE_WARNING({ return "Last set temperature for virtual sensor is invalid."; });
+
 			return TemperatureStatus(Temperature::minValidTemperature);
 		}
 
@@ -55,60 +58,65 @@ TemperatureStatus DomainTemperature_002::getTemperatureStatus(UIntN participantI
 	}
 	catch (dptf_exception& ex)
 	{
-		getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, ex.what()));
+		PARTICIPANT_LOG_MESSAGE_WARNING_EX({ return ex.getDescription(); });
+
 		return TemperatureStatus(Temperature::minValidTemperature);
 	}
 }
 
-Temperature DomainTemperature_002::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
+Temperature DomainTemperature_002::getPowerShareTemperatureThreshold()
 {
 	throw dptf_exception("Get Power Share Temperature Threshold is not supported by " + getName() + ".");
 }
 
-DptfBuffer DomainTemperature_002::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainTemperature_002::getCalibrationTable()
 {
-	if (m_calibrationTableBuffer.size() == 0)
+	auto calibrationTableBuffer = DptfBuffer();
+
+	try
 	{
-		createCalibrationTableBuffer(domainIndex);
+		calibrationTableBuffer = getParticipantServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_VIRTUAL_SENSOR_CALIB_TABLE, ESIF_DATA_BINARY, getDomainIndex());
+	}
+	catch (dptf_exception& ex)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
 	}
 
-	return m_calibrationTableBuffer;
+	return calibrationTableBuffer;
 }
 
-DptfBuffer DomainTemperature_002::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainTemperature_002::getPollingTable()
 {
-	if (m_pollingTableBuffer.size() == 0)
+	auto pollingTableBuffer = DptfBuffer();
+
+	try
 	{
-		createPollingTableBuffer(domainIndex);
+		pollingTableBuffer = getParticipantServices()->primitiveExecuteGet(
+			esif_primitive_type::GET_VIRTUAL_SENSOR_POLLING_TABLE, ESIF_DATA_BINARY, getDomainIndex());
+	}
+	catch (dptf_exception& ex)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
 	}
 
-	return m_pollingTableBuffer;
+	return pollingTableBuffer;
 }
 
-Bool DomainTemperature_002::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+Bool DomainTemperature_002::isVirtualTemperature()
 {
 	return true;
 }
 
-void DomainTemperature_002::setVirtualTemperature(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	const Temperature& temperature)
+void DomainTemperature_002::setVirtualTemperature(const Temperature& temperature)
 {
 	getParticipantServices()->primitiveExecuteSetAsTemperatureTenthK(
-		esif_primitive_type::SET_VIRTUAL_TEMPERATURE, temperature, domainIndex);
-	m_lastSetTemperature = temperature;
-}
-
-void DomainTemperature_002::clearCachedData(void)
-{
-	m_calibrationTableBuffer.allocate(0);
-	m_pollingTableBuffer.allocate(0);
+		esif_primitive_type::SET_VIRTUAL_TEMPERATURE, temperature, getDomainIndex());
 }
 
 std::string DomainTemperature_002::getName(void)
 {
-	return "Virtual Temperature Control";
+	return "Virtual Temperature Status and Control";
 }
 
 std::shared_ptr<XmlNode> DomainTemperature_002::getXml(UIntN domainIndex)
@@ -116,36 +124,24 @@ std::shared_ptr<XmlNode> DomainTemperature_002::getXml(UIntN domainIndex)
 	auto root = XmlNode::createWrapperElement("temperature_control");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(XmlNode::createDataElement("control_knob_version", "002"));
-	root->addChild(getTemperatureStatus(getParticipantIndex(), domainIndex).getXml());
-	root->addChild(getTemperatureThresholds(getParticipantIndex(), domainIndex).getXml());
+	root->addChild(getTemperatureStatus().getXml());
+
+	if (m_areTemperatureThresholdsSupported)
+	{
+		root->addChild(getTemperatureThresholds().getXml());
+	}
 
 	return root;
 }
 
-void DomainTemperature_002::createCalibrationTableBuffer(UIntN domainIndex)
+void DomainTemperature_002::setTemperatureToDefaultValue()
 {
 	try
 	{
-		m_calibrationTableBuffer = getParticipantServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_VIRTUAL_SENSOR_CALIB_TABLE, ESIF_DATA_BINARY, domainIndex);
+		setVirtualTemperature(Temperature::minValidTemperature);
 	}
 	catch (dptf_exception& ex)
 	{
-		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.what()));
-		m_calibrationTableBuffer = DptfBuffer();
-	}
-}
-
-void DomainTemperature_002::createPollingTableBuffer(UIntN domainIndex)
-{
-	try
-	{
-		m_pollingTableBuffer = getParticipantServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_VIRTUAL_SENSOR_POLLING_TABLE, ESIF_DATA_BINARY, domainIndex);
-	}
-	catch (dptf_exception& ex)
-	{
-		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.what()));
-		m_pollingTableBuffer = DptfBuffer();
+		PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
 	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,4 +66,5 @@ private:
 	PerformanceControlCapabilitiesCachedProperty m_performanceControlCapabilitiesProperty;
 	Bool m_controlsHaveBeenInitialized;
 	UIntN m_lastIssuedPerformanceControlIndex;
+	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

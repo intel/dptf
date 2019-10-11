@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,7 @@
 #include "esif_lib_datavault.h"
 #include "esif_lib_datarepo.h"
 #include "esif_lib_databank.h"
+#include "esif_lib_json.h"
 
 #include <time.h>
 #include <sys/stat.h>
@@ -57,6 +58,9 @@
 #define ESIFDV_MAJOR_VERSION        2			// 1-99:    DV Header Major Version [2.1 can read 2.0-2.1 but not 3.0]
 #define ESIFDV_MINOR_VERSION        0			// 0-99:    DV Header Minor Version	[2.1 can write 2.1 but not 2.0]
 #define ESIFDV_REVISION             0			// 0-65535: DV Header Revision [2.1.x and read/write 2.1.x]
+#define ESIFDV_V1					1			// DV Header Version 1.x
+#define ESIFDV_V2					2			// DV Header Version 2.x
+#define ESIFDV_MINOR_V0				0			// DV Header Version x.0
 #define ESIFDV_SUPPORTED_VERSION_MIN    ESIFHDR_VERSION(1, 0, 0)
 #define ESIFDV_SUPPORTED_VERSION_MAX    ESIFHDR_VERSION(2, 0, 65535)
 
@@ -70,12 +74,12 @@
 // Define valid bit flags for each DV version so we can validate header and item flags
 // v1  = Unknown bit flags will fail with ESIF_E_NOT_SUPPORTED (since Item Signature is unavailable)
 // v2+ = Unknown bit flags are allowed if major version matches so they can be used by future minor versions or revisions
-#define ESIFDV_VALID_HEADER_FLAGS_V1	(ESIF_SERVICE_CONFIG_PERSIST|ESIF_SERVICE_CONFIG_SCRAMBLE|ESIF_SERVICE_CONFIG_READONLY|ESIF_SERVICE_CONFIG_NOCACHE|ESIF_SERVICE_CONFIG_FILELINK|ESIF_SERVICE_CONFIG_STATIC)
-#define ESIFDV_VALID_ITEM_FLAGS_V1		(ESIF_SERVICE_CONFIG_PERSIST|ESIF_SERVICE_CONFIG_SCRAMBLE|ESIF_SERVICE_CONFIG_READONLY|ESIF_SERVICE_CONFIG_NOCACHE|ESIF_SERVICE_CONFIG_FILELINK)
+#define ESIFDV_VALID_HEADER_FLAGS_V1	(ESIF_SERVICE_CONFIG_PERSIST|ESIF_SERVICE_CONFIG_SCRAMBLE|ESIF_SERVICE_CONFIG_READONLY|ESIF_SERVICE_CONFIG_NOCACHE|ESIF_SERVICE_CONFIG_STATIC)
+#define ESIFDV_VALID_ITEM_FLAGS_V1		(ESIF_SERVICE_CONFIG_PERSIST|ESIF_SERVICE_CONFIG_SCRAMBLE|ESIF_SERVICE_CONFIG_READONLY|ESIF_SERVICE_CONFIG_NOCACHE)
 
 // Flags that are ignored when setting/getting values (all versions)
-#define ESIFDV_IGNORED_HEADER_FLAGS		(ESIF_SERVICE_CONFIG_DELETE|ESIF_SERVICE_CONFIG_PERSIST|ESIF_SERVICE_CONFIG_SCRAMBLE|ESIF_SERVICE_CONFIG_FILELINK)
-#define ESIFDV_IGNORED_ITEM_FLAGS		(ESIF_SERVICE_CONFIG_DELETE|ESIF_SERVICE_CONFIG_STATIC|ESIF_SERVICE_CONFIG_COMPRESSED)
+#define ESIFDV_IGNORED_HEADER_FLAGS		(ESIF_SERVICE_CONFIG_DELETE|ESIF_SERVICE_CONFIG_PERSIST|ESIF_SERVICE_CONFIG_SCRAMBLE|ESIF_SERVICE_CONFIG_DELAYWRITE)
+#define ESIFDV_IGNORED_ITEM_FLAGS		(ESIF_SERVICE_CONFIG_DELETE|ESIF_SERVICE_CONFIG_STATIC|ESIF_SERVICE_CONFIG_COMPRESSED|ESIF_SERVICE_CONFIG_DELAYWRITE)
 
 #pragma pack(push, 1)
 
@@ -175,6 +179,12 @@ static Bool DataVault_IsPrimary(
 	DataVaultHeaderPtr header
 	);
 
+// Friend Class Static Members
+
+static esif_error_t DataRepo_ReadHeader(
+	DataRepoPtr self,
+	DataVaultHeaderPtr header
+	);
 
 /////////////////////////////////////////////////////////////////////////
 // DataVault Class
@@ -186,6 +196,17 @@ Bool DataVault_IsValidSignature(UInt16 signature)
 	return (memcmp(&signature, &headerSignature, sizeof(signature)) == 0);
 }
 
+// Is given buffer an ASCII String up to len bytes long? (Null terminator optional)
+static Bool DataVault_IsAscii(void *buf_ptr, size_t len)
+{
+	UInt8 *buffer = buf_ptr;
+	for (size_t j = 0; j < len && buffer[j] != 0; j++) {
+		if (buffer[j] < 32 || buffer[j] >= 127) {
+			return ESIF_FALSE;
+		}
+	}
+	return ESIF_TRUE;
+}
 
 // constructor
 static void DataVault_ctor(DataVaultPtr self)
@@ -212,12 +233,14 @@ static void DataVault_dtor(DataVaultPtr self)
 	}
 }
 
-// set default DataVault comment operator based on Known DataVault namespaces
-// TODO: Make data-driven and remove if Comments are added to DSPs for CONFIG action namespaces
 // new operator
 DataVaultPtr DataVault_Create(char* name)
 {
-	DataVaultPtr self = (DataVaultPtr)esif_ccb_malloc(sizeof(*self));
+	// name must be a valid NULL-terminated ASCII string or NULL
+	DataVaultPtr self = NULL;
+	if (name == NULL || (DataVault_IsAscii(name, ESIF_NAME_LEN) && esif_ccb_strlen(name, ESIF_NAME_LEN) < ESIF_NAME_LEN)) {
+		self = (DataVaultPtr)esif_ccb_malloc(sizeof(*self));
+	}
 	if (self) {
 		DataVault_ctor(self);
 		esif_ccb_strcpy(self->name, (name ? name : ""), sizeof(self->name));
@@ -235,6 +258,26 @@ void DataVault_Destroy(DataVaultPtr self)
 	esif_ccb_free(self);
 }
 
+// Take a Reference
+void DataVault_GetRef(DataVaultPtr self)
+{
+	if (self) {
+		atomic_inc(&self->refCount);
+	}
+}
+
+// Release a Reference, destroying self after final Reference
+void DataVault_PutRef(DataVaultPtr self)
+{
+	if (self) {
+		if (atomic_dec(&self->refCount) < 1) {
+			DataVault_Destroy(self);
+		}
+	}
+}
+
+// set default DataVault comment operator based on Known DataVault namespaces
+// TODO: Make data-driven and remove if Comments are added to DSPs for CONFIG action namespaces
 void DataVault_SetDefaultComment(DataVaultPtr self)
 {
 	if (self && self->name[0] && self->comment[0] == 0) {
@@ -245,6 +288,7 @@ void DataVault_SetDefaultComment(DataVaultPtr self)
 			{ "dsp",		"Device Support Packages" },
 			{ "dptf",		"DPTF Policy Configuration" },
 			{ "override",	"Primitive Overrides" },
+			{ "platform",	"Platform Configuration" },
 			{ "startup",	"Startup Configuration" },
 			{ "gddv",		"OEM BIOS-Embedded DataVault" },
 			{ NULL, NULL }
@@ -318,13 +362,13 @@ static esif_error_t DataVault_RepoFlush(
 	StringPtr segmentid = (self->segmentid[0] ? self->segmentid : self->name);
 	StringPtr comment = self->comment;
 
-	if (major_version == 1) {
+	if (major_version == ESIFDV_V1) {
 		esif_ccb_memcpy(&header.v1.signature, &headerSignature, sizeof(header.v1.signature));
 		header.v1.headersize = (UInt16)sizeof(DataVaultHeaderV1);
 		header.v1.version = self->version;
 		header.v1.flags = self->flags;
 	}
-	else if (major_version == 2) {
+	else if (major_version == ESIFDV_V2) {
 		esif_ccb_memcpy(&header.v2.signature, &headerSignature, sizeof(header.v2.signature));
 		header.v2.headersize = (UInt16)sizeof(DataVaultHeaderV2);
 		header.v2.version = self->version;
@@ -367,7 +411,7 @@ static esif_error_t DataVault_RepoFlush(
 		size_t buf_len = (4 * 1024);
 
 		// Read in entire stream at once if compressing payload
-		if (major_version < 2) {
+		if (major_version < ESIFDV_V2) {
 			compressPayload = ESIF_FALSE;
 		}
 		if (compressPayload) {
@@ -432,17 +476,26 @@ static esif_error_t DataVault_RepoFlush(
 			}
 
 			rc = DataVault_WriteKeyValuePair(self, tempStream, keyPair);
+
+			// If we were unable to write this key/value pair because it was NOCACHE data
+			// and the original DV file cannot be read (i.e., it was deleted), then remove
+			// this key/value pair from the cache and proceed.
+			if (rc == ESIF_E_IO_OPEN_FAILED) {
+				if (DataCache_DeleteValue(self->cache, (esif_string)keyPair->key.buf_ptr) == ESIF_OK) {
+					rc = ESIF_OK;
+					idx--;
+				}
+			}
 			if (rc != ESIF_OK) {
 				goto exit;
 			}
 		}
 	}
 
-
 	esif_sha256_finish(&self->digest);
 
 	// Rewind and Update the DV 2.0 Header with computed Payload Hash and Size
-	if (major_version == 2) {
+	if (major_version == ESIFDV_V2) {
 		if (payload_compressed) {
 			FLAGS_SET(header.v2.flags, ESIF_SERVICE_CONFIG_COMPRESSED);
 		}
@@ -536,9 +589,28 @@ static esif_error_t DataVault_WriteKeyValuePair(
 	ESIF_ASSERT(keyPair != NULL);
 	ESIF_ASSERT(stream != NULL);
 
+	// Read NOCACHE Entries from disk file into buffer
+	if (FLAGS_TEST(keyPair->flags, ESIF_SERVICE_CONFIG_NOCACHE) && self->stream->type != StreamNull) {
+		if (keyPair->value.buf_len == 0) {
+			orgOffset = (size_t)keyPair->value.buf_ptr;
+			buffer = (UInt8*)esif_ccb_malloc(keyPair->value.data_len);
+			buffer_len = (size_t)keyPair->value.data_len;
+			if (!buffer) {
+				rc = ESIF_E_NO_MEMORY;
+				goto exit;
+			}
+
+			// If unable to read NOCACHE data from original DV file, discard this key/value pair and return
+			if (IOStream_LoadBlock(self->stream, buffer, buffer_len, orgOffset) != EOK) {
+				rc = ESIF_E_IO_OPEN_FAILED;
+				goto exit;
+			}
+		}
+	}
+
 	// Write Item Signature: [D8 A0]
 	UInt32 major_version = ESIFHDR_GET_MAJOR(self->version);
-	if (major_version == 2) {
+	if (major_version == ESIFDV_V2) {
 		if (IOStream_Write(stream, &itemSignature, sizeof(itemSignature)) != sizeof(itemSignature)) {
 			rc = ESIF_E_IO_ERROR;
 			goto exit;
@@ -583,23 +655,8 @@ static esif_error_t DataVault_WriteKeyValuePair(
 	if (FLAGS_TEST(keyPair->flags, ESIF_SERVICE_CONFIG_NOCACHE) && self->stream->type != StreamNull) {
 		newOffset = IOStream_GetOffset(stream);
 
-		// Read Block from disk
-		if (keyPair->value.buf_len == 0) {
-			orgOffset = (size_t)keyPair->value.buf_ptr;
-			buffer = (UInt8*)esif_ccb_malloc(keyPair->value.data_len);
-			buffer_len = (size_t)keyPair->value.data_len;
-			if (!buffer) {
-				rc = ESIF_E_NO_MEMORY;
-				goto exit;
-			}
-
-			if (IOStream_LoadBlock(self->stream, buffer, buffer_len, orgOffset) != EOK) {
-				rc = ESIF_E_IO_ERROR;
-				goto exit;
-			}
-		}
 		// Convert internal storage to NOCACHE
-		else {
+		if (keyPair->value.buf_len != 0) {
 			buffer = (UInt8*)keyPair->value.buf_ptr;
 			buffer_len = (size_t)keyPair->value.data_len;
 			keyPair->value.buf_len = 0;// Set to 0 so we don't free twice
@@ -648,7 +705,7 @@ static Bool DataVault_IsSegmentMatch(
 
 	if (self && header) {
 		rc = ESIF_TRUE;
-		if (header->common.version == 2 && header->v2.segmentid[0]) {
+		if (header->common.version == ESIFDV_V2 && header->v2.segmentid[0]) {
 			if (esif_ccb_strnicmp(self->name, header->v2.segmentid, sizeof(header->v2.segmentid)) != 0) {
 				rc = ESIF_FALSE;
 			}
@@ -670,7 +727,7 @@ static esif_error_t DataVault_ValidateHash(
 		rc = ESIF_OK;
 
 		// NOTE: SHA256 Hash of empty payload (0 bytes) = E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855
-		if (ESIFHDR_GET_MAJOR(header->common.version) == 2) {
+		if (ESIFHDR_GET_MAJOR(header->common.version) == ESIFDV_V2) {
 			char expected_hashstr[SHA256_STRING_BYTES] = { 0 };
 			char actual_hashstr[SHA256_STRING_BYTES] = { 0 };
 			if ((memcmp(header->v2.payload_hash, self->digest.hash, sizeof(header->v2.payload_hash)) != 0) || (header->v2.payload_size != (UInt32)(self->digest.digest_bits / 8))) {
@@ -707,7 +764,7 @@ static esif_error_t DataVault_ValidatePayload(
 
 		// Only KEYS Payloads are supported for v1 Headers
 		rc = ESIF_OK;
-		if (major_version == 2) {
+		if (major_version == ESIFDV_V2) {
 			// Bounds check
 			if (header->v2.payload_size > ESIFDV_MAX_PAYLOAD) {
 				rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
@@ -739,7 +796,7 @@ static esif_error_t DataVault_ValidatePayload(
 		}
 
 		// Verify SHA256 Hash before processing Payload
-		if (rc == ESIF_OK && major_version == 2) {
+		if (rc == ESIF_OK && major_version == ESIFDV_V2) {
 			size_t offset = IOStream_GetOffset(repo->stream);
 			size_t buffer_size = ESIFDV_IO_BUFFER_SIZE;
 			size_t bytes_to_read = payload_size;
@@ -807,7 +864,7 @@ static esif_error_t DataVault_ReadSegment(
 		// Set DataVault Header values if this is the Primary Stream
 		Bool IsEmptyDigest = (memcmp(&self->digest, &currentDigest, sizeof(currentDigest)) == 0);
 		UInt32 major_version = ESIFHDR_GET_MAJOR(header->common.version);
-		if (major_version == 1) {
+		if (major_version == ESIFDV_V1) {
 			if (IsEmptyDigest || importMode == ImportCopy) {
 				self->version = header->common.version;
 				self->flags = header->v1.flags;
@@ -815,7 +872,7 @@ static esif_error_t DataVault_ReadSegment(
 				restoreDigest = ESIF_FALSE;
 			}
 		}
-		else if (major_version == 2) {
+		else if (major_version == ESIFDV_V2) {
 			if (IsEmptyDigest || (DataVault_IsSegmentMatch(self, header) && importMode == ImportCopy)) {
 				self->version = header->common.version;
 				self->flags = header->v2.flags;
@@ -849,20 +906,21 @@ static esif_error_t DataVault_ReadSegment(
 }
 
 // Import a (closed) IOStream into the given DataVault in ImportCopy mode, overwriting any existing keys
-// This function assumes the stream has been assigned by the caller but not opened.
-esif_error_t DataVault_ImportStream(
-	DataVaultPtr self,
-	IOStreamPtr stream
-)
+esif_error_t DataVault_ImportStream(DataVaultPtr self)
 {
 	esif_error_t rc = ESIF_OK;
 	DataVaultHeader header = { 0 };
 	DataRepo repo = { 0 };
+	char filename[MAX_PATH] = { 0 };
 
 	esif_ccb_write_lock(&self->lock);
 
+	// Import DataVault Primary Repo (name.dv) if it exists
+	esif_build_path(filename, sizeof(filename), ESIF_PATHTYPE_DV, self->name, ESIFDV_FILEEXT);
+	IOStream_SetFile(self->stream, StoreReadWrite, filename, "rb");
+
 	esif_ccb_strcpy(repo.name, self->name, sizeof(repo.name));
-	repo.stream = (stream ? stream : self->stream);
+	repo.stream = self->stream;
 
 	// Open the DataVault Repo
 	if (IOStream_Open(repo.stream) != 0) {
@@ -910,7 +968,7 @@ static esif_error_t DataVault_ReadPayload(
 		goto exit;
 	}
 
-	if (ESIFHDR_GET_MAJOR(header->common.version) == 2) {
+	if (ESIFHDR_GET_MAJOR(header->common.version) == ESIFDV_V2) {
 		payload_flags = (esif_flags_t) header->v2.flags;
 		payload_size = (size_t) header->v2.payload_size;
 		payload_class = header->v2.payload_class;
@@ -1127,7 +1185,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 
 	// Read v2 Item Signature
 	UInt32 major_version = ESIFHDR_GET_MAJOR(header->common.version);
-	if (major_version == 2) {
+	if (major_version == ESIFDV_V2) {
 		UInt16 itemSignature = ESIFDV_ITEM_KEYS_REV0_SIGNATURE;
 		UInt16 thisSignature = 0;
 
@@ -1167,7 +1225,7 @@ static esif_error_t DataVault_ReadKeyValuePair(
 
 	// For v1, detect end-of-payload by detecting either a valid DV Header Signature [E5 1F] or unknown Item Flags
 	// For v2, unknown Item Flags are allowed since they may be used by future minor versions or revisions
-	if (major_version == 1) {
+	if (major_version == ESIFDV_V1) {
 		if ((UInt16)(*flagsPtr) == headerSignature) {
 			IOStream_Seek(stream, rewind_pos, SEEK_SET);
 			rc = ESIF_E_ITERATION_DONE;
@@ -1307,6 +1365,61 @@ exit:
 	return rc;
 }
 
+// Translate a Filename or Pathname into a full pathname ($bin\file.bin to C:\Prog...\bin\file.bin)
+esif_error_t DataVault_TranslatePath(
+	const esif_string filename,
+	esif_string fullpath,
+	size_t fullpath_len
+)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	char basepath[MAX_PATH] = { 0 };
+	struct {
+		esif_string		prefix;
+		esif_pathtype	pathtype;
+	} tokens[] = {
+		{ "$bin",	ESIF_PATHTYPE_BIN },	// C:\Windows\ServiceProfiles\...\Intel\DPTF\bin or /usr/.../bin [Default]
+		{ "$dv",	ESIF_PATHTYPE_DV },		// C:\Windows\ServiceProfiles\...\Intel\DPTF or /etc/dptf
+		{ "$log",	ESIF_PATHTYPE_LOG },	// C:\Windows\ServiceProfiles\...\Intel\DPTF\log or /var/.../log
+		{ "$cmd",	ESIF_PATHTYPE_CMD },	// C:\Prog...\cmd or /etc/dptf/cmd
+		{ "$dsp",	ESIF_PATHTYPE_DSP },	// C:\Prog...\dsp or /usr/.../dsp or /etc/dptf/dsp
+		{ "$ui",	ESIF_PATHTYPE_UI },		// C:\Prog...\ui  or /usr/.../ui
+		{ NULL,		(esif_pathtype)0 }
+	};
+
+	if (filename && fullpath && fullpath_len) {
+		// Prohibit files that are full pathnames or contain relative paths with ".."
+		if (esif_ccb_strstr(filename, "..") != NULL || *filename == '/' || *filename == '\\' || (isalpha(filename[0]) && filename[1] == ':')) {
+			rc = ESIF_E_IO_INVALID_NAME;
+		}
+		else {
+			rc = ESIF_OK;
+
+			// Translate pathtypes to full path ($bin to C:\Windows\...\bin)
+			if (*filename == '$') {
+				rc = ESIF_E_IO_INVALID_NAME;
+				for (int j = 0; tokens[j].prefix != NULL; j++) {
+					size_t prefix_len = esif_ccb_strlen(tokens[j].prefix, MAX_PATH);
+					esif_build_path(basepath, sizeof(basepath), tokens[j].pathtype, NULL, NULL);
+
+					if (esif_ccb_strnicmp(filename, tokens[j].prefix, prefix_len) == 0) {
+						esif_ccb_sprintf(fullpath_len, fullpath, "%s%s", basepath, filename + prefix_len);
+						rc = ESIF_OK;
+						break;
+					}
+				}
+			}
+
+			// Use default path if none specified
+			if (rc == ESIF_OK && !fullpath[0]) {
+				esif_build_path(basepath, sizeof(basepath), tokens[0].pathtype, "", NULL);
+				esif_ccb_sprintf(fullpath_len, fullpath, "%s%s", basepath, filename);
+			}
+		}
+	}
+	return rc;
+}
+
 // Load an External File into a specified memory buffer
 static esif_error_t ReadFileIntoBuffer(
 	esif_string filename,
@@ -1320,8 +1433,14 @@ static esif_error_t ReadFileIntoBuffer(
 	BytePtr bufPtr = NULL;
 	size_t size = 0;
 	size_t bytesRead = 0;
+	char fullpath[MAX_PATH] = { 0 };
 
-	if (IOStream_SetFile(file, StoreReadOnly, filename, "rb") != EOK) {
+	rc = DataVault_TranslatePath(filename, fullpath, sizeof(fullpath));
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	if (IOStream_SetFile(file, StoreReadOnly, fullpath, "rb") != EOK) {
 		rc = ESIF_E_IO_ERROR;
 		goto exit;
 	}
@@ -1442,30 +1561,6 @@ static esif_error_t DataVault_GetValue(
 	if (NULL != keypair) {
 		UInt32 data_len = keypair->value.data_len;
 		void *buf_ptr   = keypair->value.buf_ptr;
-		UInt32 buf_len  = 0;
-		Bool buf_alloc = ESIF_FALSE;
-
-		// File Redirect?
-		if (FLAGS_TEST(keypair->flags, ESIF_SERVICE_CONFIG_FILELINK)) {
-			if (ReadFileIntoBuffer((esif_string)buf_ptr, 0, &buf_ptr, &data_len) != ESIF_OK) {
-				value->data_len = 0;
-				if (value->type == ESIF_DATA_AUTO) {
-					value->type = keypair->value.type;
-				}
-				if (value->buf_len == ESIF_DATA_ALLOCATE) {
-					value->buf_len = 0;
-					value->buf_ptr = 0;
-				}
-				rc = ESIF_OK;	// Return OK and a blank buffer if file not found/error
-				goto exit;
-			}
-			// Include Null Terminator if result is STRING
-			if (value->buf_len == ESIF_DATA_ALLOCATE && (value->type == ESIF_DATA_STRING || (value->type == ESIF_DATA_AUTO && keypair->value.type == ESIF_DATA_STRING))) {
-				data_len++;
-			}
-			buf_len = data_len;
-			buf_alloc = ESIF_TRUE;
-		}
 
 		// Match Found. Verify Data Type matches unless AUTO
 		if (value->type != keypair->value.type && value->type != ESIF_DATA_AUTO) {
@@ -1495,9 +1590,6 @@ static esif_error_t DataVault_GetValue(
 				value->buf_len = esif_ccb_max(1, data_len);
 				value->buf_ptr = esif_ccb_malloc(value->buf_len);
 				if (!value->buf_ptr) {
-					if (buf_alloc) {
-						esif_ccb_free(buf_ptr);
-					}
 					rc = ESIF_E_NO_MEMORY;
 					goto exit;
 				}
@@ -1508,9 +1600,6 @@ static esif_error_t DataVault_GetValue(
 				size_t offset = (size_t)keypair->value.buf_ptr;
 				if (IOStream_LoadBlock(self->stream, (esif_string)value->buf_ptr, data_len, offset) != EOK) {
 					data_len = 0;
-					if (buf_alloc) {
-						esif_ccb_free(buf_ptr);
-					}
 					rc = ESIF_E_NOT_FOUND;
 					goto exit;
 				}
@@ -1532,11 +1621,6 @@ static esif_error_t DataVault_GetValue(
 		if (rc == ESIF_OK) {
 			if (flagsPtr != NULL)
 				*flagsPtr = keypair->flags;
-		}
-
-		// Destroy Dynamically copied data, such as FILELINK contents
-		if (buf_alloc) {
-			esif_ccb_free(buf_ptr);
 		}
 	}
 
@@ -1578,6 +1662,39 @@ esif_error_t DataVault_SetPayload(
 exit:
 	esif_ccb_write_unlock(&self->lock);
 	return rc;
+}
+
+/* Lock DataVault and get current Key Count */
+UInt32 DataVault_GetKeyCount(DataVaultPtr self)
+{
+	UInt32 rc = 0;
+	if (self) {
+		esif_ccb_read_lock(&self->lock);
+		rc = DataCache_GetCount(self->cache);
+		esif_ccb_read_unlock(&self->lock);
+	}
+	return rc;
+}
+
+/* Lock DataVault and lookup a Key by name, optionally returning data type if found */
+Bool DataVault_KeyExists(DataVaultPtr self, StringPtr keyName, esif_data_type_t *typePtr, esif_flags_t *flagsPtr)
+{ 
+	Bool result = ESIF_FALSE;
+	if (self) {
+		esif_ccb_read_lock(&self->lock);
+		DataCacheEntryPtr value = DataCache_GetValue(self->cache, keyName);
+		if (value != NULL) {
+			result = ESIF_TRUE;
+			if (typePtr != NULL) {
+				*typePtr = value->value.type;
+			}
+			if (flagsPtr != NULL) {
+				*flagsPtr = value->flags;
+			}
+		}
+		esif_ccb_read_unlock(&self->lock);
+	}
+	return result;
 }
 
 /* Lock DataVault and Set Key/Value Pair, Flushing to Disk if necessary */
@@ -1732,24 +1849,26 @@ esif_error_t DataVault_SetValue(
 			keypair->value.type     = value->type;
 			keypair->value.data_len = value->data_len;
 			FLAGS_SET(flags, FLAGS_TEST(key_flags, ESIF_SERVICE_CONFIG_PERSIST)); // Flush if PERSIST -> NOPERSIST
+			FLAGS_CLEAR(keypair->flags, ESIFDV_IGNORED_ITEM_FLAGS);
 
 			esif_ccb_memcpy(keypair->value.buf_ptr, value->buf_ptr, value->data_len);
 			rc = ESIF_OK;
 		}
 	}
 	else if (value && value->buf_ptr && !FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_DELETE)) {
-		EsifDataPtr valueClonePtr = NULL;
-
 		//
 		// The data passed in may be in a buffer owned elsewhere, so clone the data
 		//
-		valueClonePtr = EsifData_Clone(value);
+		EsifDataPtr valueClonePtr = EsifData_Clone(value);
 		if (NULL == valueClonePtr) {
 			rc = ESIF_E_NO_MEMORY;
 			goto exit;
 		}
 
-		DataCache_InsertValue(self->cache, key, valueClonePtr, flags);
+		esif_flags_t item_flags = flags;
+		FLAGS_CLEAR(item_flags, ESIFDV_IGNORED_ITEM_FLAGS);
+
+		DataCache_InsertValue(self->cache, key, valueClonePtr, item_flags);
 
 		EsifData_Destroy(valueClonePtr);
 	}
@@ -1758,10 +1877,12 @@ exit:
 	// If Persisted, Flush to disk
 	if (rc == ESIF_OK && FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_PERSIST)) {
 		if (nocacheClone) {
-			rc = DataVault_RepoFlush(self, NULL, ESIF_FALSE);
+			if (!FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_DELAYWRITE)) {
+				rc = DataVault_RepoFlush(self, NULL, ESIF_FALSE);
+			}
 
 			// Restore NOCACHE Offsets on Failure
-			if (rc != ESIF_OK) {
+			if (rc != ESIF_OK || FLAGS_TEST(flags, ESIF_SERVICE_CONFIG_DELAYWRITE)) {
 				DataCache_RestoreOffsets(self->cache, nocacheClone);
 			}
 		}
@@ -1847,11 +1968,11 @@ esif_error_t DataRepo_ReadHeader(
 	}
 	if (rc == ESIF_OK) {
 		// v1 Header must be an exact size match
-		if (ESIFHDR_GET_MAJOR(header->common.version) == 1 && header->common.headersize != sizeof(DataVaultHeaderV1)) {
+		if (ESIFHDR_GET_MAJOR(header->common.version) == ESIFDV_V1 && header->common.headersize != sizeof(DataVaultHeaderV1)) {
 			rc = ESIF_E_NOT_SUPPORTED;
 		}
 		// v2 Header may be larger in future minor versions (but extra data will be lost if the DV is written)
-		if (ESIFHDR_GET_MAJOR(header->common.version) == 2) {
+		if (ESIFHDR_GET_MAJOR(header->common.version) == ESIFDV_V2) {
 			if (header->common.headersize < sizeof(DataVaultHeaderV2)) {
 				rc = ESIF_E_NOT_SUPPORTED;
 			}
@@ -1882,7 +2003,7 @@ esif_error_t DataRepo_ReadHeader(
 
 		// v1  = Unknown Header Flags are invalid, as a sanity check
 		// v2+ = Unknown Header Flags are allowed to be used by future minor versions or revisions
-		if (rc == ESIF_OK && ESIFHDR_GET_MAJOR(header->common.version) == 1) {
+		if (rc == ESIF_OK && ESIFHDR_GET_MAJOR(header->common.version) == ESIFDV_V1) {
 			if (!FLAGS_TESTVALID(header->v1.flags, ESIFDV_VALID_HEADER_FLAGS_V1)) {
 				rc = ESIF_E_NOT_SUPPORTED;
 			}
@@ -1890,9 +2011,107 @@ esif_error_t DataRepo_ReadHeader(
 				FLAGS_CLEAR(header->v1.flags, ESIFDV_IGNORED_HEADER_FLAGS);
 			}
 		}
-		else if (ESIFHDR_GET_MAJOR(header->common.version) == 2) {
+		else if (ESIFHDR_GET_MAJOR(header->common.version) == ESIFDV_V2) {
 			FLAGS_CLEAR(header->v2.flags, ESIFDV_IGNORED_HEADER_FLAGS);
+
+			// Segment Name and Comment must be ASCII strings (Null Terminator optional)
+			if ((DataVault_IsAscii(header->v2.segmentid, sizeof(header->v2.segmentid)) == ESIF_FALSE) ||
+				(DataVault_IsAscii(header->v2.comment, sizeof(header->v2.comment)) == ESIF_FALSE)) {
+				rc = ESIF_E_NOT_SUPPORTED;
+			}
 		}
+	}
+	return rc;
+}
+
+// Read Repo Header and return MetaData
+esif_error_t DataRepo_GetInfo(
+	DataRepoPtr self,
+	DataRepoInfoPtr info
+)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (self && info) {
+		DataVaultHeader header = { 0 };
+		esif_ccb_memset(info, 0, sizeof(*info));
+		size_t rewind_pos = IOStream_GetOffset(self->stream);
+
+		switch (self->stream->type) {
+		case StreamFile:
+		{
+			struct stat file_stat = { 0 };
+			if (esif_ccb_stat(self->stream->file.name, &file_stat) == 0) {
+				info->repo_size = ((file_stat.st_mode & S_IFDIR) ? 0 : file_stat.st_size);
+				info->modified = file_stat.st_mtime;
+			}
+			break;
+		}
+		case StreamMemory:
+			info->repo_size = self->stream->memory.data_len;
+			break;
+		default:
+			break;
+		}
+
+		if (IOStream_Seek(self->stream, 0, SEEK_SET) == EOK) {
+			rc = DataRepo_ReadHeader(self, &header);
+		}
+		else {
+			rc = ESIF_E_IO_ERROR;
+		}
+
+		if (rc == ESIF_OK) {
+			info->version = header.common.version;
+			if (ESIFHDR_GET_MAJOR(header.common.version) == ESIFDV_V1) {
+				info->flags = header.v1.flags;
+				info->payload_size = (UInt32)(info->repo_size >= sizeof(DataVaultHeaderV1) ? (info->repo_size - sizeof(DataVaultHeaderV1)) : 0);
+				info->payload_class = ESIFDV_PAYLOAD_CLASS_KEYS;
+			}
+			if (ESIFHDR_GET_MAJOR(header.common.version) == ESIFDV_V2) {
+				info->flags = header.v2.flags;
+				info->payload_size = header.v2.payload_size;
+				info->payload_class = header.v2.payload_class;
+				esif_ccb_strmemcpy(info->comment, sizeof(info->comment) - 1, header.v2.comment, sizeof(header.v2.comment));
+				esif_ccb_strmemcpy(info->segmentid, sizeof(info->segmentid) - 1, header.v2.segmentid, sizeof(header.v2.segmentid));
+				esif_hash_tostring(header.v2.payload_hash, sizeof(header.v2.payload_hash), info->payload_hash, sizeof(info->payload_hash));
+			}
+		}
+		IOStream_Seek(self->stream, rewind_pos, SEEK_SET);
+	}
+	return rc;
+}
+
+// Set Repo Comment
+esif_error_t DataRepo_SetComment(
+	DataRepoPtr self,
+	StringPtr comment
+)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (self && self->stream && comment) {
+		size_t rewind_pos = IOStream_GetOffset(self->stream);
+		if (IOStream_Seek(self->stream, 0, SEEK_SET) == EOK) {
+			DataVaultHeader header = { 0 };
+			rc = DataRepo_ReadHeader(self, &header);
+
+			// Write Comment only for DV 2.0 Headers
+			if (rc == ESIF_OK && ESIFHDR_GET_MAJOR(header.common.version) == ESIFDV_V2 && ESIFHDR_GET_MINOR(header.common.version) == ESIFDV_MINOR_V0 && header.common.headersize == sizeof(DataVaultHeaderV2)) {
+				esif_ccb_strmemcpy(header.v2.comment, sizeof(header.v2.comment), comment, esif_ccb_strlen(comment, sizeof(header.v2.comment)) + 1);
+				if (IOStream_Seek(self->stream, 0, SEEK_SET) == EOK) {
+					if (IOStream_Write(self->stream, &header, header.common.headersize) == header.common.headersize) {
+						rc = ESIF_OK;
+					}
+					else {
+						rc = ESIF_E_IO_ERROR;
+					}
+				}
+			}
+			else if (rc == ESIF_OK) {
+				rc = ESIF_E_NOT_SUPPORTED;
+			}
+		}
+		IOStream_Seek(self->stream, rewind_pos, SEEK_SET);
 	}
 	return rc;
 }
@@ -1923,12 +2142,12 @@ esif_error_t DataRepo_LoadSegments(DataRepoPtr self)
 			UInt32 major_version = ESIFHDR_GET_MAJOR(header.common.version);
 
 			// Use previous segmentid if not defined in current header
-			if (major_version == 1) {
+			if (major_version == ESIFDV_V1) {
 				if (self->stream->type == StreamMemory && self->stream->base.store == StoreStatic) {
 					FLAGS_SET(header.v1.flags, ESIF_SERVICE_CONFIG_STATIC);
 				}
 			}
-			else if (major_version == 2) {
+			else if (major_version == ESIFDV_V2) {
 				if (self->stream->type == StreamMemory && self->stream->base.store == StoreStatic) {
 					FLAGS_SET(header.v2.flags, ESIF_SERVICE_CONFIG_STATIC);
 				}
@@ -1959,7 +2178,10 @@ esif_error_t DataRepo_LoadSegments(DataRepoPtr self)
 
 				esif_ccb_write_unlock(&DV->lock);
 
+				DataVault_PutRef(DV);
+				DV = NULL;
 				if (rc != ESIF_OK && rc != ESIF_E_ITERATION_DONE) {
+					esif_ccb_memset(PrimaryDV, 0, sizeof(PrimaryDV));
 					break;
 				}
 			}
@@ -1983,6 +2205,7 @@ esif_error_t DataRepo_LoadSegments(DataRepoPtr self)
 				DV->stream->base.store = StoreReadOnly;
 			}
 			esif_ccb_write_unlock(&DV->lock);
+			DataVault_PutRef(DV);
 		}
 	}
 
@@ -2010,6 +2233,7 @@ esif_error_t EsifConfigGetItem(
 	else {
 		rc = ESIF_E_NOT_FOUND;
 	}
+	DataVault_PutRef(DB);
 	return rc;
 }
 
@@ -2039,11 +2263,12 @@ esif_error_t EsifConfigSet(
 		rc = DataBank_ImportDataVault((StringPtr)(nameSpace->buf_ptr));
 		DB = DataBank_GetDataVault((StringPtr)(nameSpace->buf_ptr));
 	}
-	if (rc == ESIF_OK) {
+	if (DB) {
 		StringPtr key = (path ? (StringPtr)path->buf_ptr : NULL);
 		flags = (path ? flags : ESIF_SERVICE_CONFIG_PERSIST);
 		rc = DataVault_SetValue(DB, key, value, flags);
 	}
+	DataVault_PutRef(DB);
 	return rc;
 }
 
@@ -2132,6 +2357,7 @@ esif_error_t EsifConfigFindNext(
 	if (rc != ESIF_OK) {
 		EsifConfigFindClose(context);
 	}
+	DataVault_PutRef(DB);
 	return rc;
 }
 
@@ -2172,7 +2398,6 @@ esif_flags_t EsifConfigFlags_Set(esif_flags_t bitmask, esif_string optname)
 		{"SCRAMBLE",	ESIF_SERVICE_CONFIG_SCRAMBLE },
 		{"READONLY",	ESIF_SERVICE_CONFIG_READONLY},
 		{"NOCACHE",		ESIF_SERVICE_CONFIG_NOCACHE },
-		{"FILELINK",	ESIF_SERVICE_CONFIG_FILELINK},
 		{"DELETE",		ESIF_SERVICE_CONFIG_DELETE  },
 		{"STATIC",		ESIF_SERVICE_CONFIG_STATIC  },	// DataVault-Level Option
 		{"~NOPERSIST",	ESIF_SERVICE_CONFIG_PERSIST },	// Unset option
@@ -2241,7 +2466,7 @@ esif_error_t EsifConfigCopy(
 		keyset[keyset_count++] = keyspec;
 		keyspec = esif_ccb_strtok(NULL, "\t", &keyspec_context);
 	}
-	esif_ccb_qsort(keyset, keyset_count, sizeof(char *), esif_ccb_qsort_stricmp, qsort_ctx);
+	esif_ccb_qsort(keyset, keyset_count, sizeof(char *), esif_ccb_qsort_stricmp, &qsort_ctx);
 
 	// Enumerate Each Matching keyspec
 	for (key = 0; (rc == ESIF_OK && key < keyset_count); key++) {
@@ -2284,7 +2509,7 @@ esif_error_t EsifConfigCopy(
 					if (rc != ESIF_OK) {
 						break;
 					}
-					rc = EsifConfigSet(nameSpaceTo, data_key, flags, data_value);
+					rc = EsifConfigSet(nameSpaceTo, data_key, flags|ESIF_SERVICE_CONFIG_DELAYWRITE, data_value);
 					if (rc != ESIF_OK) {
 						break;
 					}
@@ -2310,6 +2535,11 @@ esif_error_t EsifConfigCopy(
 			rc = ESIF_OK;
 		}
 	}
+	
+	// Flush Delayed Write data to Disk
+	if (rc == ESIF_OK && exported > 0) {
+		rc = EsifConfigSet(nameSpaceTo, NULL, 0, NULL);
+	}
 
 exit:
 	if (rc == ESIF_OK && keycount != NULL) {
@@ -2322,6 +2552,89 @@ exit:
 	return rc;
 }
 
+/* Get a SubKey value from a supported DataVault Key data type such as JSON */
+
+esif_error_t EsifConfigGetSubKey(
+	EsifDataPtr nameSpace,
+	EsifDataPtr key,
+	EsifDataPtr value,
+	EsifDataPtr subkey)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (nameSpace && key && value && subkey) {
+		if (subkey->type != ESIF_DATA_STRING) {
+			rc = ESIF_E_UNSUPPORTED_REQUEST_DATA_TYPE;
+		}
+		else {
+			// Get Config Key and Extract Subkey name from supported data type
+			EsifData dataset = { ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0 };
+
+			rc = EsifConfigGet(nameSpace, key, &dataset);
+
+			size_t response_sizeof = esif_data_type_sizeof(value->type);
+			if (rc == ESIF_OK && value->buf_len >= response_sizeof) {
+				switch (dataset.type) {
+
+					// Extract Key/Value pair from JSON
+				case ESIF_DATA_JSON:
+				{
+					JsonObjPtr json = JsonObj_Create();
+					rc = JsonObj_FromString(json, dataset.buf_ptr);
+					if (rc == ESIF_OK) {
+						StringPtr jsonValue = JsonObj_GetValue(json, (StringPtr)subkey->buf_ptr);
+						if (jsonValue == NULL) {
+							rc = ESIF_E_NOT_FOUND;
+						}
+						else {
+							// Convert String to Integer Type or String
+							size_t jsonValueLen = esif_ccb_strlen(jsonValue, dataset.data_len) + 1;
+							switch (response_sizeof) {
+							case sizeof(UInt64) :
+								*(UInt64 *)value->buf_ptr = esif_atoi64(jsonValue);
+								break;
+							case sizeof(UInt32) :
+								*(UInt32 *)value->buf_ptr = esif_atoi(jsonValue);
+								break;
+							case sizeof(UInt16) :
+								*(UInt16 *)value->buf_ptr = (UInt16)esif_atoi(jsonValue);
+								break;
+							case sizeof(UInt8) :
+								*(UInt8 *)value->buf_ptr = (UInt8)esif_atoi(jsonValue);
+								break;
+							case 0:
+								if (value->type == ESIF_DATA_STRING) {
+									if (value->buf_len < jsonValueLen) {
+										value->buf_len = (u32)jsonValueLen;
+										rc = ESIF_E_NEED_LARGER_BUFFER;
+									}
+									else {
+										esif_ccb_strcpy(value->buf_ptr, jsonValue, jsonValueLen);
+									}
+								}
+								else {
+									rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
+								}
+								break;
+							default:
+								rc = ESIF_E_UNSUPPORTED_REQUEST_DATA_TYPE;
+								break;
+							}
+						}
+					}
+					JsonObj_Destroy(json);
+					break;
+				}
+				default:
+					rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
+					break;
+				}
+			}
+			esif_ccb_free(dataset.buf_ptr);
+		}
+	}
+	return rc;
+}
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/

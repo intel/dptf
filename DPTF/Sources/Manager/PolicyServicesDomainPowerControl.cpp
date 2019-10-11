@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -67,7 +67,21 @@ Power PolicyServicesDomainPowerControl::getPowerLimitWithoutCache(
 	PowerControlType::Type controlType)
 {
 	throwIfNotWorkItemThread();
-	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerLimitWithoutCache(domainIndex, controlType);
+	return getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->getPowerLimitWithoutCache(domainIndex, controlType);
+}
+
+Bool PolicyServicesDomainPowerControl::isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->isSocPowerFloorEnabled(domainIndex);
+}
+
+Bool PolicyServicesDomainPowerControl::isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->isSocPowerFloorSupported(domainIndex);
 }
 
 void PolicyServicesDomainPowerControl::setPowerLimit(
@@ -152,6 +166,17 @@ void PolicyServicesDomainPowerControl::setPowerLimitDutyCycle(
 		->setPowerLimitDutyCycle(domainIndex, getPolicyIndex(), controlType, dutyCycle);
 }
 
+void PolicyServicesDomainPowerControl::setSocPowerFloorState(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Bool socPowerFloorState)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setSocPowerFloorState(domainIndex, getPolicyIndex(), socPowerFloorState);
+}
+
 void PolicyServicesDomainPowerControl::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
 	throwIfNotWorkItemThread();
@@ -204,4 +229,15 @@ Power PolicyServicesDomainPowerControl::getSlowPollPowerThreshold(UIntN particip
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getSlowPollPowerThreshold(domainIndex);
+}
+
+void PolicyServicesDomainPowerControl::removePowerLimitPolicyRequest(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->removePowerLimitPolicyRequest(domainIndex, getPolicyIndex(), controlType);
 }

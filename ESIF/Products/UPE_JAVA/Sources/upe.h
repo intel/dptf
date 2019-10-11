@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -58,13 +58,13 @@ extern "C" {
 #endif
 
 eEsifError ActionSendEvent(
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	enum esif_event_type eventType,
 	const EsifDataPtr dataPtr
 	);
 
 eEsifError ActionExecutePrimitive(
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	const UInt16 primitiveId,
 	const UInt8 instance,
 	const EsifDataPtr requestPtr,

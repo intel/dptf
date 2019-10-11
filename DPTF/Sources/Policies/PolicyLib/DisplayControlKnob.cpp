@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "DisplayControlKnob.h"
+#include "PolicyLogger.h"
 
 using namespace std;
 
@@ -41,23 +42,35 @@ void DisplayControlKnob::limit(UIntN target)
 	{
 		try
 		{
-			stringstream messageBefore;
-			messageBefore << "Calculating request to limit display brightness.";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageBefore;
+				messageBefore << "Calculating request to limit display brightness."
+							  << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageBefore.str();
+			});
 
 			UIntN nextControlIndex = calculateNextIndex(target);
 			m_requests[target] = nextControlIndex;
 
-			stringstream messageAfter;
-			messageAfter << "Requesting to limit display brightness to " << nextControlIndex << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageAfter;
+				messageAfter << "Requesting to limit display brightness to " << nextControlIndex << "."
+							 << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageAfter.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
+
 			throw ex;
 		}
 	}
@@ -69,10 +82,13 @@ void DisplayControlKnob::unlimit(UIntN target)
 	{
 		try
 		{
-			stringstream messageBefore;
-			messageBefore << "Calculating request to unlimit display brightness.";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageBefore;
+				messageBefore << "Calculating request to unlimit display brightness."
+							  << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageBefore.str();
+			});
 
 			UIntN currentControlIndex = getTargetRequest(target);
 			UIntN upperLimit = m_displayControl->getCapabilities().getCurrentUpperLimit();
@@ -90,15 +106,24 @@ void DisplayControlKnob::unlimit(UIntN target)
 			}
 			m_requests[target] = nextControlIndex;
 
-			stringstream messageAfter;
-			messageAfter << "Requesting to unlimit display brightness to " << nextControlIndex << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageAfter;
+				messageAfter << "Requesting to unlimit display brightness to " << nextControlIndex << "."
+							 << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageAfter.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
+
 			throw ex;
 		}
 	}
@@ -166,10 +191,14 @@ Bool DisplayControlKnob::commitSetting()
 			auto currentValue = m_displayControl->getStatus().getBrightnessLimitIndex();
 			if (currentValue != nextIndex)
 			{
-				stringstream messageBefore;
-				messageBefore << "Attempting to change display brightness limit to " << nextIndex << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageBefore;
+					messageBefore << "Attempting to change display brightness limit to " << nextIndex << "."
+								  << " ParticipantIndex = " << getParticipantIndex()
+								  << ". Domain = " << getDomainIndex();
+					return messageBefore.str();
+				});
 
 				m_displayControl->setControl(nextIndex);
 				if (m_hasBeenLimited == false)
@@ -177,10 +206,15 @@ Bool DisplayControlKnob::commitSetting()
 					m_hasBeenLimited = true;
 				}
 
-				stringstream messageAfter;
-				messageAfter << "Changed display brightness limit to " << nextIndex << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageAfter;
+					messageAfter << "Changed display brightness limit to " << nextIndex << "."
+								 << " ParticipantIndex = " << getParticipantIndex()
+								 << ". Domain = " << getDomainIndex();
+					return messageAfter.str();
+				});
+
 				return true;
 			}
 
@@ -198,8 +232,14 @@ Bool DisplayControlKnob::commitSetting()
 	}
 	catch (std::exception& ex)
 	{
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+		// TODO: pass in participant index and domain
+		POLICY_LOG_MESSAGE_DEBUG_EX({
+			stringstream message;
+			message << ex.what() << "."
+					<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+			return message.str();
+		});
+
 		throw ex;
 	}
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,9 @@
 
 #include "Dptf.h"
 #include "ActiveControlStatus.h"
+#include "ActiveControlStaticCaps.h"
+#include "ActiveControlDynamicCaps.h"
+#include "ActiveControlSet.h"
 
 class dptf_export ActiveCoolingControlFacadeInterface
 {
@@ -29,6 +32,9 @@ public:
 	// controls
 	virtual Bool supportsActiveCoolingControls() = 0;
 	virtual Bool supportsFineGrainControl() = 0;
+	virtual void setActiveControlDynamicCaps(ActiveControlDynamicCaps newCapabilities) = 0;
+	virtual void lockCapabilities() = 0;
+	virtual void unlockCapabilities() = 0;
 
 	// properties
 	virtual const ActiveControlStaticCaps& getCapabilities() = 0;
@@ -37,6 +43,7 @@ public:
 	virtual ActiveControlStatus getStatus() = 0;
 	virtual UIntN getSmallestNonZeroFanSpeed() = 0;
 	virtual Bool hasValidActiveControlSet() = 0;
+	virtual ActiveControlSet getActiveControlSet() = 0;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXml() = 0;
@@ -45,20 +52,9 @@ public:
 	virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) = 0;
 	virtual void forceFanOff(void) = 0;
 	virtual void setControl(Percentage activeCoolingControlFanSpeed) = 0;
+	virtual void clearFanSpeedRequestForTarget(UIntN requestorIndex) = 0;
+	virtual void setHighestFanSpeedPercentage() = 0;
+	virtual void setValueWithinCapabilities() = 0;
 
-	Percentage snapToCapabilitiesBounds(Percentage fanSpeed)
-	{
-		Percentage minFanSpeed = getDynamicCapabilities().getMinFanSpeed();
-		Percentage maxFanSpeed = getDynamicCapabilities().getMaxFanSpeed();
-
-		if (fanSpeed < minFanSpeed)
-		{
-			fanSpeed = minFanSpeed;
-		}
-		else if (fanSpeed > maxFanSpeed)
-		{
-			fanSpeed = maxFanSpeed;
-		}
-		return fanSpeed;
-	}
+	virtual Percentage snapToCapabilitiesBounds(Percentage fanSpeed) = 0;
 };

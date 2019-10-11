@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -60,10 +60,16 @@
 
 /* Participant Interface Versions:
  * 2 - Added "whitelist" pointers (used by LF only)
+ * 3 - Changed to provide IO target vs device for ACPI accesses in Windows
+ * 4 - Added a void* context field to allow the dev ext for a given device to be specified for debugging
  */
-#define ESIF_PARTICIPANT_VERSION 3
+#define ESIF_PARTICIPANT_VERSION 4
 #define ESIF_PARTICIPANT_INVALID_TYPE ((u32)ESIF_DOMAIN_TYPE_INVALID)
-#define ESIF_INSTANCE_INVALID	255
+
+/* Flags */
+#define ESIF_FLAG_DPTFZ 0x1	/* Participant Is Actually A DPTF Zone */
+#define ESIF_FLAG_EXTERN_DPTFZ 0x2	/* Participant Is Actually A DPTF Zone exposed by an external driver */
+#define ESIF_FLAG_ACCESS_ACPI_VIA_HAL 0x4	/* Participant is using the ACPI HAL target with absolute paths */
 
 #ifdef ESIF_ATTR_KERNEL
 
@@ -71,11 +77,6 @@
 #include <acpiioct.h>	/* ACPI  */
 typedef WDFIOTARGET acpi_handle;
 #endif
-
-/* Flags */
-#define ESIF_FLAG_DPTFZ 0x1	/* Participant Is Actually A DPTF Zone */
-#define ESIF_FLAG_EXTERN_DPTFZ 0x2	/* Participant Is Actually A DPTF Zone exposed by an external driver */
-#define ESIF_FLAG_ACCESS_ACPI_VIA_HAL 0x4	/* Participant is using the ACPI HAL target with absolute paths */
 
 #define MSR_WHITELIST_TERMINATOR 0
 #define MMIO_WHITELIST_TERMINATOR 0
@@ -155,6 +156,8 @@ struct esif_participant_iface {
 
 	struct msr_whitelist_entry *msr_wlist_ptr;
 	struct mmio_whitelist_entry *mmio_wlist_ptr;
+
+	void *context; /* Reserved */
 };
 
 #endif /* ESIF ATTR_KERNEL */

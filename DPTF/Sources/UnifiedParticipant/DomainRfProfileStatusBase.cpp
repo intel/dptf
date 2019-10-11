@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,4 +28,14 @@ DomainRfProfileStatusBase::DomainRfProfileStatusBase(
 
 DomainRfProfileStatusBase::~DomainRfProfileStatusBase()
 {
+}
+
+void DomainRfProfileStatusBase::initializeRfProfileData(EsifCapabilityData *capability)
+{
+	for (UInt32 channelNumber = 0; channelNumber < MAX_FREQUENCY_CHANNEL_NUM; channelNumber++)
+	{
+		(*capability).data.rfProfileStatus.rfProfileFrequencyData[channelNumber].centerFrequency = Constants::Invalid;
+		(*capability).data.rfProfileStatus.rfProfileFrequencyData[channelNumber].leftFrequencySpread = Constants::Invalid;
+		(*capability).data.rfProfileStatus.rfProfileFrequencyData[channelNumber].rightFrequencySpread = Constants::Invalid;
+	}
 }

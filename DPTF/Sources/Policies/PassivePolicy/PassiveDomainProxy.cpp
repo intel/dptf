@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "PassiveDomainProxy.h"
 #include "StatusFormat.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 
 PassiveDomainProxy::PassiveDomainProxy(
@@ -289,6 +291,11 @@ void PassiveDomainProxy::setArbitratedPowerLimit()
 	m_powerControlKnob->commitSetting();
 }
 
+const PolicyServicesInterfaceContainer& PassiveDomainProxy::getPolicyServices() const
+{
+	return m_policyServices;
+}
+
 void PassiveDomainProxy::setArbitratedPerformanceLimit()
 {
 	// TODO: fix so this code is in the performance control knob, and likely there should be a single performance
@@ -313,17 +320,23 @@ void PassiveDomainProxy::setArbitratedPerformanceLimit()
 	// set the value
 	if (arbitratedRequest != m_performanceControl->getStatus().getCurrentControlSetIndex())
 	{
-		stringstream messageBefore;
-		messageBefore << "Attempting to change performance limit to " << arbitratedRequest << ".";
-		m_policyServices.messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+		POLICY_LOG_MESSAGE_DEBUG({
+			// TODO: might want to pass in participant index instead
+			stringstream messageBefore;
+			messageBefore << "Attempting to change performance limit to " << arbitratedRequest << "."
+						  << ". ParticipantIndex = " << getParticipantIndex() << ". DomainIndex=" << getDomainIndex();
+			return messageBefore.str();
+		});
 
 		m_performanceControl->setControl(arbitratedRequest);
 
-		stringstream messageAfter;
-		messageAfter << "Changed performance limit to " << arbitratedRequest << ".";
-		m_policyServices.messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+		POLICY_LOG_MESSAGE_DEBUG({
+			// TODO: might want to pass in participant index instead
+			stringstream messageAfter;
+			messageAfter << "Changed performance limit to " << arbitratedRequest << "."
+						 << ". ParticipantIndex = " << getParticipantIndex() << ". DomainIndex=" << getDomainIndex();
+			return messageAfter.str();
+		});
 	}
 }
 

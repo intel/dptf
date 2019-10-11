@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ WIDptfConnectedStandbyEntry::~WIDptfConnectedStandbyEntry(void)
 {
 }
 
-void WIDptfConnectedStandbyEntry::execute(void)
+void WIDptfConnectedStandbyEntry::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -43,10 +43,10 @@ void WIDptfConnectedStandbyEntry::execute(void)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executeConnectedStandbyEntry();
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}
@@ -68,7 +68,7 @@ void WIDptfConnectedStandbyEntry::execute(void)
 			Participant* participant = participantManager->getParticipantPtr(*i);
 			participant->connectedStandbyEntry();
 		}
-		catch (participant_index_invalid& ex)
+		catch (participant_index_invalid&)
 		{
 			// do nothing.  No item in the participant list at this index.
 		}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,11 +28,12 @@ public:
 	ActiveControlDynamicCaps();
 	ActiveControlDynamicCaps(const Percentage& minFanSpeed, const Percentage& maxFanSpeed);
 	static ActiveControlDynamicCaps createFromFcdc(const DptfBuffer& buffer);
+	DptfBuffer toFcdcBinary();
 	Percentage getMinFanSpeed(void) const;
 	Percentage getMaxFanSpeed(void) const;
 	Bool operator==(const ActiveControlDynamicCaps& rhs) const;
 	Bool operator!=(const ActiveControlDynamicCaps& rhs) const;
-	std::shared_ptr<XmlNode> getXml(void);
+	std::shared_ptr<XmlNode> getXml(void) const;
 
 private:
 	Percentage m_minFanSpeed;

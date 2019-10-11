@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -110,10 +110,11 @@ typedef union EsifMsgHdr_s {
 
 // Known Message Classes (Hex or Multichar); May be extended without rebuilding Framework
 #define ESIFMSG_CLASS_UNDEFINED	0x00000000	// Undefined Message Class
-#define ESIFMSG_CLASS_EVENT		'TNVE'		// "EVNT" = ESIF Event Broadcast Message
-#define ESIFMSG_CLASS_UFSP		'PSFU'		// "UFSM" = ESIF Upper Framework Service Protocol
-#define ESIFMSG_CLASS_KEYS		'SYEK'		// "KEYS" = DataVault Key/Value Pair List
-#define ESIFMSG_CLASS_REPO		'OPER'		// "REPO" = Data Repository
+#define ESIFMSG_CLASS_EVENT		0x544E5645	// "EVNT" = ESIF Event Broadcast Message
+#define ESIFMSG_CLASS_UFSP		0x50534655	// "UFSP" = ESIF Upper Framework Service Protocol
+#define ESIFMSG_CLASS_KEYS		0x5359454B	// "KEYS" = DataVault Key/Value Pair List
+#define ESIFMSG_CLASS_REPO		0x4F504552	// "REPO" = Data Repository
+#define ESIFMSG_CLASS_IRPC		0x43505249	// "IRPC" = IPF RPC Call
 
 /* 
  * Inline Helper Functions; May be moved to Standard functions later

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -74,6 +74,14 @@ public:
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const override;
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const override;
 	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN domainIndex) const override;
+	virtual std::shared_ptr<XmlNode> getArbitratorStatusForPolicy(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		ControlFactoryType::Type type) const override;
+	virtual void clearCachedData() override;
+	virtual void clearCachedResults() override;
+	virtual void clearTemperatureControlCachedData() override;
+	virtual void clearBatteryStatusControlCachedData() override;
 
 	// Event handlers
 	virtual void connectedStandbyEntry(void) override;
@@ -92,36 +100,26 @@ public:
 	virtual void domainPriorityChanged(void) override;
 	virtual void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus) override;
 	virtual void domainRfProfileChanged(void) override;
-	virtual void domainTemperatureThresholdCrossed(void) override;
 	virtual void participantSpecificInfoChanged(void) override;
-	virtual void domainVirtualSensorCalibrationTableChanged(void) override;
-	virtual void domainVirtualSensorPollingTableChanged(void) override;
-	virtual void domainVirtualSensorRecalcChanged(void) override;
-	virtual void domainBatteryStatusChanged(void) override;
-	virtual void domainBatteryInformationChanged(void) override;
 	virtual void domainPlatformPowerSourceChanged(void) override;
 	virtual void domainAdapterPowerRatingChanged(void) override;
-	virtual void domainChargerTypeChanged(void) override;
 	virtual void domainPlatformRestOfPowerChanged(void) override;
-	virtual void domainMaxBatteryPowerChanged(void) override;
-	virtual void domainPlatformBatterySteadyStateChanged(void) override;
 	virtual void domainACNominalVoltageChanged(void) override;
 	virtual void domainACOperationalCurrentChanged(void) override;
 	virtual void domainAC1msPercentageOverloadChanged(void) override;
 	virtual void domainAC2msPercentageOverloadChanged(void) override;
 	virtual void domainAC10msPercentageOverloadChanged(void) override;
 	virtual void domainEnergyThresholdCrossed(void) override;
-
-	// Active Controls
-	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
+	virtual void domainFanCapabilityChanged(void) override;
+	virtual void domainSocWorkloadClassificationChanged() override;
 
 	// Activity Status
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt64 getCoreActivityCounter(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 
 	// Config TDP Controls
 	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
@@ -160,9 +158,7 @@ public:
 	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) override;
-	virtual void setEnergyThresholdInterruptDisable(
-		UIntN participantIndex,
-		UIntN domainIndex) override;
+	virtual void setEnergyThresholdInterruptDisable(UIntN participantIndex, UIntN domainIndex) override;
 
 	// Peak Power Controls
 	virtual Power getACPeakPower(UIntN participantIndex, UIntN domainIndex) override;
@@ -189,7 +185,12 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
 		override;
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
-	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual Power getPowerLimitWithoutCache(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
+	virtual Bool isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Bool isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -223,6 +224,7 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle) override;
+	virtual void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) override;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override;
@@ -233,6 +235,7 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void removePowerLimitPolicyRequest(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
 
 	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 		override;
@@ -249,49 +252,42 @@ public:
 		const PowerControlDynamicCaps& capabilities) override;
 	virtual void setCalculatedAveragePower(UIntN participantIndex, UIntN domainIndex, Power powerValue) override;
 
-	// Platform Power Controls
-	virtual Bool isPlatformPowerLimitEnabled(
+	// System Power Controls
+	virtual Bool isSystemPowerLimitEnabled(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) override;
-	virtual Power getPlatformPowerLimit(
+		PsysPowerLimitType::Type limitType) override;
+	virtual Power getSystemPowerLimit(UIntN participantIndex, UIntN domainIndex, PsysPowerLimitType::Type limitType)
+		override;
+	virtual void setSystemPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) override;
-	virtual void setPlatformPowerLimit(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const Power& powerLimit) override;
 
-	virtual TimeSpan getPlatformPowerLimitTimeWindow(
+	virtual TimeSpan getSystemPowerLimitTimeWindow(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) override;
-	virtual void setPlatformPowerLimitTimeWindow(
+		PsysPowerLimitType::Type limitType) override;
+	virtual void setSystemPowerLimitTimeWindow(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const TimeSpan& timeWindow) override;
-	virtual Percentage getPlatformPowerLimitDutyCycle(
+	virtual Percentage getSystemPowerLimitDutyCycle(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) override;
-	virtual void setPlatformPowerLimitDutyCycle(
+		PsysPowerLimitType::Type limitType) override;
+	virtual void setSystemPowerLimitDutyCycle(
 		UIntN participantIndex,
 		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const Percentage& dutyCycle) override;
 
 	// Platform Power Status
-	virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) override;
 	virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getACNominalVoltage(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getACOperationalCurrent(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
@@ -308,30 +304,12 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		const Frequency& centerFrequency) override;
+	virtual Percentage getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Percentage getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Percentage getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex) override;
 
 	// RF Profile Status
 	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) override;
-
-	// TCC Offset Control
-	virtual Temperature getTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& tccOffset)
-		override;
-	virtual Temperature getMaxTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Temperature getMinTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex) override;
-
-	// Temperature
-	virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual TemperatureThresholds getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setTemperatureThresholds(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		const TemperatureThresholds& temperatureThresholds) override;
-	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getCalibrationTable(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getPollingTable(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Bool isVirtualTemperature(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& temperature)
-		override;
 
 	// Utilization
 	virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;
@@ -370,6 +348,7 @@ private:
 	PciInfo m_pciInfo;
 	AcpiInfo m_acpiInfo;
 	std::shared_ptr<ParticipantServicesInterface> m_participantServicesInterface;
+	std::shared_ptr<ParticipantServicesInterface> getParticipantServices() const;
 
 	std::shared_ptr<ParticipantGetSpecificInfoBase> m_getSpecificInfo;
 	std::shared_ptr<ParticipantSetSpecificInfoBase> m_setSpecificInfo;
@@ -396,8 +375,11 @@ private:
 	Bool m_rfProfileEventsRegistered;
 	Bool m_temperatureEventsRegistered;
 	Bool m_powerStatusEventsRegistered;
+	Bool m_batteryStatusEventsRegistered;
 	Bool m_loggingEventsRegistered;
 	Bool m_energyEventsRegistered;
+	Bool m_activeControlEventsRegistered;
+	Bool m_socWorkloadClassificationEventsRegistered;
 
 	void updateDomainEventRegistrations(void);
 	Bool updateDomainEventRegistration(

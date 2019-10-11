@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -63,6 +63,7 @@ typedef enum esif_action_type {
 	ESIF_ACTION_ACPI = 4,
 	ESIF_ACTION_ACPIDECIC = 55,
 	ESIF_ACTION_ACPILPAT = 40,
+	ESIF_ACTION_BATTERY = 75,
 	ESIF_ACTION_CODE = 38,
 	ESIF_ACTION_CONFIG = 20,
 	ESIF_ACTION_CONST = 33,
@@ -72,6 +73,9 @@ typedef enum esif_action_type {
 	ESIF_ACTION_DGFX = 70,
 	ESIF_ACTION_DPPEBRT = 32,
 	ESIF_ACTION_DPTFWWAN = 50,
+	ESIF_ACTION_HWPF = 80,
+	ESIF_ACTION_IDGFX = 78,
+	ESIF_ACTION_IOC = 74,
 	ESIF_ACTION_IOSF = 34,
 	ESIF_ACTION_JAVA = 62,
 	ESIF_ACTION_KDELEGATE = 52,
@@ -94,14 +98,16 @@ typedef enum esif_action_type {
 	ESIF_ACTION_PSM = 44,
 	ESIF_ACTION_RFPWIFI = 43,
 	ESIF_ACTION_SIM = 65,
+	ESIF_ACTION_SOCWC = 77,
 	ESIF_ACTION_SYSFS = 59,
 	ESIF_ACTION_SYSTEM = 31,
+	ESIF_ACTION_USBCM = 76,
 	ESIF_ACTION_USBFAN = 49,
 	ESIF_ACTION_VIRTUAL = 39,
 } esif_action_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_KHID
+#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_HWPF
 
 static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 {
@@ -109,6 +115,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_ACPI);
 	ESIF_CASE_ENUM(ESIF_ACTION_ACPIDECIC);
 	ESIF_CASE_ENUM(ESIF_ACTION_ACPILPAT);
+	ESIF_CASE_ENUM(ESIF_ACTION_BATTERY);
 	ESIF_CASE_ENUM(ESIF_ACTION_CODE);
 	ESIF_CASE_ENUM(ESIF_ACTION_CONFIG);
 	ESIF_CASE_ENUM(ESIF_ACTION_CONST);
@@ -118,6 +125,9 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_DGFX);
 	ESIF_CASE_ENUM(ESIF_ACTION_DPPEBRT);
 	ESIF_CASE_ENUM(ESIF_ACTION_DPTFWWAN);
+	ESIF_CASE_ENUM(ESIF_ACTION_HWPF);
+	ESIF_CASE_ENUM(ESIF_ACTION_IDGFX);
+	ESIF_CASE_ENUM(ESIF_ACTION_IOC);
 	ESIF_CASE_ENUM(ESIF_ACTION_IOSF);
 	ESIF_CASE_ENUM(ESIF_ACTION_JAVA);
 	ESIF_CASE_ENUM(ESIF_ACTION_KDELEGATE);
@@ -140,8 +150,10 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_PSM);
 	ESIF_CASE_ENUM(ESIF_ACTION_RFPWIFI);
 	ESIF_CASE_ENUM(ESIF_ACTION_SIM);
+	ESIF_CASE_ENUM(ESIF_ACTION_SOCWC);
 	ESIF_CASE_ENUM(ESIF_ACTION_SYSFS);
 	ESIF_CASE_ENUM(ESIF_ACTION_SYSTEM);
+	ESIF_CASE_ENUM(ESIF_ACTION_USBCM);
 	ESIF_CASE_ENUM(ESIF_ACTION_USBFAN);
 	ESIF_CASE_ENUM(ESIF_ACTION_VIRTUAL);
 	}
@@ -153,7 +165,6 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name)
 {
-	int j;
 	struct esif_action_type_map_t {
 		esif_action_type_t type;
 		esif_string name;
@@ -162,6 +173,7 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_ACPI),
 		ESIF_MAP_ENUM(ESIF_ACTION_ACPIDECIC),
 		ESIF_MAP_ENUM(ESIF_ACTION_ACPILPAT),
+		ESIF_MAP_ENUM(ESIF_ACTION_BATTERY),
 		ESIF_MAP_ENUM(ESIF_ACTION_CODE),
 		ESIF_MAP_ENUM(ESIF_ACTION_CONFIG),
 		ESIF_MAP_ENUM(ESIF_ACTION_CONST),
@@ -171,6 +183,9 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_DGFX),
 		ESIF_MAP_ENUM(ESIF_ACTION_DPPEBRT),
 		ESIF_MAP_ENUM(ESIF_ACTION_DPTFWWAN),
+		ESIF_MAP_ENUM(ESIF_ACTION_HWPF),
+		ESIF_MAP_ENUM(ESIF_ACTION_IDGFX),
+		ESIF_MAP_ENUM(ESIF_ACTION_IOC),
 		ESIF_MAP_ENUM(ESIF_ACTION_IOSF),
 		ESIF_MAP_ENUM(ESIF_ACTION_JAVA),
 		ESIF_MAP_ENUM(ESIF_ACTION_KDELEGATE),
@@ -193,14 +208,16 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_PSM),
 		ESIF_MAP_ENUM(ESIF_ACTION_RFPWIFI),
 		ESIF_MAP_ENUM(ESIF_ACTION_SIM),
+		ESIF_MAP_ENUM(ESIF_ACTION_SOCWC),
 		ESIF_MAP_ENUM(ESIF_ACTION_SYSFS),
 		ESIF_MAP_ENUM(ESIF_ACTION_SYSTEM),
+		ESIF_MAP_ENUM(ESIF_ACTION_USBCM),
 		ESIF_MAP_ENUM(ESIF_ACTION_USBFAN),
 		ESIF_MAP_ENUM(ESIF_ACTION_VIRTUAL),
 	};
 
 	/* Match ESIF_ACTION_TYPENAME or TYPENAME */
-	for (j = 0; j < ESIF_ARRAY_LEN(esif_action_type_map); j++) {
+	for (size_t j = 0; j < ESIF_ARRAY_LEN(esif_action_type_map); j++) {
 		if (esif_ccb_stricmp(esif_action_type_map[j].name, name) == 0)
 			return esif_action_type_map[j].type;
 		if (esif_ccb_stricmp(esif_action_type_map[j].name+12, name) == 0)

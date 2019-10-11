@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2018 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "PolicyBase.h"
 #include "ParticipantTracker.h"
 #include "CriticalPolicyStatistics.h"
+#include "PolicyCallbackSchedulerInterface.h"
 
 class dptf_export CriticalPolicy final : public PolicyBase
 {
@@ -40,6 +41,7 @@ public:
 	virtual Bool autoNotifyPlatformOscOnCreateDestroy() const override;
 	virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
 	virtual Bool autoNotifyPlatformOscOnEnableDisable() const override;
+	virtual Bool hasCriticalShutdownCapability() const override;
 
 	virtual Guid getGuid(void) const override;
 	virtual std::string getName(void) const override;
@@ -53,12 +55,15 @@ public:
 	virtual void onOperatingSystemEmergencyCallModeChanged(OnOffToggle::Type emergencyCallMode) override;
 	virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex) override;
 	virtual void onParticipantSpecificInfoChanged(UIntN participantIndex) override;
+	virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2) override;
 
 private:
 	mutable CriticalPolicyStatistics m_stats;
 	Bool m_sleepRequested;
 	Bool m_hibernateRequested;
 	Bool m_inEmergencyCallMode;
+	std::shared_ptr<PolicyCallbackSchedulerInterface> m_scheduler;
+	Bool m_isTimerStarted;
 
 	Bool participantHasDesiredProperties(ParticipantProxyInterface* newParticipant) const;
 	void takePowerActionBasedOnThermalState(ParticipantProxyInterface* participant);
@@ -82,4 +87,7 @@ private:
 		const std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>>& tripPoints,
 		const Temperature& currentTemperature);
 	std::shared_ptr<XmlNode> getXmlForCriticalTripPoints() const;
+
+	void startTimer(const TimeSpan& timeValue);
+	void stopTimer();
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ DomainPowerControl_002::DomainPowerControl_002(
 	, // the power control state needs the control to capture and restore
 	m_capabilitiesLocked(false)
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
 }
 
@@ -111,8 +111,8 @@ Power DomainPowerControl_002::getPowerLimit(
 		catch (...)
 		{
 			m_pl1Limit.set(getPowerControlDynamicCapsSet(participantIndex, domainIndex)
-				.getCapability(PowerControlType::PL1)
-				.getMaxPowerLimit());
+							   .getCapability(PowerControlType::PL1)
+							   .getMaxPowerLimit());
 		}
 	}
 	return m_pl1Limit.get();
@@ -132,11 +132,21 @@ Power DomainPowerControl_002::getPowerLimitWithoutCache(
 	catch (...)
 	{
 		pl1PowerLimit = getPowerControlDynamicCapsSet(participantIndex, domainIndex)
-			.getCapability(PowerControlType::PL1)
-			.getMaxPowerLimit();
+							.getCapability(PowerControlType::PL1)
+							.getMaxPowerLimit();
 	}
 
 	return pl1PowerLimit;
+}
+
+Bool DomainPowerControl_002::isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Bool DomainPowerControl_002::isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
 }
 
 void DomainPowerControl_002::setPowerLimit(
@@ -263,6 +273,11 @@ void DomainPowerControl_002::setPowerLimitDutyCycle(
 	throw dptf_exception("Power Limit Duty Cycle is not supported by " + getName() + ".");
 }
 
+void DomainPowerControl_002::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
+{
+	throw dptf_exception("SoC Power Floor is not supported by " + getName() + ".");
+}
+
 void DomainPowerControl_002::setAndUpdateEnabled(PowerControlType::Type controlType)
 {
 	if (!isEnabled(controlType))
@@ -307,7 +322,8 @@ void DomainPowerControl_002::sendActivityLoggingDataIfEnabled(UIntN participantI
 				try
 				{
 					PowerControlDynamicCaps powerControlCaps =
-						m_powerControlDynamicCaps.get().getCapability((PowerControlType::Type)powerType);
+						getPowerControlDynamicCapsSet(participantIndex, domainIndex)
+							.getCapability((PowerControlType::Type)powerType);
 					capability.data.powerControl.powerDataSet[powerType].lowerLimit =
 						powerControlCaps.getMinPowerLimit();
 					capability.data.powerControl.powerDataSet[powerType].upperLimit =
@@ -324,7 +340,8 @@ void DomainPowerControl_002::sendActivityLoggingDataIfEnabled(UIntN participantI
 				}
 				catch (dptf_exception& ex)
 				{
-					getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.getDescription()));
+					PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
+
 					capability.data.powerControl.powerDataSet[powerType].lowerLimit = 0;
 					capability.data.powerControl.powerDataSet[powerType].upperLimit = 0;
 					capability.data.powerControl.powerDataSet[powerType].stepsize = 0;
@@ -340,13 +357,15 @@ void DomainPowerControl_002::sendActivityLoggingDataIfEnabled(UIntN participantI
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Power Control"
-					<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Power Control"
+						<< ")";
+				return message.str();
+			});
 		}
 	}
 	catch (...)
@@ -355,7 +374,7 @@ void DomainPowerControl_002::sendActivityLoggingDataIfEnabled(UIntN participantI
 	}
 }
 
-void DomainPowerControl_002::clearCachedData(void)
+void DomainPowerControl_002::onClearCachedData(void)
 {
 	m_powerControlDynamicCaps.invalidate();
 
@@ -377,8 +396,8 @@ void DomainPowerControl_002::clearCachedData(void)
 		catch (...)
 		{
 			// best effort
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "Failed to restore the initial power share control capabilities. "));
+			PARTICIPANT_LOG_MESSAGE_DEBUG(
+				{ return "Failed to restore the initial power share control capabilities. "; });
 		}
 	}
 }
@@ -424,8 +443,7 @@ void DomainPowerControl_002::restore(void)
 	catch (...)
 	{
 		// best effort
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to restore the power share limit to initial state. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the power share limit to initial state. "; });
 	}
 }
 
@@ -557,4 +575,12 @@ void DomainPowerControl_002::throwIfPowerLimitIsOutsideCapabilityRange(
 			throw dptf_exception("Power limit is lower than minimum capability.");
 		}
 	}
+}
+
+void DomainPowerControl_002::removePowerLimitPolicyRequest(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	// Do nothing.  Not an error.
 }

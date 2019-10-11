@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,9 +54,11 @@ public:
 	virtual void setPassiveTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(void) = 0;
 	virtual DptfBuffer getOemVariables(void) = 0;
+	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual DptfBuffer getPowerBossConditionsTable(void) = 0;
 	virtual DptfBuffer getPowerBossActionsTable(void) = 0;
 	virtual DptfBuffer getPowerBossMathTable(void) = 0;
+	virtual DptfBuffer getVoltageThresholdMathTable(void) = 0;
 	virtual DptfBuffer getEmergencyCallModeTable(void) = 0;
 	virtual DptfBuffer getPidAlgorithmTable(void) = 0;
 	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
@@ -64,4 +66,6 @@ public:
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getPowerShareAlgorithmTable(void) = 0;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) = 0;
+	virtual DptfBuffer getPowerShareAlgorithmTable2(void) = 0;
+	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) = 0;
 };

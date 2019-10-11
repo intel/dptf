@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,7 +32,7 @@ WIPolicyDestroy::~WIPolicyDestroy(void)
 {
 }
 
-void WIPolicyDestroy::execute(void)
+void WIPolicyDestroy::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -60,7 +60,7 @@ void WIPolicyDestroy::execute(void)
 			Participant* participant = participantManager->getParticipantPtr(*i);
 			participant->clearArbitrationDataForPolicy(m_policyIndex);
 		}
-		catch (participant_index_invalid& ex)
+		catch (participant_index_invalid&)
 		{
 			// do nothing.  No item in the participant list at this index.
 		}

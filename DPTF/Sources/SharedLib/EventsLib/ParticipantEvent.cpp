@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,6 +55,9 @@ namespace ParticipantEvent
 			CASE(DomainVirtualSensorRecalcChanged)
 			CASE(DomainBatteryStatusChanged)
 			CASE(DomainBatteryInformationChanged)
+			CASE(DomainBatteryHighFrequencyImpedanceChanged)
+			CASE(DomainBatteryNoLoadVoltageChanged)
+			CASE(DomainMaxBatteryPeakCurrentChanged)
 			CASE(DomainPlatformPowerSourceChanged)
 			CASE(DomainAdapterPowerRatingChanged)
 			CASE(DomainChargerTypeChanged)
@@ -67,6 +70,8 @@ namespace ParticipantEvent
 			CASE(DomainAC2msPercentageOverloadChanged)
 			CASE(DomainAC10msPercentageOverloadChanged)
 			CASE(DomainEnergyThresholdCrossed)
+			CASE(DomainFanCapabilityChanged)
+			CASE(DomainSocWorkloadClassificationChanged)
 			CASE(DptfParticipantActivityLoggingEnabled)
 			CASE(DptfParticipantActivityLoggingDisabled)
 			CASE(DptfParticipantControlAction)

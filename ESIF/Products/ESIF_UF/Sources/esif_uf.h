@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -118,6 +118,7 @@ typedef enum e_esif_pathtype {
 	ESIF_PATHTYPE_LOCK,		// Lock Files **
 	ESIF_PATHTYPE_EXE,		// Binary Executables (.EXE and ELF binaries)
 	ESIF_PATHTYPE_DLL,		// Dynamically Loadable Libraries (.DLL and .so)
+	ESIF_PATHTYPE_DLL_ALT,	// Alternate location for loadable libraries (.DLL and .so)
 	ESIF_PATHTYPE_DPTF,		// DPTF Policy Path sent via CreateAppData
 	ESIF_PATHTYPE_DSP,		// DSP and EDP files
 	ESIF_PATHTYPE_CMD,		// CMD scripts
@@ -145,6 +146,7 @@ extern enum output_format g_format;
 
 // Functions
 unsigned int esif_atoi(const esif_string value);
+UInt64 esif_atoi64(const esif_string str);
 
 //
 // Utilities
@@ -244,6 +246,10 @@ int esif_pathlist_count(void);
 /* OS Specific Init / Exit */
 eEsifError esif_uf_os_init(void);
 void esif_uf_os_exit(void);
+
+/* OS Specific Shell Enable / Disable */
+eEsifError esif_uf_os_shell_enable(void);
+void esif_uf_os_shell_disable(void);
 
 extern eEsifError EsifWebLoad(void);
 extern void EsifWebUnload(void);

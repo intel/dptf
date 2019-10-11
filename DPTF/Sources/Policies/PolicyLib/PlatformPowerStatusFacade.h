@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,14 +34,9 @@ public:
 		const PolicyServicesInterfaceContainer& policyServices);
 	~PlatformPowerStatusFacade(void);
 
-	virtual Power getMaxBatteryPower(void) override;
 	virtual Power getPlatformRestOfPower(void) override;
 	virtual Power getAdapterPowerRating(void) override;
-	virtual DptfBuffer getBatteryStatus(void) override;
-	virtual DptfBuffer getBatteryInformation(void) override;
 	virtual PlatformPowerSource::Type getPlatformPowerSource(void) override;
-	virtual ChargerType::Type getChargerType(void) override;
-	virtual Power getPlatformBatterySteadyState(void) override;
 	virtual UInt32 getACNominalVoltage(void) override;
 	virtual UInt32 getACOperationalCurrent(void) override;
 	virtual Percentage getAC1msPercentageOverload(void) override;
@@ -60,12 +55,9 @@ private:
 	UIntN m_participantIndex;
 	UIntN m_domainIndex;
 
-	Power m_maxBatteryPower;
 	Power m_platformRestOfPower;
 	Power m_adapterPowerRating;
 	PlatformPowerSource::Type m_platformPowerSource;
-	ChargerType::Type m_chargerType;
-	Power m_batterySteadyState;
 	UInt32 m_acNominalVoltage;
 	UInt32 m_acOperationalCurrent;
 	Percentage m_ac1msPercentageOverload;

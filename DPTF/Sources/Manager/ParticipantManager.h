@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,7 +41,8 @@ public:
 	// This will clear the cached data stored within all participants *within* the framework.  It will not ask the
 	// actual participants to clear their caches.
 	virtual void clearAllParticipantCachedData() override;
-
+	virtual Bool participantExists(const std::string& participantName) const override;
+	virtual std::shared_ptr<IParticipant> getParticipant(const std::string& participantName) const override;
 	virtual std::string GetStatusAsXml(void) override;
 
 private:
@@ -50,5 +51,6 @@ private:
 	ParticipantManager& operator=(const ParticipantManager& rhs);
 
 	DptfManagerInterface* m_dptfManager;
+	EsifServicesInterface* getEsifServices();
 	std::map<UIntN, std::shared_ptr<Participant>> m_participants;
 };

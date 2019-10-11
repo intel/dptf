@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,12 @@
 #pragma once
 
 #include "Dptf.h"
+
+#define POLICY_DISABLED 0x00
+#define POLICY_ENABLED 0x01
+#define ACTIVE_CONTROL_SUPPORTED 0x02
+#define PASSIVE_CONTROL_SUPPORTED 0x04
+#define CRITICAL_SHUTDOWN_SUPPORTED 0x08
 
 namespace Constants
 {

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,12 +30,9 @@ PlatformPowerStatusFacade::PlatformPowerStatusFacade(
 	, m_domainProperties(domainProperties)
 	, m_participantIndex(participantIndex)
 	, m_domainIndex(domainIndex)
-	, m_maxBatteryPower(Power::createInvalid())
 	, m_platformRestOfPower(Power::createInvalid())
 	, m_adapterPowerRating(Power::createInvalid())
 	, m_platformPowerSource()
-	, m_chargerType()
-	, m_batterySteadyState(Power::createInvalid())
 	, m_acNominalVoltage(Constants::Invalid)
 	, m_acOperationalCurrent(Constants::Invalid)
 	, m_ac1msPercentageOverload(Percentage::createInvalid())
@@ -46,16 +43,6 @@ PlatformPowerStatusFacade::PlatformPowerStatusFacade(
 
 PlatformPowerStatusFacade::~PlatformPowerStatusFacade(void)
 {
-}
-
-Power PlatformPowerStatusFacade::getMaxBatteryPower(void)
-{
-	if (m_domainProperties.implementsPlatformPowerStatusInterface())
-	{
-		m_maxBatteryPower =
-			m_policyServices.domainPlatformPowerStatus->getMaxBatteryPower(m_participantIndex, m_domainIndex);
-	}
-	return m_maxBatteryPower;
 }
 
 Power PlatformPowerStatusFacade::getPlatformRestOfPower(void)
@@ -78,26 +65,6 @@ Power PlatformPowerStatusFacade::getAdapterPowerRating(void)
 	return m_adapterPowerRating;
 }
 
-DptfBuffer PlatformPowerStatusFacade::getBatteryStatus(void)
-{
-	if (m_domainProperties.implementsPlatformPowerStatusInterface())
-	{
-		return m_policyServices.domainPlatformPowerStatus->getBatteryStatus(m_participantIndex, m_domainIndex);
-	}
-
-	throw dptf_exception("No support for platform power status interface");
-}
-
-DptfBuffer PlatformPowerStatusFacade::getBatteryInformation(void)
-{
-	if (m_domainProperties.implementsPlatformPowerStatusInterface())
-	{
-		return m_policyServices.domainPlatformPowerStatus->getBatteryInformation(m_participantIndex, m_domainIndex);
-	}
-
-	throw dptf_exception("No support for platform power status interface");
-}
-
 PlatformPowerSource::Type PlatformPowerStatusFacade::getPlatformPowerSource(void)
 {
 	if (m_domainProperties.implementsPlatformPowerStatusInterface())
@@ -106,25 +73,6 @@ PlatformPowerSource::Type PlatformPowerStatusFacade::getPlatformPowerSource(void
 			m_policyServices.domainPlatformPowerStatus->getPlatformPowerSource(m_participantIndex, m_domainIndex);
 	}
 	return m_platformPowerSource;
-}
-
-ChargerType::Type PlatformPowerStatusFacade::getChargerType(void)
-{
-	if (m_domainProperties.implementsPlatformPowerStatusInterface())
-	{
-		m_chargerType = m_policyServices.domainPlatformPowerStatus->getChargerType(m_participantIndex, m_domainIndex);
-	}
-	return m_chargerType;
-}
-
-Power PlatformPowerStatusFacade::getPlatformBatterySteadyState(void)
-{
-	if (m_domainProperties.implementsPlatformPowerStatusInterface())
-	{
-		m_batterySteadyState = m_policyServices.domainPlatformPowerStatus->getPlatformBatterySteadyState(
-			m_participantIndex, m_domainIndex);
-	}
-	return m_batterySteadyState;
 }
 
 UInt32 PlatformPowerStatusFacade::getACNominalVoltage(void)
@@ -188,13 +136,10 @@ void PlatformPowerStatusFacade::notifyForProchotDeassertion(void)
 std::shared_ptr<XmlNode> PlatformPowerStatusFacade::getXml() const
 {
 	auto control = XmlNode::createWrapperElement("platform_power_status");
-	control->addChild(XmlNode::createDataElement("max_battery_power", m_maxBatteryPower.toString()));
 	control->addChild(
 		XmlNode::createDataElement("platform_power_source", PlatformPowerSource::ToString(m_platformPowerSource)));
 	control->addChild(XmlNode::createDataElement("adapter_power_rating", m_adapterPowerRating.toString()));
-	control->addChild(XmlNode::createDataElement("charger_type", ChargerType::ToString(m_chargerType)));
 	control->addChild(XmlNode::createDataElement("platform_rest_of_power", m_platformRestOfPower.toString()));
-	control->addChild(XmlNode::createDataElement("battery_steady_state", m_batterySteadyState.toString()));
 	control->addChild(XmlNode::createDataElement("ac_nominal_voltage", friendlyValue(m_acNominalVoltage)));
 	control->addChild(XmlNode::createDataElement("ac_operational_current", friendlyValue(m_acOperationalCurrent)));
 	control->addChild(XmlNode::createDataElement("ac_1ms_percentage_overload", m_ac1msPercentageOverload.toString()));

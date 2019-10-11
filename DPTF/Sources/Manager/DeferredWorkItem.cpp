@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #include "DeferredWorkItem.h"
 #include "WorkItem.h"
 
-DeferredWorkItem::DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution)
+DeferredWorkItem::DeferredWorkItem(std::shared_ptr<WorkItemInterface> workItem, const TimeSpan& timeUntilExecution)
 	: m_workItem(workItem)
 {
 	m_deferredProcessingTime = EsifTime().getTimeStamp() + timeUntilExecution;
@@ -27,7 +27,6 @@ DeferredWorkItem::DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& 
 
 DeferredWorkItem::~DeferredWorkItem(void)
 {
-	DELETE_MEMORY_TC(m_workItem);
 }
 
 UInt64 DeferredWorkItem::getUniqueId(void) const
@@ -75,7 +74,12 @@ void DeferredWorkItem::execute(void)
 	m_workItem->execute();
 }
 
-WorkItemInterface* DeferredWorkItem::getWorkItem(void) const
+void DeferredWorkItem::signal(void)
+{
+	return;
+}
+
+std::shared_ptr<WorkItemInterface> DeferredWorkItem::getWorkItem(void) const
 {
 	return m_workItem;
 }

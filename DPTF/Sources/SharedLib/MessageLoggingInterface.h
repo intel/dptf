@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "DptfMessage.h"
+#include "esif_sdk_iface.h"
 
 class MessageLoggingInterface
 {
@@ -31,4 +32,5 @@ public:
 	virtual void writeMessageWarning(const DptfMessage& message) = 0;
 	virtual void writeMessageInfo(const DptfMessage& message) = 0;
 	virtual void writeMessageDebug(const DptfMessage& message) = 0;
+	virtual eLogType getLoggingLevel() = 0;
 };

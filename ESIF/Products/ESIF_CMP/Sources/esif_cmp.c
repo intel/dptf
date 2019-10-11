@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,7 +48,7 @@ struct LzmaHeader {
 };
 #pragma pack(pop)
 
-/* Hardcoded LZMA Compression Property Values (and their LZMA_SDK v16.04 lzma.exe command line equivalents)
+/* Hardcoded LZMA Compression Property Values (and their LZMA_SDK v18.01 lzma.exe command line equivalents)
  * Items marked with "##" should never be changed since they affect the 5-byte LZMA Properties Header Signature
  * The following parameters correspond to to the ESIF_COMPRESS_SIGNATURE defined in esif_sdk_iface_compress.h,
  * which always maps to [5D 00 XX XX XX] for -lc3 -lp0 -pb2 and -d12 to -d27 lzma.exe options.
@@ -79,7 +79,7 @@ ESIF_EXPORT int ESIF_CALLCONV EsifCompress(
 	struct LzmaHeader header = { 0 };
 
 	// NULL dest = Return Required Buffer Size
-	if (dest == NULL && destLen && src && srcLen > sizeof(header)) {
+	if (dest == NULL && destLen && src && srcLen) {
 		// Estimate worst case scenario of original size + 5%
 		size_t padding = (size_t)(srcLen * LZMA_PADDING_PERCENT);
 		*destLen = srcLen + sizeof(header) + (padding < LZMA_PADDING_MINSIZE ? LZMA_PADDING_MINSIZE : padding);

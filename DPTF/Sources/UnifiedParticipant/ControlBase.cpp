@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 
 #include "ControlBase.h"
 #include "esif_sdk_data_misc.h"
+#include "XmlNode.h"
+#include <functional>
+using namespace std;
 
 ControlBase::ControlBase(
 	UIntN participantIndex,
@@ -32,6 +35,7 @@ ControlBase::ControlBase(
 
 ControlBase::~ControlBase()
 {
+	unbindRequestHandlers();
 }
 
 void ControlBase::capture(void)
@@ -69,6 +73,68 @@ void ControlBase::disableActivityLogging(void)
 	m_activityLoggingEnabled = false;
 }
 
+DptfRequestResult ControlBase::processRequest(const PolicyRequest& policyRequest)
+{
+	if (canProcessRequest(policyRequest))
+	{
+		return callHandler(policyRequest);
+	}
+	else
+	{
+		throw dptf_exception("Request sent to wrong control.");
+	}
+}
+
+Bool ControlBase::canProcessRequest(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	auto participantIndex = request.getParticipantIndex();
+	auto domainIndex = request.getDomainIndex();
+	auto requestType = request.getRequestType();
+	auto handler = m_requestHandlers.find(requestType);
+	Bool hasHandlerForRequestType = (handler != m_requestHandlers.end());
+	Bool requestTargetsThisControl = isMe(participantIndex, domainIndex);
+	return hasHandlerForRequestType && requestTargetsThisControl;
+}
+
+DptfRequestResult ControlBase::callHandler(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	auto requestType = request.getRequestType();
+	auto handler = m_requestHandlers.find(requestType);
+	if (handler == m_requestHandlers.end())
+	{
+		return DptfRequestResult(false, "Handler not found for request.", request);
+	}
+	else
+	{
+		try
+		{
+			return handler->second(policyRequest);
+		}
+		catch (const std::exception& ex)
+		{
+			return DptfRequestResult(false, ex.what(), request);
+		}
+	}
+}
+
+void ControlBase::unbindRequestHandlers()
+{
+	for (auto handler = m_requestHandlers.begin(); handler != m_requestHandlers.end(); ++handler)
+	{
+		try
+		{
+			getParticipantServices()->unregisterRequestHandler(handler->first, this);
+		}
+		catch (...)
+		{
+			// ignore
+		}
+	}
+	m_requestHandlers.clear();
+}
+
 std::shared_ptr<ParticipantServicesInterface> ControlBase::getParticipantServices() const
 {
 	return m_participantServices;
@@ -91,9 +157,80 @@ DptfBuffer ControlBase::createResetPrimitiveTupleBinary(esif_primitive_type prim
 	return buffer;
 }
 
+Bool ControlBase::isMe(UIntN particpantIndex, UIntN domainIndex)
+{
+	return (particpantIndex == getParticipantIndex()) && (domainIndex == getDomainIndex());
+}
+
+void ControlBase::bindRequestHandler(
+	DptfRequestType::Enum requestType,
+	std::function<DptfRequestResult(const PolicyRequest&)> functionObj)
+{
+	m_requestHandlers[requestType] = functionObj;
+	getParticipantServices()->registerRequestHandler(requestType, this);
+}
+
 UInt16 ControlBase::createTupleDomain() const
 {
 	UInt16 tupleDomain;
 	tupleDomain = (('0' + (UInt8)m_domainIndex) << 8) + 'D';
 	return tupleDomain;
+}
+
+void ControlBase::clearCachedData()
+{
+	clearAllCachedResults();
+	onClearCachedData();
+}
+
+Bool ControlBase::requestResultIsCached(const DptfRequest& request)
+{
+	auto cachedItem = m_requestCache.find(tuple<DptfRequestType::Enum, UInt32, UInt32>(
+		request.getRequestType(), request.getParticipantIndex(), request.getDomainIndex()));
+	return (cachedItem != m_requestCache.end());
+}
+
+const DptfRequestResult& ControlBase::getCachedResult(const DptfRequest& request) const
+{
+	auto cachedItem = m_requestCache.find(tuple<DptfRequestType::Enum, UInt32, UInt32>(
+		request.getRequestType(), request.getParticipantIndex(), request.getDomainIndex()));
+	if (cachedItem == m_requestCache.end())
+	{
+		throw dptf_exception("No cached result for request.");
+	}
+	else
+	{
+		return cachedItem->second;
+	}
+}
+
+void ControlBase::clearCachedResult(const DptfRequest& request)
+{
+	tuple<DptfRequestType::Enum, UInt32, UInt32> key(
+		request.getRequestType(), request.getParticipantIndex(), request.getDomainIndex());
+	m_requestCache.erase(key);
+}
+
+void ControlBase::clearCachedResult(DptfRequestType::Enum requestType, UInt32 participantIndex, UInt32 domainIndex)
+{
+	tuple<DptfRequestType::Enum, UInt32, UInt32> key(requestType, participantIndex, domainIndex);
+	m_requestCache.erase(key);
+}
+
+void ControlBase::updateCachedResult(const DptfRequestResult& requestResult)
+{
+	auto& request = requestResult.getRequest();
+	tuple<DptfRequestType::Enum, UInt32, UInt32> key(
+		request.getRequestType(), request.getParticipantIndex(), request.getDomainIndex());
+	m_requestCache[key] = requestResult;
+}
+
+void ControlBase::clearAllCachedResults()
+{
+	m_requestCache.clear();
+}
+
+std::shared_ptr<XmlNode> ControlBase::getArbitratorXml(UIntN policyIndex) const
+{
+	throw not_implemented();
 }

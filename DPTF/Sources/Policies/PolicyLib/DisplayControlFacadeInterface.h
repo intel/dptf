@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,7 @@ public:
 	virtual ~DisplayControlFacadeInterface(){};
 
 	virtual Bool supportsDisplayControls() = 0;
+	virtual void setControlsToMax() = 0;
 	virtual void setControl(UIntN displayControlIndex) = 0;
 	virtual void setDisplayControlDynamicCaps(DisplayControlDynamicCaps newCapabilities) = 0;
 	virtual void refreshCapabilities() = 0;

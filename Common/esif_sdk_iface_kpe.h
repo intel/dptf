@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -108,6 +108,34 @@
 #define ESIF_KPE_METHOD_DGFX_MAX_PERF_STATE_AC				'0APD' /* DPA0 */
 #define ESIF_KPE_METHOD_DGFX_MAX_PERF_STATE_AC_SMALL		'1APD' /* DPA1 */
 #define ESIF_KPE_METHOD_DGFX_MAX_PERF_STATE_BATTERY			'0BPD' /* DPB0 */
+
+/*
+* IDGFX KPE (IA Discrete GFX KPE)
+* Refer to Appendix A.3 of the KPE interface doc
+*/
+/* GET */
+#define ESIF_KPE_METHOD_IDGFX_GET_TEMP						'PMT_' /* _TMP */
+#define ESIF_KPE_METHOD_IDGFX_GET_POWER_LIMIT				'0LPG' /* GPL0 */
+#define ESIF_KPE_METHOD_IDGFX_GET_INSTANTANEOUS_POWER		'0PIG' /* GIP0 */
+#define ESIF_KPE_METHOD_IDGFX_GET_PL1_TAU					'UATG' /* GTAU */
+#define ESIF_KPE_METHOD_IDGFX_GET_ENERGY					'0CEG' /* GEC0 */
+#define ESIF_KPE_METHOD_IDGFX_GET_ENERGY_UNIT				'0UEG' /* GEU0 */
+#define ESIF_KPE_METHOD_IDGFX_GET_ACTIVITY_COUNTER_WIDTH	'WCAG' /* GACW */
+#define ESIF_KPE_METHOD_IDGFX_GET_ACTIVITY_COUNTER			'CAGG' /* GGAC */
+#define ESIF_KPE_METHOD_IDGFX_GET_TIMESTAMP_COUNTER_WIDTH	'WCTG' /* GTCW */
+#define ESIF_KPE_METHOD_IDGFX_GET_TIMESTAMP_COUNTER			'CSTG' /* GTSC */
+
+/* SET */
+#define ESIF_KPE_METHOD_IDGFX_SET_POWER_LIMIT				'0LPS' /* SPL0 */
+#define ESIF_KPE_METHOD_IDGFX_SET_PL1_TAU					'UATS' /* STAU */
+#define ESIF_KPE_METHOD_IDGFX_SET_ENERGY_THRESHOLD			'0TES' /* SET0 */
+#define ESIF_KPE_METHOD_IDGFX_SET_ENERGY_THRESH_INT_DISABLE	'0IED' /* DEI0 */
+
+/* GET/SET */
+#define ESIF_KPE_METHOD_IDGFX_BURST_POWER_LIMIT				'0LPB' /* BPL0 */
+#define ESIF_KPE_METHOD_IDGFX_PEAK_POWER_LIMIT_AC			'0APP' /* PPA0 */
+#define ESIF_KPE_METHOD_IDGFX_PEAK_POWER_LIMIT_BATTERY		'0BPP' /* PPB0 */
+
 
 #pragma pack(push, 1)
 

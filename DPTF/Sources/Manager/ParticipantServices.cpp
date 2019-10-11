@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "WIPowerLimitChanged.h"
 #include "EsifServicesInterface.h"
 #include "ManagerMessage.h"
+#include "ManagerLogger.h"
 
 ParticipantServices::ParticipantServices(DptfManagerInterface* dptfManager, UIntN participantIndex)
 	: m_dptfManager(dptfManager)
@@ -230,50 +231,61 @@ void ParticipantServices::writeMessageFatal(const DptfMessage& message)
 {
 	throwIfNotWorkItemThread();
 
-	ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
-	updatedMessage.setParticipantIndex(m_participantIndex);
-
-	m_esifServices->writeMessageFatal(updatedMessage);
+	MANAGER_LOG_MESSAGE_FATAL({
+		ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
+		updatedMessage.setParticipantIndex(m_participantIndex);
+		return updatedMessage;
+	});
 }
 
 void ParticipantServices::writeMessageError(const DptfMessage& message)
 {
 	throwIfNotWorkItemThread();
 
-	ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
-	updatedMessage.setParticipantIndex(m_participantIndex);
-
-	m_esifServices->writeMessageError(updatedMessage);
+	MANAGER_LOG_MESSAGE_ERROR({
+		ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
+		updatedMessage.setParticipantIndex(m_participantIndex);
+		return updatedMessage;
+	});
 }
 
 void ParticipantServices::writeMessageWarning(const DptfMessage& message)
 {
 	throwIfNotWorkItemThread();
 
-	ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
-	updatedMessage.setParticipantIndex(m_participantIndex);
-
-	m_esifServices->writeMessageWarning(updatedMessage);
+	MANAGER_LOG_MESSAGE_WARNING({
+		ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
+		updatedMessage.setParticipantIndex(m_participantIndex);
+		return updatedMessage;
+	});
 }
 
 void ParticipantServices::writeMessageInfo(const DptfMessage& message)
 {
 	throwIfNotWorkItemThread();
 
-	ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
-	updatedMessage.setParticipantIndex(m_participantIndex);
-
-	m_esifServices->writeMessageInfo(updatedMessage);
+	MANAGER_LOG_MESSAGE_INFO({
+		ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
+		updatedMessage.setParticipantIndex(m_participantIndex);
+		return updatedMessage;
+	});
 }
 
 void ParticipantServices::writeMessageDebug(const DptfMessage& message)
 {
 	throwIfNotWorkItemThread();
 
-	ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
-	updatedMessage.setParticipantIndex(m_participantIndex);
+	MANAGER_LOG_MESSAGE_DEBUG({
+		ManagerMessage updatedMessage = ManagerMessage(m_dptfManager, message);
+		updatedMessage.setParticipantIndex(m_participantIndex);
+		return updatedMessage;
+	});
+}
 
-	m_esifServices->writeMessageDebug(updatedMessage);
+eLogType ParticipantServices::getLoggingLevel(void)
+{
+	throwIfNotWorkItemThread();
+	return m_esifServices->getCurrentLogVerbosityLevel();
 }
 
 void ParticipantServices::registerEvent(ParticipantEvent::Type participantEvent)
@@ -290,20 +302,21 @@ void ParticipantServices::unregisterEvent(ParticipantEvent::Type participantEven
 
 void ParticipantServices::createEventDomainPerformanceControlCapabilityChanged()
 {
-	WorkItem* wi =
-		new WIDomainPerformanceControlCapabilityChanged(m_dptfManager, m_participantIndex, Constants::Invalid);
+	auto wi = std::make_shared<WIDomainPerformanceControlCapabilityChanged>(
+		m_dptfManager, m_participantIndex, Constants::Invalid);
 	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 
 void ParticipantServices::createEventDomainPowerControlCapabilityChanged()
 {
-	WorkItem* wi = new WIDomainPowerControlCapabilityChanged(m_dptfManager, m_participantIndex, Constants::Invalid);
+	auto wi =
+		std::make_shared<WIDomainPowerControlCapabilityChanged>(m_dptfManager, m_participantIndex, Constants::Invalid);
 	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 
 void ParticipantServices::createEventPowerLimitChanged()
 {
-	WorkItem* wi = new WIPowerLimitChanged(m_dptfManager);
+	auto wi = std::make_shared<WIPowerLimitChanged>(m_dptfManager);
 	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 
@@ -370,4 +383,27 @@ Bool ParticipantServices::isUserPreferredDisplayCacheValid(UIntN participantInde
 	auto domainType = m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
 
 	return m_dptfManager->getUserPreferredCache()->isUserPreferredDisplayCacheValid(participantScope, domainType);
+}
+
+DomainType::Type ParticipantServices::getDomainType(UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return m_participant->getDomainPropertiesSet().getDomainProperties(domainIndex).getDomainType();
+}
+
+void ParticipantServices::registerRequestHandler(
+	DptfRequestType::Enum requestType,
+	RequestHandlerInterface* handler)
+{
+	m_dptfManager->getRequestDispatcher()->registerHandler(requestType, handler);
+}
+
+void ParticipantServices::unregisterRequestHandler(DptfRequestType::Enum requestType, RequestHandlerInterface* handler)
+{
+	m_dptfManager->getRequestDispatcher()->unregisterHandler(requestType, handler);
+}
+
+EsifServicesInterface* ParticipantServices::getEsifServices()
+{
+	return m_esifServices;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "esif_sdk_fan.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
+#include "DptfBufferStream.h"
 
 ActiveControlStatus::ActiveControlStatus(UIntN currentControlId, UIntN currentSpeed)
 	: m_currentControlId(currentControlId)
@@ -70,9 +71,22 @@ Bool ActiveControlStatus::operator!=(const ActiveControlStatus rhs) const
 std::shared_ptr<XmlNode> ActiveControlStatus::getXml(void)
 {
 	auto root = XmlNode::createWrapperElement("active_control_status");
-
 	root->addChild(XmlNode::createDataElement("current_control_id", StatusFormat::friendlyValue(m_currentControlId)));
 	root->addChild(XmlNode::createDataElement("current_speed", StatusFormat::friendlyValue(m_currentSpeed)));
-
 	return root;
+}
+
+DptfBuffer ActiveControlStatus::toFstBinary(void) const
+{
+	struct EsifDataBinaryFstPackage fst;
+	fst.revision.integer.value = 1;
+	fst.revision.type = ESIF_DATA_UINT64;
+	fst.control.integer.value = m_currentControlId;
+	fst.control.type = ESIF_DATA_UINT64;
+	fst.speed.integer.value = m_currentSpeed;
+	fst.speed.type = ESIF_DATA_UINT64;
+
+	DptfBuffer buffer;
+	buffer.append((UInt8*)&fst, sizeof(fst));
+	return buffer;
 }

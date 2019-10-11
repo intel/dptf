@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,19 +56,30 @@ Power DomainPowerStatus_001::getPower(UIntN domainIndex)
 {
 	Power power = Power::createInvalid();
 
+	//
+	// We attempt twice for a condition where primitive_try_again is thrown as
+	// in this case it may take two attempts to calculate power.  After two
+	// tries, it is considered a failure and we don't try again.
+	//
 	try
 	{
 		power = getParticipantServices()->primitiveExecuteGetAsPower(esif_primitive_type::GET_RAPL_POWER, domainIndex);
 	}
 	catch (primitive_try_again&)
 	{
-		power = getParticipantServices()->primitiveExecuteGetAsPower(esif_primitive_type::GET_RAPL_POWER, domainIndex);
+		try
+		{
+			power = getParticipantServices()->primitiveExecuteGetAsPower(esif_primitive_type::GET_RAPL_POWER, domainIndex);
+		}
+		catch (primitive_try_again&)
+		{
+		}
 	}
 
 	return power;
 }
 
-void DomainPowerStatus_001::clearCachedData(void)
+void DomainPowerStatus_001::onClearCachedData(void)
 {
 	m_domainPowerFilter.clearCachedData();
 }
@@ -102,13 +113,15 @@ void DomainPowerStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIn
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Power Status"
-					<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Power Status"
+						<< ")";
+				return message.str();
+				});
 		}
 	}
 	catch (...)

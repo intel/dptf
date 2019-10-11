@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,38 +57,38 @@
  * Class GUIDs
  */
 
-#define ESIF_PARTICIPANT_DPTF_NAME "DPTFZ"
-#define ESIF_PARTICIPANT_DPTF_DESC "DPTF Zone"
+#define ESIF_PARTICIPANT_DPTF_NAME "IETM"
+#define ESIF_PARTICIPANT_DPTF_DESC "Manager Participant"
 #define ESIF_PARTICIPANT_DPTF_CLASS_GUID { \
 	0x23, 0xA9, 0xE1, 0x5F, 0x0B, 0xA4, 0x46, 0x9C, \
 	0xB1, 0x6F, 0x1C, 0x46, 0x79, 0x75, 0x4F, 0x80 }
 
 #define ESIF_PARTICIPANT_ACPI_NAME "ACPI"
-#define ESIF_PARTICIPANT_ACPI_DESC "DPTF ACPI Device"
+#define ESIF_PARTICIPANT_ACPI_DESC "ACPI Participant"
 #define ESIF_PARTICIPANT_ACPI_CLASS_GUID { \
 	0xD9, 0xD5, 0xBE, 0x64, 0x3C, 0xE2, 0x49, 0x27, \
 	0x95, 0xA3, 0xEE, 0xE4, 0x0C, 0x9A, 0x58, 0x3B }
 
 #define ESIF_PARTICIPANT_CPU_NAME "TCPU"
-#define ESIF_PARTICIPANT_CPU_DESC "DPTF CPU Device"
+#define ESIF_PARTICIPANT_CPU_DESC "CPU Participant"
 #define ESIF_PARTICIPANT_CPU_CLASS_GUID { \
 	0x53, 0x4A, 0x09, 0x8F, 0x5E, 0x42, 0x4C, 0x64, \
 	0xBE, 0xB3, 0x91, 0x7A, 0xB3, 0x7C, 0x5D, 0xA5 }
 
 #define ESIF_PARTICIPANT_PCH_NAME "TPCH"
-#define ESIF_PARTICIPANT_PCH_DESC "DPTF PCH Device"
+#define ESIF_PARTICIPANT_PCH_DESC "PCH Participant"
 #define ESIF_PARTICIPANT_PCH_CLASS_GUID { \
 	0x33, 0xAB, 0xB9, 0xB2, 0xE6, 0x86, 0x43, 0xB8, \
 	0xB0, 0xDF, 0x3E, 0x91, 0x53, 0x90, 0xCB, 0xE5 }
 
 #define ESIF_PARTICIPANT_PLAT_NAME "PLAT"
-#define ESIF_PARTICIPANT_PLAT_DESC "DPTF Platform Device"
+#define ESIF_PARTICIPANT_PLAT_DESC "Platform Participant"
 #define ESIF_PARTICIPANT_PLAT_CLASS_GUID { \
 	0xD4, 0x08, 0x04, 0xF4, 0xDC, 0x73, 0x4B, 0x33, \
 	0xB2, 0x8C, 0x19, 0x5A, 0xE9, 0x8F, 0x29, 0x0E }
 
 #define ESIF_LF_PE_NAME "LFPE"
-#define ESIF_LF_PE_DESC "LF Participant Extension"
+#define ESIF_LF_PE_DESC "Kernel Participant Extension"
 #define ESIF_LF_PE_CLASS_GUID { \
 	0x5E, 0xE4, 0x34, 0xCD, 0xA5, 0x12, 0x6B, 0x48, \
 	0xBE, 0xD3, 0xF0, 0x7A, 0x6C, 0xFB, 0x48, 0xB2 }

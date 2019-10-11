@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,14 +27,9 @@ class PolicyServicesDomainPlatformPowerStatus final : public PolicyServices, pub
 public:
 	PolicyServicesDomainPlatformPowerStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
-	virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) override;
 	virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getACNominalVoltage(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getACOperationalCurrent(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;

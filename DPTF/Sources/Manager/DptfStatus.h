@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "DptfStatusInterface.h"
+#include "ControlFactoryType.h"
 
 class XmlNode;
 class Indent;
@@ -32,11 +33,8 @@ public:
 	DptfStatus(DptfManagerInterface* dptfManager);
 	~DptfStatus();
 
-	virtual void getStatus(
-		const eAppStatusCommand command,
-		const UInt32 appStatusIn,
-		EsifDataPtr appStatusOut,
-		eEsifError* returnCode) override;
+	virtual std::pair<std::string, eEsifError> getStatus(const eAppStatusCommand command, const UInt32 appStatusIn)
+		override;
 	virtual void clearCache() override;
 
 private:
@@ -52,15 +50,22 @@ private:
 	std::string getPoliciesGroup();
 	std::string getParticipantsGroup();
 	std::string getFrameworkGroup();
+	std::string getArbitratorGroup();
+	std::string getSystemGroup();
+	std::shared_ptr<XmlNode> getArbitratorModuleInGroup(ControlFactoryType::Type type);
 	std::string getModuleData(const UInt32 appStatusIn, eEsifError* returnCode);
 	std::string getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCode);
 	std::string getXmlForParticipant(UInt32 mappedIndex, eEsifError* returnCode);
 	std::string getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode);
+	std::string getXmlForArbitrator(UInt32 moduleIndex, eEsifError* returnCode);
+	std::string getXmlForSystem(UInt32 moduleIndex, eEsifError* returnCode);
 	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedPolicies();
 	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedParticipants();
-	std::shared_ptr<XmlNode> getArbitratorXmlForLoadedParticipants();
+	std::shared_ptr<XmlNode> getArbitratorXmlForLoadedParticipants(UInt32 moduleIndex);
+	std::shared_ptr<XmlNode> getXmlForPlatformRequests();
 
 	void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
+	UIntN getNumberOfUniqueDomains(std::set<UIntN> participantIndexList);
 
 	// KW error resolution
 	DptfStatus(const DptfStatus&);

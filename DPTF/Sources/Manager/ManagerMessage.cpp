@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -279,7 +279,7 @@ std::string ManagerMessage::getPolicyName(UIntN policyIndex) const
 
 	try
 	{
-		Policy* policy = m_dptfManager->getPolicyManager()->getPolicyPtr(policyIndex);
+		auto policy = m_dptfManager->getPolicyManager()->getPolicyPtr(policyIndex);
 		policyName = policy->getName();
 	}
 	catch (...)

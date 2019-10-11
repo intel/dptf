@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,6 @@ public:
 
 	std::string getGroupsString();
 	std::shared_ptr<XmlNode> getStatusAsXml(UIntN mappedIndex);
-	std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN mappedIndex);
 	void clearCachedData();
 
 private:

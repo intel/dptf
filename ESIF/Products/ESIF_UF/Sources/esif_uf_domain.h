@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,8 +55,9 @@ typedef struct EsifUpDomain_s {
 	enum esif_domain_type domainType;	/* Domain Type */
 	char domainName[ESIF_NAME_LEN];
 	struct _t_EsifUp *upPtr;			/* Back pointer to the UP*/
-	UInt8 participantId;
+	esif_handle_t participantId;
 	char participantName[MAX_NAME_STRING_LENGTH];
+	esif_ccb_lock_t capsLock;
 
 	/* Temperature detection */
 	esif_ccb_lock_t tempLock;
@@ -160,6 +161,8 @@ void EsifUpDomain_RegisterForStatePoll(EsifUpDomainPtr self, EsifDomainPollTypeI
 
 void EsifUpDomain_UnRegisterForStatePoll(EsifUpDomainPtr self);
 
+void EsifUpDomain_UnInitDomain(EsifUpDomainPtr self);
+
 eEsifError EsifUpDomain_SetTempThresh(
 	EsifUpDomainPtr self,
 enum EsifDomainAuxId_e threshId,
@@ -200,11 +203,11 @@ eEsifError EsifUpDomain_SignalForegroundAppChanged(
 /*
 * Used to iterate through the available domains.
 * First call EsifUpDomain_InitIterator to initialize the iterator.
-* Next, call EsifUpDomain_GetNextUp using the iterator.  Repeat until
-* EsifUpDomain_GetNextUp fails. The call will release the reference of the
+* Next, call EsifUpDomain_GetNextUd using the iterator.  Repeat until
+* EsifUpDomain_GetNextUd fails. The call will release the reference of the
 * associated upper participant.  If you stop iteration part way through
 * all domains of a particular participant, the caller is responsible for
-* releasing the reference on the associated upper participant.  Iteration\
+* releasing the reference on the associated upper participant.  Iteration
 * is complete when ESIF_E_ITERATOR_DONE is returned.
 */
 eEsifError EsifUpDomain_InitIterator(

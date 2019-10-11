@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,18 +25,25 @@ ControlBase* DomainTemperatureFactory::make(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	UIntN version,
+	UIntN associatedVersion,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 {
+	// Check for threshold support
+	Bool areTemperatureThresholdsSupported = false;
+	if (associatedVersion > 0) {
+		areTemperatureThresholdsSupported = true;
+	}
+
 	switch (version)
 	{
 	case 0:
-		return new DomainTemperature_000(participantIndex, domainIndex, participantServicesInterface);
+		return new DomainTemperature_000(participantIndex, domainIndex, areTemperatureThresholdsSupported, participantServicesInterface);
 		break;
 	case 1:
-		return new DomainTemperature_001(participantIndex, domainIndex, participantServicesInterface);
+		return new DomainTemperature_001(participantIndex, domainIndex, areTemperatureThresholdsSupported, participantServicesInterface);
 		break;
 	case 2:
-		return new DomainTemperature_002(participantIndex, domainIndex, participantServicesInterface);
+		return new DomainTemperature_002(participantIndex, domainIndex, areTemperatureThresholdsSupported, participantServicesInterface);
 		break;
 	default:
 		std::stringstream message;
@@ -45,3 +52,13 @@ ControlBase* DomainTemperatureFactory::make(
 		break;
 	}
 }
+
+ControlBase* DomainTemperatureFactory::make(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UIntN version,
+	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
+{
+	throw not_implemented();
+}
+

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,12 +63,11 @@ Power DomainEnergyControl_001::getInstantaneousPower(UIntN participantIndex, UIn
 	}
 	catch (primitive_not_found_in_dsp&)
 	{
-		getParticipantServices()->writeMessageInfo(
-			ParticipantMessage(FLF, "Participant does not support the get instantaneous power primitive"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Participant does not support the get instantaneous power primitive"; });
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, "Failed to get instantaneous power"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Failed to get instantaneous power"; });
 	}
 
 	return instantaneousPower;
@@ -85,12 +84,11 @@ UInt32 DomainEnergyControl_001::getEnergyThreshold(UIntN participantIndex, UIntN
 	}
 	catch (primitive_not_found_in_dsp&)
 	{
-		getParticipantServices()->writeMessageInfo(
-			ParticipantMessage(FLF, "Participant does not support the get energy threshold primitive"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Participant does not support the get energy threshold primitive"; });
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, "Failed to get energy threshold interrupt"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Failed to get energy threshold interrupt"; });
 	}
 
 	return energyThreshold;
@@ -105,33 +103,35 @@ void DomainEnergyControl_001::setEnergyThreshold(UIntN participantIndex, UIntN d
 	}
 	catch (primitive_not_found_in_dsp&)
 	{
-		getParticipantServices()->writeMessageInfo(
-			ParticipantMessage(FLF, "Participant does not support the set energy threshold primitive"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Participant does not support the set energy threshold primitive"; });
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, "Failed to set energy threshold"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Failed to set energy threshold"; });
 	}
 }
 
-void DomainEnergyControl_001::setEnergyThresholdInterruptDisable(
-	UIntN participantIndex,
-	UIntN domainIndex)
+void DomainEnergyControl_001::setEnergyThresholdInterruptDisable(UIntN participantIndex, UIntN domainIndex)
 {
 	try
 	{
 		getParticipantServices()->primitiveExecuteSet(
-			esif_primitive_type::SET_ENERGY_THRESHOLD_INT_DISABLE, esif_data_type::ESIF_DATA_VOID, nullptr, 0, 0, domainIndex, Constants::Esif::NoInstance);
+			esif_primitive_type::SET_ENERGY_THRESHOLD_INT_DISABLE,
+			esif_data_type::ESIF_DATA_VOID,
+			nullptr,
+			0,
+			0,
+			domainIndex,
+			Constants::Esif::NoInstance);
 	}
 	catch (primitive_not_found_in_dsp&)
 	{
-		getParticipantServices()->writeMessageInfo(ParticipantMessage(
-			FLF, "Participant does not support the set energy threshold interrupt enable primitive"));
+		PARTICIPANT_LOG_MESSAGE_INFO(
+			{ return "Participant does not support the set energy threshold interrupt enable primitive"; });
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageInfo(
-			ParticipantMessage(FLF, "Failed to set energy threshold interrupt flag"));
+		PARTICIPANT_LOG_MESSAGE_INFO({ return "Failed to set energy threshold interrupt flag"; });
 	}
 }
 
@@ -148,11 +148,13 @@ void DomainEnergyControl_001::sendActivityLoggingDataIfEnabled(UIntN participant
 			try
 			{
 				capability.data.energyControl.energyCounter = getRaplEnergyCounter(participantIndex, domainIndex);
-				capability.data.energyControl.instantaneousPower = (UInt32)getInstantaneousPower(participantIndex, domainIndex);
+				capability.data.energyControl.instantaneousPower =
+					(UInt32)getInstantaneousPower(participantIndex, domainIndex);
 			}
 			catch (dptf_exception& ex)
 			{
-				getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.getDescription()));
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
+
 				capability.data.energyControl.energyCounter = 0;
 				capability.data.energyControl.instantaneousPower = 0;
 			}
@@ -162,13 +164,15 @@ void DomainEnergyControl_001::sendActivityLoggingDataIfEnabled(UIntN participant
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-				<< "domain " << getName() << " "
-				<< "("
-				<< "Energy Control"
-				<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Energy Control"
+						<< ")";
+				return message.str();
+			});
 		}
 	}
 	catch (...)
@@ -177,7 +181,7 @@ void DomainEnergyControl_001::sendActivityLoggingDataIfEnabled(UIntN participant
 	}
 }
 
-void DomainEnergyControl_001::clearCachedData(void)
+void DomainEnergyControl_001::onClearCachedData(void)
 {
 	// do nothing
 }

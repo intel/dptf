@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -41,13 +41,21 @@ CFLAGS  += -fPIC
 CFLAGS  += -O2 -D_FORTIFY_SOURCE=2
 CFLAGS  += -Wformat -Wformat-security
 
+# Some flags are not directly compatible with Clang, but work out okay if the following flags are added
+ifeq ($(CC), clang)
+	CFLAGS += -Wno-ignored-optimization-argument -Wno-unused-command-line-argument
+endif
+CFLAGS  += -fno-strict-overflow
+CFLAGS  += -fno-delete-null-pointer-checks
+CFLAGS  += -fwrapv
+
 # Linker Flags added for security purposes
 LDFLAGS += -z noexecstack 
 LDFLAGS += -z relro -z now 
 #LDFLAGS += -pie 
 
 # Secure Compile options if GCC version >= 4.9
-GCC_STRONG := $(shell expr `$(CC) -dumpversion | cut -d'.' -f1,2 | sed -e 's/\.\([0-9]\)$$/0\1/' | sed -e 's/\.//' ` \>= 409)
+GCC_STRONG := $(shell expr `($(CC) -dumpfullversion 2>/dev/null || $(CC) -dumpversion) | cut -d'.' -f1,2,3 | sed -e 's/\.\([0-9]\)$$/0\1/' | sed -e 's/\.//g' ` \>= 409)
 ifeq ($(GCC_STRONG), 1)
        CFLAGS += -fstack-protector-strong
 else
@@ -62,10 +70,10 @@ ifeq ($(OS), Android)
 	CPPFLAGS += -DESIF_ATTR_OS_ANDROID
 else ifeq ($(OS), Chrome)
 	CPPFLAGS += -DESIF_ATTR_OS_CHROME
-	CPPFLAGS += -std=gnu89
+	CPPFLAGS += -std=gnu99
 else
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX
-	CPPFLAGS += -std=gnu89
+	CPPFLAGS += -std=gnu99
 
 	# make PLAT=<x64|x86>
 	ifeq ($(PLAT), x64)

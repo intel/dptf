@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -312,53 +312,53 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 			errmsg = NULL;
 
 			// Ad-Hoc UI Shell commands begin with "0:" so verify ESIF Shell is enabled and command is valid
-			if (msg_id == 0 || client->mode == ServerRestricted) {
-				if (msg_id == 0 && !EsifWsShellEnabled()) {
-					errmsg = "Shell Disabled";
+			if (msg_id == 0 && !EsifWsShellEnabled()) {
+				errmsg = "Shell Disabled";
+			}
+			// Verify ESIF Shell is enabled and command is not in blacklist, or is in whitelist if Restricted mode
+			else {
+				static char *whitelist[] = { "status", "participants", NULL };
+				static char *blacklist[] = { "shell", "web", "exit", "quit", NULL };
+				const char *skip_cmds[] = { "format text && ", "format xml && ", NULL };
+				Bool blocked = ESIF_FALSE;
+				char *rest_cmd = shell_cmd;
+				size_t rest_cmd_len = shell_cmd_len;
+				int j = 0;
+
+				// Skip any commands in the skip_cmds list in before checking the shell command against the blacklist/whitelist
+				while (skip_cmds[j]) {
+					size_t cmd_len = esif_ccb_strlen(skip_cmds[j], MAX_PATH);
+					if (cmd_len < rest_cmd_len && esif_ccb_strnicmp(rest_cmd, skip_cmds[j], cmd_len) == 0) {
+						rest_cmd += cmd_len;
+						rest_cmd_len -= cmd_len;
+						j = 0;
+						continue;
+					}
+					j++;
 				}
+
+				// Verify the shell command is in Whitelist if Restricted Mode
+				if (client->mode == ServerRestricted) {
+					for (j = 0; whitelist[j] != NULL; j++) {
+						if (esif_ccb_strnicmp(rest_cmd, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
+							break;
+						}
+					}
+					if (whitelist[j] == NULL) {
+						blocked = ESIF_TRUE;
+					}
+				}
+				// Verify the shell command is not in Blacklist if Non-Restricted Mode
 				else {
-					static char *whitelist[] = { "status", "participants", NULL };
-					static char *blacklist[] = { "shell", "web", "exit", "quit", NULL };
-					const char *skip_cmds[] = { "format text && ", "format xml && ", NULL };
-					Bool blocked = ESIF_FALSE;
-					char *rest_cmd = shell_cmd;
-					size_t rest_cmd_len = shell_cmd_len;
-					int j = 0;
-
-					// Skip any commands in the skip_cmds list in before checking the shell command against the blacklist/whitelist
-					while (skip_cmds[j]) {
-						size_t cmd_len = esif_ccb_strlen(skip_cmds[j], MAX_PATH);
-						if (cmd_len < rest_cmd_len && esif_ccb_strnicmp(rest_cmd, skip_cmds[j], cmd_len) == 0) {
-							rest_cmd += cmd_len;
-							rest_cmd_len -= cmd_len;
-							j = 0;
-							continue;
-						}
-						j++;
-					}
-
-					// Verify the shell command against Whitelist and Blacklist
-					if (client->mode == ServerRestricted) {
-						for (j = 0; whitelist[j] != NULL; j++) {
-							if (esif_ccb_strnicmp(rest_cmd, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
-								break;
-							}
-						}
-						if (whitelist[j] == NULL) {
+					for (j = 0; blacklist[j] != NULL; j++) {
+						if (esif_ccb_strnicmp(rest_cmd, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
 							blocked = ESIF_TRUE;
+							break;
 						}
 					}
-					else {
-						for (j = 0; blacklist[j] != NULL; j++) {
-							if (esif_ccb_strnicmp(rest_cmd, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
-								blocked = ESIF_TRUE;
-								break;
-							}
-						}
-					}
-					if (blocked) {
-						errmsg = "Unsupported Command";
-					}
+				}
+				if (blocked) {
+					errmsg = "Unsupported Command";
 				}
 			}
 
@@ -665,7 +665,7 @@ esif_error_t WebServer_WebsocketRequest(
 			}
 
 			// Process a Complete Websocket Single or Multi-Fragment Message
-			if (rc == ESIF_OK) {
+			if (rc == ESIF_OK && request.header.hdr.fin == FIN_FINAL) {
 				rc = WebServer_WebsocketResponse(self, client, &request);
 			}
 

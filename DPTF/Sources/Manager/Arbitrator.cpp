@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,80 +17,94 @@
 ******************************************************************************/
 
 #include "Arbitrator.h"
-#include "DptfManager.h"
 
-Arbitrator::Arbitrator(DptfManagerInterface* dptfManager)
-	: m_dptfManager(dptfManager)
+Arbitrator::Arbitrator()
 {
-	m_activeControlArbitrator = new ActiveControlArbitrator();
 	m_configTdpControlArbitrator = new ConfigTdpControlArbitrator();
 	m_coreControlArbitrator = new CoreControlArbitrator();
 	m_displayControlArbitrator = new DisplayControlArbitrator();
 	m_performanceControlArbitrator = new PerformanceControlArbitrator();
 	m_powerControlArbitrator = new PowerControlArbitrator();
-	m_temperatureThresholdArbitrator = new TemperatureThresholdArbitrator(m_dptfManager);
 	m_powerControlCapabilitiesArbitrator = new PowerControlCapabilitiesArbitrator();
 	m_displayControlCapabilitiesArbitrator = new DisplayControlCapabilitiesArbitrator();
 	m_performanceControlCapabilitiesArbitrator = new PerformanceControlCapabilitiesArbitrator();
-	m_platformPowerControlArbitrator = new PlatformPowerControlArbitrator();
+	m_systemPowerControlArbitrator = new SystemPowerControlArbitrator();
 	m_peakPowerControlArbitrator = new PeakPowerControlArbitrator();
 }
 
 Arbitrator::~Arbitrator(void)
 {
-	DELETE_MEMORY_TC(m_activeControlArbitrator);
 	DELETE_MEMORY_TC(m_configTdpControlArbitrator);
 	DELETE_MEMORY_TC(m_coreControlArbitrator);
 	DELETE_MEMORY_TC(m_displayControlArbitrator);
 	DELETE_MEMORY_TC(m_performanceControlArbitrator);
 	DELETE_MEMORY_TC(m_powerControlArbitrator);
-	DELETE_MEMORY_TC(m_temperatureThresholdArbitrator);
 	DELETE_MEMORY_TC(m_powerControlCapabilitiesArbitrator);
 	DELETE_MEMORY_TC(m_displayControlCapabilitiesArbitrator);
 	DELETE_MEMORY_TC(m_performanceControlCapabilitiesArbitrator);
-	DELETE_MEMORY_TC(m_platformPowerControlArbitrator);
+	DELETE_MEMORY_TC(m_systemPowerControlArbitrator);
 	DELETE_MEMORY_TC(m_peakPowerControlArbitrator);
 }
 
 void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
 	// call each arbitrator class to remove the specified policy
-	m_activeControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_configTdpControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_coreControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_displayControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_performanceControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_powerControlArbitrator->removeRequestsForPolicy(policyIndex);
-	m_temperatureThresholdArbitrator->clearPolicyCachedData(policyIndex);
 	m_powerControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
 	m_displayControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
 	m_performanceControlCapabilitiesArbitrator->removeRequestsForPolicy(policyIndex);
-	m_platformPowerControlArbitrator->removeRequestsForPolicy(policyIndex);
+	m_systemPowerControlArbitrator->removeRequestsForPolicy(policyIndex);
 	m_peakPowerControlArbitrator->clearPolicyCachedData(policyIndex);
 }
 
-std::shared_ptr<XmlNode> Arbitrator::getArbitrationXmlForPolicy(UIntN policyIndex) const
+std::shared_ptr<XmlNode> Arbitrator::getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const
 {
 	// call each arbitrator class to get the xml for the specified policy
 	auto domainRoot = XmlNode::createWrapperElement("arbitrators_status");
-	domainRoot->addChild(m_activeControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_configTdpControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_coreControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_displayControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_performanceControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_powerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_temperatureThresholdArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_powerControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_displayControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_performanceControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_platformPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	domainRoot->addChild(m_peakPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
-	return domainRoot;
-}
+	switch (type)
+	{
+	case ControlFactoryType::Active:
+		// using the new interface now
+		break;
+	case ControlFactoryType::ConfigTdp:
+		domainRoot->addChild(m_configTdpControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::Core:
+		domainRoot->addChild(m_coreControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::Display:
+		domainRoot->addChild(m_displayControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		domainRoot->addChild(m_displayControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::PeakPowerControl:
+		domainRoot->addChild(m_peakPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::Performance:
+		domainRoot->addChild(m_performanceControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		domainRoot->addChild(m_performanceControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::PowerControl:
+		domainRoot->addChild(m_powerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		domainRoot->addChild(m_powerControlCapabilitiesArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::SystemPower:
+		domainRoot->addChild(m_systemPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
+		break;
+	case ControlFactoryType::PlatformPowerControl:
+	case ControlFactoryType::ProcessorControl:
+	case ControlFactoryType::Temperature:
+		// using the new interface
+		break;
+	default:
+		// does not have an arbitrator
+		break;
+	}
 
-ActiveControlArbitrator* Arbitrator::getActiveControlArbitrator(void) const
-{
-	return m_activeControlArbitrator;
+	return domainRoot;
 }
 
 ConfigTdpControlArbitrator* Arbitrator::getConfigTdpControlArbitrator(void) const
@@ -118,11 +132,6 @@ PowerControlArbitrator* Arbitrator::getPowerControlArbitrator(void) const
 	return m_powerControlArbitrator;
 }
 
-TemperatureThresholdArbitrator* Arbitrator::getTemperatureThresholdArbitrator(void) const
-{
-	return m_temperatureThresholdArbitrator;
-}
-
 PowerControlCapabilitiesArbitrator* Arbitrator::getPowerControlCapabilitiesArbitrator(void) const
 {
 	return m_powerControlCapabilitiesArbitrator;
@@ -138,9 +147,9 @@ PerformanceControlCapabilitiesArbitrator* Arbitrator::getPerformanceControlCapab
 	return m_performanceControlCapabilitiesArbitrator;
 }
 
-PlatformPowerControlArbitrator* Arbitrator::getPlatformPowerControlArbitrator(void) const
+SystemPowerControlArbitrator* Arbitrator::getSystemPowerControlArbitrator(void) const
 {
-	return m_platformPowerControlArbitrator;
+	return m_systemPowerControlArbitrator;
 }
 
 PeakPowerControlArbitrator* Arbitrator::getPeakPowerControlArbitrator(void) const

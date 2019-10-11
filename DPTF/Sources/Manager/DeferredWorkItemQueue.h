@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,8 +33,8 @@ public:
 	DeferredWorkItemQueue(EsifSemaphore* workItemQueueSemaphore, ImmediateWorkItemQueue* immediateWorkItemQueue);
 	virtual ~DeferredWorkItemQueue(void);
 
-	void enqueue(DeferredWorkItem* newWorkItem);
-	DeferredWorkItem* dequeue(void);
+	void enqueue(std::shared_ptr<DeferredWorkItem> newWorkItem);
+	std::shared_ptr<DeferredWorkItem> dequeue(void);
 
 	// implement WorkItemQueueInterface
 	virtual void makeEmtpy(void) override final;
@@ -48,7 +48,7 @@ private:
 	DeferredWorkItemQueue(const DeferredWorkItemQueue& rhs);
 	DeferredWorkItemQueue& operator=(const DeferredWorkItemQueue& rhs);
 
-	std::list<DeferredWorkItem*> m_queue;
+	std::list<std::shared_ptr<DeferredWorkItem>> m_queue;
 	UInt64 m_maxCount; // stores the maximum number of items in the queue at any one time
 	mutable EsifMutex m_mutex;
 	EsifSemaphore* m_workItemQueueSemaphore;
@@ -56,8 +56,8 @@ private:
 	EsifTimer m_timer;
 
 	void setTimer(void);
-	DeferredWorkItem* getFirstReadyWorkItemFromQueue(void);
-	void insertSortedByDeferredProcessingTime(DeferredWorkItem* newWorkItem);
+	std::shared_ptr<DeferredWorkItem> getFirstReadyWorkItemFromQueue(void);
+	void insertSortedByDeferredProcessingTime(std::shared_ptr<DeferredWorkItem> newWorkItem);
 	void updateMaxCount(void);
 
 	// The timer will call a 'C' function which will need to forward the call to our private

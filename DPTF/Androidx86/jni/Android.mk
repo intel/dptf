@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 ##
 ## The source code, information and material ("Material") contained herein is
 ## owned by Intel Corporation or its suppliers or licensors, and title to such
@@ -47,6 +47,7 @@ include $(TOP_PATH)/SharedLib/MessageLoggingLib/Android.mk
 include $(TOP_PATH)/SharedLib/ParticipantControlsLib/Android.mk
 include $(TOP_PATH)/SharedLib/ParticipantLib/Android.mk
 include $(TOP_PATH)/SharedLib/XmlLib/Android.mk
+include $(TOP_PATH)/SharedLib/ResourceLib/Android.mk
 include $(TOP_PATH)/PolicyLib/Android.mk
 include $(TOP_PATH)/UnifiedParticipant/Android.mk
 include $(TOP_PATH)/Policies/ActivePolicy/Android.mk

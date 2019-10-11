@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,13 +20,20 @@
 #include <algorithm>
 using namespace std;
 
-vector<string> StringParser::split(string input, char delimiter)
+vector<string> StringParser::split(const string& input, char delimiter)
 {
 	vector<string> strings;
+	string inputCopy = input;
+
+	auto nullTerminatorLocation = inputCopy.find_first_of('\0');
+	if (nullTerminatorLocation != string::npos)
+	{
+		inputCopy = inputCopy.substr(0, nullTerminatorLocation + 1);
+	}
 
 	try
 	{
-		std::stringstream stream(input);
+		std::stringstream stream(inputCopy);
 		std::string substring;
 
 		while (stream.eof() == false)
@@ -49,14 +56,43 @@ vector<string> StringParser::split(string input, char delimiter)
 	return strings;
 }
 
-std::string StringParser::removeString(std::string input, std::string substring)
+std::string StringParser::removeString(const std::string& input, const std::string& substring)
 {
-	std::size_t foundPosition = input.find(substring);
+	string inputCopy = input;
+	std::size_t foundPosition = inputCopy.find(substring);
 
 	if (foundPosition != std::string::npos)
 	{
-		input.erase(foundPosition, substring.length());
+		inputCopy.erase(foundPosition, substring.length());
 	}
 
-	return input;
+	return inputCopy;
+}
+
+std::string StringParser::removeCharacter(const std::string& input, char character)
+{
+	string inputCopy = input;
+	std::size_t foundPosition = inputCopy.find(character);
+
+	if (foundPosition != std::string::npos)
+	{
+		inputCopy.erase(foundPosition, 1);
+	}
+
+	return inputCopy;
+}
+
+std::string StringParser::replaceAll(
+	const std::string& input,
+	const std::string& findString,
+	const std::string& replaceString)
+{
+	std::string inputCopy = input;
+	size_t index = inputCopy.find(findString, 0);
+	while (index != (size_t)std::string::npos)
+	{
+		inputCopy.replace(index, findString.size(), replaceString);
+		index = inputCopy.find(findString, index + 1);
+	}
+	return inputCopy;
 }

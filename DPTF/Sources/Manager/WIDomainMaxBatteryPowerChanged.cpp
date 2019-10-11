@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,13 +33,17 @@ WIDomainMaxBatteryPowerChanged::~WIDomainMaxBatteryPowerChanged(void)
 {
 }
 
-void WIDomainMaxBatteryPowerChanged::execute(void)
+void WIDomainMaxBatteryPowerChanged::onExecute(void)
 {
 	writeDomainWorkItemStartingInfoMessage();
 
 	try
 	{
 		getParticipantPtr()->domainMaxBatteryPowerChanged();
+	}
+	catch (participant_index_invalid& ex)
+	{
+		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
 	}
 	catch (std::exception& ex)
 	{
@@ -53,10 +57,10 @@ void WIDomainMaxBatteryPowerChanged::execute(void)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainMaxBatteryPowerChanged(getParticipantIndex());
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

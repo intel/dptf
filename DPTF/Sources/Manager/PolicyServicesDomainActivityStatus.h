@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,4 +29,8 @@ public:
 
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt64 getCoreActivityCounter(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;
 };

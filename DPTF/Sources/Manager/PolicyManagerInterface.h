@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 class dptf_export PolicyManagerInterface
 {
 public:
-	virtual ~PolicyManagerInterface() {};
+	virtual ~PolicyManagerInterface(){};
 
 	virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) = 0;
 	virtual UIntN createPolicy(const std::string& policyFileName) = 0;
@@ -34,12 +34,14 @@ public:
 	virtual void destroyPolicy(UIntN policyIndex) = 0;
 
 	virtual std::set<UIntN> getPolicyIndexes(void) const = 0;
-	virtual std::shared_ptr<SupportedPolicyList> getSupportedPolicyList(void) const = 0;
-	virtual Policy* getPolicyPtr(UIntN policyIndex) = 0;
+	virtual std::shared_ptr<ISupportedPolicyList> getSupportedPolicyList(void) const = 0;
+	virtual IPolicy* getPolicyPtr(UIntN policyIndex) = 0;
+	virtual std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const = 0;
+	virtual Bool policyExists(const std::string& policyName) const = 0;
 
 	virtual void registerEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) = 0;
 	virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) = 0;
 
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) = 0;
-	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(void) = 0;
+	virtual std::string getDiagnosticsAsXml(void) = 0;
 };

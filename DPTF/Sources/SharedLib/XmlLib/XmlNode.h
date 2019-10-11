@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,29 +33,31 @@ namespace NodeType
 class XmlNode
 {
 public:
-	~XmlNode(void);
+	virtual ~XmlNode(void);
 
 	static std::shared_ptr<XmlNode> createRoot();
-	static std::shared_ptr<XmlNode> createComment(std::string comment);
-	static std::shared_ptr<XmlNode> createWrapperElement(std::string tagName);
-	static std::shared_ptr<XmlNode> createDataElement(std::string tagName, std::string data);
+	static std::shared_ptr<XmlNode> createComment(const std::string& comment);
+	static std::shared_ptr<XmlNode> createWrapperElement(const std::string& tag);
+	static std::shared_ptr<XmlNode> createDataElement(const std::string& tag, const std::string& data);
 
 	void addChild(std::shared_ptr<XmlNode> child);
-	void addAttribute(std::string attribute);
 	std::vector<std::shared_ptr<XmlNode>> getChildren();
-	std::vector<std::string> getAttributes();
-	std::string getXmlTag();
+	std::string getTag();
 	std::string getData();
 	NodeType::Type getNodeType();
-	std::string toString();
+	std::string toString(UInt8 tabDepth = 0);
 
 private:
-	XmlNode(NodeType::Type type, std::string rootXmlTag);
-	XmlNode(NodeType::Type type, std::string rootXmlTag, std::string data);
+	XmlNode(NodeType::Type type, std::string tag);
+	XmlNode(NodeType::Type type, std::string tag, std::string data);
+	std::string generateXmlForChildren(UInt8 tabDepth);
+	std::string generateXmlForComment(UInt8 tabDepth);
+	std::string generateXmlForElement(UInt8 tabDepth);
+	bool hasNoData() const;
+	bool hasNoChildren() const;
 
 	NodeType::Type m_type;
-	std::string m_rootXmlTag;
+	std::string m_tag;
 	std::string m_data;
-	std::vector<std::string> m_attributes;
 	std::vector<std::shared_ptr<XmlNode>> m_children;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,8 +36,10 @@ public:
 
 	// Allows the work items to iterate through the list of policies.
 	virtual std::set<UIntN> getPolicyIndexes(void) const override;
-	virtual std::shared_ptr<SupportedPolicyList> getSupportedPolicyList(void) const override;
-	virtual Policy* getPolicyPtr(UIntN policyIndex) override;
+	virtual std::shared_ptr<ISupportedPolicyList> getSupportedPolicyList(void) const override;
+	virtual IPolicy* getPolicyPtr(UIntN policyIndex) override;
+	virtual std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const override;
+	virtual Bool policyExists(const std::string& policyName) const override;
 
 	// Policy manager handles registering and unregistering events since more than one policy can
 	// register or unregister, and we don't want one policy to unregister the event while another
@@ -46,15 +48,15 @@ public:
 	virtual void unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyEvent) override;
 
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(void) override;
-	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(void) override;
-	
+	virtual std::string getDiagnosticsAsXml(void) override;
+
 private:
 	// hide the copy constructor and assignment operator.
 	PolicyManager(const PolicyManager& rhs);
 	PolicyManager& operator=(const PolicyManager& rhs);
 
 	DptfManagerInterface* m_dptfManager;
-	std::map<UIntN, std::shared_ptr<Policy>> m_policies;
+	std::map<UIntN, std::shared_ptr<IPolicy>> m_policies;
 	std::shared_ptr<SupportedPolicyList> m_supportedPolicyList;
 
 	// tracks the overall events registered by one or more policies
@@ -65,4 +67,5 @@ private:
 	UIntN getPolicyCount(void);
 	std::shared_ptr<XmlNode> getEventsXmlForPolicy(UIntN policyIndex);
 	std::shared_ptr<XmlNode> getEventsInXml();
+	EsifServicesInterface* getEsifServices();
 };

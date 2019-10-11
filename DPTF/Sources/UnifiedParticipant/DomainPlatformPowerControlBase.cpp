@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,73 +17,92 @@
 ******************************************************************************/
 
 #include "DomainPlatformPowerControlBase.h"
+#include <DptfBufferStream.h>
+using namespace std::placeholders;
 
 DomainPlatformPowerControlBase::DomainPlatformPowerControlBase(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: ControlBase(participantIndex, domainIndex, participantServicesInterface)
-	, m_pl1Enabled(false)
-	, m_pl2Enabled(false)
-	, m_pl3Enabled(false)
 {
+	bindRequestHandlers();
 }
 
 DomainPlatformPowerControlBase::~DomainPlatformPowerControlBase()
 {
 }
 
-void DomainPlatformPowerControlBase::updateEnabled(PlatformPowerLimitType::Type limitType)
+void DomainPlatformPowerControlBase::bindRequestHandlers()
 {
+	bindRequestHandler(DptfRequestType::PlaftormPowerControlSetPortPowerLimit, [=](const PolicyRequest& policyRequest) {
+		return this->handleSetPortPowerLimit(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::ClearPolicyRequestsForAllControls, [=](const PolicyRequest& policyRequest) {
+		return this->handleRemovePolicyRequests(policyRequest);
+	});
+}
+
+DptfRequestResult DomainPlatformPowerControlBase::handleSetPortPowerLimit(const PolicyRequest& policyRequest)
+{
+	auto policyIndex = policyRequest.getPolicyIndex();
+	auto& request = policyRequest.getRequest();
+
+	std::pair<UInt32, Power> portAndLimit = createFromDptfBuffer(request.getData());
+	UInt32 portNumber = portAndLimit.first;
+	Power powerLimit = portAndLimit.second;
+	auto newPowerLimit = m_arbitrator.arbitrate(policyIndex, portNumber, powerLimit);
 	try
 	{
-		UInt32 plEnabled = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			GET_PLATFORM_POWER_LIMIT_ENABLE, getDomainIndex(), (UInt8)limitType);
-		Bool enabled = plEnabled > 0 ? true : false;
+		setPortPowerLimit(portNumber, newPowerLimit);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Set power limit for port number " << portNumber << " for policy FAILED: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
 
-		switch (limitType)
+	m_arbitrator.commitPolicyRequest(policyIndex, portNumber, powerLimit);
+	std::stringstream message;
+	message << "Set power limit for port number " << portNumber << " for policy.";
+
+	sendActivityLoggingDataIfEnabled(getParticipantIndex(), getDomainIndex());
+
+	return DptfRequestResult(true, message.str(), request);
+}
+
+DptfRequestResult DomainPlatformPowerControlBase::handleRemovePolicyRequests(const PolicyRequest& policyRequest)
+{
+	// the only thing the policy can set is the power limit in this control
+	auto& request = policyRequest.getRequest();
+	auto policyIndex = policyRequest.getPolicyIndex();
+
+	auto portNumbers = m_arbitrator.removeRequestAndGetAffectedPortNumbers(policyIndex);
+	if (m_arbitrator.arbitratedValueChanged())
+	{
+		for (auto portNumber = portNumbers.begin(); portNumber != portNumbers.end(); ++portNumber)
 		{
-		case PlatformPowerLimitType::PSysPL1:
-			m_pl1Enabled = enabled;
-			break;
-		case PlatformPowerLimitType::PSysPL2:
-			m_pl2Enabled = enabled;
-			break;
-		case PlatformPowerLimitType::PSysPL3:
-			m_pl3Enabled = enabled;
-			break;
-		default:
-			break;
+			Power arbitratedPowerLimit = m_arbitrator.getArbitratedValue(*portNumber);
+			setPortPowerLimit(*portNumber, arbitratedPowerLimit);
 		}
 	}
-	catch (...)
-	{
-	}
+
+	return DptfRequestResult(true, "Removed policy set power limit requests from Platform Power Control.", request);
 }
 
-void DomainPlatformPowerControlBase::setEnabled(PlatformPowerLimitType::Type limitType, Bool enable)
+std::pair<UInt32, Power> DomainPlatformPowerControlBase::createFromDptfBuffer(const DptfBuffer& buffer)
 {
-	try
+	if (buffer.size() != (sizeof(UInt32) + sizeof(Power)))
 	{
-		getParticipantServices()->primitiveExecuteSetAsUInt32(
-			SET_PLATFORM_POWER_LIMIT_ENABLE, enable ? (UInt32)1 : (UInt32)0, getDomainIndex(), (UInt8)limitType);
+		throw dptf_exception("Buffer given to Platform Power Control class has invalid length.");
 	}
-	catch (...)
-	{
-	}
-}
 
-Bool DomainPlatformPowerControlBase::isEnabled(PlatformPowerLimitType::Type limitType) const
-{
-	switch (limitType)
-	{
-	case PlatformPowerLimitType::PSysPL1:
-		return m_pl1Enabled;
-	case PlatformPowerLimitType::PSysPL2:
-		return m_pl2Enabled;
-	case PlatformPowerLimitType::PSysPL3:
-		return m_pl3Enabled;
-	default:
-		return false;
-	}
+	DptfBuffer bufferCopy = buffer;
+	DptfBufferStream stream(bufferCopy);
+
+	std::pair<UInt32, Power> newRequest;
+	newRequest.first = stream.readNextUint32();
+	newRequest.second = stream.readNextPower();
+	return newRequest;
 }

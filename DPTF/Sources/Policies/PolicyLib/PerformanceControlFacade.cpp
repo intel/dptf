@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "PerformanceControlFacade.h"
 #include "StatusFormat.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 using namespace StatusFormat;
 
@@ -133,8 +135,8 @@ void PerformanceControlFacade::initializeControlsIfNeeded()
 {
 	if (supportsPerformanceControls())
 	{
-		m_policyServices.messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, "Performance control initialization started."));
+		POLICY_LOG_MESSAGE_DEBUG({ return "Performance control initialization started."; });
+
 		const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
 		if (m_controlsHaveBeenInitialized == false)
 		{
@@ -148,19 +150,16 @@ void PerformanceControlFacade::initializeControlsIfNeeded()
 			UIntN lastLimitSet = m_lastIssuedPerformanceControlIndex;
 			if (lastLimitSet < upperLimit)
 			{
-				m_policyServices.messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, "Adjusting performance limit to maximum allowed."));
+				POLICY_LOG_MESSAGE_DEBUG({ return "Adjusting performance limit to maximum allowed."; });
 				setControl(upperLimit);
 			}
 			else if (lastLimitSet > lowerLimit)
 			{
-				m_policyServices.messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, "Adjusting performance limit to minimum allowed."));
+				POLICY_LOG_MESSAGE_DEBUG({ return "Adjusting performance limit to minimum allowed."; });
 				setControl(lowerLimit);
 			}
 		}
-		m_policyServices.messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, "Performance control initialization finished."));
+		POLICY_LOG_MESSAGE_DEBUG({ return "Performance control initialization finished."; });
 	}
 }
 
@@ -171,4 +170,9 @@ void PerformanceControlFacade::setControlsToMax()
 		const PerformanceControlDynamicCaps& caps = getDynamicCapabilities();
 		setControl(caps.getCurrentUpperLimitIndex());
 	}
+}
+
+const PolicyServicesInterfaceContainer& PerformanceControlFacade::getPolicyServices() const
+{
+	return m_policyServices;
 }

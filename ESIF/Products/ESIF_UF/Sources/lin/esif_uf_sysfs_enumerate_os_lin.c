@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "esif_pm.h"
 #include "esif_dsp.h"
 #include "esif_uf_ccb_imp_spec.h"
+#include "esif_uf_sysfs_os_lin.h"
 
 #define DEFAULT_DRIVER_NAME	""
 #define DEFAULT_DEVICE_NAME	""
@@ -30,9 +31,6 @@
 #define SYSFS_PCI		"/sys/bus/pci/devices"
 #define SYSFS_PLATFORM	"/sys/bus/platform/devices"
 
-#define MAX_SYSFS_STRING 4 * 1024
-#define MAX_SYSFS_SUFFIX 26
-#define MAX_SYSFS_PATH (256 * 2 + MAX_SYSFS_SUFFIX)
 #define MAX_FMT_STR_LEN 15 // "%<Int32>s"
 #define MAX_ZONE_NAME_LEN 56
 #define HID_LEN 8
@@ -52,10 +50,6 @@ static int g_zone_count = 0;
 const char *CPU_location[NUM_CPU_LOCATIONS] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1"};
 static Bool gSocParticipantFound = ESIF_FALSE;
 
-static int sysfsGetString(char *path, char *filename, char *str, size_t buf_len);
-static int sysfsGetU64(char *path, char *filename, u64 *p_u64);
-static int sysfsSetU64(char *path, char *filename, u64 val);
-static int sysfsSetString(char *path, char *filename, char *val);
 static void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
 static int scanPCI(void);
 static int scanPlat(void);
@@ -97,80 +91,6 @@ struct thermalZone {
 };
 
 struct thermalZone thermalZones[MAX_PARTICIPANT_ENTRY] = { {0} };
-
-static int sysfsGetString(char *path, char *filename, char *str, size_t buf_len)
-{
-	FILE *fd = NULL;
-	int ret = -1;
-	char filepath[MAX_SYSFS_PATH] = { 0 };
-	char scanf_fmt[MAX_FMT_STR_LEN] = { 0 };
-
-	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fd = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
-		return ret;
-	}
-
-	// Use dynamic format width specifier to avoid scanf buffer overflow
-	esif_ccb_sprintf(sizeof(scanf_fmt), scanf_fmt, "%%%ds", (int)buf_len - 1);
-	ret = esif_ccb_fscanf(fd, scanf_fmt, str);
-	esif_ccb_fclose(fd);
-
-	return ret;
-}
-
-static int sysfsGetU64(char *path, char *filename, u64 *p_u64)
-{
-	FILE *fd = NULL;
-	int ret = -1;
-	char filepath[MAX_SYSFS_PATH] = { 0 };
-	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fd = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
-		return ret;
-	}
-	ret = esif_ccb_fscanf(fd, "%llu", (u64 *)p_u64);
-
-	esif_ccb_fclose(fd);
-
-	return 0;
-}
-
-static int sysfsSetU64(char *path, char *filename, u64 val)
-{
-	FILE *fd = NULL;
-	int ret = -1;
-	char filepath[MAX_SYSFS_PATH] = { 0 };
-
-	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fd = esif_ccb_fopen(filepath, "w", NULL)) == NULL) {
-		return ret;
-	}
-
-	ret = esif_ccb_fprintf(fd, "%llu", (u64)val);
-	esif_ccb_fclose(fd);
-
-	return 0;
-}
-
-static int sysfsSetString(char *path, char *filename, char *val)
-{
-	FILE *fd = NULL;
-	int ret = -1;
-	char filepath[MAX_SYSFS_PATH] = { 0 };
-
-	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fd = esif_ccb_fopen(filepath, "w", NULL)) == NULL) {
-		return ret;
-	}
-
-	ret = esif_ccb_fprintf(fd, "%s", val);
-	esif_ccb_fclose(fd);
-
-	return 0;
-}
 
 static void createParticipantsFromThermalSysfs(void)
 {
@@ -221,7 +141,7 @@ void SysfsRegisterParticipants ()
 {
 	EsifParticipantIface sysPart;
 	const eEsifParticipantOrigin origin = eParticipantOriginUF;
-	UInt8 newInstance = ESIF_INSTANCE_INVALID;
+	esif_handle_t newInstance = ESIF_INVALID_HANDLE;
 	char *spDesc = "DPTF Zone";
 	char *spObjId = "\\_SB_.IETM";
 	char *spType = "IETM";
@@ -304,7 +224,7 @@ static eEsifError newParticipantCreate (
 {
 	EsifParticipantIface sysPart;
 	const eEsifParticipantOrigin origin = eParticipantOriginUF;
-	UInt8 newInstance = ESIF_INSTANCE_INVALID;
+	esif_handle_t newInstance = ESIF_INVALID_HANDLE;
 	int guid_element_counter = 0;
 
 	ESIF_ASSERT(NULL != classGuid);
@@ -362,7 +282,7 @@ static int scanPCI(void)
 					esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PCI,namelist[n]->d_name);
 					esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
 
-					if (sysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
+					if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
 						int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
 						if (scope_len < ACPI_DEVICE_NAME_LEN) {
 							continue;
@@ -448,11 +368,11 @@ static int scanPlat(void)
 			esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s/%s", SYSFS_PLATFORM,namelist[n]->d_name);
 			esif_ccb_sprintf(MAX_SYSFS_PATH, firmware_path, "%s/firmware_node", participant_path);
 
-			if (sysfsGetString(firmware_path,"hid", hid, sizeof(hid)) < 1) {
+			if (SysfsGetString(firmware_path,"hid", hid, sizeof(hid)) < 1) {
 				esif_ccb_strncpy(hid,SYSFS_DEFAULT_HID,HID_LEN);
 			}
 
-			if (sysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
+			if (SysfsGetString(firmware_path,"path", participant_scope, sizeof(participant_scope)) > -1) {
 				int scope_len = esif_ccb_strlen(participant_scope,ESIF_SCOPE_LEN);
 				if (scope_len < ACPI_DEVICE_NAME_LEN) {
 					continue;
@@ -554,7 +474,7 @@ static int scanThermal(void)
 			}
 			esif_ccb_sprintf(MAX_SYSFS_PATH, target_path, "%s/%s", SYSFS_THERMAL,namelist[n]->d_name);
 
-			if (sysfsGetString(target_path,"type", acpi_name, sizeof(acpi_name)) > -1) {
+			if (SysfsGetString(target_path,"type", acpi_name, sizeof(acpi_name)) > -1) {
 				struct thermalZone tz = { 0 };
 				tz.zoneType = zt;
 				esif_ccb_sprintf(MAX_ZONE_NAME_LEN,tz.acpiCode,"%s",acpi_name);

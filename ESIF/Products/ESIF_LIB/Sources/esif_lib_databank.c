@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,8 @@
 #include "esif_lib_databank.h"
 #include "esif_lib_datarepo.h"
 
-#define DATABANK_GROWBY		5	// Number of items to grow DataBank.elements by at a time
+#define DATABANK_GROWBY		5		// Number of items to grow DataBank.elements by at a time
+#define DATABANK_DEFAULT_DV	"dptf"	// Default Namespace
 
 // define this (and provide a valid static_dv.h) to link static_dv as a Static Data Vault
 // #define STATIC_DV
@@ -64,9 +65,6 @@ char **g_autorepos = NULL;
 // Singleton DataBank (NameSpace) Manager
 static DataBankPtr g_DBMgr = NULL;
 
-// Default DataVault Namespace
-static char g_DBMgr_DefaultDV[ESIF_NAME_LEN] = "dptf";
-
 static DataBankPtr DataBank_Create();
 static void DataBank_Destroy(DataBankPtr self);
 
@@ -89,6 +87,7 @@ static DataBankPtr DataBank_Create()
 	DataBankPtr self = (DataBankPtr)esif_ccb_malloc(sizeof(*self));
 	if (self) {
 		esif_ccb_lock_init(&self->lock);
+		esif_ccb_strcpy(self->defaultDV, DATABANK_DEFAULT_DV, sizeof(self->defaultDV));
 	}
 	return self;
 }
@@ -99,7 +98,7 @@ static void DataBank_Destroy(DataBankPtr self)
 	UInt32 index;
 	if (self) {
 		for (index = 0; self->elements != NULL && index < self->size; index++) {
-			DataVault_Destroy(self->elements[index]);
+			DataVault_PutRef(self->elements[index]);
 			self->elements[index] = NULL;
 		}
 		esif_ccb_free(self->elements);
@@ -130,10 +129,10 @@ DataVaultPtr DataBank_GetDataVault(
 	DataBankPtr self = g_DBMgr;
 	DataVaultPtr vaultPtr = NULL;
 
-	if (NULL == nameSpace) {
-		nameSpace = g_DBMgr_DefaultDV;
-	}
 	esif_ccb_read_lock(&self->lock);
+	if (NULL == nameSpace) {
+		nameSpace = self->defaultDV;
+	}
 	vaultPtr = DataBank_GetDataVault_Locked(nameSpace, NULL);
 	esif_ccb_read_unlock(&self->lock);
 	return vaultPtr;
@@ -158,6 +157,7 @@ static DataVaultPtr DataBank_GetDataVault_Locked(
 		}
 		if (esif_ccb_stricmp(nameSpace, self->elements[index]->name) == 0) {
 			DB = self->elements[index];
+			DataVault_GetRef(DB);
 			break;
 		}
 	}
@@ -191,6 +191,7 @@ DataVaultPtr DataBank_OpenDataVault(
 	if (NULL == DB) {
 		goto exit;
 	}
+	DataVault_GetRef(DB);
 
 	// Grow the elements array when it reaches a GROWBY boundary
 	if (self->elements == NULL || (self->size % DATABANK_GROWBY) == 0) {
@@ -198,8 +199,7 @@ DataVaultPtr DataBank_OpenDataVault(
 		self->elements = (DataVaultPtr *)esif_ccb_realloc(self->elements, (self->size + DATABANK_GROWBY) * sizeof(DataVaultPtr));
 		if (NULL == self->elements) {
 			self->elements = old_elements;
-			DataVault_Destroy(DB);
-			DB = NULL;
+			DataVault_PutRef(DB);
 			goto exit;
 		}
 	}
@@ -216,6 +216,7 @@ DataVaultPtr DataBank_OpenDataVault(
 	}
 	self->elements[insertAt] = DB;
 	self->size++;
+	DataVault_GetRef(DB);
 
 exit:
 	esif_ccb_write_unlock(&self->lock);
@@ -227,20 +228,20 @@ esif_error_t DataBank_ImportDataVault(StringPtr nameSpace)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (nameSpace) {
-		char filename[MAX_PATH] = { 0 };
 		DataVaultPtr DB = DataBank_OpenDataVault(nameSpace);
 		if (!DB) {
 			rc = ESIF_E_NO_MEMORY;
 		}
 		else {
-			// Import DataVault Primary Repo (name.dv) if it exists
-			esif_build_path(filename, sizeof(filename), ESIF_PATHTYPE_DV, DB->name, ESIFDV_FILEEXT);
-			IOStream_SetFile(DB->stream, StoreReadWrite, filename, "rb");
-			rc = DataVault_ImportStream(DB, DB->stream);
+			rc = DataVault_ImportStream(DB);
 			if (rc == ESIF_E_NOT_FOUND) {
 				rc = ESIF_OK;
 			}
+			if (rc != ESIF_OK) {
+				IOStream_dtor(DB->stream);
+			}
 		}
+		DataVault_PutRef(DB);
 	}
 	return rc;
 }
@@ -257,10 +258,11 @@ void DataBank_CloseDataVault(
 	esif_ccb_write_lock(&self->lock);
 
 	DB = DataBank_GetDataVault_Locked(nameSpace, &index);
-	if (NULL == DB || NULL == self->elements) {
+	if (NULL == DB) {
 		goto exit;
 	}
-	DataVault_Destroy(DB);
+	DataVault_PutRef(DB);
+	DB = self->elements[index];
 	self->elements[index] = NULL;
 
 	// Move Array Items down one
@@ -288,6 +290,7 @@ void DataBank_CloseDataVault(
 
 exit:
 	esif_ccb_write_unlock(&self->lock);
+	DataVault_PutRef(DB);
 }
 
 
@@ -298,20 +301,15 @@ Bool DataBank_KeyExists(
 )
 {
 	DataBankPtr self = g_DBMgr;
-	DataVaultPtr DB = NULL;
 	Bool result = ESIF_FALSE;
 
-	if (NULL == self) {
-		goto exit;
+	if (self) {
+		DataVaultPtr DB = DataBank_GetDataVault(nameSpace);
+		if (DB) {
+			result = DataVault_KeyExists(DB, keyName, NULL, NULL);
+		}
+		DataVault_PutRef(DB);
 	}
-
-	esif_ccb_read_lock(&self->lock);
-	DB = DataBank_GetDataVault(nameSpace);
-	if (NULL != DB && DataCache_GetValue(DB->cache, keyName) != NULL) {
-		result = ESIF_TRUE;
-	}
-	esif_ccb_read_unlock(&self->lock);
-exit:
 	return result;
 }
 
@@ -322,21 +320,16 @@ esif_data_type_t DataBank_KeyType(
 )
 {
 	DataBankPtr self = g_DBMgr;
-	DataCacheEntryPtr value = NULL;
-	DataVaultPtr DB = NULL;
 	esif_data_type_t result = (esif_data_type_t)0;
 
-	if (NULL == self) {
-		goto exit;
+	if (self) {
+		esif_data_type_t dataType = result;
+		DataVaultPtr DB = DataBank_GetDataVault(nameSpace);
+		if (DataVault_KeyExists(DB, keyName, &dataType, NULL)) {
+			result = dataType;
+		}
+		DataVault_PutRef(DB);
 	}
-
-	esif_ccb_read_lock(&self->lock);
-	DB = DataBank_GetDataVault_Locked(nameSpace, NULL);
-	if (NULL != DB && ((value = DataCache_GetValue(DB->cache, keyName)) != NULL)) {
-		result = value->value.type;
-	}
-	esif_ccb_read_unlock(&self->lock);
-exit:
 	return result;
 }
 
@@ -345,15 +338,25 @@ void DataBank_SetDefault(
 	const StringPtr nameSpace
 )
 {
-	if (nameSpace) {
-		esif_ccb_strcpy(g_DBMgr_DefaultDV, nameSpace, sizeof(g_DBMgr_DefaultDV));
+	DataBankPtr self = g_DBMgr;
+	if (self && nameSpace) {
+		esif_ccb_write_lock(&self->lock);
+		esif_ccb_strcpy(self->defaultDV, nameSpace, sizeof(self->defaultDV));
+		esif_ccb_write_unlock(&self->lock);
 	}
 }
 
 // Set Default DataVault
 const StringPtr DataBank_GetDefault()
 {
-	return g_DBMgr_DefaultDV;
+	DataBankPtr self = g_DBMgr;
+	StringPtr defaultDV = DATABANK_DEFAULT_DV;
+	if (self) {
+		esif_ccb_read_lock(&self->lock);
+		defaultDV = self->defaultDV;
+		esif_ccb_read_unlock(&self->lock);
+	}
+	return defaultDV;
 }
 
 // Automatically Load all Static DataVaults and *.dv files in the current folder into the DataBank

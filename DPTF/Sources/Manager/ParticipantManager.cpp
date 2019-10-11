@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "DptfStatusInterface.h"
 #include "MapOps.h"
 #include "Utility.h"
+#include "ManagerLogger.h"
 
 ParticipantManager::ParticipantManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
@@ -78,15 +79,21 @@ void ParticipantManager::destroyAllParticipants(void)
 		{
 			// Queue up a work item and wait for the return.
 			m_dptfManager->getDptfStatus()->clearCache();
-			WorkItem* workItem = new WIParticipantDestroy(m_dptfManager, *index);
+			auto workItem = std::make_shared<WIParticipantDestroy>(m_dptfManager, *index);
 			m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 		}
 		catch (...)
 		{
-			ManagerMessage message =
-				ManagerMessage(m_dptfManager, FLF, "Failed while trying to enqueue and wait for WIParticipantDestroy.");
-			message.addMessage("Participant Index", *index);
-			m_dptfManager->getEsifServices()->writeMessageError(message);
+			MANAGER_LOG_MESSAGE_ERROR({
+				ManagerMessage message = ManagerMessage(
+					m_dptfManager,
+					_file,
+					_line,
+					_function,
+					"Failed while trying to enqueue and wait for WIParticipantDestroy.");
+				message.addMessage("Participant Index", *index);
+				return message;
+			});
 		}
 	}
 }
@@ -105,10 +112,12 @@ void ParticipantManager::destroyParticipant(UIntN participantIndex)
 			}
 			catch (...)
 			{
-				ManagerMessage message =
-					ManagerMessage(m_dptfManager, FLF, "Failed while trying to destroy participant.");
-				message.addMessage("Participant Index", participantIndex);
-				m_dptfManager->getEsifServices()->writeMessageError(message);
+				MANAGER_LOG_MESSAGE_ERROR({
+					ManagerMessage message = ManagerMessage(
+						m_dptfManager, _file, _line, _function, "Failed while trying to destroy participant.");
+					message.addMessage("Participant Index", participantIndex);
+					return message;
+				});
 			}
 		}
 
@@ -147,4 +156,33 @@ void ParticipantManager::clearAllParticipantCachedData()
 std::string ParticipantManager::GetStatusAsXml(void)
 {
 	throw implement_me();
+}
+
+std::shared_ptr<IParticipant> ParticipantManager::getParticipant(const std::string& participantName) const
+{
+	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
+	{
+		if (participantName == p->second->getParticipantName())
+		{
+			return p->second;
+		}
+	}
+	throw dptf_exception(std::string("Participant ") + participantName + std::string(" not found."));
+}
+
+Bool ParticipantManager::participantExists(const std::string& participantName) const
+{
+	for (auto p = m_participants.begin(); p != m_participants.end(); p++)
+	{
+		if (participantName == p->second->getParticipantName())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+EsifServicesInterface* ParticipantManager::getEsifServices()
+{
+	return m_dptfManager->getEsifServices();
 }

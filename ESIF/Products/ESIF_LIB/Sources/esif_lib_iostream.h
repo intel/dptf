@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,11 +18,11 @@
 #ifndef _IOSTREAM_H_
 #define _IOSTREAM_H_
 
-#include <stdio.h>
-#include <errno.h>
-
 #include "esif_lib.h"
 #include "esif_lib_istringlist.h"
+
+#include <stdio.h>
+#include <errno.h>
 
 // errno values. See also: errno.h
 #define     EOK         0

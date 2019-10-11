@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,8 @@
 #include "win\banned.h"
 #endif
 
+extern char *esif_str_replace(char *orig, char *rep, char *with);
+
 static eEsifError ActionConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
 	const EsifPrimitiveTuple tuple,
@@ -52,10 +54,12 @@ static eEsifError ESIF_CALLCONV ActionConfigGet(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	EsifData params[2] = {0};
-	EsifString replacedStrs[2] = {0};
+	EsifData params[3] = { 0 };
+	EsifString replacedStrs[sizeof(params) / sizeof(params[0])] = { 0 };
 	EsifString replacedStr = NULL;
+	EsifString primaryKey = NULL;
 	UInt8 i;
+	UInt8 nparams = 2;
 
 	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(requestPtr);
@@ -63,27 +67,70 @@ static eEsifError ESIF_CALLCONV ActionConfigGet(
 	ESIF_ASSERT(NULL != responsePtr);
 	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
 
+	// Optional 3rd Parameter = Subkey Name
+	if (fpcActionPtr->param_valid[2]) {
+		nparams++;
+	}
+
 	rc = EsifFpcAction_GetParams(fpcActionPtr,
 		params,
-		sizeof(params)/sizeof(*params));
+		nparams);
 	if (ESIF_OK != rc) {
 		goto exit;
 	}
 
-	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
-		replacedStr = EsifUp_CreateTokenReplacedParamString(upPtr, primitivePtr, params[i].buf_ptr);
-		if (replacedStr != NULL) {
-			params[i].buf_ptr = replacedStr;
-			replacedStrs[i] = replacedStr;
+	for (i = 0; i < nparams; i++) {
+		if (params[i].type == ESIF_DATA_STRING) {
+			replacedStr = EsifUp_CreateTokenReplacedParamString(upPtr, primitivePtr, params[i].buf_ptr);
+			if (replacedStr != NULL) {
+				if (i == 1 && EsifUp_IsPrimaryParticipant(upPtr)) {
+					primaryKey = params[i].buf_ptr;
+				}
+				params[i].buf_ptr = replacedStr;
+				replacedStrs[i] = replacedStr;
+			}
 		}
 	}
 
 	ESIF_ASSERT(NULL != params[0].buf_ptr);
 	ESIF_ASSERT(ESIF_DATA_STRING == params[0].type);
 
-	rc = EsifConfigGet(&params[0], &params[1], responsePtr);
+	if (nparams == 2) {
+		rc = EsifConfigGet(&params[0], &params[1], responsePtr);
+	}
+	else {
+		rc = EsifConfigGetSubKey(&params[0], &params[1], responsePtr, &params[2]);
+	}
+
+	// Workaround for Backwards Compatibility with GDDV objects that use a Primary Participant not named IETM
+	if (rc == ESIF_E_NOT_FOUND && primaryKey && esif_ccb_strstr(primaryKey, "%nm%") != NULL) {
+		EsifString primaryParticipants[] = { ESIF_PARTICIPANT_DPTF_NAME, "DPTFZ", NULL };
+
+		// If key not found for Primary Participant name, try other known Primary Participant names
+		for (int j = 0; rc == ESIF_E_NOT_FOUND && primaryParticipants[j] != NULL; j++) {
+			if (esif_ccb_stricmp(EsifUp_GetName(upPtr), primaryParticipants[j]) != 0) {
+				char nameTag[ESIF_NAME_LEN] = { 0 };
+				esif_ccb_sprintf(sizeof(nameTag), nameTag, "%s.D0", primaryParticipants[j]);
+				
+				char *keyname = esif_str_replace(primaryKey, "%nm%", nameTag);
+				if (keyname != NULL) {
+					char *buf_ptr = params[1].buf_ptr;
+					params[1].buf_ptr = keyname;
+					if (nparams == 2) {
+						rc = EsifConfigGet(&params[0], &params[1], responsePtr);
+					}
+					else {
+						rc = EsifConfigGetSubKey(&params[0], &params[1], responsePtr, &params[2]);
+					}
+					params[1].buf_ptr = buf_ptr;
+					esif_ccb_free(keyname);
+				}
+			}
+		}
+	}
+
 exit:
-	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
+	for (i = 0; i < nparams; i++) {
 		esif_ccb_free(replacedStrs[i]);
 	}
 	return rc;
@@ -130,6 +177,16 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 
 	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
 		replacedStr = EsifUp_CreateTokenReplacedParamString(upPtr, primitivePtr, params[i].buf_ptr);
+		
+		// Always save Primary Participant keys using IETM for GDDV Portability and OEM Updatability
+		if (i == 1 && replacedStr != NULL && EsifUp_IsPrimaryParticipant(upPtr) && 
+			(esif_ccb_stricmp(EsifUp_GetName(upPtr), ESIF_PARTICIPANT_DPTF_NAME) != 0) && 
+			(esif_ccb_strstr(params[i].buf_ptr, "%nm%") != NULL)) {
+			char nameTag[ESIF_NAME_LEN] = { 0 };
+			esif_ccb_sprintf(sizeof(nameTag), nameTag, "%s.D0", ESIF_PARTICIPANT_DPTF_NAME);
+			esif_ccb_free(replacedStr);
+			replacedStr = esif_str_replace(params[i].buf_ptr, "%nm%", nameTag);
+		}
 		if (replacedStr != NULL) {
 			params[i].buf_ptr = replacedStr;
 			replacedStrs[i] = replacedStr;
@@ -282,6 +339,12 @@ static eEsifError ActionConfigSignalChangeEvents(
 	case SET_POWER_SHARING_ALGORITHM_TABLE:
 		targetEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED;
 		break;
+	case SET_POWER_SHARING_ALGORITHM_TABLE_2:
+		targetEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED;
+		break;
+	case SET_ADAPTIVE_USER_PRESENCE_TABLE:
+		targetEvent = ESIF_EVENT_ADAPTIVE_USER_PRESENCE_TABLE_CHANGED;
+		break;
 	case SET_SUPPORTED_POLICIES:
 		targetEvent = ESIF_EVENT_SUPPORTED_POLICIES_CHANGED;
 		break;
@@ -317,6 +380,16 @@ static eEsifError ActionConfigSignalChangeEvents(
 		break;
 	case SET_FAN_CAPABILITIES:
 		targetEvent = ESIF_EVENT_DOMAIN_FAN_CAPABILITIES_CHANGED;
+		break;
+	case SET_BATTERY_HIGH_FREQUENCY_IMPEDANCE:
+		targetEvent = ESIF_EVENT_DOMAIN_BATTERY_HIGH_FREQUENCY_IMPEDANCE_CHANGED;
+		break;
+	case SET_BATTERY_NO_LOAD_VOLTAGE:
+	case SET_BATTERY_MAX_PEAK_CURRENT:
+		targetEvent = ESIF_EVENT_DOMAIN_BATTERY_NO_LOAD_VOLTAGE_CHANGED;
+		break;
+	case SET_VOLTAGE_THRESHOLD_MATH_TABLE:
+		targetEvent = ESIF_EVENT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED;
 		break;
 	default:
 		targetEvent = 0;

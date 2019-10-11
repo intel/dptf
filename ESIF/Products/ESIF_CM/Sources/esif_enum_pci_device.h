@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -71,8 +71,10 @@ typedef enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_PPT = 0x1e24,
 	ESIF_PCI_DEVICE_ID_CHV = 0x22dc,
 	ESIF_PCI_DEVICE_ID_CNL = 0x5a03,
+	ESIF_PCI_DEVICE_ID_ICL = 0x8a03,
 	ESIF_PCI_DEVICE_ID_LPT = 0x8c24,
 	ESIF_PCI_DEVICE_ID_LKF = 0x9820,
+	ESIF_PCI_DEVICE_ID_TGL = 0x9a03,
 	ESIF_PCI_DEVICE_ID_LPT_LP = 0x9c24,
 	ESIF_PCI_DEVICE_ID_WCP = 0x9ca4,
 } esif_pci_device_id_t;
@@ -102,10 +104,14 @@ static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 		"Cherry View SOC(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_CNL,
 		"DPTF Participant for 7th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_ICL,
+		"DPTF Participant for 8th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT,
 		"Lynx Point(DPTF PCH)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LKF,
 		"LakeField SOC(DPTF CPU)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_TGL,
+		"DPTF Participant for 9th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT_LP,
 		"Lynx Point Low Power(DPTF PCH)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_WCP,
@@ -160,6 +166,8 @@ const struct pci_device_id esif_pci_cpu_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CNL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CHV) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LKF) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_ICL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_TGL) },
 	{ 0 }
 };
 

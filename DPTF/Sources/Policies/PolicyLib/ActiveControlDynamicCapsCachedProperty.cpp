@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,8 +36,18 @@ ActiveControlDynamicCapsCachedProperty::~ActiveControlDynamicCapsCachedProperty(
 
 void ActiveControlDynamicCapsCachedProperty::refreshData(void)
 {
-	m_capabilities =
-		getPolicyServices().domainActiveControl->getActiveControlDynamicCaps(getParticipantIndex(), getDomainIndex());
+	DptfRequest request(DptfRequestType::ActiveControlGetDynamicCaps, getParticipantIndex(), getDomainIndex());
+	auto result = getPolicyServices().serviceRequest->submitRequest(request);
+	result.throwIfFailure();
+	try
+	{
+		m_capabilities = ActiveControlDynamicCaps::createFromFcdc(result.getData());
+	}
+	catch (const std::exception&)
+	{
+		// assume full fan capabilities if failure to retrieve from the system
+		m_capabilities = ActiveControlDynamicCaps(Percentage(0.0), Percentage(1.0));
+	}
 }
 
 Bool ActiveControlDynamicCapsCachedProperty::supportsProperty(void)

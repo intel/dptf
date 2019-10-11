@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,7 +42,7 @@ void ParticipantSetSpecificInfo_000::setParticipantSpecificInfo(
 	throw not_implemented();
 }
 
-void ParticipantSetSpecificInfo_000::clearCachedData(void)
+void ParticipantSetSpecificInfo_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }

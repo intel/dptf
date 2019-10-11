@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,6 +52,9 @@ namespace ParticipantEvent
 		DomainVirtualSensorRecalcChanged,
 		DomainBatteryStatusChanged,
 		DomainBatteryInformationChanged,
+		DomainBatteryHighFrequencyImpedanceChanged,
+		DomainBatteryNoLoadVoltageChanged,
+		DomainMaxBatteryPeakCurrentChanged,
 		DomainPlatformPowerSourceChanged,
 		DomainAdapterPowerRatingChanged,
 		DomainChargerTypeChanged,
@@ -64,6 +67,8 @@ namespace ParticipantEvent
 		DomainAC2msPercentageOverloadChanged,
 		DomainAC10msPercentageOverloadChanged,
 		DomainEnergyThresholdCrossed,
+		DomainFanCapabilityChanged,
+		DomainSocWorkloadClassificationChanged,
 		Max
 	};
 

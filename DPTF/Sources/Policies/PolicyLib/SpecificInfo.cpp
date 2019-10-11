@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,9 +54,7 @@ std::vector<std::pair<ParticipantSpecificInfoKey::Type, Temperature>> SpecificIn
 
 Bool SpecificInfo::hasKey(ParticipantSpecificInfoKey::Type key)
 {
-	return (
-		m_specificInfo.find(key) != m_specificInfo.end()
-		&& m_specificInfo.find(key)->second != Temperature(Constants::MaxUInt32));
+	return (m_specificInfo.find(key) != m_specificInfo.end());
 }
 
 Temperature SpecificInfo::getTemperature(ParticipantSpecificInfoKey::Type key)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,8 +27,10 @@ namespace BatteryState
 		NotCharging = 0x00,
 		Discharging = 0x01,
 		Charging = 0x02,
+		NotChargingCritical = 0x04,
 		DischargingCritical = 0x05,
-		ChargingCritical = 0x06
+		ChargingCritical = 0x06,
+		Invalid = 0xFF
 	};
 
 	std::string ToString(BatteryState::State state);

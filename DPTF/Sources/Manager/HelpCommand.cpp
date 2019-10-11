@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,40 +15,41 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#include "Commands.h"
+#include "HelpCommand.h"
 #include "EsifDataString.h"
 #include "DptfVer.h"
 using namespace std;
 
-pair<esif_error_t, string> HelpCommand::executeCommand()
+HelpCommand::HelpCommand(DptfManagerInterface* dptfManager)
+	: CommandHandler(dptfManager)
 {
-	pair<esif_error_t, string> response;
-	response.first = ESIF_OK;
-	response.second = 
-		"\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-		"DDDDDD    PPPPPP   TTTTTTTT  FFFFFFF      HH    HH  EEEEEE  LL       PPPPPP\n"
-		"DD   DD   PP   PP     TT     FF           HH    HH  EE      LL       PP   PP\n"
-		"DD    DD  PPPPPP      TT     FFFFF        HHHHHHHH  EEEE    LL       PPPPPP\n"
-		"DD   DD   PP          TT     FF           HH    HH  EE      LL       PP           Format:Text\n"
-		"DDDDDD    PP          TT     FF           HH    HH  EEEEEE  LLLLLLL  PP           Version " VERSION_STR "\n\n"
-		"Key:  <>-Required parameters\n"
-		"      []-Optional parameters\n"
-		"       |-Choice of parameters\n"
-		"     ...-Repeated parameters\n\n"
-		"GENERAL COMMANDS:\n"
-		"help                                                                    Displays text about available commands in DPTF\n"
-		"reload policies                                                         Reloads all policies in DPTF\n"
-		"diag all                                                                Runs diagnostics for all policies and all participants in DPTF.\n"
-		"diag <policy policy_name>|<part part_name> ... [filename file_name]     Runs diagnostics for a particular policy or a particular participant in DPTF.\n"
-		"                                                                        ***Currently Supported Policies***\n"
-		"                                                                              Critical Policy (crt)\n"
-		"                                                                        ***Currently Supported Participants***\n"
-		"                                                                              None\n"
-		"diag <policy|part> list                                                 List all policies or participants that are currently supported under diag.\n"
-		"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n";
-	return response;
 }
 
-HelpCommand::~HelpCommand() 
+HelpCommand::~HelpCommand()
 {
+}
+
+std::string HelpCommand::getCommandName() const
+{
+	return "help";
+}
+
+void HelpCommand::execute(const CommandArguments& arguments)
+{
+	// TODO:  possibly require each command to report its own help and this
+	// command would just compile all of the helps for each command
+	string message = "DPTF Help Command.  Application version " VERSION_STR
+					 "\n"
+					 "Key:  <>  Required parameters\n"
+					 "      []  Optional parameters\n"
+					 "\n"
+					 "help                                  Shows help info for available commands\n"
+					 "reload policies                       Reloads all policies\n"
+					 "diag all                              Runs diagnostics on all policies and\n"
+					 "                                      participants\n"
+					 "diag policy <policy name> [file name]\n"
+					 "                                      Runs diagnostics on a policy\n"
+					 "diag part <participant name> [file name]\n"
+					 "                                      Runs diagnostics on a participant\n";
+	setResultMessage(message);
 }

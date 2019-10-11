@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,6 +33,8 @@ public:
 	Temperature getHysteresis(void) const;
 	std::shared_ptr<XmlNode> getXml(void);
 	Bool operator==(const TemperatureThresholds& thresholds) const;
+	DptfBuffer toDptfBuffer() const;
+	static TemperatureThresholds createFromDptfBuffer(const DptfBuffer& buffer);
 
 private:
 	Temperature m_aux0; // lower bound in Tenth Kelvin

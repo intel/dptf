@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "CallbackScheduler.h"
+#include "PolicyLogger.h"
 
 using namespace std;
 
@@ -26,7 +27,7 @@ CallbackScheduler::CallbackScheduler(
 	std::shared_ptr<TimeInterface> time)
 	: m_sourceAvailability(policyServices, time)
 	, m_trt(trt)
-	, m_logger(policyServices.messageLogging)
+	, m_policyServices(policyServices)
 {
 	m_targetScheduler.reset(new PolicyCallbackScheduler(policyServices, time));
 	m_minSampleTime = policyServices.platformConfigurationData->getMinimumAllowableSamplePeriod();
@@ -63,12 +64,10 @@ void CallbackScheduler::ensureCallbackByNextSamplePeriod(UIntN target, UIntN sou
 	if (sampleTime.isInvalid() || (m_minSampleTime.isValid() && sampleTime.isValid() && (sampleTime < m_minSampleTime)))
 	{
 		sampleTime = m_minSampleTime;
-		m_logger->writeMessageDebug(PolicyMessage(
-			FLF,
-			"Sample time requested is below min for target #" + std::to_string(target)
-				+ ". Setting sample time to"
-				+ m_minSampleTime.toStringSeconds()
-				+ "s."));
+		POLICY_LOG_MESSAGE_DEBUG({
+			return "Sample time requested is below min for target #" + std::to_string(target)
+				   + ". Setting sample time to" + m_minSampleTime.toStringSeconds() + "s.";
+		});
 	}
 
 	if (m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
@@ -84,12 +83,10 @@ void CallbackScheduler::ensureCallbackByShortestSamplePeriod(UIntN target, const
 	if (sampleTime.isInvalid() || (m_minSampleTime.isValid() && sampleTime.isValid() && (sampleTime < m_minSampleTime)))
 	{
 		sampleTime = m_minSampleTime;
-		m_logger->writeMessageDebug(PolicyMessage(
-			FLF,
-			"Sample time requested is below min for target #" + std::to_string(target)
-				+ ". Setting sample time to"
-				+ m_minSampleTime.toStringSeconds()
-				+ "s."));
+		POLICY_LOG_MESSAGE_DEBUG({
+			return "Sample time requested is below min for target #" + std::to_string(target)
+				   + ". Setting sample time to" + m_minSampleTime.toStringSeconds() + "s.";
+		});
 	}
 
 	if (sampleTime.isValid() && m_targetScheduler->hasCallbackWithinTimeRange(target, time, time + sampleTime) == false)
@@ -122,6 +119,11 @@ void CallbackScheduler::acknowledgeCallback(UIntN target)
 	m_targetScheduler->acknowledgeCallback(target);
 }
 
+void CallbackScheduler::cancelAllCallbackRequests()
+{
+	m_targetScheduler->cancelAllCallbackRequests();
+}
+
 void CallbackScheduler::setTrt(std::shared_ptr<ThermalRelationshipTable> trt)
 {
 	m_trt = trt;
@@ -139,4 +141,9 @@ std::shared_ptr<XmlNode> CallbackScheduler::getXml() const
 	status->addChild(m_sourceAvailability.getXml());
 	status->addChild(m_targetScheduler->getStatus());
 	return status;
+}
+
+const PolicyServicesInterfaceContainer& CallbackScheduler::getPolicyServices() const
+{
+	return m_policyServices;
 }

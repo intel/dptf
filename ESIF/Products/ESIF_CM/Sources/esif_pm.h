@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -56,6 +56,7 @@
 
 #include "esif.h"
 #include "esif_participant.h"
+#include "esif_ccb.h"
 
 /*
  *******************************************************************************
@@ -65,13 +66,8 @@
 
 /* Maximum Participant Entries */
 #define MAX_PARTICIPANT_ENTRY 32
-
-/* Participant Instances */
-#define ESIF_INSTANCE_LF        0	/* Reserved For ESIF Lower Framework */
 #define ESIF_INSTANCE_FIRST     1	/* The First Useable Instance        */
 #define ESIF_INSTANCE_UF        254	/* Reserved For ESIF Upper Framework */
-#define ESIF_INSTANCE_BROADCAST 255	/* Send To All ESIF Instances        */
-
 
 /* Participant Manager State Machine States */
 enum esif_pm_participant_state {
@@ -125,6 +121,12 @@ struct esif_lp *esif_lf_pm_get_lp_by_instance_id(
 	);
 
 /*
+* This function gets the real participant 0 and does not use symbolic linking
+* to the external DPTF IETM.
+*/
+struct esif_lp *esif_lf_pm_get_participant_0(void);
+	
+/*
  * Get By participant type and takes a reference to the LP
  * NOTE: Code should call esif_lp_put_ref after done using LP
  */
@@ -140,6 +142,14 @@ struct esif_lp *esif_lf_pm_get_lp_by_pi(
 	/* Participant Interface */
 	const struct esif_participant_iface *pi_ptr
 	);
+
+/*
+* Get LP By Name and takes a reference to the LP
+* NOTE: Code should call esif_lp_put_ref after done using LP
+*/
+struct esif_lp *esif_lf_pm_get_lp_by_name(
+	const char *name
+);
 
 /*
  * Used to iterate through the available participants.
@@ -164,7 +174,8 @@ enum esif_rc esif_lf_pm_get_next_lp(
 /* Register Participant */
 enum esif_rc esif_lf_pm_register_participant(
 	/* Participant Interface */
-	struct esif_participant_iface *pi_ptr
+	struct esif_participant_iface *pi_ptr,
+	u8 *instance_ptr
 	);
 
 /* Unregister Participant */
@@ -194,7 +205,7 @@ void esif_lf_pm_exit(void);
 
 typedef struct UfPmIterator_s {
 	u32 marker;
-	UInt8 handle;
+	UInt8 index;
 	Bool ref_taken;
 	EsifUpPtr upPtr;
 } UfPmIterator, *UfPmIteratorPtr;
@@ -220,10 +231,11 @@ typedef struct _t_EsifUppMgr {
 extern "C" {
 #endif
 /* The caller should call EsifUp_PutRef to release reference on participant when done with it */
-EsifUpPtr EsifUpPm_GetAvailableParticipantByInstance(const UInt8 upInstance);
+EsifUpPtr EsifUpPm_GetAvailableParticipantByInstance(const esif_handle_t upInstance);
 
 Bool EsifUpPm_DoesAvailableParticipantExistByName(char *participantName);
 Bool EsifUpPm_DoesAvailableParticipantExistByHID(char *participantHID);
+Bool EsifUpPm_DoesAvailableParticipantExistByDevicePath(char *participantDevicePath);
 
 /* The caller should call EsifUp_PutRef to release reference on participant when done with it */
 EsifUpPtr EsifUpPm_GetAvailableParticipantByName(char *participantName);
@@ -231,20 +243,23 @@ EsifUpPtr EsifUpPm_GetAvailableParticipantByName(char *participantName);
 eEsifError EsifUpPm_RegisterParticipant(
 	const eEsifParticipantOrigin origin,
 	const void *metadataPtr,
-	UInt8 *upInstancePtr
+	esif_handle_t *upInstancePtr
 	);
 
 eEsifError EsifUpPm_UnregisterParticipant(
 	const eEsifParticipantOrigin origin,
-	const UInt8 upInstance
+	const esif_handle_t upInstance
 	);
 
 eEsifError EsifUpPm_StartAllParticipantsSlowPoll();
 
 eEsifError EsifUpPm_StopAllParticipantsSlowPoll();
 
-eEsifError EsifUpPm_SuspendParticipant(const UInt8 upInstance);
-eEsifError EsifUpPm_ResumeParticipant(const UInt8 upInstance);
+eEsifError EsifUpPm_ResumeParticipants();
+
+eEsifError EsifUpPm_DestroyParticipant(char *participantName);
+
+esif_error_t EsifUpPm_DestroyConjuredLfParticipant(esif_string name);
 
 /*
  * Used to iterate through the available participants.
@@ -266,10 +281,19 @@ eEsifError EsifUpPm_GetNextUp(
 	EsifUpPtr *upPtr
 	);
 
+/* Returns current Participant count without iterating */
+UInt8 EsifUpPm_ParticipantCount();
+
 eEsifError EsifUpPm_MapLpidToParticipantInstance(
 	const UInt8 lpInstance,
-	UInt8 *upInstancePtr
+	esif_handle_t *upInstancePtr
 	);
+
+/* 
+* Returns true if any participant, even if suspended, used the given action in
+* its DSP.
+*/
+Bool EsifUpPm_IsActionUsedByParticipants(enum esif_action_type type);
 
 eEsifError EsifUpPm_Init(void);
 void EsifUpPm_Exit(void);
@@ -280,6 +304,11 @@ void EsifUpPm_Exit(void);
 eEsifError EsifUFPollStart(int pollInterval);
 void EsifUFPollStop(void);
 Bool EsifUFPollStarted(void);
+
+
+static ESIF_INLINE Bool EsifUpPm_IsPrimaryParticipantId(esif_handle_t participantId) {
+	return (((ESIF_HANDLE_DEFAULT == participantId) || (ESIF_HANDLE_PRIMARY_PARTICIPANT == participantId)) ? ESIF_TRUE : ESIF_FALSE);
+}
 
 #ifdef __cplusplus
 }

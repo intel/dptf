@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,6 +57,9 @@ namespace PolicyEvent
 			CASE(DomainVirtualSensorRecalcChanged)
 			CASE(DomainBatteryStatusChanged)
 			CASE(DomainBatteryInformationChanged)
+			CASE(DomainBatteryHighFrequencyImpedanceChanged)
+			CASE(DomainBatteryNoLoadVoltageChanged)
+			CASE(DomainMaxBatteryPeakCurrentChanged)
 			CASE(DomainPlatformPowerSourceChanged)
 			CASE(DomainAdapterPowerRatingChanged)
 			CASE(DomainChargerTypeChanged)
@@ -69,6 +72,8 @@ namespace PolicyEvent
 			CASE(DomainAC2msPercentageOverloadChanged)
 			CASE(DomainAC10msPercentageOverloadChanged)
 			CASE(DomainEnergyThresholdCrossed)
+			CASE(DomainFanCapabilityChanged)
+			CASE(DomainSocWorkloadClassificationChanged)
 			CASE(PolicyActiveRelationshipTableChanged)
 			CASE(PolicyCoolingModePolicyChanged)
 			CASE(PolicyForegroundApplicationChanged)
@@ -88,10 +93,16 @@ namespace PolicyEvent
 			CASE(PolicyOperatingSystemPlatformTypeChanged)
 			CASE(PolicyOperatingSystemDockModeChanged)
 			CASE(PolicyOperatingSystemMobileNotification)
+			CASE(PolicyOperatingSystemMixedRealityModeChanged)
+			CASE(PolicyOperatingSystemUserPresenceChanged)
+			CASE(PolicyOperatingSystemScreenStateChanged)
+			CASE(PolicyOperatingSystemBatteryCountChanged)
+			CASE(PolicyOperatingSystemPowerSliderChanged)
 			CASE(PolicyOemVariablesChanged)
 			CASE(PolicyPowerBossConditionsTableChanged)
 			CASE(PolicyPowerBossActionsTableChanged)
 			CASE(PolicyPowerBossMathTableChanged)
+			CASE(PolicyVoltageThresholdMathTableChanged)
 			CASE(DptfPolicyLoadedUnloadedEvent)
 			CASE(DptfPolicyActivityLoggingEnabled)
 			CASE(DptfPolicyActivityLoggingDisabled)
@@ -102,6 +113,8 @@ namespace PolicyEvent
 			CASE(PolicyPowerShareAlgorithmTableChanged)
 			CASE(PowerLimitChanged)
 			CASE(PolicyWorkloadHintConfigurationChanged)
+			CASE(PolicyOperatingSystemGameModeChanged)
+			CASE(PolicyPowerShareAlgorithmTable2Changed)
 		default:
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -128,16 +141,24 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPlatformTypeChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemDockModeChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemMobileNotification)
+			|| (policyEventType == PolicyEvent::PolicyOperatingSystemMixedRealityModeChanged)
+			|| (policyEventType == PolicyEvent::PolicyOperatingSystemUserPresenceChanged)
+			|| (policyEventType == PolicyEvent::PolicyOperatingSystemScreenStateChanged)
+			|| (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryCountChanged)
+			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSliderChanged)
 			|| (policyEventType == PolicyEvent::PolicyOemVariablesChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerBossConditionsTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerBossActionsTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerBossMathTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyVoltageThresholdMathTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged)
 			|| (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPidAlgorithmTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyActiveControlPointRelationshipTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged));
+			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged)
+			|| (policyEventType == PolicyEvent::PolicyOperatingSystemGameModeChanged)
+			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTable2Changed));
 	}
 
 	std::string toString(Type type)
@@ -186,6 +207,12 @@ namespace PolicyEvent
 			return "DomainBatteryStatusChanged";
 		case PolicyEvent::DomainBatteryInformationChanged:
 			return "DomainBatteryInformationChanged";
+		case PolicyEvent::DomainBatteryHighFrequencyImpedanceChanged:
+			return "DomainBatteryHighFrequencyImpedanceChanged";
+		case PolicyEvent::DomainBatteryNoLoadVoltageChanged:
+			return "DomainBatteryNoLoadVoltageChanged";
+		case PolicyEvent::DomainMaxBatteryPeakCurrentChanged:
+			return "DomainMaxBatteryPeakCurrentChanged";
 		case PolicyEvent::DomainPlatformPowerSourceChanged:
 			return "DomainPlatformPowerSourceChanged";
 		case PolicyEvent::DomainAdapterPowerRatingChanged:
@@ -210,6 +237,10 @@ namespace PolicyEvent
 			return "DomainAC10msPercentageOverloadChanged";
 		case PolicyEvent::DomainEnergyThresholdCrossed:
 			return "DomainEnergyThresholdCrossed";
+		case PolicyEvent::DomainFanCapabilityChanged:
+			return "DomainFanCapabilityChanged";
+		case PolicyEvent::DomainSocWorkloadClassificationChanged:
+			return "DomainSocWorkloadClassificationChanged";
 		case PolicyEvent::PolicyActiveRelationshipTableChanged:
 			return "PolicyActiveRelationshipTableChanged";
 		case PolicyEvent::PolicyCoolingModePolicyChanged:
@@ -248,6 +279,16 @@ namespace PolicyEvent
 			return "PolicyOperatingSystemDockModeChanged";
 		case PolicyEvent::PolicyOperatingSystemMobileNotification:
 			return "PolicyOperatingSystemMobileNotification";
+		case PolicyEvent::PolicyOperatingSystemMixedRealityModeChanged:
+			return "PolicyOperatingSystemMixedRealityModeChanged";
+		case PolicyEvent::PolicyOperatingSystemUserPresenceChanged:
+			return "PolicyOperatingSystemUserPresenceChanged";
+		case PolicyEvent::PolicyOperatingSystemScreenStateChanged:
+			return "PolicyOperatingSystemScreenStateChanged";
+		case PolicyEvent::PolicyOperatingSystemBatteryCountChanged:
+			return "PolicyOperatingSystemBatteryCountChanged";
+		case PolicyEvent::PolicyOperatingSystemPowerSliderChanged:
+			return "PolicyOperatingSystemPowerSliderChanged";
 		case PolicyEvent::PolicyOemVariablesChanged:
 			return "PolicyOemVariablesChanged";
 		case PolicyEvent::PolicyPowerBossConditionsTableChanged:
@@ -256,6 +297,8 @@ namespace PolicyEvent
 			return "PolicyPowerBossActionsTableChanged";
 		case PolicyEvent::PolicyPowerBossMathTableChanged:
 			return "PolicyPowerBossMathTableChanged";
+		case PolicyEvent::PolicyVoltageThresholdMathTableChanged:
+			return "PolicyVoltageThresholdMathTableChanged";
 		case PolicyEvent::DptfPolicyLoadedUnloadedEvent:
 			return "DptfPolicyLoadedUnloadedEvent";
 		case PolicyEvent::DptfPolicyActivityLoggingEnabled:
@@ -276,6 +319,10 @@ namespace PolicyEvent
 			return "PowerLimitChanged";
 		case PolicyEvent::PolicyWorkloadHintConfigurationChanged:
 			return "PolicyWorkloadHintConfigurationChanged";
+		case PolicyEvent::PolicyOperatingSystemGameModeChanged:
+			return "PolicyOperatingSystemGameModeChanged";
+		case PolicyEvent::PolicyPowerShareAlgorithmTable2Changed:
+			return "PolicyPowerShareAlgorithmTable2Changed";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

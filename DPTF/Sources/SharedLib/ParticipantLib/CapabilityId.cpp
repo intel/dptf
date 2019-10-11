@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,13 +41,14 @@ namespace Capability
 			CASE(ESIF_CAPABILITY_TYPE_TEMP_STATUS)
 			CASE(ESIF_CAPABILITY_TYPE_UTIL_STATUS)
 			CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS)
+			CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD)
 			CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS)
 			CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_CURRENT_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_PSYS_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL)
-			CASE(ESIF_CAPABILITY_TYPE_TCC_CONTROL)
+			CASE(ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL)
 		default:
 			throw dptf_exception("Capability::Type is invalid.");
 		}
@@ -56,7 +57,7 @@ namespace Capability
 	esif_data getEsifDataFromCapabilityData(EsifCapabilityData* capability)
 	{
 		esif_data eventData = {
-			esif_data_type::ESIF_DATA_STRUCTURE, capability, sizeof(*capability), sizeof(*capability) };
+			esif_data_type::ESIF_DATA_STRUCTURE, capability, sizeof(*capability), sizeof(*capability)};
 		return eventData;
 	}
 }

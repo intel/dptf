@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -77,20 +77,22 @@ static ESIF_INLINE void esif_guid_mangle(esif_guid_t *guid)
 // Enter S0 Shutdown
 static ESIF_INLINE void esif_ccb_shutdown(
 	UInt32 temperature,
-	UInt32 tripPointTemperature
+	UInt32 tripPointTemperature,
+	EsifString namePtr
 	)
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
 	esif_ccb_report_thermal_event(
 		ENVIRONMENTAL_EVENT_SHUTDOWN,
 		temperature,
-		tripPointTemperature
+		tripPointTemperature,
+		namePtr
 		);
 	esif_ccb_system("shutdown /s /f /t 0");
 #elif defined(ESIF_ATTR_OS_CHROME)
 	esif_ccb_system("shutdown -P now");
 #elif defined(ESIF_ATTR_OS_ANDROID)
-	property_set(ANDROID_RB_PROPERTY, "shutdown");
+	property_set(ANDROID_RB_PROPERTY, "thermal-shutdown");
 #else
 	esif_ccb_system("shutdown -h now");
 #endif
@@ -101,14 +103,16 @@ static ESIF_INLINE void esif_ccb_shutdown(
 // Enter S4 Hibernation
 static ESIF_INLINE void esif_ccb_hibernate(
 	UInt32 temperature,
-	UInt32 tripPointTemperature
+	UInt32 tripPointTemperature,
+	EsifString namePtr
 	)
 {
 #if defined(ESIF_ATTR_OS_WINDOWS)
 	esif_ccb_report_thermal_event(
 		ENVIRONMENTAL_EVENT_HIBERNATE,
 		temperature,
-		tripPointTemperature
+		tripPointTemperature,
+		namePtr
 		);
 	/*
 	** TODO: Remove this code later as this is only a temporary solution for

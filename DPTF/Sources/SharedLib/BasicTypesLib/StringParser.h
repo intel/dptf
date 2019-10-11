@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,11 @@
 class StringParser final
 {
 public:
-	static std::vector<std::string> split(std::string input, char delimiter);
-	static std::string removeString(std::string input, std::string substring);
+	static std::vector<std::string> split(const std::string& input, char delimiter);
+	static std::string removeString(const std::string& input, const std::string& substring);
+	static std::string removeCharacter(const std::string& input, char character);
+	static std::string replaceAll(
+		const std::string& input,
+		const std::string& findString,
+		const std::string& replaceString);
 };

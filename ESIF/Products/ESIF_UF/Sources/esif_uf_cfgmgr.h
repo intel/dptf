@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,7 @@ void EsifCfgMgrExit(void);
 /* Get */
 eEsifError EsifConfigGet(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value);
 eEsifError EsifConfigGetItem(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, esif_flags_t *flagsPtr);
+eEsifError EsifConfigGetSubKey(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, EsifDataPtr subkey);
 
 /* Set */
 eEsifError EsifConfigSet(EsifDataPtr nameSpace, EsifDataPtr path, esif_flags_t flags, EsifDataPtr value);

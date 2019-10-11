@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,9 +24,12 @@
 #include "esif_uf_domain.h"
 #include "esif_uf_primitive.h"
 #include "esif_uf_cfgmgr.h"
+#include "esif_uf_shell.h"		/* Dynamic Participants */
 #include "esif_lib_databank.h"
 #include "esif_lib_datarepo.h"
 #include "esif_temp.h"
+#include "esif_ccb_cpuid.h"
+#include "esif_uf_eventmgr.h"
 
 // !!!
 // TODO: Once we move to the DOMAIN MGR some of the interfaces in this file might change!!!
@@ -41,6 +44,8 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
+
+extern char *esif_str_replace(char *orig, char *rep, char *with);
 
 static eEsifError EsifGetActionDelegateGtt0(
 	const EsifUpDomainPtr domainPtr,
@@ -66,6 +71,16 @@ static eEsifError EsifGetActionDelegateVirtualTemperature(
 static eEsifError EsifGetActionDelegateCnfg(
 	const EsifUpDomainPtr domainPtr,
 	const EsifFpcActionPtr fpcActionPtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	);
+
+static eEsifError EsifGetActionDelegateProcBrandMod(
+	EsifDataPtr responsePtr
+	);
+
+static eEsifError EsifGetActionDelegateSupportSocWorkload(
+	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	);
@@ -117,6 +132,44 @@ static eEsifError EsifSetActionDelegateSsap(
 	EsifDataPtr requestPtr
 	);
 
+static eEsifError EsifSetActionDelegateSsme(EsifDataPtr requestPtr);
+static eEsifError EsifSetActionDelegateScsm(EsifDataPtr requestPtr);
+static eEsifError EsifSetActionDelegateScas();
+
+
+#if defined(ESIF_ATTR_OS_WINDOWS)
+
+esif_error_t set_display_state_win(EsifDataPtr requestPtr);
+esif_error_t set_screen_autolock_state_win(EsifDataPtr requestPtr);
+esif_error_t set_wake_on_approach_state_win(EsifDataPtr requestPtr);
+esif_error_t set_workstation_lock_win();
+esif_error_t get_last_hit_input_time_win(EsifDataPtr responsePtr);
+esif_error_t get_display_required_win(EsifDataPtr responsePtr);
+
+#define set_display_state(reqPtr) set_display_state_win(reqPtr)
+#define set_screen_autolock_state(reqPtr) set_screen_autolock_state_win(reqPtr)
+#define set_wake_on_approach_state(reqPtr) set_wake_on_approach_state_win(reqPtr)
+#define set_workstation_lock() set_workstation_lock_win()
+#define get_last_hit_input_time(rspPtr) get_last_hit_input_time_win(rspPtr)
+#define get_display_required(rspPtr) get_display_required_win(rspPtr)
+
+#elif defined(ESIF_ATTR_OS_LINUX)
+
+#define set_display_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_screen_autolock_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_wake_on_approach_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define set_workstation_lock() (ESIF_E_NOT_IMPLEMENTED)
+#define get_last_hit_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+
+#endif
+
+
+// Delegate Opcodes
+#define DELEGATE_ACTL_OPCODE_STRT	'TRTS'	// Start App
+#define DELEGATE_ACTL_OPCODE_STOP	'POTS'	// Stop App
+#define DELEGATE_CNFG_OPCODE_REST	'TSER'	// Restart Apps on GDDV/DCFG Change
+#define DELEGATE_CNFG_OPCODE_DESC	'CSED'	// Get GDDV Description
 
 /*
 ** Handle ESIF Action Request
@@ -181,6 +234,21 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = EsifGetActionDelegateVirtualTemperature(domainPtr, responsePtr);
 		break;
 
+	case 'MBRP': /* PRBM */
+		rc = EsifGetActionDelegateProcBrandMod(responsePtr);
+		break;
+
+	case 'KWSS': /* SSWK */
+		rc = EsifGetActionDelegateSupportSocWorkload(domainPtr, requestPtr, responsePtr);
+		break;
+		
+	case 'IHLG': /* GLHI **/
+		rc = get_last_hit_input_time(responsePtr);
+		break;
+
+	case 'RDEG': /* GEDR */
+		rc = get_display_required(responsePtr);
+		break;
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
@@ -188,6 +256,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 exit:
 	return rc;
 }
+
 
 static eEsifError ESIF_CALLCONV ActionDelegateSet(
 	esif_context_t actCtx,
@@ -224,7 +293,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 	}
 
 	method = *((UInt32 *)p1.buf_ptr);
-
 	switch (method) {
 	
 	/* Set Temperature Trip Points */
@@ -308,6 +376,21 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_MOBILE_NOTIFICATION);
 		break;
 
+	case 'MRMS':    /* SMRM: Set Mixed Reality Mode */
+		ESIF_TRACE_INFO("Set Mixed Reality Mode request received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED);
+		break;
+
+	case 'COSB':    /* BSOC: Set Battery State Of Charge */
+		ESIF_TRACE_INFO("Set Battery State Of Charge request received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DOMAIN_BATTERY_STATE_OF_CHARGE_CHANGED);
+		break;
+
+	case 'PMTB':    /* BTMP: Set Battery Temperature */
+		ESIF_TRACE_INFO("Set Battery Temperature request received\n");
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DOMAIN_BATTERY_TEMPERATURE_CHANGED);
+		break;
+
 	case 'TESR':    /* RSET: Reset Override */
 		ESIF_TRACE_INFO("Reset Override request received\n");
 		rc = EsifSetActionDelegateRset(domainPtr, requestPtr);
@@ -325,6 +408,34 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'PASS':	/* SSAP: Specific Action Primitive execution */
 		rc = EsifSetActionDelegateSsap(upPtr, requestPtr);
+		break;
+
+	case 'SNSS': /* SSNS */
+		rc = set_display_state(requestPtr);
+		break;
+
+	case 'SLAS': /* SALS */
+		rc = set_screen_autolock_state(requestPtr);
+		break;
+
+	case 'LKWS': /* SWKL */
+		rc = set_workstation_lock();
+		break;
+
+	case 'SAOW': /* WOAS */
+		rc = set_wake_on_approach_state(requestPtr);
+		break;
+
+	case 'EMSS': /* SSME */
+		rc = EsifSetActionDelegateSsme(requestPtr);
+		break;
+
+	case 'MSCS': /* SCSM */
+		rc = EsifSetActionDelegateScsm(requestPtr);
+		break;
+
+	case 'SACS': /* SCAS */
+		rc = EsifSetActionDelegateScas();
 		break;
 
 	default:
@@ -399,7 +510,7 @@ static eEsifError EsifSetActionDelegatePat0(
 
 	auxTuple.domain = domainPtr->domain;
 	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &auxTuple, requestPtr, NULL);
-	if (rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
+	if ((rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP) || (domainPtr->tempPollPeriod > 0))
 		rc = ESIF_OK;
 exit:
 	return rc;
@@ -429,7 +540,7 @@ static eEsifError EsifSetActionDelegatePat1(
 
 	auxTuple.domain = domainPtr->domain;
 	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &auxTuple, requestPtr, NULL);
-	if (rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP)
+	if ((rc == ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP) || (domainPtr->tempPollPeriod > 0))
 		rc = ESIF_OK;
 exit:
 	return rc;
@@ -492,7 +603,6 @@ static eEsifError EsifSetActionDelegateRset(
 		EsifFpcActionPtr fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)j);
 		DataItemPtr paramDataVault = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)0);
 		DataItemPtr paramKeyName = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)1);
-		EsifString expandedKeyName = NULL;
 		if (fpcActionPtr->type != ESIF_ACTION_CONFIG) {
 			continue;
 		}
@@ -501,50 +611,58 @@ static eEsifError EsifSetActionDelegateRset(
 			goto exit;
 		}
 		
-		// Replace "%nm%" tokens in the key name or make a copy of the key name for static keys
-		expandedKeyName = EsifUp_CreateTokenReplacedParamString(domainPtr->upPtr, primitivePtr, (StringPtr)paramKeyName->data);
-		if (expandedKeyName == NULL) {
-			expandedKeyName = esif_ccb_strdup((StringPtr)paramKeyName->data);
+		// Valid SET CONFIG Primitive found with valid DV/Key Name; Delete the associated Key(s) from the DataVault.
+		// Delete multiple keys to support GDDV Objects that contain non-IETM Primary Participants
+		EsifString primaryParticipants[] = { ESIF_PARTICIPANT_DPTF_NAME, "DPTFZ", NULL };
+
+		for (size_t part = 0; (part == 0 || (EsifUp_IsPrimaryParticipant(domainPtr->upPtr) && primaryParticipants[part - 1] != NULL)); part++) {
+			// Replace "%nm%" tokens in the key name or make a copy of the key name for static keys
+			EsifString expandedKeyName = NULL;
+			if (part == 0) {
+				expandedKeyName = EsifUp_CreateTokenReplacedParamString(domainPtr->upPtr, primitivePtr, (StringPtr)paramKeyName->data);
+			}
+			else {
+				char nameTag[ESIF_NAME_LEN] = { 0 };
+				esif_ccb_sprintf(sizeof(nameTag), nameTag, "%s.D0", primaryParticipants[part - 1]);
+				expandedKeyName = esif_str_replace((StringPtr)paramKeyName->data, "%nm%", nameTag);
+			}
 			if (expandedKeyName == NULL) {
+				expandedKeyName = esif_ccb_strdup((StringPtr)paramKeyName->data);
+			}
+
+			EsifDataPtr data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, (StringPtr)paramDataVault->data, 0, ESIFAUTOLEN);
+			EsifDataPtr data_key = EsifData_CreateAs(ESIF_DATA_STRING, expandedKeyName, 0, ESIFAUTOLEN);
+
+			if (expandedKeyName == NULL || data_nspace == NULL || data_key == NULL) {
 				rc = ESIF_E_NO_MEMORY;
-				goto exit;
 			}
-		}
-
-		// Valid SET CONFIG Primitive found with valid DV/Key Name; Delete the associated Key from the DataVault
-		EsifDataPtr data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, (StringPtr)paramDataVault->data, 0, ESIFAUTOLEN);
-		EsifDataPtr data_key    = EsifData_CreateAs(ESIF_DATA_STRING, expandedKeyName, 0, ESIFAUTOLEN);
-
-		// Do not signal an Event if Key does not exist in DataVault
-		if (DataBank_KeyExists((StringPtr)paramDataVault->data, expandedKeyName) == ESIF_FALSE) {
-			rc = ESIF_OK;
-		}
-		else if (data_nspace == NULL || data_key == NULL) {
-			rc = ESIF_E_NO_MEMORY;
-		}
-		else {
-			// Delete Existing Key from DataVault
-			rc = EsifConfigDelete(data_nspace, data_key);
-			if (rc == ESIF_OK) {
-				signal_event = ESIF_TRUE;
+			// Do not signal an Event if Key does not exist in DataVault
+			else if (DataBank_KeyExists((StringPtr)paramDataVault->data, expandedKeyName) == ESIF_FALSE) {
+				rc = ESIF_OK;
 			}
+			else {
+				// Delete Existing Key from DataVault
+				rc = EsifConfigDelete(data_nspace, data_key);
+				if (rc == ESIF_OK) {
+					signal_event = ESIF_TRUE;
+				}
 
-			ESIF_TRACE_DEBUG("CONFIG RESET: config delete @%s %s [rc=%s (%d)]\n",
-				(StringPtr)data_nspace->buf_ptr,
-				(StringPtr)data_key->buf_ptr,
-				esif_rc_str(rc),
-				rc
+				ESIF_TRACE_DEBUG("CONFIG RESET: config delete @%s %s [rc=%s (%d)]\n",
+					(StringPtr)data_nspace->buf_ptr,
+					expandedKeyName,
+					esif_rc_str(rc),
+					rc
 				);
+			}
+			EsifData_Destroy(data_nspace);
+			EsifData_Destroy(data_key);
+			esif_ccb_free(expandedKeyName);
 		}
 
 		// Signal any Event(s) associated with this SET Primitive
 		if (signal_event) {
-			EsifActConfigSignalChangeEvents(domainPtr->upPtr, tuple, NULL);
+			rc = EsifActConfigSignalChangeEvents(domainPtr->upPtr, tuple, NULL);
 		}
-
-		EsifData_Destroy(data_nspace);
-		EsifData_Destroy(data_key);
-		esif_ccb_free(expandedKeyName);
 		break;
 	}
 	if (j >= (int)primitivePtr->num_actions) {
@@ -586,10 +704,10 @@ static eEsifError EsifSetActionDelegateActl(
 		appName = (EsifString)requestPtr->buf_ptr;
 
 		switch (opcode) {
-		case 'TRTS': // STRT: Start App
+		case DELEGATE_ACTL_OPCODE_STRT: // Start App
 			rc = EsifAppMgr_AppStart(appName);
 			break;
-		case 'POTS': // STOP: Stop App
+		case DELEGATE_ACTL_OPCODE_STOP: // Stop App
 			rc = EsifAppMgr_AppStop(appName);
 			break;
 		default:
@@ -756,11 +874,10 @@ static eEsifError EsifGetActionDelegateCnfg(
 	EsifData p2 = { 0 };
 	UInt32 opcode = 0;
 	Bool reloadApp = ESIF_FALSE;
+	Bool reloadParts = ESIF_FALSE;
 
 	ESIF_ASSERT(NULL != domainPtr);
 	ESIF_ASSERT(NULL != requestPtr);
-
-	UNREFERENCED_PARAMETER(responsePtr); // Not currently used by DPTF
 
 	// Get Optional Parameter 2
 	rc = EsifFpcAction_GetParamAsEsifData(fpcActionPtr, 1, &p2);
@@ -772,32 +889,35 @@ static eEsifError EsifGetActionDelegateCnfg(
 	gddvTuple.domain = domainPtr->domain;
 
 	// Execute DCFG to read Access Control List Bitmask from BIOS, if it exists
-	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &dcfgTuple, requestPtr, &dcfgData);
-	if (rc == ESIF_OK && dcfgData.buf_ptr != NULL && dcfgData.buf_len >= sizeof(UInt32)) {
-		DCfgOptions newmask = { .asU32 = *(UInt32 *)dcfgData.buf_ptr };
-		DCfg_Set(newmask);
+	if (opcode != DELEGATE_CNFG_OPCODE_DESC) {
+		rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &dcfgTuple, requestPtr, &dcfgData);
+		if (rc == ESIF_OK && dcfgData.buf_ptr != NULL && dcfgData.buf_len >= sizeof(UInt32)) {
+			DCfgOptions newmask = { .asU32 = *(UInt32 *)dcfgData.buf_ptr };
+			DCfg_Set(newmask);
 
-		ESIF_TRACE_INFO("DCFG Loaded: 0x%08X\n", newmask.asU32);
+			ESIF_TRACE_INFO("DCFG Loaded: 0x%08X\n", newmask.asU32);
 
-		// Disable ESIF Shell if Access Control forbids it
-		if (DCfg_Get().opt.ShellAccessControl) {
-			g_shell_enabled = 0;
+			// Disable ESIF Shell if Access Control forbids it
+			if (DCfg_Get().opt.ShellAccessControl) {
+				esif_uf_os_shell_disable();
+				g_shell_enabled = 0;
+			}
+
+			// Stop Web Server (if Started) if Restricted or Generic Access Control forbids it
+			if (EsifWebIsStarted() && 
+				((EsifWebIsServerMode(ESIF_FALSE) && DCfg_Get().opt.GenericUIAccessControl)|| 
+				 (EsifWebIsServerMode(ESIF_TRUE) && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
+				EsifWebStop();
+			}
+
+			// Check if Configuration Changed by comparing to last DCFG value
+			esif_ccb_spinlock_lock(&spinlock);
+			if (lastDcfg.asU32 != newmask.asU32) {
+				lastDcfg.asU32 = newmask.asU32;
+				reloadApp = ESIF_TRUE;
+			}
+			esif_ccb_spinlock_unlock(&spinlock);
 		}
-
-		// Stop Web Server (if Started) if Restricted or Generic Access Control forbids it
-		if (EsifWebIsStarted() && 
-			((EsifWebIsServerMode(ESIF_FALSE) && DCfg_Get().opt.GenericUIAccessControl)|| 
-			 (EsifWebIsServerMode(ESIF_TRUE) && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
-			EsifWebStop();
-		}
-
-		// Check if Configuration Changed by comparing to last DCFG value
-		esif_ccb_spinlock_lock(&spinlock);
-		if (lastDcfg.asU32 != newmask.asU32) {
-			lastDcfg.asU32 = newmask.asU32;
-			reloadApp = ESIF_TRUE;
-		}
-		esif_ccb_spinlock_unlock(&spinlock);
 	}
 
 	// Execute GDDV to read DataVault from BIOS, if it exists
@@ -811,6 +931,7 @@ static eEsifError EsifGetActionDelegateCnfg(
 			// Check if IETM participant created by comparing to previous error
 			esif_ccb_spinlock_lock(&spinlock);
 			if (rc == ESIF_E_ACPI_OBJECT_NOT_FOUND && rc != lastGddvError) {
+				reloadParts = ESIF_TRUE;
 				reloadApp = ESIF_TRUE;
 			}
 			lastGddvError = rc;
@@ -843,11 +964,32 @@ static eEsifError EsifGetActionDelegateCnfg(
 			}
 
 			if (rc == ESIF_OK && IOStream_SetMemory(repo->stream, StoreReadOnly, gddvBuffer->buf_ptr, gddvBuffer->data_len) == EOK) {
-				rc = DataRepo_LoadSegments(repo);
+				if (opcode == DELEGATE_CNFG_OPCODE_DESC) {
+					// Return GDDV Comment from first Header in Repo
+					DataRepoInfo info = { 0 };
+					rc = DataRepo_GetInfo(repo, &info);
+					if (rc == ESIF_OK) {
+						UInt32 data_len = (UInt32)esif_ccb_strlen(info.comment, sizeof(info.comment)) + 1;
+						if (responsePtr == NULL) {
+							rc = ESIF_E_PARAMETER_IS_NULL;
+						}
+						else if (responsePtr->buf_ptr && responsePtr->buf_len >= data_len) {
+							esif_ccb_strcpy(responsePtr->buf_ptr, info.comment, responsePtr->buf_len);
+							responsePtr->data_len = data_len;
+						}
+						else {
+							rc = ESIF_E_NEED_LARGER_BUFFER;
+							responsePtr->data_len = data_len;
+						}
+					}
+				}
+				else {
+					rc = DataRepo_LoadSegments(repo);
+				}
 			}
 
 			// Check if configuration changed by comparing to last GDDV Hash
-			if (rc == ESIF_OK) {
+			if (rc == ESIF_OK && opcode != DELEGATE_CNFG_OPCODE_DESC) {
 				esif_sha256_t gddvHash = { 0 };
 				esif_sha256_init(&gddvHash);
 				esif_sha256_update(&gddvHash, gddvBuffer->buf_ptr, gddvBuffer->data_len);
@@ -856,6 +998,7 @@ static eEsifError EsifGetActionDelegateCnfg(
 				esif_ccb_spinlock_lock(&spinlock);
 				if (memcmp(lastGddvHash, gddvHash.hash, sizeof(lastGddvHash)) != 0) {
 					esif_ccb_memcpy(lastGddvHash, gddvHash.hash, sizeof(lastGddvHash));
+					reloadParts = ESIF_TRUE;
 					reloadApp = ESIF_TRUE;
 				}
 				esif_ccb_spinlock_unlock(&spinlock);
@@ -865,13 +1008,142 @@ static eEsifError EsifGetActionDelegateCnfg(
 		DataRepo_Destroy(repo);
 	}
 
+	// Reload all Dymamic Participants if Primary Participant arrived
+	if (rc == ESIF_OK && reloadParts == ESIF_TRUE) {
+		CreateDynamicParticipants();
+	}
+
 	// Reload all Apps if DCFG or GDDV Configuration changed and DSP Action Parameter 2 = 'REST'
-	if (rc == ESIF_OK && reloadApp == ESIF_TRUE && opcode == 'TSER') {
+	if (rc == ESIF_OK && reloadApp == ESIF_TRUE && opcode == DELEGATE_CNFG_OPCODE_REST) {
 		rc = EsifAppMgr_AppRestartAll();
 	}
 
 	esif_ccb_free(dcfgData.buf_ptr);
 	esif_ccb_free(gddvData.buf_ptr);
+	return rc;
+}
+
+static eEsifError EsifGetActionDelegateProcBrandMod(
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
+	char *cpuInfoStr = NULL;
+	UInt32 brandStrOffset = 0;
+	char brandString[ESIF_CPUID_BRAND_STR_LEN];
+	UInt32 len = 0;
+	char *brandMod = NULL;
+
+	ESIF_ASSERT(responsePtr != NULL);
+
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	responsePtr->data_len = ESIF_CPUID_BRAND_MOD_LEN + 1; // +1 for NUL terminator
+	if (responsePtr->buf_len < responsePtr->data_len) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	cpuInfo.leaf = ESIF_CPUID_LEAF_CPU_BRAND_STR_SUPPORT;
+	esif_ccb_cpuid(&cpuInfo);
+
+	// Check brand string support
+	if (cpuInfo.eax <= ESIF_CPUID_LEAF_CPU_BRAND_STR_PART3) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
+	cpuInfoStr = (char *)&cpuInfo;
+	len = sizeof(cpuInfo) - sizeof(cpuInfo.leaf);
+
+	// The brand string is spread across three leaf's
+	cpuInfo.leaf = ESIF_CPUID_LEAF_CPU_BRAND_STR_PART1;
+	esif_ccb_cpuid(&cpuInfo);
+	esif_ccb_memcpy(brandString, cpuInfoStr, len);
+
+	brandStrOffset += len;
+	cpuInfo.leaf = ESIF_CPUID_LEAF_CPU_BRAND_STR_PART2;
+	esif_ccb_cpuid(&cpuInfo);
+	esif_ccb_memcpy(brandString + brandStrOffset, cpuInfoStr, len);
+
+	brandStrOffset += len;
+	cpuInfo.leaf = ESIF_CPUID_LEAF_CPU_BRAND_STR_PART3;
+	esif_ccb_cpuid(&cpuInfo);
+	esif_ccb_memcpy(brandString + brandStrOffset, cpuInfoStr, len);
+
+	ESIF_TRACE_INFO("Proc Brand Modifier [%s]\n", brandString);
+
+	if (esif_ccb_strstr(brandString, ESIF_CPUID_BRAND_MOD_I3)) {
+		brandMod = ESIF_CPUID_BRAND_MOD_I3;
+	}
+	else if (esif_ccb_strstr(brandString, ESIF_CPUID_BRAND_MOD_I5)) {
+		brandMod = ESIF_CPUID_BRAND_MOD_I5;
+	}
+	else if (esif_ccb_strstr(brandString, ESIF_CPUID_BRAND_MOD_I7)) {
+		brandMod = ESIF_CPUID_BRAND_MOD_I7;
+	}
+	else if (esif_ccb_strstr(brandString, ESIF_CPUID_BRAND_MOD_I9)) {
+		brandMod = ESIF_CPUID_BRAND_MOD_I9;
+	}
+	else {
+		brandMod = ESIF_CPUID_BRAND_MOD_NA;
+	}
+
+	esif_ccb_memcpy(responsePtr->buf_ptr, brandMod, ESIF_CPUID_BRAND_MOD_LEN + 1);
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifGetActionDelegateSupportSocWorkload(
+	const EsifUpDomainPtr domainPtr,
+	const EsifDataPtr requestPtr,
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	char brandMod[ESIF_CPUID_BRAND_MOD_LEN + 1];
+	UInt8 isSupported = ESIF_FALSE;
+	EsifPrimitiveTuple brandModTuple = { GET_PROC_BRAND_MODIFIER, ESIF_PRIMITIVE_DOMAIN_D0, ESIF_INSTANCE_INVALID };
+	struct esif_data esifBrandmod = {
+		ESIF_DATA_STRING,
+		&brandMod,
+		sizeof(brandMod),
+		sizeof(brandMod)
+	};
+
+	ESIF_ASSERT(domainPtr != NULL);
+	ESIF_ASSERT(responsePtr != NULL);
+
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	responsePtr->data_len = sizeof(isSupported);
+	if (responsePtr->buf_len < responsePtr->data_len) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	rc = EsifUp_ExecutePrimitive(domainPtr->upPtr, &brandModTuple, requestPtr, &esifBrandmod);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	if (!esif_ccb_strncmp(brandMod, ESIF_CPUID_BRAND_MOD_I5, ESIF_CPUID_BRAND_MOD_LEN) ||
+		!esif_ccb_strncmp(brandMod, ESIF_CPUID_BRAND_MOD_I7, ESIF_CPUID_BRAND_MOD_LEN) ||
+		!esif_ccb_strncmp(brandMod, ESIF_CPUID_BRAND_MOD_I9, ESIF_CPUID_BRAND_MOD_LEN)) {
+		isSupported = ESIF_TRUE;
+	}
+
+	*((UInt8 *)responsePtr->buf_ptr) = isSupported;
+
+exit:
 	return rc;
 }
 
@@ -1006,6 +1278,57 @@ static eEsifError EsifSetActionDelegateSsap(
 	}
 exit:
 	return rc;
+}
+
+
+
+static eEsifError EsifSetActionDelegateSsme(
+	EsifDataPtr requestPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	eEsifEventType *eventPtr = NULL;
+
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if ((NULL == requestPtr->buf_ptr) || (requestPtr->buf_len < sizeof(*eventPtr))) {
+		rc = ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	eventPtr = (eEsifEventType *)requestPtr->buf_ptr;
+
+	rc = EsifEventMgr_FilterEventType(*eventPtr);
+exit:
+	return rc;
+}
+
+
+static eEsifError EsifSetActionDelegateScsm(
+	EsifDataPtr requestPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	eEsifEventType *eventPtr = NULL;
+
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if ((NULL == requestPtr->buf_ptr) || (requestPtr->buf_len < sizeof(*eventPtr))) {
+		rc = ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	eventPtr = (eEsifEventType *)requestPtr->buf_ptr;
+
+	rc = EsifEventMgr_UnfilterEventType(*eventPtr);
+exit:
+	return rc;
+}
+
+
+static eEsifError EsifSetActionDelegateScas()
+{
+	return EsifEventMgr_UnfilterAllEventTypes();
 }
 
 

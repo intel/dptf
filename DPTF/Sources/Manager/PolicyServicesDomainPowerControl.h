@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,12 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
 		override;
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
-	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual Power getPowerLimitWithoutCache(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
+	virtual Bool isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Bool isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -70,6 +75,7 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle) override;
+	virtual void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) override;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override final;
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override final;
@@ -79,4 +85,8 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void removePowerLimitPolicyRequest(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override final;
 };

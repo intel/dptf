@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,7 +49,7 @@ public:
 	virtual void setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
+	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
@@ -83,7 +83,7 @@ private:
 		UIntN& performanceLowerLimitIndex);
 	void calculateThrottlingStateLimits(UIntN& tStateUpperLimitIndex, UIntN& tStateLowerLimitIndex, UIntN domainIndex);
 	void calculatePerformanceStateLimits(UIntN& pStateUpperLimitIndex, UIntN& pStateLowerLimitIndex, UIntN domainIndex);
-	void throwIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);
+	UIntN snapIfPerformanceControlIndexIsOutOfBounds(UIntN domainIndex, UIntN performanceControlIndex);
 	PerformanceControlStaticCaps createPerformanceControlStaticCaps(void);
 	PerformanceControlSet createPerformanceStateSet(UIntN domainIndex);
 	PerformanceControlSet getPerformanceStateSet(UIntN domainIndex);

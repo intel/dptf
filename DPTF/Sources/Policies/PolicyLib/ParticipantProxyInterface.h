@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,7 +32,7 @@
 class dptf_export ParticipantProxyInterface
 {
 public:
-	virtual ~ParticipantProxyInterface(){};
+	virtual ~ParticipantProxyInterface() {};
 
 	// domain access
 	virtual void bindDomain(std::shared_ptr<DomainProxyInterface> domain) = 0;
@@ -48,12 +48,12 @@ public:
 	virtual const ParticipantProperties& getParticipantProperties() = 0;
 
 	// capabilities
+	virtual Bool supportsConfigTdpInterface() = 0;
 	virtual Bool supportsTemperatureInterface() = 0;
 	virtual Temperature getFirstDomainTemperature() = 0;
 	virtual void setTemperatureThresholds(const Temperature& lowerBound, const Temperature& upperBound) = 0;
 	virtual TemperatureThresholds getTemperatureThresholds() = 0;
 	virtual void refreshHysteresis() = 0;
-	virtual void refreshVirtualSensorTables() = 0;
 	virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) = 0;
 	virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) = 0;
 	virtual const TimeSpan& getTimeOfLastThresholdCrossed() const = 0;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,9 @@
 #include "OsPlatformType.h"
 #include "OsDockMode.h"
 #include "OsPowerSchemePersonality.h"
+#include "OsUserPresence.h"
+#include "OsPowerSlider.h"
+#include "SocWorkloadClassification.h"
 
 class dptf_export PolicyInterface
 {
@@ -118,6 +121,9 @@ public:
 	virtual void domainVirtualSensorRecalcChanged(UIntN participantIndex) = 0;
 	virtual void domainBatteryStatusChanged(UIntN participantIndex) = 0;
 	virtual void domainBatteryInformationChanged(UIntN participantIndex) = 0;
+	virtual void domainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex) = 0;
+	virtual void domainBatteryNoLoadVoltageChanged(UIntN participantIndex) = 0;
+	virtual void domainMaxBatteryPeakCurrentChanged(UIntN participantIndex) = 0;
 	virtual void domainPlatformPowerSourceChanged(UIntN participantIndex) = 0;
 	virtual void domainAdapterPowerRatingChanged(UIntN participantIndex) = 0;
 	virtual void domainChargerTypeChanged(UIntN participantIndex) = 0;
@@ -130,6 +136,11 @@ public:
 	virtual void domainAC2msPercentageOverloadChanged(UIntN participantIndex) = 0;
 	virtual void domainAC10msPercentageOverloadChanged(UIntN participantIndex) = 0;
 	virtual void domainEnergyThresholdCrossed(UIntN participantIndex) = 0;
+	virtual void domainFanCapabilityChanged(UIntN participantIndex) = 0;
+	virtual void domainSocWorkloadClassificationChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocWorkloadClassification::Type socWorkloadClassification) = 0;
 
 	// Policy Event Handlers
 	virtual void activeRelationshipTableChanged(void) = 0;
@@ -146,6 +157,11 @@ public:
 	virtual void operatingSystemDockModeChanged(OsDockMode::Type osDockMode) = 0;
 	virtual void operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState) = 0;
 	virtual void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value) = 0;
+	virtual void operatingSystemMixedRealityModeChanged(OnOffToggle::Type osMixedRealityMode) = 0;
+	virtual void operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) = 0;
+	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
+	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
+	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
 	virtual void passiveTableChanged(void) = 0;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) = 0;
@@ -158,24 +174,28 @@ public:
 	virtual void powerBossConditionsTableChanged(void) = 0;
 	virtual void powerBossActionsTableChanged(void) = 0;
 	virtual void powerBossMathTableChanged(void) = 0;
+	virtual void voltageThresholdMathTableChanged(void) = 0;
 	virtual void emergencyCallModeTableChanged(void) = 0;
 	virtual void pidAlgorithmTableChanged(void) = 0;
 	virtual void activeControlPointRelationshipTableChanged(void) = 0;
 	virtual void powerShareAlgorithmTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
 	virtual void workloadHintConfigurationChanged(void) = 0;
+	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
+	virtual void powerShareAlgorithmTable2Changed(void) = 0;
 };
 
 //
 // The following functions must be exposed externally by the .dll/.so
 //
-extern "C" {
-typedef UInt64 (*GetAppVersionFuncPtr)(void);
-dptf_export UInt64 GetAppVersion(void);
+extern "C"
+{
+	typedef UInt64 (*GetAppVersionFuncPtr)(void);
+	dptf_public_export UInt64 GetAppVersion(void);
 
-typedef PolicyInterface* (*CreatePolicyInstanceFuncPtr)(void);
-dptf_export PolicyInterface* CreatePolicyInstance(void);
+	typedef PolicyInterface* (*CreatePolicyInstanceFuncPtr)(void);
+	dptf_public_export PolicyInterface* CreatePolicyInstance(void);
 
-typedef void (*DestroyPolicyInstanceFuncPtr)(PolicyInterface* policyInterface);
-dptf_export void DestroyPolicyInstance(PolicyInterface* policyInterface);
+	typedef void (*DestroyPolicyInstanceFuncPtr)(PolicyInterface* policyInterface);
+	dptf_public_export void DestroyPolicyInstance(PolicyInterface* policyInterface);
 }

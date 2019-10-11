@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,6 +29,7 @@
 #include "esif_uf_cnjmgr.h"	/* Conjure Manager */
 #include "esif_uf_version.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_handlemgr.h"
 
 /* Init */
 #include "esif_dsp.h"		/* Device Support Package */
@@ -86,6 +87,7 @@ int g_quit		 = ESIF_FALSE;	// Quit
 int g_disconnectClient = ESIF_FALSE;// Disconnect client
 
 int g_esifUfInitIndex = -1; // Index into the intialization/tear-down table of the highest completed item
+int g_esifUfInitPartial = ESIF_FALSE; // Indicates an init item was partially completed
 int g_stopEsifUfInit = ESIF_FALSE; // Used to stop initialization in the middle of the stages
 int g_initVarSet = ESIF_FALSE; // Used to set initialization variables only once
 esif_ccb_event_t g_esifUfInitEvent = { 0 };
@@ -117,15 +119,8 @@ eEsifError EsifLogsInit(void);
 void EsifLogsExit(void);
 
 static eEsifError esif_uf_exec_startup_primitives(void);
+static eEsifError esif_uf_exec_startup_dynamic_parts(void);
 static eEsifError esif_uf_exec_startup_script(void);
-
-
-// Optional Custom path configuration file support
-#ifdef ESIF_ATTR_OS_WINDOWS
-# define ESIF_PATHLIST_FILENAME	"C:\\Windows\\esif.conf"	
-#else
-# define ESIF_PATHLIST_FILENAME	"/etc/esif.conf"
-#endif
 
 // DCFG Support
 static DCfgOptions g_DCfg = { 0 };
@@ -530,7 +525,7 @@ enum esif_rc sync_lf_participants()
 	count    = data_ptr->count;
 
 	for (i = 0; i < count; i++) {
-		UInt8 upInstance = 0;
+		esif_handle_t upInstance = ESIF_INVALID_HANDLE;
 		struct esif_ipc_event_data_create_participant participantData;
 
 		rc = get_participant_data(&participantData, (UInt8)data_ptr->participant_info[i].id);
@@ -541,11 +536,11 @@ enum esif_rc sync_lf_participants()
 
 		rc = EsifUpPm_RegisterParticipant(eParticipantOriginLF, &participantData, &upInstance);
 		if (ESIF_OK != rc) {
-			ESIF_TRACE_ERROR("Failed to add participant %s to participant manager\n", participantData.name);
+			ESIF_TRACE_ERROR("Failed to add participant %s to participant manager; %s(%u)", participantData.name, esif_rc_str(rc), rc);
 			continue;
 		}
 
-		ESIF_TRACE_INFO("\nCreated new UF participant: %s, instance = %d\n", participantData.name, upInstance);
+		ESIF_TRACE_INFO("\nCreated new UF participant: %s, instance = " ESIF_HANDLE_FMT "\n", participantData.name, esif_ccb_handle2llu(upInstance));
 	}
 exit:
 	ESIF_TRACE_INFO("rc = %s(%u)", esif_rc_str(rc), rc);
@@ -588,6 +583,7 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 		{ "LOCK",	ESIF_PATHTYPE_LOCK },
 		{ "EXE",	ESIF_PATHTYPE_EXE },
 		{ "DLL",	ESIF_PATHTYPE_DLL },
+		{ "DLLALT",	ESIF_PATHTYPE_DLL_ALT },
 		{ "DPTF",	ESIF_PATHTYPE_DPTF },
 		{ "DSP",	ESIF_PATHTYPE_DSP },
 		{ "CMD",	ESIF_PATHTYPE_CMD },
@@ -600,21 +596,9 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 
 	if (!g_pathlist.initialized) {
 		char *buffer = NULL;
-		char *filename = ESIF_PATHLIST_FILENAME;
-		FILE *fp = NULL;
-		struct stat st={0};
 
-		// Use pathlist file, if it exists
-		if (esif_ccb_stat(filename, &st) == 0 && ((fp = esif_ccb_fopen(filename, "rb", NULL)) != NULL)) {
-			if ((buffer = (char *) esif_ccb_malloc(st.st_size + 1)) != NULL) {
-				if (esif_ccb_fread(buffer, st.st_size, sizeof(char), st.st_size, fp) != (size_t)st.st_size) {
-					rc = ESIF_E_IO_ERROR;
-				}
-			}
-			esif_ccb_fclose(fp);
-		}
-		// Otherwise, use default pathlist
-		else if (paths != NULL) {
+		// Use default pathlist if none specified
+		if (paths != NULL) {
 			buffer = esif_ccb_strdup(paths);
 		}
 
@@ -947,12 +931,10 @@ eEsifError EsifWebStart()
 		return ESIF_E_WS_ALREADY_STARTED;
 	}
 
-	esif_ccb_mutex_lock(&self->fLock);
-
 	// Load Library if necessary
-	if (self->fLibHandle == NULL) {
-		rc = EsifWebLoad();
-	}
+	rc = EsifWebLoad();
+
+	esif_ccb_mutex_lock(&self->fLock);
 
 	// Start Web Server
 	if (rc == ESIF_OK && self->fInterface.fEsifWsStartFuncPtr) {
@@ -1155,32 +1137,35 @@ eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
 
 
 EsifInitTableEntry g_esifUfInitTable[] = {
-	{esif_uf_shell_init,				esif_uf_shell_exit,					ESIF_INIT_FLAG_NONE},
-	{esif_ccb_mempool_init_tracking,	esif_ccb_mempool_uninit_tracking,	ESIF_INIT_FLAG_NONE},
-	{EsifLogsInit,						EsifLogsExit,						ESIF_INIT_FLAG_NONE},
-	{esif_link_list_init,				esif_link_list_exit,				ESIF_INIT_FLAG_NONE},
-	{esif_ht_init,						esif_ht_exit,						ESIF_INIT_FLAG_NONE},
-	{esif_ccb_tmrm_init,				esif_ccb_tmrm_exit,					ESIF_INIT_FLAG_NONE},
-	{EsifCfgMgrInit,					EsifCfgMgrExit,						ESIF_INIT_FLAG_NONE},
-	{EsifEventMgr_Init,					EsifEventMgr_Exit,					ESIF_INIT_FLAG_NONE},
-	{EsifDspMgrInit,					EsifDspMgrExit,						ESIF_INIT_FLAG_IGNORE_ERROR | ESIF_INIT_FLAG_CHECK_STOP_AFTER},
-	{EsifActMgrInit,					EsifActMgrExit,						ESIF_INIT_FLAG_NONE},
-	{EsifUpPm_Init,						EsifUpPm_Exit,						ESIF_INIT_FLAG_NONE},
-	{esif_uf_os_init,					esif_uf_os_exit,					ESIF_INIT_FLAG_NONE},
-	{EsifCnjMgrInit,					EsifCnjMgrExit,						ESIF_INIT_FLAG_NONE},
-	{EsifAppMgrInit,					EsifAppMgrExit,						ESIF_INIT_FLAG_NONE},
-	{esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE},
+	{ esif_uf_shell_init,				esif_uf_shell_exit,					ESIF_INIT_FLAG_NONE },
+	{ esif_ccb_mempool_init_tracking,	esif_ccb_mempool_uninit_tracking,	ESIF_INIT_FLAG_NONE },
+	{ EsifLogsInit,						EsifLogsExit,						ESIF_INIT_FLAG_NONE },
+	{ esif_link_list_init,				esif_link_list_exit,				ESIF_INIT_FLAG_NONE },
+	{ esif_ht_init,						esif_ht_exit,						ESIF_INIT_FLAG_NONE },
+	{ esif_ccb_tmrm_init,				esif_ccb_tmrm_exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifHandleMgr_Init,				EsifHandleMgr_Exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifCfgMgrInit,					EsifCfgMgrExit,						ESIF_INIT_FLAG_NONE },
+	{ EsifEventMgr_Init,				EsifEventMgr_Exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifDspMgrInit,					EsifDspMgrExit,						ESIF_INIT_FLAG_IGNORE_ERROR | ESIF_INIT_FLAG_CHECK_STOP_AFTER },
+	{ EsifActMgrInit,					EsifActMgrExit,						ESIF_INIT_FLAG_NONE },
+	{ EsifAppMgr_Init,					EsifAppMgr_Exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifUpPm_Init,					EsifUpPm_Exit,						ESIF_INIT_FLAG_NONE },
+	{ esif_uf_os_init,					esif_uf_os_exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifCnjMgrInit,					EsifCnjMgrExit,						ESIF_INIT_FLAG_NONE },
+	{ EsifAppMgr_Start,					EsifAppMgr_Stop,					ESIF_INIT_FLAG_NONE },
+	{ esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE },
 	// Next NULL init items may or may not be running and are only started once ESIF is fully initialized
-	{NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE},
-	{NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE},
-	{NULL,								esif_uf_shell_stop,					ESIF_INIT_FLAG_NONE},
-	{EsifWebInit,						EsifWebExit,						ESIF_INIT_FLAG_NONE},
-	{esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_IGNORE_ERROR},
-	{esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER},
-	{esif_uf_shell_banner_init,			NULL,								ESIF_INIT_FLAG_NONE},
+	{ NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE },
+	{ NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE },
+	{ NULL,								esif_uf_shell_stop,					ESIF_INIT_FLAG_NONE },
+	{ EsifWebInit,						EsifWebExit,						ESIF_INIT_FLAG_NONE },
+	{ esif_uf_exec_startup_primitives,	NULL,								ESIF_INIT_FLAG_IGNORE_ERROR },
+	{ esif_uf_exec_startup_dynamic_parts,NULL,								ESIF_INIT_FLAG_IGNORE_ERROR },
+	{ esif_uf_exec_startup_script,		NULL,								ESIF_INIT_FLAG_CHECK_STOP_AFTER },
+	{ esif_uf_shell_banner_init,		NULL,								ESIF_INIT_FLAG_NONE },
 	// If shutting down, event processing is disabled
-	{NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_NONE},
-	{NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE},
+	{ NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_NONE },
+	{ NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE },
 };
 
 //
@@ -1196,6 +1181,7 @@ eEsifError esif_uf_init(void)
 
 	ESIF_TRACE_ENTRY_INFO();
 
+	g_esifUfInitPartial = ESIF_FALSE;
 	esif_ccb_event_reset(&g_esifUfInitEvent);
 
 	for (index = g_esifUfInitIndex + 1; index < (int)(sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr)); index++) {
@@ -1224,6 +1210,7 @@ eEsifError esif_uf_init(void)
 
 		rc = curEntryPtr->initFunc();
 		if (ESIF_I_INIT_PAUSED == rc) {
+			g_esifUfInitPartial = ESIF_TRUE;
 			break;
 		}
 		if ((rc != ESIF_OK) && !(curEntryPtr->flags & ESIF_INIT_FLAG_IGNORE_ERROR)) {
@@ -1270,7 +1257,10 @@ void esif_uf_exit()
 
 	esif_uf_stop_init();
 
-	if (g_esifUfInitIndex >= (int)(sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr))) {
+	if (g_esifUfInitPartial) {
+		g_esifUfInitIndex++;  // Must call exit for partially initialized objects
+	}
+	if ((size_t)g_esifUfInitIndex >= (sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr))) {
 		goto exit;
 	}
 	curEntryPtr = &g_esifUfInitTable[g_esifUfInitIndex];
@@ -1281,6 +1271,7 @@ void esif_uf_exit()
 			curEntryPtr->exitFunc();
 		}
 	}
+	g_stopEsifUfInit = ESIF_FALSE;
 exit:
 	ESIF_TRACE_EXIT_INFO();
 }
@@ -1351,7 +1342,7 @@ static eEsifError esif_uf_exec_startup_primitives(void)
 	ESIF_TRACE_ENTRY_INFO();
 
 	// IETM may not be present if conjuring, so do not fail if IETM not found
-	upPtr = EsifUpPm_GetAvailableParticipantByInstance(ESIF_INSTANCE_LF); // IETM Participant
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(ESIF_HANDLE_PRIMARY_PARTICIPANT); // IETM Participant
 	if (NULL == upPtr) {
 		goto exit;
 	}
@@ -1366,6 +1357,45 @@ exit:
 	return rc;
 }
 
+/* Create Dynamic Participants as defined in Data Vault
+ */
+static eEsifError esif_uf_exec_startup_dynamic_parts(void)
+{
+	return CreateDynamicParticipants();
+}
+
+/* Execute Startup Commands as defined in platform.dv
+*/
+static eEsifError esif_uf_exec_startup_autoexec(void)
+{
+	eEsifError rc = ESIF_OK;
+	StringPtr dvname = STARTUP_AUTOEXEC_DATAVAULT;
+	StringPtr keyspec = STARTUP_AUTOEXEC_KEYSPEC;
+	EsifDataPtr nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, dvname, 0, ESIFAUTOLEN);
+	EsifDataPtr key = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+	EsifDataPtr value = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+	EsifConfigFindContext context = NULL;
+
+	if (nameSpace && key && value && key->buf_ptr && (rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
+		do {
+			StringPtr command = value->buf_ptr;
+			if (value->type == ESIF_DATA_STRING && command && *command) {
+				esif_shell_execute(command);
+			}
+			EsifData_Set(key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
+			EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		} while ((rc = EsifConfigFindNext(nameSpace, key, value, &context)) == ESIF_OK);
+
+		EsifConfigFindClose(&context);
+		if (rc == ESIF_E_ITERATION_DONE) {
+			rc = ESIF_OK;
+		}
+	}
+	EsifData_Destroy(nameSpace);
+	EsifData_Destroy(key);
+	EsifData_Destroy(value);
+	return rc;
+}
 
 static eEsifError esif_uf_exec_startup_script(void)
 {
@@ -1391,6 +1421,9 @@ static eEsifError esif_uf_exec_startup_script(void)
 	else {
 		esif_ccb_strcpy(command, "autoexec", sizeof(command));
 	}
+
+	// Execute autoexec startup commands in platform.dv before start script
+	esif_uf_exec_startup_autoexec();
 
 	// Execute Startup Script, if one was found
 	if (command[0]) {
@@ -1522,7 +1555,7 @@ exit:
 }
 
 
-void esif_memtrace_init()
+esif_error_t esif_memtrace_init()
 {
 	struct memalloc_s *mem = NULL;
 
@@ -1539,6 +1572,8 @@ void esif_memtrace_init()
 	g_memtrace.allocated = NULL;
 	esif_ccb_write_unlock(&g_memtrace.lock);
 	ESIF_TRACE_EXIT_INFO();
+
+	return ESIF_OK;
 }
 
 void esif_memtrace_exit()
@@ -1574,7 +1609,9 @@ void esif_memtrace_exit()
 			fprintf(tracelog, "[%s @%s:%d]: (%lld bytes) %p\n", mem->func, mem->file, mem->line, (long long)mem->size, mem->mem_ptr);
 		}
 		mem = mem->next;
-		native_free(node->mem_ptr);
+		if (g_memtrace.free_leaks) {
+			native_free(node->mem_ptr);
+		}
 		native_free(node);
 	}
 	if (tracelog) {

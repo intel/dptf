@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -59,6 +59,16 @@
  * eventually roll over.
  */
 #define ESIF_CNT_HNDL_RETRIES_MAX 10000
+
+/*
+* Time delay between destroying all timers at exit and when the manager is
+* destroyed.  This is required because timers which are destroyed may or may
+* not already be queued for callback when the binary is being unloaded;
+* specifically DLL/SO.  The code protects against the use of invalid contexts
+* being used in the callback, but cannot protect against the code being
+* removed without disallowing waiting for timer exits in callbacks.
+*/
+#define ESIF_TIMER_DISABLE_DELAY 50
 
 /*
  * STRUCTURE DECLARATIONS
@@ -425,10 +435,14 @@ void esif_ccb_tmrm_exit(void)
 		esif_ccb_timer_kill_w_wait(&cur_timer);
 	}
 
+#ifdef ESIF_ATTR_USER
+	/* Wait for any possible callbacks to be processed before exiting */
+	esif_ccb_sleep_msec(ESIF_TIMER_DISABLE_DELAY);
+#endif
+
 	g_tmrm.enabled = ESIF_FALSE;
 	esif_ccb_lock_uninit(&g_tmrm.mgr_lock);
 	g_tmrm.marked_for_delete = ESIF_FALSE;
-
 exit:
 	return;
 }

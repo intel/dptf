@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,14 +33,18 @@
 #include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
 #include "PeakPowerControlFacade.h"
-#include "TccOffsetControlFacade.h"
+#include "ProcessorControlFacade.h"
+#include "SystemPowerControlFacade.h"
+#include "PlatformPowerControlFacade.h"
+#include "PlatformPowerStatusFacade.h"
+#include "BatteryStatusFacade.h"
+#include "SocWorkloadClassificationFacade.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
 #include "CoreControlKnob.h"
 #include "PerformanceControlKnob.h"
 #include "DomainProxyInterface.h"
-#include "PlatformPowerControlFacade.h"
 #include "ParticipantProxyInterface.h"
 
 // represents a domain inside a participant.  holds cached records of all properties and potential controls for the
@@ -73,13 +77,17 @@ public:
 	virtual std::shared_ptr<ActiveCoolingControlFacadeInterface> getActiveCoolingControl() override;
 	virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
 	virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
+	virtual std::shared_ptr<SystemPowerControlFacadeInterface> getSystemPowerControl() override;
 	virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() override;
 	virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
 	virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
 	virtual ConfigTdpControlFacade& getConfigTdpControl() override;
 	virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
 	virtual std::shared_ptr<PeakPowerControlFacadeInterface> getPeakPowerControl() override;
-	virtual std::shared_ptr<TccOffsetControlFacadeInterface> getTccOffsetControl() override;
+	virtual std::shared_ptr<ProcessorControlFacadeInterface> getProcessorControl() override;
+	virtual std::shared_ptr<PlatformPowerStatusFacadeInterface> getPlatformPowerStatus() override;
+	virtual std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() override;
+	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() override;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
@@ -99,13 +107,17 @@ protected:
 	std::shared_ptr<TemperatureControlFacadeInterface> m_temperatureControl;
 	std::shared_ptr<PerformanceControlFacade> m_performanceControl;
 	std::shared_ptr<PowerControlFacade> m_powerControl;
+	std::shared_ptr<SystemPowerControlFacade> m_systemPowerControl;
 	std::shared_ptr<PlatformPowerControlFacade> m_platformPowerControl;
 	std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
 	std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
 	std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
 	std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
 	std::shared_ptr<PeakPowerControlFacade> m_peakPowerControl;
-	std::shared_ptr<TccOffsetControlFacade> m_tccOffsetControl;
+	std::shared_ptr<ProcessorControlFacade> m_processorControl;
+	std::shared_ptr<PlatformPowerStatusFacade> m_platformPowerStatus;
+	std::shared_ptr<BatteryStatusFacade> m_batteryStatus;
+	std::shared_ptr<SocWorkloadClassificationFacade> m_socWorkloadClassification;
 
 	// services
 	PolicyServicesInterfaceContainer m_policyServices;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,11 +29,12 @@
 #include "OsDockMode.h"
 #include "OsPowerSchemePersonality.h"
 #include "OsMobileNotificationType.h"
+#include "OsUserPresence.h"
 
 class PlatformStateInterface
 {
 public:
-	virtual ~PlatformStateInterface(){};
+	virtual ~PlatformStateInterface() {};
 
 	virtual OnOffToggle::Type getMotion(void) const = 0;
 	virtual SensorOrientation::Type getOrientation(void) const = 0;
@@ -47,4 +48,10 @@ public:
 	virtual OsDockMode::Type getDockMode(void) const = 0;
 	virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const = 0;
 	virtual UIntN getMobileNotification(OsMobileNotificationType::Type notificationType) const = 0;
+	virtual OnOffToggle::Type getMixedRealityMode(void) const = 0;
+	virtual OsUserPresence::Type getUserPresence(void) const = 0;
+	virtual OnOffToggle::Type getScreenState(void) const = 0;
+	virtual UIntN getBatteryCount(void) const = 0;
+	virtual UIntN getPowerSlider(void) const = 0;
+	virtual OnOffToggle::Type getGameMode(void) const = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,7 +57,8 @@ Bool PassiveTripPointsCachedProperty::supportsProperty(void)
 	try
 	{
 		auto passiveTripPoints = getTripPoints();
-		return passiveTripPoints.hasKey(ParticipantSpecificInfoKey::PSV);
+		return passiveTripPoints.hasKey(ParticipantSpecificInfoKey::PSV)
+				&& (passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV) != Temperature(Constants::MaxUInt32));
 	}
 	catch (dptf_exception&)
 	{

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -82,6 +82,10 @@ static eEsifError EsifUpDomain_CoreDetectInit(
 	EsifUpDomainPtr self
 	);
 
+static eEsifError EsifUpDomain_BatteryStatusDetectInit(
+	EsifUpDomainPtr self
+);
+
 static eEsifError EsifUpDomain_PsysDetectInit(
 	EsifUpDomainPtr self
 	);
@@ -141,6 +145,14 @@ static void EsifUpDomain_PollState(
 	const void *ctx
 	);
 
+//
+// Friend functions
+//
+void EsifUpDomain_SetUpId(
+	EsifUpDomainPtr self,
+	esif_handle_t participantId
+	);
+
 eEsifError EsifUpDomain_InitDomain(
 	EsifUpDomainPtr self,
 	EsifUpPtr upPtr,
@@ -170,11 +182,11 @@ eEsifError EsifUpDomain_InitDomain(
 	esif_ccb_strcpy(self->domainName, fpcDomainPtr->descriptor.name, sizeof(self->domainName));	
 
 	self->upPtr = upPtr;
-	self->participantId = EsifUp_GetInstance(upPtr);
+	self->participantId = ESIF_INVALID_HANDLE;
 	esif_ccb_strcpy(self->participantName, EsifUp_GetName(upPtr), sizeof(self->participantName));
 
 	esif_ccb_lock_init(&self->tempLock);
-	
+	esif_ccb_lock_init(&self->capsLock);
 exit:
 	return rc;
 }
@@ -193,6 +205,8 @@ eEsifError EsifUpDomain_DspReadyInit(
 	
 	//multiple rc codes are acceptable for capability detection
 	if (rc == ESIF_OK) {
+		EsifUpDomain_InitTempPoll(self);
+		EsifUpDomain_InitPowerPoll(self);
 		rc = EsifUpDomain_TempDetectInit(self);
 	}
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
@@ -212,6 +226,9 @@ eEsifError EsifUpDomain_DspReadyInit(
 	}
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
 		rc = EsifUpDomain_CoreDetectInit(self);
+	}
+	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		rc = EsifUpDomain_BatteryStatusDetectInit(self);
 	}
 	
 /* Perf state detection handled in upper framework for Sysfs model */
@@ -234,10 +251,16 @@ static void EsifUpDomain_DisableCap(
 	)
 {
 	ESIF_ASSERT(self != NULL);
-	
-	self->capability_for_domain.capability_flags &= ~(1 << cap);
-	self->capability_for_domain.capability_mask[cap] = 0;
 
+	esif_ccb_write_lock(&self->capsLock);
+
+	if (self->capability_for_domain.capability_flags & (1 << cap)) {
+		self->capability_for_domain.capability_flags &= ~(1 << cap);
+		self->capability_for_domain.capability_mask[cap] = 0;
+		self->capability_for_domain.number_of_capability_flags--;
+	}
+	
+	esif_ccb_write_unlock(&self->capsLock);
 }
 
 eEsifError EsifUpDomain_EnableCaps(
@@ -247,13 +270,25 @@ eEsifError EsifUpDomain_EnableCaps(
 	)
 {
 	eEsifError rc = ESIF_OK;
+	u32 i = 0;
+
 	if (self == NULL || capabilityMaskPtr == NULL) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
-
+	
+	esif_ccb_write_lock(&self->capsLock);
+	
 	self->capability_for_domain.capability_flags = capabilityFlags;
 	esif_ccb_memcpy(self->capability_for_domain.capability_mask, capabilityMaskPtr, sizeof(self->capability_for_domain.capability_mask));
+	self->capability_for_domain.number_of_capability_flags = 0;
+	for (i = 0; i < MAX_CAPABILITY_MASK; ++i) {
+		if (capabilityFlags & (1 << i)) {
+			self->capability_for_domain.number_of_capability_flags++;
+		}
+	}
+	
+	esif_ccb_write_unlock(&self->capsLock);
 exit:
 	return rc;
 }
@@ -310,6 +345,8 @@ static eEsifError EsifUpDomain_TempDetectInit(
 	EsifData tempData = { ESIF_DATA_TEMPERATURE, &temperatureValue, sizeof(temperatureValue), 0 };
 
 	ESIF_ASSERT(self != NULL);
+
+	self->tempPollType = ESIF_POLL_NONE;
 
 	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_TEMP_STATUS, &tempTuple, &tempData);
 	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
@@ -542,6 +579,65 @@ static eEsifError EsifUpDomain_CoreDetectInit(
 	return rc;
 }
 
+static eEsifError EsifUpDomain_BatteryStatusDetectInit(
+	EsifUpDomainPtr self
+)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 pmaxValue = 0;
+	EsifPrimitiveTuple pmaxTuple = { GET_PLATFORM_MAX_BATTERY_POWER, 0, 255 };
+	EsifData pmaxData = { ESIF_DATA_POWER, &pmaxValue, sizeof(pmaxValue), 0 };
+
+	UInt32 pbssValue = 0;
+	EsifPrimitiveTuple pbssTuple = { GET_PLATFORM_BATTERY_STEADY_STATE, 0, 255 };
+	EsifData pbssData = { ESIF_DATA_POWER, &pbssValue, sizeof(pbssValue), 0 };
+
+	UInt32 ctypValue = 0;
+	EsifPrimitiveTuple ctypTuple = { GET_CHARGER_TYPE, 0, 255 };
+	EsifData ctypData = { ESIF_DATA_UINT32, &ctypValue, sizeof(ctypValue), 0 };
+
+	UInt32 bstValue = 0;
+	EsifPrimitiveTuple bstTuple = { GET_BATTERY_STATUS, 0, 255 };
+	EsifData bstData = { ESIF_DATA_BINARY, &bstValue, sizeof(bstValue), 0 };
+
+	UInt32 bixValue = 0;
+	EsifPrimitiveTuple bixTuple = { GET_BATTERY_INFORMATION, 0, 255 };
+	EsifData bixData = { ESIF_DATA_BINARY, &bixValue, sizeof(bixValue), 0 };
+
+	ESIF_ASSERT(self != NULL);
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS, &pmaxTuple, &pmaxData);
+	if ((rc == ESIF_OK) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS, &pbssTuple, &pbssData);
+	if ((rc == ESIF_OK) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS, &ctypTuple, &ctypData);
+	if ((rc == ESIF_OK) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS, &bstTuple, &bstData);
+	if ((rc == ESIF_OK) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS, &bixTuple, &bixData);
+	if ((rc == ESIF_OK) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
+		goto exit;
+	}
+
+	rc = ESIF_E_NOT_SUPPORTED;
+	EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_BATTERY_STATUS);
+
+exit:
+	return rc;
+}
+
 static eEsifError EsifUpDomain_StateDetectInit(
 	EsifUpDomainPtr self
 	)
@@ -557,16 +653,9 @@ static eEsifError EsifUpDomain_StateDetectInit(
 	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &stateTuple, &stateData);
 	
 	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		// Domain may be a processor domain, in this case, we need to
-		// query again but with a different primitive
-		stateTuple.id = GET_PROC_PERF_PRESENT_CAPABILITY;
-		rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL, &stateTuple, &stateData);
-		if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-			self->statePollType = ESIF_POLL_UNSUPPORTED;
-			EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_PERF_CONTROL);
-			rc = ESIF_E_NOT_SUPPORTED;
-			goto exit;
-		}
+		self->statePollType = ESIF_POLL_UNSUPPORTED;
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
 	}
 
 	ESIF_TRACE_DEBUG("%s %s: Starting poll of performance state. \n",
@@ -1183,6 +1272,14 @@ void EsifUpDomain_UnRegisterForStatePoll(EsifUpDomainPtr self)
 	self->statePollType = ESIF_POLL_NONE;
 }
 
+void EsifUpDomain_UnInitDomain(EsifUpDomainPtr self)
+{
+	if (self != NULL) {
+		esif_ccb_lock_uninit(&self->capsLock);
+		esif_ccb_lock_uninit(&self->tempLock);
+	}
+}
+
 void EsifUpDomain_StopTempPoll(
 	EsifUpDomainPtr self
 	)
@@ -1329,11 +1426,11 @@ eEsifError EsifUpDomain_SignalForegroundAppChanged(
 /*
 * Used to iterate through the available domains.
 * First call EsifUpDomain_InitIterator to initialize the iterator.
-* Next, call EsifUpDomain_GetNextUp using the iterator.  Repeat until
-* EsifUpDomain_GetNextUp fails. The call will release the reference of the
+* Next, call EsifUpDomain_GetNextUd using the iterator.  Repeat until
+* EsifUpDomain_GetNextUd fails. The call will release the reference of the
 * associated upper participant.  If you stop iteration part way through
 * all domains of a particular participant, the caller is responsible for 
-* releasing the reference on the associated upper participant.  Iteration\
+* releasing the reference on the associated upper participant.  Iteration
 * is complete when ESIF_E_ITERATOR_DONE is returned.
 */
 eEsifError EsifUpDomain_InitIterator(
@@ -1398,6 +1495,17 @@ eEsifError EsifUpDomain_GetNextUd(
 exit:
 	return rc;
 }
+
+void EsifUpDomain_SetUpId(
+	EsifUpDomainPtr self,
+	esif_handle_t participantId
+	)
+{
+	if (self != NULL) {
+		self->participantId = participantId;
+	}
+}
+
 /*****************************************************************************/
 /*****************************************************************************/
 /*****************************************************************************/

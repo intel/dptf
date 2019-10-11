@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,8 @@
 #include "EsifMutexHelper.h"
 #include "EsifThreadId.h"
 #include "XmlNode.h"
+#include "ManagerLogger.h"
+#include <memory>
 
 WorkItemQueueManager::WorkItemQueueManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
@@ -82,47 +84,39 @@ void WorkItemQueueManager::disableAndEmptyAllQueues(void)
 	esifMutexHelper.unlock();
 }
 
-void WorkItemQueueManager::enqueueImmediateWorkItemAndReturn(WorkItem* workItem)
+void WorkItemQueueManager::enqueueImmediateWorkItemAndReturn(std::shared_ptr<WorkItemInterface> workItem)
 {
 	const FrameworkEventData event = (*FrameworkEventInfo::instance())[workItem->getFrameworkEventType()];
 	enqueueImmediateWorkItemAndReturn(workItem, event.priority);
 }
 
-void WorkItemQueueManager::enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority)
+void WorkItemQueueManager::enqueueImmediateWorkItemAndReturn(
+	std::shared_ptr<WorkItemInterface> workItem,
+	UIntN priority)
 {
 	EsifMutexHelper esifMutexHelper(&m_mutex);
 	esifMutexHelper.lock();
 
 	if (canEnqueueImmediateWorkItem(workItem))
 	{
-		ImmediateWorkItem* immediateWorkItem = new ImmediateWorkItem(workItem, priority);
-
-		try
-		{
-			m_immediateQueue->enqueue(immediateWorkItem);
-		}
-		catch (...)
-		{
-			DELETE_MEMORY_TC(immediateWorkItem);
-			throw;
-		}
+		auto immediateWorkItem = std::make_shared<ImmediateWorkItem>(workItem, priority);
+		m_immediateQueue->enqueue(immediateWorkItem);
 	}
 	else
 	{
-		DELETE_MEMORY_TC(workItem);
 		throw dptf_exception("Failed to enqueue work item.  Enqueueing has been disabled.");
 	}
 
 	esifMutexHelper.unlock();
 }
 
-void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(WorkItem* workItem)
+void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(std::shared_ptr<WorkItemInterface> workItem)
 {
 	const FrameworkEventData event = (*FrameworkEventInfo::instance())[workItem->getFrameworkEventType()];
 	enqueueImmediateWorkItemAndWait(workItem, event.priority);
 }
 
-void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority)
+void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(std::shared_ptr<WorkItemInterface> workItem, UIntN priority)
 {
 	if (isWorkItemThread() == true)
 	{
@@ -133,7 +127,6 @@ void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(WorkItem* workItem, U
 		// and return.  Without this in place the work item would just sit in the queue and never execute since
 		// the thread is being held by the currently running work item.
 		workItem->execute();
-		delete workItem;
 	}
 	else
 	{
@@ -144,22 +137,12 @@ void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(WorkItem* workItem, U
 
 		if (canEnqueueImmediateWorkItem(workItem))
 		{
-			ImmediateWorkItem* immediateWorkItem = new ImmediateWorkItem(workItem, priority);
+			auto immediateWorkItem = std::make_shared<ImmediateWorkItem>(workItem, priority);
 			immediateWorkItem->signalAtCompletion(&semaphore);
-
-			try
-			{
-				m_immediateQueue->enqueue(immediateWorkItem);
-			}
-			catch (...)
-			{
-				DELETE_MEMORY_TC(immediateWorkItem);
-				throw;
-			}
+			m_immediateQueue->enqueue(immediateWorkItem);
 		}
 		else
 		{
-			delete workItem;
 			throw dptf_exception("Failed to enqueue work item.  Enqueueing has been disabled.");
 		}
 
@@ -169,28 +152,20 @@ void WorkItemQueueManager::enqueueImmediateWorkItemAndWait(WorkItem* workItem, U
 	}
 }
 
-void WorkItemQueueManager::enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution)
+void WorkItemQueueManager::enqueueDeferredWorkItem(
+	std::shared_ptr<WorkItemInterface> workItem,
+	const TimeSpan& timeUntilExecution)
 {
 	EsifMutexHelper esifMutexHelper(&m_mutex);
 	esifMutexHelper.lock();
 
 	if (m_enqueueingEnabled == true)
 	{
-		DeferredWorkItem* deferredWorkItem = new DeferredWorkItem(workItem, timeUntilExecution);
-
-		try
-		{
-			m_deferredQueue->enqueue(deferredWorkItem);
-		}
-		catch (...)
-		{
-			DELETE_MEMORY_TC(deferredWorkItem);
-			throw;
-		}
+		auto deferredWorkItem = std::make_shared<DeferredWorkItem>(workItem, timeUntilExecution);
+		m_deferredQueue->enqueue(deferredWorkItem);
 	}
 	else
 	{
-		delete workItem;
 		throw dptf_exception("Failed to enqueue work item.  Enqueueing has been disabled.");
 	}
 
@@ -211,13 +186,14 @@ UIntN WorkItemQueueManager::removeIfMatches(const WorkItemMatchCriteria& matchCr
 
 	if (numRemoved > 0)
 	{
-		ManagerMessage message =
-			ManagerMessage(m_dptfManager, FLF, "One or more work items have been removed from the queues.");
-		message.addMessage("Immediate Queue removed", numRemovedImmediate);
-		message.addMessage("Deferred Queue removed", numRemovedDeferred);
-		m_dptfManager->getEsifServices()->writeMessageDebug(message);
+		MANAGER_LOG_MESSAGE_DEBUG({
+			ManagerMessage message = ManagerMessage(
+				m_dptfManager, _file, _line, _function, "One or more work items have been removed from the queues.");
+			message.addMessage("Immediate Queue removed", numRemovedImmediate);
+			message.addMessage("Deferred Queue removed", numRemovedDeferred);
+			return message;
+		});
 	}
-
 	return numRemoved;
 }
 
@@ -264,9 +240,14 @@ std::shared_ptr<XmlNode> WorkItemQueueManager::getDiagnosticsAsXml(void)
 	return root;
 }
 
-Bool WorkItemQueueManager::canEnqueueImmediateWorkItem(WorkItem* workItem) const
+Bool WorkItemQueueManager::canEnqueueImmediateWorkItem(std::shared_ptr<WorkItemInterface> workItem) const
 {
 	return (
 		(m_enqueueingEnabled == true) || (workItem->getFrameworkEventType() == FrameworkEvent::PolicyDestroy)
 		|| (workItem->getFrameworkEventType() == FrameworkEvent::ParticipantDestroy));
+}
+
+EsifServicesInterface* WorkItemQueueManager::getEsifServices() const
+{
+	return m_dptfManager->getEsifServices();
 }

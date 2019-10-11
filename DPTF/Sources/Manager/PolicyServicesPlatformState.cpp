@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -86,11 +86,41 @@ UIntN PolicyServicesPlatformState::getMobileNotification(OsMobileNotificationTyp
 		return getDptfManager()->getEventCache()->emergencyCallModeState.get();
 
 	case OsMobileNotificationType::ScreenState:
-		return getDptfManager()->getEventCache()->screenState.get();
+		return (UIntN)getDptfManager()->getEventCache()->screenState.get();
 
 	default:
 		throw dptf_exception(
 			"No cached values for requested OS Mobile Notification Type "
 			+ OsMobileNotificationType::ToString(notificationType));
 	}
+}
+
+OnOffToggle::Type PolicyServicesPlatformState::getMixedRealityMode(void) const
+{
+	return getDptfManager()->getEventCache()->mixedRealityMode.get();
+}
+
+OnOffToggle::Type PolicyServicesPlatformState::getGameMode(void) const
+{
+	return getDptfManager()->getEventCache()->gameMode.get();
+}
+
+OsUserPresence::Type PolicyServicesPlatformState::getUserPresence(void) const
+{
+	return getDptfManager()->getEventCache()->userPresence.get();
+}
+
+OnOffToggle::Type PolicyServicesPlatformState::getScreenState(void) const
+{
+	return getDptfManager()->getEventCache()->screenState.get();
+}
+
+UIntN PolicyServicesPlatformState::getBatteryCount(void) const
+{
+	return getDptfManager()->getEventCache()->batteryCount.get();
+}
+
+UIntN PolicyServicesPlatformState::getPowerSlider(void) const
+{
+	return getDptfManager()->getEventCache()->powerSlider.get();
 }

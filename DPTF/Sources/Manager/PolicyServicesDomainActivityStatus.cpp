@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,4 +36,28 @@ Percentage PolicyServicesDomainActivityStatus::getResidencyUtilization(UIntN par
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getResidencyUtilization(domainIndex);
+}
+
+UInt64 PolicyServicesDomainActivityStatus::getCoreActivityCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreActivityCounter(domainIndex);
+}
+
+UInt32 PolicyServicesDomainActivityStatus::getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreActivityCounterWidth(domainIndex);
+}
+
+UInt64 PolicyServicesDomainActivityStatus::getTimestampCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getTimestampCounter(domainIndex);
+}
+
+UInt32 PolicyServicesDomainActivityStatus::getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getTimestampCounterWidth(domainIndex);
 }

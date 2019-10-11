@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -88,6 +88,9 @@ typedef enum esif_rc {
 	ESIF_E_STOP_POLL,               /* Indicates to stop the polling */
 	ESIF_E_ORDERED_INSERT,          /* Adding to an ordered collection failed */
 	ESIF_E_API_ERROR,				/* OS-specific API error */
+	ESIF_E_MAXIMUM_CAPACITY_REACHED,/* Unable to insert object due to lack of entries */
+	ESIF_E_DISABLED,				/* Optional support disabled by configuration */
+	ESIF_E_NOT_INITIALIZED,			/* Required support has not been initialized */
 
 
 	/* ACPI */
@@ -221,6 +224,7 @@ typedef enum esif_rc {
 
 	/*Events*/
 	ESIF_E_EVENT_NOT_FOUND = 3500,
+	ESIF_E_EVENT_FILTERED,
 
 	/*Participant data logging*/
 	ESIF_E_INVALID_ARGUMENT_COUNT = 3600,
@@ -255,6 +259,9 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_STOP_POLL);
 	ESIF_CASE_ENUM(ESIF_E_ORDERED_INSERT);
 	ESIF_CASE_ENUM(ESIF_E_API_ERROR);
+	ESIF_CASE_ENUM(ESIF_E_MAXIMUM_CAPACITY_REACHED);
+	ESIF_CASE_ENUM(ESIF_E_DISABLED);
+	ESIF_CASE_ENUM(ESIF_E_NOT_INITIALIZED);
 
 	ESIF_CASE_ENUM(ESIF_E_NO_ACPI_SUPPORT);
 	ESIF_CASE_ENUM(ESIF_E_NO_ACPII_SUPPORT);
@@ -363,6 +370,7 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(	ESIF_E_IFACE_NOT_SUPPORTED);
 
 	ESIF_CASE_ENUM(ESIF_E_EVENT_NOT_FOUND);
+	ESIF_CASE_ENUM(ESIF_E_EVENT_FILTERED);
 
 	ESIF_CASE_ENUM(ESIF_E_INVALID_ARGUMENT_COUNT);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_PARTICIPANT_ID);

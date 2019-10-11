@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "Temperature.h"
 #include <cmath>
 #include "StatusFormat.h"
+#include "DptfBufferStream.h"
 using namespace StatusFormat;
 
 Temperature::Temperature(void)
@@ -99,14 +100,52 @@ Temperature Temperature::operator+(const Temperature& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return Temperature(this->m_temperature + rhs.m_temperature - CELSIUS_TO_TENTH_KELVIN);
+	auto thisTemperature = this->m_temperature;
+	auto rhsTemperature = rhs.m_temperature;
+	if (thisTemperature == Constants::MaxUInt32)
+	{
+		thisTemperature = 0;
+	}
+
+	if (rhsTemperature == Constants::MaxUInt32)
+	{
+		rhsTemperature = 0;
+	}
+
+	if (thisTemperature == 0 || rhsTemperature == 0)
+	{
+		return Temperature(thisTemperature + rhsTemperature);
+	}
+	else
+	{
+		return Temperature(thisTemperature + rhsTemperature - CELSIUS_TO_TENTH_KELVIN);
+	}
 }
 
 Temperature Temperature::operator-(const Temperature& rhs) const
 {
 	throwIfInvalid(*this);
 	throwIfInvalid(rhs);
-	return Temperature(CELSIUS_TO_TENTH_KELVIN + this->m_temperature - rhs.m_temperature);
+	auto thisTemperature = this->m_temperature;
+	auto rhsTemperature = rhs.m_temperature;
+	if (thisTemperature == Constants::MaxUInt32)
+	{
+		thisTemperature = 0;
+	}
+
+	if (rhsTemperature == Constants::MaxUInt32)
+	{
+		rhsTemperature = 0;
+	}
+
+	if (thisTemperature == 0 || rhsTemperature == 0)
+	{
+		return Temperature(thisTemperature - rhsTemperature);
+	}
+	else
+	{
+		return Temperature(CELSIUS_TO_TENTH_KELVIN + thisTemperature - rhsTemperature);
+	}
 }
 
 std::ostream& operator<<(std::ostream& os, const Temperature& temperature)
@@ -177,4 +216,27 @@ Temperature Temperature::snapWithinAllowableTripPointRange(Temperature aux)
 	}
 
 	return aux;
+}
+
+DptfBuffer Temperature::toDptfBuffer() const
+{
+	DptfBuffer buffer;
+	buffer.append((UInt8*)&m_valid, sizeof(m_valid));
+	buffer.append((UInt8*)&m_temperature, sizeof(m_temperature));
+	return buffer;
+}
+
+Temperature Temperature::createFromDptfBuffer(const DptfBuffer& buffer)
+{
+	if (buffer.size() != (Temperature().toDptfBuffer().size()))
+	{
+		throw dptf_exception("Buffer given to Temperature class has invalid length.");
+	}
+
+	DptfBuffer bufferCopy = buffer;
+	DptfBufferStream stream(bufferCopy);
+	Temperature newTemperature;
+	newTemperature.m_valid = stream.readNextBool();
+	newTemperature.m_temperature = stream.readNextUint32();
+	return newTemperature;
 }

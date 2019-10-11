@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,21 @@
 class IndexContainer : public IndexContainerInterface
 {
 public:
-	IndexContainer(UIntN initialCount);
+	IndexContainer();
 	~IndexContainer(void);
 
-	virtual IndexStructPtr getIndexPtr(UIntN index) override;
-	virtual UIntN getIndex(IndexStructPtr indexStructPtr) override;
+	virtual void insertHandle(UIntN participantIndex,
+		UIntN domainIndex,
+		esif_handle_t participantHandle,
+		esif_handle_t domainHandle) override;
 
+	virtual void removeHandle(esif_handle_t participantHandle, esif_handle_t domainHandle) override;
+
+	virtual esif_handle_t getParticipantHandle(UIntN participantIndex) override;
+	virtual UIntN getParticipantIndex(esif_handle_t participantHandle) override;
+
+	virtual esif_handle_t getDomainHandle(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UIntN getDomainIndex(esif_handle_t participantHandle, esif_handle_t domainHandle) override;
 private:
 	// hide the copy constructor and assignment operator.
 	IndexContainer(const IndexContainer& rhs);

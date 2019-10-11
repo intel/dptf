@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,9 +52,11 @@ public:
 	virtual DptfBuffer getAdaptivePerformanceParticipantConditionTable(void) override final;
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(void) override final;
 	virtual DptfBuffer getOemVariables(void) override final;
+	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual DptfBuffer getPowerBossConditionsTable(void) override final;
 	virtual DptfBuffer getPowerBossActionsTable(void) override final;
 	virtual DptfBuffer getPowerBossMathTable(void) override final;
+	virtual DptfBuffer getVoltageThresholdMathTable(void) override final;
 	virtual DptfBuffer getEmergencyCallModeTable(void) override final;
 	virtual DptfBuffer getPidAlgorithmTable(void) override final;
 	virtual void setPidAlgorithmTable(DptfBuffer data) override final;
@@ -62,6 +64,8 @@ public:
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) override final;
+	virtual DptfBuffer getPowerShareAlgorithmTable2() override final;
+	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) override final;
 
 private:
 	TimeSpan m_defaultSamplePeriod;
@@ -75,4 +79,5 @@ private:
 	void resetPidAlgorithmTable(void);
 	void resetActiveControlPointRelationshipTable(void);
 	void resetPowerShareAlgorithmTable(void);
+	void resetPowerShareAlgorithmTable2(void);
 };

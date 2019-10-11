@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "WIDptfGetStatus.h"
 #include "DptfStatusInterface.h"
 #include "EsifServicesInterface.h"
+#include "esif_ccb_string.h"
 
 WIDptfGetStatus::WIDptfGetStatus(
 	DptfManagerInterface* dptfManager,
@@ -38,16 +39,28 @@ WIDptfGetStatus::~WIDptfGetStatus(void)
 {
 }
 
-void WIDptfGetStatus::execute(void)
+void WIDptfGetStatus::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
-
+	std::pair<std::string, eEsifError> statusResult;
 	try
 	{
-		getDptfManager()->getDptfStatus()->getStatus(m_command, m_appStatusIn, m_appStatusOut, m_returnCode);
+		statusResult = getDptfManager()->getDptfStatus()->getStatus(m_command, m_appStatusIn);
 	}
 	catch (std::exception& ex)
 	{
 		writeWorkItemWarningMessage(ex, "DptfStatus::getStatus");
 	}
+
+	UIntN requiredBufferLength = static_cast<UIntN>(statusResult.first.length() + 1);
+	if (m_appStatusOut->buf_len >= requiredBufferLength)
+	{
+		esif_ccb_strcpy((char *)m_appStatusOut->buf_ptr, statusResult.first.c_str(), requiredBufferLength);
+		*m_returnCode = statusResult.second;
+	}
+	else 
+	{
+		*m_returnCode = ESIF_E_NEED_LARGER_BUFFER;
+	}
+	m_appStatusOut->data_len = (u32)requiredBufferLength;
 }

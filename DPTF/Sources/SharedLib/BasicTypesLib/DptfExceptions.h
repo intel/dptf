@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "DptfExport.h"
 #include <stdexcept>
 #include <string>
+#include "esif_ccb_rc.h"
 
 class dptf_exception : public std::logic_error
 {
@@ -34,6 +35,24 @@ public:
 
 protected:
 	std::string m_description;
+};
+
+class invalid_data : public dptf_exception
+{
+public:
+	invalid_data(const std::string& description);
+};
+
+class invalid_data_type : public dptf_exception
+{
+public:
+	invalid_data_type(const std::string& description);
+};
+
+class dptf_out_of_range : public dptf_exception
+{
+public:
+	dptf_out_of_range(const std::string& description);
 };
 
 class temperature_out_of_range : public dptf_exception
@@ -142,6 +161,16 @@ class acpi_object_not_found : public dptf_exception
 {
 public:
 	acpi_object_not_found(const std::string& description);
+};
+
+class command_failure : public dptf_exception
+{
+public:
+	command_failure(esif_error_t errorCode, std::string& description);
+	esif_error_t getErrorCode() const;
+
+private:
+	esif_error_t m_errorCode;
 };
 
 // FIXME: implement_me is in place until we implement the function.  we should

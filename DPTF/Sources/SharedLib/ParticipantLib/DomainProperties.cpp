@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -118,14 +118,24 @@ Bool DomainProperties::implementsPowerStatusInterface(void) const
 	return isInterfaceImplemented(m_domainFunctionalityVersions.powerStatusVersion);
 }
 
-Bool DomainProperties::implementsPlatformPowerControlInterface(void) const
+Bool DomainProperties::implementsSystemPowerControlInterface(void) const
 {
-	return isInterfaceImplemented(m_domainFunctionalityVersions.platformPowerControlVersion);
+	return isInterfaceImplemented(m_domainFunctionalityVersions.systemPowerControlVersion);
+}
+
+Bool DomainProperties::implementsBatteryStatusInterface(void) const
+{
+	return isInterfaceImplemented(m_domainFunctionalityVersions.batteryStatusVersion);
 }
 
 Bool DomainProperties::implementsPlatformPowerStatusInterface(void) const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.platformPowerStatusVersion);
+}
+
+Bool DomainProperties::implementsPlatformPowerControlInterface(void) const
+{
+	return isInterfaceImplemented(m_domainFunctionalityVersions.platformPowerControlVersion);
 }
 
 Bool DomainProperties::implementsDomainPriorityInterface(void) const
@@ -153,14 +163,19 @@ Bool DomainProperties::implementsTemperatureThresholdInterface(void) const
 	return isInterfaceImplemented(m_domainFunctionalityVersions.temperatureThresholdVersion);
 }
 
-Bool DomainProperties::implementsTccOffsetControlInterface(void) const
+Bool DomainProperties::implementsProcessorControlInterface(void) const
 {
-	return isInterfaceImplemented(m_domainFunctionalityVersions.tccOffsetControlVersion);
+	return isInterfaceImplemented(m_domainFunctionalityVersions.processorControlVersion);
 }
 
 Bool DomainProperties::implementsUtilizationInterface(void) const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.utilizationVersion);
+}
+
+Bool DomainProperties::implementsSocWorkloadClassificationInterface(void) const
+{
+	return isInterfaceImplemented(m_domainFunctionalityVersions.socWorkloadClassificationVersion);
 }
 
 std::shared_ptr<XmlNode> DomainProperties::getXml() const
@@ -169,7 +184,7 @@ std::shared_ptr<XmlNode> DomainProperties::getXml() const
 	properties->addChild(XmlNode::createDataElement("guid", m_guid.toString()));
 	properties->addChild(XmlNode::createDataElement("index", friendlyValue(m_domainIndex)));
 	properties->addChild(XmlNode::createDataElement("enabled", friendlyValue(m_enabled)));
-	properties->addChild(XmlNode::createDataElement("type", DomainType::ToString(m_domainType)));
+	properties->addChild(XmlNode::createDataElement("type", DomainType::toString(m_domainType)));
 	properties->addChild(XmlNode::createDataElement("name", m_name));
 	properties->addChild(XmlNode::createDataElement("description", m_description));
 	return properties;
@@ -184,9 +199,7 @@ Bool DomainProperties::operator==(const DomainProperties& domain)
 {
 	return (
 		(m_guid == domain.m_guid) && (m_domainIndex == domain.m_domainIndex) && (m_enabled == domain.m_enabled)
-		&& (m_domainType == domain.m_domainType)
-		&& (m_name == domain.m_name)
-		&& (m_description == domain.m_description)
+		&& (m_domainType == domain.m_domainType) && (m_name == domain.m_name) && (m_description == domain.m_description)
 		&& (m_domainFunctionalityVersions == domain.m_domainFunctionalityVersions));
 }
 

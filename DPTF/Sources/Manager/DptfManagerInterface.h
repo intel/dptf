@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 #include "IndexContainerInterface.h"
 #include "EventCache.h"
 #include "UserPreferredCache.h"
+#include "CommandDispatcher.h"
+#include "RequestDispatcher.h"
 
 class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
@@ -35,10 +37,10 @@ class DptfStatusInterface;
 class DptfManagerInterface
 {
 public:
-	virtual ~DptfManagerInterface() {};
+	virtual ~DptfManagerInterface(){};
 
 	virtual void createDptfManager(
-		const void* esifHandle,
+		const esif_handle_t esifHandle,
 		EsifInterfacePtr esifInterfacePtr,
 		const std::string& dptfHomeDirectoryPath,
 		eLogType currentLogVerbosityLevel,
@@ -52,6 +54,7 @@ public:
 	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const = 0;
 	virtual PolicyManagerInterface* getPolicyManager(void) const = 0;
 	virtual ParticipantManagerInterface* getParticipantManager(void) const = 0;
+	virtual ICommandDispatcher* getCommandDispatcher() const = 0;
 	virtual DptfStatusInterface* getDptfStatus(void) = 0;
 	virtual IndexContainerInterface* getIndexContainer(void) const = 0;
 	virtual std::string getDptfHomeDirectoryPath(void) const = 0;
@@ -63,4 +66,6 @@ public:
 	virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;
 	virtual void unbindParticipantFromPolicies(UIntN participantIndex) const = 0;
 	virtual void bindAllParticipantsToPolicy(UIntN policyIndex) const = 0;
+	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const = 0;
+	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const = 0;
 };

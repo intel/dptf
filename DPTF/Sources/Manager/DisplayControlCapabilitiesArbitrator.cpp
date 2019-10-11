@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,7 +53,7 @@ DisplayControlDynamicCaps DisplayControlCapabilitiesArbitrator::arbitrate(
 	auto maxDisplayIndex = getLowestMaxDisplayIndex(tempPolicyMaxRequests);
 	if (maxDisplayIndex > minDisplayIndex)
 	{
-		maxDisplayIndex = minDisplayIndex;
+		minDisplayIndex = maxDisplayIndex; // set both min and max to the most limited of the two values
 	}
 	return DisplayControlDynamicCaps(maxDisplayIndex, minDisplayIndex);
 }
@@ -72,7 +72,7 @@ DisplayControlDynamicCaps DisplayControlCapabilitiesArbitrator::getArbitratedDis
 	auto maxDisplayIndex = getLowestMaxDisplayIndex(m_requestedMaxDisplayIndex);
 	if (maxDisplayIndex > minDisplayIndex)
 	{
-		maxDisplayIndex = minDisplayIndex;
+		minDisplayIndex = maxDisplayIndex; // set both min and max to the most limited of the two values
 	}
 	return DisplayControlDynamicCaps(maxDisplayIndex, minDisplayIndex);
 }

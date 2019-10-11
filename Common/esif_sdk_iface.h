@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -79,6 +79,8 @@ typedef enum _t_eIfaceType {
 	eIfaceTypeConjure,
 	eIfaceTypeConjureService,
 	eIfaceTypeWeb,
+	eIfaceTypeIpfClient,
+	eIfaceTypeIpfIpc,
 } eIfaceType;
 
 /* Header structure common to all ESIF interfaces */
@@ -97,6 +99,9 @@ typedef struct _t_AppInterface AppInterface, *AppInterfacePtr;
 /* ESIF Interface */
 struct _t_EsifInterface;
 typedef struct _t_EsifInterface EsifInterface, *EsifInterfacePtr;
+
+struct _t_AppInterfaceSet;
+typedef struct _t_AppInterfaceSet AppInterfaceSet, *AppInterfaceSetPtr;
 
 typedef enum esif_primitive_type	ePrimitiveType;
 typedef enum esif_participant_enum	eParticipantBus;

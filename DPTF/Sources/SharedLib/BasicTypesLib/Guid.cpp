@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,10 +15,6 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-
-#if defined(ESIF_ATTR_OS_WINDOWS)
-#pragma warning(disable : 4242)
-#endif
 
 #include "Guid.h"
 #include "esif_ccb_memory.h"

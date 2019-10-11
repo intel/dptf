@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,24 +19,24 @@
 #include "UnifiedParticipant.h"
 
 extern "C" {
-ParticipantInterface* CreateParticipantInstance(void)
-{
-	ParticipantInterface* participantInterface = nullptr;
-
-	try
+	ParticipantInterface* CreateParticipantInstance(void)
 	{
-		participantInterface = new UnifiedParticipant();
+		ParticipantInterface* participantInterface = nullptr;
+
+		try
+		{
+			participantInterface = new UnifiedParticipant();
+		}
+		catch (...)
+		{
+			participantInterface = nullptr;
+		}
+
+		return participantInterface;
 	}
-	catch (...)
+
+	void DestroyParticipantInstance(ParticipantInterface* participantInterface)
 	{
-		participantInterface = nullptr;
+		DELETE_MEMORY_TC(participantInterface);
 	}
-
-	return participantInterface;
-}
-
-void DestroyParticipantInstance(ParticipantInterface* participantInterface)
-{
-	DELETE_MEMORY_TC(participantInterface);
-}
 }

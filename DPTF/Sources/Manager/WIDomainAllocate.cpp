@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,13 +30,17 @@ WIDomainAllocate::~WIDomainAllocate(void)
 {
 }
 
-void WIDomainAllocate::execute(void)
+void WIDomainAllocate::onExecute(void)
 {
 	writeParticipantWorkItemStartingInfoMessage();
 
 	try
 	{
 		*m_newDomainIndex = getParticipantPtr()->allocateNextDomainIndex();
+	}
+	catch (participant_index_invalid& ex)
+	{
+		writeParticipantWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
 	}
 	catch (std::exception& ex)
 	{

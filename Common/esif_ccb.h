@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -53,6 +53,38 @@
 
 #pragma once
 
+#if !defined(ESIF_ATTR_KERNEL) && !defined(ESIF_ATTR_USER)
+/* User Mode Build */
+#define ESIF_ATTR_USER
+#endif
+
+#if defined(_WIN32)
+#if !defined(ESIF_ATTR_OS_WINDOWS)
+/* Windows OS */
+#define ESIF_ATTR_OS_WINDOWS
+#endif
+#else
+#if !defined(ESIF_ATTR_OS_LINUX) && !defined(ESIF_ATTR_OS_CHROME) && !defined(ESIF_ATTR_OS_ANDROID)
+/* Linux Derived OS */
+#define ESIF_ATTR_OS_LINUX
+#endif
+#endif
+
+#ifdef ESIF_ATTR_OS_CHROME
+/* Linux Derived OS */
+#define ESIF_ATTR_OS_LINUX
+#define ESIF_ATTR_OS	"Chrome"  /* OS Is Chromium */
+#endif
+#ifdef ESIF_ATTR_OS_ANDROID
+/* Linux Derived OS */
+#define ESIF_ATTR_OS_LINUX
+#define ESIF_ATTR_OS	"Android" /* OS Is Android */
+#endif
+#if defined(ESIF_ATTR_OS_LINUX) && !defined(_GNU_SOURCE)
+/* -std=gnu99 support */
+#define _GNU_SOURCE
+#endif
+
 /* OS Agnostic */
 #ifdef ESIF_ATTR_USER
 #include <stdio.h>
@@ -63,14 +95,26 @@
 #ifdef ESIF_ATTR_OS_WINDOWS
 
 /* Windows OS */
+#pragma strict_gs_check(on)
 
 #ifdef ESIF_ATTR_USER
 #define _WINSOCKAPI_ /* Override for Winsock */
 #include <windows.h>
 #else
 #include <ntddk.h>
-#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
+#define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)	/* Invalid ESIF Handle */
 #endif
+
+/* Add Linux Base Types for Windows */
+typedef unsigned char u8;	/* A BYTE  */
+typedef unsigned short u16;	/* A WORD  */
+typedef unsigned int u32;	/* A DWORD */
+typedef unsigned long long u64;	/* A QWORD */
+
+typedef	char *esif_string;		/* NULL-teriminated ANSI string */
+typedef HANDLE esif_os_handle_t;/* opaque OS Handle (not a pointer) */
+typedef u64 esif_handle_t;	/* opaque ESIF 64-bit handle (may NOT be a pointer) */
+typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 
 #define ESIF_ATTR_OS		"Windows"				/* OS Is Windows */
 #define ESIF_INLINE			__inline				/* Inline Function Directive */
@@ -78,13 +122,13 @@
 #define ESIF_CALLCONV		__cdecl					/* SDK Calling Convention */
 #define ESIF_PATH_SEP		"\\"					/* Path Separator String */
 #define ESIF_EXPORT			__declspec(dllexport)	/* Used for Exported Symbols */
-#define ESIF_INVALID_HANDLE	INVALID_HANDLE_VALUE
+#define ESIF_INVALID_HANDLE	((esif_handle_t)(-1))	/* Invalid ESIF Handle */
+
+#define ESIF_HANDLE_DEFAULT ((esif_handle_t)(0))        /* Reserved ESIF handle */
+#define ESIF_HANDLE_PRIMARY_PARTICIPANT ((esif_handle_t)(1))   /* Reserved ESIF primary participant handle */
+#define ESIF_HANDLE_MATCH_ANY_EVENT ((esif_handle_t)(-2)) /* Reserved ESIF handle */
 
 #define esif_ccb_isfullpath(fname)	(fname[0] == '\\' || (isalpha(fname[0]) && fname[1] == ':'))
-
-typedef	char *esif_string;		/* NULL-teriminated ANSI string */
-typedef HANDLE esif_handle_t;	/* opaque Handle (not a pointer) */
-typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 
 #ifdef __cplusplus
 #define ESIF_ELEMENT(x)  /* C99 Designated Initializers unsupported in C++ */
@@ -125,12 +169,6 @@ typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 #endif /* !ESIF_ATTR_DEBUG */
 
 
-/* Add Linux Base Types for Windows */
-typedef unsigned char u8;	/* A BYTE  */
-typedef unsigned short u16;	/* A WORD  */
-typedef unsigned int u32;	/* A DWORD */
-typedef unsigned long long u64;	/* A QWORD */
-
 #ifdef ESIF_ATTR_USER
 /* Byte Ordering Utilities (Winsock2.h) */
 #define esif_ccb_htons(val)		htons(val)
@@ -140,17 +178,6 @@ typedef unsigned long long u64;	/* A QWORD */
 
 #endif /* WINDOWS */
 
-#ifdef ESIF_ATTR_OS_CHROME
-/* Linux Derived OS */
-#define ESIF_ATTR_OS_LINUX
-#define ESIF_ATTR_OS	"Chrome"  /* OS Is Chromium */
-#endif
-#ifdef ESIF_ATTR_OS_ANDROID
-/* Linux Derived OS */
-#define ESIF_ATTR_OS_LINUX
-#define ESIF_ATTR_OS	"Android" /* OS Is Android */
-#endif
-
 #ifdef ESIF_ATTR_OS_LINUX
 
 /* All Linux Derived OS */
@@ -158,11 +185,18 @@ typedef unsigned long long u64;	/* A QWORD */
 #ifdef ESIF_ATTR_USER
 #include <unistd.h>	/* POSIX API */
 
-/* Common Widows Symbols */
+/* Common Windows Symbols */
 #define MAX_PATH 260
-#define INVALID_HANDLE_VALUE (-1)
+#define INVALID_HANDLE_VALUE ((esif_os_handle_t)(-1))	/* Invalid OS Handle */
+
 #define STATUS_SUCCESS 0
 #endif
+
+/* Add Linux Base Types */
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
 
 #ifndef ESIF_ATTR_OS
 #define ESIF_ATTR_OS		"Linux"			/* OS Is Generic Linux */
@@ -172,19 +206,18 @@ typedef unsigned long long u64;	/* A QWORD */
 #define ESIF_CALLCONV					/* Func Calling Convention */
 #define ESIF_PATH_SEP		"/"			/* Path Separator String */
 #define ESIF_EXPORT			__attribute__((visibility("default")))	/* Used for Exported Symbols */
-#define ESIF_INVALID_HANDLE	(-1)		/* Invalid Handle */
+#define ESIF_INVALID_HANDLE	((esif_handle_t)(-1))	/* Invalid ESIF Handle */
+
+#define ESIF_HANDLE_DEFAULT ((esif_handle_t)(0))        /* Reserved ESIF handle */
+#define ESIF_HANDLE_PRIMARY_PARTICIPANT ((esif_handle_t)(1))   /* Reserved ESIF handle */
+#define ESIF_HANDLE_MATCH_ANY_EVENT ((esif_handle_t)(-2))	/* Reserved ESIF handle */
 
 #define esif_ccb_isfullpath(fname)	(fname[0] == '/')
 
-#ifdef ESIF_ATTR_KERNEL
-#define esif_string char *	/* opaque: use #define instead of typedef */
-#define esif_handle_t int /* opaque Handle: use #define not typedef */
-#define esif_context_t void * /* opaque Context ptr: use #define not typedef */
-#else
 typedef char *esif_string;		/* NULL-terminated ANSI string */
-typedef int esif_handle_t;		/* opaque Handle (not a pointer) */
-typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
-#endif
+typedef int   esif_os_handle_t;	/* opaque OS Handle (not a pointer) */
+typedef u64 esif_handle_t;	/* opaque ESIF 64-bit handle (may not be a pointer) */
+typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 
 #ifdef ESIF_ATTR_DEBUG
 # ifdef ESIF_ATTR_USER
@@ -213,12 +246,6 @@ typedef void *esif_context_t;	/* opaque Context (may be a pointer) */
 #ifdef __x86_64__
 #define ESIF_ATTR_64BIT
 #endif
-
-/* Add Linux Base Types */
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
 
 #ifdef __cplusplus
 #define ESIF_ELEMENT(x)		/* C99 Designated Initializers unsupported in C++ */
@@ -271,7 +298,16 @@ typedef u8		Bool;	/* C BOOLEAN */
  */
 #define esif_ccb_max(a, b)	((a) >= (b) ? (a) : (b))
 #define esif_ccb_min(a, b)	((a) <= (b) ? (a) : (b))
-#define esif_ccb_handle2lld(h)	((long long)(size_t)(h))	/* for use with "%lld" formats */
+#define esif_ccb_handle2llu(h)	((unsigned long long)(h))	/* for use with "%llu" formats !!! for ESIF handles only !!! */
+#define esif_ccb_os_handle2llu(h)	((unsigned long long)(size_t)(h))	/* for use with "%llu" formats !!! for OS handles only !!! */
+#define esif_ccb_value2ptr(v)	((void *)(size_t)(v))	/* for use with "%p" formats or casting int types to (void *) */
+
+/* Helper macros for ptr/context conversion */
+#define esif_ccb_ptr2context(p)	((esif_context_t)(size_t)(p))
+#define esif_ccb_context2ptr(u)	((void *)(size_t)(u))
+
+#define ESIF_HANDLE_FMT "0x%016llX"
+#define OS_HANDLE_FMT "%llu"
 
 /*
  * Macros required for esif_rc and esif_sdk headers
@@ -298,3 +334,17 @@ typedef u8		Bool;	/* C BOOLEAN */
 
 /* Invalid or Undefined enum type value */
 #define ESIF_INVALID_ENUM_VALUE  (-1)
+
+/* Platform Architecture Type */
+#ifdef ESIF_ATTR_64BIT
+#define ESIF_PLATFORM_TYPE "x64"
+#else
+#define ESIF_PLATFORM_TYPE "x86"
+#endif
+
+/* Build Type */
+#ifdef ESIF_ATTR_DEBUG
+#define ESIF_BUILD_TYPE	"Debug"
+#else
+#define ESIF_BUILD_TYPE "Release"
+#endif

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,22 +22,6 @@
 #include "ParticipantServicesInterface.h"
 #include "DomainType.h"
 #include "DomainFunctionalityVersions.h"
-#include "DomainActiveControlBase.h"
-#include "DomainActivityStatusBase.h"
-#include "DomainConfigTdpControlBase.h"
-#include "DomainCoreControlBase.h"
-#include "DomainDisplayControlBase.h"
-#include "DomainEnergyControlBase.h"
-#include "DomainPeakPowerControlBase.h"
-#include "DomainPerformanceControlBase.h"
-#include "DomainPowerControlBase.h"
-#include "DomainPowerStatusBase.h"
-#include "DomainPriorityBase.h"
-#include "DomainRfProfileControlBase.h"
-#include "DomainRfProfileStatusBase.h"
-#include "DomainTemperatureBase.h"
-#include "DomainTccOffsetControlBase.h"
-#include "DomainUtilizationBase.h"
 #include "ControlFactoryList.h"
 #include "DomainControlList.h"
 #include <memory>
@@ -68,8 +52,10 @@ public:
 	std::string getDescription(void);
 	DomainFunctionalityVersions getDomainFunctionalityVersions(void);
 	std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getArbitratorStatusForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
 
 	void clearAllCachedData(void);
+	void clearAllCachedResults(void);
 
 	std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
 	std::shared_ptr<DomainActivityStatusBase> getActivityStatusControl(void);
@@ -81,14 +67,17 @@ public:
 	std::shared_ptr<DomainPerformanceControlBase> getPerformanceControl(void);
 	std::shared_ptr<DomainPowerControlBase> getPowerControl(void);
 	std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
+	std::shared_ptr<DomainSystemPowerControlBase> getSystemPowerControl(void);
 	std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
 	std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
 	std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
 	std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);
 	std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
 	std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
-	std::shared_ptr<DomainTccOffsetControlBase> getTccOffsetControl(void);
+	std::shared_ptr<DomainProcessorControlBase> getProcessorControl(void);
 	std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
+	std::shared_ptr<DomainBatteryStatusBase> getBatteryStatusControl(void);
+	std::shared_ptr<DomainSocWorkloadClassificationBase> getSocWorkloadClassificationControl(void);
 
 private:
 	// hide the copy constructor and = operator
@@ -106,5 +95,6 @@ private:
 	std::shared_ptr<ParticipantServicesInterface> m_participantServicesInterface;
 	std::shared_ptr<DomainControlList> m_domainControls;
 
+	std::shared_ptr<ParticipantServicesInterface> getParticipantServices();
 	void throwIfDomainNotEnabled(void);
 };

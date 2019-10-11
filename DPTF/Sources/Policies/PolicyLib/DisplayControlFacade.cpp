@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,6 +40,16 @@ DisplayControlFacade::~DisplayControlFacade()
 Bool DisplayControlFacade::supportsDisplayControls()
 {
 	return m_domainProperties.implementsDisplayControlInterface();
+}
+
+void DisplayControlFacade::setControlsToMax()
+{
+	if (supportsDisplayControls())
+	{
+		auto userPreferredIndex = getUserPreferredDisplayIndex();
+		auto upperLimit = m_displayControlCapabilitiesProperty.getCapabilities().getCurrentUpperLimit();
+		setControl(std::max(userPreferredIndex, upperLimit));
+	}
 }
 
 DisplayControlStatus DisplayControlFacade::getStatus()

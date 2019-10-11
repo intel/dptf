@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,4 +38,5 @@ public:
 	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const = 0;
 	virtual std::string toXml(void) const = 0;
 	virtual void execute(void) = 0;
+	virtual void signal() = 0;
 };

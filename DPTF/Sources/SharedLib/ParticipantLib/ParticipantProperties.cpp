@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -71,10 +71,7 @@ std::shared_ptr<XmlNode> ParticipantProperties::getXml(void) const
 
 	root->addChild(XmlNode::createDataElement("name", m_name));
 	root->addChild(XmlNode::createDataElement("description", m_description));
-	// root->addChild(XmlNode::createDataElement("guid", m_guid.toString()));
 	root->addChild(XmlNode::createDataElement("bus_type", BusType::ToString(m_busType)));
-	// TODO : Fix PCI and ACPI info
-	// root->addChild(XmlNode::createDataElement("pci_info", m_pciInfo));
 	root->addChild(XmlNode::createDataElement("acpi_device", m_acpiInfo.getAcpiDevice()));
 	root->addChild(XmlNode::createDataElement("acpi_scope", m_acpiInfo.getAcpiScope()));
 

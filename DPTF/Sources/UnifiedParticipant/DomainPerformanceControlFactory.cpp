@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "DomainPerformanceControl_001.h"
 #include "DomainPerformanceControl_002.h"
 #include "DomainPerformanceControl_003.h"
+#include "DomainPerformanceControl_004.h"
 
 ControlBase* DomainPerformanceControlFactory::make(
 	UIntN participant,
@@ -41,6 +42,9 @@ ControlBase* DomainPerformanceControlFactory::make(
 		break;
 	case 3: // Processor participant (GFX domain, Interface V1)
 		return new DomainPerformanceControl_003(participant, domain, participantServicesInterface);
+		break;
+	case 4: // OSTF supported participant (2D Camera)
+		return new DomainPerformanceControl_004(participant, domain, participantServicesInterface);
 		break;
 	default:
 		std::stringstream message;

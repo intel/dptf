@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,7 +37,7 @@ void DomainPriority_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex
 	throw not_implemented();
 }
 
-void DomainPriority_000::clearCachedData(void)
+void DomainPriority_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }

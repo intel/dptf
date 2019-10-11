@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -310,7 +310,7 @@ struct esif_up_dsp {
 	struct esif_link_list   *evt_ptr;	/* Events */
 
 	/* Boolean array indicating if a given action type is used in the DSP */
-	UInt8 contained_actions[MAX_ESIF_ACTION_ENUM_VALUE];
+	UInt8 contained_actions[MAX_ESIF_ACTION_ENUM_VALUE + 1];
 
 	/*
 	 * PUBLIC INTRERFACE

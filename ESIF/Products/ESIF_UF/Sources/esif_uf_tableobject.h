@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,7 +49,7 @@ typedef struct TableField_s {
 
 typedef struct TableObject_s {
 	int numFields;
-	int participantId;
+	esif_handle_t participantId;
 	esif_flags_t options;
 	enum tableType type;
 	EsifDataType dataType;
@@ -87,7 +87,7 @@ struct esif_data_binary_fst_package {
 
 void TableField_Construct(TableField *dataField, char *fieldName, char *fieldLabel, EsifDataType dataType, int forXML, int capabilityType);
 void TableField_Destroy(TableField *dataField);
-void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, char *dataSource, char *dataMember, char *dataText, size_t dataTextLen, int participantId, enum tableMode mode);
+void TableObject_Construct(TableObject *self, char *dataName, char *domainQualifier, char *dataSource, char *dataMember, char *dataText, size_t dataTextLen, esif_handle_t participantId, enum tableMode mode);
 void TableObject_Destroy(TableObject *self);
 eEsifError TableObject_LoadData(TableObject *self);
 eEsifError TableObject_LoadSchema(TableObject *self);

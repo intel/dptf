@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,13 +30,20 @@ public:
 	PolicyServicesPlatformPowerState(DptfManagerInterface* dptfManager, UIntN policyIndex);
 	virtual ~PolicyServicesPlatformPowerState();
 	esif_data_complex_thermal_event* getThermalEventPtr(void);
-	void setThermalEvent(const Temperature currentTemperature, const Temperature tripPointTemperature);
+	void setThermalEvent(
+		const Temperature currentTemperature,
+		const Temperature tripPointTemperature,
+		const std::string participantName);
 
 	virtual void sleep(void) override final;
-	virtual void hibernate(const Temperature& currentTemperature, const Temperature& tripPointTemperature)
-		override final;
-	virtual void shutDown(const Temperature& currentTemperature, const Temperature& tripPointTemperature)
-		override final;
+	virtual void hibernate(
+		const Temperature& currentTemperature,
+		const Temperature& tripPointTemperature,
+		const std::string& participantName) override final;
+	virtual void shutDown(
+		const Temperature& currentTemperature,
+		const Temperature& tripPointTemperature,
+		const std::string& participantName) override final;
 
 private:
 	esif_data_complex_thermal_event m_thermalEvent;

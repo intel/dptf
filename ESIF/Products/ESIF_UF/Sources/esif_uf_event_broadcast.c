@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,10 @@
 #include "esif_participant.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_pm.h"
+#include "esif_ccb_atomic.h"
+
+
+atomic_t g_policyLoggingRefCount = ATOMIC_INIT(0);
 
 typedef struct EsifEventMsgFrame_s {
 	EsifMsgHdr header;
@@ -32,8 +36,8 @@ typedef struct EsifEventMsgFrame_s {
 } EsifEventMsgFrame, *EsifEventMsgFramePtr;
 
 static eEsifError ESIF_CALLCONV MotionSensorEventCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr)
@@ -43,7 +47,7 @@ static eEsifError ESIF_CALLCONV MotionSensorEventCallback(
 	EsifEventMsgFrame eventMsgFrame = { 0 };
 	eEsifError rc = ESIF_OK;
 
-	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(participantId);
 	UNREFERENCED_PARAMETER(domainId);
 
@@ -100,8 +104,8 @@ exit:
 }
 
 static eEsifError ESIF_CALLCONV PolicyLoggingCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr)
@@ -110,7 +114,7 @@ static eEsifError ESIF_CALLCONV PolicyLoggingCallback(
 	EsifEventMsgFrame eventMsgFrame = { 0 };
 	eEsifError rc = ESIF_OK;
 
-	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(participantId);
 	UNREFERENCED_PARAMETER(domainId);
 
@@ -150,8 +154,8 @@ exit:
 }
 
 static eEsifError ESIF_CALLCONV ControlActionCallback(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr)
@@ -160,7 +164,7 @@ static eEsifError ESIF_CALLCONV ControlActionCallback(
 	EsifEventMsgFrame eventMsgFrame = { 0 };
 	eEsifError rc = ESIF_OK;
 
-	UNREFERENCED_PARAMETER(contextPtr);
+	UNREFERENCED_PARAMETER(context);
 	// Sanity checks
 	if (ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION != fpcEventPtr->esif_event) {
 		rc = ESIF_E_NOT_SUPPORTED;
@@ -183,8 +187,8 @@ static eEsifError ESIF_CALLCONV ControlActionCallback(
 		goto exit;
 	}
 
-	ESIF_TRACE_DEBUG("ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION: Participant ID: %d, domain ID: 0x%x\n",
-		participantId, domainId);
+	ESIF_TRACE_DEBUG("ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION: Participant ID: " ESIF_HANDLE_FMT ", domain ID: 0x%x\n",
+		esif_ccb_handle2llu(participantId), domainId);
 
 	EsifMsgHdr_Init(&eventMsgFrame.header, ESIFMSG_CLASS_EVENT, sizeof(eventMsgFrame.payload));
 	eventMsgFrame.payload.revision = ESIF_EVENT_REVISION;
@@ -225,6 +229,7 @@ static Bool ShouldEnableControlActionReportingForDomain(EsifUpDomainPtr domainPt
 	case ESIF_DOMAIN_TYPE_BATTERYCHARGER:
 	case ESIF_DOMAIN_TYPE_WWAN:
 	case ESIF_DOMAIN_TYPE_POWER:
+	case ESIF_DOMAIN_TYPE_CHIPSET:
 		rc = ESIF_TRUE;
 		break;
 	default:
@@ -281,9 +286,9 @@ eEsifError EsifEventBroadcast_ControlActionEnableParticipant(EsifUpPtr upPtr)
 	// All participants are going to share a single callback
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION,
 		EVENT_MGR_MATCH_ANY,
-		EVENT_MGR_MATCH_ANY,
+		EVENT_MGR_MATCH_ANY_DOMAIN,
 		ControlActionCallback,
-		NULL
+		0
 	);
 		
 	EnableControlActionReporting(upPtr);
@@ -293,31 +298,38 @@ exit:
 
 void EsifEventBroadcast_PolicyLoggingEnable(Bool flag)
 {
+	atomic_t localCount = ATOMIC_INIT(0);
 	if (ESIF_TRUE == flag) {
-		EsifEventMgr_RegisterEventByType(ESIF_EVENT_DPTF_POLICY_LOADED_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, PolicyLoggingCallback, NULL);
-		EsifEventMgr_SignalEvent(ESIF_INSTANCE_UF, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_ENABLED, NULL);
+
+		atomic_inc(&g_policyLoggingRefCount);
+
+		EsifEventMgr_RegisterEventByType(ESIF_EVENT_DPTF_POLICY_LOADED_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, PolicyLoggingCallback, 0);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_ENABLED, 0);
 	}
 	else
 	{
-		EsifEventMgr_SignalEvent(ESIF_INSTANCE_UF, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_DISABLED, NULL);
-		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DPTF_POLICY_LOADED_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, PolicyLoggingCallback, NULL);
+		localCount = atomic_dec(&g_policyLoggingRefCount);
+		if (localCount <= 0) {
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_DISABLED, 0);
+		}
+		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DPTF_POLICY_LOADED_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, PolicyLoggingCallback, 0);
 	}
 }
 
 void EsifEventBroadcast_MotionSensorEnable(Bool flag)
 {
 	if (ESIF_TRUE == flag) {
-		EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
-		EsifEventMgr_RegisterEventByType(ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
-		EsifEventMgr_RegisterEventByType(ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
-		EsifEventMgr_RegisterEventByType(ESIF_EVENT_MOTION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
+		EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
+		EsifEventMgr_RegisterEventByType(ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
+		EsifEventMgr_RegisterEventByType(ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
+		EsifEventMgr_RegisterEventByType(ESIF_EVENT_MOTION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
 	}
 	else
 	{
-		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
-		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
-		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
-		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_MOTION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY, MotionSensorEventCallback, NULL);
+		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
+		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
+		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
+		EsifEventMgr_UnregisterEventByType(ESIF_EVENT_MOTION_CHANGED, EVENT_MGR_MATCH_ANY, EVENT_MGR_MATCH_ANY_DOMAIN, MotionSensorEventCallback, 0);
 	}
 }
 

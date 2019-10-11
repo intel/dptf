@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,7 +27,17 @@ DomainPlatformPowerControl_000::DomainPlatformPowerControl_000(
 	// Do nothing.  Not an error.
 }
 
-void DomainPlatformPowerControl_000::clearCachedData(void)
+void DomainPlatformPowerControl_000::setPortPowerLimit(const UInt32 portNumber, const Power& powerLimit)
+{
+	throw not_implemented();
+}
+
+void DomainPlatformPowerControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainPlatformPowerControl_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }
@@ -37,71 +47,7 @@ std::shared_ptr<XmlNode> DomainPlatformPowerControl_000::getXml(UIntN domainInde
 	throw not_implemented();
 }
 
-Bool DomainPlatformPowerControl_000::isPlatformPowerLimitEnabled(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throw not_implemented();
-}
-
-Power DomainPlatformPowerControl_000::getPlatformPowerLimit(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throw not_implemented();
-}
-
-void DomainPlatformPowerControl_000::setPlatformPowerLimit(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
-	const Power& limit)
-{
-	throw not_implemented();
-}
-
-TimeSpan DomainPlatformPowerControl_000::getPlatformPowerLimitTimeWindow(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throw not_implemented();
-}
-
-void DomainPlatformPowerControl_000::setPlatformPowerLimitTimeWindow(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
-	const TimeSpan& timeWindow)
-{
-	throw not_implemented();
-}
-
-Percentage DomainPlatformPowerControl_000::getPlatformPowerLimitDutyCycle(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throw not_implemented();
-}
-
-void DomainPlatformPowerControl_000::setPlatformPowerLimitDutyCycle(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
-	const Percentage& dutyCycle)
-{
-	throw not_implemented();
-}
-
 std::string DomainPlatformPowerControl_000::getName(void)
 {
 	return "Platform Power Control (Version 0)";
-}
-
-void DomainPlatformPowerControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
 }

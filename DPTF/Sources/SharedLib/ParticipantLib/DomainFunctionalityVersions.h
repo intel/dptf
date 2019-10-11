@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,7 @@ struct DomainFunctionalityVersions final
 	UInt8 activeControlVersion;
 	UInt8 configTdpControlVersion;
 	UInt8 coreControlVersion;
-	UInt8 displayControlVersion; 
+	UInt8 displayControlVersion;
 	UInt8 domainPriorityVersion;
 	UInt8 energyControlVersion;
 	UInt8 performanceControlVersion;
@@ -47,11 +47,14 @@ struct DomainFunctionalityVersions final
 	UInt8 utilizationVersion;
 	UInt8 rfProfileControlVersion;
 	UInt8 rfProfileStatusVersion;
-	UInt8 platformPowerControlVersion;
+	UInt8 systemPowerControlVersion;
 	UInt8 platformPowerStatusVersion;
+	UInt8 platformPowerControlVersion;
 	UInt8 activityStatusVersion;
 	UInt8 peakPowerControlVersion;
-	UInt8 tccOffsetControlVersion;
+	UInt8 processorControlVersion;
+	UInt8 batteryStatusVersion;
+	UInt8 socWorkloadClassificationVersion;
 
 	Bool operator==(const DomainFunctionalityVersions& domainFunctionality);
 	Bool operator!=(const DomainFunctionalityVersions& domainFunctionality);

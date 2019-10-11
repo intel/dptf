@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -81,9 +81,11 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 			}
 			catch (const std::exception& ex)
 			{
-				std::stringstream message;
-				message << "Failed to get AC Peak Power: " << ex.what();
-				getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					std::stringstream message;
+					message << "Failed to get AC Peak Power: " << ex.what();
+					return message.str();
+				});
 			}
 
 			try
@@ -92,9 +94,11 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 			}
 			catch (const std::exception& ex)
 			{
-				std::stringstream message;
-				message << "Failed to get DC Peak Power: " << ex.what();
-				getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					std::stringstream message;
+					message << "Failed to get DC Peak Power: " << ex.what();
+					return message.str();
+				});
 			}
 
 			getParticipantServices()->sendDptfEvent(
@@ -102,13 +106,15 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-				<< "domain " << getName() << " "
-				<< "("
-				<< "Peak Power Control"
-				<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Peak Power Control"
+						<< ")";
+				return message.str();
+			});
 		}
 	}
 	catch (...)
@@ -117,7 +123,7 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 	}
 }
 
-void DomainPeakPowerControl_001::clearCachedData(void)
+void DomainPeakPowerControl_001::onClearCachedData(void)
 {
 	m_acPeakPower.invalidate();
 	m_dcPeakPower.invalidate();

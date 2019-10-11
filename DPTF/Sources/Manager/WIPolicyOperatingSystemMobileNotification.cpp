@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,7 +33,7 @@ WIPolicyOperatingSystemMobileNotification::~WIPolicyOperatingSystemMobileNotific
 {
 }
 
-void WIPolicyOperatingSystemMobileNotification::execute(void)
+void WIPolicyOperatingSystemMobileNotification::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -45,7 +45,7 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
 		std::string functionName = "";
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 
 			OsMobileNotificationType::Type notificationType =
 				(OsMobileNotificationType::Type)(((UInt32)m_mobileNotification & 0xFFFF0000) >> 16);
@@ -60,9 +60,12 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
 				break;
 
 			case OsMobileNotificationType::ScreenState:
-				getDptfManager()->getEventCache()->screenState.set(notificationValue);
-				functionName = "Policy::executePolicyOperatingSystemMobileNotification";
-				policy->executePolicyOperatingSystemMobileNotification(notificationType, notificationValue);
+			{
+				OnOffToggle::Type screenState = OnOffToggle::toType(notificationValue);
+				getDptfManager()->getEventCache()->screenState.set(screenState);
+				functionName = "Policy::executePolicyOperatingSystemScreenStateChanged";
+				policy->executePolicyOperatingSystemScreenStateChanged(screenState);
+			}
 				break;
 
 			default:
@@ -71,7 +74,7 @@ void WIPolicyOperatingSystemMobileNotification::execute(void)
 				break;
 			}
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

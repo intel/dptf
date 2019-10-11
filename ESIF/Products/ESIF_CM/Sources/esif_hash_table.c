@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -71,25 +71,21 @@
 #define ESIF_DEBUG_MODULE ESIF_DEBUG_MOD_HASH
 
 #ifdef ESIF_ATTR_KERNEL
+#define EVENT_VERBOSE	0
 
-#define EVENT_ENTRY	0
-#define EVENT_VERBOSE	1
-#define EVENT_RC	2
-
-#define ESIF_TRACE_DYN_ENTRY(fmt, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, EVENT_ENTRY, fmt, ##__VA_ARGS__)
 #define ESIF_TRACE_DYN_VERB(fmt, ...) \
 	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, EVENT_VERBOSE, fmt, ##__VA_ARGS__)
-#define ESIF_TRACE_DYN_RC(fmt, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, EVENT_RC, fmt, ##__VA_ARGS__)
 
 #endif /* ESIF_ATTR_KERNEL */
 
 #ifdef ESIF_ATTR_USER
 
-#define ESIF_TRACE_DYN_ENTRY NO_ESIF_DEBUG
-#define ESIF_TRACE_DYN_VERB NO_ESIF_DEBUG
-#define ESIF_TRACE_DYN_RC NO_ESIF_DEBUG
+#define ESIF_TRACE_DYN_VERB(format, ...) \
+	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
+		ESIF_TRACELEVEL_DEBUG, \
+		format, \
+		##__VA_ARGS__ \
+		)
 
 #endif /* ESIF_ATTR_USER */
 
@@ -527,18 +523,14 @@ struct esif_ht * esif_ht_create(
 	}
 
 	for (index = 0; index < size; ++index) {
-		ESIF_TRACE_DYN_VERB("Create linked list %d\n", index);
 		new_ht_ptr->table[index] = esif_link_list_create();
-
 		if (new_ht_ptr->table[index] == NULL) {
-			ESIF_TRACE_DYN_VERB("Creation failed\n");
+			ESIF_TRACE_DYN_VERB("Linked list creation failed\n");
 			esif_ht_destroy(new_ht_ptr, NULL);
 			new_ht_ptr = NULL;
 			goto exit;
 		}
 	}
-
-	ESIF_TRACE_DYN_VERB("Have hash table %p\n", new_ht_ptr);
 exit:
 	return new_ht_ptr;
 }
@@ -556,13 +548,9 @@ void esif_ht_destroy(
 		goto exit;
 	}
 
-	ESIF_TRACE_DYN_VERB("Destroying hash table %p\n", self);
-
 	for (index = 0; index < self->size; ++index) {
 		if (self->table[index] == NULL)
 			continue;
-
-		ESIF_TRACE_DYN_VERB("Destroy linked list %d\n", index);
 
 		esif_destroy_ht_nodes(self->table[index], item_destroy_fptr);
 		esif_link_list_destroy(self->table[index]);

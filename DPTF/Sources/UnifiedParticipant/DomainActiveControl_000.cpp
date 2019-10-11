@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,22 +27,22 @@ DomainActiveControl_000::DomainActiveControl_000(
 	// Do nothing.  Not an error.
 }
 
-ActiveControlStaticCaps DomainActiveControl_000::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainActiveControl_000::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
 
-ActiveControlDynamicCaps DomainActiveControl_000::getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainActiveControl_000::getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
 
-ActiveControlStatus DomainActiveControl_000::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainActiveControl_000::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
 
-ActiveControlSet DomainActiveControl_000::getActiveControlSet(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainActiveControl_000::getActiveControlSet(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }
@@ -57,7 +57,7 @@ void DomainActiveControl_000::sendActivityLoggingDataIfEnabled(UIntN participant
 	throw not_implemented();
 }
 
-void DomainActiveControl_000::clearCachedData(void)
+void DomainActiveControl_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }
@@ -70,4 +70,17 @@ std::shared_ptr<XmlNode> DomainActiveControl_000::getXml(UIntN domainIndex)
 std::string DomainActiveControl_000::getName(void)
 {
 	return "Active Control (Version 0)";
+}
+
+void DomainActiveControl_000::setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
+{
+	throw not_implemented();
+}
+
+void DomainActiveControl_000::setActiveControlDynamicCaps(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	ActiveControlDynamicCaps newCapabilities)
+{
+	throw not_implemented();
 }

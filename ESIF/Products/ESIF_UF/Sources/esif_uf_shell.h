@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,6 +55,18 @@ char *esif_shell_strtok(
 );
 
 char *esif_cmd_info(char *output);
+
+// Dynamic Participants DataVault Definitions
+#define DYNAMIC_PARTICIPANTS_OBJTYPE	"participant"
+#define DYNAMIC_PARTICIPANTS_REVISION	"2"
+#define DYNAMIC_PARTICIPANTS_DATAVAULT	"platform"
+#define DYNAMIC_PARTICIPANTS_KEYSPACE	"/participants/"
+#define DYNAMIC_PARTICIPANTS_KEYSPEC	DYNAMIC_PARTICIPANTS_KEYSPACE "*"
+#define STARTUP_AUTOEXEC_DATAVAULT		DYNAMIC_PARTICIPANTS_DATAVAULT
+#define STARTUP_AUTOEXEC_KEYSPEC		"/autoexec/*"
+
+extern esif_error_t CreateParticipantFromJson(esif_string jsonStr);
+extern esif_error_t CreateDynamicParticipants();
 
 #ifdef __cplusplus
 }

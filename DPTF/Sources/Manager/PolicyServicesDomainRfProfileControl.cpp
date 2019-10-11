@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,4 +43,22 @@ void PolicyServicesDomainRfProfileControl::setRfProfileCenterFrequency(
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->setRfProfileCenterFrequency(domainIndex, getPolicyIndex(), centerFrequency);
+}
+
+Percentage PolicyServicesDomainRfProfileControl::getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSscBaselineSpreadValue(domainIndex);
+}
+
+Percentage PolicyServicesDomainRfProfileControl::getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSscBaselineThreshold(domainIndex);
+}
+
+Percentage PolicyServicesDomainRfProfileControl::getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSscBaselineGuardBand(domainIndex);
 }

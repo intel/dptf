@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,7 @@ public:
 	virtual void setTimerForObject(void* object, const TimeSpan& time) = 0;
 	virtual void cancelCallback(UIntN participantIndex) = 0;
 	virtual void cancelCallback(EventCode::Type participantRole, UIntN participantIndex) = 0;
+	virtual void cancelAllCallbackRequests() = 0;
 	virtual void cancelTimerForObject(void* object) = 0;
 	virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, const TimeSpan& beginTime, const TimeSpan& endTime)
 		const = 0;

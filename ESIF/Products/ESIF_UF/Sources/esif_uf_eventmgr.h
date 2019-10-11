@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -59,16 +59,23 @@
 #include "esif_queue.h"
 #include "esif_ccb_thread.h"
 
-#define NUM_EVENT_LISTS 64
 #define EVENT_MGR_DOMAIN_D0 '0D'
+//
+// Use EVENT_MGR_DOMAIN_NA for sending events where the domain ignored;
+// but use EVENT_MGR_MATCH_ANY_DOMAIN to register for events where the
+// domain is to always be ignored.
+//
 #define EVENT_MGR_DOMAIN_NA 'NA'
+#define EVENT_MGR_MATCH_ANY_DOMAIN 0xFF
+
  /*
   * Used to match any participant. (Useful for registration internally to ESIF
   * before participants are available) Only the event type will be available in
   * the callback of an event registered using this option.
   * Note:  Can only be used when registering 'by type'
   */
-#define EVENT_MGR_MATCH_ANY 0xFF
+#define EVENT_MGR_MATCH_ANY ESIF_HANDLE_MATCH_ANY_EVENT
+
 
 #define ESIF_UF_EVENT_QUEUE_SIZE 0xFFFFFFFF
 #define ESIF_UF_EVENT_QUEUE_NAME "UfQueue"
@@ -76,31 +83,51 @@
 
 #if defined(ESIF_ATTR_OS_WINDOWS)
 #include "win\dppe.h"
+#include "win\cem_csensormanager.h"
+#include "win\dppe.h"
+#include "win\support_app.h"
 
 #define register_for_power_notification(guid_ptr) register_for_power_notification_win(guid_ptr)
 #define unregister_power_notification(guid_ptr) unregister_power_notification_win(guid_ptr)
 
 #define register_for_system_metrics_notification(guid_ptr) register_for_system_metrics_notification_win(guid_ptr)
+#define unregister_system_metrics_notification(guid_ptr) unregister_system_metrics_notification_win(guid_ptr)
+
+#define esif_register_sensors(eventType) esif_register_sensors_win(eventType)
+#define esif_unregister_sensors(eventType) esif_unregister_sensors_win(eventType)
+
+#define esif_enable_code_event(eventType) enable_code_event_win(eventType)
+#define esif_disable_code_event(eventType) disable_code_event_win(eventType)
+
+#define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) esif_send_initial_event_win (participantId, domainId, eventType)
 
 #elif defined(ESIF_ATTR_OS_LINUX)
+#include "lin/esif_uf_sensor_manager_os_lin.h"
 
-#define register_for_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
+#define register_for_power_notification(guid_ptr) register_for_system_metric_notification_lin(guid_ptr)
 #define unregister_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
-// Linux system only supports docking/undocking event for now
 #define register_for_system_metrics_notification(guid_ptr) register_for_system_metric_notification_lin(guid_ptr)
+#define unregister_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
+#define esif_register_sensors(eventType) esif_register_sensor_lin(eventType)
+#define esif_unregister_sensors(eventType) esif_unregister_sensor_lin(eventType)
 
+#define esif_enable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
+#define esif_disable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
+
+#define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) (ESIF_E_NOT_IMPLEMENTED)
 #else
-
 #define register_for_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 #define unregister_power_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
 #define register_for_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
+#define unregister_system_metrics_notification(guid_ptr) (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
 
 #if defined(ESIF_ATTR_OS_WINDOWS)
 #include "win\cem_csensormanager.h"
+
 #include "win\dppe.h"
 #include "win\support_app.h"
 
@@ -120,60 +147,46 @@
 #define esif_enable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
 #define esif_disable_code_event(eventType) (ESIF_E_NOT_IMPLEMENTED)
 
+#define EsifEventMgr_SendInitialEvent(participantId, domainId, eventType) (ESIF_E_NOT_IMPLEMENTED)
+
 #endif
 
 typedef eEsifError (ESIF_CALLCONV * EVENT_OBSERVER_CALLBACK)(
-	void *contextPtr,
-	UInt8 participantId,
+	esif_context_t context,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EsifFpcEventPtr fpcEventPtr,
 	EsifDataPtr eventDataPtr
 	);
 
-typedef struct EventMgrEntry_s {
-	UInt8 participantId;				/* UF Participant ID */
-	UInt16 domainId;					/* Domain ID - '0D'*/
-	EsifFpcEvent fpcEvent;				/* Event definition from the DSP */
-	EVENT_OBSERVER_CALLBACK callback;	/* Callback routine - Also used to uniquely identify an event observer when unregistering */
-	void *contextPtr;					/* This is normally expected to be a pointer to the observing event object.
-										 * Expected to act as a context for the callback, an event observer identifier,
-										 * and to help uniquely identify an event observer while unregistering.  
-										 */
-	atomic_t refCount;					/* Reference count */
-} EventMgrEntry, *EventMgrEntryPtr;
-
-typedef struct EsifEventMgr_s {
-	EsifLinkListPtr observerLists[NUM_EVENT_LISTS];
-	esif_ccb_lock_t listLock;
-
-	EsifLinkListPtr garbageList;
-
-	EsifQueuePtr eventQueuePtr;
-
-	Bool eventQueueExitFlag;
-
-	esif_thread_t eventQueueThread;
-}EsifEventMgr, *EsifEventMgrPtr;
-
-typedef struct EsifEventQueueItem_s {
-	UInt8 participantId;
-	UInt16 domainId;
-	eEsifEventType eventType;
-	EsifData eventData;
-}EsifEventQueueItem, *EsifEventQueueItemPtr;
 
 
 #pragma pack(push, 1)
 
 // Used for events sent via IPC
 typedef struct EsifEventParams_s {
-	UInt8 participantId;
+	esif_handle_t participantId;
 	UInt16 domainId;
 	eEsifEventType eventType;
 	enum esif_data_type dataType;
 	UInt32 dataLen;
 	// If applicable; data follows at this point
 } EsifEventParams, *EsifEventParamsPtr;
+
+typedef struct UfEventIterator_s {
+	UInt32 marker;
+	eEsifEventType eventType;
+	size_t index;
+} UfEventIterator, *UfEventIteratorPtr;
+
+typedef struct EventMgr_IteratorData_s {
+	eEsifEventType eventType;
+	esif_handle_t participantId;		/* UF Participant ID */
+	UInt16 domainId;					/* Domain ID - '0D'*/
+	EVENT_OBSERVER_CALLBACK callback;	/* Callback routine - Also used to uniquely identify an event observer */
+	esif_context_t context;				/* For applications, this is the app handle */
+} EventMgr_IteratorData, *EventMgr_IteratorDataPtr;
+
 
 #pragma pack(pop)
 
@@ -185,55 +198,80 @@ eEsifError EsifEventMgr_Init(void);
 void EsifEventMgr_Exit(void);
 void EsifEventMgr_Disable(void);
 
-eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByGuid(
-	esif_guid_t *guidPtr,
-	UInt8 participantId,
-	UInt16 domainId,
-	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
-	);
-
-eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterEventByGuid(
-	esif_guid_t *guidPtr,
-	UInt8 participantId,
-	UInt16 domainId,
-	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
-	);
-
 eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByType(
 	eEsifEventType eventType,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	);
 
 eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterEventByType(
 	eEsifEventType eventType,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
-	);
+	esif_context_t context
+);
+
+eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterAllForApp(
+	EVENT_OBSERVER_CALLBACK eventCallback,
+	esif_context_t context
+);
 
 eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
 	const EsifDataPtr eventData
-	);
+);
 
+/* For simulation/shell use */
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalUnfilteredEvent(
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventDataPtr
+);
+
+/* For simulation use */
+esif_error_t EsifEventMgr_FilterEventType(eEsifEventType eventType);
+esif_error_t EsifEventMgr_UnfilterEventType(eEsifEventType eventType);
+esif_error_t EsifEventMgr_UnfilterAllEventTypes();
+
+
+/* For shell use */
 Bool EsifEventMgr_IsEventRegistered(
 	eEsifEventType eventType,
-	void *key,
-	UInt8 participantId,
+	esif_context_t key,
+	esif_handle_t participantId,
 	UInt16 domainId
 	);
 
 eEsifError HandlePackagedEvent(
 	EsifEventParamsPtr eventParamsPtr,
 	size_t dataLen
+	);
+
+/* Used with EsifEventMgr_GetNextEvent to iterate through the events present
+* in the Event Manager
+* Note(s):
+* 1) This iteration is based on the event types and the node number for the
+* linked list for that event type.  This is due to the fact that items may
+* be removed, so using event entry pointers for iteration is not possible
+* without reference counting, which would require added complexity which
+* is not required for the targeted usage (displaying current registered events.)
+* 2) There is no guarantee that all events present at the start of iteration
+* will be part of the iteration if events are removed during the iteration
+* 3) There is no guarantee that events added after the start of iteration
+* will be part of the iteration
+*/
+esif_error_t EsifEventMgr_InitIterator(UfEventIteratorPtr iterPtr);
+
+/* Use EsifEventMgr_InitIterator to initialize an iterator prior to use */
+esif_error_t EsifEventMgr_GetNextEvent(
+	UfEventIteratorPtr iterPtr,
+	EventMgr_IteratorDataPtr dataPtr
 	);
 
 #ifdef __cplusplus

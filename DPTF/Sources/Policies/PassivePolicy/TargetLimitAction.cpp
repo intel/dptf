@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #include "TargetLimitAction.h"
 #include <algorithm>
 #include "PassiveDomainProxy.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 
 TargetLimitAction::TargetLimitAction(
@@ -39,55 +41,73 @@ TargetLimitAction::~TargetLimitAction()
 
 void TargetLimitAction::execute()
 {
+	auto target = getTarget();
 	try
 	{
 		// make sure target is now being monitored
-		getTargetMonitor().startMonitoring(getTarget());
+		getTargetMonitor().startMonitoring(target);
 
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, "Attempting to limit target participant.", getTarget()));
+		POLICY_LOG_MESSAGE_DEBUG({
+			// TODO: want to pass in participant index
+			std::stringstream message;
+			message << "Attempting to limit target participant."
+					<< " ParticipantIndex = " << target;
+			return message.str();
+		});
 
 		// choose sources to limit for target
 		auto time = getTime()->getCurrentTime();
-		vector<UIntN> sourcesToLimit = chooseSourcesToLimitForTarget(getTarget());
+		vector<UIntN> sourcesToLimit = chooseSourcesToLimitForTarget(target);
 		if (sourcesToLimit.size() > 0)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, constructMessageForSources("limit", getTarget(), sourcesToLimit)));
+			POLICY_LOG_MESSAGE_DEBUG({ return constructMessageForSources("limit", target, sourcesToLimit); });
 
 			for (auto source = sourcesToLimit.begin(); source != sourcesToLimit.end(); source++)
 			{
-				if (getCallbackScheduler()->isFreeForRequests(getTarget(), *source, time))
+				if (getParticipantTracker()->remembers(*source))
 				{
-					vector<UIntN> domains = chooseDomainsToLimitForSource(getTarget(), *source);
-					getPolicyServices().messageLogging->writeMessageDebug(
-						PolicyMessage(FLF, constructMessageForSourceDomains("limit", getTarget(), *source, domains)));
-					for (auto domain = domains.begin(); domain != domains.end(); domain++)
+					if (getCallbackScheduler()->isFreeForRequests(target, *source, time))
 					{
-						requestLimit(*source, *domain, getTarget());
+						vector<UIntN> domains = chooseDomainsToLimitForSource(target, *source);
+						POLICY_LOG_MESSAGE_DEBUG(
+							{ return constructMessageForSourceDomains("limit", target, *source, domains); });
+						for (auto domain = domains.begin(); domain != domains.end(); domain++)
+						{
+							requestLimit(*source, *domain, target);
+						}
+						getCallbackScheduler()->markBusyForRequests(target, *source, time);
 					}
-					getCallbackScheduler()->markBusyForRequests(getTarget(), *source, time);
-				}
-				getCallbackScheduler()->ensureCallbackByNextSamplePeriod(getTarget(), *source, time);
+					getCallbackScheduler()->ensureCallbackByNextSamplePeriod(target, *source, time);
 
-				if (getCallbackScheduler()->isFreeForCommits(*source, time))
-				{
-					commitLimit(*source, time);
+					if (getCallbackScheduler()->isFreeForCommits(*source, time))
+					{
+						commitLimit(*source, time);
+					}
 				}
 			}
 		}
 		else
 		{
 			// schedule a callback as soon as possible if there are no sources that can be limited
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, "No sources to limit for target.", getTarget()));
-			getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
+			// TODO: want to pass in participant index
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "No sources to limit for target."
+						<< " ParticipantIndex = " << target;
+				return message.str();
+			});
+			getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(target, time);
 		}
 	}
 	catch (...)
 	{
-		getPolicyServices().messageLogging->writeMessageWarning(
-			PolicyMessage(FLF, "Failed to limit source(s) for target.", getTarget()));
+		// TODO: want to pass in participant index
+		POLICY_LOG_MESSAGE_WARNING({
+			std::stringstream message;
+			message << "Failed to limit source(s) for target."
+					<< " ParticipantIndex = " << target;
+			return message.str();
+		});
 	}
 }
 
@@ -119,10 +139,11 @@ std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> TargetLimitAction::g
 	std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> entriesThatCanBeLimited;
 	for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
 	{
-		if ((*entry)->getSourceDeviceIndex() != Constants::Invalid)
+		auto sourceIndex = (*entry)->getSourceDeviceIndex();
+		if (sourceIndex != Constants::Invalid && getParticipantTracker()->remembers(sourceIndex))
 		{
-			vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToLimit(
-				getParticipantTracker()->getParticipant((*entry)->getSourceDeviceIndex()), target);
+			vector<UIntN> domainsWithControlKnobsToTurn =
+				getDomainsWithControlKnobsToLimit(getParticipantTracker()->getParticipant(sourceIndex), target);
 			if (domainsWithControlKnobsToTurn.size() > 0)
 			{
 				entriesThatCanBeLimited.push_back(*entry);
@@ -152,10 +173,11 @@ std::vector<UIntN> TargetLimitAction::getDomainsWithControlKnobsToLimit(
 
 std::vector<UIntN> TargetLimitAction::chooseDomainsToLimitForSource(UIntN target, UIntN source)
 {
+	set<UIntN> domainsToLimitSet;
+
 	// select domains that can be limited for the source
 	vector<UIntN> domainsWithControlKnobsToTurn =
 		getDomainsWithControlKnobsToLimit(getParticipantTracker()->getParticipant(source), target);
-	set<UIntN> domainsToLimitSet;
 	if (domainsWithControlKnobsToTurn.size() > 0)
 	{
 		if (source == target)
@@ -304,8 +326,14 @@ void TargetLimitAction::commitLimit(UIntN source, const TimeSpan& time)
 	{
 		try
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, "Committing limits to source.", source, *domainIndex));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Committing limits to source."
+						<< " ParticipantIndex = " << source << ". Domain = " << *domainIndex;
+				return message.str();
+			});
+
 			auto domain = std::dynamic_pointer_cast<PassiveDomainProxy>(participant->getDomain(*domainIndex));
 			Bool madeChange = domain->commitLimits();
 			if (madeChange)
@@ -315,8 +343,13 @@ void TargetLimitAction::commitLimit(UIntN source, const TimeSpan& time)
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageWarning(
-				PolicyMessage(FLF, "Failed to limit source: " + string(ex.what()), source, *domainIndex));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_WARNING_EX({
+				std::stringstream message;
+				message << "Failed to limit source: " << string(ex.what()) << ". ParticipantIndex = " << source
+						<< ". Domain = " << *domainIndex;
+				return message.str();
+			});
 		}
 	}
 

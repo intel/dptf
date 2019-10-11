@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,22 @@
 #if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
 #include <errno.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include "esif_ccb_string.h"
 
 /*
  * File Management
  */
+
+ // mode parameters for esif_ccb_fopen() that can be combined
+#define FILEMODE_READ		"r"		// Open for Read-only; File must exist
+#define FILEMODE_WRITE		"w"		// Open for Write, Overwrite existing file; Create if does not exist
+#define FILEMODE_APPEND		"a"		// Open for Write, Append existing file; Create if does not exist
+#define FILEMODE_UPDATE		"+"		// Open for Update; Combine with "r", "w", or "a"
+#define FILEMODE_BINARY		"b"		// Open in Binary mode
+#define FILEMODE_TEXT		"t"		// Open in Text mode (Same as Binary for Linux)
+#define FILEMODE_COMMIT		""		// N/A in Linux
 
 static ESIF_INLINE FILE *esif_ccb_fopen(
 	esif_string name,
@@ -41,6 +51,14 @@ static ESIF_INLINE FILE *esif_ccb_fopen(
 	return fp;
 }
 
+static ESIF_INLINE int esif_ccb_fclose(FILE *fp)
+{
+	// Commit writable files to disk; No effect for read-only files.
+	fflush(fp);
+	fsync(fileno(fp));
+	return fclose(fp);
+}
+
 /* NOTE: SCANFBUF is mandatory when using esif_ccb_fscanf to scan into strings:
 *        esif_ccb_fscanf(fp, "%s=%d", SCANFBUF(name, sizeof(name)), &value);
 */
@@ -52,7 +70,7 @@ static ESIF_INLINE FILE *esif_ccb_fopen(
 #define esif_ccb_vfprintf(fp, fmt, vargs)           vfprintf(fp, fmt, vargs)
 #define esif_ccb_fseek(fp, off, org)                fseek(fp, off, org)
 #define esif_ccb_ftell(fp)                          ftell(fp)
-#define esif_ccb_fclose(fp)                         fclose(fp)
+#define esif_ccb_fflush(fp)                         fflush(fp)
 #define esif_ccb_unlink(fname)                      unlink(fname)
 #define esif_ccb_rename(oldname, newname)           rename(oldname, newname)
 #define esif_ccb_mkdir(dir)                         mkdir(dir, 755)

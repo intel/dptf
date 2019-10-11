@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,12 @@ public:
 
 protected:
 	void writeDomainWorkItemErrorMessage(const std::exception& ex, const std::string& functionName) const;
+	void writeDomainWorkItemWarningMessage(const std::exception& ex, const std::string& functionName) const;
 	void writeDomainWorkItemErrorMessagePolicy(
+		const std::exception& ex,
+		const std::string& functionName,
+		UIntN policyIndex) const;
+	void writeDomainWorkItemWarningMessagePolicy(
 		const std::exception& ex,
 		const std::string& functionName,
 		UIntN policyIndex) const;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,10 +27,10 @@ WIDptfParticipantActivityLoggingDisabled::WIDptfParticipantActivityLoggingDisabl
 	UIntN domainIndex,
 	UInt32 capabilityBitMask)
 	: DomainWorkItem(
-		  dptfManager,
-		  FrameworkEvent::Type::DptfParticipantActivityLoggingDisabled,
-		  participantIndex,
-		  domainIndex)
+		dptfManager,
+		FrameworkEvent::Type::DptfParticipantActivityLoggingDisabled,
+		participantIndex,
+		domainIndex)
 	, m_capabilityBitMask(capabilityBitMask)
 {
 }
@@ -39,13 +39,17 @@ WIDptfParticipantActivityLoggingDisabled::~WIDptfParticipantActivityLoggingDisab
 {
 }
 
-void WIDptfParticipantActivityLoggingDisabled::execute(void)
+void WIDptfParticipantActivityLoggingDisabled::onExecute(void)
 {
 	writeDomainWorkItemStartingInfoMessage();
 
 	try
 	{
 		getParticipantPtr()->activityLoggingDisabled(getDomainIndex(), m_capabilityBitMask);
+	}
+	catch (participant_index_invalid& ex)
+	{
+		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
 	}
 	catch (std::exception& ex)
 	{

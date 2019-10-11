@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,6 @@ static ESIF_INLINE void esif_ccb_memcpy(
 	size_t size
 	)
 {
-	MEMORY_DEBUG("dest = %p src = %p size = %u\n", dest_ptr, src_ptr, size);
 	memcpy(dest_ptr, src_ptr, size);
 }
 
@@ -42,7 +41,6 @@ static ESIF_INLINE void esif_ccb_memmove(
 	size_t size
 	)
 {
-	MEMORY_DEBUG("dest = %p src = %p size = %u\n", dest_ptr, src_ptr, size);
 	memmove(dest_ptr, src_ptr, size);
 }
 
@@ -54,7 +52,6 @@ static ESIF_INLINE void *esif_ccb_memset(
 	size_t count
 	)
 {
-	MEMORY_DEBUG("dest = %p value = %02x size = %u\n", s_ptr, c, count);
 	return memset(s_ptr, c, count);
 }
 
@@ -71,7 +68,6 @@ static ESIF_INLINE void *esif_ccb_malloc(size_t size)
 	if (NULL != mem_ptr)
 		esif_ccb_memset(mem_ptr, 0, size);
 
-	MEMORY_DEBUG("buf %p size = %u\n", mem_ptr, size);
 	return mem_ptr;
 }
 
@@ -80,7 +76,6 @@ static ESIF_INLINE void *esif_ccb_malloc(size_t size)
 static ESIF_INLINE
 void esif_ccb_free(void *mem_ptr)
 {
-	MEMORY_DEBUG("buf %p\n", mem_ptr);
 	if (NULL != mem_ptr)
 		free(mem_ptr);
 }
@@ -94,9 +89,6 @@ static ESIF_INLINE void *esif_ccb_realloc(
 {
 	void *old_ptr = mem_ptr;
 
-	MEMORY_DEBUG("buf %p, new_size=%lld\n", mem_ptr,
-		     (long long)new_size);
-
 	mem_ptr = realloc(mem_ptr, new_size);
 	if (NULL == old_ptr && NULL != mem_ptr)
 		esif_ccb_memset(mem_ptr, 0, new_size);
@@ -105,23 +97,6 @@ static ESIF_INLINE void *esif_ccb_realloc(
 }
 
 #endif /* ESIF_ATTR_MEMTRACE */
-
-/* Memory Dump */
-static ESIF_INLINE void esif_ccb_mem_dump(
-	const u8 *ch,
-	const u8 *what,
-	const int size
-	)
-{
-	int i;
-	UNREFERENCED_PARAMETER(what);
-	MEMORY_DEBUG("Dumping Memory for %s\n", what);
-	for (i = 0; i < size; i++, ch++)
-		MEMORY_DEBUG("<%p> 0x%02X\n", (u8 *)ch, (u8)*ch);
-	MEMORY_DEBUG("End of Memory Dump\n");
-}
-
-
 #endif /* _ESIF_CCB_MEMORY_H_ */
 
 /*****************************************************************************/

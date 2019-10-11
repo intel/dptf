@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -58,9 +58,9 @@
 #include "esif_sdk_iface_participant.h"
 #include "esif_event.h"
 #include "esif_dsp.h"
+#include "esif_ccb.h"
 
 #define ESIF_PARTICIPANT_INVALID_UID ""
-#define ESIF_PARTICIPANT_INVALID_INSTANCE 0xFF
 
 #define ESIF_NUM_LPAT_ENTRIES 512
 #define ESIF_VARS_PER_LPAT_ENTRY 2
@@ -96,6 +96,41 @@ static ESIF_INLINE esif_string esif_lp_state_str(
 	}
 	return ESIF_NOT_AVAILABLE;
 }
+
+/*
+** Create Participant Data.  Will be tacked on the bottom
+** of an IPC Event for participant creation.  Note the IPC event and
+** This data must be contiguous in memory space.
+*/
+/* USE Native Data Types With Packed Structures */
+#pragma pack(push, 1)
+struct esif_ipc_event_data_create_participant {
+	u8    id;				/* Participant ID */
+	u8    version;				/* Version */
+	u8    class_guid[ESIF_GUID_LEN];	/* Class GUID */
+	enum esif_participant_enum enumerator; /* Device Enumerator If Any */
+	u32   flags;				/* Flags If Any */
+	char  name[ESIF_NAME_LEN];		/* Friendly Name */
+	char  desc[ESIF_DESC_LEN];		/* Description */
+	char  driver_name[ESIF_NAME_LEN];	/* Driver Name */
+	char  device_name[ESIF_NAME_LEN];	/* Device Name */
+	char  device_path[ESIF_PATH_LEN];	/* Device Path */
+	char  acpi_device[ESIF_SCOPE_LEN];
+	char  acpi_scope[ESIF_SCOPE_LEN];
+	char  acpi_uid[ESIF_ACPI_UID_LEN];	/* Unique ID If Any */
+	u32   acpi_type;			/* Participant Type If Any */
+	u32   pci_vendor;			/* PCI Vendor For PCI Devices */
+	u32   pci_device;			/* PCE Device For PCI Devices */
+	u8    pci_bus;				/* Bus Device Enumerated On */
+	u8    pci_bus_device;			/* Device Number On Bus */
+	u8    pci_function;			/* PCI Function Of Device */
+	u8    pci_revision;			/* PCI Hardware Revision */
+	u8    pci_class;			/* PCI Hardware Class */
+	u8    pci_sub_class;			/* PCI Hardware Sub Class */
+	u8    pci_prog_if;			/* PCI Hardware Iface */
+};
+
+#pragma pack(pop)
 
 #ifdef ESIF_ATTR_KERNEL
 
@@ -139,6 +174,7 @@ struct esif_lp {
 	char pi_name[ESIF_NAME_LEN];	/* PI Name */
 	enum esif_lp_state lp_state;	/* Participant state */
 
+	enum esif_participant_enum enumerator; /* Device Enumerator */
 	struct esif_participant_iface *pi_ptr;	/* Particpant INTERFACE */
 
 	struct esif_lp_dsp *dsp_ptr;		/* DSP */
@@ -297,7 +333,7 @@ typedef struct _t_EsifUp {
 	 * The following data items may be accessed through accessor functions.
 	 * See below
 	 */
-	UInt8  fInstance;	/* Unique Upper Participant Instance */
+	esif_handle_t fInstance; /* Unique Upper Participant Instance */
 	UInt8  fLpInstance;	/* Lower Participant Instance */
 	EsifDspPtr fDspPtr; /* Pointer To Our DSP */
 	EsifUpData fMetadata; /* Participant Data */
@@ -322,11 +358,11 @@ typedef struct _t_EsifUp {
 /*
  * The following functions are data "accessor" functions
  */
-static ESIF_INLINE UInt8 EsifUp_GetInstance(
+static ESIF_INLINE esif_handle_t EsifUp_GetInstance(
 	EsifUpPtr self
 	)
 {
-	return (self != NULL) ? self->fInstance : ESIF_PARTICIPANT_INVALID_INSTANCE;
+	return (self != NULL) ? self->fInstance : ESIF_INVALID_HANDLE;
 }
 
 
@@ -334,7 +370,7 @@ static ESIF_INLINE UInt8 EsifUp_GetLpInstance(
 	EsifUpPtr self
 	)
 {
-	return (self != NULL) ? self->fLpInstance : ESIF_PARTICIPANT_INVALID_INSTANCE;
+	return (self != NULL) ? self->fLpInstance : ESIF_INSTANCE_INVALID;
 }
 
 static ESIF_INLINE EsifString EsifUp_GetName(
@@ -386,6 +422,20 @@ static ESIF_INLINE UInt16 EsifUp_GetDomainId(
 	)
 {
 	return (domainPtr != NULL) ? domainPtr->domain : 0;
+}
+
+static ESIF_INLINE Bool EsifUp_IsPrimaryParticipant(
+	EsifUpPtr self
+	)
+{
+	return (self && (self->fMetadata.fFlags & ESIF_FLAG_DPTFZ));
+}
+
+static ESIF_INLINE enum esif_participant_enum EsifUp_GetEnumerator(
+	EsifUpPtr self
+	)
+{
+	return (self != NULL) ? self->fMetadata.fEnumerator : ESIF_PARTICIPANT_ENUM_INVALID;
 }
 
 #ifdef __cplusplus

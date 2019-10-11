@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -111,7 +111,7 @@ void FrameworkEventInfo::initializeAllEventsToInvalid()
 
 #define DUMMY_GUID                                                                                                     \
 	{                                                                                                                  \
-		0x1C, 0x66, 0x20, 0x50, 0xFA, 0x0A, 0x47, 0x99, 0xBF, 0x56, 0x3E, 0x09, 0x1A, 0x00, 0x73, 0x38                 \
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00                 \
 	}
 
 void FrameworkEventInfo::initializeEvents()
@@ -154,6 +154,9 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DomainVirtualSensorRecalcChanged, 0, VIRTUAL_SENSOR_RECALC_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainBatteryStatusChanged, 0, BATTERY_STATUS_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainBatteryInformationChanged, 0, BATTERY_INFORMATION_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainBatteryHighFrequencyImpedanceChanged, 0, BATTERY_HIGH_FREQUENCY_IMPEDANCE_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainBatteryNoLoadVoltageChanged, 0, BATTERY_NO_LOAD_VOLTAGE_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainMaxBatteryPeakCurrentChanged, 0, DUMMY_GUID);
 	INIT_EVENT_WITH_GUID(DomainPlatformPowerSourceChanged, 0, PLATFORM_POWER_SOURCE_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainAdapterPowerRatingChanged, 0, DUMMY_GUID);
 	INIT_EVENT_WITH_GUID(DomainChargerTypeChanged, 0, CHARGER_TYPE_CHANGED);
@@ -166,6 +169,8 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(DomainAC2msPercentageOverloadChanged, 0, DUMMY_GUID);
 	INIT_EVENT_WITH_GUID(DomainAC10msPercentageOverloadChanged, 0, DUMMY_GUID);
 	INIT_EVENT_WITH_GUID(DomainEnergyThresholdCrossed, 0, ENERGY_THRESHOLD_CROSSED);
+	INIT_EVENT_WITH_GUID(DomainFanCapabilityChanged, 0, FAN_CAPABILITIES_CHANGED);
+	INIT_EVENT_WITH_GUID(DomainSocWorkloadClassificationChanged, 0, WORKLOAD_CLASSIFICATION_CHANGED);
 
 	// Policy events
 	INIT_EVENT(PolicyCreate, 31);
@@ -193,12 +198,18 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPlatformTypeChanged, 0, OS_PLATFORM_TYPE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemDockModeChanged, 0, OS_DOCK_MODE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemMobileNotification, 0, OS_MOBILE_NOTIFICATION);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemMixedRealityModeChanged, 0, OS_MIXED_REALITY_MODE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSchemePersonalityChanged, 0, OS_POWERSCHEME_PERSONALITY_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemUserPresenceChanged, 0, OS_USER_PRESENCE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemScreenStateChanged, 0, OS_SCREEN_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemBatteryCountChanged, 0, BATTERY_COUNT_NOTIFICATION);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSliderChanged, 0, OS_POWER_SLIDER_VALUE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOemVariablesChanged, 0, OEM_VARS_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerBossConditionsTableChanged, 0, POWER_BOSS_CONDITIONS_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerBossActionsTableChanged, 0, POWER_BOSS_ACTIONS_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerBossMathTableChanged, 0, POWER_BOSS_MATH_TABLE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyVoltageThresholdMathTableChanged, 0, VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(DptfPolicyLoadedUnloadedEvent, 0, DPTF_POLICY_LOADED_UNLOADED);
-	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSchemePersonalityChanged, 0, OS_POWERSCHEME_PERSONALITY_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyEmergencyCallModeTableChanged, 0, EMERGENCY_CALL_MODE_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPidAlgorithmTableChanged, 0, PID_ALGORITHM_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(
@@ -206,11 +217,14 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTableChanged, 0, POWER_SHARING_ALGORITHM_TABLE_CHANGED);
 	INIT_EVENT(PowerLimitChanged, 0);
 	INIT_EVENT_WITH_GUID(PolicyWorkloadHintConfigurationChanged, 0, WORKLOAD_HINT_CONFIGURATION_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemGameModeChanged, 0, OS_GAME_MODE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTable2Changed, 0, POWER_SHARING_ALGORITHM_TABLE_2_CHANGED);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloading, 0, APP_UNLOADING);
 	INIT_EVENT_WITH_GUID(DptfAppAliveRequest, 0, ALIVE_REQUEST);
+	INIT_EVENT(DptfCommand, 0);
 }
 
 void FrameworkEventInfo::initializeEvent(

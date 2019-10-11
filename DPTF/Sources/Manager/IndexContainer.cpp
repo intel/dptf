@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,12 +21,8 @@
 
 // Do not throw exceptions from within this file
 
-IndexContainer::IndexContainer(UIntN initialCount)
+IndexContainer::IndexContainer()
 {
-	for (UIntN i = 0; i < initialCount; i++)
-	{
-		getIndexPtr(i);
-	}
 }
 
 IndexContainer::~IndexContainer(void)
@@ -44,62 +40,135 @@ IndexContainer::~IndexContainer(void)
 	esifMutexHelper.unlock();
 }
 
-IndexStructPtr IndexContainer::getIndexPtr(UIntN index)
+void IndexContainer::insertHandle(UIntN participantIndex,
+	UIntN domainIndex,
+	esif_handle_t participantHandle,
+	esif_handle_t domainHandle
+	)
 {
-	IndexStructPtr indexPtr = nullptr;
-	UInt64 currentVectorSize = m_vectorIndexStructPtr.size();
-
 	EsifMutexHelper esifMutexHelper(&m_mutex);
 	esifMutexHelper.lock();
 
-	if ((index == Constants::Esif::NoParticipant) || // or Constants::Esif::NoDomain
-		(index == Constants::Invalid)
-		|| (index > currentVectorSize))
-	{
-		indexPtr = nullptr;
-	}
-	else if (index < currentVectorSize)
-	{
-		indexPtr = m_vectorIndexStructPtr[index];
-	}
-	else if (index == currentVectorSize)
-	{
-		IndexStructPtr indexStructPtr = new IndexStruct;
-		indexStructPtr->index = index;
-		m_vectorIndexStructPtr.push_back(indexStructPtr);
-		indexPtr = m_vectorIndexStructPtr[index];
-	}
+	IndexStructPtr indexStructPtr = new IndexStruct;
+
+	indexStructPtr->participantIndex = participantIndex;
+	indexStructPtr->domainIndex = domainIndex;
+	indexStructPtr->participantHandle = participantHandle;
+	indexStructPtr->domainHandle = domainHandle;
+
+	m_vectorIndexStructPtr.push_back(indexStructPtr);
 
 	esifMutexHelper.unlock();
-
-	return indexPtr;
 }
 
-UIntN IndexContainer::getIndex(IndexStructPtr indexStructPtr)
+void IndexContainer::removeHandle(esif_handle_t participantHandle, esif_handle_t domainHandle)
 {
-	// FIXME:  consider using a hash table.  However, the number of items in the vector will be short as it will
-	//        be the number of participants loaded.  It may not be worth the conversion.  Should run
-	//        performance tests before changing.
-
-	UIntN index = Constants::Invalid;
-
 	EsifMutexHelper esifMutexHelper(&m_mutex);
 	esifMutexHelper.lock();
 
-	if (indexStructPtr != nullptr)
+	for (UIntN i = 0; i < m_vectorIndexStructPtr.size(); i++)
 	{
-		UInt64 currentVectorSize = m_vectorIndexStructPtr.size();
-		for (UIntN i = 0; i < currentVectorSize; i++)
+		if ((m_vectorIndexStructPtr[i]->participantHandle == participantHandle) &&
+			(m_vectorIndexStructPtr[i]->domainHandle == domainHandle))
 		{
-			if (m_vectorIndexStructPtr[i] == indexStructPtr)
-			{
-				index = i;
-				break;
-			}
+			DELETE_MEMORY_TC(m_vectorIndexStructPtr[i]);
+			m_vectorIndexStructPtr.erase(m_vectorIndexStructPtr.begin() + i);
+			break;
 		}
 	}
 
 	esifMutexHelper.unlock();
+}
 
-	return index;
+esif_handle_t IndexContainer::getParticipantHandle(UIntN participantIndex)
+{
+	esif_handle_t participantHandle = ESIF_INVALID_HANDLE;
+	UInt64 currentVectorSize = 0;
+
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
+
+	currentVectorSize = m_vectorIndexStructPtr.size();
+	for (UIntN i = 0; i < currentVectorSize; i++)
+	{
+		if (m_vectorIndexStructPtr[i]->participantIndex == participantIndex)
+		{
+			participantHandle = m_vectorIndexStructPtr[i]->participantHandle;
+			break;
+		}
+	}
+	esifMutexHelper.unlock();
+
+	return participantHandle;
+}
+
+esif_handle_t IndexContainer::getDomainHandle(UIntN participantIndex, UIntN domainIndex)
+{
+	esif_handle_t domainHandle = ESIF_INVALID_HANDLE;
+	UInt64 currentVectorSize = 0;
+
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
+
+	currentVectorSize = m_vectorIndexStructPtr.size();
+
+	for (UIntN i = 0; i < currentVectorSize; i++)
+	{
+		if ((m_vectorIndexStructPtr[i]->participantIndex == participantIndex) &&
+			(m_vectorIndexStructPtr[i]->domainIndex == domainIndex))
+		{
+			domainHandle = m_vectorIndexStructPtr[i]->domainHandle;
+			break;
+		}
+	}
+	esifMutexHelper.unlock();
+
+	return domainHandle;
+}
+
+UIntN IndexContainer::getParticipantIndex(esif_handle_t participantHandle)
+{
+	UIntN participantIndex = Constants::Invalid;
+	UInt64 currentVectorSize = 0;
+
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
+
+	currentVectorSize = m_vectorIndexStructPtr.size();
+
+	for (UIntN i = 0; i < currentVectorSize; i++)
+	{
+		if (m_vectorIndexStructPtr[i]->participantHandle == participantHandle)
+		{
+			participantIndex = m_vectorIndexStructPtr[i]->participantIndex;
+			break;
+		}
+	}
+	esifMutexHelper.unlock();
+
+	return participantIndex;
+}
+
+UIntN IndexContainer::getDomainIndex(esif_handle_t participantHandle, esif_handle_t domainHandle)
+{
+	UIntN domainIndex = Constants::Invalid;
+	UInt64 currentVectorSize = 0;
+
+	EsifMutexHelper esifMutexHelper(&m_mutex);
+	esifMutexHelper.lock();
+
+	currentVectorSize = m_vectorIndexStructPtr.size();
+
+	for (UIntN i = 0; i < currentVectorSize; i++)
+	{
+		if ((m_vectorIndexStructPtr[i]->participantHandle == participantHandle) &&
+			(m_vectorIndexStructPtr[i]->domainHandle == domainHandle))
+		{
+			domainIndex = m_vectorIndexStructPtr[i]->domainIndex;
+			break;
+		}
+	}
+	esifMutexHelper.unlock();
+
+	return domainIndex;
 }

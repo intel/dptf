@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,8 @@
 #include "EsifAppServicesInterface.h"
 #include "EventCache.h"
 #include "UserPreferredCache.h"
+#include "CommandDispatcher.h"
+#include "FileIO.h"
 
 class EsifServicesInterface;
 class WorkItemQueueManagerInterface;
@@ -40,11 +42,11 @@ public:
 	DptfManager(void);
 
 	// This will shut down DPTF and clean up resources.
-	~DptfManager(void);
+	virtual ~DptfManager(void);
 
 	// This will create all of the DPTF subsystems.
 	virtual void createDptfManager(
-		const void* esifHandle,
+		const esif_handle_t esifHandle,
 		EsifInterfacePtr esifInterfacePtr,
 		const std::string& dptfHomeDirectoryPath,
 		eLogType currentLogVerbosityLevel,
@@ -60,8 +62,11 @@ public:
 	virtual WorkItemQueueManagerInterface* getWorkItemQueueManager(void) const override;
 	virtual PolicyManagerInterface* getPolicyManager(void) const override;
 	virtual ParticipantManagerInterface* getParticipantManager(void) const override;
+	virtual ICommandDispatcher* getCommandDispatcher() const override;
 	virtual DptfStatusInterface* getDptfStatus(void) override;
 	virtual IndexContainerInterface* getIndexContainer(void) const override;
+	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
+	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const override;
 
 	virtual std::string getDptfHomeDirectoryPath(void) const override;
 	virtual std::string getDptfPolicyDirectoryPath(void) const override;
@@ -102,6 +107,15 @@ private:
 	// will be notified as they come in to the DPTF framework.
 	ParticipantManagerInterface* m_participantManager;
 
+	// All commands register with the dispatcher at start up.
+	// The dispatcher will direct commands to their proper handlers.
+	ICommandDispatcher* m_commandDispatcher;
+	std::list<std::shared_ptr<CommandHandler>> m_commands;
+	std::shared_ptr<IFileIO> m_fileIo;
+	std::shared_ptr<RequestDispatcherInterface> m_requestDispatcher;
+
+	std::shared_ptr<RequestHandlerInterface> m_platformRequestHandler;
+
 	std::shared_ptr<EventCache> m_eventCache;
 	std::shared_ptr<UserPreferredCache> m_userPreferredCache;
 
@@ -131,4 +145,7 @@ private:
 
 	void registerDptfFrameworkEvents(void);
 	void unregisterDptfFrameworkEvents(void);
+	void registerCommands();
+	void createCommands();
+	void unregisterCommands();
 };

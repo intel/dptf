@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,8 +38,7 @@ DomainProperties DomainPropertiesSet::getDomainProperties(UIntN domainIndex) con
 		}
 	}
 
-	throw dptf_exception(
-		"Domain properties for domain index of " + std::to_string(domainIndex) + " does not exist.");
+	throw dptf_exception("Domain properties for domain index of " + std::to_string(domainIndex) + " does not exist.");
 }
 
 UIntN DomainPropertiesSet::getDomainCount(void) const
@@ -62,5 +61,5 @@ UIntN DomainPropertiesSet::getDomainIndexFromDomainType(DomainType::Type domainT
 		}
 	}
 
-	throw dptf_exception("No domain of type " + DomainType::ToString(domainType) + ".");
+	throw dptf_exception("No domain of type " + DomainType::toString(domainType) + ".");
 }

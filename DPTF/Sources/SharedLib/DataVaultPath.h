@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 
 namespace DataVaultPathBasePaths
 {
+	static const std::string FeaturesRoot = "/features";
 	static const std::string SharedRoot = "/shared";
 	static const std::string TablesRoot = SharedRoot + "/tables";
 	static const std::string ValuesRoot = SharedRoot + "/values";
@@ -36,6 +37,7 @@ namespace DataVaultPath
 		{
 			static const std::string WorkloadHints = DataVaultPathBasePaths::ExportRoot + "/workload_hints/";
 			static const std::string DoNotRebalanceUnusedPidBudget = DataVaultPathBasePaths::ExportRoot + "/do_not_rebalance_unused_pid_budget/";
+			static const std::string Pl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/pl1_time_window/";
 		};
 
 		namespace Tables
@@ -46,6 +48,12 @@ namespace DataVaultPath
 			static const std::string Pida = DataVaultPathBasePaths::TablesRoot + "/pida/";
 			static const std::string Psha = DataVaultPathBasePaths::TablesRoot + "/psha/";
 			static const std::string Acpr = DataVaultPathBasePaths::TablesRoot + "/acpr/";
+			static const std::string Psh2 = DataVaultPathBasePaths::TablesRoot + "/psh2/";
 		};
+	};
+
+	namespace Features
+	{
+		static const std::string Hwpf = DataVaultPathBasePaths::FeaturesRoot + "/hwpf";
 	};
 };

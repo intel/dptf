@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,7 +37,7 @@ void DomainRfProfileStatus_000::sendActivityLoggingDataIfEnabled(UIntN participa
 	throw not_implemented();
 }
 
-void DomainRfProfileStatus_000::clearCachedData(void)
+void DomainRfProfileStatus_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }

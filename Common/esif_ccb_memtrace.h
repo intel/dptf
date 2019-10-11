@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #if defined(ESIF_ATTR_USER) && defined(ESIF_ATTR_MEMTRACE)
 
+#include "esif_ccb_rc.h"
 #include "esif_ccb_atomic.h"
 #include "esif_ccb_lock.h"
 
@@ -35,8 +36,14 @@ struct memalloc_s {
 };
 struct memtrace_s {
 	esif_ccb_lock_t		lock;
+
+
+
+
 	atomic_t		allocs;
 	atomic_t		frees;
+	Bool			free_leaks;
+	Bool			enabled;
 	struct memalloc_s	*allocated;
 };
 
@@ -46,7 +53,7 @@ extern "C" {
 
 extern struct memtrace_s g_memtrace;
 
-extern void  esif_memtrace_init(void);
+extern esif_error_t  esif_memtrace_init(void);
 extern void  esif_memtrace_exit(void);
 extern void *esif_memtrace_alloc(
 	void *old_ptr,

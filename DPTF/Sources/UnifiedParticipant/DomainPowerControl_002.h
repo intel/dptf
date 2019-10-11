@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,12 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
 		override;
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
-	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual Power getPowerLimitWithoutCache(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
+	virtual Bool isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex) override;
+	virtual Bool isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -70,6 +75,10 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle) override;
+	virtual void setSocPowerFloorState(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		Bool socPowerFloorState) override;
 
 	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 		override;
@@ -87,12 +96,16 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void removePowerLimitPolicyRequest(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
+	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 

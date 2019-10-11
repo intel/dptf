@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 ##
 ## The source code, information and material ("Material") contained herein is
 ## owned by Intel Corporation or its suppliers or licensors, and title to such
@@ -55,6 +55,10 @@ LOCAL_CFLAGS    := -g -DESIF_ATTR_OS_ANDROID -DESIF_FEAT_OPT_ACTION_SYSFS -DESIF
 	-Wno-sign-compare -Wno-missing-field-initializers -Wno-unused-parameter -Wno-missing-braces -Wno-ignored-qualifiers -Wno-unknown-pragmas -Wno-typedef-redefinition \
 	-Wno-enum-conversion -Wno-switch -Wno-sizeof-pointer-memaccess -Wno-logical-op-parentheses -Wno-comment -Wno-tautological-compare -Wno-logical-not-parentheses -w
 
+ifeq ($(IOC_SLCAN_ENABLED), true)
+LOCAL_CFLAGS += -DESIF_FEAT_OPT_ACTION_IOC
+endif
+
 LOCAL_MODULE    := esif_ufd
 LOCAL_MODULE_OWNER := intel
 LOCAL_PROPRIETARY_MODULE := true
@@ -71,10 +75,11 @@ LOCAL_SRC_FILES += ESIF_UF/Sources/lin/esif_uf_sysfs_enumerate_os_lin.c
 
 LOCAL_SRC_FILES += ESIF_CM/Sources/esif_hash_table.c
 LOCAL_SRC_FILES += ESIF_CM/Sources/esif_ipc.c
-LOCAL_SRC_FILES += ESIF_CM/Sources/esif_queue.c
 
 LOCAL_SRC_FILES += ../../Common/esif_link_list.c
 LOCAL_SRC_FILES += ../../Common/esif_ccb_timer.c
+LOCAL_SRC_FILES += ../../Common/esif_queue.c
+LOCAL_SRC_FILES += ../../Common/esif_sdk_base64.c
 
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_accelerometer.c
@@ -94,6 +99,7 @@ LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_dspmgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_event.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_eventmgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_event_broadcast.c
+LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_handlemgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_ipc.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_loggingmgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_participant.c
@@ -112,5 +118,6 @@ LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_datavault.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_esifdata.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_iostream.c
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_istring.c
+LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_json.c
 
 include $(BUILD_EXECUTABLE)

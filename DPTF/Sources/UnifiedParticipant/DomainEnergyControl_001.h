@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,15 +37,13 @@ public:
 	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold) override;
-	virtual void setEnergyThresholdInterruptDisable(
-		UIntN participantIndex,
-		UIntN domainIndex) override;
+	virtual void setEnergyThresholdInterruptDisable(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
+	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 

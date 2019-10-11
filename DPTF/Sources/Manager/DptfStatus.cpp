@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,11 @@
 #include "ParticipantStatusMap.h"
 #include "EsifDataString.h"
 #include <StatusFormat.h>
+#include "PlatformRequestHandler.h"
 
-static const Guid ManagerStatusFormatId(0x3E, 0x58, 0x63, 0x46, 0xF8, 0xF7, 0x45, 0x4A, 0xA8, 0xF7, 0xDE, 0x7E, 0xC6, 0xF7, 0x61, 0xA8);
-static const Guid ArbitratorStatusFormatId(0xAC, 0x0A, 0x0E, 0x91, 0x09, 0xA8, 0x69, 0x4E, 0x87, 0x5F, 0xE9, 0x49, 0xF7, 0x97, 0x53, 0xA0);
+// clang-format off
+const Guid ManagerStatusFormatId(0x3E, 0x58, 0x63, 0x46, 0xF8, 0xF7, 0x45, 0x4A, 0xA8, 0xF7, 0xDE, 0x7E, 0xC6, 0xF7, 0x61, 0xA8);
+// clang-format on
 
 DptfStatus::DptfStatus(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
@@ -53,7 +55,9 @@ namespace GroupType
 	{
 		Policies = 0,
 		Participants = 1,
-		Framework = 2
+		Framework = 2,
+		Arbitrator = 3,
+		System = 4
 	};
 }
 
@@ -61,40 +65,76 @@ namespace ManagerModuleType
 {
 	enum Type
 	{
-		Manager = 0,
-		Events = 1,
-		Arbitrator = 2,
-		Statistics = 3
+		Events = 0,
+		Manager = 1,
+		Statistics = 2
 	};
+
+	std::string ToString(ManagerModuleType::Type type)
+	{
+		switch (type)
+		{
+		case Events:
+			return "Event Status";
+		case Manager:
+			return "Manager Status";
+		case Statistics:
+			return "Work Item Statistics";
+		default:
+			return Constants::InvalidString;
+		}
+	}
 }
 
-void DptfStatus::getStatus(
-	const eAppStatusCommand command,
-	const UInt32 appStatusIn,
-	EsifDataPtr appStatusOut,
-	eEsifError* returnCode)
+namespace SystemModuleType
+{
+	enum Type
+	{
+		SystemConfiguration = 0
+	};
+
+	std::string ToString(SystemModuleType::Type type)
+	{
+		switch (type)
+		{
+		case SystemConfiguration:
+			// it is important that this name matches the name in the "policy" cpp file
+			return "System Configuration";
+		default:
+			return Constants::InvalidString;
+		}
+	}
+}
+
+std::pair<std::string, eEsifError> DptfStatus::getStatus(const eAppStatusCommand command, const UInt32 appStatusIn)
 {
 	std::string response;
+	std::pair<std::string, eEsifError> statusResult;
+	eEsifError returnCode = ESIF_OK;
 
 	switch (command)
 	{
 	case eAppStatusCommandGetXSLT:
-		response = getXsltContent(returnCode);
+		response = getXsltContent(&returnCode);
 		break;
 	case eAppStatusCommandGetGroups:
-		response = getGroupsXml(returnCode);
+		response = getGroupsXml(&returnCode);
 		break;
 	case eAppStatusCommandGetModulesInGroup:
-		response = getModulesInGroup(appStatusIn, returnCode);
+		response = getModulesInGroup(appStatusIn, &returnCode);
 		break;
 	case eAppStatusCommandGetModuleData:
-		response = getModuleData(appStatusIn, returnCode);
+		response = getModuleData(appStatusIn, &returnCode);
 		break;
 	default:
-		*returnCode = ESIF_E_UNSPECIFIED;
+		returnCode = ESIF_E_UNSPECIFIED;
 		throw dptf_exception("Received invalid command status code.");
 	}
-	fillEsifString(appStatusOut, response, returnCode);
+
+	statusResult.first = response;
+	statusResult.second = returnCode;
+
+	return statusResult;
 }
 
 void DptfStatus::clearCache()
@@ -155,6 +195,16 @@ std::string DptfStatus::getGroupsXml(eEsifError* returnCode)
 	group2->addChild(XmlNode::createDataElement("id", "2"));
 	group2->addChild(XmlNode::createDataElement("name", "Manager"));
 
+	auto group3 = XmlNode::createWrapperElement("group");
+	groups->addChild(group3);
+	group3->addChild(XmlNode::createDataElement("id", "3"));
+	group3->addChild(XmlNode::createDataElement("name", "Arbitrator"));
+
+	auto group4 = XmlNode::createWrapperElement("group");
+	groups->addChild(group4);
+	group4->addChild(XmlNode::createDataElement("id", "4"));
+	group4->addChild(XmlNode::createDataElement("name", "System"));
+
 	std::string s = groups->toString();
 
 	return s;
@@ -175,6 +225,12 @@ std::string DptfStatus::getModulesInGroup(const UInt32 appStatusIn, eEsifError* 
 	case GroupType::Framework:
 		modulesInGroup = getFrameworkGroup();
 		break;
+	case GroupType::Arbitrator:
+		modulesInGroup = getArbitratorGroup();
+		break;
+	case GroupType::System:
+		modulesInGroup = getSystemGroup();
+		break;
 	default:
 		*returnCode = ESIF_E_UNSPECIFIED;
 		throw dptf_exception("Invalid group ID specified.");
@@ -193,7 +249,7 @@ std::string DptfStatus::getPoliciesGroup()
 		{
 			// Get the policy variables before adding nodes.  This forces
 			// exceptions to be thrown first.
-			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
+			auto policy = m_policyManager->getPolicyPtr(*policyIndex);
 			std::string name = policy->getName();
 
 			auto module = XmlNode::createWrapperElement("module");
@@ -225,38 +281,18 @@ std::string DptfStatus::getFrameworkGroup()
 {
 	auto modules = XmlNode::createWrapperElement("modules");
 
-	// Arbitrator Status
+	for (UIntN moduleType = 0; moduleType < (UIntN)ManagerModuleType::Statistics; ++moduleType)
+	{
+		auto module = XmlNode::createWrapperElement("module");
+		modules->addChild(module);
 
-	auto module = XmlNode::createWrapperElement("module");
-	modules->addChild(module);
+		auto moduleId = XmlNode::createDataElement("id", std::to_string(moduleType));
+		module->addChild(moduleId);
 
-	auto moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Arbitrator));
-	module->addChild(moduleId);
-
-	auto moduleName = XmlNode::createDataElement("name", "Arbitrator Status");
-	module->addChild(moduleName);
-
-	// Event Status
-
-	module = XmlNode::createWrapperElement("module");
-	modules->addChild(module);
-
-	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Events));
-	module->addChild(moduleId);
-
-	moduleName = XmlNode::createDataElement("name", "Event Status");
-	module->addChild(moduleName);
-
-	// Manager Status
-
-	module = XmlNode::createWrapperElement("module");
-	modules->addChild(module);
-
-	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Manager));
-	module->addChild(moduleId);
-
-	moduleName = XmlNode::createDataElement("name", "Manager Status");
-	module->addChild(moduleName);
+		auto moduleName =
+			XmlNode::createDataElement("name", ManagerModuleType::ToString((ManagerModuleType::Type)moduleType));
+		module->addChild(moduleName);
+	}
 
 #ifdef INCLUDE_WORK_ITEM_STATISTICS
 
@@ -268,7 +304,7 @@ std::string DptfStatus::getFrameworkGroup()
 	moduleId = XmlNode::createDataElement("id", std::to_string(ManagerModuleType::Statistics));
 	module->addChild(moduleId);
 
-	moduleName = XmlNode::createDataElement("name", "Work Item Statistics");
+	moduleName = XmlNode::createDataElement("name", ManagerModuleType::ToString(ManagerModuleType::Statistics));
 	module->addChild(moduleName);
 
 #endif
@@ -276,6 +312,55 @@ std::string DptfStatus::getFrameworkGroup()
 	std::string s = modules->toString();
 
 	return s;
+}
+
+std::string DptfStatus::getArbitratorGroup()
+{
+	auto modules = XmlNode::createWrapperElement("modules");
+
+	// in alphabetical order
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Active));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::ConfigTdp));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Core));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Display));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::PeakPowerControl));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Performance));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::PlatformPowerControl));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::PowerControl));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::ProcessorControl));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::SystemPower));
+	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Temperature));
+
+	std::string s = modules->toString();
+
+	return s;
+}
+
+std::string DptfStatus::getSystemGroup()
+{
+	auto modules = XmlNode::createWrapperElement("modules");
+	auto module = XmlNode::createWrapperElement("module");
+	modules->addChild(module);
+
+	auto moduleId = XmlNode::createDataElement("id", std::to_string((UIntN)SystemModuleType::SystemConfiguration));
+	module->addChild(moduleId);
+
+	auto moduleName = XmlNode::createDataElement("name", SystemModuleType::ToString(SystemModuleType::SystemConfiguration));
+	module->addChild(moduleName);
+
+	return modules->toString();
+}
+
+std::shared_ptr<XmlNode> DptfStatus::getArbitratorModuleInGroup(ControlFactoryType::Type type)
+{
+	auto module = XmlNode::createWrapperElement("module");
+	auto moduleId = XmlNode::createDataElement("id", std::to_string(type));
+	module->addChild(moduleId);
+
+	auto moduleName =
+		XmlNode::createDataElement("name", ControlFactoryType::getArbitratorString((ControlFactoryType::Type)type));
+	module->addChild(moduleName);
+	return module;
 }
 
 std::string DptfStatus::getModuleData(const UInt32 appStatusIn, eEsifError* returnCode)
@@ -296,6 +381,12 @@ std::string DptfStatus::getModuleData(const UInt32 appStatusIn, eEsifError* retu
 	case GroupType::Framework:
 		moduleData = getXmlForFramework(moduleId, returnCode);
 		break;
+	case GroupType::Arbitrator:
+		moduleData = getXmlForArbitrator(moduleId, returnCode);
+		break;
+	case GroupType::System:
+		moduleData = getXmlForSystem(moduleId, returnCode);
+		break;
 	default:
 		*returnCode = ESIF_E_UNSPECIFIED;
 		throw dptf_exception("Invalid group ID specified.");
@@ -307,7 +398,7 @@ std::string DptfStatus::getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCo
 {
 	try
 	{
-		Policy* policy = m_policyManager->getPolicyPtr(policyIndex);
+		auto policy = m_policyManager->getPolicyPtr(policyIndex);
 		return policy->getStatusAsXml();
 	}
 	catch (policy_index_invalid&)
@@ -364,58 +455,75 @@ std::string DptfStatus::getXmlForParticipant(UInt32 mappedIndex, eEsifError* ret
 
 std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* returnCode)
 {
-	std::shared_ptr<XmlNode> frameworkRoot;
-
 	switch (moduleIndex)
 	{
 	case ManagerModuleType::Manager:
 	{
-		frameworkRoot = XmlNode::createRoot();
-		auto formatId = XmlNode::createComment("format_id=" + ManagerStatusFormatId.toString());
-		frameworkRoot->addChild(formatId);
-
-		auto dppmRoot = XmlNode::createWrapperElement("manager_status");
-		frameworkRoot->addChild(dppmRoot);
-
-		auto policiesRoot = getXmlForFrameworkLoadedPolicies();
-		dppmRoot->addChild(policiesRoot);
-
-		auto participantsRoot = getXmlForFrameworkLoadedParticipants();
-		dppmRoot->addChild(participantsRoot);
-
 		*returnCode = ESIF_OK;
-		break;
+		auto frameworkRoot = XmlNode::createRoot();
+		frameworkRoot->addChild(XmlNode::createComment("format_id=" + ManagerStatusFormatId.toString()));
+		auto dppmRoot = XmlNode::createWrapperElement("manager_status");
+		dppmRoot->addChild(getXmlForFrameworkLoadedPolicies());
+		dppmRoot->addChild(getXmlForFrameworkLoadedParticipants());
+		dppmRoot->addChild(getXmlForPlatformRequests());
+		frameworkRoot->addChild(dppmRoot);
+		return frameworkRoot->toString();
 	}
 	case ManagerModuleType::Events:
 	{
-		frameworkRoot = m_policyManager->getStatusAsXml();
 		*returnCode = ESIF_OK;
-		break;
-	}
-	case ManagerModuleType::Arbitrator:
-	{
-		frameworkRoot = getArbitratorXmlForLoadedParticipants();
-		*returnCode = ESIF_OK;
-		break;
+		auto frameworkRoot = m_policyManager->getStatusAsXml();
+		return frameworkRoot->toString();
 	}
 	case ManagerModuleType::Statistics:
 	{
-		frameworkRoot = m_dptfManager->getWorkItemQueueManager()->getStatusAsXml();
 		*returnCode = ESIF_OK;
-		break;
+		auto frameworkRoot = m_dptfManager->getWorkItemQueueManager()->getStatusAsXml();
+		return frameworkRoot->toString();
 	}
 	default:
 		*returnCode = ESIF_E_UNSPECIFIED;
-		break;
+		return std::string();
 	}
+}
 
-	std::string s;
-	if (frameworkRoot != nullptr)
+std::string DptfStatus::getXmlForArbitrator(UInt32 moduleIndex, eEsifError* returnCode)
+{
+	*returnCode = ESIF_OK;
+	auto frameworkRoot = getArbitratorXmlForLoadedParticipants(moduleIndex);
+	return frameworkRoot->toString();
+}
+
+std::string DptfStatus::getXmlForSystem(UInt32 moduleIndex, eEsifError* returnCode)
+{
+	// System group "modules" are implemented as though they are policies to leverage currently implemented interfaces
+	// As they are not really a policy, we do not want them to appear under the Policies group
+	switch (moduleIndex)
 	{
-		s = frameworkRoot->toString();
-	}
+	case SystemModuleType::SystemConfiguration:
+	{
+		*returnCode = ESIF_OK;
 
-	return s;
+		try
+		{
+			auto policy = m_policyManager->getPolicy(SystemModuleType::ToString(SystemModuleType::SystemConfiguration));
+			return policy->getStatusAsXml();
+		}
+		catch (policy_index_invalid&)
+		{
+			*returnCode = ESIF_E_UNSPECIFIED;
+			throw dptf_exception("Invalid policy status requested.");
+		}
+		catch (...)
+		{
+			*returnCode = ESIF_E_UNSPECIFIED;
+			throw;
+		}
+	}
+	default:
+		*returnCode = ESIF_E_UNSPECIFIED;
+		return std::string();
+	}
 }
 
 std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedPolicies()
@@ -429,8 +537,14 @@ std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedPolicies()
 	{
 		try
 		{
-			Policy* policy = m_policyManager->getPolicyPtr(*i);
+			auto policy = m_policyManager->getPolicyPtr(*i);
 			std::string name = policy->getName();
+
+			if (name == SystemModuleType::ToString(SystemModuleType::SystemConfiguration))
+			{
+				// do not want to add System Configuration as part of the Policies table
+				continue;
+			}
 
 			auto policyRoot = XmlNode::createWrapperElement("policy");
 
@@ -472,20 +586,21 @@ std::shared_ptr<XmlNode> DptfStatus::getXmlForFrameworkLoadedParticipants()
 	return participantsRoot;
 }
 
+std::shared_ptr<XmlNode> DptfStatus::getXmlForPlatformRequests()
+{
+	return std::dynamic_pointer_cast<PlatformRequestHandler>(m_dptfManager->getPlatformRequestHandler())->getXml();
+}
+
 void DptfStatus::fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode)
 {
 	*returnCode = FillDataPtrWithString(outputLocation, inputString);
 }
 
-std::shared_ptr<XmlNode> DptfStatus::getArbitratorXmlForLoadedParticipants()
+UIntN DptfStatus::getNumberOfUniqueDomains(std::set<UIntN> participantIndexList)
 {
-	auto root = XmlNode::createRoot();
-	root->addChild(XmlNode::createComment("format_id=" + ArbitratorStatusFormatId.toString()));
-
-	auto arbitratorRoot = XmlNode::createWrapperElement("arbitrator_status");
-	auto participantIndexList = m_participantManager->getParticipantIndexes();
-	auto numberOfUniqueDomains = 0;
-	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
+	UIntN numberOfUniqueDomains = 0;
+	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
+		 ++participantIndex)
 	{
 		try
 		{
@@ -498,25 +613,40 @@ std::shared_ptr<XmlNode> DptfStatus::getArbitratorXmlForLoadedParticipants()
 		}
 	}
 
-	arbitratorRoot->addChild(XmlNode::createDataElement("number_of_domains", StatusFormat::friendlyValue(numberOfUniqueDomains)));
+	return numberOfUniqueDomains;
+}
+
+std::shared_ptr<XmlNode> DptfStatus::getArbitratorXmlForLoadedParticipants(UInt32 moduleIndex)
+{
+	auto root = XmlNode::createRoot();
+	auto type = (ControlFactoryType::Type)moduleIndex;
+	root->addChild(XmlNode::createComment("format_id=" + ControlFactoryType::getArbitratorFormatId(type).toString()));
+
+	auto arbitratorRoot = XmlNode::createWrapperElement("arbitrator_status");
+	auto participantIndexList = m_participantManager->getParticipantIndexes();
+	auto numberOfUniqueDomains = getNumberOfUniqueDomains(participantIndexList);
+
+	arbitratorRoot->addChild(
+		XmlNode::createDataElement("number_of_domains", StatusFormat::friendlyValue(numberOfUniqueDomains)));
 
 	auto policyIndexes = m_policyManager->getPolicyIndexes();
 	for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 	{
 		try
 		{
-			Policy* policy = m_policyManager->getPolicyPtr(*policyIndex);
+			auto policy = m_policyManager->getPolicyPtr(*policyIndex);
 			std::string name = policy->getName();
 			auto policyRoot = XmlNode::createWrapperElement("policy");
 			auto policyName = XmlNode::createDataElement("policy_name", name);
 			policyRoot->addChild(policyName);
 
-			for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end(); ++participantIndex)
+			for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
+				 ++participantIndex)
 			{
 				try
 				{
 					Participant* participant = m_participantManager->getParticipantPtr(*participantIndex);
-					policyRoot->addChild(participant->getArbitrationXmlForPolicy(*policyIndex));
+					policyRoot->addChild(participant->getArbitrationXmlForPolicy(*policyIndex, type));
 				}
 				catch (...)
 				{

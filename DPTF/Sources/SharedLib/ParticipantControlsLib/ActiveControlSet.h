@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,7 @@ public:
 	Bool operator==(const ActiveControlSet& rhs) const;
 	Bool operator!=(const ActiveControlSet& rhs) const;
 	std::shared_ptr<XmlNode> getXml(void);
+	DptfBuffer toFpsBinary() const;
 
 private:
 	std::vector<ActiveControl> m_activeControl;

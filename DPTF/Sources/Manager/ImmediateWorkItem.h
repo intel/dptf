@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,7 +28,7 @@
 class ImmediateWorkItem : public WorkItemInterface
 {
 public:
-	ImmediateWorkItem(WorkItemInterface* workItem, UIntN priority);
+	ImmediateWorkItem(std::shared_ptr<WorkItemInterface> workItem, UIntN priority);
 	virtual ~ImmediateWorkItem(void);
 
 	// implement WorkItemInterface
@@ -41,9 +41,10 @@ public:
 	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
 	virtual std::string toXml(void) const override;
 	virtual void execute(void) override;
+	virtual void signal(void) override;
 
 	// implement added functionality
-	WorkItemInterface* getWorkItem(void) const;
+	std::shared_ptr<WorkItemInterface> getWorkItem(void) const;
 	UIntN getPriority(void) const;
 
 private:
@@ -51,6 +52,6 @@ private:
 	ImmediateWorkItem(const ImmediateWorkItem&);
 	ImmediateWorkItem& operator=(const ImmediateWorkItem&);
 
-	WorkItemInterface* m_workItem;
+	std::shared_ptr<WorkItemInterface> m_workItem;
 	UIntN m_priority;
 };

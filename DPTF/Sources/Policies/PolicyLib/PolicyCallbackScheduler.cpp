@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "PolicyCallbackScheduler.h"
 #include "StatusFormat.h"
+#include "PolicyLogger.h"
 
 using namespace std;
 using namespace StatusFormat;
@@ -71,6 +72,15 @@ void PolicyCallbackScheduler::cancelCallback(EventCode::Type participantRole, UI
 	{
 		m_policyServices.policyInitiatedCallback->removePolicyInitiatedCallback(row->second.getCallbackHandle());
 		acknowledgeCallback(participantRole, participantIndex);
+	}
+}
+
+void PolicyCallbackScheduler::cancelAllCallbackRequests()
+{
+	auto scheduleCopy = m_schedule; // needed because m_schedule will change in size when we cancel the requests
+	for (auto callbackRequest = scheduleCopy.begin(); callbackRequest != scheduleCopy.end(); ++callbackRequest)
+	{
+		cancelCallback(callbackRequest->first.first, callbackRequest->first.second);
 	}
 }
 
@@ -175,11 +185,13 @@ std::shared_ptr<XmlNode> PolicyCallbackScheduler::getStatusForParticipant(
 		else
 		{
 			status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
+			status->addChild(XmlNode::createDataElement("current_polling_period", Constants::InvalidString));
 		}
 	}
 	catch (dptf_exception&)
 	{
 		status->addChild(XmlNode::createDataElement("time_until_expires", Constants::InvalidString));
+		status->addChild(XmlNode::createDataElement("current_polling_period", Constants::InvalidString));
 	}
 
 	return status;
@@ -244,11 +256,18 @@ void PolicyCallbackScheduler::scheduleCallback(
 	m_schedule[std::make_pair(participantRole, participantIndex)] =
 		ParticipantCallback(pollTime, currentTime, callbackHandle);
 
-	m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(
-		FLF,
-		"Scheduled a callback in " + pollTime.toStringMilliseconds() + " ms" + " for participant "
-			+ std::to_string(participantIndex) + " with event code = " + std::to_string(participantRole) + ".",
-		participantIndex));
+	POLICY_LOG_MESSAGE_DEBUG({
+		std::stringstream message;
+		message << "Scheduled a callback in " << pollTime.toStringMilliseconds() << " ms for participant "
+				<< std::to_string(participantIndex) << " with event code = " << std::to_string(participantRole) << "."
+				<< " ParticipantIndex = " << participantIndex;
+		return message.str();
+	});
+}
+
+const PolicyServicesInterfaceContainer& PolicyCallbackScheduler::getPolicyServices() const
+{
+	return m_policyServices;
 }
 
 void PolicyCallbackScheduler::scheduleTimerCallback(void* object, const TimeSpan& currentTime, const TimeSpan& pollTime)
@@ -257,8 +276,10 @@ void PolicyCallbackScheduler::scheduleTimerCallback(void* object, const TimeSpan
 		EventCode::Timer, Constants::Invalid, object, pollTime);
 	m_timers[(UInt64)object] = ParticipantCallback(pollTime, currentTime, callbackHandle);
 
-	m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(
-		FLF,
-		"Scheduled a callback in " + pollTime.toStringMilliseconds()
-			+ " ms with event code = " + std::to_string(EventCode::Timer) + "."));
+	POLICY_LOG_MESSAGE_DEBUG({
+		std::stringstream message;
+		message << "Scheduled a callback in " << pollTime.toStringMilliseconds()
+				<< " ms with event code = " << std::to_string(EventCode::Timer) << ".";
+		return message.str();
+	});
 }

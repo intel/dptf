@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -95,7 +95,7 @@ void ParticipantSetSpecificInfo_001::setParticipantSpecificInfo(
 		static_cast<UInt8>(Constants::Esif::NoPersistInstanceOffset + instance));
 }
 
-void ParticipantSetSpecificInfo_001::clearCachedData(void)
+void ParticipantSetSpecificInfo_001::onClearCachedData(void)
 {
 	// Do nothing.  We don't cache ParticipantSetSpecificInfo related data.
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,4 +22,4 @@
 #include "esif_ccb_string.h"
 
 esif_handle_t RegisterParticipant(const EsifParticipantIfacePtr piPtr);
-eEsifError UnRegisterParticipant(const esif_handle_t participantHandle);
+eEsifError UnRegisterParticipant(const esif_handle_t participantId);

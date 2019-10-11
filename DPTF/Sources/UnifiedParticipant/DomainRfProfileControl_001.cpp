@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,6 +40,9 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	Frequency minFrequency(0);
 	Frequency maxFrequency(0);
 	Percentage ssc(0.0);
+	Percentage sscBaselineSpreadValue(0.0);
+	Percentage sscBaselineThreshold(0.0);
+	Percentage sscBaselineGuardBand(0.0);
 
 	try
 	{
@@ -48,8 +51,9 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get default center frequency. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get default center frequency. ";
+			});
 	}
 	try
 	{
@@ -58,8 +62,9 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get center frequency. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get center frequency. ";
+			});
 	}
 	try
 	{
@@ -68,8 +73,9 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get frequency adjust resolution. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get frequency adjust resolution. ";
+			});
 	}
 	try
 	{
@@ -78,8 +84,9 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get min frequency. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get min frequency. ";
+			});
 	}
 	try
 	{
@@ -88,20 +95,29 @@ RfProfileCapabilities DomainRfProfileControl_001::getRfProfileCapabilities(UIntN
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get max frequency. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get max frequency. ";
+			});
 	}
 	try
 	{
-		ssc = getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_RFPROFILE_SSC, domainIndex);
+		ssc = getParticipantServices()->primitiveExecuteGetAsPercentage(
+			esif_primitive_type::GET_RFPROFILE_SSC, domainIndex);
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get ssc. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get ssc. ";
+			});
 	}
+
 	RfProfileCapabilities rfProfileCapabilities(
-		defaultCenterFrequency, centerFrequency, frequencyAdjustResolution, minFrequency, maxFrequency, ssc);
+		defaultCenterFrequency,
+		centerFrequency,
+		frequencyAdjustResolution,
+		minFrequency,
+		maxFrequency,
+		ssc);
 
 	return rfProfileCapabilities;
 }
@@ -115,7 +131,37 @@ void DomainRfProfileControl_001::setRfProfileCenterFrequency(
 		esif_primitive_type::SET_RFPROFILE_CENTER_FREQUENCY, centerFrequency, domainIndex, Constants::Esif::NoInstance);
 }
 
-void DomainRfProfileControl_001::clearCachedData(void)
+void DomainRfProfileControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	try
+	{
+		if (isActivityLoggingEnabled() == true)
+		{
+			EsifCapabilityData capability;
+			capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL;
+			capability.size = sizeof(capability);
+			capability.data.rfProfileControl.rfProfileMinFrequency =
+				(UInt32)getRfProfileCapabilities(participantIndex, domainIndex).getMinFrequency();
+			capability.data.rfProfileControl.rfProfileCenterFrequency =
+				(UInt32)getRfProfileCapabilities(participantIndex, domainIndex).getCenterFrequency();
+			capability.data.rfProfileControl.rfProfileMaxFrequency =
+				(UInt32)getRfProfileCapabilities(participantIndex, domainIndex).getMaxFrequency();
+			capability.data.rfProfileControl.rfProfileSSC =
+				(UInt32)getRfProfileCapabilities(participantIndex, domainIndex).getSsc();
+
+			getParticipantServices()->sendDptfEvent(
+				ParticipantEvent::DptfParticipantControlAction,
+				domainIndex,
+				Capability::getEsifDataFromCapabilityData(&capability));
+		}
+	}
+	catch (...)
+	{
+		// skip if there are any issue in sending log data
+	}
+}
+
+void DomainRfProfileControl_001::onClearCachedData(void)
 {
 	// FIXME: do we clear the cache for this control?
 }
@@ -130,4 +176,55 @@ std::shared_ptr<XmlNode> DomainRfProfileControl_001::getXml(UIntN domainIndex)
 std::string DomainRfProfileControl_001::getName(void)
 {
 	return "RF Profile Control";
+}
+
+Percentage DomainRfProfileControl_001::getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex)
+{
+	Percentage sscBaselineSpreadValue(Percentage::createInvalid());
+
+	try
+	{
+		sscBaselineSpreadValue = getParticipantServices()->primitiveExecuteGetAsPercentage(
+			esif_primitive_type::GET_BASELINE_SSC_SPREAD_VALUE, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get ssc baseline spread value. "; });
+	}
+
+	return sscBaselineSpreadValue;
+}
+
+Percentage DomainRfProfileControl_001::getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	Percentage sscBaselineThreshold(Percentage::createInvalid());
+
+	try
+	{
+		sscBaselineThreshold = getParticipantServices()->primitiveExecuteGetAsPercentage(
+			esif_primitive_type::GET_BASELINE_SSC_THRESHOLD, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get ssc baseline threshold. "; });
+	}
+
+	return sscBaselineThreshold;
+}
+
+Percentage DomainRfProfileControl_001::getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex)
+{
+	Percentage sscBaselineGuardBand(Percentage::createInvalid());
+
+	try
+	{
+		sscBaselineGuardBand = getParticipantServices()->primitiveExecuteGetAsPercentage(
+			esif_primitive_type::GET_BASELINE_SSC_GUARD_BAND, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get ssc baseline guard band. "; });
+	}
+
+	return sscBaselineGuardBand;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,7 +39,7 @@ WIParticipantCreate::~WIParticipantCreate(void)
 {
 }
 
-void WIParticipantCreate::execute(void)
+void WIParticipantCreate::onExecute(void)
 {
 	writeParticipantWorkItemStartingInfoMessage();
 
@@ -70,10 +70,10 @@ void WIParticipantCreate::execute(void)
 		{
 			try
 			{
-				Policy* policy = policyManager->getPolicyPtr(*i);
+				auto policy = policyManager->getPolicyPtr(*i);
 				policy->bindParticipant(getParticipantIndex());
 			}
-			catch (policy_index_invalid& ex)
+			catch (policy_index_invalid&)
 			{
 				// do nothing.  No item in the policy list at this index.
 			}

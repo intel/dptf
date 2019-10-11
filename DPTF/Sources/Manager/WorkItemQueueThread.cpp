@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -87,9 +87,8 @@ void WorkItemQueueThread::executeThread(void)
 
 void WorkItemQueueThread::processImmediateQueue(void)
 {
-	ImmediateWorkItem* immediateWorkItem = m_immediateQueue->dequeue();
-
-	while (immediateWorkItem != nullptr)
+	auto immediateWorkItem = m_immediateQueue->dequeue();
+	while (immediateWorkItem.get() != nullptr)
 	{
 		// FrameworkEvent::Type eventType = immediateWorkItem->getFrameworkEventType();
 
@@ -128,9 +127,6 @@ void WorkItemQueueThread::processImmediateQueue(void)
 		{
 		}
 #endif
-
-		DELETE_MEMORY_TC(immediateWorkItem);
-
 		immediateWorkItem = m_immediateQueue->dequeue();
 	}
 }

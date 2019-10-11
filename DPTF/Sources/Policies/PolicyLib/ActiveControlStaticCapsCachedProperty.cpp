@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "ActiveControlStaticCapsCachedProperty.h"
+#include "DptfRequest.h"
 using namespace std;
 
 ActiveControlStaticCapsCachedProperty::ActiveControlStaticCapsCachedProperty(
@@ -36,8 +37,10 @@ ActiveControlStaticCapsCachedProperty::~ActiveControlStaticCapsCachedProperty(vo
 
 void ActiveControlStaticCapsCachedProperty::refreshData(void)
 {
-	m_capabilities =
-		getPolicyServices().domainActiveControl->getActiveControlStaticCaps(getParticipantIndex(), getDomainIndex());
+	DptfRequest request(DptfRequestType::ActiveControlGetStaticCaps, getParticipantIndex(), getDomainIndex());
+	auto result = getPolicyServices().serviceRequest->submitRequest(request);
+	result.throwIfFailure();
+	m_capabilities = ActiveControlStaticCaps::createFromFif(result.getData());
 }
 
 Bool ActiveControlStaticCapsCachedProperty::supportsProperty(void)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Dptf.h"
-#include "DomainActiveControlInterface.h"
 #include "DomainActivityStatusInterface.h"
 #include "DomainConfigTdpControlInterface.h"
 #include "DomainCoreControlInterface.h"
@@ -32,29 +31,26 @@
 #include "DomainPriorityInterface.h"
 #include "DomainRfProfileControlInterface.h"
 #include "DomainRfProfileStatusInterface.h"
-#include "DomainTemperatureInterface.h"
-#include "DomainTccOffsetControlInterface.h"
 #include "DomainUtilizationInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
 #include "ParticipantSetSpecificInfoInterface.h"
 #include "PlatformConfigurationDataInterface.h"
-#include "PlatformNotificationInterface.h"
 #include "PlatformPowerStateInterface.h"
 #include "PolicyEventRegistrationInterface.h"
 #include "PolicyInitiatedCallbackInterface.h"
 #include "MessageLoggingInterface.h"
 #include "PolicyMessage.h"
 #include "PolicyWorkloadHintConfigurationInterface.h"
-#include "DomainPlatformPowerControlInterface.h"
+#include "DomainSystemPowerControlInterface.h"
 #include "DomainPlatformPowerStatusInterface.h"
 #include "PlatformStateInterface.h"
+#include "DptfServiceRequestInterface.h"
 
 struct PolicyServicesInterfaceContainer
 {
 	PolicyServicesInterfaceContainer(void);
 
-	DomainActiveControlInterface* domainActiveControl;
 	DomainActivityStatusInterface* domainActivityStatus;
 	DomainConfigTdpControlInterface* domainConfigTdpControl;
 	DomainCoreControlInterface* domainCoreControl;
@@ -64,23 +60,21 @@ struct PolicyServicesInterfaceContainer
 	DomainPerformanceControlInterface* domainPerformanceControl;
 	DomainPowerControlInterface* domainPowerControl;
 	DomainPowerStatusInterface* domainPowerStatus;
-	DomainPlatformPowerControlInterface* domainPlatformPowerControl;
+	DomainSystemPowerControlInterface* domainSystemPowerControl;
 	DomainPlatformPowerStatusInterface* domainPlatformPowerStatus;
 	DomainPriorityInterface* domainPriority;
 	DomainRfProfileControlInterface* domainRfProfileControl;
 	DomainRfProfileStatusInterface* domainRfProfileStatus;
-	DomainTccOffsetControlInterface* domainTccOffsetControl;
-	DomainTemperatureInterface* domainTemperature;
 	DomainUtilizationInterface* domainUtilization;
 	ParticipantGetSpecificInfoInterface* participantGetSpecificInfo;
 	ParticipantPropertiesInterface* participantProperties;
 	ParticipantSetSpecificInfoInterface* participantSetSpecificInfo;
 	PlatformConfigurationDataInterface* platformConfigurationData;
-	PlatformNotificationInterface* platformNotification;
 	PlatformPowerStateInterface* platformPowerState;
 	PolicyEventRegistrationInterface* policyEventRegistration;
 	PolicyInitiatedCallbackInterface* policyInitiatedCallback;
 	MessageLoggingInterface* messageLogging;
 	PolicyWorkloadHintConfigurationInterface* workloadHintConfiguration;
 	PlatformStateInterface* platformState;
+	DptfServiceRequestInterface* serviceRequest;
 };

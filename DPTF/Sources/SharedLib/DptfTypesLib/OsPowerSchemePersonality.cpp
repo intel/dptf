@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,9 +38,9 @@
 
 namespace OsPowerSchemePersonality
 {
-	std::string toString(OsPowerSchemePersonality::Type OsPowerSchemePersonality)
+	std::string toString(OsPowerSchemePersonality::Type osPowerSchemePersonality)
 	{
-		switch (OsPowerSchemePersonality)
+		switch (osPowerSchemePersonality)
 		{
 		case HighPerformance:
 			return "HighPerformance";
@@ -49,21 +49,21 @@ namespace OsPowerSchemePersonality
 		case Balanced:
 			return "Balanced";
 		default:
-			throw dptf_exception("OsPowerSource::Type is invalid");
+			throw dptf_exception("OsPowerSchemePersonality::Type is invalid");
 		}
 	}
 
-	OsPowerSchemePersonality::Type toType(Guid OsPowerSchemePersonality)
+	OsPowerSchemePersonality::Type toType(Guid osPowerSchemePersonality)
 	{
-		if (OsPowerSchemePersonality == Guid(GUID_HIGH_PERFORMANCE_MODE))
+		if (osPowerSchemePersonality == Guid(GUID_HIGH_PERFORMANCE_MODE))
 		{
 			return OsPowerSchemePersonality::HighPerformance;
 		}
-		else if (OsPowerSchemePersonality == Guid(GUID_POWER_SAVER_MODE))
+		else if (osPowerSchemePersonality == Guid(GUID_POWER_SAVER_MODE))
 		{
 			return OsPowerSchemePersonality::PowerSaver;
 		}
-		else if (OsPowerSchemePersonality == Guid(GUID_BALANCED_MODE))
+		else if (osPowerSchemePersonality == Guid(GUID_BALANCED_MODE))
 		{
 			return OsPowerSchemePersonality::Balanced;
 		}

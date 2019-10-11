@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,13 +23,13 @@
 #include "ControlBase.h"
 #include "ParticipantServicesInterface.h"
 #include "ParticipantActivityLoggingInterface.h"
+#include "RequestHandlerInterface.h"
+#include "ArbitratorPlatformPowerControl.h"
 
 class DomainPlatformPowerControlBase : public ControlBase,
 									   public DomainPlatformPowerControlInterface,
 									   public ParticipantActivityLoggingInterface
 {
-	friend class PlatformPowerControlState;
-
 public:
 	DomainPlatformPowerControlBase(
 		UIntN participantIndex,
@@ -38,11 +38,13 @@ public:
 	virtual ~DomainPlatformPowerControlBase();
 
 protected:
-	void updateEnabled(PlatformPowerLimitType::Type limitType);
-	void setEnabled(PlatformPowerLimitType::Type limitType, Bool enable);
-	Bool isEnabled(PlatformPowerLimitType::Type limitType) const;
+	ArbitratorPlatformPowerControl m_arbitrator;
 
-	Bool m_pl1Enabled;
-	Bool m_pl2Enabled;
-	Bool m_pl3Enabled;
+private:
+	void bindRequestHandlers();
+
+	DptfRequestResult handleSetPortPowerLimit(const PolicyRequest& policyRequest);
+	DptfRequestResult handleRemovePolicyRequests(const PolicyRequest& policyRequest);
+
+	std::pair<UInt32, Power> createFromDptfBuffer(const DptfBuffer& buffer);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "esif_uf_actmgr.h"	/* Action Manager            */
 #include "esif_uf_xform.h"
 #include "esif_sdk_iface_upe.h"
+#include "esif_uf_handlemgr.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -33,7 +34,7 @@
 #include "win\banned.h"
 #endif
 
-#define CONNECTED_STANDBY_POLLING_RATE_DEFAULT 0xFFFFFFFE
+#define CONNECTED_STANDBY_POLLING_RATE_DEFAULT 60000
 
 /*
  * Need to move to header POC.  Also don't forget to free returned
@@ -46,13 +47,11 @@ extern char *esif_str_replace(char *orig, char *rep, char *with);
  */
 static eEsifError EsifUp_CreateParticipantByLpEventData(
 	struct esif_ipc_event_data_create_participant *lpCreateDataPtr,
-	UInt8 upInstance,
 	EsifUpPtr *upPtr
 	);
 
 static eEsifError EsifUp_CreateParticipantByUpInterface(
 	EsifParticipantIfacePtr upInterfacePtr,
-	UInt8 upInstance,
 	EsifUpPtr *upPtr
 	);
 
@@ -143,6 +142,11 @@ void EsifUp_DestroyParticipant(
 	EsifUpPtr self
 );
 
+void EsifUpDomain_SetUpId(
+	EsifUpDomainPtr self,
+	esif_handle_t participantId
+);
+
 #ifdef ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED
 
 static eEsifError EsifUp_SimulationExecutePrimitive(
@@ -177,8 +181,6 @@ eEsifError EsifUp_DspReadyInit(
 		
 		upDomainPtr = EsifUp_GetDomainById(self, self->domains[domainIndex].domain);
 		if (upDomainPtr) {
-			EsifUpDomain_InitTempPoll(upDomainPtr);
-			EsifUpDomain_InitPowerPoll(upDomainPtr);
 			EsifUpDomain_DspReadyInit(upDomainPtr);
 		}
 	}
@@ -495,7 +497,7 @@ eEsifError EsifUp_StartParticipantSlowPoll(EsifUpPtr self)
 		goto exit;
 	}
 
-	ietmPtr = EsifUpPm_GetAvailableParticipantByInstance(ESIF_INSTANCE_LF); // IETM Participant
+	ietmPtr = EsifUpPm_GetAvailableParticipantByInstance(ESIF_HANDLE_PRIMARY_PARTICIPANT); // IETM Participant
 	if (NULL != ietmPtr) {
 		// Get overridden connected standby sample period if available
 		rc = EsifUp_ExecutePrimitive(ietmPtr, &standbySamplePeriodTuple, NULL, &standbySamplePeriodResponse);
@@ -593,7 +595,6 @@ exit:
 
 static eEsifError EsifUp_CreateParticipantByLpEventData(
 	struct esif_ipc_event_data_create_participant *lpCreateDataPtr,
-	UInt8 upInstance,
 	EsifUpPtr *upPtr
 	)
 {
@@ -622,11 +623,18 @@ static eEsifError EsifUp_CreateParticipantByLpEventData(
 	/* origin of creation */
 	newUpPtr->fOrigin = eParticipantOriginLF;
 
-	/* store Uppter Framework Instance */
-	newUpPtr->fInstance = upInstance;
+	/* Store Upper Framework Instance */
+	newUpPtr->fInstance = ESIF_INVALID_HANDLE;
 
-	/* Store Lower Framework Instance. */
-	newUpPtr->fLpInstance = lpCreateDataPtr->id;
+	/*
+	* Store Lower Framework Instance.
+	* For DPTF zones we set for IETM
+	*/
+	if (lpCreateDataPtr->flags & ESIF_FLAG_DPTFZ) {
+		newUpPtr->fLpInstance = ESIF_INSTANCE_LF;
+	} else {
+		newUpPtr->fLpInstance = lpCreateDataPtr->id;
+	}
 
 	/* Meta data */
 	newUpPtr->fMetadata.fVersion = lpCreateDataPtr->version;
@@ -671,7 +679,7 @@ static eEsifError EsifUp_CreateParticipantByLpEventData(
 
 exit:
 	if (rc == ESIF_OK) {
-		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", EsifUp_GetName(newUpPtr), upInstance);
+		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF\n", EsifUp_GetName(newUpPtr));
 		*upPtr = newUpPtr;
 	} else if (newUpPtr != NULL) {
 		EsifUp_DestroyParticipant(newUpPtr);
@@ -683,7 +691,6 @@ exit:
 
 static eEsifError EsifUp_CreateParticipantByUpInterface(
 	EsifParticipantIfacePtr upInterfacePtr,
-	UInt8 upInstance,
 	EsifUpPtr *upPtr
 	)
 {
@@ -712,8 +719,8 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	/* origin of creation */
 	newUpPtr->fOrigin = eParticipantOriginUF;
 
-	/* Store Uppter Framework Instance */
-	newUpPtr->fInstance = upInstance;
+	/* Store Upper Framework Instance */
+	newUpPtr->fInstance = ESIF_INVALID_HANDLE;
 
 	/* Store Lower Framework Instance */
 	newUpPtr->fLpInstance = ESIF_INSTANCE_INVALID;	/* Not Used */
@@ -741,7 +748,7 @@ static eEsifError EsifUp_CreateParticipantByUpInterface(
 	rc = EsifUp_InitDomains(newUpPtr);
 exit:
 	if (rc == ESIF_OK) {
-		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF, instance = %d\n", EsifUp_GetName(newUpPtr), upInstance);
+		ESIF_TRACE_INFO("The participant data of %s is created in ESIF UF\n", EsifUp_GetName(newUpPtr));
 		*upPtr = newUpPtr;
 	}
 	else if (newUpPtr != NULL) {
@@ -783,7 +790,6 @@ exit:
 
 eEsifError EsifUp_CreateParticipant(
 	const eEsifParticipantOrigin origin,
-	UInt8 upInstance,
 	const void *metadataPtr,
 	EsifUpPtr *upPtr
 	)
@@ -796,11 +802,11 @@ eEsifError EsifUp_CreateParticipant(
 
 		switch (origin) {
 		case eParticipantOriginLF:
-			rc = EsifUp_CreateParticipantByLpEventData((struct esif_ipc_event_data_create_participant *)metadataPtr, upInstance, upPtr);
+			rc = EsifUp_CreateParticipantByLpEventData((struct esif_ipc_event_data_create_participant *)metadataPtr, upPtr);
 			break;
 
 		case eParticipantOriginUF:
-			rc = EsifUp_CreateParticipantByUpInterface((EsifParticipantIfacePtr)metadataPtr, upInstance, upPtr);
+			rc = EsifUp_CreateParticipantByUpInterface((EsifParticipantIfacePtr)metadataPtr, upPtr);
 			break;
 
 		default:
@@ -822,6 +828,7 @@ static eEsifError EsifUp_ReInitializeParticipantByLpEventData(
 	ESIF_ASSERT(lpCreateDataPtr != NULL);
 
 	self->fLpInstance = lpCreateDataPtr->id;
+	self->fOrigin = eParticipantOriginLF;
 
 	rc = EsifUp_SelectDspByLpEventData(self, lpCreateDataPtr);
 
@@ -840,6 +847,7 @@ static eEsifError EsifUp_ReInitializeParticipantByUpInterface(
 	ESIF_ASSERT(upInterfacePtr != NULL);
 
 	self->fLpInstance = ESIF_INSTANCE_INVALID;
+	self->fOrigin = eParticipantOriginUF;
 
 	rc = EsifUp_SelectDspByUpInterface(self, upInterfacePtr);
 
@@ -879,9 +887,15 @@ void EsifUp_DestroyParticipant(
 	EsifUpPtr self
 	)
 {
+	u32 i = 0;
+
 	if (self != NULL) {
 		self->markedForDelete = ESIF_TRUE;
 		EsifUp_PutRef(self);
+
+		for (i = 0; i < self->domainCount; ++i) {
+			EsifUpDomain_UnInitDomain(&self->domains[i]);
+		}
 
 		ESIF_TRACE_INFO("Destroy participant %d : wait for delete event...\n", EsifUp_GetInstance(self));
 		esif_ccb_event_wait(&self->deleteEvent);
@@ -1144,6 +1158,7 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 	)
 {
 	eEsifError rc = ESIF_OK;
+	eEsifError supActRc = ESIF_E_UNSUPPORTED_ACTION_TYPE;
 	EsifDspPtr dspPtr = NULL;
 	EsifFpcPrimitivePtr primitivePtr = NULL;
 	EsifFpcActionPtr fpcActionPtr = NULL;
@@ -1293,6 +1308,7 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 	indexValid = selectorPtr->flags & ESIF_PRIM_ACT_SEL_FLAG_INDEX_VALID;
 
 	rc = ESIF_E_PRIMITIVE_NO_ACTION_AVAIL;
+	supActRc = rc;
 	for (kernAct = 0, i = 0; i < (int)primitivePtr->num_actions; i++) {
 		fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)i);
 
@@ -1343,6 +1359,11 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 					break;
 				}
 			}
+
+			if (rc != ESIF_E_UNSUPPORTED_ACTION_TYPE) {
+				supActRc = rc;
+			}
+			rc = supActRc;
 
 			/* Action failed; determine if next action is tried*/
 			if (indexValid && (selectorPtr->index == i)) {
@@ -1527,7 +1548,7 @@ static eEsifError EsifUp_ExecuteIfaceGet(
 {
 	eEsifError rc = ESIF_OK;
 	EsifActIfacePtr actIfacePtr = NULL;
-	esif_context_t actCtx = NULL;
+	esif_context_t actCtx = 0;
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(actionPtr != NULL);
@@ -1556,11 +1577,11 @@ static eEsifError EsifUp_ExecuteIfaceGet(
 			requestPtr,
 			responsePtr);
 		break;
-	case ESIF_ACT_IFACE_VER_V1:
+	case ESIF_ACT_IFACE_VER_V4:
 		rc = EsifActCallPluginGet(actCtx,
 			self,
 			fpcActionPtr,
-			actIfacePtr->actIfaceV1.getFuncPtr,
+			actIfacePtr->actIfaceV4.getFuncPtr,
 			requestPtr,
 			responsePtr);
 		break;
@@ -1657,7 +1678,7 @@ static eEsifError EsifUp_ExecuteIfaceSet(
 {
 	eEsifError rc = ESIF_OK;
 	EsifActIfacePtr actIfacePtr = NULL;
-	esif_context_t actCtx = NULL;
+	esif_context_t actCtx = 0;
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(actionPtr != NULL);
@@ -1686,11 +1707,11 @@ static eEsifError EsifUp_ExecuteIfaceSet(
 				fpcActionPtr,
 				requestPtr);
 		break;
-	case ESIF_ACT_IFACE_VER_V1:
+	case ESIF_ACT_IFACE_VER_V4:
 		rc = EsifActCallPluginSet(actCtx,
 			self,
 			fpcActionPtr,
-			actIfacePtr->actIfaceV1.setFuncPtr,
+			actIfacePtr->actIfaceV4.setFuncPtr,
 			requestPtr);
 		break;
 	default:
@@ -1771,7 +1792,7 @@ static eEsifError EsifUp_ExecuteLfGetAction(
 		goto exit;
 	}
 
-	responsePtr->data_len = (u16)ipcPrimPtr->rsp_data_len;
+	responsePtr->data_len = ipcPrimPtr->rsp_data_len;
 	ESIF_TRACE_DEBUG("IPC rc %s, Primitive rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(ipcPtr->return_code),
 		esif_rc_str(ipcPrimPtr->return_code),
@@ -1916,21 +1937,119 @@ EsifString EsifUp_CreateTokenReplacedParamString(
 	EsifString replacedStr = NULL;
 	char domainStr[8] = "";
 	char idBuf[ESIF_NAME_LEN + 1 + sizeof(domainStr)];
+	EsifString nameStr = EsifUp_GetName(self);
 
 	if ((NULL == paramStr) || (NULL == self) || (NULL == primitivePtr)) {
 		goto exit;
 	}
 
 	esif_primitive_domain_str(primitivePtr->tuple.domain, domainStr, sizeof(domainStr));
-	esif_ccb_sprintf(sizeof(idBuf) - 1, idBuf, "%s.%s", EsifUp_GetName(self), domainStr);
 
+	esif_ccb_sprintf(sizeof(idBuf) - 1, idBuf, "%s.%s", nameStr, domainStr);
 	replacedStr = esif_str_replace(paramStr, "%nm%", idBuf);
+
+	if (replacedStr == NULL) {
+		replacedStr = esif_str_replace(paramStr, "%id%", nameStr);
+	}
 
 	if (replacedStr != NULL) {
 		ESIF_TRACE_DEBUG("\tEXPANDED data %s\n", replacedStr);
 	}
 exit:
 	return replacedStr;
+}
+
+
+void EsifUp_SetInstance(
+	EsifUpPtr self,
+	esif_handle_t upInstance
+	)
+{
+	EsifUpDomainPtr domainPtr = NULL;
+	UpDomainIterator udIter = { 0 };
+	eEsifError rc = ESIF_OK;
+
+	if (NULL == self) {
+		return;
+	}
+
+	self->fInstance = upInstance;
+
+	rc = EsifUpDomain_InitIterator(&udIter, self);
+	if (ESIF_OK != rc)
+		return;
+
+	rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	while (ESIF_OK == rc) {
+		if (NULL == domainPtr) {
+			rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			continue;
+		}
+
+		EsifUpDomain_SetUpId(domainPtr, upInstance);
+		rc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+	}
+
+	if (rc != ESIF_E_ITERATION_DONE) {
+		EsifUp_PutRef(self);
+	}
+}
+
+
+Bool EsifUp_IsPreferredParticipant(
+	EsifUpPtr upPtr,
+	const eEsifParticipantOrigin origin,
+	const void *metadataPtr
+	)
+{
+	Bool isPreferred = ESIF_FALSE;
+	struct esif_ipc_event_data_create_participant *lfMetaPtr = NULL;
+	EsifParticipantIfacePtr ufMetaPtr = NULL;
+	EsifUpDataPtr curUpDataPtr = NULL;
+
+	if (NULL == upPtr) {
+		goto exit;
+	}
+	curUpDataPtr = &upPtr->fMetadata;
+
+	/*
+	* Preference rules in order of precedence:
+	* LF participants are always favored over UF
+	* Conjured enumerators parts are always overridden by anything...including another conjure
+	* External DPTFZ overrides other LF parts 
+	*/
+	switch (origin) {
+	case eParticipantOriginLF:
+		if (eParticipantOriginLF != upPtr->fOrigin) {
+			isPreferred = ESIF_TRUE;
+			break;
+		}
+		if (ESIF_PARTICIPANT_ENUM_CONJURE == curUpDataPtr->fEnumerator) {
+			isPreferred = ESIF_TRUE;
+			break;
+		}
+
+		lfMetaPtr = (struct esif_ipc_event_data_create_participant *)metadataPtr;
+
+		if (lfMetaPtr->flags & ESIF_FLAG_EXTERN_DPTFZ) {
+			isPreferred = ESIF_TRUE;
+			break;
+		}
+		break;
+
+	case eParticipantOriginUF:
+		ufMetaPtr = (EsifParticipantIfacePtr)metadataPtr;
+		if (ESIF_PARTICIPANT_ENUM_CONJURE == curUpDataPtr->fEnumerator) {
+			isPreferred = ESIF_TRUE;
+			break;
+		}
+		break;
+
+	default:
+		break;
+	}
+exit:
+	return isPreferred;
 }
 
 

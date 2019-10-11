@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "ParticipantWorkItem.h"
 #include "ParticipantManagerInterface.h"
 #include "EsifServicesInterface.h"
+#include "ManagerLogger.h"
 
 ParticipantWorkItem::ParticipantWorkItem(
 	DptfManagerInterface* dptfManager,
@@ -57,12 +58,28 @@ void ParticipantWorkItem::writeParticipantWorkItemErrorMessage(
 	const std::exception& ex,
 	const std::string& functionName) const
 {
-	ManagerMessage message =
-		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantIndex(getParticipantIndex());
-	message.setExceptionCaught(functionName, ex.what());
-	getEsifServices()->writeMessageError(message);
+	MANAGER_LOG_MESSAGE_ERROR_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantIndex(getParticipantIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		return message;
+	});
+}
+
+void ParticipantWorkItem::writeParticipantWorkItemWarningMessage(
+	const std::exception& ex,
+	const std::string& functionName) const
+{
+	MANAGER_LOG_MESSAGE_WARNING_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantIndex(getParticipantIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		return message;
+	});
 }
 
 void ParticipantWorkItem::writeParticipantWorkItemErrorMessagePolicy(
@@ -70,13 +87,15 @@ void ParticipantWorkItem::writeParticipantWorkItemErrorMessagePolicy(
 	const std::string& functionName,
 	UIntN policyIndex)
 {
-	ManagerMessage message =
-		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantIndex(getParticipantIndex());
-	message.setExceptionCaught(functionName, ex.what());
-	message.setPolicyIndex(policyIndex);
-	getEsifServices()->writeMessageError(message);
+	MANAGER_LOG_MESSAGE_ERROR_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantIndex(getParticipantIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		message.setPolicyIndex(policyIndex);
+		return message;
+	});
 }
 
 void ParticipantWorkItem::writeParticipantWorkItemWarningMessagePolicy(
@@ -84,19 +103,24 @@ void ParticipantWorkItem::writeParticipantWorkItemWarningMessagePolicy(
 	const std::string& functionName,
 	UIntN policyIndex)
 {
-	ManagerMessage message =
-		ManagerMessage(getDptfManager(), FLF, "Unhandled exception caught during execution of work item");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantIndex(getParticipantIndex());
-	message.setExceptionCaught(functionName, ex.what());
-	message.setPolicyIndex(policyIndex);
-	getEsifServices()->writeMessageWarning(message);
+	MANAGER_LOG_MESSAGE_WARNING_EX({
+		ManagerMessage message = ManagerMessage(
+			getDptfManager(), _file, _line, _function, "Unhandled exception caught during execution of work item");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantIndex(getParticipantIndex());
+		message.setExceptionCaught(functionName, ex.what());
+		message.setPolicyIndex(policyIndex);
+		return message;
+	});
 }
 
 void ParticipantWorkItem::writeParticipantWorkItemStartingInfoMessage() const
 {
-	ManagerMessage message = ManagerMessage(getDptfManager(), FLF, "Starting execution of work item.");
-	message.setFrameworkEvent(getFrameworkEventType());
-	message.setParticipantIndex(getParticipantIndex());
-	getEsifServices()->writeMessageInfo(message);
+	MANAGER_LOG_MESSAGE_INFO({
+		ManagerMessage message =
+			ManagerMessage(getDptfManager(), _file, _line, _function, "Starting execution of work item.");
+		message.setFrameworkEvent(getFrameworkEventType());
+		message.setParticipantIndex(getParticipantIndex());
+		return message;
+	});
 }

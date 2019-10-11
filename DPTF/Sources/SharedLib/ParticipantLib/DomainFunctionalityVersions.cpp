@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,11 +34,14 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 	, utilizationVersion(0)
 	, rfProfileControlVersion(0)
 	, rfProfileStatusVersion(0)
-	, platformPowerControlVersion(0)
+	, systemPowerControlVersion(0)
 	, platformPowerStatusVersion(0)
+	, platformPowerControlVersion(0)
 	, activityStatusVersion(0)
 	, peakPowerControlVersion(0)
-	, tccOffsetControlVersion(0)
+	, processorControlVersion(0)
+	, batteryStatusVersion(0)
+	, socWorkloadClassificationVersion(0)
 {
 }
 
@@ -58,11 +61,14 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
 	utilizationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_UTIL_STATUS];
 	rfProfileControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL];
 	rfProfileStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS];
-	platformPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PSYS_CONTROL];
+	systemPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PSYS_CONTROL];
 	platformPowerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS];
+	platformPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL];
 	activityStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS];
 	peakPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL];
-	tccOffsetControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_TCC_CONTROL];
+	processorControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL];
+	batteryStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_BATTERY_STATUS];
+	socWorkloadClassificationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION];
 }
 
 Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& domainFunctionality)
@@ -82,11 +88,14 @@ Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& 
 		&& (utilizationVersion == domainFunctionality.utilizationVersion)
 		&& (rfProfileControlVersion == domainFunctionality.rfProfileControlVersion)
 		&& (rfProfileStatusVersion == domainFunctionality.rfProfileStatusVersion)
-		&& (platformPowerControlVersion == domainFunctionality.platformPowerControlVersion)
+		&& (systemPowerControlVersion == domainFunctionality.systemPowerControlVersion)
 		&& (platformPowerStatusVersion == domainFunctionality.platformPowerStatusVersion)
+		&& (platformPowerControlVersion == domainFunctionality.platformPowerControlVersion)
 		&& (activityStatusVersion == domainFunctionality.activityStatusVersion)
 		&& (peakPowerControlVersion == domainFunctionality.peakPowerControlVersion)
-		&& (tccOffsetControlVersion == domainFunctionality.tccOffsetControlVersion));
+		&& (processorControlVersion == domainFunctionality.processorControlVersion)
+		&& (batteryStatusVersion == domainFunctionality.batteryStatusVersion)
+		&& (socWorkloadClassificationVersion == domainFunctionality.socWorkloadClassificationVersion));
 }
 
 Bool DomainFunctionalityVersions::operator!=(const DomainFunctionalityVersions& domainFunctionality)

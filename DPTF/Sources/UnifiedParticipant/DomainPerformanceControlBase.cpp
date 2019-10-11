@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,13 +56,15 @@ void DomainPerformanceControlBase::sendActivityLoggingDataIfEnabled(UIntN partic
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Performance Control"
-					<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Performance Control"
+						<< ")";
+				return message.str();
+				});
 		}
 	}
 	catch (...)

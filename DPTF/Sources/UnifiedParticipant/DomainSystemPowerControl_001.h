@@ -1,0 +1,93 @@
+/******************************************************************************
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+**
+** Licensed under the Apache License, Version 2.0 (the "License"); you may not
+** use this file except in compliance with the License.
+**
+** You may obtain a copy of the License at
+**     http://www.apache.org/licenses/LICENSE-2.0
+**
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+** WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+**
+** See the License for the specific language governing permissions and
+** limitations under the License.
+**
+******************************************************************************/
+
+#pragma once
+
+#include "Dptf.h"
+#include "DomainSystemPowerControlBase.h"
+#include "SystemPowerControlState.h"
+
+class DomainSystemPowerControl_001 : public DomainSystemPowerControlBase
+{
+public:
+	DomainSystemPowerControl_001(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
+	virtual ~DomainSystemPowerControl_001(void);
+
+	// DomainSystemPowerControlInterface
+	virtual Bool isSystemPowerLimitEnabled(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PsysPowerLimitType::Type limitType) override;
+	virtual Power getSystemPowerLimit(UIntN participantIndex, UIntN domainIndex, PsysPowerLimitType::Type limitType)
+		override;
+	virtual void setSystemPowerLimit(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PsysPowerLimitType::Type limitType,
+		const Power& powerLimit) override;
+	virtual TimeSpan getSystemPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PsysPowerLimitType::Type limitType) override;
+	virtual void setSystemPowerLimitTimeWindow(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PsysPowerLimitType::Type limitType,
+		const TimeSpan& timeWindow) override;
+	virtual Percentage getSystemPowerLimitDutyCycle(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PsysPowerLimitType::Type limitType) override;
+	virtual void setSystemPowerLimitDutyCycle(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PsysPowerLimitType::Type limitType,
+		const Percentage& dutyCycle) override;
+
+	// ComponentExtendedInterface
+	virtual void onClearCachedData(void) override;
+	virtual std::string getName(void) override;
+	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
+
+	// ParticipantActivityLoggingInterface
+	void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
+
+protected:
+	virtual void capture(void) override;
+	virtual void restore(void) override;
+
+private:
+	DomainSystemPowerControl_001(const DomainSystemPowerControl_001& rhs);
+	DomainSystemPowerControl_001& operator=(const DomainSystemPowerControl_001& rhs);
+
+	void throwIfLimitNotEnabled(PsysPowerLimitType::Type limitType);
+	void throwIfTypeInvalidForPowerLimit(PsysPowerLimitType::Type limitType);
+	void throwIfTypeInvalidForTimeWindow(PsysPowerLimitType::Type limitType);
+	void throwIfTypeInvalidForDutyCycle(PsysPowerLimitType::Type limitType);
+
+	std::shared_ptr<XmlNode> createStatusNode(PsysPowerLimitType::Type limitType);
+	std::string createStatusStringForEnabled(PsysPowerLimitType::Type limitType);
+	std::string createStatusStringForLimitValue(PsysPowerLimitType::Type limitType);
+	std::string createStatusStringForTimeWindow(PsysPowerLimitType::Type limitType);
+	std::string createStatusStringForDutyCycle(PsysPowerLimitType::Type limitType);
+
+	SystemPowerControlState m_initialState;
+};

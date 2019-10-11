@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,19 +36,67 @@ DomainRfProfileStatus_002::~DomainRfProfileStatus_002(void)
 
 RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
-	RfProfileDataSet rfProfileDataSet;
-	try 
+	try
 	{
 		DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 			esif_primitive_type::GET_RF_CHANNEL_INFO, ESIF_DATA_BINARY, domainIndex);
-		rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
+		m_rfProfileDataSet = RfProfileDataSet::createRfProfileDataFromDptfBuffer(buffer);
+		auto guardband = getRfProfileGuardband(participantIndex, domainIndex) / 2;
+		auto rfProfileData = m_rfProfileDataSet.getRfProfileData();
+		std::vector<RfProfileData> newRfProfileDataSet;
+		for (auto rfData = rfProfileData.begin(); rfData != rfProfileData.end(); rfData++)
+		{
+			RfProfileData newRfProfileData(
+				rfData->getCenterFrequency(),
+				rfData->getLeftFrequencySpread(),
+				rfData->getRightFrequencySpread(),
+				guardband,
+				rfData->getSupplementalData());
+			newRfProfileDataSet.insert(newRfProfileDataSet.end(), newRfProfileData);
+		}
+
+		m_rfProfileDataSet = RfProfileDataSet(newRfProfileDataSet);
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to get Rf Channel Info. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get Rf Channel Info. ";
+			});
 	}
-	return rfProfileDataSet;
+	return m_rfProfileDataSet;
+}
+
+Frequency DomainRfProfileStatus_002::getRfProfileGuardband(UIntN participantIndex, UIntN domainIndex)
+{
+	Frequency rfProfileGuardband(0);
+	try
+	{
+		auto domainType = getParticipantServices()->getDomainType(domainIndex);
+		if (domainType == DomainType::Wireless)
+		{
+			auto centerFrequency = m_rfProfileDataSet.getRfProfileData().front().getCenterFrequency();
+			if (centerFrequency < Frequency(5000000000))
+			{
+				rfProfileGuardband = getParticipantServices()->primitiveExecuteGetAsFrequency(
+					esif_primitive_type::GET_RFPROFILE_WIFI24_FREQ_GUARD_BAND, domainIndex);
+			}
+			else
+			{
+				rfProfileGuardband = getParticipantServices()->primitiveExecuteGetAsFrequency(
+					esif_primitive_type::GET_RFPROFILE_WIFI5_FREQ_GUARD_BAND, domainIndex);
+			}
+		}
+		else
+		{
+			rfProfileGuardband = getParticipantServices()->primitiveExecuteGetAsFrequency(
+				esif_primitive_type::GET_RFPROFILE_WWAN_FREQ_GUARD_BAND, domainIndex);
+		}
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get Rf Profile Guardband. "; });
+	}
+	return rfProfileGuardband;
 }
 
 void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
@@ -60,6 +108,27 @@ void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participa
 			EsifCapabilityData capability;
 			capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
 			capability.size = sizeof(capability);
+			initializeRfProfileData(&capability);
+
+			auto rfProfileDataSet = getRfProfileDataSet(participantIndex, domainIndex).getRfProfileData();
+			auto domainType = getParticipantServices()->getDomainType(domainIndex);
+			UInt32 channelNumber = 0;
+
+			for (auto rfProfileData = rfProfileDataSet.begin(); rfProfileData != rfProfileDataSet.end();
+					rfProfileData++)
+			{
+				/* WWAN can have five or less channels with info and Wireless only has one channel with info */
+				if ((domainType == DomainType::WwanRfim) || (domainType == DomainType::Wireless && channelNumber == 0))
+				{
+					capability.data.rfProfileStatus.rfProfileFrequencyData[channelNumber].centerFrequency =
+						(UInt32)rfProfileData->getCenterFrequency();
+					capability.data.rfProfileStatus.rfProfileFrequencyData[channelNumber].leftFrequencySpread =
+						(UInt32)rfProfileData->getLeftFrequencySpreadWithGuardband();
+					capability.data.rfProfileStatus.rfProfileFrequencyData[channelNumber].rightFrequencySpread =
+						(UInt32)rfProfileData->getRightFrequencySpreadWithGuardband();
+					channelNumber++;
+				}
+			}
 
 			getParticipantServices()->sendDptfEvent(
 				ParticipantEvent::DptfParticipantControlAction,
@@ -73,7 +142,7 @@ void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participa
 	}
 }
 
-void DomainRfProfileStatus_002::clearCachedData(void)
+void DomainRfProfileStatus_002::onClearCachedData(void)
 {
 	// FIXME: do we clear the cache for this control?
 }

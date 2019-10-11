@@ -1,5 +1,5 @@
 [Unit]
-description=Intel(R) Dynamic Platform and Thermal Framework daemon
+description=Intel(R) Dynamic Tuning daemon
 
 [Service]
 Type=forking

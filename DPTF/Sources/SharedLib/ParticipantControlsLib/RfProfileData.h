@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,7 @@ public:
 		Frequency centerFrequency,
 		Frequency leftFrequencySpread,
 		Frequency rightFrequencySpread,
+		Frequency guardband,
 		RfProfileSupplementalData supplementalData);
 
 	Frequency getCenterFrequency(void) const;
@@ -39,6 +40,11 @@ public:
 	Frequency getLeftFrequency(void) const;
 	Frequency getRightFrequency(void) const;
 	Frequency getBandFrequencySpread(void) const;
+	Frequency getGuardband(void) const;
+	Frequency getLeftFrequencySpreadWithGuardband(void) const;
+	Frequency getRightFrequencySpreadWithGuardband(void) const;
+	Frequency getLeftFrequencyWithGuardband(void) const;
+	Frequency getRightFrequencyWithGuardband(void) const;
 	RfProfileSupplementalData getSupplementalData(void) const;
 
 	Bool operator==(const RfProfileData& rhs) const;
@@ -50,5 +56,6 @@ private:
 	Frequency m_centerFrequency;
 	Frequency m_leftFrequencySpread;
 	Frequency m_rightFrequencySpread;
+	Frequency m_guardband;
 	RfProfileSupplementalData m_supplementalData;
 };

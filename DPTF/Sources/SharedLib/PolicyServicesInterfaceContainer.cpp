@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,8 +19,7 @@
 #include "PolicyServicesInterfaceContainer.h"
 
 PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void)
-	: domainActiveControl(nullptr)
-	, domainActivityStatus(nullptr)
+	: domainActivityStatus(nullptr)
 	, domainConfigTdpControl(nullptr)
 	, domainCoreControl(nullptr)
 	, domainDisplayControl(nullptr)
@@ -29,24 +28,22 @@ PolicyServicesInterfaceContainer::PolicyServicesInterfaceContainer(void)
 	, domainPerformanceControl(nullptr)
 	, domainPowerControl(nullptr)
 	, domainPowerStatus(nullptr)
-	, domainPlatformPowerControl(nullptr)
+	, domainSystemPowerControl(nullptr)
 	, domainPlatformPowerStatus(nullptr)
 	, domainPriority(nullptr)
 	, domainRfProfileControl(nullptr)
 	, domainRfProfileStatus(nullptr)
-	, domainTccOffsetControl(nullptr)
-	, domainTemperature(nullptr)
 	, domainUtilization(nullptr)
 	, participantGetSpecificInfo(nullptr)
 	, participantProperties(nullptr)
 	, participantSetSpecificInfo(nullptr)
 	, platformConfigurationData(nullptr)
-	, platformNotification(nullptr)
 	, platformPowerState(nullptr)
 	, policyEventRegistration(nullptr)
 	, policyInitiatedCallback(nullptr)
 	, messageLogging(nullptr)
 	, workloadHintConfiguration(nullptr)
 	, platformState(nullptr)
+	, serviceRequest(nullptr)
 {
 }

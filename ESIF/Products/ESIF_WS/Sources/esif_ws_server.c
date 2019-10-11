@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,7 +45,7 @@
 #define WS_NETWORK_BUFFER_LEN	65535	// Network Buffer Size for HTTP/Websocket Send and Receive Buffer
 #define WS_SOCKET_TIMEOUT		2		// Socket activity timeout waiting on blocking select() [2 or greater]
 
-#define WS_MAX_CLIENT_SENDBUF	(1*1024*1024)	// Max size of client send buffer (multiple messages)
+#define WS_MAX_CLIENT_SENDBUF	(8*1024*1024)	// Max size of client send buffer (multiple messages)
 #define WS_MAX_CLIENT_RECVBUF	(8*1024*1024)	// Max size of client receive buffer (multiple messages)
 
 // Default IP:port comibnations for each ServerType
@@ -124,6 +124,7 @@ void TcpDoorbell_Init(TcpDoorbellPtr self)
 {
 	if (self) {
 		int j = 0;
+		self->isActive = ESIF_FALSE;
 		for (j = 0; j < DOORBELL_SOCKETS; j++) {
 			self->sockets[j] = INVALID_SOCKET;
 		}
@@ -136,6 +137,7 @@ esif_error_t TcpDoorbell_Open(TcpDoorbellPtr self)
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (self) {
 		if (esif_ccb_socketpair(ESIF_PF_LOCAL, SOCK_STREAM, IPPROTO_IP, self->sockets) == 0) {
+			self->isActive = ESIF_TRUE;
 			rc = ESIF_OK;
 		}
 		else {
@@ -150,6 +152,7 @@ void TcpDoorbell_Close(TcpDoorbellPtr self)
 {
 	if (self) {
 		int j = 0;
+		self->isActive = ESIF_FALSE;
 		for (j = 0; j < DOORBELL_SOCKETS; j++) {
 			if (self->sockets[j] != INVALID_SOCKET) {
 				esif_ccb_socket_close(self->sockets[j]);
@@ -164,7 +167,7 @@ void TcpDoorbell_Stop(TcpDoorbellPtr self)
 {
 	if (self && self->sockets[DOORBELL_BUTTON] != INVALID_SOCKET) {
 		esif_ccb_socket_shutdown(self->sockets[DOORBELL_BUTTON], ESIF_SHUT_RDWR);
-		self->sockets[DOORBELL_BUTTON] = INVALID_SOCKET;
+		self->isActive = ESIF_FALSE;
 	}
 }
 
@@ -173,7 +176,7 @@ esif_error_t TcpDoorbell_Ring(TcpDoorbellPtr self, u8 opcode)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (self && self->sockets[DOORBELL_BUTTON] != INVALID_SOCKET) {
-		if (send(self->sockets[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0) == sizeof(opcode)) {
+		if (self->isActive && send(self->sockets[DOORBELL_BUTTON], (const char *)&opcode, sizeof(opcode), 0) == sizeof(opcode)) {
 			rc = ESIF_OK;
 		}
 		else {
@@ -187,7 +190,7 @@ esif_error_t TcpDoorbell_Ring(TcpDoorbellPtr self, u8 opcode)
 esif_error_t TcpDoorbell_Receive(TcpDoorbellPtr self, u8 *opcodePtr)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	if (self && opcodePtr && self->sockets[DOORBELL_RINGER] != INVALID_SOCKET) {
+	if (self && opcodePtr && self->isActive && self->sockets[DOORBELL_RINGER] != INVALID_SOCKET) {
 		ssize_t messageLength = recv(self->sockets[DOORBELL_RINGER], (char *)opcodePtr, sizeof(*opcodePtr), WS_RECV_FLAGS);
 		if (messageLength == 0 || messageLength == SOCKET_ERROR || messageLength < sizeof(*opcodePtr)) {
 			*opcodePtr = WS_OPCODE_NOOP;

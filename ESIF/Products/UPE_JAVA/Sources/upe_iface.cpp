@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -72,7 +72,7 @@ static eEsifError ESIF_CALLCONV ActionDestroy(
 
 static eEsifError ESIF_CALLCONV ActionGet(
 	esif_context_t actCtx,
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	const esif_string devicePathPtr,
 	const EsifDataPtr p1Ptr,
 	const EsifDataPtr p2Ptr,
@@ -85,7 +85,7 @@ static eEsifError ESIF_CALLCONV ActionGet(
 
 static eEsifError ESIF_CALLCONV ActionSet(
 	esif_context_t actCtx,
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	const esif_string devicePathPtr,
 	const EsifDataPtr p1Ptr,
 	const EsifDataPtr p2Ptr,
@@ -97,7 +97,7 @@ static eEsifError ESIF_CALLCONV ActionSet(
 
 static eEsifError ESIF_CALLCONV ActionReceiveEvent(
 	esif_context_t actCtx,
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	enum esif_event_type type,
 	UInt16 domain,
 	const EsifDataPtr dataPtr
@@ -271,7 +271,7 @@ static eEsifError ESIF_CALLCONV ActionCreate(
 
 
 	/* TODO:  Return the context required, if any */
-	*actCtxPtr = NULL;
+	*actCtxPtr = 0;
 
 	UPE_TRACE_INFO("UPE_JAVA: \n"
 		"CREATED UPE ACTION\n"
@@ -319,7 +319,7 @@ static eEsifError ESIF_CALLCONV ActionDestroy(
  */
 static eEsifError ESIF_CALLCONV ActionGet(
 	esif_context_t actCtx,
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	const esif_string devicePathPtr,
 	const EsifDataPtr p1Ptr,
 	const EsifDataPtr p2Ptr,
@@ -334,7 +334,7 @@ static eEsifError ESIF_CALLCONV ActionGet(
 	ActionParameters action = {0};
 	JhsReplyHeader replyHeader = {0};
 	JhsParticipantHandle handle = { 0 };
-	handle.mParticipantId = participantHandle; // Convert esif_handle_t to JHS Participant Handle
+	handle.mParticipantId = participantId; // Convert esif_handle_t to JHS Participant Handle
 
 	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(p4Ptr);
@@ -382,7 +382,7 @@ static eEsifError ESIF_CALLCONV ActionGet(
 		goto exit;
 	}
 
-	UPE_TRACE_DEBUG("UPE_JAVA: Executing primitive for Participant ID: %d", (UInt32)(size_t)participantHandle);
+	UPE_TRACE_DEBUG("UPE_JAVA: Executing primitive for Participant ID: " ESIF_HANDLE_FMT, esif_ccb_handle2llu(participantId));
 
 	action.mActionType = *((UInt32*) p1Ptr->buf_ptr);
 	action.mDomainId = *((UInt32 *) p2Ptr->buf_ptr);
@@ -408,7 +408,7 @@ exit:
  */
 static eEsifError ESIF_CALLCONV ActionSet(
 	esif_context_t actCtx,
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	const esif_string devicePathPtr,
 	const EsifDataPtr p1Ptr,
 	const EsifDataPtr p2Ptr,
@@ -422,7 +422,7 @@ static eEsifError ESIF_CALLCONV ActionSet(
 	ActionParameters action = {0};
 	int32_t value = 0;
 	JhsParticipantHandle handle = { 0 };
-	handle.mParticipantId = participantHandle; // Convert esif_handle_t to JHS Participant Handle
+	handle.mParticipantId = participantId; // Convert esif_handle_t to JHS Participant Handle
 
 	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(p4Ptr);
@@ -474,7 +474,7 @@ static eEsifError ESIF_CALLCONV ActionSet(
 		goto exit;
 	}
 
-	UPE_TRACE_DEBUG("UPE_JAVA: Executing primitive: Participant ID: %d", (UInt32)(size_t)participantHandle);
+	UPE_TRACE_DEBUG("UPE_JAVA: Executing primitive: Participant ID: " ESIF_HANDLE_FMT, esif_ccb_handle2llu(participantId));
 
 	action.mActionType = *((UInt32*) p1Ptr->buf_ptr);
 	if (p2Ptr->buf_ptr) {
@@ -509,7 +509,7 @@ exit:
  */
 static eEsifError ESIF_CALLCONV ActionReceiveEvent(
 	esif_context_t actCtx,			/* Context provided by the UPE during action creation */
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	enum esif_event_type type,		/* Event type */
 	UInt16 domain, 					/* Domain for the event */
 	const EsifDataPtr dataPtr	/* Event data if required (may be NULL) */
@@ -517,7 +517,7 @@ static eEsifError ESIF_CALLCONV ActionReceiveEvent(
 {
 	eEsifError rc = ESIF_OK;
 
-	UNREFERENCED_PARAMETER(participantHandle);
+	UNREFERENCED_PARAMETER(participantId);
 	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(domain); /* Ignored in initial implementation - Always D0 */
 
@@ -571,7 +571,7 @@ exit:
 
 
 eEsifError ActionSendEvent(
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	enum esif_event_type eventType,
 	const EsifDataPtr dataPtr
 	)
@@ -586,7 +586,7 @@ eEsifError ActionSendEvent(
 
 	UPE_TRACE_DEBUG("UPE_JAVA: Sending %s event to ESIF", esif_event_type_str(eventType));
 
-	rc = (*g_sendEventFuncPtr)(participantHandle, eventType, ACTION_UPE_DOMAIN_D0, dataPtr);
+	rc = (*g_sendEventFuncPtr)(participantId, eventType, ACTION_UPE_DOMAIN_D0, dataPtr);
 exit:
 	UPE_TRACE_DEBUG("UPE_JAVA: Exit status = %s(%d)", esif_rc_str(rc), rc);
 	return rc;
@@ -594,7 +594,7 @@ exit:
 
 
 eEsifError ActionExecutePrimitive(
-	const esif_handle_t participantHandle,
+	const esif_handle_t participantId,
 	const UInt16 primitiveId,
 	const UInt8 instance,					/* Primitive instance */
 	const EsifDataPtr requestPtr,			/* Input data to the primitive */
@@ -609,9 +609,9 @@ eEsifError ActionExecutePrimitive(
 		goto exit;
 	}
 
-	UPE_TRACE_DEBUG("UPE_JAVA: Executing primitive: PartID %d, PrimID %d, Instance", (UInt32)(size_t)participantHandle, primitiveId, instance);
+	UPE_TRACE_DEBUG("UPE_JAVA: Executing primitive: PartID " ESIF_HANDLE_FMT ", PrimID %d, Instance", esif_ccb_handle2llu(participantId), primitiveId, instance);
 
-	rc = (*g_execPrimFuncPtr)(participantHandle, primitiveId, ACTION_UPE_DOMAIN_D0, instance, requestPtr, responsePtr);
+	rc = (*g_execPrimFuncPtr)(participantId, primitiveId, ACTION_UPE_DOMAIN_D0, instance, requestPtr, responsePtr);
 exit:
 	UPE_TRACE_DEBUG("UPE_JAVA: Exit status = %s(%d)", esif_rc_str(rc), rc);
 	return rc;

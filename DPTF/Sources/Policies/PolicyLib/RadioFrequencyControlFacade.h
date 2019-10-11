@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,6 +41,11 @@ public:
 	// controls
 	Bool supportsRfControls();
 	void setOperatingFrequency(Frequency frequency);
+	Percentage getSSC();
+	void setSSC(Percentage ssc);
+	Percentage getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex);
+	Percentage getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex);
+	Percentage getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex);
 
 	// status
 	Bool supportsStatus();
@@ -62,6 +67,9 @@ private:
 	// control properties
 	RfStatusCachedProperty m_rfProfileData;
 	Frequency m_lastSetFrequency;
+	Percentage m_ssc;
 	void throwIfControlNotSupported();
 	void throwIfStatusNotSupported();
+
+	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

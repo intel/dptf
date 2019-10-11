@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,28 +19,15 @@
 #pragma once
 
 #include "Dptf.h"
-#include "TimeSpan.h"
 
 class dptf_export PlatformPowerControlFacadeInterface
 {
 public:
 	virtual ~PlatformPowerControlFacadeInterface(){};
 
-	virtual Bool isPl1PowerLimitEnabled(void) = 0;
-	virtual Bool isPl2PowerLimitEnabled(void) = 0;
-	virtual Bool isPl3PowerLimitEnabled(void) = 0;
+	// commands
+	virtual Bool setUsbcPortPowerLimit(const UInt32 portNumber, const Power& powerLimit) = 0;
 
-	virtual Power getPl1PowerLimit(void) = 0;
-	virtual Power getPl2PowerLimit(void) = 0;
-	virtual Power getPl3PowerLimit(void) = 0;
-	virtual TimeSpan getPl1TimeWindow(void) = 0;
-	virtual TimeSpan getPl3TimeWindow(void) = 0;
-	virtual Percentage getPl3DutyCycle(void) = 0;
-
-	virtual void setPl1PowerLimit(const Power& powerLimit) = 0;
-	virtual void setPl2PowerLimit(const Power& powerLimit) = 0;
-	virtual void setPl3PowerLimit(const Power& powerLimit) = 0;
-	virtual void setPl1TimeWindow(const TimeSpan& timeWindow) = 0;
-	virtual void setPl3TimeWindow(const TimeSpan& timeWindow) = 0;
-	virtual void setPl3DutyCycle(const Percentage& dutyCycle) = 0;
+	// queries
+	virtual Bool supportsPlatformPowerControls() const = 0;
 };

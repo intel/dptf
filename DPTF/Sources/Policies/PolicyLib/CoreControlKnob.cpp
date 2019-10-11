@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "CoreControlKnob.h"
 #include <cmath>
+#include "PolicyLogger.h"
+
 using namespace std;
 
 CoreControlKnob::CoreControlKnob(
@@ -42,10 +44,13 @@ void CoreControlKnob::limit(UIntN target)
 	{
 		try
 		{
-			stringstream messageBefore;
-			messageBefore << "Calculating request to limit active cores.";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream messageBefore;
+				messageBefore << "Calculating request to limit active cores."
+							  << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageBefore.str();
+			});
 
 			Percentage stepSize = m_coreControl->getPreferences().getStepSize();
 			UIntN totalCores = m_coreControl->getStaticCapabilities().getTotalLogicalProcessors();
@@ -55,15 +60,24 @@ void CoreControlKnob::limit(UIntN target)
 			UIntN nextActiveCores = std::max((int)currentActiveCores - (int)stepAmount, (int)minActiveCores);
 			m_requests[target] = nextActiveCores;
 
-			stringstream messageAfter;
-			messageAfter << "Requesting to limit active cores to" << nextActiveCores << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageAfter;
+				messageAfter << "Requesting to limit active cores to" << nextActiveCores << "."
+							 << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageAfter.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
+
 			throw ex;
 		}
 	}
@@ -75,10 +89,13 @@ void CoreControlKnob::unlimit(UIntN target)
 	{
 		try
 		{
-			stringstream messageBefore;
-			messageBefore << "Calculating request to unlimit active cores.";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageBefore;
+				messageBefore << "Calculating request to unlimit active cores."
+							  << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageBefore.str();
+			});
 
 			Percentage stepSize = m_coreControl->getPreferences().getStepSize();
 			UIntN totalCores = m_coreControl->getStaticCapabilities().getTotalLogicalProcessors();
@@ -88,15 +105,23 @@ void CoreControlKnob::unlimit(UIntN target)
 			UIntN nextActiveCores = std::min((int)currentActiveCores + (int)stepAmount, (int)maxActiveCores);
 			m_requests[target] = nextActiveCores;
 
-			stringstream messageAfter;
-			messageAfter << "Requesting to unlimit active cores to" << nextActiveCores << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageAfter;
+				messageAfter << "Requesting to unlimit active cores to" << nextActiveCores << "."
+							 << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageAfter.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 			throw ex;
 		}
 	}
@@ -168,17 +193,26 @@ Bool CoreControlKnob::commitSetting()
 			UIntN nextActiveCores = snapToCapabilitiesBounds(findLowestActiveCoresRequest());
 			if (m_coreControl->getStatus().getNumActiveLogicalProcessors() != nextActiveCores)
 			{
-				stringstream messageBefore;
-				messageBefore << "Attempting to change active core limit to " << nextActiveCores << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageBefore;
+					messageBefore << "Attempting to change active core limit to " << nextActiveCores << "."
+								  << " ParticipantIndex = " << getParticipantIndex()
+								  << ". Domain = " << getDomainIndex();
+					return messageBefore.str();
+				});
 
 				m_coreControl->setActiveCoreControl(CoreControlStatus(nextActiveCores));
 
-				stringstream messageAfter;
-				messageAfter << "Changed active core limit to " << nextActiveCores << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageAfter;
+					messageAfter << "Changed active core limit to " << nextActiveCores << "."
+								 << " ParticipantIndex = " << getParticipantIndex()
+								 << ". Domain = " << getDomainIndex();
+					return messageAfter.str();
+				});
+
 				return true;
 			}
 			else
@@ -193,8 +227,14 @@ Bool CoreControlKnob::commitSetting()
 	}
 	catch (std::exception& ex)
 	{
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+		// TODO: pass in participant index and domain
+		POLICY_LOG_MESSAGE_DEBUG_EX({
+			stringstream message;
+			message << ex.what() << "."
+					<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+			return message.str();
+		});
+
 		throw ex;
 	}
 }

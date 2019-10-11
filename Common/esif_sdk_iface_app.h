@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,10 +57,20 @@
 
 #include "esif_sdk_iface.h"
 #include "esif_sdk_data.h"
+#include "esif_sdk_iface_esif.h"
 
 #define APP_INTERFACE_VERSION_1 1 /* Initial Version */
 #define APP_INTERFACE_VERSION_2 2 /* New prototype for fAppCommandFuncPtr */
-#define APP_INTERFACE_VERSION   APP_INTERFACE_VERSION_2
+/*
+* Uses new discovery function and exchange protocol and is not compatible with
+* prior versions. ESIF responsible for allocation participant handles and
+* removed interface header
+*/
+#define APP_INTERFACE_VERSION_3 3
+
+
+#define APP_INTERFACE_VERSION_4 4 /* Handles moved to 64-bit vs. system-dependent VOID* */
+#define APP_INTERFACE_VERSION   APP_INTERFACE_VERSION_4
 #define APP_PARTICIPANT_VERSION 1
 #define APP_DOMAIN_VERSION 1
 
@@ -166,66 +176,45 @@ typedef enum _t_AppState {
 ** ============================================================================
 */
 
-typedef eEsifError (ESIF_CALLCONV *AppGetAboutFunction)       (EsifDataPtr appAbout);
 typedef eEsifError (ESIF_CALLCONV *AppGetDescriptionFunction) (EsifDataPtr appDescription);
-typedef eEsifError (ESIF_CALLCONV *AppGetGuidFunction)        (EsifDataPtr appGuid);
 typedef eEsifError (ESIF_CALLCONV *AppGetNameFunction)        (EsifDataPtr appName);
 typedef eEsifError (ESIF_CALLCONV *AppGetVersionFunction)     (EsifDataPtr appVersion);
 
-/* Must be called and completed with ESIF_OK before create will be called */
-typedef eEsifError (ESIF_CALLCONV *AppAllocateHandle)(void **appHandleLocation);
-
-/* DEPENDENCY AppAllocateHandle must have previously returned a VALID handle */
 typedef eEsifError (ESIF_CALLCONV *AppCreateFunction)(
-	EsifInterfacePtr appServiceInterface,	/* The App MUST fill in all pointers */
-	const void *esifHandle,				/* ESIF will provide App MUST save for use with callbacks */
-	const void *appHandle,				/* Allocated handle for application */
+	AppInterfaceSetPtr ifaceSetPtr,			/* The App MUST fill in all pointers */
+	const esif_handle_t esifHandle,			/* ESIF will provide App MUST save for use with callbacks */
+	esif_handle_t *appHandlePtr,			/* Returns allocated handle for application */
 	const AppDataPtr appData,				/* Application Metadata */
 	const eAppState initialAppState	/* Initial state of application */
 	);
 
 /*
     DEPENDENCY
-    The remaining funcitons are dependent on application create.
+    The remaining functions are dependent on application create.
  */
 
 /* Destroy */
-typedef eEsifError (ESIF_CALLCONV *AppDestroyFunction)(void *appHandle);
+typedef eEsifError (ESIF_CALLCONV *AppDestroyFunction)(const esif_handle_t appHandle);
 
 /* Suspend */
-typedef eEsifError (ESIF_CALLCONV *AppSuspendFunction)(void *appHandle);
+typedef eEsifError (ESIF_CALLCONV *AppSuspendFunction)(const esif_handle_t appHandle);
 
 /* Resume */
-typedef eEsifError (ESIF_CALLCONV *AppResumeFunction)(void *appHandle);
+typedef eEsifError (ESIF_CALLCONV *AppResumeFunction)(const esif_handle_t appHandle);
 
 /* Banner */
-typedef eEsifError (ESIF_CALLCONV *AppGetBannerFunction)(
-	const void  *appHandle,	/* Allocated handle for application */
-	EsifDataPtr appBanner	/* Applicaiton banner / greeting to display for CLI */
-	);
-
-/* Prompt */
-typedef eEsifError (ESIF_CALLCONV *AppGetPromptFunction)(
-	const void  *appHandle,	/* Allocated handle for application */
-	EsifDataPtr appPrompt	/* Application prompt for CLI e.g. small state conveyance */
+typedef eEsifError (ESIF_CALLCONV *AppGetIntroFunction)(
+	const esif_handle_t appHandle,	/* Allocated handle for application */
+	EsifDataPtr appIntro	/* Applicaiton banner / greeting / app information to display for CLI */
 	);
 
 /* CLI Command */
 typedef eEsifError(ESIF_CALLCONV *AppCommandFunction)(
-	const void *appHandle,	  /* Allocated handle for application */
+	const esif_handle_t appHandle,	  /* Allocated handle for application */
 	const UInt32 argc,        /* command arguments count (1 or more) */
-	EsifDataPtr  argv,        /* array of command arguments must be ESIF_DATA_STRING today */
+	const EsifDataPtr argv,   /* array of command arguments must be ESIF_DATA_STRING today */
 	EsifDataPtr response      /* response must be ESIF_DATA_STRING today */
 	);
-
-/* Set State */
-typedef eEsifError (ESIF_CALLCONV *AppSetStateFunction)(
-	const void *appHandle,/* Allocated handle for application */
-	const eAppState appState			/* Desired application state */
-	);
-
-/* Get State */
-typedef eAppState (ESIF_CALLCONV *AppGetStateFunction)(const void *appHandle);
 
 /* Get Status */
 typedef enum _t_eAppStatusCommand {
@@ -236,7 +225,7 @@ typedef enum _t_eAppStatusCommand {
 } eAppStatusCommand;
 
 typedef eEsifError (ESIF_CALLCONV *AppGetStatusFunction)(
-	const void *appHandle,		/* Allocated handle for application */
+	const esif_handle_t appHandle,		/* Allocated handle for application */
 	const eAppStatusCommand command,/* Command */
 	const UInt32 appStatusIn,	/* Command Data (High Word Group, Low Word Module) */
 	EsifDataPtr appStatusOut	/* Status output string if XML please use ESIF_DATA_XML */
@@ -253,37 +242,17 @@ typedef enum _t_eParticipantState {
 	eParticipantStateEnabled		/* Participant Enabled */
 } eParticipantState;
 
-/* Must be called and completed with ESIF_OK before participant create will be called */
-typedef eEsifError (ESIF_CALLCONV *AppParticipantAllocateHandle)(
-	const void *appHandle,	/* Allocated handle for application */
-	void **participantHandleLocation	/* Participant handle set by App */
-	);
-
-/* DEPENDENCY AppParticipantAllocateHandle must have previously returned a VALID handle */
 typedef eEsifError (ESIF_CALLCONV *AppParticipantCreateFunction)(
-	const void *appHandle,	/* Allocated handle for application */
-	const void *particpantHandle,		/* An allocated particpant handle */
+	const esif_handle_t appHandle,	/* Allocated handle for application */
+	const esif_handle_t participantHandle,		/* A particpant handle */
 	const AppParticipantDataPtr participantData,			/* Participant Metadata */
-	const eParticipantState particiapntInitialState	/* Participant inital State */
+	const eParticipantState participantInitialState	/* Participant inital State */
 	);
 
 /* Destroy */
 typedef eEsifError (ESIF_CALLCONV *AppParticipantDestroyFunction)(
-	const void *appHandle,	/* Allocated handle for application */
-	const void *participantHandle				/* An allocated participant handle */
-	);
-
-/* Get State */
-typedef eParticipantState (ESIF_CALLCONV *AppParticipantGetStateFunction)(
-	const void *appHandle,	/* Allocated handle for application */
-	const void *participantHandle	/* An allocated participant handle */
-	);
-
-/* Set State */
-typedef eEsifError (ESIF_CALLCONV *AppParticipantSetStateFunction)(
-	const void *appHandle,	/* Allocated handle for application */
-	const void *participantHandle,	/* Allocated handle for participant */
-	eParticipantState participantState	/* Desired participant state */
+	const esif_handle_t appHandle,	/* Allocated handle for application */
+	const esif_handle_t participantHandle /* A participant handle */
 	);
 
 /*
@@ -297,42 +266,19 @@ typedef enum _t_eDomainState {
 	eDomainStateEnabled			/* Domain Enabled */
 } eDomainState;
 
-/* Must be called and completed with ESIF_OK before domain create will be called */
-typedef eEsifError (ESIF_CALLCONV *AppDomainAllocateHandle)(
-	const void *appHandle,/* Allocated handle for application */
-	const void *particpantHandle,		/* Allocated participant handle */
-	void **domainHandleLocation	/* Domain handle set by application */
-	);
-
-/* DEPENDENCY AppDomainAllocateHandle must have previously returned a VALID handle */
 typedef eEsifError (ESIF_CALLCONV *AppDomainCreateFunction)(
-	const void *appHandle,/* Allocated handle for application */
-	const void *participantHandle,/* Allocated participant handle by application */
-	const void *domainHandle,		/* Allocated domain handle by application */
-	const AppDomainDataPtr domainDataPtr,		/* Domain Metadata and configuration details */
+	const esif_handle_t appHandle,/* Allocated handle for application */
+	const esif_handle_t participantHandle,	/* Allocated participant handle by ESIF */
+	const esif_handle_t domainHandle,		/* Allocated domain handle by ESIF */
+	const AppDomainDataPtr domainDataPtr,	/* Domain Metadata and configuration details */
 	const eDomainState domainInitialState	/* Domain initial state */
 	);
 
 /* Destroy */
 typedef eEsifError (ESIF_CALLCONV *AppDomainDestroyFunction)(
-	const void *appHandle,	/* Allocated handle for application */
-	const void *participantHandle,	/* An allocated handle for participant */
-	const void *domainHandle			/* An allocated handle for domain */
-	);
-
-/* Get State */
-typedef eDomainState (ESIF_CALLCONV *AppDomainGetStateFunction)(
-	const void *appHandle,/* Allocated handle for application */
-	const void *participantHandle,/* An allocated handle for participant */
-	const void *domainHandle			/* An allocated handle for domain */
-	);
-
-/* Set State */
-typedef eEsifError (ESIF_CALLCONV *AppDomainSetStateFunction)(
-	const void *appHandle,	/* Allocated handle for application */
-	const void *participantHandle,	/* An allocated handle for participant */
-	const void *domainHandle,		/* An allocated handle for domain */
-	const eDomainState domainState	/* Desired domain state */
+	const esif_handle_t appHandle,			/* Allocated handle for application */
+	const esif_handle_t participantHandle,	/* An allocated handle for participant */
+	const esif_handle_t domainHandle		/* An allocated handle for domain */
 	);
 
 /*
@@ -342,9 +288,9 @@ typedef eEsifError (ESIF_CALLCONV *AppDomainSetStateFunction)(
 */
 
 typedef eEsifError (ESIF_CALLCONV *AppEventFunction)(
-	const void *appHandle,		/* Allocated handle for application */
-	const void *participantHandle,	/* Optional Participant ESIF_NO_HANDLE indicates App Level Event */
-	const void *domainHandle,	/* Optional Domain ESIF_NO_HANDLE indicates non-domain Level Event */
+	const esif_handle_t appHandle,			/* Allocated handle for application */
+	const esif_handle_t participantHandle,	/* Optional Participant ESIF_HANDLE_PRIMARY_PARTICIPANT indicates App Level Event */
+	const esif_handle_t domainHandle,	/* Optional Domain ESIF_INVALID_HANDLE indicates non-domain Level Event */
 	const EsifDataPtr eventData,	/* Data included with the event if any MAY Be NULL */
 	const EsifDataPtr eventGuid	/* Event GUID */
 	);
@@ -357,46 +303,41 @@ typedef eEsifError (ESIF_CALLCONV *AppEventFunction)(
 #pragma pack(push, 1)
 
 struct _t_AppInterface {
-	/* Interface */
-	eIfaceType  fIfaceType;
-	UInt16      fIfaceVersion;
-	UInt16      fIfaceSize;
-
-	/* Version 1 */
 	/* Application */
-	AppAllocateHandle      fAppAllocateHandleFuncPtr;
 	AppCreateFunction      fAppCreateFuncPtr;
 	AppDestroyFunction     fAppDestroyFuncPtr;
-	AppSuspendFunction     fAppSuspendFuncPtr;
-	AppResumeFunction      fAppResumeFuncPtr;
-
-	AppCommandFunction     fAppCommandFuncPtr; /* Version 2: New Prototype*/
-	AppGetAboutFunction    fAppGetAboutFuncPtr;
-	AppGetBannerFunction   fAppGetBannerFuncPtr;
-	AppGetDescriptionFunction fAppGetDescriptionFuncPtr;
-	AppGetGuidFunction     fAppGetGuidFuncPtr;
+	AppSuspendFunction     fAppSuspendFuncPtr; //optional
+	AppResumeFunction      fAppResumeFuncPtr;  //optional
+	AppGetVersionFunction  fAppGetVersionFuncPtr;  //optional
+	AppCommandFunction     fAppCommandFuncPtr; /* Version 2: New Prototype*/ //optional
+	AppGetIntroFunction   fAppGetIntroFuncPtr;  //optional
+	AppGetDescriptionFunction fAppGetDescriptionFuncPtr; //optional
 	AppGetNameFunction     fAppGetNameFuncPtr;
-	AppGetPromptFunction   fAppGetPromptFuncPtr;
-	AppGetStatusFunction   fAppGetStatusFuncPtr;
-	AppGetVersionFunction  fAppGetVersionFuncPtr;
-	AppSetStateFunction    fAppSetStateFuncPtr;
+	AppGetStatusFunction   fAppGetStatusFuncPtr; //remove - go through command
 
 	/* Participant */
-	AppParticipantAllocateHandle    fParticipantAllocateHandleFuncPtr;
 	AppParticipantCreateFunction    fParticipantCreateFuncPtr;
 	AppParticipantDestroyFunction   fParticipantDestroyFuncPtr;
-	AppParticipantSetStateFunction  fParticipantSetStateFuncPtr;
 
 	/* Domain */
-	AppDomainAllocateHandle    fDomainAllocateHandleFuncPtr;
 	AppDomainCreateFunction    fDomainCreateFuncPtr;
 	AppDomainDestroyFunction   fDomainDestroyFuncPtr;
-	AppDomainSetStateFunction  fDomainSetStateFuncPtr;
 
 	/* Event */
-	AppEventFunction  fAppEventFuncPtr;
+	AppEventFunction  fAppEventFuncPtr;  //optional
+};
 
-	/* Version 2 */
+
+/*
+* During interface exchange, ESIF will first fill out the header for the
+* application.  The application must verify compatibilty and size constraints
+* before popultating its interface items.  If not complatible, the application
+* shall return an appropriate error code and not fill in its interface items.
+*/
+struct _t_AppInterfaceSet {
+	EsifIfaceHdr hdr;
+	AppInterface appIface;
+	EsifInterface esifIface;
 };
 
 #pragma pack(pop)
@@ -416,12 +357,12 @@ extern "C" {
     via Function Pointers.  This will remove the linker cruft trom the static
     funcions.  And provide a simple private type of encapsulation for the module.
  */
-ESIF_EXPORT eEsifError GetApplicationInterface(AppInterfacePtr theIface);
+ESIF_EXPORT eEsifError GetApplicationInterfaceV2(AppInterfaceSetPtr theIface);
 
 #ifdef __cplusplus
 }
 #endif
 
-#define GET_APPLICATION_INTERFACE_FUNCTION "GetApplicationInterface"
+#define GET_APPLICATION_INTERFACE_FUNCTION "GetApplicationInterfaceV2"
 
 #endif /* USER */

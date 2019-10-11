@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,54 +21,54 @@
 DomainTemperature_000::DomainTemperature_000(
 	UIntN participantIndex,
 	UIntN domainIndex,
+	Bool areTemperatureThresholdsSupported,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
-	: DomainTemperatureBase(participantIndex, domainIndex, participantServicesInterface)
+	: DomainTemperatureBase(
+		participantIndex,
+		domainIndex,
+		areTemperatureThresholdsSupported,
+		participantServicesInterface)
 {
 	// Do nothing.  Not an error.
 }
 
-TemperatureStatus DomainTemperature_000::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
+TemperatureStatus DomainTemperature_000::getTemperatureStatus()
 {
 	throw not_implemented();
 }
 
-TemperatureThresholds DomainTemperature_000::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
+TemperatureThresholds DomainTemperature_000::getTemperatureThresholds()
 {
 	throw not_implemented();
 }
 
-void DomainTemperature_000::setTemperatureThresholds(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	const TemperatureThresholds& temperatureThresholds)
+void DomainTemperature_000::setTemperatureThresholds(const TemperatureThresholds& temperatureThresholds,
+	const TemperatureThresholds& lastSetTemperatureThresholds)
 {
 	throw not_implemented();
 }
 
-Temperature DomainTemperature_000::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
+Temperature DomainTemperature_000::getPowerShareTemperatureThreshold()
 {
 	throw not_implemented();
 }
 
-DptfBuffer DomainTemperature_000::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainTemperature_000::getCalibrationTable()
 {
 	throw not_implemented();
 }
 
-DptfBuffer DomainTemperature_000::getPollingTable(UIntN participantIndex, UIntN domainIndex)
+DptfBuffer DomainTemperature_000::getPollingTable()
 {
 	throw not_implemented();
 }
 
-Bool DomainTemperature_000::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
+Bool DomainTemperature_000::isVirtualTemperature()
 {
 	return false;
 }
 
-void DomainTemperature_000::setVirtualTemperature(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	const Temperature& temperature)
+void DomainTemperature_000::setVirtualTemperature(const Temperature& temperature)
 {
 	throw not_implemented();
 }
@@ -78,11 +78,6 @@ void DomainTemperature_000::sendActivityLoggingDataIfEnabled(UIntN participantIn
 	throw not_implemented();
 }
 
-void DomainTemperature_000::clearCachedData(void)
-{
-	// Do nothing.  Not an error.
-}
-
 std::shared_ptr<XmlNode> DomainTemperature_000::getXml(UIntN domainIndex)
 {
 	throw not_implemented();
@@ -90,5 +85,10 @@ std::shared_ptr<XmlNode> DomainTemperature_000::getXml(UIntN domainIndex)
 
 std::string DomainTemperature_000::getName(void)
 {
-	return "Temperature Control (Version 0)";
+	return "Temperature Status (Version 0)";
+}
+
+std::shared_ptr<XmlNode> DomainTemperature_000::getArbitratorXml(UIntN policyIndex) const
+{
+	throw not_implemented();
 }

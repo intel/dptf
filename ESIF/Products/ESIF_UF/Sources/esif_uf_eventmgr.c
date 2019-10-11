@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,51 @@
 #include "win\banned.h"
 #endif
 
+#define NUM_EVENT_LISTS 64
+#define EVENT_MGR_FILTERED_EVENTS_PER_LINE 64
+#define EVENT_MGR_ITERATOR_MARKER 'UFEM'
+
+typedef struct EsifEventMgr_s {
+	EsifLinkListPtr observerLists[NUM_EVENT_LISTS];
+	esif_ccb_lock_t listLock;
+
+	EsifLinkListPtr garbageList;
+
+	EsifQueuePtr eventQueuePtr;
+
+	Bool eventQueueExitFlag;
+	Bool eventsDisabled;
+
+	esif_thread_t eventQueueThread;
+
+	UInt64 filteredEvents[(MAX_ESIF_EVENT_ENUM_VALUE / EVENT_MGR_FILTERED_EVENTS_PER_LINE) + 1];
+}EsifEventMgr, *EsifEventMgrPtr;
+
+typedef struct EventMgrEntry_s {
+	esif_handle_t participantId;		/* UF Participant ID */
+	Bool isParticipant0Id;				/* Used to match as multiple Participant 0 IDs are supported */
+	UInt16 domainId;					/* Domain ID - '0D'*/
+	EsifFpcEvent fpcEvent;				/* Event definition from the DSP */
+	EVENT_OBSERVER_CALLBACK callback;	/* Callback routine - Also used to uniquely identify an event observer when unregistering */
+	esif_context_t context;				/* This is normally expected to be a pointer to the observing event object.
+										 * Expected to act as a context for the callback, an event observer identifier,
+										 * and to help uniquely identify an event observer while unregistering.
+										 */
+	atomic_t refCount;					/* Reference count */
+	Bool isInUse;						/* Indicates the event is being processed */
+	Bool markedForDelete;				/* Indicates the event is marked for deletion */
+} EventMgrEntry, *EventMgrEntryPtr;
+
+typedef struct EsifEventQueueItem_s {
+	esif_handle_t participantId;
+	UInt16 domainId;
+	eEsifEventType eventType;
+	EsifData eventData;
+	Bool isLfEvent;
+	Bool isUnfiltered;
+}EsifEventQueueItem, *EsifEventQueueItemPtr;
+
+
 /*
  * All event received are asynchronous and placed in an event queue to be handled by a worker thread.
  *
@@ -42,14 +87,13 @@
  *   EsifEventMgr_SignalEvent
  *   EsifEventMgr_RegisterEventByType
  *   EsifEventMgr_UnregisterEventByType
- *   EsifEventMgr_RegisterEventByGuid
- *   EsifEventMgr_UnregisterEventByGuid
  *
  * Event observer information is maintained as an array of linked lists with a list of observers the event types
  * There are 64 event lists (Information is placed in a given list given by the modulo 64 of the event type)
  * Event observers may register based on the event type or GUID.
  * EVENT_MGR_MATCH_ANY may be used as the participant ID during registration to observe events from all participants;
  * or if registration takes place before the participants are present.
+ * EVENT_MGR_MATCH_ANY_DOMAIN may be used as the domain ID during registration to observe events for all domains.
  * Locks are released before any calls outside the event manager which may result in obtaining other locks;
  * locks re-acquired upon return.
  * A reference count is kept for each observer; events are only sent to observers with a positive reference count
@@ -58,29 +102,33 @@
  * the reference count is decrement upon return and the node is garbage collected if the reference count is then 0.
  * A single garbage collection linked list is maintained.  Any garbage nodes are moved to that list for destruction.
  * Any steps required to enable/disable an event, for example DPPE, will be performed during creation/destruction.
+ * Simulation Support:
+ * The event manager maintains a list of "filtered" event types.  When marked as "filtered", only events from
+ * the shell are handled; while the events from other sources are ignored.
  */
+
 static EsifEventMgr g_EsifEventMgr = {0};
 
 
 
 static eEsifError EsifEventMgr_AddEntry(
 	EsifFpcEventPtr fpcEventPtr,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	);
 
 static eEsifError EsifEventMgr_ReleaseEntry(
 	EsifFpcEventPtr fpcEventPtr,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	);
 
 static eEsifError EsifEventMgr_ProcessEvent(
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
 	EsifDataPtr eventDataPtr
@@ -93,16 +141,84 @@ static eEsifError EsifEventMgr_DumpGarbage();
 static void EsifEventMgr_QueueDestroyCallback(void *ctxPtr);
 static void EsifEventMgr_LLEntryDestroyCallback(void *dataPtr);
 
+static eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local (
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventDataPtr,
+	Bool isLfEvent,
+	Bool isFilteredEvent
+);
+
+static Bool EsifEventMgr_IsEventFiltered(eEsifEventType eventType);
+
+/*
+* Friend function:  Target is determined only once removed from queue and all
+* others before it have been processed
+*/
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalLfEvent(
+	esif_handle_t targetId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventData
+);
+
+
 eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
-	UInt8 participantId,
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventDataPtr
+)
+{
+	return EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_TRUE);
+}
+
+
+/*
+* Friend function:  Target is determined only once removed from queue and all
+* others before it have been processed
+*/
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalLfEvent(
+	esif_handle_t targetId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventDataPtr
+)
+{
+	return EsifEventMgr_SignalEvent_Local(targetId, domainId, eventType, eventDataPtr, ESIF_TRUE, ESIF_TRUE);
+}
+
+
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalUnfilteredEvent(
+	esif_handle_t participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
 	const EsifDataPtr eventDataPtr
 	)
 {
+	return EsifEventMgr_SignalEvent_Local(participantId, domainId, eventType, eventDataPtr, ESIF_FALSE, ESIF_FALSE);
+}
+
+
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent_Local(
+	esif_handle_t participantId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventDataPtr,
+	Bool isLfEvent,
+	Bool isFilteredEvent
+	)
+{
 	eEsifError rc = ESIF_OK;
 	EsifEventQueueItemPtr queueEventPtr = NULL;
-	EsifDataPtr queueDataPtr = NULL;
+	void *queueDataPtr = NULL;
+
+	/* Exit if filtered event */
+	if (isFilteredEvent && EsifEventMgr_IsEventFiltered(eventType)) {
+		rc = ESIF_E_EVENT_FILTERED;
+		goto exit;
+	}
 
 	if (NULL == g_EsifEventMgr.eventQueuePtr) { /* Should never happen */
 		rc = ESIF_E_UNSPECIFIED;
@@ -116,10 +232,10 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	}
 
 	if ((eventDataPtr != NULL) &&
-	    (eventDataPtr->buf_ptr != NULL) && 
-	    (eventDataPtr->buf_len > 0) &&
-	    (eventDataPtr->data_len > 0) &&
-	    (eventDataPtr->buf_len >= eventDataPtr->data_len)) {
+		(eventDataPtr->buf_ptr != NULL) &&
+		(eventDataPtr->buf_len > 0) &&
+		(eventDataPtr->data_len > 0) &&
+		(eventDataPtr->buf_len >= eventDataPtr->data_len)) {
 
 		queueDataPtr = esif_ccb_malloc(eventDataPtr->data_len);
 		if (NULL == queueDataPtr) {
@@ -138,6 +254,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_SignalEvent(
 	queueEventPtr->participantId = participantId;
 	queueEventPtr->domainId = domainId;
 	queueEventPtr->eventType = eventType;
+	queueEventPtr->isLfEvent = isLfEvent;
 
 	ESIF_TRACE_INFO("Queuing %s event for Part. %u Dom. 0x%04X\n",
 		esif_event_type_str(eventType),
@@ -161,11 +278,14 @@ exit:
 
 static void *ESIF_CALLCONV EsifEventMgr_EventQueueThread(void *ctxPtr)
 {
+	esif_error_t rc = ESIF_OK;
 	EsifEventQueueItemPtr queueEventPtr = NULL;
+	esif_handle_t participantId = ESIF_INVALID_HANDLE;
 
 	UNREFERENCED_PARAMETER(ctxPtr);
 
 	while(!g_EsifEventMgr.eventQueueExitFlag) {
+		rc = ESIF_OK;
 		queueEventPtr = esif_queue_pull(g_EsifEventMgr.eventQueuePtr);
 
 		if (NULL == queueEventPtr) {
@@ -177,11 +297,23 @@ static void *ESIF_CALLCONV EsifEventMgr_EventQueueThread(void *ctxPtr)
 			queueEventPtr->participantId,
 			queueEventPtr->domainId);
 
-		EsifEventMgr_ProcessEvent(queueEventPtr->participantId,
-			queueEventPtr->domainId,
-			queueEventPtr->eventType,
-			&queueEventPtr->eventData);
+		participantId = queueEventPtr->participantId;
+		if (queueEventPtr->isLfEvent) {
+			rc = EsifUpPm_MapLpidToParticipantInstance((u8)participantId, &participantId);
 
+			/* For creation, the target is the primary participant always */
+			if ((rc != ESIF_OK) && (ESIF_EVENT_PARTICIPANT_CREATE == queueEventPtr->eventType)) {
+				participantId = ESIF_HANDLE_PRIMARY_PARTICIPANT;
+				rc = ESIF_OK;
+			}
+		}
+
+		if (ESIF_OK == rc) {
+			EsifEventMgr_ProcessEvent(participantId,
+				queueEventPtr->domainId,
+				queueEventPtr->eventType,
+				&queueEventPtr->eventData);
+		}
 		esif_ccb_free(queueEventPtr->eventData.buf_ptr);
 		esif_ccb_free(queueEventPtr);
 	}
@@ -190,7 +322,7 @@ static void *ESIF_CALLCONV EsifEventMgr_EventQueueThread(void *ctxPtr)
 
 
 static eEsifError EsifEventMgr_ProcessEvent(
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	eEsifEventType eventType,
 	EsifDataPtr eventDataPtr
@@ -209,16 +341,16 @@ static eEsifError EsifEventMgr_ProcessEvent(
 
 	if (NULL == eventDataPtr) {
 		ESIF_TRACE_DEBUG("APPLICATION_EVENT_NO_DATA:\n"
-			"  ParticipantID: %u\n"
+			"  ParticipantID: " ESIF_HANDLE_FMT "\n"
 			"  Domain:        %s(%04X)\n"
 			"  EventType:     %s(%d)\n",
-			participantId,
+			esif_ccb_handle2llu(participantId),
 			esif_primitive_domain_str(domainId, domain_str, sizeof(domain_str)),
 			domainId,
 			esif_event_type_str(eventType), eventType);
 	} else {
 		ESIF_TRACE_DEBUG("APPLICATION_EVENT\n"
-						 "  ParticipantID: %u\n"
+						 "  ParticipantID: " ESIF_HANDLE_FMT "\n"
 						 "  Domain:        %s(%04X)\n"
 						 "  EventType:     %s(%d)\n"
 						 "  EventDataType: %s(%d)\n"
@@ -226,7 +358,7 @@ static eEsifError EsifEventMgr_ProcessEvent(
 						 "    buf_ptr      %p\n"
 						 "    buf_len      %d\n"
 						 "    data_len     %d\n",
-						 participantId,
+						 esif_ccb_handle2llu(participantId),
 						 esif_primitive_domain_str(domainId, domain_str, 8),
 						 domainId,
 						 esif_event_type_str(eventType), eventType,
@@ -261,18 +393,20 @@ static eEsifError EsifEventMgr_ProcessEvent(
 		ESIF_ASSERT(entryPtr != NULL);
 
 		if ((eventType == entryPtr->fpcEvent.esif_event) &&
-			((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY)) &&
-			((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
-			(entryPtr->refCount > 0)) {
+			((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY) || (entryPtr->isParticipant0Id && EsifUpPm_IsPrimaryParticipantId(participantId))) &&
+			((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY_DOMAIN) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
+			(entryPtr->refCount > 0) &&
+			(!entryPtr->markedForDelete)) {
 
 			/*
 			 * Increment the reference count so that the node is not removed while in use,
 			 * then release the lock so that we avoid a deadlock condition
 			 */
 			atomic_inc(&entryPtr->refCount);
+			entryPtr->isInUse = ESIF_TRUE;
 			esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 
-			entryPtr->callback(entryPtr->contextPtr,
+			entryPtr->callback(entryPtr->context,
 				participantId,
 				domainId,
 				&entryPtr->fpcEvent,
@@ -286,8 +420,9 @@ static eEsifError EsifEventMgr_ProcessEvent(
 
 			nextNodePtr = nodePtr->next_ptr;
 
+			entryPtr->isInUse = ESIF_FALSE;
 			refCount = atomic_dec(&entryPtr->refCount);
-			if (refCount <= 0) {
+			if ((refCount <= 0) || (entryPtr->markedForDelete)) {
 				EsifEventMgr_MoveEntryToGarbage(entryPtr);
 				esif_link_list_node_remove(listPtr, nodePtr);
 				shouldDumpGarbage = ESIF_TRUE;
@@ -309,10 +444,10 @@ exit:
 
 eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByType(
 	eEsifEventType eventType,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -344,10 +479,6 @@ eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByType(
 		}
 
 	} else {
-		if (esif_event_map_type2guid(&phonyFpcEvent.event_guid, &eventType) == ESIF_FALSE) {
-			rc = ESIF_E_EVENT_NOT_FOUND;
-			goto exit;
-		}
 		phonyFpcEvent.esif_event = eventType;
 		fpcEventPtr = &phonyFpcEvent;
 	}
@@ -355,13 +486,11 @@ eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByType(
 	ESIF_TRACE_DEBUG(
 		"Registering event\n"
 		"  Alias: %s\n"
-		"  GUID: %s\n"
 		"  Type: %s(%d)\n"
 		"  Data: %s(%d)\n"
 		"  Key: %s\n"
 		"  Group: %s\n",
 		fpcEventPtr->event_name,
-		esif_guid_print((esif_guid_t *)fpcEventPtr->event_guid, guidStr),
 		esif_event_type_str(eventType), eventType,
 		esif_data_type_str(fpcEventPtr->esif_group_data_type), fpcEventPtr->esif_group_data_type,
 		esif_guid_print((esif_guid_t *)fpcEventPtr->event_key, guidStr),
@@ -372,7 +501,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByType(
 		participantId,
 		domainId,
 		eventCallback,
-		contextPtr);
+		context);
 
 exit:
 	if (upPtr != NULL) {
@@ -384,10 +513,10 @@ exit:
 
 eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterEventByType(
 	eEsifEventType eventType,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -424,7 +553,7 @@ eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterEventByType(
 		participantId,
 		domainId,
 		eventCallback,
-		contextPtr);
+		context);
 
 exit:
 	if (upPtr != NULL) {
@@ -434,122 +563,66 @@ exit:
 }
 
 
-eEsifError ESIF_CALLCONV EsifEventMgr_RegisterEventByGuid(
-	esif_guid_t *guidPtr,
-	UInt8 participantId,
-	UInt16 domainId,
+eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterAllForApp(
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	)
 {
 	eEsifError rc = ESIF_OK;
-	EsifFpcEventPtr fpcEventPtr = NULL;
-	EsifUpPtr upPtr = NULL;
-	char guidStr[ESIF_GUID_PRINT_SIZE];
+	EsifLinkListPtr listPtr = NULL;
+	EsifLinkListNodePtr curNodePtr = NULL;
+	EsifLinkListNodePtr nextNodePtr = NULL;
+	EventMgrEntryPtr curEntryPtr = NULL;
+	UInt8 i = 0;
 
-	UNREFERENCED_PARAMETER(guidStr);
+	ESIF_TRACE_DEBUG("Unregistering all events for app " ESIF_HANDLE_FMT "\n", context);
 
-	if((NULL == guidPtr) || (NULL == eventCallback)) {
+	if ((NULL == eventCallback) || (ESIF_HANDLE_DEFAULT == context)) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
-	/* Find Our Participant */
-	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
-	if (NULL == upPtr) {
-		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
-		goto exit;
+	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+
+	for (i = 0; i < NUM_EVENT_LISTS; i++) {
+
+		listPtr = g_EsifEventMgr.observerLists[i];
+		if (NULL == listPtr) {
+			continue;
+		}
+
+		/* Find the matching entry */
+		curNodePtr = listPtr->head_ptr;
+		while (curNodePtr != NULL) {
+			nextNodePtr = curNodePtr->next_ptr; // Get next ptr now as the current node may be removed below
+
+			curEntryPtr = (EventMgrEntryPtr)curNodePtr->data_ptr;
+			if ((curEntryPtr->callback == eventCallback) &&
+				(curEntryPtr->context == context)) {
+
+				curEntryPtr->markedForDelete = ESIF_TRUE;
+				if (!curEntryPtr->isInUse) {
+					EsifEventMgr_MoveEntryToGarbage(curEntryPtr);
+					esif_link_list_node_remove(listPtr, curNodePtr);
+				}
+			}
+			curNodePtr = nextNodePtr;
+		}
 	}
 
-	/* Find the event associated with the participant */
-	fpcEventPtr = EsifUp_GetFpcEventByGuid(upPtr, guidPtr);
-	if (NULL == fpcEventPtr) {
-		rc = ESIF_E_EVENT_NOT_FOUND;
-		goto exit;
-	}
-
-	ESIF_TRACE_DEBUG(
-		"Registering event\n"
-		"  Alias: %s\n"
-		"  GUID: %s\n"
-		"  Type: %s(%d)\n"
-		"  Data: %s(%d)\n"
-		"  Key: %s\n"
-		"  Group: %s\n",
-		fpcEventPtr->event_name,
-		esif_guid_print((esif_guid_t *)fpcEventPtr->event_guid, guidStr),
-		esif_event_type_str(fpcEventPtr->esif_event), fpcEventPtr->esif_event,
-		esif_data_type_str(fpcEventPtr->esif_group_data_type), fpcEventPtr->esif_group_data_type,
-		esif_guid_print((esif_guid_t *)fpcEventPtr->event_key, guidStr),
-		esif_event_group_enum_str(fpcEventPtr->esif_group));
-
-	rc = EsifEventMgr_AddEntry(
-		fpcEventPtr,
-		participantId,
-		domainId,
-		eventCallback,
-		contextPtr);
-
+	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+	EsifEventMgr_DumpGarbage();
 exit:
-	if (upPtr != NULL) {
-		EsifUp_PutRef(upPtr);
-	}
-	return rc;
-}
-
-
-eEsifError ESIF_CALLCONV EsifEventMgr_UnregisterEventByGuid(
-	esif_guid_t *guidPtr,
-	UInt8 participantId,
-	UInt16 domainId,
-	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
-	)
-{
-	eEsifError rc = ESIF_OK;
-	EsifFpcEventPtr fpcEventPtr = NULL;
-	EsifUpPtr upPtr = NULL;
-
-	if((NULL == guidPtr) || (NULL == eventCallback)) {
-		rc = ESIF_E_PARAMETER_IS_NULL;
-		goto exit;
-	}
-
-	/* Find Our Participant */
-	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
-	if (NULL == upPtr) {
-		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
-		goto exit;
-	}
-
-	/* Find the event associated with the participant */
-	fpcEventPtr = EsifUp_GetFpcEventByGuid(upPtr, guidPtr);
-	if (NULL == fpcEventPtr) {
-		rc = ESIF_E_EVENT_NOT_FOUND;
-		goto exit;
-	}
-
-	rc = EsifEventMgr_ReleaseEntry(
-		fpcEventPtr,
-		participantId,
-		domainId,
-		eventCallback,
-		contextPtr);
-
-exit:
-	if (upPtr != NULL) {
-		EsifUp_PutRef(upPtr);
-	}
 	return rc;
 }
 
 
 static eEsifError EsifEventMgr_AddEntry(
 	EsifFpcEventPtr fpcEventPtr,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -559,6 +632,7 @@ static eEsifError EsifEventMgr_AddEntry(
 	EventMgrEntryPtr newEntryPtr = NULL;
 	atomic_t refCount = 1;
 
+	ESIF_ASSERT(fpcEventPtr != NULL);
 	ESIF_ASSERT(eventCallback != NULL);
 
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
@@ -578,9 +652,9 @@ static eEsifError EsifEventMgr_AddEntry(
 	while (nodePtr != NULL) {
 		curEntryPtr = (EventMgrEntryPtr) nodePtr->data_ptr;
 		if ((curEntryPtr->fpcEvent.esif_event == fpcEventPtr->esif_event) &&
-			(curEntryPtr->participantId == participantId) &&
+			((curEntryPtr->participantId == participantId) || (curEntryPtr->isParticipant0Id && EsifUpPm_IsPrimaryParticipantId(participantId))) &&
 			(curEntryPtr->domainId == domainId) &&
-			(curEntryPtr->contextPtr == contextPtr) &&
+			(curEntryPtr->context == context) &&
 			(curEntryPtr->callback == eventCallback)){
 			break;
 		}
@@ -588,7 +662,12 @@ static eEsifError EsifEventMgr_AddEntry(
 	}
 	/* If we found an existing entry, update the reference count */
 	if (nodePtr != NULL) {
-		atomic_inc(&curEntryPtr->refCount);
+		if (!curEntryPtr->markedForDelete) {
+			atomic_inc(&curEntryPtr->refCount);
+		}
+		else {
+			rc = ESIF_E_NO_CREATE;
+		}
 		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 		goto exit;
 	}
@@ -605,11 +684,12 @@ static eEsifError EsifEventMgr_AddEntry(
 	}
 
 	newEntryPtr->callback = eventCallback;
-	newEntryPtr->contextPtr = contextPtr;
+	newEntryPtr->context = context;
 	newEntryPtr->domainId = domainId;
 	newEntryPtr->participantId = participantId;
 	newEntryPtr->refCount = refCount;
 	esif_ccb_memcpy(&newEntryPtr->fpcEvent, fpcEventPtr, sizeof(newEntryPtr->fpcEvent));
+	newEntryPtr->isParticipant0Id = EsifUpPm_IsPrimaryParticipantId(participantId);
 
 	nodePtr = esif_link_list_create_node(newEntryPtr);
 	if (NULL == nodePtr) {
@@ -622,18 +702,14 @@ static eEsifError EsifEventMgr_AddEntry(
 	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 
 	rc = EsifEventMgr_EnableEvent(newEntryPtr);
-	if (ESIF_OK != rc)
-	{
-		esif_ccb_write_lock(&g_EsifEventMgr.listLock);
-		esif_link_list_node_remove(listPtr, nodePtr);
-		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
-		goto exit;
-	}
 
 exit:
 	ESIF_TRACE_DEBUG("  RefCount: " ATOMIC_FMT "\n", refCount);
 
 	if (ESIF_OK != rc) {
+		esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+		esif_link_list_node_remove(listPtr, nodePtr);
+		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
 		esif_ccb_free(newEntryPtr);
 	}
 
@@ -643,10 +719,10 @@ exit:
 
 static eEsifError EsifEventMgr_ReleaseEntry(
 	EsifFpcEventPtr fpcEventPtr,
-	UInt8 participantId,
+	esif_handle_t participantId,
 	UInt16 domainId,
 	EVENT_OBSERVER_CALLBACK eventCallback,
-	void *contextPtr
+	esif_context_t context
 	)
 {
 	eEsifError rc = ESIF_OK;
@@ -657,7 +733,6 @@ static eEsifError EsifEventMgr_ReleaseEntry(
 
 	ESIF_ASSERT(eventCallback != NULL);
 	ESIF_ASSERT(fpcEventPtr != NULL);
-
 
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
@@ -674,7 +749,7 @@ static eEsifError EsifEventMgr_ReleaseEntry(
 		if ((curEntryPtr->fpcEvent.esif_event == fpcEventPtr->esif_event) &&
 			(curEntryPtr->participantId == participantId) &&
 			(curEntryPtr->domainId == domainId) &&
-			(curEntryPtr->contextPtr == contextPtr) &&
+			(curEntryPtr->context == context) &&
 			(curEntryPtr->callback == eventCallback)){
 			break;
 		}
@@ -683,7 +758,7 @@ static eEsifError EsifEventMgr_ReleaseEntry(
 
 	if (nodePtr != NULL) {
 		refCount = atomic_dec(&curEntryPtr->refCount);
-		if (refCount <= 0) {
+		if ((refCount <= 0) || (curEntryPtr->markedForDelete)) {
 			EsifEventMgr_MoveEntryToGarbage(curEntryPtr);
 			esif_link_list_node_remove(listPtr, nodePtr);
 		}
@@ -707,7 +782,8 @@ static eEsifError EsifEventMgr_EnableEvent(
 
 	ESIF_ASSERT(entryPtr != NULL);
 
-	if (entryPtr->participantId != 0) {
+	if (!EsifUpPm_IsPrimaryParticipantId(entryPtr->participantId) &&
+		(entryPtr->participantId != EVENT_MGR_MATCH_ANY)) {
 		goto exit;
 	}
 
@@ -737,6 +813,12 @@ static eEsifError EsifEventMgr_EnableEvent(
 	default:
 		break;
 	}
+
+	// If the event is registered successfully, send the initial event with the current state of the event so that the client can get the baseline
+	if (ESIF_OK == rc)
+	{
+		EsifEventMgr_SendInitialEvent(entryPtr->participantId, entryPtr->domainId, entryPtr->fpcEvent.esif_event);
+	}
 exit:
 	return rc;
 }
@@ -753,7 +835,8 @@ static eEsifError EsifEventMgr_DisableEvent(
 
 	ESIF_ASSERT(entryPtr != NULL);
 
-	if (entryPtr->participantId != 0) {
+	if (!EsifUpPm_IsPrimaryParticipantId(entryPtr->participantId) &&
+		(entryPtr->participantId != EVENT_MGR_MATCH_ANY)) {
 		goto exit;
 	}
 
@@ -762,6 +845,10 @@ static eEsifError EsifEventMgr_DisableEvent(
 	case ESIF_EVENT_GROUP_POWER:
 		ESIF_TRACE_DEBUG("  Disabling Power Event: %s\n", esif_guid_print((esif_guid_t *)&entryPtr->fpcEvent.event_key, guidStr));
 		rc = unregister_power_notification((esif_guid_t *)&entryPtr->fpcEvent.event_key);
+		break;
+
+	case ESIF_EVENT_GROUP_SYSTEM_METRICS:
+		rc = unregister_system_metrics_notification((esif_guid_t *)&entryPtr->fpcEvent.event_key);
 		break;
 
 	case ESIF_EVENT_GROUP_SENSOR:
@@ -775,7 +862,6 @@ static eEsifError EsifEventMgr_DisableEvent(
 
 	case ESIF_EVENT_GROUP_DPTF:
 	case ESIF_EVENT_GROUP_ACPI:
-	case ESIF_EVENT_GROUP_SYSTEM_METRICS:
 	default:
 		break;
 	}
@@ -786,8 +872,8 @@ exit:
 
 Bool EsifEventMgr_IsEventRegistered(
 	eEsifEventType eventType,
-	void *key,
-	UInt8 participantId,
+	esif_context_t key,
+	esif_handle_t participantId,
 	UInt16 domainId
 	)
 {
@@ -807,9 +893,9 @@ Bool EsifEventMgr_IsEventRegistered(
 		ESIF_ASSERT(entryPtr != NULL);
 
 		if((eventType == entryPtr->fpcEvent.esif_event) &&
-			(entryPtr->contextPtr == key) && 
-			((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY)) &&
-			((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
+			(entryPtr->context == key) && 
+			((entryPtr->participantId == participantId) || (entryPtr->participantId == EVENT_MGR_MATCH_ANY) || (entryPtr->isParticipant0Id && EsifUpPm_IsPrimaryParticipantId(participantId))) &&
+			((entryPtr->domainId == domainId) || (entryPtr->domainId == EVENT_MGR_MATCH_ANY_DOMAIN) || (domainId == EVENT_MGR_DOMAIN_NA)) &&
 			(entryPtr->refCount > 0)) {
 
 			bRet = ESIF_TRUE;
@@ -821,6 +907,117 @@ Bool EsifEventMgr_IsEventRegistered(
 exit:
 	esif_ccb_read_unlock(&g_EsifEventMgr.listLock);
 	return bRet;
+}
+
+
+/* Used with EsifEventMgr_GetNextEvent to iterate through the events present
+* in the Event Manager
+* Note(s):
+* 1) This iteration is based on the event types and the node number for the
+* linked list for that event type.  This is due to the fact that items may
+* be removed, so using event entry pointers for iteration is not possible
+* without reference counting, which would require added complexity which
+* is not required for the targeted usage (displaying current registered events.)
+* 2) There is no guarantee that all events present at the start of iteration
+* will be part of the iteration if events are removed during the iteration
+* 3) There is no guarantee that events added after the start of iteration
+* will be part of the iteration
+*/
+esif_error_t EsifEventMgr_InitIterator(
+	UfEventIteratorPtr iterPtr
+	)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	
+	if (iterPtr) {
+		esif_ccb_memset(iterPtr, 0, sizeof(*iterPtr));
+		iterPtr->marker = EVENT_MGR_ITERATOR_MARKER;
+		rc = ESIF_OK;
+	}
+
+	return rc;
+}
+
+/* Use EsifEventMgr_InitIterator to initialize an iterator prior to use */
+esif_error_t EsifEventMgr_GetNextEvent(
+	UfEventIteratorPtr iterPtr,
+	EventMgr_IteratorDataPtr dataPtr
+	)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	eEsifEventType eventType = 0;
+	EsifLinkListPtr listPtr = NULL;
+	EsifLinkListNodePtr nodePtr = NULL;
+	EventMgrEntryPtr entryPtr = NULL;
+	size_t i = 0;
+
+	if (iterPtr && dataPtr) {
+
+		if (iterPtr->marker != EVENT_MGR_ITERATOR_MARKER) {
+			rc = ESIF_E_NOT_INITIALIZED;
+			goto exit;
+		}
+
+		eventType = iterPtr->eventType;
+
+		esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+
+		while (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+
+			listPtr = g_EsifEventMgr.observerLists[(unsigned)eventType % NUM_EVENT_LISTS];
+			if (NULL == listPtr) {
+				rc = ESIF_E_UNSPECIFIED;
+				goto lockExit;
+			}
+
+			/* Get next node based on the item number in the linked list using the index from the iterator */
+			i = 0;
+			nodePtr = listPtr->head_ptr;
+			while (nodePtr && (i < iterPtr->index)) {
+				nodePtr = nodePtr->next_ptr;
+				i++;
+			}
+
+			/* Return the data if node is found and update iterator */
+			if (nodePtr && (i == iterPtr->index)) {
+
+				while (nodePtr != NULL) {
+
+					entryPtr = (EventMgrEntryPtr)nodePtr->data_ptr;
+					if (!entryPtr) {
+						rc = ESIF_E_UNSPECIFIED;
+						goto lockExit;
+					}
+
+					if (eventType == entryPtr->fpcEvent.esif_event) {
+						dataPtr->eventType = eventType;
+						dataPtr->participantId = entryPtr->participantId;
+						dataPtr->domainId = entryPtr->domainId;
+						dataPtr->callback = entryPtr->callback;
+						dataPtr->context = entryPtr->context;
+
+						iterPtr->eventType = eventType;
+						iterPtr->index = ++i;
+
+						rc = ESIF_OK;
+						goto lockExit;
+					}
+					nodePtr = nodePtr->next_ptr; 
+					i++;
+				}
+			}
+
+			/* If iteration done for current event type; move to next event type */
+			iterPtr->index = 0;
+			eventType++;
+		}
+		rc = ESIF_E_ITERATION_DONE;
+
+lockExit:
+		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+	}
+exit:
+	return rc;
 }
 
 
@@ -870,6 +1067,10 @@ void EsifEventMgr_Exit(void)
 
 	ESIF_TRACE_ENTRY_INFO();
 
+	if (!g_EsifEventMgr.eventsDisabled) {
+		EsifEventMgr_Disable();
+	}
+
 	/* Remove all listeners */
 	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
 
@@ -907,6 +1108,7 @@ void EsifEventMgr_Disable(void)
 	g_EsifEventMgr.eventQueueExitFlag = ESIF_TRUE;
 	esif_queue_signal_event(g_EsifEventMgr.eventQueuePtr);
 	esif_ccb_thread_join(&g_EsifEventMgr.eventQueueThread);
+	g_EsifEventMgr.eventsDisabled = ESIF_TRUE;
 
 	ESIF_TRACE_EXIT_INFO();
 }
@@ -1020,6 +1222,79 @@ eEsifError HandlePackagedEvent(
 exit:
 	return rc;
 }
+
+
+esif_error_t EsifEventMgr_FilterEventType(eEsifEventType eventType)
+{
+	esif_error_t rc = ESIF_E_EVENT_NOT_FOUND;
+	size_t line = 0;
+	UInt8 bit = 0;
+
+	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+
+		line = eventType / EVENT_MGR_FILTERED_EVENTS_PER_LINE;
+		bit = eventType % EVENT_MGR_FILTERED_EVENTS_PER_LINE;
+
+		esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+		g_EsifEventMgr.filteredEvents[line] |= (UInt64)1 << bit;
+		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+
+		rc = ESIF_OK;
+	}
+	return rc;
+}
+
+
+esif_error_t EsifEventMgr_UnfilterEventType(eEsifEventType eventType)
+{
+	esif_error_t rc = ESIF_E_EVENT_NOT_FOUND;
+	size_t line = 0;
+	UInt8 bit = 0;
+
+	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+		line = eventType / EVENT_MGR_FILTERED_EVENTS_PER_LINE;
+		bit = eventType % EVENT_MGR_FILTERED_EVENTS_PER_LINE;
+
+		esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+		g_EsifEventMgr.filteredEvents[line] &= ~((UInt64)1 << bit);
+		esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+
+		rc = ESIF_OK;
+	}
+	return rc;
+}
+
+
+esif_error_t EsifEventMgr_UnfilterAllEventTypes()
+{
+	esif_ccb_write_lock(&g_EsifEventMgr.listLock);
+	esif_ccb_memset(g_EsifEventMgr.filteredEvents, 0, sizeof(g_EsifEventMgr.filteredEvents));
+	esif_ccb_write_unlock(&g_EsifEventMgr.listLock);
+
+	return ESIF_OK;
+}
+
+
+static Bool EsifEventMgr_IsEventFiltered(eEsifEventType eventType)
+{
+	Bool bRet = ESIF_FALSE;
+	size_t line = 0;
+	UInt8 bit = 0;
+
+	//
+	// Do not filter events beyond what we know as this may allow for
+	// OEM-defined event types in the future.
+	//
+	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+		line = eventType / EVENT_MGR_FILTERED_EVENTS_PER_LINE;
+		bit = eventType % EVENT_MGR_FILTERED_EVENTS_PER_LINE;
+
+		bRet = g_EsifEventMgr.filteredEvents[line] & ((UInt64)1 << bit) ? ESIF_TRUE : ESIF_FALSE;
+	}
+
+	return bRet;
+}
+
 
 /*****************************************************************************/
 /*****************************************************************************/

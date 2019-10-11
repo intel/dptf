@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,6 +45,13 @@ DptfBuffer DptfBuffer::fromExistingByteVector(std::vector<UInt8> byteVector)
 {
 	DptfBuffer buffer;
 	buffer.m_buffer = byteVector;
+	return buffer;
+}
+
+DptfBuffer DptfBuffer::fromBool(Bool value)
+{
+	DptfBuffer buffer;
+	buffer.append((UInt8*)&value, sizeof(value));
 	return buffer;
 }
 
@@ -114,6 +121,18 @@ Bool DptfBuffer::operator==(const DptfBuffer& rhs) const
 	return true;
 }
 
+UInt8 DptfBuffer::operator[](UInt32 byteNumber) const
+{
+	if (byteNumber < size())
+	{
+		return m_buffer[byteNumber];
+	}
+	else
+	{
+		throw dptf_out_of_range("Byte offset out of range in buffer");
+	}
+}
+
 void DptfBuffer::put(UInt32 offset, UInt8* data, UInt32 length)
 {
 	if ((offset + length) > size())
@@ -132,4 +151,43 @@ void DptfBuffer::append(const DptfBuffer& otherBuffer)
 {
 	auto currentSize = (UInt32)m_buffer.size();
 	put(currentSize, otherBuffer.get(), otherBuffer.size());
+}
+
+void DptfBuffer::append(UInt8 data)
+{
+	m_buffer.push_back(data);
+}
+
+void DptfBuffer::append(UInt8* data, UInt32 sizeInBytes)
+{
+	for (UInt32 offset = 0; offset < sizeInBytes; ++offset)
+	{
+		append(data[offset]);
+	}
+}
+
+UInt8 DptfBuffer::lastByte() const
+{
+	if (size() > 0)
+	{
+		return m_buffer.back();
+	}
+	else
+	{
+		throw invalid_data("Buffer is empty");
+	}
+}
+
+std::string DptfBuffer::toString() const
+{
+	return std::string(m_buffer.begin(), m_buffer.end());
+}
+
+std::ostream& operator<<(std::ostream& os, const DptfBuffer& buffer)
+{
+	for (UInt32 i = 0; i < buffer.size(); ++i)
+	{
+		os << buffer[i];
+	}
+	return os;
 }

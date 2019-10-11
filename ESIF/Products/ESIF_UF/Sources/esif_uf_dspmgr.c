@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -857,40 +857,37 @@ static eEsifError esif_dsp_file_scan()
 	char path[MAX_PATH]    = {0};
 	char pattern[MAX_PATH] = {0};
 	StringPtr namesp = ESIF_DSP_NAMESPACE;
-	DataVaultPtr DB = DataBank_GetDataVault(namesp);
 
 	// 1. Load all EDP's in the DSP Configuration Namespace, if any exist
-	if (DB) {
-		EsifDataPtr nameSpace = EsifData_CreateAs(ESIF_DATA_AUTO, namesp, 0, ESIFAUTOLEN);
-		EsifDataPtr key       = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
-		EsifDataPtr value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
-		EsifConfigFindContext context = NULL;
+	EsifDataPtr nameSpace = EsifData_CreateAs(ESIF_DATA_AUTO, namesp, 0, ESIFAUTOLEN);
+	EsifDataPtr key       = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+	EsifDataPtr value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+	EsifConfigFindContext context = NULL;
 
-		ESIF_TRACE_DEBUG("SCAN CONFIG For DSP Files NameSpace = %s, Pattern %s", namesp, pattern);
-		if (nameSpace != NULL && key != NULL && value != NULL &&
-			(rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
-			do {
-				// Load all keys from the DataVault with an ".edp" extension
-				if (key->data_len >= 5 && esif_ccb_stricmp(((StringPtr)(key->buf_ptr)) + key->data_len - 5, ".edp") == 0) {
-					ffdPtr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffdPtr));
-					esif_ccb_strcpy(ffdPtr->filename, (StringPtr)key->buf_ptr, sizeof(ffdPtr->filename));
-					if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
-						esif_ccb_free(ffdPtr);
-					}
+	ESIF_TRACE_DEBUG("SCAN CONFIG For DSP Files NameSpace = %s, Pattern %s", namesp, pattern);
+	if (nameSpace != NULL && key != NULL && value != NULL &&
+		(rc = EsifConfigFindFirst(nameSpace, key, value, &context)) == ESIF_OK) {
+		do {
+			// Load all keys from the DataVault with an ".edp" extension
+			if (key->data_len >= 5 && esif_ccb_stricmp(((StringPtr)(key->buf_ptr)) + key->data_len - 5, ".edp") == 0) {
+				ffdPtr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffdPtr));
+				esif_ccb_strcpy(ffdPtr->filename, (StringPtr)key->buf_ptr, sizeof(ffdPtr->filename));
+				if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
+					esif_ccb_free(ffdPtr);
 				}
-				EsifData_Set(key, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
-				EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
-			} while ((rc = EsifConfigFindNext(nameSpace, key, value, &context)) == ESIF_OK);
-
-			EsifConfigFindClose(&context);
-			if (rc == ESIF_E_ITERATION_DONE) {
-				rc = ESIF_OK;
 			}
+			EsifData_Set(key, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+			EsifData_Set(value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		} while ((rc = EsifConfigFindNext(nameSpace, key, value, &context)) == ESIF_OK);
+
+		EsifConfigFindClose(&context);
+		if (rc == ESIF_E_ITERATION_DONE) {
+			rc = ESIF_OK;
 		}
-		EsifData_Destroy(nameSpace);
-		EsifData_Destroy(key);
-		EsifData_Destroy(value);
 	}
+	EsifData_Destroy(nameSpace);
+	EsifData_Destroy(key);
+	EsifData_Destroy(value);
 
 	// 2. Load all EDP's from the DSP folder, if any exist, except ones already loaded from DataBank
 	esif_build_path(path, MAX_PATH, ESIF_PATHTYPE_DSP, NULL, NULL);
@@ -914,7 +911,7 @@ static eEsifError esif_dsp_file_scan()
 	/* Process Each File */
 	do {
 		// Don't process the file if it the same name was already loaded from a DataVault
-		if (DB == NULL || DataCache_GetValue(DB->cache, ffdPtr->filename) == NULL) {
+		if (DataBank_KeyExists(namesp, ffdPtr->filename) == ESIF_FALSE) {
 			if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
 				esif_ccb_free(ffdPtr);
 			}

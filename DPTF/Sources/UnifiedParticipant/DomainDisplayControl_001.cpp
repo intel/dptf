@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,7 @@ DomainDisplayControl_001::DomainDisplayControl_001(
 	, m_isUserPreferredIndexModified(true)
 	, m_capabilitiesLocked(false)
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
 }
 
@@ -64,13 +64,17 @@ UIntN DomainDisplayControl_001::getUserPreferredDisplayIndex(UIntN participantIn
 {
 	if ((getParticipantServices()->isUserPreferredDisplayCacheValid(participantIndex, domainIndex)) == true)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Attempting to get the user preferred index from the display cache."));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Attempting to get the user preferred index from the display cache.";
+			});
+
 		m_userPreferredIndex =
 			getParticipantServices()->getUserPreferredDisplayCacheValue(participantIndex, domainIndex);
 
-		getParticipantServices()->writeMessageDebug(ParticipantMessage(
-			FLF, "Retrieved the user preferred index of " + std::to_string(m_userPreferredIndex) + " ."));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Retrieved the user preferred index of " + std::to_string(m_userPreferredIndex) + " .";
+			});
+
 		getParticipantServices()->invalidateUserPreferredDisplayCache(participantIndex, domainIndex);
 	}
 	else
@@ -158,8 +162,9 @@ void DomainDisplayControl_001::setDisplayControlDynamicCaps(
 		else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
 		{
 			lowerLimitIndex = size - 1;
-			getParticipantServices()->writeMessageWarning(
-				ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
+			PARTICIPANT_LOG_MESSAGE_WARNING({
+				return "Limit index mismatch, setting lower limit to lowest possible index.";
+				});
 		}
 
 		m_displayControlDynamicCaps.invalidate();
@@ -235,17 +240,19 @@ void DomainDisplayControl_001::sendActivityLoggingDataIfEnabled(UIntN participan
 			domainIndex,
 			Capability::getEsifDataFromCapabilityData(&capability));
 
-		std::stringstream message;
-		message << "Published activity for participant " << getParticipantIndex() << ", "
-			<< "domain " << getName() << " "
-			<< "("
-			<< "Display Control"
-			<< ")";
-		getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+		PARTICIPANT_LOG_MESSAGE_INFO({
+			std::stringstream message;
+			message << "Published activity for participant " << getParticipantIndex() << ", "
+					<< "domain " << getName() << " "
+					<< "("
+					<< "Display Control"
+					<< ")";
+			return message.str();
+			});
 	}
 }
 
-void DomainDisplayControl_001::clearCachedData(void)
+void DomainDisplayControl_001::onClearCachedData(void)
 {
 	m_displayControlDynamicCaps.invalidate();
 	m_displayControlSet.invalidate();
@@ -280,8 +287,9 @@ void DomainDisplayControl_001::clearCachedData(void)
 		catch (...)
 		{
 			// best effort
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "Failed to restore the initial display control capabilities. "));
+			PARTICIPANT_LOG_MESSAGE_DEBUG({
+				return "Failed to restore the initial display control capabilities. ";
+				});
 		}
 	}
 }
@@ -316,10 +324,12 @@ void DomainDisplayControl_001::restore(void)
 			}
 			Percentage newBrightness = displaySet[m_userPreferredIndex].getBrightness();
 
-			getParticipantServices()->writeMessageDebug(ParticipantMessage(
-				FLF,
-				"Saved the user preferred index of " + std::to_string(m_userPreferredIndex)
-				+ ". Attempting to set the brightness to the user preferred value ."));
+			PARTICIPANT_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Saved the user preferred index of " + std::to_string(m_userPreferredIndex) + ". ";
+				message << "Attempting to set the brightness to the user preferred value .";
+				return message.str();
+				});
 
 			getParticipantServices()->primitiveExecuteSetAsPercentage(
 				esif_primitive_type::SET_DISPLAY_BRIGHTNESS, newBrightness, getDomainIndex());
@@ -327,8 +337,9 @@ void DomainDisplayControl_001::restore(void)
 		catch (...)
 		{
 			// best effort
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "Failed to restore the user preferred display status. "));
+			PARTICIPANT_LOG_MESSAGE_DEBUG({
+				return "Failed to restore the user preferred display status. ";
+				});
 		}
 	}
 }
@@ -351,8 +362,10 @@ DisplayControlDynamicCaps DomainDisplayControl_001::createDisplayControlDynamicC
 	else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
 	{
 		lowerLimitIndex = size - 1;
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Limit index mismatch, ignoring lower limit."));
+
+		PARTICIPANT_LOG_MESSAGE_WARNING({
+			return "Limit index mismatch, ignoring lower limit.";
+			});
 	}
 
 	return DisplayControlDynamicCaps(upperLimitIndex, lowerLimitIndex);
@@ -420,8 +433,10 @@ UIntN DomainDisplayControl_001::getUpperLimitIndex(UIntN domainIndex, DisplayCon
 	catch (...)
 	{
 		// DDPC is optional
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "DDPC was not present.  Setting upper limit to 100."));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "DDPC was not present.  Setting upper limit to 100.";
+			});
+
 		upperLimitIndex = 0; // Max brightness
 	}
 	return upperLimitIndex;

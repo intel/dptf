@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 #include <cmath>
+#include "ParticipantLogger.h"
 using namespace StatusFormat;
 
 DomainPowerControl_001::DomainPowerControl_001(
@@ -31,8 +32,9 @@ DomainPowerControl_001::DomainPowerControl_001(
 	, // the power control state needs the control to capture and restore
 	m_capabilitiesLocked(false)
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
+	m_socPowerFloorSupported.invalidate();
 }
 
 DomainPowerControl_001::~DomainPowerControl_001(void)
@@ -112,6 +114,48 @@ Power DomainPowerControl_001::getPowerLimitWithoutCache(
 	PowerControlType::Type controlType)
 {
 	throw dptf_exception("Get Power Limit Without Cache is not supported by " + getName() + ".");
+}
+
+Bool DomainPowerControl_001::isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	auto isSocPowerFloorEnabled = false;
+
+	if (isSocPowerFloorSupported(participantIndex, domainIndex))
+	{
+		try
+		{
+			UInt32 socPowerFloor = getParticipantServices()->primitiveExecuteGetAsUInt32(
+				esif_primitive_type::GET_RAPL_FLOOR_STATE, domainIndex);
+			isSocPowerFloorEnabled = socPowerFloor > 0 ? true : false;
+		}
+		catch (...)
+		{
+			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get Rapl Floor State"; });
+		}
+	}
+
+	return isSocPowerFloorEnabled;
+}
+
+Bool DomainPowerControl_001::isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex)
+{
+	if (m_socPowerFloorSupported.isInvalid())
+	{
+		try
+		{
+			getParticipantServices()->primitiveExecuteGetAsUInt32(
+				esif_primitive_type::GET_RAPL_FLOOR_STATE, domainIndex);
+			m_socPowerFloorSupported.set(true);
+		}
+		catch (...)
+		{
+			PARTICIPANT_LOG_MESSAGE_DEBUG(
+				{ return "Failed to get Rapl Floor State. Hence, SoC Power Floor is not supported"; });
+			m_socPowerFloorSupported.set(false);
+		}
+	}
+
+	return m_socPowerFloorSupported.get();
 }
 
 void DomainPowerControl_001::setPowerLimit(
@@ -204,6 +248,12 @@ void DomainPowerControl_001::setPowerLimitDutyCycle(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, (UInt8)controlType);
 }
 
+void DomainPowerControl_001::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
+{
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_RAPL_FLOOR_STATE, socPowerFloorState ? (UInt32)1 : (UInt32)0, domainIndex);
+}
+
 void DomainPowerControl_001::setAndUpdateEnabled(PowerControlType::Type controlType)
 {
 	if (!isEnabled(controlType))
@@ -247,7 +297,7 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 			{
 				capability.data.powerControl.powerDataSet[powerType].isEnabled =
 					(UInt32)isEnabled((PowerControlType::Type)powerType);
-				if (capability.data.powerControl.powerDataSet[powerType].isEnabled == (UInt32)true)
+				if (capability.data.powerControl.powerDataSet[powerType].isEnabled == (UInt32) true)
 				{
 					capability.data.powerControl.powerDataSet[powerType].powerType =
 						(PowerControlType::Type)powerType + 1;
@@ -256,7 +306,8 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 					try
 					{
 						PowerControlDynamicCaps powerControlCaps =
-							m_powerControlDynamicCaps.get().getCapability((PowerControlType::Type)powerType);
+							getPowerControlDynamicCapsSet(participantIndex, domainIndex)
+								.getCapability((PowerControlType::Type)powerType);
 						capability.data.powerControl.powerDataSet[powerType].lowerLimit =
 							powerControlCaps.getMinPowerLimit();
 						capability.data.powerControl.powerDataSet[powerType].upperLimit =
@@ -274,7 +325,8 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 					}
 					catch (dptf_exception& ex)
 					{
-						getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, ex.getDescription()));
+						PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
+
 						capability.data.powerControl.powerDataSet[powerType].lowerLimit = 0;
 						capability.data.powerControl.powerDataSet[powerType].upperLimit = 0;
 						capability.data.powerControl.powerDataSet[powerType].stepsize = 0;
@@ -285,18 +337,25 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 					}
 				}
 			}
+			capability.data.powerControl.socPowerFloorData.isSupported =
+				isSocPowerFloorSupported(participantIndex, domainIndex) ? (UInt32)1 : (UInt32)0;
+			capability.data.powerControl.socPowerFloorData.socPowerFloorState =
+				isSocPowerFloorEnabled(participantIndex, domainIndex) ? (UInt32)1 : (UInt32)0;
+
 			getParticipantServices()->sendDptfEvent(
 				ParticipantEvent::DptfParticipantControlAction,
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-				<< "domain " << getName() << " "
-				<< "("
-				<< "Power Control"
-				<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Power Control"
+						<< ")";
+				return message.str();
+			});
 		}
 	}
 	catch (...)
@@ -305,7 +364,7 @@ void DomainPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantI
 	}
 }
 
-void DomainPowerControl_001::clearCachedData(void)
+void DomainPowerControl_001::onClearCachedData(void)
 {
 	m_powerControlDynamicCaps.invalidate();
 
@@ -327,18 +386,18 @@ void DomainPowerControl_001::clearCachedData(void)
 		catch (...)
 		{
 			// best effort
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "Failed to restore the initial power control capabilities. "));
+			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial power control capabilities. "; });
 		}
 	}
 }
 
 std::shared_ptr<XmlNode> DomainPowerControl_001::getXml(UIntN domainIndex)
 {
+	auto participantIndex = getParticipantIndex();
 	auto root = XmlNode::createWrapperElement("power_control");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
-	root->addChild(getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex()).getXml());
+	root->addChild(getPowerControlDynamicCapsSet(participantIndex, domainIndex).getXml());
 
 	auto set = XmlNode::createWrapperElement("power_limit_set");
 	set->addChild(createStatusNode(PowerControlType::PL1));
@@ -346,6 +405,13 @@ std::shared_ptr<XmlNode> DomainPowerControl_001::getXml(UIntN domainIndex)
 	set->addChild(createStatusNode(PowerControlType::PL3));
 	set->addChild(createStatusNode(PowerControlType::PL4));
 	root->addChild(set);
+
+	auto socPowerFloorStatus = XmlNode::createWrapperElement("soc_power_floor_status");
+	socPowerFloorStatus->addChild(XmlNode::createDataElement(
+		"is_soc_power_floor_supported", friendlyValue(isSocPowerFloorSupported(participantIndex, domainIndex))));
+	socPowerFloorStatus->addChild(XmlNode::createDataElement(
+		"soc_power_floor_state", friendlyValue(isSocPowerFloorEnabled(participantIndex, domainIndex))));
+	root->addChild(socPowerFloorStatus);
 
 	return root;
 }
@@ -444,7 +510,7 @@ std::string DomainPowerControl_001::createStatusStringForDutyCycle(PowerControlT
 		if (isEnabled(controlType) && (controlType == PowerControlType::PL3))
 		{
 			Percentage dutyCycle = getPowerLimitDutyCycle(getParticipantIndex(), getDomainIndex(), controlType);
-			return dutyCycle.toString();
+			return dutyCycle.toStringWithPrecision(0);
 		}
 		else
 		{
@@ -573,10 +639,13 @@ void DomainPowerControl_001::throwIfTimeWindowIsOutsideCapabilityRange(
 	}
 }
 
-void DomainPowerControl_001::throwIfDutyCycleIsOutsideCapabilityRange(PowerControlType::Type controlType, const Percentage& dutyCycle)
+void DomainPowerControl_001::throwIfDutyCycleIsOutsideCapabilityRange(
+	PowerControlType::Type controlType,
+	const Percentage& dutyCycle)
 {
 	auto capabilities = getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex());
-	if (capabilities.hasCapability(controlType) && capabilities.getCapability(controlType).areDutyCycleCapsValid() == false)
+	if (capabilities.hasCapability(controlType)
+		&& capabilities.getCapability(controlType).areDutyCycleCapsValid() == false)
 	{
 		throw dptf_exception("Duty Cycle capabilities are out of order. Cannot set duty cycle.");
 	}
@@ -619,4 +688,12 @@ TimeSpan DomainPowerControl_001::getWeightedSlowPollAvgConstant(UIntN participan
 Power DomainPowerControl_001::getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex)
 {
 	throw dptf_exception("Get Slow Poll Power Threshold is not supported by " + getName() + ".");
+}
+
+void DomainPowerControl_001::removePowerLimitPolicyRequest(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	// Do nothing.  Not an error.
 }

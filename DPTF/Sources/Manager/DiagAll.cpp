@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,18 +15,28 @@
 ** limitations under the License.
 **
 ******************************************************************************/
-#include "Commands.h"
-#include "Diag.h"
+#include "DiagAllCommand.h"
 using namespace std;
 
-pair<esif_error_t, string> DiagAll::executeCommand()
+DiagAllCommand::DiagAllCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo)
+	: CommandHandler(dptfManager)
+	, m_fileIo(fileIo)
 {
-	pair<esif_error_t, string> response;
-	response.first = ESIF_E_NOT_IMPLEMENTED;
-	response.second = "DiagAll Not Implemented.\n";
-	return response;
 }
 
-DiagAll::~DiagAll()
+DiagAllCommand::~DiagAllCommand()
+{
+}
+
+std::string DiagAllCommand::getCommandName() const
+{
+	return "all";
+}
+
+void DiagAllCommand::execute(const CommandArguments& arguments)
+{
+}
+
+void DiagAllCommand::throwIfBadArguments(const CommandArguments& arguments)
 {
 }

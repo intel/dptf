@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,14 +32,9 @@ public:
 	virtual ~DomainPlatformPowerStatus_001(void);
 
 	// DomainPlatformPowerStatusInterface
-	virtual Power getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getAdapterPowerRating(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getBatteryStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getBatteryInformation(UIntN participantIndex, UIntN domainIndex) override;
 	virtual PlatformPowerSource::Type getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ChargerType::Type getChargerType(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Power getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getACNominalVoltage(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getACOperationalCurrent(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex) override;
@@ -51,7 +46,7 @@ public:
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
+	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
@@ -61,13 +56,10 @@ private:
 	DomainPlatformPowerStatus_001& operator=(const DomainPlatformPowerStatus_001& rhs);
 	void initializeDataStructures(void);
 
-	Power m_maxBatteryPower; // PMAX in mW
 	Power m_adapterRating; // ARTG in mW
 	Power m_platformRestOfPower; // PROP in mW
 	PlatformPowerSource::Type m_platformPowerSource; // PSRC
 	CachedValue<UInt32> m_psrcSequence;
-	ChargerType::Type m_chargerType; // CTYP
-	Power m_batterySteadyState; // PBSS in mW
 	UInt32 m_acNominalVoltage; // AVOL in mV
 	UInt32 m_acOperationalCurrent; // ACUR in mA
 	Percentage m_ac1msPercentageOverload; // AP01 in %

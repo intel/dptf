@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,18 +18,15 @@
 
 #include "DomainPlatformPowerControl_001.h"
 #include "XmlNode.h"
-#include "StatusFormat.h"
-using namespace StatusFormat;
-using namespace std;
+#include <esif_sdk_data_misc.h>
 
 DomainPlatformPowerControl_001::DomainPlatformPowerControl_001(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainPlatformPowerControlBase(participantIndex, domainIndex, participantServicesInterface)
-	, m_initialState(this) // the platform power control state needs the control to capture and restore
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
 }
 
@@ -38,201 +35,24 @@ DomainPlatformPowerControl_001::~DomainPlatformPowerControl_001(void)
 	restore();
 }
 
-Bool DomainPlatformPowerControl_001::isPlatformPowerLimitEnabled(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
+void DomainPlatformPowerControl_001::setPortPowerLimit(const UInt32 portNumber, const Power& powerLimit)
 {
-	return isEnabled(limitType);
-}
+	esif_data_complex_usbc_power_limit usbcPowerLimitStructure;
+	usbcPowerLimitStructure.port = portNumber;
+	// if powerLimit is invalid, it means that all policies removed their requests,
+	// we still want to set the power to 0 (when Power is invalid the value is 0) which allows PPM to set what it wants
+	usbcPowerLimitStructure.power_limit = (UInt32)powerLimit;
 
-Power DomainPlatformPowerControl_001::getPlatformPowerLimit(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throwIfLimitNotEnabled(limitType);
-	throwIfTypeInvalidForPowerLimit(limitType);
-	return getParticipantServices()->primitiveExecuteGetAsPower(
-		esif_primitive_type::GET_PLATFORM_POWER_LIMIT, domainIndex, (UInt8)limitType);
-}
+	getParticipantServices()->primitiveExecuteSet(
+		esif_primitive_type::SET_USBC_POWER_LIMIT,
+		ESIF_DATA_STRUCTURE,
+		&usbcPowerLimitStructure,
+		sizeof(esif_data_complex_usbc_power_limit),
+		sizeof(esif_data_complex_usbc_power_limit),
+		getDomainIndex(),
+		Constants::Esif::NoInstance);
 
-void DomainPlatformPowerControl_001::setPlatformPowerLimit(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
-	const Power& powerLimit)
-{
-	throwIfLimitNotEnabled(limitType);
-	throwIfTypeInvalidForPowerLimit(limitType);
-	getParticipantServices()->primitiveExecuteSetAsPower(
-		esif_primitive_type::SET_PLATFORM_POWER_LIMIT, powerLimit, domainIndex, (UInt8)limitType);
-}
-
-TimeSpan DomainPlatformPowerControl_001::getPlatformPowerLimitTimeWindow(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throwIfLimitNotEnabled(limitType);
-	throwIfTypeInvalidForTimeWindow(limitType);
-	return getParticipantServices()->primitiveExecuteGetAsTimeInMilliseconds(
-		esif_primitive_type::GET_PLATFORM_POWER_LIMIT_TIME_WINDOW, domainIndex, (UInt8)limitType);
-}
-
-void DomainPlatformPowerControl_001::setPlatformPowerLimitTimeWindow(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
-	const TimeSpan& timeWindow)
-{
-	throwIfLimitNotEnabled(limitType);
-	throwIfTypeInvalidForTimeWindow(limitType);
-	getParticipantServices()->primitiveExecuteSetAsTimeInMilliseconds(
-		esif_primitive_type::SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, timeWindow, domainIndex, (UInt8)limitType);
-}
-
-Percentage DomainPlatformPowerControl_001::getPlatformPowerLimitDutyCycle(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
-{
-	throwIfLimitNotEnabled(limitType);
-	throwIfTypeInvalidForDutyCycle(limitType);
-	return getParticipantServices()->primitiveExecuteGetAsPercentage(
-		esif_primitive_type::GET_PLATFORM_POWER_LIMIT_DUTY_CYCLE, domainIndex, (UInt8)limitType);
-}
-
-void DomainPlatformPowerControl_001::setPlatformPowerLimitDutyCycle(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
-	const Percentage& dutyCycle)
-{
-	throwIfLimitNotEnabled(limitType);
-	throwIfTypeInvalidForDutyCycle(limitType);
-	getParticipantServices()->primitiveExecuteSetAsPercentage(
-		esif_primitive_type::SET_PLATFORM_POWER_LIMIT_DUTY_CYCLE, dutyCycle, domainIndex, (UInt8)limitType);
-}
-
-void DomainPlatformPowerControl_001::clearCachedData(void)
-{
-}
-
-std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::getXml(UIntN domainIndex)
-{
-	auto root = XmlNode::createWrapperElement("platform_power_control");
-	root->addChild(XmlNode::createDataElement("control_name", getName()));
-	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
-
-	auto set = XmlNode::createWrapperElement("platform_power_limit_set");
-	set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL1));
-	set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL2));
-	set->addChild(createStatusNode(PlatformPowerLimitType::PSysPL3));
-	root->addChild(set);
-	return root;
-}
-
-void DomainPlatformPowerControl_001::capture(void)
-{
-	m_initialState.capture();
-}
-
-void DomainPlatformPowerControl_001::restore(void)
-{
-	m_initialState.restore();
-}
-
-std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::createStatusNode(PlatformPowerLimitType::Type limitType)
-{
-	auto pl = XmlNode::createWrapperElement("platform_power_limit");
-	pl->addChild(XmlNode::createDataElement("type", PlatformPowerLimitType::ToString(limitType)));
-	pl->addChild(XmlNode::createDataElement("enabled", createStatusStringForEnabled(limitType)));
-	pl->addChild(XmlNode::createDataElement("limit_value", createStatusStringForLimitValue(limitType)));
-	pl->addChild(XmlNode::createDataElement("time_window", createStatusStringForTimeWindow(limitType)));
-	pl->addChild(XmlNode::createDataElement("duty_cycle", createStatusStringForDutyCycle(limitType)));
-	return pl;
-}
-
-std::string DomainPlatformPowerControl_001::createStatusStringForEnabled(PlatformPowerLimitType::Type limitType)
-{
-	switch (limitType)
-	{
-	case PlatformPowerLimitType::PSysPL1:
-		return friendlyValue(m_pl1Enabled);
-	case PlatformPowerLimitType::PSysPL2:
-		return friendlyValue(m_pl2Enabled);
-	case PlatformPowerLimitType::PSysPL3:
-		return friendlyValue(m_pl3Enabled);
-	default:
-		return "ERROR";
-	}
-}
-
-std::string DomainPlatformPowerControl_001::createStatusStringForLimitValue(PlatformPowerLimitType::Type limitType)
-{
-	try
-	{
-		if (isEnabled(limitType))
-		{
-			Power powerLimit = getPlatformPowerLimit(getParticipantIndex(), getDomainIndex(), limitType);
-			return powerLimit.toString();
-		}
-		else
-		{
-			return "DISABLED";
-		}
-	}
-	catch (...)
-	{
-		return "ERROR";
-	}
-}
-
-std::string DomainPlatformPowerControl_001::createStatusStringForTimeWindow(PlatformPowerLimitType::Type limitType)
-{
-	try
-	{
-		if (isEnabled(limitType)
-			&& ((limitType == PlatformPowerLimitType::PSysPL1) || (limitType == PlatformPowerLimitType::PSysPL3)))
-		{
-			TimeSpan timeWindow = getPlatformPowerLimitTimeWindow(getParticipantIndex(), getDomainIndex(), limitType);
-			return timeWindow.toStringMilliseconds();
-		}
-		else
-		{
-			return "DISABLED";
-		}
-	}
-	catch (...)
-	{
-		return "ERROR";
-	}
-}
-
-std::string DomainPlatformPowerControl_001::createStatusStringForDutyCycle(PlatformPowerLimitType::Type limitType)
-{
-	try
-	{
-		if (isEnabled(limitType) && (limitType == PlatformPowerLimitType::PSysPL3))
-		{
-			Percentage dutyCycle = getPlatformPowerLimitDutyCycle(getParticipantIndex(), getDomainIndex(), limitType);
-			return dutyCycle.toString();
-		}
-		else
-		{
-			return "DISABLED";
-		}
-	}
-	catch (...)
-	{
-		return "ERROR";
-	}
-}
-
-std::string DomainPlatformPowerControl_001::getName(void)
-{
-	return "Platform Power Control (Psys)";
+	m_lastSetPowerLimits[portNumber] = powerLimit;
 }
 
 void DomainPlatformPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
@@ -242,146 +62,111 @@ void DomainPlatformPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN part
 		if (isActivityLoggingEnabled() == true)
 		{
 			EsifCapabilityData capability;
-			capability.type = ESIF_CAPABILITY_TYPE_PSYS_CONTROL;
+			capability.type = ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL;
 			capability.size = sizeof(capability);
 
-			for (UInt32 powerType = PlatformPowerLimitType::PSysPL1; powerType < PlatformPowerLimitType::MAX;
-				 powerType++)
+			for (UInt32 portNumber = 0; portNumber < MAX_PORT_NUMBER; portNumber++)
 			{
-				capability.data.psysControl.powerDataSet[powerType].powerLimitType =
-					(PlatformPowerLimitType::Type)powerType + 1;
-
 				try
 				{
-					capability.data.psysControl.powerDataSet[powerType].powerLimit = (UInt32)getPlatformPowerLimit(
-						participantIndex, domainIndex, (PlatformPowerLimitType::Type)powerType);
+					capability.data.platformPowerControl.portDataSet[portNumber] =
+						(UInt32)getPortPowerLimit(portNumber + 1);
 				}
-				catch (const std::exception& ex)
+				catch (dptf_exception& ex)
 				{
-					std::stringstream message;
-					message << "Failed to get "
-							<< PlatformPowerLimitType::ToString((PlatformPowerLimitType::Type)powerType)
-							<< " power limit: " << ex.what();
-					getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
-				}
+					// Make the variable appear as used for Chromium Klocwork.
+					PARTICIPANT_LOG_MESSAGE_DEBUG_EX({ return ex.getDescription(); });
 
-				if (powerType == PlatformPowerLimitType::PSysPL1)
-				{
-					try
-					{
-						capability.data.psysControl.powerDataSet[powerType].PowerLimitTimeWindow =
-							(UInt32)getPlatformPowerLimitTimeWindow(
-								participantIndex, domainIndex, (PlatformPowerLimitType::Type)powerType)
-								.asMillisecondsUInt(); // 1 & 3
-					}
-					catch (const std::exception& ex)
-					{
-						std::stringstream message;
-						message << "Failed to get "
-								<< PlatformPowerLimitType::ToString((PlatformPowerLimitType::Type)powerType)
-								<< " time window: " << ex.what();
-						getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
-					}
-				}
-
-				if (powerType == PlatformPowerLimitType::PSysPL3)
-				{
-					try
-					{
-						capability.data.psysControl.powerDataSet[powerType].PowerLimitTimeWindow =
-							(UInt32)getPlatformPowerLimitTimeWindow(
-								participantIndex, domainIndex, (PlatformPowerLimitType::Type)powerType)
-								.asMillisecondsUInt(); // 1 & 3
-					}
-					catch (const std::exception& ex)
-					{
-						std::stringstream message;
-						message << "Failed to get "
-								<< PlatformPowerLimitType::ToString((PlatformPowerLimitType::Type)powerType)
-								<< " time window: " << ex.what();
-						getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
-					}
-
-					try
-					{
-						capability.data.psysControl.powerDataSet[powerType].PowerLimitDutyCycle =
-							(UInt32)getPlatformPowerLimitDutyCycle(
-								participantIndex, domainIndex, (PlatformPowerLimitType::Type)powerType)
-								.toWholeNumber(); // 3
-					}
-					catch (const std::exception& ex)
-					{
-						std::stringstream message;
-						message << "Failed to get "
-								<< PlatformPowerLimitType::ToString((PlatformPowerLimitType::Type)powerType)
-								<< " duty cycle: " << ex.what();
-						getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
-					}
+					capability.data.platformPowerControl.portDataSet[portNumber] = 0;
 				}
 			}
-
 			getParticipantServices()->sendDptfEvent(
 				ParticipantEvent::DptfParticipantControlAction,
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
+
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Platform Power Control"
+						<< ")";
+				return message.str();
+			});
 		}
 	}
-	catch (std::exception& ex)
+	catch (...)
 	{
-		std::stringstream message2;
-		message2 << "Error capturing activity logging data for PSYS: " << ex.what();
-		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message2.str()));
+		// skip if there are any issue in sending log data
 	}
 }
 
-void DomainPlatformPowerControl_001::throwIfLimitNotEnabled(PlatformPowerLimitType::Type limitType)
+void DomainPlatformPowerControl_001::onClearCachedData(void)
 {
-	if (isEnabled(limitType) == false)
+	// do not clear last set values since we need to be able to restore the ones that were modified
+}
+
+std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::getXml(UIntN domainIndex)
+{
+	auto root = XmlNode::createWrapperElement("platform_power_control");
+	root->addChild(XmlNode::createDataElement("control_name", getName()));
+	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
+	root->addChild(getXmlForAllPorts());
+	return root;
+}
+
+Power DomainPlatformPowerControl_001::getPortPowerLimit(UInt32 portNumber)
+{
+	auto port = m_lastSetPowerLimits.find(portNumber);
+	if (port != m_lastSetPowerLimits.end())
 	{
-		string message = "Platform " + PlatformPowerLimitType::ToString(limitType) + " is disabled.";
-		throw dptf_exception(message);
+		return m_lastSetPowerLimits[portNumber];
+	}
+
+	return Power::createInvalid();
+}
+
+std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::getXmlForAllPorts()
+{
+	auto set = XmlNode::createWrapperElement("port_status_set");
+	for (auto portNumber = 1; portNumber <= MAX_PORT_NUMBER; ++portNumber)
+	{
+		auto portStatus = XmlNode::createWrapperElement("port_status");
+		portStatus->addChild(XmlNode::createDataElement("port_number", std::to_string(portNumber)));
+		if (m_lastSetPowerLimits.find(portNumber) != m_lastSetPowerLimits.end())
+		{
+			portStatus->addChild(
+				XmlNode::createDataElement("limit_value", m_lastSetPowerLimits[portNumber].toString()));
+		}
+		else
+		{
+			portStatus->addChild(XmlNode::createDataElement("limit_value", Constants::InvalidString));
+		}
+		set->addChild(portStatus);
+	}
+	return set;
+}
+
+std::shared_ptr<XmlNode> DomainPlatformPowerControl_001::getArbitratorXml(UIntN policyIndex) const
+{
+	return m_arbitrator.getStatusForPolicy(policyIndex);
+}
+
+void DomainPlatformPowerControl_001::capture(void)
+{
+	// do nothing since there is no GET primitive
+}
+
+void DomainPlatformPowerControl_001::restore(void)
+{
+	for (auto portNumber = m_lastSetPowerLimits.begin(); portNumber != m_lastSetPowerLimits.end(); ++portNumber)
+	{
+		setPortPowerLimit(portNumber->first, Power::createInvalid());
 	}
 }
 
-void DomainPlatformPowerControl_001::throwIfTypeInvalidForPowerLimit(PlatformPowerLimitType::Type limitType)
+std::string DomainPlatformPowerControl_001::getName(void)
 {
-	switch (limitType)
-	{
-	case PlatformPowerLimitType::PSysPL1:
-	case PlatformPowerLimitType::PSysPL2:
-	case PlatformPowerLimitType::PSysPL3:
-		return;
-	default:
-		throw dptf_exception("Invalid power limit type selected for Platform Power Limit.");
-	}
-}
-
-void DomainPlatformPowerControl_001::throwIfTypeInvalidForTimeWindow(PlatformPowerLimitType::Type limitType)
-{
-	switch (limitType)
-	{
-	case PlatformPowerLimitType::PSysPL1:
-	case PlatformPowerLimitType::PSysPL3:
-		return;
-	case PlatformPowerLimitType::PSysPL2:
-		throw dptf_exception(
-			"Platform power limit time window not supported for " + PlatformPowerLimitType::ToString(limitType) + ".");
-	default:
-		throw dptf_exception("Invalid power limit type selected for Platform Power Time Window.");
-	}
-}
-
-void DomainPlatformPowerControl_001::throwIfTypeInvalidForDutyCycle(PlatformPowerLimitType::Type limitType)
-{
-	switch (limitType)
-	{
-	case PlatformPowerLimitType::PSysPL1:
-	case PlatformPowerLimitType::PSysPL2:
-		throw dptf_exception(
-			"Platform power limit duty cycle not supported for " + PlatformPowerLimitType::ToString(limitType) + ".");
-	case PlatformPowerLimitType::PSysPL3:
-		return;
-	default:
-		throw dptf_exception("Invalid power limit type selected for Platform Power Duty Cycle.");
-	}
+	return "Platform Power Control";
 }

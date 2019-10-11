@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -78,6 +78,7 @@ typedef enum esif_data_type {
 	ESIF_DATA_INT8 = 11,
 	ESIF_DATA_IPV4 = 16,
 	ESIF_DATA_IPV6 = 17,
+	ESIF_DATA_JSON = 42,
 	ESIF_DATA_PERCENT = 29,
 	ESIF_DATA_POINTER = 18,
 	ESIF_DATA_POWER = 26,
@@ -98,7 +99,7 @@ typedef enum esif_data_type {
 } esif_data_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_DATA_ENUM_VALUE  ESIF_DATA_ANGLE
+#define MAX_ESIF_DATA_ENUM_VALUE  ESIF_DATA_JSON
 
 static ESIF_INLINE esif_string esif_data_type_str(esif_data_type_t type)
 {
@@ -121,6 +122,7 @@ static ESIF_INLINE esif_string esif_data_type_str(esif_data_type_t type)
 	ESIF_CASE_ENUM(ESIF_DATA_INT8);
 	ESIF_CASE_ENUM(ESIF_DATA_IPV4);
 	ESIF_CASE_ENUM(ESIF_DATA_IPV6);
+	ESIF_CASE_ENUM(ESIF_DATA_JSON);
 	ESIF_CASE_ENUM(ESIF_DATA_PERCENT);
 	ESIF_CASE_ENUM(ESIF_DATA_POINTER);
 	ESIF_CASE_ENUM(ESIF_DATA_POWER);
@@ -178,7 +180,6 @@ static ESIF_INLINE size_t esif_data_type_sizeof(esif_data_type_t type)
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(esif_string name)
 {
-	int j;
 	struct esif_data_type_map_t {
 		esif_data_type_t type;
 		esif_string name;
@@ -202,6 +203,7 @@ static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(esif_string name)
 		ESIF_MAP_ENUM(ESIF_DATA_INT8),
 		ESIF_MAP_ENUM(ESIF_DATA_IPV4),
 		ESIF_MAP_ENUM(ESIF_DATA_IPV6),
+		ESIF_MAP_ENUM(ESIF_DATA_JSON),
 		ESIF_MAP_ENUM(ESIF_DATA_PERCENT),
 		ESIF_MAP_ENUM(ESIF_DATA_POINTER),
 		ESIF_MAP_ENUM(ESIF_DATA_POWER),
@@ -222,7 +224,7 @@ static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(esif_string name)
 	};
 
 	/* Match ESIF_DATA_TYPENAME or TYPENAME */
-	for (j = 0; j < ESIF_ARRAY_LEN(esif_data_type_map); j++) {
+	for (size_t j = 0; j < ESIF_ARRAY_LEN(esif_data_type_map); j++) {
 		if (esif_ccb_stricmp(esif_data_type_map[j].name, name) == 0)
 			return esif_data_type_map[j].type;
 		if (esif_ccb_stricmp(esif_data_type_map[j].name+10, name) == 0)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,7 +39,7 @@ WIDptfParticipantActivityLoggingEnabled::~WIDptfParticipantActivityLoggingEnable
 {
 }
 
-void WIDptfParticipantActivityLoggingEnabled::execute(void)
+void WIDptfParticipantActivityLoggingEnabled::onExecute(void)
 {
 	writeDomainWorkItemStartingInfoMessage();
 
@@ -47,8 +47,12 @@ void WIDptfParticipantActivityLoggingEnabled::execute(void)
 	{
 		getParticipantPtr()->activityLoggingEnabled(getDomainIndex(), m_capabilityBitMask);
 	}
+	catch (participant_index_invalid& ex)
+	{
+		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
+	}
 	catch (std::exception& ex)
 	{
-		writeDomainWorkItemErrorMessage(ex, "Participant::activityLoggingEnabled");
+		writeDomainWorkItemWarningMessage(ex, "Participant::activityLoggingEnabled");
 	}
 }

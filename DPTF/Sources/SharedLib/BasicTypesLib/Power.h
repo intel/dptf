@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,10 @@ public:
 	Power(UInt32 power);
 	static Power createInvalid();
 	static Power createFromMilliwatts(UInt32 milliwatts);
+	static Power createFromWatts(double watts);
+	static Power createFromDptfBuffer(const class DptfBuffer& buffer);
+
+	double asWatts() const;
 
 	Bool operator==(const Power& rhs) const;
 	Bool operator!=(const Power& rhs) const;
@@ -45,6 +49,7 @@ public:
 	Bool isValid() const;
 	std::string toString() const;
 	Int32 toInt32() const;
+	class DptfBuffer toDptfBuffer() const;
 
 private:
 	Bool m_valid;

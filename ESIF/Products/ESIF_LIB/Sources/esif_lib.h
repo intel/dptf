@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,11 +19,12 @@
 #ifndef _ESIF_LIB_H
 #define _ESIF_LIB_H
 
+#include "esif_ccb.h"
+#include "esif.h"
+
 #include <stdlib.h>
 #include <memory.h>
 #include <string.h>
-
-#include "esif.h"
 
 // Aliases
 typedef unsigned char Byte, *BytePtr, **BytePtrLocation;

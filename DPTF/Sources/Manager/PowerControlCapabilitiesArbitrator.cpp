@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,8 +38,7 @@ void PowerControlCapabilitiesArbitrator::commitPolicyRequest(
 Bool PowerControlCapabilitiesArbitrator::hasArbitratedPowerControlCapabilities() const
 {
 	if (m_requestedMaxPowerLimit.empty() && m_requestedMinPowerLimit.empty() && m_requestedPowerLimitStep.empty()
-		&& m_requestedMaxTimeWindow.empty()
-		&& m_requestedMinTimeWindow.empty())
+		&& m_requestedMaxTimeWindow.empty() && m_requestedMinTimeWindow.empty())
 	{
 		return false;
 	}
@@ -86,12 +85,8 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitrat
 	const PowerControlDynamicCapsSet& currentCapSet)
 {
 	std::vector<PowerControlDynamicCaps> allCaps;
-	auto controlTypes = getControlTypes(
-		maxPowerRequests,
-		minPowerRequests,
-		powerStepRequests,
-		maxTimeRequests,
-		minTimeRequests);
+	auto controlTypes =
+		getControlTypes(maxPowerRequests, minPowerRequests, powerStepRequests, maxTimeRequests, minTimeRequests);
 	for (auto controlType = controlTypes.begin(); controlType != controlTypes.end(); ++controlType)
 	{
 		auto currentPowerMax = Power::createInvalid();
@@ -128,7 +123,7 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitrat
 
 		if (maxPowerLimit < minPowerLimit)
 		{
-			minPowerLimit = maxPowerLimit;
+			minPowerLimit = maxPowerLimit; // set both min and max to the most limited of the two values
 		}
 
 		Power stepSize = getHighestPowerLimitStep(*controlType, powerStepRequests);

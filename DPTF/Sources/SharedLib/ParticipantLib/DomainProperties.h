@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,16 +51,19 @@ public:
 	Bool implementsPeakPowerControlInterface(void) const;
 	Bool implementsPerformanceControlInterface(void) const;
 	Bool implementsPowerControlInterface(void) const;
-	Bool implementsPlatformPowerControlInterface(void) const;
+	Bool implementsSystemPowerControlInterface(void) const;
+	Bool implementsBatteryStatusInterface(void) const;
 	Bool implementsPlatformPowerStatusInterface(void) const;
+	Bool implementsPlatformPowerControlInterface(void) const;
 	Bool implementsPowerStatusInterface(void) const;
 	Bool implementsDomainPriorityInterface(void) const;
 	Bool implementsRfProfileControlInterface(void) const;
 	Bool implementsRfProfileStatusInterface(void) const;
 	Bool implementsTemperatureInterface(void) const;
 	Bool implementsTemperatureThresholdInterface(void) const;
-	Bool implementsTccOffsetControlInterface(void) const;
+	Bool implementsProcessorControlInterface(void) const;
 	Bool implementsUtilizationInterface(void) const;
+	Bool implementsSocWorkloadClassificationInterface(void) const;
 
 	Bool operator==(const DomainProperties& domain);
 	Bool operator!=(const DomainProperties& domain);

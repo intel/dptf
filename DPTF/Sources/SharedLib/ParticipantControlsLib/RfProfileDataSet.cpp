@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -61,7 +61,7 @@ RfProfileDataSet RfProfileDataSet::createRfProfileDataFromDptfBuffer(const DptfB
 		RfProfileSupplementalData rfProfileSupplementalData(
 			noisePower, rssi, connectionStatus);
 		RfProfileData rfProfileData(
-			centerFrequency, frequencySpread / 2, frequencySpread / 2, rfProfileSupplementalData);
+			centerFrequency, frequencySpread / 2, frequencySpread / 2, Frequency(0), rfProfileSupplementalData);
 
 		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 

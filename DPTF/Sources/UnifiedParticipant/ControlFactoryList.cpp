@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,16 +33,19 @@
 #include "DomainUtilizationFactory.h"
 #include "ParticipantGetSpecificInfoFactory.h"
 #include "ParticipantSetSpecificInfoFactory.h"
-#include "DomainPlatformPowerControlFactory.h"
+#include "DomainSystemPowerControlFactory.h"
 #include "DomainPlatformPowerStatusFactory.h"
 #include "DomainPeakPowerControlFactory.h"
-#include "DomainTccOffsetControlFactory.h"
+#include "DomainProcessorControlFactory.h"
+#include "DomainPlatformPowerControlFactory.h"
+#include "DomainBatteryStatusFactory.h"
+#include "DomainSocWorkloadClassificationFactory.h"
 using namespace std;
 
 ControlFactoryList::ControlFactoryList(void)
 {
 	for (ControlFactoryType::Type factoryType = ControlFactoryType::FIRST; factoryType < ControlFactoryType::MAX;
-		factoryType = (ControlFactoryType::Type)((int)factoryType + 1))
+		 factoryType = (ControlFactoryType::Type)((int)factoryType + 1))
 	{
 		try
 		{
@@ -67,7 +70,7 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::getFactory(ControlF
 	if (findResult == m_factories.end())
 	{
 		throw dptf_exception(
-			"Control factory type \"" + ControlFactoryType::ToString(factoryType) + "\" does not exist.");
+			"Control factory type \"" + ControlFactoryType::toString(factoryType) + "\" does not exist.");
 	}
 	else
 	{
@@ -103,8 +106,8 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
 		return shared_ptr<ControlFactoryInterface>(new DomainRfProfileControlFactory());
 	case ControlFactoryType::RfProfileStatus:
 		return shared_ptr<ControlFactoryInterface>(new DomainRfProfileStatusFactory());
-	case ControlFactoryType::TccOffsetControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainTccOffsetControlFactory());
+	case ControlFactoryType::ProcessorControl:
+		return shared_ptr<ControlFactoryInterface>(new DomainProcessorControlFactory());
 	case ControlFactoryType::Temperature:
 		return shared_ptr<ControlFactoryInterface>(new DomainTemperatureFactory());
 	case ControlFactoryType::Utilization:
@@ -113,12 +116,18 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
 		return shared_ptr<ControlFactoryInterface>(new ParticipantGetSpecificInfoFactory());
 	case ControlFactoryType::SetSpecificInfo:
 		return shared_ptr<ControlFactoryInterface>(new ParticipantSetSpecificInfoFactory());
-	case ControlFactoryType::PlatformPower:
-		return shared_ptr<ControlFactoryInterface>(new DomainPlatformPowerControlFactory());
+	case ControlFactoryType::SystemPower:
+		return shared_ptr<ControlFactoryInterface>(new DomainSystemPowerControlFactory());
 	case ControlFactoryType::PlatformPowerStatus:
 		return shared_ptr<ControlFactoryInterface>(new DomainPlatformPowerStatusFactory());
+	case ControlFactoryType::PlatformPowerControl:
+		return shared_ptr<ControlFactoryInterface>(new DomainPlatformPowerControlFactory());
 	case ControlFactoryType::ActivityStatus:
 		return shared_ptr<ControlFactoryInterface>(new DomainActivityStatusFactory());
+	case ControlFactoryType::BatteryStatus:
+		return shared_ptr<ControlFactoryInterface>(new DomainBatteryStatusFactory());
+	case ControlFactoryType::SocWorkloadClassification:
+		return shared_ptr<ControlFactoryInterface>(new DomainSocWorkloadClassificationFactory());
 	default:
 		throw dptf_exception("Cannot make control factory for invalid control factory type.");
 	}

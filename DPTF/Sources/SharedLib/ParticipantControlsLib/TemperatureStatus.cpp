@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,12 @@
 
 #include "TemperatureStatus.h"
 #include "XmlNode.h"
+#include "DptfBufferStream.h"
+
+TemperatureStatus::TemperatureStatus()
+	: m_currentTemperature(Temperature::createInvalid())
+{
+}
 
 TemperatureStatus::TemperatureStatus(Temperature currentTemperature)
 	: m_currentTemperature(currentTemperature){};
@@ -31,5 +37,26 @@ std::shared_ptr<XmlNode> TemperatureStatus::getXml(void)
 {
 	std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("temperature_status");
 	root->addChild(XmlNode::createDataElement("temperature_status", getCurrentTemperature().toString()));
+
 	return root;
+}
+
+DptfBuffer TemperatureStatus::toDptfBuffer() const
+{
+	DptfBuffer buffer;
+	buffer.append(m_currentTemperature.toDptfBuffer());
+	return buffer;
+}
+
+TemperatureStatus TemperatureStatus::createFromDptfBuffer(const DptfBuffer& buffer)
+{
+	if (buffer.size() != (TemperatureStatus().toDptfBuffer().size()))
+	{
+		throw dptf_exception("Buffer given to Temperature Status class has invalid length.");
+	}
+
+	DptfBuffer bufferCopy = buffer;
+	DptfBufferStream stream(bufferCopy);
+
+	return TemperatureStatus(stream.readNextTemperature());
 }

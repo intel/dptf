@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -307,6 +307,14 @@ extern "C" {
 		EsifUfTraceMessage(module, level,	ESIF_FUNC, ESIF_FILENAME, __LINE__, msg, ##__VA_ARGS__); \
 
 #endif
+
+#define ESIF_TRACE_DYN(id, level, format, ...) \
+	ESIF_DOTRACE_IFACTIVE(\
+		ESIF_TRACEMASK(id), \
+		level, \
+		format, \
+		##__VA_ARGS__ \
+		)
 
 /* Never route a trace message and compile it out of the binary */
 #define ESIF_DOTRACE_NEVER(mod, lev, msg, ...)	(0)

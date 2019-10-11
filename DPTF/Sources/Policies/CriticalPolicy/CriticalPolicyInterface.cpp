@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,26 +22,27 @@
 
 // This file is nearly identical between each policy.  We could use a macro in its place.  However, for easier
 // debugging, the code is being left as-is.  At a later date it would be fine to convert to a macro.
-extern "C" {
-dptf_export UInt64 GetAppVersion(void)
+extern "C"
 {
-	return AppVersion(VER_MAJOR, VER_MINOR, VER_HOTFIX, VER_BUILD).toUInt64();
-}
-
-dptf_export PolicyInterface* CreatePolicyInstance(void)
-{
-	try
+	dptf_public_export UInt64 GetAppVersion(void)
 	{
-		return new CriticalPolicy();
+		return AppVersion(VER_MAJOR, VER_MINOR, VER_HOTFIX, VER_BUILD).toUInt64();
 	}
-	catch (...)
-	{
-		return nullptr;
-	}
-}
 
-dptf_export void DestroyPolicyInstance(PolicyInterface* policy)
-{
-	DELETE_MEMORY_TC(policy);
-}
+	dptf_public_export PolicyInterface* CreatePolicyInstance(void)
+	{
+		try
+		{
+			return new CriticalPolicy();
+		}
+		catch (...)
+		{
+			return nullptr;
+		}
+	}
+
+	dptf_public_export void DestroyPolicyInstance(PolicyInterface* policy)
+	{
+		DELETE_MEMORY_TC(policy);
+	}
 }

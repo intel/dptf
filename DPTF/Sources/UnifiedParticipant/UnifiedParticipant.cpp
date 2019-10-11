@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,11 @@ UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
 	// that only sends in the 'fake' factories as needed.
 }
 
+std::shared_ptr<ParticipantServicesInterface> UnifiedParticipant::getParticipantServices() const
+{
+	return m_participantServicesInterface;
+}
+
 void UnifiedParticipant::initialize(void)
 {
 	m_guid = Guid();
@@ -59,8 +64,11 @@ void UnifiedParticipant::initialize(void)
 	m_rfProfileEventsRegistered = false;
 	m_temperatureEventsRegistered = false;
 	m_powerStatusEventsRegistered = false;
+	m_batteryStatusEventsRegistered = false;
 	m_loggingEventsRegistered = false;
 	m_energyEventsRegistered = false;
+	m_activeControlEventsRegistered = false;
+	m_socWorkloadClassificationEventsRegistered = false;
 }
 
 void UnifiedParticipant::initializeSpecificInfoControl(void)
@@ -137,22 +145,16 @@ void UnifiedParticipant::clearAllCachedData(void)
 {
 	if (m_getSpecificInfo)
 	{
-		m_getSpecificInfo->clearCachedData();
+		m_getSpecificInfo->onClearCachedData();
 	}
 
 	if (m_setSpecificInfo)
 	{
-		m_setSpecificInfo->clearCachedData();
+		m_setSpecificInfo->onClearCachedData();
 	}
 
 	// Clear all cached data on all domains
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->clearAllCachedData();
-		}
-	}
+	clearCachedData();
 }
 
 Bool UnifiedParticipant::isParticipantEnabled(void)
@@ -265,8 +267,10 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	UIntN rfProfileTotal = 0;
 	UIntN temperatureControlTotal = 0;
 	UIntN platformPowerStatusControlTotal = 0;
+	UIntN batteryStatusControlTotal = 0;
 	UIntN peakPowerControlTotal = 0;
-	UIntN tccOffsetControlTotal = 0;
+	UIntN processorControlTotal = 0;
+	UIntN socWorkloadClassificationControlTotal = 0;
 	UIntN loggingTotal = 0;
 
 	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
@@ -290,19 +294,16 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 			temperatureControlTotal += versions.temperatureVersion;
 			temperatureControlTotal += versions.temperatureThresholdVersion;
 			platformPowerStatusControlTotal += versions.platformPowerStatusVersion;
+			batteryStatusControlTotal += versions.batteryStatusVersion;
 			peakPowerControlTotal += versions.peakPowerControlVersion;
-			tccOffsetControlTotal += versions.tccOffsetControlVersion;
+			processorControlTotal += versions.processorControlVersion;
+			socWorkloadClassificationControlTotal += versions.socWorkloadClassificationVersion;
 			if ((activeControlTotal != 0) || (activityStatusTotal != 0) || (configTdpTotal != 0)
-				|| (coreControlTotal != 0)
-				|| (displayControlTotal != 0)
-				|| (domainPriorityTotal != 0)
-				|| (performanceControlTotal != 0)
-				|| (powerControlTotal != 0)
-				|| (rfProfileTotal != 0)
-				|| (temperatureControlTotal != 0)
-				|| (platformPowerStatusControlTotal != 0)
-				|| (peakPowerControlTotal != 0)
-				|| (tccOffsetControlTotal != 0))
+				|| (coreControlTotal != 0) || (displayControlTotal != 0) || (domainPriorityTotal != 0)
+				|| (performanceControlTotal != 0) || (powerControlTotal != 0) || (rfProfileTotal != 0)
+				|| (temperatureControlTotal != 0) || (platformPowerStatusControlTotal != 0)
+				|| (peakPowerControlTotal != 0) || (processorControlTotal != 0) || (batteryStatusControlTotal != 0)
+				|| (socWorkloadClassificationControlTotal != 0))
 			{
 				loggingTotal = 1;
 			}
@@ -356,14 +357,9 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 		updateDomainEventRegistration(temperatureControlTotal, m_temperatureEventsRegistered, temperatureEvents);
 
 	std::set<ParticipantEvent::Type> platformPowerStatusEvents;
-	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainBatteryStatusChanged);
-	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainBatteryInformationChanged);
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformPowerSourceChanged);
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainAdapterPowerRatingChanged);
-	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainChargerTypeChanged);
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformRestOfPowerChanged);
-	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainMaxBatteryPowerChanged);
-	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainPlatformBatterySteadyStateChanged);
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainACNominalVoltageChanged);
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainACOperationalCurrentChanged);
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainAC1msPercentageOverloadChanged);
@@ -371,6 +367,18 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	platformPowerStatusEvents.insert(ParticipantEvent::Type::DomainAC10msPercentageOverloadChanged);
 	m_powerStatusEventsRegistered = updateDomainEventRegistration(
 		platformPowerStatusControlTotal, m_powerStatusEventsRegistered, platformPowerStatusEvents);
+
+	std::set<ParticipantEvent::Type> batteryStatusEvents;
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainBatteryStatusChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainBatteryInformationChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainChargerTypeChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainMaxBatteryPowerChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainPlatformBatterySteadyStateChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainBatteryHighFrequencyImpedanceChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainBatteryNoLoadVoltageChanged);
+	batteryStatusEvents.insert(ParticipantEvent::Type::DomainMaxBatteryPeakCurrentChanged);
+	m_batteryStatusEventsRegistered =
+		updateDomainEventRegistration(batteryStatusControlTotal, m_batteryStatusEventsRegistered, batteryStatusEvents);
 
 	std::set<ParticipantEvent::Type> loggingEvents;
 	loggingEvents.insert(ParticipantEvent::Type::DptfParticipantActivityLoggingEnabled);
@@ -381,6 +389,18 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	energyEvents.insert(ParticipantEvent::Type::DomainEnergyThresholdCrossed);
 	m_energyEventsRegistered =
 		updateDomainEventRegistration(activityStatusTotal, m_energyEventsRegistered, energyEvents);
+
+	std::set<ParticipantEvent::Type> activeControlEvents;
+	activeControlEvents.insert(ParticipantEvent::Type::DomainFanCapabilityChanged);
+	m_activeControlEventsRegistered =
+		updateDomainEventRegistration(activeControlTotal, m_activeControlEventsRegistered, activeControlEvents);
+
+	std::set<ParticipantEvent::Type> socWorkloadClassificationEvents;
+	socWorkloadClassificationEvents.insert(ParticipantEvent::Type::DomainSocWorkloadClassificationChanged);
+	m_socWorkloadClassificationEventsRegistered = updateDomainEventRegistration(
+		socWorkloadClassificationControlTotal,
+		m_socWorkloadClassificationEventsRegistered,
+		socWorkloadClassificationEvents);
 }
 
 Bool UnifiedParticipant::updateDomainEventRegistration(
@@ -457,8 +477,7 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 	}
 	catch (...)
 	{
-		m_participantServicesInterface->writeMessageWarning(
-			ParticipantMessage(FLF, "Unable to get participant properties XML status!"));
+		PARTICIPANT_LOG_MESSAGE_WARNING({ return "Unable to get participant properties XML status!"; });
 	}
 
 	if (domainIndex == 0 || domainIndex == Constants::Invalid)
@@ -477,8 +496,7 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 		catch (...)
 		{
 			// Write message log error
-			m_participantServicesInterface->writeMessageWarning(
-				ParticipantMessage(FLF, "Unable to get specific info XML status!"));
+			PARTICIPANT_LOG_MESSAGE_WARNING({ return "Unable to get specific info XML status!"; });
 		}
 	}
 
@@ -500,8 +518,8 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 			}
 			catch (...)
 			{
-				m_participantServicesInterface->writeMessageWarning(ParticipantMessage(
-					FLF, "Unable to get domain XML status for domain " + std::to_string(domain->first)));
+				PARTICIPANT_LOG_MESSAGE_WARNING(
+					{ return "Unable to get domain XML status for domain " + std::to_string(domain->first); });
 			}
 		}
 	}
@@ -517,8 +535,8 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 		}
 		catch (...)
 		{
-			m_participantServicesInterface->writeMessageWarning(
-				ParticipantMessage(FLF, "Unable to get domain XML status for domain " + std::to_string(domainIndex)));
+			PARTICIPANT_LOG_MESSAGE_WARNING(
+				{ return "Unable to get domain XML status for domain " + std::to_string(domainIndex); });
 		}
 	}
 
@@ -528,20 +546,78 @@ std::shared_ptr<XmlNode> UnifiedParticipant::getXml(UIntN domainIndex) const
 std::shared_ptr<XmlNode> UnifiedParticipant::getStatusAsXml(UIntN domainIndex) const
 {
 	auto participantRoot = XmlNode::createRoot();
-
 	auto formatId = XmlNode::createComment("format_id=" + FormatId.toString());
-
 	participantRoot->addChild(formatId);
-
 	participantRoot->addChild(getXml(domainIndex));
-
 	return participantRoot;
 }
 
 std::shared_ptr<XmlNode> UnifiedParticipant::getDiagnosticsAsXml(UIntN domainIndex) const
 {
-	auto participantRoot = XmlNode::createRoot();
-	return participantRoot;
+	return getStatusAsXml(domainIndex);
+}
+
+std::shared_ptr<XmlNode> UnifiedParticipant::getArbitratorStatusForPolicy(
+	UIntN domainIndex,
+	UIntN policyIndex,
+	ControlFactoryType::Type type) const
+{
+	auto status = XmlNode::createWrapperElement("domain_status");
+	try
+	{
+		auto matchedDomain = m_domains.find(domainIndex);
+		if (matchedDomain != m_domains.end() && matchedDomain->second != nullptr)
+		{
+			status->addChild(matchedDomain->second->getArbitratorStatusForPolicy(policyIndex, type));
+		}
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Unable to get arbitrator XML status for domain " + std::to_string(domainIndex); });
+	}
+	return status;
+}
+
+void UnifiedParticipant::clearCachedData()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->clearAllCachedData();
+		}
+	}
+}
+
+void UnifiedParticipant::clearCachedResults()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		domain->second->clearAllCachedResults();
+	}
+}
+
+void UnifiedParticipant::clearTemperatureControlCachedData()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->getTemperatureControl()->clearCachedData();
+		}
+	}
+}
+
+void UnifiedParticipant::clearBatteryStatusControlCachedData()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->getBatteryStatusControl()->clearCachedData();
+		}
+	}
 }
 
 void UnifiedParticipant::connectedStandbyEntry(void)
@@ -693,9 +769,9 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 					}
 					break;
 				case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
-					if (domainFunctionality.platformPowerControlVersion > 0)
+					if (domainFunctionality.systemPowerControlVersion > 0)
 					{
-						matchedDomain->second->getPlatformPowerControl()->enableActivityLogging();
+						matchedDomain->second->getSystemPowerControl()->enableActivityLogging();
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
@@ -706,20 +782,47 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
-				case ESIF_CAPABILITY_TYPE_TCC_CONTROL:
-					if (domainFunctionality.tccOffsetControlVersion > 0)
+				case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
+					if (domainFunctionality.processorControlVersion > 0)
 					{
-						matchedDomain->second->getTccOffsetControl()->enableActivityLogging();
+						matchedDomain->second->getProcessorControl()->enableActivityLogging();
+						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
+					}
+					break;
+				case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
+					if (domainFunctionality.platformPowerControlVersion > 0)
+					{
+						matchedDomain->second->getPlatformPowerControl()->enableActivityLogging();
+						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
+					}
+					break;
+				case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
+					if (domainFunctionality.rfProfileControlVersion > 0)
+					{
+						matchedDomain->second->getRfProfileControl()->enableActivityLogging();
+						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
+					}
+					break;
+				case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
+					if (domainFunctionality.rfProfileStatusVersion > 0)
+					{
+						matchedDomain->second->getRfProfileStatusControl()->enableActivityLogging();
+						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
+					}
+					break;
+				case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+					if (domainFunctionality.socWorkloadClassificationVersion > 0)
+					{
+						matchedDomain->second->getSocWorkloadClassificationControl()->enableActivityLogging();
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
 				case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
 				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+				case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
 					// ESIF handles participant logging for these capabilities
 					break;
-				case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
-				case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
 				default:
 					// To do for other capabilities as part of data logging
 					break;
@@ -778,17 +881,24 @@ void UnifiedParticipant::disableActivityLoggingForDomain(UInt32 domainIndex, UIn
 					matchedDomain->second->getPowerControl()->disableActivityLogging();
 					break;
 				case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
-					matchedDomain->second->getPlatformPowerControl()->disableActivityLogging();
+					matchedDomain->second->getSystemPowerControl()->disableActivityLogging();
 					break;
 				case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 					matchedDomain->second->getPeakPowerControl()->disableActivityLogging();
 					break;
-				case ESIF_CAPABILITY_TYPE_TCC_CONTROL:
-					matchedDomain->second->getTccOffsetControl()->disableActivityLogging();
+				case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
+					matchedDomain->second->getProcessorControl()->disableActivityLogging();
+					break;
+				case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
+					matchedDomain->second->getPlatformPowerControl()->disableActivityLogging();
+					break;
+				case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+					matchedDomain->second->getSocWorkloadClassificationControl()->disableActivityLogging();
 					break;
 				case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
 				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+				case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
 					// ESIF handles participant logging for these capabilities
 					break;
 				case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
@@ -844,26 +954,52 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 			m_participantIndex, domainIndex);
 		break;
 	case ESIF_CAPABILITY_TYPE_PSYS_CONTROL:
-		m_domains[domainIndex]->getPlatformPowerControl()->sendActivityLoggingDataIfEnabled(
+		m_domains[domainIndex]->getSystemPowerControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
 	case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 		m_domains[domainIndex]->getPeakPowerControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
-	case ESIF_CAPABILITY_TYPE_TCC_CONTROL:
-		m_domains[domainIndex]->getTccOffsetControl()->sendActivityLoggingDataIfEnabled(
+	case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
+		m_domains[domainIndex]->getProcessorControl()->sendActivityLoggingDataIfEnabled(
+			m_participantIndex, domainIndex);
+		break;
+	case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
+		m_domains[domainIndex]->getPlatformPowerControl()->sendActivityLoggingDataIfEnabled(
+			m_participantIndex, domainIndex);
+		break;
+	case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
+		m_domains[domainIndex]->getRfProfileControl()->sendActivityLoggingDataIfEnabled(
+			m_participantIndex, domainIndex);
+		break;
+	case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
+		m_domains[domainIndex]->getRfProfileStatusControl()->sendActivityLoggingDataIfEnabled(
+			m_participantIndex, domainIndex);
+		break;
+	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+		m_domains[domainIndex]->getSocWorkloadClassificationControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+	case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
 		// ESIF handles participant logging for these capabilities
 		break;
-	case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
-	case ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS:
 	default:
 		break;
+	}
+}
+
+void UnifiedParticipant::domainSocWorkloadClassificationChanged()
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->getSocWorkloadClassificationControl()->clearCachedData();
+		}
 	}
 }
 
@@ -874,7 +1010,7 @@ void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getConfigTdpControl()->clearCachedData();
+			domain->second->getConfigTdpControl()->onClearCachedData();
 		}
 	}
 }
@@ -886,7 +1022,7 @@ void UnifiedParticipant::domainCoreControlCapabilityChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getCoreControl()->clearCachedData();
+			domain->second->getCoreControl()->onClearCachedData();
 		}
 	}
 }
@@ -898,7 +1034,7 @@ void UnifiedParticipant::domainDisplayControlCapabilityChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getDisplayControl()->clearCachedData();
+			domain->second->getDisplayControl()->onClearCachedData();
 		}
 	}
 }
@@ -910,7 +1046,7 @@ void UnifiedParticipant::domainDisplayStatusChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getDisplayControl()->clearCachedData();
+			domain->second->getDisplayControl()->onClearCachedData();
 		}
 	}
 }
@@ -922,7 +1058,7 @@ void UnifiedParticipant::domainPerformanceControlCapabilityChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPerformanceControl()->clearCachedData();
+			domain->second->getPerformanceControl()->onClearCachedData();
 		}
 	}
 }
@@ -934,7 +1070,7 @@ void UnifiedParticipant::domainPerformanceControlsChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPerformanceControl()->clearCachedData();
+			domain->second->getPerformanceControl()->onClearCachedData();
 		}
 	}
 }
@@ -946,7 +1082,7 @@ void UnifiedParticipant::domainPowerControlCapabilityChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPowerControl()->clearCachedData();
+			domain->second->getPowerControl()->onClearCachedData();
 		}
 	}
 }
@@ -958,7 +1094,7 @@ void UnifiedParticipant::domainPriorityChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getDomainPriorityControl()->clearCachedData();
+			domain->second->getDomainPriorityControl()->onClearCachedData();
 		}
 	}
 }
@@ -970,7 +1106,7 @@ void UnifiedParticipant::domainRadioConnectionStatusChanged(RadioConnectionStatu
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getRfProfileStatusControl()->clearCachedData();
+			domain->second->getRfProfileStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -982,19 +1118,7 @@ void UnifiedParticipant::domainRfProfileChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getRfProfileStatusControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainTemperatureThresholdCrossed(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getTemperatureControl()->clearCachedData();
+			domain->second->getRfProfileStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1006,7 +1130,19 @@ void UnifiedParticipant::domainEnergyThresholdCrossed(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getActivityStatusControl()->clearCachedData();
+			domain->second->getActivityStatusControl()->onClearCachedData();
+		}
+	}
+}
+
+void UnifiedParticipant::domainFanCapabilityChanged(void)
+{
+	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->getActiveControl()->clearCachedData();
 		}
 	}
 }
@@ -1015,64 +1151,7 @@ void UnifiedParticipant::participantSpecificInfoChanged(void)
 {
 	if (m_getSpecificInfo)
 	{
-		m_getSpecificInfo->clearCachedData();
-	}
-}
-
-void UnifiedParticipant::domainVirtualSensorCalibrationTableChanged(void)
-{
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getTemperatureControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainVirtualSensorPollingTableChanged(void)
-{
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getTemperatureControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainVirtualSensorRecalcChanged(void)
-{
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getTemperatureControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainBatteryStatusChanged(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainBatteryInformationChanged(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
-		}
+		m_getSpecificInfo->onClearCachedData();
 	}
 }
 
@@ -1083,7 +1162,7 @@ void UnifiedParticipant::domainPlatformPowerSourceChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1095,19 +1174,7 @@ void UnifiedParticipant::domainAdapterPowerRatingChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainChargerTypeChanged(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1119,31 +1186,7 @@ void UnifiedParticipant::domainPlatformRestOfPowerChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainMaxBatteryPowerChanged(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainPlatformBatterySteadyStateChanged(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1155,7 +1198,7 @@ void UnifiedParticipant::domainACNominalVoltageChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1167,7 +1210,7 @@ void UnifiedParticipant::domainACOperationalCurrentChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1179,7 +1222,7 @@ void UnifiedParticipant::domainAC1msPercentageOverloadChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1191,7 +1234,7 @@ void UnifiedParticipant::domainAC2msPercentageOverloadChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
 }
@@ -1203,41 +1246,9 @@ void UnifiedParticipant::domainAC10msPercentageOverloadChanged(void)
 	{
 		if (domain->second != nullptr)
 		{
-			domain->second->getPlatformPowerStatusControl()->clearCachedData();
+			domain->second->getPlatformPowerStatusControl()->onClearCachedData();
 		}
 	}
-}
-
-ActiveControlStaticCaps UnifiedParticipant::getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActiveControl()->getActiveControlStaticCaps(participantIndex, domainIndex);
-}
-
-ActiveControlDynamicCaps UnifiedParticipant::getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActiveControl()->getActiveControlDynamicCaps(participantIndex, domainIndex);
-}
-
-ActiveControlStatus UnifiedParticipant::getActiveControlStatus(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActiveControl()->getActiveControlStatus(participantIndex, domainIndex);
-}
-
-ActiveControlSet UnifiedParticipant::getActiveControlSet(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActiveControl()->getActiveControlSet(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getActiveControl()->setActiveControl(participantIndex, domainIndex, fanSpeed);
-
-	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL);
 }
 
 Percentage UnifiedParticipant::getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex)
@@ -1250,6 +1261,30 @@ Percentage UnifiedParticipant::getResidencyUtilization(UIntN participantIndex, U
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getActivityStatusControl()->getResidencyUtilization(participantIndex, domainIndex);
+}
+
+UInt64 UnifiedParticipant::getCoreActivityCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getCoreActivityCounter(participantIndex, domainIndex);
+}
+
+UInt32 UnifiedParticipant::getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getCoreActivityCounterWidth(participantIndex, domainIndex);
+}
+
+UInt64 UnifiedParticipant::getTimestampCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getTimestampCounter(participantIndex, domainIndex);
+}
+
+UInt32 UnifiedParticipant::getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getTimestampCounterWidth(participantIndex, domainIndex);
 }
 
 ConfigTdpControlDynamicCaps UnifiedParticipant::getConfigTdpControlDynamicCaps(
@@ -1412,15 +1447,13 @@ UInt32 UnifiedParticipant::getEnergyThreshold(UIntN participantIndex, UIntN doma
 void UnifiedParticipant::setEnergyThreshold(UIntN participantIndex, UIntN domainIndex, UInt32 energyThreshold)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getEnergyControl()->setEnergyThreshold(
-		participantIndex, domainIndex, energyThreshold);
+	m_domains[domainIndex]->getEnergyControl()->setEnergyThreshold(participantIndex, domainIndex, energyThreshold);
 }
 
 void UnifiedParticipant::setEnergyThresholdInterruptDisable(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getEnergyControl()->setEnergyThresholdInterruptDisable(
-		participantIndex, domainIndex);
+	m_domains[domainIndex]->getEnergyControl()->setEnergyThresholdInterruptDisable(participantIndex, domainIndex);
 }
 
 Power UnifiedParticipant::getACPeakPower(UIntN participantIndex, UIntN domainIndex)
@@ -1547,87 +1580,81 @@ void UnifiedParticipant::setCalculatedAveragePower(UIntN participantIndex, UIntN
 		participantIndex, domainIndex, powerValue);
 }
 
-Bool UnifiedParticipant::isPlatformPowerLimitEnabled(
+Bool UnifiedParticipant::isSystemPowerLimitEnabled(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
+	PsysPowerLimitType::Type limitType)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerControl()->isPlatformPowerLimitEnabled(
+	return m_domains[domainIndex]->getSystemPowerControl()->isSystemPowerLimitEnabled(
 		participantIndex, domainIndex, limitType);
 }
 
-Power UnifiedParticipant::getPlatformPowerLimit(
+Power UnifiedParticipant::getSystemPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
+	PsysPowerLimitType::Type limitType)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerControl()->getPlatformPowerLimit(
+	return m_domains[domainIndex]->getSystemPowerControl()->getSystemPowerLimit(
 		participantIndex, domainIndex, limitType);
 }
 
-void UnifiedParticipant::setPlatformPowerLimit(
+void UnifiedParticipant::setSystemPowerLimit(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
+	PsysPowerLimitType::Type limitType,
 	const Power& powerLimit)
 {
 	throwIfDomainInvalid(domainIndex);
 	auto snappedPowerLimit = snapPowerToAbovePL1MinValue(participantIndex, domainIndex, powerLimit);
-	m_domains[domainIndex]->getPlatformPowerControl()->setPlatformPowerLimit(
+	m_domains[domainIndex]->getSystemPowerControl()->setSystemPowerLimit(
 		participantIndex, domainIndex, limitType, snappedPowerLimit);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PSYS_CONTROL);
 }
 
-TimeSpan UnifiedParticipant::getPlatformPowerLimitTimeWindow(
+TimeSpan UnifiedParticipant::getSystemPowerLimitTimeWindow(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
+	PsysPowerLimitType::Type limitType)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerControl()->getPlatformPowerLimitTimeWindow(
+	return m_domains[domainIndex]->getSystemPowerControl()->getSystemPowerLimitTimeWindow(
 		participantIndex, domainIndex, limitType);
 }
 
-void UnifiedParticipant::setPlatformPowerLimitTimeWindow(
+void UnifiedParticipant::setSystemPowerLimitTimeWindow(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
+	PsysPowerLimitType::Type limitType,
 	const TimeSpan& timeWindow)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getPlatformPowerControl()->setPlatformPowerLimitTimeWindow(
+	m_domains[domainIndex]->getSystemPowerControl()->setSystemPowerLimitTimeWindow(
 		participantIndex, domainIndex, limitType, timeWindow);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PSYS_CONTROL);
 }
 
-Percentage UnifiedParticipant::getPlatformPowerLimitDutyCycle(
+Percentage UnifiedParticipant::getSystemPowerLimitDutyCycle(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType)
+	PsysPowerLimitType::Type limitType)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerControl()->getPlatformPowerLimitDutyCycle(
+	return m_domains[domainIndex]->getSystemPowerControl()->getSystemPowerLimitDutyCycle(
 		participantIndex, domainIndex, limitType);
 }
 
-void UnifiedParticipant::setPlatformPowerLimitDutyCycle(
+void UnifiedParticipant::setSystemPowerLimitDutyCycle(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	PlatformPowerLimitType::Type limitType,
+	PsysPowerLimitType::Type limitType,
 	const Percentage& dutyCycle)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getPlatformPowerControl()->setPlatformPowerLimitDutyCycle(
+	m_domains[domainIndex]->getSystemPowerControl()->setSystemPowerLimitDutyCycle(
 		participantIndex, domainIndex, limitType, dutyCycle);
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_PSYS_CONTROL);
-}
-
-Power UnifiedParticipant::getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getMaxBatteryPower(participantIndex, domainIndex);
 }
 
 Power UnifiedParticipant::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
@@ -1644,36 +1671,10 @@ Power UnifiedParticipant::getAdapterPowerRating(UIntN participantIndex, UIntN do
 		participantIndex, domainIndex);
 }
 
-DptfBuffer UnifiedParticipant::getBatteryStatus(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getBatteryStatus(participantIndex, domainIndex);
-}
-
-DptfBuffer UnifiedParticipant::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getBatteryInformation(
-		participantIndex, domainIndex);
-}
-
 PlatformPowerSource::Type UnifiedParticipant::getPlatformPowerSource(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformPowerSource(
-		participantIndex, domainIndex);
-}
-
-ChargerType::Type UnifiedParticipant::getChargerType(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getChargerType(participantIndex, domainIndex);
-}
-
-Power UnifiedParticipant::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerStatusControl()->getPlatformBatterySteadyState(
 		participantIndex, domainIndex);
 }
 
@@ -1714,8 +1715,7 @@ Percentage UnifiedParticipant::getAC10msPercentageOverload(UIntN participantInde
 void UnifiedParticipant::notifyForProchotDeassertion(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPlatformPowerStatusControl()->notifyForProchotDeassertion(
-		participantIndex, domainIndex);
+	m_domains[domainIndex]->getPlatformPowerStatusControl()->notifyForProchotDeassertion(participantIndex, domainIndex);
 }
 
 DomainPriority UnifiedParticipant::getDomainPriority(UIntN participantIndex, UIntN domainIndex)
@@ -1740,102 +1740,34 @@ void UnifiedParticipant::setRfProfileCenterFrequency(
 		participantIndex, domainIndex, centerFrequency);
 }
 
+Percentage UnifiedParticipant::getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileControl()->getSscBaselineSpreadValue(participantIndex, domainIndex);
+}
+
+Percentage UnifiedParticipant::getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileControl()->getSscBaselineThreshold(participantIndex, domainIndex);
+}
+
+Percentage UnifiedParticipant::getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileControl()->getSscBaselineGuardBand(participantIndex, domainIndex);
+}
+
 RfProfileDataSet UnifiedParticipant::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getRfProfileStatusControl()->getRfProfileDataSet(participantIndex, domainIndex);
 }
 
-Temperature UnifiedParticipant::getTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTccOffsetControl()->getTccOffsetTemperature(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setTccOffsetTemperature(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	const Temperature& tccOffset)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTccOffsetControl()->setTccOffsetTemperature(
-		participantIndex, domainIndex, tccOffset);
-}
-
-Temperature UnifiedParticipant::getMaxTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTccOffsetControl()->getMaxTccOffsetTemperature(participantIndex, domainIndex);
-}
-
-Temperature UnifiedParticipant::getMinTccOffsetTemperature(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTccOffsetControl()->getMinTccOffsetTemperature(participantIndex, domainIndex);
-}
-
-TemperatureStatus UnifiedParticipant::getTemperatureStatus(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTemperatureControl()->getTemperatureStatus(participantIndex, domainIndex);
-}
-
-TemperatureThresholds UnifiedParticipant::getTemperatureThresholds(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTemperatureControl()->getTemperatureThresholds(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setTemperatureThresholds(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	const TemperatureThresholds& temperatureThresholds)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getTemperatureControl()->setTemperatureThresholds(
-		participantIndex, domainIndex, temperatureThresholds);
-
-	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD);
-}
-
-Temperature UnifiedParticipant::getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTemperatureControl()->getPowerShareTemperatureThreshold(
-		participantIndex, domainIndex);
-}
-
 UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getUtilizationControl()->getUtilizationStatus(participantIndex, domainIndex);
-}
-
-DptfBuffer UnifiedParticipant::getCalibrationTable(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTemperatureControl()->getCalibrationTable(participantIndex, domainIndex);
-}
-
-DptfBuffer UnifiedParticipant::getPollingTable(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTemperatureControl()->getPollingTable(participantIndex, domainIndex);
-}
-
-Bool UnifiedParticipant::isVirtualTemperature(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getTemperatureControl()->isVirtualTemperature(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setVirtualTemperature(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	const Temperature& temperature)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getTemperatureControl()->setVirtualTemperature(participantIndex, domainIndex, temperature);
 }
 
 std::map<ParticipantSpecificInfoKey::Type, Temperature> UnifiedParticipant::getParticipantSpecificInfo(
@@ -2044,10 +1976,26 @@ Power UnifiedParticipant::getPowerLimit(UIntN participantIndex, UIntN domainInde
 	return m_domains[domainIndex]->getPowerControl()->getPowerLimit(participantIndex, domainIndex, controlType);
 }
 
-Power UnifiedParticipant::getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType)
+Power UnifiedParticipant::getPowerLimitWithoutCache(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getPowerControl()->getPowerLimitWithoutCache(participantIndex, domainIndex, controlType);
+	return m_domains[domainIndex]->getPowerControl()->getPowerLimitWithoutCache(
+		participantIndex, domainIndex, controlType);
+}
+
+Bool UnifiedParticipant::isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->isSocPowerFloorEnabled(participantIndex, domainIndex);
+}
+
+Bool UnifiedParticipant::isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->isSocPowerFloorSupported(participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setPowerLimit(
@@ -2131,6 +2079,13 @@ void UnifiedParticipant::setPowerLimitDutyCycle(
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
 }
 
+void UnifiedParticipant::setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPowerControl()->setSocPowerFloorState(participantIndex, domainIndex, socPowerFloorState);
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_POWER_CONTROL);
+}
+
 void UnifiedParticipant::setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -2183,4 +2138,12 @@ Power UnifiedParticipant::getSlowPollPowerThreshold(UIntN participantIndex, UInt
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getPowerControl()->getSlowPollPowerThreshold(participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::removePowerLimitPolicyRequest(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	// Do nothing.  Not an error.
 }

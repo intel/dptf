@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@ class dptf_export EsifServices : public EsifServicesInterface
 public:
 	EsifServices(
 		const DptfManagerInterface* dptfManager,
-		const void* esifHandle,
+		const esif_handle_t esifHandle,
 		EsifAppServicesInterface* appServices,
 		eLogType currentLogVerbosityLevel);
 
@@ -192,6 +192,7 @@ public:
 	virtual void writeMessageDebug(
 		const std::string& message,
 		MessageCategory::Type messageCategory = MessageCategory::Default) override;
+	virtual eLogType getLoggingLevel(void) override;
 
 	// Event registration
 
@@ -211,10 +212,7 @@ public:
 		UIntN domainIndex,
 		EsifData eventData) override;
 
-	virtual eEsifError sendCommand(
-		UInt32 argc,
-		EsifDataPtr argv,
-		EsifDataPtr response) override;
+	virtual eEsifError sendCommand(UInt32 argc, EsifDataPtr argv, EsifDataPtr response) override;
 
 private:
 	// hide the copy constructor and assignment operator.
@@ -222,7 +220,7 @@ private:
 	EsifServices& operator=(const EsifServices& rhs);
 
 	const DptfManagerInterface* m_dptfManager;
-	const void* m_esifHandle;
+	esif_handle_t m_esifHandle;
 	EsifAppServicesInterface* m_appServices;
 	eLogType m_currentLogVerbosityLevel;
 
@@ -259,4 +257,6 @@ private:
 		const std::string& executingFunctionName,
 		UIntN participantIndex,
 		UIntN domainIndex);
+
+	EsifServicesInterface* getEsifServices() const;
 };

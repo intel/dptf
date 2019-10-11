@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,9 +17,6 @@
 ******************************************************************************/
 
 #define ESIF_ATTR_SHA1	// SHA-1 Support only
-
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "esif_ccb_file.h"
 #include "esif_ccb_memory.h"
@@ -292,7 +289,7 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 		rc = ESIF_OK;
 		if (!upgrade || !connection || !host || !origin || !sec_websocket_key || !sec_websocket_version ||
 			(esif_ccb_stricmp(upgrade, "websocket") != 0) ||
-			(esif_ccb_stricmp(connection, "Upgrade") != 0)) {
+			(esif_ccb_strstr(connection, "Upgrade") == NULL)) {
 			rc = ESIF_E_INVALID_REQUEST_TYPE;
 		}
 		// Validate Version unless Protocol specified
@@ -389,7 +386,6 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 			// Use Non-Blocking I/O for all WebSocket connections
 			unsigned long nonBlockingOpt = 1;
 			esif_ccb_socket_ioctl(client->socket, FIONBIO, &nonBlockingOpt);
-			UNREFERENCED_PARAMETER(nonBlockingOpt);
 		}
 	}
 	return rc;
@@ -563,7 +559,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 					rc = ESIF_E_IO_OPEN_FAILED;
 				}
 				else {
-					const char *content_fmt = "Content-Disposition: attachment; filename=\"%s\";" CRLF;
+					const char content_fmt[] = "Content-Disposition: attachment; filename=\"%s\";" CRLF;
 					char content_disposition[MAX_PATH + sizeof(content_fmt)] = { 0 };
 					char modifiedbuf[WS_MAX_DATETIMESTR] = { 0 };
 					char datebuf[WS_MAX_DATETIMESTR] = { 0 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,6 +49,9 @@ namespace PolicyEvent
 		DomainVirtualSensorRecalcChanged,
 		DomainBatteryStatusChanged,
 		DomainBatteryInformationChanged,
+		DomainBatteryHighFrequencyImpedanceChanged,
+		DomainBatteryNoLoadVoltageChanged,
+		DomainMaxBatteryPeakCurrentChanged,
 		DomainPlatformPowerSourceChanged,
 		DomainAdapterPowerRatingChanged,
 		DomainChargerTypeChanged,
@@ -61,6 +64,8 @@ namespace PolicyEvent
 		DomainAC2msPercentageOverloadChanged,
 		DomainAC10msPercentageOverloadChanged,
 		DomainEnergyThresholdCrossed,
+		DomainFanCapabilityChanged,
+		DomainSocWorkloadClassificationChanged,
 		PolicyActiveRelationshipTableChanged,
 		PolicyCoolingModePolicyChanged,
 		PolicyForegroundApplicationChanged,
@@ -80,10 +85,16 @@ namespace PolicyEvent
 		PolicyOperatingSystemPlatformTypeChanged,
 		PolicyOperatingSystemDockModeChanged,
 		PolicyOperatingSystemMobileNotification,
+		PolicyOperatingSystemMixedRealityModeChanged,
+		PolicyOperatingSystemUserPresenceChanged,
+		PolicyOperatingSystemScreenStateChanged,
+		PolicyOperatingSystemBatteryCountChanged,
+		PolicyOperatingSystemPowerSliderChanged,
 		PolicyOemVariablesChanged,
 		PolicyPowerBossConditionsTableChanged,
 		PolicyPowerBossActionsTableChanged,
 		PolicyPowerBossMathTableChanged,
+		PolicyVoltageThresholdMathTableChanged,
 		DptfPolicyActivityLoggingEnabled,
 		DptfPolicyActivityLoggingDisabled,
 		DptfPolicyLoadedUnloadedEvent,
@@ -94,6 +105,8 @@ namespace PolicyEvent
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
 		PolicyWorkloadHintConfigurationChanged,
+		PolicyOperatingSystemGameModeChanged,
+		PolicyPowerShareAlgorithmTable2Changed,
 		Max
 	};
 

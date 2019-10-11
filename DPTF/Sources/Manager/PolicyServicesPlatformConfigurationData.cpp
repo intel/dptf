@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -167,6 +167,16 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getOemVariables(void)
 	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_OEM_VARS, ESIF_DATA_BINARY);
 }
 
+UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+
+	UInt64 hwpfState = getEsifServices()->primitiveExecuteGetAsUInt64(
+		esif_primitive_type::GET_HWPF_STATE, participantIndex, domainIndex);
+
+	return hwpfState;
+}
+
 std::string PolicyServicesPlatformConfigurationData::readPlatformSettingValue(
 	PlatformSettingType::Type platformSettingType,
 	UInt8 index)
@@ -305,6 +315,13 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getPowerBossMathTable(void)
 	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_POWER_BOSS_MATH_TABLE, ESIF_DATA_BINARY);
 }
 
+DptfBuffer PolicyServicesPlatformConfigurationData::getVoltageThresholdMathTable(void)
+{
+	throwIfNotWorkItemThread();
+
+	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_VOLTAGE_THRESHOLD_MATH_TABLE, ESIF_DATA_BINARY);
+}
+
 DptfBuffer PolicyServicesPlatformConfigurationData::getActiveControlPointRelationshipTable(void)
 {
 	throwIfNotWorkItemThread();
@@ -342,6 +359,29 @@ void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable(DptfBu
 
 	getEsifServices()->primitiveExecuteSet(
 		esif_primitive_type::SET_POWER_SHARING_ALGORITHM_TABLE,
+		esif_data_type::ESIF_DATA_BINARY,
+		data.get(),
+		data.size(),
+		data.size(),
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getPowerShareAlgorithmTable2()
+{
+	throwIfNotWorkItemThread();
+
+	return getEsifServices()->primitiveExecuteGet(
+		esif_primitive_type::GET_POWER_SHARING_ALGORITHM_TABLE_2, ESIF_DATA_BINARY);
+}
+
+void PolicyServicesPlatformConfigurationData::setPowerShareAlgorithmTable2(DptfBuffer data)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSet(
+		esif_primitive_type::SET_POWER_SHARING_ALGORITHM_TABLE_2,
 		esif_data_type::ESIF_DATA_BINARY,
 		data.get(),
 		data.size(),
@@ -515,6 +555,29 @@ void PolicyServicesPlatformConfigurationData::resetPowerShareAlgorithmTable(void
 	}
 }
 
+void PolicyServicesPlatformConfigurationData::resetPowerShareAlgorithmTable2(void)
+{
+	try
+	{
+		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
+			esif_primitive_type::SET_POWER_SHARING_ALGORITHM_TABLE_2, Constants::Esif::NoPersistInstance);
+
+		getEsifServices()->primitiveExecuteSet(
+			esif_primitive_type::SET_CONFIG_RESET,
+			ESIF_DATA_BINARY,
+			tableBuffer.get(),
+			tableBuffer.size(),
+			tableBuffer.size(),
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+		// best effort
+	}
+}
+
 void PolicyServicesPlatformConfigurationData::resetAllTables(void)
 {
 	resetActiveRelationshipTable();
@@ -523,4 +586,5 @@ void PolicyServicesPlatformConfigurationData::resetAllTables(void)
 	resetPidAlgorithmTable();
 	resetActiveControlPointRelationshipTable();
 	resetPowerShareAlgorithmTable();
+	resetPowerShareAlgorithmTable2();
 }

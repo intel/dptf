@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -131,7 +131,7 @@ exit:
  * example within the "delegate" or "sysfs" actions.
  */
 eEsifError EsifExecutePrimitive(
-	const UInt8 participantId,
+	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const EsifString domainStr,
 	const UInt8 instance,
@@ -146,13 +146,13 @@ eEsifError EsifExecutePrimitive(
 
 	ESIF_TRACE_DEBUG("\n\n"
 		"Primitive Request:\n"
-		"  Participant ID       : %u\n"
+		"  Participant ID       : " ESIF_HANDLE_FMT "\n"
 		"  Primitive            : %s(%u)\n"
 		"  Domain               : %s\n"
 		"  Instance             : %u\n"
 		"  Request              : %p\n"
 		"  Response             : %p\n",
-		participantId,
+		esif_ccb_handle2llu(participantId),
 		esif_primitive_str((enum esif_primitive_type)primitiveId), primitiveId,
 		domainStr,
 		instance,
@@ -180,7 +180,7 @@ exit:
 
 
 eEsifError EsifPrimitiveGetDataType(
-	const UInt8 participantId,
+	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const EsifString domain_str,
 	const UInt8 instance,
@@ -248,7 +248,7 @@ exit:
 
 
 Bool EsifPrimitiveVerifyOpcode(
-	const UInt8 participantId,
+	const esif_handle_t participantId,
 	const UInt32 primitiveId,
 	const EsifString domain_str,
 	const UInt8 instance,

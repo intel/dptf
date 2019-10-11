@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include "esif_ipc.h"
 
 /* IPC OS Connect */
-esif_handle_t esif_os_ipc_connect(char *session_id)
+esif_os_handle_t esif_os_ipc_connect(char *session_id)
 {
 	int fd = 0;
 	char device[MAX_PATH] = { 0 };
@@ -37,7 +37,7 @@ esif_handle_t esif_os_ipc_connect(char *session_id)
 
 
 /* IPC OS Disconnect */
-void esif_os_ipc_disconnect(esif_handle_t handle)
+void esif_os_ipc_disconnect(esif_os_handle_t handle)
 {
 	ESIF_TRACE_DEBUG("linux_%s: IPC handle = %d\n", __func__, handle);
 	close(handle);
@@ -46,7 +46,7 @@ void esif_os_ipc_disconnect(esif_handle_t handle)
 
 /* IPC OS Execution */
 enum esif_rc esif_os_ipc_execute(
-	esif_handle_t handle,
+	esif_os_handle_t handle,
 	struct esif_ipc *ipc_ptr
 	)
 {

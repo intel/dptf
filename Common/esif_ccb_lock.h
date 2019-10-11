@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -70,7 +70,7 @@
 /* User-Mode Spinlocks */
 typedef atomic_t esif_ccb_spinlock_t;
 #define esif_ccb_spinlock_init(lockPtr)  *(lockPtr) = ATOMIC_INIT(0)
-#define esif_ccb_spinlock_uninit(lockPtr) (lockPtr)
+#define esif_ccb_spinlock_uninit(lockPtr) ((void)(lockPtr))
 #define	esif_ccb_spinlock_lock(lockPtr)   while (atomic_set(lockPtr, 1) == 1) {;}
 #define	esif_ccb_spinlock_unlock(lockPtr) atomic_set(lockPtr, 0)
 

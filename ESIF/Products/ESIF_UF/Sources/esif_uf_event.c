@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,8 +37,20 @@ void EsifEvent_GetAndSignalIpcEvent();
 static eEsifError EsifEvent_InitEventWorkerThread();
 static void EsifEvent_CleanupEventWorkerThread();
 
+/*
+* Friend function:  Target is determined only once removed from queue and all
+* others before it have been processed
+*/
+eEsifError ESIF_CALLCONV EsifEventMgr_SignalLfEvent(
+	esif_handle_t targetId,
+	UInt16 domainId,
+	eEsifEventType eventType,
+	const EsifDataPtr eventData
+);
+
+
 extern int g_quit;
-extern esif_handle_t g_ipc_handle;
+extern esif_os_handle_t g_ipc_handle;
 int g_eventThreadExit = 0;
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -124,9 +136,7 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 {
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 #else
-	eEsifError rc = ESIF_OK;
 	EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
-	UInt8 participantId;
 	char domainStr[8] = "";
 	esif_ccb_time_t now;
 
@@ -179,20 +189,14 @@ void EsifEvent_SignalIpcEvent(struct esif_ipc_event *eventHdrPtr)
 	}
 
 	/*
-	* If the mapping function fails, we assume that the participant hasn't been created
-	* In that case, we use 0 for the participant as the real ID will be gathered from
-	* the creation data.
+	* At this time, the UF if the only valid destination
 	*/
-	participantId = eventHdrPtr->dst_id;
-	if (eventHdrPtr->dst_id == ESIF_INSTANCE_UF) {
-		rc = EsifUpPm_MapLpidToParticipantInstance(eventHdrPtr->src_id, &participantId);
-		if (rc != ESIF_OK) {
-			participantId = 0;
-		}
+	if (eventHdrPtr->dst_id != ESIF_INSTANCE_UF) {
+		goto exit;
 	}
 
 	// Best Effort Delivery
-	EsifEventMgr_SignalEvent(participantId, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &eventData);
+	EsifEventMgr_SignalLfEvent(eventHdrPtr->src_id, eventHdrPtr->dst_domain_id, eventHdrPtr->type, &eventData);
 exit:
 	return;
 #endif
@@ -232,7 +236,7 @@ void *esif_event_worker_thread(void *ptr)
 			esif_ccb_sleep_msec(250);
 	#else /* !ESIF_FEAT_OPT_ACTION_SYSFS */
 
-			if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+			if (g_ipc_handle == INVALID_HANDLE_VALUE) {
 				break;
 			}
 			if (rc > 0) {
@@ -376,7 +380,7 @@ static void EsifEvent_CleanupEventWorkerThread()
 		g_hEventLfExit = NULL;
 	}
 
-	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 		ipc_disconnect();
 	}
 }
@@ -386,7 +390,7 @@ static eEsifError EsifEvent_HandleLfExit()
 {
 	eEsifError rc = ESIF_OK;
 
-	EsifEventMgr_SignalEvent(ESIF_INSTANCE_LF, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_LF_UNLOADED, NULL);
+	EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_LF_UNLOADED, NULL);
 
 	ResetEvent(g_hEventLfExit);
 	ipc_disconnect();
@@ -409,7 +413,7 @@ static eEsifError EsifEvent_InitEventWorkerThread()
 
 static void EsifEvent_CleanupEventWorkerThread()
 {
-	if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 		ipc_disconnect();
 	}
 }

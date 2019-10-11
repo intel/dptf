@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,8 +53,7 @@ ParticipantProxyInterface* ParticipantTracker::getParticipant(UIntN participantI
 	if (remembers(participantIndex) == false)
 	{
 		throw dptf_exception(
-			std::string("The participant at the given index is not valid: ")
-			+ std::to_string(participantIndex));
+			std::string("The participant at the given index is not valid: ") + std::to_string(participantIndex));
 	}
 	return &m_trackedParticipants[participantIndex];
 }
@@ -102,7 +101,7 @@ std::shared_ptr<DomainProxyInterface> ParticipantTracker::findDomain(DomainType:
 		}
 	}
 
-	throw dptf_exception("Domain " + DomainType::ToString(domainType) + " not found.");
+	throw dptf_exception("Domain " + DomainType::toString(domainType) + " not found.");
 }
 
 void ParticipantTracker::setTimeServiceObject(std::shared_ptr<TimeInterface> time)

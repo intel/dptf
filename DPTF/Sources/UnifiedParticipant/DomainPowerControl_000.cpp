@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,7 +34,7 @@ PowerControlDynamicCapsSet DomainPowerControl_000::getPowerControlDynamicCapsSet
 	throw not_implemented();
 }
 
-void DomainPowerControl_000::clearCachedData(void)
+void DomainPowerControl_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }
@@ -64,6 +64,20 @@ Power DomainPowerControl_000::getPowerLimitWithoutCache(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	PowerControlType::Type controlType)
+{
+	throw not_implemented();
+}
+
+Bool DomainPowerControl_000::isSocPowerFloorEnabled(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Bool DomainPowerControl_000::isSocPowerFloorSupported(
+	UIntN participantIndex,
+	UIntN domainIndex)
 {
 	throw not_implemented();
 }
@@ -129,6 +143,14 @@ void DomainPowerControl_000::setPowerLimitDutyCycle(
 	throw not_implemented();
 }
 
+void DomainPowerControl_000::setSocPowerFloorState(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	Bool socPowerFloorState)
+{
+	throw not_implemented();
+}
+
 void DomainPowerControl_000::setPowerControlDynamicCapsSet(
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -185,6 +207,14 @@ Power DomainPowerControl_000::getSlowPollPowerThreshold(UIntN participantIndex, 
 void DomainPowerControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
+}
+
+void DomainPowerControl_000::removePowerLimitPolicyRequest(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType)
+{
+	// Do nothing.  Not an error.
 }
 
 std::string DomainPowerControl_000::getName(void)

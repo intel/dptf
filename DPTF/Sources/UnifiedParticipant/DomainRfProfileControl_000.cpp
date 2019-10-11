@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,7 +40,27 @@ void DomainRfProfileControl_000::setRfProfileCenterFrequency(
 	throw not_implemented();
 }
 
-void DomainRfProfileControl_000::clearCachedData(void)
+Percentage DomainRfProfileControl_000::getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Percentage DomainRfProfileControl_000::getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+Percentage DomainRfProfileControl_000::getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileControl_000::onClearCachedData(void)
 {
 	// Do nothing.  Not an error.
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,12 +39,12 @@ public:
 		override;
 	virtual Bool supportsTemperatureControls() override;
 	virtual Bool supportsTemperatureThresholds() override;
+	virtual Temperature getPowerShareTemperatureThreshold() override;
 	virtual Bool isVirtualTemperatureControl() override;
 	virtual DptfBuffer getCalibrationTable() override;
 	virtual DptfBuffer getPollingTable() override;
 	virtual void setVirtualTemperature(const Temperature& temperature) override;
 	virtual void refreshHysteresis() override;
-	virtual void refreshVirtualSensorTables() override;
 
 private:
 	// services
@@ -58,8 +58,6 @@ private:
 	// cached values
 	CachedValue<TemperatureThresholds> m_temperatureThresholds;
 	CachedValue<Bool> m_isVirtualSensor;
-	CachedValue<DptfBuffer> m_calibrationTable;
-	CachedValue<DptfBuffer> m_pollingTable;
 
 	Temperature getHysteresis();
 };

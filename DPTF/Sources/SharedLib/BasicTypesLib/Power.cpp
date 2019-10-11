@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,8 +17,11 @@
 ******************************************************************************/
 
 #include "Power.h"
+#include "DptfBufferStream.h"
+#include <cmath>
 
 static const UInt32 MaxValidPower = 10000000; // 10,000 watts
+const double MilliwattsPerWatt = 1000.0;
 
 Power::Power(void)
 	: m_valid(false)
@@ -52,6 +55,12 @@ Power Power::createFromMilliwatts(UInt32 milliwatts)
 	power.m_power = milliwatts;
 	power.m_valid = true;
 	return power;
+}
+
+Power Power::createFromWatts(double watts)
+{
+	UInt32 milliwatts = (UInt32)(round(watts * MilliwattsPerWatt));
+	return Power::createFromMilliwatts(milliwatts);
 }
 
 Bool Power::operator==(const Power& rhs) const
@@ -165,4 +174,31 @@ void Power::throwIfInvalid(const Power& power) const
 Int32 Power::toInt32() const
 {
 	return Int32(m_power);
+}
+
+DptfBuffer Power::toDptfBuffer() const
+{
+	DptfBuffer buffer;
+	buffer.append((UInt8*)this, sizeof(Power));
+	return buffer;
+}
+
+Power Power::createFromDptfBuffer(const DptfBuffer& buffer)
+{
+	if (buffer.size() != sizeof(Power))
+	{
+		throw dptf_exception("Buffer given to Power class has invalid length.");
+	}
+
+	DptfBuffer bufferCopy = buffer;
+	DptfBufferStream stream(bufferCopy);
+	Power newRequest = stream.readNextPower();
+	return newRequest;
+}
+
+double Power::asWatts() const
+{
+	throwIfInvalid(*this);
+	double watts = (double)m_power / MilliwattsPerWatt;
+	return watts;
 }

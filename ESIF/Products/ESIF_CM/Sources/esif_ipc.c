@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -197,7 +197,7 @@ void esif_ipc_exit(
 */
 
 /* IPC Connect */
-esif_handle_t esif_ipc_connect(
+esif_os_handle_t esif_ipc_connect(
 	char *session_id
 	)
 {
@@ -208,21 +208,21 @@ esif_handle_t esif_ipc_connect(
 
 /* IPC Disconnect */
 void esif_ipc_disconnect(
-	esif_handle_t handle
+	esif_os_handle_t handle
 	)
 {
-	ESIF_TRACE_DEBUG("IPC handle = %lld\n", esif_ccb_handle2lld(handle));
+	ESIF_TRACE_DEBUG("IPC handle = " OS_HANDLE_FMT "\n", esif_ccb_os_handle2llu(handle));
 	esif_os_ipc_disconnect(handle);
 }
 
 
 /* IPC Execute */
 enum esif_rc esif_ipc_execute(
-	esif_handle_t handle,
+	esif_os_handle_t handle,
 	struct esif_ipc *ipc_ptr
 	)
 {
-	ESIF_TRACE_DEBUG("Handle = %lld, IPC = %p\n", esif_ccb_handle2lld(handle), ipc_ptr);
+	ESIF_TRACE_DEBUG("Handle = " OS_HANDLE_FMT ", IPC = %p\n", esif_ccb_os_handle2llu(handle), ipc_ptr);
 	return esif_os_ipc_execute(handle, ipc_ptr);
 }
 

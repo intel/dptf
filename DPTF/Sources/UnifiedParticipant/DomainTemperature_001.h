@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,20 +27,19 @@ public:
 	DomainTemperature_001(
 		UIntN participantIndex,
 		UIntN domainIndex,
+		Bool areTemperatureThresholdsSupported,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainTemperature_001();
 
 	// DomainTemperatureInterface
-	virtual TemperatureStatus getTemperatureStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Temperature getPowerShareTemperatureThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getCalibrationTable(UIntN participantIndex, UIntN domainIndex) override;
-	virtual DptfBuffer getPollingTable(UIntN participantIndex, UIntN domainIndex) override;
-	virtual Bool isVirtualTemperature(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setVirtualTemperature(UIntN participantIndex, UIntN domainIndex, const Temperature& temperature)
-		override;
+	virtual TemperatureStatus getTemperatureStatus() override;
+	virtual Temperature getPowerShareTemperatureThreshold() override;
+	virtual DptfBuffer getCalibrationTable() override;
+	virtual DptfBuffer getPollingTable() override;
+	virtual Bool isVirtualTemperature() override;
+	virtual void setVirtualTemperature(const Temperature& temperature) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 

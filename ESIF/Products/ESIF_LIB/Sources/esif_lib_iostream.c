@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -15,14 +15,15 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+
+#define  _IOSTREAM_CLASS
+#include "esif_lib_iostream.h"
+
 #include <stdlib.h>
 #include <memory.h>
 #include <string.h>
 #include <errno.h>
 # include <sys/stat.h>
-
-#define  _IOSTREAM_CLASS
-#include "esif_lib_iostream.h"
 
 #define MAX_OFFSET_FILESTREAM	((size_t)0x7FFFFFFF)	// fseek() only accepts (long), not (size_t)
 #define MAX_OFFSET_MEMORYSTREAM	(((size_t)(-1) >> 1) - 1)
@@ -247,7 +248,7 @@ int IOStream_Close(IOStreamPtr self)
 	switch (self->type) {
 	case StreamFile:
 		if (self->file.handle) {
-			esif_ccb_fclose(self->file.handle);
+			rc = esif_ccb_fclose(self->file.handle);
 			esif_ccb_free(self->file.mode);
 			self->file.mode = NULL;
 			self->file.handle = 0;
@@ -256,6 +257,7 @@ int IOStream_Close(IOStreamPtr self)
 
 	case StreamMemory:
 		self->memory.offset = 0;
+		rc = EOK;
 		break;
 
 	default:

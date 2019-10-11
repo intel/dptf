@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 
 #include "PolicyServicesPlatformPowerState.h"
 #include "EsifServicesInterface.h"
+#include "esif_ccb_string.h"
+#include "ManagerLogger.h"
+#include "ManagerMessage.h"
 
 void* ThreadSleep(void* self);
 void* ThreadHibernate(void* self);
@@ -42,10 +45,12 @@ esif_data_complex_thermal_event* PolicyServicesPlatformPowerState::getThermalEve
 
 void PolicyServicesPlatformPowerState::setThermalEvent(
 	const Temperature currentTemperature,
-	const Temperature tripPointTemperature)
+	const Temperature tripPointTemperature,
+	const std::string participantName)
 {
 	m_thermalEvent.temperature = currentTemperature;
 	m_thermalEvent.tripPointTemperature = tripPointTemperature;
+	esif_ccb_strncpy(m_thermalEvent.participantName, participantName.c_str(), sizeof(m_thermalEvent.participantName));
 }
 
 void PolicyServicesPlatformPowerState::sleep(void)
@@ -56,37 +61,54 @@ void PolicyServicesPlatformPowerState::sleep(void)
 	eEsifError rc = esif_ccb_thread_create(&m_thread, ThreadSleep, this);
 	if (rc != ESIF_OK)
 	{
-		getEsifServices()->writeMessageError("Failed to request sleep", MessageCategory::EsifServicesInterface);
+		// TODO: want to pass in MessageCategory::EsifServicesInterface as a parameter
+		MANAGER_LOG_MESSAGE_ERROR({
+			ManagerMessage message =
+				ManagerMessage(getDptfManager(), _file, _line, _function, "Failed to request sleep");
+			return message;
+		});
 	}
 }
 
 void PolicyServicesPlatformPowerState::hibernate(
 	const Temperature& currentTemperature,
-	const Temperature& tripPointTemperature)
+	const Temperature& tripPointTemperature,
+	const std::string& participantName)
 {
 	throwIfNotWorkItemThread();
 
-	setThermalEvent(currentTemperature, tripPointTemperature);
+	setThermalEvent(currentTemperature, tripPointTemperature, participantName);
 	esif_ccb_thread_join(&m_thread);
 	eEsifError rc = esif_ccb_thread_create(&m_thread, ThreadHibernate, this);
 	if (rc != ESIF_OK)
 	{
-		getEsifServices()->writeMessageError("Failed to request hibernate", MessageCategory::EsifServicesInterface);
+		// TODO: want to pass in MessageCategory::EsifServicesInterface as a parameter
+		MANAGER_LOG_MESSAGE_ERROR({
+			ManagerMessage message =
+				ManagerMessage(getDptfManager(), _file, _line, _function, "Failed to request hibernate");
+			return message;
+		});
 	}
 }
 
 void PolicyServicesPlatformPowerState::shutDown(
 	const Temperature& currentTemperature,
-	const Temperature& tripPointTemperature)
+	const Temperature& tripPointTemperature,
+	const std::string& participantName)
 {
 	throwIfNotWorkItemThread();
 
-	setThermalEvent(currentTemperature, tripPointTemperature);
+	setThermalEvent(currentTemperature, tripPointTemperature, participantName);
 	esif_ccb_thread_join(&m_thread);
 	eEsifError rc = esif_ccb_thread_create(&m_thread, ThreadShutdown, this);
 	if (rc != ESIF_OK)
 	{
-		getEsifServices()->writeMessageError("Failed to request shutdown", MessageCategory::EsifServicesInterface);
+		// TODO: want to pass in MessageCategory::EsifServicesInterface as a parameter
+		MANAGER_LOG_MESSAGE_ERROR({
+			ManagerMessage message =
+				ManagerMessage(getDptfManager(), _file, _line, _function, "Failed to request shutdown");
+			return message;
+		});
 	}
 }
 

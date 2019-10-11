@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -70,7 +70,6 @@ public:
 	virtual void notifyPlatformOfDeviceTemperature(const Temperature& currentTemperature) override;
 	virtual std::shared_ptr<XmlNode> getXmlForTripPointStatistics() override;
 	virtual void refreshHysteresis() override;
-	virtual void refreshVirtualSensorTables() override;
 
 	// thresholds
 	virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) override;
@@ -78,6 +77,7 @@ public:
 	virtual Temperature getTemperatureOfLastThresholdCrossed() const override;
 
 	// capabilities
+	virtual Bool supportsConfigTdpInterface() override;
 	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
 
 private:
@@ -105,4 +105,5 @@ private:
 	Temperature m_lastIndicationTemperatureLowerBound;
 	Temperature m_lastThresholdCrossedTemperature;
 	TimeSpan m_timeOfLastThresholdCrossed;
+	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

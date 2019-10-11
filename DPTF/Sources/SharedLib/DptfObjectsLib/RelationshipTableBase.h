@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,8 @@ public:
 	RelationshipTableBase(const std::vector<std::shared_ptr<RelationshipTableEntryBase>>& entries);
 	virtual ~RelationshipTableBase();
 
-	virtual void associateParticipant(std::string participantScope, UIntN participantIndex) override;
+	virtual void associateParticipant(std::string participantScope, UIntN participantIndex, std::string participantName)
+		override;
 	virtual void disassociateParticipant(UIntN participantIndex) override;
 	virtual void associateDomain(std::string participantScope, DomainType::Type domainType, UIntN domainIndex) override;
 	virtual void associateDomain(UIntN participantIndex, DomainType::Type domainType, UIntN domainIndex) override;

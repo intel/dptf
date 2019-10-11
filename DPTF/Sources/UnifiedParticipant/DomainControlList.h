@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,10 +36,10 @@
 #include "DomainPriorityFactory.h"
 #include "DomainRfProfileControlFactory.h"
 #include "DomainRfProfileStatusFactory.h"
-#include "DomainTccOffsetControlFactory.h"
+#include "DomainProcessorControlFactory.h"
 #include "ParticipantGetSpecificInfoFactory.h"
 #include "ParticipantSetSpecificInfoFactory.h"
-#include "DomainPlatformPowerControlFactory.h"
+#include "DomainSystemPowerControlFactory.h"
 #include "DomainPlatformPowerStatusFactory.h"
 #include "DomainTemperatureFactory.h"
 #include "DomainUtilizationFactory.h"
@@ -57,10 +57,13 @@
 #include "DomainRfProfileControlBase.h"
 #include "DomainRfProfileStatusBase.h"
 #include "DomainTemperatureBase.h"
-#include "DomainTccOffsetControlBase.h"
+#include "DomainProcessorControlBase.h"
 #include "DomainUtilizationBase.h"
+#include "DomainSystemPowerControlBase.h"
 #include "DomainPlatformPowerControlBase.h"
 #include "DomainPlatformPowerStatusBase.h"
+#include "DomainBatteryStatusBase.h"
+#include "DomainSocWorkloadClassificationBase.h"
 #include "ControlFactoryList.h"
 #include "XmlNode.h"
 #include <memory>
@@ -86,17 +89,22 @@ public:
 	std::shared_ptr<DomainPerformanceControlBase> getPerformanceControl(void);
 	std::shared_ptr<DomainPowerControlBase> getPowerControl(void);
 	std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
-	std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
+	std::shared_ptr<DomainSystemPowerControlBase> getSystemPowerControl(void);
 	std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
+	std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
 	std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
 	std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);
 	std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);
 	std::shared_ptr<DomainTemperatureBase> getTemperatureControl(void);
-	std::shared_ptr<DomainTccOffsetControlBase> getTccOffsetControl(void);
+	std::shared_ptr<DomainProcessorControlBase> getProcessorControl(void);
 	std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
+	std::shared_ptr<DomainBatteryStatusBase> getBatteryStatusControl(void);
+	std::shared_ptr<DomainSocWorkloadClassificationBase> getSocWorkloadClassificationControl(void);
 
 	void clearAllCachedData(void);
+	void clearAllCachedResults(void);
 	std::shared_ptr<XmlNode> getXml();
+	std::shared_ptr<XmlNode> getArbitratorStatusForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
 
 private:
 	// hide the copy constructor and = operator
@@ -113,9 +121,9 @@ private:
 	void makeAllControls();
 	template <typename T> std::shared_ptr<T> makeControl(ControlFactoryType::Type factoryType, UInt8& controlVersion);
 	template <typename T>
-	void disableControlIfNotWorking(
+	std::shared_ptr<T> makeControl(
+		ControlFactoryType::Type factoryType,
 		UInt8& controlVersion,
-		std::shared_ptr<T>& controlClass,
-		std::shared_ptr<ControlFactoryInterface> factory);
-	std::shared_ptr<ControlFactoryInterface> getFactory(ControlFactoryType::Type factoryType);
+		UInt8& associatedControlVersion);
+	std::shared_ptr<ParticipantServicesInterface> getParticipantServices() const;
 };

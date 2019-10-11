@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -64,6 +64,7 @@
 #define ESIF_ACPI_DEVICE_INT3402	"INT3402"
 #define ESIF_ACPI_DEVICE_INT3403	"INT3403"
 #define ESIF_ACPI_DEVICE_INT3404	"INT3404"
+#define ESIF_ACPI_DEVICE_INT3405	"INT3405"
 #define ESIF_ACPI_DEVICE_INT3406	"INT3406"
 #define ESIF_ACPI_DEVICE_INT3407	"INT3407"
 #define ESIF_ACPI_DEVICE_INT3408	"INT3408"
@@ -73,6 +74,7 @@
 #define ESIF_ACPI_DEVICE_INT340C	"INT340C"
 #define ESIF_ACPI_DEVICE_INT340D	"INT340D"
 #define ESIF_ACPI_DEVICE_INT3530	"INT3530"
+#define ESIF_ACPI_DEVICE_INT3532	"INT3532"
 
 static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 {
@@ -82,33 +84,37 @@ static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 	}
 	esif_acpi_device_map[] = {
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3400,
-		"DPTF Manager"),
+		"Manager Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3401,
-		"DPTF Processor Participant"),
+		"Processor Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3402,
-		"DPTF Memory Participant"),
+		"Memory Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3403,
-		"DPTF Generic Participant"),
+		"Generic Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3404,
-		"DPTF Fan Participant"),
+		"Fan Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INT3405,
+		"FIVR Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3406,
-		"DPTF Display Participant"),
+		"Display Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3407,
-		"DPTF Power Participant"),
+		"Power Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3408,
-		"DPTF Wireless Participant"),
+		"Wireless Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3409,
-		"DPTF Ambient Temperature Sensor Participant"),
+		"Ambient Temperature Sensor Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT340A,
-		"DPTF Storage Participant"),
+		"Storage Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT340B,
-		"DPTF Participant for Intel(R) RealSense(TM) 3D Camera"),
+		"Intel(R) RealSense(TM) 3D Camera Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT340C,
-		"DPTF Thunderbolt Participant"),
+		"Thunderbolt Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT340D,
-		"DPTF Discrete Graphics Participant"),
+		"Discrete Graphics Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3530,
-		"DPTF MultiChip Package"),
+		"MultiChip Package"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INT3532,
+		"Battery Participant"),
 	};
 	int j;
 	for (j = 0; j < ESIF_ARRAY_LEN(esif_acpi_device_map); j++) {
@@ -130,6 +136,7 @@ const struct acpi_device_id esif_acpi_ids[] = {
 	{ ESIF_ACPI_DEVICE_INT3402, 0 },
 	{ ESIF_ACPI_DEVICE_INT3403, 0 },
 	{ ESIF_ACPI_DEVICE_INT3404, 0 },
+	{ ESIF_ACPI_DEVICE_INT3405, 0 },
 	{ ESIF_ACPI_DEVICE_INT3406, 0 },
 	{ ESIF_ACPI_DEVICE_INT3407, 0 },
 	{ ESIF_ACPI_DEVICE_INT3408, 0 },
@@ -139,6 +146,7 @@ const struct acpi_device_id esif_acpi_ids[] = {
 	{ ESIF_ACPI_DEVICE_INT340C, 0 },
 	{ ESIF_ACPI_DEVICE_INT340D, 0 },
 	{ ESIF_ACPI_DEVICE_INT3530, 0 },
+	{ ESIF_ACPI_DEVICE_INT3532, 0 },
 	{ "", 0 },
 };
 

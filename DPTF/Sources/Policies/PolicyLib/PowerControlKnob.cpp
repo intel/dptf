@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "PowerControlKnob.h"
 #include <algorithm>
+#include "PolicyLogger.h"
 
 using namespace std;
 
@@ -41,8 +42,13 @@ void PowerControlKnob::limit(UIntN target)
 	{
 		try
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-				FLF, "Calculating request to limit power controls.", getParticipantIndex(), getDomainIndex()));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Calculating request to limit power controls."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 
 			const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
 			Power minimumPowerLimit = pl1Capabilities.getMinPowerLimit();
@@ -54,8 +60,15 @@ void PowerControlKnob::limit(UIntN target)
 			{
 				// limit one step from current power
 				Power currentPower = m_powerControl->getAveragePower();
-				getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-					FLF, "Current power is " + currentPower.toString() + ".", getParticipantIndex(), getDomainIndex()));
+
+				// TODO: want to pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					std::stringstream message;
+					message << "Current power is " << currentPower.toString() << "."
+							<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+					return message.str();
+				});
+
 				nextPowerLimit = calculateNextLowerPowerLimit(currentPower, minimumPowerLimit, stepSize, targetRequest);
 			}
 			else
@@ -65,15 +78,24 @@ void PowerControlKnob::limit(UIntN target)
 			}
 			m_requests[target] = nextPowerLimit;
 
-			stringstream message;
-			message << "Requesting to limit power to " << nextPowerLimit.toString() << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Requesting to limit power to " << nextPowerLimit.toString() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				std::stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
+
 			throw ex;
 		}
 	}
@@ -85,8 +107,13 @@ void PowerControlKnob::unlimit(UIntN target)
 	{
 		try
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-				FLF, "Calculating request to unlimit power controls.", getParticipantIndex(), getDomainIndex()));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Calculating request to unlimit power controls."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 
 			const auto& pl1Capabilities = m_powerControl->getCapabilities().getCapability(PowerControlType::PL1);
 
@@ -95,15 +122,24 @@ void PowerControlKnob::unlimit(UIntN target)
 			Power nextPowerLimit(std::min(nextPowerAfterStep, pl1Capabilities.getMaxPowerLimit()));
 			m_requests[target] = nextPowerLimit;
 
-			stringstream message;
-			message << "Requesting to unlimit power to " << nextPowerLimit.toString() << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Requesting to unlimit power to " << nextPowerLimit.toString() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: want to pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				std::stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
+
 			throw ex;
 		}
 	}
@@ -192,16 +228,26 @@ Bool PowerControlKnob::commitSetting()
 			Power currentPowerLimit = m_powerControl->getPowerLimitPL1();
 			if (currentPowerLimit != lowestPowerLimit)
 			{
-				stringstream messageBefore;
-				messageBefore << "Attempting to change power limit to " << lowestPowerLimit.toString() << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: want to pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageBefore;
+					messageBefore << "Attempting to change power limit to " << lowestPowerLimit.toString() << "."
+								  << " ParticipantIndex = " << getParticipantIndex()
+								  << ". Domain = " << getDomainIndex();
+					return messageBefore.str();
+				});
+
 				m_powerControl->setPowerLimitPL1(lowestPowerLimit);
 
-				stringstream messageAfter;
-				messageAfter << "Changed power limit to " << lowestPowerLimit.toString() << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: want to pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageAfter;
+					messageAfter << "Changed power limit to " << lowestPowerLimit.toString() << "."
+								 << " ParticipantIndex = " << getParticipantIndex()
+								 << ". Domain = " << getDomainIndex();
+					return messageAfter.str();
+				});
+
 				return true;
 			}
 			else
@@ -216,8 +262,14 @@ Bool PowerControlKnob::commitSetting()
 	}
 	catch (std::exception& ex)
 	{
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+		// TODO: want to pass in participant index and domain
+		POLICY_LOG_MESSAGE_DEBUG_EX({
+			stringstream message;
+			message << ex.what() << "."
+					<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+			return message.str();
+		});
+
 		throw ex;
 	}
 }

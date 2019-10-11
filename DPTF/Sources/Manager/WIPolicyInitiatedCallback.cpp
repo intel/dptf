@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,18 +38,22 @@ WIPolicyInitiatedCallback::~WIPolicyInitiatedCallback(void)
 {
 }
 
-void WIPolicyInitiatedCallback::execute(void)
+void WIPolicyInitiatedCallback::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
 	try
 	{
-		Policy* policy = getPolicyManager()->getPolicyPtr(m_policyIndex);
+		auto policy = getPolicyManager()->getPolicyPtr(m_policyIndex);
 		policy->executePolicyInitiatedCallback(m_policyDefinedEventCode, m_param1, m_param2);
+	}
+	catch (policy_index_invalid&)
+	{
+		// do nothing.  No item in the policy list at this index.
 	}
 	catch (std::exception& ex)
 	{
-		writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyInitiatedCallback", m_policyIndex);
+		writeWorkItemWarningMessagePolicy(ex, "Policy::executePolicyInitiatedCallback", m_policyIndex);
 	}
 }
 

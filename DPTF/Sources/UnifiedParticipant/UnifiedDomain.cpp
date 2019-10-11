@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -101,9 +101,20 @@ std::shared_ptr<XmlNode> UnifiedDomain::getXml()
 	return domain;
 }
 
+std::shared_ptr<XmlNode> UnifiedDomain::getArbitratorStatusForPolicy(UIntN policyIndex, ControlFactoryType::Type type)
+	const
+{
+	return m_domainControls->getArbitratorStatusForPolicy(policyIndex, type);
+}
+
 void UnifiedDomain::clearAllCachedData(void)
 {
 	m_domainControls->clearAllCachedData();
+}
+
+void UnifiedDomain::clearAllCachedResults(void)
+{
+	m_domainControls->clearAllCachedResults();
 }
 
 std::shared_ptr<DomainActiveControlBase> UnifiedDomain::getActiveControl(void)
@@ -204,6 +215,17 @@ std::shared_ptr<DomainPowerStatusBase> UnifiedDomain::getPowerStatusControl(void
 	return ptr;
 }
 
+std::shared_ptr<DomainSystemPowerControlBase> UnifiedDomain::getSystemPowerControl(void)
+{
+	throwIfDomainNotEnabled();
+	std::shared_ptr<DomainSystemPowerControlBase> ptr = m_domainControls->getSystemPowerControl();
+	if (!ptr)
+	{
+		throw domain_control_nullptr();
+	}
+	return ptr;
+}
+
 std::shared_ptr<DomainPlatformPowerControlBase> UnifiedDomain::getPlatformPowerControl(void)
 {
 	throwIfDomainNotEnabled();
@@ -270,10 +292,10 @@ std::shared_ptr<DomainTemperatureBase> UnifiedDomain::getTemperatureControl(void
 	return ptr;
 }
 
-std::shared_ptr<DomainTccOffsetControlBase> UnifiedDomain::getTccOffsetControl(void)
+std::shared_ptr<DomainProcessorControlBase> UnifiedDomain::getProcessorControl(void)
 {
 	throwIfDomainNotEnabled();
-	std::shared_ptr<DomainTccOffsetControlBase> ptr = m_domainControls->getTccOffsetControl();
+	std::shared_ptr<DomainProcessorControlBase> ptr = m_domainControls->getProcessorControl();
 	if (!ptr)
 	{
 		throw domain_control_nullptr();
@@ -301,6 +323,33 @@ std::shared_ptr<DomainEnergyControlBase> UnifiedDomain::getEnergyControl(void)
 		throw domain_control_nullptr();
 	}
 	return ptr;
+}
+
+std::shared_ptr<DomainBatteryStatusBase> UnifiedDomain::getBatteryStatusControl(void)
+{
+	throwIfDomainNotEnabled();
+	std::shared_ptr<DomainBatteryStatusBase> ptr = m_domainControls->getBatteryStatusControl();
+	if (!ptr)
+	{
+		throw domain_control_nullptr();
+	}
+	return ptr;
+}
+
+std::shared_ptr<DomainSocWorkloadClassificationBase> UnifiedDomain::getSocWorkloadClassificationControl(void)
+{
+	throwIfDomainNotEnabled();
+	std::shared_ptr<DomainSocWorkloadClassificationBase> ptr = m_domainControls->getSocWorkloadClassificationControl();
+	if (!ptr)
+	{
+		throw domain_control_nullptr();
+	}
+	return ptr;
+}
+
+std::shared_ptr<ParticipantServicesInterface> UnifiedDomain::getParticipantServices()
+{
+	return m_participantServicesInterface;
 }
 
 void UnifiedDomain::throwIfDomainNotEnabled(void)

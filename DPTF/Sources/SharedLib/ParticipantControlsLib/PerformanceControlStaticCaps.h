@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,7 +27,6 @@ class PerformanceControlStaticCaps final
 public:
 	PerformanceControlStaticCaps(Bool dynamicPerformanceControlStates);
 	Bool supportsDynamicPerformanceControlStates(void) const;
-	std::shared_ptr<XmlNode> getXml(void);
 
 private:
 	// PD:  Talked w/ Vasu 5/1/2013 to see if this can be removed as it hasn't been used in DPTF 6.0

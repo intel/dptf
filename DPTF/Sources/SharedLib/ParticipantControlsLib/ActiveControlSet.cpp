@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,8 +49,8 @@ ActiveControlSet ActiveControlSet::createFromFps(const DptfBuffer& buffer)
 	{
 		ActiveControl temp(
 			static_cast<UInt32>(currentRow->control.integer.value),
-			static_cast<UInt32>(currentRow->tripPoint.integer
-									.value), // May want to represent this differently; -1 is MAX_INT for whatever type
+			// May want to represent this differently; -1 is MAX_INT for whatever type
+			static_cast<UInt32>(currentRow->tripPoint.integer.value),
 			static_cast<UInt32>(currentRow->speed.integer.value),
 			static_cast<UInt32>(currentRow->noiseLevel.integer.value),
 			static_cast<UInt32>(currentRow->power.integer.value));
@@ -116,4 +116,32 @@ UIntN ActiveControlSet::getSmallestNonZeroFanSpeed(void)
 		}
 		return m_activeControl.at(j).getControlId();
 	}
+}
+
+DptfBuffer ActiveControlSet::toFpsBinary() const
+{
+	DptfBuffer data;
+
+	esif_data_variant revision;
+	revision.integer.value = 1;
+	revision.integer.type = ESIF_DATA_UINT64;
+	data.append((UInt8*)&revision, sizeof(revision));
+
+	for (auto row = m_activeControl.begin(); row != m_activeControl.end(); ++row)
+	{
+		EsifDataBinaryFpsPackage fpsRow;
+		fpsRow.control.integer.type = ESIF_DATA_UINT64;
+		fpsRow.control.integer.value = row->getControlId();
+		fpsRow.tripPoint.integer.type = ESIF_DATA_UINT64;
+		fpsRow.tripPoint.integer.value = row->getTripPoint();
+		fpsRow.speed.integer.type = ESIF_DATA_UINT64;
+		fpsRow.speed.integer.value = row->getSpeed();
+		fpsRow.noiseLevel.integer.type = ESIF_DATA_UINT64;
+		fpsRow.noiseLevel.integer.value = row->getNoiseLevel();
+		fpsRow.power.integer.type = ESIF_DATA_UINT64;
+		fpsRow.power.integer.value = row->getPower();
+		data.append((UInt8*)&fpsRow, sizeof(fpsRow));
+	}
+
+	return data;
 }

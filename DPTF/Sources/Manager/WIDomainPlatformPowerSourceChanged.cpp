@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,7 +33,7 @@ WIDomainPlatformPowerSourceChanged::~WIDomainPlatformPowerSourceChanged(void)
 {
 }
 
-void WIDomainPlatformPowerSourceChanged::execute(void)
+void WIDomainPlatformPowerSourceChanged::onExecute(void)
 {
 	writeDomainWorkItemStartingInfoMessage();
 
@@ -47,6 +47,10 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
 		getParticipantPtr()->domainAC2msPercentageOverloadChanged();
 		getParticipantPtr()->domainAC10msPercentageOverloadChanged();
 	}
+	catch (participant_index_invalid& ex)
+	{
+		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
+	}
 	catch (std::exception& ex)
 	{
 		writeDomainWorkItemErrorMessage(ex, "Participant::domainPlatformPowerSourceChanged");
@@ -59,7 +63,7 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 
 			// FIXME:
 			// As requested by DPTF architecture, the event for power source changed
@@ -77,7 +81,7 @@ void WIDomainPlatformPowerSourceChanged::execute(void)
 			policy->executeDomainAC2msPercentageOverloadChanged(getParticipantIndex());
 			policy->executeDomainAC10msPercentageOverloadChanged(getParticipantIndex());
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

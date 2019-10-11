@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,13 +25,13 @@ namespace ControlKnobType
 		switch (type)
 		{
 		case ControlKnobType::PowerControlPl1:
-			return "PowerControlPl1";
+			return "PowerControlPL1";
 		case ControlKnobType::PowerControlPl2:
-			return "PowerControlPl2";
+			return "PowerControlPL2";
 		case ControlKnobType::PowerControlPl3:
-			return "PowerControlPl3";
+			return "PowerControlPL3";
 		case ControlKnobType::PowerControlPl4:
-			return "PowerControlPl4";
+			return "PowerControlPL4";
 		case ControlKnobType::PerformanceControlPerfFrequency:
 			return "PerformanceControlPerfFrequency";
 		case ControlKnobType::PerformanceControlThrottleFrequency:
@@ -57,11 +57,11 @@ namespace ControlKnobType
 		case ControlKnobType::PerformanceControlPerfIndex:
 			return "PerformanceControlPerfIndex";
 		case ControlKnobType::PSysPowerControlPl1:
-			return "PSysPowerControlPl1";
+			return "PSysPowerControlPL1";
 		case ControlKnobType::PSysPowerControlPl2:
-			return "PSysPowerControlPl2";
+			return "PSysPowerControlPL2";
 		case ControlKnobType::PSysPowerControlPl3:
-			return "PSysPowerControlPl3";
+			return "PSysPowerControlPL3";
 		case ControlKnobType::RPMFanControl:
 			return "RPMFanControl";
 		default:

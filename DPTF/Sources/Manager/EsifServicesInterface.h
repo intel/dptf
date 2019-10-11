@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,7 +38,7 @@
 class dptf_export EsifServicesInterface
 {
 public:
-	virtual ~EsifServicesInterface(void) {};
+	virtual ~EsifServicesInterface(void){};
 
 	virtual eLogType getCurrentLogVerbosityLevel(void) const = 0;
 	virtual void setCurrentLogVerbosityLevel(eLogType currentLogVerbosityLevel) = 0;
@@ -203,6 +203,7 @@ public:
 	virtual void writeMessageDebug(
 		const std::string& message,
 		MessageCategory::Type messageCategory = MessageCategory::Default) = 0;
+	virtual eLogType getLoggingLevel(void) = 0;
 
 	// Event registration
 
@@ -222,8 +223,5 @@ public:
 		UIntN domainIndex,
 		EsifData eventData) = 0;
 
-	virtual eEsifError sendCommand(
-		UInt32 argc,
-		EsifDataPtr argv,
-		EsifDataPtr response) = 0;
+	virtual eEsifError sendCommand(UInt32 argc, EsifDataPtr argv, EsifDataPtr response) = 0;
 };

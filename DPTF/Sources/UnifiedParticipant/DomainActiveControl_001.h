@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,24 +31,28 @@ public:
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainActiveControl_001(void);
 
-	// DomainActiveControlInterface
-	virtual ActiveControlStaticCaps getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlStatus getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ActiveControlSet getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
-
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;
 
 	// ComponentExtendedInterface
-	virtual void clearCachedData(void) override;
+	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
 protected:
 	virtual void capture(void) override;
 	virtual void restore(void) override;
+
+	virtual DptfBuffer getActiveControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DptfBuffer getActiveControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
+	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
+	virtual void setActiveControlDynamicCaps(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		ActiveControlDynamicCaps newCapabilities) override;
+	virtual void setFanCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
 
 private:
 	// hide the copy constructor and = operator
@@ -57,15 +61,9 @@ private:
 
 	// Functions
 	ActiveControlSet createActiveControlSet(UIntN domainIndex);
-	ActiveControlStaticCaps createActiveControlStaticCaps(UIntN domainIndex);
-	ActiveControlDynamicCaps createActiveControlDynamicCaps(UIntN domainIndex);
-	ActiveControlStatus createActiveControlStatus(UIntN domainIndex);
 	void throwIfFineGrainedControlIsNotSupported(UIntN participantIndex, UIntN domainIndex);
 
 	// Vars
-	CachedValue<ActiveControlStaticCaps> m_activeControlStaticCaps;
-	CachedValue<ActiveControlDynamicCaps> m_activeControlDynamicCaps;
-	CachedValue<ActiveControlStatus> m_activeControlStatus;
-	CachedValue<ActiveControlSet> m_activeControlSet;
 	CachedValue<ActiveControlStatus> m_initialStatus;
+	Bool m_capabilitiesLocked;
 };

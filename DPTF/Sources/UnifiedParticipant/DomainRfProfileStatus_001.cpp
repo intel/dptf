@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,18 +37,17 @@ DomainRfProfileStatus_001::~DomainRfProfileStatus_001(void)
 RfProfileDataSet DomainRfProfileStatus_001::getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex)
 {
 	std::vector<RfProfileData> rfProfileDataSet;
-	try 
+	try
 	{
 		Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
 			esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
 		RfProfileSupplementalData rfProfileSupplementalData(0, 0, RadioConnectionStatus::NotConnected);
-		RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), rfProfileSupplementalData);
+		RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), Frequency(0), rfProfileSupplementalData);
 		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageDebug(
-			ParticipantMessage(FLF, "Failed to update RF Channel Info. "));
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to update RF Channel Info. "; });
 	}
 	return RfProfileDataSet(rfProfileDataSet);
 }
@@ -62,11 +61,26 @@ void DomainRfProfileStatus_001::sendActivityLoggingDataIfEnabled(UIntN participa
 			EsifCapabilityData capability;
 			capability.type = ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS;
 			capability.size = sizeof(capability);
+			initializeRfProfileData(&capability);
 
-			getParticipantServices()->sendDptfEvent(
-				ParticipantEvent::DptfParticipantControlAction,
-				domainIndex,
-				Capability::getEsifDataFromCapabilityData(&capability));
+			auto rfProfileDataSet = getRfProfileDataSet(participantIndex, domainIndex).getRfProfileData();
+			/* Processor or PCH only have one channel with info */
+			UInt32 channelNumber = 0;
+			auto rfProfileData = rfProfileDataSet.begin();
+			if (rfProfileData != rfProfileDataSet.end())
+			{
+				capability.data.rfProfileStatus.rfProfileFrequencyData[channelNumber].centerFrequency =
+					(UInt32)rfProfileData->getCenterFrequency();
+				capability.data.rfProfileStatus.rfProfileFrequencyData[channelNumber].leftFrequencySpread =
+					(UInt32)rfProfileData->getLeftFrequencySpread();
+				capability.data.rfProfileStatus.rfProfileFrequencyData[channelNumber].rightFrequencySpread =
+					(UInt32)rfProfileData->getRightFrequencySpread();
+
+				getParticipantServices()->sendDptfEvent(
+					ParticipantEvent::DptfParticipantControlAction,
+					domainIndex,
+					Capability::getEsifDataFromCapabilityData(&capability));
+			}
 		}
 	}
 	catch (...)
@@ -75,7 +89,7 @@ void DomainRfProfileStatus_001::sendActivityLoggingDataIfEnabled(UIntN participa
 	}
 }
 
-void DomainRfProfileStatus_001::clearCachedData(void)
+void DomainRfProfileStatus_001::onClearCachedData(void)
 {
 	// For now nothing is cached
 }

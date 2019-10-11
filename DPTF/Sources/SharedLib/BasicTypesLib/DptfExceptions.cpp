@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -131,4 +131,30 @@ primitive_not_found_in_dsp::primitive_not_found_in_dsp(const std::string& descri
 acpi_object_not_found::acpi_object_not_found(const std::string& description)
 	: dptf_exception(description)
 {
+}
+
+invalid_data_type::invalid_data_type(const std::string& description)
+	: dptf_exception(description)
+{
+}
+
+invalid_data::invalid_data(const std::string& description)
+	: dptf_exception(description)
+{
+}
+
+dptf_out_of_range::dptf_out_of_range(const std::string& description)
+	: dptf_exception(description)
+{
+}
+
+command_failure::command_failure(esif_error_t errorCode, std::string& description)
+	: dptf_exception(description)
+	, m_errorCode(errorCode)
+{
+}
+
+esif_error_t command_failure::getErrorCode() const
+{
+	return m_errorCode;
 }

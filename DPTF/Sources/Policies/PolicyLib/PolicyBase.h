@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "PolicyInterface.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "ParticipantTrackerInterface.h"
+#include "PolicyLogger.h"
 
 class dptf_export PolicyBase : public PolicyInterface
 {
@@ -48,6 +49,11 @@ public:
 	virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const = 0;
 	virtual Bool autoNotifyPlatformOscOnEnableDisable() const = 0;
 
+	// Optional policy properties
+	virtual Bool hasActiveControlCapability() const;
+	virtual Bool hasPassiveControlCapability() const;
+	virtual Bool hasCriticalShutdownCapability() const;
+
 	// Optional events
 	virtual void onDomainTemperatureThresholdCrossed(UIntN participantIndex);
 	virtual void onDomainPowerControlCapabilityChanged(UIntN participantIndex);
@@ -68,6 +74,9 @@ public:
 	virtual void onDomainVirtualSensorRecalcChanged(UIntN participantIndex);
 	virtual void onDomainBatteryStatusChanged(UIntN participantIndex);
 	virtual void onDomainBatteryInformationChanged(UIntN participantIndex);
+	virtual void onDomainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex);
+	virtual void onDomainBatteryNoLoadVoltageChanged(UIntN participantIndex);
+	virtual void onDomainMaxBatteryPeakCurrentChanged(UIntN participantIndex);
 	virtual void onDomainPlatformPowerSourceChanged(UIntN participantIndex);
 	virtual void onDomainAdapterPowerRatingChanged(UIntN participantIndex);
 	virtual void onDomainChargerTypeChanged(UIntN participantIndex);
@@ -80,6 +89,11 @@ public:
 	virtual void onDomainAC2msPercentageOverloadChanged(UIntN participantIndex);
 	virtual void onDomainAC10msPercentageOverloadChanged(UIntN participantIndex);
 	virtual void onDomainEnergyThresholdCrossed(UIntN participantIndex);
+	virtual void onDomainFanCapabilityChanged(UIntN participantIndex);
+	virtual void onDomainSocWorkloadClassificationChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocWorkloadClassification::Type socWorkloadClassification);
 	virtual void onActiveRelationshipTableChanged(void);
 	virtual void onThermalRelationshipTableChanged(void);
 	virtual void onAdaptivePerformanceConditionsTableChanged(void);
@@ -99,7 +113,12 @@ public:
 	virtual void onOperatingSystemDockModeChanged(OsDockMode::Type dockMode);
 	virtual void onOperatingSystemEmergencyCallModeChanged(OnOffToggle::Type emergencyCallMode);
 	virtual void onOperatingSystemMobileNotification(UIntN mobileNotificationType, UIntN value);
+	virtual void onOperatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode);
+	virtual void onOperatingSystemUserPresenceChanged(OsUserPresence::Type userPresence);
+	virtual void onOperatingSystemScreenStateChanged(OnOffToggle::Type screenState);
 	virtual void onOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel);
+	virtual void onOperatingSystemBatteryCountChanged(UIntN batteryCount);
+	virtual void onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider);
 	virtual void onCoolingModePolicyChanged(CoolingMode::Type coolingMode);
 	virtual void onPassiveTableChanged(void);
 	virtual void onSensorOrientationChanged(SensorOrientation::Type sensorOrientation);
@@ -110,12 +129,15 @@ public:
 	virtual void onPowerBossConditionsTableChanged(void);
 	virtual void onPowerBossActionsTableChanged(void);
 	virtual void onPowerBossMathTableChanged(void);
+	virtual void onVoltageThresholdMathTableChanged(void);
 	virtual void onEmergencyCallModeTableChanged(void);
 	virtual void onPidAlgorithmTableChanged(void);
 	virtual void onActiveControlPointRelationshipTableChanged(void);
 	virtual void onPowerShareAlgorithmTableChanged(void);
 	virtual void onPowerLimitChanged(void);
 	virtual void onWorkloadHintConfigurationChanged(void);
+	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
+	virtual void onPowerShareAlgorithmTable2Changed(void);
 
 	// Implementation of the Policy Interface
 	virtual void create(Bool enabled, const PolicyServicesInterfaceContainer& policyServices, UIntN policyIndex)
@@ -146,6 +168,9 @@ public:
 	virtual void domainVirtualSensorRecalcChanged(UIntN participantIndex) override final;
 	virtual void domainBatteryStatusChanged(UIntN participantIndex) override final;
 	virtual void domainBatteryInformationChanged(UIntN participantIndex) override final;
+	virtual void domainBatteryHighFrequencyImpedanceChanged(UIntN participantIndex) override final;
+	virtual void domainBatteryNoLoadVoltageChanged(UIntN participantIndex) override final;
+	virtual void domainMaxBatteryPeakCurrentChanged(UIntN participantIndex) override final;
 	virtual void domainPlatformPowerSourceChanged(UIntN participantIndex) override final;
 	virtual void domainAdapterPowerRatingChanged(UIntN participantIndex) override final;
 	virtual void domainChargerTypeChanged(UIntN participantIndex) override final;
@@ -158,6 +183,11 @@ public:
 	virtual void domainAC2msPercentageOverloadChanged(UIntN participantIndex) override final;
 	virtual void domainAC10msPercentageOverloadChanged(UIntN participantIndex) override final;
 	virtual void domainEnergyThresholdCrossed(UIntN participantIndex) override final;
+	virtual void domainFanCapabilityChanged(UIntN participantIndex) override final;
+	virtual void domainSocWorkloadClassificationChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		SocWorkloadClassification::Type socWorkloadClassification) override final;
 	virtual void activeRelationshipTableChanged(void) override final;
 	virtual void thermalRelationshipTableChanged(void) override final;
 	virtual void adaptivePerformanceConditionsTableChanged(void) override final;
@@ -173,13 +203,18 @@ public:
 	virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) override final;
 	virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override final;
 	virtual void operatingSystemPowerSchemePersonalityChanged(
-		OsPowerSchemePersonality::Type batteryPercentage) override final;
+		OsPowerSchemePersonality::Type powerSchemaPersonality) override final;
 	virtual void operatingSystemPlatformTypeChanged(OsPlatformType::Type platformType) override final;
 	virtual void operatingSystemDockModeChanged(OsDockMode::Type dockMode) override final;
 	virtual void operatingSystemEmergencyCallModeStateChanged(OnOffToggle::Type emergencyCallModeState) override final;
 	virtual void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value)
 		override final;
+	virtual void operatingSystemMixedRealityModeChanged(OnOffToggle::Type mixedRealityMode) override final;
+	virtual void operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) override final;
+	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) override final;
 	virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) override final;
+	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) override final;
+	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) override final;
 	virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) override final;
 	virtual void passiveTableChanged(void) override final;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) override final;
@@ -190,12 +225,15 @@ public:
 	virtual void powerBossConditionsTableChanged(void) override final;
 	virtual void powerBossActionsTableChanged(void) override final;
 	virtual void powerBossMathTableChanged(void) override final;
+	virtual void voltageThresholdMathTableChanged(void) override final;
 	virtual void emergencyCallModeTableChanged(void) override final;
 	virtual void pidAlgorithmTableChanged(void) override final;
 	virtual void activeControlPointRelationshipTableChanged(void) override final;
 	virtual void powerShareAlgorithmTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
 	virtual void workloadHintConfigurationChanged(void) override final;
+	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) override final;
+	virtual void powerShareAlgorithmTable2Changed(void) override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);
@@ -220,9 +258,12 @@ private:
 	mutable PolicyServicesInterfaceContainer m_policyServices;
 	mutable std::shared_ptr<TimeInterface> m_time;
 
-	// acquires/releases OSC on behalf of policy
-	void takeControlOfOsc(Bool shouldTakeControl);
-	void releaseControlofOsc(Bool shouldReleaseControl);
+	// sets/updates OSC on behalf of policy
+	void sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled);
+	void updateOscRequestIfNeeded(
+		Bool hasActiveControlCapabilityLastSet = false,
+		Bool hasPassiveControlCapabilityLastSet = false,
+		Bool hasCriticalShutdownCapabilityLastSet = false);
 
 	// checks for errors and throws an exception
 	void throwIfPolicyRequirementsNotMet();

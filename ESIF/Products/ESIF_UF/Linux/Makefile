@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -51,13 +51,21 @@ CFLAGS  += -fPIC
 CFLAGS  += -O2 -D_FORTIFY_SOURCE=2
 CFLAGS  += -Wformat -Wformat-security
 
+# Some flags are not directly compatible with Clang, but work out okay if the following flags are added
+ifeq ($(CC), clang)
+	CFLAGS += -Wno-ignored-optimization-argument -Wno-unused-command-line-argument
+endif
+CFLAGS  += -fno-strict-overflow
+CFLAGS  += -fno-delete-null-pointer-checks
+CFLAGS  += -fwrapv
+
 # Linker Flags added for security purposes
 LDFLAGS += -z noexecstack 
 LDFLAGS += -z relro -z now 
 LDFLAGS += -pie 
 
 # Secure Compile options if GCC version >= 4.9
-GCC_STRONG := $(shell expr `$(CC) -dumpversion | cut -d'.' -f1,2 | sed -e 's/\.\([0-9]\)$$/0\1/' | sed -e 's/\.//' ` \>= 409)
+GCC_STRONG := $(shell expr `($(CC) -dumpfullversion 2>/dev/null || $(CC) -dumpversion) | cut -d'.' -f1,2,3 | sed -e 's/\.\([0-9]\)$$/0\1/' | sed -e 's/\.//g' ` \>= 409)
 ifeq ($(GCC_STRONG), 1)
        CFLAGS += -fstack-protector-strong
 else
@@ -71,16 +79,14 @@ $(error For Android build please use Android.mk in ESIF_UF/Androidx86/jni direct
 else ifeq ($(OS), Chrome)
 	CPPFLAGS += -DESIF_ATTR_OS_CHROME
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
-	# Use GNU89 standrd so that the code compiles with Clang
-	CPPFLAGS += -std=gnu89
+	CPPFLAGS += -std=gnu99
 ifeq ($(OPT_GMIN), 1)
 	OPT_DBUS = 1
 endif
 else
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX
 	CPPFLAGS += -DESIF_ATTR_OS_LINUX_HAVE_READLINE 
-	# Use GNU89 standrd so that we can call qsort_r()
-	CPPFLAGS += -std=gnu89
+	CPPFLAGS += -std=gnu99
 
 	# make PLAT=<x64|x86>
 	ifeq ($(PLAT), x64)
@@ -130,11 +136,12 @@ OBJ += $(ESIF_UF_SOURCES)/lin/esif_uf_sysfs_enumerate_os_lin.o
 # Common Source 
 OBJ += $(ESIF_CM_SOURCES)/esif_ipc.o
 OBJ += $(ESIF_CM_SOURCES)/esif_hash_table.o
-OBJ += $(ESIF_CM_SOURCES)/esif_queue.o
 
 # SDK Source
 OBJ += $(ESIF_SDK_SOURCES)/esif_link_list.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_ccb_timer.o
+OBJ += $(ESIF_SDK_SOURCES)/esif_queue.o
+OBJ += $(ESIF_SDK_SOURCES)/esif_sdk_base64.o
 
 OBJ += $(ESIF_UF_SOURCES)/esif_uf.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_accelerometer.o
@@ -154,6 +161,7 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_dspmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_event.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_eventmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_event_broadcast.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_handlemgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_ipc.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_loggingmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_pm.o
@@ -172,6 +180,7 @@ OBJ += $(ESIF_LIB_SOURCES)/esif_lib_datavault.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_esifdata.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_iostream.o
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
+OBJ += $(ESIF_LIB_SOURCES)/esif_lib_json.o
 
 ###############################################################################
 # BUILD 

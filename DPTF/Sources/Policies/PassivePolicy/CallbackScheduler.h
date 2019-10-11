@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,6 +43,7 @@ public:
 	Bool isFreeForCommits(UIntN source, const TimeSpan& time) const;
 	void ensureCallbackByShortestSamplePeriod(UIntN target, const TimeSpan& time);
 	void acknowledgeCallback(UIntN target);
+	void cancelAllCallbackRequests();
 
 	// participant availability
 	void removeParticipantFromSchedule(UIntN participant);
@@ -58,8 +59,9 @@ public:
 private:
 	SourceAvailability m_sourceAvailability;
 	std::shared_ptr<ThermalRelationshipTable> m_trt;
-	MessageLoggingInterface* m_logger;
+	PolicyServicesInterfaceContainer m_policyServices;
 	std::shared_ptr<PolicyCallbackSchedulerInterface> m_targetScheduler;
 	TimeSpan m_minSampleTime;
 	std::map<TargetSourceRelationship, TimeSpan> m_requestSchedule;
+	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

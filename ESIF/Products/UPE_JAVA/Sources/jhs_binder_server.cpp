@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -133,7 +133,7 @@ exit:
 	{
 		// Todo: translate (if necessary) JhsEvent to ESIF event and signal upper layers of the event
 		eEsifError rc = ESIF_OK;
-		esif_handle_t partHandle = (esif_handle_t) event.mEventParticipant;
+		esif_handle_t participantId = (esif_handle_t) event.mEventParticipant;
 		u32 buf = 0;
 		EsifData esifEventData = {ESIF_DATA_UINT32, &buf, sizeof(buf), sizeof(buf)};
 
@@ -152,7 +152,7 @@ exit:
 			// Exit for un-recognized event
 			goto exit;
 		}
-		rc = ActionSendEvent(partHandle, (esif_event_type) event.mEventType, &esifEventData);
+		rc = ActionSendEvent(participantId, (esif_event_type) event.mEventType, &esifEventData);
 
 exit:
 		return NO_ERROR;

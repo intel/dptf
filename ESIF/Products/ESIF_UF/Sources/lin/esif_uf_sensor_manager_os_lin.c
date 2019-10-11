@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2018 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_accelerometer.h"
+#include "esif_uf_sysfs_os_lin.h"
 
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -35,13 +36,16 @@
 #include <math.h>
 #include <dirent.h>
 
-#define IIO_STR_LEN 24
 #define ESIF_IIO_SAMPLE_PERIOD 5 // In seconds
 #define MAX_GFORCE (9.8 * 2) // All Chromebooks accel have default -2G to 2G range
 #define MOTION_CHANGE_THRESHOLD 0.007 // Normalize threshold to declare motion state change
+#define PLAT_TYPE_CLAMSHELL_ANGLE_MIN 5
+#define PLAT_TYPE_CLAMSHELL_ANGLE_MAX 180
+#define PLAT_TYPE_TABLET_ANGLE_MIN 355
 
 typedef enum SensorType_e {
-	SENSOR_TYPE_ACCEL,
+	SENSOR_TYPE_ACCEL = 0,
+	SENSOR_TYPE_LID_ANGLE,
 	SENSOR_TYPE_NA
 } SensorType;
 
@@ -66,6 +70,11 @@ typedef struct Accelerometer_s {
 	float scale;
 } Accelerometer, *AccelerometerPtr;
 
+typedef struct LidAngle_s {
+	int fdAngle;	// File descriptor for lid angle sysfs node
+	int angleRaw;
+} LidAngle, *LidAnglePtr;
+
 /**
  * ToDo: Add definitions of gyro, pressure sensor, etc.
  */
@@ -74,6 +83,7 @@ typedef struct Sensor_s {
 	SensorBase base;
 	union {
 		Accelerometer accel;
+		LidAngle lidAngle;
 	} data;
 } Sensor, *SensorPtr;
 
@@ -82,7 +92,10 @@ static Bool gEsifSensorMgrStarted = ESIF_FALSE;
 static const char gXRawNodeName[] = "in_accel_x_raw";
 static const char gYRawNodeName[] = "in_accel_y_raw";
 static const char gZRawNodeName[] = "in_accel_z_raw";
+static const char gAngleRawNodeName[] = "in_angl_raw";
 static const char gSensorBasePath[] =  "/sys/bus/iio/devices";
+static char gLidStateBasePath[] = "/proc/acpi/button/lid/LID0";
+static char gPowerSrcBasePath[] = "/sys/class/power_supply/BAT0";
 static const InclinometerMinMaxConfig gInclinMinMaxConfig= {
 	INCLIN_X_ORIENT_FLAT_UP_MIN,
 	INCLIN_X_ORIENT_FLAT_UP_MAX,
@@ -99,9 +112,14 @@ static const InclinometerMinMaxConfig gInclinMinMaxConfig= {
 static Sensor *gSensors;
 static int gSensorsNum;
 
-// Global Pointers to base and lid accelerometers for fast processing
+// Global Pointers to common sensors for fast processing
 static Sensor *gAccelBase;
 static Sensor *gAccelLid;
+static Sensor *gLidAngle;
+
+// Global file descriptors for misc sensors not found in IIO bus, such as lid state, battery state, etc.
+static int gFdLidState;
+static int gFdPowerSrc;
 
 // Global variables keeping track of current x/y/z vectors and platform/display orientation/platform type
 static AccelerometerData gCurAccelData;
@@ -109,6 +127,9 @@ static PlatformOrientation gPlatOrientation = ORIENTATION_PLAT_MAX;
 static DisplayOrientation gDispOrientation = ORIENTATION_DISP_MAX;
 static Motion gInMotion = MOTION_MAX;
 static DockMode gDockMode = DOCK_MODE_INVALID;
+static LidState gLidState = LID_STATE_CLOSED;
+static PowerSrc gPowerSrc = POWER_SRC_AC;
+static PlatformType gPlatType = PLATFORM_TYPE_INVALID;
 
 // The SIGUSR1 handler below is the alternative
 // solution for Android where the pthread_cancel()
@@ -128,89 +149,6 @@ static void sigusr1_enable()
 	sigaction(SIGUSR1, &action, NULL);
 }
 
-static int SysfsGetString(char *path, char *filename, char *str, size_t buf_len)
-{
-	FILE *fd = NULL;
-	int ret = -1;
-	char filepath[MAX_PATH] = { 0 };
-	char scanf_fmt[IIO_STR_LEN] = { 0 };
-
-	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fd = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
-		return ret;
-	}
-
-	// Use dynamic format width specifier to avoid scanf buffer overflow
-	esif_ccb_sprintf(sizeof(scanf_fmt), scanf_fmt, "%%%ds", (int)buf_len - 1);
-	ret = esif_ccb_fscanf(fd, scanf_fmt, str);
-	esif_ccb_fclose(fd);
-
-	return ret;
-}
-
-static eEsifError SysfsGetInt(const char *path, const char *filename, int *pInt)
-{
-	FILE *fp = NULL;
-	eEsifError rc = ESIF_OK;
-	char filepath[MAX_PATH] = { 0 };
-	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fp = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-	if (esif_ccb_fscanf(fp, "%d", pInt) <= 0) {
-		rc = ESIF_E_INVALID_HANDLE;
-	}
-
-	esif_ccb_fclose(fp);
-
-exit:
-	return rc;
-}
-
-static eEsifError SysfsGetIntDirect(int fd, int *pInt)
-{
-	eEsifError rc = ESIF_OK;
-	char buf[IIO_STR_LEN] = {0};
-
-	lseek(fd, 0, SEEK_SET);
-	if (read(fd, buf, IIO_STR_LEN) > 0) {
-		if (esif_ccb_sscanf(buf, "%d", pInt) <= 0) {
-			rc = ESIF_E_INVALID_HANDLE;
-			ESIF_TRACE_WARN("Failed to get file scan. Error code: %d .\n",rc);
-		}
-	}
-	else {
-		rc = ESIF_E_INVALID_HANDLE;
-		ESIF_TRACE_WARN("Error on context file read: %s\n", strerror(errno));
-	}
-
-	return rc;
-}
-
-static eEsifError SysfsGetFloat(const char *path, const char *filename, float *pFloat)
-{
-	FILE *fp = NULL;
-	eEsifError rc = ESIF_OK;
-	char filepath[MAX_PATH] = { 0 };
-	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", path, filename);
-
-	if ((fp = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
-		rc = ESIF_E_INVALID_HANDLE;
-		goto exit;
-	}
-	if (esif_ccb_fscanf(fp, "%f", pFloat) <= 0) {
-		rc = ESIF_E_INVALID_HANDLE;
-	}
-
-	esif_ccb_fclose(fp);
-
-exit:
-	return rc;
-}
-
 static int IioDeviceFilter(const struct dirent *entry)
 {
 	if (esif_ccb_strstr(entry->d_name, "iio:device")) return 1;
@@ -220,7 +158,9 @@ static int IioDeviceFilter(const struct dirent *entry)
 static void AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
 {
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
-	ESIF_ASSERT(sensorPtr != NULL);
+
+	if (!sensorPtr)
+		return;
 
 	if (SysfsGetString(fullPath, "location", iioSysfsNode, sizeof(iioSysfsNode)) > 0) {
 		if (esif_ccb_strstr(iioSysfsNode, "base")) {
@@ -236,7 +176,9 @@ static void AccelGetLoc(SensorPtr sensorPtr, char *fullPath)
 static void AccelGetScale(SensorPtr sensorPtr, char *fullPath)
 {
 	float scale = 0;
-	ESIF_ASSERT(sensorPtr != NULL);
+
+	if (!sensorPtr)
+		return;
 
 	if (ESIF_OK == SysfsGetFloat(fullPath, "scale", &scale)) {
 		sensorPtr->data.accel.scale = scale;
@@ -246,7 +188,9 @@ static void AccelGetScale(SensorPtr sensorPtr, char *fullPath)
 static void AccelOpenFileDescriptors(SensorPtr sensorPtr, char *fullPath)
 {
 	char axixNodePath[MAX_PATH] = { 0 };
-	ESIF_ASSERT(sensorPtr != NULL);
+
+	if (!sensorPtr)
+		return;
 
 	esif_ccb_sprintf(MAX_PATH, axixNodePath, "%s/%s", fullPath, gXRawNodeName);
 	sensorPtr->data.accel.fdX = open(axixNodePath, O_RDONLY);
@@ -254,6 +198,18 @@ static void AccelOpenFileDescriptors(SensorPtr sensorPtr, char *fullPath)
 	sensorPtr->data.accel.fdY = open(axixNodePath, O_RDONLY);
 	esif_ccb_sprintf(MAX_PATH, axixNodePath, "%s/%s", fullPath, gZRawNodeName);
 	sensorPtr->data.accel.fdZ = open(axixNodePath, O_RDONLY);
+}
+
+static void LidAngleOpenFileDescriptors(SensorPtr sensorPtr, char *fullPath)
+{
+	char nodePath[MAX_PATH] = { 0 };
+
+	if (!sensorPtr)
+		return;
+
+	esif_ccb_sprintf(MAX_PATH, nodePath, "%s/%s", fullPath, gAngleRawNodeName);
+	sensorPtr->data.lidAngle.fdAngle = open(nodePath, O_RDONLY);
+	if (NULL == gLidAngle) gLidAngle = sensorPtr;
 }
 
 static void InitSensor(int index, char *devName)
@@ -272,12 +228,12 @@ static void InitSensor(int index, char *devName)
 			AccelGetLoc(sensorPtr, fullPath);
 			AccelGetScale(sensorPtr, fullPath);
 			AccelOpenFileDescriptors(sensorPtr, fullPath);
+		} else if (esif_ccb_strstr(iioSysfsNode, "lid-angle")) {
+			sensorPtr->base.type = SENSOR_TYPE_LID_ANGLE;
+			LidAngleOpenFileDescriptors(sensorPtr, fullPath);
 		}
-
-		// ToDo: add init code for other type of sensors in the future
 	}
 }
-
 
 static void DeinitSensor(int index)
 {
@@ -288,6 +244,9 @@ static void DeinitSensor(int index)
 		if (fd > 0) close(fd);
 		fd = gSensors[index].data.accel.fdZ;
 		if (fd > 0) close(fd);
+	} else if (SENSOR_TYPE_LID_ANGLE == gSensors[index].base.type) {
+		int fd = gSensors[index].data.lidAngle.fdAngle;
+		if (fd > 0) close(fd);
 	}
 }
 
@@ -296,6 +255,7 @@ static eEsifError EsifSensorMgr_RegisterSensors()
 	eEsifError rc = ESIF_OK;
 	int i = 0;
 	struct dirent **namelist;
+	char filepath[MAX_PATH];
 
 	gSensorsNum = scandir(gSensorBasePath, &namelist, IioDeviceFilter, alphasort);
 	if (gSensorsNum < 1) {
@@ -316,6 +276,12 @@ static eEsifError EsifSensorMgr_RegisterSensors()
 	};
 	free(namelist);
 
+	// Also initialize non-IIO bus sensors such as lid state and battery state
+	// All we need is to obtain a file descriptor to each corresponding sysfs node
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gLidStateBasePath, "state");
+	gFdLidState = open(filepath, O_RDONLY);
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gPowerSrcBasePath, "status");
+	gFdPowerSrc = open(filepath, O_RDONLY);
 exit:
 	return rc;
 }
@@ -329,12 +295,19 @@ static void EsifSensorMgr_DeregisterSensors()
 	esif_ccb_free(gSensors);
 	gAccelBase = NULL;
 	gAccelLid = NULL;
+	gLidAngle = NULL;
+
+	// Also close file descriptors for misc. sensors
+	if (gFdLidState > 0) close(gFdLidState);
+	if (gFdPowerSrc > 0) close(gFdPowerSrc);
 }
 
 static void AccelRawUpdate(SensorPtr sensorPtr)
 {
 	int fd = 0;
-	ESIF_ASSERT(sensorPtr != NULL);
+
+	if (!sensorPtr)
+		return;
 
 	fd = sensorPtr->data.accel.fdX;
 	if (fd > 0) {
@@ -355,7 +328,9 @@ static void AccelRawUpdate(SensorPtr sensorPtr)
 static AccelerometerData NormalizeAccelRawData(SensorPtr sensorPtr)
 {
 	AccelerometerData data = { 0 };
-	ESIF_ASSERT(sensorPtr != NULL);
+
+	if (!sensorPtr)
+		return data;
 
 	data.xVal = sensorPtr->data.accel.xRaw * sensorPtr->data.accel.scale / MAX_GFORCE;
 	data.yVal = sensorPtr->data.accel.yRaw * sensorPtr->data.accel.scale / MAX_GFORCE;
@@ -370,7 +345,8 @@ static void CheckDispPlatOrientation(SensorPtr sensorPtr)
 	DisplayOrientation newDispOrientation = ORIENTATION_DISP_MAX;
 	EsifData evtData = { 0 };
 
-	ESIF_ASSERT(sensorPtr != NULL);
+	if (!sensorPtr)
+		return;
 
 	AccelerometerData data = NormalizeAccelRawData(sensorPtr);
 	EsifAccelerometer_GetOrientations(
@@ -383,13 +359,13 @@ static void CheckDispPlatOrientation(SensorPtr sensorPtr)
 
 	if (newDispOrientation != gDispOrientation) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &newDispOrientation, sizeof(DisplayOrientation));
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, &evtData);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, &evtData);
 		gDispOrientation = newDispOrientation;
 	}
 
 	if (newPlatOrientation != gPlatOrientation) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &newPlatOrientation, sizeof(PlatformOrientation));
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, &evtData);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, &evtData);
 		gPlatOrientation = newPlatOrientation;
 	}
 }
@@ -402,7 +378,8 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 	AccelerometerData data = { 0 };
 	Motion newMotionState = MOTION_OFF;
 
-	ESIF_ASSERT(sensorPtr != NULL);
+	if (!sensorPtr)
+		return;
 
 	data = NormalizeAccelRawData(sensorPtr);
 	delta = sqrt((data.xVal - gCurAccelData.xVal) * (data.xVal - gCurAccelData.xVal) +
@@ -414,34 +391,42 @@ static void CheckMotionChange(SensorPtr sensorPtr)
 
 	if (newMotionState != gInMotion) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &newMotionState, sizeof(UInt32));
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_MOTION_CHANGED, &evtData);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_MOTION_CHANGED, &evtData);
 		gInMotion = newMotionState;
 	}
 	gCurAccelData = data;
 }
 
-static void CheckPlatTypeChange(SensorPtr baseSensorPtr, SensorPtr lidSensorPtr)
+static void CheckPlatTypeChange(SensorPtr sensorPtr)
 {
 	EsifData evtData = { 0 };
-	PlatformType platType = PLATFORM_TYPE_INVALID;
-	AccelerometerData baseData = { 0 };
-	AccelerometerData lidData = { 0 };
+	PlatformType newPlatType = PLATFORM_TYPE_INVALID;
+	int fd = 0;
 
-	ESIF_ASSERT(baseSensorPtr != NULL);
-	ESIF_ASSERT(lidSensorPtr != NULL);
+	if (!sensorPtr)
+		return;
 
-	baseData = NormalizeAccelRawData(baseSensorPtr);
-	lidData = NormalizeAccelRawData(lidSensorPtr);
+	if (SENSOR_TYPE_LID_ANGLE != sensorPtr->base.type)
+		return;
 
-	EsifAccelerometer_GetPlatformType(&baseData, &lidData, &platType);
-	/* ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED is currently a Windows system 
-	 * metrics event which is not handled by Linux, because of this 
-	 * we cannot send a gratuitous event on sensor registration. As a workaround
-	 * we always send this event to DPTF regardless if its value has changed, 
-	 * and this will make the DPTF UI happy.
-	 */
-	ESIF_DATA_UINT32_ASSIGN(evtData, &platType, sizeof(UInt32));
-	EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
+	fd = sensorPtr->data.lidAngle.fdAngle;
+	if (fd > 0) {
+		SysfsGetIntDirect(fd, &sensorPtr->data.lidAngle.angleRaw);
+
+		// We don't support tent mode yet and it will be treated as invalid
+		if (sensorPtr->data.lidAngle.angleRaw >= PLAT_TYPE_CLAMSHELL_ANGLE_MIN &&
+				sensorPtr->data.lidAngle.angleRaw < PLAT_TYPE_CLAMSHELL_ANGLE_MAX) {
+			newPlatType = PLATFORM_TYPE_CLAMSHELL;
+		} else if (sensorPtr->data.lidAngle.angleRaw >= PLAT_TYPE_TABLET_ANGLE_MIN) {
+			newPlatType = PLATFORM_TYPE_TABLET;
+		}
+
+		if (newPlatType != gPlatType) {
+			ESIF_DATA_UINT32_ASSIGN(evtData, &newPlatType, sizeof(UInt32));
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
+			gPlatType = newPlatType;
+		}
+	}
 }
 
 static void CheckDockModeChange(void)
@@ -464,8 +449,54 @@ static void CheckDockModeChange(void)
 
 	if (dockMode != gDockMode) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &dockMode, sizeof(UInt32));
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
 		gDockMode = dockMode;
+	}
+}
+
+static void CheckLidStateChange(void)
+{
+	LidState lidState = LID_STATE_CLOSED;
+	char sysvalstring[MAX_SYSFS_STRING] = { 0 };
+	EsifData evtData = { 0 };
+
+	if (gFdLidState > 0) {
+		lseek(gFdLidState, 0 , SEEK_SET);
+		if (read(gFdLidState, sysvalstring, sizeof(sysvalstring)) > 0) {
+			if (esif_ccb_strstr(sysvalstring, "open"))
+				lidState = LID_STATE_OPEN;
+			else
+				lidState = LID_STATE_CLOSED;
+		}
+	}
+
+	if (lidState != gLidState) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &lidState, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_LID_STATE_CHANGED, &evtData);
+		gLidState = lidState;
+	}
+}
+
+static void CheckPowerSrcChange(void)
+{
+	PowerSrc powerSrc = POWER_SRC_AC;
+	char sysvalstring[MAX_SYSFS_STRING] = { 0 };
+	EsifData evtData = { 0 };
+
+	if (gFdPowerSrc > 0) {
+		lseek(gFdPowerSrc, 0 , SEEK_SET);
+		if (read(gFdPowerSrc, sysvalstring, sizeof(sysvalstring)) > 0) {
+			if (esif_ccb_strstr(sysvalstring, "Charging"))
+				powerSrc = POWER_SRC_AC;
+			else
+				powerSrc = POWER_SRC_DC;
+		}
+	}
+
+	if (powerSrc != gPowerSrc) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &powerSrc, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
+		gPowerSrc = powerSrc;
 	}
 }
 
@@ -499,15 +530,17 @@ static void *EsifIio_Poll(void *ptr)
 			CheckMotionChange(gAccelBase);
 		}
 
-		// Platform type change detection
-		if (gAccelBase && gAccelLid) {
-			CheckPlatTypeChange(gAccelBase, gAccelLid);
-		};
-
-		// Dock mode change - only for Chrome OS
-#ifdef ESIF_ATTR_OS_CHROME
+		// Dock mode change detection
 		CheckDockModeChange();
-#endif
+
+		// Power source change detection
+		CheckPowerSrcChange();
+
+		// Lid state change detection
+		CheckLidStateChange();
+
+		// Platform type change detection (clamshell, tablet, tent, etc.)
+		CheckPlatTypeChange(gLidAngle);
 
 		esif_ccb_sleep(ESIF_IIO_SAMPLE_PERIOD);
 	}
@@ -581,19 +614,19 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
    	case ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED:
 		if (gAccelLid) {
 			ESIF_DATA_UINT32_ASSIGN(evtData, &gDispOrientation, sizeof(UInt32));
-			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
 		}
 		break;
 	case ESIF_EVENT_DEVICE_ORIENTATION_CHANGED:
 		if (gAccelLid) {
 			ESIF_DATA_UINT32_ASSIGN(evtData, &gPlatOrientation, sizeof(UInt32));
-			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
 		}
 		break;
 	case ESIF_EVENT_MOTION_CHANGED:
 		if (gAccelLid || gAccelBase) {
 			ESIF_DATA_UINT32_ASSIGN(evtData, &gInMotion, sizeof(UInt32));
-			EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
+			EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, eventType, &evtData);
 		}
 		break;
 	default:
@@ -621,7 +654,9 @@ eEsifError esif_unregister_sensor_lin(eEsifEventType eventType)
 // The only supported system metrics notification is docking/undocking for Chrome OS
 eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 {
-	const esif_guid_t guidDockMode = { 0x30, 0x8d, 0x0c, 0xc9, 0xba, 0x5b, 0x40, 0x0a, 0x99, 0x0a, 0xed, 0x27, 0x29, 0x29, 0xb6, 0xb6};
+	const esif_guid_t guidDockMode = {0x30, 0x8d, 0x0c, 0xc9, 0xba, 0x5b, 0x40, 0x0a, 0x99, 0x0a, 0xed, 0x27, 0x29, 0x29, 0xb6, 0xb6};
+	const esif_guid_t guidPowerSrc = {0x5d, 0x3e, 0x9a, 0x59, 0xe9, 0xd5, 0x4b, 0x00, 0xa6, 0xbd, 0xff, 0x34, 0xff, 0x51, 0x65, 0x48};
+	const esif_guid_t guidLidState = {0xba, 0x3e, 0x0f, 0x4d, 0xb8, 0x17, 0x40, 0x94, 0xa2, 0xd1, 0xd5, 0x63, 0x79, 0xe6, 0xa0, 0xf3};
 	eEsifError rc = ESIF_OK;
 	EsifData evtData = { 0 };
 
@@ -630,15 +665,27 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 		goto exit;
 	}
 
-#ifdef ESIF_ATTR_OS_CHROME
-	// Send gratuitous event for docking/undokcing registration
+	// Send gratuitous event for OS metric registration
 	if (0 == memcmp(guid, guidDockMode, ESIF_GUID_LEN)) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &gDockMode, sizeof(UInt32));
-		EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_DOCK_MODE_CHANGED, &evtData);
 		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_DOCK_MODE_CHANGED\n");
 		StartEsifSensorMgr();
 	}
-#endif
+
+	if (0 == memcmp(guid, guidPowerSrc, ESIF_GUID_LEN)) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &gPowerSrc, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
+		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_POWER_SOURCE_CHANGED\n");
+		StartEsifSensorMgr();
+	}
+
+	if (0 == memcmp(guid, guidLidState, ESIF_GUID_LEN)) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &gLidState, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_LID_STATE_CHANGED, &evtData);
+		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_LID_STATE_CHANGED\n");
+		StartEsifSensorMgr();
+	}
 
 exit:
 	return rc;

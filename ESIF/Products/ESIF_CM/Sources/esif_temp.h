@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,24 +54,7 @@
 #ifndef _ESIF_TEMP_H_
 #define _ESIF_TEMP_H_
 
-#define TEMP_DEBUG 13	/* Debug Module Level */
 #define ESIF_DISABLED_TEMP_VALUE 0xFFFFFFFF
-
-
-#ifdef ESIF_ATTR_KERNEL
-#define ESIF_TRACE_DYN_TEMP(format, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_ELF, TEMP_DEBUG, format, ##__VA_ARGS__)
-#endif /* ESIF_ATTR_KERNEL */
-
-#ifdef ESIF_ATTR_USER
-
-/*
- * TODO:  User mode does not currently support this debug area.
- * Need to update when user mode unified debug infrastructre
- * is in place.
- */
-#define ESIF_TRACE_DYN_TEMP NO_ESIF_DEBUG
-#endif /* ESIF_ATTR_USER */
 
 /* Termperature Unit Type */
 enum esif_temperature_type {
@@ -324,12 +307,6 @@ static ESIF_INLINE int esif_convert_temp(
 	default:
 		return ESIF_E_UNSUPPORTED_REQUEST_TEMP_TYPE;
 	}
-
-	ESIF_TRACE_DYN_TEMP("IN %6u %-6s, OUT %6u %-6s\n",
-		*temp_ptr,
-		esif_temperature_type_desc(in),
-		val,
-		esif_temperature_type_desc(out));
 
 	*temp_ptr = val;
 	return ESIF_OK;

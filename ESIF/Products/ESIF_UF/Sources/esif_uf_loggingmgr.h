@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,8 +42,6 @@
 #define PARTICIPANTLOG_CMD_INTERVAL_STR     "interval"
 #define PARTICIPANTLOG_CMD_SCHEDULE_STR     "schedule"
 
-#define ESIF_INVALID_DATA        0xFFFFFFFF
-
 #define MAX_DOMAIN_ID_LENGTH      2
 #define ESIF_DOMAIN_IDENT_CHAR_D  'D'
 #define ESIF_DOMAIN_IDENT_CHAR_d  'd'
@@ -65,7 +63,7 @@ typedef struct EsifPollingThread_s{
 } EsifPollingThread, *EsifPollingThreadPtr;
 
 typedef struct EsifCommandInfo_s{
-	UInt32 participantId;
+	esif_handle_t participantId;
 	UInt32 domainId;
 	UInt32 capabilityMask;
 } EsifCommandInfo, *EsifCommandInfoPtr;
@@ -85,6 +83,7 @@ typedef struct EsifLoggingManager_s {
 	Bool isLogStopped;
 	Bool isLogSuspended;
 	Bool isDefaultFile;
+	char filename[MAX_PATH];
 	UInt32 listenersMask;
 	char **argv;
 	UInt32 argc;
@@ -101,6 +100,7 @@ typedef enum EsifDataListenerType_e {
 	ESIF_LISTENER_MAX = 4,
 } EsifDataListenerType;
 
+#define ESIF_LISTENER_NONE           0x00000000
 #define ESIF_LISTENER_EVENTLOG_MASK  0x00000001
 #define ESIF_LISTENER_DEBUGGER_MASK  0x00000002
 #define ESIF_LISTENER_LOGFILE_MASK   0x00000004
@@ -125,21 +125,14 @@ typedef enum EsifParticipantLogDataState_e {
 
 typedef struct EsifParticipantLogDataNode_s {
 	EsifParticipantLogDataState state;  /*Node State */
-	UInt32 participantId;	            /*Unique Participant Id*/
+	esif_handle_t participantId;	/*Unique Participant Id*/
 	UInt32 domainId;			        /*Unique Domain Id*/
-	UInt32 isPresent;					
+	UInt32 isPresent;	
+	UInt32 isAcknowledged;
 	EsifCapabilityData capabilityData;  /* structure to store the capability data*/
 	esif_ccb_lock_t capabilityDataLock; /* semaphore to protect the capability structure for synchronization*/	
 }EsifParticipantLogDataNode, *EsifParticipantLogDataNodePtr;
 
-typedef eEsifError(ESIF_CALLCONV *EsifRecvEventFunction)(
-	const void *esifHandle,         /* ESIF provided context handle */
-	const void *appHandle,		    /* Allocated handle for application */
-	const void *participantHandle,	/* Optional Participant ESIF_NO_HANDLE indicates App Level Event */
-	const void *domainHandle,	    /* Optional Domain ESIF_NO_HANDLE indicates non-domain Level Event */
-	const EsifDataPtr eventData,	/* Data included with the event if any MAY Be NULL */
-	const EsifDataPtr eventGuid	    /* Event GUID */
-	);
 
 #ifdef __cplusplus
 extern "C" {

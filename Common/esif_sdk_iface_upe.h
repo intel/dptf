@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,12 +39,22 @@
  * Handle used to represent IETM (Participant 0)
  * Note:  All other participants require the handle provided during calls to the interface
  */
-#define ACTION_UPE_IETM_HANDLE NULL
+#define ACTION_UPE_IETM_HANDLE ESIF_HANDLE_PRIMARY_PARTICIPANT
 
 /*
  * Value used to represent Domain 0 (only domain used in current version of the interface.)
  */
 #define ACTION_UPE_DOMAIN_D0 '0D'
+
+ /*
+ * Value used to represent any participant
+ */
+#define ACTION_UPE_MATCH_ANY ESIF_HANDLE_MATCH_ANY_EVENT
+
+ /*
+ * Value used to represent default ESIF participant handle
+ */
+#define ACTION_UPE_ESIF_HANDLE_PRIMARY_PART ESIF_HANDLE_PRIMARY_PARTICIPANT
 
 /*
  * Changes to the static interface do not require versioning, as they are built
@@ -54,12 +64,15 @@
 typedef enum EsifActIfaceVer_e {
 	ESIF_ACT_IFACE_VER_INVALID = -1,
 	ESIF_ACT_IFACE_VER_STATIC = 0,
-	ESIF_ACT_IFACE_VER_V1,
-	ESIF_ACT_FACE_VER_MAX = ESIF_ACT_IFACE_VER_V1
+	ESIF_ACT_IFACE_VER_V1, /* Deprecated */
+	ESIF_ACT_IFACE_VER_V2, /* Deprecated */
+	ESIF_ACT_IFACE_VER_V3, /* Moved to participant handle-based interface; deprecated V1 and V2 support*/
+	ESIF_ACT_IFACE_VER_V4, /* Added support for participant specific event registration; deprecated V3 support*/
+	ESIF_ACT_FACE_VER_MAX = ESIF_ACT_IFACE_VER_V4
 }EsifActIfaceVer, *EsifActIfaceVerPtr;
 
 
-#define ACTION_UPE_IFACE_VERSION ESIF_ACT_IFACE_VER_V1
+#define ACTION_UPE_IFACE_VERSION ESIF_ACT_IFACE_VER_V4
 
 /* Forward declaration for use by UPE */
 typedef union EsifActIface_u  *EsifActIfacePtr;
@@ -162,6 +175,17 @@ typedef eEsifError(ESIF_CALLCONV *ActWriteLogFunction)(
 );
 
 /*
+* Used to register for events.
+*/
+typedef eEsifError(ESIF_CALLCONV *ActEventRegistrationFunction)(
+	const esif_handle_t participantHandle,	/* Pass back in registration to ESIF for the participant instance */
+	UInt16 domain,
+	const enum esif_action_type actionType,
+	const enum esif_event_type eventType,
+	Bool registerEvent
+);
+
+/*
  * Used to execute primitives through ESIF.
  * Note:  When executing in the context of a GET/SET call to the action, the participant handle
  * is normally the same as that passed to those interface functions.  If the action executes
@@ -181,7 +205,7 @@ typedef eEsifError(ESIF_CALLCONV *ActExecutePrimitiveFunction)(
 
 #pragma pack(push,1)
 
-typedef struct EsifActIfaceUpeV1_s {
+typedef struct EsifActIfaceUpeV4_s {
 	EsifIfaceHdr hdr;
 
 	enum esif_action_type type;
@@ -199,31 +223,36 @@ typedef struct EsifActIfaceUpeV1_s {
 	ActExecuteSetFunction  setFuncPtr;
 
 	ActReceiveEventFunction rcvEventFuncPtr;
-	
-	/*
-	 * Below this point are value provided by ESIF when the creation function is
-	 * called - Not available at the time the interface is retrieved
-	 */
-	ActSendEventFunction sendEventFuncPtr;	/* Filled in by ESIF */
 
 	/*
-	 * traceLevel - Initial value only (The trace level will be updated through
-	 * ESIF_EVENT_LOG_VERBOSITY_CHANGED messages)
-	 */
+	* Below this point are value provided by ESIF when the creation function is
+	* called - Not available at the time the interface is retrieved
+	*/
+	ActSendEventFunction sendEventFuncPtr;	/* Filled in by ESIF */
+
+											/*
+											* traceLevel - Initial value only (The trace level will be updated through
+											* ESIF_EVENT_LOG_VERBOSITY_CHANGED messages)
+											*/
 	eLogType traceLevel;					/* Filled in by ESIF */
 	ActWriteLogFunction writeLogFuncPtr;	/* Filled in by ESIF */
 
-	/*
-	 * Use to execute primitives using ESIF
-	 */
+											/*
+											* Register for events
+											*/
+	ActEventRegistrationFunction eventRegistrationFuncPtr;	/* Filled in by ESIF */
+
+															/*
+															* Use to execute primitives using ESIF
+															*/
 	ActExecutePrimitiveFunction	execPrimitiveFuncPtr;	/* Filled in by ESIF */
 
-} EsifActIfaceUpeV1, *EsifActIfaceUpeV1Ptr;
+} EsifActIfaceUpeV4, *EsifActIfaceUpeV4Ptr;
 
 
 typedef union EsifUpeIface_u {
 	EsifIfaceHdr hdr;
-	EsifActIfaceUpeV1 actIfaceV1;
+	EsifActIfaceUpeV4 actIfaceV4;
 } EsifUpeIface, *EsifUpeIfacePtr;
 
 

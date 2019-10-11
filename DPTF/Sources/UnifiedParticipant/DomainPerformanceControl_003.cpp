@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,7 +28,7 @@ DomainPerformanceControl_003::DomainPerformanceControl_003(
 	: DomainPerformanceControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_capabilitiesLocked(false)
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
 }
 
@@ -84,10 +84,15 @@ void DomainPerformanceControl_003::setPerformanceControl(
 	UIntN domainIndex,
 	UIntN performanceControlIndex)
 {
-	throwIfPerformanceControlIndexIsOutOfBounds(participantIndex, performanceControlIndex);
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{ return "Requesting Performance Control Index: " + std::to_string(performanceControlIndex); });
+
+	performanceControlIndex = snapIfPerformanceControlIndexIsOutOfBounds(domainIndex, performanceControlIndex);
 	getParticipantServices()->primitiveExecuteSetAsUInt32(
 		esif_primitive_type::SET_PERF_PRESENT_CAPABILITY, performanceControlIndex, domainIndex);
 
+	PARTICIPANT_LOG_MESSAGE_DEBUG(
+		{ return "Set Performance Control Index: " + std::to_string(performanceControlIndex); });
 	// Refresh the status
 	m_performanceControlStatus.set(PerformanceControlStatus(performanceControlIndex));
 }
@@ -113,27 +118,18 @@ void DomainPerformanceControl_003::setPerformanceControlDynamicCaps(
 	auto size = getPerformanceControlSet(participantIndex, domainIndex).getCount();
 	if (upperLimitIndex >= size)
 	{
-		throw dptf_exception("Upper Limit index is out of control set bounds.");
+		upperLimitIndex = 0;
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Limit index mismatch, setting upper limit to highest possible index."; });
 	}
-	else if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex >= size)
+	if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex > size - 1)
 	{
-		lowerLimitIndex = size - 1;
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Limit index mismatch, setting lower limit to lowest possible index."));
+		lowerLimitIndex = size-1;
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Limit index mismatch, setting lower limit to lowest possible index."; });
 	}
 
-	auto previousCapabilities = getPerformanceControlDynamicCaps(getParticipantIndex(), getDomainIndex());
 	m_performanceControlDynamicCaps.invalidate();
-
-	if (lowerLimitIndex == Constants::Invalid)
-	{
-		lowerLimitIndex = previousCapabilities.getCurrentLowerLimitIndex();
-	}
-	else if (upperLimitIndex == Constants::Invalid)
-	{
-		upperLimitIndex = previousCapabilities.getCurrentUpperLimitIndex();
-	}
-
 	m_performanceControlDynamicCaps.set(PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex));
 }
 
@@ -147,7 +143,7 @@ UIntN DomainPerformanceControl_003::getCurrentPerformanceControlIndex(UIntN part
 	return getPerformanceControlStatus(participantIndex, domainIndex).getCurrentControlSetIndex();
 }
 
-void DomainPerformanceControl_003::clearCachedData(void)
+void DomainPerformanceControl_003::onClearCachedData(void)
 {
 	if (m_capabilitiesLocked == false)
 	{
@@ -174,39 +170,46 @@ PerformanceControlSet DomainPerformanceControl_003::createPerformanceControlSet(
 
 PerformanceControlDynamicCaps DomainPerformanceControl_003::createPerformanceControlDynamicCaps(UIntN domainIndex)
 {
+	// Get dynamic caps. Set lower limit as min(ppdl value, last index) and
+	// upper limit as first index.
+	// If table is empty, these are set as invalid.
+	UInt32 lowerLimitIndex;
+	UInt32 upperLimitIndex;
 	auto controlSetSize = getPerformanceControlSet(getParticipantIndex(), domainIndex).getCount();
-	return PerformanceControlDynamicCaps(controlSetSize - 1, 0);
+
+	if (controlSetSize == 0)
+	{
+		lowerLimitIndex = Constants::Invalid;
+		upperLimitIndex = Constants::Invalid;
+	}
+	else
+	{
+		upperLimitIndex = 0;
+		lowerLimitIndex = controlSetSize - 1;
+	}
+	return PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex);
 }
 
-void DomainPerformanceControl_003::throwIfPerformanceControlIndexIsOutOfBounds(
+UIntN DomainPerformanceControl_003::snapIfPerformanceControlIndexIsOutOfBounds(
 	UIntN domainIndex,
 	UIntN performanceControlIndex)
 {
-	auto controlSetSize = getPerformanceControlSet(getParticipantIndex(), domainIndex).getCount();
-	if (performanceControlIndex >= controlSetSize)
-	{
-		std::stringstream infoMessage;
-
-		infoMessage << "Control index out of control set bounds." << std::endl
-			<< "Desired Index : " << performanceControlIndex << std::endl
-			<< "PerformanceControlSet size :" << controlSetSize << std::endl;
-
-		throw dptf_exception(infoMessage.str());
-	}
-
 	auto caps = getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex);
-	if (performanceControlIndex < caps.getCurrentUpperLimitIndex()
-		|| performanceControlIndex > caps.getCurrentLowerLimitIndex())
+	auto capsUpperLimitIndex = caps.getCurrentUpperLimitIndex();
+	auto capsLowerLimitIndex = caps.getCurrentLowerLimitIndex();
+	if (performanceControlIndex < capsUpperLimitIndex)
 	{
-		std::stringstream infoMessage;
-
-		infoMessage << "Got a performance control index that was outside the allowable range." << std::endl
-			<< "Desired Index : " << performanceControlIndex << std::endl
-			<< "Upper Limit Index : " << caps.getCurrentUpperLimitIndex() << std::endl
-			<< "Lower Limit Index : " << caps.getCurrentLowerLimitIndex() << std::endl;
-
-		throw dptf_exception(infoMessage.str());
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Performance control index < upper limit index. Snapping to upper limit index."; });
+		performanceControlIndex = capsUpperLimitIndex;
 	}
+	else if (performanceControlIndex > capsLowerLimitIndex)
+	{
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Performance control index > lower limit index. Snapping to lower limit index."; });
+		performanceControlIndex = capsLowerLimitIndex;
+	}
+	return performanceControlIndex;
 }
 
 PerformanceControlStaticCaps DomainPerformanceControl_003::createPerformanceControlStaticCaps(void)
@@ -220,7 +223,6 @@ std::shared_ptr<XmlNode> DomainPerformanceControl_003::getXml(UIntN domainIndex)
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(getPerformanceControlStatus(getParticipantIndex(), domainIndex).getXml());
 	root->addChild(getPerformanceControlDynamicCaps(getParticipantIndex(), domainIndex).getXml());
-	root->addChild(getPerformanceControlStaticCaps(getParticipantIndex(), domainIndex).getXml());
 	root->addChild(getPerformanceControlSet(getParticipantIndex(), domainIndex).getXml());
 	root->addChild(XmlNode::createDataElement("control_knob_version", "003"));
 
@@ -233,12 +235,13 @@ void DomainPerformanceControl_003::capture(void)
 	{
 		m_initialStatus.set(getPerformanceControlDynamicCaps(getParticipantIndex(), getDomainIndex()));
 	}
-	catch (dptf_exception& e)
+	catch (dptf_exception& ex)
 	{
 		m_initialStatus.invalidate();
-		std::string warningMsg = e.what();
-		getParticipantServices()->writeMessageWarning(ParticipantMessage(
-			FLF, "Failed to get the initial graphics performance control dynamic capabilities. " + warningMsg));
+		PARTICIPANT_LOG_MESSAGE_WARNING_EX({
+			return "Failed to get the initial graphics performance control dynamic capabilities. "
+				   + ex.getDescription();
+		});
 	}
 }
 
@@ -256,8 +259,7 @@ void DomainPerformanceControl_003::restore(void)
 		catch (...)
 		{
 			// best effort
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "Failed to restore the initial performance control status. "));
+			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
 		}
 	}
 }

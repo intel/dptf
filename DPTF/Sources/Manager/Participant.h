@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,15 +22,24 @@
 #include "Domain.h"
 #include "ParticipantInterface.h"
 #include "ParticipantServices.h"
-#include "PlatformPowerLimitType.h"
+#include "PsysPowerLimitType.h"
 #include "RfProfileDataSet.h"
 class XmlNode;
 
-class dptf_export Participant
+// TODO: add remaining methods to the interface and then use IParticipant everywhere
+// TODO: rename all *Interface classes to be I*
+class dptf_export IParticipant
+{
+public:
+	virtual ~IParticipant(void){};
+	virtual std::string getDiagnosticsAsXml() const = 0;
+};
+
+class dptf_export Participant : public IParticipant
 {
 public:
 	Participant(DptfManagerInterface* dptfManager);
-	~Participant(void);
+	virtual ~Participant(void);
 
 	void createParticipant(
 		UIntN participantIndex,
@@ -68,8 +77,8 @@ public:
 	std::string getDomainName(UIntN domainIndex);
 	std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const;
 	std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const;
-	std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN domainIndex) const;
-	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
+	virtual std::string getDiagnosticsAsXml() const override;
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
 
 	//
 	// Event handlers
@@ -97,6 +106,9 @@ public:
 	void domainVirtualSensorRecalcChanged(void);
 	void domainBatteryStatusChanged(void);
 	void domainBatteryInformationChanged(void);
+	void domainBatteryHighFrequencyImpedanceChanged(void);
+	void domainBatteryNoLoadVoltageChanged(void);
+	void domainMaxBatteryPeakCurrentChanged(void);
 	void domainPlatformPowerSourceChanged(void);
 	void domainAdapterPowerRatingChanged(void);
 	void domainChargerTypeChanged(void);
@@ -109,21 +121,20 @@ public:
 	void domainAC2msPercentageOverloadChanged(void);
 	void domainAC10msPercentageOverloadChanged(void);
 	void domainEnergyThresholdCrossed(void);
+	void domainFanCapabilityChanged(void);
+	void domainSocWorkloadClassificationChanged(void);
 
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
 	//
 
-	// Active Controls
-	ActiveControlStaticCaps getActiveControlStaticCaps(UIntN domainIndex);
-	ActiveControlDynamicCaps getActiveControlDynamicCaps(UIntN domainIndex);
-	ActiveControlStatus getActiveControlStatus(UIntN domainIndex);
-	ActiveControlSet getActiveControlSet(UIntN domainIndex);
-	void setActiveControl(UIntN domainIndex, UIntN policyIndex, const Percentage& fanSpeed);
-
 	// Activity Status
 	Percentage getUtilizationThreshold(UIntN domainIndex);
 	Percentage getResidencyUtilization(UIntN domainIndex);
+	UInt64 getCoreActivityCounter(UIntN domainIndex);
+	UInt32 getCoreActivityCounterWidth(UIntN domainIndex);
+	UInt64 getTimestampCounter(UIntN domainIndex);
+	UInt32 getTimestampCounterWidth(UIntN domainIndex);
 
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN domainIndex);
@@ -180,6 +191,8 @@ public:
 	void setPowerControlDynamicCapsSet(UIntN domainIndex, UIntN policyIndex, PowerControlDynamicCapsSet capsSet);
 	Bool isPowerLimitEnabled(UIntN domainIndex, PowerControlType::Type controlType);
 	Power getPowerLimit(UIntN domainIndex, PowerControlType::Type controlType);
+	Bool isSocPowerFloorEnabled(UIntN domainIndex);
+	Bool isSocPowerFloorSupported(UIntN domainIndex);
 	Power getPowerLimitWithoutCache(UIntN domainIndex, PowerControlType::Type controlType);
 	void setPowerLimit(
 		UIntN domainIndex,
@@ -208,6 +221,7 @@ public:
 		UIntN policyIndex,
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle);
+	void setSocPowerFloorState(UIntN domainIndex, UIntN policyIndex, Bool socPowerFloorState);
 	void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 	Bool isPowerShareControl(UIntN domainIndex);
 	double getPidKpTerm(UIntN domainIndex);
@@ -217,42 +231,38 @@ public:
 	TimeSpan getSlowPollTime(UIntN domainIndex);
 	TimeSpan getWeightedSlowPollAvgConstant(UIntN domainIndex);
 	Power getSlowPollPowerThreshold(UIntN domainIndex);
+	void removePowerLimitPolicyRequest(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType);
 
 	// Power status
 	PowerStatus getPowerStatus(UIntN domainIndex);
 	Power getAveragePower(UIntN domainIndex, const PowerControlDynamicCaps& capabilities);
 	void setCalculatedAveragePower(UIntN domainIndex, Power powerValue);
 
-	// Platform Power Controls
-	Bool isPlatformPowerLimitEnabled(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-	Power getPlatformPowerLimit(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-	void setPlatformPowerLimit(
+	// System Power Controls
+	Bool isSystemPowerLimitEnabled(UIntN domainIndex, PsysPowerLimitType::Type limitType);
+	Power getSystemPowerLimit(UIntN domainIndex, PsysPowerLimitType::Type limitType);
+	void setSystemPowerLimit(
 		UIntN domainIndex,
 		UIntN policyIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const Power& powerLimit);
-	TimeSpan getPlatformPowerLimitTimeWindow(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-	void setPlatformPowerLimitTimeWindow(
+	TimeSpan getSystemPowerLimitTimeWindow(UIntN domainIndex, PsysPowerLimitType::Type limitType);
+	void setSystemPowerLimitTimeWindow(
 		UIntN domainIndex,
 		UIntN policyIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const TimeSpan& timeWindow);
-	Percentage getPlatformPowerLimitDutyCycle(UIntN domainIndex, PlatformPowerLimitType::Type limitType);
-	void setPlatformPowerLimitDutyCycle(
+	Percentage getSystemPowerLimitDutyCycle(UIntN domainIndex, PsysPowerLimitType::Type limitType);
+	void setSystemPowerLimitDutyCycle(
 		UIntN domainIndex,
 		UIntN policyIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const Percentage& dutyCycle);
 
 	// Platform Power Status
-	Power getMaxBatteryPower(UIntN domainIndex);
 	Power getPlatformRestOfPower(UIntN domainIndex);
 	Power getAdapterPowerRating(UIntN domainIndex);
-	DptfBuffer getBatteryStatus(UIntN domainIndex);
-	DptfBuffer getBatteryInformation(UIntN domainIndex);
 	PlatformPowerSource::Type getPlatformPowerSource(UIntN domainIndex);
-	ChargerType::Type getChargerType(UIntN domainIndex);
-	Power getPlatformBatterySteadyState(UIntN domainIndex);
 	UInt32 getACNominalVoltage(UIntN domainIndex);
 	UInt32 getACOperationalCurrent(UIntN domainIndex);
 	Percentage getAC1msPercentageOverload(UIntN domainIndex);
@@ -260,36 +270,20 @@ public:
 	Percentage getAC10msPercentageOverload(UIntN domainIndex);
 	void notifyForProchotDeassertion(UIntN domainIndex);
 
-	// priority
+	// Priority
 	DomainPriority getDomainPriority(UIntN domainIndex);
 
 	// RF Profile Control
 	RfProfileCapabilities getRfProfileCapabilities(UIntN domainIndex);
 	void setRfProfileCenterFrequency(UIntN domainIndex, UIntN policyIndex, const Frequency& centerFrequency);
+	Percentage getSscBaselineSpreadValue(UIntN domainIndex);
+	Percentage getSscBaselineThreshold(UIntN domainIndex);
+	Percentage getSscBaselineGuardBand(UIntN domainIndex);
 
 	// RF Profile Status
 	RfProfileDataSet getRfProfileDataSet(UIntN domainIndex);
 
-	// TCC Offset Control
-	Temperature getTccOffsetTemperature(UIntN domainIndex);
-	void setTccOffsetTemperature(UIntN domainIndex, UIntN policyIndex, const Temperature& tccOffset);
-	Temperature getMaxTccOffsetTemperature(UIntN domainIndex);
-	Temperature getMinTccOffsetTemperature(UIntN domainIndex);
-
-	// temperature
-	TemperatureStatus getTemperatureStatus(UIntN domainIndex);
-	TemperatureThresholds getTemperatureThresholds(UIntN domainIndex);
-	void setTemperatureThresholds(
-		UIntN domainIndex,
-		UIntN policyIndex,
-		const TemperatureThresholds& temperatureThresholds);
-	Temperature getPowerShareTemperatureThreshold(UIntN domainIndex);
-	DptfBuffer getVirtualSensorCalibrationTable(UIntN domainIndex);
-	DptfBuffer getVirtualSensorPollingTable(UIntN domainIndex);
-	Bool isVirtualTemperature(UIntN domainIndex);
-	void setVirtualTemperature(UIntN domainIndex, const Temperature& temperature);
-
-	// utilization
+	// Utilization
 	UtilizationStatus getUtilizationStatus(UIntN domainIndex);
 
 	// Get specific info
@@ -326,4 +320,5 @@ private:
 
 	void throwIfDomainInvalid(UIntN domainIndex) const;
 	void throwIfRealParticipantIsInvalid() const;
+	EsifServicesInterface* getEsifServices() const;
 };

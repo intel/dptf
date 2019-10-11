@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -57,11 +57,6 @@
 
 #include "esif_sdk_iface.h"
 
-#define ESIF_INTERFACE_VERSION_1 1 /* Initial Release */
-#define ESIF_INTERFACE_VERSION_2 2 /* Added fSendEventFuncPtr */
-#define ESIF_INTERFACE_VERSION_3 3 /* Added fSendCommandFuncPtr*/
-#define ESIF_INTERFACE_VERSION ESIF_INTERFACE_VERSION_3
-
 /*
  * INTERFACE Flags
  * These flags will be used by the ESIF Configuration Management Data Base CMDB
@@ -70,8 +65,8 @@
 #define ESIF_SERVICE_CONFIG_SCRAMBLE    0x00000002	/* Scramble Data For Storage */
 #define ESIF_SERVICE_CONFIG_READONLY    0x00000004	/* Data is Read-Only */
 #define ESIF_SERVICE_CONFIG_NOCACHE     0x00000008	/* Data is not cached in memory (except key) */
-#define ESIF_SERVICE_CONFIG_FILELINK    0x00000010	/* Data is a link to an external file */
 #define ESIF_SERVICE_CONFIG_DELETE      0x00010000	/* Delete from memory and disk */
+#define ESIF_SERVICE_CONFIG_DELAYWRITE	0x20000000  /* Delayed Write */
 #define ESIF_SERVICE_CONFIG_COMPRESSED  0x40000000	/* Payload is Compressed */
 #define ESIF_SERVICE_CONFIG_STATIC      0x80000000	/* Statically Linked Repository */
 
@@ -84,8 +79,7 @@
 
 /* Get Config */
 typedef eEsifError(ESIF_CALLCONV *AppGetConfigFunction)(
-	const void *esifHandle,		/* ESIF provided constext handle */
-	const void *appHandle,		/* handle allocated by ESIF hosted application */
+	const esif_handle_t esifHandle,		/* ESIF provided context handle */
 	const EsifDataPtr nameSpace,	/* Name space to use e.g. ESIF, DPTF, ACT, Etc. */
 	const EsifDataPtr elementPath,	/* Element path e.g. /a/b/c must be unique within a name space */
 	EsifDataPtr elementValue	/* Any valid esif_data_type maybe retrieved including ESIF_DATA_AUTO */
@@ -93,8 +87,7 @@ typedef eEsifError(ESIF_CALLCONV *AppGetConfigFunction)(
 
 /* Set Config */
 typedef eEsifError(ESIF_CALLCONV *AppSetConfigFunction)(
-	const void *esifHandle,		/* ESIF provided context handle */
-	const void *appHandle,		/* handled allocated by ESIF hosted application */
+	const esif_handle_t esifHandle,		/* ESIF provided context handle */
 	const EsifDataPtr nameSpace,	/* Name space to use e.g. ESIF, DPTF, ACT, Etc. */
 	const EsifDataPtr elementPath,	/* Element path e.g. /a/b/c must be unique within a name space */
 	const EsifDataPtr elementValue,	/* Any valid esif_data_type maybe set accept ESIF_DATA_AUTO */
@@ -103,64 +96,58 @@ typedef eEsifError(ESIF_CALLCONV *AppSetConfigFunction)(
 
 /*
  * Primitive Execution note that you may execute against any participant or the IETM object if the optional
- * participant handle is ESIF_NO_HANDLE So for example if you wanted to retrieve the ART you would mark
- * the participant as ESIF_E_NO_HANDLE.  If you wanted to retrieve GET_TEMPERATURE you would have to provide
+ * participant identifier is ESIF_HANDLE_PRIMARY_PARTICIPANT So for example if you wanted to retrieve the ART you would mark
+ * the participant as ESIF_HANDLE_PRIMARY_PARTICIPANT.  If you wanted to retrieve GET_TEMPERATURE you would have to provide
  * a valid particpant handle and domain handle to that ESIF knows "which" temperature to retrieve.
  */
 typedef eEsifError(ESIF_CALLCONV *AppPrimitiveFunction)(
-	const void *esifHandle,		/* ESIF provided context handle */
-	const void *appHandle,		/* handled allocated by ESIF hosted application */
-	const void *participantHandle,	/* Optional participant handle ESIF_NO_HANDLE */
-	const void *domainHandle,	/* Optional required if particpant handle is provided */
+	const esif_handle_t esifHandle,		/* ESIF provided context handle */
+	const esif_handle_t participantHandle,	/* Optional participant identifier */
+	const esif_handle_t domainHandle,	/* Optional required if particpant identifier is provided */
 	const EsifDataPtr request,	/* Request data for SET_* based primitives */
 	EsifDataPtr response,		/* Response data for GET_* based primitives */
-	ePrimitiveType primitive,	/* Primitive ID e.g. GET_TEMPERATURE */
+	const ePrimitiveType primitive,	/* Primitive ID e.g. GET_TEMPERATURE */
 	const UInt8 instance		/* Primitive instance may be 255 or ESIF_NO_INSTANCE */
 );
 
 /* Write Log */
 typedef eEsifError(ESIF_CALLCONV *AppWriteLogFunction)(
-	const void *esifHandle,		/* ESIF provided context handle */
-	const void *appHandle,		/* handle allocated by ESIF hosted applicaiton */
-	const void *participantHandle,	/* optional may be ESIF_NO_HANDLE used to augment log detail*/
-	const void *domainHandle,	/* optional may be ESIF_NO_HANDLE used to augment log detail*/
+	const esif_handle_t esifHandle,		/* ESIF provided context handle */
+	const esif_handle_t participantHandle,	/* optional may be ESIF_HANDLE_PRIMARY_PARTICIPANT used to augment log detail*/
+	const esif_handle_t domainHandle,	/* optional may be ESIF_INVALID_HANDLE used to augment log detail*/
 	const EsifDataPtr message,	/* Message For Log */
 	const eLogType logType		/* Log Type e.g. crticial, debug, info,e tc */
 );
 
 /* Event Register */
 typedef eEsifError(ESIF_CALLCONV *AppEventRegisterFunction)(
-	const void *esifHandle,		/* ESIF provided context handle */
-	const void *appHandle,		/* handle allocated by ESIF hosted application */
-	const void *participantHandle,	/* optional may be ESIF_NO_HANDLE indicates app event regisration */
-	const void *domainHandle,	/* optional may be ESIF_NO_HANDLE indicates participant event registration */
+	const esif_handle_t esifHandle,		/* ESIF provided context handle */
+	const esif_handle_t participantHandle,	/* optional may be ESIF_HANDLE_PRIMARY_PARTICIPANT indicates app event regisration */
+	const esif_handle_t domainHandle,	/* optional may be ESIF_INVALID_HANDLE indicates participant event registration */
 	const EsifDataPtr eventGuid	/* Event GUID to be registered */
 );
 
 /* Event Unregister */
 typedef eEsifError(ESIF_CALLCONV *AppEventUnregisterFunction)(
-	const void *esifHandle,		/* ESIF provided context handle */
-	const void *appHandle,		/* handle allocated by ESIF hosted application */
-	const void *participantHandle,	/* optional may be ESIF_NO_HANDLE indicates app event registration */
-	const void *domainHandle,	/* optional may be ESIF_NO_HANDLE indicates participant event registraion */
+	const esif_handle_t esifHandle,		/* ESIF provided context handle */
+	const esif_handle_t participantHandle,	/* optional may be ESIF_HANDLE_PRIMARY_PARTICIPANT indicates app event registration */
+	const esif_handle_t domainHandle,	/* optional may be ESIF_INVALID_HANDLE indicates participant event registraion */
 	const EsifDataPtr eventGuid	/* Event GUID to be unregistered */
 );
 
 /* Version 2*/
 /* Send Event  Application -> ESIF */
 typedef eEsifError(ESIF_CALLCONV *AppSendEventFunction)(
-	const void *esifHandle,      /* ESIF provided context handle */
-	const void *appHandle,		/* Allocated handle for application */
-	const void *participantHandle,	/* Optional Participant ESIF_NO_HANDLE indicates App Level Event */
-	const void *domainHandle,	/* Optional Domain ESIF_NO_HANDLE indicates non-domain Level Event */
+	const esif_handle_t esifHandle,      /* ESIF provided context handle */
+	const esif_handle_t participantHandle,	/* Optional Participant ESIF_HANDLE_PRIMARY_PARTICIPANT indicates App Level Event */
+	const esif_handle_t domainHandle,	/* Optional Domain ESIF_INVALID_HANDLE indicates non-domain Level Event */
 	const EsifDataPtr eventData,	/* Data included with the event if any MAY Be NULL */
 	const EsifDataPtr eventGuid	/* Event GUID */
 	);
 
 /* CLI Command   Application -> ESIF */
 typedef eEsifError(ESIF_CALLCONV *AppSendCommandFunction)(
-	const void *esifHandle,   /* ESIF provided context handle */
-	const void *appHandle,	  /* Allocated handle for application */
+	const esif_handle_t esifHandle,   /* ESIF provided context handle */
 	const UInt32 argc,        /* command arguments count (1 or more) */
 	const EsifDataPtr  argv,        /* array of command arguments must be ESIF_DATA_STRING today */
 	EsifDataPtr response      /* response must be ESIF_DATA_STRING today */
@@ -172,12 +159,6 @@ typedef eEsifError(ESIF_CALLCONV *AppSendCommandFunction)(
 #pragma pack(push, 1)
 
 struct _t_EsifInterface {
-	/* Interface */
-	eIfaceType  fIfaceType;
-	UInt16      fIfaceVersion;
-	UInt16      fIfaceSize;
-
-	/* Version 1 */
 	/* Configuration Management */
 	AppGetConfigFunction  fGetConfigFuncPtr;
 	AppSetConfigFunction  fSetConfigFuncPtr;
@@ -190,10 +171,8 @@ struct _t_EsifInterface {
 	AppEventRegisterFunction    fRegisterEventFuncPtr;
 	AppEventUnregisterFunction  fUnregisterEventFuncPtr;
 
-	/* Version 2 */
 	AppSendEventFunction fSendEventFuncPtr;
 
-	/* Version 3 */
 	AppSendCommandFunction fSendCommandFuncPtr;
 };
 

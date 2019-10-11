@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,68 +26,64 @@ public:
 	EsifAppServices(const EsifInterfacePtr esifInterfacePtr);
 	~EsifAppServices();
 
-	virtual eIfaceType getInterfaceType(void) override;
-	virtual UInt16 getInterfaceVersion(void) override;
-	virtual UInt64 getInterfaceSize(void) override;
-
 	virtual eEsifError getConfigurationValue(
-		const void* esifHandle,
-		const void* appHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
 		const EsifDataPtr nameSpace,
 		const EsifDataPtr elementPath,
 		EsifDataPtr elementValue) override;
 
 	virtual eEsifError setConfigurationValue(
-		const void* esifHandle,
-		const void* appHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
 		const EsifDataPtr nameSpace,
 		const EsifDataPtr elementPath,
 		const EsifDataPtr elementValue,
 		const EsifFlags elementFlags) override;
 
 	virtual eEsifError executePrimitive(
-		const void* esifHandle,
-		const void* appHandle,
-		const void* participantHandle,
-		const void* domainHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
+		const esif_handle_t participantHandle,
+		const esif_handle_t domainHandle,
 		const EsifDataPtr request,
 		EsifDataPtr response,
-		ePrimitiveType primitive,
+		const ePrimitiveType primitive,
 		const UInt8 instance) override;
 
 	virtual eEsifError writeLog(
-		const void* esifHandle,
-		const void* appHandle,
-		const void* participantHandle,
-		const void* domainHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
+		const esif_handle_t participantHandle,
+		const esif_handle_t domainHandle,
 		const EsifDataPtr message,
 		const eLogType logType) override;
 
 	virtual eEsifError registerForEvent(
-		const void* esifHandle,
-		const void* appHandle,
-		const void* participantHandle,
-		const void* domainHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
+		const esif_handle_t participantHandle,
+		const esif_handle_t domainHandle,
 		const EsifDataPtr eventGuid) override;
 
 	virtual eEsifError unregisterForEvent(
-		const void* esifHandle,
-		const void* appHandle,
-		const void* participantHandle,
-		const void* domainHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
+		const esif_handle_t participantHandle,
+		const esif_handle_t domainHandle,
 		const EsifDataPtr eventGuid) override;
 
 	virtual eEsifError sendEvent(
-		const void* esifHandle,
-		const void* appHandle,
-		const void* participantHandle,
-		const void* domainHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
+		const esif_handle_t participantHandle,
+		const esif_handle_t domainHandle,
 		const EsifDataPtr eventData,
 		const EsifDataPtr eventGuid) override;
 
 	virtual eEsifError sendCommand(
-		const void* esifHandle,
-		const void* appHandle,
+		const esif_handle_t esifHandle,
+		const esif_handle_t appHandle,
 		const UInt32 argc,
 		const EsifDataPtr argv,
 		EsifDataPtr response) override;

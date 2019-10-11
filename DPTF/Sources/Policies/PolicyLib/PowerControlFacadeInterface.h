@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,9 +39,11 @@ public:
 	virtual void setPowerLimitTimeWindowPL1(const TimeSpan& timeWindow) = 0;
 	virtual void setPowerLimitTimeWindowPL3(const TimeSpan& timeWindow) = 0;
 	virtual void setPowerLimitDutyCyclePL3(const Percentage& dutyCycle) = 0;
+	virtual void setSocPowerFloorState(Bool socPowerFloorState) = 0;
 	virtual void setValuesWithinCapabilities() = 0;
 	virtual void lockCapabilities() = 0;
 	virtual void unlockCapabilities() = 0;
+	virtual void removePowerLimitPolicyRequest(PowerControlType::Type controlType) = 0;
 
 	// queries
 	virtual Bool supportsPowerControls() const = 0;
@@ -68,4 +70,6 @@ public:
 	virtual TimeSpan getLivePowerLimitTimeWindowPL1() = 0;
 	virtual TimeSpan getLivePowerLimitTimeWindowPL3() = 0;
 	virtual Percentage getLivePowerLimitDutyCyclePL3() = 0;
+	virtual Bool isSocPowerFloorEnabled() = 0;
+	virtual Bool isSocPowerFloorSupported() = 0;
 };

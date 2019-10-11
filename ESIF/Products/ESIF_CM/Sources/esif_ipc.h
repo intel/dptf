@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -81,7 +81,10 @@
 #ifdef ESIF_ATTR_OS_WINDOWS
 
 #ifdef ESIF_ATTR_USER
+/* Need to disable this otherwise RS4 EWDK 17074 causes warning about deprecated memcpy and RtlCopyMemory in Microsoft code (winioctl.h) */
+#pragma warning(disable:4995)
 #include <winioctl.h>
+#pragma warning(default:4995)
 #endif
 
 #define ESIF_IPC_CODE(x) CTL_CODE(FILE_DEVICE_NETWORK, x, METHOD_BUFFERED, FILE_ANY_ACCESS)
@@ -195,14 +198,10 @@ static ESIF_INLINE esif_string esif_primitive_src_str(u8 src_id)
 /* Privite Destination Can Be UNICAST, MULTICAST Or BROADCAST */
 static ESIF_INLINE esif_string esif_primitive_dst_str(u8 dst_id)
 {
-	if (ESIF_INSTANCE_BROADCAST == dst_id) {
-		return (esif_string)"BROADCAST";
-	} else {
-		if (dst_id < 100)
-			return (esif_string)"UNICAST";
-		else
-			return (esif_string)"MULTICAST";
-	}
+	if (dst_id < 100)
+		return (esif_string)"UNICAST";
+	else
+		return (esif_string)"MULTICAST";
 }
 
 
@@ -225,41 +224,6 @@ struct esif_ipc_event {
 	enum esif_data_type data_type; /* Event data type */
 	u32  data_len;		/* Data Length May Be Zero    */
 	/* Data Is Here ... */
-};
-
-#pragma pack(pop)
-
-/*
-** IPC Event Create Participant Data.  Will be tacked on the bottom
-** of an IPC Event for participant creation.  Note the IPC event and
-** This data must be contiguous in memory space.
-*/
-/* USE Native Data Types With Packed Structures */
-#pragma pack(push, 1)
-struct esif_ipc_event_data_create_participant {
-	u8    id;				/* Participant ID */
-	u8    version;				/* Version */
-	u8    class_guid[ESIF_GUID_LEN];	/* Class GUID */
-	enum esif_participant_enum enumerator; /* Device Enumerator If Any */
-	u32   flags;				/* Flags If Any */
-	char  name[ESIF_NAME_LEN];		/* Friendly Name */
-	char  desc[ESIF_DESC_LEN];		/* Description */
-	char  driver_name[ESIF_NAME_LEN];	/* Driver Name */
-	char  device_name[ESIF_NAME_LEN];	/* Device Name */
-	char  device_path[ESIF_PATH_LEN];	/* Device Path */
-	char  acpi_device[ESIF_SCOPE_LEN];
-	char  acpi_scope[ESIF_SCOPE_LEN];
-	char  acpi_uid[ESIF_ACPI_UID_LEN];	/* Unique ID If Any */
-	u32   acpi_type;			/* Participant Type If Any */
-	u32   pci_vendor;			/* PCI Vendor For PCI Devices */
-	u32   pci_device;			/* PCE Device For PCI Devices */
-	u8    pci_bus;				/* Bus Device Enumerated On */
-	u8    pci_bus_device;			/* Device Number On Bus */
-	u8    pci_function;			/* PCI Function Of Device */
-	u8    pci_revision;			/* PCI Hardware Revision */
-	u8    pci_class;			/* PCI Hardware Class */
-	u8    pci_sub_class;			/* PCI Hardware Sub Class */
-	u8    pci_prog_if;			/* PCI Hardware Iface */
 };
 
 #pragma pack(pop)
@@ -313,19 +277,19 @@ struct esif_ipc *esif_ipc_alloc_event(
 
 void esif_ipc_free(struct esif_ipc *ipc_ptr);
 
-esif_handle_t esif_ipc_connect(char *session_id);
-void esif_ipc_disconnect(esif_handle_t handle);
-enum esif_rc esif_ipc_execute(esif_handle_t handle, struct esif_ipc *ipc_ptr);
+esif_os_handle_t esif_ipc_connect(char *session_id);
+void esif_ipc_disconnect(esif_os_handle_t handle);
+enum esif_rc esif_ipc_execute(esif_os_handle_t handle, struct esif_ipc *ipc_ptr);
 
 
 /* IPC Connect */
-esif_handle_t esif_os_ipc_connect(char *session_id);
+esif_os_handle_t esif_os_ipc_connect(char *session_id);
 
 /* IPC Disconnect */
-void esif_os_ipc_disconnect(esif_handle_t handle);
+void esif_os_ipc_disconnect(esif_os_handle_t handle);
 
 /* IPC Execute */
-enum esif_rc esif_os_ipc_execute(esif_handle_t handle,
+enum esif_rc esif_os_ipc_execute(esif_os_handle_t handle,
 				 struct esif_ipc *ipc_ptr);
 
 

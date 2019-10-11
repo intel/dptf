@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -93,27 +93,42 @@ void DomainControlList::makeAllControls()
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::Temperature,
 		makeControl<DomainTemperatureBase>(
-			ControlFactoryType::Temperature, m_domainFunctionalityVersions.temperatureVersion)));
+			ControlFactoryType::Temperature,
+			m_domainFunctionalityVersions.temperatureVersion,
+			m_domainFunctionalityVersions.temperatureThresholdVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
-		ControlFactoryType::TccOffsetControl,
-		makeControl<DomainTccOffsetControlBase>(
-			ControlFactoryType::TccOffsetControl, m_domainFunctionalityVersions.tccOffsetControlVersion)));
+		ControlFactoryType::ProcessorControl,
+		makeControl<DomainProcessorControlBase>(
+			ControlFactoryType::ProcessorControl, m_domainFunctionalityVersions.processorControlVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::Utilization,
 		makeControl<DomainUtilizationBase>(
 			ControlFactoryType::Utilization, m_domainFunctionalityVersions.utilizationVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
-		ControlFactoryType::PlatformPower,
-		makeControl<DomainPlatformPowerControlBase>(
-			ControlFactoryType::PlatformPower, m_domainFunctionalityVersions.platformPowerControlVersion)));
+		ControlFactoryType::SystemPower,
+		makeControl<DomainSystemPowerControlBase>(
+			ControlFactoryType::SystemPower, m_domainFunctionalityVersions.systemPowerControlVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::PlatformPowerStatus,
 		makeControl<DomainPlatformPowerStatusBase>(
 			ControlFactoryType::PlatformPowerStatus, m_domainFunctionalityVersions.platformPowerStatusVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
+		ControlFactoryType::PlatformPowerControl,
+		makeControl<DomainPlatformPowerControlBase>(
+			ControlFactoryType::PlatformPowerControl, m_domainFunctionalityVersions.platformPowerControlVersion)));
+	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::ActivityStatus,
 		makeControl<DomainActivityStatusBase>(
 			ControlFactoryType::ActivityStatus, m_domainFunctionalityVersions.activityStatusVersion)));
+	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
+		ControlFactoryType::BatteryStatus,
+		makeControl<DomainBatteryStatusBase>(
+			ControlFactoryType::BatteryStatus, m_domainFunctionalityVersions.batteryStatusVersion)));
+	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
+		ControlFactoryType::SocWorkloadClassification,
+		makeControl<DomainSocWorkloadClassificationBase>(
+			ControlFactoryType::SocWorkloadClassification,
+			m_domainFunctionalityVersions.socWorkloadClassificationVersion)));
 }
 
 template <typename T>
@@ -122,6 +137,18 @@ std::shared_ptr<T> DomainControlList::makeControl(ControlFactoryType::Type facto
 	auto factory = m_controlFactoryList.getFactory(factoryType);
 	std::shared_ptr<T> control(
 		dynamic_cast<T*>(factory->make(m_participantIndex, m_domainIndex, controlVersion, m_participantServices)));
+	return control;
+}
+
+template <typename T>
+std::shared_ptr<T> DomainControlList::makeControl(
+	ControlFactoryType::Type factoryType,
+	UInt8& controlVersion,
+	UInt8& associatedControlVersion)
+{
+	auto factory = m_controlFactoryList.getFactory(factoryType);
+	std::shared_ptr<T> control(dynamic_cast<T*>(factory->make(
+		m_participantIndex, m_domainIndex, controlVersion, associatedControlVersion, m_participantServices)));
 	return control;
 }
 
@@ -140,13 +167,48 @@ std::shared_ptr<XmlNode> DomainControlList::getXml()
 		}
 		catch (dptf_exception& ex)
 		{
-			m_participantServices->writeMessageWarning(ParticipantMessage(
-				FLF, "Unable to get " + control->second->getName() + " control XML status: " + ex.getDescription()));
+			PARTICIPANT_LOG_MESSAGE_WARNING_EX({
+				return "Unable to get " + control->second->getName() + " control XML status: " + ex.getDescription();
+			});
 		}
 		catch (...)
 		{
-			m_participantServices->writeMessageWarning(
-				ParticipantMessage(FLF, "Unable to get " + control->second->getName() + " control XML status."));
+			PARTICIPANT_LOG_MESSAGE_WARNING(
+				{ return "Unable to get " + control->second->getName() + " control XML status."; });
+		}
+	}
+	return domain;
+}
+
+std::shared_ptr<XmlNode> DomainControlList::getArbitratorStatusForPolicy(
+	UIntN policyIndex,
+	ControlFactoryType::Type type) const
+{
+	auto domain = XmlNode::createWrapperElement("domain_controls_arbitrator");
+	for (auto control = m_controlList.begin(); control != m_controlList.end(); ++control)
+	{
+		try
+		{
+			if (type == control->first)
+			{
+				domain->addChild(control->second->getArbitratorXml(policyIndex));
+			}
+		}
+		catch (not_implemented&)
+		{
+			// if not implemented, then eat the error.
+		}
+		catch (dptf_exception& ex)
+		{
+			PARTICIPANT_LOG_MESSAGE_WARNING_EX({
+				return "Unable to get " + control->second->getName()
+					   + " control arbitrator XML status: " + ex.getDescription();
+			});
+		}
+		catch (...)
+		{
+			PARTICIPANT_LOG_MESSAGE_WARNING(
+				{ return "Unable to get " + control->second->getName() + " control arbitrator XML status."; });
 		}
 	}
 	return domain;
@@ -157,6 +219,14 @@ void DomainControlList::clearAllCachedData(void)
 	for (auto control = m_controlList.begin(); control != m_controlList.end(); control++)
 	{
 		control->second->clearCachedData();
+	}
+}
+
+void DomainControlList::clearAllCachedResults(void)
+{
+	for (auto control = m_controlList.begin(); control != m_controlList.end(); control++)
+	{
+		control->second->clearAllCachedResults();
 	}
 }
 
@@ -210,15 +280,21 @@ std::shared_ptr<DomainPowerStatusBase> DomainControlList::getPowerStatusControl(
 	return dynamic_pointer_cast<DomainPowerStatusBase>(m_controlList.at(ControlFactoryType::PowerStatus));
 }
 
-std::shared_ptr<DomainPlatformPowerControlBase> DomainControlList::getPlatformPowerControl(void)
+std::shared_ptr<DomainSystemPowerControlBase> DomainControlList::getSystemPowerControl(void)
 {
-	return dynamic_pointer_cast<DomainPlatformPowerControlBase>(m_controlList.at(ControlFactoryType::PlatformPower));
+	return dynamic_pointer_cast<DomainSystemPowerControlBase>(m_controlList.at(ControlFactoryType::SystemPower));
 }
 
 std::shared_ptr<DomainPlatformPowerStatusBase> DomainControlList::getPlatformPowerStatusControl(void)
 {
 	return dynamic_pointer_cast<DomainPlatformPowerStatusBase>(
 		m_controlList.at(ControlFactoryType::PlatformPowerStatus));
+}
+
+std::shared_ptr<DomainPlatformPowerControlBase> DomainControlList::getPlatformPowerControl(void)
+{
+	return dynamic_pointer_cast<DomainPlatformPowerControlBase>(
+		m_controlList.at(ControlFactoryType::PlatformPowerControl));
 }
 
 std::shared_ptr<DomainPriorityBase> DomainControlList::getDomainPriorityControl(void)
@@ -241,12 +317,28 @@ std::shared_ptr<DomainTemperatureBase> DomainControlList::getTemperatureControl(
 	return dynamic_pointer_cast<DomainTemperatureBase>(m_controlList.at(ControlFactoryType::Temperature));
 }
 
-std::shared_ptr<DomainTccOffsetControlBase> DomainControlList::getTccOffsetControl(void)
+std::shared_ptr<DomainProcessorControlBase> DomainControlList::getProcessorControl(void)
 {
-	return dynamic_pointer_cast<DomainTccOffsetControlBase>(m_controlList.at(ControlFactoryType::TccOffsetControl));
+	return dynamic_pointer_cast<DomainProcessorControlBase>(m_controlList.at(ControlFactoryType::ProcessorControl));
 }
 
 std::shared_ptr<DomainUtilizationBase> DomainControlList::getUtilizationControl(void)
 {
 	return dynamic_pointer_cast<DomainUtilizationBase>(m_controlList.at(ControlFactoryType::Utilization));
+}
+
+std::shared_ptr<DomainBatteryStatusBase> DomainControlList::getBatteryStatusControl(void)
+{
+	return dynamic_pointer_cast<DomainBatteryStatusBase>(m_controlList.at(ControlFactoryType::BatteryStatus));
+}
+
+std::shared_ptr<DomainSocWorkloadClassificationBase> DomainControlList::getSocWorkloadClassificationControl(void)
+{
+	return dynamic_pointer_cast<DomainSocWorkloadClassificationBase>(
+		m_controlList.at(ControlFactoryType::SocWorkloadClassification));
+}
+
+std::shared_ptr<ParticipantServicesInterface> DomainControlList::getParticipantServices() const
+{
+	return m_participantServices;
 }

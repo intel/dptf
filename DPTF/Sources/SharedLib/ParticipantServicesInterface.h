@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,8 @@
 #include "ParticipantMessage.h"
 #include "DptfEventInterface.h"
 #include "UserPreferredCacheInterface.h"
+#include "RequestHandlerInterface.h"
+#include "DomainType.h"
 
 class ParticipantServicesInterface : public MessageLoggingInterface,
 									 public EsifPrimitiveInterface,
@@ -34,4 +36,8 @@ class ParticipantServicesInterface : public MessageLoggingInterface,
 									 public DptfEventInterface,
 									 public UserPreferredCacheInterface
 {
+public:
+	virtual void registerRequestHandler(DptfRequestType::Enum requestType, RequestHandlerInterface* handler) = 0;
+	virtual void unregisterRequestHandler(DptfRequestType::Enum requestType, RequestHandlerInterface* handler) = 0;
+	virtual DomainType::Type getDomainType(UIntN domainIndex) = 0;
 };

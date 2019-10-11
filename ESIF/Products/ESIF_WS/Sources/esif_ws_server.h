@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,6 +59,7 @@ typedef enum FinType_e {
 #define DOORBELL_BUTTON		1	// Doorbell = Socket 1 [send]
 
 typedef struct TcpDoorbell_s {
+	Bool				isActive;					// Paired Sockets are Active?
 	esif_ccb_socket_t	sockets[DOORBELL_SOCKETS];	// Paired TCP Sockets used to signal blocked select()
 } TcpDoorbell, *TcpDoorbellPtr;
 

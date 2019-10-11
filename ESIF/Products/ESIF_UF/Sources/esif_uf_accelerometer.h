@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -120,20 +120,31 @@ typedef enum PlatformType_e {
 	PLATFORM_TYPE_INVALID = 0,
 	PLATFORM_TYPE_CLAMSHELL = 1,
 	PLATFORM_TYPE_TABLET = 2,
-	PLATFORM_TYPE_TENT = 3
+	PLATFORM_TYPE_TENT = 3,
 } PlatformType, *PlatformTypePtr;
 
 /* TODO:
- * The following dock mode definition is the only common DPPE event supported
- * by both Windows and Linux that is not related to accelerometers. Once we
- * have more such common non-accelerometer related DPPE defined, we shall
- * bundle and move these definitions to a dedicated common DPPE header file.
+ * The following definitions are common DPPE event supported by both
+ * Windows and Linux that are not related to accelerometers. We should
+ * bundle them and move these definitions to a dedicated common DPPE
+ * header file.
  */
 typedef enum e_DockMode {
 	DOCK_MODE_INVALID = 0,
 	DOCK_MODE_UNDOCKED = 1,
 	DOCK_MODE_DOCKED = 2,
 } DockMode, *DockModePtr;
+
+typedef enum e_LidState {
+	LID_STATE_CLOSED = 0,
+	LID_STATE_OPEN = 1,
+} LidState, *LidStatePtr;
+
+typedef enum e_PowerSrc {
+	POWER_SRC_AC = 0,
+	POWER_SRC_DC = 1,
+	POWER_SRC_SHORT_TERM_DC = 2,
+} PowerSrc, *PowerSrcPtr;
 
 static ESIF_INLINE char* GetPlatOrientationStr(PlatformOrientation platOrientation)
 {

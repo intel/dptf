@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "TemperatureThresholds.h"
 #include "XmlNode.h"
 #include "StatusFormat.h"
+#include "DptfBufferStream.h"
 using namespace StatusFormat;
 
 TemperatureThresholds::TemperatureThresholds()
@@ -31,15 +32,6 @@ TemperatureThresholds::TemperatureThresholds(Temperature aux0, Temperature aux1,
 	, m_aux1(aux1)
 	, m_hysteresis(hysteresis)
 {
-	// FIXME: this needs to be added back later
-	// if ((m_aux0.isValid() == true) &&
-	//    (m_aux0 != Temperature::fromCelsius(0)) &&
-	//    (m_aux1.isValid() == true) &&
-	//    (m_aux1 != Temperature::fromCelsius(0)) &&
-	//    (m_aux0 >= m_aux1))
-	//{
-	//    throw dptf_exception("Aux0 must be less than Aux1.");
-	//}
 }
 
 TemperatureThresholds TemperatureThresholds::createInvalid()
@@ -78,4 +70,31 @@ Bool TemperatureThresholds::operator==(const TemperatureThresholds& thresholds) 
 {
 	return (
 		(m_aux0 == thresholds.m_aux0) && (m_aux1 == thresholds.m_aux1) && (m_hysteresis == thresholds.m_hysteresis));
+}
+
+DptfBuffer TemperatureThresholds::toDptfBuffer() const
+{
+	DptfBuffer buffer;
+	buffer.append(m_aux0.toDptfBuffer());
+	buffer.append(m_aux1.toDptfBuffer());
+	buffer.append(m_hysteresis.toDptfBuffer());
+	return buffer;
+}
+
+TemperatureThresholds TemperatureThresholds::createFromDptfBuffer(const DptfBuffer& buffer)
+{
+	if (buffer.size() != (TemperatureThresholds().toDptfBuffer().size()))
+	{
+		throw dptf_exception("Buffer given to Temperature Thresholds class has invalid length.");
+	}
+
+	DptfBuffer bufferCopy = buffer;
+	DptfBufferStream stream(bufferCopy);
+
+	TemperatureThresholds newTemperatureThresholds;
+	newTemperatureThresholds.m_aux0 = stream.readNextTemperature();
+	newTemperatureThresholds.m_aux1 = stream.readNextTemperature();
+	newTemperatureThresholds.m_hysteresis = stream.readNextTemperature();
+
+	return newTemperatureThresholds;
 }

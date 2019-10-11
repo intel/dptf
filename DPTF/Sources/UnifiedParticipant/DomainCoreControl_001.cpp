@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@ DomainCoreControl_001::DomainCoreControl_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainCoreControlBase(participantIndex, domainIndex, participantServicesInterface)
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
 }
 
@@ -117,13 +117,15 @@ void DomainCoreControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIn
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Core Control"
-					<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Core Control"
+						<< ")";
+				return message.str();
+				});
 		}
 	}
 	catch (...)
@@ -132,7 +134,7 @@ void DomainCoreControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIn
 	}
 }
 
-void DomainCoreControl_001::clearCachedData(void)
+void DomainCoreControl_001::onClearCachedData(void)
 {
 	// Do not delete m_coreControlStatus.  We can't read this from ESIF.  We store it whenever it is 'set' and return
 	// the value when requested.
@@ -167,8 +169,9 @@ void DomainCoreControl_001::restore(void)
 	catch (...)
 	{
 		// best effort
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Failed to restore the initial core status. "));
+		PARTICIPANT_LOG_MESSAGE_WARNING({
+			return "Failed to restore the initial core status. ";
+			});
 	}
 }
 
@@ -199,7 +202,9 @@ CoreControlLpoPreference DomainCoreControl_001::createCoreControlLpoPreference(U
 	}
 	catch (...)
 	{
-		getParticipantServices()->writeMessageWarning(ParticipantMessage(FLF, "CLPO not found.  Using defaults."));
+		PARTICIPANT_LOG_MESSAGE_WARNING({
+			return "CLPO not found.  Using defaults.";
+			});
 		useDefault = true;
 	}
 
@@ -211,8 +216,9 @@ CoreControlLpoPreference DomainCoreControl_001::createCoreControlLpoPreference(U
 		}
 		catch (...)
 		{
-			getParticipantServices()->writeMessageWarning(
-				ParticipantMessage(FLF, "Could not parse CLPO data.  Using defaults."));
+			PARTICIPANT_LOG_MESSAGE_WARNING({
+				return "Could not parse CLPO data.  Using defaults.";
+				});
 			useDefault = true;
 		}
 	}

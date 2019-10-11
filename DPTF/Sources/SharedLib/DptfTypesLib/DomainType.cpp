@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,10 +51,14 @@ namespace DomainType
 														{DgfxMem, "DgfxMem"},
 														{DgfxMcp, "DgfxMcp"},
 														{Cam2D, "Cam2D"},
+														{WwanAnalog, "WwanAnalog"},
+														{WwanDigital, "WwanDigital"},
+														{WwanRfim, "WwanRfim"},
+														{IdgfxCore, "IdgfxCore"},
 														{All, "All"},
 														{Invalid, Constants::NotAvailableString}};
 
-	std::string ToString(DomainType::Type type)
+	std::string toString(DomainType::Type type)
 	{
 		auto name = names.find(type);
 		if (name != names.end())
@@ -132,6 +136,14 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::DgfxMem;
 	case ESIF_DOMAIN_TYPE_DGFXMCP:
 		return DomainType::DgfxMcp;
+	case ESIF_DOMAIN_TYPE_WWANANALOG:
+		return DomainType::WwanAnalog;
+	case ESIF_DOMAIN_TYPE_WWANDIGITAL:
+		return DomainType::WwanDigital;
+	case ESIF_DOMAIN_TYPE_WWANRFIM:
+		return DomainType::WwanRfim;
+	case ESIF_DOMAIN_TYPE_IDGFXCORE:
+		return DomainType::IdgfxCore;
 	case ESIF_DOMAIN_TYPE_ALL:
 		return DomainType::All;
 	case ESIF_DOMAIN_TYPE_INVALID:
@@ -207,6 +219,14 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_DGFXMEM;
 	case DomainType::DgfxMcp:
 		return ESIF_DOMAIN_TYPE_DGFXMCP;
+	case DomainType::WwanAnalog:
+		return ESIF_DOMAIN_TYPE_WWANANALOG;
+	case DomainType::WwanDigital:
+		return ESIF_DOMAIN_TYPE_WWANDIGITAL;
+	case DomainType::WwanRfim:
+		return ESIF_DOMAIN_TYPE_WWANRFIM;
+	case DomainType::IdgfxCore:
+		return ESIF_DOMAIN_TYPE_IDGFXCORE;
 	case DomainType::All:
 		return ESIF_DOMAIN_TYPE_ALL;
 	case DomainType::Invalid:

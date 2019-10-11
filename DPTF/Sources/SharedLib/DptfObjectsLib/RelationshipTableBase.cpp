@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,12 +31,15 @@ RelationshipTableBase::~RelationshipTableBase()
 {
 }
 
-void RelationshipTableBase::associateParticipant(std::string participantScope, UIntN participantIndex)
+void RelationshipTableBase::associateParticipant(
+	std::string participantScope,
+	UIntN participantIndex,
+	std::string participantName)
 {
 	auto tableRows = findTableRowsWithParticipantScope(participantScope);
 	for (auto tableRow = tableRows.begin(); tableRow != tableRows.end(); ++tableRow)
 	{
-		m_entries.at(*tableRow)->associateParticipant(participantScope, participantIndex);
+		m_entries.at(*tableRow)->associateParticipant(participantScope, participantIndex, participantName);
 	}
 }
 

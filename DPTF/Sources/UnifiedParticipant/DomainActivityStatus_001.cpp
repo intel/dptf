@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,12 +44,36 @@ Percentage DomainActivityStatus_001::getResidencyUtilization(UIntN participantIn
 		esif_primitive_type::GET_PARTICIPANT_RESIDENCY_UTILIZATION, domainIndex);
 }
 
+UInt64 DomainActivityStatus_001::getCoreActivityCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsUInt64(
+		esif_primitive_type::GET_CORE_ACTIVITY_COUNTER, domainIndex);
+}
+
+UInt32 DomainActivityStatus_001::getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_ACTIVITY_COUNTER_WIDTH, domainIndex);
+}
+
+UInt64 DomainActivityStatus_001::getTimestampCounter(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsUInt64(
+		esif_primitive_type::GET_PROC_TSC, domainIndex);
+}
+
+UInt32 DomainActivityStatus_001::getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_TSC_WIDTH, domainIndex);
+}
+
 void DomainActivityStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	// do nothing
 }
 
-void DomainActivityStatus_001::clearCachedData(void)
+void DomainActivityStatus_001::onClearCachedData(void)
 {
 	// do nothing
 }

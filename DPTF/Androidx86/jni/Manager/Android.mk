@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 ##
 ## The source code, information and material ("Material") contained herein is
 ## owned by Intel Corporation or its suppliers or licensors, and title to such
@@ -60,6 +60,7 @@ LOCAL_C_INCLUDES += \
 	$(DPTF_INC)/SharedLib/EventsLib \
 	$(DPTF_INC)/SharedLib/MessageLoggingLib \
 	$(DPTF_INC)/SharedLib/XmlLib \
+	$(DPTF_INC)/SharedLib/ResourceLib \
 	$(DPTF_INC)/Policies/PolicyLib \
 	$(DPTF_INC)/UnifiedParticipant \
 	$(DPTF_INC)/Manager \
@@ -68,7 +69,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_CFLAGS += -std=c++11 -fexceptions -frtti -Wall -fPIC -DESIF_ATTR_OS_ANDROID -DESIF_ATTR_USER \
 		-Wno-unused-parameter -Wno-ignored-qualifiers -Wno-missing-field-initializers -Wno-ignored-qualifiers
 
-LOCAL_STATIC_LIBRARIES := DptfPolicy DptfObjectsLib DptfParticipant DptfParticipantControlsLib DptfParticipantLib DptfShared DptfEventsLib DptfMessageLoggingLib DptfXmlLib DptfEsifTypesLib DptfTypesLib DptfBasicTypesLib
+LOCAL_STATIC_LIBRARIES := DptfPolicy DptfObjectsLib DptfParticipant DptfParticipantControlsLib DptfParticipantLib DptfShared DptfEventsLib DptfMessageLoggingLib DptfXmlLib DptfResourceLib DptfEsifTypesLib DptfTypesLib DptfBasicTypesLib
 
 FILE_LIST := $(wildcard $(LOCAL_PATH)/$(DPTF_SRC)/Manager/*.cpp)
 LOCAL_SRC_FILES := $(FILE_LIST:$(LOCAL_PATH)/%=%)

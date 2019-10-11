@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,11 +17,12 @@
 ******************************************************************************/
 
 #include "Percentage.h"
+#include "DptfBufferStream.h"
 #include <cmath>
 
 Percentage::Percentage(void)
 	: m_valid(false)
-	, m_percentage(0.0)
+	, m_percentage(-1.0)
 {
 }
 
@@ -39,6 +40,12 @@ Percentage Percentage::createInvalid()
 Percentage Percentage::fromWholeNumber(UIntN wholeNumber)
 {
 	double value = ((double)wholeNumber / 100.0);
+	return Percentage(value);
+}
+
+Percentage Percentage::fromSignedWholeNumber(Int32 signedWholeNumber)
+{
+	double value = ((double)signedWholeNumber / 100.0);
 	return Percentage(value);
 }
 
@@ -116,6 +123,11 @@ Bool Percentage::isValid() const
 	return m_valid;
 }
 
+Int32 Percentage::toSignedWholeNumber() const
+{
+	return (Int32)round(m_percentage * 100.0);
+}
+
 UIntN Percentage::toWholeNumber() const
 {
 	return (UIntN)round(m_percentage * 100.0);
@@ -151,4 +163,28 @@ void Percentage::throwIfInvalid(const Percentage& percentage) const
 	{
 		throw dptf_exception("Percentage is not valid.");
 	}
+}
+
+Percentage Percentage::createFromDptfBuffer(const DptfBuffer& buffer)
+{
+	if (buffer.size() != (sizeof(m_valid) + sizeof(m_percentage)))
+	{
+		throw dptf_exception("Buffer given to Percentage class has invalid length.");
+	}
+
+	DptfBuffer bufferCopy = buffer;
+	DptfBufferStream stream(bufferCopy);
+
+	Percentage newPercentage;
+	newPercentage.m_valid = stream.readNextBool();
+	newPercentage.m_percentage = stream.readNextDouble();
+	return newPercentage;
+}
+
+DptfBuffer Percentage::toDptfBuffer() const
+{
+	DptfBuffer buffer;
+	buffer.append((UInt8*)&m_valid, sizeof(m_valid));
+	buffer.append((UInt8*)&m_percentage, sizeof(m_percentage));
+	return buffer;
 }

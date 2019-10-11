@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,20 +35,12 @@ DomainPlatformPowerStatus_001::DomainPlatformPowerStatus_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainPlatformPowerStatusBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_platformPowerSource()
-	, m_chargerType()
 {
 	initializeDataStructures();
 }
 
 DomainPlatformPowerStatus_001::~DomainPlatformPowerStatus_001(void)
 {
-}
-
-Power DomainPlatformPowerStatus_001::getMaxBatteryPower(UIntN participantIndex, UIntN domainIndex)
-{
-	m_maxBatteryPower = getParticipantServices()->primitiveExecuteGetAsPower(
-		esif_primitive_type::GET_PLATFORM_MAX_BATTERY_POWER, domainIndex);
-	return m_maxBatteryPower;
 }
 
 Power DomainPlatformPowerStatus_001::getPlatformRestOfPower(UIntN participantIndex, UIntN domainIndex)
@@ -65,42 +57,17 @@ Power DomainPlatformPowerStatus_001::getAdapterPowerRating(UIntN participantInde
 	return m_adapterRating;
 }
 
-DptfBuffer DomainPlatformPowerStatus_001::getBatteryStatus(UIntN participantIndex, UIntN domainIndex)
-{
-	return getParticipantServices()->primitiveExecuteGet(
-		esif_primitive_type::GET_BATTERY_STATUS, ESIF_DATA_BINARY, domainIndex);
-}
-
-DptfBuffer DomainPlatformPowerStatus_001::getBatteryInformation(UIntN participantIndex, UIntN domainIndex)
-{
-	return getParticipantServices()->primitiveExecuteGet(
-		esif_primitive_type::GET_BATTERY_INFORMATION, ESIF_DATA_BINARY, domainIndex);
-}
-
 PlatformPowerSource::Type DomainPlatformPowerStatus_001::getPlatformPowerSource(
 	UIntN participantIndex,
 	UIntN domainIndex)
 {
 	auto psrcValue = getParticipantServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_PLATFORM_POWER_SOURCE, domainIndex);
-	m_psrcSequence.set(static_cast<UInt32>(BinaryParse::extractBits(PsrcSequenceStartBit, PsrcSequenceStopBit, psrcValue)));
-	m_platformPowerSource = PlatformPowerSource::Type(static_cast<UInt32>(BinaryParse::extractBits(PsrcValueStartBit, PsrcValueStopBit, psrcValue)));
+	m_psrcSequence.set(
+		static_cast<UInt32>(BinaryParse::extractBits(PsrcSequenceStartBit, PsrcSequenceStopBit, psrcValue)));
+	m_platformPowerSource = PlatformPowerSource::Type(
+		static_cast<UInt32>(BinaryParse::extractBits(PsrcValueStartBit, PsrcValueStopBit, psrcValue)));
 	return m_platformPowerSource;
-}
-
-ChargerType::Type DomainPlatformPowerStatus_001::getChargerType(UIntN participantIndex, UIntN domainIndex)
-{
-	auto chargerType =
-		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_CHARGER_TYPE, domainIndex);
-	m_chargerType = ChargerType::Type(chargerType);
-	return m_chargerType;
-}
-
-Power DomainPlatformPowerStatus_001::getPlatformBatterySteadyState(UIntN participantIndex, UIntN domainIndex)
-{
-	m_batterySteadyState = getParticipantServices()->primitiveExecuteGetAsPower(
-		esif_primitive_type::GET_PLATFORM_BATTERY_STEADY_STATE, domainIndex);
-	return m_batterySteadyState;
 }
 
 UInt32 DomainPlatformPowerStatus_001::getACNominalVoltage(UIntN participantIndex, UIntN domainIndex)
@@ -119,22 +86,22 @@ UInt32 DomainPlatformPowerStatus_001::getACOperationalCurrent(UIntN participantI
 
 Percentage DomainPlatformPowerStatus_001::getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
 {
-	m_ac1msPercentageOverload =
-		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP01, domainIndex);
+	m_ac1msPercentageOverload = Percentage::fromWholeNumber(
+		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_AP01, domainIndex));
 	return m_ac1msPercentageOverload;
 }
 
 Percentage DomainPlatformPowerStatus_001::getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
 {
-	m_ac2msPercentageOverload =
-		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP02, domainIndex);
+	m_ac2msPercentageOverload = Percentage::fromWholeNumber(
+		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_AP02, domainIndex));
 	return m_ac2msPercentageOverload;
 }
 
 Percentage DomainPlatformPowerStatus_001::getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
 {
-	m_ac10msPercentageOverload =
-		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP10, domainIndex);
+	m_ac10msPercentageOverload = Percentage::fromWholeNumber(
+		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_AP10, domainIndex));
 	return m_ac10msPercentageOverload;
 }
 
@@ -149,14 +116,18 @@ void DomainPlatformPowerStatus_001::notifyForProchotDeassertion(UIntN participan
 		}
 
 		prochotAssertionRequest |= AssertProchot;
-		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, "Setting PBOK: " + friendlyValue(prochotAssertionRequest)));
-		getParticipantServices()->primitiveExecuteSetAsUInt32(esif_primitive_type::SET_PBOK, prochotAssertionRequest, domainIndex);
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Setting PBOK: " + friendlyValue(prochotAssertionRequest); });
+
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_PBOK, prochotAssertionRequest, domainIndex);
 	}
 	catch (const std::exception& ex)
 	{
-		std::stringstream message;
-		message << "Failed to set PBOK: " << ex.what();
-		getParticipantServices()->writeMessageDebug(ParticipantMessage(FLF, message.str()));
+		PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+			std::stringstream message;
+			message << "Failed to set PBOK: " << ex.what();
+			return message.str();
+		});
 	}
 }
 
@@ -165,7 +136,7 @@ void DomainPlatformPowerStatus_001::sendActivityLoggingDataIfEnabled(UIntN parti
 	// ESIF handles status reporting to participant log
 }
 
-void DomainPlatformPowerStatus_001::clearCachedData(void)
+void DomainPlatformPowerStatus_001::onClearCachedData(void)
 {
 	initializeDataStructures();
 }
@@ -175,19 +146,6 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
 	auto root = XmlNode::createWrapperElement("platform_power_status");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
-
-	auto pmaxStatus = XmlNode::createWrapperElement("platform_power_status_object");
-	pmaxStatus->addChild(XmlNode::createDataElement("name", "Max Battery Power (PMAX)"));
-	try
-	{
-		pmaxStatus->addChild(XmlNode::createDataElement(
-			"value", getMaxBatteryPower(getParticipantIndex(), domainIndex).toString() + "mW"));
-	}
-	catch (...)
-	{
-		pmaxStatus->addChild(XmlNode::createDataElement("value", "Error"));
-	}
-	root->addChild(pmaxStatus);
 
 	auto psrcStatus = XmlNode::createWrapperElement("platform_power_status_object");
 	psrcStatus->addChild(XmlNode::createDataElement("name", "Platform Power Source (PSRC)"));
@@ -215,21 +173,8 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
 	}
 	root->addChild(artgStatus);
 
-	auto ctypStatus = XmlNode::createWrapperElement("platform_power_status_object");
-	ctypStatus->addChild(XmlNode::createDataElement("name", "Charger Type (CTYP)"));
-	try
-	{
-		ctypStatus->addChild(XmlNode::createDataElement(
-			"value", ChargerType::ToString(getChargerType(getParticipantIndex(), domainIndex))));
-	}
-	catch (...)
-	{
-		ctypStatus->addChild(XmlNode::createDataElement("value", "Error"));
-	}
-	root->addChild(ctypStatus);
-
 	auto propStatus = XmlNode::createWrapperElement("platform_power_status_object");
-	propStatus->addChild(XmlNode::createDataElement("name", "Platform Rest Of Power (PROP)"));
+	propStatus->addChild(XmlNode::createDataElement("name", "Rest Of Platform Power (PROP)"));
 	try
 	{
 		propStatus->addChild(XmlNode::createDataElement(
@@ -240,19 +185,6 @@ std::shared_ptr<XmlNode> DomainPlatformPowerStatus_001::getXml(UIntN domainIndex
 		propStatus->addChild(XmlNode::createDataElement("value", "Error"));
 	}
 	root->addChild(propStatus);
-
-	auto pbssStatus = XmlNode::createWrapperElement("platform_power_status_object");
-	pbssStatus->addChild(XmlNode::createDataElement("name", "Platform Battery Steady State (PBSS)"));
-	try
-	{
-		pbssStatus->addChild(XmlNode::createDataElement(
-			"value", getPlatformBatterySteadyState(getParticipantIndex(), domainIndex).toString() + "mW"));
-	}
-	catch (...)
-	{
-		pbssStatus->addChild(XmlNode::createDataElement("value", "Error"));
-	}
-	root->addChild(pbssStatus);
 
 	auto avolStatus = XmlNode::createWrapperElement("platform_power_status_object");
 	avolStatus->addChild(XmlNode::createDataElement("name", "AC Nominal Voltage (AVOL)"));
@@ -329,10 +261,8 @@ std::string DomainPlatformPowerStatus_001::getName(void)
 
 void DomainPlatformPowerStatus_001::initializeDataStructures(void)
 {
-	m_maxBatteryPower = Power::createInvalid();
 	m_platformRestOfPower = Power::createInvalid();
 	m_adapterRating = Power::createInvalid();
-	m_batterySteadyState = Power::createInvalid();
 	m_acNominalVoltage = Constants::Invalid;
 	m_acOperationalCurrent = Constants::Invalid;
 	m_ac1msPercentageOverload = Percentage::createInvalid();

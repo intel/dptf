@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 **
 ******************************************************************************/
 
-#include <stdarg.h>
-#include <ctype.h>
-
 #define _ISTRING_CLASS
 #include "esif_ccb_string.h"
 #include "esif_lib_istring.h"
+
+#include <stdarg.h>
+#include <ctype.h>
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 # define _SDL_BANNED_RECOMMENDED
@@ -63,11 +63,12 @@ void ESIF_INLINE IString_ctor (IStringPtr self)
 
 void ESIF_INLINE IString_dtor (IStringPtr self)
 {
-	ESIF_ASSERT(self);
-	if (self->buf_len) {
-		esif_ccb_free(self->buf_ptr);
+	if (self) {
+		if (self->buf_len) {
+			esif_ccb_free(self->buf_ptr);
+		}
+		WIPEPTR(self);
 	}
-	WIPEPTR(self);
 }
 
 
@@ -184,10 +185,11 @@ u32 IString_DataLen (IStringPtr self)
 // Truncate an IString
 void IString_Truncate (IStringPtr self)
 {
-	ESIF_ASSERT(self);
-	if (self->data_len) {
-		*((ZString)(self->buf_ptr)) = 0;
-		self->data_len = 1;
+	if (self) {
+		if (self->data_len) {
+			*((ZString)(self->buf_ptr)) = 0;
+			self->data_len = 1;
+		}
 	}
 }
 
@@ -255,16 +257,13 @@ int IString_Sscanf (
 	)
 {
 	int result = 0;
-	va_list args;
 
-	ESIF_ASSERT(self);
-	if (self->data_len <= 1) {
-		return result;
+	if (self && self->data_len > 1) {
+		va_list args;
+		va_start(args, format);
+		esif_ccb_vsscanf((ZString)self->buf_ptr, format, args);
+		va_end(args);
 	}
-
-	va_start(args, format);
-	esif_ccb_vsscanf((ZString)self->buf_ptr, format, args);
-	va_end(args);
 	return result;
 }
 
@@ -278,9 +277,8 @@ ZString IString_Resize (
 	u32 buf_len
 	)
 {
-	ESIF_ASSERT(self);
 	// Allocate initial buffer if it has never been allocated
-	if (self->buf_ptr == 0) {
+	if (self && self->buf_ptr == 0) {
 		self->buf_ptr = esif_ccb_malloc(buf_len);
 		if (self->buf_ptr) {
 			self->buf_len  = buf_len;
@@ -289,7 +287,7 @@ ZString IString_Resize (
 		}
 	}
 	// Resize buffer if it is not a static string
-	if (self->buf_len > 0) {
+	if (self && self->buf_len > 0) {
 		ZString buf_ptr = (ZString)esif_ccb_realloc(self->buf_ptr, buf_len);
 		if (buf_ptr) {
 			if (buf_len > self->buf_len) {
@@ -320,16 +318,19 @@ ZString IString_Copy (
 	IStringPtr src
 	)
 {
-	ESIF_ASSERT(self && src);
-	if (src->data_len > self->buf_len) {
+	ZString result = NULL;
+	if (self && src) {
+		if (src->data_len > self->buf_len) {
 #ifdef ISTRING_AUTOGROW
-		if (IString_Resize(self, src->data_len + ISTRING_AUTOGROW) == NULL)
+			if (IString_Resize(self, src->data_len + ISTRING_AUTOGROW) == NULL)
 #endif
-		return 0;
+			return 0;
+		}
+		esif_ccb_strcpy((ZString)self->buf_ptr, (ZString)src->buf_ptr, self->buf_len);
+		self->data_len = src->data_len;
+		result = (ZString)self->buf_ptr;
 	}
-	esif_ccb_strcpy((ZString)self->buf_ptr, (ZString)src->buf_ptr, self->buf_len);
-	self->data_len = src->data_len;
-	return (ZString)self->buf_ptr;
+	return result;
 }
 
 
@@ -339,18 +340,20 @@ ZString IString_Concat (
 	IStringPtr src
 	)
 {
-	u32 self_len;
-	ESIF_ASSERT(self && src);
-	self_len = (self->data_len ? self->data_len - 1 : 0);
-	if (self_len + src->data_len > self->buf_len) {
+	ZString result = NULL;
+	if (self && src) {
+		u32 self_len = (self->data_len ? self->data_len - 1 : 0);
+		if (self_len + src->data_len > self->buf_len) {
 #ifdef ISTRING_AUTOGROW
-		if (IString_Resize(self, self_len + src->data_len + ISTRING_AUTOGROW) == NULL)
+			if (IString_Resize(self, self_len + src->data_len + ISTRING_AUTOGROW) == NULL)
 #endif
-		return 0;
+			return 0;
+		}
+		esif_ccb_strcpy((ZString)self->buf_ptr + self_len, (ZString)src->buf_ptr, self->buf_len - self_len);
+		self->data_len += src->data_len - 1;
+		result = (ZString)self->buf_ptr;
 	}
-	esif_ccb_strcpy((ZString)self->buf_ptr + self_len, (ZString)src->buf_ptr, self->buf_len - self_len);
-	self->data_len += src->data_len - 1;
-	return (ZString)self->buf_ptr;
+	return result;
 }
 
 
@@ -362,20 +365,19 @@ int IString_VSprintfTo (
 	va_list args
 	)
 {
-	u32 len;
 	int result = 0;
-	ESIF_ASSERT(self);
-
-	len    = esif_ccb_vscprintf(format, args);
-	offset = (self->data_len > 0 ? esif_ccb_min(offset, self->data_len - 1) : 0);
-	if (offset + len + 1 > self->buf_len) {
+	if (self) {
+		u32 len = esif_ccb_vscprintf(format, args);
+		offset = (self->data_len > 0 ? esif_ccb_min(offset, self->data_len - 1) : 0);
+		if (offset + len + 1 > self->buf_len) {
 #ifdef ISTRING_AUTOGROW
-		if (IString_Resize(self, offset + len + 1 + ISTRING_AUTOGROW) == NULL)
+			if (IString_Resize(self, offset + len + 1 + ISTRING_AUTOGROW) == NULL)
 #endif
-		return 0;
+			return 0;
+		}
+		result = (int)offset + esif_ccb_vsprintf(self->buf_len - offset, (ZString)self->buf_ptr + offset, format, args);
+		self->data_len = result + 1;
 	}
-	result = esif_ccb_vsprintf(self->buf_len - offset, (ZString)self->buf_ptr + offset, format, args);
-	self->data_len = offset + result + 1;
 	return result;
 }
 
@@ -420,61 +422,65 @@ ZString IString_ReplaceIString (
 	int IgnoreCase
 	)
 {
-	ZString from, to, find;
-	u32 count, oldsize, newsize;
+	ZString result = NULL;
 
 	// Sanity checks. Cannot replace an empty string
-	ESIF_ASSERT(self && what && with);
-	if (self->data_len <= 1 || what->data_len <= 1) {
-		return 0;
-	}
+	if (self && what && with) {
+		ZString from = 0, to = 0, find = 0;
+		u32 count = 0, oldsize = 0, newsize = 0;
 
-	// Count occurances of replacment string in original string
-	for (count = 0, find = (ZString)self->buf_ptr; (find = (ZString)strfind(find, (ZString)what->buf_ptr, IgnoreCase)) != NULL; count++)
-		find += what->data_len - 1;
+		if (self->data_len <= 1 || what->data_len <= 1) {
+			return (ZString)self->buf_ptr;
+		}
 
-	// Compute new string size and Resize if necessary
-	oldsize = self->data_len;
-	newsize = self->data_len + (count * (int)(esif_ccb_max(with->data_len, 1) - what->data_len));
-	if (newsize > self->buf_len) {
+		// Count occurances of replacment string in original string
+		for (count = 0, find = (ZString)self->buf_ptr; (find = (ZString)strfind(find, (ZString)what->buf_ptr, IgnoreCase)) != NULL; count++)
+			find += what->data_len - 1;
+
+		// Compute new string size and Resize if necessary
+		oldsize = self->data_len;
+		newsize = self->data_len + (count * (int)(esif_ccb_max(with->data_len, 1) - what->data_len));
+		if (newsize > self->buf_len) {
 #ifdef ISTRING_AUTOGROW
-		if (IString_Resize(self, newsize + ISTRING_AUTOGROW) == NULL)
+			if (IString_Resize(self, newsize + ISTRING_AUTOGROW) == NULL)
 #endif
-		return 0;
-	}
+			return NULL;
+		}
 
-	// Do an in-string replacement so that another copy of the string does not need to be allocated
-	// a) newsize <= oldsize: Do a left-to-right copy replacment
-	// b) newsize >  oldsize: Move string to end of newsize buffer, then do a left-to-right copy replacement
-	from = to = (ZString)self->buf_ptr;
-	self->data_len = newsize;
-	if (newsize > oldsize) {
-		// Move string to end of reallocated (data_len) buffer
-		esif_ccb_memmove(((ZString)self->buf_ptr) + (newsize - oldsize), (ZString)self->buf_ptr, oldsize);
-		from += newsize - oldsize;
-	}
-	// Do a left-to-right copy (from -> to), replacing each occurance of old string (what) with new string (with)
-	while ((find = (ZString)strfind(from, (ZString)what->buf_ptr, IgnoreCase)) != NULL) {
-		if (from > to) {
-			esif_ccb_memcpy(to, from, (size_t)(find - from));
+		// Do an in-string replacement so that another copy of the string does not need to be allocated
+		// a) newsize <= oldsize: Do a left-to-right copy replacment
+		// b) newsize >  oldsize: Move string to end of newsize buffer, then do a left-to-right copy replacement
+		from = to = (ZString)self->buf_ptr;
+		self->data_len = newsize;
+		if (newsize > oldsize) {
+			// Move string to end of reallocated (data_len) buffer
+			esif_ccb_memmove(((ZString)self->buf_ptr) + (newsize - oldsize), (ZString)self->buf_ptr, oldsize);
+			from += newsize - oldsize;
 		}
-		to += (size_t)(find - from);
-		if (with->data_len > 0) {
-			esif_ccb_memcpy(to, (ZString)with->buf_ptr, with->data_len - 1);
-			to += with->data_len - 1;
+		// Do a left-to-right copy (from -> to), replacing each occurance of old string (what) with new string (with)
+		while ((find = (ZString)strfind(from, (ZString)what->buf_ptr, IgnoreCase)) != NULL) {
+			if (from > to) {
+				esif_ccb_memcpy(to, from, (size_t)(find - from));
+			}
+			to += (size_t)(find - from);
+			if (with->data_len > 0) {
+				esif_ccb_memcpy(to, (ZString)with->buf_ptr, with->data_len - 1);
+				to += with->data_len - 1;
+			}
+			from = find + (what->data_len - 1);
 		}
-		from = find + (what->data_len - 1);
+		// Copy remainder of string, if any
+		if (to < from) {
+			esif_ccb_memcpy(to, from, newsize - (size_t)(to - (ZString)self->buf_ptr));
+		}
+		to += newsize - (size_t)(to - (ZString)self->buf_ptr);
+		// zero out remainder of old string, if any
+		if (oldsize > newsize) {
+			esif_ccb_memset(to, 0, oldsize - newsize);
+		}
+		result = (ZString)self->buf_ptr;
 	}
-	// Copy remainder of string, if any
-	if (to < from) {
-		esif_ccb_memcpy(to, from, newsize - (size_t)(to - (ZString)self->buf_ptr));
-	}
-	to += newsize - (size_t)(to - (ZString)self->buf_ptr);
-	// zero out remainder of old string, if any
-	if (oldsize > newsize) {
-		esif_ccb_memset(to, 0, oldsize - newsize);
-	}
-	return (ZString)self->buf_ptr;
+	return result;
 }
 
 
@@ -531,8 +537,7 @@ int IString_Strcmp (
 	ZString str2
 	)
 {
-	ESIF_ASSERT(self);
-	if (self->buf_ptr && str2) {
+	if (self && self->buf_ptr && str2) {
 		return esif_ccb_strcmp((ZString)self->buf_ptr, str2);
 	}
 	return 0;
@@ -544,8 +549,7 @@ int IString_Stricmp (
 	ZString str2
 	)
 {
-	ESIF_ASSERT(self);
-	if (self->buf_ptr && str2) {
+	if (self && self->buf_ptr && str2) {
 		return esif_ccb_stricmp((ZString)self->buf_ptr, str2);
 	}
 	return 0;
@@ -558,8 +562,7 @@ int IString_Strncmp (
 	u32 count
 	)
 {
-	ESIF_ASSERT(self);
-	if (self->buf_ptr && str2) {
+	if (self && self->buf_ptr && str2) {
 		return esif_ccb_strncmp((ZString)self->buf_ptr, str2, count);
 	}
 	return 0;
@@ -572,8 +575,7 @@ int IString_Strnicmp (
 	u32 count
 	)
 {
-	ESIF_ASSERT(self);
-	if (self->buf_ptr && str2) {
+	if (self && self->buf_ptr && str2) {
 		return esif_ccb_strnicmp((ZString)self->buf_ptr, str2, count);
 	}
 	return 0;

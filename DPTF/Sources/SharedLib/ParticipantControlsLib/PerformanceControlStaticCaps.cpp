@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,8 +17,6 @@
 ******************************************************************************/
 
 #include "PerformanceControlStaticCaps.h"
-#include "StatusFormat.h"
-#include "XmlNode.h"
 
 PerformanceControlStaticCaps::PerformanceControlStaticCaps(Bool dynamicPerformanceControlStates)
 	: m_dynamicPerformanceControlStates(dynamicPerformanceControlStates)
@@ -28,14 +26,4 @@ PerformanceControlStaticCaps::PerformanceControlStaticCaps(Bool dynamicPerforman
 Bool PerformanceControlStaticCaps::supportsDynamicPerformanceControlStates(void) const
 {
 	return m_dynamicPerformanceControlStates;
-}
-
-std::shared_ptr<XmlNode> PerformanceControlStaticCaps::getXml(void)
-{
-	auto root = XmlNode::createWrapperElement("performance_control_static_caps");
-
-	root->addChild(XmlNode::createDataElement(
-		"dynamic_performance_control_states", StatusFormat::friendlyValue(m_dynamicPerformanceControlStates)));
-
-	return root;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,10 @@ typedef struct DataBank_s DataBank, *DataBankPtr, **DataBankPtrLocation;
 
 #ifdef _DATABANK_CLASS
 struct DataBank_s {
-	esif_ccb_lock_t	lock;		// Read/Write Lock
-	UInt32			size;		// Number of DataVaults in elements array
-	DataVaultPtr	*elements;	// Array of DataVaults, sorted by name	
+	esif_ccb_lock_t		lock;		// Read/Write Lock
+	UInt32				size;		// Number of DataVaults in elements array
+	DataVaultPtr		*elements;	// Array of DataVaults, sorted by name	
+	char				defaultDV[ESIF_NAME_LEN];	// Default Namespace
 };
 
 #endif

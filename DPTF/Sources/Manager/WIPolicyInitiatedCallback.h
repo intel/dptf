@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,7 +33,7 @@ public:
 	virtual ~WIPolicyInitiatedCallback(void);
 
 	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
-	virtual void execute(void) override final;
+	virtual void onExecute(void) override final;
 
 private:
 	const UIntN m_policyIndex;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,15 +21,27 @@
 #include "Dptf.h"
 #include "DptfManager.h"
 
-class dptf_export SupportedPolicyList
+class dptf_export ISupportedPolicyList
+{
+public:
+	virtual UIntN getCount(void) const = 0;
+	virtual Guid get(UIntN index) const = 0;
+	virtual Bool isPolicySupported(const Guid& guid) const = 0;
+	virtual void update(void) = 0;
+	virtual ~ISupportedPolicyList() {}
+};
+
+class dptf_export SupportedPolicyList : public ISupportedPolicyList
 {
 public:
 	SupportedPolicyList(DptfManagerInterface* dptfManager);
 
-	UIntN getCount(void) const;
+	virtual UIntN getCount(void) const override;
 	Guid operator[](UIntN index) const;
-	Bool isPolicySupported(const Guid& guid) const;
-	void update(void);
+	virtual Guid get(UIntN index) const override;
+	virtual Bool isPolicySupported(const Guid& guid) const override;
+	virtual void update(void) override;
+	virtual ~SupportedPolicyList() {}
 
 private:
 	DptfManagerInterface* m_dptfManager;
@@ -37,4 +49,5 @@ private:
 	Bool isBufferValid(const DptfBuffer& buffer) const;
 	std::vector<Guid> parseBufferForPolicyGuids(const DptfBuffer& buffer);
 	void postMessageWithSupportedGuids() const;
+	EsifServicesInterface* getEsifServices() const;
 };

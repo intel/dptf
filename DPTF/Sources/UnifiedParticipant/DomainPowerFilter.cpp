@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -158,7 +158,7 @@ void DomainPowerFilter::setLastEwmaPower(PowerControlType::Type type, Power valu
 		m_participantServices->primitiveExecuteSetAsPower(
 			esif_primitive_type::SET_LAST_EWMA_POWER, value, m_domainIndex, (UInt8)type);
 	}
-	catch (file_open_create_failure& ex)
+	catch (file_open_create_failure&)
 	{
 		// system is in read-only mode, cannot save historical data on disk
 	}
@@ -172,7 +172,7 @@ void DomainPowerFilter::setLastPowerUsed(PowerControlType::Type type, Power valu
 		m_participantServices->primitiveExecuteSetAsPower(
 			esif_primitive_type::SET_LAST_POWER_USED, value, m_domainIndex, (UInt8)type);
 	}
-	catch (file_open_create_failure& ex)
+	catch (file_open_create_failure&)
 	{
 		// system is in read-only mode, cannot save historical data on disk
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ WIDptfResume::~WIDptfResume(void)
 {
 }
 
-void WIDptfResume::execute(void)
+void WIDptfResume::onExecute(void)
 {
 	// On a Windows machine DptfSuspend/DptfResume is called during the D0 Entry/Exit callback functions.  This is
 	// synchronous and the new state doesn't take effect until this work item completes.
@@ -49,7 +49,7 @@ void WIDptfResume::execute(void)
 			Participant* participant = participantManager->getParticipantPtr(*i);
 			participant->resume();
 		}
-		catch (participant_index_invalid& ex)
+		catch (participant_index_invalid&)
 		{
 			// do nothing.  No item in the participant list at this index.
 		}
@@ -68,10 +68,10 @@ void WIDptfResume::execute(void)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executeResume();
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}

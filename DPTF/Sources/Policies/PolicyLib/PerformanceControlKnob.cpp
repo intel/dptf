@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 ******************************************************************************/
 
 #include "PerformanceControlKnob.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 
 PerformanceControlKnob::PerformanceControlKnob(
@@ -44,10 +46,13 @@ void PerformanceControlKnob::limit(UIntN target)
 	{
 		try
 		{
-			stringstream messageBefore;
-			messageBefore << "Calculating request to limit " << controlTypeToString(m_controlType) << " controls.";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageBefore;
+				messageBefore << "Calculating request to limit " << controlTypeToString(m_controlType) << " controls."
+							  << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageBefore.str();
+			});
 
 			const PerformanceControlDynamicCaps& dynamicCapabilities = m_performanceControl->getDynamicCapabilities();
 			UIntN lowerLimitIndex = dynamicCapabilities.getCurrentLowerLimitIndex();
@@ -56,16 +61,24 @@ void PerformanceControlKnob::limit(UIntN target)
 			UIntN nextIndex = std::min(currentIndex + 1, lowerLimitIndex);
 			(*m_requests)[target] = nextIndex;
 
-			stringstream messageAfter;
-			messageAfter << "Requesting to limit " << controlTypeToString(m_controlType) << " controls to" << nextIndex
-						 << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageAfter;
+				messageAfter << "Requesting to limit " << controlTypeToString(m_controlType) << " controls to"
+							 << nextIndex << "."
+							 << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageAfter.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 			throw ex;
 		}
 	}
@@ -77,10 +90,13 @@ void PerformanceControlKnob::unlimit(UIntN target)
 	{
 		try
 		{
-			stringstream messageBefore;
-			messageBefore << "Calculating request to unlimit " << controlTypeToString(m_controlType) << " controls.";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageBefore;
+				messageBefore << "Calculating request to unlimit " << controlTypeToString(m_controlType) << " controls."
+							  << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageBefore.str();
+			});
 
 			const PerformanceControlDynamicCaps& dynamicCapabilities = m_performanceControl->getDynamicCapabilities();
 			UIntN lowerLimitIndex = dynamicCapabilities.getCurrentLowerLimitIndex();
@@ -89,16 +105,24 @@ void PerformanceControlKnob::unlimit(UIntN target)
 			UIntN nextIndex = std::max(currentIndex - 1, upperLimitIndex);
 			(*m_requests)[target] = nextIndex;
 
-			stringstream messageAfter;
-			messageAfter << "Requesting to unlimit " << controlTypeToString(m_controlType) << " controls to"
-						 << nextIndex << ".";
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG({
+				stringstream messageAfter;
+				messageAfter << "Requesting to unlimit " << controlTypeToString(m_controlType) << " controls to"
+							 << nextIndex << "."
+							 << " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return messageAfter.str();
+			});
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+			// TODO: pass in participant index and domain
+			POLICY_LOG_MESSAGE_DEBUG_EX({
+				stringstream message;
+				message << ex.what() << "."
+						<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+				return message.str();
+			});
 			throw ex;
 		}
 	}
@@ -256,18 +280,27 @@ Bool PerformanceControlKnob::commitSetting()
 			UIntN nextIndex = snapToCapabilitiesBounds(findHighestPerformanceIndexRequest());
 			if (currentIndex != nextIndex)
 			{
-				stringstream messageBefore;
-				messageBefore << "Attempting to change " << controlTypeToString(m_controlType) << " limit to "
-							  << nextIndex << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageBefore.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageBefore;
+					messageBefore << "Attempting to change " << controlTypeToString(m_controlType) << " limit to "
+								  << nextIndex << "."
+								  << " ParticipantIndex = " << getParticipantIndex()
+								  << ". Domain = " << getDomainIndex();
+					return messageBefore.str();
+				});
 
 				m_performanceControl->setControl(nextIndex);
 
-				stringstream messageAfter;
-				messageAfter << "Changed " << controlTypeToString(m_controlType) << " limit to " << nextIndex << ".";
-				getPolicyServices().messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, messageAfter.str(), getParticipantIndex(), getDomainIndex()));
+				// TODO: pass in participant index and domain
+				POLICY_LOG_MESSAGE_DEBUG({
+					stringstream messageAfter;
+					messageAfter << "Changed " << controlTypeToString(m_controlType) << " limit to " << nextIndex << "."
+								 << " ParticipantIndex = " << getParticipantIndex()
+								 << ". Domain = " << getDomainIndex();
+					return messageAfter.str();
+				});
+
 				return true;
 			}
 			else
@@ -282,8 +315,14 @@ Bool PerformanceControlKnob::commitSetting()
 	}
 	catch (std::exception& ex)
 	{
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, ex.what(), getParticipantIndex(), getDomainIndex()));
+		// TODO: pass in participant index and domain
+		POLICY_LOG_MESSAGE_DEBUG_EX({
+			stringstream message;
+			message << ex.what() << "."
+					<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+			return message.str();
+		});
+
 		throw ex;
 	}
 }
@@ -341,12 +380,16 @@ Bool PerformanceControlKnob::checkUtilizationIsLessThanThreshold() const
 
 	if (currentUtilization.getCurrentUtilization() < m_tstateUtilizationThreshold.getCurrentUtilization())
 	{
-		stringstream message;
-		message << "Cannot set T-state because utilization (" + currentUtilization.getCurrentUtilization().toString()
-					   + ") is less than the threshold ("
-					   + m_tstateUtilizationThreshold.getCurrentUtilization().toString() + ").";
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, message.str(), getParticipantIndex(), getDomainIndex()));
+		// TODO: pass in participant index and domain
+		POLICY_LOG_MESSAGE_DEBUG({
+			stringstream message;
+			message << "Cannot set T-state because utilization ("
+					<< currentUtilization.getCurrentUtilization().toString() << ") is less than the threshold ("
+					<< m_tstateUtilizationThreshold.getCurrentUtilization().toString() << ")."
+					<< " ParticipantIndex = " << getParticipantIndex() << ". Domain = " << getDomainIndex();
+			return message.str();
+		});
+
 		return false;
 	}
 	else

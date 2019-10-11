@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "CoreControlFacade.h"
 #include "StatusFormat.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 using namespace StatusFormat;
 
@@ -50,7 +52,8 @@ void CoreControlFacade::initializeControlsIfNeeded()
 {
 	if (supportsCoreControls())
 	{
-		m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF, "Core control initialization started."));
+		POLICY_LOG_MESSAGE_DEBUG({ return "Core control initialization started."; });
+
 		CoreControlDynamicCaps caps = getDynamicCapabilities();
 		if (m_controlsHaveBeenInitialized == false)
 		{
@@ -64,18 +67,16 @@ void CoreControlFacade::initializeControlsIfNeeded()
 			UIntN lastSetActiveCores = m_lastSetCoreControlStatus.getNumActiveLogicalProcessors();
 			if (lastSetActiveCores > maxActiveCores)
 			{
-				m_policyServices.messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, "Adjusting active core limit to minimum allowed."));
+				POLICY_LOG_MESSAGE_DEBUG({ return "Adjusting active core limit to minimum allowed."; });
 				setActiveCoreControl(CoreControlStatus(maxActiveCores));
 			}
 			else if (lastSetActiveCores < minActiveCores)
 			{
-				m_policyServices.messageLogging->writeMessageDebug(
-					PolicyMessage(FLF, "Adjusting active core limit to minimum allowed."));
+				POLICY_LOG_MESSAGE_DEBUG({ return "Adjusting active core limit to minimum allowed."; });
 				setActiveCoreControl(CoreControlStatus(minActiveCores));
 			}
 		}
-		m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF, "Core control initialization finished."));
+		POLICY_LOG_MESSAGE_DEBUG({ return "Core control initialization finished."; });
 	}
 }
 
@@ -149,4 +150,9 @@ void CoreControlFacade::throwIfControlNotSupported()
 			"Cannot perform core control action because core controls \
 							 are not supported on the domain.");
 	}
+}
+
+const PolicyServicesInterfaceContainer& CoreControlFacade::getPolicyServices() const
+{
+	return m_policyServices;
 }

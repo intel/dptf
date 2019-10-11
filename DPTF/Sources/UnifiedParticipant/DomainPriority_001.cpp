@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@ DomainPriority_001::DomainPriority_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainPriorityBase(participantIndex, domainIndex, participantServicesInterface)
 {
-	clearCachedData();
+	onClearCachedData();
 }
 
 DomainPriority_001::~DomainPriority_001()
@@ -47,19 +47,29 @@ void DomainPriority_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex
 			EsifCapabilityData capability;
 			capability.type = ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY;
 			capability.size = sizeof(capability);
-			capability.data.domainPriority.priority = m_currentPriority.getCurrentPriority();
+			if (m_cacheDataCleared == true)
+			{
+				capability.data.domainPriority.priority =
+					getDomainPriority(getParticipantIndex(), domainIndex).getCurrentPriority();
+			}
+			else
+			{
+				capability.data.domainPriority.priority = m_currentPriority.getCurrentPriority();
+			}
 			getParticipantServices()->sendDptfEvent(
 				ParticipantEvent::DptfParticipantControlAction,
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Domain Priority"
-					<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Domain Priority"
+						<< ")";
+				return message.str();
+				});
 		}
 	}
 	catch (...)
@@ -68,7 +78,7 @@ void DomainPriority_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex
 	}
 }
 
-void DomainPriority_001::clearCachedData(void)
+void DomainPriority_001::onClearCachedData(void)
 {
 	m_currentPriority = DomainPriority(0); // set priority to 0 (low)
 	m_cacheDataCleared = true;

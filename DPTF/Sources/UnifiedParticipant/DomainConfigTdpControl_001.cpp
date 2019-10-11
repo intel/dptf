@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,7 +28,7 @@ DomainConfigTdpControl_001::DomainConfigTdpControl_001(
 	, m_currentConfigTdpControlId(Constants::Invalid)
 	, m_configTdpLock(false)
 {
-	clearCachedData();
+	onClearCachedData();
 	capture();
 }
 
@@ -105,8 +105,8 @@ void DomainConfigTdpControl_001::setConfigTdpControl(
 	// If any of the lock bits are set, we cannot program cTDP
 	if (m_configTdpLock)
 	{
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "cTDP set level ignored, lock bit is set!"));
+		PARTICIPANT_LOG_MESSAGE_WARNING({ return "cTDP set level ignored, lock bit is set!"; });
+
 		return;
 	}
 
@@ -160,13 +160,15 @@ void DomainConfigTdpControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 				domainIndex,
 				Capability::getEsifDataFromCapabilityData(&capability));
 
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Config TDP Control"
-					<< ")";
-			getParticipantServices()->writeMessageInfo(ParticipantMessage(FLF, message.str()));
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Config TDP Control"
+						<< ")";
+				return message.str();
+			});
 		}
 	}
 	catch (...)
@@ -175,7 +177,7 @@ void DomainConfigTdpControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 	}
 }
 
-void DomainConfigTdpControl_001::clearCachedData(void)
+void DomainConfigTdpControl_001::onClearCachedData(void)
 {
 	m_configTdpControlSet.invalidate();
 	m_configTdpControlDynamicCaps.invalidate();
@@ -200,11 +202,9 @@ void DomainConfigTdpControl_001::capture(void)
 	{
 		m_initialStatus.set(getConfigTdpControlStatus(getParticipantIndex(), getDomainIndex()));
 	}
-	catch (dptf_exception& e)
+	catch (dptf_exception& ex)
 	{
-		std::string warningMsg = e.what();
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "Failed to get the initial cTDP status. " + warningMsg));
+		PARTICIPANT_LOG_MESSAGE_WARNING_EX({ return "Failed to get the initial cTDP status. " + ex.getDescription(); });
 	}
 }
 
@@ -217,17 +217,15 @@ void DomainConfigTdpControl_001::restore(void)
 			setConfigTdpControl(
 				getParticipantIndex(), getDomainIndex(), m_initialStatus.get().getCurrentControlIndex());
 		}
-		catch (dptf_exception& e)
+		catch (dptf_exception& ex)
 		{
-			std::string warningMsg = e.what();
-			getParticipantServices()->writeMessageWarning(
-				ParticipantMessage(FLF, "Failed to restore the initial cTDP status. " + warningMsg));
+			PARTICIPANT_LOG_MESSAGE_WARNING_EX(
+				{ return "Failed to restore the initial cTDP status. " + ex.getDescription(); });
 		}
 		catch (...)
 		{
 			// best effort
-			getParticipantServices()->writeMessageDebug(
-				ParticipantMessage(FLF, "Failed to restore the initial cTDP control status. "));
+			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial cTDP control status. "; });
 		}
 	}
 }
@@ -342,8 +340,7 @@ Bool DomainConfigTdpControl_001::isLockBitSet(UIntN domainIndex)
 
 	if (tarLock || configTdpLock)
 	{
-		getParticipantServices()->writeMessageWarning(
-			ParticipantMessage(FLF, "cTDP is supported, but the lock bit is set!"));
+		PARTICIPANT_LOG_MESSAGE_WARNING({ return "cTDP is supported, but the lock bit is set!"; });
 		return true;
 	}
 	else

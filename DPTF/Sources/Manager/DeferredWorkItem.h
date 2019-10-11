@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,7 @@
 class DeferredWorkItem : public WorkItemInterface
 {
 public:
-	DeferredWorkItem(WorkItemInterface* workItem, const TimeSpan& timeUntilExecution);
+	DeferredWorkItem(std::shared_ptr<WorkItemInterface> workItem, const TimeSpan& timeUntilExecution);
 	virtual ~DeferredWorkItem(void);
 
 	// implement WorkItemInterface
@@ -42,9 +42,10 @@ public:
 	virtual Bool matches(const WorkItemMatchCriteria& matchCriteria) const override;
 	virtual std::string toXml(void) const override;
 	virtual void execute(void) override;
+	virtual void signal(void) override;
 
 	// implement added functionality
-	WorkItemInterface* getWorkItem(void) const;
+	std::shared_ptr<WorkItemInterface> getWorkItem(void) const;
 	const TimeSpan& getDeferredProcessingTime(void) const;
 
 private:
@@ -52,6 +53,6 @@ private:
 	DeferredWorkItem(const DeferredWorkItem&);
 	DeferredWorkItem& operator=(const DeferredWorkItem&);
 
-	WorkItemInterface* m_workItem;
+	std::shared_ptr<WorkItemInterface> m_workItem;
 	TimeSpan m_deferredProcessingTime;
 };

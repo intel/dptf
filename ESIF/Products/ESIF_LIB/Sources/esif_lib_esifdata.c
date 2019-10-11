@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -161,6 +161,7 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 	case ESIF_DATA_BINARY:
 	case ESIF_DATA_BLOB:
 	case ESIF_DATA_DSP:
+	case ESIF_DATA_JSON:
 	case ESIF_DATA_STRUCTURE:
 	case ESIF_DATA_XML:
 		size = self->data_len;	// Or 0xFFFFFFFF?
@@ -383,6 +384,7 @@ char *EsifData_ToStringMax(
 		break;
 
 	case ESIF_DATA_STRING:
+	case ESIF_DATA_JSON:
 	case ESIF_DATA_XML:
 		alloc   = esif_ccb_min(self->data_len, max_string) + 1;
 		ptrdata = (Byte*)self->buf_ptr;
@@ -465,6 +467,7 @@ char *EsifData_ToStringMax(
 			break;
 
 		case ESIF_DATA_STRING:
+		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
 			if (ptrlen < max_string + 1) {
 				esif_ccb_memcpy(result, ptrdata, ptrlen);
@@ -586,6 +589,7 @@ esif_error_t EsifData_FromString (
 		break;
 
 	case ESIF_DATA_STRING:
+	case ESIF_DATA_JSON:
 	case ESIF_DATA_XML:
 		alloc   = (UInt32)esif_ccb_strlen(str, MAXAUTOLEN) + 1;
 		ptrdata = (Byte*)str;
@@ -700,6 +704,7 @@ esif_error_t EsifData_FromString (
 			break;
 
 		case ESIF_DATA_STRING:
+		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
 			esif_ccb_memcpy(buffer, ptrdata, ptrlen);
 			break;

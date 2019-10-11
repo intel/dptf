@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2018 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,17 +20,20 @@
 #include "Constants.h"
 #include "XmlNode.h"
 #include "DomainProxy.h"
+#include "PolicyCallbackScheduler.h"
 
 using namespace std;
 
 const Guid MyGuid(0xE7, 0x8A, 0xC6, 0x97, 0xFA, 0x15, 0x9C, 0x49, 0xB8, 0xC9, 0x5D, 0xA8, 0x1D, 0x60, 0x6E, 0x0A);
 const string MyName("Critical Policy");
+const TimeSpan WatchdogTime = TimeSpan::createFromSeconds(15);
 
 CriticalPolicy::CriticalPolicy(void)
 	: PolicyBase()
 	, m_sleepRequested(false)
 	, m_hibernateRequested(false)
 	, m_inEmergencyCallMode(false)
+	, m_isTimerStarted(false)
 {
 }
 
@@ -40,10 +43,13 @@ CriticalPolicy::~CriticalPolicy(void)
 
 void CriticalPolicy::onCreate(void)
 {
+	m_scheduler.reset(new PolicyCallbackScheduler(getPolicyServices(), getTime()));
+
 	getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyOperatingSystemMobileNotification);
 	getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
 	getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::ParticipantSpecificInfoChanged);
 	getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::DptfResume);
+	getPolicyServices().policyEventRegistration->registerEvent(PolicyEvent::PolicyInitiatedCallback);
 }
 
 void CriticalPolicy::onDestroy(void)
@@ -52,6 +58,9 @@ void CriticalPolicy::onDestroy(void)
 	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainTemperatureThresholdCrossed);
 	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::ParticipantSpecificInfoChanged);
 	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DptfResume);
+	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyInitiatedCallback);
+
+	stopTimer();
 }
 
 void CriticalPolicy::onEnable(void)
@@ -66,6 +75,7 @@ void CriticalPolicy::onResume(void)
 {
 	m_sleepRequested = false;
 	m_hibernateRequested = false;
+	stopTimer();
 }
 
 void CriticalPolicy::onConnectedStandbyEntry(void)
@@ -87,6 +97,11 @@ Bool CriticalPolicy::autoNotifyPlatformOscOnConnectedStandbyEntryExit() const
 }
 
 Bool CriticalPolicy::autoNotifyPlatformOscOnEnableDisable() const
+{
+	return true;
+}
+
+Bool CriticalPolicy::hasCriticalShutdownCapability() const
 {
 	return true;
 }
@@ -206,8 +221,8 @@ void CriticalPolicy::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 void CriticalPolicy::takePowerActionBasedOnThermalState(ParticipantProxyInterface* participant)
 {
 	auto currentTemperature = participant->getFirstDomainTemperature();
-	getPolicyServices().messageLogging->writeMessageDebug(
-		PolicyMessage(FLF, "Considering actions based on temperature of " + currentTemperature.toString() + "."));
+	POLICY_LOG_MESSAGE_DEBUG(
+		{ return "Considering actions based on temperature of " + currentTemperature.toString() + "."; });
 	auto tripPoints = participant->getCriticalTripPointProperty().getTripPoints();
 	setParticipantTemperatureThresholdNotification(currentTemperature, tripPoints.getSortedByValue(), participant);
 	auto tripPointCrossed = findTripPointCrossed(tripPoints.getSortedByValue(), currentTemperature);
@@ -231,9 +246,10 @@ void CriticalPolicy::takePowerAction(
 {
 	if (m_inEmergencyCallMode)
 	{
-		std::string debugMessage = "Participant crossed the " + ParticipantSpecificInfoKey::ToString(crossedTripPoint)
-								   + " trip point but no action is being taken since system is in emergency call mode.";
-		getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, debugMessage));
+		POLICY_LOG_MESSAGE_DEBUG({
+			return "Participant crossed the " + ParticipantSpecificInfoKey::ToString(crossedTripPoint)
+				   + " trip point but no action is being taken since system is in emergency call mode.";
+		});
 		return;
 	}
 
@@ -242,51 +258,62 @@ void CriticalPolicy::takePowerAction(
 	case ParticipantSpecificInfoKey::Warm:
 		if (!m_sleepRequested)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Instructing system to sleep."));
+			POLICY_LOG_MESSAGE_DEBUG({ return "Instructing system to sleep."; });
 			m_stats.sleepSignalled();
 			m_sleepRequested = true;
 			getPolicyServices().platformPowerState->sleep();
+			startTimer(WatchdogTime);
 		}
 		else
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, "Sleep has already been requested. Nothing to do."));
+			POLICY_LOG_MESSAGE_DEBUG({ return "Sleep has already been requested. Nothing to do."; });
 		}
 		break;
 	case ParticipantSpecificInfoKey::Hot:
 		if (!m_hibernateRequested)
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-				FLF,
-				string("Instructing system to hibernate. ") + string("Current temperature is ")
-					+ currentTemperature.toString() + string(". ") + string("Trip point temperature is ")
-					+ crossedTripPointTemperature.toString() + string(".")));
+			POLICY_LOG_MESSAGE_DEBUG({
+				return "Instructing system to hibernate. Current temperature is " + currentTemperature.toString()
+					   + ". Trip point temperature is " + crossedTripPointTemperature.toString() + ".";
+			});
 			m_stats.hibernateSignalled();
 			m_hibernateRequested = true;
 			getPolicyServices().platformPowerState->hibernate(
-				currentTemperature, crossedTripPointTemperature);
+				currentTemperature, crossedTripPointTemperature, participantName);
+			startTimer(WatchdogTime);
 		}
 		else
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, "Hibernate has already been requested. Nothing to do."));
+			POLICY_LOG_MESSAGE_DEBUG({ return "Hibernate has already been requested. Nothing to do."; });
 		}
 		break;
 	case ParticipantSpecificInfoKey::Critical:
-		getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(
-			FLF,
-			string("Instructing system to shut down. ") + string("Current temperature is ")
-				+ currentTemperature.toString() + string(". ") + string("Trip point temperature is ")
-				+ crossedTripPointTemperature.toString() + string(".")));
+		POLICY_LOG_MESSAGE_DEBUG({
+			return "Instructing system to shut down. Current temperature is " + currentTemperature.toString()
+				   + ". Trip point temperature is " + crossedTripPointTemperature.toString() + ".";
+		});
 		m_stats.shutdownSignalled();
 		getPolicyServices().platformPowerState->shutDown(
-			currentTemperature, crossedTripPointTemperature);
+			currentTemperature, crossedTripPointTemperature, participantName);
+
+		startTimer(WatchdogTime);
 		break;
 	case ParticipantSpecificInfoKey::None:
-		getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "No power action needed."));
+		POLICY_LOG_MESSAGE_DEBUG({ return "No power action needed."; });
 		break;
 	default:
 		throw dptf_exception("An invalid trip point has been selected.");
+	}
+}
+
+void CriticalPolicy::onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2)
+{
+	if (eventCode == EventCode::Timer)
+	{
+		m_sleepRequested = false;
+		m_hibernateRequested = false;
+		m_isTimerStarted = false;
+		reEvaluateAllParticipants();
 	}
 }
 
@@ -395,19 +422,53 @@ std::shared_ptr<XmlNode> CriticalPolicy::getXmlForCriticalTripPoints() const
 				}
 				catch (dptf_exception&)
 				{
-					getPolicyServices().messageLogging->writeMessageError(
-						PolicyMessage(FLF, "Failed to get critical trip point status for participant.", *participantIndex));
+					// TODO: want to pass in participant index instead
+					POLICY_LOG_MESSAGE_ERROR({
+						std::stringstream message;
+						message << "Failed to get critical trip point status for participant. ParticipantIndex:"
+								<< *participantIndex;
+						return message.str();
+					});
 				}
 			}
 		}
 		catch (const std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageInfo(PolicyMessage(FLF, ex.what(), *participantIndex));
+			// TODO: want to pass in participant index instead
+			POLICY_LOG_MESSAGE_INFO_EX({
+				std::stringstream message;
+				message << ex.what() << ". ParticipantIndex = " << *participantIndex;
+				return message.str();
+			});
 		}
 		catch (...)
 		{
-			getPolicyServices().messageLogging->writeMessageInfo(PolicyMessage(FLF, "Failed to retrieve participant for critical policy status", *participantIndex));
+			// TODO: want to pass in participant index instead
+			POLICY_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Failed to retrieve participant for critical policy status. ParticipantIndex = "
+						<< *participantIndex;
+				return message.str();
+			});
 		}
 	}
 	return allStatus;
+}
+
+/* Timer functions */
+void CriticalPolicy::startTimer(const TimeSpan& timeValue)
+{
+	if (m_isTimerStarted)
+	{
+		stopTimer();
+	}
+
+	m_scheduler->setTimerForObject(static_cast<void*>(this), timeValue);
+	m_isTimerStarted = true;
+}
+
+void CriticalPolicy::stopTimer()
+{
+	m_scheduler->cancelTimerForObject(static_cast<void*>(this));
+	m_isTimerStarted = false;
 }

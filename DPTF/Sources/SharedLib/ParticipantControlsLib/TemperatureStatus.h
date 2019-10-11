@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,9 +25,12 @@ class XmlNode;
 class TemperatureStatus final
 {
 public:
+	TemperatureStatus();
 	TemperatureStatus(Temperature currentTemperature);
 	Temperature getCurrentTemperature(void) const;
 	std::shared_ptr<XmlNode> getXml(void);
+	DptfBuffer toDptfBuffer() const;
+	static TemperatureStatus createFromDptfBuffer(const DptfBuffer& buffer);
 
 private:
 	Temperature m_currentTemperature; // in Tenth Kelvin

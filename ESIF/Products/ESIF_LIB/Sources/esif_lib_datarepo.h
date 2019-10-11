@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,6 +29,19 @@ typedef struct DataRepo_s {
 
 typedef union DataVaultHeader_u DataVaultHeader, *DataVaultHeaderPtr;
 
+// Support for viewing and updating Repo Header MetaData
+typedef struct DataRepoInfo_s {
+	size_t	repo_size;							// Total Size of Repo including Header(s)
+	time_t	modified;							// DateTime of last Update if a file (or 0)
+	UInt32  version;							// File Format Version [0xMMmmrrrr]
+	UInt32  flags;								// Global Payload Flags
+	UInt32	payload_size;						// Payload Size
+	UInt32	payload_class;						// Payload Class (KEYS, REPO, etc)
+	char	payload_hash[SHA256_STRING_BYTES];	// V2: SHA-256 Hash of Payload
+	char	comment[ESIFDV_DESC_LEN + 1];		// V2: Optional DV Comment
+	char	segmentid[ESIFDV_NAME_LEN + 1];		// V2: Optional DV SegmentID [Cache Name]
+} DataRepoInfo, *DataRepoInfoPtr;
+
 // DataRepo object management
 DataRepoPtr DataRepo_Create();
 DataRepoPtr DataRepo_CreateAs(StreamType type, StoreType store, StringPtr name);
@@ -37,6 +50,7 @@ void DataRepo_Destroy(DataRepoPtr self);
 esif_error_t DataRepo_SetType(DataRepoPtr self, StreamType type, StoreType store, StringPtr name);
 void DataRepo_GetName(DataRepoPtr self, StringPtr name, size_t name_len);
 
-esif_error_t DataRepo_ReadHeader(DataRepoPtr self, DataVaultHeaderPtr header);
+esif_error_t DataRepo_GetInfo(DataRepoPtr self, DataRepoInfoPtr info);
+esif_error_t DataRepo_SetComment(DataRepoPtr self, StringPtr comment);
 esif_error_t DataRepo_LoadSegments(DataRepoPtr self);
 

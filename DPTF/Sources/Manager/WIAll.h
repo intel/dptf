@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,8 @@
 #include "WIDomainVirtualSensorRecalcChanged.h"
 #include "WIDomainBatteryStatusChanged.h"
 #include "WIDomainBatteryInformationChanged.h"
+#include "WIDomainBatteryHighFrequencyImpedanceChanged.h"
+#include "WIDomainBatteryNoLoadVoltageChanged.h"
 #include "WIDomainPlatformPowerSourceChanged.h"
 #include "WIDomainAdapterPowerRatingChanged.h"
 #include "WIDomainChargerTypeChanged.h"
@@ -48,6 +50,8 @@
 #include "WIDomainAC2msPercentageOverloadChanged.h"
 #include "WIDomainAC10msPercentageOverloadChanged.h"
 #include "WIDomainEnergyThresholdCrossed.h"
+#include "WIDomainFanCapabilityChanged.h"
+#include "WIDomainSocWorkloadClassificationChanged.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
 #include "WIDptfResume.h"
@@ -63,7 +67,6 @@
 #include "WIPolicyCoolingModePolicyChanged.h"
 #include "WIPolicyCreateAll.h"
 #include "WIPolicyDestroy.h"
-#include "WIPolicyReloadAll.h"
 #include "WIPolicyForegroundApplicationChanged.h"
 #include "WIPolicyInitiatedCallback.h"
 #include "WIPolicyOperatingSystemConfigTdpLevelChanged.h"
@@ -73,7 +76,12 @@
 #include "WIPolicyOperatingSystemPlatformTypeChanged.h"
 #include "WIPolicyOperatingSystemDockModeChanged.h"
 #include "WIPolicyOperatingSystemMobileNotification.h"
+#include "WIPolicyOperatingSystemMixedRealityModeChanged.h"
 #include "WIPolicyOperatingSystemPowerSchemePersonalityChanged.h"
+#include "WIPolicyOperatingSystemUserPresenceChanged.h"
+#include "WIPolicyOperatingSystemScreenStateChanged.h"
+#include "WIPolicyOperatingSystemBatteryCountChanged.h"
+#include "WIPolicyOperatingSystemPowerSliderChanged.h"
 #include "WIPolicyPassiveTableChanged.h"
 #include "WIPolicySensorOrientationChanged.h"
 #include "WIPolicySensorMotionChanged.h"
@@ -87,6 +95,7 @@
 #include "WIPolicyPowerBossConditionsTableChanged.h"
 #include "WIPolicyPowerBossActionsTableChanged.h"
 #include "WIPolicyPowerBossMathTableChanged.h"
+#include "WIPolicyVoltageThresholdMathTableChanged.h"
 #include "WIDptfPolicyActivityLoggingEnabled.h"
 #include "WIDptfPolicyActivityLoggingDisabled.h"
 #include "WIPolicyEmergencyCallModeTableChanged.h"
@@ -96,3 +105,5 @@
 #include "WIPowerLimitChanged.h"
 #include "WIPolicyWorkloadHintConfigurationChanged.h"
 #include "WIApplicationAliveRequest.h"
+#include "WIPolicyOperatingSystemGameModeChanged.h"
+#include "WIPolicyPowerShareAlgorithmTable2Changed.h"

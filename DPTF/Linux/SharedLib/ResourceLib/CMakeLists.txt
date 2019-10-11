@@ -1,0 +1,17 @@
+if (IN_SOURCE_BUILD MATCHES YES)                                                                                                                                                                                                                                        
+        include_directories(../)
+        include_directories(../../../../Common)
+		include_directories(../../SharedLib/BasicTypesLib)
+		include_directories(../../SharedLib/EsifTypesLib)
+        file(GLOB_RECURSE resource_lib_SOURCES "*.cpp")
+else ()
+        include_directories(../../../Sources)
+        include_directories(../../../../Common)
+		include_directories(../../../Sources/SharedLib/BasicTypesLib)
+		include_directories(../../../Sources/SharedLib/EsifTypesLib)
+        file(GLOB_RECURSE resource_lib_SOURCES "../../../Sources/SharedLib/ResourceLib/*.cpp")
+endif()
+
+add_library(${RESOURCE_LIB} STATIC ${resource_lib_SOURCES})
+
+set_target_properties(${RESOURCE_LIB} PROPERTIES PREFIX "")

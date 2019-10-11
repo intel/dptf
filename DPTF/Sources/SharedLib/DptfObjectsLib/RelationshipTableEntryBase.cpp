@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,8 @@ RelationshipTableEntryBase::RelationshipTableEntryBase(
 	, m_targetDeviceIndex(Constants::Invalid)
 	, m_targetDomainType(targetDomainType)
 	, m_targetDomainIndex(Constants::Invalid)
+	, m_sourceDeviceName(Constants::InvalidString)
+	, m_targetDeviceName(Constants::InvalidString)
 {
 }
 
@@ -42,6 +44,8 @@ RelationshipTableEntryBase::RelationshipTableEntryBase(const std::string& partic
 	, m_targetDeviceIndex(Constants::Invalid)
 	, m_targetDomainType(domainType)
 	, m_targetDomainIndex(Constants::Invalid)
+	, m_sourceDeviceName(Constants::InvalidString)
+	, m_targetDeviceName(Constants::InvalidString)
 {
 }
 
@@ -66,6 +70,16 @@ const std::string& RelationshipTableEntryBase::getSourceDeviceScope() const
 	return m_sourceDeviceScope;
 }
 
+const std::string& RelationshipTableEntryBase::getSourceDeviceName() const
+{
+	if (m_sourceDeviceName != Constants::InvalidString)
+	{
+		return m_sourceDeviceName;
+	}
+
+	return m_sourceDeviceScope;
+}
+
 UIntN RelationshipTableEntryBase::getSourceDeviceIndex() const
 {
 	return m_sourceDeviceIndex;
@@ -76,21 +90,36 @@ const std::string& RelationshipTableEntryBase::getTargetDeviceScope() const
 	return m_targetDeviceScope;
 }
 
+const std::string& RelationshipTableEntryBase::getTargetDeviceName() const
+{
+	if (m_targetDeviceName != Constants::InvalidString)
+	{
+		return m_targetDeviceName;
+	}
+
+	return m_targetDeviceScope;
+}
+
 UIntN RelationshipTableEntryBase::getTargetDeviceIndex() const
 {
 	return m_targetDeviceIndex;
 }
 
-void RelationshipTableEntryBase::associateParticipant(std::string participantScope, UIntN participantIndex)
+void RelationshipTableEntryBase::associateParticipant(
+	std::string participantScope,
+	UIntN participantIndex,
+	std::string participantName)
 {
 	if (m_sourceDeviceScope == participantScope)
 	{
 		m_sourceDeviceIndex = participantIndex;
+		m_sourceDeviceName = participantName;
 	}
 
 	if (m_targetDeviceScope == participantScope)
 	{
 		m_targetDeviceIndex = participantIndex;
+		m_targetDeviceName = participantName;
 	}
 }
 
@@ -100,12 +129,14 @@ void RelationshipTableEntryBase::disassociateParticipant(UIntN participantIndex)
 	{
 		m_sourceDeviceIndex = Constants::Invalid;
 		m_sourceDomainIndex = Constants::Invalid;
+		m_sourceDeviceName = Constants::InvalidString;
 	}
 
 	if (m_targetDeviceIndex == participantIndex)
 	{
 		m_targetDeviceIndex = Constants::Invalid;
 		m_targetDomainIndex = Constants::Invalid;
+		m_targetDeviceName = Constants::InvalidString;
 	}
 }
 

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -87,4 +87,25 @@ std::shared_ptr<XmlNode> ActiveControlStaticCaps::getXml(void)
 	root->addChild(XmlNode::createDataElement("step_size", StatusFormat::friendlyValue(m_stepSize)));
 
 	return root;
+}
+
+DptfBuffer ActiveControlStaticCaps::toDptfBuffer()
+{
+	EsifDataBinaryFifPackage fif;
+	fif.hasFineGrainControl.type = ESIF_DATA_UINT64;
+	fif.hasFineGrainControl.integer.type = ESIF_DATA_UINT64;
+	fif.hasFineGrainControl.integer.value = (UInt32)supportsFineGrainedControl();
+	fif.supportsLowSpeedNotification.type = ESIF_DATA_UINT64;
+	fif.supportsLowSpeedNotification.integer.type = ESIF_DATA_UINT64;
+	fif.supportsLowSpeedNotification.integer.value = (UInt32)supportsLowSpeedNotification();
+	fif.stepSize.type = ESIF_DATA_UINT64;
+	fif.stepSize.integer.type = ESIF_DATA_UINT64;
+	fif.stepSize.integer.value = (UInt32)getStepSize();
+	fif.revision.type = ESIF_DATA_UINT64;
+	fif.revision.integer.type = ESIF_DATA_UINT64;
+	fif.revision.integer.value = 0;
+
+	DptfBuffer buffer(sizeof(fif));
+	buffer.put(0, (UInt8*)&fif, sizeof(fif));
+	return buffer;
 }

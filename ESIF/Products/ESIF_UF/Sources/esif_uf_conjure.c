@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_CONJURE
 
+#include "esif_ccb.h"
 #include "esif_uf.h"		/* Upper Framework */
 #include "esif_pm.h"		/* Particpant Manager */
 #include "esif_dsp.h"		/* Device Support Package */
@@ -32,25 +33,23 @@
 #include "win\banned.h"
 #endif
 
-#define CONJURE_DEBUG ESIF_DEBUG
-
 /* Conjure Well Known Function */
 typedef eEsifError (ESIF_CALLCONV *GetIfaceFuncPtr)(EsifConjureInterfacePtr);
 
 /* Friends */
 extern EsifCnjMgr g_cnjMgr;
 
-static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePtr piPtr, esif_handle_t *participantInstance)
+static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePtr piPtr, esif_handle_t *participantIdPtr)
 {
 	eEsifError rc    = ESIF_OK;
 	char guid_str[ESIF_GUID_PRINT_SIZE];
-	UInt8 newInstance = ESIF_INSTANCE_INVALID;
+	esif_handle_t newInstance = ESIF_INVALID_HANDLE;
 	EsifUpPtr up_ptr = NULL;
 
 	UNREFERENCED_PARAMETER(guid_str);
 
 	ESIF_ASSERT(piPtr != NULL);
-	*participantInstance = (esif_handle_t)ESIF_INSTANCE_INVALID;
+	*participantIdPtr = ESIF_INVALID_HANDLE;
 	ESIF_TRACE_INFO(
 		"\n"
 		"=======================================================\n"
@@ -81,7 +80,7 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 	/* if participant exists, simply return current id */
 	up_ptr = EsifUpPm_GetAvailableParticipantByName(piPtr->name);
 	if (NULL != up_ptr) {
-		*participantInstance = (esif_handle_t)(size_t)EsifUp_GetInstance(up_ptr);
+		*participantIdPtr = EsifUp_GetInstance(up_ptr);
 		ESIF_TRACE_WARN("Participant %s has already existed in upper framework\n", piPtr->name);
 		rc = ESIF_E_UNSPECIFIED;
 		EsifUp_PutRef(up_ptr);
@@ -94,13 +93,13 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 		goto exit;
 	}
 	else {
-		*participantInstance = (esif_handle_t)(size_t)newInstance;
+		*participantIdPtr = newInstance;
 	}
 
 	ESIF_TRACE_DEBUG("Create new UF participant: %s, instance = %d\n", piPtr->name, newInstance);
 
 exit:
-	if ((ESIF_OK != rc) && (ESIF_INSTANCE_INVALID != newInstance)) {
+	if ((ESIF_OK != rc) && (ESIF_INVALID_HANDLE != newInstance)) {
 		ESIF_TRACE_WARN("Unregister participant in UP manager due to participant data creation failure\n");
 		EsifUpPm_UnregisterParticipant(eParticipantOriginUF, newInstance);
 	}
@@ -109,11 +108,10 @@ exit:
 }
 
 
-static eEsifError ESIF_CALLCONV UnRegisterParticipant(esif_handle_t participantHandle)
+static eEsifError ESIF_CALLCONV UnRegisterParticipant(esif_handle_t participantId)
 {
 	eEsifError rc = ESIF_OK;
 	EsifUpPtr upPtr = NULL;
-	UInt8 participantId = (UInt8)(size_t)participantHandle;
 
 	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
 	
@@ -207,16 +205,31 @@ eEsifError EsifConjureStart(EsifCnjPtr conjurePtr)
 	EsifString iface_func_name     = CONJURE_GET_INTERFACE_FUNCTION;
 
 	char libPath[ESIF_LIBPATH_LEN];
+	char altLibPath[ESIF_LIBPATH_LEN] = { 0 };
 
 	ESIF_TRACE_DEBUG("Name=%s\n", conjurePtr->fLibNamePtr);
 	esif_build_path(libPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL, conjurePtr->fLibNamePtr, ESIF_LIB_EXT);
 	conjurePtr->fLibHandle = esif_ccb_library_load(libPath);
 
 	if (NULL == conjurePtr->fLibHandle || NULL == conjurePtr->fLibHandle->handle) {
-		rc = esif_ccb_library_error(conjurePtr->fLibHandle);
-		ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(conjurePtr->fLibHandle));
-		goto exit;
+
+		// Try the alternate path for loadable libraries if different from normal path
+		esif_build_path(altLibPath, ESIF_LIBPATH_LEN, ESIF_PATHTYPE_DLL_ALT, conjurePtr->fLibNamePtr, ESIF_LIB_EXT);
+		if (esif_ccb_strcmp(altLibPath, libPath) != 0) {
+			rc = esif_ccb_library_error(conjurePtr->fLibHandle);
+			ESIF_TRACE_WARN("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(conjurePtr->fLibHandle));
+
+			esif_ccb_library_unload(conjurePtr->fLibHandle);
+			conjurePtr->fLibHandle = NULL;
+			conjurePtr->fLibHandle = esif_ccb_library_load(altLibPath);
+		}
+		if (NULL == conjurePtr->fLibHandle || NULL == conjurePtr->fLibHandle->handle) {
+			rc = esif_ccb_library_error(conjurePtr->fLibHandle);
+			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(conjurePtr->fLibHandle));
+			goto exit;
+		}
 	}
+
 	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);
 
 	iface_func_ptr = (GetIfaceFuncPtr)esif_ccb_library_get_func(conjurePtr->fLibHandle, (EsifString)iface_func_name);

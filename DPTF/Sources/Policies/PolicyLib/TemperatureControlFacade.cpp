@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "TemperatureControlFacade.h"
+#include "TemperatureStatus.h"
 using namespace std;
 
 TemperatureControlFacade::TemperatureControlFacade(
@@ -28,14 +29,7 @@ TemperatureControlFacade::TemperatureControlFacade(
 	, m_participantIndex(participantIndex)
 	, m_domainIndex(domainIndex)
 	, m_domainProperties(domainProperties)
-	, m_temperatureThresholds(TemperatureThresholds(
-		  Temperature::createInvalid(),
-		  Temperature::createInvalid(),
-		  Temperature::createInvalid()))
 {
-	m_temperatureThresholds.invalidate();
-	m_calibrationTable.invalidate();
-	m_pollingTable.invalidate();
 }
 
 TemperatureControlFacade::~TemperatureControlFacade()
@@ -46,9 +40,11 @@ Temperature TemperatureControlFacade::getCurrentTemperature(void)
 {
 	if (supportsTemperatureControls())
 	{
-		auto temperatureStatus =
-			m_policyServices.domainTemperature->getTemperatureStatus(m_participantIndex, m_domainIndex);
-		return temperatureStatus.getCurrentTemperature();
+		DptfRequest request(DptfRequestType::TemperatureControlGetTemperatureStatus, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
+
+		return TemperatureStatus::createFromDptfBuffer(result.getData()).getCurrentTemperature();
 	}
 	else
 	{
@@ -62,8 +58,10 @@ TemperatureThresholds TemperatureControlFacade::getTemperatureNotificationThresh
 	{
 		if (m_temperatureThresholds.isInvalid())
 		{
-			m_temperatureThresholds.set(
-				m_policyServices.domainTemperature->getTemperatureThresholds(m_participantIndex, m_domainIndex));
+			DptfRequest request(DptfRequestType::TemperatureControlGetTemperatureThresholds, m_participantIndex, m_domainIndex);
+			auto result = m_policyServices.serviceRequest->submitRequest(request);
+			result.throwIfFailure();
+			m_temperatureThresholds.set(TemperatureThresholds::createFromDptfBuffer(result.getData()));
 		}
 
 		return m_temperatureThresholds.get();
@@ -81,8 +79,10 @@ void TemperatureControlFacade::setTemperatureNotificationThresholds(
 	if (supportsTemperatureThresholds())
 	{
 		TemperatureThresholds thresholdsToSet(lowerBound, upperBound, getHysteresis());
-		m_policyServices.domainTemperature->setTemperatureThresholds(
-			m_participantIndex, m_domainIndex, thresholdsToSet);
+		DptfRequest request(DptfRequestType::TemperatureControlSetTemperatureThresholds, m_participantIndex, m_domainIndex);
+		request.setData(thresholdsToSet.toDptfBuffer());
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
 		m_temperatureThresholds.set(thresholdsToSet);
 	}
 }
@@ -103,8 +103,10 @@ Bool TemperatureControlFacade::isVirtualTemperatureControl()
 	{
 		if (m_isVirtualSensor.isInvalid())
 		{
-			m_isVirtualSensor.set(
-				m_policyServices.domainTemperature->isVirtualTemperature(m_participantIndex, m_domainIndex));
+			DptfRequest request(DptfRequestType::TemperatureControlIsVirtualTemperatureControl, m_participantIndex, m_domainIndex);
+			auto result = m_policyServices.serviceRequest->submitRequest(request);
+			result.throwIfFailure();
+			m_isVirtualSensor.set(result.getDataAsBool());
 		}
 
 		return m_isVirtualSensor.get();
@@ -119,13 +121,11 @@ DptfBuffer TemperatureControlFacade::getCalibrationTable()
 {
 	if (supportsTemperatureControls())
 	{
-		if (m_calibrationTable.isInvalid())
-		{
-			m_calibrationTable.set(
-				m_policyServices.domainTemperature->getCalibrationTable(m_participantIndex, m_domainIndex));
-		}
+		DptfRequest request(DptfRequestType::TemperatureControlGetCalibrationTable, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
 
-		return m_calibrationTable.get();
+		return result.getData();
 	}
 	else
 	{
@@ -137,12 +137,11 @@ DptfBuffer TemperatureControlFacade::getPollingTable()
 {
 	if (supportsTemperatureControls())
 	{
-		if (m_pollingTable.isInvalid())
-		{
-			m_pollingTable.set(m_policyServices.domainTemperature->getPollingTable(m_participantIndex, m_domainIndex));
-		}
+		DptfRequest request(DptfRequestType::TemperatureControlGetPollingTable, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
 
-		return m_pollingTable.get();
+		return result.getData();
 	}
 	else
 	{
@@ -154,7 +153,10 @@ void TemperatureControlFacade::setVirtualTemperature(const Temperature& temperat
 {
 	if (supportsTemperatureControls())
 	{
-		m_policyServices.domainTemperature->setVirtualTemperature(m_participantIndex, m_domainIndex, temperature);
+		DptfRequest request(DptfRequestType::TemperatureControlSetVirtualTemperature, m_participantIndex, m_domainIndex);
+		request.setData(temperature.toDptfBuffer());
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
 	}
 }
 
@@ -162,14 +164,16 @@ void TemperatureControlFacade::refreshHysteresis()
 {
 	if (supportsTemperatureThresholds())
 	{
+		DptfRequest request(DptfRequestType::TemperatureControlGetTemperatureThresholds, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
+
+		auto currentThresholds = TemperatureThresholds::createFromDptfBuffer(result.getData());
 		if (m_temperatureThresholds.isInvalid())
 		{
-			m_temperatureThresholds.set(
-				m_policyServices.domainTemperature->getTemperatureThresholds(m_participantIndex, m_domainIndex));
+			m_temperatureThresholds.set(currentThresholds);
 		}
 
-		auto currentThresholds =
-			m_policyServices.domainTemperature->getTemperatureThresholds(m_participantIndex, m_domainIndex);
 		TemperatureThresholds thresholdsWithUpdatedHysteresis(
 			m_temperatureThresholds.get().getAux0(),
 			m_temperatureThresholds.get().getAux1(),
@@ -178,26 +182,16 @@ void TemperatureControlFacade::refreshHysteresis()
 	}
 }
 
-void TemperatureControlFacade::refreshVirtualSensorTables()
+Temperature TemperatureControlFacade::getPowerShareTemperatureThreshold()
 {
-	m_calibrationTable.invalidate();
-	m_pollingTable.invalidate();
+	DptfRequest request(DptfRequestType::TemperatureControlGetPowerShareTemperatureThreshold, m_participantIndex, m_domainIndex);
+	auto result = m_policyServices.serviceRequest->submitRequest(request);
+	result.throwIfFailure();
+
+	return Temperature::createFromDptfBuffer(result.getData());
 }
 
 Temperature TemperatureControlFacade::getHysteresis()
 {
-	if (supportsTemperatureThresholds())
-	{
-		if (m_temperatureThresholds.isInvalid())
-		{
-			m_temperatureThresholds.set(
-				m_policyServices.domainTemperature->getTemperatureThresholds(m_participantIndex, m_domainIndex));
-		}
-
-		return m_temperatureThresholds.get().getHysteresis();
-	}
-	else
-	{
-		throw dptf_exception("Domain does not support the temperature threshold interface.");
-	}
+	return getTemperatureNotificationThresholds().getHysteresis();
 }

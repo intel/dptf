@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 ******************************************************************************/
 
 #include "TargetNoAction.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 
 TargetNoAction::TargetNoAction(
@@ -37,5 +39,11 @@ TargetNoAction::~TargetNoAction()
 
 void TargetNoAction::execute()
 {
-	getPolicyServices().messageLogging->writeMessageDebug(PolicyMessage(FLF, "Nothing to do for target.", getTarget()));
+	POLICY_LOG_MESSAGE_DEBUG({
+		// TODO: want to pass in participant index
+		std::stringstream message;
+		message << "Nothing to do for target."
+				<< " ParticipantIndex = " << getTarget();
+		return message.str();
+	});
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include "RadioFrequencyControlFacade.h"
 #include "StatusFormat.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 using namespace StatusFormat;
 
@@ -63,8 +65,18 @@ void RadioFrequencyControlFacade::invalidateProfileData()
 void RadioFrequencyControlFacade::setOperatingFrequency(Frequency frequency)
 {
 	throwIfControlNotSupported();
-	m_lastSetFrequency = frequency;
 	m_policyServices.domainRfProfileControl->setRfProfileCenterFrequency(m_participantIndex, m_domainIndex, frequency);
+	m_lastSetFrequency = frequency;
+}
+
+Percentage RadioFrequencyControlFacade::getSSC()
+{
+	return m_ssc;
+}
+
+void RadioFrequencyControlFacade::setSSC(Percentage ssc)
+{
+	m_ssc = ssc;
 }
 
 std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
@@ -72,7 +84,6 @@ std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 	Frequency centerFrequency(0);
 	Frequency minFrequency(0);
 	Frequency maxFrequency(0);
-	Percentage ssc(0.0);
 
 	try
 	{
@@ -80,20 +91,21 @@ std::shared_ptr<XmlNode> RadioFrequencyControlFacade::getXml()
 		centerFrequency = rfProfileCaps.getCenterFrequency();
 		minFrequency = rfProfileCaps.getMinFrequency();
 		maxFrequency = rfProfileCaps.getMaxFrequency();
-		ssc = rfProfileCaps.getSsc();
 	}
 	catch (...)
 	{
-		m_policyServices.messageLogging->writeMessageDebug(PolicyMessage(FLF, "Failed to get center frequency"));
+		POLICY_LOG_MESSAGE_DEBUG({
+			return "Failed to get center frequency";
+			});
 	}
 	auto control = XmlNode::createWrapperElement("radio_frequency_control");
 	control->addChild(XmlNode::createDataElement("supports_status_controls", supportsStatus() ? "true" : "false"));
 	control->addChild(XmlNode::createDataElement("supports_set_controls", supportsRfControls() ? "true" : "false"));
 	control->addChild(XmlNode::createDataElement("min_frequency", minFrequency.toString()));
+	control->addChild(XmlNode::createDataElement("center_frequency", centerFrequency.toString()));
 	control->addChild(XmlNode::createDataElement("requested_frequency", m_lastSetFrequency.toString()));
-	control->addChild(XmlNode::createDataElement("set_frequency", centerFrequency.toString()));
 	control->addChild(XmlNode::createDataElement("max_frequency", maxFrequency.toString()));
-	control->addChild(XmlNode::createDataElement("ssc", ssc.toString()));
+	control->addChild(XmlNode::createDataElement("ssc", m_ssc.toString()));
 	if (supportsStatus())
 	{
 		try
@@ -121,4 +133,24 @@ void RadioFrequencyControlFacade::throwIfControlNotSupported()
 	{
 		throw dptf_exception("Radio frequency control is not supported.");
 	}
+}
+
+const PolicyServicesInterfaceContainer& RadioFrequencyControlFacade::getPolicyServices() const
+{
+	return m_policyServices;
+}
+
+Percentage RadioFrequencyControlFacade::getSscBaselineSpreadValue(UIntN participantIndex, UIntN domainIndex)
+{
+	return m_policyServices.domainRfProfileControl->getSscBaselineSpreadValue(participantIndex, domainIndex);
+}
+
+Percentage RadioFrequencyControlFacade::getSscBaselineThreshold(UIntN participantIndex, UIntN domainIndex)
+{
+	return m_policyServices.domainRfProfileControl->getSscBaselineThreshold(participantIndex, domainIndex);
+}
+
+Percentage RadioFrequencyControlFacade::getSscBaselineGuardBand(UIntN participantIndex, UIntN domainIndex)
+{
+	return m_policyServices.domainRfProfileControl->getSscBaselineGuardBand(participantIndex, domainIndex);
 }

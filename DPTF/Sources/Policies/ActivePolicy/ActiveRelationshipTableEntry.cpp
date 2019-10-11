@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,9 +55,9 @@ std::shared_ptr<XmlNode> ActiveRelationshipTableEntry::getXml()
 {
 	auto entry = XmlNode::createWrapperElement("art_entry");
 	entry->addChild(XmlNode::createDataElement("target_index", friendlyValue(getTargetDeviceIndex())));
-	entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceScope()));
+	entry->addChild(XmlNode::createDataElement("target_acpi_scope", getTargetDeviceName()));
 	entry->addChild(XmlNode::createDataElement("source_index", friendlyValue(getSourceDeviceIndex())));
-	entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceScope()));
+	entry->addChild(XmlNode::createDataElement("source_acpi_scope", getSourceDeviceName()));
 	entry->addChild(XmlNode::createDataElement("weight", friendlyValue(m_weight)));
 	for (UIntN acNum = ParticipantSpecificInfoKey::AC0; acNum <= ParticipantSpecificInfoKey::AC9; acNum++)
 	{

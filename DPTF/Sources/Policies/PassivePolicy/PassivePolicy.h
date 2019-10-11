@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,6 +43,7 @@ public:
 	virtual Bool autoNotifyPlatformOscOnCreateDestroy() const override;
 	virtual Bool autoNotifyPlatformOscOnConnectedStandbyEntryExit() const override;
 	virtual Bool autoNotifyPlatformOscOnEnableDisable() const override;
+	virtual Bool hasPassiveControlCapability() const override;
 
 	virtual Guid getGuid(void) const override;
 	virtual std::string getName(void) const override;

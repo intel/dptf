@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,7 +57,16 @@ std::shared_ptr<XmlNode> SourceAvailability::getXml() const
 		auto activeSource = XmlNode::createWrapperElement("activity");
 		activeSource->addChild(XmlNode::createDataElement("source", friendlyValue(source->first)));
 		auto timeTilAvailable = source->second - currentTime;
-		activeSource->addChild(XmlNode::createDataElement("time_until_available", timeTilAvailable.toStringSeconds()));
+		std::string availability;
+		if (timeTilAvailable.asMillisecondsInt() <= 0)
+		{
+			availability = "Now";
+		}
+		else
+		{
+			availability = timeTilAvailable.toStringSeconds();
+		}
+		activeSource->addChild(XmlNode::createDataElement("time_until_available", availability));
 		status->addChild(activeSource);
 	}
 	return status;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,11 +43,17 @@ public:
 	// control capabilities
 	virtual Bool supportsActiveCoolingControls() override;
 	virtual Bool supportsFineGrainControl() override;
+	virtual void setActiveControlDynamicCaps(ActiveControlDynamicCaps newCapabilities) override;
+	virtual void lockCapabilities() override;
+	virtual void unlockCapabilities() override;
 
 	// fan speed requests
 	virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) override;
 	virtual void forceFanOff(void) override;
 	virtual void setControl(Percentage activeCoolingControlFanSpeed) override;
+	virtual void clearFanSpeedRequestForTarget(UIntN requestorIndex) override;
+	virtual void setHighestFanSpeedPercentage() override;
+	virtual void setValueWithinCapabilities() override;
 
 	// properties
 	virtual const ActiveControlStaticCaps& getCapabilities() override;
@@ -56,11 +62,14 @@ public:
 	virtual ActiveControlStatus getStatus() override;
 	virtual UIntN getSmallestNonZeroFanSpeed() override;
 	virtual Bool hasValidActiveControlSet() override;
+	virtual ActiveControlSet getActiveControlSet() override;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXml() override;
 
 	static const UIntN FanOffIndex = 10;
+
+	virtual Percentage snapToCapabilitiesBounds(Percentage fanSpeed) override;
 
 private:
 	// services
@@ -79,4 +88,7 @@ private:
 	Percentage m_lastFanSpeedRequest;
 	void updateFanSpeedRequestTable(UIntN requestorIndex, const Percentage& fanSpeed);
 	Percentage chooseHighestFanSpeedRequest();
+
+	// fan speed interface
+	void setFanSpeed(const Percentage& fanSpeed);
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,10 +28,10 @@ DomainProxy::DomainProxy(
 	, m_domainIndex(domainIndex)
 	, m_participant(participant)
 	, m_domainPriorityProperty(
-		Constants::Invalid,
-		Constants::Invalid,
-		DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
-		PolicyServicesInterfaceContainer())
+		  Constants::Invalid,
+		  Constants::Invalid,
+		  DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
+		  PolicyServicesInterfaceContainer())
 	, m_domainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions())
 	, m_participantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo())
 	, m_policyServices(policyServices)
@@ -48,6 +48,8 @@ DomainProxy::DomainProxy(
 		std::make_shared<PerformanceControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_powerControl =
 		std::make_shared<PowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_systemPowerControl =
+		std::make_shared<SystemPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_platformPowerControl = std::make_shared<PlatformPowerControlFacade>(
 		m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_displayControl =
@@ -62,8 +64,14 @@ DomainProxy::DomainProxy(
 		m_participantIndex, domainIndex, m_domainProperties, m_participantProperties, policyServices);
 	m_peakPowerControl =
 		std::make_shared<PeakPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_tccOffsetControl =
-		std::make_shared<TccOffsetControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_processorControl =
+		std::make_shared<ProcessorControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_platformPowerStatus = std::make_shared<PlatformPowerStatusFacade>(
+		m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_batteryStatus =
+		std::make_shared<BatteryStatusFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_socWorkloadClassification = std::make_shared<SocWorkloadClassificationFacade>(
+		m_participantIndex, domainIndex, m_domainProperties, policyServices);
 }
 
 DomainProxy::DomainProxy()
@@ -71,10 +79,10 @@ DomainProxy::DomainProxy()
 	, m_domainIndex(Constants::Invalid)
 	, m_participant(nullptr)
 	, m_domainPriorityProperty(
-		Constants::Invalid,
-		Constants::Invalid,
-		DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
-		PolicyServicesInterfaceContainer())
+		  Constants::Invalid,
+		  Constants::Invalid,
+		  DomainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions()),
+		  PolicyServicesInterfaceContainer())
 	, m_domainProperties(Guid(), Constants::Invalid, false, DomainType::Other, "", "", DomainFunctionalityVersions())
 	, m_participantProperties(Guid(), "", "", BusType::None, PciInfo(), AcpiInfo())
 {
@@ -124,6 +132,11 @@ std::shared_ptr<PowerControlFacadeInterface> DomainProxy::getPowerControl()
 	return m_powerControl;
 }
 
+std::shared_ptr<SystemPowerControlFacadeInterface> DomainProxy::getSystemPowerControl()
+{
+	return m_systemPowerControl;
+}
+
 std::shared_ptr<PlatformPowerControlFacadeInterface> DomainProxy::getPlatformPowerControl()
 {
 	return m_platformPowerControl;
@@ -159,9 +172,24 @@ std::shared_ptr<PeakPowerControlFacadeInterface> DomainProxy::getPeakPowerContro
 	return m_peakPowerControl;
 }
 
-std::shared_ptr<TccOffsetControlFacadeInterface> DomainProxy::getTccOffsetControl()
+std::shared_ptr<ProcessorControlFacadeInterface> DomainProxy::getProcessorControl()
 {
-	return m_tccOffsetControl;
+	return m_processorControl;
+}
+
+std::shared_ptr<PlatformPowerStatusFacadeInterface> DomainProxy::getPlatformPowerStatus()
+{
+	return m_platformPowerStatus;
+}
+
+std::shared_ptr<BatteryStatusFacadeInterface> DomainProxy::getBatteryStatus()
+{
+	return m_batteryStatus;
+}
+
+std::shared_ptr<SocWorkloadClassificationFacadeInterface> DomainProxy::getSocWorkloadClassification()
+{
+	return m_socWorkloadClassification;
 }
 
 UtilizationStatus DomainProxy::getUtilizationStatus()
@@ -232,6 +260,14 @@ void DomainProxy::setControlsToMax()
 	try
 	{
 		m_coreControl->setControlsToMax();
+	}
+	catch (...)
+	{
+	}
+
+	try
+	{
+		m_displayControl->setControlsToMax();
 	}
 	catch (...)
 	{

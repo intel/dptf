@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -72,6 +72,8 @@ typedef struct _t_EsifPolicyLogData_s {
 typedef struct _t_EsifActiveControlCapability {
 	UInt32 controlId;
 	UInt32 speed;
+	UInt32 lowerLimit;
+	UInt32 upperLimit;
 } EsifActiveControlCapability, *EsifActiveControlCapabilityPtr;
 
 /* Config TDP Data */
@@ -129,9 +131,15 @@ typedef struct _t_EsifPowerData {
 	UInt32 maxDutyCycle;
 } EsifPowerData;
 
+typedef struct _t_EsifSocPowerFloorData {
+	UInt32 socPowerFloorState;
+	UInt32 isSupported;
+} EsifSocPowerFloorData;
+
 /* Power Control Data */
 typedef struct _t_EsifPowerControl {
 	EsifPowerData powerDataSet[MAX_POWER_CONTROL_TYPE];
+	EsifSocPowerFloorData socPowerFloorData;
 } EsifPowerControl, *EsifPowerControlPtr;
 
 typedef struct _t_EsifPowerFilterData {
@@ -161,18 +169,16 @@ typedef struct _t_EsifPeakPowerControl {
 	UInt32 dcPeakPower;
 } EsifPeakPowerControl, *EsifPeakPowerControlPtr;
 
-/* TCC Offset Control Data */
-typedef struct _t_EsifTccOffsetStatus {
+/* Processor Control Data */
+typedef struct _t_EsifProcessorControlStatus {
 	UInt32 tccOffset;
-} EsifTccOffsetStatus, *EsifOffsetStatusPtr;
+	UInt32 uvth;
+} EsifProcessorControlStatus, *EsifProcessorControlStatusPtr;
 
 /* Platform Power Status Data */
 typedef struct _t_EsifPlatformPowerStatus {
-	UInt32 maxBatteryPower;
-	UInt32 steadyStateBatteryPower;
 	UInt32 platformRestOfPower;
 	UInt32 adapterPowerRating;
-	UInt32 chargerType;
 	UInt32 platformPowerSource;
 	UInt32 acNominalVoltage;
 	UInt32 acOperationalCurrent;
@@ -181,6 +187,16 @@ typedef struct _t_EsifPlatformPowerStatus {
 	UInt32 ac10msOverload;
 } EsifPlatformPowerStatus, *EsifPlatformPowerStatusPtr;
 
+/* Battery Status Data */
+typedef struct _t_EsifBatteryStatus {
+	UInt32 maxBatteryPower;
+	UInt32 steadyStateBatteryPower;
+	UInt32 chargerType;
+	UInt32 highFrequencyImpedance;
+	UInt32 maxPeakCurrent;
+	UInt32 noLoadVoltage;
+} EsifBatteryStatus, *EsifBatteryStatusPtr;
+
 /* Temperature Control Data */
 typedef struct _t_EsifTemperatureThresholdControl {
 	UInt32 aux0;
@@ -188,14 +204,25 @@ typedef struct _t_EsifTemperatureThresholdControl {
 	UInt32 hysteresis;
 } EsifTemperatureThresholdControl, *EsifTemperatureThresholdControlPtr;
 
+#define MAX_FREQUENCY_CHANNEL_NUM 5
+
+typedef struct _t_EsifFrequencyData {
+	UInt32 centerFrequency;
+	UInt32 leftFrequencySpread;
+	UInt32 rightFrequencySpread;
+} EsifFrequencyData;
+
 /* Rfprofile Status Data */
 typedef struct _t_EsifRfProfileStatus {
-	UInt32 rfProfileFrequency;
+	EsifFrequencyData rfProfileFrequencyData[MAX_FREQUENCY_CHANNEL_NUM];
 } EsifRfProfileStatus, *EsifRfProfileStatusPtr;
 
 /* Rfprofile Control Data */
 typedef struct _t_EsifRfProfileControl {
-	UInt32 rfProfileFrequency;
+	UInt32 rfProfileMinFrequency;
+	UInt32 rfProfileCenterFrequency;
+	UInt32 rfProfileMaxFrequency;
+	UInt32 rfProfileSSC;
 } EsifRfProfileControl, *EsifRfProfileControlPtr;
 
 /* Psys Control Data */
@@ -213,6 +240,12 @@ typedef struct _t_EsifPSysControl {
 	EsifPSysControlData powerDataSet[MAX_PSYS_CONTROL_TYPE];
 } EsifPSysControl, *EsifPSysControlPtr;
 
+#define MAX_PORT_NUMBER 8
+/* Platform Power Control Data */
+typedef struct _t_EsifPlatformPowerControl {
+	UInt32 portDataSet[MAX_PORT_NUMBER];
+} EsifPlatformPowerControl, *EsifPlatformPowerControlPtr;
+
 typedef union _t_EsifCapability {
 	EsifActiveControlCapability activeControl;
 	EsifConfigTdpControl configTdpControl;
@@ -226,12 +259,14 @@ typedef union _t_EsifCapability {
 	EsifTemperatureStatus temperatureStatus;
 	EsifUtilizationStatus utilizationStatus;
 	EsifPeakPowerControl peakPowerControl;
-	EsifTccOffsetStatus tccOffsetStatus;
+	EsifProcessorControlStatus processorControlStatus;
 	EsifPlatformPowerStatus platformPowerStatus;
 	EsifTemperatureThresholdControl temperatureThresholdControl;
 	EsifRfProfileStatus rfProfileStatus;
 	EsifRfProfileControl rfProfileControl;
 	EsifPSysControl psysControl;
+	EsifPlatformPowerControl platformPowerControl;
+	EsifBatteryStatus batteryStatus;
 } EsifCapability, *EsifCapabilityPtr;
 
 /* Capability Data */

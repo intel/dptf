@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -46,9 +46,11 @@ public:
 	virtual void setPowerLimitTimeWindowPL1(const TimeSpan& timeWindow) override;
 	virtual void setPowerLimitTimeWindowPL3(const TimeSpan& timeWindow) override;
 	virtual void setPowerLimitDutyCyclePL3(const Percentage& dutyCycle) override;
+	virtual void setSocPowerFloorState(Bool socPowerFloorState) override;
 	virtual void setValuesWithinCapabilities() override;
 	virtual void lockCapabilities() override;
 	virtual void unlockCapabilities() override;
+	virtual void removePowerLimitPolicyRequest(PowerControlType::Type controlType) override;
 
 	// queries
 	virtual Bool supportsPowerControls() const override;
@@ -75,6 +77,8 @@ public:
 	virtual TimeSpan getLivePowerLimitTimeWindowPL1() override;
 	virtual TimeSpan getLivePowerLimitTimeWindowPL3() override;
 	virtual Percentage getLivePowerLimitDutyCyclePL3() override;
+	virtual Bool isSocPowerFloorEnabled() override;
+	virtual Bool isSocPowerFloorSupported() override;
 
 private:
 	PolicyServicesInterfaceContainer m_policyServices;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,10 +32,6 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_domainType(DomainType::Invalid)
 	, m_domainFunctionalityVersions(DomainFunctionalityVersions())
 	, m_arbitrator(nullptr)
-	, m_activeControlStaticCaps(nullptr)
-	, m_activeControlDynamicCaps(nullptr)
-	, m_activeControlStatus(nullptr)
-	, m_activeControlSet(nullptr)
 	, m_configTdpControlDynamicCaps(nullptr)
 	, m_configTdpControlStatus(nullptr)
 	, m_configTdpControlSet(nullptr)
@@ -53,12 +49,9 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_powerControlDynamicCapsSet(nullptr)
 	, m_isPowerShareControl(nullptr)
 	, m_powerStatus(nullptr)
-	, m_maxBatteryPower(nullptr)
 	, m_adapterRating(nullptr)
 	, m_platformRestOfPower(nullptr)
 	, m_platformPowerSource(nullptr)
-	, m_chargerType(nullptr)
-	, m_batterySteadyState(nullptr)
 	, m_acNominalVoltage(nullptr)
 	, m_acOperationalCurrent(nullptr)
 	, m_ac1msPercentageOverload(nullptr)
@@ -67,9 +60,6 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_domainPriority(nullptr)
 	, m_rfProfileCapabilities(nullptr)
 	, m_rfProfileData(nullptr)
-	, m_temperatureStatus(nullptr)
-	, m_temperatureThresholds(nullptr)
-	, m_isVirtualTemperature(nullptr)
 	, m_utilizationStatus(nullptr)
 {
 }
@@ -100,7 +90,7 @@ void Domain::createDomain(
 		m_domainName = EsifDataString(&domainDataPtr->fName);
 		m_domainType = EsifDomainTypeToDptfDomainType(domainDataPtr->fType);
 		m_domainFunctionalityVersions = DomainFunctionalityVersions(domainDataPtr->fCapabilityBytes);
-		m_arbitrator = new Arbitrator(m_dptfManager);
+		m_arbitrator = new Arbitrator();
 
 		m_dptfManager->getDptfStatus()->clearCache();
 		m_theRealParticipant->createDomain(
@@ -170,33 +160,51 @@ std::string Domain::getDomainName(void) const
 void Domain::clearDomainCachedData(void)
 {
 	m_dptfManager->getDptfStatus()->clearCache();
-	clearDomainCachedDataActiveControl();
 	clearDomainCachedDataConfigTdpControl();
 	clearDomainCachedDataCoreControl();
 	clearDomainCachedDataDisplayControl();
 	clearDomainCachedDataPerformanceControl();
 	clearDomainCachedDataPowerControl();
 	clearDomainCachedDataPowerStatus();
-	clearDomainCachedDataPlatformPowerControl();
+	clearDomainCachedDataSystemPowerControl();
 	clearDomainCachedDataPriority();
 	clearDomainCachedDataRfProfileControl();
 	clearDomainCachedDataRfProfileStatus();
-	clearDomainCachedDataTemperature();
 	clearDomainCachedDataUtilizationStatus();
 	clearDomainCachedDataPlatformPowerStatus();
+	clearDomainCachedRequestData();
+}
+
+void Domain::clearDomainCachedRequestData(void)
+{
+	DptfRequest clearCachedDataRequest(DptfRequestType::ClearCachedData, m_participantIndex, m_domainIndex);
+	PolicyRequest policyRequest(Constants::Invalid, clearCachedDataRequest);
+	m_dptfManager->getRequestDispatcher()->dispatchForAllControls(policyRequest);
 }
 
 void Domain::clearArbitrationDataForPolicy(UIntN policyIndex)
 {
+	DptfRequest clearControlRequests(
+		DptfRequestType::ClearPolicyRequestsForAllControls, m_participantIndex, m_domainIndex);
+	PolicyRequest policyRequest(policyIndex, clearControlRequests);
+	m_dptfManager->getRequestDispatcher()->dispatchForAllControls(policyRequest);
+
 	m_arbitrator->clearPolicyCachedData(policyIndex);
 }
 
-std::shared_ptr<XmlNode> Domain::getArbitrationXmlForPolicy(UIntN policyIndex) const
+std::shared_ptr<XmlNode> Domain::getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const
 {
 	auto domainRoot = XmlNode::createWrapperElement("arbitrator_domain_status");
 	domainRoot->addChild(XmlNode::createDataElement("domain_name", getDomainName()));
-	domainRoot->addChild(m_arbitrator->getArbitrationXmlForPolicy(policyIndex));
+	domainRoot->addChild(m_arbitrator->getArbitrationXmlForPolicy(
+		policyIndex, type)); // todo: remove this when all arbitrators are moved to the control
+	domainRoot->addChild(m_theRealParticipant->getArbitratorStatusForPolicy(m_domainIndex, policyIndex, type));
 	return domainRoot;
+}
+
+std::shared_ptr<XmlNode> Domain::getDiagnosticsAsXml() const
+{
+	return m_theRealParticipant->getDiagnosticsAsXml(m_domainIndex);
 }
 
 //
@@ -218,55 +226,6 @@ std::shared_ptr<XmlNode> Domain::getArbitrationXmlForPolicy(UIntN policyIndex) c
 	}                                                                                                                  \
 	return *mv;
 
-ActiveControlStaticCaps Domain::getActiveControlStaticCaps(void)
-{
-	FILL_CACHE_AND_RETURN(m_activeControlStaticCaps, ActiveControlStaticCaps, getActiveControlStaticCaps);
-}
-
-ActiveControlDynamicCaps Domain::getActiveControlDynamicCaps(void)
-{
-	FILL_CACHE_AND_RETURN(m_activeControlDynamicCaps, ActiveControlDynamicCaps, getActiveControlDynamicCaps);
-}
-
-ActiveControlStatus Domain::getActiveControlStatus(void)
-{
-	FILL_CACHE_AND_RETURN(m_activeControlStatus, ActiveControlStatus, getActiveControlStatus);
-}
-
-ActiveControlSet Domain::getActiveControlSet(void)
-{
-	FILL_CACHE_AND_RETURN(m_activeControlSet, ActiveControlSet, getActiveControlSet);
-}
-
-void Domain::setActiveControl(UIntN policyIndex, const Percentage& fanSpeed)
-{
-	ActiveControlArbitrator* activeControlArbitrator = m_arbitrator->getActiveControlArbitrator();
-	Bool shouldSetActiveControlFanSpeed = false;
-	Percentage newFanSpeed;
-
-	if (activeControlArbitrator->hasArbitratedFanSpeedPercentage())
-	{
-		auto currentFanSpeed = activeControlArbitrator->getArbitratedFanSpeedPercentage();
-		newFanSpeed = activeControlArbitrator->arbitrate(policyIndex, fanSpeed);
-		if (currentFanSpeed != newFanSpeed)
-		{
-			shouldSetActiveControlFanSpeed = true;
-		}
-	}
-	else
-	{
-		shouldSetActiveControlFanSpeed = true;
-		newFanSpeed = activeControlArbitrator->arbitrate(policyIndex, fanSpeed);
-	}
-
-	if (shouldSetActiveControlFanSpeed)
-	{
-		m_theRealParticipant->setActiveControl(m_participantIndex, m_domainIndex, newFanSpeed);
-		clearDomainCachedDataActiveControl();
-	}
-	activeControlArbitrator->commitPolicyRequest(policyIndex, fanSpeed);
-}
-
 Percentage Domain::getUtilizationThreshold()
 {
 	return m_theRealParticipant->getUtilizationThreshold(m_participantIndex, m_domainIndex);
@@ -275,6 +234,26 @@ Percentage Domain::getUtilizationThreshold()
 Percentage Domain::getResidencyUtilization()
 {
 	return m_theRealParticipant->getResidencyUtilization(m_participantIndex, m_domainIndex);
+}
+
+UInt64 Domain::getCoreActivityCounter()
+{
+	return m_theRealParticipant->getCoreActivityCounter(m_participantIndex, m_domainIndex);
+}
+
+UInt32 Domain::getCoreActivityCounterWidth()
+{
+	return m_theRealParticipant->getCoreActivityCounterWidth(m_participantIndex, m_domainIndex);
+}
+
+UInt64 Domain::getTimestampCounter()
+{
+	return m_theRealParticipant->getTimestampCounter(m_participantIndex, m_domainIndex);
+}
+
+UInt32 Domain::getTimestampCounterWidth()
+{
+	return m_theRealParticipant->getTimestampCounterWidth(m_participantIndex, m_domainIndex);
 }
 
 ConfigTdpControlDynamicCaps Domain::getConfigTdpControlDynamicCaps(void)
@@ -478,8 +457,7 @@ void Domain::setEnergyThreshold(UInt32 energyThreshold)
 
 void Domain::setEnergyThresholdInterruptDisable()
 {
-	m_theRealParticipant->setEnergyThresholdInterruptDisable(
-		m_participantIndex, m_domainIndex);
+	m_theRealParticipant->setEnergyThresholdInterruptDisable(m_participantIndex, m_domainIndex);
 }
 
 Power Domain::getACPeakPower(void)
@@ -701,6 +679,16 @@ Power Domain::getPowerLimitWithoutCache(PowerControlType::Type controlType)
 	return m_theRealParticipant->getPowerLimitWithoutCache(m_participantIndex, m_domainIndex, controlType);
 }
 
+Bool Domain::isSocPowerFloorEnabled()
+{
+	return m_theRealParticipant->isSocPowerFloorEnabled(m_participantIndex, m_domainIndex);
+}
+
+Bool Domain::isSocPowerFloorSupported()
+{
+	return m_theRealParticipant->isSocPowerFloorSupported(m_participantIndex, m_domainIndex);
+}
+
 void Domain::setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit)
 {
 	PowerControlArbitrator* powerControlArbitrator = m_arbitrator->getPowerControlArbitrator();
@@ -824,6 +812,11 @@ void Domain::setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type co
 	powerControlArbitrator->commitPolicyRequest(policyIndex, controlType, dutyCycle);
 }
 
+void Domain::setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState)
+{
+	m_theRealParticipant->setSocPowerFloorState(m_participantIndex, m_domainIndex, socPowerFloorState);
+}
+
 void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock)
 {
 	PowerControlCapabilitiesArbitrator* arbitrator = m_arbitrator->getPowerControlCapabilitiesArbitrator();
@@ -874,6 +867,43 @@ Power Domain::getSlowPollPowerThreshold()
 	return m_theRealParticipant->getSlowPollPowerThreshold(m_participantIndex, m_domainIndex);
 }
 
+Power Domain::getArbitratedPowerLimit(PowerControlType::Type controlType)
+{
+	try
+	{
+		auto arbitrator = m_arbitrator->getPowerControlArbitrator();
+		return arbitrator->getArbitratedPowerLimit(controlType);
+	}
+	catch (const std::exception&)
+	{
+		// if there are no policy requests then the arbitrator will throw an exception.
+		// in this case we need to return the max limit
+		auto caps = m_theRealParticipant->getPowerControlDynamicCapsSet(m_participantIndex, m_domainIndex);
+		if (caps.hasCapability(controlType))
+		{
+			auto cap = caps.getCapability(controlType);
+			return cap.getMaxPowerLimit();
+		}
+		else
+		{
+			return Power::createInvalid();
+		}
+	}
+}
+
+void Domain::removePowerLimitPolicyRequest(UIntN policyIndex, PowerControlType::Type controlType)
+{
+	auto arbitrator = m_arbitrator->getPowerControlArbitrator();
+	auto currLimit = getArbitratedPowerLimit(controlType);
+	arbitrator->removePowerLimitRequestForPolicy(policyIndex, controlType);
+	auto newLimit = getArbitratedPowerLimit(controlType);
+	if (currLimit != newLimit)
+	{
+		m_theRealParticipant->setPowerLimit(m_participantIndex, m_domainIndex, controlType, newLimit);
+		clearDomainCachedDataPowerControl();
+	}
+}
+
 PowerStatus Domain::getPowerStatus(void)
 {
 	FILL_CACHE_AND_RETURN(m_powerStatus, PowerStatus, getPowerStatus);
@@ -889,39 +919,39 @@ void Domain::setCalculatedAveragePower(Power powerValue)
 	m_theRealParticipant->setCalculatedAveragePower(m_participantIndex, m_domainIndex, powerValue);
 }
 
-Bool Domain::isPlatformPowerLimitEnabled(PlatformPowerLimitType::Type limitType)
+Bool Domain::isSystemPowerLimitEnabled(PsysPowerLimitType::Type limitType)
 {
-	auto enabled = m_platformPowerLimitEnabled.find(limitType);
-	if (enabled == m_platformPowerLimitEnabled.end())
+	auto enabled = m_systemPowerLimitEnabled.find(limitType);
+	if (enabled == m_systemPowerLimitEnabled.end())
 	{
-		m_platformPowerLimitEnabled[limitType] =
-			m_theRealParticipant->isPlatformPowerLimitEnabled(m_participantIndex, m_domainIndex, limitType);
+		m_systemPowerLimitEnabled[limitType] =
+			m_theRealParticipant->isSystemPowerLimitEnabled(m_participantIndex, m_domainIndex, limitType);
 	}
-	return m_platformPowerLimitEnabled.at(limitType);
+	return m_systemPowerLimitEnabled.at(limitType);
 }
 
-Power Domain::getPlatformPowerLimit(PlatformPowerLimitType::Type limitType)
+Power Domain::getSystemPowerLimit(PsysPowerLimitType::Type limitType)
 {
-	auto limit = m_platformPowerLimit.find(limitType);
-	if (limit == m_platformPowerLimit.end())
+	auto limit = m_systemPowerLimit.find(limitType);
+	if (limit == m_systemPowerLimit.end())
 	{
-		m_platformPowerLimit[limitType] =
-			m_theRealParticipant->getPlatformPowerLimit(m_participantIndex, m_domainIndex, limitType);
+		m_systemPowerLimit[limitType] =
+			m_theRealParticipant->getSystemPowerLimit(m_participantIndex, m_domainIndex, limitType);
 	}
-	return m_platformPowerLimit.at(limitType);
+	return m_systemPowerLimit.at(limitType);
 }
 
-void Domain::setPlatformPowerLimit(UIntN policyIndex, PlatformPowerLimitType::Type limitType, const Power& powerLimit)
+void Domain::setSystemPowerLimit(UIntN policyIndex, PsysPowerLimitType::Type limitType, const Power& powerLimit)
 {
-	PlatformPowerControlArbitrator* platformPowerControlArbitrator = m_arbitrator->getPlatformPowerControlArbitrator();
+	SystemPowerControlArbitrator* systemPowerControlArbitrator = m_arbitrator->getSystemPowerControlArbitrator();
 	Bool shouldSetPowerLimit = false;
-	Power newPlatformPowerLimit;
+	Power newSystemPowerLimit;
 
-	if (platformPowerControlArbitrator->hasArbitratedPlatformPowerLimit(limitType))
+	if (systemPowerControlArbitrator->hasArbitratedSystemPowerLimit(limitType))
 	{
-		auto currentPlatformPowerLimit = platformPowerControlArbitrator->getArbitratedPlatformPowerLimit(limitType);
-		newPlatformPowerLimit = platformPowerControlArbitrator->arbitrate(policyIndex, limitType, powerLimit);
-		if (currentPlatformPowerLimit != newPlatformPowerLimit)
+		auto currentSystemPowerLimit = systemPowerControlArbitrator->getArbitratedSystemPowerLimit(limitType);
+		newSystemPowerLimit = systemPowerControlArbitrator->arbitrate(policyIndex, limitType, powerLimit);
+		if (currentSystemPowerLimit != newSystemPowerLimit)
 		{
 			shouldSetPowerLimit = true;
 		}
@@ -929,42 +959,41 @@ void Domain::setPlatformPowerLimit(UIntN policyIndex, PlatformPowerLimitType::Ty
 	else
 	{
 		shouldSetPowerLimit = true;
-		newPlatformPowerLimit = platformPowerControlArbitrator->arbitrate(policyIndex, limitType, powerLimit);
+		newSystemPowerLimit = systemPowerControlArbitrator->arbitrate(policyIndex, limitType, powerLimit);
 	}
 
 	if (shouldSetPowerLimit)
 	{
-		m_theRealParticipant->setPlatformPowerLimit(
-			m_participantIndex, m_domainIndex, limitType, newPlatformPowerLimit);
-		clearDomainCachedDataPlatformPowerControl();
+		m_theRealParticipant->setSystemPowerLimit(m_participantIndex, m_domainIndex, limitType, newSystemPowerLimit);
+		clearDomainCachedDataSystemPowerControl();
 	}
-	platformPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, powerLimit);
+	systemPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, powerLimit);
 }
 
-TimeSpan Domain::getPlatformPowerLimitTimeWindow(PlatformPowerLimitType::Type limitType)
+TimeSpan Domain::getSystemPowerLimitTimeWindow(PsysPowerLimitType::Type limitType)
 {
-	auto timeWindow = m_platformPowerLimitTimeWindow.find(limitType);
-	if (timeWindow == m_platformPowerLimitTimeWindow.end())
+	auto timeWindow = m_systemPowerLimitTimeWindow.find(limitType);
+	if (timeWindow == m_systemPowerLimitTimeWindow.end())
 	{
-		m_platformPowerLimitTimeWindow[limitType] =
-			m_theRealParticipant->getPlatformPowerLimitTimeWindow(m_participantIndex, m_domainIndex, limitType);
+		m_systemPowerLimitTimeWindow[limitType] =
+			m_theRealParticipant->getSystemPowerLimitTimeWindow(m_participantIndex, m_domainIndex, limitType);
 	}
-	return m_platformPowerLimitTimeWindow.at(limitType);
+	return m_systemPowerLimitTimeWindow.at(limitType);
 }
 
-void Domain::setPlatformPowerLimitTimeWindow(
+void Domain::setSystemPowerLimitTimeWindow(
 	UIntN policyIndex,
-	PlatformPowerLimitType::Type limitType,
+	PsysPowerLimitType::Type limitType,
 	const TimeSpan& timeWindow)
 {
-	PlatformPowerControlArbitrator* platformPowerControlArbitrator = m_arbitrator->getPlatformPowerControlArbitrator();
+	SystemPowerControlArbitrator* SystemPowerControlArbitrator = m_arbitrator->getSystemPowerControlArbitrator();
 	Bool shouldSetTimeWindow = false;
 	TimeSpan newTimeWindow;
 
-	if (platformPowerControlArbitrator->hasArbitratedTimeWindow(limitType))
+	if (SystemPowerControlArbitrator->hasArbitratedTimeWindow(limitType))
 	{
-		auto currentTimeWindow = platformPowerControlArbitrator->getArbitratedTimeWindow(limitType);
-		newTimeWindow = platformPowerControlArbitrator->arbitrate(policyIndex, limitType, timeWindow);
+		auto currentTimeWindow = SystemPowerControlArbitrator->getArbitratedTimeWindow(limitType);
+		newTimeWindow = SystemPowerControlArbitrator->arbitrate(policyIndex, limitType, timeWindow);
 		if (currentTimeWindow != newTimeWindow)
 		{
 			shouldSetTimeWindow = true;
@@ -973,42 +1002,42 @@ void Domain::setPlatformPowerLimitTimeWindow(
 	else
 	{
 		shouldSetTimeWindow = true;
-		newTimeWindow = platformPowerControlArbitrator->arbitrate(policyIndex, limitType, timeWindow);
+		newTimeWindow = SystemPowerControlArbitrator->arbitrate(policyIndex, limitType, timeWindow);
 	}
 
 	if (shouldSetTimeWindow)
 	{
-		m_theRealParticipant->setPlatformPowerLimitTimeWindow(
+		m_theRealParticipant->setSystemPowerLimitTimeWindow(
 			m_participantIndex, m_domainIndex, limitType, newTimeWindow);
-		clearDomainCachedDataPlatformPowerControl();
+		clearDomainCachedDataSystemPowerControl();
 	}
-	platformPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, timeWindow);
+	SystemPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, timeWindow);
 }
 
-Percentage Domain::getPlatformPowerLimitDutyCycle(PlatformPowerLimitType::Type limitType)
+Percentage Domain::getSystemPowerLimitDutyCycle(PsysPowerLimitType::Type limitType)
 {
-	auto dutyCycle = m_platformPowerLimitDutyCycle.find(limitType);
-	if (dutyCycle == m_platformPowerLimitDutyCycle.end())
+	auto dutyCycle = m_systemPowerLimitDutyCycle.find(limitType);
+	if (dutyCycle == m_systemPowerLimitDutyCycle.end())
 	{
-		m_platformPowerLimitDutyCycle[limitType] =
-			m_theRealParticipant->getPlatformPowerLimitDutyCycle(m_participantIndex, m_domainIndex, limitType);
+		m_systemPowerLimitDutyCycle[limitType] =
+			m_theRealParticipant->getSystemPowerLimitDutyCycle(m_participantIndex, m_domainIndex, limitType);
 	}
-	return m_platformPowerLimitDutyCycle.at(limitType);
+	return m_systemPowerLimitDutyCycle.at(limitType);
 }
 
-void Domain::setPlatformPowerLimitDutyCycle(
+void Domain::setSystemPowerLimitDutyCycle(
 	UIntN policyIndex,
-	PlatformPowerLimitType::Type limitType,
+	PsysPowerLimitType::Type limitType,
 	const Percentage& dutyCycle)
 {
-	PlatformPowerControlArbitrator* platformPowerControlArbitrator = m_arbitrator->getPlatformPowerControlArbitrator();
+	SystemPowerControlArbitrator* systemPowerControlArbitrator = m_arbitrator->getSystemPowerControlArbitrator();
 	Bool shouldSetDutyCycle = false;
 	Percentage newDutyCycle;
 
-	if (platformPowerControlArbitrator->hasArbitratedDutyCycle(limitType))
+	if (systemPowerControlArbitrator->hasArbitratedDutyCycle(limitType))
 	{
-		auto currentDutyCycle = platformPowerControlArbitrator->getArbitratedDutyCycle(limitType);
-		newDutyCycle = platformPowerControlArbitrator->arbitrate(policyIndex, limitType, dutyCycle);
+		auto currentDutyCycle = systemPowerControlArbitrator->getArbitratedDutyCycle(limitType);
+		newDutyCycle = systemPowerControlArbitrator->arbitrate(policyIndex, limitType, dutyCycle);
 		if (currentDutyCycle != newDutyCycle)
 		{
 			shouldSetDutyCycle = true;
@@ -1017,21 +1046,15 @@ void Domain::setPlatformPowerLimitDutyCycle(
 	else
 	{
 		shouldSetDutyCycle = true;
-		newDutyCycle = platformPowerControlArbitrator->arbitrate(policyIndex, limitType, dutyCycle);
+		newDutyCycle = systemPowerControlArbitrator->arbitrate(policyIndex, limitType, dutyCycle);
 	}
 
 	if (shouldSetDutyCycle)
 	{
-		m_theRealParticipant->setPlatformPowerLimitDutyCycle(
-			m_participantIndex, m_domainIndex, limitType, newDutyCycle);
-		clearDomainCachedDataPlatformPowerControl();
+		m_theRealParticipant->setSystemPowerLimitDutyCycle(m_participantIndex, m_domainIndex, limitType, newDutyCycle);
+		clearDomainCachedDataSystemPowerControl();
 	}
-	platformPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, dutyCycle);
-}
-
-Power Domain::getMaxBatteryPower(void)
-{
-	FILL_CACHE_AND_RETURN(m_maxBatteryPower, Power, getMaxBatteryPower);
+	systemPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, dutyCycle);
 }
 
 Power Domain::getPlatformRestOfPower(void)
@@ -1044,37 +1067,9 @@ Power Domain::getAdapterPowerRating(void)
 	FILL_CACHE_AND_RETURN(m_adapterRating, Power, getAdapterPowerRating);
 }
 
-DptfBuffer Domain::getBatteryStatus(void)
-{
-	if (m_batteryStatusBuffer.size() == 0)
-	{
-		m_batteryStatusBuffer = m_theRealParticipant->getBatteryStatus(m_participantIndex, m_domainIndex);
-	}
-	return m_batteryStatusBuffer;
-}
-
-DptfBuffer Domain::getBatteryInformation(void)
-{
-	if (m_batteryInformationBuffer.size() == 0)
-	{
-		m_batteryInformationBuffer = m_theRealParticipant->getBatteryInformation(m_participantIndex, m_domainIndex);
-	}
-	return m_batteryInformationBuffer;
-}
-
 PlatformPowerSource::Type Domain::getPlatformPowerSource(void)
 {
 	FILL_CACHE_AND_RETURN(m_platformPowerSource, PlatformPowerSource::Type, getPlatformPowerSource);
-}
-
-ChargerType::Type Domain::getChargerType(void)
-{
-	FILL_CACHE_AND_RETURN(m_chargerType, ChargerType::Type, getChargerType);
-}
-
-Power Domain::getPlatformBatterySteadyState(void)
-{
-	FILL_CACHE_AND_RETURN(m_batterySteadyState, Power, getPlatformBatterySteadyState);
 }
 
 UInt32 Domain::getACNominalVoltage(void)
@@ -1126,103 +1121,29 @@ void Domain::setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& cen
 	clearDomainCachedDataRfProfileStatus();
 }
 
+Percentage Domain::getSscBaselineSpreadValue()
+{
+	return m_theRealParticipant->getSscBaselineSpreadValue(m_participantIndex, m_domainIndex);
+}
+
+Percentage Domain::getSscBaselineThreshold()
+{
+	return m_theRealParticipant->getSscBaselineThreshold(m_participantIndex, m_domainIndex);
+}
+
+Percentage Domain::getSscBaselineGuardBand()
+{
+	return m_theRealParticipant->getSscBaselineGuardBand(m_participantIndex, m_domainIndex);
+}
+
 RfProfileDataSet Domain::getRfProfileDataSet(void)
 {
 	FILL_CACHE_AND_RETURN(m_rfProfileData, RfProfileDataSet, getRfProfileDataSet);
 }
 
-Temperature Domain::getTccOffsetTemperature()
-{
-	return m_theRealParticipant->getTccOffsetTemperature(m_participantIndex, m_domainIndex);
-}
-
-void Domain::setTccOffsetTemperature(UIntN policyIndex, const Temperature& tccOffset)
-{
-	m_theRealParticipant->setTccOffsetTemperature(m_participantIndex, m_domainIndex, tccOffset);
-}
-
-Temperature Domain::getMaxTccOffsetTemperature()
-{
-	return m_theRealParticipant->getMaxTccOffsetTemperature(m_participantIndex, m_domainIndex);
-}
-
-Temperature Domain::getMinTccOffsetTemperature()
-{
-	return m_theRealParticipant->getMinTccOffsetTemperature(m_participantIndex, m_domainIndex);
-}
-
-TemperatureStatus Domain::getTemperatureStatus(void)
-{
-	FILL_CACHE_AND_RETURN(m_temperatureStatus, TemperatureStatus, getTemperatureStatus);
-}
-
-TemperatureThresholds Domain::getTemperatureThresholds(void)
-{
-	FILL_CACHE_AND_RETURN(m_temperatureThresholds, TemperatureThresholds, getTemperatureThresholds);
-}
-
-void Domain::setTemperatureThresholds(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds)
-{
-	// The temperature has to be locked for the duration of the WIDomainTemperatureThresholdCrossed event.
-
-	m_arbitrator->getTemperatureThresholdArbitrator()->arbitrate(
-		policyIndex, temperatureThresholds, getTemperatureStatus().getCurrentTemperature(), getTemperatureThresholds().getHysteresis());
-	m_theRealParticipant->setTemperatureThresholds(
-		m_participantIndex,
-		m_domainIndex,
-		m_arbitrator->getTemperatureThresholdArbitrator()->getArbitratedTemperatureThresholds());
-
-	// DO NOT invalidate the temperature status (m_temperatureStatus)
-	// Only invalidate the temperature thresholds.
-	DELETE_MEMORY_TC(m_temperatureThresholds);
-}
-
-Temperature Domain::getPowerShareTemperatureThreshold()
-{
-	return m_theRealParticipant->getPowerShareTemperatureThreshold(m_participantIndex, m_domainIndex);
-}
-
 UtilizationStatus Domain::getUtilizationStatus(void)
 {
 	FILL_CACHE_AND_RETURN(m_utilizationStatus, UtilizationStatus, getUtilizationStatus);
-}
-
-DptfBuffer Domain::getVirtualSensorCalibrationTable(void)
-{
-	if (m_virtualSensorCalculationTableBuffer.size() == 0)
-	{
-		m_virtualSensorCalculationTableBuffer =
-			m_theRealParticipant->getCalibrationTable(m_participantIndex, m_domainIndex);
-	}
-	return m_virtualSensorCalculationTableBuffer;
-}
-
-DptfBuffer Domain::getVirtualSensorPollingTable(void)
-{
-	if (m_virtualSensorPollingTableBuffer.size() == 0)
-	{
-		m_virtualSensorPollingTableBuffer = m_theRealParticipant->getPollingTable(m_participantIndex, m_domainIndex);
-	}
-	return m_virtualSensorPollingTableBuffer;
-}
-
-Bool Domain::isVirtualTemperature(void)
-{
-	FILL_CACHE_AND_RETURN(m_isVirtualTemperature, Bool, isVirtualTemperature);
-}
-
-void Domain::setVirtualTemperature(const Temperature& temperature)
-{
-	// No arbitration.
-	m_theRealParticipant->setVirtualTemperature(m_participantIndex, m_domainIndex, temperature);
-}
-
-void Domain::clearDomainCachedDataActiveControl()
-{
-	DELETE_MEMORY_TC(m_activeControlStaticCaps);
-	DELETE_MEMORY_TC(m_activeControlDynamicCaps);
-	DELETE_MEMORY_TC(m_activeControlStatus);
-	DELETE_MEMORY_TC(m_activeControlSet);
 }
 
 void Domain::clearDomainCachedDataConfigTdpControl()
@@ -1285,15 +1206,6 @@ void Domain::clearDomainCachedDataRfProfileStatus()
 	DELETE_MEMORY_TC(m_rfProfileData);
 }
 
-void Domain::clearDomainCachedDataTemperature()
-{
-	DELETE_MEMORY_TC(m_temperatureStatus);
-	DELETE_MEMORY_TC(m_temperatureThresholds);
-	DELETE_MEMORY_TC(m_isVirtualTemperature);
-	m_virtualSensorCalculationTableBuffer.allocate(0);
-	m_virtualSensorPollingTableBuffer.allocate(0);
-}
-
 void Domain::clearDomainCachedDataUtilizationStatus()
 {
 	DELETE_MEMORY_TC(m_utilizationStatus);
@@ -1301,25 +1213,20 @@ void Domain::clearDomainCachedDataUtilizationStatus()
 
 void Domain::clearDomainCachedDataPlatformPowerStatus()
 {
-	DELETE_MEMORY_TC(m_maxBatteryPower);
 	DELETE_MEMORY_TC(m_adapterRating);
 	DELETE_MEMORY_TC(m_platformRestOfPower);
 	DELETE_MEMORY_TC(m_platformPowerSource);
-	DELETE_MEMORY_TC(m_chargerType);
-	DELETE_MEMORY_TC(m_batterySteadyState);
 	DELETE_MEMORY_TC(m_acNominalVoltage);
 	DELETE_MEMORY_TC(m_acOperationalCurrent);
 	DELETE_MEMORY_TC(m_ac1msPercentageOverload);
 	DELETE_MEMORY_TC(m_ac2msPercentageOverload);
 	DELETE_MEMORY_TC(m_ac10msPercentageOverload);
-	m_batteryStatusBuffer.allocate(0);
-	m_batteryInformationBuffer.allocate(0);
 }
 
-void Domain::clearDomainCachedDataPlatformPowerControl()
+void Domain::clearDomainCachedDataSystemPowerControl()
 {
-	m_platformPowerLimitEnabled.clear();
-	m_platformPowerLimit.clear();
-	m_platformPowerLimitTimeWindow.clear();
-	m_platformPowerLimitDutyCycle.clear();
+	m_systemPowerLimitEnabled.clear();
+	m_systemPowerLimit.clear();
+	m_systemPowerLimitTimeWindow.clear();
+	m_systemPowerLimitDutyCycle.clear();
 }

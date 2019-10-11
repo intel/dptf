@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,8 +22,10 @@
 #include "ParticipantInterface.h"
 #include "esif_sdk_iface_app.h"
 #include "Arbitrator.h"
-#include "PlatformPowerLimitType.h"
+#include "PsysPowerLimitType.h"
 #include "RfProfileDataSet.h"
+#include "DptfManagerInterface.h"
+
 class Domain
 {
 public:
@@ -48,9 +50,11 @@ public:
 	// This will clear the cached data stored within this class in the framework.  It will not ask the
 	// actual domain to clear its cache.
 	void clearDomainCachedData(void);
-
+	void clearDomainCachedRequestData(void);
 	void clearArbitrationDataForPolicy(UIntN policyIndex);
-	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
+	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
+
+	std::shared_ptr<XmlNode> getDiagnosticsAsXml() const;
 
 	//
 	// The following set of functions pass the call through to the actual domain.  They
@@ -58,16 +62,13 @@ public:
 	// for the duration of a work item.
 	//
 
-	// Active Controls
-	ActiveControlStaticCaps getActiveControlStaticCaps(void);
-	ActiveControlDynamicCaps getActiveControlDynamicCaps(void);
-	ActiveControlStatus getActiveControlStatus(void);
-	ActiveControlSet getActiveControlSet(void);
-	void setActiveControl(UIntN policyIndex, const Percentage& fanSpeed);
-
 	// Activity Status
 	Percentage getUtilizationThreshold();
 	Percentage getResidencyUtilization();
+	UInt64 getCoreActivityCounter();
+	UInt32 getCoreActivityCounterWidth();
+	UInt64 getTimestampCounter();
+	UInt32 getTimestampCounterWidth();
 
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(void);
@@ -92,7 +93,7 @@ public:
 	void setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 	void setDisplayCapsLock(UIntN policyIndex, Bool lock);
 
-	//Energy Controls
+	// Energy Controls
 	UInt32 getRaplEnergyCounter();
 	double getRaplEnergyUnit();
 	UInt32 getRaplEnergyCounterWidth();
@@ -122,6 +123,8 @@ public:
 	Bool isPowerLimitEnabled(PowerControlType::Type controlType);
 	Power getPowerLimit(PowerControlType::Type controlType);
 	Power getPowerLimitWithoutCache(PowerControlType::Type controlType);
+	Bool isSocPowerFloorEnabled();
+	Bool isSocPowerFloorSupported();
 	void setPowerLimit(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	void setPowerLimitIgnoringCaps(UIntN policyIndex, PowerControlType::Type controlType, const Power& powerLimit);
 	TimeSpan getPowerLimitTimeWindow(PowerControlType::Type controlType);
@@ -132,6 +135,7 @@ public:
 		const TimeSpan& timeWindow);
 	Percentage getPowerLimitDutyCycle(PowerControlType::Type controlType);
 	void setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
+	void setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState);
 	void setPowerCapsLock(UIntN policyIndex, Bool lock);
 	Bool isPowerShareControl();
 	double getPidKpTerm();
@@ -141,36 +145,32 @@ public:
 	TimeSpan getSlowPollTime();
 	TimeSpan getWeightedSlowPollAvgConstant();
 	Power getSlowPollPowerThreshold();
+	void removePowerLimitPolicyRequest(UIntN polixyIndex, PowerControlType::Type controlType);
 
 	// Power status
 	PowerStatus getPowerStatus(void);
 	Power getAveragePower(const PowerControlDynamicCaps& capabilities);
 	void setCalculatedAveragePower(Power powerValue);
 
-	// Platform Power Controls
-	Bool isPlatformPowerLimitEnabled(PlatformPowerLimitType::Type limitType);
-	Power getPlatformPowerLimit(PlatformPowerLimitType::Type limitType);
-	void setPlatformPowerLimit(UIntN policyIndex, PlatformPowerLimitType::Type limitType, const Power& powerLimit);
-	TimeSpan getPlatformPowerLimitTimeWindow(PlatformPowerLimitType::Type limitType);
-	void setPlatformPowerLimitTimeWindow(
+	// System Power Controls
+	Bool isSystemPowerLimitEnabled(PsysPowerLimitType::Type limitType);
+	Power getSystemPowerLimit(PsysPowerLimitType::Type limitType);
+	void setSystemPowerLimit(UIntN policyIndex, PsysPowerLimitType::Type limitType, const Power& powerLimit);
+	TimeSpan getSystemPowerLimitTimeWindow(PsysPowerLimitType::Type limitType);
+	void setSystemPowerLimitTimeWindow(
 		UIntN policyIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const TimeSpan& timeWindow);
-	Percentage getPlatformPowerLimitDutyCycle(PlatformPowerLimitType::Type limitType);
-	void setPlatformPowerLimitDutyCycle(
+	Percentage getSystemPowerLimitDutyCycle(PsysPowerLimitType::Type limitType);
+	void setSystemPowerLimitDutyCycle(
 		UIntN policyIndex,
-		PlatformPowerLimitType::Type limitType,
+		PsysPowerLimitType::Type limitType,
 		const Percentage& dutyCycle);
 
 	// Platform Power Status
-	Power getMaxBatteryPower(void);
 	Power getPlatformRestOfPower(void);
 	Power getAdapterPowerRating(void);
-	DptfBuffer getBatteryStatus(void);
-	DptfBuffer getBatteryInformation(void);
 	PlatformPowerSource::Type getPlatformPowerSource(void);
-	ChargerType::Type getChargerType(void);
-	Power getPlatformBatterySteadyState(void);
 	UInt32 getACNominalVoltage(void);
 	UInt32 getACOperationalCurrent(void);
 	Percentage getAC1msPercentageOverload(void);
@@ -178,33 +178,20 @@ public:
 	Percentage getAC10msPercentageOverload(void);
 	void notifyForProchotDeassertion(void);
 
-	// priority
+	// Priority
 	DomainPriority getDomainPriority(void);
 
 	// RF Profile Control
 	RfProfileCapabilities getRfProfileCapabilities(void);
 	void setRfProfileCenterFrequency(UIntN policyIndex, const Frequency& centerFrequency);
+	Percentage getSscBaselineSpreadValue();
+	Percentage getSscBaselineThreshold();
+	Percentage getSscBaselineGuardBand();
 
 	// RF Profile Status
 	RfProfileDataSet getRfProfileDataSet(void);
 
-	// TCC Offset Control
-	Temperature getTccOffsetTemperature();
-	void setTccOffsetTemperature(UIntN policyIndex, const Temperature& tccOffset);
-	Temperature getMaxTccOffsetTemperature();
-	Temperature getMinTccOffsetTemperature();
-
-	// temperature
-	TemperatureStatus getTemperatureStatus(void);
-	TemperatureThresholds getTemperatureThresholds(void);
-	void setTemperatureThresholds(UIntN policyIndex, const TemperatureThresholds& temperatureThresholds);
-	Temperature getPowerShareTemperatureThreshold();
-	DptfBuffer getVirtualSensorCalibrationTable(void);
-	DptfBuffer getVirtualSensorPollingTable(void);
-	Bool isVirtualTemperature(void);
-	void setVirtualTemperature(const Temperature& temperature);
-
-	// utilization
+	// Utilization
 	UtilizationStatus getUtilizationStatus(void);
 
 private:
@@ -231,12 +218,6 @@ private:
 	// FIXME:  consider adding a dirty bit to speed up clearing the cache.
 	//
 
-	// Active Controls
-	ActiveControlStaticCaps* m_activeControlStaticCaps;
-	ActiveControlDynamicCaps* m_activeControlDynamicCaps;
-	ActiveControlStatus* m_activeControlStatus;
-	ActiveControlSet* m_activeControlSet;
-
 	// ConfigTdp controls
 	ConfigTdpControlDynamicCaps* m_configTdpControlDynamicCaps;
 	ConfigTdpControlStatus* m_configTdpControlStatus;
@@ -260,6 +241,7 @@ private:
 	PerformanceControlSet* m_performanceControlSet;
 
 	// Power controls
+	Power getArbitratedPowerLimit(PowerControlType::Type controlType);
 	PowerControlDynamicCapsSet* m_powerControlDynamicCapsSet;
 	Bool* m_isPowerShareControl;
 	std::map<PowerControlType::Type, Bool> m_powerLimitEnabled;
@@ -270,28 +252,23 @@ private:
 	// Power status
 	PowerStatus* m_powerStatus;
 
-	// Platform Power Controls
-	std::map<PlatformPowerLimitType::Type, Bool> m_platformPowerLimitEnabled;
-	std::map<PlatformPowerLimitType::Type, Power> m_platformPowerLimit;
-	std::map<PlatformPowerLimitType::Type, TimeSpan> m_platformPowerLimitTimeWindow;
-	std::map<PlatformPowerLimitType::Type, Percentage> m_platformPowerLimitDutyCycle;
+	// System Power Controls
+	std::map<PsysPowerLimitType::Type, Bool> m_systemPowerLimitEnabled;
+	std::map<PsysPowerLimitType::Type, Power> m_systemPowerLimit;
+	std::map<PsysPowerLimitType::Type, TimeSpan> m_systemPowerLimitTimeWindow;
+	std::map<PsysPowerLimitType::Type, Percentage> m_systemPowerLimitDutyCycle;
 
 	// Platform Power Status
-	Power* m_maxBatteryPower;
 	Power* m_adapterRating;
 	Power* m_platformRestOfPower;
 	PlatformPowerSource::Type* m_platformPowerSource;
-	ChargerType::Type* m_chargerType;
-	DptfBuffer m_batteryStatusBuffer;
-	DptfBuffer m_batteryInformationBuffer;
-	Power* m_batterySteadyState;
 	UInt32* m_acNominalVoltage;
 	UInt32* m_acOperationalCurrent;
 	Percentage* m_ac1msPercentageOverload;
 	Percentage* m_ac2msPercentageOverload;
 	Percentage* m_ac10msPercentageOverload;
 
-	// priority
+	// Priority
 	DomainPriority* m_domainPriority;
 
 	// RF Profile Control
@@ -300,28 +277,19 @@ private:
 	// RF Profile Status
 	RfProfileDataSet* m_rfProfileData;
 
-	// temperature
-	TemperatureStatus* m_temperatureStatus;
-	TemperatureThresholds* m_temperatureThresholds;
-	DptfBuffer m_virtualSensorCalculationTableBuffer;
-	DptfBuffer m_virtualSensorPollingTableBuffer;
-	Bool* m_isVirtualTemperature;
-
-	// utilization
+	// Utilization
 	UtilizationStatus* m_utilizationStatus;
 
-	void clearDomainCachedDataActiveControl();
 	void clearDomainCachedDataConfigTdpControl();
 	void clearDomainCachedDataCoreControl();
 	void clearDomainCachedDataDisplayControl();
 	void clearDomainCachedDataPerformanceControl();
 	void clearDomainCachedDataPowerControl();
 	void clearDomainCachedDataPowerStatus();
-	void clearDomainCachedDataPlatformPowerControl();
+	void clearDomainCachedDataSystemPowerControl();
 	void clearDomainCachedDataPriority();
 	void clearDomainCachedDataRfProfileControl();
 	void clearDomainCachedDataRfProfileStatus();
-	void clearDomainCachedDataTemperature();
 	void clearDomainCachedDataUtilizationStatus();
 	void clearDomainCachedDataPlatformPowerStatus();
 };

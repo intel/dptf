@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,11 +30,14 @@ public:
 	WorkItemQueueManager(DptfManagerInterface* dptfManager);
 	~WorkItemQueueManager(void);
 
-	virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem) override;
-	virtual void enqueueImmediateWorkItemAndReturn(WorkItem* workItem, UIntN priority) override;
-	virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem) override;
-	virtual void enqueueImmediateWorkItemAndWait(WorkItem* workItem, UIntN priority) override;
-	virtual void enqueueDeferredWorkItem(WorkItem* workItem, const TimeSpan& timeUntilExecution) override;
+	virtual void enqueueImmediateWorkItemAndReturn(std::shared_ptr<WorkItemInterface> workItem) override;
+	virtual void enqueueImmediateWorkItemAndReturn(std::shared_ptr<WorkItemInterface> workItem, UIntN priority)
+		override;
+	virtual void enqueueImmediateWorkItemAndWait(std::shared_ptr<WorkItemInterface> workItem) override;
+	virtual void enqueueImmediateWorkItemAndWait(std::shared_ptr<WorkItemInterface> workItem, UIntN priority) override;
+	virtual void enqueueDeferredWorkItem(
+		std::shared_ptr<WorkItemInterface> workItem,
+		const TimeSpan& timeUntilExecution) override;
 
 	virtual UIntN removeIfMatches(const WorkItemMatchCriteria& matchCriteria) override;
 	virtual Bool isWorkItemThread(void) override;
@@ -65,5 +68,6 @@ private:
 	EsifSemaphore* m_workItemQueueSemaphore;
 
 	void deleteAllObjects(void);
-	Bool canEnqueueImmediateWorkItem(WorkItem* workItem) const;
+	Bool canEnqueueImmediateWorkItem(std::shared_ptr<WorkItemInterface> workItem) const;
+	EsifServicesInterface* getEsifServices() const;
 };

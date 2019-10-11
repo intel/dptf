@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,7 +33,7 @@ ParticipantGetSpecificInfo_001::ParticipantGetSpecificInfo_001(
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: ParticipantGetSpecificInfoBase(participantIndex, domainIndex, participantServicesInterface)
 {
-	clearCachedData();
+	onClearCachedData();
 }
 
 ParticipantGetSpecificInfo_001::~ParticipantGetSpecificInfo_001()
@@ -72,7 +72,7 @@ std::map<ParticipantSpecificInfoKey::Type, Temperature> ParticipantGetSpecificIn
 	return results;
 }
 
-void ParticipantGetSpecificInfo_001::clearCachedData(void)
+void ParticipantGetSpecificInfo_001::onClearCachedData(void)
 {
 	m_cachedData.clear();
 }

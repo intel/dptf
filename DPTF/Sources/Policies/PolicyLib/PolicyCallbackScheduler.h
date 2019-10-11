@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,6 +38,7 @@ public:
 	virtual void setTimerForObject(void* object, const TimeSpan& time) override;
 	virtual void cancelCallback(UIntN participantIndex) override;
 	virtual void cancelCallback(EventCode::Type participantRole, UIntN participantIndex) override;
+	virtual void cancelAllCallbackRequests() override;
 	virtual void cancelTimerForObject(void* object) override;
 	virtual Bool hasCallbackWithinTimeRange(UIntN participantIndex, const TimeSpan& beginTime, const TimeSpan& endTime)
 		const override;
@@ -65,4 +66,5 @@ private:
 		const TimeSpan& currentTime,
 		const TimeSpan& pollTime);
 	void scheduleTimerCallback(void* object, const TimeSpan& currentTime, const TimeSpan& pollTime);
+	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,6 +39,8 @@ public:
 	virtual std::set<UIntN> getParticipantIndexes(void) const = 0;
 	virtual Participant* getParticipantPtr(UIntN participantIndex) const = 0;
 	virtual void clearAllParticipantCachedData() = 0;
+	virtual Bool participantExists(const std::string& participantName) const = 0;
+	virtual std::shared_ptr<IParticipant> getParticipant(const std::string& participantName) const = 0;
 
 	virtual std::string GetStatusAsXml(void) = 0;
 };

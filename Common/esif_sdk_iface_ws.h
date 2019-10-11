@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,7 +47,7 @@ typedef esif_error_t (ESIF_CALLCONV *EsifWsBroadcastFunc)(const u8 *buffer, size
 typedef Bool		 (ESIF_CALLCONV *EsifWsIsStartedFunc)(void);
 typedef void *       (ESIF_CALLCONV *EsifWsAllocFunc)(size_t buf_len);
 
-#pragma pack(push, 1)
+#pragma pack(push, 8) // Use 8-byte alignment to satisfy clang 9.x when packing structs with atomic types
 
 // Web Server Interface
 typedef struct EsifWsInterface_s {

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -85,15 +85,17 @@
 /* Build option to enable PERC support in Windows */
 #define ESIF_FEAT_OPT_PERC_SUPPORT_ENABLED
 
+/* Build option to enable USB-C support in Windows */
+/* #define ESIF_FEAT_OPT_USBC_SUPPORT_ENABLED */
+
 /* Build option to provide UF support in the Windows service application */
 /*#define ESIF_FEAT_OPT_SERVICE_AS_UF*/
 
-/* Build option to create the LF driver as a filter driver loaded against the CPU device in Windows */
-/*#define ESIF_FEAT_OPT_LF_IS_FILTER*/
+/* Build option to create the LF driver as a non-filter driver for Windows */
+/*#define ESIF_FEAT_OPT_LF_NOT_FILTER*/
 
 /* Build option to create the LF driver in a configuration which is not in the INT3400 stack */
 /*#define ESIF_FEAT_OPT_BIOS_LITE_LF*/
-
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
@@ -179,21 +181,6 @@ typedef esif_string EsifString;
 #define ESIF_LICENSE "Dual BSD/GPL"
 #define ESIF_AUTHOR  "Intel Corporation <dptf@lists.01.org>"
 
-#ifdef ESIF_ATTR_64BIT
-#define ESIF_PLATFORM_TYPE	"x64"
-#else
-#define ESIF_PLATFORM_TYPE	"x86"
-#endif /* ESIF_ATTR_64BIT */
-
-#ifdef ESIF_ATTR_DEBUG
-#define ESIF_BUILD_TYPE	"Debug"
-#else
-#define ESIF_BUILD_TYPE	"Release"
-#endif /* ESIF_ATTR_DEBUG */
-
-/* Debug Options */
-#define MEMPOOL_DEBUG NO_ESIF_DEBUG
-
 /*
  * Common Code Base - OS/Platform Abstraction layer
  */
@@ -211,6 +198,7 @@ typedef esif_string EsifString;
 
 #include "esif_ccb_lock.h"
 #include "esif_ccb_mempool.h"
+#include "esif_ccb_memstat.h"
 #include "esif_ccb_memory.h"
 #include "esif_ccb_time.h"
 #include "esif_ccb_string.h"

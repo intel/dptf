@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #include "TargetUnlimitAction.h"
 #include <algorithm>
 #include "PassiveDomainProxy.h"
+#include "PolicyLogger.h"
+
 using namespace std;
 
 TargetUnlimitAction::TargetUnlimitAction(
@@ -39,66 +41,84 @@ TargetUnlimitAction::~TargetUnlimitAction()
 
 void TargetUnlimitAction::execute()
 {
+	auto targetIndex = getTarget();
 	try
 	{
-		// choose sources to unlimit for target
-		getPolicyServices().messageLogging->writeMessageDebug(
-			PolicyMessage(FLF, "Attempting to unlimit target participant.", getTarget()));
-
-		auto time = getTime()->getCurrentTime();
-		vector<UIntN> sourcesToUnlimit = chooseSourcesToUnlimitForTarget(getTarget());
-		if (sourcesToUnlimit.size() > 0)
+		if (getParticipantTracker()->remembers(targetIndex))
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, constructMessageForSources("unlimit", getTarget(), sourcesToUnlimit)));
+			// choose sources to unlimit for target
+			// TODO: want to pass in participant index
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Attempting to unlimit target participant."
+						<< " ParticipantIndex = " << targetIndex;
+				return message.str();
+			});
 
-			for (auto source = sourcesToUnlimit.begin(); source != sourcesToUnlimit.end(); source++)
+			auto time = getTime()->getCurrentTime();
+			vector<UIntN> sourcesToUnlimit = chooseSourcesToUnlimitForTarget(targetIndex);
+			if (sourcesToUnlimit.size() > 0)
 			{
-				if (getCallbackScheduler()->isFreeForRequests(getTarget(), *source, time))
+				POLICY_LOG_MESSAGE_DEBUG(
+					{ return constructMessageForSources("unlimit", targetIndex, sourcesToUnlimit); });
+
+				for (auto source = sourcesToUnlimit.begin(); source != sourcesToUnlimit.end(); source++)
 				{
-					vector<UIntN> domains = chooseDomainsToUnlimitForSource(getTarget(), *source);
-					getPolicyServices().messageLogging->writeMessageDebug(
-						PolicyMessage(FLF, constructMessageForSourceDomains("unlimit", getTarget(), *source, domains)));
-					for (auto domain = domains.begin(); domain != domains.end(); domain++)
+					if (getParticipantTracker()->remembers(*source))
 					{
-						requestUnlimit(*source, *domain, getTarget());
+						if (getCallbackScheduler()->isFreeForRequests(targetIndex, *source, time))
+						{
+							vector<UIntN> domains = chooseDomainsToUnlimitForSource(targetIndex, *source);
+							POLICY_LOG_MESSAGE_DEBUG(
+								{ return constructMessageForSourceDomains("unlimit", targetIndex, *source, domains); });
+
+							for (auto domain = domains.begin(); domain != domains.end(); domain++)
+							{
+								requestUnlimit(*source, *domain, targetIndex);
+							}
+							getCallbackScheduler()->markBusyForRequests(targetIndex, *source, time);
+						}
+						getCallbackScheduler()->ensureCallbackByNextSamplePeriod(targetIndex, *source, time);
+
+						if (getCallbackScheduler()->isFreeForCommits(*source, time))
+						{
+							commitUnlimit(*source, time);
+						}
 					}
-					getCallbackScheduler()->markBusyForRequests(getTarget(), *source, time);
 				}
-				getCallbackScheduler()->ensureCallbackByNextSamplePeriod(getTarget(), *source, time);
-
-				if (getCallbackScheduler()->isFreeForCommits(*source, time))
-				{
-					commitUnlimit(*source, time);
-				}
-			}
-		}
-		else
-		{
-			// get temperature, hysteresis, and psv for target
-			ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(getTarget());
-			auto hysteresis = participant->getTemperatureThresholds().getHysteresis();
-			auto currentTemperature = participant->getFirstDomainTemperature();
-			auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
-			auto psv = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV);
-
-			// if temperature is between psv and (psv - hysteresis) then schedule another callback, otherwise stop
-			// monitoring the target as there is nothing else to unlimit.
-			if ((currentTemperature < Temperature(psv)) && (currentTemperature >= Temperature(psv - hysteresis)))
-			{
-				getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(getTarget(), time);
 			}
 			else
 			{
-				getTargetMonitor().stopMonitoring(getTarget());
-				removeAllRequestsForTarget(getTarget());
+				// get temperature, hysteresis, and psv for target
+				ParticipantProxyInterface* participant = getParticipantTracker()->getParticipant(targetIndex);
+				auto hysteresis = participant->getTemperatureThresholds().getHysteresis();
+				auto currentTemperature = participant->getFirstDomainTemperature();
+				auto passiveTripPoints = participant->getPassiveTripPointProperty().getTripPoints();
+				auto psv = passiveTripPoints.getTemperature(ParticipantSpecificInfoKey::PSV);
+
+				// if temperature is between psv and (psv - hysteresis) then schedule another callback, otherwise stop
+				// monitoring the target as there is nothing else to unlimit.
+				if ((currentTemperature < Temperature(psv)) && (currentTemperature >= Temperature(psv - hysteresis)))
+				{
+					getCallbackScheduler()->ensureCallbackByShortestSamplePeriod(targetIndex, time);
+				}
+				else
+				{
+					getTargetMonitor().stopMonitoring(targetIndex);
+					removeAllRequestsForTarget(targetIndex);
+				}
 			}
 		}
 	}
 	catch (...)
 	{
-		getPolicyServices().messageLogging->writeMessageWarning(
-			PolicyMessage(FLF, "Failed to unlimit source(s) for target.", getTarget()));
+		// TODO: want to pass in participant index
+		POLICY_LOG_MESSAGE_WARNING({
+			std::stringstream message;
+			message << "Failed to unlimit source(s) for target."
+					<< " ParticipantIndex = " << targetIndex;
+			return message.str();
+		});
 	}
 }
 
@@ -131,11 +151,12 @@ std::vector<std::shared_ptr<ThermalRelationshipTableEntry>> TargetUnlimitAction:
 	vector<std::shared_ptr<ThermalRelationshipTableEntry>> entriesThatCanBeUnlimited;
 	for (auto entry = sourcesForTarget.begin(); entry != sourcesForTarget.end(); ++entry)
 	{
-		if ((*entry)->getSourceDeviceIndex() != Constants::Invalid)
+		auto sourceIndex = (*entry)->getSourceDeviceIndex();
+		if (sourceIndex != Constants::Invalid && getParticipantTracker()->remembers(sourceIndex))
 		{
 			// if source has controls that can be unlimited, add it to the list
-			vector<UIntN> domainsWithControlKnobsToTurn = getDomainsWithControlKnobsToUnlimit(
-				getParticipantTracker()->getParticipant((*entry)->getSourceDeviceIndex()), target);
+			vector<UIntN> domainsWithControlKnobsToTurn =
+				getDomainsWithControlKnobsToUnlimit(getParticipantTracker()->getParticipant(sourceIndex), target);
 			if (domainsWithControlKnobsToTurn.size() > 0)
 			{
 				entriesThatCanBeUnlimited.push_back(*entry);
@@ -165,9 +186,9 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithControlKnobsToUnlimit(
 
 std::vector<UIntN> TargetUnlimitAction::chooseDomainsToUnlimitForSource(UIntN target, UIntN source)
 {
+	set<UIntN> domainsToUnlimitSet;
 	vector<UIntN> domainsWithControlKnobsToTurn =
 		getDomainsWithControlKnobsToUnlimit(getParticipantTracker()->getParticipant(source), target);
-	set<UIntN> domainsToUnlimitSet;
 
 	if (domainsWithControlKnobsToTurn.size() > 0)
 	{
@@ -217,11 +238,11 @@ UIntN TargetUnlimitAction::getDomainWithLowestTemperature(
 	std::vector<UIntN> domainsWithControlKnobsToTurn)
 {
 	pair<Temperature, UIntN> domainWithLowestTemperature(Temperature::createInvalid(), Constants::Invalid);
+	auto sourceParticipant = getParticipantTracker()->getParticipant(source);
 	for (auto domain = domainsWithControlKnobsToTurn.begin(); domain != domainsWithControlKnobsToTurn.end(); domain++)
 	{
 		try
 		{
-			auto sourceParticipant = getParticipantTracker()->getParticipant(source);
 			auto sourceDomain = sourceParticipant->getDomain(*domain);
 			Temperature domainTemperature = sourceDomain->getTemperatureControl()->getCurrentTemperature();
 			if (domainWithLowestTemperature.first.isValid())
@@ -243,17 +264,19 @@ UIntN TargetUnlimitAction::getDomainWithLowestTemperature(
 			// if get temperature fails, ignore for choosing the domain with the lowest temperature
 		}
 	}
+
 	return domainWithLowestTemperature.second;
 }
 
 std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN source, std::vector<UIntN> domains)
 {
+	vector<UIntN> domainsWithLowestPriority;
 	DomainPriority lowestPriority(Constants::Invalid);
+	auto sourceParticipant = getParticipantTracker()->getParticipant(source);
 	for (auto domain = domains.begin(); domain != domains.end(); domain++)
 	{
 		try
 		{
-			auto sourceParticipant = getParticipantTracker()->getParticipant(source);
 			auto sourceDomain = sourceParticipant->getDomain(*domain);
 			DomainPriority priority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
 			if (priority < lowestPriority)
@@ -267,10 +290,8 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
 		}
 	}
 
-	vector<UIntN> domainsWithLowestPriority;
 	for (auto domain = domains.begin(); domain != domains.end(); domain++)
 	{
-		auto sourceParticipant = getParticipantTracker()->getParticipant(source);
 		auto sourceDomain = sourceParticipant->getDomain(*domain);
 		DomainPriority priority = sourceDomain->getDomainPriorityProperty().getDomainPriority();
 		if (priority == lowestPriority)
@@ -278,6 +299,7 @@ std::vector<UIntN> TargetUnlimitAction::getDomainsWithLowestPriority(UIntN sourc
 			domainsWithLowestPriority.push_back(*domain);
 		}
 	}
+
 	return domainsWithLowestPriority;
 }
 
@@ -297,8 +319,13 @@ void TargetUnlimitAction::commitUnlimit(UIntN source, const TimeSpan& time)
 	{
 		try
 		{
-			getPolicyServices().messageLogging->writeMessageDebug(
-				PolicyMessage(FLF, "Committing limits to source.", source, *domain));
+			// TODO: want to pass in participant index and domain index instead
+			POLICY_LOG_MESSAGE_DEBUG({
+				std::stringstream message;
+				message << "Committing limits to source."
+						<< " Source=" + std::to_string(source) << ". Domain = " + std::to_string(*domain);
+				return message.str();
+			});
 
 			auto sourceDomain = std::dynamic_pointer_cast<PassiveDomainProxy>(sourceParticipant->getDomain(*domain));
 			Bool madeChange = sourceDomain->commitLimits();
@@ -309,8 +336,13 @@ void TargetUnlimitAction::commitUnlimit(UIntN source, const TimeSpan& time)
 		}
 		catch (std::exception& ex)
 		{
-			getPolicyServices().messageLogging->writeMessageWarning(
-				PolicyMessage(FLF, "Failed to limit source: " + string(ex.what()), source, *domain));
+			// TODO: want to pass in participant index and domain index instead
+			POLICY_LOG_MESSAGE_WARNING_EX({
+				std::stringstream message;
+				message << "Failed to limit source: " << string(ex.what()) << ". Source=" + std::to_string(source)
+						<< ". Domain = " + std::to_string(*domain);
+				return message.str();
+			});
 		}
 	}
 

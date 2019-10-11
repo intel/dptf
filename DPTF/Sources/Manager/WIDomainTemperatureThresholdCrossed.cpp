@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,13 +33,17 @@ WIDomainTemperatureThresholdCrossed::~WIDomainTemperatureThresholdCrossed(void)
 {
 }
 
-void WIDomainTemperatureThresholdCrossed::execute(void)
+void WIDomainTemperatureThresholdCrossed::onExecute(void)
 {
 	writeDomainWorkItemStartingInfoMessage();
 
 	try
 	{
 		getParticipantPtr()->domainTemperatureThresholdCrossed();
+	}
+	catch (participant_index_invalid& ex)
+	{
+		writeDomainWorkItemWarningMessage(ex, "ParticipantManager::getParticipantPtr");
 	}
 	catch (std::exception& ex)
 	{
@@ -53,16 +57,16 @@ void WIDomainTemperatureThresholdCrossed::execute(void)
 	{
 		try
 		{
-			Policy* policy = policyManager->getPolicyPtr(*i);
+			auto policy = policyManager->getPolicyPtr(*i);
 			policy->executeDomainTemperatureThresholdCrossed(getParticipantIndex());
 		}
-		catch (policy_index_invalid& ex)
+		catch (policy_index_invalid&)
 		{
 			// do nothing.  No item in the policy list at this index.
 		}
 		catch (std::exception& ex)
 		{
-			writeDomainWorkItemErrorMessagePolicy(ex, "Policy::executeDomainTemperatureThresholdCrossed", *i);
+			writeDomainWorkItemWarningMessagePolicy(ex, "Policy::executeDomainTemperatureThresholdCrossed", *i);
 		}
 	}
 }

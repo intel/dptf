@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,7 +31,12 @@ public:
 	virtual Bool isPowerLimitEnabled(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) = 0;
 
 	virtual Power getPowerLimit(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) = 0;
-	virtual Power getPowerLimitWithoutCache(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) = 0;
+	virtual Power getPowerLimitWithoutCache(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) = 0;
+	virtual Bool isSocPowerFloorEnabled(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual Bool isSocPowerFloorSupported(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setPowerLimit(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -67,6 +72,7 @@ public:
 		UIntN domainIndex,
 		PowerControlType::Type controlType,
 		const Percentage& dutyCycle) = 0;
+	virtual void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) = 0;
 
 	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setPowerControlDynamicCapsSet(
@@ -83,4 +89,8 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void removePowerLimitPolicyRequest(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,8 +36,12 @@ static ESIF_INLINE char *esif_ccb_strcpy(
 	)
 {
 	if (siz) {
-		strncpy(dst, src, siz);
-		dst[siz - 1] = 0;
+		size_t len = strnlen(src, siz);
+		if (len >= siz) {
+			len = siz - 1;
+		}
+		memmove(dst, src, len);
+		dst[len] = 0;
 	}
 	return dst;
 }
@@ -50,7 +54,13 @@ static ESIF_INLINE char *esif_ccb_strcat(
 	)
 {
 	if (siz) {
-		strncat(dst, src, siz - strnlen(dst, siz) - 1);
+		size_t len = strnlen(dst, siz);
+		if (len >= siz) {
+			dst[siz - 1] = 0;
+		}
+		else {
+			strncat(dst, src, siz - len - 1);
+		}
 	}
 	return dst;
 }
@@ -64,7 +74,15 @@ static ESIF_INLINE size_t esif_ccb_strlen(
 	return (str ? strnlen(str, siz) : 0);
 }
 
-#define esif_ccb_sprintf(siz, str, fmt, ...)	snprintf(str, siz, fmt, ##__VA_ARGS__)
+/* Return sprintf result string length not including null terminator, possibly truncated */
+static ESIF_INLINE int esif_ccb_sprintf_len(size_t siz, int len)
+{
+	return ((siz) && (len) >= (int)(siz) ? (int)(siz)-1 : (len));
+}
+
+#define esif_ccb_sprintf(siz, str, fmt, ...)			esif_ccb_sprintf_len(siz, snprintf(str, siz, fmt, ##__VA_ARGS__))
+#define esif_ccb_snprintf(str, siz, fmt, ...)			esif_ccb_sprintf(siz, str, fmt, ##__VA_ARGS__)
+#define esif_ccb_snprintf_concat(str, siz, fmt, ...)	esif_ccb_sprintf_concat(siz, str, fmt, ##__VA_ARGS__)
 #define esif_ccb_strpbrk(str, set)		strpbrk(str, set)
 #define esif_ccb_strcspn(str, set)		strcspn(str, set)
 
@@ -79,7 +97,8 @@ static ESIF_INLINE size_t esif_ccb_strlen(
 #else
 #define SCANFBUF(str, siz)			str
 #endif
-#define esif_ccb_vsprintf(siz, str, fmt, ...)	vsnprintf(str, siz, fmt, ##__VA_ARGS__)
+#define esif_ccb_vsprintf(siz, str, fmt, arg)	esif_ccb_sprintf_len(siz, vsnprintf(str, siz, fmt, arg))
+#define esif_ccb_vsnprintf(str, siz, fmt, arg)	esif_ccb_vsprintf(siz, str, fmt, arg)
 #define esif_ccb_vsscanf(str, fmt, args)	vsscanf(str, fmt, args)
 #define esif_ccb_sscanf(str, fmt, ...)		sscanf(str, fmt, ##__VA_ARGS__)
 #define esif_ccb_strtok(str, sep, ctxt)		strtok_r(str, sep, ctxt)
@@ -113,9 +132,10 @@ static ESIF_INLINE char *esif_ccb_strupr(
 	size_t count
 	)
 {
+	char *start = s;
 	for (; *s && count; s++, count--)
 		*s = toupper(*s);
-	return s;
+	return start;
 }
 
 
@@ -125,9 +145,10 @@ static ESIF_INLINE char *esif_ccb_strlwr(
 	size_t count
 	)
 {
+	char *start = s;
 	for (; s && *s && count; s++, count--)
 		*s = tolower(*s);
-	return s;
+	return start;
 }
 
 
@@ -157,7 +178,7 @@ static ESIF_INLINE int esif_ccb_sprintf_concat(
 	if (siz > len) {
 		va_list args;
 		va_start(args, fmt);
-		rc = esif_ccb_vsprintf(siz - len, str + len, fmt, args);
+		rc = (int)len + esif_ccb_sprintf_len(siz - len, esif_ccb_vsprintf(siz - len, str + len, fmt, args));
 		va_end(args);
 	}
 	return rc;

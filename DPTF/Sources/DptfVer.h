@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,4 +39,4 @@
 	VER_MAJOR_STR VER_SEPARATOR_STR VER_MINOR_STR VER_SEPARATOR_STR VER_HOTFIX_STR VER_SEPARATOR_STR VER_BUILD_STR     \
 		VER_DEBUG_TAG
 
-#define COPYRIGHT_STR "Copyright (c) 2013-2017 Intel Corporation All Rights Reserved \0"
+#define COPYRIGHT_STR "Copyright (c) 2013-2019 Intel Corporation All Rights Reserved \0"

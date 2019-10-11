@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -92,11 +92,15 @@ typedef enum esif_domain_type {
 	ESIF_DOMAIN_TYPE_DGFXCORE = 36,
 	ESIF_DOMAIN_TYPE_DGFXMEM = 37,
 	ESIF_DOMAIN_TYPE_DGFXMCP = 38,
+	ESIF_DOMAIN_TYPE_WWANANALOG = 39,
+	ESIF_DOMAIN_TYPE_WWANDIGITAL = 40,
+	ESIF_DOMAIN_TYPE_WWANRFIM = 41,
+	ESIF_DOMAIN_TYPE_IDGFXCORE = 42,
 	ESIF_DOMAIN_TYPE_ALL = 255,
 } esif_domain_type_t;
 
 /* Max Enum Value for Iteration purposes (Excluding ALL) */
-#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_DGFXMCP
+#define MAX_ESIF_DOMAIN_TYPE_ENUM_VALUE  ESIF_DOMAIN_TYPE_IDGFXCORE
 
 static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 {
@@ -133,6 +137,10 @@ static ESIF_INLINE esif_string esif_domain_type_str(esif_domain_type_t type)
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DGFXCORE);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DGFXMEM);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_DGFXMCP);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_WWANANALOG);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_WWANDIGITAL);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_WWANRFIM);
+	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_IDGFXCORE);
 	ESIF_CASE_ENUM(ESIF_DOMAIN_TYPE_ALL);
 	}
 	return ESIF_NOT_AVAILABLE;

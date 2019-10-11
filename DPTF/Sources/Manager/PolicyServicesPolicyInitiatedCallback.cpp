@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,8 +33,8 @@ UInt64 PolicyServicesPolicyInitiatedCallback::createPolicyInitiatedImmediateCall
 	void* param2)
 {
 	// This can be called from any thread
-	WorkItem* workItem =
-		new WIPolicyInitiatedCallback(getDptfManager(), getPolicyIndex(), policyDefinedEventCode, param1, param2);
+	auto workItem = std::make_shared<WIPolicyInitiatedCallback>(
+		getDptfManager(), getPolicyIndex(), policyDefinedEventCode, param1, param2);
 	UInt64 workItemUniqueId = workItem->getUniqueId();
 	getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(workItem);
 
@@ -48,8 +48,8 @@ UInt64 PolicyServicesPolicyInitiatedCallback::createPolicyInitiatedDeferredCallb
 	const TimeSpan& timeDelta)
 {
 	// This can be called from any thread
-	WorkItem* workItem =
-		new WIPolicyInitiatedCallback(getDptfManager(), getPolicyIndex(), policyDefinedEventCode, param1, param2);
+	auto workItem = std::make_shared<WIPolicyInitiatedCallback>(
+		getDptfManager(), getPolicyIndex(), policyDefinedEventCode, param1, param2);
 	UInt64 workItemUniqueId = workItem->getUniqueId();
 	getWorkItemQueueManager()->enqueueDeferredWorkItem(workItem, timeDelta);
 

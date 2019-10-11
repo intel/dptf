@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,46 +19,11 @@
 #pragma once
 
 #include "Dptf.h"
-#include "PlatformPowerLimitType.h"
-#include "TimeSpan.h"
 
 class DomainPlatformPowerControlInterface
 {
 public:
 	virtual ~DomainPlatformPowerControlInterface(){};
 
-	virtual Bool isPlatformPowerLimitEnabled(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) = 0;
-
-	virtual Power getPlatformPowerLimit(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) = 0;
-	virtual void setPlatformPowerLimit(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType,
-		const Power& powerLimit) = 0;
-
-	virtual TimeSpan getPlatformPowerLimitTimeWindow(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) = 0;
-	virtual void setPlatformPowerLimitTimeWindow(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType,
-		const TimeSpan& timeWindow) = 0;
-
-	virtual Percentage getPlatformPowerLimitDutyCycle(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType) = 0;
-	virtual void setPlatformPowerLimitDutyCycle(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		PlatformPowerLimitType::Type limitType,
-		const Percentage& dutyCycle) = 0;
+	virtual void setPortPowerLimit(const UInt32 portNumber, const Power& powerLimit) = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 
 #include "Dptf.h"
 #include "ParticipantServicesInterface.h"
-#include "DomainActiveControlInterface.h"
 #include "DomainActivityStatusInterface.h"
 #include "DomainConfigTdpControlInterface.h"
 #include "DomainCoreControlInterface.h"
@@ -33,19 +32,17 @@
 #include "DomainPriorityInterface.h"
 #include "DomainRfProfileControlInterface.h"
 #include "DomainRfProfileStatusInterface.h"
-#include "DomainTemperatureInterface.h"
-#include "DomainTccOffsetControlInterface.h"
 #include "DomainUtilizationInterface.h"
 #include "ParticipantGetSpecificInfoInterface.h"
 #include "ParticipantPropertiesInterface.h"
 #include "ParticipantSetSpecificInfoInterface.h"
-#include "DomainPlatformPowerControlInterface.h"
+#include "DomainSystemPowerControlInterface.h"
 #include "DomainPlatformPowerStatusInterface.h"
+#include "ControlFactoryType.h"
 
 class XmlNode;
 
-class ParticipantInterface : public DomainActiveControlInterface,
-							 public DomainActivityStatusInterface,
+class ParticipantInterface : public DomainActivityStatusInterface,
 							 public DomainConfigTdpControlInterface,
 							 public DomainCoreControlInterface,
 							 public DomainDisplayControlInterface,
@@ -54,13 +51,11 @@ class ParticipantInterface : public DomainActiveControlInterface,
 							 public DomainPerformanceControlInterface,
 							 public DomainPowerControlInterface,
 							 public DomainPowerStatusInterface,
-							 public DomainPlatformPowerControlInterface,
+							 public DomainSystemPowerControlInterface,
 							 public DomainPlatformPowerStatusInterface,
 							 public DomainPriorityInterface,
 							 public DomainRfProfileControlInterface,
 							 public DomainRfProfileStatusInterface,
-							 public DomainTemperatureInterface,
-							 public DomainTccOffsetControlInterface,
 							 public DomainUtilizationInterface,
 							 public ParticipantGetSpecificInfoInterface,
 							 public ParticipantPropertiesInterface,
@@ -105,6 +100,14 @@ public:
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) const = 0;
 	virtual std::shared_ptr<XmlNode> getStatusAsXml(UIntN domainIndex) const = 0;
 	virtual std::shared_ptr<XmlNode> getDiagnosticsAsXml(UIntN domainIndex) const = 0;
+	virtual std::shared_ptr<XmlNode> getArbitratorStatusForPolicy(
+		UIntN domainIndex,
+		UIntN policyIndex,
+		ControlFactoryType::Type type) const = 0;
+	virtual void clearCachedData() = 0;
+	virtual void clearCachedResults() = 0;
+	virtual void clearTemperatureControlCachedData() = 0;
+	virtual void clearBatteryStatusControlCachedData() = 0;
 
 	// Event handlers
 	virtual void connectedStandbyEntry(void) = 0;
@@ -123,25 +126,18 @@ public:
 	virtual void domainPriorityChanged(void) = 0;
 	virtual void domainRadioConnectionStatusChanged(RadioConnectionStatus::Type radioConnectionStatus) = 0;
 	virtual void domainRfProfileChanged(void) = 0;
-	virtual void domainTemperatureThresholdCrossed(void) = 0;
 	virtual void participantSpecificInfoChanged(void) = 0;
-	virtual void domainVirtualSensorCalibrationTableChanged(void) = 0;
-	virtual void domainVirtualSensorPollingTableChanged(void) = 0;
-	virtual void domainVirtualSensorRecalcChanged(void) = 0;
-	virtual void domainBatteryStatusChanged(void) = 0;
-	virtual void domainBatteryInformationChanged(void) = 0;
 	virtual void domainPlatformPowerSourceChanged(void) = 0;
 	virtual void domainAdapterPowerRatingChanged(void) = 0;
-	virtual void domainChargerTypeChanged(void) = 0;
 	virtual void domainPlatformRestOfPowerChanged(void) = 0;
-	virtual void domainMaxBatteryPowerChanged(void) = 0;
-	virtual void domainPlatformBatterySteadyStateChanged(void) = 0;
 	virtual void domainACNominalVoltageChanged(void) = 0;
 	virtual void domainACOperationalCurrentChanged(void) = 0;
 	virtual void domainAC1msPercentageOverloadChanged(void) = 0;
 	virtual void domainAC2msPercentageOverloadChanged(void) = 0;
 	virtual void domainAC10msPercentageOverloadChanged(void) = 0;
 	virtual void domainEnergyThresholdCrossed(void) = 0;
+	virtual void domainFanCapabilityChanged(void) = 0;
+	virtual void domainSocWorkloadClassificationChanged() = 0;
 };
 
 //
@@ -150,10 +146,11 @@ public:
 // since there is only one participant and we know the entry point.  But, we can easily change it later
 // if needed since the functions are already in place.
 //
-extern "C" {
-typedef ParticipantInterface* (*CreateParticipantInstanceFuncPtr)(void);
-ParticipantInterface* CreateParticipantInstance(void);
+extern "C"
+{
+	typedef ParticipantInterface* (*CreateParticipantInstanceFuncPtr)(void);
+	ParticipantInterface* CreateParticipantInstance(void);
 
-typedef void (*DestroyParticipantInstanceFuncPtr)(ParticipantInterface* participantInterface);
-void DestroyParticipantInstance(ParticipantInterface* participantInterface);
+	typedef void (*DestroyParticipantInstanceFuncPtr)(ParticipantInterface* participantInterface);
+	void DestroyParticipantInstance(ParticipantInterface* participantInterface);
 }

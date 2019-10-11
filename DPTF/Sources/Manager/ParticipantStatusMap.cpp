@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -110,28 +110,6 @@ std::shared_ptr<XmlNode> ParticipantStatusMap::getStatusAsXml(UIntN mappedIndex)
 
 		Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
 		return participant->getStatusAsXml(domainIndex);
-	}
-	catch (...)
-	{
-		// Participant not available
-		return XmlNode::createRoot();
-	}
-}
-
-std::shared_ptr<XmlNode> ParticipantStatusMap::getDiagnosticsAsXml(UIntN mappedIndex)
-{
-	try
-	{
-		if (m_participantDomainsList.size() == 0)
-		{
-			buildParticipantDomainsList();
-		}
-
-		UIntN participantIndex = m_participantDomainsList[mappedIndex].first;
-		UIntN domainIndex = m_participantDomainsList[mappedIndex].second;
-
-		Participant* participant = m_participantManager->getParticipantPtr(participantIndex);
-		return participant->getDiagnosticsAsXml(domainIndex);
 	}
 	catch (...)
 	{

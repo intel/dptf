@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,7 +31,7 @@
 /* Opaque Loadable Library Object. Callers should treat esif_lib_t as a Handle and set to NULL after closing */
 struct esif_ccb_library_s {
 	void         *handle; /* OS Handle to Loaded Library or NULL */
-	enum esif_rc errnum;  /* ESIF Error Message ID for failed Load/Get-Proc or NULL */
+	enum esif_rc errnum;  /* ESIF Error Message ID for failed Load/Get-Proc */
 	char         *errmsg; /* OS Error Message for failed Load/Get-Proc or NULL [Auto-Allocated] */
 };
 typedef struct esif_ccb_library_s *esif_lib_t;
@@ -40,6 +40,7 @@ typedef struct esif_ccb_library_s *esif_lib_t;
 /* prototypes */
 static ESIF_INLINE char *esif_ccb_library_errormsg(esif_lib_t lib);
 static ESIF_INLINE enum esif_rc esif_ccb_library_error(esif_lib_t lib);
+static ESIF_INLINE void esif_ccb_library_geterror(esif_lib_t lib);
 
 /* Load Shared .so/DLL code opaque */
 static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
@@ -48,11 +49,24 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 	if (NULL == lib)
 		return NULL;
 
-	lib->handle = dlopen(lib_name, RTLD_NOW);
+	/* NULL lib_name loads symbol from current module instead of dynamic library */
+	Dl_info info = { 0 };
+	if (NULL == lib_name && dladdr((const void *)&esif_ccb_library_load, &info)) {
+		/* If current module is an .so, use it when loading NULL lib_names instead of main module */
+		size_t extlen = esif_ccb_strlen(ESIF_LIB_EXT, MAX_PATH);
+		size_t len = esif_ccb_strlen(info.dli_fname, MAX_PATH);
+		if (len > extlen && esif_ccb_strcmp(&info.dli_fname[len - extlen], ESIF_LIB_EXT) == 0) {
+			lib_name = (esif_string)info.dli_fname;
+		}
+	}
+	
+	int dlflags = RTLD_NOW | RTLD_GLOBAL;
+	lib->handle = dlopen(lib_name, dlflags);
+	esif_ccb_library_geterror(lib);
 
 	/* Try different case-sensitive versions of lib_name */
-	if (NULL == lib->handle && lib_name[0] != 0 && esif_ccb_library_error(lib) == ESIF_E_NOT_FOUND) {
-		char library[256]={0};
+	if (NULL == lib->handle && NULL != lib_name && lib_name[0] != 0 && esif_ccb_library_error(lib) == ESIF_E_NOT_FOUND && info.dli_fname == NULL) {
+		char library[MAX_PATH]={0};
 		size_t j=0;
 		int start=0;
 		char *errmsg = esif_ccb_strdup(esif_ccb_library_errormsg(lib));
@@ -70,12 +84,14 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 			library[j] = tolower(lib_name[j]);
 		}
 		library[start] = toupper(library[start]);
-		lib->handle = dlopen(library, RTLD_NOW);
+		lib->handle = dlopen(library, dlflags);
+		esif_ccb_library_geterror(lib);
 
 		/* lowercase.so */
 		if (NULL == lib->handle && esif_ccb_library_error(lib) == ESIF_E_NOT_FOUND) {
 			library[start] = tolower(library[start]);
-			lib->handle = dlopen(library, RTLD_NOW);
+			lib->handle = dlopen(library, dlflags);
+			esif_ccb_library_geterror(lib);
 		}
 
 		/* UPPERCASE.so */
@@ -83,7 +99,8 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 			for (j=start; library[j] && library[j] != '.'; j++) {
 				library[j] = toupper(library[j]);
 			}
-			lib->handle = dlopen(library, RTLD_NOW);
+			lib->handle = dlopen(library, dlflags);
+			esif_ccb_library_geterror(lib);
 		}
 
 		/* Reset Error Message */
@@ -110,11 +127,34 @@ static ESIF_INLINE void *esif_ccb_library_get_func(
 		return NULL;
 
 	if ((func = dlsym(lib->handle, func_name)) == NULL) {
-		esif_ccb_free(lib->errmsg);
-		lib->errmsg = NULL;
-		lib->errnum = esif_ccb_library_error(lib);
+		esif_ccb_library_geterror(lib);
 	}
 	return func;
+}
+
+/* Get Full pathname for of loaded library */
+static ESIF_INLINE enum esif_rc esif_ccb_library_getpath(
+	esif_lib_t lib,
+	esif_string pathname,
+	size_t path_len,
+	const void *func
+)
+{
+	enum esif_rc rc = ESIF_E_PARAMETER_IS_NULL;
+	Dl_info info = { 0 };
+	if (lib && pathname && path_len && func) {
+		if (!dladdr(func, &info)) {
+			rc = ESIF_E_NO_CREATE;
+		}
+		else {
+			rc = ESIF_OK;
+			esif_ccb_strcpy(pathname, info.dli_fname, path_len);
+			if (esif_ccb_strlen(info.dli_fname, MAX_PATH) > path_len) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+			}
+		}
+	}
+	return rc;
 }
 
 /* Close/Free Library Object */
@@ -129,40 +169,58 @@ static ESIF_INLINE void esif_ccb_library_unload(esif_lib_t lib)
 	}
 }
 
+/* Get Last Libary Load or Get Function Error, if any */
+static ESIF_INLINE void esif_ccb_library_geterror(esif_lib_t lib)
+{
+	if (lib) {
+		enum esif_rc rc = ESIF_E_NO_CREATE;
+
+		esif_ccb_free(lib->errmsg);
+		lib->errmsg = NULL;
+
+		/* dlerror() resets to NULL after each call so save message for later */
+		char *errmsg = dlerror();
+		if (NULL != errmsg) {
+			lib->errmsg = esif_ccb_strdup(errmsg);
+		}
+
+		if (!errmsg)
+			rc = ESIF_OK;
+		else if (strstr(errmsg, "No such file") || strstr(errmsg, "not found"))
+			rc = ESIF_E_NOT_FOUND;
+		else if (strstr(errmsg, "wrong ELF class"))
+			rc = ESIF_E_NOT_SUPPORTED;
+		else if (strstr(errmsg, "undefined symbol"))
+			rc = ESIF_E_NOT_IMPLEMENTED;
+
+		lib->errnum = rc;
+	}
+}
+
 /* Get Error Message for failed Library Load or Get Function */
 static ESIF_INLINE char *esif_ccb_library_errormsg(esif_lib_t lib)
 {
-	const char *errmsg = NULL;
-	if (NULL == lib)
-		return (char *)"null library";
-
-	/* dlerror() resets to NULL after each call so save message for later */
-	errmsg = dlerror();
-	if (NULL != errmsg) {
-		esif_ccb_free(lib->errmsg);
-		lib->errmsg = esif_ccb_strdup(errmsg);
+	char *errmsg = (char *)"N/A";
+	if (lib && lib->errnum != ESIF_OK && lib->errmsg) {
+		errmsg = lib->errmsg;
 	}
-	return lib->errmsg;
+	return errmsg;
 }
 
 /* Return reason for most recent Load Library or Get Function error */
 static ESIF_INLINE enum esif_rc esif_ccb_library_error(esif_lib_t lib)
 {
-	enum esif_rc rc = ESIF_E_NO_CREATE;
-	char *errmsg = esif_ccb_library_errormsg(lib);
-	if (NULL == lib)
-		return ESIF_E_PARAMETER_IS_NULL;
-
-	if (!errmsg)
-		rc = ESIF_OK;
-	else if (strstr(errmsg, "No such file") || strstr(errmsg, "not found"))
-		rc = ESIF_E_NOT_FOUND;
-	else if (strstr(errmsg, "wrong ELF class"))
-		rc = ESIF_E_NOT_SUPPORTED;
-	else if (strstr(errmsg, "undefined symbol"))
-		rc = ESIF_E_NOT_IMPLEMENTED;
-
+	enum esif_rc rc = ESIF_E_PARAMETER_IS_NULL;
+	if (lib) {
+		rc = lib->errnum;
+	}
 	return rc;
+}
+
+/* Is Library Loaded? */
+static ESIF_INLINE Bool esif_ccb_library_isloaded(esif_lib_t lib)
+{
+	return (NULL != lib && NULL != lib->handle);
 }
 
 #endif /* LINUX USER */

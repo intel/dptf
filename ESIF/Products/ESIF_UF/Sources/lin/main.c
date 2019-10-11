@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,14 +17,7 @@
 ******************************************************************************/
 
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_LINUX
-#include <sys/socket.h>
-#include <linux/netlink.h>
-#include <termios.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/file.h>
-#include <unistd.h>
-
+#include "esif_ccb.h"
 #include "esif_uf.h"
 #include "esif_uf_appmgr.h"
 #include "esif_pm.h"
@@ -33,16 +26,30 @@
 #include "esif_uf_ccb_system.h"
 #include "esif_uf_event_broadcast.h"
 #include "esif_uf_sensor_manager_os_lin.h"
+#include "esif_uf_ccb_imp_spec.h"
+#include "esif_uf_sysfs_os_lin.h"
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2017 Intel Corporation All Rights Reserved"
+#include <sys/socket.h>
+#include <linux/netlink.h>
+#include <termios.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/file.h>
+#include <unistd.h>
+
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2019 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #ifdef ESIF_ATTR_OS_ANDROID
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"conjure upe_java && appstart dptf"
+#ifdef ESIF_FEAT_OPT_ACTION_IOC
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"conjure upe_ioc && appstart dptf"
 #else
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE		"appstart dptf"
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"appstart dptf"
 #endif
-#define ESIF_STARTUP_SCRIPT_SERVER_MODE		NULL
+#else
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"appstart dptf"
+#endif
+#define ESIF_STARTUP_SCRIPT_SERVER_MODE	NULL
 
 static void esif_udev_start();
 static void esif_udev_stop();
@@ -80,8 +87,6 @@ static struct iovec msg_buf;
 static int sock_fd;
 static struct msghdr msg;
 
-/* Friend */
-extern EsifAppMgr g_appMgr;
 
 #ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
 	#include <readline/readline.h>
@@ -122,13 +127,14 @@ static const esif_string ESIF_PATHLIST =
 #if defined(ESIF_ATTR_OS_ANDROID)
 	// Android
 	"HOME=/vendor/etc/dptf\n"
-	"TEMP=/data/misc/dptf/tmp\n"
+	"TEMP=/data/vendor/dptf/tmp\n"
 	"DV=/vendor/etc/dptf/dv\n"
-	"LOG=/data/misc/dptf/log\n"
+	"LOG=/data/vendor/dptf/log\n"
 	"BIN=/vendor/etc/dptf/bin\n"
-	"LOCK=/data/misc/dptf/lock\n"
+	"LOCK=/data/vendor/dptf/lock\n"
 	"EXE=#/vendor/bin\n"
 	"DLL=#/vendor/lib" ARCHBITS "\n"
+	"DLLALT=#/vendor/lib" ARCHBITS "\n"
 	"DPTF=/vendor/etc/dptf/bin\n"
 	"DSP=/vendor/etc/dptf/dsp\n"
 	"CMD=/vendor/etc/dptf/cmd\n"
@@ -138,11 +144,12 @@ static const esif_string ESIF_PATHLIST =
 	"HOME=/usr/share/dptf\n"
 	"TEMP=/tmp\n"
 	"DV=/etc/dptf\n"
-	"LOG=/usr/local/var/log/dptf\n"
+	"LOG=/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
 	"LOCK=/var/run\n"
 	"EXE=#/usr/bin\n"
 	"DLL=#/usr/lib" ARCHBITS "\n"
+	"DLLALT=#/usr/lib" ARCHBITS "\n"
 	"DPTF=/usr/share/dptf\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
@@ -157,6 +164,7 @@ static const esif_string ESIF_PATHLIST =
 	"LOCK=/var/run\n"
 	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLL=/usr/share/dptf/uf" ARCHNAME "\n"
+	"DLLALT=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DPTF=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DSP=/usr/share/dptf/dsp\n"
 	"CMD=/usr/share/dptf/cmd\n"
@@ -189,7 +197,7 @@ void *esif_event_worker_thread (void *ptr);
 
 /* IPC Resync */
 extern enum esif_rc sync_lf_participants();
-extern esif_handle_t g_ipc_handle;
+extern esif_os_handle_t g_ipc_handle;
 
 u32 g_ipc_retry_msec	 = 100;		/* 100ms by default */
 u32 g_ipc_retry_max_msec = 2000;	/* 2 sec by default */
@@ -215,12 +223,12 @@ eEsifError ipc_resync()
 	eEsifError rc = ESIF_OK;
 	u32 elapsed_msec = 0;
 
-	if (g_ipc_handle == ESIF_INVALID_HANDLE) {
+	if (g_ipc_handle == INVALID_HANDLE_VALUE) {
 		rc = ESIF_E_NO_LOWER_FRAMEWORK;
 
 		while (!g_quit && elapsed_msec < g_ipc_retry_max_msec) {
 			ipc_connect();
-			if (g_ipc_handle != ESIF_INVALID_HANDLE) {
+			if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 				sync_lf_participants();
 				rc = ESIF_OK;
 				break;
@@ -277,6 +285,7 @@ static Int64 time_elapsed_in_ms(struct timeval *old, struct timeval *now)
 	return elapsed;
 }
 
+
 static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
 {
 	static const char name_eq[] = "NAME=";
@@ -310,7 +319,8 @@ static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp,
 }
 
 static int check_for_uevent(int fd) {
-	int i = 0, j;
+	eEsifError rc = ESIF_OK;
+	int i = 0;
 	int len;
 	const char dev_path[] = "DEVPATH=";
 	unsigned int dev_path_len = sizeof(dev_path) - 1;
@@ -323,6 +333,8 @@ static int check_for_uevent(int fd) {
 	static struct timeval last_event_time = {0};
 	struct timeval cur_event_time = {0};
 	Int64 interval = 0;
+	UfPmIterator upIter = { 0 };
+	EsifUpPtr upPtr = NULL;
 
 	len = recv(fd, buffer, sizeof(buffer), 0);
 	if (len <= 0) {
@@ -365,23 +377,32 @@ static int check_for_uevent(int fd) {
 					break;
 				case THERMAL_EVENT_TRIP_CHANGED:
 					ESIF_TRACE_INFO("THERMAL_EVENT_TRIP_CHANGED\n");
-					for (j = 0; j < MAX_PARTICIPANT_ENTRY; j++)
-						EsifEventMgr_SignalEvent(j, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
+
+					rc = EsifUpPm_InitIterator(&upIter);
+					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+					while (ESIF_OK == rc) {
+
+						EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED, NULL);
+						rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+					}
+					if (rc != ESIF_E_ITERATION_DONE) {
+						EsifUp_PutRef(upPtr);
+					}
 					break;
 				case THERMAL_TABLE_CHANGED:
 					ESIF_TRACE_INFO("THERMAL_TABLE_CHANGED\n");
 					gettimeofday(&cur_event_time, NULL);
 					/*
-					 * Some old BIOS has a bug that any reset to fan speed will generate a new THERMAL_TABLE_CHANGED 
+					 * Some old BIOS has a bug that any reset to fan speed will generate a new THERMAL_TABLE_CHANGED
 					 * notification, and this will cause an infinite loop if the corresponding ACTIVE_RELATIONSHIP_CHANGED
 					 * event is blindly sent to DPTF, as DPTF will always reset fan speed upon receiving such an event.
-					 * To break from the loop, we send thermal table changed event only if the time elaspsed between two 
+					 * To break from the loop, we send thermal table changed event only if the time elaspsed between two
 					 * successive events exceeds a certain threshold.
 					 */
 					interval = time_elapsed_in_ms(&last_event_time, &cur_event_time);
 					if (interval > EVENT_INTERVAL_THRESHOLD) {
-						EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED, NULL);
-						EsifEventMgr_SignalEvent(0, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED, NULL);
+						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED, NULL);
+						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED, NULL);
 					} else {
 						ESIF_TRACE_DEBUG("Recevied spurious THERMAL_TABLE_CHANGED event\n");
 					}
@@ -545,6 +566,203 @@ static void release_timer_thread_pool(void)
 	}
 }
 
+int SysfsGetString(char *path, char *filename, char *str, size_t buf_len)
+{
+	FILE *fd = NULL;
+	int ret = -1;
+	char filepath[MAX_PATH] = { 0 };
+	char scanf_fmt[IIO_STR_LEN] = { 0 };
+
+	if (str == NULL) {
+		return ret;
+	}
+
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fd = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
+		return ret;
+	}
+
+	// Use dynamic format width specifier to avoid scanf buffer overflow
+	esif_ccb_sprintf(sizeof(scanf_fmt), scanf_fmt, "%%%ds", (int)buf_len - 1);
+	ret = esif_ccb_fscanf(fd, scanf_fmt, str);
+	esif_ccb_fclose(fd);
+
+	return ret;
+}
+
+int SysfsGetStringMultiline(const char *path, const char *filename, char *str)
+{
+	FILE *fp = NULL;
+	int rc = 0;
+	char filepath[MAX_SYSFS_PATH] = { 0 };
+	char lineStr[MAX_STR_LINE_LEN + 1] = { 0 };
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fp = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
+		goto exit;
+	}
+
+	*str = 0; // Initialize first character to ensure that concat works properly
+	while (esif_ccb_fgets(lineStr, MAX_STR_LINE_LEN, fp)) {
+		esif_ccb_sprintf_concat(MAX_SYSFS_STRING, str, "%s\n", lineStr);
+		rc++;
+	}
+
+	esif_ccb_fclose(fp);
+
+exit:
+	return rc;
+}
+
+int SysfsGetInt64(const char *path, const char *filename, Int64 *p64)
+{
+	FILE *fd = NULL;
+	int rc = 0;
+	char filepath[MAX_SYSFS_PATH] = { 0 };
+
+	if (path == NULL || filename == NULL) {
+		goto exit;
+	}
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fd = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
+		goto exit;
+	}
+	rc = esif_ccb_fscanf(fd, "%lld", p64);
+	esif_ccb_fclose(fd);
+
+exit:
+	// Klocwork bounds check. Should depend on context
+	if (rc > 0 && (*p64 < MIN_INT64 || *p64 > MAX_INT64)) {
+		rc = 0;
+	}
+	return rc;
+}
+
+int SysfsGetInt64Direct(int fd, Int64 *p64)
+{
+	int rc = 0;
+	char buf[MAX_SYSFS_STRING] = {0};
+
+	lseek(fd, 0, SEEK_SET);
+	if (read(fd, buf, MAX_SYSFS_STRING) > 0) {
+		rc = esif_ccb_sscanf(buf, "%lld", p64);
+		if (rc < 1) {
+			ESIF_TRACE_WARN("Failed to get file scan. Error code: %d .\n",rc);
+		}
+	}
+	else {
+		ESIF_TRACE_WARN("Error on context file read: %s\n", strerror(errno));
+	}
+
+	return rc;
+}
+
+eEsifError SysfsGetInt(const char *path, const char *filename, int *pInt)
+{
+	FILE *fp = NULL;
+	eEsifError rc = ESIF_OK;
+	char filepath[MAX_PATH] = { 0 };
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fp = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+	if (esif_ccb_fscanf(fp, "%d", pInt) <= 0) {
+		rc = ESIF_E_INVALID_HANDLE;
+	}
+
+	esif_ccb_fclose(fp);
+
+exit:
+	return rc;
+}
+
+eEsifError SysfsGetIntDirect(int fd, int *pInt)
+{
+	eEsifError rc = ESIF_OK;
+	char buf[IIO_STR_LEN] = {0};
+
+	lseek(fd, 0, SEEK_SET);
+	if (read(fd, buf, IIO_STR_LEN) > 0) {
+		if (esif_ccb_sscanf(buf, "%d", pInt) <= 0) {
+			rc = ESIF_E_INVALID_HANDLE;
+			ESIF_TRACE_WARN("Failed to get file scan. Error code: %d .\n",rc);
+		}
+	}
+	else {
+		rc = ESIF_E_INVALID_HANDLE;
+		ESIF_TRACE_WARN("Error on context file read: %s\n", strerror(errno));
+	}
+
+	return rc;
+}
+
+eEsifError SysfsGetFloat(const char *path, const char *filename, float *pFloat)
+{
+	FILE *fp = NULL;
+	eEsifError rc = ESIF_OK;
+	char filepath[MAX_PATH] = { 0 };
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fp = esif_ccb_fopen(filepath, "r", NULL)) == NULL) {
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+	if (esif_ccb_fscanf(fp, "%f", pFloat) <= 0) {
+		rc = ESIF_E_INVALID_HANDLE;
+	}
+
+	esif_ccb_fclose(fp);
+
+exit:
+	return rc;
+}
+
+int SysfsSetInt64(char *path, char *filename, Int64 val)
+{
+	FILE *fd = NULL;
+	int rc = -1;
+	char filepath[MAX_SYSFS_PATH] = { 0 };
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fd = esif_ccb_fopen(filepath, "w", NULL)) == NULL) {
+		goto exit;
+	}
+
+	esif_ccb_fprintf(fd, "%lld", val);
+	esif_ccb_fclose(fd);
+	rc = 0;
+
+exit:
+	return rc;
+}
+
+int SysfsSetString(const char *path, const char *filename, char *val)
+{
+	FILE *fd = NULL;
+	int rc = -1;
+	char filepath[MAX_SYSFS_PATH] = { 0 };
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filepath, "%s/%s", path, filename);
+
+	if ((fd = esif_ccb_fopen(filepath, "w", NULL)) == NULL) {
+		goto exit;
+	}
+
+	esif_ccb_fprintf(fd, "%s", val);
+	esif_ccb_fclose(fd);
+	rc =0;
+
+exit:
+	return rc;
+}
+
 #if !defined(ESIF_ATTR_INSTANCE_LOCK)
 // Instance Checking Disabled in Android for now
 
@@ -628,6 +846,16 @@ static void esif_udev_stop()
 	}
 }
 
+void enumerate_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate)
+{
+	// currently not used for linux
+}
+
+void register_events_for_available_uf_participants(EnumerableUFParticipants typeOfUFParticipantsToEnumerate)
+{
+	// currently not used for linux
+}
+
 static void esif_udev_exit()
 {
 	g_udev_quit = ESIF_TRUE;
@@ -666,7 +894,6 @@ static void *esif_udev_listen(void *ptr)
 
 	bind(sock_fd, (struct sockaddr *)&sock_addr_src, sizeof(sock_addr_src));
 
-	memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
 	memset(&sock_addr_dest, 0, sizeof(sock_addr_dest));
 	sock_addr_dest.nl_family = AF_NETLINK;
 	sock_addr_dest.nl_pid = 0;
@@ -797,18 +1024,30 @@ exit:
 static DBusHandlerResult
 s3_callback(DBusConnection *conn, DBusMessage *message, void *user_data)
 {
+	eEsifError rc = ESIF_OK;
 	int message_type = dbus_message_get_type (message);
-	int i = 0;
+	UfPmIterator upIter = { 0 };
+	EsifUpPtr upPtr = NULL;
 
 	if (DBUS_MESSAGE_TYPE_SIGNAL == message_type) {
 		if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendImminent")) {
 			ESIF_TRACE_INFO("D-Bus: received SuspendImminent signal\n");
-			for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++)
-				EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL);
+
+			rc = EsifUpPm_InitIterator(&upIter);
+			if (ESIF_OK == rc) {
+				rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+				while (ESIF_OK == rc) {
+
+					EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_SUSPEND, NULL);
+					rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+				}
+				if (rc != ESIF_E_ITERATION_DONE) {
+					EsifUp_PutRef(upPtr);
+				}
+			}
 		} else if (!esif_ccb_strcmp(dbus_message_get_member(message), "SuspendDone")) {
 			ESIF_TRACE_INFO("D-Bus: received SuspendDone signal\n");
-			for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++)
-				EsifEventMgr_SignalEvent(i, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_PARTICIPANT_RESUME, NULL);
+			EsifUpPm_ResumeParticipants();
 		}
 	}
 
@@ -1099,8 +1338,9 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		}
 
 		// Startup Command?
-		if (command) {
+		if (command && *command) {
 				parse_cmd(command, ESIF_FALSE, ESIF_TRUE);
+				command = NULL;
 				if (ESIF_TRUE == quit_after_command) {
 						g_quit = 1;
 						continue;
@@ -1108,30 +1348,45 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		}
 
 		// Get User Input
-		g_appMgr.GetPrompt(&g_appMgr, &data_prompt);
+		EsifAppMgr_GetPrompt(&data_prompt);
 		prompt = (esif_string)data_prompt.buf_ptr;
 
 #ifdef ESIF_ATTR_OS_LINUX_HAVE_READLINE
-		// Use Readline With History
-		esif_ccb_sprintf(sizeof(full_prompt), full_prompt, "%s ", prompt);
-		CMD_LOGFILE("%s ", prompt);
-		ptr = readline(full_prompt);
-
-		// Skip command and wait for graceful shutdown if readline returns NULL due to SIGTERM
-		if (NULL == ptr)
-			continue;
-
-		// Add To History NO NUL's
-		if (ptr[0] != 0) {
-				add_history(ptr);
+		// Read from Input File
+		if (input != stdin) {
+			if (esif_ccb_fgets(line, MAX_LINE, input) == NULL) {
+				input = stdin;
+				if (quit_after_command) {
+					g_quit = 1;
+					continue;
+				}
+			}
 		}
-		esif_ccb_strcpy(line, ptr, sizeof(line));
-		free(ptr);
+		if (input == stdin) {
+			// Use Readline With History
+			esif_ccb_sprintf(sizeof(full_prompt), full_prompt, "%s ", prompt);
+			CMD_LOGFILE("%s ", prompt);
+			ptr = readline(full_prompt);
+
+			// Skip command and wait for graceful shutdown if readline returns NULL due to SIGTERM
+			if (NULL == ptr)
+				continue;
+
+			// Add To History NO NUL's
+			if (ptr[0] != 0) {
+					add_history(ptr);
+			}
+			esif_ccb_strcpy(line, ptr, sizeof(line));
+			free(ptr);
+		}
 #else
 		// No History So Sorry
 		CMD_OUT("%s ", prompt);
 		if (esif_ccb_fgets(line, MAX_LINE, input) == NULL) {
-				break;
+				if (input == stdin || quit_after_command) {
+					break;
+				}
+				input = stdin;
 		}
 		ptr = line;
 		while (*ptr != '\0') {
@@ -1184,7 +1439,7 @@ int main (int argc, char **argv)
 	while ((c = getopt(argc, argv, "d:f:c:b:r:i:g:a:xqtsnzplhv?")) != -1) {
 		switch (c) {
 		case 'd':
-			g_dst = (u8)esif_atoi(optarg);
+			g_dst = (esif_handle_t)esif_atoi64(optarg);
 			break;
 
 		case 'x':
@@ -1199,6 +1454,10 @@ int main (int argc, char **argv)
 			if (fp)
 				esif_ccb_fclose(fp);
 			fp = esif_ccb_fopen(optarg, "r", NULL);
+			if (fp == NULL) {
+				fprintf(stderr, "Unable to open: %s\n", optarg);
+				exit(0);
+			}
 			break;
 
 		case 'c':
@@ -1398,6 +1657,15 @@ void esif_uf_os_exit ()
 	/* Stop sensor manager thread */
 	EsifEventBroadcast_MotionSensorEnable(ESIF_FALSE);
 	EsifSensorMgr_Exit();
+}
+
+eEsifError esif_uf_os_shell_enable()
+{
+	return ESIF_OK;
+}
+
+void esif_uf_os_shell_disable()
+{
 }
 
 /*****************************************************************************/

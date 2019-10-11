@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,37 +17,23 @@
 ******************************************************************************/
 
 #pragma once
-#include "esif_ccb_rc.h"
-#include "esif_sdk_data.h"
-#include "DptfManagerInterface.h"
-#include "ParticipantManagerInterface.h"
-#include "PolicyManagerInterface.h"
-#include "WorkItem.h"
-#include <fstream>
-
-using namespace std;
-
-#define MAX_FILENAME 100
-#define FORMAT_XML "xml"
+#include "CommandArguments.h"
+class DptfManagerInterface;
 
 class dptf_export CommandHandler
 {
 public:
-	void loadVariables(const UInt32 argCount, const EsifDataPtr argv, DptfManagerInterface *manager);
-	string getArgumentAsString(UInt32 argNumber);
-	UInt32 loadStringVariables ();
-	UInt32 emptyStringVariables();
-	pair<esif_error_t, string> writeToFile(pair<esif_error_t, string> result, string format);
-	virtual pair<esif_error_t, string> executeCommand(void) = 0;
+	CommandHandler(DptfManagerInterface* dptfManager);
 	virtual ~CommandHandler();
+	virtual void execute(const CommandArguments& arguments) = 0;
+	virtual std::string getCommandName() const = 0;
+	virtual std::string getLastExecutionMessage();
+	virtual eEsifError getLastExecutionResultCode();
+
 protected:
-	UInt32 argc = 0;
-	EsifDataPtr argvRaw = NULL;
-	vector<string> argvString;
-	DptfManagerInterface *dptfManager;
-	ParticipantManagerInterface *participantManager;
-	PolicyManagerInterface *policyManager;
-private:
-	pair<string, int> createFilename(void);
-	pair<esif_error_t, string> formatXml(pair<esif_error_t, string> result);
+	void setResultMessage(const std::string& message);
+	void setResultCode(const eEsifError resultCode);
+	std::string m_resultMessage;
+	eEsifError m_resultCode;
+	DptfManagerInterface* m_dptfManager;
 };

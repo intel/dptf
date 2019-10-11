@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 #include "EsifFileEnumerator.h"
+#include "WIPolicyDestroy.h"
 
 WIPolicySupportedListChanged::WIPolicySupportedListChanged(DptfManagerInterface* dptfManager)
 	: WorkItem(dptfManager, FrameworkEvent::DptfSupportedPoliciesChanged)
@@ -32,25 +33,28 @@ WIPolicySupportedListChanged::~WIPolicySupportedListChanged(void)
 {
 }
 
-void WIPolicySupportedListChanged::execute(void)
+void WIPolicySupportedListChanged::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
+	auto dptfManager = getDptfManager();
+	auto policyManager = dptfManager->getPolicyManager();
 
 	try
 	{
-		auto supportedPolicyList = getDptfManager()->getPolicyManager()->getSupportedPolicyList();
+		auto supportedPolicyList = policyManager->getSupportedPolicyList();
 		supportedPolicyList->update();
-		auto policyIndexes = getDptfManager()->getPolicyManager()->getPolicyIndexes();
+		auto policyIndexes = policyManager->getPolicyIndexes();
 		for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 		{
-			auto policyGuid = getDptfManager()->getPolicyManager()->getPolicyPtr(*policyIndex)->getGuid();
+			auto policyGuid = policyManager->getPolicyPtr(*policyIndex)->getGuid();
 			if (!supportedPolicyList->isPolicySupported(policyGuid))
 			{
-				getDptfManager()->getPolicyManager()->destroyPolicy(*policyIndex);
+				auto policyDestroyWorkItem = std::make_shared<WIPolicyDestroy>(dptfManager, *policyIndex);
+				policyDestroyWorkItem->onExecute();
 			}
 		}
 
-		auto policyDirectoryPath = getDptfManager()->getDptfPolicyDirectoryPath();
+		auto policyDirectoryPath = dptfManager->getDptfPolicyDirectoryPath();
 		EsifFileEnumerator fileEnumerator(policyDirectoryPath, "DptfPolicy*" ESIF_LIB_EXT);
 		std::string policyFileName = fileEnumerator.getFirstFile();
 
@@ -59,15 +63,15 @@ void WIPolicySupportedListChanged::execute(void)
 			try
 			{
 				std::string policyFilePath = policyDirectoryPath + policyFileName;
-				if (getDptfManager()->isDptfPolicyLoadNameOnly())
+				if (dptfManager->isDptfPolicyLoadNameOnly())
 				{
 					policyFilePath.erase(0, policyDirectoryPath.length());
 				}
 
-				UIntN policyIndex = getDptfManager()->getPolicyManager()->createPolicy(policyFilePath);
+				UIntN policyIndex = policyManager->createPolicy(policyFilePath);
 
 				// Bind every participant and domain to created policy
-				getDptfManager()->bindAllParticipantsToPolicy(policyIndex);
+				dptfManager->bindAllParticipantsToPolicy(policyIndex);
 			}
 			catch (policy_already_exists&)
 			{

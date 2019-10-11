@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,6 +37,9 @@ public:
 	// in the destructor we signal the semaphore if provided
 	virtual ~WorkItem(void);
 
+	virtual void execute(void) override;
+	virtual void signal(void) override;
+
 	DptfManagerInterface* getDptfManager(void) const;
 	PolicyManagerInterface* getPolicyManager(void) const;
 	ParticipantManagerInterface* getParticipantManager(void) const;
@@ -70,10 +73,14 @@ protected:
 		const std::string& messageValue) const;
 	void writeWorkItemErrorMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex)
 		const;
+	void writeWorkItemWarningMessagePolicy(const std::exception& ex, const std::string& functionName, UIntN policyIndex)
+		const;
 	void writeWorkItemErrorMessageParticipant(
 		const std::exception& ex,
 		const std::string& functionName,
 		UIntN participantIndex) const;
+
+	virtual void onExecute(void) = 0;
 
 private:
 	// hide the copy constructor and assignment operator.

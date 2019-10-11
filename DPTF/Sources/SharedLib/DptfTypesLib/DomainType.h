@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,7 +41,7 @@ namespace DomainType
 		Battery,
 		Audio,
 		Other,
-		WWan,
+		WWan, // Deprecated
 		WGig, // Deprecated
 		Power,
 		Thermistor,
@@ -58,11 +58,26 @@ namespace DomainType
 		DgfxMem,
 		DgfxMcp,
 		Cam2D,
+		WwanAnalog,
+		WwanDigital,
+		WwanRfim,
+		IdgfxCore,
 		All,
 		Max
 	};
 
-	std::string ToString(DomainType::Type type);
+	std::string toString(DomainType::Type type);
+}
+
+namespace DefaultScope
+{
+	const std::string DefaultManagerParticipantScope = Constants::NotAvailableString;
+	const std::string IETMParticipantScope = "IETM";
+	const std::string DPTFZParticipantScope = "NA_";
+	const DomainType::Type DefaultManagerDomainType = DomainType::Other;
+	const std::string DefaultPowerParticipantScope = "TPWR (default scope)";
+	const DomainType::Type DefaultPowerDomainType = DomainType::Power;
+	const std::string DefaultCpuParticipantScope = "CPU (default scope)";
 }
 
 DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType);

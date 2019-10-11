@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #pragma once
-
 #include "Dptf.h"
 
 class Percentage final
@@ -27,7 +26,9 @@ public:
 	Percentage(double percentage); // Passing in 0.99 results in 99%
 	static Percentage createInvalid();
 	static Percentage fromWholeNumber(UIntN wholeNumber);
+	static Percentage fromSignedWholeNumber(Int32 signedWholeNumber);
 	static Percentage fromCentiPercent(UInt64 centiPercent);
+	static Percentage createFromDptfBuffer(const class DptfBuffer& buffer);
 
 	Bool operator==(const Percentage& rhs) const;
 	Bool operator!=(const Percentage& rhs) const;
@@ -39,10 +40,12 @@ public:
 	operator double(void) const;
 
 	Bool isValid() const;
+	Int32 toSignedWholeNumber() const;
 	UIntN toWholeNumber() const;
 	UInt64 toCentiPercent() const;
 	std::string toString() const;
 	std::string toStringWithPrecision(UInt32 precision) const;
+	class DptfBuffer toDptfBuffer() const;
 
 private:
 	Bool m_valid;

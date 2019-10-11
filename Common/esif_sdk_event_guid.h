@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2017 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -765,11 +765,236 @@
 	0x92, 0x16, 0x71, 0x53, 0xE2, 0x47, 0x37, 0x27 }
 
 /*
- * Event Name:  MIXED_REALITY_MODE_CHANGED
+ * Event Name:  OS_MIXED_REALITY_MODE_CHANGED
  * Event GUID:  7AB94216-D5DA-40C5-9F8E-2B163E7031C0
- * Event Desc:  Mixed Reality Mode Changed
+ * Event Desc:  OS Mixed Reality Mode Changed
  */
-#define MIXED_REALITY_MODE_CHANGED { \
+#define OS_MIXED_REALITY_MODE_CHANGED { \
 	0x7A, 0xB9, 0x42, 0x16, 0xD5, 0xDA, 0x40, 0xC5, \
 	0x9F, 0x8E, 0x2B, 0x16, 0x3E, 0x70, 0x31, 0xC0 }
+
+/*
+ * Event Name:  BATTERY_COUNT_NOTIFICATION
+ * Event GUID:  6C34D4AB-2713-445D-9550-1CF172422E70
+ * Event Desc:  Battery Count Notification
+ */
+#define BATTERY_COUNT_NOTIFICATION { \
+	0x6C, 0x34, 0xD4, 0xAB, 0x27, 0x13, 0x44, 0x5D, \
+	0x95, 0x50, 0x1C, 0xF1, 0x72, 0x42, 0x2E, 0x70 }
+
+/*
+ * Event Name:  OS_SCREEN_STATE_CHANGED
+ * Event GUID:  05DA8066-A6D5-45BF-8FB0-C644B01A0F1B
+ * Event Desc:  OS Screen State Changed
+ */
+#define OS_SCREEN_STATE_CHANGED { \
+	0x05, 0xDA, 0x80, 0x66, 0xA6, 0xD5, 0x45, 0xBF, \
+	0x8F, 0xB0, 0xC6, 0x44, 0xB0, 0x1A, 0x0F, 0x1B }
+
+/*
+ * Event Name:  OS_USER_PRESENCE_CHANGED
+ * Event GUID:  F04BD752-4CFD-4A3C-91CC-A5B59FDB27BB
+ * Event Desc:  OS User Presence Changed
+ */
+#define OS_USER_PRESENCE_CHANGED { \
+	0xF0, 0x4B, 0xD7, 0x52, 0x4C, 0xFD, 0x4A, 0x3C, \
+	0x91, 0xCC, 0xA5, 0xB5, 0x9F, 0xDB, 0x27, 0xBB }
+
+/*
+ * Event Name:  BATTERY_HIGH_FREQUENCY_IMPEDANCE_CHANGED
+ * Event GUID:  23B4590F-844C-482D-9E4D-6ABFAF20497A
+ * Event Desc:  Battery High Frequency Impedance Changed
+ */
+#define BATTERY_HIGH_FREQUENCY_IMPEDANCE_CHANGED { \
+	0x23, 0xB4, 0x59, 0x0F, 0x84, 0x4C, 0x48, 0x2D, \
+	0x9E, 0x4D, 0x6A, 0xBF, 0xAF, 0x20, 0x49, 0x7A }
+
+/*
+ * Event Name:  BATTERY_NO_LOAD_VOLTAGE_CHANGED
+ * Event GUID:  64C5A251-C79B-4362-88DC-17740B88ABD1
+ * Event Desc:  Battery No Load Voltage Changed
+ */
+#define BATTERY_NO_LOAD_VOLTAGE_CHANGED { \
+	0x64, 0xC5, 0xA2, 0x51, 0xC7, 0x9B, 0x43, 0x62, \
+	0x88, 0xDC, 0x17, 0x74, 0x0B, 0x88, 0xAB, 0xD1 }
+
+/*
+ * Event Name:  BATTERY_STATE_OF_CHARGE_CHANGED
+ * Event GUID:  972D727B-7411-4B54-BF4E-C80102DF3CD3
+ * Event Desc:  Battery State Of Charge Changed
+ */
+#define BATTERY_STATE_OF_CHARGE_CHANGED { \
+	0x97, 0x2D, 0x72, 0x7B, 0x74, 0x11, 0x4B, 0x54, \
+	0xBF, 0x4E, 0xC8, 0x01, 0x02, 0xDF, 0x3C, 0xD3 }
+
+/*
+ * Event Name:  BATTERY_TEMPERATURE_CHANGED
+ * Event GUID:  5DBE0B5D-ED67-47BA-ABB9-DD1FD62ABE49
+ * Event Desc:  Battery Temperature Changed
+ */
+#define BATTERY_TEMPERATURE_CHANGED { \
+	0x5D, 0xBE, 0x0B, 0x5D, 0xED, 0x67, 0x47, 0xBA, \
+	0xAB, 0xB9, 0xDD, 0x1F, 0xD6, 0x2A, 0xBE, 0x49 }
+
+/*
+ * Event Name:  VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED
+ * Event GUID:  5AB41479-79DE-4F56-B7B5-3118CA8F2ACA
+ * Event Desc:  Voltage Threshold Math Table Changed
+ */
+#define VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED { \
+	0x5A, 0xB4, 0x14, 0x79, 0x79, 0xDE, 0x4F, 0x56, \
+	0xB7, 0xB5, 0x31, 0x18, 0xCA, 0x8F, 0x2A, 0xCA }
+
+/*
+ * Event Name:  OS_POWER_SLIDER_VALUE_CHANGED
+ * Event GUID:  1CB98C3A-1492-46C0-A24C-766D09ADBED2
+ * Event Desc:  OS Power Slider Value Changed
+ */
+#define OS_POWER_SLIDER_VALUE_CHANGED { \
+	0x1C, 0xB9, 0x8C, 0x3A, 0x14, 0x92, 0x46, 0xC0, \
+	0xA2, 0x4C, 0x76, 0x6D, 0x09, 0xAD, 0xBE, 0xD2 }
+
+/*
+ * Event Name:  WORKLOAD_CLASSIFICATION_CHANGED
+ * Event GUID:  D5ADA6F4-161E-40D4-B337-F774AB89EA5A
+ * Event Desc:  Workload Classification Changed
+ */
+#define WORKLOAD_CLASSIFICATION_CHANGED { \
+	0xD5, 0xAD, 0xA6, 0xF4, 0x16, 0x1E, 0x40, 0xD4, \
+	0xB3, 0x37, 0xF7, 0x74, 0xAB, 0x89, 0xEA, 0x5A }
+
+/*
+ * Event Name:  POWER_SHARING_ALGORITHM_TABLE_2_CHANGED
+ * Event GUID:  E876FCDD-A646-4E65-9909-C18B48D721DD
+ * Event Desc:  Power Sharing Algorithm Table 2 Changed
+ */
+#define POWER_SHARING_ALGORITHM_TABLE_2_CHANGED { \
+	0xE8, 0x76, 0xFC, 0xDD, 0xA6, 0x46, 0x4E, 0x65, \
+	0x99, 0x09, 0xC1, 0x8B, 0x48, 0xD7, 0x21, 0xDD }
+
+/*
+ * Event Name:  OS_GAME_MODE_CHANGED
+ * Event GUID:  DEA0B036-6E21-433A-BF08-F639E722560C
+ * Event Desc:  OS Game Mode Changed
+ */
+#define OS_GAME_MODE_CHANGED { \
+	0xDE, 0xA0, 0xB0, 0x36, 0x6E, 0x21, 0x43, 0x3A, \
+	0xBF, 0x08, 0xF6, 0x39, 0xE7, 0x22, 0x56, 0x0C }
+
+/*
+ * Event Name:  SESSION_STATE_CHANGED
+ * Event GUID:  AD9D764C-E5A2-47F1-B350-940674FE8D72
+ * Event Desc:  Session State Changed
+ */
+#define SESSION_STATE_CHANGED { \
+	0xAD, 0x9D, 0x76, 0x4C, 0xE5, 0xA2, 0x47, 0xF1, \
+	0xB3, 0x50, 0x94, 0x06, 0x74, 0xFE, 0x8D, 0x72 }
+
+/*
+ * Event Name:  SENSOR_USER_PRESENCE_CHANGED
+ * Event GUID:  B8F69C7F-E086-45EE-9511-D12A684EA606
+ * Event Desc:  Sensor User Presence Changed
+ */
+#define SENSOR_USER_PRESENCE_CHANGED { \
+	0xB8, 0xF6, 0x9C, 0x7F, 0xE0, 0x86, 0x45, 0xEE, \
+	0x95, 0x11, 0xD1, 0x2A, 0x68, 0x4E, 0xA6, 0x06 }
+
+/*
+ * Event Name:  ADAPTIVE_USER_PRESENCE_TABLE_CHANGED
+ * Event GUID:  994B8030-C1CC-4C0E-8B54-1BFB40AD01BD
+ * Event Desc:  Adaptive User Presence Table Changed
+ */
+#define ADAPTIVE_USER_PRESENCE_TABLE_CHANGED { \
+	0x99, 0x4B, 0x80, 0x30, 0xC1, 0xCC, 0x4C, 0x0E, \
+	0x8B, 0x54, 0x1B, 0xFB, 0x40, 0xAD, 0x01, 0xBD }
+
+/*
+ * Event Name:  ADAPTIVE_DIMMING_FEATURE_STATE_CHANGED
+ * Event GUID:  17535021-1714-4838-A04A-93BC062F413F
+ * Event Desc:  Adaptive Dimming Feature State Changed
+ */
+#define ADAPTIVE_DIMMING_FEATURE_STATE_CHANGED { \
+	0x17, 0x53, 0x50, 0x21, 0x17, 0x14, 0x48, 0x38, \
+	0xA0, 0x4A, 0x93, 0xBC, 0x06, 0x2F, 0x41, 0x3F }
+
+/*
+ * Event Name:  ADAPTIVE_DIMMING_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
+ * Event GUID:  91CD8538-1A16-4107-80A4-2AEF2601EF50
+ * Event Desc:  Adaptive Dimming With External Monitor Feature State Changed
+ */
+#define ADAPTIVE_DIMMING_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
+	0x91, 0xCD, 0x85, 0x38, 0x1A, 0x16, 0x41, 0x07, \
+	0x80, 0xA4, 0x2A, 0xEF, 0x26, 0x01, 0xEF, 0x50 }
+
+/*
+ * Event Name:  NO_LOCK_ON_PRESENCE_FEATURE_STATE_CHANGED
+ * Event GUID:  BD97BA41-5288-482D-A52F-542A6DFC35DD
+ * Event Desc:  No Lock On Presence Feature State Changed
+ */
+#define NO_LOCK_ON_PRESENCE_FEATURE_STATE_CHANGED { \
+	0xBD, 0x97, 0xBA, 0x41, 0x52, 0x88, 0x48, 0x2D, \
+	0xA5, 0x2F, 0x54, 0x2A, 0x6D, 0xFC, 0x35, 0xDD }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_FEATURE_STATE_CHANGED
+ * Event GUID:  51DBAE9F-2276-4783-A56D-BA6D4667991D
+ * Event Desc:  Walk Away Lock Feature State Changed
+ */
+#define WALK_AWAY_LOCK_FEATURE_STATE_CHANGED { \
+	0x51, 0xDB, 0xAE, 0x9F, 0x22, 0x76, 0x47, 0x83, \
+	0xA5, 0x6D, 0xBA, 0x6D, 0x46, 0x67, 0x99, 0x1D }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
+ * Event GUID:  2EBA98A5-F5E8-4355-A2CC-6FC905A637CA
+ * Event Desc:  Walk Away Lock With External Monitor Feature State Changed
+ */
+#define WALK_AWAY_LOCK_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
+	0x2E, 0xBA, 0x98, 0xA5, 0xF5, 0xE8, 0x43, 0x55, \
+	0xA2, 0xCC, 0x6F, 0xC9, 0x05, 0xA6, 0x37, 0xCA }
+
+/*
+ * Event Name:  WAKE_ON_APPROACH_FEATURE_STATE_CHANGED
+ * Event GUID:  CF57DA84-3B58-4D06-82EA-071693CAAFDE
+ * Event Desc:  Wake On Approach Feature State Changed
+ */
+#define WAKE_ON_APPROACH_FEATURE_STATE_CHANGED { \
+	0xCF, 0x57, 0xDA, 0x84, 0x3B, 0x58, 0x4D, 0x06, \
+	0x82, 0xEA, 0x07, 0x16, 0x93, 0xCA, 0xAF, 0xDE }
+
+/*
+ * Event Name:  WAKE_ON_APPROACH_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
+ * Event GUID:  462AE37A-E63B-4030-9A6E-84432EEB580A
+ * Event Desc:  Wake On Approach Feature State Changed
+ */
+#define WAKE_ON_APPROACH_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
+	0x46, 0x2A, 0xE3, 0x7A, 0xE6, 0x3B, 0x40, 0x30, \
+	0x9A, 0x6E, 0x84, 0x43, 0x2E, 0xEB, 0x58, 0x0A }
+
+/*
+ * Event Name:  SCREEN_LOCK_WAIT_TIME_CHANGED
+ * Event GUID:  3721BB70-6AE5-4295-9081-A3FEFDF4AB1E
+ * Event Desc:  Screen Lock Wait Time Changed
+ */
+#define SCREEN_LOCK_WAIT_TIME_CHANGED { \
+	0x37, 0x21, 0xBB, 0x70, 0x6A, 0xE5, 0x42, 0x95, \
+	0x90, 0x81, 0xA3, 0xFE, 0xFD, 0xF4, 0xAB, 0x1E }
+
+/*
+ * Event Name:  ADAPTIVE_DIMMING_PRESENTATION_MODE_FEATURE_STATE_CHANGED
+ * Event GUID:  11064589-A349-4706-BFF8-33EB0E294019
+ * Event Desc:  Adaptive Dimming Presentation Mode Feature State Changed
+ */
+#define ADAPTIVE_DIMMING_PRESENTATION_MODE_FEATURE_STATE_CHANGED { \
+	0x11, 0x06, 0x45, 0x89, 0xA3, 0x49, 0x47, 0x06, \
+	0xBF, 0xF8, 0x33, 0xEB, 0x0E, 0x29, 0x40, 0x19 }
+
+/*
+ * Event Name:  PLATFORM_USER_PRESENCE_CHANGED
+ * Event GUID:  D98498F0-46DE-4506-AAEE-B426F9B0D5EE
+ * Event Desc:  Platform User Presence Changed
+ */
+#define PLATFORM_USER_PRESENCE_CHANGED { \
+	0xD9, 0x84, 0x98, 0xF0, 0x46, 0xDE, 0x45, 0x06, \
+	0xAA, 0xEE, 0xB4, 0x26, 0xF9, 0xB0, 0xD5, 0xEE }
 
