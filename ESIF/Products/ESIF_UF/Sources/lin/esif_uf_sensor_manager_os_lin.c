@@ -216,11 +216,11 @@ static void InitSensor(int index, char *devName)
 {
 	SensorPtr sensorPtr = &gSensors[index];
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
-	char fullPath[MAX_PATH] = { 0 };
+	char fullPath[MAX_PATH + IIO_STR_LEN] = { 0 };
 
 	sensorPtr->base.type = SENSOR_TYPE_NA;
 
-	esif_ccb_sprintf(MAX_PATH, fullPath, "%s/%s", gSensorBasePath, devName);
+	esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s", gSensorBasePath, devName);
 	if (SysfsGetString(fullPath, "name", iioSysfsNode, sizeof(iioSysfsNode)) > 0) {
 		// Init code for accelerometers
 		if (esif_ccb_strstr(iioSysfsNode, "accel")) {
