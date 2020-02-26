@@ -203,7 +203,7 @@ the dptf.service script to /lib/systemd/system:
 
 You will then need to enable the DPTF service to auto load upon startup:
 
-	sudo systemctl enabel dptf.service
+	sudo systemctl enable dptf.service
 
 DPTF(esif_ufd) service will automatically start the next time the system
 boots. You can also manually start and stop DPTF service anytime by doing:
