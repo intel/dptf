@@ -88,7 +88,7 @@ enum esif_rc esif_send_dsp(
 
 	// Use name portion of filename for the DataVault key (C:\path\file.edp = file.edp)
 	edpName  = strrchr(filename, *ESIF_PATH_SEP);
-	edpName  = (edpName ? ++edpName : filename);
+	edpName  = (edpName ? edpName + 1 : filename);
 	nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, ESIF_DSP_NAMESPACE, 0, ESIFAUTOLEN);
 	key       = EsifData_CreateAs(ESIF_DATA_STRING, edpName, 0, ESIFAUTOLEN);
 	value     = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);

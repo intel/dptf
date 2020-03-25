@@ -147,7 +147,7 @@ void DataRepo_GetName(
 {
 	if (self && name && name_len > 0) {
 		StringPtr str = esif_ccb_strrchr(self->name, *ESIF_PATH_SEP);
-		str = (str ? str++ : self->name);
+		str = (str ? str + 1 : self->name);
 		esif_ccb_strcpy(name, str, name_len);
 		if ((str = esif_ccb_strchr(name, '.')) != NULL) {
 			*str = 0;

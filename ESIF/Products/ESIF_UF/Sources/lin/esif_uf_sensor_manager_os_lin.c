@@ -216,11 +216,11 @@ static void InitSensor(int index, char *devName)
 {
 	SensorPtr sensorPtr = &gSensors[index];
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
-	char fullPath[MAX_PATH + IIO_STR_LEN] = { 0 };
+	char fullPath[MAX_PATH] = { 0 };
 
 	sensorPtr->base.type = SENSOR_TYPE_NA;
 
-	esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s", gSensorBasePath, devName);
+	esif_ccb_sprintf(MAX_PATH, fullPath, "%s/%s", gSensorBasePath, devName);
 	if (SysfsGetString(fullPath, "name", iioSysfsNode, sizeof(iioSysfsNode)) > 0) {
 		// Init code for accelerometers
 		if (esif_ccb_strstr(iioSysfsNode, "accel")) {
@@ -255,7 +255,6 @@ static eEsifError EsifSensorMgr_RegisterSensors()
 	eEsifError rc = ESIF_OK;
 	int i = 0;
 	struct dirent **namelist;
-	char filepath[MAX_PATH];
 
 	gSensorsNum = scandir(gSensorBasePath, &namelist, IioDeviceFilter, alphasort);
 	if (gSensorsNum < 1) {
@@ -276,12 +275,27 @@ static eEsifError EsifSensorMgr_RegisterSensors()
 	};
 	free(namelist);
 
-	// Also initialize non-IIO bus sensors such as lid state and battery state
+exit:
+	return rc;
+}
+
+static eEsifError EsifSensorMgr_InitializeNonIioBusSensors()
+{
+	char filepath[MAX_PATH];
+	eEsifError rc = ESIF_OK;
+
+	// Initialize non-IIO bus sensors such as lid state and battery state
 	// All we need is to obtain a file descriptor to each corresponding sysfs node
 	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gLidStateBasePath, "state");
 	gFdLidState = open(filepath, O_RDONLY);
+
 	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gPowerSrcBasePath, "status");
 	gFdPowerSrc = open(filepath, O_RDONLY);
+	
+	if (gFdPowerSrc <= 0 && gFdLidState <= 0) {
+		rc = ESIF_E_NOT_SUPPORTED;
+	}
+
 exit:
 	return rc;
 }
@@ -550,9 +564,15 @@ static void *EsifIio_Poll(void *ptr)
 
 static void StartEsifSensorMgr()
 {
+	eEsifError rc1 = ESIF_OK;
+	eEsifError rc2 = ESIF_OK;
+
 	if (!gEsifSensorMgrStarted) {
 		ESIF_TRACE_DEBUG("Starting ESIF Sensor Manager\n");
-		if (ESIF_OK == EsifSensorMgr_RegisterSensors()) {
+		rc1 = EsifSensorMgr_RegisterSensors();
+		rc2 = EsifSensorMgr_InitializeNonIioBusSensors();
+
+		if (ESIF_OK == rc1 || ESIF_OK == rc2) {
 			gEsifSensorMgrStarted = ESIF_TRUE;
 			esif_ccb_thread_create(&gEsifSensorMgrThread, EsifIio_Poll, NULL);
 		} else {
