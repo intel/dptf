@@ -24,6 +24,7 @@ using namespace std;
 
 PowerControlDynamicCapsSet::PowerControlDynamicCapsSet(
 	const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps)
+	: m_capabilities(std::map<PowerControlType::Type, PowerControlDynamicCaps>())
 {
 	for (auto capability = powerControlDynamicCaps.begin(); capability != powerControlDynamicCaps.end(); capability++)
 	{
