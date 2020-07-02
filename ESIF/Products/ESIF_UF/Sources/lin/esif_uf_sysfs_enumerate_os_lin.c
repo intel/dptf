@@ -35,8 +35,8 @@
 #define MAX_ZONE_NAME_LEN 56
 #define HID_LEN 8
 #define ACPI_DEVICE_NAME_LEN 4
-#define DPTF_PARTICIPANT_PREFIX "INT340"
-#define ACPI_DPTF "INT3400:00"
+#define DPTF_PARTICIPANT_PREFIX "INT"
+#define ACPI_DPTF "DPTF"
 #define SYSFS_DPTF_HID "INT3400"
 #define SYSFS_PROCESSOR_HID "INT3401"
 #define SYSFS_DEFAULT_HID "INT3403"
@@ -161,6 +161,7 @@ void SysfsRegisterParticipants ()
 	esif_ccb_strncpy(sysPart.device_name,spDevice,PARTICIPANT_FIELD_LEN);
 	esif_ccb_sprintf(ESIF_NAME_LEN, sysPart.driver_name, "sysfs%s", ESIF_LIB_EXT);
 
+	/* we forced IETM to index 0 for now because ESIF expects that */
 	EsifUpPm_RegisterParticipant(origin, &sysPart, &newInstance);
 
 	scanThermal();
@@ -331,9 +332,7 @@ static int scanPlat(void)
 {
 	DIR *dir;
 	struct dirent **namelist;
-	struct dirent **participantNamelist;
 	int n;
-	int p;
 	int prefix_len = esif_ccb_strlen(DPTF_PARTICIPANT_PREFIX,ESIF_NAME_LEN);
 	char *dptf_prefix = DPTF_PARTICIPANT_PREFIX;
 	int i;
@@ -355,10 +354,6 @@ static int scanPlat(void)
 	}
 	else {
 		while (n--) {
-			/* we forced IETM to index 0 for now because ESIF expects that */
-			if (esif_ccb_strcmp(namelist[n]->d_name, ACPI_DPTF)==0) {
-				goto exit_participant;
-			}
 			for (i=0;i < prefix_len;i++) {
 				if (namelist[n]->d_name[i] != dptf_prefix[i]) {
 					goto exit_participant;
@@ -378,8 +373,12 @@ static int scanPlat(void)
 					continue;
 				}
 				char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
-				char *ACPI_alias = NULL;
+				if (esif_ccb_strcmp(ACPI_name, ACPI_DPTF)==0) {
+					// DPTF (IETM) participant has already been created prior to the scanPlat() call
+					goto exit_participant;
+				}
 
+				char *ACPI_alias = NULL;
 				ACPI_alias = esif_ccb_malloc(MAX_ZONE_NAME_LEN);
 				if (ACPI_alias == NULL) {
 					//no memory
@@ -388,41 +387,19 @@ static int scanPlat(void)
 
 				/* map to thermal zone */
 				get_participant_name_alias(ACPI_name, ACPI_alias);
-				if (match_thermal_zone(ACPI_alias, participant_path) == ESIF_FALSE) {
-					//retry without alias, best effort
-					if (match_thermal_zone(ACPI_name, participant_path) == ESIF_FALSE) {
-						// Obtain device path for participants that are not located in normal thermal zones
-						p = scandir(participant_path, &participantNamelist, 0, alphasort);
-						if (p < 0) {
-						//no scan
-						}
-						else {
-							while (p--) {
-								if (esif_ccb_strcmp(participantNamelist[p]->d_name, "thermal_cooling")==0) {
-									esif_ccb_sprintf(MAX_SYSFS_PATH,
-											participant_path,
-											"%s/%s/%s",
-											SYSFS_PLATFORM,
-											namelist[n]->d_name,
-											participantNamelist[p]->d_name);
-									break;
-								}
-							}
-						}
-					}
+				if (match_thermal_zone(ACPI_alias, participant_path) == ESIF_TRUE) {
+					newParticipantCreate(ESIF_PARTICIPANT_VERSION,
+							classGuid,
+							ESIF_PARTICIPANT_ENUM_SYSFS,
+							0x0,
+							ACPI_name,
+							ACPI_name,
+							"N/A",
+							hid,
+							participant_path,
+							participant_scope,
+							ptype);
 				}
-
-				newParticipantCreate(ESIF_PARTICIPANT_VERSION,
-						classGuid,
-						ESIF_PARTICIPANT_ENUM_SYSFS,
-						0x0,
-						ACPI_name,
-						ACPI_name,
-						"N/A",
-						hid,
-						participant_path,
-						participant_scope,
-						ptype);
 				esif_ccb_free(ACPI_alias);
 			}
 

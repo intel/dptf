@@ -60,7 +60,6 @@
 #define GET_TRT	_IOR(ACPI_THERMAL_IOR_TYPE, 5, u64)
 #define GET_ART	_IOR(ACPI_THERMAL_IOR_TYPE, 6, u64)
 
-#define ACPI_DPTF		"INT3400:00"
 #define ACPI_CPU		"INT3401:00"
 #define SYSFS_PCI		"/sys/bus/pci/devices"
 #define SYSFS_PLATFORM		"/sys/bus/platform/devices"
@@ -68,6 +67,7 @@
 #define SYSFS_THERMAL		"/sys/class/thermal"
 
 static const char *CPU_location[] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1", NULL};
+static const char *DPTF_UUID_location[] = {"/sys/devices/platform/INT3400:00/uuids", "/sys/devices/platform/INTC1040:00/uuids", NULL};
 
 static int *cpufreq; //Array storing Intercative Governor Cpu Frequencies
 
@@ -199,6 +199,7 @@ static eEsifError ResetThermalZonePolicyToDefault();
 static eEsifError SetThermalZonePolicy();
 static eEsifError SetIntelPState(u64 val);
 static eEsifError ValidateOutput(char *devicePathPtr, char *nodeName, u64 val);
+static const char *GetUuidLocation();
 
 #ifdef ESIF_ATTR_OS_ANDROID
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
@@ -678,9 +679,14 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			rc = get_thermal_rel_str(TRT, table_str);
 		}
 		else if (esif_ccb_stricmp("idsp", parm1) == 0) {
-			int lineNum = SysfsGetStringMultiline("/sys/devices/platform/INT3400:00/uuids/", "available_uuids", sys_long_string_val);
-			FLAGS_CLEAR(tableObject.options, TABLEOPT_ALLOW_SELF_DEFINE);
-			rc = get_supported_policies(table_str, lineNum, sys_long_string_val);
+			char const *uuid_dir = GetUuidLocation();
+			if (uuid_dir) {
+				int lineNum = SysfsGetStringMultiline(uuid_dir, "available_uuids", sys_long_string_val);
+				FLAGS_CLEAR(tableObject.options, TABLEOPT_ALLOW_SELF_DEFINE);
+				rc = get_supported_policies(table_str, lineNum, sys_long_string_val);
+			} else {
+				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			}
 		}
 		else if (esif_ccb_stricmp("ppcc", parm1) == 0) {
 			rc = get_rapl_power_control_capabilities(table_str,(esif_guid_t *)metaPtr->fDriverType);
@@ -1791,7 +1797,7 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 	esif_guid_t *guidPtr = (esif_guid_t *) oscPtr->guid;
 
 	// Convert IDSP GUID from binary format to text format because
-	// INT3400 driver only takes text format as input
+	// INT3400/INTC1040 driver only takes text format as input
 	esif_guid_mangle(guidPtr);
 	esif_guid_print(guidPtr, guidStr);
 
@@ -1807,8 +1813,15 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 		}
 	}
 
-	if (SysfsSetString("/sys/devices/platform/INT3400:00/uuids/", "current_uuid", guidStr) < 0) {
-		ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
+	char const *uuid_dir = GetUuidLocation();
+	if (uuid_dir) {
+		if (SysfsSetString(uuid_dir, "current_uuid", guidStr) < 0) {
+			ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
+			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+			goto exit;
+		}
+	} else {
+		ESIF_TRACE_WARN("Unable to locate the DPTF UUID location\n");
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		goto exit;
 	}
@@ -1945,6 +1958,21 @@ exit:
 	}
 	return rc;
 }
+
+static const char* GetUuidLocation()
+{
+	int i = 0;
+	while (DPTF_UUID_location[i] != NULL) {
+		DIR* dir = opendir(DPTF_UUID_location[i]);
+		if (dir) { // Located the IETM/DPTF dir!
+			closedir(dir);
+			break;
+		}
+		++i;
+	}
+	return DPTF_UUID_location[i];
+}
+
 
 static eEsifError ResetThermalZonePolicy()
 {
