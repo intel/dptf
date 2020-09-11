@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 #include "esif_pm.h"
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
-#include "esif_uf_accelerometer.h"
+#include "esif_uf_sensors.h"
 #include "esif_uf_sysfs_os_lin.h"
 
 #include <sys/socket.h>
@@ -96,6 +96,7 @@ static const char gAngleRawNodeName[] = "in_angl_raw";
 static const char gSensorBasePath[] =  "/sys/bus/iio/devices";
 static char gLidStateBasePath[] = "/proc/acpi/button/lid/LID0";
 static char gPowerSrcBasePath[] = "/sys/class/power_supply/BAT0";
+static char gDockingBasePath[] = "/sys/bus/acpi/devices/GOOG6666:00";
 static const InclinometerMinMaxConfig gInclinMinMaxConfig= {
 	INCLIN_X_ORIENT_FLAT_UP_MIN,
 	INCLIN_X_ORIENT_FLAT_UP_MAX,
@@ -120,6 +121,8 @@ static Sensor *gLidAngle;
 // Global file descriptors for misc sensors not found in IIO bus, such as lid state, battery state, etc.
 static int gFdLidState;
 static int gFdPowerSrc;
+static int gFdBattCharge;
+static int gFdDocking;
 
 // Global variables keeping track of current x/y/z vectors and platform/display orientation/platform type
 static AccelerometerData gCurAccelData;
@@ -130,6 +133,7 @@ static DockMode gDockMode = DOCK_MODE_INVALID;
 static LidState gLidState = LID_STATE_CLOSED;
 static PowerSrc gPowerSrc = POWER_SRC_AC;
 static PlatformType gPlatType = PLATFORM_TYPE_INVALID;
+static int gBatteryPercentage = 0;
 
 // The SIGUSR1 handler below is the alternative
 // solution for Android where the pthread_cancel()
@@ -216,11 +220,11 @@ static void InitSensor(int index, char *devName)
 {
 	SensorPtr sensorPtr = &gSensors[index];
 	char iioSysfsNode[IIO_STR_LEN] = { 0 };
-	char fullPath[MAX_PATH] = { 0 };
+	char fullPath[MAX_PATH + IIO_STR_LEN] = { 0 };
 
 	sensorPtr->base.type = SENSOR_TYPE_NA;
 
-	esif_ccb_sprintf(MAX_PATH, fullPath, "%s/%s", gSensorBasePath, devName);
+	esif_ccb_sprintf(sizeof(fullPath), fullPath, "%s/%s", gSensorBasePath, devName);
 	if (SysfsGetString(fullPath, "name", iioSysfsNode, sizeof(iioSysfsNode)) > 0) {
 		// Init code for accelerometers
 		if (esif_ccb_strstr(iioSysfsNode, "accel")) {
@@ -291,12 +295,17 @@ static eEsifError EsifSensorMgr_InitializeNonIioBusSensors()
 
 	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gPowerSrcBasePath, "status");
 	gFdPowerSrc = open(filepath, O_RDONLY);
+
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gPowerSrcBasePath, "capacity");
+	gFdBattCharge = open(filepath, O_RDONLY);
 	
-	if (gFdPowerSrc <= 0 && gFdLidState <= 0) {
+	esif_ccb_sprintf(MAX_PATH, filepath, "%s/%s", gDockingBasePath, "docked");
+	gFdDocking = open(filepath, O_RDONLY);
+
+	if (gFdPowerSrc <= 0 && gFdLidState <= 0 && gFdBattCharge <= 0 && gFdDocking <= 0) {
 		rc = ESIF_E_NOT_SUPPORTED;
 	}
 
-exit:
 	return rc;
 }
 
@@ -314,6 +323,8 @@ static void EsifSensorMgr_DeregisterSensors()
 	// Also close file descriptors for misc. sensors
 	if (gFdLidState > 0) close(gFdLidState);
 	if (gFdPowerSrc > 0) close(gFdPowerSrc);
+	if (gFdBattCharge > 0) close(gFdBattCharge);
+	if (gFdDocking > 0) close(gFdDocking);
 }
 
 static void AccelRawUpdate(SensorPtr sensorPtr)
@@ -446,19 +457,17 @@ static void CheckPlatTypeChange(SensorPtr sensorPtr)
 static void CheckDockModeChange(void)
 {
 	DockMode dockMode = DOCK_MODE_INVALID;
-	DIR* dir = opendir("/dev/input/by-id");
+	char sysvalstring[MAX_SYSFS_STRING] = { 0 };
 	EsifData evtData = { 0 };
 
-	/* TODO:
-	 * On Chromebooks the above directory will be created when system is docked.
-	 * Need to check if this works for other Linux derived systems.
-	 * Currently only enable docking/undocking detection for Chrome OS.
-	 */
-	if (dir) {
-		dockMode = DOCK_MODE_DOCKED;
-		closedir(dir);
-	} else {
-		dockMode = DOCK_MODE_UNDOCKED;
+	if (gFdDocking > 0) {
+		lseek(gFdDocking, 0 , SEEK_SET);
+		if (read(gFdDocking, sysvalstring, sizeof(sysvalstring)) > 0) {
+			if (esif_ccb_strstr(sysvalstring, "1"))
+				dockMode = DOCK_MODE_DOCKED;
+			else
+				dockMode = DOCK_MODE_UNDOCKED;
+		}
 	}
 
 	if (dockMode != gDockMode) {
@@ -514,6 +523,28 @@ static void CheckPowerSrcChange(void)
 	}
 }
 
+static void CheckBatteryPercentChange(void)
+{
+	int batteryPercentage = 0;
+	char sysvalstring[MAX_SYSFS_STRING] = { 0 };
+	EsifData evtData = { 0 };
+
+	if (gFdBattCharge > 0) {
+		lseek(gFdBattCharge, 0, SEEK_SET);
+		if (read(gFdBattCharge, sysvalstring, sizeof(sysvalstring)) > 0) {
+			if (esif_ccb_sscanf(sysvalstring, "%d", &batteryPercentage) <= 0) {
+				ESIF_TRACE_WARN("Failed to get Battery Percentage.\n");
+			}
+		}
+	}
+
+	if (batteryPercentage != gBatteryPercentage) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &batteryPercentage, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
+		gBatteryPercentage = batteryPercentage;
+	}
+}
+
 static void *EsifIio_Poll(void *ptr)
 {
 	UNREFERENCED_PARAMETER(ptr);
@@ -549,6 +580,9 @@ static void *EsifIio_Poll(void *ptr)
 
 		// Power source change detection
 		CheckPowerSrcChange();
+
+		// Battery percent change detection
+		CheckBatteryPercentChange();
 
 		// Lid state change detection
 		CheckLidStateChange();
@@ -616,7 +650,7 @@ void EsifSensorMgr_Exit()
  * These functions are called indirectly by ESIF apps such as DPTF.
  * For the registration function, return success only if the physical
  * or logical sensor (and related events) are present in Linux.
- * There is not much else to do since Linux OS has already handled 
+ * There is not much else to do since Linux OS has already handled
  * sensor enumeration/registration by its IIO bus driver.
  */
 eEsifError esif_register_sensor_lin(eEsifEventType eventType)
@@ -624,7 +658,7 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 	eEsifError rc = ESIF_OK;
 	EsifData evtData = { 0 };
 
-	/* Send gratuitous events when DPTF registers for 
+	/* Send gratuitous events when DPTF registers for
 	 * sensor events, if we do support such events.
 	 * This is to make the DPTF UI happy, otherwise
 	 * the UI will show that the corresponding event
@@ -664,7 +698,7 @@ eEsifError esif_register_sensor_lin(eEsifEventType eventType)
 
 /**
  * Always return success even if the sensor/sensor events are
- * not available in Linux. 
+ * not available in Linux.
  */
 eEsifError esif_unregister_sensor_lin(eEsifEventType eventType)
 {
@@ -676,6 +710,7 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 {
 	const esif_guid_t guidDockMode = {0x30, 0x8d, 0x0c, 0xc9, 0xba, 0x5b, 0x40, 0x0a, 0x99, 0x0a, 0xed, 0x27, 0x29, 0x29, 0xb6, 0xb6};
 	const esif_guid_t guidPowerSrc = {0x5d, 0x3e, 0x9a, 0x59, 0xe9, 0xd5, 0x4b, 0x00, 0xa6, 0xbd, 0xff, 0x34, 0xff, 0x51, 0x65, 0x48};
+	const esif_guid_t guidBattPercent = {0xa7, 0xad, 0x80, 0x41, 0xb4, 0x5a, 0x4c, 0xae, 0x87, 0xa3, 0xee, 0xcb, 0xb4, 0x68, 0xa9, 0xe1};
 	const esif_guid_t guidLidState = {0xba, 0x3e, 0x0f, 0x4d, 0xb8, 0x17, 0x40, 0x94, 0xa2, 0xd1, 0xd5, 0x63, 0x79, 0xe6, 0xa0, 0xf3};
 	eEsifError rc = ESIF_OK;
 	EsifData evtData = { 0 };
@@ -697,6 +732,13 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 		ESIF_DATA_UINT32_ASSIGN(evtData, &gPowerSrc, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
 		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_POWER_SOURCE_CHANGED\n");
+		StartEsifSensorMgr();
+	}
+
+	if (0 == memcmp(guid, guidBattPercent, ESIF_GUID_LEN)) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &gBatteryPercentage, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
+		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED\n");
 		StartEsifSensorMgr();
 	}
 

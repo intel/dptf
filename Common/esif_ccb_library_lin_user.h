@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 
+#include "esif_ccb_file.h"
 #include "esif_ccb_memory.h"
 #include "esif_ccb_string.h"
 #include "esif_ccb_rc.h"
@@ -45,6 +46,10 @@ static ESIF_INLINE void esif_ccb_library_geterror(esif_lib_t lib);
 /* Load Shared .so/DLL code opaque */
 static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 {
+	/* Remove Symbolic Links */
+	if (lib_name && *lib_name == *ESIF_PATH_SEP && esif_ccb_drop_symlink(lib_name) != 0) {
+		return NULL;
+	}
 	esif_lib_t lib = (esif_lib_t)esif_ccb_malloc(sizeof(*lib));
 	if (NULL == lib)
 		return NULL;
@@ -84,12 +89,18 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 			library[j] = tolower(lib_name[j]);
 		}
 		library[start] = toupper(library[start]);
+		if (library[0] == *ESIF_PATH_SEP) {
+			esif_ccb_drop_symlink(library);
+		}
 		lib->handle = dlopen(library, dlflags);
 		esif_ccb_library_geterror(lib);
 
 		/* lowercase.so */
 		if (NULL == lib->handle && esif_ccb_library_error(lib) == ESIF_E_NOT_FOUND) {
 			library[start] = tolower(library[start]);
+			if (library[0] == *ESIF_PATH_SEP) {
+				esif_ccb_drop_symlink(library);
+			}
 			lib->handle = dlopen(library, dlflags);
 			esif_ccb_library_geterror(lib);
 		}
@@ -98,6 +109,9 @@ static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 		if (NULL == lib->handle && esif_ccb_library_error(lib) == ESIF_E_NOT_FOUND) {
 			for (j=start; library[j] && library[j] != '.'; j++) {
 				library[j] = toupper(library[j]);
+			}
+			if (library[0] == *ESIF_PATH_SEP) {
+				esif_ccb_drop_symlink(library);
 			}
 			lib->handle = dlopen(library, dlflags);
 			esif_ccb_library_geterror(lib);

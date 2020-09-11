@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include "CriticalTripPointsCachedProperty.h"
 #include "XmlCommon.h"
+#include "PolicyLogger.h"
 using namespace std;
 
 CriticalTripPointsCachedProperty::CriticalTripPointsCachedProperty(
@@ -57,11 +58,37 @@ Bool CriticalTripPointsCachedProperty::supportsProperty(void)
 	// make sure the critical trip points contain at least one of {warm, hot, critical}
 	try
 	{
-		auto criticalTripPoints = getTripPoints();
-		return (
-			criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Warm)
-			|| criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Hot)
-			|| criticalTripPoints.hasKey(ParticipantSpecificInfoKey::Critical));
+		auto tripPoints = getTripPoints();
+
+		if (tripPoints.hasKey(ParticipantSpecificInfoKey::Warm))
+		{
+			const Temperature warmTripPoint = tripPoints.getTemperature(ParticipantSpecificInfoKey::Warm);
+			if (warmTripPoint.isValid() && static_cast<UInt32>(warmTripPoint) != Constants::MaxUInt32)
+			{
+				return true;
+			}
+		}
+
+		if (tripPoints.hasKey(ParticipantSpecificInfoKey::Hot))
+		{
+			const Temperature hotTripPoint = tripPoints.getTemperature(ParticipantSpecificInfoKey::Hot);
+			if (hotTripPoint.isValid() && static_cast<UInt32>(hotTripPoint) != Constants::MaxUInt32)
+			{
+				return true;
+			}
+		}
+
+		if (tripPoints.hasKey(ParticipantSpecificInfoKey::Critical))
+		{
+			const Temperature criticalTripPoint = tripPoints.getTemperature(ParticipantSpecificInfoKey::Critical);
+			if (criticalTripPoint.isValid() && static_cast<UInt32>(criticalTripPoint) != Constants::MaxUInt32)
+			{
+				return true;
+			}
+		}
+
+		POLICY_LOG_MESSAGE_DEBUG({ return "No valid Warm, Hot and Critical trip points."; });
+		return false;
 	}
 	catch (dptf_exception&)
 	{

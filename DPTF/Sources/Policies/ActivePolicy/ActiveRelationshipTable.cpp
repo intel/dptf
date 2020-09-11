@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -149,12 +149,16 @@ UIntN ActiveRelationshipTable::countArtRows(UInt32 size, UInt8* data)
 		bytesRemaining -= sizeof(struct EsifDataBinaryArtPackage);
 		throwIfOutOfRange(bytesRemaining);
 
+		throwIfOutOfRange(currentRow->sourceDevice.string.length); // Verify string length not negative or will become
+																   // positive when subtracted from bytesRemaining
 		bytesRemaining -= currentRow->sourceDevice.string.length;
 		throwIfOutOfRange(bytesRemaining);
 
 		data += currentRow->sourceDevice.string.length;
 		currentRow = reinterpret_cast<struct EsifDataBinaryArtPackage*>(data);
 
+		throwIfOutOfRange(currentRow->targetDevice.string.length); // Verify string length not negative or will become
+																   // positive when subtracted from bytesRemaining
 		bytesRemaining -= currentRow->targetDevice.string.length;
 		throwIfOutOfRange(bytesRemaining);
 

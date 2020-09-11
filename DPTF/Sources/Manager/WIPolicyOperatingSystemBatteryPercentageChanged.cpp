@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,14 +38,20 @@ void WIPolicyOperatingSystemBatteryPercentageChanged::onExecute(void)
 
 	auto policyManager = getPolicyManager();
 	auto policyIndexes = policyManager->getPolicyIndexes();
+	UIntN osBatteryPercentage = 0;
+
+	if (m_batteryPercentage <= 100)
+	{
+		osBatteryPercentage = m_batteryPercentage;
+	}
 
 	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->batteryPercentage.set(m_batteryPercentage);
+			getDptfManager()->getEventCache()->batteryPercentage.set(osBatteryPercentage);
 			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyOperatingSystemBatteryPercentageChanged(m_batteryPercentage);
+			policy->executePolicyOperatingSystemBatteryPercentageChanged(osBatteryPercentage);
 		}
 		catch (policy_index_invalid&)
 		{

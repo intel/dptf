@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -115,15 +115,6 @@
 #define RESUME { \
 	0xAB, 0x3E, 0x04, 0x5F, 0x6B, 0x51, 0x4E, 0xC5, \
 	0x93, 0x30, 0xEA, 0xB7, 0x08, 0x36, 0xF0, 0x2F }
-
-/*
- * Event Name:  CTDP_CAPABILITY_CHANGED
- * Event GUID:  68D16E98-2C89-4A3D-95C7-5DEEAA4FD73F
- * Event Desc:  Config TDP Capability changed (Configurable TDP)
- */
-#define CTDP_CAPABILITY_CHANGED { \
-	0x68, 0xD1, 0x6E, 0x98, 0x2C, 0x89, 0x4A, 0x3D, \
-	0x95, 0xC7, 0x5D, 0xEE, 0xAA, 0x4F, 0xD7, 0x3F }
 
 /*
  * Event Name:  CORE_CAPABILITY_CHANGED
@@ -295,15 +286,6 @@
 #define SYSTEM_COOLING_POLICY_CHANGED { \
 	0x5C, 0x7D, 0x59, 0x1E, 0x2E, 0xA8, 0x4D, 0xA1, \
 	0x85, 0xA4, 0x47, 0x61, 0x91, 0x40, 0x46, 0x50 }
-
-/*
- * Event Name:  OS_CTDP_CAPABILITY_CHANGED
- * Event GUID:  07029cd8-4664-4698-95d8-43b2e9666596
- * Event Desc:  OS CTDP Capability Changed
- */
-#define OS_CTDP_CAPABILITY_CHANGED { \
-	0x07, 0x02, 0x9c, 0xd8, 0x46, 0x64, 0x46, 0x98, \
-	0x95, 0xd8, 0x43, 0xb2, 0xe9, 0x66, 0x65, 0x96 }
 
 /*
  * Event Name:  RF_PROFILE_CHANGED
@@ -997,4 +979,274 @@
 #define PLATFORM_USER_PRESENCE_CHANGED { \
 	0xD9, 0x84, 0x98, 0xF0, 0x46, 0xDE, 0x45, 0x06, \
 	0xAA, 0xEE, 0xB4, 0x26, 0xF9, 0xB0, 0xD5, 0xEE }
+
+/*
+ * Event Name:  WAKE_ON_APPROACH_LOW_BATTERY_FEATURE_STATE_CHANGED
+ * Event GUID:  55A91AC6-3E66-4D0A-BA23-6A0B4B75A455
+ * Event Desc:  Wake On Approach Low Battery Feature State Changed
+ */
+#define WAKE_ON_APPROACH_LOW_BATTERY_FEATURE_STATE_CHANGED { \
+	0x55, 0xA9, 0x1A, 0xC6, 0x3E, 0x66, 0x4D, 0x0A, \
+	0xBA, 0x23, 0x6A, 0x0B, 0x4B, 0x75, 0xA4, 0x55 }
+
+/*
+ * Event Name:  WAKE_ON_APPROACH_BATTERY_REMAINING_PERCENTAGE_CHANGED
+ * Event GUID:  22994BC1-BF7D-4486-8703-EA63B16C2A67
+ * Event Desc:  Wake On Approach Battery Remaining Time Limit Changed
+ */
+#define WAKE_ON_APPROACH_BATTERY_REMAINING_PERCENTAGE_CHANGED { \
+	0x22, 0x99, 0x4B, 0xC1, 0xBF, 0x7D, 0x44, 0x86, \
+	0x87, 0x03, 0xEA, 0x63, 0xB1, 0x6C, 0x2A, 0x67 }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_DIM_SCREEN_FEATURE_STATE_CHANGED
+ * Event GUID:  89F19351-4D41-418C-A21E-94982F084A3D
+ * Event Desc:  Walk Away Lock Dim Screen Feature State Changed
+ */
+#define WALK_AWAY_LOCK_DIM_SCREEN_FEATURE_STATE_CHANGED { \
+	0x89, 0xF1, 0x93, 0x51, 0x4D, 0x41, 0x41, 0x8C, \
+	0xA2, 0x1E, 0x94, 0x98, 0x2F, 0x08, 0x4A, 0x3D }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_DISPLAY_OFF_AFTER_LOCK_FEATURE_STATE_CHANGED
+ * Event GUID:  B98FD172-1D5D-41C9-93BD-8B8B86DF875D
+ * Event Desc:  Walk Away Lock Display Off After Lock Feature State Changed
+ */
+#define WALK_AWAY_LOCK_DISPLAY_OFF_AFTER_LOCK_FEATURE_STATE_CHANGED { \
+	0xB9, 0x8F, 0xD1, 0x72, 0x1D, 0x5D, 0x41, 0xC9, \
+	0x93, 0xBD, 0x8B, 0x8B, 0x86, 0xDF, 0x87, 0x5D }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_HONOR_DISPLAY_POWER_REQUEST_FEATURE_STATE_CHANGED
+ * Event GUID:  25F20114-F829-4A03-B01C-692F0AFDA0F2
+ * Event Desc:  Walk Away Lock Honor Display Power Request Feature State Change
+ */
+#define WALK_AWAY_LOCK_HONOR_DISPLAY_POWER_REQUEST_FEATURE_STATE_CHANGED { \
+	0x25, 0xF2, 0x01, 0x14, 0xF8, 0x29, 0x4A, 0x03, \
+	0xB0, 0x1C, 0x69, 0x2F, 0x0A, 0xFD, 0xA0, 0xF2 }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_HONOR_USER_IN_CALL_FEATURE_STATE_CHANGED
+ * Event GUID:  CF02F5AE-CEFE-4F95-BE99-4B26EE8D454B
+ * Event Desc:  Walk Away Lock Honor User In Call Feature State Changed
+ */
+#define WALK_AWAY_LOCK_HONOR_USER_IN_CALL_FEATURE_STATE_CHANGED { \
+	0xCF, 0x02, 0xF5, 0xAE, 0xCE, 0xFE, 0x4F, 0x95, \
+	0xBE, 0x99, 0x4B, 0x26, 0xEE, 0x8D, 0x45, 0x4B }
+
+/*
+ * Event Name:  NO_LOCK_ON_PRESENCE_BATTERY_FEATURE_STATE_CHANGED
+ * Event GUID:  FCF5B939-F65E-46CA-A4A3-A215DF6FB7D9
+ * Event Desc:  No Lock On Presence Battery Feature State Changed
+ */
+#define NO_LOCK_ON_PRESENCE_BATTERY_FEATURE_STATE_CHANGED { \
+	0xFC, 0xF5, 0xB9, 0x39, 0xF6, 0x5E, 0x46, 0xCA, \
+	0xA4, 0xA3, 0xA2, 0x15, 0xDF, 0x6F, 0xB7, 0xD9 }
+
+/*
+ * Event Name:  NO_LOCK_ON_PRESENCE_BATTERY_REMAINING_PERCENTAGE_CHANGED
+ * Event GUID:  B06C7E0A-6391-4243-B863-44D8E305E16F
+ * Event Desc:  No Lock On Presence Battery Remaining Time Limit Changed
+ */
+#define NO_LOCK_ON_PRESENCE_BATTERY_REMAINING_PERCENTAGE_CHANGED { \
+	0xB0, 0x6C, 0x7E, 0x0A, 0x63, 0x91, 0x42, 0x43, \
+	0xB8, 0x63, 0x44, 0xD8, 0xE3, 0x05, 0xE1, 0x6F }
+
+/*
+ * Event Name:  NO_LOCK_ON_PRESENCE_RESET_WAIT_TIME_CHANGED
+ * Event GUID:  094155D9-C9E4-437A-81B7-23D5100EF38A
+ * Event Desc:  No Lock On Presence Reset Wait Time Changed
+ */
+#define NO_LOCK_ON_PRESENCE_RESET_WAIT_TIME_CHANGED { \
+	0x09, 0x41, 0x55, 0xD9, 0xC9, 0xE4, 0x43, 0x7A, \
+	0x81, 0xB7, 0x23, 0xD5, 0x10, 0x0E, 0xF3, 0x8A }
+
+/*
+ * Event Name:  USER_PRESENT_WAIT_TIMEOUT_CHANGED
+ * Event GUID:  2272FFF3-39A5-4E07-81AB-6E32257E96E3
+ * Event Desc:  User Present Wait Timeout Changed
+ */
+#define USER_PRESENT_WAIT_TIMEOUT_CHANGED { \
+	0x22, 0x72, 0xFF, 0xF3, 0x39, 0xA5, 0x4E, 0x07, \
+	0x81, 0xAB, 0x6E, 0x32, 0x25, 0x7E, 0x96, 0xE3 }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_PRE_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  79AEC695-45EF-4A12-828E-4C9769B7F230
+ * Event Desc:  Walk Away Lock Pre Dim Wait Time Changed
+ */
+#define WALK_AWAY_LOCK_PRE_DIM_WAIT_TIME_CHANGED { \
+	0x79, 0xAE, 0xC6, 0x95, 0x45, 0xEF, 0x4A, 0x12, \
+	0x82, 0x8E, 0x4C, 0x97, 0x69, 0xB7, 0xF2, 0x30 }
+
+/*
+ * Event Name:  WALK_AWAY_LOCK_DIM_INTERVAL_CHANGED
+ * Event GUID:  2FBAC332-AA58-4D5E-B6A5-255034BDE77E
+ * Event Desc:  Walk Away Lock Dim Interval Changed
+ */
+#define WALK_AWAY_LOCK_DIM_INTERVAL_CHANGED { \
+	0x2F, 0xBA, 0xC3, 0x32, 0xAA, 0x58, 0x4D, 0x5E, \
+	0xB6, 0xA5, 0x25, 0x50, 0x34, 0xBD, 0xE7, 0x7E }
+
+/*
+ * Event Name:  USER_PRESENCE_APP_STATE_CHANGED
+ * Event GUID:  FB0CA4C1-5CB1-4F2A-8CE2-AB3E1C09DD92
+ * Event Desc:  User Presence App State Changed
+ */
+#define USER_PRESENCE_APP_STATE_CHANGED { \
+	0xFB, 0x0C, 0xA4, 0xC1, 0x5C, 0xB1, 0x4F, 0x2A, \
+	0x8C, 0xE2, 0xAB, 0x3E, 0x1C, 0x09, 0xDD, 0x92 }
+
+/*
+ * Event Name:  ADAPTIVE_DIMMING_PRE_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  68BE805B-20BE-4CA7-8A98-0BD8EA97F199
+ * Event Desc:  Adaptive Dimming Pre Dim Wait Time Changed
+ */
+#define ADAPTIVE_DIMMING_PRE_DIM_WAIT_TIME_CHANGED { \
+	0x68, 0xBE, 0x80, 0x5B, 0x20, 0xBE, 0x4C, 0xA7, \
+	0x8A, 0x98, 0x0B, 0xD8, 0xEA, 0x97, 0xF1, 0x99 }
+
+/*
+ * Event Name:  EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED
+ * Event GUID:  47B2CCDE-0745-4485-B182-3CD7784E2D47
+ * Event Desc:  External Monitor Connection State Changed
+ */
+#define EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED { \
+	0x47, 0xB2, 0xCC, 0xDE, 0x07, 0x45, 0x44, 0x85, \
+	0xB1, 0x82, 0x3C, 0xD7, 0x78, 0x4E, 0x2D, 0x47 }
+
+/*
+ * Event Name:  USER_IN_CALL_STATE_CHANGED
+ * Event GUID:  7775D172-D7E2-40CF-8CDC-4D28E174EAF6
+ * Event Desc:  User In Call State Changed
+ */
+#define USER_IN_CALL_STATE_CHANGED { \
+	0x77, 0x75, 0xD1, 0x72, 0xD7, 0xE2, 0x40, 0xCF, \
+	0x8C, 0xDC, 0x4D, 0x28, 0xE1, 0x74, 0xEA, 0xF6 }
+
+/*
+ * Event Name:  MISPREDICTION_FACE_DETECTION_STATE_CHANGED
+ * Event GUID:  16A1DC71-A558-4F53-A2C1-1C3E95F7608E
+ * Event Desc:  Misprediction with Face Detection when user not present state c
+ */
+#define MISPREDICTION_FACE_DETECTION_STATE_CHANGED { \
+	0x16, 0xA1, 0xDC, 0x71, 0xA5, 0x58, 0x4F, 0x53, \
+	0xA2, 0xC1, 0x1C, 0x3E, 0x95, 0xF7, 0x60, 0x8E }
+
+/*
+ * Event Name:  MISPREDICTION_TIME_WINDOW_CHANGED
+ * Event GUID:  D7A56AAA-CA22-4223-90FE-04164BEC9AD0
+ * Event Desc:  Misprediction Time Window Changed
+ */
+#define MISPREDICTION_TIME_WINDOW_CHANGED { \
+	0xD7, 0xA5, 0x6A, 0xAA, 0xCA, 0x22, 0x42, 0x23, \
+	0x90, 0xFE, 0x04, 0x16, 0x4B, 0xEC, 0x9A, 0xD0 }
+
+/*
+ * Event Name:  MISPREDICTION_1_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  A145B0AF-3EAB-40FB-9851-EAD11B946E6E
+ * Event Desc:  Misprediction 1 Dim Wait Time Changed
+ */
+#define MISPREDICTION_1_DIM_WAIT_TIME_CHANGED { \
+	0xA1, 0x45, 0xB0, 0xAF, 0x3E, 0xAB, 0x40, 0xFB, \
+	0x98, 0x51, 0xEA, 0xD1, 0x1B, 0x94, 0x6E, 0x6E }
+
+/*
+ * Event Name:  MISPREDICTION_2_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  EF6736FF-DE0C-4574-A518-5AD67C80891A
+ * Event Desc:  Misprediction 2 Dim Wait Time Changed
+ */
+#define MISPREDICTION_2_DIM_WAIT_TIME_CHANGED { \
+	0xEF, 0x67, 0x36, 0xFF, 0xDE, 0x0C, 0x45, 0x74, \
+	0xA5, 0x18, 0x5A, 0xD6, 0x7C, 0x80, 0x89, 0x1A }
+
+/*
+ * Event Name:  MISPREDICTION_3_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  9B88F260-D75A-4E43-A76D-C1915AB6F8CC
+ * Event Desc:  Misprediction 3 Dim Wait Time Changed
+ */
+#define MISPREDICTION_3_DIM_WAIT_TIME_CHANGED { \
+	0x9B, 0x88, 0xF2, 0x60, 0xD7, 0x5A, 0x4E, 0x43, \
+	0xA7, 0x6D, 0xC1, 0x91, 0x5A, 0xB6, 0xF8, 0xCC }
+
+/*
+ * Event Name:  MISPREDICTION_4_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  AA4B7B1D-6A92-4711-B065-3D5DC1903A98
+ * Event Desc:  Misprediction 4 Dim Wait Time Changed
+ */
+#define MISPREDICTION_4_DIM_WAIT_TIME_CHANGED { \
+	0xAA, 0x4B, 0x7B, 0x1D, 0x6A, 0x92, 0x47, 0x11, \
+	0xB0, 0x65, 0x3D, 0x5D, 0xC1, 0x90, 0x3A, 0x98 }
+
+/*
+ * Event Name:  FAILSAFE_TIMEOUT_CHANGED
+ * Event GUID:  CAA3C2B4-D1CE-4CAD-91E7-E97AC9E2FDDE
+ * Event Desc:  Failsafe Timeout Changed
+ */
+#define FAILSAFE_TIMEOUT_CHANGED { \
+	0xCA, 0xA3, 0xC2, 0xB4, 0xD1, 0xCE, 0x4C, 0xAD, \
+	0x91, 0xE7, 0xE9, 0x7A, 0xC9, 0xE2, 0xFD, 0xDE }
+
+/*
+ * Event Name:  NO_LOCK_ON_PRESENCE_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
+ * Event GUID:  5D1DD140-D128-4354-BEBC-735871F4AB2D
+ * Event Desc:  No Lock On Presence External Monitor Changed
+ */
+#define NO_LOCK_ON_PRESENCE_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
+	0x5D, 0x1D, 0xD1, 0x40, 0xD1, 0x28, 0x43, 0x54, \
+	0xBE, 0xBC, 0x73, 0x58, 0x71, 0xF4, 0xAB, 0x2D }
+
+/*
+ * Event Name:  CREATE_COMPLETE
+ * Event GUID:  12A56314-589D-4778-BB25-6ACFC1AE86B7
+ * Event Desc:  Participant Create Complete
+ */
+#define CREATE_COMPLETE { \
+	0x12, 0xA5, 0x63, 0x14, 0x58, 0x9D, 0x47, 0x78, \
+	0xBB, 0x25, 0x6A, 0xCF, 0xC1, 0xAE, 0x86, 0xB7 }
+
+/*
+ * Event Name:  USER_NOT_PRESENT_DIM_TARGET_CHANGED
+ * Event GUID:  9E80A1C2-BECF-4C54-9DBD-EB3C982B7EF3
+ * Event Desc:  User Not Present Dim Target Changed
+ */
+#define USER_NOT_PRESENT_DIM_TARGET_CHANGED { \
+	0x9E, 0x80, 0xA1, 0xC2, 0xBE, 0xCF, 0x4C, 0x54, \
+	0x9D, 0xBD, 0xEB, 0x3C, 0x98, 0x2B, 0x7E, 0xF3 }
+
+/*
+ * Event Name:  USER_DISENGAGED_DIMMING_INTERVAL_CHANGED
+ * Event GUID:  27A108FC-0AF5-4DF7-A94A-75DB7E0E0EF7
+ * Event Desc:  User Disengaged Dim Rate Changed
+ */
+#define USER_DISENGAGED_DIMMING_INTERVAL_CHANGED { \
+	0x27, 0xA1, 0x08, 0xFC, 0x0A, 0xF5, 0x4D, 0xF7, \
+	0xA9, 0x4A, 0x75, 0xDB, 0x7E, 0x0E, 0x0E, 0xF7 }
+
+/*
+ * Event Name:  USER_DISENGAGED_DIM_TARGET_CHANGED
+ * Event GUID:  6B04CD25-3931-41B6-893C-E103D4E99286
+ * Event Desc:  User Disengaged Dim Target Changed
+ */
+#define USER_DISENGAGED_DIM_TARGET_CHANGED { \
+	0x6B, 0x04, 0xCD, 0x25, 0x39, 0x31, 0x41, 0xB6, \
+	0x89, 0x3C, 0xE1, 0x03, 0xD4, 0xE9, 0x92, 0x86 }
+
+/*
+ * Event Name:  USER_DISENGAGED_DIM_WAIT_TIME_CHANGED
+ * Event GUID:  1D1523D6-2C80-4152-A26A-FEBB92A937CD
+ * Event Desc:  User Disengaged Dim Wait Time Changed
+ */
+#define USER_DISENGAGED_DIM_WAIT_TIME_CHANGED { \
+	0x1D, 0x15, 0x23, 0xD6, 0x2C, 0x80, 0x41, 0x52, \
+	0xA2, 0x6A, 0xFE, 0xBB, 0x92, 0xA9, 0x37, 0xCD }
+
+/*
+ * Event Name:  EPP_SENSITIVITY_HINT_CHANGED
+ * Event GUID:  EE71B8F7-1C7E-4396-B907-8EA168226476
+ * Event Desc:  EPP Sensitivity Hint Changed
+ */
+#define EPP_SENSITIVITY_HINT_CHANGED { \
+	0xEE, 0x71, 0xB8, 0xF7, 0x1C, 0x7E, 0x43, 0x96, \
+	0xB9, 0x07, 0x8E, 0xA1, 0x68, 0x22, 0x64, 0x76 }
 

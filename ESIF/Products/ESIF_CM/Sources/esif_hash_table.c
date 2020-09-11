@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -69,25 +69,6 @@
 #endif
 
 #define ESIF_DEBUG_MODULE ESIF_DEBUG_MOD_HASH
-
-#ifdef ESIF_ATTR_KERNEL
-#define EVENT_VERBOSE	0
-
-#define ESIF_TRACE_DYN_VERB(fmt, ...) \
-	ESIF_TRACE_DYN(ESIF_DEBUG_MOD_HASH, EVENT_VERBOSE, fmt, ##__VA_ARGS__)
-
-#endif /* ESIF_ATTR_KERNEL */
-
-#ifdef ESIF_ATTR_USER
-
-#define ESIF_TRACE_DYN_VERB(format, ...) \
-	ESIF_TRACE_DYN(ESIF_TRACEMODULE_DEFAULT, \
-		ESIF_TRACELEVEL_DEBUG, \
-		format, \
-		##__VA_ARGS__ \
-		)
-
-#endif /* ESIF_ATTR_USER */
 
 /*
  * follows the FNV-1a method of hash creation
@@ -158,7 +139,6 @@ static u32 esif_compute_hash(
 		hash_value = hash_value * FNV_PRIME;
 	}
 
-	ESIF_TRACE_DYN_VERB("Hash %08x\n", hash_value);
 	return hash_value;
 }
 
@@ -172,11 +152,9 @@ u8 esif_cmp_keys(
 	u8 keys_equal = ESIF_FALSE;
 
 	if ((key1_ptr == NULL) || (key2_ptr == NULL)) {
-		ESIF_TRACE_DYN_VERB("Passed in key ptr NULL\n)");
 		goto exit;
 	}
 	if (key1_length != key2_length) {
-		ESIF_TRACE_DYN_VERB("Passed in key lengths differ\n)");
 		goto exit;
 	}
 
@@ -203,13 +181,11 @@ static struct esif_ht_node *esif_ht_get_ht_node(
 	ll_ptr = esif_ht_get_ll(self, key_ptr, key_length);
 	if (ll_ptr == NULL) {
 		ESIF_ASSERT(ESIF_FALSE); /* Should never happen */
-		ESIF_TRACE_DYN_VERB("LL NULL for passed in key\n");
 		goto exit;
 	}
 
 	ll_node = esif_find_node_in_ht_ll(ll_ptr, key_ptr, key_length);
 	if (ll_node == NULL) {
-		ESIF_TRACE_DYN_VERB("LL node not found for passed in key\n");
 		goto exit;
 	}
 
@@ -234,13 +210,6 @@ struct esif_link_list * esif_ht_get_ll(
 	hash_index = esif_compute_hash(key_ptr, key_length) % self->size;
 
 	ll_ptr = self->table[hash_index];
-	ESIF_TRACE_DYN_VERB(
-		"Key %p, key size %d, table %p index %d ll %p\n",
-		key_ptr,
-		key_length,
-		self,
-		hash_index,
-		ll_ptr);
 
 	return ll_ptr;
 }
@@ -285,14 +254,12 @@ static struct esif_ht_node *esif_alloc_ht_node(
 	ht_node_ptr =
 		(struct esif_ht_node *)esif_ccb_malloc(sizeof(*ht_node_ptr));
 	if (ht_node_ptr == NULL) {
-		ESIF_TRACE_ERROR("Unable to allocate HT node\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
 
 	ht_node_ptr->key_ptr = esif_ccb_malloc(key_length);
 	if (ht_node_ptr->key_ptr == NULL) {
-		ESIF_TRACE_ERROR("Unable to allocate HT node key ptr\n");
 		rc = ESIF_E_NO_MEMORY;
 		goto exit;
 	}
@@ -381,7 +348,6 @@ enum esif_rc esif_ht_add_item(
 	struct esif_ht_node *ht_node = NULL;
 
 	if ((key_ptr == NULL) || (self == NULL)) {
-		ESIF_TRACE_DYN_VERB("NULL ptr passed in \n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -389,7 +355,6 @@ enum esif_rc esif_ht_add_item(
 	ll_ptr = esif_ht_get_ll(self, key_ptr, key_length);
 	if (ll_ptr == NULL) {
 		ESIF_ASSERT(ESIF_FALSE); /* Should never happen */
-		ESIF_TRACE_DYN_VERB("LL NULL for passed in key\n");
 		rc = ESIF_E_NOT_FOUND;
 		goto exit;
 	}
@@ -402,17 +367,9 @@ enum esif_rc esif_ht_add_item(
 
 	rc = esif_link_list_add_at_back(ll_ptr, (void *)ht_node);
 	if (rc != ESIF_OK) {
-		ESIF_TRACE_ERROR("Unable to add new HT link list node\n");
 		goto exit;
 	}
 
-	ESIF_TRACE_DYN_VERB(
-		"Key %p, key size %d, item %p, table %p ll %p\n",
-		key_ptr,
-		key_length,
-		item_ptr,
-		self,
-		ll_ptr);
 exit:
 	if (rc != ESIF_OK) {
 		if (ht_node != NULL)
@@ -434,7 +391,6 @@ enum esif_rc esif_ht_remove_item(
 	struct esif_ht_node *ht_node = NULL;
 
 	if ((key_ptr == NULL) || (self == NULL)) {
-		ESIF_TRACE_ERROR("NULL ptr passed in\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -442,14 +398,12 @@ enum esif_rc esif_ht_remove_item(
 	ll_ptr = esif_ht_get_ll(self, key_ptr, key_length);
 	if (ll_ptr == NULL) {
 		ESIF_ASSERT(ESIF_FALSE); /* Should never happen */
-		ESIF_TRACE_DYN_VERB("LL NULL for passed in key\n");
 		rc = ESIF_E_NOT_FOUND;
 		goto exit;
 	}
 
 	ll_node = esif_find_node_in_ht_ll(ll_ptr, key_ptr, key_length);
 	if (ll_node == NULL) {
-		ESIF_TRACE_DYN_VERB("LL node not found for passed in key\n");
 		rc = ESIF_E_NOT_FOUND;
 		goto exit;
 	}
@@ -457,7 +411,6 @@ enum esif_rc esif_ht_remove_item(
 	ht_node = (struct esif_ht_node *)ll_node->data_ptr;
 	if (ht_node == NULL) {
 		ESIF_ASSERT(ESIF_FALSE);
-		ESIF_TRACE_DYN_VERB("ht_node NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
@@ -478,7 +431,6 @@ void * esif_ht_get_item(
 	void *item_ptr = NULL;
 
 	if ((key_ptr == NULL) || (self == NULL)) {
-		ESIF_TRACE_ERROR("NULL ptr passed in\n");
 		goto exit;
 	}
 
@@ -486,7 +438,6 @@ void * esif_ht_get_item(
 		key_ptr,
 		key_length);
 	if (ht_node == NULL) {
-		ESIF_TRACE_DYN_VERB("HT node data not found for passed in key\n");
 		goto exit;
 	}
 
@@ -503,11 +454,9 @@ struct esif_ht * esif_ht_create(
 	u32 index = 0;
 	struct esif_ht *new_ht_ptr = NULL;
 
-	new_ht_ptr = (struct esif_ht *)
-		esif_ccb_mempool_zalloc(ESIF_MEMPOOL_TYPE_HASH2);
+	new_ht_ptr = (struct esif_ht *) esif_ccb_malloc(sizeof(struct esif_ht));
 
 	if (NULL == new_ht_ptr) {
-		ESIF_TRACE_ERROR("Cannot allocate mem for hash table\n");
 		ESIF_ASSERT(ESIF_FALSE);
 		goto exit;
 	}
@@ -517,7 +466,7 @@ struct esif_ht * esif_ht_create(
 		esif_ccb_malloc(sizeof(*new_ht_ptr->table) * size);
 
 	if (new_ht_ptr->table == NULL) {
-		esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_HASH2, new_ht_ptr);
+		esif_ccb_free(new_ht_ptr);
 		new_ht_ptr = NULL;
 		goto exit;
 	}
@@ -525,7 +474,6 @@ struct esif_ht * esif_ht_create(
 	for (index = 0; index < size; ++index) {
 		new_ht_ptr->table[index] = esif_link_list_create();
 		if (new_ht_ptr->table[index] == NULL) {
-			ESIF_TRACE_DYN_VERB("Linked list creation failed\n");
 			esif_ht_destroy(new_ht_ptr, NULL);
 			new_ht_ptr = NULL;
 			goto exit;
@@ -544,7 +492,6 @@ void esif_ht_destroy(
 	u32 index = 0;
 
 	if ((self == NULL) || (self->table == NULL)) {
-		ESIF_TRACE_ERROR("Hash table ptr NULL\n");
 		goto exit;
 	}
 
@@ -558,7 +505,7 @@ void esif_ht_destroy(
 	}
 
 	esif_ccb_free(self->table);
-	esif_ccb_mempool_free(ESIF_MEMPOOL_TYPE_HASH2, self);
+	esif_ccb_free(self);
 exit:
 	return;
 }
@@ -567,27 +514,12 @@ exit:
 /* Init */
 enum esif_rc esif_ht_init(void)
 {
-	enum esif_rc rc = ESIF_OK;
-	struct esif_ccb_mempool *mempool_ptr = NULL;
-
-	ESIF_TRACE_DYN_VERB("Initialize Hash Table\n");
-
-	mempool_ptr = esif_ccb_mempool_create(ESIF_MEMPOOL_TYPE_HASH2,
-					ESIF_MEMPOOL_FW_HASH,
-					sizeof(struct esif_ht));
-
-	if (NULL == mempool_ptr) {
-		rc = ESIF_E_NO_MEMORY;
-		goto exit;
-	}
-exit:
-	return rc;
+	return ESIF_OK;
 }
 
 /* Exit */
 void esif_ht_exit(void)
 {
-	ESIF_TRACE_DYN_VERB("Exit Hash Table\n");
 }
 
 

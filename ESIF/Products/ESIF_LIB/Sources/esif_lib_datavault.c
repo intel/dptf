@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -667,6 +667,7 @@ static esif_error_t DataVault_WriteKeyValuePair(
 
 	// Scramble Data?
 	if (FLAGS_TEST(keyPair->flags, ESIF_SERVICE_CONFIG_SCRAMBLE)) {
+		UInt8 *valueDataPtr = buffer;  // If buffer was set above, value.buf_ptr is an offset, not a pointer
 		if (!buffer) {
 			buffer = (UInt8*)esif_ccb_malloc(keyPair->value.data_len);
 			buffer_len = (size_t)keyPair->value.data_len;
@@ -674,9 +675,10 @@ static esif_error_t DataVault_WriteKeyValuePair(
 				rc = ESIF_E_NO_MEMORY;
 				goto exit;
 			}
+			valueDataPtr = keyPair->value.buf_ptr;
 		}
 		for (byte = 0; byte < keyPair->value.data_len; byte++)
-			buffer[byte] = ~((UInt8*)(keyPair->value.buf_ptr))[byte];
+			buffer[byte] = ~(valueDataPtr)[byte];
 	}
 
 	if (buffer) {
@@ -1374,7 +1376,7 @@ esif_error_t DataVault_TranslatePath(
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	char basepath[MAX_PATH] = { 0 };
-	struct {
+	static struct {
 		esif_string		prefix;
 		esif_pathtype	pathtype;
 	} tokens[] = {
@@ -2176,8 +2178,14 @@ esif_error_t DataRepo_LoadSegments(DataRepoPtr self)
 				rc = DataVault_ReadSegment(DV, self, &header, importMode);
 				DV->stream = currentStream;
 
+				UInt32 keys = DataCache_GetCount(DV->cache);
+
 				esif_ccb_write_unlock(&DV->lock);
 
+				// Close Empty DataVault if Corrupted Payload
+				if (rc == ESIF_E_IO_HASH_FAILED && keys == 0) {
+					DataBank_CloseDataVault(segmentid);
+				}
 				DataVault_PutRef(DV);
 				DV = NULL;
 				if (rc != ESIF_OK && rc != ESIF_E_ITERATION_DONE) {
@@ -2212,6 +2220,41 @@ esif_error_t DataRepo_LoadSegments(DataRepoPtr self)
 exit:
 	return rc;
 }
+
+esif_error_t DataRepo_ValidateSegment(DataRepoPtr self)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (self && self->stream) {
+		size_t rewind_pos = IOStream_GetOffset(self->stream);
+		DataVaultHeader header = { 0 };
+
+		if (((rc = DataRepo_ReadHeader(self, &header)) == ESIF_OK) && (ESIFHDR_GET_MAJOR(header.common.version) == ESIFDV_V2)) {
+			const size_t buf_len = 4096;
+			void *buffer = esif_ccb_malloc(buf_len);
+			size_t bytes_read = 0;
+
+			if (buffer == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else {
+				esif_sha256_t digest = { 0 };
+				esif_sha256_init(&digest);
+				while ((bytes_read = IOStream_Read(self->stream, buffer, buf_len)) > 0) {
+					esif_sha256_update(&digest, buffer, bytes_read);
+				}
+				esif_sha256_finish(&digest);
+
+				if (memcmp(digest.hash, header.v2.payload_hash, SHA256_HASH_BYTES) != 0) {
+					rc = ESIF_E_IO_HASH_FAILED;
+				}
+			}
+			esif_ccb_free(buffer);
+		}
+		IOStream_Seek(self->stream, rewind_pos, SEEK_SET);
+	}
+	return rc;
+}
+
 
 /*
  * Public API used for Backwards Compatibility

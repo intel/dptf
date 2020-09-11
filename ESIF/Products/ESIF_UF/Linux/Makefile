@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -141,10 +141,9 @@ OBJ += $(ESIF_CM_SOURCES)/esif_hash_table.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_link_list.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_ccb_timer.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_queue.o
-OBJ += $(ESIF_SDK_SOURCES)/esif_sdk_base64.o
+OBJ += $(ESIF_SDK_SOURCES)/esif_sdk_base64_dec.o
 
 OBJ += $(ESIF_UF_SOURCES)/esif_uf.o
-OBJ += $(ESIF_UF_SOURCES)/esif_uf_accelerometer.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_action.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_action_config.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_action_constant.o
@@ -160,17 +159,18 @@ OBJ += $(ESIF_UF_SOURCES)/esif_uf_dsp.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_dspmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_event.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_eventmgr.o
-OBJ += $(ESIF_UF_SOURCES)/esif_uf_event_broadcast.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_handlemgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_ipc.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_loggingmgr.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_pm.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_primitive.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_sensors.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_service.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_shell.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_tableobject.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_trace.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_participant.o
+OBJ += $(ESIF_UF_SOURCES)/esif_uf_upsm.o
 OBJ += $(ESIF_UF_SOURCES)/esif_uf_xform.o
 
 OBJ += $(ESIF_LIB_SOURCES)/esif_lib_databank.o

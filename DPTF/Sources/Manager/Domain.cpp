@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,9 +32,6 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_domainType(DomainType::Invalid)
 	, m_domainFunctionalityVersions(DomainFunctionalityVersions())
 	, m_arbitrator(nullptr)
-	, m_configTdpControlDynamicCaps(nullptr)
-	, m_configTdpControlStatus(nullptr)
-	, m_configTdpControlSet(nullptr)
 	, m_coreControlStaticCaps(nullptr)
 	, m_coreControlDynamicCaps(nullptr)
 	, m_coreControlLpoPreference(nullptr)
@@ -48,7 +45,15 @@ Domain::Domain(DptfManagerInterface* dptfManager)
 	, m_performanceControlSet(nullptr)
 	, m_powerControlDynamicCapsSet(nullptr)
 	, m_isPowerShareControl(nullptr)
+	, m_powerLimitEnabled(std::map<PowerControlType::Type, Bool>())
+	, m_powerLimit(std::map<PowerControlType::Type, Power>())
+	, m_powerLimitTimeWindow(std::map<PowerControlType::Type, TimeSpan>())
+	, m_powerLimitDutyCycle(std::map<PowerControlType::Type, Percentage>())
 	, m_powerStatus(nullptr)
+	, m_systemPowerLimitEnabled(std::map<PsysPowerLimitType::Type, Bool>())
+	, m_systemPowerLimit(std::map<PsysPowerLimitType::Type, Power>())
+	, m_systemPowerLimitTimeWindow(std::map<PsysPowerLimitType::Type, TimeSpan>())
+	, m_systemPowerLimitDutyCycle(std::map<PsysPowerLimitType::Type, Percentage>())
 	, m_adapterRating(nullptr)
 	, m_platformRestOfPower(nullptr)
 	, m_platformPowerSource(nullptr)
@@ -160,7 +165,6 @@ std::string Domain::getDomainName(void) const
 void Domain::clearDomainCachedData(void)
 {
 	m_dptfManager->getDptfStatus()->clearCache();
-	clearDomainCachedDataConfigTdpControl();
 	clearDomainCachedDataCoreControl();
 	clearDomainCachedDataDisplayControl();
 	clearDomainCachedDataPerformanceControl();
@@ -256,50 +260,9 @@ UInt32 Domain::getTimestampCounterWidth()
 	return m_theRealParticipant->getTimestampCounterWidth(m_participantIndex, m_domainIndex);
 }
 
-ConfigTdpControlDynamicCaps Domain::getConfigTdpControlDynamicCaps(void)
+void Domain::setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias)
 {
-	FILL_CACHE_AND_RETURN(m_configTdpControlDynamicCaps, ConfigTdpControlDynamicCaps, getConfigTdpControlDynamicCaps);
-}
-
-ConfigTdpControlStatus Domain::getConfigTdpControlStatus(void)
-{
-	FILL_CACHE_AND_RETURN(m_configTdpControlStatus, ConfigTdpControlStatus, getConfigTdpControlStatus);
-}
-
-ConfigTdpControlSet Domain::getConfigTdpControlSet(void)
-{
-	FILL_CACHE_AND_RETURN(m_configTdpControlSet, ConfigTdpControlSet, getConfigTdpControlSet);
-}
-
-void Domain::setConfigTdpControl(UIntN policyIndex, UIntN controlIndex)
-{
-	ConfigTdpControlArbitrator* configTdpControlArbitrator = m_arbitrator->getConfigTdpControlArbitrator();
-	Bool shouldSetConfigTdpControl = false;
-	UIntN newControlIndex;
-
-	if (configTdpControlArbitrator->hasArbitratedConfigTdpControlIndex())
-	{
-		auto currentControlIndex = configTdpControlArbitrator->getArbitratedConfigTdpControlIndex();
-		newControlIndex = configTdpControlArbitrator->arbitrate(policyIndex, controlIndex);
-		if (currentControlIndex != newControlIndex)
-		{
-			shouldSetConfigTdpControl = true;
-		}
-	}
-	else
-	{
-		shouldSetConfigTdpControl = true;
-		newControlIndex = configTdpControlArbitrator->arbitrate(policyIndex, controlIndex);
-	}
-
-	if (shouldSetConfigTdpControl)
-	{
-		m_theRealParticipant->setConfigTdpControl(m_participantIndex, m_domainIndex, newControlIndex);
-		clearDomainCachedDataConfigTdpControl();
-		clearDomainCachedDataPowerControl();
-		clearDomainCachedDataPerformanceControl();
-	}
-	configTdpControlArbitrator->commitPolicyRequest(policyIndex, controlIndex);
+	m_theRealParticipant->setPowerShareEffectiveBias(m_participantIndex, m_domainIndex, powerShareEffectiveBias);
 }
 
 CoreControlStaticCaps Domain::getCoreControlStaticCaps(void)
@@ -471,10 +434,10 @@ void Domain::setACPeakPower(UIntN policyIndex, const Power& acPeakPower)
 	Bool shouldSetPeakPower = false;
 	Power newACPeakPower;
 
-	if (peakPowerControlArbitrator->hasArbitratedPeakPower(PeakPowerType::ACPeakPower))
+	if (peakPowerControlArbitrator->hasArbitratedPeakPower(PeakPowerType::PL4ACPower))
 	{
-		auto currentACPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::ACPeakPower);
-		newACPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::ACPeakPower, acPeakPower);
+		auto currentACPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::PL4ACPower);
+		newACPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::PL4ACPower, acPeakPower);
 		if (currentACPeakPower != newACPeakPower)
 		{
 			shouldSetPeakPower = true;
@@ -483,14 +446,14 @@ void Domain::setACPeakPower(UIntN policyIndex, const Power& acPeakPower)
 	else
 	{
 		shouldSetPeakPower = true;
-		newACPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::ACPeakPower, acPeakPower);
+		newACPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::PL4ACPower, acPeakPower);
 	}
 
 	if (shouldSetPeakPower)
 	{
 		m_theRealParticipant->setACPeakPower(m_participantIndex, m_domainIndex, newACPeakPower);
 	}
-	peakPowerControlArbitrator->commitPolicyRequest(policyIndex, PeakPowerType::ACPeakPower, acPeakPower);
+	peakPowerControlArbitrator->commitPolicyRequest(policyIndex, PeakPowerType::PL4ACPower, acPeakPower);
 }
 
 Power Domain::getDCPeakPower(void)
@@ -504,10 +467,10 @@ void Domain::setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower)
 	Bool shouldSetPeakPower = false;
 	Power newDCPeakPower;
 
-	if (peakPowerControlArbitrator->hasArbitratedPeakPower(PeakPowerType::DCPeakPower))
+	if (peakPowerControlArbitrator->hasArbitratedPeakPower(PeakPowerType::PL4DCPower))
 	{
-		auto currentDCPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::DCPeakPower);
-		newDCPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::DCPeakPower, dcPeakPower);
+		auto currentDCPeakPower = peakPowerControlArbitrator->getArbitratedPeakPower(PeakPowerType::PL4DCPower);
+		newDCPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::PL4DCPower, dcPeakPower);
 		if (currentDCPeakPower != newDCPeakPower)
 		{
 			shouldSetPeakPower = true;
@@ -516,14 +479,14 @@ void Domain::setDCPeakPower(UIntN policyIndex, const Power& dcPeakPower)
 	else
 	{
 		shouldSetPeakPower = true;
-		newDCPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::DCPeakPower, dcPeakPower);
+		newDCPeakPower = peakPowerControlArbitrator->arbitrate(policyIndex, PeakPowerType::PL4DCPower, dcPeakPower);
 	}
 
 	if (shouldSetPeakPower)
 	{
 		m_theRealParticipant->setDCPeakPower(m_participantIndex, m_domainIndex, newDCPeakPower);
 	}
-	peakPowerControlArbitrator->commitPolicyRequest(policyIndex, PeakPowerType::DCPeakPower, dcPeakPower);
+	peakPowerControlArbitrator->commitPolicyRequest(policyIndex, PeakPowerType::PL4DCPower, dcPeakPower);
 }
 
 PerformanceControlStaticCaps Domain::getPerformanceControlStaticCaps(void)
@@ -1057,6 +1020,11 @@ void Domain::setSystemPowerLimitDutyCycle(
 	systemPowerControlArbitrator->commitPolicyRequest(policyIndex, limitType, dutyCycle);
 }
 
+void Domain::setPowerSharePolicyPower(const Power& powerSharePolicyPower)
+{
+	m_theRealParticipant->setPowerSharePolicyPower(m_participantIndex, m_domainIndex, powerSharePolicyPower);
+}
+
 Power Domain::getPlatformRestOfPower(void)
 {
 	FILL_CACHE_AND_RETURN(m_platformRestOfPower, Power, getPlatformRestOfPower);
@@ -1144,13 +1112,6 @@ RfProfileDataSet Domain::getRfProfileDataSet(void)
 UtilizationStatus Domain::getUtilizationStatus(void)
 {
 	FILL_CACHE_AND_RETURN(m_utilizationStatus, UtilizationStatus, getUtilizationStatus);
-}
-
-void Domain::clearDomainCachedDataConfigTdpControl()
-{
-	DELETE_MEMORY_TC(m_configTdpControlDynamicCaps);
-	DELETE_MEMORY_TC(m_configTdpControlStatus);
-	DELETE_MEMORY_TC(m_configTdpControlSet);
 }
 
 void Domain::clearDomainCachedDataCoreControl()

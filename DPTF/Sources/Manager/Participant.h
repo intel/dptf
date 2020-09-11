@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -89,7 +89,6 @@ public:
 	void resume(void);
 	void activityLoggingEnabled(UInt32 domainId, UInt32 capabilityBitMask);
 	void activityLoggingDisabled(UInt32 domainId, UInt32 capabilityBitMask);
-	void domainConfigTdpCapabilityChanged(void);
 	void domainCoreControlCapabilityChanged(void);
 	void domainDisplayControlCapabilityChanged(void);
 	void domainDisplayStatusChanged(void);
@@ -135,12 +134,7 @@ public:
 	UInt32 getCoreActivityCounterWidth(UIntN domainIndex);
 	UInt64 getTimestampCounter(UIntN domainIndex);
 	UInt32 getTimestampCounterWidth(UIntN domainIndex);
-
-	// ConfigTdp controls
-	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN domainIndex);
-	ConfigTdpControlStatus getConfigTdpControlStatus(UIntN domainIndex);
-	ConfigTdpControlSet getConfigTdpControlSet(UIntN domainIndex);
-	void setConfigTdpControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex);
+	void setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias);
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(UIntN domainIndex);
@@ -232,6 +226,7 @@ public:
 	TimeSpan getWeightedSlowPollAvgConstant(UIntN domainIndex);
 	Power getSlowPollPowerThreshold(UIntN domainIndex);
 	void removePowerLimitPolicyRequest(UIntN domainIndex, UIntN policyIndex, PowerControlType::Type controlType);
+	void setPowerSharePolicyPower(UIntN domainindex, const Power& powerSharePolicyPower);
 
 	// Power status
 	PowerStatus getPowerStatus(UIntN domainIndex);

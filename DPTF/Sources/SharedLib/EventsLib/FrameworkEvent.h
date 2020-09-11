@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,7 +54,6 @@ namespace FrameworkEvent
 		DomainAllocate,
 		DomainCreate,
 		DomainDestroy,
-		DomainConfigTdpCapabilityChanged,
 		DomainCoreControlCapabilityChanged,
 		DomainDisplayControlCapabilityChanged, // Display control upper/lower limits changed.
 		DomainDisplayStatusChanged, // Current Display brightness status has changed due to a user or other override
@@ -95,7 +94,6 @@ namespace FrameworkEvent
 		PolicyCoolingModePolicyChanged, // Active cooling mode vs. Passive cooling mode
 		PolicyForegroundApplicationChanged,
 		PolicyInitiatedCallback, // The policy created the event so it will get called back on a work item thread
-		PolicyOperatingSystemConfigTdpLevelChanged,
 		PolicyPassiveTableChanged,
 		PolicySensorOrientationChanged,
 		PolicySensorMotionChanged,
@@ -113,6 +111,7 @@ namespace FrameworkEvent
 		PolicyOperatingSystemMixedRealityModeChanged,
 		PolicyOperatingSystemPowerSchemePersonalityChanged,
 		PolicyOperatingSystemUserPresenceChanged,
+		PolicyOperatingSystemSessionStateChanged,
 		PolicyOperatingSystemScreenStateChanged,
 		PolicyOperatingSystemBatteryCountChanged,
 		PolicyOperatingSystemPowerSliderChanged,
@@ -127,9 +126,50 @@ namespace FrameworkEvent
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
+		PerformanceCapabilitiesChanged,
 		PolicyWorkloadHintConfigurationChanged,
 		PolicyOperatingSystemGameModeChanged,
 		PolicyPowerShareAlgorithmTable2Changed,
+		PolicySensorUserPresenceChanged,
+		PolicyAdaptiveUserPresenceTableChanged,
+		PolicyPlatformUserPresenceChanged,
+		PolicyWakeOnApproachFeatureStateChanged,
+		PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged,
+		PolicyWakeOnApproachLowBatteryFeatureStateChanged,
+		PolicyWakeOnApproachBatteryRemainingPercentageChanged,
+		PolicyWalkAwayLockFeatureStateChanged,
+		PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged,
+		PolicyWalkAwayLockDimScreenFeatureStateChanged,
+		PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged,
+		PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged,
+		PolicyWalkAwayLockHonorUserInCallFeatureStateChanged,
+		PolicyUserInCallStateChanged,
+		PolicyWalkAwayLockScreenLockWaitTimeChanged,
+		PolicyWalkAwayLockPreDimWaitTimeChanged,
+		PolicyWalkAwayLockUserPresentWaitTimeChanged,
+		PolicyWalkAwayLockDimIntervalChanged,
+		PolicyAdaptiveDimmingFeatureStateChanged,
+		PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged,
+		PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged,
+		PolicyAdaptiveDimmingPreDimWaitTimeChanged,
+		PolicyMispredictionFaceDetectionFeatureStateChanged,
+		PolicyMispredictionTimeWindowChanged,
+		PolicyMisprediction1DimWaitTimeChanged,
+		PolicyMisprediction2DimWaitTimeChanged,
+		PolicyMisprediction3DimWaitTimeChanged,
+		PolicyMisprediction4DimWaitTimeChanged,
+		PolicyNoLockOnPresenceFeatureStateChanged,
+		PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged,
+		PolicyNoLockOnPresenceOnBatteryFeatureStateChanged,
+		PolicyNoLockOnPresenceBatteryRemainingPercentageChanged,
+		PolicyNoLockOnPresenceResetWaitTimeChanged,
+		PolicyFailsafeTimeoutChanged,
+		PolicyUserPresenceAppStateChanged,
+		PolicyExternalMonitorStateChanged,
+		PolicyUserNotPresentDimTargetChanged,
+		PolicyUserDisengagedDimmingIntervalChanged,
+		PolicyUserDisengagedDimTargetChanged,
+		PolicyUserDisengagedDimWaitTimeChanged,
 
 		// App Events
 		DptfAppLoaded,

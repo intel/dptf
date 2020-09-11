@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,74 +48,11 @@
 #define WS_MAX_CLIENT_SENDBUF	(8*1024*1024)	// Max size of client send buffer (multiple messages)
 #define WS_MAX_CLIENT_RECVBUF	(8*1024*1024)	// Max size of client receive buffer (multiple messages)
 
-// Default IP:port comibnations for each ServerType
-#define WS_DEFAULT_IPADDR_NORMAL		"0.0.0.0"	// All Interfaces
-#define WS_DEFAULT_PORT_NORMAL			8888		// Standard Port
-#define WS_DEFAULT_IPADDR_RESTRICTED	"127.0.0.1"	// Loopback Interface Only
-#define WS_DEFAULT_PORT_RESTRICTED		889			// Admin Port
-
 WebServerPtr g_WebServer = NULL;	// Global Web Server Singleton Intance
 
 // Doorbell Opcodes
 #define WS_OPCODE_NOOP			0x00	// No-Operation
-#define WS_OPCODE_MESSAGE		0x01	// Message Broadcast
 #define WS_OPCODE_QUIT			0xFF	// Quit Web Server
-
-//// Message Queue Object Methods ////
-
-// Message Queue Node Object
-typedef struct BroadcastMsg_s {
-	size_t	buf_len;	// size of data buffer
-	char	data[1];	// dynamic buffer of size buf_len
-} BroadcastMsg, *BroadcastMsgPtr;
-
-// Create a new Queue
-MessageQueuePtr MessageQueue_Create(void)
-{
-	return esif_link_list_create();
-}
-
-// Destroy a Queue, freeing its contents
-void MessageQueue_Destroy(MessageQueuePtr self)
-{
-	if (self) {
-		esif_link_list_free_data_and_destroy(self, NULL);
-	}
-}
-
-// Add a message to the Queue. msg_ptr is a dynamic buffer now owned by queue
-esif_error_t MessageQueue_EnQueue(MessageQueuePtr self, BroadcastMsgPtr msg_ptr)
-{
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	if (self && msg_ptr) {
-		rc = esif_link_list_add_at_back(self, msg_ptr);
-	}
-	return rc;
-}
-
-// Remove the next Message from the Queue or NULL. Caller is responsible for freeing result
-BroadcastMsgPtr MessageQueue_DeQueue(MessageQueuePtr self)
-{
-	BroadcastMsgPtr msg_ptr = NULL;
-	if (self) {
-		struct esif_link_list_node *node_ptr = self->head_ptr;
-		if (node_ptr) {
-			msg_ptr = (BroadcastMsgPtr) node_ptr->data_ptr;
-			esif_link_list_node_remove(self, node_ptr);
-		}
-	}
-	return msg_ptr;
-}
-
-// Remove the next Message from the Queue or NULL. Caller is responsible for freeing result
-// Use WS Lock to sync Queue access with other threads calling WebServer_Broadcast
-BroadcastMsgPtr WebServer_DeQueue(WebServerPtr self)
-{
-	EsifWsLock();
-	BroadcastMsgPtr msg_ptr = MessageQueue_DeQueue(self->msgQueue);
-	EsifWsUnlock();
-	return msg_ptr;
-}
 
 //// TCP Doorbell Object Methods ////
 
@@ -215,7 +152,7 @@ void WebListener_Init(WebListenerPtr self)
 }
 
 // Configure a Web Sever Listener
-esif_error_t WebListener_Config(WebListenerPtr self, char *ipAddr, short port, ServerType mode)
+esif_error_t WebListener_Config(WebListenerPtr self, char *ipAddr, short port, esif_flags_t flags)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (self) {
@@ -224,15 +161,15 @@ esif_error_t WebListener_Config(WebListenerPtr self, char *ipAddr, short port, S
 		}
 		else {
 			if (ipAddr[0] == 0) {
-				ipAddr = (mode == ServerRestricted ? WS_DEFAULT_IPADDR_RESTRICTED : WS_DEFAULT_IPADDR_NORMAL);
+				ipAddr = WS_DEFAULT_IPADDR;
 			}
 			if (port == 0) {
-				port = (mode == ServerRestricted ? WS_DEFAULT_PORT_RESTRICTED : WS_DEFAULT_PORT_NORMAL);
+				port = WS_DEFAULT_PORT;
 			}
 			esif_ccb_strcpy(self->ipAddr, ipAddr, sizeof(self->ipAddr));
 		}
 		self->port = port;
-		self->mode = mode;
+		self->flags = flags;
 		rc = ESIF_OK;
 	}
 	return rc;
@@ -291,7 +228,7 @@ esif_error_t WebListener_Open(WebListenerPtr self)
 }
 
 // Accept a Client Connection from a Listener Socket into a Socket Handle
-esif_error_t WebListener_AcceptClient(WebListenerPtr self, esif_ccb_socket_t *socketPtr)
+esif_error_t WebListener_AcceptClient(WebListenerPtr self, esif_ccb_socket_t *socketPtr, char **ipAddrPtr)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (self && socketPtr) {
@@ -304,6 +241,9 @@ esif_error_t WebListener_AcceptClient(WebListenerPtr self, esif_ccb_socket_t *so
 			rc = ESIF_E_WS_SOCKET_ERROR;
 		}
 		else {
+			if (ipAddrPtr) {
+				*ipAddrPtr = inet_ntoa(client.sin_addr);
+			}
 			rc = ESIF_OK;
 		}
 	}
@@ -336,6 +276,7 @@ void WebClient_Init(WebClientPtr self)
 void WebClient_Close(WebClientPtr self)
 {
 	if (self) {
+		esif_ccb_free(self->ipAddr);
 		esif_ccb_free(self->sendBuf);
 		esif_ccb_free(self->recvBuf);
 		esif_ccb_free(self->httpBuf);
@@ -441,10 +382,8 @@ void WebServer_Init(WebServerPtr self)
 		}
 		atomic_set(&self->isActive, 0);
 		atomic_set(&self->activeThreads, 0);
-		atomic_set(&self->subscribers, 0);
 		self->netBuf = NULL;
 		self->netBufLen = 0;
-		self->msgQueue = MessageQueue_Create();
 	}
 }
 
@@ -463,10 +402,7 @@ void WebServer_Close(WebServerPtr self)
 		esif_ccb_free(self->netBuf);
 		self->netBuf = NULL;
 		self->netBufLen = 0;
-		atomic_set(&self->subscribers, 0);
 		atomic_set(&self->isActive, 0);
-		MessageQueue_Destroy(self->msgQueue);
-		self->msgQueue = NULL;
 	}
 }
 
@@ -481,38 +417,11 @@ void WebServer_Exit(WebServerPtr self)
 }
 
 // Configure Web Server
-esif_error_t WebServer_Config(WebServerPtr self, u8 instance, char *ipAddr, short port, ServerType mode)
+esif_error_t WebServer_Config(WebServerPtr self, u8 instance, char *ipAddr, short port, esif_flags_t flags)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 	if (self && instance < WS_MAX_LISTENERS) {
-		rc = WebListener_Config(&self->listeners[instance], ipAddr, port, mode);
-	}
-	return rc;
-}
-
-// Broadcast a Message to all Subscribers by adding it to Message Queue
-// This function is called from another thread that has called EsifWsLock()
-esif_error_t WebServer_Broadcast(WebServerPtr self, const void *buffer, size_t buf_len)
-{
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-
-	// Only Queue message if there are any Active Subscribers
-	if (self && buffer && buf_len > 0 && atomic_read(&self->subscribers) > 0) {
-		size_t msg_len = sizeof(BroadcastMsg) + buf_len;
-		BroadcastMsgPtr msg_ptr = esif_ccb_malloc(msg_len);
-		if (msg_ptr == NULL) {
-			rc = ESIF_E_NO_MEMORY;
-		}
-		else {
-			msg_ptr->buf_len = buf_len;
-			esif_ccb_memcpy((void *)&msg_ptr->data, buffer, buf_len);
-			rc = MessageQueue_EnQueue(self->msgQueue, msg_ptr);
-			if (rc != ESIF_OK) {
-				esif_ccb_free(msg_ptr);
-			}
-			// Signal Web Server that there is work to do by ringing the Doorbell
-			TcpDoorbell_Ring(&self->doorbell, WS_OPCODE_MESSAGE);
-		}
+		rc = WebListener_Config(&self->listeners[instance], ipAddr, port, flags);
 	}
 	return rc;
 }
@@ -603,7 +512,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 		int j = 0;
 
 		atomic_inc(&self->activeThreads);
-		atomic_set(&self->subscribers, 0);
 		rc = ESIF_OK;
 	
 		// Allocate Network Buffer
@@ -636,7 +544,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 			FD_ZERO(&exceptFDs);
 			maxfd = 0;
 			setsize = 0;
-			atomic_basetype subscribers = 0;
 
 			// Add Doorbell Ringer
 			FD_SET(self->doorbell.sockets[DOORBELL_RINGER], &readFDs);
@@ -661,9 +568,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 					FD_SET(self->clients[j].socket, &exceptFDs);
 					maxfd = esif_ccb_max(maxfd, (int)self->clients[j].socket + 1);
 					setsize++;
-					if (self->clients[j].isSubscriber) {
-						subscribers++;
-					}
 
 					// Wait for socket to become writable if pending send buffer
 					if (self->clients[j].sendBuf) {
@@ -671,7 +575,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 					}
 				}
 			}
-			atomic_set(&self->subscribers, subscribers);
 
 			// Use Timeout of N + 0.05 seconds where >= 2 (Since UI polls every second)
 			tv.tv_sec = WS_SOCKET_TIMEOUT;
@@ -729,7 +632,8 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 					}
 
 					// Accept Incoming Connection
-					if ((rc = WebListener_AcceptClient(listener, &clientSocket)) != ESIF_OK) {
+					char *clientIpAddr = NULL;
+					if ((rc = WebListener_AcceptClient(listener, &clientSocket, &clientIpAddr)) != ESIF_OK) {
 						WS_TRACE_DEBUG("Listener[%d] Socket[%d]: Accept Error: %s (%d)\n", j, listener->socket, esif_rc_str(rc), rc);
 					}
 					else {
@@ -743,8 +647,8 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 
 						// Client is now an HTTP Connection
 						client->type = ClientHttp;
-						client->mode = listener->mode;
 						client->socket = clientSocket;
+						client->ipAddr = esif_ccb_strdup(clientIpAddr ? clientIpAddr : "NA");
 						clientSocket = INVALID_SOCKET;
 						sockets++;	
 						WS_TRACE_DEBUG("Accepted Client[%d]: Socket[%d]\n", k, (int)client->socket);
@@ -753,7 +657,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 			}
 
 			// 3. Process Active Client Requests
-			subscribers = 0;
 			for (j = 0; j < WS_MAX_CLIENTS && atomic_read(&self->isActive); j++) {
 				WebClientPtr client = &self->clients[j];
 				if (client->socket != INVALID_SOCKET) {
@@ -772,9 +675,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 							WS_TRACE_DEBUG("Client[%d] Disconnected: %s (%d)\n", j, esif_rc_str(rc), (int)rc);
 						}
 					}
-					if (client->socket != INVALID_SOCKET && client->isSubscriber) {
-						subscribers++;
-					}
 
 					// Flush pending Send Buffer when socket becomes writable
 					if (client->socket != INVALID_SOCKET && FD_ISSET(client->socket, &writeFDs)) {
@@ -784,21 +684,6 @@ static esif_error_t WebServer_Main(WebServerPtr self)
 						WS_TRACE_DEBUG("WS SEND Unbuffering (%d): before=%zd after=%zd\n", (int)client->socket, sendBufLen, client->sendBufLen);
 					}
 				}
-			}
-			atomic_set(&self->subscribers, subscribers);
-
-			// 4. Broadcast Pending Messages to Active WebSocket Subscribers
-			BroadcastMsgPtr msg_ptr = NULL;
-			while (atomic_read(&self->isActive) && (msg_ptr = WebServer_DeQueue(self)) != NULL) {
-				if (subscribers) {
-					for (j = 0; j < WS_MAX_CLIENTS && atomic_read(&self->isActive); j++) {
-						WebClientPtr client = &self->clients[j];
-						if (client->isSubscriber && client->type == ClientWebsocket && client->socket != INVALID_SOCKET) {
-							rc = WebServer_WebsocketBroadcast(self, client, (u8 *)msg_ptr->data, msg_ptr->buf_len);
-						}
-					}
-				}
-				esif_ccb_free(msg_ptr);
 			}
 			rc = ESIF_OK;
 		}
@@ -833,7 +718,7 @@ esif_error_t WebServer_Start(WebServerPtr self)
 			atomic_set(&self->isActive, 1);
 			for (j = 0; j < WS_MAX_LISTENERS; j++) {
 				if (self->listeners[j].port) {
-					EsifWsConsoleMessageEx("Starting %sweb server [IP %s port %hd]...\n", (self->listeners[j].mode == ServerRestricted ? "restricted " : ""), self->listeners[j].ipAddr, self->listeners[j].port);
+					EsifWsConsoleMessageEx("Starting web server [IP %s port %hd]...\n", self->listeners[j].ipAddr, self->listeners[j].port);
 				}
 			}
 			rc = esif_ccb_thread_create(&self->mainThread, WebServer_WorkerThread, self);

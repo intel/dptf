@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,8 +41,6 @@ EsifLoggingManager g_loggingManager = { 0 };
 
 static eEsifError EsifLogMgr_Init(EsifLoggingManagerPtr self);
 static eEsifError EsifLogMgr_Uninit(EsifLoggingManagerPtr self);
-static void EsifLogMgr_Suspend(EsifLoggingManagerPtr self);
-static void EsifLogMgr_Resume(EsifLoggingManagerPtr self);
 
 static eEsifError EsifLogMgr_ParseCmdParticipantLog(
 	EsifLoggingManagerPtr self,
@@ -69,9 +67,12 @@ static eEsifError EsifLogMgr_ParseCmdSchedule(
 	EsifShellCmdPtr shell
 	);
 static void *ESIF_CALLCONV EsifLogMgr_ParticipantLogWorkerThread(void *ptr);
-static void EsifLogMgr_ParticipantLogFire(
+static void EsifLogMgr_ParticipantLogWriteHeader(
 	EsifLoggingManagerPtr self
-	);
+);
+static void EsifLogMgr_ParticipantLogWriteData(
+	EsifLoggingManagerPtr self
+);
 static eEsifError EsifLogMgr_AddAllParticipants(EsifLoggingManagerPtr self);
 static eEsifError EsifLogMgr_GetParticipantId(
 	char *participantstr,
@@ -104,7 +105,7 @@ static eEsifError EsifLogMgr_AddCapabilityMask(
 	);
 static eEsifError EsifLogMgr_AddCapability(
 	EsifLoggingManagerPtr self,
-	esif_handle_t participantId,
+	EsifUpPtr upPtr,
 	UInt32 domainId,
 	UInt32 capabilityId
 	);
@@ -252,6 +253,8 @@ static eEsifError EsifLogMgr_Init(EsifLoggingManagerPtr self)
 	self->isLogSuspended = ESIF_FALSE;
 	self->isDefaultFile = ESIF_TRUE;
 	self->listenersMask = ESIF_LISTENER_NONE;
+	self->listenerHeadersWrittenMask = ESIF_LISTENER_NONE;
+
 
 	self->argc = 0;
 	self->commandInfo = NULL;
@@ -269,7 +272,7 @@ static eEsifError EsifLogMgr_Init(EsifLoggingManagerPtr self)
 		EsifLogMgr_EventCallback,
 		esif_ccb_ptr2context(self));
 
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE,
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifLogMgr_EventCallback,
@@ -326,12 +329,18 @@ void EsifLogMgr_EnableParticipant(
 {
 	EsifLinkListNodePtr nodePtr = NULL;
 	EsifParticipantLogDataNodePtr curEntryPtr = NULL;
+	EsifUpPtr upPtr = NULL;
 		
 	ESIF_ASSERT(self != NULL);
 
+	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
+	if (NULL == upPtr) {
+		goto exit;
+	}
+
 	if ((self->isInitialized == ESIF_TRUE) &&
 		EsifLogMgr_IsDataAvailableForLogging(self)) {
-		
+
 		esif_ccb_write_lock(&self->participantLogData.listLock);
 		/*
 		 * Loop through the complete list and send the enable event for the participantId
@@ -340,7 +349,11 @@ void EsifLogMgr_EnableParticipant(
 		while (nodePtr != NULL) {
 			curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
 			if ((curEntryPtr != NULL) &&
-				(curEntryPtr->participantId == participantId)) {
+				(0 == esif_ccb_strcmp(EsifUp_GetName(upPtr), curEntryPtr->name))) {
+
+				// Update the ID as the participant may have been removed and restored with new ID
+				curEntryPtr->participantId = participantId;
+
 				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
 					curEntryPtr->participantId,
 					(UInt16)curEntryPtr->domainId,
@@ -352,75 +365,8 @@ void EsifLogMgr_EnableParticipant(
 		}
 		esif_ccb_write_unlock(&self->participantLogData.listLock);
 	}
-}
-
-void EsifLogMgr_Suspend(EsifLoggingManagerPtr self)
-{
-	EsifLinkListNodePtr nodePtr = NULL;
-	EsifParticipantLogDataNodePtr curEntryPtr = NULL;
-	
-	ESIF_ASSERT(self != NULL);
-
-	if ((self->isLogSuspended == ESIF_FALSE) &&
-		(self->isInitialized == ESIF_TRUE) &&
-		EsifLogMgr_IsDataAvailableForLogging(self)) {
-
-		self->isLogSuspended = ESIF_TRUE;
-		EsifLogMgr_ParticipantLogStop(self);
-
-		esif_ccb_write_lock(&self->participantLogData.listLock);
-		/*
-		 * Loop through the complete list and send the disable event
-		 */
-		nodePtr = self->participantLogData.list->head_ptr;
-		while (nodePtr != NULL) {
-			curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
-			if (curEntryPtr != NULL) {
-				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED,
-					curEntryPtr->participantId,
-					(UInt16)curEntryPtr->domainId,
-					(1 << curEntryPtr->capabilityData.type)
-					);
-				curEntryPtr->isAcknowledged = ESIF_FALSE;
-			}
-			nodePtr = nodePtr->next_ptr;
-		}
-		esif_ccb_write_unlock(&self->participantLogData.listLock);
-	}
-}
-
-void EsifLogMgr_Resume(EsifLoggingManagerPtr self)
-{
-	EsifLinkListNodePtr nodePtr = NULL;
-	EsifParticipantLogDataNodePtr curEntryPtr = NULL;
-
-	ESIF_ASSERT(self != NULL);
-
-	if ((self->isLogSuspended == ESIF_TRUE) &&
-		(self->isInitialized == ESIF_TRUE) &&
-		EsifLogMgr_IsDataAvailableForLogging(self)) {
-
-		esif_ccb_write_lock(&self->participantLogData.listLock);
-		/*
-		 * Loop through the complete list and send the enable event
-		 */
-		nodePtr = self->participantLogData.list->head_ptr;
-		while (nodePtr != NULL) {
-			curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
-			if (curEntryPtr != NULL) {
-				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
-					curEntryPtr->participantId,
-					(UInt16)curEntryPtr->domainId,
-					(1 << curEntryPtr->capabilityData.type)
-					);
-			}
-			nodePtr = nodePtr->next_ptr;
-		}
-		esif_ccb_write_unlock(&self->participantLogData.listLock);
-		EsifLogMgr_ParticipantLogStart(self);
-
-		self->isLogSuspended = ESIF_FALSE;
-	}
+exit:
+	EsifUp_PutRef(upPtr);
 }
 
 void EsifLogMgr_DisableParticipant(
@@ -635,6 +581,8 @@ eEsifError EsifLogMgr_ParseCmdRoute(
 	char **argv = NULL;
 	char *output = NULL;
 	UInt32 i = PARTICITPANTLOG_SUB_CMD_INDEX;
+	UInt32 orgListenersMask = 0;
+	UInt32 tempMask = 0;
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(shell != NULL);
@@ -644,6 +592,7 @@ eEsifError EsifLogMgr_ParseCmdRoute(
 	argv = shell->argv;
 	output = shell->outbuf;
 
+	orgListenersMask = self->listenersMask;
 	self->listenersMask = ESIF_LISTENER_NONE;
 
 	// If no args, use default file logging
@@ -699,6 +648,10 @@ eEsifError EsifLogMgr_ParseCmdRoute(
 	}
 
 	if (self->isLogStarted != ESIF_FALSE) {
+		// Clear the flags indicating the header has been written to the routes which have changed so that the header gets written to the new routing
+		tempMask = self->listenersMask & ~orgListenersMask;
+		self->listenerHeadersWrittenMask &= ~tempMask;
+
 		//Update the header flag here if log is started already
 		//otherwise not required
 		self->isLogHeader = ESIF_TRUE;
@@ -713,7 +666,7 @@ eEsifError EsifLogMgr_ParseCmdInterval(
 	)
 {
 	eEsifError rc = ESIF_OK;
-	UInt16 interval = 0;
+	int interval = 0;
 	int argc = 0;
 	char **argv = NULL;
 	char *output = NULL;
@@ -731,15 +684,15 @@ eEsifError EsifLogMgr_ParseCmdInterval(
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "No Interval specified .Setting to default polling interval : %d ms\n", DEFAULT_LOG_INTERVAL);
 		interval = DEFAULT_LOG_INTERVAL;
 	} else {
-		interval = (UInt16)esif_atoi(argv[i]);
-		if ((Int16)interval < MIN_LOG_INTERVAL) {
-			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Input interval value is less than minimum supported value %d ms \n", MIN_LOG_INTERVAL);
+		interval = esif_atoi(argv[i]);
+		if ((interval < MIN_LOG_INTERVAL) || (interval > MAX_LOG_INTERVAL)) {
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Input interval is outside allowed range of %d to %d ms \n", MIN_LOG_INTERVAL, MAX_LOG_INTERVAL);
 			rc = ESIF_E_NOT_SUPPORTED;
 			goto exit;
 		}
 	}
 
-	self->pollingThread.interval = interval;
+	self->pollingThread.interval = (UInt16)interval;
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Polling interval set to : %d ms \n", self->pollingThread.interval);
 
 exit:
@@ -1162,17 +1115,13 @@ static eEsifError ESIF_CALLCONV EsifLogMgr_EventCallback(
 
 		esif_ccb_write_unlock(&self->participantLogData.listLock);
 		break;
-	case ESIF_EVENT_PARTICIPANT_CREATE:
+	case ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE:
 	case ESIF_EVENT_PARTICIPANT_RESUME:
-		if (!EsifUpPm_IsPrimaryParticipantId(participantId)) {
-			EsifLogMgr_EnableParticipant(self, participantId);
-		}
+		EsifLogMgr_EnableParticipant(self, participantId);
 		break;
 	case ESIF_EVENT_PARTICIPANT_UNREGISTER:
 	case ESIF_EVENT_PARTICIPANT_SUSPEND:
-		if (!EsifUpPm_IsPrimaryParticipantId(participantId)) {
-			EsifLogMgr_DisableParticipant(self, participantId);
-		}
+		EsifLogMgr_DisableParticipant(self, participantId);
 		break;
 	default:
 		break;
@@ -1219,6 +1168,7 @@ static void EsifLogMgr_CleanupLoggingContext(EsifLoggingManagerPtr self)
 	if (self->listenersMask == ESIF_LISTENER_LOGFILE_MASK) {
 		self->listenersMask = ESIF_LISTENER_NONE;
 	}
+	self->listenerHeadersWrittenMask = ESIF_LISTENER_NONE;
 
 	//Close the old file
 	EsifLogFile_Close(ESIF_LOG_PARTICIPANT);
@@ -1244,6 +1194,7 @@ void EsifLogMgr_ParticipantLogStart(EsifLoggingManagerPtr self)
 		self->isLogStarted = ESIF_TRUE;
 		self->isLogStopped = ESIF_FALSE;
 		if (self->isLogSuspended == ESIF_FALSE) {
+			self->listenerHeadersWrittenMask = ESIF_LISTENER_NONE;
 			self->isLogHeader = ESIF_TRUE;
 		}
 		esif_ccb_event_init(&self->pollingThread.pollStopEvent);
@@ -1423,7 +1374,7 @@ static eEsifError EsifLogMgr_AddCapabilityMask(
 		}
 
 		if (((1 << capabilityId) & capabilityMask) != 0) {
-			rc = EsifLogMgr_AddCapability(self, EsifUp_GetInstance(upPtr), EsifUp_GetDomainId(domainPtr), capabilityId);
+			rc = EsifLogMgr_AddCapability(self, upPtr, EsifUp_GetDomainId(domainPtr), capabilityId);
 			if (rc != ESIF_OK) {
 				goto exit;
 			}
@@ -1437,7 +1388,7 @@ exit:
 
 static eEsifError EsifLogMgr_AddCapability(
 	EsifLoggingManagerPtr self,
-	esif_handle_t participantId,
+	EsifUpPtr upPtr,
 	UInt32 domainId,
 	UInt32 capabilityId
 	)
@@ -1447,12 +1398,13 @@ static eEsifError EsifLogMgr_AddCapability(
 	EsifParticipantLogDataNodePtr newEntryPtr = NULL;
 
 	ESIF_ASSERT(self != NULL);
+	ESIF_ASSERT(upPtr != NULL);
 
 	/*
 	 * Check If a matching entry is already present
 	 */
 	esif_ccb_write_lock(&self->participantLogData.listLock);
-	nodePtr = EsifLogMgr_GetCapabilityNodeWLock(self, participantId, domainId, capabilityId);
+	nodePtr = EsifLogMgr_GetCapabilityNodeWLock(self, EsifUp_GetInstance(upPtr), domainId, capabilityId);
 	if (nodePtr != NULL) {
 		/*
 		 * Logging has been enabled already
@@ -1472,11 +1424,12 @@ static eEsifError EsifLogMgr_AddCapability(
 		goto exit;
 	}
 
-	newEntryPtr->participantId = participantId;
+	newEntryPtr->participantId = EsifUp_GetInstance(upPtr);
 	newEntryPtr->domainId = domainId;
 	esif_ccb_lock_init(&newEntryPtr->capabilityDataLock);
 	newEntryPtr->state = ESIF_DATA_CREATED;
 	newEntryPtr->isPresent = ESIF_TRUE;
+	esif_ccb_strcpy(newEntryPtr->name, EsifUp_GetName(upPtr), sizeof(newEntryPtr->name));
 
 	newEntryPtr->capabilityData.type = capabilityId;
 	newEntryPtr->capabilityData.size = sizeof(newEntryPtr->capabilityData);
@@ -1606,11 +1559,18 @@ static void EsifLogMgr_ScheduledStartThread(const void *contextPtr)
 	}
 
 exit:
-	if (rc != ESIF_OK) {
+	if (rc != ESIF_OK && self) {
 		EsifLogMgr_DataLogWrite(self, "\nError code : %s(%d)", esif_rc_str(rc), rc);		
 		EsifLogMgr_DataLogWrite(self, "\nStopped participant logging");
 		EsifLogMgr_DataLogWrite(self, "\n");
 		EsifLogMgr_ParticipantLogStop(self);
+
+		/*
+		* Close the file handle if the listener is log file
+		*/
+		if (self->listenersMask & ESIF_LISTENER_LOGFILE_MASK) {
+			EsifLogFile_Close(ESIF_LOG_PARTICIPANT);
+		}
 	}
 }
 
@@ -1942,12 +1902,12 @@ static void *ESIF_CALLCONV EsifLogMgr_ParticipantLogWorkerThread(void *ptr)
 			esif_ccb_system_time(&msecStart);
 			//Header needs to be updated
 			if (self->isLogHeader) {
-				EsifLogMgr_ParticipantLogFire(self);
+				EsifLogMgr_ParticipantLogWriteHeader(self);
+				self->listenerHeadersWrittenMask |= ESIF_LISTENER_ALL_MASK;
 				self->isLogHeader = ESIF_FALSE;
 			}
-			else {
-				EsifLogMgr_ParticipantLogFire(self);
-			}
+			EsifLogMgr_ParticipantLogWriteData(self);
+
 			esif_ccb_system_time(&msecStop);
 		}
 
@@ -1972,13 +1932,10 @@ exit:
 	return 0;
 }
 
-static void EsifLogMgr_ParticipantLogFire(
+static void EsifLogMgr_ParticipantLogWriteHeader(
 	EsifLoggingManagerPtr self
 	)
 {
-	time_t now = time(NULL);
-	struct tm time = { 0 };
-	esif_ccb_time_t msec = 0;
 	EsifLinkListNodePtr nodePtr = NULL;
 	EsifParticipantLogDataNodePtr curEntryPtr = NULL;
 	esif_handle_t currentParticipantId = ESIF_INVALID_HANDLE;
@@ -2005,67 +1962,113 @@ static void EsifLogMgr_ParticipantLogFire(
 	while (nodePtr != NULL) {
 		curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
 		if (curEntryPtr != NULL) {
-			if (self->isLogHeader != ESIF_FALSE) {
-				if (printTimeInfo != ESIF_FALSE) {
-					esif_ccb_sprintf(dataLength, self->logData, " Date, Time, Server Msec,");
-					printTimeInfo = ESIF_FALSE;
-				}
-				if (currentParticipantId != curEntryPtr->participantId) {
-					esif_ccb_sprintf_concat(dataLength, self->logData, " Participant ID, Participant Name, Domain Id,");
-				}
-				else if ((currentParticipantId == curEntryPtr->participantId) &&
-					(currentDomainId != curEntryPtr->domainId)) {
-					esif_ccb_sprintf_concat(dataLength, self->logData, " Domain Id,");
-				}
+			if (printTimeInfo != ESIF_FALSE) {
+				esif_ccb_sprintf(dataLength, self->logData, " Date, Time, Server Msec,");
+				printTimeInfo = ESIF_FALSE;
+			}
+			if (currentParticipantId != curEntryPtr->participantId) {
+				esif_ccb_sprintf_concat(dataLength, self->logData, " Participant ID, Participant Name, Domain Id,");
+			}
+			else if ((currentParticipantId == curEntryPtr->participantId) &&
+				(currentDomainId != curEntryPtr->domainId)) {
+				esif_ccb_sprintf_concat(dataLength, self->logData, " Domain Id,");
+			}
 
-				partName = "UNK";
+			partName = "UNK";
+			upPtr = EsifUpPm_GetAvailableParticipantByInstance(curEntryPtr->participantId);
+			if (upPtr != NULL) {
+				partName = EsifUp_GetName(upPtr);
+				EsifUp_PutRef(upPtr);
+			}
+			EsifDomainIdToIndex((UInt16)curEntryPtr->domainId, &domainIndex);
+			esif_ccb_read_lock(&curEntryPtr->capabilityDataLock);
+			EsifLogMgr_ParticipantLogAddHeaderData(self->logData, dataLength, &curEntryPtr->capabilityData, partName, domainIndex);
+			esif_ccb_read_unlock(&curEntryPtr->capabilityDataLock);
+
+			currentParticipantId = curEntryPtr->participantId;
+			currentDomainId = curEntryPtr->domainId;
+		}
+		nodePtr = nodePtr->next_ptr;
+	}
+	esif_ccb_read_unlock(&self->participantLogData.listLock);
+
+	//Print the output only if PrintTimeInfo Flag has been switched off
+	if (printTimeInfo == ESIF_FALSE) {
+		EsifLogMgr_DataLogWrite(self, "%s \n", self->logData);
+	}
+exit:
+	return;
+}
+
+
+static void EsifLogMgr_ParticipantLogWriteData(
+	EsifLoggingManagerPtr self
+	)
+{
+	time_t now = time(NULL);
+	struct tm time = { 0 };
+	esif_ccb_time_t msec = 0;
+	EsifLinkListNodePtr nodePtr = NULL;
+	EsifParticipantLogDataNodePtr curEntryPtr = NULL;
+	esif_handle_t currentParticipantId = ESIF_INVALID_HANDLE;
+	UInt32 currentDomainId = (UInt32)-1;
+	UInt8 domainIndex = 0;
+	size_t dataLength = MAX_LOG_DATA;
+	EsifUpPtr upPtr = NULL;
+	Bool printTimeInfo = ESIF_TRUE;
+
+	ESIF_ASSERT(self != NULL);
+	ESIF_ASSERT(self->logData != NULL);
+
+	if (self->participantLogData.list == NULL) {
+		ESIF_TRACE_INFO("\n list is NULL. No Data to Log");
+		goto exit;
+	}
+
+	/*
+	 * Loop through the complete list
+	 */
+	esif_ccb_read_lock(&self->participantLogData.listLock);
+	nodePtr = self->participantLogData.list->head_ptr;
+	while (nodePtr != NULL) {
+		curEntryPtr = (EsifParticipantLogDataNodePtr)nodePtr->data_ptr;
+		if (curEntryPtr != NULL) {
+			if (printTimeInfo != ESIF_FALSE) {
+				esif_ccb_system_time(&msec);
+				if (esif_ccb_localtime(&time, &now) == 0) {
+					esif_ccb_sprintf(dataLength, self->logData, " %04d-%02d-%02d, %02d:%02d:%02d, %llu,",
+						time.tm_year + TIME_BASE_YEAR, time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec, msec);
+				}
+				printTimeInfo = ESIF_FALSE;
+			}
+			/*
+				* Print the participant Name and Index for every new participant Id
+				*/
+			EsifDomainIdToIndex((UInt16)curEntryPtr->domainId, &domainIndex);
+			if (currentParticipantId != curEntryPtr->participantId) {
 				upPtr = EsifUpPm_GetAvailableParticipantByInstance(curEntryPtr->participantId);
 				if (upPtr != NULL) {
-					partName = EsifUp_GetName(upPtr);
+					if (!curEntryPtr->isAcknowledged) {
+						/* Covers a race condition where the app may not know about participant at the time we tell it to enable logging */
+						EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
+							curEntryPtr->participantId,
+							(UInt16)curEntryPtr->domainId,
+							(1 << curEntryPtr->capabilityData.type)
+						);
+					}
+					esif_ccb_sprintf_concat(dataLength, self->logData, " %llu, %s, %d,", esif_ccb_handle2llu(curEntryPtr->participantId), EsifUp_GetName(upPtr), domainIndex);
 					EsifUp_PutRef(upPtr);
 				}
-				EsifDomainIdToIndex((UInt16)curEntryPtr->domainId, &domainIndex);
-				esif_ccb_read_lock(&curEntryPtr->capabilityDataLock);
-				EsifLogMgr_ParticipantLogAddHeaderData(self->logData, dataLength, &curEntryPtr->capabilityData, partName, domainIndex);
-				esif_ccb_read_unlock(&curEntryPtr->capabilityDataLock);
+				else {
+					esif_ccb_sprintf_concat(dataLength, self->logData, " %llu, UNAVAIL, %d,", esif_ccb_handle2llu(curEntryPtr->participantId), domainIndex);
+				}
 			}
-			else
-			{
-				if (printTimeInfo != ESIF_FALSE) {
-					esif_ccb_system_time(&msec);
-					if (esif_ccb_localtime(&time, &now) == 0) {
-						esif_ccb_sprintf(dataLength, self->logData, " %04d-%02d-%02d, %02d:%02d:%02d, %llu,",
-							time.tm_year + TIME_BASE_YEAR, time.tm_mon + 1, time.tm_mday, time.tm_hour, time.tm_min, time.tm_sec, msec);
-					}
-					printTimeInfo = ESIF_FALSE;
-				}
-				/*
-					* Print the participant Name and Index for every new participant Id
-					*/
-				EsifDomainIdToIndex((UInt16)curEntryPtr->domainId, &domainIndex);
-				if (currentParticipantId != curEntryPtr->participantId) {
-					upPtr = EsifUpPm_GetAvailableParticipantByInstance(curEntryPtr->participantId);
-					if (upPtr != NULL) {
-						if (!curEntryPtr->isAcknowledged) {
-							/* Covers a race condition where the app may not know about participant at the time we tell it to enable logging */
-							EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
-								curEntryPtr->participantId,
-								(UInt16)curEntryPtr->domainId,
-								(1 << curEntryPtr->capabilityData.type)
-							);
-						}
-						esif_ccb_sprintf_concat(dataLength, self->logData, " %llu, %s, %d,", esif_ccb_handle2llu(curEntryPtr->participantId), EsifUp_GetName(upPtr), domainIndex);
-						EsifUp_PutRef(upPtr);
-					} else {
-						esif_ccb_sprintf_concat(dataLength, self->logData, " %llu, UNAVAIL, %d,", esif_ccb_handle2llu(curEntryPtr->participantId), domainIndex);
-					}
-				}
-				else if ((currentParticipantId == curEntryPtr->participantId) &&
-					(currentDomainId != curEntryPtr->domainId)) {
-					esif_ccb_sprintf_concat(dataLength, self->logData, " %d,", domainIndex);
-				}
-				EsifLogMgr_ParticipantLogAddDataNode(self->logData, dataLength, curEntryPtr);
+			else if ((currentParticipantId == curEntryPtr->participantId) &&
+				(currentDomainId != curEntryPtr->domainId)) {
+				esif_ccb_sprintf_concat(dataLength, self->logData, " %d,", domainIndex);
 			}
+			EsifLogMgr_ParticipantLogAddDataNode(self->logData, dataLength, curEntryPtr);
+
 			currentParticipantId = curEntryPtr->participantId;
 			currentDomainId = curEntryPtr->domainId;
 		}
@@ -2099,9 +2102,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	switch (capabilityPtr->type) {
 	case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " ControlID, Speed, Min Fan Speed %%, Max Fan Speed %%,");
-		break;
-	case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
-		esif_ccb_sprintf_concat(dataLength, logString, " ControlId, Tdp Frequency, Tdp Power, Tdp Ratio,");
 		break;
 	case ESIF_CAPABILITY_TYPE_CORE_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " Active Cores, Lower Limit, Upper Limit,");
@@ -2164,10 +2164,11 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		break;
 	case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
 		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_PMAX(mW), %s_D%d_PBSS(mW),"
-			" %s_D%d_CTYP, %s_D%d_RBHF(mOhm), %s_D%d_CMPP(mA), %s_D%d_VBNL(mV),",
+			" %s_D%d_CTYP, %s_D%d_RBHF(mOhm), %s_D%d_CMPP(mA), %s_D%d_VBNL(mV), %s_D%d_batteryPercentage(%%),",
 			participantName, domainId, participantName, domainId,
 			participantName, domainId, participantName, domainId,
-			participantName, domainId, participantName, domainId
+			participantName, domainId, participantName, domainId,
+			participantName, domainId
 		);
 		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
@@ -2209,14 +2210,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " AC Peak Power, DC Peak Power,");
 		break;
-	case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
-	{
-		UInt32 portNumber = 0;
-		for (portNumber = 0; portNumber < MAX_PORT_NUMBER; portNumber++) {
-			esif_ccb_sprintf_concat(dataLength, logString, " USB-C Port%d Power Limit (mW),", portNumber + 1);
-		}
-		break;
-	}
 	case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_TCC Offset(C), %s_D%d_Under Voltage Threshold (mV),", participantName, domainId, participantName, domainId);
 	default:
@@ -2273,14 +2266,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				capabilityPtr->data.activeControl.speed,
 				capabilityPtr->data.activeControl.lowerLimit,
 				capabilityPtr->data.activeControl.upperLimit
-				);
-			break;
-		case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
-			esif_ccb_sprintf_concat(dataLength, logString, " %llu, %llu, %llu, %llu,",
-				capabilityPtr->data.configTdpControl.controlId,
-				capabilityPtr->data.configTdpControl.tdpFrequency,
-				capabilityPtr->data.configTdpControl.tdpPower,
-				capabilityPtr->data.configTdpControl.tdpRatio
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_CORE_CONTROL:
@@ -2378,13 +2363,14 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u, %u, %u,",
+			esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, %u, %u, %u, %u,",
 				capabilityPtr->data.batteryStatus.maxBatteryPower,
 				capabilityPtr->data.batteryStatus.steadyStateBatteryPower,
 				capabilityPtr->data.batteryStatus.chargerType,
 				capabilityPtr->data.batteryStatus.highFrequencyImpedance,
 				capabilityPtr->data.batteryStatus.maxPeakCurrent,
-				capabilityPtr->data.batteryStatus.noLoadVoltage
+				capabilityPtr->data.batteryStatus.noLoadVoltage,
+				capabilityPtr->data.batteryStatus.batteryPercentage
 				);
 			break;
 		case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
@@ -2450,16 +2436,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 				capabilityPtr->data.peakPowerControl.dcPeakPower
 			);
 			break;
-		case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
-		{
-			UInt32 portNumber = 0;
-			for (portNumber = 0; portNumber < MAX_PORT_NUMBER; portNumber++) {
-				esif_ccb_sprintf_concat(dataLength, logString, " %u,",
-					capabilityPtr->data.platformPowerControl.portDataSet[portNumber]
-				);
-			}
-			break;
-		}
 		case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
 		{
 			int temp = (int)capabilityPtr->data.processorControlStatus.tccOffset;
@@ -2490,7 +2466,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
 			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X,");
 			break;
-		case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
 		case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
 			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X,");
 			break;
@@ -2502,7 +2477,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X, X, X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
-			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X,");
+			esif_ccb_sprintf_concat(dataLength, logString, " X, X, X, X, X, X, X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_POWER_CONTROL:
 		{
@@ -2534,14 +2509,6 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 			esif_ccb_sprintf_concat(dataLength, logString, " X, X,");
 			break;
-		case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
-		{
-			UInt32 portNumber = 0; 
-			for (portNumber = 0; portNumber < MAX_PORT_NUMBER; portNumber++) {
-				esif_ccb_sprintf_concat(dataLength, logString, " X,");
-			}
-			break;
-		}
 		default:
 			rc = ESIF_E_UNSPECIFIED;
 			break;
@@ -2718,6 +2685,16 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			u32Value = 0;
 		}
 		dataNodePtr->capabilityData.data.batteryStatus.noLoadVoltage = u32Value;
+
+		UInt32 battPercent = 0;
+		struct esif_data batt_percent_response = { ESIF_DATA_PERCENT, &battPercent, sizeof(battPercent), sizeof(battPercent) };
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_BATTERY_PERCENTAGE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_NO_PERSIST, NULL, &batt_percent_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_BATTERY_PERCENTAGE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			battPercent = 0;
+		}
+		dataNodePtr->capabilityData.data.batteryStatus.batteryPercentage = battPercent / 100;
 		break;
 	}
 	case ESIF_CAPABILITY_TYPE_POWER_STATUS:
@@ -2787,34 +2764,40 @@ static void EsifLogMgr_DataLogWrite(
 	}
 
 	if ((self->listenersMask & ESIF_LISTENER_CONSOLE_MASK) > 0) {
-		va_start(args, logstring);
-		EsifConsole_WriteConsole(logstring, args);
-		va_end(args);
+		if (!self->isLogHeader || (!(self->listenerHeadersWrittenMask & ESIF_LISTENER_CONSOLE_MASK))) {
+			va_start(args, logstring);
+			EsifConsole_WriteConsole(logstring, args);
+			va_end(args);
+		}
 	}
 
 	if ((self->listenersMask & ESIF_LISTENER_LOGFILE_MASK) > 0) {
-		va_start(args, logstring);
-		EsifLogFile_WriteArgsAppend(ESIF_LOG_PARTICIPANT, " ", logstring, args);
-		va_end(args);
+		if (!self->isLogHeader || (!(self->listenerHeadersWrittenMask & ESIF_LISTENER_LOGFILE_MASK))) {
+			va_start(args, logstring);
+			EsifLogFile_WriteArgsAppend(ESIF_LOG_PARTICIPANT, " ", logstring, args);
+			va_end(args);
+		}
 	}
 
 	if ((self->listenersMask & ESIF_LISTENER_DEBUGGER_MASK) > 0) {
 		size_t  msglen = 0;
 		char *buffer = 0;
 
-		va_start(args, logstring);
-		msglen = esif_ccb_vscprintf(logstring, args) + 1;
-		va_end(args);
-
-		buffer = (char *)esif_ccb_malloc(msglen);
-
-		if (NULL != buffer) {
+		if (!self->isLogHeader || (!(self->listenerHeadersWrittenMask & ESIF_LISTENER_DEBUGGER_MASK))) {
 			va_start(args, logstring);
-			esif_ccb_vsprintf(msglen, buffer, logstring, args);
+			msglen = esif_ccb_vscprintf(logstring, args) + 1;
 			va_end(args);
 
-			EsifLogMgr_LogToDebugger(buffer);
-			esif_ccb_free(buffer);
+			buffer = (char *)esif_ccb_malloc(msglen);
+
+			if (NULL != buffer) {
+				va_start(args, logstring);
+				esif_ccb_vsprintf(msglen, buffer, logstring, args);
+				va_end(args);
+
+				EsifLogMgr_LogToDebugger(buffer);
+				esif_ccb_free(buffer);
+			}
 		}
 	}
 
@@ -2822,22 +2805,23 @@ static void EsifLogMgr_DataLogWrite(
 		size_t  msglen = 0;
 		char *buffer = 0;
 
-		va_start(args, logstring);
-		msglen = esif_ccb_vscprintf(logstring, args) + 1;
-		va_end(args);
-
-		buffer = (char *)esif_ccb_malloc(msglen);
-
-		if (NULL != buffer) {
+		if (!self->isLogHeader || (!(self->listenerHeadersWrittenMask & ESIF_LISTENER_EVENTLOG_MASK))) {
 			va_start(args, logstring);
-			esif_ccb_vsprintf(msglen, buffer, logstring, args);
+			msglen = esif_ccb_vscprintf(logstring, args) + 1;
 			va_end(args);
 
-			EsifLogMgr_LogToEvent(buffer);
-			esif_ccb_free(buffer);
+			buffer = (char *)esif_ccb_malloc(msglen);
+
+			if (NULL != buffer) {
+				va_start(args, logstring);
+				esif_ccb_vsprintf(msglen, buffer, logstring, args);
+				va_end(args);
+
+				EsifLogMgr_LogToEvent(buffer);
+				esif_ccb_free(buffer);
+			}
 		}
 	}
-
 exit:
 	return;
 }
@@ -2874,7 +2858,7 @@ static eEsifError EsifLogMgr_Uninit(EsifLoggingManagerPtr self)
 		EsifLogMgr_EventCallback,
 		esif_ccb_ptr2context(self));
 
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE,
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_DOMAIN_D0,
 		EsifLogMgr_EventCallback,

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -65,6 +65,12 @@ void DomainBatteryStatusBase::bindRequestHandlers()
 	});
 	bindRequestHandler(DptfRequestType::BatteryStatusGetBatteryMaxPeakCurrent, [=](const PolicyRequest& policyRequest) {
 		return this->handleGetBatteryMaxPeakCurrent(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::BatteryStatusGetBatteryPercentage, [=](const PolicyRequest& policyRequest) {
+		return this->handleGetBatteryPercentage(policyRequest);
+	});
+	bindRequestHandler(DptfRequestType::BatteryStatusSetBatteryPercentage, [=](const PolicyRequest& policyRequest) {
+		return this->handleSetBatteryPercentage(policyRequest);
 	});
 }
 
@@ -286,5 +292,53 @@ DptfRequestResult DomainBatteryStatusBase::handleGetBatteryMaxPeakCurrent(const 
 		DptfRequestResult failureResult(
 			false, "Failed to retrieve Battery Max Peak Current: " + ex.getDescription(), request);
 		return failureResult;
+	}
+}
+
+DptfRequestResult DomainBatteryStatusBase::handleGetBatteryPercentage(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		if (requestResultIsCached(request))
+		{
+			return getCachedResult(request);
+		}
+		else
+		{
+			auto batteryPercentage = getBatteryPercentage();
+			DptfRequestResult result(true, "Successfully retrieved Battery Percentage.", request);
+			result.setDataFromUInt32(batteryPercentage.toWholeNumber());
+			updateCachedResult(result);
+			return result;
+		}
+	}
+	catch (dptf_exception& ex)
+	{
+		DptfRequestResult failureResult(
+			false, "Failed to retrieve Battery Percentage: " + ex.getDescription(), request);
+		return failureResult;
+	}
+}
+
+DptfRequestResult DomainBatteryStatusBase::handleSetBatteryPercentage(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		auto batteryPercentage = Percentage::createFromDptfBuffer(request.getData());
+		setBatteryPercentage(batteryPercentage);
+
+		return DptfRequestResult(true, "Successfully set battery percentage.", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		return DptfRequestResult(false, "Failed to set battery percentage: " + ex.getDescription(), request);
+	}
+	catch (...)
+	{
+		return DptfRequestResult(false, "Failed to set battery percentage.", request);
 	}
 }

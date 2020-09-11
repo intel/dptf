@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,8 +31,10 @@
 #include "OsDockMode.h"
 #include "OsPowerSchemePersonality.h"
 #include "OsUserPresence.h"
+#include "OsSessionState.h"
 #include "OsPowerSlider.h"
 #include "SocWorkloadClassification.h"
+#include "SensorUserPresence.h"
 
 class dptf_export PolicyInterface
 {
@@ -102,7 +104,6 @@ public:
 	virtual void resume(void) = 0;
 
 	// Participant/Domain Event Handlers
-	virtual void domainConfigTdpCapabilityChanged(UIntN participantIndex) = 0;
 	virtual void domainCoreControlCapabilityChanged(UIntN participantIndex) = 0;
 	virtual void domainDisplayControlCapabilityChanged(UIntN participantIndex) = 0;
 	virtual void domainDisplayStatusChanged(UIntN participantIndex) = 0;
@@ -147,7 +148,6 @@ public:
 	virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
 	virtual void foregroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
 	virtual void policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2) = 0;
-	virtual void operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel) = 0;
 	virtual void operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
 	virtual void operatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
 	virtual void operatingSystemBatteryPercentageChanged(UIntN batteryPercentage) = 0;
@@ -159,6 +159,7 @@ public:
 	virtual void operatingSystemMobileNotification(OsMobileNotificationType::Type notificationType, UIntN value) = 0;
 	virtual void operatingSystemMixedRealityModeChanged(OnOffToggle::Type osMixedRealityMode) = 0;
 	virtual void operatingSystemUserPresenceChanged(OsUserPresence::Type userPresence) = 0;
+	virtual void operatingSystemSessionStateChanged(OsSessionState::Type sessionState) = 0;
 	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
 	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
 	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
@@ -167,6 +168,7 @@ public:
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) = 0;
 	virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
 	virtual void thermalRelationshipTableChanged(void) = 0;
+	virtual void adaptiveUserPresenceTableChanged(void) = 0;
 	virtual void adaptivePerformanceConditionsTableChanged(void) = 0;
 	virtual void adaptivePerformanceParticipantConditionTableChanged(void) = 0;
 	virtual void adaptivePerformanceActionsTableChanged(void) = 0;
@@ -180,9 +182,66 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) = 0;
 	virtual void powerShareAlgorithmTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
+	virtual void performanceCapabilitiesChanged(UIntN participantIndex) = 0;
 	virtual void workloadHintConfigurationChanged(void) = 0;
 	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
 	virtual void powerShareAlgorithmTable2Changed(void) = 0;
+	virtual void sensorUserPresenceChanged(SensorUserPresence::Type userPresence) = 0;
+	virtual void platformUserPresenceChanged(SensorUserPresence::Type userPresence) = 0;
+	virtual void wakeOnApproachFeatureStateChanged(
+		Bool wakeOnApproachFeatureState) = 0;
+	virtual void wakeOnApproachWithExternalMonitorFeatureStateChanged(
+		Bool wakeOnApproachWithExternalMonitorFeatureState) = 0;
+	virtual void wakeOnApproachOnLowBatteryFeatureStateChanged(
+		Bool wakeOnApproachOnLowBatteryFeatureState) = 0;
+	virtual void wakeOnApproachBatteryRemainingPercentageChanged(
+		Percentage wakeOnApproachBatteryRemainingPercentage) = 0;
+	virtual void walkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState) = 0;
+	virtual void walkAwayLockWithExternalMonitorFeatureStateChanged(
+		Bool walkAwayLockWithExternalMonitorFeatureState) = 0;
+	virtual void walkAwayLockDimScreenFeatureStateChanged(
+		Bool walkAwayLockDimScreenFeatureState) = 0;
+	virtual void walkAwayLockDisplayOffAfterLockFeatureStateChanged(
+		Bool walkAwayLockDisplayOffAfterLockFeatureState) = 0;
+	virtual void walkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
+		Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState) = 0;
+	virtual void walkAwayLockHonorUserInCallFeatureStateChanged(
+		Bool walkAwayLockHonorUserInCallFeatureState) = 0;
+	virtual void userInCallStateChanged(Bool userInCallState) = 0;
+	virtual void walkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime) = 0;
+	virtual void walkAwayLockPreDimWaitTimeChanged(
+		TimeSpan walkAwayLockPreDimWaitTime) = 0;
+	virtual void walkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime) = 0;
+	virtual void walkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval) = 0;
+	virtual void adaptiveDimmingFeatureStateChanged(
+		Bool adaptiveDimmingFeatureState) = 0;
+	virtual void adaptiveDimmingWithExternalMonitorFeatureStateChanged(
+		Bool adaptiveDimmingWithExternalMonitorFeatureState) = 0;
+	virtual void adaptiveDimmingWithPresentationModeFeatureStateChanged(
+		Bool adaptiveDimmingWithPresentationModeFeatureState) = 0;
+	virtual void adaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime) = 0;
+	virtual void mispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState) = 0;
+	virtual void mispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow) = 0;
+	virtual void misprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime) = 0;
+	virtual void misprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime) = 0;
+	virtual void misprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime) = 0;
+	virtual void misprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime) = 0;
+	virtual void noLockOnPresenceFeatureStateChanged(
+		Bool noLockOnPresenceFeatureState) = 0;
+	virtual void noLockOnPresenceExternalMonitorFeatureStateChanged(
+		Bool noLockOnPresenceExternalMonitorFeatureState) = 0;
+	virtual void noLockOnPresenceOnBatteryFeatureStateChanged(
+		Bool noLockOnPresenceOnBatteryFeatureState) = 0;
+	virtual void noLockOnPresenceBatteryRemainingPercentageChanged(
+		Percentage noLockOnPresenceBatteryRemainingPercentage) = 0;
+	virtual void noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) = 0;
+	virtual void failsafeTimeoutChanged(TimeSpan failsafeTimeout) = 0;
+	virtual void userPresenceAppStateChanged(Bool userPresenceAppState) = 0;
+	virtual void externalMonitorStateChanged(Bool externalMonitorStateChanged) = 0;
+	virtual void userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) = 0;
+	virtual void userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) = 0;
+	virtual void userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) = 0;
+	virtual void userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) = 0;
 };
 
 //

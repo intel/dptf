@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -86,7 +86,7 @@
 #define ESIF_FEAT_OPT_PERC_SUPPORT_ENABLED
 
 /* Build option to enable USB-C support in Windows */
-/* #define ESIF_FEAT_OPT_USBC_SUPPORT_ENABLED */
+#define ESIF_FEAT_OPT_USBC_SUPPORT_ENABLED */
 
 /* Build option to provide UF support in the Windows service application */
 /*#define ESIF_FEAT_OPT_SERVICE_AS_UF*/

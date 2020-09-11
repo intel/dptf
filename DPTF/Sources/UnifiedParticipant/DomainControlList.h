@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,11 +22,9 @@
 #include "ParticipantServicesInterface.h"
 #include "ControlBase.h"
 #include "DomainType.h"
-#include "ConfigTdpDataSyncInterface.h"
 #include "DomainFunctionalityVersions.h"
 #include "DomainActiveControlFactory.h"
 #include "DomainActivityStatusFactory.h"
-#include "DomainConfigTdpControlFactory.h"
 #include "DomainCoreControlFactory.h"
 #include "DomainDisplayControlFactory.h"
 #include "DomainPeakPowerControlFactory.h"
@@ -45,7 +43,6 @@
 #include "DomainUtilizationFactory.h"
 #include "DomainActiveControlBase.h"
 #include "DomainActivityStatusBase.h"
-#include "DomainConfigTdpControlBase.h"
 #include "DomainCoreControlBase.h"
 #include "DomainDisplayControlBase.h"
 #include "DomainEnergyControlBase.h"
@@ -60,7 +57,6 @@
 #include "DomainProcessorControlBase.h"
 #include "DomainUtilizationBase.h"
 #include "DomainSystemPowerControlBase.h"
-#include "DomainPlatformPowerControlBase.h"
 #include "DomainPlatformPowerStatusBase.h"
 #include "DomainBatteryStatusBase.h"
 #include "DomainSocWorkloadClassificationBase.h"
@@ -81,7 +77,6 @@ public:
 
 	std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
 	std::shared_ptr<DomainActivityStatusBase> getActivityStatusControl(void);
-	std::shared_ptr<DomainConfigTdpControlBase> getConfigTdpControl(void);
 	std::shared_ptr<DomainCoreControlBase> getCoreControl(void);
 	std::shared_ptr<DomainDisplayControlBase> getDisplayControl(void);
 	std::shared_ptr<DomainEnergyControlBase> getEnergyControl(void);
@@ -91,7 +86,6 @@ public:
 	std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
 	std::shared_ptr<DomainSystemPowerControlBase> getSystemPowerControl(void);
 	std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
-	std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
 	std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
 	std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);
 	std::shared_ptr<DomainRfProfileStatusBase> getRfProfileStatusControl(void);

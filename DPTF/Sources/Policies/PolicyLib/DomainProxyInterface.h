@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,10 +30,8 @@
 #include "PowerControlFacadeInterface.h"
 #include "DisplayControlFacadeInterface.h"
 #include "CoreControlFacadeInterface.h"
-#include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
 #include "SystemPowerControlFacadeInterface.h"
-#include "PlatformPowerControlFacadeInterface.h"
 #include "ActiveCoolingControlFacadeInterface.h"
 #include "PeakPowerControlFacadeInterface.h"
 #include "ProcessorControlFacadeInterface.h"
@@ -74,10 +72,8 @@ public:
 	virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() = 0;
 	virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() = 0;
 	virtual std::shared_ptr<SystemPowerControlFacadeInterface> getSystemPowerControl() = 0;
-	virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() = 0;
 	virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() = 0;
 	virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() = 0;
-	virtual ConfigTdpControlFacade& getConfigTdpControl() = 0;
 	virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const = 0;
 	virtual std::shared_ptr<PeakPowerControlFacadeInterface> getPeakPowerControl() = 0;
 	virtual std::shared_ptr<ProcessorControlFacadeInterface> getProcessorControl() = 0;
@@ -85,6 +81,5 @@ public:
 	virtual std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() = 0;
 	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() = 0;
 
-	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() = 0;
 	virtual std::shared_ptr<XmlNode> getXml() const = 0;
 };

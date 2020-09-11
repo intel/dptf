@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -83,7 +83,7 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 			{
 				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
 					std::stringstream message;
-					message << "Failed to get AC Peak Power: " << ex.what();
+					message << "Failed to get PL4 AC Power: " << ex.what();
 					return message.str();
 				});
 			}
@@ -96,7 +96,7 @@ void DomainPeakPowerControl_001::sendActivityLoggingDataIfEnabled(UIntN particip
 			{
 				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
 					std::stringstream message;
-					message << "Failed to get DC Peak Power: " << ex.what();
+					message << "Failed to get PL4 DC Power: " << ex.what();
 					return message.str();
 				});
 			}
@@ -141,7 +141,7 @@ std::shared_ptr<XmlNode> DomainPeakPowerControl_001::getXml(UIntN domainIndex)
 	root->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
 	auto acPeakPower = XmlNode::createWrapperElement("peak_power_control_object");
-	acPeakPower->addChild(XmlNode::createDataElement("name", "AC Peak Power"));
+	acPeakPower->addChild(XmlNode::createDataElement("name", "PL4 AC Power"));
 	try
 	{
 		acPeakPower->addChild(
@@ -154,7 +154,7 @@ std::shared_ptr<XmlNode> DomainPeakPowerControl_001::getXml(UIntN domainIndex)
 	root->addChild(acPeakPower);
 
 	auto dcPeakPower = XmlNode::createWrapperElement("peak_power_control_object");
-	dcPeakPower->addChild(XmlNode::createDataElement("name", "DC Peak Power"));
+	dcPeakPower->addChild(XmlNode::createDataElement("name", "PL4 DC Power"));
 	try
 	{
 		dcPeakPower->addChild(

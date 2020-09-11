@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 DptfRequestResult::DptfRequestResult(Bool isSuccessful, const std::string& message, const DptfRequest& request)
 	: m_isSuccessful(isSuccessful)
 	, m_message(message)
+	, m_data()
 	, m_request(request)
 
 {
@@ -29,6 +30,9 @@ DptfRequestResult::DptfRequestResult(Bool isSuccessful, const std::string& messa
 
 DptfRequestResult::DptfRequestResult()
 	: m_isSuccessful(false)
+	, m_message(Constants::EmptyString)
+	, m_data()
+	, m_request()
 {
 }
 

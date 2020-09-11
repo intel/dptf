@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 
 Arbitrator::Arbitrator()
 {
-	m_configTdpControlArbitrator = new ConfigTdpControlArbitrator();
 	m_coreControlArbitrator = new CoreControlArbitrator();
 	m_displayControlArbitrator = new DisplayControlArbitrator();
 	m_performanceControlArbitrator = new PerformanceControlArbitrator();
@@ -34,7 +33,6 @@ Arbitrator::Arbitrator()
 
 Arbitrator::~Arbitrator(void)
 {
-	DELETE_MEMORY_TC(m_configTdpControlArbitrator);
 	DELETE_MEMORY_TC(m_coreControlArbitrator);
 	DELETE_MEMORY_TC(m_displayControlArbitrator);
 	DELETE_MEMORY_TC(m_performanceControlArbitrator);
@@ -49,7 +47,6 @@ Arbitrator::~Arbitrator(void)
 void Arbitrator::clearPolicyCachedData(UIntN policyIndex)
 {
 	// call each arbitrator class to remove the specified policy
-	m_configTdpControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_coreControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_displayControlArbitrator->clearPolicyCachedData(policyIndex);
 	m_performanceControlArbitrator->clearPolicyCachedData(policyIndex);
@@ -69,9 +66,6 @@ std::shared_ptr<XmlNode> Arbitrator::getArbitrationXmlForPolicy(UIntN policyInde
 	{
 	case ControlFactoryType::Active:
 		// using the new interface now
-		break;
-	case ControlFactoryType::ConfigTdp:
-		domainRoot->addChild(m_configTdpControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
 		break;
 	case ControlFactoryType::Core:
 		domainRoot->addChild(m_coreControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
@@ -94,7 +88,6 @@ std::shared_ptr<XmlNode> Arbitrator::getArbitrationXmlForPolicy(UIntN policyInde
 	case ControlFactoryType::SystemPower:
 		domainRoot->addChild(m_systemPowerControlArbitrator->getArbitrationXmlForPolicy(policyIndex));
 		break;
-	case ControlFactoryType::PlatformPowerControl:
 	case ControlFactoryType::ProcessorControl:
 	case ControlFactoryType::Temperature:
 		// using the new interface
@@ -105,11 +98,6 @@ std::shared_ptr<XmlNode> Arbitrator::getArbitrationXmlForPolicy(UIntN policyInde
 	}
 
 	return domainRoot;
-}
-
-ConfigTdpControlArbitrator* Arbitrator::getConfigTdpControlArbitrator(void) const
-{
-	return m_configTdpControlArbitrator;
 }
 
 CoreControlArbitrator* Arbitrator::getCoreControlArbitrator(void) const

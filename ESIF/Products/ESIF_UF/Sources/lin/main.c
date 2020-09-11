@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include "esif_version.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_ccb_system.h"
-#include "esif_uf_event_broadcast.h"
 #include "esif_uf_sensor_manager_os_lin.h"
 #include "esif_uf_ccb_imp_spec.h"
 #include "esif_uf_sysfs_os_lin.h"
@@ -37,7 +36,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2019 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2020 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #ifdef ESIF_ATTR_OS_ANDROID
@@ -122,7 +121,8 @@ static char device_path[] = "/devices/virtual/thermal/thermal_zone";
 #endif
 
 // Default ESIF Paths for each OS
-// Paths preceded by "#" indicate that full path is not specified when loading the binary
+// Paths preceded by "$" are treated as system paths and are not auto-created or checked for symbolic links
+// Paths preceded by "#" indicate that the full path is not specified when loading .so libraries with dlopen()
 static const esif_string ESIF_PATHLIST =
 #if defined(ESIF_ATTR_OS_ANDROID)
 	// Android
@@ -132,9 +132,9 @@ static const esif_string ESIF_PATHLIST =
 	"LOG=/data/vendor/dptf/log\n"
 	"BIN=/vendor/etc/dptf/bin\n"
 	"LOCK=/data/vendor/dptf/lock\n"
-	"EXE=#/vendor/bin\n"
-	"DLL=#/vendor/lib" ARCHBITS "\n"
-	"DLLALT=#/vendor/lib" ARCHBITS "\n"
+	"EXE=$#/vendor/bin\n"
+	"DLL=$#/vendor/lib" ARCHBITS "\n"
+	"DLLALT=$#/vendor/lib" ARCHBITS "\n"
 	"DPTF=/vendor/etc/dptf/bin\n"
 	"DSP=/vendor/etc/dptf/dsp\n"
 	"CMD=/vendor/etc/dptf/cmd\n"
@@ -142,14 +142,14 @@ static const esif_string ESIF_PATHLIST =
 #elif defined(ESIF_ATTR_OS_CHROME)
 	// Chromium
 	"HOME=/usr/share/dptf\n"
-	"TEMP=/tmp\n"
+	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
-	"LOCK=/var/run\n"
-	"EXE=#/usr/bin\n"
-	"DLL=#/usr/lib" ARCHBITS "\n"
-	"DLLALT=#/usr/lib" ARCHBITS "\n"
+	"LOCK=$/var/run\n"
+	"EXE=$#/usr/bin\n"
+	"DLL=$#/usr/lib" ARCHBITS "\n"
+	"DLLALT=$#/usr/lib" ARCHBITS "\n"
 	"DPTF=/usr/share/dptf\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
@@ -157,11 +157,11 @@ static const esif_string ESIF_PATHLIST =
 #else
 	// Generic Linux
 	"HOME=/usr/share/dptf\n"
-	"TEMP=/tmp\n"
+	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/usr/share/dptf/log\n"
 	"BIN=/usr/share/dptf/bin\n"
-	"LOCK=/var/run\n"
+	"LOCK=$/var/run\n"
 	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLL=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLLALT=/usr/share/dptf/uf" ARCHNAME "\n"
@@ -1639,7 +1639,6 @@ int main (int argc, char **argv)
 eEsifError esif_uf_os_init ()
 {
 	/* Start sensor manager thread */
-	EsifEventBroadcast_MotionSensorEnable(ESIF_TRUE);
 	EsifSensorMgr_Init();
 
 	return ESIF_OK;
@@ -1655,7 +1654,6 @@ void esif_uf_os_exit ()
 	esif_ccb_free(netlink_msg);
 
 	/* Stop sensor manager thread */
-	EsifEventBroadcast_MotionSensorEnable(ESIF_FALSE);
 	EsifSensorMgr_Exit();
 }
 

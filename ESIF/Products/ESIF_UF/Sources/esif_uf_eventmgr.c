@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include "esif_ccb_atomic.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_queue.h"
+#include "esif_uf_sensors.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //

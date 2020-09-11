@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -69,12 +69,7 @@ public:
 	UInt32 getCoreActivityCounterWidth();
 	UInt64 getTimestampCounter();
 	UInt32 getTimestampCounterWidth();
-
-	// ConfigTdp controls
-	ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(void);
-	ConfigTdpControlStatus getConfigTdpControlStatus(void);
-	ConfigTdpControlSet getConfigTdpControlSet(void);
-	void setConfigTdpControl(UIntN policyIndex, UIntN controlIndex);
+	void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias);
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(void);
@@ -146,6 +141,7 @@ public:
 	TimeSpan getWeightedSlowPollAvgConstant();
 	Power getSlowPollPowerThreshold();
 	void removePowerLimitPolicyRequest(UIntN polixyIndex, PowerControlType::Type controlType);
+	void setPowerSharePolicyPower(const Power& powerSharePolicyPower);
 
 	// Power status
 	PowerStatus getPowerStatus(void);
@@ -218,11 +214,6 @@ private:
 	// FIXME:  consider adding a dirty bit to speed up clearing the cache.
 	//
 
-	// ConfigTdp controls
-	ConfigTdpControlDynamicCaps* m_configTdpControlDynamicCaps;
-	ConfigTdpControlStatus* m_configTdpControlStatus;
-	ConfigTdpControlSet* m_configTdpControlSet;
-
 	// Core controls
 	CoreControlStaticCaps* m_coreControlStaticCaps;
 	CoreControlDynamicCaps* m_coreControlDynamicCaps;
@@ -280,7 +271,6 @@ private:
 	// Utilization
 	UtilizationStatus* m_utilizationStatus;
 
-	void clearDomainCachedDataConfigTdpControl();
 	void clearDomainCachedDataCoreControl();
 	void clearDomainCachedDataDisplayControl();
 	void clearDomainCachedDataPerformanceControl();

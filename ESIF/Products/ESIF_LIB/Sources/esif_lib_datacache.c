@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -129,7 +129,7 @@ eEsifError DataCache_InsertValue(
 	
 	// Move old pairs down to fit the new pair
 	if (node < (int)self->size) {
-		memmove(&self->elements[node + 1], &self->elements[node], (self->size - node) * sizeof(*self->elements));
+		esif_ccb_memmove(&self->elements[node + 1], &self->elements[node], (self->size - node) * sizeof(*self->elements));
 	}
 
 	// Insert the new pair
@@ -171,7 +171,7 @@ eEsifError DataCache_DeleteValue(
 	EsifData_dtor(&self->elements[node].value);
 
 	if (node < self->size - 1) {
-		memmove(&self->elements[node], &self->elements[node + 1], (self->size - node - 1) * sizeof(*self->elements));
+		esif_ccb_memmove(&self->elements[node], &self->elements[node + 1], (self->size - node - 1) * sizeof(*self->elements));
 		esif_ccb_memset(&self->elements[self->size - 1], 0, sizeof(self->elements[0]));
 	}
 

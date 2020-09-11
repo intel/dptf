@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -286,6 +286,11 @@ UIntN PerformanceControlSet::countPpssRows(UIntN size, UInt8* data)
 	while (bytesRemaining > 0)
 	{
 		bytesRemaining -= sizeof(struct EsifDataBinaryPpssPackage);
+
+		if ((IntN)currentRow->rawUnits.string.length < 0)
+		{
+			throw dptf_exception("Expected string length invalid. (PPSS)");
+		}
 		bytesRemaining -= currentRow->rawUnits.string.length;
 
 		if (bytesRemaining >= 0)

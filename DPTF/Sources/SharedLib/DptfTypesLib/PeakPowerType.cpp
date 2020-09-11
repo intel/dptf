@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,10 +22,10 @@ std::string PeakPowerType::ToString(Type peakPowerType)
 {
 	switch (peakPowerType)
 	{
-	case ACPeakPower:
-		return "AC Peak Power";
-	case DCPeakPower:
-		return "DC Peak Power";
+	case PL4ACPower:
+		return "PL4 AC Power";
+	case PL4DCPower:
+		return "PL4 DC Power";
 	default:
 		throw dptf_exception("Invalid peak power type requested for ToString");
 	}
@@ -35,10 +35,10 @@ std::string PeakPowerType::ToXmlString(Type peakPowerType)
 {
 	switch (peakPowerType)
 	{
-	case ACPeakPower:
-		return "AC_Peak_Power";
-	case DCPeakPower:
-		return "DC_Peak_Power";
+	case PL4ACPower:
+		return "PL4_AC_Power";
+	case PL4DCPower:
+		return "PL4_DC_Power";
 	default:
 		throw dptf_exception("Invalid peak power type requested for ToXmlString");
 	}

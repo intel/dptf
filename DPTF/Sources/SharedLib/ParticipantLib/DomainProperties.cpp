@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -78,11 +78,6 @@ Bool DomainProperties::implementsActivityStatusInterface(void) const
 	return isInterfaceImplemented(m_domainFunctionalityVersions.activityStatusVersion);
 }
 
-Bool DomainProperties::implementsConfigTdpControlInterface(void) const
-{
-	return isInterfaceImplemented(m_domainFunctionalityVersions.configTdpControlVersion);
-}
-
 Bool DomainProperties::implementsCoreControlInterface(void) const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.coreControlVersion);
@@ -131,11 +126,6 @@ Bool DomainProperties::implementsBatteryStatusInterface(void) const
 Bool DomainProperties::implementsPlatformPowerStatusInterface(void) const
 {
 	return isInterfaceImplemented(m_domainFunctionalityVersions.platformPowerStatusVersion);
-}
-
-Bool DomainProperties::implementsPlatformPowerControlInterface(void) const
-{
-	return isInterfaceImplemented(m_domainFunctionalityVersions.platformPowerControlVersion);
 }
 
 Bool DomainProperties::implementsDomainPriorityInterface(void) const

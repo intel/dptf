@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,7 +34,6 @@ struct DomainFunctionalityVersions final
 	// Since all of this is provided by ESIF, a domain can mix and match the different
 	// capabilities and the participant is constructed at run time based on the DSP.
 	UInt8 activeControlVersion;
-	UInt8 configTdpControlVersion;
 	UInt8 coreControlVersion;
 	UInt8 displayControlVersion;
 	UInt8 domainPriorityVersion;
@@ -49,7 +48,6 @@ struct DomainFunctionalityVersions final
 	UInt8 rfProfileStatusVersion;
 	UInt8 systemPowerControlVersion;
 	UInt8 platformPowerStatusVersion;
-	UInt8 platformPowerControlVersion;
 	UInt8 activityStatusVersion;
 	UInt8 peakPowerControlVersion;
 	UInt8 processorControlVersion;

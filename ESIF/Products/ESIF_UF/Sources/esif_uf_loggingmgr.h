@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,7 @@
 #define DEFAULT_LOG_INTERVAL            1000      /* in ms*/
 #define MIN_LOG_INTERVAL                250      /* in ms*/
 #define MIN_LOG_INTERVAL_ADJUSTED       1         /* minimum granularity for Log interval*/
+#define MAX_LOG_INTERVAL                65535     /* in ms*/
 #define PARTICITPANTLOG_CMD_INDEX       1         /* command index in input parameters*/
 #define PARTICITPANTLOG_SUB_CMD_INDEX   2         /* sub command index in input parameters*/
 #define START_CMD_TRIPLET               3         /* pid/did/cap mask triplet*/
@@ -85,6 +86,7 @@ typedef struct EsifLoggingManager_s {
 	Bool isDefaultFile;
 	char filename[MAX_PATH];
 	UInt32 listenersMask;
+	UInt32 listenerHeadersWrittenMask;
 	char **argv;
 	UInt32 argc;
 	EsifCommandInfoPtr commandInfo;
@@ -92,13 +94,6 @@ typedef struct EsifLoggingManager_s {
 	char *logData;
 } EsifLoggingManager, *EsifLoggingManagerPtr;
 
-typedef enum EsifDataListenerType_e {
-	ESIF_LISTENER_EVENTLOG = 0,	// Overrides System Event Logger (Windows=EventLog, Linux=syslog)
-	ESIF_LISTENER_DEBUGGER = 1,	// Overrides System Debug Logger (Windows=OutputDebugString, Linux=syslog)
-	ESIF_LISTENER_LOGFILE = 2, // Logs the data in the output file
-	ESIF_LISTENER_CONSOLE = 3, // Console Output
-	ESIF_LISTENER_MAX = 4,
-} EsifDataListenerType;
 
 #define ESIF_LISTENER_NONE           0x00000000
 #define ESIF_LISTENER_EVENTLOG_MASK  0x00000001
@@ -126,6 +121,7 @@ typedef enum EsifParticipantLogDataState_e {
 typedef struct EsifParticipantLogDataNode_s {
 	EsifParticipantLogDataState state;  /*Node State */
 	esif_handle_t participantId;	/*Unique Participant Id*/
+	char name[ESIF_NAME_LEN];		/* Participant name */
 	UInt32 domainId;			        /*Unique Domain Id*/
 	UInt32 isPresent;	
 	UInt32 isAcknowledged;

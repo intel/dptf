@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -75,10 +75,6 @@ public:
 	virtual void setThresholdCrossed(const Temperature& temperature, const TimeSpan& timestamp) override;
 	virtual const TimeSpan& getTimeOfLastThresholdCrossed() const override;
 	virtual Temperature getTemperatureOfLastThresholdCrossed() const override;
-
-	// capabilities
-	virtual Bool supportsConfigTdpInterface() override;
-	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
 
 private:
 	// services

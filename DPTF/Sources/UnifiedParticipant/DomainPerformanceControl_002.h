@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,13 +53,6 @@ public:
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 
-	// ConfigTdpDataSyncInterface
-	virtual void updateBasedOnConfigTdpInformation(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		ConfigTdpControlSet configTdpControlSet,
-		ConfigTdpControlStatus configTdpControlStatus) override;
-
 protected:
 	virtual void capture(void) override;
 	virtual void restore(void) override;
@@ -92,12 +85,12 @@ private:
 	Bool isFirstTstateDeleted(UIntN domainIndex);
 
 	CachedValue<PerformanceControlStaticCaps> m_performanceControlStaticCaps;
-	CachedValue<PerformanceControlDynamicCaps> m_performanceControlDynamicCaps;
+	CachedValue<PerformanceControlDynamicCaps> m_performanceControlDynamicCaps; // TODO : Ling - do we need this?
 	CachedValue<PerformanceControlSet> m_performanceControlSet;
 	CachedValue<PerformanceControlStatus> m_performanceControlStatus;
 	CachedValue<PerformanceControlSet> m_performanceStateSet; // P-states
 	CachedValue<PerformanceControlSet> m_throttlingStateSet; // T-states
-	UIntN m_tdpFrequencyLimitControlIndex;
+	UIntN m_tdpFrequencyLimitControlIndex; // TODO: Ling - highly unlikely we'd still need this
 	CachedValue<Bool> m_isFirstTstateDeleted;
 	CachedValue<PerformanceControlDynamicCaps> m_initialStatus;
 	Bool m_capabilitiesLocked;

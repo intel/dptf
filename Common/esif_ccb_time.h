@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -68,6 +68,12 @@ typedef u64 esif_ccb_time_t; /* Agnostic */
 #elif defined(ESIF_ATTR_USER)
 
 #define MAX_CTIME_LEN	30	/* max length of ctime string */
+
+/* Opaque Real-Time Type */
+typedef struct esif_ccb_realtime_s {
+	u64 clockticks;	/* OS-specific high-resolution clock counter since last reboot */
+	u64 clocktime;	/* standard local time_t seconds since 01/01/1970 */
+} esif_ccb_realtime_t;
 
 #if defined(ESIF_ATTR_OS_WINDOWS)
 #include "esif_ccb_time_win_user.h"

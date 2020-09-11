@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 class dptf_export BatteryStatusFacadeInterface
 {
 public:
-	virtual ~BatteryStatusFacadeInterface() {};
+	virtual ~BatteryStatusFacadeInterface(){};
 
 	virtual Power getMaxBatteryPower(void) = 0;
 	virtual DptfBuffer getBatteryStatus(void) = 0;
@@ -35,4 +35,6 @@ public:
 	virtual UInt32 getBatteryHighFrequencyImpedance(void) = 0;
 	virtual UInt32 getBatteryNoLoadVoltage(void) = 0;
 	virtual UInt32 getBatteryMaxPeakCurrent(void) = 0;
+	virtual Percentage getBatteryPercentage(void) = 0;
+	virtual void setBatteryPercentage(Percentage batteryPercentage) = 0;
 };

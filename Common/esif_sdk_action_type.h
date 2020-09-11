@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -165,7 +165,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 #ifdef esif_ccb_stricmp
 static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name)
 {
-	struct esif_action_type_map_t {
+	static struct esif_action_type_map_t {
 		esif_action_type_t type;
 		esif_string name;
 	}
@@ -216,12 +216,21 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_VIRTUAL),
 	};
 
-	/* Match ESIF_ACTION_TYPENAME or TYPENAME */
-	for (size_t j = 0; j < ESIF_ARRAY_LEN(esif_action_type_map); j++) {
-		if (esif_ccb_stricmp(esif_action_type_map[j].name, name) == 0)
-			return esif_action_type_map[j].type;
-		if (esif_ccb_stricmp(esif_action_type_map[j].name+12, name) == 0)
-			return esif_action_type_map[j].type;
+	/* Match ESIF_ACTION_TYPENAME or TYPENAME using a Binary Search */
+	int start = 0, end = ESIF_ARRAY_LEN(esif_action_type_map) - 1, node = ESIF_ARRAY_LEN(esif_action_type_map) / 2;
+	size_t prefix = (esif_ccb_strnicmp(name, "ESIF_ACTION_", 12) == 0 ? 0 : 12);
+	while (start <= end) {
+		int comp = esif_ccb_stricmp(name, esif_action_type_map[node].name + prefix);
+		if (comp == 0) {
+			return esif_action_type_map[node].type;
+		}
+		else if (comp > 0) {
+			start = node + 1;
+		}
+		else {
+			end = node - 1;
+		}
+		node = (end - start) / 2 + start;
 	}
 	return (esif_action_type_t)0;
 }

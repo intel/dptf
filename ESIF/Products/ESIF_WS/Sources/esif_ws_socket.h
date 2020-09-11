@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,4 +22,3 @@
 
 // WebSocket Server Public Interface
 esif_error_t WebServer_WebsocketRequest(WebServerPtr self, WebClientPtr client, u8 *buffer, size_t buf_len);
-esif_error_t WebServer_WebsocketBroadcast(WebServerPtr self, WebClientPtr client, u8 *buffer, size_t buf_len);

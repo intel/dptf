@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "esif_ccb_string.h"
 #include "esif_ccb_time.h"
 #include "esif_sdk_sha.h"
+#include "esif_sdk_base64.h"
 
 #include "esif_ws_server.h"
 #include "esif_ws_http.h"
@@ -33,9 +34,10 @@
 #include "win\banned.h"
 #endif
 
-#include "esif_sdk_sha.c"	// Compile SHA code into this module
+#include "esif_sdk_sha.c"		// Compile SHA code into this module
 
 #define	HTTP_STATUS_OK						200
+#define	HTTP_STATUS_REDIRECT				302
 #define	HTTP_STATUS_NOT_MODIFIED			304
 #define	HTTP_STATUS_BAD_REQUEST				400
 #define	HTTP_STATUS_UNAUTHORIZED			401
@@ -50,77 +52,23 @@
 #define WS_MAX_DATETIMESTR		30				// Max HTTP GMT Date Time String Length
 
 #define	MIME_TYPE_UNKNOWN	"application/octet-stream"
+#define MIME_TYPE_ENCODING	"; charset=utf-8"
 
-#define BASE64_ENCODED_LENGTH(bytes)	(((((bytes) + 2) / 3) * 4) + 1)
-
-// Base64 Encode a Binary buffer into a Destination string
-char *esif_base64_encode(
-	char *destination,
-	size_t dest_bytes,
-	const void *source,
-	size_t src_bytes)
-{
-	static const char base64_asciimap[] = {
-		'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
-		'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-		'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-		'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
-		'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
-		'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
-		'w', 'x', 'y', 'z', '0', '1', '2', '3',
-		'4', '5', '6', '7', '8', '9', '+', '/'
-	};
-	char *result = NULL;
-	size_t i = 0, j = 0;
-	UInt8 block_of_bytes[4] = { 0 };
-	const UInt8 *data = (const UInt8 *)source;
-
-	if (dest_bytes >= (((src_bytes + 2) / 3) * 4) + 1) {
-
-		for (i = 0; i < src_bytes / 3; ++i) {
-			block_of_bytes[0] = data[i * 3 + 0] >> 2;
-			block_of_bytes[1] = ((data[i * 3 + 0] << 4) | (data[i * 3 + 1] >> 4)) & 0x3F;
-			block_of_bytes[2] = ((data[i * 3 + 1] << 2) | (data[i * 3 + 2] >> 6)) & 0x3F;
-			block_of_bytes[3] = data[i * 3 + 2] & 0x3F;
-
-			for (j = 0; j < 4; ++j)
-				*destination++ = base64_asciimap[block_of_bytes[j]];
-		}
-
-		switch (src_bytes % 3) {
-		case 0:
-			break;
-
-		case 1:
-			block_of_bytes[0] = data[i * 3 + 0] >> 2;
-			block_of_bytes[1] = (data[i * 3 + 0] << 4) & 0x3F;
-
-			*destination++ = base64_asciimap[block_of_bytes[0]];
-			*destination++ = base64_asciimap[block_of_bytes[1]];
-			*destination++ = '=';
-			*destination++ = '=';
-			break;
-
-		case 2:
-			block_of_bytes[0] = data[i * 3 + 0] >> 2;
-			block_of_bytes[1] = ((data[i * 3 + 0] << 4) | (data[i * 3 + 1] >> 4)) & 0x3F;
-			block_of_bytes[2] = (data[i * 3 + 1] << 2) & 0x3F;
-
-			*destination++ = base64_asciimap[block_of_bytes[0]];
-			*destination++ = base64_asciimap[block_of_bytes[1]];
-			*destination++ = base64_asciimap[block_of_bytes[2]];
-			*destination++ = '=';
-			break;
-
-		default:
-			break;
-		}
-
-		*destination = '\0';
-		result = destination;
-	}
-	return result;
-}
+static struct http_codes_s {
+	int code;
+	char* message;
+} g_httpCodes[] = {
+	{ HTTP_STATUS_OK,					"OK" },
+	{ HTTP_STATUS_REDIRECT,				"Found" },
+	{ HTTP_STATUS_NOT_MODIFIED,			"Not Modified" },
+	{ HTTP_STATUS_BAD_REQUEST,			"Bad Request" },
+	{ HTTP_STATUS_UNAUTHORIZED,			"Unauthorized" },
+	{ HTTP_STATUS_FORBIDDEN,			"Forbidden" },
+	{ HTTP_STATUS_NOT_FOUND,			"Not Found" },
+	{ HTTP_STATUS_METHOD_NOT_ALLOWED,	"Method Not Allowed" },
+	{ HTTP_STATUS_INTERNAL_SERVER_ERROR,"Server Error" },
+	{ HTTP_STATUS_NOT_IMPLEMENTED,		"Not Implemented" },
+};
 
 // Process HTTP Request Headers into Request Buffers (if a complete request is available)
 esif_error_t WebClient_HttpParseHeaders(WebClientPtr self, u8 *buffer, size_t buf_len)
@@ -194,6 +142,9 @@ esif_error_t WebClient_HttpParseHeaders(WebClientPtr self, u8 *buffer, size_t bu
 					httpRequest = NULL;
 					rc = ESIF_OK;
 				}
+				else {
+					WS_TRACE_ERROR("HTTP Error [IP=%s]: Invalid Request: %s %s %s\n", self->ipAddr, method, uri, proto);
+				}
 			}
 		}
 	}
@@ -228,12 +179,12 @@ const char *Http_GetMimeType(const char *resource)
 		{ "zip",  "image/zip" },
 		{ "gz",   "image/gz" },
 		{ "tar",  "image/tar" },
-		{ "htm",  "text/html" },
-		{ "html", "text/html" },
-		{ "xml",  "text/xml" },
-		{ "js",   "application/javascript" },
-		{ "css",  "text/css" },
-		{ "txt",  "text/plain" },
+		{ "htm",  "text/html" MIME_TYPE_ENCODING },
+		{ "html", "text/html" MIME_TYPE_ENCODING },
+		{ "xml",  "text/xml" MIME_TYPE_ENCODING },
+		{ "js",   "application/javascript" MIME_TYPE_ENCODING },
+		{ "css",  "text/css" MIME_TYPE_ENCODING },
+		{ "txt",  "text/plain" MIME_TYPE_ENCODING },
 		{ NULL,   NULL }
 	};
 	char *extension = NULL;
@@ -280,7 +231,6 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 		char *connection = WebClient_HttpGetHeader(client, "Connection");
 		char *host = WebClient_HttpGetHeader(client, "Host");
 		char *origin = WebClient_HttpGetHeader(client, "Origin");
-		char *user_agent = WebClient_HttpGetHeader(client, "User-Agent");
 		char *sec_websocket_key = WebClient_HttpGetHeader(client, "Sec-WebSocket-Key");
 		char *sec_websocket_protocol = WebClient_HttpGetHeader(client, "Sec-WebSocket-Protocol");
 		char *sec_websocket_version = WebClient_HttpGetHeader(client, "Sec-WebSocket-Version");
@@ -299,17 +249,14 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 
 		// Validate Origin:
 		// 1. Host: and Origin: must be an exact match (minus http prefix) unless Origin: in whitelist
-		// 2. Host: and Origin: must be "127.0.0.1:port" or "localhost:port" for Restricted Mode
 		if (rc == ESIF_OK) {
-			char *origin_wsclient = (client->mode == ServerRestricted ? NULL : "chrome-extension://pfdhoblngboilpfeibdedpjgfnlcodoo");
-			char *origin_whitelist[] = { "null", "file://", NULL, NULL }; // Origin: values sent by browsers when loading html via file instead of url
-			char *origin_prefixes[] = { "http://", NULL }; // Origin: prefixes allowed for Restrcited and Non-Restricted modes
+			char *origin_whitelist[] = { "null", "file://", NULL }; // Origin: values sent by browsers when loading html via file instead of url
+			char *origin_prefixes[] = { "http://", NULL }; // Origin: prefixes allowed
 			Bool origin_valid = ESIF_FALSE;
 			Bool prefix_valid = ESIF_FALSE;
 			int  item = 0;
-			origin_whitelist[2] = origin_wsclient;
 
-			// Origin: exact matches in Whitelist allowed in BOTH Restricted and Non-Restricted modes
+			// Origin: exact matches in Whitelist allowed in addition to prefixes.
 			// This is necessary so index.html can be loaded from filesystem to validate Web Server functionality in both modes
 			for (item = 0; !origin_valid && origin_whitelist[item] != NULL; item++) {
 				if (esif_ccb_stricmp(origin, origin_whitelist[item]) == 0) {
@@ -317,7 +264,7 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 				}
 			}
 
-			// Origin: prefixes in Prefix List allowed in Restricted and Non-Restricted modes
+			// Origin: prefixes in Prefix List allowed.
 			for (item = 0; !origin_valid && !prefix_valid && origin_prefixes[item] != NULL; item++) {
 				size_t item_len = esif_ccb_strlen(origin_prefixes[item], WS_MAX_URL);
 				if (esif_ccb_strncmp(origin, origin_prefixes[item], item_len) == 0) {
@@ -327,13 +274,8 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 			}
 
 			// Origin: and Host: must be an exact match except for Whitelisted Origins
-			// Only "127.0.0.1:port" "localhost:port" are valid Origins in Restricted mode except for Whitelisted Origins
 			if (!origin_valid && prefix_valid && esif_ccb_stricmp(host, origin) == 0) {
-				if ((client->mode != ServerRestricted) ||
-					(esif_ccb_strncmp(origin, "127.0.0.1:", 10) == 0) ||
-					(esif_ccb_strnicmp(origin, "localhost:", 10) == 0)) {
-					origin_valid = ESIF_TRUE;
-				}
+				origin_valid = ESIF_TRUE;
 			}
 
 			// Return error if neither Whitelisted Origin nor a matching Host: and Origin: is present
@@ -360,6 +302,7 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 				"Upgrade: websocket" CRLF
 				"Connection: Upgrade" CRLF
 				"Sec-WebSocket-Accept: %s" CRLF
+				"Content-Length: 0" CRLF
 				CRLF,
 				response_key);
 
@@ -369,12 +312,6 @@ esif_error_t WebServer_HttpWebsocketUpgrade(WebServerPtr self, WebClientPtr clie
 		// Client is now a WebSocket Connection
 		if (rc == ESIF_OK) {
 			client->type = ClientWebsocket;
-
-			// Only allow Event Subscribers from specific User Agents for now
-			// Future versions should do this based on a Subscription request message from client
-			if (user_agent && esif_ccb_stricmp(user_agent, "DptfMonitor/1.0") == 0) {
-				client->isSubscriber = ESIF_TRUE;
-			}
 
 			// Clear HTTP Request
 			esif_ccb_free(client->httpBuf);
@@ -452,42 +389,60 @@ static time_t Http_LocalTimeFromGmt(char *str)
 }
 
 // Send an HTTP Status code to the client and close the connection
-esif_error_t WebServer_HttpSendError(WebServerPtr self, WebClientPtr client, int httpStatus)
+esif_error_t WebServer_HttpSendError(WebServerPtr self, WebClientPtr client, int httpStatus, const char* fmt, ...)
 {
 	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
 
-	// Close connection with no response in Restricted Mode, otherwise return HTTP Status
+	// Return HTTP Status
 	if (self && client) {
 		client->httpStatus = httpStatus;
 
 		rc = ESIF_OK;
-		if (client->mode != ServerRestricted) {
-			char *message = NULL;
-
-			switch (httpStatus) {
-			case HTTP_STATUS_NOT_FOUND:
-				message = "Not Found";
-				break;
-			case HTTP_STATUS_NOT_IMPLEMENTED:
-				message = "Not Implemented";
-				break;
-			default:
-				message = "Server Error";
+		char *message = "Server Error";
+		char *redirect = "";
+			
+		for (size_t j = 0; j < ESIF_ARRAY_LEN(g_httpCodes); j++) {
+			if (g_httpCodes[j].code == httpStatus || g_httpCodes[j].code == 0) {
+				message = g_httpCodes[j].message;
+				if (httpStatus == HTTP_STATUS_REDIRECT) {
+					redirect = "Location: /index.html" CRLF;
+				}
 				break;
 			}
-
-			size_t bytes = esif_ccb_sprintf(self->netBufLen, (char *)self->netBuf,
-				"HTTP/1.1 %d %s" CRLF
-				"Connection: close" CRLF
-				CRLF
-				"<h1>%d %s</h1>",
-				httpStatus,
-				message,
-				httpStatus,
-				message);
-
-			rc = WebClient_Write(client, self->netBuf, bytes);
 		}
+
+		// Log Optional Custom Message
+		if (fmt) {
+			va_list args;
+			va_start(args, fmt);
+			int len = esif_ccb_vscprintf(fmt, args);
+			char* logmsg = NULL;
+			if (len > 0 && (logmsg = esif_ccb_malloc((size_t)len + 1)) != NULL) {
+				esif_ccb_vsprintf((size_t)len + 1, logmsg, fmt, args);
+				WS_TRACE_ERROR(
+					"HTTP Error [IP=%s]: %d %s: %s\n",
+					client->ipAddr,
+					httpStatus,
+					message,
+					logmsg
+				);
+				esif_ccb_free(logmsg);
+			}
+			va_end(args);
+		}
+
+		size_t bytes = esif_ccb_sprintf(self->netBufLen, (char *)self->netBuf,
+			"HTTP/1.1 %d %s" CRLF
+			"%s"
+			"Content-Length: 0" CRLF
+			"Connection: close" CRLF
+			CRLF,
+			httpStatus,
+			message,
+			redirect
+		);
+
+		rc = WebClient_Write(client, self->netBuf, bytes);
 		WebClient_Close(client);
 	}
 	return rc;
@@ -500,7 +455,6 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 
 	if (self && client) {
 		const char *docRoot = EsifWsDocRoot();
-		const char *logRoot = EsifWsLogRoot();
 		const char *docType = MIME_TYPE_UNKNOWN;
 		char *uri = WebClient_HttpGetURI(client);
 		char *if_modified_since = NULL;
@@ -515,16 +469,16 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 			// Default Document
 			esif_ccb_strcpy(resource, uri, sizeof(resource));
 			if (esif_ccb_strcmp(resource, "/") == 0) {
-				esif_ccb_strcat(resource, "index.html", sizeof(resource));
+				rc = WebServer_HttpSendError(self, client, HTTP_STATUS_REDIRECT, NULL);
+				completed = ESIF_TRUE;
 			}
-			docType = Http_GetMimeType(resource);
+			else {
+				docType = Http_GetMimeType(resource);
 
-			// Look for URI in HTTP Document Root first, then Log file Root
-			esif_ccb_sprintf(sizeof(resource_path), resource_path, "%s%s", docRoot, resource);
-			if (logRoot != NULL && esif_ccb_stat(resource_path, &st) != 0) {
-				esif_ccb_sprintf(sizeof(resource_path), resource_path, "%s%s", logRoot, resource);
+				// Look for URI in HTTP Document Root
+				esif_ccb_sprintf(sizeof(resource_path), resource_path, "%s%s", docRoot, resource);
 				if (esif_ccb_stat(resource_path, &st) != 0) {
-					rc = WebServer_HttpSendError(self, client, HTTP_STATUS_NOT_FOUND);
+					rc = WebServer_HttpSendError(self, client, HTTP_STATUS_NOT_FOUND, "Path=%s", resource);
 					completed = ESIF_TRUE;
 				}
 			}
@@ -540,6 +494,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 						"HTTP/1.1 %d Not Modified" CRLF
 						"Server: ESIF_UF/%s" CRLF
 						"Date: %s" CRLF
+						"Content-Length: 0" CRLF
 						"Connection: close" CRLF
 						CRLF,
 						client->httpStatus,
@@ -555,7 +510,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 			if (completed == ESIF_FALSE) {
 				FILE *fp = esif_ccb_fopen(resource_path, "rb", NULL);
 				if (fp == NULL) {
-					WebServer_HttpSendError(self, client, HTTP_STATUS_NOT_FOUND);
+					WebServer_HttpSendError(self, client, HTTP_STATUS_NOT_FOUND, "PathName=%s", resource_path);
 					rc = ESIF_E_IO_OPEN_FAILED;
 				}
 				else {
@@ -578,6 +533,15 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 						"Content-Type: %s" CRLF
 						"Content-Length: %ld" CRLF
 						"%s"
+						"Content-Security-Policy: frame-ancestors 'none';" CRLF
+						"Content-Security-Policy: default-src 'self' 'unsafe-inline' data:;" CRLF
+						"Content-Security-Policy: script-src 'self' 'unsafe-inline';" CRLF
+						"Content-Security-Policy: connect-src 'self';" CRLF
+						"Content-Security-Policy: form-action 'none';" CRLF
+						"Content-Security-Policy: sandbox allow-scripts allow-same-origin;" CRLF
+						"X-Content-Type-Options: nosniff" CRLF
+						"X-XSS-Protection: 1; mode=block" CRLF
+						"X-Frame-Options: deny" CRLF
 						"Connection: close" CRLF
 						CRLF,
 						client->httpStatus,
@@ -600,7 +564,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 
 		// Close Connection for unhandled requests
 		if (completed == ESIF_FALSE) {
-			WebServer_HttpSendError(self, client, HTTP_STATUS_BAD_REQUEST);
+			WebServer_HttpSendError(self, client, HTTP_STATUS_BAD_REQUEST, "URI=%s", uri);
 			rc = ESIF_E_WS_DISC;
 		}
 		WS_TRACE_DEBUG("HTTP: rc=%s (%d), status=%d, type=%s, file=%s\n", esif_rc_str(rc), rc, client->httpStatus, docType, resource_path);
@@ -625,14 +589,9 @@ esif_error_t WebServer_HttpRequest(WebServerPtr self, WebClientPtr client, u8 *b
 			if (upgrade && (esif_ccb_stricmp(upgrade, "websocket") == 0)) {
 				rc = WebServer_HttpWebsocketUpgrade(self, client);
 			}
-			// Process Regular HTTP Request unless Restricted Mode
+			// Process Regular HTTP Request
 			else {
-				if (client->mode == ServerRestricted) {
-					rc = ESIF_E_WS_UNAUTHORIZED;
-				}
-				else {
-					rc = WebServer_HttpResponse(self, client);
-				}
+				rc = WebServer_HttpResponse(self, client);
 			}
 		}
 

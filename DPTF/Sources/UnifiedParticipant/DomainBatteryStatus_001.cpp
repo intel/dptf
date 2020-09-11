@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -76,6 +76,21 @@ UInt32 DomainBatteryStatus_001::getBatteryNoLoadVoltage()
 UInt32 DomainBatteryStatus_001::getBatteryMaxPeakCurrent()
 {
 	return getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_BATTERY_MAX_PEAK_CURRENT, getDomainIndex());
+}
+
+Percentage DomainBatteryStatus_001::getBatteryPercentage()
+{
+	return getParticipantServices()->primitiveExecuteGetAsPercentage(
+		esif_primitive_type::GET_BATTERY_PERCENTAGE, getDomainIndex(), Constants::Esif::NoPersistInstance);
+}
+
+void DomainBatteryStatus_001::setBatteryPercentage(Percentage batteryPercentage)
+{
+	getParticipantServices()->primitiveExecuteSetAsPercentage(
+		esif_primitive_type::SET_BATTERY_PERCENTAGE,
+		batteryPercentage,
+		getDomainIndex(),
+		Constants::Esif::NoPersistInstance);
 }
 
 void DomainBatteryStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
@@ -166,6 +181,19 @@ std::shared_ptr<XmlNode> DomainBatteryStatus_001::getXml(UIntN domainIndex)
 		cmppStatus->addChild(XmlNode::createDataElement("value", "Error"));
 	}
 	root->addChild(cmppStatus);
+
+	auto bpStatus = XmlNode::createWrapperElement("battery_status_object");
+	bpStatus->addChild(XmlNode::createDataElement("name", "Battery Percentage"));
+	try
+	{
+		bpStatus->addChild(
+			XmlNode::createDataElement("value", friendlyValue(getBatteryPercentage().toWholeNumber()) + "%"));
+	}
+	catch (...)
+	{
+		bpStatus->addChild(XmlNode::createDataElement("value", "Error"));
+	}
+	root->addChild(bpStatus);
 
 	return root;
 }

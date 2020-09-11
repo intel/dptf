@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -270,7 +270,7 @@ void esif_sha_update(esif_sha_t *self, const void *source, size_t bytes)
 		while (self->blockused + bytes >= self->blocksize) {
 			esif_ccb_memcpy(&self->block[self->blockused], octets, self->blocksize - self->blockused);
 			esif_sha_transform(self);
-			self->digest_bits += (self->blocksize * 8);
+			self->digest_bits += (UInt64)self->blocksize * 8;
 			octets += self->blocksize - self->blockused;
 			bytes -= self->blocksize - self->blockused;
 			self->blockused = 0;
@@ -290,7 +290,7 @@ void esif_sha_finish(esif_sha_t *self)
 		// Terminate data with 0x80 and pad remaining block with zeros
 		self->block[self->blockused] = 0x80;
 		if ((self->blockused + 1) < self->blocksize) {
-			esif_ccb_memset(&self->block[self->blockused + 1], 0, self->blocksize - self->blockused - 1);
+			esif_ccb_memset(&self->block[self->blockused + 1], 0, (size_t)self->blocksize - self->blockused - 1);
 		}
 		// Transform block and start a new one if block too full to append digest length
 		if (self->blockused >= self->blocksize - sizeof(self->digest_bits)) {
@@ -299,7 +299,7 @@ void esif_sha_finish(esif_sha_t *self)
 		}
 
 		// Append digest length in bits to message and do one final transform
-		self->digest_bits += (self->blockused * 8);
+		self->digest_bits += (UInt64)self->blockused * 8;
 		UInt64 digest_length = ((UInt64)REORDERBYTES((UInt32)self->digest_bits) << 32) | REORDERBYTES((UInt32)(self->digest_bits >> 32));
 		esif_ccb_memcpy(&self->block[self->blocksize - sizeof(digest_length)], &digest_length, sizeof(digest_length));
 		esif_sha_transform(self);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,7 @@
 #include "esif_uf_version.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_handlemgr.h"
+#include "esif_uf_upsm.h"
 
 /* Init */
 #include "esif_dsp.h"		/* Device Support Package */
@@ -647,7 +648,7 @@ void esif_pathlist_exit(void)
 		esif_ccb_free(g_pathlist.pathlist[j]);
 	}
 	esif_ccb_free(g_pathlist.pathlist);
-	memset(&g_pathlist, 0, sizeof(g_pathlist));
+	esif_ccb_memset(&g_pathlist, 0, sizeof(g_pathlist));
 }
 
 // Set a Pathname
@@ -693,13 +694,20 @@ esif_string esif_build_path(
 	esif_string ext)
 {
 	char *pathname = NULL;
+	Bool autocreate = ESIF_TRUE;
 
 	if (NULL == buffer) {
 		return NULL;
 	}
 
-	// Get Pathname. Do not return full path in result string if it starts with a "#" unless no filename specified
+	// Get Pathname
 	if ((pathname = esif_pathlist_get(type)) != NULL) {
+		// Do not attempt to create folders or check for symlinks on paths that start with a "$"
+		if (*pathname == '$') {
+			pathname++;
+			autocreate = ESIF_FALSE;
+		}
+		// Do not return full path in result string if it starts with a "#" unless no filename specified
 		if (*pathname == '#') {
 			if (filename == NULL && ext == NULL)
 				pathname++;
@@ -710,7 +718,7 @@ esif_string esif_build_path(
 	}
 
 	// Create folder if necessary
-	if (buffer[0] != '\0') {
+	if (buffer[0] != '\0' && autocreate) {
 		esif_ccb_makepath(buffer);
 	}
 
@@ -851,7 +859,6 @@ eEsifError EsifWebLoad()
 
 				atomic_set(&self->fInterface.traceLevel, (atomic_basetype)g_traceLevel);
 				esif_build_path(self->fInterface.docRoot, sizeof(self->fInterface.docRoot), ESIF_PATHTYPE_UI, NULL, NULL);
-				esif_build_path(self->fInterface.logRoot, sizeof(self->fInterface.logRoot), ESIF_PATHTYPE_LOG, NULL, NULL);
 
 				self->fInterface.tEsifWsLockFuncPtr = EsifWsLock;
 				self->fInterface.tEsifWsUnlockFuncPtr = EsifWsUnlock;
@@ -987,50 +994,30 @@ void *EsifWebAlloc(size_t buf_len)
 	return rc;
 }
 
-Bool EsifWebIsServerMode(Bool restricted)
-{
-	EsifWebMgrPtr self = &g_WebMgr;
-	Bool result = ESIF_FALSE;
-	int j = 0;
-
-	esif_ccb_mutex_lock(&self->fLock);
-
-	for (j = 0; j < WS_LISTENERS && !result; j++) {
-		if (restricted && self->fInterface.isRestricted[j]) {
-			result = ESIF_TRUE;
-		}
-		else if (!restricted && !self->fInterface.isRestricted[j] && (self->fInterface.ipAddr[j][0] || self->fInterface.port[j] || j == 0)) {
-			result = ESIF_TRUE;
-		}
-	}
-	esif_ccb_mutex_unlock(&self->fLock);
-	return result;
-}
-
 const char *EsifWebVersion(void)
 {
 	EsifWebMgrPtr self = &g_WebMgr;
 	return self->fInterface.wsVersion;
 }
 
-Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, Bool *restricted_ptr)
+Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, esif_flags_t *flags_ptr)
 {
 	Bool rc = ESIF_FALSE;
 	EsifWebMgrPtr self = &g_WebMgr;
 
 	esif_ccb_mutex_lock(&self->fLock);
 
-	if (instance < WS_LISTENERS && ipaddr_ptr && port_ptr && restricted_ptr) {
+	if (instance < WS_LISTENERS && ipaddr_ptr && port_ptr && flags_ptr) {
 		*ipaddr_ptr = self->fInterface.ipAddr[instance];
 		*port_ptr = self->fInterface.port[instance];
-		*restricted_ptr = self->fInterface.isRestricted[instance];
+		*flags_ptr = self->fInterface.flags[instance];
 		rc = ESIF_TRUE;
 	}
 	esif_ccb_mutex_unlock(&self->fLock);
 	return rc;
 }
 
-void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, Bool restricted)
+void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, esif_flags_t flags)
 {
 	EsifWebMgrPtr self = &g_WebMgr;
 
@@ -1039,13 +1026,13 @@ void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, Bool restricted
 	if (instance == ESIF_WS_INSTANCE_ALL) {
 		esif_ccb_memset(&self->fInterface.ipAddr, 0, sizeof(self->fInterface.ipAddr));
 		esif_ccb_memset(&self->fInterface.port, 0, sizeof(self->fInterface.port));
-		esif_ccb_memset(&self->fInterface.isRestricted, 0, sizeof(self->fInterface.isRestricted));
+		esif_ccb_memset(&self->fInterface.flags, 0, sizeof(self->fInterface.flags));
 		instance = 0;
 	}
 	if (instance < WS_LISTENERS) {
 		esif_ccb_strcpy(self->fInterface.ipAddr[instance], (ipaddr ? ipaddr : ""), sizeof(self->fInterface.ipAddr[instance]));
 		self->fInterface.port[instance] = port;
-		self->fInterface.isRestricted[instance] = restricted;
+		self->fInterface.flags[instance] = flags;
 	}
 	esif_ccb_mutex_unlock(&self->fLock);
 }
@@ -1059,27 +1046,6 @@ void EsifWebSetTraceLevel(int level)
 		}
 		atomic_set(&self->fInterface.traceLevel, (atomic_basetype)level);
 	}
-}
-
-eEsifError EsifWebBroadcast(const u8 *buffer, size_t buf_len)
-{
-	eEsifError rc = ESIF_E_CALLBACK_IS_NULL;
-	EsifWebMgrPtr self = &g_WebMgr;
-
-	esif_ccb_mutex_lock(&self->fLock);
-
-	// Broadcast Buffer to Active Subscribers after locking WS Interface to prevent Start/Stop/Load/Unload
-	if (self->fInterface.fEsifWsBroadcastFuncPtr) {
-		rc = self->fInterface.fEsifWsBroadcastFuncPtr(buffer, buf_len);
-	}
-	esif_ccb_mutex_unlock(&self->fLock);
-	return rc;
-}
-
-// Deprectated
-eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
-{
-	return EsifWebBroadcast(bufferPtr, bufferSize);
 }
 
 #else
@@ -1109,29 +1075,14 @@ int EsifWebIsStarted()
 {
 	return 0;
 }
-Bool EsifWebIsRestricted(void)
-{
-	return ESIF_FALSE;
-}
-void EsifWebSetIpaddrPort(const char *ipaddr, u32 port, Bool restricted)
+void EsifWebSetIpaddrPort(const char *ipaddr, u32 port)
 {
 	UNREFERENCED_PARAMETER(ipaddr);
 	UNREFERENCED_PARAMETER(port);
-	UNREFERENCED_PARAMETER(restricted);
 }
 void EsifWebSetTraceLevel(int level)
 {
 	UNREFERENCED_PARAMETER(level);
-}
-eEsifError EsifWebBroadcast(void *buffer, size_t buf_len)
-{
-	UNREFERENCED_PARAMETER(buffer);
-	UNREFERENCED_PARAMETER(buf_len);
-	return ESIF_E_NOT_IMPLEMENTED;
-}
-eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize)
-{
-	return EsifWebBroadcast((void *)bufferPtr, bufferSize);
 }
 #endif
 
@@ -1151,6 +1102,8 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ EsifAppMgr_Init,					EsifAppMgr_Exit,					ESIF_INIT_FLAG_NONE },
 	{ EsifUpPm_Init,					EsifUpPm_Exit,						ESIF_INIT_FLAG_NONE },
 	{ esif_uf_os_init,					esif_uf_os_exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifUpsm_Init,					EsifUpsm_Exit,						ESIF_INIT_FLAG_NONE },
+	{ EsifUpsm_Start,					EsifUpsm_Stop,						ESIF_INIT_FLAG_IGNORE_ERROR },
 	{ EsifCnjMgrInit,					EsifCnjMgrExit,						ESIF_INIT_FLAG_NONE },
 	{ EsifAppMgr_Start,					EsifAppMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE },
@@ -1165,8 +1118,9 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ esif_uf_shell_banner_init,		NULL,								ESIF_INIT_FLAG_NONE },
 	// If shutting down, event processing is disabled
 	{ NULL,								EsifEventMgr_Disable,				ESIF_INIT_FLAG_NONE },
-	{ NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE },
+	{ NULL,								EsifWebStop,						ESIF_INIT_FLAG_NONE | ESIF_INIT_FLAG_MUST_RUN_ON_EXIT},
 };
+
 
 //
 // esif_uf_init may be stopped (esif_uf_stop_init) and restarted, but there
@@ -1252,6 +1206,8 @@ eEsifError esif_uf_init(void)
 void esif_uf_exit()
 {
 	EsifInitTableEntryPtr curEntryPtr = NULL;
+	int num_entries = sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr);
+	int index = num_entries - 1;
 
 	ESIF_TRACE_ENTRY_INFO();
 
@@ -1260,17 +1216,26 @@ void esif_uf_exit()
 	if (g_esifUfInitPartial) {
 		g_esifUfInitIndex++;  // Must call exit for partially initialized objects
 	}
-	if ((size_t)g_esifUfInitIndex >= (sizeof(g_esifUfInitTable) / sizeof(*curEntryPtr))) {
+	if ((size_t)g_esifUfInitIndex >= num_entries) {
 		goto exit;
 	}
-	curEntryPtr = &g_esifUfInitTable[g_esifUfInitIndex];
 
-	for (; g_esifUfInitIndex >= 0; g_esifUfInitIndex--, curEntryPtr--) {
-	
-		if (curEntryPtr->exitFunc != NULL) {
-			curEntryPtr->exitFunc();
+	curEntryPtr = &g_esifUfInitTable[index];
+
+	for (; index >= 0; index--, curEntryPtr--) {
+		//
+		// Go through all items on exit to allow for items which must be run;
+		// regardless of where initialization stopped
+		//
+		ESIF_TRACE_API_INFO("[EXIT] ESIF UF exit Step %d\n", index);
+		if ((index <= g_esifUfInitIndex) || (curEntryPtr->flags & ESIF_INIT_FLAG_MUST_RUN_ON_EXIT)) {
+			if (curEntryPtr->exitFunc != NULL) {
+				curEntryPtr->exitFunc();
+				ESIF_TRACE_API_INFO("[EXIT] ESIF UF exit Step %d complete\n", index);
+			}
 		}
 	}
+	g_esifUfInitIndex = -1;
 	g_stopEsifUfInit = ESIF_FALSE;
 exit:
 	ESIF_TRACE_EXIT_INFO();

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -70,6 +70,9 @@ typedef enum esif_pci_device_id {
 	ESIF_PCI_DEVICE_ID_CPT = 0x1c24,
 	ESIF_PCI_DEVICE_ID_PPT = 0x1e24,
 	ESIF_PCI_DEVICE_ID_CHV = 0x22dc,
+	ESIF_PCI_DEVICE_ID_ADL = 0x461D,
+	ESIF_PCI_DEVICE_ID_RKL = 0x4C03,
+	ESIF_PCI_DEVICE_ID_JSL = 0x4E03,
 	ESIF_PCI_DEVICE_ID_CNL = 0x5a03,
 	ESIF_PCI_DEVICE_ID_ICL = 0x8a03,
 	ESIF_PCI_DEVICE_ID_LPT = 0x8c24,
@@ -102,6 +105,12 @@ static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 		"Panther Point(DPTF PCH)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_CHV,
 		"Cherry View SOC(DPTF CPU)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_ADL,
+		"DPTF Participant for 10th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_RKL,
+		"DPTF Participant for 8th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_JSL,
+		"DPTF Processor Participant for Jasper Lake SoC(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_CNL,
 		"DPTF Participant for 7th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_ICL,
@@ -168,6 +177,9 @@ const struct pci_device_id esif_pci_cpu_ids[] = {
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LKF) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_ICL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_TGL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_ADL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_RKL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_JSL) },
 	{ 0 }
 };
 

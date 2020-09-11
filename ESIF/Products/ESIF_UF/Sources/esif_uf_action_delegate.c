@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,7 @@
 #include "esif_temp.h"
 #include "esif_ccb_cpuid.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_sensors.h"
 
 // !!!
 // TODO: Once we move to the DOMAIN MGR some of the interfaces in this file might change!!!
@@ -84,6 +85,10 @@ static eEsifError EsifGetActionDelegateSupportSocWorkload(
 	const EsifDataPtr requestPtr,
 	EsifDataPtr responsePtr
 	);
+
+static eEsifError EsifGetActionDelegateIsCVFSensor(
+	EsifDataPtr responsePtr
+);
 
 static eEsifError EsifSetActionDelegateSphb(
 	const EsifUpDomainPtr domainPtr,
@@ -143,15 +148,22 @@ esif_error_t set_display_state_win(EsifDataPtr requestPtr);
 esif_error_t set_screen_autolock_state_win(EsifDataPtr requestPtr);
 esif_error_t set_wake_on_approach_state_win(EsifDataPtr requestPtr);
 esif_error_t set_workstation_lock_win();
-esif_error_t get_last_hit_input_time_win(EsifDataPtr responsePtr);
+esif_error_t get_last_hid_input_time_win(EsifDataPtr responsePtr);
 esif_error_t get_display_required_win(EsifDataPtr responsePtr);
+esif_error_t get_is_ext_mon_connected_win(EsifDataPtr responsePtr);
+esif_error_t EsifSetActionDelegateDppeSettingWin(
+	EsifDataPtr requestPtr,
+	const GUID* guid
+);
 
 #define set_display_state(reqPtr) set_display_state_win(reqPtr)
 #define set_screen_autolock_state(reqPtr) set_screen_autolock_state_win(reqPtr)
 #define set_wake_on_approach_state(reqPtr) set_wake_on_approach_state_win(reqPtr)
 #define set_workstation_lock() set_workstation_lock_win()
-#define get_last_hit_input_time(rspPtr) get_last_hit_input_time_win(rspPtr)
+#define get_last_hid_input_time(rspPtr) get_last_hid_input_time_win(rspPtr)
 #define get_display_required(rspPtr) get_display_required_win(rspPtr)
+#define get_is_ext_mon_connected(rspPtr) get_is_ext_mon_connected_win(rspPtr)
+#define EsifSetActionDelegateDppeSetting(requestPtr, guid) EsifSetActionDelegateDppeSettingWin(requestPtr, guid)
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 
@@ -159,8 +171,10 @@ esif_error_t get_display_required_win(EsifDataPtr responsePtr);
 #define set_screen_autolock_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_wake_on_approach_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_workstation_lock() (ESIF_E_NOT_IMPLEMENTED)
-#define get_last_hit_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_last_hid_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateDppeSetting(requestPtr, guid) (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
 
@@ -241,14 +255,23 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 	case 'KWSS': /* SSWK */
 		rc = EsifGetActionDelegateSupportSocWorkload(domainPtr, requestPtr, responsePtr);
 		break;
-		
+
 	case 'IHLG': /* GLHI **/
-		rc = get_last_hit_input_time(responsePtr);
+		rc = get_last_hid_input_time(responsePtr);
 		break;
 
 	case 'RDEG': /* GEDR */
 		rc = get_display_required(responsePtr);
 		break;
+
+	case 'CMEI': /* IEMC **/
+		rc = get_is_ext_mon_connected(responsePtr);
+		break;
+
+	case 'SCIG': /* GICS **/
+		rc = EsifGetActionDelegateIsCVFSensor(responsePtr);
+		break;
+
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
 		break;
@@ -408,6 +431,154 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'PASS':	/* SSAP: Specific Action Primitive execution */
 		rc = EsifSetActionDelegateSsap(upPtr, requestPtr);
+		break;
+
+	case 'SDDA': /* ADDS */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD);
+		break;
+
+	case 'MEDA': /* ADEM */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD_EXTERNAL_MONITOR);
+		break;
+
+	case 'DPDA': /* ADPD */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD_PRE_DIM_WAIT_TIME);
+		break;
+
+	case 'MPDA': /* ADPM */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD_PRESENTATION_MODE);
+		break;
+
+	case 'SDLN': /* NLDS */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP);
+		break;
+
+	case 'SDBN': /* NBDS */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_BATTERY);
+		break;
+
+	case 'PRBN': /* NBRP */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_BATTERY_REMAINING_PERCENTAGE);
+		break;
+
+	case 'WRLN': /* NLRW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_RESET_WAITTIME);
+		break;
+
+	case 'SDAW': /* WADS */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA);
+		break;
+
+	case 'MEAW': /* WAEM */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_EXTERNAL_MONITOR);
+		break;
+
+	case 'BLAW': /* WALB */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_LOW_BATTERY);
+		break;
+
+	case 'TBAW': /* WABT */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_BATTERY_REMAINING_PERCENTAGE);
+		break;
+
+	case 'SDLW': /* WLDS */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL);
+		break;
+
+	case 'MELW': /* WLEM */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_EXTERNAL_MONITOR);
+		break;
+
+	case 'DLAW': /* WALD */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_PRE_DIM_WAIT_TIME);
+		break;
+
+	case 'TWPU': /* UPWT */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_PRESENT_WAIT_TIMEOUT);
+		break;
+
+	case 'MDLW': /* WLDM */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_DIM_SCREEN);
+		break;
+
+	case 'PHLW': /* WLHP */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_HONOR_DISPLAY_POWER_REQUEST);
+		break;
+
+	case 'CULW': /* WLUC */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_HONOR_USER_IN_CALL);
+		break;
+
+	case 'LSLW': /* WLSL */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_WAITTIME);
+		break;
+
+	case 'ODLW': /* WLDO */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_DISPLAY_OFF_AFTER_LOCK);
+		break;
+
+	case 'ILAW': /* WALI */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_DIM_INTERVAL);
+		break;
+
+	case 'ELAW': /* WALE */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_EVENT_STATE);
+		break;
+
+	case 'EAOW': /* WOAE */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_EVENT_STATE);
+		break;
+
+	case 'SEME': /* EMES */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_EXTERNAL_MONITOR_CONNECTED_EVENT_STATE);
+		break;
+
+	case 'DFPM': /* MPFD */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_FACE_DETECTION);
+		break;
+
+	case 'WTPM': /* MPTW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_TIME_WINDOW);
+		break;
+
+	case 'WD1M': /* M1DW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_1_DIM_WAIT_TIME);
+		break;
+
+	case 'WD2M': /* M2DW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_2_DIM_WAIT_TIME);
+		break;
+
+	case 'WD3M': /* M3DW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_3_DIM_WAIT_TIME);
+		break;
+
+	case 'WD4M': /* M4DW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_4_DIM_WAIT_TIME);
+		break;
+
+	case 'OTSF': /* FSTO */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_FAILSAFE_TIMEOUT);
+		break;
+
+	case 'MELN': /* NLEM */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_EXTERNAL_MONITOR);
+		break;
+
+	case 'TDPN': /* NPDT */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_NOT_PRESENT_DIM_TARGET);
+		break;
+
+	case 'RDID': /* DIDR */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIMMING_INTERVAL);
+		break;
+
+	case 'TDID': /* DIDT */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIM_TARGET);
+		break;
+
+	case 'WDID': /* DIDW */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIM_WAIT_TIME);
 		break;
 
 	case 'SNSS': /* SSNS */
@@ -903,10 +1074,8 @@ static eEsifError EsifGetActionDelegateCnfg(
 				g_shell_enabled = 0;
 			}
 
-			// Stop Web Server (if Started) if Restricted or Generic Access Control forbids it
-			if (EsifWebIsStarted() && 
-				((EsifWebIsServerMode(ESIF_FALSE) && DCfg_Get().opt.GenericUIAccessControl)|| 
-				 (EsifWebIsServerMode(ESIF_TRUE) && DCfg_Get().opt.RestrictedUIAccessControl)) ) {
+			// Stop Web Server (if Started) if UI Access Control forbids it
+			if (EsifWebIsStarted() && DCfg_Get().opt.GenericUIAccessControl) {
 				EsifWebStop();
 			}
 
@@ -968,6 +1137,9 @@ static eEsifError EsifGetActionDelegateCnfg(
 					// Return GDDV Comment from first Header in Repo
 					DataRepoInfo info = { 0 };
 					rc = DataRepo_GetInfo(repo, &info);
+					if (rc == ESIF_OK) {
+						rc = DataRepo_ValidateSegment(repo);
+					}
 					if (rc == ESIF_OK) {
 						UInt32 data_len = (UInt32)esif_ccb_strlen(info.comment, sizeof(info.comment)) + 1;
 						if (responsePtr == NULL) {
@@ -1142,6 +1314,24 @@ static eEsifError EsifGetActionDelegateSupportSocWorkload(
 	}
 
 	*((UInt8 *)responsePtr->buf_ptr) = isSupported;
+
+exit:
+	return rc;
+}
+
+static eEsifError EsifGetActionDelegateIsCVFSensor(
+	EsifDataPtr responsePtr)
+{
+	eEsifError rc = ESIF_OK;
+
+	ESIF_ASSERT(responsePtr != NULL);
+
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	*(u32 *)responsePtr->buf_ptr = (u32)(esif_is_face_detection_capable_sensor());
 
 exit:
 	return rc;

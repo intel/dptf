@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -64,12 +64,10 @@ private:
 	// Functions
 	CoreControlStaticCaps createCoreControlStaticCaps(UIntN domainIndex);
 	CoreControlDynamicCaps createCoreControlDynamicCaps(UIntN domainIndex);
-	CoreControlLpoPreference createCoreControlLpoPreference(UIntN domainIndex);
 	void verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus);
 
 	// Vars (external)
 	CachedValue<CoreControlStaticCaps> m_coreControlStaticCaps;
 	CachedValue<CoreControlDynamicCaps> m_coreControlDynamicCaps;
-	CachedValue<CoreControlLpoPreference> m_coreControlLpoPreference;
 	CachedValue<CoreControlStatus> m_coreControlStatus;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,8 +41,6 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "ActiveControlSetDynamicCaps";
 	case ActiveControlSetFanCapsLock:
 		return "ActiveControlSetFanCapsLock";
-	case PlaftormPowerControlSetPortPowerLimit:
-		return "PlaftormPowerControlSetPortPowerLimit";
 	case BatteryStatusGetMaxBatteryPower:
 		return "BatteryStatusGetMaxBatteryPower";
 	case BatteryStatusGetBatteryStatus:
@@ -59,6 +57,10 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "BatteryStatusGetBatteryNoLoadVoltage";
 	case BatteryStatusGetBatteryMaxPeakCurrent:
 		return "BatteryStatusGetBatteryMaxPeakCurrent";
+	case BatteryStatusGetBatteryPercentage:
+		return "BatteryStatusGetBatteryPercentage";
+	case BatteryStatusSetBatteryPercentage:
+		return "BatteryStatusSetBatteryPercentage";
 	case PlatformNotificationSetOsc:
 		return "PlatformNotificationSetOsc";
 	case PlatformNotificationSetApplicationAliveResponse:

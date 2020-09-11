@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -696,4 +696,28 @@ void DomainPowerControl_001::removePowerLimitPolicyRequest(
 	PowerControlType::Type controlType)
 {
 	// Do nothing.  Not an error.
+}
+
+void DomainPowerControl_001::setPowerSharePolicyPower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Power& powerSharePolicyPower)
+{
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsPower(
+			esif_primitive_type::SET_POWER_SHARE_POLICY_POWER,
+			powerSharePolicyPower,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			std::stringstream message;
+			message << "Failed to set Power Share Policy Power for participant index = " + std::to_string(participantIndex) 
+				+ "and domain Index = " + std::to_string(domainIndex);
+			return message.str();
+		});
+	}
 }

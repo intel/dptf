@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -52,13 +52,6 @@ public:
 	virtual void onClearCachedData(void) override;
 	virtual std::string getName(void) override;
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
-
-	// ConfigTdpDataSyncInterface
-	virtual void updateBasedOnConfigTdpInformation(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		ConfigTdpControlSet configTdpControlSet,
-		ConfigTdpControlStatus configTdpControlStatus) override;
 
 protected:
 	virtual void capture(void) override;

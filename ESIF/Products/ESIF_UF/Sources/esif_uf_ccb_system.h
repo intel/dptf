@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -162,15 +162,6 @@ static ESIF_INLINE void esif_ccb_suspend()
 #define esif_ccb_remove_power_setting(req_ptr) \
 	esif_ccb_remove_power_setting_win(req_ptr)
 
-#define system_clear_ctdp_names() \
-	system_clear_ctdp_names_win()
-
-#define system_set_ctdp_name(request, instance) \
-	system_set_ctdp_name_win(request, instance)
-
-#define system_get_ctdp_name(response, instance) \
-	system_get_ctdp_name_win(response, instance)
-
 #else
 #define esif_ccb_disable_all_power_settings \
 	ESIF_E_ACTION_NOT_IMPLEMENTED
@@ -182,15 +173,6 @@ static ESIF_INLINE void esif_ccb_suspend()
 	ESIF_E_ACTION_NOT_IMPLEMENTED
 
 #define esif_ccb_remove_power_setting(req_ptr) \
-	ESIF_E_ACTION_NOT_IMPLEMENTED
-
-#define system_clear_ctdp_names() \
-	ESIF_E_ACTION_NOT_IMPLEMENTED
-
-#define system_set_ctdp_name(request, instance) \
-	ESIF_E_ACTION_NOT_IMPLEMENTED
-
-#define system_get_ctdp_name(response, instance) \
 	ESIF_E_ACTION_NOT_IMPLEMENTED
 
 #endif

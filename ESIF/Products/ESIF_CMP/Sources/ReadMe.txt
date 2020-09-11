@@ -1,6 +1,6 @@
 ========================================================================
 esif_cmp - ESIF Compression Library
-Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 Portions Public Domain Igor Pavlov
 ========================================================================
 
@@ -37,7 +37,9 @@ Intel SDL Requirements:
 
 	a. Addition of EsifSdl.h to all .c files as the last #include in the module
 	b. Change all memcpy calls to MyMemcpy in LzmaDec.c and LzmaEnc.c (see EsifSdl.h)
-	c. Changes to LzmaEnc.c to pass Klocwork buffer overrun issue (see LZMA_SDK_SDL_ENHANCEMENTS)
+	c. Changes to LzmaEnc.c to pass Klocwork buffer overrun issues (see SDL_PROB and SDL_SYMBOLIDX)
+	d. Changes to LzFind.c to call _mm_lfence() to avoid SPECTRE.VARIANT1 Warning (See SDL_SPECTRE_FENCE)
+	e. Changes to LzFind.c to move (size_t) cast inside expression to avoid Overflow Warnings (See SDL_COMMENT)
 
 3. LZMA Compression Library is compiled for Single-Threaded support only in
 order to reduce code size, complexity, and OS Abstraction. (_7ZIP_ST option).

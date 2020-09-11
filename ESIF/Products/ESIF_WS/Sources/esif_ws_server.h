@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,12 +22,6 @@
 #include "esif_ccb_lock.h"
 #include "esif_ccb_socket.h"
 #include "esif_ccb_thread.h"
-
-// Server Types
-typedef enum ServerType_s {
-	ServerNormal = 0,		// Normal Web Server (Any IP, Any Port, Any REST Command)
-	ServerRestricted = 1	// Restricted Web Server (127.0.0.1 only, Port < 1000, WhiteListed REST Commands only)
-} ServerType;
 
 // Client Types
 typedef enum ClientType_e {
@@ -65,17 +59,17 @@ typedef struct TcpDoorbell_s {
 
 // Web Server Listener Object
 typedef struct WebListener_s {
-	ServerType			mode;					// Server Type
 	esif_ccb_socket_t	socket;					// Listener Socket or INVALID_SOCKET
 	char				ipAddr[ESIF_IPADDR_LEN];// Listener IP Address
 	short				port;					// Listner Port
+	esif_flags_t		flags;					// Listener Flags
 } WebListener, *WebListenerPtr;
 
 // Web Server Client Object
 typedef struct WebClient_s {
 	ClientType			type;			// Client Type (Closed, Http, Websocket)
 	esif_ccb_socket_t	socket;			// Client Socket Handle or INVALID_SOCKET
-	ServerType			mode;			// Server Type (Admin, Restricted)
+	char				*ipAddr;		// Client IP Address
 	u8					*sendBuf;		// TCP/IP Send Buffer
 	size_t				sendBufLen;		// TCP/IP Send Buffer Length
 	u8					*recvBuf;		// TCP/IP Receive Buffer (Partial HTTP Request or Websocket Frame)
@@ -88,10 +82,9 @@ typedef struct WebClient_s {
 	FrameType			msgType;		// Websocket Message Type
 	u8					*fragBuf;		// Websocket Multi-Fragment Buffer
 	size_t				fragBufLen;		// Websocket Multi-Fragment Buffer Length
-	Bool				isSubscriber;	// Websocket Event Broadcast Subscriber?
 } WebClient, *WebClientPtr;
 
-#define WS_MAX_LISTENERS	2	// Number of Standard and Restricted Mode Web Servers
+#define WS_MAX_LISTENERS	1	// Number of Web Server Listener Sockets
 #define WS_MAX_CLIENTS		10	// 5 simultaneous UI websocket clients
 
 // Max Active Sockets (per WebServer) cannot exceed FD_SETSIZE (Default: Windows=64, Linux=1024)
@@ -101,10 +94,11 @@ typedef struct WebClient_s {
 #endif
 #define WS_MAX_SOCKETS	(WS_MAX_LISTENERS + WS_MAX_CLIENTS + 1)
 
-#define CRLF	"\r\n"
+// Default IP/ports
+#define WS_DEFAULT_IPADDR		"127.0.0.1"	// Loopback Interface only (localhost)
+#define WS_DEFAULT_PORT			8888		// Standard Port
 
-// Event Broadcast Queue
-typedef struct esif_link_list MessageQueue, *MessageQueuePtr;
+#define CRLF	"\r\n"
 
 // Web Server Object (One per Worker Thread)
 typedef struct WebServer_s {
@@ -118,11 +112,8 @@ typedef struct WebServer_s {
 	atomic_t			isActive;					// Web Server Active Flag
 	atomic_t			activeThreads;				// Active Thread Count
 
-	atomic_t			subscribers;				// Active Event Subscribers
 	u8					*netBuf;					// Network Send/Receive Buffer
 	size_t				netBufLen;					// Network Send/Receive Buffer Length
-
-	MessageQueuePtr		msgQueue;					// Message Broadcast Queue
 } WebServer, *WebServerPtr;
 
 extern WebServerPtr g_WebServer;
@@ -134,8 +125,7 @@ void WebPlugin_Exit(void);
 esif_error_t WebServer_Start(WebServerPtr self);
 void WebServer_Stop(WebServerPtr self);
 Bool WebServer_IsStarted(WebServerPtr self);
-esif_error_t WebServer_Config(WebServerPtr self, u8 instance, char *ipAddr, short port, ServerType mode);
-esif_error_t WebServer_Broadcast(WebServerPtr self, const void *buffer, size_t buf_len);
+esif_error_t WebServer_Config(WebServerPtr self, u8 instance, char *ipAddr, short port, esif_flags_t flags);
 
 esif_error_t WebClient_Write(WebClientPtr self, void *buffer, size_t buf_len);
 void WebClient_Close(WebClientPtr self);
@@ -167,7 +157,6 @@ typedef enum esif_ws_tracelevel {
 void EsifWsLock(void);
 void EsifWsUnlock(void);
 const char *EsifWsDocRoot(void);
-const char *EsifWsLogRoot(void);
 Bool EsifWsShellEnabled(void);
 char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len);
 int EsifWsTraceLevel(void);

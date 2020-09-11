@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,6 +26,8 @@ namespace OsUserPresence
 		{
 		case Present:
 			return "Present";
+		case NotPresent:
+			return "NotPresent";
 		case Inactive:
 			return "Inactive";
 		default:
@@ -38,6 +40,10 @@ namespace OsUserPresence
 		if (value == 0)
 		{
 			return OsUserPresence::Present;
+		}
+		else if (value == 1)
+		{
+			return OsUserPresence::NotPresent;
 		}
 		else
 		{

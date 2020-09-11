@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "PolicyBase.h"
 #include "DptfTime.h"
 #include "ParticipantTracker.h"
+
 using namespace std;
 
 PolicyBase::PolicyBase(void)
@@ -218,19 +219,6 @@ void PolicyBase::domainCoreControlCapabilityChanged(UIntN participantIndex)
 		return message.str();
 	});
 	onDomainCoreControlCapabilityChanged(participantIndex);
-}
-
-void PolicyBase::domainConfigTdpCapabilityChanged(UIntN participantIndex)
-{
-	throwIfPolicyIsDisabled();
-	// TODO: want to pass in participant index instead
-	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
-		message << getName()
-				<< ": Config TDP Capabilities Changed for participant. ParticipantIndex = " << participantIndex;
-		return message.str();
-	});
-	onDomainConfigTdpCapabilityChanged(participantIndex);
 }
 
 void PolicyBase::domainPriorityChanged(UIntN participantIndex)
@@ -521,8 +509,7 @@ void PolicyBase::domainSocWorkloadClassificationChanged(
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
 		std::stringstream message;
-		message << getName()
-				<< ": Workload Classification changed for ParticipantIndex = " << participantIndex
+		message << getName() << ": Workload Classification changed for ParticipantIndex = " << participantIndex
 				<< " and DomainIndex = " << domainIndex;
 		return message.str();
 	});
@@ -541,6 +528,13 @@ void PolicyBase::thermalRelationshipTableChanged(void)
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Thermal Relationship Table changed"; });
 	onThermalRelationshipTableChanged();
+}
+
+void PolicyBase::adaptiveUserPresenceTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive User Presence Table changed."; });
+	onAdaptiveUserPresenceTableChanged();
 }
 
 void PolicyBase::adaptivePerformanceConditionsTableChanged(void)
@@ -604,7 +598,6 @@ void PolicyBase::powerShareAlgorithmTable2Changed(void)
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Power Share Algorithm Table 2 changed."; });
 	onPowerShareAlgorithmTable2Changed();
 }
-
 
 Bool PolicyBase::hasActiveControlCapability() const
 {
@@ -686,14 +679,6 @@ void PolicyBase::policyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 p
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy Initiated Callback."; });
 	onPolicyInitiatedCallback(policyDefinedEventCode, param1, param2);
-}
-
-void PolicyBase::operatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO(
-		{ return getName() + ": Config TDP Level Changed to index " + std::to_string(configTdpLevel) + "."; });
-	onOperatingSystemConfigTdpLevelChanged(configTdpLevel);
 }
 
 void PolicyBase::operatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
@@ -780,6 +765,14 @@ void PolicyBase::operatingSystemUserPresenceChanged(OsUserPresence::Type userPre
 	POLICY_LOG_MESSAGE_INFO(
 		{ return getName() + ": OS User Presence changed to " + OsUserPresence::toString(userPresence) + "."; });
 	onOperatingSystemUserPresenceChanged(userPresence);
+}
+
+void PolicyBase::operatingSystemSessionStateChanged(OsSessionState::Type sessionState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": OS Session State changed to " + OsSessionState::toString(sessionState) + "."; });
+	onOperatingSystemSessionStateChanged(sessionState);
 }
 
 void PolicyBase::operatingSystemScreenStateChanged(OnOffToggle::Type screenState)
@@ -906,6 +899,413 @@ void PolicyBase::powerLimitChanged(void)
 	onPowerLimitChanged();
 }
 
+void PolicyBase::performanceCapabilitiesChanged(UIntN participantIndex)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Performance Capabilities Changed."; });
+	onPerformanceCapabilitiesChanged(participantIndex);
+}
+
+void PolicyBase::sensorUserPresenceChanged(SensorUserPresence::Type userPresence)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Sensor User Presence changed to " + SensorUserPresence::toString(userPresence) + ".";
+	});
+	onSensorUserPresenceChanged(userPresence);
+}
+
+void PolicyBase::platformUserPresenceChanged(SensorUserPresence::Type userPresence)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Platform User Presence changed to " + SensorUserPresence::toString(userPresence) + ".";
+	});
+	onPlatformUserPresenceChanged(userPresence);
+}
+
+void PolicyBase::wakeOnApproachFeatureStateChanged(Bool wakeOnApproachFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Wake On Approach Feature State changed to "
+			   + StatusFormat::friendlyValue(wakeOnApproachFeatureState) + ".";
+	});
+	onWakeOnApproachFeatureStateChanged(wakeOnApproachFeatureState);
+}
+
+void PolicyBase::wakeOnApproachWithExternalMonitorFeatureStateChanged(
+	Bool wakeOnApproachWithExternalMonitorFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Wake On Approach With External Monitor Feature State changed to "
+			   + StatusFormat::friendlyValue(wakeOnApproachWithExternalMonitorFeatureState) + ".";
+	});
+	onWakeOnApproachWithExternalMonitorFeatureStateChanged(wakeOnApproachWithExternalMonitorFeatureState);
+}
+
+void PolicyBase::wakeOnApproachOnLowBatteryFeatureStateChanged(
+	Bool wakeOnApproachOnLowBatteryFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Wake On Approach On Low Battery Feature State changed to "
+			   + StatusFormat::friendlyValue(wakeOnApproachOnLowBatteryFeatureState) + ".";
+	});
+	onWakeOnApproachOnLowBatteryFeatureStateChanged(wakeOnApproachOnLowBatteryFeatureState);
+}
+
+void PolicyBase::wakeOnApproachBatteryRemainingPercentageChanged(Percentage wakeOnApproachBatteryRemainingPercentage)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Wake On Approach Battery Remaining Percentage changed to "
+			   + StatusFormat::friendlyValue(wakeOnApproachBatteryRemainingPercentage.toWholeNumber()) + ".";
+	});
+	onWakeOnApproachBatteryRemainingPercentageChanged(wakeOnApproachBatteryRemainingPercentage);
+}
+
+void PolicyBase::walkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Feature State changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockFeatureState) + ".";
+	});
+	onWalkAwayLockFeatureStateChanged(walkAwayLockFeatureState);
+}
+
+void PolicyBase::walkAwayLockWithExternalMonitorFeatureStateChanged(
+	Bool walkAwayLockWithExternalMonitorFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock With External Monitor Feature State changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockWithExternalMonitorFeatureState) + ".";
+	});
+	onWalkAwayLockWithExternalMonitorFeatureStateChanged(walkAwayLockWithExternalMonitorFeatureState);
+}
+
+void PolicyBase::walkAwayLockDimScreenFeatureStateChanged(Bool walkAwayLockDimScreenFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Dim Screen Feature State changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockDimScreenFeatureState) + ".";
+	});
+	onWalkAwayLockDimScreenFeatureStateChanged(walkAwayLockDimScreenFeatureState);
+}
+
+void PolicyBase::walkAwayLockDisplayOffAfterLockFeatureStateChanged(
+	Bool walkAwayLockDisplayOffAfterLockFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Display Off After Lock Feature State changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockDisplayOffAfterLockFeatureState) + ".";
+	});
+	onWalkAwayLockDisplayOffAfterLockFeatureStateChanged(walkAwayLockDisplayOffAfterLockFeatureState);
+}
+
+void PolicyBase::walkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
+	Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Honor Power Requests For Display Feature State changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockHonorPowerRequestsForDisplayFeatureState) + ".";
+	});
+	onWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(walkAwayLockHonorPowerRequestsForDisplayFeatureState);
+}
+
+void PolicyBase::walkAwayLockHonorUserInCallFeatureStateChanged(
+	Bool walkAwayLockHonorUserInCallFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Honor User In Call Feature State changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockHonorUserInCallFeatureState) + ".";
+	});
+	onWalkAwayLockHonorUserInCallFeatureStateChanged(walkAwayLockHonorUserInCallFeatureState);
+}
+
+void PolicyBase::userInCallStateChanged(Bool userInCallState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": User In Call State changed to "
+			   + StatusFormat::friendlyValue(userInCallState) + ".";
+	});
+	onUserInCallStateChanged(userInCallState);
+}
+
+void PolicyBase::walkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Screen Lock Wait Time changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockScreenLockWaitTime.asSeconds()) + ".";
+	});
+	onWalkAwayLockScreenLockWaitTimeChanged(walkAwayLockScreenLockWaitTime);
+}
+
+void PolicyBase::walkAwayLockPreDimWaitTimeChanged(TimeSpan walkAwayLockPreDimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Pre Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockPreDimWaitTime.asSeconds()) + ".";
+	});
+	onWalkAwayLockPreDimWaitTimeChanged(walkAwayLockPreDimWaitTime);
+}
+
+void PolicyBase::walkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock HID Interaction Timeout changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockUserPresentWaitTime.asSeconds()) + ".";
+	});
+	onWalkAwayLockUserPresentWaitTimeChanged(walkAwayLockUserPresentWaitTime);
+}
+
+void PolicyBase::walkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Walk Away Lock Dim Interval changed to "
+			   + StatusFormat::friendlyValue(walkAwayLockDimInterval.asSeconds())
+			   + ".";
+	});
+	onWalkAwayLockDimIntervalChanged(walkAwayLockDimInterval);
+}
+
+void PolicyBase::adaptiveDimmingFeatureStateChanged(Bool adaptiveDimmingFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Adaptive Dimming Feature State changed to "
+			   + StatusFormat::friendlyValue(adaptiveDimmingFeatureState) + ".";
+	});
+	onAdaptiveDimmingFeatureStateChanged(adaptiveDimmingFeatureState);
+}
+
+void PolicyBase::adaptiveDimmingWithExternalMonitorFeatureStateChanged(
+	Bool adaptiveDimmingWithExternalMonitorFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Adaptive Dimming With External Monitor Feature State changed to "
+			   + StatusFormat::friendlyValue(adaptiveDimmingWithExternalMonitorFeatureState) + ".";
+	});
+	onAdaptiveDimmingWithExternalMonitorFeatureStateChanged(adaptiveDimmingWithExternalMonitorFeatureState);
+}
+
+void PolicyBase::adaptiveDimmingWithPresentationModeFeatureStateChanged(
+	Bool adaptiveDimmingWithPresentationModeFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Adaptive Dimming With Presentation Mode Feature State changed to "
+			   + StatusFormat::friendlyValue(adaptiveDimmingWithPresentationModeFeatureState) + ".";
+	});
+	onAdaptiveDimmingWithPresentationModeFeatureStateChanged(adaptiveDimmingWithPresentationModeFeatureState);
+}
+
+void PolicyBase::adaptiveDimmingPreDimWaitTimeChanged(
+	TimeSpan adaptiveDimmingPreDimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Adaptive Dimming Pre Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(adaptiveDimmingPreDimWaitTime.asSeconds()) + ".";
+	});
+	onAdaptiveDimmingPreDimWaitTimeChanged(adaptiveDimmingPreDimWaitTime);
+}
+
+void PolicyBase::mispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Misprediction Face Detection Feature State changed to "
+			   + StatusFormat::friendlyValue(mispredictionFaceDetectionFeatureState) + ".";
+	});
+	onMispredictionFaceDetectionFeatureStateChanged(mispredictionFaceDetectionFeatureState);
+}
+
+void PolicyBase::mispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ":Misprediction Time Window changed to "
+			   + StatusFormat::friendlyValue(mispredictionTimeWindow.asSeconds()) + ".";
+	});
+	onMispredictionTimeWindowChanged(mispredictionTimeWindow);
+}
+
+void PolicyBase::misprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Misprediction 1 Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(misprediction1DimWaitTime.asSeconds()) + ".";
+	});
+	onMisprediction1DimWaitTimeChanged(misprediction1DimWaitTime);
+}
+
+void PolicyBase::misprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Misprediction 2 Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(misprediction2DimWaitTime.asSeconds()) + ".";
+	});
+	onMisprediction2DimWaitTimeChanged(misprediction2DimWaitTime);
+}
+
+void PolicyBase::misprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Misprediction 3 Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(misprediction3DimWaitTime.asSeconds()) + ".";
+	});
+	onMisprediction3DimWaitTimeChanged(misprediction3DimWaitTime);
+}
+
+void PolicyBase::misprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Misprediction 4 Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(misprediction4DimWaitTime.asSeconds()) + ".";
+	});
+	onMisprediction4DimWaitTimeChanged(misprediction4DimWaitTime);
+}
+
+void PolicyBase::noLockOnPresenceFeatureStateChanged(Bool noLockOnPresenceFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": No Lock On Presence Feature State changed to "
+			   + StatusFormat::friendlyValue(noLockOnPresenceFeatureState) + ".";
+	});
+	onNoLockOnPresenceFeatureStateChanged(noLockOnPresenceFeatureState);
+}
+
+void PolicyBase::noLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": No Lock On Presence External Monitor Feature State changed to "
+			   + StatusFormat::friendlyValue(noLockOnPresenceExternalMonitorFeatureState) + ".";
+	});
+	onNoLockOnPresenceExternalMonitorFeatureStateChanged(noLockOnPresenceExternalMonitorFeatureState);
+}
+
+void PolicyBase::noLockOnPresenceOnBatteryFeatureStateChanged(
+	Bool noLockOnPresenceOnBatteryFeatureState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": No Lock On Presence On Battery Feature State changed to "
+			   + StatusFormat::friendlyValue(noLockOnPresenceOnBatteryFeatureState) + ".";
+	});
+	onNoLockOnPresenceOnBatteryFeatureStateChanged(noLockOnPresenceOnBatteryFeatureState);
+}
+
+void PolicyBase::noLockOnPresenceBatteryRemainingPercentageChanged(
+	Percentage noLockOnPresenceBatteryRemainingPercentage)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": No Lock On Presence Battery Remaining Percentage changed to "
+			   + StatusFormat::friendlyValue(noLockOnPresenceBatteryRemainingPercentage.toWholeNumber()) + ".";
+	});
+	onNoLockOnPresenceBatteryRemainingPercentageChanged(noLockOnPresenceBatteryRemainingPercentage);
+}
+
+void PolicyBase::noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": No Lock On Presence Battery Reset Wait Time changed to "
+			   + StatusFormat::friendlyValue(noLockOnPresenceResetWaitTime.asSeconds()) + ".";
+	});
+	onNoLockOnPresenceResetWaitTimeChanged(noLockOnPresenceResetWaitTime);
+}
+
+void PolicyBase::failsafeTimeoutChanged(TimeSpan failsafeTimeout)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ":Failsafe Timeout changed to "
+			   + StatusFormat::friendlyValue(failsafeTimeout.asSeconds()) + ".";
+	});
+	onFailsafeTimeoutChanged(failsafeTimeout);
+}
+
+void PolicyBase::userPresenceAppStateChanged(Bool userPresenceAppState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": User Presence App State changed to " + StatusFormat::friendlyValue(userPresenceAppState)
+			   + ".";
+	});
+	onUserPresenceAppStateChanged(userPresenceAppState);
+}
+
+void PolicyBase::externalMonitorStateChanged(Bool externalMonitorState)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": External Monitor State changed to " + StatusFormat::friendlyValue(externalMonitorState)
+			   + ".";
+	});
+	onExternalMonitorStateChanged(externalMonitorState);
+}
+
+void PolicyBase::userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": User Not Present Dim Target changed to "
+			   + StatusFormat::friendlyValue(userNotPresentDimTarget) + ".";
+	});
+	onUserNotPresentDimTargetChanged(userNotPresentDimTarget);
+}
+
+void PolicyBase::userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": User Disengaged Dimming Interval changed to "
+			   + StatusFormat::friendlyValue(userDisengagedDimmingInterval.asSeconds()) + ".";
+	});
+	onUserDisengagedDimmingIntervalChanged(userDisengagedDimmingInterval);
+}
+
+void PolicyBase::userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": User Disengaged Dim Target changed to " + StatusFormat::friendlyValue(userDisengagedDimTarget)
+			   + ".";
+	});
+	onUserDisengagedDimTargetChanged(userDisengagedDimTarget);
+}
+
+void PolicyBase::userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": User Disengaged Dim Wait Time changed to "
+			   + StatusFormat::friendlyValue(userDisengagedDimWaitTime.asSeconds()) + ".";
+	});
+	onUserDisengagedDimWaitTimeChanged(userDisengagedDimWaitTime);
+}
+
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 {
 	throw not_implemented();
@@ -927,11 +1327,6 @@ void PolicyBase::onDomainPerformanceControlsChanged(UIntN participantIndex)
 }
 
 void PolicyBase::onDomainCoreControlCapabilityChanged(UIntN participantIndex)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onDomainConfigTdpCapabilityChanged(UIntN participantIndex)
 {
 	throw not_implemented();
 }
@@ -1096,6 +1491,11 @@ void PolicyBase::onAdaptivePerformanceConditionsTableChanged(void)
 	throw not_implemented();
 }
 
+void PolicyBase::onAdaptiveUserPresenceTableChanged(void)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onAdaptivePerformanceParticipantConditionTableChanged(void)
 {
 	throw not_implemented();
@@ -1136,11 +1536,6 @@ void PolicyBase::onPolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64
 	throw not_implemented();
 }
 
-void PolicyBase::onOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
-{
-	throw not_implemented();
-}
-
 void PolicyBase::onOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
 {
 	throw not_implemented();
@@ -1175,6 +1570,12 @@ void PolicyBase::onOperatingSystemUserPresenceChanged(OsUserPresence::Type userP
 {
 	throw not_implemented();
 }
+
+void PolicyBase::onOperatingSystemSessionStateChanged(OsSessionState::Type sessionState)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onOperatingSystemScreenStateChanged(OnOffToggle::Type screenState)
 {
 	throw not_implemented();
@@ -1286,6 +1687,217 @@ void PolicyBase::onPowerShareAlgorithmTable2Changed(void)
 }
 
 void PolicyBase::onPowerLimitChanged(void)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onPerformanceCapabilitiesChanged(UIntN participantIndex)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onSensorUserPresenceChanged(SensorUserPresence::Type userPresence)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWakeOnApproachFeatureStateChanged(Bool wakeOnApproachFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWakeOnApproachWithExternalMonitorFeatureStateChanged(
+	Bool wakeOnApproachWithExternalMonitorFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWakeOnApproachOnLowBatteryFeatureStateChanged(
+	Bool wakeOnApproachOnLowBatteryFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWakeOnApproachBatteryRemainingPercentageChanged(Percentage wakeOnApproachBatteryRemainingPercentage)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockWithExternalMonitorFeatureStateChanged(
+	Bool walkAwayLockWithExternalMonitorFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockDimScreenFeatureStateChanged(
+	Bool walkAwayLockDimScreenFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockDisplayOffAfterLockFeatureStateChanged(
+	Bool walkAwayLockDisplayOffAfterLockFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
+	Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockHonorUserInCallFeatureStateChanged(
+	Bool walkAwayLockHonorUserInCallFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserInCallStateChanged(Bool userInCallState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockPreDimWaitTimeChanged(TimeSpan walkAwayLockPreDimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onWalkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onAdaptiveDimmingFeatureStateChanged(Bool adaptiveDimmingFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onAdaptiveDimmingWithExternalMonitorFeatureStateChanged(
+	Bool adaptiveDimmingWithExternalMonitorFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onAdaptiveDimmingWithPresentationModeFeatureStateChanged(
+	Bool adaptiveDimmingWithPresentationModeFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onAdaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onMispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onMispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onMisprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onMisprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onMisprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onMisprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onNoLockOnPresenceFeatureStateChanged(Bool noLockOnPresenceFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onNoLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onNoLockOnPresenceOnBatteryFeatureStateChanged(
+	Bool noLockOnPresenceOnBatteryFeatureState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onNoLockOnPresenceBatteryRemainingPercentageChanged(
+	Percentage noLockOnPresenceBatteryRemainingPercentage)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onFailsafeTimeoutChanged(TimeSpan failsafeTimeout)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserPresenceAppStateChanged(Bool userPresenceAppState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onExternalMonitorStateChanged(Bool externalMonitorState)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime)
 {
 	throw not_implemented();
 }

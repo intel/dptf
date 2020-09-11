@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,6 +38,7 @@ BatteryStatusFacade::BatteryStatusFacade(
 	, m_batteryHighFrequencyImpedance(Constants::Invalid)
 	, m_batteryNoLoadVoltage(Constants::Invalid)
 	, m_batteryMaxPeakCurrent(Constants::Invalid)
+	, m_batteryPercentage(Constants::Invalid)
 {
 }
 
@@ -85,7 +86,7 @@ DptfBuffer BatteryStatusFacade::getBatteryStatus(void)
 		POLICY_LOG_MESSAGE_WARNING({
 			return "Failed to get battery status for participant " + StatusFormat::friendlyValue(m_participantIndex)
 				   + " .";
-			});
+		});
 
 		result.throwIfFailure();
 	}
@@ -107,7 +108,7 @@ DptfBuffer BatteryStatusFacade::getBatteryInformation(void)
 		POLICY_LOG_MESSAGE_WARNING({
 			return "Failed to get battery information for participant "
 				   + StatusFormat::friendlyValue(m_participantIndex) + " .";
-			});
+		});
 
 		result.throwIfFailure();
 	}
@@ -219,6 +220,36 @@ UInt32 BatteryStatusFacade::getBatteryMaxPeakCurrent(void)
 	}
 
 	throw dptf_exception("No support for battery status interface");
+}
+
+Percentage BatteryStatusFacade::getBatteryPercentage(void)
+{
+	if (m_domainProperties.implementsBatteryStatusInterface())
+	{
+		DptfRequest request(DptfRequestType::BatteryStatusGetBatteryPercentage, m_participantIndex, m_domainIndex);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		if (result.isSuccessful())
+		{
+			m_batteryPercentage = result.getDataAsUInt32();
+			return Percentage::fromWholeNumber(m_batteryPercentage);
+		}
+
+		POLICY_LOG_MESSAGE_WARNING({
+			return "Failed to get battery percentage for participant " + StatusFormat::friendlyValue(m_participantIndex)
+				   + " .";
+		});
+
+		result.throwIfFailure();
+	}
+
+	throw dptf_exception("No support for battery status interface");
+}
+
+void BatteryStatusFacade::setBatteryPercentage(Percentage batteryPercentage)
+{
+	DptfRequest request(DptfRequestType::BatteryStatusSetBatteryPercentage, batteryPercentage.toDptfBuffer(), m_participantIndex, m_domainIndex);
+	auto result = m_policyServices.serviceRequest->submitRequest(request);
+	result.throwIfFailure();
 }
 
 std::shared_ptr<XmlNode> BatteryStatusFacade::getXml() const

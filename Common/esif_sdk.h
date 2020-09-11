@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -91,3 +91,9 @@ typedef u8  esif_ver_t;                     /* Version      */
 #define ESIF_INSTANCE_LF        0	/* Reserved For ESIF Primary Participant */
 #define ESIF_INSTANCE_INVALID	255
 
+/* Shared Parameters */
+#define ESIF_MAX_CLIENTS			4						/* Maximum IPF Clients */
+#define ESIF_MAX_APPS				(ESIF_MAX_CLIENTS + 2)	/* Maximum ESIF Apps, including IPF Clients, DPTF, and IPFSRV */
+
+/* Primitive Instance */
+#define ESIF_INSTANCE_NO_PERSIST	254

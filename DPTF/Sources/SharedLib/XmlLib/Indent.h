@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,10 +35,14 @@ public:
 	Indent& operator--(); // prefix
 	Indent operator--(int); // postfix
 
-	UIntN length() const;
-	std::string emit() const;
-
 private:
+
+	// make copy constructor and assignment operator private only
+	Indent(const Indent& indent);
+	Indent& operator=(const Indent& rhs);
+
+	std::string emit() const;
+	
 	UIntN m_length;
 	UIntN m_stepSize;
 };

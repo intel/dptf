@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,7 +20,8 @@
 #define _ESIF_LIB_H
 
 #include "esif_ccb.h"
-#include "esif.h"
+#include "esif_ccb_memory.h"
+#include "esif_sdk_data.h"
 
 #include <stdlib.h>
 #include <memory.h>
@@ -33,12 +34,12 @@ typedef unsigned char Byte, *BytePtr, **BytePtrLocation;
 
 #ifdef ESIF_ATTR_DEBUG
 # define    SAFETY(stmt)        stmt
-# define    WIPEPTR(p)          memset(p, 0, sizeof(*p))
-# define    WIPEARRAY(a, n)      memset(a, 0, sizeof(*a) * n)
+# define    WIPEPTR(p)          esif_ccb_memset(p, 0, sizeof(*p))
+# define    WIPEARRAY(a, n)     esif_ccb_memset(a, 0, sizeof(*a) * n)
 #else
 # define    SAFETY(stmt)
-# define    WIPEPTR(p)          memset(p, 0, sizeof(*p))
-# define    WIPEARRAY(a, n)      memset(a, 0, sizeof(*a) * n)
+# define    WIPEPTR(p)          esif_ccb_memset(p, 0, sizeof(*p))
+# define    WIPEARRAY(a, n)     esif_ccb_memset(a, 0, sizeof(*a) * n)
 #endif
 
 // Access Array Items without class definition (by using ClassName_Sizeof() function

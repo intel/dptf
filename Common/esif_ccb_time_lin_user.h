@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,6 +63,48 @@ static int ESIF_INLINE esif_ccb_gmtime(
 	)
 {
 	return (gmtime_r(time, tm_ptr) != NULL ? 0 : EINVAL);
+}
+
+/* Real-Time Functions */
+
+static ESIF_INLINE esif_ccb_realtime_t esif_ccb_realtime_current(void)
+{
+	time_t now = time(NULL);
+	struct timespec ticks = { 0 };
+	clock_gettime(CLOCK_BOOTTIME, &ticks);
+	esif_ccb_realtime_t result = { 0 };
+	result.clockticks = (((u64)ticks.tv_sec * 1000000000) + ticks.tv_nsec);
+	result.clocktime = (u64)now;
+	return result;
+}
+
+static ESIF_INLINE double esif_ccb_realtime_diff_msec(esif_ccb_realtime_t t1, esif_ccb_realtime_t t2)
+{
+	struct timespec res;
+	clock_getres(CLOCK_BOOTTIME, &res);
+	unsigned long long dur64 = t2.clockticks - t1.clockticks;
+	unsigned long long res64 = ((unsigned long long)res.tv_sec * 1000000000) + res.tv_nsec;
+	return (double)(dur64 / res64) / 1000000.0;
+}
+
+static ESIF_INLINE Int64 esif_ccb_realtime_diff_sec(esif_ccb_realtime_t t1, esif_ccb_realtime_t t2)
+{
+	struct timespec res;
+	clock_getres(CLOCK_BOOTTIME, &res);
+	unsigned long long dur64 = t2.clockticks - t1.clockticks;
+	unsigned long long res64 = ((unsigned long long)res.tv_sec * 1000000000) + res.tv_nsec;
+	return (Int64)(dur64 / res64 / 1000000000);
+}
+
+static ESIF_INLINE time_t esif_ccb_realtime_clocktime(esif_ccb_realtime_t time)
+{
+	return (time_t)(time.clocktime);
+}
+
+static ESIF_INLINE esif_ccb_realtime_t esif_ccb_realtime_null()
+{
+	esif_ccb_realtime_t result = { 0 };
+	return result;
 }
 
 #endif /* LINUX USER */

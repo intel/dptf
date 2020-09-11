@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "ConfigTdpControlArbitrator.h"
 #include "CoreControlArbitrator.h"
 #include "DisplayControlArbitrator.h"
 #include "PerformanceControlArbitrator.h"
@@ -39,7 +38,6 @@ public:
 	void clearPolicyCachedData(UIntN policyIndex);
 	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex, ControlFactoryType::Type type) const;
 
-	ConfigTdpControlArbitrator* getConfigTdpControlArbitrator(void) const;
 	CoreControlArbitrator* getCoreControlArbitrator(void) const;
 	DisplayControlArbitrator* getDisplayControlArbitrator(void) const;
 	PerformanceControlArbitrator* getPerformanceControlArbitrator(void) const;
@@ -57,7 +55,6 @@ private:
 	Arbitrator(const Arbitrator& rhs);
 	Arbitrator& operator=(const Arbitrator& rhs);
 
-	ConfigTdpControlArbitrator* m_configTdpControlArbitrator;
 	CoreControlArbitrator* m_coreControlArbitrator;
 	DisplayControlArbitrator* m_displayControlArbitrator;
 	PerformanceControlArbitrator* m_performanceControlArbitrator;

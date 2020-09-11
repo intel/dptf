@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,7 @@ ManagerMessage::ManagerMessage(
 	: DptfMessage(fileName, lineNumber, executingFunctionName)
 	, m_dptfManager(dptfManager)
 	, m_outputMessageStringCreated(false)
+	, m_outputMessageString(Constants::EmptyString)
 {
 }
 
@@ -43,6 +44,7 @@ ManagerMessage::ManagerMessage(
 	: DptfMessage(fileName, lineNumber, executingFunctionName)
 	, m_dptfManager(dptfManager)
 	, m_outputMessageStringCreated(false)
+	, m_outputMessageString(Constants::EmptyString)
 {
 	addMessage(message);
 }
@@ -51,6 +53,7 @@ ManagerMessage::ManagerMessage(const DptfManagerInterface* dptfManager, const Dp
 	: DptfMessage(dptfMessage)
 	, m_dptfManager(dptfManager)
 	, m_outputMessageStringCreated(false)
+	, m_outputMessageString(Constants::EmptyString)
 {
 }
 

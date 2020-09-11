@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #if defined(ESIF_ATTR_OS_LINUX) && defined(ESIF_ATTR_USER)
 
+#include "esif_ccb_memory.h"
 #include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
@@ -40,7 +41,7 @@ static ESIF_INLINE char *esif_ccb_strcpy(
 		if (len >= siz) {
 			len = siz - 1;
 		}
-		memmove(dst, src, len);
+		esif_ccb_memmove(dst, src, len);
 		dst[len] = 0;
 	}
 	return dst;
@@ -93,7 +94,7 @@ static ESIF_INLINE int esif_ccb_sprintf_len(size_t siz, int len)
  *       esif_ccb_sscanf(str, "%s=%d", SCANFBUF(name, sizeof(name)), &value);
  */
 #ifdef ESIF_ATTR_DEBUG
-#define SCANFBUF(str, siz)			(char *)memset(str, 0xFE, siz)
+#define SCANFBUF(str, siz)			(char *)esif_ccb_memset(str, 0xFE, siz)
 #else
 #define SCANFBUF(str, siz)			str
 #endif
@@ -193,7 +194,7 @@ static ESIF_INLINE char *esif_ccb_strncpy(
 	size_t len = esif_ccb_strlen(src, siz);
 	esif_ccb_strcpy(dst, src, siz);
 	if (len < siz)
-		memset(dst + len, 0, siz - len);
+		esif_ccb_memset(dst + len, 0, siz - len);
 	return dst;
 }
 

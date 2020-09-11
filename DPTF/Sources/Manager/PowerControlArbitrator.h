@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -64,6 +64,7 @@ public:
 
 	void removeRequestsForPolicy(UIntN policyIndex);
 	std::shared_ptr<XmlNode> getArbitrationXmlForPolicy(UIntN policyIndex) const;
+	void removePowerLimitRequestForPolicy(UIntN policyIndex, PowerControlType::Type controlType);
 
 private:
 	std::map<UIntN, std::map<PowerControlType::Type, Power>> m_requestedPowerLimits;
@@ -126,7 +127,4 @@ private:
 	void setArbitratedPowerLimitForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
 	void setArbitratedTimeWindowsForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
 	void setArbitratedDutyCyclesForControlTypes(const std::vector<PowerControlType::Type>& controlTypes);
-
-public:
-	void removePowerLimitRequestForPolicy(UIntN policyIndex, PowerControlType::Type controlType);
 };

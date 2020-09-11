@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,7 +24,7 @@ WIPolicyOperatingSystemUserPresenceChanged::WIPolicyOperatingSystemUserPresenceC
 	DptfManagerInterface* dptfManager,
 	OsUserPresence::Type userPresence)
 	: WorkItem(dptfManager, FrameworkEvent::PolicyOperatingSystemUserPresenceChanged)
-	, m_userPresence(userPresence)
+	, m_osUserPresence(userPresence)
 {
 }
 
@@ -43,9 +43,9 @@ void WIPolicyOperatingSystemUserPresenceChanged::onExecute(void)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->userPresence.set(m_userPresence);
+			getDptfManager()->getEventCache()->osUserPresence.set(m_osUserPresence);
 			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyOperatingSystemUserPresenceChanged(m_userPresence);
+			policy->executePolicyOperatingSystemUserPresenceChanged(m_osUserPresence);
 		}
 		catch (policy_index_invalid&)
 		{

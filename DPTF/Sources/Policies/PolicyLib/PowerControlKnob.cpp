@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,6 +29,7 @@ PowerControlKnob::PowerControlKnob(
 	UIntN domainIndex)
 	: ControlKnobBase(policyServices, participantIndex, domainIndex)
 	, m_powerControl(powerControl)
+	, m_requests(std::map<UIntN, Power>())
 {
 }
 

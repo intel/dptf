@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -54,13 +54,6 @@ public:
 	virtual std::shared_ptr<XmlNode> getXml(UIntN domainIndex) override;
 	virtual void capture(void) override;
 	virtual void restore(void) override;
-
-	// ConfigTdpDataSyncInterface
-	virtual void updateBasedOnConfigTdpInformation(
-		UIntN participantIndex,
-		UIntN domainIndex,
-		ConfigTdpControlSet configTdpControlSet,
-		ConfigTdpControlStatus configTdpControlStatus) override;
 
 protected:
 	virtual UIntN getCurrentPerformanceControlIndex(UIntN ParticipantIndex, UIntN domainIndex) override;

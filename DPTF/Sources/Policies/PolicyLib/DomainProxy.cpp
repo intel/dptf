@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,14 +50,10 @@ DomainProxy::DomainProxy(
 		std::make_shared<PowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_systemPowerControl =
 		std::make_shared<SystemPowerControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_platformPowerControl = std::make_shared<PlatformPowerControlFacade>(
-		m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_displayControl =
 		std::make_shared<DisplayControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_coreControl =
 		std::make_shared<CoreControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
-	m_configTdpControl =
-		std::make_shared<ConfigTdpControlFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_radioFrequencyControl = std::make_shared<RadioFrequencyControlFacade>(
 		m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_activeCoolingControl = std::make_shared<ActiveCoolingControl>(
@@ -137,11 +133,6 @@ std::shared_ptr<SystemPowerControlFacadeInterface> DomainProxy::getSystemPowerCo
 	return m_systemPowerControl;
 }
 
-std::shared_ptr<PlatformPowerControlFacadeInterface> DomainProxy::getPlatformPowerControl()
-{
-	return m_platformPowerControl;
-}
-
 std::shared_ptr<DisplayControlFacadeInterface> DomainProxy::getDisplayControl()
 {
 	return m_displayControl;
@@ -150,11 +141,6 @@ std::shared_ptr<DisplayControlFacadeInterface> DomainProxy::getDisplayControl()
 std::shared_ptr<CoreControlFacadeInterface> DomainProxy::getCoreControl()
 {
 	return m_coreControl;
-}
-
-ConfigTdpControlFacade& DomainProxy::getConfigTdpControl()
-{
-	return *m_configTdpControl;
 }
 
 RadioFrequencyControlFacade& DomainProxy::getRadioFrequencyControl() const
@@ -272,15 +258,6 @@ void DomainProxy::setControlsToMax()
 	catch (...)
 	{
 	}
-}
-
-std::shared_ptr<XmlNode> DomainProxy::getXmlForConfigTdpLevel()
-{
-	auto domainStatus = XmlNode::createWrapperElement("domain_config_tdp_level");
-	domainStatus->addChild(XmlNode::createDataElement("domain_index", StatusFormat::friendlyValue(getDomainIndex())));
-	domainStatus->addChild(XmlNode::createDataElement("domain_name", getDomainProperties().getName()));
-	domainStatus->addChild(getConfigTdpControl().getXml());
-	return domainStatus;
 }
 
 std::shared_ptr<XmlNode> DomainProxy::getXml() const

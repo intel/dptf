@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include "Policy.h"
 #include "PolicyServicesInterfaceContainer.h"
 #include "PolicyServicesDomainActivityStatus.h"
-#include "PolicyServicesDomainConfigTdpControl.h"
 #include "PolicyServicesDomainCoreControl.h"
 #include "PolicyServicesDomainDisplayControl.h"
 #include "PolicyServicesDomainEnergyControl.h"
@@ -58,6 +57,8 @@ Policy::Policy(DptfManagerInterface* dptfManager)
 	, m_theRealPolicyCreated(false)
 	, m_policyIndex(Constants::Invalid)
 	, m_isPolicyLoggingEnabled(false)
+	, m_policyName(Constants::EmptyString)
+	, m_policyFileName(Constants::EmptyString)
 	, m_esifLibrary(nullptr)
 	, m_getAppVersion(nullptr)
 	, m_createPolicyInstanceFuncPtr(nullptr)
@@ -260,14 +261,6 @@ void Policy::executeResume(void)
 	}
 }
 
-void Policy::executeDomainConfigTdpCapabilityChanged(UIntN participantIndex)
-{
-	if (isEventRegistered(PolicyEvent::DomainConfigTdpCapabilityChanged))
-	{
-		m_theRealPolicy->domainConfigTdpCapabilityChanged(participantIndex);
-	}
-}
-
 void Policy::executeDomainCoreControlCapabilityChanged(UIntN participantIndex)
 {
 	if (isEventRegistered(PolicyEvent::DomainCoreControlCapabilityChanged))
@@ -397,7 +390,8 @@ void Policy::executeDomainSocWorkloadClassificationChanged(
 {
 	if (isEventRegistered(PolicyEvent::DomainSocWorkloadClassificationChanged))
 	{
-		m_theRealPolicy->domainSocWorkloadClassificationChanged(participantIndex, domainIndex, socWorkloadClassification);
+		m_theRealPolicy->domainSocWorkloadClassificationChanged(
+			participantIndex, domainIndex, socWorkloadClassification);
 	}
 }
 
@@ -436,14 +430,6 @@ void Policy::executePolicyForegroundApplicationChanged(const std::string& foregr
 void Policy::executePolicyInitiatedCallback(UInt64 policyDefinedEventCode, UInt64 param1, void* param2)
 {
 	m_theRealPolicy->policyInitiatedCallback(policyDefinedEventCode, param1, param2);
-}
-
-void Policy::executePolicyOperatingSystemConfigTdpLevelChanged(UIntN configTdpLevel)
-{
-	if (isEventRegistered(PolicyEvent::PolicyOperatingSystemConfigTdpLevelChanged))
-	{
-		m_theRealPolicy->operatingSystemConfigTdpLevelChanged(configTdpLevel);
-	}
 }
 
 void Policy::executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
@@ -520,6 +506,14 @@ void Policy::executePolicyOperatingSystemUserPresenceChanged(OsUserPresence::Typ
 	}
 }
 
+void Policy::executePolicyOperatingSystemSessionStateChanged(OsSessionState::Type sessionState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyOperatingSystemSessionStateChanged))
+	{
+		m_theRealPolicy->operatingSystemSessionStateChanged(sessionState);
+	}
+}
+
 void Policy::executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type screenState)
 {
 	if (isEventRegistered(PolicyEvent::PolicyOperatingSystemScreenStateChanged))
@@ -589,6 +583,14 @@ void Policy::executePolicyAdaptivePerformanceActionsTableChanged(void)
 	if (isEventRegistered(PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged))
 	{
 		m_theRealPolicy->adaptivePerformanceActionsTableChanged();
+	}
+}
+
+void Policy::executePolicyAdaptiveUserPresenceTableChanged(void)
+{
+	if (isEventRegistered(PolicyEvent::PolicyAdaptiveUserPresenceTableChanged))
+	{
+		m_theRealPolicy->adaptiveUserPresenceTableChanged();
 	}
 }
 
@@ -708,12 +710,19 @@ void Policy::executePolicyPowerShareAlgorithmTable2Changed(void)
 	}
 }
 
-
 void Policy::executePowerLimitChanged(void)
 {
 	if (isEventRegistered(PolicyEvent::PowerLimitChanged))
 	{
 		m_theRealPolicy->powerLimitChanged();
+	}
+}
+
+void Policy::executePerformanceCapabilitiesChanged(UIntN participantIndex)
+{
+	if (isEventRegistered(PolicyEvent::PerformanceCapabilitiesChanged))
+	{
+		m_theRealPolicy->performanceCapabilitiesChanged(participantIndex);
 	}
 }
 
@@ -771,7 +780,6 @@ Bool Policy::isEventRegistered(PolicyEvent::Type policyEvent)
 void Policy::createPolicyServices(void)
 {
 	m_policyServices.domainActivityStatus = new PolicyServicesDomainActivityStatus(m_dptfManager, m_policyIndex);
-	m_policyServices.domainConfigTdpControl = new PolicyServicesDomainConfigTdpControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainCoreControl = new PolicyServicesDomainCoreControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainDisplayControl = new PolicyServicesDomainDisplayControl(m_dptfManager, m_policyIndex);
 	m_policyServices.domainEnergyControl = new PolicyServicesDomainEnergyControl(m_dptfManager, m_policyIndex);
@@ -808,7 +816,6 @@ void Policy::createPolicyServices(void)
 void Policy::destroyPolicyServices(void)
 {
 	DELETE_MEMORY_TC(m_policyServices.domainActivityStatus);
-	DELETE_MEMORY_TC(m_policyServices.domainConfigTdpControl);
 	DELETE_MEMORY_TC(m_policyServices.domainCoreControl);
 	DELETE_MEMORY_TC(m_policyServices.domainDisplayControl);
 	DELETE_MEMORY_TC(m_policyServices.domainEnergyControl);
@@ -962,6 +969,331 @@ void Policy::executeDomainAC10msPercentageOverloadChanged(UIntN participantIndex
 		m_theRealPolicy->domainAC10msPercentageOverloadChanged(participantIndex);
 	}
 }
+
+void Policy::executePolicySensorUserPresenceChanged(SensorUserPresence::Type userPresence)
+{
+	if (isEventRegistered(PolicyEvent::PolicySensorUserPresenceChanged))
+	{
+		m_theRealPolicy->sensorUserPresenceChanged(userPresence);
+	}
+}
+
+void Policy::executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type userPresence)
+{
+	if (isEventRegistered(PolicyEvent::PolicyPlatformUserPresenceChanged))
+	{
+		m_theRealPolicy->platformUserPresenceChanged(userPresence);
+	}
+}
+
+void Policy::executePolicyWakeOnApproachFeatureStateChanged(Bool wakeOnApproachFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWakeOnApproachFeatureStateChanged))
+	{
+		m_theRealPolicy->wakeOnApproachFeatureStateChanged(wakeOnApproachFeatureState);
+	}
+}
+
+void Policy::executePolicyWakeOnApproachWithExternalMonitorFeatureStateChanged(
+	Bool wakeOnApproachWithExternalMonitorFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged))
+	{
+		m_theRealPolicy->wakeOnApproachWithExternalMonitorFeatureStateChanged(wakeOnApproachWithExternalMonitorFeatureState);
+	}
+}
+
+void Policy::executePolicyWakeOnApproachOnLowBatteryFeatureStateChanged(
+	Bool wakeOnApproachOnLowBatteryFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWakeOnApproachLowBatteryFeatureStateChanged))
+	{
+		m_theRealPolicy->wakeOnApproachOnLowBatteryFeatureStateChanged(wakeOnApproachOnLowBatteryFeatureState);
+	}
+}
+
+void Policy::executePolicyWakeOnApproachBatteryRemainingPercentageChanged(
+	Percentage wakeOnApproachBatteryRemainingPercentage)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWakeOnApproachBatteryRemainingPercentageChanged))
+	{
+		m_theRealPolicy->wakeOnApproachBatteryRemainingPercentageChanged(wakeOnApproachBatteryRemainingPercentage);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockFeatureStateChanged))
+	{
+		m_theRealPolicy->walkAwayLockFeatureStateChanged(walkAwayLockFeatureState);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockWithExternalMonitorFeatureStateChanged(
+	Bool walkAwayLockWithExternalMonitorFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged))
+	{
+		m_theRealPolicy->walkAwayLockWithExternalMonitorFeatureStateChanged(walkAwayLockWithExternalMonitorFeatureState);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockDimScreenFeatureStateChanged(
+	Bool walkAwayLockDimScreenFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockDimScreenFeatureStateChanged))
+	{
+		m_theRealPolicy->walkAwayLockDimScreenFeatureStateChanged(walkAwayLockDimScreenFeatureState);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged(
+	Bool walkAwayLockDisplayOffAfterLockFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged))
+	{
+		m_theRealPolicy->walkAwayLockDisplayOffAfterLockFeatureStateChanged(walkAwayLockDisplayOffAfterLockFeatureState);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
+	Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged))
+	{
+		m_theRealPolicy->walkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(walkAwayLockHonorPowerRequestsForDisplayFeatureState);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockHonorUserInCallFeatureStateChanged(
+	Bool walkAwayLockHonorUserInCallFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockHonorUserInCallFeatureStateChanged))
+	{
+		m_theRealPolicy->walkAwayLockHonorUserInCallFeatureStateChanged(walkAwayLockHonorUserInCallFeatureState);
+	}
+}
+
+void Policy::executePolicyUserInCallStateChanged(Bool userInCallState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserInCallStateChanged))
+	{
+		m_theRealPolicy->userInCallStateChanged(userInCallState);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockScreenLockWaitTimeChanged))
+	{
+		m_theRealPolicy->walkAwayLockScreenLockWaitTimeChanged(walkAwayLockScreenLockWaitTime);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockPreDimWaitTimeChanged(TimeSpan walkAwayLockPreDimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockPreDimWaitTimeChanged))
+	{
+		m_theRealPolicy->walkAwayLockPreDimWaitTimeChanged(walkAwayLockPreDimWaitTime);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockUserPresentWaitTimeChanged))
+	{
+		m_theRealPolicy->walkAwayLockUserPresentWaitTimeChanged(walkAwayLockUserPresentWaitTime);
+	}
+}
+
+void Policy::executePolicyWalkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval)
+{
+	if (isEventRegistered(PolicyEvent::PolicyWalkAwayLockDimIntervalChanged))
+	{
+		m_theRealPolicy->walkAwayLockDimIntervalChanged(walkAwayLockDimInterval);
+	}
+}
+
+void Policy::executePolicyAdaptiveDimmingFeatureStateChanged(Bool adaptiveDimmingFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyAdaptiveDimmingFeatureStateChanged))
+	{
+		m_theRealPolicy->adaptiveDimmingFeatureStateChanged(adaptiveDimmingFeatureState);
+	}
+}
+
+void Policy::executePolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged(
+	Bool adaptiveDimmingWithExternalMonitorFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged))
+	{
+		m_theRealPolicy->adaptiveDimmingWithExternalMonitorFeatureStateChanged(adaptiveDimmingWithExternalMonitorFeatureState);
+	}
+}
+
+void Policy::executePolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged(
+	Bool adaptiveDimmingWithPresentationModeFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged))
+	{
+		m_theRealPolicy->adaptiveDimmingWithPresentationModeFeatureStateChanged(adaptiveDimmingWithPresentationModeFeatureState);
+	}
+}
+
+void Policy::executePolicyAdaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyAdaptiveDimmingPreDimWaitTimeChanged))
+	{
+		m_theRealPolicy->adaptiveDimmingPreDimWaitTimeChanged(adaptiveDimmingPreDimWaitTime);
+	}
+}
+
+void Policy::executePolicyMispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyMispredictionFaceDetectionFeatureStateChanged))
+	{
+		m_theRealPolicy->mispredictionFaceDetectionFeatureStateChanged(mispredictionFaceDetectionFeatureState);
+	}
+}
+
+void Policy::executePolicyMispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow)
+{
+	if (isEventRegistered(PolicyEvent::PolicyMispredictionTimeWindowChanged))
+	{
+		m_theRealPolicy->mispredictionTimeWindowChanged(mispredictionTimeWindow);
+	}
+}
+
+void Policy::executePolicyMisprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyMisprediction1DimWaitTimeChanged))
+	{
+		m_theRealPolicy->misprediction1DimWaitTimeChanged(misprediction1DimWaitTime);
+	}
+}
+
+void Policy::executePolicyMisprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyMisprediction2DimWaitTimeChanged))
+	{
+		m_theRealPolicy->misprediction2DimWaitTimeChanged(misprediction2DimWaitTime);
+	}
+}
+
+void Policy::executePolicyMisprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyMisprediction3DimWaitTimeChanged))
+	{
+		m_theRealPolicy->misprediction3DimWaitTimeChanged(misprediction3DimWaitTime);
+	}
+}
+
+void Policy::executePolicyMisprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyMisprediction4DimWaitTimeChanged))
+	{
+		m_theRealPolicy->misprediction4DimWaitTimeChanged(misprediction4DimWaitTime);
+	}
+}
+
+void Policy::executePolicyNoLockOnPresenceFeatureStateChanged(Bool noLockOnPresenceFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyNoLockOnPresenceFeatureStateChanged))
+	{
+		m_theRealPolicy->noLockOnPresenceFeatureStateChanged(noLockOnPresenceFeatureState);
+	}
+}
+
+void Policy::executePolicyNoLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged))
+	{
+		m_theRealPolicy->noLockOnPresenceExternalMonitorFeatureStateChanged(noLockOnPresenceExternalMonitorFeatureState);
+	}
+}
+
+void Policy::executePolicyNoLockOnPresenceOnBatteryFeatureStateChanged(
+	Bool noLockOnPresenceOnBatteryFeatureState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyNoLockOnPresenceOnBatteryFeatureStateChanged))
+	{
+		m_theRealPolicy->noLockOnPresenceOnBatteryFeatureStateChanged(noLockOnPresenceOnBatteryFeatureState);
+	}
+}
+
+void Policy::executePolicyNoLockOnPresenceBatteryRemainingPercentageChanged(
+	Percentage noLockOnPresenceBatteryRemainingPercentage)
+{
+	if (isEventRegistered(PolicyEvent::PolicyNoLockOnPresenceBatteryRemainingPercentageChanged))
+	{
+		m_theRealPolicy->noLockOnPresenceBatteryRemainingPercentageChanged(noLockOnPresenceBatteryRemainingPercentage);
+	}
+}
+
+void Policy::executePolicyNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyNoLockOnPresenceResetWaitTimeChanged))
+	{
+		m_theRealPolicy->noLockOnPresenceResetWaitTimeChanged(noLockOnPresenceResetWaitTime);
+	}
+}
+
+void Policy::executePolicyFailsafeTimeoutChanged(TimeSpan failsafeTimeout)
+{
+	if (isEventRegistered(PolicyEvent::PolicyFailsafeTimeoutChanged))
+	{
+		m_theRealPolicy->failsafeTimeoutChanged(failsafeTimeout);
+	}
+}
+
+void Policy::executePolicyUserPresenceAppStateChanged(Bool userPresenceAppState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserPresenceAppStateChanged))
+	{
+		m_theRealPolicy->userPresenceAppStateChanged(userPresenceAppState);
+	}
+}
+
+void Policy::executePolicyExternalMonitorStateChanged(Bool externalMonitorState)
+{
+	if (isEventRegistered(PolicyEvent::PolicyExternalMonitorStateChanged))
+	{
+		m_theRealPolicy->externalMonitorStateChanged(externalMonitorState);
+	}
+}
+
+void Policy::executePolicyUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserNotPresentDimTargetChanged))
+	{
+		m_theRealPolicy->userNotPresentDimTargetChanged(userNotPresentDimTarget);
+	}
+}
+
+void Policy::executePolicyUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserDisengagedDimmingIntervalChanged))
+	{
+		m_theRealPolicy->userDisengagedDimmingIntervalChanged(userDisengagedDimmingInterval);
+	}
+}
+
+void Policy::executePolicyUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserDisengagedDimTargetChanged))
+	{
+		m_theRealPolicy->userDisengagedDimTargetChanged(userDisengagedDimTarget);
+	}
+}
+
+void Policy::executePolicyUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserDisengagedDimWaitTimeChanged))
+	{
+		m_theRealPolicy->userDisengagedDimWaitTimeChanged(userDisengagedDimWaitTime);
+	}
+}
+
 
 Bool Policy::isPolicyLoggingEnabled()
 {

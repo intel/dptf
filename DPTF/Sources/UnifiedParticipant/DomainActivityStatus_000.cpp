@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,6 +53,11 @@ UInt64 DomainActivityStatus_000::getTimestampCounter(UIntN participantIndex, UIn
 }
 
 UInt32 DomainActivityStatus_000::getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainActivityStatus_000::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
 {
 	throw not_implemented();
 }

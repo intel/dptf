@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -138,16 +138,6 @@ std::shared_ptr<DomainActivityStatusBase> UnifiedDomain::getActivityStatusContro
 	}
 	return ptr;
 }
-std::shared_ptr<DomainConfigTdpControlBase> UnifiedDomain::getConfigTdpControl(void)
-{
-	throwIfDomainNotEnabled();
-	std::shared_ptr<DomainConfigTdpControlBase> ptr = m_domainControls->getConfigTdpControl();
-	if (!ptr)
-	{
-		throw domain_control_nullptr();
-	}
-	return ptr;
-}
 
 std::shared_ptr<DomainCoreControlBase> UnifiedDomain::getCoreControl(void)
 {
@@ -219,17 +209,6 @@ std::shared_ptr<DomainSystemPowerControlBase> UnifiedDomain::getSystemPowerContr
 {
 	throwIfDomainNotEnabled();
 	std::shared_ptr<DomainSystemPowerControlBase> ptr = m_domainControls->getSystemPowerControl();
-	if (!ptr)
-	{
-		throw domain_control_nullptr();
-	}
-	return ptr;
-}
-
-std::shared_ptr<DomainPlatformPowerControlBase> UnifiedDomain::getPlatformPowerControl(void)
-{
-	throwIfDomainNotEnabled();
-	std::shared_ptr<DomainPlatformPowerControlBase> ptr = m_domainControls->getPlatformPowerControl();
 	if (!ptr)
 	{
 		throw domain_control_nullptr();

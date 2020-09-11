@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include "Dptf.h"
 #include "ParticipantServicesInterface.h"
 #include "DomainActivityStatusInterface.h"
-#include "DomainConfigTdpControlInterface.h"
 #include "DomainCoreControlInterface.h"
 #include "DomainDisplayControlInterface.h"
 #include "DomainEnergyControlInterface.h"
@@ -43,7 +42,6 @@
 class XmlNode;
 
 class ParticipantInterface : public DomainActivityStatusInterface,
-							 public DomainConfigTdpControlInterface,
 							 public DomainCoreControlInterface,
 							 public DomainDisplayControlInterface,
 							 public DomainEnergyControlInterface,
@@ -116,7 +114,6 @@ public:
 	virtual void resume(void) = 0;
 	virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityBitMask) = 0;
 	virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityBitMask) = 0;
-	virtual void domainConfigTdpCapabilityChanged(void) = 0;
 	virtual void domainCoreControlCapabilityChanged(void) = 0;
 	virtual void domainDisplayControlCapabilityChanged(void) = 0;
 	virtual void domainDisplayStatusChanged(void) = 0;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -53,4 +53,5 @@ void DataRepo_GetName(DataRepoPtr self, StringPtr name, size_t name_len);
 esif_error_t DataRepo_GetInfo(DataRepoPtr self, DataRepoInfoPtr info);
 esif_error_t DataRepo_SetComment(DataRepoPtr self, StringPtr comment);
 esif_error_t DataRepo_LoadSegments(DataRepoPtr self);
+esif_error_t DataRepo_ValidateSegment(DataRepoPtr self);
 

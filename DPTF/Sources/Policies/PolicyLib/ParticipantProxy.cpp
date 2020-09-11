@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,12 +25,14 @@ using namespace StatusFormat;
 
 ParticipantProxy::ParticipantProxy()
 	: m_policyServices()
+	, m_time(nullptr)
 	, m_index(Constants::Invalid)
 	, m_participantProperties(m_policyServices, Constants::Invalid)
 	, m_criticalTripPointProperty(m_policyServices, Constants::Invalid)
 	, m_activeTripPointProperty(m_policyServices, Constants::Invalid)
 	, m_passiveTripPointProperty(m_policyServices, Constants::Invalid)
 	, m_domainSetProperty(m_policyServices, Constants::Invalid)
+	, m_domains()
 	, m_previousLowerBound(Temperature::createInvalid())
 	, m_previousUpperBound(Temperature::createInvalid())
 	, m_lastIndicationTemperatureLowerBound(Temperature::createInvalid())
@@ -51,6 +53,7 @@ ParticipantProxy::ParticipantProxy(
 	, m_activeTripPointProperty(policyServices, participantIndex)
 	, m_passiveTripPointProperty(policyServices, participantIndex)
 	, m_domainSetProperty(policyServices, participantIndex)
+	, m_domains()
 	, m_previousLowerBound(Temperature::createInvalid())
 	, m_previousUpperBound(Temperature::createInvalid())
 	, m_lastIndicationTemperatureLowerBound(Temperature::createInvalid())
@@ -250,18 +253,6 @@ Temperature ParticipantProxy::getTemperatureOfLastThresholdCrossed() const
 	return m_lastThresholdCrossedTemperature;
 }
 
-Bool ParticipantProxy::supportsConfigTdpInterface()
-{
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
-	{
-		if (domain->second->getConfigTdpControl().supportsConfigTdpControls())
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 std::shared_ptr<DomainProxyInterface> ParticipantProxy::getDomain(UIntN domainIndex)
 {
 	auto domainProxyInterfacePtr = m_domains.at(domainIndex);
@@ -362,18 +353,6 @@ std::shared_ptr<XmlNode> ParticipantProxy::getXmlForTripPointStatistics()
 		XmlNode::createDataElement("temperature_of_last_trip", m_lastThresholdCrossedTemperature.toString()));
 
 	return stats;
-}
-
-std::shared_ptr<XmlNode> ParticipantProxy::getXmlForConfigTdpLevel()
-{
-	auto status = XmlNode::createWrapperElement("participant_config_tdp_level");
-	status->addChild(XmlNode::createDataElement("participant_index", StatusFormat::friendlyValue(getIndex())));
-	status->addChild(XmlNode::createDataElement("participant_name", getParticipantProperties().getName()));
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); domain++)
-	{
-		status->addChild(domain->second->getXmlForConfigTdpLevel());
-	}
-	return status;
 }
 
 Temperature ParticipantProxy::getTemperatureForStatus(std::shared_ptr<DomainProxyInterface> domainProxy)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -525,7 +525,7 @@ eEsifError EsifUp_StartParticipantSlowPoll(EsifUpPtr self)
 			continue;
 		}
 	
-		if (samplePeriod > 0) { //only affect polling participants
+		if ((slowPollRate > samplePeriod) && (samplePeriod != 0)) { //only affect polling participants with polling rate < slow polling rate
 			ESIF_TRACE_DEBUG("Setting longer polling period (%d) for participant: %s due to connected standby entry. \n", slowPollRate, domainPtr->participantName);
 			behaviorTuple.domain = domainPtr->domain;
 			rc = EsifUp_ExecutePrimitive(self, &behaviorTuple, &behaviorRequest, NULL);
@@ -548,10 +548,6 @@ eEsifError EsifUp_StopParticipantSlowPoll(EsifUpPtr self)
 	UpDomainIterator udIter = { 0 };
 	eEsifError rc = ESIF_OK;
 	eEsifError iteratorRc = ESIF_OK;
-	esif_time_t samplePeriod = 0;
-	EsifData samplePeriodResponse = { ESIF_DATA_TIME, &samplePeriod, sizeof(samplePeriod), 0 };
-	EsifPrimitiveTuple samplePeriodTuple = { GET_PARTICIPANT_SAMPLE_PERIOD, 0, 255 };
-
 
 	if (NULL == self) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -566,22 +562,10 @@ eEsifError EsifUp_StopParticipantSlowPoll(EsifUpPtr self)
 
 	iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
 	while (ESIF_OK == iteratorRc) {
-		if (NULL == domainPtr) {
-			iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
-			continue;
+		if (domainPtr != NULL) {
+			EsifUpDomain_InitTempPoll(domainPtr);
 		}
 
-		samplePeriodTuple.domain = domainPtr->domain;
-		rc = EsifUp_ExecutePrimitive(self, &samplePeriodTuple, NULL, &samplePeriodResponse);
-		if (ESIF_OK != rc) {
-			iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
-			continue;
-		}
-		
-		if (samplePeriod > 0) { //only affect polling participants
-			ESIF_TRACE_DEBUG("Resetting polling rate for participant: %s due to connected standby exit. \n", domainPtr->participantName);
-			rc = EsifUpDomain_InitTempPoll(domainPtr);
-		}
 		iteratorRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
 	}
 
@@ -934,7 +918,7 @@ static eEsifError EsifUp_SelectDspByLpEventData(
 	/* send DSP to ESIF LF */
 	rc = esif_send_dsp(edpFilePath, lpCreateDataPtr->id);
 	if ((rc != ESIF_OK) && (rc != ESIF_E_DSP_ALREADY_LOADED)) {
-		ESIF_TRACE_ERROR("Fail to send DSP to ESIF LF: %s\n", edpFilePath);
+		ESIF_TRACE_WARN("Fail to send DSP to ESIF LF: %s\n", edpFilePath);
 		goto exit;
 	}
 	rc = ESIF_OK;

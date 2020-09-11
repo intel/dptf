@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License"); you may not 
 ## use this file except in compliance with the License.
@@ -101,6 +101,7 @@ OBJ := $(SOURCES)/esif_ws_http.o
 OBJ += $(SOURCES)/esif_ws_server.o
 OBJ += $(SOURCES)/esif_ws_socket.o
 OBJ += $(SOURCES)/esif_ws.o
+OBJ += $(ESIF_SDK_SOURCES)/esif_sdk_base64_enc.o
 
 ###############################################################################
 # BUILD 

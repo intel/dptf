@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,63 @@
  * File Management
  */
 
- // mode parameters for esif_ccb_fopen() that can be combined
+ /* NOTE: SCANFBUF is mandatory when using esif_ccb_fscanf to scan into strings:
+ *        esif_ccb_fscanf(fp, "%s=%d", SCANFBUF(name, sizeof(name)), &value);
+ */
+#define esif_ccb_fgets(buf, siz, fp)                fgets(buf, siz, fp)
+#define esif_ccb_fread(buf, bsiz, siz, count, fp)   fread(buf, siz, count, fp)
+#define esif_ccb_fwrite(buf, siz, count, fp)        fwrite(buf, siz, count, fp)
+#define esif_ccb_fprintf(fp, fmt, ...)              fprintf(fp, fmt, ##__VA_ARGS__)
+#define esif_ccb_fscanf(fp, fmt, ...)				fscanf(fp, fmt, ##__VA_ARGS__)
+#define esif_ccb_vfprintf(fp, fmt, vargs)           vfprintf(fp, fmt, vargs)
+#define esif_ccb_fseek(fp, off, org)                fseek(fp, off, org)
+#define esif_ccb_ftell(fp)                          ftell(fp)
+#define esif_ccb_fflush(fp)                         fflush(fp)
+#define esif_ccb_unlink(fname)                      unlink(fname)
+#define esif_ccb_rename(oldname, newname)           rename(oldname, newname)
+#define esif_ccb_rmdir(dir)                         rmdir(dir)
+#define esif_ccb_mkdir(dir)                         mkdir(dir, 755)
+
+// Is the file or folder a symbolic link?
+static ESIF_INLINE Bool esif_ccb_issymlink(const char* pathname)
+{
+	struct stat st = { 0 };
+	return (lstat(pathname, &st) == 0 && S_ISLNK(st.st_mode));
+}
+
+// Check if a file or folder is a symlink and remove it if it is. Returns 0 or EMLINK if symlink cannot be removed.
+static ESIF_INLINE int esif_ccb_drop_symlink(const char* pathname)
+{
+	// Remove Symbolic Links
+	if (esif_ccb_issymlink(pathname)) {
+		int rc = esif_ccb_unlink(pathname);
+		if (rc != 0) {
+			return EMLINK;
+		}
+	}
+	return 0;
+}
+
+// Get stats for a file and return 0 if it exists and nonzero if not
+// Remove file if it is a symlink or return EMLINK if symlink cannot be deleted
+static ESIF_INLINE int esif_ccb_stat(esif_string pathname, struct stat* st)
+{
+	// Remove Symbolic Links
+	int rc = esif_ccb_drop_symlink(pathname);
+	if (rc == 0) {
+		rc = stat(pathname, st);
+	}
+	return rc;
+}
+
+// Check if a file exists or remove it if it is a symlink
+static ESIF_INLINE int esif_ccb_file_exists(esif_string filename)
+{
+	struct stat st;
+	return (0 == esif_ccb_stat(filename, &st));
+}
+
+// mode parameters for esif_ccb_fopen() that can be combined
 #define FILEMODE_READ		"r"		// Open for Read-only; File must exist
 #define FILEMODE_WRITE		"w"		// Open for Write, Overwrite existing file; Create if does not exist
 #define FILEMODE_APPEND		"a"		// Open for Write, Append existing file; Create if does not exist
@@ -44,6 +100,14 @@ static ESIF_INLINE FILE *esif_ccb_fopen(
 	int *errnoPtr
 	)
 {
+	// Remove Symbolic Links
+	int rc = -1;
+	if ((rc = esif_ccb_drop_symlink(name)) != 0) {
+		if (errnoPtr) {
+			*errnoPtr = rc;
+		}
+		return NULL;
+	}
 	FILE *fp = fopen(name, mode);
 	if (errnoPtr) {
 		*errnoPtr = (fp ? 0 : errno);
@@ -59,28 +123,16 @@ static ESIF_INLINE int esif_ccb_fclose(FILE *fp)
 	return fclose(fp);
 }
 
-/* NOTE: SCANFBUF is mandatory when using esif_ccb_fscanf to scan into strings:
-*        esif_ccb_fscanf(fp, "%s=%d", SCANFBUF(name, sizeof(name)), &value);
-*/
-#define esif_ccb_fgets(buf, siz, fp)                fgets(buf, siz, fp)
-#define esif_ccb_fread(buf, bsiz, siz, count, fp)   fread(buf, siz, count, fp)
-#define esif_ccb_fwrite(buf, siz, count, fp)        fwrite(buf, siz, count, fp)
-#define esif_ccb_fprintf(fp, fmt, ...)              fprintf(fp, fmt, ##__VA_ARGS__)
-#define esif_ccb_fscanf(fp, fmt, ...)				fscanf(fp, fmt, ##__VA_ARGS__)
-#define esif_ccb_vfprintf(fp, fmt, vargs)           vfprintf(fp, fmt, vargs)
-#define esif_ccb_fseek(fp, off, org)                fseek(fp, off, org)
-#define esif_ccb_ftell(fp)                          ftell(fp)
-#define esif_ccb_fflush(fp)                         fflush(fp)
-#define esif_ccb_unlink(fname)                      unlink(fname)
-#define esif_ccb_rename(oldname, newname)           rename(oldname, newname)
-#define esif_ccb_mkdir(dir)                         mkdir(dir, 755)
-#define esif_ccb_stat(path, buf)                    stat(path, buf)
-
 /* Recursively create a path if it does not already exist */
 static ESIF_INLINE int esif_ccb_makepath(char *path)
 {
 	int rc = -1;
 	struct stat st = { 0 };
+
+	// Remove Symbolic Links
+	if ((rc = esif_ccb_drop_symlink(path)) != 0) {
+		return rc;
+	}
 
 	// create path only if it does not already exist
 	if ((rc = esif_ccb_stat(path, &st)) != 0) {
@@ -167,6 +219,12 @@ static ESIF_INLINE esif_ccb_file_enum_t esif_ccb_file_enum_first(
 	do {
 		ffd = readdir(find_handle->handle);
 		if (NULL != ffd && fnmatch(pattern, ffd->d_name, FNM_PATHNAME | FNM_NOESCAPE) == 0) {	// found a match
+			// Remove Symbolic Links
+			esif_ccb_sprintf(MAX_PATH, full_path, "%s%s%s", path, ESIF_PATH_SEP, ffd->d_name);
+			if (esif_ccb_issymlink(full_path)) {
+				esif_ccb_drop_symlink(full_path);
+				continue;
+			}
 			char **oldFiles = find_handle->files;
 			find_handle->matches++;
 			find_handle->files = (char **)esif_ccb_realloc(find_handle->files, sizeof(char *) * find_handle->matches);
@@ -231,13 +289,6 @@ static ESIF_INLINE void esif_ccb_file_enum_close(esif_ccb_file_enum_t find_handl
 	esif_ccb_free(find_handle->files);
 	esif_ccb_memset(find_handle, 0, sizeof(struct esif_ccb_file_enum));
 	esif_ccb_free(find_handle);
-}
-
-
-static ESIF_INLINE int esif_ccb_file_exists(esif_string filename)
-{
-	struct stat st;
-	return 0 == esif_ccb_stat(filename, &st);
 }
 
 #endif /* LINUX USER */

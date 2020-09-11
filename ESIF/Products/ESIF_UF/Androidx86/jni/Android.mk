@@ -1,5 +1,5 @@
 ################################################################################
-## Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+## Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 ##
 ## The source code, information and material ("Material") contained herein is
 ## owned by Intel Corporation or its suppliers or licensors, and title to such
@@ -79,10 +79,9 @@ LOCAL_SRC_FILES += ESIF_CM/Sources/esif_ipc.c
 LOCAL_SRC_FILES += ../../Common/esif_link_list.c
 LOCAL_SRC_FILES += ../../Common/esif_ccb_timer.c
 LOCAL_SRC_FILES += ../../Common/esif_queue.c
-LOCAL_SRC_FILES += ../../Common/esif_sdk_base64.c
+LOCAL_SRC_FILES += ../../Common/esif_sdk_base64_dec.c
 
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf.c
-LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_accelerometer.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_action.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_action_config.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_action_constant.c
@@ -98,17 +97,18 @@ LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_dsp.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_dspmgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_event.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_eventmgr.c
-LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_event_broadcast.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_handlemgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_ipc.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_loggingmgr.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_participant.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_pm.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_primitive.c
+LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_sensors.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_service.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_shell.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_tableobject.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_trace.c
+LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_upsm.c
 LOCAL_SRC_FILES += ESIF_UF/Sources/esif_uf_xform.c
 
 LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_databank.c

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -59,7 +59,6 @@ public:
 
 	std::shared_ptr<DomainActiveControlBase> getActiveControl(void);
 	std::shared_ptr<DomainActivityStatusBase> getActivityStatusControl(void);
-	std::shared_ptr<DomainConfigTdpControlBase> getConfigTdpControl(void);
 	std::shared_ptr<DomainCoreControlBase> getCoreControl(void);
 	std::shared_ptr<DomainDisplayControlBase> getDisplayControl(void);
 	std::shared_ptr<DomainEnergyControlBase> getEnergyControl(void);
@@ -68,7 +67,6 @@ public:
 	std::shared_ptr<DomainPowerControlBase> getPowerControl(void);
 	std::shared_ptr<DomainPowerStatusBase> getPowerStatusControl(void);
 	std::shared_ptr<DomainSystemPowerControlBase> getSystemPowerControl(void);
-	std::shared_ptr<DomainPlatformPowerControlBase> getPlatformPowerControl(void);
 	std::shared_ptr<DomainPlatformPowerStatusBase> getPlatformPowerStatusControl(void);
 	std::shared_ptr<DomainPriorityBase> getDomainPriorityControl(void);
 	std::shared_ptr<DomainRfProfileControlBase> getRfProfileControl(void);

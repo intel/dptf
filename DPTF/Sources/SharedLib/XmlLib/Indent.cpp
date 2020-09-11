@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,6 +28,12 @@ Indent::Indent(UIntN length, UIntN stepSize)
 	: m_length(length)
 	, m_stepSize(stepSize)
 {
+}
+
+Indent::Indent(const Indent& indent)
+{
+	m_length = indent.m_length;
+	m_stepSize = indent.m_stepSize;
 }
 
 std::ostream& operator<<(std::ostream& out, const Indent& indent)
@@ -68,11 +74,6 @@ Indent Indent::operator--(int) // postfix
 	--(*this);
 	return copyOfThis;
 };
-
-UIntN Indent::length() const
-{
-	return m_length;
-}
 
 std::string Indent::emit() const
 {

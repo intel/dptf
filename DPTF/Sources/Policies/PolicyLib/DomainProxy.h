@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,12 +30,10 @@
 #include "PowerControlFacade.h"
 #include "DisplayControlFacade.h"
 #include "CoreControlFacade.h"
-#include "ConfigTdpControlFacade.h"
 #include "RadioFrequencyControlFacade.h"
 #include "PeakPowerControlFacade.h"
 #include "ProcessorControlFacade.h"
 #include "SystemPowerControlFacade.h"
-#include "PlatformPowerControlFacade.h"
 #include "PlatformPowerStatusFacade.h"
 #include "BatteryStatusFacade.h"
 #include "SocWorkloadClassificationFacade.h"
@@ -78,10 +76,8 @@ public:
 	virtual std::shared_ptr<PerformanceControlFacadeInterface> getPerformanceControl() override;
 	virtual std::shared_ptr<PowerControlFacadeInterface> getPowerControl() override;
 	virtual std::shared_ptr<SystemPowerControlFacadeInterface> getSystemPowerControl() override;
-	virtual std::shared_ptr<PlatformPowerControlFacadeInterface> getPlatformPowerControl() override;
 	virtual std::shared_ptr<DisplayControlFacadeInterface> getDisplayControl() override;
 	virtual std::shared_ptr<CoreControlFacadeInterface> getCoreControl() override;
-	virtual ConfigTdpControlFacade& getConfigTdpControl() override;
 	virtual RadioFrequencyControlFacade& getRadioFrequencyControl() const override;
 	virtual std::shared_ptr<PeakPowerControlFacadeInterface> getPeakPowerControl() override;
 	virtual std::shared_ptr<ProcessorControlFacadeInterface> getProcessorControl() override;
@@ -90,7 +86,6 @@ public:
 	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() override;
 
 	// status
-	virtual std::shared_ptr<XmlNode> getXmlForConfigTdpLevel() override;
 	virtual std::shared_ptr<XmlNode> getXml() const override;
 
 protected:
@@ -108,10 +103,8 @@ protected:
 	std::shared_ptr<PerformanceControlFacade> m_performanceControl;
 	std::shared_ptr<PowerControlFacade> m_powerControl;
 	std::shared_ptr<SystemPowerControlFacade> m_systemPowerControl;
-	std::shared_ptr<PlatformPowerControlFacade> m_platformPowerControl;
 	std::shared_ptr<DisplayControlFacadeInterface> m_displayControl;
 	std::shared_ptr<CoreControlFacadeInterface> m_coreControl;
-	std::shared_ptr<ConfigTdpControlFacade> m_configTdpControl;
 	std::shared_ptr<RadioFrequencyControlFacade> m_radioFrequencyControl;
 	std::shared_ptr<PeakPowerControlFacade> m_peakPowerControl;
 	std::shared_ptr<ProcessorControlFacade> m_processorControl;

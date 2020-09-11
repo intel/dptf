@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -175,6 +175,7 @@ typedef enum esif_rc {
 	/* Temperature Conversion */
 	ESIF_E_UNSUPPORTED_REQUEST_TEMP_TYPE = 2500,
 	ESIF_E_UNSUPPORTED_RESULT_TEMP_TYPE,
+
 	/* TIMER */
 	ESIF_E_TIMEOUT = 2600,	/* Timeout*/
 
@@ -231,10 +232,15 @@ typedef enum esif_rc {
 	ESIF_E_INVALID_PARTICIPANT_ID,
 	ESIF_E_INVALID_DOMAIN_ID,
 	ESIF_E_INVALID_CAPABILITY_MASK,
-	
+
+	/* IPF RPC Session Errors */
+	ESIF_E_SESSION_DISCONNECTED = 3700,
+	ESIF_E_SESSION_REQUEST_FAILED,
+	ESIF_E_SESSION_ALREADY_STARTED,
+	ESIF_E_SESSION_PERMISSION_DENIED,
 
 	/* The following block is reserved for ABAT-specific error codes */
-	ESIF_E_ABAT_ERRORS_RSVD = 3700,
+	ESIF_E_ABAT_ERRORS_RSVD = 10000,
 
 } esif_error_t;
 
@@ -376,6 +382,11 @@ static ESIF_INLINE char *esif_error_str(esif_error_t type)
 	ESIF_CASE_ENUM(ESIF_E_INVALID_PARTICIPANT_ID);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_DOMAIN_ID);
 	ESIF_CASE_ENUM(ESIF_E_INVALID_CAPABILITY_MASK);
+
+	ESIF_CASE_ENUM(ESIF_E_SESSION_DISCONNECTED);
+	ESIF_CASE_ENUM(ESIF_E_SESSION_REQUEST_FAILED);
+	ESIF_CASE_ENUM(ESIF_E_SESSION_ALREADY_STARTED);
+	ESIF_CASE_ENUM(ESIF_E_SESSION_PERMISSION_DENIED);
 
 	ESIF_CASE_ENUM(ESIF_E_ABAT_ERRORS_RSVD);
 

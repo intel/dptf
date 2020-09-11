@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -110,6 +110,11 @@ policy_not_in_idsp_list::policy_not_in_idsp_list()
 
 participant_index_invalid::participant_index_invalid()
 	: dptf_exception("The participant index is not valid.")
+{
+}
+
+unsupported_result_temp_type::unsupported_result_temp_type()
+	: dptf_exception("The result temperature type after temperature conversion is not supported.")
 {
 }
 

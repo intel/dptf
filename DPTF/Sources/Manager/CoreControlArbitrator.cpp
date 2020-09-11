@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 
 CoreControlArbitrator::CoreControlArbitrator()
 	: m_arbitratedActiveCoreCount(Constants::Invalid)
+	, m_requestedActiveCoreCount(std::map<UIntN, UIntN>())
 {
 }
 

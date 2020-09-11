@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -246,8 +246,12 @@ eEsifError EsifUpPm_RegisterParticipant(
 	esif_handle_t *upInstancePtr
 	);
 
-eEsifError EsifUpPm_UnregisterParticipant(
-	const eEsifParticipantOrigin origin,
+//
+// Destroy Upper Participant Instance
+// !!!WARNING!!! No references may be held on the participant when this
+// function is called or a deadlock will occur
+//
+eEsifError EsifUpPm_DestroyParticipantByInstance(
 	const esif_handle_t upInstance
 	);
 
@@ -309,6 +313,8 @@ Bool EsifUFPollStarted(void);
 static ESIF_INLINE Bool EsifUpPm_IsPrimaryParticipantId(esif_handle_t participantId) {
 	return (((ESIF_HANDLE_DEFAULT == participantId) || (ESIF_HANDLE_PRIMARY_PARTICIPANT == participantId)) ? ESIF_TRUE : ESIF_FALSE);
 }
+
+eEsifError EsifUpPm_ParticipantActivityLoggingEnable(EsifUpPtr upPtr);
 
 #ifdef __cplusplus
 }

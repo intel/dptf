@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 WIRunCommand::WIRunCommand(DptfManagerInterface* dptfManager, const CommandArguments& arguments)
 	: WorkItem(dptfManager, FrameworkEvent::DptfCommand)
 	, m_arguments(arguments)
+	, m_message(Constants::EmptyString)
 	, m_errorCode(ESIF_OK)
 {
 }

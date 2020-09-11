@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,8 @@ DptfMessage::DptfMessage(const std::string& fileName, UIntN lineNumber, const st
 	, m_esifEventGuidValid(false)
 	, m_esifErrorCodeValid(false)
 	, m_esifErrorCode(ESIF_E_UNSPECIFIED)
+	, m_exceptionFunctionName(Constants::EmptyString)
+	, m_exceptionText(Constants::EmptyString)
 {
 	try
 	{

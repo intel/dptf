@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -167,7 +167,7 @@ enum esif_rc esif_send_dsp(
 
 	rc = commandPtr->return_code;
 	if ((rc != ESIF_OK) && (rc != ESIF_E_DSP_ALREADY_LOADED)) {
-		ESIF_TRACE_ERROR("primitive error code = %s(%d)\n", esif_rc_str(commandPtr->return_code), commandPtr->return_code);
+		ESIF_TRACE_WARN("primitive error code = %s(%d)\n", esif_rc_str(commandPtr->return_code), commandPtr->return_code);
 		goto exit;
 	}
 exit:

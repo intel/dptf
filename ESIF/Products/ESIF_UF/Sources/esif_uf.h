@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,7 +29,7 @@ extern "C" {
 typedef union DCfgOptions_u {
 	struct {
 		UInt32 GenericUIAccessControl : 1;			// 0:0 - 0 = Enable [default], 1 = Disable access
-		UInt32 RestrictedUIAccessControl : 1;		// 1:1 - 0 = Enable [default], 1 = Disable access
+		UInt32 Reserved0 : 1;						// 1:1 Reserved
 		UInt32 ShellAccessControl : 1;				// 2:2 - 0 = Enable [default], 1 = Disable access
 		UInt32 EnvMonitoringReportControl : 1;		// 3:3 - 0 = Report is allowed [default], 1 = No environmental monitoring report to Microsoft
 		UInt32 ThermalMitigationReportControl : 1;	// 4:4 - 0 = No mitigation report to Microsoft [default], 1 = Report is allowed
@@ -55,6 +55,7 @@ typedef struct EsifInitTableEntry_s {
 #define ESIF_INIT_FLAG_NONE					0
 #define	ESIF_INIT_FLAG_IGNORE_ERROR			1
 #define	ESIF_INIT_FLAG_CHECK_STOP_AFTER		2
+#define	ESIF_INIT_FLAG_MUST_RUN_ON_EXIT		4
 
 // ESIF Log Types
 typedef enum eEsifLogType {
@@ -257,17 +258,12 @@ extern eEsifError EsifWebStart(void);
 extern void EsifWebStop(void);
 extern int EsifWebIsStarted(void);
 extern void *EsifWebAlloc(size_t buf_len);
-extern Bool EsifWebIsServerMode(Bool restricted);
 extern const char *EsifWebVersion(void);
-extern Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, Bool *restricted_ptr);
-extern void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, Bool restricted);
+extern Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, esif_flags_t *flags_ptr);
+extern void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, esif_flags_t flags);
 extern void EsifWebSetTraceLevel(int level);
-extern eEsifError EsifWebBroadcast(const u8 *buffer, size_t buf_len);
 
 #define ESIF_WS_INSTANCE_ALL	255	// All WebServer Listener Instances
-
-// TODO - Legacy Interfaces; Will be removed later
-extern eEsifError esif_ws_broadcast_data_buffer(const u8 *bufferPtr, size_t bufferSize);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,6 +49,11 @@ static void ESIF_INLINE esif_ccb_socket_exit(void)
 static int ESIF_INLINE esif_ccb_socket_error(void)
 {
 	return errno;
+}
+
+static void ESIF_INLINE esif_ccb_socket_seterror(int err)
+{
+	errno = err;
 }
 
 // Call close only from the thread servicing the socket

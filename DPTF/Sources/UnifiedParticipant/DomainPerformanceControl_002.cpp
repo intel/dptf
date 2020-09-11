@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -384,8 +384,8 @@ void DomainPerformanceControl_002::calculatePerformanceStateLimits(
 				esif_primitive_type::SET_PROC_PERF_PSTATE_DEPTH_LIMIT, ppdl, domainIndex);
 		}
 		pStateUpperLimitIndex = 0;
-		pStateLowerLimitIndex =
-			static_cast<UIntN>((ppdl >= pStateUpperLimitIndex && ppdl < performanceStateSetSize) ? ppdl : performanceStateSetSize - 1);
+		pStateLowerLimitIndex = static_cast<UIntN>(
+			(ppdl >= pStateUpperLimitIndex && ppdl < performanceStateSetSize) ? ppdl : performanceStateSetSize - 1);
 	}
 }
 
@@ -665,26 +665,6 @@ void DomainPerformanceControl_002::restore(void)
 			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
 		}
 	}
-}
-
-void DomainPerformanceControl_002::updateBasedOnConfigTdpInformation(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	ConfigTdpControlSet configTdpControlSet,
-	ConfigTdpControlStatus configTdpControlStatus)
-{
-	UInt64 tdpFrequencyLimit = configTdpControlSet[configTdpControlStatus.getCurrentControlIndex()].getTdpFrequency();
-	PerformanceControlSet controlSet = getPerformanceControlSet(participantIndex, domainIndex);
-	for (UIntN controlIndex = 0; controlIndex < controlSet.getCount(); controlIndex++)
-	{
-		if (tdpFrequencyLimit >= controlSet[controlIndex].getControlAbsoluteValue())
-		{
-			m_tdpFrequencyLimitControlIndex = controlIndex;
-			break;
-		}
-	}
-
-	m_performanceControlDynamicCaps.invalidate();
 }
 
 std::string DomainPerformanceControl_002::getName(void)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -58,13 +58,28 @@ static esif_error_t ESIF_CALLCONV EsifWsStart(void)
 	EsifWsInterfacePtr self = g_ifaceWs;
 	WebServerPtr server = g_WebServer;
 	if (server) {
-		u8 instance = 0;
-		for (instance = 0; instance < WS_LISTENERS && instance < WS_MAX_LISTENERS; instance++) {
-			if (instance == 0 || self->ipAddr[instance][0] || self->port[instance] || self->isRestricted[instance]) {
-				rc = WebServer_Config(server, instance, self->ipAddr[instance], (short)self->port[instance], (self->isRestricted[instance] ? ServerRestricted : ServerNormal));
+		for (u8 instance = 0; instance < esif_ccb_min(WS_LISTENERS, WS_MAX_LISTENERS); instance++) {
+			char* ipAddr = NULL;
+			short port = 0;
+			esif_flags_t flags = 0;
+			if (instance == 0 || self->ipAddr[instance][0] || self->port[instance]) {
+				ipAddr = self->ipAddr[instance];
+				port = (short)self->port[instance];
+				flags = self->flags[instance];
 			}
-			else {
-				WebServer_Config(server, instance, NULL, 0, ServerNormal);
+			rc = WebServer_Config(server, instance, ipAddr, port, flags);
+			
+			// Fill in Interface structure with the actual IP/Port used for each instance.
+			if (rc == ESIF_OK) {
+				if (ipAddr == NULL || *ipAddr == 0) {
+					esif_ccb_strcpy(self->ipAddr[instance], server->listeners[instance].ipAddr, sizeof(self->ipAddr[instance]));
+				}
+				if (port == 0) {
+					self->port[instance] = server->listeners[instance].port;
+				}
+				if (flags == 0) {
+					self->flags[instance] = server->listeners[instance].flags;
+				}
 			}
 		}
 		if (rc == ESIF_OK) {
@@ -78,11 +93,6 @@ static esif_error_t ESIF_CALLCONV EsifWsStop(void)
 {
 	WebServer_Stop(g_WebServer);
 	return ESIF_OK;
-}
-
-static esif_error_t ESIF_CALLCONV EsifWsBroadcast(const u8 *buffer, size_t buf_len)
-{
-	return WebServer_Broadcast(g_WebServer, buffer, buf_len);
 }
 
 static Bool ESIF_CALLCONV EsifWsIsStarted(void)
@@ -103,16 +113,6 @@ const char *EsifWsDocRoot(void)
 	const char *result = NULL;
 	if (self && self->docRoot[0]) {
 		result = self->docRoot;
-	}
-	return result;
-}
-
-const char *EsifWsLogRoot(void)
-{
-	EsifWsInterfacePtr self = g_ifaceWs;
-	const char *result = NULL;
-	if (self && self->logRoot[0]) {
-		result = self->logRoot;
 	}
 	return result;
 }
@@ -216,7 +216,6 @@ ESIF_EXPORT esif_error_t ESIF_CALLCONV GetWsInterface(EsifWsInterfacePtr ifacePt
 			ifacePtr->fEsifWsExitFuncPtr = EsifWsExit;
 			ifacePtr->fEsifWsStartFuncPtr = EsifWsStart;
 			ifacePtr->fEsifWsStopFuncPtr = EsifWsStop;
-			ifacePtr->fEsifWsBroadcastFuncPtr = EsifWsBroadcast;
 			ifacePtr->fEsifWsIsStartedFuncPtr = EsifWsIsStarted;
 			ifacePtr->fEsifWsAllocFuncPtr = EsifWsAlloc;
 			g_ifaceWs = ifacePtr;

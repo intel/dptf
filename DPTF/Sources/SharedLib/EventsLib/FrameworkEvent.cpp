@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -138,7 +138,6 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT(DomainAllocate, 31);
 	INIT_EVENT(DomainCreate, 31);
 	INIT_EVENT(DomainDestroy, 31);
-	INIT_EVENT_WITH_GUID(DomainConfigTdpCapabilityChanged, 0, CTDP_CAPABILITY_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainCoreControlCapabilityChanged, 0, CORE_CAPABILITY_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainDisplayControlCapabilityChanged, 0, DISPLAY_CAPABILITY_CHANGED);
 	INIT_EVENT_WITH_GUID(DomainDisplayStatusChanged, 0, DISPLAY_STATUS_CHANGED);
@@ -179,7 +178,6 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyCoolingModePolicyChanged, 0, SYSTEM_COOLING_POLICY_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyForegroundApplicationChanged, 0, FOREGROUND_CHANGED);
 	INIT_EVENT(PolicyInitiatedCallback, 0);
-	INIT_EVENT_WITH_GUID(PolicyOperatingSystemConfigTdpLevelChanged, 0, OS_CTDP_CAPABILITY_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPassiveTableChanged, 0, PASSIVE_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicySensorOrientationChanged, 0, DISPLAY_ORIENTATION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicySensorMotionChanged, 0, MOTION_CHANGED);
@@ -201,6 +199,7 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemMixedRealityModeChanged, 0, OS_MIXED_REALITY_MODE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSchemePersonalityChanged, 0, OS_POWERSCHEME_PERSONALITY_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemUserPresenceChanged, 0, OS_USER_PRESENCE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyOperatingSystemSessionStateChanged, 0, SESSION_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemScreenStateChanged, 0, OS_SCREEN_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemBatteryCountChanged, 0, BATTERY_COUNT_NOTIFICATION);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemPowerSliderChanged, 0, OS_POWER_SLIDER_VALUE_CHANGED);
@@ -216,9 +215,67 @@ void FrameworkEventInfo::initializeEvents()
 		PolicyActiveControlPointRelationshipTableChanged, 0, ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTableChanged, 0, POWER_SHARING_ALGORITHM_TABLE_CHANGED);
 	INIT_EVENT(PowerLimitChanged, 0);
+	INIT_EVENT(PerformanceCapabilitiesChanged, 0);
 	INIT_EVENT_WITH_GUID(PolicyWorkloadHintConfigurationChanged, 0, WORKLOAD_HINT_CONFIGURATION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyOperatingSystemGameModeChanged, 0, OS_GAME_MODE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTable2Changed, 0, POWER_SHARING_ALGORITHM_TABLE_2_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicySensorUserPresenceChanged, 0, SENSOR_USER_PRESENCE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyPlatformUserPresenceChanged, 0, PLATFORM_USER_PRESENCE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyAdaptiveUserPresenceTableChanged, 0, ADAPTIVE_USER_PRESENCE_TABLE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWakeOnApproachFeatureStateChanged, 0, WAKE_ON_APPROACH_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged, 0, WAKE_ON_APPROACH_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWakeOnApproachLowBatteryFeatureStateChanged, 0, WAKE_ON_APPROACH_LOW_BATTERY_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWakeOnApproachBatteryRemainingPercentageChanged,
+		0,
+		WAKE_ON_APPROACH_BATTERY_REMAINING_PERCENTAGE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWalkAwayLockFeatureStateChanged, 0, WALK_AWAY_LOCK_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged, 0, WALK_AWAY_LOCK_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWalkAwayLockDimScreenFeatureStateChanged, 0, WALK_AWAY_LOCK_DIM_SCREEN_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged, 0, WALK_AWAY_LOCK_DISPLAY_OFF_AFTER_LOCK_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged, 0, WALK_AWAY_LOCK_HONOR_DISPLAY_POWER_REQUEST_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWalkAwayLockHonorUserInCallFeatureStateChanged, 0, WALK_AWAY_LOCK_HONOR_USER_IN_CALL_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyUserInCallStateChanged,
+		0,
+		USER_IN_CALL_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWalkAwayLockScreenLockWaitTimeChanged, 0, SCREEN_LOCK_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWalkAwayLockPreDimWaitTimeChanged, 0, WALK_AWAY_LOCK_PRE_DIM_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyWalkAwayLockUserPresentWaitTimeChanged, 0, USER_PRESENT_WAIT_TIMEOUT_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyWalkAwayLockDimIntervalChanged, 0, WALK_AWAY_LOCK_DIM_INTERVAL_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyAdaptiveDimmingFeatureStateChanged, 0, ADAPTIVE_DIMMING_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged, 0, ADAPTIVE_DIMMING_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged, 0, ADAPTIVE_DIMMING_PRESENTATION_MODE_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyAdaptiveDimmingPreDimWaitTimeChanged, 0, ADAPTIVE_DIMMING_PRE_DIM_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyMispredictionFaceDetectionFeatureStateChanged, 0, MISPREDICTION_FACE_DETECTION_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyMispredictionTimeWindowChanged, 0, MISPREDICTION_TIME_WINDOW_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyMisprediction1DimWaitTimeChanged, 0, MISPREDICTION_1_DIM_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyMisprediction2DimWaitTimeChanged, 0, MISPREDICTION_2_DIM_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyMisprediction3DimWaitTimeChanged, 0, MISPREDICTION_3_DIM_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyMisprediction4DimWaitTimeChanged, 0, MISPREDICTION_4_DIM_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyNoLockOnPresenceFeatureStateChanged, 0, NO_LOCK_ON_PRESENCE_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged, 0, NO_LOCK_ON_PRESENCE_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyNoLockOnPresenceOnBatteryFeatureStateChanged, 0, NO_LOCK_ON_PRESENCE_BATTERY_FEATURE_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(
+		PolicyNoLockOnPresenceBatteryRemainingPercentageChanged,
+		0,
+		NO_LOCK_ON_PRESENCE_BATTERY_REMAINING_PERCENTAGE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyNoLockOnPresenceResetWaitTimeChanged, 0, NO_LOCK_ON_PRESENCE_RESET_WAIT_TIME_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyFailsafeTimeoutChanged, 0, FAILSAFE_TIMEOUT_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyUserPresenceAppStateChanged, 0, USER_PRESENCE_APP_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyExternalMonitorStateChanged, 0, EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyUserNotPresentDimTargetChanged, 0, USER_NOT_PRESENT_DIM_TARGET_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyUserDisengagedDimmingIntervalChanged, 0, USER_DISENGAGED_DIMMING_INTERVAL_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyUserDisengagedDimTargetChanged, 0, USER_DISENGAGED_DIM_TARGET_CHANGED);
+	INIT_EVENT_WITH_GUID(PolicyUserDisengagedDimWaitTimeChanged, 0, USER_DISENGAGED_DIM_WAIT_TIME_CHANGED);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);

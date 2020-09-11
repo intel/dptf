@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,7 @@ public:
 	RelationshipTableEntryBase(const std::string& participantScope, DomainType::Type domainType);
 	RelationshipTableEntryBase(const std::string& sourceDeviceScope, const std::string& targetDeviceScope);
 	RelationshipTableEntryBase(const std::string& participantScope);
+	RelationshipTableEntryBase();
 	virtual ~RelationshipTableEntryBase();
 
 	virtual const std::string& getSourceDeviceScope() const override;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -124,7 +124,7 @@ void DomainPerformanceControl_003::setPerformanceControlDynamicCaps(
 	}
 	if (upperLimitIndex > lowerLimitIndex || lowerLimitIndex > size - 1)
 	{
-		lowerLimitIndex = size-1;
+		lowerLimitIndex = size - 1;
 		PARTICIPANT_LOG_MESSAGE_WARNING(
 			{ return "Limit index mismatch, setting lower limit to lowest possible index."; });
 	}
@@ -262,15 +262,6 @@ void DomainPerformanceControl_003::restore(void)
 			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the initial performance control status. "; });
 		}
 	}
-}
-
-void DomainPerformanceControl_003::updateBasedOnConfigTdpInformation(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	ConfigTdpControlSet configTdpControlSet,
-	ConfigTdpControlStatus configTdpControlStatus)
-{
-	throw not_implemented();
 }
 
 std::string DomainPerformanceControl_003::getName(void)

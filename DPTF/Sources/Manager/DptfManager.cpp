@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -48,9 +48,13 @@ DptfManager::DptfManager(void)
 	, m_policyManager(nullptr)
 	, m_participantManager(nullptr)
 	, m_commandDispatcher(nullptr)
+	, m_commands()
 	, m_fileIo(nullptr)
 	, m_dptfStatus(nullptr)
 	, m_indexContainer(nullptr)
+	, m_dptfHomeDirectoryPath(Constants::EmptyString)
+	, m_dptfPolicyDirectoryPath(Constants::EmptyString)
+	, m_dptfReportDirectoryPath(Constants::EmptyString)
 	, m_dptfPolicyLoadNameOnly(false)
 {
 }

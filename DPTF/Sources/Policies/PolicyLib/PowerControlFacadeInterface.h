@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,6 +44,7 @@ public:
 	virtual void lockCapabilities() = 0;
 	virtual void unlockCapabilities() = 0;
 	virtual void removePowerLimitPolicyRequest(PowerControlType::Type controlType) = 0;
+	virtual void setPowerSharePolicyPower(const Power& powerSharePolicyPower) = 0;
 
 	// queries
 	virtual Bool supportsPowerControls() const = 0;

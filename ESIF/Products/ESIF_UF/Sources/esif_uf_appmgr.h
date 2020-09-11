@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #include "esif_uf_app.h"
 #include "esif_queue.h"
 
-#define ESIF_MAX_APPS 5
 #define APPMGR_ITERATOR_MARKER 'APPM'
 
 typedef struct _t_EsifAppMgrEntry {
@@ -112,6 +111,7 @@ eEsifError EsifAppMgr_CreateParticipantInAllApps(const EsifUpPtr upPtr);
 /* Start/Stop Apps using AppMgr */
 eEsifError EsifAppMgr_AppStart(const EsifString appName);
 eEsifError EsifAppMgr_AppStop(const EsifString appName);
+eEsifError EsifAppMgr_AppRename(const EsifString appName, const EsifString newName);
 eEsifError EsifAppMgr_AppRestartAll(void);
 
 /* Get the command prompt for the currently selected app */

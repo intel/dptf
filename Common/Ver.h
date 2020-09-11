@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,5 +20,5 @@
 
 #define VER_MAJOR        8
 #define VER_MINOR        7
-#define VER_HOTFIX       10103
+#define VER_HOTFIX       10500
 #define VER_BUILD        9999

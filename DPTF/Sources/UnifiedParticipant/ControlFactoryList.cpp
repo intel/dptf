@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 #include "ControlFactoryList.h"
 #include "DomainActiveControlFactory.h"
 #include "DomainActivityStatusFactory.h"
-#include "DomainConfigTdpControlFactory.h"
 #include "DomainCoreControlFactory.h"
 #include "DomainDisplayControlFactory.h"
 #include "DomainEnergyControlFactory.h"
@@ -37,12 +36,12 @@
 #include "DomainPlatformPowerStatusFactory.h"
 #include "DomainPeakPowerControlFactory.h"
 #include "DomainProcessorControlFactory.h"
-#include "DomainPlatformPowerControlFactory.h"
 #include "DomainBatteryStatusFactory.h"
 #include "DomainSocWorkloadClassificationFactory.h"
 using namespace std;
 
 ControlFactoryList::ControlFactoryList(void)
+	: m_factories()
 {
 	for (ControlFactoryType::Type factoryType = ControlFactoryType::FIRST; factoryType < ControlFactoryType::MAX;
 		 factoryType = (ControlFactoryType::Type)((int)factoryType + 1))
@@ -83,51 +82,47 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
 	switch (factoryType)
 	{
 	case ControlFactoryType::Active:
-		return shared_ptr<ControlFactoryInterface>(new DomainActiveControlFactory());
-	case ControlFactoryType::ConfigTdp:
-		return shared_ptr<ControlFactoryInterface>(new DomainConfigTdpControlFactory());
+		return make_shared<DomainActiveControlFactory>();
 	case ControlFactoryType::Core:
-		return shared_ptr<ControlFactoryInterface>(new DomainCoreControlFactory());
+		return make_shared<DomainCoreControlFactory>();
 	case ControlFactoryType::Display:
-		return shared_ptr<ControlFactoryInterface>(new DomainDisplayControlFactory());
+		return make_shared<DomainDisplayControlFactory>();
 	case ControlFactoryType::EnergyControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainEnergyControlFactory());
+		return make_shared<DomainEnergyControlFactory>();
 	case ControlFactoryType::PeakPowerControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainPeakPowerControlFactory());
+		return make_shared<DomainPeakPowerControlFactory>();
 	case ControlFactoryType::Performance:
-		return shared_ptr<ControlFactoryInterface>(new DomainPerformanceControlFactory());
+		return make_shared<DomainPerformanceControlFactory>();
 	case ControlFactoryType::PowerControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainPowerControlFactory());
+		return make_shared<DomainPowerControlFactory>();
 	case ControlFactoryType::PowerStatus:
-		return shared_ptr<ControlFactoryInterface>(new DomainPowerStatusFactory());
+		return make_shared<DomainPowerStatusFactory>();
 	case ControlFactoryType::Priority:
-		return shared_ptr<ControlFactoryInterface>(new DomainPriorityFactory());
+		return make_shared<DomainPriorityFactory>();
 	case ControlFactoryType::RfProfileControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainRfProfileControlFactory());
+		return make_shared<DomainRfProfileControlFactory>();
 	case ControlFactoryType::RfProfileStatus:
-		return shared_ptr<ControlFactoryInterface>(new DomainRfProfileStatusFactory());
+		return make_shared<DomainRfProfileStatusFactory>();
 	case ControlFactoryType::ProcessorControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainProcessorControlFactory());
+		return make_shared<DomainProcessorControlFactory>();
 	case ControlFactoryType::Temperature:
-		return shared_ptr<ControlFactoryInterface>(new DomainTemperatureFactory());
+		return make_shared<DomainTemperatureFactory>();
 	case ControlFactoryType::Utilization:
-		return shared_ptr<ControlFactoryInterface>(new DomainUtilizationFactory());
+		return make_shared<DomainUtilizationFactory>();
 	case ControlFactoryType::GetSpecificInfo:
-		return shared_ptr<ControlFactoryInterface>(new ParticipantGetSpecificInfoFactory());
+		return make_shared<ParticipantGetSpecificInfoFactory>();
 	case ControlFactoryType::SetSpecificInfo:
-		return shared_ptr<ControlFactoryInterface>(new ParticipantSetSpecificInfoFactory());
+		return make_shared<ParticipantSetSpecificInfoFactory>();
 	case ControlFactoryType::SystemPower:
-		return shared_ptr<ControlFactoryInterface>(new DomainSystemPowerControlFactory());
+		return make_shared<DomainSystemPowerControlFactory>();
 	case ControlFactoryType::PlatformPowerStatus:
-		return shared_ptr<ControlFactoryInterface>(new DomainPlatformPowerStatusFactory());
-	case ControlFactoryType::PlatformPowerControl:
-		return shared_ptr<ControlFactoryInterface>(new DomainPlatformPowerControlFactory());
+		return make_shared<DomainPlatformPowerStatusFactory>();
 	case ControlFactoryType::ActivityStatus:
-		return shared_ptr<ControlFactoryInterface>(new DomainActivityStatusFactory());
+		return make_shared<DomainActivityStatusFactory>();
 	case ControlFactoryType::BatteryStatus:
-		return shared_ptr<ControlFactoryInterface>(new DomainBatteryStatusFactory());
+		return make_shared<DomainBatteryStatusFactory>();
 	case ControlFactoryType::SocWorkloadClassification:
-		return shared_ptr<ControlFactoryInterface>(new DomainSocWorkloadClassificationFactory());
+		return make_shared<DomainSocWorkloadClassificationFactory>();
 	default:
 		throw dptf_exception("Cannot make control factory for invalid control factory type.");
 	}

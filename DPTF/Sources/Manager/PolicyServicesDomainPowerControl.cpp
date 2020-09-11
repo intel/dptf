@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -240,4 +240,15 @@ void PolicyServicesDomainPowerControl::removePowerLimitPolicyRequest(
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->removePowerLimitPolicyRequest(domainIndex, getPolicyIndex(), controlType);
+}
+
+void PolicyServicesDomainPowerControl::setPowerSharePolicyPower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Power& powerSharePolicyPower)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setPowerSharePolicyPower(domainIndex, powerSharePolicyPower);
 }

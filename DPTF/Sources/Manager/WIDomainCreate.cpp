@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -77,11 +77,15 @@ void WIDomainCreate::onExecute(void)
 				auto policy = policyManager->getPolicyPtr(*i);
 				policy->bindDomain(getParticipantIndex(), getDomainIndex());
 			}
-			catch (policy_index_invalid&)
+			catch (const policy_index_invalid&)
 			{
 				// do nothing.  No item in the policy list at this index.
 			}
-			catch (std::exception& ex)
+			catch (const dptf_exception& ex)
+			{
+				writeDomainWorkItemWarningMessage(ex, "Policy::bindDomain");
+			}
+			catch (const std::exception& ex)
 			{
 				writeDomainWorkItemErrorMessagePolicy(ex, "Policy::bindDomain", *i);
 			}

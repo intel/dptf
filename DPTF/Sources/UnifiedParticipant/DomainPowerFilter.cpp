@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,7 +25,12 @@ DomainPowerFilter::DomainPowerFilter(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServices)
-	: m_participantIndex(participantIndex)
+	: m_powerSeed(std::map<PowerControlType::Type, CachedValue<Power>>())
+	, m_powerAlpha(std::map<PowerControlType::Type, CachedValue<double>>())
+	, m_powerDelta(std::map<PowerControlType::Type, CachedValue<double>>())
+	, m_lastPowerUsed(std::map<PowerControlType::Type, CachedValue<Power>>())
+	, m_lastEwmaPower(std::map<PowerControlType::Type, CachedValue<Power>>())
+	, m_participantIndex(participantIndex)
 	, m_domainIndex(domainIndex)
 	, m_participantServices(participantServices)
 {

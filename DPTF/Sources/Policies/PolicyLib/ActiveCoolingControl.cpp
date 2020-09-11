@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,6 +34,7 @@ ActiveCoolingControl::ActiveCoolingControl(
 	, m_domainIndex(domainIndex)
 	, m_staticCaps(participantIndex, domainIndex, domainProperties, policyServices)
 	, m_dynamicCaps(participantIndex, domainIndex, domainProperties, policyServices)
+	, m_fanSpeedRequestTable(std::map<UIntN, Percentage>())
 	, m_lastFanSpeedRequest(Percentage::createInvalid())
 {
 }

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -197,7 +197,7 @@ void ArbitratorTemperatureThresholds::throwIfTemperatureThresholdsInvalid(
 	Temperature aux0 = temperatureThresholds.getAux0();
 	Temperature aux1 = temperatureThresholds.getAux1();
 
-	if ((aux0.isValid() == true && aux0 - hysteresis > currentTemperature)
+	if ((aux0.isValid() == true && aux0 - hysteresis - Temperature(2742) > currentTemperature)
 		|| (aux1.isValid() == true && aux1 < currentTemperature))
 	{
 		std::string message;

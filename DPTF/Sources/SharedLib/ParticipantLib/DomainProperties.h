@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,7 +44,6 @@ public:
 
 	Bool implementsActiveControlInterface(void) const;
 	Bool implementsActivityStatusInterface(void) const;
-	Bool implementsConfigTdpControlInterface(void) const;
 	Bool implementsCoreControlInterface(void) const;
 	Bool implementsDisplayControlInterface(void) const;
 	Bool implementsEnergyControlInterface(void) const;
@@ -54,7 +53,6 @@ public:
 	Bool implementsSystemPowerControlInterface(void) const;
 	Bool implementsBatteryStatusInterface(void) const;
 	Bool implementsPlatformPowerStatusInterface(void) const;
-	Bool implementsPlatformPowerControlInterface(void) const;
 	Bool implementsPowerStatusInterface(void) const;
 	Bool implementsDomainPriorityInterface(void) const;
 	Bool implementsRfProfileControlInterface(void) const;

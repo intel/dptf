@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.8.6)
 message ("CXX Flags (initial) : " ${CMAKE_CXX_FLAGS}) 
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -Wno-unused-value -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Werror -Wno-unused-value -fPIC -Wformat -Wformat-security -O2 -D_FORTIFY_SOURCE=2 -fno-strict-overflow -fno-delete-null-pointer-checks -fwrapv -DDPTF_REMOVE_UNIT_TESTS -fvisibility=hidden")
 if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0") 
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector")
 else()

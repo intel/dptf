@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -88,6 +88,7 @@
 /* OS Agnostic */
 #ifdef ESIF_ATTR_USER
 #include <stdio.h>
+#include <stdlib.h>
 #else
 #include <stddef.h>
 #endif
@@ -100,6 +101,10 @@
 #ifdef ESIF_ATTR_USER
 #define _WINSOCKAPI_ /* Override for Winsock */
 #include <windows.h>
+
+/* Avoids Serialization Warnings*/
+#define ESIF_SERIAL_FENCE()	_mm_lfence()
+
 #else
 #include <ntddk.h>
 #define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)	/* Invalid ESIF Handle */
@@ -190,6 +195,11 @@ typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 #define INVALID_HANDLE_VALUE ((esif_os_handle_t)(-1))	/* Invalid OS Handle */
 
 #define STATUS_SUCCESS 0
+
+/* Avoids Serialization SDL Warnings*/
+#include <x86intrin.h>
+#define ESIF_SERIAL_FENCE()	_mm_lfence()
+
 #endif
 
 /* Add Linux Base Types */

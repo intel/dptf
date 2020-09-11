@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -90,28 +90,37 @@ static ESIF_INLINE esif_string esif_participant_enum_str(
 
 #ifdef ESIF_ATTR_USER
 #ifdef esif_ccb_stricmp
-static ESIF_INLINE esif_participant_enum_t esif_participant_enum_str2enum(esif_string name)
+static ESIF_INLINE esif_participant_enum_t esif_participant_enum_str2enum(const esif_string name)
 {
-	struct esif_participant_enum_map_t {
+	static struct esif_participant_enum_map_t {
 		esif_participant_enum_t type;
 		esif_string name;
 	}
 	esif_participant_enum_map[] = {
-		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_INVALID),
 		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_ACPI),
+		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_CONJURE),
+		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_INVALID),
 		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_PCI),
 		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_PLAT),
-		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_CONJURE),
-		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_USB),
 		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_SYSFS),
+		ESIF_MAP_ENUM(ESIF_PARTICIPANT_ENUM_USB),
 	};
 
-	/* Match ESIF_PARTICIPANT_ENUM_NAME or TYPENAME */
-	for (size_t j = 0; j < ESIF_ARRAY_LEN(esif_participant_enum_map); j++) {
-		if (esif_ccb_stricmp(esif_participant_enum_map[j].name, name) == 0)
-			return esif_participant_enum_map[j].type;
-		if (esif_ccb_stricmp(esif_participant_enum_map[j].name + 22, name) == 0)
-			return esif_participant_enum_map[j].type;
+	/* Match ESIF_PARTICIPANT_ENUM_TYPENAME or TYPENAME using a Binary Search */
+	int start = 0, end = ESIF_ARRAY_LEN(esif_participant_enum_map) - 1, node = ESIF_ARRAY_LEN(esif_participant_enum_map) / 2;
+	size_t prefix = (esif_ccb_strnicmp(name, "ESIF_PARTICIPANT_ENUM_", 22) == 0 ? 0 : 22);
+	while (start <= end) {
+		int comp = esif_ccb_stricmp(name, esif_participant_enum_map[node].name + prefix);
+		if (comp == 0) {
+			return esif_participant_enum_map[node].type;
+		}
+		else if (comp > 0) {
+			start = node + 1;
+		}
+		else {
+			end = node - 1;
+		}
+		node = (end - start) / 2 + start;
 	}
 	return (esif_participant_enum_t)(-1);
 }

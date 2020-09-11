@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,12 +56,8 @@ CoreControlDynamicCaps DomainCoreControl_001::getCoreControlDynamicCaps(UIntN pa
 
 CoreControlLpoPreference DomainCoreControl_001::getCoreControlLpoPreference(UIntN participantIndex, UIntN domainIndex)
 {
-	if (m_coreControlLpoPreference.isInvalid())
-	{
-		m_coreControlLpoPreference.set(createCoreControlLpoPreference(domainIndex));
-	}
-
-	return m_coreControlLpoPreference.get();
+	return CoreControlLpoPreference(
+		true, 0, Percentage(.50), CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core);
 }
 
 CoreControlStatus DomainCoreControl_001::getCoreControlStatus(UIntN participantIndex, UIntN domainIndex)
@@ -125,7 +121,7 @@ void DomainCoreControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIn
 						<< "Core Control"
 						<< ")";
 				return message.str();
-				});
+			});
 		}
 	}
 	catch (...)
@@ -141,7 +137,6 @@ void DomainCoreControl_001::onClearCachedData(void)
 
 	m_coreControlStaticCaps.invalidate();
 	m_coreControlDynamicCaps.invalidate();
-	m_coreControlLpoPreference.invalidate();
 }
 
 std::shared_ptr<XmlNode> DomainCoreControl_001::getXml(UIntN domainIndex)
@@ -169,9 +164,7 @@ void DomainCoreControl_001::restore(void)
 	catch (...)
 	{
 		// best effort
-		PARTICIPANT_LOG_MESSAGE_WARNING({
-			return "Failed to restore the initial core status. ";
-			});
+		PARTICIPANT_LOG_MESSAGE_WARNING({ return "Failed to restore the initial core status. "; });
 	}
 }
 
@@ -189,42 +182,6 @@ CoreControlDynamicCaps DomainCoreControl_001::createCoreControlDynamicCaps(UIntN
 	UInt32 maxActiveCoreLimit =
 		getCoreControlStaticCaps(getParticipantIndex(), domainIndex).getTotalLogicalProcessors();
 	return CoreControlDynamicCaps(minActiveCoreLimit, maxActiveCoreLimit);
-}
-
-CoreControlLpoPreference DomainCoreControl_001::createCoreControlLpoPreference(UIntN domainIndex)
-{
-	Bool useDefault = false;
-	DptfBuffer buffer;
-	try
-	{
-		buffer = getParticipantServices()->primitiveExecuteGet(
-			esif_primitive_type::GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING, ESIF_DATA_BINARY, domainIndex);
-	}
-	catch (...)
-	{
-		PARTICIPANT_LOG_MESSAGE_WARNING({
-			return "CLPO not found.  Using defaults.";
-			});
-		useDefault = true;
-	}
-
-	if (useDefault == false)
-	{
-		try
-		{
-			return CoreControlLpoPreference::createFromClpo(buffer);
-		}
-		catch (...)
-		{
-			PARTICIPANT_LOG_MESSAGE_WARNING({
-				return "Could not parse CLPO data.  Using defaults.";
-				});
-			useDefault = true;
-		}
-	}
-
-	return CoreControlLpoPreference(
-		true, 0, Percentage(.50), CoreControlOffliningMode::Smt, CoreControlOffliningMode::Core);
 }
 
 void DomainCoreControl_001::verifyCoreControlStatus(UIntN domainIndex, const CoreControlStatus& coreControlStatus)

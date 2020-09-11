@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 
 DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 	: activeControlVersion(0)
-	, configTdpControlVersion(0)
 	, coreControlVersion(0)
 	, displayControlVersion(0)
 	, domainPriorityVersion(0)
@@ -36,7 +35,6 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 	, rfProfileStatusVersion(0)
 	, systemPowerControlVersion(0)
 	, platformPowerStatusVersion(0)
-	, platformPowerControlVersion(0)
 	, activityStatusVersion(0)
 	, peakPowerControlVersion(0)
 	, processorControlVersion(0)
@@ -48,7 +46,6 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[])
 {
 	activeControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL];
-	configTdpControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CTDP_CONTROL];
 	coreControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_CORE_CONTROL];
 	displayControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL];
 	domainPriorityVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY];
@@ -63,7 +60,6 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
 	rfProfileStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS];
 	systemPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PSYS_CONTROL];
 	platformPowerStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS];
-	platformPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL];
 	activityStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_ACTIVITY_STATUS];
 	peakPowerControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL];
 	processorControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL];
@@ -75,7 +71,6 @@ Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& 
 {
 	return (
 		(activeControlVersion == domainFunctionality.activeControlVersion)
-		&& (configTdpControlVersion == domainFunctionality.configTdpControlVersion)
 		&& (coreControlVersion == domainFunctionality.coreControlVersion)
 		&& (displayControlVersion == domainFunctionality.displayControlVersion)
 		&& (domainPriorityVersion == domainFunctionality.domainPriorityVersion)
@@ -90,7 +85,6 @@ Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& 
 		&& (rfProfileStatusVersion == domainFunctionality.rfProfileStatusVersion)
 		&& (systemPowerControlVersion == domainFunctionality.systemPowerControlVersion)
 		&& (platformPowerStatusVersion == domainFunctionality.platformPowerStatusVersion)
-		&& (platformPowerControlVersion == domainFunctionality.platformPowerControlVersion)
 		&& (activityStatusVersion == domainFunctionality.activityStatusVersion)
 		&& (peakPowerControlVersion == domainFunctionality.peakPowerControlVersion)
 		&& (processorControlVersion == domainFunctionality.processorControlVersion)

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -96,11 +96,6 @@ struct esif_table_hdr {
 	u8   revision;
 	u16  rows;
 	u16  cols;
-};
-
-struct esif_data_complex_usbc_power_limit {
-	u32 port; /* Port #: 1-8 (0 - Invalid) */
-	u32 power_limit; /* mW */
 };
 
 struct esif_cmd_data_thermal_mailbox {

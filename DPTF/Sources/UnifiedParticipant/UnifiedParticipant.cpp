@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,14 +24,65 @@
 const Guid FormatId(0xF0, 0xCB, 0x64, 0x06, 0xE4, 0x2B, 0x46, 0xB5, 0x9C, 0x85, 0x32, 0xD1, 0xA1, 0xB7, 0xCB, 0x68);
 
 UnifiedParticipant::UnifiedParticipant(void)
+	: m_guid(Guid())
+	, m_participantIndex(Constants::Invalid)
+	, m_enabled(false)
+	, m_name(Constants::EmptyString)
+	, m_description(Constants::EmptyString)
+	, m_busType(BusType::None)
+	, m_pciInfo(PciInfo())
+	, m_acpiInfo(AcpiInfo())
+	, m_participantServicesInterface(nullptr)
+	, m_getSpecificInfo(nullptr)
+	, m_setSpecificInfo(nullptr)
+	, m_domains()
+	, m_classFactories()
+	, m_coreControlEventsRegistered(false)
+	, m_displayControlEventsRegistered(false)
+	, m_domainPriorityEventsRegistered(false)
+	, m_performanceControlEventsRegistered(false)
+	, m_powerControlEventsRegistered(false)
+	, m_rfProfileEventsRegistered(false)
+	, m_temperatureEventsRegistered(false)
+	, m_powerStatusEventsRegistered(false)
+	, m_batteryStatusEventsRegistered(false)
+	, m_loggingEventsRegistered(false)
+	, m_energyEventsRegistered(false)
+	, m_activeControlEventsRegistered(false)
+	, m_socWorkloadClassificationEventsRegistered(false)
 {
-	initialize();
+	//initialize();
 }
 
 UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
-	: m_classFactories(classFactories)
+	: m_guid(Guid())
+	, m_participantIndex(Constants::Invalid)
+	, m_enabled(false)
+	, m_name(Constants::EmptyString)
+	, m_description(Constants::EmptyString)
+	, m_busType(BusType::None)
+	, m_pciInfo(PciInfo())
+	, m_acpiInfo(AcpiInfo())
+	, m_participantServicesInterface(nullptr)
+	, m_getSpecificInfo(nullptr)
+	, m_setSpecificInfo(nullptr)
+	, m_domains()
+	, m_classFactories(classFactories)
+	, m_coreControlEventsRegistered(false)
+	, m_displayControlEventsRegistered(false)
+	, m_domainPriorityEventsRegistered(false)
+	, m_performanceControlEventsRegistered(false)
+	, m_powerControlEventsRegistered(false)
+	, m_rfProfileEventsRegistered(false)
+	, m_temperatureEventsRegistered(false)
+	, m_powerStatusEventsRegistered(false)
+	, m_batteryStatusEventsRegistered(false)
+	, m_loggingEventsRegistered(false)
+	, m_energyEventsRegistered(false)
+	, m_activeControlEventsRegistered(false)
+	, m_socWorkloadClassificationEventsRegistered(false)
 {
-	initialize();
+	//initialize();
 
 	// TODO: Check if this is needed
 	// In this case, which is provided for validation purposes, any class factories that aren't
@@ -49,13 +100,14 @@ void UnifiedParticipant::initialize(void)
 	m_guid = Guid();
 	m_participantIndex = Constants::Invalid;
 	m_enabled = false;
+	m_name = Constants::EmptyString;
+	m_description = Constants::EmptyString;
 	m_busType = BusType::None;
 	m_pciInfo = PciInfo();
 	m_acpiInfo = AcpiInfo();
 	m_participantServicesInterface = nullptr;
 	m_getSpecificInfo = nullptr;
 	m_setSpecificInfo = nullptr;
-	m_configTdpEventsRegistered = false;
 	m_coreControlEventsRegistered = false;
 	m_displayControlEventsRegistered = false;
 	m_domainPriorityEventsRegistered = false;
@@ -197,13 +249,6 @@ void UnifiedParticipant::createDomain(
 	insertDomainAtIndexLocation(domain, domainIndex);
 
 	updateDomainEventRegistrations();
-
-	//
-	// When domains come on-line, we need to send any known Config TDP information down to all the domains in the
-	// participant so they can make adjustments to their controls.  Event notifications that the control capabilities
-	// may have changed are then submitted to the work item queue.
-	//
-	sendConfigTdpInfoToAllDomainsAndCreateNotification();
 }
 
 void UnifiedParticipant::throwIfDomainIndexLocationInvalid(UIntN domainIndex)
@@ -258,7 +303,6 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 
 	UInt8 activeControlTotal = 0;
 	UInt8 activityStatusTotal = 0;
-	UIntN configTdpTotal = 0;
 	UIntN coreControlTotal = 0;
 	UIntN displayControlTotal = 0;
 	UIntN domainPriorityTotal = 0;
@@ -283,7 +327,6 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 			DomainFunctionalityVersions versions = domain->second->getDomainFunctionalityVersions();
 			activeControlTotal += versions.activeControlVersion;
 			activityStatusTotal += versions.activityStatusVersion;
-			configTdpTotal += versions.configTdpControlVersion;
 			coreControlTotal += versions.coreControlVersion;
 			displayControlTotal += versions.displayControlVersion;
 			domainPriorityTotal += versions.domainPriorityVersion;
@@ -298,22 +341,17 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 			peakPowerControlTotal += versions.peakPowerControlVersion;
 			processorControlTotal += versions.processorControlVersion;
 			socWorkloadClassificationControlTotal += versions.socWorkloadClassificationVersion;
-			if ((activeControlTotal != 0) || (activityStatusTotal != 0) || (configTdpTotal != 0)
-				|| (coreControlTotal != 0) || (displayControlTotal != 0) || (domainPriorityTotal != 0)
-				|| (performanceControlTotal != 0) || (powerControlTotal != 0) || (rfProfileTotal != 0)
-				|| (temperatureControlTotal != 0) || (platformPowerStatusControlTotal != 0)
-				|| (peakPowerControlTotal != 0) || (processorControlTotal != 0) || (batteryStatusControlTotal != 0)
+			if ((activeControlTotal != 0) || (activityStatusTotal != 0) || (coreControlTotal != 0)
+				|| (displayControlTotal != 0) || (domainPriorityTotal != 0) || (performanceControlTotal != 0)
+				|| (powerControlTotal != 0) || (rfProfileTotal != 0) || (temperatureControlTotal != 0)
+				|| (platformPowerStatusControlTotal != 0) || (peakPowerControlTotal != 0)
+				|| (processorControlTotal != 0) || (batteryStatusControlTotal != 0)
 				|| (socWorkloadClassificationControlTotal != 0))
 			{
 				loggingTotal = 1;
 			}
 		}
 	}
-
-	std::set<ParticipantEvent::Type> configTdpEvents;
-	configTdpEvents.insert(ParticipantEvent::Type::DomainConfigTdpCapabilityChanged);
-	m_configTdpEventsRegistered =
-		updateDomainEventRegistration(configTdpTotal, m_configTdpEventsRegistered, configTdpEvents);
 
 	std::set<ParticipantEvent::Type> coreControlEvents;
 	coreControlEvents.insert(ParticipantEvent::Type::DomainCoreControlCapabilityChanged);
@@ -740,13 +778,6 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
-				case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
-					if (domainFunctionality.configTdpControlVersion > 0)
-					{
-						matchedDomain->second->getConfigTdpControl()->enableActivityLogging();
-						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
-					}
-					break;
 				case ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY:
 					if (domainFunctionality.domainPriorityVersion > 0)
 					{
@@ -786,13 +817,6 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 					if (domainFunctionality.processorControlVersion > 0)
 					{
 						matchedDomain->second->getProcessorControl()->enableActivityLogging();
-						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
-					}
-					break;
-				case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
-					if (domainFunctionality.platformPowerControlVersion > 0)
-					{
-						matchedDomain->second->getPlatformPowerControl()->enableActivityLogging();
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
@@ -871,9 +895,6 @@ void UnifiedParticipant::disableActivityLoggingForDomain(UInt32 domainIndex, UIn
 				case ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD:
 					matchedDomain->second->getTemperatureControl()->disableActivityLogging();
 					break;
-				case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
-					matchedDomain->second->getConfigTdpControl()->disableActivityLogging();
-					break;
 				case ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY:
 					matchedDomain->second->getDomainPriorityControl()->disableActivityLogging();
 					break;
@@ -888,9 +909,6 @@ void UnifiedParticipant::disableActivityLoggingForDomain(UInt32 domainIndex, UIn
 					break;
 				case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
 					matchedDomain->second->getProcessorControl()->disableActivityLogging();
-					break;
-				case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
-					matchedDomain->second->getPlatformPowerControl()->disableActivityLogging();
 					break;
 				case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
 					matchedDomain->second->getSocWorkloadClassificationControl()->disableActivityLogging();
@@ -938,10 +956,6 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 		m_domains[domainIndex]->getTemperatureControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
-	case ESIF_CAPABILITY_TYPE_CTDP_CONTROL:
-		m_domains[domainIndex]->getConfigTdpControl()->sendActivityLoggingDataIfEnabled(
-			m_participantIndex, domainIndex);
-		break;
 	case ESIF_CAPABILITY_TYPE_POWER_CONTROL:
 		m_domains[domainIndex]->getPowerControl()->sendActivityLoggingDataIfEnabled(m_participantIndex, domainIndex);
 		break;
@@ -963,10 +977,6 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 		break;
 	case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
 		m_domains[domainIndex]->getProcessorControl()->sendActivityLoggingDataIfEnabled(
-			m_participantIndex, domainIndex);
-		break;
-	case ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL:
-		m_domains[domainIndex]->getPlatformPowerControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
 	case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
@@ -999,18 +1009,6 @@ void UnifiedParticipant::domainSocWorkloadClassificationChanged()
 		if (domain->second != nullptr)
 		{
 			domain->second->getSocWorkloadClassificationControl()->clearCachedData();
-		}
-	}
-}
-
-void UnifiedParticipant::domainConfigTdpCapabilityChanged(void)
-{
-	// Clear the cached data.  The data will be reloaded to the cache when requested by the policies.
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			domain->second->getConfigTdpControl()->onClearCachedData();
 		}
 	}
 }
@@ -1272,7 +1270,8 @@ UInt64 UnifiedParticipant::getCoreActivityCounter(UIntN participantIndex, UIntN 
 UInt32 UnifiedParticipant::getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActivityStatusControl()->getCoreActivityCounterWidth(participantIndex, domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getCoreActivityCounterWidth(
+		participantIndex, domainIndex);
 }
 
 UInt64 UnifiedParticipant::getTimestampCounter(UIntN participantIndex, UIntN domainIndex)
@@ -1285,42 +1284,6 @@ UInt32 UnifiedParticipant::getTimestampCounterWidth(UIntN participantIndex, UInt
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getActivityStatusControl()->getTimestampCounterWidth(participantIndex, domainIndex);
-}
-
-ConfigTdpControlDynamicCaps UnifiedParticipant::getConfigTdpControlDynamicCaps(
-	UIntN participantIndex,
-	UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlDynamicCaps(participantIndex, domainIndex);
-}
-
-ConfigTdpControlStatus UnifiedParticipant::getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlStatus(participantIndex, domainIndex);
-}
-
-ConfigTdpControlSet UnifiedParticipant::getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getConfigTdpControl()->getConfigTdpControlSet(participantIndex, domainIndex);
-}
-
-void UnifiedParticipant::setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControlIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getConfigTdpControl()->setConfigTdpControl(
-		participantIndex, domainIndex, configTdpControlIndex);
-
-	//
-	// If the Config TDP level changes, we need to send that information down to all the domains in the participant
-	// so they can make adjustments to their controls.  Event notifications that the control capabilities may have
-	// changed are then submitted to the work item queue.
-	//
-	sendConfigTdpInfoToAllDomainsAndCreateNotification();
-
-	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_CTDP_CONTROL);
 }
 
 CoreControlStaticCaps UnifiedParticipant::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
@@ -1849,98 +1812,6 @@ void UnifiedParticipant::throwIfDomainInvalid(UIntN domainIndex) const
 	}
 }
 
-void UnifiedParticipant::sendConfigTdpInfoToAllDomainsAndCreateNotification()
-{
-	try
-	{
-		// get Config TDP information
-		ConfigTdpControlStatus configTdpControlStatus = getFirstConfigTdpControlStatus();
-		ConfigTdpControlSet configTdpControlSet = getFirstConfigTdpControlSet();
-
-		// send it to each domain's power and performance control
-		for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-		{
-			if (domain->second != nullptr)
-			{
-				try
-				{
-					domain->second->getPerformanceControl()->updateBasedOnConfigTdpInformation(
-						m_participantIndex, domain->first, configTdpControlSet, configTdpControlStatus);
-					m_participantServicesInterface->createEventDomainPerformanceControlCapabilityChanged();
-				}
-				catch (...)
-				{
-				}
-			}
-		}
-	}
-	catch (...)
-	{
-	}
-}
-
-ConfigTdpControlStatus UnifiedParticipant::getFirstConfigTdpControlStatus()
-{
-	Bool foundStatus = false;
-	ConfigTdpControlStatus configTdpControlStatus(Constants::Invalid);
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			try
-			{
-				configTdpControlStatus =
-					domain->second->getConfigTdpControl()->getConfigTdpControlStatus(m_participantIndex, domain->first);
-				foundStatus = true;
-				break;
-			}
-			catch (...)
-			{
-			}
-		}
-	}
-
-	if (foundStatus == true)
-	{
-		return configTdpControlStatus;
-	}
-	else
-	{
-		throw dptf_exception("No domain provided any Config TDP control status.");
-	}
-}
-
-ConfigTdpControlSet UnifiedParticipant::getFirstConfigTdpControlSet()
-{
-	Bool foundControlSet = false;
-	ConfigTdpControlSet configTdpControlSet(std::vector<ConfigTdpControl>(1, ConfigTdpControl(0, 0, 0, 0)));
-	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
-	{
-		if (domain->second != nullptr)
-		{
-			try
-			{
-				configTdpControlSet =
-					domain->second->getConfigTdpControl()->getConfigTdpControlSet(m_participantIndex, domain->first);
-				foundControlSet = true;
-				break;
-			}
-			catch (...)
-			{
-			}
-		}
-	}
-
-	if (foundControlSet == true)
-	{
-		return configTdpControlSet;
-	}
-	else
-	{
-		throw dptf_exception("No domain provided any Config TDP control set.");
-	}
-}
-
 Power UnifiedParticipant::snapPowerToAbovePL1MinValue(UIntN participantIndex, UIntN domainIndex, Power powerToSet)
 {
 	try
@@ -2146,4 +2017,24 @@ void UnifiedParticipant::removePowerLimitPolicyRequest(
 	PowerControlType::Type controlType)
 {
 	// Do nothing.  Not an error.
+}
+
+void UnifiedParticipant::setPowerSharePolicyPower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Power& powerSharePolicyPower)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getPowerControl()->setPowerSharePolicyPower(
+		participantIndex, domainIndex, powerSharePolicyPower);
+}
+
+void UnifiedParticipant::setPowerShareEffectiveBias(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 powerShareEffectiveBias)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getActivityStatusControl()->setPowerShareEffectiveBias(
+		participantIndex, domainIndex, powerShareEffectiveBias);
 }

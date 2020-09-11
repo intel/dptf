@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,6 @@ namespace ControlKnobType
 		CoreControlLpo = 0x00040000, // Number of logical processors/exec units to be offlined
 		DisplayControlBrightness = 0x00050000, // Display brightness in percentage units
 		PercentageFanControl = 0x00060000, // Target fan speed in rpm
-		ConfigTdpControlTurboState = 0x00070000, // Turbo state enabled (0)/disabled (1)
 		TauControlPl1 = 0x00080000, // PL1 Tau in ms
 		TauControlPl2 = 0x00080001, // PL2 Tau in ms
 		TauControlPl3 = 0x00080002, // PL3 Tau in ms

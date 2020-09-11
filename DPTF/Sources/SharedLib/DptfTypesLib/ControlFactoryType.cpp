@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,8 +24,6 @@ std::string ControlFactoryType::toString(Type factoryType)
 	{
 	case ControlFactoryType::Active:
 		return "Active";
-	case ControlFactoryType::ConfigTdp:
-		return "ConfigTdp";
 	case ControlFactoryType::Core:
 		return "Core";
 	case ControlFactoryType::Display:
@@ -38,8 +36,6 @@ std::string ControlFactoryType::toString(Type factoryType)
 		return "SystemPower";
 	case ControlFactoryType::PlatformPowerStatus:
 		return "PlatformPowerStatus";
-	case ControlFactoryType::PlatformPowerControl:
-		return "PlatformPowerControl";
 	case ControlFactoryType::PowerControl:
 		return "PowerControl";
 	case ControlFactoryType::PowerStatus:
@@ -79,8 +75,6 @@ std::string ControlFactoryType::getArbitratorString(Type factoryType)
 	{
 	case ControlFactoryType::Active:
 		return "Active Control Arbitrator";
-	case ControlFactoryType::ConfigTdp:
-		return "Config TDP Control Arbitrator";
 	case ControlFactoryType::Core:
 		return "Core Control Arbitrator";
 	case ControlFactoryType::Display:
@@ -89,8 +83,6 @@ std::string ControlFactoryType::getArbitratorString(Type factoryType)
 		return "Peak Power Control Arbitrator";
 	case ControlFactoryType::Performance:
 		return "Performance Control Arbitrator";
-	case ControlFactoryType::PlatformPowerControl:
-		return "Platform Power Control Arbitrator";
 	case ControlFactoryType::PowerControl:
 		return "Power Control Arbitrator";
 	case ControlFactoryType::ProcessorControl:
@@ -127,11 +119,6 @@ const Guid ControlFactoryType::getArbitratorFormatId(Type factoryType)
 		formatId = Guid(0xAC, 0x0A, 0x0E, 0x91, 0x09, 0xA8, 0x69, 0x4E, 0x87, 0x5F, 0xE9, 0x49, 0xF7, 0x97, 0x53, 0xA0);
 		// clang-format on
 		break;
-	case ControlFactoryType::ConfigTdp:
-		// clang-format off
-		formatId = Guid(0xD4, 0xE0, 0x6E, 0x4A, 0xBF, 0x75, 0x94, 0x41, 0x87, 0x1D, 0x38, 0x9C, 0xAC, 0x1B, 0x66, 0x7E);
-		// clang-format on
-		break;
 	case ControlFactoryType::Core:
 		// clang-format off
 		formatId = Guid(0xB7, 0x7F, 0xDD, 0xEB, 0xDA, 0x0C, 0xDA, 0x4B, 0xA0, 0x6C, 0x9B, 0xC3, 0x75, 0xCD, 0xC7, 0xE3);
@@ -150,11 +137,6 @@ const Guid ControlFactoryType::getArbitratorFormatId(Type factoryType)
 	case ControlFactoryType::Performance:
 		// clang-format off
 		formatId = Guid(0xAC, 0x27, 0x24, 0x21, 0x6E, 0xD8, 0xA2, 0x49, 0x88, 0x60, 0x94, 0x13, 0xC9, 0x17, 0xD3, 0x19);
-		// clang-format on
-		break;
-	case ControlFactoryType::PlatformPowerControl:
-		// clang-format off
-		formatId = Guid(0xB0, 0x87, 0x72, 0x1C, 0xE7, 0x6E, 0xE7, 0x4F, 0xBF, 0x9F, 0x42, 0x4E, 0xAE, 0xF9, 0x6F, 0xD9);
 		// clang-format on
 		break;
 	case ControlFactoryType::PowerControl:

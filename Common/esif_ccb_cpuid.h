@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -103,6 +103,8 @@
 #define CPUID_FAMILY_MODEL_CNL_H    0x00060670		// Cannon Lake H
 #define CPUID_FAMILY_MODEL_ICL      0x000706E0		// Ice Lake
 #define CPUID_FAMILY_MODEL_LKF      0x000806A0		// Lakefield
+#define CPUID_FAMILY_MODEL_RKL      0x000806C0		// Rocket Lake U/Y
+#define CPUID_FAMILY_MODEL_RKL_H    0x000806D0		// Rocket Lake H/S
 
 #pragma pack(push, 1)
 

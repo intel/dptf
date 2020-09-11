@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -83,6 +83,6 @@ public:
 		const esif_handle_t esifHandle,
 		const esif_handle_t appHandle,
 		const UInt32 argc,
-		const EsifDataPtr argv,
+		const EsifDataArray argv,
 		EsifDataPtr response) = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,7 +37,8 @@ RelationshipTableEntryBase::RelationshipTableEntryBase(
 }
 
 RelationshipTableEntryBase::RelationshipTableEntryBase(const std::string& participantScope, DomainType::Type domainType)
-	: m_sourceDeviceIndex(Constants::Invalid)
+	: m_sourceDeviceScope(Constants::EmptyString)
+	, m_sourceDeviceIndex(Constants::Invalid)
 	, m_sourceDomainType(DomainType::Invalid)
 	, m_sourceDomainIndex(Constants::Invalid)
 	, m_targetDeviceScope(participantScope)
@@ -58,6 +59,20 @@ RelationshipTableEntryBase::RelationshipTableEntryBase(
 
 RelationshipTableEntryBase::RelationshipTableEntryBase(const std::string& participantScope)
 	: RelationshipTableEntryBase(participantScope, DomainType::Invalid)
+{
+}
+
+RelationshipTableEntryBase::RelationshipTableEntryBase()
+	: m_sourceDeviceScope(Constants::InvalidString)
+	, m_sourceDeviceIndex(Constants::Invalid)
+	, m_sourceDomainType(DomainType::Invalid)
+	, m_sourceDomainIndex(Constants::Invalid)
+	, m_targetDeviceScope(Constants::InvalidString)
+	, m_targetDeviceIndex(Constants::Invalid)
+	, m_targetDomainType(DomainType::Invalid)
+	, m_targetDomainIndex(Constants::Invalid)
+	, m_sourceDeviceName(Constants::InvalidString)
+	, m_targetDeviceName(Constants::InvalidString)
 {
 }
 

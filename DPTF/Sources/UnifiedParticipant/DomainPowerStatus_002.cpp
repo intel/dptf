@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,6 +66,11 @@ std::shared_ptr<XmlNode> DomainPowerStatus_002::getXml(UIntN domainIndex)
 	std::shared_ptr<XmlNode> root = XmlNode::createWrapperElement("power_status_set");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(getPowerStatus(getParticipantIndex(), domainIndex).getXml());
+	std::shared_ptr<XmlNode> root1 = XmlNode::createWrapperElement("average_power_set");
+	std::shared_ptr<XmlNode> status = XmlNode::createWrapperElement("average_power");
+	status->addChild(XmlNode::createDataElement("value", Power::createInvalid().toString()));
+	root1->addChild(status);
+	root->addChild(root1);
 	root->addChild(XmlNode::createDataElement("control_knob_version", "002"));
 
 	return root;

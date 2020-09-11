@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -76,6 +76,10 @@ void WIParticipantCreate::onExecute(void)
 			catch (policy_index_invalid&)
 			{
 				// do nothing.  No item in the policy list at this index.
+			}
+			catch (unsupported_result_temp_type& ex)
+			{
+				writeParticipantWorkItemWarningMessage(ex, "Policy::bindParticipant");
 			}
 			catch (std::exception& ex)
 			{

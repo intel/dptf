@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1386,13 +1386,13 @@ static enum esif_rc get_rapl_power_control_capabilities(
 	time2Max = sysval;
 	pl1Min = (pl1Min > 0) ? pl1Min / 1000 : 0;
 	pl1Max = (pl1Max > 0) ? pl1Max / 1000 : 0;
-	time1Min = (time1Min > 0) ? time1Min / 100 : 0;
-	time1Max = (time1Max > 0) ? time1Max / 100 : 0;
+	time1Min = (time1Min > 0) ? time1Min / 1000 : 0;
+	time1Max = (time1Max > 0) ? time1Max / 1000 : 0;
 	step1 = (step1 > 0) ? step1 / 1000 : 0;
 	pl2Min = (pl2Min > 0) ? pl2Min / 1000 : 0;
 	pl2Max = (pl2Max > 0) ? pl2Max / 1000 : 0;
-	time2Min = (time2Min > 0) ? time2Min / 100 : 0;
-	time2Max = (time2Max > 0) ? time2Max / 100 : 0;
+	time2Min = (time2Min > 0) ? time2Min / 1000 : 0;
+	time2Max = (time2Max > 0) ? time2Max / 1000 : 0;
 	step2 = (step2 > 0) ? step2 / 1000 : 0;
 	esif_ccb_sprintf(BINARY_TABLE_SIZE, table_str, "%s:0,%llu,%llu,%llu,%llu,%llu!1,%llu,%llu,%llu,%llu,%llu",revision,pl1Min,pl1Max,time1Min,time1Max,step1,pl2Min,pl2Max,time2Min,time2Max,step2);
 	rc = ESIF_OK;

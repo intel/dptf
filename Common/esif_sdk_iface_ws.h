@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,9 +26,10 @@
 
 #define WS_LIBRARY_NAME				"esif_ws"			// Name of Loadable Library (.dll or .so)
 #define WS_GET_INTERFACE_FUNCTION	"GetWsInterface"	// Interface Function Exported from Loadable Library
-#define WS_IFACE_VERSION			2					// Interface Version
+#define WS_IFACE_VERSION			4					// Interface Version
 #define WS_MAX_REST_RESPONSE		0x7FFFFFFE			// Max REST API Response Length
-#define WS_LISTENERS				2					// Max Number of Listener Ports
+#define WS_LISTENERS				1					// Max Number of Listener Ports
+#define WS_FLAG_NOWHITELIST			0x01				// Do not enforce REST API Whitelist
 
 // Interface Function Prototypes (WS -> ESIF) [Filled by ESIF]
 typedef void	(ESIF_CALLCONV *EsifWsLockFunc)(void);
@@ -43,7 +44,6 @@ typedef esif_error_t (ESIF_CALLCONV *EsifWsInitFunc)(void);
 typedef esif_error_t (ESIF_CALLCONV *EsifWsExitFunc)(void);
 typedef esif_error_t (ESIF_CALLCONV *EsifWsStartFunc)(void);
 typedef esif_error_t (ESIF_CALLCONV *EsifWsStopFunc)(void);
-typedef esif_error_t (ESIF_CALLCONV *EsifWsBroadcastFunc)(const u8 *buffer, size_t buf_len);
 typedef Bool		 (ESIF_CALLCONV *EsifWsIsStartedFunc)(void);
 typedef void *       (ESIF_CALLCONV *EsifWsAllocFunc)(size_t buf_len);
 
@@ -56,11 +56,10 @@ typedef struct EsifWsInterface_s {
 	// ESIF_WS -> ESIF_UF Interface Parameters and Functions [Filled by ESIF_UF]
 	atomic_t					traceLevel;					// Current ESIF Trace Level
 	char						docRoot[MAX_PATH];			// HTTP Document Root
-	char						logRoot[MAX_PATH];			// Log Files Root
 	char						ipAddr[WS_LISTENERS][ESIF_IPADDR_LEN];	// Server IP Address
 	u32							port[WS_LISTENERS];						// Server Port Number
-	Bool						isRestricted[WS_LISTENERS];				// Server Restricted Mode?
-
+	esif_flags_t				flags[WS_LISTENERS];					// Server Flags
+	
 	EsifWsLockFunc				tEsifWsLockFuncPtr;
 	EsifWsUnlockFunc			tEsifWsUnlockFuncPtr;
 	EsifWsAllocFunc				tEsifWsAllocFuncPtr;
@@ -76,7 +75,6 @@ typedef struct EsifWsInterface_s {
 	EsifWsExitFunc				fEsifWsExitFuncPtr;
 	EsifWsStartFunc				fEsifWsStartFuncPtr;
 	EsifWsStopFunc				fEsifWsStopFuncPtr;
-	EsifWsBroadcastFunc			fEsifWsBroadcastFuncPtr;
 	EsifWsIsStartedFunc			fEsifWsIsStartedFuncPtr;
 	EsifWsAllocFunc				fEsifWsAllocFuncPtr;
 

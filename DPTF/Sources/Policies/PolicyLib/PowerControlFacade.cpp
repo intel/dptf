@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,9 @@ PowerControlFacade::PowerControlFacade(
 	, m_powerStatusProperty(participantIndex, domainIndex, domainProperties, policyServices)
 	, m_powerControlCapabilitiesProperty(participantIndex, domainIndex, domainProperties, policyServices)
 	, m_controlsHaveBeenInitialized(false)
+	, m_lastSetPowerLimit(std::map<PowerControlType::Type, Power>())
+	, m_lastSetTimeWindow(std::map<PowerControlType::Type, TimeSpan>())
+	, m_lastSetDutyCycle(std::map<PowerControlType::Type, Percentage>())
 {
 }
 
@@ -257,6 +260,11 @@ void PowerControlFacade::removePowerLimitPolicyRequest(PowerControlType::Type co
 {
 	m_policyServices.domainPowerControl->removePowerLimitPolicyRequest(
 		m_participantIndex, m_domainIndex, controlType);
+}
+
+void PowerControlFacade::setPowerSharePolicyPower(const Power& powerSharePolicyPower)
+{
+	m_policyServices.domainPowerControl->setPowerSharePolicyPower(m_participantIndex, m_domainIndex, powerSharePolicyPower);
 }
 
 void PowerControlFacade::setPowerLimitsWithinCapabilities()

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,6 +40,8 @@ public:
 	virtual UInt32 getBatteryHighFrequencyImpedance() override;
 	virtual UInt32 getBatteryNoLoadVoltage() override;
 	virtual UInt32 getBatteryMaxPeakCurrent() override;
+	virtual Percentage getBatteryPercentage() override;
+	virtual void setBatteryPercentage(Percentage batteryPercentage) override;
 
 	// ParticipantActivityLoggingInterface
 	virtual void sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex) override;

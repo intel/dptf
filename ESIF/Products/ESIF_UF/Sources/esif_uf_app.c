@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,6 @@
 #include "esif_pm.h"
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_ccb_thermalapi.h"
-#include "esif_uf_event_broadcast.h"
 #include "esif_uf_handlemgr.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
@@ -118,6 +117,20 @@ static void EsifApp_WaitForAccessCompletion(EsifAppPtr self);
 
 static void EsifApp_ClearParticipantDataMap(AppParticipantDataMapPtr participantDataMapPtr);
 
+static void EsifApp_StripInvalid(EsifString buffer, size_t buf_len)
+{
+	const EsifString banned = "\r\n\t,|";
+	size_t j = 0; 
+	while (buffer[j] && j < buf_len) {
+		if (esif_ccb_strchr(banned, buffer[j])) {
+			esif_ccb_memmove(&buffer[j], &buffer[j + 1], buf_len - j - 1);
+		}
+		else {
+			j++;
+		}
+	}
+}
+
 //
 // FUNCTION IMPLEMENTATIONS
 //
@@ -160,6 +173,7 @@ eEsifError EsifApp_Create(
 		goto exit;
 	}
 	esif_ccb_strcpy(self->fAppNamePtr, appName, appNameLen + 1);
+	EsifApp_StripInvalid(self->fAppNamePtr, appNameLen + 1);
 	self->isRestartable = (esif_ccb_stricmp(self->fAppNamePtr, self->fLibNamePtr) == 0);
 
 	for (i = 0; i < (sizeof(self->fParticipantData) / sizeof(*self->fParticipantData)); i++) {
@@ -393,15 +407,8 @@ static eEsifError EsifApp_CreateApp(
 	// Pass Logical appname to App in the initial GetName/GetDesription/GetVersion calls
 	if (data_name.buf_ptr && data_name.buf_len && self->fAppNamePtr) {
 		esif_ccb_strcpy(data_name.buf_ptr, self->fAppNamePtr, data_name.buf_len);
+		EsifApp_StripInvalid(data_name.buf_ptr, data_name.buf_len);
 		data_name.data_len = (u32)esif_ccb_strlen(data_name.buf_ptr, data_name.buf_len) + 1;
-	}
-	if (data_desc.buf_ptr && data_desc.buf_len && self->fAppNamePtr) {
-		esif_ccb_strcpy(data_desc.buf_ptr, self->fAppNamePtr, data_desc.buf_len);
-		data_desc.data_len = (u32)esif_ccb_strlen(data_desc.buf_ptr, data_desc.buf_len) + 1;
-	}
-	if (data_version.buf_ptr && data_version.buf_len && self->fAppNamePtr) {
-		esif_ccb_strcpy(data_version.buf_ptr, self->fAppNamePtr, data_version.buf_len);
-		data_version.data_len = (u32)esif_ccb_strlen(data_version.buf_ptr, data_version.buf_len) + 1;
 	}
 
 	// Callback for application information
@@ -412,6 +419,11 @@ static eEsifError EsifApp_CreateApp(
 
 	//optional
 	if (self->fInterface.fAppGetDescriptionFuncPtr) {
+		if (data_desc.buf_ptr && data_desc.buf_len && self->fAppNamePtr) {
+			esif_ccb_strcpy(data_desc.buf_ptr, self->fAppNamePtr, data_desc.buf_len);
+			EsifApp_StripInvalid(data_desc.buf_ptr, data_desc.buf_len);
+			data_desc.data_len = (u32)esif_ccb_strlen(data_desc.buf_ptr, data_desc.buf_len) + 1;
+		}
 		rc = self->fInterface.fAppGetDescriptionFuncPtr(&data_desc);
 		if (ESIF_OK != rc) {
 			goto exit;
@@ -423,6 +435,11 @@ static eEsifError EsifApp_CreateApp(
 
 	//optional
 	if (self->fInterface.fAppGetVersionFuncPtr) {
+		if (data_version.buf_ptr && data_version.buf_len && self->fAppNamePtr) {
+			esif_ccb_strcpy(data_version.buf_ptr, self->fAppNamePtr, data_version.buf_len);
+			EsifApp_StripInvalid(data_version.buf_ptr, data_version.buf_len);
+			data_version.data_len = (u32)esif_ccb_strlen(data_version.buf_ptr, data_version.buf_len) + 1;
+		}
 		rc = self->fInterface.fAppGetVersionFuncPtr(&data_version);
 		if (ESIF_OK != rc) {
 			goto exit;
@@ -804,8 +821,8 @@ eEsifError EsifApp_CreateParticipant(
 		goto exit;
 	}
 
-	/* Enable control/action event broadcasting for this participant if it supports it */
-	rc = EsifEventBroadcast_ControlActionEnableParticipant(upPtr);
+	/* Enable participant activity logging if it supports it */
+	rc = EsifUpPm_ParticipantActivityLoggingEnable(upPtr);
 
 exit:
 	if (participant_data_ptr) {
@@ -842,7 +859,7 @@ static eEsifError EsifApp_DestroyDomain(
 	}
 
 	EsifHandleMgr_PutHandle(domainDataMapPtr->fAppDomainHandle);
-	memset(domainDataMapPtr, 0, sizeof(*domainDataMapPtr));
+	esif_ccb_memset(domainDataMapPtr, 0, sizeof(*domainDataMapPtr));
 	domainDataMapPtr->fAppDomainHandle = ESIF_INVALID_HANDLE;
 	return rc;
 }
@@ -926,7 +943,7 @@ static void EsifApp_ClearParticipantDataMap(AppParticipantDataMapPtr participant
 
 	ESIF_ASSERT(participantDataMapPtr != NULL);
 
-	memset(participantDataMapPtr, 0, sizeof(*participantDataMapPtr));
+	esif_ccb_memset(participantDataMapPtr, 0, sizeof(*participantDataMapPtr));
 	participantDataMapPtr->fAppParticipantHandle = ESIF_INVALID_HANDLE;
 
 	for (i = 0; i < (sizeof(participantDataMapPtr->fDomainData) / sizeof(*participantDataMapPtr->fDomainData)); i++) {
@@ -934,6 +951,18 @@ static void EsifApp_ClearParticipantDataMap(AppParticipantDataMapPtr participant
 	}
 }
 
+// Enable or Disable Policy Ativity Logging
+void EsifApp_PolicyActivityLoggingEnable(Bool flag)
+{
+	static atomic_t g_policyLoggingRefCount = ATOMIC_INIT(0);
+	if (ESIF_TRUE == flag) {
+		atomic_inc(&g_policyLoggingRefCount);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_ENABLED, 0);
+	}
+	else if (atomic_dec(&g_policyLoggingRefCount) == 0) {
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_DISABLED, 0);
+	}
+}
 
 /*
 ** PUBLIC
@@ -959,6 +988,19 @@ eEsifError EsifApp_Start(EsifAppPtr self)
 	 */
 	if ((!self->partRegDone) && ((ESIF_OK == rc) || (ESIF_E_APP_ALREADY_STARTED == rc))) {
 		EsifApp_RegisterParticipantsWithApp(self);
+
+		// Notify App via Command that appstart sequence is completed
+		if (self->fInterface.fAppCommandFuncPtr) {
+			char app_started[] = "app-started";
+			u32 appname_len = (u32)esif_ccb_strlen(self->fAppNamePtr, ESIF_NAME_LEN) + 1;
+			char response_buf[MAX_PATH] = { 0 };
+			EsifData argv[2] = {
+				{ ESIF_DATA_STRING, app_started, sizeof(app_started), sizeof(app_started) },
+				{ ESIF_DATA_STRING, self->fAppNamePtr, appname_len, appname_len },
+			};
+			EsifData response = { ESIF_DATA_STRING, response_buf, sizeof(response_buf), 0 };
+			self->fInterface.fAppCommandFuncPtr(self->fAppCtxHandle, ESIF_ARRAY_LEN(argv), argv, &response);
+		}
 	}
 exit:
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
@@ -1027,8 +1069,8 @@ static eEsifError EsifApp_Load(EsifAppPtr self)
 		goto exit;
 	}
 
-	// Enable policy logging broadcasting before loading app
-	EsifEventBroadcast_PolicyLoggingEnable(ESIF_TRUE);
+	// Enable policy activity logging before loading app
+	EsifApp_PolicyActivityLoggingEnable(ESIF_TRUE);
 	self->policyLoggingEnabled = ESIF_TRUE;
 exit:
 	if ((ESIF_OK != rc) && (rc != ESIF_E_APP_ALREADY_STARTED)) {
@@ -1101,9 +1143,9 @@ eEsifError EsifApp_Stop(EsifAppPtr self)
 		goto exit;
 	}
 
-	// Disable policy logging broadcasting
+	// Disable policy activity logging
 	if (self->policyLoggingEnabled) {
-		EsifEventBroadcast_PolicyLoggingEnable(ESIF_FALSE);
+		EsifApp_PolicyActivityLoggingEnable(ESIF_FALSE);
 		self->policyLoggingEnabled = ESIF_FALSE;
 	}
 

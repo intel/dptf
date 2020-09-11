@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -78,10 +78,6 @@ static eEsifError EsifUpDomain_PowerControlDetectInit(
 	EsifUpDomainPtr self
 );
 
-static eEsifError EsifUpDomain_CoreDetectInit(
-	EsifUpDomainPtr self
-	);
-
 static eEsifError EsifUpDomain_BatteryStatusDetectInit(
 	EsifUpDomainPtr self
 );
@@ -107,10 +103,6 @@ static Bool EsifUpDomain_IsHwpSupported(
 	);
 
 static Bool EsifUpDomain_IsHwpEnabled(
-	EsifUpDomainPtr self
-	);
-
-static eEsifError EsifUpDomain_CTDPDetectInit(
 	EsifUpDomainPtr self
 	);
 
@@ -219,13 +211,7 @@ eEsifError EsifUpDomain_DspReadyInit(
 		rc = EsifUpDomain_PsysDetectInit(self);
 	}
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
-		rc = EsifUpDomain_CTDPDetectInit(self);
-	}
-	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
 		rc = EsifUpDomain_PerfDetectInit(self);
-	}
-	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
-		rc = EsifUpDomain_CoreDetectInit(self);
 	}
 	if ((rc == ESIF_OK) || (rc == ESIF_E_NOT_SUPPORTED) || (rc == ESIF_I_AGAIN) || (rc == ESIF_E_NEED_LARGER_BUFFER)) {
 		rc = EsifUpDomain_BatteryStatusDetectInit(self);
@@ -537,46 +523,6 @@ static Bool EsifUpDomain_IsHwpEnabled(
 	}
 
 	return isEnabled != ESIF_FALSE;
-}
-
-static eEsifError EsifUpDomain_CTDPDetectInit(
-EsifUpDomainPtr self
-)
-{
-	eEsifError rc = ESIF_OK;
-	UInt32 ctdpValue = 0;
-	EsifPrimitiveTuple ctdpTuple = { GET_PROC_CTDP_CAPABILITY, 0, 255 };
-	EsifData ctdpData = { ESIF_DATA_UINT32, &ctdpValue, sizeof(ctdpValue), 0 };
-
-	ESIF_ASSERT(self != NULL);
-
-	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_CTDP_CONTROL, &ctdpTuple, &ctdpData);
-	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_CTDP_CONTROL);
-		rc = ESIF_E_NOT_SUPPORTED;
-	}
-
-	return rc;
-}
-
-static eEsifError EsifUpDomain_CoreDetectInit(
-	EsifUpDomainPtr self
-	)
-{
-	eEsifError rc = ESIF_OK;
-	UInt32 coreValue = 0;
-	EsifPrimitiveTuple coreTuple = { GET_PROC_CURRENT_LOGICAL_PROCESSOR_OFFLINING, 0, 255 };
-	EsifData coreData = { ESIF_DATA_BINARY, &coreValue, sizeof(coreValue), 0 };
-
-	ESIF_ASSERT(self != NULL);
-
-	rc = EsifUpDomain_CapDetect(self, ESIF_CAPABILITY_TYPE_CORE_CONTROL, &coreTuple, &coreData);
-	if ((rc != ESIF_OK) && (rc != ESIF_I_AGAIN) && (rc != ESIF_E_NEED_LARGER_BUFFER)) {
-		EsifUpDomain_DisableCap(self, ESIF_CAPABILITY_TYPE_CORE_CONTROL);
-		rc = ESIF_E_NOT_SUPPORTED;
-	}
-
-	return rc;
 }
 
 static eEsifError EsifUpDomain_BatteryStatusDetectInit(

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,4 +34,6 @@ public:
 	virtual UInt32 getBatteryHighFrequencyImpedance() = 0;
 	virtual UInt32 getBatteryNoLoadVoltage() = 0;
 	virtual UInt32 getBatteryMaxPeakCurrent() = 0;
+	virtual Percentage getBatteryPercentage() = 0;
+	virtual void setBatteryPercentage(Percentage batteryPercentage) = 0;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -34,7 +34,8 @@ Participant::Participant(DptfManagerInterface* dptfManager)
 	, m_participantServices(nullptr)
 	, m_participantIndex(Constants::Invalid)
 	, m_participantGuid(Guid())
-	, m_participantName("")
+	, m_participantName(Constants::EmptyString)
+	, m_domains()
 {
 }
 
@@ -410,15 +411,6 @@ void Participant::activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityB
 	}
 }
 
-void Participant::domainConfigTdpCapabilityChanged(void)
-{
-	if (isEventRegistered(ParticipantEvent::DomainConfigTdpCapabilityChanged))
-	{
-		throwIfRealParticipantIsInvalid();
-		m_theRealParticipant->domainConfigTdpCapabilityChanged();
-	}
-}
-
 void Participant::domainCoreControlCapabilityChanged(void)
 {
 	if (isEventRegistered(ParticipantEvent::DomainCoreControlCapabilityChanged))
@@ -756,28 +748,10 @@ UInt32 Participant::getTimestampCounterWidth(UIntN domainIndex)
 	return m_domains[domainIndex]->getTimestampCounterWidth();
 }
 
-ConfigTdpControlDynamicCaps Participant::getConfigTdpControlDynamicCaps(UIntN domainIndex)
+void Participant::setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getConfigTdpControlDynamicCaps();
-}
-
-ConfigTdpControlStatus Participant::getConfigTdpControlStatus(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getConfigTdpControlStatus();
-}
-
-ConfigTdpControlSet Participant::getConfigTdpControlSet(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getConfigTdpControlSet();
-}
-
-void Participant::setConfigTdpControl(UIntN domainIndex, UIntN policyIndex, UIntN controlIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->setConfigTdpControl(policyIndex, controlIndex);
+	m_domains[domainIndex]->setPowerShareEffectiveBias(powerShareEffectiveBias);
 }
 
 CoreControlStaticCaps Participant::getCoreControlStaticCaps(UIntN domainIndex)
@@ -1320,6 +1294,12 @@ UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getUtilizationStatus();
+}
+
+void Participant::setPowerSharePolicyPower(UIntN domainIndex, const Power& powerSharePolicyPower)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setPowerSharePolicyPower(powerSharePolicyPower);
 }
 
 std::map<ParticipantSpecificInfoKey::Type, Temperature> Participant::getParticipantSpecificInfo(

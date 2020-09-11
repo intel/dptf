@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -45,10 +45,13 @@ static ESIF_INLINE enum esif_rc esif_ccb_sem_try_down (
 	struct timespec timeout = {0};
 
 	if (0 == clock_gettime(CLOCK_REALTIME, &timeout)) {
-		timeout.tv_nsec += ms_timeout * 1000000;
-		if (timeout.tv_nsec >= 1000000000) {
-			timeout.tv_sec += 1;
-			timeout.tv_nsec -= 1000000000;
+		u64 nsec = (u64)timeout.tv_nsec + ((u64)ms_timeout * 1000000);
+		if (nsec > 1000000000) {
+			timeout.tv_sec += (time_t)(nsec / 1000000000);
+			timeout.tv_nsec = (long)(nsec % 1000000000);
+		}
+		else {
+			timeout.tv_nsec = (long)nsec;
 		}
 		api_status = sem_timedwait(sem_ptr, &timeout);
 		if (-1 == api_status) {

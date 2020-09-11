@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,6 +63,16 @@ UInt32 DomainBatteryStatus_000::getBatteryNoLoadVoltage()
 }
 
 UInt32 DomainBatteryStatus_000::getBatteryMaxPeakCurrent()
+{
+	throw not_implemented();
+}
+
+Percentage DomainBatteryStatus_000::getBatteryPercentage()
+{
+	throw not_implemented();
+}
+
+void DomainBatteryStatus_000::setBatteryPercentage(Percentage batteryPercentage)
 {
 	throw not_implemented();
 }

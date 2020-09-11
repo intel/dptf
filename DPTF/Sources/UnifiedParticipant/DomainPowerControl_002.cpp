@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -404,10 +404,12 @@ void DomainPowerControl_002::onClearCachedData(void)
 
 std::shared_ptr<XmlNode> DomainPowerControl_002::getXml(UIntN domainIndex)
 {
+	auto participantIndex = getParticipantIndex();
+
 	auto root = XmlNode::createWrapperElement("power_control");
 	root->addChild(XmlNode::createDataElement("control_name", getName()));
 	root->addChild(XmlNode::createDataElement("control_knob_version", "002"));
-	root->addChild(getPowerControlDynamicCapsSet(getParticipantIndex(), getDomainIndex()).getXml());
+	root->addChild(getPowerControlDynamicCapsSet(participantIndex, domainIndex).getXml());
 
 	auto set = XmlNode::createWrapperElement("power_limit_set");
 	set->addChild(createStatusNode(PowerControlType::PL1));
@@ -415,6 +417,13 @@ std::shared_ptr<XmlNode> DomainPowerControl_002::getXml(UIntN domainIndex)
 	set->addChild(createStatusNode(PowerControlType::PL3));
 	set->addChild(createStatusNode(PowerControlType::PL4));
 	root->addChild(set);
+
+	auto socPowerFloorStatus = XmlNode::createWrapperElement("soc_power_floor_status");
+	socPowerFloorStatus->addChild(XmlNode::createDataElement(
+		"is_soc_power_floor_supported", friendlyValue(false)));
+	socPowerFloorStatus->addChild(XmlNode::createDataElement(
+		"soc_power_floor_state", friendlyValue(false)));
+	root->addChild(socPowerFloorStatus);
 
 	return root;
 }
@@ -583,4 +592,28 @@ void DomainPowerControl_002::removePowerLimitPolicyRequest(
 	PowerControlType::Type controlType)
 {
 	// Do nothing.  Not an error.
+}
+
+void DomainPowerControl_002::setPowerSharePolicyPower(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	const Power& powerSharePolicyPower)
+{
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsPower(
+			esif_primitive_type::SET_POWER_SHARE_POLICY_POWER,
+			powerSharePolicyPower,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			std::stringstream message;
+			message << "Failed to set Power Share Policy Power for participant index = "
+						   + std::to_string(participantIndex) + "and domain Index = " + std::to_string(domainIndex);
+			return message.str();
+		});
+	}
 }

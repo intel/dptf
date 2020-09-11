@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,7 @@ DomainSocWorkloadClassification_001::DomainSocWorkloadClassification_001(
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainSocWorkloadClassificationBase(participantIndex, domainIndex, participantServicesInterface)
+	, m_socWorkload(Constants::Invalid)
 {
 	checkSocWorkloadClassificationSupport();
 }
@@ -55,8 +56,18 @@ void DomainSocWorkloadClassification_001::checkSocWorkloadClassificationSupport(
 
 UInt32 DomainSocWorkloadClassification_001::getSocWorkloadClassification()
 {
-	return getParticipantServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_SOC_WORKLOAD, getDomainIndex());
+	m_socWorkload = Constants::Invalid;
+
+	try
+	{
+		m_socWorkload = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_SOC_WORKLOAD, getDomainIndex());
+	}
+	catch (...)
+	{
+	}
+
+	return m_socWorkload;
 }
 
 std::string DomainSocWorkloadClassification_001::getName(void)
@@ -78,7 +89,7 @@ std::shared_ptr<XmlNode> DomainSocWorkloadClassification_001::getXml(UIntN domai
 		{
 			node->addChild(XmlNode::createDataElement(
 				"value",
-				SocWorkloadClassification::toString((SocWorkloadClassification::Type)getSocWorkloadClassification())));
+				SocWorkloadClassification::toString((SocWorkloadClassification::Type)m_socWorkload)));
 		}
 		catch (...)
 		{

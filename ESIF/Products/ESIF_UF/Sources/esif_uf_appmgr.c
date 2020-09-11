@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -759,6 +759,42 @@ eEsifError EsifAppMgr_AppRestartAll()
 	return rc;
 }
 
+
+eEsifError EsifAppMgr_AppRename(
+	const EsifString appName,
+	const EsifString newName
+)
+{
+	eEsifError rc = ESIF_E_NOT_FOUND;
+	EsifAppPtr appPtr = EsifAppMgr_GetAppFromName(appName);
+	EsifAppPtr newPtr = EsifAppMgr_GetAppFromName(newName);
+
+	if (newPtr) {
+		rc = ESIF_E_APP_ALREADY_STARTED;
+	}
+	else if (appPtr) {
+		EsifString newNamePtr = esif_ccb_strdup(newName);
+		if (newNamePtr == NULL) {
+			rc = ESIF_E_NO_MEMORY;
+		}
+		else {
+			esif_ccb_write_lock(&g_appMgr.fLock);
+			esif_ccb_write_lock(&appPtr->objLock);
+
+			EsifString oldNamePtr = appPtr->fAppNamePtr;
+			appPtr->fAppNamePtr = newNamePtr;
+
+			esif_ccb_write_unlock(&appPtr->objLock);
+			esif_ccb_write_unlock(&g_appMgr.fLock);
+
+			esif_ccb_free(oldNamePtr);
+			rc = ESIF_OK;
+		}
+	}
+	EsifAppMgr_PutRef(appPtr);
+	EsifAppMgr_PutRef(newPtr);
+	return rc;
+}
 
 static eEsifError EsifAppMgr_CreateEntry(
 	const EsifString appName,

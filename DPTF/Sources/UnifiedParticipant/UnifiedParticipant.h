@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -90,7 +90,6 @@ public:
 	virtual void resume(void) override;
 	virtual void activityLoggingEnabled(UInt32 domainIndex, UInt32 capabilityBitMask) override;
 	virtual void activityLoggingDisabled(UInt32 domainIndex, UInt32 capabilityBitMask) override;
-	virtual void domainConfigTdpCapabilityChanged(void) override;
 	virtual void domainCoreControlCapabilityChanged(void) override;
 	virtual void domainDisplayControlCapabilityChanged(void) override;
 	virtual void domainDisplayStatusChanged(void) override;
@@ -120,13 +119,8 @@ public:
 	virtual UInt32 getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
-
-	// Config TDP Controls
-	virtual ConfigTdpControlDynamicCaps getConfigTdpControlDynamicCaps(UIntN participantIndex, UIntN domainIndex)
+	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
 		override;
-	virtual ConfigTdpControlStatus getConfigTdpControlStatus(UIntN participantIndex, UIntN domainIndex) override;
-	virtual ConfigTdpControlSet getConfigTdpControlSet(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void setConfigTdpControl(UIntN participantIndex, UIntN domainIndex, UIntN controlIndex) override;
 
 	// Core Controls
 	virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
@@ -235,7 +229,12 @@ public:
 	virtual TimeSpan getSlowPollTime(UIntN participantIndex, UIntN domainIndex) override;
 	virtual TimeSpan getWeightedSlowPollAvgConstant(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getSlowPollPowerThreshold(UIntN participantIndex, UIntN domainIndex) override;
-	virtual void removePowerLimitPolicyRequest(UIntN participantIndex, UIntN domainIndex, PowerControlType::Type controlType) override;
+	virtual void removePowerLimitPolicyRequest(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType) override;
+	virtual void setPowerSharePolicyPower(UIntN participantIndex, UIntN domainIndex, const Power& powerSharePolicyPower)
+		override;
 
 	virtual PowerControlDynamicCapsSet getPowerControlDynamicCapsSet(UIntN participantIndex, UIntN domainIndex)
 		override;
@@ -366,7 +365,6 @@ private:
 	void throwIfDomainIndexLocationInvalid(UIntN domainIndex);
 	void insertDomainAtIndexLocation(std::shared_ptr<UnifiedDomain> domain, UIntN domainIndex);
 
-	Bool m_configTdpEventsRegistered;
 	Bool m_coreControlEventsRegistered;
 	Bool m_displayControlEventsRegistered;
 	Bool m_domainPriorityEventsRegistered;
@@ -388,10 +386,6 @@ private:
 		std::set<ParticipantEvent::Type> participantEvents);
 
 	void throwIfDomainInvalid(UIntN domainIndex) const;
-
-	void sendConfigTdpInfoToAllDomainsAndCreateNotification(void);
-	ConfigTdpControlStatus getFirstConfigTdpControlStatus(void);
-	ConfigTdpControlSet getFirstConfigTdpControlSet(void);
 
 	Power snapPowerToAbovePL1MinValue(UIntN participantIndex, UIntN domainIndex, Power powerToSet);
 

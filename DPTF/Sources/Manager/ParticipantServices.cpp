@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #include "WIDomainPerformanceControlCapabilityChanged.h"
 #include "WIDomainPowerControlCapabilityChanged.h"
 #include "WIPowerLimitChanged.h"
+#include "WIPerformanceCapabilitiesChanged.h"
 #include "EsifServicesInterface.h"
 #include "ManagerMessage.h"
 #include "ManagerLogger.h"
@@ -317,6 +318,12 @@ void ParticipantServices::createEventDomainPowerControlCapabilityChanged()
 void ParticipantServices::createEventPowerLimitChanged()
 {
 	auto wi = std::make_shared<WIPowerLimitChanged>(m_dptfManager);
+	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
+}
+
+void ParticipantServices::createEventPerformanceCapabilitiesChanged()
+{
+	auto wi = std::make_shared<WIPerformanceCapabilitiesChanged>(m_dptfManager, m_participantIndex);
 	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -56,17 +56,21 @@
 #include "esif_ccb.h"
 #include "esif_ccb_rc.h"
 
-#define MAX_BASE64_ENCODED_LEN	(((((32 * 1024 * 1024) / 3 + 2) * 4) / 64 + 1) * 66) // 32MB Binary = ~44MB Encoded with newlines every 64 bytes
+#define BASE64_ENCODED_LENGTH(bytes)	(((((bytes) + 2) / 3) * 4) + 1)	// Compute Encoded String Length for a buffer, including NUL terminator
+#define MAX_BASE64_ENCODED_LEN			(((((32 * 1024 * 1024) / 3 + 2) * 4) / 64 + 1) * 66) // 32MB Binary = ~44MB Encoded with newlines every 64 bytes
+
+// Encode a Binary Buffer into a Base64-Encoded Buffer
+esif_error_t esif_base64_encode(
+	char * target_str,		// Target String Buffer
+	size_t target_len,		// Size of Target String Buffer including NUL terminator
+	const void *source_buf,	// Source Binary Buffer to Encode
+	size_t source_len		// Size of Source Binary Buffer to Encode
+);
 
 // Decode a Base64-Encoded Buffer into Binary Buffer
 esif_error_t esif_base64_decode(
-	unsigned char *target_buf,	// Target Buffer. May be NULL if *target_len = 0. Data must be padded with '=' if encoded_len not divisible by 4.
+	void *target_buf,			// Target Buffer. May be NULL if *target_len = 0. Data must be padded with '=' if encoded_len not divisible by 4.
 	size_t *target_len,			// Target Length: Buffer size if target_buf not NULL, Output: Decoded Length [if ESIF_OK] or Required Length [if ESIF_E_NEED_LARGER_BUFFER]
 	const char *encoded_buf,	// Base-64 Encoded Buffer [Null-terminator optional]. May be NULL if *target_len = 0
 	size_t encoded_len			// Base-64 Encoded Length, including Padding [not including optional Null-terminator]. May include whitespace.
 );
-
-// Include Base64 Main Module if this symbol defined
-#ifdef ESIF_SDK_BASE64_MAIN
-#include "esif_sdk_base64.c"
-#endif

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -972,6 +972,15 @@ eEsifError TableObject_LoadXML(
 						}
 						esif_ccb_sprintf_concat(output_len, output, "    <%s>%u</%s>\n", self->fields[i].name, int32FieldValue, self->fields[i].name);
 						break;
+					case ESIF_DATA_PERCENT:
+						response.buf_ptr = &defaultNumber;
+						response.buf_len = sizeof(defaultNumber);
+						primitiveOK = EsifExecutePrimitive(self->participantId, self->fields[i].getPrimitive, self->domainQualifier, self->fields[i].instance, &request, &response);
+						if (ESIF_OK == primitiveOK) {
+							int32FieldValue = *(UInt32 *)response.buf_ptr;
+						}
+						esif_ccb_sprintf_concat(output_len, output, "    <%s>%u</%s>\n", self->fields[i].name, int32FieldValue / 100, self->fields[i].name);
+						break;
 					case ESIF_DATA_TEMPERATURE:
 						int32FieldValue = 0xFFFFFFFF;
 
@@ -1935,15 +1944,6 @@ eEsifError TableObject_LoadAttributes(
 	self->setPrimitive = SET_POWER_SHARING_ALGORITHM_TABLE_2;
 	self->changeEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED;
 	}
-	else if (esif_ccb_stricmp(self->name, "tdpl") == 0) {
-		FLAGS_CLEAR(self->options, TABLEOPT_CONTAINS_REVISION);
-		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
-		self->dataType = ESIF_DATA_BINARY;
-		self->getPrimitive = GET_PROC_CTDP_POINT_LIST;
-		self->setPrimitive = 0;
-		self->changeEvent = 0;
-		self->capabilityType = ESIF_CAPABILITY_CTDP_CONTROL;
-	}
 	else if (esif_ccb_stricmp(self->name, "fcdc") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
 		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
@@ -2428,6 +2428,7 @@ eEsifError TableObject_LoadSchema(
 				{ "power", "power", ESIF_DATA_POWER, GET_RAPL_POWER, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_STATUS },
 				{ "fanStatus", "fanStatus", ESIF_DATA_STRUCTURE, GET_FAN_STATUS, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ACTIVE_CONTROL },
 				{ "battery", "battery", ESIF_DATA_STRUCTURE, GET_BATTERY_STATUS, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_BATTERY_STATUS },
+				{ "batteryPercentage", "batteryPercentage", ESIF_DATA_PERCENT, GET_BATTERY_PERCENTAGE, SET_BATTERY_PERCENTAGE, ESIF_INSTANCE_NO_PERSIST, ESIF_CAPABILITY_BATTERY_STATUS },
 				{ "wrm", "wrm", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_WARM, SET_TRIP_POINT_WARM, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
 				{ "hot", "hot", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_HOT, SET_TRIP_POINT_HOT, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
 				{ "crt", "crt", ESIF_DATA_TEMPERATURE, GET_TRIP_POINT_CRITICAL, SET_TRIP_POINT_CRITICAL, ESIF_NO_INSTANCE, ESIF_CAPABILITY_TEMP_THRESHOLD },
@@ -2483,8 +2484,11 @@ eEsifError TableObject_LoadSchema(
 				{ "rbhf", "rbhf", ESIF_DATA_UINT32, GET_BATTERY_HIGH_FREQUENCY_IMPEDANCE, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_BATTERY_STATUS },
 				{ "cmpp", "cmpp", ESIF_DATA_UINT32, GET_BATTERY_MAX_PEAK_CURRENT, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_BATTERY_STATUS },
 				{ "vbnl", "vbnl", ESIF_DATA_UINT32, GET_BATTERY_NO_LOAD_VOLTAGE, 0, ESIF_NO_INSTANCE, ESIF_CAPABILITY_BATTERY_STATUS },
+				{ "uvth", "uvth", ESIF_DATA_UINT32, GET_UVTH, SET_UVTH, ESIF_NO_INSTANCE, ESIF_CAPABILITY_PROCESSOR_CONTROL },
 				{ "iaClipReasons", "iaClipReasons", ESIF_DATA_UINT32, GET_IA_CLIP_REASONS, 0, ESIF_NO_INSTANCE,  ESIF_CAPABILITY_PROCESSOR_CONTROL },
 				{ "gtClipReasons", "gtClipReasons", ESIF_DATA_UINT32, GET_GT_CLIP_REASONS, 0, ESIF_NO_INSTANCE,  ESIF_CAPABILITY_PROCESSOR_CONTROL },
+				{ "powerSharePolicyPower", "powerSharePolicyPower", ESIF_DATA_POWER, GET_POWER_SHARE_POLICY_POWER, SET_POWER_SHARE_POLICY_POWER, ESIF_NO_INSTANCE, ESIF_CAPABILITY_POWER_CONTROL },
+				{ "powerShareEffectiveBias", "powerShareEffectiveBias", ESIF_DATA_UINT32, GET_POWER_SHARE_EFFECTIVE_BIAS, SET_POWER_SHARE_EFFECTIVE_BIAS, ESIF_NO_INSTANCE, ESIF_CAPABILITY_ACTIVITY_STATUS },
 				{ 0 }
 		};
 		fieldlist = status_fields;
@@ -2588,17 +2592,6 @@ eEsifError TableObject_LoadSchema(
 	};
 		fieldlist = psh2_fields;
 	}
-	else if (esif_ccb_stricmp(self->name, "tdpl") == 0) {
-		static TableField tdpl_fields[] = {
-			{ "tdpPower", "tdpPower", ESIF_DATA_UINT64 },
-			{ "frequency", "frequency", ESIF_DATA_UINT64 },
-			{ "tdpControl", "tdpControl", ESIF_DATA_UINT64 },
-			{ "frequencyControl", "frequencyControl", ESIF_DATA_UINT64 },
-			{ "reserved1", "reserved1", ESIF_DATA_UINT64 },
-			{ 0 }
-		};
-		fieldlist = tdpl_fields;
-	}
 	else if (esif_ccb_stricmp(self->name, "fcdc") == 0) {
 		static TableField fcdc_fields[] = {
 			{ "minFanPercentage", "minFanPercentage", ESIF_DATA_UINT64 },
@@ -2635,6 +2628,16 @@ eEsifError TableObject_LoadSchema(
 			{ "fld24", "fld24", ESIF_DATA_UINT64 },
 			{ "fld25", "fld25", ESIF_DATA_UINT64 },
 			{ "fld26", "fld26", ESIF_DATA_UINT64 },
+			{ "fld27", "fld27", ESIF_DATA_UINT64 },
+			{ "fld28", "fld28", ESIF_DATA_UINT64 },
+			{ "fld29", "fld29", ESIF_DATA_UINT64 },
+			{ "fld30", "fld30", ESIF_DATA_UINT64 },
+			{ "fld31", "fld31", ESIF_DATA_UINT64 },
+			{ "fld32", "fld32", ESIF_DATA_UINT64 },
+			{ "fld33", "fld33", ESIF_DATA_UINT64 },
+			{ "fld34", "fld34", ESIF_DATA_UINT64 },
+			{ "fld35", "fld35", ESIF_DATA_UINT64 },
+			{ "fld36", "fld36", ESIF_DATA_UINT64 },
 			{ 0 }
 		};
 		fieldlist = aupt_fields;

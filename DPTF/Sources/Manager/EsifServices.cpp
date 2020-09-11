@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -910,6 +910,9 @@ void EsifServices::throwIfNotSuccessful(
 	case ESIF_E_ACPI_OBJECT_NOT_FOUND:
 		throw acpi_object_not_found(message);
 
+	case ESIF_E_UNSUPPORTED_RESULT_TEMP_TYPE:
+		throw unsupported_result_temp_type();
+
 	default:
 		throw primitive_execution_failed(message);
 	}
@@ -996,7 +999,7 @@ void EsifServices::sendDptfEvent(
 	}
 }
 
-eEsifError EsifServices::sendCommand(UInt32 argc, EsifDataPtr argv, EsifDataPtr response)
+eEsifError EsifServices::sendCommand(UInt32 argc, EsifDataArray argv, EsifDataPtr response)
 {
 	return m_appServices->sendCommand(m_esifHandle, (const esif_handle_t)(UInt64)m_dptfManager, argc, argv, response);
 }

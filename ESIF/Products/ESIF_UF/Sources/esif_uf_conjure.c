@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -101,7 +101,7 @@ static eEsifError ESIF_CALLCONV RegisterParticipant(const EsifParticipantIfacePt
 exit:
 	if ((ESIF_OK != rc) && (ESIF_INVALID_HANDLE != newInstance)) {
 		ESIF_TRACE_WARN("Unregister participant in UP manager due to participant data creation failure\n");
-		EsifUpPm_UnregisterParticipant(eParticipantOriginUF, newInstance);
+		EsifUpPm_DestroyParticipantByInstance(newInstance);
 	}
 
 	return rc;
@@ -117,8 +117,8 @@ static eEsifError ESIF_CALLCONV UnRegisterParticipant(esif_handle_t participantI
 	
 	if (upPtr != NULL) {
 		ESIF_TRACE_DEBUG("Unregister Participant: %d\n",participantId);
-		rc = EsifUpPm_UnregisterParticipant(eParticipantOriginUF, participantId);
-		EsifUp_PutRef(upPtr);
+		EsifUp_PutRef(upPtr); // Must release reference or destruction will deadlock
+		rc = EsifUpPm_DestroyParticipantByInstance(participantId);
 	}
 	else {
 		ESIF_TRACE_WARN("Unregister Participant ID Not Found: %d\n", participantId);

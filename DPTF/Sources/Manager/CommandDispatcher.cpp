@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,7 +26,9 @@ std::string errorCommandNotString = "Invalid command type.  String type is requi
 std::string errorInvalidCommand = "Command not supported. Type 'app cmd dptf help' for available commands.";
 
 CommandDispatcher::CommandDispatcher()
-	: m_lastCommandReturnCode(ESIF_OK)
+	: m_registeredCommands()
+	, m_lastSuccessfulCommandMessage(Constants::EmptyString)
+	, m_lastCommandReturnCode(ESIF_OK)
 {
 }
 

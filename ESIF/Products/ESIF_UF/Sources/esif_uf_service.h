@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -69,7 +69,7 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(const esif_handle_t esifHandle,
 
 eEsifError ESIF_CALLCONV EsifSvcCommandReceive(const esif_handle_t esifHandle,
 								  const UInt32 argc,
-								  const EsifDataPtr argv,
+								  const EsifDataArray argv,
 								  EsifDataPtr response);
 
 /* Event handler used by the ESIF services on behalf of applications */

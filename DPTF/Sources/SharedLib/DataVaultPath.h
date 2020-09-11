@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,6 +38,8 @@ namespace DataVaultPath
 			static const std::string WorkloadHints = DataVaultPathBasePaths::ExportRoot + "/workload_hints/";
 			static const std::string DoNotRebalanceUnusedPidBudget = DataVaultPathBasePaths::ExportRoot + "/do_not_rebalance_unused_pid_budget/";
 			static const std::string Pl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/pl1_time_window/";
+			static const std::string PowerShareParamsLoggingState =
+				DataVaultPathBasePaths::ExportRoot + "/powershare_params_logging/";
 		};
 
 		namespace Tables
@@ -55,5 +57,8 @@ namespace DataVaultPath
 	namespace Features
 	{
 		static const std::string Hwpf = DataVaultPathBasePaths::FeaturesRoot + "/hwpf";
+		static const std::string SocWorkload = DataVaultPathBasePaths::FeaturesRoot + "/soc_workload";
+		static const std::string Pl2Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_sharing";
+		static const std::string Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl4_sharing";
 	};
 };

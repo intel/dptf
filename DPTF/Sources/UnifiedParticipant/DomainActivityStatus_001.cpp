@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,6 +66,30 @@ UInt32 DomainActivityStatus_001::getTimestampCounterWidth(UIntN participantIndex
 {
 	return getParticipantServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_TSC_WIDTH, domainIndex);
+}
+
+void DomainActivityStatus_001::setPowerShareEffectiveBias(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt32 powerShareEffectiveBias)
+{
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_POWER_SHARE_EFFECTIVE_BIAS,
+			powerShareEffectiveBias,
+			domainIndex,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			std::stringstream message;
+			message << "Failed to set Power Share Effective Bias for participant index = "
+						   + std::to_string(participantIndex) + "and domain Index = " + std::to_string(domainIndex);
+			return message.str();
+		});
+	}
 }
 
 void DomainActivityStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

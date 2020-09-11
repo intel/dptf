@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -102,6 +102,6 @@ union esif_data_variant {
 
 #ifdef ESIF_ATTR_USER
 
-typedef struct esif_data EsifData, *EsifDataPtr, **EsifDataPtrLocation;
+typedef struct esif_data EsifData, *EsifDataPtr, *EsifDataArray, **EsifDataPtrLocation;
 
 #endif /* USER */

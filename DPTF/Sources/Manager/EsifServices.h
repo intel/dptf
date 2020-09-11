@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -212,7 +212,7 @@ public:
 		UIntN domainIndex,
 		EsifData eventData) override;
 
-	virtual eEsifError sendCommand(UInt32 argc, EsifDataPtr argv, EsifDataPtr response) override;
+	virtual eEsifError sendCommand(UInt32 argc, EsifDataArray argv, EsifDataPtr response) override;
 
 private:
 	// hide the copy constructor and assignment operator.

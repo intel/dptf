@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,7 +27,6 @@
 #include "esif_participant.h"
 #include "esif_uf_ccb_thermalapi.h"
 #include "esif_uf_ccb_imp_spec.h"
-#include "esif_uf_event_broadcast.h"
 #include "esif_uf_handlemgr.h"
 #include "esif_command.h"
 #include "esif_ccb_string.h"
@@ -218,6 +217,62 @@ static void EsifUfPollExit(esif_thread_t *ufpollThread)
 ** ===========================================================================
 */
 
+/* Enable Participant Activity Logging for the the given Participant for supported Domain Types */
+eEsifError EsifUpPm_ParticipantActivityLoggingEnable(EsifUpPtr upPtr)
+{
+	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (upPtr) {
+		UpDomainIterator udIter = { 0 };
+		EsifUpDomainPtr domainPtr = NULL;
+		eEsifError iterRc = ESIF_OK;
+		rc = ESIF_OK;
+
+		iterRc = EsifUpDomain_InitIterator(&udIter, upPtr);
+		if (ESIF_OK == iterRc) {
+
+			iterRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			while (ESIF_OK == iterRc) {
+
+				// Found a Valid Domain. Enable Participant Activity Logging for supported domainTypes.
+				if (domainPtr) {
+					switch (domainPtr->domainType) {
+					case ESIF_DOMAIN_TYPE_PROCESSOR:
+					case ESIF_DOMAIN_TYPE_GRAPHICS:
+					case ESIF_DOMAIN_TYPE_FAN:
+					case ESIF_DOMAIN_TYPE_WIRELESS:
+					case ESIF_DOMAIN_TYPE_MULTIFUNCTION:
+					case ESIF_DOMAIN_TYPE_DISPLAY:
+					case ESIF_DOMAIN_TYPE_BATTERYCHARGER:
+					case ESIF_DOMAIN_TYPE_WWAN:
+					case ESIF_DOMAIN_TYPE_POWER:
+					case ESIF_DOMAIN_TYPE_CHIPSET:
+					{
+						UInt32 capMask = EsifUp_GetDomainCapabilityMask(domainPtr);
+						EsifData capData = { ESIF_DATA_UINT32, &capMask, sizeof(capMask), sizeof(capMask) };
+
+						EsifEventMgr_SignalEvent(domainPtr->participantId,
+							domainPtr->domain,
+							ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
+							&capData
+						);
+						break;
+					}
+					default:
+						break;
+					}
+				}
+				iterRc = EsifUpDomain_GetNextUd(&udIter, &domainPtr);
+			}
+
+			if (ESIF_E_ITERATION_DONE != iterRc) {
+				EsifUp_PutRef(upPtr);
+			}
+		}
+	}
+	return rc;
+}
+
 /* Add participant in participant manager */
 eEsifError EsifUpPm_RegisterParticipant(
 	const eEsifParticipantOrigin origin,
@@ -396,8 +451,10 @@ eEsifError EsifUpPm_RegisterParticipant(
 	/* Enable this participant for thermal API (Windows) */
 	EsifThermalApi_ParticipantCreate(upPtr);
 
-	/* Enable control action event broadcast for this participant (currently limited to WebSocket IPC) */
-	EsifEventBroadcast_ControlActionEnableParticipant(upPtr);
+	/* Enable participant activity logging if participant supports it */
+	EsifUpPm_ParticipantActivityLoggingEnable(upPtr);
+
+	EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_CREATE_COMPLETE, NULL);
 exit:
 	if (isUppMgrLocked == ESIF_TRUE) {
 		/* Unlock manager */
@@ -475,7 +532,7 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 
 	case ESIF_EVENT_PARTICIPANT_UNREGISTER: 
 			ESIF_TRACE_INFO("Unregistering Participant: " ESIF_HANDLE_FMT "\n", esif_ccb_handle2llu(upInstance));
-			rc = EsifUpPm_UnregisterParticipant(eParticipantOriginLF, upInstance);
+			rc = EsifUpPm_DestroyParticipantByInstance(upInstance);
 		break;
 
 	case ESIF_EVENT_LF_UNLOADED:
@@ -594,30 +651,6 @@ void EsifUFPollStop()
 Bool EsifUFPollStarted()
 {
 	return ((Bool)atomic_read(&g_ufpollQuit) == 0);
-}
-
-/* Unregister Upper Participant Instance */
-eEsifError EsifUpPm_UnregisterParticipant(
-	const eEsifParticipantOrigin origin,
-	const esif_handle_t upInstance
-	)
-{
-	eEsifError rc    = ESIF_OK;
-
-	UNREFERENCED_PARAMETER(origin);
-
-	rc = EsifUpPm_SuspendParticipant(upInstance);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("EsifUpPm_SuspendParticipant failed for participant id " ESIF_HANDLE_FMT "\n", esif_ccb_handle2llu(upInstance));
-		goto exit;
-	}
-
-	EsifEventMgr_SignalEvent(upInstance, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE, NULL);
-
-	ESIF_TRACE_INFO("Unregistered participant, instant id = " ESIF_HANDLE_FMT "\n", esif_ccb_handle2llu(upInstance));
-
-exit:
-	return rc;
 }
 
 /* Set all polling participants' sample period value explicitely*/
@@ -1560,7 +1593,10 @@ eEsifError EsifUpPm_DestroyParticipant(char *participantName)
 					EsifUpPm_DestroyConjuredLfParticipant(participantName);
 				}
 
-				EsifUpPm_UnregisterParticipant(entryPtr->fUpPtr->fOrigin, upInstance);
+				EsifUpPm_SuspendParticipant(upInstance);
+				EsifEventMgr_SignalEvent(upInstance, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PARTICIPANT_UNREGISTER_COMPLETE, NULL);
+				ESIF_TRACE_INFO("Unregistered participant, instant id = " ESIF_HANDLE_FMT "\n", esif_ccb_handle2llu(upInstance));
+
 				esif_ccb_write_lock(&g_uppMgr.fLock);
 
 				upPtr = entryPtr->fUpPtr;
@@ -1586,6 +1622,48 @@ eEsifError EsifUpPm_DestroyParticipant(char *participantName)
 static eEsifError EsifUpPm_DestroyParticipants(void)
 {
 	return EsifUpPm_DestroyParticipant(NULL);
+}
+
+//
+// Unregister Upper Participant Instance
+// !!!WARNING!!! No references may be held on the participant when this
+// function is called or a deadlock will occur
+//
+eEsifError EsifUpPm_DestroyParticipantByInstance(
+	const esif_handle_t upInstance
+	)
+{
+	eEsifError rc = ESIF_OK;
+	EsifUpManagerEntryPtr entryPtr = NULL;
+	EsifUpPtr upPtr = NULL;
+	char name[ESIF_NAME_LEN];
+
+	esif_ccb_write_lock(&g_uppMgr.fLock);
+
+	entryPtr = EsifUpPm_GetEntryByInstanceLocked(upInstance);
+	if (NULL == entryPtr) {
+		rc = ESIF_E_NOT_FOUND;
+		esif_ccb_write_unlock(&g_uppMgr.fLock);
+		goto exit;
+	}
+
+	upPtr = entryPtr->fUpPtr;
+	rc = EsifUp_GetRef(upPtr);
+	if (rc != ESIF_OK) {
+		upPtr = NULL;
+	}
+
+	esif_ccb_write_unlock(&g_uppMgr.fLock);
+
+	if (upPtr) {
+		// Must copy name and release reference or else the destroy below will deadlock
+		esif_ccb_strcpy(name, EsifUp_GetName(upPtr), sizeof(name));
+		EsifUp_PutRef(upPtr);
+
+		rc = EsifUpPm_DestroyParticipant(name);
+	}
+exit:
+	return rc;
 }
 
 /*****************************************************************************/

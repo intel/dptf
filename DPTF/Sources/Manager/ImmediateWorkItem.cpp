@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -56,7 +56,7 @@ const TimeSpan& ImmediateWorkItem::getWorkItemExecutionStartTime(void) const
 
 void ImmediateWorkItem::signalAtCompletion(EsifSemaphore* semaphore)
 {
-	return m_workItem->signalAtCompletion(semaphore);
+	m_workItem->signalAtCompletion(semaphore);
 }
 
 Bool ImmediateWorkItem::matches(const WorkItemMatchCriteria& matchCriteria) const

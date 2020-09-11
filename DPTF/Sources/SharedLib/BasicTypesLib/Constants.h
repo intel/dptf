@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,7 @@ namespace Constants
 	const UInt32 Invalid = 0xFFFFFFFFU;
 	const std::string InvalidString("X");
 	const std::string NotAvailableString("N/A");
+	const std::string EmptyString("");
 
 	const UInt8 MaxUInt8 = 0xFFU;
 	const UInt16 MaxUInt16 = 0xFFFFU;

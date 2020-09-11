@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -320,12 +320,10 @@ std::string DptfStatus::getArbitratorGroup()
 
 	// in alphabetical order
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Active));
-	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::ConfigTdp));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Core));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Display));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::PeakPowerControl));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::Performance));
-	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::PlatformPowerControl));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::PowerControl));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::ProcessorControl));
 	modules->addChild(getArbitratorModuleInGroup(ControlFactoryType::SystemPower));
@@ -345,7 +343,8 @@ std::string DptfStatus::getSystemGroup()
 	auto moduleId = XmlNode::createDataElement("id", std::to_string((UIntN)SystemModuleType::SystemConfiguration));
 	module->addChild(moduleId);
 
-	auto moduleName = XmlNode::createDataElement("name", SystemModuleType::ToString(SystemModuleType::SystemConfiguration));
+	auto moduleName =
+		XmlNode::createDataElement("name", SystemModuleType::ToString(SystemModuleType::SystemConfiguration));
 	module->addChild(moduleName);
 
 	return modules->toString();
@@ -399,6 +398,13 @@ std::string DptfStatus::getXmlForPolicy(UInt32 policyIndex, eEsifError* returnCo
 	try
 	{
 		auto policy = m_policyManager->getPolicyPtr(policyIndex);
+
+		// SystemConfiguration has its own getXml function, and does not go through this
+		if (policy->getName() == SystemModuleType::ToString(SystemModuleType::SystemConfiguration))
+		{
+			throw policy_index_invalid();
+		}
+
 		return policy->getStatusAsXml();
 	}
 	catch (policy_index_invalid&)

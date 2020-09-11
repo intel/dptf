@@ -14,11 +14,17 @@ modules.order
 .tmp_versions
 **/Linux/[^./]*
 !**/Linux/Makefile
+.cproject
+.project
+.settings
+.cache.mk
+public
 
 # Visual Studio
 *.db
 *.user
 *.tmp_proj
+*.aps
 .vs
 x64
 Win32
@@ -28,6 +34,7 @@ Debug
 Release
 IntermediateCompilerFiles
 enc_temp_folder
+out
 
 # Product-Specific
 *.laccdb
@@ -53,3 +60,10 @@ dsp_compiler
 /DPTF/Windows/Solution/Tools/**/Core
 /DPTF/Windows/Solution/Tools/**/Properties
 /DPTF/Windows/Solution/Tools/**/Support
+/ContextService/ContextServiceSource/**/bin
+/ContextService/ContextServiceSource/**/obj
+/ContextService/SampleAppSource/**/bin
+/ContextService/SampleAppSource/**/obj
+/ContextService/SampleAppSource/SampleApp_Packager/AppPackages
+/ContextService/SampleAppSource/SampleApp_Packager/BundleArtifacts
+/ContextService/**/packages

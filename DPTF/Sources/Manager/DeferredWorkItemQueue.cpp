@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,8 @@
 DeferredWorkItemQueue::DeferredWorkItemQueue(
 	EsifSemaphore* workItemQueueSemaphore,
 	ImmediateWorkItemQueue* immediateWorkItemQueue)
-	: m_maxCount(0)
+	: m_queue()
+	, m_maxCount(0)
 	, m_workItemQueueSemaphore(workItemQueueSemaphore)
 	, m_immediateQueue(immediateWorkItemQueue)
 	, m_timer(TimerCallback, this)

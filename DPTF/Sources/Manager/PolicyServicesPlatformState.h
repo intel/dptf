@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,9 +39,12 @@ public:
 	virtual OsPowerSchemePersonality::Type getPowerSchemePersonality(void) const override;
 	virtual UIntN getMobileNotification(OsMobileNotificationType::Type notificationType) const override;
 	virtual OnOffToggle::Type getMixedRealityMode(void) const override;
-	virtual OsUserPresence::Type getUserPresence(void) const override;
+	virtual OsUserPresence::Type getOsUserPresence(void) const override;
+	virtual OsSessionState::Type getSessionState(void) const override;
 	virtual OnOffToggle::Type getScreenState(void) const override;
 	virtual UIntN getBatteryCount(void) const override;
 	virtual UIntN getPowerSlider(void) const override;
+	virtual SensorUserPresence::Type getSensorUserPresence(void) const override;
+	virtual SensorUserPresence::Type getPlatformUserPresence(void) const override;
 	virtual OnOffToggle::Type getGameMode(void) const override;
 };

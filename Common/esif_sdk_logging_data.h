@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -75,14 +75,6 @@ typedef struct _t_EsifActiveControlCapability {
 	UInt32 lowerLimit;
 	UInt32 upperLimit;
 } EsifActiveControlCapability, *EsifActiveControlCapabilityPtr;
-
-/* Config TDP Data */
-typedef struct _t_EsifConfigTdpControl {
-	UInt64 controlId;
-	UInt64 tdpRatio;
-	UInt64 tdpPower;
-	UInt64 tdpFrequency;
-} EsifConfigTdpControl, *EsifConfigTdpControlPtr;
 
 /* Core Control Data */
 typedef struct _t_EsifCoreControl {
@@ -195,6 +187,7 @@ typedef struct _t_EsifBatteryStatus {
 	UInt32 highFrequencyImpedance;
 	UInt32 maxPeakCurrent;
 	UInt32 noLoadVoltage;
+	UInt32 batteryPercentage;
 } EsifBatteryStatus, *EsifBatteryStatusPtr;
 
 /* Temperature Control Data */
@@ -248,7 +241,6 @@ typedef struct _t_EsifPlatformPowerControl {
 
 typedef union _t_EsifCapability {
 	EsifActiveControlCapability activeControl;
-	EsifConfigTdpControl configTdpControl;
 	EsifCoreControl coreControl;
 	EsifDisplayControl displayControl;
 	EsifDomainPriority domainPriority;
@@ -275,38 +267,6 @@ typedef struct _t_EsifCapabilityData {
 	UInt32 size;
 	EsifCapability data;
 } EsifCapabilityData, *EsifCapabilityDataPtr;
-
-/*
-  EsifEventMsg is the data structure for passing event data among processes either locally or remotely
-  An EsifMsgHdr type precedes this data structure which shall be sent first by the server, or parsed
-  by the client prior to processing the event data.
-*/
-
-#define ESIF_EVENT_REVISION 1
-
-// Event data structure V1
-typedef struct EsifEventMsgV1_s {
-	UInt32 revision;
-	UInt32 type;
-	union {
-		EsifPolicyLogData policyLogData;
-		EsifCapabilityData capabilityData;
-		UInt32 dispOrientationData;
-		UInt32 platOrientationData;
-		UInt32 platTypeData;
-		UInt32 motionStateData;
-	} data;
-} EsifEventMsgV1, *EsifEventMsgV1Ptr;
-
-/*
-  Event data structure for all revisions (existing and future)
-  The revision field is always going to be the first field and
-  is used to distinguish among various versions
-*/
-typedef union EsifEventMsg_u {
-	UInt32 revision;
-	EsifEventMsgV1 v1;
-} EsifEventMsg, *EsifEventMsgPtr;
 
 #pragma pack(pop)
 

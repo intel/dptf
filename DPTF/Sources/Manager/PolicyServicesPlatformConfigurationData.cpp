@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -136,6 +136,29 @@ void PolicyServicesPlatformConfigurationData::setPassiveTable(DptfBuffer data)
 		Constants::Esif::NoPersistInstance);
 }
 
+DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptiveUserPresenceTable(void)
+{
+	throwIfNotWorkItemThread();
+
+	return getEsifServices()->primitiveExecuteGet(
+		esif_primitive_type::GET_ADAPTIVE_USER_PRESENCE_TABLE, ESIF_DATA_BINARY);
+}
+
+void PolicyServicesPlatformConfigurationData::setAdaptiveUserPresenceTable(DptfBuffer data)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSet(
+		esif_primitive_type::SET_ADAPTIVE_USER_PRESENCE_TABLE,
+		esif_data_type::ESIF_DATA_BINARY,
+		data.get(),
+		data.size(),
+		data.size(),
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+}
+
 DptfBuffer PolicyServicesPlatformConfigurationData::getAdaptivePerformanceConditionsTable(void)
 {
 	throwIfNotWorkItemThread();
@@ -171,60 +194,30 @@ UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIn
 {
 	throwIfNotWorkItemThread();
 
-	UInt64 hwpfState = getEsifServices()->primitiveExecuteGetAsUInt64(
+	const UInt64 hwpfState = getEsifServices()->primitiveExecuteGetAsUInt64(
 		esif_primitive_type::GET_HWPF_STATE, participantIndex, domainIndex);
 
 	return hwpfState;
 }
 
-std::string PolicyServicesPlatformConfigurationData::readPlatformSettingValue(
-	PlatformSettingType::Type platformSettingType,
-	UInt8 index)
+UInt32 PolicyServicesPlatformConfigurationData::getSocWorkload(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 
-	switch (platformSettingType)
-	{
-	case PlatformSettingType::ConfigTdp:
-	{
-		return getEsifServices()->primitiveExecuteGetAsString(
-			esif_primitive_type::GET_SYSTEM_CONFIGTDP_LEVEL_NAME,
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			index);
-		break;
-	}
-	default:
-	{
-		throw dptf_exception("Invalid platform setting type referenced in call to read platform setting value.");
-	}
-	}
+	const UInt32 socWorkload = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_SOC_WORKLOAD, participantIndex, domainIndex);
+
+	return socWorkload;
 }
 
-void PolicyServicesPlatformConfigurationData::writePlatformSettingValue(
-	PlatformSettingType::Type platformSettingType,
-	UInt8 index,
-	const std::string& stringValue)
+UInt32 PolicyServicesPlatformConfigurationData::getSupportEppHint(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
 
-	switch (platformSettingType)
-	{
-	case PlatformSettingType::ConfigTdp:
-	{
-		getEsifServices()->primitiveExecuteSetAsString(
-			esif_primitive_type::SET_SYSTEM_CONFIGTDP_LEVEL_NAME,
-			stringValue,
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			index);
-		break;
-	}
-	default:
-	{
-		throw dptf_exception("Invalid platform setting type referenced in call to write platform setting value.");
-	}
-	}
+	const UInt32 supportEppHint = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_SUPPORT_EPP_HINT, participantIndex, domainIndex);
+
+	return supportEppHint;
 }
 
 const Guid DptfDppeGroup(
@@ -244,25 +237,6 @@ const Guid DptfDppeGroup(
 	0x0c,
 	0x9a,
 	0x66);
-
-void PolicyServicesPlatformConfigurationData::clearPlatformSettings(PlatformSettingType::Type platformSettingType)
-{
-	throwIfNotWorkItemThread();
-
-	switch (platformSettingType)
-	{
-	case PlatformSettingType::ConfigTdp:
-	{
-		getEsifServices()->primitiveExecuteSet(
-			esif_primitive_type::SET_SYSTEM_CONFIGTDP_CLEAR_LEVELS, esif_data_type::ESIF_DATA_VOID, nullptr, 0, 0);
-		break;
-	}
-	default:
-	{
-		throw dptf_exception("Invalid platform setting type referenced in call to clear platform settings.");
-	}
-	}
-}
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPowerBossConditionsTable(void)
 {
@@ -319,7 +293,8 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getVoltageThresholdMathTable
 {
 	throwIfNotWorkItemThread();
 
-	return getEsifServices()->primitiveExecuteGet(esif_primitive_type::GET_VOLTAGE_THRESHOLD_MATH_TABLE, ESIF_DATA_BINARY);
+	return getEsifServices()->primitiveExecuteGet(
+		esif_primitive_type::GET_VOLTAGE_THRESHOLD_MATH_TABLE, ESIF_DATA_BINARY);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getActiveControlPointRelationshipTable(void)
@@ -587,4 +562,773 @@ void PolicyServicesPlatformConfigurationData::resetAllTables(void)
 	resetActiveControlPointRelationshipTable();
 	resetPowerShareAlgorithmTable();
 	resetPowerShareAlgorithmTable2();
+}
+
+void PolicyServicesPlatformConfigurationData::setScreenAutolock(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_SCREEN_AUTO_LOCK_STATE,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+}
+
+void PolicyServicesPlatformConfigurationData::setWorkstationLock(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WORKSTATION_LOCK,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+}
+
+void PolicyServicesPlatformConfigurationData::setWakeOnApproach(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAKE_ON_APPROACH_STATE,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+}
+
+void PolicyServicesPlatformConfigurationData::setScreenState(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_SCREEN_STATE,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+}
+
+UInt32 PolicyServicesPlatformConfigurationData::getLastHidInputTime(void)
+{
+	throwIfNotWorkItemThread();
+	return getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_LAST_HID_INPUT_TIME,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+}
+
+UInt32 PolicyServicesPlatformConfigurationData::getIsExternalMonitorConnected(void)
+{
+	throwIfNotWorkItemThread();
+	return getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_IS_EXTERNAL_MONITOR_CONNECTED,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+}
+
+Bool PolicyServicesPlatformConfigurationData::getDisplayRequired(void)
+{
+	throwIfNotWorkItemThread();
+	UInt32 displayRequired = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_ES_DISPLAY_REQUIRED,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+	if (displayRequired == 1)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+Bool PolicyServicesPlatformConfigurationData::getIsCVFSensor(void)
+{
+	throwIfNotWorkItemThread();
+	UInt32 isCVFSensor = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_IS_CVF_SENSOR,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
+	if (isCVFSensor == 1)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void PolicyServicesPlatformConfigurationData::setWakeOnApproachDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_WOA_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWakeOnApproachExternalMonitorDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WOA_EXTERNAL_MONITOR_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWakeOnApproachLowBatteryDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WOA_LOW_BATTERY_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWakeOnApproachBatteryRemainingPercentageDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WOA_BATTERY_REMAINING_PERCENTAGE_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWalkAwayLockDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWalkAwayLockExternalMonitorDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_EXTERNAL_MONITOR_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWalkAwayLockPreDimWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_PRE_DIM_WAIT_TIME_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setUserPresentWaitTimeoutDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_USER_PRESENT_WAIT_TIMEOUT_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setDimIntervalDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_DIM_INTERVAL_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setDimScreenDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_DIM_SCREEN_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setHonorPowerRequestsForDisplayDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_HONOR_DISPLAY_POWER_REQUEST_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setHonorUserInCallDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_USER_IN_CALL_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWalkAwayLockScreenLockWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_SCREEN_LOCK_WAIT_TIME_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setDisplayOffAfterLockDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_DISPLAY_OFF_AFTER_LOCK_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setNoLockOnPresenceDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_NLOP_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setNoLockOnPresenceExternalMonitorDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_NO_LOCK_ON_PRESENCE_EXTERNAL_MONITOR_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setNoLockOnPresenceBatteryDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_NLOP_BATTERY_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setNoLockOnPresenceBatteryRemainingPercentageDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_NLOP_BATTERY_REMAINING_PERCENTAGE_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setNoLockOnPresenceResetWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_NLOP_RESET_WAIT_TIME_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setAdaptiveDimmingDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_ADAPTIVE_DIMMING_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setAdaptiveDimmingExternalMonitorDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_ADAPTIVE_DIMMING_EXTERNAL_MONITOR_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setAdaptiveDimmingPresentationModeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_ADAPTIVE_DIMMING_PRESENTATION_MODE_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setAdaptiveDimmingPreDimWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_ADAPTIVE_DIMMING_PRE_DIM_WAIT_TIME_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setMispredictionFaceDetectionDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_MISPREDICTION_FACE_DETECTION_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setMispredictionTimeWindowDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_MISPREDICTION_TIME_WINDOW_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setMisprediction1DimWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_MISPREDICTION_1_DIM_WAIT_TIME_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setMisprediction2DimWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_MISPREDICTION_2_DIM_WAIT_TIME_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setMisprediction3DimWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_MISPREDICTION_3_DIM_WAIT_TIME_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setMisprediction4DimWaitTimeDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_MISPREDICTION_4_DIM_WAIT_TIME_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setFailsafeTimeoutDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_FAILSAFE_TIMEOUT_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWakeOnApproachEventDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WOA_EVENT_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setWalkAwayLockEventDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_WAL_EVENT_DPPE_SETTING,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setExternalMonitorConnectedEventDppeSetting(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_EXTERNAL_MONITOR_EVENT_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+void PolicyServicesPlatformConfigurationData::setUserNotPresentDimTarget(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_USER_NOT_PRESENT_DIM_TARGET_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+
+void PolicyServicesPlatformConfigurationData::setUserDisengagedDimmingInterval(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_USER_DISENGAGED_DIMMING_INTERVAL_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+
+void PolicyServicesPlatformConfigurationData::setUserDisengagedDimTarget(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_USER_DISENGAGED_DIM_TARGET_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
+}
+
+
+void PolicyServicesPlatformConfigurationData::setUserDisengagedDimWaitTime(UInt32 value)
+{
+	throwIfNotWorkItemThread();
+
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_USER_DISENGAGED_DIM_WAIT_TIME_DPPE_SETTING,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoPersistInstance);
+	}
+	catch (...)
+	{
+	}
 }

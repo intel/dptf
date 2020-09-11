@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -42,6 +42,8 @@ public:
 	virtual UInt32 getBatteryHighFrequencyImpedance(void) override;
 	virtual UInt32 getBatteryNoLoadVoltage(void) override;
 	virtual UInt32 getBatteryMaxPeakCurrent(void) override;
+	virtual Percentage getBatteryPercentage(void) override;
+	virtual void setBatteryPercentage(Percentage batteryPercentage) override;
 
 	std::shared_ptr<XmlNode> getXml() const;
 
@@ -60,6 +62,7 @@ private:
 	UInt32 m_batteryHighFrequencyImpedance;
 	UInt32 m_batteryNoLoadVoltage;
 	UInt32 m_batteryMaxPeakCurrent;
+	UInt32 m_batteryPercentage;
 
 	const PolicyServicesInterfaceContainer& getPolicyServices() const;
 };

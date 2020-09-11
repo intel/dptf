@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 #ifndef _ISTRING_H
 #define _ISTRING_H
 
-#include "esif.h"
 #include "esif_lib.h"
 
 //////////////////////////////////////////////////////////////////////////////
@@ -36,7 +35,14 @@ typedef char*ZString;
 
 // IString storage is currently implmented as struct esif_data. Redefine here to use a new data type
 #define IString_s esif_data
-#define ISTRING_STATIC(str)     {ESIF_DATA_STRING, (str), 0, ((str) ? (u32)esif_ccb_strlen((str), ZSTRING_MAXLEN) + 1 : 0)}
+
+static ESIF_INLINE struct IString_s ISTRING_STATIC(const char* str)
+{
+	struct IString_s result = { ESIF_DATA_STRING };
+	result.buf_ptr = (void *)str;
+	result.data_len = (u32)(str ? esif_ccb_strlen(str, ZSTRING_MAXLEN) + 1 : 0);
+	return result;
+}
 
 #else
 struct IString_s;	// Encapsulation Placeholder

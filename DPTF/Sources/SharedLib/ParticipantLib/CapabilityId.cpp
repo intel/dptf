@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,6 @@ namespace Capability
 		switch (capabilityType)
 		{
 			CASE(ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL)
-			CASE(ESIF_CAPABILITY_TYPE_CTDP_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_CORE_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_ENERGY_CONTROL)
@@ -41,7 +40,6 @@ namespace Capability
 			CASE(ESIF_CAPABILITY_TYPE_TEMP_STATUS)
 			CASE(ESIF_CAPABILITY_TYPE_UTIL_STATUS)
 			CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS)
-			CASE(ESIF_CAPABILITY_TYPE_PLAT_POWER_CONTROL)
 			CASE(ESIF_CAPABILITY_TYPE_TEMP_THRESHOLD)
 			CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_STATUS)
 			CASE(ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL)

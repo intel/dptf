@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,6 +31,7 @@ DomainControlList::DomainControlList(
 	, m_domainFunctionalityVersions(domainFunctionalityVersions)
 	, m_controlFactoryList(controlFactoryList)
 	, m_participantServices(participantServices)
+	, m_controlList()
 {
 	makeAllControls();
 }
@@ -46,10 +47,6 @@ void DomainControlList::makeAllControls()
 		ControlFactoryType::Active,
 		makeControl<DomainActiveControlBase>(
 			ControlFactoryType::Active, m_domainFunctionalityVersions.activeControlVersion)));
-	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
-		ControlFactoryType::ConfigTdp,
-		makeControl<DomainConfigTdpControlBase>(
-			ControlFactoryType::ConfigTdp, m_domainFunctionalityVersions.configTdpControlVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::Core,
 		makeControl<DomainCoreControlBase>(
@@ -112,10 +109,6 @@ void DomainControlList::makeAllControls()
 		ControlFactoryType::PlatformPowerStatus,
 		makeControl<DomainPlatformPowerStatusBase>(
 			ControlFactoryType::PlatformPowerStatus, m_domainFunctionalityVersions.platformPowerStatusVersion)));
-	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
-		ControlFactoryType::PlatformPowerControl,
-		makeControl<DomainPlatformPowerControlBase>(
-			ControlFactoryType::PlatformPowerControl, m_domainFunctionalityVersions.platformPowerControlVersion)));
 	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
 		ControlFactoryType::ActivityStatus,
 		makeControl<DomainActivityStatusBase>(
@@ -240,11 +233,6 @@ std::shared_ptr<DomainActivityStatusBase> DomainControlList::getActivityStatusCo
 	return dynamic_pointer_cast<DomainActivityStatusBase>(m_controlList.at(ControlFactoryType::ActivityStatus));
 }
 
-std::shared_ptr<DomainConfigTdpControlBase> DomainControlList::getConfigTdpControl(void)
-{
-	return dynamic_pointer_cast<DomainConfigTdpControlBase>(m_controlList.at(ControlFactoryType::ConfigTdp));
-}
-
 std::shared_ptr<DomainCoreControlBase> DomainControlList::getCoreControl(void)
 {
 	return dynamic_pointer_cast<DomainCoreControlBase>(m_controlList.at(ControlFactoryType::Core));
@@ -289,12 +277,6 @@ std::shared_ptr<DomainPlatformPowerStatusBase> DomainControlList::getPlatformPow
 {
 	return dynamic_pointer_cast<DomainPlatformPowerStatusBase>(
 		m_controlList.at(ControlFactoryType::PlatformPowerStatus));
-}
-
-std::shared_ptr<DomainPlatformPowerControlBase> DomainControlList::getPlatformPowerControl(void)
-{
-	return dynamic_pointer_cast<DomainPlatformPowerControlBase>(
-		m_controlList.at(ControlFactoryType::PlatformPowerControl));
 }
 
 std::shared_ptr<DomainPriorityBase> DomainControlList::getDomainPriorityControl(void)

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -85,6 +85,7 @@
 #define NVME_PSTATE_OPT 2
 #define NVME_DATA_VALUE_LOG_PAGE 2
 #define NVME_DATA_VALUE_NONE 0
+#define NVME_IDENTIFY_CNS_CONTROLLER 1
 #define NVME_GET_LOG_PAGE_OPT 2
 #define NVME_GET_IDENTIFY_PAGE_OPT 6
 #define NVME_NAMESPACE_NA 0xFFFFFFFF

@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -149,7 +149,7 @@ typedef eEsifError(ESIF_CALLCONV *AppSendEventFunction)(
 typedef eEsifError(ESIF_CALLCONV *AppSendCommandFunction)(
 	const esif_handle_t esifHandle,   /* ESIF provided context handle */
 	const UInt32 argc,        /* command arguments count (1 or more) */
-	const EsifDataPtr  argv,        /* array of command arguments must be ESIF_DATA_STRING today */
+	const EsifDataArray argv,        /* array of command arguments must be ESIF_DATA_STRING today */
 	EsifDataPtr response      /* response must be ESIF_DATA_STRING today */
 	);
 /*

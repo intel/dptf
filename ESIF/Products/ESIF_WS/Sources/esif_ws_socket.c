@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include "esif_ccb_string.h"
+#include "esif_sdk_iface_ws.h"
 
 #include "esif_ws_server.h"
 #include "esif_ws_socket.h"
@@ -124,6 +125,35 @@ static size_t WebSocket_HeaderSize(size_t payload_size, Bool mask_flag)
 	}
 	return header_size;
 }
+
+// Whitelisted ESIF Shell Commands UI clients can execute through REST API
+// NOTE: This list must be sorted alphabetically so we can do a binary search
+static char *g_RestApiWhitelist[] = {
+	"about",
+	"actionstart",
+	"actionstop",
+	"appstart",
+	"appstop",
+	"capture",
+	"config",
+	"devices",
+	"echo",
+	"format",
+	"getp_part",
+	"idsp",
+	"log",
+	"participant",
+	"participantlog",
+	"participants",
+	"rstp_part",
+	"setp_part",
+	"status",
+	"tableobject",
+	"toolstart",
+	"trace",
+	"ui",
+	NULL
+}; 
 
 // Get Frame Data from Websocket Request
 static esif_error_t Websocket_GetFrame(
@@ -277,7 +307,7 @@ static esif_error_t WebSocket_BuildFrame(
 	return rc;
 }
 
-// Execute a requesdt against the REST API
+// Execute a request against the REST API
 esif_error_t WebServer_WebSocketExecRestCmd(
 	WebServerPtr self,
 	WebClientPtr client,
@@ -288,6 +318,7 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 {
 	int rc = ESIF_E_PARAMETER_IS_NULL;
 
+	UNREFERENCED_PARAMETER(client);
 	if (request && response_ptr && response_len_ptr) {
 		UInt32 msg_id = (UInt32)atoi(request);
 		char *shell_cmd = esif_ccb_strchr(request, ':');
@@ -310,20 +341,31 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 			shell_cmd[shell_cmd_len - 1] = '\0';
 			shell_cmd[shell_cmd_len] = '\0';
 			errmsg = NULL;
+			char *rest_cmd = shell_cmd;
+			size_t rest_cmd_len = shell_cmd_len;
 
 			// Ad-Hoc UI Shell commands begin with "0:" so verify ESIF Shell is enabled and command is valid
 			if (msg_id == 0 && !EsifWsShellEnabled()) {
 				errmsg = "Shell Disabled";
 			}
-			// Verify ESIF Shell is enabled and command is not in blacklist, or is in whitelist if Restricted mode
+			// Verify ESIF Shell is enabled and command is not in blacklist, or is in whitelist if defined
 			else {
-				static char *whitelist[] = { "status", "participants", NULL };
-				static char *blacklist[] = { "shell", "web", "exit", "quit", NULL };
+				static char *default_whitelist[] = { NULL }; // Allow All except blacklist
+				static char *blacklist[] = { "exit", "quit", "shell", "web", NULL };
 				const char *skip_cmds[] = { "format text && ", "format xml && ", NULL };
+				char **whitelist = default_whitelist;
+				int whitelist_len = ESIF_ARRAY_LEN(default_whitelist) - 1;
 				Bool blocked = ESIF_FALSE;
-				char *rest_cmd = shell_cmd;
-				size_t rest_cmd_len = shell_cmd_len;
 				int j = 0;
+
+				// Enforce REST API Whitelist except for Listeners configured with the whitelist disabled
+				for (size_t k = 0; k < ESIF_ARRAY_LEN(self->listeners); k++) {
+					if (!(self->listeners[k].flags & WS_FLAG_NOWHITELIST)) {
+						whitelist = g_RestApiWhitelist;
+						whitelist_len = ESIF_ARRAY_LEN(g_RestApiWhitelist) - 1;
+						break;
+					}
+				}
 
 				// Skip any commands in the skip_cmds list in before checking the shell command against the blacklist/whitelist
 				while (skip_cmds[j]) {
@@ -337,21 +379,36 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 					j++;
 				}
 
-				// Verify the shell command is in Whitelist if Restricted Mode
-				if (client->mode == ServerRestricted) {
-					for (j = 0; whitelist[j] != NULL; j++) {
-						if (esif_ccb_strnicmp(rest_cmd, whitelist[j], esif_ccb_strlen(whitelist[j], MAX_PATH)) == 0) {
+				// Extract Command Name from REST command
+				char cmd_name[ESIF_NAME_LEN] = { 0 };
+				for (size_t k = 0; k < sizeof(cmd_name) - 1 &&  rest_cmd[k] && !isspace(rest_cmd[k]); k++) {
+					cmd_name[k] = rest_cmd[k];
+				}
+
+				// Verify the shell command is in Whitelist if defined using a binary search
+				if (whitelist[0] && cmd_name[0]) {
+					int start = 0, end = whitelist_len - 1, node = whitelist_len / 2;
+					while (start <= end && node >= 0 && node <= whitelist_len - 1) {
+						int comp = esif_ccb_stricmp(cmd_name, whitelist[node]);
+						if (comp == 0) {
 							break;
 						}
+						else if (comp > 0) {
+							start = node + 1;
+						}
+						else {
+							end = node - 1;
+						}
+						node = (end - start) / 2 + start;
 					}
-					if (whitelist[j] == NULL) {
+					if (start > end) {
 						blocked = ESIF_TRUE;
 					}
 				}
-				// Verify the shell command is not in Blacklist if Non-Restricted Mode
-				else {
+				// Verify the shell command is not in Blacklist if defined
+				if (!blocked && blacklist[0] && cmd_name[0]) {
 					for (j = 0; blacklist[j] != NULL; j++) {
-						if (esif_ccb_strnicmp(rest_cmd, blacklist[j], esif_ccb_strlen(blacklist[j], MAX_PATH)) == 0) {
+						if (esif_ccb_stricmp(cmd_name, blacklist[j]) == 0) {
 							blocked = ESIF_TRUE;
 							break;
 						}
@@ -377,7 +434,7 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 						unsigned char *source = (unsigned char *)response;
 						unsigned char *target = source;
 						while (*source) {
-							if (esif_ccb_strpbrk((char *)source, "\r\n\t") != NULL || (*source >= ' ' && *source <= '~')) {
+							if (esif_ccb_strchr("\r\n\t", *(char *)source) != NULL || (*source >= ' ' && *source <= '~')) {
 								*target++ = *source;
 							}
 							source++;
@@ -386,7 +443,42 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 					}
 				}
 			}
-		
+
+			// Log Errors indicated by ESIF Error code or Error Message
+			char *esif_error = (response ? esif_ccb_strstr(response, "ESIF_E_") : NULL);
+			if ((errmsg || esif_error) && rest_cmd[0]) {
+				char error_code[MAX_PATH] = { 0 };
+				if (errmsg) {
+					esif_ccb_strcpy(error_code, errmsg, sizeof(error_code));
+				}
+				else {
+					for (size_t j = 0; j < sizeof(error_code) - 1 && esif_error[j] && (isalnum(esif_error[j]) || esif_error[j] == '_'); j++) {
+						error_code[j] = esif_error[j];
+					}
+					// Ignore Specific Error Codes that create too much noise
+					esif_error_t ignore_errors[] = {
+						ESIF_E_NOT_FOUND,
+						0
+					};
+					for (size_t j = 0; ignore_errors[j]; j++) {
+						if (esif_ccb_strcmp(esif_rc_str(ignore_errors[j]), error_code) == 0) {
+							esif_ccb_memset(error_code, 0, sizeof(error_code));
+							break;
+						}
+					}
+				}
+				if (error_code[0]) {
+					size_t maxcmd = 80;
+					WS_TRACE_ERROR("REST API Error [IP=%s] (%s): [%.*s%s]\n",
+						client->ipAddr,
+						error_code,
+						(int)maxcmd,
+						rest_cmd,
+						(rest_cmd_len > maxcmd + 1 ? "..." : "")
+					);
+				}
+			}
+
 			// Send REST API Response or Error message
 			if ((response == NULL) && ((response = esif_ccb_strdup(response_buf)) == NULL)) {
 				rc = ESIF_E_NO_MEMORY;
@@ -672,31 +764,6 @@ esif_error_t WebServer_WebsocketRequest(
 		} while (bytesRemaining > 0);
 
 		esif_ccb_free(bufferRemaining);
-	}
-	return rc;
-}
-
-// Broadcast a buffer to an Active WebSocket connection
-esif_error_t WebServer_WebsocketBroadcast(
-	WebServerPtr self,
-	WebClientPtr client,
-	u8 *buffer,
-	size_t buf_len)
-{
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	if (self && client && buffer && buf_len > 0) {
-		WsFrame outFrame = { 0 };
-
-		rc = WebSocket_BuildFrame(
-			&outFrame,
-			self->netBuf, self->netBufLen,
-			buffer, buf_len,
-			FRAME_BINARY,
-			FIN_FINAL);
-
-		if (rc == ESIF_OK) {
-			rc = WebClient_Write(client, self->netBuf, outFrame.frameSize);
-		}
 	}
 	return rc;
 }

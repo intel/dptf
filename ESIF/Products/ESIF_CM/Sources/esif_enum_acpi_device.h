@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -59,26 +59,38 @@
  * ACPI Devices
  */
 
-#define ESIF_ACPI_DEVICE_INT3400	"INT3400"
-#define ESIF_ACPI_DEVICE_INT3401	"INT3401"
-#define ESIF_ACPI_DEVICE_INT3402	"INT3402"
-#define ESIF_ACPI_DEVICE_INT3403	"INT3403"
-#define ESIF_ACPI_DEVICE_INT3404	"INT3404"
-#define ESIF_ACPI_DEVICE_INT3405	"INT3405"
-#define ESIF_ACPI_DEVICE_INT3406	"INT3406"
-#define ESIF_ACPI_DEVICE_INT3407	"INT3407"
-#define ESIF_ACPI_DEVICE_INT3408	"INT3408"
-#define ESIF_ACPI_DEVICE_INT3409	"INT3409"
-#define ESIF_ACPI_DEVICE_INT340A	"INT340A"
-#define ESIF_ACPI_DEVICE_INT340B	"INT340B"
-#define ESIF_ACPI_DEVICE_INT340C	"INT340C"
-#define ESIF_ACPI_DEVICE_INT340D	"INT340D"
-#define ESIF_ACPI_DEVICE_INT3530	"INT3530"
-#define ESIF_ACPI_DEVICE_INT3532	"INT3532"
+#define ESIF_ACPI_DEVICE_INT3400	"INT3400"	/* Manager Participant */
+#define ESIF_ACPI_DEVICE_INT3401	"INT3401"	/* Processor Participant */
+#define ESIF_ACPI_DEVICE_INT3402	"INT3402"	/* Memory Participant */
+#define ESIF_ACPI_DEVICE_INT3403	"INT3403"	/* Generic Participant */
+#define ESIF_ACPI_DEVICE_INT3404	"INT3404"	/* Fan Participant */
+#define ESIF_ACPI_DEVICE_INT3405	"INT3405"	/* FIVR Participant */
+#define ESIF_ACPI_DEVICE_INT3406	"INT3406"	/* Display Participant */
+#define ESIF_ACPI_DEVICE_INT3407	"INT3407"	/* Power Participant */
+#define ESIF_ACPI_DEVICE_INT3408	"INT3408"	/* Wireless Participant */
+#define ESIF_ACPI_DEVICE_INT3409	"INT3409"	/* Ambient Temperature Sensor Participant */
+#define ESIF_ACPI_DEVICE_INT340A	"INT340A"	/* Storage Participant */
+#define ESIF_ACPI_DEVICE_INT340B	"INT340B"	/* Intel(R) RealSense(TM) 3D Camera Participant */
+#define ESIF_ACPI_DEVICE_INT340C	"INT340C"	/* Thunderbolt Participant */
+#define ESIF_ACPI_DEVICE_INT340D	"INT340D"	/* Discrete Graphics Participant */
+#define ESIF_ACPI_DEVICE_INT3530	"INT3530"	/* MultiChip Package */
+#define ESIF_ACPI_DEVICE_INT3532	"INT3532"	/* Battery Participant */
+#define ESIF_ACPI_DEVICE_INTC1040	"INTC1040"	/* Manager Participant */
+#define ESIF_ACPI_DEVICE_INTC1041	"INTC1041"	/* Manager Participant */
+#define ESIF_ACPI_DEVICE_INTC1043	"INTC1043"	/* Generic Participant */
+#define ESIF_ACPI_DEVICE_INTC1044	"INTC1044"	/* Fan Participant */
+#define ESIF_ACPI_DEVICE_INTC1045	"INTC1045"	/* FIVR Participant */
+#define ESIF_ACPI_DEVICE_INTC1046	"INTC1046"	/* Generic Participant */
+#define ESIF_ACPI_DEVICE_INTC1047	"INTC1047"	/* Power Participant */
+#define ESIF_ACPI_DEVICE_INTC1048	"INTC1048"	/* Fan Participant */
+#define ESIF_ACPI_DEVICE_INTC1049	"INTC1049"	/* FIVR Participant */
+#define ESIF_ACPI_DEVICE_INTC1050	"INTC1050"	/* Battery Participant */
+#define ESIF_ACPI_DEVICE_INTC1060	"INTC1060"	/* Power Participant */
+#define ESIF_ACPI_DEVICE_INTC1061	"INTC1061"	/* Battery Participant */
 
 static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 {
-	struct esif_acpi_device_map_t {
+	static struct esif_acpi_device_map_t {
 		esif_string id;
 		esif_string name;
 	}
@@ -115,10 +127,33 @@ static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 		"MultiChip Package"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INT3532,
 		"Battery Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1040,
+		"Manager Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1041,
+		"Manager Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1043,
+		"Generic Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1044,
+		"Fan Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1045,
+		"FIVR Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1046,
+		"Generic Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1047,
+		"Power Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1048,
+		"Fan Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1049,
+		"FIVR Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1050,
+		"Battery Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1060,
+		"Power Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1061,
+		"Battery Participant"),
 	};
-	int j;
-	for (j = 0; j < ESIF_ARRAY_LEN(esif_acpi_device_map); j++) {
-		if (strncmp(acpi_device, esif_acpi_device_map[j].id, 7) == 0)
+	for (int j = 0; j < ESIF_ARRAY_LEN(esif_acpi_device_map); j++) {
+		if (strncmp(acpi_device, esif_acpi_device_map[j].id, esif_ccb_strlen(esif_acpi_device_map[j].id, 8)) == 0)
 			return esif_acpi_device_map[j].name;
 	}
 	return ESIF_NOT_AVAILABLE;
@@ -147,6 +182,18 @@ const struct acpi_device_id esif_acpi_ids[] = {
 	{ ESIF_ACPI_DEVICE_INT340D, 0 },
 	{ ESIF_ACPI_DEVICE_INT3530, 0 },
 	{ ESIF_ACPI_DEVICE_INT3532, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1040, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1041, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1043, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1044, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1045, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1046, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1047, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1048, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1049, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1050, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1060, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1061, 0 },
 	{ "", 0 },
 };
 

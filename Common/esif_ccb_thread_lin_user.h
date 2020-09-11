@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,6 +23,21 @@
 #include <pthread.h>
 typedef pthread_t esif_thread_t;	/* Non-Unique Thread Handle */
 typedef pthread_t esif_thread_id_t; /* Unique Thread ID */
+
+#define	ESIF_THREAD_NULL	((pthread_t)0)
+#define	ESIF_THREAD_ID_NULL	((pthread_t)0)
+
+/* Constructor */
+static ESIF_INLINE void esif_ccb_thread_init(esif_thread_t *threadPtr)
+{
+	*threadPtr = ESIF_THREAD_NULL;
+}
+
+/* Destructor */
+static ESIF_INLINE void esif_ccb_thread_uninit(esif_thread_t *threadPtr)
+{
+	*threadPtr = ESIF_THREAD_NULL;
+}
 
 /* Get current unique Thread ID (NOT Thread Handle) */
 static ESIF_INLINE esif_thread_id_t esif_ccb_thread_id_current()
@@ -68,7 +83,7 @@ static ESIF_INLINE enum esif_rc esif_ccb_thread_create(
 	return rc;
 }
 
-/* wait for a thread to complete */
+/* wait for a thread to complete. Use esif_wthread_t if you need to call this from more than one thread */
 static ESIF_INLINE enum esif_rc esif_ccb_thread_join (
 	esif_thread_t *thread_ptr
 	)
@@ -87,6 +102,17 @@ static ESIF_INLINE enum esif_rc esif_ccb_thread_join (
 		esif_rc_str(rc),
 		rc);
 
+	return rc;
+}
+
+/* Close a thread's handle without waiting for it to complete. Does NOT stop the thread, just closes our Handle */
+static ESIF_INLINE enum esif_rc esif_ccb_thread_close(esif_thread_t* thread_ptr)
+{
+	enum esif_rc rc = ESIF_E_PARAMETER_IS_NULL;
+	if (thread_ptr) {
+		*thread_ptr = ESIF_THREAD_NULL;
+		rc = ESIF_OK;
+	}
 	return rc;
 }
 

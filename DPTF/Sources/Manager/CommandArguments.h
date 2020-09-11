@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,7 +30,7 @@ public:
 	CommandArguments();
 	CommandArguments(const std::vector<std::string>& arguments);
 	CommandArguments(const std::vector<CommandArgument>& arguments);
-	static CommandArguments parse(UInt32 argCount, EsifDataPtr argData);
+	static CommandArguments parse(UInt32 argCount, EsifDataArray argData);
 	virtual ~CommandArguments();
 
 	UInt32 size() const;

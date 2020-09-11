@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -49,6 +49,7 @@ static eEsifError ESIF_CALLCONV ActionSystemGet(
 	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(upPtr);
 	UNREFERENCED_PARAMETER(primitivePtr);
+	UNREFERENCED_PARAMETER(responsePtr);
 	UNREFERENCED_PARAMETER(requestPtr);
 
 	ESIF_ASSERT(NULL != responsePtr);
@@ -66,16 +67,6 @@ static eEsifError ESIF_CALLCONV ActionSystemGet(
 	}
 
 	command = (EsifString)p1.buf_ptr;
-
-	if (!strcmp("SYSTEM_GET_CDPNAME0", command)) {
-		esifStatus = system_get_ctdp_name(responsePtr, 0);
-
-	} else if (!strcmp("SYSTEM_GET_CDPNAME1", command)) {
-		esifStatus = system_get_ctdp_name(responsePtr, 1);
-
-	} else if (!strcmp("SYSTEM_GET_CDPNAME2", command)) {
-		esifStatus = system_get_ctdp_name(responsePtr, 2);
-	} 
 exit:
 	return esifStatus;
 }
@@ -176,18 +167,6 @@ static eEsifError ESIF_CALLCONV ActionSystemSet(
 	} else if (!strcmp("SYSTEM_REM_PWRSETTING", command)) {
 		esifStatus = esif_ccb_remove_power_setting(requestPtr);
 		
-	} else if (!strcmp("SYSTEM_CTDPCLR", command)) {
-		esifStatus = system_clear_ctdp_names();
-
-	} else if (!strcmp("SYSTEM_SET_CTDPNAME0", command)) {
-		esifStatus = system_set_ctdp_name(requestPtr, 0);
-
-	} else if (!strcmp("SYSTEM_SET_CTDPNAME1", command)) {
-		esifStatus = system_set_ctdp_name(requestPtr, 1);
-
-	} else if (!strcmp("SYSTEM_SET_CTDPNAME2", command)) {
-		esifStatus = system_set_ctdp_name(requestPtr, 2);
-
 	} else if (!strcmp("SYSTEM_ENA_PWRSETTING", command)) {
 		esifStatus = esif_ccb_enable_power_setting(requestPtr);
 

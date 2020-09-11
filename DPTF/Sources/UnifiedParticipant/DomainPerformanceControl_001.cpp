@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -141,6 +141,7 @@ void DomainPerformanceControl_001::setPerformanceControlDynamicCaps(
 
 	m_performanceControlDynamicCaps.invalidate();
 	m_performanceControlDynamicCaps.set(PerformanceControlDynamicCaps(lowerLimitIndex, upperLimitIndex));
+	getParticipantServices()->createEventPerformanceCapabilitiesChanged();
 }
 
 void DomainPerformanceControl_001::setPerformanceCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock)
@@ -239,15 +240,6 @@ void DomainPerformanceControl_001::restore(void)
 	}
 }
 
-void DomainPerformanceControl_001::updateBasedOnConfigTdpInformation(
-	UIntN participantIndex,
-	UIntN domainIndex,
-	ConfigTdpControlSet configTdpControlSet,
-	ConfigTdpControlStatus configTdpControlStatus)
-{
-	throw not_implemented();
-}
-
 PerformanceControlStaticCaps DomainPerformanceControl_001::createPerformanceControlStaticCaps()
 {
 	return PerformanceControlStaticCaps(false); // This is hard-coded to FALSE in 7.0
@@ -255,7 +247,7 @@ PerformanceControlStaticCaps DomainPerformanceControl_001::createPerformanceCont
 
 PerformanceControlDynamicCaps DomainPerformanceControl_001::createPerformanceControlDynamicCaps(UIntN domainIndex)
 {
-	// Get dynamic caps. Set lower limit as min(ppdl value, last index) and 
+	// Get dynamic caps. Set lower limit as min(ppdl value, last index) and
 	// upper limit as first index.
 	// If table is empty, these are set as invalid.
 	UInt32 lowerLimitIndex;

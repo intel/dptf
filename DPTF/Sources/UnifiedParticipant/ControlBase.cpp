@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2019 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,8 @@ ControlBase::ControlBase(
 	, m_domainIndex(domainIndex)
 	, m_participantServices(participantServices)
 	, m_activityLoggingEnabled(false)
+	, m_requestHandlers()
+	, m_requestCache()
 {
 }
 
