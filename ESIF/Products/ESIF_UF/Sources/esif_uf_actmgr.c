@@ -781,9 +781,11 @@ static eEsifError EsifActMgr_LoadAction(
 		}
 		if (NULL == entryPtr->lib || NULL == entryPtr->lib->handle) {
 			rc = esif_ccb_library_error(entryPtr->lib);
-			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(entryPtr->lib));
+			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", altLibPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(entryPtr->lib));
 			goto exit;
 		}
+		esif_ccb_strcpy(libPath, altLibPath, sizeof(libPath));
+		rc = ESIF_OK;
 	}
 
 	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);

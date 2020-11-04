@@ -70,7 +70,7 @@ std::string StatusFormat::friendlyValue(double value)
 	else
 	{
 		stringstream stream;
-		stream << setprecision(2) << fixed << value;
+		stream << setprecision(2) << std::fixed << value;
 		return stream.str();
 	}
 }
@@ -84,7 +84,7 @@ std::string StatusFormat::friendlyValueWithPrecision(double value, UIntN precisi
 	else
 	{
 		stringstream stream;
-		stream << setprecision(precision) << fixed << value;
+		stream << setprecision(precision) << std::fixed << value;
 		return stream.str();
 	}
 }

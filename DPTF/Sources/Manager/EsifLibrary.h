@@ -34,6 +34,7 @@ public:
 	void unload(void);
 
 	void* getFunctionPtr(std::string functionName);
+	std::string getLibDirectory(void) const;
 
 private:
 	// hide the copy constructor and assignment operator.

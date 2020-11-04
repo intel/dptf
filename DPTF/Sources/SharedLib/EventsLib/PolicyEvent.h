@@ -141,12 +141,16 @@ namespace PolicyEvent
 		PolicyNoLockOnPresenceBatteryRemainingPercentageChanged,
 		PolicyNoLockOnPresenceResetWaitTimeChanged,
 		PolicyFailsafeTimeoutChanged,
-		PolicyUserPresenceAppStateChanged,
+		PolicyContextServiceStatusChanged,
 		PolicyExternalMonitorStateChanged,
 		PolicyUserNotPresentDimTargetChanged,
 		PolicyUserDisengagedDimmingIntervalChanged,
 		PolicyUserDisengagedDimTargetChanged,
 		PolicyUserDisengagedDimWaitTimeChanged,
+		PolicySensorModeChanged,
+		PolicyBiometricPresenceSensorInstanceChanged,
+		PolicyUserInteractionChanged,
+		PolicyUserPresenceCorrelationChanged,
 		Max
 	};
 

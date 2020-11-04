@@ -35,6 +35,7 @@
 #include "StatusCommand.h"
 #include "ManagerLogger.h"
 #include "PlatformRequestHandler.h"
+#include "EsifLibrary.h"
 
 DptfManager::DptfManager(void)
 	: m_dptfManagerCreateStarted(false)
@@ -76,8 +77,8 @@ void DptfManager::createDptfManager(
 	{
 		// Parse DPTF Home Path. Possible formats:
 		//   homepath = Location of XSL Files, Policy Libraries, and Reports [use full lib path when loading libraries]
-		//   homepath|[#]libpath|logpath = (1) Location of XSL Files (2) Location of Policy Libraries (3) Report / Log
-		//   File Path [do not use full lib if "#" prefix]
+		//   homepath|[#]libpath|logpath = (1) Location of XSL Files (2) Location of Policy Libraries (3) Report/Log Path
+		//   ["#" prefix = do not use full path when loading libraries]
 		std::string homePath = dptfHomeDirectoryPath;
 		std::string policyPath = dptfHomeDirectoryPath;
 		std::string reportPath = dptfHomeDirectoryPath;
@@ -114,6 +115,16 @@ void DptfManager::createDptfManager(
 		m_dptfPolicyDirectoryPath = policyPath;
 		m_dptfReportDirectoryPath = reportPath;
 		m_dptfEnabled = dptfEnabled;
+
+		// Determine Policy Path by getting this Library's Full Pathname
+		EsifLibrary dptfLib;
+		dptfLib.load();
+		policyPath = dptfLib.getLibDirectory();
+		dptfLib.unload();
+		if (!policyPath.empty())
+		{
+			m_dptfPolicyDirectoryPath = policyPath;
+		}
 
 		m_eventCache = std::make_shared<EventCache>();
 		m_userPreferredCache = std::make_shared<UserPreferredCache>();

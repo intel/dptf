@@ -1246,11 +1246,11 @@ void Policy::executePolicyFailsafeTimeoutChanged(TimeSpan failsafeTimeout)
 	}
 }
 
-void Policy::executePolicyUserPresenceAppStateChanged(Bool userPresenceAppState)
+void Policy::executePolicyContextServiceStatusChanged(Bool contextServiceStatus)
 {
-	if (isEventRegistered(PolicyEvent::PolicyUserPresenceAppStateChanged))
+	if (isEventRegistered(PolicyEvent::PolicyContextServiceStatusChanged))
 	{
-		m_theRealPolicy->userPresenceAppStateChanged(userPresenceAppState);
+		m_theRealPolicy->contextServiceStatusChanged(contextServiceStatus);
 	}
 }
 
@@ -1294,6 +1294,13 @@ void Policy::executePolicyUserDisengagedDimWaitTimeChanged(TimeSpan userDisengag
 	}
 }
 
+void Policy::executePolicySensorModeChanged(SensorMode::Type sensorMode)
+{
+	if (isEventRegistered(PolicyEvent::PolicySensorModeChanged))
+	{
+		m_theRealPolicy->sensorModeChanged(sensorMode);
+	}
+}
 
 Bool Policy::isPolicyLoggingEnabled()
 {
@@ -1315,5 +1322,29 @@ void Policy::executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osGam
 	if (isEventRegistered(PolicyEvent::PolicyOperatingSystemGameModeChanged))
 	{
 		m_theRealPolicy->operatingSystemGameModeChanged(osGameMode);
+	}
+}
+
+void Policy::executePolicyBiometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance)
+{
+	if (isEventRegistered(PolicyEvent::PolicyBiometricPresenceSensorInstanceChanged))
+	{
+		m_theRealPolicy->biometricPresenceSensorInstanceChanged(sensorInstance);
+	}
+}
+
+void Policy::executePolicyUserInteractionChanged(UserInteraction::Type userInteraction)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserInteractionChanged))
+	{
+		m_theRealPolicy->userInteractionChanged(userInteraction);
+	}
+}
+
+void Policy::executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus)
+{
+	if (isEventRegistered(PolicyEvent::PolicyUserPresenceCorrelationChanged))
+	{
+		m_theRealPolicy->userPresenceCorrelationStatusChanged(correlationStatus);
 	}
 }

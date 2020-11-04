@@ -382,7 +382,7 @@ int EsifUfTraceMessage(
 	if (isOsTrace) {
 		va_list args;
 		va_start(args, msg);
-		rc = EsifUfEtwPrintArgs(module, level, func, file, line, msg, args);
+		rc = EtwPrintArgs(module, level, func, file, line, msg, args);
 		va_end(args);
 	}
 	return rc;

@@ -30,6 +30,8 @@
 #include "esif_sdk_fan.h"
 #include "esif_uf_sysfs_os_lin.h"
 
+#include <unistd.h>
+
 #define MIN_PERF_PERCENTAGE 0
 #define MAX_SEARCH_STRING 50
 #define MAX_PARAM_STRING (MAX_SEARCH_STRING + MAX_SEARCH_STRING + 1)
@@ -145,6 +147,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_FAN_PERF_STATES = 'SPFG',
 	ESIF_SYSFS_GET_FAN_STATUS = 'TSFG',
 	ESIF_SYSFS_GET_DISPLAY_BRIGHTNESS = 'SBDG',
+	ESIF_SYSFS_GET_CSTATE_RESIDENCY= 'RSCG',
 	ESIF_SYSFS_SET_CPU_PSTATE = 'SPCS',
 	ESIF_SYSFS_SET_WWAN_PSTATE = 'SPWS',
 	ESIF_SYSFS_SET_OSC = 'CSOS',
@@ -194,6 +197,7 @@ static eEsifError GetFanInfo(EsifDataPtr responsePtr);
 static eEsifError GetFanPerfStates(EsifDataPtr responsePtr);
 static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString devicePathPtr);
 static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr);
+static eEsifError GetCStateResidency(char *path, UInt32 msrAddr, EsifDataPtr responsePtr);
 static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 static eEsifError ResetThermalZonePolicyToDefault();
 static eEsifError SetThermalZonePolicy();
@@ -234,6 +238,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	EsifString replacedStrs[5] = {0};
 	EsifString replacedStr = NULL;
 	UInt8 i = 0;
+	UInt32 msrAddr = 0;
 	Int64 sysval = 0;
 	u64 tripval = 0;
 	int node_idx = 0;
@@ -581,22 +586,26 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				}
 
 				*(u32 *)responsePtr->buf_ptr = temp_val0;
-
 				break;
-
 			case ESIF_SYSFS_GET_FAN_INFO:
 				rc = GetFanInfo(responsePtr);
 				break;
-
 			case ESIF_SYSFS_GET_FAN_PERF_STATES:
 				rc = GetFanPerfStates(responsePtr);
 				break;
-
 			case ESIF_SYSFS_GET_FAN_STATUS:
 				rc = GetFanStatus(responsePtr, devicePathPtr);
 				break;
 			case ESIF_SYSFS_GET_DISPLAY_BRIGHTNESS:
 				rc = GetDisplayBrightness(parm1,responsePtr);
+				break;
+			case ESIF_SYSFS_GET_CSTATE_RESIDENCY:
+				msrAddr = (UInt32) strtol(parm2, NULL, 0);
+				if (msrAddr > 0) {
+					rc = GetCStateResidency(parm1, msrAddr, responsePtr);
+				} else {
+					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+				}
 				break;
 
 			default:
@@ -1737,6 +1746,37 @@ static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr)
 
 	target_perc = ((double)curVal / (double)bdlVal) * 100;
 	*(u32 *) responsePtr->buf_ptr = (u32) target_perc;
+
+exit:
+	return rc;
+}
+
+static eEsifError GetCStateResidency(char *path, UInt32 msrAddr, EsifDataPtr responsePtr)
+{
+	eEsifError rc = ESIF_OK;
+
+	// First if check /dev/cpu/0/msr exists
+	if (access(path, F_OK) == -1) {
+		rc = ESIF_E_IO_INVALID_NAME;
+		goto exit;
+	}
+
+	// Open the device for read
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		rc = ESIF_E_IO_OPEN_FAILED;
+		goto exit;
+	}
+
+	UInt64 data;
+	if (pread(fd, &data, sizeof(UInt64), msrAddr) != sizeof(UInt64)) {
+		close(fd);
+		rc = ESIF_E_IO_ERROR;
+		goto exit;
+	}
+	close(fd);
+
+	*(UInt64 *) responsePtr->buf_ptr = data;
 
 exit:
 	return rc;

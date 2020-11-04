@@ -1002,13 +1002,26 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 	}
 }
 
-void UnifiedParticipant::domainSocWorkloadClassificationChanged()
+void UnifiedParticipant::domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification)
 {
 	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
 	{
 		if (domain->second != nullptr)
 		{
 			domain->second->getSocWorkloadClassificationControl()->clearCachedData();
+
+			try
+			{
+				domain->second->getSocWorkloadClassificationControl()->updateSocWorkloadClassification(
+					socWorkloadClassification);
+			}
+			catch (const std::exception& ex)
+			{
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					return "Unable to update Soc Workload Classification for domain " + std::to_string(domain->first)
+						   + ". Exception: " + std::string(ex.what());
+				});
+			}
 		}
 	}
 }
@@ -1343,6 +1356,12 @@ Bool UnifiedParticipant::isUserPreferredIndexModified(UIntN participantIndex, UI
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getDisplayControl()->isUserPreferredIndexModified(participantIndex, domainIndex);
+}
+
+UIntN UnifiedParticipant::getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getDisplayControl()->getSoftBrightnessIndex(participantIndex, domainIndex);
 }
 
 DisplayControlSet UnifiedParticipant::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)

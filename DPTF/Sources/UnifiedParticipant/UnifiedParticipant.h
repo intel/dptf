@@ -110,8 +110,7 @@ public:
 	virtual void domainAC10msPercentageOverloadChanged(void) override;
 	virtual void domainEnergyThresholdCrossed(void) override;
 	virtual void domainFanCapabilityChanged(void) override;
-	virtual void domainSocWorkloadClassificationChanged() override;
-
+	virtual void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) override;
 	// Activity Status
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
@@ -137,6 +136,7 @@ public:
 	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
 	virtual void setDisplayControlDynamicCaps(

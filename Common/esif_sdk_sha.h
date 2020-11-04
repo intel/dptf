@@ -57,40 +57,43 @@
 #include "esif_ccb_string.h"
 
 /*********************************************************************************
- * Secure Hash Algorithm Public Interface (SHA-1, SHA-256)
+ * Secure Hash Algorithm Public Interface (SHA-1, SHA-256, SHA-384, SHA-512)
  *********************************************************************************/
 
-// Suppport both SHA-1 and SHA-256 by default unless one is specified
-// Define just one of these before including this header to compile a single algorithm
-#if !defined(ESIF_ATTR_SHA1) && !defined(ESIF_ATTR_SHA256)
+// Suppport only SHA-1 and SHA-256 by default unless one or more algorithms are specified
+#if !defined(ESIF_ATTR_SHA1) && !defined(ESIF_ATTR_SHA256) && !defined(ESIF_ATTR_SHA384) && !defined(ESIF_ATTR_SHA512)
 # define ESIF_ATTR_SHA1
 # define ESIF_ATTR_SHA256
 #endif
 
-#ifdef ESIF_ATTR_SHA256
+#if defined(ESIF_ATTR_SHA384) || defined(ESIF_ATTR_SHA512)
+#define SHA_HASH_BYTES			64	// SHA512=64: Max size of binary hash in bytes (512 bits)
+#define SHA_BLOCK_BYTES			128	// SHA512=128: Max size of SHA block size in bytes (1024 bits)
+#elif defined(ESIF_ATTR_SHA256)
 #define SHA_HASH_BYTES			32	// SHA256=32: Size of binary hash in bytes (256 bits)
-#else
+#define SHA_BLOCK_BYTES			64	// SHA256=64 SHA512=128: Size of SHA block size in bytes (512 bits)
+#elif defined(ESIF_ATTR_SHA1)
 #define SHA_HASH_BYTES			20	// SHA1=20: Size of binary hash in bytes (160 bits)
+#define SHA_BLOCK_BYTES			64	// SHA1=64: Size of SHA block size in bytes (512 bits)
 #endif
-#define SHA_BLOCK_BYTES			64	// SHA1=64 SHA256=64: Size of SHA block size in bytes (512 bits)
-#define SHA_DIGESTS				(SHA_BLOCK_BYTES / sizeof(UInt32))	// SHA1=5: SHA256=8: SHA block size in 32-bit words
 #define SHA_STRING_BYTES		((SHA_HASH_BYTES * 2) + 1)			// Max size of SHA string plus NUL
 
 typedef struct esif_sha_s {
-	UInt16	hashtype;					// SHA1=1 SHA256=256: Hash Type
-	UInt8	hashsize;					// SHA1=20 SHA256=32: Variable Length Hash Size
-	UInt8	blocksize;					// SHA1=64 SHA256=64: Variable-length blocksize in bytes
-	UInt8	hash[SHA_HASH_BYTES];		// SHA1=20 SHA256=32: Variable-length Hash size in bytes
-	UInt8	block[SHA_BLOCK_BYTES];		// SHA1=64 SHA256=64: Current partially-filled block
-	UInt16	blockused;					// Number of bytes in current partially-filled block
-	UInt64  digest_bits;				// Total bits used to compute SHA digest
+	u16 hashtype;					// SHA1=1 SHA256=256 SHA512=512: Hash Type
+	u8  hashsize;					// SHA1=20 SHA256=32 SHA512=64 : Variable Length Hash Size in bytes
+	u8  blocksize;					// SHA1=64 SHA256=64 SHA512=128: Variable-length blocksize in bytes
+	u8  hash[SHA_HASH_BYTES];		// SHA1=20 SHA256=32 SHA512=64 : Variable-length Hash
+	u8  block[SHA_BLOCK_BYTES];		// SHA1=64 SHA256=64 SHA512=128: Current partially-filled block
+	u16 blockused;					// Number of bytes in current partially-filled block
+    u64 digest_bits;  				// Total bits used to compute SHA digest (Low-Order 64 bits)  [All SHAs]
+    u64 digest_hibits;	   			// Total bits used to compute SHA digest (High-Order 64 bits) [SHA-384+ only]
 } esif_sha_t;
 
-void esif_sha_init(esif_sha_t *self, UInt16 hashtype);
+void esif_sha_init(esif_sha_t *self, u16 hashtype);
 void esif_sha_update(esif_sha_t *self, const void *source, size_t bytes);
 void esif_sha_finish(esif_sha_t *self);
 const char *esif_sha_tostring(esif_sha_t *self, char *buffer, size_t buf_len);
-const char *esif_hash_tostring(UInt8 hash_bytes[], size_t hash_len, char *buffer, size_t buf_len);
+const char *esif_hash_tostring(u8 hash_bytes[], size_t hash_len, char *buffer, size_t buf_len);
 
 #ifdef ESIF_ATTR_SHA1
 /*
@@ -111,7 +114,6 @@ const char *esif_hash_tostring(UInt8 hash_bytes[], size_t hash_len, char *buffer
 /*
  * SHA-256 Digest (SHA-2 with 512-bit block and 256-bit output)
  */
-#define SHA2_TYPE				2	// Hash Type (SHA-256 = SHA-2 with 512-bit block and 256-bit output)
 #define SHA256_TYPE				256	// Hash Type
 #define SHA256_HASH_BYTES		32	// Size of resulting SHA256 binary hash
 #define SHA256_STRING_BYTES		((SHA256_HASH_BYTES * 2) + 1)	// Size of SHA256 string plus NUL
@@ -121,6 +123,36 @@ const char *esif_hash_tostring(UInt8 hash_bytes[], size_t hash_len, char *buffer
 #define esif_sha256_update(self, src, len)		esif_sha_update(self, src, len)
 #define esif_sha256_finish(self)				esif_sha_finish(self)
 #define esif_sha256_tostring(self, buf, len)	esif_sha_tostring(self, buf, len)
+#endif
+
+#ifdef ESIF_ATTR_SHA384
+/*
+ * SHA-384 Digest (SHA-2 with 1024-bit block and 384-bit output)
+ */
+#define SHA384_TYPE				384	// Hash Type
+#define SHA384_HASH_BYTES		48	// Size of resulting SHA384 binary hash
+#define SHA384_STRING_BYTES		((SHA384_HASH_BYTES * 2) + 1) // Size of SHA384 string plus NUL
+
+#define esif_sha384_t                           esif_sha_t
+#define esif_sha384_init(self)					esif_sha_init(self, SHA384_TYPE)
+#define esif_sha384_update(self, src, len)		esif_sha_update(self, src, len)
+#define esif_sha384_finish(self)				esif_sha_finish(self)
+#define esif_sha384_tostring(self, buf, len)    esif_sha_tostring(self, buf, len)
+#endif
+
+#ifdef ESIF_ATTR_SHA512
+ /*
+  * SHA-512 Digest (SHA-2 with 1024-bit block and 512-bit output)
+  */
+#define SHA512_TYPE				512	// Hash Type
+#define SHA512_HASH_BYTES		64	// Size of resulting SHA512 binary hash
+#define SHA512_STRING_BYTES		((SHA512_HASH_BYTES * 2) + 1)	// Size of SHA512 string plus NUL
+
+#define esif_sha512_t							esif_sha_t
+#define esif_sha512_init(self)					esif_sha_init(self, SHA512_TYPE)
+#define esif_sha512_update(self, src, len)		esif_sha_update(self, src, len)
+#define esif_sha512_finish(self)				esif_sha_finish(self)
+#define esif_sha512_tostring(self, buf, len)	esif_sha_tostring(self, buf, len)
 #endif
 
 // Include SHA Main Module if this symbol defined

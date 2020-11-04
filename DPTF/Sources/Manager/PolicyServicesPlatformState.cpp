@@ -139,3 +139,8 @@ SensorUserPresence::Type PolicyServicesPlatformState::getPlatformUserPresence(vo
 {
 	return getDptfManager()->getEventCache()->platformUserPresence.get();
 }
+
+UserInteraction::Type PolicyServicesPlatformState::getUserInteraction(void) const
+{
+	return getDptfManager()->getEventCache()->userInteraction.get();
+}

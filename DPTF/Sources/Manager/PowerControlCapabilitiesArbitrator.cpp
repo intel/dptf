@@ -127,7 +127,7 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitrat
 			minPowerLimit = currentPowerMin;
 		}
 
-		if (maxPowerLimit < minPowerLimit)
+		if (maxPowerLimit.isValid() && minPowerLimit.isValid() && maxPowerLimit < minPowerLimit)
 		{
 			minPowerLimit = maxPowerLimit; // set both min and max to the most limited of the two values
 		}
@@ -150,7 +150,7 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitrat
 			minTimeWindow = currentTimeMin;
 		}
 
-		if (maxTimeWindow < minTimeWindow)
+		if (maxTimeWindow.isValid() && minTimeWindow.isValid() && maxTimeWindow < minTimeWindow)
 		{
 			minTimeWindow = maxTimeWindow;
 		}

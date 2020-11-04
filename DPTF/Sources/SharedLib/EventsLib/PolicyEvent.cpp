@@ -149,13 +149,17 @@ namespace PolicyEvent
 			CASE(PolicyNoLockOnPresenceBatteryRemainingPercentageChanged)
 			CASE(PolicyNoLockOnPresenceResetWaitTimeChanged)
 			CASE(PolicyFailsafeTimeoutChanged)
-			CASE(PolicyUserPresenceAppStateChanged)
+			CASE(PolicyContextServiceStatusChanged)
 			CASE(PolicyExternalMonitorStateChanged)
 			CASE(PolicyUserNotPresentDimTargetChanged)
 			CASE(PolicyUserDisengagedDimmingIntervalChanged)
 			CASE(PolicyUserDisengagedDimTargetChanged)
 			CASE(PolicyUserDisengagedDimWaitTimeChanged)
-		default:
+			CASE(PolicySensorModeChanged)
+			CASE(PolicyBiometricPresenceSensorInstanceChanged)
+			CASE(PolicyUserInteractionChanged)
+			CASE(PolicyUserPresenceCorrelationChanged)
+		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
 	}
@@ -233,12 +237,16 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceBatteryRemainingPercentageChanged)
 			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceResetWaitTimeChanged)
 			|| (policyEventType == PolicyEvent::PolicyFailsafeTimeoutChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserPresenceAppStateChanged)
+			|| (policyEventType == PolicyEvent::PolicyContextServiceStatusChanged)
 			|| (policyEventType == PolicyEvent::PolicyExternalMonitorStateChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserNotPresentDimTargetChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimmingIntervalChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimTargetChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimWaitTimeChanged));
+			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimWaitTimeChanged)
+			|| (policyEventType == PolicyEvent::PolicySensorModeChanged)
+			|| (policyEventType == PolicyEvent::PolicyBiometricPresenceSensorInstanceChanged)
+			|| (policyEventType == PolicyEvent::PolicyUserInteractionChanged)
+			|| (policyEventType == PolicyEvent::PolicyUserPresenceCorrelationChanged));
 	}
 
 	std::string toString(Type type)
@@ -471,8 +479,8 @@ namespace PolicyEvent
 			return "PolicyNoLockOnPresenceResetWaitTimeChanged";
 		case PolicyEvent::PolicyFailsafeTimeoutChanged:
 			return "PolicyFailsafeTimeoutChanged";
-		case PolicyEvent::PolicyUserPresenceAppStateChanged:
-			return "PolicyUserPresenceAppStateChanged";
+		case PolicyEvent::PolicyContextServiceStatusChanged:
+			return "PolicyContextServiceStatusChanged";
 		case PolicyEvent::PolicyExternalMonitorStateChanged:
 			return "PolicyExternalMonitorStateChanged";
 		case PolicyEvent::PolicyUserNotPresentDimTargetChanged:
@@ -483,6 +491,14 @@ namespace PolicyEvent
 			return "PolicyUserDisengagedDimTargetChanged";
 		case PolicyEvent::PolicyUserDisengagedDimWaitTimeChanged:
 			return "PolicyUserDisengagedDimWaitTimeChanged";
+		case PolicyEvent::PolicySensorModeChanged:
+			return "PolicySensorModeChanged";
+		case PolicyEvent::PolicyBiometricPresenceSensorInstanceChanged:
+			return "PolicyBiometricPresenceSensorInstanceChanged";
+		case PolicyEvent::PolicyUserInteractionChanged:
+			return "PolicyUserInteractionChanged";
+		case PolicyEvent::PolicyUserPresenceCorrelationChanged:
+			return "PolicyUserPresenceCorrelationChanged";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

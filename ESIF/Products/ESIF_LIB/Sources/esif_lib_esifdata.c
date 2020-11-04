@@ -103,7 +103,6 @@ size_t EsifData_SizeofType (EsifDataPtr self)
 {
 	size_t size = 0;
 	switch (self->type) {
-	case ESIF_DATA_BIT:
 	case ESIF_DATA_INT8:
 	case ESIF_DATA_UINT8:
 		size = 1;
@@ -355,7 +354,6 @@ char *EsifData_ToStringMax(
 
 	// Determine Buffer Size and Conversion Values
 	switch (self->type) {
-	case ESIF_DATA_BIT:
 	case ESIF_DATA_INT8:
 	case ESIF_DATA_UINT8:
 		alloc   = MAXSTR_INT8;
@@ -418,11 +416,6 @@ char *EsifData_ToStringMax(
 			return NULL;
 		}
 		switch (self->type) {
-		case ESIF_DATA_BIT:
-			esif_ccb_sprintf(sizeof(intstr), intstr, "%ld", (long)((Int8)u32data & 0x1));
-			esif_ccb_strcpy(result, intstr, alloc);
-			break;
-
 		case ESIF_DATA_INT8:
 			esif_ccb_sprintf(sizeof(intstr), intstr, "%ld", (long)((Int8)u32data));
 			esif_ccb_strcpy(result, intstr, alloc);
@@ -564,7 +557,6 @@ esif_error_t EsifData_FromString (
 
 	// Determine Storage Requirements
 	switch (type) {
-	case ESIF_DATA_BIT:
 	case ESIF_DATA_INT8:
 	case ESIF_DATA_UINT8:
 		alloc = sizeof(UInt8);
@@ -635,10 +627,8 @@ esif_error_t EsifData_FromString (
 
 		// Convert Data
 		switch (type) {
-		case ESIF_DATA_BIT:
 		case ESIF_DATA_INT8:
 			esif_ccb_sscanf(str, IFHEX(str, "%x", "%d"), &u32data);
-			u32data = (self->type == ESIF_DATA_BIT ? u32data & 0x1 : u32data);
 			*STATIC_CAST(Int8*, buffer) = (Int8)u32data;
 			break;
 

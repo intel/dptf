@@ -54,10 +54,9 @@ DisplayControlStatus DomainDisplayControl_001::getDisplayControlStatus(UIntN par
 	Percentage brightnessPercentage = getParticipantServices()->primitiveExecuteGetAsPercentage(
 		esif_primitive_type::GET_DISPLAY_BRIGHTNESS, domainIndex);
 
-	m_currentDisplayControlIndex.set(
-		getDisplayControlSet(participantIndex, domainIndex).getControlIndex(brightnessPercentage));
+	auto currentIndex = getDisplayControlSet(participantIndex, domainIndex).getControlIndex(brightnessPercentage);
 
-	return DisplayControlStatus(m_currentDisplayControlIndex.get());
+	return DisplayControlStatus(currentIndex);
 }
 
 UIntN DomainDisplayControl_001::getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex)
@@ -102,6 +101,16 @@ Bool DomainDisplayControl_001::isUserPreferredIndexModified(UIntN participantInd
 	return m_isUserPreferredIndexModified;
 }
 
+UIntN DomainDisplayControl_001::getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	Percentage brightnessPercentage = getParticipantServices()->primitiveExecuteGetAsPercentage(
+		esif_primitive_type::GET_DISPLAY_BRIGHTNESS_SOFT, domainIndex);
+
+	auto currentIndex = getDisplayControlSet(participantIndex, domainIndex).getControlIndex(brightnessPercentage);
+
+	return currentIndex;
+}
+
 DisplayControlSet DomainDisplayControl_001::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
 	if (m_displayControlSet.isInvalid())
@@ -117,10 +126,18 @@ void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN d
 	auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
 	Percentage newBrightness = displaySet[indexToset].getBrightness();
 
-	m_lastSetDisplayBrightness = indexToset;
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsPercentage(
+			esif_primitive_type::SET_DISPLAY_BRIGHTNESS, newBrightness, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_WARNING(
+			{ return "Failed to set display brightness."; });
+	}
 
-	getParticipantServices()->primitiveExecuteSetAsPercentage(
-		esif_primitive_type::SET_DISPLAY_BRIGHTNESS, newBrightness, domainIndex);
+	m_lastSetDisplayBrightness = indexToset;
 }
 
 UIntN DomainDisplayControl_001::getAllowableDisplayBrightnessIndex(
@@ -214,15 +231,11 @@ void DomainDisplayControl_001::sendActivityLoggingDataIfEnabled(UIntN participan
 	{
 		auto dynamicCaps = getDisplayControlDynamicCaps(participantIndex, domainIndex);
 		auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
+		auto displayControlIndex = getDisplayControlStatus(participantIndex, domainIndex).getBrightnessLimitIndex();
 
-		UInt32 displayControlIndex;
-		if (m_currentDisplayControlIndex.isInvalid())
+		if (displayControlIndex == Constants::Invalid)
 		{
 			displayControlIndex = dynamicCaps.getCurrentUpperLimit();
-		}
-		else
-		{
-			displayControlIndex = m_currentDisplayControlIndex.get();
 		}
 
 		EsifCapabilityData capability;
@@ -256,7 +269,6 @@ void DomainDisplayControl_001::onClearCachedData(void)
 {
 	m_displayControlDynamicCaps.invalidate();
 	m_displayControlSet.invalidate();
-	m_currentDisplayControlIndex.invalidate();
 
 	if (m_capabilitiesLocked == false)
 	{

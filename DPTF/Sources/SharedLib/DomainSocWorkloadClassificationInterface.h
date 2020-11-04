@@ -26,4 +26,5 @@ public:
 	virtual ~DomainSocWorkloadClassificationInterface(){};
 
 	virtual UInt32 getSocWorkloadClassification() = 0;
+	virtual void updateSocWorkloadClassification(UInt32 socWorkloadClassification) = 0;
 };

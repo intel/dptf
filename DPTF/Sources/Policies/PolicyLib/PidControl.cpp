@@ -28,6 +28,13 @@ PidControl::PidControl(Int32 pidTarget, double alpha, double kp, double ki)
 	, m_alpha(alpha)
 	, m_kp(kp)
 	, m_ki(ki)
+	, m_pidBudget(Constants::Invalid)
+	, m_prevPidBudget(Constants::Invalid)
+	, m_iterm(0.0)
+	, m_prevIterm(0.0)
+	, m_prevItermCalculationStartTime(TimeSpan::createInvalid())
+	, m_itermCalculationStartTime(TimeSpan::createInvalid())
+	, m_availableHeadroom(Constants::MaxInt32)
 {
 }
 
@@ -35,19 +42,89 @@ PidControl::~PidControl()
 {
 }
 
-Int32 PidControl::getPidBudget(Int32 previousPidBudget, Int32 power)
+Int32 PidControl::getPrevPidBudget()
 {
-	return (Int32)(((double)previousPidBudget * m_alpha) + ((1 - m_alpha) * (double)(m_pidTarget - power)));
+	return m_prevPidBudget;
 }
 
-double PidControl::getIterm(double previousIterm, Int32 pidBudget, TimeSpan itermCalculationTimeDelta)
+void PidControl::setPrevPidBudget(Int32 prevPidBudget)
 {
-	return previousIterm + pidBudget * itermCalculationTimeDelta.asSeconds() * m_ki;
+	m_prevPidBudget = prevPidBudget;
 }
 
-Int32 PidControl::getAvailableHeadroom(Int32 pidBudget, double iterm)
+Int32 PidControl::getPidBudget()
 {
-	return (Int32)((double)m_pidTarget + ((double)pidBudget * m_kp) + iterm);
+	return m_pidBudget;
+}
+
+void PidControl::setPidBudget(Int32 pidBudget)
+{
+	m_pidBudget = pidBudget;
+}
+
+void PidControl::calculatePidBudget(Int32 power)
+{
+	m_pidBudget = (Int32)(((double)m_prevPidBudget * m_alpha) + ((1 - m_alpha) * (double)(m_pidTarget - power)));
+}
+
+double PidControl::getPrevIterm()
+{
+	return m_prevIterm;
+}
+
+void PidControl::setPrevIterm(double prevIterm)
+{
+	m_prevIterm = prevIterm;
+}
+
+double PidControl::getIterm()
+{
+	return m_iterm;
+}
+
+void PidControl::setIterm(double iterm)
+{
+	m_iterm = iterm;
+}
+
+void PidControl::calculateIterm(TimeSpan itermCalculationTimeDelta)
+{
+	m_iterm = m_prevIterm + m_pidBudget * itermCalculationTimeDelta.asSeconds() * m_ki;
+}
+
+TimeSpan PidControl::getPrevItermCalculationStartTime()
+{
+	return m_prevItermCalculationStartTime;
+}
+
+void PidControl::setPrevItermCalculationStartTime(TimeSpan prevItermCalculationStartTime)
+{
+	m_prevItermCalculationStartTime = prevItermCalculationStartTime;
+}
+
+TimeSpan PidControl::getItermCalculationStartTime()
+{
+	return m_itermCalculationStartTime;
+}
+
+void PidControl::setItermCalculationStartTime(TimeSpan itermCalculationStartTime)
+{
+	m_itermCalculationStartTime = itermCalculationStartTime;
+}
+
+Int32 PidControl::getAvailableHeadroom()
+{
+	return m_availableHeadroom;
+}
+
+void PidControl::setAvailableHeadroom(Int32 availableHeadroom)
+{
+	m_availableHeadroom = availableHeadroom;
+}
+
+void PidControl::calculateAvailableHeadroom()
+{
+	m_availableHeadroom = (Int32)((double)m_pidTarget + ((double)m_pidBudget * m_kp) + m_iterm);
 }
 
 Int32 PidControl::getPidBudgetSlope(

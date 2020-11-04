@@ -108,6 +108,14 @@ public:
 	virtual void setUserDisengagedDimmingInterval(UInt32 value) override final;
 	virtual void setUserDisengagedDimTarget(UInt32 value) override final;
 	virtual void setUserDisengagedDimWaitTime(UInt32 value) override final;
+	virtual void setPolicyUserPresenceState(UInt32 value) override final;
+	virtual Bool getPositiveEventFilteringState(void) override final;
+	virtual Bool getNegativeEventFilteringState(void) override final;
+	virtual TimeSpan getPresentStabilityWindow(void) override final;
+	virtual TimeSpan getDisengagedStabilityWindow(void) override final;
+	virtual TimeSpan getNotPresentStabilityWindow(void) override final;
+
+	virtual void resetAdaptiveUserPresenceTable(void) override final;
 
 private:
 	TimeSpan m_defaultSamplePeriod;
@@ -122,4 +130,5 @@ private:
 	void resetActiveControlPointRelationshipTable(void);
 	void resetPowerShareAlgorithmTable(void);
 	void resetPowerShareAlgorithmTable2(void);
+	
 };

@@ -412,7 +412,7 @@ static eEsifError EsifUpDomain_PsysDetectInit(
 	eEsifError rc = ESIF_OK;
 	UInt32 flagValue = 0;
 	EsifPrimitiveTuple flagTuple = { GET_PLATFORM_POWER_LIMIT_ENABLE, 0, 0 };
-	EsifData flagData = { ESIF_DATA_BIT, &flagValue, sizeof(flagValue), 0 };
+	EsifData flagData = { ESIF_DATA_UINT32, &flagValue, sizeof(flagValue), 0 };
 
 	ESIF_ASSERT(self != NULL);
 

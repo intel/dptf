@@ -81,7 +81,7 @@ UInt32 DomainBatteryStatus_001::getBatteryMaxPeakCurrent()
 Percentage DomainBatteryStatus_001::getBatteryPercentage()
 {
 	return getParticipantServices()->primitiveExecuteGetAsPercentage(
-		esif_primitive_type::GET_BATTERY_PERCENTAGE, getDomainIndex(), Constants::Esif::NoPersistInstance);
+		esif_primitive_type::GET_BATTERY_PERCENTAGE, getDomainIndex(), Constants::Esif::NoInstance);
 }
 
 void DomainBatteryStatus_001::setBatteryPercentage(Percentage batteryPercentage)
@@ -89,8 +89,7 @@ void DomainBatteryStatus_001::setBatteryPercentage(Percentage batteryPercentage)
 	getParticipantServices()->primitiveExecuteSetAsPercentage(
 		esif_primitive_type::SET_BATTERY_PERCENTAGE,
 		batteryPercentage,
-		getDomainIndex(),
-		Constants::Esif::NoPersistInstance);
+		getDomainIndex());
 }
 
 void DomainBatteryStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

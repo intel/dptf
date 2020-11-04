@@ -54,6 +54,7 @@ PassiveDomainProxy::PassiveDomainProxy(
 
 PassiveDomainProxy::PassiveDomainProxy()
 	: DomainProxy()
+	, m_perfControlRequests(std::make_shared<std::map<UIntN, UIntN>>())
 {
 }
 

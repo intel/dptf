@@ -1050,6 +1050,8 @@ static eEsifError EsifApp_Load(EsifAppPtr self)
 			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", altLibPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(self->fLibHandle));
 			goto exit;
 		}
+		esif_ccb_strcpy(libPath, altLibPath, sizeof(libPath));
+		rc = ESIF_OK;
 	}
 	esif_ccb_strcpy(self->loadDir, loadDir, sizeof(self->loadDir));
 

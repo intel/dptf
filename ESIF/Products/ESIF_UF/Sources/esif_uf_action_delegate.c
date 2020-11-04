@@ -581,6 +581,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIM_WAIT_TIME);
 		break;
 
+	case 'SPOP': /* POPS */
+		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_POLICY_PRESENCE_STATUS);
+		break;
+
 	case 'SNSS': /* SSNS */
 		rc = set_display_state(requestPtr);
 		break;

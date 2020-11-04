@@ -23,150 +23,92 @@
 #include "esif_uf_eventmgr.h"
 #include "esif_uf_primitive.h"
 
-#define ESIF_UPSM_POLLING_INTERVAL 1000 /* ms */
-#define ESIF_UPSM_HID_INPUT_TIME 2 /* s */
+#define ESIF_UPSM_DEFAULT_STABILITY_WINDOW 5000 /* ms */
+#define STABILITY_WINDOW_MAX 15000
+#define ESIF_UPSM_CORRELATION_RESET_TIME 120000 /* ms */
+
+#if defined(ESIF_ATTR_OS_WINDOWS)
+
+esif_error_t EsifSetActionDelegateDppeSettingWin(
+	EsifDataPtr requestPtr,
+	const GUID* guid
+);
+
+#define SetUserPresenceDppeSetting(requestPtr, guid) EsifSetActionDelegateDppeSettingWin(requestPtr, guid)
+
+#elif defined(ESIF_ATTR_OS_LINUX)
+
+#define SetUserPresenceDppeSetting(requestPtr, guid) (ESIF_E_NOT_IMPLEMENTED)
+
+#endif
 
 // Values from ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED
 typedef enum UpSensorState_e {
 	UP_SENSOR_STATE_NOT_PRESENT = 0,
 	UP_SENSOR_STATE_DISENGAGED = 1,
 	UP_SENSOR_STATE_ENGAGED = 2,
-	UP_SENSOR_STATE_INVALID = 3 // Not a real sensor state but used for init only
+	UP_SENSOR_STATE_INVALID = 99 // Not a real sensor state but used for init only
 } UpSensorState, *UpSensorStatePtr;
 
-#define UP_SENSOR_STATE_MAX UP_SENSOR_STATE_INVALID
+typedef enum UpState_e {
+	UP_STATE_NOT_PRESENT = 0,
+	UP_STATE_DISENGAGED = 1,
+	UP_STATE_ENGAGED = 2,
+	UP_STATE_FACE_ENGAGED = 3,
+	UP_STATE_INVALID = 99 // Not a real sensor state but used for init only
+} UpState, * UpStatePtr;
 
-// Values from ESIF_EVENT_OS_USER_PRESENCE_CHANGED
-typedef enum UpOsState_e {
-	UP_OS_STATE_PRESENT = 0,
-	UP_OS_STATE_NOT_PRESENT = 1, /* Should not actually happen...OS will report only 0/2*/
-	UP_OS_STATE_INACTIVE = 2
-} UpOsState, *UpOsStatePtr;
-
-#define UP_OS_STATE_MAX UP_OS_STATE_INACTIVE
-
-typedef enum UpOsState_e UpsmTableOsState;
-typedef enum UpOsState_e *UpsmTableOsStatePtr;
-
-//From GET_LAST_HID_INPUT_TIME
-typedef enum UpsmTableHidState_e {
-	UPSM_TABLE_HID_STATE_NOT_RECENTLY_ACTIVE = 0,
-	UPSM_TABLE_HID_STATE_RECENTLY_ACTIVE = 1,
-	UPSM_TABLE_HID_STATE_DONT_CARE = 2
-} UpsmTableHidState, *UpsmTableHidStatePtr;
-
-
-//get_last_hit_input_time
-typedef enum UpsmTableResolvedState_e {
-	UPSM_TABLE_STATE_NOT_PRESENT = 0,
-	UPSM_TABLE_STATE_DISENGAGED = 1,
-	UPSM_TABLE_STATE_ENGAGED = 2,
-	UPSM_TABLE_STATE_FACE_ENGAGED = 3,
-	UPSM_TABLE_STATE_INVALID = 99
-} UpsmTableResolvedState, *UpsmTableResolvedStatePtr;
-
-
-typedef struct UpsmTableEntry_s {
-	UpsmTableOsState osState;
-	UpSensorState sensorState;
-	UpsmTableHidState hidState;
-	UpsmTableResolvedState resolvedState;
-}UpsmTableEntry, *UpsmTableEntryPtr;
-
-#define UPSM_INITIAL_OS_STATE UP_OS_STATE_PRESENT;
-#define UPSM_INITIAL_SENSOR_STATE UP_SENSOR_STATE_INVALID;
-#define UPSM_INITIAL_RESOLVED_STATE UPSM_TABLE_STATE_ENGAGED;
-
-
+typedef enum UpCorrelationState_e {
+	UP_CORRELATION_STATE_NEGATIVE = 0,
+	UP_CORRELATION_STATE_POSITIVE = 1
+} UpCorrelationState, * UpCorrelationStatePtr;
 
 typedef struct EsifUpsm_s {
 	esif_ccb_lock_t enableLock;  // Used to prevent enabling/disabling at same time
 	esif_ccb_lock_t smLock;	     // Used for state machine management
 	Int32 refCount;				 // UPSM enabled when count >= 1; disabled when count == 0
 
-	UpOsState curOsState;
 	UpSensorState curSensorState;
-	UpsmTableResolvedState curResolvedState;
+	UpSensorState filteredSensorState;
+	UpSensorState queuedSensorState;
 
-	esif_ccb_timer_t hidPollingTimer;
-	Bool hidPollingEnabled;		// HID polling allowed
-	Bool hidPollingActive;		// HID polling enabled and active
+	Bool negativeEventFilteringEnabled;
+	Bool positiveEventFilteringEnabled;
+	UInt32 notPresentStabilityWindow;
+	UInt32 disengagedStabilityWindow;
+	UInt32 presentStabilityWindow;
+	esif_ccb_timer_t eventFilteringTimer;
+	Bool eventFilteringEnabled;
+	Bool eventFilteringTimerActive;
+
+	Bool interacting;
+	UpCorrelationState correlationState;
+	esif_ccb_timer_t correlationResetTimer;
+	Bool correlationResetEnabled;
+	Bool correlationResetTimerActive;
 
 } EsifUpsm, *EsifUpsmPtr;
 
 
 static EsifUpsm g_upsm = { 0 };
-static UpsmTableEntry g_upsmTable[] = {
-	{UP_OS_STATE_PRESENT,  UP_SENSOR_STATE_ENGAGED,     UPSM_TABLE_HID_STATE_DONT_CARE,           UPSM_TABLE_STATE_FACE_ENGAGED},
-	{UP_OS_STATE_PRESENT,  UP_SENSOR_STATE_DISENGAGED,  UPSM_TABLE_HID_STATE_RECENTLY_ACTIVE,     UPSM_TABLE_STATE_ENGAGED},
-	{UP_OS_STATE_PRESENT,  UP_SENSOR_STATE_DISENGAGED,  UPSM_TABLE_HID_STATE_NOT_RECENTLY_ACTIVE, UPSM_TABLE_STATE_DISENGAGED},
-	{UP_OS_STATE_PRESENT,  UP_SENSOR_STATE_NOT_PRESENT, UPSM_TABLE_HID_STATE_RECENTLY_ACTIVE,     UPSM_TABLE_STATE_ENGAGED},
-	{UP_OS_STATE_PRESENT,  UP_SENSOR_STATE_NOT_PRESENT, UPSM_TABLE_HID_STATE_NOT_RECENTLY_ACTIVE, UPSM_TABLE_STATE_NOT_PRESENT},
-	{UP_OS_STATE_INACTIVE, UP_SENSOR_STATE_ENGAGED,     UPSM_TABLE_HID_STATE_DONT_CARE,           UPSM_TABLE_STATE_FACE_ENGAGED},
-	{UP_OS_STATE_INACTIVE, UP_SENSOR_STATE_DISENGAGED,  UPSM_TABLE_HID_STATE_DONT_CARE,           UPSM_TABLE_STATE_DISENGAGED},
-	{UP_OS_STATE_INACTIVE, UP_SENSOR_STATE_NOT_PRESENT, UPSM_TABLE_HID_STATE_DONT_CARE,           UPSM_TABLE_STATE_NOT_PRESENT},
-	{UP_OS_STATE_PRESENT,  UP_SENSOR_STATE_INVALID,     UPSM_TABLE_HID_STATE_DONT_CARE,           UPSM_TABLE_STATE_INVALID},
-	{UP_OS_STATE_INACTIVE, UP_SENSOR_STATE_INVALID,     UPSM_TABLE_HID_STATE_DONT_CARE,           UPSM_TABLE_STATE_INVALID},
-};
-
 
 static esif_error_t EsifUpsm_RegisterEvents();
 static void EsifUpsm_UnregisterEvents();
-static esif_error_t EsifUpsm_GetHidInputTime(UInt32 *timePtr);
-static esif_error_t EsifUpsm_StartHidPolling_SmLocked();
-static void EsifUpsm_DisableHidPolling();
-static void EsifUpsm_StopHidPolling_SmLocked();
-static esif_error_t EsifUpsm_SendEvent(UpsmTableResolvedState state);
-
-
-static esif_error_t EsifUpsm_ResolveState_SmLocked()
-{
-	esif_error_t rc = ESIF_OK;
-	UpsmTableEntryPtr curEntryPtr = NULL;
-	UInt32 i = 0;
-	UInt32 hidTime = 0;
-	UpsmTableHidState hidState = UPSM_TABLE_HID_STATE_DONT_CARE;
-	Bool isHidStateValid = ESIF_FALSE;
-
-	curEntryPtr = g_upsmTable;
-
-	for (i = 0; i < (sizeof(g_upsmTable)/sizeof(*g_upsmTable)); i++, curEntryPtr++) {
-		if ((g_upsm.curOsState == curEntryPtr->osState) && (g_upsm.curSensorState == curEntryPtr->sensorState)) {
-			if ((curEntryPtr->hidState != UPSM_TABLE_HID_STATE_DONT_CARE) && (!isHidStateValid)) {
-				rc = EsifUpsm_GetHidInputTime(&hidTime);
-				if (ESIF_OK == rc) {
-					hidState = UPSM_TABLE_HID_STATE_NOT_RECENTLY_ACTIVE;
-					if (hidTime <= ESIF_UPSM_HID_INPUT_TIME) {
-						hidState = UPSM_TABLE_HID_STATE_RECENTLY_ACTIVE;
-					}
-					isHidStateValid = ESIF_TRUE;
-				}
-			}
-			if (hidState == curEntryPtr->hidState) {
-				if (curEntryPtr->resolvedState != g_upsm.curResolvedState) {
-					g_upsm.curResolvedState = curEntryPtr->resolvedState;
-					EsifUpsm_SendEvent(curEntryPtr->resolvedState);
-				}
-
-				if (curEntryPtr->hidState != UPSM_TABLE_HID_STATE_DONT_CARE) {
-					EsifUpsm_StartHidPolling_SmLocked();
-				}
-				else {
-					EsifUpsm_StopHidPolling_SmLocked();
-				}
-				break;
-			}
-		}
-	}
-	if (isHidStateValid) {
-		ESIF_TRACE_DEBUG("User presence state: OS-%d, Sensor-%d, HID-%ds, Resolved state-%d\n", g_upsm.curOsState, g_upsm.curSensorState, hidTime, g_upsm.curResolvedState);
-	}
-	else {
-		ESIF_TRACE_DEBUG("User presence state: OS-%d, Sensor-%d, HID-N/A, Resolved state-%d\n", g_upsm.curOsState, g_upsm.curSensorState, g_upsm.curResolvedState);
-	}
-		return rc;
-}
-
+static esif_error_t EsifUpsm_FilterSensorEvent_SmLocked(UpSensorState sensorData);
+static esif_error_t EsifUpsm_ReportSensorEvent_SmLocked(UpSensorState sensorData, EsifDataPtr esifDataPtr);
+static esif_error_t EsifUpsm_StartEventFiltering_SmLocked(UpSensorState sensorState);
+static esif_error_t EsifUpsm_EnableEventFiltering_SmLocked();
+static void EsifUpsm_StopEventFiltering_SmLocked();
+static void EsifUpsm_DisableEventFiltering();
+static esif_error_t EsifUpsm_HandleSensorEvent_SmLocked(UpSensorState sensorData, EsifDataPtr esifDataPtr);
+static esif_error_t EsifUpsm_EnableCorrelationResetTimer_SmLocked();
+static esif_error_t EsifUpsm_StartCorrelationResetTimer_SmLocked();
+static void EsifUpsm_StopCorrelationResetTimer_SmLocked();
+static void EsifUpsm_DisableEventFiltering();
+static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked();
+static esif_error_t EsifUpsm_SendEvents();
+static esif_error_t EsifUpsm_SendPresenceEvent(UpSensorState state);
+static esif_error_t EsifUpsm_SendCorrelationEvent(UpCorrelationState correlationState);
 
 static esif_error_t ESIF_CALLCONV EsifUpsm_EventCallback(
 	esif_context_t context,
@@ -178,6 +120,7 @@ static esif_error_t ESIF_CALLCONV EsifUpsm_EventCallback(
 {
 	esif_error_t rc = ESIF_OK;
 	UInt32 data = 0;
+	EsifData esifData = { ESIF_DATA_UINT32, &data, sizeof(data), sizeof(data) };
 
 	UNREFERENCED_PARAMETER(context);
 	UNREFERENCED_PARAMETER(participantId);
@@ -194,22 +137,24 @@ static esif_error_t ESIF_CALLCONV EsifUpsm_EventCallback(
 	}
 
 	data = *(UInt32*)eventDataPtr->buf_ptr;
+	esifData.buf_ptr = &data;
 
 	esif_ccb_write_lock(&g_upsm.smLock);
 
 	switch (fpcEventPtr->esif_event) {
 	case ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED:
 		ESIF_TRACE_DEBUG("Sensor User Presence = %d\n", data);
-		if (data != (UInt32)g_upsm.curSensorState) {
-			g_upsm.curSensorState = data;
-			rc = EsifUpsm_ResolveState_SmLocked();
-		}
+		rc = EsifUpsm_HandleSensorEvent_SmLocked(data, &esifData);
 		break;
-	case ESIF_EVENT_OS_USER_PRESENCE_CHANGED:
-		if (data != (UInt32)g_upsm.curOsState) {
-			g_upsm.curOsState = data;
-			rc = EsifUpsm_ResolveState_SmLocked();
+	case ESIF_EVENT_OS_USER_INTERACTION_CHANGED:
+		ESIF_TRACE_DEBUG("User interaction = %d\n", data);
+		if (data == 0) {
+			g_upsm.interacting = ESIF_FALSE;
 		}
+		else {
+			g_upsm.interacting = ESIF_TRUE;
+		}
+		rc = EsifUpsm_EvaluateCorrelation_SmLocked();
 		break;
 	default:
 		break;
@@ -221,34 +166,141 @@ exit:
 }
 
 
-static void EsifUpsm_HidPollingCallback(void* context_ptr)
+static esif_error_t EsifUpsm_HandleSensorEvent_SmLocked(UpSensorState sensorData, EsifDataPtr esifDataPtr) 
 {
-	UNREFERENCED_PARAMETER(context_ptr);
-
-	esif_ccb_write_lock(&g_upsm.smLock);
-	EsifUpsm_ResolveState_SmLocked();
-
-	if (g_upsm.hidPollingEnabled && g_upsm.hidPollingActive) {
-		esif_ccb_timer_set_msec(&g_upsm.hidPollingTimer, ESIF_UPSM_POLLING_INTERVAL);
+	esif_error_t rc = ESIF_OK;
+	if (sensorData != g_upsm.curSensorState) {
+		if (g_upsm.curSensorState == UP_SENSOR_STATE_INVALID || sensorData == UP_SENSOR_STATE_INVALID) {
+			ESIF_TRACE_DEBUG("Invalid sensor data.");
+			rc = EsifUpsm_ReportSensorEvent_SmLocked(sensorData, esifDataPtr);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to report sensor state %d.", sensorData);
+			}
+		}
+		else if (sensorData == g_upsm.filteredSensorState) {
+			g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
+		}
+		else if (g_upsm.negativeEventFilteringEnabled && sensorData < g_upsm.curSensorState) {
+			ESIF_TRACE_DEBUG("Negative filtering active. Current state %d, incoming data %d.", g_upsm.curSensorState, sensorData);
+			rc = EsifUpsm_FilterSensorEvent_SmLocked(sensorData);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to filter sensor state %d.", sensorData);
+			}
+		}
+		else if (g_upsm.positiveEventFilteringEnabled && sensorData > g_upsm.curSensorState) {
+			ESIF_TRACE_DEBUG("Positive filtering active. Current state %d, incoming data %d.", g_upsm.curSensorState, sensorData);
+			rc = EsifUpsm_FilterSensorEvent_SmLocked(sensorData);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to filter sensor state %d.", sensorData);
+			}
+		}
+		else {
+			ESIF_TRACE_DEBUG("Event filtering disabled.");
+			rc = EsifUpsm_ReportSensorEvent_SmLocked(sensorData, esifDataPtr);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to report sensor state %d.", sensorData);
+			}
+		}
 	}
-	esif_ccb_write_unlock(&g_upsm.smLock);
+	else {
+		ESIF_TRACE_DEBUG("Got same data as current sensor state.");
+		if (g_upsm.eventFilteringEnabled) {
+			EsifUpsm_StopEventFiltering_SmLocked();
+		}
+		g_upsm.filteredSensorState = UP_SENSOR_STATE_INVALID;
+		g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
+	}
+	return rc;
 }
 
 
-static esif_error_t EsifUpsm_StartHidPolling_SmLocked()
+static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked()
+{
+	esif_error_t rc = ESIF_OK;
+	UpCorrelationState correlationState = UP_CORRELATION_STATE_POSITIVE;
+
+	if (g_upsm.curSensorState == UP_SENSOR_STATE_ENGAGED) {
+		if (g_upsm.correlationResetTimerActive) {
+			EsifUpsm_StopCorrelationResetTimer_SmLocked();
+		}
+	}
+	else if (g_upsm.interacting) {
+		correlationState = UP_CORRELATION_STATE_NEGATIVE;
+		if (g_upsm.correlationResetTimerActive) {
+			EsifUpsm_StopCorrelationResetTimer_SmLocked();
+		}
+	}
+	else {
+		//not interacting and not sensor engaged -> correlation is positive unless previously negative
+		correlationState = g_upsm.correlationState;
+		if (g_upsm.correlationState == UP_CORRELATION_STATE_NEGATIVE && g_upsm.curSensorState == UP_SENSOR_STATE_NOT_PRESENT) {
+			//now that we are not present without interaction, start 2min timer to reset correlation
+			if (!g_upsm.correlationResetTimerActive) {
+				rc = EsifUpsm_EnableCorrelationResetTimer_SmLocked();
+				if (rc == ESIF_OK) {
+					rc = EsifUpsm_StartCorrelationResetTimer_SmLocked();
+					if (rc != ESIF_OK) {
+						ESIF_TRACE_DEBUG("Failed to start correlation reset timer.");
+					}
+				}
+				else {
+					ESIF_TRACE_DEBUG("Failed to enable correlation reset timer.");
+				}
+			}
+		}
+	}
+
+	if (correlationState == UP_CORRELATION_STATE_POSITIVE) {
+		ESIF_TRACE_DEBUG("Evaluated correlation state as positive.");
+	}
+	else {
+		ESIF_TRACE_DEBUG("Evaluated correlation state as negative.");
+	}
+
+	if (correlationState != g_upsm.correlationState) {
+		g_upsm.correlationState = correlationState;
+		rc = EsifUpsm_SendCorrelationEvent(g_upsm.correlationState);
+
+		//if correlation event was triggered by interaction event only, also send engaged event
+		if (g_upsm.interacting && g_upsm.curSensorState < UP_SENSOR_STATE_ENGAGED) {			
+			rc = EsifUpsm_SendPresenceEvent(g_upsm.curSensorState);
+			if (rc != ESIF_OK) {
+				ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
+			}
+		}
+	}
+
+	return rc;
+}
+
+
+static esif_error_t EsifUpsm_FilterSensorEvent_SmLocked(UpSensorState sensorData) 
 {
 	esif_error_t rc = ESIF_OK;
 
-	if (g_upsm.hidPollingEnabled && !g_upsm.hidPollingActive) {
-		rc = esif_ccb_timer_init(&g_upsm.hidPollingTimer, EsifUpsm_HidPollingCallback, NULL);
-		if (ESIF_OK == rc) {
-			rc = esif_ccb_timer_set_msec(&g_upsm.hidPollingTimer, ESIF_UPSM_POLLING_INTERVAL);
-			if (ESIF_OK == rc) {
-				g_upsm.hidPollingActive = ESIF_TRUE;
+	if (!g_upsm.eventFilteringTimerActive) {
+		g_upsm.filteredSensorState = sensorData;
+		rc = EsifUpsm_EnableEventFiltering_SmLocked();
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_DEBUG("Failed to enable event filtering.");
+		}
+
+		if (g_upsm.eventFilteringEnabled) {
+			rc = EsifUpsm_StartEventFiltering_SmLocked(g_upsm.filteredSensorState);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to start event filtering.");
 			}
-			else {
-				esif_ccb_timer_kill_w_wait(&g_upsm.hidPollingTimer);
-			}
+		}
+	}
+	else {
+		if (g_upsm.filteredSensorState > sensorData) {
+			ESIF_TRACE_DEBUG("Incoming state is lower priority than pending state %d.", g_upsm.filteredSensorState);
+			g_upsm.queuedSensorState = sensorData;
+		}
+		else {
+			ESIF_TRACE_DEBUG("Incoming state is higher priority than pending state %d.", g_upsm.filteredSensorState);
+			g_upsm.filteredSensorState = sensorData;
+			g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
 		}
 	}
 
@@ -256,36 +308,122 @@ static esif_error_t EsifUpsm_StartHidPolling_SmLocked()
 }
 
 
-static void EsifUpsm_StopHidPolling_SmLocked()
+static esif_error_t EsifUpsm_ReportSensorEvent_SmLocked(UpSensorState sensorData, EsifDataPtr esifDataPtr)
 {
-	esif_ccb_timer_kill(&g_upsm.hidPollingTimer);
-	g_upsm.hidPollingActive = ESIF_FALSE;
+	esif_error_t rc = ESIF_OK;
+
+	g_upsm.curSensorState = sensorData;
+	g_upsm.filteredSensorState = UP_SENSOR_STATE_INVALID;
+	g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
+	if (g_upsm.eventFilteringEnabled) {
+		EsifUpsm_StopEventFiltering_SmLocked();
+	}
+	rc = SetUserPresenceDppeSetting(esifDataPtr, &GUID_DTT_SENSOR_PRESENCE_STATUS);
+	if (ESIF_OK != rc) {
+		ESIF_TRACE_DEBUG("Failed to set sensor presence DPPE value.");
+	}
+
+	rc = EsifUpsm_SendEvents();
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Failed to send presence events.");
+	}
+
+	return rc;
 }
 
 
-static void EsifUpsm_DisableHidPolling()
+static esif_error_t EsifUpsm_SendEvents() 
 {
+	esif_error_t rc = ESIF_OK;
+	
+	rc = EsifUpsm_SendPresenceEvent(g_upsm.curSensorState);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
+		goto exit;
+	}
+
+	if (g_upsm.correlationResetTimerActive && g_upsm.curSensorState != UP_SENSOR_STATE_NOT_PRESENT) {
+		EsifUpsm_StopCorrelationResetTimer_SmLocked();
+	}
+
+	rc = EsifUpsm_EvaluateCorrelation_SmLocked();
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Failed to evaluate correlation!");
+	}
+
+exit:
+	return rc;
+}
+
+
+static esif_error_t EsifUpsm_StartEventFiltering_SmLocked(UpSensorState sensorState)
+{
+	esif_error_t rc = ESIF_OK;
+	ESIF_TRACE_DEBUG("Starting timer for sensor state %d.", sensorState);
+	if (sensorState == UP_SENSOR_STATE_ENGAGED) {
+		rc = esif_ccb_timer_set_msec(&g_upsm.eventFilteringTimer, g_upsm.presentStabilityWindow);
+	}
+	else if (sensorState == UP_SENSOR_STATE_DISENGAGED) {
+		rc = esif_ccb_timer_set_msec(&g_upsm.eventFilteringTimer, g_upsm.disengagedStabilityWindow);
+	}
+	else {
+		rc = esif_ccb_timer_set_msec(&g_upsm.eventFilteringTimer, g_upsm.notPresentStabilityWindow);
+	}
+	
+	if (ESIF_OK == rc) {
+		g_upsm.eventFilteringTimerActive = ESIF_TRUE;
+	}
+	else {
+		g_upsm.eventFilteringTimerActive = ESIF_FALSE;
+		if (ESIF_E_REQUEST_DATA_OUT_OF_BOUNDS == rc) {
+			ESIF_TRACE_DEBUG("Event filtering active but stability window was 0ms for sensor state %d.", sensorState);
+			EsifData esifData = { ESIF_DATA_UINT32, &sensorState, sizeof(sensorState), sizeof(sensorState) };
+			esifData.buf_ptr = &sensorState;
+			rc = EsifUpsm_ReportSensorEvent_SmLocked(sensorState, &esifData);
+			if (ESIF_OK != rc) {
+				ESIF_TRACE_DEBUG("Failed to report sensor state %d.", sensorState);
+			}
+		}
+		else {
+			ESIF_TRACE_DEBUG("Failed to set timer for sensor state %d.", sensorState);
+		}
+	}
+
+	return rc;
+}
+
+
+static void EsifUpsm_StabilityWindowCallback(void* context_ptr) 
+{
+	EsifData esifData = { ESIF_DATA_UINT32, &g_upsm.curSensorState, sizeof(g_upsm.curSensorState), sizeof(g_upsm.curSensorState) };
+	esif_error_t rc = ESIF_OK;
+
+	UNREFERENCED_PARAMETER(context_ptr); 
+
 	esif_ccb_write_lock(&g_upsm.smLock);
-	g_upsm.hidPollingEnabled = ESIF_FALSE;
-	g_upsm.hidPollingActive = ESIF_FALSE;
-	esif_ccb_write_unlock(&g_upsm.smLock);
-	esif_ccb_timer_kill_w_wait(&g_upsm.hidPollingTimer);
-}
+	ESIF_TRACE_DEBUG("Timer expired for sensor state %d.", g_upsm.filteredSensorState);
+	g_upsm.curSensorState = g_upsm.filteredSensorState;
+	
+	esifData.buf_ptr = &g_upsm.curSensorState;
 
-
-static esif_error_t EsifUpsm_GetHidInputTime(UInt32 *timePtr)
-{
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	UInt32 time = 0;
-	EsifData esifData = { ESIF_DATA_UINT32, &time, sizeof(time), 0 };
-
-	if (timePtr != NULL) {
-		rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_LAST_HID_INPUT_TIME, "D0", 255, NULL, &esifData);
-		if (ESIF_OK == rc) {
-			*timePtr = time;
-		}
+	rc = SetUserPresenceDppeSetting(&esifData, &GUID_DTT_SENSOR_PRESENCE_STATUS);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Couldn't set sensor presence DPPE value!");
 	}
-	return rc;
+
+	rc = EsifUpsm_SendEvents();
+
+	if (g_upsm.queuedSensorState != UP_SENSOR_STATE_INVALID) {
+		g_upsm.filteredSensorState = g_upsm.queuedSensorState;
+		g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
+		EsifUpsm_StartEventFiltering_SmLocked(g_upsm.filteredSensorState);
+	}
+	else {
+		g_upsm.filteredSensorState = UP_SENSOR_STATE_INVALID;
+		g_upsm.eventFilteringTimerActive = ESIF_FALSE;
+	}
+
+	esif_ccb_write_unlock(&g_upsm.smLock);
 }
 
 
@@ -293,37 +431,239 @@ static esif_error_t EsifUpsm_RegisterEvents()
 {
 	esif_error_t rc = ESIF_OK;
 
-	rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_OS_USER_PRESENCE_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
+	rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
 	if (ESIF_OK == rc) {
-		rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
+		rc = EsifEventMgr_RegisterEventByType(ESIF_EVENT_OS_USER_INTERACTION_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
 	}
+	
 	return rc;
 }
 
 
 static void EsifUpsm_UnregisterEvents()
 {
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_OS_USER_PRESENCE_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_OS_USER_INTERACTION_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifUpsm_EventCallback, 0);
 }
 
 
-static esif_error_t EsifUpsm_SendEvent(UpsmTableResolvedState state)
+static esif_error_t EsifUpsm_SendPresenceEvent(UpSensorState state)
 {
 	esif_error_t rc = ESIF_OK;
-	EsifData esifData = { ESIF_DATA_UINT32, &state, sizeof(state), sizeof(state) };
+	UpState resolvedState = UP_STATE_INVALID;
+	EsifData esifData = { ESIF_DATA_UINT32, &resolvedState, sizeof(resolvedState), sizeof(resolvedState) };
+
+	if (state == UP_SENSOR_STATE_ENGAGED) {
+		resolvedState = UP_STATE_FACE_ENGAGED;
+	}
+	else if (state != UP_SENSOR_STATE_INVALID && g_upsm.interacting) {
+		ESIF_TRACE_DEBUG("User interaction detected. Overriding %d presence state to engaged.", g_upsm.curSensorState);
+		resolvedState = UP_STATE_ENGAGED;
+	}
+	else {
+		resolvedState = (UpState)state;
+	}
 
 	rc = EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED, &esifData);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
+		goto exit;
+	}
+
+	rc = SetUserPresenceDppeSetting(&esifData, &GUID_DTT_PLATFORM_PRESENCE_STATUS);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Couldn't update platform user presence status!");
+	}
+
+exit:
+	return rc;
+}
+
+
+static esif_error_t EsifUpsm_EnableEventFiltering_SmLocked() 
+{
+	esif_error_t rc = ESIF_OK;
+	if (!g_upsm.eventFilteringEnabled) {
+		rc = esif_ccb_timer_init(&g_upsm.eventFilteringTimer, EsifUpsm_StabilityWindowCallback, NULL);
+		if (ESIF_OK == rc) {
+			g_upsm.eventFilteringEnabled = ESIF_TRUE;
+			ESIF_TRACE_DEBUG("Event Filtering enabled.");
+		}
+	}
+	
+	return rc;
+}
+
+
+static void EsifUpsm_StopEventFiltering_SmLocked() 
+{
+	esif_ccb_timer_kill(&g_upsm.eventFilteringTimer);
+	g_upsm.eventFilteringTimerActive = ESIF_FALSE;
+	g_upsm.eventFilteringEnabled = ESIF_FALSE;
+}
+
+
+static void EsifUpsm_DisableEventFiltering()
+{
+	esif_ccb_write_lock(&g_upsm.smLock);
+	g_upsm.eventFilteringEnabled = ESIF_FALSE;
+	g_upsm.eventFilteringTimerActive = ESIF_FALSE;
+	esif_ccb_write_unlock(&g_upsm.smLock);
+	esif_ccb_timer_kill_w_wait(&g_upsm.eventFilteringTimer);
+}
+
+static UInt32 EsifUpsm_SnapTimeWindowBounds(UInt32 stabilityWindow)
+{
+	UInt32 timeWindow = 0;
+
+	if (stabilityWindow > STABILITY_WINDOW_MAX) {
+		timeWindow = STABILITY_WINDOW_MAX;
+	}
+	else {
+		timeWindow = stabilityWindow;
+	}
+
+	return timeWindow;
+}
+
+static esif_error_t EsifUpsm_GetEventFilteringSettings_SmLocked()
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	UInt32 result = 0;
+	EsifData esifData = { ESIF_DATA_UINT32, &result, sizeof(result), 0 };
+
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_NEGATIVE_EVENT_FILTERING_STATE, "D0", 255, NULL, &esifData);
+	if (ESIF_OK == rc) {
+		g_upsm.negativeEventFilteringEnabled = (Bool)result;
+	}
+	else {
+		ESIF_TRACE_DEBUG("Couldn't get negative event filtering state; defaulting to disabled.");
+	}
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_POSITIVE_EVENT_FILTERING_STATE, "D0", 255, NULL, &esifData);
+	if (ESIF_OK == rc) {
+		g_upsm.positiveEventFilteringEnabled = (Bool)result;
+	}
+	else {
+		ESIF_TRACE_DEBUG("Couldn't get positive event filtering state; defaulting to disabled.");
+	}
+
+	EsifData esifTime = { ESIF_DATA_TIME, &result, sizeof(result), 0 };
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_NOT_PRESENT_STABILITY_WINDOW, "D0", 255, NULL, &esifTime);
+	if (ESIF_OK == rc) {
+		g_upsm.notPresentStabilityWindow = EsifUpsm_SnapTimeWindowBounds(result);
+	}
+	else {
+		ESIF_TRACE_DEBUG("Couldn't get NotPresentStabilityWindow; defaulting to 5s.");
+	}
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_DISENGAGED_STABILITY_WINDOW, "D0", 255, NULL, &esifTime);
+	if (ESIF_OK == rc) {
+		g_upsm.disengagedStabilityWindow = EsifUpsm_SnapTimeWindowBounds(result);
+	}
+	else {
+		ESIF_TRACE_DEBUG("Couldn't get DisengagedStabilityWindow; defaulting to 5s.");
+	}
+	rc = EsifExecutePrimitive(ESIF_HANDLE_PRIMARY_PARTICIPANT, GET_PRESENT_STABILITY_WINDOW, "D0", 255, NULL, &esifTime);
+	if (ESIF_OK == rc) {
+		g_upsm.presentStabilityWindow = EsifUpsm_SnapTimeWindowBounds(result);
+	}
+	else {
+		ESIF_TRACE_DEBUG("Couldn't get PresentStabilityWindow; defaulting to 5s.");
+	}
 
 	return rc;
 }
 
 
+static esif_error_t EsifUpsm_SendCorrelationEvent(UpCorrelationState correlationState) 
+{
+	esif_error_t rc = ESIF_OK;
+	EsifData esifDataCorrelation = { ESIF_DATA_UINT32, &correlationState, sizeof(correlationState), sizeof(correlationState) };
+	 
+	rc = EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_USER_PRESENCE_CORRELATION_STATUS_CHANGED, &esifDataCorrelation);
+	if (rc != ESIF_OK) {
+		ESIF_TRACE_DEBUG("Couldn't send correlation event!");
+	}
+
+	return rc;
+}
+
+
+static void EsifUpsm_CorrelationResetCallback(void* context_ptr) 
+{
+	UNREFERENCED_PARAMETER(context_ptr);
+
+	esif_ccb_write_lock(&g_upsm.smLock);
+	ESIF_TRACE_DEBUG("Timer expired for correlation reset. Resetting correlation.");
+	g_upsm.correlationResetTimerActive = ESIF_FALSE;
+	g_upsm.correlationState = UP_CORRELATION_STATE_POSITIVE;
+	EsifUpsm_SendCorrelationEvent(g_upsm.correlationState);
+	EsifUpsm_SendPresenceEvent(g_upsm.curSensorState);
+	esif_ccb_write_unlock(&g_upsm.smLock);
+}
+
+
+static esif_error_t EsifUpsm_EnableCorrelationResetTimer_SmLocked()
+{
+	esif_error_t rc = ESIF_OK;
+	if (!g_upsm.correlationResetEnabled) {
+		rc = esif_ccb_timer_init(&g_upsm.correlationResetTimer, EsifUpsm_CorrelationResetCallback, NULL);
+		if (ESIF_OK == rc) {
+			g_upsm.correlationResetEnabled = ESIF_TRUE;
+			ESIF_TRACE_DEBUG("Correlation reset timer enabled.");
+		}
+		else {
+			g_upsm.correlationResetEnabled = ESIF_FALSE;
+			ESIF_TRACE_DEBUG("Failed to enable correlation reset timer.");
+		}
+	}
+
+	return rc;
+}
+
+
+static esif_error_t EsifUpsm_StartCorrelationResetTimer_SmLocked()
+{
+	esif_error_t rc = esif_ccb_timer_set_msec(&g_upsm.correlationResetTimer, ESIF_UPSM_CORRELATION_RESET_TIME);
+
+	if (ESIF_OK == rc) {
+		g_upsm.correlationResetTimerActive = ESIF_TRUE;
+	}
+	return rc;
+}
+
+
+static void EsifUpsm_StopCorrelationResetTimer_SmLocked() 
+{
+	esif_ccb_timer_kill(&g_upsm.correlationResetTimer);
+	g_upsm.correlationResetTimerActive = ESIF_FALSE;
+	g_upsm.correlationResetEnabled = ESIF_FALSE;
+}
+
+
+static void EsifUpsm_DisableCorrelationResetTimer()
+{
+	esif_ccb_write_lock(&g_upsm.smLock);
+	g_upsm.correlationResetEnabled = ESIF_FALSE;
+	g_upsm.correlationResetTimerActive = ESIF_FALSE;
+	esif_ccb_write_unlock(&g_upsm.smLock);
+	esif_ccb_timer_kill_w_wait(&g_upsm.correlationResetTimer);
+}
+
+
 esif_error_t EsifUpsm_Init(void)
 {
-	g_upsm.curOsState = UPSM_INITIAL_OS_STATE;
 	g_upsm.curSensorState = UP_SENSOR_STATE_INVALID;
-	g_upsm.curResolvedState = UPSM_INITIAL_RESOLVED_STATE;
+	g_upsm.filteredSensorState = UP_SENSOR_STATE_INVALID;
+	g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
+
+	g_upsm.negativeEventFilteringEnabled = ESIF_FALSE;
+	g_upsm.positiveEventFilteringEnabled = ESIF_FALSE;
+	g_upsm.presentStabilityWindow = ESIF_UPSM_DEFAULT_STABILITY_WINDOW;
+	g_upsm.disengagedStabilityWindow = ESIF_UPSM_DEFAULT_STABILITY_WINDOW;
+	g_upsm.notPresentStabilityWindow = ESIF_UPSM_DEFAULT_STABILITY_WINDOW;
+
+	g_upsm.interacting = ESIF_FALSE;
+	g_upsm.correlationState = UP_CORRELATION_STATE_POSITIVE;
 
 	esif_ccb_lock_init(&g_upsm.smLock);
 	esif_ccb_lock_init(&g_upsm.enableLock);
@@ -348,7 +688,8 @@ esif_error_t EsifUpsm_Start(void)
 void EsifUpsm_Stop(void)
 {
 	EsifUpsm_UnregisterEvents();
-	EsifUpsm_DisableHidPolling();
+	EsifUpsm_DisableEventFiltering();
+	EsifUpsm_DisableCorrelationResetTimer();
 	return;
 }
 
@@ -362,18 +703,21 @@ esif_error_t EsifUpsm_Enable(void)
 	g_upsm.refCount++;
 
 	if (1 == g_upsm.refCount) {
+		EsifUpsm_GetEventFilteringSettings_SmLocked();
+		if (g_upsm.negativeEventFilteringEnabled || g_upsm.positiveEventFilteringEnabled) {
+			rc = EsifUpsm_EnableEventFiltering_SmLocked();
+		}
+
 		rc = EsifUpsm_RegisterEvents();
 
-		if (ESIF_OK == rc) {
-			g_upsm.hidPollingEnabled = ESIF_TRUE;
-		} else {
+		if (ESIF_OK != rc) {
 			EsifUpsm_Stop();
 			g_upsm.refCount--;
 		}
 	}
 
 	if (g_upsm.refCount >= 1) {
-		EsifUpsm_SendEvent(g_upsm.curResolvedState);
+		EsifUpsm_SendEvents();
 	}
 	esif_ccb_write_unlock(&g_upsm.enableLock);
 

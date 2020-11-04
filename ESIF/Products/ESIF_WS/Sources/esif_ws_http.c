@@ -457,7 +457,6 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 		const char *docRoot = EsifWsDocRoot();
 		const char *docType = MIME_TYPE_UNKNOWN;
 		char *uri = WebClient_HttpGetURI(client);
-		char *if_modified_since = NULL;
 		char resource[MAX_PATH] = { 0 };
 		char resource_path[MAX_PATH] = { 0 };
 		Bool completed = ESIF_FALSE;
@@ -483,29 +482,6 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 				}
 			}
 
-			// Check If-Modified-Since: header, if available, and return 304 Not Modified if requested file is unchanged
-			if (completed == ESIF_FALSE && ((if_modified_since = WebClient_HttpGetHeader(client, "If-Modified-Since")) != NULL)) {
-				time_t modified = Http_LocalTimeFromGmt(if_modified_since);
-				char gmtdate[WS_MAX_DATETIMESTR] = { 0 };
-
-				if (st.st_mtime <= modified) {
-					client->httpStatus = HTTP_STATUS_NOT_MODIFIED;
-					size_t bytes = esif_ccb_sprintf(self->netBufLen, (char *)self->netBuf,
-						"HTTP/1.1 %d Not Modified" CRLF
-						"Server: ESIF_UF/%s" CRLF
-						"Date: %s" CRLF
-						"Content-Length: 0" CRLF
-						"Connection: close" CRLF
-						CRLF,
-						client->httpStatus,
-						ESIF_WS_VERSION,
-						Http_GmtFromLocalTime(gmtdate, sizeof(gmtdate), time(0)));
-
-					rc = WebClient_Write(client, self->netBuf, bytes);
-					completed = ESIF_TRUE;
-				}
-			}
-
 			// Open and Serve File
 			if (completed == ESIF_FALSE) {
 				FILE *fp = esif_ccb_fopen(resource_path, "rb", NULL);
@@ -516,7 +492,6 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 				else {
 					const char content_fmt[] = "Content-Disposition: attachment; filename=\"%s\";" CRLF;
 					char content_disposition[MAX_PATH + sizeof(content_fmt)] = { 0 };
-					char modifiedbuf[WS_MAX_DATETIMESTR] = { 0 };
 					char datebuf[WS_MAX_DATETIMESTR] = { 0 };
 
 					// Add Content-Disposition header to prompt user with Save-As Dialog if unknown file type
@@ -528,8 +503,8 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 					size_t bytes = esif_ccb_sprintf(self->netBufLen, (char *)self->netBuf,
 						"HTTP/1.1 %d OK" CRLF
 						"Server: ESIF_UF/%s" CRLF
-						"Last-Modified: %s" CRLF
 						"Date: %s" CRLF
+						"Cache-Control: no-store, no-cache, must-revalidate" CRLF
 						"Content-Type: %s" CRLF
 						"Content-Length: %ld" CRLF
 						"%s"
@@ -546,7 +521,6 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 						CRLF,
 						client->httpStatus,
 						ESIF_WS_VERSION,
-						Http_GmtFromLocalTime(modifiedbuf, sizeof(modifiedbuf), st.st_mtime),
 						Http_GmtFromLocalTime(datebuf, sizeof(datebuf), time(0)),
 						docType,
 						(long)st.st_size,

@@ -1231,8 +1231,7 @@ eEsifError EsifUp_ExecuteSpecificActionPrimitive(
 			rspAuto);
 
 		/* Work around for now */
-		if (ESIF_DATA_BIT == responsePtr->type ||
-			ESIF_DATA_UINT8 == responsePtr->type ||
+		if (ESIF_DATA_UINT8 == responsePtr->type ||
 			ESIF_DATA_UINT16 == responsePtr->type) {
 			responsePtr->type = ESIF_DATA_UINT32;
 		}

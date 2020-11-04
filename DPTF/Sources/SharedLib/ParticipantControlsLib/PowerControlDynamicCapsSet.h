@@ -31,7 +31,7 @@ public:
 	PowerControlDynamicCapsSet(const std::vector<PowerControlDynamicCaps>& powerControlDynamicCaps);
 	~PowerControlDynamicCapsSet();
 
-	static PowerControlDynamicCapsSet createFromPpcc(const DptfBuffer& buffer);
+	static PowerControlDynamicCapsSet createFromPpcc(const DptfBuffer& buffer, Power pl4PowerLimit);
 	Bool isEmpty() const;
 	Bool hasCapability(PowerControlType::Type controlType) const;
 	const PowerControlDynamicCaps& getCapability(PowerControlType::Type controlType) const;

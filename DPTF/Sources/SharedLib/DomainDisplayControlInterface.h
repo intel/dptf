@@ -32,6 +32,7 @@ public:
 	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) = 0;
 	virtual void setDisplayControlDynamicCaps(

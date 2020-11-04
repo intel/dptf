@@ -1246,14 +1246,14 @@ void PolicyBase::failsafeTimeoutChanged(TimeSpan failsafeTimeout)
 	onFailsafeTimeoutChanged(failsafeTimeout);
 }
 
-void PolicyBase::userPresenceAppStateChanged(Bool userPresenceAppState)
+void PolicyBase::contextServiceStatusChanged(Bool contextServiceStatus)
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": User Presence App State changed to " + StatusFormat::friendlyValue(userPresenceAppState)
+		return getName() + ": Context Service Status changed to " + StatusFormat::friendlyValue(contextServiceStatus)
 			   + ".";
 	});
-	onUserPresenceAppStateChanged(userPresenceAppState);
+	onContextServiceStatusChanged(contextServiceStatus);
 }
 
 void PolicyBase::externalMonitorStateChanged(Bool externalMonitorState)
@@ -1304,6 +1304,41 @@ void PolicyBase::userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWait
 			   + StatusFormat::friendlyValue(userDisengagedDimWaitTime.asSeconds()) + ".";
 	});
 	onUserDisengagedDimWaitTimeChanged(userDisengagedDimWaitTime);
+}
+
+void PolicyBase::sensorModeChanged(SensorMode::Type sensorMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": Sensor Mode changed to " + SensorMode::toString(sensorMode) + ".";
+	});
+	onSensorModeChanged(sensorMode);
+}
+
+void PolicyBase::biometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({
+		return getName() + ": Biometric Presence Sensor instance changed to "
+			   + BiometricPresenceSensorInstance::toString(sensorInstance) + ".";
+	});
+	onBiometricPresenceSensorInstanceChanged(sensorInstance);
+}
+
+void PolicyBase::userInteractionChanged(UserInteraction::Type userInteraction)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": User Interaction changed to " + UserInteraction::toString(userInteraction) + "."; });
+	onUserInteractionChanged(userInteraction);
+}
+
+void PolicyBase::userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": User Presence Correlation Status changed to " + StatusFormat::friendlyValue(correlationStatus) + "."; });
+	onUserPresenceCorrelationStatusChanged(correlationStatus);
 }
 
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
@@ -1872,7 +1907,7 @@ void PolicyBase::onFailsafeTimeoutChanged(TimeSpan failsafeTimeout)
 	throw not_implemented();
 }
 
-void PolicyBase::onUserPresenceAppStateChanged(Bool userPresenceAppState)
+void PolicyBase::onContextServiceStatusChanged(Bool contextServiceStatus)
 {
 	throw not_implemented();
 }
@@ -1898,6 +1933,26 @@ void PolicyBase::onUserDisengagedDimTargetChanged(Percentage userDisengagedDimTa
 }
 
 void PolicyBase::onUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onSensorModeChanged(SensorMode::Type sensorMode)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onBiometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserInteractionChanged(UserInteraction::Type userInteraction)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus)
 {
 	throw not_implemented();
 }

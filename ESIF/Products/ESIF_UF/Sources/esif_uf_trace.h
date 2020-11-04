@@ -83,10 +83,8 @@ typedef u8		esif_traceroute_t;
 #define ESIF_TRACEFUNC(fmt, ...) CMD_OUT(fmt, ##__VA_ARGS__)
 #define ESIF_FILENAME __FILE__
 
-/* OS Trace is only available for UMDF driver */
-#ifdef ESIF_ATTR_UMDF_IS_FILT_DRVR
+/* OS Trace is only available for Windows components */
 #define ESIF_FEAT_OPT_OS_TRACE
-#endif
 
 #endif /* ESIF_ATTR_OS_WINDOWS */
 
@@ -220,7 +218,7 @@ extern "C" {
 		esif_tracemask_t moduleMask,
 		int level
 		);
-	extern int EsifUfEtwPrintArgs(
+	extern int EtwPrintArgs(
 		esif_tracemask_t moduleMask,
 		int level,
 		const char *funcPtr,

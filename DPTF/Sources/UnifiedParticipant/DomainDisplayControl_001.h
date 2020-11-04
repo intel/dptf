@@ -39,6 +39,7 @@ public:
 	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
 	virtual void setDisplayControlDynamicCaps(
@@ -77,7 +78,6 @@ private:
 	CachedValue<DisplayControlSet> m_displayControlSet;
 
 	// Vars (internal)
-	CachedValue<UIntN> m_currentDisplayControlIndex;
 	UIntN m_userPreferredIndex;
 	UIntN m_lastSetDisplayBrightness;
 	Bool m_isUserPreferredIndexModified;

@@ -21,11 +21,11 @@
 using namespace std;
 
 Bool compareTripPointsOnTemperature(
-	pair<ParticipantSpecificInfoKey::Type, Temperature> left,
-	pair<ParticipantSpecificInfoKey::Type, Temperature> right);
+	pair<ParticipantSpecificInfoKey::Type, Temperature> lhs,
+	pair<ParticipantSpecificInfoKey::Type, Temperature> rhs);
 Bool compareTripPointsOnKey(
-	pair<ParticipantSpecificInfoKey::Type, Temperature> left,
-	pair<ParticipantSpecificInfoKey::Type, Temperature> right);
+	pair<ParticipantSpecificInfoKey::Type, Temperature> lhs,
+	pair<ParticipantSpecificInfoKey::Type, Temperature> rhs);
 
 SpecificInfo::SpecificInfo()
 	: m_specificInfo()
@@ -111,15 +111,15 @@ void SpecificInfo::sortInfoByKey()
 }
 
 Bool compareTripPointsOnTemperature(
-	pair<ParticipantSpecificInfoKey::Type, Temperature> left,
-	pair<ParticipantSpecificInfoKey::Type, Temperature> right)
+	pair<ParticipantSpecificInfoKey::Type, Temperature> lhs,
+	pair<ParticipantSpecificInfoKey::Type, Temperature> rhs)
 {
-	return (left.second < right.second);
+	return (lhs.second < rhs.second);
 }
 
 Bool compareTripPointsOnKey(
-	pair<ParticipantSpecificInfoKey::Type, Temperature> left,
-	pair<ParticipantSpecificInfoKey::Type, Temperature> right)
+	pair<ParticipantSpecificInfoKey::Type, Temperature> lhs,
+	pair<ParticipantSpecificInfoKey::Type, Temperature> rhs)
 {
-	return (left.first < right.first);
+	return (lhs.first < rhs.first);
 }

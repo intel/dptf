@@ -1064,9 +1064,9 @@ extern "C"
 			case FrameworkEvent::PolicyAdaptiveUserPresenceTableChanged:
 				wi = std::make_shared<WIPolicyAdaptiveUserPresenceTableChanged>(dptfManager);
 				break;
-			case FrameworkEvent::PolicyUserPresenceAppStateChanged:
+			case FrameworkEvent::PolicyContextServiceStatusChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserPresenceAppStateChanged>(dptfManager, Bool(uint32param));
+				wi = std::make_shared<WIPolicyContextServiceStatusChanged>(dptfManager, Bool(uint32param));
 				break;
 			case FrameworkEvent::PolicyExternalMonitorStateChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
@@ -1096,6 +1096,25 @@ extern "C"
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyOperatingSystemGameModeChanged>(
 					dptfManager, OnOffToggle::toType(uint32param));
+				break;
+			case FrameworkEvent::PolicySensorModeChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicySensorModeChanged>(
+					dptfManager, SensorMode::toType(uint32param));
+			case FrameworkEvent::PolicyBiometricPresenceSensorInstanceChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyBiometricPresenceSensorInstanceChanged>(
+					dptfManager, BiometricPresenceSensorInstance::toType(uint32param));
+				break;
+			case FrameworkEvent::PolicyUserInteractionChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyUserInteractionChanged>(
+					dptfManager, UserInteraction::toType(uint32param));
+				break;
+			case FrameworkEvent::PolicyUserPresenceCorrelationChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyUserPresenceCorrelationStatusChanged>(
+					dptfManager, UserPresenceCorrelation::Type(uint32param));
 				break;
 			default:
 			{

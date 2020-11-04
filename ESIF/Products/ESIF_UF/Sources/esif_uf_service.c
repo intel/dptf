@@ -687,6 +687,16 @@ exit:
 	return rc;
 }
 
+// Worker Thread to run "start" commands received via ESIF Interface
+static void *ESIF_CALLCONV startcmd_worker(void *ctx)
+{
+	char *command = (char *)ctx;
+	if (command) {
+		parse_cmd(command, ESIF_FALSE, ESIF_FALSE);
+		esif_ccb_free(command);
+	}
+	return 0;
+}
 
 /*
 ** Provide interface for App to send Shell Command to ESIF
@@ -703,6 +713,20 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 	char **shell_argv = NULL;
 
 	UNREFERENCED_PARAMETER(esifHandle);
+
+	// Intercept "start" command and create a new thread to run it to avoid shell deadlocks
+	char start_prefix[] = "start ";
+	if (argc == 1 && argv[0].type == ESIF_DATA_STRING && esif_ccb_strnicmp((char *)argv[0].buf_ptr, start_prefix, sizeof(start_prefix) - 1) == 0) {
+		esif_thread_t cmdThread = ESIF_THREAD_NULL;
+		char *command = esif_ccb_strdup((esif_string)argv[0].buf_ptr + sizeof(start_prefix) - 1);
+		if ((rc = esif_ccb_thread_create(&cmdThread, startcmd_worker, command)) == ESIF_OK) {
+			esif_ccb_thread_close(&cmdThread);
+		}
+		else {
+			esif_ccb_free(command);
+		}
+		return rc;
+	}
 
 	esif_uf_shell_lock();
 

@@ -502,7 +502,7 @@ static esif_error_t DataVault_RepoFlush(
 		else {
 			FLAGS_CLEAR(header.v2.flags, ESIF_SERVICE_CONFIG_COMPRESSED);
 		}
-		esif_ccb_memcpy(header.v2.payload_hash, self->digest.hash, sizeof(self->digest.hash));
+		esif_ccb_memcpy(header.v2.payload_hash, self->digest.hash, esif_ccb_min(sizeof(header.v2.payload_hash), self->digest.hashsize));
 		header.v2.payload_size = (UInt32)(self->digest.digest_bits / 8);
 		size_t current_pos = IOStream_GetOffset(tempStream);
 
@@ -1380,12 +1380,12 @@ esif_error_t DataVault_TranslatePath(
 		esif_string		prefix;
 		esif_pathtype	pathtype;
 	} tokens[] = {
-		{ "$bin",	ESIF_PATHTYPE_BIN },	// C:\Windows\ServiceProfiles\...\Intel\DPTF\bin or /usr/.../bin [Default]
-		{ "$dv",	ESIF_PATHTYPE_DV },		// C:\Windows\ServiceProfiles\...\Intel\DPTF or /etc/dptf
-		{ "$log",	ESIF_PATHTYPE_LOG },	// C:\Windows\ServiceProfiles\...\Intel\DPTF\log or /var/.../log
-		{ "$cmd",	ESIF_PATHTYPE_CMD },	// C:\Prog...\cmd or /etc/dptf/cmd
-		{ "$dsp",	ESIF_PATHTYPE_DSP },	// C:\Prog...\dsp or /usr/.../dsp or /etc/dptf/dsp
-		{ "$ui",	ESIF_PATHTYPE_UI },		// C:\Prog...\ui  or /usr/.../ui
+		{ "$bin",	ESIF_PATHTYPE_BIN },	// %DriverData%\intel\dptf\bin or /usr/.../bin [Default]
+		{ "$dv",	ESIF_PATHTYPE_DV },		// %DriverData%\intel\dptf\dv or /etc/dptf
+		{ "$log",	ESIF_PATHTYPE_LOG },	// %DriverData%\intel\dptf\log or /var/.../log
+		{ "$cmd",	ESIF_PATHTYPE_CMD },	// %DriverData%\intel\dptf\cmd or /etc/dptf/cmd
+		{ "$dsp",	ESIF_PATHTYPE_DSP },	// %DriverData%\intel\dptf\dsp or /usr/.../dsp or /etc/dptf/dsp
+		{ "$ui",	ESIF_PATHTYPE_UI },		// %DriverData%\intel\dptf\ui  or /usr/.../ui
 		{ NULL,		(esif_pathtype)0 }
 	};
 

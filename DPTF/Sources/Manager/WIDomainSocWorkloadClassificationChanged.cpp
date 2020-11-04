@@ -41,7 +41,7 @@ void WIDomainSocWorkloadClassificationChanged::onExecute(void)
 
 	try
 	{
-		getParticipantPtr()->domainSocWorkloadClassificationChanged();
+		getParticipantPtr()->domainSocWorkloadClassificationChanged(m_socWorkloadClassification);
 	}
 	catch (participant_index_invalid& ex)
 	{

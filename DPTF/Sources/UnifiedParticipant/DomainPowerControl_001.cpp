@@ -84,7 +84,17 @@ PowerControlDynamicCapsSet DomainPowerControl_001::getDynamicCapabilities()
 {
 	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES, ESIF_DATA_BINARY, getDomainIndex());
-	auto dynamicCapsSetFromControl = PowerControlDynamicCapsSet::createFromPpcc(buffer);
+	
+	auto pl4PowerLimit = Power::createInvalid();
+	try 
+	{
+		pl4PowerLimit = getPowerLimit(getParticipantIndex(), getDomainIndex(), PowerControlType::PL4);
+	}
+	catch (...)
+	{
+	}
+
+	auto dynamicCapsSetFromControl = PowerControlDynamicCapsSet::createFromPpcc(buffer, pl4PowerLimit);
 	throwIfDynamicCapabilitiesAreEmpty(dynamicCapsSetFromControl);
 	return dynamicCapsSetFromControl;
 }
@@ -170,6 +180,12 @@ void DomainPowerControl_001::setPowerLimit(
 	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
 	getParticipantServices()->primitiveExecuteSetAsPower(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT, powerLimit, domainIndex, (UInt8)controlType);
+	PARTICIPANT_LOG_MESSAGE_DEBUG({
+		std::stringstream message;
+		message << "Successfully set RAPL Power Limit of control type " << PowerControlType::ToString(controlType) << " to "
+				<< std::to_string(powerLimit);
+		return message.str();
+	});
 }
 
 void DomainPowerControl_001::setPowerLimitIgnoringCaps(

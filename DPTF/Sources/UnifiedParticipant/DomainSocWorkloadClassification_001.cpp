@@ -70,6 +70,11 @@ UInt32 DomainSocWorkloadClassification_001::getSocWorkloadClassification()
 	return m_socWorkload;
 }
 
+void DomainSocWorkloadClassification_001::updateSocWorkloadClassification(UInt32 socWorkloadClassification)
+{
+	m_socWorkload = socWorkloadClassification;
+}
+
 std::string DomainSocWorkloadClassification_001::getName(void)
 {
 	return "Soc Workload Classification";

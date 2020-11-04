@@ -49,6 +49,11 @@ Bool DomainDisplayControl_000::isUserPreferredIndexModified(UIntN participantInd
 	throw not_implemented();
 }
 
+UIntN DomainDisplayControl_000::getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 DisplayControlSet DomainDisplayControl_000::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();

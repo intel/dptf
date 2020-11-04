@@ -21,14 +21,16 @@
 #include "Dptf.h"
 #include "WorkItem.h"
 
-class WIPolicyUserPresenceAppStateChanged : public WorkItem
+class WIPolicyBiometricPresenceSensorInstanceChanged : public WorkItem
 {
 public:
-	WIPolicyUserPresenceAppStateChanged(DptfManagerInterface* dptfManager, Bool state);
-	virtual ~WIPolicyUserPresenceAppStateChanged(void);
+	WIPolicyBiometricPresenceSensorInstanceChanged(
+		DptfManagerInterface* dptfManager,
+		BiometricPresenceSensorInstance::Type sensorInstance);
+	virtual ~WIPolicyBiometricPresenceSensorInstanceChanged(void);
 
 	virtual void onExecute(void) override final;
 
 private:
-	const Bool m_state;
+	const BiometricPresenceSensorInstance::Type m_sensorInstance;
 };

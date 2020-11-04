@@ -25,9 +25,23 @@ class dptf_export PidControlInterface
 public:
 	virtual ~PidControlInterface(){};
 
-	virtual Int32 getPidBudget(Int32 previousPidBudget, Int32 power) = 0;
-	virtual double getIterm(double previousIterm, Int32 pidBudget, TimeSpan itermCalculationTimeDelta) = 0;
-	virtual Int32 getAvailableHeadroom(Int32 pidBudget, double iterm) = 0;
+	virtual Int32 getPrevPidBudget() = 0;
+	virtual void setPrevPidBudget(Int32 prevPidBudget) = 0;
+	virtual Int32 getPidBudget() = 0;
+	virtual void setPidBudget(Int32 pidBudget) = 0;
+	virtual void calculatePidBudget(Int32 power) = 0;
+	virtual double getPrevIterm() = 0;
+	virtual void setPrevIterm(double prevIterm) = 0;
+	virtual double getIterm() = 0;
+	virtual void setIterm(double iterm) = 0;
+	virtual void calculateIterm(TimeSpan itermCalculationTimeDelta) = 0;
+	virtual TimeSpan getPrevItermCalculationStartTime() = 0;
+	virtual void setPrevItermCalculationStartTime(TimeSpan prevItermCalculationStartTime) = 0;
+	virtual TimeSpan getItermCalculationStartTime() = 0;
+	virtual void setItermCalculationStartTime(TimeSpan itermCalculationStartTime) = 0;
+	virtual Int32 getAvailableHeadroom() = 0;
+	virtual void setAvailableHeadroom(Int32 availableHeadroom) = 0;
+	virtual void calculateAvailableHeadroom() = 0;
 	virtual Int32 getPidBudgetSlope(
 		Int32 previousPidBudget,
 		Int32 pidBudget,

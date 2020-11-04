@@ -63,7 +63,6 @@ typedef enum esif_data_type {
 	ESIF_DATA_ANGLE = 41,
 	ESIF_DATA_AUTO = 36,
 	ESIF_DATA_BINARY = 7,
-	ESIF_DATA_BIT = 27,
 	ESIF_DATA_BLOB = 34,
 	ESIF_DATA_DECIBEL = 39,
 	ESIF_DATA_DSP = 33,
@@ -107,7 +106,6 @@ static ESIF_INLINE esif_string esif_data_type_str(esif_data_type_t type)
 	ESIF_CASE_ENUM(ESIF_DATA_ANGLE);
 	ESIF_CASE_ENUM(ESIF_DATA_AUTO);
 	ESIF_CASE_ENUM(ESIF_DATA_BINARY);
-	ESIF_CASE_ENUM(ESIF_DATA_BIT);
 	ESIF_CASE_ENUM(ESIF_DATA_BLOB);
 	ESIF_CASE_ENUM(ESIF_DATA_DECIBEL);
 	ESIF_CASE_ENUM(ESIF_DATA_DSP);
@@ -148,7 +146,6 @@ static ESIF_INLINE size_t esif_data_type_sizeof(esif_data_type_t type)
 {
 	switch (type) {
 	ESIF_CASE_VAL(ESIF_DATA_ANGLE, sizeof(unsigned int));
-	ESIF_CASE_VAL(ESIF_DATA_BIT, sizeof(unsigned char));
 	ESIF_CASE_VAL(ESIF_DATA_DECIBEL, sizeof(unsigned int));
 	ESIF_CASE_VAL(ESIF_DATA_ENUM, sizeof(int));
 	ESIF_CASE_VAL(ESIF_DATA_FREQUENCY, sizeof(unsigned long long));
@@ -188,7 +185,6 @@ static ESIF_INLINE esif_data_type_t esif_data_type_str2enum(const esif_string na
 		ESIF_MAP_ENUM(ESIF_DATA_ANGLE),
 		ESIF_MAP_ENUM(ESIF_DATA_AUTO),
 		ESIF_MAP_ENUM(ESIF_DATA_BINARY),
-		ESIF_MAP_ENUM(ESIF_DATA_BIT),
 		ESIF_MAP_ENUM(ESIF_DATA_BLOB),
 		ESIF_MAP_ENUM(ESIF_DATA_DECIBEL),
 		ESIF_MAP_ENUM(ESIF_DATA_DSP),

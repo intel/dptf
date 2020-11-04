@@ -31,6 +31,11 @@ UInt32 DomainSocWorkloadClassification_000::getSocWorkloadClassification()
 	throw not_implemented();
 }
 
+void DomainSocWorkloadClassification_000::updateSocWorkloadClassification(UInt32 socWorkloadClassification)
+{
+	throw not_implemented();
+}
+
 std::string DomainSocWorkloadClassification_000::getName(void)
 {
 	return "Soc Workload Classification (Version 0)";

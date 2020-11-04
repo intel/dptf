@@ -184,12 +184,16 @@ public:
 		Percentage noLockOnPresenceBatteryRemainingPercentage);
 	virtual void onNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime);
 	virtual void onFailsafeTimeoutChanged(TimeSpan failsafeTimeout);
-	virtual void onUserPresenceAppStateChanged(Bool userPresenceAppState);
+	virtual void onContextServiceStatusChanged(Bool contextServiceStatus);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
 	virtual void onUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget);
 	virtual void onUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval);
 	virtual void onUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget);
 	virtual void onUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime);
+	virtual void onSensorModeChanged(SensorMode::Type sensorMode);
+	virtual void onBiometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance);
+	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
+	virtual void onUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus);
 
 	// Implementation of the Policy Interface
 	virtual void create(Bool enabled, const PolicyServicesInterfaceContainer& policyServices, UIntN policyIndex)
@@ -338,12 +342,17 @@ public:
 		Percentage noLockOnPresenceBatteryRemainingPercentage) override final;
 	virtual void noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) override final;
 	virtual void failsafeTimeoutChanged(TimeSpan failsafeTimeout) override final;
-	virtual void userPresenceAppStateChanged(Bool userPresenceAppState) override final;
+	virtual void contextServiceStatusChanged(Bool contextServiceStatus) override final;
 	virtual void externalMonitorStateChanged(Bool externalMonitorState) override final;
 	virtual void userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) override final;
 	virtual void userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) override final;
 	virtual void userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) override final;
 	virtual void userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) override final;
+	virtual void sensorModeChanged(SensorMode::Type sensorMode) override final;
+	virtual void biometricPresenceSensorInstanceChanged(
+		BiometricPresenceSensorInstance::Type sensorInstance) override final;
+	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
+	virtual void userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);

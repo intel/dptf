@@ -334,6 +334,11 @@ DisplayControlStatus Domain::getDisplayControlStatus(void)
 	FILL_CACHE_AND_RETURN(m_displayControlStatus, DisplayControlStatus, getDisplayControlStatus);
 }
 
+UIntN Domain::getSoftBrightnessIndex(void)
+{
+	return m_theRealParticipant->getSoftBrightnessIndex(m_participantIndex, m_domainIndex);
+}
+
 DisplayControlSet Domain::getDisplayControlSet(void)
 {
 	FILL_CACHE_AND_RETURN(m_displayControlSet, DisplayControlSet, getDisplayControlSet);

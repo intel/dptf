@@ -54,6 +54,12 @@ Bool PolicyServicesDomainDisplayControl::isUserPreferredIndexModified(UIntN part
 	return getParticipantManager()->getParticipantPtr(participantIndex)->isUserPreferredIndexModified(domainIndex);
 }
 
+UIntN PolicyServicesDomainDisplayControl::getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getSoftBrightnessIndex(domainIndex);
+}
+
 DisplayControlSet PolicyServicesDomainDisplayControl::getDisplayControlSet(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();

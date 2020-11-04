@@ -134,7 +134,7 @@ public:
 	virtual void domainAC10msPercentageOverloadChanged(void) = 0;
 	virtual void domainEnergyThresholdCrossed(void) = 0;
 	virtual void domainFanCapabilityChanged(void) = 0;
-	virtual void domainSocWorkloadClassificationChanged() = 0;
+	virtual void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) = 0;
 };
 
 //

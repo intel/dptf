@@ -19,6 +19,6 @@
 #pragma once
 
 #define VER_MAJOR        8
-#define VER_MINOR        7
-#define VER_HOTFIX       10500
-#define VER_BUILD        9999
+#define VER_MINOR        8
+#define VER_HOTFIX       10200
+#define VER_BUILD        17145

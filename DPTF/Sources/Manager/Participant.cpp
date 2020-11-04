@@ -699,12 +699,12 @@ void Participant::domainFanCapabilityChanged(void)
 	}
 }
 
-void Participant::domainSocWorkloadClassificationChanged(void)
+void Participant::domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification)
 {
 	if (isEventRegistered(ParticipantEvent::DomainSocWorkloadClassificationChanged))
 	{
 		throwIfRealParticipantIsInvalid();
-		m_theRealParticipant->domainSocWorkloadClassificationChanged();
+		m_theRealParticipant->domainSocWorkloadClassificationChanged(socWorkloadClassification);
 	}
 }
 
@@ -806,6 +806,12 @@ Bool Participant::isUserPreferredIndexModified(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->isUserPreferredIndexModified();
+}
+
+UIntN Participant::getSoftBrightnessIndex(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getSoftBrightnessIndex();
 }
 
 DisplayControlSet Participant::getDisplayControlSet(UIntN domainIndex)

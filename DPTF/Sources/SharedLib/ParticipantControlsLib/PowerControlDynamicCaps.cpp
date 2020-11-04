@@ -19,6 +19,7 @@
 #include "PowerControlDynamicCaps.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
+#include "EsifDataBinaryPpccPackage.h"
 
 using namespace StatusFormat;
 
@@ -177,6 +178,7 @@ std::shared_ptr<XmlNode> PowerControlDynamicCaps::getXml(void) const
 	root->addChild(XmlNode::createDataElement("power_limit_caps_valid", friendlyValue(arePowerLimitCapsValid())));
 	root->addChild(XmlNode::createDataElement("max_power_limit", m_maxPowerLimit.toString()));
 	root->addChild(XmlNode::createDataElement("min_power_limit", m_minPowerLimit.toString()));
+	root->addChild(XmlNode::createDataElement("power_step_size_valid", friendlyValue(m_powerStepSize.isValid())));
 	root->addChild(XmlNode::createDataElement("power_step_size", m_powerStepSize.toString()));
 	root->addChild(XmlNode::createDataElement("time_window_caps_valid", friendlyValue(areTimeWindowCapsValid())));
 	root->addChild(XmlNode::createDataElement("max_time_window", m_maxTimeWindow.toStringMilliseconds()));
@@ -190,4 +192,77 @@ void PowerControlDynamicCaps::throwIfNotValid() const
 	{
 		throw dptf_exception("Power control dynamic capabilities is not valid.");
 	}
+}
+
+PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccPl3RowValues() const
+{
+	PowerControlDynamicCaps temp(
+		static_cast<PowerControlType::Type>(PowerControlType::Type::PL3),
+		Power::createInvalid(),
+		Power::createInvalid(),
+		Power::createInvalid(),
+		TimeSpan::createInvalid(),
+		TimeSpan::createInvalid(),
+		Percentage(0.0),
+		Percentage(0.0));
+	return temp;
+}
+
+PowerControlDynamicCaps PowerControlDynamicCaps::getDefaultPpccPl4RowValues(Power pl4PowerLimit) const
+{
+	PowerControlDynamicCaps temp(
+		static_cast<PowerControlType::Type>(PowerControlType::Type::PL4),
+		static_cast<UIntN>(pl4PowerLimit),
+		static_cast<UIntN>(pl4PowerLimit),
+		static_cast<UIntN>(500),
+		TimeSpan::createFromMilliseconds(static_cast<UIntN>(0)),
+		TimeSpan::createFromMilliseconds(static_cast<UIntN>(0)),
+		Percentage(0.0),
+		Percentage(0.0));
+	return temp;
+}
+
+PowerControlDynamicCaps PowerControlDynamicCaps::getPpccPlRowValues(struct EsifDataBinaryPpccPackage* currentRow) const
+{
+	auto powerMin = Power::createInvalid();
+	auto powerMax = Power::createInvalid();
+	auto powerStep = Power::createInvalid();
+	auto timeMin = TimeSpan::createInvalid();
+	auto timeMax = TimeSpan::createInvalid();
+
+	if (static_cast<UIntN>(currentRow->powerLimitMinimum.integer.value) != Constants::Invalid)
+	{
+		powerMin = static_cast<UIntN>(currentRow->powerLimitMinimum.integer.value);
+	}
+
+	if (static_cast<UIntN>(currentRow->powerLimitMaximum.integer.value) != Constants::Invalid)
+	{
+		powerMax = static_cast<UIntN>(currentRow->powerLimitMaximum.integer.value);
+	}
+
+	if (static_cast<UIntN>(currentRow->stepSize.integer.value) != Constants::Invalid)
+	{
+		powerStep = static_cast<UIntN>(currentRow->stepSize.integer.value);
+	}
+
+	if (static_cast<UIntN>(currentRow->timeWindowMinimum.integer.value) != Constants::Invalid)
+	{
+		timeMin = TimeSpan::createFromMilliseconds(static_cast<UIntN>(currentRow->timeWindowMinimum.integer.value));
+	}
+
+	if (static_cast<UIntN>(currentRow->timeWindowMaximum.integer.value) != Constants::Invalid)
+	{
+		timeMax = TimeSpan::createFromMilliseconds(static_cast<UIntN>(currentRow->timeWindowMaximum.integer.value));
+	}
+
+	PowerControlDynamicCaps temp(
+		static_cast<PowerControlType::Type>(currentRow->powerLimitIndex.integer.value),
+		powerMin,
+		powerMax,
+		powerStep,
+		timeMin,
+		timeMax,
+		Percentage(0.0),
+		Percentage(0.0));
+	return temp;
 }

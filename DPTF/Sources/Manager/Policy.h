@@ -194,12 +194,17 @@ public:
 		Percentage noLockOnPresenceBatteryRemainingPercentage) = 0;
 	virtual void executePolicyNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) = 0;
 	virtual void executePolicyFailsafeTimeoutChanged(TimeSpan failsafeTimeout) = 0;
-	virtual void executePolicyUserPresenceAppStateChanged(Bool userPresenceAppState) = 0;
+	virtual void executePolicyContextServiceStatusChanged(Bool contextServiceStatus) = 0;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) = 0;
 	virtual void executePolicyUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) = 0;
 	virtual void executePolicyUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) = 0;
 	virtual void executePolicyUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) = 0;
 	virtual void executePolicyUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) = 0;
+	virtual void executePolicySensorModeChanged(SensorMode::Type sensorMode) = 0;
+	virtual void executePolicyBiometricPresenceSensorInstanceChanged(
+		BiometricPresenceSensorInstance::Type sensorInstance) = 0;
+	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) = 0;
+	virtual void executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) = 0;
 };
 
 class dptf_export Policy : public IPolicy
@@ -374,12 +379,17 @@ public:
 		Percentage noLockOnPresenceBatteryRemainingPercentage) override;
 	virtual void executePolicyNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) override;
 	virtual void executePolicyFailsafeTimeoutChanged(TimeSpan failsafeTimeout) override;
-	virtual void executePolicyUserPresenceAppStateChanged(Bool userPresenceAppState) override;
+	virtual void executePolicyContextServiceStatusChanged(Bool contextServiceStatus) override;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) override;
 	virtual void executePolicyUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) override;
 	virtual void executePolicyUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) override;
 	virtual void executePolicyUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) override;
 	virtual void executePolicyUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) override;
+	virtual void executePolicySensorModeChanged(SensorMode::Type sensorMode) override;
+	virtual void executePolicyBiometricPresenceSensorInstanceChanged(
+		BiometricPresenceSensorInstance::Type sensorInstance) override;
+	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) override;
+	virtual void executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) override;
 
 private:
 	// hide the copy constructor and assignment operator.

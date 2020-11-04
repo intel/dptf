@@ -121,7 +121,7 @@ public:
 	void domainAC10msPercentageOverloadChanged(void);
 	void domainEnergyThresholdCrossed(void);
 	void domainFanCapabilityChanged(void);
-	void domainSocWorkloadClassificationChanged(void);
+	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification);
 
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
@@ -148,6 +148,7 @@ public:
 	DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
 	UIntN getUserPreferredDisplayIndex(UIntN domainIndex);
 	Bool isUserPreferredIndexModified(UIntN domainIndex);
+	UIntN getSoftBrightnessIndex(UIntN domainIndex);
 	DisplayControlSet getDisplayControlSet(UIntN domainIndex);
 	void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
 	void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);

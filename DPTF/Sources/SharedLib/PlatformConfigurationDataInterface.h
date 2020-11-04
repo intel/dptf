@@ -110,4 +110,12 @@ public:
 	virtual void setUserDisengagedDimmingInterval(UInt32 value) = 0;
 	virtual void setUserDisengagedDimTarget(UInt32 value) = 0;
 	virtual void setUserDisengagedDimWaitTime(UInt32 value) = 0;
+	virtual void setPolicyUserPresenceState(UInt32 value) = 0;
+	virtual Bool getPositiveEventFilteringState(void) = 0;
+	virtual Bool getNegativeEventFilteringState(void) = 0;
+	virtual TimeSpan getPresentStabilityWindow(void) = 0;
+	virtual TimeSpan getDisengagedStabilityWindow(void) = 0;
+	virtual TimeSpan getNotPresentStabilityWindow(void) = 0;
+
+	virtual void resetAdaptiveUserPresenceTable(void) = 0;
 };

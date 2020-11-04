@@ -58,7 +58,7 @@ void EsifLibrary::load(void)
 	if (m_libraryLoaded == false)
 	{
 		esif_string esifString = const_cast<esif_string>(m_fileName.c_str());
-		m_library = esif_ccb_library_load(esifString);
+		m_library = esif_ccb_library_load((esifString && esifString[0] ? esifString : NULL));
 
 		if (m_library == nullptr || m_library->handle == nullptr)
 		{
@@ -102,4 +102,22 @@ void* EsifLibrary::getFunctionPtr(std::string functionName)
 	}
 
 	return funcPtr;
+}
+
+std::string EsifLibrary::getLibDirectory(void) const
+{
+	static int thismodule = 0;
+	std::string directory;
+	char dllPath[MAX_PATH] = {0};
+
+	if ((m_libraryLoaded == true) && (esif_ccb_library_getpath(m_library, dllPath, sizeof(dllPath), &thismodule) == ESIF_OK))
+	{
+		directory = dllPath;
+		size_t pos = directory.find_last_of("\\/");
+		if (pos != std::string::npos)
+		{
+			directory = directory.substr(0, pos + 1);
+		}
+	}
+	return directory;
 }

@@ -16,23 +16,23 @@
 **
 ******************************************************************************/
 
-#include "WIPolicyUserPresenceAppStateChanged.h"
+#include "WIPolicyUserPresenceCorrelationStatusChanged.h"
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
 
-WIPolicyUserPresenceAppStateChanged::WIPolicyUserPresenceAppStateChanged(
+WIPolicyUserPresenceCorrelationStatusChanged::WIPolicyUserPresenceCorrelationStatusChanged(
 	DptfManagerInterface* dptfManager,
-	Bool state)
-	: WorkItem(dptfManager, FrameworkEvent::PolicyUserPresenceAppStateChanged)
-	, m_state(state)
+	UserPresenceCorrelation::Type correlationStatus)
+	: WorkItem(dptfManager, FrameworkEvent::PolicyUserPresenceCorrelationChanged)
+	, m_correlationStatus(correlationStatus)
 {
 }
 
-WIPolicyUserPresenceAppStateChanged::~WIPolicyUserPresenceAppStateChanged(void)
+WIPolicyUserPresenceCorrelationStatusChanged::~WIPolicyUserPresenceCorrelationStatusChanged(void)
 {
 }
 
-void WIPolicyUserPresenceAppStateChanged::onExecute(void)
+void WIPolicyUserPresenceCorrelationStatusChanged::onExecute(void)
 {
 	writeWorkItemStartingInfoMessage();
 
@@ -43,9 +43,9 @@ void WIPolicyUserPresenceAppStateChanged::onExecute(void)
 	{
 		try
 		{
-			getDptfManager()->getEventCache()->userPresenceAppState.set(m_state);
+			getDptfManager()->getEventCache()->userPresenceCorrelation.set(m_correlationStatus);
 			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyUserPresenceAppStateChanged(m_state);
+			policy->executePolicyUserPresenceCorrelationStatusChanged(m_correlationStatus);
 		}
 		catch (policy_index_invalid&)
 		{
@@ -53,7 +53,7 @@ void WIPolicyUserPresenceAppStateChanged::onExecute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyUserPresenceAppStateChanged", *i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyUserPresenceCorrelationStatusChanged", *i);
 		}
 	}
 }

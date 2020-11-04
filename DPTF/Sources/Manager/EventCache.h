@@ -31,6 +31,10 @@
 #include "OsPowerSlider.h"
 #include "SensorUserPresence.h"
 #include "OsSessionState.h"
+#include "SensorMode.h"
+#include "BiometricPresenceSensorInstance.h"
+#include "UserInteraction.h"
+#include "UserPresenceCorrelation.h"
 
 class EventCache
 {
@@ -90,10 +94,14 @@ public:
 	CachedValue<Percentage> noLockOnPresenceBatteryRemainingPercentage;
 	CachedValue<TimeSpan> noLockOnPresenceResetWaitTime;
 	CachedValue<TimeSpan> failsafeTimeout;
-	CachedValue<Bool> userPresenceAppState;
+	CachedValue<Bool> contextServiceStatus;
 	CachedValue<Bool> externalMonitorState;
 	CachedValue<Percentage> notPresentDimTarget;
 	CachedValue<TimeSpan> disengagedDimmingInterval;
 	CachedValue<Percentage> disengagedDimTarget;
 	CachedValue<TimeSpan> disengagedDimWaitTime;
+	CachedValue<SensorMode::Type> sensorMode;
+	CachedValue<BiometricPresenceSensorInstance::Type> biometricPresenceSensorInstance;
+	CachedValue<UserInteraction::Type> userInteraction;
+	CachedValue<UserPresenceCorrelation::Type> userPresenceCorrelation;
 };

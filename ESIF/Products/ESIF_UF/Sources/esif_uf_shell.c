@@ -1520,8 +1520,8 @@ static char *esif_shell_cmd_app(EsifShellCmdPtr shell)
 				}
 				else {
 					response.type = ESIF_DATA_STRING;
-					response.buf_ptr = g_outbuf;
-					response.buf_len = g_outbuf_len;
+					response.buf_len = OUT_BUF_LEN_DEFAULT;
+					response.buf_ptr = esif_ccb_malloc(response.buf_len);
 					response.data_len = 0;
 
 					for (j = 0; j < argcEsifData; j++) {
@@ -1532,16 +1532,32 @@ static char *esif_shell_cmd_app(EsifShellCmdPtr shell)
 					}
 
 					// Send argc/argv array to app
+					esif_uf_shell_unlock();
 					rc = EsifApp_SendCommand(appPtr, argcEsifData, argvEsifData, &response);
+					esif_uf_shell_lock();
 
 					// Resize response buffer and call again if insufficent size
 					if (rc == ESIF_E_NEED_LARGER_BUFFER) {
-						response.buf_ptr = esif_shell_resize(response.data_len);
-						if (g_outbuf_len >= response.data_len) {
-							response.buf_len = g_outbuf_len;
+						char *new_ptr = esif_ccb_realloc(response.buf_ptr, response.data_len);
+						if (new_ptr) {
+							response.buf_ptr = new_ptr;
+							response.buf_len = response.data_len;
+							esif_uf_shell_unlock();
 							rc = EsifApp_SendCommand(appPtr, argcEsifData, argvEsifData, &response);
+							esif_uf_shell_lock();
 						}
 					}
+					if (response.data_len > g_outbuf_len) {
+						esif_shell_resize(response.data_len);
+					}
+
+					if (response.buf_ptr && g_outbuf_len >= response.data_len) {
+						esif_ccb_strcpy(g_outbuf, response.buf_ptr, g_outbuf_len);
+					}
+					else {
+						rc = ESIF_E_NEED_LARGER_BUFFER;
+					}
+					esif_ccb_free(response.buf_ptr);
 				}
 				esif_ccb_free(argvEsifData);
 			}
@@ -1917,7 +1933,7 @@ static char *esif_shell_cmd_appstart(EsifShellCmdPtr shell)
 	rc = EsifAppMgr_AppStart(libName);
 	esif_uf_shell_lock();
 
-	output = g_outbuf;
+	output = shell->outbuf = g_outbuf;
 	if (ESIF_OK != rc) {
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Start App: %s [%s (%d)]\n", libName, esif_rc_str(rc), rc);
 	}
@@ -1949,7 +1965,7 @@ static char *esif_shell_cmd_appstop(EsifShellCmdPtr shell)
 	rc = EsifAppMgr_AppStop(libName);
 	esif_uf_shell_lock();
 
-	output = g_outbuf;
+	output = shell->outbuf = g_outbuf;
 	if (ESIF_OK != rc) {
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Failed To Stop App: %s [%s (%d)]\n", libName, esif_rc_str(rc), rc);
 	}
@@ -2035,13 +2051,18 @@ static char *esif_shell_cmd_autoexec(EsifShellCmdPtr shell)
 
 	// autoexec ["shell command"] [...]
 	while (optarg < argc) {
+		esif_uf_shell_unlock();
 		parse_cmd(argv[optarg++], ESIF_FALSE, ESIF_TRUE);
+		esif_uf_shell_lock();
 	}
 	if ((esif_shell_get_start_script() != NULL) && ((command = esif_ccb_strdup(esif_shell_get_start_script())) != NULL)) {
+		esif_uf_shell_unlock();
 		parse_cmd(command, ESIF_FALSE, ESIF_TRUE);
+		esif_uf_shell_lock();
 		esif_ccb_free(command);
 	}
 	// Output has already been shown by parse_cmd subfunctions
+	output = shell->outbuf = g_outbuf;
 	*output = '\0';
 	return output;
 }
@@ -3977,8 +3998,11 @@ static char *esif_shell_cmd_load(EsifShellCmdPtr shell)
 				outline_len = (int)(ptr - outline);
 				if (!((esif_ccb_strnicmp(outline, "rem", 3) == 0) && (outline_len > 3) &&
 					  ((outline[3] == '\0') || (outline[3] == ' ') || (outline[3] == '\n') || (outline[3] == '\t')))) {
+					esif_uf_shell_unlock();
 					parse_cmd(outline, ESIF_FALSE, ESIF_TRUE);
+					esif_uf_shell_lock();
 				}
+				output = shell->outbuf = g_outbuf;
 				*output = 0;
 			}
 		}
@@ -4829,6 +4853,8 @@ static char *esif_shell_cmd_paths(EsifShellCmdPtr shell)
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Log path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_CMD, NULL, 0);
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Command path:\n %s \n\n", targetFilePath);
+	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_BIN, NULL, 0);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Bin Files path:\n %s \n\n", targetFilePath);
 	return output;
 }
 
@@ -7261,33 +7287,6 @@ exit:
 	return output;
 }
 
-void *ESIF_CALLCONV shellcmd_worker(void *ctx)
-{
-	IString *command = (IString *)ctx;
-	if (command) {
-		parse_cmd(IString_GetString(command), ESIF_FALSE, ESIF_FALSE);
-		IString_Destroy(command);
-	}
-	return 0;
-}
-
-static char *esif_shell_cmd_start(EsifShellCmdPtr shell)
-{
-	int argc = shell->argc;
-	char **argv = shell->argv;
-	
-	esif_thread_t cmdThread = ESIF_THREAD_NULL;
-	IString *command = IString_Create();
-	for (int arg = 1; arg < argc; arg++) {
-		esif_string quote = (esif_ccb_strpbrk(argv[arg], ESIF_SHELL_STRTOK_SEP) != NULL ? (esif_ccb_strchr(argv[arg], '\'') != NULL ? "\"" : "\'") : "");
-		IString_SprintfConcat(command, "%s%s%s%s", (arg > 1 ? " " : ""), quote, argv[arg], quote);
-	}
-	if (esif_ccb_thread_create(&cmdThread, shellcmd_worker, command) == ESIF_OK) {
-		esif_ccb_thread_close(&cmdThread);
-	}
-	return NULL;
-}
-
 static char *esif_shell_cmd_status(EsifShellCmdPtr shell)
 {
 	int argc      = shell->argc;
@@ -7435,13 +7434,11 @@ static char *esif_shell_cmd_domains(EsifShellCmdPtr shell)
 	if (argc < 2) {
 		upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantDst);
 	}
-	else if (shell_isnumber(argv[1])) {
+	else if ((upPtr = EsifUpPm_GetAvailableParticipantByName(argv[1])) != NULL) {
+		participantDst = EsifUp_GetInstance(upPtr);
+	} else if (shell_isnumber(argv[1])) {
 		participantDst = (esif_handle_t)esif_atoi64(argv[1]);
 		upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantDst);
-	}
-	else {
-		upPtr = EsifUpPm_GetAvailableParticipantByName(argv[1]);
-		participantDst = EsifUp_GetInstance(upPtr);
 	}
 
 	if (NULL == upPtr) {
@@ -8174,6 +8171,9 @@ static char *esif_shell_cmd_ui(EsifShellCmdPtr shell)
 		if (rc == ESIF_OK) {
 			output = shell->outbuf = esif_shell_resize(statusData.data_len);
 		}
+		else {
+			output = shell->outbuf = g_outbuf;
+		}
 	}
 
 exit:
@@ -8816,7 +8816,11 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			// Enumerate and Execute Matching Keys 
 			if ((rc = EsifConfigFindFirst(data_nspace, data_key, data_value, &context)) == ESIF_OK) {
 				do {
+					esif_uf_shell_unlock();
 					parse_cmd((char *)data_value->buf_ptr, ESIF_FALSE, ESIF_TRUE);
+					esif_uf_shell_lock();
+
+					output = shell->outbuf = g_outbuf;
 					*output = '\0';
 					EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
 					EsifData_Set(data_value, ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
@@ -12640,7 +12644,6 @@ static EsifShellMap ShellCommands[] = {
 	{"shell",                fnArgv, (VoidFunc)esif_shell_cmd_shell               },
 	{"sleep",                fnArgv, (VoidFunc)esif_shell_cmd_sleep               },
 	{"soe",                  fnArgv, (VoidFunc)esif_shell_cmd_soe                 },
-	{"start",                fnArgv, (VoidFunc)esif_shell_cmd_start               },
 	{"status",               fnArgv, (VoidFunc)esif_shell_cmd_status              },
 	{"tableobject",          fnArgv, (VoidFunc)esif_shell_cmd_tableobject         },
 	{"test",                 fnArgv, (VoidFunc)esif_shell_cmd_test                },	
@@ -12758,6 +12761,7 @@ eEsifError esif_shell_dispatch_cmd(
 			}
 
 			if (argc > 0) {
+				*output_ptr[0] = 0;
 				rc = esif_shell_dispatch(argc, argv, output_ptr);
 
 				// If Shell Command not found, allow appname aliases for "appname ..." to "app cmd appname ..."
@@ -12771,6 +12775,7 @@ eEsifError esif_shell_dispatch_cmd(
 							esif_ccb_memmove(&argv[2], &argv[0], (sizeof(char *) * (argc - 2)));
 							argv[0] = "app";
 							argv[1] = "cmd";
+							*output_ptr[0] = 0;
 							rc = esif_shell_dispatch(argc, argv, output_ptr);
 						}
 					}

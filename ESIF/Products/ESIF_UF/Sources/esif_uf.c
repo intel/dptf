@@ -837,7 +837,7 @@ eEsifError EsifWebLoad()
 
 		CMD_OUT("Loading web server plugin...\n");
 
-		esif_build_path(libPath, sizeof(libPath), ESIF_PATHTYPE_DLL, WS_LIBRARY_NAME, ESIF_LIB_EXT);
+		esif_build_path(libPath, sizeof(libPath), ESIF_PATHTYPE_DLL_ALT, WS_LIBRARY_NAME, ESIF_LIB_EXT);
 		self->fLibHandle = esif_ccb_library_load(libPath);
 
 		if (NULL == self->fLibHandle || NULL == self->fLibHandle->handle) {
@@ -1216,7 +1216,7 @@ void esif_uf_exit()
 	if (g_esifUfInitPartial) {
 		g_esifUfInitIndex++;  // Must call exit for partially initialized objects
 	}
-	if ((size_t)g_esifUfInitIndex >= num_entries) {
+	if (g_esifUfInitIndex >= num_entries) {
 		goto exit;
 	}
 

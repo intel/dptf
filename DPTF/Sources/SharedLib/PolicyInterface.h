@@ -35,6 +35,10 @@
 #include "OsPowerSlider.h"
 #include "SocWorkloadClassification.h"
 #include "SensorUserPresence.h"
+#include "SensorMode.h"
+#include "BiometricPresenceSensorInstance.h"
+#include "UserInteraction.h"
+#include "UserPresenceCorrelation.h"
 
 class dptf_export PolicyInterface
 {
@@ -236,12 +240,16 @@ public:
 		Percentage noLockOnPresenceBatteryRemainingPercentage) = 0;
 	virtual void noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) = 0;
 	virtual void failsafeTimeoutChanged(TimeSpan failsafeTimeout) = 0;
-	virtual void userPresenceAppStateChanged(Bool userPresenceAppState) = 0;
+	virtual void contextServiceStatusChanged(Bool contextServiceStatus) = 0;
 	virtual void externalMonitorStateChanged(Bool externalMonitorStateChanged) = 0;
 	virtual void userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) = 0;
 	virtual void userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) = 0;
 	virtual void userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) = 0;
 	virtual void userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) = 0;
+	virtual void sensorModeChanged(SensorMode::Type sensorMode) = 0;
+	virtual void biometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance) = 0;
+	virtual void userInteractionChanged(UserInteraction::Type userInteraction) = 0;
+	virtual void userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) = 0;
 };
 
 //

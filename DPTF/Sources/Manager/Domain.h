@@ -82,6 +82,7 @@ public:
 	DisplayControlDynamicCaps getDisplayControlDynamicCaps(void);
 	UIntN getUserPreferredDisplayIndex(void);
 	Bool isUserPreferredIndexModified(void);
+	UIntN getSoftBrightnessIndex(void);
 	DisplayControlStatus getDisplayControlStatus(void);
 	DisplayControlSet getDisplayControlSet(void);
 	void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex);

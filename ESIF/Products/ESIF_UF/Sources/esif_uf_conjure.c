@@ -225,9 +225,11 @@ eEsifError EsifConjureStart(EsifCnjPtr conjurePtr)
 		}
 		if (NULL == conjurePtr->fLibHandle || NULL == conjurePtr->fLibHandle->handle) {
 			rc = esif_ccb_library_error(conjurePtr->fLibHandle);
-			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", libPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(conjurePtr->fLibHandle));
+			ESIF_TRACE_ERROR("esif_ccb_library_load() %s failed [%s (%d)]: %s\n", altLibPath, esif_rc_str(rc), rc, esif_ccb_library_errormsg(conjurePtr->fLibHandle));
 			goto exit;
 		}
+		esif_ccb_strcpy(libPath, altLibPath, sizeof(libPath));
+		rc = ESIF_OK;
 	}
 
 	ESIF_TRACE_DEBUG("esif_ccb_library_load() %s completed.\n", libPath);

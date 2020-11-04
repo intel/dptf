@@ -64,6 +64,9 @@ public:
 	Bool operator==(const PowerControlDynamicCaps& rhs) const;
 	Bool operator!=(const PowerControlDynamicCaps& rhs) const;
 	std::shared_ptr<XmlNode> getXml(void) const;
+	PowerControlDynamicCaps getDefaultPpccPl3RowValues() const;
+	PowerControlDynamicCaps getDefaultPpccPl4RowValues(Power pl4PowerLimit) const;
+	PowerControlDynamicCaps getPpccPlRowValues(struct EsifDataBinaryPpccPackage* currentRow) const;
 
 private:
 	Bool m_valid;

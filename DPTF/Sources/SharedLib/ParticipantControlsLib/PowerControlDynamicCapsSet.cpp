@@ -41,12 +41,13 @@ PowerControlDynamicCapsSet::~PowerControlDynamicCapsSet()
 {
 }
 
-PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const DptfBuffer& buffer)
+PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const DptfBuffer& buffer, Power pl4PowerLimit)
 {
 	std::vector<PowerControlDynamicCaps> controls;
 	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
 	data += sizeof(esif_data_variant); // Ignore revision field
 	struct EsifDataBinaryPpccPackage* currentRow = reinterpret_cast<struct EsifDataBinaryPpccPackage*>(data);
+	PowerControlDynamicCaps temp;
 
 	if (buffer.size() == 0)
 	{
@@ -60,19 +61,30 @@ PowerControlDynamicCapsSet PowerControlDynamicCapsSet::createFromPpcc(const Dptf
 		throw dptf_exception("Expected binary data size mismatch. (PPCC)");
 	}
 
+	UIntN originalRowCount = rows;
+	if (originalRowCount != 4)
+	{
+		rows = 4;
+	}
+
 	for (UIntN i = 0; i < rows; i++)
 	{
-		PowerControlDynamicCaps temp(
-			static_cast<PowerControlType::Type>(currentRow->powerLimitIndex.integer.value),
-			static_cast<UIntN>(currentRow->powerLimitMinimum.integer.value),
-			static_cast<UIntN>(currentRow->powerLimitMaximum.integer.value),
-			static_cast<UIntN>(currentRow->stepSize.integer.value),
-			TimeSpan::createFromMilliseconds(static_cast<UIntN>(currentRow->timeWindowMinimum.integer.value)),
-			TimeSpan::createFromMilliseconds(static_cast<UIntN>(currentRow->timeWindowMaximum.integer.value)),
-			Percentage(0.0),
-			Percentage(0.0));
+		auto needDefaultPl3Row = originalRowCount < 3 && i == 2;
+		auto needDefaultPl4Row = originalRowCount < 4 && i == 3;
+		
+		if (needDefaultPl3Row)
+		{
+			temp = temp.getDefaultPpccPl3RowValues();
+		}
+		else if (needDefaultPl4Row)
+		{
+			temp = temp.getDefaultPpccPl4RowValues(pl4PowerLimit);
+		}
+		else
+		{
+			temp = temp.getPpccPlRowValues(currentRow);
+		}
 
-		// TODO : Need to revisit if there are more than 2 power limits
 		if (controls.empty())
 		{
 			controls.push_back(temp);
@@ -167,15 +179,65 @@ DptfBuffer PowerControlDynamicCapsSet::toPpccBinary() const
 		package.powerLimitIndex.integer.type = esif_data_type::ESIF_DATA_UINT64;
 		package.powerLimitIndex.integer.value = cap->second.getPowerControlType();
 		package.powerLimitMaximum.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		package.powerLimitMaximum.integer.value = cap->second.getMaxPowerLimit();
+		
+		auto maxPowerLimit = cap->second.getMaxPowerLimit();
+		if (maxPowerLimit.isValid())
+		{
+			package.powerLimitMaximum.integer.value = maxPowerLimit;
+		}
+		else
+		{
+			package.powerLimitMaximum.integer.value = Constants::Invalid;
+		}
+
 		package.powerLimitMinimum.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		package.powerLimitMinimum.integer.value = cap->second.getMinPowerLimit();
+
+		auto minPowerLimit = cap->second.getMinPowerLimit();
+		if (minPowerLimit.isValid())
+		{
+			package.powerLimitMinimum.integer.value = minPowerLimit;
+		}
+		else
+		{
+			package.powerLimitMinimum.integer.value = Constants::Invalid;
+		}
+
 		package.timeWindowMaximum.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		package.timeWindowMaximum.integer.value = cap->second.getMaxTimeWindow().asMillisecondsUInt();
+
+		auto maxTimeWindow = cap->second.getMaxTimeWindow();
+		if (maxTimeWindow.isValid())
+		{
+			package.timeWindowMaximum.integer.value = maxTimeWindow.asMillisecondsUInt();
+		}
+		else
+		{
+			package.timeWindowMaximum.integer.value = Constants::Invalid;
+		}
+
 		package.timeWindowMinimum.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		package.timeWindowMinimum.integer.value = cap->second.getMinTimeWindow().asMillisecondsUInt();
+
+		auto minTimeWindow = cap->second.getMinTimeWindow();
+		if (minTimeWindow.isValid())
+		{
+			package.timeWindowMinimum.integer.value = minTimeWindow.asMillisecondsUInt();
+		}
+		else
+		{
+			package.timeWindowMinimum.integer.value = Constants::Invalid;
+		}
+
 		package.stepSize.integer.type = esif_data_type::ESIF_DATA_UINT64;
-		package.stepSize.integer.value = cap->second.getPowerStepSize();
+
+		auto powerStepSize = cap->second.getPowerStepSize();
+		if (powerStepSize.isValid())
+		{
+			package.stepSize.integer.value = powerStepSize;
+		}
+		else
+		{
+			package.stepSize.integer.value = Constants::Invalid;
+		}
+
 		packages.push_back(package);
 	}
 

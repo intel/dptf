@@ -32,6 +32,7 @@ public:
 
 	// DomainSocWorkloadClassificationInterface
 	virtual UInt32 getSocWorkloadClassification() override;
+	virtual void updateSocWorkloadClassification(UInt32 socWorkloadClassification) override;
 
 	// ComponentExtendedInterface
 	virtual std::string getName(void) override;

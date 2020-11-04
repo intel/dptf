@@ -164,12 +164,16 @@ namespace FrameworkEvent
 		PolicyNoLockOnPresenceBatteryRemainingPercentageChanged,
 		PolicyNoLockOnPresenceResetWaitTimeChanged,
 		PolicyFailsafeTimeoutChanged,
-		PolicyUserPresenceAppStateChanged,
+		PolicyContextServiceStatusChanged,
 		PolicyExternalMonitorStateChanged,
 		PolicyUserNotPresentDimTargetChanged,
 		PolicyUserDisengagedDimmingIntervalChanged,
 		PolicyUserDisengagedDimTargetChanged,
 		PolicyUserDisengagedDimWaitTimeChanged,
+		PolicySensorModeChanged,
+		PolicyBiometricPresenceSensorInstanceChanged,
+		PolicyUserInteractionChanged,
+		PolicyUserPresenceCorrelationChanged,
 
 		// App Events
 		DptfAppLoaded,

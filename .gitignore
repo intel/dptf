@@ -25,6 +25,7 @@ public
 *.user
 *.tmp_proj
 *.aps
+*.vssettings
 .vs
 x64
 Win32
@@ -39,6 +40,7 @@ out
 # Product-Specific
 *.laccdb
 *.edp
+*.cpc
 *.dump
 dsp.dv
 esif_ufd
@@ -60,10 +62,10 @@ dsp_compiler
 /DPTF/Windows/Solution/Tools/**/Core
 /DPTF/Windows/Solution/Tools/**/Properties
 /DPTF/Windows/Solution/Tools/**/Support
-/ContextService/ContextServiceSource/**/bin
-/ContextService/ContextServiceSource/**/obj
-/ContextService/SampleAppSource/**/bin
-/ContextService/SampleAppSource/**/obj
+/ContextService/**/bin
+/ContextService/**/obj
 /ContextService/SampleAppSource/SampleApp_Packager/AppPackages
 /ContextService/SampleAppSource/SampleApp_Packager/BundleArtifacts
 /ContextService/**/packages
+/ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.pdb
+/ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.dll

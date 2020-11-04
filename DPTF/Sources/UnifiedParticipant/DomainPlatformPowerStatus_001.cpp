@@ -86,22 +86,22 @@ UInt32 DomainPlatformPowerStatus_001::getACOperationalCurrent(UIntN participantI
 
 Percentage DomainPlatformPowerStatus_001::getAC1msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
 {
-	m_ac1msPercentageOverload = Percentage::fromWholeNumber(
-		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_AP01, domainIndex));
+	m_ac1msPercentageOverload =
+		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP01, domainIndex);
 	return m_ac1msPercentageOverload;
 }
 
 Percentage DomainPlatformPowerStatus_001::getAC2msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
 {
-	m_ac2msPercentageOverload = Percentage::fromWholeNumber(
-		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_AP02, domainIndex));
+	m_ac2msPercentageOverload =
+		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP02, domainIndex);
 	return m_ac2msPercentageOverload;
 }
 
 Percentage DomainPlatformPowerStatus_001::getAC10msPercentageOverload(UIntN participantIndex, UIntN domainIndex)
 {
-	m_ac10msPercentageOverload = Percentage::fromWholeNumber(
-		getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_AP10, domainIndex));
+	m_ac10msPercentageOverload =
+		getParticipantServices()->primitiveExecuteGetAsPercentage(esif_primitive_type::GET_AP10, domainIndex);
 	return m_ac10msPercentageOverload;
 }
 

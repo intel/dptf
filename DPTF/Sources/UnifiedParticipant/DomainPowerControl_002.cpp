@@ -81,7 +81,7 @@ PowerControlDynamicCapsSet DomainPowerControl_002::getDynamicCapabilities()
 {
 	DptfBuffer buffer = getParticipantServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_RAPL_POWER_CONTROL_CAPABILITIES, ESIF_DATA_BINARY, getDomainIndex());
-	auto dynamicCapsSetFromControl = PowerControlDynamicCapsSet::createFromPpcc(buffer);
+	auto dynamicCapsSetFromControl = PowerControlDynamicCapsSet::createFromPpcc(buffer, Power::createInvalid());
 	throwIfDynamicCapabilitiesAreWrong(dynamicCapsSetFromControl);
 	return dynamicCapsSetFromControl;
 }
@@ -548,19 +548,26 @@ void DomainPowerControl_002::throwIfDynamicCapabilitiesAreWrong(const PowerContr
 	{
 		auto capability = capabilities.getCapability(*controlType);
 		std::string controlTypeString = PowerControlType::ToString(capability.getPowerControlType());
-		if (capability.getMaxPowerLimit() < capability.getMinPowerLimit())
+		
+		auto maxPowerLimit = capability.getMaxPowerLimit();
+		auto minPowerLimit = capability.getMinPowerLimit();
+		if (maxPowerLimit.isValid() && minPowerLimit.isValid() && maxPowerLimit < minPowerLimit)
 		{
 			std::string errorMessage = controlTypeString + " has bad power limit capabilities: max < min.";
 			throw dptf_exception(errorMessage);
 		}
 
-		if (capability.getMaxTimeWindow() < capability.getMinTimeWindow())
+		auto maxTimeWindow = capability.getMaxTimeWindow();
+		auto minTimeWindow = capability.getMinTimeWindow();
+		if (maxTimeWindow.isValid() && minTimeWindow.isValid() && maxTimeWindow < minTimeWindow)
 		{
 			std::string errorMessage = controlTypeString + " has bad time window capabilities: max < min.";
 			throw dptf_exception(errorMessage);
 		}
 
-		if (capability.getMaxDutyCycle() < capability.getMinDutyCycle())
+		auto maxDutyCycle = capability.getMaxDutyCycle();
+		auto minDutyCycle = capability.getMinDutyCycle();
+		if (maxDutyCycle.isValid() && minDutyCycle.isValid() && maxDutyCycle < minDutyCycle)
 		{
 			std::string errorMessage = controlTypeString + " has bad duty cycle capabilities: max < min.";
 			throw dptf_exception(errorMessage);

@@ -2689,7 +2689,7 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 		UInt32 battPercent = 0;
 		struct esif_data batt_percent_response = { ESIF_DATA_PERCENT, &battPercent, sizeof(battPercent), sizeof(battPercent) };
 
-		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_BATTERY_PERCENTAGE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_NO_PERSIST, NULL, &batt_percent_response);
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_BATTERY_PERCENTAGE, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &batt_percent_response);
 		if (ESIF_OK != rc) {
 			ESIF_TRACE_INFO("Error while executing GET_BATTERY_PERCENTAGE primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
 			battPercent = 0;

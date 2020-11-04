@@ -27,9 +27,23 @@ public:
 	PidControl(Int32 pidTarget, double alpha, double kp, double ki);
 	virtual ~PidControl();
 
-	virtual Int32 getPidBudget(Int32 previousPidBudget, Int32 power) override;
-	virtual double getIterm(double previousIterm, Int32 pidBudget, TimeSpan itermCalculationTimeDelta) override;
-	virtual Int32 getAvailableHeadroom(Int32 pidBudget, double iterm) override;
+	virtual Int32 getPrevPidBudget() override;
+	virtual void setPrevPidBudget(Int32 prevPidBudget) override;
+	virtual Int32 getPidBudget() override;
+	virtual void setPidBudget(Int32 pidBudget) override;
+	virtual void calculatePidBudget(Int32 power) override;
+	virtual double getPrevIterm() override;
+	virtual void setPrevIterm(double prevIterm) override;
+	virtual double getIterm() override;
+	virtual void setIterm(double iterm) override;
+	virtual void calculateIterm(TimeSpan itermCalculationTimeDelta) override;
+	virtual TimeSpan getPrevItermCalculationStartTime() override;
+	virtual void setPrevItermCalculationStartTime(TimeSpan prevItermCalculationStartTime) override;
+	virtual TimeSpan getItermCalculationStartTime() override;
+	virtual void setItermCalculationStartTime(TimeSpan itermCalculationStartTime) override;
+	virtual Int32 getAvailableHeadroom() override;
+	virtual void setAvailableHeadroom(Int32 availableHeadroom) override;
+	virtual void calculateAvailableHeadroom() override;
 	virtual Int32 getPidBudgetSlope(
 		Int32 previousPidBudget,
 		Int32 pidBudget,
@@ -43,4 +57,11 @@ private:
 	double m_alpha;
 	double m_kp;
 	double m_ki;
+	Int32 m_pidBudget;
+	Int32 m_prevPidBudget;
+	double m_iterm;
+	double m_prevIterm;
+	TimeSpan m_prevItermCalculationStartTime;
+	TimeSpan m_itermCalculationStartTime;
+	Int32 m_availableHeadroom;
 };
