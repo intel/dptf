@@ -105,7 +105,7 @@ static esif_error_t EsifUpsm_EnableCorrelationResetTimer_SmLocked();
 static esif_error_t EsifUpsm_StartCorrelationResetTimer_SmLocked();
 static void EsifUpsm_StopCorrelationResetTimer_SmLocked();
 static void EsifUpsm_DisableEventFiltering();
-static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked();
+static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked(Bool interacting);
 static esif_error_t EsifUpsm_SendEvents();
 static esif_error_t EsifUpsm_SendPresenceEvent(UpSensorState state);
 static esif_error_t EsifUpsm_SendCorrelationEvent(UpCorrelationState correlationState);
@@ -148,13 +148,11 @@ static esif_error_t ESIF_CALLCONV EsifUpsm_EventCallback(
 		break;
 	case ESIF_EVENT_OS_USER_INTERACTION_CHANGED:
 		ESIF_TRACE_DEBUG("User interaction = %d\n", data);
+		Bool interacting = ESIF_TRUE;
 		if (data == 0) {
-			g_upsm.interacting = ESIF_FALSE;
+			interacting = ESIF_FALSE;
 		}
-		else {
-			g_upsm.interacting = ESIF_TRUE;
-		}
-		rc = EsifUpsm_EvaluateCorrelation_SmLocked();
+		rc = EsifUpsm_EvaluateCorrelation_SmLocked(interacting);
 		break;
 	default:
 		break;
@@ -214,7 +212,7 @@ static esif_error_t EsifUpsm_HandleSensorEvent_SmLocked(UpSensorState sensorData
 }
 
 
-static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked()
+static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked(Bool interacting)
 {
 	esif_error_t rc = ESIF_OK;
 	UpCorrelationState correlationState = UP_CORRELATION_STATE_POSITIVE;
@@ -224,10 +222,19 @@ static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked()
 			EsifUpsm_StopCorrelationResetTimer_SmLocked();
 		}
 	}
-	else if (g_upsm.interacting) {
+	else if (interacting) {
 		correlationState = UP_CORRELATION_STATE_NEGATIVE;
 		if (g_upsm.correlationResetTimerActive) {
 			EsifUpsm_StopCorrelationResetTimer_SmLocked();
+		}
+
+		//if correlation event was triggered by interaction event only, also send engaged event
+		if (!g_upsm.interacting && g_upsm.curSensorState < UP_SENSOR_STATE_ENGAGED) {
+			g_upsm.interacting = interacting;
+			rc = EsifUpsm_SendPresenceEvent(g_upsm.curSensorState);
+			if (rc != ESIF_OK) {
+				ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
+			}
 		}
 	}
 	else {
@@ -248,6 +255,24 @@ static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked()
 				}
 			}
 		}
+		else if (g_upsm.curSensorState == UP_SENSOR_STATE_DISENGAGED) {
+			if (g_upsm.correlationResetTimerActive) {
+				EsifUpsm_StopCorrelationResetTimer_SmLocked();
+			}
+		}
+
+		if (g_upsm.interacting) {
+			g_upsm.interacting = interacting;
+			//signal non engaged event that was previously overridden by interacting state
+			rc = EsifUpsm_SendPresenceEvent(g_upsm.curSensorState);
+			if (rc != ESIF_OK) {
+				ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
+			}
+		}
+	}
+	
+	if (g_upsm.interacting != interacting) {
+		g_upsm.interacting = interacting;
 	}
 
 	if (correlationState == UP_CORRELATION_STATE_POSITIVE) {
@@ -258,16 +283,9 @@ static esif_error_t EsifUpsm_EvaluateCorrelation_SmLocked()
 	}
 
 	if (correlationState != g_upsm.correlationState) {
+		//signal change in correlation state
 		g_upsm.correlationState = correlationState;
 		rc = EsifUpsm_SendCorrelationEvent(g_upsm.correlationState);
-
-		//if correlation event was triggered by interaction event only, also send engaged event
-		if (g_upsm.interacting && g_upsm.curSensorState < UP_SENSOR_STATE_ENGAGED) {			
-			rc = EsifUpsm_SendPresenceEvent(g_upsm.curSensorState);
-			if (rc != ESIF_OK) {
-				ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
-			}
-		}
 	}
 
 	return rc;
@@ -346,7 +364,7 @@ static esif_error_t EsifUpsm_SendEvents()
 		EsifUpsm_StopCorrelationResetTimer_SmLocked();
 	}
 
-	rc = EsifUpsm_EvaluateCorrelation_SmLocked();
+	rc = EsifUpsm_EvaluateCorrelation_SmLocked(g_upsm.interacting);
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_DEBUG("Failed to evaluate correlation!");
 	}
@@ -457,7 +475,7 @@ static esif_error_t EsifUpsm_SendPresenceEvent(UpSensorState state)
 		resolvedState = UP_STATE_FACE_ENGAGED;
 	}
 	else if (state != UP_SENSOR_STATE_INVALID && g_upsm.interacting) {
-		ESIF_TRACE_DEBUG("User interaction detected. Overriding %d presence state to engaged.", g_upsm.curSensorState);
+		ESIF_TRACE_DEBUG("User interaction detected. Overriding %d presence state to engaged.", state);
 		resolvedState = UP_STATE_ENGAGED;
 	}
 	else {

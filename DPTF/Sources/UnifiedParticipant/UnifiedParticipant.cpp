@@ -50,6 +50,7 @@ UnifiedParticipant::UnifiedParticipant(void)
 	, m_energyEventsRegistered(false)
 	, m_activeControlEventsRegistered(false)
 	, m_socWorkloadClassificationEventsRegistered(false)
+	, m_eppSensitivityHintEventsRegistered(false)
 {
 	//initialize();
 }
@@ -81,6 +82,7 @@ UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
 	, m_energyEventsRegistered(false)
 	, m_activeControlEventsRegistered(false)
 	, m_socWorkloadClassificationEventsRegistered(false)
+	, m_eppSensitivityHintEventsRegistered(false)
 {
 	//initialize();
 
@@ -121,6 +123,7 @@ void UnifiedParticipant::initialize(void)
 	m_energyEventsRegistered = false;
 	m_activeControlEventsRegistered = false;
 	m_socWorkloadClassificationEventsRegistered = false;
+	m_eppSensitivityHintEventsRegistered = false;
 }
 
 void UnifiedParticipant::initializeSpecificInfoControl(void)
@@ -315,6 +318,7 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	UIntN peakPowerControlTotal = 0;
 	UIntN processorControlTotal = 0;
 	UIntN socWorkloadClassificationControlTotal = 0;
+	UIntN dynamicEppControlTotal = 0;
 	UIntN loggingTotal = 0;
 
 	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
@@ -341,12 +345,14 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 			peakPowerControlTotal += versions.peakPowerControlVersion;
 			processorControlTotal += versions.processorControlVersion;
 			socWorkloadClassificationControlTotal += versions.socWorkloadClassificationVersion;
+			dynamicEppControlTotal += versions.dynamicEppVersion;
 			if ((activeControlTotal != 0) || (activityStatusTotal != 0) || (coreControlTotal != 0)
 				|| (displayControlTotal != 0) || (domainPriorityTotal != 0) || (performanceControlTotal != 0)
 				|| (powerControlTotal != 0) || (rfProfileTotal != 0) || (temperatureControlTotal != 0)
 				|| (platformPowerStatusControlTotal != 0) || (peakPowerControlTotal != 0)
 				|| (processorControlTotal != 0) || (batteryStatusControlTotal != 0)
-				|| (socWorkloadClassificationControlTotal != 0))
+				|| (socWorkloadClassificationControlTotal != 0)
+				|| (dynamicEppControlTotal != 0))
 			{
 				loggingTotal = 1;
 			}
@@ -439,6 +445,13 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 		socWorkloadClassificationControlTotal,
 		m_socWorkloadClassificationEventsRegistered,
 		socWorkloadClassificationEvents);
+
+	std::set<ParticipantEvent::Type> eppSensitivityHintEvents;
+	eppSensitivityHintEvents.insert(ParticipantEvent::Type::DomainEppSensitivityHintChanged);
+	m_eppSensitivityHintEventsRegistered = updateDomainEventRegistration(
+		dynamicEppControlTotal,
+		m_eppSensitivityHintEventsRegistered,
+		eppSensitivityHintEvents);
 }
 
 Bool UnifiedParticipant::updateDomainEventRegistration(
@@ -841,10 +854,18 @@ void UnifiedParticipant::enableActivityLoggingForDomain(UInt32 domainIndex, UInt
 						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
 					}
 					break;
+				case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+					if (domainFunctionality.dynamicEppVersion > 0)
+					{
+						matchedDomain->second->getDynamicEppControl()->enableActivityLogging();
+						sendActivityLoggingDataIfEnabled(domainIndex, (eEsifCapabilityType)index);
+					}
+					break;
 				case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
 				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 				case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
+				case ESIF_CAPABILITY_TYPE_MANAGER:
 					// ESIF handles participant logging for these capabilities
 					break;
 				default:
@@ -913,10 +934,14 @@ void UnifiedParticipant::disableActivityLoggingForDomain(UInt32 domainIndex, UIn
 				case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
 					matchedDomain->second->getSocWorkloadClassificationControl()->disableActivityLogging();
 					break;
+				case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+					matchedDomain->second->getDynamicEppControl()->disableActivityLogging();
+					break;
 				case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 				case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
 				case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 				case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
+				case ESIF_CAPABILITY_TYPE_MANAGER:
 					// ESIF handles participant logging for these capabilities
 					break;
 				case ESIF_CAPABILITY_TYPE_RFPROFILE_CONTROL:
@@ -991,10 +1016,15 @@ void UnifiedParticipant::sendActivityLoggingDataIfEnabled(UInt32 domainIndex, eE
 		m_domains[domainIndex]->getSocWorkloadClassificationControl()->sendActivityLoggingDataIfEnabled(
 			m_participantIndex, domainIndex);
 		break;
+	case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+		m_domains[domainIndex]->getDynamicEppControl()->sendActivityLoggingDataIfEnabled(
+			m_participantIndex, domainIndex);
+		break;
 	case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 	case ESIF_CAPABILITY_TYPE_PLAT_POWER_STATUS:
 	case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
 	case ESIF_CAPABILITY_TYPE_BATTERY_STATUS:
+	case ESIF_CAPABILITY_TYPE_MANAGER:
 		// ESIF handles participant logging for these capabilities
 		break;
 	default:
@@ -1019,6 +1049,29 @@ void UnifiedParticipant::domainSocWorkloadClassificationChanged(UInt32 socWorklo
 			{
 				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
 					return "Unable to update Soc Workload Classification for domain " + std::to_string(domain->first)
+						   + ". Exception: " + std::string(ex.what());
+				});
+			}
+		}
+	}
+}
+
+void UnifiedParticipant::domainEppSensitivityHintChanged(UInt32 eppSensitivityHint)
+{
+	for (auto domain = m_domains.begin(); domain != m_domains.end(); ++domain)
+	{
+		if (domain->second != nullptr)
+		{
+			domain->second->getDynamicEppControl()->clearCachedData();
+
+			try
+			{
+				domain->second->getDynamicEppControl()->updateEppSensitivityHint(eppSensitivityHint);
+			}
+			catch (const std::exception& ex)
+			{
+				PARTICIPANT_LOG_MESSAGE_DEBUG_EX({
+					return "Unable to update Epp Sensitivity Hint for domain " + std::to_string(domain->first)
 						   + ". Exception: " + std::string(ex.what());
 				});
 			}
@@ -1352,6 +1405,12 @@ UIntN UnifiedParticipant::getUserPreferredDisplayIndex(UIntN participantIndex, U
 	return m_domains[domainIndex]->getDisplayControl()->getUserPreferredDisplayIndex(participantIndex, domainIndex);
 }
 
+UIntN UnifiedParticipant::getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getDisplayControl()->getUserPreferredSoftBrightnessIndex(participantIndex, domainIndex);
+}
+
 Bool UnifiedParticipant::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1376,6 +1435,27 @@ void UnifiedParticipant::setDisplayControl(UIntN participantIndex, UIntN domainI
 	m_domains[domainIndex]->getDisplayControl()->setDisplayControl(participantIndex, domainIndex, displayControlIndex);
 
 	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL);
+}
+
+void UnifiedParticipant::setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getDisplayControl()->setSoftBrightness(participantIndex, domainIndex, displayControlIndex);
+
+	sendActivityLoggingDataIfEnabled(domainIndex, ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL);
+}
+
+void UnifiedParticipant::updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getDisplayControl()->updateUserPreferredSoftBrightnessIndex(
+		participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getDisplayControl()->restoreUserPreferredSoftBrightness(participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::setDisplayControlDynamicCaps(
@@ -1980,6 +2060,12 @@ void UnifiedParticipant::setPowerCapsLock(UIntN participantIndex, UIntN domainIn
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getPowerControl()->setPowerCapsLock(participantIndex, domainIndex, lock);
+}
+
+TimeSpan UnifiedParticipant::getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerControl()->getPowerSharePowerLimitTimeWindow(participantIndex, domainIndex);
 }
 
 Bool UnifiedParticipant::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)

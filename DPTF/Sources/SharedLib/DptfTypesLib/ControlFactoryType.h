@@ -47,6 +47,7 @@ namespace ControlFactoryType
 		Temperature,
 		Utilization,
 		SocWorkloadClassification,
+		DynamicEpp,
 		MAX
 	};
 

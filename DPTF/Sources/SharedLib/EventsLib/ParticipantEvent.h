@@ -68,6 +68,7 @@ namespace ParticipantEvent
 		DomainEnergyThresholdCrossed,
 		DomainFanCapabilityChanged,
 		DomainSocWorkloadClassificationChanged,
+		DomainEppSensitivityHintChanged,
 		Max
 	};
 

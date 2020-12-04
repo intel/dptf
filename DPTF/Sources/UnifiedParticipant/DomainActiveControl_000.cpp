@@ -52,6 +52,11 @@ void DomainActiveControl_000::setActiveControl(UIntN participantIndex, UIntN dom
 	throw not_implemented();
 }
 
+void DomainActiveControl_000::setActiveControlFanDirection(UInt32 fanDirection)
+{
+	throw not_implemented();
+}
+
 void DomainActiveControl_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();

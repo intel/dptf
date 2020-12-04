@@ -27,10 +27,11 @@ endif
 
 SOURCES := ../Sources
 ESIF_SDK_SOURCES := ../../../../Common
+ESIF_LIB_SOURCES := ../../ESIF_LIB/Sources
 
 LDLIBS := -ldl
 
-CPPFLAGS += -I$(SOURCES) -I$(ESIF_SDK_SOURCES)
+CPPFLAGS += -I$(SOURCES) -I$(ESIF_SDK_SOURCES) -I$(ESIF_LIB_SOURCES)
 CPPFLAGS += -DESIF_ATTR_USER
 
 CFLAGS += -Werror
@@ -102,6 +103,7 @@ OBJ += $(SOURCES)/esif_ws_server.o
 OBJ += $(SOURCES)/esif_ws_socket.o
 OBJ += $(SOURCES)/esif_ws.o
 OBJ += $(ESIF_SDK_SOURCES)/esif_sdk_base64_enc.o
+OBJ += $(ESIF_LIB_SOURCES)/esif_lib_istring.o
 
 ###############################################################################
 # BUILD 

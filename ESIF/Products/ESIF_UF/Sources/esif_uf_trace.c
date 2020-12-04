@@ -84,6 +84,9 @@ const struct EsifTraceModuleList_s {
 const enum esif_tracemodule EsifTraceModule_FromString(const char *name)
 {
 	int j;
+	if (esif_ccb_stricmp(name, "IPF") == 0) {
+		name = "DPTF";
+	}
 	for (j=0; g_EsifTraceModuleList[j].str; j++) {
 		if (esif_ccb_stricmp(name, g_EsifTraceModuleList[j].str)==0 ||  // ESIF_TRACEMODULE_XXXX
 			esif_ccb_stricmp(name, g_EsifTraceModuleList[j].str+17)==0) // XXXX
@@ -94,6 +97,9 @@ const enum esif_tracemodule EsifTraceModule_FromString(const char *name)
 
 static const char *EsifTraceModule_FullName(enum esif_tracemodule val)
 {
+	if (val == ESIF_TRACEMODULE_DPTF) {
+		return "ESIF_TRACEMODULE_IPF";
+	}
 	switch (val)
 	{
 	ENUM_TRACEMODULE(ENUMSWITCH)

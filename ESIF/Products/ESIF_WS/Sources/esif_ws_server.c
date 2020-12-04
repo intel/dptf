@@ -718,7 +718,7 @@ esif_error_t WebServer_Start(WebServerPtr self)
 			atomic_set(&self->isActive, 1);
 			for (j = 0; j < WS_MAX_LISTENERS; j++) {
 				if (self->listeners[j].port) {
-					EsifWsConsoleMessageEx("Starting web server [IP %s port %hd]...\n", self->listeners[j].ipAddr, self->listeners[j].port);
+					EsifWsConsoleMessageEx("Starting web server: http://%s:%hd\n", self->listeners[j].ipAddr, self->listeners[j].port);
 				}
 			}
 			rc = esif_ccb_thread_create(&self->mainThread, WebServer_WorkerThread, self);

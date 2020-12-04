@@ -84,6 +84,12 @@ void DomainActiveControl_001::setActiveControl(UIntN participantIndex, UIntN dom
 		esif_primitive_type::SET_FAN_LEVEL, convertedFanSpeedPercentage, domainIndex);
 }
 
+void DomainActiveControl_001::setActiveControlFanDirection(UInt32 fanDirection)
+{
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_FAN_DIRECTION, fanDirection, getDomainIndex());
+}
+
 void DomainActiveControl_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
 {
 	try

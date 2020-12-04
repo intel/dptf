@@ -27,6 +27,7 @@ namespace DataVaultPathBasePaths
 	static const std::string TablesRoot = SharedRoot + "/tables";
 	static const std::string ValuesRoot = SharedRoot + "/values";
 	static const std::string ExportRoot = SharedRoot + "/export";
+	static const std::string AUPPControlsRoot = SharedRoot + "/aupp_controls";
 }
 
 namespace DataVaultPath
@@ -42,6 +43,13 @@ namespace DataVaultPath
 			static const std::string GfxPl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/gfx_ps_pl1_time_window/";
 			static const std::string PowerShareParamsLoggingState =
 				DataVaultPathBasePaths::ExportRoot + "/powershare_params_logging/";
+
+			static const std::string PredictiveBattDelayStart =
+				DataVaultPathBasePaths::ExportRoot + "/pred_batt_delay_start";
+			static const std::string PredictiveBattFastCheckInterval =
+				DataVaultPathBasePaths::ExportRoot + "/pred_batt_fast_chk_intrvl";
+			static const std::string PredictiveBattEporStepSize =
+				DataVaultPathBasePaths::ExportRoot + "/pred_batt_epor_step_size";
 		};
 
 		namespace Tables
@@ -63,5 +71,11 @@ namespace DataVaultPath
 		static const std::string Pl2Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_sharing";
 		static const std::string Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl4_sharing";
 		static const std::string Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
+		static const std::string Phidgets = DataVaultPathBasePaths::FeaturesRoot + "/phidgets";
 	};
+
+	namespace AUPPControls
+	{
+		static const std::string SoftBrightnessValue = DataVaultPathBasePaths::AUPPControlsRoot + "/soft_brightness_value";
+	}
 };

@@ -100,7 +100,8 @@ int IString_Strcmp (IStringPtr self, ZString str2);					// Compare an IString to
 int IString_Stricmp (IStringPtr self, ZString str2);				// Compare an IString to a ZString (Case-Insensitive)
 int IString_Strncmp (IStringPtr self, ZString str2, u32 count);		// Compare up to count characters of an IString and ZString (Case-Sensitive)
 int IString_Strnicmp (IStringPtr self, ZString str2, u32 count);	// Compare up to count characters of an IString and ZString (Case-Insensitive)
-ZString IString_Replace (IStringPtr self, ZString what, ZString with);	// Search & Replace ZStrings within na IString. AutoGrow if necessary
+ZString IString_Replace (IStringPtr self, ZString what, ZString with);	// Search & Replace ZStrings within an IString. AutoGrow if necessary
+ZString IString_Insert (IStringPtr self, ZString src, u32 offset);	// Insert a ZString into an IString at offset
 
 #ifdef __cplusplus
 }

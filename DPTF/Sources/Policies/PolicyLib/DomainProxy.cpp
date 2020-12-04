@@ -68,6 +68,7 @@ DomainProxy::DomainProxy(
 		std::make_shared<BatteryStatusFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 	m_socWorkloadClassification = std::make_shared<SocWorkloadClassificationFacade>(
 		m_participantIndex, domainIndex, m_domainProperties, policyServices);
+	m_dynamicEpp = std::make_shared<DynamicEppFacade>(m_participantIndex, domainIndex, m_domainProperties, policyServices);
 }
 
 DomainProxy::DomainProxy()
@@ -176,6 +177,11 @@ std::shared_ptr<BatteryStatusFacadeInterface> DomainProxy::getBatteryStatus()
 std::shared_ptr<SocWorkloadClassificationFacadeInterface> DomainProxy::getSocWorkloadClassification()
 {
 	return m_socWorkloadClassification;
+}
+
+std::shared_ptr<DynamicEppFacadeInterface> DomainProxy::getDynamicEpp()
+{
+	return m_dynamicEpp;
 }
 
 UtilizationStatus DomainProxy::getUtilizationStatus()

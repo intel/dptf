@@ -80,6 +80,7 @@ public:
 		UIntN domainIndex,
 		PowerControlDynamicCapsSet capsSet) = 0;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) = 0;
+	virtual TimeSpan getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex) = 0;
 
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) = 0;

@@ -22,6 +22,7 @@
 #include "SensorOrientation.h"
 #include "OnOffToggle.h"
 #include "SensorSpatialOrientation.h"
+#include "PpmPackage.h"
 
 class PlatformConfigurationDataInterface
 {
@@ -29,9 +30,12 @@ public:
 	virtual ~PlatformConfigurationDataInterface(){};
 
 	virtual UInt32 readConfigurationUInt32(const std::string& key) = 0;
+	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) = 0;
 	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) = 0;
 	virtual std::string readConfigurationString(const std::string& key) = 0;
+	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& key) = 0;
+	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) = 0;
 
 	virtual TimeSpan getMinimumAllowableSamplePeriod(void) = 0;
 
@@ -61,6 +65,15 @@ public:
 	virtual UInt32 getIsExternalMonitorConnected(void) = 0;
 	virtual Bool getDisplayRequired(void) = 0;
 	virtual Bool getIsCVFSensor(void) = 0;
+	virtual Bool getPositiveEventFilteringState(void) = 0;
+	virtual Bool getNegativeEventFilteringState(void) = 0;
+	virtual TimeSpan getPresentStabilityWindow(void) = 0;
+	virtual TimeSpan getDisengagedStabilityWindow(void) = 0;
+	virtual TimeSpan getNotPresentStabilityWindow(void) = 0;
+	virtual UInt32 getAutonomousBatteryLifeManagementState(void) = 0;
+	virtual TimeSpan getExpectedBatteryLife(void) = 0;
+	virtual UInt32 getAggressivenessLevel(void) = 0;
+
 	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) = 0;
@@ -91,7 +104,6 @@ public:
 	virtual void setNoLockOnPresenceBatteryDppeSetting(UInt32 value) = 0;
 	virtual void setNoLockOnPresenceBatteryRemainingPercentageDppeSetting(UInt32 value) = 0;
 	virtual void setNoLockOnPresenceResetWaitTimeDppeSetting(UInt32 value) = 0;
-	//virtual void setFailSafeTimeoutDppeSetting(UInt32 value) = 0;
 	virtual void setAdaptiveDimmingDppeSetting(UInt32 value) = 0;
 	virtual void setAdaptiveDimmingExternalMonitorDppeSetting(UInt32 value) = 0;
 	virtual void setAdaptiveDimmingPresentationModeDppeSetting(UInt32 value) = 0;
@@ -111,11 +123,13 @@ public:
 	virtual void setUserDisengagedDimTarget(UInt32 value) = 0;
 	virtual void setUserDisengagedDimWaitTime(UInt32 value) = 0;
 	virtual void setPolicyUserPresenceState(UInt32 value) = 0;
-	virtual Bool getPositiveEventFilteringState(void) = 0;
-	virtual Bool getNegativeEventFilteringState(void) = 0;
-	virtual TimeSpan getPresentStabilityWindow(void) = 0;
-	virtual TimeSpan getDisengagedStabilityWindow(void) = 0;
-	virtual TimeSpan getNotPresentStabilityWindow(void) = 0;
+	virtual void setPpmPackage(UInt32 value) = 0;
+	virtual void setPpmPackageSettings(PpmPackage::PpmParam param) = 0;
+	virtual void setActivePowerScheme() = 0;
+	virtual void setPowerSchemeEpp(UInt32 value) = 0;
+	virtual void setForegroundAppRatioPeriod(UInt32 value) = 0;
+
+	virtual void clearPpmPackageSettings(void) = 0;
 
 	virtual void resetAdaptiveUserPresenceTable(void) = 0;
 };

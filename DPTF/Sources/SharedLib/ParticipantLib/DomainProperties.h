@@ -62,6 +62,7 @@ public:
 	Bool implementsProcessorControlInterface(void) const;
 	Bool implementsUtilizationInterface(void) const;
 	Bool implementsSocWorkloadClassificationInterface(void) const;
+	Bool implementsDynamicEppInterface() const;
 
 	Bool operator==(const DomainProperties& domain);
 	Bool operator!=(const DomainProperties& domain);

@@ -751,6 +751,11 @@ extern "C"
 				wi = std::make_shared<WIDomainSocWorkloadClassificationChanged>(
 					dptfManager, participantIndex, domainIndex, (SocWorkloadClassification::Type)uint32param);
 				break;
+			case FrameworkEvent::DomainEppSensitivityHintChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIDomainEppSensitivityHintChanged>(
+					dptfManager, participantIndex, domainIndex, (MbtHint::Type)uint32param);
+				break;
 			case FrameworkEvent::PolicyActiveRelationshipTableChanged:
 				wi = std::make_shared<WIPolicyActiveRelationshipTableChanged>(dptfManager);
 				break;
@@ -1115,6 +1120,10 @@ extern "C"
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyUserPresenceCorrelationStatusChanged>(
 					dptfManager, UserPresenceCorrelation::Type(uint32param));
+				break;
+			case FrameworkEvent::PolicyForegroundRatioChanged:
+				uint32param = EsifDataUInt32(esifEventDataPtr);
+				wi = std::make_shared<WIPolicyForegroundRatioChanged>(dptfManager, uint32param);
 				break;
 			default:
 			{

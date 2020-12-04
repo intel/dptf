@@ -122,6 +122,10 @@ void DomainControlList::makeAllControls()
 		makeControl<DomainSocWorkloadClassificationBase>(
 			ControlFactoryType::SocWorkloadClassification,
 			m_domainFunctionalityVersions.socWorkloadClassificationVersion)));
+	m_controlList.insert(pair<ControlFactoryType::Type, std::shared_ptr<ControlBase>>(
+		ControlFactoryType::DynamicEpp,
+		makeControl<DomainDynamicEppBase>(
+			ControlFactoryType::DynamicEpp, m_domainFunctionalityVersions.dynamicEppVersion)));
 }
 
 template <typename T>
@@ -318,6 +322,11 @@ std::shared_ptr<DomainSocWorkloadClassificationBase> DomainControlList::getSocWo
 {
 	return dynamic_pointer_cast<DomainSocWorkloadClassificationBase>(
 		m_controlList.at(ControlFactoryType::SocWorkloadClassification));
+}
+
+std::shared_ptr<DomainDynamicEppBase> DomainControlList::getDynamicEppControl()
+{
+	return dynamic_pointer_cast<DomainDynamicEppBase>(m_controlList.at(ControlFactoryType::DynamicEpp));
 }
 
 std::shared_ptr<ParticipantServicesInterface> DomainControlList::getParticipantServices() const

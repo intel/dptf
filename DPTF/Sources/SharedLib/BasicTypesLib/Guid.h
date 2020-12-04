@@ -54,6 +54,7 @@ public:
 
 	Bool isValid() const;
 	std::string toString() const;
+	static Guid fromString(std::string guidString);
 	void copyToBuffer(UInt8 buffer[GuidSize]) const;
 
 private:

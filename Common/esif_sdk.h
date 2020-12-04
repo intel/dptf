@@ -92,8 +92,9 @@ typedef u8  esif_ver_t;                     /* Version      */
 #define ESIF_INSTANCE_INVALID	255
 
 /* Shared Parameters */
-#define ESIF_MAX_CLIENTS			4						/* Maximum IPF Clients */
-#define ESIF_MAX_APPS				(ESIF_MAX_CLIENTS + 2)	/* Maximum ESIF Apps, including IPF Clients, DPTF, and IPFSRV */
+#define ESIF_MAX_CLIENTS			16						/* Maximum IPF Clients */
+#define ESIF_MAX_PLUGINS			4						/* Additional In-Process ESIF Apps (IPFSRV, DPTF, IPFTSC, Plus 1) */
+#define ESIF_MAX_APPS				(ESIF_MAX_CLIENTS + ESIF_MAX_PLUGINS)	/* Maximum ESIF Apps (IPF Clients + ESIF_UF Plugins) */
 
 /* Primitive Instance */
 #define ESIF_INSTANCE_NO_PERSIST	254

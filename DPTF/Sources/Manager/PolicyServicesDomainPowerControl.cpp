@@ -183,6 +183,12 @@ void PolicyServicesDomainPowerControl::setPowerCapsLock(UIntN participantIndex, 
 	getParticipantManager()->getParticipantPtr(participantIndex)->setPowerCapsLock(domainIndex, getPolicyIndex(), lock);
 }
 
+TimeSpan PolicyServicesDomainPowerControl::getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getPowerSharePowerLimitTimeWindow(domainIndex);
+}
+
 Bool PolicyServicesDomainPowerControl::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();

@@ -148,9 +148,15 @@ esif_error_t set_display_state_win(EsifDataPtr requestPtr);
 esif_error_t set_screen_autolock_state_win(EsifDataPtr requestPtr);
 esif_error_t set_wake_on_approach_state_win(EsifDataPtr requestPtr);
 esif_error_t set_workstation_lock_win();
+esif_error_t set_app_ratio_period_win(EsifDataPtr requestPtr);
 esif_error_t get_last_hid_input_time_win(EsifDataPtr responsePtr);
 esif_error_t get_display_required_win(EsifDataPtr responsePtr);
 esif_error_t get_is_ext_mon_connected_win(EsifDataPtr responsePtr);
+esif_error_t EsifSetActionDelegatePpmActivePackageSettingWin(EsifDataPtr requestPtr);
+esif_error_t EsifSetActionDelegatePpmParamSettingWin(EsifDataPtr requestPtr);
+esif_error_t EsifSetActionDelegatePowerSchemeEppWin(EsifDataPtr requestPtr);
+esif_error_t EsifSetActionDelegateActivePowerSchemeWin();
+esif_error_t EsifSetActionDelegatePpmParamClearWin();
 esif_error_t EsifSetActionDelegateDppeSettingWin(
 	EsifDataPtr requestPtr,
 	const GUID* guid
@@ -160,9 +166,15 @@ esif_error_t EsifSetActionDelegateDppeSettingWin(
 #define set_screen_autolock_state(reqPtr) set_screen_autolock_state_win(reqPtr)
 #define set_wake_on_approach_state(reqPtr) set_wake_on_approach_state_win(reqPtr)
 #define set_workstation_lock() set_workstation_lock_win()
+#define set_app_ratio_period(reqPtr) set_app_ratio_period_win(reqPtr)
 #define get_last_hid_input_time(rspPtr) get_last_hid_input_time_win(rspPtr)
 #define get_display_required(rspPtr) get_display_required_win(rspPtr)
 #define get_is_ext_mon_connected(rspPtr) get_is_ext_mon_connected_win(rspPtr)
+#define EsifSetActionDelegatePpmActivePackageSetting(requestPtr) EsifSetActionDelegatePpmActivePackageSettingWin(requestPtr) 
+#define EsifSetActionDelegatePpmParamSetting(requestPtr) EsifSetActionDelegatePpmParamSettingWin(requestPtr)
+#define EsifSetActionDelegatePowerSchemeEpp(requestPtr) EsifSetActionDelegatePowerSchemeEppWin(requestPtr)
+#define EsifSetActionDelegateActivePowerScheme() EsifSetActionDelegateActivePowerSchemeWin()
+#define EsifSetActionDelegatePpmParamClear() EsifSetActionDelegatePpmParamClearWin()
 #define EsifSetActionDelegateDppeSetting(requestPtr, guid) EsifSetActionDelegateDppeSettingWin(requestPtr, guid)
 
 #elif defined(ESIF_ATTR_OS_LINUX)
@@ -171,9 +183,15 @@ esif_error_t EsifSetActionDelegateDppeSettingWin(
 #define set_screen_autolock_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_wake_on_approach_state(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define set_workstation_lock() (ESIF_E_NOT_IMPLEMENTED)
+#define set_app_ratio_period(reqPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_last_hid_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegatePpmActivePackageSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegatePpmParamSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegatePowerSchemeEpp(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegateActivePowerScheme() (ESIF_E_NOT_IMPLEMENTED)
+#define EsifSetActionDelegatePpmParamClear() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateDppeSetting(requestPtr, guid) (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
@@ -433,6 +451,31 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegateSsap(upPtr, requestPtr);
 		break;
 
+	case 'PPAS':	/* SAPP: Set Active PPM Package */
+		ESIF_TRACE_INFO("Set Active PPM Package request received\n");
+		rc = EsifSetActionDelegatePpmActivePackageSetting(requestPtr);
+		break;
+
+	case 'PPPS':	/* SPPP: Set PPM Package Parameters */
+		ESIF_TRACE_INFO("Set PPM Package Parameters request received\n");
+		rc = EsifSetActionDelegatePpmParamSetting(requestPtr);
+		break;
+
+	case 'ESPS':	/* SPSE: Set Power Scheme EPP */
+		ESIF_TRACE_INFO("Set Power Scheme EPP request received\n");
+		rc = EsifSetActionDelegatePowerSchemeEpp(requestPtr);
+		break;
+
+	case 'SPAS':	/* SAPS: Set (Reload) Active Power Scheme */
+		ESIF_TRACE_INFO("Set (Reload) Active Power Scheme request received\n");
+		rc = EsifSetActionDelegateActivePowerScheme();
+		break;
+
+	case 'NTPS':	/* SPTN: Clear PPM Package Parameters */
+		ESIF_TRACE_INFO("Clear PPM Package Parameters request received\n");
+		rc = EsifSetActionDelegatePpmParamClear();
+		break;
+
 	case 'SDDA': /* ADDS */
 		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD);
 		break;
@@ -587,6 +630,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'SNSS': /* SSNS */
 		rc = set_display_state(requestPtr);
+		break;
+
+	case 'SPRA': /* ARPS */
+		rc = set_app_ratio_period(requestPtr);
 		break;
 
 	case 'SLAS': /* SALS */

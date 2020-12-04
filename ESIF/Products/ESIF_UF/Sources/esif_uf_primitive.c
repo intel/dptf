@@ -142,7 +142,13 @@ eEsifError EsifExecutePrimitive(
 	eEsifError rc = ESIF_OK;
 	EsifUpPtr upPtr   = NULL;
 	EsifPrimitiveTuple tuple = {0};
-	UInt16 domain = domain_str_to_short(domainStr);
+	UInt16 domain = 0;
+	
+	if (NULL == domainStr) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+	domain = domain_str_to_short(domainStr);
 
 	ESIF_TRACE_DEBUG("\n\n"
 		"Primitive Request:\n"

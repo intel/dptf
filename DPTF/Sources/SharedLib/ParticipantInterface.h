@@ -135,6 +135,7 @@ public:
 	virtual void domainEnergyThresholdCrossed(void) = 0;
 	virtual void domainFanCapabilityChanged(void) = 0;
 	virtual void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) = 0;
+	virtual void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint) = 0;
 };
 
 //

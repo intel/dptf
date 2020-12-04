@@ -50,6 +50,8 @@ void HelpCommand::execute(const CommandArguments& arguments)
 					 "diag policy <policy name> [file name]\n"
 					 "                                      Runs diagnostics on a policy\n"
 					 "diag part <participant name> [file name]\n"
-					 "                                      Runs diagnostics on a participant\n";
+					 "                                      Runs diagnostics on a participant\n"
+					 "tableobject get <tablename>\n"
+					 "                                      Gets table from DataVault\n";
 	setResultMessage(message);
 }

@@ -60,6 +60,7 @@
 #include "DomainPlatformPowerStatusBase.h"
 #include "DomainBatteryStatusBase.h"
 #include "DomainSocWorkloadClassificationBase.h"
+#include "DomainDynamicEppBase.h"
 #include "ControlFactoryList.h"
 #include "XmlNode.h"
 #include <memory>
@@ -94,6 +95,7 @@ public:
 	std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
 	std::shared_ptr<DomainBatteryStatusBase> getBatteryStatusControl(void);
 	std::shared_ptr<DomainSocWorkloadClassificationBase> getSocWorkloadClassificationControl(void);
+	std::shared_ptr<DomainDynamicEppBase> getDynamicEppControl();
 
 	void clearAllCachedData(void);
 	void clearAllCachedResults(void);

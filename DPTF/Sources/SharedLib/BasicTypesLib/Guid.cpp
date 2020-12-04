@@ -18,6 +18,7 @@
 
 #include "Guid.h"
 #include "esif_ccb_memory.h"
+#include "esif_ccb_string.h"
 #include <algorithm>
 
 Guid::Guid(void)
@@ -75,9 +76,17 @@ Guid Guid::createInvalid()
 }
 
 Bool Guid::operator==(const Guid& rhs) const
-{
+{	
+	UIntN mySize = sizeof(this->m_guid)/sizeof(this->m_guid[0]);
+	UIntN rhsSize = sizeof(rhs.m_guid)/sizeof(rhs.m_guid[0]);
+
+	if (mySize != rhsSize)
+	{
+		return false;
+	}
+	
 	// FIXME: this can be switched to memcmp once implemented in esif/ccb
-	for (UIntN i = 0; i < GuidSize; i++)
+	for (UIntN i = 0; i < mySize && i < rhsSize; ++i)
 	{
 		if (this->m_guid[i] != rhs.m_guid[i])
 		{
@@ -133,6 +142,48 @@ std::string Guid::toString() const
 	std::string guidText = guidTextStream.str();
 	std::transform(guidText.begin(), guidText.end(), guidText.begin(), [](int c) -> char { return (char)::toupper(c); } );
 	return guidText;
+}
+
+Guid Guid::fromString(const std::string guidString)
+{
+	// It is expected that the input string is in such format:
+	// 7516b95f-f776-4464-8c53-06167f40cc99
+
+	UInt16 guid[GuidSize] = {0};
+	UInt8 guidBytes[GuidSize] = {0};
+
+	const Int32 returnCount = esif_ccb_sscanf(
+		guidString.c_str(),
+		"%2hx%2hx%2hx%2hx-%2hx%2hx-%2hx%2hx-%2hx%2hx-%2hx%2hx%2hx%2hx%2hx%2hx",
+		&guid[0],
+		&guid[1],
+		&guid[2],
+		&guid[3],
+		&guid[4],
+		&guid[5],
+		&guid[6],
+		&guid[7],
+		&guid[8],
+		&guid[9],
+		&guid[10],
+		&guid[11],
+		&guid[12],
+		&guid[13],
+		&guid[14],
+		&guid[15]);
+
+	if (returnCount != GuidSize)
+	{
+		return Guid(); // return invalid Guid
+	}
+
+	// convert shorts to bytes
+	for (size_t i = 0; i < GuidSize; ++i)
+	{
+		guidBytes[i] = static_cast<UInt8>(guid[i]);
+	}
+
+	return Guid(guidBytes);
 }
 
 void Guid::throwIfInvalid(const Guid& guid) const

@@ -56,5 +56,8 @@ public:
 	virtual void setHighestFanSpeedPercentage() = 0;
 	virtual void setValueWithinCapabilities() = 0;
 
+	//fan direction
+	virtual Bool setFanDirection(UInt32 fanDirection) = 0;
+
 	virtual Percentage snapToCapabilitiesBounds(Percentage fanSpeed) = 0;
 };

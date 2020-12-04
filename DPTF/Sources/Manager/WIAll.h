@@ -51,6 +51,7 @@
 #include "WIDomainEnergyThresholdCrossed.h"
 #include "WIDomainFanCapabilityChanged.h"
 #include "WIDomainSocWorkloadClassificationChanged.h"
+#include "WIDomainEppSensitivityHintChanged.h"
 #include "WIDptfConnectedStandbyEntry.h"
 #include "WIDptfConnectedStandbyExit.h"
 #include "WIDptfResume.h"
@@ -151,3 +152,4 @@
 #include "WIPolicyBiometricPresenceSensorInstanceChanged.h"
 #include "WIPolicyUserInteractionChanged.h"
 #include "WIPolicyUserPresenceCorrelationStatusChanged.h"
+#include "WIPolicyForegroundRatioChanged.h"

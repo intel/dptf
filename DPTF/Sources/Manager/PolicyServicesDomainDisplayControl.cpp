@@ -48,6 +48,12 @@ UIntN PolicyServicesDomainDisplayControl::getUserPreferredDisplayIndex(UIntN par
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getUserPreferredDisplayIndex(domainIndex);
 }
 
+UIntN PolicyServicesDomainDisplayControl::getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getUserPreferredSoftBrightnessIndex(domainIndex);
+}
+
 Bool PolicyServicesDomainDisplayControl::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfNotWorkItemThread();
@@ -75,6 +81,35 @@ void PolicyServicesDomainDisplayControl::setDisplayControl(
 	getParticipantManager()
 		->getParticipantPtr(participantIndex)
 		->setDisplayControl(domainIndex, getPolicyIndex(), displayControlIndex);
+}
+
+void PolicyServicesDomainDisplayControl::setSoftBrightness(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UIntN displayControlIndex)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->setSoftBrightness(domainIndex, getPolicyIndex(), displayControlIndex);
+}
+
+void PolicyServicesDomainDisplayControl::updateUserPreferredSoftBrightnessIndex(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()
+		->getParticipantPtr(participantIndex)
+		->updateUserPreferredSoftBrightnessIndex(domainIndex);
+}
+
+void PolicyServicesDomainDisplayControl::restoreUserPreferredSoftBrightness(
+	UIntN participantIndex,
+	UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->restoreUserPreferredSoftBrightness(domainIndex);
 }
 
 void PolicyServicesDomainDisplayControl::setDisplayControlDynamicCaps(

@@ -26,7 +26,7 @@ DomainDisplayControl_001::DomainDisplayControl_001(
 	: DomainDisplayControlBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_userPreferredIndex(Constants::Invalid)
 	, m_lastSetDisplayBrightness(Constants::Invalid)
-	, m_isUserPreferredIndexModified(true)
+	, m_userPreferredSoftBrightnessIndex(Constants::Invalid)
 	, m_capabilitiesLocked(false)
 {
 	onClearCachedData();
@@ -96,6 +96,11 @@ UIntN DomainDisplayControl_001::getUserPreferredDisplayIndex(UIntN participantIn
 	return m_userPreferredIndex;
 }
 
+UIntN DomainDisplayControl_001::getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	return m_userPreferredSoftBrightnessIndex;
+}
+
 Bool DomainDisplayControl_001::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
 {
 	return m_isUserPreferredIndexModified;
@@ -138,6 +143,52 @@ void DomainDisplayControl_001::setDisplayControl(UIntN participantIndex, UIntN d
 	}
 
 	m_lastSetDisplayBrightness = indexToset;
+}
+
+void DomainDisplayControl_001::setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
+{
+	auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
+	Percentage newBrightness = displaySet[displayControlIndex].getBrightness();
+
+	try
+	{
+		getParticipantServices()->primitiveExecuteSetAsPercentage(
+			esif_primitive_type::SET_DISPLAY_BRIGHTNESS_SOFT, newBrightness, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_WARNING({ return "Failed to set display soft brightness."; });
+	}
+}
+
+void DomainDisplayControl_001::updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	m_userPreferredSoftBrightnessIndex = getSoftBrightnessIndex(participantIndex, domainIndex); 
+
+	PARTICIPANT_LOG_MESSAGE_DEBUG({
+		return "User preferred soft brightness index after update = "
+			   + std::to_string(m_userPreferredSoftBrightnessIndex)
+			   + " .";
+	});
+}
+
+void DomainDisplayControl_001::restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex)
+{
+	if (m_userPreferredSoftBrightnessIndex != Constants::Invalid)
+	{
+		setSoftBrightness(participantIndex, domainIndex, m_userPreferredSoftBrightnessIndex);
+
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Display soft brightness has been reset to = " + std::to_string(m_userPreferredSoftBrightnessIndex)
+				   + " .";
+		});
+
+		m_userPreferredSoftBrightnessIndex = Constants::Invalid;
+	}
+	else
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "No user preference to restore."; });
+	}
 }
 
 UIntN DomainDisplayControl_001::getAllowableDisplayBrightnessIndex(
@@ -229,39 +280,45 @@ void DomainDisplayControl_001::sendActivityLoggingDataIfEnabled(UIntN participan
 {
 	if (isActivityLoggingEnabled() == true)
 	{
-		auto dynamicCaps = getDisplayControlDynamicCaps(participantIndex, domainIndex);
-		auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
-		auto displayControlIndex = getDisplayControlStatus(participantIndex, domainIndex).getBrightnessLimitIndex();
-
-		if (displayControlIndex == Constants::Invalid)
+		try
 		{
-			displayControlIndex = dynamicCaps.getCurrentUpperLimit();
-		}
+			auto dynamicCaps = getDisplayControlDynamicCaps(participantIndex, domainIndex);
+			auto displaySet = getDisplayControlSet(participantIndex, domainIndex);
+			auto displayControlIndex = getDisplayControlStatus(participantIndex, domainIndex).getBrightnessLimitIndex();
 
-		EsifCapabilityData capability;
-		capability.type = ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL;
-		capability.size = sizeof(capability);
-		capability.data.displayControl.currentDPTFLimit =
-			displaySet[displayControlIndex].getBrightness().toWholeNumber();
-		capability.data.displayControl.lowerLimit =
-			displaySet[dynamicCaps.getCurrentLowerLimit()].getBrightness().toWholeNumber();
-		capability.data.displayControl.upperLimit =
-			displaySet[dynamicCaps.getCurrentUpperLimit()].getBrightness().toWholeNumber();
+			if (displayControlIndex == Constants::Invalid)
+			{
+				displayControlIndex = dynamicCaps.getCurrentUpperLimit();
+			}
 
-		getParticipantServices()->sendDptfEvent(
-			ParticipantEvent::DptfParticipantControlAction,
-			domainIndex,
-			Capability::getEsifDataFromCapabilityData(&capability));
+			EsifCapabilityData capability;
+			capability.type = ESIF_CAPABILITY_TYPE_DISPLAY_CONTROL;
+			capability.size = sizeof(capability);
+			capability.data.displayControl.currentDPTFLimit =
+				displaySet[displayControlIndex].getBrightness().toWholeNumber();
+			capability.data.displayControl.lowerLimit =
+				displaySet[dynamicCaps.getCurrentLowerLimit()].getBrightness().toWholeNumber();
+			capability.data.displayControl.upperLimit =
+				displaySet[dynamicCaps.getCurrentUpperLimit()].getBrightness().toWholeNumber();
 
-		PARTICIPANT_LOG_MESSAGE_INFO({
-			std::stringstream message;
-			message << "Published activity for participant " << getParticipantIndex() << ", "
-					<< "domain " << getName() << " "
-					<< "("
-					<< "Display Control"
-					<< ")";
-			return message.str();
+			getParticipantServices()->sendDptfEvent(
+				ParticipantEvent::DptfParticipantControlAction,
+				domainIndex,
+				Capability::getEsifDataFromCapabilityData(&capability));
+
+			PARTICIPANT_LOG_MESSAGE_INFO({
+				std::stringstream message;
+				message << "Published activity for participant " << getParticipantIndex() << ", "
+						<< "domain " << getName() << " "
+						<< "("
+						<< "Display Control"
+						<< ")";
+				return message.str();
 			});
+		}
+		catch(...)
+		{
+		}
 	}
 }
 
@@ -352,6 +409,34 @@ void DomainDisplayControl_001::restore(void)
 			PARTICIPANT_LOG_MESSAGE_DEBUG({
 				return "Failed to restore the user preferred display status. ";
 				});
+		}
+	}
+
+	if (m_userPreferredSoftBrightnessIndex != Constants::Invalid)
+	{
+		try
+		{
+			// soft brightness cache and restore
+			auto displaySet = getDisplayControlSet(getParticipantIndex(), getDomainIndex());
+			auto indexToset = getAllowableDisplayBrightnessIndex(
+				getParticipantIndex(), getDomainIndex(), m_userPreferredSoftBrightnessIndex);
+			Percentage newSoftBrightness = displaySet[indexToset].getBrightness();
+
+			PARTICIPANT_LOG_MESSAGE_DEBUG({
+				std::stringstream messageStr;
+				messageStr << "Saved the user preferred soft brightness index of "
+								  + std::to_string(m_userPreferredSoftBrightnessIndex) + ". ";
+				messageStr << "Attempting to set the brightness to the user preferred soft brightness value .";
+				return messageStr.str();
+			});
+
+			getParticipantServices()->primitiveExecuteSetAsPercentage(
+				esif_primitive_type::SET_DISPLAY_BRIGHTNESS_SOFT, newSoftBrightness, getDomainIndex());
+		}
+		catch (...)
+		{
+			// best effort
+			PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to restore the user preferred soft brightness status. "; });
 		}
 	}
 }

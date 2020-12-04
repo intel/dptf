@@ -77,6 +77,7 @@ public:
 		const Percentage& dutyCycle) override;
 	virtual void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) override;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override final;
+	virtual TimeSpan getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getPidKiTerm(UIntN participantIndex, UIntN domainIndex) override final;

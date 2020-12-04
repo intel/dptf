@@ -516,6 +516,19 @@ void PolicyBase::domainSocWorkloadClassificationChanged(
 	onDomainSocWorkloadClassificationChanged(participantIndex, domainIndex, socWorkloadClassification);
 }
 
+void PolicyBase::domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
+{
+	throwIfPolicyIsDisabled();
+
+	POLICY_LOG_MESSAGE_INFO({
+		std::stringstream message;
+		message << getName() << ": EPP Sensitivity Hint changed for ParticipantIndex = " << participantIndex
+				<< " and DomainIndex = " << domainIndex;
+		return message.str();
+	});
+	onDomainEppSensitivityHintChanged(participantIndex, domainIndex, mbtHint);
+}
+
 void PolicyBase::activeRelationshipTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -1341,6 +1354,13 @@ void PolicyBase::userPresenceCorrelationStatusChanged(UserPresenceCorrelation::T
 	onUserPresenceCorrelationStatusChanged(correlationStatus);
 }
 
+void PolicyBase::foregroundRatioChanged(UIntN ratio)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Foreground ratio changed to " + std::to_string(ratio) + "."; });
+	onForegroundRatioChanged(ratio);
+}
+
 void PolicyBase::onDomainTemperatureThresholdCrossed(UIntN participantIndex)
 {
 	throw not_implemented();
@@ -1507,6 +1527,11 @@ void PolicyBase::onDomainSocWorkloadClassificationChanged(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	SocWorkloadClassification::Type socWorkloadClassification)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
 {
 	throw not_implemented();
 }
@@ -1953,6 +1978,11 @@ void PolicyBase::onUserInteractionChanged(UserInteraction::Type userInteraction)
 }
 
 void PolicyBase::onUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onForegroundRatioChanged(UIntN ratio)
 {
 	throw not_implemented();
 }

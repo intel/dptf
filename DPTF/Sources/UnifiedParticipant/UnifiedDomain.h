@@ -76,6 +76,7 @@ public:
 	std::shared_ptr<DomainUtilizationBase> getUtilizationControl(void);
 	std::shared_ptr<DomainBatteryStatusBase> getBatteryStatusControl(void);
 	std::shared_ptr<DomainSocWorkloadClassificationBase> getSocWorkloadClassificationControl(void);
+	std::shared_ptr<DomainDynamicEppBase> getDynamicEppControl();
 
 private:
 	// hide the copy constructor and = operator

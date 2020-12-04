@@ -122,6 +122,7 @@ public:
 	void domainEnergyThresholdCrossed(void);
 	void domainFanCapabilityChanged(void);
 	void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification);
+	void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint);
 
 	//
 	// The following set of functions implement the ParticipantInterface related functionality
@@ -147,10 +148,14 @@ public:
 	DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN domainIndex);
 	DisplayControlStatus getDisplayControlStatus(UIntN domainIndex);
 	UIntN getUserPreferredDisplayIndex(UIntN domainIndex);
+	UIntN getUserPreferredSoftBrightnessIndex(UIntN domainIndex);
 	Bool isUserPreferredIndexModified(UIntN domainIndex);
 	UIntN getSoftBrightnessIndex(UIntN domainIndex);
 	DisplayControlSet getDisplayControlSet(UIntN domainIndex);
 	void setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
+	void setSoftBrightness(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex);
+	void updateUserPreferredSoftBrightnessIndex(UIntN domainIndex);
+	void restoreUserPreferredSoftBrightness(UIntN domainIndex);
 	void setDisplayControlDynamicCaps(UIntN domainIndex, UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 	void setDisplayCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
 
@@ -218,6 +223,7 @@ public:
 		const Percentage& dutyCycle);
 	void setSocPowerFloorState(UIntN domainIndex, UIntN policyIndex, Bool socPowerFloorState);
 	void setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lock);
+	TimeSpan getPowerSharePowerLimitTimeWindow(UIntN domainIndex);
 	Bool isPowerShareControl(UIntN domainIndex);
 	double getPidKpTerm(UIntN domainIndex);
 	double getPidKiTerm(UIntN domainIndex);

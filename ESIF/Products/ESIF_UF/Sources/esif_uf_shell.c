@@ -34,6 +34,7 @@
 #include "esif_uf_cnjmgr.h"	/* Conjure Manager */
 #include "esif_uf_cfgmgr.h"	/* Config Manager */
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_arbmgr.h"
 
 #include "esif_uf_primitive.h"
 
@@ -164,6 +165,8 @@ char *g_outbuf = NULL;						// Dynamically created and can grow
 UInt32 g_outbuf_len = OUT_BUF_LEN_DEFAULT;	// Current (or Default) Size of ESIF Shell Output Buffer
 
 size_t g_cmdlen = 0;
+
+#define SHELL_OUT(msg, ...)	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, msg, ##__VA_ARGS__)
 
 struct esif_data_binary_bst_package {
 	union esif_data_variant battery_state;
@@ -324,37 +327,34 @@ char *esif_shell_strtok(
 }
 
 
-// Shell ATOI
-unsigned int esif_atoi(const esif_string str)
+// Convert Hex or Numeric String to 32-bit Integer
+UInt32 esif_atoi(const esif_string str)
 {
-	unsigned int val = 0;
-	if (NULL == str) {
-		return 0;
+	UInt32 val = 0;
+	if (str) {
+		if (esif_ccb_strncmp(str, "0x", 2) == 0) {
+			esif_ccb_sscanf(str + 2, "%x", &val);
+		}
+		else {
+			esif_ccb_sscanf(str, "%d", (Int32 *)&val);
+		}
 	}
-
-	if (!strncmp(str, "0x", 2)) {
-		esif_ccb_sscanf(str + 2, "%x", &val);
-	} else {
-		esif_ccb_sscanf(str, "%d", (int *)&val);
-	}
-
 	return val;
 }
 
 
+// Convert Hex or Numeric String to 64-bit Integer
 UInt64 esif_atoi64(const esif_string str)
 {
 	UInt64 val = 0;
-	if (NULL == str) {
-		return 0;
+	if (str) {
+		if (esif_ccb_strncmp(str, "0x", 2) == 0) {
+			esif_ccb_sscanf(str + 2, "%llx", &val);
+		}
+		else {
+			esif_ccb_sscanf(str, "%lld", (Int64 *)&val);
+		}
 	}
-
-	if (!strncmp(str, "0x", 2)) {
-		esif_ccb_sscanf(str + 2, "%llx", &val);
-	} else {
-		esif_ccb_sscanf(str, "%lld", (Int64 *) &val);
-	}
-
 	return val;
 }
 
@@ -1976,6 +1976,329 @@ static char *esif_shell_cmd_appstop(EsifShellCmdPtr shell)
 	return output;
 }
 
+static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
+{
+	int argc = shell->argc;
+	char **argv = shell->argv;
+	char *output = shell->outbuf;
+	esif_error_t rc = ESIF_OK;
+
+	int optarg = 1;
+	u8 max_domain = 1; // Only D0 supported for now. Change to MAX_DOMAINS to support other Domains.
+	esif_string command = NULL;
+	esif_string partname = NULL;
+	EsifUpPtr upPtr = NULL;
+	esif_handle_t participantId = ESIF_INVALID_HANDLE;
+	esif_primitive_type_t primitive = (esif_primitive_type_t)0;
+	u16 domain = ESIF_PRIMITIVE_DOMAIN_D0;
+	u8 instance = ESIF_INSTANCE_INVALID;
+	u32 nparams = 0;				// number of <param>=<value> options
+	esif_arbitration_type_t arbtype = ESIF_ARBITRATION_INVALID;		// type=<arbtype>
+	u32 upperLimit = 0;												// upper=<upperLimit>
+	u32 lowerLimit = 0;												// lower=<lowerLimit>
+	Bool isUpperValid = ESIF_FALSE;
+	Bool isLowerValid = ESIF_FALSE;
+	EsifArbInfo *arbInfoPtr = NULL; /* Must fall EsifArbMgr_FreeInformation */
+	EsifArbCtxInfo *arbCtxInfoPtr = NULL;
+	EsifArbEntryInfo *arbEntryInfoPtr = NULL;
+	size_t ctxIndex = 0;
+	size_t entryIndex = 0;
+
+	*output = 0;
+
+	// arb <command> ...
+	if (argc > optarg) {
+		command = argv[optarg++];
+	}
+
+	// arb <command> [<partname>] ...
+	if (argc > optarg) {
+		partname = argv[optarg++];
+		upPtr = EsifUpPm_GetAvailableParticipantByName(partname);
+		if (upPtr == NULL) {
+			rc = ESIF_E_PARTICIPANT_NOT_FOUND;
+			optarg = argc;
+		}
+		participantId = EsifUp_GetInstance(upPtr);
+	}
+
+	// arb <command> [<partname> [<primitive>]] ...
+	if (argc > optarg) {
+		u32 primid = (isdigit(argv[optarg][0]) ? esif_atoi(argv[optarg++]) : (u32)esif_primitive_type_str2enum(argv[optarg++]));
+		if (primid > 0 && primid <= (int)MAX_PRIMITIVE_ENUM_VALUE && esif_ccb_stricmp(esif_primitive_str(primid), "NA") != 0) {
+			primitive = (esif_primitive_type_t)primid;
+		}
+		else { // Invalid Primitive
+			rc = ESIF_E_NULL_PRIMITIVE;
+			optarg = argc;
+		}
+	}
+
+	// arb <command> [<partname> [<primitive> [<domain>]]] ...
+	if (argc > optarg) {
+		esif_string dom = argv[optarg];
+		if (toupper(dom[0]) == 'D' && isdigit(dom[1]) && dom[2] == 0) {
+			if ((u8)dom[1] < max_domain + '0') {
+				domain += (u8)dom[1] - '0';
+				optarg++;
+			}
+			else { // Invalid Domain
+				rc = ESIF_E_INVALID_DOMAIN_ID;
+				optarg = argc;
+			}
+		}
+	}
+
+	// arb <command> [<partname> [<primitive> [<domain>] [<instance>]]] ...
+	if (argc > optarg && isdigit(argv[optarg][0])) {
+		u32 inst = esif_atoi(argv[optarg]);
+		if (inst <= 255) {
+			instance = (u8)inst;
+			optarg++;
+		}
+		else { // Invalid Instance
+			rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			optarg = argc;
+		}
+	}
+
+	// arb <command> [<partname> [<primitive> [<domain>] [<instance>]] [<param>=<value> ...]
+	while (rc == ESIF_OK && argc > optarg) {
+		esif_string split = esif_ccb_strchr(argv[optarg], '=');
+		if (split) {
+			char param[MAX_PATH] = {0};
+			esif_ccb_strmemcpy(param, sizeof(param), argv[optarg], (size_t)(split - argv[optarg]));
+			esif_string value = split + 1;
+
+			// <param>=
+			if (*value == 0) {
+				rc = ESIF_E_PARAMETER_IS_NULL;
+			}
+			// type=<arbtype> | arbtype=<arbtype>
+			else if (esif_ccb_stricmp(param, "type") == 0 || esif_ccb_stricmp(param, "arbtype") == 0) {
+				arbtype = esif_atoi(value);
+			}
+			// lower=<value>
+			else if (esif_ccb_stricmp(param, "lower") == 0) {
+				lowerLimit = esif_atoi(value);
+				isLowerValid = ESIF_TRUE;
+			}
+			// upper=<value>
+			else if (esif_ccb_stricmp(param, "upper") == 0) {
+				upperLimit = esif_atoi(value);
+				isUpperValid = ESIF_TRUE;
+			}
+			else {
+				rc = ESIF_E_COMMAND_DATA_INVALID;
+			}
+		}
+		else {
+			rc = ESIF_E_COMMAND_DATA_INVALID;
+		}
+
+		if (rc == ESIF_OK) {
+			nparams++;
+		}
+		optarg++;
+	}
+
+	// Invalid Arguments
+	if (rc != ESIF_OK) {
+		// Return Error Code Below
+	}
+	// arb [help]
+	else if (command == NULL || esif_ccb_stricmp(command, "help") == 0) {
+		esif_ccb_strcpy(output, 
+			"\nUsage:\n"
+			"  arb get [<partname> [<primitive> [<instance>]]]\n"
+			"  arb set <partname> <primitive> [<instance>] [<param>=<value> ...]*\n"
+			"  arb delete  <partname> <primitive> [<instance>]\n"
+			"  arb enable  [<partname> [<primitive> [<instance>]]]\n"
+			"  arb disable [<partname> [<primitive> [<instance>]]]\n"
+			"Where <param>=<value> is:\n"
+			"  type=<arbtype>\n"
+			"  upper=<upperLimit>\n"
+			"  lower=<lowerLimit>\n"
+			"  *At least one parameter must be specified.\n\n"
+			, OUT_BUF_LEN);
+	}
+	// arb get [<partname> [<primitive> [<domain>] [<instance>]]]
+	else if (esif_ccb_stricmp(command, "get") == 0) {
+
+		if (nparams) {
+			rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		}
+		else {
+			rc = ESIF_E_NO_MEMORY;
+
+			/* Get all arbitration information */
+			arbInfoPtr = EsifArbMgr_GetInformation(ESIF_INVALID_HANDLE, 0, ESIF_PRIMITIVE_DOMAIN_D0, ESIF_INSTANCE_INVALID);
+			if (arbInfoPtr) {
+				rc = ESIF_OK;
+
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "\nArbitration information:\n");
+
+				if (ESIF_INVALID_HANDLE == participantId) {
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						"  Global state: %s\n"
+						"  Number of arbitrated participants: %lu\n",
+						arbInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbInfoPtr->count);
+				}
+
+				arbCtxInfoPtr = arbInfoPtr->arbCtxInfo;
+				for (ctxIndex = 0; ctxIndex < arbInfoPtr->count; ctxIndex++, arbCtxInfoPtr++) {
+
+					if ((ESIF_INVALID_HANDLE == participantId) || /* Getting all entries globally */
+						((participantId == arbCtxInfoPtr->participantId) && /* Getting all entries for participant */
+							(0 == primitive))) {
+
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+							"\n  Participant " ESIF_HANDLE_FMT " state: %s\n"
+							"  Number of arbitrated primitives: %lu\n",
+							esif_ccb_handle2llu(arbCtxInfoPtr->participantId),
+							arbCtxInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbCtxInfoPtr->count);
+					}
+
+					arbEntryInfoPtr = arbCtxInfoPtr->arbEntryInfo;
+					for (entryIndex = 0; entryIndex < arbCtxInfoPtr->count; entryIndex++, arbEntryInfoPtr++) {
+
+						if ((ESIF_INVALID_HANDLE == participantId) || /* Getting all entries globally */
+							((participantId == arbEntryInfoPtr->participantId) && /* Getting all entries for participant */
+								(0 == primitive)) ||
+							((participantId == arbEntryInfoPtr->participantId) && /* Getting specific entry */
+								(primitive == arbEntryInfoPtr->primitiveId) &&
+								(instance == arbEntryInfoPtr->instance))) {
+
+							esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+								"\n  Participant ID    = " ESIF_HANDLE_FMT "\n"
+								"  Primitive         = %s\n"
+								"  Instance          = %lu\n"
+								"  Arbitration Type  = %lu\n"
+								"  Upper Limit       = 0x%08X(%lu)\n"
+								"  Lower Limit       = 0x%08X(%lu)\n"
+								"  Arbitration state = %s\n",
+								esif_ccb_handle2llu(arbEntryInfoPtr->participantId),
+								esif_primitive_str(arbEntryInfoPtr->primitiveId), arbEntryInfoPtr->instance,
+								arbEntryInfoPtr->arbType,
+								arbEntryInfoPtr->upperLimit, arbEntryInfoPtr->upperLimit,
+								arbEntryInfoPtr->lowerLimit, arbEntryInfoPtr->lowerLimit,
+								arbEntryInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled");
+						}
+					}
+				}
+			}
+		}
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+	}
+	// arb set <partname> <primitive> [<domain>] [<instance>] [<param>=<value> ...]
+	else if (esif_ccb_stricmp(command, "set") == 0) {
+
+		/* Must provide the part and primitive and at least one parameter */
+		if (!partname || !primitive || !nparams) {
+			rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		}
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "\nSetting arbitration parameters on %s for Prim = %s Inst = %d:\n", partname, esif_primitive_str(primitive), (int)instance);
+
+			if (arbtype != ESIF_ARBITRATION_INVALID) {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  Arbitration Function = %d\n", arbtype);
+			}
+			if (isUpperValid) {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  Upper Limit = 0x%08X(%lu)\n", upperLimit, upperLimit);
+			}
+			if (isLowerValid) {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  Lower Limit = 0x%08X(%lu)\n", lowerLimit, lowerLimit);
+			}
+
+			/* Check that the lower is <= upper limit */
+			if (isUpperValid && isLowerValid && (lowerLimit > upperLimit)) {
+				rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+			}
+
+			/* Set the arbitration function */
+			if (ESIF_OK == rc) {
+				if (arbtype != ESIF_ARBITRATION_INVALID) {
+					rc = EsifArbMgr_SetArbitrationFunction(participantId, primitive, domain, instance, arbtype);
+				}
+			}
+			/* Set the limits */
+			if (ESIF_OK == rc) {
+				if (isUpperValid || isLowerValid) {
+					rc = EsifArbMgr_SetLimits(participantId, primitive, domain, instance,
+						isUpperValid ? &upperLimit : NULL,
+						isLowerValid ? &lowerLimit : NULL
+					);
+				}
+			}
+		}
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+	}
+	// arb delete <partname> [<primitive> [<domain>] [<instance>]]
+	else if (esif_ccb_stricmp(command, "delete") == 0) {
+
+		if (!partname || !primitive || nparams) {
+			rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		}
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "\n Stopping arbitration for %s for Prim = %s Inst = %d\n\n",
+				partname, esif_primitive_str(primitive), (int)instance);
+			rc = EsifArbMgr_StopArbitration(participantId, primitive, domain, instance);
+		}
+	}
+	// arb enable [<partname> [<primitive> [<domain>] [<instance>]]]
+	else if (esif_ccb_stricmp(command, "enable") == 0) {
+
+		if (nparams) {
+			rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		}
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "\nEnabling arbitration");
+
+			if (participantId != ESIF_INVALID_HANDLE) {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " on %s", partname);
+
+				if (primitive != 0) {
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " for Prim = %s Inst = %d", esif_primitive_str(primitive), (int)instance);
+				}
+			}
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+
+			rc = EsifArbMgr_SetArbitrationState(participantId, primitive, domain, instance, ESIF_TRUE);
+		}
+	}
+	// arb disable [<partname> [<primitive> [<domain>] [<instance>]]]
+	else if (esif_ccb_stricmp(command, "disable") == 0) {
+
+		if (nparams) {
+			rc = ESIF_E_INVALID_ARGUMENT_COUNT;
+		}
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "\nDisabling arbitration");
+
+			if (participantId != ESIF_INVALID_HANDLE) {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " on %s", partname);
+
+				if (primitive != 0) {
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " for Prim = %s Inst = %d", esif_primitive_str(primitive), (int)instance);
+				}
+			}
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+
+			rc = EsifArbMgr_SetArbitrationState(participantId, primitive, domain, instance, ESIF_FALSE);
+		}
+	}
+	else {
+		rc = ESIF_E_COMMAND_DATA_INVALID;
+	}
+
+	// Return any Error Code as string
+	if (rc != ESIF_OK) {
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, " %s (%d)\n", esif_rc_str(rc), rc);
+	}
+	esif_ccb_free(arbInfoPtr);
+	EsifUp_PutRef(upPtr);
+	return output;
+}
 
 static char *esif_shell_cmd_actionstart(EsifShellCmdPtr shell)
 {
@@ -2300,14 +2623,25 @@ static char *esif_shell_cmd_echo(EsifShellCmdPtr shell)
 	char *output = shell->outbuf;
 	char *sep    = " ";
 	int j = 1;
+	Bool console = ESIF_FALSE;
 
+	// "echo ! arg arg ..." causes each argument to be written to console and/or logifle
+	if (argc > j && strcmp(argv[j], "!") == 0) {
+		console = ESIF_TRUE;
+		j++;
+	}
 	// "echo ? arg arg ..." causes each argument to appear on separate line
-	if (argc > 1 && strcmp(argv[1], "?") == 0) {
+	if (argc > j && strcmp(argv[j], "?") == 0) {
 		sep = "\n";
 		j++;
 	}
 	for ( ; j < argc; j++) {
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s%s", argv[j], (j + 1 < argc ? sep : "\n"));
+		if (console) {
+			CMD_OUT("%s%s", argv[j], (j + 1 < argc ? sep : "\n"));
+		}
+		else {
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s%s", argv[j], (j + 1 < argc ? sep : "\n"));
+		}
 	}
 
 	return output;
@@ -7953,6 +8287,9 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"conjure   <library name>                 Load Upper Framework Conjure Library\n"
 		"unconjure <library name>                 Unload Upper Framework Conjure Library\n"
 		"\n"
+		"ARBITRATION MANAGEMENT:\n"
+		"arbitrator  <command>...                 See 'arbitrator help'\n"
+		"\n"
 		"USER-MODE PARTICIPANT DATA LOGGING:\n"
 		"participantlog "PARTICIPANTLOG_CMD_START_STR" [all |[PID DID capMask]...]\n"
 		"                                        Starts data logging for that particular\n"
@@ -10716,25 +11053,25 @@ static char *esif_shell_cmd_shell(EsifShellCmdPtr shell)
 	if (DCfg_Get().opt.ShellAccessControl) {
 		g_shell_enabled = 0;
 		esif_uf_os_shell_disable();
-		CMD_OUT("shell access disabled\n");
+		SHELL_OUT("shell access disabled\n");
 		return output;
 	}
 
 	// shell
 	if (argc < 2) {
-		CMD_OUT("shell %s\n", (g_shell_enabled ? "enabled" : "disabled"));
+		SHELL_OUT("shell %s\n", (g_shell_enabled ? "enabled" : "disabled"));
 	}
 	// shell enable
 	else if (esif_ccb_stricmp(argv[1], "enable")==0) {
 		g_shell_enabled = 1;
 		esif_uf_os_shell_enable();
-		CMD_OUT("shell enabled\n");
+		SHELL_OUT("shell enabled\n");
 	}
 	// shell disable
 	else if (esif_ccb_stricmp(argv[1], "disable")==0) {
 		g_shell_enabled = 0;
 		esif_uf_os_shell_disable();
-		CMD_OUT("shell disabled\n");
+		SHELL_OUT("shell disabled\n");
 	}
 	return output;
 }
@@ -12559,6 +12896,8 @@ static EsifShellMap ShellCommands[] = {
 	{"apps",                 fnArgv, (VoidFunc)esif_shell_cmd_apps                },
 	{"appstart",             fnArgv, (VoidFunc)esif_shell_cmd_appstart            },
 	{"appstop",              fnArgv, (VoidFunc)esif_shell_cmd_appstop             },
+	{"arb",                  fnArgv, (VoidFunc)esif_shell_cmd_arb                 },
+	{"arbitrator",           fnArgv, (VoidFunc)esif_shell_cmd_arb                 },
 	{"autoexec",             fnArgv, (VoidFunc)esif_shell_cmd_autoexec            },
 	{"capture",              fnArgv, (VoidFunc)esif_shell_cmd_capture			  },
 	{"cat",                  fnArgv, (VoidFunc)esif_shell_cmd_load                },
@@ -12570,11 +12909,11 @@ static EsifShellMap ShellCommands[] = {
 	{"debugset",             fnArgv, (VoidFunc)esif_shell_cmd_debugset            },
 	{"debugshow",            fnArgv, (VoidFunc)esif_shell_cmd_debugshow           },
 	{"delpartk",             fnArgv, (VoidFunc)esif_shell_cmd_delpartk            },
-	{"devices",				 fnArgv, (VoidFunc)esif_shell_cmd_get_available_devices},
+	{"devices",              fnArgv, (VoidFunc)esif_shell_cmd_get_available_devices},
 	{"domains",              fnArgv, (VoidFunc)esif_shell_cmd_domains             },
 	{"driverk",              fnArgv, (VoidFunc)esif_shell_cmd_driversk            },
 	{"driversk",             fnArgv, (VoidFunc)esif_shell_cmd_driversk            },
-	{"dspquery",			 fnArgv, (VoidFunc)esif_shell_cmd_dspquery			  },
+	{"dspquery",             fnArgv, (VoidFunc)esif_shell_cmd_dspquery			  },
 	{"dsps",                 fnArgv, (VoidFunc)esif_shell_cmd_dsps                },
 	{"dst",                  fnArgv, (VoidFunc)esif_shell_cmd_dst                 },
 	{"dstn",                 fnArgv, (VoidFunc)esif_shell_cmd_dstn                },
@@ -12582,23 +12921,23 @@ static EsifShellMap ShellCommands[] = {
 	{"echo",                 fnArgv, (VoidFunc)esif_shell_cmd_echo                },
 	{"event",                fnArgv, (VoidFunc)esif_shell_cmd_event               },
 	{"eventkpe",             fnArgv, (VoidFunc)esif_shell_cmd_eventkpe            },
-	{"events",			     fnArgv, (VoidFunc)esif_shell_cmd_events              },
+	{"events",               fnArgv, (VoidFunc)esif_shell_cmd_events              },
 	{"exit",                 fnArgv, (VoidFunc)esif_shell_cmd_exit                },
 	{"format",               fnArgv, (VoidFunc)esif_shell_cmd_format              },
 	{"getb",                 fnArgv, (VoidFunc)esif_shell_cmd_getb                },
 	{"geterrorlevel",        fnArgv, (VoidFunc)esif_shell_cmd_geterrorlevel       },
 	{"getf_b",               fnArgv, (VoidFunc)esif_shell_cmd_getf                },
 	{"getf_bd",              fnArgv, (VoidFunc)esif_shell_cmd_getf                },
-	{"getp",                 fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst)"
-	{"getp_b",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as binary"
+	{"getp",                 fnArgv, (VoidFunc)esif_shell_cmd_getp                },
+	{"getp_b",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"getp_bd",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"getp_bf",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"getp_bs",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"getp_part",            fnArgv, (VoidFunc)esif_shell_cmd_getp                },
-	{"getp_pw",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as power"
-	{"getp_s",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as string"
-	{"getp_t",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as temperature"
-	{"getp_u32",             fnArgv, (VoidFunc)esif_shell_cmd_getp                },// Alias for "get primitive(id,qual,inst) as uint32"
+	{"getp_pw",              fnArgv, (VoidFunc)esif_shell_cmd_getp                },
+	{"getp_s",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },
+	{"getp_t",               fnArgv, (VoidFunc)esif_shell_cmd_getp                },
+	{"getp_u32",             fnArgv, (VoidFunc)esif_shell_cmd_getp                },
 	{"help",                 fnArgv, (VoidFunc)esif_shell_cmd_help                },
 	{"idsp",                 fnArgv, (VoidFunc)esif_shell_cmd_idsp                },
 	{"info",                 fnArgv, (VoidFunc)esif_shell_cmd_info                },
@@ -12623,15 +12962,15 @@ static EsifShellMap ShellCommands[] = {
 	{"partk",                fnArgv, (VoidFunc)esif_shell_cmd_participantk        },
 	{"parts",                fnArgv, (VoidFunc)esif_shell_cmd_participants        },
 	{"partsk",               fnArgv, (VoidFunc)esif_shell_cmd_participantsk       },
-	{"paths",				 fnArgv, (VoidFunc) esif_shell_cmd_paths },
+	{"paths",                fnArgv, (VoidFunc)esif_shell_cmd_paths               },
 	{"proof",                fnArgv, (VoidFunc)esif_shell_cmd_load                },
 	{"prooftst",             fnArgv, (VoidFunc)esif_shell_cmd_load                },
 	{"quit",                 fnArgv, (VoidFunc)esif_shell_cmd_quit                },
 	{"rem",                  fnArgv, (VoidFunc)esif_shell_cmd_rem                 },
 	{"repeat",               fnArgv, (VoidFunc)esif_shell_cmd_repeat              },
 	{"repeat_delay",         fnArgv, (VoidFunc)esif_shell_cmd_repeatdelay         },
-	{"rstp",	             fnArgv, (VoidFunc)esif_shell_cmd_reset_override      },
-	{"rstp_part",	         fnArgv, (VoidFunc)esif_shell_cmd_reset_override },
+	{"rstp",                 fnArgv, (VoidFunc)esif_shell_cmd_reset_override      },
+	{"rstp_part",            fnArgv, (VoidFunc)esif_shell_cmd_reset_override      },
 	{"set_osc",              fnArgv, (VoidFunc)esif_shell_cmd_set_osc             },
 	{"setb",                 fnArgv, (VoidFunc)esif_shell_cmd_setb                },
 	{"seterrorlevel",        fnArgv, (VoidFunc)esif_shell_cmd_seterrorlevel       },
@@ -12657,8 +12996,8 @@ static EsifShellMap ShellCommands[] = {
 	{"toolstop",             fnArgv, (VoidFunc)esif_shell_cmd_toolstop            },
 #endif
 	{"trace",                fnArgv, (VoidFunc)esif_shell_cmd_trace               },
-	{"ufpoll",				 fnArgv, (VoidFunc)esif_shell_cmd_ufpoll			  },
-	{"ui",                   fnArgv, (VoidFunc)esif_shell_cmd_ui                  },// formerly ui_getxslt, ui_getgroups, ui_getmodulesingroup, ui_getmoduledata
+	{"ufpoll",               fnArgv, (VoidFunc)esif_shell_cmd_ufpoll			  },
+	{"ui",                   fnArgv, (VoidFunc)esif_shell_cmd_ui                  },
 	{"unconjure",            fnArgv, (VoidFunc)esif_shell_cmd_unconjure           },
 	{"upes",                 fnArgv, (VoidFunc)esif_shell_cmd_upes                },
 	{"web",                  fnArgv, (VoidFunc)esif_shell_cmd_web                 },

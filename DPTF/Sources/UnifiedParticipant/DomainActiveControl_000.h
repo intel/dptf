@@ -52,6 +52,7 @@ protected:
 	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) override;
+	virtual void setActiveControlFanDirection(UInt32 fanDirection) override;
 	virtual void setActiveControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,

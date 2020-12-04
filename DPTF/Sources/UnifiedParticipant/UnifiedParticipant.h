@@ -111,6 +111,8 @@ public:
 	virtual void domainEnergyThresholdCrossed(void) override;
 	virtual void domainFanCapabilityChanged(void) override;
 	virtual void domainSocWorkloadClassificationChanged(UInt32 socWorkloadClassification) override;
+	virtual void domainEppSensitivityHintChanged(UInt32 eppSensitivityHint) override;
+
 	// Activity Status
 	virtual Percentage getUtilizationThreshold(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Percentage getResidencyUtilization(UIntN participantIndex, UIntN domainIndex) override;
@@ -135,10 +137,14 @@ public:
 	virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UIntN getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	virtual void setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	virtual void updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDisplayControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -220,6 +226,7 @@ public:
 		const Percentage& dutyCycle) override;
 	virtual void setSocPowerFloorState(UIntN participantIndex, UIntN domainIndex, Bool socPowerFloorState) override;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	virtual TimeSpan getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex) override;
 
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override;
@@ -378,6 +385,7 @@ private:
 	Bool m_energyEventsRegistered;
 	Bool m_activeControlEventsRegistered;
 	Bool m_socWorkloadClassificationEventsRegistered;
+	Bool m_eppSensitivityHintEventsRegistered;
 
 	void updateDomainEventRegistrations(void);
 	Bool updateDomainEventRegistration(

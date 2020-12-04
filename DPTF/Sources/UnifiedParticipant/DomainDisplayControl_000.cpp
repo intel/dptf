@@ -44,6 +44,11 @@ UIntN DomainDisplayControl_000::getUserPreferredDisplayIndex(UIntN participantIn
 	throw not_implemented();
 }
 
+UIntN DomainDisplayControl_000::getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 Bool DomainDisplayControl_000::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
@@ -64,10 +69,25 @@ void DomainDisplayControl_000::setDisplayControl(UIntN participantIndex, UIntN d
 	throw not_implemented();
 }
 
+void DomainDisplayControl_000::setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex)
+{
+	throw not_implemented();
+}
+
 void DomainDisplayControl_000::setDisplayControlDynamicCaps(
 	UIntN participantIndex,
 	UIntN domainIndex,
 	DisplayControlDynamicCaps newCapabilities)
+{
+	throw not_implemented();
+}
+
+void DomainDisplayControl_000::updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainDisplayControl_000::restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex)
 {
 	throw not_implemented();
 }

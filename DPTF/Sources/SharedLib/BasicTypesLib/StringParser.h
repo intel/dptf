@@ -30,4 +30,5 @@ public:
 		const std::string& input,
 		const std::string& findString,
 		const std::string& replaceString);
+	static std::string removeAll(const std::string& input, char character);
 };

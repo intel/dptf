@@ -708,6 +708,15 @@ void Participant::domainSocWorkloadClassificationChanged(UInt32 socWorkloadClass
 	}
 }
 
+void Participant::domainEppSensitivityHintChanged(UInt32 eppSensitivityHint)
+{
+	if (isEventRegistered(ParticipantEvent::DomainEppSensitivityHintChanged))
+	{
+		throwIfRealParticipantIsInvalid();
+		m_theRealParticipant->domainEppSensitivityHintChanged(eppSensitivityHint);
+	}
+}
+
 //
 // The following functions pass through to the domain implementation
 //
@@ -802,6 +811,12 @@ UIntN Participant::getUserPreferredDisplayIndex(UIntN domainIndex)
 	return m_domains[domainIndex]->getUserPreferredDisplayIndex();
 }
 
+UIntN Participant::getUserPreferredSoftBrightnessIndex(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getUserPreferredSoftBrightnessIndex();
+}
+
 Bool Participant::isUserPreferredIndexModified(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -824,6 +839,24 @@ void Participant::setDisplayControl(UIntN domainIndex, UIntN policyIndex, UIntN 
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setDisplayControl(policyIndex, displayControlIndex);
+}
+
+void Participant::setSoftBrightness(UIntN domainIndex, UIntN policyIndex, UIntN displayControlIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setSoftBrightness(policyIndex, displayControlIndex);
+}
+
+void Participant::updateUserPreferredSoftBrightnessIndex(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->updateUserPreferredSoftBrightnessIndex();
+}
+
+void Participant::restoreUserPreferredSoftBrightness(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->restoreUserPreferredSoftBrightness();
 }
 
 void Participant::setDisplayControlDynamicCaps(
@@ -1069,6 +1102,12 @@ void Participant::setPowerCapsLock(UIntN domainIndex, UIntN policyIndex, Bool lo
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->setPowerCapsLock(policyIndex, lock);
+}
+
+TimeSpan Participant::getPowerSharePowerLimitTimeWindow(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getPowerSharePowerLimitTimeWindow();
 }
 
 Bool Participant::isPowerShareControl(UIntN domainIndex)

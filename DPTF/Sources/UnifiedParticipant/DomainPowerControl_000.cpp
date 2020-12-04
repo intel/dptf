@@ -164,6 +164,11 @@ void DomainPowerControl_000::setPowerCapsLock(UIntN participantIndex, UIntN doma
 	throw not_implemented();
 }
 
+TimeSpan DomainPowerControl_000::getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 Bool DomainPowerControl_000::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)
 {
 	return false;

@@ -73,6 +73,7 @@ namespace PolicyEvent
 			CASE(DomainEnergyThresholdCrossed)
 			CASE(DomainFanCapabilityChanged)
 			CASE(DomainSocWorkloadClassificationChanged)
+			CASE(DomainEppSensitivityHintChanged)
 			CASE(PolicyActiveRelationshipTableChanged)
 			CASE(PolicyCoolingModePolicyChanged)
 			CASE(PolicyForegroundApplicationChanged)
@@ -159,6 +160,7 @@ namespace PolicyEvent
 			CASE(PolicyBiometricPresenceSensorInstanceChanged)
 			CASE(PolicyUserInteractionChanged)
 			CASE(PolicyUserPresenceCorrelationChanged)
+			CASE(PolicyForegroundRatioChanged)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -246,7 +248,8 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicySensorModeChanged)
 			|| (policyEventType == PolicyEvent::PolicyBiometricPresenceSensorInstanceChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserInteractionChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserPresenceCorrelationChanged));
+			|| (policyEventType == PolicyEvent::PolicyUserPresenceCorrelationChanged)
+			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged));
 	}
 
 	std::string toString(Type type)
@@ -327,6 +330,8 @@ namespace PolicyEvent
 			return "DomainFanCapabilityChanged";
 		case PolicyEvent::DomainSocWorkloadClassificationChanged:
 			return "DomainSocWorkloadClassificationChanged";
+		case PolicyEvent::DomainEppSensitivityHintChanged:
+			return "DomainEppSensitivityHintChanged";
 		case PolicyEvent::PolicyActiveRelationshipTableChanged:
 			return "PolicyActiveRelationshipTableChanged";
 		case PolicyEvent::PolicyCoolingModePolicyChanged:
@@ -499,6 +504,8 @@ namespace PolicyEvent
 			return "PolicyUserInteractionChanged";
 		case PolicyEvent::PolicyUserPresenceCorrelationChanged:
 			return "PolicyUserPresenceCorrelationChanged";
+		case PolicyEvent::PolicyForegroundRatioChanged:
+			return "PolicyForegroundRatioChanged";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

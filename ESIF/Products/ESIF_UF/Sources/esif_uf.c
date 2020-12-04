@@ -29,8 +29,10 @@
 #include "esif_uf_cnjmgr.h"	/* Conjure Manager */
 #include "esif_uf_version.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_event_cache.h"
 #include "esif_uf_handlemgr.h"
 #include "esif_uf_upsm.h"
+#include "esif_uf_arbmgr.h"
 
 /* Init */
 #include "esif_dsp.h"		/* Device Support Package */
@@ -1102,11 +1104,15 @@ EsifInitTableEntry g_esifUfInitTable[] = {
 	{ EsifAppMgr_Init,					EsifAppMgr_Exit,					ESIF_INIT_FLAG_NONE },
 	{ EsifUpPm_Init,					EsifUpPm_Exit,						ESIF_INIT_FLAG_NONE },
 	{ esif_uf_os_init,					esif_uf_os_exit,					ESIF_INIT_FLAG_NONE },
+	{ EsifArbMgr_Init,					EsifArbMgr_Exit,					ESIF_INIT_FLAG_NONE },
 	{ EsifUpsm_Init,					EsifUpsm_Exit,						ESIF_INIT_FLAG_NONE },
 	{ EsifUpsm_Start,					EsifUpsm_Stop,						ESIF_INIT_FLAG_IGNORE_ERROR },
 	{ EsifCnjMgrInit,					EsifCnjMgrExit,						ESIF_INIT_FLAG_NONE },
+	{ EsifArbMgr_Start,					EsifArbMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ EsifAppMgr_Start,					EsifAppMgr_Stop,					ESIF_INIT_FLAG_NONE },
 	{ esif_ccb_participants_initialize,	NULL,								ESIF_INIT_FLAG_NONE },
+	{ EsifEventCache_Init,				EsifEventCache_Exit,				ESIF_INIT_FLAG_NONE },
+	{ EsifEventCache_Start,				EsifEventCache_Stop,				ESIF_INIT_FLAG_NONE },
 	// Next NULL init items may or may not be running and are only started once ESIF is fully initialized
 	{ NULL,								EsifUFPollStop,						ESIF_INIT_FLAG_NONE },
 	{ NULL,								EsifLogMgr_Exit,					ESIF_INIT_FLAG_NONE },

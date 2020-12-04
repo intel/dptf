@@ -46,6 +46,7 @@ protected:
 	virtual DptfBuffer getActiveControlStatus(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual DptfBuffer getActiveControlSet(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setActiveControl(UIntN participantIndex, UIntN domainIndex, const Percentage& fanSpeed) = 0;
+	virtual void setActiveControlFanDirection(UInt32 fanDirection) = 0;
 	virtual void setActiveControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -60,6 +61,7 @@ private:
 	DptfRequestResult handleGetStatus(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetControlSet(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetFanSpeed(const PolicyRequest& policyRequest);
+	DptfRequestResult handleSetFanDirection(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetDynamicCaps(const PolicyRequest& policyRequest);
 	DptfRequestResult handleSetFanCapsLock(const PolicyRequest& policyRequest);
 	DptfRequestResult handleRemovePolicyRequests(const PolicyRequest& policyRequest);

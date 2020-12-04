@@ -38,6 +38,7 @@
 #include "PlatformPowerStatusFacadeInterface.h"
 #include "BatteryStatusFacadeInterface.h"
 #include "SocWorkloadClassificationFacadeInterface.h"
+#include "DynamicEppFacadeInterface.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -80,6 +81,7 @@ public:
 	virtual std::shared_ptr<PlatformPowerStatusFacadeInterface> getPlatformPowerStatus() = 0;
 	virtual std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() = 0;
 	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() = 0;
+	virtual std::shared_ptr<DynamicEppFacadeInterface> getDynamicEpp() = 0;
 
 	virtual std::shared_ptr<XmlNode> getXml() const = 0;
 };

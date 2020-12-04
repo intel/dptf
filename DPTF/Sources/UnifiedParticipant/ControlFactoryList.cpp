@@ -38,6 +38,7 @@
 #include "DomainProcessorControlFactory.h"
 #include "DomainBatteryStatusFactory.h"
 #include "DomainSocWorkloadClassificationFactory.h"
+#include "DomainDynamicEppFactory.h"
 using namespace std;
 
 ControlFactoryList::ControlFactoryList(void)
@@ -123,6 +124,8 @@ std::shared_ptr<ControlFactoryInterface> ControlFactoryList::makeFactory(Control
 		return make_shared<DomainBatteryStatusFactory>();
 	case ControlFactoryType::SocWorkloadClassification:
 		return make_shared<DomainSocWorkloadClassificationFactory>();
+	case ControlFactoryType::DynamicEpp:
+		return make_shared<DomainDynamicEppFactory>();
 	default:
 		throw dptf_exception("Cannot make control factory for invalid control factory type.");
 	}

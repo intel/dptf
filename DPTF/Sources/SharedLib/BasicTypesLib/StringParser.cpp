@@ -96,3 +96,11 @@ std::string StringParser::replaceAll(
 	}
 	return inputCopy;
 }
+
+std::string StringParser::removeAll(const std::string& input, char character)
+{
+	std::string inputCopy = input;
+	inputCopy.erase(std::remove(inputCopy.begin(), inputCopy.end(), character), inputCopy.end());
+
+	return inputCopy;
+}

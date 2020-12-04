@@ -90,6 +90,22 @@ UInt32 EsifServices::readConfigurationUInt32(const std::string& elementPath)
 	return esifResult;
 }
 
+UInt32 EsifServices::readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath)
+{
+	EsifDataUInt32 esifResult;
+
+	eEsifError rc = m_appServices->getConfigurationValue(
+		m_esifHandle,
+		(const esif_handle_t)(UInt64)(DptfManagerInterface*)m_dptfManager,
+		EsifDataString(nameSpace),
+		EsifDataString(elementPath),
+		esifResult);
+
+	throwIfNotSuccessful(FLF, rc, string("Failed to read configuration UInt32 for ") + elementPath + string("."));
+
+	return esifResult;
+}
+
 void EsifServices::writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue)
 {
 	eEsifError rc = m_appServices->setConfigurationValue(
@@ -141,6 +157,33 @@ std::string EsifServices::readConfigurationString(const std::string& elementPath
 	return buffer.toString();
 }
 
+std::string EsifServices::readConfigurationString(const std::string& nameSpace, const std::string& elementPath)
+{
+	DptfBuffer buffer(Constants::DefaultBufferSize);
+	EsifDataContainer esifData(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
+	eEsifError rc = m_appServices->getConfigurationValue(
+		m_esifHandle,
+		(const esif_handle_t)(UInt64)m_dptfManager,
+		EsifDataString(nameSpace),
+		EsifDataString(elementPath),
+		esifData);
+	if (rc == ESIF_E_NEED_LARGER_BUFFER)
+	{
+		buffer.allocate(esifData.getDataLength());
+		EsifDataContainer esifDataTryAgain(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
+		rc = m_appServices->getConfigurationValue(
+			m_esifHandle,
+			(const esif_handle_t)(UInt64)m_dptfManager,
+			EsifDataString(nameSpace),
+			EsifDataString(elementPath),
+			esifDataTryAgain);
+	}
+	throwIfNotSuccessful(FLF, rc, string("Failed to read configuration string for ") + elementPath + string("."));
+
+	buffer.trim(esifData.getDataLength());
+	return buffer.toString();
+}
+
 DptfBuffer EsifServices::readConfigurationBinary(const std::string& elementPath)
 {
 	DptfBuffer buffer(Constants::DefaultBufferSize);
@@ -163,6 +206,39 @@ DptfBuffer EsifServices::readConfigurationBinary(const std::string& elementPath)
 			esifDataTryAgain);
 	}
 	throwIfNotSuccessful(FLF, rc, string("Failed to read configuration binary for ") + elementPath + string("."));
+
+	buffer.trim(esifData.getDataLength());
+	return buffer;
+}
+
+DptfBuffer EsifServices::readConfigurationBinaryFromNameSpace(
+	const std::string& nameSpace,
+	const std::string& elementPath)
+{
+	DptfBuffer buffer(Constants::DefaultBufferSize);
+	EsifDataContainer esifData(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
+	eEsifError rc = m_appServices->getConfigurationValue(
+		m_esifHandle,
+		(const esif_handle_t)(UInt64)m_dptfManager,
+		EsifDataString(nameSpace),
+		EsifDataString(elementPath),
+		esifData);
+	if (rc == ESIF_E_NEED_LARGER_BUFFER)
+	{
+		buffer.allocate(esifData.getDataLength());
+		EsifDataContainer esifDataTryAgain(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
+		rc = m_appServices->getConfigurationValue(
+			m_esifHandle,
+			(const esif_handle_t)(UInt64)m_dptfManager,
+			EsifDataString(nameSpace),
+			EsifDataString(elementPath),
+			esifDataTryAgain);
+	}
+	throwIfNotSuccessful(
+		FLF,
+		rc,
+		string("Failed to read configuration binary for ") + elementPath + string(" from Data Vault ") + nameSpace
+			+ string("."));
 
 	buffer.trim(esifData.getDataLength());
 	return buffer;
@@ -687,6 +763,12 @@ void EsifServices::primitiveExecuteSet(
 {
 	throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
+	char nonEmptyBuffer[1] = {0};
+	if (esifDataType == esif_data_type::ESIF_DATA_BINARY && bufferPtr == NULL && bufferLength == 0 && dataLength == 0)
+	{
+		bufferPtr = nonEmptyBuffer;
+	}
+
 	eEsifError rc = m_appServices->executePrimitive(
 		m_esifHandle,
 		(const esif_handle_t)(UInt64)m_dptfManager,
@@ -999,7 +1081,9 @@ void EsifServices::sendDptfEvent(
 	}
 }
 
-eEsifError EsifServices::sendCommand(UInt32 argc, EsifDataArray argv, EsifDataPtr response)
+eEsifError EsifServices::sendCommand(UInt32 argc, const std::string& argv)
 {
-	return m_appServices->sendCommand(m_esifHandle, (const esif_handle_t)(UInt64)m_dptfManager, argc, argv, response);
+	DptfBuffer buffer(Constants::DefaultBufferSize);
+	EsifDataContainer response(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
+	return m_appServices->sendCommand(m_esifHandle, (const esif_handle_t)(UInt64)m_dptfManager, argc, EsifDataString(argv), response);
 }

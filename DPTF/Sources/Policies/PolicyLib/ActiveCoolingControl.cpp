@@ -272,6 +272,21 @@ void ActiveCoolingControl::setFanSpeed(const Percentage& fanSpeed)
 	result.throwIfFailure();
 }
 
+Bool ActiveCoolingControl::setFanDirection(const UInt32 fanDirection)
+{
+	if (supportsActiveCoolingControls())
+	{
+		DptfRequest request(DptfRequestType::ActiveControlSetFanDirection, m_participantIndex, m_domainIndex);
+		request.setDataFromUInt32(fanDirection);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		return result.isSuccessful();
+	}
+	else
+	{
+		throw dptf_exception("Domain does not support the active control interface.");
+	}
+} 
+
 ActiveControlSet ActiveCoolingControl::getActiveControlSet()
 {
 	DptfRequest request(DptfRequestType::ActiveControlGetControlSet, m_participantIndex, m_domainIndex);

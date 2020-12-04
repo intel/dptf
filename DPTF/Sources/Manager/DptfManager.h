@@ -30,6 +30,7 @@ class WorkItemQueueManagerInterface;
 class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DptfStatusInterface;
+class DataManagerInterface;
 
 //
 // DPTF starts here!!!
@@ -65,6 +66,7 @@ public:
 	virtual ICommandDispatcher* getCommandDispatcher() const override;
 	virtual DptfStatusInterface* getDptfStatus(void) override;
 	virtual IndexContainerInterface* getIndexContainer(void) const override;
+	virtual DataManagerInterface* getDataManager(void) const override;
 	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
 	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const override;
 
@@ -123,6 +125,8 @@ private:
 	DptfStatusInterface* m_dptfStatus;
 
 	IndexContainerInterface* m_indexContainer;
+
+	DataManagerInterface* m_dataManager;
 
 	std::string m_dptfHomeDirectoryPath;
 	std::string m_dptfPolicyDirectoryPath;

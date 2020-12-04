@@ -107,7 +107,7 @@ typedef eEsifError(ESIF_CALLCONV *AppPrimitiveFunction)(
 	const EsifDataPtr request,	/* Request data for SET_* based primitives */
 	EsifDataPtr response,		/* Response data for GET_* based primitives */
 	const ePrimitiveType primitive,	/* Primitive ID e.g. GET_TEMPERATURE */
-	const UInt8 instance		/* Primitive instance may be 255 or ESIF_NO_INSTANCE */
+	const UInt8 instance		/* Primitive instance may be 255 or ESIF_INSTANCE_INVALID */
 );
 
 /* Write Log */

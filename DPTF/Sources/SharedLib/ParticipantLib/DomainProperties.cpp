@@ -168,6 +168,11 @@ Bool DomainProperties::implementsSocWorkloadClassificationInterface(void) const
 	return isInterfaceImplemented(m_domainFunctionalityVersions.socWorkloadClassificationVersion);
 }
 
+Bool DomainProperties::implementsDynamicEppInterface() const
+{
+	return isInterfaceImplemented(m_domainFunctionalityVersions.dynamicEppVersion);
+}
+
 std::shared_ptr<XmlNode> DomainProperties::getXml() const
 {
 	auto properties = XmlNode::createWrapperElement("domain_properties");

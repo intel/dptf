@@ -38,10 +38,14 @@ public:
 	virtual DisplayControlDynamicCaps getDisplayControlDynamicCaps(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UIntN getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
 	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	virtual void setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override;
+	virtual void updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDisplayControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,
@@ -72,7 +76,7 @@ private:
 	UIntN getLowerLimitIndex(UIntN domainIndex, DisplayControlSet displaySet);
 	UIntN getUpperLimitIndex(UIntN domainIndex, DisplayControlSet displaySet);
 	UIntN getAllowableDisplayBrightnessIndex(UIntN participantIndex, UIntN domainIndex, UIntN requestedIndex);
-
+	
 	// Vars (external)
 	CachedValue<DisplayControlDynamicCaps> m_displayControlDynamicCaps;
 	CachedValue<DisplayControlSet> m_displayControlSet;
@@ -80,6 +84,7 @@ private:
 	// Vars (internal)
 	UIntN m_userPreferredIndex;
 	UIntN m_lastSetDisplayBrightness;
+	UIntN m_userPreferredSoftBrightnessIndex;
 	Bool m_isUserPreferredIndexModified;
 	Bool m_capabilitiesLocked;
 };

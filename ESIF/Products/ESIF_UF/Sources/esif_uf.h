@@ -146,7 +146,7 @@ extern enum output_format g_format;
 #define MAX_LINE 256
 
 // Functions
-unsigned int esif_atoi(const esif_string value);
+UInt32 esif_atoi(const esif_string value);
 UInt64 esif_atoi64(const esif_string str);
 
 //

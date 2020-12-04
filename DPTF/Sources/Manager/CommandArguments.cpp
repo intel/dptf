@@ -19,6 +19,7 @@
 #include "CommandArguments.h"
 
 CommandArguments::CommandArguments()
+	: m_arguments()
 {
 }
 

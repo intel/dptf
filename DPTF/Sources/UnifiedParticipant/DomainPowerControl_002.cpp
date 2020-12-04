@@ -72,6 +72,11 @@ void DomainPowerControl_002::setPowerCapsLock(UIntN participantIndex, UIntN doma
 	m_capabilitiesLocked = lock;
 }
 
+TimeSpan DomainPowerControl_002::getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
 Bool DomainPowerControl_002::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)
 {
 	return true;
@@ -101,21 +106,47 @@ Power DomainPowerControl_002::getPowerLimit(
 {
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForPowerLimit(controlType);
-	if (m_pl1Limit.isInvalid())
+	CachedValue<Power> plLimit;
+	
+	switch (controlType)
+	{
+	case PowerControlType::PL1:
+		plLimit = getRaplPowerLimit(participantIndex, domainIndex, controlType, m_pl1Limit);
+		break;
+	case PowerControlType::PL2:
+		plLimit = getRaplPowerLimit(participantIndex, domainIndex, controlType, m_pl2Limit);
+		break;
+	case PowerControlType::PL4:
+		plLimit = getRaplPowerLimit(participantIndex, domainIndex, controlType, m_pl4Limit);
+		break;
+	default:
+		throw dptf_exception("Invalid Power Control Type.");
+	}
+
+	return plLimit.get();
+}
+
+CachedValue<Power> DomainPowerControl_002::getRaplPowerLimit(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	PowerControlType::Type controlType,
+	CachedValue<Power> plLimit)
+{
+	if (plLimit.isInvalid())
 	{
 		try
 		{
-			m_pl1Limit.set(getParticipantServices()->primitiveExecuteGetAsPower(
+			plLimit.set(getParticipantServices()->primitiveExecuteGetAsPower(
 				esif_primitive_type::GET_RAPL_POWER_LIMIT, domainIndex, (UInt8)controlType));
 		}
 		catch (...)
 		{
-			m_pl1Limit.set(getPowerControlDynamicCapsSet(participantIndex, domainIndex)
-							   .getCapability(PowerControlType::PL1)
+			plLimit.set(getPowerControlDynamicCapsSet(participantIndex, domainIndex)
+							   .getCapability(controlType)
 							   .getMaxPowerLimit());
 		}
 	}
-	return m_pl1Limit.get();
+	return plLimit;
 }
 
 Power DomainPowerControl_002::getPowerLimitWithoutCache(
@@ -159,7 +190,22 @@ void DomainPowerControl_002::setPowerLimit(
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForPowerLimit(controlType);
 	throwIfPowerLimitIsOutsideCapabilityRange(controlType, powerLimit);
-	m_pl1Limit.set(powerLimit);
+
+	switch (controlType)
+	{
+	case PowerControlType::PL1:
+		m_pl1Limit.set(powerLimit);
+		break;
+	case PowerControlType::PL2:
+		m_pl2Limit.set(powerLimit);
+		break;
+	case PowerControlType::PL4:
+		m_pl4Limit.set(powerLimit);
+		break;
+	default:
+		throw dptf_exception("Invalid Power Control Type.");
+	}
+
 	getParticipantServices()->primitiveExecuteSetAsPower(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT,
 		powerLimit,
@@ -222,7 +268,21 @@ void DomainPowerControl_002::setPowerLimitIgnoringCaps(
 	throwIfLimitNotEnabled(controlType);
 	throwIfTypeInvalidForPowerLimit(controlType);
 
-	m_pl1Limit.set(powerLimit);
+	switch (controlType)
+	{
+	case PowerControlType::PL1:
+		m_pl1Limit.set(powerLimit);
+		break;
+	case PowerControlType::PL2:
+		m_pl2Limit.set(powerLimit);
+		break;
+	case PowerControlType::PL4:
+		m_pl4Limit.set(powerLimit);
+		break;
+	default:
+		throw dptf_exception("Invalid Power Control Type.");
+	}
+
 	getParticipantServices()->primitiveExecuteSetAsPower(
 		esif_primitive_type::SET_RAPL_POWER_LIMIT,
 		powerLimit,
@@ -515,7 +575,7 @@ std::string DomainPowerControl_002::getName(void)
 
 void DomainPowerControl_002::throwIfLimitNotEnabled(PowerControlType::Type controlType)
 {
-	if (controlType != PowerControlType::PL1 || isEnabled(controlType) == false)
+	if (isEnabled(controlType) == false)
 	{
 		std::string message = PowerControlType::ToString(controlType) + " is disabled.";
 		throw dptf_exception(message);

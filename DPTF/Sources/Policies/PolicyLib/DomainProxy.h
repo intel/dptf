@@ -37,6 +37,7 @@
 #include "PlatformPowerStatusFacade.h"
 #include "BatteryStatusFacade.h"
 #include "SocWorkloadClassificationFacade.h"
+#include "DynamicEppFacade.h"
 
 #include "PowerControlKnob.h"
 #include "DisplayControlKnob.h"
@@ -84,6 +85,7 @@ public:
 	virtual std::shared_ptr<PlatformPowerStatusFacadeInterface> getPlatformPowerStatus() override;
 	virtual std::shared_ptr<BatteryStatusFacadeInterface> getBatteryStatus() override;
 	virtual std::shared_ptr<SocWorkloadClassificationFacadeInterface> getSocWorkloadClassification() override;
+	virtual std::shared_ptr<DynamicEppFacadeInterface> getDynamicEpp() override;
 
 	// status
 	virtual std::shared_ptr<XmlNode> getXml() const override;
@@ -111,6 +113,7 @@ protected:
 	std::shared_ptr<PlatformPowerStatusFacade> m_platformPowerStatus;
 	std::shared_ptr<BatteryStatusFacade> m_batteryStatus;
 	std::shared_ptr<SocWorkloadClassificationFacade> m_socWorkloadClassification;
+	std::shared_ptr<DynamicEppFacade> m_dynamicEpp;
 
 	// services
 	PolicyServicesInterfaceContainer m_policyServices;

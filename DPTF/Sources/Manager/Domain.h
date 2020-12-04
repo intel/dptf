@@ -81,11 +81,15 @@ public:
 	// Display controls
 	DisplayControlDynamicCaps getDisplayControlDynamicCaps(void);
 	UIntN getUserPreferredDisplayIndex(void);
+	UIntN getUserPreferredSoftBrightnessIndex(void);
 	Bool isUserPreferredIndexModified(void);
 	UIntN getSoftBrightnessIndex(void);
 	DisplayControlStatus getDisplayControlStatus(void);
 	DisplayControlSet getDisplayControlSet(void);
 	void setDisplayControl(UIntN policyIndex, UIntN displayControlIndex);
+	void setSoftBrightness(UIntN policyIndex, UIntN displayControlIndex);
+	void updateUserPreferredSoftBrightnessIndex(void);
+	void restoreUserPreferredSoftBrightness(void);
 	void setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities);
 	void setDisplayCapsLock(UIntN policyIndex, Bool lock);
 
@@ -133,6 +137,7 @@ public:
 	void setPowerLimitDutyCycle(UIntN policyIndex, PowerControlType::Type controlType, const Percentage& dutyCycle);
 	void setSocPowerFloorState(UIntN policyIndex, Bool socPowerFloorState);
 	void setPowerCapsLock(UIntN policyIndex, Bool lock);
+	TimeSpan getPowerSharePowerLimitTimeWindow();
 	Bool isPowerShareControl();
 	double getPidKpTerm();
 	double getPidKiTerm();

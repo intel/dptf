@@ -33,9 +33,11 @@
 #include "DiagCommand.h"
 #include "ReloadCommand.h"
 #include "StatusCommand.h"
+#include "TableObjectCommand.h"
 #include "ManagerLogger.h"
 #include "PlatformRequestHandler.h"
 #include "EsifLibrary.h"
+#include "DataManager.h"
 
 DptfManager::DptfManager(void)
 	: m_dptfManagerCreateStarted(false)
@@ -53,6 +55,7 @@ DptfManager::DptfManager(void)
 	, m_fileIo(nullptr)
 	, m_dptfStatus(nullptr)
 	, m_indexContainer(nullptr)
+	, m_dataManager(nullptr)
 	, m_dptfHomeDirectoryPath(Constants::EmptyString)
 	, m_dptfPolicyDirectoryPath(Constants::EmptyString)
 	, m_dptfReportDirectoryPath(Constants::EmptyString)
@@ -138,6 +141,8 @@ void DptfManager::createDptfManager(
 		registerCommands();
 
 		m_policyManager = new PolicyManager(this);
+
+		m_dataManager = new DataManager(this);
 
 		// Make sure to create these AFTER creating the ParticipantManager and PolicyManager
 		m_workItemQueueManager = new WorkItemQueueManager(this);
@@ -230,6 +235,11 @@ DptfStatusInterface* DptfManager::getDptfStatus(void)
 IndexContainerInterface* DptfManager::getIndexContainer(void) const
 {
 	return m_indexContainer;
+}
+
+DataManagerInterface* DptfManager::getDataManager(void) const
+{
+	return m_dataManager;
 }
 
 std::string DptfManager::getDptfHomeDirectoryPath(void) const
@@ -558,6 +568,7 @@ void DptfManager::createCommands()
 	m_commands.push_back(std::make_shared<DiagCommand>(this, m_fileIo));
 	m_commands.push_back(std::make_shared<ReloadCommand>(this));
 	m_commands.push_back(std::make_shared<StatusCommand>(this));
+	m_commands.push_back(std::make_shared<TableObjectCommand>(this));
 }
 
 std::shared_ptr<EventCache> DptfManager::getEventCache(void) const

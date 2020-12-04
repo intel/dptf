@@ -132,6 +132,7 @@ static char *g_RestApiWhitelist[] = {
 	"about",
 	"actionstart",
 	"actionstop",
+	"apps",
 	"appstart",
 	"appstop",
 	"capture",

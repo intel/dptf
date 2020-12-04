@@ -41,6 +41,8 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "ActiveControlSetDynamicCaps";
 	case ActiveControlSetFanCapsLock:
 		return "ActiveControlSetFanCapsLock";
+	case ActiveControlSetFanDirection:
+		return "ActiveControlSetFanDirection";
 	case BatteryStatusGetMaxBatteryPower:
 		return "BatteryStatusGetMaxBatteryPower";
 	case BatteryStatusGetBatteryStatus:
@@ -93,6 +95,10 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "TemperatureControlIsVirtualTemperatureControl";
 	case TemperatureControlSetVirtualTemperature:
 		return "TemperatureControlSetVirtualTemperature";
+	case DynamicEppGetEppSensitivityHint:
+		return "DynamicEppGetEppSensitivityHint";
+	case DynamicEppGetDynamicEppSupport:
+		return "DynamicEppGetDynamicEppSupport";
 	default:
 		throw dptf_exception("Invalid request type given to ToString");
 	}

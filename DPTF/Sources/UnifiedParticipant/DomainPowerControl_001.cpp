@@ -75,6 +75,12 @@ void DomainPowerControl_001::setPowerCapsLock(UIntN participantIndex, UIntN doma
 	m_capabilitiesLocked = lock;
 }
 
+TimeSpan DomainPowerControl_001::getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex)
+{
+	return getParticipantServices()->primitiveExecuteGetAsTimeInMilliseconds(
+		esif_primitive_type::GET_POWERSHARE_POWER_LIMIT_TIME_WINDOW, domainIndex, Constants::Esif::NoInstance);
+}
+
 Bool DomainPowerControl_001::isPowerShareControl(UIntN participantIndex, UIntN domainIndex)
 {
 	return false;

@@ -31,10 +31,14 @@ public:
 		override final;
 	virtual DisplayControlStatus getDisplayControlStatus(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UIntN getUserPreferredDisplayIndex(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UIntN getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Bool isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UIntN getSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual DisplayControlSet getDisplayControlSet(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual void setDisplayControl(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override final;
+	virtual void setSoftBrightness(UIntN participantIndex, UIntN domainIndex, UIntN displayControlIndex) override final;
+	virtual void updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual void setDisplayControlDynamicCaps(
 		UIntN participantIndex,
 		UIntN domainIndex,

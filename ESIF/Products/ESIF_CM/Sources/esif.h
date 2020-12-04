@@ -63,6 +63,10 @@
 /* Build option to enable simulation support */
 /* #define ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED */
 
+/* Build option to enable the primitive arbitrator */
+#define ESIF_FEAT_OPT_ARBITRATOR_ENABLED  
+
+
 #ifdef ESIF_ATTR_OS_LINUX	/* All Linux-Derived OS */
 
 /*

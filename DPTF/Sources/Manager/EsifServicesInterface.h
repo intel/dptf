@@ -46,9 +46,14 @@ public:
 	// Read/write configuration data.
 
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) = 0;
+	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) = 0;
 	virtual std::string readConfigurationString(const std::string& elementPath) = 0;
+	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) = 0;
 	virtual DptfBuffer readConfigurationBinary(const std::string& elementPath) = 0;
+	virtual DptfBuffer readConfigurationBinaryFromNameSpace(
+		const std::string& nameSpace,
+		const std::string& elementPath) = 0;
 
 	// Primitives
 
@@ -223,5 +228,5 @@ public:
 		UIntN domainIndex,
 		EsifData eventData) = 0;
 
-	virtual eEsifError sendCommand(UInt32 argc, EsifDataArray argv, EsifDataPtr response) = 0;
+	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) = 0;
 };

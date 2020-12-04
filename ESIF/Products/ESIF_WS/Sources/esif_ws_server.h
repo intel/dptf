@@ -97,6 +97,7 @@ typedef struct WebClient_s {
 // Default IP/ports
 #define WS_DEFAULT_IPADDR		"127.0.0.1"	// Loopback Interface only (localhost)
 #define WS_DEFAULT_PORT			8888		// Standard Port
+#define WS_DEFAULT_FLAGS		0			// Standard Flags
 
 #define CRLF	"\r\n"
 

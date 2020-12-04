@@ -47,6 +47,9 @@ public:
 	virtual void lockCapabilities() override;
 	virtual void unlockCapabilities() override;
 
+	//fan direction 
+	virtual Bool setFanDirection(const UInt32 fanDirection) override;
+
 	// fan speed requests
 	virtual void requestFanSpeedPercentage(UIntN requestorIndex, const Percentage& fanSpeed) override;
 	virtual void forceFanOff(void) override;

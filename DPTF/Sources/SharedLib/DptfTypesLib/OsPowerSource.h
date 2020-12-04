@@ -26,7 +26,8 @@ namespace OsPowerSource
 	{
 		AC = 0,
 		DC = 1,
-		ShortTermDC = 2
+		ShortTermDC = 2,
+		Invalid
 	};
 
 	std::string toString(OsPowerSource::Type osPowerSource);

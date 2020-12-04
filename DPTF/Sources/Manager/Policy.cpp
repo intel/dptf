@@ -395,6 +395,17 @@ void Policy::executeDomainSocWorkloadClassificationChanged(
 	}
 }
 
+void Policy::executeDomainEppSensitivityHintChanged(
+	UIntN participantIndex, 
+	UIntN domainIndex, 
+	MbtHint::Type mbtHint)
+{
+	if (isEventRegistered(PolicyEvent::DomainEppSensitivityHintChanged))
+	{
+		m_theRealPolicy->domainEppSensitivityHintChanged(participantIndex, domainIndex, mbtHint);
+	}
+}
+
 void Policy::executeParticipantSpecificInfoChanged(UIntN participantIndex)
 {
 	if (isEventRegistered(PolicyEvent::ParticipantSpecificInfoChanged))
@@ -1346,5 +1357,13 @@ void Policy::executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorre
 	if (isEventRegistered(PolicyEvent::PolicyUserPresenceCorrelationChanged))
 	{
 		m_theRealPolicy->userPresenceCorrelationStatusChanged(correlationStatus);
+	}
+}
+
+void Policy::executePolicyForegroundRatioChanged(UIntN ratio)
+{
+	if (isEventRegistered(PolicyEvent::PolicyForegroundRatioChanged))
+	{
+		m_theRealPolicy->foregroundRatioChanged(ratio);
 	}
 }

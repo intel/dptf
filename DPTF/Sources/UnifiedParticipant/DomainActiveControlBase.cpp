@@ -59,6 +59,9 @@ void DomainActiveControlBase::bindRequestHandlers()
 	bindRequestHandler(DptfRequestType::ActiveControlSetFanSpeed, [=](const PolicyRequest& policyRequest) {
 		return this->handleSetFanSpeed(policyRequest);
 	});
+	bindRequestHandler(DptfRequestType::ActiveControlSetFanDirection, [=](const PolicyRequest& policyRequest) {
+		return this->handleSetFanDirection(policyRequest);
+	});
 	bindRequestHandler(DptfRequestType::ActiveControlSetDynamicCaps, [=](const PolicyRequest& policyRequest) {
 		return this->handleSetDynamicCaps(policyRequest);
 	});
@@ -168,6 +171,27 @@ DptfRequestResult DomainActiveControlBase::handleSetFanSpeed(const PolicyRequest
 	}
 	m_arbitratorFanSpeed.commitRequest(policyIndex, fanSpeedRequest);
 	return DptfRequestResult(true, "Set fan speed for policy.", request);
+}
+
+DptfRequestResult DomainActiveControlBase::handleSetFanDirection(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+	auto fanDirectionRequest = request.getDataAsUInt32();
+
+	try
+	{
+		setActiveControlFanDirection(fanDirectionRequest);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::stringstream message;
+		message << "Set fan direction for policy FAILED: " << ex.getDescription();
+		return DptfRequestResult(false, message.str(), request);
+	}
+
+	std::stringstream message;
+	message << "Set fan direction for policy.";
+	return DptfRequestResult(true, message.str(), request);
 }
 
 DptfRequestResult DomainActiveControlBase::handleSetDynamicCaps(const PolicyRequest& policyRequest)

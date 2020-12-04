@@ -66,6 +66,18 @@ eEsifError EsifApp_Stop(EsifAppPtr self);
 
 void EsifApp_Destroy(EsifAppPtr self);
 
+//
+// FRIEND FUNCTIONS
+//
+#if defined(ESIF_FEAT_OPT_ARBITRATOR_ENABLED)
+/* Remove arbitration requests for the given ESIF application */ 
+void EsifArbMgr_RemoveApp(
+	esif_handle_t appHandle
+);
+#else
+#define EsifArbMgr_RemoveApp(app)
+#endif
+
 
 /*
 * Takes an additional reference on the app which prevents the app from being
@@ -1166,6 +1178,9 @@ eEsifError EsifApp_Stop(EsifAppPtr self)
 	if (self->fInterface.fAppDestroyFuncPtr) {
 		rc = self->fInterface.fAppDestroyFuncPtr(self->fAppCtxHandle);
 	}
+
+	/* Inform arbitrator the ESIF app no longer requires arbitration */
+	EsifArbMgr_RemoveApp(self->fHandle);
 exit:
 	return rc;
 }

@@ -20,6 +20,7 @@
 #include "esif_uf_loggingmgr.h"
 #include "esif_temp.h"
 #include "esif_sdk_fan.h"
+#include "esif_uf_event_cache.h"
 
 
 #define ESIF_INVALID_DATA        0xFFFFFFFF
@@ -34,7 +35,8 @@ UInt32 g_statusCapability[] = {
 	ESIF_CAPABILITY_TYPE_POWER_STATUS,
 	ESIF_CAPABILITY_TYPE_UTIL_STATUS,
 	ESIF_CAPABILITY_TYPE_BATTERY_STATUS,
-	ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL
+	ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL,
+	ESIF_CAPABILITY_TYPE_MANAGER
 };
 
 EsifLoggingManager g_loggingManager = { 0 };
@@ -1234,14 +1236,10 @@ static eEsifError EsifLogMgr_AddAllParticipants(EsifLoggingManagerPtr self)
 	}
 	
 	while (ESIF_OK == rc) {
-		if (!EsifUp_IsPrimaryParticipant(upPtr)) {
-			// Add participant only if participant can log data
-			// DPTF/IETM participant has no data to log
-			rc = EsifLogMgr_AddParticipant(self, upPtr);
-			if (rc != ESIF_OK) {
-				ESIF_TRACE_ERROR("EsifLogMgr_AddParticipant() failed with status : %s (%d)", esif_rc_str(rc), rc);
-				goto exit;
-			}
+		rc = EsifLogMgr_AddParticipant(self, upPtr);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_ERROR("EsifLogMgr_AddParticipant() failed with status : %s (%d)", esif_rc_str(rc), rc);
+			goto exit;
 		}
 		rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
 	}
@@ -1653,13 +1651,6 @@ static eEsifError EsifLogMgr_GetParticipantId(
 	if (NULL == upPtr) {
 		rc = ESIF_E_PARTICIPANT_NOT_FOUND;
 		ESIF_TRACE_ERROR("Error:Participant Not Found");
-		goto exit;
-	}
-
-	//Throw error if participant is DPTFZ/IETM as they have no data to log
-	if (EsifUp_IsPrimaryParticipant(upPtr)) {
-		rc = ESIF_E_INVALID_PARTICIPANT_ID;
-		ESIF_TRACE_ERROR("Error: Participant %s cannot be logged (no data)", participantstr);
 		goto exit;
 	}
 
@@ -2212,6 +2203,12 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 		break;
 	case ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL:
 		esif_ccb_sprintf_concat(dataLength, logString, " %s_D%d_TCC Offset(C), %s_D%d_Under Voltage Threshold (mV),", participantName, domainId, participantName, domainId);
+		break;
+	case ESIF_CAPABILITY_TYPE_MANAGER:
+		esif_ccb_sprintf_concat(dataLength, logString, " OS Power Source, OS Battery Percent, OS Dock Mode, OS Game Mode, OS Lid State, OS Power Slider, OS User Interaction,"
+			" OS User Presence, OS Screen State, Device Orientation, In Motion, System Cooling Mode, OS Platform Type,"
+			" Display Orientation, OS Power Scheme Personality, OS Mixed Reality Mode, Platform User Presence, Foreground Background Ratio,");
+		break;
 	default:
 		break;
 	}
@@ -2444,6 +2441,36 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			esif_ccb_sprintf_concat(dataLength, logString, " %.1f, %u,", temp / 10.0, capabilityPtr->data.processorControlStatus.uvth);
 			break;
 		}
+		case ESIF_CAPABILITY_TYPE_MANAGER:
+		{
+			if (capabilityPtr->data.managerStatus.osPowerSource == ESIF_INVALID_DATA) {
+				esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+			}
+			else {
+				esif_ccb_sprintf_concat(dataLength, logString, " %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,",
+					capabilityPtr->data.managerStatus.osPowerSource,
+					capabilityPtr->data.managerStatus.batteryPercent,
+					capabilityPtr->data.managerStatus.dockMode,
+					capabilityPtr->data.managerStatus.gameMode,
+					capabilityPtr->data.managerStatus.lidState,
+					capabilityPtr->data.managerStatus.powerSlider,
+					capabilityPtr->data.managerStatus.userInteraction,
+					capabilityPtr->data.managerStatus.userPresence,
+					capabilityPtr->data.managerStatus.screenState,
+					capabilityPtr->data.managerStatus.deviceOrientation,
+					capabilityPtr->data.managerStatus.inMotion,
+					capabilityPtr->data.managerStatus.systemCoolingMode,
+					capabilityPtr->data.managerStatus.platformType,
+					capabilityPtr->data.managerStatus.displayOrientation,
+					capabilityPtr->data.managerStatus.powerSchemePersonality,
+					capabilityPtr->data.managerStatus.mixedRealityMode,
+					capabilityPtr->data.managerStatus.platformUserPresence,
+					capabilityPtr->data.managerStatus.foregroundBackgroundRatio
+				);
+			}
+			break;
+		}
+			
 		default:
 			rc = ESIF_E_UNSPECIFIED;
 			break;
@@ -2508,6 +2535,9 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		}
 		case ESIF_CAPABILITY_TYPE_PEAK_POWER_CONTROL:
 			esif_ccb_sprintf_concat(dataLength, logString, " X, X,");
+			break;
+		case ESIF_CAPABILITY_TYPE_MANAGER:
+			esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			break;
 		default:
 			rc = ESIF_E_UNSPECIFIED;
@@ -2734,6 +2764,136 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			temp = 0;
 		}
 		dataNodePtr->capabilityData.data.processorControlStatus.tccOffset = temp;
+		break;
+	}
+	case ESIF_CAPABILITY_TYPE_MANAGER:
+	{
+		UInt32 eventData = ESIF_INVALID_DATA;
+		struct esif_data capabilityEventData = { ESIF_DATA_UINT32, &eventData, sizeof(eventData), sizeof(eventData) };
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os power source event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.osPowerSource = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os battery percent event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.batteryPercent = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_DOCK_MODE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os dock mode event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.dockMode = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_GAME_MODE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os game mode event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.gameMode = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_LID_STATE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os lid state event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.lidState = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os power slider event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.powerSlider = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_USER_INTERACTION_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os user interaction event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.userInteraction = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_USER_PRESENCE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os user presence event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.userPresence = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_SCREEN_STATE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os screen state event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.screenState = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_DEVICE_ORIENTATION_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve device orientation event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.deviceOrientation = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_MOTION_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve in motion event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.inMotion = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve system cooling mode event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.systemCoolingMode = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve platform type event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.platformType = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve display orientation event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.displayOrientation = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os power scheme personality event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.powerSchemePersonality = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve os mixed reality mode event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.mixedRealityMode = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve platform user presence event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.platformUserPresence = eventData;
+
+		eventData = ESIF_INVALID_DATA;
+		rc = EsifEventCache_GetValue(ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED, &capabilityEventData);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_INFO("Failed to retrieve foreground background ratio event cache data \n");
+		}
+		dataNodePtr->capabilityData.data.managerStatus.foregroundBackgroundRatio = eventData;
 		break;
 	}
 	// WARNING:  Any new cases must be added to g_statusCapability

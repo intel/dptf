@@ -152,6 +152,7 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_POWER)        /* Device power state information  */ \
 	ENUM(ESIF_TRACEMODULE_PNP)          /* PnP information  */ \
 	ENUM(ESIF_TRACEMODULE_TABLEOBJECT)  /* TableObject  */ \
+	ENUM(ESIF_TRACEMODULE_ARBITRATION)  /* Arbitration  */ \
 
 enum esif_tracemodule {
 	ENUM_TRACEMODULE(ENUMDECL)

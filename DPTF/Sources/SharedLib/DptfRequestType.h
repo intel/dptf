@@ -35,6 +35,7 @@ namespace DptfRequestType
 		ActiveControlSetFanSpeed,
 		ActiveControlSetDynamicCaps,
 		ActiveControlSetFanCapsLock,
+		ActiveControlSetFanDirection,
 
 		// Battery Status
 		BatteryStatusGetMaxBatteryPower,
@@ -67,6 +68,10 @@ namespace DptfRequestType
 		// Soc Workload Classification
 		SocWorkloadClassificationGetSocWorkload,
 		SocWorkloadClassificationGetSocWorkloadSupport,
+
+		// Dynamic EPP
+		DynamicEppGetEppSensitivityHint,
+		DynamicEppGetDynamicEppSupport,
 
 		// Platform Notification
 		PlatformNotificationSetOsc,

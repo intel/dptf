@@ -86,6 +86,7 @@ namespace FrameworkEvent
 		DomainEnergyThresholdCrossed,
 		DomainFanCapabilityChanged,
 		DomainSocWorkloadClassificationChanged,
+		DomainEppSensitivityHintChanged,
 
 		// Policy events
 		PolicyCreate,
@@ -174,6 +175,7 @@ namespace FrameworkEvent
 		PolicyBiometricPresenceSensorInstanceChanged,
 		PolicyUserInteractionChanged,
 		PolicyUserPresenceCorrelationChanged,
+		PolicyForegroundRatioChanged,
 
 		// App Events
 		DptfAppLoaded,

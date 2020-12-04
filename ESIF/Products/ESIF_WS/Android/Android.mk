@@ -32,12 +32,13 @@ LOCAL_PROPRIETARY_MODULE := true
 
 LOCAL_SHARED_LIBRARIES := libdl liblog libcutils
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/ESIF_WS/Sources $(LOCAL_PATH)/../../Common
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/ESIF_WS/Sources $(LOCAL_PATH)/ESIF_LIB/Sources $(LOCAL_PATH)/../../Common
 
 LOCAL_SRC_FILES := ESIF_WS/Sources/esif_ws.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_http.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_server.c
 LOCAL_SRC_FILES += ESIF_WS/Sources/esif_ws_socket.c
+LOCAL_SRC_FILES += ESIF_LIB/Sources/esif_lib_istring.c
 LOCAL_SRC_FILES += ../../Common/esif_sdk_base64_enc.c
 
 include $(BUILD_SHARED_LIBRARY)

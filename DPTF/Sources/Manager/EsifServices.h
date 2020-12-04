@@ -35,9 +35,14 @@ public:
 	// Read/write configuration data.
 
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) override;
+	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) override;
 	virtual std::string readConfigurationString(const std::string& elementPath) override;
+	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual DptfBuffer readConfigurationBinary(const std::string& elementPath) override;
+	virtual DptfBuffer readConfigurationBinaryFromNameSpace(
+		const std::string& nameSpace,
+		const std::string& elementPath) override;
 
 	// Primitives
 
@@ -212,7 +217,7 @@ public:
 		UIntN domainIndex,
 		EsifData eventData) override;
 
-	virtual eEsifError sendCommand(UInt32 argc, EsifDataArray argv, EsifDataPtr response) override;
+	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) override;
 
 private:
 	// hide the copy constructor and assignment operator.

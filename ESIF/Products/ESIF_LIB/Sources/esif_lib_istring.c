@@ -287,7 +287,7 @@ ZString IString_Resize (
 		}
 	}
 	// Resize buffer if it is not a static string
-	if (self && self->buf_len > 0) {
+	if (self && self->buf_len > 0 && buf_len) {
 		ZString buf_ptr = (ZString)esif_ccb_realloc(self->buf_ptr, buf_len);
 		if (buf_ptr) {
 			if (buf_len > self->buf_len) {
@@ -295,6 +295,10 @@ ZString IString_Resize (
 			}
 			self->buf_ptr = buf_ptr;
 			self->buf_len = buf_len;
+			if (self->data_len > buf_len) {
+				self->data_len = buf_len;
+				((ZString)self->buf_ptr)[buf_len - 1] = 0;
+			}
 			return (ZString)self->buf_ptr;
 		}
 	}
@@ -594,3 +598,28 @@ ZString IString_Replace (
 }
 
 
+// Insert a ZString into an IString at offset, autogrow if necessary
+ZString IString_Insert (
+	IStringPtr self,
+	ZString src,
+	u32 offset
+	)
+{
+	ZString result = NULL;
+	if (self && src) {
+		u32 self_len = (self->data_len ? self->data_len - 1 : 0) + 1;
+		u32 src_len = (u32)esif_ccb_strlen(src, ZSTRING_MAXLEN);
+		offset = (offset > self_len ? self_len - 1 : offset);
+		if (self_len + src_len > self->buf_len) {
+#ifdef ISTRING_AUTOGROW
+			if (IString_Resize(self, self_len + src_len + ISTRING_AUTOGROW) == NULL)
+#endif
+				return 0;
+		}
+		esif_ccb_memmove((ZString)self->buf_ptr + offset + src_len, (ZString)self->buf_ptr + offset, self_len - offset);
+		esif_ccb_memmove((ZString)self->buf_ptr + offset, src, src_len);
+		self->data_len += src_len;
+		result = (ZString)self->buf_ptr;
+	}
+	return result;
+}

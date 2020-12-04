@@ -24,6 +24,7 @@ namespace OsPowerSlider
 {
 	enum Type
 	{
+		Invalid = 0,
 		BatterySaver = 25,
 		BetterBattery = 50,
 		BetterPerformance = 75,

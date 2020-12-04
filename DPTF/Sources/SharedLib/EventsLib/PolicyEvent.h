@@ -65,6 +65,7 @@ namespace PolicyEvent
 		DomainEnergyThresholdCrossed,
 		DomainFanCapabilityChanged,
 		DomainSocWorkloadClassificationChanged,
+		DomainEppSensitivityHintChanged,
 		PolicyActiveRelationshipTableChanged,
 		PolicyCoolingModePolicyChanged,
 		PolicyForegroundApplicationChanged,
@@ -151,6 +152,7 @@ namespace PolicyEvent
 		PolicyBiometricPresenceSensorInstanceChanged,
 		PolicyUserInteractionChanged,
 		PolicyUserPresenceCorrelationChanged,
+		PolicyForegroundRatioChanged,
 		Max
 	};
 

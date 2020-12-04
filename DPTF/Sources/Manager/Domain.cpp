@@ -324,6 +324,11 @@ UIntN Domain::getUserPreferredDisplayIndex(void)
 	return m_theRealParticipant->getUserPreferredDisplayIndex(m_participantIndex, m_domainIndex);
 }
 
+UIntN Domain::getUserPreferredSoftBrightnessIndex(void)
+{
+	return m_theRealParticipant->getUserPreferredSoftBrightnessIndex(m_participantIndex, m_domainIndex);
+}
+
 Bool Domain::isUserPreferredIndexModified()
 {
 	return m_theRealParticipant->isUserPreferredIndexModified(m_participantIndex, m_domainIndex);
@@ -352,6 +357,21 @@ void Domain::setDisplayControl(UIntN policyIndex, UIntN displayControlIndex)
 	m_theRealParticipant->setDisplayControl(m_participantIndex, m_domainIndex, arbitratedDisplayControlIndex);
 	clearDomainCachedDataDisplayControl();
 	displayControlArbitrator->commitPolicyRequest(policyIndex, displayControlIndex);
+}
+
+void Domain::setSoftBrightness(UIntN policyIndex, UIntN displayControlIndex)
+{
+	m_theRealParticipant->setSoftBrightness(m_participantIndex, m_domainIndex, displayControlIndex);
+}
+
+void Domain::updateUserPreferredSoftBrightnessIndex()
+{
+	m_theRealParticipant->updateUserPreferredSoftBrightnessIndex(m_participantIndex, m_domainIndex);
+}
+
+void Domain::restoreUserPreferredSoftBrightness()
+{
+	m_theRealParticipant->restoreUserPreferredSoftBrightness(m_participantIndex, m_domainIndex);
 }
 
 void Domain::setDisplayControlDynamicCaps(UIntN policyIndex, DisplayControlDynamicCaps newCapabilities)
@@ -793,6 +813,11 @@ void Domain::setPowerCapsLock(UIntN policyIndex, Bool lock)
 	{
 		m_theRealParticipant->setPowerCapsLock(m_participantIndex, m_domainIndex, arbitrator->getArbitratedLock());
 	}
+}
+
+TimeSpan Domain::getPowerSharePowerLimitTimeWindow()
+{
+	return m_theRealParticipant->getPowerSharePowerLimitTimeWindow(m_participantIndex, m_domainIndex);
 }
 
 Bool Domain::isPowerShareControl()

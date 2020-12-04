@@ -40,6 +40,7 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(void)
 	, processorControlVersion(0)
 	, batteryStatusVersion(0)
 	, socWorkloadClassificationVersion(0)
+	, dynamicEppVersion(0)
 {
 }
 
@@ -65,6 +66,7 @@ DomainFunctionalityVersions::DomainFunctionalityVersions(UInt8 capabilityBytes[]
 	processorControlVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL];
 	batteryStatusVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_BATTERY_STATUS];
 	socWorkloadClassificationVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION];
+	dynamicEppVersion = capabilityBytes[ESIF_CAPABILITY_TYPE_DYNAMIC_EPP];
 }
 
 Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& domainFunctionality)
@@ -89,7 +91,8 @@ Bool DomainFunctionalityVersions::operator==(const DomainFunctionalityVersions& 
 		&& (peakPowerControlVersion == domainFunctionality.peakPowerControlVersion)
 		&& (processorControlVersion == domainFunctionality.processorControlVersion)
 		&& (batteryStatusVersion == domainFunctionality.batteryStatusVersion)
-		&& (socWorkloadClassificationVersion == domainFunctionality.socWorkloadClassificationVersion));
+		&& (socWorkloadClassificationVersion == domainFunctionality.socWorkloadClassificationVersion)
+		&& (dynamicEppVersion == domainFunctionality.dynamicEppVersion));
 }
 
 Bool DomainFunctionalityVersions::operator!=(const DomainFunctionalityVersions& domainFunctionality)

@@ -43,11 +43,14 @@ out
 *.cpc
 *.dump
 dsp.dv
+ppm.dv
 esif_ufd
 dsp_compiler
+ppm_compiler
 /ESIF/Packages/Database/DSP-*.accdb
 /ESIF/Packages/Database/EXPORT
 /ESIF/Products/ESIF_UI/index.html
+/ESIF/Products/IPF_UI/index_ipf.html
 /Build/Linux/Artifacts
 /Build/Linux/Upstream
 /Build/Windows/Artifacts

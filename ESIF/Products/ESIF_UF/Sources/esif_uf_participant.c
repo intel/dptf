@@ -147,6 +147,15 @@ void EsifUpDomain_SetUpId(
 	esif_handle_t participantId
 );
 
+/* Friend Function - Called during participant destruction */
+#if defined(ESIF_FEAT_OPT_ARBITRATOR_ENABLED)
+void EsifArbMgr_DestroyArbitrationContext(
+	void *ctxPtr
+);
+#else
+#define EsifArbMgr_DestroyArbitrationContext(ctx)
+#endif
+
 #ifdef ESIF_FEAT_OPT_SIM_SUPPORT_ENABLED
 
 static eEsifError EsifUp_SimulationExecutePrimitive(
@@ -883,6 +892,11 @@ void EsifUp_DestroyParticipant(
 
 		ESIF_TRACE_INFO("Destroy participant %d : wait for delete event...\n", EsifUp_GetInstance(self));
 		esif_ccb_event_wait(&self->deleteEvent);
+
+		/*
+		* Destroy arbitration context contained within the participant.
+		*/
+		EsifArbMgr_DestroyArbitrationContext(self->arbitrationContext);
 
 		esif_ccb_event_uninit(&self->deleteEvent);
 		esif_ccb_lock_uninit(&self->objLock);
@@ -1942,6 +1956,28 @@ exit:
 	return replacedStr;
 }
 
+
+#if defined(ESIF_FEAT_OPT_ARBITRATOR_ENABLED)
+
+void *EsifUp_GetArbitrationContext(
+	EsifUpPtr self
+	)
+{
+	return (self) ? self->arbitrationContext : NULL;
+}
+
+
+void EsifUp_SetArbitrationContext(
+	EsifUpPtr self,
+	void *arbCtx
+	)
+{
+	if (self) {
+		self->arbitrationContext = arbCtx;
+	}
+}
+
+#endif /* ESIF_FEAT_OPT_ARBITRATOR_ENABLED */
 
 void EsifUp_SetInstance(
 	EsifUpPtr self,

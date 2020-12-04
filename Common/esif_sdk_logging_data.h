@@ -239,6 +239,27 @@ typedef struct _t_EsifPlatformPowerControl {
 	UInt32 portDataSet[MAX_PORT_NUMBER];
 } EsifPlatformPowerControl, *EsifPlatformPowerControlPtr;
 
+typedef struct _t_EsifManagerStatusData {
+	UInt32 osPowerSource;
+	UInt32 batteryPercent;
+	UInt32 dockMode;
+	UInt32 gameMode;
+	UInt32 lidState;
+	UInt32 powerSlider;
+	UInt32 userInteraction;
+	UInt32 userPresence;
+	UInt32 screenState;
+	UInt32 deviceOrientation;
+	UInt32 inMotion;
+	UInt32 systemCoolingMode;
+	UInt32 platformType;
+	UInt32 displayOrientation;
+	UInt32 powerSchemePersonality;
+	UInt32 mixedRealityMode;
+	UInt32 platformUserPresence;
+	UInt32 foregroundBackgroundRatio;
+} EsifManagerStatusData, * EsifManagerStatusDataPtr;
+
 typedef union _t_EsifCapability {
 	EsifActiveControlCapability activeControl;
 	EsifCoreControl coreControl;
@@ -259,6 +280,7 @@ typedef union _t_EsifCapability {
 	EsifPSysControl psysControl;
 	EsifPlatformPowerControl platformPowerControl;
 	EsifBatteryStatus batteryStatus;
+	EsifManagerStatusData managerStatus;
 } EsifCapability, *EsifCapabilityPtr;
 
 /* Capability Data */

@@ -326,6 +326,17 @@ std::shared_ptr<DomainSocWorkloadClassificationBase> UnifiedDomain::getSocWorklo
 	return ptr;
 }
 
+std::shared_ptr<DomainDynamicEppBase> UnifiedDomain::getDynamicEppControl()
+{
+	throwIfDomainNotEnabled();
+	std::shared_ptr<DomainDynamicEppBase> ptr = m_domainControls->getDynamicEppControl();
+	if (!ptr)
+	{
+		throw domain_control_nullptr();
+	}
+	return ptr;
+}
+
 std::shared_ptr<ParticipantServicesInterface> UnifiedDomain::getParticipantServices()
 {
 	return m_participantServicesInterface;

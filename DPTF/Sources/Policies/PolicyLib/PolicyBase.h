@@ -94,6 +94,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification);
+	virtual void onDomainEppSensitivityHintChanged(
+		UIntN participantIndex, 
+		UIntN domainIndex, 
+		MbtHint::Type mbtHint);
 	virtual void onActiveRelationshipTableChanged(void);
 	virtual void onThermalRelationshipTableChanged(void);
 	virtual void onAdaptiveUserPresenceTableChanged(void);
@@ -194,6 +198,7 @@ public:
 	virtual void onBiometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
 	virtual void onUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus);
+	virtual void onForegroundRatioChanged(UIntN ratio);
 
 	// Implementation of the Policy Interface
 	virtual void create(Bool enabled, const PolicyServicesInterfaceContainer& policyServices, UIntN policyIndex)
@@ -243,6 +248,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) override final;
+	virtual void domainEppSensitivityHintChanged(
+		UIntN participantIndex,
+		UIntN domainIndex, 
+		MbtHint::Type mbtHint) override final;
 	virtual void activeRelationshipTableChanged(void) override final;
 	virtual void thermalRelationshipTableChanged(void) override final;
 	virtual void adaptiveUserPresenceTableChanged(void) override final;
@@ -353,6 +362,7 @@ public:
 		BiometricPresenceSensorInstance::Type sensorInstance) override final;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
 	virtual void userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) override final;
+	virtual void foregroundRatioChanged(UIntN ratio) override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);

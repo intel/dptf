@@ -39,6 +39,7 @@
 #include "BiometricPresenceSensorInstance.h"
 #include "UserInteraction.h"
 #include "UserPresenceCorrelation.h"
+#include "MbtHint.h"
 
 class dptf_export PolicyInterface
 {
@@ -146,6 +147,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) = 0;
+	virtual void domainEppSensitivityHintChanged(
+		UIntN participantIndex, 
+		UIntN domainIndex, 
+		MbtHint::Type mbtHint) = 0;
 
 	// Policy Event Handlers
 	virtual void activeRelationshipTableChanged(void) = 0;
@@ -250,6 +255,7 @@ public:
 	virtual void biometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance) = 0;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) = 0;
 	virtual void userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) = 0;
+	virtual void foregroundRatioChanged(UIntN ratio) = 0;
 };
 
 //

@@ -28,9 +28,12 @@ public:
 	PolicyServicesPlatformConfigurationData(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
 	virtual UInt32 readConfigurationUInt32(const std::string& key) override final;
+	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) override final;
 	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) override final;
 	virtual std::string readConfigurationString(const std::string& key) override final;
+	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) override final;
 	virtual DptfBuffer readConfigurationBinary(const std::string& key) override final;
+	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) override final;
 
 	virtual TimeSpan getMinimumAllowableSamplePeriod(void) override final;
 
@@ -61,6 +64,15 @@ public:
 	virtual Bool getIsCVFSensor(void) override final;
 	virtual void setPidAlgorithmTable(DptfBuffer data) override final;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) override final;
+	virtual Bool getPositiveEventFilteringState(void) override final;
+	virtual Bool getNegativeEventFilteringState(void) override final;
+	virtual TimeSpan getPresentStabilityWindow(void) override final;
+	virtual TimeSpan getDisengagedStabilityWindow(void) override final;
+	virtual TimeSpan getNotPresentStabilityWindow(void) override final;
+	virtual UInt32 getAutonomousBatteryLifeManagementState(void) override final;
+	virtual TimeSpan getExpectedBatteryLife(void) override final;
+	virtual UInt32 getAggressivenessLevel(void) override final;
+
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) override final;
@@ -89,7 +101,6 @@ public:
 	virtual void setNoLockOnPresenceBatteryDppeSetting(UInt32 value) override final;
 	virtual void setNoLockOnPresenceBatteryRemainingPercentageDppeSetting(UInt32 value) override final;
 	virtual void setNoLockOnPresenceResetWaitTimeDppeSetting(UInt32 value) override final;
-	//virtual void setFailSafeTimeoutDppeSetting(UInt32 value) override final;
 	virtual void setAdaptiveDimmingDppeSetting(UInt32 value) override final;
 	virtual void setAdaptiveDimmingExternalMonitorDppeSetting(UInt32 value) override final;
 	virtual void setAdaptiveDimmingPresentationModeDppeSetting(UInt32 value) override final;
@@ -109,11 +120,13 @@ public:
 	virtual void setUserDisengagedDimTarget(UInt32 value) override final;
 	virtual void setUserDisengagedDimWaitTime(UInt32 value) override final;
 	virtual void setPolicyUserPresenceState(UInt32 value) override final;
-	virtual Bool getPositiveEventFilteringState(void) override final;
-	virtual Bool getNegativeEventFilteringState(void) override final;
-	virtual TimeSpan getPresentStabilityWindow(void) override final;
-	virtual TimeSpan getDisengagedStabilityWindow(void) override final;
-	virtual TimeSpan getNotPresentStabilityWindow(void) override final;
+	virtual void setPpmPackage(UInt32 value) override final;
+	virtual void setPpmPackageSettings(PpmPackage::PpmParam param) override final;
+	virtual void setPowerSchemeEpp(UInt32 value) override final;
+	virtual void setActivePowerScheme() override final;
+	virtual void setForegroundAppRatioPeriod(UInt32 value) override final;
+
+	virtual void clearPpmPackageSettings(void) override final;
 
 	virtual void resetAdaptiveUserPresenceTable(void) override final;
 

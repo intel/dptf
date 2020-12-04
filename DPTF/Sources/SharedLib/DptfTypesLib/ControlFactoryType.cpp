@@ -64,6 +64,8 @@ std::string ControlFactoryType::toString(Type factoryType)
 		return "BatteryStatus";
 	case ControlFactoryType::SocWorkloadClassification:
 		return "SocWorkloadClassification";
+	case ControlFactoryType::DynamicEpp:
+		return "DynamicEpp";
 	default:
 		throw dptf_exception("Invalid control factory type.");
 	}

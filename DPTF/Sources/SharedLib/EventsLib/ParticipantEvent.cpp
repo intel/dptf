@@ -71,6 +71,7 @@ namespace ParticipantEvent
 			CASE(DomainEnergyThresholdCrossed)
 			CASE(DomainFanCapabilityChanged)
 			CASE(DomainSocWorkloadClassificationChanged)
+			CASE(DomainEppSensitivityHintChanged)
 			CASE(DptfParticipantActivityLoggingEnabled)
 			CASE(DptfParticipantActivityLoggingDisabled)
 			CASE(DptfParticipantControlAction)

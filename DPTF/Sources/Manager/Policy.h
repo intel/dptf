@@ -95,6 +95,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) = 0;
+	virtual void executeDomainEppSensitivityHintChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		MbtHint::Type mbtHint) = 0;
 	virtual void executePolicyActiveRelationshipTableChanged(void) = 0;
 	virtual void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) = 0;
 	virtual void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) = 0;
@@ -205,6 +209,7 @@ public:
 		BiometricPresenceSensorInstance::Type sensorInstance) = 0;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) = 0;
 	virtual void executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) = 0;
+	virtual void executePolicyForegroundRatioChanged(UIntN ratio) = 0;
 };
 
 class dptf_export Policy : public IPolicy
@@ -278,6 +283,10 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) override;
+	virtual void executeDomainEppSensitivityHintChanged(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		MbtHint::Type mbtHint) override;
 	virtual void executePolicyActiveRelationshipTableChanged(void) override;
 	virtual void executePolicyCoolingModePolicyChanged(CoolingMode::Type coolingMode) override;
 	virtual void executePolicyForegroundApplicationChanged(const std::string& foregroundApplicationName) override;
@@ -390,6 +399,7 @@ public:
 		BiometricPresenceSensorInstance::Type sensorInstance) override;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) override;
 	virtual void executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) override;
+	virtual void executePolicyForegroundRatioChanged(UIntN ratio) override;
 
 private:
 	// hide the copy constructor and assignment operator.

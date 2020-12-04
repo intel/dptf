@@ -337,6 +337,7 @@ typedef struct _t_EsifUp {
 	UInt8  fLpInstance;	/* Lower Participant Instance */
 	EsifDspPtr fDspPtr; /* Pointer To Our DSP */
 	EsifUpData fMetadata; /* Participant Data */
+	void* arbitrationContext; /* Opaque arbitration information */
 
 	/*
 	 * Data below this point is private to the participant and
@@ -514,10 +515,29 @@ EsifString EsifUp_CreateTokenReplacedParamString(
 	const EsifString paramStr
 	);
 
+
 Bool EsifUp_IsActionInDsp(
 	EsifUpPtr self,
 	enum esif_action_type actionType
 	);
+
+
+#if defined(ESIF_FEAT_OPT_ARBITRATOR_ENABLED)
+
+void *EsifUp_GetArbitrationContext(EsifUpPtr self);
+
+void EsifUp_SetArbitrationContext(
+	EsifUpPtr self,
+	void *arbCtx
+);
+#else 
+static ESIF_INLINE void *EsifUp_GetArbitrationContext(EsifUpPtr self) { UNREFERENCED_PARAMETER(self);  return NULL; }
+static ESIF_INLINE void EsifUp_SetArbitrationContext(EsifUpPtr self, void *arbCtx)
+{
+	UNREFERENCED_PARAMETER(self);
+	UNREFERENCED_PARAMETER(arbCtx);
+}
+#endif
 
 #ifdef __cplusplus
 }

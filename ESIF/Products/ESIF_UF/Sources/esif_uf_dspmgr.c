@@ -871,6 +871,11 @@ static eEsifError esif_dsp_file_scan()
 			// Load all keys from the DataVault with an ".edp" extension
 			if (key->data_len >= 5 && esif_ccb_stricmp(((StringPtr)(key->buf_ptr)) + key->data_len - 5, ".edp") == 0) {
 				ffdPtr = (struct esif_ccb_file *)esif_ccb_malloc(sizeof(*ffdPtr));
+				if (ffdPtr == NULL) {
+					ESIF_TRACE_ERROR("Fail to allocate esif_ccb file\n");
+					rc = ESIF_E_NO_MEMORY;
+					break;
+				}
 				esif_ccb_strcpy(ffdPtr->filename, (StringPtr)key->buf_ptr, sizeof(ffdPtr->filename));
 				if (esif_dsp_entry_create(ffdPtr) != ESIF_OK) {
 					esif_ccb_free(ffdPtr);

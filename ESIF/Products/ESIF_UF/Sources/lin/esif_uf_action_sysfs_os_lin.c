@@ -52,6 +52,7 @@
 #define EPSILON_CONVERT_PERC 0.00001 // For rounding out errors in floating point calculations
 #define INVALID_64BIT_UINTEGER 0xFFFFFFFFFFFFFFFFU
 #define SYSFS_FILE_RETRIEVAL_SUCCESS 1
+#define MILLICELSIUS_PER_CELSIUS (1000)
 
 #define MAX_ACPI_SCOPE_LEN ESIF_SCOPE_LEN
 #define ACPI_THERMAL_IOR_TYPE 's'
@@ -148,11 +149,15 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_FAN_STATUS = 'TSFG',
 	ESIF_SYSFS_GET_DISPLAY_BRIGHTNESS = 'SBDG',
 	ESIF_SYSFS_GET_CSTATE_RESIDENCY= 'RSCG',
+	ESIF_SYSFS_GET_RAPL_TIME_WINDOW = 'WTRG',
+	ESIF_SYSFS_GET_TCC_OFFSET = 'CCTG',
 	ESIF_SYSFS_SET_CPU_PSTATE = 'SPCS',
 	ESIF_SYSFS_SET_WWAN_PSTATE = 'SPWS',
 	ESIF_SYSFS_SET_OSC = 'CSOS',
 	ESIF_SYSFS_SET_FAN_LEVEL = 'ELFS',
-	ESIF_SYSFS_SET_BRIGHTNESS_LEVEL = 'ELBS'
+	ESIF_SYSFS_SET_BRIGHTNESS_LEVEL = 'ELBS',
+	ESIF_SYSFS_SET_RAPL_TIME_WINDOW = 'WTRS',
+	ESIF_SYSFS_SET_TCC_OFFSET = 'CCTS',
 };
 
 
@@ -197,7 +202,7 @@ static eEsifError GetFanInfo(EsifDataPtr responsePtr);
 static eEsifError GetFanPerfStates(EsifDataPtr responsePtr);
 static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString devicePathPtr);
 static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr);
-static eEsifError GetCStateResidency(char *path, UInt32 msrAddr, EsifDataPtr responsePtr);
+static eEsifError GetCStateResidency(char *path, char *node, UInt32 msrAddr, EsifDataPtr responsePtr);
 static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 static eEsifError ResetThermalZonePolicyToDefault();
 static eEsifError SetThermalZonePolicy();
@@ -210,8 +215,76 @@ static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 #endif
 
 /*
+ * Inline function: GetUIntFromActionContext
+ * -----------------------------------------
+ * Read a 32-bit or 64-bit integer from the file that is associated to the context and return this value to the caller.
+ * ESIF spawns multiple timer threads to read participant temperatures or performance states periodically.
+ * The polling period could be quite frequent - for example, one thread polls the SoC temperature once every second,
+ * per each of the 3 available domains. Such repeated open/read/close procedures would cause unnecessary system call
+ * overhead. To reduce this call overhead, we open the associated node only once (twice actually) and then store the
+ * corresponding file descriptor in a hash table. So on the next read, we can retrieve the file descriptor quickly
+ * without going through the costly open/close calls.
+ *
+ * Here the context is the file descriptor that we have obtained from the hash table. File descriptors are unsigned integers
+ * and since 0 is reserved for stdin, we first check if the descriptor is greater than 0. Once this is verified, we then
+ * issue a read using this file descriptor.
+ *
+ * Most such reads return a 32-bit integer, however, there are certain primitives defined in the DSP files that require
+ * 64-bit return values, among those, are the PC2 to PC10 primitives and the TSC primitive. We use the size of the
+ * response buffer to tell what type of read it is, then cast the read value to the type of the return value.
+ *
+ * Most cached read will do a direct read from the sysfs node, for example, a temperature value. However for MSR reads, we
+ * use the pread system call to read from a particular offset passed by the caller. The sysopt is used to distinguish
+ * if the read is a direct read or a read from a certain offset.
+ */
+
+static ESIF_INLINE eEsifError GetUIntFromActionContext(const size_t context, const EsifString parm, const EsifDataPtr responsePtr)
+{
+	eEsifError rc = ESIF_OK;
+	Int64 sysval = 0;
+
+	if (context > 0) { // valid file descriptor pointing to an open sysfs node or dev node
+		if (parm != NULL) { // parm is the offset
+			long msrAddr = strtol(parm, NULL, 0);
+			if (pread(context, &sysval, sizeof(UInt64), msrAddr) != sizeof(UInt64)) {
+				ESIF_TRACE_WARN("Failed to get action context, will attemp to read directly the device file\n");
+				rc = ESIF_E_IO_ERROR;
+				goto exit;
+			}
+		} else { // parm is not used, do a direct read
+			if (SysfsGetInt64Direct((int) context, &sysval) <= 0) {
+				ESIF_TRACE_WARN("Failed to get action context, will attemp to read directly from the sysfs\n");
+				rc = ESIF_E_UNSPECIFIED;
+				goto exit;
+			}
+		}
+		if (responsePtr->buf_len < sizeof(u64)) {
+			*(u32 *) responsePtr->buf_ptr = (u32) sysval;
+		} else {
+			*(u64 *) responsePtr->buf_ptr = sysval;
+		}
+	} else {
+		rc = ESIF_E_INVALID_HANDLE;
+	}
+
+exit:
+    return rc;
+}
+
+// Checking the supported Capability 
+static Bool IsCapabilitySupportedInDomain(const EsifUpDomainPtr domainPtr, enum esif_capability_type capabilityType)
+{
+    if (domainPtr->capability_for_domain.capability_flags & (1 << capabilityType)) {
+	return ESIF_TRUE;
+    }
+    else {
+	return ESIF_FALSE;
+    }
+}
+/*
  * Handle ESIF Action "Get" Request
  */
+
 static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	esif_context_t actCtx,
 	EsifUpPtr upPtr,
@@ -275,9 +348,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	UNREFERENCED_PARAMETER(actCtx);
 	UNREFERENCED_PARAMETER(requestPtr);
 
-	ESIF_ASSERT(NULL != responsePtr);
-	ESIF_ASSERT(NULL != responsePtr->buf_ptr);
-
 	rc = EsifFpcAction_GetParams(fpcActionPtr,
 		params,
 		sizeof(params)/sizeof(*params));
@@ -337,29 +407,20 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	key.participantId = EsifUp_GetInstance(upPtr);
 	key.primitiveTuple = primitivePtr->tuple;
 	actionContext = (size_t) esif_ht_get_item(actionHashTablePtr, (u8 *)&key, sizeof(key));
-
-	// actionContext is not a pointer but instead the file descriptor. It cannot possibly be 0 because 0 is reserved for stdout
-	// So if we do get 0 it would translate to NULL pointer which means that the key is not found in the hash table
-	if (actionContext) {
-		if (SysfsGetInt64Direct((int) actionContext, &sysval) > 0) {
-			tripval = sysval;
-			*(u32 *) responsePtr->buf_ptr = (u32) tripval;
-			goto exit;
-		} else {
-			ESIF_TRACE_WARN("Failed to get action context, attempting to read from sysfs.\n");
-		}
-	}
-
 	sysopt = *(enum esif_sysfs_command *) command;
 
 	switch (sysopt) {
 	case ESIF_SYSFS_DIRECT_PATH:
+		if (ESIF_OK == GetUIntFromActionContext(actionContext, NULL, responsePtr))
+			goto exit;
+
 		if (0 == esif_ccb_strcmp(parm2, "alt") && deviceAltPathPtr != NULL) {
 			deviceTargetPathPtr = deviceAltPathPtr;
 		}
 		else {
 			deviceTargetPathPtr = devicePathPtr;
 		}
+
 		pathAccessReturn = SysfsGetInt64(devicePathPtr, parm1, &sysval);
 		if (pathAccessReturn < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
@@ -374,6 +435,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		*(u32 *) responsePtr->buf_ptr = (u32) tripval;
 		break;
 	case ESIF_SYSFS_DIRECT_ENUM:
+		if (ESIF_OK == GetUIntFromActionContext(actionContext, NULL, responsePtr))
+			goto exit;
+
 		candidate_found = 0;
 		for (node_idx = 0; node_idx < max_node_idx; node_idx++) {
 			esif_ccb_sprintf(MAX_IDX_HOLDER, idx_holder, "%d", node_idx);
@@ -400,6 +464,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		}
 		break;
 	case ESIF_SYSFS_ALT_PATH:
+		if (ESIF_OK == GetUIntFromActionContext(actionContext, NULL, responsePtr))
+			goto exit;
+
 		if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			goto exit;
@@ -411,6 +478,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		*(u32 *) responsePtr->buf_ptr = (u32) sysval;
 		break;
 	case ESIF_SYSFS_DIRECT_QUERY:
+		if (ESIF_OK == GetUIntFromActionContext(actionContext, NULL, responsePtr))
+			goto exit;
+
 		min_idx = 0;
 		if(parm4) {
 			min_idx = esif_atoi(parm4);
@@ -450,7 +520,10 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		}
 		*(u32 *) responsePtr->buf_ptr = (u32) tripval;
 		break;
+
 	case ESIF_SYSFS_ALT_QUERY:
+		if (ESIF_OK == GetUIntFromActionContext(actionContext, NULL, responsePtr))
+			goto exit;
 		for (node_idx = 0; node_idx < max_node_idx; node_idx++) {
 			candidate_found = ESIF_FALSE;
 			esif_ccb_sprintf(MAX_IDX_HOLDER, idx_holder, "%d", node_idx);
@@ -500,6 +573,8 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		*(u32 *) responsePtr->buf_ptr = (u32) sysval;
 		break;
 	case ESIF_SYSFS_CALC:
+		// Most CALC type reads happen very infrequently, also the read-back value is often massaged before they
+		// are sent back to ESIF. Thereof we do not call GetUIntFromActionContext() blankly.
 		calc_type = *(enum esif_sysfs_param *) parm3;
 		switch (calc_type) {
 			case ESIF_SYSFS_GET_SOC_RAPL: /* rapl */
@@ -529,6 +604,16 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 
 				*(u32 *) responsePtr->buf_ptr = (u32) ret_val;
 				break;
+			case ESIF_SYSFS_GET_RAPL_TIME_WINDOW: /* PL1 time window (Tau) */
+				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
+
+				/* Convert microseconds to milliseconds */
+				sysval /= 1000;
+				*(u32 *) responsePtr->buf_ptr = (u32) sysval;
+				break;
 			case ESIF_SYSFS_GET_CPU_PDL: /* pdl */
 				if (SysfsGetString(SYSFS_PSTATE_PATH, "num_pstates", sysvalstring, sizeof(sysvalstring)) > -1) {
 					if ((SysfsGetInt64("/sys/devices/system/cpu/intel_pstate/", "num_pstates", &pdl_val) < SYSFS_FILE_RETRIEVAL_SUCCESS) || (pdl_val > MAX_SYSFS_PSTATES)) {
@@ -545,7 +630,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				*(u32 *) responsePtr->buf_ptr = (u32) pdl_val;
 				break;
 			case ESIF_SYSFS_GET_SOC_PL1: /* power limit */
-				if (SysfsGetInt64("/sys/class/powercap/intel-rapl:0", parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
 				}
@@ -561,30 +646,42 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 					goto exit;
 				}
-				EsifPrimitiveTuple temp0Tuple = {GET_TEMPERATURE, Domain0->domain, 255};
-				EsifPrimitiveTuple temp1Tuple = {GET_TEMPERATURE, Domain1->domain, 255};
-
-				if (EsifUp_ExecutePrimitive(upPtr, &temp0Tuple, requestPtr, responsePtr)) {
-					temp_val0 = -1;
-				} else {
-					temp_val0 = *((u32 *)responsePtr->buf_ptr);
+				// Checking the TEMP_STATUS capability for Domain0
+				if (IsCapabilitySupportedInDomain(Domain0,ESIF_CAPABILITY_TYPE_TEMP_STATUS)) {
+					EsifPrimitiveTuple temp0Tuple = {GET_TEMPERATURE, Domain0->domain, 255};
+					if (EsifUp_ExecutePrimitive(upPtr, &temp0Tuple, requestPtr, responsePtr)) {
+						temp_val0 = ESIF_SDK_MIN_AUX_TRIP;
+					} 
+					else {
+						temp_val0 = *((u32 *)responsePtr->buf_ptr);
+					}
 				}
-
-				if (EsifUp_ExecutePrimitive(upPtr, &temp1Tuple, requestPtr, responsePtr)) {
-					temp_val1 = -1;
-				} else {
-					temp_val1 = *((u32 *) responsePtr->buf_ptr);
+				else {
+					temp_val0=ESIF_SDK_MIN_AUX_TRIP;
 				}
-
+				// Checking the TEMP_STATUS capability for Domain1
+				if (IsCapabilitySupportedInDomain(Domain1,ESIF_CAPABILITY_TYPE_TEMP_STATUS)) {
+					EsifPrimitiveTuple temp1Tuple = {GET_TEMPERATURE, Domain1->domain, 255};
+					if (EsifUp_ExecutePrimitive(upPtr, &temp1Tuple, requestPtr, responsePtr)) {
+						temp_val1 = ESIF_SDK_MIN_AUX_TRIP;
+					} 
+					else {
+						temp_val1 = *((u32 *) responsePtr->buf_ptr);
+					}
+				}
+				else {
+					temp_val1 = ESIF_SDK_MIN_AUX_TRIP;
+				}
 				// Even if there is only one sub-domain that has a valid temperature, we will take it
 				if ((temp_val0 >= 0) || (temp_val1 >=0)) {
 					temp_val0 = esif_ccb_max(temp_val0, temp_val1);
 					esif_convert_temp(NORMALIZE_TEMP_TYPE, ESIF_TEMP_MILLIC, (esif_temp_t *)&temp_val0);
-				} else {
-					//no negative temperature support at this time
-					temp_val0=0;
+				} 
+				else {
+					// if both sub-domain has invalid temperature then we should disable the capability
+					rc = ESIF_E_NOT_SUPPORTED;
+				        goto exit;
 				}
-
 				*(u32 *)responsePtr->buf_ptr = temp_val0;
 				break;
 			case ESIF_SYSFS_GET_FAN_INFO:
@@ -600,14 +697,42 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 				rc = GetDisplayBrightness(parm1,responsePtr);
 				break;
 			case ESIF_SYSFS_GET_CSTATE_RESIDENCY:
-				msrAddr = (UInt32) strtol(parm2, NULL, 0);
-				if (msrAddr > 0) {
-					rc = GetCStateResidency(parm1, msrAddr, responsePtr);
-				} else {
+				// Due to the frequent CSTATE_RESIDENCY queries, we want to try the hash table first
+				// to look for a cached file descriptor to /dev/cpu/0/msr. We must also
+				// re-evaluate the action context because all various instances of C-state residency
+				// (PC2 - PC10) share the same file descriptor.
+				key.primitiveTuple.instance = 255; // Do no care - all PCx reads share the same file path
+				actionContext = (size_t) esif_ht_get_item(actionHashTablePtr, (u8 *)&key, sizeof(key));
+				if (ESIF_OK == GetUIntFromActionContext(actionContext, parm4, responsePtr))
+					goto exit;
+
+				msrAddr = (UInt32) strtol(parm4, NULL, 0);
+				if (msrAddr <= 0) {
 					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+					break;
+				}
+				rc = GetCStateResidency(parm1, parm2, msrAddr, responsePtr);
+				if (ESIF_OK == rc) {
+					if (SetActionContext(&key, parm1, parm2)) {
+						ESIF_TRACE_WARN("Fail to save context for participant " ESIF_HANDLE_FMT ", primitive %d, domain %d, instance %d\n",
+							esif_ccb_handle2llu(key.participantId),
+							key.primitiveTuple.id,
+							key.primitiveTuple.domain,
+							key.primitiveTuple.instance);
+					}
 				}
 				break;
-
+			case ESIF_SYSFS_GET_TCC_OFFSET: /* TCC Offset */
+				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
+					ESIF_TRACE_ERROR("Error retrieving TCC Offset value from sysfs.\n");
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
+				ESIF_TRACE_INFO("TCC Offset value from sysfs : %u\n", sysval);
+				/* Convert Celsius to millicelsius */
+				sysval *= MILLICELSIUS_PER_CELSIUS;
+				*(u32 *) responsePtr->buf_ptr = (u32) sysval;
+				break;
 			default:
 				break;
 		}
@@ -618,6 +743,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		}
 		break;
 	case ESIF_SYSFS_DIRECT_QUERY_ENUM:
+		if (ESIF_OK == GetUIntFromActionContext(actionContext, NULL, responsePtr))
+			goto exit;
+
 		/* This is a search loop, so default to failure */
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 
@@ -966,7 +1094,26 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 			case ESIF_SYSFS_SET_BRIGHTNESS_LEVEL:
 				rc = SetBrightnessLevel(upPtr, requestPtr, parm1);
 				break;
-
+			case ESIF_SYSFS_SET_RAPL_TIME_WINDOW:
+				sysval = (u64)*(u32 *)requestPtr->buf_ptr;
+				/* Convert milliseconds to microseconds */
+				sysval *= 1000;
+				if (SysfsSetInt64(parm1, parm2, sysval) < 0) {
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
+				break;
+			case ESIF_SYSFS_SET_TCC_OFFSET: /* TCC Offset */
+				sysval = (u64)*(u32 *)requestPtr->buf_ptr;
+				ESIF_TRACE_INFO("TCC Offset value to set in sysfs : %u\n", sysval/1000);
+				/* Convert millicelsius to celsius */
+				sysval /= MILLICELSIUS_PER_CELSIUS;
+				if (SysfsSetInt64(parm1, parm2, sysval) < 0) {
+					ESIF_TRACE_ERROR("Error setting TCC Offset value in sysfs.\n");
+					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+					goto exit;
+				}
+				break;
 			default:
 				break;
 		}
@@ -1751,18 +1898,26 @@ exit:
 	return rc;
 }
 
-static eEsifError GetCStateResidency(char *path, UInt32 msrAddr, EsifDataPtr responsePtr)
+static eEsifError GetCStateResidency(char *path, char *node, UInt32 msrAddr, EsifDataPtr responsePtr)
 {
 	eEsifError rc = ESIF_OK;
+	char fileFullPath[MAX_SYSFS_PATH] = { 0 };
+
+	if (path == NULL || node == NULL) {
+		rc = ESIF_E_IO_INVALID_NAME;
+		goto exit;
+	}
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, fileFullPath, "%s/%s", path, node);
 
 	// First if check /dev/cpu/0/msr exists
-	if (access(path, F_OK) == -1) {
+	if (access(fileFullPath, F_OK) == -1) {
 		rc = ESIF_E_IO_INVALID_NAME;
 		goto exit;
 	}
 
 	// Open the device for read
-	int fd = open(path, O_RDONLY);
+	int fd = open(fileFullPath, O_RDONLY);
 	if (fd < 0) {
 		rc = ESIF_E_IO_OPEN_FAILED;
 		goto exit;
@@ -1775,7 +1930,6 @@ static eEsifError GetCStateResidency(char *path, UInt32 msrAddr, EsifDataPtr res
 		goto exit;
 	}
 	close(fd);
-
 	*(UInt64 *) responsePtr->buf_ptr = data;
 
 exit:

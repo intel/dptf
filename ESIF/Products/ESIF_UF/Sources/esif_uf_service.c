@@ -28,6 +28,7 @@
 #include "esif_dsp.h"
 #include "esif_uf_ccb_system.h"
 #include "esif_uf_eventmgr.h"
+#include "esif_uf_arbmgr.h"
 
 #ifdef ESIF_ATTR_OS_WINDOWS
 //
@@ -227,10 +228,11 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 					 esif_primitive_str((enum esif_primitive_type)primitive), primitive,
 					 qualifier_str,
 					 instance);
-
-	rc = EsifExecutePrimitive(
-			localParticipantId, primitive, qualifier_str, instance,
-			requestPtr, responsePtr);
+	
+	rc = EsifArbMgr_ExecutePrimitive(
+		esifHandle,
+		localParticipantId, primitive, qualifier_str, instance,
+		requestPtr, responsePtr);
 exit:
 	EsifAppMgr_PutRef(appPtr);
 	return rc;

@@ -33,6 +33,7 @@ class WorkItemQueueManagerInterface;
 class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DptfStatusInterface;
+class DataManagerInterface;
 
 class DptfManagerInterface
 {
@@ -57,6 +58,7 @@ public:
 	virtual ICommandDispatcher* getCommandDispatcher() const = 0;
 	virtual DptfStatusInterface* getDptfStatus(void) = 0;
 	virtual IndexContainerInterface* getIndexContainer(void) const = 0;
+	virtual DataManagerInterface* getDataManager(void) const = 0;
 	virtual std::string getDptfHomeDirectoryPath(void) const = 0;
 	virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
 	virtual std::string getDptfReportDirectoryPath(void) const = 0;

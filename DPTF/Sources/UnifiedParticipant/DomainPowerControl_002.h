@@ -87,6 +87,7 @@ public:
 		UIntN domainIndex,
 		PowerControlDynamicCapsSet capsSet) override;
 	virtual void setPowerCapsLock(UIntN participantIndex, UIntN domainIndex, Bool lock) override;
+	virtual TimeSpan getPowerSharePowerLimitTimeWindow(UIntN participantIndex, UIntN domainIndex) override;
 
 	virtual Bool isPowerShareControl(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getPidKpTerm(UIntN participantIndex, UIntN domainIndex) override;
@@ -132,8 +133,16 @@ private:
 	std::string createStatusStringForEnabled(PowerControlType::Type controlType);
 	std::string createStatusStringForLimitValue(PowerControlType::Type controlType);
 
+	CachedValue<Power> getRaplPowerLimit(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		PowerControlType::Type controlType,
+		CachedValue<Power> plLimit);
+
 	CachedValue<PowerControlDynamicCapsSet> m_powerControlDynamicCaps;
 	PowerControlState m_initialState;
 	Bool m_capabilitiesLocked;
 	CachedValue<Power> m_pl1Limit;
+	CachedValue<Power> m_pl2Limit;
+	CachedValue<Power> m_pl4Limit;
 };
