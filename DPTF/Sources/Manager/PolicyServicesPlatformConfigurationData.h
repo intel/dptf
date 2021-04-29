@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,9 +30,15 @@ public:
 	virtual UInt32 readConfigurationUInt32(const std::string& key) override final;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& key) override final;
 	virtual void writeConfigurationUInt32(const std::string& key, UInt32 data) override final;
-	virtual std::string readConfigurationString(const std::string& key) override final;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& key) override final;
-	virtual DptfBuffer readConfigurationBinary(const std::string& key) override final;
+	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& key) override final;
+	virtual void writeConfigurationBinary(
+		void* bufferPtr,
+		UInt32 bufferLength,
+		UInt32 dataLength,
+		const std::string& nameSpace,
+		const std::string& key) override final;
+	virtual void deleteConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override final;
 	virtual eEsifError sendCommand(UInt32 argc, const std::string& argv) override final;
 
 	virtual TimeSpan getMinimumAllowableSamplePeriod(void) override final;
@@ -43,83 +49,39 @@ public:
 	virtual void setThermalRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPassiveTable(void) override final;
 	virtual void setPassiveTable(DptfBuffer data) override final;
-	virtual DptfBuffer getAdaptiveUserPresenceTable(void) override final;
-	virtual void setAdaptiveUserPresenceTable(DptfBuffer data) override final;
-	virtual DptfBuffer getAdaptivePerformanceConditionsTable(void) override final;
-	virtual DptfBuffer getAdaptivePerformanceParticipantConditionTable(void) override final;
-	virtual DptfBuffer getAdaptivePerformanceActionsTable(void) override final;
+	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) override final;
+	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) override final;
 	virtual DptfBuffer getOemVariables(void) override final;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getSocWorkload(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getSupportEppHint(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl)
+		override final;
+	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual Power getProcessorTdp(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual Temperature getProcessorTjMax(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual DptfBuffer getPowerBossConditionsTable(void) override final;
 	virtual DptfBuffer getPowerBossActionsTable(void) override final;
 	virtual DptfBuffer getPowerBossMathTable(void) override final;
 	virtual DptfBuffer getVoltageThresholdMathTable(void) override final;
 	virtual DptfBuffer getEmergencyCallModeTable(void) override final;
 	virtual DptfBuffer getPidAlgorithmTable(void) override final;
-	virtual UInt32 getLastHidInputTime(void) override final;
-	virtual UInt32 getIsExternalMonitorConnected(void) override final;
 	virtual Bool getDisplayRequired(void) override final;
-	virtual Bool getIsCVFSensor(void) override final;
 	virtual void setPidAlgorithmTable(DptfBuffer data) override final;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) override final;
-	virtual Bool getPositiveEventFilteringState(void) override final;
-	virtual Bool getNegativeEventFilteringState(void) override final;
-	virtual TimeSpan getPresentStabilityWindow(void) override final;
-	virtual TimeSpan getDisengagedStabilityWindow(void) override final;
-	virtual TimeSpan getNotPresentStabilityWindow(void) override final;
 	virtual UInt32 getAutonomousBatteryLifeManagementState(void) override final;
 	virtual TimeSpan getExpectedBatteryLife(void) override final;
 	virtual UInt32 getAggressivenessLevel(void) override final;
+	virtual DptfBuffer getDdrfTable(void) override final;
 
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;
 	virtual void setPowerShareAlgorithmTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable2() override final;
 	virtual void setPowerShareAlgorithmTable2(DptfBuffer data) override final;
-	virtual void setScreenAutolock(UInt32 value) override final;
-	virtual void setWorkstationLock(UInt32 value) override final;
-	virtual void setWakeOnApproach(UInt32 value) override final;
-	virtual void setScreenState(UInt32 value) override final;
-	virtual void setWakeOnApproachDppeSetting(UInt32 value) override final;
-	virtual void setWakeOnApproachExternalMonitorDppeSetting(UInt32 value) override final;
-	virtual void setWakeOnApproachLowBatteryDppeSetting(UInt32 value) override final;
-	virtual void setWakeOnApproachBatteryRemainingPercentageDppeSetting(UInt32 value) override final;
-	virtual void setWalkAwayLockDppeSetting(UInt32 value) override final;
-	virtual void setWalkAwayLockExternalMonitorDppeSetting(UInt32 value) override final;
-	virtual void setWalkAwayLockPreDimWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setUserPresentWaitTimeoutDppeSetting(UInt32 value) override final;
-	virtual void setDimIntervalDppeSetting(UInt32 value) override final;
-	virtual void setDimScreenDppeSetting(UInt32 value) override final;
-	virtual void setHonorPowerRequestsForDisplayDppeSetting(UInt32 value) override final;
-	virtual void setHonorUserInCallDppeSetting(UInt32 value) override final;
-	virtual void setWalkAwayLockScreenLockWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setDisplayOffAfterLockDppeSetting(UInt32 value) override final;
-	virtual void setNoLockOnPresenceDppeSetting(UInt32 value) override final;
-	virtual void setNoLockOnPresenceExternalMonitorDppeSetting(UInt32 value) override final;
-	virtual void setNoLockOnPresenceBatteryDppeSetting(UInt32 value) override final;
-	virtual void setNoLockOnPresenceBatteryRemainingPercentageDppeSetting(UInt32 value) override final;
-	virtual void setNoLockOnPresenceResetWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setAdaptiveDimmingDppeSetting(UInt32 value) override final;
-	virtual void setAdaptiveDimmingExternalMonitorDppeSetting(UInt32 value) override final;
-	virtual void setAdaptiveDimmingPresentationModeDppeSetting(UInt32 value) override final;
-	virtual void setAdaptiveDimmingPreDimWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setMispredictionFaceDetectionDppeSetting(UInt32 value) override final;
-	virtual void setMispredictionTimeWindowDppeSetting(UInt32 value) override final;
-	virtual void setMisprediction1DimWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setMisprediction2DimWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setMisprediction3DimWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setMisprediction4DimWaitTimeDppeSetting(UInt32 value) override final;
-	virtual void setFailsafeTimeoutDppeSetting(UInt32 value) override final;
-	virtual void setWakeOnApproachEventDppeSetting(UInt32 value) override final;
-	virtual void setWalkAwayLockEventDppeSetting(UInt32 value) override final;
-	virtual void setExternalMonitorConnectedEventDppeSetting(UInt32 value) override final;
-	virtual void setUserNotPresentDimTarget(UInt32 value) override final;
-	virtual void setUserDisengagedDimmingInterval(UInt32 value) override final;
-	virtual void setUserDisengagedDimTarget(UInt32 value) override final;
-	virtual void setUserDisengagedDimWaitTime(UInt32 value) override final;
-	virtual void setPolicyUserPresenceState(UInt32 value) override final;
+	virtual DptfBuffer getIntelligentThermalManagementTable() override final;
+	virtual void setIntelligentThermalManagementTable(DptfBuffer data) override final;
 	virtual void setPpmPackage(UInt32 value) override final;
 	virtual void setPpmPackageSettings(PpmPackage::PpmParam param) override final;
 	virtual void setPowerSchemeEpp(UInt32 value) override final;
@@ -127,8 +89,6 @@ public:
 	virtual void setForegroundAppRatioPeriod(UInt32 value) override final;
 
 	virtual void clearPpmPackageSettings(void) override final;
-
-	virtual void resetAdaptiveUserPresenceTable(void) override final;
 
 private:
 	TimeSpan m_defaultSamplePeriod;
@@ -143,5 +103,5 @@ private:
 	void resetActiveControlPointRelationshipTable(void);
 	void resetPowerShareAlgorithmTable(void);
 	void resetPowerShareAlgorithmTable2(void);
-	
+	void resetIntelligentThermalManagementTable(void);
 };

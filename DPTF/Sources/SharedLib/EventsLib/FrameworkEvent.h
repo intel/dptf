@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -100,9 +100,6 @@ namespace FrameworkEvent
 		PolicySensorMotionChanged,
 		PolicySensorSpatialOrientationChanged,
 		PolicyThermalRelationshipTableChanged,
-		PolicyAdaptivePerformanceConditionsTableChanged,
-		PolicyAdaptivePerformanceParticipantConditionTableChanged,
-		PolicyAdaptivePerformanceActionsTableChanged,
 		PolicyOperatingSystemPowerSourceChanged,
 		PolicyOperatingSystemLidStateChanged,
 		PolicyOperatingSystemBatteryPercentageChanged,
@@ -124,6 +121,7 @@ namespace FrameworkEvent
 		DptfPolicyLoadedUnloadedEvent,
 		PolicyEmergencyCallModeTableChanged,
 		PolicyPidAlgorithmTableChanged,
+		PolicyIntelligentThermalManagementTableChanged,
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
@@ -131,50 +129,9 @@ namespace FrameworkEvent
 		PolicyWorkloadHintConfigurationChanged,
 		PolicyOperatingSystemGameModeChanged,
 		PolicyPowerShareAlgorithmTable2Changed,
-		PolicySensorUserPresenceChanged,
-		PolicyAdaptiveUserPresenceTableChanged,
 		PolicyPlatformUserPresenceChanged,
-		PolicyWakeOnApproachFeatureStateChanged,
-		PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged,
-		PolicyWakeOnApproachLowBatteryFeatureStateChanged,
-		PolicyWakeOnApproachBatteryRemainingPercentageChanged,
-		PolicyWalkAwayLockFeatureStateChanged,
-		PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged,
-		PolicyWalkAwayLockDimScreenFeatureStateChanged,
-		PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged,
-		PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged,
-		PolicyWalkAwayLockHonorUserInCallFeatureStateChanged,
-		PolicyUserInCallStateChanged,
-		PolicyWalkAwayLockScreenLockWaitTimeChanged,
-		PolicyWalkAwayLockPreDimWaitTimeChanged,
-		PolicyWalkAwayLockUserPresentWaitTimeChanged,
-		PolicyWalkAwayLockDimIntervalChanged,
-		PolicyAdaptiveDimmingFeatureStateChanged,
-		PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged,
-		PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged,
-		PolicyAdaptiveDimmingPreDimWaitTimeChanged,
-		PolicyMispredictionFaceDetectionFeatureStateChanged,
-		PolicyMispredictionTimeWindowChanged,
-		PolicyMisprediction1DimWaitTimeChanged,
-		PolicyMisprediction2DimWaitTimeChanged,
-		PolicyMisprediction3DimWaitTimeChanged,
-		PolicyMisprediction4DimWaitTimeChanged,
-		PolicyNoLockOnPresenceFeatureStateChanged,
-		PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged,
-		PolicyNoLockOnPresenceOnBatteryFeatureStateChanged,
-		PolicyNoLockOnPresenceBatteryRemainingPercentageChanged,
-		PolicyNoLockOnPresenceResetWaitTimeChanged,
-		PolicyFailsafeTimeoutChanged,
-		PolicyContextServiceStatusChanged,
 		PolicyExternalMonitorStateChanged,
-		PolicyUserNotPresentDimTargetChanged,
-		PolicyUserDisengagedDimmingIntervalChanged,
-		PolicyUserDisengagedDimTargetChanged,
-		PolicyUserDisengagedDimWaitTimeChanged,
-		PolicySensorModeChanged,
-		PolicyBiometricPresenceSensorInstanceChanged,
 		PolicyUserInteractionChanged,
-		PolicyUserPresenceCorrelationChanged,
 		PolicyForegroundRatioChanged,
 
 		// App Events
@@ -209,6 +166,7 @@ public:
 	std::string getName(FrameworkEvent::Type frameworkEvent) const;
 	Guid getGuid(FrameworkEvent::Type frameworkEvent) const;
 	FrameworkEvent::Type getFrameworkEventType(const Guid& guid) const;
+	Bool usesDummyGuid(FrameworkEvent::Type frameworkEvent);
 
 private:
 	FrameworkEventInfo(void);

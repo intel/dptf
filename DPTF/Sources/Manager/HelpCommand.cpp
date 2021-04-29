@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -51,7 +51,12 @@ void HelpCommand::execute(const CommandArguments& arguments)
 					 "                                      Runs diagnostics on a policy\n"
 					 "diag part <participant name> [file name]\n"
 					 "                                      Runs diagnostics on a participant\n"
-					 "tableobject get <tablename>\n"
-					 "                                      Gets table from DataVault\n";
+					 "dptf tableobject get <tablename>\n"
+					 "                                      Gets table from DataVault\n"
+					 "dptf tableobject set <tablename> <value>\n"
+					 "                                      Sets table <value> to DataVault\n"
+					 "dptf tableobject delete <tablename>\n"
+					 "                                      Deletes table from DataVault\n";
+
 	setResultMessage(message);
 }

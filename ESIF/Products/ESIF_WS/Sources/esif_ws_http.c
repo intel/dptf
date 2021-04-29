@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -460,6 +460,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 		char resource[MAX_PATH] = { 0 };
 		char resource_path[MAX_PATH] = { 0 };
 		Bool completed = ESIF_FALSE;
+		int httpStatus = HTTP_STATUS_BAD_REQUEST;
 
 		// Serve Requested Document except for invalid requests
 		if (docRoot && uri && esif_ccb_strstr(uri, "..") == NULL) {
@@ -468,7 +469,8 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 			// Default Document
 			esif_ccb_strcpy(resource, uri, sizeof(resource));
 			if (esif_ccb_strcmp(resource, "/") == 0) {
-				rc = WebServer_HttpSendError(self, client, HTTP_STATUS_REDIRECT, NULL);
+				httpStatus = HTTP_STATUS_REDIRECT;
+				rc = WebServer_HttpSendError(self, client, httpStatus, NULL);
 				completed = ESIF_TRUE;
 			}
 			else {
@@ -477,7 +479,8 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 				// Look for URI in HTTP Document Root
 				esif_ccb_sprintf(sizeof(resource_path), resource_path, "%s%s", docRoot, resource);
 				if (esif_ccb_stat(resource_path, &st) != 0) {
-					rc = WebServer_HttpSendError(self, client, HTTP_STATUS_NOT_FOUND, "Path=%s", resource);
+					httpStatus = HTTP_STATUS_NOT_FOUND;
+					rc = WebServer_HttpSendError(self, client, httpStatus, "Path=%s", resource);
 					completed = ESIF_TRUE;
 				}
 			}
@@ -486,7 +489,8 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 			if (completed == ESIF_FALSE) {
 				FILE *fp = esif_ccb_fopen(resource_path, "rb", NULL);
 				if (fp == NULL) {
-					WebServer_HttpSendError(self, client, HTTP_STATUS_NOT_FOUND, "PathName=%s", resource_path);
+					httpStatus = HTTP_STATUS_NOT_FOUND;
+					WebServer_HttpSendError(self, client, httpStatus, "PathName=%s", resource_path);
 					rc = ESIF_E_IO_OPEN_FAILED;
 				}
 				else {
@@ -513,7 +517,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 						"Content-Security-Policy: script-src 'self' 'unsafe-inline';" CRLF
 						"Content-Security-Policy: connect-src 'self';" CRLF
 						"Content-Security-Policy: form-action 'none';" CRLF
-						"Content-Security-Policy: sandbox allow-scripts allow-same-origin;" CRLF
+						"Content-Security-Policy: sandbox allow-scripts allow-same-origin allow-popups;" CRLF
 						"X-Content-Type-Options: nosniff" CRLF
 						"X-XSS-Protection: 1; mode=block" CRLF
 						"X-Frame-Options: deny" CRLF
@@ -526,6 +530,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 						(long)st.st_size,
 						content_disposition);
 
+					httpStatus = client->httpStatus;
 					rc = WebClient_Write(client, self->netBuf, bytes);
 					while (rc == ESIF_OK && ((bytes = esif_ccb_fread(self->netBuf, self->netBufLen, 1, self->netBufLen, fp)) > 0)) {
 						rc = WebClient_Write(client, self->netBuf, bytes);
@@ -538,10 +543,11 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 
 		// Close Connection for unhandled requests
 		if (completed == ESIF_FALSE) {
-			WebServer_HttpSendError(self, client, HTTP_STATUS_BAD_REQUEST, "URI=%s", uri);
+			httpStatus = HTTP_STATUS_BAD_REQUEST;
+			WebServer_HttpSendError(self, client, httpStatus, "URI=%s", uri);
 			rc = ESIF_E_WS_DISC;
 		}
-		WS_TRACE_DEBUG("HTTP: rc=%s (%d), status=%d, type=%s, file=%s\n", esif_rc_str(rc), rc, client->httpStatus, docType, resource_path);
+		WS_TRACE_DEBUG("HTTP: rc=%s (%d), status=%d, type=%s, file=%s\n", esif_rc_str(rc), rc, httpStatus, docType, resource_path);
 	}
 	return rc;
 }

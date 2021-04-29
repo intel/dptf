@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -155,6 +155,7 @@ int g_soe = 1;
 static const char *g_shellStartScript = NULL;
 
 static eEsifError esif_shell_get_participant_id(char *participantNameOrId, esif_handle_t *targetParticipantIdPtr);
+static void esif_shell_get_primitive_alias(esif_primitive_type_t primitiveId, UInt8 instance, char* primitiveAlias, int buffer_len);
 
 // Global Shell lock to limit parse_cmd to one thread at a time
 static esif_ccb_mutex_t g_shellLock;
@@ -610,7 +611,7 @@ esif_error_t CreateParticipantFromJson(esif_string jsonStr)
 
 					// Create Dynamic Participant
 					if (IString_DataLen(cmd) > 0) {
-						char *output = esif_shell_exec_command(IString_GetString(cmd), IString_BufLen(cmd) + 1, ESIF_FALSE, ESIF_TRUE);
+						char *output = esif_shell_exec_command(IString_GetString(cmd), IString_DataLen(cmd), ESIF_FALSE, ESIF_TRUE);
 						if (output && esif_ccb_strstr(output, "ESIF_E_") != NULL) {
 							rc = (EsifUpPm_ParticipantCount() >= MAX_PARTICIPANT_ENTRY ? ESIF_E_MAXIMUM_CAPACITY_REACHED : ESIF_E_NO_CREATE);
 						}
@@ -1682,8 +1683,8 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 	else {
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 			"\nRUNNING APPLICATIONS:\n\n"
-			"ID Name                   Library      Description                         Type   Version     \n"
-			"-- ---------------------- ------------ ----------------------------------- ------ ------------\n");
+			"ID Name         Library      Description                                        Type   Version\n"
+			"-- ------------ ------------ -------------------------------------------------- ------ ---------------\n");
 	}
 
 	/* Enumerate Applications */
@@ -1719,7 +1720,7 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 				}
 
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-22s %-12s %-35s %-6s %-13s\n",
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%02u %-12s %-12s %-50s %-6s %s\n",
 					i,
 					EsifApp_GetAppName(appPtr),
 					EsifApp_GetLibName(appPtr),
@@ -1921,12 +1922,25 @@ static char *esif_shell_cmd_appstart(EsifShellCmdPtr shell)
 	enum esif_rc rc = ESIF_OK;
 	char *libName = 0;
 
-	// appstart [appname=]libname
+	// appstart [appname=]libname [--Libfile]
 	if (argc < 2) {
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Invalid AppName\n");
 		return output;
 	}
 	libName = argv[1];
+
+	// Optional [--Libfile] = Check whether Libfile.dll/so exists before attempting appstart to avoid logging errors
+	if (argc > 2 && esif_ccb_strncmp(argv[2], "--", 2) == 0) {
+		char *libfile = argv[2] + 2;
+		char libpath[MAX_PATH] = {0};
+		char altpath[MAX_PATH] = {0};
+		esif_build_path(libpath, sizeof(libpath), ESIF_PATHTYPE_DLL, libfile, ESIF_LIB_EXT);
+		esif_build_path(altpath, sizeof(libpath), ESIF_PATHTYPE_DLL_ALT, libfile, ESIF_LIB_EXT);
+		if (!esif_ccb_file_exists(libpath) && !esif_ccb_file_exists(altpath)) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "App Not Found: %s%s\n", libfile, ESIF_LIB_EXT);
+			return output;
+		}
+	}
 
 	// Release Shell Lock while Starting App in case it calls into the ESIF SendCommand Interface after AppCreate completes
 	esif_uf_shell_unlock();
@@ -1976,6 +1990,10 @@ static char *esif_shell_cmd_appstop(EsifShellCmdPtr shell)
 	return output;
 }
 
+
+#define PRIMITIVE_ALIAS_LEN 128
+#define XML_INDENT 2
+
 static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 {
 	int argc = shell->argc;
@@ -1984,10 +2002,11 @@ static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 	esif_error_t rc = ESIF_OK;
 
 	int optarg = 1;
-	u8 max_domain = 1; // Only D0 supported for now. Change to MAX_DOMAINS to support other Domains.
+	u8 max_domain = MAX_DOMAINS; 
 	esif_string command = NULL;
 	esif_string partname = NULL;
 	EsifUpPtr upPtr = NULL;
+	EsifUpPtr tempUpPtr = NULL;
 	esif_handle_t participantId = ESIF_INVALID_HANDLE;
 	esif_primitive_type_t primitive = (esif_primitive_type_t)0;
 	u16 domain = ESIF_PRIMITIVE_DOMAIN_D0;
@@ -2003,6 +2022,7 @@ static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 	EsifArbEntryInfo *arbEntryInfoPtr = NULL;
 	size_t ctxIndex = 0;
 	size_t entryIndex = 0;
+	size_t indent = 0;
 
 	*output = 0;
 
@@ -2039,7 +2059,7 @@ static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 		esif_string dom = argv[optarg];
 		if (toupper(dom[0]) == 'D' && isdigit(dom[1]) && dom[2] == 0) {
 			if ((u8)dom[1] < max_domain + '0') {
-				domain += (u8)dom[1] - '0';
+				domain = domain_str_to_short(dom);
 				optarg++;
 			}
 			else { // Invalid Domain
@@ -2110,11 +2130,11 @@ static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 	else if (command == NULL || esif_ccb_stricmp(command, "help") == 0) {
 		esif_ccb_strcpy(output, 
 			"\nUsage:\n"
-			"  arb get [<partname> [<primitive> [<instance>]]]\n"
-			"  arb set <partname> <primitive> [<instance>] [<param>=<value> ...]*\n"
-			"  arb delete  <partname> <primitive> [<instance>]\n"
-			"  arb enable  [<partname> [<primitive> [<instance>]]]\n"
-			"  arb disable [<partname> [<primitive> [<instance>]]]\n"
+			"  arb get [<partname> [<primitive> [<domain> [<instance>]]]]\n"
+			"  arb set <partname> <primitive> [<domain>  [<instance>]] [<param>=<value> ...]*\n"
+			"  arb delete  <partname> <primitive> [<domain>  [<instance>]]\n"
+			"  arb enable  [<partname> [<primitive> [<domain>  [<instance>]]]]\n"
+			"  arb disable [<partname> [<primitive> [<domain>  [<instance>]]]]\n"
 			"Where <param>=<value> is:\n"
 			"  type=<arbtype>\n"
 			"  upper=<upperLimit>\n"
@@ -2136,59 +2156,178 @@ static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 			if (arbInfoPtr) {
 				rc = ESIF_OK;
 
-				esif_ccb_sprintf(OUT_BUF_LEN, output, "\nArbitration information:\n");
+				/* Add header first */
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					(FORMAT_TEXT == g_format) ?
+					"Arbitration Information:\n" : "<result>\n");
+				indent += XML_INDENT;
 
-				if (ESIF_INVALID_HANDLE == participantId) {
+				/* Add global information */
+				if (FORMAT_XML == g_format) {
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s<global>\n", indent, "");
+					indent += XML_INDENT;
+
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						"%*s<state>%lu</state>\n"
+						"%*s<participantCount>%lu<participantCount>\n"
+						"%*s<arbitratedParticipantCount>%lu<arbitratedParticipantCount>\n",
+						indent, "", arbInfoPtr->arbitrationEnabled,
+						indent, "", arbInfoPtr->count,
+						indent, "", arbInfoPtr->arbitratedCount);
+
+					indent -= XML_INDENT;
+					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s<global>\n", indent, "");
+				}
+				else if (ESIF_INVALID_HANDLE == participantId) {
 					esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
 						"  Global state: %s\n"
 						"  Number of arbitrated participants: %lu\n",
-						arbInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbInfoPtr->count);
+						arbInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbInfoPtr->arbitratedCount);
 				}
 
-				arbCtxInfoPtr = arbInfoPtr->arbCtxInfo;
-				for (ctxIndex = 0; ctxIndex < arbInfoPtr->count; ctxIndex++, arbCtxInfoPtr++) {
+				/* Include participant information (if at least one) */
+				if (arbInfoPtr->count > 0) {
 
-					if ((ESIF_INVALID_HANDLE == participantId) || /* Getting all entries globally */
-						((participantId == arbCtxInfoPtr->participantId) && /* Getting all entries for participant */
-							(0 == primitive))) {
-
-						esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-							"\n  Participant " ESIF_HANDLE_FMT " state: %s\n"
-							"  Number of arbitrated primitives: %lu\n",
-							esif_ccb_handle2llu(arbCtxInfoPtr->participantId),
-							arbCtxInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbCtxInfoPtr->count);
+					/* Start <participants> section */
+					if (FORMAT_XML == g_format) {
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"%*s<participants>\n", indent, "");
+						indent += XML_INDENT;
 					}
 
-					arbEntryInfoPtr = arbCtxInfoPtr->arbEntryInfo;
-					for (entryIndex = 0; entryIndex < arbCtxInfoPtr->count; entryIndex++, arbEntryInfoPtr++) {
+					/* Fill in information for each participant */
+					arbCtxInfoPtr = arbInfoPtr->arbCtxInfo;
+					for (ctxIndex = 0; ctxIndex < arbInfoPtr->count; ctxIndex++) {
 
-						if ((ESIF_INVALID_HANDLE == participantId) || /* Getting all entries globally */
-							((participantId == arbEntryInfoPtr->participantId) && /* Getting all entries for participant */
-								(0 == primitive)) ||
-							((participantId == arbEntryInfoPtr->participantId) && /* Getting specific entry */
-								(primitive == arbEntryInfoPtr->primitiveId) &&
-								(instance == arbEntryInfoPtr->instance))) {
+						tempUpPtr = EsifUpPm_GetAvailableParticipantByInstance(arbCtxInfoPtr->participantId);
+
+						/* Report everything for XML */
+						if (FORMAT_XML == g_format) {
+							esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"%*s<participant>\n", indent, "");
+							indent += XML_INDENT;
 
 							esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-								"\n  Participant ID    = " ESIF_HANDLE_FMT "\n"
-								"  Primitive         = %s\n"
-								"  Instance          = %lu\n"
-								"  Arbitration Type  = %lu\n"
-								"  Upper Limit       = 0x%08X(%lu)\n"
-								"  Lower Limit       = 0x%08X(%lu)\n"
-								"  Arbitration state = %s\n",
-								esif_ccb_handle2llu(arbEntryInfoPtr->participantId),
-								esif_primitive_str(arbEntryInfoPtr->primitiveId), arbEntryInfoPtr->instance,
-								arbEntryInfoPtr->arbType,
-								arbEntryInfoPtr->upperLimit, arbEntryInfoPtr->upperLimit,
-								arbEntryInfoPtr->lowerLimit, arbEntryInfoPtr->lowerLimit,
-								arbEntryInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled");
+								"%*s<name>%s</name>\n"
+								"%*s<participantId>" ESIF_HANDLE_FMT "</participantId>\n"
+								"%*s<state>%lu</state>\n"
+								"%*s<entryCount>%lu</entryCount>\n",
+								indent, "", EsifUp_GetName(tempUpPtr),
+								indent, "", esif_ccb_handle2llu(arbCtxInfoPtr->participantId),
+								indent, "", arbCtxInfoPtr->arbitrationEnabled,
+								indent, "", arbCtxInfoPtr->count);
 						}
+						/* Else only report information requested */
+						else if (((ESIF_INVALID_HANDLE == participantId) || /* Getting all entries globally */
+							((participantId == arbCtxInfoPtr->participantId) && /* Getting all entries for participant */
+								(0 == primitive)))) {
+
+							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\nParticipant %s: %s\n", EsifUp_GetName(tempUpPtr),
+								!arbCtxInfoPtr->isArbitrated ? "Not Arbitrated" : "");
+
+							if (arbCtxInfoPtr->isArbitrated) {
+								esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+									"  Arbitration state: %s\n"
+									"  Number of arbitrated primitives: %lu\n",
+									arbCtxInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbCtxInfoPtr->count);
+							}
+						}
+
+						/* Include entry information (if at least one) */
+						if (arbCtxInfoPtr->count > 0) {
+
+							/* Start <entries> section */
+							if (FORMAT_XML == g_format) {
+								esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s<entries>\n", indent, "");
+								indent += XML_INDENT;
+							}
+
+							arbEntryInfoPtr = arbCtxInfoPtr->arbEntryInfo;
+							for (entryIndex = 0; entryIndex < arbCtxInfoPtr->count; entryIndex++, arbEntryInfoPtr++) {
+
+								if (FORMAT_XML == g_format) {
+									esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s<entry>\n", indent, "");
+									indent += XML_INDENT;									
+
+									char primitiveAlias[PRIMITIVE_ALIAS_LEN] = { 0 };
+									esif_shell_get_primitive_alias(arbEntryInfoPtr->primitiveId, arbEntryInfoPtr->instance, primitiveAlias, PRIMITIVE_ALIAS_LEN);
+
+									esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+										"%*s<primitiveId>%u</primitiveId>\n"
+										"%*s<primitiveAlias>%s</primitiveAlias>\n"
+										"%*s<instance>%lu</instance>\n"
+										"%*s<state>%lu</state>\n"
+										"%*s<rule>%lu</rule>\n"
+										"%*s<upperLimit>%lu</upperLimit>\n"
+										"%*s<lowerLimit>%lu</lowerLimit>\n"
+										"%*s<unit>%s</unit>\n",
+										indent, "", arbEntryInfoPtr->primitiveId, 
+										indent, "", primitiveAlias,
+										indent, "", arbEntryInfoPtr->instance,
+										indent, "", arbEntryInfoPtr->arbitrationEnabled,
+										indent, "", arbEntryInfoPtr->arbType,
+										indent, "", arbEntryInfoPtr->upperLimit,
+										indent, "", arbEntryInfoPtr->lowerLimit,
+										indent, "", "NOT IMPLEMENTED");
+
+									indent -= XML_INDENT;
+									esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s</entry>\n", indent, "");
+								}
+								else if ((ESIF_INVALID_HANDLE == participantId) || /* Getting all entries globally */
+									((participantId == arbEntryInfoPtr->participantId) && /* Getting all entries for participant */
+										(0 == primitive)) ||
+									((participantId == arbEntryInfoPtr->participantId) && /* Getting specific entry */
+										(primitive == arbEntryInfoPtr->primitiveId) &&
+										(instance == arbEntryInfoPtr->instance))) {
+
+									esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+										"\n  Participant ID    = " ESIF_HANDLE_FMT "\n"
+										"  Primitive         = %s(%u)\n"
+										"  Domain            = %2.2s\n"
+										"  Instance          = %lu\n"
+										"  Arbitration Type  = %lu\n"
+										"  Upper Limit       = 0x%08X(%lu)\n"
+										"  Lower Limit       = 0x%08X(%lu)\n"
+										"  Arbitration state = %s\n",
+										esif_ccb_handle2llu(arbEntryInfoPtr->participantId),
+										esif_primitive_str(arbEntryInfoPtr->primitiveId), arbEntryInfoPtr->primitiveId, (char *)(&arbEntryInfoPtr->domain), arbEntryInfoPtr->instance,
+										arbEntryInfoPtr->arbType,
+										arbEntryInfoPtr->upperLimit, arbEntryInfoPtr->upperLimit,
+										arbEntryInfoPtr->lowerLimit, arbEntryInfoPtr->lowerLimit,
+										arbEntryInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled");
+								}
+
+							}
+
+							/* End </entries> section */
+							if (FORMAT_XML == g_format) {
+								indent -= XML_INDENT;
+								esif_ccb_sprintf_concat(OUT_BUF_LEN, output,"%*s</entries>\n", indent, "");
+							}
+						}
+
+						/* End </participant> section */
+						if (FORMAT_XML == g_format) {
+							indent -= XML_INDENT;
+							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s</participant>\n", indent, "");
+						}
+
+						/* Prep for next loop */
+						EsifUp_PutRef(tempUpPtr);
+						arbCtxInfoPtr = (EsifArbCtxInfo *)(((char *)arbCtxInfoPtr) + arbCtxInfoPtr->size);
+					}
+
+					/* End </participants> section */
+					if (FORMAT_XML == g_format) {
+						indent -= XML_INDENT;
+						esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%*s</participants>\n", indent, "");
 					}
 				}
+
+				/* Add footer last */
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+					(FORMAT_TEXT == g_format) ?
+					"\n" : "</result>\n");
 			}
 		}
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
 	}
 	// arb set <partname> <primitive> [<domain>] [<instance>] [<param>=<value> ...]
 	else if (esif_ccb_stricmp(command, "set") == 0) {
@@ -6327,6 +6466,26 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 	return output;
 }
 
+static char* esif_shell_cmd_sdk_version(EsifShellCmdPtr shell)
+{
+	int argc        = shell->argc;
+	char **argv     = shell->argv;
+	char *output    = shell->outbuf;
+
+	// "sdk-version" is an alias for "app cmd ipfsrv sdk-version"
+	char *newargv[MAX_ARGV] = {0};
+	int newargc = 0;
+	newargv[newargc++] = "app";
+	newargv[newargc++] = "cmd";
+	newargv[newargc++] = "ipfsrv";
+	for (int j = 0; j < argc && newargc < MAX_ARGV; j++) {
+		newargv[newargc++] = argv[j];
+	}
+	
+	esif_shell_dispatch(newargc, newargv, &output);
+	
+	return output;
+}
 
 static char *esif_shell_cmd_set_osc(EsifShellCmdPtr shell)
 {
@@ -6549,6 +6708,40 @@ static char *esif_shell_cmd_timestamp(EsifShellCmdPtr shell)
 // COMMANDS
 ///////////////////////////////////////////////////////////////////////////////
 
+// View or Change Shell Status
+static char *esif_shell_cmd_shell(EsifShellCmdPtr shell)
+{
+	int argc     = shell->argc;
+	char **argv  = shell->argv;
+	char *output = shell->outbuf;
+
+	// Verify Access Control
+	if (DCfg_Get().opt.ShellAccessControl) {
+		g_shell_enabled = 0;
+		esif_uf_os_shell_disable();
+		SHELL_OUT("shell access disabled\n");
+		return output;
+	}
+
+	// shell
+	if (argc < 2) {
+		SHELL_OUT("shell %s\n", (g_shell_enabled ? "enabled" : "disabled"));
+	}
+	// shell enable
+	else if (esif_ccb_stricmp(argv[1], "enable")==0) {
+		g_shell_enabled = 1;
+		esif_uf_os_shell_enable();
+		SHELL_OUT("shell enabled\n");
+	}
+	// shell disable
+	else if (esif_ccb_stricmp(argv[1], "disable")==0) {
+		g_shell_enabled = 0;
+		esif_uf_os_shell_disable();
+		SHELL_OUT("shell disabled\n");
+	}
+	return output;
+}
+
 // Debug show
 static char *esif_shell_cmd_debugshow(EsifShellCmdPtr shell)
 {
@@ -6625,15 +6818,32 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 	int argc     = shell->argc;
 	char **argv  = shell->argv;
 	char *output = shell->outbuf;
+	char appname[ESIF_NAME_LEN] = {0};
+	char appversion[ESIF_VERSION_LEN] = {0};
 
-	UNREFERENCED_PARAMETER(argc);
-	UNREFERENCED_PARAMETER(argv);
+	// "about shell" = alias for "shell"
+	if (argc == 2 && esif_ccb_stricmp(argv[1], "shell") == 0) {
+		EsifShellCmd alias = { 1, (char **)&"shell", shell->outbuf };
+		return esif_shell_cmd_shell(&alias);
+	}
+	// "about appname" = get version from appname and include in results
+	else if (argc == 2) {
+		EsifAppPtr appPtr = EsifAppMgr_GetAppFromName(argv[1]);
+		if (appPtr) {
+			ESIF_DATA(data_version, ESIF_DATA_STRING, appversion, sizeof(appversion));
+			if (EsifApp_GetVersion(appPtr, &data_version) == ESIF_OK && appversion[0]) {
+				esif_ccb_strcpy(appname, argv[1], sizeof(appname));
+				strip_illegal_chars(appname, g_illegalXmlChars);
+			}
+			EsifAppMgr_PutRef(appPtr);
+		}
+	}
 
 	if (g_format == FORMAT_TEXT) {
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "\n"
 						 "ESIF - Eco-System Independent Framework\n"
-						 "Copyright (c) 2013-2020 Intel Corporation All Rights Reserved\n"
+						 "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n"
 						 "\n"
 						 "esif_uf - ESIF Upper Framework (UF) R3\n"
 						 "Version:  %s\n"
@@ -6659,13 +6869,21 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 						 "<about>\n"
 						 "  <ufVersion>%s</ufVersion>\n"
 						 "  <lfVersion>%s</lfVersion>\n"
-						 "  <osType>%s</osType>\n"
-						 "  <shellVersion>%s</shellVersion>\n"
-						 "</about>\n",
+						 "  <osType>%s</osType>\n",
 						 ESIF_UF_VERSION,
 						 g_esif_kernel_version,
-						 g_os,
-						 g_esif_shell_version);
+						 g_os);
+
+		// Include appname in results if "about appname"
+		if (appname[0]) {
+			esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+						"  <%s>%s</%s>\n",
+						appname,
+						appversion,
+						appname);
+		}
+
+		esif_ccb_strcat(output, "</about>\n", OUT_BUF_LEN);
 	}
 
 	return output;
@@ -7973,7 +8191,7 @@ static char *esif_shell_cmd_event(EsifShellCmdPtr shell)
 	}
 	else if (disableEvent) {
 		rc = EsifEventMgr_UnregisterEventByType(event_type, participant_id, domain_id, esif_shell_cmd_event_callback, 0);
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "\nDISALBED");
+		esif_ccb_sprintf(OUT_BUF_LEN, output, "\nDISABLED");
 	}
 	else {
 		rc = EsifEventMgr_SignalUnfilteredEvent(participant_id, domain_id, event_type, eventDataPtr);
@@ -8083,7 +8301,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI Copyright (c) 2013-2020 Intel Corporation All Rights Reserved\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
 		"Key:  <>-Required parameters\n"
 		"      []-Optional parameters\n"
@@ -9278,14 +9496,14 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 					if (esif_ccb_stricmp(outformat, "repo") == 0 || esif_ccb_stricmp(outformat, "asl") == 0) {
 						esif_ccb_sprintf(sizeof(cmdline), cmdline, "config close @%s", targetdv);
 						parse_cmd(cmdline, isRest, ESIF_TRUE);
-						esif_ccb_sprintf(sizeof(cmdline), cmdline, "config doc @%s %s.csv", targetdv, targetrepo);
+						esif_ccb_sprintf(sizeof(cmdline), cmdline, "config doc @%s %s.csv", targetdv, targetname);
 						if (comment) {
 							esif_ccb_sprintf_concat(sizeof(cmdline), cmdline, " \"%s\" %s%s", comment, sourcedv, (dvcount > 0 ? " append" : ""));
 						}
 						parse_cmd(cmdline, isRest, ESIF_TRUE);
 					}
 					if (esif_ccb_stricmp(outformat, "repo") == 0) {
-						esif_ccb_sprintf(sizeof(cmdline), cmdline, "config append %s%s.bin %s.dv", ESIFDV_EXPORT_PREFIX, targetrepo, targetdv);
+						esif_ccb_sprintf(sizeof(cmdline), cmdline, "config append %s%s.bin %s.dv", ESIFDV_EXPORT_PREFIX, targetname, targetdv);
 						parse_cmd(cmdline, isRest, ESIF_TRUE);
 						esif_ccb_sprintf(sizeof(cmdline), cmdline, "config drop @%s", targetdv);
 						parse_cmd(cmdline, isRest, ESIF_TRUE);
@@ -9337,22 +9555,22 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 					esif_ccb_sprintf_concat(sizeof(cmdline), cmdline, " \"%s\"", comment);
 				}
 				parse_cmd(cmdline, isRest, ESIF_TRUE);
-				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config payload @%s $dv/%s%s.bin REPO compress", targetrepo, ESIFDV_EXPORT_PREFIX, targetrepo);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config payload @%s $dv/%s%s.bin REPO compress", targetrepo, ESIFDV_EXPORT_PREFIX, targetname);
 				parse_cmd(cmdline, isRest, ESIF_TRUE);
 				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config close @%s", targetrepo);
 				parse_cmd(cmdline, isRest, ESIF_TRUE);
-				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config drop %s%s.bin %s.bin", ESIFDV_EXPORT_PREFIX, targetrepo, targetrepo);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config drop %s%s.bin %s.bin", ESIFDV_EXPORT_PREFIX, targetname, targetname);
 				parse_cmd(cmdline, isRest, ESIF_TRUE);
-				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config replace %s.dvx %s.bin", targetrepo, targetrepo);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config replace %s.dvx %s.bin", targetrepo, targetname);
 				parse_cmd(cmdline, isRest, ESIF_TRUE);
-				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config asl encode %s.bin $log/%s.asl", targetrepo, targetname);
+				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config asl encode %s.bin $log/%s.asl", targetname, targetname);
 				parse_cmd(cmdline, isRest, ESIF_TRUE);
 				esif_ccb_sprintf(sizeof(cmdline), cmdline, "config open @%s", targetrepo);
 				if (comment) {
 					esif_ccb_sprintf_concat(sizeof(cmdline), cmdline, " \"%s\"", comment);
 					parse_cmd(cmdline, isRest, ESIF_TRUE);
 				}
-				esif_ccb_sprintf(sizeof(repofile), repofile, "%s.bin", targetrepo);
+				esif_ccb_sprintf(sizeof(repofile), repofile, "%s.bin", targetname);
 			}
 
 			// Verify export file created
@@ -9463,10 +9681,20 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 			if ((rc == ESIF_OK) && (filename || doBackup)) {
 				// Stop all Apps and Destroy Dynamic Participants
 				if (filename) {
+					// Pause new IPF client connections
+					for (idx = 0; idx < ESIF_MAX_APPS && loadedApps[idx] != NULL; idx++) {
+						if (esif_ccb_stricmp(loadedApps[idx], "ipfsrv") == 0) {
+							esif_ccb_sprintf(sizeof(cmdline), cmdline, "%s pause", loadedApps[idx]);
+							parse_cmd(cmdline, g_isRest, ESIF_TRUE);
+							break;
+						}
+					}
+					esif_uf_shell_unlock();
 					for (idx = 0; idx < ESIF_MAX_APPS && loadedApps[idx] != NULL; idx++) {
 						esif_ccb_sprintf(sizeof(cmdline), cmdline, "appstop %s", loadedApps[idx]);
 						parse_cmd(cmdline, g_isRest, ESIF_TRUE);
 					}
+					esif_uf_shell_lock();
 					DestroyDynamicParticipants();
 				}
 
@@ -9519,11 +9747,14 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 					CreateDynamicParticipants();
 
 					// Restart all Apps
+					esif_uf_shell_unlock();
 					for (idx = 0; idx < ESIF_MAX_APPS && loadedApps[idx] != NULL; idx++) {
 						esif_ccb_sprintf(sizeof(cmdline), cmdline, "appstart %s", loadedApps[idx]);
 						parse_cmd(cmdline, g_isRest, ESIF_TRUE);
 					}
+					esif_uf_shell_lock();
 				}
+				output = shell->outbuf = g_outbuf;
 				*output = 0;
 				rc = ESIF_OK;
 			}
@@ -9918,8 +10149,23 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		// Export @datavault to file.csv
 		if (rc == ESIF_OK && data_nspace != NULL && data_key != NULL && data_value != NULL) {
 			if (*open_mode == 'w') {
+				// Get AppVersion from App, or ESIF Version if none and Strip $$ prefix from @datavault
+				char appversion[ESIF_VERSION_LEN] = ESIF_UF_VERSION;
+				char *dvname = namesp;
+				if (esif_ccb_strncmp(dvname, ESIFDV_TEMP_PREFIX, sizeof(ESIFDV_TEMP_PREFIX) - 1) == 0) {
+					dvname += sizeof(ESIFDV_TEMP_PREFIX) - 1;
+				}
+				EsifAppPtr appPtr = EsifAppMgr_GetAppFromName(dvname);
+				if (appPtr) {
+					char versionbuf[ESIF_VERSION_LEN] = {0};
+					ESIF_DATA(data_version, ESIF_DATA_STRING, versionbuf, sizeof(versionbuf));
+					if (EsifApp_GetVersion(appPtr, &data_version) == ESIF_OK && versionbuf[0]) {
+						esif_ccb_strcpy(appversion, versionbuf, sizeof(appversion));
+					}
+					EsifAppMgr_PutRef(appPtr);
+				}
 				esif_ccb_fprintf(fpout, "AppVersion,Description\n");
-				esif_ccb_fprintf(fpout, "%s,%s\n\n", ESIF_UF_VERSION, (comment ? comment : ""));
+				esif_ccb_fprintf(fpout, "%s,%s\n\n", appversion, (comment ? comment : ""));
 			}
 			esif_ccb_fprintf(fpout, "%s\n", label);
 			if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
@@ -11039,39 +11285,6 @@ static char *esif_shell_cmd_driversk(EsifShellCmdPtr shell)
 exit:
 	if (NULL != ipc_ptr) {
 		esif_ipc_free(ipc_ptr);
-	}
-	return output;
-}
-
-static char *esif_shell_cmd_shell(EsifShellCmdPtr shell)
-{
-	int argc     = shell->argc;
-	char **argv  = shell->argv;
-	char *output = shell->outbuf;
-
-	// Verify Access Control
-	if (DCfg_Get().opt.ShellAccessControl) {
-		g_shell_enabled = 0;
-		esif_uf_os_shell_disable();
-		SHELL_OUT("shell access disabled\n");
-		return output;
-	}
-
-	// shell
-	if (argc < 2) {
-		SHELL_OUT("shell %s\n", (g_shell_enabled ? "enabled" : "disabled"));
-	}
-	// shell enable
-	else if (esif_ccb_stricmp(argv[1], "enable")==0) {
-		g_shell_enabled = 1;
-		esif_uf_os_shell_enable();
-		SHELL_OUT("shell enabled\n");
-	}
-	// shell disable
-	else if (esif_ccb_stricmp(argv[1], "disable")==0) {
-		g_shell_enabled = 0;
-		esif_uf_os_shell_disable();
-		SHELL_OUT("shell disabled\n");
 	}
 	return output;
 }
@@ -12692,8 +12905,9 @@ char *esif_shell_exec_command(
 	char *cmdPtr = NULL;
 	char *lineCpy = NULL;
 	char *local_context = NULL;
+	size_t line_len = esif_ccb_strlen(line, buf_len);
 
-	if (esif_ccb_strlen(line, buf_len) >= (buf_len - 1)) {
+	if (line_len >= buf_len) {
 		return NULL;
 	}
 
@@ -12716,7 +12930,7 @@ char *esif_shell_exec_command(
 		g_format = FORMAT_XML;
 	}
 
-	cmdlen = esif_ccb_strlen(lineCpy, buf_len);
+	cmdlen = esif_ccb_strlen(lineCpy, line_len + 1);
 	g_cmdlen = cmdlen;
 	do {
 
@@ -12971,6 +13185,8 @@ static EsifShellMap ShellCommands[] = {
 	{"repeat_delay",         fnArgv, (VoidFunc)esif_shell_cmd_repeatdelay         },
 	{"rstp",                 fnArgv, (VoidFunc)esif_shell_cmd_reset_override      },
 	{"rstp_part",            fnArgv, (VoidFunc)esif_shell_cmd_reset_override      },
+	{"sdk",                  fnArgv, (VoidFunc)esif_shell_cmd_sdk_version         },
+	{"sdk-version",          fnArgv, (VoidFunc)esif_shell_cmd_sdk_version         },
 	{"set_osc",              fnArgv, (VoidFunc)esif_shell_cmd_set_osc             },
 	{"setb",                 fnArgv, (VoidFunc)esif_shell_cmd_setb                },
 	{"seterrorlevel",        fnArgv, (VoidFunc)esif_shell_cmd_seterrorlevel       },
@@ -13206,4 +13422,23 @@ exit:
 	esif_ccb_free(cmdCpy);
 	esif_ccb_event_set(&g_shellStopEvent);
 	return rc;
+}
+
+// Create an alias string given primitiveID and instance
+static void esif_shell_get_primitive_alias(esif_primitive_type_t primitiveId, UInt8 instance, char* primitiveAlias, int buffer_len) {
+
+	esif_ccb_strcpy(primitiveAlias, esif_primitive_str(primitiveId), buffer_len);
+
+	if (GET_PLATFORM_POWER_LIMIT == primitiveId ||
+		GET_PLATFORM_POWER_LIMIT_ENABLE == primitiveId ||
+		GET_PLATFORM_POWER_LIMIT_TIME_WINDOW == primitiveId ||
+		GET_RAPL_POWER_LIMIT == primitiveId ||
+		GET_RAPL_POWER_LIMIT_TIME_WINDOW == primitiveId ||
+		SET_PLATFORM_POWER_LIMIT == primitiveId ||
+		SET_PLATFORM_POWER_LIMIT_ENABLE == primitiveId ||
+		SET_RAPL_POWER_LIMIT == primitiveId ||
+		SET_RAPL_POWER_LIMIT_ENABLE == primitiveId ||
+		SET_RAPL_POWER_LIMIT_TIME_WINDOW == primitiveId) {
+		esif_ccb_sprintf_concat(buffer_len, primitiveAlias, "_%d", instance + 1);
+	}
 }

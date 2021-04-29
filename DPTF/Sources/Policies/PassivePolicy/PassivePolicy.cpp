@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -91,7 +91,10 @@ void PassivePolicy::onDestroy(void)
 	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::DomainDisplayControlCapabilityChanged);
 	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyThermalRelationshipTableChanged);
 	getPolicyServices().policyEventRegistration->unregisterEvent(PolicyEvent::PolicyInitiatedCallback);
-	m_callbackScheduler->cancelAllCallbackRequests();
+	if (m_callbackScheduler != nullptr)
+	{
+		m_callbackScheduler->cancelAllCallbackRequests();
+	}
 }
 
 void PassivePolicy::onEnable(void)

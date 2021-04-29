@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,8 @@ int SysfsSetInt64(char *path, char *filename, Int64 val);
 eEsifError SysfsGetInt(const char *path, const char *filename, int *pInt);
 eEsifError SysfsGetIntDirect(int fd, int *pInt);
 eEsifError SysfsGetFloat(const char *path, const char *filename, float *pFloat);
+eEsifError SysfsGetFileSize(const char *path, const char *fileName, size_t *fileSize);
+eEsifError SysfsGetBinaryData(const char *path, const char *fileName, UInt8 *buffer, size_t bufferLength);
 
 #define IIO_STR_LEN 24
 #define MAX_SYSFS_FILENAME 256

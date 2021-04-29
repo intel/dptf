@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -76,15 +76,15 @@ Guid Guid::createInvalid()
 }
 
 Bool Guid::operator==(const Guid& rhs) const
-{	
-	UIntN mySize = sizeof(this->m_guid)/sizeof(this->m_guid[0]);
-	UIntN rhsSize = sizeof(rhs.m_guid)/sizeof(rhs.m_guid[0]);
+{
+	UIntN mySize = sizeof(this->m_guid) / sizeof(this->m_guid[0]);
+	UIntN rhsSize = sizeof(rhs.m_guid) / sizeof(rhs.m_guid[0]);
 
 	if (mySize != rhsSize)
 	{
 		return false;
 	}
-	
+
 	// FIXME: this can be switched to memcmp once implemented in esif/ccb
 	for (UIntN i = 0; i < mySize && i < rhsSize; ++i)
 	{
@@ -107,7 +107,7 @@ std::ostream& operator<<(std::ostream& os, const Guid& guid)
 	return os;
 }
 
-Guid::operator const UInt8*(void)const
+Guid::operator const UInt8*(void) const
 {
 	throwIfInvalid(*this);
 	return m_guid;
@@ -140,7 +140,8 @@ std::string Guid::toString() const
 	}
 
 	std::string guidText = guidTextStream.str();
-	std::transform(guidText.begin(), guidText.end(), guidText.begin(), [](int c) -> char { return (char)::toupper(c); } );
+	std::transform(
+		guidText.begin(), guidText.end(), guidText.begin(), [](int c) -> char { return (char)::toupper(c); });
 	return guidText;
 }
 
@@ -184,6 +185,20 @@ Guid Guid::fromString(const std::string guidString)
 	}
 
 	return Guid(guidBytes);
+}
+
+Guid Guid::fromUnmangledString(std::string guidString)
+{
+	// Mangle Guid: Convert input guid string format from
+	// AABBCCDD-EEFF-GGHH-IIJJ-KKLLMMNNOOPP to
+	// DDCCBBAA-FFEE-HHGG-IIJJ-KKLLMMNNOOPP
+
+	guidString = guidString.substr(6, 2) + guidString.substr(4, 2) + guidString.substr(2, 2) + guidString.substr(0, 2)
+				 + guidString.substr(8, 1) + guidString.substr(11, 2) + guidString.substr(9, 2)
+				 + guidString.substr(13, 1) + guidString.substr(16, 2) + guidString.substr(14, 2)
+				 + guidString.substr(18, 18);
+
+	return Guid::fromString(guidString);
 }
 
 void Guid::throwIfInvalid(const Guid& guid) const

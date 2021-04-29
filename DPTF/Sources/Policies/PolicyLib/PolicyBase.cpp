@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,9 @@
 using namespace std;
 
 PolicyBase::PolicyBase(void)
-	: m_enabled(false)
+	: m_dynamicPolicyUuidString(Constants::EmptyString)
+	, m_dynamicPolicyName(Constants::EmptyString)
+	, m_enabled(false)
 {
 	m_time.reset(new DptfTime());
 	m_trackedParticipants.reset(new ParticipantTracker());
@@ -35,10 +37,17 @@ PolicyBase::~PolicyBase(void)
 }
 
 // If a policy chooses not to load itself, it should throw out of its onCreate() function.
-void PolicyBase::create(Bool enabled, const PolicyServicesInterfaceContainer& policyServices, UIntN policyIndex)
+void PolicyBase::create(
+	Bool enabled,
+	const PolicyServicesInterfaceContainer& policyServices,
+	UIntN policyIndex,
+	const string& dynamicPolicyUuid,
+	const string& dynamicPolicyName)
 {
 	m_enabled = enabled;
 	m_policyServices = policyServices;
+	m_dynamicPolicyUuidString = dynamicPolicyUuid;
+	m_dynamicPolicyName = dynamicPolicyName;
 	m_trackedParticipants->setPolicyServices(policyServices);
 	throwIfPolicyRequirementsNotMet();
 
@@ -110,7 +119,7 @@ void PolicyBase::bindParticipant(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Binding participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -122,7 +131,7 @@ void PolicyBase::unbindParticipant(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Unbinding participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -135,7 +144,7 @@ void PolicyBase::bindDomain(UIntN participantIndex, UIntN domainIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Binding domain for participant. ParticipantIndex = " << participantIndex
 				<< ". DomainIndex=" << domainIndex;
 		return message.str();
@@ -148,7 +157,7 @@ void PolicyBase::unbindDomain(UIntN participantIndex, UIntN domainIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Unbinding domain for participant. ParticipantIndex = " << participantIndex
 				<< ". DomainIndex =" << domainIndex;
 		return message.str();
@@ -161,7 +170,7 @@ void PolicyBase::domainTemperatureThresholdCrossed(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Temperature threshold crossed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -174,7 +183,7 @@ void PolicyBase::domainPowerControlCapabilityChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Power Control Capabilities Changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -187,7 +196,7 @@ void PolicyBase::domainPerformanceControlCapabilityChanged(UIntN participantInde
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Performance Control Capabilities Changed for participant. ParticipantIndex = "
 				<< participantIndex;
 		return message.str();
@@ -200,7 +209,7 @@ void PolicyBase::domainPerformanceControlsChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Performance control set changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -213,7 +222,7 @@ void PolicyBase::domainCoreControlCapabilityChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Core control capabilities changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -226,7 +235,7 @@ void PolicyBase::domainPriorityChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Domain priority changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -238,7 +247,7 @@ void PolicyBase::domainDisplayControlCapabilityChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Display control capabilities changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -251,7 +260,7 @@ void PolicyBase::domainDisplayStatusChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Display status changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -265,7 +274,7 @@ void PolicyBase::domainRadioConnectionStatusChanged(
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() + ": Radio Connection Status Changed to "
 				<< RadioConnectionStatus::ToString(radioConnectionStatus)
 				<< ". ParticipantIndex = " << participantIndex;
@@ -279,7 +288,7 @@ void PolicyBase::domainRfProfileChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": RF Profile Changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -291,7 +300,7 @@ void PolicyBase::participantSpecificInfoChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Specific info changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -303,7 +312,7 @@ void PolicyBase::domainVirtualSensorCalibrationTableChanged(UIntN participantInd
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": VSCT changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -315,7 +324,7 @@ void PolicyBase::domainVirtualSensorPollingTableChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": VSPT changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -327,7 +336,7 @@ void PolicyBase::domainVirtualSensorRecalcChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Virtual Sensor recalculation requested for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -340,7 +349,7 @@ void PolicyBase::domainBatteryStatusChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Battery status changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -352,7 +361,7 @@ void PolicyBase::domainBatteryInformationChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Battery information changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -365,7 +374,7 @@ void PolicyBase::domainBatteryHighFrequencyImpedanceChanged(UIntN participantInd
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Battery high frequency impedance changed for participant. ParticipantIndex = "
 				<< participantIndex;
 		return message.str();
@@ -378,7 +387,7 @@ void PolicyBase::domainBatteryNoLoadVoltageChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Battery no-load voltage changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -391,7 +400,7 @@ void PolicyBase::domainMaxBatteryPeakCurrentChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName()
 				<< ": Max battery peak current changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
@@ -481,7 +490,7 @@ void PolicyBase::domainEnergyThresholdCrossed(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Energy threshold crossed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -493,7 +502,7 @@ void PolicyBase::domainFanCapabilityChanged(UIntN participantIndex)
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Fan Capabilities changed for participant. ParticipantIndex = " << participantIndex;
 		return message.str();
 	});
@@ -508,7 +517,7 @@ void PolicyBase::domainSocWorkloadClassificationChanged(
 	throwIfPolicyIsDisabled();
 	// TODO: want to pass in participant index instead
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": Workload Classification changed for ParticipantIndex = " << participantIndex
 				<< " and DomainIndex = " << domainIndex;
 		return message.str();
@@ -521,7 +530,7 @@ void PolicyBase::domainEppSensitivityHintChanged(UIntN participantIndex, UIntN d
 	throwIfPolicyIsDisabled();
 
 	POLICY_LOG_MESSAGE_INFO({
-		std::stringstream message;
+		stringstream message;
 		message << getName() << ": EPP Sensitivity Hint changed for ParticipantIndex = " << participantIndex
 				<< " and DomainIndex = " << domainIndex;
 		return message.str();
@@ -543,25 +552,17 @@ void PolicyBase::thermalRelationshipTableChanged(void)
 	onThermalRelationshipTableChanged();
 }
 
-void PolicyBase::adaptiveUserPresenceTableChanged(void)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive User Presence Table changed."; });
-	onAdaptiveUserPresenceTableChanged();
-}
-
 void PolicyBase::adaptivePerformanceConditionsTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Conditions Table changed."; });
 	onAdaptivePerformanceConditionsTableChanged();
 }
-
-void PolicyBase::adaptivePerformanceParticipantConditionTableChanged(void)
+void PolicyBase::ddrfTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Adaptive Performance Participant Condition Table changed."; });
-	onAdaptivePerformanceParticipantConditionTableChanged();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": DDRF Table changed."; });
+	onDdrfTableChanged();
 }
 
 void PolicyBase::adaptivePerformanceActionsTableChanged(void)
@@ -574,6 +575,12 @@ void PolicyBase::adaptivePerformanceActionsTableChanged(void)
 	updateOscRequestIfNeeded(hasActiveControlCapabilityLastSet, hasPassiveControlCapabilityLastSet);
 }
 
+void PolicyBase::intelligentThermalManagementTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Intelligent Thermal Management Table changed."; });
+	onIntelligentThermalManagementTableChanged();
+}
 void PolicyBase::pidAlgorithmTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -679,7 +686,7 @@ void PolicyBase::resume(void)
 	onResume();
 }
 
-void PolicyBase::foregroundApplicationChanged(const std::string& foregroundApplicationName)
+void PolicyBase::foregroundApplicationChanged(const string& foregroundApplicationName)
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO(
@@ -714,7 +721,7 @@ void PolicyBase::operatingSystemBatteryPercentageChanged(UIntN batteryPercentage
 {
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO(
-		{ return getName() + ": OS battery percentage changed to " + std::to_string(batteryPercentage) + "."; });
+		{ return getName() + ": OS battery percentage changed to " + to_string(batteryPercentage) + "."; });
 	onOperatingSystemBatteryPercentageChanged(batteryPercentage);
 }
 
@@ -759,7 +766,7 @@ void PolicyBase::operatingSystemMobileNotification(OsMobileNotificationType::Typ
 	throwIfPolicyIsDisabled();
 	POLICY_LOG_MESSAGE_INFO({
 		return getName() + ": OS Mobile Notification for " + OsMobileNotificationType::ToString(notificationType)
-			   + " changed to " + std::to_string(value) + ".";
+			   + " changed to " + to_string(value) + ".";
 	});
 	onOperatingSystemMobileNotification(notificationType, value);
 }
@@ -799,8 +806,7 @@ void PolicyBase::operatingSystemScreenStateChanged(OnOffToggle::Type screenState
 void PolicyBase::operatingSystemBatteryCountChanged(UIntN batteryCount)
 {
 	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO(
-		{ return getName() + ": OS battery count changed to " + std::to_string(batteryCount) + "."; });
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": OS battery count changed to " + to_string(batteryCount) + "."; });
 	onOperatingSystemBatteryCountChanged(batteryCount);
 }
 
@@ -898,7 +904,7 @@ void PolicyBase::emergencyCallModeTableChanged(void)
 	onEmergencyCallModeTableChanged();
 }
 
-void PolicyBase::overrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
+void PolicyBase::overrideTimeObject(shared_ptr<TimeInterface> timeObject)
 {
 	m_time = timeObject;
 	m_trackedParticipants->setTimeServiceObject(m_time);
@@ -919,15 +925,6 @@ void PolicyBase::performanceCapabilitiesChanged(UIntN participantIndex)
 	onPerformanceCapabilitiesChanged(participantIndex);
 }
 
-void PolicyBase::sensorUserPresenceChanged(SensorUserPresence::Type userPresence)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Sensor User Presence changed to " + SensorUserPresence::toString(userPresence) + ".";
-	});
-	onSensorUserPresenceChanged(userPresence);
-}
-
 void PolicyBase::platformUserPresenceChanged(SensorUserPresence::Type userPresence)
 {
 	throwIfPolicyIsDisabled();
@@ -935,338 +932,6 @@ void PolicyBase::platformUserPresenceChanged(SensorUserPresence::Type userPresen
 		return getName() + ": Platform User Presence changed to " + SensorUserPresence::toString(userPresence) + ".";
 	});
 	onPlatformUserPresenceChanged(userPresence);
-}
-
-void PolicyBase::wakeOnApproachFeatureStateChanged(Bool wakeOnApproachFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Wake On Approach Feature State changed to "
-			   + StatusFormat::friendlyValue(wakeOnApproachFeatureState) + ".";
-	});
-	onWakeOnApproachFeatureStateChanged(wakeOnApproachFeatureState);
-}
-
-void PolicyBase::wakeOnApproachWithExternalMonitorFeatureStateChanged(
-	Bool wakeOnApproachWithExternalMonitorFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Wake On Approach With External Monitor Feature State changed to "
-			   + StatusFormat::friendlyValue(wakeOnApproachWithExternalMonitorFeatureState) + ".";
-	});
-	onWakeOnApproachWithExternalMonitorFeatureStateChanged(wakeOnApproachWithExternalMonitorFeatureState);
-}
-
-void PolicyBase::wakeOnApproachOnLowBatteryFeatureStateChanged(
-	Bool wakeOnApproachOnLowBatteryFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Wake On Approach On Low Battery Feature State changed to "
-			   + StatusFormat::friendlyValue(wakeOnApproachOnLowBatteryFeatureState) + ".";
-	});
-	onWakeOnApproachOnLowBatteryFeatureStateChanged(wakeOnApproachOnLowBatteryFeatureState);
-}
-
-void PolicyBase::wakeOnApproachBatteryRemainingPercentageChanged(Percentage wakeOnApproachBatteryRemainingPercentage)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Wake On Approach Battery Remaining Percentage changed to "
-			   + StatusFormat::friendlyValue(wakeOnApproachBatteryRemainingPercentage.toWholeNumber()) + ".";
-	});
-	onWakeOnApproachBatteryRemainingPercentageChanged(wakeOnApproachBatteryRemainingPercentage);
-}
-
-void PolicyBase::walkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Feature State changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockFeatureState) + ".";
-	});
-	onWalkAwayLockFeatureStateChanged(walkAwayLockFeatureState);
-}
-
-void PolicyBase::walkAwayLockWithExternalMonitorFeatureStateChanged(
-	Bool walkAwayLockWithExternalMonitorFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock With External Monitor Feature State changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockWithExternalMonitorFeatureState) + ".";
-	});
-	onWalkAwayLockWithExternalMonitorFeatureStateChanged(walkAwayLockWithExternalMonitorFeatureState);
-}
-
-void PolicyBase::walkAwayLockDimScreenFeatureStateChanged(Bool walkAwayLockDimScreenFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Dim Screen Feature State changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockDimScreenFeatureState) + ".";
-	});
-	onWalkAwayLockDimScreenFeatureStateChanged(walkAwayLockDimScreenFeatureState);
-}
-
-void PolicyBase::walkAwayLockDisplayOffAfterLockFeatureStateChanged(
-	Bool walkAwayLockDisplayOffAfterLockFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Display Off After Lock Feature State changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockDisplayOffAfterLockFeatureState) + ".";
-	});
-	onWalkAwayLockDisplayOffAfterLockFeatureStateChanged(walkAwayLockDisplayOffAfterLockFeatureState);
-}
-
-void PolicyBase::walkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-	Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Honor Power Requests For Display Feature State changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockHonorPowerRequestsForDisplayFeatureState) + ".";
-	});
-	onWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(walkAwayLockHonorPowerRequestsForDisplayFeatureState);
-}
-
-void PolicyBase::walkAwayLockHonorUserInCallFeatureStateChanged(
-	Bool walkAwayLockHonorUserInCallFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Honor User In Call Feature State changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockHonorUserInCallFeatureState) + ".";
-	});
-	onWalkAwayLockHonorUserInCallFeatureStateChanged(walkAwayLockHonorUserInCallFeatureState);
-}
-
-void PolicyBase::userInCallStateChanged(Bool userInCallState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": User In Call State changed to "
-			   + StatusFormat::friendlyValue(userInCallState) + ".";
-	});
-	onUserInCallStateChanged(userInCallState);
-}
-
-void PolicyBase::walkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Screen Lock Wait Time changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockScreenLockWaitTime.asSeconds()) + ".";
-	});
-	onWalkAwayLockScreenLockWaitTimeChanged(walkAwayLockScreenLockWaitTime);
-}
-
-void PolicyBase::walkAwayLockPreDimWaitTimeChanged(TimeSpan walkAwayLockPreDimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Pre Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockPreDimWaitTime.asSeconds()) + ".";
-	});
-	onWalkAwayLockPreDimWaitTimeChanged(walkAwayLockPreDimWaitTime);
-}
-
-void PolicyBase::walkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock HID Interaction Timeout changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockUserPresentWaitTime.asSeconds()) + ".";
-	});
-	onWalkAwayLockUserPresentWaitTimeChanged(walkAwayLockUserPresentWaitTime);
-}
-
-void PolicyBase::walkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Walk Away Lock Dim Interval changed to "
-			   + StatusFormat::friendlyValue(walkAwayLockDimInterval.asSeconds())
-			   + ".";
-	});
-	onWalkAwayLockDimIntervalChanged(walkAwayLockDimInterval);
-}
-
-void PolicyBase::adaptiveDimmingFeatureStateChanged(Bool adaptiveDimmingFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Adaptive Dimming Feature State changed to "
-			   + StatusFormat::friendlyValue(adaptiveDimmingFeatureState) + ".";
-	});
-	onAdaptiveDimmingFeatureStateChanged(adaptiveDimmingFeatureState);
-}
-
-void PolicyBase::adaptiveDimmingWithExternalMonitorFeatureStateChanged(
-	Bool adaptiveDimmingWithExternalMonitorFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Adaptive Dimming With External Monitor Feature State changed to "
-			   + StatusFormat::friendlyValue(adaptiveDimmingWithExternalMonitorFeatureState) + ".";
-	});
-	onAdaptiveDimmingWithExternalMonitorFeatureStateChanged(adaptiveDimmingWithExternalMonitorFeatureState);
-}
-
-void PolicyBase::adaptiveDimmingWithPresentationModeFeatureStateChanged(
-	Bool adaptiveDimmingWithPresentationModeFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Adaptive Dimming With Presentation Mode Feature State changed to "
-			   + StatusFormat::friendlyValue(adaptiveDimmingWithPresentationModeFeatureState) + ".";
-	});
-	onAdaptiveDimmingWithPresentationModeFeatureStateChanged(adaptiveDimmingWithPresentationModeFeatureState);
-}
-
-void PolicyBase::adaptiveDimmingPreDimWaitTimeChanged(
-	TimeSpan adaptiveDimmingPreDimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Adaptive Dimming Pre Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(adaptiveDimmingPreDimWaitTime.asSeconds()) + ".";
-	});
-	onAdaptiveDimmingPreDimWaitTimeChanged(adaptiveDimmingPreDimWaitTime);
-}
-
-void PolicyBase::mispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Misprediction Face Detection Feature State changed to "
-			   + StatusFormat::friendlyValue(mispredictionFaceDetectionFeatureState) + ".";
-	});
-	onMispredictionFaceDetectionFeatureStateChanged(mispredictionFaceDetectionFeatureState);
-}
-
-void PolicyBase::mispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ":Misprediction Time Window changed to "
-			   + StatusFormat::friendlyValue(mispredictionTimeWindow.asSeconds()) + ".";
-	});
-	onMispredictionTimeWindowChanged(mispredictionTimeWindow);
-}
-
-void PolicyBase::misprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Misprediction 1 Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(misprediction1DimWaitTime.asSeconds()) + ".";
-	});
-	onMisprediction1DimWaitTimeChanged(misprediction1DimWaitTime);
-}
-
-void PolicyBase::misprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Misprediction 2 Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(misprediction2DimWaitTime.asSeconds()) + ".";
-	});
-	onMisprediction2DimWaitTimeChanged(misprediction2DimWaitTime);
-}
-
-void PolicyBase::misprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Misprediction 3 Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(misprediction3DimWaitTime.asSeconds()) + ".";
-	});
-	onMisprediction3DimWaitTimeChanged(misprediction3DimWaitTime);
-}
-
-void PolicyBase::misprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Misprediction 4 Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(misprediction4DimWaitTime.asSeconds()) + ".";
-	});
-	onMisprediction4DimWaitTimeChanged(misprediction4DimWaitTime);
-}
-
-void PolicyBase::noLockOnPresenceFeatureStateChanged(Bool noLockOnPresenceFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": No Lock On Presence Feature State changed to "
-			   + StatusFormat::friendlyValue(noLockOnPresenceFeatureState) + ".";
-	});
-	onNoLockOnPresenceFeatureStateChanged(noLockOnPresenceFeatureState);
-}
-
-void PolicyBase::noLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": No Lock On Presence External Monitor Feature State changed to "
-			   + StatusFormat::friendlyValue(noLockOnPresenceExternalMonitorFeatureState) + ".";
-	});
-	onNoLockOnPresenceExternalMonitorFeatureStateChanged(noLockOnPresenceExternalMonitorFeatureState);
-}
-
-void PolicyBase::noLockOnPresenceOnBatteryFeatureStateChanged(
-	Bool noLockOnPresenceOnBatteryFeatureState)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": No Lock On Presence On Battery Feature State changed to "
-			   + StatusFormat::friendlyValue(noLockOnPresenceOnBatteryFeatureState) + ".";
-	});
-	onNoLockOnPresenceOnBatteryFeatureStateChanged(noLockOnPresenceOnBatteryFeatureState);
-}
-
-void PolicyBase::noLockOnPresenceBatteryRemainingPercentageChanged(
-	Percentage noLockOnPresenceBatteryRemainingPercentage)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": No Lock On Presence Battery Remaining Percentage changed to "
-			   + StatusFormat::friendlyValue(noLockOnPresenceBatteryRemainingPercentage.toWholeNumber()) + ".";
-	});
-	onNoLockOnPresenceBatteryRemainingPercentageChanged(noLockOnPresenceBatteryRemainingPercentage);
-}
-
-void PolicyBase::noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": No Lock On Presence Battery Reset Wait Time changed to "
-			   + StatusFormat::friendlyValue(noLockOnPresenceResetWaitTime.asSeconds()) + ".";
-	});
-	onNoLockOnPresenceResetWaitTimeChanged(noLockOnPresenceResetWaitTime);
-}
-
-void PolicyBase::failsafeTimeoutChanged(TimeSpan failsafeTimeout)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ":Failsafe Timeout changed to "
-			   + StatusFormat::friendlyValue(failsafeTimeout.asSeconds()) + ".";
-	});
-	onFailsafeTimeoutChanged(failsafeTimeout);
-}
-
-void PolicyBase::contextServiceStatusChanged(Bool contextServiceStatus)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Context Service Status changed to " + StatusFormat::friendlyValue(contextServiceStatus)
-			   + ".";
-	});
-	onContextServiceStatusChanged(contextServiceStatus);
 }
 
 void PolicyBase::externalMonitorStateChanged(Bool externalMonitorState)
@@ -1279,65 +944,6 @@ void PolicyBase::externalMonitorStateChanged(Bool externalMonitorState)
 	onExternalMonitorStateChanged(externalMonitorState);
 }
 
-void PolicyBase::userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": User Not Present Dim Target changed to "
-			   + StatusFormat::friendlyValue(userNotPresentDimTarget) + ".";
-	});
-	onUserNotPresentDimTargetChanged(userNotPresentDimTarget);
-}
-
-void PolicyBase::userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": User Disengaged Dimming Interval changed to "
-			   + StatusFormat::friendlyValue(userDisengagedDimmingInterval.asSeconds()) + ".";
-	});
-	onUserDisengagedDimmingIntervalChanged(userDisengagedDimmingInterval);
-}
-
-void PolicyBase::userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": User Disengaged Dim Target changed to " + StatusFormat::friendlyValue(userDisengagedDimTarget)
-			   + ".";
-	});
-	onUserDisengagedDimTargetChanged(userDisengagedDimTarget);
-}
-
-void PolicyBase::userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": User Disengaged Dim Wait Time changed to "
-			   + StatusFormat::friendlyValue(userDisengagedDimWaitTime.asSeconds()) + ".";
-	});
-	onUserDisengagedDimWaitTimeChanged(userDisengagedDimWaitTime);
-}
-
-void PolicyBase::sensorModeChanged(SensorMode::Type sensorMode)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO(
-		{ return getName() + ": Sensor Mode changed to " + SensorMode::toString(sensorMode) + ".";
-	});
-	onSensorModeChanged(sensorMode);
-}
-
-void PolicyBase::biometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({
-		return getName() + ": Biometric Presence Sensor instance changed to "
-			   + BiometricPresenceSensorInstance::toString(sensorInstance) + ".";
-	});
-	onBiometricPresenceSensorInstanceChanged(sensorInstance);
-}
-
 void PolicyBase::userInteractionChanged(UserInteraction::Type userInteraction)
 {
 	throwIfPolicyIsDisabled();
@@ -1346,18 +952,10 @@ void PolicyBase::userInteractionChanged(UserInteraction::Type userInteraction)
 	onUserInteractionChanged(userInteraction);
 }
 
-void PolicyBase::userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus)
-{
-	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO(
-		{ return getName() + ": User Presence Correlation Status changed to " + StatusFormat::friendlyValue(correlationStatus) + "."; });
-	onUserPresenceCorrelationStatusChanged(correlationStatus);
-}
-
 void PolicyBase::foregroundRatioChanged(UIntN ratio)
 {
 	throwIfPolicyIsDisabled();
-	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Foreground ratio changed to " + std::to_string(ratio) + "."; });
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Foreground ratio changed to " + to_string(ratio) + "."; });
 	onForegroundRatioChanged(ratio);
 }
 
@@ -1551,17 +1149,12 @@ void PolicyBase::onAdaptivePerformanceConditionsTableChanged(void)
 	throw not_implemented();
 }
 
-void PolicyBase::onAdaptiveUserPresenceTableChanged(void)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onAdaptivePerformanceParticipantConditionTableChanged(void)
-{
-	throw not_implemented();
-}
-
 void PolicyBase::onAdaptivePerformanceActionsTableChanged(void)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onDdrfTableChanged(void)
 {
 	throw not_implemented();
 }
@@ -1586,7 +1179,7 @@ void PolicyBase::onResume(void)
 	throw not_implemented();
 }
 
-void PolicyBase::onForegroundApplicationChanged(const std::string& foregroundApplicationName)
+void PolicyBase::onForegroundApplicationChanged(const string& foregroundApplicationName)
 {
 	throw not_implemented();
 }
@@ -1736,6 +1329,11 @@ void PolicyBase::onPowerShareAlgorithmTableChanged(void)
 	throw not_implemented();
 }
 
+void PolicyBase::onIntelligentThermalManagementTableChanged(void)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onWorkloadHintConfigurationChanged(void)
 {
 	throw not_implemented();
@@ -1756,183 +1354,7 @@ void PolicyBase::onPerformanceCapabilitiesChanged(UIntN participantIndex)
 	throw not_implemented();
 }
 
-void PolicyBase::onSensorUserPresenceChanged(SensorUserPresence::Type userPresence)
-{
-	throw not_implemented();
-}
-
 void PolicyBase::onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWakeOnApproachFeatureStateChanged(Bool wakeOnApproachFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWakeOnApproachWithExternalMonitorFeatureStateChanged(
-	Bool wakeOnApproachWithExternalMonitorFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWakeOnApproachOnLowBatteryFeatureStateChanged(
-	Bool wakeOnApproachOnLowBatteryFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWakeOnApproachBatteryRemainingPercentageChanged(Percentage wakeOnApproachBatteryRemainingPercentage)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockWithExternalMonitorFeatureStateChanged(
-	Bool walkAwayLockWithExternalMonitorFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockDimScreenFeatureStateChanged(
-	Bool walkAwayLockDimScreenFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockDisplayOffAfterLockFeatureStateChanged(
-	Bool walkAwayLockDisplayOffAfterLockFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-	Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockHonorUserInCallFeatureStateChanged(
-	Bool walkAwayLockHonorUserInCallFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onUserInCallStateChanged(Bool userInCallState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockPreDimWaitTimeChanged(TimeSpan walkAwayLockPreDimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onWalkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onAdaptiveDimmingFeatureStateChanged(Bool adaptiveDimmingFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onAdaptiveDimmingWithExternalMonitorFeatureStateChanged(
-	Bool adaptiveDimmingWithExternalMonitorFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onAdaptiveDimmingWithPresentationModeFeatureStateChanged(
-	Bool adaptiveDimmingWithPresentationModeFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onAdaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onMispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onMispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onMisprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onMisprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onMisprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onMisprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onNoLockOnPresenceFeatureStateChanged(Bool noLockOnPresenceFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onNoLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onNoLockOnPresenceOnBatteryFeatureStateChanged(
-	Bool noLockOnPresenceOnBatteryFeatureState)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onNoLockOnPresenceBatteryRemainingPercentageChanged(
-	Percentage noLockOnPresenceBatteryRemainingPercentage)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onFailsafeTimeoutChanged(TimeSpan failsafeTimeout)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onContextServiceStatusChanged(Bool contextServiceStatus)
 {
 	throw not_implemented();
 }
@@ -1942,42 +1364,7 @@ void PolicyBase::onExternalMonitorStateChanged(Bool externalMonitorState)
 	throw not_implemented();
 }
 
-void PolicyBase::onUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onSensorModeChanged(SensorMode::Type sensorMode)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onBiometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance)
-{
-	throw not_implemented();
-}
-
 void PolicyBase::onUserInteractionChanged(UserInteraction::Type userInteraction)
-{
-	throw not_implemented();
-}
-
-void PolicyBase::onUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus)
 {
 	throw not_implemented();
 }
@@ -1987,7 +1374,7 @@ void PolicyBase::onForegroundRatioChanged(UIntN ratio)
 	throw not_implemented();
 }
 
-void PolicyBase::onOverrideTimeObject(std::shared_ptr<TimeInterface> timeObject)
+void PolicyBase::onOverrideTimeObject(shared_ptr<TimeInterface> timeObject)
 {
 	// optional to implement
 }
@@ -1997,12 +1384,12 @@ PolicyServicesInterfaceContainer& PolicyBase::getPolicyServices() const
 	return m_policyServices;
 }
 
-std::shared_ptr<ParticipantTrackerInterface> PolicyBase::getParticipantTracker() const
+shared_ptr<ParticipantTrackerInterface> PolicyBase::getParticipantTracker() const
 {
 	return m_trackedParticipants;
 }
 
-std::shared_ptr<TimeInterface>& PolicyBase::getTime() const
+shared_ptr<TimeInterface>& PolicyBase::getTime() const
 {
 	return m_time;
 }
@@ -2056,7 +1443,7 @@ void PolicyBase::sendOscRequest(Bool shouldSendOscRequest, Bool isPolicyEnabled)
 			result.throwIfFailure();
 			POLICY_LOG_MESSAGE_INFO({ return getName() + ": " + result.getMessage(); });
 		}
-		catch (std::exception& ex)
+		catch (exception& ex)
 		{
 			POLICY_LOG_MESSAGE_WARNING_EX({ return getName() + ": Failed to set _OSC: " + string(ex.what()); });
 		}
@@ -2081,7 +1468,7 @@ void PolicyBase::updateOscRequestIfNeeded(
 	}
 }
 
-std::shared_ptr<XmlNode> PolicyBase::getXmlForTripPointStatistics(std::set<UIntN> targetIndexes) const
+shared_ptr<XmlNode> PolicyBase::getXmlForTripPointStatistics(set<UIntN> targetIndexes) const
 {
 	auto status = XmlNode::createWrapperElement("trip_point_statistics");
 

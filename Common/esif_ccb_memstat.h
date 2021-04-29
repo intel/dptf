@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -93,6 +93,7 @@ extern esif_ccb_lock_t g_memstat_lock;
 }
 #endif
 
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void memstat_inc(u32 *intptr)
 {
 	esif_ccb_write_lock(&g_memstat_lock);
@@ -100,6 +101,7 @@ static ESIF_INLINE void memstat_inc(u32 *intptr)
 	esif_ccb_write_unlock(&g_memstat_lock);
 }
 
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE u32 memstat_read(u32 *intptr)
 {
 	u32 rc;
@@ -108,6 +110,8 @@ static ESIF_INLINE u32 memstat_read(u32 *intptr)
 	esif_ccb_read_unlock(&g_memstat_lock);
 	return rc;
 }
+
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void memstat_set(u32 *intptr, u32 val)
 {
 	esif_ccb_write_lock(&g_memstat_lock);

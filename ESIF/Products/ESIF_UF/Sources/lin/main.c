@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,7 +36,7 @@
 #include <sys/file.h>
 #include <unistd.h>
 
-#define COPYRIGHT_NOTICE "Copyright (c) 2013-2020 Intel Corporation All Rights Reserved"
+#define COPYRIGHT_NOTICE "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved"
 
 /* ESIF_UF Startup Script Defaults */
 #ifdef ESIF_ATTR_OS_ANDROID
@@ -56,7 +56,8 @@ static void esif_udev_exit();
 static Bool esif_udev_is_started();
 static void *esif_udev_listen(void *ptr);
 static void esif_process_udev_event(char *udev_target);
-static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event);
+static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event);
+static int kobj_wifi_uevent_parse(char *buffer, int len , int *wifi_event);
 
 static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
@@ -104,7 +105,8 @@ struct instancelock {
 	int  lockfd;    /* lock file descriptor */
 };
 static struct instancelock g_instance = {"esif_ufd.pid"};
-static char device_path[] = "/devices/virtual/thermal/thermal_zone";
+static char thermal_device_path[] = "/devices/virtual/thermal/thermal_zone";
+static char wifi_device_path[] = "/module/iwlwifi";
 
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
@@ -212,7 +214,15 @@ enum thermal_notify_event {
 	THERMAL_DEVICE_UP, /* Thermal device is up after a down event */
 	THERMAL_DEVICE_POWER_CAPABILITY_CHANGED, /* power capability changed */
 	THERMAL_TABLE_CHANGED, /* Thermal table(s) changed */
+	THERMAL_EVENT_KEEP_ALIVE, /* Request for user space handler to respond */
 };
+
+/* Wifi event notification */
+enum wifi_notify_event {
+	WIFI_EVENT_UNDEFINED,
+	WIFI_EVENT_MODULE_ADDED,
+	WIFI_EVENT_MODULE_REMOVED,
+}wifi_event;
 
 /* Attempt IPC Connect and Sync for specified time if no IPC connection */
 eEsifError ipc_resync()
@@ -286,7 +296,7 @@ static Int64 time_elapsed_in_ms(struct timeval *old, struct timeval *now)
 }
 
 
-static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
+static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event)
 {
 	static const char name_eq[] = "NAME=";
 	static const char temp_eq[] = "TEMP=";
@@ -318,6 +328,28 @@ static int kobj_uevent_parse(char *buffer, int len, char **zone_name, int *temp,
 		return 0;
 }
 
+static int kobj_wifi_uevent_parse(char *buffer, int len, int *wifi_event)
+{
+	char *ctx = NULL;
+	char *parse = NULL;
+
+	*wifi_event = WIFI_EVENT_UNDEFINED;	// initialize it
+
+	parse = esif_ccb_strtok(buffer,"@", &ctx);
+
+	if (parse != NULL) {
+		if (!esif_ccb_strcmp(parse,"add")) {
+			*wifi_event = WIFI_EVENT_MODULE_ADDED;
+		}
+		else if (!esif_ccb_strcmp(parse,"remove"))
+		{
+			*wifi_event = WIFI_EVENT_MODULE_REMOVED;
+		}
+	}
+
+	return 1;
+}
+
 static int check_for_uevent(int fd) {
 	eEsifError rc = ESIF_OK;
 	int i = 0;
@@ -330,6 +362,7 @@ static int check_for_uevent(int fd) {
 	char *zone_name;
 	int temp;
 	int event;
+	int wifi_event;
 	static struct timeval last_event_time = {0};
 	struct timeval cur_event_time = {0};
 	Int64 interval = 0;
@@ -349,8 +382,45 @@ static int check_for_uevent(int fd) {
 
 		if (esif_ccb_strlen(buf_ptr, sizeof(dev_path)) > dev_path_len
 				&& esif_ccb_strncmp(buf_ptr, dev_path, dev_path_len) == 0) {
+			if (esif_ccb_strncmp(buf_ptr + dev_path_len, wifi_device_path, sizeof(wifi_device_path) - 1) == 0) {
 
-			if (esif_ccb_strncmp(buf_ptr + dev_path_len, device_path, sizeof(device_path) - 1) == 0) {
+				if (!kobj_wifi_uevent_parse(buffer, len, &wifi_event))
+				 	break;
+
+				switch (wifi_event) {
+				case WIFI_EVENT_MODULE_ADDED:
+				       ESIF_TRACE_INFO("WIFI_EVENT_MODULE_ADDED\n");
+				       rc = EsifUpPm_InitIterator(&upIter);
+                                       rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+                                       while (ESIF_OK == rc) {
+
+                                               EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_RESUME, NULL);
+                                               rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+                                        }
+                                        if (rc != ESIF_E_ITERATION_DONE) {
+                                               EsifUp_PutRef(upPtr);
+                                        }
+                                        break;
+				case WIFI_EVENT_MODULE_REMOVED:
+				       ESIF_TRACE_INFO("WIFI_EVENT_MODULE_REMOVED\n");
+				       rc = EsifUpPm_InitIterator(&upIter);
+                                       rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+                                       while (ESIF_OK == rc) {
+
+                                               EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DRIVER_SUSPEND, NULL);
+                                               rc = EsifUpPm_GetNextUp(&upIter, &upPtr);
+                                        }
+                                        if (rc != ESIF_E_ITERATION_DONE) {
+                                               EsifUp_PutRef(upPtr);
+                                        }
+                                        break;
+				default:
+					ESIF_TRACE_INFO("WIFI_EVENT_UNDEFINED\n");
+                                        break;
+				}
+			}
+			                 	       
+			else if (esif_ccb_strncmp(buf_ptr + dev_path_len, thermal_device_path, sizeof(thermal_device_path) - 1) == 0) {
 				char *parsed = NULL;
 				char *ctx = NULL;
 
@@ -361,7 +431,7 @@ static int check_for_uevent(int fd) {
 					parsed = esif_ccb_strtok(NULL,"/",&ctx);
 				}
 
-				if (!kobj_uevent_parse(buffer, len, &zone_name, &temp, &event))
+				if (!kobj_thermal_uevent_parse(buffer, len, &zone_name, &temp, &event))
 					break;
 
 				switch (event) {
@@ -394,19 +464,27 @@ static int check_for_uevent(int fd) {
 					gettimeofday(&cur_event_time, NULL);
 					/*
 					 * Some old BIOS has a bug that any reset to fan speed will generate a new THERMAL_TABLE_CHANGED
-					 * notification, and this will cause an infinite loop if the corresponding ACTIVE_RELATIONSHIP_CHANGED
+					 * notification, and this will cause an infinite loop if the corresponding DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED
 					 * event is blindly sent to DPTF, as DPTF will always reset fan speed upon receiving such an event.
 					 * To break from the loop, we send thermal table changed event only if the time elaspsed between two
 					 * successive events exceeds a certain threshold.
 					 */
 					interval = time_elapsed_in_ms(&last_event_time, &cur_event_time);
 					if (interval > EVENT_INTERVAL_THRESHOLD) {
-						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED, NULL);
-						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED, NULL);
+						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DTT_THERMAL_RELATIONSHIP_TABLE_CHANGED, NULL);
+						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED, NULL);
 					} else {
 						ESIF_TRACE_DEBUG("Recevied spurious THERMAL_TABLE_CHANGED event\n");
 					}
 					last_event_time = cur_event_time;
+					break;
+				case THERMAL_EVENT_KEEP_ALIVE:
+					ESIF_TRACE_INFO("THERMAL_EVENT_KEEP_ALIVE");
+					EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DTT_ALIVE_REQUEST, NULL);
+					break;
+				case THERMAL_DEVICE_POWER_CAPABILITY_CHANGED:
+					ESIF_TRACE_INFO("THERMAL_DEVICE_POWER_CAPABILITY_CHANGED");
+					EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_OEM_VARS_CHANGED, NULL);
 					break;
 				default:
 					break;
@@ -723,6 +801,63 @@ exit:
 	return rc;
 }
 
+eEsifError SysfsGetBinaryData(const char *path, const char *fileName, UInt8 *buffer, size_t bufferLength)
+{
+	FILE *fp = NULL;
+	eEsifError rc = 0;
+	char filePath[MAX_SYSFS_PATH] = { 0 };
+
+	ESIF_ASSERT(NULL != path);
+	ESIF_ASSERT(NULL != fileName);
+	ESIF_ASSERT(NULL != buffer);
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filePath, "%s/%s", path, fileName);
+
+	if ((fp = esif_ccb_fopen(filePath, "rb", NULL)) == NULL) {
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	if (esif_ccb_fread(buffer, bufferLength, 1, bufferLength, fp) != bufferLength) {
+		ESIF_TRACE_ERROR("Error reading the binary data from %s \n",filePath);
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+exit:
+	if ( fp != NULL ) {
+		esif_ccb_fclose(fp);
+	}
+	return rc;
+}
+
+eEsifError SysfsGetFileSize(const char *path, const char *fileName, size_t *fileSize)
+{
+	FILE *fp = NULL;
+	eEsifError rc = ESIF_OK;
+	Int32 errorNumber = 0;
+	struct stat st = { 0 };
+	char filePath[MAX_SYSFS_PATH] = { 0 };
+
+	ESIF_ASSERT(NULL != path);
+	ESIF_ASSERT(NULL != fileName);
+	ESIF_ASSERT(NULL != fileSize);
+
+	esif_ccb_sprintf(MAX_SYSFS_PATH, filePath, "%s/%s", path, fileName);
+	//Initialize the file size to 0
+	*fileSize = 0;
+	if((errorNumber = esif_ccb_stat(filePath, &st)) != 0) {
+		ESIF_TRACE_ERROR("Error retrieving file size for %s Error Code : %d\n",filePath, errorNumber);
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	//Set the filesize before returning
+	*fileSize = st.st_size;
+exit:
+	return rc;
+}
+
 int SysfsSetInt64(char *path, char *filename, Int64 val)
 {
 	FILE *fd = NULL;
@@ -950,7 +1085,7 @@ static void esif_domain_signal_and_stop_poll(EsifUpPtr up_ptr, UInt8 participant
 		}
 
 		ESIF_TRACE_INFO("Udev Event: THRESHOLD CROSSED in thermal zone: %s\n",udev_target);
-		EsifEventMgr_SignalEvent(participant_id, domain_index++, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
+		EsifEventMgr_SignalEvent(participant_id, domain_index++, ESIF_EVENT_TEMP_THRESHOLD_CROSSED, NULL);
 
 		// Find a valid domain, check if it is being polled
 		if (domainPtr->tempPollType != ESIF_POLL_NONE) {

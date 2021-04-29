@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -47,8 +47,16 @@ void TableObjectGetCommand::execute(const CommandArguments& arguments)
 string TableObjectGetCommand::getTableObjectXmlString(const CommandArguments& arguments)
 {
 	auto tableName = arguments[1].getDataAsString();
-	auto data = m_dptfManager->getDataManager()->getTableObject(TableObjectType::ToType(tableName));
-	return data.getXmlString();
+	string uuid = Constants::EmptyString;
+	if (arguments.size() > 2)
+	{
+		uuid = arguments[2].getDataAsString();
+	}
+	auto dataManager = m_dptfManager->getDataManager();
+	auto tableType = TableObjectType::ToType(tableName);
+	auto data = dataManager->getTableObject(tableType, uuid);
+	auto revision = dataManager->getLatestSupportedTableRevision(tableType);
+	return data.getXmlString(revision);
 }
 
 void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& arguments)

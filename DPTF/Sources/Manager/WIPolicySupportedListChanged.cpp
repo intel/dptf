@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -41,8 +41,14 @@ void WIPolicySupportedListChanged::onExecute(void)
 
 	try
 	{
+		// idsp tableobject
 		auto supportedPolicyList = policyManager->getSupportedPolicyList();
 		supportedPolicyList->update();
+
+		// dynamic-idsp tableobject
+		auto supportedDynamicPolicyList = getDptfManager()->getPolicyManager()->getSupportedDynamicPolicyList();
+		supportedDynamicPolicyList->update();
+
 		auto policyIndexes = policyManager->getPolicyIndexes();
 		for (auto policyIndex = policyIndexes.begin(); policyIndex != policyIndexes.end(); ++policyIndex)
 		{
@@ -68,23 +74,75 @@ void WIPolicySupportedListChanged::onExecute(void)
 					policyFilePath.erase(0, policyDirectoryPath.length());
 				}
 
-				UIntN policyIndex = policyManager->createPolicy(policyFilePath);
+				UIntN policyIndex;
+				try
+				{
+					policyIndex = policyManager->createPolicy(policyFilePath);
 
-				// Bind every participant and domain to created policy
-				dptfManager->bindAllParticipantsToPolicy(policyIndex);
-			}
-			catch (policy_already_exists&)
-			{
-				// Ignore duplicate policy instance
-			}
-			catch (std::exception& ex)
-			{
-				writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+					// Bind every participant and domain to created policy
+					dptfManager->bindAllParticipantsToPolicy(policyIndex);
+				}
+				catch (policy_already_exists&)
+				{
+					// Ignore duplicate policy instance
+				}
+				catch (std::exception& ex)
+				{
+					writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+				}
+				catch (...)
+				{
+					dptf_exception ex("Unknown exception type caught when attempting to create a policy.");
+					writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+				}
+
+				try
+				{
+					// FIXME: use a function IsDynamicPolicyTemplateFilename()
+					if (policyFileName == "DptfPolicyAdaptivePerformance.dll")
+					{
+						for (UIntN i = 0; i < supportedDynamicPolicyList->getCount(); i++)
+						{
+							auto dynamicPolicyUuid = supportedDynamicPolicyList->get(i).getUuid();
+
+							if (supportedPolicyList->isPolicySupported(dynamicPolicyUuid))
+							{
+								auto dynamicPolicyTemplateGuid = supportedDynamicPolicyList->get(i).getTemplateGuid();
+								auto dynamicPolicyName = supportedDynamicPolicyList->get(i).getName();
+								auto dynamicPolicyUuidString = supportedDynamicPolicyList->get(i).getUuidString();
+
+								policyIndex = policyManager->createDynamicPolicy(
+									policyFilePath,
+									dynamicPolicyUuid,
+									dynamicPolicyTemplateGuid,
+									dynamicPolicyName,
+									dynamicPolicyUuidString);
+
+								if (policyIndex != Constants::Invalid)
+								{
+									// Bind every participant and domain to created dynamic policy
+									dptfManager->bindAllParticipantsToPolicy(policyIndex);
+								}
+							}
+						}
+					}
+				}
+				catch (std::exception& ex)
+				{
+					writeWorkItemWarningMessage(
+						ex, "PolicyManager::createDynamicPolicy", "Policy File Name", policyFileName);
+				}
+				catch (...)
+				{
+					dptf_exception ex("Unknown exception type caught when attempting to create a dynamic policy.");
+					writeWorkItemWarningMessage(
+						ex, "PolicyManager::createDynamicPolicy", "Policy File Name", policyFileName);
+				}
 			}
 			catch (...)
 			{
-				dptf_exception ex("Unknown exception type caught when attempting to create a policy.");
-				writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+				dptf_exception ex("Exception caught when attempting to read a policy file.");
+				writeWorkItemWarningMessage(ex, "PolicySupportedListChanged", "Policy File Name", policyFileName);
 			}
 
 			policyFileName = fileEnumerator.getNextFile();

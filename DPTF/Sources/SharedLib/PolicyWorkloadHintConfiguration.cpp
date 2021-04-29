@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -124,7 +124,7 @@ std::string PolicyWorkloadHintConfiguration::readWorkloadHintsConfigurationValue
 	try
 	{
 		std::string workloadHints =
-			m_platformConfigData->readConfigurationString(DataVaultPath::Shared::Export::WorkloadHints + "*");
+			m_platformConfigData->readConfigurationString("dptf", DataVaultPath::Shared::Export::WorkloadHints + "*");
 		return workloadHints;
 	}
 	catch (...)
@@ -137,7 +137,7 @@ std::string PolicyWorkloadHintConfiguration::readWorkloadHintConfigurationValues
 {
 	try
 	{
-		std::string hint = m_platformConfigData->readConfigurationString(key);
+		std::string hint = m_platformConfigData->readConfigurationString("dptf", key);
 		hint = StringConverter::toLower(hint);
 		return hint;
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -73,6 +73,13 @@ UInt32 DomainDynamicEpp_001::getEppSensitivityHint()
 void DomainDynamicEpp_001::updateEppSensitivityHint(UInt32 eppSensitivityHint)
 {
 	m_eppHint = eppSensitivityHint;
+}
+
+void DomainDynamicEpp_001::setDynamicEppSupport(UInt32 dynamicEppSupport)
+{
+	getParticipantServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_SUPPORT_EPP_HINT, dynamicEppSupport, getDomainIndex());
+	m_isDynamicEppSupported = dynamicEppSupport;
 }
 
 std::string DomainDynamicEpp_001::getName(void)

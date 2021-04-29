@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -69,6 +69,9 @@ typedef struct _t_EsifApp {
 	esif_handle_t fAppCtxHandle;		/* The Application Handle (Opaque to ESIF) */
 	AppInterface  fInterface;			/* The Application Interface */
 	EsifString    fAppNamePtr;			/* The Name of the Application */
+	EsifString    fAppDescPtr;			/* Optional Application Description */
+	EsifString    fAppVersionPtr;		/* Optional Application Version */
+	EsifString    fAppIntroPtr;			/* Optional Intro Banner */
 	EsifString    fLibNamePtr;			/* The Name Of The Library To Load (same as fAppNamePtr by default) */
 	esif_lib_t    fLibHandle;			/* Loadable Library Handle */
 	Bool isRestartable;					/* App is Restartable */

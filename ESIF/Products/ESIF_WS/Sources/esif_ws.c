@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #include <stdarg.h>
 #include "esif_ccb_string.h"
+#include "esif_ccb_library.h"
+#include "esif_sdk_dcfg.h"
 
 #include "esif_sdk_iface_ws.h"
 #include "esif_ws_server.h"
@@ -44,26 +46,39 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 // ESIF/App Inferface Variables
 //////////////////////////////////////////////////////////////////////////////
 
-#define		WS_APP_NAME			"esif_ws"
-#define		WS_APP_DESCRIPTION	"Intel Platform Framework Web Server"
+#define		WS_APP_NAME			"ipfui"
+#define		WS_APP_DESCRIPTION	"Intel(R) Innovation Platform Framework Web Server"
 #define		WS_APP_VERSION		ESIF_WS_VERSION
 #define		WS_APP_BANNER		WS_APP_DESCRIPTION " v" WS_APP_VERSION " [" ESIF_ATTR_OS " " ESIF_PLATFORM_TYPE " " ESIF_BUILD_TYPE "]"
 #define		WS_APP_HANDLE		0x3156626557667049	// "IpfWebV1"
 
+// Alternate Configuration for DTT UI
+#define		WS_APP_LEGACYNAME	"esif_ws"	// Legacy AppName
+#define		WS_APP_ALTNAME		"dptfui"	// Alternate AppName
+#define		WS_APP_ALTDESC		"Intel(R) Dynamic Tuning Technology Web Server"	// Alternate AppDesc
+#define		WS_APP_ALTVERSION	"9.0." EXPAND_TOSTR(VER_HOTFIX.VER_BUILD) // Alternate AppVersion
+#define		WS_APP_ALTPORT		8888		// Alternate Port if AppName (Loadable Library) is ALTNAME
+
 typedef struct EsifAppConfig_s {
-	char			ipAddr[ESIF_IPADDR_LEN];	// IP Address
-	UInt16			port;						// Port Number
-	esif_flags_t	flags;						// Flags
-	char			docRoot[MAX_PATH];			// Document Root
+	char			appName[ESIF_NAME_LEN];			// AppName (Library Name)
+	char			appDesc[ESIF_DESC_LEN];			// AppDescription
+	char			appVersion[ESIF_VERSION_LEN];	// AppVersion
+	char			ipAddr[ESIF_IPADDR_LEN];		// IP Address
+	UInt16			port;							// Port Number
+	esif_flags_t	flags;							// Flags
+	Bool			isClient;						// Is IPF Client?
+	char			docRoot[MAX_PATH];				// Document Root
 } EsifAppConfig;
 
 // ESIF/App Interface Instance
 typedef struct EsifAppInstance_s {
 	esif_handle_t	esifHandle;				// ESIF Handle (assigned by ESIF_UF)
 	esif_handle_t	appHandle;				// App Handle (assigned by ESIF_WS)
+	AppInterfaceSet	ifaceSet;				// ESIF/App Interface Set
 	atomic_t		traceLevel;				// Current Trace Level
 	EsifAppConfig	config;					// Web Server Configuration
-	AppInterfaceSet	ifaceSet;				// ESIF/App Interface Set
+	char			*restApiBufPtr;			// REST API Response Buffer
+	u32				restApiBufLen;			// REST API Response Length
 } EsifAppInstance;
 
 static EsifAppInstance	g_esifApp;	// Defined below
@@ -106,8 +121,9 @@ static esif_error_t ESIF_CALLCONV EsifWsStart(void)
 				port = (short)self->port[instance];
 				flags = self->flags[instance];
 			}
-			rc = WebServer_Config(server, instance, ipAddr, port, flags);
-			
+			// Use Legacy Port Configuration
+			rc = WebServer_Config(server, instance, ipAddr, (port ? port : WS_APP_ALTPORT), flags);
+
 			// Fill in Interface structure with the actual IP/Port used for each instance.
 			if (rc == ESIF_OK) {
 				if (ipAddr == NULL || *ipAddr == 0) {
@@ -185,7 +201,7 @@ Bool EsifWsShellEnabled(void)
 	else {
 		EsifAppInstance *self = &g_esifApp;
 		if (self) {
-			char command[] = "shell";
+			char command[] = "about shell";
 			char *reply = EsifWsShellExec(command, sizeof(command), NULL, 0);
 			if (reply) {
 				rc = (esif_ccb_strstr(reply, "disabled") == NULL);
@@ -212,17 +228,28 @@ char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len
 	else {
 		EsifAppInstance *self = &g_esifApp;
 		if (self->esifHandle != ESIF_INVALID_HANDLE && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
-			const u32 WS_BUFSIZE = 4*1024; // Default Response Size
+			const u32 WS_BUFSIZE = 4*1024; // Default Response Buffer Size
 			const u32 WS_RESIZE_PADDING = 1024; // Padding to add to Resize Requests
-			u32 response_len = WS_BUFSIZE;
-			char *response_buf = (char *)esif_ccb_malloc(response_len);
+			if (self->restApiBufPtr == NULL) {
+				self->restApiBufPtr = (char *)esif_ccb_malloc(WS_BUFSIZE);
+				self->restApiBufLen = (self->restApiBufPtr ? WS_BUFSIZE : 0);
+			}
+			char *response_buf = self->restApiBufPtr;
+			u32 response_len = self->restApiBufLen;
 			EsifData command  = { ESIF_DATA_STRING };
 			EsifData response = { ESIF_DATA_STRING };
 			command.buf_ptr = cmd;
 			command.buf_len = command.data_len = (u32)cmd_len;
 			response.buf_ptr = response_buf;
 			response.buf_len = (response_buf ? response_len : 0);
-			
+
+			// Include formatting hint in response
+			static char fmthint[] = "<XML>";
+			if (response.buf_ptr && response.buf_len >= (u32)sizeof(fmthint)) {
+				esif_ccb_strcpy(response.buf_ptr, fmthint, response.buf_len);
+				response.data_len = (u32)sizeof(fmthint);
+			}
+
 			// Send command to ESIF_UF Command Shell
 			esif_error_t rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
 				self->esifHandle,
@@ -234,21 +261,38 @@ char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len
 			// If response buffer too small, resize to required size plus padding to account for variable-length integer data element changes
 			if (rc == ESIF_E_NEED_LARGER_BUFFER) {
 				response_len = response.data_len + WS_RESIZE_PADDING;
-				char *new_response_buf = esif_ccb_realloc(response_buf, response_len);
+				char *new_response_buf = esif_ccb_realloc(self->restApiBufPtr, response_len);
 				if (new_response_buf) {
+					self->restApiBufPtr = new_response_buf;
+					self->restApiBufLen = response_len;
 					response_buf = new_response_buf;
 					response.buf_ptr = response_buf;
 					response.buf_len = response_len;
 					response.data_len = 0;
 
+					// Resend formatting hint
+					esif_ccb_strcpy(response.buf_ptr, fmthint, response.buf_len);
+					response.data_len = (u32)sizeof(fmthint);
+
 					// Resend command with larger buffer. Results not guaranteed to be the same.
-					rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
-						self->esifHandle,
-						1,
-						&command,
-						&response
-					);
+					if (self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+						rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
+							self->esifHandle,
+							1,
+							&command,
+							&response
+						);
+					}
+					else {
+						rc = ESIF_E_CALLBACK_IS_NULL;
+					}
 				}
+			}
+			// Generate Response for Unauthorized Commands
+			if (rc == ESIF_E_SESSION_PERMISSION_DENIED) {
+				esif_ccb_strcpy(response.buf_ptr, "Unsupported Command", response.buf_len);
+				response.data_len = (u32)esif_ccb_strlen(response.buf_ptr, response.buf_len) + 1;
+				rc = ESIF_OK;
 			}
 
 			// Insert original request prefix into response and return to sender, who is responsible for freeing
@@ -257,10 +301,7 @@ char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len
 					esif_ccb_memmove((char *)response_buf + prefix_len, response_buf, response.data_len);
 					esif_ccb_memmove((char *)response_buf, prefix, prefix_len);
 				}
-				result = response_buf;
-			}
-			else {
-				esif_ccb_free(response_buf);
+				result = esif_ccb_strdup(response_buf);
 			}
 		}
 	}
@@ -340,7 +381,7 @@ int EsifWsTraceMessageEx(
 }
 
 int EsifWsConsoleMessageEx(
-	const char *msg, 
+	const char *msg,
 	...)
 {
 	int rc = 0;
@@ -357,8 +398,9 @@ int EsifWsConsoleMessageEx(
 	}
 	// ESIF/App Interface
 	else {
+		// No Console Messages when running as an IPF Client
 		EsifAppInstance *self = &g_esifApp;
-		if (self) {
+		if (self && !self->config.isClient) {
 			// Create Dynamic copy of console message
 			va_list args;
 			va_start(args, msg);
@@ -384,6 +426,9 @@ int EsifWsConsoleMessageEx(
 //////////////////////////////////////////////////////////////////////////////
 // APP Interface Functions exposed to ESIF_UF via AppInterfaceSet
 //////////////////////////////////////////////////////////////////////////////
+
+// Prototypes
+static esif_error_t ESIF_CALLCONV EsifWs_AppDestroy(const esif_handle_t appHandle);
 
 // Load an EsifData string from a Null-Terminated string
 static esif_error_t EsifWs_LoadString(EsifDataPtr response, const char *buf_ptr)
@@ -412,19 +457,68 @@ static esif_error_t EsifWs_LoadString(EsifDataPtr response, const char *buf_ptr)
 // AppGetName Interface Function
 static esif_error_t ESIF_CALLCONV EsifWs_AppGetName(EsifDataPtr appName)
 {
-	return EsifWs_LoadString(appName, WS_APP_NAME);
+	const char *libname = WS_APP_NAME;
+	EsifAppInstance *self = &g_esifApp;
+	if (self) {
+		// Running as an IPF Client?
+		static const char ipfclient[] = "ipfcli-";
+		if (appName && appName->buf_ptr && esif_ccb_strncmp(appName->buf_ptr, ipfclient, sizeof(ipfclient) - 1) == 0) {
+			self->config.isClient = ESIF_TRUE;
+		}
+
+		// Use Loadable Library Name for appName
+		esif_lib_t lib = esif_ccb_library_load(NULL);
+		if (lib) {
+			char pathname[MAX_PATH] = {0};
+			if (esif_ccb_library_getpath(lib, pathname, sizeof(pathname), (void *)EsifWs_AppGetName) == ESIF_OK) {
+				char *slash = esif_ccb_strrchr(pathname, *ESIF_PATH_SEP);
+				char *dot = (slash ? esif_ccb_strchr(slash, '.') : NULL);
+				if (slash && dot) {
+					*slash++ = 0;
+					*dot = 0;
+					size_t buf_left = sizeof(pathname) - ((size_t)slash - (size_t)pathname);
+					if (esif_ccb_strlen(slash, buf_left) < sizeof(self->config.appName)) {
+						esif_ccb_strcpy(self->config.appName, slash, sizeof(self->config.appName));
+					}
+					// Set docRoot for Windows IPF Clients
+					if (self->config.isClient && pathname[0] != '/' && self->config.docRoot[0] == 0) {
+						esif_ccb_sprintf(sizeof(self->config.docRoot), self->config.docRoot, "%s" ESIF_PATH_SEP "%s", pathname, "ui");
+					}
+					// Set Alternate Port & Description if using Alternate AppName 
+					if (esif_ccb_stricmp(self->config.appName, WS_APP_ALTNAME) == 0 || esif_ccb_stricmp(self->config.appName, WS_APP_LEGACYNAME) == 0) {
+						self->config.port = WS_APP_ALTPORT;
+						esif_ccb_strcpy(self->config.appDesc, WS_APP_ALTDESC, sizeof(self->config.appDesc));
+						esif_ccb_strcpy(self->config.appVersion, WS_APP_ALTVERSION, sizeof(self->config.appVersion));
+					}
+				}
+			}
+			esif_ccb_library_unload(lib);
+		}
+		libname = self->config.appName;
+	}
+	return EsifWs_LoadString(appName, libname);
 }
 
 // AppGetVersion Interface Function
 static esif_error_t ESIF_CALLCONV EsifWs_AppGetVersion(EsifDataPtr appVersion)
 {
-	return EsifWs_LoadString(appVersion, WS_APP_VERSION);
+	char *version = WS_APP_VERSION;
+	EsifAppInstance *self = &g_esifApp;
+	if (self && self->config.appVersion[0]) {
+		version = self->config.appVersion;
+	}
+	return EsifWs_LoadString(appVersion, version);
 }
 
 // AppGetDescription Interface Function
 static esif_error_t ESIF_CALLCONV EsifWs_AppGetDescription(EsifDataPtr appDescription)
 {
-	return EsifWs_LoadString(appDescription, WS_APP_DESCRIPTION);
+	char *description = WS_APP_DESCRIPTION;
+	EsifAppInstance *self = &g_esifApp;
+	if (self && self->config.appDesc[0]) {
+		description = self->config.appDesc;
+	}
+	return EsifWs_LoadString(appDescription, description);
 }
 
 // AppGetIntro Interface Function
@@ -480,28 +574,57 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 
 			rc = WebPlugin_Init();
 
-			// Convert DPTF Path to UI Path
-			esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
-			char *sep = esif_ccb_strchr(self->config.docRoot, '|');
-			if (sep) {
-				*sep = 0;
-				// Convert Linux /xxx/xxx/dptf or /xxx/xxx/dptf/xxx to /xxx/xxx/dptf/ui
-				if (self->config.docRoot[0] == '/') {
-					sep = esif_ccb_strrchr(self->config.docRoot, '/');
-					if (sep) {
-						if (esif_ccb_stricmp(sep + 1, "dptf") != 0) {
-							*sep = 0;
-						}
-						esif_ccb_strcat(self->config.docRoot, "/ui", sizeof(self->config.docRoot));
-					}
+			/* Check DCFG to verify that UI is enabled. Do not fail AppCreate on error, but fail if App blocked by DCFG.
+			** This only needs to be checked when running in-process, otherwise the primitive will fail due to it not
+			** being in the Application's Security Role, which causes the Server to log an Error in the Event Log.
+			** If in-process support is ever removed, this can simply verify that the app is running out-of-process.
+			*/
+			if (rc == ESIF_OK && self->ifaceSet.esifIface.fPrimitiveFuncPtr && !self->config.isClient) {
+				DCfgOptions dcfg = { 0 };
+				EsifData request = { ESIF_DATA_VOID };
+				EsifData response = { ESIF_DATA_UINT32 };
+				response.buf_ptr = &dcfg.asU32;
+				response.buf_len = (u32)sizeof(dcfg);
+				esif_error_t dcfgrc = self->ifaceSet.esifIface.fPrimitiveFuncPtr(
+					self->esifHandle,
+					ESIF_HANDLE_PRIMARY_PARTICIPANT,
+					ESIF_INVALID_HANDLE,
+					&request,
+					&response,
+					GET_CONFIG_ACCESS_CONTROL_SUR,
+					ESIF_INSTANCE_INVALID
+				);
+				if (dcfgrc == ESIF_OK && dcfg.opt.GenericUIAccessControl) {
+					rc = ESIF_E_DISABLED;
 				}
-				// No conversion needed for Windows
 			}
 
-			// Set Trace Level
-			atomic_set(&self->traceLevel, appDataPtr->fLogLevel);
+			// Convert DPTF Path to UI Document Root Path, except for IPF Clients
+			if (rc == ESIF_OK) {
+				if (!self->config.docRoot[0]) {
+					esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
+				}
+				char *sep = esif_ccb_strchr(self->config.docRoot, '|');
+				if (sep) {
+					*sep = 0;
+					// Convert Linux /xxx/xxx/dptf or /xxx/xxx/dptf/xxx to /xxx/xxx/dptf/ui
+					if (self->config.docRoot[0] == '/') {
+						sep = esif_ccb_strrchr(self->config.docRoot, '/');
+						if (sep) {
+							if (esif_ccb_stricmp(sep + 1, "dptf") != 0) {
+								*sep = 0;
+							}
+							esif_ccb_strcat(self->config.docRoot, "/ui", sizeof(self->config.docRoot));
+						}
+					}
+					// No conversion needed for Windows
+				}
 
-			// Register for Trace Level Changed Event
+				// Set Trace Level
+				atomic_set(&self->traceLevel, appDataPtr->fLogLevel);
+			}
+
+			// Register for Trace Level Changed Event. Fail AppCreate on error.
 			if (rc == ESIF_OK && self->ifaceSet.esifIface.fRegisterEventFuncPtr) {
 				static UInt8 eventGuidBuf[ESIF_GUID_LEN] = LOG_VERBOSITY_CHANGED;
 				EsifData eventGuid = { ESIF_DATA_GUID, eventGuidBuf, ESIF_GUID_LEN, ESIF_GUID_LEN };
@@ -516,12 +639,22 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 			// Automatically Start Web Server on Startup. Do not fail AppCreate on error.
 			if (rc == ESIF_OK) {
 				WebServerPtr server = g_WebServer;
+
+#ifdef ESIF_ATTR_OS_WINDOWS
+				// Enable Remote Connections in Win10X by default
+				char sysdir[MAX_PATH] = {0};
+				if (GetSystemDirectoryA(sysdir, sizeof(sysdir))) {
+					if (esif_ccb_strnicmp(sysdir, "C:", 2) != 0 && (esif_ccb_strcmp(self->config.ipAddr, WS_DEFAULT_IPADDR) == 0 || self->config.ipAddr[0] == 0)) {
+						esif_ccb_strcpy(self->config.ipAddr, WS_REMOTE_IPADDR, sizeof(self->config.ipAddr));
+					}
+				}
+#endif
 				esif_error_t startrc = WebServer_Config(
 					server,
 					0,
-					WS_DEFAULT_IPADDR,
-					WS_DEFAULT_PORT,
-					WS_DEFAULT_FLAGS
+					self->config.ipAddr,
+					self->config.port,
+					self->config.flags
 				);
 				if (startrc == ESIF_OK) {
 					startrc = WebServer_Start(server);
@@ -533,6 +666,10 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 				else {
 					EsifWsConsoleMessageEx("web server not started (%s)\n", esif_rc_str(startrc));
 				}
+			}
+			else {
+				EsifWs_AppDestroy(self->appHandle);
+				*appHandlePtr = ESIF_INVALID_HANDLE;
 			}
 		}
 	}
@@ -555,6 +692,12 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppDestroy(const esif_handle_t appHandl
 		self->config.docRoot[0] = 0;
 
 		WebPlugin_Exit();
+
+		// Destroy Response Buffer
+		esif_ccb_free(self->restApiBufPtr);
+		self->restApiBufPtr = NULL;
+		self->restApiBufLen = 0;
+
 		rc = ESIF_OK;
 	}
 	return rc;
@@ -613,17 +756,18 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 
 		// esif_ws {help | about}
 		if (esif_ccb_stricmp(command, "help") == 0 || esif_ccb_stricmp(command, "about") == 0) {
-			bytes = IString_Sprintf(reply, 
-				WS_APP_BANNER "\n"
-				"Copyright (c) 2013-2020 Intel Corporation All Rights Reserved\n"
-				"Usage:\n"
-				"  " WS_APP_NAME " help\n"
-				"  " WS_APP_NAME " start [<options>] [<ip>] [<port>]\n"
-				"  " WS_APP_NAME " restart [<options>] [<ip>] [<port>]\n"
-				"  " WS_APP_NAME " stop\n"
-				"  " WS_APP_NAME " config\n"
-				"  " WS_APP_NAME " status\n"
+			bytes = IString_Sprintf(reply,
+				"%s - " WS_APP_BANNER "\n"
+				"Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n"
+				"Available Commands:\n"
+				"  help\n"
+				"  start [<options>] [<ip>] [<port>]\n"
+				"  restart [<options>] [<ip>] [<port>]\n"
+				"  stop\n"
+				"  config\n"
+				"  status\n"
 				"\n"
+				, self->config.appName
 			);
 			rc = ESIF_OK;
 		}
@@ -633,6 +777,9 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 			Bool isRestart = (esif_ccb_stricmp(command, "restart") == 0);
 			if (isRestart) {
 				WebServer_Stop(server);
+				esif_ccb_free(self->restApiBufPtr);
+				self->restApiBufPtr = NULL;
+				self->restApiBufLen = 0;
 			}
 			if (WebServer_IsStarted(server)) {
 				IString_Strcpy(reply, "web server already started\n");
@@ -640,9 +787,9 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 				rc = ESIF_OK;
 			}
 			else {
-				char *ip = (isRestart ? self->config.ipAddr : WS_DEFAULT_IPADDR);
-				UInt16 port = (isRestart ? self->config.port : WS_DEFAULT_PORT);
-				esif_flags_t flags = (isRestart ? self->config.flags : WS_DEFAULT_FLAGS);
+				char *ip = self->config.ipAddr;
+				UInt16 port = self->config.port;
+				esif_flags_t flags = self->config.flags;
 
 				// Parse optional Configuration
 				while (optarg < argc) {
@@ -666,16 +813,16 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 				esif_ccb_strcpy(self->config.ipAddr, ip, sizeof(self->config.ipAddr));
 				self->config.port = port;
 				self->config.flags = flags;
-				
+
 				// Configure Listener
 				rc = WebServer_Config(
-					server, 
+					server,
 					0,
 					self->config.ipAddr,
 					self->config.port,
 					self->config.flags
 				);
-				
+
 				if (rc == ESIF_OK) {
 					rc = WebServer_Start(server);
 
@@ -699,6 +846,9 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 		else if (esif_ccb_stricmp(command, "stop") == 0) {
 			if (WebServer_IsStarted(server)) {
 				WebServer_Stop(server);
+				esif_ccb_free(self->restApiBufPtr);
+				self->restApiBufPtr = NULL;
+				self->restApiBufLen = 0;
 				IString_Strcpy(reply, "web server stopped\n");
 			}
 			else {
@@ -710,7 +860,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 		// esif_ws config
 		else if (esif_ccb_stricmp(command, "config") == 0) {
 			bytes = IString_SprintfConcat(
-				reply, 
+				reply,
 				"web config instance %d[%x]: IP=%s port=%hu [%s]\n",
 				0,
 				self->config.flags,
@@ -722,7 +872,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 		}
 		// esif_ws status
 		else if (esif_ccb_stricmp(command, "status") == 0) {
-			bytes = IString_Sprintf(reply, 
+			bytes = IString_Sprintf(reply,
 				"web server %s : http://%s:%hu (Version %s)\n"
 				, (WebServer_IsStarted(server) ? "started" : "stopped")
 				, server->listeners[0].ipAddr
@@ -898,9 +1048,13 @@ static EsifAppInstance	g_esifApp = {
 	.appHandle  = ESIF_INVALID_HANDLE,
 	.traceLevel = TRACELEVEL_ERROR,
 	.config = {
+		.appName = WS_APP_NAME,
+		.appDesc = WS_APP_DESCRIPTION,
+		.appVersion = WS_APP_VERSION,
 		.ipAddr = WS_DEFAULT_IPADDR,
 		.port = WS_DEFAULT_PORT,
 		.flags = WS_DEFAULT_FLAGS,
+		.isClient = ESIF_FALSE,
 	},
 	.ifaceSet = {
 		.hdr = {

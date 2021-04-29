@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,6 +30,9 @@ typedef int esif_ccb_socket_t;
 #define INVALID_SOCKET (~0)
 #define SOCKET_ERROR (-1)
 
+#define ESIF_SOCKERR_OK				0			// No Error
+#define ESIF_SOCKERR_ENOENT			ENOENT		// File Not Found
+#define ESIF_SOCKERR_EACCES			EACCES		// Access Denied
 #define ESIF_SOCKERR_EWOULDBLOCK	EWOULDBLOCK	// Operation would block
 #define ESIF_PF_LOCAL				PF_LOCAL
 #define ESIF_SHUT_RD				SHUT_RD

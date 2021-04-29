@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -260,6 +260,11 @@ UInt32 Domain::getTimestampCounterWidth()
 	return m_theRealParticipant->getTimestampCounterWidth(m_participantIndex, m_domainIndex);
 }
 
+CoreActivityInfo Domain::getCoreActivityInfo()
+{
+	return m_theRealParticipant->getCoreActivityInfo(m_participantIndex, m_domainIndex);
+}
+
 void Domain::setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias)
 {
 	m_theRealParticipant->setPowerShareEffectiveBias(m_participantIndex, m_domainIndex, powerShareEffectiveBias);
@@ -416,6 +421,11 @@ void Domain::setDisplayCapsLock(UIntN policyIndex, Bool lock)
 UInt32 Domain::getRaplEnergyCounter()
 {
 	return m_theRealParticipant->getRaplEnergyCounter(m_participantIndex, m_domainIndex);
+}
+
+EnergyCounterInfo Domain::getRaplEnergyCounterInfo()
+{
+	return m_theRealParticipant->getRaplEnergyCounterInfo(m_participantIndex, m_domainIndex);
 }
 
 double Domain::getRaplEnergyUnit()
@@ -1137,6 +1147,29 @@ Percentage Domain::getSscBaselineGuardBand()
 RfProfileDataSet Domain::getRfProfileDataSet(void)
 {
 	FILL_CACHE_AND_RETURN(m_rfProfileData, RfProfileDataSet, getRfProfileDataSet);
+}
+
+UInt32 Domain::getWifiCapabilities(void)
+{
+	return m_theRealParticipant->getWifiCapabilities(m_participantIndex, m_domainIndex);
+}
+
+UInt32 Domain::getRfiDisable(void)
+{
+	return m_theRealParticipant->getRfiDisable(m_participantIndex, m_domainIndex);
+}
+
+UInt64 Domain::getDvfsPoints(void)
+{
+	return m_theRealParticipant->getDvfsPoints(m_participantIndex, m_domainIndex);
+}
+
+void Domain::setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+{
+	m_theRealParticipant->setDdrRfiTable(
+		m_participantIndex,
+		m_domainIndex,
+		ddrRfiStruct);
 }
 
 UtilizationStatus Domain::getUtilizationStatus(void)

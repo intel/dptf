@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -66,6 +66,20 @@ UInt32 DomainActivityStatus_001::getTimestampCounterWidth(UIntN participantIndex
 {
 	return getParticipantServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_TSC_WIDTH, domainIndex);
+}
+
+CoreActivityInfo DomainActivityStatus_001::getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex)
+{
+	try 
+	{
+		UInt64 coreActivityCounter = getCoreActivityCounter(participantIndex, domainIndex);
+		UInt64 timestampCounter = getTimestampCounter(participantIndex, domainIndex);
+		return CoreActivityInfo(coreActivityCounter, timestampCounter);
+	}
+	catch (...)
+	{
+		return CoreActivityInfo();
+	}
 }
 
 void DomainActivityStatus_001::setPowerShareEffectiveBias(

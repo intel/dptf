@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,24 +20,12 @@
 #define _ESIF_UF_
 
 #include "esif.h"
+#include "esif_sdk_dcfg.h"
+#include "esif_sdk_guid.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* DCFG Bitmask Options. Default Values must always be 0 for backwards compatibility */
-typedef union DCfgOptions_u {
-	struct {
-		UInt32 GenericUIAccessControl : 1;			// 0:0 - 0 = Enable [default], 1 = Disable access
-		UInt32 Reserved0 : 1;						// 1:1 Reserved
-		UInt32 ShellAccessControl : 1;				// 2:2 - 0 = Enable [default], 1 = Disable access
-		UInt32 EnvMonitoringReportControl : 1;		// 3:3 - 0 = Report is allowed [default], 1 = No environmental monitoring report to Microsoft
-		UInt32 ThermalMitigationReportControl : 1;	// 4:4 - 0 = No mitigation report to Microsoft [default], 1 = Report is allowed
-		UInt32 ThermalPolicyReportControl : 1;		// 5:5 - 0 = No thermal policy report to Microsoft [default], 1 = Report is allowed
-		UInt32 Reserved : 26;						// 31:6  Reserved
-	} opt;
-	UInt32 asU32;
-} DCfgOptions;
 
 extern DCfgOptions DCfg_Get();
 extern void DCfg_Set(DCfgOptions opt);
@@ -143,7 +131,7 @@ enum output_format {
 
 extern enum output_format g_format;
 
-#define MAX_LINE 256
+#define MAX_LINE 512
 
 // Functions
 UInt32 esif_atoi(const esif_string value);
@@ -158,39 +146,9 @@ char *parse_cmd(const char *line, UInt8 IsRest, UInt8 showOutput);
 UInt16 domain_str_to_short(esif_string two_character_string);
 int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y);
 
-/*
- * GUID - String requires a 37 byte buffer minimum
- */
-#define ESIF_GUID_PRINT_SIZE 64
-static ESIF_INLINE esif_string esif_guid_print(
-	esif_guid_t *guid,
-	esif_string buf
-	)
-{
-	u8 *ptr = (u8 *)guid;
-	esif_ccb_sprintf(ESIF_GUID_PRINT_SIZE,
-			 buf,
-			 "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X",
-			 *ptr,
-			 *(ptr + 1),
-			 *(ptr + 2),
-			 *(ptr + 3),
-			 *(ptr + 4),
-			 *(ptr + 5),
-			 *(ptr + 6),
-			 *(ptr + 7),
-			 *(ptr + 8),
-			 *(ptr + 9),
-			 *(ptr + 10),
-			 *(ptr + 11),
-			 *(ptr + 12),
-			 *(ptr + 13),
-			 *(ptr + 14),
-			 *(ptr + 15)
-			 );
-	return buf;
-}
-
+// Deprecated: Use esif_guid_tostring() instead
+#define ESIF_GUID_PRINT_SIZE			ESIF_GUIDSTR_LEN
+#define esif_guid_print(guidptr, buf)	esif_guid_tostring(*(guidptr), buf, ESIF_GUIDSTR_LEN)
 
 static ESIF_INLINE void esif_copy_shorts_to_bytes(
 	UInt8 *byte_ptr,

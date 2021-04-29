@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -137,6 +137,12 @@ class policy_not_in_idsp_list : public dptf_exception
 {
 public:
 	policy_not_in_idsp_list();
+};
+
+class dynamic_policy_template_guid_invalid : public dptf_exception
+{
+public:
+	dynamic_policy_template_guid_invalid();
 };
 
 class participant_index_invalid : public dptf_exception

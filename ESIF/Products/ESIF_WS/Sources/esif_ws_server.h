@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -95,8 +95,9 @@ typedef struct WebClient_s {
 #define WS_MAX_SOCKETS	(WS_MAX_LISTENERS + WS_MAX_CLIENTS + 1)
 
 // Default IP/ports
+#define WS_REMOTE_IPADDR		"0.0.0.0"	// All Interfaces (localhost and remote connections)
 #define WS_DEFAULT_IPADDR		"127.0.0.1"	// Loopback Interface only (localhost)
-#define WS_DEFAULT_PORT			8888		// Standard Port
+#define WS_DEFAULT_PORT			8086		// Standard Port
 #define WS_DEFAULT_FLAGS		0			// Standard Flags
 
 #define CRLF	"\r\n"

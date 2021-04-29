@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,14 +20,23 @@
 #include "TableObjectType.h"
 #include "TableObject.h"
 #include "DptfManagerInterface.h"
+#include "StringParser.h"
 
 class dptf_export DataManagerInterface
 {
 public:
 	virtual ~DataManagerInterface(){};
-	virtual TableObject getTableObject(TableObjectType::Type tableType) = 0;
-	virtual void setTableObject(std::string tableString) = 0;
+	virtual TableObject getTableObject(TableObjectType::Type tableType, std::string uuid) = 0;
+	virtual void setTableObject(
+		UInt32 tableDataLength,
+		UInt8* tableData,
+		TableObjectType::Type tableType,
+		std::string uuid) = 0;
+	virtual void deleteTableObject(TableObjectType::Type tableType, std::string uuid) = 0;
+	virtual void deleteAllTableObject(TableObjectType::Type tableType, std::string uuid) = 0;
 	virtual Bool tableObjectExists(TableObjectType::Type tableType) = 0;
+	virtual std::map<TableObjectType::Type, TableObject> getTableObjectMap() = 0;
+	virtual UInt32 getLatestSupportedTableRevision(TableObjectType::Type) = 0;
 };
 
 class DataManager : public DataManagerInterface
@@ -36,13 +45,24 @@ public:
 	DataManager(DptfManagerInterface* dptfManager);
 	~DataManager(void);
 
-	virtual TableObject getTableObject(TableObjectType::Type tableType) override;
-	virtual void setTableObject(std::string tableString) override;
+	virtual TableObject getTableObject(TableObjectType::Type tableType, std::string uuid) override;
+	virtual void setTableObject(
+		UInt32 tableDataLength,
+		UInt8* tableData,
+		TableObjectType::Type tableType,
+		std::string uuid) override;
+	virtual void deleteTableObject(TableObjectType::Type tableType, std::string) override;
+	virtual void deleteAllTableObject(TableObjectType::Type tableType, std::string) override;
 	virtual Bool tableObjectExists(TableObjectType::Type tableType) override;
+	virtual std::map<TableObjectType::Type, TableObject> getTableObjectMap() override;
+	virtual UInt32 getLatestSupportedTableRevision(TableObjectType::Type tableType) override;
 
 private:
 	DptfManagerInterface* m_dptfManager;
 	std::map<TableObjectType::Type, TableObject> m_tableObjectMap;
+	std::map<TableObjectType::Type, UInt32> m_tableRevisions;
 
+	void sendTableChangedEvent(TableObjectType::Type tableObjectType, std::string uuid);
+	void loadTableRevisions();
 	void loadTableObjectMap();
 };

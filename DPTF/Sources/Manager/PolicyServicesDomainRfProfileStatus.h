@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,4 +29,11 @@ public:
 	PolicyServicesDomainRfProfileStatus(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
 	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual void setDdrRfiTable(
+		UIntN participantIndex,
+		UIntN domainIndex,
+		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) override final;
 };

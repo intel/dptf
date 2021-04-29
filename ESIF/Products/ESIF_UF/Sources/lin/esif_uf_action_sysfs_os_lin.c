@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,14 +63,24 @@
 #define GET_TRT	_IOR(ACPI_THERMAL_IOR_TYPE, 5, u64)
 #define GET_ART	_IOR(ACPI_THERMAL_IOR_TYPE, 6, u64)
 
-#define ACPI_CPU		"INT3401:00"
-#define SYSFS_PCI		"/sys/bus/pci/devices"
-#define SYSFS_PLATFORM		"/sys/bus/platform/devices"
-#define SYSFS_PSTATE_PATH	"/sys/devices/system/cpu/intel_pstate/"
-#define SYSFS_THERMAL		"/sys/class/thermal"
+#define ACPI_CPU                "INT3401:00"
+#define SYSFS_PCI               "/sys/bus/pci/devices"
+#define SYSFS_PLATFORM          "/sys/bus/platform/devices"
+#define SYSFS_PSTATE_PATH       "/sys/devices/system/cpu/intel_pstate/"
+#define SYSFS_THERMAL           "/sys/class/thermal"
+#define SYSFS_DATA_VAULT        "data_vault"
+#define SYSFS_AVAILABLE_UUIDS   "uuids/available_uuids"
+#define SYSFS_CURRENT_UUID      "uuids/current_uuid"
+#define SYSFS_OEM_VARIABLE      "odvp"
+#define SYSFS_IMOK              "imok"
 
-static const char *CPU_location[] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1", NULL};
-static const char *DPTF_UUID_location[] = {"/sys/devices/platform/INT3400:00/uuids", "/sys/devices/platform/INTC1040:00/uuids", NULL};
+extern char g_ManagerSysfsPath[MAX_SYSFS_PATH];
+static const char *CPU_location[] = {
+	"0000:00:04.0",
+	"0000:00:0b.0",
+	"0000:00:00.1",
+	NULL
+};
 
 static int *cpufreq; //Array storing Intercative Governor Cpu Frequencies
 
@@ -158,6 +168,8 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_SET_BRIGHTNESS_LEVEL = 'ELBS',
 	ESIF_SYSFS_SET_RAPL_TIME_WINDOW = 'WTRS',
 	ESIF_SYSFS_SET_TCC_OFFSET = 'CCTS',
+	ESIF_SYSFS_SET_IMOK = 'KOMI',
+	ESIF_SYSFS_SET_EPP_WORKLOAD_TYPE = 'TWES',
 };
 
 
@@ -198,17 +210,20 @@ static struct esif_ht *actionHashTablePtr = NULL;
 static char sys_long_string_val[MAX_SYSFS_STRING];
 static eEsifError SetFanLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr);
 static eEsifError SetBrightnessLevel(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr);
+static eEsifError SetEppWorkloadType(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr, const EsifString fileNamePtr);
 static eEsifError GetFanInfo(EsifDataPtr responsePtr);
 static eEsifError GetFanPerfStates(EsifDataPtr responsePtr);
 static eEsifError GetFanStatus(EsifDataPtr responsePtr, const EsifString devicePathPtr);
 static eEsifError GetDisplayBrightness(char *path, EsifDataPtr responsePtr);
 static eEsifError GetCStateResidency(char *path, char *node, UInt32 msrAddr, EsifDataPtr responsePtr);
 static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
+static eEsifError SetImOk(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 static eEsifError ResetThermalZonePolicyToDefault();
 static eEsifError SetThermalZonePolicy();
 static eEsifError SetIntelPState(u64 val);
 static eEsifError ValidateOutput(char *devicePathPtr, char *nodeName, u64 val);
-static const char *GetUuidLocation();
+static eEsifError GetGddvData(const EsifDataPtr responsePtr);
+static eEsifError GetOemVariables(char *table_str);
 
 #ifdef ESIF_ATTR_OS_ANDROID
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
@@ -794,6 +809,13 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			rc = ESIF_E_PARAMETER_IS_NULL;
 			goto exit;
 		}
+		if (esif_ccb_stricmp("gddv", parm1) == 0) {
+			rc = GetGddvData(responsePtr);
+			if ( rc != ESIF_OK) {
+				ESIF_TRACE_WARN("Error Retrieving GDDV Data");
+			}
+			break;
+		}
 		esif_ccb_memset(table_str, 0, BINARY_TABLE_SIZE);
 		/*	domain str and participant id are not relevant in this
 			case since we use device paths */
@@ -816,13 +838,14 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			rc = get_thermal_rel_str(TRT, table_str);
 		}
 		else if (esif_ccb_stricmp("idsp", parm1) == 0) {
-			char const *uuid_dir = GetUuidLocation();
-			if (uuid_dir) {
-				int lineNum = SysfsGetStringMultiline(uuid_dir, "available_uuids", sys_long_string_val);
+			if ( esif_ccb_strlen(g_ManagerSysfsPath, sizeof(g_ManagerSysfsPath)) == 0) {
+				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+				ESIF_TRACE_ERROR("g_ManagerSysfsPath Invalid\n");
+			}
+			else {
+				int lineNum = SysfsGetStringMultiline(g_ManagerSysfsPath, SYSFS_AVAILABLE_UUIDS, sys_long_string_val);
 				FLAGS_CLEAR(tableObject.options, TABLEOPT_ALLOW_SELF_DEFINE);
 				rc = get_supported_policies(table_str, lineNum, sys_long_string_val);
-			} else {
-				rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 			}
 		}
 		else if (esif_ccb_stricmp("ppcc", parm1) == 0) {
@@ -854,6 +877,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			/* to come
 			rc = get_thermal_rel_str(TRT, table_str);
 			*/
+		}
+		else if (esif_ccb_stricmp("odvp", parm1) == 0) {
+			rc = GetOemVariables(table_str);
 		}
 		else {
 			TableObject_Destroy(&tableObject);
@@ -1087,7 +1113,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 			case ESIF_SYSFS_SET_OSC:  /* osc */
 				rc = SetOsc(upPtr, requestPtr);
 				break;
-
+			case ESIF_SYSFS_SET_IMOK: /* imok */
+				rc = SetImOk(upPtr, requestPtr);
+				break;
 			case ESIF_SYSFS_SET_FAN_LEVEL:
 				rc = SetFanLevel(upPtr, requestPtr, devicePathPtr);
 				break;
@@ -1113,6 +1141,9 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 					goto exit;
 				}
+				break;
+			case ESIF_SYSFS_SET_EPP_WORKLOAD_TYPE: /* EPP Workload Type */
+				rc = SetEppWorkloadType(upPtr, requestPtr, parm1, parm2);
 				break;
 			default:
 				break;
@@ -1694,6 +1725,95 @@ exit:
 	return rc;
 }
 
+static eEsifError GetGddvData(const EsifDataPtr responsePtr)
+{
+	eEsifError rc = ESIF_OK;
+	union esif_data_variant dataHeader = {0};
+	UInt8 *currentPtr = responsePtr->buf_ptr;
+
+	if ( esif_ccb_strlen(g_ManagerSysfsPath, sizeof(g_ManagerSysfsPath)) == 0) {
+		rc = ESIF_E_INVALID_HANDLE;
+		ESIF_TRACE_ERROR("g_ManagerSysfsPath Invalid\n");
+		goto exit;
+	}
+	size_t fileSize = 0;
+	rc = SysfsGetFileSize(g_ManagerSysfsPath, SYSFS_DATA_VAULT, &fileSize);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	responsePtr->data_len = sizeof(dataHeader) + fileSize;
+	if (responsePtr->buf_len < sizeof(dataHeader) + fileSize) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		ESIF_TRACE_WARN("Response buffer too small. \n");
+		goto exit;
+	}
+
+	// return esif_data_variant with binary string
+	dataHeader.string.type = ESIF_DATA_BINARY;
+	dataHeader.string.length = fileSize;
+	esif_ccb_memcpy(currentPtr, &dataHeader ,sizeof(dataHeader));
+	currentPtr += sizeof(dataHeader);
+
+	rc = SysfsGetBinaryData(g_ManagerSysfsPath, SYSFS_DATA_VAULT, currentPtr, fileSize);
+	if (rc != ESIF_OK) {
+		goto exit;
+	}
+
+	responsePtr->type = ESIF_DATA_BINARY;
+	ESIF_TRACE_INFO("Completed reading GDDV Data of length : %d bytes", responsePtr->data_len );
+
+exit:
+	return rc;
+}
+
+static eEsifError GetOemVariables(char *table_str)
+{
+	eEsifError rc = ESIF_OK;
+	DIR *dir = NULL;
+	struct dirent **namelist;
+	UInt32 variableIndex = 0;
+	Int32 numberOfFiles = 0;
+	UInt32 fileIndex = 0;
+	char cur_oem_file[MAX_SYSFS_PATH] = { 0 };
+
+	dir = opendir(g_ManagerSysfsPath);
+	if (dir == NULL) {
+		ESIF_TRACE_DEBUG("No Manager sysfs path : %s\n",g_ManagerSysfsPath );
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	numberOfFiles = scandir(g_ManagerSysfsPath, &namelist, 0, alphasort);
+	if (numberOfFiles < 0) {
+		ESIF_TRACE_DEBUG("No files to scan\n");
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	while (fileIndex < numberOfFiles) {
+		Int32 oemVariable = 0;
+		esif_ccb_sprintf(sizeof(cur_oem_file), cur_oem_file, "%s%d", SYSFS_OEM_VARIABLE, variableIndex);
+		if (esif_ccb_strstr(namelist[fileIndex]->d_name, cur_oem_file) != NULL) {
+			SysfsGetInt(g_ManagerSysfsPath, cur_oem_file, &oemVariable);
+			esif_ccb_sprintf_concat(BINARY_TABLE_SIZE, table_str, "%d!",oemVariable);
+			variableIndex++;
+			ESIF_TRACE_INFO("OEM Variable %d : %d ", variableIndex , oemVariable);
+		}
+		free(namelist[fileIndex]);
+		fileIndex++;
+	}
+	free(namelist);
+
+	ESIF_TRACE_INFO("Completed reading All the OEM Variables. OEM Count : %d bytes", variableIndex );
+
+exit:
+	if (dir != NULL) {
+		closedir(dir);
+	}
+	return rc;
+}
+
 static eEsifError get_participant_scope(char *acpi_name, char *acpi_scope)
 {
 	eEsifError rc = ESIF_OK;
@@ -1794,6 +1914,27 @@ static eEsifError SetBrightnessLevel(const EsifUpPtr upPtr, const EsifDataPtr re
 	}
 
 	ESIF_TRACE_DEBUG("Set upper participant %d's display brightness to %llu\n", upPtr->fInstance, curVal);
+
+exit:
+	return rc;
+}
+
+static eEsifError SetEppWorkloadType(const EsifUpPtr upPtr, const EsifDataPtr requestPtr, const EsifString devicePathPtr, const EsifString fileNamePtr)
+{
+	eEsifError rc = ESIF_OK;
+
+	if (devicePathPtr == NULL || fileNamePtr == NULL) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		ESIF_TRACE_WARN("devicePathPtr/fileNamePtr is NULL\n");
+		goto exit;
+	}
+	ESIF_TRACE_DEBUG("Trying to set Workload type %s\n", (char *)requestPtr->buf_ptr);
+	if (SysfsSetString(devicePathPtr, fileNamePtr, (char *)requestPtr->buf_ptr) < 0) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("Set EPP Workload type %s is successful\n", (char *)requestPtr->buf_ptr);
 
 exit:
 	return rc;
@@ -2007,15 +2148,14 @@ static eEsifError HandleOscRequest(const struct esif_data_complex_osc *oscPtr, c
 		}
 	}
 
-	char const *uuid_dir = GetUuidLocation();
-	if (uuid_dir) {
-		if (SysfsSetString(uuid_dir, "current_uuid", guidStr) < 0) {
-			ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
-			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-			goto exit;
-		}
-	} else {
-		ESIF_TRACE_WARN("Unable to locate the DPTF UUID location\n");
+	if ( esif_ccb_strlen(g_ManagerSysfsPath, sizeof(g_ManagerSysfsPath)) == 0) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		ESIF_TRACE_ERROR("g_ManagerSysfsPath Invalid\n");
+		goto exit;
+	}
+
+	if (SysfsSetString(g_ManagerSysfsPath, SYSFS_CURRENT_UUID, guidStr) < 0) {
+		ESIF_TRACE_WARN("Failed to set _OSC for GUID: %s\n", guidStr);
 		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
 		goto exit;
 	}
@@ -2096,6 +2236,29 @@ static eEsifError ValidateOutput(char *devicePathPtr, char *nodeName, u64 val)
 	return rc;
 }
 
+static eEsifError SetImOk(EsifUpPtr upPtr, const EsifDataPtr requestPtr)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 sysval = 0;
+
+	if (ESIF_DATA_UINT32 != requestPtr->type ||
+		sizeof(UInt32) != requestPtr->buf_len) {
+		rc = ESIF_E_REQ_SIZE_TYPE_MISTMATCH;
+		goto exit;
+	}
+
+	sysval = (UInt32)*(UInt32 *)requestPtr->buf_ptr;
+	if (SysfsSetInt64(g_ManagerSysfsPath, SYSFS_IMOK, sysval) < 0) {
+		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
+		ESIF_TRACE_ERROR("Error setting IMOK file with %d", sysval);
+		goto exit;
+	}
+	ESIF_TRACE_INFO("IMOK set succesfully with value : %d", sysval);
+
+exit:
+	return rc;
+}
+
 /*
  *******************************************************************************
  * Register ACTION with ESIF
@@ -2152,21 +2315,6 @@ exit:
 	}
 	return rc;
 }
-
-static const char* GetUuidLocation()
-{
-	int i = 0;
-	while (DPTF_UUID_location[i] != NULL) {
-		DIR* dir = opendir(DPTF_UUID_location[i]);
-		if (dir) { // Located the IETM/DPTF dir!
-			closedir(dir);
-			break;
-		}
-		++i;
-	}
-	return DPTF_UUID_location[i];
-}
-
 
 static eEsifError ResetThermalZonePolicy()
 {

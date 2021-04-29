@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,11 +29,13 @@
 #include "ManagerLogger.h"
 
 using namespace StatusFormat;
+using namespace std;
 
 PolicyManager::PolicyManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
 	, m_policies()
-	, m_supportedPolicyList(std::make_shared<SupportedPolicyList>(dptfManager))
+	, m_supportedPolicyList(make_shared<SupportedPolicyList>(dptfManager))
+	, m_supportedDynamicPolicyList(make_shared<SupportedDynamicPolicyList>(dptfManager))
 	, m_registeredEvents()
 {
 }
@@ -43,12 +45,12 @@ PolicyManager::~PolicyManager(void)
 	destroyAllPolicies();
 }
 
-void PolicyManager::createAllPolicies(const std::string& dptfPolicyDirectoryPath)
+void PolicyManager::createAllPolicies(const string& dptfPolicyDirectoryPath)
 {
 	try
 	{
 		// Queue up a work item and wait for the return.
-		auto workItem = std::make_shared<WIPolicyCreateAll>(m_dptfManager, dptfPolicyDirectoryPath);
+		auto workItem = make_shared<WIPolicyCreateAll>(m_dptfManager, dptfPolicyDirectoryPath);
 		m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 	}
 	catch (...)
@@ -65,7 +67,7 @@ void PolicyManager::createAllPolicies(const std::string& dptfPolicyDirectoryPath
 	}
 }
 
-UIntN PolicyManager::createPolicy(const std::string& policyFileName)
+UIntN PolicyManager::createPolicy(const string& policyFileName)
 {
 	UIntN firstAvailableIndex = Constants::Invalid;
 
@@ -74,13 +76,20 @@ UIntN PolicyManager::createPolicy(const std::string& policyFileName)
 		// First check if we have an instance of the policy already
 		throwIfPolicyAlreadyExists(policyFileName);
 
-		auto indexesInUse = MapOps<UIntN, std::shared_ptr<IPolicy>>::getKeys(m_policies);
+		auto indexesInUse = MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
 		firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
-		m_policies[firstAvailableIndex] = std::make_shared<Policy>(m_dptfManager);
+		m_policies[firstAvailableIndex] = make_shared<Policy>(m_dptfManager);
 
 		// Create the policy.  This will end up calling the functions in the .dll/.so and will throw an
 		// exception if it doesn't find a valid policy to load.
-		m_policies[firstAvailableIndex]->createPolicy(policyFileName, firstAvailableIndex, m_supportedPolicyList);
+		m_policies[firstAvailableIndex]->createPolicy(
+			policyFileName,
+			firstAvailableIndex,
+			m_supportedPolicyList,
+			Guid::createInvalid(),
+			Guid::createInvalid(),
+			Constants::EmptyString,
+			Constants::EmptyString);
 
 		MANAGER_LOG_MESSAGE_INFO({
 			ManagerMessage message = ManagerMessage(m_dptfManager, _file, _line, _function, "Policy has been created.");
@@ -104,9 +113,71 @@ UIntN PolicyManager::createPolicy(const std::string& policyFileName)
 	return firstAvailableIndex;
 }
 
+UIntN PolicyManager::createDynamicPolicy(
+	const string& policyFileName,
+	Guid dynamicPolicyUuid,
+	Guid dynamicPolicyTemplateGuid,
+	const string& dynamicPolicyName,
+	const string& dynamicPolicyUuidString)
+{
+	UIntN firstAvailableIndex = Constants::Invalid;
+
+	try
+	{
+		// First check if we have an instance of the dynamic policy already
+		throwIfDynamicPolicyAlreadyExists(policyFileName, dynamicPolicyName);
+
+		auto indexesInUse = MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
+		firstAvailableIndex = getFirstAvailableIndex(indexesInUse);
+		m_policies[firstAvailableIndex] = make_shared<Policy>(m_dptfManager);
+
+		// Create the dynamic policy.  This will end up calling the functions in the .dll/.so and will throw an
+		// exception if it doesn't find a valid policy to load.
+		m_policies[firstAvailableIndex]->createPolicy(
+			policyFileName,
+			firstAvailableIndex,
+			m_supportedPolicyList,
+			dynamicPolicyUuid,
+			dynamicPolicyTemplateGuid,
+			dynamicPolicyName,
+			dynamicPolicyUuidString);
+
+		MANAGER_LOG_MESSAGE_INFO({
+			ManagerMessage message =
+				ManagerMessage(m_dptfManager, _file, _line, _function, "Dynamic Policy has been created.");
+			message.setPolicyIndex(firstAvailableIndex);
+			message.addMessage("Policy Index", firstAvailableIndex);
+			message.addMessage("Policy File Name", policyFileName);
+			message.addMessage("Policy Name", dynamicPolicyName);
+			return message;
+		});
+	}
+	catch (policy_already_exists&)
+	{
+		// Ignore duplicate dynamic policy instance
+	}
+	catch (policy_not_in_idsp_list&)
+	{
+		destroyPolicy(firstAvailableIndex);
+		firstAvailableIndex = Constants::Invalid;
+	}
+	catch (dynamic_policy_template_guid_invalid&)
+	{
+		destroyPolicy(firstAvailableIndex);
+		firstAvailableIndex = Constants::Invalid;
+	}
+	catch (...)
+	{
+		destroyPolicy(firstAvailableIndex);
+		throw;
+	}
+
+	return firstAvailableIndex;
+}
+
 void PolicyManager::destroyAllPolicies(void)
 {
-	auto policyIndexes = MapOps<UIntN, std::shared_ptr<IPolicy>>::getKeys(m_policies);
+	auto policyIndexes = MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
 	for (auto index = policyIndexes.begin(); index != policyIndexes.end(); ++index)
 	{
 		if (m_policies[*index] != nullptr)
@@ -114,7 +185,7 @@ void PolicyManager::destroyAllPolicies(void)
 			try
 			{
 				// Queue up a work item and wait for the return.
-				auto workItem = std::make_shared<WIPolicyDestroy>(m_dptfManager, *index);
+				auto workItem = make_shared<WIPolicyDestroy>(m_dptfManager, *index);
 				m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(workItem);
 			}
 			catch (...)
@@ -157,14 +228,19 @@ void PolicyManager::destroyPolicy(UIntN policyIndex)
 	}
 }
 
-std::set<UIntN> PolicyManager::getPolicyIndexes(void) const
+set<UIntN> PolicyManager::getPolicyIndexes(void) const
 {
-	return MapOps<UIntN, std::shared_ptr<IPolicy>>::getKeys(m_policies);
+	return MapOps<UIntN, shared_ptr<IPolicy>>::getKeys(m_policies);
 }
 
-std::shared_ptr<ISupportedPolicyList> PolicyManager::getSupportedPolicyList(void) const
+shared_ptr<ISupportedPolicyList> PolicyManager::getSupportedPolicyList(void) const
 {
 	return m_supportedPolicyList;
+}
+
+shared_ptr<ISupportedDynamicPolicyList> PolicyManager::getSupportedDynamicPolicyList(void) const
+{
+	return m_supportedDynamicPolicyList;
 }
 
 IPolicy* PolicyManager::getPolicyPtr(UIntN policyIndex)
@@ -207,7 +283,7 @@ void PolicyManager::unregisterEvent(UIntN policyIndex, PolicyEvent::Type policyE
 	}
 }
 
-std::shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
+shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
 {
 	auto root = XmlNode::createRoot();
 	root->addChild(XmlNode::createComment("format_id=10-E0-F6-61-4B-7D-F7-40-AE-90-CF-DA-99-0F-F9-1A"));
@@ -221,7 +297,7 @@ std::shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
 		{
 			if (policy->second != nullptr)
 			{
-				std::string name = policy->second->getName();
+				string name = policy->second->getName();
 				auto policyStatus = XmlNode::createWrapperElement("policy_event_status");
 				auto policyName = XmlNode::createDataElement("policy_name", name);
 				policyStatus->addChild(policyName);
@@ -238,13 +314,13 @@ std::shared_ptr<XmlNode> PolicyManager::getStatusAsXml(void)
 	return root;
 }
 
-std::string PolicyManager::getDiagnosticsAsXml(void)
+string PolicyManager::getDiagnosticsAsXml(void)
 {
 	auto root = XmlNode::createRoot();
 	return root->toString();
 }
 
-std::shared_ptr<IPolicy> PolicyManager::getPolicy(const std::string& policyName) const
+shared_ptr<IPolicy> PolicyManager::getPolicy(const string& policyName) const
 {
 	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
 	{
@@ -253,10 +329,10 @@ std::shared_ptr<IPolicy> PolicyManager::getPolicy(const std::string& policyName)
 			return policy->second;
 		}
 	}
-	throw dptf_exception(std::string("Policy \"") + policyName + std::string("\" not found."));
+	throw dptf_exception(string("Policy \"") + policyName + string("\" not found."));
 }
 
-Bool PolicyManager::policyExists(const std::string& policyName) const
+Bool PolicyManager::policyExists(const string& policyName) const
 {
 	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
 	{
@@ -268,11 +344,11 @@ Bool PolicyManager::policyExists(const std::string& policyName) const
 	return false;
 }
 
-void PolicyManager::throwIfPolicyAlreadyExists(std::string policyFileName)
+void PolicyManager::throwIfPolicyAlreadyExists(string policyFileName)
 {
 	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
 	{
-		if (policy->second->getPolicyFileName() == policyFileName)
+		if (policy->second->getPolicyFileName() == policyFileName && policy->second->isDynamicPolicy() == false)
 		{
 			MANAGER_LOG_MESSAGE_DEBUG({
 				ManagerMessage debugMessage =
@@ -280,6 +356,27 @@ void PolicyManager::throwIfPolicyAlreadyExists(std::string policyFileName)
 				debugMessage.setPolicyIndex(policy->first);
 				debugMessage.addMessage("Policy Index", policy->first);
 				debugMessage.addMessage("Policy File Name", policyFileName);
+				return debugMessage;
+			});
+			throw policy_already_exists();
+		}
+	}
+}
+
+void PolicyManager::throwIfDynamicPolicyAlreadyExists(string policyFileName, string policyName)
+{
+	for (auto policy = m_policies.begin(); policy != m_policies.end(); ++policy)
+	{
+		if (policy->second->getPolicyFileName() == policyFileName && policy->second->getName() == policyName
+			&& policy->second->isDynamicPolicy() == true)
+		{
+			MANAGER_LOG_MESSAGE_DEBUG({
+				ManagerMessage debugMessage =
+					ManagerMessage(m_dptfManager, _file, _line, _function, "Dynamic Policy instance already exists.");
+				debugMessage.setPolicyIndex(policy->first);
+				debugMessage.addMessage("Policy Index", policy->first);
+				debugMessage.addMessage("Policy File Name", policyFileName);
+				debugMessage.addMessage("Policy Name", policyName);
 				return debugMessage;
 			});
 			throw policy_already_exists();
@@ -319,7 +416,7 @@ UIntN PolicyManager::getPolicyCount(void)
 	return policyCount;
 }
 
-std::shared_ptr<XmlNode> PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
+shared_ptr<XmlNode> PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
 {
 	auto status = XmlNode::createWrapperElement("event_values");
 	auto eventCount = PolicyEvent::Max;
@@ -337,7 +434,7 @@ std::shared_ptr<XmlNode> PolicyManager::getEventsXmlForPolicy(UIntN policyIndex)
 	return status;
 }
 
-std::shared_ptr<XmlNode> PolicyManager::getEventsInXml()
+shared_ptr<XmlNode> PolicyManager::getEventsInXml()
 {
 	auto status = XmlNode::createWrapperElement("events");
 	auto eventCount = PolicyEvent::Max;

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -426,26 +426,35 @@ void ActivePolicy::requestFanTurnedOff(std::shared_ptr<ActiveRelationshipTableEn
 
 void ActivePolicy::turnOffAllFans()
 {
-	POLICY_LOG_MESSAGE_DEBUG({ return "Turning off all fans."; });
-	vector<UIntN> sources = m_art->getAllSources();
-	for (auto source = sources.begin(); source != sources.end(); source++)
+	if (m_art != nullptr)
 	{
-		if (getParticipantTracker()->remembers(*source))
+		POLICY_LOG_MESSAGE_DEBUG({ return "Turning off all fans."; });
+		vector<UIntN> sources = m_art->getAllSources();
+		for (auto source = sources.begin(); source != sources.end(); source++)
 		{
-			auto sourceParticipant = getParticipantTracker()->getParticipant(*source);
-			auto domainIndexes = sourceParticipant->getDomainIndexes();
-			for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
+			if (getParticipantTracker()->remembers(*source))
 			{
-				try
+				auto sourceParticipant = getParticipantTracker()->getParticipant(*source);
+				auto domainIndexes = sourceParticipant->getDomainIndexes();
+				for (auto domainIndex = domainIndexes.begin(); domainIndex != domainIndexes.end(); domainIndex++)
 				{
-					auto sourceDomain = sourceParticipant->getDomain(*domainIndex);
-					std::shared_ptr<ActiveCoolingControlFacadeInterface> coolingControl =
-						sourceDomain->getActiveCoolingControl();
-					coolingControl->forceFanOff();
-				}
-				catch (...)
-				{
-					// swallow errors when attempting to force fans off
+					try
+					{
+						auto sourceDomain = sourceParticipant->getDomain(*domainIndex);
+						if (sourceDomain != nullptr)
+						{
+							std::shared_ptr<ActiveCoolingControlFacadeInterface> coolingControl =
+								sourceDomain->getActiveCoolingControl();
+							if (coolingControl != nullptr)
+							{
+								coolingControl->forceFanOff();
+							}
+						}
+					}
+					catch (...)
+					{
+						// swallow errors when attempting to force fans off
+					}
 				}
 			}
 		}

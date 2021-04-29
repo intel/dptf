@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1352,6 +1352,12 @@ UInt32 UnifiedParticipant::getTimestampCounterWidth(UIntN participantIndex, UInt
 	return m_domains[domainIndex]->getActivityStatusControl()->getTimestampCounterWidth(participantIndex, domainIndex);
 }
 
+CoreActivityInfo UnifiedParticipant::getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getCoreActivityInfo(participantIndex, domainIndex);
+}
+
 CoreControlStaticCaps UnifiedParticipant::getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1486,6 +1492,12 @@ double UnifiedParticipant::getRaplEnergyUnit(UIntN participantIndex, UIntN domai
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getEnergyControl()->getRaplEnergyUnit(participantIndex, domainIndex);
+}
+
+EnergyCounterInfo UnifiedParticipant::getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getEnergyControl()->getRaplEnergyCounterInfo(participantIndex, domainIndex);
 }
 
 UInt32 UnifiedParticipant::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)
@@ -1824,6 +1836,34 @@ RfProfileDataSet UnifiedParticipant::getRfProfileDataSet(UIntN participantIndex,
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getRfProfileStatusControl()->getRfProfileDataSet(participantIndex, domainIndex);
+}
+
+UInt32 UnifiedParticipant::getWifiCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileStatusControl()->getWifiCapabilities(participantIndex, domainIndex);
+}
+
+UInt32 UnifiedParticipant::getRfiDisable(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileStatusControl()->getRfiDisable(participantIndex, domainIndex);
+}
+
+void UnifiedParticipant::setDdrRfiTable(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
+	)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getRfProfileStatusControl()->setDdrRfiTable(participantIndex, domainIndex, ddrRfiStruct);
+}
+
+UInt64 UnifiedParticipant::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfProfileStatusControl()->getDvfsPoints(participantIndex, domainIndex);
 }
 
 UtilizationStatus UnifiedParticipant::getUtilizationStatus(UIntN participantIndex, UIntN domainIndex)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -36,6 +36,7 @@ public:
 	// DomainDynamicEppInterface
 	virtual UInt32 getEppSensitivityHint() override;
 	virtual void updateEppSensitivityHint(UInt32 eppSensitivityHint) override;
+	virtual void setDynamicEppSupport(UInt32 dynamicEppSupport) override;
 
 	// ComponentExtendedInterface
 	virtual std::string getName(void) override;

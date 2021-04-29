@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -43,9 +43,9 @@ void WIPolicyCreateAll::onExecute(void)
 
 		while (policyFileName.length() > 0)
 		{
+			std::string policyFilePath = m_policyDirectoryPath + policyFileName;
 			try
 			{
-				std::string policyFilePath = m_policyDirectoryPath + policyFileName;
 				if (getDptfManager()->isDptfPolicyLoadNameOnly())
 				{
 					policyFilePath.erase(0, m_policyDirectoryPath.length());
@@ -61,6 +61,46 @@ void WIPolicyCreateAll::onExecute(void)
 			{
 				dptf_exception ex("Unknown exception type caught when attempting to create a policy.");
 				writeWorkItemWarningMessage(ex, "PolicyManager::createPolicy", "Policy File Name", policyFileName);
+			}
+
+			try
+			{
+				// FIXME: use a function IsDynamicPolicyTemplateFilename()
+				if (policyFileName == "DptfPolicyAdaptivePerformance.dll")
+				{
+					auto supportedDynamicPolicyList =
+						getDptfManager()->getPolicyManager()->getSupportedDynamicPolicyList();
+					for (UIntN i = 0; i < supportedDynamicPolicyList->getCount(); i++)
+					{
+						auto dynamicPolicyUuid = supportedDynamicPolicyList->get(i).getUuid();
+						auto supportedPolicyList = getDptfManager()->getPolicyManager()->getSupportedPolicyList();
+
+						if (supportedPolicyList->isPolicySupported(dynamicPolicyUuid))
+						{
+							auto dynamicPolicyTemplateGuid = supportedDynamicPolicyList->get(i).getTemplateGuid();
+							auto dynamicPolicyName = supportedDynamicPolicyList->get(i).getName();
+							auto dynamicPolicyUuidString = supportedDynamicPolicyList->get(i).getUuidString();
+
+							getDptfManager()->getPolicyManager()->createDynamicPolicy(
+								policyFilePath,
+								dynamicPolicyUuid,
+								dynamicPolicyTemplateGuid,
+								dynamicPolicyName,
+								dynamicPolicyUuidString);
+						}
+					}
+				}
+			}
+			catch (std::exception& ex)
+			{
+				writeWorkItemWarningMessage(
+					ex, "PolicyManager::createDynamicPolicy", "Policy File Name", policyFileName);
+			}
+			catch (...)
+			{
+				dptf_exception ex("Unknown exception type caught when attempting to create a dynamic policy.");
+				writeWorkItemWarningMessage(
+					ex, "PolicyManager::createDynamicPolicy", "Policy File Name", policyFileName);
 			}
 
 			policyFileName = fileEnumerator.getNextFile();

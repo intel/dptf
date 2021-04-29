@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -23,7 +23,6 @@ DomainSocWorkloadClassificationBase::DomainSocWorkloadClassificationBase(
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: ControlBase(participantIndex, domainIndex, participantServicesInterface)
-	, m_isSocWorkloadSupported(false)
 {
 	bindRequestHandlers();
 }
@@ -40,10 +39,6 @@ void DomainSocWorkloadClassificationBase::bindRequestHandlers()
 	bindRequestHandler(
 		DptfRequestType::SocWorkloadClassificationGetSocWorkload,
 		[=](const PolicyRequest& policyRequest) { return this->handleGetSocWorkloadClassification(policyRequest); });
-	bindRequestHandler(
-		DptfRequestType::SocWorkloadClassificationGetSocWorkloadSupport, [=](const PolicyRequest& policyRequest) {
-			return this->handleGetSocWorkloadClassificationSupport(policyRequest);
-		});
 }
 
 DptfRequestResult DomainSocWorkloadClassificationBase::handleClearCachedResults(const PolicyRequest& policyRequest)
@@ -84,16 +79,6 @@ DptfRequestResult DomainSocWorkloadClassificationBase::handleGetSocWorkloadClass
 	{
 		return DptfRequestResult(false, "Failed to retrieve current Soc workload.", request);
 	}
-}
-
-DptfRequestResult DomainSocWorkloadClassificationBase::handleGetSocWorkloadClassificationSupport(
-	const PolicyRequest& policyRequest)
-{
-	auto& request = policyRequest.getRequest();
-	DptfRequestResult result(true, "Successfully retrieved Soc workload support.", request);
-	result.setDataFromBool(m_isSocWorkloadSupported);
-
-	return result;
 }
 
 void DomainSocWorkloadClassificationBase::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

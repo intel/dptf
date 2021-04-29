@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,7 +33,11 @@ public:
 	virtual void createPolicy(
 		const std::string& policyFileName,
 		UIntN newPolicyIndex,
-		std::shared_ptr<SupportedPolicyList> supportedPolicyList) = 0;
+		std::shared_ptr<SupportedPolicyList> supportedPolicyList,
+		Guid dynamicPolicyUuid,
+		Guid dynamicPolicyTemplateGuid,
+		const std::string& dynamicPolicyName,
+		const std::string& dynamicPolicyUuidString) = 0;
 	virtual void destroyPolicy(void) = 0;
 
 	virtual Guid getGuid(void) = 0;
@@ -50,6 +54,9 @@ public:
 	virtual std::string getPolicyFileName(void) const = 0;
 	virtual std::string getStatusAsXml(void) const = 0;
 	virtual std::string getDiagnosticsAsXml(void) const = 0;
+
+	virtual Bool isDynamicPolicy(void) = 0;
+	virtual std::string getDynamicPolicyUuidString(void) const = 0;
 
 	// Event handlers
 
@@ -109,10 +116,9 @@ public:
 	virtual void executePolicySensorSpatialOrientationChanged(
 		SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
 	virtual void executePolicyThermalRelationshipTableChanged(void) = 0;
-	virtual void executePolicyAdaptivePerformanceParticipantConditionTableChanged(void) = 0;
 	virtual void executePolicyAdaptivePerformanceConditionsTableChanged(void) = 0;
 	virtual void executePolicyAdaptivePerformanceActionsTableChanged(void) = 0;
-	virtual void executePolicyAdaptiveUserPresenceTableChanged(void) = 0;
+	virtual void executePolicyDdrfTableChanged(void) = 0;
 	virtual void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
 	virtual void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) = 0;
 	virtual void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage) = 0;
@@ -147,68 +153,10 @@ public:
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) = 0;
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
 	virtual void executePolicyPowerShareAlgorithmTable2Changed(void) = 0;
-	virtual void executePolicySensorUserPresenceChanged(SensorUserPresence::Type sensorUserPresence) = 0;
+	virtual void executePolicyIntelligentThermalManagementTableChanged(void) = 0;
 	virtual void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) = 0;
-	virtual void executePolicyWakeOnApproachFeatureStateChanged(
-		Bool wakeOnApproachFeatureState) = 0;
-	virtual void executePolicyWakeOnApproachWithExternalMonitorFeatureStateChanged(
-		Bool wakeOnApproachWithExternalMonitorFeatureState) = 0;
-	virtual void executePolicyWakeOnApproachOnLowBatteryFeatureStateChanged(
-		Bool wakeOnApproachOnLowBatteryFeatureState) = 0;
-	virtual void executePolicyWakeOnApproachBatteryRemainingPercentageChanged(
-		Percentage wakeOnApproachBatteryRemainingPercentage) = 0;
-	virtual void executePolicyWalkAwayLockFeatureStateChanged(
-		Bool walkAwayLockFeatureState) = 0;
-	virtual void executePolicyWalkAwayLockWithExternalMonitorFeatureStateChanged(
-		Bool walkAwayLockWithExternalMonitorFeatureState) = 0;
-	virtual void executePolicyWalkAwayLockDimScreenFeatureStateChanged(
-		Bool walkAwayLockDimScreenFeatureState) = 0;
-	virtual void executePolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged(
-		Bool walkAwayLockDisplayOffAfterLockFeatureState) = 0;
-	virtual void executePolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-		Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState) = 0;
-	virtual void executePolicyWalkAwayLockHonorUserInCallFeatureStateChanged(
-		Bool walkAwayLockHonorUserInCallFeatureState) = 0;
-	virtual void executePolicyUserInCallStateChanged(
-		Bool userInCallState) = 0;
-	virtual void executePolicyWalkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime) = 0;
-	virtual void executePolicyWalkAwayLockPreDimWaitTimeChanged(
-		TimeSpan walkAwayLockPreDimWaitTime) = 0;
-	virtual void executePolicyWalkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime) = 0;
-	virtual void executePolicyWalkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval) = 0;
-	virtual void executePolicyAdaptiveDimmingFeatureStateChanged(
-		Bool adaptiveDimmingFeatureState) = 0;
-	virtual void executePolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged(
-		Bool adaptiveDimmingWithExternalMonitorFeatureState) = 0;
-	virtual void executePolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged(
-		Bool adaptiveDimmingWithPresentationModeFeatureState) = 0;
-	virtual void executePolicyAdaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime) = 0;
-	virtual void executePolicyMispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState) = 0;
-	virtual void executePolicyMispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow) = 0;
-	virtual void executePolicyMisprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime) = 0;
-	virtual void executePolicyMisprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime) = 0;
-	virtual void executePolicyMisprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime) = 0;
-	virtual void executePolicyMisprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime) = 0;
-	virtual void executePolicyNoLockOnPresenceFeatureStateChanged(
-		Bool noLockOnPresenceFeatureState) = 0;
-	virtual void executePolicyNoLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState) = 0;
-	virtual void executePolicyNoLockOnPresenceOnBatteryFeatureStateChanged(
-		Bool noLockOnPresenceOnBatteryFeatureState) = 0;
-	virtual void executePolicyNoLockOnPresenceBatteryRemainingPercentageChanged(
-		Percentage noLockOnPresenceBatteryRemainingPercentage) = 0;
-	virtual void executePolicyNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) = 0;
-	virtual void executePolicyFailsafeTimeoutChanged(TimeSpan failsafeTimeout) = 0;
-	virtual void executePolicyContextServiceStatusChanged(Bool contextServiceStatus) = 0;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) = 0;
-	virtual void executePolicyUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) = 0;
-	virtual void executePolicyUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) = 0;
-	virtual void executePolicyUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) = 0;
-	virtual void executePolicyUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) = 0;
-	virtual void executePolicySensorModeChanged(SensorMode::Type sensorMode) = 0;
-	virtual void executePolicyBiometricPresenceSensorInstanceChanged(
-		BiometricPresenceSensorInstance::Type sensorInstance) = 0;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) = 0;
-	virtual void executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) = 0;
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) = 0;
 };
 
@@ -221,7 +169,11 @@ public:
 	virtual void createPolicy(
 		const std::string& policyFileName,
 		UIntN newPolicyIndex,
-		std::shared_ptr<SupportedPolicyList> supportedPolicyList) override;
+		std::shared_ptr<SupportedPolicyList> supportedPolicyList,
+		Guid dynamicPolicyUuid,
+		Guid dynamicPolicyTemplateGuid,
+		const std::string& dynamicPolicyName,
+		const std::string& dynamicPolicyUuidString) override;
 	virtual void destroyPolicy(void) override;
 
 	virtual Guid getGuid(void) override;
@@ -238,6 +190,9 @@ public:
 	virtual std::string getPolicyFileName(void) const override;
 	virtual std::string getStatusAsXml(void) const override;
 	virtual std::string getDiagnosticsAsXml(void) const override;
+
+	virtual Bool isDynamicPolicy(void) override;
+	virtual std::string getDynamicPolicyUuidString(void) const override;
 
 	// Event handlers
 
@@ -297,10 +252,9 @@ public:
 	virtual void executePolicySensorSpatialOrientationChanged(
 		SensorSpatialOrientation::Type sensorSpatialOrientation) override;
 	virtual void executePolicyThermalRelationshipTableChanged(void) override;
-	virtual void executePolicyAdaptivePerformanceParticipantConditionTableChanged(void) override;
 	virtual void executePolicyAdaptivePerformanceConditionsTableChanged(void) override;
-	virtual void executePolicyAdaptivePerformanceActionsTableChanged(void) override;
-	virtual void executePolicyAdaptiveUserPresenceTableChanged(void) override;
+	virtual void executePolicyAdaptivePerformanceActionsTableChanged() override;
+	virtual void executePolicyDdrfTableChanged(void) override;
 	virtual void executePolicyOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override;
 	virtual void executePolicyOperatingSystemLidStateChanged(OsLidState::Type lidState) override;
 	virtual void executePolicyOperatingSystemBatteryPercentageChanged(UIntN batteryPercentage) override;
@@ -330,75 +284,15 @@ public:
 	virtual void executePolicyPidAlgorithmTableChanged(void) override;
 	virtual void executePolicyActiveControlPointRelationshipTableChanged(void) override;
 	virtual void executePolicyPowerShareAlgorithmTableChanged(void) override;
+	virtual void executePolicyIntelligentThermalManagementTableChanged(void) override;
 	virtual void executePowerLimitChanged(void) override;
 	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) override;
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osMixedRealityMode) override;
 	virtual void executePolicyPowerShareAlgorithmTable2Changed(void) override;
-	virtual void executePolicySensorUserPresenceChanged(SensorUserPresence::Type sensorUserPresence) override;
 	virtual void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) override;
-	virtual void executePolicyWakeOnApproachFeatureStateChanged(
-		Bool wakeOnApproachFeatureState) override;
-	virtual void executePolicyWakeOnApproachWithExternalMonitorFeatureStateChanged(
-		Bool wakeOnApproachWithExternalMonitorFeatureState) override;
-	virtual void executePolicyWakeOnApproachOnLowBatteryFeatureStateChanged(
-		Bool wakeOnApproachOnLowBatteryFeatureState) override;
-	virtual void executePolicyWakeOnApproachBatteryRemainingPercentageChanged(
-		Percentage wakeOnApproachBatteryRemainingPercentage) override;
-	virtual void executePolicyWalkAwayLockFeatureStateChanged(
-		Bool walkAwayLockFeatureState) override;
-	virtual void executePolicyWalkAwayLockWithExternalMonitorFeatureStateChanged(
-		Bool walkAwayLockWithExternalMonitorFeatureState) override;
-	virtual void executePolicyWalkAwayLockDimScreenFeatureStateChanged(
-		Bool walkAwayLockDimScreenFeatureState) override;
-	virtual void executePolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged(
-		Bool walkAwayLockDisplayOffAfterLockFeatureState) override;
-	virtual void executePolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-		Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState) override;
-	virtual void executePolicyWalkAwayLockHonorUserInCallFeatureStateChanged(
-		Bool walkAwayLockHonorUserInCallFeatureState) override;
-	virtual void executePolicyUserInCallStateChanged(Bool userInCallState) override;
-	virtual void executePolicyWalkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime) override;
-	virtual void executePolicyWalkAwayLockPreDimWaitTimeChanged(
-		TimeSpan walkAwayLockPreDimWaitTime) override;
-	virtual void executePolicyWalkAwayLockUserPresentWaitTimeChanged(
-		TimeSpan walkAwayLockUserPresentWaitTime) override;
-	virtual void executePolicyWalkAwayLockDimIntervalChanged(
-		TimeSpan walkAwayLockDimInterval) override;
-	virtual void executePolicyAdaptiveDimmingFeatureStateChanged(
-		Bool adaptiveDimmingFeatureState) override;
-	virtual void executePolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged(
-		Bool adaptiveDimmingWithExternalMonitorFeatureState) override;
-	virtual void executePolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged(
-		Bool adaptiveDimmingWithPresentationModeFeatureState) override;
-	virtual void executePolicyAdaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime) override;
-	virtual void executePolicyMispredictionFaceDetectionFeatureStateChanged(
-		Bool mispredictionFaceDetectionFeatureState) override;
-	virtual void executePolicyMispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow) override;
-	virtual void executePolicyMisprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime) override;
-	virtual void executePolicyMisprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime) override;
-	virtual void executePolicyMisprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime) override;
-	virtual void executePolicyMisprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime) override;
-	virtual void executePolicyNoLockOnPresenceFeatureStateChanged(
-		Bool noLockOnPresenceFeatureState) override;
-	virtual void executePolicyNoLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState) override;
-	virtual void executePolicyNoLockOnPresenceOnBatteryFeatureStateChanged(
-		Bool noLockOnPresenceOnBatteryFeatureState) override;
-	virtual void executePolicyNoLockOnPresenceBatteryRemainingPercentageChanged(
-		Percentage noLockOnPresenceBatteryRemainingPercentage) override;
-	virtual void executePolicyNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) override;
-	virtual void executePolicyFailsafeTimeoutChanged(TimeSpan failsafeTimeout) override;
-	virtual void executePolicyContextServiceStatusChanged(Bool contextServiceStatus) override;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) override;
-	virtual void executePolicyUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) override;
-	virtual void executePolicyUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) override;
-	virtual void executePolicyUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) override;
-	virtual void executePolicyUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) override;
-	virtual void executePolicySensorModeChanged(SensorMode::Type sensorMode) override;
-	virtual void executePolicyBiometricPresenceSensorInstanceChanged(
-		BiometricPresenceSensorInstance::Type sensorInstance) override;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) override;
-	virtual void executePolicyUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) override;
 	virtual void executePolicyForegroundRatioChanged(UIntN ratio) override;
 
 private:
@@ -419,6 +313,10 @@ private:
 
 	// The guid retrieved when the file was loaded
 	Guid m_guid;
+
+	// Dynamic policy
+	Bool m_isDynamicPolicy;
+	std::string m_dynamicPolicyUuidString;
 
 	Bool m_isPolicyLoggingEnabled;
 	Bool isPolicyLoggingEnabled();

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -152,6 +152,7 @@ typedef struct EsifArbCtx_s {
  */
 typedef struct EsifArbEntry_s {
 	UInt32 primitiveId; /* Association metadata*/
+	UInt16 domain;
 	UInt8 instance;
 	esif_arbitration_type_t arbType; /* Arbitration function type */
 
@@ -172,8 +173,10 @@ typedef struct EsifArbEntry_s {
 	esif_ccb_event_t deleteEvent;
 } EsifArbEntry;
 
+
 typedef struct EsifArbEntryParams_s{
 	UInt32 primitiveId; /* Association metadata*/
+	UInt16  domain;
 	UInt8 instance;
 
 	esif_arbitration_type_t arbType; /* Arbitration function type */
@@ -227,10 +230,10 @@ typedef struct EsifArbEntryIterator_s {
 /* EsifArbMgr Functions*/
 
 /* Boilerplate lifecycle items */
-esif_error_t EsifArbMgr_Init();
-esif_error_t EsifArbMgr_Start();
-void EsifArbMgr_Stop();
-void EsifArbMgr_Exit();
+esif_error_t EsifArbMgr_Init(void);
+esif_error_t EsifArbMgr_Start(void);
+void EsifArbMgr_Stop(void);
+void EsifArbMgr_Exit(void);
 
 /*
  * Arbitrated primitive execution interface
@@ -359,6 +362,7 @@ static esif_error_t EsifArbCtx_ExecutePrimitive(
 	EsifArbCtx *self,
 	const esif_handle_t appHandle,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	const EsifDataPtr requestPtr
 	);
@@ -382,6 +386,7 @@ EsifArbCtxInfo *EsifArbCtx_GetInformation(
 static esif_error_t EsifArbCtx_SetArbitrationState(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	const Bool isEnabled
 	);
@@ -389,6 +394,7 @@ static esif_error_t EsifArbCtx_SetArbitrationState(
 static esif_error_t EsifArbCtx_StopArbitration(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance
 	);
 
@@ -399,6 +405,7 @@ static esif_error_t EsifArbCtx_StopArbitration(
 static esif_error_t EsifArbCtx_SetLimits(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	UInt32 *upperLimitPtr,
 	UInt32 *lowerLimitPtr
@@ -411,6 +418,7 @@ static esif_error_t EsifArbCtx_SetLimits(
 static esif_error_t EsifArbCtx_SetArbitrationFunction(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	const esif_arbitration_type_t arbType
 	);
@@ -431,6 +439,7 @@ static EsifArbEntry *EsifArbCtx_LookupArbEntry_Locked(
 	/* Caller is expected to hold the ctxLock */
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance
 	);
 
@@ -515,6 +524,7 @@ static void EsifArbEntry_RemoveApp(
 static Bool EsifArbEntry_IsMatchingEntry(
 	EsifArbEntry *self,
 	UInt32 primitiveId,
+	UInt16 domain,
 	UInt8 instance
 	);
 
@@ -648,35 +658,35 @@ static EsifArbMgr_ArbitratorFunc g_arbitrationFunctions[] = {
 };
 
 static EsifArbEntryParams g_cpuArbTable[] = {
-	{SET_PLATFORM_POWER_LIMIT, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_PLATFORM_POWER_LIMIT, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_PLATFORM_POWER_LIMIT_ENABLE, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_PLATFORM_POWER_LIMIT_ENABLE, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_PROC_NUMBER_OFFLINE_CORES, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT, 3, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_DUTY_CYCLE, 2, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_TIME_WINDOW, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_TIME_WINDOW, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_TCC_OFFSET, 255, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_PLATFORM_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_PLATFORM_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_PLATFORM_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_PLATFORM_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_PLATFORM_POWER_LIMIT_TIME_WINDOW, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_PROC_NUMBER_OFFLINE_CORES, ESIF_PRIMITIVE_DOMAIN_D1, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 3, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_DUTY_CYCLE, ESIF_PRIMITIVE_DOMAIN_D0, 2, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_TIME_WINDOW, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_TIME_WINDOW, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_TCC_OFFSET, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{0} /* Mark end of table */
 };
 
 static EsifArbEntryParams g_wifiArbTable[] = {
-	{SET_RAPL_POWER_LIMIT, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT, 3, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
-	{SET_RAPL_POWER_LIMIT_ENABLE, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT, ESIF_PRIMITIVE_DOMAIN_D0, 3, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 0, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_RAPL_POWER_LIMIT_ENABLE, ESIF_PRIMITIVE_DOMAIN_D0, 1, ESIF_ARBITRATION_UIN32_GREATER_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{0} /* Mark end of table */
 };
 
 static EsifArbEntryParams g_displayArbTable[] = {
-	{SET_DISPLAY_BRIGHTNESS_SOFT, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
+	{SET_DISPLAY_BRIGHTNESS_SOFT, ESIF_PRIMITIVE_DOMAIN_D0, 255, ESIF_ARBITRATION_UIN32_LESS_THAN, ESIF_ARB_LIMIT_MAX, ESIF_ARB_LIMIT_MIN},
 	{0} /* Mark end of table */
 };
 
@@ -751,14 +761,14 @@ esif_error_t EsifArbMgr_ExecutePrimitive(
 	 * Only accesses to Domain 0 are arbitrated
 	 */
 	rc = ESIF_E_NOT_SUPPORTED;
-	if (atomic_read(&g_arbMgr.arbitrationEnabled) && (ESIF_PRIMITIVE_DOMAIN_D0 == domain)) {
+	if (atomic_read(&g_arbMgr.arbitrationEnabled)) {
 		/*
 		 * Get/create the arbitration context stored in the participant.
 		 * (While a reference is held on the participant, the arbitration context
 		 * is valid.)
 		 */
 		arbCtxPtr = EsifArbMgr_CtxInst(upPtr);
-		rc = EsifArbCtx_ExecutePrimitive(arbCtxPtr, appHandle, primitiveId, instance, requestPtr);
+		rc = EsifArbCtx_ExecutePrimitive(arbCtxPtr, appHandle, primitiveId, domain, instance, requestPtr);
 	}
 
 	/*
@@ -964,8 +974,8 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 	EsifLinkList *ctxInfoListPtr = NULL;
 	EsifLinkListNode *curNodePtr = NULL;
 	size_t numParts = 0;
+	size_t numArbitratedParts = 0;
 	size_t reqSize = sizeof(*infoPtr); /* Add to this as iteration proceeds */
-	size_t curCtxInfoSize = 0;
 
 	ctxInfoListPtr = esif_link_list_create();
 	if (ctxInfoListPtr) {
@@ -982,11 +992,26 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 
 				/* Only if the participant has been populated */
 				if (tempCtxInfoPtr) {
-					esif_link_list_add_at_back(ctxInfoListPtr, (void *)tempCtxInfoPtr);
-
+					numArbitratedParts++;
+					tempCtxInfoPtr->isArbitrated = ESIF_TRUE;
 					/* Update the required size for each participant */
-					reqSize += sizeof(*tempCtxInfoPtr);
-					reqSize += tempCtxInfoPtr->count > 0 ? (tempCtxInfoPtr->count - 1) * sizeof(*tempCtxInfoPtr->arbEntryInfo) : 0;
+					
+				}
+				/* If not arbitrated, provide placeholder for each participant data */
+				else {
+					/* Just provide minimal information with everything disabled */
+					tempCtxInfoPtr = (EsifArbCtxInfo *)esif_ccb_malloc(sizeof(*tempCtxInfoPtr));
+					if (NULL == tempCtxInfoPtr) {
+						ESIF_TRACE_ERROR("Allocation failure\n");
+					}
+					else {
+						tempCtxInfoPtr->size = sizeof(*tempCtxInfoPtr);
+						tempCtxInfoPtr->participantId = EsifUp_GetInstance(upPtr);
+					}
+				}
+				if (tempCtxInfoPtr) {
+					reqSize += tempCtxInfoPtr->size;
+					esif_link_list_add_at_back(ctxInfoListPtr, (void *)tempCtxInfoPtr);
 				}
 			}
 			iterRc = EsifUpPm_GetNextUp(&upIter, &upPtr);
@@ -1014,12 +1039,17 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 			rc = ESIF_OK;
 
 			/* Set global information */
+			infoPtr->size = reqSize;
 			infoPtr->arbitrationEnabled = (Bool)atomic_read(&g_arbMgr.arbitrationEnabled);
 			numParts = esif_link_list_get_node_count(ctxInfoListPtr);
 			infoPtr->count = numParts;
+			infoPtr->arbitratedCount = numArbitratedParts;
 
-			ESIF_TRACE_DEBUG("Returning arbitration information: Global state = %s, Count = %lu\n",
-				infoPtr->arbitrationEnabled ? "Enabled" : "Disabled", infoPtr->count);
+			ESIF_TRACE_DEBUG("Returning arbitration information: Global state = %s, Count = %lu, Arbitrated Count = %lu, Arbitrated = %lu, Size = %lu\n",
+				infoPtr->arbitrationEnabled ? "Enabled" : "Disabled",
+				infoPtr->count, infoPtr->arbitratedCount,
+				infoPtr->arbitrationEnabled,
+				infoPtr->size);
 
 			/* Set participant information */
 			curCtxInfoPtr = infoPtr->arbCtxInfo;
@@ -1028,13 +1058,9 @@ EsifArbInfo *EsifArbMgr_GetInformation(
 			while (curNodePtr) {
 				if (curNodePtr->data_ptr) {
 					tempCtxInfoPtr = (EsifArbCtxInfo *)curNodePtr->data_ptr;
-
-					curCtxInfoSize = sizeof(*tempCtxInfoPtr);
-					curCtxInfoSize += tempCtxInfoPtr->count > 0 ? (tempCtxInfoPtr->count - 1) * sizeof(*tempCtxInfoPtr->arbEntryInfo) : 0;
-
-					esif_ccb_memcpy(curCtxInfoPtr, tempCtxInfoPtr, curCtxInfoSize);
+					esif_ccb_memcpy(curCtxInfoPtr, tempCtxInfoPtr, tempCtxInfoPtr->size);
 				}
-				curCtxInfoPtr++;
+				curCtxInfoPtr = (EsifArbCtxInfo *)((char*)curCtxInfoPtr + curCtxInfoPtr->size);
 				curNodePtr = curNodePtr->next_ptr;
 			}
 		}
@@ -1069,10 +1095,6 @@ esif_error_t EsifArbMgr_SetArbitrationState(
 	EsifUp *upPtr = NULL;
 	EsifArbCtx *arbCtxPtr = NULL;
 
-	if (domain != ESIF_PRIMITIVE_DOMAIN_D0) {
-		return ESIF_E_NOT_SUPPORTED;
-	}
-
 	/* Disable arbitration on all participants */
 	if (ESIF_INVALID_HANDLE == participantId) {
 		esif_ccb_write_lock(&self->mgrLock);
@@ -1097,7 +1119,7 @@ esif_error_t EsifArbMgr_SetArbitrationState(
 				/* Setting at both levels is atomic */
 				esif_ccb_write_lock(&self->mgrLock);
 
-				rc = EsifArbCtx_SetArbitrationState(arbCtxPtr, primitiveId, instance, isEnabled);
+				rc = EsifArbCtx_SetArbitrationState(arbCtxPtr, primitiveId, domain, instance, isEnabled);
 
 				/*
 				 * When enabling, we will also enable at the higher levels so that the target
@@ -1157,16 +1179,12 @@ esif_error_t EsifArbMgr_StopArbitration(
 	EsifUp *upPtr = NULL;
 	EsifArbCtx *arbCtxPtr = NULL;
 
-	if (domain != ESIF_PRIMITIVE_DOMAIN_D0) {
-		return ESIF_E_NOT_SUPPORTED;
-	}
-
 	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
 	if (upPtr) {
 		rc = ESIF_E_NO_MEMORY;
 		arbCtxPtr = EsifArbMgr_CtxInst(upPtr);
 		if (arbCtxPtr) {
-			rc = EsifArbCtx_StopArbitration(arbCtxPtr, primitiveId, instance);
+			rc = EsifArbCtx_StopArbitration(arbCtxPtr, primitiveId, domain, instance);
 		}
 	}
 	return rc;
@@ -1190,16 +1208,12 @@ esif_error_t EsifArbMgr_SetLimits(
 	EsifUp *upPtr = NULL;
 	EsifArbCtx *arbCtxPtr = NULL;
 
-	if (domain != ESIF_PRIMITIVE_DOMAIN_D0) {
-		return ESIF_E_NOT_SUPPORTED;
-	}
-
 	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
 	if (upPtr) {
 		rc = ESIF_E_NO_MEMORY;
 		arbCtxPtr = EsifArbMgr_CtxInst(upPtr);
 		if (arbCtxPtr) {
-			rc = EsifArbCtx_SetLimits(arbCtxPtr, primitiveId, instance, upperLimitPtr, lowerLimitPtr);
+			rc = EsifArbCtx_SetLimits(arbCtxPtr, primitiveId, domain, instance, upperLimitPtr, lowerLimitPtr);
 		}
 	}
 
@@ -1220,16 +1234,12 @@ esif_error_t EsifArbMgr_SetArbitrationFunction(
 	EsifUp *upPtr = NULL;
 	EsifArbCtx *arbCtxPtr = NULL;
 
-	if (domain != ESIF_PRIMITIVE_DOMAIN_D0) {
-		return ESIF_E_NOT_SUPPORTED;
-	}
-
 	upPtr = EsifUpPm_GetAvailableParticipantByInstance(participantId);
 	if (upPtr) {
 		rc = ESIF_E_NO_MEMORY;
 		arbCtxPtr = EsifArbMgr_CtxInst(upPtr);
 		if (arbCtxPtr) {
-			rc = EsifArbCtx_SetArbitrationFunction(arbCtxPtr, primitiveId, instance, arbType);
+			rc = EsifArbCtx_SetArbitrationFunction(arbCtxPtr, primitiveId, domain, instance, arbType);
 		}
 	}
 
@@ -1238,7 +1248,7 @@ esif_error_t EsifArbMgr_SetArbitrationFunction(
 }
 
 
-esif_error_t EsifArbMgr_Init()
+esif_error_t EsifArbMgr_Init(void)
 {
 	esif_error_t rc = ESIF_E_NO_MEMORY;
 
@@ -1258,7 +1268,7 @@ esif_error_t EsifArbMgr_Init()
 }
 
 
-void EsifArbMgr_Exit()
+void EsifArbMgr_Exit(void)
 {
 	esif_queue_destroy(g_arbMgr.primitiveQueuePtr, (queue_item_destroy_func)EsifArbPrimReq_Destroy);
 	g_arbMgr.primitiveQueuePtr = NULL;
@@ -1267,13 +1277,13 @@ void EsifArbMgr_Exit()
 }
 
 
-esif_error_t EsifArbMgr_Start()
+esif_error_t EsifArbMgr_Start(void)
 {
 	return ESIF_OK;
 }
 
 
-void EsifArbMgr_Stop()
+void EsifArbMgr_Stop(void)
 {
 	/*
 	 * Stop the primitive queue and wait for thread to exit
@@ -1380,6 +1390,7 @@ static esif_error_t EsifArbCtx_ExecutePrimitive(
 	EsifArbCtx *self,
 	const esif_handle_t appHandle,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	const EsifDataPtr requestPtr
 	)
@@ -1394,7 +1405,7 @@ static esif_error_t EsifArbCtx_ExecutePrimitive(
 
 		if (atomic_read(&self->arbitrationEnabled)) {
 			rc = ESIF_E_NOT_FOUND;
-			arbEntryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, instance);
+			arbEntryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, domain, instance);
 		}
 		esif_ccb_write_unlock(&self->ctxLock);
 
@@ -1451,19 +1462,20 @@ EsifArbCtxInfo *EsifArbCtx_GetInformation(
 
 		if (infoPtr) {
 			/* Get the context information */
+			infoPtr->size = reqSize;
 			infoPtr->participantId = self->participantId;
 			infoPtr->count = self->numEntries;
 			infoPtr->arbitrationEnabled = (Bool)atomic_read(&self->arbitrationEnabled);
 
-			ESIF_TRACE_ARB_CTX(ESIF_TRACELEVEL_DEBUG, "Getting participant arbitration information : State = %s, Num Entries = %lu\n",
-				infoPtr->arbitrationEnabled ? "Enabled" : "Disabled", infoPtr->count);
+			ESIF_TRACE_ARB_CTX(ESIF_TRACELEVEL_DEBUG, "Getting participant arbitration information : State = %s, Num Entries = %lu, Size = %lu\n",
+				infoPtr->arbitrationEnabled ? "Enabled" : "Disabled", infoPtr->count, infoPtr->size);
 
 			/* Get the entry information */
 			curEntryInfoPtr = infoPtr->arbEntryInfo;
 			curEntryPtr = self->entriesPtr;
 			for (entryIndex = 0; entryIndex < self->numEntries; entryIndex++, curEntryInfoPtr++, curEntryPtr++) {
 				if ((0 == primitiveId) || /* Getting all entries */
-					EsifArbEntry_IsMatchingEntry(*curEntryPtr, primitiveId, instance)) { /* Getting specific entry */
+					EsifArbEntry_IsMatchingEntry(*curEntryPtr, primitiveId, domain, instance)) { /* Getting specific entry */
 					EsifArbEntry_GetInformation(*curEntryPtr, curEntryInfoPtr);
 				}
 			}
@@ -1486,7 +1498,7 @@ static esif_error_t EsifArbCtx_PopulateDefaultArbitrationTable(
 
 	if (self && entryParamsPtr) {
 		while (curParamPtr->primitiveId != 0) {
-			if (IsPrimitiveSupported(self->participantId, curParamPtr->primitiveId, ESIF_PRIMITIVE_DOMAIN_D0, curParamPtr->instance)) {
+			if (IsPrimitiveSupported(self->participantId, curParamPtr->primitiveId, curParamPtr->domain, curParamPtr->instance)) {
 
 				/* Best effort */
 				EsifArbCtx_CreateAndInsertEntry_Locked(
@@ -1617,14 +1629,14 @@ static esif_error_t EsifArbCtx_RemoveArbEntry_Locked(
 		}
 
 		/* Shrink the list if needed */
-		if ((self->entryCapacity - self->numEntries) >= ESIF_ARB_CTX_ENTRY_TABLE_GROWTH_RATE) {
+		if ((self->entryCapacity - self->numEntries) > ESIF_ARB_CTX_ENTRY_TABLE_GROWTH_RATE) {
 			if (0 == self->numEntries) {
 				esif_ccb_free(self->entriesPtr);
 				self->entriesPtr = NULL;
 				self->entryCapacity = 0;
 			}
 			else {
-				newCapacity = (self->numEntries / ESIF_ARB_CTX_ENTRY_TABLE_GROWTH_RATE) + 1;
+				newCapacity = self->entryCapacity - ESIF_ARB_CTX_ENTRY_TABLE_GROWTH_RATE;
 				newArbListPtr = esif_ccb_realloc(self->entriesPtr, newCapacity * sizeof(*self->entriesPtr));
 				if (newArbListPtr) {
 					self->entriesPtr = newArbListPtr;
@@ -1647,6 +1659,7 @@ static esif_error_t EsifArbCtx_RemoveArbEntry_Locked(
 static EsifArbEntry *EsifArbCtx_LookupArbEntry_Locked(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain, 
 	const UInt8 instance
 	)
 {
@@ -1660,7 +1673,7 @@ static EsifArbEntry *EsifArbCtx_LookupArbEntry_Locked(
 	if (self && self->numEntries && self->entriesPtr) {
 		curEntryPtr = self->entriesPtr;
 		for (i = 0; i < self->numEntries; i++, curEntryPtr++) {
-			if (EsifArbEntry_IsMatchingEntry(*curEntryPtr, primitiveId, instance)) {
+			if (EsifArbEntry_IsMatchingEntry(*curEntryPtr, primitiveId, domain, instance)) {
 				if (ESIF_OK == EsifArbEntry_GetRef(*curEntryPtr)) {
 					entryPtr = *curEntryPtr;
 					break;
@@ -1778,6 +1791,7 @@ static void EsifArbCtx_RemoveApp(
 static esif_error_t EsifArbCtx_SetArbitrationFunction(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	esif_arbitration_type_t arbType
 	)
@@ -1787,6 +1801,7 @@ static esif_error_t EsifArbCtx_SetArbitrationFunction(
 	Bool isPrimSupported = ESIF_FALSE;
 	EsifArbEntryParams entryParams = {
 		.primitiveId = primitiveId,
+		.domain = domain,
 		.instance = instance,
 		.arbType = arbType,
 		.upperLimit = ESIF_ARB_LIMIT_MAX,
@@ -1796,13 +1811,13 @@ static esif_error_t EsifArbCtx_SetArbitrationFunction(
 	if (self) {
 		esif_ccb_write_lock(&self->ctxLock);
 
-		entryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, instance);
+		entryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, domain, instance);
 
 		/* If we can't find an entry, create and insert one */
 		if (!entryPtr) {
 			rc = ESIF_E_NOT_SUPPORTED;
 
-			isPrimSupported = IsPrimitiveSupported(self->participantId, primitiveId, ESIF_PRIMITIVE_DOMAIN_D0, instance);
+			isPrimSupported = IsPrimitiveSupported(self->participantId, primitiveId, domain, instance);
 			if (isPrimSupported) {
 				rc = EsifArbCtx_CreateAndInsertEntry_Locked(self, &entryParams, self->participantId, self->participantName, &entryPtr);
 			}
@@ -1854,6 +1869,7 @@ static void EsifArbCtx_PurgeRequests_Locked(
 static esif_error_t EsifArbCtx_SetArbitrationState(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	const Bool isEnabled
 	)
@@ -1880,7 +1896,7 @@ static esif_error_t EsifArbCtx_SetArbitrationState(
 
 			esif_ccb_write_lock(&self->ctxLock);
 
-			entryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, instance);
+			entryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, domain, instance);
 			if (entryPtr) {
 
 				rc = EsifArbEntry_SetArbitrationState(entryPtr, isEnabled);
@@ -1901,6 +1917,7 @@ static esif_error_t EsifArbCtx_SetArbitrationState(
 static esif_error_t EsifArbCtx_StopArbitration(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance
 	)
 {
@@ -1918,7 +1935,7 @@ static esif_error_t EsifArbCtx_StopArbitration(
 		while (ESIF_OK == iterRc) {
 			rc = ESIF_E_NOT_FOUND;
 
-			if (EsifArbEntry_IsMatchingEntry(curEntryPtr, primitiveId, instance)) {
+			if (EsifArbEntry_IsMatchingEntry(curEntryPtr, primitiveId, domain, instance)) {
 
 				esif_ccb_write_lock(&self->ctxLock);
 
@@ -1965,6 +1982,7 @@ static esif_error_t EsifArbCtx_StopArbitration(
 static esif_error_t EsifArbCtx_SetLimits(
 	EsifArbCtx *self,
 	const UInt32 primitiveId,
+	const UInt16 domain,
 	const UInt8 instance,
 	UInt32 *upperLimitPtr,
 	UInt32 *lowerLimitPtr
@@ -1974,6 +1992,7 @@ static esif_error_t EsifArbCtx_SetLimits(
 	EsifArbEntry *entryPtr = NULL;
 	EsifArbEntryParams entryParams = {
 		.primitiveId = primitiveId,
+		.domain = domain,
 		.instance = instance,
 		.arbType = ESIF_ARBITRATION_INVALID,
 		.upperLimit = ESIF_ARB_LIMIT_MAX,
@@ -1983,13 +2002,13 @@ static esif_error_t EsifArbCtx_SetLimits(
 	if (self) {
 		esif_ccb_write_lock(&self->ctxLock);
 
-		entryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, instance);
+		entryPtr = EsifArbCtx_LookupArbEntry_Locked(self, primitiveId, domain, instance);
 
 		/* If we can't find an entry, create and insert one */
 		if (!entryPtr) {
 			rc = ESIF_E_PRIMITIVE_NOT_FOUND_IN_DSP;
 
-			if (IsPrimitiveSupported(self->participantId, primitiveId, ESIF_PRIMITIVE_DOMAIN_D0, instance)) {
+			if (IsPrimitiveSupported(self->participantId, primitiveId, domain, instance)) {
 				rc = EsifArbCtx_CreateAndInsertEntry_Locked(self, &entryParams, self->participantId, self->participantName, &entryPtr);
 				if (rc != ESIF_OK) {
 					ESIF_ASSERT(0);
@@ -2037,6 +2056,7 @@ static EsifArbEntry *EsifArbEntry_Create(
 		/* Set parameters */
 		self->arbType = entryParamsPtr->arbType;
 		self->instance = entryParamsPtr->instance;
+		self->domain = entryParamsPtr->domain;
 		self->lowerLimit = entryParamsPtr->lowerLimit;
 		self->upperLimit = entryParamsPtr->upperLimit;
 		self->primitiveId = entryParamsPtr->primitiveId;
@@ -2325,6 +2345,7 @@ static esif_error_t EsifArbEntry_GetInformation(
 		esif_ccb_write_lock(&self->entryLock);
 
 		infoPtr->participantId = self->participantId;
+		infoPtr->domain = self->domain;
 		infoPtr->primitiveId = self->primitiveId;
 		infoPtr->instance = self->instance;
 
@@ -2497,7 +2518,7 @@ static esif_error_t EsifArbEntry_QueueLimitedPrimitiveRequest_Locked(
 
 		rc = EsifArbMgr_QueuePrimitiveRequest(
 			self->participantId,
-			self->primitiveId, ESIF_PRIMITIVE_DOMAIN_D0, self->instance,
+			self->primitiveId, self->domain, self->instance,
 			dataPtr);
 	}
 
@@ -2692,6 +2713,7 @@ static void EsifArbEntry_PurgeRequests_Locked(
 static Bool EsifArbEntry_IsMatchingEntry(
 	EsifArbEntry *self,
 	UInt32 primitiveId,
+	UInt16 domain,
 	UInt8 instance
 	)
 {
@@ -2701,6 +2723,7 @@ static Bool EsifArbEntry_IsMatchingEntry(
 
 	if (self &&
 		(primitiveId == self->primitiveId) &&
+		(domain == self->domain) &&
 		(instance == self->instance)) {
 		bRet = ESIF_TRUE;
 	}

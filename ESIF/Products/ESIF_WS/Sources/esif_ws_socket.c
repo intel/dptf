@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -135,9 +135,11 @@ static char *g_RestApiWhitelist[] = {
 	"apps",
 	"appstart",
 	"appstop",
+	"arbitrator",
 	"capture",
 	"config",
 	"devices",
+	"dptf",
 	"echo",
 	"format",
 	"getp_part",

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "DomainActivityStatusFactory.h"
 #include "DomainActivityStatus_000.h"
 #include "DomainActivityStatus_001.h"
+#include "DomainActivityStatus_002.h"
 
 ControlBase* DomainActivityStatusFactory::make(
 	UIntN participantIndex,
@@ -32,6 +33,8 @@ ControlBase* DomainActivityStatusFactory::make(
 		return new DomainActivityStatus_000(participantIndex, domainIndex, participantServicesInterface);
 	case 1:
 		return new DomainActivityStatus_001(participantIndex, domainIndex, participantServicesInterface);
+	case 2:
+		return new DomainActivityStatus_002(participantIndex, domainIndex, participantServicesInterface);
 	default:
 		std::stringstream message;
 		message << "Received request for DomainActivityStatus version that isn't defined: " << version;

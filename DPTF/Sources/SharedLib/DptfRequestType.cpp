@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -69,8 +69,6 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		"PlatformNotificationSetApplicationAliveResponse";
 	case SocWorkloadClassificationGetSocWorkload:
 		"SocWorkloadClassificationGetSocWorkload";
-	case SocWorkloadClassificationGetSocWorkloadSupport:
-		"SocWorkloadClassificationGetSocWorkloadSupport";
 	case ProcessorControlSetUnderVoltageThreshold:
 		return "ProcessorControlSetUnderVoltageThreshold";
 	case ProcessorControlSetTccOffsetTemperature:
@@ -99,6 +97,8 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "DynamicEppGetEppSensitivityHint";
 	case DynamicEppGetDynamicEppSupport:
 		return "DynamicEppGetDynamicEppSupport";
+	case DynamicEppSetDynamicEppSupport:
+		return "DynamicEppSetDynamicEppSupport";
 	default:
 		throw dptf_exception("Invalid request type given to ToString");
 	}

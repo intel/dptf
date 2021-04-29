@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,6 +54,7 @@
 #pragma once
 
 #include "esif_sdk_data.h"
+#include "esif_sdk_data_misc.h"
 
 /* Have ESIF Allocate Buffer */
 #define ESIF_DATA_ALLOCATE 0xFFFFFFFF
@@ -98,15 +99,6 @@ struct esif_table_hdr {
 	u16  cols;
 };
 
-struct esif_cmd_data_thermal_mailbox {
-	u32 command : 8;
-	u32 reserved1 : 24;
-	u32 param1 : 8;
-	u32 reserved2 : 24;
-	u32 param2 : 14;
-	u32 reserved3 : 18;
-	u32 data : 32;
-};
 
 struct loadable_action_device_string_data {
 	char stringData[LOADABLE_ACTION_DEVICE_STRING_FIELD_LEN];
@@ -176,13 +168,33 @@ struct loadable_action_devices {
 	obj.buf_len  = buf_size;                                     \
 	obj.data_len = sizeof(UInt32);
 
-/* BINARY Primitive Tuple Parameter for passing from DPTF to a DSP Action */
 #pragma pack(push, 1)
+/* BINARY Primitive Tuple Parameter for passing from DPTF to a DSP Action */
 typedef struct esif_primitive_tuple_parameter {
 	union esif_data_variant  id;
 	union esif_data_variant  domain;
 	union esif_data_variant  instance;
 } EsifPrimitiveTupleParameter;
+
+typedef struct dim_2d_s {
+	UInt32 width;
+	UInt32 height;
+} Dim2D;
+
+/* Note:  Only applicable to physical monitors anddoesn't include virtual monitors */
+typedef struct aggregate_monitor_data_s {
+	UInt32 numberOfMonitors;
+	UInt32 numberOfExternalMonitors;
+	UInt32 numberOfExternalWiredMontiors;
+	UInt32 numberOfExternalWirelessMonitors;
+
+	Dim2D highestDisplayResolution;
+	Dim2D highestExternalDisplayResolution;
+	Dim2D highestWiredDisplayResolution;
+	Dim2D highestWirelessDisplayResolution;
+	UInt32 totalExernalDisplayResolution; /* Sum of widths only */
+} AggregateMonitorData;
+
 #pragma pack(pop)
 
 struct esif_data_rfprofile

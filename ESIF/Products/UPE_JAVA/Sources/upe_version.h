@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,7 +35,7 @@
 /* Product and Copyright Definitions */
 #define UPE_PRODUCT   "Intel(R) Dynamic Tuning"
 #define UPE_COMPONENT "Intel(R) Dynamic Tuning JAVA Action"
-#define UPE_COPYRIGHT "Copyright (c) 2013-2020 Intel Corporation All Rights Reserved"
+#define UPE_COPYRIGHT "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved"
 #define UPE_COMPANY   "Intel Corporation"
 #define UPE_FILENAME  "upe_java.so"
 

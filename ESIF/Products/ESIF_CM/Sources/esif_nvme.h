@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -636,7 +636,9 @@ typedef struct AdminIdentifyControllerData_s {
 	UInt8   FR[8];
 	UInt8   RAB;
 	UInt8   IEEE[3];
-	UInt8   VS[4020];
+	UInt8   Data[190];
+	UInt16  WCTemp;
+	UInt8   VS[3828];
 }AdminIdentifyControllerData, *AdminIdentifyControllerDataPtr;
 
 #pragma pack(pop)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,6 +28,12 @@ UInt32 PolicyServicesDomainEnergyControl::getRaplEnergyCounter(UIntN participant
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyCounter(domainIndex);
+}
+
+EnergyCounterInfo PolicyServicesDomainEnergyControl::getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRaplEnergyCounterInfo(domainIndex);
 }
 
 double PolicyServicesDomainEnergyControl::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)

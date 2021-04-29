@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -38,9 +38,6 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
-
-#define MSGBUF_SIZE 1024
-
 
 typedef enum EventCategory_e {
 	EVENT_CATEGORY_NONE = 0,
@@ -356,7 +353,8 @@ eEsifError ESIF_CALLCONV EsifSvcEventRegister(
 	/* Validate the app calling the interface */
 	appPtr = EsifAppMgr_GetAppFromHandle(esifHandle);
 	if (NULL == appPtr) {
-		ESIF_TRACE_ERROR("The app data was not found from app handle\n");
+		// This can happen during a restart of all apps
+		ESIF_TRACE_WARN("The app data was not found from app handle\n");
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
@@ -478,7 +476,8 @@ eEsifError ESIF_CALLCONV EsifSvcEventUnregister(
 	/* Validate the app calling the interface */
 	appPtr = EsifAppMgr_GetAppFromHandle(esifHandle);
 	if (NULL == appPtr) {
-		ESIF_TRACE_ERROR("The app data was not found from app handle\n");
+		// This can happen during a restart of all apps
+		ESIF_TRACE_WARN("The app data was not found from app handle\n");
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
@@ -589,7 +588,8 @@ eEsifError ESIF_CALLCONV EsifSvcEventReceive(
 	/* Validate the app calling the interface */
 	appPtr = EsifAppMgr_GetAppFromHandle(esifHandle);
 	if (NULL == appPtr) {
-		ESIF_TRACE_ERROR("The app data was not found from app handle\n");
+		// This can happen during a restart of all apps
+		ESIF_TRACE_WARN("The app data was not found from app handle\n");
 		rc = ESIF_E_INVALID_HANDLE;
 		goto exit;
 	}
@@ -689,12 +689,20 @@ exit:
 	return rc;
 }
 
-// Worker Thread to run "start" commands received via ESIF Interface
-static void *ESIF_CALLCONV startcmd_worker(void *ctx)
+/*
+** Worker Thread to run "start" commands received via ESIF Interface on a separate thread
+*/
+static void *ESIF_CALLCONV EsifSvcCommand_StartWorker(void *ctx)
 {
 	char *command = (char *)ctx;
 	if (command) {
-		parse_cmd(command, ESIF_FALSE, ESIF_FALSE);
+		// Skip "start" prefix from Intercepted commands, if any
+		char start_prefix[] = "start ";
+		size_t prefix_len = 0;
+		if (esif_ccb_strnicmp(command, start_prefix, sizeof(start_prefix) - 1) == 0) {
+			prefix_len = sizeof(start_prefix) - 1;
+		}
+		parse_cmd(command + prefix_len, ESIF_FALSE, ESIF_FALSE);
 		esif_ccb_free(command);
 	}
 	return 0;
@@ -716,18 +724,35 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 
 	UNREFERENCED_PARAMETER(esifHandle);
 
-	// Intercept "start" command and create a new thread to run it to avoid shell deadlocks
-	char start_prefix[] = "start ";
-	if (argc == 1 && argv[0].type == ESIF_DATA_STRING && esif_ccb_strnicmp((char *)argv[0].buf_ptr, start_prefix, sizeof(start_prefix) - 1) == 0) {
-		esif_thread_t cmdThread = ESIF_THREAD_NULL;
-		char *command = esif_ccb_strdup((esif_string)argv[0].buf_ptr + sizeof(start_prefix) - 1);
-		if ((rc = esif_ccb_thread_create(&cmdThread, startcmd_worker, command)) == ESIF_OK) {
-			esif_ccb_thread_close(&cmdThread);
+	// Intercept some commands so they can be executed on a different thread
+	if (argc == 1 && argv[0].type == ESIF_DATA_STRING && argv[0].buf_ptr) {
+		char *command = NULL;
+
+		// Intercept "start" command and create a new thread to run it to avoid shell deadlocks
+		char start_prefix[] = "start ";
+		if (esif_ccb_strnicmp((char *)argv[0].buf_ptr, start_prefix, sizeof(start_prefix) - 1) == 0) {
+			command = esif_ccb_strdup((esif_string)argv[0].buf_ptr);
 		}
-		else {
-			esif_ccb_free(command);
+		// Intercept "config gddv set" command and run it on a new thread to avoid deadlocks caused by restarting ipfsrv and ui client apps
+		else if (esif_ccb_strstr((char*)argv[0].buf_ptr, "config gddv set") != NULL) {
+			command = esif_ccb_strdup((esif_string)argv[0].buf_ptr);
 		}
-		return rc;
+
+		// Run Intercepted commands on a different thread
+		if (command) {
+			esif_thread_t cmdThread = ESIF_THREAD_NULL;
+			if ((rc = esif_ccb_thread_create(&cmdThread, EsifSvcCommand_StartWorker, command)) == ESIF_OK) {
+				esif_ccb_thread_close(&cmdThread);
+			}
+			else {
+				esif_ccb_free(command);
+			}
+			// Send Result of Thread Create, not Command Output
+			if (response && response->type == ESIF_DATA_STRING && response->buf_ptr && response->buf_len) {
+				response->data_len = esif_ccb_sprintf(response->buf_len, response->buf_ptr, "%s\n", esif_rc_str(rc)) + 1;
+			}
+			return rc;
+		}
 	}
 
 	esif_uf_shell_lock();
@@ -745,8 +770,15 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 		}
 
 		// If argv[0] is a singleton string, parse it as a command line otherwise execute argc/argv
-		if (argc == 1 && argv[0].type == ESIF_DATA_STRING && esif_ccb_strchr((char *)argv[0].buf_ptr, ' ') != NULL) {
-			parse_cmd((char *)argv[0].buf_ptr, ESIF_FALSE, ESIF_FALSE);
+		if (argc == 1 && argv[0].type == ESIF_DATA_STRING) {
+			static char fmthint[] = "<XML>";
+			Bool isRest = ESIF_FALSE;
+			if (response->type == ESIF_DATA_STRING && response->buf_ptr && response->buf_len >= response->data_len && response->data_len >= (u32)sizeof(fmthint) && esif_ccb_stricmp(response->buf_ptr, fmthint) == 0) {
+				esif_ccb_memset(response->buf_ptr, 0, sizeof(fmthint));
+				response->data_len = 0;
+				isRest = ESIF_TRUE;
+			}
+			esif_shell_exec_command((char *)argv[0].buf_ptr, argv[0].data_len, isRest, ESIF_FALSE);
 			rc = ESIF_OK;
 		}
 		else {
@@ -762,7 +794,7 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 		if (rc == ESIF_OK) {
 			response_len = (UInt32)esif_ccb_strlen(g_outbuf, g_outbuf_len) + 1;
 			response->data_len = response_len;
-			if (response_len > response->buf_len) {
+			if (response_len > response->buf_len || response->buf_ptr == NULL) {
 				rc = ESIF_E_NEED_LARGER_BUFFER;
 			}
 			else if (response->buf_ptr != g_outbuf) {

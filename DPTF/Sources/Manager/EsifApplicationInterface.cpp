@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -32,6 +32,7 @@
 #include "CommandDispatcher.h"
 #include <iostream>
 #include "WIRunCommand.h"
+#include "esif_sdk_dcfg.h"
 
 using namespace std;
 
@@ -105,13 +106,51 @@ static const Guid DptfAppGuid(
 
 extern "C"
 {
+	static Bool DptfIsIpfClient = ESIF_FALSE; // Running as an out-of-process IPF Client
+
+	/* Check DCFG to verify that App is enabled. Do not fail AppCreate on error, but fail if App blocked by DCFG.
+	** This only needs to be checked when running in-process, otherwise the primitive will fail due to it not
+	** being in the Application's Security Role, which causes the Server to log an Error in the Event Log.
+	** If in-process support is ever removed, this can simply verify that the app is running out-of-process.
+	*/
+	static esif_error_t DptfVerifyAppEnabled(AppInterfaceSetPtr ifaceSetPtr, const esif_handle_t esifHandle)
+	{
+		esif_error_t rc = ESIF_OK;
+		if (ifaceSetPtr && esifHandle != ESIF_INVALID_HANDLE && !DptfIsIpfClient)
+		{
+			DCfgOptions dcfg = {{ 0 }};
+			EsifData request = { ESIF_DATA_VOID };
+			EsifData response = { ESIF_DATA_UINT32 };
+			response.buf_ptr = &dcfg.asU32;
+			response.buf_len = (u32)sizeof(dcfg);
+			esif_error_t dcfgrc = ifaceSetPtr->esifIface.fPrimitiveFuncPtr(
+				esifHandle,
+				ESIF_HANDLE_PRIMARY_PARTICIPANT,
+				ESIF_INVALID_HANDLE,
+				&request,
+				&response,
+				GET_CONFIG_ACCESS_CONTROL_SUR,
+				ESIF_INSTANCE_INVALID
+			);
+			if (dcfgrc == ESIF_OK && dcfg.opt.DttAccessControl)
+			{
+				rc = ESIF_E_DISABLED;
+			}
+		}
+		return rc;
+	}
+
 	static eEsifError GetDptfDescription(EsifDataPtr dataPtr)
 	{
-		return FillDataPtrWithString(dataPtr, "DPTF Manager");
+		return FillDataPtrWithString(dataPtr, "Intel(R) Dynamic Tuning Technology Manager");
 	}
 
 	static eEsifError GetDptfName(EsifDataPtr dataPtr)
 	{
+		char client_prefix[] = "ipfcli-";
+		if (esif_ccb_strncmp((const char *)dataPtr->buf_ptr, client_prefix, sizeof(client_prefix) - 1) == 0) {
+			DptfIsIpfClient = ESIF_TRUE;
+		}
 		return FillDataPtrWithString(dataPtr, "DPTF");
 	}
 
@@ -157,11 +196,13 @@ extern "C"
 			|| ifaceSetPtr->hdr.fIfaceSize != (UInt16)sizeof(*ifaceSetPtr)
 			|| ifaceSetPtr->esifIface.fGetConfigFuncPtr == nullptr
 			|| ifaceSetPtr->esifIface.fSetConfigFuncPtr == nullptr
-			|| ifaceSetPtr->esifIface.fPrimitiveFuncPtr == nullptr || ifaceSetPtr->esifIface.fWriteLogFuncPtr == nullptr
+			|| ifaceSetPtr->esifIface.fPrimitiveFuncPtr == nullptr
+			|| ifaceSetPtr->esifIface.fWriteLogFuncPtr == nullptr
 			|| ifaceSetPtr->esifIface.fRegisterEventFuncPtr == nullptr
 			|| ifaceSetPtr->esifIface.fUnregisterEventFuncPtr == nullptr
-			|| (ifaceSetPtr->esifIface.fSendEventFuncPtr == nullptr)
-			|| (ifaceSetPtr->esifIface.fSendCommandFuncPtr == nullptr) || (appData == nullptr))
+			|| ifaceSetPtr->esifIface.fSendEventFuncPtr == nullptr
+			|| ifaceSetPtr->esifIface.fSendCommandFuncPtr == nullptr
+			|| (appData == nullptr))
 		{
 			rc = ESIF_E_UNSPECIFIED;
 		}
@@ -172,6 +213,13 @@ extern "C"
 
 			try
 			{
+				// Verify that this app is not Disabled before proceeding
+				if (ESIF_OK != (rc = DptfVerifyAppEnabled(ifaceSetPtr, esifHandle)))
+				{
+					*appHandlePtr = ESIF_INVALID_HANDLE;
+					return rc;
+				}
+
 				eLogType currentLogVerbosityLevel = appData->fLogLevel;
 
 				if (eLogType::eLogTypeInfo <= currentLogVerbosityLevel)
@@ -829,15 +877,6 @@ extern "C"
 			case FrameworkEvent::PolicyThermalRelationshipTableChanged:
 				wi = std::make_shared<WIPolicyThermalRelationshipTableChanged>(dptfManager);
 				break;
-			case FrameworkEvent::PolicyAdaptivePerformanceConditionsTableChanged:
-				wi = std::make_shared<WIPolicyAdaptivePerformanceConditionsTableChanged>(dptfManager);
-				break;
-			case FrameworkEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged:
-				wi = std::make_shared<WIPolicyAdaptivePerformanceParticipantConditionTableChanged>(dptfManager);
-				break;
-			case FrameworkEvent::PolicyAdaptivePerformanceActionsTableChanged:
-				wi = std::make_shared<WIPolicyAdaptivePerformanceActionsTableChanged>(dptfManager);
-				break;
 			case FrameworkEvent::PolicyOemVariablesChanged:
 				wi = std::make_shared<WIPolicyOemVariablesChanged>(dptfManager);
 				break;
@@ -888,6 +927,9 @@ extern "C"
 			case FrameworkEvent::PolicyPowerShareAlgorithmTableChanged:
 				wi = std::make_shared<WIPolicyPowerShareAlgorithmTableChanged>(dptfManager);
 				break;
+			case FrameworkEvent::PolicyIntelligentThermalManagementTableChanged:
+				wi = std::make_shared<WIPolicyIntelligentThermalManagementTableChanged>(dptfManager);
+				break;
 			case FrameworkEvent::PolicyWorkloadHintConfigurationChanged:
 				wi = std::make_shared<WIPolicyWorkloadHintConfigurationChanged>(dptfManager);
 				break;
@@ -903,223 +945,24 @@ extern "C"
 			case FrameworkEvent::DptfAppAliveRequest:
 				wi = std::make_shared<WIApplicationAliveRequest>(dptfManager);
 				break;
-			case FrameworkEvent::PolicySensorUserPresenceChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicySensorUserPresenceChanged>(
-					dptfManager, SensorUserPresence::toType(uint32param));
-				break;
 			case FrameworkEvent::PolicyPlatformUserPresenceChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyPlatformUserPresenceChanged>(
 					dptfManager, SensorUserPresence::toType(uint32param));
 				break;
-			case FrameworkEvent::PolicyWakeOnApproachFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWakeOnApproachFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWakeOnApproachWithExternalMonitorFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWakeOnApproachLowBatteryFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWakeOnApproachOnLowBatteryFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWakeOnApproachBatteryRemainingPercentageChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWakeOnApproachBatteryRemainingPercentageChanged>(
-					dptfManager, Percentage::fromWholeNumber(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockWithExternalMonitorFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockDimScreenFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockDimScreenFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockHonorUserInCallFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockHonorUserInCallFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyUserInCallStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserInCallStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockScreenLockWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockScreenLockWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockPreDimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockPreDimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockUserPresentWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockUserPresentWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyWalkAwayLockDimIntervalChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyWalkAwayLockDimIntervalChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyAdaptiveDimmingFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyAdaptiveDimmingFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyAdaptiveDimmingWithPresentationmodeFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyAdaptiveDimmingPreDimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyAdaptiveDimmingPreDimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyMispredictionFaceDetectionFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyMispredictionFaceDetectionFeatureStateChanged>(dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyMispredictionTimeWindowChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyMispredictionTimeWindowChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyMisprediction1DimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyMisprediction1DimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyMisprediction2DimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyMisprediction2DimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyMisprediction3DimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyMisprediction3DimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyMisprediction4DimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyMisprediction4DimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyNoLockOnPresenceFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyNoLockOnPresenceFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyNoLockOnPresenceExternalMonitorFeatureStateChanged>(dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyNoLockOnPresenceOnBatteryFeatureStateChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyNoLockOnPresenceOnBatteryFeatureStateChanged>(
-					dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyNoLockOnPresenceBatteryRemainingPercentageChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyNoLockOnPresenceBatteryRemainingPercentageChanged>(
-					dptfManager, Percentage::fromWholeNumber(uint32param));
-				break;
-			case FrameworkEvent::PolicyNoLockOnPresenceResetWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyNoLockOnPresenceResetWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyFailsafeTimeoutChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyFailsafeTimeoutChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyAdaptiveUserPresenceTableChanged:
-				wi = std::make_shared<WIPolicyAdaptiveUserPresenceTableChanged>(dptfManager);
-				break;
-			case FrameworkEvent::PolicyContextServiceStatusChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyContextServiceStatusChanged>(dptfManager, Bool(uint32param));
-				break;
 			case FrameworkEvent::PolicyExternalMonitorStateChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyExternalMonitorStateChanged>(dptfManager, Bool(uint32param));
-				break;
-			case FrameworkEvent::PolicyUserNotPresentDimTargetChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserNotPresentDimTargetChanged>(
-					dptfManager, Percentage::fromWholeNumber(uint32param));
-				break;
-			case FrameworkEvent::PolicyUserDisengagedDimmingIntervalChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserDisengagedDimmingIntervalChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
-				break;
-			case FrameworkEvent::PolicyUserDisengagedDimTargetChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserDisengagedDimTargetChanged>(
-					dptfManager, Percentage::fromWholeNumber(uint32param));
-				break;
-			case FrameworkEvent::PolicyUserDisengagedDimWaitTimeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserDisengagedDimWaitTimeChanged>(
-					dptfManager, TimeSpan::createFromMilliseconds(uint32param));
 				break;
 			case FrameworkEvent::PolicyOperatingSystemGameModeChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyOperatingSystemGameModeChanged>(
 					dptfManager, OnOffToggle::toType(uint32param));
 				break;
-			case FrameworkEvent::PolicySensorModeChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicySensorModeChanged>(
-					dptfManager, SensorMode::toType(uint32param));
-			case FrameworkEvent::PolicyBiometricPresenceSensorInstanceChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyBiometricPresenceSensorInstanceChanged>(
-					dptfManager, BiometricPresenceSensorInstance::toType(uint32param));
-				break;
 			case FrameworkEvent::PolicyUserInteractionChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);
 				wi = std::make_shared<WIPolicyUserInteractionChanged>(
 					dptfManager, UserInteraction::toType(uint32param));
-				break;
-			case FrameworkEvent::PolicyUserPresenceCorrelationChanged:
-				uint32param = EsifDataUInt32(esifEventDataPtr);
-				wi = std::make_shared<WIPolicyUserPresenceCorrelationStatusChanged>(
-					dptfManager, UserPresenceCorrelation::Type(uint32param));
 				break;
 			case FrameworkEvent::PolicyForegroundRatioChanged:
 				uint32param = EsifDataUInt32(esifEventDataPtr);

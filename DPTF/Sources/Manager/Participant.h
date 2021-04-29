@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,8 @@
 #include "ParticipantServices.h"
 #include "PsysPowerLimitType.h"
 #include "RfProfileDataSet.h"
+#include "CoreActivityInfo.h"
+#include "EnergyCounterInfo.h"
 class XmlNode;
 
 // TODO: add remaining methods to the interface and then use IParticipant everywhere
@@ -135,6 +137,7 @@ public:
 	UInt32 getCoreActivityCounterWidth(UIntN domainIndex);
 	UInt64 getTimestampCounter(UIntN domainIndex);
 	UInt32 getTimestampCounterWidth(UIntN domainIndex);
+	CoreActivityInfo getCoreActivityInfo(UIntN domainIndex);
 	void setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias);
 
 	// Core controls
@@ -161,6 +164,7 @@ public:
 
 	// Energy Controls
 	UInt32 getRaplEnergyCounter(UIntN domainIndex);
+	EnergyCounterInfo getRaplEnergyCounterInfo(UIntN domainIndex);
 	double getRaplEnergyUnit(UIntN domainIndex);
 	UInt32 getRaplEnergyCounterWidth(UIntN domainIndex);
 	Power getInstantaneousPower(UIntN domainIndex);
@@ -284,6 +288,10 @@ public:
 
 	// RF Profile Status
 	RfProfileDataSet getRfProfileDataSet(UIntN domainIndex);
+	UInt32 getWifiCapabilities(UIntN domainIndex);
+	UInt32 getRfiDisable(UIntN domainIndex);
+	UInt64 getDvfsPoints(UIntN domainIndex);
+	void setDdrRfiTable(UIntN domainIndex, DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
 
 	// Utilization
 	UtilizationStatus getUtilizationStatus(UIntN domainIndex);

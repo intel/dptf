@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -40,6 +40,8 @@
 #define _SDL_BANNED_RECOMMENDED
 #include "win\banned.h"
 #endif
+
+#define ESIF_APP_CLIENT_INDICATOR	'@'	// AppNames that start with this indicate out-of-process (non-restartable) client apps
 
 static esif_string g_qualifiers[] = {
 	"D0",
@@ -147,7 +149,7 @@ static void EsifApp_StripInvalid(EsifString buffer, size_t buf_len)
 // FUNCTION IMPLEMENTATIONS
 //
 eEsifError EsifApp_Create(
-	const EsifString appName,
+	const EsifString name,
 	EsifAppPtr *appPtr
 	)
 {
@@ -155,12 +157,23 @@ eEsifError EsifApp_Create(
 	EsifAppPtr self = NULL;
 	size_t i = 0;
 	size_t j = 0;
+	EsifString appName = (EsifString)name;
 
 	if ((NULL == appName) || (NULL == appPtr)) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
 	}
 
+	/*
+	 * AppName format: [@]appname[=library] where:
+	 * 1. AppNames starting with "@" indicate an out-of-process Client Application (i.e., not Restartable)
+	 * 2. Appnames ending with optional "=library" use library.dll (or .so) instead of appname.dll
+	 */
+	Bool isClientApp = ESIF_FALSE;
+	if (*appName == ESIF_APP_CLIENT_INDICATOR) {
+		appName++;
+		isClientApp = ESIF_TRUE;
+	}
 	size_t appNameLen = esif_ccb_strlen(appName, APPNAME_MAXLEN);
 	EsifString libName = esif_ccb_strchr(appName, APPNAME_SEPARATOR);
 	if (libName) {
@@ -186,7 +199,7 @@ eEsifError EsifApp_Create(
 	}
 	esif_ccb_strcpy(self->fAppNamePtr, appName, appNameLen + 1);
 	EsifApp_StripInvalid(self->fAppNamePtr, appNameLen + 1);
-	self->isRestartable = (esif_ccb_stricmp(self->fAppNamePtr, self->fLibNamePtr) == 0);
+	self->isRestartable = !isClientApp;
 
 	for (i = 0; i < (sizeof(self->fParticipantData) / sizeof(*self->fParticipantData)); i++) {
 		self->fParticipantData[i].fAppParticipantHandle = ESIF_INVALID_HANDLE;
@@ -228,6 +241,9 @@ void EsifApp_Destroy(
 	
 	esif_ccb_library_unload(self->fLibHandle);
 	esif_ccb_free(self->fAppNamePtr);
+	esif_ccb_free(self->fAppDescPtr);
+	esif_ccb_free(self->fAppVersionPtr);
+	esif_ccb_free(self->fAppIntroPtr);
 	esif_ccb_free(self->fLibNamePtr);
 	self->isRestartable = ESIF_FALSE;
 	esif_ccb_event_uninit(&self->deleteEvent);
@@ -358,6 +374,7 @@ static eEsifError EsifApp_CreateApp(
 {
 	eEsifError rc = ESIF_OK;
 	esif_handle_t esifHandle = ESIF_INVALID_HANDLE;
+	EsifString originalAppName = NULL;
 
 	AppDataPtr app_data_ptr = NULL;
 	char path_buf[ESIF_PATH_LEN * 3] = { 0 };
@@ -368,8 +385,8 @@ static eEsifError EsifApp_CreateApp(
 	char desc[ESIF_DESC_LEN] = { 0 };
 	ESIF_DATA(data_desc, ESIF_DATA_STRING, desc, ESIF_DESC_LEN);
 
-	char version[ESIF_DESC_LEN] = { 0 };
-	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_DESC_LEN);
+	char version[ESIF_VERSION_LEN] = { 0 };
+	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_VERSION_LEN);
 
 	#define BANNER_LEN 1024
 	char banner[BANNER_LEN] = { 0 };
@@ -423,42 +440,38 @@ static eEsifError EsifApp_CreateApp(
 		data_name.data_len = (u32)esif_ccb_strlen(data_name.buf_ptr, data_name.buf_len) + 1;
 	}
 
+	// App may Rename itself if it is an in-process App without an explicit AppName
+	if (self->isRestartable && self->fAppNamePtr && self->fLibNamePtr && esif_ccb_stricmp(self->fAppNamePtr, self->fLibNamePtr) == 0) {
+		originalAppName = esif_ccb_strdup(self->fAppNamePtr);
+	}
+
 	// Callback for application information
 	rc = self->fInterface.fAppGetNameFuncPtr(&data_name);
 	if (ESIF_OK != rc) {
 		goto exit;
 	}
 
-	//optional
-	if (self->fInterface.fAppGetDescriptionFuncPtr) {
-		if (data_desc.buf_ptr && data_desc.buf_len && self->fAppNamePtr) {
-			esif_ccb_strcpy(data_desc.buf_ptr, self->fAppNamePtr, data_desc.buf_len);
-			EsifApp_StripInvalid(data_desc.buf_ptr, data_desc.buf_len);
-			data_desc.data_len = (u32)esif_ccb_strlen(data_desc.buf_ptr, data_desc.buf_len) + 1;
+	// Rename App if the name returned by AppGetName is different than the original AppName
+	if (originalAppName && data_name.buf_ptr && esif_ccb_stricmp(originalAppName, data_name.buf_ptr) != 0) {
+		rc = EsifAppMgr_AppRename(self->fAppNamePtr, data_name.buf_ptr);
+		if (ESIF_E_APP_ALREADY_STARTED == rc) {
+			rc = ESIF_E_SESSION_ALREADY_STARTED;
 		}
-		rc = self->fInterface.fAppGetDescriptionFuncPtr(&data_desc);
 		if (ESIF_OK != rc) {
 			goto exit;
 		}
-	}
-	else {
-		esif_ccb_strcpy(data_desc.buf_ptr, "NOT DEFINED", data_desc.buf_len);
 	}
 
 	//optional
-	if (self->fInterface.fAppGetVersionFuncPtr) {
-		if (data_version.buf_ptr && data_version.buf_len && self->fAppNamePtr) {
-			esif_ccb_strcpy(data_version.buf_ptr, self->fAppNamePtr, data_version.buf_len);
-			EsifApp_StripInvalid(data_version.buf_ptr, data_version.buf_len);
-			data_version.data_len = (u32)esif_ccb_strlen(data_version.buf_ptr, data_version.buf_len) + 1;
-		}
-		rc = self->fInterface.fAppGetVersionFuncPtr(&data_version);
-		if (ESIF_OK != rc) {
-			goto exit;
-		}
+	rc = EsifApp_GetDescription(self, &data_desc);
+	if (ESIF_OK != rc && ESIF_E_NOT_IMPLEMENTED != rc) {
+		goto exit;
 	}
-	else {
-		esif_ccb_strcpy(data_version.buf_ptr, "NOT DEFINED", data_version.buf_len);
+
+	//optional
+	rc = EsifApp_GetVersion(self, &data_version);
+	if (ESIF_OK != rc && ESIF_E_NOT_IMPLEMENTED != rc) {
+		goto exit;
 	}
 
 	app_type_ptr = "plugin";
@@ -512,8 +525,9 @@ static eEsifError EsifApp_CreateApp(
 		goto exit;
 	}
 
-	rc = self->fInterface.fAppGetIntroFuncPtr(self->fAppCtxHandle, &data_banner);
-	if (ESIF_OK != rc) {
+	//optional
+	rc = EsifApp_GetIntro(self, &data_banner);
+	if (ESIF_OK != rc && ESIF_E_NOT_IMPLEMENTED != rc) {
 		goto exit;
 	}
 
@@ -525,6 +539,7 @@ static eEsifError EsifApp_CreateApp(
 	self->appCreationDone = ESIF_TRUE;
 	ESIF_TRACE_DEBUG("Application creation completed.\n");
 exit:
+	esif_ccb_free(originalAppName);
 	if (rc != ESIF_OK) {
 		/* If creation fails, use of the interface is not allowed */
 		esif_ccb_memset(&self->fInterface, 0, sizeof(self->fInterface));
@@ -969,10 +984,10 @@ void EsifApp_PolicyActivityLoggingEnable(Bool flag)
 	static atomic_t g_policyLoggingRefCount = ATOMIC_INIT(0);
 	if (ESIF_TRUE == flag) {
 		atomic_inc(&g_policyLoggingRefCount);
-		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_ENABLED, 0);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DTT_POLICY_ACTIVITY_LOGGING_ENABLED, 0);
 	}
 	else if (atomic_dec(&g_policyLoggingRefCount) == 0) {
-		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DPTF_POLICY_ACTIVITY_LOGGING_DISABLED, 0);
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_DTT_POLICY_ACTIVITY_LOGGING_DISABLED, 0);
 	}
 }
 
@@ -1463,12 +1478,16 @@ exit:
 
 Bool EsifApp_IsAppName(
 	EsifAppPtr self,
-	const EsifString appName
+	const EsifString name
 	)
 {
 	Bool isName = ESIF_FALSE;
+	EsifString appName = (EsifString)name;
 
 	if (self && self->fAppNamePtr) {
+		if (*appName == ESIF_APP_CLIENT_INDICATOR) {
+			appName++;
+		}
 		size_t appNameLen = esif_ccb_strlen(appName, APPNAME_MAXLEN); // appName[=libName]
 		size_t selfNameLen = esif_ccb_strlen(self->fAppNamePtr, APPNAME_MAXLEN);
 		EsifString libName = esif_ccb_strchr(appName, APPNAME_SEPARATOR);
@@ -1562,19 +1581,44 @@ eEsifError EsifApp_GetDescription(
 		goto exit;
 	}
 
-	if (NULL == self->fInterface.fAppGetDescriptionFuncPtr) {
-		rc = ESIF_E_NOT_IMPLEMENTED;
-		goto exit;
+	if (self->fAppDescPtr) {
+		u32 data_len = (u32)esif_ccb_strlen(self->fAppDescPtr, ESIF_DESC_LEN);
+		if (descPtr == NULL || descPtr->buf_ptr == NULL) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+		}
+		else if (descPtr->buf_len < data_len) {
+			descPtr->data_len = data_len;
+			rc = ESIF_E_NEED_LARGER_BUFFER;
+		}
+		else {
+			esif_ccb_strcpy(descPtr->buf_ptr, self->fAppDescPtr, descPtr->buf_len);
+			descPtr->data_len = (u32)esif_ccb_strlen(descPtr->buf_ptr, descPtr->buf_len);
+			rc = ESIF_OK;
+		}
 	}
+	else {
+		if (NULL == self->fInterface.fAppGetDescriptionFuncPtr) {
+			rc = ESIF_E_NOT_IMPLEMENTED;
+			goto exit;
+		}
 
-	if (descPtr && descPtr->buf_ptr && descPtr->buf_len && descPtr->data_len == 0) {
-		esif_ccb_strcpy(descPtr->buf_ptr, self->fAppNamePtr, descPtr->buf_len);
-		descPtr->data_len = (UInt32)esif_ccb_strlen(descPtr->buf_ptr, descPtr->buf_len);
+		if (descPtr && descPtr->buf_ptr && descPtr->buf_len && descPtr->data_len == 0) {
+			esif_ccb_strcpy(descPtr->buf_ptr, self->fAppNamePtr, descPtr->buf_len);
+			descPtr->data_len = (UInt32)esif_ccb_strlen(descPtr->buf_ptr, descPtr->buf_len);
+		}
+
+		rc = self->fInterface.fAppGetDescriptionFuncPtr(descPtr);
+
+		if (rc == ESIF_OK && self->fAppDescPtr == NULL && descPtr && descPtr->buf_ptr) {
+			self->fAppDescPtr = esif_ccb_strdup(descPtr->buf_ptr);
+		}
 	}
-
-	rc = self->fInterface.fAppGetDescriptionFuncPtr(descPtr);
 
 exit:
+	if (rc != ESIF_OK && rc != ESIF_E_NEED_LARGER_BUFFER && descPtr && descPtr->buf_ptr && descPtr->buf_len) {
+		esif_ccb_strcpy(descPtr->buf_ptr, "NA", descPtr->buf_len);
+		descPtr->data_len = (UInt32)esif_ccb_strlen(descPtr->buf_ptr, descPtr->buf_len);
+	}
 	return rc;
 }
 
@@ -1591,19 +1635,44 @@ eEsifError EsifApp_GetVersion(
 		goto exit;
 	}
 
-	if (NULL == self->fInterface.fAppGetVersionFuncPtr) {
-		rc = ESIF_E_NOT_IMPLEMENTED;
-		goto exit;
+	if (self->fAppVersionPtr) {
+		u32 data_len = (u32)esif_ccb_strlen(self->fAppVersionPtr, ESIF_VERSION_LEN);
+		if (versionPtr == NULL || versionPtr->buf_ptr == NULL) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+		}
+		else if (versionPtr->buf_len < data_len) {
+			versionPtr->data_len = data_len;
+			rc = ESIF_E_NEED_LARGER_BUFFER;
+		}
+		else {
+			esif_ccb_strcpy(versionPtr->buf_ptr, self->fAppVersionPtr, versionPtr->buf_len);
+			versionPtr->data_len = (u32)esif_ccb_strlen(versionPtr->buf_ptr, versionPtr->buf_len);
+			rc = ESIF_OK;
+		}
 	}
+	else {
+		if (NULL == self->fInterface.fAppGetVersionFuncPtr) {
+			rc = ESIF_E_NOT_IMPLEMENTED;
+			goto exit;
+		}
 
-	if (versionPtr && versionPtr->buf_ptr && versionPtr->buf_len && versionPtr->data_len == 0) {
-		esif_ccb_strcpy((char *)versionPtr->buf_ptr, self->fAppNamePtr, versionPtr->buf_len);
-		versionPtr->data_len = (UInt32)esif_ccb_strlen((char *)versionPtr->buf_ptr, versionPtr->buf_len);
+		if (versionPtr && versionPtr->buf_ptr && versionPtr->buf_len && versionPtr->data_len == 0) {
+			esif_ccb_strcpy((char *)versionPtr->buf_ptr, self->fAppNamePtr, versionPtr->buf_len);
+			versionPtr->data_len = (UInt32)esif_ccb_strlen((char *)versionPtr->buf_ptr, versionPtr->buf_len);
+		}
+
+		rc = self->fInterface.fAppGetVersionFuncPtr(versionPtr);
+
+		if (rc == ESIF_OK && self->fAppVersionPtr == NULL && versionPtr && versionPtr->buf_ptr) {
+			self->fAppVersionPtr = esif_ccb_strdup(versionPtr->buf_ptr);
+		}
 	}
-
-	rc = self->fInterface.fAppGetVersionFuncPtr(versionPtr);
 
 exit:
+	if (rc != ESIF_OK && rc != ESIF_E_NEED_LARGER_BUFFER && versionPtr && versionPtr->buf_ptr && versionPtr->buf_len) {
+		esif_ccb_strcpy(versionPtr->buf_ptr, "NA", versionPtr->buf_len);
+		versionPtr->data_len = (UInt32)esif_ccb_strlen(versionPtr->buf_ptr, versionPtr->buf_len);
+	}
 	return rc;
 }
 
@@ -1614,17 +1683,33 @@ eEsifError EsifApp_GetIntro(
 {
 	eEsifError rc = ESIF_OK;
 
-	if (NULL == self) {
-		rc = ESIF_E_PARAMETER_IS_NULL;
-		goto exit;
+	if (self->fAppIntroPtr) {
+		u32 data_len = (u32)esif_ccb_strlen(self->fAppIntroPtr, BANNER_LEN);
+		if (introPtr == NULL || introPtr->buf_ptr == NULL) {
+			rc = ESIF_E_PARAMETER_IS_NULL;
+		}
+		else if (introPtr->buf_len < data_len) {
+			introPtr->data_len = data_len;
+			rc = ESIF_E_NEED_LARGER_BUFFER;
+		}
+		else {
+			esif_ccb_strcpy(introPtr->buf_ptr, self->fAppIntroPtr, introPtr->buf_len);
+			introPtr->data_len = (u32)esif_ccb_strlen(introPtr->buf_ptr, introPtr->buf_len);
+			rc = ESIF_OK;
+		}
 	}
+	else {
+		if (NULL == self->fInterface.fAppGetIntroFuncPtr) {
+			rc = ESIF_E_NOT_IMPLEMENTED;
+			goto exit;
+		}
 
-	if (NULL == self->fInterface.fAppGetVersionFuncPtr) {
-		rc = ESIF_E_NOT_IMPLEMENTED;
-		goto exit;
+		rc = self->fInterface.fAppGetIntroFuncPtr(self->fAppCtxHandle, introPtr);
+
+		if (rc == ESIF_OK && self->fAppIntroPtr == NULL && introPtr && introPtr->buf_ptr) {
+			self->fAppIntroPtr = esif_ccb_strdup(introPtr->buf_ptr);
+		}
 	}
-
-	rc = self->fInterface.fAppGetIntroFuncPtr(self->fAppCtxHandle, introPtr);
 
 exit:
 	return rc;

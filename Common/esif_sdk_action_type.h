@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -100,6 +100,7 @@ typedef enum esif_action_type {
 	ESIF_ACTION_SIM = 65,
 	ESIF_ACTION_SOCWC = 77,
 	ESIF_ACTION_SYSFS = 59,
+	ESIF_ACTION_SYSMAN = 81,
 	ESIF_ACTION_SYSTEM = 31,
 	ESIF_ACTION_USBCM = 76,
 	ESIF_ACTION_USBFAN = 49,
@@ -107,7 +108,7 @@ typedef enum esif_action_type {
 } esif_action_type_t;
 
 /* Max Enum Value for Iteration purposes */
-#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_HWPF
+#define MAX_ESIF_ACTION_ENUM_VALUE  ESIF_ACTION_SYSMAN
 
 static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 {
@@ -152,6 +153,7 @@ static ESIF_INLINE esif_string esif_action_type_str(esif_action_type_t type)
 	ESIF_CASE_ENUM(ESIF_ACTION_SIM);
 	ESIF_CASE_ENUM(ESIF_ACTION_SOCWC);
 	ESIF_CASE_ENUM(ESIF_ACTION_SYSFS);
+	ESIF_CASE_ENUM(ESIF_ACTION_SYSMAN);
 	ESIF_CASE_ENUM(ESIF_ACTION_SYSTEM);
 	ESIF_CASE_ENUM(ESIF_ACTION_USBCM);
 	ESIF_CASE_ENUM(ESIF_ACTION_USBFAN);
@@ -210,6 +212,7 @@ static ESIF_INLINE esif_action_type_t esif_action_type_str2enum(esif_string name
 		ESIF_MAP_ENUM(ESIF_ACTION_SIM),
 		ESIF_MAP_ENUM(ESIF_ACTION_SOCWC),
 		ESIF_MAP_ENUM(ESIF_ACTION_SYSFS),
+		ESIF_MAP_ENUM(ESIF_ACTION_SYSMAN),
 		ESIF_MAP_ENUM(ESIF_ACTION_SYSTEM),
 		ESIF_MAP_ENUM(ESIF_ACTION_USBCM),
 		ESIF_MAP_ENUM(ESIF_ACTION_USBFAN),

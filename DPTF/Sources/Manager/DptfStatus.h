@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -63,6 +63,7 @@ private:
 	std::shared_ptr<XmlNode> getXmlForFrameworkLoadedParticipants();
 	std::shared_ptr<XmlNode> getArbitratorXmlForLoadedParticipants(UInt32 moduleIndex);
 	std::shared_ptr<XmlNode> getXmlForPlatformRequests();
+	void checkAndDropSymLink(std::string fileName);
 
 	void fillEsifString(EsifDataPtr outputLocation, std::string inputString, eEsifError* returnCode);
 	UIntN getNumberOfUniqueDomains(std::set<UIntN> participantIndexList);

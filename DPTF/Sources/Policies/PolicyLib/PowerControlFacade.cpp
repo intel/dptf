@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -173,6 +173,17 @@ void PowerControlFacade::setControlsToMax()
 	{
 		const auto& caps = capsSet.getCapability(PowerControlType::PL4);
 		setPowerLimitPL4(caps.getMaxPowerLimit());
+	}
+}
+
+void PowerControlFacade::setPL1PowerLimitControlToMax()
+{
+	const auto& capsSet = getCapabilities();
+
+	if (capsSet.hasCapability(PowerControlType::PL1))
+	{
+		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+		setPowerLimitPL1(caps.getMaxPowerLimit());
 	}
 }
 

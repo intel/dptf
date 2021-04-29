@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -90,6 +90,9 @@ static eEsifError EsifGetActionDelegateIsCVFSensor(
 	EsifDataPtr responsePtr
 );
 
+static eEsifError EsifGetActionDelegateBpsg(EsifDataPtr responsePtr);
+static eEsifError EsifSetActionDelegateBpss(const EsifDataPtr requestPtr);
+
 static eEsifError EsifSetActionDelegateSphb(
 	const EsifUpDomainPtr domainPtr,
 	const EsifDataPtr requestPtr);
@@ -152,6 +155,7 @@ esif_error_t set_app_ratio_period_win(EsifDataPtr requestPtr);
 esif_error_t get_last_hid_input_time_win(EsifDataPtr responsePtr);
 esif_error_t get_display_required_win(EsifDataPtr responsePtr);
 esif_error_t get_is_ext_mon_connected_win(EsifDataPtr responsePtr);
+esif_error_t get_aggregate_display_information_win(EsifDataPtr responsePtr);
 esif_error_t EsifSetActionDelegatePpmActivePackageSettingWin(EsifDataPtr requestPtr);
 esif_error_t EsifSetActionDelegatePpmParamSettingWin(EsifDataPtr requestPtr);
 esif_error_t EsifSetActionDelegatePowerSchemeEppWin(EsifDataPtr requestPtr);
@@ -170,6 +174,7 @@ esif_error_t EsifSetActionDelegateDppeSettingWin(
 #define get_last_hid_input_time(rspPtr) get_last_hid_input_time_win(rspPtr)
 #define get_display_required(rspPtr) get_display_required_win(rspPtr)
 #define get_is_ext_mon_connected(rspPtr) get_is_ext_mon_connected_win(rspPtr)
+#define get_aggregate_display_information(rspPtr) get_aggregate_display_information_win(rspPtr)
 #define EsifSetActionDelegatePpmActivePackageSetting(requestPtr) EsifSetActionDelegatePpmActivePackageSettingWin(requestPtr) 
 #define EsifSetActionDelegatePpmParamSetting(requestPtr) EsifSetActionDelegatePpmParamSettingWin(requestPtr)
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) EsifSetActionDelegatePowerSchemeEppWin(requestPtr)
@@ -187,6 +192,7 @@ esif_error_t EsifSetActionDelegateDppeSettingWin(
 #define get_last_hid_input_time(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_display_required(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define get_is_ext_mon_connected(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
+#define get_aggregate_display_information(rspPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePpmActivePackageSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePpmParamSetting(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
@@ -286,9 +292,18 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		rc = get_is_ext_mon_connected(responsePtr);
 		break;
 
+	case 'IDAG': /* GADI */
+		rc = get_aggregate_display_information(responsePtr);
+		break;
+
 	case 'SCIG': /* GICS **/
 		rc = EsifGetActionDelegateIsCVFSensor(responsePtr);
 		break;
+
+	case 'GSPB': /* BPSG - Get Biometric Presence Sensor selection */
+		rc = EsifGetActionDelegateBpsg(responsePtr);
+		break;
+
 
 	default:
 		rc = ESIF_E_NOT_IMPLEMENTED;
@@ -394,7 +409,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'MLCS':    /* SCLM: Set Cooling Mode */
 		ESIF_TRACE_INFO("Set Cooling Mode received\n");
-		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED);
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DTT_SYSTEM_COOLING_POLICY_CHANGED);
 		break;
 
 	case 'TSLS':    /* SLST: Set Lid State */
@@ -424,12 +439,12 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'COSB':    /* BSOC: Set Battery State Of Charge */
 		ESIF_TRACE_INFO("Set Battery State Of Charge request received\n");
-		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DOMAIN_BATTERY_STATE_OF_CHARGE_CHANGED);
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_BATTERY_STATE_OF_CHARGE_CHANGED);
 		break;
 
 	case 'PMTB':    /* BTMP: Set Battery Temperature */
 		ESIF_TRACE_INFO("Set Battery Temperature request received\n");
-		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_DOMAIN_BATTERY_TEMPERATURE_CHANGED);
+		rc = EsifSetActionDelegateToSignalOSEvent(domainPtr, requestPtr, ESIF_EVENT_BATTERY_TEMPERATURE_CHANGED);
 		break;
 
 	case 'TESR':    /* RSET: Reset Override */
@@ -476,92 +491,12 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegatePpmParamClear();
 		break;
 
-	case 'SDDA': /* ADDS */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD);
-		break;
-
-	case 'MEDA': /* ADEM */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD_EXTERNAL_MONITOR);
-		break;
-
-	case 'DPDA': /* ADPD */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD_PRE_DIM_WAIT_TIME);
-		break;
-
-	case 'MPDA': /* ADPM */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_AD_PRESENTATION_MODE);
-		break;
-
-	case 'SDLN': /* NLDS */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP);
-		break;
-
-	case 'SDBN': /* NBDS */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_BATTERY);
-		break;
-
-	case 'PRBN': /* NBRP */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_BATTERY_REMAINING_PERCENTAGE);
-		break;
-
-	case 'WRLN': /* NLRW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_RESET_WAITTIME);
-		break;
-
 	case 'SDAW': /* WADS */
 		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA);
 		break;
 
-	case 'MEAW': /* WAEM */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_EXTERNAL_MONITOR);
-		break;
-
-	case 'BLAW': /* WALB */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_LOW_BATTERY);
-		break;
-
-	case 'TBAW': /* WABT */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_BATTERY_REMAINING_PERCENTAGE);
-		break;
-
 	case 'SDLW': /* WLDS */
 		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL);
-		break;
-
-	case 'MELW': /* WLEM */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_EXTERNAL_MONITOR);
-		break;
-
-	case 'DLAW': /* WALD */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_PRE_DIM_WAIT_TIME);
-		break;
-
-	case 'TWPU': /* UPWT */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_PRESENT_WAIT_TIMEOUT);
-		break;
-
-	case 'MDLW': /* WLDM */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_DIM_SCREEN);
-		break;
-
-	case 'PHLW': /* WLHP */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_HONOR_DISPLAY_POWER_REQUEST);
-		break;
-
-	case 'CULW': /* WLUC */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_HONOR_USER_IN_CALL);
-		break;
-
-	case 'LSLW': /* WLSL */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_WAITTIME);
-		break;
-
-	case 'ODLW': /* WLDO */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_DISPLAY_OFF_AFTER_LOCK);
-		break;
-
-	case 'ILAW': /* WALI */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_DIM_INTERVAL);
 		break;
 
 	case 'ELAW': /* WALE */
@@ -574,54 +509,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'SEME': /* EMES */
 		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_EXTERNAL_MONITOR_CONNECTED_EVENT_STATE);
-		break;
-
-	case 'DFPM': /* MPFD */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_FACE_DETECTION);
-		break;
-
-	case 'WTPM': /* MPTW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_TIME_WINDOW);
-		break;
-
-	case 'WD1M': /* M1DW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_1_DIM_WAIT_TIME);
-		break;
-
-	case 'WD2M': /* M2DW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_2_DIM_WAIT_TIME);
-		break;
-
-	case 'WD3M': /* M3DW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_3_DIM_WAIT_TIME);
-		break;
-
-	case 'WD4M': /* M4DW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_MISPREDICTION_4_DIM_WAIT_TIME);
-		break;
-
-	case 'OTSF': /* FSTO */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_FAILSAFE_TIMEOUT);
-		break;
-
-	case 'MELN': /* NLEM */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_NLOP_EXTERNAL_MONITOR);
-		break;
-
-	case 'TDPN': /* NPDT */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_NOT_PRESENT_DIM_TARGET);
-		break;
-
-	case 'RDID': /* DIDR */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIMMING_INTERVAL);
-		break;
-
-	case 'TDID': /* DIDT */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIM_TARGET);
-		break;
-
-	case 'WDID': /* DIDW */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_USER_DISENGAGED_DIM_WAIT_TIME);
 		break;
 
 	case 'SPOP': /* POPS */
@@ -658,6 +545,10 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 
 	case 'SACS': /* SCAS */
 		rc = EsifSetActionDelegateScas();
+		break;
+
+	case 'SSPB': /* BPSS - Set Biometric Presence Sensor preference*/
+		rc = EsifSetActionDelegateBpss(requestPtr);
 		break;
 
 	default:
@@ -1571,6 +1462,65 @@ static eEsifError EsifSetActionDelegateScas()
 {
 	return EsifEventMgr_UnfilterAllEventTypes();
 }
+
+
+/* Get Biometric Presence Sensor selection setting */
+static eEsifError EsifGetActionDelegateBpsg(
+	EsifDataPtr responsePtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	UInt32 setting = 0;
+
+	ESIF_ASSERT(responsePtr != NULL);
+
+	if (responsePtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	responsePtr->data_len = sizeof(u32);
+	if (responsePtr->buf_len < responsePtr->data_len) {
+		rc = ESIF_E_NEED_LARGER_BUFFER;
+		goto exit;
+	}
+
+	rc = esif_get_bp_sensor_instance(&setting);
+	if (ESIF_OK == rc) {
+		*(u32 *)responsePtr->buf_ptr = setting;
+	}
+exit:
+	return rc;
+}
+
+
+/* Set Biometric Presence Sensor selection setting */
+static eEsifError EsifSetActionDelegateBpss(
+	const EsifDataPtr requestPtr
+	)
+{
+	eEsifError rc = ESIF_OK;
+	u32 value = 0;
+
+	ESIF_ASSERT(requestPtr != NULL);
+
+	if (requestPtr->buf_ptr == NULL) {
+		rc = ESIF_E_PARAMETER_IS_NULL;
+		goto exit;
+	}
+
+	if (requestPtr->buf_len < sizeof(value)) {
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
+		goto exit;
+	}
+
+	value = *(u32 *)requestPtr->buf_ptr;
+
+	rc = esif_set_bp_sensor_instance(value);
+exit:
+	return rc;
+}
+
 
 
 /*

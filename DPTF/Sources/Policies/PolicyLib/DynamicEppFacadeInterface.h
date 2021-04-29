@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,4 +28,5 @@ public:
 	virtual UInt32 getCurrentEppSensitivityHint() = 0;
 	virtual Bool supportsDynamicEpp() = 0;
 	virtual Bool supportsDynamicEppInterface() = 0;
+	virtual void setDynamicEppSupport(UInt32 dynamicEppSupport) = 0;
 };

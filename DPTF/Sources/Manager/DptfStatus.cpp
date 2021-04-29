@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,7 +33,8 @@
 #include "PlatformRequestHandler.h"
 
 // clang-format off
-const Guid ManagerStatusFormatId(0x3E, 0x58, 0x63, 0x46, 0xF8, 0xF7, 0x45, 0x4A, 0xA8, 0xF7, 0xDE, 0x7E, 0xC6, 0xF7, 0x61, 0xA8);
+const Guid ManagerPolicyStatusFormatId(0x3E, 0x58, 0x63, 0x46, 0xF8, 0xF7, 0x45, 0x4A, 0xA8, 0xF7, 0xDE, 0x7E, 0xC6, 0xF7, 0x61, 0xA8);
+const Guid ManagerParticipantStatusFormatId(0x98, 0x3F, 0x90, 0x5D, 0x9E, 0x39, 0x93, 0x4D, 0xBC, 0xCD, 0xA1, 0xA5, 0x8F, 0x61, 0x18, 0x5F);
 // clang-format on
 
 DptfStatus::DptfStatus(DptfManagerInterface* dptfManager)
@@ -66,8 +67,9 @@ namespace ManagerModuleType
 	enum Type
 	{
 		Events = 0,
-		Manager = 1,
-		Statistics = 2
+		Participants = 1,
+		Policies = 2,
+		Statistics = 3
 	};
 
 	std::string ToString(ManagerModuleType::Type type)
@@ -76,8 +78,10 @@ namespace ManagerModuleType
 		{
 		case Events:
 			return "Event Status";
-		case Manager:
-			return "Manager Status";
+		case Participants:
+			return "Participant Status";
+		case Policies:
+			return "Policy Status";
 		case Statistics:
 			return "Work Item Statistics";
 		default:
@@ -144,6 +148,8 @@ void DptfStatus::clearCache()
 
 std::string DptfStatus::getFileContent(std::string fileName)
 {
+	checkAndDropSymLink(fileName);
+
 	// Try to find file in current directory
 	std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
 
@@ -159,6 +165,28 @@ std::string DptfStatus::getFileContent(std::string fileName)
 	else
 	{
 		throw dptf_exception("File not found.");
+	}
+}
+
+void DptfStatus::checkAndDropSymLink(std::string fileName)
+{
+	EsifLibrary* esifLibrary;
+	esifLibrary = new EsifLibrary(fileName);
+	if (esifLibrary == nullptr)
+	{
+		throw dptf_exception("Failed to allocate memory.");
+	}
+
+	try
+	{
+		// Check if file is a symlink and remove it if it is
+		esifLibrary->dropSymLink();
+		DELETE_MEMORY_TC(esifLibrary);
+	}
+	catch (dptf_exception& ex)
+	{
+		DELETE_MEMORY_TC(esifLibrary);
+		throw dptf_exception(ex.getDescription());
 	}
 }
 
@@ -463,17 +491,27 @@ std::string DptfStatus::getXmlForFramework(UInt32 moduleIndex, eEsifError* retur
 {
 	switch (moduleIndex)
 	{
-	case ManagerModuleType::Manager:
+	case ManagerModuleType::Policies:
 	{
 		*returnCode = ESIF_OK;
-		auto frameworkRoot = XmlNode::createRoot();
-		frameworkRoot->addChild(XmlNode::createComment("format_id=" + ManagerStatusFormatId.toString()));
-		auto dppmRoot = XmlNode::createWrapperElement("manager_status");
-		dppmRoot->addChild(getXmlForFrameworkLoadedPolicies());
-		dppmRoot->addChild(getXmlForFrameworkLoadedParticipants());
-		dppmRoot->addChild(getXmlForPlatformRequests());
-		frameworkRoot->addChild(dppmRoot);
-		return frameworkRoot->toString();
+
+		auto managerPolicyRoot = XmlNode::createRoot();
+		managerPolicyRoot->addChild(XmlNode::createComment("format_id=" + ManagerPolicyStatusFormatId.toString()));
+		auto policyStatus = XmlNode::createWrapperElement("manager_policy_status");
+		policyStatus->addChild(getXmlForFrameworkLoadedPolicies());
+		policyStatus->addChild(getXmlForPlatformRequests());
+		managerPolicyRoot->addChild(policyStatus);
+		return managerPolicyRoot->toString();
+	}
+	case ManagerModuleType::Participants:
+	{
+		*returnCode = ESIF_OK;
+		auto managerParticipantRoot = XmlNode::createRoot();
+		managerParticipantRoot->addChild(XmlNode::createComment("format_id=" + ManagerParticipantStatusFormatId.toString()));
+		auto participantStatus = XmlNode::createWrapperElement("manager_participant_status");
+		participantStatus->addChild(getXmlForFrameworkLoadedParticipants());
+		managerParticipantRoot->addChild(participantStatus);
+		return managerParticipantRoot->toString();
 	}
 	case ManagerModuleType::Events:
 	{

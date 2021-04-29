@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,16 +19,18 @@
 #include "TableObject.h"
 #include "StatusFormat.h"
 #include "XmlNode.h"
-#include "DataVaultPath.h"
 using namespace std;
 
-TableObject::TableObject(TableObjectType::Type type, vector<TableObjectField> fields)
+TableObject::TableObject(
+	TableObjectType::Type type,
+	vector<TableObjectField> fields,
+	vector<pair<string, string>> dataVaultPathForGet,
+	vector<pair<string, string>> dataVaultPathForSet)
 	: m_type(type)
 	, m_fields(fields)
+	, m_dataVaultPathForGet(dataVaultPathForGet)
+	, m_dataVaultPathForSet(dataVaultPathForSet)
 {
-	auto dataVaultString = DataVaultPathBasePaths::ExportRoot + "/" + TableObjectType::ToString(m_type);
-	m_dataVaultPathMap.insert({"get", {{"override", dataVaultString}, {"dptf", dataVaultString}}});
-	m_dataVaultPathMap.insert({"set", {{"override", dataVaultString}}});
 }
 
 TableObject::~TableObject()
@@ -50,12 +52,22 @@ TableObjectType::Type TableObject::getType() const
 	return m_type;
 }
 
-const map<string, vector<pair<string, string>>> TableObject::getDataVaultPathMap() const
+vector<TableObjectField> TableObject::getFields() const
 {
-	return m_dataVaultPathMap;
+	return m_fields;
 }
 
-string TableObject::getXmlString()
+vector<pair<string, string>> TableObject::dataVaultPathForGet() const
+{
+	return m_dataVaultPathForGet;
+}
+
+vector<pair<string, string>> TableObject::dataVaultPathForSet() const
+{
+	return m_dataVaultPathForSet;
+}
+
+string TableObject::getXmlString(UInt32 supportedRevision)
 {
 	if (m_data.size())
 	{
@@ -64,38 +76,45 @@ string TableObject::getXmlString()
 		auto remain_bytes = m_data.size();
 		auto resultRoot = XmlNode::createWrapperElement("result");
 
-		auto revison = (u64)obj->integer.value;
-		obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
-
-		remain_bytes -= sizeof(*obj);
-
-		resultRoot->addChild(XmlNode::createDataElement("revision", StatusFormat::friendlyValue(revison)));
-
-		while (remain_bytes >= sizeof(*obj))
+		auto revision = (u64)obj->integer.value;
+		if (revision == supportedRevision)
 		{
-			auto rowRoot = XmlNode::createWrapperElement("row");
-			for (auto field = m_fields.begin(); field != m_fields.end(); field++)
-			{
-				remain_bytes -= sizeof(*obj);
-				if (field->m_fieldDataType == ESIF_DATA_UINT64)
-				{
-					UInt64 int64FieldValue = (u64)obj->integer.value;
-					obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
-					rowRoot->addChild(
-						XmlNode::createDataElement(field->m_fieldLabel, StatusFormat::friendlyValue(int64FieldValue)));
-				}
-				else if (field->m_fieldDataType == ESIF_DATA_STRING)
-				{
-					char* strFieldValue = (char*)((u8*)obj + sizeof(*obj));
-					remain_bytes -= obj->string.length;
-					obj = (union esif_data_variant*)((u8*)obj + (sizeof(*obj) + obj->string.length));
-					rowRoot->addChild(XmlNode::createDataElement(field->m_fieldLabel, strFieldValue));
-				}
-			}
-			resultRoot->addChild(rowRoot);
-		}
+			obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
 
-		return resultRoot->toString();
+			remain_bytes -= sizeof(*obj);
+
+			resultRoot->addChild(XmlNode::createDataElement("revision", StatusFormat::friendlyValue(revision)));
+
+			while (remain_bytes >= sizeof(*obj))
+			{
+				auto rowRoot = XmlNode::createWrapperElement("row");
+				for (auto field = m_fields.begin(); field != m_fields.end(); field++)
+				{
+					remain_bytes -= sizeof(*obj);
+					if (field->m_fieldDataType == ESIF_DATA_UINT64)
+					{
+						UInt64 int64FieldValue = (u64)obj->integer.value;
+						obj = (union esif_data_variant*)((u8*)obj + sizeof(*obj));
+						rowRoot->addChild(XmlNode::createDataElement(
+							field->m_fieldLabel, StatusFormat::friendlyValue(int64FieldValue)));
+					}
+					else if (field->m_fieldDataType == ESIF_DATA_STRING)
+					{
+						char* strFieldValue = (char*)((u8*)obj + sizeof(*obj));
+						remain_bytes -= obj->string.length;
+						obj = (union esif_data_variant*)((u8*)obj + (sizeof(*obj) + obj->string.length));
+						rowRoot->addChild(XmlNode::createDataElement(field->m_fieldLabel, strFieldValue));
+					}
+				}
+				resultRoot->addChild(rowRoot);
+			}
+
+			return resultRoot->toString();
+		}
+		else
+		{
+			return "TableObject is empty.";
+		}
 	}
 	else
 	{

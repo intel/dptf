@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -130,33 +130,6 @@ void EsifServices::writeConfigurationUInt32(const std::string& elementPath, UInt
 	}
 }
 
-std::string EsifServices::readConfigurationString(const std::string& elementPath)
-{
-	DptfBuffer buffer(Constants::DefaultBufferSize);
-	EsifDataContainer esifData(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
-	eEsifError rc = m_appServices->getConfigurationValue(
-		m_esifHandle,
-		(const esif_handle_t)(UInt64)m_dptfManager,
-		EsifDataString("dptf"),
-		EsifDataString(elementPath),
-		esifData);
-	if (rc == ESIF_E_NEED_LARGER_BUFFER)
-	{
-		buffer.allocate(esifData.getDataLength());
-		EsifDataContainer esifDataTryAgain(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
-		rc = m_appServices->getConfigurationValue(
-			m_esifHandle,
-			(const esif_handle_t)(UInt64)m_dptfManager,
-			EsifDataString("dptf"),
-			EsifDataString(elementPath),
-			esifDataTryAgain);
-	}
-	throwIfNotSuccessful(FLF, rc, string("Failed to read configuration string for ") + elementPath + string("."));
-
-	buffer.trim(esifData.getDataLength());
-	return buffer.toString();
-}
-
 std::string EsifServices::readConfigurationString(const std::string& nameSpace, const std::string& elementPath)
 {
 	DptfBuffer buffer(Constants::DefaultBufferSize);
@@ -184,36 +157,7 @@ std::string EsifServices::readConfigurationString(const std::string& nameSpace, 
 	return buffer.toString();
 }
 
-DptfBuffer EsifServices::readConfigurationBinary(const std::string& elementPath)
-{
-	DptfBuffer buffer(Constants::DefaultBufferSize);
-	EsifDataContainer esifData(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
-	eEsifError rc = m_appServices->getConfigurationValue(
-		m_esifHandle,
-		(const esif_handle_t)(UInt64)m_dptfManager,
-		EsifDataString("dptf"),
-		EsifDataString(elementPath),
-		esifData);
-	if (rc == ESIF_E_NEED_LARGER_BUFFER)
-	{
-		buffer.allocate(esifData.getDataLength());
-		EsifDataContainer esifDataTryAgain(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
-		rc = m_appServices->getConfigurationValue(
-			m_esifHandle,
-			(const esif_handle_t)(UInt64)m_dptfManager,
-			EsifDataString("dptf"),
-			EsifDataString(elementPath),
-			esifDataTryAgain);
-	}
-	throwIfNotSuccessful(FLF, rc, string("Failed to read configuration binary for ") + elementPath + string("."));
-
-	buffer.trim(esifData.getDataLength());
-	return buffer;
-}
-
-DptfBuffer EsifServices::readConfigurationBinaryFromNameSpace(
-	const std::string& nameSpace,
-	const std::string& elementPath)
+DptfBuffer EsifServices::readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath)
 {
 	DptfBuffer buffer(Constants::DefaultBufferSize);
 	EsifDataContainer esifData(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
@@ -234,14 +178,63 @@ DptfBuffer EsifServices::readConfigurationBinaryFromNameSpace(
 			EsifDataString(elementPath),
 			esifDataTryAgain);
 	}
-	throwIfNotSuccessful(
-		FLF,
-		rc,
-		string("Failed to read configuration binary for ") + elementPath + string(" from Data Vault ") + nameSpace
-			+ string("."));
+	throwIfNotSuccessful(FLF, rc, string("Failed to read configuration binary for ") + elementPath + string("."));
 
 	buffer.trim(esifData.getDataLength());
 	return buffer;
+}
+
+void EsifServices::writeConfigurationBinary(
+	void* bufferPtr,
+	UInt32 bufferLength,
+	UInt32 dataLength,
+	const std::string& nameSpace,
+	const std::string& key)
+{
+	eEsifError rc = m_appServices->setConfigurationValue(
+		m_esifHandle,
+		(const esif_handle_t)(UInt64)m_dptfManager,
+		EsifDataString(nameSpace),
+		EsifDataString(key),
+		EsifDataContainer(ESIF_DATA_BINARY, bufferPtr, bufferLength, dataLength),
+		ESIF_SERVICE_CONFIG_PERSIST);
+
+	if (rc != ESIF_OK)
+	{
+		ManagerMessage message =
+			ManagerMessage(m_dptfManager, FLF, "Error returned from ESIF services interface function call");
+		message.addMessage("Element Path", key);
+		message.setEsifErrorCode(rc);
+
+		MANAGER_LOG_MESSAGE_WARNING({ return message; });
+
+		throw dptf_exception(message);
+	}
+}
+
+void EsifServices::deleteConfigurationBinary(
+	const std::string& nameSpace,
+	const std::string& key)
+{
+	eEsifError rc = m_appServices->setConfigurationValue(
+		m_esifHandle,
+		(const esif_handle_t)(UInt64)m_dptfManager,
+		EsifDataString(nameSpace),
+		EsifDataString(key),
+		EsifDataContainer(ESIF_DATA_BINARY, NULL, 0, 0),
+		ESIF_SERVICE_CONFIG_DELETE);
+
+	if (rc != ESIF_OK)
+	{
+		ManagerMessage message =
+			ManagerMessage(m_dptfManager, FLF, "Error returned from ESIF services interface function call");
+		message.addMessage("Element Path", key);
+		message.setEsifErrorCode(rc);
+
+		MANAGER_LOG_MESSAGE_WARNING({ return message; });
+
+		throw dptf_exception(message);
+	}
 }
 
 UInt8 EsifServices::primitiveExecuteGetAsUInt8(
@@ -830,28 +823,33 @@ void EsifServices::registerEvent(FrameworkEvent::Type frameworkEvent, UIntN part
 {
 	throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-	Guid guid = FrameworkEventInfo::instance()->getGuid(frameworkEvent);
+	auto frameworkEventInfo = FrameworkEventInfo::instance();
+	Guid guid = frameworkEventInfo->getGuid(frameworkEvent);
 
-	eEsifError rc = m_appServices->registerForEvent(
-		m_esifHandle,
-		(const esif_handle_t)(UInt64)m_dptfManager,
-		m_dptfManager->getIndexContainer()->getParticipantHandle(participantIndex),
-		(const esif_handle_t)(UInt64)m_dptfManager->getIndexContainer()->getDomainHandle(participantIndex, domainIndex),
-		EsifDataGuid(guid));
-
-	// FIXME:  this should throw an exception if we get an unexpected return code.  For now we will just log an
-	//         error so we can see a list of items to correct.
-	if (rc != ESIF_OK)
+	if (!frameworkEventInfo->usesDummyGuid(frameworkEvent))
 	{
-		MANAGER_LOG_MESSAGE_WARNING({
-			ManagerMessage message = ManagerMessage(
-				m_dptfManager, _file, _line, _function, "Error returned from ESIF register event function call");
-			message.setFrameworkEvent(frameworkEvent);
-			message.addMessage("Guid", guid.toString());
-			message.setParticipantAndDomainIndex(participantIndex, domainIndex);
-			message.setEsifErrorCode(rc);
-			return message;
-		});
+		eEsifError rc = m_appServices->registerForEvent(
+			m_esifHandle,
+			(const esif_handle_t)(UInt64)m_dptfManager,
+			m_dptfManager->getIndexContainer()->getParticipantHandle(participantIndex),
+			(const esif_handle_t)(UInt64)m_dptfManager->getIndexContainer()->getDomainHandle(
+				participantIndex, domainIndex),
+			EsifDataGuid(guid));
+
+		// FIXME:  this should throw an exception if we get an unexpected return code.  For now we will just log an
+		//         error so we can see a list of items to correct.
+		if (rc != ESIF_OK)
+		{
+			MANAGER_LOG_MESSAGE_WARNING({
+				ManagerMessage message = ManagerMessage(
+					m_dptfManager, _file, _line, _function, "Error returned from ESIF register event function call");
+				message.setFrameworkEvent(frameworkEvent);
+				message.addMessage("Guid", guid.toString());
+				message.setParticipantAndDomainIndex(participantIndex, domainIndex);
+				message.setEsifErrorCode(rc);
+				return message;
+			});
+		}
 	}
 }
 
@@ -859,28 +857,34 @@ void EsifServices::unregisterEvent(FrameworkEvent::Type frameworkEvent, UIntN pa
 {
 	throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-	Guid guid = FrameworkEventInfo::instance()->getGuid(frameworkEvent);
+	auto frameworkEventInfo = FrameworkEventInfo::instance();
+	Guid guid = frameworkEventInfo->getGuid(frameworkEvent);
 
-	eEsifError rc = m_appServices->unregisterForEvent(
-		m_esifHandle,
-		(const esif_handle_t)(UInt64)m_dptfManager,
-		m_dptfManager->getIndexContainer()->getParticipantHandle(participantIndex),
-		(const esif_handle_t)(UInt64)m_dptfManager->getIndexContainer()->getDomainHandle(participantIndex, domainIndex),
-		EsifDataGuid(guid));
-
-	// FIXME:  this should throw an exception if we get an unexpected return code.  For now we will just log an
-	//         error so we can see a list of items to correct.
-	if (rc != ESIF_OK)
+	if (!frameworkEventInfo->usesDummyGuid(frameworkEvent))
 	{
-		MANAGER_LOG_MESSAGE_WARNING({
-			ManagerMessage message = ManagerMessage(
-				m_dptfManager, _file, _line, _function, "Error returned from ESIF unregister event function call");
-			message.setFrameworkEvent(frameworkEvent);
-			message.addMessage("Guid", guid.toString());
-			message.setParticipantAndDomainIndex(participantIndex, domainIndex);
-			message.setEsifErrorCode(rc);
-			return message;
-		});
+
+		eEsifError rc = m_appServices->unregisterForEvent(
+			m_esifHandle,
+			(const esif_handle_t)(UInt64)m_dptfManager,
+			m_dptfManager->getIndexContainer()->getParticipantHandle(participantIndex),
+			(const esif_handle_t)(UInt64)m_dptfManager->getIndexContainer()->getDomainHandle(
+				participantIndex, domainIndex),
+			EsifDataGuid(guid));
+
+		// FIXME:  this should throw an exception if we get an unexpected return code.  For now we will just log an
+		//         error so we can see a list of items to correct.
+		if (rc != ESIF_OK)
+		{
+			MANAGER_LOG_MESSAGE_WARNING({
+				ManagerMessage message = ManagerMessage(
+					m_dptfManager, _file, _line, _function, "Error returned from ESIF unregister event function call");
+				message.setFrameworkEvent(frameworkEvent);
+				message.addMessage("Guid", guid.toString());
+				message.setParticipantAndDomainIndex(participantIndex, domainIndex);
+				message.setEsifErrorCode(rc);
+				return message;
+			});
+		}
 	}
 }
 

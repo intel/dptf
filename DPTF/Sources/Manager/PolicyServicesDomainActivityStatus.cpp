@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -60,6 +60,12 @@ UInt32 PolicyServicesDomainActivityStatus::getTimestampCounterWidth(UIntN partic
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getTimestampCounterWidth(domainIndex);
+}
+
+CoreActivityInfo PolicyServicesDomainActivityStatus::getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getCoreActivityInfo(domainIndex);
 }
 
 void PolicyServicesDomainActivityStatus::setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)

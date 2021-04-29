@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -509,7 +509,7 @@ static void CheckPowerSrcChange(void)
 	if (gFdPowerSrc > 0) {
 		lseek(gFdPowerSrc, 0 , SEEK_SET);
 		if (read(gFdPowerSrc, sysvalstring, sizeof(sysvalstring)) > 0) {
-			if (esif_ccb_strstr(sysvalstring, "Charging"))
+			if (esif_ccb_strstr(sysvalstring, "Charging") || esif_ccb_strstr(sysvalstring, "Full"))
 				powerSrc = POWER_SRC_AC;
 			else
 				powerSrc = POWER_SRC_DC;
@@ -705,13 +705,13 @@ eEsifError esif_unregister_sensor_lin(eEsifEventType eventType)
 	return ESIF_OK;
 }
 
-// The only supported system metrics notification is docking/undocking for Chrome OS
 eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 {
 	const esif_guid_t guidDockMode = {0x30, 0x8d, 0x0c, 0xc9, 0xba, 0x5b, 0x40, 0x0a, 0x99, 0x0a, 0xed, 0x27, 0x29, 0x29, 0xb6, 0xb6};
 	const esif_guid_t guidPowerSrc = {0x5d, 0x3e, 0x9a, 0x59, 0xe9, 0xd5, 0x4b, 0x00, 0xa6, 0xbd, 0xff, 0x34, 0xff, 0x51, 0x65, 0x48};
 	const esif_guid_t guidBattPercent = {0xa7, 0xad, 0x80, 0x41, 0xb4, 0x5a, 0x4c, 0xae, 0x87, 0xa3, 0xee, 0xcb, 0xb4, 0x68, 0xa9, 0xe1};
 	const esif_guid_t guidLidState = {0xba, 0x3e, 0x0f, 0x4d, 0xb8, 0x17, 0x40, 0x94, 0xa2, 0xd1, 0xd5, 0x63, 0x79, 0xe6, 0xa0, 0xf3};
+	const esif_guid_t guidPlatformType = {0x38, 0x92, 0xb5, 0x8c, 0xc8, 0x74, 0x45, 0xbe, 0xb2, 0x19, 0xab, 0x87, 0x49, 0x51, 0x9b, 0xfb};
 	eEsifError rc = ESIF_OK;
 	EsifData evtData = { 0 };
 
@@ -749,6 +749,12 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 		StartEsifSensorMgr();
 	}
 
+	if (0 == memcmp(guid, guidPlatformType, ESIF_GUID_LEN)) {
+		ESIF_DATA_UINT32_ASSIGN(evtData, &gPlatType, sizeof(UInt32));
+		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED, &evtData);
+		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED\n");
+		StartEsifSensorMgr();
+	}
 exit:
 	return rc;
 }

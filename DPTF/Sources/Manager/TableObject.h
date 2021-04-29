@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,35 +21,31 @@
 #include "TableObjectType.h"
 #include "DptfBuffer.h"
 
-class dptf_export TableObjectInterface
+class dptf_export TableObject
 {
 public:
-	virtual ~TableObjectInterface(){};
-	virtual TableObjectType::Type getType() const = 0;
-	virtual const std::map<std::string, std::vector<std::pair<std::string, std::string>>> getDataVaultPathMap() const = 0;
-	virtual const DptfBuffer& getData() const = 0;
-	virtual void setData(const DptfBuffer& data) = 0;
-	virtual std::string getXmlString() = 0;
-};
-
-class dptf_export TableObject : public TableObjectInterface
-{
-public:
-	TableObject(TableObjectType::Type type, std::vector<TableObjectField> fields);
+	TableObject(
+		TableObjectType::Type type,
+		std::vector<TableObjectField> fields,
+		std::vector<std::pair<std::string, std::string>> dataVaultPathForGet,
+		std::vector<std::pair<std::string, std::string>> dataVaultPathForSet);
 	~TableObject();
 
-	TableObjectType::Type getType() const override;
-	const std::map<std::string, std::vector<std::pair<std::string, std::string>>> getDataVaultPathMap() const override;
+	TableObjectType::Type getType() const;
+	std::vector<TableObjectField> getFields() const;
+	std::vector<std::pair<std::string, std::string>> dataVaultPathForGet() const;
+	std::vector<std::pair<std::string, std::string>> dataVaultPathForSet() const;
 
-	const DptfBuffer& getData() const override;
-	void setData(const DptfBuffer& data) override;
+	const DptfBuffer& getData() const;
+	void setData(const DptfBuffer& data);
 
-	std::string getXmlString() override;
+	std::string getXmlString(UInt32 supportedRevision);
 
 private:
 	TableObjectType::Type m_type;
 	std::vector<TableObjectField> m_fields;
+	std::vector<std::pair<std::string, std::string>> m_dataVaultPathForGet;
+	std::vector<std::pair<std::string, std::string>> m_dataVaultPathForSet;
 
 	DptfBuffer m_data;
-	std::map<std::string, std::vector<std::pair<std::string, std::string>>> m_dataVaultPathMap;
 };

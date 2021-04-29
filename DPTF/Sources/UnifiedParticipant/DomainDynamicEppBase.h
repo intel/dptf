@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,4 +50,5 @@ private:
 	DptfRequestResult handleClearCachedResults(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetEppSensitivityHint(const PolicyRequest& policyRequest);
 	DptfRequestResult handleGetDynamicEppSupport(const PolicyRequest& policyRequest) const;
+	DptfRequestResult handleSetDynamicEppSupport(const PolicyRequest& policyRequest);
 };

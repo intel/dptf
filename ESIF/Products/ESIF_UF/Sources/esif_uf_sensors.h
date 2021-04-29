@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -199,6 +199,8 @@ static ESIF_INLINE char* GetPlatTypeStr(PlatformType platType)
 #define esif_register_sensors(eventType) esif_register_sensors_win(eventType)
 #define esif_unregister_sensors(eventType) esif_unregister_sensors_win(eventType)
 #define esif_is_face_detection_capable_sensor() esif_is_face_detection_capable_sensor_win()
+#define esif_get_bp_sensor_instance(ret) esif_get_bp_sensor_instance_win(ret)
+#define esif_set_bp_sensor_instance(arg) esif_set_bp_sensor_instance_win(arg)
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 #include "lin/esif_uf_sensor_manager_os_lin.h"
@@ -206,6 +208,8 @@ static ESIF_INLINE char* GetPlatTypeStr(PlatformType platType)
 #define esif_register_sensors(eventType) esif_register_sensor_lin(eventType)
 #define esif_unregister_sensors(eventType) esif_unregister_sensor_lin(eventType)
 #define esif_is_face_detection_capable_sensor() (ESIF_E_NOT_IMPLEMENTED)
+#define esif_get_bp_sensor_instance(ret) (ESIF_E_NOT_IMPLEMENTED)
+#define esif_set_bp_sensor_instance(arg) (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
 

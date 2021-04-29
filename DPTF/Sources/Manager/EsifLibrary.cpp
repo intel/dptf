@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -120,4 +120,16 @@ std::string EsifLibrary::getLibDirectory(void) const
 		}
 	}
 	return directory;
+}
+
+void EsifLibrary::dropSymLink(void)
+{
+	esif_string esifString = const_cast<esif_string>(m_fileName.c_str());
+	esif_string fileName = esifString && esifString[0] ? esifString : NULL;
+	if (fileName && esif_ccb_drop_symlink(fileName) != 0)
+	{
+		std::stringstream message;
+		message << "Failed to drop symlink: " << m_fileName;
+		throw dptf_exception(message.str());
+	}
 }

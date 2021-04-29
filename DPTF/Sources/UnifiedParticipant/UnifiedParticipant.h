@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,8 @@
 #include "ParticipantSetSpecificInfoBase.h"
 #include "ControlFactoryList.h"
 #include "RfProfileDataSet.h"
+#include "CoreActivityInfo.h"
+#include "EnergyCounterInfo.h"
 
 class UnifiedParticipant : public ParticipantInterface
 {
@@ -120,6 +122,7 @@ public:
 	virtual UInt32 getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
+	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
 		override;
 
@@ -154,6 +157,7 @@ public:
 	// Energy Controls
 	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
+	virtual EnergyCounterInfo getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getEnergyThreshold(UIntN participantIndex, UIntN domainIndex) override;
@@ -316,6 +320,13 @@ public:
 
 	// RF Profile Status
 	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) override;
+	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) override;
+	virtual void setDdrRfiTable(
+		UIntN participantIndex, 
+		UIntN domainIndex,
+		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) override;
 
 	// Utilization
 	virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;

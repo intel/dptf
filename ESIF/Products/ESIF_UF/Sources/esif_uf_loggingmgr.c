@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 #define ESIF_TRACE_ID	ESIF_TRACEMODULE_LOGGINGMGR
 
+#include "esif_uf_ccb_system.h"
 #include "esif_uf_loggingmgr.h"
 #include "esif_temp.h"
 #include "esif_sdk_fan.h"
@@ -268,7 +269,7 @@ static eEsifError EsifLogMgr_Init(EsifLoggingManagerPtr self)
 		goto exit;
 	}
 
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION,
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DTT_PARTICIPANT_CONTROL_ACTION,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_MATCH_ANY_DOMAIN,
 		EsifLogMgr_EventCallback,
@@ -356,7 +357,7 @@ void EsifLogMgr_EnableParticipant(
 				// Update the ID as the participant may have been removed and restored with new ID
 				curEntryPtr->participantId = participantId;
 
-				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
+				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DTT_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
 					curEntryPtr->participantId,
 					(UInt16)curEntryPtr->domainId,
 					(1 << curEntryPtr->capabilityData.type)
@@ -395,7 +396,7 @@ void EsifLogMgr_DisableParticipant(
 			if ((curEntryPtr != NULL) &&
 				(curEntryPtr->participantId == participantId)) {
 
-				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED,
+				EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DTT_PARTICIPANT_ACTIVITY_LOGGING_DISABLED,
 					participantId,
 					(UInt16)curEntryPtr->domainId,
 					(1 << curEntryPtr->capabilityData.type)
@@ -593,6 +594,13 @@ eEsifError EsifLogMgr_ParseCmdRoute(
 	argc = shell->argc;
 	argv = shell->argv;
 	output = shell->outbuf;
+
+	/*
+	* Close the file handle if the listener is log file
+	*/
+	if (self->listenersMask & ESIF_LISTENER_LOGFILE_MASK) {
+		EsifLogFile_Close(ESIF_LOG_PARTICIPANT);
+	}
 
 	orgListenersMask = self->listenersMask;
 	self->listenersMask = ESIF_LISTENER_NONE;
@@ -1072,7 +1080,7 @@ static eEsifError ESIF_CALLCONV EsifLogMgr_EventCallback(
 	self = (EsifLoggingManagerPtr)esif_ccb_context2ptr(context);
 
 	switch (fpcEventPtr->esif_event) {
-	case ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION:
+	case ESIF_EVENT_DTT_PARTICIPANT_CONTROL_ACTION:
 
 		if (NULL == eventDataPtr) {
 			ESIF_TRACE_ERROR("eventDataPtr is NULL");
@@ -1325,7 +1333,7 @@ static eEsifError EsifLogMgr_AddDomain(
 	}
 
 	EsifLogMgr_SendParticipantLogEvent(
-		ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
+		ESIF_EVENT_DTT_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
 		EsifUp_GetInstance(upPtr),
 		EsifUp_GetDomainId(domainPtr),
 		capabilityMask
@@ -2041,7 +2049,7 @@ static void EsifLogMgr_ParticipantLogWriteData(
 				if (upPtr != NULL) {
 					if (!curEntryPtr->isAcknowledged) {
 						/* Covers a race condition where the app may not know about participant at the time we tell it to enable logging */
-						EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
+						EsifLogMgr_SendParticipantLogEvent(ESIF_EVENT_DTT_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
 							curEntryPtr->participantId,
 							(UInt16)curEntryPtr->domainId,
 							(1 << curEntryPtr->capabilityData.type)
@@ -2207,7 +2215,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 	case ESIF_CAPABILITY_TYPE_MANAGER:
 		esif_ccb_sprintf_concat(dataLength, logString, " OS Power Source, OS Battery Percent, OS Dock Mode, OS Game Mode, OS Lid State, OS Power Slider, OS User Interaction,"
 			" OS User Presence, OS Screen State, Device Orientation, In Motion, System Cooling Mode, OS Platform Type,"
-			" Display Orientation, OS Power Scheme Personality, OS Mixed Reality Mode, Platform User Presence, Foreground Background Ratio,");
+			" Display Orientation, OS Power Scheme Personality, OS Mixed Reality Mode, Platform User Presence, Foreground Background Ratio, PPM Package,");
 		break;
 	default:
 		break;
@@ -2248,6 +2256,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 {
 	eEsifError rc = ESIF_OK;
 	EsifCapabilityDataPtr capabilityPtr = NULL;
+	char guidStr[ESIF_GUID_PRINT_SIZE] = { 0 };
 
 	ESIF_ASSERT(logString != NULL);
 	ESIF_ASSERT(dataNodePtr != NULL);
@@ -2418,11 +2427,35 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			for (psysType = 0; psysType < MAX_PSYS_CONTROL_TYPE; psysType++)
 			{
 				if (capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimitType <= MAX_PSYS_CONTROL_TYPE) {
-					esif_ccb_sprintf_concat(dataLength, logString, " %u, %u, %u, ",
-						capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimit,
-						capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitDutyCycle,
-						capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitTimeWindow
-					);
+					if (capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimit != ESIF_INVALID_DATA) {
+						esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+							capabilityPtr->data.psysControl.powerDataSet[psysType].powerLimit
+						);
+					}
+					else {
+						esif_ccb_sprintf_concat(dataLength, logString, " X,"
+						);
+					}
+
+					if (capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitDutyCycle != ESIF_INVALID_DATA) {
+						esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+							capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitDutyCycle
+						);
+					}
+					else {
+						esif_ccb_sprintf_concat(dataLength, logString, " X,"
+						);
+					}
+
+					if (capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitTimeWindow != ESIF_INVALID_DATA) {
+						esif_ccb_sprintf_concat(dataLength, logString, " %u,",
+							capabilityPtr->data.psysControl.powerDataSet[psysType].PowerLimitTimeWindow
+						);
+					}
+					else {
+						esif_ccb_sprintf_concat(dataLength, logString, " X,"
+						);
+					}
 				}
 			}
 			break;
@@ -2444,10 +2477,10 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_MANAGER:
 		{
 			if (capabilityPtr->data.managerStatus.osPowerSource == ESIF_INVALID_DATA) {
-				esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+				esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			}
 			else {
-				esif_ccb_sprintf_concat(dataLength, logString, " %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,",
+				esif_ccb_sprintf_concat(dataLength, logString, " %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%s,%u,%u,%u,%u,",
 					capabilityPtr->data.managerStatus.osPowerSource,
 					capabilityPtr->data.managerStatus.batteryPercent,
 					capabilityPtr->data.managerStatus.dockMode,
@@ -2462,10 +2495,11 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 					capabilityPtr->data.managerStatus.systemCoolingMode,
 					capabilityPtr->data.managerStatus.platformType,
 					capabilityPtr->data.managerStatus.displayOrientation,
-					capabilityPtr->data.managerStatus.powerSchemePersonality,
+					esif_guid_print(&capabilityPtr->data.managerStatus.powerSchemePersonality, guidStr),
 					capabilityPtr->data.managerStatus.mixedRealityMode,
 					capabilityPtr->data.managerStatus.platformUserPresence,
-					capabilityPtr->data.managerStatus.foregroundBackgroundRatio
+					capabilityPtr->data.managerStatus.foregroundBackgroundRatio,
+					capabilityPtr->data.managerStatus.ppmPackage
 				);
 			}
 			break;
@@ -2537,7 +2571,7 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			esif_ccb_sprintf_concat(dataLength, logString, " X, X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_MANAGER:
-			esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
+			esif_ccb_sprintf_concat(dataLength, logString, " X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,X,");
 			break;
 		default:
 			rc = ESIF_E_UNSPECIFIED;
@@ -2769,7 +2803,11 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 	case ESIF_CAPABILITY_TYPE_MANAGER:
 	{
 		UInt32 eventData = ESIF_INVALID_DATA;
+		esif_guid_t  eventGuidData = { 0 };
 		struct esif_data capabilityEventData = { ESIF_DATA_UINT32, &eventData, sizeof(eventData), sizeof(eventData) };
+		struct esif_data capabilityEventGuidData = { ESIF_DATA_GUID, &eventGuidData, sizeof(eventGuidData), sizeof(eventGuidData) };
+		
+
 		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &capabilityEventData);
 		if (rc != ESIF_OK) {
 			ESIF_TRACE_INFO("Failed to retrieve os power source event cache data \n");
@@ -2847,7 +2885,7 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 		dataNodePtr->capabilityData.data.managerStatus.inMotion = eventData;
 
 		eventData = ESIF_INVALID_DATA;
-		rc = EsifEventCache_GetValue(ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED, &capabilityEventData);
+		rc = EsifEventCache_GetValue(ESIF_EVENT_DTT_SYSTEM_COOLING_POLICY_CHANGED, &capabilityEventData);
 		if (rc != ESIF_OK) {
 			ESIF_TRACE_INFO("Failed to retrieve system cooling mode event cache data \n");
 		}
@@ -2867,12 +2905,12 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 		}
 		dataNodePtr->capabilityData.data.managerStatus.displayOrientation = eventData;
 
-		eventData = ESIF_INVALID_DATA;
-		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED, &capabilityEventData);
+		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED, &capabilityEventGuidData);
 		if (rc != ESIF_OK) {
 			ESIF_TRACE_INFO("Failed to retrieve os power scheme personality event cache data \n");
 		}
-		dataNodePtr->capabilityData.data.managerStatus.powerSchemePersonality = eventData;
+		esif_ccb_memcpy(&dataNodePtr->capabilityData.data.managerStatus.powerSchemePersonality, &eventGuidData, SIZE_OF(EsifManagerStatusData, powerSchemePersonality));
+		esif_guid_mangle(&dataNodePtr->capabilityData.data.managerStatus.powerSchemePersonality);
 
 		eventData = ESIF_INVALID_DATA;
 		rc = EsifEventCache_GetValue(ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED, &capabilityEventData);
@@ -3012,7 +3050,7 @@ static eEsifError EsifLogMgr_Uninit(EsifLoggingManagerPtr self)
 	
 	EsifLogMgr_DestroyScheduleTimer(self);
 	
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DPTF_PARTICIPANT_CONTROL_ACTION,
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DTT_PARTICIPANT_CONTROL_ACTION,
 		EVENT_MGR_MATCH_ANY,
 		EVENT_MGR_MATCH_ANY_DOMAIN,
 		EsifLogMgr_EventCallback,
@@ -3082,7 +3120,7 @@ static void EsifLogMgr_DestroyEntry(EsifParticipantLogDataNodePtr curEntryPtr)
 
 	capabilityMask = (UInt32)(1 << curEntryPtr->capabilityData.type);
 	EsifLogMgr_SendParticipantLogEvent(
-		ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED,
+		ESIF_EVENT_DTT_PARTICIPANT_ACTIVITY_LOGGING_DISABLED,
 		curEntryPtr->participantId,
 		(UInt16)curEntryPtr->domainId,
 		capabilityMask

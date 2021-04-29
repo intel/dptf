@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -61,6 +61,7 @@ namespace DataVaultPath
 			static const std::string Psha = DataVaultPathBasePaths::TablesRoot + "/psha/";
 			static const std::string Acpr = DataVaultPathBasePaths::TablesRoot + "/acpr/";
 			static const std::string Psh2 = DataVaultPathBasePaths::TablesRoot + "/psh2/";
+			static const std::string Itmt = DataVaultPathBasePaths::TablesRoot + "/itmt/";
 		};
 	};
 
@@ -71,7 +72,6 @@ namespace DataVaultPath
 		static const std::string Pl2Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_sharing";
 		static const std::string Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl4_sharing";
 		static const std::string Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
-		static const std::string Phidgets = DataVaultPathBasePaths::FeaturesRoot + "/phidgets";
 	};
 
 	namespace AUPPControls

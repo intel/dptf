@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -29,6 +29,12 @@ public:
 	// Create policies
 	virtual void createAllPolicies(const std::string& dptfHomeDirectoryPath) override;
 	virtual UIntN createPolicy(const std::string& policyFileName) override;
+	virtual UIntN createDynamicPolicy(
+		const std::string& policyFileName,
+		Guid dynamicPolicyUuid,
+		Guid dynamicPolicyTemplateGuid,
+		const std::string& dynamicPolicyName,
+		const std::string& dynamicPolicyUuidString) override;
 
 	// Destroy policies
 	virtual void destroyAllPolicies(void) override;
@@ -37,6 +43,7 @@ public:
 	// Allows the work items to iterate through the list of policies.
 	virtual std::set<UIntN> getPolicyIndexes(void) const override;
 	virtual std::shared_ptr<ISupportedPolicyList> getSupportedPolicyList(void) const override;
+	virtual std::shared_ptr<ISupportedDynamicPolicyList> getSupportedDynamicPolicyList(void) const override;
 	virtual IPolicy* getPolicyPtr(UIntN policyIndex) override;
 	virtual std::shared_ptr<IPolicy> getPolicy(const std::string& policyName) const override;
 	virtual Bool policyExists(const std::string& policyName) const override;
@@ -58,11 +65,13 @@ private:
 	DptfManagerInterface* m_dptfManager;
 	std::map<UIntN, std::shared_ptr<IPolicy>> m_policies;
 	std::shared_ptr<SupportedPolicyList> m_supportedPolicyList;
+	std::shared_ptr<SupportedDynamicPolicyList> m_supportedDynamicPolicyList;
 
 	// tracks the overall events registered by one or more policies
 	std::bitset<PolicyEvent::Max> m_registeredEvents;
 
 	void throwIfPolicyAlreadyExists(std::string policyFileName);
+	void throwIfDynamicPolicyAlreadyExists(std::string policyFileName, std::string policyName);
 	Bool isAnyPolicyRegisteredForEvent(PolicyEvent::Type policyEvent);
 	UIntN getPolicyCount(void);
 	std::shared_ptr<XmlNode> getEventsXmlForPolicy(UIntN policyIndex);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "PolicyServices.h"
 #include "DomainActivityStatusInterface.h"
+#include "CoreActivityInfo.h"
 
 class PolicyServicesDomainActivityStatus final : public PolicyServices, public DomainActivityStatusInterface
 {
@@ -33,6 +34,7 @@ public:
 	virtual UInt32 getCoreActivityCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt64 getTimestampCounter(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getTimestampCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, 
 		UInt32 powerShareEffectiveBias) override final;
 };

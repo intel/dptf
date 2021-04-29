@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -28,16 +28,18 @@ namespace PpmPackage
 		esif_guid_t subgroupGuid;
 		esif_guid_t paramGuid;
 		UIntN paramValue;
+		UIntN betterBattery;
+		UIntN betterPerformance;
 	};
 
 	enum Type
 	{
-		Performance = 1,
-		Responsiveness = 2,
-		BatteryLife = 3,
-		PerformanceAutonomous = 4,
-		ResponsivenessAutonomous = 5,
-		BatteryLifeAutonomous = 6,
+		P1 = 1,
+		P2 = 2,
+		P3 = 3,
+		R1 = 4,
+		B1 = 5,
+		B2 = 6,
 		
 		Invalid
 	};

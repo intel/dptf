@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -27,31 +27,10 @@ DomainSocWorkloadClassification_001::DomainSocWorkloadClassification_001(
 	: DomainSocWorkloadClassificationBase(participantIndex, domainIndex, participantServicesInterface)
 	, m_socWorkload(Constants::Invalid)
 {
-	checkSocWorkloadClassificationSupport();
 }
 
 DomainSocWorkloadClassification_001::~DomainSocWorkloadClassification_001()
 {
-}
-
-void DomainSocWorkloadClassification_001::checkSocWorkloadClassificationSupport()
-{
-	try
-	{
-		m_isSocWorkloadSupported = (getParticipantServices()->primitiveExecuteGetAsUInt32(
-										esif_primitive_type::GET_SUPPORT_SOC_WORKLOAD, getDomainIndex())
-									== 1)
-									   ? true
-									   : false;
-	}
-	catch (dptf_exception& ex)
-	{
-		PARTICIPANT_LOG_MESSAGE_WARNING_EX({ return "Failed to get Soc workload support. " + ex.getDescription(); });
-	}
-	catch (...)
-	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get Soc workload support."; });
-	}
 }
 
 UInt32 DomainSocWorkloadClassification_001::getSocWorkloadClassification()
@@ -83,26 +62,22 @@ std::string DomainSocWorkloadClassification_001::getName(void)
 std::shared_ptr<XmlNode> DomainSocWorkloadClassification_001::getXml(UIntN domainIndex)
 {
 	std::shared_ptr<XmlNode> root = XmlNode::createRoot();
+	std::shared_ptr<XmlNode> node = XmlNode::createWrapperElement("soc_workload");
+	node->addChild(XmlNode::createDataElement("control_name", getName()));
+	node->addChild(XmlNode::createDataElement("control_knob_version", "001"));
 
-	if (m_isSocWorkloadSupported)
+	try
 	{
-		std::shared_ptr<XmlNode> node = XmlNode::createWrapperElement("soc_workload");
-		node->addChild(XmlNode::createDataElement("control_name", getName()));
-		node->addChild(XmlNode::createDataElement("control_knob_version", "001"));
-
-		try
-		{
-			node->addChild(XmlNode::createDataElement(
-				"value",
-				SocWorkloadClassification::toString((SocWorkloadClassification::Type)m_socWorkload)));
-		}
-		catch (...)
-		{
-			node->addChild(XmlNode::createDataElement("value", Constants::InvalidString));
-		}
-
-		root->addChild(node);
+		node->addChild(XmlNode::createDataElement(
+			"value",
+			SocWorkloadClassification::toString((SocWorkloadClassification::Type)m_socWorkload)));
 	}
+	catch (...)
+	{
+		node->addChild(XmlNode::createDataElement("value", Constants::InvalidString));
+	}
+
+	root->addChild(node);
 
 	return root;
 }

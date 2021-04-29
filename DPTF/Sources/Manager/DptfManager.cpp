@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -140,9 +140,9 @@ void DptfManager::createDptfManager(
 		createCommands();
 		registerCommands();
 
-		m_policyManager = new PolicyManager(this);
-
 		m_dataManager = new DataManager(this);
+
+		m_policyManager = new PolicyManager(this);
 
 		// Make sure to create these AFTER creating the ParticipantManager and PolicyManager
 		m_workItemQueueManager = new WorkItemQueueManager(this);

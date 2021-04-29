@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -44,6 +44,9 @@ void DomainDynamicEppBase::bindRequestHandlers()
 		DptfRequestType::DynamicEppGetDynamicEppSupport, [=](const PolicyRequest& policyRequest) {
 			return this->handleGetDynamicEppSupport(policyRequest);
 		});
+	bindRequestHandler(DptfRequestType::DynamicEppSetDynamicEppSupport, [=](const PolicyRequest& policyRequest) {
+		return this->handleSetDynamicEppSupport(policyRequest);
+	});
 }
 
 DptfRequestResult DomainDynamicEppBase::handleClearCachedResults(const PolicyRequest& policyRequest)
@@ -92,6 +95,27 @@ DptfRequestResult DomainDynamicEppBase::handleGetDynamicEppSupport(const PolicyR
 	result.setDataFromBool(m_isDynamicEppSupported);
 
 	return result;
+}
+
+DptfRequestResult DomainDynamicEppBase::handleSetDynamicEppSupport(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		UInt32 dynamicEppSupport = request.getDataAsUInt32();
+		setDynamicEppSupport(dynamicEppSupport);
+
+		return DptfRequestResult(true, "Successfully set dynamic epp support.", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		return DptfRequestResult(false, "Failed to set dynamic epp support: " + ex.getDescription(), request);
+	}
+	catch (...)
+	{
+		return DptfRequestResult(false, "Failed to set dynamic epp support.", request);
+	}
 }
 
 void DomainDynamicEppBase::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -35,10 +35,7 @@
 #include "OsPowerSlider.h"
 #include "SocWorkloadClassification.h"
 #include "SensorUserPresence.h"
-#include "SensorMode.h"
-#include "BiometricPresenceSensorInstance.h"
 #include "UserInteraction.h"
-#include "UserPresenceCorrelation.h"
 #include "MbtHint.h"
 
 class dptf_export PolicyInterface
@@ -53,7 +50,9 @@ public:
 	virtual void create(
 		Bool enabled,
 		const PolicyServicesInterfaceContainer& policyServicesInterfaceContainer,
-		UIntN policyIndex) = 0;
+		UIntN policyIndex,
+		const std::string& dynamicPolicyUuid,
+		const std::string& dynamicPolicyName) = 0;
 
 	//
 	// In response to this call, the policy must clean up all of its internal data structures.
@@ -147,10 +146,7 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) = 0;
-	virtual void domainEppSensitivityHintChanged(
-		UIntN participantIndex, 
-		UIntN domainIndex, 
-		MbtHint::Type mbtHint) = 0;
+	virtual void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint) = 0;
 
 	// Policy Event Handlers
 	virtual void activeRelationshipTableChanged(void) = 0;
@@ -177,10 +173,9 @@ public:
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) = 0;
 	virtual void sensorSpatialOrientationChanged(SensorSpatialOrientation::Type sensorSpatialOrientation) = 0;
 	virtual void thermalRelationshipTableChanged(void) = 0;
-	virtual void adaptiveUserPresenceTableChanged(void) = 0;
 	virtual void adaptivePerformanceConditionsTableChanged(void) = 0;
-	virtual void adaptivePerformanceParticipantConditionTableChanged(void) = 0;
 	virtual void adaptivePerformanceActionsTableChanged(void) = 0;
+	virtual void ddrfTableChanged(void) = 0;
 	virtual void oemVariablesChanged(void) = 0;
 	virtual void powerBossConditionsTableChanged(void) = 0;
 	virtual void powerBossActionsTableChanged(void) = 0;
@@ -190,71 +185,15 @@ public:
 	virtual void pidAlgorithmTableChanged(void) = 0;
 	virtual void activeControlPointRelationshipTableChanged(void) = 0;
 	virtual void powerShareAlgorithmTableChanged(void) = 0;
+	virtual void intelligentThermalManagementTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) = 0;
 	virtual void workloadHintConfigurationChanged(void) = 0;
 	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
 	virtual void powerShareAlgorithmTable2Changed(void) = 0;
-	virtual void sensorUserPresenceChanged(SensorUserPresence::Type userPresence) = 0;
 	virtual void platformUserPresenceChanged(SensorUserPresence::Type userPresence) = 0;
-	virtual void wakeOnApproachFeatureStateChanged(
-		Bool wakeOnApproachFeatureState) = 0;
-	virtual void wakeOnApproachWithExternalMonitorFeatureStateChanged(
-		Bool wakeOnApproachWithExternalMonitorFeatureState) = 0;
-	virtual void wakeOnApproachOnLowBatteryFeatureStateChanged(
-		Bool wakeOnApproachOnLowBatteryFeatureState) = 0;
-	virtual void wakeOnApproachBatteryRemainingPercentageChanged(
-		Percentage wakeOnApproachBatteryRemainingPercentage) = 0;
-	virtual void walkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState) = 0;
-	virtual void walkAwayLockWithExternalMonitorFeatureStateChanged(
-		Bool walkAwayLockWithExternalMonitorFeatureState) = 0;
-	virtual void walkAwayLockDimScreenFeatureStateChanged(
-		Bool walkAwayLockDimScreenFeatureState) = 0;
-	virtual void walkAwayLockDisplayOffAfterLockFeatureStateChanged(
-		Bool walkAwayLockDisplayOffAfterLockFeatureState) = 0;
-	virtual void walkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-		Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState) = 0;
-	virtual void walkAwayLockHonorUserInCallFeatureStateChanged(
-		Bool walkAwayLockHonorUserInCallFeatureState) = 0;
-	virtual void userInCallStateChanged(Bool userInCallState) = 0;
-	virtual void walkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime) = 0;
-	virtual void walkAwayLockPreDimWaitTimeChanged(
-		TimeSpan walkAwayLockPreDimWaitTime) = 0;
-	virtual void walkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime) = 0;
-	virtual void walkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval) = 0;
-	virtual void adaptiveDimmingFeatureStateChanged(
-		Bool adaptiveDimmingFeatureState) = 0;
-	virtual void adaptiveDimmingWithExternalMonitorFeatureStateChanged(
-		Bool adaptiveDimmingWithExternalMonitorFeatureState) = 0;
-	virtual void adaptiveDimmingWithPresentationModeFeatureStateChanged(
-		Bool adaptiveDimmingWithPresentationModeFeatureState) = 0;
-	virtual void adaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime) = 0;
-	virtual void mispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState) = 0;
-	virtual void mispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow) = 0;
-	virtual void misprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime) = 0;
-	virtual void misprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime) = 0;
-	virtual void misprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime) = 0;
-	virtual void misprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime) = 0;
-	virtual void noLockOnPresenceFeatureStateChanged(
-		Bool noLockOnPresenceFeatureState) = 0;
-	virtual void noLockOnPresenceExternalMonitorFeatureStateChanged(
-		Bool noLockOnPresenceExternalMonitorFeatureState) = 0;
-	virtual void noLockOnPresenceOnBatteryFeatureStateChanged(
-		Bool noLockOnPresenceOnBatteryFeatureState) = 0;
-	virtual void noLockOnPresenceBatteryRemainingPercentageChanged(
-		Percentage noLockOnPresenceBatteryRemainingPercentage) = 0;
-	virtual void noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) = 0;
-	virtual void failsafeTimeoutChanged(TimeSpan failsafeTimeout) = 0;
-	virtual void contextServiceStatusChanged(Bool contextServiceStatus) = 0;
 	virtual void externalMonitorStateChanged(Bool externalMonitorStateChanged) = 0;
-	virtual void userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) = 0;
-	virtual void userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) = 0;
-	virtual void userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) = 0;
-	virtual void userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) = 0;
-	virtual void sensorModeChanged(SensorMode::Type sensorMode) = 0;
-	virtual void biometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance) = 0;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) = 0;
-	virtual void userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) = 0;
 	virtual void foregroundRatioChanged(UIntN ratio) = 0;
 };
 

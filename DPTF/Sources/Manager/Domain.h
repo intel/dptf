@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -24,6 +24,8 @@
 #include "Arbitrator.h"
 #include "PsysPowerLimitType.h"
 #include "RfProfileDataSet.h"
+#include "CoreActivityInfo.h"
+#include "EnergyCounterInfo.h"
 #include "DptfManagerInterface.h"
 
 class Domain
@@ -69,6 +71,7 @@ public:
 	UInt32 getCoreActivityCounterWidth();
 	UInt64 getTimestampCounter();
 	UInt32 getTimestampCounterWidth();
+	CoreActivityInfo getCoreActivityInfo();
 	void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias);
 
 	// Core controls
@@ -95,6 +98,7 @@ public:
 
 	// Energy Controls
 	UInt32 getRaplEnergyCounter();
+	EnergyCounterInfo getRaplEnergyCounterInfo();
 	double getRaplEnergyUnit();
 	UInt32 getRaplEnergyCounterWidth();
 	Power getInstantaneousPower();
@@ -192,6 +196,10 @@ public:
 
 	// RF Profile Status
 	RfProfileDataSet getRfProfileDataSet(void);
+	UInt32 getWifiCapabilities(void);
+	UInt32 getRfiDisable(void);
+	UInt64 getDvfsPoints(void);
+	void setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
 
 	// Utilization
 	UtilizationStatus getUtilizationStatus(void);

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -22,14 +22,17 @@
 #include "esif_dsp.h"
 #include "esif_uf_ccb_imp_spec.h"
 #include "esif_uf_sysfs_os_lin.h"
+#include <dirent.h>
 
 #define DEFAULT_DRIVER_NAME	""
 #define DEFAULT_DEVICE_NAME	""
 
 // Sysfs Paths
-#define SYSFS_THERMAL	"/sys/class/thermal"
-#define SYSFS_PCI		"/sys/bus/pci/devices"
-#define SYSFS_PLATFORM	"/sys/bus/platform/devices"
+#define SYSFS_THERMAL	         "/sys/class/thermal"
+#define SYSFS_PCI                "/sys/bus/pci/devices"
+#define SYSFS_PLATFORM	         "/sys/bus/platform/devices"
+#define SYSFS_DEVICES_PLATFORM   "/sys/devices/platform"
+#define INSTANCE_ID_0            ":00"
 
 #define MAX_FMT_STR_LEN 15 // "%<Int32>s"
 #define MAX_ZONE_NAME_LEN 56
@@ -69,11 +72,16 @@ static eEsifError newParticipantCreate(
 	const char *objectId,
 	const UInt32 acpiType
 	);
+static Bool IsValidDirectoryPath(const char* dirPath);
+static eEsifError GetManagerSysfsPathFromAcpiId(char *acpiId);
+static void GetManagerSysfsPath(char *participantName);
 
 enum zoneType {
 	THERM,
 	CDEV,
 };
+
+char g_ManagerSysfsPath[MAX_SYSFS_PATH] = { 0 };
 
 struct participantInfo {
 	char sysfsType[MAX_ZONE_NAME_LEN];
@@ -163,6 +171,7 @@ void SysfsRegisterParticipants ()
 
 	/* we forced IETM to index 0 for now because ESIF expects that */
 	EsifUpPm_RegisterParticipant(origin, &sysPart, &newInstance);
+	GetManagerSysfsPath(spType);
 
 	scanThermal();
 	scanPCI();
@@ -519,3 +528,69 @@ exit:
 	return rc;
 }
 
+static Bool IsValidDirectoryPath(const char* dirPath)
+{
+	Bool isValid = ESIF_FALSE;
+	DIR* dir = opendir(dirPath);
+	if (dir != NULL) { // directory is valid
+		isValid = ESIF_TRUE;
+		closedir(dir);
+	}
+
+	ESIF_TRACE_DEBUG("Directory Path %s is %s" , dirPath , isValid ? "Valid" : "Not Valid");
+	return isValid;
+}
+
+static eEsifError GetManagerSysfsPathFromAcpiId(char *acpiId)
+{
+	eEsifError rc = ESIF_OK;
+	char *deviceId = NULL;
+
+	ESIF_ASSERT(NULL != acpiId);
+	esif_ccb_memset( g_ManagerSysfsPath, 0, sizeof(g_ManagerSysfsPath));
+
+	while ((deviceId = esif_ccb_strtok(acpiId, "|", &acpiId))) {
+		ESIF_TRACE_DEBUG("Device ID : %s\n", deviceId);
+
+		esif_ccb_sprintf(sizeof(g_ManagerSysfsPath), g_ManagerSysfsPath, "%s/%s%s", SYSFS_DEVICES_PLATFORM,deviceId,INSTANCE_ID_0);
+		if (IsValidDirectoryPath(g_ManagerSysfsPath) == ESIF_TRUE) {
+			//Found a valid manager sysfs path, return
+			ESIF_TRACE_INFO("Manager Sysfs Path : %s\n", g_ManagerSysfsPath);
+			break;
+		}
+		esif_ccb_memset( g_ManagerSysfsPath, 0, sizeof(g_ManagerSysfsPath));
+	}
+
+	if ( esif_ccb_strlen(g_ManagerSysfsPath, sizeof(g_ManagerSysfsPath)) == 0) {
+		rc = ESIF_E_NOT_FOUND;
+		ESIF_TRACE_ERROR("GetManagerSysfsPathFromAcpiId failed\n");
+		goto exit;
+	}
+	ESIF_TRACE_DEBUG("GetManagerSysfsPathFromAcpiId completed succesfully\n");
+
+exit:
+	return rc;
+}
+
+static void GetManagerSysfsPath(char *participantName)
+{
+	ESIF_ASSERT(NULL != participantName);
+
+	EsifUpPtr managerPtr = EsifUpPm_GetAvailableParticipantByName(participantName);
+	if ( managerPtr == NULL ) {
+		ESIF_TRACE_ERROR("Invalid Manager Instance\n");
+		goto exit;
+	}
+
+	if ( managerPtr->fDspPtr == NULL || managerPtr->fDspPtr->acpi_device == NULL) {
+		ESIF_TRACE_ERROR("Invalid DSP Pointer/ACPI Device\n");
+		goto exit;
+	}
+
+	ESIF_TRACE_DEBUG("ACPI Device : %s\n" , managerPtr->fDspPtr->acpi_device);
+	GetManagerSysfsPathFromAcpiId(managerPtr->fDspPtr->acpi_device);
+
+exit:
+	EsifUp_PutRef(managerPtr);
+	return;
+}

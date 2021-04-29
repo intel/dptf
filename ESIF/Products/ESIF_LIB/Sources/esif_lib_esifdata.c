@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -39,7 +39,7 @@
 #define MAXSTR_INT16        7
 #define MAXSTR_INT32        12
 #define MAXSTR_INT64        22
-#define MAXSTR_DEFAULT      256
+#define MAXSTR_DEFAULT      MAX_LINE
 #define MAXSTR_MINVALUE     4
 #define MAXSTR_MAXVALUE     0x7ffffffe
 

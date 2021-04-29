@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -253,7 +253,7 @@ eEsifError EsifUpPm_ParticipantActivityLoggingEnable(EsifUpPtr upPtr)
 
 						EsifEventMgr_SignalEvent(domainPtr->participantId,
 							domainPtr->domain,
-							ESIF_EVENT_DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
+							ESIF_EVENT_DTT_PARTICIPANT_ACTIVITY_LOGGING_ENABLED,
 							&capData
 						);
 						break;
@@ -544,10 +544,10 @@ static eEsifError ESIF_CALLCONV EsifUpPm_EventCallback(
 			EsifUpPm_ActionChangeHandler(eventDataPtr);
 		break;
 
-	case ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY:
+	case ESIF_EVENT_DISPLAY_OFF:
 			EsifUpPm_StartAllParticipantsSlowPoll();
 		break;
-	case ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT:
+	case ESIF_EVENT_DISPLAY_ON:
 			EsifUpPm_StopAllParticipantsSlowPoll();
 		break;
 
@@ -1517,8 +1517,8 @@ eEsifError EsifUpPm_Init(void)
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_LOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
-	EsifEventMgr_RegisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_OFF, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_RegisterEventByType(ESIF_EVENT_DISPLAY_ON, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_RegisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 
@@ -1538,8 +1538,8 @@ void EsifUpPm_Exit(void)
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_PARTICIPANT_UNREGISTER, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_LOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_ACTION_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_ENTRY, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
-	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_APP_CONNECTED_STANDBY_EXIT, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_OFF, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
+	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_DISPLAY_ON, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_BATTERY_COUNT_NOTIFICATION, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 	EsifEventMgr_UnregisterEventByType(ESIF_EVENT_LF_UNLOADED, EVENT_MGR_MATCH_ANY, EVENT_MGR_DOMAIN_D0, EsifUpPm_EventCallback, 0);
 

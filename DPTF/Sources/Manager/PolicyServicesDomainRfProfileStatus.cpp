@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -30,4 +30,32 @@ RfProfileDataSet PolicyServicesDomainRfProfileStatus::getRfProfileDataSet(UIntN 
 {
 	throwIfNotWorkItemThread();
 	return getParticipantManager()->getParticipantPtr(participantIndex)->getRfProfileDataSet(domainIndex);
+}
+
+UInt32 PolicyServicesDomainRfProfileStatus::getWifiCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getWifiCapabilities(domainIndex);
+}
+
+UInt32 PolicyServicesDomainRfProfileStatus::getRfiDisable(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getRfiDisable(domainIndex);
+}
+
+UInt64 PolicyServicesDomainRfProfileStatus::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+	return getParticipantManager()->getParticipantPtr(participantIndex)->getDvfsPoints(domainIndex);
+}
+
+void PolicyServicesDomainRfProfileStatus::setDdrRfiTable(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
+	)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->setDdrRfiTable(domainIndex, ddrRfiStruct);
 }

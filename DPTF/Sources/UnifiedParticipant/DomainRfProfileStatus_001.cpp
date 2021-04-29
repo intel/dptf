@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -50,6 +50,58 @@ RfProfileDataSet DomainRfProfileStatus_001::getRfProfileDataSet(UIntN participan
 		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to update RF Channel Info. "; });
 	}
 	return RfProfileDataSet(rfProfileDataSet);
+}
+
+UInt32 DomainRfProfileStatus_001::getWifiCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainRfProfileStatus_001::getRfiDisable(UIntN participantIndex, UIntN domainIndex)
+{
+	UInt32 rfiDisable = Constants::Invalid;	
+
+	try
+	{
+		rfiDisable = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_RFI_DISABLE, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get RFI Enable/Disable Info. ";
+			});
+	}
+
+	return rfiDisable;
+}
+
+UInt64 DomainRfProfileStatus_001::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	UInt64 numberOfDvfsPoints = Constants::Invalid;
+
+	try
+	{
+		numberOfDvfsPoints = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_NUMBER_OF_DVFS_POINTS, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get Number of DVFS Points ";
+			});
+	}
+
+	return numberOfDvfsPoints;
+}
+
+void DomainRfProfileStatus_001::setDdrRfiTable(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
+	)
+{
+	throw not_implemented();
 }
 
 void DomainRfProfileStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -121,7 +121,7 @@ PowerControlDynamicCapsSet PowerControlCapabilitiesArbitrator::createNewArbitrat
 			maxPowerLimit = currentPowerMax;
 		}
 
-		Power minPowerLimit = getHighestMinPowerLimit(*controlType, minPowerRequests);
+		Power minPowerLimit = getLowestMinPowerLimit(*controlType, minPowerRequests);
 		if (!minPowerLimit.isValid() && currentPowerMin.isValid())
 		{
 			minPowerLimit = currentPowerMin;
@@ -346,27 +346,27 @@ Power PowerControlCapabilitiesArbitrator::getLowestMaxPowerLimit(
 	return lowestMaxPower;
 }
 
-Power PowerControlCapabilitiesArbitrator::getHighestMinPowerLimit(
+Power PowerControlCapabilitiesArbitrator::getLowestMinPowerLimit(
 	PowerControlType::Type controlType,
 	std::map<UIntN, std::map<PowerControlType::Type, Power>>& requests) const
 {
-	Power highestMinPower(Power::createInvalid());
+	Power lowestMinPower(Power::createInvalid());
 	for (auto policy = requests.begin(); policy != requests.end(); ++policy)
 	{
 		auto request = policy->second.find(controlType);
 		if (request != policy->second.end())
 		{
-			if (highestMinPower.isValid() == false)
+			if (lowestMinPower.isValid() == false)
 			{
-				highestMinPower = request->second;
+				lowestMinPower = request->second;
 			}
 			else if (request->second.isValid())
 			{
-				highestMinPower = std::max(highestMinPower, request->second);
+				lowestMinPower = std::min(lowestMinPower, request->second);
 			}
 		}
 	}
-	return highestMinPower;
+	return lowestMinPower;
 }
 
 Power PowerControlCapabilitiesArbitrator::getHighestPowerLimitStep(

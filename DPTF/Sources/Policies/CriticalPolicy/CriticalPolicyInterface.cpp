@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 ******************************************************************************/
 
 #include "CriticalPolicy.h"
-#include "Ver.h"
+#include "DptfVer.h"
 #include "AppVersion.h"
 
 // This file is nearly identical between each policy.  We could use a macro in its place.  However, for easier

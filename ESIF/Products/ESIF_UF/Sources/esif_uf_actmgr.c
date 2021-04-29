@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -655,7 +655,7 @@ eEsifError EsifActMgr_StartUpe(
 	ESIF_TRACE_DEBUG("Added action %s\n", upeName);
 exit:
 	if (rc != ESIF_OK) {
-		ESIF_TRACE_ERROR("Failure adding action %s\n", esif_rc_str(rc));
+		ESIF_TRACE_WARN("Failure adding action %s\n", esif_rc_str(rc));
 		EsifActMgr_DestroyEntry(entryPtr);
 	}
 	return rc;
@@ -1105,6 +1105,7 @@ static eEsifError EsifActMgr_InitActions()
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_BATTERY);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SOCWC);
 	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_HWPF);
+	EsifActMgr_RegisterDelayedLoadAction(ESIF_ACTION_SYSMAN);
 
 	EsifActConfigInit();
 	EsifActConstInit();

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -757,6 +757,12 @@ UInt32 Participant::getTimestampCounterWidth(UIntN domainIndex)
 	return m_domains[domainIndex]->getTimestampCounterWidth();
 }
 
+CoreActivityInfo Participant::getCoreActivityInfo(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getCoreActivityInfo();
+}
+
 void Participant::setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -878,6 +884,12 @@ UInt32 Participant::getRaplEnergyCounter(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getRaplEnergyCounter();
+}
+
+EnergyCounterInfo Participant::getRaplEnergyCounterInfo(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRaplEnergyCounterInfo();
 }
 
 double Participant::getRaplEnergyUnit(UIntN domainIndex)
@@ -1333,6 +1345,30 @@ RfProfileDataSet Participant::getRfProfileDataSet(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
 	return m_domains[domainIndex]->getRfProfileDataSet();
+}
+
+UInt32 Participant::getWifiCapabilities(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getWifiCapabilities();
+}
+
+UInt32 Participant::getRfiDisable(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getRfiDisable();
+}
+
+UInt64 Participant::getDvfsPoints(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getDvfsPoints();
+}
+
+void Participant::setDdrRfiTable(UIntN domainIndex, DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setDdrRfiTable(ddrRfiStruct);
 }
 
 UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)

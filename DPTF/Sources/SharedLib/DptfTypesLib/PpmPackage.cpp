@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -26,18 +26,18 @@ namespace PpmPackage
 	{
 		switch (package)
 		{
-		case PpmPackage::Performance:
-			return "Performance";
-		case PpmPackage::Responsiveness:
-			return "Responsiveness";
-		case PpmPackage::BatteryLife:
-			return "Battery Life";
-		case PpmPackage::PerformanceAutonomous:
-			return "Performance Autonomous";
-		case PpmPackage::ResponsivenessAutonomous:
-			return "Responsiveness Autonomous";
-		case PpmPackage::BatteryLifeAutonomous:
-			return "Battery Life Autonomous";
+		case PpmPackage::P1:
+			return "P1";
+		case PpmPackage::P2:
+			return "P2";
+		case PpmPackage::P3:
+			return "P3";
+		case PpmPackage::R1:
+			return "R1";
+		case PpmPackage::B1:
+			return "B1";
+		case PpmPackage::B2:
+			return "B2";
 		default:
 			return Constants::InvalidString;
 		}
@@ -47,27 +47,27 @@ namespace PpmPackage
 	{
 		if (StringConverter::toUInt32(state) == 1)
 		{
-			return PpmPackage::Performance;
+			return PpmPackage::P1;
 		}
 		if (StringConverter::toUInt32(state) == 2)
 		{
-			return PpmPackage::Responsiveness;
+			return PpmPackage::P2;
 		}
 		if (StringConverter::toUInt32(state) == 3)
 		{
-			return PpmPackage::BatteryLife;
+			return PpmPackage::P3;
 		}
 		if (StringConverter::toUInt32(state) == 4)
 		{
-			return PpmPackage::PerformanceAutonomous;
+			return PpmPackage::R1;
 		}
 		if (StringConverter::toUInt32(state) == 5)
 		{
-			return PpmPackage::ResponsivenessAutonomous;
+			return PpmPackage::B1;
 		}
 		if (StringConverter::toUInt32(state) == 6)
 		{
-			return PpmPackage::BatteryLifeAutonomous;
+			return PpmPackage::B2;
 		}
 		throw dptf_exception("PPM Package input value is invalid");
 	}
@@ -76,51 +76,31 @@ namespace PpmPackage
 	{
 		const std::string packageName = StringConverter::toUpper(package);
 
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::Performance)))
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P1)))
 		{
-			return PpmPackage::Performance;
+			return PpmPackage::P1;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::Responsiveness)))
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P2)))
 		{
-			return PpmPackage::Responsiveness;
+			return PpmPackage::P2;
 		}
-
-		// Need to remove the extra whitespace
-		const std::string battLife = StringConverter::toUpper(toString(PpmPackage::BatteryLife));
-		const std::string battLifeNoSpace = StringParser::removeAll(battLife, ' ');
-		
-		if (packageName == battLifeNoSpace || packageName == battLife)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P3)))
 		{
-			return PpmPackage::BatteryLife;
+			return PpmPackage::P3;
 		}
-
-		// Need to remove the extra whitespace
-		const std::string perfAuto = StringConverter::toUpper(toString(PpmPackage::PerformanceAutonomous));
-		const std::string perfAutoNoSpace = StringParser::removeAll(perfAuto, ' ');
-		
-		if (packageName == perfAutoNoSpace || packageName == perfAuto)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::R1)))
 		{
-			return PpmPackage::PerformanceAutonomous;
+			return PpmPackage::R1;
+		}
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::B1)))
+		{
+			return PpmPackage::B1;
+		}
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::B2)))
+		{
+			return PpmPackage::B2;
 		}
 
-		// Need to remove the extra whitespace
-		const std::string respAuto = StringConverter::toUpper(toString(PpmPackage::ResponsivenessAutonomous));
-		const std::string respAutoNoSpace = StringParser::removeAll(respAuto, ' ');
-		
-		if (packageName == respAutoNoSpace || packageName == respAuto)
-		{
-			return PpmPackage::ResponsivenessAutonomous;
-		}
-
-		// Need to remove the extra whitespace
-		const std::string battLifeAuto = StringConverter::toUpper(toString(PpmPackage::BatteryLifeAutonomous));
-		const std::string battLifeAutoNoSpace = StringParser::removeAll(battLifeAuto, ' ');
-		
-		if (packageName == battLifeAutoNoSpace || packageName == battLifeAuto)
-		{
-			return PpmPackage::BatteryLifeAutonomous;
-		}
-		
 		return PpmPackage::Invalid;
 	}
 
@@ -128,27 +108,27 @@ namespace PpmPackage
 	{
 		if (state == 1)
 		{
-			return PpmPackage::Performance;
+			return PpmPackage::P1;
 		}
 		if (state == 2)
 		{
-			return PpmPackage::Responsiveness;
+			return PpmPackage::P2;
 		}
 		if (state == 3)
 		{
-			return PpmPackage::BatteryLife;
+			return PpmPackage::P3;
 		}
 		if (state == 4)
 		{
-			return PpmPackage::PerformanceAutonomous;
+			return PpmPackage::R1;
 		}
 		if (state == 5)
 		{
-			return PpmPackage::ResponsivenessAutonomous;
+			return PpmPackage::B1;
 		}
 		if (state == 6)
 		{
-			return PpmPackage::BatteryLifeAutonomous;
+			return PpmPackage::B2;
 		}
 		throw dptf_exception("PPM Package input value is invalid");
 	}

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -31,10 +31,7 @@
 #include "OsPowerSlider.h"
 #include "SensorUserPresence.h"
 #include "OsSessionState.h"
-#include "SensorMode.h"
-#include "BiometricPresenceSensorInstance.h"
 #include "UserInteraction.h"
-#include "UserPresenceCorrelation.h"
 
 class EventCache
 {
@@ -59,49 +56,9 @@ public:
 	CachedValue<OsUserPresence::Type> osUserPresence;
 	CachedValue<UIntN> batteryCount;
 	CachedValue<OsPowerSlider::Type> powerSlider;
-	CachedValue<SensorUserPresence::Type> sensorUserPresence;
 	CachedValue<SensorUserPresence::Type> platformUserPresence;
 	CachedValue<OnOffToggle::Type> gameMode;
 	CachedValue<OsSessionState::Type> sessionState;
-	CachedValue<Bool> wakeOnApproachFeatureState;
-	CachedValue<Bool> wakeOnApproachWithExternalMonitorFeatureState;
-	CachedValue<Bool> wakeOnApproachOnLowBatteryFeatureState;
-	CachedValue<Percentage> wakeOnApproachBatteryRemainingPercentage;
-	CachedValue<Bool> walkAwayLockFeatureState;
-	CachedValue<Bool> walkAwayLockWithExternalMonitorFeatureState;
-	CachedValue<Bool> walkAwayLockDimScreenFeatureState;
-	CachedValue<Bool> walkAwayLockDisplayOffAfterLockFeatureState;
-	CachedValue<Bool> walkAwayLockHonorPowerRequestsForDisplayFeatureState;
-	CachedValue<Bool> walkAwayLockHonorUserInCallFeatureState;
-	CachedValue<Bool> userInCallState;
-	CachedValue<TimeSpan> walkAwayLockScreenLockWaitTime;
-	CachedValue<TimeSpan> walkAwayLockPreDimWaitTime;
-	CachedValue<TimeSpan> walkAwayLockUserPresentWaitTime;
-	CachedValue<TimeSpan> walkAwayLockDimInterval;
-	CachedValue<Bool> adaptiveDimmingFeatureState;
-	CachedValue<Bool> adaptiveDimmingWithExternalMonitorFeatureState;
-	CachedValue<Bool> adaptiveDimmingWithPresentationModeFeatureState;
-	CachedValue<TimeSpan> adaptiveDimmingPreDimWaitTime;
-	CachedValue<Bool> mispredictionFaceDetectionFeatureState;
-	CachedValue<TimeSpan> mispredictionTimeWindow;
-	CachedValue<TimeSpan> misprediction1DimWaitTime;
-	CachedValue<TimeSpan> misprediction2DimWaitTime;
-	CachedValue<TimeSpan> misprediction3DimWaitTime;
-	CachedValue<TimeSpan> misprediction4DimWaitTime;
-	CachedValue<Bool> noLockOnPresenceFeatureState;
-	CachedValue<Bool> noLockOnPresenceExternalMonitorFeatureState;
-	CachedValue<Bool> noLockOnPresenceOnBatteryFeatureState;
-	CachedValue<Percentage> noLockOnPresenceBatteryRemainingPercentage;
-	CachedValue<TimeSpan> noLockOnPresenceResetWaitTime;
-	CachedValue<TimeSpan> failsafeTimeout;
-	CachedValue<Bool> contextServiceStatus;
 	CachedValue<Bool> externalMonitorState;
-	CachedValue<Percentage> notPresentDimTarget;
-	CachedValue<TimeSpan> disengagedDimmingInterval;
-	CachedValue<Percentage> disengagedDimTarget;
-	CachedValue<TimeSpan> disengagedDimWaitTime;
-	CachedValue<SensorMode::Type> sensorMode;
-	CachedValue<BiometricPresenceSensorInstance::Type> biometricPresenceSensorInstance;
 	CachedValue<UserInteraction::Type> userInteraction;
-	CachedValue<UserPresenceCorrelation::Type> userPresenceCorrelation;
 };

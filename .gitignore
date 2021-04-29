@@ -7,13 +7,13 @@
 *.[oa]
 *.[sk]o
 *.o.*
-*.ko.*
 *.mod.c
 *.symvers
 modules.order
 .tmp_versions
 **/Linux/[^./]*
 !**/Linux/Makefile
+.*.cmd
 .cproject
 .project
 .settings
@@ -50,7 +50,6 @@ ppm_compiler
 /ESIF/Packages/Database/DSP-*.accdb
 /ESIF/Packages/Database/EXPORT
 /ESIF/Products/ESIF_UI/index.html
-/ESIF/Products/IPF_UI/index_ipf.html
 /Build/Linux/Artifacts
 /Build/Linux/Upstream
 /Build/Windows/Artifacts
@@ -72,3 +71,5 @@ ppm_compiler
 /ContextService/**/packages
 /ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.pdb
 /ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.dll
+/ESIF/Products/IPF_UI/Sources/solution/ipf_ui_solution/bin
+/ESIF/Products/IPF_UI/index.html

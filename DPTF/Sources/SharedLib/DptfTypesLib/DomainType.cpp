@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -55,6 +55,7 @@ namespace DomainType
 														{WwanDigital, "WwanDigital"},
 														{WwanRfim, "WwanRfim"},
 														{IdgfxCore, "IdgfxCore"},
+														{Idgfx2, "Idgfx2"},
 														{All, "All"},
 														{Invalid, Constants::NotAvailableString}};
 
@@ -144,6 +145,8 @@ DomainType::Type EsifDomainTypeToDptfDomainType(esif_domain_type esifDomainType)
 		return DomainType::WwanRfim;
 	case ESIF_DOMAIN_TYPE_IDGFXCORE:
 		return DomainType::IdgfxCore;
+	case ESIF_DOMAIN_TYPE_IDGFX2:
+		return DomainType::Idgfx2;
 	case ESIF_DOMAIN_TYPE_ALL:
 		return DomainType::All;
 	case ESIF_DOMAIN_TYPE_INVALID:
@@ -227,6 +230,8 @@ esif_domain_type DptfDomainTypeToEsifDomainType(DomainType::Type dptfDomainType)
 		return ESIF_DOMAIN_TYPE_WWANRFIM;
 	case DomainType::IdgfxCore:
 		return ESIF_DOMAIN_TYPE_IDGFXCORE;
+	case DomainType::Idgfx2:
+		return ESIF_DOMAIN_TYPE_IDGFX2;
 	case DomainType::All:
 		return ESIF_DOMAIN_TYPE_ALL;
 	case DomainType::Invalid:

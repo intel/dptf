@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -25,6 +25,12 @@ std::string TableObjectType::ToString(TableObjectType::Type type)
 	{
 	case Apat:
 		return "apat";
+	case Apct:
+		return "apct";
+	case Dynamic_Idsp:
+		return "dynamic-idsp";
+	case Ddrf:
+		return "ddrf";
 	default:
 		throw dptf_exception("Invalid table type given to TableObjectType::ToString");
 	}
@@ -35,6 +41,18 @@ TableObjectType::Type TableObjectType::ToType(std::string value)
 	if (value == "apat")
 	{
 		return TableObjectType::Apat;
+	}
+	else if (value == "apct")
+	{
+		return TableObjectType::Apct;
+	}
+	else if (value == "dynamic-idsp")
+	{
+		return TableObjectType::Dynamic_Idsp;
+	}
+	else if (value == "ddrf")
+	{
+		return TableObjectType::Ddrf;
 	}
 	else
 	{

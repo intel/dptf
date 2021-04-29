@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "DomainEnergyControlFactory.h"
 #include "DomainEnergyControl_000.h"
 #include "DomainEnergyControl_001.h"
+#include "DomainEnergyControl_002.h"
 
 ControlBase* DomainEnergyControlFactory::make(
 	UIntN participantIndex,
@@ -33,6 +34,9 @@ ControlBase* DomainEnergyControlFactory::make(
 		break;
 	case 1:
 		return new DomainEnergyControl_001(participantIndex, domainIndex, participantServicesInterface);
+		break;
+	case 2:
+		return new DomainEnergyControl_002(participantIndex, domainIndex, participantServicesInterface);
 		break;
 	default:
 		std::stringstream message;

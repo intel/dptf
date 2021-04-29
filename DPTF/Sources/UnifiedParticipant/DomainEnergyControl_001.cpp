@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "XmlNode.h"
 #include "StatusFormat.h"
 #include <cmath>
+#include "EsifTime.h"
 using namespace StatusFormat;
 
 DomainEnergyControl_001::DomainEnergyControl_001(
@@ -27,6 +28,7 @@ DomainEnergyControl_001::DomainEnergyControl_001(
 	UIntN domainIndex,
 	std::shared_ptr<ParticipantServicesInterface> participantServicesInterface)
 	: DomainEnergyControlBase(participantIndex, domainIndex, participantServicesInterface)
+	, m_raplEnergyUnit(0.0)
 {
 }
 
@@ -40,11 +42,35 @@ UInt32 DomainEnergyControl_001::getRaplEnergyCounter(UIntN participantIndex, UIn
 		esif_primitive_type::GET_RAPL_ENERGY, domainIndex, Constants::Esif::NoInstance);
 }
 
+EnergyCounterInfo DomainEnergyControl_001::getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex)
+{
+	if (m_raplEnergyUnit == 0.0)
+	{
+		getRaplEnergyUnit(participantIndex, domainIndex);
+	}
+
+	try
+	{
+		double raplEnergyCounter = static_cast<double>(getRaplEnergyCounter(participantIndex, domainIndex));
+		raplEnergyCounter = raplEnergyCounter * m_raplEnergyUnit;
+
+		TimeSpan timestamp = EsifTime().getTimeStamp();
+
+		return EnergyCounterInfo(raplEnergyCounter, timestamp.asMicroseconds());
+	}
+	catch (...)
+	{
+		return EnergyCounterInfo();
+	}
+}
+
 double DomainEnergyControl_001::getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex)
 {
 	auto raplEnergyUnit = getParticipantServices()->primitiveExecuteGetAsUInt32(
 		esif_primitive_type::GET_RAPL_ENERGY_UNIT, domainIndex, Constants::Esif::NoInstance);
-	return (1 / pow(2, raplEnergyUnit));
+	
+	m_raplEnergyUnit = (1 / pow(2, raplEnergyUnit));
+	return m_raplEnergyUnit;
 }
 
 UInt32 DomainEnergyControl_001::getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex)

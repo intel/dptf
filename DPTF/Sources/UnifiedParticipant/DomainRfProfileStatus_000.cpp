@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -33,6 +33,30 @@ RfProfileDataSet DomainRfProfileStatus_000::getRfProfileDataSet(UIntN participan
 }
 
 void DomainRfProfileStatus_000::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainRfProfileStatus_000::getWifiCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt32 DomainRfProfileStatus_000::getRfiDisable(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt64 DomainRfProfileStatus_000::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_000::setDdrRfiTable(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
+	)
 {
 	throw not_implemented();
 }

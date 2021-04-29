@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1719,7 +1719,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_THERMAL_RELATIONSHIP_TABLE;
 		self->setPrimitive = SET_THERMAL_RELATIONSHIP_TABLE;
-		self->changeEvent = ESIF_EVENT_APP_THERMAL_RELATIONSHIP_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_THERMAL_RELATIONSHIP_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "art") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1727,7 +1727,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_ACTIVE_RELATIONSHIP_TABLE;
 		self->setPrimitive = SET_ACTIVE_RELATIONSHIP_TABLE;
-		self->changeEvent = ESIF_EVENT_APP_ACTIVE_RELATIONSHIP_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "bcl") == 0) {
 		FLAGS_CLEAR(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1735,7 +1735,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_DISPLAY_BRIGHTNESS_LEVELS;
 		self->setPrimitive = SET_DISPLAY_BRIGHTNESS_LEVELS;
-		self->changeEvent = ESIF_EVENT_DOMAIN_DISPLAY_CAPABILITY_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_DISPLAY_CAPABILITY_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_DISPLAY_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "odvp") == 0) {
@@ -1752,7 +1752,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_PASSIVE_RELATIONSHIP_TABLE;
 		self->setPrimitive = SET_PASSIVE_RELATIONSHIP_TABLE;
-		self->changeEvent = ESIF_EVENT_PASSIVE_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_PASSIVE_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "apct") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1760,7 +1760,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE;
 		self->setPrimitive = SET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE;
-		self->changeEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "apat") == 0) {
 
@@ -1769,7 +1769,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE;
 		self->setPrimitive = SET_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE;
-		self->changeEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "appc") == 0) {
 
@@ -1778,7 +1778,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE;
 		self->setPrimitive = SET_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE;
-		self->changeEvent = ESIF_EVENT_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "pbct") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1786,7 +1786,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_POWER_BOSS_CONDITIONS_TABLE;
 		self->setPrimitive = SET_POWER_BOSS_CONDITIONS_TABLE;
-		self->changeEvent = ESIF_EVENT_POWER_BOSS_CONDITIONS_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_POWER_BOSS_CONDITIONS_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "pbat") == 0) {
 
@@ -1795,7 +1795,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_POWER_BOSS_ACTIONS_TABLE;
 		self->setPrimitive = SET_POWER_BOSS_ACTIONS_TABLE;
-		self->changeEvent = ESIF_EVENT_POWER_BOSS_ACTIONS_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_POWER_BOSS_ACTIONS_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "pbmt") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1803,7 +1803,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_POWER_BOSS_MATH_TABLE;
 		self->setPrimitive = SET_POWER_BOSS_MATH_TABLE;
-		self->changeEvent = ESIF_EVENT_POWER_BOSS_MATH_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_POWER_BOSS_MATH_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "vtmt") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1812,7 +1812,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_VOLTAGE_THRESHOLD_MATH_TABLE;
 		self->setPrimitive = SET_VOLTAGE_THRESHOLD_MATH_TABLE;
-		self->changeEvent = ESIF_EVENT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "idsp") == 0) {
 		FLAGS_CLEAR(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1828,7 +1828,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_RAPL_POWER_CONTROL_CAPABILITIES;
 		self->setPrimitive = SET_RAPL_POWER_CONTROL_CAPABILITIES;
-		self->changeEvent = ESIF_EVENT_DOMAIN_POWER_CAPABILITY_CHANGED;
+		self->changeEvent = ESIF_EVENT_POWER_CAPABILITY_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_POWER_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "vsct") == 0) {
@@ -1837,7 +1837,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_VIRTUAL_SENSOR_CALIB_TABLE;
 		self->setPrimitive = SET_VIRTUAL_SENSOR_CALIB_TABLE;
-		self->changeEvent = ESIF_EVENT_DOMAIN_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_TEMP_STATUS;
 	}
 	else if (esif_ccb_stricmp(self->name, "vspt") == 0) {
@@ -1846,21 +1846,21 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_VIRTUAL_SENSOR_POLLING_TABLE;
 		self->setPrimitive = SET_VIRTUAL_SENSOR_POLLING_TABLE;
-		self->changeEvent = ESIF_EVENT_DOMAIN_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_TEMP_STATUS;
 	}
 	else if ((esif_ccb_stricmp(self->name, "ppss") == 0) || (esif_ccb_stricmp(self->name, "gpss") == 0)) {
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_PERF_SUPPORT_STATES;
 		self->setPrimitive = SET_PERF_SUPPORT_STATES;
-		self->changeEvent = ESIF_EVENT_DOMAIN_PERF_CONTROL_CHANGED;
+		self->changeEvent = ESIF_EVENT_PERF_CONTROL_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_PERF_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "pss") == 0) {
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_PROC_PERF_SUPPORT_STATES;
 		self->setPrimitive = SET_PROC_PERF_SUPPORT_STATES;
-		self->changeEvent = ESIF_EVENT_DOMAIN_PERF_CONTROL_CHANGED;
+		self->changeEvent = ESIF_EVENT_PERF_CONTROL_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_PERF_CONTROL;
 	}
 	else if (esif_ccb_stricmp(self->name, "trippoints") == 0) {
@@ -1893,7 +1893,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_STRING;
 		self->getPrimitive = 0;  /* NA for virtual tables */
 		self->setPrimitive = 0;
-		self->changeEvent = ESIF_EVENT_WORKLOAD_HINT_CONFIGURATION_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_WORKLOAD_HINT_CONFIGURATION_CHANGED;
 		self->dataSource = esif_ccb_strdup("DPTF");
 		self->dataMember = esif_ccb_strdup("/shared/export/workload_hints/*");
 	}
@@ -1917,7 +1917,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_PID_ALGORITHM_TABLE;
 		self->setPrimitive = SET_PID_ALGORITHM_TABLE;
-		self->changeEvent = ESIF_EVENT_PID_ALGORITHM_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_PID_ALGORITHM_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "acpr") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1926,7 +1926,7 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE;
 		self->setPrimitive = SET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE;
-		self->changeEvent = ESIF_EVENT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "psha") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1934,15 +1934,15 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_POWER_SHARING_ALGORITHM_TABLE;
 		self->setPrimitive = SET_POWER_SHARING_ALGORITHM_TABLE;
-		self->changeEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_CHANGED;
+		self->changeEvent = ESIF_EVENT_DTT_POWER_SHARING_ALGORITHM_TABLE_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "psh2") == 0) {
-	FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
-	FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
-	self->dataType = ESIF_DATA_BINARY;
-	self->getPrimitive = GET_POWER_SHARING_ALGORITHM_TABLE_2;
-	self->setPrimitive = SET_POWER_SHARING_ALGORITHM_TABLE_2;
-	self->changeEvent = ESIF_EVENT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED;
+		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_POWER_SHARING_ALGORITHM_TABLE_2;
+		self->setPrimitive = SET_POWER_SHARING_ALGORITHM_TABLE_2;
+		self->changeEvent = ESIF_EVENT_DTT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED;
 	}
 	else if (esif_ccb_stricmp(self->name, "fcdc") == 0) {
 		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
@@ -1950,16 +1950,16 @@ eEsifError TableObject_LoadAttributes(
 		self->dataType = ESIF_DATA_BINARY;
 		self->getPrimitive = GET_FAN_CAPABILITIES;
 		self->setPrimitive = SET_FAN_CAPABILITIES;
-		self->changeEvent = ESIF_EVENT_DOMAIN_FAN_CAPABILITIES_CHANGED;
+		self->changeEvent = ESIF_EVENT_FAN_CAPABILITIES_CHANGED;
 		self->capabilityType = ESIF_CAPABILITY_ACTIVE_CONTROL;
 	}
-	else if (esif_ccb_stricmp(self->name, "aupt") == 0) {
-	FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
-	FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
-	self->dataType = ESIF_DATA_BINARY;
-	self->getPrimitive = GET_ADAPTIVE_USER_PRESENCE_TABLE;
-	self->setPrimitive = SET_ADAPTIVE_USER_PRESENCE_TABLE;
-	self->changeEvent = ESIF_EVENT_ADAPTIVE_USER_PRESENCE_TABLE_CHANGED;
+	else if (esif_ccb_stricmp(self->name, "itmt") == 0) {
+		FLAGS_SET(self->options, TABLEOPT_CONTAINS_REVISION);
+		FLAGS_CLEAR(self->options, TABLEOPT_ALLOW_SELF_DEFINE);
+		self->dataType = ESIF_DATA_BINARY;
+		self->getPrimitive = GET_INTELLIGENT_THERMAL_MANAGEMENT_TABLE;
+		self->setPrimitive = SET_INTELLIGENT_THERMAL_MANAGEMENT_TABLE;
+		self->changeEvent = ESIF_EVENT_DTT_INTELLIGENT_THERMAL_MANAGEMENT_TABLE_CHANGED;
 	}
 	else {
 		rc = ESIF_E_NOT_IMPLEMENTED;
@@ -2591,6 +2591,16 @@ eEsifError TableObject_LoadSchema(
 		{ 0 }
 	};
 		fieldlist = psh2_fields;
+	}
+	else if (esif_ccb_stricmp(self->name, "itmt") == 0) {
+	static TableField itmt_fields[] = {
+		{ "fld1", "fld1", ESIF_DATA_STRING },
+		{ "fld2", "fld2", ESIF_DATA_UINT64 },
+		{ "fld3", "fld3", ESIF_DATA_STRING },
+		{ "fld4", "fld4", ESIF_DATA_STRING },
+		{ 0 }
+	};
+	fieldlist = itmt_fields;
 	}
 	else if (esif_ccb_stricmp(self->name, "fcdc") == 0) {
 		static TableField fcdc_fields[] = {

@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "Dptf.h"
 #include "PolicyServices.h"
 #include "DomainEnergyControlInterface.h"
+#include "EnergyCounterInfo.h"
 
 class PolicyServicesDomainEnergyControl : public PolicyServices, public DomainEnergyControlInterface
 {
@@ -28,6 +29,7 @@ public:
 	PolicyServicesDomainEnergyControl(DptfManagerInterface* dptfManager, UIntN policyIndex);
 
 	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual EnergyCounterInfo getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override final;

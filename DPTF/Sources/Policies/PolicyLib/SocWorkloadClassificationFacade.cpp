@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,7 +37,7 @@ SocWorkloadClassificationFacade::~SocWorkloadClassificationFacade()
 
 UInt32 SocWorkloadClassificationFacade::getCurrentSocWorkload(void)
 {
-	if (supportsSocWorkloadClassification())
+	if (supportsSocWorkloadClassificationInterface())
 	{
 		DptfRequest request(
 			DptfRequestType::SocWorkloadClassificationGetSocWorkload, m_participantIndex, m_domainIndex);
@@ -48,27 +48,8 @@ UInt32 SocWorkloadClassificationFacade::getCurrentSocWorkload(void)
 	}
 	else
 	{
-		throw dptf_exception("Domain does not support Soc workload classification.");
+		throw dptf_exception("Domain does not support Soc workload classification interface.");
 	}
-}
-
-Bool SocWorkloadClassificationFacade::supportsSocWorkloadClassification()
-{
-	if (supportsSocWorkloadClassificationInterface())
-	{
-		Bool isSocWorkloadSupported = false;
-		DptfRequest request(
-			DptfRequestType::SocWorkloadClassificationGetSocWorkloadSupport, m_participantIndex, m_domainIndex);
-		auto result = m_policyServices.serviceRequest->submitRequest(request);
-		if (result.isSuccessful())
-		{
-			isSocWorkloadSupported = result.getDataAsBool();
-		}
-
-		return isSocWorkloadSupported;
-	}
-
-	return false;
 }
 
 Bool SocWorkloadClassificationFacade::supportsSocWorkloadClassificationInterface()

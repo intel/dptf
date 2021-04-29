@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -57,7 +57,6 @@ public:
 	virtual OnOffToggle::Type getScreenState(void) const = 0;
 	virtual UIntN getBatteryCount(void) const = 0;
 	virtual UIntN getPowerSlider(void) const = 0;
-	virtual SensorUserPresence::Type getSensorUserPresence(void) const = 0;
 	virtual SensorUserPresence::Type getPlatformUserPresence(void) const = 0;
 	virtual OnOffToggle::Type getGameMode(void) const = 0;
 	virtual UserInteraction::Type getUserInteraction(void) const = 0;

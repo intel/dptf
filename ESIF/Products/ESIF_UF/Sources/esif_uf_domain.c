@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -861,7 +861,7 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 		}
 
 		if (ESIF_FALSE != self->tempLastTempValid) {
-			EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);		
+			EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_TEMP_THRESHOLD_CROSSED, NULL);		
 			ESIF_TRACE_DEBUG("Temp read invalid; Sending THRESHOLD CROSSED EVENT Participant: %s, Domain: %s, Temperature: %d \n",
 				self->participantName,
 				self->domainName,
@@ -896,7 +896,7 @@ eEsifError EsifUpDomain_CheckTemp(EsifUpDomainPtr self)
 
 		self->tempNotifySent = ESIF_TRUE;
 
-		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
+		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_TEMP_THRESHOLD_CROSSED, NULL);
 
 		ESIF_TRACE_DEBUG("THRESHOLD CROSSED EVENT!!! Participant: %s, Domain: %s, Temperature: %d, Aux0: %d, Aux0WHyst: %d, Aux1: %d, Hyst: %d \n",
 			self->participantName,
@@ -929,7 +929,7 @@ eEsifError EsifUpDomain_CheckState(EsifUpDomainPtr self)
 	}
 	
 	if (self->lastState != state && state != ESIF_DOMAIN_STATE_INVALID) {
-		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_PERF_CAPABILITY_CHANGED, NULL);
+		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_PERF_CAPABILITY_CHANGED, NULL);
 		ESIF_TRACE_DEBUG("PERF STATE CHANGED! Participant: %s, Domain: %s, State: %d \n", self->participantName, self->domainName, state);
 		self->lastState = state;
 	}
@@ -1297,7 +1297,7 @@ void EsifUpDomain_SetVirtualTemperature(
 
 	self->virtTemp = virtTemp;
 	if (EsifUpDomain_IsTempOutOfThresholds(self, virtTemp)) {
-		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_DOMAIN_TEMP_THRESHOLD_CROSSED, NULL);
+		EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_TEMP_THRESHOLD_CROSSED, NULL);
 		ESIF_TRACE_DEBUG("THRESHOLD CROSSED EVENT!!! Participant: %s, Domain: %s, Temperature: %d \n", self->participantName, self->domainName, virtTemp);
 	}
 
@@ -1359,7 +1359,7 @@ eEsifError EsifUpDomain_SignalForegroundAppChanged(
 	evdataPtr = EsifData_CreateAs(ESIF_DATA_STRING, appNameToSend, ESIFAUTOLEN, ESIFAUTOLEN);
 
 	if (evdataPtr != NULL) {
-		rc = EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_APP_FOREGROUND_CHANGED, evdataPtr);
+		rc = EsifEventMgr_SignalEvent(self->participantId, self->domain, ESIF_EVENT_FOREGROUND_APP_CHANGED, evdataPtr);
 	}
 
 	EsifData_Destroy(evdataPtr);

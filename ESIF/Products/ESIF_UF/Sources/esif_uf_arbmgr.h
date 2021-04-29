@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -76,6 +76,7 @@ typedef enum esif_arbitration_type_e {
 typedef struct EsifArbEntryInfo_s {
 	esif_handle_t participantId; /* Association metadata*/
 	esif_primitive_type_t primitiveId;
+	UInt16 domain;
 	UInt8 instance;
 
 	atomic_t arbitrationEnabled; /* Primitives are accepted/limited for entry */
@@ -87,8 +88,10 @@ typedef struct EsifArbEntryInfo_s {
 
 /* Provides arbitration state information for a specific participant */
 typedef struct EsifArbCtxInfo_s {
+	size_t size;
 	esif_handle_t participantId; /* Association metadata*/
 
+	Bool isArbitrated; /* Has the context been populated on participant */
 	Bool arbitrationEnabled;
 
 	/* Array size depends on the count */
@@ -98,10 +101,12 @@ typedef struct EsifArbCtxInfo_s {
 
 /* Provides arbitration state information for all participants */
 typedef struct EsifArbInfo_s {
+	size_t size;
 	Bool arbitrationEnabled;
 
 	/* Array size depends on the count */
-	size_t count;
+	size_t count; /* Number of participants */
+	size_t arbitratedCount; /* Number of arbitrated participants */
 	EsifArbCtxInfo arbCtxInfo[1];
 } EsifArbInfo;
 
@@ -195,11 +200,11 @@ extern "C" {
 	);
 
 	/* Boilerplate lifecycle items */
-	esif_error_t EsifArbMgr_Init();
-	void EsifArbMgr_Exit();
+	esif_error_t EsifArbMgr_Init(void);
+	void EsifArbMgr_Exit(void);
 
-	esif_error_t EsifArbMgr_Start();
-	void EsifArbMgr_Stop();
+	esif_error_t EsifArbMgr_Start(void);
+	void EsifArbMgr_Stop(void);
 
 #else /* !ESIF_FEAT_OPT_ARBITRATOR_ENABLED */
 
@@ -211,10 +216,10 @@ extern "C" {
 #define EsifArbMgr_SetArbitrationFunction(part, prim, dom, inst, type) ESIF_E_NOT_SUPPORTED
 
 	/* Inline to allow pointers to be take for UF intialization table */
-	static ESIF_INLINE esif_error_t EsifArbMgr_Init() { return ESIF_OK; }
-	static ESIF_INLINE void EsifArbMgr_Exit() {}
-	static ESIF_INLINE esif_error_t EsifArbMgr_Start() { return ESIF_OK; }
-	static ESIF_INLINE void EsifArbMgr_Stop() {}
+	static ESIF_INLINE esif_error_t EsifArbMgr_Init(void) { return ESIF_OK; }
+	static ESIF_INLINE void EsifArbMgr_Exit(void) {}
+	static ESIF_INLINE esif_error_t EsifArbMgr_Start(void) { return ESIF_OK; }
+	static ESIF_INLINE void EsifArbMgr_Stop(void) {}
 
 #endif /* !ESIF_FEAT_OPT_ARBITRATOR_ENABLED */
 

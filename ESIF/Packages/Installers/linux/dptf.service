@@ -1,5 +1,5 @@
 [Unit]
-description=Intel(R) Dynamic Tuning daemon
+Description=Intel(R) Dynamic Tuning daemon
 
 [Service]
 Type=forking

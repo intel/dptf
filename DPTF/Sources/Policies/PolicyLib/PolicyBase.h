@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -94,16 +94,12 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification);
-	virtual void onDomainEppSensitivityHintChanged(
-		UIntN participantIndex, 
-		UIntN domainIndex, 
-		MbtHint::Type mbtHint);
+	virtual void onDomainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint);
 	virtual void onActiveRelationshipTableChanged(void);
 	virtual void onThermalRelationshipTableChanged(void);
-	virtual void onAdaptiveUserPresenceTableChanged(void);
 	virtual void onAdaptivePerformanceConditionsTableChanged(void);
-	virtual void onAdaptivePerformanceParticipantConditionTableChanged(void);
 	virtual void onAdaptivePerformanceActionsTableChanged(void);
+	virtual void onDdrfTableChanged(void);
 	virtual void onConnectedStandbyEntry(void);
 	virtual void onConnectedStandbyExit(void);
 	virtual void onSuspend(void);
@@ -144,65 +140,19 @@ public:
 	virtual void onWorkloadHintConfigurationChanged(void);
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
 	virtual void onPowerShareAlgorithmTable2Changed(void);
-	virtual void onSensorUserPresenceChanged(SensorUserPresence::Type userPresence);
+	virtual void onIntelligentThermalManagementTableChanged(void);
 	virtual void onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence);
-	virtual void onWakeOnApproachFeatureStateChanged(Bool wakeOnApproachFeatureState);
-	virtual void onWakeOnApproachWithExternalMonitorFeatureStateChanged(
-		Bool wakeOnApproachWithExternalMonitorFeatureState);
-	virtual void onWakeOnApproachOnLowBatteryFeatureStateChanged(
-		Bool wakeOnApproachOnLowBatteryFeatureState);
-	virtual void onWakeOnApproachBatteryRemainingPercentageChanged(Percentage wakeOnApproachBatteryRemainingPercentage);
-	virtual void onWalkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState);
-	virtual void onWalkAwayLockWithExternalMonitorFeatureStateChanged(
-		Bool walkAwayLockWithExternalMonitorFeatureState);
-	virtual void onWalkAwayLockDimScreenFeatureStateChanged(
-		Bool walkAwayLockDimScreenFeatureState);
-	virtual void onWalkAwayLockDisplayOffAfterLockFeatureStateChanged(
-		Bool walkAwayLockDisplayOffAfterLockFeatureState);
-	virtual void onWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-		Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState);
-	virtual void onWalkAwayLockHonorUserInCallFeatureStateChanged(
-		Bool walkAwayLockHonorUserInCallFeatureState);
-	virtual void onUserInCallStateChanged(Bool userInCallState);
-	virtual void onWalkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime);
-	virtual void onWalkAwayLockPreDimWaitTimeChanged(TimeSpan walkAwayLockPreDimWaitTime);
-	virtual void onWalkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime);
-	virtual void onWalkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval);
-	virtual void onAdaptiveDimmingFeatureStateChanged(Bool adaptiveDimmingFeatureState);
-	virtual void onAdaptiveDimmingWithExternalMonitorFeatureStateChanged(
-		Bool adaptiveDimmingWithExternalMonitorFeatureState);
-	virtual void onAdaptiveDimmingWithPresentationModeFeatureStateChanged(
-		Bool adaptiveDimmingWithPresentationModeFeatureState);
-	virtual void onAdaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime);
-	virtual void onMispredictionFaceDetectionFeatureStateChanged(Bool mispredictionFaceDetectionFeatureState);
-	virtual void onMispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow);
-	virtual void onMisprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime);
-	virtual void onMisprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime);
-	virtual void onMisprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime);
-	virtual void onMisprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime);
-	virtual void onNoLockOnPresenceFeatureStateChanged(Bool noLockOnPresenceFeatureState);
-	virtual void onNoLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState);
-	virtual void onNoLockOnPresenceOnBatteryFeatureStateChanged(
-		Bool noLockOnPresenceOnBatteryFeatureState);
-	virtual void onNoLockOnPresenceBatteryRemainingPercentageChanged(
-		Percentage noLockOnPresenceBatteryRemainingPercentage);
-	virtual void onNoLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime);
-	virtual void onFailsafeTimeoutChanged(TimeSpan failsafeTimeout);
-	virtual void onContextServiceStatusChanged(Bool contextServiceStatus);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
-	virtual void onUserNotPresentDimTargetChanged(Percentage userNotPresentDimTarget);
-	virtual void onUserDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval);
-	virtual void onUserDisengagedDimTargetChanged(Percentage userDisengagedDimTarget);
-	virtual void onUserDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime);
-	virtual void onSensorModeChanged(SensorMode::Type sensorMode);
-	virtual void onBiometricPresenceSensorInstanceChanged(BiometricPresenceSensorInstance::Type sensorInstance);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
-	virtual void onUserPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus);
 	virtual void onForegroundRatioChanged(UIntN ratio);
 
 	// Implementation of the Policy Interface
-	virtual void create(Bool enabled, const PolicyServicesInterfaceContainer& policyServices, UIntN policyIndex)
-		override final;
+	virtual void create(
+		Bool enabled,
+		const PolicyServicesInterfaceContainer& policyServices,
+		UIntN policyIndex,
+		const std::string& dynamicPolicyUuid = Constants::EmptyString,
+		const std::string& dynamicPolicyName = Constants::EmptyString) override final;
 	virtual void destroy(void) override final;
 	virtual void enable(void) override final;
 	virtual void disable(void) override final;
@@ -248,15 +198,12 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		SocWorkloadClassification::Type socWorkloadClassification) override final;
-	virtual void domainEppSensitivityHintChanged(
-		UIntN participantIndex,
-		UIntN domainIndex, 
-		MbtHint::Type mbtHint) override final;
+	virtual void domainEppSensitivityHintChanged(UIntN participantIndex, UIntN domainIndex, MbtHint::Type mbtHint)
+		override final;
 	virtual void activeRelationshipTableChanged(void) override final;
 	virtual void thermalRelationshipTableChanged(void) override final;
-	virtual void adaptiveUserPresenceTableChanged(void) override final;
 	virtual void adaptivePerformanceConditionsTableChanged(void) override final;
-	virtual void adaptivePerformanceParticipantConditionTableChanged(void) override final;
+	virtual void ddrfTableChanged(void) override final;
 	virtual void adaptivePerformanceActionsTableChanged(void) override final;
 	virtual void connectedStandbyEntry(void) override final;
 	virtual void connectedStandbyExit(void) override final;
@@ -295,73 +242,15 @@ public:
 	virtual void pidAlgorithmTableChanged(void) override final;
 	virtual void activeControlPointRelationshipTableChanged(void) override final;
 	virtual void powerShareAlgorithmTableChanged(void) override final;
+	virtual void intelligentThermalManagementTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) override final;
 	virtual void workloadHintConfigurationChanged(void) override final;
 	virtual void operatingSystemGameModeChanged(OnOffToggle::Type osGameMode) override final;
 	virtual void powerShareAlgorithmTable2Changed(void) override final;
-	virtual void sensorUserPresenceChanged(SensorUserPresence::Type userPresence) override final;
 	virtual void platformUserPresenceChanged(SensorUserPresence::Type userPresence) override final;
-	virtual void wakeOnApproachFeatureStateChanged(
-		Bool wakeOnApproachFeatureState) override final;
-	virtual void wakeOnApproachWithExternalMonitorFeatureStateChanged(
-		Bool wakeOnApproachWithExternalMonitorFeatureState) override final;
-	virtual void wakeOnApproachOnLowBatteryFeatureStateChanged(
-		Bool wakeOnApproachOnLowBatteryFeatureState) override final;
-	virtual void wakeOnApproachBatteryRemainingPercentageChanged(
-		Percentage wakeOnApproachBatteryRemainingPercentage) override final;
-	virtual void walkAwayLockFeatureStateChanged(Bool walkAwayLockFeatureState) override final;
-	virtual void walkAwayLockWithExternalMonitorFeatureStateChanged(
-		Bool walkAwayLockWithExternalMonitorFeatureState) override final;
-	virtual void walkAwayLockDimScreenFeatureStateChanged(
-		Bool walkAwayLockDimScreenFeatureState) override final;
-	virtual void walkAwayLockDisplayOffAfterLockFeatureStateChanged(
-		Bool walkAwayLockDisplayOffAfterLockFeatureState) override final;
-	virtual void walkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged(
-		Bool walkAwayLockHonorPowerRequestsForDisplayFeatureState) override final;
-	virtual void walkAwayLockHonorUserInCallFeatureStateChanged(
-		Bool walkAwayLockHonorUserInCallFeatureState) override final;
-	virtual void userInCallStateChanged(
-		Bool userInCallState) override final;
-	virtual void walkAwayLockScreenLockWaitTimeChanged(TimeSpan walkAwayLockScreenLockWaitTime) override final;
-	virtual void walkAwayLockPreDimWaitTimeChanged(
-		TimeSpan walkAwayLockPreDimWaitTime) override final;
-	virtual void walkAwayLockUserPresentWaitTimeChanged(TimeSpan walkAwayLockUserPresentWaitTime) override final;
-	virtual void walkAwayLockDimIntervalChanged(TimeSpan walkAwayLockDimInterval) override final;
-	virtual void adaptiveDimmingFeatureStateChanged(
-		Bool adaptiveDimmingFeatureState) override final;
-	virtual void adaptiveDimmingWithExternalMonitorFeatureStateChanged(
-		Bool adaptiveDimmingWithExternalMonitorFeatureState) override final;
-	virtual void adaptiveDimmingWithPresentationModeFeatureStateChanged(
-		Bool adaptiveDimmingWithPresentationModeFeatureState) override final;
-	virtual void adaptiveDimmingPreDimWaitTimeChanged(TimeSpan adaptiveDimmingPreDimWaitTime) override final;
-	virtual void mispredictionFaceDetectionFeatureStateChanged(
-		Bool mispredictionFaceDetectionFeatureState) override final;
-	virtual void mispredictionTimeWindowChanged(TimeSpan mispredictionTimeWindow) override final;
-	virtual void misprediction1DimWaitTimeChanged(TimeSpan misprediction1DimWaitTime) override final;
-	virtual void misprediction2DimWaitTimeChanged(TimeSpan misprediction2DimWaitTime) override final;
-	virtual void misprediction3DimWaitTimeChanged(TimeSpan misprediction3DimWaitTime) override final;
-	virtual void misprediction4DimWaitTimeChanged(TimeSpan misprediction4DimWaitTime) override final;
-	virtual void noLockOnPresenceFeatureStateChanged(
-		Bool noLockOnPresenceFeatureState) override final;
-	virtual void noLockOnPresenceExternalMonitorFeatureStateChanged(Bool noLockOnPresenceExternalMonitorFeatureState) override final;
-	virtual void noLockOnPresenceOnBatteryFeatureStateChanged(
-		Bool noLockOnPresenceOnBatteryFeatureState) override final;
-	virtual void noLockOnPresenceBatteryRemainingPercentageChanged(
-		Percentage noLockOnPresenceBatteryRemainingPercentage) override final;
-	virtual void noLockOnPresenceResetWaitTimeChanged(TimeSpan noLockOnPresenceResetWaitTime) override final;
-	virtual void failsafeTimeoutChanged(TimeSpan failsafeTimeout) override final;
-	virtual void contextServiceStatusChanged(Bool contextServiceStatus) override final;
 	virtual void externalMonitorStateChanged(Bool externalMonitorState) override final;
-	virtual void userNotPresentDimTargetChanged(Percentage userNotPresentDimTarget) override final;
-	virtual void userDisengagedDimmingIntervalChanged(TimeSpan userDisengagedDimmingInterval) override final;
-	virtual void userDisengagedDimTargetChanged(Percentage userDisengagedDimTarget) override final;
-	virtual void userDisengagedDimWaitTimeChanged(TimeSpan userDisengagedDimWaitTime) override final;
-	virtual void sensorModeChanged(SensorMode::Type sensorMode) override final;
-	virtual void biometricPresenceSensorInstanceChanged(
-		BiometricPresenceSensorInstance::Type sensorInstance) override final;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
-	virtual void userPresenceCorrelationStatusChanged(UserPresenceCorrelation::Type correlationStatus) override final;
 	virtual void foregroundRatioChanged(UIntN ratio) override final;
 
 	// allows overriding the default time object with a different one
@@ -377,6 +266,9 @@ protected:
 	// service access for subclasses
 	PolicyServicesInterfaceContainer& getPolicyServices() const;
 	std::shared_ptr<TimeInterface>& getTime() const;
+
+	std::string m_dynamicPolicyUuidString;
+	std::string m_dynamicPolicyName;
 
 private:
 	// policy state

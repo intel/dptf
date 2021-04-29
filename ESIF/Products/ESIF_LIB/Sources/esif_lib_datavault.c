@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -1380,12 +1380,12 @@ esif_error_t DataVault_TranslatePath(
 		esif_string		prefix;
 		esif_pathtype	pathtype;
 	} tokens[] = {
-		{ "$bin",	ESIF_PATHTYPE_BIN },	// %DriverData%\intel\dptf\bin or /usr/.../bin [Default]
-		{ "$dv",	ESIF_PATHTYPE_DV },		// %DriverData%\intel\dptf\dv or /etc/dptf
-		{ "$log",	ESIF_PATHTYPE_LOG },	// %DriverData%\intel\dptf\log or /var/.../log
-		{ "$cmd",	ESIF_PATHTYPE_CMD },	// %DriverData%\intel\dptf\cmd or /etc/dptf/cmd
-		{ "$dsp",	ESIF_PATHTYPE_DSP },	// %DriverData%\intel\dptf\dsp or /usr/.../dsp or /etc/dptf/dsp
-		{ "$ui",	ESIF_PATHTYPE_UI },		// %DriverData%\intel\dptf\ui  or /usr/.../ui
+		{ "$bin",	ESIF_PATHTYPE_BIN },	// %DriverData%\intel\ipf\bin or /usr/.../bin [Default]
+		{ "$dv",	ESIF_PATHTYPE_DV },		// %DriverData%\intel\ipf\dv or /etc/dptf
+		{ "$log",	ESIF_PATHTYPE_LOG },	// %DriverData%\intel\ipf\log or /var/.../log
+		{ "$cmd",	ESIF_PATHTYPE_CMD },	// %DriverData%\intel\ipf\cmd or /etc/dptf/cmd
+		{ "$dsp",	ESIF_PATHTYPE_DSP },	// %DriverData%\intel\ipf\dsp or /usr/.../dsp or /etc/dptf/dsp
+		{ "$ui",	ESIF_PATHTYPE_UI },		// %DriverData%\intel\ipf\ui  or /usr/.../ui
 		{ NULL,		(esif_pathtype)0 }
 	};
 

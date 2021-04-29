@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "RfProfileDataSet.h"
+#include "DdrfChannelBandPackage.h"
 
 class DomainRfProfileStatusInterface
 {
@@ -27,4 +28,11 @@ public:
 	virtual ~DomainRfProfileStatusInterface(){};
 
 	virtual RfProfileDataSet getRfProfileDataSet(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getWifiCapabilities(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) = 0;
+	virtual void setDdrRfiTable(
+		UIntN participantIndex, 
+		UIntN domainIndex, 
+		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) = 0;
 };

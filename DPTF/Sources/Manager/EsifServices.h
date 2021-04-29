@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -37,10 +37,15 @@ public:
 	virtual UInt32 readConfigurationUInt32(const std::string& elementPath) override;
 	virtual UInt32 readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath) override;
 	virtual void writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue) override;
-	virtual std::string readConfigurationString(const std::string& elementPath) override;
 	virtual std::string readConfigurationString(const std::string& nameSpace, const std::string& elementPath) override;
-	virtual DptfBuffer readConfigurationBinary(const std::string& elementPath) override;
-	virtual DptfBuffer readConfigurationBinaryFromNameSpace(
+	virtual DptfBuffer readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath) override;
+	virtual void writeConfigurationBinary(
+		void* bufferPtr,
+		UInt32 bufferLength,
+		UInt32 dataLength,
+		const std::string& nameSpace,
+		const std::string& elementPath) override;
+	virtual void deleteConfigurationBinary(
 		const std::string& nameSpace,
 		const std::string& elementPath) override;
 

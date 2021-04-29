@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 
 #include "Dptf.h"
 #include "DomainEnergyControlBase.h"
+#include "EnergyCounterInfo.h"
 
 class DomainEnergyControl_001 : public DomainEnergyControlBase
 {
@@ -32,6 +33,7 @@ public:
 
 	// DomainEnergyControlInterface
 	virtual UInt32 getRaplEnergyCounter(UIntN participantIndex, UIntN domainIndex) override;
+	virtual EnergyCounterInfo getRaplEnergyCounterInfo(UIntN participantIndex, UIntN domainIndex) override;
 	virtual double getRaplEnergyUnit(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt32 getRaplEnergyCounterWidth(UIntN participantIndex, UIntN domainIndex) override;
 	virtual Power getInstantaneousPower(UIntN participantIndex, UIntN domainIndex) override;
@@ -51,4 +53,6 @@ private:
 	// Don't allow this class to be copied
 	DomainEnergyControl_001(const DomainEnergyControl_001& rhs);
 	DomainEnergyControl_001& operator=(const DomainEnergyControl_001& rhs);
+
+	double m_raplEnergyUnit;
 };

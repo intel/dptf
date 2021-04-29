@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -18,7 +18,10 @@
 
 #pragma once
 
-#include "Ver.h" /* DPTF/ESIF Version in Common folder */
+#define VER_MAJOR  9
+#define VER_MINOR  0
+#define VER_HOTFIX 10500
+#define VER_BUILD  20898
 
 #define ARG_TOSTR(arg) #arg
 #define VER_TOSTR(arg) ARG_TOSTR(arg)
@@ -39,4 +42,4 @@
 	VER_MAJOR_STR VER_SEPARATOR_STR VER_MINOR_STR VER_SEPARATOR_STR VER_HOTFIX_STR VER_SEPARATOR_STR VER_BUILD_STR     \
 		VER_DEBUG_TAG
 
-#define COPYRIGHT_STR "Copyright (c) 2013-2020 Intel Corporation All Rights Reserved \0"
+#define COPYRIGHT_STR "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved \0"

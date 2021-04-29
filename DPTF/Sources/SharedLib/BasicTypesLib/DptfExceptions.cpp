@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -105,6 +105,11 @@ policy_already_exists::policy_already_exists()
 
 policy_not_in_idsp_list::policy_not_in_idsp_list()
 	: dptf_exception("The policy is not in the IDSP list.")
+{
+}
+
+dynamic_policy_template_guid_invalid::dynamic_policy_template_guid_invalid()
+	: dptf_exception("The dynamic policy template guid is not valid.")
 {
 }
 

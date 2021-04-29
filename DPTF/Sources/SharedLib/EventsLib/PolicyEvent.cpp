@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -83,9 +83,6 @@ namespace PolicyEvent
 			CASE(PolicySensorMotionChanged)
 			CASE(PolicySensorSpatialOrientationChanged)
 			CASE(PolicyThermalRelationshipTableChanged)
-			CASE(PolicyAdaptivePerformanceConditionsTableChanged)
-			CASE(PolicyAdaptivePerformanceParticipantConditionTableChanged)
-			CASE(PolicyAdaptivePerformanceActionsTableChanged)
 			CASE(PolicyOperatingSystemPowerSourceChanged)
 			CASE(PolicyOperatingSystemLidStateChanged)
 			CASE(PolicyOperatingSystemBatteryPercentageChanged)
@@ -109,6 +106,7 @@ namespace PolicyEvent
 			CASE(PolicyOperatingSystemPowerSchemePersonalityChanged)
 			CASE(PolicyEmergencyCallModeTableChanged)
 			CASE(PolicyPidAlgorithmTableChanged)
+			CASE(PolicyIntelligentThermalManagementTableChanged)
 			CASE(PolicyActiveControlPointRelationshipTableChanged)
 			CASE(PolicyPowerShareAlgorithmTableChanged)
 			CASE(PowerLimitChanged)
@@ -116,50 +114,9 @@ namespace PolicyEvent
 			CASE(PolicyWorkloadHintConfigurationChanged)
 			CASE(PolicyOperatingSystemGameModeChanged)
 			CASE(PolicyPowerShareAlgorithmTable2Changed)
-			CASE(PolicySensorUserPresenceChanged)
-			CASE(PolicyAdaptiveUserPresenceTableChanged)
 			CASE(PolicyPlatformUserPresenceChanged)
-			CASE(PolicyWakeOnApproachFeatureStateChanged)
-			CASE(PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged)
-			CASE(PolicyWakeOnApproachLowBatteryFeatureStateChanged)
-			CASE(PolicyWakeOnApproachBatteryRemainingPercentageChanged)
-			CASE(PolicyWalkAwayLockFeatureStateChanged)
-			CASE(PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged)
-			CASE(PolicyWalkAwayLockDimScreenFeatureStateChanged)
-			CASE(PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged)
-			CASE(PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged)
-			CASE(PolicyWalkAwayLockHonorUserInCallFeatureStateChanged)
-			CASE(PolicyUserInCallStateChanged)
-			CASE(PolicyWalkAwayLockScreenLockWaitTimeChanged)
-			CASE(PolicyWalkAwayLockPreDimWaitTimeChanged)
-			CASE(PolicyWalkAwayLockUserPresentWaitTimeChanged)
-			CASE(PolicyWalkAwayLockDimIntervalChanged)
-			CASE(PolicyAdaptiveDimmingFeatureStateChanged)
-			CASE(PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged)
-			CASE(PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged)
-			CASE(PolicyAdaptiveDimmingPreDimWaitTimeChanged)
-			CASE(PolicyMispredictionFaceDetectionFeatureStateChanged)
-			CASE(PolicyMispredictionTimeWindowChanged)
-			CASE(PolicyMisprediction1DimWaitTimeChanged)
-			CASE(PolicyMisprediction2DimWaitTimeChanged)
-			CASE(PolicyMisprediction3DimWaitTimeChanged)
-			CASE(PolicyMisprediction4DimWaitTimeChanged)
-			CASE(PolicyNoLockOnPresenceFeatureStateChanged)
-			CASE(PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged)
-			CASE(PolicyNoLockOnPresenceOnBatteryFeatureStateChanged)
-			CASE(PolicyNoLockOnPresenceBatteryRemainingPercentageChanged)
-			CASE(PolicyNoLockOnPresenceResetWaitTimeChanged)
-			CASE(PolicyFailsafeTimeoutChanged)
-			CASE(PolicyContextServiceStatusChanged)
 			CASE(PolicyExternalMonitorStateChanged)
-			CASE(PolicyUserNotPresentDimTargetChanged)
-			CASE(PolicyUserDisengagedDimmingIntervalChanged)
-			CASE(PolicyUserDisengagedDimTargetChanged)
-			CASE(PolicyUserDisengagedDimWaitTimeChanged)
-			CASE(PolicySensorModeChanged)
-			CASE(PolicyBiometricPresenceSensorInstanceChanged)
 			CASE(PolicyUserInteractionChanged)
-			CASE(PolicyUserPresenceCorrelationChanged)
 			CASE(PolicyForegroundRatioChanged)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
@@ -177,9 +134,6 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicySensorMotionChanged)
 			|| (policyEventType == PolicyEvent::PolicySensorSpatialOrientationChanged)
 			|| (policyEventType == PolicyEvent::PolicyThermalRelationshipTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSourceChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemLidStateChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemBatteryPercentageChanged)
@@ -200,55 +154,15 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged)
 			|| (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPidAlgorithmTableChanged)
+			|| (policyEventType == PolicyEvent::PolicyIntelligentThermalManagementTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyActiveControlPointRelationshipTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged)
-			|| (policyEventType == PolicyEvent::PolicySensorUserPresenceChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptiveUserPresenceTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemGameModeChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTable2Changed)
 			|| (policyEventType == PolicyEvent::PolicyPlatformUserPresenceChanged)
-			|| (policyEventType == PolicyEvent::PolicyWakeOnApproachFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWakeOnApproachLowBatteryFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWakeOnApproachBatteryRemainingPercentageChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockDimScreenFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockHonorUserInCallFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserInCallStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockScreenLockWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockPreDimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockUserPresentWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyWalkAwayLockDimIntervalChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptiveDimmingFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyAdaptiveDimmingPreDimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyMispredictionFaceDetectionFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyMispredictionTimeWindowChanged)
-			|| (policyEventType == PolicyEvent::PolicyMisprediction1DimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyMisprediction2DimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyMisprediction3DimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyMisprediction4DimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceOnBatteryFeatureStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceBatteryRemainingPercentageChanged)
-			|| (policyEventType == PolicyEvent::PolicyNoLockOnPresenceResetWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicyFailsafeTimeoutChanged)
-			|| (policyEventType == PolicyEvent::PolicyContextServiceStatusChanged)
 			|| (policyEventType == PolicyEvent::PolicyExternalMonitorStateChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserNotPresentDimTargetChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimmingIntervalChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimTargetChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserDisengagedDimWaitTimeChanged)
-			|| (policyEventType == PolicyEvent::PolicySensorModeChanged)
-			|| (policyEventType == PolicyEvent::PolicyBiometricPresenceSensorInstanceChanged)
 			|| (policyEventType == PolicyEvent::PolicyUserInteractionChanged)
-			|| (policyEventType == PolicyEvent::PolicyUserPresenceCorrelationChanged)
 			|| (policyEventType == PolicyEvent::PolicyForegroundRatioChanged));
 	}
 
@@ -352,10 +266,10 @@ namespace PolicyEvent
 			return "PolicyThermalRelationshipTableChanged";
 		case PolicyEvent::PolicyAdaptivePerformanceConditionsTableChanged:
 			return "PolicyAdaptivePerformanceConditionsTableChanged";
-		case PolicyEvent::PolicyAdaptivePerformanceParticipantConditionTableChanged:
-			return "PolicyAdaptivePerformanceParticipantConditionTableChanged";
 		case PolicyEvent::PolicyAdaptivePerformanceActionsTableChanged:
 			return "PolicyAdaptivePerformanceActionsTableChanged";
+		case PolicyEvent::PolicyDdrfTableChanged:
+			return "PolicyDdrfTableChanged";
 		case PolicyEvent::PolicyOperatingSystemPowerSourceChanged:
 			return "PolicyOperatingSystemPowerSourceChanged";
 		case PolicyEvent::PolicyOperatingSystemLidStateChanged:
@@ -402,6 +316,8 @@ namespace PolicyEvent
 			return "PolicyEmergencyCallModeTableChanged";
 		case PolicyEvent::PolicyPidAlgorithmTableChanged:
 			return "PolicyPidAlgorithmTableChanged";
+		case PolicyEvent::PolicyIntelligentThermalManagementTableChanged:
+			return "PolicyIntelligentThermalManagementTableChanged";
 		case PolicyEvent::PolicyActiveControlPointRelationshipTableChanged:
 			return "PolicyActiveControlPointRelationshipTableChanged";
 		case PolicyEvent::PolicyPowerShareAlgorithmTableChanged:
@@ -416,94 +332,12 @@ namespace PolicyEvent
 			return "PolicyOperatingSystemGameModeChanged";
 		case PolicyEvent::PolicyPowerShareAlgorithmTable2Changed:
 			return "PolicyPowerShareAlgorithmTable2Changed";
-		case PolicyEvent::PolicySensorUserPresenceChanged:
-			return "PolicySensorUserPresenceChanged";
 		case PolicyEvent::PolicyPlatformUserPresenceChanged:
 			return "PolicyPlatformUserPresenceChanged";
-		case PolicyEvent::PolicyAdaptiveUserPresenceTableChanged:
-			return "PolicyAdaptiveUserPresenceTableChanged";
-		case PolicyEvent::PolicyWakeOnApproachFeatureStateChanged:
-			return "PolicyWakeOnApproachFeatureStateChanged";
-		case PolicyEvent::PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged:
-			return "PolicyWakeOnApproachWithExternalMonitorFeatureStateChanged";
-		case PolicyEvent::PolicyWakeOnApproachLowBatteryFeatureStateChanged:
-			return "PolicyWakeOnApproachLowBatteryFeatureStateChanged";
-		case PolicyEvent::PolicyWakeOnApproachBatteryRemainingPercentageChanged:
-			return "PolicyWakeOnApproachBatteryRemainingPercentageChanged";
-		case PolicyEvent::PolicyWalkAwayLockFeatureStateChanged:
-			return "PolicyWalkAwayLockFeatureStateChanged";
-		case PolicyEvent::PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged:
-			return "PolicyWalkAwayLockWithExternalMonitorFeatureStateChanged";
-		case PolicyEvent::PolicyWalkAwayLockDimScreenFeatureStateChanged:
-			return "PolicyWalkAwayLockDimScreenFeatureStateChanged";
-		case PolicyEvent::PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged:
-			return "PolicyWalkAwayLockDisplayOffAfterLockFeatureStateChanged";
-		case PolicyEvent::PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged:
-			return "PolicyWalkAwayLockHonorPowerRequestsForDisplayFeatureStateChanged";
-		case PolicyEvent::PolicyWalkAwayLockHonorUserInCallFeatureStateChanged:
-			return "PolicyWalkAwayLockHonorUserInCallFeatureStateChanged";
-		case PolicyEvent::PolicyUserInCallStateChanged:
-			return "PolicyUserInCallStateChanged";
-		case PolicyEvent::PolicyWalkAwayLockScreenLockWaitTimeChanged:
-			return "PolicyWalkAwayLockScreenLockWaitTimeChanged";
-		case PolicyEvent::PolicyWalkAwayLockPreDimWaitTimeChanged:
-			return "PolicyWalkAwayLockPreDimWaitTimeChanged";
-		case PolicyEvent::PolicyWalkAwayLockUserPresentWaitTimeChanged:
-			return "PolicyWalkAwayLockUserPresentWaitTimeChanged";
-		case PolicyEvent::PolicyWalkAwayLockDimIntervalChanged:
-			return "PolicyWalkAwayLockDimIntervalChanged";
-		case PolicyEvent::PolicyAdaptiveDimmingFeatureStateChanged:
-			return "PolicyAdaptiveDimmingFeatureStateChanged";
-		case PolicyEvent::PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged:
-			return "PolicyAdaptiveDimmingWithExternalMonitorFeatureStateChanged";
-		case PolicyEvent::PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged:
-			return "PolicyAdaptiveDimmingWithPresentationModeFeatureStateChanged";
-		case PolicyEvent::PolicyAdaptiveDimmingPreDimWaitTimeChanged:
-			return "PolicyAdaptiveDimmingPreDimWaitTimeChanged";
-		case PolicyEvent::PolicyMispredictionFaceDetectionFeatureStateChanged:
-			return "PolicyMispredictionFaceDetectionFeatureStateChanged";
-		case PolicyEvent::PolicyMispredictionTimeWindowChanged:
-			return "PolicyMispredictionTimeWindowChanged";
-		case PolicyEvent::PolicyMisprediction1DimWaitTimeChanged:
-			return "PolicyMisprediction1DimWaitTimeChanged";
-		case PolicyEvent::PolicyMisprediction2DimWaitTimeChanged:
-			return "PolicyMisprediction2DimWaitTimeChanged";
-		case PolicyEvent::PolicyMisprediction3DimWaitTimeChanged:
-			return "PolicyMisprediction3DimWaitTimeChanged";
-		case PolicyEvent::PolicyMisprediction4DimWaitTimeChanged:
-			return "PolicyMisprediction4DimWaitTimeChanged";
-		case PolicyEvent::PolicyNoLockOnPresenceFeatureStateChanged:
-			return "PolicyNoLockOnPresenceFeatureStateChanged";
-		case PolicyEvent::PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged:
-			return "PolicyNoLockOnPresenceExternalMonitorFeatureStateChanged";
-		case PolicyEvent::PolicyNoLockOnPresenceOnBatteryFeatureStateChanged:
-			return "PolicyNoLockOnPresenceOnBatteryFeatureStateChanged";
-		case PolicyEvent::PolicyNoLockOnPresenceBatteryRemainingPercentageChanged:
-			return "PolicyNoLockOnPresenceBatteryRemainingPercentageChanged";
-		case PolicyEvent::PolicyNoLockOnPresenceResetWaitTimeChanged:
-			return "PolicyNoLockOnPresenceResetWaitTimeChanged";
-		case PolicyEvent::PolicyFailsafeTimeoutChanged:
-			return "PolicyFailsafeTimeoutChanged";
-		case PolicyEvent::PolicyContextServiceStatusChanged:
-			return "PolicyContextServiceStatusChanged";
 		case PolicyEvent::PolicyExternalMonitorStateChanged:
 			return "PolicyExternalMonitorStateChanged";
-		case PolicyEvent::PolicyUserNotPresentDimTargetChanged:
-			return "PolicyUserNotPresentDimTargetChanged";
-		case PolicyEvent::PolicyUserDisengagedDimmingIntervalChanged:
-			return "PolicyUserDisengagedDimmingIntervalChanged";
-		case PolicyEvent::PolicyUserDisengagedDimTargetChanged:
-			return "PolicyUserDisengagedDimTargetChanged";
-		case PolicyEvent::PolicyUserDisengagedDimWaitTimeChanged:
-			return "PolicyUserDisengagedDimWaitTimeChanged";
-		case PolicyEvent::PolicySensorModeChanged:
-			return "PolicySensorModeChanged";
-		case PolicyEvent::PolicyBiometricPresenceSensorInstanceChanged:
-			return "PolicyBiometricPresenceSensorInstanceChanged";
 		case PolicyEvent::PolicyUserInteractionChanged:
 			return "PolicyUserInteractionChanged";
-		case PolicyEvent::PolicyUserPresenceCorrelationChanged:
-			return "PolicyUserPresenceCorrelationChanged";
 		case PolicyEvent::PolicyForegroundRatioChanged:
 			return "PolicyForegroundRatioChanged";
 		case PolicyEvent::Invalid:

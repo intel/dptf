@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -93,6 +93,7 @@ struct esif_ccb_mempool {
 
 
 /* Memory Pool Create */
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE struct esif_ccb_mempool *esif_ccb_mempool_create(
 	enum esif_mempool_type pool_type,
 	u32 pool_tag,
@@ -143,6 +144,7 @@ exit:
 
 
 /* Memory Pool Destroy */
+/* WARNING:  This function may not be in paged code in kernel */
 static ESIF_INLINE void esif_ccb_mempool_destroy(
 	enum esif_mempool_type pool_type
 	)
@@ -188,6 +190,7 @@ exit:
 
 
 /* Memory Pool Alloc */
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void *esif_ccb_mempool_alloc(
 	enum esif_mempool_type pool_type
 	)
@@ -235,6 +238,7 @@ exit:
 
 
 /* Memory Pool Free */
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void esif_ccb_mempool_free(
 	enum esif_mempool_type pool_type,
 	void *mem_ptr
@@ -462,6 +466,7 @@ static ESIF_INLINE enum esif_rc esif_ccb_mempool_init_tracking(void)
 
 
 /* NOTE:  This function is common to user and kernel mode */
+/* WARNING:  This function may not be in paged code in kernel */
 static ESIF_INLINE void esif_ccb_mempool_uninit_tracking(void)
 {
 	u32 type_tag;
@@ -477,6 +482,7 @@ static ESIF_INLINE void esif_ccb_mempool_uninit_tracking(void)
 
 /* Memory Pool ZERO Alloc */
 /* NOTE:  This function is common to user and kernel mode */
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void *esif_ccb_mempool_zalloc(
 	enum esif_mempool_type pool_type
 	)

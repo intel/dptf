@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -62,6 +62,17 @@ Bool DynamicEppFacade::supportsDynamicEpp()
 	}
 
 	return false;
+}
+
+void DynamicEppFacade::setDynamicEppSupport(UInt32 dynamicEppSupport)
+{
+	if (supportsDynamicEppInterface())
+	{
+		DptfRequest request(DptfRequestType::DynamicEppSetDynamicEppSupport, m_participantIndex, m_domainIndex);
+		request.setDataFromUInt32(dynamicEppSupport);
+		auto result = m_policyServices.serviceRequest->submitRequest(request);
+		result.throwIfFailure();
+	}
 }
 
 Bool DynamicEppFacade::supportsDynamicEppInterface()

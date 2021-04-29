@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -81,7 +81,23 @@ static ESIF_INLINE int esif_ccb_sprintf_len(size_t siz, int len)
 	return ((siz) && (len) >= (int)(siz) ? (int)(siz)-1 : (len));
 }
 
-#define esif_ccb_sprintf(siz, str, fmt, ...)			esif_ccb_sprintf_len(siz, snprintf(str, siz, fmt, ##__VA_ARGS__))
+/* Safe sprintf that avoids buffer overruns and always null-terminates target */
+static ESIF_INLINE int esif_ccb_sprintf(
+	size_t siz,		/* total size of str buffer, including existing string and null terminator */
+	char *str,		/* null terminated string */
+	const char *fmt,	/* format string */
+	...)
+{
+	int rc = 0;
+	if (siz) {
+		va_list args;
+		va_start(args, fmt);
+		rc = esif_ccb_sprintf_len(siz, vsnprintf(str, siz, fmt, args));
+		va_end(args);
+	}
+	return rc;
+}
+
 #define esif_ccb_snprintf(str, siz, fmt, ...)			esif_ccb_sprintf(siz, str, fmt, ##__VA_ARGS__)
 #define esif_ccb_snprintf_concat(str, siz, fmt, ...)	esif_ccb_sprintf_concat(siz, str, fmt, ##__VA_ARGS__)
 #define esif_ccb_strpbrk(str, set)		strpbrk(str, set)

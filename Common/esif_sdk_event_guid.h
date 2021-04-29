@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -54,65 +54,47 @@
 #pragma once
 
 /*
- * Event Name:  CONNECTED_STANDBY_ENTRY
- * Event GUID:  FD34F756-F7B6-47DD-B3D5-0011A34E4337
- * Event Desc:  Enter connected standby
- */
-#define CONNECTED_STANDBY_ENTRY { \
-	0xFD, 0x34, 0xF7, 0x56, 0xF7, 0xB6, 0x47, 0xDD, \
-	0xB3, 0xD5, 0x00, 0x11, 0xA3, 0x4E, 0x43, 0x37 }
-
-/*
- * Event Name:  CONNECTED_STANDBY_EXIT
- * Event GUID:  9604508D-F4AA-4716-83D9-6EE951EBBEA9
- * Event Desc:  Exit connected standby
- */
-#define CONNECTED_STANDBY_EXIT { \
-	0x96, 0x04, 0x50, 0x8D, 0xF4, 0xAA, 0x47, 0x16, \
-	0x83, 0xD9, 0x6E, 0xE9, 0x51, 0xEB, 0xBE, 0xA9 }
-
-/*
- * Event Name:  ACTIVE_RELATIONSHIP_CHANGED
+ * Event Name:  DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED
  * Event GUID:  C7C5FC88-8AAC-42C2-8B51-21777033E75D
  * Event Desc:  Active relationship table changed
  */
-#define ACTIVE_RELATIONSHIP_CHANGED { \
+#define DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED { \
 	0xC7, 0xC5, 0xFC, 0x88, 0x8A, 0xAC, 0x42, 0xC2, \
 	0x8B, 0x51, 0x21, 0x77, 0x70, 0x33, 0xE7, 0x5D }
 
 /*
- * Event Name:  THERMAL_RELATIONSHIP_CHANGED
+ * Event Name:  DTT_THERMAL_RELATIONSHIP_TABLE_CHANGED
  * Event GUID:  7E99E90E-0A22-4EEC-AD6C-908DEB21E9A9
  * Event Desc:  Thermal relationship table changed
  */
-#define THERMAL_RELATIONSHIP_CHANGED { \
+#define DTT_THERMAL_RELATIONSHIP_TABLE_CHANGED { \
 	0x7E, 0x99, 0xE9, 0x0E, 0x0A, 0x22, 0x4E, 0xEC, \
 	0xAD, 0x6C, 0x90, 0x8D, 0xEB, 0x21, 0xE9, 0xA9 }
 
 /*
- * Event Name:  FOREGROUND_CHANGED
+ * Event Name:  FOREGROUND_APP_CHANGED
  * Event GUID:  88E419E3-609B-4BDA-9A17-83DE899831FD
  * Event Desc:  Foreground application changed
  */
-#define FOREGROUND_CHANGED { \
+#define FOREGROUND_APP_CHANGED { \
 	0x88, 0xE4, 0x19, 0xE3, 0x60, 0x9B, 0x4B, 0xDA, \
 	0x9A, 0x17, 0x83, 0xDE, 0x89, 0x98, 0x31, 0xFD }
 
 /*
- * Event Name:  SUSPEND
+ * Event Name:  PARTICIPANT_SUSPEND
  * Event GUID:  547F7465-D98A-40FD-AC12-E6D20F7B091B
  * Event Desc:  Suspend Upper Framework
  */
-#define SUSPEND { \
+#define PARTICIPANT_SUSPEND { \
 	0x54, 0x7F, 0x74, 0x65, 0xD9, 0x8A, 0x40, 0xFD, \
 	0xAC, 0x12, 0xE6, 0xD2, 0x0F, 0x7B, 0x09, 0x1B }
 
 /*
- * Event Name:  RESUME
+ * Event Name:  PARTICIPANT_RESUME
  * Event GUID:  AB3E045F-6B51-4EC5-9330-EAB70836F02F
  * Event Desc:  Resume Upper Framework
  */
-#define RESUME { \
+#define PARTICIPANT_RESUME { \
 	0xAB, 0x3E, 0x04, 0x5F, 0x6B, 0x51, 0x4E, 0xC5, \
 	0x93, 0x30, 0xEA, 0xB7, 0x08, 0x36, 0xF0, 0x2F }
 
@@ -126,20 +108,20 @@
 	0xBE, 0x1A, 0xC2, 0x01, 0x37, 0x7E, 0x0C, 0x18 }
 
 /*
- * Event Name:  DISPLAY_CAPABILITY_CHANGED
+ * Event Name:  DTT_DISPLAY_CAPABILITY_CHANGED
  * Event GUID:  F1CDA338-0F3C-4F8D-A1D9-8033E672F672
  * Event Desc:  Display control upper/lower limits changed.
  */
-#define DISPLAY_CAPABILITY_CHANGED { \
+#define DTT_DISPLAY_CAPABILITY_CHANGED { \
 	0xF1, 0xCD, 0xA3, 0x38, 0x0F, 0x3C, 0x4F, 0x8D, \
 	0xA1, 0xD9, 0x80, 0x33, 0xE6, 0x72, 0xF6, 0x72 }
 
 /*
- * Event Name:  DISPLAY_STATUS_CHANGED
+ * Event Name:  DTT_DISPLAY_STATUS_CHANGED
  * Event GUID:  BDB4F356-CF69-4152-99A9-1DCE4972AB9D
  * Event Desc:  Current Display brightness status changed due to user/override
  */
-#define DISPLAY_STATUS_CHANGED { \
+#define DTT_DISPLAY_STATUS_CHANGED { \
 	0xBD, 0xB4, 0xF3, 0x56, 0xCF, 0x69, 0x41, 0x52, \
 	0x99, 0xA9, 0x1D, 0xCE, 0x49, 0x72, 0xAB, 0x9D }
 
@@ -171,20 +153,11 @@
 	0x99, 0x5F, 0x24, 0xCA, 0xF4, 0x64, 0x4D, 0xCF }
 
 /*
- * Event Name:  POWER_THRESHOLD_CROSSED
- * Event GUID:  68138891-C225-438A-8F43-04B071CBF4E3
- * Event Desc:  Programmable Threshold Power Event
- */
-#define POWER_THRESHOLD_CROSSED { \
-	0x68, 0x13, 0x88, 0x91, 0xC2, 0x25, 0x43, 0x8A, \
-	0x8F, 0x43, 0x04, 0xB0, 0x71, 0xCB, 0xF4, 0xE3 }
-
-/*
- * Event Name:  PRIORITY_CHANGED
+ * Event Name:  DTT_PRIORITY_CHANGED
  * Event GUID:  98077FF3-AD61-4E50-AFEE-51D0CE8DE396
  * Event Desc:  Domain priority has changed
  */
-#define PRIORITY_CHANGED { \
+#define DTT_PRIORITY_CHANGED { \
 	0x98, 0x07, 0x7F, 0xF3, 0xAD, 0x61, 0x4E, 0x50, \
 	0xAF, 0xEE, 0x51, 0xD0, 0xCE, 0x8D, 0xE3, 0x96 }
 
@@ -198,38 +171,38 @@
 	0x9A, 0x4A, 0x7E, 0xC5, 0xC2, 0xEE, 0x1B, 0x6E }
 
 /*
- * Event Name:  SPEC_INFO_CHANGED
+ * Event Name:  PARTICIPANT_SPEC_INFO_CHANGED
  * Event GUID:  75494A00-417C-4E51-9FAB-FBDD965577D4
  * Event Desc:  Participant Specific Information Changed
  */
-#define SPEC_INFO_CHANGED { \
+#define PARTICIPANT_SPEC_INFO_CHANGED { \
 	0x75, 0x49, 0x4A, 0x00, 0x41, 0x7C, 0x4E, 0x51, \
 	0x9F, 0xAB, 0xFB, 0xDD, 0x96, 0x55, 0x77, 0xD4 }
 
 /*
- * Event Name:  CREATE
+ * Event Name:  PARTICIPANT_CREATE
  * Event GUID:  F3B70F0B-79BC-4414-BCF7-6389658E9FAB
  * Event Desc:  Create Upper Framework Participant
  */
-#define CREATE { \
+#define PARTICIPANT_CREATE { \
 	0xF3, 0xB7, 0x0F, 0x0B, 0x79, 0xBC, 0x44, 0x14, \
 	0xBC, 0xF7, 0x63, 0x89, 0x65, 0x8E, 0x9F, 0xAB }
 
 /*
- * Event Name:  UNREGISTER
+ * Event Name:  PARTICIPANT_UNREGISTER
  * Event GUID:  D58C6702-BB4E-4F82-87F9-E527FEBBBEE1
  * Event Desc:  Unregister Upper Framework Participant
  */
-#define UNREGISTER { \
+#define PARTICIPANT_UNREGISTER { \
 	0xD5, 0x8C, 0x67, 0x02, 0xBB, 0x4E, 0x4F, 0x82, \
 	0x87, 0xF9, 0xE5, 0x27, 0xFE, 0xBB, 0xBE, 0xE1 }
 
 /*
- * Event Name:  SHUTDOWN
+ * Event Name:  PARTICIPANT_SHUTDOWN
  * Event GUID:  DE7CA990-66C6-4F0F-B78F-E2774E3CE790
  * Event Desc:  Shutdown Upper Framework Participant
  */
-#define SHUTDOWN { \
+#define PARTICIPANT_SHUTDOWN { \
 	0xDE, 0x7C, 0xA9, 0x90, 0x66, 0xC6, 0x4F, 0x0F, \
 	0xB7, 0x8F, 0xE2, 0x77, 0x4E, 0x3C, 0xE7, 0x90 }
 
@@ -243,11 +216,11 @@
 	0xBE, 0xAE, 0xB7, 0x02, 0x90, 0x01, 0x12, 0x87 }
 
 /*
- * Event Name:  PASSIVE_TABLE_CHANGED
+ * Event Name:  DTT_PASSIVE_TABLE_CHANGED
  * Event GUID:  661C68E1-B73E-4D02-859B-F1C1505F90D1
  * Event Desc:  PSV Object Changed
  */
-#define PASSIVE_TABLE_CHANGED { \
+#define DTT_PASSIVE_TABLE_CHANGED { \
 	0x66, 0x1C, 0x68, 0xE1, 0xB7, 0x3E, 0x4D, 0x02, \
 	0x85, 0x9B, 0xF1, 0xC1, 0x50, 0x5F, 0x90, 0xD1 }
 
@@ -279,11 +252,11 @@
 	0xA8, 0xB2, 0x64, 0x0E, 0x31, 0xF5, 0xBB, 0x0A }
 
 /*
- * Event Name:  SYSTEM_COOLING_POLICY_CHANGED
+ * Event Name:  DTT_SYSTEM_COOLING_POLICY_CHANGED
  * Event GUID:  5C7D591E-2EA8-4DA1-85A4-476191404650
  * Event Desc:  System Cooling Policy
  */
-#define SYSTEM_COOLING_POLICY_CHANGED { \
+#define DTT_SYSTEM_COOLING_POLICY_CHANGED { \
 	0x5C, 0x7D, 0x59, 0x1E, 0x2E, 0xA8, 0x4D, 0xA1, \
 	0x85, 0xA4, 0x47, 0x61, 0x91, 0x40, 0x46, 0x50 }
 
@@ -324,20 +297,20 @@
 	0xBD, 0x56, 0x02, 0x9C, 0x08, 0xE0, 0xDB, 0x31 }
 
 /*
- * Event Name:  ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED
+ * Event Name:  DTT_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED
  * Event GUID:  CE5CCB61-2928-4542-B6C1-98B3A19B0103
  * Event Desc:  Adaptive Performance Conditions Table Changed
  */
-#define ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED { \
+#define DTT_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED { \
 	0xCE, 0x5C, 0xCB, 0x61, 0x29, 0x28, 0x45, 0x42, \
 	0xB6, 0xC1, 0x98, 0xB3, 0xA1, 0x9B, 0x01, 0x03 }
 
 /*
- * Event Name:  ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED
+ * Event Name:  DTT_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED
  * Event GUID:  A48EC3A1-11A7-40FE-8DE8-1226814A4E99
  * Event Desc:  Adaptive Performance Actions Table Changed
  */
-#define ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED { \
+#define DTT_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED { \
 	0xA4, 0x8E, 0xC3, 0xA1, 0x11, 0xA7, 0x40, 0xFE, \
 	0x8D, 0xE8, 0x12, 0x26, 0x81, 0x4A, 0x4E, 0x99 }
 
@@ -396,29 +369,29 @@
 	0x87, 0x31, 0xAD, 0x55, 0x94, 0x11, 0xC8, 0x7C }
 
 /*
- * Event Name:  VIRTUAL_SENSOR_CALIB_TABLE_CHANGED
+ * Event Name:  DTT_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED
  * Event GUID:  998493D3-960F-4241-A50F-77547E37AA29
  * Event Desc:  Virtual Sensor Calibration Table Changed
  */
-#define VIRTUAL_SENSOR_CALIB_TABLE_CHANGED { \
+#define DTT_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED { \
 	0x99, 0x84, 0x93, 0xD3, 0x96, 0x0F, 0x42, 0x41, \
 	0xA5, 0x0F, 0x77, 0x54, 0x7E, 0x37, 0xAA, 0x29 }
 
 /*
- * Event Name:  VIRTUAL_SENSOR_POLLING_TABLE_CHANGED
+ * Event Name:  DTT_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED
  * Event GUID:  B7971DBF-2167-4246-A33F-12C519EC9E0E
  * Event Desc:  Virtual Sensor Pollint Table Changed
  */
-#define VIRTUAL_SENSOR_POLLING_TABLE_CHANGED { \
+#define DTT_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED { \
 	0xB7, 0x97, 0x1D, 0xBF, 0x21, 0x67, 0x42, 0x46, \
 	0xA3, 0x3F, 0x12, 0xC5, 0x19, 0xEC, 0x9E, 0x0E }
 
 /*
- * Event Name:  VIRTUAL_SENSOR_RECALC_CHANGED
+ * Event Name:  DTT_VIRTUAL_SENSOR_RECALC_CHANGED
  * Event GUID:  7ECA5943-3A4E-47C1-AB57-6F0748288C62
  * Event Desc:  Virtual Sensor Recalc Changed
  */
-#define VIRTUAL_SENSOR_RECALC_CHANGED { \
+#define DTT_VIRTUAL_SENSOR_RECALC_CHANGED { \
 	0x7E, 0xCA, 0x59, 0x43, 0x3A, 0x4E, 0x47, 0xC1, \
 	0xAB, 0x57, 0x6F, 0x07, 0x48, 0x28, 0x8C, 0x62 }
 
@@ -477,74 +450,74 @@
 	0x98, 0xD2, 0x62, 0x84, 0x42, 0x1A, 0xD3, 0x17 }
 
 /*
- * Event Name:  POWER_BOSS_CONDITIONS_TABLE_CHANGED
+ * Event Name:  DTT_POWER_BOSS_CONDITIONS_TABLE_CHANGED
  * Event GUID:  AD4693CF-17FB-435B-853A-76B5386A34DA
  * Event Desc:  Power Boss Conditions Table Changed
  */
-#define POWER_BOSS_CONDITIONS_TABLE_CHANGED { \
+#define DTT_POWER_BOSS_CONDITIONS_TABLE_CHANGED { \
 	0xAD, 0x46, 0x93, 0xCF, 0x17, 0xFB, 0x43, 0x5B, \
 	0x85, 0x3A, 0x76, 0xB5, 0x38, 0x6A, 0x34, 0xDA }
 
 /*
- * Event Name:  POWER_BOSS_ACTIONS_TABLE_CHANGED
+ * Event Name:  DTT_POWER_BOSS_ACTIONS_TABLE_CHANGED
  * Event GUID:  595399CB-C327-4C7F-BA29-4A7CDED39986
  * Event Desc:  Power Boss Actions Table Changed
  */
-#define POWER_BOSS_ACTIONS_TABLE_CHANGED { \
+#define DTT_POWER_BOSS_ACTIONS_TABLE_CHANGED { \
 	0x59, 0x53, 0x99, 0xCB, 0xC3, 0x27, 0x4C, 0x7F, \
 	0xBA, 0x29, 0x4A, 0x7C, 0xDE, 0xD3, 0x99, 0x86 }
 
 /*
- * Event Name:  DPTF_POLICY_LOADED_UNLOADED
+ * Event Name:  DTT_POLICY_LOADED_UNLOADED
  * Event GUID:  94810472-74C2-464A-9EC0-8ADD72B50810
  * Event Desc:  DPTF Policy Loaded/Unloaded Event
  */
-#define DPTF_POLICY_LOADED_UNLOADED { \
+#define DTT_POLICY_LOADED_UNLOADED { \
 	0x94, 0x81, 0x04, 0x72, 0x74, 0xC2, 0x46, 0x4A, \
 	0x9E, 0xC0, 0x8A, 0xDD, 0x72, 0xB5, 0x08, 0x10 }
 
 /*
- * Event Name:  DPTF_POLICY_ACTIVITY_LOGGING_ENABLED
+ * Event Name:  DTT_POLICY_ACTIVITY_LOGGING_ENABLED
  * Event GUID:  D3CEE052-18E5-43CC-B65D-8E4E2730A80B
  * Event Desc:  DPTF Policy Log Enabled
  */
-#define DPTF_POLICY_ACTIVITY_LOGGING_ENABLED { \
+#define DTT_POLICY_ACTIVITY_LOGGING_ENABLED { \
 	0xD3, 0xCE, 0xE0, 0x52, 0x18, 0xE5, 0x43, 0xCC, \
 	0xB6, 0x5D, 0x8E, 0x4E, 0x27, 0x30, 0xA8, 0x0B }
 
 /*
- * Event Name:  DPTF_POLICY_ACTIVITY_LOGGING_DISABLED
+ * Event Name:  DTT_POLICY_ACTIVITY_LOGGING_DISABLED
  * Event GUID:  B033311C-E76D-408F-ACC1-65E87F348F83
  * Event Desc:  DPTF Policy Log Disabled
  */
-#define DPTF_POLICY_ACTIVITY_LOGGING_DISABLED { \
+#define DTT_POLICY_ACTIVITY_LOGGING_DISABLED { \
 	0xB0, 0x33, 0x31, 0x1C, 0xE7, 0x6D, 0x40, 0x8F, \
 	0xAC, 0xC1, 0x65, 0xE8, 0x7F, 0x34, 0x8F, 0x83 }
 
 /*
- * Event Name:  DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED
+ * Event Name:  DTT_PARTICIPANT_ACTIVITY_LOGGING_ENABLED
  * Event GUID:  14D7EBAF-29D4-4C7B-B8DB-182857A26EAB
  * Event Desc:  DPTF Participant Log Enabled
  */
-#define DPTF_PARTICIPANT_ACTIVITY_LOGGING_ENABLED { \
+#define DTT_PARTICIPANT_ACTIVITY_LOGGING_ENABLED { \
 	0x14, 0xD7, 0xEB, 0xAF, 0x29, 0xD4, 0x4C, 0x7B, \
 	0xB8, 0xDB, 0x18, 0x28, 0x57, 0xA2, 0x6E, 0xAB }
 
 /*
- * Event Name:  DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED
+ * Event Name:  DTT_PARTICIPANT_ACTIVITY_LOGGING_DISABLED
  * Event GUID:  53CA4B30-1E56-4748-B5AC-524ED59C4936
  * Event Desc:  DPTF Participant Log Disabled
  */
-#define DPTF_PARTICIPANT_ACTIVITY_LOGGING_DISABLED { \
+#define DTT_PARTICIPANT_ACTIVITY_LOGGING_DISABLED { \
 	0x53, 0xCA, 0x4B, 0x30, 0x1E, 0x56, 0x47, 0x48, \
 	0xB5, 0xAC, 0x52, 0x4E, 0xD5, 0x9C, 0x49, 0x36 }
 
 /*
- * Event Name:  DPTF_PARTICIPANT_CONTROL_ACTION
+ * Event Name:  DTT_PARTICIPANT_CONTROL_ACTION
  * Event GUID:  A40AA4C8-685D-4B8E-A883-A657AA43F914
  * Event Desc:  DPTF Participant Control Action
  */
-#define DPTF_PARTICIPANT_CONTROL_ACTION { \
+#define DTT_PARTICIPANT_CONTROL_ACTION { \
 	0xA4, 0x0A, 0xA4, 0xC8, 0x68, 0x5D, 0x4B, 0x8E, \
 	0xA8, 0x83, 0xA6, 0x57, 0xAA, 0x43, 0xF9, 0x14 }
 
@@ -603,11 +576,11 @@
 	0x8A, 0xF6, 0xD9, 0xC5, 0xED, 0x81, 0xC4, 0x5F }
 
 /*
- * Event Name:  ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED
+ * Event Name:  DTT_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED
  * Event GUID:  E74F5F38-0948-4F3B-B858-9D0378739CAB
  * Event Desc:  Adaptive Performance Participant Condition Table Changed
  */
-#define ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED { \
+#define DTT_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED { \
 	0xE7, 0x4F, 0x5F, 0x38, 0x09, 0x48, 0x4F, 0x3B, \
 	0xB8, 0x58, 0x9D, 0x03, 0x78, 0x73, 0x9C, 0xAB }
 
@@ -630,20 +603,20 @@
 	0x92, 0x39, 0x7E, 0x18, 0x62, 0xBB, 0x96, 0x86 }
 
 /*
- * Event Name:  PID_ALGORITHM_TABLE_CHANGED
+ * Event Name:  DTT_PID_ALGORITHM_TABLE_CHANGED
  * Event GUID:  93E57DB1-D160-4338-83B5-9340F8BA5DBE
  * Event Desc:  PID Algorithm Table Changed
  */
-#define PID_ALGORITHM_TABLE_CHANGED { \
+#define DTT_PID_ALGORITHM_TABLE_CHANGED { \
 	0x93, 0xE5, 0x7D, 0xB1, 0xD1, 0x60, 0x43, 0x38, \
 	0x83, 0xB5, 0x93, 0x40, 0xF8, 0xBA, 0x5D, 0xBE }
 
 /*
- * Event Name:  POWER_BOSS_MATH_TABLE_CHANGED
+ * Event Name:  DTT_POWER_BOSS_MATH_TABLE_CHANGED
  * Event GUID:  C5A70B06-37B1-4163-A929-97DAD12706D3
  * Event Desc:  Power Boss Math Table Changed
  */
-#define POWER_BOSS_MATH_TABLE_CHANGED { \
+#define DTT_POWER_BOSS_MATH_TABLE_CHANGED { \
 	0xC5, 0xA7, 0x0B, 0x06, 0x37, 0xB1, 0x41, 0x63, \
 	0xA9, 0x29, 0x97, 0xDA, 0xD1, 0x27, 0x06, 0xD3 }
 
@@ -657,29 +630,29 @@
 	0x93, 0x82, 0x9F, 0x16, 0x11, 0x88, 0xBF, 0xB7 }
 
 /*
- * Event Name:  ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED
+ * Event Name:  DTT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED
  * Event GUID:  E3EEE6A5-36FD-4958-BA36-4CA11371339A
  * Event Desc:  Active Control Point Relationship Table Changed
  */
-#define ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED { \
+#define DTT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED { \
 	0xE3, 0xEE, 0xE6, 0xA5, 0x36, 0xFD, 0x49, 0x58, \
 	0xBA, 0x36, 0x4C, 0xA1, 0x13, 0x71, 0x33, 0x9A }
 
 /*
- * Event Name:  UNREGISTER_COMPLETE
+ * Event Name:  PARTICIPANT_UNREGISTER_COMPLETE
  * Event GUID:  24B5B670-DB60-4F5C-A982-0FD8D357F4CF
  * Event Desc:  Participant Unregistration Completed
  */
-#define UNREGISTER_COMPLETE { \
+#define PARTICIPANT_UNREGISTER_COMPLETE { \
 	0x24, 0xB5, 0xB6, 0x70, 0xDB, 0x60, 0x4F, 0x5C, \
 	0xA9, 0x82, 0x0F, 0xD8, 0xD3, 0x57, 0xF4, 0xCF }
 
 /*
- * Event Name:  SUPPORTED_POLICIES_CHANGED
+ * Event Name:  DTT_SUPPORTED_POLICIES_CHANGED
  * Event GUID:  03F14BB4-F921-455B-A8F4-E01E95A3A119
  * Event Desc:  DPTF Supported Policies (IDSP) Changed
  */
-#define SUPPORTED_POLICIES_CHANGED { \
+#define DTT_SUPPORTED_POLICIES_CHANGED { \
 	0x03, 0xF1, 0x4B, 0xB4, 0xF9, 0x21, 0x45, 0x5B, \
 	0xA8, 0xF4, 0xE0, 0x1E, 0x95, 0xA3, 0xA1, 0x19 }
 
@@ -702,20 +675,20 @@
 	0xA6, 0xF5, 0xB6, 0x87, 0xEC, 0x3F, 0x57, 0x2B }
 
 /*
- * Event Name:  POWER_SHARING_ALGORITHM_TABLE_CHANGED
+ * Event Name:  DTT_POWER_SHARING_ALGORITHM_TABLE_CHANGED
  * Event GUID:  E030167D-5404-491D-BD88-DFD821FC7D38
  * Event Desc:  Power Sharing Algorithm Table Changed
  */
-#define POWER_SHARING_ALGORITHM_TABLE_CHANGED { \
+#define DTT_POWER_SHARING_ALGORITHM_TABLE_CHANGED { \
 	0xE0, 0x30, 0x16, 0x7D, 0x54, 0x04, 0x49, 0x1D, \
 	0xBD, 0x88, 0xDF, 0xD8, 0x21, 0xFC, 0x7D, 0x38 }
 
 /*
- * Event Name:  WORKLOAD_HINT_CONFIGURATION_CHANGED
+ * Event Name:  DTT_WORKLOAD_HINT_CONFIGURATION_CHANGED
  * Event GUID:  48F9EFF7-000A-4256-8719-20AC705AC533
  * Event Desc:  Workload Hint Configuration Changed
  */
-#define WORKLOAD_HINT_CONFIGURATION_CHANGED { \
+#define DTT_WORKLOAD_HINT_CONFIGURATION_CHANGED { \
 	0x48, 0xF9, 0xEF, 0xF7, 0x00, 0x0A, 0x42, 0x56, \
 	0x87, 0x19, 0x20, 0xAC, 0x70, 0x5A, 0xC5, 0x33 }
 
@@ -738,11 +711,11 @@
 	0xAC, 0xB0, 0xE3, 0x39, 0x04, 0x6B, 0x5C, 0x13 }
 
 /*
- * Event Name:  ALIVE_REQUEST
+ * Event Name:  DTT_ALIVE_REQUEST
  * Event GUID:  5D971796-47A7-4916-9216-7153E2473727
  * Event Desc:  Application Alive Request
  */
-#define ALIVE_REQUEST { \
+#define DTT_ALIVE_REQUEST { \
 	0x5D, 0x97, 0x17, 0x96, 0x47, 0xA7, 0x49, 0x16, \
 	0x92, 0x16, 0x71, 0x53, 0xE2, 0x47, 0x37, 0x27 }
 
@@ -819,11 +792,11 @@
 	0xAB, 0xB9, 0xDD, 0x1F, 0xD6, 0x2A, 0xBE, 0x49 }
 
 /*
- * Event Name:  VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED
+ * Event Name:  DTT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED
  * Event GUID:  5AB41479-79DE-4F56-B7B5-3118CA8F2ACA
  * Event Desc:  Voltage Threshold Math Table Changed
  */
-#define VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED { \
+#define DTT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED { \
 	0x5A, 0xB4, 0x14, 0x79, 0x79, 0xDE, 0x4F, 0x56, \
 	0xB7, 0xB5, 0x31, 0x18, 0xCA, 0x8F, 0x2A, 0xCA }
 
@@ -846,11 +819,11 @@
 	0xB3, 0x37, 0xF7, 0x74, 0xAB, 0x89, 0xEA, 0x5A }
 
 /*
- * Event Name:  POWER_SHARING_ALGORITHM_TABLE_2_CHANGED
+ * Event Name:  DTT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED
  * Event GUID:  E876FCDD-A646-4E65-9909-C18B48D721DD
  * Event Desc:  Power Sharing Algorithm Table 2 Changed
  */
-#define POWER_SHARING_ALGORITHM_TABLE_2_CHANGED { \
+#define DTT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED { \
 	0xE8, 0x76, 0xFC, 0xDD, 0xA6, 0x46, 0x4E, 0x65, \
 	0x99, 0x09, 0xC1, 0x8B, 0x48, 0xD7, 0x21, 0xDD }
 
@@ -882,94 +855,22 @@
 	0x95, 0x11, 0xD1, 0x2A, 0x68, 0x4E, 0xA6, 0x06 }
 
 /*
- * Event Name:  ADAPTIVE_USER_PRESENCE_TABLE_CHANGED
- * Event GUID:  994B8030-C1CC-4C0E-8B54-1BFB40AD01BD
- * Event Desc:  Adaptive User Presence Table Changed
- */
-#define ADAPTIVE_USER_PRESENCE_TABLE_CHANGED { \
-	0x99, 0x4B, 0x80, 0x30, 0xC1, 0xCC, 0x4C, 0x0E, \
-	0x8B, 0x54, 0x1B, 0xFB, 0x40, 0xAD, 0x01, 0xBD }
-
-/*
- * Event Name:  ADAPTIVE_DIMMING_FEATURE_STATE_CHANGED
- * Event GUID:  17535021-1714-4838-A04A-93BC062F413F
- * Event Desc:  Adaptive Dimming Feature State Changed
- */
-#define ADAPTIVE_DIMMING_FEATURE_STATE_CHANGED { \
-	0x17, 0x53, 0x50, 0x21, 0x17, 0x14, 0x48, 0x38, \
-	0xA0, 0x4A, 0x93, 0xBC, 0x06, 0x2F, 0x41, 0x3F }
-
-/*
- * Event Name:  ADAPTIVE_DIMMING_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
- * Event GUID:  91CD8538-1A16-4107-80A4-2AEF2601EF50
- * Event Desc:  Adaptive Dimming With External Monitor Feature State Changed
- */
-#define ADAPTIVE_DIMMING_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
-	0x91, 0xCD, 0x85, 0x38, 0x1A, 0x16, 0x41, 0x07, \
-	0x80, 0xA4, 0x2A, 0xEF, 0x26, 0x01, 0xEF, 0x50 }
-
-/*
- * Event Name:  NO_LOCK_ON_PRESENCE_FEATURE_STATE_CHANGED
- * Event GUID:  BD97BA41-5288-482D-A52F-542A6DFC35DD
- * Event Desc:  No Lock On Presence Feature State Changed
- */
-#define NO_LOCK_ON_PRESENCE_FEATURE_STATE_CHANGED { \
-	0xBD, 0x97, 0xBA, 0x41, 0x52, 0x88, 0x48, 0x2D, \
-	0xA5, 0x2F, 0x54, 0x2A, 0x6D, 0xFC, 0x35, 0xDD }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_FEATURE_STATE_CHANGED
+ * Event Name:  DTT_WAL_FEATURE_STATE_CHANGED
  * Event GUID:  51DBAE9F-2276-4783-A56D-BA6D4667991D
  * Event Desc:  Walk Away Lock Feature State Changed
  */
-#define WALK_AWAY_LOCK_FEATURE_STATE_CHANGED { \
+#define DTT_WAL_FEATURE_STATE_CHANGED { \
 	0x51, 0xDB, 0xAE, 0x9F, 0x22, 0x76, 0x47, 0x83, \
 	0xA5, 0x6D, 0xBA, 0x6D, 0x46, 0x67, 0x99, 0x1D }
 
 /*
- * Event Name:  WALK_AWAY_LOCK_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
- * Event GUID:  2EBA98A5-F5E8-4355-A2CC-6FC905A637CA
- * Event Desc:  Walk Away Lock With External Monitor Feature State Changed
- */
-#define WALK_AWAY_LOCK_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
-	0x2E, 0xBA, 0x98, 0xA5, 0xF5, 0xE8, 0x43, 0x55, \
-	0xA2, 0xCC, 0x6F, 0xC9, 0x05, 0xA6, 0x37, 0xCA }
-
-/*
- * Event Name:  WAKE_ON_APPROACH_FEATURE_STATE_CHANGED
+ * Event Name:  DTT_WOA_FEATURE_STATE_CHANGED
  * Event GUID:  CF57DA84-3B58-4D06-82EA-071693CAAFDE
  * Event Desc:  Wake On Approach Feature State Changed
  */
-#define WAKE_ON_APPROACH_FEATURE_STATE_CHANGED { \
+#define DTT_WOA_FEATURE_STATE_CHANGED { \
 	0xCF, 0x57, 0xDA, 0x84, 0x3B, 0x58, 0x4D, 0x06, \
 	0x82, 0xEA, 0x07, 0x16, 0x93, 0xCA, 0xAF, 0xDE }
-
-/*
- * Event Name:  WAKE_ON_APPROACH_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
- * Event GUID:  462AE37A-E63B-4030-9A6E-84432EEB580A
- * Event Desc:  Wake On Approach Feature State Changed
- */
-#define WAKE_ON_APPROACH_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
-	0x46, 0x2A, 0xE3, 0x7A, 0xE6, 0x3B, 0x40, 0x30, \
-	0x9A, 0x6E, 0x84, 0x43, 0x2E, 0xEB, 0x58, 0x0A }
-
-/*
- * Event Name:  SCREEN_LOCK_WAIT_TIME_CHANGED
- * Event GUID:  3721BB70-6AE5-4295-9081-A3FEFDF4AB1E
- * Event Desc:  Screen Lock Wait Time Changed
- */
-#define SCREEN_LOCK_WAIT_TIME_CHANGED { \
-	0x37, 0x21, 0xBB, 0x70, 0x6A, 0xE5, 0x42, 0x95, \
-	0x90, 0x81, 0xA3, 0xFE, 0xFD, 0xF4, 0xAB, 0x1E }
-
-/*
- * Event Name:  ADAPTIVE_DIMMING_PRESENTATION_MODE_FEATURE_STATE_CHANGED
- * Event GUID:  11064589-A349-4706-BFF8-33EB0E294019
- * Event Desc:  Adaptive Dimming Presentation Mode Feature State Changed
- */
-#define ADAPTIVE_DIMMING_PRESENTATION_MODE_FEATURE_STATE_CHANGED { \
-	0x11, 0x06, 0x45, 0x89, 0xA3, 0x49, 0x47, 0x06, \
-	0xBF, 0xF8, 0x33, 0xEB, 0x0E, 0x29, 0x40, 0x19 }
 
 /*
  * Event Name:  PLATFORM_USER_PRESENCE_CHANGED
@@ -981,132 +882,6 @@
 	0xAA, 0xEE, 0xB4, 0x26, 0xF9, 0xB0, 0xD5, 0xEE }
 
 /*
- * Event Name:  WAKE_ON_APPROACH_LOW_BATTERY_FEATURE_STATE_CHANGED
- * Event GUID:  55A91AC6-3E66-4D0A-BA23-6A0B4B75A455
- * Event Desc:  Wake On Approach Low Battery Feature State Changed
- */
-#define WAKE_ON_APPROACH_LOW_BATTERY_FEATURE_STATE_CHANGED { \
-	0x55, 0xA9, 0x1A, 0xC6, 0x3E, 0x66, 0x4D, 0x0A, \
-	0xBA, 0x23, 0x6A, 0x0B, 0x4B, 0x75, 0xA4, 0x55 }
-
-/*
- * Event Name:  WAKE_ON_APPROACH_BATTERY_REMAINING_PERCENTAGE_CHANGED
- * Event GUID:  22994BC1-BF7D-4486-8703-EA63B16C2A67
- * Event Desc:  Wake On Approach Battery Remaining Time Limit Changed
- */
-#define WAKE_ON_APPROACH_BATTERY_REMAINING_PERCENTAGE_CHANGED { \
-	0x22, 0x99, 0x4B, 0xC1, 0xBF, 0x7D, 0x44, 0x86, \
-	0x87, 0x03, 0xEA, 0x63, 0xB1, 0x6C, 0x2A, 0x67 }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_DIM_SCREEN_FEATURE_STATE_CHANGED
- * Event GUID:  89F19351-4D41-418C-A21E-94982F084A3D
- * Event Desc:  Walk Away Lock Dim Screen Feature State Changed
- */
-#define WALK_AWAY_LOCK_DIM_SCREEN_FEATURE_STATE_CHANGED { \
-	0x89, 0xF1, 0x93, 0x51, 0x4D, 0x41, 0x41, 0x8C, \
-	0xA2, 0x1E, 0x94, 0x98, 0x2F, 0x08, 0x4A, 0x3D }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_DISPLAY_OFF_AFTER_LOCK_FEATURE_STATE_CHANGED
- * Event GUID:  B98FD172-1D5D-41C9-93BD-8B8B86DF875D
- * Event Desc:  Walk Away Lock Display Off After Lock Feature State Changed
- */
-#define WALK_AWAY_LOCK_DISPLAY_OFF_AFTER_LOCK_FEATURE_STATE_CHANGED { \
-	0xB9, 0x8F, 0xD1, 0x72, 0x1D, 0x5D, 0x41, 0xC9, \
-	0x93, 0xBD, 0x8B, 0x8B, 0x86, 0xDF, 0x87, 0x5D }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_HONOR_DISPLAY_POWER_REQUEST_FEATURE_STATE_CHANGED
- * Event GUID:  25F20114-F829-4A03-B01C-692F0AFDA0F2
- * Event Desc:  Walk Away Lock Honor Display Power Request Feature State Change
- */
-#define WALK_AWAY_LOCK_HONOR_DISPLAY_POWER_REQUEST_FEATURE_STATE_CHANGED { \
-	0x25, 0xF2, 0x01, 0x14, 0xF8, 0x29, 0x4A, 0x03, \
-	0xB0, 0x1C, 0x69, 0x2F, 0x0A, 0xFD, 0xA0, 0xF2 }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_HONOR_USER_IN_CALL_FEATURE_STATE_CHANGED
- * Event GUID:  CF02F5AE-CEFE-4F95-BE99-4B26EE8D454B
- * Event Desc:  Walk Away Lock Honor User In Call Feature State Changed
- */
-#define WALK_AWAY_LOCK_HONOR_USER_IN_CALL_FEATURE_STATE_CHANGED { \
-	0xCF, 0x02, 0xF5, 0xAE, 0xCE, 0xFE, 0x4F, 0x95, \
-	0xBE, 0x99, 0x4B, 0x26, 0xEE, 0x8D, 0x45, 0x4B }
-
-/*
- * Event Name:  NO_LOCK_ON_PRESENCE_BATTERY_FEATURE_STATE_CHANGED
- * Event GUID:  FCF5B939-F65E-46CA-A4A3-A215DF6FB7D9
- * Event Desc:  No Lock On Presence Battery Feature State Changed
- */
-#define NO_LOCK_ON_PRESENCE_BATTERY_FEATURE_STATE_CHANGED { \
-	0xFC, 0xF5, 0xB9, 0x39, 0xF6, 0x5E, 0x46, 0xCA, \
-	0xA4, 0xA3, 0xA2, 0x15, 0xDF, 0x6F, 0xB7, 0xD9 }
-
-/*
- * Event Name:  NO_LOCK_ON_PRESENCE_BATTERY_REMAINING_PERCENTAGE_CHANGED
- * Event GUID:  B06C7E0A-6391-4243-B863-44D8E305E16F
- * Event Desc:  No Lock On Presence Battery Remaining Time Limit Changed
- */
-#define NO_LOCK_ON_PRESENCE_BATTERY_REMAINING_PERCENTAGE_CHANGED { \
-	0xB0, 0x6C, 0x7E, 0x0A, 0x63, 0x91, 0x42, 0x43, \
-	0xB8, 0x63, 0x44, 0xD8, 0xE3, 0x05, 0xE1, 0x6F }
-
-/*
- * Event Name:  NO_LOCK_ON_PRESENCE_RESET_WAIT_TIME_CHANGED
- * Event GUID:  094155D9-C9E4-437A-81B7-23D5100EF38A
- * Event Desc:  No Lock On Presence Reset Wait Time Changed
- */
-#define NO_LOCK_ON_PRESENCE_RESET_WAIT_TIME_CHANGED { \
-	0x09, 0x41, 0x55, 0xD9, 0xC9, 0xE4, 0x43, 0x7A, \
-	0x81, 0xB7, 0x23, 0xD5, 0x10, 0x0E, 0xF3, 0x8A }
-
-/*
- * Event Name:  USER_PRESENT_WAIT_TIMEOUT_CHANGED
- * Event GUID:  2272FFF3-39A5-4E07-81AB-6E32257E96E3
- * Event Desc:  User Present Wait Timeout Changed
- */
-#define USER_PRESENT_WAIT_TIMEOUT_CHANGED { \
-	0x22, 0x72, 0xFF, 0xF3, 0x39, 0xA5, 0x4E, 0x07, \
-	0x81, 0xAB, 0x6E, 0x32, 0x25, 0x7E, 0x96, 0xE3 }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_PRE_DIM_WAIT_TIME_CHANGED
- * Event GUID:  79AEC695-45EF-4A12-828E-4C9769B7F230
- * Event Desc:  Walk Away Lock Pre Dim Wait Time Changed
- */
-#define WALK_AWAY_LOCK_PRE_DIM_WAIT_TIME_CHANGED { \
-	0x79, 0xAE, 0xC6, 0x95, 0x45, 0xEF, 0x4A, 0x12, \
-	0x82, 0x8E, 0x4C, 0x97, 0x69, 0xB7, 0xF2, 0x30 }
-
-/*
- * Event Name:  WALK_AWAY_LOCK_DIM_INTERVAL_CHANGED
- * Event GUID:  2FBAC332-AA58-4D5E-B6A5-255034BDE77E
- * Event Desc:  Walk Away Lock Dim Interval Changed
- */
-#define WALK_AWAY_LOCK_DIM_INTERVAL_CHANGED { \
-	0x2F, 0xBA, 0xC3, 0x32, 0xAA, 0x58, 0x4D, 0x5E, \
-	0xB6, 0xA5, 0x25, 0x50, 0x34, 0xBD, 0xE7, 0x7E }
-
-/*
- * Event Name:  CONTEXT_SERVICE_STATUS_CHANGED
- * Event GUID:  FB0CA4C1-5CB1-4F2A-8CE2-AB3E1C09DD92
- * Event Desc:  User Presence App State Changed
- */
-#define CONTEXT_SERVICE_STATUS_CHANGED { \
-	0xFB, 0x0C, 0xA4, 0xC1, 0x5C, 0xB1, 0x4F, 0x2A, \
-	0x8C, 0xE2, 0xAB, 0x3E, 0x1C, 0x09, 0xDD, 0x92 }
-
-/*
- * Event Name:  ADAPTIVE_DIMMING_PRE_DIM_WAIT_TIME_CHANGED
- * Event GUID:  68BE805B-20BE-4CA7-8A98-0BD8EA97F199
- * Event Desc:  Adaptive Dimming Pre Dim Wait Time Changed
- */
-#define ADAPTIVE_DIMMING_PRE_DIM_WAIT_TIME_CHANGED { \
-	0x68, 0xBE, 0x80, 0x5B, 0x20, 0xBE, 0x4C, 0xA7, \
-	0x8A, 0x98, 0x0B, 0xD8, 0xEA, 0x97, 0xF1, 0x99 }
-
-/*
  * Event Name:  EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED
  * Event GUID:  47B2CCDE-0745-4485-B182-3CD7784E2D47
  * Event Desc:  External Monitor Connection State Changed
@@ -1114,24 +889,6 @@
 #define EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED { \
 	0x47, 0xB2, 0xCC, 0xDE, 0x07, 0x45, 0x44, 0x85, \
 	0xB1, 0x82, 0x3C, 0xD7, 0x78, 0x4E, 0x2D, 0x47 }
-
-/*
- * Event Name:  USER_IN_CALL_STATE_CHANGED
- * Event GUID:  7775D172-D7E2-40CF-8CDC-4D28E174EAF6
- * Event Desc:  User In Call State Changed
- */
-#define USER_IN_CALL_STATE_CHANGED { \
-	0x77, 0x75, 0xD1, 0x72, 0xD7, 0xE2, 0x40, 0xCF, \
-	0x8C, 0xDC, 0x4D, 0x28, 0xE1, 0x74, 0xEA, 0xF6 }
-
-/*
- * Event Name:  MISPREDICTION_FACE_DETECTION_STATE_CHANGED
- * Event GUID:  16A1DC71-A558-4F53-A2C1-1C3E95F7608E
- * Event Desc:  Misprediction with Face Detection when user not present state c
- */
-#define MISPREDICTION_FACE_DETECTION_STATE_CHANGED { \
-	0x16, 0xA1, 0xDC, 0x71, 0xA5, 0x58, 0x4F, 0x53, \
-	0xA2, 0xC1, 0x1C, 0x3E, 0x95, 0xF7, 0x60, 0x8E }
 
 /*
  * Event Name:  BIOMETRIC_PRESENCE_SENSOR_INSTANCE_CHANGED
@@ -1143,119 +900,20 @@
 	0x80, 0x80, 0xAB, 0xAD, 0x00, 0x84, 0xCA, 0x17 }
 
 /*
- * Event Name:  MISPREDICTION_TIME_WINDOW_CHANGED
- * Event GUID:  D7A56AAA-CA22-4223-90FE-04164BEC9AD0
- * Event Desc:  Misprediction Time Window Changed
- */
-#define MISPREDICTION_TIME_WINDOW_CHANGED { \
-	0xD7, 0xA5, 0x6A, 0xAA, 0xCA, 0x22, 0x42, 0x23, \
-	0x90, 0xFE, 0x04, 0x16, 0x4B, 0xEC, 0x9A, 0xD0 }
-
-/*
- * Event Name:  MISPREDICTION_1_DIM_WAIT_TIME_CHANGED
- * Event GUID:  A145B0AF-3EAB-40FB-9851-EAD11B946E6E
- * Event Desc:  Misprediction 1 Dim Wait Time Changed
- */
-#define MISPREDICTION_1_DIM_WAIT_TIME_CHANGED { \
-	0xA1, 0x45, 0xB0, 0xAF, 0x3E, 0xAB, 0x40, 0xFB, \
-	0x98, 0x51, 0xEA, 0xD1, 0x1B, 0x94, 0x6E, 0x6E }
-
-/*
- * Event Name:  MISPREDICTION_2_DIM_WAIT_TIME_CHANGED
- * Event GUID:  EF6736FF-DE0C-4574-A518-5AD67C80891A
- * Event Desc:  Misprediction 2 Dim Wait Time Changed
- */
-#define MISPREDICTION_2_DIM_WAIT_TIME_CHANGED { \
-	0xEF, 0x67, 0x36, 0xFF, 0xDE, 0x0C, 0x45, 0x74, \
-	0xA5, 0x18, 0x5A, 0xD6, 0x7C, 0x80, 0x89, 0x1A }
-
-/*
- * Event Name:  MISPREDICTION_3_DIM_WAIT_TIME_CHANGED
- * Event GUID:  9B88F260-D75A-4E43-A76D-C1915AB6F8CC
- * Event Desc:  Misprediction 3 Dim Wait Time Changed
- */
-#define MISPREDICTION_3_DIM_WAIT_TIME_CHANGED { \
-	0x9B, 0x88, 0xF2, 0x60, 0xD7, 0x5A, 0x4E, 0x43, \
-	0xA7, 0x6D, 0xC1, 0x91, 0x5A, 0xB6, 0xF8, 0xCC }
-
-/*
- * Event Name:  MISPREDICTION_4_DIM_WAIT_TIME_CHANGED
- * Event GUID:  AA4B7B1D-6A92-4711-B065-3D5DC1903A98
- * Event Desc:  Misprediction 4 Dim Wait Time Changed
- */
-#define MISPREDICTION_4_DIM_WAIT_TIME_CHANGED { \
-	0xAA, 0x4B, 0x7B, 0x1D, 0x6A, 0x92, 0x47, 0x11, \
-	0xB0, 0x65, 0x3D, 0x5D, 0xC1, 0x90, 0x3A, 0x98 }
-
-/*
- * Event Name:  FAILSAFE_TIMEOUT_CHANGED
- * Event GUID:  CAA3C2B4-D1CE-4CAD-91E7-E97AC9E2FDDE
- * Event Desc:  Failsafe Timeout Changed
- */
-#define FAILSAFE_TIMEOUT_CHANGED { \
-	0xCA, 0xA3, 0xC2, 0xB4, 0xD1, 0xCE, 0x4C, 0xAD, \
-	0x91, 0xE7, 0xE9, 0x7A, 0xC9, 0xE2, 0xFD, 0xDE }
-
-/*
- * Event Name:  NO_LOCK_ON_PRESENCE_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED
- * Event GUID:  5D1DD140-D128-4354-BEBC-735871F4AB2D
- * Event Desc:  No Lock On Presence External Monitor Changed
- */
-#define NO_LOCK_ON_PRESENCE_EXTERNAL_MONITOR_FEATURE_STATE_CHANGED { \
-	0x5D, 0x1D, 0xD1, 0x40, 0xD1, 0x28, 0x43, 0x54, \
-	0xBE, 0xBC, 0x73, 0x58, 0x71, 0xF4, 0xAB, 0x2D }
-
-/*
- * Event Name:  CREATE_COMPLETE
+ * Event Name:  PARTICIPANT_CREATE_COMPLETE
  * Event GUID:  12A56314-589D-4778-BB25-6ACFC1AE86B7
  * Event Desc:  Participant Create Complete
  */
-#define CREATE_COMPLETE { \
+#define PARTICIPANT_CREATE_COMPLETE { \
 	0x12, 0xA5, 0x63, 0x14, 0x58, 0x9D, 0x47, 0x78, \
 	0xBB, 0x25, 0x6A, 0xCF, 0xC1, 0xAE, 0x86, 0xB7 }
 
 /*
- * Event Name:  USER_NOT_PRESENT_DIM_TARGET_CHANGED
- * Event GUID:  9E80A1C2-BECF-4C54-9DBD-EB3C982B7EF3
- * Event Desc:  User Not Present Dim Target Changed
- */
-#define USER_NOT_PRESENT_DIM_TARGET_CHANGED { \
-	0x9E, 0x80, 0xA1, 0xC2, 0xBE, 0xCF, 0x4C, 0x54, \
-	0x9D, 0xBD, 0xEB, 0x3C, 0x98, 0x2B, 0x7E, 0xF3 }
-
-/*
- * Event Name:  USER_DISENGAGED_DIMMING_INTERVAL_CHANGED
- * Event GUID:  27A108FC-0AF5-4DF7-A94A-75DB7E0E0EF7
- * Event Desc:  User Disengaged Dim Rate Changed
- */
-#define USER_DISENGAGED_DIMMING_INTERVAL_CHANGED { \
-	0x27, 0xA1, 0x08, 0xFC, 0x0A, 0xF5, 0x4D, 0xF7, \
-	0xA9, 0x4A, 0x75, 0xDB, 0x7E, 0x0E, 0x0E, 0xF7 }
-
-/*
- * Event Name:  USER_DISENGAGED_DIM_TARGET_CHANGED
- * Event GUID:  6B04CD25-3931-41B6-893C-E103D4E99286
- * Event Desc:  User Disengaged Dim Target Changed
- */
-#define USER_DISENGAGED_DIM_TARGET_CHANGED { \
-	0x6B, 0x04, 0xCD, 0x25, 0x39, 0x31, 0x41, 0xB6, \
-	0x89, 0x3C, 0xE1, 0x03, 0xD4, 0xE9, 0x92, 0x86 }
-
-/*
- * Event Name:  USER_DISENGAGED_DIM_WAIT_TIME_CHANGED
- * Event GUID:  1D1523D6-2C80-4152-A26A-FEBB92A937CD
- * Event Desc:  User Disengaged Dim Wait Time Changed
- */
-#define USER_DISENGAGED_DIM_WAIT_TIME_CHANGED { \
-	0x1D, 0x15, 0x23, 0xD6, 0x2C, 0x80, 0x41, 0x52, \
-	0xA2, 0x6A, 0xFE, 0xBB, 0x92, 0xA9, 0x37, 0xCD }
-
-/*
- * Event Name:  EPP_SENSITIVITY_HINT_CHANGED
+ * Event Name:  DTT_EPP_SENSITIVITY_HINT_CHANGED
  * Event GUID:  EE71B8F7-1C7E-4396-B907-8EA168226476
  * Event Desc:  EPP Sensitivity Hint Changed
  */
-#define EPP_SENSITIVITY_HINT_CHANGED { \
+#define DTT_EPP_SENSITIVITY_HINT_CHANGED { \
 	0xEE, 0x71, 0xB8, 0xF7, 0x1C, 0x7E, 0x43, 0x96, \
 	0xB9, 0x07, 0x8E, 0xA1, 0x68, 0x22, 0x64, 0x76 }
 
@@ -1269,11 +927,11 @@
 	0xBC, 0xC0, 0x0F, 0xF6, 0xEF, 0xA0, 0xAA, 0x60 }
 
 /*
- * Event Name:  PRIVACY_STATE_CHANGED
+ * Event Name:  DTT_PRIVACY_STATE_CHANGED
  * Event GUID:  90167272-2515-4E19-8BF7-0C75D126AE22
  * Event Desc:  Privacy State Changed
  */
-#define PRIVACY_STATE_CHANGED { \
+#define DTT_PRIVACY_STATE_CHANGED { \
 	0x90, 0x16, 0x72, 0x72, 0x25, 0x15, 0x4E, 0x19, \
 	0x8B, 0xF7, 0x0C, 0x75, 0xD1, 0x26, 0xAE, 0x22 }
 
@@ -1303,4 +961,40 @@
 #define USER_PRESENCE_CORRELATION_STATUS_CHANGED { \
 	0xC4, 0x8F, 0x8B, 0x3C, 0x91, 0x34, 0x4B, 0xC1, \
 	0x89, 0xC9, 0x88, 0xA3, 0x41, 0x7D, 0xC9, 0x70 }
+
+/*
+ * Event Name:  DISPLAY_OFF
+ * Event GUID:  FD34F756-F7B6-47DD-B3D5-0011A34E4337
+ * Event Desc:  Display Off
+ */
+#define DISPLAY_OFF { \
+	0xFD, 0x34, 0xF7, 0x56, 0xF7, 0xB6, 0x47, 0xDD, \
+	0xB3, 0xD5, 0x00, 0x11, 0xA3, 0x4E, 0x43, 0x37 }
+
+/*
+ * Event Name:  DISPLAY_ON
+ * Event GUID:  9604508D-F4AA-4716-83D9-6EE951EBBEA9
+ * Event Desc:  Display On
+ */
+#define DISPLAY_ON { \
+	0x96, 0x04, 0x50, 0x8D, 0xF4, 0xAA, 0x47, 0x16, \
+	0x83, 0xD9, 0x6E, 0xE9, 0x51, 0xEB, 0xBE, 0xA9 }
+
+/*
+ * Event Name:  DTT_INTELLIGENT_THERMAL_MANAGEMENT_TABLE_CHANGED
+ * Event GUID:  54F51159-43D2-4688-913C-82C63614817E
+ * Event Desc:  Intelligent Thermal Management Table Changed
+ */
+#define DTT_INTELLIGENT_THERMAL_MANAGEMENT_TABLE_CHANGED { \
+	0x54, 0xF5, 0x11, 0x59, 0x43, 0xD2, 0x46, 0x88, \
+	0x91, 0x3C, 0x82, 0xC6, 0x36, 0x14, 0x81, 0x7E }
+
+/*
+ * Event Name:  BIOMETRIC_PRESENCE_SENSOR_WAKE
+ * Event GUID:  0D7177EE-90BF-418C-AD2A-A928202C8C15
+ * Event Desc:  Biometric Presence Sensor Wake
+ */
+#define BIOMETRIC_PRESENCE_SENSOR_WAKE { \
+	0x0D, 0x71, 0x77, 0xEE, 0x90, 0xBF, 0x41, 0x8C, \
+	0xAD, 0x2A, 0xA9, 0x28, 0x20, 0x2C, 0x8C, 0x15 }
 

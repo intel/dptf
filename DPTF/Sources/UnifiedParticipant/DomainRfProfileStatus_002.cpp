@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include "DomainRfProfileStatus_002.h"
+#include "StatusFormat.h"
 
 //
 // version 002 is for wireless
@@ -64,6 +65,58 @@ RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participan
 			});
 	}
 	return m_rfProfileDataSet;
+}
+
+UInt32 DomainRfProfileStatus_002::getWifiCapabilities(UIntN participantIndex, UIntN domainIndex)
+{
+	UInt32 wifiCapabilities = Constants::Invalid;
+
+	try 
+	{
+		wifiCapabilities = getParticipantServices()->primitiveExecuteGetAsUInt32(
+			esif_primitive_type::GET_WIFI_CAPABILITIES, domainIndex);
+	}
+	catch (...) 
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to get Wifi Capabilities Info. ";
+			});
+	}
+	
+	return wifiCapabilities;
+}
+
+UInt32 DomainRfProfileStatus_002::getRfiDisable(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+UInt64 DomainRfProfileStatus_002::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_002::setDdrRfiTable(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
+	)
+{
+	try
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return ("Setting the DDR RFI table for a total of " + StatusFormat::friendlyValue(ddrRfiStruct.numberOfDvfsPoints) + " dvfs points");
+			});
+
+		getParticipantServices()->primitiveExecuteSet(
+			SET_DDR_RFI_TABLE, ESIF_DATA_STRUCTURE, &ddrRfiStruct, sizeof(ddrRfiStruct), sizeof(ddrRfiStruct));
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return "Failed to set DDR RFI table. ";
+			});
+	}
 }
 
 Frequency DomainRfProfileStatus_002::getRfProfileGuardband(UIntN participantIndex, UIntN domainIndex)

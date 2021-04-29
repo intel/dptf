@@ -1,5 +1,5 @@
 /******************************************************************************
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Licensed under the Apache License, Version 2.0 (the "License"); you may not
 ** use this file except in compliance with the License.
@@ -62,7 +62,7 @@ static EsifEventCacheEntry g_CachedEvents[] = {
 	{ESIF_EVENT_OS_SCREEN_STATE_CHANGED,			{0}},
 	{ESIF_EVENT_DEVICE_ORIENTATION_CHANGED,			{0}},
 	{ESIF_EVENT_MOTION_CHANGED,						{0}},
-	{ESIF_EVENT_SYSTEM_COOLING_POLICY_CHANGED,		{0}},
+	{ESIF_EVENT_DTT_SYSTEM_COOLING_POLICY_CHANGED,	{0}},
 	{ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED,			{0}},
 	{ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED,		{0}},
 	{ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED,	{0}},

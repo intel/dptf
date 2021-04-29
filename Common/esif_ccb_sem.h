@@ -4,7 +4,7 @@
 **
 ** GPL LICENSE SUMMARY
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** This program is free software; you can redistribute it and/or modify it under
 ** the terms of version 2 of the GNU General Public License as published by the
@@ -23,7 +23,7 @@
 **
 ** BSD LICENSE
 **
-** Copyright (c) 2013-2020 Intel Corporation All Rights Reserved
+** Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 **
 ** Redistribution and use in source and binary forms, with or without
 ** modification, are permitted provided that the following conditions are met:
@@ -100,6 +100,7 @@ static ESIF_INLINE void esif_ccb_event_init(esif_ccb_event_t *event_ptr)
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void esif_ccb_event_uninit(esif_ccb_event_t *event_ptr)
 {
 	/*
@@ -127,6 +128,7 @@ static ESIF_INLINE void esif_ccb_event_uninit(esif_ccb_event_t *event_ptr)
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
+ /* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void esif_ccb_event_wait(esif_ccb_event_t *event_ptr)
 {
 	esif_ccb_write_lock(&event_ptr->state_lock);
@@ -151,6 +153,7 @@ exit:
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
+ /* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void esif_ccb_event_set(esif_ccb_event_t *event_ptr)
 {
 	esif_ccb_write_lock(&event_ptr->state_lock);
@@ -167,6 +170,7 @@ static ESIF_INLINE void esif_ccb_event_set(esif_ccb_event_t *event_ptr)
 }
 
 
+/* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void esif_ccb_event_reset(esif_ccb_event_t *event_ptr)
 {
 	esif_ccb_write_lock(&event_ptr->state_lock);
@@ -184,6 +188,7 @@ static ESIF_INLINE void esif_ccb_event_reset(esif_ccb_event_t *event_ptr)
 /*
  * Suppresses SCA false positive where IRQL level is not properly tracked.
  */
+ /* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE void esif_ccb_event_release_waiters(esif_ccb_event_t *event_ptr)
 {
 	esif_ccb_write_lock(&event_ptr->state_lock);
@@ -201,6 +206,7 @@ static ESIF_INLINE void esif_ccb_event_release_waiters(esif_ccb_event_t *event_p
  * Returns ESIF_OK on success, ESIF_E_TIMEOUT if the timer expired, else
  * ESIF_E_UNSPECIFIED.
  */
+ /* WARNING:  This function may not be called from paged code in kernel */
 static ESIF_INLINE enum esif_rc esif_ccb_event_try_wait(
 	esif_ccb_event_t *event_ptr,
 	u32 ms_timeout
