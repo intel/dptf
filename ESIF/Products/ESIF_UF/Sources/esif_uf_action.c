@@ -851,7 +851,6 @@ eEsifError EsifFpcAction_GetParamAsEsifData(
 {
 	eEsifError rc = ESIF_OK;
 	DataItemPtr dataItemPtr = NULL;
-	EsifString paramStr = NULL;
 
 	if ((NULL == fpcActionPtr) || (NULL == paramPtr)) {
 		rc = ESIF_E_PARAMETER_IS_NULL;
@@ -869,15 +868,18 @@ eEsifError EsifFpcAction_GetParamAsEsifData(
 
 	switch (dataItemPtr->data_type) {
 	case DATA_ITEM_TYPE_STRING:
-	{
-		paramStr = (EsifString) &dataItemPtr->data;
-
-		paramPtr->buf_ptr  = paramStr;
-		paramPtr->buf_len  = (u32)esif_ccb_strlen(paramStr, MAXPARAMLEN);
-		paramPtr->data_len = (u32)esif_ccb_strlen(paramStr, MAXPARAMLEN);
+		paramPtr->buf_ptr  = &dataItemPtr->data;
+		paramPtr->buf_len  = (u32)dataItemPtr->data_length_in_bytes;
+		paramPtr->data_len = (u32)dataItemPtr->data_length_in_bytes;
 		paramPtr->type     = ESIF_DATA_STRING;
 		break;
-	}
+
+	case DATA_ITEM_TYPE_BINARY:
+		paramPtr->buf_ptr  = &dataItemPtr->data;
+		paramPtr->buf_len  = (u32)dataItemPtr->data_length_in_bytes;
+		paramPtr->data_len = (u32)dataItemPtr->data_length_in_bytes;
+		paramPtr->type     = ESIF_DATA_BINARY;
+		break;
 
 	case DATA_ITEM_TYPE_UINT32:
 		paramPtr->buf_ptr  = (u32 *)&dataItemPtr->data;

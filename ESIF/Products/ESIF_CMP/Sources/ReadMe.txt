@@ -4,7 +4,7 @@ Copyright (c) 2013-2021 Intel Corporation All Rights Reserved
 Portions Public Domain Igor Pavlov
 ========================================================================
 
-This project contains an OS-agnostic loadable library (esif_cmp.dll or esif_cmp.so)
+This project contains an OS-agnostic loadable library (ipf_cmp.dll or ipf_cmp.so)
 of the LZMA Compression algorithm based on Public Domain code included in
 LZMA_SDK v18.01 by Igor Pavlov which is available for download at these links:
 
@@ -28,8 +28,8 @@ abstract the compression algorithm and compression configuration parameters
 from the caller. This includes EsifSdl.h, which is included by all modules.
 Exported Loadable Library Functions are:
 
-    a. EsifCompress
-	b. EsifDecompress
+    a. IpfCompress
+	b. IpfDecompress
 
 2. All other modules are owned by the LZMA_SDK implementation by
 Igor Pavlov with the following changes made in order to conform with
@@ -49,7 +49,7 @@ This significantly affects the Compression speed but barely Decompression speed.
 and application (lzma.exe), all LZMA compression parameters are hardcoded in
 esif_cmp.c and correspond to the following lzma.exe command line options, thus
 allowing data that has been compressed with lzma.exe to be decompressed by
-esif_cmp.dll and vice versa (lzma.exe defaults indicated by [default]):
+ipf_cmp.dll and vice versa (lzma.exe defaults indicated by [default]):
 
 	-a1    = Compression Level (-a0=1, -a1=9) [default]
 	-d24   = Dictionary Size (1<<N) [default = -d17]

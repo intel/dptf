@@ -53,9 +53,17 @@ UInt64 PolicyServicesDomainRfProfileStatus::getDvfsPoints(UIntN participantIndex
 void PolicyServicesDomainRfProfileStatus::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
-	)
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
 {
 	throwIfNotWorkItemThread();
 	getParticipantManager()->getParticipantPtr(participantIndex)->setDdrRfiTable(domainIndex, ddrRfiStruct);
+}
+
+void PolicyServicesDomainRfProfileStatus::setProtectRequest(
+	UIntN participantIndex,
+	UIntN domainIndex,
+	UInt64 frequencyRate)
+{
+	throwIfNotWorkItemThread();
+	getParticipantManager()->getParticipantPtr(participantIndex)->setProtectRequest(domainIndex, frequencyRate);
 }

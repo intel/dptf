@@ -22,6 +22,7 @@
 #include "esif_dsp.h"
 #include "esif_uf_ccb_imp_spec.h"
 #include "esif_uf_sysfs_os_lin.h"
+#include "esif_enum_ietm_hid.h"
 #include <dirent.h>
 
 #define DEFAULT_DRIVER_NAME	""
@@ -34,9 +35,8 @@
 #define SYSFS_DEVICES_PLATFORM   "/sys/devices/platform"
 #define INSTANCE_ID_0            ":00"
 
-#define MAX_FMT_STR_LEN 15 // "%<Int32>s"
-#define MAX_ZONE_NAME_LEN 56
-#define HID_LEN 8
+#define MAX_FMT_STR_LEN 15          // "%<Int32>s"
+#define HID_LEN   9                 // e.g INTC1045 ( 8 + 1 null character)
 #define ACPI_DEVICE_NAME_LEN 4
 #define DPTF_PARTICIPANT_PREFIX "INT"
 #define ACPI_DPTF "DPTF"
@@ -53,6 +53,26 @@ static int g_zone_count = 0;
 const char *CPU_location[NUM_CPU_LOCATIONS] = {"0000:00:04.0", "0000:00:0b.0", "0000:00:00.1"};
 static Bool gSocParticipantFound = ESIF_FALSE;
 
+
+#define MAX_CORE_COUNT_SUPPORTED    (32)    // Supports max 32 cores per CPU Type
+#define MAX_CPU_TYPES_SUPPORTED     (4)     // Supports only 4 different CPU types
+#define CPU_SYSFS_PATH              "/sys/bus/cpu/devices"
+#define ACPI_CPPC_SYSFS_REL_PATH    "/acpi_cppc/"
+#define HIGH_PERF_SYSFS_NAME        "highest_perf"
+
+Bool IsSystemCpuIndexTableInitialized(SystemCpuIndexTablePtr self);
+void AddEntryToSystemCpuIndexTable(SystemCpuIndexTablePtr self, UInt32 cpuIndex, UInt32 highestPerf);
+SystemCpuIndexTable g_systemCpuIndexTable = { 0 };
+// List of Platform devices with no mapping Thermal Zones e.g PCH, Battery, Platform power,
+const char dttPlatformDeviceList[][HID_LEN] = {
+	"INTC1045", // TGL - PCH Participant Device
+	"INTC1049", // ADL - PCH Participant Device
+	"INTC1047", // TGL - Power Participant Device
+	"INTC1060", // ADL - Power Participant Device
+	"INTC1050", // TGL - Battery Participant Device
+	"INTC1061", // ADL - Battery Participant Device
+};
+static Bool IsSupportedDttPlatformDevice(const char *hidDevice);
 static void SysfsRegisterCustomParticipant(char *targetHID, char *targetACPIName, UInt32 pType);
 static int scanPCI(void);
 static int scanPlat(void);
@@ -73,13 +93,8 @@ static eEsifError newParticipantCreate(
 	const UInt32 acpiType
 	);
 static Bool IsValidDirectoryPath(const char* dirPath);
-static eEsifError GetManagerSysfsPathFromAcpiId(char *acpiId);
-static void GetManagerSysfsPath(char *participantName);
-
-enum zoneType {
-	THERM,
-	CDEV,
-};
+static eEsifError GetManagerSysfsPath();
+static eEsifError EnumerateCoresBasedOnPerformance();
 
 char g_ManagerSysfsPath[MAX_SYSFS_PATH] = { 0 };
 
@@ -91,14 +106,7 @@ struct participantInfo {
 	char acpiScope[ESIF_SCOPE_LEN];
 };
 
-struct thermalZone {
-	Bool bound;
-	enum zoneType zoneType;
-	char acpiCode[MAX_ZONE_NAME_LEN];
-	char thermalPath[MAX_SYSFS_PATH];
-};
-
-struct thermalZone thermalZones[MAX_PARTICIPANT_ENTRY] = { {0} };
+thermalZonePtr g_thermalZonePtr = NULL;
 
 static void createParticipantsFromThermalSysfs(void)
 {
@@ -114,10 +122,17 @@ static void createParticipantsFromThermalSysfs(void)
 	esif_guid_t classGuidCpu = ESIF_PARTICIPANT_CPU_CLASS_GUID;
 	esif_guid_t *classGuidPtr = &classGuidPlat;
 
-	for (i = 0; i < MAX_PARTICIPANT_ENTRY; i++) {
-		if (ESIF_TRUE == thermalZones[i].bound) continue;
+	if ( g_thermalZonePtr == NULL ) {
+		ESIF_TRACE_WARN("No ThermalZone detected");
+		return;
+	}
+
+	for (i = 0 ; i < g_zone_count ; i++ ) {
+		if (ESIF_TRUE == g_thermalZonePtr[i].bound) {
+			continue;
+		}
 		for (j = 0; j < sizeof(partInfo) / sizeof(struct participantInfo); j++) {
-			if (0 == esif_ccb_stricmp(thermalZones[i].acpiCode, partInfo[j].sysfsType)) {
+			if (0 == esif_ccb_stricmp(g_thermalZonePtr[i].acpiCode, partInfo[j].sysfsType)) {
 				// Found a matching sysfs thermal zone/cooling device
 				if (0 == esif_ccb_stricmp(partInfo[j].deviceName, SYSFS_PROCESSOR_HID)) {
 					if (gSocParticipantFound) continue; // No need to instantiate another SoC participant
@@ -135,7 +150,7 @@ static void createParticipantsFromThermalSysfs(void)
 					partInfo[j].desc,
 					"N/A", // driver name - N/A for all Linux implementation
 					partInfo[j].deviceName, // "INT340X"
-					thermalZones[i].thermalPath,
+					g_thermalZonePtr[i].thermalPath,
 					partInfo[j].acpiScope,
 					ESIF_PARTICIPANT_INVALID_TYPE); // Only WWAN/WIFI need to use different types
 
@@ -147,6 +162,7 @@ static void createParticipantsFromThermalSysfs(void)
 
 void SysfsRegisterParticipants ()
 {
+	eEsifError rc = ESIF_OK;
 	EsifParticipantIface sysPart;
 	const eEsifParticipantOrigin origin = eParticipantOriginUF;
 	esif_handle_t newInstance = ESIF_INVALID_HANDLE;
@@ -171,8 +187,11 @@ void SysfsRegisterParticipants ()
 
 	/* we forced IETM to index 0 for now because ESIF expects that */
 	EsifUpPm_RegisterParticipant(origin, &sysPart, &newInstance);
-	GetManagerSysfsPath(spType);
-
+	GetManagerSysfsPath();
+	rc = EnumerateCoresBasedOnPerformance();
+	if ( rc!= ESIF_OK) {
+		ESIF_TRACE_WARN("\n Failure in enumerating Cores");
+	}
 	scanThermal();
 	scanPCI();
 	scanPlat();
@@ -299,8 +318,8 @@ static int scanPCI(void)
 						}
 						char *ACPI_name = participant_scope + (scope_len - ACPI_DEVICE_NAME_LEN);
 						/* map to thermal zone (try pkg thermal zone first)*/
-						for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
-							struct thermalZone tz = (struct thermalZone)thermalZones[thermal_counter];
+						for (thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
+							thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
 							if (esif_ccb_strcmp(tz.acpiCode, ACPI_name)==0) {
 								// Re-initialize the device path to one of the thermal zones
 								esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s", tz.thermalPath);
@@ -409,6 +428,26 @@ static int scanPlat(void)
 							participant_scope,
 							ptype);
 				}
+				// For devices with no mapping in thermal zone,
+				// Check if it is an Intel Device and if it is in Available DTT Participant Device List
+				// then , create a new participant
+				else if ( esif_ccb_strstr(hid, "INTC") != 0 &&
+					IsSupportedDttPlatformDevice(hid) == ESIF_TRUE ) {
+
+					newParticipantCreate(ESIF_PARTICIPANT_VERSION,
+							classGuid,
+							ESIF_PARTICIPANT_ENUM_SYSFS,
+							0x0,
+							ACPI_name,
+							ACPI_name,
+							"N/A",
+							hid,
+							participant_path,
+							participant_scope,
+							ptype);
+					ESIF_TRACE_INFO("Participant created with HID : %s", hid);
+
+				}
 				esif_ccb_free(ACPI_alias);
 			}
 
@@ -421,7 +460,6 @@ exit_participant:
 
 	return 0;
 }
-
 
 static int scanThermal(void)
 {
@@ -461,11 +499,11 @@ static int scanThermal(void)
 			esif_ccb_sprintf(MAX_SYSFS_PATH, target_path, "%s/%s", SYSFS_THERMAL,namelist[n]->d_name);
 
 			if (SysfsGetString(target_path,"type", acpi_name, sizeof(acpi_name)) > -1) {
-				struct thermalZone tz = { 0 };
+				thermalZone tz = { 0 };
 				tz.zoneType = zt;
 				esif_ccb_sprintf(MAX_ZONE_NAME_LEN,tz.acpiCode,"%s",acpi_name);
 				esif_ccb_sprintf(MAX_SYSFS_PATH,tz.thermalPath,"%s",target_path);
-				thermalZones[thermal_counter] = tz;
+				g_thermalZonePtr[thermal_counter] = tz;
 				thermal_counter++;
 			}
 
@@ -476,7 +514,7 @@ exit_zone:
 	}
 	closedir(dir);
 
-	g_zone_count = thermal_counter;
+	g_zone_count = thermal_counter ? thermal_counter + 1 : 0 ;
 
 	return 0;
 }
@@ -486,11 +524,11 @@ static Bool match_thermal_zone(const char *matchToName, char *participant_path)
 	int thermal_counter = 0;
 	Bool thermalZoneFound = ESIF_FALSE;
 
-	for (thermal_counter=0; thermal_counter <= g_zone_count; thermal_counter++) {
-		struct thermalZone tz = (struct thermalZone)thermalZones[thermal_counter];
+	for (thermal_counter=0; thermal_counter < g_zone_count; thermal_counter++) {
+		thermalZone tz = (thermalZone)g_thermalZonePtr[thermal_counter];
 		if (esif_ccb_strcmp(tz.acpiCode, matchToName)==0) {
 			thermalZoneFound = ESIF_TRUE;
-			thermalZones[thermal_counter].bound = ESIF_TRUE;
+			g_thermalZonePtr[thermal_counter].bound = ESIF_TRUE;
 			esif_ccb_sprintf(MAX_SYSFS_PATH, participant_path, "%s", tz.thermalPath);
 			break;
 		}
@@ -541,23 +579,22 @@ static Bool IsValidDirectoryPath(const char* dirPath)
 	return isValid;
 }
 
-static eEsifError GetManagerSysfsPathFromAcpiId(char *acpiId)
+static eEsifError GetManagerSysfsPath()
 {
 	eEsifError rc = ESIF_OK;
-	char *deviceId = NULL;
-
-	ESIF_ASSERT(NULL != acpiId);
 	esif_ccb_memset( g_ManagerSysfsPath, 0, sizeof(g_ManagerSysfsPath));
 
-	while ((deviceId = esif_ccb_strtok(acpiId, "|", &acpiId))) {
-		ESIF_TRACE_DEBUG("Device ID : %s\n", deviceId);
+	const char **hids = esif_enum_ietm_hid();
+	for (UInt32 i = 0; hids != NULL && hids[i] != NULL; i++) {
+		ESIF_TRACE_DEBUG("Device ID : %s\n", hids[i]);
+		esif_ccb_sprintf(sizeof(g_ManagerSysfsPath), g_ManagerSysfsPath, "%s/%s%s", SYSFS_DEVICES_PLATFORM,hids[i],INSTANCE_ID_0);
 
-		esif_ccb_sprintf(sizeof(g_ManagerSysfsPath), g_ManagerSysfsPath, "%s/%s%s", SYSFS_DEVICES_PLATFORM,deviceId,INSTANCE_ID_0);
 		if (IsValidDirectoryPath(g_ManagerSysfsPath) == ESIF_TRUE) {
 			//Found a valid manager sysfs path, return
 			ESIF_TRACE_INFO("Manager Sysfs Path : %s\n", g_ManagerSysfsPath);
 			break;
 		}
+
 		esif_ccb_memset( g_ManagerSysfsPath, 0, sizeof(g_ManagerSysfsPath));
 	}
 
@@ -572,25 +609,154 @@ exit:
 	return rc;
 }
 
-static void GetManagerSysfsPath(char *participantName)
+static Bool IsSupportedDttPlatformDevice(const char *hidDevice)
 {
-	ESIF_ASSERT(NULL != participantName);
+	Bool isSupported = ESIF_FALSE;
+	ESIF_ASSERT(NULL != hidDevice);
 
-	EsifUpPtr managerPtr = EsifUpPm_GetAvailableParticipantByName(participantName);
-	if ( managerPtr == NULL ) {
-		ESIF_TRACE_ERROR("Invalid Manager Instance\n");
-		goto exit;
+	for( UInt32 i = 0 ; i < sizeof(dttPlatformDeviceList) / sizeof(dttPlatformDeviceList[0]) ; i++ ) {
+		if ( esif_ccb_strcmp(hidDevice, dttPlatformDeviceList[i]) == 0 ) {
+			isSupported = ESIF_TRUE;
+			ESIF_TRACE_INFO("Platform Device Found : %s at index : %d" ,hidDevice , i);
+			break;
+		}
 	}
+	return isSupported;
+}
 
-	if ( managerPtr->fDspPtr == NULL || managerPtr->fDspPtr->acpi_device == NULL) {
-		ESIF_TRACE_ERROR("Invalid DSP Pointer/ACPI Device\n");
-		goto exit;
+
+Int32 CpuSysfsFilter(const struct dirent * entry)
+{
+	// entry should be a link and prefix with cpu
+	if ((entry->d_type == DT_LNK ) && 
+		(esif_ccb_strstr(entry->d_name, "cpu") == entry->d_name)) {
+		return 1;
 	}
+	else {
+		return 0;
+	}
+}
 
-	ESIF_TRACE_DEBUG("ACPI Device : %s\n" , managerPtr->fDspPtr->acpi_device);
-	GetManagerSysfsPathFromAcpiId(managerPtr->fDspPtr->acpi_device);
+Bool IsSystemCpuIndexTableInitialized(SystemCpuIndexTablePtr self)
+{
+	return self->isInitialized;
+}
 
-exit:
-	EsifUp_PutRef(managerPtr);
+void DumpSystemCpuIndexTable(SystemCpuIndexTablePtr self)
+{
+	ESIF_TRACE_DEBUG(" IsInitialized : %d", self->isInitialized);
+	ESIF_TRACE_DEBUG(" Highest Performance Index : %d" , self->highestPerformanceCpuIndex);
+	ESIF_TRACE_DEBUG(" Lowest Performance Index : %d" , self->lowestPerformanceCpuIndex);
+	ESIF_TRACE_DEBUG(" Number of CPU Types : %d" , self->numberOfCpuTypes);
+	ESIF_TRACE_DEBUG(" Number of CPUs : %d" , self->numberOfCpus);
+	for ( UInt32 i = 0 ; i < self->numberOfCpuTypes ; i++) {
+		ESIF_TRACE_DEBUG(" Performance State : %d" , self->perfCpuMapping[i].highestPerf);
+		ESIF_TRACE_DEBUG(" Number of Indexes : %d" , self->perfCpuMapping[i].numberOfIndexes);
+		for ( UInt32 j = 0 ; j < self->perfCpuMapping[i].numberOfIndexes ; j++) {
+			ESIF_TRACE_DEBUG(" %d" , self->perfCpuMapping[i].indexes[j]);
+		}
+	}
+}
+
+void AddEntryToSystemCpuIndexTable(SystemCpuIndexTablePtr self, UInt32 cpuIndex, UInt32 highestPerf)
+{
+	ESIF_ASSERT(self != NULL);
+
+	if ( self->numberOfCpuTypes > 0 ) {
+		// Check if an entry is there for this frequency already
+		for (UInt32 i = 0 ; i < self->numberOfCpuTypes; i++) {
+			if (self->perfCpuMapping[i].highestPerf == highestPerf ) {
+				UInt32 numberOfIndexes = self->perfCpuMapping[i].numberOfIndexes;
+				self->perfCpuMapping[i].indexes[numberOfIndexes] = cpuIndex;
+				//Increment the number of indexes
+				self->perfCpuMapping[i].numberOfIndexes++;
+				ESIF_TRACE_DEBUG("Updated the existing entry cpuIndex : %d perfState : %d\n" , cpuIndex, highestPerf);
+				goto exit;
+			}
+		}
+	}
+	//New Performance state entry to be added
+	self->perfCpuMapping[self->numberOfCpuTypes].highestPerf = highestPerf;
+	UInt32 numberOfIndexes = self->perfCpuMapping[self->numberOfCpuTypes].numberOfIndexes;
+	self->perfCpuMapping[self->numberOfCpuTypes].indexes[numberOfIndexes] = cpuIndex;
+	//Increment the number of indexes
+	self->perfCpuMapping[self->numberOfCpuTypes].numberOfIndexes++;
+	//Update the lowest perf index
+	if ( highestPerf <= self->perfCpuMapping[self->lowestPerformanceCpuIndex].highestPerf) {
+		self->lowestPerformanceCpuIndex = self->numberOfCpuTypes;
+	}
+	//Update the highest perf index	
+	if ( highestPerf >= self->perfCpuMapping[self->highestPerformanceCpuIndex].highestPerf) {
+		self->highestPerformanceCpuIndex = self->numberOfCpuTypes;
+	}
+	//Increment the number of CPU Types
+	self->numberOfCpuTypes++;
+	ESIF_TRACE_DEBUG("New entry added for index : %d perfState : %d\n" , cpuIndex, highestPerf);
+
+exit:	
 	return;
+}
+
+eEsifError EnumerateCoresBasedOnPerformance()
+{
+	eEsifError rc = ESIF_OK;
+	DIR *dir = NULL;
+	struct dirent **namelist = NULL;
+	Int32 numCores = 0;
+
+	//return if already initialized
+	if (IsSystemCpuIndexTableInitialized(&g_systemCpuIndexTable)) {
+		ESIF_TRACE_WARN("System CPU Index Table already Initialized\n");
+		return rc;
+	}
+
+	esif_ccb_memset(&g_systemCpuIndexTable, 0, sizeof(g_systemCpuIndexTable));
+	g_systemCpuIndexTable.isInitialized = ESIF_FALSE;
+
+	dir = opendir(CPU_SYSFS_PATH);
+	if (dir == NULL) {
+		ESIF_TRACE_ERROR("No CPU sysfs\n");
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	numCores = scandir(CPU_SYSFS_PATH, &namelist, CpuSysfsFilter, alphasort);
+	if (numCores < 0) {
+		ESIF_TRACE_ERROR("No CPU sysfs directory to scan\n");
+		rc = ESIF_E_INVALID_HANDLE;
+		goto exit;
+	}
+
+	for ( UInt32 i = 0; i < numCores ; i++ ) {
+		char acpiCppcPath[MAX_SYSFS_PATH] = { 0 };
+		Int32 highestPerformance = 0;
+		char cpuString[4] = { 0 };
+
+		esif_ccb_strcpy( cpuString, &namelist[i]->d_name[3], sizeof(cpuString));
+		UInt32 cpuIndex = esif_atoi(cpuString);
+		esif_ccb_strcpy(acpiCppcPath, CPU_SYSFS_PATH , sizeof(acpiCppcPath));
+		esif_ccb_strcat(acpiCppcPath,"/",sizeof(acpiCppcPath));
+		esif_ccb_strcat(acpiCppcPath,namelist[i]->d_name,sizeof(acpiCppcPath));
+		esif_ccb_strcat(acpiCppcPath,ACPI_CPPC_SYSFS_REL_PATH,sizeof(acpiCppcPath));
+		ESIF_TRACE_DEBUG("\n Constructed ACPI CPPC path : %s" , acpiCppcPath);
+		rc = SysfsGetInt(acpiCppcPath, HIGH_PERF_SYSFS_NAME, &highestPerformance);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_ERROR("Fail to get highest_perf\n");
+			free(namelist[i]);
+			continue;
+		}
+		AddEntryToSystemCpuIndexTable(&g_systemCpuIndexTable, cpuIndex, highestPerformance);
+	}
+	g_systemCpuIndexTable.numberOfCpus = numCores;
+	g_systemCpuIndexTable.isInitialized = ESIF_TRUE;
+	DumpSystemCpuIndexTable(&g_systemCpuIndexTable);
+	ESIF_TRACE_INFO("\n System CPU Index Table Initialized");
+exit:
+	if ( namelist != NULL ) {
+		free(namelist);
+	}
+	if ( dir != NULL) {
+		closedir(dir);
+	}
+	return rc;
 }

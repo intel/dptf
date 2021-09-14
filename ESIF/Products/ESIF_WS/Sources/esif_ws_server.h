@@ -23,6 +23,10 @@
 #include "esif_ccb_socket.h"
 #include "esif_ccb_thread.h"
 
+#define WS_LIBRARY_NAME				ESIF_WS_LIBRARY_NAME	// Name of Loadable Library (.dll or .so)
+#define WS_FLAG_NOWHITELIST			0x01					// Do not enforce REST API Whitelist
+#define WS_APPNAME_LOCALSERVER		"webserver"				// OS-Agnostic AppName alias for current Web Server
+
 // Client Types
 typedef enum ClientType_e {
 	ClientClosed = 0,		// Closed Connection
@@ -128,6 +132,7 @@ esif_error_t WebServer_Start(WebServerPtr self);
 void WebServer_Stop(WebServerPtr self);
 Bool WebServer_IsStarted(WebServerPtr self);
 esif_error_t WebServer_Config(WebServerPtr self, u8 instance, char *ipAddr, short port, esif_flags_t flags);
+char *WebServer_ExecRestCmdInternal(WebServerPtr self, const char *rest_cmd, const char *prefix);
 
 esif_error_t WebClient_Write(WebClientPtr self, void *buffer, size_t buf_len);
 void WebClient_Close(WebClientPtr self);
@@ -159,6 +164,7 @@ typedef enum esif_ws_tracelevel {
 void EsifWsLock(void);
 void EsifWsUnlock(void);
 const char *EsifWsDocRoot(void);
+const char *EsifWsAppName(void);
 Bool EsifWsShellEnabled(void);
 char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len);
 int EsifWsTraceLevel(void);

@@ -86,7 +86,7 @@ static eEsifError EsifGetActionDelegateSupportSocWorkload(
 	EsifDataPtr responsePtr
 	);
 
-static eEsifError EsifGetActionDelegateIsCVFSensor(
+static eEsifError EsifGetActionDelegateIsFaceDetectionCapableSensor(
 	EsifDataPtr responsePtr
 );
 
@@ -161,10 +161,6 @@ esif_error_t EsifSetActionDelegatePpmParamSettingWin(EsifDataPtr requestPtr);
 esif_error_t EsifSetActionDelegatePowerSchemeEppWin(EsifDataPtr requestPtr);
 esif_error_t EsifSetActionDelegateActivePowerSchemeWin();
 esif_error_t EsifSetActionDelegatePpmParamClearWin();
-esif_error_t EsifSetActionDelegateDppeSettingWin(
-	EsifDataPtr requestPtr,
-	const GUID* guid
-);
 
 #define set_display_state(reqPtr) set_display_state_win(reqPtr)
 #define set_screen_autolock_state(reqPtr) set_screen_autolock_state_win(reqPtr)
@@ -180,7 +176,6 @@ esif_error_t EsifSetActionDelegateDppeSettingWin(
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) EsifSetActionDelegatePowerSchemeEppWin(requestPtr)
 #define EsifSetActionDelegateActivePowerScheme() EsifSetActionDelegateActivePowerSchemeWin()
 #define EsifSetActionDelegatePpmParamClear() EsifSetActionDelegatePpmParamClearWin()
-#define EsifSetActionDelegateDppeSetting(requestPtr, guid) EsifSetActionDelegateDppeSettingWin(requestPtr, guid)
 
 #elif defined(ESIF_ATTR_OS_LINUX)
 
@@ -198,7 +193,6 @@ esif_error_t EsifSetActionDelegateDppeSettingWin(
 #define EsifSetActionDelegatePowerSchemeEpp(requestPtr) (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegateActivePowerScheme() (ESIF_E_NOT_IMPLEMENTED)
 #define EsifSetActionDelegatePpmParamClear() (ESIF_E_NOT_IMPLEMENTED)
-#define EsifSetActionDelegateDppeSetting(requestPtr, guid) (ESIF_E_NOT_IMPLEMENTED)
 
 #endif
 
@@ -297,7 +291,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		break;
 
 	case 'SCIG': /* GICS **/
-		rc = EsifGetActionDelegateIsCVFSensor(responsePtr);
+		rc = EsifGetActionDelegateIsFaceDetectionCapableSensor(responsePtr);
 		break;
 
 	case 'GSPB': /* BPSG - Get Biometric Presence Sensor selection */
@@ -310,6 +304,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		break;
 	}
 exit:
+	ESIF_TRACE_INFO("Exit status = %lu\n", rc);
 	return rc;
 }
 
@@ -491,30 +486,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		rc = EsifSetActionDelegatePpmParamClear();
 		break;
 
-	case 'SDAW': /* WADS */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA);
-		break;
-
-	case 'SDLW': /* WLDS */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL);
-		break;
-
-	case 'ELAW': /* WALE */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WAL_EVENT_STATE);
-		break;
-
-	case 'EAOW': /* WOAE */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_WOA_EVENT_STATE);
-		break;
-
-	case 'SEME': /* EMES */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_EXTERNAL_MONITOR_CONNECTED_EVENT_STATE);
-		break;
-
-	case 'SPOP': /* POPS */
-		rc = EsifSetActionDelegateDppeSetting(requestPtr, &GUID_DTT_POLICY_PRESENCE_STATUS);
-		break;
-
 	case 'SNSS': /* SSNS */
 		rc = set_display_state(requestPtr);
 		break;
@@ -556,6 +527,7 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		break;
 	}
 exit:
+	ESIF_TRACE_INFO("Exit status = %lu\n", rc);
 	return rc;
 }
 
@@ -716,6 +688,10 @@ static eEsifError EsifSetActionDelegateRset(
 		EsifFpcActionPtr fpcActionPtr = dspPtr->get_action(dspPtr, primitivePtr, (u8)j);
 		DataItemPtr paramDataVault = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)0);
 		DataItemPtr paramKeyName = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)1);
+		DataItemPtr paramSignalEvent = NULL;
+		if (fpcActionPtr->param_valid[3]) {
+			paramSignalEvent = EsifFpcAction_GetParam(fpcActionPtr, (const UInt8)3);
+		}
 		if (fpcActionPtr->type != ESIF_ACTION_CONFIG) {
 			continue;
 		}
@@ -772,9 +748,13 @@ static eEsifError EsifSetActionDelegateRset(
 			esif_ccb_free(expandedKeyName);
 		}
 
-		// Signal any Event(s) associated with this SET Primitive
+		// Signal any Event associated with this SET Primitive
 		if (signal_event) {
-			rc = EsifActConfigSignalChangeEvents(domainPtr->upPtr, tuple, NULL);
+			esif_event_type_t signalEventId = ESIF_EVENT_NONE;
+			if (paramSignalEvent && paramSignalEvent->data_type == ESIF_DSP_PARAMETER_TYPE_VARIANT && (size_t)(paramSignalEvent->data_length_in_bytes) == sizeof(esif_event_type_t)) {
+				signalEventId = *(esif_event_type_t *)paramSignalEvent->data;
+			}
+			rc = EsifActConfigSignalChangeEvents(domainPtr->upPtr, tuple, NULL, signalEventId);
 		}
 		break;
 	}
@@ -1014,11 +994,6 @@ static eEsifError EsifGetActionDelegateCnfg(
 			if (DCfg_Get().opt.ShellAccessControl) {
 				esif_uf_os_shell_disable();
 				g_shell_enabled = 0;
-			}
-
-			// Stop Web Server (if Started) if UI Access Control forbids it
-			if (EsifWebIsStarted() && DCfg_Get().opt.GenericUIAccessControl) {
-				EsifWebStop();
 			}
 
 			// Check if Configuration Changed by comparing to last DCFG value
@@ -1261,7 +1236,7 @@ exit:
 	return rc;
 }
 
-static eEsifError EsifGetActionDelegateIsCVFSensor(
+static eEsifError EsifGetActionDelegateIsFaceDetectionCapableSensor(
 	EsifDataPtr responsePtr)
 {
 	eEsifError rc = ESIF_OK;

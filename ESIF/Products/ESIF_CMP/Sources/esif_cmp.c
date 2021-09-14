@@ -68,7 +68,7 @@ struct LzmaHeader {
 /* Exported Data Compression Function
  * Call with NULL dest to compute required destLen
  */
-ESIF_EXPORT int ESIF_CALLCONV EsifCompress(
+ESIF_EXPORT int ESIF_CALLCONV IpfCompress(
 	unsigned char *dest,
 	size_t *destLen,
 	const unsigned char *src,
@@ -129,7 +129,7 @@ ESIF_EXPORT int ESIF_CALLCONV EsifCompress(
 /* Exported Data Decompression Function
  * Call with NULL dest to compute required destLen
  */
-ESIF_EXPORT int ESIF_CALLCONV EsifDecompress(
+ESIF_EXPORT int ESIF_CALLCONV IpfDecompress(
 	unsigned char *dest,
 	size_t *destLen,
 	const unsigned char *src,

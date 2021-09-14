@@ -36,20 +36,31 @@ DomainPowerControlBase::~DomainPowerControlBase()
 
 void DomainPowerControlBase::updateEnabled(PowerControlType::Type controlType)
 {
-	// For PL4, use the GET_RAPL_POWER_LIMIT primitive, for PL1/2/3, use
-	// GET_RAPL_POWER_LIMIT_ENABLE primitive
+	// For PL4, if GET_RAPL_POWER_LIMIT_ENABLE primitive throws an error (primitive doesn't exist for processor participant), 
+	// use GET_RAPL_POWER_LIMIT primitive to check if PL4 power limit register is enabled
+	// For PL1/2/3, use GET_RAPL_POWER_LIMIT_ENABLE primitive
 	if (PowerControlType::PL4 == controlType)
 	{
 		try
 		{
-			getParticipantServices()->primitiveExecuteGetAsPower(
-				esif_primitive_type::GET_RAPL_POWER_LIMIT, getDomainIndex(), (UInt8)controlType);
-			// Enable PL4 control if the above primitive execution does not generate an exception
-			m_pl4Enabled = true;
+			UInt32 pl4Enabled = getParticipantServices()->primitiveExecuteGetAsUInt32(
+				GET_RAPL_POWER_LIMIT_ENABLE, getDomainIndex(), (UInt8)controlType);
+			Bool enabled = pl4Enabled > 0 ? true : false;
+			m_pl4Enabled = enabled;
 		}
 		catch (...)
 		{
-			m_pl4Enabled = false;
+			try
+			{
+				getParticipantServices()->primitiveExecuteGetAsPower(
+					esif_primitive_type::GET_RAPL_POWER_LIMIT, getDomainIndex(), (UInt8)controlType);
+				// Enable PL4 control if the above primitive execution does not generate an exception
+				m_pl4Enabled = true;
+			}
+			catch (...)
+			{
+				m_pl4Enabled = false;
+			}
 		}
 	}
 	else

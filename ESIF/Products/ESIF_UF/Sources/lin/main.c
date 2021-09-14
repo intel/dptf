@@ -27,6 +27,8 @@
 #include "esif_uf_sensor_manager_os_lin.h"
 #include "esif_uf_ccb_imp_spec.h"
 #include "esif_uf_sysfs_os_lin.h"
+#include "esif_uf_sensors.h"
+#include "esif_sdk_data_misc.h"
 
 #include <sys/socket.h>
 #include <linux/netlink.h>
@@ -46,9 +48,10 @@
 #define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"appstart dptf"
 #endif
 #else
-#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"appstart dptf"
+#define ESIF_STARTUP_SCRIPT_DAEMON_MODE	"arbitrator disable && appstart dptf"
 #endif
 #define ESIF_STARTUP_SCRIPT_SERVER_MODE	NULL
+#define TOTAL_PSY_PROPERTIES 10
 
 static void esif_udev_start();
 static void esif_udev_stop();
@@ -58,6 +61,7 @@ static void *esif_udev_listen(void *ptr);
 static void esif_process_udev_event(char *udev_target);
 static int kobj_thermal_uevent_parse(char *buffer, int len, char **zone_name, int *temp, int *event);
 static int kobj_wifi_uevent_parse(char *buffer, int len , int *wifi_event);
+static int kobj_powersupply_uevent_parse(char *buffer, int len, char **psy);
 
 static esif_thread_t g_udev_thread;
 static Bool g_udev_quit = ESIF_TRUE;
@@ -66,6 +70,7 @@ static char *g_udev_target = NULL;
 /* Dedicated thread pool to handle SIGRTMIN timer signals */
 static esif_thread_t *g_sigrtmin_thread_pool;
 static Bool g_os_quit = ESIF_FALSE; /* global flag to supress KW flagging as while(1) alternative */
+static esif_ccb_sem_t g_sigquit; /* global semaphore to signal main thread to quit, called from shell exit or sigterm handler */
 
 /* Number of threads in thread pool: default to 1, but will
  * change to the actual number of processore cores if there
@@ -107,7 +112,8 @@ struct instancelock {
 static struct instancelock g_instance = {"esif_ufd.pid"};
 static char thermal_device_path[] = "/devices/virtual/thermal/thermal_zone";
 static char wifi_device_path[] = "/module/iwlwifi";
-
+static char g_psy_dev[] = "power_supply/BAT";
+static char *g_psy_val[TOTAL_PSY_PROPERTIES];
 #define HOME_DIRECTORY	NULL /* use OS-specific default */
 
 #ifdef ESIF_ATTR_64BIT
@@ -124,41 +130,38 @@ static char wifi_device_path[] = "/module/iwlwifi";
 
 // Default ESIF Paths for each OS
 // Paths preceded by "$" are treated as system paths and are not auto-created or checked for symbolic links
-// Paths preceded by "#" indicate that the full path is not specified when loading .so libraries with dlopen()
 static const esif_string ESIF_PATHLIST =
 #if defined(ESIF_ATTR_OS_ANDROID)
 	// Android
-	"HOME=/vendor/etc/dptf\n"
+	"HOME=/data/vendor/dptf/log\n"
 	"TEMP=/data/vendor/dptf/tmp\n"
 	"DV=/vendor/etc/dptf/dv\n"
 	"LOG=/data/vendor/dptf/log\n"
 	"BIN=/vendor/etc/dptf/bin\n"
 	"LOCK=/data/vendor/dptf/lock\n"
-	"EXE=$#/vendor/bin\n"
-	"DLL=$#/vendor/lib" ARCHBITS "\n"
+	"EXE=$/vendor/bin\n"
+	"DLL=$/vendor/lib" ARCHBITS "\n"
 	"DLLALT=$#/vendor/lib" ARCHBITS "\n"
-	"DPTF=/vendor/etc/dptf/bin\n"
 	"DSP=/vendor/etc/dptf/dsp\n"
 	"CMD=/vendor/etc/dptf/cmd\n"
-	"UI=/vendor/etc/dptf/ui\n"
+	"DATA=/vendor/etc/dptf/ui\n"
 #elif defined(ESIF_ATTR_OS_CHROME)
 	// Chromium
-	"HOME=/usr/share/dptf\n"
+	"HOME=/var/log/dptf\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
 	"LOCK=$/var/run\n"
-	"EXE=$#/usr/bin\n"
-	"DLL=$#/usr/lib" ARCHBITS "\n"
-	"DLLALT=$#/usr/lib" ARCHBITS "\n"
-	"DPTF=/usr/share/dptf\n"
+	"EXE=$/usr/bin\n"
+	"DLL=$/usr/lib" ARCHBITS "\n"
+	"DLLALT=$/usr/lib" ARCHBITS "\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
-	"UI=/usr/share/dptf/ui\n"
+	"DATA=/usr/share/dptf/ui\n"
 #else
 	// Generic Linux
-	"HOME=/usr/share/dptf\n"
+	"HOME=/usr/share/dptf/log\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/usr/share/dptf/log\n"
@@ -167,10 +170,9 @@ static const esif_string ESIF_PATHLIST =
 	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLL=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLLALT=/usr/share/dptf/uf" ARCHNAME "\n"
-	"DPTF=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DSP=/usr/share/dptf/dsp\n"
 	"CMD=/usr/share/dptf/cmd\n"
-	"UI=/usr/share/dptf/ui\n"
+	"DATA=/usr/share/dptf/ui\n"
 #endif
 ;
 
@@ -191,7 +193,8 @@ extern int g_soe;
 extern int g_shell_enabled;
 extern int g_cmdshell_enabled;
 extern char **g_autorepos;
-
+extern PowerSrc g_PowerSrc;
+extern int g_BatteryPercentage;
 /* Worker Thread in esif_uf */
 Bool g_start_event_thread = ESIF_TRUE;
 esif_thread_t g_thread;
@@ -217,12 +220,29 @@ enum thermal_notify_event {
 	THERMAL_EVENT_KEEP_ALIVE, /* Request for user space handler to respond */
 };
 
+
 /* Wifi event notification */
 enum wifi_notify_event {
 	WIFI_EVENT_UNDEFINED,
 	WIFI_EVENT_MODULE_ADDED,
 	WIFI_EVENT_MODULE_REMOVED,
 }wifi_event;
+
+/* Signal Application to Quit */
+static void signal_quit()
+{
+	static atomic_t signaled = ATOMIC_INIT(0);
+	if (atomic_set(&signaled, 1) == 0) {
+		g_quit = 1;
+		esif_ccb_sem_up(&g_sigquit);
+	}
+}
+
+enum power_supply_event {
+	POWER_SUPPLY_NAME = 0,
+	POWER_SUPPLY_CAPACITY,
+	POWER_SUPPLY_STATUS,
+};
 
 /* Attempt IPC Connect and Sync for specified time if no IPC connection */
 eEsifError ipc_resync()
@@ -350,6 +370,36 @@ static int kobj_wifi_uevent_parse(char *buffer, int len, int *wifi_event)
 	return 1;
 }
 
+static int kobj_powersupply_uevent_parse(char *buffer, int len, char **psy) {
+
+	static const char psy_name[] = "POWER_SUPPLY_NAME=";
+	static const char psy_capacity[] = "POWER_SUPPLY_CAPACITY=";
+	static const char psy_status[] = "POWER_SUPPLY_STATUS=";
+	int i = 0;
+
+	while (i < len) {
+		if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(psy_name, sizeof(psy_name))
+			&& esif_ccb_strncmp(buffer + i, psy_name, esif_ccb_strlen(psy_name, sizeof(psy_name))) == 0) {
+				*(psy + POWER_SUPPLY_NAME) = buffer + i + esif_ccb_strlen(psy_name, sizeof(psy_name));
+		}
+		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(psy_capacity, sizeof(psy_capacity))
+			&& esif_ccb_strncmp(buffer + i, psy_capacity, esif_ccb_strlen(psy_capacity, sizeof(psy_capacity))) == 0) {
+				*(psy + POWER_SUPPLY_CAPACITY) = buffer + i + esif_ccb_strlen(psy_capacity, sizeof(psy_capacity));
+		}
+		else if (esif_ccb_strlen(buffer + i, len - i) > esif_ccb_strlen(psy_status, sizeof(psy_status))
+			&& esif_ccb_strncmp(buffer + i, psy_status, esif_ccb_strlen(psy_status, sizeof(psy_status))) == 0) {
+				*(psy + POWER_SUPPLY_STATUS) = buffer + i + esif_ccb_strlen(psy_status, sizeof(psy_status));
+		}
+		i += esif_ccb_strlen(buffer + i, len - i) + 1;
+	}
+	if (psy[POWER_SUPPLY_NAME] && psy[POWER_SUPPLY_CAPACITY] && psy[POWER_SUPPLY_STATUS]) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
 static int check_for_uevent(int fd) {
 	eEsifError rc = ESIF_OK;
 	int i = 0;
@@ -363,11 +413,15 @@ static int check_for_uevent(int fd) {
 	int temp;
 	int event;
 	int wifi_event;
+	int batteryPercentage = 0;
 	static struct timeval last_event_time = {0};
 	struct timeval cur_event_time = {0};
 	Int64 interval = 0;
 	UfPmIterator upIter = { 0 };
 	EsifUpPtr upPtr = NULL;
+	PowerSrc powerSrc = POWER_SRC_AC;
+	EsifData evtData = { 0 };
+	char *psyStr = NULL;
 
 	len = recv(fd, buffer, sizeof(buffer), 0);
 	if (len <= 0) {
@@ -419,7 +473,6 @@ static int check_for_uevent(int fd) {
                                         break;
 				}
 			}
-			                 	       
 			else if (esif_ccb_strncmp(buf_ptr + dev_path_len, thermal_device_path, sizeof(thermal_device_path) - 1) == 0) {
 				char *parsed = NULL;
 				char *ctx = NULL;
@@ -491,6 +544,37 @@ static int check_for_uevent(int fd) {
 				}
 				return 1;
 			}
+			else if ((psyStr = esif_ccb_strstr(buf_ptr + dev_path_len, g_psy_dev)) != NULL) {
+				if (esif_ccb_strncmp(psyStr, g_psy_dev, sizeof(g_psy_dev) - 1) == 0) {
+					ESIF_TRACE_INFO("POWER_SUPPLY_UEVENT PROCESSING\n");
+					if(!kobj_powersupply_uevent_parse(buffer, len, g_psy_val))
+						break;
+
+					if(!esif_ccb_strncmp(g_psy_val[POWER_SUPPLY_STATUS], "Discharging", sizeof("Discharging") - 1)) {
+						ESIF_TRACE_INFO("DC MODE PSY_STATUS = %s\n", g_psy_val[POWER_SUPPLY_STATUS]);
+						powerSrc = POWER_SRC_DC;
+						ESIF_DATA_UINT32_ASSIGN(evtData, &powerSrc, sizeof(UInt32));
+					}
+					else {
+						ESIF_TRACE_INFO("AC MODE PSY_STATUS = %s\n", g_psy_val[POWER_SUPPLY_STATUS]);
+						powerSrc = POWER_SRC_AC;
+						ESIF_DATA_UINT32_ASSIGN(evtData, &powerSrc, sizeof(UInt32));
+					}
+					atomic_set(&g_PowerSrc, powerSrc);
+					EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
+
+					psyStr = g_psy_val[POWER_SUPPLY_CAPACITY] ? g_psy_val[POWER_SUPPLY_CAPACITY] : "";
+					if (esif_ccb_sscanf(psyStr, "%d", &batteryPercentage) <= 0) {
+						ESIF_TRACE_WARN("Failed to get Battery Percentage.\n");
+					}
+					else {
+						ESIF_TRACE_INFO("Battery Capacity = %s\n", g_psy_val[POWER_SUPPLY_CAPACITY]);
+						atomic_set(&g_BatteryPercentage, batteryPercentage);
+						ESIF_DATA_UINT32_ASSIGN(evtData, &batteryPercentage, sizeof(UInt32));
+						EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
+					}
+				}
+			}
 		}
 		i += esif_ccb_strlen(buffer + i, len - i) + 1;
 	}
@@ -501,7 +585,7 @@ static int check_for_uevent(int fd) {
 /* SIGTERM Signal Handler */
 static void sigterm_handler(int signum)
 {
-	g_quit = 1; /* Attempt Graceful ESIF Shutdown */
+	signal_quit(); /* Attempt Graceful ESIF Shutdown */
 }
 
 /* Enable or Disable SIGTERM Handler */
@@ -877,6 +961,19 @@ int SysfsSetInt64(char *path, char *filename, Int64 val)
 exit:
 	return rc;
 }
+int SysfsSetInt64Direct(int fd, const Int32 val)
+{
+	int rc = 0;
+	char buf[32] = {0};
+
+	lseek(fd, 0, SEEK_SET);
+	esif_ccb_memset(buf,0, sizeof(buf));
+	esif_ccb_sprintf(sizeof(buf),buf,"%d",val);
+	if ((rc = write(fd, buf, sizeof(buf))) < 0) {
+		ESIF_TRACE_WARN("Failed to write the value: error code rc: %ld\n", rc);
+	}
+	return rc;
+}
 
 int SysfsSetString(const char *path, const char *filename, char *val)
 {
@@ -1225,7 +1322,7 @@ void* dbus_listen()
 #endif
 
 /*
-**  Buiild Supports Deaemon?
+**  Build Supports Deaemon?
 */
 #if defined (ESIF_ATTR_DAEMON)
 
@@ -1413,6 +1510,9 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 			esif_shell_execute(line);
 			esif_ccb_fclose(fp);
 		}
+		if (start_with_pipe) {
+			signal_quit();
+		}
 	}
 	if (stdinfd != -1)
 		close(stdinfd);
@@ -1422,6 +1522,7 @@ static int run_as_daemon(int start_with_pipe, int start_with_log, int start_in_b
 
 static int run_as_server(FILE* input, char* command, int quit_after_command)
 {
+	int rc = ESIF_FALSE;
 	char *ptr = NULL;
 	char line[MAX_LINE + 1]  = {0};
 
@@ -1437,13 +1538,13 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 
 	/* Guarantee a single instance is running */
 	if (!instance_lock()) {
-		return ESIF_FALSE;
+		goto exit;
 	}
 	sigrtmin_block(); /* Block SIGRTMIN (will re-enable it in dedicated thread pool) */
 	/* Start the thread pool that handles SIGRTMIN */
 	if (ESIF_OK != create_timer_thread_pool()) {
 		CMD_OUT("Cannot create timer thread pool, exiting\n");
-		return ESIF_FALSE;
+		goto exit;
 	}
 	sigterm_enable();
 	esif_shell_set_start_script(ESIF_STARTUP_SCRIPT_SERVER_MODE);
@@ -1534,7 +1635,11 @@ static int run_as_server(FILE* input, char* command, int quit_after_command)
 		CMD_LOGFILE("%s\n", line);
 		esif_shell_execute(line);
 	}
-	return ESIF_TRUE;
+	rc = ESIF_TRUE;
+
+exit:
+	signal_quit();
+	return rc;
 }
 
 int main (int argc, char **argv)
@@ -1557,8 +1662,10 @@ int main (int argc, char **argv)
 
 	// Init ESIF
 	esif_main_init(ESIF_PATHLIST);
+	esif_ccb_sem_init(&g_sigquit);
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
+	// Do not start kernel driver IPC event thread for sysfs builds
 	g_start_event_thread = ESIF_FALSE;
 #endif
 
@@ -1708,7 +1815,8 @@ int main (int argc, char **argv)
 	// Start as Server or Daemon
 	if (start_as_server) {
 		run_as_server(fp, command, quit_after_command);
-	} else {
+	}
+	else {
 		if (fp) {
 			esif_ccb_fclose(fp);
 			fp = NULL;
@@ -1731,15 +1839,13 @@ int main (int argc, char **argv)
 		esif_ccb_fclose(fp);
 	}
 
-	/* Wait For Worker Thread To Exit if started, otherwise wait for ESIF to exit */
+	/* Wait For Worker Thread To Exit if started, otherwise wait for ESIF shell to exit or daemon to terminate */
 	if (g_start_event_thread) {
 		CMD_DEBUG("Stopping EVENT Thread...\n");
 		esif_ccb_thread_join(&g_thread);
 	}
 	else {
-		while (!g_quit) {
-			esif_ccb_sleep_msec(250);
-		}
+		esif_ccb_sem_down(&g_sigquit);
 	}
 	CMD_DEBUG("Errorlevel Returned: %d\n", g_errorlevel);
 
@@ -1757,13 +1863,13 @@ int main (int argc, char **argv)
 		dbus_connection_unref(g_dbus_conn);
 #endif
 
-
 	/* Exit ESIF */
 	esif_uf_exit();
 
 	/* Stop and join the SIGRTMIN worker thread */
 	g_os_quit = ESIF_TRUE;
 	release_timer_thread_pool();
+	esif_ccb_sem_uninit(&g_sigquit);
 
 	/* Release Instance Lock and exit*/
 	instance_unlock();
@@ -1800,7 +1906,3 @@ eEsifError esif_uf_os_shell_enable()
 void esif_uf_os_shell_disable()
 {
 }
-
-/*****************************************************************************/
-/*****************************************************************************/
-/*****************************************************************************/

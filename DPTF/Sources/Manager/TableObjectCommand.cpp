@@ -99,7 +99,9 @@ void TableObjectCommand::throwIfInvalidArgumentCount(const CommandArguments& arg
 {
 	if (arguments.size() < 2)
 	{
-		string description = string("Invalid argument count.  Expect >= 2.");
+		string description = string(
+			"Invalid argument count given to 'tableobject' command. "
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}

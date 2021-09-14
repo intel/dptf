@@ -30,8 +30,28 @@ namespace OsPowerSource
 			return "DC";
 		case ShortTermDC:
 			return "Short Term DC";
+		case Invalid:
+			return "Invalid";
 		default:
 			throw dptf_exception("OsPowerSource::Type is invalid");
 		}
+	}
+
+	OsPowerSource::Type fromString(std::string osPowerSource)
+	{
+		if (osPowerSource == toString(OsPowerSource::AC))
+		{
+			return OsPowerSource::AC;
+		}
+		else if (osPowerSource == toString(OsPowerSource::DC))
+		{
+			return OsPowerSource::DC;
+		}
+		else if (osPowerSource == toString(OsPowerSource::ShortTermDC))
+		{
+			return OsPowerSource::ShortTermDC;
+		}
+
+		return OsPowerSource::Invalid;
 	}
 }

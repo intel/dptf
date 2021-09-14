@@ -40,6 +40,7 @@ public:
 	Int64 asTenthSecondsInt() const;
 	double asTenthSeconds() const;
 	double asSeconds() const;
+	UInt64 asSecondsUInt() const;
 	double asMinutes() const;
 	double asHours() const;
 

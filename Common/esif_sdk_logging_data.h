@@ -261,6 +261,16 @@ typedef struct _t_EsifManagerStatusData {
 	UInt32 ppmPackage;
 } EsifManagerStatusData, * EsifManagerStatusDataPtr;
 
+/* Workload Classification Data */
+typedef struct _t_EsifWorkloadClassification {
+	UInt32 socWorkload;
+} EsifWorkloadClassification, * EsifWorkloadClassificationPtr;
+
+/* Dynamic EPP Data */
+typedef struct _t_EsifDynamicEppControl {
+	UInt32 eppHint;
+} EsifDynamicEppControl, * EsifDynamicEppControlPtr;
+
 typedef union _t_EsifCapability {
 	EsifActiveControlCapability activeControl;
 	EsifCoreControl coreControl;
@@ -282,6 +292,8 @@ typedef union _t_EsifCapability {
 	EsifPlatformPowerControl platformPowerControl;
 	EsifBatteryStatus batteryStatus;
 	EsifManagerStatusData managerStatus;
+	EsifWorkloadClassification workloadClassification;
+	EsifDynamicEppControl dynamicEppControl;
 } EsifCapability, *EsifCapabilityPtr;
 
 /* Capability Data */

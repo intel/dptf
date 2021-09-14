@@ -122,7 +122,6 @@ string CriticalPolicy::getStatusAsXml(void) const
 	auto format = XmlNode::createComment("format_id=" + getGuid().toString());
 	root->addChild(format);
 	auto status = XmlNode::createWrapperElement("critical_policy_status");
-	status->addChild(m_stats.getXml());
 	status->addChild(getXmlForCriticalTripPoints());
 	root->addChild(status);
 	string statusString = root->toString();
@@ -259,7 +258,6 @@ void CriticalPolicy::takePowerAction(
 		if (!m_sleepRequested)
 		{
 			POLICY_LOG_MESSAGE_DEBUG({ return "Instructing system to sleep."; });
-			m_stats.sleepSignalled();
 			m_sleepRequested = true;
 			getPolicyServices().platformPowerState->sleep();
 			startTimer(WatchdogTime);
@@ -276,7 +274,6 @@ void CriticalPolicy::takePowerAction(
 				return "Instructing system to hibernate. Current temperature is " + currentTemperature.toString()
 					   + ". Trip point temperature is " + crossedTripPointTemperature.toString() + ".";
 			});
-			m_stats.hibernateSignalled();
 			m_hibernateRequested = true;
 			getPolicyServices().platformPowerState->hibernate(
 				currentTemperature, crossedTripPointTemperature, participantName);
@@ -292,7 +289,6 @@ void CriticalPolicy::takePowerAction(
 			return "Instructing system to shut down. Current temperature is " + currentTemperature.toString()
 				   + ". Trip point temperature is " + crossedTripPointTemperature.toString() + ".";
 		});
-		m_stats.shutdownSignalled();
 		getPolicyServices().platformPowerState->shutDown(
 			currentTemperature, crossedTripPointTemperature, participantName);
 

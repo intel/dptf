@@ -37,6 +37,8 @@
 #include "SensorUserPresence.h"
 #include "UserInteraction.h"
 #include "MbtHint.h"
+#include "SystemMode.h"
+#include "IgccBroadcastData.h"
 
 class dptf_export PolicyInterface
 {
@@ -102,6 +104,7 @@ public:
 	virtual std::string getDiagnosticsAsXml(void) const = 0;
 
 	// DPTF Event handlers
+	virtual void igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void connectedStandbyEntry(void) = 0;
 	virtual void connectedStandbyExit(void) = 0;
 	virtual void suspend(void) = 0;
@@ -168,6 +171,7 @@ public:
 	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
 	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
 	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
+	virtual void systemModeChanged(SystemMode::Type systemMode) = 0;
 	virtual void passiveTableChanged(void) = 0;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) = 0;
 	virtual void sensorMotionChanged(OnOffToggle::Type sensorMotion) = 0;
@@ -186,6 +190,7 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) = 0;
 	virtual void powerShareAlgorithmTableChanged(void) = 0;
 	virtual void intelligentThermalManagementTableChanged(void) = 0;
+	virtual void energyPerformanceOptimizerTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) = 0;
 	virtual void workloadHintConfigurationChanged(void) = 0;

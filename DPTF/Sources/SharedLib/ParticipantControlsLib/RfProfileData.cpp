@@ -18,19 +18,39 @@
 
 #include "RfProfileData.h"
 #include "StatusFormat.h"
+#include "ServingCellInfo.h"
+#include "DdrfChannelBandPackage.h"
 
 RfProfileData::RfProfileData(
+	Bool is5G,
+	UInt32 servingCellInfo,
 	Frequency centerFrequency,
 	Frequency leftFrequencySpread,
 	Frequency rightFrequencySpread,
 	Frequency guardband,
+	UInt32 channelNumber,
+	UInt32 band,
 	RfProfileSupplementalData supplementalData)
-	: m_centerFrequency(centerFrequency)
+	: m_is5G(is5G)
+	, m_servingCellInfo(servingCellInfo)
+	, m_centerFrequency(centerFrequency)
 	, m_leftFrequencySpread(leftFrequencySpread)
 	, m_rightFrequencySpread(rightFrequencySpread)
 	, m_guardband(guardband)
+	, m_channelNumber(channelNumber)
+	, m_band(band)
 	, m_supplementalData(supplementalData)
 {
+}
+
+Bool RfProfileData::is5G(void) const
+{
+	return m_is5G;
+}
+
+UInt32 RfProfileData::getServingCellInfo(void) const
+{
+	return m_servingCellInfo;
 }
 
 Frequency RfProfileData::getCenterFrequency(void) const
@@ -88,6 +108,16 @@ Frequency RfProfileData::getRightFrequencyWithGuardband(void) const
 	return (m_centerFrequency + getRightFrequencySpreadWithGuardband());
 }
 
+UInt32 RfProfileData::getChannelNumber(void) const
+{
+	return m_channelNumber;
+}
+
+UInt32 RfProfileData::getBand(void) const
+{
+	return m_band;
+}
+
 RfProfileSupplementalData RfProfileData::getSupplementalData(void) const
 {
 	return m_supplementalData;
@@ -96,7 +126,8 @@ RfProfileSupplementalData RfProfileData::getSupplementalData(void) const
 Bool RfProfileData::operator==(const RfProfileData& rhs) const
 {
 	return (
-		(m_centerFrequency == rhs.m_centerFrequency) && (m_leftFrequencySpread == rhs.m_leftFrequencySpread)
+		(m_servingCellInfo == rhs.m_servingCellInfo) && (m_centerFrequency == rhs.m_centerFrequency) 
+		&& (m_leftFrequencySpread == rhs.m_leftFrequencySpread)
 		&& (m_rightFrequencySpread == rhs.m_rightFrequencySpread)
 		&& (m_supplementalData == rhs.m_supplementalData));
 }
@@ -109,11 +140,16 @@ Bool RfProfileData::operator!=(const RfProfileData& rhs) const
 std::shared_ptr<XmlNode> RfProfileData::getXml(void) const
 {
 	auto profileData = XmlNode::createWrapperElement("radio_frequency_profile_data");
+	profileData->addChild(XmlNode::createDataElement("is_5G", StatusFormat::friendlyValue(m_is5G)));
+	profileData->addChild(
+		XmlNode::createDataElement("serving_cell_info", ServingCellInfo::toString(ServingCellInfo::Type(m_servingCellInfo))));
 	profileData->addChild(XmlNode::createDataElement("center_frequency", m_centerFrequency.toString()));
+	profileData->addChild(XmlNode::createDataElement("left_frequency_spread", getLeftFrequencySpread().toString()));
+	profileData->addChild(XmlNode::createDataElement("right_frequency_spread", getRightFrequencySpread().toString()));
 	profileData->addChild(
-		XmlNode::createDataElement("left_frequency_spread", getLeftFrequencySpreadWithGuardband().toString()));
+		XmlNode::createDataElement("channel_number", StatusFormat::friendlyValue(m_channelNumber)));
 	profileData->addChild(
-		XmlNode::createDataElement("right_frequency_spread", getRightFrequencySpreadWithGuardband().toString()));
+		XmlNode::createDataElement("band", DdrfChannelBandPackage::toString(DdrfChannelBandPackage::WifiBand(m_band))));
 	profileData->addChild(m_supplementalData.getXml());
 	return profileData;
 }

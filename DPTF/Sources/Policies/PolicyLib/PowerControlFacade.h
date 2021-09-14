@@ -38,6 +38,8 @@ public:
 	virtual void initializeControlsIfNeeded() override;
 	virtual void setControlsToMax() override;
 	virtual void setPL1PowerLimitControlToMax() override;
+	virtual void setPL1PowerLimitControlToMaxAndTimeWindowToMin() override;
+	virtual void setPL2PowerLimitControlToMax() override;
 	virtual void setCapability(const PowerControlDynamicCaps& capability) override;
 	virtual void refreshCapabilities() override;
 	virtual void setPowerLimitPL1(const Power& powerLimit) override;

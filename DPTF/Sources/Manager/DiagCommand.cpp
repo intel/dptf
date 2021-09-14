@@ -25,11 +25,11 @@
 
 using namespace std;
 
-DiagCommand::DiagCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo)
+DiagCommand::DiagCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
-	m_diagCommandDispatcher = std::make_shared<CommandDispatcher>();
+	m_diagCommandDispatcher = make_shared<CommandDispatcher>();
 	createSubCommands();
 	registerSubCommands();
 }
@@ -54,7 +54,7 @@ void DiagCommand::registerSubCommands()
 	}
 }
 
-std::string DiagCommand::getCommandName() const
+string DiagCommand::getCommandName() const
 {
 	return "diag";
 }

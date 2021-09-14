@@ -85,7 +85,7 @@ void Policy::createPolicy(
 	Guid dynamicPolicyUuid,
 	Guid dynamicPolicyTemplateGuid,
 	const string& dynamicPolicyName,
-	const std::string& dynamicPolicyUuidString)
+	const string& dynamicPolicyUuidString)
 {
 	// If an exception is thrown while trying to create the policy, the PolicyManager will
 	// delete the Policy instance and remove the policy completely.
@@ -176,6 +176,7 @@ void Policy::createPolicy(
 
 	m_theRealPolicyCreated = true;
 	m_theRealPolicy->create(true, m_policyServices, newPolicyIndex, m_dynamicPolicyUuidString, dynamicPolicyName);
+	m_policyName = m_theRealPolicy->getName();
 	sendPolicyLogDataIfLoggingEnabled(true);
 }
 
@@ -187,6 +188,7 @@ void Policy::destroyPolicy()
 		{
 			sendPolicyLogDataIfLoggingEnabled(false);
 			m_theRealPolicy->destroy();
+			m_policyName = std::string("");
 		}
 	}
 	catch (...)
@@ -272,6 +274,14 @@ Bool Policy::isDynamicPolicy(void)
 string Policy::getDynamicPolicyUuidString(void) const
 {
 	return m_dynamicPolicyUuidString;
+}
+
+void Policy::executeIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
+{
+	if (isEventRegistered(PolicyEvent::DptfAppBroadcastListen))
+	{
+		m_theRealPolicy->igccBroadcastReceived(broadcastNotificationData);
+	}
 }
 
 void Policy::executeConnectedStandbyEntry(void)
@@ -704,6 +714,14 @@ void Policy::executePolicyOperatingSystemPowerSliderChanged(OsPowerSlider::Type 
 	}
 }
 
+void Policy::executePolicySystemModeChanged(SystemMode::Type systemMode)
+{
+	if (isEventRegistered(PolicyEvent::PolicySystemModeChanged))
+	{
+		m_theRealPolicy->systemModeChanged(systemMode);
+	}
+}
+
 void Policy::executePolicyActivityLoggingEnabled(void)
 {
 	enablePolicyLogging();
@@ -760,6 +778,14 @@ void Policy::executePolicyPowerShareAlgorithmTable2Changed(void)
 	if (isEventRegistered(PolicyEvent::PolicyPowerShareAlgorithmTable2Changed))
 	{
 		m_theRealPolicy->powerShareAlgorithmTable2Changed();
+	}
+}
+
+void Policy::executePolicyEnergyPerformanceOptimizerTableChanged(void)
+{
+	if (isEventRegistered(PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged))
+	{
+		m_theRealPolicy->energyPerformanceOptimizerTableChanged();
 	}
 }
 

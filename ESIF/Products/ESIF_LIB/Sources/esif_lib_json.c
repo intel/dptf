@@ -184,7 +184,7 @@ StringPtr JsonObj_GetValue(
 	if (self && self->items) {
 		for (size_t j = 0; j < self->count; j++) {
 			if (esif_ccb_stricmp(self->items[j].key, key) == 0) {
-				value = self->items[j].value;
+				value = (self->items[j].value && self->items[j].value[0] ? self->items[j].value : NULL);
 				break;
 			}
 		}

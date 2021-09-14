@@ -208,8 +208,6 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(
 		PolicyActiveControlPointRelationshipTableChanged, 0, DTT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyPowerShareAlgorithmTableChanged, 0, DTT_POWER_SHARING_ALGORITHM_TABLE_CHANGED);
-	INIT_EVENT_WITH_GUID(
-		PolicyIntelligentThermalManagementTableChanged, 0, DTT_INTELLIGENT_THERMAL_MANAGEMENT_TABLE_CHANGED);
 	INIT_EVENT(PowerLimitChanged, 0);
 	INIT_EVENT(PerformanceCapabilitiesChanged, 0);
 	INIT_EVENT_WITH_GUID(PolicyWorkloadHintConfigurationChanged, 0, DTT_WORKLOAD_HINT_CONFIGURATION_CHANGED);
@@ -219,11 +217,15 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyExternalMonitorStateChanged, 0, EXTERNAL_MONITOR_CONNECTION_STATE_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyUserInteractionChanged, 0, OS_USER_INTERACTION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyForegroundRatioChanged, 0, FOREGROUND_BACKGROUND_RATIO_CHANGED);
+	INIT_EVENT(PolicySystemModeChanged, 0);
+	INIT_EVENT(PolicyTableObjectChanged, 0);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloading, 0, APP_UNLOADING);
 	INIT_EVENT_WITH_GUID(DptfAppAliveRequest, 0, DTT_ALIVE_REQUEST);
+	INIT_EVENT_WITH_GUID(DptfAppBroadcastListen, 0, APP_BROADCAST_UNPRIVILEGED);
+	INIT_EVENT_WITH_GUID(DptfAppBroadcastSend, 0, APP_BROADCAST);
 	INIT_EVENT(DptfCommand, 0);
 }
 

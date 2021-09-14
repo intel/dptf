@@ -59,14 +59,36 @@ static eEsifError ESIF_CALLCONV ActionConstGet(
 		goto exit;
 	}
 
-	ESIF_ASSERT(NULL != p1.buf_ptr);
-	ESIF_ASSERT(ESIF_DATA_UINT32 == p1.type);
+	switch (p1.type) {
+	case ESIF_DATA_UINT32:
+		val = *(UInt32 *)p1.buf_ptr;
 
-	val = *(UInt32 *)p1.buf_ptr;
+		rc = EsifCopyIntToBufBySize(esif_data_type_sizeof(responsePtr->type),
+			responsePtr->buf_ptr,
+			(UInt64)val);
+		break;
 
-	rc = EsifCopyIntToBufBySize(esif_data_type_sizeof(responsePtr->type),
-		responsePtr->buf_ptr,
-		(UInt64)val);
+	case ESIF_DATA_STRING:
+	case ESIF_DATA_BINARY:
+		if (responsePtr->type != p1.type) {
+			rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
+		}
+		else if (responsePtr->buf_len < p1.data_len) {
+			rc = ESIF_E_NEED_LARGER_BUFFER;
+			responsePtr->data_len = p1.data_len;
+		}
+		else {
+			rc = ESIF_OK;
+			esif_ccb_memcpy(responsePtr->buf_ptr, p1.buf_ptr, p1.data_len);
+			responsePtr->data_len = p1.data_len;
+		}
+		break;
+
+	default:
+		rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
+		break;
+	}
+
 exit:
 	return rc;
 }

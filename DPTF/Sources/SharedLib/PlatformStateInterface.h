@@ -33,6 +33,7 @@
 #include "SensorUserPresence.h"
 #include "OsSessionState.h"
 #include "UserInteraction.h"
+#include "SystemMode.h"
 
 class PlatformStateInterface
 {
@@ -60,4 +61,5 @@ public:
 	virtual SensorUserPresence::Type getPlatformUserPresence(void) const = 0;
 	virtual OnOffToggle::Type getGameMode(void) const = 0;
 	virtual UserInteraction::Type getUserInteraction(void) const = 0;
+	virtual SystemMode::Type getSystemMode(void) const = 0;
 };

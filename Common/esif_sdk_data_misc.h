@@ -54,7 +54,6 @@
 #pragma once
 
 #include "esif_sdk_data.h"
-#include "esif_sdk_data_misc.h"
 
 /* Have ESIF Allocate Buffer */
 #define ESIF_DATA_ALLOCATE 0xFFFFFFFF
@@ -188,22 +187,24 @@ typedef struct aggregate_monitor_data_s {
 	UInt32 numberOfExternalWiredMontiors;
 	UInt32 numberOfExternalWirelessMonitors;
 
-	Dim2D highestDisplayResolution;
-	Dim2D highestExternalDisplayResolution;
-	Dim2D highestWiredDisplayResolution;
-	Dim2D highestWirelessDisplayResolution;
-	UInt32 totalExernalDisplayResolution; /* Sum of widths only */
+	UInt64 highestDisplayResolution; /* Pixel count */
+	UInt64 highestExternalDisplayResolution;
+	UInt64 highestWiredDisplayResolution;
+	UInt64 highestWirelessDisplayResolution;
+	UInt64 totalExernalDisplayResolution; /* Sum of widths only */
 } AggregateMonitorData;
 
 #pragma pack(pop)
 
 struct esif_data_rfprofile
 {
+	union esif_data_variant is5G; // Bool - is5G
+	union esif_data_variant servingCellInfo; // UInt32 - servingCellInfo
 	union esif_data_variant centerFrequency; // Frequency - centerFrequency
 	union esif_data_variant frequencySpread; // Frequency - frequencySpread
-	union esif_data_variant noisePower; // ULONG - noisePower
-	union esif_data_variant rssi; // ULONG - rssi
 	union esif_data_variant connectStatus; // ULONG - Connection Status
+	union esif_data_variant channelNumber; // UInt32 - channelNumber
+	union esif_data_variant band; // UInt32 - band
 };
 
 #define SOCWC_NUMBER_WORKLOAD_CLASSIFICATIONS	5

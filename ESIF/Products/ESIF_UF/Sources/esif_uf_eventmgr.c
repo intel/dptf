@@ -1231,7 +1231,7 @@ esif_error_t EsifEventMgr_FilterEventType(eEsifEventType eventType)
 	size_t line = 0;
 	UInt8 bit = 0;
 
-	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+	if ((eventType >= 0) && (eventType <= MAX_ESIF_EVENT_ENUM_VALUE)) {
 
 		line = eventType / EVENT_MGR_FILTERED_EVENTS_PER_LINE;
 		bit = eventType % EVENT_MGR_FILTERED_EVENTS_PER_LINE;
@@ -1252,7 +1252,7 @@ esif_error_t EsifEventMgr_UnfilterEventType(eEsifEventType eventType)
 	size_t line = 0;
 	UInt8 bit = 0;
 
-	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+	if ((eventType >= 0) && (eventType <= MAX_ESIF_EVENT_ENUM_VALUE)) {
 		line = eventType / EVENT_MGR_FILTERED_EVENTS_PER_LINE;
 		bit = eventType % EVENT_MGR_FILTERED_EVENTS_PER_LINE;
 
@@ -1286,7 +1286,7 @@ static Bool EsifEventMgr_IsEventFiltered(eEsifEventType eventType)
 	// Do not filter events beyond what we know as this may allow for
 	// OEM-defined event types in the future.
 	//
-	if (eventType <= MAX_ESIF_EVENT_ENUM_VALUE) {
+	if ((eventType >= 0) && (eventType <= MAX_ESIF_EVENT_ENUM_VALUE)) {
 		line = eventType / EVENT_MGR_FILTERED_EVENTS_PER_LINE;
 		bit = eventType % EVENT_MGR_FILTERED_EVENTS_PER_LINE;
 

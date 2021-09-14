@@ -33,6 +33,8 @@ namespace FrameworkEvent
 	enum Type
 	{
 		// DPTF Events
+		DptfAppBroadcastListen,
+		DptfAppBroadcastSend,
 		DptfConnectedStandbyEntry,
 		DptfConnectedStandbyExit,
 		DptfSuspend,
@@ -121,7 +123,6 @@ namespace FrameworkEvent
 		DptfPolicyLoadedUnloadedEvent,
 		PolicyEmergencyCallModeTableChanged,
 		PolicyPidAlgorithmTableChanged,
-		PolicyIntelligentThermalManagementTableChanged,
 		PolicyActiveControlPointRelationshipTableChanged,
 		PolicyPowerShareAlgorithmTableChanged,
 		PowerLimitChanged,
@@ -133,6 +134,8 @@ namespace FrameworkEvent
 		PolicyExternalMonitorStateChanged,
 		PolicyUserInteractionChanged,
 		PolicyForegroundRatioChanged,
+		PolicySystemModeChanged,
+		PolicyTableObjectChanged,
 
 		// App Events
 		DptfAppLoaded,

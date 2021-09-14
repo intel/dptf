@@ -16,23 +16,23 @@
 **
 ******************************************************************************/
 
-#include "WIPolicyIntelligentThermalManagementTableChanged.h"
-#include "PolicyManagerInterface.h"
+#include "WIPolicySystemModeChanged.h"
 #include "EsifServicesInterface.h"
+#include "PolicyManagerInterface.h"
+#include "StatusFormat.h"
 
-WIPolicyIntelligentThermalManagementTableChanged::WIPolicyIntelligentThermalManagementTableChanged(
-	DptfManagerInterface* dptfManager)
-	: WorkItem(dptfManager, FrameworkEvent::PolicyIntelligentThermalManagementTableChanged)
+WIPolicySystemModeChanged::WIPolicySystemModeChanged(DptfManagerInterface* dptfManager, SystemMode::Type systemMode)
+	: WorkItem(dptfManager, FrameworkEvent::PolicySystemModeChanged)
+	, m_systemMode(systemMode)
 {
 }
 
-WIPolicyIntelligentThermalManagementTableChanged::~WIPolicyIntelligentThermalManagementTableChanged(void)
+WIPolicySystemModeChanged::~WIPolicySystemModeChanged(void)
 {
 }
 
-void WIPolicyIntelligentThermalManagementTableChanged::onExecute(void)
+void WIPolicySystemModeChanged::onExecute(void)
 {
-	writeWorkItemStartingInfoMessage();
 
 	auto policyManager = getPolicyManager();
 	auto policyIndexes = policyManager->getPolicyIndexes();
@@ -41,8 +41,9 @@ void WIPolicyIntelligentThermalManagementTableChanged::onExecute(void)
 	{
 		try
 		{
+			getDptfManager()->getEventCache()->systemMode.set(m_systemMode);
 			auto policy = policyManager->getPolicyPtr(*i);
-			policy->executePolicyIntelligentThermalManagementTableChanged();
+			policy->executePolicySystemModeChanged(m_systemMode);
 		}
 		catch (policy_index_invalid&)
 		{
@@ -50,7 +51,8 @@ void WIPolicyIntelligentThermalManagementTableChanged::onExecute(void)
 		}
 		catch (std::exception& ex)
 		{
-			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyIntelligentThermalManagementTableChanged", *i);
+			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicySystemModeChanged", *i);
 		}
 	}
 }
+

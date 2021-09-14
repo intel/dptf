@@ -19,6 +19,7 @@
 #pragma once
 #include "TableObjectField.h"
 #include "TableObjectType.h"
+#include "DataVaultType.h"
 #include "DptfBuffer.h"
 
 class dptf_export TableObject
@@ -27,14 +28,14 @@ public:
 	TableObject(
 		TableObjectType::Type type,
 		std::vector<TableObjectField> fields,
-		std::vector<std::pair<std::string, std::string>> dataVaultPathForGet,
-		std::vector<std::pair<std::string, std::string>> dataVaultPathForSet);
+		std::vector<std::pair<DataVaultType::Type, std::string>> dataVaultPathForGet,
+		std::vector<std::pair<DataVaultType::Type, std::string>> dataVaultPathForSet);
 	~TableObject();
 
 	TableObjectType::Type getType() const;
 	std::vector<TableObjectField> getFields() const;
-	std::vector<std::pair<std::string, std::string>> dataVaultPathForGet() const;
-	std::vector<std::pair<std::string, std::string>> dataVaultPathForSet() const;
+	std::vector<std::pair<DataVaultType::Type, std::string>> dataVaultPathForGet() const;
+	std::vector<std::pair<DataVaultType::Type, std::string>> dataVaultPathForSet() const;
 
 	const DptfBuffer& getData() const;
 	void setData(const DptfBuffer& data);
@@ -44,8 +45,8 @@ public:
 private:
 	TableObjectType::Type m_type;
 	std::vector<TableObjectField> m_fields;
-	std::vector<std::pair<std::string, std::string>> m_dataVaultPathForGet;
-	std::vector<std::pair<std::string, std::string>> m_dataVaultPathForSet;
+	std::vector<std::pair<DataVaultType::Type, std::string>> m_dataVaultPathForGet;
+	std::vector<std::pair<DataVaultType::Type, std::string>> m_dataVaultPathForSet;
 
 	DptfBuffer m_data;
 };

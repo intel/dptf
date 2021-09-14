@@ -32,6 +32,7 @@
 #include "SensorUserPresence.h"
 #include "OsSessionState.h"
 #include "UserInteraction.h"
+#include "IgccBroadcastData.h"
 
 class EventCache
 {
@@ -61,4 +62,6 @@ public:
 	CachedValue<OsSessionState::Type> sessionState;
 	CachedValue<Bool> externalMonitorState;
 	CachedValue<UserInteraction::Type> userInteraction;
+	CachedValue<SystemMode::Type> systemMode;
+	CachedValue<IgccBroadcastData::IgccToDttNotificationPackage> appBroadcastNotificationData;
 };

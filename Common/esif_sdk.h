@@ -94,7 +94,29 @@ typedef u8  esif_ver_t;                     /* Version      */
 /* Shared Parameters */
 #define ESIF_MAX_CLIENTS			16						/* Maximum IPF Clients */
 #define ESIF_MAX_PLUGINS			4						/* Additional In-Process ESIF Apps (IPFSRV, DPTF, IPFTSC, Plus 1) */
-#define ESIF_MAX_APPS				(ESIF_MAX_CLIENTS + ESIF_MAX_PLUGINS)	/* Maximum ESIF Apps (IPF Clients + ESIF_UF Plugins) */
+#define ESIF_MAX_APPS				(ESIF_MAX_CLIENTS + ESIF_MAX_PLUGINS)	/* Maximum ESIF Apps (IPF Clients + IPF_UF Plugins) */
 
 /* Primitive Instance */
 #define ESIF_INSTANCE_NO_PERSIST	254
+
+#ifdef ESIF_ATTR_USER
+
+#pragma pack(push, 1)
+
+/*
+* Header structure for events broadcast to all applications
+* The UUID is expected to specify the type of the data contents
+* The UUID also acts as a version field, as any change in the data
+* content should be reflected in a change in the UUID for the data
+*/
+#define ESIF_APP_BROADCAST_LEN_MAX 0x400000
+
+typedef struct esif_app_broadcast_header_s {
+	esif_guid_t UUID; /* UUID of the contained data type */
+	u32 dataLen; /* Length of the data which follows (not including header) */
+	/* Data follows here -  Maximum length ESIF_APP_BROADCAST_LEN_MAX */
+} EsifAppBroadcastHeader;
+
+#pragma pack(pop)
+
+#endif /* USER */

@@ -20,10 +20,10 @@
 #include <string>
 using namespace std;
 
-std::string defaultCommandMessage = "The command completed successfully.";
-std::string errorNoCommandGiven = "No command to process.";
-std::string errorCommandNotString = "Invalid command type.  String type is required for commands.";
-std::string errorInvalidCommand = "Command not supported. Type 'app cmd dptf help' for available commands.";
+string defaultCommandMessage = "The command completed successfully.";
+string errorNoCommandGiven = "No command to process.";
+string errorCommandNotString = "Invalid command type.  String type is required for commands.";
+string errorInvalidCommand = "Command not supported. Type 'dptf help' for available commands.";
 
 CommandDispatcher::CommandDispatcher()
 	: m_registeredCommands()
@@ -41,7 +41,7 @@ void CommandDispatcher::dispatch(const CommandArguments& arguments)
 	throwIfBadArguments(arguments);
 	m_lastSuccessfulCommandMessage = defaultCommandMessage;
 	m_lastCommandReturnCode = ESIF_OK;
-	std::string command = arguments[0].getDataAsString();
+	string command = arguments[0].getDataAsString();
 	auto it = m_registeredCommands.find(command);
 	if (it != m_registeredCommands.end())
 	{
@@ -55,17 +55,17 @@ void CommandDispatcher::dispatch(const CommandArguments& arguments)
 	}
 	else
 	{
-		std::string message = command + std::string(" not supported.");
+		string message = command + string(" not supported.");
 		throw command_failure(ESIF_E_NOT_SUPPORTED, message);
 	}
 }
 
-void CommandDispatcher::registerHandler(const std::string commandName, std::shared_ptr<CommandHandler> handler)
+void CommandDispatcher::registerHandler(const string commandName, shared_ptr<CommandHandler> handler)
 {
 	m_registeredCommands[commandName] = handler;
 }
 
-void CommandDispatcher::unregisterHandler(const std::string commandName)
+void CommandDispatcher::unregisterHandler(const string commandName)
 {
 	auto it = m_registeredCommands.find(commandName);
 	if (it != m_registeredCommands.end())
@@ -74,7 +74,7 @@ void CommandDispatcher::unregisterHandler(const std::string commandName)
 	}
 }
 
-std::string CommandDispatcher::getLastSuccessfulCommandMessage() const
+string CommandDispatcher::getLastSuccessfulCommandMessage() const
 {
 	return m_lastSuccessfulCommandMessage;
 }
@@ -96,7 +96,7 @@ void CommandDispatcher::throwIfBadArguments(const CommandArguments& arguments)
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, errorCommandNotString);
 	}
 
-	std::string command = arguments[0].getDataAsString();
+	string command = arguments[0].getDataAsString();
 	auto it = m_registeredCommands.find(command);
 	if (it == m_registeredCommands.end())
 	{

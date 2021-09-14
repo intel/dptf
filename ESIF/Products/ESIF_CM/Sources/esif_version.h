@@ -67,12 +67,12 @@
 
 #define ESIF_VERSION EXPAND_TOSTR(ESIF_VERSION_MAJOR.ESIF_VERSION_MINOR.ESIF_VERSION_HOTFIX.ESIF_VERSION_BUILD)
 
-/* ESIF Product and Copyright Definitions */
-#define ESIF_PRODUCT   "Intel(R) Dynamic Tuning"
+/* IPF Product and Copyright Definitions */
+#define ESIF_PRODUCT   "Intel(R) Innovation Platform Framework"
 #define ESIF_COPYRIGHT "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved"
 #define ESIF_COMPANY   "Intel Corporation"
-#define ESIF_LOWER_FRAMEWORK "ESIF Lower Framework"
-#define ESIF_UPPER_FRAMEWORK "ESIF Upper Framework"
+#define ESIF_LOWER_FRAMEWORK "IPF Lower Framework"
+#define ESIF_UPPER_FRAMEWORK "IPF Upper Framework"
 
 #endif /* _ESIF_VERSION_H_ */
 

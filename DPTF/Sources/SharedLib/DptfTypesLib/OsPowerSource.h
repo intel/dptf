@@ -31,4 +31,5 @@ namespace OsPowerSource
 	};
 
 	std::string toString(OsPowerSource::Type osPowerSource);
+	OsPowerSource::Type fromString(std::string osPowerSource);
 }

@@ -464,7 +464,7 @@ char *EsifData_ToStringMax(
 		case ESIF_DATA_STRING:
 		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
-			if (ptrlen < max_string + 1) {
+			if (ptrlen <= max_string + 1) {
 				esif_ccb_memcpy(result, ptrdata, ptrlen);
 			} else {
 				esif_ccb_memcpy(result, ptrdata, max_string - 2);
@@ -591,9 +591,7 @@ esif_error_t EsifData_FromString (
 		break;
 
    case ESIF_DATA_VOID:
-	   alloc   = 0;
-	   ptrdata = NULL;
-	   ptrlen  = 0;
+	   alloc   = 1;
 	   break;
 
 	case ESIF_DATA_BINARY:
@@ -700,6 +698,9 @@ esif_error_t EsifData_FromString (
 		case ESIF_DATA_XML:
 			esif_ccb_memcpy(buffer, ptrdata, ptrlen);
 			break;
+			
+		case ESIF_DATA_VOID:
+			break;
 
 		case ESIF_DATA_BINARY:
 		default:
@@ -765,7 +766,7 @@ esif_error_t EsifData_Compress(EsifDataPtr self)
 	// Load Compression Library and Compress data if it is not already compressed
 	if (rc == ESIF_OK && EsifCmp_IsCompressed(self->buf_ptr, self->data_len) == ESIF_FALSE) {
 		char esifCmpLibPath[MAX_PATH] = { 0 };
-		EsifDecompressFuncPtr fnCompress = NULL;
+		IpfDecompressFuncPtr fnCompress = NULL;
 
 		expandedData = self->buf_ptr;
 		expandedSize = self->data_len;
@@ -785,7 +786,7 @@ esif_error_t EsifData_Compress(EsifDataPtr self)
 				rc = ESIF_OK;
 			}
 		}
-		else if ((fnCompress = (EsifCompressFuncPtr)esif_ccb_library_get_func(esifCmpLib, ESIFCMP_COMPRESSOR)) == NULL) {
+		else if ((fnCompress = (IpfCompressFuncPtr)esif_ccb_library_get_func(esifCmpLib, ESIFCMP_COMPRESSOR)) == NULL) {
 			rc = ESIF_E_IFACE_NOT_SUPPORTED;
 		}
 		else {
@@ -906,7 +907,7 @@ esif_error_t EsifData_Decompress(EsifDataPtr self)
 	// Load Compression Library and Decompress data if it is compressed
 	if (rc == ESIF_OK && EsifCmp_IsCompressed(self->buf_ptr, self->data_len) == ESIF_TRUE) {
 		char esifCmpLibPath[MAX_PATH] = { 0 };
-		EsifDecompressFuncPtr fnDecompress = NULL;
+		IpfDecompressFuncPtr fnDecompress = NULL;
 
 		compressedData = self->buf_ptr;
 		compressedSize = self->data_len;
@@ -920,7 +921,7 @@ esif_error_t EsifData_Decompress(EsifDataPtr self)
 		else if (esifCmpLib->handle == NULL) {
 			rc = esif_ccb_library_error(esifCmpLib);
 		}
-		else if ((fnDecompress = (EsifDecompressFuncPtr)esif_ccb_library_get_func(esifCmpLib, ESIFCMP_DECOMPRESSOR)) == NULL) {
+		else if ((fnDecompress = (IpfDecompressFuncPtr)esif_ccb_library_get_func(esifCmpLib, ESIFCMP_DECOMPRESSOR)) == NULL) {
 			rc = ESIF_E_IFACE_NOT_SUPPORTED;
 		}
 		else {

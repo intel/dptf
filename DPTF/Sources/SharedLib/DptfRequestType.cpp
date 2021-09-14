@@ -67,6 +67,10 @@ std::string DptfRequestType::ToString(DptfRequestType::Enum requestType)
 		return "PlatformNotificationSetOsc";
 	case PlatformNotificationSetApplicationAliveResponse:
 		"PlatformNotificationSetApplicationAliveResponse";
+	case PlatformNotificationSetPolicySystemMode:
+		"PlatformNotificationSetPolicySystemMode";
+	case PlatformNotificationAppBroadcastSend:
+		"PlatformNotificationAppBroadcastSend";
 	case SocWorkloadClassificationGetSocWorkload:
 		"SocWorkloadClassificationGetSocWorkload";
 	case ProcessorControlSetUnderVoltageThreshold:

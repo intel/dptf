@@ -137,7 +137,7 @@ struct esif_tracelevel_s {
 	ENUM(ESIF_TRACEMODULE_SERVICE)		/* Services */ \
 	\
 	ENUM(ESIF_TRACEMODULE_DATAVAULT)	/* DataVaults/DataCache/DataBank */ \
-	ENUM(ESIF_TRACEMODULE_WEBSERVER)	/* Web Socket Server */ \
+	ENUM(ESIF_TRACEMODULE_DEPRECATED1)	/* Formerly Web Socket Server */ \
 	\
 	ENUM(ESIF_TRACEMODULE_WINDOWS)		/* Windows General */ \
 	ENUM(ESIF_TRACEMODULE_ACTWIRELESS)	/* Windows ACT Wireless */ \

@@ -21,6 +21,7 @@
 #include "TableObject.h"
 #include "DptfManagerInterface.h"
 #include "StringParser.h"
+#include "DataVaultType.h"
 
 class dptf_export DataManagerInterface
 {
@@ -37,6 +38,22 @@ public:
 	virtual Bool tableObjectExists(TableObjectType::Type tableType) = 0;
 	virtual std::map<TableObjectType::Type, TableObject> getTableObjectMap() = 0;
 	virtual UInt32 getLatestSupportedTableRevision(TableObjectType::Type) = 0;
+
+	virtual TableObject getTableObjectBasedOnAlternativeDataSourceAndKey(
+		TableObjectType::Type tableType,
+		DataVaultType::Type dvType,
+		std::string key) = 0;
+	virtual void setTableObjectBasedOnAlternativeDataSourceAndKey(
+		UInt32 tableDataLength,
+		UInt8* tableData,
+		TableObjectType::Type tableType,
+		DataVaultType::Type dvType,
+		std::string key) = 0;
+
+	virtual void setTableObjectForNoPersist(DptfBuffer tableData, TableObjectType::Type tableType) = 0;
+	virtual void deleteTableObjectKeyForNoPersist(TableObjectType::Type tableType) = 0;
+
+	virtual void deleteConfigKey(DataVaultType::Type dvType, std::string key) = 0;
 };
 
 class DataManager : public DataManagerInterface
@@ -56,6 +73,22 @@ public:
 	virtual Bool tableObjectExists(TableObjectType::Type tableType) override;
 	virtual std::map<TableObjectType::Type, TableObject> getTableObjectMap() override;
 	virtual UInt32 getLatestSupportedTableRevision(TableObjectType::Type tableType) override;
+
+	virtual TableObject getTableObjectBasedOnAlternativeDataSourceAndKey(
+		TableObjectType::Type tableType,
+		DataVaultType::Type dvType,
+		std::string key) override;
+	virtual void setTableObjectBasedOnAlternativeDataSourceAndKey(
+		UInt32 tableDataLength,
+		UInt8* tableData,
+		TableObjectType::Type tableType,
+		DataVaultType::Type dvType,
+		std::string key) override;
+
+	virtual void setTableObjectForNoPersist(DptfBuffer tableData, TableObjectType::Type tableType) override;
+	virtual void deleteTableObjectKeyForNoPersist(TableObjectType::Type tableType) override;
+
+	virtual void deleteConfigKey(DataVaultType::Type dvType, std::string key) override;
 
 private:
 	DptfManagerInterface* m_dptfManager;

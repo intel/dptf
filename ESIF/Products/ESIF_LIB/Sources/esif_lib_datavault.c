@@ -1385,7 +1385,7 @@ esif_error_t DataVault_TranslatePath(
 		{ "$log",	ESIF_PATHTYPE_LOG },	// %DriverData%\intel\ipf\log or /var/.../log
 		{ "$cmd",	ESIF_PATHTYPE_CMD },	// %DriverData%\intel\ipf\cmd or /etc/dptf/cmd
 		{ "$dsp",	ESIF_PATHTYPE_DSP },	// %DriverData%\intel\ipf\dsp or /usr/.../dsp or /etc/dptf/dsp
-		{ "$ui",	ESIF_PATHTYPE_UI },		// %DriverData%\intel\ipf\ui  or /usr/.../ui
+		{ "$data",	ESIF_PATHTYPE_DATA },	// %DriverData%\intel\ipf\data  or /usr/.../ui or ...
 		{ NULL,		(esif_pathtype)0 }
 	};
 
@@ -1496,67 +1496,6 @@ static esif_error_t DataVault_GetValue(
 
 	if (flagsPtr)
 		*flagsPtr = 0;
-
-	// Return "keyname1|keyname2|..." if key contains "*" or "?"
-	if (esif_ccb_strpbrk(key, "*?") != NULL) {
-		EsifDataPtr nameSpace = EsifData_CreateAs(ESIF_DATA_STRING, esif_ccb_strdup(self->name), ESIFAUTOLEN, ESIFAUTOLEN);
-		EsifDataPtr path	  = EsifData_CreateAs(ESIF_DATA_STRING, key, 0, ESIFAUTOLEN);
-		EsifConfigFindContext context = NULL;
-		esif_string keylist = NULL;
-		u32 data_len = 0;
-		
-		// Verify valid Data Type and Data Buffer size
-		if (value->type != ESIF_DATA_STRING && value->type != ESIF_DATA_AUTO) {
-			rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
-		}
-		
-		if (rc == ESIF_E_NOT_FOUND && nameSpace != NULL && path != NULL && (rc = EsifConfigFindFirst(nameSpace, path, NULL, &context)) == ESIF_OK) {
-			do {
-				data_len += (u32)path->data_len;
-				esif_string newlist = esif_ccb_realloc(keylist, data_len);
-				if (newlist == NULL) {
-					EsifData_Set(path, ESIF_DATA_STRING, "", 0, ESIFAUTOLEN);
-					rc = ESIF_E_NO_MEMORY;
-					break;
-				}
-				keylist = newlist;
-				esif_ccb_sprintf_concat(data_len, keylist, "%s%s", (*keylist ? "|" : ""), (char *)path->buf_ptr);
-				EsifData_Set(path, ESIF_DATA_STRING, key, 0, ESIFAUTOLEN);
-			} while ((rc = EsifConfigFindNext(nameSpace, path, NULL, &context)) == ESIF_OK);
-		
-			EsifConfigFindClose(&context);
-			if (rc == ESIF_E_ITERATION_DONE) {
-				rc = ESIF_OK;
-			}
-		}
-		EsifData_Destroy(nameSpace);
-		EsifData_Destroy(path);
-		if (!keylist || rc != ESIF_OK) {
-			esif_ccb_free(keylist);
-			goto exit;
-		}
-
-		// Return keylist value and data type
-		if (value->type == ESIF_DATA_AUTO) {
-			value->type = ESIF_DATA_STRING;
-		}
-		if (value->buf_len == ESIF_DATA_ALLOCATE) {
-			esif_ccb_free(value->buf_ptr);
-			value->buf_ptr = esif_ccb_strdup(keylist);
-			value->buf_len = data_len;
-			value->data_len = data_len;
-		}
-		else if (value->buf_len < data_len) {
-			rc = ESIF_E_NEED_LARGER_BUFFER;
-			value->data_len = data_len;
-		}
-		else if (value->buf_ptr) {
-			esif_ccb_strcpy(value->buf_ptr, keylist, value->buf_len);
-			value->data_len = data_len;
-		}
-		esif_ccb_free(keylist);
-		goto exit;
-	}
 
 	keypair = DataCache_GetValue(self->cache, key);
 	
@@ -2260,6 +2199,88 @@ esif_error_t DataRepo_ValidateSegment(DataRepoPtr self)
  * Public API used for Backwards Compatibility
  */
 
+ // Get a list of keys matching the given key wildcard spec
+esif_error_t EsifConfigGetKeys(
+	EsifDataPtr nameSpace,
+	EsifDataPtr keyspec,
+	EsifDataPtr value,
+	esif_flags_t *flagsPtr
+)
+{
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+
+	if (nameSpace && nameSpace->buf_ptr && keyspec && keyspec->buf_ptr && value) {
+
+		EsifConfigFindContext context = NULL;
+		esif_string keylist = esif_ccb_strdup("");
+		u32 data_len = 0;
+		esif_flags_t flagspec = (flagsPtr ? *flagsPtr : 0);
+
+		// Verify valid Data Type and Data Buffer size
+		if (value->type != ESIF_DATA_STRING && value->type != ESIF_DATA_AUTO) {
+			rc = ESIF_E_UNSUPPORTED_RESULT_DATA_TYPE;
+		}
+		// Enumerate matching keys and optionally match specified flagspec
+		else {
+			EsifDataPtr nextkey = EsifData_CreateAs(ESIF_DATA_STRING, keyspec->buf_ptr, 0, ESIFAUTOLEN);
+			DataVaultPtr DB = (flagspec ? DataBank_GetDataVault((StringPtr)nameSpace->buf_ptr) : NULL);
+			if (nextkey == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else if ((rc = EsifConfigFindFirst(nameSpace, nextkey, NULL, &context)) == ESIF_OK) {
+				do {
+					esif_flags_t flags = 0;
+					if (flagspec == 0 || (DataVault_KeyExists(DB, (StringPtr)nextkey->buf_ptr, NULL, &flags) && FLAGS_TESTALL(flags, flagspec))) {
+						data_len += (u32)nextkey->data_len;
+						esif_string newlist = esif_ccb_realloc(keylist, data_len);
+						if (newlist == NULL) {
+							EsifData_Set(nextkey, ESIF_DATA_STRING, "", 0, ESIFAUTOLEN);
+							rc = ESIF_E_NO_MEMORY;
+							break;
+						}
+						keylist = newlist;
+						esif_ccb_sprintf_concat(data_len, keylist, "%s%s", (*keylist ? "|" : ""), (char *)nextkey->buf_ptr);
+					}
+					EsifData_Set(nextkey, ESIF_DATA_STRING, keyspec->buf_ptr, 0, ESIFAUTOLEN);
+				} while ((rc = EsifConfigFindNext(nameSpace, nextkey, NULL, &context)) == ESIF_OK);
+
+				EsifConfigFindClose(&context);
+			}
+			if (rc == ESIF_E_ITERATION_DONE) {
+				rc = ESIF_OK;
+			}
+			DataVault_PutRef(DB);
+			EsifData_Destroy(nextkey);
+		}
+
+		// Return keylist value and data type
+		if (rc == ESIF_OK) {
+			if (value->type == ESIF_DATA_AUTO) {
+				value->type = ESIF_DATA_STRING;
+			}
+			if (keylist == NULL) {
+				rc = ESIF_E_NO_MEMORY;
+			}
+			else if (value->buf_len == ESIF_DATA_ALLOCATE) {
+				esif_ccb_free(value->buf_ptr);
+				value->buf_ptr = esif_ccb_strdup(keylist);
+				value->buf_len = data_len;
+				value->data_len = data_len;
+			}
+			else if (value->buf_len < data_len) {
+				rc = ESIF_E_NEED_LARGER_BUFFER;
+				value->data_len = data_len;
+			}
+			else if (value->buf_ptr) {
+				esif_ccb_strcpy(value->buf_ptr, keylist, value->buf_len);
+				value->data_len = data_len;
+			}
+		}
+		esif_ccb_free(keylist);
+	}
+	return rc;
+}
+
 // backwards compatibility
 esif_error_t EsifConfigGetItem(
 	EsifDataPtr nameSpace,
@@ -2287,7 +2308,16 @@ esif_error_t EsifConfigGet(
 	EsifDataPtr value
 	)
 {
-	return EsifConfigGetItem(nameSpace, key, value, NULL);
+	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	if (nameSpace && nameSpace->buf_ptr && key && key->buf_ptr && value) {
+		if (esif_ccb_strpbrk((esif_string)key->buf_ptr, "*?") != NULL) {
+			rc = EsifConfigGetKeys(nameSpace, key, value, NULL);
+		}
+		else {
+			rc = EsifConfigGetItem(nameSpace, key, value, NULL);
+		}
+	}
+	return rc;
 }
 
 // backwards compatibility
@@ -2619,7 +2649,7 @@ esif_error_t EsifConfigGetSubKey(
 			if (rc == ESIF_OK && value->buf_len >= response_sizeof) {
 				switch (dataset.type) {
 
-					// Extract Key/Value pair from JSON
+				// Extract Key/Value pair from JSON
 				case ESIF_DATA_JSON:
 				{
 					JsonObjPtr json = JsonObj_Create();

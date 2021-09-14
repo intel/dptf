@@ -31,6 +31,8 @@ public:
 	virtual void initializeControlsIfNeeded() = 0;
 	virtual void setControlsToMax() = 0;
 	virtual void setPL1PowerLimitControlToMax() = 0;
+	virtual void setPL1PowerLimitControlToMaxAndTimeWindowToMin() = 0;
+	virtual void setPL2PowerLimitControlToMax() = 0;
 	virtual void refreshCapabilities() = 0;
 	virtual void setCapability(const PowerControlDynamicCaps& capabilities) = 0;
 	virtual void setPowerLimitPL1(const Power& powerLimit) = 0;

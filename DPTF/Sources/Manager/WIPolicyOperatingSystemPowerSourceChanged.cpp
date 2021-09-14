@@ -19,6 +19,7 @@
 #include "WIPolicyOperatingSystemPowerSourceChanged.h"
 #include "PolicyManagerInterface.h"
 #include "EsifServicesInterface.h"
+#include "SystemModeManager.h"
 
 WIPolicyOperatingSystemPowerSourceChanged::WIPolicyOperatingSystemPowerSourceChanged(
 	DptfManagerInterface* dptfManager,
@@ -55,5 +56,15 @@ void WIPolicyOperatingSystemPowerSourceChanged::onExecute(void)
 		{
 			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPowerSourceChanged", *i);
 		}
+	}
+
+	try
+	{
+		auto systemModeManager = getDptfManager()->getSystemModeManager();
+		systemModeManager->executeOperatingSystemPowerSourceChanged(m_powerSource);
+	}
+	catch (std::exception& ex)
+	{
+		writeWorkItemErrorMessage(ex, "SystemModeManager::executeOperatingSystemPowerSourceChanged");
 	}
 }

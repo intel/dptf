@@ -18,6 +18,7 @@
 
 #include "WIPolicyOperatingSystemPowerSliderChanged.h"
 #include "PolicyManagerInterface.h"
+#include "SystemModeManager.h"
 #include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemPowerSliderChanged::WIPolicyOperatingSystemPowerSliderChanged(
@@ -55,5 +56,18 @@ void WIPolicyOperatingSystemPowerSliderChanged::onExecute(void)
 		{
 			writeWorkItemErrorMessagePolicy(ex, "Policy::executePolicyOperatingSystemPowerSliderChanged", *i);
 		}
+	}
+
+	try
+	{
+		auto systemModeManager = getDptfManager()->getSystemModeManager();
+		if (systemModeManager != nullptr)
+		{
+			systemModeManager->executeOperatingSystemPowerSliderChanged();
+		}
+	}
+	catch (std::exception& ex)
+	{
+		writeWorkItemErrorMessage(ex, "SystemModeManager::executeOperatingSystemPowerSliderChanged");
 	}
 }

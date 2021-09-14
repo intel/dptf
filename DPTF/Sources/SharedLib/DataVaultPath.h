@@ -37,9 +37,11 @@ namespace DataVaultPath
 		namespace Export
 		{
 			static const std::string WorkloadHints = DataVaultPathBasePaths::ExportRoot + "/workload_hints/";
-			static const std::string DoNotRebalanceUnusedPidBudget = DataVaultPathBasePaths::ExportRoot + "/do_not_rebalance_unused_pid_budget/";
+			static const std::string DoNotRebalanceUnusedPidBudget =
+				DataVaultPathBasePaths::ExportRoot + "/do_not_rebalance_unused_pid_budget/";
 			static const std::string Pl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/pl1_time_window/";
-			static const std::string ProcPl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/proc_ps_pl1_time_window/";
+			static const std::string ProcPl1TimeWindow =
+				DataVaultPathBasePaths::ExportRoot + "/proc_ps_pl1_time_window/";
 			static const std::string GfxPl1TimeWindow = DataVaultPathBasePaths::ExportRoot + "/gfx_ps_pl1_time_window/";
 			static const std::string PowerShareParamsLoggingState =
 				DataVaultPathBasePaths::ExportRoot + "/powershare_params_logging/";
@@ -50,6 +52,8 @@ namespace DataVaultPath
 				DataVaultPathBasePaths::ExportRoot + "/pred_batt_fast_chk_intrvl";
 			static const std::string PredictiveBattEporStepSize =
 				DataVaultPathBasePaths::ExportRoot + "/pred_batt_epor_step_size";
+			static const std::string Above2cTimeConstraintStepsize =
+				DataVaultPathBasePaths::ExportRoot + "/above_2c_time_constraint_stepsize";
 		};
 
 		namespace Tables
@@ -68,14 +72,6 @@ namespace DataVaultPath
 	namespace Features
 	{
 		static const std::string Hwpf = DataVaultPathBasePaths::FeaturesRoot + "/hwpf";
-		static const std::string SocWorkload = DataVaultPathBasePaths::FeaturesRoot + "/soc_workload";
-		static const std::string Pl2Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_sharing";
-		static const std::string Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl4_sharing";
-		static const std::string Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
+		static const std::string PowerShare2Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
 	};
-
-	namespace AUPPControls
-	{
-		static const std::string SoftBrightnessValue = DataVaultPathBasePaths::AUPPControlsRoot + "/soft_brightness_value";
-	}
 };

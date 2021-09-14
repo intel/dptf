@@ -36,6 +36,8 @@ namespace PolicyEvent
 	{
 		switch (policyEventType)
 		{
+			CASE(DptfAppBroadcastListen)
+			CASE(DptfAppBroadcastSend)
 			CASE(DptfConnectedStandbyEntry)
 			CASE(DptfConnectedStandbyExit)
 			CASE(DptfSuspend)
@@ -106,7 +108,6 @@ namespace PolicyEvent
 			CASE(PolicyOperatingSystemPowerSchemePersonalityChanged)
 			CASE(PolicyEmergencyCallModeTableChanged)
 			CASE(PolicyPidAlgorithmTableChanged)
-			CASE(PolicyIntelligentThermalManagementTableChanged)
 			CASE(PolicyActiveControlPointRelationshipTableChanged)
 			CASE(PolicyPowerShareAlgorithmTableChanged)
 			CASE(PowerLimitChanged)
@@ -118,6 +119,7 @@ namespace PolicyEvent
 			CASE(PolicyExternalMonitorStateChanged)
 			CASE(PolicyUserInteractionChanged)
 			CASE(PolicyForegroundRatioChanged)
+			CASE(PolicySystemModeChanged)
 		default :
 			throw dptf_exception("PolicyEvent::Type is invalid.");
 		}
@@ -154,7 +156,6 @@ namespace PolicyEvent
 			|| (policyEventType == PolicyEvent::PolicyOperatingSystemPowerSchemePersonalityChanged)
 			|| (policyEventType == PolicyEvent::PolicyEmergencyCallModeTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPidAlgorithmTableChanged)
-			|| (policyEventType == PolicyEvent::PolicyIntelligentThermalManagementTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyActiveControlPointRelationshipTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyPowerShareAlgorithmTableChanged)
 			|| (policyEventType == PolicyEvent::PolicyWorkloadHintConfigurationChanged)
@@ -170,6 +171,10 @@ namespace PolicyEvent
 	{
 		switch (type)
 		{
+		case PolicyEvent::DptfAppBroadcastListen:
+			return "DptfAppBroadcastListen";
+		case PolicyEvent::DptfAppBroadcastSend:
+			return "DptfAppBroadcastSend";
 		case PolicyEvent::DptfConnectedStandbyEntry:
 			return "DptfConnectedStandbyEntry";
 		case PolicyEvent::DptfConnectedStandbyExit:
@@ -322,6 +327,8 @@ namespace PolicyEvent
 			return "PolicyActiveControlPointRelationshipTableChanged";
 		case PolicyEvent::PolicyPowerShareAlgorithmTableChanged:
 			return "PolicyPowerShareAlgorithmTableChanged";
+		case PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged:
+			return "PolicyEnergyPerformanceOptimizerTableChanged";
 		case PolicyEvent::PowerLimitChanged:
 			return "PowerLimitChanged";
 		case PolicyEvent::PerformanceCapabilitiesChanged:
@@ -340,6 +347,8 @@ namespace PolicyEvent
 			return "PolicyUserInteractionChanged";
 		case PolicyEvent::PolicyForegroundRatioChanged:
 			return "PolicyForegroundRatioChanged";
+		case PolicyEvent::PolicySystemModeChanged:
+			return "PolicySystemModeChanged";
 		case PolicyEvent::Invalid:
 		case PolicyEvent::Max:
 		default:

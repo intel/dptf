@@ -24,7 +24,7 @@
 	do { \
 		if (getParticipantServices()->getLoggingLevel() >= logLevel) \
 		{ \
-			auto _message = [=]() {content}; \
+			auto _message = [&]() {content}; \
 			getParticipantServices()->logFunction(ParticipantMessage(FLF, _message())); \
 		} \
 	} while (0)
@@ -34,7 +34,7 @@
 		ex; \
 		if (getParticipantServices()->getLoggingLevel() >= logLevel) \
 		{ \
-			auto _message = [=]() {content}; \
+			auto _message = [&]() {content}; \
 			getParticipantServices()->logFunction(ParticipantMessage(FLF, _message())); \
 		} \
 	} while (0)

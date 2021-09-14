@@ -349,7 +349,7 @@ eEsifError EsifAppMgr_GetPrompt(
 
 	if (g_dstName != NULL) {
 		if (NULL == appPtr) {
-			esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "esif(%s)->", g_dstName);
+			esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "ipf(%s)->", g_dstName);
 		}
 		else {
 			esif_ccb_sprintf(promptPtr->buf_len, (esif_string)promptPtr->buf_ptr, "%s(%s)->", appPtr->fAppNamePtr, g_dstName);
@@ -704,10 +704,16 @@ eEsifError EsifAppMgr_AppStop(const EsifString appName)
 
 	EsifApp_Stop(appPtr);
 
+	// If app is still present, remove and destroy it
 	esif_ccb_write_lock(&g_appMgr.fLock);
-	g_appMgr.fEntries[i] = NULL;
-	g_appMgr.fEntryCount--;
-	esif_ccb_write_unlock(&g_appMgr.fLock);
+	if (g_appMgr.fEntries[i] != entryPtr) {
+		entryPtr = NULL; // Prevent destruction if already removed
+	}
+	else {
+		g_appMgr.fEntries[i] = NULL;
+		g_appMgr.fEntryCount--;
+	}
+	esif_ccb_write_unlock(&g_appMgr.fLock); 
 
 	rc = ESIF_OK;
 exit:
@@ -768,6 +774,30 @@ eEsifError EsifAppMgr_AppRename(
 	eEsifError rc = ESIF_E_NOT_FOUND;
 	EsifAppPtr appPtr = EsifAppMgr_GetAppFromName(appName);
 	EsifAppPtr newPtr = EsifAppMgr_GetAppFromName(newName);
+
+	// Close Orphan Client App if one exists with the same name that uses the same library (ipfsrv)
+	if (appPtr && newPtr && !newPtr->isRestartable 
+		&& appPtr->fLibNamePtr && newPtr->fLibNamePtr && esif_ccb_stricmp(appPtr->fLibNamePtr, newPtr->fLibNamePtr) == 0
+		&& newPtr->appCreationDone && !newPtr->markedForDelete) {
+
+		char intro_buf[1024] = {0};
+		EsifData data_intro = { ESIF_DATA_STRING, intro_buf, sizeof(intro_buf), 0 };
+		EsifString intro = newPtr->fAppIntroPtr;
+		newPtr->fAppIntroPtr = NULL;
+		esif_ccb_free(intro);
+
+		// Call GetIntro to determine if we're still talking to a valid IPF Client Session
+		rc = EsifApp_GetIntro(newPtr, &data_intro);
+		if (rc == ESIF_E_INVALID_HANDLE) {
+			EsifAppMgr_PutRef(newPtr);
+			rc = EsifAppMgr_AppStop(newName);
+			if (rc != ESIF_OK) {
+				EsifAppMgr_PutRef(appPtr);
+				appPtr = NULL;
+			}
+			newPtr = NULL;
+		}
+	}
 
 	if (newPtr) {
 		rc = ESIF_E_APP_ALREADY_STARTED;

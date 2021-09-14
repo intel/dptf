@@ -207,26 +207,6 @@ UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIn
 	return hwpfState;
 }
 
-UInt32 PolicyServicesPlatformConfigurationData::getSocWorkload(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-
-	const UInt32 socWorkload = getEsifServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_SOC_WORKLOAD, participantIndex, domainIndex);
-
-	return socWorkload;
-}
-
-UInt32 PolicyServicesPlatformConfigurationData::getSupportEppHint(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfNotWorkItemThread();
-
-	const UInt32 supportEppHint = getEsifServices()->primitiveExecuteGetAsUInt32(
-		esif_primitive_type::GET_SUPPORT_EPP_HINT, participantIndex, domainIndex);
-
-	return supportEppHint;
-}
-
 // TODO: Move it to ConfigTDP domain control
 UInt32 PolicyServicesPlatformConfigurationData::getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex)
 {
@@ -389,23 +369,17 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getIntelligentThermalManagem
 {
 	throwIfNotWorkItemThread();
 
-	return getEsifServices()->primitiveExecuteGet(
-		esif_primitive_type::GET_INTELLIGENT_THERMAL_MANAGEMENT_TABLE, ESIF_DATA_BINARY);
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Type::Itmt, Constants::EmptyString)
+		.getData();
 }
 
 void PolicyServicesPlatformConfigurationData::setIntelligentThermalManagementTable(DptfBuffer data)
 {
 	throwIfNotWorkItemThread();
 
-	getEsifServices()->primitiveExecuteSet(
-		esif_primitive_type::SET_INTELLIGENT_THERMAL_MANAGEMENT_TABLE,
-		esif_data_type::ESIF_DATA_BINARY,
-		data.get(),
-		data.size(),
-		data.size(),
-		Constants::Esif::NoParticipant,
-		Constants::Esif::NoDomain,
-		Constants::Esif::NoPersistInstance);
+	getDptfManager()->getDataManager()->setTableObjectForNoPersist(data, TableObjectType::Itmt);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getPowerShareAlgorithmTable()
@@ -645,18 +619,7 @@ void PolicyServicesPlatformConfigurationData::resetIntelligentThermalManagementT
 {
 	try
 	{
-		DptfBuffer tableBuffer = createResetPrimitiveTupleBinary(
-			esif_primitive_type::SET_INTELLIGENT_THERMAL_MANAGEMENT_TABLE, Constants::Esif::NoPersistInstance);
-
-		getEsifServices()->primitiveExecuteSet(
-			esif_primitive_type::SET_CONFIG_RESET,
-			ESIF_DATA_BINARY,
-			tableBuffer.get(),
-			tableBuffer.size(),
-			tableBuffer.size(),
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			Constants::Esif::NoInstance);
+		getDptfManager()->getDataManager()->deleteTableObjectKeyForNoPersist(TableObjectType::Itmt);
 	}
 	catch (...)
 	{
@@ -696,32 +659,20 @@ void PolicyServicesPlatformConfigurationData::setPpmPackage(UInt32 value)
 {
 	throwIfNotWorkItemThread();
 
-	try
-	{
-		getEsifServices()->primitiveExecuteSetAsUInt32(
-			esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
-			value,
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			Constants::Esif::NoInstance);
-	}
-	catch (...)
-	{
-	}
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
 }
 
 void PolicyServicesPlatformConfigurationData::setPpmPackageSettings(PpmPackage::PpmParam param)
 {
 	throwIfNotWorkItemThread();
 
-	try
-	{
-		getEsifServices()->primitiveExecuteSet(
-			SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
-	}
-	catch (...)
-	{
-	}
+	getEsifServices()->primitiveExecuteSet(
+		SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
 }
 
 void PolicyServicesPlatformConfigurationData::setPowerSchemeEpp(UInt32 value)
@@ -804,18 +755,12 @@ void PolicyServicesPlatformConfigurationData::setForegroundAppRatioPeriod(UInt32
 {
 	throwIfNotWorkItemThread();
 
-	try
-	{
-		getEsifServices()->primitiveExecuteSetAsUInt32(
-			esif_primitive_type::SET_FOREGROUND_APP_RATIO_PERIOD,
-			value,
-			Constants::Esif::NoParticipant,
-			Constants::Esif::NoDomain,
-			Constants::Esif::NoInstance);
-	}
-	catch (...)
-	{
-	}
+	getEsifServices()->primitiveExecuteSetAsUInt32(
+		esif_primitive_type::SET_FOREGROUND_APP_RATIO_PERIOD,
+		value,
+		Constants::Esif::NoParticipant,
+		Constants::Esif::NoDomain,
+		Constants::Esif::NoInstance);
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getDdrfTable(void)
@@ -825,5 +770,23 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getDdrfTable(void)
 	return getDptfManager()
 		->getDataManager()
 		->getTableObject(TableObjectType::Type::Ddrf, Constants::EmptyString)
+		.getData();
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getAggregateDisplayInformation(void)
+{
+	throwIfNotWorkItemThread();
+
+	return getEsifServices()->primitiveExecuteGet(
+		esif_primitive_type::GET_AGGREGATE_DISPLAY_INFORMATION, ESIF_DATA_BINARY);
+}
+
+DptfBuffer PolicyServicesPlatformConfigurationData::getEnergyPerformanceOptimizerTable(void)
+{
+	throwIfNotWorkItemThread();
+
+	return getDptfManager()
+		->getDataManager()
+		->getTableObject(TableObjectType::Type::Epot, Constants::EmptyString)
 		.getData();
 }

@@ -36,6 +36,7 @@ void EsifCfgMgrExit(void);
 /* Get */
 eEsifError EsifConfigGet(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value);
 eEsifError EsifConfigGetItem(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, esif_flags_t *flagsPtr);
+eEsifError EsifConfigGetKeys(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, esif_flags_t *flagsPtr);
 eEsifError EsifConfigGetSubKey(EsifDataPtr nameSpace, EsifDataPtr path, EsifDataPtr value, EsifDataPtr subkey);
 
 /* Set */

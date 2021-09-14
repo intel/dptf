@@ -324,8 +324,6 @@ static AppDataPtr CreateAppData(
 	)
 {
 	AppDataPtr app_data_ptr = NULL;
-	char policyLoadPath[ESIF_PATH_LEN] = { 0 }; // empty if path starts with "#"
-	char logPath[ESIF_PATH_LEN] = { 0 };
 
 	if (NULL == self) {
 		goto exit;
@@ -336,13 +334,8 @@ static AppDataPtr CreateAppData(
 		goto exit;
 	}
 
-	// Build path(s) for DPTF: "HomeDir" or "HomeDir|[#]PolicyDir|LogDir"
-	esif_build_path(policyLoadPath, sizeof(policyLoadPath), ESIF_PATHTYPE_DLL, "", NULL);
-	esif_build_path(logPath, sizeof(logPath), ESIF_PATHTYPE_LOG, NULL, NULL);
-
-	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_DPTF, NULL, NULL);
-	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s%s", (policyLoadPath[0] ? "" : "#"), self->loadDir);
-	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s", logPath);
+	// Build path for ESIF Apps: "HomeDir"
+	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_HOME, NULL, NULL);
 
 	ESIF_TRACE_DEBUG("pathBuf=%s\n", (esif_string)pathBuf);
 
@@ -385,8 +378,8 @@ static eEsifError EsifApp_CreateApp(
 	char desc[ESIF_DESC_LEN] = { 0 };
 	ESIF_DATA(data_desc, ESIF_DATA_STRING, desc, ESIF_DESC_LEN);
 
-	char version[ESIF_VERSION_LEN] = { 0 };
-	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_VERSION_LEN);
+	char version[ESIF_NAME_LEN] = { 0 };
+	ESIF_DATA(data_version, ESIF_DATA_STRING, version, ESIF_NAME_LEN);
 
 	#define BANNER_LEN 1024
 	char banner[BANNER_LEN] = { 0 };
@@ -1015,8 +1008,21 @@ eEsifError EsifApp_Start(EsifAppPtr self)
 	 */
 	if ((!self->partRegDone) && ((ESIF_OK == rc) || (ESIF_E_APP_ALREADY_STARTED == rc))) {
 		EsifApp_RegisterParticipantsWithApp(self);
+	}
 
-		// Notify App via Command that appstart sequence is completed
+	/*
+	* An app may be stopped while it is still creating.  Many items must be
+	* created outside locks, so there may be a race for sections being created
+	* and destroyed.  So, we double back after creation and see if we need to
+	* stop again to clean everything up.
+	*/
+	if (self->stoppingApp) {
+		EsifApp_Stop(self);
+		rc = ESIF_E_NO_CREATE;
+	}
+
+	/* Notify App via Command that appstart sequence is completed */
+	if ((self->appCreationDone) && ((ESIF_OK == rc) || (ESIF_E_APP_ALREADY_STARTED == rc))) {
 		if (self->fInterface.fAppCommandFuncPtr) {
 			char app_started[] = "app-started";
 			u32 appname_len = (u32)esif_ccb_strlen(self->fAppNamePtr, ESIF_NAME_LEN) + 1;
@@ -1029,6 +1035,7 @@ eEsifError EsifApp_Start(EsifAppPtr self)
 			self->fInterface.fAppCommandFuncPtr(self->fAppCtxHandle, ESIF_ARRAY_LEN(argv), argv, &response);
 		}
 	}
+
 exit:
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 	return rc;
@@ -1184,6 +1191,13 @@ eEsifError EsifApp_Stop(EsifAppPtr self)
 	 */
 	rc = EsifApp_SendEvent(self, ESIF_HANDLE_PRIMARY_PARTICIPANT, 0, NULL, &dataGuid);
 
+	/*
+	* An app may be stopped while it is still starting; however, because some data
+	* elements must be accessed outside locks, we provide an indication to the app so
+	* that it may rollback changes as needed and signall access completion
+	*/
+	self->stoppingApp = ESIF_TRUE; 
+
 	rc = EsifApp_DestroyParticipants(self);
 	ESIF_TRACE_DEBUG("EsifUpManagerDestroyParticipantsInApp completed.\n");
 
@@ -1206,8 +1220,6 @@ static void EsifApp_WaitForAccessCompletion(EsifAppPtr self)
 	Bool mustWait = ESIF_FALSE;
 
 	ESIF_ASSERT(self != NULL);
-
-	self->stoppingApp = ESIF_TRUE;
 
 	esif_ccb_write_lock(&self->objLock);
 

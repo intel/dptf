@@ -19,6 +19,7 @@
 #include "PpmPackage.h"
 #include "StringConverter.h"
 #include "StringParser.h"
+#include "string.h"
 
 namespace PpmPackage
 {
@@ -32,12 +33,12 @@ namespace PpmPackage
 			return "P2";
 		case PpmPackage::P3:
 			return "P3";
-		case PpmPackage::R1:
-			return "R1";
-		case PpmPackage::B1:
-			return "B1";
-		case PpmPackage::B2:
-			return "B2";
+		case PpmPackage::P4:
+			return "P4";
+		case PpmPackage::P5:
+			return "P5";
+		case PpmPackage::P6:
+			return "P6";
 		default:
 			return Constants::InvalidString;
 		}
@@ -59,15 +60,15 @@ namespace PpmPackage
 		}
 		if (StringConverter::toUInt32(state) == 4)
 		{
-			return PpmPackage::R1;
+			return PpmPackage::P4;
 		}
 		if (StringConverter::toUInt32(state) == 5)
 		{
-			return PpmPackage::B1;
+			return PpmPackage::P5;
 		}
 		if (StringConverter::toUInt32(state) == 6)
 		{
-			return PpmPackage::B2;
+			return PpmPackage::P6;
 		}
 		throw dptf_exception("PPM Package input value is invalid");
 	}
@@ -75,30 +76,35 @@ namespace PpmPackage
 	PpmPackage::Type fromString(const std::string package)
 	{
 		const std::string packageName = StringConverter::toUpper(package);
-
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P1)))
+		std::string packageString = StringConverter::toUpper(toString(PpmPackage::P1));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P1;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P2)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P2));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P2;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::P3)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P3));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
 			return PpmPackage::P3;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::R1)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P4));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
-			return PpmPackage::R1;
+			return PpmPackage::P4;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::B1)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P5));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
-			return PpmPackage::B1;
+			return PpmPackage::P5;
 		}
-		if (packageName == StringConverter::toUpper(toString(PpmPackage::B2)))
+		packageString = StringConverter::toUpper(toString(PpmPackage::P6));
+		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
 		{
-			return PpmPackage::B2;
+			return PpmPackage::P6;
 		}
 
 		return PpmPackage::Invalid;
@@ -120,16 +126,41 @@ namespace PpmPackage
 		}
 		if (state == 4)
 		{
-			return PpmPackage::R1;
+			return PpmPackage::P4;
 		}
 		if (state == 5)
 		{
-			return PpmPackage::B1;
+			return PpmPackage::P5;
 		}
 		if (state == 6)
 		{
-			return PpmPackage::B2;
+			return PpmPackage::P6;
 		}
 		throw dptf_exception("PPM Package input value is invalid");
+	}
+	
+	std::string toStringBasedOnOS(PpmPackage::Type package, OsPowerSource::Type osPowerSource)
+	{
+		if (osPowerSource == OsPowerSource::AC)
+		{
+			switch (package)
+			{
+			case PpmPackage::P1:
+				return toString(PpmPackage::P1AC);
+			case PpmPackage::P2:
+				return toString(PpmPackage::P2AC);
+			case PpmPackage::P3:
+				return toString(PpmPackage::P3AC);
+			case PpmPackage::P4:
+				return toString(PpmPackage::P4AC);
+			case PpmPackage::P5:
+				return toString(PpmPackage::P5AC);
+			case PpmPackage::P6:
+				return toString(PpmPackage::P6AC);
+			default:
+				return Constants::InvalidString;
+			}
+		}
+		return toString(package);
 	}
 }

@@ -15,26 +15,16 @@
 ** limitations under the License.
 **
 ******************************************************************************/
+#include "CommandHandler.h"
 
-#pragma once
-
-#include "Dptf.h"
-#include "XmlNode.h"
-
-// responsible for keeping track of activity in the critical policy
-class dptf_export CriticalPolicyStatistics
+class dptf_export ConfigDeleteCommand : public CommandHandler
 {
 public:
-	CriticalPolicyStatistics();
-
-	void sleepSignalled();
-	void hibernateSignalled();
-	void shutdownSignalled();
-
-	std::shared_ptr<XmlNode> getXml();
+	ConfigDeleteCommand(DptfManagerInterface* dptfManager);
+	virtual ~ConfigDeleteCommand();
+	virtual std::string getCommandName() const override;
+	virtual void execute(const CommandArguments& arguments) override;
 
 private:
-	UIntN m_numberOfTimesSleepSignalled;
-	UIntN m_numberOfTimesHibernateSignalled;
-	UIntN m_numberOfTimesShutdownSignalled;
+	void throwIfBadArguments(const CommandArguments& arguments);
 };

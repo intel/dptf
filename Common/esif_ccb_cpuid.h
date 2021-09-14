@@ -105,6 +105,11 @@
 #define CPUID_FAMILY_MODEL_LKF      0x000806A0		// Lakefield
 #define CPUID_FAMILY_MODEL_RKL      0x000806C0		// Rocket Lake U/Y
 #define CPUID_FAMILY_MODEL_RKL_H    0x000806D0		// Rocket Lake H/S
+#define CPUID_FAMILY_MODEL_MTL_M_P	0x000A06A0		// Meteor Lake M & P
+#define CPUID_FAMILY_MODEL_MTL_N	0x000A06B0		// Meteor Lake N
+#define CPUID_FAMILY_MODEL_MTL_S	0x000606C0		// Meteor Lake S
+#define CPUID_FAMILY_MODEL_RPL_S	0x000B0670		// Raptor Lake S
+#define CPUID_FAMILY_MODEL_RPL_P	0x000B06A0		// Raptor Lake P
 
 #pragma pack(push, 1)
 

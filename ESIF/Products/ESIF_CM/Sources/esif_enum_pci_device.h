@@ -60,71 +60,47 @@
  */
 
 typedef enum esif_pci_device_id {
-	ESIF_PCI_DEVICE_ID_SNB = 0x0103,
-	ESIF_PCI_DEVICE_ID_IVB = 0x0153,
-	ESIF_PCI_DEVICE_ID_HSW_ULT = 0x0a03,
-	ESIF_PCI_DEVICE_ID_HSW = 0x0c03,
-	ESIF_PCI_DEVICE_ID_HSW_H = 0x0d03,
-	ESIF_PCI_DEVICE_ID_BDW = 0x1603,
 	ESIF_PCI_DEVICE_ID_SKL = 0x1903,
-	ESIF_PCI_DEVICE_ID_CPT = 0x1c24,
-	ESIF_PCI_DEVICE_ID_PPT = 0x1e24,
-	ESIF_PCI_DEVICE_ID_CHV = 0x22dc,
+	ESIF_PCI_DEVICE_ID_FHF = 0x3258,
 	ESIF_PCI_DEVICE_ID_ADL = 0x461D,
 	ESIF_PCI_DEVICE_ID_RKL = 0x4C03,
 	ESIF_PCI_DEVICE_ID_JSL = 0x4E03,
 	ESIF_PCI_DEVICE_ID_CNL = 0x5a03,
+	ESIF_PCI_DEVICE_ID_MTL_MP = 0x7D03,
 	ESIF_PCI_DEVICE_ID_ICL = 0x8a03,
-	ESIF_PCI_DEVICE_ID_LPT = 0x8c24,
 	ESIF_PCI_DEVICE_ID_LKF = 0x9820,
 	ESIF_PCI_DEVICE_ID_TGL = 0x9a03,
-	ESIF_PCI_DEVICE_ID_LPT_LP = 0x9c24,
-	ESIF_PCI_DEVICE_ID_WCP = 0x9ca4,
+	ESIF_PCI_DEVICE_ID_RPL = 0xA71D,
+	ESIF_PCI_DEVICE_ID_MTL_S = 0xAD03,
 } esif_pci_device_id_t;
 
 static ESIF_INLINE esif_string esif_device_str(esif_pci_device_id_t device_id)
 {
 	switch (device_id) {
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_SNB,
-		"DPTF Participant for 2nd Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_IVB,
-		"DPTF Participant for 3nd Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_HSW_ULT,
-		"DPTF Participant for 4th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_HSW,
-		"DPTF Participant for 4th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_HSW_H,
-		"DPTF Participant for 4th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_BDW,
-		"DPTF Participant for 5th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_SKL,
-		"DPTF Participant for 6th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_CPT,
-		"Cougar Point(DPTF PCH)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_PPT,
-		"Panther Point(DPTF PCH)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_CHV,
-		"Cherry View SOC(DPTF CPU)");
+		"Sky Lake");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_FHF,
+		"Fish Hawk Falls");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_ADL,
-		"DPTF Participant for 10th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
+		"Alder Lake");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_RKL,
-		"DPTF Participant for 8th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
+		"Rocket Lake");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_JSL,
-		"DPTF Processor Participant for Jasper Lake SoC(DPTF CPU)");
+		"Jasper Lake");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_CNL,
-		"DPTF Participant for 7th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
+		"Cannon Lake");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_MTL_MP,
+		"Meteor Lake-MP");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_ICL,
-		"DPTF Participant for 8th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT,
-		"Lynx Point(DPTF PCH)");
+		"Ice Lake");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_LKF,
-		"LakeField SOC(DPTF CPU)");
+		"LakeField SOC");
 	ESIF_CASE(ESIF_PCI_DEVICE_ID_TGL,
-		"DPTF Participant for 9th Generation Intel Core i7/i5/i3 Mobile Processors(DPTF CPU)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_LPT_LP,
-		"Lynx Point Low Power(DPTF PCH)");
-	ESIF_CASE(ESIF_PCI_DEVICE_ID_WCP,
-		"Wild Cat Point(DPTF PCH)");
+		"Tiger Lake");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_RPL,
+		"Raptor Lake");
+	ESIF_CASE(ESIF_PCI_DEVICE_ID_MTL_S,
+		"Meteor Lake-S");
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -165,30 +141,22 @@ static ESIF_INLINE esif_string esif_pci_class_str(u8 class_id)
 #pragma pack(push, 1)
 
 const struct pci_device_id esif_pci_cpu_ids[] = {
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_SNB) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_IVB) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_HSW) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_HSW_H) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_HSW_ULT) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_BDW) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_SKL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CNL) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CHV) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LKF) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_ICL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_TGL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_ADL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_RKL) },
 	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_JSL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_MTL_MP) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_MTL_S) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_RPL) },
+	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_FHF) },
 	{ 0 }
 };
 
 const struct pci_device_id esif_pci_pch_ids[] = {
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_CPT) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_PPT) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LPT) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_LPT_LP) },
-	{ PCI_DEVICE(PCI_VENDOR_ID_INTEL, ESIF_PCI_DEVICE_ID_WCP) },
 	{ 0 }
 };
 

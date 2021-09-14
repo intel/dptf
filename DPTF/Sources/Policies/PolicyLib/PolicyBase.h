@@ -100,6 +100,7 @@ public:
 	virtual void onAdaptivePerformanceConditionsTableChanged(void);
 	virtual void onAdaptivePerformanceActionsTableChanged(void);
 	virtual void onDdrfTableChanged(void);
+	virtual void onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData);
 	virtual void onConnectedStandbyEntry(void);
 	virtual void onConnectedStandbyExit(void);
 	virtual void onSuspend(void);
@@ -120,6 +121,7 @@ public:
 	virtual void onOperatingSystemScreenStateChanged(OnOffToggle::Type screenState);
 	virtual void onOperatingSystemBatteryCountChanged(UIntN batteryCount);
 	virtual void onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider);
+	virtual void onSystemModeChanged(SystemMode::Type systemMode);
 	virtual void onCoolingModePolicyChanged(CoolingMode::Type coolingMode);
 	virtual void onPassiveTableChanged(void);
 	virtual void onSensorOrientationChanged(SensorOrientation::Type sensorOrientation);
@@ -141,6 +143,7 @@ public:
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
 	virtual void onPowerShareAlgorithmTable2Changed(void);
 	virtual void onIntelligentThermalManagementTableChanged(void);
+	virtual void onEnergyPerformanceOptimizerTableChanged(void);
 	virtual void onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
@@ -206,6 +209,8 @@ public:
 	virtual void ddrfTableChanged(void) override final;
 	virtual void adaptivePerformanceActionsTableChanged(void) override final;
 	virtual void connectedStandbyEntry(void) override final;
+	virtual void igccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override final;
 	virtual void connectedStandbyExit(void) override final;
 	virtual void suspend(void) override final;
 	virtual void resume(void) override final;
@@ -227,6 +232,7 @@ public:
 	virtual void operatingSystemScreenStateChanged(OnOffToggle::Type screenState) override final;
 	virtual void operatingSystemBatteryCountChanged(UIntN batteryCount) override final;
 	virtual void operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) override final;
+	virtual void systemModeChanged(SystemMode::Type powerSlider) override final;
 	virtual void coolingModePolicyChanged(CoolingMode::Type coolingMode) override final;
 	virtual void passiveTableChanged(void) override final;
 	virtual void sensorOrientationChanged(SensorOrientation::Type sensorOrientation) override final;
@@ -243,6 +249,7 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) override final;
 	virtual void powerShareAlgorithmTableChanged(void) override final;
 	virtual void intelligentThermalManagementTableChanged(void) override final;
+	virtual void energyPerformanceOptimizerTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) override final;
 	virtual void workloadHintConfigurationChanged(void) override final;

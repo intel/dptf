@@ -22,6 +22,7 @@
 #include "ManagerMessage.h"
 #include "DataManager.h"
 #include "TableObjectType.h"
+#include "StringConverter.h"
 
 using namespace std;
 
@@ -39,7 +40,7 @@ DynamicIdspTableEntry::DynamicIdspTableEntry(const string& uuid, const string& t
 	m_uuid = Guid::fromUnmangledString(uuid);
 	m_templateGuid = Guid::fromUnmangledString(templateGuid);
 	m_name = name;
-	m_uuidString = uuid;
+	m_uuidString = StringConverter::toLower(uuid);
 }
 
 DynamicIdspTableEntry::~DynamicIdspTableEntry()

@@ -1166,10 +1166,12 @@ UInt64 Domain::getDvfsPoints(void)
 
 void Domain::setDdrRfiTable(const DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
 {
-	m_theRealParticipant->setDdrRfiTable(
-		m_participantIndex,
-		m_domainIndex,
-		ddrRfiStruct);
+	m_theRealParticipant->setDdrRfiTable(m_participantIndex, m_domainIndex, ddrRfiStruct);
+}
+
+void Domain::setProtectRequest(const UInt64 frequencyRate)
+{
+	m_theRealParticipant->setProtectRequest(m_participantIndex, m_domainIndex, frequencyRate);
 }
 
 UtilizationStatus Domain::getUtilizationStatus(void)
@@ -1253,4 +1255,9 @@ void Domain::clearDomainCachedDataSystemPowerControl()
 	m_systemPowerLimit.clear();
 	m_systemPowerLimitTimeWindow.clear();
 	m_systemPowerLimitDutyCycle.clear();
+}
+
+UInt32 Domain::getSocDgpuPerformanceHintPoints(void)
+{
+	return m_theRealParticipant->getSocDgpuPerformanceHintPoints(m_participantIndex, m_domainIndex);
 }

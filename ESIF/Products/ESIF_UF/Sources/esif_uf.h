@@ -108,10 +108,9 @@ typedef enum e_esif_pathtype {
 	ESIF_PATHTYPE_EXE,		// Binary Executables (.EXE and ELF binaries)
 	ESIF_PATHTYPE_DLL,		// Dynamically Loadable Libraries (.DLL and .so)
 	ESIF_PATHTYPE_DLL_ALT,	// Alternate location for loadable libraries (.DLL and .so)
-	ESIF_PATHTYPE_DPTF,		// DPTF Policy Path sent via CreateAppData
 	ESIF_PATHTYPE_DSP,		// DSP and EDP files
 	ESIF_PATHTYPE_CMD,		// CMD scripts
-	ESIF_PATHTYPE_UI,		// UI and HTML files
+	ESIF_PATHTYPE_DATA,		// Shared Data folder
 } esif_pathtype;
 
 esif_string esif_build_path(
@@ -209,19 +208,6 @@ void esif_uf_os_exit(void);
 /* OS Specific Shell Enable / Disable */
 eEsifError esif_uf_os_shell_enable(void);
 void esif_uf_os_shell_disable(void);
-
-extern eEsifError EsifWebLoad(void);
-extern void EsifWebUnload(void);
-extern eEsifError EsifWebStart(void);
-extern void EsifWebStop(void);
-extern int EsifWebIsStarted(void);
-extern void *EsifWebAlloc(size_t buf_len);
-extern const char *EsifWebVersion(void);
-extern Bool EsifWebGetConfig(u8 instance, char **ipaddr_ptr, u32 *port_ptr, esif_flags_t *flags_ptr);
-extern void EsifWebSetConfig(u8 instance, const char *ipaddr, u32 port, esif_flags_t flags);
-extern void EsifWebSetTraceLevel(int level);
-
-#define ESIF_WS_INSTANCE_ALL	255	// All WebServer Listener Instances
 
 #ifdef __cplusplus
 }

@@ -119,7 +119,7 @@ std::pair<std::string, eEsifError> DptfStatus::getStatus(const eAppStatusCommand
 	switch (command)
 	{
 	case eAppStatusCommandGetXSLT:
-		response = getXsltContent(&returnCode);
+		returnCode = ESIF_E_NOT_IMPLEMENTED;
 		break;
 	case eAppStatusCommandGetGroups:
 		response = getGroupsXml(&returnCode);
@@ -146,28 +146,6 @@ void DptfStatus::clearCache()
 	m_participantStatusMap->clearCachedData();
 }
 
-std::string DptfStatus::getFileContent(std::string fileName)
-{
-	checkAndDropSymLink(fileName);
-
-	// Try to find file in current directory
-	std::ifstream file(fileName, std::ios::in | std::ios::binary | std::ios::ate);
-
-	if (file.is_open())
-	{
-		std::string content;
-		content.resize(static_cast<UIntN>(file.tellg()));
-		file.seekg(0, std::ios::beg);
-		file.read(&content[0], content.size());
-		file.close();
-		return content;
-	}
-	else
-	{
-		throw dptf_exception("File not found.");
-	}
-}
-
 void DptfStatus::checkAndDropSymLink(std::string fileName)
 {
 	EsifLibrary* esifLibrary;
@@ -187,20 +165,6 @@ void DptfStatus::checkAndDropSymLink(std::string fileName)
 	{
 		DELETE_MEMORY_TC(esifLibrary);
 		throw dptf_exception(ex.getDescription());
-	}
-}
-
-std::string DptfStatus::getXsltContent(eEsifError* returnCode)
-{
-	try
-	{
-		return getFileContent(m_dptfManager->getDptfHomeDirectoryPath() + "combined.xsl");
-	}
-	catch (dptf_exception&)
-	{
-		// Could not find file, try from Resources/
-		*returnCode = ESIF_E_UNSPECIFIED;
-		throw;
 	}
 }
 

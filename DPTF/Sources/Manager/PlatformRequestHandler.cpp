@@ -18,6 +18,7 @@
 
 #include "PlatformRequestHandler.h"
 #include "PolicyManagerInterface.h"
+#include "SystemModeManager.h"
 #include "EsifServicesInterface.h"
 #include "esif_ccb_memory.h"
 #include "esif_sdk_data_misc.h"
@@ -74,6 +75,12 @@ void PlatformRequestHandler::bindRequestHandlers()
 	bindRequestHandler(
 		DptfRequestType::PlatformNotificationSetApplicationAliveResponse,
 		[=](const PolicyRequest& policyRequest) { return this->handleSetApplicationAliveResponse(policyRequest); });
+	bindRequestHandler(
+		DptfRequestType::PlatformNotificationSetPolicySystemMode,
+		[=](const PolicyRequest& policyRequest) { return this->handleSetSystemMode(policyRequest); });
+	bindRequestHandler(DptfRequestType::PlatformNotificationAppBroadcastSend, [=](const PolicyRequest& policyRequest) {
+		return this->handleAppBroadcastSend(policyRequest);
+	});
 }
 
 void PlatformRequestHandler::bindRequestHandler(
@@ -244,6 +251,54 @@ std::shared_ptr<XmlNode> PlatformRequestHandler::getXml()
 	requestHandlerRoot->addChild(m_oscArbitrator.getOscArbitratorStatus());
 
 	return requestHandlerRoot;
+}
+
+DptfRequestResult PlatformRequestHandler::handleSetSystemMode(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		SystemModeManagerInterface* systemModeManager = m_dptfManager->getSystemModeManager();
+		auto systemMode = SystemMode::toType(request.getDataAsUInt32());
+		if (systemMode != SystemMode::Invalid)
+		{
+			systemModeManager->setPolicySystemModeValue(systemMode);
+		}
+		else
+		{
+			throw dptf_exception("Invalid system mode value.");
+		}
+
+		return DptfRequestResult(true, "Successfully set system mode value.", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage = "Failure during execution of set system mode request: " + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
+	}
+}
+
+DptfRequestResult PlatformRequestHandler::handleAppBroadcastSend(const PolicyRequest& policyRequest)
+{
+	auto& request = policyRequest.getRequest();
+
+	try
+	{
+		EsifData eventData;
+		eventData.buf_ptr = request.getData().get();
+		eventData.buf_len = request.getData().size();
+		eventData.type = ESIF_DATA_BINARY;
+		eventData.data_len = request.getData().size();
+		getEsifServices()->sendDptfEvent(
+			FrameworkEvent::DptfAppBroadcastSend, Constants::Invalid, Constants::Invalid, eventData);
+		return DptfRequestResult(true, "Successfully sent appbroadcast event", request);
+	}
+	catch (dptf_exception& ex)
+	{
+		std::string failureMessage = "Failed to send appbroadcast event" + std::string(ex.what());
+		return DptfRequestResult(false, failureMessage, request);
+	}
 }
 
 EsifServicesInterface* PlatformRequestHandler::getEsifServices()

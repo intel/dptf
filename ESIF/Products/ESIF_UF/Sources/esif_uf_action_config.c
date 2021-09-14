@@ -37,7 +37,8 @@ extern char *esif_str_replace(char *orig, char *rep, char *with);
 static eEsifError ActionConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
 	const EsifPrimitiveTuple tuple,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	const esif_event_type_t signalEventId
 	);
 
 /*
@@ -145,22 +146,32 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	EsifDataPtr requestPtr
 	)
 {
-	eEsifError rc = ESIF_OK;
+	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
 	esif_flags_t flags = ESIF_SERVICE_CONFIG_PERSIST;
-	EsifData params[3] = {0};
+	EsifData params[2] = {0};
 	EsifString replacedStrs[2] = {0};
 	EsifString replacedStr = NULL;
 	UInt8 i;
 	UInt8 nparams = 2;
+	DataItemPtr optparam = NULL;
+	esif_event_type_t signalEventId = ESIF_EVENT_NONE;
 
 	UNREFERENCED_PARAMETER(actCtx);
 
 	ESIF_ASSERT(NULL != requestPtr);
-	ESIF_ASSERT(NULL != requestPtr->buf_ptr);
 
-	/* Optional 3rd Parameter = Config Flags */
-	if (fpcActionPtr->param_valid[2]) {
-		nparams++;
+	/* First two parameters required: NAMESPACE, KEYNAME */
+	if (!fpcActionPtr->param_valid[0] || !fpcActionPtr->param_valid[1]) {
+		goto exit;
+	}
+
+	/* Allow NULL buf_ptr for variable-length types if buf_len = 0 */
+	EsifData requestEmpty = {0};
+	if (requestPtr && requestPtr->buf_ptr == NULL && requestPtr->buf_len == 0 && requestPtr->type != ESIF_DATA_VOID && esif_data_type_sizeof(requestPtr->type) == 0) {
+		static char nonEmptyBuffer[1] = {0};
+		requestEmpty.type = requestPtr->type;
+		requestEmpty.buf_ptr = nonEmptyBuffer;
+		requestPtr = &requestEmpty;
 	}
 
 	rc = EsifFpcAction_GetParams(fpcActionPtr,
@@ -170,9 +181,16 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 		goto exit;
 	}
 
-	/* Extract Optional EsifConfigSet flags */
-	if (nparams > 2 && params[2].type == ESIF_DATA_UINT32) {
-		flags = *(UInt32 *)(params[2].buf_ptr);
+	/* Optional 3rd Parameter = Config Flags */
+	if (fpcActionPtr->param_valid[2] && (optparam = EsifFpcAction_GetParam(fpcActionPtr, 2)) != NULL && (size_t)optparam->data_length_in_bytes == sizeof(flags)) {
+		flags = *(esif_flags_t *)optparam->data;
+	}
+
+	/* Optional 4th Parameter = Signal Event ID */
+	if (fpcActionPtr->param_valid[3] && (optparam = EsifFpcAction_GetParam(fpcActionPtr, 3)) != NULL) {
+		if ((optparam->data_type == ESIF_DSP_PARAMETER_TYPE_VARIANT) && (size_t)optparam->data_length_in_bytes == sizeof(esif_event_type_t)) {
+			signalEventId = *(esif_event_type_t *)optparam->data;
+		}
 	}
 
 	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
@@ -213,7 +231,7 @@ static eEsifError ESIF_CALLCONV ActionConfigSet(
 	}
 
 	if (ESIF_OK == rc) {
-		ActionConfigSignalChangeEvents(upPtr, primitivePtr->tuple, requestPtr);
+		ActionConfigSignalChangeEvents(upPtr, primitivePtr->tuple, requestPtr, signalEventId);
 	}
 exit:
 	for (i = 0; i < sizeof(replacedStrs) / sizeof(*replacedStrs); i++) {
@@ -226,11 +244,11 @@ exit:
 static eEsifError ActionConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
 	const EsifPrimitiveTuple tuple,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	const esif_event_type_t signalEventId
 	)
 {
 	eEsifError rc    = ESIF_OK;
-	eEsifEventType targetEvent = 0;
 	char domainStr[8] = "";
 	esif_temp_t hysteresis_val = 0;
 	esif_temp_t *hysteresis_ptr = NULL;
@@ -239,52 +257,12 @@ static eEsifError ActionConfigSignalChangeEvents(
 
 	ESIF_ASSERT(upPtr != NULL);
 
+	/*
+	** Take custom actions for certain specific Primitives.
+	** Target Signal Event ID is passed in via DSP CONFIG Action Parameter #4 instead of mapping here.
+	*/
 	switch (tuple.id) {
-	case SET_TRIP_POINT_ACTIVE:
-	case SET_TRIP_POINT_CRITICAL:
-	case SET_TRIP_POINT_HOT:
-	case SET_TRIP_POINT_PASSIVE:
-	case SET_TRIP_POINT_WARM:
-		targetEvent = ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED;
-		break;
-	case SET_THERMAL_RELATIONSHIP_TABLE:
-		targetEvent = ESIF_EVENT_DTT_THERMAL_RELATIONSHIP_TABLE_CHANGED;
-		break;
-	case SET_PASSIVE_RELATIONSHIP_TABLE:
-		targetEvent = ESIF_EVENT_DTT_PASSIVE_TABLE_CHANGED;
-		break;
-	case SET_ACTIVE_RELATIONSHIP_TABLE:
-		targetEvent = ESIF_EVENT_DTT_ACTIVE_RELATIONSHIP_TABLE_CHANGED;
-		break;
-	case SET_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE:
-		targetEvent = ESIF_EVENT_DTT_ADAPTIVE_PERFORMANCE_CONDITIONS_TABLE_CHANGED;
-		break;
-	case SET_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE:
-		targetEvent = ESIF_EVENT_DTT_ADAPTIVE_PERFORMANCE_ACTIONS_TABLE_CHANGED;
-		break;
-	case SET_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE:
-		targetEvent = ESIF_EVENT_DTT_ADAPTIVE_PERFORMANCE_PARTICIPANT_CONDITION_TABLE_CHANGED;
-		break;
-	case SET_VIRTUAL_SENSOR_CALIB_TABLE:
-		targetEvent = ESIF_EVENT_DTT_VIRTUAL_SENSOR_CALIB_TABLE_CHANGED;
-		break;
-	case SET_VIRTUAL_SENSOR_POLLING_TABLE:
-		targetEvent = ESIF_EVENT_DTT_VIRTUAL_SENSOR_POLLING_TABLE_CHANGED;
-		break;
-	case SET_RAPL_POWER_CONTROL_CAPABILITIES:
-		targetEvent = ESIF_EVENT_POWER_CAPABILITY_CHANGED;
-		break;
-	case SET_PROC_PERF_PSTATE_DEPTH_LIMIT:
-	case SET_PERF_PSTATE_DEPTH_LIMIT:
-	case SET_PERF_SUPPORT_STATES:
-	case SET_PARTICIPANT_MAX_PERF_STATE:
-		targetEvent = ESIF_EVENT_PERF_CAPABILITY_CHANGED;
-		break;
-	case SET_TEMPERATURE:
-		targetEvent = ESIF_EVENT_TEMP_THRESHOLD_CROSSED;
-		break;
 	case SET_TEMPERATURE_THRESHOLD_HYSTERESIS:
-		targetEvent = ESIF_EVENT_PARTICIPANT_SPEC_INFO_CHANGED;
 		if (requestPtr != NULL) {
 			if (requestPtr->buf_ptr == NULL) {
 				rc = ESIF_E_PARAMETER_IS_NULL;
@@ -299,7 +277,6 @@ static eEsifError ActionConfigSignalChangeEvents(
 		}
 		break;
 	case SET_PARTICIPANT_SAMPLE_PERIOD:
-		targetEvent = 0;
 		if (requestPtr != NULL) {
 			if (requestPtr->buf_ptr == NULL) {
 				rc = ESIF_E_PARAMETER_IS_NULL;
@@ -313,90 +290,12 @@ static eEsifError ActionConfigSignalChangeEvents(
 			EsifUp_UpdatePolling(upPtr, tuple.domain, polling_ptr);
 		}
 		break;
-	case SET_DISPLAY_BRIGHTNESS_LEVELS:
-	case SET_DISPLAY_CAPABILITY:
-	case SET_DISPLAY_DEPTH_LIMIT:
-		targetEvent = ESIF_EVENT_DTT_DISPLAY_CAPABILITY_CHANGED;
-		break;
-	case SET_POWER_BOSS_CONDITIONS_TABLE:
-		targetEvent = ESIF_EVENT_DTT_POWER_BOSS_CONDITIONS_TABLE_CHANGED;
-		break;
-	case SET_POWER_BOSS_ACTIONS_TABLE:
-		targetEvent = ESIF_EVENT_DTT_POWER_BOSS_ACTIONS_TABLE_CHANGED;
-		break;
-	case SET_POWER_BOSS_MATH_TABLE:
-		targetEvent = ESIF_EVENT_DTT_POWER_BOSS_MATH_TABLE_CHANGED;
-		break;
-	case SET_EMERGENCY_CALL_MODE_TABLE:
-		targetEvent = ESIF_EVENT_EMERGENCY_CALL_MODE_TABLE_CHANGED;
-		break;
-	case SET_PID_ALGORITHM_TABLE:
-		targetEvent = ESIF_EVENT_DTT_PID_ALGORITHM_TABLE_CHANGED;
-		break;
-	case SET_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE:
-		targetEvent = ESIF_EVENT_DTT_ACTIVE_CONTROL_POINT_RELATIONSHIP_TABLE_CHANGED;
-		break;
-	case SET_POWER_SHARING_ALGORITHM_TABLE:
-		targetEvent = ESIF_EVENT_DTT_POWER_SHARING_ALGORITHM_TABLE_CHANGED;
-		break;
-	case SET_POWER_SHARING_ALGORITHM_TABLE_2:
-		targetEvent = ESIF_EVENT_DTT_POWER_SHARING_ALGORITHM_TABLE_2_CHANGED;
-		break;
-	case SET_INTELLIGENT_THERMAL_MANAGEMENT_TABLE:
-		targetEvent = ESIF_EVENT_DTT_INTELLIGENT_THERMAL_MANAGEMENT_TABLE_CHANGED;
-		break;
-	case SET_SUPPORTED_POLICIES:
-		targetEvent = ESIF_EVENT_DTT_SUPPORTED_POLICIES_CHANGED;
-		break;
-	case SET_ACUR:
-		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
-		break;
-	case SET_AVOL:
-		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
-		break;
-	case SET_ADAPTER_POWER_RATING:
-		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
-		break;
-	case SET_AP01:
-		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
-		break;
-	case SET_AP02:
-		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
-		break;
-	case SET_AP10:
-		targetEvent = ESIF_EVENT_PLATFORM_POWER_SOURCE_CHANGED;
-		break;
-	case SET_PLATFORM_BATTERY_STEADY_STATE:
-		targetEvent = ESIF_EVENT_PLATFORM_BATTERY_STEADY_STATE_CHANGED;
-		break;
-	case SET_PLATFORM_MAX_BATTERY_POWER:
-		targetEvent = ESIF_EVENT_MAX_BATTERY_POWER_CHANGED;
-		break;
-	case SET_PLATFORM_REST_OF_POWER:
-		targetEvent = ESIF_EVENT_PLATFORM_REST_OF_POWER_CHANGED;
-		break;
-	case SET_OEM_VARS:
-		targetEvent = ESIF_EVENT_OEM_VARS_CHANGED;
-		break;
-	case SET_FAN_CAPABILITIES:
-		targetEvent = ESIF_EVENT_FAN_CAPABILITIES_CHANGED;
-		break;
-	case SET_BATTERY_HIGH_FREQUENCY_IMPEDANCE:
-		targetEvent = ESIF_EVENT_BATTERY_HIGH_FREQUENCY_IMPEDANCE_CHANGED;
-		break;
-	case SET_BATTERY_NO_LOAD_VOLTAGE:
-	case SET_BATTERY_MAX_PEAK_CURRENT:
-		targetEvent = ESIF_EVENT_BATTERY_NO_LOAD_VOLTAGE_CHANGED;
-		break;
-	case SET_VOLTAGE_THRESHOLD_MATH_TABLE:
-		targetEvent = ESIF_EVENT_DTT_VOLTAGE_THRESHOLD_MATH_TABLE_CHANGED;
-		break;
 	default:
-		targetEvent = 0;
 		break;
 	}
-	if (targetEvent > 0) {
-		EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), tuple.domain, targetEvent, NULL);
+
+	if (signalEventId != ESIF_EVENT_NONE) {
+		EsifEventMgr_SignalEvent(EsifUp_GetInstance(upPtr), tuple.domain, signalEventId, NULL);
 	}	
 exit:
 	return rc;
@@ -440,11 +339,12 @@ void EsifActConfigExit()
 eEsifError EsifActConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
 	const EsifPrimitiveTuple tuple,
-	const EsifDataPtr requestPtr)
+	const EsifDataPtr requestPtr,
+	const esif_event_type_t signalEventId)
 {
 	eEsifError rc = ESIF_E_PARAMETER_IS_NULL;
 	if (upPtr != NULL) {
-		rc = ActionConfigSignalChangeEvents(upPtr, tuple, requestPtr);
+		rc = ActionConfigSignalChangeEvents(upPtr, tuple, requestPtr, signalEventId);
 	}
 	return rc;
 }

@@ -55,8 +55,12 @@ UInt64 DomainRfProfileStatus_000::getDvfsPoints(UIntN participantIndex, UIntN do
 void DomainRfProfileStatus_000::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
-	)
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
+{
+	throw not_implemented();
+}
+
+void DomainRfProfileStatus_000::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
 {
 	throw not_implemented();
 }

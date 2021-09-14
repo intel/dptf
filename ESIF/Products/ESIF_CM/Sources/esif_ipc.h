@@ -64,7 +64,7 @@
 #include "esif_pm.h"
 #include "esif_command.h"
 
-#define IPC_DEVICE "esif_lf"
+#define IPC_DEVICE "ipf_lf"
 
 /* Kernel Debug Trace Selectors */
 #define IPC_TRACE_INIT		0	/* Init Debug */

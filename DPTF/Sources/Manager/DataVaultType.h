@@ -17,15 +17,16 @@
 ******************************************************************************/
 
 #pragma once
+#include <string>
 
-#include "Dptf.h"
-#include "WorkItem.h"
-
-class WIPolicyIntelligentThermalManagementTableChanged : public WorkItem
+namespace DataVaultType
 {
-public:
-	WIPolicyIntelligentThermalManagementTableChanged(DptfManagerInterface* dptfManager);
-	virtual ~WIPolicyIntelligentThermalManagementTableChanged(void);
+	enum Type
+	{
+		Dptf,
+		Override
+	};
 
-	virtual void onExecute(void) override final;
+	std::string ToString(DataVaultType::Type type);
+	DataVaultType::Type ToType(std::string value);
 };

@@ -37,7 +37,9 @@ UInt32 g_statusCapability[] = {
 	ESIF_CAPABILITY_TYPE_UTIL_STATUS,
 	ESIF_CAPABILITY_TYPE_BATTERY_STATUS,
 	ESIF_CAPABILITY_TYPE_PROCESSOR_CONTROL,
-	ESIF_CAPABILITY_TYPE_MANAGER
+	ESIF_CAPABILITY_TYPE_MANAGER,
+	ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION,
+	ESIF_CAPABILITY_TYPE_DYNAMIC_EPP
 };
 
 EsifLoggingManager g_loggingManager = { 0 };
@@ -2217,6 +2219,12 @@ static eEsifError EsifLogMgr_ParticipantLogAddHeaderData(
 			" OS User Presence, OS Screen State, Device Orientation, In Motion, System Cooling Mode, OS Platform Type,"
 			" Display Orientation, OS Power Scheme Personality, OS Mixed Reality Mode, Platform User Presence, Foreground Background Ratio, PPM Package,");
 		break;
+	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+		esif_ccb_sprintf_concat(dataLength, logString, " SOC Workload,");
+		break;
+	case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+		esif_ccb_sprintf_concat(dataLength, logString, " MBT Hint,");
+		break;
 	default:
 		break;
 	}
@@ -2504,7 +2512,12 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 			}
 			break;
 		}
-			
+		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+			esif_ccb_sprintf_concat(dataLength, logString, " %u,", capabilityPtr->data.workloadClassification.socWorkload);
+			break;
+		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+			esif_ccb_sprintf_concat(dataLength, logString, " %u,", capabilityPtr->data.dynamicEppControl.eppHint);
+			break;
 		default:
 			rc = ESIF_E_UNSPECIFIED;
 			break;
@@ -2515,6 +2528,8 @@ static eEsifError EsifLogMgr_ParticipantLogAddCapabilityData(
 		case ESIF_CAPABILITY_TYPE_DOMAIN_PRIORITY:
 		case ESIF_CAPABILITY_TYPE_TEMP_STATUS:
 		case ESIF_CAPABILITY_TYPE_UTIL_STATUS:
+		case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+		case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
 			esif_ccb_sprintf_concat(dataLength, logString, " X,");
 			break;
 		case ESIF_CAPABILITY_TYPE_ACTIVE_CONTROL:
@@ -2932,6 +2947,32 @@ static void EsifLogMgr_UpdateStatusCapabilityData(EsifParticipantLogDataNodePtr 
 			ESIF_TRACE_INFO("Failed to retrieve foreground background ratio event cache data \n");
 		}
 		dataNodePtr->capabilityData.data.managerStatus.foregroundBackgroundRatio = eventData;
+		break;
+	}
+	case ESIF_CAPABILITY_TYPE_WORKLOAD_CLASSIFICATION:
+	{
+		UInt32 socwc = 0;
+		struct esif_data socwc_response = { ESIF_DATA_UINT32, &socwc, sizeof(socwc), sizeof(socwc) };
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_SOC_WORKLOAD, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &socwc_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_SOC_WORKLOAD primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			socwc = 0;
+		}
+		dataNodePtr->capabilityData.data.workloadClassification.socWorkload = socwc;
+		break;
+	}
+	case ESIF_CAPABILITY_TYPE_DYNAMIC_EPP:
+	{
+		UInt32 eppHint = 0;
+		struct esif_data epphint_response = { ESIF_DATA_UINT32, &eppHint, sizeof(eppHint), sizeof(eppHint) };
+
+		rc = EsifExecutePrimitive(dataNodePtr->participantId, GET_EPP_SENSITIVITY_HINT_MODEL, esif_primitive_domain_str((u16)dataNodePtr->domainId, qualifierStr, MAX_NAME_STRING_LENGTH), ESIF_INSTANCE_INVALID, NULL, &epphint_response);
+		if (ESIF_OK != rc) {
+			ESIF_TRACE_INFO("Error while executing GET_EPP_SENSITIVITY_HINT_MODEL primitive for participant " ESIF_HANDLE_FMT " domain : %d", esif_ccb_handle2llu(dataNodePtr->participantId), dataNodePtr->domainId);
+			eppHint = 0;
+		}
+		dataNodePtr->capabilityData.data.dynamicEppControl.eppHint = eppHint;
 		break;
 	}
 	// WARNING:  Any new cases must be added to g_statusCapability

@@ -20,8 +20,8 @@
 
 #define VER_MAJOR  9
 #define VER_MINOR  0
-#define VER_HOTFIX 10500
-#define VER_BUILD  20898
+#define VER_HOTFIX 10600
+#define VER_BUILD  23029
 
 #define ARG_TOSTR(arg) #arg
 #define VER_TOSTR(arg) ARG_TOSTR(arg)
@@ -31,15 +31,6 @@
 #define VER_HOTFIX_STR VER_TOSTR(VER_HOTFIX)
 #define VER_BUILD_STR VER_TOSTR(VER_BUILD)
 
-#ifdef DBG
-#define VER_DEBUG_TAG " (DBG)"
-#else
-#define VER_DEBUG_TAG
-#endif
-
-#define VER_SEPARATOR_STR "."
-#define VERSION_STR                                                                                                    \
-	VER_MAJOR_STR VER_SEPARATOR_STR VER_MINOR_STR VER_SEPARATOR_STR VER_HOTFIX_STR VER_SEPARATOR_STR VER_BUILD_STR     \
-		VER_DEBUG_TAG
+#define VERSION_STR VER_MAJOR_STR "." VER_MINOR_STR "." VER_HOTFIX_STR "." VER_BUILD_STR
 
 #define COPYRIGHT_STR "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved \0"

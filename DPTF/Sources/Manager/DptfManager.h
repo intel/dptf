@@ -31,6 +31,7 @@ class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DptfStatusInterface;
 class DataManagerInterface;
+class SystemModeManagerInterface;
 
 //
 // DPTF starts here!!!
@@ -69,11 +70,11 @@ public:
 	virtual DataManagerInterface* getDataManager(void) const override;
 	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const override;
 	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const override;
+	virtual SystemModeManagerInterface* getSystemModeManager() const override;
 
 	virtual std::string getDptfHomeDirectoryPath(void) const override;
 	virtual std::string getDptfPolicyDirectoryPath(void) const override;
 	virtual std::string getDptfReportDirectoryPath(void) const override;
-	virtual Bool isDptfPolicyLoadNameOnly(void) const override;
 
 	void bindDomainsToPolicies(UIntN participantIndex) const override;
 	void unbindDomainsFromPolicies(UIntN participantIndex) const override;
@@ -115,7 +116,6 @@ private:
 	std::list<std::shared_ptr<CommandHandler>> m_commands;
 	std::shared_ptr<IFileIO> m_fileIo;
 	std::shared_ptr<RequestDispatcherInterface> m_requestDispatcher;
-
 	std::shared_ptr<RequestHandlerInterface> m_platformRequestHandler;
 
 	std::shared_ptr<EventCache> m_eventCache;
@@ -128,10 +128,11 @@ private:
 
 	DataManagerInterface* m_dataManager;
 
+	SystemModeManagerInterface* m_systemModeManager;
+
 	std::string m_dptfHomeDirectoryPath;
 	std::string m_dptfPolicyDirectoryPath;
 	std::string m_dptfReportDirectoryPath;
-	Bool m_dptfPolicyLoadNameOnly;
 
 	void shutDown(void);
 	void disableAndEmptyAllQueues(void);
@@ -141,6 +142,7 @@ private:
 	void deleteWorkItemQueueManager(void);
 	void deletePolicyManager(void);
 	void deleteParticipantManager(void);
+	void deleteSystemModeManager(void);
 	void deleteEsifAppServices(void);
 	void deleteEsifServices(void);
 	void deleteIndexContainer(void);

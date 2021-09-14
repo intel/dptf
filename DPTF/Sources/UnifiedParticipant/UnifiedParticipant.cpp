@@ -52,7 +52,7 @@ UnifiedParticipant::UnifiedParticipant(void)
 	, m_socWorkloadClassificationEventsRegistered(false)
 	, m_eppSensitivityHintEventsRegistered(false)
 {
-	//initialize();
+	// initialize();
 }
 
 UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
@@ -84,7 +84,7 @@ UnifiedParticipant::UnifiedParticipant(const ControlFactoryList& classFactories)
 	, m_socWorkloadClassificationEventsRegistered(false)
 	, m_eppSensitivityHintEventsRegistered(false)
 {
-	//initialize();
+	// initialize();
 
 	// TODO: Check if this is needed
 	// In this case, which is provided for validation purposes, any class factories that aren't
@@ -351,8 +351,7 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 				|| (powerControlTotal != 0) || (rfProfileTotal != 0) || (temperatureControlTotal != 0)
 				|| (platformPowerStatusControlTotal != 0) || (peakPowerControlTotal != 0)
 				|| (processorControlTotal != 0) || (batteryStatusControlTotal != 0)
-				|| (socWorkloadClassificationControlTotal != 0)
-				|| (dynamicEppControlTotal != 0))
+				|| (socWorkloadClassificationControlTotal != 0) || (dynamicEppControlTotal != 0))
 			{
 				loggingTotal = 1;
 			}
@@ -449,9 +448,7 @@ void UnifiedParticipant::updateDomainEventRegistrations(void)
 	std::set<ParticipantEvent::Type> eppSensitivityHintEvents;
 	eppSensitivityHintEvents.insert(ParticipantEvent::Type::DomainEppSensitivityHintChanged);
 	m_eppSensitivityHintEventsRegistered = updateDomainEventRegistration(
-		dynamicEppControlTotal,
-		m_eppSensitivityHintEventsRegistered,
-		eppSensitivityHintEvents);
+		dynamicEppControlTotal, m_eppSensitivityHintEventsRegistered, eppSensitivityHintEvents);
 }
 
 Bool UnifiedParticipant::updateDomainEventRegistration(
@@ -1414,7 +1411,8 @@ UIntN UnifiedParticipant::getUserPreferredDisplayIndex(UIntN participantIndex, U
 UIntN UnifiedParticipant::getUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getDisplayControl()->getUserPreferredSoftBrightnessIndex(participantIndex, domainIndex);
+	return m_domains[domainIndex]->getDisplayControl()->getUserPreferredSoftBrightnessIndex(
+		participantIndex, domainIndex);
 }
 
 Bool UnifiedParticipant::isUserPreferredIndexModified(UIntN participantIndex, UIntN domainIndex)
@@ -1454,8 +1452,7 @@ void UnifiedParticipant::setSoftBrightness(UIntN participantIndex, UIntN domainI
 void UnifiedParticipant::updateUserPreferredSoftBrightnessIndex(UIntN participantIndex, UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
-	m_domains[domainIndex]->getDisplayControl()->updateUserPreferredSoftBrightnessIndex(
-		participantIndex, domainIndex);
+	m_domains[domainIndex]->getDisplayControl()->updateUserPreferredSoftBrightnessIndex(participantIndex, domainIndex);
 }
 
 void UnifiedParticipant::restoreUserPreferredSoftBrightness(UIntN participantIndex, UIntN domainIndex)
@@ -1853,11 +1850,17 @@ UInt32 UnifiedParticipant::getRfiDisable(UIntN participantIndex, UIntN domainInd
 void UnifiedParticipant::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
-	)
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
 {
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getRfProfileStatusControl()->setDdrRfiTable(participantIndex, domainIndex, ddrRfiStruct);
+}
+
+void UnifiedParticipant::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->getRfProfileStatusControl()->setProtectRequest(
+		participantIndex, domainIndex, frequencyRate);
 }
 
 UInt64 UnifiedParticipant::getDvfsPoints(UIntN participantIndex, UIntN domainIndex)
@@ -2182,4 +2185,10 @@ void UnifiedParticipant::setPowerShareEffectiveBias(
 	throwIfDomainInvalid(domainIndex);
 	m_domains[domainIndex]->getActivityStatusControl()->setPowerShareEffectiveBias(
 		participantIndex, domainIndex, powerShareEffectiveBias);
+}
+
+UInt32 UnifiedParticipant::getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getActivityStatusControl()->getSocDgpuPerformanceHintPoints(participantIndex, domainIndex);
 }

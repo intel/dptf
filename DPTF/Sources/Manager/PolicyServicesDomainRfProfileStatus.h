@@ -36,4 +36,6 @@ public:
 		UIntN participantIndex,
 		UIntN domainIndex,
 		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) override final;
+
+	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) override final;
 };

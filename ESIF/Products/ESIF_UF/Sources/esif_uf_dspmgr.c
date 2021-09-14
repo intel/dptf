@@ -963,40 +963,49 @@ void esif_dsp_table_destroy()
  *******************************************************************************
  */
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#define	DEFAULT_PROC	"skl_proc"
+#else
+#define	DEFAULT_PROC	"lin_proc"
+#endif
+
 struct dsp_map_s {
 	esif_string name;		/* participant name or NULL for Default or end-of-list */
 	esif_string dsp_name;	/* DSP name */
 };
 static struct dsp_map_s dsp_mapping[] = {
-		{"TFN1",	"dpf_fan" },
-		{"TFN2",	"dpf_fan" },
-		{"TMEM",	"dpf_cmem"},
-		{"TAMB",	"dpf_fgen"},
-		{"TEFN",	"dpf_fgen"},
-		{"TSKN",	"dpf_fgen"},
-		{"T_VR",	"dpf_fgen"},
-		{"FGEN",	"dpf_fgen"},
-		{"DPLY",	"dpf_disp"},
-		{"TPWR",	"dpf_pwr" },
-		{"WIFI",	"dpf_wifi"},
-		{"WGIG",	"dpf_wgig"},
-		{"WWAN",	"dpf_wwan"},
-		{"TINL",	"dpf_fgen"},
-		{"TCPU",	"shb_proc"},
-		{"TPCH",	"shb_pch" },
-		{"IETM",	"dpf_dptf"},
-		{"DPTFZ",	"dpf_dptf"},
-		{"GEN1",	"dpf_fgen"},
-		{"TCHG",	"dpf_fgen"},
-		{"GEN2",	"dpf_fgen"},
-		{"WPKG",	"dpf_wpkg"},
-		{"VTS1",	"dpf_virt"},
-		{"VTS2",	"dpf_virt"},
-		{"DGFXMCP",	"dpf_mcp"},
-		{"DGFXCORE", "dpf_dgcr"},
-		{"DGFXMEM",	"dpf_dgmm"},
-		{"IDG2",	"dpf_idg2"},
-		{NULL,		"dpf_fgen"},
+		{"IETM",	"ipf_ietm"},
+		{"TCPU",	DEFAULT_PROC},
+		{"TPCH",	"ipf_pch" },
+		{"TAMB",	"ipf_fgen"},
+		{"TCHG",	"ipf_fgen"},
+		{"TEFN",	"ipf_fgen"},
+		{"TFN1",	"ipf_fan" },
+		{"TFN2",	"ipf_fan" },
+		{"TINL",	"ipf_fgen"},
+		{"TMEM",	"ipf_cmem"},
+		{"TPWR",	"ipf_pwr" },
+		{"TSKN",	"ipf_fgen"},
+		{"T_VR",	"ipf_fgen"},
+		{"VTS1",	"ipf_virt"},
+		{"VTS2",	"ipf_virt"},
+		{"WIFI",	"ipf_wifi"},
+		{"WGIG",	"ipf_wgig"},
+		{"WPKG",	"ipf_wpkg"},
+		{"WWAG",	"ipf_wwag"},
+		{"WWDG",	"ipf_wwdg"},
+		{"WWRF",	"ipf_wwrf"},
+		{"DGFXMCP",	"ipf_mcp"},
+		{"DGFXCORE","ipf_dgcr"},
+		{"DGFXMEM",	"ipf_dgmm"},
+		{"IDG2",	"ipf_idg2"},
+		/* Deprecated */
+		{"DPTFZ",	"ipf_ietm"},
+		{"DPLY",	"ipf_disp"},
+		{"FGEN",	"ipf_fgen"},
+		{"GEN1",	"ipf_fgen"},
+		{"GEN2",	"ipf_fgen"},
+		{NULL,		"ipf_fgen"},
 };
 
 

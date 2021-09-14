@@ -33,7 +33,7 @@ ReloadCommand::~ReloadCommand()
 {
 }
 
-std::string ReloadCommand::getCommandName() const
+string ReloadCommand::getCommandName() const
 {
 	return "reload";
 }
@@ -54,7 +54,7 @@ void ReloadCommand::execute(const CommandArguments& arguments)
 	}
 }
 
-void ReloadCommand::bindAllParticipants(const std::set<UIntN>& participantIndexList)
+void ReloadCommand::bindAllParticipants(const set<UIntN>& participantIndexList)
 {
 	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
 		 ++participantIndex)
@@ -74,11 +74,11 @@ void ReloadCommand::recreateAllPolicies(PolicyManagerInterface* policyManager)
 	}
 	catch (const dptf_exception& ex)
 	{
-		setResultMessage(std::string("Failed to reload all policies. ") + ex.getDescription());
+		setResultMessage(string("Failed to reload all policies. ") + ex.getDescription());
 	}
 }
 
-void ReloadCommand::unbindAllParticipants(const std::set<UIntN>& participantIndexList)
+void ReloadCommand::unbindAllParticipants(const set<UIntN>& participantIndexList)
 {
 	for (auto participantIndex = participantIndexList.begin(); participantIndex != participantIndexList.end();
 		 ++participantIndex)

@@ -16,7 +16,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z
 
 if (CHROMIUM_BUILD MATCHES YES)
 	message("Building for Chromium OS...")
-
+	add_definitions(-DESIF_ATTR_OS_CHROME -DESIF_ATTR_USER)
 	if (BUILD_ARCH MATCHES 32bit)	
 	        message("Building 32-bit...")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
@@ -34,7 +34,7 @@ if (CHROMIUM_BUILD MATCHES YES)
 
 else()
 	message("Building for Linux...")
-
+	add_definitions(-DESIF_ATTR_OS_LINUX -DESIF_ATTR_USER)
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
 	set(CMAKE_CXX_FLAGS_RELEASE "-Os")
 	
@@ -74,7 +74,7 @@ message ("CXX Debug Flags : " ${CMAKE_CXX_FLAGS_DEBUG})
 message ("CXX Release Flags : " ${CMAKE_CXX_FLAGS_RELEASE}) 
 #message ("CXX MinSizeRel Flags : " ${CMAKE_C_FLAGS_MINSIZEREL}) 
 
-add_definitions(-DESIF_ATTR_OS_LINUX -DESIF_ATTR_USER)
+
 
 set(BASIC_TYPES_LIB "DptfBasicTypesLib")
 set(ESIF_TYPES_LIB "DptfEsifTypesLib")

@@ -27,21 +27,6 @@
 #define STABILITY_WINDOW_MAX 15000
 #define ESIF_UPSM_CORRELATION_RESET_TIME 120000 /* ms */
 
-#if defined(ESIF_ATTR_OS_WINDOWS)
-
-esif_error_t EsifSetActionDelegateDppeSettingWin(
-	EsifDataPtr requestPtr,
-	const GUID* guid
-);
-
-#define SetUserPresenceDppeSetting(requestPtr, guid) EsifSetActionDelegateDppeSettingWin(requestPtr, guid)
-
-#elif defined(ESIF_ATTR_OS_LINUX)
-
-#define SetUserPresenceDppeSetting(requestPtr, guid) (ESIF_E_NOT_IMPLEMENTED)
-
-#endif
-
 // Values from ESIF_EVENT_SENSOR_USER_PRESENCE_CHANGED
 typedef enum UpSensorState_e {
 	UP_SENSOR_STATE_NOT_PRESENT = 0,
@@ -330,15 +315,13 @@ static esif_error_t EsifUpsm_ReportSensorEvent_SmLocked(UpSensorState sensorData
 {
 	esif_error_t rc = ESIF_OK;
 
+	UNREFERENCED_PARAMETER(esifDataPtr);
+
 	g_upsm.curSensorState = sensorData;
 	g_upsm.filteredSensorState = UP_SENSOR_STATE_INVALID;
 	g_upsm.queuedSensorState = UP_SENSOR_STATE_INVALID;
 	if (g_upsm.eventFilteringEnabled) {
 		EsifUpsm_StopEventFiltering_SmLocked();
-	}
-	rc = SetUserPresenceDppeSetting(esifDataPtr, &GUID_DTT_SENSOR_PRESENCE_STATUS);
-	if (ESIF_OK != rc) {
-		ESIF_TRACE_DEBUG("Failed to set sensor presence DPPE value.");
 	}
 
 	rc = EsifUpsm_SendEvents();
@@ -424,11 +407,6 @@ static void EsifUpsm_StabilityWindowCallback(void* context_ptr)
 	
 	esifData.buf_ptr = &g_upsm.curSensorState;
 
-	rc = SetUserPresenceDppeSetting(&esifData, &GUID_DTT_SENSOR_PRESENCE_STATUS);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("Couldn't set sensor presence DPPE value!");
-	}
-
 	rc = EsifUpsm_SendEvents();
 
 	if (g_upsm.queuedSensorState != UP_SENSOR_STATE_INVALID) {
@@ -485,15 +463,8 @@ static esif_error_t EsifUpsm_SendPresenceEvent(UpSensorState state)
 	rc = EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED, &esifData);
 	if (rc != ESIF_OK) {
 		ESIF_TRACE_DEBUG("Couldn't send platform user presence event!");
-		goto exit;
 	}
 
-	rc = SetUserPresenceDppeSetting(&esifData, &GUID_DTT_PLATFORM_PRESENCE_STATUS);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("Couldn't update platform user presence status!");
-	}
-
-exit:
 	return rc;
 }
 

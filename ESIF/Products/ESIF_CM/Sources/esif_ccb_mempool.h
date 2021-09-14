@@ -213,7 +213,7 @@ static ESIF_INLINE void *esif_ccb_mempool_alloc(
 	mem_ptr = kmem_cache_alloc(pool_ptr->cache, GFP_ATOMIC);
 #endif
 #ifdef ESIF_ATTR_OS_WINDOWS
-	mem_ptr = ExAllocatePoolWithTag(NonPagedPool,
+	mem_ptr = EsifExAllocatePool(ESIF_POOL_NON_PAGED,
 					pool_ptr->object_size,
 					pool_ptr->pool_tag);
 #endif

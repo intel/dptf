@@ -60,6 +60,8 @@ public:
 
 	// Event handlers
 
+	virtual void executeIgccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void executeConnectedStandbyEntry(void) = 0;
 	virtual void executeConnectedStandbyExit(void) = 0;
 	virtual void executeSuspend(void) = 0;
@@ -137,6 +139,7 @@ public:
 	virtual void executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type screenState) = 0;
 	virtual void executePolicyOperatingSystemBatteryCountChanged(UIntN batteryCount) = 0;
 	virtual void executePolicyOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) = 0;
+	virtual void executePolicySystemModeChanged(SystemMode::Type systemMode) = 0;
 	virtual void executePolicyOemVariablesChanged(void) = 0;
 	virtual void executePolicyPowerBossConditionsTableChanged(void) = 0;
 	virtual void executePolicyPowerBossActionsTableChanged(void) = 0;
@@ -154,6 +157,7 @@ public:
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
 	virtual void executePolicyPowerShareAlgorithmTable2Changed(void) = 0;
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) = 0;
+	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) = 0;
 	virtual void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) = 0;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) = 0;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) = 0;
@@ -195,7 +199,8 @@ public:
 	virtual std::string getDynamicPolicyUuidString(void) const override;
 
 	// Event handlers
-
+	virtual void executeIgccBroadcastReceived(
+		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
 	virtual void executeConnectedStandbyEntry(void) override;
 	virtual void executeConnectedStandbyExit(void) override;
 	virtual void executeSuspend(void) override;
@@ -273,6 +278,7 @@ public:
 	virtual void executePolicyOperatingSystemScreenStateChanged(OnOffToggle::Type screenState) override;
 	virtual void executePolicyOperatingSystemBatteryCountChanged(UIntN batteryCount) override;
 	virtual void executePolicyOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlider) override;
+	virtual void executePolicySystemModeChanged(SystemMode::Type systemMode) override;
 	virtual void executePolicyOemVariablesChanged(void) override;
 	virtual void executePolicyPowerBossConditionsTableChanged(void) override;
 	virtual void executePolicyPowerBossActionsTableChanged(void) override;
@@ -285,6 +291,7 @@ public:
 	virtual void executePolicyActiveControlPointRelationshipTableChanged(void) override;
 	virtual void executePolicyPowerShareAlgorithmTableChanged(void) override;
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) override;
+	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) override;
 	virtual void executePowerLimitChanged(void) override;
 	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) override;

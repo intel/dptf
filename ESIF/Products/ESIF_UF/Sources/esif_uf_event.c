@@ -223,7 +223,7 @@ void *esif_event_worker_thread(void *ptr)
 #endif
 	UNREFERENCED_PARAMETER(ptr);
 	ESIF_TRACE_ENTRY_INFO();
-	CMD_OUT("Start ESIF Event Thread\n");
+	CMD_OUT("Start IPF Event Thread\n");
 
 	g_eventThreadExit = 0;
 

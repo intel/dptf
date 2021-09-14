@@ -38,30 +38,36 @@ RfProfileDataSet RfProfileDataSet::createRfProfileDataFromDptfBuffer(const DptfB
 	UInt8* data = reinterpret_cast<UInt8*>(buffer.get());
 	struct esif_data_rfprofile* currentRow =
 		reinterpret_cast<struct esif_data_rfprofile*>(data);
+	Bool is5GDevice = false;
 
 	if (buffer.size() == 0)
 	{
-		throw dptf_exception("Received empty PPSS buffer.");
+		throw dptf_exception("Received empty Rf Channel Info buffer.");
 	}
 
 	UIntN rows = buffer.size() / sizeof(esif_data_rfprofile);
 
 	for (UIntN i = 0; i < rows; i++)
 	{
+		auto is5G = static_cast<UInt32>(currentRow->is5G.integer.value);
+		if (is5G == 1)
+		{
+			is5GDevice = true;
+		}
+		auto servingCellInfo = static_cast<UInt32>(currentRow->servingCellInfo.integer.value);
 		auto centerFrequency = Frequency(static_cast<UInt64>(currentRow->centerFrequency.integer.value));
 		auto frequencySpread = Frequency(static_cast<UInt64>(currentRow->frequencySpread.integer.value));
-		auto noisePower = static_cast<UInt32>(currentRow->noisePower.integer.value);
-		auto rssi = static_cast<UInt32>(currentRow->rssi.integer.value);
 		auto connectStatus = static_cast<UInt32>(currentRow->connectStatus.integer.value);
+		auto channelNumber = static_cast<UInt32>(currentRow->channelNumber.integer.value);
+		auto band = static_cast<UInt32>(currentRow->band.integer.value);
 		if (RadioConnectionStatus::Connected == connectStatus)
 		{
 			connectionStatus = RadioConnectionStatus::Connected;
 		}
 
-		RfProfileSupplementalData rfProfileSupplementalData(
-			noisePower, rssi, connectionStatus);
-		RfProfileData rfProfileData(
-			centerFrequency, frequencySpread / 2, frequencySpread / 2, Frequency(0), rfProfileSupplementalData);
+		RfProfileSupplementalData rfProfileSupplementalData(connectionStatus);
+		RfProfileData rfProfileData(is5GDevice, servingCellInfo,
+			centerFrequency, frequencySpread / 2, frequencySpread / 2, Frequency(0), channelNumber, band, rfProfileSupplementalData);
 
 		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 

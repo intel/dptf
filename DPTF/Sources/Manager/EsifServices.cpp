@@ -64,7 +64,7 @@ EsifServicesInterface* EsifServices::getEsifServices() const
 	return (EsifServicesInterface*)this;
 }
 
-UInt32 EsifServices::readConfigurationUInt32(const std::string& elementPath)
+UInt32 EsifServices::readConfigurationUInt32(const string& elementPath)
 {
 	EsifDataUInt32 esifResult;
 
@@ -90,7 +90,7 @@ UInt32 EsifServices::readConfigurationUInt32(const std::string& elementPath)
 	return esifResult;
 }
 
-UInt32 EsifServices::readConfigurationUInt32(const std::string& nameSpace, const std::string& elementPath)
+UInt32 EsifServices::readConfigurationUInt32(const string& nameSpace, const string& elementPath)
 {
 	EsifDataUInt32 esifResult;
 
@@ -106,7 +106,7 @@ UInt32 EsifServices::readConfigurationUInt32(const std::string& nameSpace, const
 	return esifResult;
 }
 
-void EsifServices::writeConfigurationUInt32(const std::string& elementPath, UInt32 elementValue)
+void EsifServices::writeConfigurationUInt32(const string& elementPath, UInt32 elementValue)
 {
 	eEsifError rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
@@ -130,7 +130,7 @@ void EsifServices::writeConfigurationUInt32(const std::string& elementPath, UInt
 	}
 }
 
-std::string EsifServices::readConfigurationString(const std::string& nameSpace, const std::string& elementPath)
+string EsifServices::readConfigurationString(const string& nameSpace, const string& elementPath)
 {
 	DptfBuffer buffer(Constants::DefaultBufferSize);
 	EsifDataContainer esifData(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
@@ -157,7 +157,7 @@ std::string EsifServices::readConfigurationString(const std::string& nameSpace, 
 	return buffer.toString();
 }
 
-DptfBuffer EsifServices::readConfigurationBinary(const std::string& nameSpace, const std::string& elementPath)
+DptfBuffer EsifServices::readConfigurationBinary(const string& nameSpace, const string& elementPath)
 {
 	DptfBuffer buffer(Constants::DefaultBufferSize);
 	EsifDataContainer esifData(esif_data_type::ESIF_DATA_BINARY, buffer.get(), buffer.size(), 0);
@@ -188,8 +188,8 @@ void EsifServices::writeConfigurationBinary(
 	void* bufferPtr,
 	UInt32 bufferLength,
 	UInt32 dataLength,
-	const std::string& nameSpace,
-	const std::string& key)
+	const string& nameSpace,
+	const string& key)
 {
 	eEsifError rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
@@ -212,9 +212,7 @@ void EsifServices::writeConfigurationBinary(
 	}
 }
 
-void EsifServices::deleteConfigurationBinary(
-	const std::string& nameSpace,
-	const std::string& key)
+void EsifServices::deleteConfigurationBinary(const string& nameSpace, const string& key)
 {
 	eEsifError rc = m_appServices->setConfigurationValue(
 		m_esifHandle,
@@ -658,7 +656,7 @@ void EsifServices::primitiveExecuteSetAsTimeInMilliseconds(
 	throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
-std::string EsifServices::primitiveExecuteGetAsString(
+string EsifServices::primitiveExecuteGetAsString(
 	esif_primitive_type primitive,
 	UIntN participantIndex,
 	UIntN domainIndex,
@@ -684,7 +682,7 @@ std::string EsifServices::primitiveExecuteGetAsString(
 
 void EsifServices::primitiveExecuteSetAsString(
 	esif_primitive_type primitive,
-	std::string stringValue,
+	string stringValue,
 	UIntN participantIndex,
 	UIntN domainIndex,
 	UInt8 instance)
@@ -756,12 +754,6 @@ void EsifServices::primitiveExecuteSet(
 {
 	throwIfParticipantDomainCombinationInvalid(FLF, participantIndex, domainIndex);
 
-	char nonEmptyBuffer[1] = {0};
-	if (esifDataType == esif_data_type::ESIF_DATA_BINARY && bufferPtr == NULL && bufferLength == 0 && dataLength == 0)
-	{
-		bufferPtr = nonEmptyBuffer;
-	}
-
 	eEsifError rc = m_appServices->executePrimitive(
 		m_esifHandle,
 		(const esif_handle_t)(UInt64)m_dptfManager,
@@ -774,7 +766,7 @@ void EsifServices::primitiveExecuteSet(
 	throwIfNotSuccessful(FLF, rc, primitive, participantIndex, domainIndex, instance);
 }
 
-void EsifServices::writeMessageFatal(const std::string& message, MessageCategory::Type messageCategory)
+void EsifServices::writeMessageFatal(const string& message, MessageCategory::Type messageCategory)
 {
 	if (eLogType::eLogTypeFatal <= m_currentLogVerbosityLevel)
 	{
@@ -782,7 +774,7 @@ void EsifServices::writeMessageFatal(const std::string& message, MessageCategory
 	}
 }
 
-void EsifServices::writeMessageError(const std::string& message, MessageCategory::Type messageCategory)
+void EsifServices::writeMessageError(const string& message, MessageCategory::Type messageCategory)
 {
 	if (eLogType::eLogTypeError <= m_currentLogVerbosityLevel)
 	{
@@ -790,7 +782,7 @@ void EsifServices::writeMessageError(const std::string& message, MessageCategory
 	}
 }
 
-void EsifServices::writeMessageWarning(const std::string& message, MessageCategory::Type messageCategory)
+void EsifServices::writeMessageWarning(const string& message, MessageCategory::Type messageCategory)
 {
 	if (eLogType::eLogTypeWarning <= m_currentLogVerbosityLevel)
 	{
@@ -798,7 +790,7 @@ void EsifServices::writeMessageWarning(const std::string& message, MessageCatego
 	}
 }
 
-void EsifServices::writeMessageInfo(const std::string& message, MessageCategory::Type messageCategory)
+void EsifServices::writeMessageInfo(const string& message, MessageCategory::Type messageCategory)
 {
 	if (eLogType::eLogTypeInfo <= m_currentLogVerbosityLevel)
 	{
@@ -806,7 +798,7 @@ void EsifServices::writeMessageInfo(const std::string& message, MessageCategory:
 	}
 }
 
-void EsifServices::writeMessageDebug(const std::string& message, MessageCategory::Type messageCategory)
+void EsifServices::writeMessageDebug(const string& message, MessageCategory::Type messageCategory)
 {
 	if (eLogType::eLogTypeDebug <= m_currentLogVerbosityLevel)
 	{
@@ -888,10 +880,7 @@ void EsifServices::unregisterEvent(FrameworkEvent::Type frameworkEvent, UIntN pa
 	}
 }
 
-void EsifServices::writeMessage(
-	eLogType messageLevel,
-	MessageCategory::Type messageCategory,
-	const std::string& message)
+void EsifServices::writeMessage(eLogType messageLevel, MessageCategory::Type messageCategory, const string& message)
 {
 	// Do not throw an error here....
 	// In general we will write to the log file when an error has been thrown and we don't want to create
@@ -919,9 +908,9 @@ void EsifServices::writeMessage(
 }
 
 void EsifServices::throwIfNotSuccessful(
-	const std::string& fileName,
+	const string& fileName,
 	UIntN lineNumber,
-	const std::string& executingFunctionName,
+	const string& executingFunctionName,
 	eEsifError returnCode,
 	UIntN participantIndex,
 	UIntN domainIndex)
@@ -946,9 +935,9 @@ void EsifServices::throwIfNotSuccessful(
 }
 
 void EsifServices::throwIfNotSuccessful(
-	const std::string& fileName,
+	const string& fileName,
 	UIntN lineNumber,
-	const std::string& executingFunctionName,
+	const string& executingFunctionName,
 	eEsifError returnCode,
 	esif_primitive_type primitive,
 	UIntN participantIndex,
@@ -1005,11 +994,11 @@ void EsifServices::throwIfNotSuccessful(
 }
 
 void EsifServices::throwIfNotSuccessful(
-	const std::string& fileName,
+	const string& fileName,
 	UIntN lineNumber,
-	const std::string& executingFunctionName,
+	const string& executingFunctionName,
 	eEsifError returnCode,
-	const std::string& messageText)
+	const string& messageText)
 {
 	if (returnCode == ESIF_OK)
 	{
@@ -1031,9 +1020,9 @@ void EsifServices::throwIfNotSuccessful(
 }
 
 void EsifServices::throwIfParticipantDomainCombinationInvalid(
-	const std::string& fileName,
+	const string& fileName,
 	UIntN lineNumber,
-	const std::string& executingFunctionName,
+	const string& executingFunctionName,
 	UIntN participantIndex,
 	UIntN domainIndex)
 {
@@ -1085,9 +1074,10 @@ void EsifServices::sendDptfEvent(
 	}
 }
 
-eEsifError EsifServices::sendCommand(UInt32 argc, const std::string& argv)
+eEsifError EsifServices::sendCommand(UInt32 argc, const string& argv)
 {
 	DptfBuffer buffer(Constants::DefaultBufferSize);
 	EsifDataContainer response(esif_data_type::ESIF_DATA_STRING, buffer.get(), buffer.size(), 0);
-	return m_appServices->sendCommand(m_esifHandle, (const esif_handle_t)(UInt64)m_dptfManager, argc, EsifDataString(argv), response);
+	return m_appServices->sendCommand(
+		m_esifHandle, (const esif_handle_t)(UInt64)m_dptfManager, argc, EsifDataString(argv), response);
 }

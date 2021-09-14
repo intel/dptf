@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Dptf.h"
+#include "OsPowerSource.h"
 
 namespace PpmPackage
 {
@@ -30,6 +31,7 @@ namespace PpmPackage
 		UIntN paramValue;
 		UIntN betterBattery;
 		UIntN betterPerformance;
+		UIntN powerSource;
 	};
 
 	enum Type
@@ -37,15 +39,21 @@ namespace PpmPackage
 		P1 = 1,
 		P2 = 2,
 		P3 = 3,
-		R1 = 4,
-		B1 = 5,
-		B2 = 6,
-		
-		Invalid
+		P4 = 4,
+		P5 = 5,
+		P6 = 6,
+		P1AC = 7,
+		P2AC = 8,
+		P3AC = 9,
+		P4AC = 10,
+		P5AC = 11,
+		P6AC = 12,
+		Invalid = 0
 	};
 
 	std::string toString(PpmPackage::Type package);
 	PpmPackage::Type toState(std::string state);
 	PpmPackage::Type fromString(const std::string package);
 	PpmPackage::Type toState(UInt32 state);
+	std::string toStringBasedOnOS(PpmPackage::Type package, OsPowerSource::Type osPowerSource);
 }

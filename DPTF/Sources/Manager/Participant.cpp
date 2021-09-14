@@ -1371,6 +1371,12 @@ void Participant::setDdrRfiTable(UIntN domainIndex, DdrfChannelBandPackage::Wifi
 	m_domains[domainIndex]->setDdrRfiTable(ddrRfiStruct);
 }
 
+void Participant::setProtectRequest(UIntN domainIndex, UInt64 frequencyRate)
+{
+	throwIfDomainInvalid(domainIndex);
+	m_domains[domainIndex]->setProtectRequest(frequencyRate);
+}
+
 UtilizationStatus Participant::getUtilizationStatus(UIntN domainIndex)
 {
 	throwIfDomainInvalid(domainIndex);
@@ -1439,3 +1445,10 @@ EsifServicesInterface* Participant::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
 }
+
+UInt32 Participant::getSocDgpuPerformanceHintPoints(UIntN domainIndex)
+{
+	throwIfDomainInvalid(domainIndex);
+	return m_domains[domainIndex]->getSocDgpuPerformanceHintPoints();
+}
+

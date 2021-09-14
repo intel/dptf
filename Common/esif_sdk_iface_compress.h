@@ -20,16 +20,20 @@
 
 #include "esif_ccb.h"
 
+#ifdef ESIF_ATTR_OS_WINDOWS
+#define	ESIFCMP_LIBRARY				"ipf_cmp"			// Name of Loadable .dll or .so Library
+#else
 #define	ESIFCMP_LIBRARY				"esif_cmp"			// Name of Loadable .dll or .so Library
-#define	ESIFCMP_COMPRESSOR			"EsifCompress"		// Name of Exported Symbol in Library to Compress data
-#define	ESIFCMP_DECOMPRESSOR		"EsifDecompress"	// Name of Exported Symbol in Library to Decompress data
+#endif
+#define	ESIFCMP_COMPRESSOR			"IpfCompress"		// Name of Exported Symbol in Library to Compress data
+#define	ESIFCMP_DECOMPRESSOR		"IpfDecompress"		// Name of Exported Symbol in Library to Decompress data
 #define ESIFCMP_ERROR_OUTPUT_EOF	7					// Output Buffer too small return code (SZ_ERROR_OUTPUT_EOF)
 
 /* Exported Data Compression Function Pointer (ESIFCMP_COMPRESSOR)
  * Call with NULL dest to compute required destLen
  * Returns 0 on success, nonzero on error
  */
-typedef int (ESIF_CALLCONV *EsifCompressFuncPtr)(
+typedef int (ESIF_CALLCONV *IpfCompressFuncPtr)(
 	unsigned char *dest,
 	size_t *destLen,
 	const unsigned char *src,
@@ -40,7 +44,7 @@ typedef int (ESIF_CALLCONV *EsifCompressFuncPtr)(
  * Call with NULL dest to compute required destLen
  * Returns 0 on success, nonzero on error
  */
-typedef int (ESIF_CALLCONV *EsifDecompressFuncPtr)(
+typedef int (ESIF_CALLCONV *IpfDecompressFuncPtr)(
 	unsigned char *dest,
 	size_t *destLen,
 	const unsigned char *src,
@@ -52,12 +56,12 @@ typedef int (ESIF_CALLCONV *EsifDecompressFuncPtr)(
  * Returns nonzero if data appears to be compressed.
  *
  * Note that you can also verify that a data buffer is compressed by first loading
- * the ESIF Compression Loadable Library and then calling (*EsifDecompressFuncPtr)
+ * the ESIF Compression Loadable Library and then calling (*IpfDecompressFuncPtr)
  * with a NULL dest. If it returns 0, the data is compressed and *destLen=decompressed size
  */
 #include <memory.h>
 
-/* These are only used by EsfCmp_IsCompressed and ESIF_CMP Library; Do not use in Client code.
+/* These are only used by EsfCmp_IsCompressed and IPF_CMP Library; Do not use in Client code.
  */
 #define ESIFCMP_SIGNATURE		{'\x5D','\x00'}	// Always [5D 00] for LZMA Properties -lc3 -lp0 -pb2 and -d12 to -d27 lzma.exe options
 #define ESIFCMP_HEADER_SIZE		13				// 5-byte LZMA Properties + UInt64 uncompressed size

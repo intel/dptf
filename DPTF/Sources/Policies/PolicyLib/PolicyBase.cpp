@@ -581,6 +581,14 @@ void PolicyBase::intelligentThermalManagementTableChanged(void)
 	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Intelligent Thermal Management Table changed."; });
 	onIntelligentThermalManagementTableChanged();
 }
+
+void PolicyBase::energyPerformanceOptimizerTableChanged(void)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Energy Performance Optimizer Table changed."; });
+	onEnergyPerformanceOptimizerTableChanged();
+}
+
 void PolicyBase::pidAlgorithmTableChanged(void)
 {
 	throwIfPolicyIsDisabled();
@@ -627,6 +635,13 @@ Bool PolicyBase::hasActiveControlCapability() const
 Bool PolicyBase::hasPassiveControlCapability() const
 {
 	return false;
+}
+
+void PolicyBase::igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO({ return getName() + ": Policy resume event received."; });
+	onIgccBroadcastReceived(broadcastNotificationData);
 }
 
 Bool PolicyBase::hasCriticalShutdownCapability() const
@@ -816,6 +831,14 @@ void PolicyBase::operatingSystemPowerSliderChanged(OsPowerSlider::Type powerSlid
 	POLICY_LOG_MESSAGE_INFO(
 		{ return getName() + ": OS power slider changed to " + OsPowerSlider::toString(powerSlider) + "."; });
 	onOperatingSystemPowerSliderChanged(powerSlider);
+}
+
+void PolicyBase::systemModeChanged(SystemMode::Type systemMode)
+{
+	throwIfPolicyIsDisabled();
+	POLICY_LOG_MESSAGE_INFO(
+		{ return getName() + ": System Mode changed to " + SystemMode::toString(systemMode) + "."; });
+	onSystemModeChanged(systemMode);
 }
 
 void PolicyBase::coolingModePolicyChanged(CoolingMode::Type coolingMode)
@@ -1159,6 +1182,11 @@ void PolicyBase::onDdrfTableChanged(void)
 	throw not_implemented();
 }
 
+void PolicyBase::onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onConnectedStandbyEntry(void)
 {
 	throw not_implemented();
@@ -1259,6 +1287,11 @@ void PolicyBase::onOperatingSystemPowerSliderChanged(OsPowerSlider::Type powerSl
 	throw not_implemented();
 }
 
+void PolicyBase::onSystemModeChanged(SystemMode::Type systemMode)
+{
+	throw not_implemented();
+}
+
 void PolicyBase::onCoolingModePolicyChanged(CoolingMode::Type coolingMode)
 {
 	throw not_implemented();
@@ -1340,6 +1373,11 @@ void PolicyBase::onWorkloadHintConfigurationChanged(void)
 }
 
 void PolicyBase::onPowerShareAlgorithmTable2Changed(void)
+{
+	throw not_implemented();
+}
+
+void PolicyBase::onEnergyPerformanceOptimizerTableChanged(void)
 {
 	throw not_implemented();
 }

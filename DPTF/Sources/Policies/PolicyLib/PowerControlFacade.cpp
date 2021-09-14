@@ -187,6 +187,29 @@ void PowerControlFacade::setPL1PowerLimitControlToMax()
 	}
 }
 
+void PowerControlFacade::setPL1PowerLimitControlToMaxAndTimeWindowToMin()
+{
+	const auto& capsSet = getCapabilities();
+
+	if (capsSet.hasCapability(PowerControlType::PL1))
+	{
+		const auto& caps = capsSet.getCapability(PowerControlType::PL1);
+		setPowerLimitPL1(caps.getMaxPowerLimit());
+		setPowerLimitTimeWindowPL1(caps.getMinTimeWindow());
+	}
+}
+
+void PowerControlFacade::setPL2PowerLimitControlToMax()
+{
+	const auto& capsSet = getCapabilities();
+
+	if (capsSet.hasCapability(PowerControlType::PL2))
+	{
+		const auto& caps = capsSet.getCapability(PowerControlType::PL2);
+		setPowerLimitPL2(caps.getMaxPowerLimit());
+	}
+}
+
 void PowerControlFacade::setPowerLimitPL1(const Power& powerLimit)
 {
 	throwIfControlNotSupported();
@@ -269,13 +292,13 @@ void PowerControlFacade::unlockCapabilities()
 
 void PowerControlFacade::removePowerLimitPolicyRequest(PowerControlType::Type controlType)
 {
-	m_policyServices.domainPowerControl->removePowerLimitPolicyRequest(
-		m_participantIndex, m_domainIndex, controlType);
+	m_policyServices.domainPowerControl->removePowerLimitPolicyRequest(m_participantIndex, m_domainIndex, controlType);
 }
 
 void PowerControlFacade::setPowerSharePolicyPower(const Power& powerSharePolicyPower)
 {
-	m_policyServices.domainPowerControl->setPowerSharePolicyPower(m_participantIndex, m_domainIndex, powerSharePolicyPower);
+	m_policyServices.domainPowerControl->setPowerSharePolicyPower(
+		m_participantIndex, m_domainIndex, powerSharePolicyPower);
 }
 
 void PowerControlFacade::setPowerLimitsWithinCapabilities()

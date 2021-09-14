@@ -46,6 +46,7 @@ void TableObjectDeleteCommand::execute(const CommandArguments& arguments)
 	{
 		if (arguments[3].getDataAsString() == "all")
 		{
+			// tableobject delete apat d4cafb01-01cb-4b39-b33f-1ac68f0d7903 all
 			uuid = arguments[2].getDataAsString();
 			m_dptfManager->getDataManager()->deleteAllTableObject(TableObjectType::ToType(tableName), uuid);
 		}
@@ -54,15 +55,19 @@ void TableObjectDeleteCommand::execute(const CommandArguments& arguments)
 	{
 		if (arguments[2].getDataAsString() == "all")
 		{
+			// tableobject delete apat all
 			m_dptfManager->getDataManager()->deleteAllTableObject(TableObjectType::ToType(tableName), uuid);
 		}
 		else
 		{
+			// tableobject delete apat d4cafb01-01cb-4b39-b33f-1ac68f0d7903
+			uuid = arguments[2].getDataAsString();
 			m_dptfManager->getDataManager()->deleteTableObject(TableObjectType::ToType(tableName), uuid);
 		}
 	}
 	else
 	{
+		// tableobject delete apat
 		m_dptfManager->getDataManager()->deleteTableObject(TableObjectType::ToType(tableName), uuid);
 	}
 	setResultCode(ESIF_OK);
@@ -74,7 +79,7 @@ void TableObjectDeleteCommand::throwIfBadArguments(const CommandArguments& argum
 	{
 		string description = string(
 			"Invalid argument count given to 'tableobject delete' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
@@ -83,7 +88,7 @@ void TableObjectDeleteCommand::throwIfBadArguments(const CommandArguments& argum
 	{
 		string description = string(
 			"Invalid argument type given to 'tableobject delete' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -95,7 +100,7 @@ void TableObjectDeleteCommand::throwIfTableObjectNotExist(const CommandArguments
 	auto tableExists = m_dptfManager->getDataManager()->tableObjectExists(TableObjectType::ToType(tableName));
 	if (tableExists == false)
 	{
-		string description = string("The table object specified was not found.");
+		string description = string("TableObject schema not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}

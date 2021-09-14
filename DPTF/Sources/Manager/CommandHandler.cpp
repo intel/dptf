@@ -23,7 +23,7 @@
 
 using namespace std;
 
-std::string defaultSuccessMessage("The command completed successfully");
+string defaultSuccessMessage("The command completed successfully.");
 
 CommandHandler::CommandHandler(DptfManagerInterface* dptfManager)
 	: m_resultMessage(defaultSuccessMessage)
@@ -36,12 +36,12 @@ CommandHandler::~CommandHandler()
 {
 }
 
-std::string CommandHandler::getLastExecutionMessage()
+string CommandHandler::getLastExecutionMessage()
 {
 	return m_resultMessage;
 }
 
-void CommandHandler::setResultMessage(const std::string& message)
+void CommandHandler::setResultMessage(const string& message)
 {
 	m_resultMessage = message;
 }

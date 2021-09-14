@@ -78,6 +78,11 @@ OsPowerSchemePersonality::Type PolicyServicesPlatformState::getPowerSchemePerson
 	return getDptfManager()->getEventCache()->powerSchemePersonality.get();
 }
 
+SystemMode::Type PolicyServicesPlatformState::getSystemMode(void) const
+{
+	return getDptfManager()->getEventCache()->systemMode.get();
+}
+
 UIntN PolicyServicesPlatformState::getMobileNotification(OsMobileNotificationType::Type notificationType) const
 {
 	switch (notificationType)

@@ -28,12 +28,18 @@ class RfProfileData final
 {
 public:
 	RfProfileData(
+		Bool is5G,
+		UInt32 servingCellInfo,
 		Frequency centerFrequency,
 		Frequency leftFrequencySpread,
 		Frequency rightFrequencySpread,
 		Frequency guardband,
+		UInt32 channelNumber,
+		UInt32 band,
 		RfProfileSupplementalData supplementalData);
 
+	Bool is5G(void) const;
+	UInt32 getServingCellInfo(void) const;
 	Frequency getCenterFrequency(void) const;
 	Frequency getLeftFrequencySpread(void) const;
 	Frequency getRightFrequencySpread(void) const;
@@ -45,6 +51,8 @@ public:
 	Frequency getRightFrequencySpreadWithGuardband(void) const;
 	Frequency getLeftFrequencyWithGuardband(void) const;
 	Frequency getRightFrequencyWithGuardband(void) const;
+	UInt32 getChannelNumber(void) const;
+	UInt32 getBand(void) const;
 	RfProfileSupplementalData getSupplementalData(void) const;
 
 	Bool operator==(const RfProfileData& rhs) const;
@@ -53,9 +61,13 @@ public:
 	std::shared_ptr<XmlNode> getXml(void) const;
 
 private:
+	Bool m_is5G;
+	UInt32 m_servingCellInfo;
 	Frequency m_centerFrequency;
 	Frequency m_leftFrequencySpread;
 	Frequency m_rightFrequencySpread;
 	Frequency m_guardband;
+	UInt32 m_channelNumber;
+	UInt32 m_band;
 	RfProfileSupplementalData m_supplementalData;
 };

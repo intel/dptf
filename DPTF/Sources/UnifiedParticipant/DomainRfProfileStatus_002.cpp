@@ -48,10 +48,14 @@ RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participan
 		for (auto rfData = rfProfileData.begin(); rfData != rfProfileData.end(); rfData++)
 		{
 			RfProfileData newRfProfileData(
+				rfData->is5G(),
+				rfData->getServingCellInfo(),
 				rfData->getCenterFrequency(),
 				rfData->getLeftFrequencySpread(),
 				rfData->getRightFrequencySpread(),
 				guardband,
+				rfData->getChannelNumber(),
+				rfData->getBand(),
 				rfData->getSupplementalData());
 			newRfProfileDataSet.insert(newRfProfileDataSet.end(), newRfProfileData);
 		}
@@ -60,9 +64,7 @@ RfProfileDataSet DomainRfProfileStatus_002::getRfProfileDataSet(UIntN participan
 	}
 	catch (...)
 	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to get Rf Channel Info. ";
-			});
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get Rf Channel Info. "; });
 	}
 	return m_rfProfileDataSet;
 }
@@ -71,18 +73,16 @@ UInt32 DomainRfProfileStatus_002::getWifiCapabilities(UIntN participantIndex, UI
 {
 	UInt32 wifiCapabilities = Constants::Invalid;
 
-	try 
+	try
 	{
 		wifiCapabilities = getParticipantServices()->primitiveExecuteGetAsUInt32(
 			esif_primitive_type::GET_WIFI_CAPABILITIES, domainIndex);
 	}
-	catch (...) 
+	catch (...)
 	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to get Wifi Capabilities Info. ";
-			});
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get Wifi Capabilities Info. "; });
 	}
-	
+
 	return wifiCapabilities;
 }
 
@@ -99,24 +99,28 @@ UInt64 DomainRfProfileStatus_002::getDvfsPoints(UIntN participantIndex, UIntN do
 void DomainRfProfileStatus_002::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
-	)
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
 {
 	try
 	{
 		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return ("Setting the DDR RFI table for a total of " + StatusFormat::friendlyValue(ddrRfiStruct.numberOfDvfsPoints) + " dvfs points");
-			});
+			return (
+				"Setting the DDR RFI table for a total of "
+				+ StatusFormat::friendlyValue(ddrRfiStruct.numberOfDvfsPoints) + " dvfs points");
+		});
 
 		getParticipantServices()->primitiveExecuteSet(
 			SET_DDR_RFI_TABLE, ESIF_DATA_STRUCTURE, &ddrRfiStruct, sizeof(ddrRfiStruct), sizeof(ddrRfiStruct));
 	}
 	catch (...)
 	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to set DDR RFI table. ";
-			});
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to set DDR RFI table. "; });
 	}
+}
+
+void DomainRfProfileStatus_002::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
+{
+	throw not_implemented();
 }
 
 Frequency DomainRfProfileStatus_002::getRfProfileGuardband(UIntN participantIndex, UIntN domainIndex)
@@ -168,7 +172,7 @@ void DomainRfProfileStatus_002::sendActivityLoggingDataIfEnabled(UIntN participa
 			UInt32 channelNumber = 0;
 
 			for (auto rfProfileData = rfProfileDataSet.begin(); rfProfileData != rfProfileDataSet.end();
-					rfProfileData++)
+				 rfProfileData++)
 			{
 				/* WWAN can have five or less channels with info and Wireless only has one channel with info */
 				if ((domainType == DomainType::WwanRfim) || (domainType == DomainType::Wireless && channelNumber == 0))

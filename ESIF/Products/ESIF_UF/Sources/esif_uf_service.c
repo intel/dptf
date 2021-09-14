@@ -171,6 +171,12 @@ eEsifError ESIF_CALLCONV EsifSvcPrimitiveExec(
 		goto exit;
 	}
 
+	/* Banned Primitives that may not be called via the ESIF Interface */
+	if (primitive == GET_CONFIG) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		goto exit;
+	}
+
 	/* Lookup our Participant ID from the provided participant handle */
 	/* If the participantId is invalid use particiapnt 0 as agreed with DPTF */
 	if (EsifUpPm_IsPrimaryParticipantId(participantId) || (ESIF_INVALID_HANDLE == participantId)) {
@@ -709,6 +715,65 @@ static void *ESIF_CALLCONV EsifSvcCommand_StartWorker(void *ctx)
 }
 
 /*
+** Checks whether the given multi-statement command is permitted or must run asynchronously
+*/
+static esif_error_t EsifSvcCommand_VerifyCommand(char *cmdbuf)
+{
+	esif_error_t rc = ESIF_OK;	// Command permitted and may run on current thread synchronously
+	static struct {
+		char *cmd;
+		Bool banned;
+	} cmd_mapping[] = {
+		{ "$start" },			// $ = only allowed for first command in multi-command string ("start command one && command two")
+		{ "config gddv set" },
+		{ "config gddv reset" },
+		{ "config gddv restore" },
+		{ "getp_part ietm get_config", ESIF_TRUE },
+		{ "getp_part ietm 344", ESIF_TRUE },
+		{ "getp get_config", ESIF_TRUE },
+		{ "getp 344", ESIF_TRUE },
+		{ NULL }
+	};
+	int cmdnum = 0;
+
+	// Check whether any of the multi-statement commands are asynchronous
+	// Multi-Format: "[start] command one && command two && command three"
+	while (cmdbuf) {
+		while (isspace(*cmdbuf)) {
+			cmdbuf++;
+		}
+		for (int j = 0; cmd_mapping[j].cmd; j++) {
+			char *cmdthis = cmd_mapping[j].cmd;
+			if (*cmdthis == '$') {
+				if (cmdnum) {
+					continue;
+				}
+				cmdthis++;
+			}
+			size_t cmdlen = esif_ccb_strlen(cmdthis, MAX_LINE);
+			if (esif_ccb_strnicmp(cmdthis, cmdbuf, cmdlen) == 0) {
+				if (cmdbuf[cmdlen] == 0 || isspace(cmdbuf[cmdlen])) {
+					if (cmd_mapping[j].banned) {
+						rc = ESIF_E_SESSION_PERMISSION_DENIED;	// Command not permitted via ESIF Interface
+					}
+					else {
+						rc = ESIF_I_AGAIN;	// Command permitted but must run on another thread asynchronously
+					}
+					return rc;
+				}
+			}
+		}
+		char cmdsep[] = " && ";
+		cmdbuf = esif_ccb_strstr(cmdbuf, cmdsep);
+		if (cmdbuf) {
+			cmdbuf += sizeof(cmdsep) - 1;
+			cmdnum++;
+		}
+	}
+	return rc;
+}
+
+/*
 ** Provide interface for App to send Shell Command to ESIF
 */
 eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
@@ -728,14 +793,17 @@ eEsifError ESIF_CALLCONV EsifSvcCommandReceive(
 	if (argc == 1 && argv[0].type == ESIF_DATA_STRING && argv[0].buf_ptr) {
 		char *command = NULL;
 
-		// Intercept "start" command and create a new thread to run it to avoid shell deadlocks
-		char start_prefix[] = "start ";
-		if (esif_ccb_strnicmp((char *)argv[0].buf_ptr, start_prefix, sizeof(start_prefix) - 1) == 0) {
+		// Intercept commands that need to run on a different thread to avoid deadlocks caused by restarting all ESIF apps
+		rc = EsifSvcCommand_VerifyCommand((esif_string)argv[0].buf_ptr);
+
+		if (rc == ESIF_I_AGAIN) {
 			command = esif_ccb_strdup((esif_string)argv[0].buf_ptr);
 		}
-		// Intercept "config gddv set" command and run it on a new thread to avoid deadlocks caused by restarting ipfsrv and ui client apps
-		else if (esif_ccb_strstr((char*)argv[0].buf_ptr, "config gddv set") != NULL) {
-			command = esif_ccb_strdup((esif_string)argv[0].buf_ptr);
+		else if (rc != ESIF_OK) {
+			if (response && response->type == ESIF_DATA_STRING && response->buf_ptr && response->buf_len) {
+				response->data_len = esif_ccb_sprintf(response->buf_len, response->buf_ptr, "%s\n", esif_rc_str(rc)) + 1;
+			}
+			return rc;
 		}
 
 		// Run Intercepted commands on a different thread

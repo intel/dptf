@@ -65,7 +65,7 @@ int timeval_subtract(
 }
 
 
-#define SESSION_ID "ESIF"
+#define SESSION_ID "IPF_UF"
 extern int g_quit;
 extern int g_disconnectClient;
 extern int g_timestamp;
@@ -148,13 +148,13 @@ eEsifError ipc_connect()
 	// Connect to LF
 	g_ipc_handle = esif_ipc_connect((char *)SESSION_ID);
 	if (g_ipc_handle == INVALID_HANDLE_VALUE) {
-		ESIF_TRACE_WARN("ESIF LF is not available\n");
+		ESIF_TRACE_WARN("IPF LF is not available\n");
 		rc = ESIF_E_NO_LOWER_FRAMEWORK;
 	}
 	else {
 		char *outbuf = esif_ccb_malloc(OUT_BUF_LEN);
 		char *kern_str = (outbuf != NULL ? esif_cmd_info(outbuf) : NULL);
-		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Opened\n");
+		ESIF_TRACE_DEBUG("IPF IPC Kernel Device Opened\n");
 		if (NULL != kern_str) {
 			// Extract just the Kernel LF Version from the result string
 			extract_kernel_version(kern_str, OUT_BUF_LEN);
@@ -170,7 +170,7 @@ eEsifError ipc_connect()
 				esif_ccb_sprintf(sizeof(g_esif_kernel_version), g_esif_kernel_version, "%s", kern_str);
 			}
 			else {
-				ESIF_TRACE_ERROR("ESIF_LF Version (%s) Incompatible with ESIF_UF Version (%s)\n", kern_str, ESIF_VERSION);
+				ESIF_TRACE_ERROR("IPF_LF Version (%s) Incompatible with IPF_UF Version (%s)\n", kern_str, ESIF_VERSION);
 				ipc_disconnect();
 				rc = ESIF_E_NOT_SUPPORTED;
 			}
@@ -219,7 +219,7 @@ void ipc_disconnect()
 	if (g_ipc_handle != INVALID_HANDLE_VALUE) {
 		esif_ipc_disconnect(g_ipc_handle);
 		g_ipc_handle = INVALID_HANDLE_VALUE;
-		ESIF_TRACE_DEBUG("ESIF IPC Kernel Device Closed\n");
+		ESIF_TRACE_DEBUG("IPF IPC Kernel Device Closed\n");
 	}
 
 	ESIF_TRACE_EXIT_INFO();
@@ -243,7 +243,7 @@ enum esif_rc ipc_execute(struct esif_ipc *ipc)
 	struct timeval result;
 
 	if (g_ipc_handle == INVALID_HANDLE_VALUE) {
-		ESIF_TRACE_WARN("ESIF LF is not available\n");
+		ESIF_TRACE_WARN("IPF LF is not available\n");
 		rc = ESIF_E_NO_LOWER_FRAMEWORK;
 		goto exit;
 	}

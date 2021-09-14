@@ -16,9 +16,8 @@
 **
 ******************************************************************************/
 
-#include <stdlib.h>
 #include "esif_ccb_string.h"
-#include "esif_sdk_iface_ws.h"
+#include "esif_ccb_file.h"
 
 #include "esif_ws_server.h"
 #include "esif_ws_socket.h"
@@ -131,10 +130,7 @@ static size_t WebSocket_HeaderSize(size_t payload_size, Bool mask_flag)
 static char *g_RestApiWhitelist[] = {
 	"about",
 	"actionstart",
-	"actionstop",
 	"apps",
-	"appstart",
-	"appstop",
 	"arbitrator",
 	"capture",
 	"config",
@@ -142,17 +138,19 @@ static char *g_RestApiWhitelist[] = {
 	"dptf",
 	"echo",
 	"format",
+	"getp",
 	"getp_part",
 	"idsp",
 	"log",
 	"participant",
 	"participantlog",
 	"participants",
+	"rstp",
 	"rstp_part",
+	"setp",
 	"setp_part",
 	"status",
 	"tableobject",
-	"toolstart",
 	"trace",
 	"ui",
 	NULL
@@ -310,6 +308,68 @@ static esif_error_t WebSocket_BuildFrame(
 	return rc;
 }
 
+// Execute an Internal REST API Command within this Server
+char *WebServer_ExecRestCmdInternal(
+	WebServerPtr self,
+	const char *rest_cmd,
+	const char *prefix)
+{
+	char *response = NULL;
+
+	// <appname> subcmd [parameters]
+	if (self && rest_cmd) {
+		prefix = (prefix ? prefix : "");
+
+		// Extract <appname>
+		char thisapp[ESIF_NAME_LEN] = { 0 };
+		for (size_t k = 0; k < sizeof(thisapp) - 1 && *rest_cmd && !isspace(*rest_cmd); k++) {
+			thisapp[k] = *rest_cmd++;
+		}
+		while (*rest_cmd && isspace(*rest_cmd)) {
+			rest_cmd++;
+		}
+
+		// Verify <appname>==<libname> or <appname>==WS_APPNAME_LOCALSERVER
+		const char *appname = EsifWsAppName();
+		if (appname && esif_ccb_stricmp(thisapp, appname) != 0 && esif_ccb_stricmp(thisapp, WS_APPNAME_LOCALSERVER) != 0) {
+			return response;
+		}
+
+		// Extract subcmd
+		char subcmd[ESIF_NAME_LEN] = { 0 };
+		for (size_t k = 0; k < sizeof(subcmd) - 1 && *rest_cmd && !isspace(*rest_cmd); k++) {
+			subcmd[k] = *rest_cmd++;
+		}
+		while (*rest_cmd && isspace(*rest_cmd)) {
+			rest_cmd++;
+		}
+
+		// <appname> fetch <filename>
+		if (esif_ccb_stricmp(subcmd, "fetch") == 0 && *rest_cmd && *rest_cmd != '.') {
+			const char *docRoot = EsifWsDocRoot();
+			char pathname[MAX_PATH] = {0};
+			esif_ccb_sprintf(sizeof(pathname), pathname, "%s%s%s", docRoot, ESIF_PATH_SEP, rest_cmd);
+			struct stat st = {0};
+			char *filebuf = NULL;
+			size_t prefix_len = esif_ccb_strlen(prefix, MAX_WEBSOCKET_MSGID_LEN);
+			if (esif_ccb_stat(pathname, &st) == 0 && (filebuf = esif_ccb_malloc(prefix_len + st.st_size + 1)) != NULL) {
+				FILE *fp = esif_ccb_fopen(pathname, "rb", NULL);
+				if (fp) {
+					esif_ccb_strcpy(filebuf, prefix, prefix_len + 1);
+					size_t bytes = esif_ccb_fread(filebuf + prefix_len, st.st_size, 1, st.st_size, fp);
+					if (bytes == (size_t)st.st_size) {
+						response = filebuf;
+						filebuf = NULL;
+					}
+					esif_ccb_fclose(fp);
+				}
+				esif_ccb_free(filebuf);
+			}
+		}
+	}
+	return response;
+}
+
 // Execute a request against the REST API
 esif_error_t WebServer_WebSocketExecRestCmd(
 	WebServerPtr self,
@@ -408,8 +468,18 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 						blocked = ESIF_TRUE;
 					}
 				}
+
+				// Execute Internal REST API Commands within this web server process rather than via ESIF Interface
+				if (blocked || !whitelist[0]) {
+					response = WebServer_ExecRestCmdInternal(self, rest_cmd, response_buf);
+					if (response) {
+						blocked = ESIF_FALSE;
+						shell_cmd = NULL;
+					}
+				}
+
 				// Verify the shell command is not in Blacklist if defined
-				if (!blocked && blacklist[0] && cmd_name[0]) {
+				if (!blocked && !response && blacklist[0] && cmd_name[0]) {
 					for (j = 0; blacklist[j] != NULL; j++) {
 						if (esif_ccb_stricmp(cmd_name, blacklist[j]) == 0) {
 							blocked = ESIF_TRUE;
@@ -432,19 +502,20 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 			if (shell_cmd) {
 				if (atomic_read(&self->isActive)) {
 					response = EsifWsShellExec(shell_cmd, shell_cmd_len + 1, response_buf, esif_ccb_strlen(response_buf, sizeof(response_buf)));
-					if (response) {
-						// Strip Non-ASCII characters from REST API results
-						unsigned char *source = (unsigned char *)response;
-						unsigned char *target = source;
-						while (*source) {
-							if (esif_ccb_strchr("\r\n\t", *(char *)source) != NULL || (*source >= ' ' && *source <= '~')) {
-								*target++ = *source;
-							}
-							source++;
-						}
-						*target = '\0';
-					}
 				}
+			}
+
+			// Strip Non-ASCII characters from REST API results
+			if (response) {
+				unsigned char *source = (unsigned char *)response;
+				unsigned char *target = source;
+				while (*source) {
+					if (esif_ccb_strchr("\r\n\t", *(char *)source) != NULL || (*source >= ' ' && *source <= '~')) {
+						*target++ = *source;
+					}
+					source++;
+				}
+				*target = '\0';
 			}
 
 			// Log Errors indicated by ESIF Error code or Error Message

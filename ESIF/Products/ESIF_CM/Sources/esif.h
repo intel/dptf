@@ -55,9 +55,6 @@
 
 #include "esif_sdk.h"
 
-/* Enable WebSocket Server */
-#define ESIF_ATTR_WEBSOCKET
-
 /* Definitions not moved to esif_ccb.h or esif_sdk.h */
 
 /* Build option to enable simulation support */
@@ -66,6 +63,8 @@
 /* Build option to enable the primitive arbitrator */
 #define ESIF_FEAT_OPT_ARBITRATOR_ENABLED  
 
+/* Build option to enable event caching */
+#define ESIF_FEAT_OPT_EVENT_CACHE_ENABLED
 
 #ifdef ESIF_ATTR_OS_LINUX	/* All Linux-Derived OS */
 

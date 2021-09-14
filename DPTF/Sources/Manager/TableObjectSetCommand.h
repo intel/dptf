@@ -32,7 +32,18 @@ private:
 	void throwIfFailedToAllocateMemory(char* tableValue);
 	void throwIfFailedToAllocateMemory(UInt8* tableValue);
 	void setTableObjectXmlString(const CommandArguments& arguments);
-	void convertToBinaryAndSet(TableObjectType::Type tableType, const char* textInput, std::string uuid);
+	void convertToBinaryAndSet(
+		TableObjectType::Type tableType,
+		const char* textInput,
+		std::string uuid,
+		std::string dvName,
+		std::string key);
 	UInt32 extractInteger(const esif_string str);
-	void setTableData(UInt32 totalBytesNeeded, UInt8* tableMem, TableObjectType::Type tableType, std::string uuid);
+	void setTableData(
+		UInt32 totalBytesNeeded,
+		UInt8* tableMem,
+		TableObjectType::Type tableType,
+		std::string uuid,
+		std::string dvName,
+		std::string key);
 };

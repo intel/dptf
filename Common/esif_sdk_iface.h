@@ -73,14 +73,14 @@ typedef enum _t_eLogType {
 
 typedef enum _t_eIfaceType {
 	eIfaceTypeApplication = 0,
-	eIfaceTypeEsifService,
-	eIfaceTypeAction,
-	eIfaceTypeParticipant,
-	eIfaceTypeConjure,
-	eIfaceTypeConjureService,
-	eIfaceTypeWeb,
-	eIfaceTypeIpfClient,
-	eIfaceTypeIpfIpc,
+	eIfaceTypeEsifService = 1,
+	eIfaceTypeAction = 2,
+	eIfaceTypeParticipant = 3,
+	eIfaceTypeConjure = 4,
+	eIfaceTypeConjureService =5,
+	eIfaceTypeUnused06 = 6,
+	eIfaceTypeIpfClient = 7,
+	eIfaceTypeIpfIpc = 8,
 } eIfaceType;
 
 /* Header structure common to all ESIF interfaces */

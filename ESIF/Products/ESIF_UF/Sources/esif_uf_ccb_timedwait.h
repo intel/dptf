@@ -44,9 +44,22 @@ static ESIF_INLINE eEsifError EsifTimedEventWait(
 	esif_ccb_write_unlock(&waitEventPtr->state_lock);
 
 	apiStatus = WaitForSingleObject(waitEventPtr->sem_obj, (DWORD) msDelay);
-	if ((apiStatus != WAIT_OBJECT_0) && (apiStatus != WAIT_TIMEOUT)) {
-		rc = ESIF_E_UNSPECIFIED;
+	//
+	// If thread released, but not due to signaling; decrement the waiter count
+	//
+	if (apiStatus != WAIT_OBJECT_0) {
+
+		esif_ccb_write_lock(&waitEventPtr->state_lock);
+		if (waitEventPtr->waiters) {
+			waitEventPtr->waiters--;
+		}
+		esif_ccb_write_unlock(&waitEventPtr->state_lock);
+
+		if (apiStatus != WAIT_TIMEOUT) {
+			rc = ESIF_E_UNSPECIFIED;
+		}
 	}
+
 exit:
 	return rc;
 }

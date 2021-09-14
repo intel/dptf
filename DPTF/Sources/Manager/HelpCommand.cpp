@@ -29,7 +29,7 @@ HelpCommand::~HelpCommand()
 {
 }
 
-std::string HelpCommand::getCommandName() const
+string HelpCommand::getCommandName() const
 {
 	return "help";
 }
@@ -38,7 +38,7 @@ void HelpCommand::execute(const CommandArguments& arguments)
 {
 	// TODO:  possibly require each command to report its own help and this
 	// command would just compile all of the helps for each command
-	string message = "DPTF Help Command.  Application version " VERSION_STR
+	string message = "DPTF Help Command. Version " VERSION_STR " [" ESIF_ATTR_OS " " ESIF_PLATFORM_TYPE " " ESIF_BUILD_TYPE "]"
 					 "\n"
 					 "Key:  <>  Required parameters\n"
 					 "      []  Optional parameters\n"
@@ -51,12 +51,20 @@ void HelpCommand::execute(const CommandArguments& arguments)
 					 "                                      Runs diagnostics on a policy\n"
 					 "diag part <participant name> [file name]\n"
 					 "                                      Runs diagnostics on a participant\n"
-					 "dptf tableobject get <tablename>\n"
+					 "dptf tableobject get <tablename> [dynamic policy uuid]\n"
 					 "                                      Gets table from DataVault\n"
-					 "dptf tableobject set <tablename> <value>\n"
-					 "                                      Sets table <value> to DataVault\n"
-					 "dptf tableobject delete <tablename>\n"
-					 "                                      Deletes table from DataVault\n";
+					 "dptf tableobject get <tablename> <datavault> <key>\n"
+					 "                                      Gets table from alternative DataVault source and key\n"
+					 "dptf tableobject set <tablename> <value> [dynamic policy uuid]\n"
+					 "                                      Sets table value to DataVault\n"
+					 "dptf tableobject set <tablename> <value> <datavault> <key>\n"
+					 "                                      Sets table value to alternative DataVault source and key\n"
+					 "dptf tableobject delete <tablename> [dynamic policy uuid]\n"
+					 "                                      Deletes table from DataVault\n"
+					 "dptf tableobject delete <tablename> [dynamic policy uuid] <all>\n"
+					 "                                      Deletes table from all DataVaults\n"
+					 "dptf config delete <datavault> <key>\n"
+					 "                                      Deletes DataVault key\n";
 
 	setResultMessage(message);
 }

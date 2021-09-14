@@ -134,6 +134,12 @@ double TimeSpan::asSeconds() const
 	return seconds;
 }
 
+UInt64 TimeSpan::asSecondsUInt() const
+{
+	throwIfInvalid();
+	return (UInt64)asSeconds();
+}
+
 double TimeSpan::asMinutes() const
 {
 	throwIfInvalid();

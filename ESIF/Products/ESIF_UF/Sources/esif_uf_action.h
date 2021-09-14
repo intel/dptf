@@ -31,7 +31,8 @@ typedef enum DataItemType_e {
 	DATA_ITEM_TYPE_UINT08,
 	DATA_ITEM_TYPE_UINT16,
 	DATA_ITEM_TYPE_UINT32,
-	DATA_ITEM_TYPE_UINT64
+	DATA_ITEM_TYPE_UINT64,
+	DATA_ITEM_TYPE_BINARY
 } DataItemType, *DataItemTypePtr;
 
 
@@ -100,7 +101,8 @@ void EsifActConfigExit(void);
 eEsifError EsifActConfigSignalChangeEvents(
 	EsifUpPtr upPtr,
 	const EsifPrimitiveTuple tuple,
-	const EsifDataPtr requestPtr
+	const EsifDataPtr requestPtr,
+	const esif_event_type_t signalEventId
 	);
 
 eEsifError EsifActConstInit(void);

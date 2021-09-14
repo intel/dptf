@@ -38,6 +38,7 @@
 
 typedef struct EsifEventCacheMgr_s {
 	esif_ccb_lock_t dataLock;
+	Bool isStarted;
 } EsifEventCacheMgr;
 
 typedef struct EsifEventCacheEntry_s {
@@ -57,17 +58,11 @@ static EsifEventCacheEntry g_CachedEvents[] = {
 	{ESIF_EVENT_OS_GAME_MODE_CHANGED,				{0}},
 	{ESIF_EVENT_OS_LID_STATE_CHANGED,				{0}},
 	{ESIF_EVENT_OS_POWER_SLIDER_VALUE_CHANGED,		{0}},
-	{ESIF_EVENT_OS_USER_INTERACTION_CHANGED,		{0}},
-	{ESIF_EVENT_OS_USER_PRESENCE_CHANGED,			{0}},
 	{ESIF_EVENT_OS_SCREEN_STATE_CHANGED,			{0}},
-	{ESIF_EVENT_DEVICE_ORIENTATION_CHANGED,			{0}},
-	{ESIF_EVENT_MOTION_CHANGED,						{0}},
 	{ESIF_EVENT_DTT_SYSTEM_COOLING_POLICY_CHANGED,	{0}},
 	{ESIF_EVENT_OS_PLATFORM_TYPE_CHANGED,			{0}},
-	{ESIF_EVENT_DISPLAY_ORIENTATION_CHANGED,		{0}},
 	{ESIF_EVENT_OS_POWERSCHEME_PERSONALITY_CHANGED,	{0}},
 	{ESIF_EVENT_OS_MIXED_REALITY_MODE_CHANGED,		{0}},
-	{ESIF_EVENT_PLATFORM_USER_PRESENCE_CHANGED,		{0}},
 	{ESIF_EVENT_FOREGROUND_BACKGROUND_RATIO_CHANGED,{0}},
 };
 
@@ -84,9 +79,15 @@ esif_error_t EsifEventCache_GetValue(
 	EsifData* dataPtr
 )
 {
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
+	esif_error_t rc = ESIF_E_NOT_SUPPORTED;
 	EsifEventCacheEntry* curEntryPtr = g_CachedEvents;
 	size_t index = 0;
+
+	if (!g_EventCacheMgr.isStarted) {
+		goto exit;
+	}
+
+	rc = ESIF_E_PARAMETER_IS_NULL;
 
 	if (dataPtr) {
 
@@ -111,6 +112,7 @@ esif_error_t EsifEventCache_GetValue(
 		}
 		esif_ccb_write_unlock(&g_EventCacheMgr.dataLock);
 	}
+	exit:
 	return rc;
 }
 
@@ -202,13 +204,17 @@ void EsifEventCache_Exit(void)
 esif_error_t EsifEventCache_Start(void)
 {
 	esif_error_t rc = ESIF_OK;
+
+#if defined (ESIF_FEAT_OPT_EVENT_CACHE_ENABLED)
 	EsifEventCacheEntry* curEntryPtr = g_CachedEvents;
 	size_t index = 0;
+
+	g_EventCacheMgr.isStarted = ESIF_TRUE;
 
 	for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
 		EsifEventMgr_RegisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
 	}
-
+#endif
 	return rc;
 }
 
@@ -220,11 +226,13 @@ void EsifEventCache_Stop(void)
 
 	esif_ccb_write_lock(&g_EventCacheMgr.dataLock);
 
-	for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
-		EsifEventMgr_UnregisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
+	if (g_EventCacheMgr.isStarted) {
+		for (index = 0; index < ESIF_EVENT_CACHE_NUM_ENTRIES; index++, curEntryPtr++) {
+			EsifEventMgr_UnregisterEventByType(curEntryPtr->eventType, ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, EsifEventCache_EventCallback, 0);
 
-		esif_ccb_free(curEntryPtr->data.buf_ptr);
-		curEntryPtr->data.buf_ptr = NULL;
+			esif_ccb_free(curEntryPtr->data.buf_ptr);
+			curEntryPtr->data.buf_ptr = NULL;
+		}
 	}
 
 	esif_ccb_write_unlock(&g_EventCacheMgr.dataLock);

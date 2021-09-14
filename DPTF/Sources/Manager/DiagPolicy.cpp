@@ -24,7 +24,7 @@
 #include "EsifDataString.h"
 using namespace std;
 
-DiagPolicyCommand::DiagPolicyCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo)
+DiagPolicyCommand::DiagPolicyCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
@@ -34,7 +34,7 @@ DiagPolicyCommand::~DiagPolicyCommand()
 {
 }
 
-std::string DiagPolicyCommand::getCommandName() const
+string DiagPolicyCommand::getCommandName() const
 {
 	return "policy";
 }
@@ -47,20 +47,20 @@ void DiagPolicyCommand::execute(const CommandArguments& arguments)
 
 	auto diagnostics = getPolicyDiagnosticReport(arguments);
 	auto fullReportPath = generateReportPath(arguments);
-	string message = std::string("Wrote policy diagnostics to ") + fullReportPath;
+	string message = string("Wrote policy diagnostics to ") + fullReportPath;
 	m_fileIo->writeData(fullReportPath, diagnostics);
 	setResultCode(ESIF_OK);
 	setResultMessage(message);
 }
 
-std::string DiagPolicyCommand::getPolicyDiagnosticReport(const CommandArguments& arguments)
+string DiagPolicyCommand::getPolicyDiagnosticReport(const CommandArguments& arguments)
 {
 	auto policyName = arguments[1].getDataAsString();
 	auto policy = m_dptfManager->getPolicyManager()->getPolicy(policyName);
 	return policy->getDiagnosticsAsXml();
 }
 
-std::string DiagPolicyCommand::generateReportPath(const CommandArguments& arguments)
+string DiagPolicyCommand::generateReportPath(const CommandArguments& arguments)
 {
 	auto reportPath = m_dptfManager->getDptfReportDirectoryPath();
 	string reportName;
@@ -87,7 +87,7 @@ void DiagPolicyCommand::throwIfBadArguments(const CommandArguments& arguments)
 	{
 		string description = string(
 			"Invalid argument count given to 'diag policy' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
@@ -96,7 +96,7 @@ void DiagPolicyCommand::throwIfBadArguments(const CommandArguments& arguments)
 	{
 		string description = string(
 			"Invalid argument type given to 'diag policy' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}

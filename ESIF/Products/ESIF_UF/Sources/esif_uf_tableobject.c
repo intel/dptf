@@ -2598,6 +2598,8 @@ eEsifError TableObject_LoadSchema(
 		{ "fld2", "fld2", ESIF_DATA_UINT64 },
 		{ "fld3", "fld3", ESIF_DATA_STRING },
 		{ "fld4", "fld4", ESIF_DATA_STRING },
+		{ "fld5", "fld5", ESIF_DATA_STRING },
+		{ "fld6", "fld6", ESIF_DATA_UINT64 },
 		{ 0 }
 	};
 	fieldlist = itmt_fields;

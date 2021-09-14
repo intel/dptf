@@ -33,8 +33,12 @@
 #include <iostream>
 #include "WIRunCommand.h"
 #include "esif_sdk_dcfg.h"
+#include "ipf_sdk_version.h"
+#include "ipf_sdk_version_check.h"
+#include "EsifAppBroadcastProcessing.h"
 
-using namespace std;
+// Minimum Required IPF SDK Version for this App to load (i.e., NULL, "1.0.0", IPF_SDK_VERSION, Specific Version, etc.)
+#define IPFSDK_MINIMUM_VERSION_REQUIRED "1.0.0"
 
 //
 // Macros must be used to reduce the code and still allow writing out the file name, line number, and function name
@@ -106,17 +110,34 @@ static const Guid DptfAppGuid(
 
 extern "C"
 {
-	static Bool DptfIsIpfClient = ESIF_FALSE; // Running as an out-of-process IPF Client
+	static Bool DptfIsIpfClient = ESIF_FALSE;		// Running as an out-of-process IPF Client
+	static char DptfIpfSdkVersion[ESIF_NAME_LEN];	// IPF Server SDK Version (possibly higher or lower than IPF_SDK_VERSION)
 
-	/* Check DCFG to verify that App is enabled. Do not fail AppCreate on error, but fail if App blocked by DCFG.
-	** This only needs to be checked when running in-process, otherwise the primitive will fail due to it not
-	** being in the Application's Security Role, which causes the Server to log an Error in the Event Log.
-	** If in-process support is ever removed, this can simply verify that the app is running out-of-process.
+	/* Check that this App is allowed to run according to specified rules:
+	** 1. Check Required Server SDK Version (if any)
+	** 2. Check DCFG when running In-Process (enforced by IPFSRV when Out-of-Process)
 	*/
 	static esif_error_t DptfVerifyAppEnabled(AppInterfaceSetPtr ifaceSetPtr, const esif_handle_t esifHandle)
 	{
 		esif_error_t rc = ESIF_OK;
-		if (ifaceSetPtr && esifHandle != ESIF_INVALID_HANDLE && !DptfIsIpfClient)
+
+		// 1. Check that Server is using the Minimum Required IPF_SDK_VERSION (if specified) even if Client passes Server version check.
+		if (IPFSDK_MINIMUM_VERSION_REQUIRED && ifaceSetPtr && esifHandle != ESIF_INVALID_HANDLE)
+		{
+			rc = IpfSdk_VersionCheckEsifIface(
+				esifHandle,
+				ifaceSetPtr->esifIface,
+				DptfIpfSdkVersion,
+				sizeof(DptfIpfSdkVersion)
+			);
+			if (rc == ESIF_OK && IpfSdk_VersionFromString(DptfIpfSdkVersion) < IpfSdk_VersionFromString(IPFSDK_MINIMUM_VERSION_REQUIRED))
+			{
+				rc = ESIF_E_NOT_SUPPORTED;
+			}
+		}
+		
+		// 2. Check whether App is disabled in DCFG. Change to just verify Out-of-Process if In-Process support ever removed.
+		if (rc == ESIF_OK && ifaceSetPtr && esifHandle != ESIF_INVALID_HANDLE && !DptfIsIpfClient)
 		{
 			DCfgOptions dcfg = {{ 0 }};
 			EsifData request = { ESIF_DATA_VOID };
@@ -204,7 +225,12 @@ extern "C"
 			|| ifaceSetPtr->esifIface.fSendCommandFuncPtr == nullptr
 			|| (appData == nullptr))
 		{
-			rc = ESIF_E_UNSPECIFIED;
+			rc = ESIF_E_CALLBACK_IS_NULL;
+		}
+		// Verify that this app is not Disabled or Incompatible before proceeding
+		else if (ESIF_OK != (rc = DptfVerifyAppEnabled(ifaceSetPtr, esifHandle)))
+		{
+			*appHandlePtr = ESIF_INVALID_HANDLE;
 		}
 		else if (ESIF_OK == (rc = DptfAllocateHandle(&appHandle)))
 		{
@@ -213,13 +239,6 @@ extern "C"
 
 			try
 			{
-				// Verify that this app is not Disabled before proceeding
-				if (ESIF_OK != (rc = DptfVerifyAppEnabled(ifaceSetPtr, esifHandle)))
-				{
-					*appHandlePtr = ESIF_INVALID_HANDLE;
-					return rc;
-				}
-
 				eLogType currentLogVerbosityLevel = appData->fLogLevel;
 
 				if (eLogType::eLogTypeInfo <= currentLogVerbosityLevel)
@@ -356,7 +375,7 @@ extern "C"
 
 	static eEsifError GetDptfBanner(const esif_handle_t appHandle, EsifDataPtr dataPtr)
 	{
-		return FillDataPtrWithString(dataPtr, "DPTF Manager Loaded");
+		return FillDataPtrWithString(dataPtr, "Intel(R) Dynamic Tuning Technology Manager v" VERSION_STR " [" ESIF_ATTR_OS " " ESIF_PLATFORM_TYPE " " ESIF_BUILD_TYPE "]");
 	}
 
 	esif_error_t checkCommandParameters(
@@ -402,11 +421,7 @@ extern "C"
 			auto arguments = CommandArguments::parse(argc, argv);
 			auto wiCommand = std::make_shared<WIRunCommand>(dptfManager, arguments);
 			dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndWait(wiCommand);
-			rc = wiCommand->getLastErrorCode();
-			if (rc == ESIF_OK)
-			{
-				rc = FillDataPtrWithString(response, wiCommand->getLastMessageWithNewline());
-			}
+			rc = FillDataPtrWithString(response, wiCommand->getLastMessageWithNewline());
 		}
 		catch (...)
 		{
@@ -652,7 +667,6 @@ extern "C"
 		}
 
 		eEsifError rc = ESIF_OK;
-
 		try
 		{
 			std::shared_ptr<WorkItem> wi;
@@ -660,9 +674,12 @@ extern "C"
 
 			switch (frameworkEvent)
 			{
-				// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high
-				// priority.
-				//        Should these return synchronously?  If so they don't belong here.
+			case FrameworkEvent::DptfAppBroadcastListen:
+				wi = EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreateWorkItem(dptfManager, esifEventDataPtr);
+				break;
+			// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high
+			// priority.
+			//        Should these return synchronously?  If so they don't belong here.
 			case FrameworkEvent::DptfConnectedStandbyEntry:
 				wi = std::make_shared<WIDptfConnectedStandbyEntry>(dptfManager);
 				break;
@@ -926,9 +943,6 @@ extern "C"
 				break;
 			case FrameworkEvent::PolicyPowerShareAlgorithmTableChanged:
 				wi = std::make_shared<WIPolicyPowerShareAlgorithmTableChanged>(dptfManager);
-				break;
-			case FrameworkEvent::PolicyIntelligentThermalManagementTableChanged:
-				wi = std::make_shared<WIPolicyIntelligentThermalManagementTableChanged>(dptfManager);
 				break;
 			case FrameworkEvent::PolicyWorkloadHintConfigurationChanged:
 				wi = std::make_shared<WIPolicyWorkloadHintConfigurationChanged>(dptfManager);

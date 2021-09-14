@@ -34,6 +34,7 @@ class PolicyManagerInterface;
 class ParticipantManagerInterface;
 class DptfStatusInterface;
 class DataManagerInterface;
+class SystemModeManagerInterface;
 
 class DptfManagerInterface
 {
@@ -62,7 +63,6 @@ public:
 	virtual std::string getDptfHomeDirectoryPath(void) const = 0;
 	virtual std::string getDptfPolicyDirectoryPath(void) const = 0;
 	virtual std::string getDptfReportDirectoryPath(void) const = 0;
-	virtual Bool isDptfPolicyLoadNameOnly(void) const = 0;
 	virtual void bindDomainsToPolicies(UIntN participantIndex) const = 0;
 	virtual void unbindDomainsFromPolicies(UIntN participantIndex) const = 0;
 	virtual void bindParticipantToPolicies(UIntN participantIndex) const = 0;
@@ -70,4 +70,5 @@ public:
 	virtual void bindAllParticipantsToPolicy(UIntN policyIndex) const = 0;
 	virtual std::shared_ptr<RequestDispatcherInterface> getRequestDispatcher() const = 0;
 	virtual std::shared_ptr<RequestHandlerInterface> getPlatformRequestHandler() const = 0;
+	virtual SystemModeManagerInterface* getSystemModeManager() const = 0;
 };

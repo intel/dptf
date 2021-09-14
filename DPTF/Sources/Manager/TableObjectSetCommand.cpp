@@ -54,19 +54,34 @@ void TableObjectSetCommand::setTableObjectXmlString(const CommandArguments& argu
 	auto tableName = arguments[1].getDataAsString();
 	auto tableString = arguments[2].getDataAsString();
 	string uuid = Constants::EmptyString;
-	if (arguments.size() > 3)
+	string dvName = Constants::EmptyString;
+	string key = Constants::EmptyString;
+
+	if (arguments.size() == 4)
 	{
+		// tableobject set apat "value" uuid
 		uuid = arguments[3].getDataAsString();
+	}
+	else if (arguments.size() > 4)
+	{
+		// tableobject set itmt "value" override /shared/tables/itmt/test
+		dvName = arguments[3].getDataAsString();
+		key = arguments[4].getDataAsString();
 	}
 	auto textInput = tableString.c_str();
 
 	if (esif_ccb_strlen(textInput, REVISION_INDICATOR_LENGTH + 1) > REVISION_INDICATOR_LENGTH)
 	{
-		convertToBinaryAndSet(TableObjectType::ToType(tableName), textInput, uuid);
+		convertToBinaryAndSet(TableObjectType::ToType(tableName), textInput, uuid, dvName, key);
 	}
 }
 
-void TableObjectSetCommand::convertToBinaryAndSet(TableObjectType::Type tableType, const char* textInput, string uuid)
+void TableObjectSetCommand::convertToBinaryAndSet(
+	TableObjectType::Type tableType,
+	const char* textInput,
+	string uuid,
+	string dvName,
+	string key)
 {
 	auto table = m_dptfManager->getDataManager()->getTableObjectMap().find(tableType)->second;
 	auto fields = table.getFields();
@@ -186,9 +201,9 @@ void TableObjectSetCommand::convertToBinaryAndSet(TableObjectType::Type tableTyp
 			tableRow = esif_ccb_strtok(NULL, rowDelimiter, &rowToken);
 		}
 
-		setTableData(totalDataOutputLength, tableData, tableType, uuid);
+		setTableData(totalDataOutputLength, tableData, tableType, uuid, dvName, key);
 	}
-	catch (command_failure &cmd_failure)
+	catch (command_failure& cmd_failure)
 	{
 		auto desc = cmd_failure.getDescription();
 		auto errorCode = cmd_failure.getErrorCode();
@@ -212,7 +227,7 @@ UInt32 TableObjectSetCommand::extractInteger(const esif_string str)
 		}
 		else
 		{
-			esif_ccb_sscanf(str, "%d", (Int32 *)&val);
+			esif_ccb_sscanf(str, "%d", (Int32*)&val);
 		}
 	}
 	return val;
@@ -222,7 +237,9 @@ void TableObjectSetCommand::setTableData(
 	UInt32 totalDataOutputLength,
 	UInt8* tableData,
 	TableObjectType::Type tableType,
-	string uuid)
+	string uuid,
+	string dvName,
+	string key)
 {
 	UInt32 tableDataLength = MIN_BUFFER_LENGTH;
 	UInt8* finalTableData = NULL;
@@ -236,26 +253,37 @@ void TableObjectSetCommand::setTableData(
 	throwIfFailedToAllocateMemory(finalTableData);
 	esif_ccb_memcpy((u8*)finalTableData, (u8*)tableData, tableDataLength);
 
-	m_dptfManager->getDataManager()->setTableObject(tableDataLength, finalTableData, tableType, uuid);
+	if (dvName != Constants::EmptyString && key != Constants::EmptyString)
+	{
+		auto dvType = DataVaultType::ToType(dvName);
+		m_dptfManager->getDataManager()->setTableObjectBasedOnAlternativeDataSourceAndKey(
+			tableDataLength, finalTableData, tableType, dvType, key);
+	}
+	else
+	{
+		m_dptfManager->getDataManager()->setTableObject(tableDataLength, finalTableData, tableType, uuid);
+	}
+
 	esif_ccb_free(finalTableData);
 }
 
 void TableObjectSetCommand::throwIfBadArguments(const CommandArguments& arguments)
 {
-	if (arguments.size() < 2)
+	if (arguments.size() < 3)
 	{
 		string description = string(
 			"Invalid argument count given to 'tableobject set' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
 
-	if ((arguments[0].isDataTypeString() == false) || (arguments[1].isDataTypeString() == false))
+	if ((arguments[0].isDataTypeString() == false) || (arguments[1].isDataTypeString() == false)
+		|| (arguments[2].isDataTypeString() == false))
 	{
 		string description = string(
 			"Invalid argument type given to 'tableobject set' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -267,7 +295,7 @@ void TableObjectSetCommand::throwIfTableObjectNotExist(const CommandArguments& a
 	auto tableExists = m_dptfManager->getDataManager()->tableObjectExists(TableObjectType::ToType(tableName));
 	if (tableExists == false)
 	{
-		string description = string("The table object specified was not found.");
+		string description = string("TableObject schema not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}
@@ -277,7 +305,7 @@ void TableObjectSetCommand::throwIfFailedToAllocateMemory(char* tableValue)
 {
 	if (tableValue == NULL)
 	{
-		string description = string("Failed to allocate memory in 'tableobject set' command.  ");
+		string description = string("Failed to allocate memory in 'tableobject set' command.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NO_MEMORY, description);
 	}
@@ -287,7 +315,7 @@ void TableObjectSetCommand::throwIfFailedToAllocateMemory(UInt8* tableData)
 {
 	if (tableData == NULL)
 	{
-		string description = string("Failed to allocate memory in 'tableobject set' command.  ");
+		string description = string("Failed to allocate memory in 'tableobject set' command.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NO_MEMORY, description);
 	}

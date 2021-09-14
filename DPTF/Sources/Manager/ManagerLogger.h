@@ -26,7 +26,7 @@
 		const std::string& __function = ESIF_FUNC; \
 		if (getEsifServices()->getLoggingLevel() >= logLevel) \
 		{ \
-			auto _message = [=](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
+			auto _message = [&](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
 			getEsifServices()->logFunction(_message(__file, __line, __function)); \
 		} \
 	} while (0)
@@ -39,7 +39,7 @@
 		const std::string& __function = ESIF_FUNC; \
 		if (getEsifServices()->getLoggingLevel() >= logLevel) \
 		{ \
-			auto _message = [=](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
+			auto _message = [&](const std::string& _file, unsigned int _line, const std::string& _function) {content}; \
 			getEsifServices()->logFunction(_message(__file, __line, __function)); \
 		} \
 	} while (0)

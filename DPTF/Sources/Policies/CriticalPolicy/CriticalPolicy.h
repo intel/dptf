@@ -21,7 +21,6 @@
 #include "Dptf.h"
 #include "PolicyBase.h"
 #include "ParticipantTracker.h"
-#include "CriticalPolicyStatistics.h"
 #include "PolicyCallbackSchedulerInterface.h"
 
 class dptf_export CriticalPolicy final : public PolicyBase
@@ -58,7 +57,6 @@ public:
 	virtual void onPolicyInitiatedCallback(UInt64 eventCode, UInt64 param1, void* param2) override;
 
 private:
-	mutable CriticalPolicyStatistics m_stats;
 	Bool m_sleepRequested;
 	Bool m_hibernateRequested;
 	Bool m_inEmergencyCallMode;

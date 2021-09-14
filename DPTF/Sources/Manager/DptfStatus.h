@@ -43,8 +43,6 @@ private:
 	ParticipantManagerInterface* m_participantManager;
 	ParticipantStatusMap* m_participantStatusMap;
 
-	std::string getFileContent(std::string fileName);
-	std::string getXsltContent(eEsifError* returnCode);
 	std::string getGroupsXml(eEsifError* returnCode);
 	std::string getModulesInGroup(const UInt32 appStatusIn, eEsifError* returnCode);
 	std::string getPoliciesGroup();

@@ -18,7 +18,7 @@
 #include "DiagAllCommand.h"
 using namespace std;
 
-DiagAllCommand::DiagAllCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo)
+DiagAllCommand::DiagAllCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
@@ -28,7 +28,7 @@ DiagAllCommand::~DiagAllCommand()
 {
 }
 
-std::string DiagAllCommand::getCommandName() const
+string DiagAllCommand::getCommandName() const
 {
 	return "all";
 }

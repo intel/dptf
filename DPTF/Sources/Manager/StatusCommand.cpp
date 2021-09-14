@@ -31,7 +31,7 @@ StatusCommand::~StatusCommand()
 {
 }
 
-std::string StatusCommand::getCommandName() const
+string StatusCommand::getCommandName() const
 {
 	return "status";
 }
@@ -40,21 +40,23 @@ void StatusCommand::execute(const CommandArguments& arguments)
 {
 	throwIfBadArguments(arguments);
 
-	eAppStatusCommand command = (eAppStatusCommand)(UInt32)*(UInt32 *)arguments[1].getData().get();
+	eAppStatusCommand command = (eAppStatusCommand)(UInt32) * (UInt32*)arguments[1].getData().get();
 	UInt8 groupId = 0;
 	UInt8 moduleId = 0;
 	UInt32 appStatusIn = 0;
-	if (arguments.size() > 2) {
-		groupId = (UInt8)*(UInt8 *)arguments[2].getData().get();
+	if (arguments.size() > 2)
+	{
+		groupId = (UInt8) * (UInt8*)arguments[2].getData().get();
 		appStatusIn = groupId;
 	}
-	if (arguments.size() > 3) {
-		moduleId = (UInt8)*(UInt8 *)arguments[3].getData().get();
+	if (arguments.size() > 3)
+	{
+		moduleId = (UInt8) * (UInt8*)arguments[3].getData().get();
 		appStatusIn = appStatusIn << 16;
 		appStatusIn = appStatusIn | moduleId;
 	}
 
-	std::pair<std::string, eEsifError> statusResult = m_dptfManager->getDptfStatus()->getStatus(command, appStatusIn);
+	pair<string, eEsifError> statusResult = m_dptfManager->getDptfStatus()->getStatus(command, appStatusIn);
 
 	eEsifError resultCode = statusResult.second;
 	setResultCode(resultCode);
@@ -64,8 +66,6 @@ void StatusCommand::execute(const CommandArguments& arguments)
 	}
 }
 
-
-
 void StatusCommand::throwIfBadArguments(const CommandArguments& arguments)
 {
 	if (arguments.size() < 2)
@@ -74,5 +74,4 @@ void StatusCommand::throwIfBadArguments(const CommandArguments& arguments)
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
-
 }

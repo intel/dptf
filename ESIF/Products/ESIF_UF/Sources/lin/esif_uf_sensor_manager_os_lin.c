@@ -42,6 +42,7 @@
 #define PLAT_TYPE_CLAMSHELL_ANGLE_MIN 5
 #define PLAT_TYPE_CLAMSHELL_ANGLE_MAX 180
 #define PLAT_TYPE_TABLET_ANGLE_MIN 355
+#define PSY_EVENT_ENABLE 1
 
 typedef enum SensorType_e {
 	SENSOR_TYPE_ACCEL = 0,
@@ -131,9 +132,10 @@ static DisplayOrientation gDispOrientation = ORIENTATION_DISP_MAX;
 static Motion gInMotion = MOTION_MAX;
 static DockMode gDockMode = DOCK_MODE_INVALID;
 static LidState gLidState = LID_STATE_CLOSED;
-static PowerSrc gPowerSrc = POWER_SRC_AC;
 static PlatformType gPlatType = PLATFORM_TYPE_INVALID;
-static int gBatteryPercentage = 0;
+
+PowerSrc g_PowerSrc = POWER_SRC_AC;
+int g_BatteryPercentage = 0;
 
 // The SIGUSR1 handler below is the alternative
 // solution for Android where the pthread_cancel()
@@ -516,10 +518,10 @@ static void CheckPowerSrcChange(void)
 		}
 	}
 
-	if (powerSrc != gPowerSrc) {
+	if (powerSrc != g_PowerSrc) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &powerSrc, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
-		gPowerSrc = powerSrc;
+		atomic_set(&g_PowerSrc, powerSrc);
 	}
 }
 
@@ -538,15 +540,17 @@ static void CheckBatteryPercentChange(void)
 		}
 	}
 
-	if (batteryPercentage != gBatteryPercentage) {
+	if (batteryPercentage != g_BatteryPercentage) {
 		ESIF_DATA_UINT32_ASSIGN(evtData, &batteryPercentage, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
-		gBatteryPercentage = batteryPercentage;
+		atomic_set(&g_BatteryPercentage, batteryPercentage);
 	}
 }
 
 static void *EsifIio_Poll(void *ptr)
 {
+	static Bool oneTime = ESIF_FALSE;
+
 	UNREFERENCED_PARAMETER(ptr);
 
 #ifdef ESIF_ATTR_OS_ANDROID
@@ -577,13 +581,17 @@ static void *EsifIio_Poll(void *ptr)
 
 		// Dock mode change detection
 		CheckDockModeChange();
-
-		// Power source change detection
-		CheckPowerSrcChange();
-
-		// Battery percent change detection
-		CheckBatteryPercentChange();
-
+#if PSY_EVENT_ENABLE
+		if (!oneTime) {
+#endif
+			// Power source change detection
+			CheckPowerSrcChange();
+			// Battery percent change detection
+			CheckBatteryPercentChange();
+#if PSY_EVENT_ENABLE
+			oneTime = ESIF_TRUE;
+		}
+#endif
 		// Lid state change detection
 		CheckLidStateChange();
 
@@ -729,14 +737,14 @@ eEsifError register_for_system_metric_notification_lin(esif_guid_t *guid)
 	}
 
 	if (0 == memcmp(guid, guidPowerSrc, ESIF_GUID_LEN)) {
-		ESIF_DATA_UINT32_ASSIGN(evtData, &gPowerSrc, sizeof(UInt32));
+		ESIF_DATA_UINT32_ASSIGN(evtData, &g_PowerSrc, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_POWER_SOURCE_CHANGED, &evtData);
 		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_POWER_SOURCE_CHANGED\n");
 		StartEsifSensorMgr();
 	}
 
 	if (0 == memcmp(guid, guidBattPercent, ESIF_GUID_LEN)) {
-		ESIF_DATA_UINT32_ASSIGN(evtData, &gBatteryPercentage, sizeof(UInt32));
+		ESIF_DATA_UINT32_ASSIGN(evtData, &g_BatteryPercentage, sizeof(UInt32));
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_D0, ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED, &evtData);
 		ESIF_TRACE_INFO("RegisterForSensorEvent: ESIF_EVENT_OS_BATTERY_PERCENT_CHANGED\n");
 		StartEsifSensorMgr();

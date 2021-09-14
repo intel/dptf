@@ -65,6 +65,8 @@ static ESIF_INLINE const char **esif_enum_ietm_hid()
 		"INT3400",
 		"INTC1040",
 		"INTC1041",
+		"INTC1042",
+		"INTC10A0",
 		NULL
 	};
 	return ietm_hids;

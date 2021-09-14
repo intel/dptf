@@ -506,7 +506,7 @@ esif_error_t WebServer_HttpResponse(WebServerPtr self, WebClientPtr client)
 					client->httpStatus = HTTP_STATUS_OK;
 					size_t bytes = esif_ccb_sprintf(self->netBufLen, (char *)self->netBuf,
 						"HTTP/1.1 %d OK" CRLF
-						"Server: ESIF_UF/%s" CRLF
+						"Server: IPF_UF/%s" CRLF
 						"Date: %s" CRLF
 						"Cache-Control: no-store, no-cache, must-revalidate" CRLF
 						"Content-Type: %s" CRLF

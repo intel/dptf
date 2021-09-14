@@ -48,15 +48,32 @@ string TableObjectGetCommand::getTableObjectXmlString(const CommandArguments& ar
 {
 	auto tableName = arguments[1].getDataAsString();
 	string uuid = Constants::EmptyString;
-	if (arguments.size() > 2)
-	{
-		uuid = arguments[2].getDataAsString();
-	}
 	auto dataManager = m_dptfManager->getDataManager();
 	auto tableType = TableObjectType::ToType(tableName);
-	auto data = dataManager->getTableObject(tableType, uuid);
 	auto revision = dataManager->getLatestSupportedTableRevision(tableType);
-	return data.getXmlString(revision);
+
+	if (arguments.size() > 3)
+	{
+		auto dvName = arguments[2].getDataAsString();
+		auto dvType = DataVaultType::ToType(dvName);
+		auto key = arguments[3].getDataAsString();
+
+		// tableobject get itmt override /shared/tables/itmt/test
+		return dataManager->getTableObjectBasedOnAlternativeDataSourceAndKey(tableType, dvType, key)
+			.getXmlString(revision);
+	}
+	else if (arguments.size() == 3)
+	{
+		uuid = arguments[2].getDataAsString();
+
+		// tableobject get apat uuid
+		return dataManager->getTableObject(tableType, uuid).getXmlString(revision);
+	}
+	else
+	{
+		// tableobject get apat
+		return dataManager->getTableObject(tableType, uuid).getXmlString(revision);
+	}
 }
 
 void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& arguments)
@@ -65,7 +82,7 @@ void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& argument
 	{
 		string description = string(
 			"Invalid argument count given to 'tableobject get' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_INVALID_ARGUMENT_COUNT, description);
 	}
@@ -74,7 +91,7 @@ void TableObjectGetCommand::throwIfBadArguments(const CommandArguments& argument
 	{
 		string description = string(
 			"Invalid argument type given to 'tableobject get' command.  "
-			"Run 'help' command for more information");
+			"Run 'dptf help' command for more information.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_COMMAND_DATA_INVALID, description);
 	}
@@ -86,7 +103,7 @@ void TableObjectGetCommand::throwIfTableObjectNotExist(const CommandArguments& a
 	auto tableExists = m_dptfManager->getDataManager()->tableObjectExists(TableObjectType::ToType(tableName));
 	if (tableExists == false)
 	{
-		string description = string("The table object specified was not found.");
+		string description = string("TableObject schema not found.");
 		setResultMessage(description);
 		throw command_failure(ESIF_E_NOT_FOUND, description);
 	}

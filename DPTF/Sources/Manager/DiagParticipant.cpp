@@ -23,7 +23,7 @@
 
 using namespace std;
 
-DiagParticipantCommand::DiagParticipantCommand(DptfManagerInterface* dptfManager, std::shared_ptr<IFileIO> fileIo)
+DiagParticipantCommand::DiagParticipantCommand(DptfManagerInterface* dptfManager, shared_ptr<IFileIO> fileIo)
 	: CommandHandler(dptfManager)
 	, m_fileIo(fileIo)
 {
@@ -33,7 +33,7 @@ DiagParticipantCommand::~DiagParticipantCommand()
 {
 }
 
-std::string DiagParticipantCommand::getCommandName() const
+string DiagParticipantCommand::getCommandName() const
 {
 	return "part";
 }
@@ -49,14 +49,14 @@ void DiagParticipantCommand::execute(const CommandArguments& arguments)
 	m_fileIo->writeData(fullReportPath, diagnostics);
 }
 
-std::string DiagParticipantCommand::getParticipantDiagnosticReport(const CommandArguments& arguments)
+string DiagParticipantCommand::getParticipantDiagnosticReport(const CommandArguments& arguments)
 {
 	auto participantName = arguments[1].getDataAsString();
 	auto participant = m_dptfManager->getParticipantManager()->getParticipant(participantName);
 	return participant->getDiagnosticsAsXml();
 }
 
-std::string DiagParticipantCommand::generateReportPath(const CommandArguments& arguments)
+string DiagParticipantCommand::generateReportPath(const CommandArguments& arguments)
 {
 	auto reportPath = m_dptfManager->getDptfReportDirectoryPath();
 	string reportName;

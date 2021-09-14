@@ -20,6 +20,10 @@
 #include "EsifServicesInterface.h"
 #include "PolicyManagerInterface.h"
 #include "DataVaultPath.h"
+#include "StringConverter.h"
+#include "WorkItem.h"
+#include "WorkItemQueueManagerInterface.h"
+#include "WIPolicyTableObjectChanged.h"
 using namespace TableObjectType;
 using namespace std;
 
@@ -44,7 +48,7 @@ TableObject DataManager::getTableObject(TableObjectType::Type tableType, string 
 		auto dataVaultPaths = table.dataVaultPathForGet();
 		for (auto path = dataVaultPaths.begin(); path != dataVaultPaths.end(); path++)
 		{
-			string nameSpace = path->first;
+			string nameSpace = DataVaultType::ToString(path->first);
 			string elementPath = path->second;
 
 			if (uuid.empty())
@@ -53,7 +57,7 @@ TableObject DataManager::getTableObject(TableObjectType::Type tableType, string 
 			}
 			else
 			{
-				elementPath = StringParser::replaceAll(elementPath, "UUID", uuid);
+				elementPath = StringParser::replaceAll(elementPath, "UUID", StringConverter::toLower(uuid));
 			}
 
 			try
@@ -66,31 +70,36 @@ TableObject DataManager::getTableObject(TableObjectType::Type tableType, string 
 			{
 			}
 		}
-	}
 
-	throw dptf_exception("The table object specified was not found.");
+		return table;
+	}
+	else
+	{
+		throw dptf_exception("TableObject schema not found.");
+	}
 }
 
 void DataManager::setTableObject(UInt32 tableDataLength, UInt8* tableData, TableObjectType::Type tableType, string uuid)
 {
 	if (!tableObjectExists(tableType))
 	{
-		throw dptf_exception("The table object specified was not found.");
+		throw dptf_exception("TableObject schema not found.");
 	}
 
 	auto table = m_dptfManager->getDataManager()->getTableObjectMap().find(tableType)->second;
 	auto dataVaultPaths = table.dataVaultPathForSet();
 	auto path = dataVaultPaths.begin();
-	string nameSpace = path->first;
+	string nameSpace = DataVaultType::ToString(path->first);
 	string elementPath = path->second;
 
 	if (uuid.empty())
 	{
 		elementPath = StringParser::replaceAll(elementPath, "/UUID", Constants::EmptyString);
+		deleteTableObjectKeyForNoPersist(tableType);
 	}
 	else
 	{
-		elementPath = StringParser::replaceAll(elementPath, "UUID", uuid);
+		elementPath = StringParser::replaceAll(elementPath, "UUID", StringConverter::toLower(uuid));
 	}
 
 	try
@@ -108,13 +117,13 @@ void DataManager::deleteTableObject(TableObjectType::Type tableType, string uuid
 {
 	if (!tableObjectExists(tableType))
 	{
-		throw dptf_exception("The table object specified was not found.");
+		throw dptf_exception("TableObject schema not found.");
 	}
 
 	auto table = m_dptfManager->getDataManager()->getTableObjectMap().find(tableType)->second;
 	auto dataVaultPaths = table.dataVaultPathForSet();
 	auto path = dataVaultPaths.begin();
-	string nameSpace = path->first;
+	string nameSpace = DataVaultType::ToString(path->first);
 	string elementPath = path->second;
 
 	if (uuid.empty())
@@ -123,31 +132,25 @@ void DataManager::deleteTableObject(TableObjectType::Type tableType, string uuid
 	}
 	else
 	{
-		elementPath = StringParser::replaceAll(elementPath, "UUID", uuid);
+		elementPath = StringParser::replaceAll(elementPath, "UUID", StringConverter::toLower(uuid));
 	}
 
-	try
-	{
-		m_dptfManager->getEsifServices()->deleteConfigurationBinary(nameSpace, elementPath);
-		sendTableChangedEvent(tableType, uuid);
-	}
-	catch (...)
-	{
-	}
+	m_dptfManager->getEsifServices()->deleteConfigurationBinary(nameSpace, elementPath);
+	sendTableChangedEvent(tableType, uuid);
 }
 
 void DataManager::deleteAllTableObject(TableObjectType::Type tableType, string uuid)
 {
 	if (!tableObjectExists(tableType))
 	{
-		throw dptf_exception("The table object specified was not found.");
+		throw dptf_exception("TableObject schema not found.");
 	}
 
 	auto table = m_tableObjectMap.find(tableType)->second;
 	auto dataVaultPaths = table.dataVaultPathForGet();
 	for (auto path = dataVaultPaths.begin(); path != dataVaultPaths.end(); path++)
 	{
-		string nameSpace = path->first;
+		string nameSpace = DataVaultType::ToString(path->first);
 		string elementPath = path->second;
 
 		if (uuid.empty())
@@ -156,7 +159,7 @@ void DataManager::deleteAllTableObject(TableObjectType::Type tableType, string u
 		}
 		else
 		{
-			elementPath = StringParser::replaceAll(elementPath, "UUID", uuid);
+			elementPath = StringParser::replaceAll(elementPath, "UUID", StringConverter::toLower(uuid));
 		}
 
 		try
@@ -168,6 +171,97 @@ void DataManager::deleteAllTableObject(TableObjectType::Type tableType, string u
 		{
 		}
 	}
+}
+
+TableObject DataManager::getTableObjectBasedOnAlternativeDataSourceAndKey(
+	TableObjectType::Type tableType,
+	DataVaultType::Type dvType,
+	string key)
+{
+	if (tableObjectExists(tableType))
+	{
+		auto table = m_tableObjectMap.find(tableType)->second;
+		string nameSpace = DataVaultType::ToString(dvType);
+		string elementPath = key;
+		try
+		{
+			DptfBuffer data = m_dptfManager->getEsifServices()->readConfigurationBinary(nameSpace, elementPath);
+			table.setData(data);
+		}
+		catch (...)
+		{
+		}
+
+		return table;
+	}
+	else
+	{
+		throw dptf_exception("TableObject schema not found.");
+	}
+}
+
+void DataManager::setTableObjectBasedOnAlternativeDataSourceAndKey(
+	UInt32 tableDataLength,
+	UInt8* tableData,
+	TableObjectType::Type tableType,
+	DataVaultType::Type dvType,
+	string key)
+{
+	if (!tableObjectExists(tableType))
+	{
+		throw dptf_exception("TableObject schema not found.");
+	}
+
+	string nameSpace = DataVaultType::ToString(dvType);
+	string elementPath = key;
+
+	try
+	{
+		m_dptfManager->getEsifServices()->writeConfigurationBinary(
+			tableData, tableDataLength, tableDataLength, nameSpace, elementPath);
+	}
+	catch (...)
+	{
+	}
+}
+
+void DataManager::setTableObjectForNoPersist(DptfBuffer tableData, TableObjectType::Type tableType)
+{
+	if (!tableObjectExists(tableType))
+	{
+		throw dptf_exception("TableObject schema not found.");
+	}
+
+	// /nopersist/IETM.D0/test
+	auto elementPath = "/nopersist/%nm%/" + TableObjectType::ToString(tableType);
+	elementPath = StringParser::replaceAll(elementPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+
+	auto dvType = DataVaultType::Override;
+
+	m_dptfManager->getEsifServices()->writeConfigurationBinary(
+		tableData.get(), tableData.size(), tableData.size(), DataVaultType::ToString(dvType), elementPath);
+	sendTableChangedEvent(tableType, Constants::EmptyString);
+}
+
+void DataManager::deleteTableObjectKeyForNoPersist(TableObjectType::Type tableType)
+{
+	if (!tableObjectExists(tableType))
+	{
+		throw dptf_exception("TableObject schema not found.");
+	}
+
+	// /nopersist/IETM.D0/itmt
+	auto elementPath = "/nopersist/%nm%/" + TableObjectType::ToString(tableType);
+	elementPath = StringParser::replaceAll(elementPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+
+	auto dvType = DataVaultType::Override;
+
+	deleteConfigKey(dvType, elementPath);
+}
+
+void DataManager::deleteConfigKey(DataVaultType::Type dvType, string key)
+{
+	m_dptfManager->getEsifServices()->deleteConfigurationBinary(DataVaultType::ToString(dvType), key);
 }
 
 Bool DataManager::tableObjectExists(TableObjectType::Type tableType)
@@ -188,7 +282,7 @@ UInt32 DataManager::getLatestSupportedTableRevision(TableObjectType::Type tableT
 		return table->second;
 	}
 
-	throw dptf_exception("The table object specified was not found.");
+	throw dptf_exception("TableObject revision not found.");
 }
 
 map<TableObjectType::Type, TableObject> DataManager::getTableObjectMap()
@@ -198,37 +292,8 @@ map<TableObjectType::Type, TableObject> DataManager::getTableObjectMap()
 
 void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, string uuid)
 {
-	auto policyManager = m_dptfManager->getPolicyManager();
-	auto policyIndexes = policyManager->getPolicyIndexes();
-	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
-	{
-		try
-		{
-			auto policy = policyManager->getPolicyPtr(*i);
-			if (policy->isDynamicPolicy() == true && policy->getDynamicPolicyUuidString() != uuid)
-			{
-				continue;
-			}
-
-			switch (tableObjectType)
-			{
-			case TableObjectType::Apat:
-				policy->executePolicyAdaptivePerformanceActionsTableChanged();
-				break;
-			case TableObjectType::Apct:
-				policy->executePolicyAdaptivePerformanceConditionsTableChanged();
-				break;
-			case TableObjectType::Ddrf:
-				policy->executePolicyDdrfTableChanged();
-				break;
-			default:
-				break;
-			}
-		}
-		catch (...)
-		{
-		}
-	}
+	std::shared_ptr<WorkItem> wi = std::make_shared<WIPolicyTableObjectChanged>(m_dptfManager, tableObjectType, uuid);
+	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
 }
 
 void DataManager::loadTableRevisions()
@@ -237,6 +302,8 @@ void DataManager::loadTableRevisions()
 	m_tableRevisions.insert({TableObjectType::Apct, 2});
 	m_tableRevisions.insert({TableObjectType::Dynamic_Idsp, 1});
 	m_tableRevisions.insert({TableObjectType::Ddrf, 1});
+	m_tableRevisions.insert({TableObjectType::Itmt, 1});
+	m_tableRevisions.insert({TableObjectType::Epot, 1});
 }
 
 void DataManager::loadTableObjectMap()
@@ -252,8 +319,8 @@ void DataManager::loadTableObjectMap()
 		   {"fld4", "fld4", ESIF_DATA_UINT64},
 		   {"fld5", "fld5", ESIF_DATA_STRING},
 		   {"fld6", "fld6", ESIF_DATA_STRING}},
-		  {{"override", dataVaultString}, {"dptf", dataVaultString}},
-		  {{"override", dataVaultString}}}});
+		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
 
 	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Apct);
 	m_tableObjectMap.insert(
@@ -290,8 +357,8 @@ void DataManager::loadTableObjectMap()
 		   {"fld57", "fld57", ESIF_DATA_UINT64}, {"fld58", "fld58", ESIF_DATA_STRING},
 		   {"fld59", "fld59", ESIF_DATA_UINT64}, {"fld60", "fld60", ESIF_DATA_UINT64},
 		   {"fld61", "fld61", ESIF_DATA_UINT64}},
-		  {{"override", dataVaultString}, {"dptf", dataVaultString}},
-		  {{"override", dataVaultString}}}});
+		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
 
 	dataVaultString =
 		DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Dynamic_Idsp);
@@ -301,8 +368,8 @@ void DataManager::loadTableObjectMap()
 		  {{"uuid", "uuid", ESIF_DATA_STRING},
 		   {"templateGuid", "templateGuid", ESIF_DATA_STRING},
 		   {"policyName", "policyName", ESIF_DATA_STRING}},
-		  {{"dptf", dataVaultString}},
-		  {{"dptf", dataVaultString}}}});
+		  {{DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Dptf, dataVaultString}}}});
 
 	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Ddrf);
 	m_tableObjectMap.insert(
@@ -325,6 +392,34 @@ void DataManager::loadTableObjectMap()
 		   {"fld15", "fld15", ESIF_DATA_UINT64},
 		   {"fld16", "fld16", ESIF_DATA_UINT64},
 		   {"fld17", "fld17", ESIF_DATA_UINT64}},
-		  {{"override", dataVaultString}, {"dptf", dataVaultString}},
-		  {{"override", dataVaultString}}}});
+		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
+
+	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Itmt);
+	auto noPersistPath = "/nopersist/%nm%/" + TableObjectType::ToString(TableObjectType::Itmt);
+	noPersistPath = StringParser::replaceAll(noPersistPath, "%nm%", DefaultScope::IETMParticipantScope + ".D0");
+	m_tableObjectMap.insert(
+		{TableObjectType::Itmt,
+		 {TableObjectType::Itmt,
+		  {{"fld1", "fld1", ESIF_DATA_STRING},
+		   {"fld2", "fld2", ESIF_DATA_UINT64},
+		   {"fld3", "fld3", ESIF_DATA_STRING},
+		   {"fld4", "fld4", ESIF_DATA_STRING},
+		   {"fld5", "fld5", ESIF_DATA_STRING},
+		   {"fld6", "fld6", ESIF_DATA_UINT64}},
+		  {{DataVaultType::Override, noPersistPath},
+		   {DataVaultType::Override, dataVaultString},
+		   {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
+
+	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Epot);
+	m_tableObjectMap.insert(
+		{TableObjectType::Epot,
+		 {TableObjectType::Epot,
+		  {{"fld1", "fld1", ESIF_DATA_STRING},
+		   {"fld2", "fld2", ESIF_DATA_STRING},
+		   {"fld3", "fld3", ESIF_DATA_UINT64},
+		   {"fld4", "fld4", ESIF_DATA_UINT64}},
+		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
+		  {{DataVaultType::Override, dataVaultString}}}});
 }

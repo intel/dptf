@@ -1600,12 +1600,15 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 	eEsifError rc    = ESIF_OK;
 	enum esif_action_type actionType;
 	EsifActPtr actionPtr = NULL;
+	EsifData *setDataPtr = requestPtr;
+	u32 xformedData = 0; /* All transformed data types use 32 bits */
+	EsifData xformedEsifData = { ESIF_DATA_VOID, &xformedData, sizeof(xformedData), sizeof(xformedData) };
 
 	ESIF_ASSERT(self != NULL);
 	ESIF_ASSERT(primitivePtr != NULL);
 	ESIF_ASSERT(fpcActionPtr != NULL);
-
-	if (NULL == requestPtr) {
+	
+	if (NULL == requestPtr || NULL == requestPtr->buf_ptr) {
 		ESIF_TRACE_ERROR("Request pointer is NULL\n");
 		rc = ESIF_E_PARAMETER_IS_NULL;
 		goto exit;
@@ -1639,21 +1642,38 @@ static eEsifError EsifUp_ExecuteUfSetAction(
 		goto exit;
 	}
 
-	/* UF Transform*/
-	rc = EsifUfExecuteTransform(requestPtr,
-		self,
-		actionType,
-		ESIF_PRIMITIVE_OP_SET);
-	if (rc != ESIF_OK) {
-		ESIF_TRACE_DEBUG("Transformation error %s\n", esif_rc_str(rc));
-		goto exit;
+	if ((ESIF_DATA_TEMPERATURE == requestPtr->type) ||
+		(ESIF_DATA_POWER == requestPtr->type) ||
+		(ESIF_DATA_TIME == requestPtr->type) ||
+		(ESIF_DATA_PERCENT == requestPtr->type)) {
+		//
+		// Copy the request data so that if a transform takes place and the action
+		// fails, the transformed data is not used by subsequent actions
+		//
+		if (requestPtr->buf_len < sizeof(xformedData)) {
+			rc = ESIF_E_REQ_SIZE_TYPE_MISTMATCH;
+			goto exit;
+		}
+		xformedEsifData.type = requestPtr->type;
+		xformedData = *((u32 *)requestPtr->buf_ptr);
+
+		/* UF Transform*/
+		rc = EsifUfExecuteTransform(&xformedEsifData,
+			self,
+			actionType,
+			ESIF_PRIMITIVE_OP_SET);
+		if (rc != ESIF_OK) {
+			ESIF_TRACE_DEBUG("Transformation error %s\n", esif_rc_str(rc));
+			goto exit;
+		}
+		setDataPtr = &xformedEsifData;
 	}
 
 	rc = EsifUp_ExecuteIfaceSet(self,
 		actionPtr,
 		primitivePtr,
 		fpcActionPtr,
-		requestPtr);
+		setDataPtr);
 
 	ESIF_TRACE_DEBUG("USER rc %s, Buffer Len %d, Data Len %d\n",
 		esif_rc_str(rc),

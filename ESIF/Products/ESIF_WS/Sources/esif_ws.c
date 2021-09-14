@@ -21,7 +21,6 @@
 #include "esif_ccb_library.h"
 #include "esif_sdk_dcfg.h"
 
-#include "esif_sdk_iface_ws.h"
 #include "esif_ws_server.h"
 #include "esif_ws_version.h"
 
@@ -53,7 +52,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 #define		WS_APP_HANDLE		0x3156626557667049	// "IpfWebV1"
 
 // Alternate Configuration for DTT UI
-#define		WS_APP_LEGACYNAME	"esif_ws"	// Legacy AppName
+#define		WS_APP_LEGACYNAME	WS_LIBRARY_NAME	// Legacy AppName
 #define		WS_APP_ALTNAME		"dptfui"	// Alternate AppName
 #define		WS_APP_ALTDESC		"Intel(R) Dynamic Tuning Technology Web Server"	// Alternate AppDesc
 #define		WS_APP_ALTVERSION	"9.0." EXPAND_TOSTR(VER_HOTFIX.VER_BUILD) // Alternate AppVersion
@@ -84,104 +83,28 @@ typedef struct EsifAppInstance_s {
 static EsifAppInstance	g_esifApp;	// Defined below
 
 //////////////////////////////////////////////////////////////////////////////
-// Web Server Inferface Variables
-//////////////////////////////////////////////////////////////////////////////
-
-// Global ESIF_UF <-> ESIF_WS Interface
-static EsifWsInterfacePtr g_ifaceWs = NULL;
-
-//////////////////////////////////////////////////////////////////////////////
-// Web Server Interface Functions exposed to ESIF_UF via EsifWsInterface
-// ESIF_UF -> ESIF_WS Interface Callback Functions
-//////////////////////////////////////////////////////////////////////////////
-
-static esif_error_t ESIF_CALLCONV EsifWsInit(void)
-{
-	return WebPlugin_Init();
-}
-
-static esif_error_t ESIF_CALLCONV EsifWsExit(void)
-{
-	WebPlugin_Exit();
-	return ESIF_OK;
-}
-
-static esif_error_t ESIF_CALLCONV EsifWsStart(void)
-{
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-	EsifWsInterfacePtr self = g_ifaceWs;
-	WebServerPtr server = g_WebServer;
-	if (self && server) {
-		for (u8 instance = 0; instance < esif_ccb_min(WS_LISTENERS, WS_MAX_LISTENERS); instance++) {
-			char* ipAddr = NULL;
-			short port = 0;
-			esif_flags_t flags = 0;
-			if (instance == 0 || self->ipAddr[instance][0] || self->port[instance]) {
-				ipAddr = self->ipAddr[instance];
-				port = (short)self->port[instance];
-				flags = self->flags[instance];
-			}
-			// Use Legacy Port Configuration
-			rc = WebServer_Config(server, instance, ipAddr, (port ? port : WS_APP_ALTPORT), flags);
-
-			// Fill in Interface structure with the actual IP/Port used for each instance.
-			if (rc == ESIF_OK) {
-				if (ipAddr == NULL || *ipAddr == 0) {
-					esif_ccb_strcpy(self->ipAddr[instance], server->listeners[instance].ipAddr, sizeof(self->ipAddr[instance]));
-				}
-				if (port == 0) {
-					self->port[instance] = server->listeners[instance].port;
-				}
-				if (flags == 0) {
-					self->flags[instance] = server->listeners[instance].flags;
-				}
-			}
-		}
-		if (rc == ESIF_OK) {
-			rc = WebServer_Start(server);
-		}
-	}
-	return rc;
-}
-
-static esif_error_t ESIF_CALLCONV EsifWsStop(void)
-{
-	WebServer_Stop(g_WebServer);
-	return ESIF_OK;
-}
-
-static Bool ESIF_CALLCONV EsifWsIsStarted(void)
-{
-	return WebServer_IsStarted(g_WebServer);
-}
-
-static void * ESIF_CALLCONV EsifWsAlloc(size_t buf_len)
-{
-	return esif_ccb_malloc(buf_len);
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // Web Server Helper Functions called from Web Server modules
-// ESIF_WS -> ESIF_UF Interface Helper Functions
+// ESIF App Interface Helper Functions
 //////////////////////////////////////////////////////////////////////////////
 
 const char *EsifWsDocRoot(void)
 {
 	const char *result = NULL;
+	EsifAppInstance *self = &g_esifApp;
 
-	// Web Interface
-	if (g_ifaceWs) {
-		EsifWsInterfacePtr self = g_ifaceWs;
-		if (self->docRoot[0]) {
-			result = self->docRoot;
-		}
+	if (self && self->config.docRoot[0]) {
+		result = self->config.docRoot;
 	}
-	// ESIF/App Interface
-	else {
-		EsifAppInstance *self = &g_esifApp;
-		if (self->config.docRoot[0]) {
-			result = self->config.docRoot;
-		}
+	return result;
+}
+
+const char *EsifWsAppName(void)
+{
+	const char *result = NULL;
+	EsifAppInstance *self = &g_esifApp;
+
+	if (self && self->config.appName[0]) {
+		result = self->config.appName;
 	}
 	return result;
 }
@@ -189,24 +112,14 @@ const char *EsifWsDocRoot(void)
 Bool EsifWsShellEnabled(void)
 {
 	Bool rc = ESIF_FALSE;
+	EsifAppInstance *self = &g_esifApp;
 
-	// Web Interface
-	if (g_ifaceWs) {
-		EsifWsInterfacePtr self = g_ifaceWs;
-		if (self->tEsifWsShellEnabledFuncPtr) {
-			rc = self ->tEsifWsShellEnabledFuncPtr();
-		}
-	}
-	// ESIF/App Interface
-	else {
-		EsifAppInstance *self = &g_esifApp;
-		if (self) {
-			char command[] = "about shell";
-			char *reply = EsifWsShellExec(command, sizeof(command), NULL, 0);
-			if (reply) {
-				rc = (esif_ccb_strstr(reply, "disabled") == NULL);
-				esif_ccb_free(reply);
-			}
+	if (self) {
+		char command[] = "about shell";
+		char *reply = EsifWsShellExec(command, sizeof(command), NULL, 0);
+		if (reply) {
+			rc = (esif_ccb_strstr(reply, "disabled") == NULL);
+			esif_ccb_free(reply);
 		}
 	}
 	return rc;
@@ -215,94 +128,83 @@ Bool EsifWsShellEnabled(void)
 char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len)
 {
 	char *result = NULL;
+	EsifAppInstance *self = &g_esifApp;
 
-	// Web Interface
-	if (g_ifaceWs) {
-		EsifWsInterfacePtr self = g_ifaceWs;
-		if (self->tEsifWsShellExecFuncPtr) {
-			// Calls into ESIF_UF, which calls back into EsifWsAlloc()
-			result = self->tEsifWsShellExecFuncPtr(cmd, cmd_len, prefix, prefix_len);
+	if (self && self->esifHandle != ESIF_INVALID_HANDLE && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+		const u32 WS_BUFSIZE = 4*1024; // Default Response Buffer Size
+		const u32 WS_RESIZE_PADDING = 1024; // Padding to add to Resize Requests
+		if (self->restApiBufPtr == NULL) {
+			self->restApiBufPtr = (char *)esif_ccb_malloc(WS_BUFSIZE);
+			self->restApiBufLen = (self->restApiBufPtr ? WS_BUFSIZE : 0);
 		}
-	}
-	// ESIF/App Interface
-	else {
-		EsifAppInstance *self = &g_esifApp;
-		if (self->esifHandle != ESIF_INVALID_HANDLE && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
-			const u32 WS_BUFSIZE = 4*1024; // Default Response Buffer Size
-			const u32 WS_RESIZE_PADDING = 1024; // Padding to add to Resize Requests
-			if (self->restApiBufPtr == NULL) {
-				self->restApiBufPtr = (char *)esif_ccb_malloc(WS_BUFSIZE);
-				self->restApiBufLen = (self->restApiBufPtr ? WS_BUFSIZE : 0);
-			}
-			char *response_buf = self->restApiBufPtr;
-			u32 response_len = self->restApiBufLen;
-			EsifData command  = { ESIF_DATA_STRING };
-			EsifData response = { ESIF_DATA_STRING };
-			command.buf_ptr = cmd;
-			command.buf_len = command.data_len = (u32)cmd_len;
-			response.buf_ptr = response_buf;
-			response.buf_len = (response_buf ? response_len : 0);
+		char *response_buf = self->restApiBufPtr;
+		u32 response_len = self->restApiBufLen;
+		EsifData command  = { ESIF_DATA_STRING };
+		EsifData response = { ESIF_DATA_STRING };
+		command.buf_ptr = cmd;
+		command.buf_len = command.data_len = (u32)cmd_len;
+		response.buf_ptr = response_buf;
+		response.buf_len = (response_buf ? response_len : 0);
 
-			// Include formatting hint in response
-			static char fmthint[] = "<XML>";
-			if (response.buf_ptr && response.buf_len >= (u32)sizeof(fmthint)) {
+		// Include formatting hint in response
+		static char fmthint[] = "<XML>";
+		if (response.buf_ptr && response.buf_len >= (u32)sizeof(fmthint)) {
+			esif_ccb_strcpy(response.buf_ptr, fmthint, response.buf_len);
+			response.data_len = (u32)sizeof(fmthint);
+		}
+
+		// Send command to ESIF_UF Command Shell
+		esif_error_t rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
+			self->esifHandle,
+			1,
+			&command,
+			&response
+		);
+
+		// If response buffer too small, resize to required size plus padding to account for variable-length integer data element changes
+		if (rc == ESIF_E_NEED_LARGER_BUFFER) {
+			response_len = response.data_len + WS_RESIZE_PADDING;
+			char *new_response_buf = esif_ccb_realloc(self->restApiBufPtr, response_len);
+			if (new_response_buf) {
+				self->restApiBufPtr = new_response_buf;
+				self->restApiBufLen = response_len;
+				response_buf = new_response_buf;
+				response.buf_ptr = response_buf;
+				response.buf_len = response_len;
+				response.data_len = 0;
+
+				// Resend formatting hint
 				esif_ccb_strcpy(response.buf_ptr, fmthint, response.buf_len);
 				response.data_len = (u32)sizeof(fmthint);
-			}
 
-			// Send command to ESIF_UF Command Shell
-			esif_error_t rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
-				self->esifHandle,
-				1,
-				&command,
-				&response
-			);
-
-			// If response buffer too small, resize to required size plus padding to account for variable-length integer data element changes
-			if (rc == ESIF_E_NEED_LARGER_BUFFER) {
-				response_len = response.data_len + WS_RESIZE_PADDING;
-				char *new_response_buf = esif_ccb_realloc(self->restApiBufPtr, response_len);
-				if (new_response_buf) {
-					self->restApiBufPtr = new_response_buf;
-					self->restApiBufLen = response_len;
-					response_buf = new_response_buf;
-					response.buf_ptr = response_buf;
-					response.buf_len = response_len;
-					response.data_len = 0;
-
-					// Resend formatting hint
-					esif_ccb_strcpy(response.buf_ptr, fmthint, response.buf_len);
-					response.data_len = (u32)sizeof(fmthint);
-
-					// Resend command with larger buffer. Results not guaranteed to be the same.
-					if (self->ifaceSet.esifIface.fSendCommandFuncPtr) {
-						rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
-							self->esifHandle,
-							1,
-							&command,
-							&response
-						);
-					}
-					else {
-						rc = ESIF_E_CALLBACK_IS_NULL;
-					}
+				// Resend command with larger buffer. Results not guaranteed to be the same.
+				if (self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+					rc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
+						self->esifHandle,
+						1,
+						&command,
+						&response
+					);
+				}
+				else {
+					rc = ESIF_E_CALLBACK_IS_NULL;
 				}
 			}
-			// Generate Response for Unauthorized Commands
-			if (rc == ESIF_E_SESSION_PERMISSION_DENIED) {
-				esif_ccb_strcpy(response.buf_ptr, "Unsupported Command", response.buf_len);
-				response.data_len = (u32)esif_ccb_strlen(response.buf_ptr, response.buf_len) + 1;
-				rc = ESIF_OK;
-			}
+		}
+		// Generate Response for Unauthorized Commands
+		if (rc == ESIF_E_SESSION_PERMISSION_DENIED) {
+			esif_ccb_strcpy(response.buf_ptr, "Unsupported Command", response.buf_len);
+			response.data_len = (u32)esif_ccb_strlen(response.buf_ptr, response.buf_len) + 1;
+			rc = ESIF_OK;
+		}
 
-			// Insert original request prefix into response and return to sender, who is responsible for freeing
-			if (rc == ESIF_OK && response_buf && response.data_len + prefix_len < response_len) {
-				if (prefix && prefix_len) {
-					esif_ccb_memmove((char *)response_buf + prefix_len, response_buf, response.data_len);
-					esif_ccb_memmove((char *)response_buf, prefix, prefix_len);
-				}
-				result = esif_ccb_strdup(response_buf);
+		// Insert original request prefix into response and return to sender, who is responsible for freeing
+		if (rc == ESIF_OK && response_buf && response.data_len + prefix_len < response_len) {
+			if (prefix && prefix_len) {
+				esif_ccb_memmove((char *)response_buf + prefix_len, response_buf, response.data_len);
+				esif_ccb_memmove((char *)response_buf, prefix, prefix_len);
 			}
+			result = esif_ccb_strdup(response_buf);
 		}
 	}
 	return result;
@@ -311,15 +213,9 @@ char *EsifWsShellExec(char *cmd, size_t cmd_len, char *prefix, size_t prefix_len
 int EsifWsTraceLevel(void)
 {
 	int rc = TRACELEVEL_NONE;
+	EsifAppInstance *self = &g_esifApp;
 
-	// Web Interface
-	if (g_ifaceWs) {
-		EsifWsInterfacePtr self = g_ifaceWs;
-		rc = (int)atomic_read(&self->traceLevel);
-	}
-	// ESIF/App Interface
-	else {
-		EsifAppInstance *self = &g_esifApp;
+	if (self) {
 		rc = (int)atomic_read(&self->traceLevel);
 	}
 	return rc;
@@ -334,48 +230,35 @@ int EsifWsTraceMessageEx(
 	...)
 {
 	int bytes = 0;
+	EsifAppInstance *self = &g_esifApp;
 
-	// Web Interface
-	if (g_ifaceWs) {
-		EsifWsInterfacePtr self = g_ifaceWs;
+	if (self && self->ifaceSet.esifIface.fWriteLogFuncPtr) {
+		// Build Complete Trace Message
 		va_list args;
 		va_start(args, msg);
-		if (self->tEsifWsTraceMessageFuncPtr) {
-			bytes = self->tEsifWsTraceMessageFuncPtr(level, func, file, line, msg, args);
-		}
+		IStringPtr tracemsg = IString_Create();
+		IString_Sprintf(tracemsg, "[%s@%s#%d]: ", func, file, line);
+		IString_VSprintfTo(tracemsg, (u32)IString_Strlen(tracemsg), (ZString)msg, args);
+		IString_Strcat(tracemsg, "\n");
 		va_end(args);
-	}
-	// ESIF/App Interface
-	else {
-		EsifAppInstance *self = &g_esifApp;
-		if (self && self->ifaceSet.esifIface.fWriteLogFuncPtr) {
-			// Build Complete Trace Message
-			va_list args;
-			va_start(args, msg);
-			IStringPtr tracemsg = IString_Create();
-			IString_Sprintf(tracemsg, "[%s@%s#%d]: ", func, file, line);
-			IString_VSprintfTo(tracemsg, (u32)IString_Strlen(tracemsg), (ZString)msg, args);
-			IString_Strcat(tracemsg, "\n");
-			va_end(args);
 
-			EsifData message = { ESIF_DATA_STRING };
-			message.buf_ptr = IString_GetString(tracemsg);
-			message.buf_len = message.data_len = IString_DataLen(tracemsg);
-			eLogType logType = (eLogType)atomic_read(&self->traceLevel);
+		EsifData message = { ESIF_DATA_STRING };
+		message.buf_ptr = IString_GetString(tracemsg);
+		message.buf_len = message.data_len = IString_DataLen(tracemsg);
+		eLogType logType = (eLogType)level;
 
-			// Log Message via ESIF Interface
-			esif_error_t rc = self->ifaceSet.esifIface.fWriteLogFuncPtr(
-				self->esifHandle,
-				ESIF_HANDLE_PRIMARY_PARTICIPANT,
-				ESIF_INVALID_HANDLE,
-				&message,
-				logType
-			);
-			if (rc == ESIF_OK) {
-				bytes = IString_Strlen(tracemsg);
-			}
-			IString_Destroy(tracemsg);
+		// Log Message via ESIF Interface
+		esif_error_t rc = self->ifaceSet.esifIface.fWriteLogFuncPtr(
+			self->esifHandle,
+			ESIF_HANDLE_PRIMARY_PARTICIPANT,
+			ESIF_INVALID_HANDLE,
+			&message,
+			logType
+		);
+		if (rc == ESIF_OK) {
+			bytes = IString_Strlen(tracemsg);
 		}
+		IString_Destroy(tracemsg);
 	}
 	return bytes;
 }
@@ -385,40 +268,27 @@ int EsifWsConsoleMessageEx(
 	...)
 {
 	int rc = 0;
+	EsifAppInstance *self = &g_esifApp;
 
-	// Web Interface
-	if (g_ifaceWs) {
-		EsifWsInterfacePtr self = g_ifaceWs;
+	// No Console Messages when running as an IPF Client
+	if (self && !self->config.isClient) {
+		// Create Dynamic copy of console message
 		va_list args;
 		va_start(args, msg);
-		if (self->tEsifWsConsoleMessageFuncPtr) {
-			rc = self->tEsifWsConsoleMessageFuncPtr(msg, args);
-		}
+		IStringPtr command = IString_Create();
+		IString_VSprintfTo(command, IString_Strlen(command), (ZString)msg, args);
 		va_end(args);
-	}
-	// ESIF/App Interface
-	else {
-		// No Console Messages when running as an IPF Client
-		EsifAppInstance *self = &g_esifApp;
-		if (self && !self->config.isClient) {
-			// Create Dynamic copy of console message
-			va_list args;
-			va_start(args, msg);
-			IStringPtr command = IString_Create();
-			IString_VSprintfTo(command, IString_Strlen(command), (ZString)msg, args);
-			va_end(args);
 
-			// Convert 'message' to 'echo ! "message"' and send to ESIF Shell
-			char shellcmd[10] = "echo ! ";
-			char *quote = (esif_ccb_strchr(IString_GetString(command), '\"') != NULL ? "\'" : "\"");
-			esif_ccb_strcat(shellcmd, quote, sizeof(shellcmd));
-			IString_Insert(command, shellcmd, 0);
-			IString_Strcat(command, quote);
+		// Convert 'message' to 'echo ! "message"' and send to ESIF Shell
+		char shellcmd[10] = "echo ! ";
+		char *quote = (esif_ccb_strchr(IString_GetString(command), '\"') != NULL ? "\'" : "\"");
+		esif_ccb_strcat(shellcmd, quote, sizeof(shellcmd));
+		IString_Insert(command, shellcmd, 0);
+		IString_Strcat(command, quote);
 
-			char *reply = EsifWsShellExec(IString_GetString(command), IString_BufLen(command), NULL, 0);
-			esif_ccb_free(reply);
-			IString_Destroy(command);
-		}
+		char *reply = EsifWsShellExec(IString_GetString(command), IString_BufLen(command), NULL, 0);
+		esif_ccb_free(reply);
+		IString_Destroy(command);
 	}
 	return rc;
 }
@@ -459,6 +329,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppGetName(EsifDataPtr appName)
 {
 	const char *libname = WS_APP_NAME;
 	EsifAppInstance *self = &g_esifApp;
+
 	if (self) {
 		// Running as an IPF Client?
 		static const char ipfclient[] = "ipfcli-";
@@ -504,6 +375,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppGetVersion(EsifDataPtr appVersion)
 {
 	char *version = WS_APP_VERSION;
 	EsifAppInstance *self = &g_esifApp;
+
 	if (self && self->config.appVersion[0]) {
 		version = self->config.appVersion;
 	}
@@ -515,6 +387,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppGetDescription(EsifDataPtr appDescri
 {
 	char *description = WS_APP_DESCRIPTION;
 	EsifAppInstance *self = &g_esifApp;
+
 	if (self && self->config.appDesc[0]) {
 		description = self->config.appDesc;
 	}
@@ -529,6 +402,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppGetIntro(
 {
 	esif_error_t rc = ESIF_E_INVALID_HANDLE;
 	EsifAppInstance *self = &g_esifApp;
+
 	if (self && appHandle != ESIF_INVALID_HANDLE && appHandle == self->appHandle) {
 		rc = EsifWs_LoadString(appIntro, WS_APP_BANNER);
 	}
@@ -555,7 +429,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 	else if (esifHandle == ESIF_INVALID_HANDLE) {
 		rc = ESIF_E_INVALID_HANDLE;
 	}
-	else if (self->appHandle != ESIF_INVALID_HANDLE || self->esifHandle != ESIF_INVALID_HANDLE || g_ifaceWs) {
+	else if (self->appHandle != ESIF_INVALID_HANDLE || self->esifHandle != ESIF_INVALID_HANDLE) {
 		rc = ESIF_E_WS_ALREADY_STARTED;
 	}
 	else if (ifaceSetPtr && appHandlePtr && appDataPtr) {
@@ -602,22 +476,21 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 			// Convert DPTF Path to UI Document Root Path, except for IPF Clients
 			if (rc == ESIF_OK) {
 				if (!self->config.docRoot[0]) {
-					esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
-				}
-				char *sep = esif_ccb_strchr(self->config.docRoot, '|');
-				if (sep) {
-					*sep = 0;
-					// Convert Linux /xxx/xxx/dptf or /xxx/xxx/dptf/xxx to /xxx/xxx/dptf/ui
-					if (self->config.docRoot[0] == '/') {
-						sep = esif_ccb_strrchr(self->config.docRoot, '/');
+					// Use OS-Specific UI Document Root Path instead of fPathHome when running In-Process
+					#if defined(ESIF_ATTR_OS_ANDROID)
+						esif_ccb_strcpy(self->config.docRoot, "/vendor/etc/dptf/ui", sizeof(self->config.docRoot));
+					#elif defined(ESIF_ATTR_OS_CHROME) 
+						esif_ccb_strcpy(self->config.docRoot, "/usr/share/dptf/ui", sizeof(self->config.docRoot));
+					#elif defined(ESIF_ATTR_OS_LINUX)
+						esif_ccb_strcpy(self->config.docRoot, "/usr/share/dptf/ui", sizeof(self->config.docRoot));
+					#elif defined(ESIF_ATTR_OS_WINDOWS)
+						esif_ccb_strcpy(self->config.docRoot, appDataPtr->fPathHome.buf_ptr, sizeof(self->config.docRoot));
+						char *sep = esif_ccb_strrchr(self->config.docRoot, *ESIF_PATH_SEP);
 						if (sep) {
-							if (esif_ccb_stricmp(sep + 1, "dptf") != 0) {
-								*sep = 0;
-							}
-							esif_ccb_strcat(self->config.docRoot, "/ui", sizeof(self->config.docRoot));
+							sep[1] = 0;
+							esif_ccb_strcat(self->config.docRoot, "ui", sizeof(self->config.docRoot));
 						}
-					}
-					// No conversion needed for Windows
+					#endif
 				}
 
 				// Set Trace Level
@@ -649,6 +522,40 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCreate(
 					}
 				}
 #endif
+
+				// If in-process using legacy appname, lookup and use last known URL. Do Not Fail AppCreate on Error
+				if (!self->config.isClient && esif_ccb_stricmp(self->config.appName, WS_APP_LEGACYNAME) == 0 && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+					char cmd[MAX_PATH] = {0};
+					char result_buf[MAX_PATH] = {0};
+					esif_ccb_sprintf(sizeof(cmd), cmd, "config get @%s url", self->config.appName);
+					EsifData request  = { ESIF_DATA_STRING };
+					EsifData result = { ESIF_DATA_STRING };
+					request.buf_ptr = cmd;
+					request.buf_len = request.data_len = (u32)esif_ccb_strlen(cmd, sizeof(cmd)) + 1;
+					result.buf_ptr = result_buf;
+					result.buf_len = sizeof(result_buf);
+
+					// Send command to ESIF_UF Command Shell
+					esif_error_t urlrc = self->ifaceSet.esifIface.fSendCommandFuncPtr(
+						self->esifHandle,
+						1,
+						&request,
+						&result
+					);
+
+					// If successful response, parse last known URL and set server config parameters
+					char prefix[] = "http://";
+					if (urlrc == ESIF_OK && esif_ccb_strncmp(result_buf, prefix, sizeof(prefix) - 1) == 0) {
+						char *sep = esif_ccb_strchr(result_buf + sizeof(prefix) - 1, ':');
+						if (sep) {
+							*sep++ = 0;
+							self->config.port = (UInt16)atoi(sep);
+						}
+						esif_ccb_strcpy(self->config.ipAddr, result_buf + sizeof(prefix) - 1, sizeof(self->config.ipAddr));
+					}
+				}
+
+				// Start Server
 				esif_error_t startrc = WebServer_Config(
 					server,
 					0,
@@ -727,6 +634,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppResume(const esif_handle_t appHandle
 	return rc;
 }
 
+
 // AppCommand Interface Function
 static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 	const esif_handle_t appHandle,
@@ -766,6 +674,7 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 				"  stop\n"
 				"  config\n"
 				"  status\n"
+				"  fetch [<filename>]\n"
 				"\n"
 				, self->config.appName
 			);
@@ -813,6 +722,32 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 				esif_ccb_strcpy(self->config.ipAddr, ip, sizeof(self->config.ipAddr));
 				self->config.port = port;
 				self->config.flags = flags;
+
+				// If in-process using legacy appname, save current URL
+				if (!self->config.isClient && esif_ccb_stricmp(self->config.appName, WS_APP_LEGACYNAME) == 0 && (self->config.ipAddr[0] || self->config.port) && self->ifaceSet.esifIface.fSendCommandFuncPtr) {
+					char cmd[MAX_PATH] = {0};
+					char result_buf[MAX_PATH] = {0};
+					esif_ccb_sprintf(sizeof(cmd), cmd,
+						"config set @%s url http://%s:%hu nopersist", 
+						self->config.appName,
+						(self->config.ipAddr[0] ? self->config.ipAddr : WS_DEFAULT_IPADDR),
+						(self->config.port ? self->config.port : WS_DEFAULT_PORT)
+					);
+					EsifData request  = { ESIF_DATA_STRING };
+					EsifData result = { ESIF_DATA_STRING };
+					request.buf_ptr = cmd;
+					request.buf_len = request.data_len = (u32)esif_ccb_strlen(cmd, sizeof(cmd)) + 1;
+					result.buf_ptr = result_buf;
+					result.buf_len = sizeof(result_buf);
+
+					// Send command to ESIF_UF Command Shell. Ignore Result.
+					self->ifaceSet.esifIface.fSendCommandFuncPtr(
+						self->esifHandle,
+						1,
+						&request,
+						&result
+					);
+				}
 
 				// Configure Listener
 				rc = WebServer_Config(
@@ -881,6 +816,29 @@ static esif_error_t ESIF_CALLCONV EsifWs_AppCommand(
 			);
 			rc = ESIF_OK;
 		}
+		// esif_ws fetch <filename>
+		else if (esif_ccb_stricmp(command, "fetch") == 0) {
+			char *content = NULL;
+			if (optarg < argc) {
+				char cmd[MAX_PATH] = {0};
+				esif_ccb_sprintf(sizeof(cmd), cmd, "%s %s %s", WS_APPNAME_LOCALSERVER, command, (char *)argv[optarg++].buf_ptr);
+
+				content = WebServer_ExecRestCmdInternal(server, cmd, NULL);
+
+				if (content) {
+					bytes = IString_Sprintf(reply, "%s", content);
+					rc = ESIF_OK;
+				}
+				else {
+					rc = ESIF_E_NOT_FOUND;
+				}
+				esif_ccb_free(content);
+			}
+			else {
+				rc = ESIF_E_PARAMETER_IS_NULL;
+			}
+		}
+
 
 		// Return Reply
 		if (rc == ESIF_OK) {
@@ -1086,37 +1044,6 @@ static EsifAppInstance	g_esifApp = {
 //////////////////////////////////////////////////////////////////////////////
 // Exported Interface Functions
 //////////////////////////////////////////////////////////////////////////////
-
-// Exported WebServer Interface Function
-ESIF_EXPORT esif_error_t ESIF_CALLCONV GetWsInterface(EsifWsInterfacePtr ifacePtr)
-{
-	esif_error_t rc = ESIF_E_PARAMETER_IS_NULL;
-
-	if (ifacePtr) {
-		// Must be an exact Interface match
-		if ((ifacePtr->hdr.fIfaceType != eIfaceTypeWeb) ||
-			(ifacePtr->hdr.fIfaceVersion != WS_IFACE_VERSION) ||
-			(ifacePtr->hdr.fIfaceSize != sizeof(*ifacePtr))) {
-			rc = ESIF_E_NOT_SUPPORTED;
-		}
-		else if (g_ifaceWs || g_esifApp.esifHandle != ESIF_INVALID_HANDLE || g_esifApp.appHandle != ESIF_INVALID_HANDLE) {
-			rc = ESIF_E_WS_ALREADY_STARTED;
-		}
-		else {
-			// Fill in ESIF_WS side of Interface
-			esif_ccb_strcpy(ifacePtr->wsVersion, ESIF_WS_VERSION, sizeof(ifacePtr->wsVersion));
-			ifacePtr->fEsifWsInitFuncPtr = EsifWsInit;
-			ifacePtr->fEsifWsExitFuncPtr = EsifWsExit;
-			ifacePtr->fEsifWsStartFuncPtr = EsifWsStart;
-			ifacePtr->fEsifWsStopFuncPtr = EsifWsStop;
-			ifacePtr->fEsifWsIsStartedFuncPtr = EsifWsIsStarted;
-			ifacePtr->fEsifWsAllocFuncPtr = EsifWsAlloc;
-			g_ifaceWs = ifacePtr;
-			rc = ESIF_OK;
-		}
-	}
-	return rc;
-}
 
 // Exported ESIF/App Interface Function
 ESIF_EXPORT esif_error_t GetApplicationInterfaceV2(AppInterfaceSetPtr ifacePtr)

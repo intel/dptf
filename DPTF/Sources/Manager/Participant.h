@@ -139,6 +139,7 @@ public:
 	UInt32 getTimestampCounterWidth(UIntN domainIndex);
 	CoreActivityInfo getCoreActivityInfo(UIntN domainIndex);
 	void setPowerShareEffectiveBias(UIntN domainIndex, UInt32 powerShareEffectiveBias);
+	UInt32 getSocDgpuPerformanceHintPoints(UIntN domainIndex);
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(UIntN domainIndex);
@@ -292,6 +293,7 @@ public:
 	UInt32 getRfiDisable(UIntN domainIndex);
 	UInt64 getDvfsPoints(UIntN domainIndex);
 	void setDdrRfiTable(UIntN domainIndex, DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct);
+	void setProtectRequest(UIntN domainIndex, UInt64 frequencyRate);
 
 	// Utilization
 	UtilizationStatus getUtilizationStatus(UIntN domainIndex);

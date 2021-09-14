@@ -76,6 +76,8 @@ namespace DptfRequestType
 		// Platform Notification
 		PlatformNotificationSetOsc,
 		PlatformNotificationSetApplicationAliveResponse,
+		PlatformNotificationSetPolicySystemMode,
+		PlatformNotificationAppBroadcastSend,
 
 		// END
 		END

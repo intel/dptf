@@ -84,6 +84,10 @@
 /* -std=gnu99 support */
 #define _GNU_SOURCE
 #endif
+#if defined(ESIF_ATTR_OS_LINUX) && !defined(ESIF_ATTR_OS_ANDROID) && defined(ESIF_ATTR_USER) && !defined(__x86_64__)
+/* Large NFS support for 32-bit stat() on Linux */
+#define _FILE_OFFSET_BITS 64
+#endif
 
 /* OS Agnostic */
 #ifdef ESIF_ATTR_USER
@@ -132,6 +136,8 @@ typedef u64 esif_context_t;	/* opaque ESIF 64-bit context (may be a pointer) */
 #define ESIF_HANDLE_DEFAULT ((esif_handle_t)(0))        /* Reserved ESIF handle */
 #define ESIF_HANDLE_PRIMARY_PARTICIPANT ((esif_handle_t)(1))   /* Reserved ESIF primary participant handle */
 #define ESIF_HANDLE_MATCH_ANY_EVENT ((esif_handle_t)(-2)) /* Reserved ESIF handle */
+
+#define	ESIF_WS_LIBRARY_NAME	"ipf_ws"	/* Legacy Library/App Name for deprecated in-process web server*/
 
 #define esif_ccb_isfullpath(fname)	(fname[0] == '\\' || (isalpha(fname[0]) && fname[1] == ':'))
 
@@ -221,6 +227,8 @@ typedef unsigned long long u64;
 #define ESIF_HANDLE_DEFAULT ((esif_handle_t)(0))        /* Reserved ESIF handle */
 #define ESIF_HANDLE_PRIMARY_PARTICIPANT ((esif_handle_t)(1))   /* Reserved ESIF handle */
 #define ESIF_HANDLE_MATCH_ANY_EVENT ((esif_handle_t)(-2))	/* Reserved ESIF handle */
+
+#define	ESIF_WS_LIBRARY_NAME	"esif_ws"	/* Legacy Library/App Name for deprecated in-process web server*/
 
 #define esif_ccb_isfullpath(fname)	(fname[0] == '/')
 

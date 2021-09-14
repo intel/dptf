@@ -34,10 +34,12 @@
 #include "ReloadCommand.h"
 #include "StatusCommand.h"
 #include "TableObjectCommand.h"
+#include "ConfigCommand.h"
 #include "ManagerLogger.h"
 #include "PlatformRequestHandler.h"
 #include "EsifLibrary.h"
 #include "DataManager.h"
+#include "SystemModeManager.h"
 
 DptfManager::DptfManager(void)
 	: m_dptfManagerCreateStarted(false)
@@ -56,10 +58,10 @@ DptfManager::DptfManager(void)
 	, m_dptfStatus(nullptr)
 	, m_indexContainer(nullptr)
 	, m_dataManager(nullptr)
+	, m_systemModeManager(nullptr)
 	, m_dptfHomeDirectoryPath(Constants::EmptyString)
 	, m_dptfPolicyDirectoryPath(Constants::EmptyString)
 	, m_dptfReportDirectoryPath(Constants::EmptyString)
-	, m_dptfPolicyLoadNameOnly(false)
 {
 }
 
@@ -78,30 +80,20 @@ void DptfManager::createDptfManager(
 
 	try
 	{
-		// Parse DPTF Home Path. Possible formats:
-		//   homepath = Location of XSL Files, Policy Libraries, and Reports [use full lib path when loading libraries]
-		//   homepath|[#]libpath|logpath = (1) Location of XSL Files (2) Location of Policy Libraries (3) Report/Log Path
-		//   ["#" prefix = do not use full path when loading libraries]
+		// HomePath is a Directory writable by this process, so use for ReportPath too
 		std::string homePath = dptfHomeDirectoryPath;
-		std::string policyPath = dptfHomeDirectoryPath;
 		std::string reportPath = dptfHomeDirectoryPath;
-		std::vector<std::string> dptfPaths = StringParser::split(dptfHomeDirectoryPath, '|');
-		EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 
-		if (dptfPaths.size() > 1)
+		// Determine Policy Path by getting this Library's Full Pathname
+		EsifLibrary dptfLib;
+		dptfLib.load();
+		std::string policyPath = dptfLib.getLibDirectory();
+		dptfLib.unload();
+		if (!policyPath.empty())
 		{
-			homePath = dptfPaths[0];
-			policyPath = dptfPaths[1];
-			if (policyPath[0] == '#')
-			{
-				policyPath.erase(0, 1);
-				m_dptfPolicyLoadNameOnly = true;
-			}
-			if (dptfPaths.size() > 2)
-			{
-				reportPath = dptfPaths[2];
-			}
+			m_dptfPolicyDirectoryPath = policyPath;
 		}
+
 		if (homePath.back() != *ESIF_PATH_SEP)
 		{
 			homePath += ESIF_PATH_SEP;
@@ -119,16 +111,7 @@ void DptfManager::createDptfManager(
 		m_dptfReportDirectoryPath = reportPath;
 		m_dptfEnabled = dptfEnabled;
 
-		// Determine Policy Path by getting this Library's Full Pathname
-		EsifLibrary dptfLib;
-		dptfLib.load();
-		policyPath = dptfLib.getLibDirectory();
-		dptfLib.unload();
-		if (!policyPath.empty())
-		{
-			m_dptfPolicyDirectoryPath = policyPath;
-		}
-
+		EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
 		m_eventCache = std::make_shared<EventCache>();
 		m_userPreferredCache = std::make_shared<UserPreferredCache>();
 		m_indexContainer = new IndexContainer();
@@ -143,6 +126,8 @@ void DptfManager::createDptfManager(
 		m_dataManager = new DataManager(this);
 
 		m_policyManager = new PolicyManager(this);
+
+		m_systemModeManager = new SystemModeManager(this);
 
 		// Make sure to create these AFTER creating the ParticipantManager and PolicyManager
 		m_workItemQueueManager = new WorkItemQueueManager(this);
@@ -242,6 +227,11 @@ DataManagerInterface* DptfManager::getDataManager(void) const
 	return m_dataManager;
 }
 
+SystemModeManagerInterface* DptfManager::getSystemModeManager(void) const
+{
+	return m_systemModeManager;
+}
+
 std::string DptfManager::getDptfHomeDirectoryPath(void) const
 {
 	return m_dptfHomeDirectoryPath;
@@ -257,11 +247,6 @@ std::string DptfManager::getDptfReportDirectoryPath(void) const
 	return m_dptfReportDirectoryPath;
 }
 
-Bool DptfManager::isDptfPolicyLoadNameOnly(void) const
-{
-	return m_dptfPolicyLoadNameOnly;
-}
-
 void DptfManager::shutDown(void)
 {
 	EsifData eventData = {ESIF_DATA_VOID, NULL, 0, 0};
@@ -275,6 +260,7 @@ void DptfManager::shutDown(void)
 	destroyAllPolicies();
 	destroyAllParticipants();
 	deleteWorkItemQueueManager();
+	deleteSystemModeManager();
 	deletePolicyManager();
 	deleteParticipantManager();
 	deleteEsifServices();
@@ -284,6 +270,7 @@ void DptfManager::shutDown(void)
 	destroyFrameworkEventInfo();
 	deleteDptfStatus();
 	DELETE_MEMORY_TC(m_commandDispatcher);
+	DELETE_MEMORY_TC(m_dataManager);
 }
 
 void DptfManager::disableAndEmptyAllQueues(void)
@@ -353,6 +340,12 @@ void DptfManager::deletePolicyManager(void)
 void DptfManager::deleteParticipantManager(void)
 {
 	DELETE_MEMORY_TC(m_participantManager);
+}
+
+void DptfManager::deleteSystemModeManager(void)
+{
+	getSystemModeManager()->unregisterFrameworkEvents();
+	DELETE_MEMORY_TC(m_systemModeManager);
 }
 
 void DptfManager::deleteEsifAppServices(void)
@@ -569,6 +562,7 @@ void DptfManager::createCommands()
 	m_commands.push_back(std::make_shared<ReloadCommand>(this));
 	m_commands.push_back(std::make_shared<StatusCommand>(this));
 	m_commands.push_back(std::make_shared<TableObjectCommand>(this));
+	m_commands.push_back(std::make_shared<ConfigCommand>(this));
 }
 
 std::shared_ptr<EventCache> DptfManager::getEventCache(void) const

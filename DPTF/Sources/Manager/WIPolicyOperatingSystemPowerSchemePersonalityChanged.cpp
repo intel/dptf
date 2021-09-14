@@ -18,6 +18,7 @@
 
 #include "WIPolicyOperatingSystemPowerSchemePersonalityChanged.h"
 #include "PolicyManagerInterface.h"
+#include "SystemModeManager.h"
 #include "EsifServicesInterface.h"
 
 WIPolicyOperatingSystemPowerSchemePersonalityChanged::WIPolicyOperatingSystemPowerSchemePersonalityChanged(
@@ -56,5 +57,18 @@ void WIPolicyOperatingSystemPowerSchemePersonalityChanged::onExecute(void)
 			writeWorkItemErrorMessagePolicy(
 				ex, "Policy::executePolicyOperatingSystemPowerSchemePersonalityChanged", *i);
 		}
+	}
+
+	try
+	{
+		auto systemModeManager = getDptfManager()->getSystemModeManager();
+		if (systemModeManager != nullptr)
+		{
+			systemModeManager->executeOperatingSystemPowerSchemePersonalityChanged();
+		}
+	}
+	catch (std::exception& ex)
+	{
+		writeWorkItemErrorMessage(ex, "SystemModeManager::executeOperatingSystemPowerSchemePersonalityChanged");
 	}
 }

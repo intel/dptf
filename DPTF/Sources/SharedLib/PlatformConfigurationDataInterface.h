@@ -56,8 +56,6 @@ public:
 	virtual DptfBuffer getAdaptivePerformanceConditionsTable(std::string uuid) = 0;
 	virtual DptfBuffer getOemVariables(void) = 0;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual UInt32 getSocWorkload(UIntN participantIndex, UIntN domainIndex) = 0;
-	virtual UInt32 getSupportEppHint(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl) = 0;
 	virtual UInt32 getProcessorConfigTdpLock(UIntN participantIndex, UIntN domainIndex) = 0;
@@ -74,6 +72,8 @@ public:
 	virtual TimeSpan getExpectedBatteryLife(void) = 0;
 	virtual UInt32 getAggressivenessLevel(void) = 0;
 	virtual DptfBuffer getDdrfTable(void) = 0;
+	virtual DptfBuffer getAggregateDisplayInformation(void) = 0;
+	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) = 0;
 
 	virtual void setPidAlgorithmTable(DptfBuffer data) = 0;
 	virtual DptfBuffer getActiveControlPointRelationshipTable(void) = 0;

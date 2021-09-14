@@ -125,6 +125,7 @@ public:
 	virtual CoreActivityInfo getCoreActivityInfo(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setPowerShareEffectiveBias(UIntN participantIndex, UIntN domainIndex, UInt32 powerShareEffectiveBias)
 		override;
+	virtual UInt32 getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex) override; 
 
 	// Core Controls
 	virtual CoreControlStaticCaps getCoreControlStaticCaps(UIntN participantIndex, UIntN domainIndex) override;
@@ -324,9 +325,10 @@ public:
 	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) override;
 	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) override;
 	virtual void setDdrRfiTable(
-		UIntN participantIndex, 
+		UIntN participantIndex,
 		UIntN domainIndex,
 		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) override;
+	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) override;
 
 	// Utilization
 	virtual UtilizationStatus getUtilizationStatus(UIntN participantIndex, UIntN domainIndex) override;

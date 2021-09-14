@@ -47,4 +47,5 @@ public:
 	virtual SensorUserPresence::Type getPlatformUserPresence(void) const override;
 	virtual OnOffToggle::Type getGameMode(void) const override;
 	virtual UserInteraction::Type getUserInteraction(void) const override;
+	virtual SystemMode::Type getSystemMode(void) const override;
 };

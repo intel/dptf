@@ -77,6 +77,7 @@
 #define ESIF_ACPI_DEVICE_INT3532	"INT3532"	/* Battery Participant */
 #define ESIF_ACPI_DEVICE_INTC1040	"INTC1040"	/* Manager Participant */
 #define ESIF_ACPI_DEVICE_INTC1041	"INTC1041"	/* Manager Participant */
+#define ESIF_ACPI_DEVICE_INTC1042	"INTC1042"	/* Manager Participant */
 #define ESIF_ACPI_DEVICE_INTC1043	"INTC1043"	/* Generic Participant */
 #define ESIF_ACPI_DEVICE_INTC1044	"INTC1044"	/* Fan Participant */
 #define ESIF_ACPI_DEVICE_INTC1045	"INTC1045"	/* FIVR Participant */
@@ -87,6 +88,17 @@
 #define ESIF_ACPI_DEVICE_INTC1050	"INTC1050"	/* Battery Participant */
 #define ESIF_ACPI_DEVICE_INTC1060	"INTC1060"	/* Power Participant */
 #define ESIF_ACPI_DEVICE_INTC1061	"INTC1061"	/* Battery Participant */
+#define ESIF_ACPI_DEVICE_INTC1062	"INTC1062"	/* Generic Participant */
+#define ESIF_ACPI_DEVICE_INTC1063	"INTC1063"	/* Fan Participant */
+#define ESIF_ACPI_DEVICE_INTC1064	"INTC1064"	/* FIVR Participant */
+#define ESIF_ACPI_DEVICE_INTC1065	"INTC1065"	/* Power Participant */
+#define ESIF_ACPI_DEVICE_INTC1066	"INTC1066"	/* Battery Participant */
+#define ESIF_ACPI_DEVICE_INTC10A0	"INTC10A0"	/* Manager Participant */
+#define ESIF_ACPI_DEVICE_INTC10A1	"INTC10A1"	/* Generic Participant */
+#define ESIF_ACPI_DEVICE_INTC10A2	"INTC10A2"	/* Fan Participant */
+#define ESIF_ACPI_DEVICE_INTC10A3	"INTC10A3"	/* FIVR Participant */
+#define ESIF_ACPI_DEVICE_INTC10A4	"INTC10A4"	/* Power Participant */
+#define ESIF_ACPI_DEVICE_INTC10A5	"INTC10A5"	/* Battery Participant */
 
 static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 {
@@ -131,6 +143,8 @@ static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 		"Manager Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1041,
 		"Manager Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1042,
+		"Manager Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1043,
 		"Generic Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1044,
@@ -150,6 +164,28 @@ static ESIF_INLINE esif_string esif_acpi_device_str(esif_string acpi_device)
 	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1060,
 		"Power Participant"),
 	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1061,
+		"Battery Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1062,
+		"Generic Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1063,
+		"Fan Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1064,
+		"FIVR Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1065,
+		"Power Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC1066,
+		"Battery Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC10A0,
+		"Manager Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC10A1,
+		"Generic Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC10A2,
+		"Fan Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC10A3,
+		"FIVR Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC10A4,
+		"Power Participant"),
+	ESIF_MAP(ESIF_ACPI_DEVICE_INTC10A5,
 		"Battery Participant"),
 	};
 	for (int j = 0; j < ESIF_ARRAY_LEN(esif_acpi_device_map); j++) {
@@ -184,6 +220,7 @@ const struct acpi_device_id esif_acpi_ids[] = {
 	{ ESIF_ACPI_DEVICE_INT3532, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1040, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1041, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1042, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1043, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1044, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1045, 0 },
@@ -194,6 +231,17 @@ const struct acpi_device_id esif_acpi_ids[] = {
 	{ ESIF_ACPI_DEVICE_INTC1050, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1060, 0 },
 	{ ESIF_ACPI_DEVICE_INTC1061, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1062, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1063, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1064, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1065, 0 },
+	{ ESIF_ACPI_DEVICE_INTC1066, 0 },
+	{ ESIF_ACPI_DEVICE_INTC10A0, 0 },
+	{ ESIF_ACPI_DEVICE_INTC10A1, 0 },
+	{ ESIF_ACPI_DEVICE_INTC10A2, 0 },
+	{ ESIF_ACPI_DEVICE_INTC10A3, 0 },
+	{ ESIF_ACPI_DEVICE_INTC10A4, 0 },
+	{ ESIF_ACPI_DEVICE_INTC10A5, 0 },
 	{ "", 0 },
 };
 

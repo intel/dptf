@@ -23,7 +23,7 @@
 	do { \
 		if (logger->getLoggingLevel() >= logLevel) \
 		{ \
-			auto _message = [=]() {content}; \
+			auto _message = [&]() {content}; \
 			logger->logFunction(PolicyMessage(FLF, _message())); \
 		} \
 	} while (0)
@@ -33,7 +33,7 @@
 		ex; \
 		if (logger->getLoggingLevel() >= logLevel) \
 		{ \
-			auto _message = [=]() {content}; \
+			auto _message = [&]() {content}; \
 			logger->logFunction(PolicyMessage(FLF, _message())); \
 		} \
 	} while (0)

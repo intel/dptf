@@ -2,6 +2,29 @@
 Description=Intel(R) Dynamic Tuning daemon
 
 [Service]
+NoNewPrivileges=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+MemoryDenyWriteExecute=true
+RestrictSUIDSGID=true
+KeyringMode=private
+ProtectClock=true
+RestrictRealtime=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectHostname=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+ProtectSystem=true
+ProtectHome=true
+DevicePolicy=closed
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=~CAP_SYS_ADMIN CAP_SETUID CAP_SETGID CAP_SETPCAP CAP_SYS_PTRACE CAP_CHOWN CAP_FSETID CAP_SETFCAP CAP_NET_ADMIN CAP_IPC_LOCK CAP_LINUX_IMMUTABLE CAP_SYS_CHROOT CAP_BLOCK_SUSPEND CAP_LE>
+UMask=0077
+PrivateUsers=true
 Type=forking
 Restart=always
 ExecStart=/usr/bin/esif_ufd

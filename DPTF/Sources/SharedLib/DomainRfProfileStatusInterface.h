@@ -32,7 +32,8 @@ public:
 	virtual UInt32 getRfiDisable(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual UInt64 getDvfsPoints(UIntN participantIndex, UIntN domainIndex) = 0;
 	virtual void setDdrRfiTable(
-		UIntN participantIndex, 
-		UIntN domainIndex, 
+		UIntN participantIndex,
+		UIntN domainIndex,
 		DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct) = 0;
+	virtual void setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate) = 0;
 };

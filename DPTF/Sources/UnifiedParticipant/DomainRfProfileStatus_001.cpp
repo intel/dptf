@@ -17,6 +17,8 @@
 ******************************************************************************/
 
 #include "DomainRfProfileStatus_001.h"
+#include "StatusFormat.h"
+#include "BinaryParse.h"
 
 //
 // version 001 is for fivr
@@ -41,8 +43,17 @@ RfProfileDataSet DomainRfProfileStatus_001::getRfProfileDataSet(UIntN participan
 	{
 		Frequency centerFrequency = getParticipantServices()->primitiveExecuteGetAsFrequency(
 			esif_primitive_type::GET_RFPROFILE_CENTER_FREQUENCY, domainIndex);
-		RfProfileSupplementalData rfProfileSupplementalData(0, 0, RadioConnectionStatus::NotConnected);
-		RfProfileData rfProfileData(centerFrequency, Frequency(0), Frequency(0), Frequency(0), rfProfileSupplementalData);
+		RfProfileSupplementalData rfProfileSupplementalData(RadioConnectionStatus::NotConnected);
+		RfProfileData rfProfileData(
+			false,
+			Constants::Invalid,
+			centerFrequency,
+			Frequency(0),
+			Frequency(0),
+			Frequency(0),
+			Constants::Invalid,
+			0,
+			rfProfileSupplementalData);
 		rfProfileDataSet.insert(rfProfileDataSet.end(), rfProfileData);
 	}
 	catch (...)
@@ -59,18 +70,16 @@ UInt32 DomainRfProfileStatus_001::getWifiCapabilities(UIntN participantIndex, UI
 
 UInt32 DomainRfProfileStatus_001::getRfiDisable(UIntN participantIndex, UIntN domainIndex)
 {
-	UInt32 rfiDisable = Constants::Invalid;	
+	UInt32 rfiDisable = Constants::Invalid;
 
 	try
 	{
-		rfiDisable = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			esif_primitive_type::GET_RFI_DISABLE, domainIndex);
+		rfiDisable =
+			getParticipantServices()->primitiveExecuteGetAsUInt32(esif_primitive_type::GET_RFI_DISABLE, domainIndex);
 	}
 	catch (...)
 	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to get RFI Enable/Disable Info. ";
-			});
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get RFI Enable/Disable Info. "; });
 	}
 
 	return rfiDisable;
@@ -82,26 +91,44 @@ UInt64 DomainRfProfileStatus_001::getDvfsPoints(UIntN participantIndex, UIntN do
 
 	try
 	{
-		numberOfDvfsPoints = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			esif_primitive_type::GET_NUMBER_OF_DVFS_POINTS, domainIndex);
+		numberOfDvfsPoints = getParticipantServices()->primitiveExecuteGetAsUInt64(
+			esif_primitive_type::GET_DDR_DVFS_DATA_RATE, domainIndex);
 	}
 	catch (...)
 	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			return "Failed to get Number of DVFS Points ";
-			});
+		PARTICIPANT_LOG_MESSAGE_DEBUG({ return "Failed to get DVFS Data Rate Info. "; });
 	}
-
 	return numberOfDvfsPoints;
 }
 
 void DomainRfProfileStatus_001::setDdrRfiTable(
 	UIntN participantIndex,
 	UIntN domainIndex,
-	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct
-	)
+	DdrfChannelBandPackage::WifiRfiDdr ddrRfiStruct)
 {
 	throw not_implemented();
+}
+
+void DomainRfProfileStatus_001::setProtectRequest(UIntN participantIndex, UIntN domainIndex, UInt64 frequencyRate)
+{
+	try
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return (
+				"Setting the DVFS Rate Protect Request for the rate: " + StatusFormat::friendlyValue(frequencyRate));
+		});
+
+		getParticipantServices()->primitiveExecuteSetAsUInt64(
+			esif_primitive_type::SET_DDR_DVFS_RFI_RESTRICTION, frequencyRate, domainIndex);
+	}
+	catch (...)
+	{
+		PARTICIPANT_LOG_MESSAGE_DEBUG({
+			return (
+				"Failed to set the DVFS Rate Protect Request for the rate: "
+				+ StatusFormat::friendlyValue(frequencyRate));
+		});
+	}
 }
 
 void DomainRfProfileStatus_001::sendActivityLoggingDataIfEnabled(UIntN participantIndex, UIntN domainIndex)

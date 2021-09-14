@@ -24,8 +24,8 @@ using namespace std;
 TableObject::TableObject(
 	TableObjectType::Type type,
 	vector<TableObjectField> fields,
-	vector<pair<string, string>> dataVaultPathForGet,
-	vector<pair<string, string>> dataVaultPathForSet)
+	vector<pair<DataVaultType::Type, string>> dataVaultPathForGet,
+	vector<pair<DataVaultType::Type, string>> dataVaultPathForSet)
 	: m_type(type)
 	, m_fields(fields)
 	, m_dataVaultPathForGet(dataVaultPathForGet)
@@ -57,12 +57,12 @@ vector<TableObjectField> TableObject::getFields() const
 	return m_fields;
 }
 
-vector<pair<string, string>> TableObject::dataVaultPathForGet() const
+vector<pair<DataVaultType::Type, string>> TableObject::dataVaultPathForGet() const
 {
 	return m_dataVaultPathForGet;
 }
 
-vector<pair<string, string>> TableObject::dataVaultPathForSet() const
+vector<pair<DataVaultType::Type, string>> TableObject::dataVaultPathForSet() const
 {
 	return m_dataVaultPathForSet;
 }
@@ -113,7 +113,7 @@ string TableObject::getXmlString(UInt32 supportedRevision)
 		}
 		else
 		{
-			return "TableObject is empty.";
+			return "TableObject revision not supported.";
 		}
 	}
 	else

@@ -49,7 +49,6 @@
 #include "esif_sdk_capability_type.h" /* For Capability Id Description*/
 #include "esif_sdk_data_misc.h"
 #include "esif_sdk_base64.h"
-#include "esif_sdk_iface_ws.h"
 
 #include "esif_lib_datacache.h"
 #include "esif_lib_databank.h"
@@ -65,10 +64,8 @@
 #include "esif_sdk_iface_esif.h"
 #include "esif_uf_service.h"
 
-#ifdef ESIF_ATTR_OS_WINDOWS
-// Tool
-#include "win\esif_uf_tool.h"
-#endif
+#include "ipf_sdk_version.h"
+
 const char *g_esif_shell_version = ESIF_UF_VERSION;
 extern char *g_esif_etf_version;
 char g_esif_kernel_version[64] = "NA";
@@ -113,7 +110,7 @@ static char *esif_shell_exec_dispatch(const char *line, char *output);
 #define MAX_FILE_DECODED_LEN (((MAX_BASE64_ENCODED_LEN / 4) + 3) * 3) // ~33MB
 #define MAX_FILE_ENCODED_LEN ((MAX_FILE_DECODED_LEN * 5) + (((MAX_FILE_DECODED_LEN / 16) + 1) * 2)) // ~169MB
 #define MIN_PARAMETERS_FOR_GET_PRIMITIVE 2
-#define MIN_PARAMETERS_FOR_SET_PRIMITIVE 5
+#define MIN_PARAMETERS_FOR_SET_PRIMITIVE 4
 #define MIN_PARAMETERS_FOR_APP_STATUS 2
 
 /* Participant Creation Defaults */
@@ -651,8 +648,8 @@ IStringPtr CreateJsonFromParticipantData(
 {
 	StringPtr enumerator_name = ltrim(esif_participant_enum_str(enumerator), PREFIX_PARTICIPANT_ENUM);
 	IStringPtr jsonStr = NULL;
-	JsonObjPtr obj = JsonObj_Create();
-	if (obj) {
+	JsonObjPtr obj = NULL;
+	if (*name && *description && *param1 && *param2 && (obj = JsonObj_Create()) != NULL) {
 		JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "type", DYNAMIC_PARTICIPANTS_OBJTYPE);
 		JsonObj_AddKeyPair(obj, ESIF_DATA_UINT32, "revision", DYNAMIC_PARTICIPANTS_REVISION);
 		JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "name", name);
@@ -671,7 +668,7 @@ IStringPtr CreateJsonFromParticipantData(
 		case ESIF_PARTICIPANT_ENUM_CONJURE:
 			JsonObj_AddKeyPair(obj, ESIF_DATA_STRING, "hid", param1);
 			JsonObj_AddKeyPair(obj, ESIF_DATA_UINT32, "ptype", param2);
-			if (param3 && enumerator == ESIF_PARTICIPANT_ENUM_CONJURE) {
+			if (param3 && *param3) {
 				JsonObj_AddKeyPair(obj, ESIF_DATA_UINT32, "flags", param3);
 			}
 			break;
@@ -859,7 +856,7 @@ eEsifError esif_uf_shell_banner_init(void)
 
 	ESIF_TRACE_ENTRY_INFO();
 
-	CMD_OUT("Start ESIF Upper Framework Shell\n");
+	CMD_OUT("Start IPF Upper Framework Shell\n");
 
 	// Build OS Display String
 	esif_ccb_sprintf(sizeof(g_os), g_os, "%s %s %s", ESIF_ATTR_OS, ESIF_PLATFORM_TYPE, ESIF_BUILD_TYPE);
@@ -867,17 +864,17 @@ eEsifError esif_uf_shell_banner_init(void)
 
 	// Display Banner if Shell Enabledappex. Initial Prompt will follow
 	if (g_shell_enabled) {
-		CMD_OUT("\n\nEEEEEEEEEE   SSSSSSSSSS   IIIIIIIII   FFFFFFFFFF\n"
-					"EEE          SSS             III      FFF\n"
-					"EEE          SSS             III      FFF\n"
-					"EEEEEEEEEE   SSSSSSSSSS      III      FFFFFFFFFF\n"
-					"EEE                 SSS      III      FFF\n"
-					"EEE                 SSS      III      FFF     OS:      %s\n"
-					"EEEEEEEEEE   SSSSSSSSSS   IIIIIIIII   FFF     Version: %s\n\n",
+		CMD_OUT("\n\nIIIIIIIIII   PPPPPPPPPP   FFFFFFFFFF\n"
+					"    III      PPP    PPP   FFF\n"
+					"    III      PPP    PPP   FFF\n"
+					"    III      PPPPPPPPPP   FFFFFFFFFF\n"
+					"    III      PPP          FFF\n"
+					"    III      PPP          FFF     OS:      %s\n"
+					"IIIIIIIIII   PPP          FFF     Version: %s\n\n",
 				g_os, g_esif_shell_version);
 	}
 	else {
-		CMD_OUT("ESIF Shell Disabled\n");
+		CMD_OUT("IPF Shell Disabled\n");
 	}
 	ESIF_TRACE_EXIT_INFO_W_STATUS(rc);
 
@@ -1543,17 +1540,19 @@ static char *esif_shell_cmd_app(EsifShellCmdPtr shell)
 						if (new_ptr) {
 							response.buf_ptr = new_ptr;
 							response.buf_len = response.data_len;
+							response.data_len = 0;
 							esif_uf_shell_unlock();
 							rc = EsifApp_SendCommand(appPtr, argcEsifData, argvEsifData, &response);
 							esif_uf_shell_lock();
 						}
 					}
-					if (response.data_len > g_outbuf_len) {
+					if (response.data_len > OUT_BUF_LEN && response.buf_len >= response.data_len) {
 						esif_shell_resize(response.data_len);
 					}
+					output = shell->outbuf = g_outbuf;
 
-					if (response.buf_ptr && g_outbuf_len >= response.data_len) {
-						esif_ccb_strcpy(g_outbuf, response.buf_ptr, g_outbuf_len);
+					if (response.buf_ptr && OUT_BUF_LEN >= response.data_len && response.buf_len >= response.data_len) {
+						esif_ccb_strcpy(output, response.buf_ptr, response.data_len);
 					}
 					else {
 						rc = ESIF_E_NEED_LARGER_BUFFER;
@@ -1656,8 +1655,12 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 		arg++;
 	}
 	Bool showIntro = ESIF_FALSE;
+	Bool reloadIntro = ESIF_FALSE;
 	if (argc > arg && (esif_ccb_stricmp(argv[arg], "about") == 0 || esif_ccb_stricmp(argv[arg], "intro") == 0)) {
 		showIntro = ESIF_TRUE;
+		if (esif_ccb_stricmp(argv[arg], "intro") == 0) {
+			reloadIntro = ESIF_TRUE;
+		}
 		arg++;
 	}
 	char delimiter = 0;
@@ -1732,6 +1735,11 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 					u32 introBufLen = 1024;
 					esif_string introBuffer = esif_ccb_malloc(introBufLen);
 					if (introBuffer) {
+						if (reloadIntro) {
+							EsifString oldIntro = appPtr->fAppIntroPtr;
+							appPtr->fAppIntroPtr = NULL;
+							esif_ccb_free(oldIntro);
+						}
 						EsifData introData = { ESIF_DATA_STRING, introBuffer, introBufLen, 0 };
 						esif_error_t introRc = EsifApp_GetIntro(appPtr, &introData);
 						if (introRc == ESIF_E_NEED_LARGER_BUFFER) {
@@ -1745,6 +1753,9 @@ static char *esif_shell_cmd_apps(EsifShellCmdPtr shell)
 						}
 						if (introRc == ESIF_OK) {
 							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n%s%s\n", (esif_string)introData.buf_ptr, (esif_ccb_strchr((esif_string)introData.buf_ptr, '\n') ? "" : "\n"));
+						}
+						else {
+							esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n%s\n\n", esif_rc_str(introRc));
 						}
 						esif_ccb_free(introBuffer);
 					}
@@ -1852,7 +1863,9 @@ static char *esif_shell_cmd_events(EsifShellCmdPtr shell)
 
 			/* If using string matching parameter, skip event if no match for event name or app name */
 			if ((eventMatch && esif_ccb_strmatch(esif_event_type_str(curEventData.eventType), eventMatch) == ESIF_FALSE) ||
-				(appMatch && esif_ccb_strmatch((appNamePtr ? appNamePtr : "esif"), appMatch) == ESIF_FALSE)) {
+				(appMatch && esif_ccb_strmatch((appNamePtr ? appNamePtr : "esif"), appMatch) == ESIF_FALSE 
+					&& esif_ccb_strmatch((appNamePtr ? appNamePtr : "ipf"), appMatch) == ESIF_FALSE
+					&& esif_ccb_strmatch((appNamePtr ? appNamePtr : "ipf_uf"), appMatch) == ESIF_FALSE)) {
 				EsifAppMgr_PutRef(appPtr); /* Release reference from EsifAppMgr_GetAppFromHandle */
 				rc = EsifEventMgr_GetNextEvent(&eventIter, &curEventData);
 				continue;
@@ -1896,7 +1909,7 @@ static char *esif_shell_cmd_events(EsifShellCmdPtr shell)
 				}
 			}
 			else {
-				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  %11s ", "esif");
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "  %11s ", "ipf_uf");
 			}
 
 			esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
@@ -2180,9 +2193,8 @@ static char *esif_shell_cmd_arb(EsifShellCmdPtr shell)
 				}
 				else if (ESIF_INVALID_HANDLE == participantId) {
 					esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
-						"  Global state: %s\n"
-						"  Number of arbitrated participants: %lu\n",
-						arbInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled", arbInfoPtr->arbitratedCount);
+						"  Global state: %s\n",
+						arbInfoPtr->arbitrationEnabled ? "Enabled" : "Disabled");
 				}
 
 				/* Include participant information (if at least one) */
@@ -3059,11 +3071,6 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		type     = ESIF_DATA_STRING;
 		buf_size = 128;
 		dump     = 0;
-	} else if (esif_ccb_stricmp(argv[0], "getp_t") == 0) {
-		suffix   = &argv[0][4];
-		type     = ESIF_DATA_UINT32;
-		buf_size = g_binary_buf_size;
-		dump     = 0;
 	} else if (esif_ccb_stricmp(argv[0], "getp_b") == 0) {
 		suffix   = &argv[0][4];
 		type     = ESIF_DATA_BINARY;
@@ -3080,17 +3087,22 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 		buf_size = ESIF_DATA_ALLOCATE;
 		dump     = 2;
 	}
-	else if (esif_ccb_stricmp(argv[0], "getp_part") == 0) {
-		//now first parameter should be participant
+
+	// Assume 1st parameter is a Participant if using getp_part, or it starts with "0x", or it is a non-number that isn't a Primitive call.
+	if ((esif_ccb_stricmp(argv[0], "getp_part") == 0) ||
+		(esif_ccb_strnicmp(argv[opt], "0x", 2) == 0) ||
+		(!shell_isnumber(argv[opt]) && esif_ccb_strnicmp(argv[opt], "GET_", 4) != 0)) {
+
 		if (argc < MIN_PARAMETERS_FOR_GET_PRIMITIVE + 1) {
 			rc = ESIF_E_PARAMETER_IS_NULL;
 			goto exit;
 		}
 		targetParticipant = argv[opt++];
-		suffix = "";
-		type = ESIF_DATA_AUTO;
-		buf_size = ESIF_DATA_ALLOCATE;
-		dump = 0;
+		if (*suffix == 0) {
+			type = ESIF_DATA_AUTO;
+			buf_size = ESIF_DATA_ALLOCATE;
+			dump = 0;
+		}
 		rc = esif_shell_get_participant_id(targetParticipant, &participantID);
 		if (rc != ESIF_OK) {
 			goto exit;
@@ -3098,7 +3110,7 @@ static char *esif_shell_cmd_getp(EsifShellCmdPtr shell)
 	}
 
 	// Primitive ID or Name
-	id = (isdigit(argv[opt][0]) ? esif_atoi(argv[opt++]) : (u32)esif_primitive_type_str2enum(argv[opt++]));
+	id = (shell_isnumber(argv[opt]) ? esif_atoi(argv[opt++]) : (u32)esif_primitive_type_str2enum(argv[opt++]));
 
 	// Qualifier
 	if (opt < argc) {
@@ -4918,6 +4930,7 @@ static char *esif_shell_cmd_addpartk(EsifShellCmdPtr shell)
 		(!shell_isstring(argv[3], ESIF_FALSE, sizeof(desc))) ||
 		(!shell_isstring(argv[4], ESIF_TRUE, sizeof(acpiDevice)) && !shell_isnumber(argv[4])) ||
 		(!shell_isnumber(argv[5]))) {
+		rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
 		esif_ccb_sprintf(OUT_BUF_LEN, output, "Usage:\taddpartk PCI <name> <desc> <vid> <did>\n\taddpartk ACPI <name> <desc> <hid> <ptype>\n");
 		goto exit;
 	}
@@ -4988,15 +5001,17 @@ static char *esif_shell_cmd_addpartk(EsifShellCmdPtr shell)
 		rc = ipc_execute(ipcPtr);
 		if (rc != ESIF_OK || cmdPtr->return_code != ESIF_OK) {
 			rc = (rc != ESIF_OK ? rc : cmdPtr->return_code);
-			esif_ccb_sprintf(OUT_BUF_LEN, output,
-				"Failure creating kernel participant %s; err = %s(%d)\n",
-				name, esif_rc_str(rc), rc);
 		}
 		else {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "Kernel Participant %s created.\n", name);
 		}
 	}
 exit:
+	if (rc != ESIF_OK) {
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output,
+			"Failure creating kernel participant %s; err = %s(%d)\n",
+			name, esif_rc_str(rc), rc);
+	}
 	esif_ipc_free(ipcPtr);
 	return output;
 }
@@ -5308,18 +5323,16 @@ static char *esif_shell_cmd_paths(EsifShellCmdPtr shell)
 {
 	char *output = shell->outbuf;
 	char targetFilePath[MAX_PATH] = { 0 };
+	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_HOME, NULL, 0);
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "AppHome path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DV, NULL, 0);
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "Datavault path:\n %s \n\n", targetFilePath);
-	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DPTF, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "DPTF path:\n %s \n\n", targetFilePath);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Datavault path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DLL, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Policy path:\n %s \n\n", targetFilePath);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Library path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DLL_ALT, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Alternate Policy path:\n %s \n\n", targetFilePath);
-	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DPTF, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Combined.xsl path:\n %s \n\n", targetFilePath);
-	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_UI, NULL, 0);
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "UI path:\n %s \n\n", targetFilePath);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Alternate Library path:\n %s \n\n", targetFilePath);
+	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DATA, NULL, 0);
+	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "DATA path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_DSP, NULL, 0);
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "DSP path:\n %s \n\n", targetFilePath);
 	esif_build_path(targetFilePath, sizeof(targetFilePath), ESIF_PATHTYPE_LOG, NULL, 0);
@@ -5412,16 +5425,23 @@ static char *esif_shell_cmd_participant(EsifShellCmdPtr shell)
 					break;
 				}
 
-				if (jsonPart) {
-					value = EsifData_CreateAs(ESIF_DATA_JSON, esif_ccb_strdup(IString_GetString(jsonPart)), ESIFAUTOLEN, ESIFAUTOLEN);
+				if (rc == ESIF_OK) {
+					if (jsonPart) {
+						value = EsifData_CreateAs(ESIF_DATA_JSON, esif_ccb_strdup(IString_GetString(jsonPart)), ESIFAUTOLEN, ESIFAUTOLEN);
+					}
+					else {
+						rc = ESIF_E_PARAMETER_IS_NULL;
+					}
 				}
 
 				// Persist to DataVault
-				if (nameSpace == NULL || key == NULL || value == NULL || value->buf_ptr == NULL) {
-					rc = ESIF_E_NO_MEMORY;
-				}
-				else {
-					rc = EsifConfigSet(nameSpace, key, ESIF_SERVICE_CONFIG_PERSIST, value);
+				if (rc == ESIF_OK) {
+					if (nameSpace && key && value && value->buf_ptr) {
+						rc = EsifConfigSet(nameSpace, key, ESIF_SERVICE_CONFIG_PERSIST, value);
+					}
+					else {
+						rc = ESIF_E_NO_MEMORY;
+					}
 				}
 				EsifData_Destroy(nameSpace);
 				EsifData_Destroy(key);
@@ -5789,13 +5809,17 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 		suffix = &argv[0][4];
 	} else if (esif_ccb_stricmp(argv[0], "setp_bf") == 0 || esif_ccb_stricmp(argv[0], "setp_bs") == 0) {
 		suffix = &argv[0][4];
-	} else if (esif_ccb_stricmp(argv[0], "setp_part") == 0) {
-		//now first parameter should be participant
+	}
+	
+	// Assume 1st parameter is a Participant if using setp_part, or it starts with "0x", or it is a non-number that isn't a Primitive call.
+	if ((esif_ccb_stricmp(argv[0], "setp_part") == 0) ||
+		(esif_ccb_strnicmp(argv[opt], "0x", 2) == 0) ||
+		(!shell_isnumber(argv[opt]) && esif_ccb_strnicmp(argv[opt], "SET_", 4) != 0)) {
+
 		if (argc < MIN_PARAMETERS_FOR_SET_PRIMITIVE + 1) {
 			rc = ESIF_E_PARAMETER_IS_NULL;
 			goto exit;
 		}
-		suffix = "";
 		targetParticipant = argv[opt++];
 		rc = esif_shell_get_participant_id(targetParticipant, &participantId);
 		if (rc != ESIF_OK) {
@@ -5804,7 +5828,7 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	}
 
 	// Primitive ID or Name
-	id = (isdigit(argv[opt][0]) ? esif_atoi(argv[opt++]) : (u32)esif_primitive_type_str2enum(argv[opt++]));
+	id = (shell_isnumber(argv[opt]) ? esif_atoi(argv[opt++]) : (u32)esif_primitive_type_str2enum(argv[opt++]));
 
 	// Qualifier ID
 	qualifier_str = argv[opt++];
@@ -5833,9 +5857,12 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
+
+	if (opt < argc) {
+		dataStr = argv[opt++];
+	}
 	/* Read from a File in BIN directory for setp_bf */
-	dataStr = argv[opt++];
-	if (esif_ccb_strnicmp(suffix, "_b", 2) == 0) {
+	if (dataStr && esif_ccb_strnicmp(suffix, "_b", 2) == 0) {
 		char full_path[MAX_PATH] = { 0 };
 		char *filename = dataStr;
 		int errnum = 0;
@@ -5890,25 +5917,24 @@ static char *esif_shell_cmd_setp(EsifShellCmdPtr shell)
 	if (rc != ESIF_OK) {
 		goto exit;
 	}
-	if (primitiveDataType != ESIF_DATA_VOID) {
-		if (NULL == dataPtr->buf_ptr) {
-			goto exit;
-		}
-		/*
-		 * We make a copy of the data for the request because the data can get
-		 * transformed which will result in nonsense values being displayed after
-		 * the primitive is executed
-		 */
-		request.buf_len = dataPtr->buf_len;
-		request.data_len = dataPtr->data_len;
-		request.type = dataPtr->type;
-		request.buf_ptr = esif_ccb_malloc(request.buf_len);
-		if (NULL == request.buf_ptr) {
-			rc = ESIF_E_NO_MEMORY;
-			goto exit;
-		}
-		esif_ccb_memcpy(request.buf_ptr, dataPtr->buf_ptr, request.buf_len);
+	if (NULL == dataPtr->buf_ptr) {
+		goto exit;
 	}
+
+	/*
+	* We make a copy of the data for the request because the data can get
+	* transformed which will result in nonsense values being displayed after
+	* the primitive is executed
+	*/
+	request.buf_len = dataPtr->buf_len;
+	request.data_len = dataPtr->data_len;
+	request.type = dataPtr->type;
+	request.buf_ptr = esif_ccb_malloc(request.buf_len);
+	if (NULL == request.buf_ptr) {
+		rc = ESIF_E_NO_MEMORY;
+		goto exit;
+	}
+	esif_ccb_memcpy(request.buf_ptr, dataPtr->buf_ptr, request.buf_len);
 
 
 	esif_ccb_sprintf(OUT_BUF_LEN, output, "%s ", esif_primitive_str((enum esif_primitive_type)id));
@@ -6048,7 +6074,7 @@ exit:
 
 
 // Reset/remove an override value in the DV's
-// Syntax: rstp <id> [qualifier] [instance]
+// Syntax: rstp [<handle|name>] <id> [qualifier] [instance]
 //         rstp_part <handle|name> <id> [qualifier] [instance]
 //
 static char *esif_shell_cmd_reset_override(EsifShellCmdPtr shell)
@@ -6073,8 +6099,11 @@ static char *esif_shell_cmd_reset_override(EsifShellCmdPtr shell)
 		goto exit;
 	}
 
-	if (esif_ccb_stricmp(argv[0], "rstp_part") == 0) {
-		//now first parameter should be participant
+	// Assume 1st parameter is a Participant if using rstp_part, or it starts with "0x", or it is a non-number that isn't a Primitive call.
+	if ((esif_ccb_stricmp(argv[0], "rstp_part") == 0) ||
+		(esif_ccb_strnicmp(argv[opt], "0x", 2) == 0) ||
+		(!shell_isnumber(argv[opt]) && esif_ccb_strnicmp(argv[opt], "SET_", 4) != 0)) {
+		
 		if (argc < MIN_PARAMETERS_FOR_GET_PRIMITIVE + 1) {
 			rc = ESIF_E_PARAMETER_IS_NULL;
 			goto exit;
@@ -6088,7 +6117,7 @@ static char *esif_shell_cmd_reset_override(EsifShellCmdPtr shell)
 	}
 
 	// Primitive ID or Name
-	id = (isdigit(argv[opt][0]) ? esif_atoi(argv[opt++]) : (u32)esif_primitive_type_str2enum(argv[opt++]));
+	id = (shell_isnumber(argv[opt]) ? esif_atoi(argv[opt++]) : (u32)esif_primitive_type_str2enum(argv[opt++]));
 
 	// Qualifier ID
 	if (opt < argc) {
@@ -6263,7 +6292,6 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 		g_traceLevel = esif_ccb_min(g_traceLevel_max, level);
 		verbosity = (UInt32)g_traceLevel;
 		EsifEventMgr_SignalEvent(ESIF_HANDLE_PRIMARY_PARTICIPANT, EVENT_MGR_DOMAIN_NA, ESIF_EVENT_LOG_VERBOSITY_CHANGED, &verbosity_data);
-		EsifWebSetTraceLevel(g_traceLevel);
 		CMD_OUT("\ntrace level %d\n", g_traceLevel);
 	}
 	// trace module <level> <bitmask>
@@ -6279,8 +6307,6 @@ char *esif_shell_cmd_trace(EsifShellCmdPtr shell)
 		}
 		else
 			g_traceinfo[level].modules = bitmask;
-
-		EsifWebSetTraceLevel(g_traceLevel);
 	}
 	// trace route <level> <bitmask>
 	// trace route <level> [<route> ...]
@@ -6484,6 +6510,14 @@ static char* esif_shell_cmd_sdk_version(EsifShellCmdPtr shell)
 	
 	esif_shell_dispatch(newargc, newargv, &output);
 	
+	// If cannot get SDK version from IPFSRV (not running) return the SDK Version from IPF_UF
+	if (!isdigit(*output)) {
+		esif_ccb_strcpy(output, IPF_SDK_VERSION, OUT_BUF_LEN);
+		if (esif_ccb_strchr(argv[0], '-') == NULL) {
+			esif_ccb_strcat(output, "\n", OUT_BUF_LEN);
+		}
+	}
+
 	return output;
 }
 
@@ -6842,20 +6876,20 @@ static char *esif_shell_cmd_about(EsifShellCmdPtr shell)
 	if (g_format == FORMAT_TEXT) {
 		esif_ccb_sprintf(OUT_BUF_LEN, output,
 						 "\n"
-						 "ESIF - Eco-System Independent Framework\n"
+						 "IPF - Intel(R) Innovation Platform Framework\n"
 						 "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n"
 						 "\n"
-						 "esif_uf - ESIF Upper Framework (UF) R3\n"
+						 "ipf_uf - IPF Upper Framework (UF)\n"
 						 "Version:  %s\n"
 						 "OS: %s\n"
 						 "\n"
-						 "ESIF Framework Modules:\n"
+						 "IPF Framework Modules:\n"
 						 "ID Module      Description               Version \n"
 						 "-- ----------- ------------------------- ----------\n"
-						 "1  esif_shell  ESIF Command Interface    %s\n"
+						 "1  ipf_shell   IPF Command Interface     %s\n"
 						 "\n"
-						 "esif_lf - ESIF Lower Framework (LF) R0\n"
-						 "ESIF Kernel Driver Information:\n"
+						 "ipf_lf - IPF Lower Framework (LF)\n"
+						 "IPF Kernel Driver Information:\n"
 						 "Version: %s\n"
 						 "\n",
 						 ESIF_UF_VERSION,
@@ -7090,7 +7124,7 @@ static char *esif_shell_cmd_info(EsifShellCmdPtr shell)
 
 #ifdef ESIF_FEAT_OPT_ACTION_SYSFS
 	UNREFERENCED_PARAMETER(rc);
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF_UF GMIN Build Version = %s\n", ESIF_UF_VERSION);
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF_UF GMIN Build Version = %s\n", ESIF_UF_VERSION);
 #else
 	const u32 data_len = sizeof(struct esif_command_get_kernel_info);
 	struct esif_ipc_command *command_ptr = NULL;
@@ -8301,7 +8335,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 	UNREFERENCED_PARAMETER(argc);
 	UNREFERENCED_PARAMETER(argv);
 
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "ESIF CLI Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n");
+	esif_ccb_sprintf(OUT_BUF_LEN, output, "IPF CLI Copyright (c) 2013-2021 Intel Corporation All Rights Reserved\n");
 	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n"
 		"Key:  <>-Required parameters\n"
 		"      []-Optional parameters\n"
@@ -8313,8 +8347,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"quit or exit                             Leave\n"
 		"format <xml|text>                        Command Output Format (Default=text)\n"
 		"info                                     Get Kernel Version\n"
-		"about                                    List ESIF Information\n"
-		"capture [-overwrite] [filename]           Write all DPTF settings to .txt file in XML format [overwrite will replace existing file]\n"
+		"about                                    List IPF Information\n"
+		"capture [-overwrite] [filename]          Write all DPTF settings to .txt file in XML format [overwrite will replace existing file]\n"
 		"rem                                      Comment/Remark - ignored\n"
 		"repeat <count>                           Repeat Next Command N Times\n"
 		"repeat_delay <delay>                     Repeat Delay In ms\n"
@@ -8374,7 +8408,7 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"domains                                  List Active Domains For Participant\n"
 		"\n"
 		"PRIMITIVE EXECUTION API:\n"
-		"getp <id> [qualifier] [instance] [data=[u32 or string input parameter]] [[~]act_name | [~]act_index]\n"
+		"getp [part] <id> [qualifier] [instance] [data=[u32 or string input parameter]] [[~]act_name | [~]act_index]\n"
 		"                                         Execute 'GET' Primitive With Automatic\n"
 		"                                         Return Type and Size\n"
 		"  Where: act_name = Name of Action Type to Use\n"
@@ -8383,18 +8417,18 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"         (Default is to try all actions for a primitive until one succeeds)\n"
 		"  Note: Action Selector Options not shown in variants below, but may be used\n"
 		"\n"
-		"getp_u32 <id> [qualifier] [instance]        Execute U32 Get Primitive\n"
-		"getp_t   <id> [qualifier] [instance]        Like getp But Converts Temperature\n"
-		"getp_part<part> <id> [qualifier] [instance] Like getp But First Parameter is Participant Name or ID\n"
-		"getp_pw  <id> [qualifier] [instance]        Like getp But Converts Power To mW\n"
-		"getp_s   <id> [qualifier] [instance]        Like getp But Return STRING\n"
-		"getp_b   <id> [qualifier] [instance]        Like getp But Return BINARY DATA\n"
-		"getp_bd  <id> [qualifier] [instance]        Like getp But Dumps Hex BINARY DATA\n"
-		"getp_bf  <id> [qualifier] [instance] [file] Like getp_b But Dumps To File\n"
-		"getf_b   <file>                             Like getp_b But Reads From File\n"
-		"getf_bd  <file>                             Like getp_bd But Reads From File\n"
+		"getp_u32  [part] <id> [qualifier] [instance]        Execute U32 Get Primitive\n"
+		"getp_t    [part] <id> [qualifier] [instance]        Like getp But Converts Temperature\n"
+		"getp_part <part> <id> [qualifier] [instance]        Like getp But First Parameter must be Participant Name or ID\n"
+		"getp_pw   [part] <id> [qualifier] [instance]        Like getp But Converts Power To mW\n"
+		"getp_s    [part] <id> [qualifier] [instance]        Like getp But Return STRING\n"
+		"getp_b    [part] <id> [qualifier] [instance]        Like getp But Return BINARY DATA\n"
+		"getp_bd   [part] <id> [qualifier] [instance]        Like getp But Dumps Hex BINARY DATA\n"
+		"getp_bf   [part] <id> [qualifier] [instance] [file] Like getp_b But Dumps To File\n"
+		"getf_b    [part] <file>                             Like getp_b But Reads From File\n"
+		"getf_bd   [part] <file>                             Like getp_bd But Reads From File\n"
 		"\n"
-		"setp    <id> <qualifier> <instance> <data> [[~]act_name | [~]act_index]\n"
+		"setp [part] <id> <qualifier> <instance> <data> [[~]act_name | [~]act_index]\n"
 		"                                         Execute 'SET' Primitive\n"
 		"  Where: act_name = Name of Action Type to Use\n"
 		"         act_index = Index of the Action to Use\n"
@@ -8402,10 +8436,10 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"         (Default is to try all actions for a primitive until on succeeds)\n"
 		"  Note: Action Selector Options not shown in variants below, but may be used\n"
 		"\n"
-		"setp_t  <id> <qualifier> <instance> <temp>  Execute Set as Temperature (C)\n"
-		"setp_part<part> <id> <qualifier> <instance> <data> [action] Like setp But First Parameter is Participant Name or ID\n"
-		"setp_pw <id> <qualifier> <instance> <power> Execute Set as Power (mW)\n"
-		"setp_bf <id> <qualifier> <instance> <file>  Same as setp except Read from File\n"
+		"setp_t    [part] <id> <qualifier> <instance> <temp>  Execute Set as Temperature (C)\n"
+		"setp_part <part> <id> <qualifier> <instance> <data> [action] Like setp But First Parameter must be Participant Name or ID\n"
+		"setp_pw   [part] <id> <qualifier> <instance> <power> Execute Set as Power (mW)\n"
+		"setp_bf   [part] <id> <qualifier> <instance> <file>  Same as setp except Read from File\n"
 		"set_osc <id> <capablities>                  Execute ACPI _OSC Command For\n"
 		"                                            Listed GUIDs Below:\n"
 		"         Active Policy 0 = {0xd6,0x41,0xa4,0x42,0x6a,0xae,0x2b,0x46,\n"
@@ -8415,9 +8449,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"                                            Capabilities per APCI Spec\n"
 		"setb <buffer_size>                          Set Binary Buffer Size\n"
 		"\n"
-		"rstp <id> [qualifier] [instance]            Resets/clears an override\n"
-		"\n"
-		"rstp_part <part id or name> <id> [qualifier] [instance] Same as rstp but specifies participant \n"
+		"rstp [part] <id> [qualifier] [instance]      Resets/clears an override\n"
+		"rstp_part <part> <id> [qualifier] [instance] Same as rstp but 1st parameter must be Participant Name or ID\n"
 		"\n"
 		"getb                                        Get Binary Buffer Size\n"
 		"\n"
@@ -8430,7 +8463,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"config open   <@datavault|repo.bin>         Open and Load a DataVault or Repository\n"
 		"config close  <@datavault> [...]            Close DataVault(s)\n"
 		"config drop   <@datavault|repo.bin> [...]   Drop Closed DataVault\n"
-		"config get    [@datavault] [<keyspec>]      Get DataVault Key (or wildcard)\n"
+		"config get    [@datavault] [<keyspec>] [<SHA|SHA1|-|KEYS>] [<maxkey>] [<maxdata>]\n"
+		"                                            Get DataVault Key (or wildcard)\n"
 		"config set    [@datavault] <key> <value> [type] [option ...]\n"
 		"                                            Set DataVault Key/Value/Type\n"
 		"config keys   [@datavault] [<keyspec>]      Enumerate matching Key(s) or wildcard\n"
@@ -8476,9 +8510,9 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"\n"
 	#endif
 		"APPLICATION MANAGEMENT:\n"
-		"apps                                     List all ESIF hosted Applications\n"
-		"appstart   <application>                 Start an ESIF Application\n"
-		"appstop    <application>                 Stop an ESIF Application\n"
+		"apps                                     List all IPF hosted Applications\n"
+		"appstart   <application>                 Start an IPF Application [in-process]\n"
+		"appstop    <application>                 Stop an IPF Application\n"
 		"appstatus  <application>                 App Status\n"
 		"appenable  <application>                 App Enable\n"
 		"appabout   <application>                 App About\n"
@@ -8494,14 +8528,8 @@ static char *esif_shell_cmd_help(EsifShellCmdPtr shell)
 		"driverk <id>                             Get Kernel Participant Extension Info\n"
 		"upes                                     List User-mode Participant Extensions\n"
 		"\n"
-#ifdef ESIF_ATTR_OS_WINDOWS
-		"tools                                    List all supported tools\n"
-		"toolstart <tool name> [parameters...]    Start a supported tool\n"
-		"toolstop <tool name>                     Stop a supported tool\n"
-		"\n"
-#endif
 		"CONJURE MANAGEMENT:\n"
-		"conjures                                 List loaded ESIF Conjure Libraries\n"
+		"conjures                                 List loaded IPF Conjure Libraries\n"
 		"conjure   <library name>                 Load Upper Framework Conjure Library\n"
 		"unconjure <library name>                 Unload Upper Framework Conjure Library\n"
 		"\n"
@@ -8628,10 +8656,24 @@ static char *esif_shell_cmd_ui(EsifShellCmdPtr shell)
 
 	// ui getxslt <appname>
 	if (esif_ccb_stricmp(subcmd, "getxslt")==0) {
-		command = eAppStatusCommandGetXSLT;
-		paramCount = 2;
-		if (argc >= 3)
-			appName = argv[2];
+		//
+		// "ui getxslt dptf" is an alias for "app cmd dptfui fetch combined.xsl"
+		// since the XSLT is now served by the web server directly instead of from DPTF
+		//
+		char *newargv[MAX_ARGV] = {0};
+		int newargc = 0;
+		newargv[newargc++] = "app";
+		newargv[newargc++] = "cmd";
+#ifdef ESIF_ATTR_OS_WINDOWS
+		newargv[newargc++] = "dptfui";
+#else
+		newargv[newargc++] = ESIF_WS_LIBRARY_NAME;	// TODO: Change when Linux loads dptfui.so instead of esif_ws.so
+#endif
+		newargv[newargc++] = "fetch";
+		newargv[newargc++] = "combined.xsl";
+
+		esif_shell_dispatch(newargc, newargv, &output);
+		return output;
 	}
 	// ui getgroups <appname>
 	else if (esif_ccb_stricmp(subcmd, "getgroups")==0) {
@@ -8756,120 +8798,190 @@ static char *esif_shell_cmd_web(EsifShellCmdPtr shell)
 		return NULL;
 	}
 
+	//
+	// The "web" command is deprecated since the EsifWsInterface has been removed.
+	// Provide aliases for old "web" commands using ESIF/App interface for backwards compatibility with Linux-based OSs.
+	// Eventually this command will be deprecated for all OSs and removed entirely.
+	//
+
 	// web [status]
-	if (argc < 2 || esif_ccb_stricmp(argv[1], "status")==0) {
-		const char *version = EsifWebVersion();
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "web server %s%s%s\n", (EsifWebIsStarted() ? "started" : "stopped"), (*version ? " : Version " : ""), version);
+	char *subcmd = "status";
+	int opt = 1;
+	if (argc > 1) {
+		subcmd = argv[opt++];
 	}
-	// web start [unrestricted] [ip.addr] [port]
-	// web config [@instance] [ip.addr] [port]
-	else if (esif_ccb_stricmp(argv[1], "start")==0 || esif_ccb_stricmp(argv[1], "config") == 0) {
-		int arg=2;
-		char *ipaddr = NULL;
-		u32 port = 0;
-		esif_flags_t flags = 0;
-		u8 instance = 0;
-		int tries = 0;
-		Bool restricted = ESIF_FALSE;
 
-		if (argc > arg && argv[arg][0] == '@') {
-			instance = (u8)esif_atoi(&argv[arg++][1]);
-		}
-		if (argc > arg && esif_ccb_strnicmp(argv[arg], "restricted", 4) == 0) {
-			restricted = ESIF_TRUE;
-			arg++;
-		}
-		if (argc > arg && esif_ccb_strnicmp(argv[arg], "unrestricted", 5) == 0) {
-			flags |= WS_FLAG_NOWHITELIST;
-			arg++;
-		}
-		if (argc > arg && (isalpha(argv[arg][0]) || strchr(argv[arg], '.') != NULL)) {
-			ipaddr = argv[arg++];
-		}
-		if (argc > arg && isdigit(argv[arg][0])) {
-			port = esif_atoi(argv[arg++]);
-		}
+	// See if Web Server App is currently loaded
+	char *appname = ESIF_WS_LIBRARY_NAME;
+	EsifAppPtr appPtr = EsifAppMgr_GetAppFromName(appname);
+	Bool appLoaded = (appPtr != NULL);
 
-		// Restricted Mode Deprecated
-		if (restricted) {
-			CMD_OUT("feature deprecated\n");
-		}
-		// Configure Listener
-		else if (esif_ccb_stricmp(argv[1], "config") == 0) {
-			if (instance || ipaddr || port || flags) {
-				EsifWebSetConfig(instance, ipaddr, port, flags);
-				CMD_OUT("web config instance %d[%x] IP=%s port=%d\n", (int)instance, flags, (ipaddr ? ipaddr : "<default>"), port);
-			}
-			else {
-				instance = 0;
-				while (EsifWebGetConfig(instance, &ipaddr, &port, &flags)) {
-					if (instance == 0 || (ipaddr && ipaddr[0]) || port || flags) {
-						CMD_OUT("web config instance %d[%x]: IP=%s port=%d [%s]\n",
-							(int)instance,
-							flags,
-							(ipaddr && ipaddr[0] ? ipaddr : "<default>"),
-							port,
-							(EsifWebIsStarted() ? "started" : "stopped")
-						);
-					}
-					instance++;
-				}
-			}
-		}
-		// Start Web Server if not already started
-		else if (!EsifWebIsStarted()) {
-			if (!instance || ipaddr || port || flags) {
-				EsifWebSetConfig(ESIF_WS_INSTANCE_ALL, ipaddr, port, flags);
-			}
-			Bool forbidden = ESIF_FALSE;
+	// web [status]
+	char *newargv[MAX_ARGV] = {0};
+	int newargc = 0;
+	if (esif_ccb_stricmp(subcmd, "status") == 0) {
+		// "appname status" if web server loaded
+		if (appLoaded) {
+			newargv[newargc++] = "app";
+			newargv[newargc++] = "cmd";
+			newargv[newargc++] = appname;
+			newargv[newargc++] = "status";
 
-			// Verify Access Control
-			instance = 0;
-			while (EsifWebGetConfig(instance, &ipaddr, &port, &flags)) {
-				if (instance == 0 || (ipaddr && ipaddr[0]) || port) {
-					if (DCfg_Get().opt.GenericUIAccessControl) {
-						forbidden = ESIF_TRUE;
-					}
-				}
-				instance++;
-			}
-			if (!forbidden) {
-				EsifWebStart();
-
-				// thread synchronization delay for output
-				do {
-					esif_ccb_sleep_msec(10);
-				} while (++tries < 10 && !EsifWebIsStarted());
-			}
-
-			if (!EsifWebIsStarted()) {
-				CMD_OUT("web start %s\n", (forbidden ? "disabled" : "failed"));
-			}
-			else {
-				CMD_OUT("web server started\n");
-			}
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
 		}
+		// web sever not loaded
 		else {
-			CMD_OUT("web server already started\n");
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "web server stopped\n");
+		}
+	}
+	// web start [unrestricted] [<ip>] [<port>]
+	else if (esif_ccb_stricmp(subcmd, "start") == 0) {
+		// "appstart appname" if web server not loaded
+		if (!appLoaded) {
+			newargv[newargc++] = "appstart";
+			newargv[newargc++] = appname;
+
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
+
+			// "appname restart [...]" if any additional start parameters
+			if (appPtr && argc > opt) {
+				esif_ccb_memset(newargv, 0, sizeof(newargv));
+				newargc = 0;
+				newargv[newargc++] = "app";
+				newargv[newargc++] = "cmd";
+				newargv[newargc++] = appname;
+				newargv[newargc++] = "restart";
+				for (int j = opt; j < argc && newargc < MAX_ARGV; j++) {
+					newargv[newargc++] = argv[j];
+				}
+
+				EsifAppMgr_PutRef(appPtr);
+				esif_shell_dispatch(newargc, newargv, &output);
+				appPtr = EsifAppMgr_GetAppFromName(appname);
+			}
+
+			// "appname status" if successful
+			if (appPtr) {
+				esif_ccb_memset(newargv, 0, sizeof(newargv));
+				newargc = 0;
+				newargv[newargc++] = "app";
+				newargv[newargc++] = "cmd";
+				newargv[newargc++] = appname;
+				newargv[newargc++] = "status";
+
+				EsifAppMgr_PutRef(appPtr);
+				esif_shell_dispatch(newargc, newargv, &output);
+				appPtr = EsifAppMgr_GetAppFromName(appname);
+			}
+			else {
+				esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "\n");
+			}
+		}
+		// "appname start [...]" if loaded
+		else {
+			newargv[newargc++] = "app";
+			newargv[newargc++] = "cmd";
+			newargv[newargc++] = appname;
+			newargv[newargc++] = "start";
+			for (int j = opt; j < argc && newargc < MAX_ARGV; j++) {
+				newargv[newargc++] = argv[j];
+			}
+
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
 		}
 	}
 	// web stop
-	else if (esif_ccb_stricmp(argv[1], "stop")==0) {
-		if (EsifWebIsStarted()) {
-			EsifWebStop();
+	else if (esif_ccb_stricmp(subcmd, "stop") == 0) {
+		// "appname stop" if web server loaded
+		if (appLoaded) {
+			newargv[newargc++] = "app";
+			newargv[newargc++] = "cmd";
+			newargv[newargc++] = appname;
+			newargv[newargc++] = "stop";
+
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
 		}
+		// web sever not loaded
 		else {
-			CMD_OUT("web server not started\n");
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "web server not started\n");
+		}
+	}
+	// web config
+	else if (esif_ccb_stricmp(subcmd, "config") == 0) {
+		// "appname config" if web server loaded
+		if (appLoaded) {
+			newargv[newargc++] = "app";
+			newargv[newargc++] = "cmd";
+			newargv[newargc++] = appname;
+			newargv[newargc++] = "config";
+
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
+		}
+		// web sever not loaded
+		else {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "web config instance 0[0]: IP=<default> port=0 [stopped]\n");
 		}
 	}
 	// web load
-	else if (esif_ccb_stricmp(argv[1], "load") == 0) {
-		EsifWebLoad();
+	else if (esif_ccb_stricmp(subcmd, "load") == 0) {
+		// "appstart appname" if web server not loaded
+		if (!appLoaded) {
+			newargv[newargc++] = "appstart";
+			newargv[newargc++] = appname;
+
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
+
+			// "appname stop" if successful
+			if (appPtr) {
+				esif_ccb_memset(newargv, 0, sizeof(newargv));
+				newargc = 0;
+				newargv[newargc++] = "app";
+				newargv[newargc++] = "cmd";
+				newargv[newargc++] = appname;
+				newargv[newargc++] = "stop";
+
+				EsifAppMgr_PutRef(appPtr);
+				esif_shell_dispatch(newargc, newargv, &output);
+				appPtr = EsifAppMgr_GetAppFromName(appname);
+			}
+
+			// Default message if web server loaded and stopped to match old behavior
+			if (appPtr) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "Loading web server plugin...\n");
+			}
+		}
 	}
 	// web unload
-	else if (esif_ccb_stricmp(argv[1], "unload") == 0) {
-		EsifWebUnload();
+	else if (esif_ccb_stricmp(subcmd, "unload") == 0) {
+		// "appname stop" if web server loaded
+		if (appLoaded) {
+			newargv[newargc++] = "appstop";
+			newargv[newargc++] = appname;
+
+			EsifAppMgr_PutRef(appPtr);
+			esif_shell_dispatch(newargc, newargv, &output);
+			appPtr = EsifAppMgr_GetAppFromName(appname);
+
+			// Default message if web server loaded and stopped to match old behavior
+			if (!appPtr) {
+				esif_ccb_sprintf(OUT_BUF_LEN, output, "Unloading web server plugin...\n");
+			}
+		}
 	}
+	EsifAppMgr_PutRef(appPtr);
+
 	return output;
 }
 
@@ -8994,16 +9106,28 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 
 		CMD_OUT("\n");
 	}
-	// config get [@datavault] [<keyspec>] [type]
+	// config get [@datavault] [<keyspec>] [SHA|SHA1|-|KEYS] [<maxkey>] [<maxlen>]
 	else if (esif_ccb_stricmp(subcmd, "get")==0) {
 		char *keyspec = (argc > opt ? argv[opt++] : "*");
 		char *type = (argc > opt ? argv[opt++] : NULL);
-		char *maxlen = (argc > opt ? argv[opt++] : NULL);
-		if (type != NULL && maxlen == NULL && (isdigit(*type) || *type == '-')) {
-			maxlen = type;
+		char *maxkey = (argc > opt ? argv[opt++] : NULL); // 0=default -1=unlimited <len>=width
+		char *maxlen = (argc > opt ? argv[opt++] : NULL); // 0=default -1=unlimited <len>=width
+		Bool iswildcard = (esif_ccb_strpbrk(keyspec, "*?") != NULL);
+		if (type != NULL && (isdigit(*type) || *type == '-')) {
+			maxlen = (iswildcard ? maxkey : type);
+			maxkey = type;
 			type = NULL;
 		}
-		UInt32 max_string = (maxlen ? esif_atoi(maxlen) : 0);
+		else if (!iswildcard || esif_ccb_stricmp((type ? type : ""), "KEYS") == 0 || esif_ccb_stricmp((type ? type : ""), "STRING") == 0) {
+			maxkey = (maxkey ? maxkey : "-1");
+			maxlen = (maxlen ? maxlen : maxkey);
+		}
+		char key_label[] = "Key";
+		char data_label[] = "Value";
+		const UInt32 default_key = 40;
+		const UInt32 default_len = 64;
+		UInt32 max_key = (maxkey && esif_atoi(maxkey) ? esif_atoi(maxkey) : default_key);
+		UInt32 max_string = (maxlen && esif_atoi(maxlen) ? esif_atoi(maxlen) : default_len);
 
 		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
 		data_key    = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
@@ -9011,19 +9135,28 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 		if (data_nspace==NULL || data_key==NULL || data_value==NULL) 
 			goto exit;
 
-		// Enumerate matching keys if keyspec contains "*" or "?" [unless STRING output type specified]
-		if (esif_ccb_strpbrk(keyspec, "*?") != NULL && esif_ccb_stricmp((type ? type : ""), "STRING") != 0) {
+		// Enumerate matching keys if keyspec contains "*" or "?" [unless KEYS output type specified]
+		if (iswildcard && esif_ccb_stricmp((type ? type : ""), "KEYS") != 0 && esif_ccb_stricmp((type ? type : ""), "STRING") != 0) {
 			EsifConfigFindContext context = NULL;
 			Bool display_hash = ESIF_FALSE;
+			size_t dashlen = esif_ccb_max((max_key == (UInt32)(-1) ? sizeof(key_label) - 1: max_key), (max_string == (UInt32)(-1) ? sizeof(data_label) - 1 : max_string)) + 1;
+			char *dashbuf = esif_ccb_malloc(dashlen);
+			if (!dashbuf) {
+				goto exit;
+			}
+			esif_ccb_memset(dashbuf, '-', dashlen - 1);
 
 			if (type && esif_ccb_strnicmp(type, "SHA", 3) == 0) {
 				display_hash = ESIF_TRUE;
-				max_string = SHA256_STRING_BYTES;
+				max_string = (type[3] == '1' ? SHA1_STRING_BYTES : SHA256_STRING_BYTES) - 1;
 			}
 			if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
-				CMD_OUT("\nType          Length Flags    Key                                      %s\n"
-					"----------- -------- -------- ---------------------------------------- ----------------------------------------------------------------\n",
-					(display_hash ? "Hash": "Value")
+				CMD_OUT("\nType          Length Flags    %-*.*s %s\n"
+					"----------- -------- -------- %-.*s %.*s\n",
+					max_key, max_key, key_label,
+					(display_hash ? "Hash": data_label),
+					(max_key == (UInt32)(-1) ? sizeof(key_label) - 1 : max_key), dashbuf,
+					(max_string == (UInt32)(-1) ? sizeof(data_label) - 1 : max_string), dashbuf
 				);
 				do {
 					esif_flags_t flags = 0;
@@ -9052,7 +9185,7 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 							}
 						}
 						else {
-							valuestr = EsifData_ToStringMax(data_value, (max_string ? max_string : 64));
+							valuestr = EsifData_ToStringMax(data_value, max_string);
 							valuelen = esif_ccb_strlen(valuestr, MAX_STRINGLEN) + 1;
 							for (j = 0; valuestr && j < valuelen && valuestr[j]; j++) {
 								if (valuestr[j] == '\r' && valuestr[j + 1] == '\n') {
@@ -9065,11 +9198,13 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 						}
 
 						config_flags_str_t flagstr = config_flags_str(flags);
-						CMD_DEBUG("%-11s %8d %-8.8s %-40.40s %.*s\n"
+						CMD_DEBUG("%-11s %8d %-8.8s %-*.*s %.*s\n"
 							,
 							ltrim(esif_data_type_str(data_value->type), PREFIX_DATA_TYPE),
 							data_value->data_len,
 							(StringPtr)&flagstr,
+							(max_key > 0 ? (max_key == (UInt32)(-1) ? 1 : max_key) : default_key),
+							(max_key > 0 ? max_key : default_key),
 							(char*)data_key->buf_ptr,
 							(valuelen - 1),
 							(valuestr ? valuestr : "")
@@ -9086,14 +9221,15 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 				if (rc == ESIF_E_ITERATION_DONE)
 					rc = ESIF_OK;
 			}
+			esif_ccb_free(dashbuf);
 		}
-		// Otherwise get the key/value pair
+		// Otherwise get the key/value pair [or key list if STRING output type]
 		else {
 			if ((rc = EsifConfigGet(data_nspace, data_key, data_value)) == ESIF_OK) {
 				// Convert ESIF Data Type to viewable String
 				char *keyvalue = EsifData_ToStringMax(data_value, max_string);
 				if (keyvalue) {
-					if (type && esif_ccb_stricmp(type, "STRING") != 0) {
+					if (type && esif_ccb_stricmp(type, "KEYS") != 0 && esif_ccb_stricmp(type, "STRING") != 0) {
 						switch (data_value->type) {
 						case ESIF_DATA_JSON:
 						{
@@ -9197,34 +9333,26 @@ static char *esif_shell_cmd_config(EsifShellCmdPtr shell)
 	else if (esif_ccb_stricmp(subcmd, "keys") == 0) {
 		char *keyspec = (argc > opt ? argv[opt++] : "*");
 		esif_flags_t flagspec = (esif_flags_t)(argc > opt ? esif_atoi(argv[opt++]) : 0);
-		EsifConfigFindContext context = NULL;
-
+	
 		data_nspace = EsifData_CreateAs(ESIF_DATA_STRING, namesp, 0, ESIFAUTOLEN);
 		data_key    = EsifData_CreateAs(ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
-		if (data_nspace == NULL || data_key == NULL)
+		data_value  = EsifData_CreateAs(ESIF_DATA_AUTO, NULL, ESIF_DATA_ALLOCATE, 0);
+		if (data_nspace==NULL || data_key==NULL || data_value==NULL) 
 			goto exit;
 
-		// Enumerate Matching Keys 
-		if ((rc = EsifConfigFindFirst(data_nspace, data_key, NULL, &context)) == ESIF_OK) {
-			do {
-				Bool ismatch = (flagspec == 0);
-				esif_flags_t flags = 0;
-				if (flagspec) {
-					DataVaultPtr DB = DataBank_GetDataVault((StringPtr)data_nspace->buf_ptr);
-					if (DataVault_KeyExists(DB, (StringPtr)data_key->buf_ptr, NULL, &flags) && FLAGS_TESTALL(flags, flagspec)) {
-						ismatch = ESIF_TRUE;
-					}
-					DataVault_PutRef(DB);
-				}
-				if (ismatch) {
-					esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s\n", (esif_string)data_key->buf_ptr);
-				}
-				EsifData_Set(data_key, ESIF_DATA_STRING, keyspec, 0, ESIFAUTOLEN);
-			} while ((rc = EsifConfigFindNext(data_nspace, data_key, NULL, &context)) == ESIF_OK);
+		// [0xFLAGS]
+		esif_flags_t *flagsPtr = (flagspec ? &flagspec : NULL);
 
-			EsifConfigFindClose(&context);
-			if (rc == ESIF_E_ITERATION_DONE)
-				rc = ESIF_OK;
+		rc = EsifConfigGetKeys(data_nspace, data_key, data_value, flagsPtr);
+
+		// Return Results, converting bars to newlines for shell and UI compatibility
+		if (rc == ESIF_OK) {
+			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", (StringPtr)data_value->buf_ptr);
+			for (char *ch = output; *ch != 0; ch++) {
+				if (*ch == '|') {
+					*ch = '\n';
+				}
+			}
 		}
 		else {
 			esif_ccb_sprintf(OUT_BUF_LEN, output, "%s\n", esif_rc_str(rc));
@@ -11302,7 +11430,10 @@ static char *esif_shell_cmd_sleep(EsifShellCmdPtr shell)
 	   else {
 			  UInt32 ms = esif_atoi(argv[1]);
 			  ms = (ms > MAX_SLEEP_MS ? MAX_SLEEP_MS : ms);
+			  esif_uf_shell_unlock();
 			  esif_ccb_sleep_msec(ms);
+			  esif_uf_shell_lock();
+			  output = shell->outbuf = g_outbuf;
 	   }
 	   return output;
 }
@@ -12109,7 +12240,7 @@ static eEsifError wd_write_vsct_vspt_xml(
 		rc = ESIF_E_NEED_DSP;
 		goto exit;
 	}
-	if (esif_ccb_strcmp(dspPtr->code_ptr, "dpf_virt") == 0) {
+	if (esif_ccb_strcmp(dspPtr->code_ptr, "ipf_virt") == 0) {
 		if (esif_ccb_fprintf(fp,
 			"<participant>\n"
 			"\t<name>%s</name>\n"
@@ -12558,7 +12689,7 @@ static char *esif_shell_cmd_capture(EsifShellCmdPtr shell)
 	extension = (esif_ccb_strchr(filename, '.') == NULL ? ".txt" : NULL);
 
 	// Open files (CaptureConfig.txt for reading and filename.txt for writing)
-	esif_build_path(configFilePath, sizeof(configFilePath), ESIF_PATHTYPE_UI, "CaptureConfig.txt", NULL);
+	esif_build_path(configFilePath, sizeof(configFilePath), ESIF_PATHTYPE_DATA, "CaptureConfig.txt", NULL);
 	configFp = esif_ccb_fopen(configFilePath, "r", &errnum);
 	if (configFp == NULL) {
 		rc = ESIF_E_IO_OPEN_FAILED;
@@ -12635,94 +12766,12 @@ exit:
 		esif_ccb_fclose(configFp);
 	}
 	if (rc == ESIF_OK) {
-		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Dynamic Tuning Configuration written to %s\n", filePath);
+		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "Innovation Platform Framework Configuration written to %s\n", filePath);
 	} else {
 		esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "%s (%d)\n", esif_rc_str(rc), rc);
 	}
 	return output;
 }
-
-
-#ifdef ESIF_ATTR_OS_WINDOWS
-
-// List the supported tool
-static char *esif_shell_cmd_tools(EsifShellCmdPtr shell)
-{
-	int argc = shell->argc;
-	char *output = shell->outbuf;
-
-	if (argc > 1) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "No parameter is required for tools command\n");
-		goto exit;
-	}
-
-	esif_ccb_sprintf(OUT_BUF_LEN, output, "Supported Tools:\n");
-	esif_ccb_sprintf_concat(OUT_BUF_LEN, output, "1. DPPA - Dynamic Performance & Power Analyzer\n");
-
-exit:
-	return output;
-}
-
-// Launch the supported tool
-static char *esif_shell_cmd_toolstart(EsifShellCmdPtr shell)
-{
-	eEsifError rc = ESIF_OK;
-	int argc = shell->argc;
-	int toolArgc = 0;
-	char **argv = shell->argv;
-	char *output = shell->outbuf;
-	char *toolName = NULL;
-	char **toolArgv = NULL;
-
-	if (argc < 2) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Usage: toolstart <tool name> [parameters...]\n");
-		goto exit;
-	}
-
-	// tool arguments start from argv[2]
-	toolName = argv[1];
-	toolArgc = argc - 2;
-	toolArgv = &(argv[2]);
-
-	rc = EsifToolStart(toolName, toolArgc, toolArgv);
-	if (rc == ESIF_OK) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Start %s successfully!\n", toolName);
-	} else {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Fail to start %s, status = %d\n", toolName, rc);
-	}
-
-exit:
-	return output;
-}
-
-// Stop the supported tool
-static char *esif_shell_cmd_toolstop(EsifShellCmdPtr shell)
-{
-	eEsifError rc = ESIF_OK;
-	int argc = shell->argc;
-	char **argv = shell->argv;
-	char *output = shell->outbuf;
-	char *toolName = NULL;
-
-	if (argc != 2) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Usage: toolstop <tool name>\n");
-		goto exit;
-	}
-
-	toolName = argv[1];
-
-	rc = EsifToolStop(toolName);
-	if (rc == ESIF_OK) {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Stop %s successfully!\n", toolName);
-	} else {
-		esif_ccb_sprintf(OUT_BUF_LEN, output, "Fail to stop %s, status = %d\n", toolName, rc);
-	}
-
-exit:
-	return output;
-}
-
-#endif
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -12879,8 +12928,10 @@ static void dump_binary_data(
 			CMD_DEBUG("(CR) ");
 		} else if ('\n' == *((u8 *)byte_ptr + i)) {
 			CMD_DEBUG("(LF) ");
-		} else {
+		} else if (isprint(*((u8 *)byte_ptr + i))) {
 			CMD_DEBUG("(%2c) ", *((u8 *)byte_ptr + i));
+		} else {
+			CMD_DEBUG("(--) ");
 		}
 	}
 	CMD_DEBUG("\n\n");
@@ -13206,11 +13257,6 @@ static EsifShellMap ShellCommands[] = {
 	{"timerstart",           fnArgv, (VoidFunc)esif_shell_cmd_timerstart          },
 	{"timerstop",            fnArgv, (VoidFunc)esif_shell_cmd_timerstop           },
 	{"timestamp",            fnArgv, (VoidFunc)esif_shell_cmd_timestamp           },
-#ifdef ESIF_ATTR_OS_WINDOWS
-	{"tools",                fnArgv, (VoidFunc)esif_shell_cmd_tools               },
-	{"toolstart",            fnArgv, (VoidFunc)esif_shell_cmd_toolstart           },
-	{"toolstop",             fnArgv, (VoidFunc)esif_shell_cmd_toolstop            },
-#endif
 	{"trace",                fnArgv, (VoidFunc)esif_shell_cmd_trace               },
 	{"ufpoll",               fnArgv, (VoidFunc)esif_shell_cmd_ufpoll			  },
 	{"ui",                   fnArgv, (VoidFunc)esif_shell_cmd_ui                  },

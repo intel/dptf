@@ -33,8 +33,8 @@
 #define UPE_VERSION EXPAND_TOSTR(UPE_VERSION_MAJOR.UPE_VERSION_MINOR.UPE_VERSION_HOTFIX.UPE_VERSION_BUILD)
 
 /* Product and Copyright Definitions */
-#define UPE_PRODUCT   "Intel(R) Dynamic Tuning"
-#define UPE_COMPONENT "Intel(R) Dynamic Tuning JAVA Action"
+#define UPE_PRODUCT   "Intel(R) Innovation Platform Framework"
+#define UPE_COMPONENT "Intel(R) Innovation Platform Framework JAVA Action"
 #define UPE_COPYRIGHT "Copyright (c) 2013-2021 Intel Corporation All Rights Reserved"
 #define UPE_COMPANY   "Intel Corporation"
 #define UPE_FILENAME  "upe_java.so"
