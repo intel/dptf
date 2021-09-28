@@ -60,8 +60,6 @@ public:
 
 	// Event handlers
 
-	virtual void executeIgccBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void executeConnectedStandbyEntry(void) = 0;
 	virtual void executeConnectedStandbyExit(void) = 0;
 	virtual void executeSuspend(void) = 0;
@@ -157,7 +155,6 @@ public:
 	virtual void executePolicyOperatingSystemGameModeChanged(OnOffToggle::Type osGameMode) = 0;
 	virtual void executePolicyPowerShareAlgorithmTable2Changed(void) = 0;
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) = 0;
-	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) = 0;
 	virtual void executePolicyPlatformUserPresenceChanged(SensorUserPresence::Type platformUserPresence) = 0;
 	virtual void executePolicyExternalMonitorStateChanged(Bool externalMonitorState) = 0;
 	virtual void executePolicyUserInteractionChanged(UserInteraction::Type userInteraction) = 0;
@@ -199,8 +196,7 @@ public:
 	virtual std::string getDynamicPolicyUuidString(void) const override;
 
 	// Event handlers
-	virtual void executeIgccBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
+
 	virtual void executeConnectedStandbyEntry(void) override;
 	virtual void executeConnectedStandbyExit(void) override;
 	virtual void executeSuspend(void) override;
@@ -291,7 +287,6 @@ public:
 	virtual void executePolicyActiveControlPointRelationshipTableChanged(void) override;
 	virtual void executePolicyPowerShareAlgorithmTableChanged(void) override;
 	virtual void executePolicyIntelligentThermalManagementTableChanged(void) override;
-	virtual void executePolicyEnergyPerformanceOptimizerTableChanged(void) override;
 	virtual void executePowerLimitChanged(void) override;
 	virtual void executePerformanceCapabilitiesChanged(UIntN participantIndex) override;
 	virtual void executePolicyWorkloadHintConfigurationChanged(void) override;

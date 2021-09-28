@@ -21,9 +21,6 @@
 #include "PolicyManagerInterface.h"
 #include "DataVaultPath.h"
 #include "StringConverter.h"
-#include "WorkItem.h"
-#include "WorkItemQueueManagerInterface.h"
-#include "WIPolicyTableObjectChanged.h"
 using namespace TableObjectType;
 using namespace std;
 
@@ -292,8 +289,40 @@ map<TableObjectType::Type, TableObject> DataManager::getTableObjectMap()
 
 void DataManager::sendTableChangedEvent(TableObjectType::Type tableObjectType, string uuid)
 {
-	std::shared_ptr<WorkItem> wi = std::make_shared<WIPolicyTableObjectChanged>(m_dptfManager, tableObjectType, uuid);
-	m_dptfManager->getWorkItemQueueManager()->enqueueImmediateWorkItemAndReturn(wi);
+	auto policyManager = m_dptfManager->getPolicyManager();
+	auto policyIndexes = policyManager->getPolicyIndexes();
+	for (auto i = policyIndexes.begin(); i != policyIndexes.end(); ++i)
+	{
+		try
+		{
+			auto policy = policyManager->getPolicyPtr(*i);
+			if (policy->getDynamicPolicyUuidString() != StringConverter::toLower(uuid))
+			{
+				continue;
+			}
+
+			switch (tableObjectType)
+			{
+			case TableObjectType::Apat:
+				policy->executePolicyAdaptivePerformanceActionsTableChanged();
+				break;
+			case TableObjectType::Apct:
+				policy->executePolicyAdaptivePerformanceConditionsTableChanged();
+				break;
+			case TableObjectType::Ddrf:
+				policy->executePolicyDdrfTableChanged();
+				break;
+			case TableObjectType::Itmt:
+				policy->executePolicyIntelligentThermalManagementTableChanged();
+				break;
+			default:
+				break;
+			}
+		}
+		catch (...)
+		{
+		}
+	}
 }
 
 void DataManager::loadTableRevisions()
@@ -303,7 +332,6 @@ void DataManager::loadTableRevisions()
 	m_tableRevisions.insert({TableObjectType::Dynamic_Idsp, 1});
 	m_tableRevisions.insert({TableObjectType::Ddrf, 1});
 	m_tableRevisions.insert({TableObjectType::Itmt, 1});
-	m_tableRevisions.insert({TableObjectType::Epot, 1});
 }
 
 void DataManager::loadTableObjectMap()
@@ -410,16 +438,5 @@ void DataManager::loadTableObjectMap()
 		  {{DataVaultType::Override, noPersistPath},
 		   {DataVaultType::Override, dataVaultString},
 		   {DataVaultType::Dptf, dataVaultString}},
-		  {{DataVaultType::Override, dataVaultString}}}});
-
-	dataVaultString = DataVaultPathBasePaths::ExportRoot + "/UUID/" + TableObjectType::ToString(TableObjectType::Epot);
-	m_tableObjectMap.insert(
-		{TableObjectType::Epot,
-		 {TableObjectType::Epot,
-		  {{"fld1", "fld1", ESIF_DATA_STRING},
-		   {"fld2", "fld2", ESIF_DATA_STRING},
-		   {"fld3", "fld3", ESIF_DATA_UINT64},
-		   {"fld4", "fld4", ESIF_DATA_UINT64}},
-		  {{DataVaultType::Override, dataVaultString}, {DataVaultType::Dptf, dataVaultString}},
 		  {{DataVaultType::Override, dataVaultString}}}});
 }

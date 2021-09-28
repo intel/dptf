@@ -53,6 +53,8 @@ public:
 	virtual DptfBuffer getAdaptivePerformanceActionsTable(std::string uuid) override final;
 	virtual DptfBuffer getOemVariables(void) override final;
 	virtual UInt64 getHwpfState(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getSocWorkload(UIntN participantIndex, UIntN domainIndex) override final;
+	virtual UInt32 getSupportEppHint(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual UInt32 getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex) override final;
 	virtual Power getProcessorConfigTdpLevel(UIntN participantIndex, UIntN domainIndex, UIntN configTdpControl)
 		override final;
@@ -73,7 +75,6 @@ public:
 	virtual UInt32 getAggressivenessLevel(void) override final;
 	virtual DptfBuffer getDdrfTable(void) override final;
 	virtual DptfBuffer getAggregateDisplayInformation(void) override final;
-	virtual DptfBuffer getEnergyPerformanceOptimizerTable(void) override final;
 
 	virtual void setActiveControlPointRelationshipTable(DptfBuffer data) override final;
 	virtual DptfBuffer getPowerShareAlgorithmTable() override final;

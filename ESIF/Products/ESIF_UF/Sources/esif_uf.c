@@ -566,6 +566,7 @@ enum esif_rc esif_pathlist_init(esif_string paths)
 		{ "EXE",	ESIF_PATHTYPE_EXE },
 		{ "DLL",	ESIF_PATHTYPE_DLL },
 		{ "DLLALT",	ESIF_PATHTYPE_DLL_ALT },
+		{ "DPTF",	ESIF_PATHTYPE_DPTF },
 		{ "DSP",	ESIF_PATHTYPE_DSP },
 		{ "CMD",	ESIF_PATHTYPE_CMD },
 		{ "DATA",	ESIF_PATHTYPE_DATA  },
@@ -686,6 +687,13 @@ esif_string esif_build_path(
 		if (*pathname == '$') {
 			pathname++;
 			autocreate = ESIF_FALSE;
+		}
+		// Do not return full path in result string if it starts with a "#" unless no filename specified
+		if (*pathname == '#') {
+			if (filename == NULL && ext == NULL)
+				pathname++;
+			else
+				pathname = "";
 		}
 		esif_ccb_strcpy(buffer, pathname, buf_len);
 	}

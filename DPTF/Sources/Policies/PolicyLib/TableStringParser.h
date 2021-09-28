@@ -24,5 +24,4 @@ class dptf_export TableStringParser
 {
 public:
 	static std::string getDeviceString(esif_data_variant& device);
-	static std::string getString(esif_data_variant& device, UInt32 length);
 };

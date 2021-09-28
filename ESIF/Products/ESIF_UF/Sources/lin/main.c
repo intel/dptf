@@ -130,38 +130,41 @@ static char *g_psy_val[TOTAL_PSY_PROPERTIES];
 
 // Default ESIF Paths for each OS
 // Paths preceded by "$" are treated as system paths and are not auto-created or checked for symbolic links
+// Paths preceded by "#" indicate that the full path is not specified when loading .so libraries with dlopen()
 static const esif_string ESIF_PATHLIST =
 #if defined(ESIF_ATTR_OS_ANDROID)
 	// Android
-	"HOME=/data/vendor/dptf/log\n"
+	"HOME=/vendor/etc/dptf\n"
 	"TEMP=/data/vendor/dptf/tmp\n"
 	"DV=/vendor/etc/dptf/dv\n"
 	"LOG=/data/vendor/dptf/log\n"
 	"BIN=/vendor/etc/dptf/bin\n"
 	"LOCK=/data/vendor/dptf/lock\n"
-	"EXE=$/vendor/bin\n"
-	"DLL=$/vendor/lib" ARCHBITS "\n"
+	"EXE=$#/vendor/bin\n"
+	"DLL=$#/vendor/lib" ARCHBITS "\n"
 	"DLLALT=$#/vendor/lib" ARCHBITS "\n"
+	"DPTF=/vendor/etc/dptf/bin\n"
 	"DSP=/vendor/etc/dptf/dsp\n"
 	"CMD=/vendor/etc/dptf/cmd\n"
 	"DATA=/vendor/etc/dptf/ui\n"
 #elif defined(ESIF_ATTR_OS_CHROME)
 	// Chromium
-	"HOME=/var/log/dptf\n"
+	"HOME=/usr/share/dptf\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/var/log/dptf\n"
 	"BIN=/usr/share/dptf/bin\n"
 	"LOCK=$/var/run\n"
-	"EXE=$/usr/bin\n"
-	"DLL=$/usr/lib" ARCHBITS "\n"
-	"DLLALT=$/usr/lib" ARCHBITS "\n"
+	"EXE=$#/usr/bin\n"
+	"DLL=$#/usr/lib" ARCHBITS "\n"
+	"DLLALT=$#/usr/lib" ARCHBITS "\n"
+	"DPTF=/usr/share/dptf\n"
 	"DSP=/etc/dptf/dsp\n"
 	"CMD=/etc/dptf/cmd\n"
 	"DATA=/usr/share/dptf/ui\n"
 #else
 	// Generic Linux
-	"HOME=/usr/share/dptf/log\n"
+	"HOME=/usr/share/dptf\n"
 	"TEMP=$/tmp\n"
 	"DV=/etc/dptf\n"
 	"LOG=/usr/share/dptf/log\n"
@@ -170,6 +173,7 @@ static const esif_string ESIF_PATHLIST =
 	"EXE=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLL=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DLLALT=/usr/share/dptf/uf" ARCHNAME "\n"
+	"DPTF=/usr/share/dptf/uf" ARCHNAME "\n"
 	"DSP=/usr/share/dptf/dsp\n"
 	"CMD=/usr/share/dptf/cmd\n"
 	"DATA=/usr/share/dptf/ui\n"

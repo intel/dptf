@@ -22,7 +22,6 @@
 #include "WorkItemQueueManagerInterface.h"
 #include "WIPolicySystemModeChanged.h"
 #include "EsifServicesInterface.h"
-#include "StatusFormat.h"
 
 SystemModeManager::SystemModeManager(DptfManagerInterface* dptfManager)
 	: m_dptfManager(dptfManager)
@@ -30,14 +29,9 @@ SystemModeManager::SystemModeManager(DptfManagerInterface* dptfManager)
 	, m_arbitratedValue(SystemMode::Invalid)
 	, m_arbitratedValueChangedSinceLastSet(false)
 	, m_registeredEvents()
-	, m_isEnduranceGamingActive(false)
-	, m_powerSource(OsPowerSource::Invalid)
 {
 	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSliderChanged);
 	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged);
-	registerEvent(FrameworkEvent::DptfAppBroadcastListen);
-	registerEvent(FrameworkEvent::DptfAppBroadcastSend);
-	registerEvent(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged);
 }
 
 SystemModeManager::~SystemModeManager(void)
@@ -48,42 +42,14 @@ void SystemModeManager::arbitrateAndCreateEventSystemModeChanged()
 {
 	try
 	{
-		auto powerSlider = OsPowerSlider::Invalid;
-		try
-		{
-			MANAGER_LOG_MESSAGE_DEBUG({ return "get powerSlider "; });
-			powerSlider = m_dptfManager->getEventCache()
-							  ->powerSlider.get(); // temperary solution to unblock EG, need review later
-		}
-		catch (dptf_exception& ex)
-		{
-			MANAGER_LOG_MESSAGE_WARNING_EX({ return "Failure during get powerSlider: " + std::string(ex.what()) + "."; });
-		}
-
-		auto powerSchemePersonality = OsPowerSchemePersonality::Invalid;
-		try
-		{
-			MANAGER_LOG_MESSAGE_DEBUG({ return "get powerSchemePersonality "; });
-			powerSchemePersonality =
-				m_dptfManager->getEventCache()
-					->powerSchemePersonality.get(); // temperary solution to unblock EG, need review later
-		}
-		catch (dptf_exception& ex)
-		{
-			MANAGER_LOG_MESSAGE_WARNING_EX(
-				{ return "Failure during get powerSchemePersonality: " + std::string(ex.what()) + "."; });
-		}
+		auto powerSlider = m_dptfManager->getEventCache()->powerSlider.get();
+		auto powerSchemePersonality = m_dptfManager->getEventCache()->powerSchemePersonality.get();
 		arbitrateSystemMode(powerSlider, powerSchemePersonality);
 
 		MANAGER_LOG_MESSAGE_INFO({
 			return "Power Slider: " + toString(powerSlider) + ", Power Scheme Personality: "
 				   + toString(powerSchemePersonality) + ", Policy System Mode: " + toString(m_policySystemModeValue)
 				   + ", Arbitrated System Mode: " + toString(m_arbitratedValue);
-		});
-
-		MANAGER_LOG_MESSAGE_DEBUG({
-			return " Arbitrated system mode changed or not from last arbitration: m_arbitratedValueChangedSinceLastSet: "
-				   + StatusFormat::friendlyValue(m_arbitratedValueChangedSinceLastSet);
 		});
 
 		if (m_arbitratedValueChangedSinceLastSet == true)
@@ -106,11 +72,7 @@ void SystemModeManager::arbitrateSystemMode(
 {
 	auto oldArbitratedValue = m_arbitratedValue;
 
-	if (m_isEnduranceGamingActive && m_powerSource == OsPowerSource::DC)
-	{
-		m_arbitratedValue = SystemMode::EnduranceGaming;
-	}
-	else if (m_policySystemModeValue != SystemMode::Invalid)
+	if (m_policySystemModeValue != SystemMode::Invalid)
 	{
 		m_arbitratedValue = m_policySystemModeValue;
 	}
@@ -174,52 +136,10 @@ void SystemModeManager::executeOperatingSystemPowerSchemePersonalityChanged()
 	}
 }
 
-void SystemModeManager::executeOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource)
-{
-	if (m_registeredEvents.test(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged))
-	{
-		m_powerSource = powerSource;
-		arbitrateAndCreateEventSystemModeChanged();
-	}
-}
-
-void SystemModeManager::executeIgccAppBroadcastReceived(
-	IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
-{
-	if (m_registeredEvents.test(FrameworkEvent::DptfAppBroadcastListen))
-	{
-		Guid broadcastGuid(broadcastNotificationData.uuid);
-
-		MANAGER_LOG_MESSAGE_DEBUG(
-			{ return "Application broadcast recieved. Broadcast header GUID: " + broadcastGuid.toString(); });
-		if (IGCC_BROADCAST_GUID == broadcastGuid)
-		{
-			MANAGER_LOG_MESSAGE_DEBUG({
-				return "IGCC application broadcast recieved. Struct info: "
-					   + StatusFormat::friendlyValue(broadcastNotificationData.enduranceGamingStatus) + ","
-					   + StatusFormat::friendlyValue(broadcastNotificationData.ppmSettingDirection) + ","
-					   + StatusFormat::friendlyValue(broadcastNotificationData.ppmSettingLevel);
-			});
-			if (m_powerSource == OsPowerSource::DC)
-			{
-				m_isEnduranceGamingActive = broadcastNotificationData.enduranceGamingStatus;
-			}
-			else
-			{
-				m_isEnduranceGamingActive = false;
-			}	
-			arbitrateAndCreateEventSystemModeChanged();
-		}
-	}
-}
-
 void SystemModeManager::unregisterFrameworkEvents()
 {
 	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSliderChanged);
 	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSchemePersonalityChanged);
-	unregisterEvent(FrameworkEvent::DptfAppBroadcastListen);
-	unregisterEvent(FrameworkEvent::DptfAppBroadcastSend);
-	unregisterEvent(FrameworkEvent::PolicyOperatingSystemPowerSourceChanged);
 }
 
 void SystemModeManager::registerEvent(FrameworkEvent::Type frameworkEvent)

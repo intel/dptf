@@ -55,8 +55,6 @@
 #define _ESIF_PERCENT_H_
 
 #define ESIF_PERCENT_HDC_CONV_FACTOR 127 /* HDC duty cycle is in 1/127ths % */
-#define ESIF_PERCENT_BYTE_CONV_FACTOR 255 /* BYTE percent range is 0 to 255 */
-#define ESIF_PERCENT_CENTI_MAX 10000 /* Representation of the max centi-percent */
 
 /* Percent Unit Type */
 enum esif_percent_type {
@@ -64,7 +62,6 @@ enum esif_percent_type {
 	ESIF_PERCENT_DECI,	/* Deci-percent (1% == 10)		*/
 	ESIF_PERCENT_CENTI,	/* Centi-percent (1% == 100)		*/
 	ESIF_PERCENT_MILLI,	/* Milli-percent (1% == 1000)		*/
-	ESIF_PERCENT_BYTE,	/* Percentage of 255 (100% == 255)		*/
 };
 
 /* Percent Unit Type String */
@@ -77,7 +74,6 @@ static ESIF_INLINE esif_string esif_percent_type_str(
 		ESIF_CASE_ENUM(ESIF_PERCENT_DECI);
 		ESIF_CASE_ENUM(ESIF_PERCENT_CENTI);
 		ESIF_CASE_ENUM(ESIF_PERCENT_MILLI);
-		ESIF_CASE_ENUM(ESIF_PERCENT_BYTE);
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -92,7 +88,6 @@ enum esif_percent_type type)
 		ESIF_CASE(ESIF_PERCENT_DECI, "Deci-Percent");
 		ESIF_CASE(ESIF_PERCENT_CENTI, "Centi-Percent");
 		ESIF_CASE(ESIF_PERCENT_MILLI, "Milli-Percent");
-		ESIF_CASE(ESIF_PERCENT_BYTE, "255-Based Percent");
 	}
 	return ESIF_NOT_AVAILABLE;
 }
@@ -141,11 +136,6 @@ static ESIF_INLINE int esif_convert_percent(
 	case ESIF_PERCENT_MILLI:
 		break;
 
-	case ESIF_PERCENT_BYTE:
-		// val = Round up (% of 255) * 1000 to make milli-percent
-		val = ((val * 100) + (ESIF_PERCENT_BYTE_CONV_FACTOR / 2)) / ESIF_PERCENT_BYTE_CONV_FACTOR * 1000 ;
-		break;
-
 	default:
 		rc = ESIF_E_UNSUPPORTED_REQUEST_PERCENT_TYPE;
 		goto exit;
@@ -167,11 +157,6 @@ static ESIF_INLINE int esif_convert_percent(
 		break;
 
 	case ESIF_PERCENT_MILLI:
-		break;
-
-	case ESIF_PERCENT_BYTE:
-		// val = Round up (% * 255)
-		val = (val * ESIF_PERCENT_BYTE_CONV_FACTOR / 100 + 500) / 1000;
 		break;
 
 	default:

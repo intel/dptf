@@ -304,7 +304,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateGet(
 		break;
 	}
 exit:
-	ESIF_TRACE_INFO("Exit status = %lu\n", rc);
 	return rc;
 }
 
@@ -527,7 +526,6 @@ static eEsifError ESIF_CALLCONV ActionDelegateSet(
 		break;
 	}
 exit:
-	ESIF_TRACE_INFO("Exit status = %lu\n", rc);
 	return rc;
 }
 

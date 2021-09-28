@@ -2186,9 +2186,3 @@ void UnifiedParticipant::setPowerShareEffectiveBias(
 	m_domains[domainIndex]->getActivityStatusControl()->setPowerShareEffectiveBias(
 		participantIndex, domainIndex, powerShareEffectiveBias);
 }
-
-UInt32 UnifiedParticipant::getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getActivityStatusControl()->getSocDgpuPerformanceHintPoints(participantIndex, domainIndex);
-}

@@ -21,7 +21,6 @@
 #include "Dptf.h"
 #include "WorkItem.h"
 #include "SystemMode.h"
-#include "ManagerLogger.h"
 
 class WIPolicySystemModeChanged : public WorkItem
 {

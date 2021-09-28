@@ -218,14 +218,11 @@ void FrameworkEventInfo::initializeEvents()
 	INIT_EVENT_WITH_GUID(PolicyUserInteractionChanged, 0, OS_USER_INTERACTION_CHANGED);
 	INIT_EVENT_WITH_GUID(PolicyForegroundRatioChanged, 0, FOREGROUND_BACKGROUND_RATIO_CHANGED);
 	INIT_EVENT(PolicySystemModeChanged, 0);
-	INIT_EVENT(PolicyTableObjectChanged, 0);
 
 	INIT_EVENT_WITH_GUID(DptfAppLoaded, 0, APP_LOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloaded, 0, APP_UNLOADED);
 	INIT_EVENT_WITH_GUID(DptfAppUnloading, 0, APP_UNLOADING);
 	INIT_EVENT_WITH_GUID(DptfAppAliveRequest, 0, DTT_ALIVE_REQUEST);
-	INIT_EVENT_WITH_GUID(DptfAppBroadcastListen, 0, APP_BROADCAST_UNPRIVILEGED);
-	INIT_EVENT_WITH_GUID(DptfAppBroadcastSend, 0, APP_BROADCAST);
 	INIT_EVENT(DptfCommand, 0);
 }
 

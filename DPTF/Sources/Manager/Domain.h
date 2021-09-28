@@ -73,7 +73,6 @@ public:
 	UInt32 getTimestampCounterWidth();
 	CoreActivityInfo getCoreActivityInfo();
 	void setPowerShareEffectiveBias(UInt32 powerShareEffectiveBias);
-	UInt32 getSocDgpuPerformanceHintPoints(void); 
 
 	// Core controls
 	CoreControlStaticCaps getCoreControlStaticCaps(void);

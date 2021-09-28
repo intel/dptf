@@ -38,7 +38,6 @@
 #include "UserInteraction.h"
 #include "MbtHint.h"
 #include "SystemMode.h"
-#include "IgccBroadcastData.h"
 
 class dptf_export PolicyInterface
 {
@@ -104,7 +103,6 @@ public:
 	virtual std::string getDiagnosticsAsXml(void) const = 0;
 
 	// DPTF Event handlers
-	virtual void igccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void connectedStandbyEntry(void) = 0;
 	virtual void connectedStandbyExit(void) = 0;
 	virtual void suspend(void) = 0;
@@ -190,7 +188,6 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) = 0;
 	virtual void powerShareAlgorithmTableChanged(void) = 0;
 	virtual void intelligentThermalManagementTableChanged(void) = 0;
-	virtual void energyPerformanceOptimizerTableChanged(void) = 0;
 	virtual void powerLimitChanged(void) = 0;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) = 0;
 	virtual void workloadHintConfigurationChanged(void) = 0;
@@ -200,6 +197,8 @@ public:
 	virtual void externalMonitorStateChanged(Bool externalMonitorStateChanged) = 0;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) = 0;
 	virtual void foregroundRatioChanged(UIntN ratio) = 0;
+
+	virtual void sendPolicyOscRequest() = 0;
 };
 
 //

@@ -69,6 +69,11 @@ void WIPolicySupportedListChanged::onExecute(void)
 			try
 			{
 				std::string policyFilePath = policyDirectoryPath + policyFileName;
+				if (dptfManager->isDptfPolicyLoadNameOnly())
+				{
+					policyFilePath.erase(0, policyDirectoryPath.length());
+				}
+
 				UIntN policyIndex;
 				try
 				{

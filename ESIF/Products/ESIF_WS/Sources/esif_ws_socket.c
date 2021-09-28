@@ -130,7 +130,10 @@ static size_t WebSocket_HeaderSize(size_t payload_size, Bool mask_flag)
 static char *g_RestApiWhitelist[] = {
 	"about",
 	"actionstart",
+	"actionstop",
 	"apps",
+	"appstart",
+	"appstop",
 	"arbitrator",
 	"capture",
 	"config",
@@ -138,16 +141,13 @@ static char *g_RestApiWhitelist[] = {
 	"dptf",
 	"echo",
 	"format",
-	"getp",
 	"getp_part",
 	"idsp",
 	"log",
 	"participant",
 	"participantlog",
 	"participants",
-	"rstp",
 	"rstp_part",
-	"setp",
 	"setp_part",
 	"status",
 	"tableobject",
@@ -467,19 +467,18 @@ esif_error_t WebServer_WebSocketExecRestCmd(
 					if (start > end) {
 						blocked = ESIF_TRUE;
 					}
-				}
 
-				// Execute Internal REST API Commands within this web server process rather than via ESIF Interface
-				if (blocked || !whitelist[0]) {
-					response = WebServer_ExecRestCmdInternal(self, rest_cmd, response_buf);
-					if (response) {
-						blocked = ESIF_FALSE;
-						shell_cmd = NULL;
+					// Execute Internal REST API Commands within this web server process rather than via ESIF Interface
+					if (blocked) {
+						response = WebServer_ExecRestCmdInternal(self, rest_cmd, response_buf);
+						if (response) {
+							blocked = ESIF_FALSE;
+							shell_cmd = NULL;
+						}
 					}
 				}
-
 				// Verify the shell command is not in Blacklist if defined
-				if (!blocked && !response && blacklist[0] && cmd_name[0]) {
+				if (!blocked && blacklist[0] && cmd_name[0]) {
 					for (j = 0; blacklist[j] != NULL; j++) {
 						if (esif_ccb_stricmp(cmd_name, blacklist[j]) == 0) {
 							blocked = ESIF_TRUE;

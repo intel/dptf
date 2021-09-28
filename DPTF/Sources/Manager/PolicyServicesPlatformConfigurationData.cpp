@@ -207,6 +207,26 @@ UInt64 PolicyServicesPlatformConfigurationData::getHwpfState(UIntN participantIn
 	return hwpfState;
 }
 
+UInt32 PolicyServicesPlatformConfigurationData::getSocWorkload(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+
+	const UInt32 socWorkload = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_SOC_WORKLOAD, participantIndex, domainIndex);
+
+	return socWorkload;
+}
+
+UInt32 PolicyServicesPlatformConfigurationData::getSupportEppHint(UIntN participantIndex, UIntN domainIndex)
+{
+	throwIfNotWorkItemThread();
+
+	const UInt32 supportEppHint = getEsifServices()->primitiveExecuteGetAsUInt32(
+		esif_primitive_type::GET_SUPPORT_EPP_HINT, participantIndex, domainIndex);
+
+	return supportEppHint;
+}
+
 // TODO: Move it to ConfigTDP domain control
 UInt32 PolicyServicesPlatformConfigurationData::getProcessorConfigTdpControl(UIntN participantIndex, UIntN domainIndex)
 {
@@ -659,20 +679,32 @@ void PolicyServicesPlatformConfigurationData::setPpmPackage(UInt32 value)
 {
 	throwIfNotWorkItemThread();
 
-	getEsifServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
-		value,
-		Constants::Esif::NoParticipant,
-		Constants::Esif::NoDomain,
-		Constants::Esif::NoInstance);
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_ACTIVE_PPM_PACKAGE,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+	}
 }
 
 void PolicyServicesPlatformConfigurationData::setPpmPackageSettings(PpmPackage::PpmParam param)
 {
 	throwIfNotWorkItemThread();
 
-	getEsifServices()->primitiveExecuteSet(
-		SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
+	try
+	{
+		getEsifServices()->primitiveExecuteSet(
+			SET_PPM_PACKAGE_PARAM, ESIF_DATA_STRUCTURE, &param, sizeof(param), sizeof(param));
+	}
+	catch (...)
+	{
+	}
 }
 
 void PolicyServicesPlatformConfigurationData::setPowerSchemeEpp(UInt32 value)
@@ -755,12 +787,18 @@ void PolicyServicesPlatformConfigurationData::setForegroundAppRatioPeriod(UInt32
 {
 	throwIfNotWorkItemThread();
 
-	getEsifServices()->primitiveExecuteSetAsUInt32(
-		esif_primitive_type::SET_FOREGROUND_APP_RATIO_PERIOD,
-		value,
-		Constants::Esif::NoParticipant,
-		Constants::Esif::NoDomain,
-		Constants::Esif::NoInstance);
+	try
+	{
+		getEsifServices()->primitiveExecuteSetAsUInt32(
+			esif_primitive_type::SET_FOREGROUND_APP_RATIO_PERIOD,
+			value,
+			Constants::Esif::NoParticipant,
+			Constants::Esif::NoDomain,
+			Constants::Esif::NoInstance);
+	}
+	catch (...)
+	{
+	}
 }
 
 DptfBuffer PolicyServicesPlatformConfigurationData::getDdrfTable(void)
@@ -779,14 +817,4 @@ DptfBuffer PolicyServicesPlatformConfigurationData::getAggregateDisplayInformati
 
 	return getEsifServices()->primitiveExecuteGet(
 		esif_primitive_type::GET_AGGREGATE_DISPLAY_INFORMATION, ESIF_DATA_BINARY);
-}
-
-DptfBuffer PolicyServicesPlatformConfigurationData::getEnergyPerformanceOptimizerTable(void)
-{
-	throwIfNotWorkItemThread();
-
-	return getDptfManager()
-		->getDataManager()
-		->getTableObject(TableObjectType::Type::Epot, Constants::EmptyString)
-		.getData();
 }

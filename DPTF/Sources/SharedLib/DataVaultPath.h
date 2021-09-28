@@ -72,6 +72,9 @@ namespace DataVaultPath
 	namespace Features
 	{
 		static const std::string Hwpf = DataVaultPathBasePaths::FeaturesRoot + "/hwpf";
-		static const std::string PowerShare2Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
+		static const std::string SocWorkload = DataVaultPathBasePaths::FeaturesRoot + "/soc_workload";
+		static const std::string Pl2Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_sharing";
+		static const std::string Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl4_sharing";
+		static const std::string Pl2Pl4Sharing = DataVaultPathBasePaths::FeaturesRoot + "/pl2_pl4_sharing";
 	};
 };

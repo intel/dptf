@@ -43,20 +43,9 @@ static ESIF_INLINE char *esif_ccb_library_errormsg(esif_lib_t lib);
 static ESIF_INLINE enum esif_rc esif_ccb_library_error(esif_lib_t lib);
 static ESIF_INLINE void esif_ccb_library_geterror(esif_lib_t lib);
 
-#if defined(ESIF_ATTR_OS_CHROME) || defined(ESIF_ATTR_OS_ANDROID)
-#define ESIF_ATTR_LIB_NOPATHNAME  /* Do not load libname.so files using full pathname */
-#endif
-
 /* Load Shared .so/DLL code opaque */
 static ESIF_INLINE esif_lib_t esif_ccb_library_load(esif_string lib_name)
 {
-#ifdef ESIF_ATTR_LIB_NOPATHNAME
-	/* Ignore pathname if OS requires libname.so only */
-	esif_string slash = (lib_name ? esif_ccb_strrchr(lib_name, *ESIF_PATH_SEP) : NULL);
-	if (slash) {
-		lib_name = ++slash;
-	}
-#endif
 	/* Remove Symbolic Links */
 	if (lib_name && *lib_name == *ESIF_PATH_SEP && esif_ccb_drop_symlink(lib_name) != 0) {
 		return NULL;

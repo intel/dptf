@@ -71,8 +71,6 @@ typedef enum esif_arbitration_type_e {
 #define ESIF_ARB_DATA_SIZE (sizeof(u32))
 #define ESIF_ARB_LIMIT_MIN 0
 #define ESIF_ARB_LIMIT_MAX ((u32)(-1))
-#define ESIF_ARB_LIMIT_MAX_PERCENT 10000
-#define ESIF_ARB_LIMIT_MIN_PERCENT 0
 
 /* Provides arbitration state information for a specific primitive/instance */
 typedef struct EsifArbEntryInfo_s {

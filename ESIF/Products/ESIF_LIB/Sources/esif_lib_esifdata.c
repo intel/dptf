@@ -464,7 +464,7 @@ char *EsifData_ToStringMax(
 		case ESIF_DATA_STRING:
 		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
-			if (ptrlen <= max_string + 1) {
+			if (ptrlen < max_string + 1) {
 				esif_ccb_memcpy(result, ptrdata, ptrlen);
 			} else {
 				esif_ccb_memcpy(result, ptrdata, max_string - 2);
@@ -591,7 +591,9 @@ esif_error_t EsifData_FromString (
 		break;
 
    case ESIF_DATA_VOID:
-	   alloc   = 1;
+	   alloc   = 0;
+	   ptrdata = NULL;
+	   ptrlen  = 0;
 	   break;
 
 	case ESIF_DATA_BINARY:
@@ -697,9 +699,6 @@ esif_error_t EsifData_FromString (
 		case ESIF_DATA_JSON:
 		case ESIF_DATA_XML:
 			esif_ccb_memcpy(buffer, ptrdata, ptrlen);
-			break;
-			
-		case ESIF_DATA_VOID:
 			break;
 
 		case ESIF_DATA_BINARY:

@@ -78,9 +78,6 @@ void PlatformRequestHandler::bindRequestHandlers()
 	bindRequestHandler(
 		DptfRequestType::PlatformNotificationSetPolicySystemMode,
 		[=](const PolicyRequest& policyRequest) { return this->handleSetSystemMode(policyRequest); });
-	bindRequestHandler(DptfRequestType::PlatformNotificationAppBroadcastSend, [=](const PolicyRequest& policyRequest) {
-		return this->handleAppBroadcastSend(policyRequest);
-	});
 }
 
 void PlatformRequestHandler::bindRequestHandler(
@@ -275,28 +272,6 @@ DptfRequestResult PlatformRequestHandler::handleSetSystemMode(const PolicyReques
 	catch (dptf_exception& ex)
 	{
 		std::string failureMessage = "Failure during execution of set system mode request: " + std::string(ex.what());
-		return DptfRequestResult(false, failureMessage, request);
-	}
-}
-
-DptfRequestResult PlatformRequestHandler::handleAppBroadcastSend(const PolicyRequest& policyRequest)
-{
-	auto& request = policyRequest.getRequest();
-
-	try
-	{
-		EsifData eventData;
-		eventData.buf_ptr = request.getData().get();
-		eventData.buf_len = request.getData().size();
-		eventData.type = ESIF_DATA_BINARY;
-		eventData.data_len = request.getData().size();
-		getEsifServices()->sendDptfEvent(
-			FrameworkEvent::DptfAppBroadcastSend, Constants::Invalid, Constants::Invalid, eventData);
-		return DptfRequestResult(true, "Successfully sent appbroadcast event", request);
-	}
-	catch (dptf_exception& ex)
-	{
-		std::string failureMessage = "Failed to send appbroadcast event" + std::string(ex.what());
 		return DptfRequestResult(false, failureMessage, request);
 	}
 }

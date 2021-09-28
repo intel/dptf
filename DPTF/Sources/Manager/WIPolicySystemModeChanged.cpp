@@ -19,7 +19,6 @@
 #include "WIPolicySystemModeChanged.h"
 #include "EsifServicesInterface.h"
 #include "PolicyManagerInterface.h"
-#include "StatusFormat.h"
 
 WIPolicySystemModeChanged::WIPolicySystemModeChanged(DptfManagerInterface* dptfManager, SystemMode::Type systemMode)
 	: WorkItem(dptfManager, FrameworkEvent::PolicySystemModeChanged)
@@ -33,7 +32,6 @@ WIPolicySystemModeChanged::~WIPolicySystemModeChanged(void)
 
 void WIPolicySystemModeChanged::onExecute(void)
 {
-
 	auto policyManager = getPolicyManager();
 	auto policyIndexes = policyManager->getPolicyIndexes();
 
@@ -55,4 +53,3 @@ void WIPolicySystemModeChanged::onExecute(void)
 		}
 	}
 }
-

@@ -48,7 +48,7 @@ namespace PpmPackage
 		P4AC = 10,
 		P5AC = 11,
 		P6AC = 12,
-		Invalid = 0
+		Invalid
 	};
 
 	std::string toString(PpmPackage::Type package);

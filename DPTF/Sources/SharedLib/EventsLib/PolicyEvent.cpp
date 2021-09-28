@@ -36,8 +36,6 @@ namespace PolicyEvent
 	{
 		switch (policyEventType)
 		{
-			CASE(DptfAppBroadcastListen)
-			CASE(DptfAppBroadcastSend)
 			CASE(DptfConnectedStandbyEntry)
 			CASE(DptfConnectedStandbyExit)
 			CASE(DptfSuspend)
@@ -171,10 +169,6 @@ namespace PolicyEvent
 	{
 		switch (type)
 		{
-		case PolicyEvent::DptfAppBroadcastListen:
-			return "DptfAppBroadcastListen";
-		case PolicyEvent::DptfAppBroadcastSend:
-			return "DptfAppBroadcastSend";
 		case PolicyEvent::DptfConnectedStandbyEntry:
 			return "DptfConnectedStandbyEntry";
 		case PolicyEvent::DptfConnectedStandbyExit:
@@ -327,8 +321,6 @@ namespace PolicyEvent
 			return "PolicyActiveControlPointRelationshipTableChanged";
 		case PolicyEvent::PolicyPowerShareAlgorithmTableChanged:
 			return "PolicyPowerShareAlgorithmTableChanged";
-		case PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged:
-			return "PolicyEnergyPerformanceOptimizerTableChanged";
 		case PolicyEvent::PowerLimitChanged:
 			return "PowerLimitChanged";
 		case PolicyEvent::PerformanceCapabilitiesChanged:

@@ -36,11 +36,6 @@
 #define ESIF_FIVR_PF_MULT                   128
 #define ESIF_XTAL_CLOCK_FREQ_38_4	    38400000 // Hz
 #define ESIF_FREQ_ADJ_STEP_15		    150000   // Hz
-#define FIVR_CENTER_FREQ_MASK		    0xFF008FFF
-#define FIVR_MSB_SHIFT			    16
-#define FIVR_MSB_MASK  			    0xFF
-#define FIVR_LSB_SHIFT			    12
-#define FIVR_LSB_MASK			    0x7
 #define MIN_PERF_PERCENTAGE 0
 #define MAX_SEARCH_STRING 50
 #define MAX_PARAM_STRING (MAX_SEARCH_STRING + MAX_SEARCH_STRING + 1)
@@ -75,8 +70,6 @@
 #define RAPL_ENERGY_UNIT_BIT_POS 8
 #define RAPL_ENERGY_UNIT_NBITS 5
 #define ENERGY_UNIT_CONVERSION_FACTOR 1000000
-#define GT_FREQ_STEP 100
-#define MAX_GFX_PSTATE	64
 
 #define MAX_ACPI_SCOPE_LEN ESIF_SCOPE_LEN
 #define ACPI_THERMAL_IOR_TYPE 's'
@@ -88,22 +81,16 @@
 #define GET_ART	_IOR(ACPI_THERMAL_IOR_TYPE, 6, u64)
 
 #define ACPI_CPU                "INT3401:00"
-#define GT_RP0_FREQ_MHZ		"gt_RP0_freq_mhz"
-#define GT_RPN_FREQ_MHZ		"gt_RPn_freq_mhz"
-#define GT_MIN_FREQ_MHZ		"gt_min_freq_mhz"
-#define GT_MAX_FREQ_MHZ		"gt_max_freq_mhz"
 #define SYSFS_PCI               "/sys/bus/pci/devices"
 #define SYSFS_PLATFORM          "/sys/bus/platform/devices"
 #define SYSFS_PSTATE_PATH       "/sys/devices/system/cpu/intel_pstate/"
 #define SYSFS_FIVR_PATH       	"/sys/bus/pci/devices/0000:00:04.0/fivr"
 #define SYSFS_FIVR_NODE       	"rfi_vco_ref_code"
 #define SYSFS_FIVR_PCH_PATH     "pch_fivr_switch_frequency"
-#define SYSFS_FIVR_PCH_NODE_SET "freq_mhz_high_clock"
-#define SYSFS_FIVR_PCH_NODE_GET "fivr_switching_freq_mhz"
+#define SYSFS_FIVR_PCH_NODE     "freq_mhz_high_clock"
 #define SYSF_FIVR_PCH_SSC       "ssc_clock_info"
 #define SYSFS_THERMAL           "/sys/class/thermal"
 #define SYSFS_EPP_PATH          "/sys/bus/cpu/devices/cpu%d/cpufreq"
-#define SYSFS_GFX_PATH		"/sys/class/drm/card0/"
 #define SYSFS_EPP_NODE          "energy_performance_preference"
 #define SYSFS_DATA_VAULT        "data_vault"
 #define SYSFS_AVAILABLE_UUIDS   "uuids/available_uuids"
@@ -162,12 +149,6 @@ struct eppWorkloadMapEntry eppWorkloadMapTable[] = {
 	{"battery_life",179,70},
 	{"idle",179,70}
 };
-// create graphix pstate table entry
-typedef struct gfxPstateEntry {
-	UInt32 pstate;
-	UInt32 freqValue;
-}gfxPstateEntry;
-gfxPstateEntry g_gfxPstateFreqMapTable[MAX_GFX_PSTATE] = {0};
 
 struct rfkill_event {
 	u32 idx;
@@ -217,7 +198,6 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_FAN_STATUS = 'TSFG',
 	ESIF_SYSFS_GET_DISPLAY_BRIGHTNESS = 'SBDG',
 	ESIF_SYSFS_GET_CSTATE_RESIDENCY= 'RSCG',
-	ESIF_SYSFS_GET_GFX_PSTATE = 'SPGG',
 	ESIF_SYSFS_GET_RAPL_ENERGY_UNIT= 'UERG',
 	ESIF_SYSFS_GET_RAPL_ENERGY= 'ERSG',
 	ESIF_SYSFS_GET_RAPL_TIME_WINDOW = 'WTRG',
@@ -226,8 +206,6 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_PLATFORM_POWER_SOURCE = 'CRSP',
 	ESIF_SYSFS_GET_ADAPTER_POWER_RATING = 'GTRA',
 	ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY = 'FCRG',
-	ESIF_SYSFS_GET_RFPROFILE_MAX_FREQUENCY = 'AMRG',
-	ESIF_SYSFS_GET_RFPROFILE_MIN_FREQUENCY = 'IMRG',
 	ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY_PCH = 'PCRG',
 	ESIF_SYSFS_GET_CHARGER_TYPE = 'PYTC',
 	ESIF_SYSFS_GET_PLATFORM_BATTERY_STEADY_STATE = 'SSBP',
@@ -239,9 +217,7 @@ enum esif_sysfs_param {
 	ESIF_SYSFS_GET_BATTERY_MAX_PEAK_CURRENT = 'ppmc',
 	ESIF_SYSFS_GET_RFPROFILE_FREQUENCY_ADJUST_RESOLUTION = 'RAFG',
 	ESIF_SYSFS_SET_CPU_PSTATE = 'SPCS',
-	ESIF_SYSFS_SET_GFX_PSTATE = 'SPGS',
 	ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY = 'FCRS',
-	ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY_PCH = 'PCRS',
 	ESIF_SYSFS_SET_WWAN_PSTATE = 'SPWS',
 	ESIF_SYSFS_SET_OSC = 'CSOS',
 	ESIF_SYSFS_SET_FAN_LEVEL = 'ELFS',
@@ -284,7 +260,6 @@ static void GetNumberOfCpuCores();
 static enum esif_rc get_supported_policies(char *table_str, int idspNum, char *sysfs_str);
 static enum esif_rc get_rapl_power_control_capabilities(char *table_str, esif_guid_t *target_guid);
 static enum esif_rc get_proc_perf_support_states(char *table_str);
-static enum esif_rc GetGfxPerfSupportStates(EsifDataPtr responsePtr);
 static enum esif_rc get_participant_current_control_capabilities(char *table_str, char *participant_path);
 static enum esif_rc get_perf_support_states(char *table_str, char *participant_path);
 static enum esif_rc get_supported_brightness_levels(char *table_str, char *participant_path);
@@ -308,7 +283,6 @@ static eEsifError GetRaplEnergyUnit(char *path, char *node, UInt32 msrAddr, Esif
 static eEsifError GetRaplRawEnergyInUnits(UInt64 energyUjs, UInt32 energyUnit, UInt32 *rawEnergyInUnits);
 static eEsifError SetOsc(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 static eEsifError SetFivrCenterFreqCpu(EsifUpPtr upPtr,UInt64 targetFreq);
-static eEsifError SetFivrCenterFreqPch(EsifUpPtr upPtr,UInt64 targetFreq, char *path);
 static eEsifError SetImOk(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 static eEsifError ResetThermalZonePolicyToDefault();
 static eEsifError SetThermalZonePolicy();
@@ -320,26 +294,6 @@ static eEsifError GetOemVariables(char *table_str);
 #ifdef ESIF_ATTR_OS_ANDROID
 static void NotifyJhs(EsifUpPtr upPtr, const EsifDataPtr requestPtr);
 #endif
-
-// Get crystal clock freq
-static eEsifError GetCrystalClockFrequency(UInt32 *crystalFreq)
-{
-        eEsifError rc = ESIF_OK;
-        esif_ccb_cpuid_t cpuInfo = { 0 };
-
-        cpuInfo.leaf = ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO;
-        esif_ccb_cpuid(&cpuInfo);
-
-        if (cpuInfo.ecx != ESIF_XTAL_CLOCK_FREQ_38_4) {
-                rc = ESIF_E_NOT_SUPPORTED;
-                ESIF_TRACE_ERROR("Unsupported crystal clock frequency: %d\n ",cpuInfo.ecx);
-                goto exit;
-        }
-        *(UInt32 *)crystalFreq = cpuInfo.ecx;
-exit:
-        return rc;
-
-}
 
 /*
  * Inline function: GetUIntFromActionContext
@@ -466,7 +420,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	int max_node_idx = MAX_NODE_IDX;
 	enum esif_sysfs_command sysopt = 0;
 	int cur_item_count = 0;
-	UInt32 crystalClockFreq = 0;
 	int target_item_count = 0;
 	enum esif_sysfs_param calc_type = 0;
 	Int64 pdl_val = 0;
@@ -486,6 +439,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 	int domain_idx1 = 0;	// DTS 1
 	int temp_val0 = 0;
 	int temp_val1 = 0;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
 	int pathAccessReturn = 0;
 	char table_str[BINARY_TABLE_SIZE];
 	TableObject tableObject = {0};
@@ -784,12 +738,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 
 				*(u32 *) responsePtr->buf_ptr = (u32) pdl_val;
 				break;
-			case ESIF_SYSFS_GET_GFX_PSTATE:
-				rc = GetGfxPerfSupportStates(responsePtr);
-				if (rc != ESIF_OK) {
-					goto exit;
-				}
-				break;
 			case ESIF_SYSFS_GET_SOC_PL1: /* power limit */
 				if (SysfsGetInt64(parm1, parm2, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
 					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
@@ -930,32 +878,10 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 			                sscPercentage = ((sscRegisterValue - ESIF_FIVR_SSC_0_2_RES_MIN_REG_VAL) * ESIF_FIVR_SSC_0_2_RES) + ESIF_FIVR_SSC_0_2_RES_MIN_PER;
 				}
 				*(UInt32 *) responsePtr->buf_ptr = (UInt32) sscPercentage;
-                                break;
-			case ESIF_SYSFS_GET_RFPROFILE_MAX_FREQUENCY:
-				rc = GetCrystalClockFrequency(&crystalClockFreq);
-				if (rc != ESIF_OK) {
-                                        goto exit;
-                                }
-				//Get the Maximum frequency
-                                EsifPrimitiveTuple maxFreqTuple = {GET_RFPROFILE_MAX_FREQUENCY_XTAL_38_4, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &maxFreqTuple, NULL, responsePtr)) {
-					ESIF_TRACE_DEBUG("Successfully get the Maximume frequency:\n");
-				}
-				break;
-			case ESIF_SYSFS_GET_RFPROFILE_MIN_FREQUENCY:
-                                rc = GetCrystalClockFrequency(&crystalClockFreq);
-				if (rc != ESIF_OK) {
-					goto exit;
-				}
-				//Get the Maximum frequency
-                                EsifPrimitiveTuple minFreqTuple = {GET_RFPROFILE_MIN_FREQUENCY_XTAL_38_4, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &minFreqTuple, NULL, responsePtr)) {
-					ESIF_TRACE_DEBUG("Successfully get the Minimume frequency:\n");
-				}
-				break;	
+                                break;	
 			case ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY_PCH:// Center frequency for PCH participant
 				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
-				rc = GetRfprofileCenterFreq(responsePtr, cur_node_name, SYSFS_FIVR_PCH_NODE_GET);
+				rc = GetRfprofileCenterFreq(responsePtr, cur_node_name, SYSFS_FIVR_PCH_NODE);
 				break;
 			case ESIF_SYSFS_GET_RFPROFILE_CENTER_FREQUENCY:// Center frequency for TCPU participant
 				rc = GetRfprofileCenterFreq(responsePtr, SYSFS_FIVR_PATH, SYSFS_FIVR_NODE);
@@ -1191,6 +1117,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsGet(
 		esif_ccb_memcpy((u8 *) responsePtr->buf_ptr, tableObject.binaryData, tableObject.binaryDataSize);
 		responsePtr->type = ESIF_DATA_BINARY;
 		responsePtr->data_len = tableObject.binaryDataSize;
+
 		//esif_ccb_free(table_str);
 		TableObject_Destroy(&tableObject);
 		break;
@@ -1247,7 +1174,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 	int candidate_found = 0;
 	int max_node_idx = MAX_NODE_IDX;
 	Int64 sysval = 0;
-	Int64 gtMinFreq = 0;
 	Int32 eppValue = 0;
 	Int64 pdl_val = 0;
 	EsifUpDataPtr metaPtr = NULL;
@@ -1387,44 +1313,6 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 					goto exit;
 				}
 				break;
-			case ESIF_SYSFS_SET_GFX_PSTATE:
-				sysval = *(UInt32*) requestPtr->buf_ptr;
-				if (sysval < 0 || sysval >= MAX_GFX_PSTATE) {
-					rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-					ESIF_TRACE_DEBUG(" Index value is out of bound: %d\n",sysval);
-					goto exit;
-				}
-
-				if (g_gfxPstateFreqMapTable[sysval].freqValue <= 0) {
-					  rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-					  ESIF_TRACE_DEBUG("P state is not supported for Index %d: \n", sysval);
-					  goto exit;
-				}
-				if (SysfsGetInt64(SYSFS_GFX_PATH, GT_MIN_FREQ_MHZ, &gtMinFreq) < 0) {
-					rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					goto exit;
-				}
-				if (gtMinFreq <= g_gfxPstateFreqMapTable[sysval].freqValue) {
-					if (SysfsSetInt64(SYSFS_GFX_PATH,GT_MAX_FREQ_MHZ, g_gfxPstateFreqMapTable[sysval].freqValue) < 0) {
-						rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					}
-					if (SysfsSetInt64(SYSFS_GFX_PATH,GT_MIN_FREQ_MHZ, g_gfxPstateFreqMapTable[sysval].freqValue) < 0) {
-						rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-					}
-				}
-				else {
-					if (SysfsSetInt64(SYSFS_GFX_PATH,GT_MIN_FREQ_MHZ, g_gfxPstateFreqMapTable[sysval].freqValue) < 0) {
-                                                rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-                                        }
-                                        if (SysfsSetInt64(SYSFS_GFX_PATH,GT_MAX_FREQ_MHZ, g_gfxPstateFreqMapTable[sysval].freqValue) < 0) {
-                                                rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-                                        }
-				}
-				if (rc != ESIF_OK) {
-					goto exit;
-				}
-				ESIF_TRACE_DEBUG("Successfully set the GFX Pstate Value: %d\n", g_gfxPstateFreqMapTable[sysval].freqValue);
-				break;
 			case ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY:
 				sysval = *(UInt64 *) requestPtr->buf_ptr;
 				//Get the Maximum frequency
@@ -1453,35 +1341,7 @@ static eEsifError ESIF_CALLCONV ActionSysfsSet(
 					goto exit;
 				}
 				break;
-			case ESIF_SYSFS_SET_RFPROFILE_CENTER_FREQUENCY_PCH:
-                                sysval = *(UInt64 *) requestPtr->buf_ptr;
-                                //Get the Maximum frequency
-                                EsifPrimitiveTuple maxFreqTuple = {GET_RFPROFILE_MAX_FREQUENCY, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &maxFreqTuple, NULL, &response)) {
-                                        maxFreq = (UInt64)*(UInt32 *)response.buf_ptr;
-                                }
 
-                                //Get the min frequency
-                                EsifPrimitiveTuple minFreqTuple = {GET_RFPROFILE_MIN_FREQUENCY, ESIF_PRIMITIVE_DOMAIN_D0, 255};
-                                if (!EsifUp_ExecutePrimitive(upPtr, &minFreqTuple, NULL, &response)) {
-                                        minFreq = (UInt64)*(UInt32 *) response.buf_ptr;
-                                }
-                                //comparing the input value with max and min value
-                                if ((sysval > maxFreq) || (sysval < minFreq)) {
-                                        rc = ESIF_E_PARAMETER_IS_OUT_OF_BOUNDS;
-                                        ESIF_TRACE_ERROR("sysvl value: %lld should be in the range of min value: %lld or max value: %lld \n",
-                                                sysval,
-                                                minFreq,
-                                                maxFreq);
-                                        goto exit;
-                                }
-				esif_ccb_sprintf(MAX_SYSFS_PATH, cur_node_name,"%s/%s", devicePathPtr, SYSFS_FIVR_PCH_PATH);
-				rc = SetFivrCenterFreqPch(upPtr, sysval, cur_node_name);
-                                if ( rc != ESIF_OK) {
-					ESIF_TRACE_ERROR("Failed to set the FIVR center freq\n");
-                                        goto exit;
-                                }
-                                break;
 			case ESIF_SYSFS_SET_WWAN_PSTATE:
 				sysval = *(u32 *) requestPtr->buf_ptr;
 				if (sysval > 0) {
@@ -1781,26 +1641,30 @@ static eEsifError SetFivrCenterFreqCpu(EsifUpPtr upPtr, UInt64 targetFreq)
 {
 	eEsifError rc = ESIF_OK;
 	UInt32 vcoRefCode = 0;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
 	UInt32 vcoRefCodeHi = 0;
 	UInt32 vcoRefCodeLo = 0;
-	UInt32 crystalClockFreq = 0;
 
 	ESIF_ASSERT( targetFreq != 0);
 
-	rc = GetCrystalClockFrequency(&crystalClockFreq);
-	if (rc != ESIF_OK) {
+	cpuInfo.leaf = ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO;
+	esif_ccb_cpuid(&cpuInfo);
+
+	if (cpuInfo.ecx != ESIF_XTAL_CLOCK_FREQ_38_4) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		ESIF_TRACE_ERROR("Unsupported crystal clock frequency: %lld\n ",cpuInfo.ecx);
 		goto exit;
 	}
-	vcoRefCode = (UInt32)(targetFreq * ESIF_FIVR_PF_MULT / crystalClockFreq);
+	vcoRefCode = (UInt32)(targetFreq * ESIF_FIVR_PF_MULT / cpuInfo.ecx);
 
-	// Get the msb/lsb for the vco value 
+	// Get the msb/lsb for the PF values 
 	vcoRefCodeHi  = (vcoRefCode >> 3) & 0xFF;
 	vcoRefCodeLo  = vcoRefCode & 0x7;
 	
-	ESIF_TRACE_DEBUG("vcoRefCodeLo: %d\t vcoRefCodeHi: %d\t crystal clock freq: %d\n",
+	ESIF_TRACE_DEBUG("vcoRefCodeLo: %d\t vcoRefCodeHi: %d\t crystal clock freq: %lld\n",
 		vcoRefCodeLo,
 		vcoRefCodeHi,
-		crystalClockFreq);
+		cpuInfo.ecx);
 	//set hi value to the sysfs node
 	if (SysfsSetInt64(SYSFS_FIVR_PATH,"vco_ref_code_hi", vcoRefCodeHi) < 0) {
                 rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
@@ -1819,12 +1683,11 @@ static eEsifError SetFivrCenterFreqCpu(EsifUpPtr upPtr, UInt64 targetFreq)
 exit:
 	return rc;
 }
-
 static eEsifError GetRfprofileCenterFreq(EsifDataPtr responsePtr, char *path, char *node)
 {
         eEsifError rc = ESIF_OK;
         Int64 sysval = 0;
-	UInt32 crystalClockFreq = 0;
+        esif_ccb_cpuid_t cpuInfo = { 0 };
 
         ESIF_ASSERT(responsePtr != NULL);
         if (responsePtr->buf_ptr == NULL) {
@@ -1837,9 +1700,12 @@ static eEsifError GetRfprofileCenterFreq(EsifDataPtr responsePtr, char *path, ch
                 rc = ESIF_E_NEED_LARGER_BUFFER;
                 goto exit;
         }
+        cpuInfo.leaf = ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO;
+        esif_ccb_cpuid(&cpuInfo);
 
-	rc = GetCrystalClockFrequency(&crystalClockFreq);
-        if (rc != ESIF_OK) {
+        if (cpuInfo.ecx != ESIF_XTAL_CLOCK_FREQ_38_4) {
+                rc = ESIF_E_NOT_SUPPORTED;
+                ESIF_TRACE_ERROR("Unsupported Crystal clock frequency");
                 goto exit;
         }
 	if (SysfsGetInt64(path, node, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
@@ -1850,67 +1716,15 @@ static eEsifError GetRfprofileCenterFreq(EsifDataPtr responsePtr, char *path, ch
 
 	//return Fivr center freq
 	ESIF_TRACE_DEBUG("Successfully Executed GET_RFPROFILE_CENTER_FREQUENCY_FIVR sysval: %lld\n",sysval);
-	*(UInt64 *) responsePtr->buf_ptr = (UInt64)sysval * crystalClockFreq / ESIF_FIVR_PF_MULT;
+	*(UInt64 *) responsePtr->buf_ptr = (UInt64)sysval * cpuInfo.ecx / ESIF_FIVR_PF_MULT;
 exit:
 	return rc;
 }
-
-static eEsifError SetFivrCenterFreqPch(EsifUpPtr upPtr, UInt64 targetFreq, char *path)
-{
-        eEsifError rc = ESIF_OK;
-        UInt32 vcoRefCode = 0;
-        UInt32 vcoRefCodeHi = 0;
-        UInt32 vcoRefCodeLo = 0;
-	Int64 sysval = 0;
-	UInt32 fivrRegVal = 0;
-	UInt64 responseData = 0;
-	UInt32 crystalClockFreq = 0;
-	EsifData response = { ESIF_DATA_UINT64, &responseData, sizeof(responseData), sizeof(responseData) };
-
-        ESIF_ASSERT( targetFreq != 0);
-
-	rc = GetCrystalClockFrequency(&crystalClockFreq);
-        if (rc != ESIF_OK) {
-                goto exit;
-        }
-        vcoRefCode = (UInt32)(targetFreq * ESIF_FIVR_PF_MULT / crystalClockFreq);
-
-        // Get the msb/lsb for the Vco value 
-        vcoRefCodeHi  = (vcoRefCode >> 3) & FIVR_MSB_MASK;
-        vcoRefCodeLo  = vcoRefCode & FIVR_LSB_MASK;
-
-        ESIF_TRACE_DEBUG("vcoRefCodeLo: %d\t vcoRefCodeHi: %d\t crystal clock freq: %d\n",
-                vcoRefCodeLo,
-                vcoRefCodeHi,
-                crystalClockFreq);
-
-	//Get the center Freq
-	if (SysfsGetInt64(path, SYSFS_FIVR_PCH_NODE_GET, &sysval) < SYSFS_FILE_RETRIEVAL_SUCCESS) {
-			rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-			goto exit;
-	}
-	fivrRegVal = (Int32)sysval;
-
-	// vcoRefCodehi is 8 bit and vcorefCodeLo is 3 bit
-	fivrRegVal = (fivrRegVal & FIVR_CENTER_FREQ_MASK);
-	fivrRegVal |= (((vcoRefCodeHi << FIVR_MSB_SHIFT) & FIVR_MSB_MASK) | ((vcoRefCodeLo << FIVR_LSB_SHIFT) & FIVR_LSB_MASK));
-	//set hi value to the sysfs node
-        if (SysfsSetInt64(path,SYSFS_FIVR_PCH_NODE_SET, fivrRegVal) < 0) {
-                rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-                ESIF_TRACE_ERROR("Set fivrRegVal is failed\n");
-                goto exit;
-        }
-	ESIF_TRACE_DEBUG("Set Center freq for PCH participant sucessfully:%d\n",fivrRegVal);
-
-exit:
-        return rc;
-}
-
 static eEsifError GetRfprofileFreqAdjuRes(EsifDataPtr responsePtr)
 {
 	eEsifError rc = ESIF_OK;
 	UInt64 freqStep = 0;
-	UInt32 crystalClockFreq = 0;
+	esif_ccb_cpuid_t cpuInfo = { 0 };
 
 	ESIF_ASSERT(responsePtr != NULL);
 	if (responsePtr->buf_ptr == NULL) {
@@ -1922,10 +1736,13 @@ static eEsifError GetRfprofileFreqAdjuRes(EsifDataPtr responsePtr)
         if (responsePtr->buf_len < responsePtr->data_len) {
                 rc = ESIF_E_NEED_LARGER_BUFFER;
                 goto exit;
-	}
+        }
+	cpuInfo.leaf = ESIF_CPUID_LEAF_XTAL_CLOCK_FREQ_INFO;
+	esif_ccb_cpuid(&cpuInfo);
 
-	rc = GetCrystalClockFrequency(&crystalClockFreq);
-	if (rc != ESIF_OK) {
+	if (cpuInfo.ecx != ESIF_XTAL_CLOCK_FREQ_38_4) {
+		rc = ESIF_E_NOT_SUPPORTED;
+		ESIF_TRACE_ERROR("Unsupported Crystal clock frequency");
 		goto exit;
 	}
 	freqStep = ESIF_FREQ_ADJ_STEP_15;
@@ -1959,56 +1776,6 @@ static enum esif_rc get_participant_current_control_capabilities(char *table_str
 {
 	/* need to implement (not used currently) */
 	return ESIF_E_PRIMITIVE_ACTION_FAILURE;
-}
-
-static enum esif_rc GetGfxPerfSupportStates(EsifDataPtr responsePtr)
-{
-	UInt32 pdlValue = 0;
-	Int64 gtMinFreq = 0;
-	Int64 gtMaxFreq = 0;
-	UInt32 pstateIndex = 0;
-	UInt32 pstateCounter = 0;
-	UInt32 gpuFrequency = 0;
-	UInt32 dataSize = 0;
-	eEsifError rc = ESIF_OK;
-	union esif_data_variant *curRespPtr = NULL;
-
-	ESIF_ASSERT(responsePtr != NULL);
-	if (responsePtr->buf_ptr == NULL) {
-                rc = ESIF_E_PARAMETER_IS_NULL;
-                goto exit;
-        }
-
-	if ((SysfsGetInt64(SYSFS_GFX_PATH, GT_RP0_FREQ_MHZ, &gtMaxFreq) < SYSFS_FILE_RETRIEVAL_SUCCESS) || (gtMaxFreq > MAX_SYSFS_PERF_STATES)) {
-		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		goto exit;
-	}
-	if ((SysfsGetInt64(SYSFS_GFX_PATH, GT_RPN_FREQ_MHZ, &gtMinFreq) < SYSFS_FILE_RETRIEVAL_SUCCESS) || (gtMinFreq > MAX_SYSFS_PERF_STATES)) {
-		rc = ESIF_E_PRIMITIVE_ACTION_FAILURE;
-		goto exit;
-	}
-
-	pdlValue = (UInt32)((gtMaxFreq - gtMinFreq) / GT_FREQ_STEP) + 1;
-	dataSize = pdlValue * sizeof(union esif_data_variant);
-	responsePtr->data_len = dataSize;
-	if (responsePtr->buf_len < responsePtr->data_len) {
-                rc = ESIF_E_NEED_LARGER_BUFFER;
-                goto exit;
-        }
-	curRespPtr = (union esif_data_variant *)responsePtr->buf_ptr;
-
-	for (pstateCounter = pdlValue; pstateCounter > 0; pstateCounter--) {
-		gpuFrequency = (pstateCounter * GT_FREQ_STEP);
-		g_gfxPstateFreqMapTable[pstateIndex].pstate = pstateIndex;
-		g_gfxPstateFreqMapTable[pstateIndex].freqValue = gpuFrequency;
-		curRespPtr->type = ESIF_DATA_UINT64;
-		curRespPtr->integer.value = (UInt64)gpuFrequency;
-		curRespPtr++;
-		pstateIndex++;
-	}
-
-exit:
-	return rc;
 }
 
 static enum esif_rc get_perf_support_states(char *table_str, char *participant_path)

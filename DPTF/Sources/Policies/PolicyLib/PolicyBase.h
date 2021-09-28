@@ -100,7 +100,6 @@ public:
 	virtual void onAdaptivePerformanceConditionsTableChanged(void);
 	virtual void onAdaptivePerformanceActionsTableChanged(void);
 	virtual void onDdrfTableChanged(void);
-	virtual void onIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData);
 	virtual void onConnectedStandbyEntry(void);
 	virtual void onConnectedStandbyExit(void);
 	virtual void onSuspend(void);
@@ -143,7 +142,6 @@ public:
 	virtual void onOperatingSystemGameModeChanged(OnOffToggle::Type gameMode);
 	virtual void onPowerShareAlgorithmTable2Changed(void);
 	virtual void onIntelligentThermalManagementTableChanged(void);
-	virtual void onEnergyPerformanceOptimizerTableChanged(void);
 	virtual void onPlatformUserPresenceChanged(SensorUserPresence::Type userPresence);
 	virtual void onExternalMonitorStateChanged(Bool externalMonitorState);
 	virtual void onUserInteractionChanged(UserInteraction::Type userInteraction);
@@ -209,8 +207,6 @@ public:
 	virtual void ddrfTableChanged(void) override final;
 	virtual void adaptivePerformanceActionsTableChanged(void) override final;
 	virtual void connectedStandbyEntry(void) override final;
-	virtual void igccBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override final;
 	virtual void connectedStandbyExit(void) override final;
 	virtual void suspend(void) override final;
 	virtual void resume(void) override final;
@@ -249,7 +245,6 @@ public:
 	virtual void activeControlPointRelationshipTableChanged(void) override final;
 	virtual void powerShareAlgorithmTableChanged(void) override final;
 	virtual void intelligentThermalManagementTableChanged(void) override final;
-	virtual void energyPerformanceOptimizerTableChanged(void) override final;
 	virtual void powerLimitChanged(void) override final;
 	virtual void performanceCapabilitiesChanged(UIntN participantIndex) override final;
 	virtual void workloadHintConfigurationChanged(void) override final;
@@ -259,6 +254,8 @@ public:
 	virtual void externalMonitorStateChanged(Bool externalMonitorState) override final;
 	virtual void userInteractionChanged(UserInteraction::Type userInteraction) override final;
 	virtual void foregroundRatioChanged(UIntN ratio) override final;
+
+	virtual void sendPolicyOscRequest() override final;
 
 	// allows overriding the default time object with a different one
 	void overrideTimeObject(std::shared_ptr<TimeInterface> timeObject);

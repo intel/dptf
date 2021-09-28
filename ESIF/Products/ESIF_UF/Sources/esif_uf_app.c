@@ -324,6 +324,8 @@ static AppDataPtr CreateAppData(
 	)
 {
 	AppDataPtr app_data_ptr = NULL;
+	char policyLoadPath[ESIF_PATH_LEN] = { 0 }; // empty if path starts with "#"
+	char logPath[ESIF_PATH_LEN] = { 0 };
 
 	if (NULL == self) {
 		goto exit;
@@ -334,8 +336,13 @@ static AppDataPtr CreateAppData(
 		goto exit;
 	}
 
-	// Build path for ESIF Apps: "HomeDir"
-	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_HOME, NULL, NULL);
+	// Build path(s) for DPTF: "HomeDir" or "HomeDir|[#]PolicyDir|LogDir"
+	esif_build_path(policyLoadPath, sizeof(policyLoadPath), ESIF_PATHTYPE_DLL, "", NULL);
+	esif_build_path(logPath, sizeof(logPath), ESIF_PATHTYPE_LOG, NULL, NULL);
+
+	esif_build_path(pathBuf, bufLen, ESIF_PATHTYPE_DATA, NULL, NULL);
+	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s%s", (policyLoadPath[0] ? "" : "#"), self->loadDir);
+	esif_ccb_sprintf_concat(bufLen, pathBuf, "|%s", logPath);
 
 	ESIF_TRACE_DEBUG("pathBuf=%s\n", (esif_string)pathBuf);
 

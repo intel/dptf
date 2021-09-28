@@ -46,6 +46,11 @@ void WIPolicyCreateAll::onExecute(void)
 			std::string policyFilePath = m_policyDirectoryPath + policyFileName;
 			try
 			{
+				if (getDptfManager()->isDptfPolicyLoadNameOnly())
+				{
+					policyFilePath.erase(0, m_policyDirectoryPath.length());
+				}
+
 				getDptfManager()->getPolicyManager()->createPolicy(policyFilePath);
 			}
 			catch (std::exception& ex)

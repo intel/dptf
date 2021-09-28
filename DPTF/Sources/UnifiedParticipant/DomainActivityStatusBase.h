@@ -35,5 +35,4 @@ public:
 		UIntN domainIndex,
 		std::shared_ptr<ParticipantServicesInterface> participantServicesInterface);
 	virtual ~DomainActivityStatusBase();
-	virtual UInt32 getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex);
 };

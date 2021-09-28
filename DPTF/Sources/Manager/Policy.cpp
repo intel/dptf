@@ -153,7 +153,6 @@ void Policy::createPolicy(
 	else
 	{
 		m_guid = m_theRealPolicy->getGuid();
-		m_policyName = m_theRealPolicy->getName();
 	}
 
 	// Now we need to check the guid provided by the policy and make sure it is in the list of policies that are to
@@ -163,8 +162,7 @@ void Policy::createPolicy(
 	{
 		MANAGER_LOG_MESSAGE_WARNING({
 			stringstream message;
-			message << "Policy [" << m_policyName << "] will not be loaded. GUID not in supported policy list ["
-					<< m_guid << "]";
+			message << "Policy will not be loaded. GUID not in supported policy list [" << m_guid << "]";
 			ManagerMessage msg = ManagerMessage(m_dptfManager, _file, _line, _function, message.str());
 			return msg;
 		});
@@ -177,6 +175,7 @@ void Policy::createPolicy(
 	m_theRealPolicyCreated = true;
 	m_theRealPolicy->create(true, m_policyServices, newPolicyIndex, m_dynamicPolicyUuidString, dynamicPolicyName);
 	m_policyName = m_theRealPolicy->getName();
+	m_theRealPolicy->sendPolicyOscRequest();
 	sendPolicyLogDataIfLoggingEnabled(true);
 }
 
@@ -188,7 +187,6 @@ void Policy::destroyPolicy()
 		{
 			sendPolicyLogDataIfLoggingEnabled(false);
 			m_theRealPolicy->destroy();
-			m_policyName = std::string("");
 		}
 	}
 	catch (...)
@@ -274,14 +272,6 @@ Bool Policy::isDynamicPolicy(void)
 string Policy::getDynamicPolicyUuidString(void) const
 {
 	return m_dynamicPolicyUuidString;
-}
-
-void Policy::executeIgccBroadcastReceived(IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData)
-{
-	if (isEventRegistered(PolicyEvent::DptfAppBroadcastListen))
-	{
-		m_theRealPolicy->igccBroadcastReceived(broadcastNotificationData);
-	}
 }
 
 void Policy::executeConnectedStandbyEntry(void)
@@ -778,14 +768,6 @@ void Policy::executePolicyPowerShareAlgorithmTable2Changed(void)
 	if (isEventRegistered(PolicyEvent::PolicyPowerShareAlgorithmTable2Changed))
 	{
 		m_theRealPolicy->powerShareAlgorithmTable2Changed();
-	}
-}
-
-void Policy::executePolicyEnergyPerformanceOptimizerTableChanged(void)
-{
-	if (isEventRegistered(PolicyEvent::PolicyEnergyPerformanceOptimizerTableChanged))
-	{
-		m_theRealPolicy->energyPerformanceOptimizerTableChanged();
 	}
 }
 

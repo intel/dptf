@@ -57,7 +57,6 @@ ppm_compiler
 /Build/Windows/Packages
 /Build/Windows/Klocwork
 /DPTF/Linux/build
-/DPTF/Linux/Tools/ipftcs/build
 /DPTF/Windows/Solution/Build
 /DPTF/Windows/Solution/*-Debug
 /DPTF/Windows/Solution/*-Release
@@ -75,4 +74,3 @@ ppm_compiler
 /ESIF/Products/ESIF_UI/Sources/solution/esif_ui_solution/bin/esif_ui_solution.dll
 /ESIF/Products/IPF_UI/Sources/solution/ipf_ui_solution/bin
 /ESIF/Products/IPF_UI/index.html
-/IPF/Linux

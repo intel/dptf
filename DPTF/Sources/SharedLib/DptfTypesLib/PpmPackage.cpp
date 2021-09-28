@@ -19,7 +19,6 @@
 #include "PpmPackage.h"
 #include "StringConverter.h"
 #include "StringParser.h"
-#include "string.h"
 
 namespace PpmPackage
 {
@@ -76,33 +75,28 @@ namespace PpmPackage
 	PpmPackage::Type fromString(const std::string package)
 	{
 		const std::string packageName = StringConverter::toUpper(package);
-		std::string packageString = StringConverter::toUpper(toString(PpmPackage::P1));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
+
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P1)))
 		{
 			return PpmPackage::P1;
 		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P2));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P2)))
 		{
 			return PpmPackage::P2;
 		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P3));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P3)))
 		{
 			return PpmPackage::P3;
 		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P4));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P4)))
 		{
 			return PpmPackage::P4;
 		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P5));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P5)))
 		{
 			return PpmPackage::P5;
 		}
-		packageString = StringConverter::toUpper(toString(PpmPackage::P6));
-		if (strcmp(packageName.c_str(), packageString.c_str()) == 0)
+		if (packageName == StringConverter::toUpper(toString(PpmPackage::P6)))
 		{
 			return PpmPackage::P6;
 		}
@@ -138,7 +132,7 @@ namespace PpmPackage
 		}
 		throw dptf_exception("PPM Package input value is invalid");
 	}
-	
+
 	std::string toStringBasedOnOS(PpmPackage::Type package, OsPowerSource::Type osPowerSource)
 	{
 		if (osPowerSource == OsPowerSource::AC)

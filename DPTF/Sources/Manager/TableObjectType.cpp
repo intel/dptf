@@ -33,8 +33,6 @@ std::string TableObjectType::ToString(TableObjectType::Type type)
 		return "ddrf";
 	case Itmt:
 		return "itmt";
-	case Epot:
-		return "epot";
 	default:
 		throw dptf_exception("Invalid table type.");
 	}
@@ -61,10 +59,6 @@ TableObjectType::Type TableObjectType::ToType(std::string value)
 	else if (value == "itmt")
 	{
 		return TableObjectType::Itmt;
-	}
-	else if (value == "epot")
-	{
-		return TableObjectType::Epot;
 	}
 	else
 	{

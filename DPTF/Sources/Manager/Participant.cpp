@@ -1445,10 +1445,3 @@ EsifServicesInterface* Participant::getEsifServices() const
 {
 	return m_dptfManager->getEsifServices();
 }
-
-UInt32 Participant::getSocDgpuPerformanceHintPoints(UIntN domainIndex)
-{
-	throwIfDomainInvalid(domainIndex);
-	return m_domains[domainIndex]->getSocDgpuPerformanceHintPoints();
-}
-

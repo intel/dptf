@@ -22,18 +22,14 @@
 #include "OsPowerSchemePersonality.h"
 #include "SystemMode.h"
 #include "DptfManagerInterface.h"
-#include "IgccBroadcastData.h"
 
 class dptf_export SystemModeManagerInterface
 {
 public:
 	virtual ~SystemModeManagerInterface(){};
 	virtual void setPolicySystemModeValue(const SystemMode::Type systemMode) = 0;
-	virtual void executeIgccAppBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) = 0;
 	virtual void executeOperatingSystemPowerSliderChanged() = 0;
 	virtual void executeOperatingSystemPowerSchemePersonalityChanged() = 0;
-	virtual void executeOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) = 0;
 	virtual void unregisterFrameworkEvents() = 0;
 };
 
@@ -44,11 +40,8 @@ public:
 	~SystemModeManager(void);
 
 	virtual void setPolicySystemModeValue(const SystemMode::Type systemMode) override;
-	virtual void executeIgccAppBroadcastReceived(
-		IgccBroadcastData::IgccToDttNotificationPackage broadcastNotificationData) override;
 	virtual void executeOperatingSystemPowerSliderChanged() override;
 	virtual void executeOperatingSystemPowerSchemePersonalityChanged() override;
-	virtual void executeOperatingSystemPowerSourceChanged(OsPowerSource::Type powerSource) override;
 	virtual void unregisterFrameworkEvents() override;
 
 private:
@@ -56,9 +49,8 @@ private:
 	SystemMode::Type m_policySystemModeValue;
 	SystemMode::Type m_arbitratedValue;
 	Bool m_arbitratedValueChangedSinceLastSet;
+
 	std::bitset<PolicyEvent::Max> m_registeredEvents;
-	bool m_isEnduranceGamingActive;
-	OsPowerSource::Type m_powerSource;
 
 	void arbitrateAndCreateEventSystemModeChanged();
 	void arbitrateSystemMode(

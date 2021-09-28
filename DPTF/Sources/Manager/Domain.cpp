@@ -1256,8 +1256,3 @@ void Domain::clearDomainCachedDataSystemPowerControl()
 	m_systemPowerLimitTimeWindow.clear();
 	m_systemPowerLimitDutyCycle.clear();
 }
-
-UInt32 Domain::getSocDgpuPerformanceHintPoints(void)
-{
-	return m_theRealParticipant->getSocDgpuPerformanceHintPoints(m_participantIndex, m_domainIndex);
-}

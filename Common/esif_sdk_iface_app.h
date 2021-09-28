@@ -82,10 +82,16 @@
 
 #pragma pack(push, 1)
 
-/* Application METADATA */
+/* Application METADATA
+ *
+ * fPathHome may contain multiple paths separated by "|" in the following supported formats:
+ *   Path1        = Single Path
+ *   Path1|Path2  = Multiple Paths
+ *   Path1|#Path2 = Multiple Paths [# = Dont use full path when calling fopen, dlopen, etc]
+ */
 typedef struct _t_AppData {
 	/* Version 1 */
-	EsifData   fPathHome;	/* Application Home Path (Writeable by App Process) */
+	EsifData   fPathHome;	/* Application Home Path(s) [see implementation for details] */
 	eLogType   fLogLevel;	/* Current Logging/Trace Level */
 } AppData, *AppDataPtr, **AppDataPtrLocation;
 

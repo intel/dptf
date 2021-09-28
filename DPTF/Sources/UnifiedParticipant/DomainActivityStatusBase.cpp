@@ -29,26 +29,3 @@ DomainActivityStatusBase::DomainActivityStatusBase(
 DomainActivityStatusBase::~DomainActivityStatusBase()
 {
 }
-
-UInt32 DomainActivityStatusBase::getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex)
-{
-	UInt32 numberOfSocDgpuPerformanceHintPoints = Constants::Invalid;
-
-	try
-	{
-		numberOfSocDgpuPerformanceHintPoints = getParticipantServices()->primitiveExecuteGetAsUInt32(
-			esif_primitive_type::GET_SOC_DGPU_WEIGHTS, domainIndex);
-	}
-	catch (dptf_exception& ex)
-	{
-		PARTICIPANT_LOG_MESSAGE_DEBUG({
-			std::stringstream message;
-			message << "Failed to get SOC DGPU Performance Hint. for participant index = "
-						   + std::to_string(participantIndex) + "and domain Index = " + std::to_string(domainIndex)
-						   + ", exception: " + std::string(ex.what());
-			return message.str();
-		});
-	}
-
-	return numberOfSocDgpuPerformanceHintPoints;
-}

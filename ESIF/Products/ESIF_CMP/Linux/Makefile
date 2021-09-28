@@ -83,7 +83,9 @@ else
 	endif
 	ifeq ($(PLAT), x86)
 		CFLAGS += -m32
-		CFLAGS += -msse2
+		ifeq ($(CC), gcc)
+			CFLAGS += -msse2
+		endif
 	endif
 endif
 

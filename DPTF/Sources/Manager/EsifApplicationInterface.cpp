@@ -34,8 +34,6 @@
 #include "WIRunCommand.h"
 #include "esif_sdk_dcfg.h"
 #include "ipf_sdk_version.h"
-#include "ipf_sdk_version_check.h"
-#include "EsifAppBroadcastProcessing.h"
 
 // Minimum Required IPF SDK Version for this App to load (i.e., NULL, "1.0.0", IPF_SDK_VERSION, Specific Version, etc.)
 #define IPFSDK_MINIMUM_VERSION_REQUIRED "1.0.0"
@@ -124,11 +122,18 @@ extern "C"
 		// 1. Check that Server is using the Minimum Required IPF_SDK_VERSION (if specified) even if Client passes Server version check.
 		if (IPFSDK_MINIMUM_VERSION_REQUIRED && ifaceSetPtr && esifHandle != ESIF_INVALID_HANDLE)
 		{
-			rc = IpfSdk_VersionCheckEsifIface(
+			static char esifcmd[] = "sdk-version";
+			static char sdk_client[] = IPF_SDK_VERSION;
+			EsifData argv[] = {
+				{ESIF_DATA_STRING, esifcmd, sizeof(esifcmd), sizeof(esifcmd)},
+				{ESIF_DATA_STRING, sdk_client, sizeof(sdk_client), sizeof(sdk_client)},
+			};
+			EsifData response = {ESIF_DATA_STRING, DptfIpfSdkVersion, sizeof(DptfIpfSdkVersion), sizeof(DptfIpfSdkVersion)};
+			rc = ifaceSetPtr->esifIface.fSendCommandFuncPtr(
 				esifHandle,
-				ifaceSetPtr->esifIface,
-				DptfIpfSdkVersion,
-				sizeof(DptfIpfSdkVersion)
+				sizeof(argv) / sizeof(argv[0]),
+				argv,
+				&response
 			);
 			if (rc == ESIF_OK && IpfSdk_VersionFromString(DptfIpfSdkVersion) < IpfSdk_VersionFromString(IPFSDK_MINIMUM_VERSION_REQUIRED))
 			{
@@ -667,6 +672,7 @@ extern "C"
 		}
 
 		eEsifError rc = ESIF_OK;
+
 		try
 		{
 			std::shared_ptr<WorkItem> wi;
@@ -674,12 +680,9 @@ extern "C"
 
 			switch (frameworkEvent)
 			{
-			case FrameworkEvent::DptfAppBroadcastListen:
-				wi = EsifAppBroadcastProcessing::FindAppBroadcastIdAndCreateWorkItem(dptfManager, esifEventDataPtr);
-				break;
-			// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high
-			// priority.
-			//        Should these return synchronously?  If so they don't belong here.
+				// FIXME:  DptfConnectedStandbyEntry/DptfConnectedStandbyExit aren't used today so this isn't a high
+				// priority.
+				//        Should these return synchronously?  If so they don't belong here.
 			case FrameworkEvent::DptfConnectedStandbyEntry:
 				wi = std::make_shared<WIDptfConnectedStandbyEntry>(dptfManager);
 				break;

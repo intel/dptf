@@ -30,8 +30,6 @@ namespace SystemMode
 			return "Balanced";
 		case Quiet:
 			return "Quiet";
-		case EnduranceGaming:
-			return "EnduranceGaming";
 		case Invalid:
 			return "Invalid";
 		default:
@@ -54,10 +52,6 @@ namespace SystemMode
 			return SystemMode::Quiet;
 		}
 		else if (value == 3)
-		{
-			return SystemMode::EnduranceGaming;
-		}
-		else if (value == 4)
 		{
 			return SystemMode::Invalid;
 		}

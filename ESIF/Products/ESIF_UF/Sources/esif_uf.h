@@ -108,6 +108,7 @@ typedef enum e_esif_pathtype {
 	ESIF_PATHTYPE_EXE,		// Binary Executables (.EXE and ELF binaries)
 	ESIF_PATHTYPE_DLL,		// Dynamically Loadable Libraries (.DLL and .so)
 	ESIF_PATHTYPE_DLL_ALT,	// Alternate location for loadable libraries (.DLL and .so)
+	ESIF_PATHTYPE_DPTF,		// DPTF Policy Path sent via CreateAppData
 	ESIF_PATHTYPE_DSP,		// DSP and EDP files
 	ESIF_PATHTYPE_CMD,		// CMD scripts
 	ESIF_PATHTYPE_DATA,		// Shared Data folder

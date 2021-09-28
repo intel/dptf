@@ -75,6 +75,7 @@ public:
 	virtual std::string getDptfHomeDirectoryPath(void) const override;
 	virtual std::string getDptfPolicyDirectoryPath(void) const override;
 	virtual std::string getDptfReportDirectoryPath(void) const override;
+	virtual Bool isDptfPolicyLoadNameOnly(void) const override;
 
 	void bindDomainsToPolicies(UIntN participantIndex) const override;
 	void unbindDomainsFromPolicies(UIntN participantIndex) const override;
@@ -133,6 +134,7 @@ private:
 	std::string m_dptfHomeDirectoryPath;
 	std::string m_dptfPolicyDirectoryPath;
 	std::string m_dptfReportDirectoryPath;
+	Bool m_dptfPolicyLoadNameOnly;
 
 	void shutDown(void);
 	void disableAndEmptyAllQueues(void);

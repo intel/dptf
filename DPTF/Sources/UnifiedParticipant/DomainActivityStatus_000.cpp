@@ -86,9 +86,3 @@ std::string DomainActivityStatus_000::getName(void)
 {
 	return "Activity Status (Version 0)";
 }
-
-UInt32 DomainActivityStatus_000::getSocDgpuPerformanceHintPoints(UIntN participantIndex, UIntN domainIndex)
-{
-	throw not_implemented();
-}
-

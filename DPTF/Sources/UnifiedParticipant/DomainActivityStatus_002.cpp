@@ -127,4 +127,3 @@ std::string DomainActivityStatus_002::getName(void)
 {
 	return "Activity Status";
 }
-

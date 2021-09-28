@@ -24,7 +24,6 @@ class StringParser final
 {
 public:
 	static std::vector<std::string> split(const std::string& input, char delimiter);
-	static std::string join(std::vector<std::string> strings, char delimiter);
 	static std::string removeString(const std::string& input, const std::string& substring);
 	static std::string removeCharacter(const std::string& input, char character);
 	static std::string replaceAll(
